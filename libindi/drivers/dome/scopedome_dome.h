@@ -418,7 +418,6 @@ class ScopeDome : public INDI::Dome
     bool Ack();
     bool UpdatePosition();
     bool UpdateShutterStatus();
-    bool SaveEncoderPosition();
     bool UpdateSensorStatus();
     bool UpdateRelayStatus();
 
@@ -465,7 +464,9 @@ class ScopeDome : public INDI::Dome
     // I/O helper functions
     float readFloat(ScopeDomeCommand cmd);
     uint8_t readU8(ScopeDomeCommand cmd);
+    int8_t readS8(ScopeDomeCommand cmd);
     uint16_t readU16(ScopeDomeCommand cmd);
+    int16_t readS16(ScopeDomeCommand cmd);
     uint32_t readU32(ScopeDomeCommand cmd);
     int32_t readS32(ScopeDomeCommand cmd);
     int readBuffer(ScopeDomeCommand cmd, int len, uint8_t* cbuf);

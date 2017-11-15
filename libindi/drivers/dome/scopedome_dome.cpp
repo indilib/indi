@@ -39,6 +39,7 @@
 #include <cstring>
 #include <memory>
 #include <termios.h>
+#include <wordexp.h>
 
 // We declare an auto pointer to ScopeDome.
 std::unique_ptr<ScopeDome> scopeDome(new ScopeDome());
@@ -99,96 +100,102 @@ ScopeDome::ScopeDome()
     stepsPerTurn = -1;
 
     // Load dome inertia table if present
-    FILE* inertia = fopen("/home/jpaana/.indi/ScopeDome_DomeInertia_Table.txt", "r");
-    if (inertia)
+    wordexp_t wexp;
+    if (wordexp("~/.indi/ScopeDome_DomeInertia_Table.txt", &wexp, 0) == 0)
     {
-        // skip UTF-8 marker bytes
-        fseek(inertia, 3, SEEK_SET);
-        char line[100];
-        int lineNum = 0;
-
-        while(fgets(line, sizeof(line), inertia))
+        FILE* inertia = fopen(wexp.we_wordv[0], "r");
+        if (inertia)
         {
-            int step, result;
-            if(sscanf(line, "%d ;%d", &step, &result) != 2)
+            // skip UTF-8 marker bytes
+            fseek(inertia, 3, SEEK_SET);
+            char line[100];
+            int lineNum = 0;
+
+            while(fgets(line, sizeof(line), inertia))
             {
-                sscanf(line, "%d;%d", &step, &result);
+                int step, result;
+                if(sscanf(line, "%d ;%d", &step, &result) != 2)
+                {
+                    sscanf(line, "%d;%d", &step, &result);
+                }
+                if (step == lineNum)
+                {
+                    inertiaTable.push_back(result);
+                }
+                lineNum++;
             }
-            if (step == lineNum)
-            {
-                inertiaTable.push_back(result);
-            }
-            lineNum++;
+            fclose(inertia);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Read inertia file %s", wexp.we_wordv[0]);
         }
-        fclose(inertia);
     }
+    wordfree(&wexp);
 }
 
 bool ScopeDome::initProperties()
 {
     INDI::Dome::initProperties();
 
-    IUFillNumber(&DomeHomePositionN[0], "DOME_HOME_POSITION", "AZ (deg)", "%6.2f", 0.0, 360.0, 1.0, 0.0);
+    IUFillNumber(&DomeHomePositionN[0], "DH_POSITION", "AZ (deg)", "%6.2f", 0.0, 360.0, 1.0, 0.0);
     IUFillNumberVector(&DomeHomePositionNP, DomeHomePositionN, 1, getDeviceName(), "DOME_HOME_POSITION", "Home sensor position", SITE_TAB, IP_RW,
                    60, IPS_OK);
 
-    IUFillSwitch(&FindHomeS[0], "Start", "", ISS_OFF);
-    IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "Find home sensor", "", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitch(&FindHomeS[0], "START", "Start", ISS_OFF);
+    IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "FIND_HOME", "Find home sensor", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillSwitch(&PowerRelaysS[0], "CCD", "", ISS_OFF);
-    IUFillSwitch(&PowerRelaysS[1], "Telescope", "", ISS_OFF);
-    IUFillSwitch(&PowerRelaysS[2], "Light", "", ISS_OFF);
-    IUFillSwitch(&PowerRelaysS[3], "Fan", "", ISS_OFF);
-    IUFillSwitchVector(&PowerRelaysSP, PowerRelaysS, 4, getDeviceName(), "Power relays", "", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitch(&PowerRelaysS[0], "CCD", "CCD", ISS_OFF);
+    IUFillSwitch(&PowerRelaysS[1], "SCOPE", "Telescope", ISS_OFF);
+    IUFillSwitch(&PowerRelaysS[2], "LIGHT", "Light", ISS_OFF);
+    IUFillSwitch(&PowerRelaysS[3], "FAN", "Fan", ISS_OFF);
+    IUFillSwitchVector(&PowerRelaysSP, PowerRelaysS, 4, getDeviceName(), "POWER_RELAYS", "Power relays", MAIN_CONTROL_TAB, IP_RW,
                        ISR_NOFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&RelaysS[0], "Relay 1", "", ISS_OFF);
-    IUFillSwitch(&RelaysS[1], "Relay 2", "", ISS_OFF);
-    IUFillSwitch(&RelaysS[2], "Relay 3", "", ISS_OFF);
-    IUFillSwitch(&RelaysS[3], "Relay 4", "", ISS_OFF);
-    IUFillSwitchVector(&RelaysSP, RelaysS, 4, getDeviceName(), "Relays", "", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitch(&RelaysS[0], "RELAY_1", "Relay 1 (reset)", ISS_OFF);
+    IUFillSwitch(&RelaysS[1], "RELAY_2", "Relay 2 (heater)", ISS_OFF);
+    IUFillSwitch(&RelaysS[2], "RELAY_3", "Relay 3", ISS_OFF);
+    IUFillSwitch(&RelaysS[3], "RELAY_4", "Relay 4", ISS_OFF);
+    IUFillSwitchVector(&RelaysSP, RelaysS, 4, getDeviceName(), "RELAYS", "Relays", MAIN_CONTROL_TAB, IP_RW,
                        ISR_NOFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&AutoCloseS[0], "Cloud sensor", "", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[1], "Rain sensor", "", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[2], "Free input", "", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[3], "No power", "", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[4], "Low dome battery", "", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[5], "Low shutter battery", "", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[6], "Bad weather", "", ISS_OFF);
-    IUFillSwitch(&AutoCloseS[7], "Lost connection", "", ISS_OFF);
-    IUFillSwitchVector(&AutoCloseSP, AutoCloseS, 8, getDeviceName(), "Close shutter automatically", "", SITE_TAB, IP_RW,
+    IUFillSwitch(&AutoCloseS[0], "CLOUD", "Cloud sensor", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[1], "RAIN", "Rain sensor", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[2], "FREE", "Free input", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[3], "NO_POWER", "No power", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[4], "DOME_LOW", "Low dome battery", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[5], "SHUTTER_LOW", "Low shutter battery", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[6], "WEATHER", "Bad weather", ISS_OFF);
+    IUFillSwitch(&AutoCloseS[7], "LOST_CONNECTION", "Lost connection", ISS_OFF);
+    IUFillSwitchVector(&AutoCloseSP, AutoCloseS, 8, getDeviceName(), "AUTO_CLOSE", "Close shutter automatically", SITE_TAB, IP_RW,
                        ISR_NOFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&EnvironmentSensorsN[0], "SCOPEDOME_LINK_STRENGTH", "Shutter link strength", "%3.0f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[1], "SCOPEDOME_SHUTTER_POWER", "Shutter internal power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[2], "SCOPEDOME_SHUTTER_BATTERY", "Shutter battery power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[3], "SCOPEDOME_CARD_POWER", "Card internal power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[4], "SCOPEDOME_CARD_BATTERY", "Card battery power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[5], "SCOPEDOME_TEMP_DOME_IN", "Temperature in dome", "%2.2f", -100.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[6], "SCOPEDOME_TEMP_DOME_OUT", "Temperature outside dome", "%2.2f", -100.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[7], "SCOPEDOME_TEMP_DOME_HUMIDITY", "Temperature humidity sensor", "%2.2f", -100.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[8], "SCOPEDOME_HUMIDITY", "Humidity", "%3.2f", 0.0, 100.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[9], "SCOPEDOME_PRESSURE", "Pressure", "%4.1f", 0.0, 2000.0, 1.0, 0.0);
-    IUFillNumber(&EnvironmentSensorsN[10], "SCOPEDOME_DEW_POINT", "Dew point", "%2.2f", -100.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[0], "LINK_STRENGTH", "Shutter link strength", "%3.0f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[1], "SHUTTER_POWER", "Shutter internal power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[2], "SHUTTER_BATTERY", "Shutter battery power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[3], "CARD_POWER", "Card internal power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[4], "CARD_BATTERY", "Card battery power", "%2.2f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[5], "TEMP_DOME_IN", "Temperature in dome", "%2.2f", -100.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[6], "TEMP_DOME_OUT", "Temperature outside dome", "%2.2f", -100.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[7], "TEMP_DOME_HUMIDITY", "Temperature humidity sensor", "%2.2f", -100.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[8], "HUMIDITY", "Humidity", "%3.2f", 0.0, 100.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[9], "PRESSURE", "Pressure", "%4.1f", 0.0, 2000.0, 1.0, 0.0);
+    IUFillNumber(&EnvironmentSensorsN[10], "DEW_POINT", "Dew point", "%2.2f", -100.0, 100.0, 1.0, 0.0);
     IUFillNumberVector(&EnvironmentSensorsNP, EnvironmentSensorsN, 11, getDeviceName(), "SCOPEDOME_SENSORS", "Environment sensors", SITE_TAB, IP_RO,
                    60, IPS_IDLE);
 
-    IUFillSwitch(&SensorsS[0], "Az counter", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[1], "Rotate CCW", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[2], "Dome at home", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[3], "Shutter 1 open", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[4], "Shutter 1 closed", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[5], "Shutter 2 open", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[6], "Shutter 2 closed", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[7], "Scope at home", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[8], "Rain sensor", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[9], "Cloud sensor", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[10], "Observatory safe", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[11], "Rotary link", "", ISS_OFF);
-    IUFillSwitch(&SensorsS[12], "Free input", "", ISS_OFF);
-    IUFillSwitchVector(&SensorsSP, SensorsS, 13, getDeviceName(), "Input sensors", "", SITE_TAB, IP_RO, ISR_NOFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&SensorsS[0], "AZ_COUNTER", "Az counter", ISS_OFF);
+    IUFillSwitch(&SensorsS[1], "ROTATE_CCW", "Rotate CCW", ISS_OFF);
+    IUFillSwitch(&SensorsS[2], "HOME", "Dome at home", ISS_OFF);
+    IUFillSwitch(&SensorsS[3], "OPEN_1", "Shutter 1 open", ISS_OFF);
+    IUFillSwitch(&SensorsS[4], "CLOSE_1", "Shutter 1 closed", ISS_OFF);
+    IUFillSwitch(&SensorsS[5], "OPEN_2", "Shutter 2 open", ISS_OFF);
+    IUFillSwitch(&SensorsS[6], "CLOSE_2", "Shutter 2 closed", ISS_OFF);
+    IUFillSwitch(&SensorsS[7], "SCOPE_HOME", "Scope at home", ISS_OFF);
+    IUFillSwitch(&SensorsS[8], "RAIN", "Rain sensor", ISS_OFF);
+    IUFillSwitch(&SensorsS[9], "CLOUD", "Cloud sensor", ISS_OFF);
+    IUFillSwitch(&SensorsS[10], "SAFE", "Observatory safe", ISS_OFF);
+    IUFillSwitch(&SensorsS[11], "LINK", "Rotary link", ISS_OFF);
+    IUFillSwitch(&SensorsS[12], "FREE", "Free input", ISS_OFF);
+    IUFillSwitchVector(&SensorsSP, SensorsS, 13, getDeviceName(), "INPUTS", "Input sensors", SITE_TAB, IP_RO, ISR_NOFMANY, 0, IPS_IDLE);
 
     SetParkDataType(PARK_AZ);
 
@@ -301,68 +308,22 @@ bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
         if (strcmp(name, PowerRelaysSP.name) == 0)
         {
-//            DEBUGF(INDI::Logger::DBG_DEBUG, "set relay: %d", n);
-            for (int i = 0; i < n; i++)
-            {
-                if (states[i] != PowerRelaysS[i].s)
-                {
-//                    DEBUGF(INDI::Logger::DBG_DEBUG, "%s = %d", names[i], states[i]);
-                    PowerRelaysS[i].s = states[i];
-                    switch(i)
-                    {
-                    case 0:
-                        // CCD
-                        setOutputState(OUT_CCD, states[i]);
-                        break;
-                    case 1:
-                        // Telescope
-                        setOutputState(OUT_SCOPE, states[i]);
-                        break;
-                    case 2:
-                        // Light
-                        setOutputState(OUT_LIGHT, states[i]);
-                        break;
-                    case 3:
-                        // Fan
-                        setOutputState(OUT_FAN, states[i]);
-                        break;
-                    }
-                }
-            }
+	    IUUpdateSwitch(&PowerRelaysSP, states, names, n);
+	    setOutputState(OUT_CCD, PowerRelaysS[0].s);
+	    setOutputState(OUT_SCOPE, PowerRelaysS[1].s);
+	    setOutputState(OUT_LIGHT, PowerRelaysS[2].s);
+	    setOutputState(OUT_FAN, PowerRelaysS[3].s);
             IDSetSwitch(&PowerRelaysSP, nullptr);
             return true;
         }
 
         if (strcmp(name, RelaysSP.name) == 0)
         {
-//            DEBUGF(INDI::Logger::DBG_DEBUG, "set relay: %d", n);
-            for (int i = 0; i < n; i++)
-            {
-                if (states[i] != RelaysS[i].s)
-                {
-//                    DEBUGF(INDI::Logger::DBG_DEBUG, "%s = %d", names[i], states[i]);
-                    RelaysS[i].s = states[i];
-                    switch(i)
-                    {
-                    case 0:
-                        // Relay 1
-                        setOutputState(OUT_RELAY1, states[i]);
-                        break;
-                    case 1:
-                        // Relay 2
-                        setOutputState(OUT_RELAY2, states[i]);
-                        break;
-                    case 2:
-                        // Relay 3
-                        setOutputState(OUT_RELAY3, states[i]);
-                        break;
-                    case 3:
-                        // Relay 4
-                        setOutputState(OUT_RELAY4, states[i]);
-                        break;
-                    }
-                }
-            }
+	    IUUpdateSwitch(&RelaysSP, states, names, n);
+	    setOutputState(OUT_RELAY1, RelaysS[0].s);
+	    setOutputState(OUT_RELAY2, RelaysS[1].s);
+	    setOutputState(OUT_RELAY3, RelaysS[2].s);
+	    setOutputState(OUT_RELAY4, RelaysS[3].s);
             IDSetSwitch(&RelaysSP, nullptr);
             return true;
         }
@@ -477,11 +438,13 @@ bool ScopeDome::UpdatePosition()
         DEBUGF(INDI::Logger::DBG_SESSION, "Home position read as %d", homePosition);
     }
 
-    int counter = readS32(GetCounterExt);
-    //DEBUGF(INDI::Logger::DBG_SESSION, "Counter is %d", counter);
+//    int counter = readS32(GetCounterExt);
+    int16_t counter2 = readS16(GetCounter);
+
+    //DEBUGF(INDI::Logger::DBG_SESSION, "Counters are %d - %d", counter, counter2);
 
     // We assume counter value 0 is at home sensor position
-    double az = ((double)counter*-360.0/stepsPerTurn) + DomeHomePositionN[0].value;
+    double az = ((double)counter2*-360.0/stepsPerTurn) + DomeHomePositionN[0].value;
     az = fmod(az, 360.0);
     if (az < 0.0)
     {
@@ -550,9 +513,11 @@ void ScopeDome::TimerHit()
     UpdateShutterStatus();
     IDSetSwitch(&DomeShutterSP, nullptr);
 
+    UpdateRelayStatus();
+
     if (status == DOME_HOMING)
     {
-        if ((currentStatus & 8) == 0 && (digitalSensorState[2] & 0x20))
+        if ((currentStatus & 8) == 0 && getInputState(IN_HOME))
         {
             // Found home
             status = DOME_READY;
@@ -605,6 +570,7 @@ void ScopeDome::TimerHit()
     else
         IDSetNumber(&DomeAbsPosNP, nullptr);
 
+    // Read temperatures only every 10th time
     static int tmpCounter = 0;
     if (--tmpCounter <= 0)
     {
@@ -625,7 +591,7 @@ IPState ScopeDome::MoveAbs(double az)
     double azDiff = az - DomeAbsPosN[0].value;
     DEBUGF(INDI::Logger::DBG_DEBUG, "azDiff = %f", azDiff);
 
-    // Make relative regardless if it passes az 0
+    // Make relative (-180 - 180) regardless if it passes az 0
     if (azDiff > 180)
     {
         azDiff -= 360;
@@ -695,7 +661,7 @@ IPState ScopeDome::UnPark()
 * ***********************************************************************************/
 IPState ScopeDome::ControlShutter(ShutterOperation operation)
 {
-        targetShutter = operation;
+    targetShutter = operation;
     if (operation == SHUTTER_OPEN)
     {
         if (getInputState(IN_OPEN1))
@@ -729,14 +695,6 @@ bool ScopeDome::Abort()
     writeCmd(Stop);
     status = DOME_READY;
     return true;
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-bool ScopeDome::SaveEncoderPosition()
-{
-    return false;
 }
 
 /************************************************************************************
@@ -779,8 +737,13 @@ float ScopeDome::readFloat(ScopeDomeCommand cmd)
 {
     float value;
     ScopeDomeCommand c;
-    int rc = interface->write(cmd);
-    rc = interface->readBuf(c, 4, (uint8_t*)&value);
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = interface->write(cmd);
+        rc |= interface->readBuf(c, 4, (uint8_t*)&value);
+    } while(rc != 0 && --retryCount);
 //    DEBUGF(INDI::Logger::DBG_ERROR, "readFloat: %d %f", cmd, value);
     return value;
 }
@@ -789,9 +752,29 @@ uint8_t ScopeDome::readU8(ScopeDomeCommand cmd)
 {
     uint8_t value;
     ScopeDomeCommand c;
-    int rc = interface->write(cmd);
-    rc = interface->readBuf(c, 1, &value);
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = interface->write(cmd);
+        rc |= interface->readBuf(c, 1, &value);
+    } while(rc != 0 && --retryCount);
 //    DEBUGF(INDI::Logger::DBG_ERROR, "readU8: %d %x", cmd, value);
+    return value;
+}
+
+int8_t ScopeDome::readS8(ScopeDomeCommand cmd)
+{
+    int8_t value;
+    ScopeDomeCommand c;
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = interface->write(cmd);
+        rc |= interface->readBuf(c, 1, (uint8_t*)&value);
+    } while(rc != 0 && --retryCount);
+//    DEBUGF(INDI::Logger::DBG_ERROR, "readS8: %d %x", cmd, value);
     return value;
 }
 
@@ -799,9 +782,29 @@ uint16_t ScopeDome::readU16(ScopeDomeCommand cmd)
 {
     uint16_t value;
     ScopeDomeCommand c;
-    int rc = interface->write(cmd);
-    rc = interface->readBuf(c, 2, (uint8_t*)&value);
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = interface->write(cmd);
+        rc |= interface->readBuf(c, 2, (uint8_t*)&value);
+    } while(rc != 0 && --retryCount);
 //    DEBUGF(INDI::Logger::DBG_ERROR, "readU16: %d %x", cmd, value);
+    return value;
+}
+
+int16_t ScopeDome::readS16(ScopeDomeCommand cmd)
+{
+    int16_t value;
+    ScopeDomeCommand c;
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = interface->write(cmd);
+        rc |= interface->readBuf(c, 2, (uint8_t*)&value);
+    } while(rc != 0 && --retryCount);
+//    DEBUGF(INDI::Logger::DBG_ERROR, "readS16: %d %x", cmd, value);
     return value;
 }
 
@@ -809,8 +812,13 @@ uint32_t ScopeDome::readU32(ScopeDomeCommand cmd)
 {
     uint32_t value;
     ScopeDomeCommand c;
-    int rc = interface->write(cmd);
-    rc = interface->readBuf(c, 4, (uint8_t*)&value);
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = interface->write(cmd);
+        rc |= interface->readBuf(c, 4, (uint8_t*)&value);
+    } while(rc != 0 && --retryCount);
 //    DEBUGF(INDI::Logger::DBG_ERROR, "readU32: %d %x", cmd, value);
     return value;
 }
@@ -819,16 +827,28 @@ int32_t ScopeDome::readS32(ScopeDomeCommand cmd)
 {
     int32_t value;
     ScopeDomeCommand c;
-    int rc = interface->write(cmd);
-    rc = interface->readBuf(c, 4, (uint8_t*)&value);
+    int rc;
+    int retryCount = 2;
+    do
+    {
+        rc = interface->write(cmd);
+        rc |= interface->readBuf(c, 4, (uint8_t*)&value);
+    } while(rc != 0 && --retryCount);
 //    DEBUGF(INDI::Logger::DBG_ERROR, "readU32: %d %x", cmd, value);
     return value;
 }
 
 int ScopeDome::readBuffer(ScopeDomeCommand cmd, int len, uint8_t* cbuf)
 {
-    int rc = interface->write(cmd);
-    return interface->readBuf(cmd, len, cbuf);
+    int rc;
+    int retryCount = 2;
+    ScopeDomeCommand c;
+    do
+    {
+        rc = interface->write(cmd);
+        rc |= interface->readBuf(c, len, cbuf);
+    } while(rc != 0 && --retryCount);
+    return rc;
 }
 
 
