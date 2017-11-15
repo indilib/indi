@@ -403,7 +403,7 @@ bool get_celestron_model(int fd, FirmwareInfo *info)
                 info->Model = "Unknown";
             }
 
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_SESSION, "Mount model: %s", info->Model);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_SESSION, "Mount model: %s", info->Model.c_str());
 
             return true;
         }
