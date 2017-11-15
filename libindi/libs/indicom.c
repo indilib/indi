@@ -80,6 +80,8 @@
 #define MAXRBUF 2048
 
 int tty_debug = 0;
+int ttyGeminiUdpFormat = 0;
+int sequenceNumber = 1;
 
 #if defined(HAVE_LIBNOVA)
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
@@ -312,6 +314,11 @@ void tty_set_debug(int debug)
     tty_debug = debug;
 }
 
+void tty_set_gemini_udp_format(int enabled)
+{
+    ttyGeminiUdpFormat = enabled;
+}
+
 int tty_timeout(int fd, int timeout)
 {
 #if defined(_WIN32) || defined(ANDROID)
@@ -355,6 +362,22 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
 #ifdef _WIN32
     return TTY_ERRNO;
 #else
+    int buffer[66]={0};
+    char *byteBuffer = (char *)buffer;
+
+    if (ttyGeminiUdpFormat)
+    {
+        buffer[0] = ++sequenceNumber;
+        buffer[1] = 0;
+        strncpy((char *)&buffer[2], buf, nbytes);
+        // Add on the 8 bytes for the header and 1 byte for the null terminator
+        nbytes += 9;
+    }
+    else
+    {
+        strncpy(byteBuffer, buf, 255);
+//        strncpy((char *)buffer, buf, 255);
+    }
 
     if (fd == -1)
         return TTY_ERRNO;
@@ -371,15 +394,17 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
 
     while (nbytes > 0)
     {
-        bytes_w = write(fd, buf + (*nbytes_written), nbytes);
+        bytes_w = write(fd, buffer + (*nbytes_written), nbytes);
 
         if (bytes_w < 0)
             return TTY_WRITE_ERROR;
 
         *nbytes_written += bytes_w;
-        //buf += bytes_w;
         nbytes -= bytes_w;
     }
+
+    if (ttyGeminiUdpFormat)
+        *nbytes_written -= 9;
 
     return TTY_OK;
 
@@ -388,40 +413,10 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
 
 int tty_write_string(int fd, const char *buf, int *nbytes_written)
 {
-#ifdef _WIN32
-    return TTY_ERRNO;
-#else
-
-    if (fd == -1)
-        return TTY_ERRNO;
-
     unsigned int nbytes;
-    int bytes_w     = 0;
-    *nbytes_written = 0;
-
     nbytes = strlen(buf);
 
-    if (tty_debug)
-    {
-        for (int i = 0; i < (int)nbytes; i++)
-            IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
-    }
-
-    while (nbytes > 0)
-    {
-        bytes_w = write(fd, buf + (*nbytes_written), nbytes);
-
-        if (bytes_w < 0)
-            return TTY_WRITE_ERROR;
-
-        *nbytes_written += bytes_w;
-        //buf += bytes_w;
-        nbytes -= bytes_w;
-    }
-
-    return TTY_OK;
-
-#endif
+    return tty_write(fd, buf, nbytes, nbytes_written);
 }
 
 int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
@@ -430,9 +425,12 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
     return TTY_ERRNO;
 #else
 
+    char readBuffer[257]={0};
+
     if (fd == -1)
         return TTY_ERRNO;
 
+    int numBytesToRead = 0;
     int bytesRead = 0;
     int err       = 0;
     *nbytes_read  = 0;
@@ -443,26 +441,52 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
     if (tty_debug)
         IDLog("%s: Request to read %d bytes with %d timeout for fd %d\n", __FUNCTION__, nbytes, timeout, fd);
 
-    while (nbytes > 0)
+    if (ttyGeminiUdpFormat)
+    {
+        numBytesToRead = nbytes + 8;
+    }
+    else
+    {
+        numBytesToRead = nbytes;
+    }
+
+    while (numBytesToRead > 0)
     {
         if ((err = tty_timeout(fd, timeout)))
             return err;
 
-        bytesRead = read(fd, buf + (*nbytes_read), ((uint32_t)nbytes));
+        bytesRead = read(fd, readBuffer + (*nbytes_read), ((uint32_t)numBytesToRead));
 
         if (bytesRead < 0)
             return TTY_READ_ERROR;
 
         if (tty_debug)
         {
-            IDLog("%d bytes read and %d bytes remaining...\n", bytesRead, nbytes - bytesRead);
+            IDLog("%d bytes read and %d bytes remaining...\n", bytesRead, numBytesToRead - bytesRead);
             int i = 0;
             for (i = *nbytes_read; i < (*nbytes_read + bytesRead); i++)
                 IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
         }
 
         *nbytes_read += bytesRead;
-        nbytes -= bytesRead;
+        numBytesToRead -= bytesRead;
+    }
+
+    if (ttyGeminiUdpFormat)
+    {
+        int *intSizedBuffer = (int *)readBuffer;
+        if (intSizedBuffer[0] != sequenceNumber)
+        {
+            // Not the right reply just do the read again.
+            return tty_read(fd, buf, nbytes, timeout, nbytes_read);
+        }
+
+        *nbytes_read -= 8;
+        strncpy(buf, readBuffer+8, *nbytes_read);
+    }
+    else
+    {
+        strncpy(buf, readBuffer, *nbytes_read);
     }
 
     return TTY_OK;
@@ -476,6 +500,8 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     return TTY_ERRNO;
 #else
 
+    char readBuffer[257]={0};
+
     if (fd == -1)
         return TTY_ERRNO;
 
@@ -488,24 +514,53 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     if (tty_debug)
         IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
 
-    for (;;)
+    if (ttyGeminiUdpFormat)
     {
-        if ((err = tty_timeout(fd, timeout)))
-            return err;
-
-        read_char = (uint8_t*)(buf + *nbytes_read);
-        bytesRead = read(fd, read_char, 1);
+        bytesRead = read(fd, readBuffer, 255);
 
         if (bytesRead < 0)
             return TTY_READ_ERROR;
 
-        if (tty_debug)
-            IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
+        int *intSizedBuffer = (int *)readBuffer;
+        if (intSizedBuffer[0] != sequenceNumber)
+        {
+            // Not the right reply just do the read again.
+            return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+        }
 
-        (*nbytes_read)++;
+        for (int index = 8; index < bytesRead; index++)
+        {
+            (*nbytes_read)++;
 
-        if (*read_char == stop_char)
-            return TTY_OK;
+            if (*(readBuffer+index) == stop_char)
+            {
+                strncpy(buf, readBuffer+8, *nbytes_read);
+                return TTY_OK;
+            }
+        }
+
+    }
+    else
+    {
+        for (;;)
+        {
+            if ((err = tty_timeout(fd, timeout)))
+                return err;
+
+            read_char = (uint8_t*)(buf + *nbytes_read);
+            bytesRead = read(fd, read_char, 1);
+
+            if (bytesRead < 0)
+                return TTY_READ_ERROR;
+
+            if (tty_debug)
+                IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
+
+            (*nbytes_read)++;
+
+            if (*read_char == stop_char)
+                return TTY_OK;
+        }
     }
 
     return TTY_TIME_OUT;

@@ -35,8 +35,14 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
     // Address/Port
     IUFillText(&AddressT[0], "ADDRESS", "Address", "");
     IUFillText(&AddressT[1], "PORT", "Port", "");
-    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), INDI::SP::DEVICE_TCP_ADDRESS, "TCP Server", CONNECTION_TAB,
+    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_ADDRESS", "Server", CONNECTION_TAB,
                      IP_RW, 60, IPS_IDLE);
+
+    IUFillSwitch(&TcpUdpS[0], "TCP", "TCP", ISS_ON);
+    IUFillSwitch(&TcpUdpS[1], "UDP", "UDP", ISS_OFF);
+    IUFillSwitchVector(&TcpUdpSP, TcpUdpS, 2, dev->getDeviceName(), "CONNECTION_TYPE", "Connection Type",
+                       CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
 }
 
 TCP::~TCP()
@@ -53,6 +59,24 @@ bool TCP::ISNewText(const char *dev, const char *name, char *texts[], char *name
             IUUpdateText(&AddressTP, texts, names, n);
             AddressTP.s = IPS_OK;
             IDSetText(&AddressTP, nullptr);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (!strcmp(dev, device->getDeviceName()))
+    {
+        if (!strcmp(name, TcpUdpSP.name))
+        {
+            IUUpdateSwitch(&TcpUdpSP, states, names, n);
+            TcpUdpSP.s = IPS_OK;
+
+            IDSetSwitch(&TcpUdpSP, nullptr);
+
             return true;
         }
     }
@@ -100,7 +124,17 @@ bool TCP::Connect()
         serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
         serv_addr.sin_port        = htons(atoi(port));
 
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        int socketType = 0;
+        if (TcpUdpS[0].s == ISS_ON)
+        {
+            socketType = SOCK_STREAM;
+        }
+        else
+        {
+            socketType = SOCK_DGRAM;
+        }
+
+        if ((sockfd = socket(AF_INET, socketType, 0)) < 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
             return false;
@@ -128,7 +162,8 @@ bool TCP::Connect()
     if (rc)
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
-        device->saveConfig(true, INDI::SP::DEVICE_TCP_ADDRESS);
+        device->saveConfig(true, "DEVICE_ADDRESS");
+        device->saveConfig(true, "CONNECTION_TYPE");
     }
     else
         DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
@@ -150,17 +185,21 @@ bool TCP::Disconnect()
 void TCP::Activated()
 {
     device->defineText(&AddressTP);
-    device->loadConfig(true, INDI::SP::DEVICE_TCP_ADDRESS);
+    device->defineSwitch(&TcpUdpSP);
+    device->loadConfig(true, "DEVICE_ADDRESS");
+    device->loadConfig(true, "CONNECTION_TYPE");
 }
 
 void TCP::Deactivated()
 {
     device->deleteProperty(AddressTP.name);
+    device->deleteProperty(TcpUdpSP.name);
 }
 
 bool TCP::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &AddressTP);
+    IUSaveConfigSwitch(fp, &TcpUdpSP);
 
     return true;
 }
@@ -175,5 +214,12 @@ void TCP::setDefaultPort(uint32_t addressPort)
     char portStr[8];
     snprintf(portStr, 8, "%d", addressPort);
     IUSaveText(&AddressT[1], portStr);
+}
+
+void TCP::setConnectionType(int type)
+{
+    IUResetSwitch(&TcpUdpSP);
+    TcpUdpS[type].s = ISS_ON;
+    IDSetSwitch(&TcpUdpSP, nullptr);
 }
 }

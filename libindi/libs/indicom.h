@@ -160,6 +160,7 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len);
  * @param debug 1 to enable, 0 to disable
  */
 void tty_set_debug(int debug);
+void tty_set_gemini_udp_format(int enabled);
 
 int tty_timeout(int fd, int timeout);
 /*@}*/
