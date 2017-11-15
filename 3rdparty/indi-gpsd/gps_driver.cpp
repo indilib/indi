@@ -98,7 +98,7 @@ bool GPSD::Connect()
     }
     if (gps->stream(WATCH_ENABLE | WATCH_JSON) == NULL)
     {
-        IDMessage(getDeviceName(), "No GPSD running.");
+        DEBUG(INDI::Logger::DBG_WARNING, "No GPSD running.");
         return false;
     }
     return true;
@@ -108,7 +108,7 @@ bool GPSD::Disconnect()
 {
     delete gps;
     gps = NULL;
-    IDMessage(getDeviceName(), "GPS disconnected successfully.");
+    DEBUG(INDI::Logger::DBG_SESSION, "GPS disconnected successfully.");
     return true;
 }
 
@@ -125,10 +125,6 @@ bool GPSD::initProperties()
     IUFillNumberVector(&PolarisNP, PolarisN, 1, getDeviceName(), "POLARIS", "Polaris", MAIN_CONTROL_TAB, IP_RO, 60,
                        IPS_IDLE);
 
-    IUFillSwitch(&RefreshS[0], "REFRESH", "Update", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), "GPS_REFRESH", "GPS", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
-
     return true;
 }
 
@@ -139,10 +135,8 @@ bool GPSD::updateProperties()
 
     if (isConnected())
     {
-        deleteProperty(RefreshSP.name);
         defineText(&GPSstatusTP);
         defineNumber(&PolarisNP);
-        defineSwitch(&RefreshSP);
     }
     else
     {
@@ -200,7 +194,7 @@ IPState GPSD::updateGPS()
     {
         if (GPSstatusTP.s != IPS_BUSY)
         {
-            IDMessage(getDeviceName(), "Waiting for gps data...");
+            DEBUG(INDI::Logger::DBG_SESSION, "Waiting for gps data...");
             GPSstatusTP.s = IPS_BUSY;
         }
         return IPS_BUSY;
@@ -208,7 +202,7 @@ IPState GPSD::updateGPS()
 
     if ((gpsData = gps->read()) == NULL)
     {
-        IDMessage(getDeviceName(), "GPSD read error.");
+        DEBUG(INDI::Logger::DBG_ERROR, "GPSD read error.");
         IDSetText(&GPSstatusTP, NULL);
         return IPS_ALERT;
     }
@@ -216,10 +210,10 @@ IPState GPSD::updateGPS()
     if (gpsData->status == STATUS_NO_FIX)
     {
         // We have no fix and there is no point in further processing.
-        GPSstatusT[0].text = (char *)"NO FIX";
+        IUSaveText(&GPSstatusT[0], "NO FIX");
         if (GPSstatusTP.s == IPS_OK)
         {
-            IDMessage(getDeviceName(), "GPS fix lost.");
+            DEBUG(INDI::Logger::DBG_WARNING, "GPS fix lost.");
         }
         GPSstatusTP.s = IPS_BUSY;
         IDSetText(&GPSstatusTP, NULL);
@@ -233,10 +227,10 @@ IPState GPSD::updateGPS()
         {
             // The position is not realy measured yet - we have no valid data
             // Keep looking
-            GPSstatusT[0].text = (char *)"NO FIX";
+            IUSaveText(&GPSstatusT[0], "NO FIX");
             if (GPSstatusTP.s == IPS_OK)
             {
-                IDMessage(getDeviceName(), "GPS fix lost.");
+                DEBUG(INDI::Logger::DBG_WARNING, "GPS fix lost.");
             }
             GPSstatusTP.s = IPS_BUSY;
             IDSetText(&GPSstatusTP, NULL);
@@ -246,24 +240,24 @@ IPState GPSD::updateGPS()
 
     // detect gps fix showing up after not being avaliable
     if (GPSstatusTP.s != IPS_OK)
-        IDMessage(getDeviceName(), "GPS fix obtained.");
+        DEBUG(INDI::Logger::DBG_SESSION, "GPS fix obtained.");
 
     // update gps fix status
     if (gpsData->fix.mode == MODE_3D)
     {
-        GPSstatusT[0].text = (char *)"3D FIX";
+        IUSaveText(&GPSstatusT[0], "3D FIX");
         GPSstatusTP.s      = IPS_OK;
         IDSetText(&GPSstatusTP, NULL);
     }
     else if (gpsData->fix.mode == MODE_2D)
     {
-        GPSstatusT[0].text = (char *)"2D FIX";
+        IUSaveText(&GPSstatusT[0], "2D FIX");
         GPSstatusTP.s      = IPS_OK;
         IDSetText(&GPSstatusTP, NULL);
     }
     else
     {
-        GPSstatusT[0].text = (char *)"NO FIX";
+        IUSaveText(&GPSstatusT[0], "NO FIX");
         GPSstatusTP.s      = IPS_BUSY;
         IDSetText(&GPSstatusTP, NULL);
         return IPS_BUSY;
@@ -275,6 +269,10 @@ IPState GPSD::updateGPS()
 
     LocationN[LOCATION_LATITUDE].value  = gpsData->fix.latitude;
     LocationN[LOCATION_LONGITUDE].value = gpsData->fix.longitude;
+    // 2017-11-15 Jasem: INDI Longitude is 0 to 360 East+
+    if (LocationN[LOCATION_LONGITUDE].value < 0)
+        LocationN[LOCATION_LONGITUDE].value += 360;
+
     if (gpsData->fix.mode == MODE_3D)
     {
         LocationN[LOCATION_ELEVATION].value = gpsData->fix.altitude;
