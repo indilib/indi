@@ -89,6 +89,17 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
     virtual IPState GuideEast(float ms) override;
     virtual IPState GuideWest(float ms) override;
 
+    // Pulse Guide
+    static void guideTimeoutHelperN(void *p);
+    static void guideTimeoutHelperS(void *p);
+    static void guideTimeoutHelperE(void *p);
+    static void guideTimeoutHelperW(void *p);
+    void guideTimeout(PMC8_DIRECTION calldir);
+
+    //GUIDE variables.
+    int GuideNSTID;
+    int GuideWETID;
+
   private:
     /**
         * @brief getStartupData Get initial mount info on startup.

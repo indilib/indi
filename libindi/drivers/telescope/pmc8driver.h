@@ -134,6 +134,7 @@ bool unpark_pmc8(int fd);
 bool set_pmc8_guide_rate(int fd, double rate);
 //bool get_pmc8_guide_rate(int fd, double *rate);
 bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms);
+bool stop_pmc8_guide(int fd);
 
 /**************************************************************************
  Time & Location

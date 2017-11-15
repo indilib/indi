@@ -65,6 +65,21 @@ double pmc8_longitude           = 0;  // must be kept updated by pmc8.cpp when i
 double pmc8_guide_rate = 0.5*15.0;    // default to 0.5 sidereal
 PMC8Info simPMC8Info;
 
+// state variable for driver based pulse guiding
+struct
+{
+    int cur_ra_rate;
+    int cur_dec_rate;
+    int cur_ra_dir;
+    int cur_dec_dir;
+    int new_ra_rate;
+    int new_dec_rate;
+    int new_ra_dir;
+    int new_dec_dir;
+} PulseGuideTrackingState;
+
+bool pulse_guide_active = false;
+
 struct
 {
     double ra;
@@ -1176,6 +1191,12 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
     int cur_ra_dir;
     int cur_dec_dir;
 
+    if (pulse_guide_active)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): already executing a pulse guide!");
+        return false;
+    }
+
     // experimental implementation:
     //  1) Get current rates
     //  2) Set new rates based on guide direction
@@ -1304,29 +1325,54 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
             set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, new_dec_dir);
     }
 
+    // store state
+    pulse_guide_active = true;
+    PulseGuideTrackingState.cur_ra_rate  = cur_ra_rate;
+    PulseGuideTrackingState.cur_ra_dir   = cur_ra_dir;
+    PulseGuideTrackingState.cur_dec_rate = cur_dec_rate;
+    PulseGuideTrackingState.cur_dec_dir  = cur_dec_dir;
+    PulseGuideTrackingState.new_ra_rate  = new_ra_rate;
+    PulseGuideTrackingState.new_ra_dir   = new_ra_dir;
+    PulseGuideTrackingState.new_dec_rate = new_dec_rate;
+    PulseGuideTrackingState.new_dec_dir  = new_dec_dir;
+
     // wait duration
-    usleep(ms*1000);
+//    usleep(ms*1000);
+
+    return true;
+}
+
+bool stop_pmc8_guide(int fd)
+{
+
+    if (!pulse_guide_active)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_stop_guide(): pulse guide not active!!");
+        return false;
+    }
 
     // restore previous tracking - only change ones we need to!
-    if ((new_ra_rate != cur_ra_rate) || (new_ra_dir != cur_ra_dir))
+    if ((PulseGuideTrackingState.new_ra_rate != PulseGuideTrackingState.cur_ra_rate) ||
+        (PulseGuideTrackingState.new_ra_dir  != PulseGuideTrackingState.cur_ra_dir))
     {
         // not sure if best to flip dir or rate first!
 //        if (new_ra_rate != cur_ra_rate)
 //            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, cur_ra_rate, true);
         // FIXME - (MSF) for now restore sidereal tracking
-        if (new_ra_rate != cur_ra_rate)
+        if (PulseGuideTrackingState.new_ra_rate != PulseGuideTrackingState.cur_ra_rate)
             set_pmc8_track_mode(fd, PMC8_TRACK_SIDEREAL);
-        if (new_ra_dir != cur_ra_dir)
-            set_pmc8_direction_axis(fd, PMC8_AXIS_RA, cur_ra_dir);
+        if (PulseGuideTrackingState.new_ra_dir != PulseGuideTrackingState.cur_ra_dir)
+            set_pmc8_direction_axis(fd, PMC8_AXIS_RA, PulseGuideTrackingState.cur_ra_dir);
     }
 
-    if ((new_dec_rate != cur_dec_rate) || (new_dec_dir != cur_dec_dir))
+    if ((PulseGuideTrackingState.new_dec_rate != PulseGuideTrackingState.cur_dec_rate) ||
+        (PulseGuideTrackingState.new_dec_dir  != PulseGuideTrackingState.cur_dec_dir))
     {
         // not sure if best to flip dir or rate first!
-        if (new_dec_rate != cur_dec_rate)
-            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, cur_dec_rate, true);
-        if (new_dec_dir != cur_dec_dir)
-            set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, cur_dec_dir);
+        if (PulseGuideTrackingState.new_dec_rate != PulseGuideTrackingState.cur_dec_rate)
+            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, PulseGuideTrackingState.cur_dec_rate, true);
+        if (PulseGuideTrackingState.new_dec_dir != PulseGuideTrackingState.cur_dec_dir)
+            set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, PulseGuideTrackingState.cur_dec_dir);
     }
 
     return true;

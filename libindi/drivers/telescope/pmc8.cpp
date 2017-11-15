@@ -516,6 +516,35 @@ bool PMC8::Sync(double ra, double dec)
 
 bool PMC8::Abort()
 {
+
+    //GUIDE Abort guide operations.
+    if (GuideNSNP.s == IPS_BUSY || GuideWENP.s == IPS_BUSY)
+    {
+        GuideNSNP.s = GuideWENP.s = IPS_IDLE;
+        GuideNSN[0].value = GuideNSN[1].value = 0.0;
+        GuideWEN[0].value = GuideWEN[1].value = 0.0;
+
+        if (GuideNSTID)
+        {
+            IERmTimer(GuideNSTID);
+            GuideNSTID = 0;
+        }
+
+        if (GuideWETID)
+        {
+            IERmTimer(GuideWETID);
+            GuideNSTID = 0;
+        }
+
+        DEBUG(INDI::Logger::DBG_SESSION, "Guide aborted.");
+        IDSetNumber(&GuideNSNP, nullptr);
+        IDSetNumber(&GuideWENP, nullptr);
+
+        return true;
+    }
+
+
+
     return abort_pmc8(PortFD);
 }
 
@@ -739,26 +768,96 @@ bool PMC8::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 // not implemented on PMC8
 IPState PMC8::GuideNorth(float ms)
 {
-    bool rc = start_pmc8_guide(PortFD, PMC8_N, (int)ms);
-    return (rc ? IPS_OK : IPS_ALERT);
+    bool rc;
+
+
+    // If already moving, then stop movement
+    if (MovementNSSP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementNSSP);
+        MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+    }
+
+    if (GuideNSTID)
+    {
+        IERmTimer(GuideNSTID);
+        GuideNSTID = 0;
+    }
+
+    rc = start_pmc8_guide(PortFD, PMC8_N, (int)ms);
+    GuideNSTID = IEAddTimer(ms, guideTimeoutHelperN, this);
+
+    return IPS_BUSY;
 }
 
 IPState PMC8::GuideSouth(float ms)
 {
-    bool rc = start_pmc8_guide(PortFD, PMC8_S, (int)ms);
-    return (rc ? IPS_OK : IPS_ALERT);
+    bool rc;
+
+    // If already moving, then stop movement
+    if (MovementNSSP.s == IPS_BUSY)
+    {
+         int dir = IUFindOnSwitchIndex(&MovementNSSP);
+         MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+    }
+
+    if (GuideNSTID)
+    {
+         IERmTimer(GuideNSTID);
+         GuideNSTID = 0;
+    }
+
+    rc = start_pmc8_guide(PortFD, PMC8_S, (int)ms);
+
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperS, this);
+    return IPS_BUSY;
 }
 
 IPState PMC8::GuideEast(float ms)
 {
-    bool rc = start_pmc8_guide(PortFD, PMC8_E, (int)ms);
-    return (rc ? IPS_OK : IPS_ALERT);
+    bool rc;
+
+
+    // If already moving (no pulse command), then stop movement
+    if (MovementWESP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementWESP);
+        MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+    }
+
+    if (GuideWETID)
+    {
+        IERmTimer(GuideWETID);
+        GuideWETID = 0;
+    }
+
+    rc = start_pmc8_guide(PortFD, PMC8_E, (int)ms);
+
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperE, this);
+    return IPS_BUSY;
 }
 
 IPState PMC8::GuideWest(float ms)
 {
-    bool rc = start_pmc8_guide(PortFD, PMC8_W, (int)ms);
-    return (rc ? IPS_OK : IPS_ALERT);
+    bool rc;
+
+    // If already moving (no pulse command), then stop movement
+    if (MovementWESP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementWESP);
+        MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+    }
+
+    if (GuideWETID)
+    {
+        IERmTimer(GuideWETID);
+        GuideWETID = 0;
+    }
+
+    rc = start_pmc8_guide(PortFD, PMC8_W, (int)ms);
+
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperW, this);
+    return IPS_BUSY;
 }
 #else
 IPState PMC8::GuideNorth(float ms)
@@ -790,6 +889,49 @@ IPState PMC8::GuideWest(float ms)
     return IPS_ALERT;
 }
 #endif
+
+void PMC8::guideTimeout(PMC8_DIRECTION calldir)
+{
+    // end previous pulse command
+    stop_pmc8_guide(PortFD);
+
+    if (calldir == PMC8_N || calldir == PMC8_S)
+    {
+        GuideNSNP.np[0].value = 0;
+        GuideNSNP.np[1].value = 0;
+        GuideNSNP.s           = IPS_IDLE;
+        GuideNSTID            = 0;
+        IDSetNumber(&GuideNSNP, nullptr);
+    }
+    if (calldir == PMC8_W || calldir == PMC8_E)
+    {
+        GuideWENP.np[0].value = 0;
+        GuideWENP.np[1].value = 0;
+        GuideWENP.s           = IPS_IDLE;
+        GuideWETID            = 0;
+        IDSetNumber(&GuideWENP, nullptr);
+    }
+
+    DEBUG(INDI::Logger::DBG_WARNING, "GUIDE CMD COMPLETED");
+}
+
+//GUIDE The timer helper functions.
+void PMC8::guideTimeoutHelperN(void *p)
+{
+    ((PMC8 *)p)->guideTimeout(PMC8_N);
+}
+void PMC8::guideTimeoutHelperS(void *p)
+{
+    ((PMC8 *)p)->guideTimeout(PMC8_S);
+}
+void PMC8::guideTimeoutHelperW(void *p)
+{
+    ((PMC8 *)p)->guideTimeout(PMC8_W);
+}
+void PMC8::guideTimeoutHelperE(void *p)
+{
+    ((PMC8 *)p)->guideTimeout(PMC8_E);
+}
 
 bool PMC8::SetSlewRate(int index)
 {
