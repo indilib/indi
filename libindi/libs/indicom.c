@@ -474,7 +474,8 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 
     if (ttyGeminiUdpFormat)
     {
-        if (*(int *)(readBuffer) != sequenceNumber)
+        int *intSizedBuffer = (int *)readBuffer;
+        if (intSizedBuffer[0] != sequenceNumber)
         {
             // Not the right reply just do the read again.
             return tty_read(fd, buf, nbytes, timeout, nbytes_read);
@@ -520,7 +521,8 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
         if (bytesRead < 0)
             return TTY_READ_ERROR;
 
-        if (*(int *)(readBuffer) != sequenceNumber)
+        int *intSizedBuffer = (int *)readBuffer;
+        if (intSizedBuffer[0] != sequenceNumber)
         {
             // Not the right reply just do the read again.
             return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
