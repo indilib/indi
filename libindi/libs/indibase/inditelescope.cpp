@@ -998,6 +998,7 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
                 ParkS[1].s = ISS_ON;
                 ParkSP.s   = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_SESSION, "Telescope already unparked.");
+                IsParked = false;
                 IDSetSwitch(&ParkSP, nullptr);
                 return true;
             }
