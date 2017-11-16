@@ -293,6 +293,13 @@ bool CelestronGPS::updateProperties()
         if (fwInfo.controllerVersion >= 2.3)
         {
             CELESTRON_TRACK_MODE mode;
+            if (isSimulation())
+            {
+                if (isParked())
+                    set_sim_track_mode(TRACKING_OFF);
+                else
+                    set_sim_track_mode(TRACK_EQN);
+            }
             if (get_celestron_track_mode(PortFD, &mode))
             {
                 if (mode != TRACKING_OFF)
@@ -302,12 +309,16 @@ bool CelestronGPS::updateProperties()
                     TrackModeS[mode-1].s = ISS_ON;
                     TrackModeSP.s      = IPS_OK;
 
+                    // If tracking is ON then mount is NOT parked.
+                    if (isParked())
+                        SetParked(false);
+
                     TrackState = SCOPE_TRACKING;
                 }
                 else
                 {
                     DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
-                    TrackState = SCOPE_IDLE;
+                    TrackState = isParked() ? SCOPE_PARKED : SCOPE_IDLE;
                 }
             }
             else
@@ -529,9 +540,6 @@ bool CelestronGPS::ReadScopeStatus()
 {
     if (isSimulation())
         mountSim();
-
-    if (TrackState == SCOPE_PARKED)
-        return true;
 
     if (get_celestron_coords(PortFD, &currentRA, &currentDEC) == false)
     {
