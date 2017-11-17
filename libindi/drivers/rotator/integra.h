@@ -58,12 +58,17 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     bool getFocuserType();
     bool Ack();
     bool gotoMotor(MotorType type, int32_t position);
+    bool relativeGotoMotor(MotorType type, int32_t relativePosition);
     bool getPosition(MotorType type);
     bool stopMotor(MotorType type);
     bool isMotorMoving(MotorType type);
     bool getTemperature();
     bool findHome(uint8_t motorTypes);
     bool isHomingComplete();
+    void cleanPrint(const char *cmd, char *cleancmd);
+
+    INumber MaxPositionN[2];
+    INumberVectorProperty MaxPositionNP;
 
     INumber SensorN[2];
     INumberVectorProperty SensorNP;
@@ -83,6 +88,7 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     INumberVectorProperty RotatorAbsPosNP;
 
     double lastTemperature { 0 };
+    int timeToReadTemperature = 0;
     double ticksPerDegree { 0 };
     uint32_t lastFocuserPosition { 0 };
     uint32_t lastRotatorPosition { 0 };

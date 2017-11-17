@@ -27,14 +27,15 @@
 #include <memory>
 #include <termios.h>
 
-#define INTEGRA_TIMEOUT_IN_S 3
+#define INTEGRA_SKIP_LOOPS_TO_READ_TEMPERATURE 60
+#define INTEGRA_TIMEOUT_IN_S 5
 #define INTEGRA_TEMPERATURE_TRESHOLD_IN_C 0.1
 
 #define NC_25_STEPS 374920
 #define INTEGRA85_FOCUSER_STEPS 188600 // 0.053 micron per motor step
 #define INTEGRA85_ROTATOR_STEPS 61802
 
-#define POLLMS 500
+#define POLLMS 5000
 #define ROTATOR_TAB "Rotator"
 #define SETTINGS_TAB "Settings"
 
@@ -89,6 +90,11 @@ bool Integra::initProperties()
 {
     INDI::Focuser::initProperties();
 
+    IUFillNumber(&MaxPositionN[0], "Steps", "Focuser", "%.f", 0, 500000, 0., 188600);
+    IUFillNumber(&MaxPositionN[1], "Steps", "Rotator", "%.f", 0, 500000, 0., 188600);
+    IUFillNumberVector(&MaxPositionNP, MaxPositionN, 2, getDeviceName(), "MAX_POSITION", "Max position",
+                       SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
+
     FocusSpeedN[0].min = 1;
     FocusSpeedN[0].max = 1;
     FocusSpeedN[0].value = 1;
@@ -97,22 +103,30 @@ bool Integra::initProperties()
     IUFillNumber(&SensorN[SENSOR_TEMPERATURE], "TEMPERATURE", "Temperature (C)", "%.2f", -100, 100., 1., 0.);
     IUFillNumberVector(&SensorNP, SensorN, 1, getDeviceName(), "SENSORS", "Sensors", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE );
 
-// TODO we seem to have only 1
-    // Limit Switch
+    // Limit Switch. Note: the Integra85 does not expose its limit switches
     IUFillLight(&LimitSwitchL[ROTATION_SWITCH], "ROTATION_SWITCH", "Rotation Home", IPS_OK);
     IUFillLight(&LimitSwitchL[OUT_SWITCH], "OUT_SWITCH", "Focus Out Limit", IPS_OK);
     IUFillLight(&LimitSwitchL[IN_SWITCH], "IN_SWITCH", "Focus In Limit", IPS_OK);
     IUFillLightVector(&LimitSwitchLP, LimitSwitchL, 3, getDeviceName(), "LIMIT_SWITCHES", "Limit Switch", SETTINGS_TAB, IPS_IDLE);
 
-// TODO we seem to have only focus homing
-    // Home selection
+    // Home selection. Note: the Integra85 ONLY has FOCUS homing, there is NO ROTATOR homing.
     IUFillSwitch(&HomeSelectionS[MOTOR_FOCUS], "FOCUS", "Focuser", ISS_ON);
-    IUFillSwitch(&HomeSelectionS[MOTOR_ROTATOR], "ROTATOR", "Rotator", ISS_ON);
-    IUFillSwitchVector(&HomeSelectionSP, HomeSelectionS, 2, getDeviceName(), "HOME_SELECTION", "Home Select", SETTINGS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&HomeSelectionSP, HomeSelectionS, 1, getDeviceName(), "HOME_SELECTION", "Home Select", SETTINGS_TAB, IP_RW, ISR_NOFMANY, 0, IPS_IDLE);
 
     // Home Find
     IUFillSwitch(&FindHomeS[0], "FIND", "Start", ISS_OFF);
     IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "FIND_HOME", "Home Find", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    /* Relative and absolute movement */
+    FocusAbsPosN[0].min   = 0;
+    FocusAbsPosN[0].max   = MaxPositionN[0].value;
+    FocusAbsPosN[0].step  = MaxPositionN[0].value / 50.0;
+    FocusAbsPosN[0].value = 0;
+
+    FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
+    FocusRelPosN[0].min   = -FocusRelPosN[0].max;
+    FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
+    FocusRelPosN[0].value = 100;
 
     //////////////////////////////////////////////////////
     // Rotator Properties
@@ -124,22 +138,12 @@ bool Integra::initProperties()
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
     IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
-    /* Relative and absolute movement */
-    FocusRelPosN[0].min = 0.;
-    FocusRelPosN[0].max = 50000.;
-    FocusRelPosN[0].value = 0;
-    FocusRelPosN[0].step = 1000;
-
-    FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 100000.;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step = 1000;
-
     addDebugControl();
 
     updatePeriodMS = POLLMS;
 
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
+    serialConnection->setDefaultPort("/dev/integra_focusing_rotator1");
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     return true;
 }
@@ -150,6 +154,7 @@ bool Integra::updateProperties()
 
     if (isConnected())
     {
+        defineNumber(&MaxPositionNP);
         // Focus
         defineNumber(&SensorNP);
         defineLight(&LimitSwitchLP);
@@ -162,6 +167,7 @@ bool Integra::updateProperties()
     }
     else
     {
+        deleteProperty(MaxPositionNP.name);
         // Focus
         deleteProperty(SensorNP.name);
         deleteProperty(LimitSwitchLP.name);
@@ -190,17 +196,35 @@ const char * Integra::getDefaultName()
     return "Integra85";
 }
 
+void Integra::cleanPrint(const char *cmd, char *cleancmd)
+{
+    int len = strlen(cmd);
+    int j = 0;
+    for (int i = 0; i<=len; i++) {
+        if (cmd[i] == 0xA) {
+            cleancmd[j++] = '\\';
+            cleancmd[j++] = 'n';
+        } else if (cmd[i] == 0xD) {
+            cleancmd[j++] = '\\';
+            cleancmd[j++] = 'r';
+        } else {
+            cleancmd[j++] = cmd[i];
+        }
+    }
+    //DEBUGF(INDI::Logger::DBG_DEBUG, "convert <%s> into <%s>", cmd, cleancmd);
+}
+
 bool Integra::Ack()
 {
     bool rcFirmware = getFirmware();
     bool rcType = getFocuserType();
-
+// TODO handle X ?
     return (rcFirmware && rcType);
 }
 
 bool Integra::getFirmware()
 {
-    char resp[64] = "1.0";
+    char resp[64] = "not available"; // TODO the device cannot report its firmware version yet
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Firmware %s", resp);
     return true;
@@ -208,7 +232,7 @@ bool Integra::getFirmware()
 
 bool Integra::getFocuserType()
 {
-    char resp[64] = "Integra85";
+    char resp[64] = "Integra85"; // TODO this is an assumption until the device can report its type
     DEBUGF(INDI::Logger::DBG_SESSION, "Focuser Type %s", resp);
 
     if (strcmp(resp, "Integra85") == 0)
@@ -221,17 +245,29 @@ bool Integra::getFocuserType()
     return true;
 }
 
-bool Integra::gotoMotor(MotorType type, int32_t position)
+bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
 {
     char cmd[16] = {0};
+    char cmdnocrlf[16] = {0};
     char res[16] = {0};
+    char *MotorMoveCommand;
+    char MotorMoveIn[] = "MI";
+    char MotorMoveOut[] = "MO";
 
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "@PW%d,%d\r\n", type+1, position);
+    if (relativePosition > 0)
+    {
+        MotorMoveCommand = MotorMoveOut;
+    }
+    else
+    {
+        MotorMoveCommand = MotorMoveIn;
+    }
+    snprintf(cmd, 16, "@%s%d,%d\r\n", MotorMoveCommand, type+1, relativePosition);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    cleanPrint(cmd, cmdnocrlf); DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmdnocrlf);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -242,7 +278,7 @@ bool Integra::gotoMotor(MotorType type, int32_t position)
         return false;
     }
 
-    if ( (rc = tty_read(PortFD, res, 1, INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
@@ -252,18 +288,35 @@ bool Integra::gotoMotor(MotorType type, int32_t position)
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
 }
 
+bool Integra::gotoMotor(MotorType type, int32_t position)
+{
+    if (type == MOTOR_FOCUS)
+    {
+        return relativeGotoMotor(type, lastFocuserPosition + position);
+    }
+    else if (type == MOTOR_ROTATOR)
+    {
+        return relativeGotoMotor(type, lastRotatorPosition + position);
+    }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: MotorType %d is unknown.", __FUNCTION__, type);
+    }
+}
+
 bool Integra::getPosition(MotorType type)
 {
     char cmd[16] = {0};
+    char cmdnocrlf[16] = {0};
     char res[16] = {0};
     int position = -1e6;
 
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    snprintf(cmd, 16, "@PR%d\r\n", type+1);
+    snprintf(cmd, 16, "@PR%d,0\r\n", type+1);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    cleanPrint(cmd, cmdnocrlf); DEBUGF(INDI::Logger::DBG_DEBUG, "CMD GetPosition motor %d <%s>", type, cmdnocrlf);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -274,17 +327,21 @@ bool Integra::getPosition(MotorType type)
         return false;
     }
 
-    if ( (rc = tty_read(PortFD, res, 8, INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
+    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
-    res[nbytes_read] = '\0';
-
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
 
+    if (res[0] != 'P' || res[nbytes_read-1] != '#')
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", __FUNCTION__, res);
+        return false;
+    }
+    res[nbytes_read-1] = '\0';
     position = atoi(res+1); // skip the initial P
 
     if (position != -1e6)
@@ -457,15 +514,19 @@ void Integra::TimerHit()
     }
 
     // #2 Get Temperature
-    rc = getTemperature();
-    if (rc && fabs(SensorN[SENSOR_TEMPERATURE].value - lastTemperature) > INTEGRA_TEMPERATURE_TRESHOLD_IN_C)
-    {
-        lastTemperature = SensorN[SENSOR_TEMPERATURE].value;
-        sensorsUpdated = true;
+    if (timeToReadTemperature <= 0) {
+        rc = getTemperature();
+        if (rc && fabs(SensorN[SENSOR_TEMPERATURE].value - lastTemperature) > INTEGRA_TEMPERATURE_TRESHOLD_IN_C) {
+            lastTemperature = SensorN[SENSOR_TEMPERATURE].value;
+            sensorsUpdated = true;
+        }
+        if (sensorsUpdated) {
+            IDSetNumber(&SensorNP, nullptr);
+            timeToReadTemperature = INTEGRA_SKIP_LOOPS_TO_READ_TEMPERATURE;
+        }
+    } else {
+        timeToReadTemperature--;
     }
-
-    if (sensorsUpdated)
-        IDSetNumber(&SensorNP, nullptr);
 
     // #5 Focus Position & Status
     bool absFocusUpdated = false;
@@ -604,12 +665,13 @@ bool Integra::isMotorMoving(MotorType type)
 bool Integra::getTemperature()
 {
     char cmd[16] = "@TR\r\n";
+    char cmdnocrlf[16] = {0};
     char res[16] = {0};
 
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    cleanPrint(cmd, cmdnocrlf); DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmdnocrlf);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -627,11 +689,15 @@ bool Integra::getTemperature()
         return false;
     }
 
-    res[nbytes_read-1] = '\0';
-
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
 
-    SensorN[SENSOR_TEMPERATURE].value = atoi(res+1);
+    if (res[0] != 'T' || res[nbytes_read-1] != '#')
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", __FUNCTION__, res);
+        return false;
+    }
+    res[nbytes_read-1] = '\0';
+    SensorN[SENSOR_TEMPERATURE].value = strtod(res+1, NULL);
 
     return true;
 }
