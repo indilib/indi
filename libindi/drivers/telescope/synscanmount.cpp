@@ -484,7 +484,7 @@ bool SynscanMount::ReadScopeStatus()
     //  Now feed the rest of the system with corrected data
     NewRaDec(ra, dec);
 
-    if (TrackState == SCOPE_SLEWING && (SlewTargetAz != -1 || SlewTargetAlt != -1))
+    if (TrackState == SCOPE_SLEWING && MountCode >= 128 && (SlewTargetAz != -1 || SlewTargetAlt != -1))
     {
         ln_hrz_posn CurrentAltAz { 0, 0 };
         double DiffAlt { 0 };
@@ -638,10 +638,30 @@ bool SynscanMount::Goto(double ra, double dec)
         return false;
     }
     TrackState = SCOPE_SLEWING;
+    // EQ mount has a different Goto mode
+    if (MountCode < 128)
+    {
+        int n1 = ra * 0x1000000 / 24;
+        int n2 = dec * 0x1000000 / 360;
+        int numread;
+
+        n1 = n1 << 8;
+        n2 = n2 << 8;
+        sprintf((char*)str, "r%08X,%08X", n1, n2);
+        tty_write(PortFD, str, 18, &bytesWritten);
+        memset(&str[18], 0, 1);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Goto - ra: %g de: %g", ra, dec);
+        numread = tty_read(PortFD, str, 1, 60, &bytesRead);
+        if (bytesRead != 1 || str[0] != '#')
+        {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to complete goto.");
+            return false;
+        }
+        return true;
+    }
     TargetAltAz = GetAltAzPosition(ra, dec);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Goto - ra: %g de: %g (az: %g alt: %g)", ra, dec,
            TargetAltAz.az, TargetAltAz.alt);
-
     SlewTargetAz = TargetAltAz.az;
     SlewTargetAlt = TargetAltAz.alt;
     return true;
@@ -735,8 +755,7 @@ bool SynscanMount::Abort()
     numread = tty_read(PortFD, str, 1, 2, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
-        if (isDebug())
-            DEBUG(INDI::Logger::DBG_SESSION, "Timeout waiting for scope to stop tracking.");
+        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to stop tracking.");
         return false;
     }
 

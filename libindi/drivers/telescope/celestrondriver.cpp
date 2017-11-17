@@ -52,6 +52,7 @@ struct
     double alt;
     CELESTRON_GPS_STATUS gpsStatus;
     CELESTRON_SLEW_RATE slewRate;
+    CELESTRON_TRACK_MODE trackMode;
     bool isSlewing;
 } simData;
 
@@ -78,6 +79,11 @@ void set_sim_gps_status(CELESTRON_GPS_STATUS value)
 void set_sim_slew_rate(CELESTRON_SLEW_RATE value)
 {
     simData.slewRate = value;
+}
+
+void set_sim_track_mode(CELESTRON_TRACK_MODE value)
+{
+    simData.trackMode = value;
 }
 
 void set_sim_slewing(bool isSlewing)
@@ -1639,7 +1645,7 @@ bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE *mode)
 
     if (celestron_simulation)
     {
-        response[0] = 2;
+        response[0] = simData.trackMode;
         response[1] = '#';
         nbytes_read = 2;
     }
@@ -1690,10 +1696,11 @@ bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode)
     cmd[0] = 'T';
     cmd[1] = mode;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%c><%c>", cmd[0], cmd[1]);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%#02X %#02X>", cmd[0], cmd[1]);
 
     if (celestron_simulation)
     {
+        simData.trackMode = mode;
         strcpy(response, "#");
         nbytes_read = strlen(response);
     }

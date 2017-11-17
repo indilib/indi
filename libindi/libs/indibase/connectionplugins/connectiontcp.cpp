@@ -40,13 +40,9 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
 
     IUFillSwitch(&TcpUdpS[0], "TCP", "TCP", ISS_ON);
     IUFillSwitch(&TcpUdpS[1], "UDP", "UDP", ISS_OFF);
-    IUFillSwitchVector(&TcpUdpSP, TcpUdpS, 2, dev->getDeviceName(), "CONNECTION_TYPE", "Connection Type",
+    IUFillSwitchVector(&TcpUdpSP, TcpUdpS, 2, getDeviceName(), "CONNECTION_TYPE", "Connection Type",
                        CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
-}
-
-TCP::~TCP()
-{
 }
 
 bool TCP::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
