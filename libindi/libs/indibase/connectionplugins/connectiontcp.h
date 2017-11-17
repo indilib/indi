@@ -44,7 +44,7 @@ class TCP : public Interface
     };
 
     TCP(INDI::DefaultDevice *dev);
-    virtual ~TCP();
+    virtual ~TCP() = default;
 
     virtual bool Connect();
 
