@@ -1,6 +1,6 @@
 #if 0
 Celestron GPS
-Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
+Copyright (C) 2003-2017 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
 This library is free software;
 you can redistribute it and / or
@@ -104,7 +104,7 @@ void ISSnoopDevice(XMLEle *root)
 
 CelestronGPS::CelestronGPS()
 {
-    setVersion(3, 0);
+    setVersion(3, 1);
 
     fwInfo.Version           = "Invalid";
     fwInfo.controllerVersion = 0;
@@ -350,6 +350,8 @@ bool CelestronGPS::updateProperties()
                 IDSetText(&TimeTP, nullptr);
             }
         }
+        else
+            DEBUG(INDI::Logger::DBG_WARNING, "Mount does not support retrieval of date and time settings.");
     }
     else
     {
