@@ -170,7 +170,8 @@ bool INDI::GPS::ISNewNumber(const char *dev, const char *name, double values[], 
         {
             double prevPeriod = PeriodN[0].value;
             IUUpdateNumber(&PeriodNP, values, names, n);
-            if (timerID > 0)
+            // Do not remove timer if GPS update is still in progress
+            if (timerID > 0 && RefreshSP.s != IPS_BUSY)
             {
                 RemoveTimer(timerID);
                 timerID = -1;
