@@ -1696,7 +1696,7 @@ bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode)
     cmd[0] = 'T';
     cmd[1] = mode;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%c><%c>", cmd[0], cmd[1]);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD <%#02X %#02X>", cmd[0], cmd[1]);
 
     if (celestron_simulation)
     {
