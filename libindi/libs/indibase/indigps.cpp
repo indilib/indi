@@ -67,6 +67,7 @@ bool INDI::GPS::updateProperties()
         defineNumber(&LocationNP);
         TimeTP.s = state;
         defineText(&TimeTP);
+        RefreshSP.s = state;
         defineSwitch(&RefreshSP);
         defineNumber(&PeriodNP);
 
@@ -109,6 +110,7 @@ void INDI::GPS::TimerHit()
 
     LocationNP.s = state;
     TimeTP.s = state;
+    RefreshSP.s = state;
 
     switch (state)
     {
@@ -123,7 +125,6 @@ void INDI::GPS::TimerHit()
             break;
 
         // GPS fix is in progress or alert
-        case IPS_BUSY:
         case IPS_ALERT:
             IDSetNumber(&LocationNP, nullptr);
             IDSetText(&TimeTP, nullptr);            
@@ -134,7 +135,6 @@ void INDI::GPS::TimerHit()
     }
 
     timerID = SetTimer(POLLMS);
-    return;
 }
 
 IPState INDI::GPS::updateGPS()
