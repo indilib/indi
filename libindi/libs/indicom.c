@@ -375,8 +375,8 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
     }
     else
     {
-        strncpy(byteBuffer, buf, 255);
-//        strncpy((char *)buffer, buf, 255);
+        memcpy(byteBuffer, buf, nbytes);
+//        strncpy(byteBuffer, buf, 255);
     }
 
     if (fd == -1)
@@ -486,7 +486,8 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
     }
     else
     {
-        strncpy(buf, readBuffer, *nbytes_read);
+        memcpy(buf, readBuffer, *nbytes_read);
+//        strncpy(buf, readBuffer, *nbytes_read);
     }
 
     return TTY_OK;
