@@ -362,21 +362,17 @@ int tty_write(int fd, const char *buf, int nbytes, int *nbytes_written)
 #ifdef _WIN32
     return TTY_ERRNO;
 #else
-    int buffer[66]={0};
-    char *byteBuffer = (char *)buffer;
+    int geminiBuffer[66]={0};
+    char *buffer = (char *)buf;
 
     if (ttyGeminiUdpFormat)
     {
-        buffer[0] = ++sequenceNumber;
-        buffer[1] = 0;
-        strncpy((char *)&buffer[2], buf, nbytes);
+        buffer = (char*)geminiBuffer;
+        geminiBuffer[0] = ++sequenceNumber;
+        geminiBuffer[1] = 0;
+        memcpy((char *)&geminiBuffer[2], buf, nbytes);
         // Add on the 8 bytes for the header and 1 byte for the null terminator
         nbytes += 9;
-    }
-    else
-    {
-        strncpy(byteBuffer, buf, 255);
-//        strncpy((char *)buffer, buf, 255);
     }
 
     if (fd == -1)
@@ -425,12 +421,10 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
     return TTY_ERRNO;
 #else
 
-    char readBuffer[257]={0};
-
     if (fd == -1)
         return TTY_ERRNO;
 
-    int numBytesToRead = 0;
+    int numBytesToRead =  nbytes;
     int bytesRead = 0;
     int err       = 0;
     *nbytes_read  = 0;
@@ -441,13 +435,13 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
     if (tty_debug)
         IDLog("%s: Request to read %d bytes with %d timeout for fd %d\n", __FUNCTION__, nbytes, timeout, fd);
 
+    char geminiBuffer[257]={0};
+    char* buffer = buf;
+
     if (ttyGeminiUdpFormat)
     {
         numBytesToRead = nbytes + 8;
-    }
-    else
-    {
-        numBytesToRead = nbytes;
+        buffer = geminiBuffer;
     }
 
     while (numBytesToRead > 0)
@@ -455,7 +449,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
         if ((err = tty_timeout(fd, timeout)))
             return err;
 
-        bytesRead = read(fd, readBuffer + (*nbytes_read), ((uint32_t)numBytesToRead));
+        bytesRead = read(fd, buffer + (*nbytes_read), ((uint32_t)numBytesToRead));
 
         if (bytesRead < 0)
             return TTY_READ_ERROR;
@@ -474,7 +468,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
 
     if (ttyGeminiUdpFormat)
     {
-        int *intSizedBuffer = (int *)readBuffer;
+        int *intSizedBuffer = (int *)geminiBuffer;
         if (intSizedBuffer[0] != sequenceNumber)
         {
             // Not the right reply just do the read again.
@@ -482,11 +476,7 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
         }
 
         *nbytes_read -= 8;
-        strncpy(buf, readBuffer+8, *nbytes_read);
-    }
-    else
-    {
-        strncpy(buf, readBuffer, *nbytes_read);
+        memcpy(buf, geminiBuffer+8, *nbytes_read);
     }
 
     return TTY_OK;
