@@ -34,6 +34,10 @@
 #include <termios.h>
 #include <unistd.h>
 
+// only used for test timing of pulse guiding
+#include <sys/time.h>
+
+
 #define PMC8_TIMEOUT 5 /* FD timeout in seconds */
 
 #define PMC8_SIMUL_VERSION_RESP "ESGvES06B9T9"
@@ -503,15 +507,18 @@ bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
 
     dir = (int)strtol(num_str, NULL, 0);
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get dir num_str = %s atoi() returns %d", num_str, dir);
+    //DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get dir num_str = %s atoi() returns %d", num_str, dir);
 
     return true;
 }
 
-bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir)
+// if fast is true dont wait on response!  Used for psuedo-pulse guide
+// NOTE that this will possibly mean the response will be read by a following command if it is called before
+//      response comes from controller, since next command will flush before data is in buffer!
+bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir, bool fast)
 {
 
-    char cmd[32];
+    char cmd[32], expresp[32];
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[16];
@@ -543,6 +550,9 @@ bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir)
         return false;
     }
 
+    if (fast)
+        return true;
+
     if ((errcode = tty_read(fd, response, 7, PMC8_TIMEOUT, &nbytes_read)))
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
@@ -552,11 +562,13 @@ bool set_pmc8_direction_axis(int fd, PMC8_AXIS axis, int dir)
 
     response[nbytes_read] = '\0';
 
+    snprintf(expresp, sizeof(expresp), "ESGd%d%d!", axis, dir);
+
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-    if (nbytes_read != 7)
+    if (nbytes_read != 7 || strcmp(response, expresp))
     {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis get dir cmd response incorrect");
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Axis get dir cmd response incorrect: expected=%s", expresp);
         return false;
     }
 
@@ -876,6 +888,8 @@ bool convert_motor_rate_to_move_rate(int mrate, float *rate)
 
 // set speed for move action (MoveNS/MoveWE) NOT slews!  This version DOESNT handle direciton and expects a motor rate!
 // if fast is true dont wait on response!  Used for psuedo-pulse guide
+// NOTE that this will possibly mean the response will be read by a following command if it is called before
+//      response comes from controller, since next command will flush before data is in buffer!
 bool set_pmc8_axis_motor_rate(int fd, PMC8_AXIS axis, int mrate, bool fast)
 {
     char cmd[24];
@@ -937,9 +951,9 @@ bool set_pmc8_axis_move_rate(int fd, PMC8_AXIS axis, float rate)
 
     // set direction
     if (rate < 0)
-        rc=set_pmc8_direction_axis(fd, axis, 0);
+        rc=set_pmc8_direction_axis(fd, axis, 0, false);
     else
-        rc=set_pmc8_direction_axis(fd, axis, 1);
+        rc=set_pmc8_direction_axis(fd, axis, 1, false);
 
     if (!rc)
         return rc;
@@ -1076,7 +1090,7 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate)
     tcflush(fd, TCIFLUSH);
 
     // set direction to 1
-    return set_pmc8_direction_axis(fd, PMC8_AXIS_RA, 1);
+    return set_pmc8_direction_axis(fd, PMC8_AXIS_RA, 1, false);
 }
 
 
@@ -1191,11 +1205,10 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
     int cur_ra_dir;
     int cur_dec_dir;
 
-    if (pulse_guide_active)
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): already executing a pulse guide!");
-        return false;
-    }
+    // used to test timing
+    struct timeval tp;
+    long long pulse_start_us;
+    long long pulse_end_us;
 
     // experimental implementation:
     //  1) Get current rates
@@ -1311,18 +1324,30 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
     {
         // not sure if best to flip dir or rate first!
         if (new_ra_rate != cur_ra_rate)
-            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, new_ra_rate, true);
+            if (!set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, new_ra_rate, true))
+                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_ra_rate");
+
+        gettimeofday(&tp, NULL);
+        pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
+
         if (new_ra_dir != cur_ra_dir)
-            set_pmc8_direction_axis(fd, PMC8_AXIS_RA, new_ra_dir);
+            if (!set_pmc8_direction_axis(fd, PMC8_AXIS_RA, new_ra_dir, true))
+                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_ra_dir");
     }
 
     if ((new_dec_rate != cur_dec_rate) || (new_dec_dir != cur_dec_dir))
     {
         // not sure if best to flip dir or rate first!
         if (new_dec_rate != cur_dec_rate)
-            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, new_dec_rate, true);
+            if (!set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, new_dec_rate, true))
+                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_dec_rate");
+
+        gettimeofday(&tp, NULL);
+        pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
+
         if (new_dec_dir != cur_dec_dir)
-            set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, new_dec_dir);
+            if (!set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, new_dec_dir, true))
+                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_dec_dir");
     }
 
     // store state
@@ -1337,19 +1362,10 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
     PulseGuideTrackingState.new_dec_dir  = new_dec_dir;
 
     // wait duration
-//    usleep(ms*1000);
+    usleep(ms*1000);
 
-    return true;
-}
-
-bool stop_pmc8_guide(int fd)
-{
-
-    if (!pulse_guide_active)
-    {
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_stop_guide(): pulse guide not active!!");
-        return false;
-    }
+    // flush any responses to commands we ignored above!
+    tcflush(fd, TCIFLUSH);
 
     // restore previous tracking - only change ones we need to!
     if ((PulseGuideTrackingState.new_ra_rate != PulseGuideTrackingState.cur_ra_rate) ||
@@ -1374,6 +1390,14 @@ bool stop_pmc8_guide(int fd)
         if (PulseGuideTrackingState.new_dec_dir != PulseGuideTrackingState.cur_dec_dir)
             set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, PulseGuideTrackingState.cur_dec_dir);
     }
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): requested = %d ms, actual = %f ms",ms, (pulse_end_us-pulse_start_us)/1000.0);
+
+    // sleep to let any responses occurs and clean up!
+    usleep(15000);
+
+    // flush any responses to commands we ignored above!
+    tcflush(fd, TCIFLUSH);
 
     return true;
 }
