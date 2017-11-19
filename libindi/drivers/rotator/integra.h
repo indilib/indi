@@ -28,6 +28,14 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
 
     typedef enum { MOTOR_FOCUS, MOTOR_ROTATOR } MotorType;
 
+    enum INTEGRA_HOMING_STATE
+    {
+        HOMING_IDLE,
+        HOMING_START,
+        HOMING_ABORT,
+        HOMING_COUNT
+    };
+
     Integra();
     virtual ~Integra() = default;
 
@@ -45,7 +53,6 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     virtual bool AbortFocuser();
 
     // Rotator
-    virtual IPState HomeRotator();
     virtual IPState MoveRotator(double angle);
     virtual bool AbortRotator();
 
@@ -63,9 +70,11 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     bool stopMotor(MotorType type);
     bool isMotorMoving(MotorType type);
     bool getTemperature();
-    bool findHome(uint8_t motorTypes);
+    bool findHome();
+    bool abortHome();
     bool isHomingComplete();
     void cleanPrint(const char *cmd, char *cleancmd);
+    bool saveToEEPROM();
 
     INumber MaxPositionN[2];
     INumberVectorProperty MaxPositionNP;
@@ -78,9 +87,7 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     ILightVectorProperty LimitSwitchLP;
     enum { ROTATION_SWITCH, OUT_SWITCH, IN_SWITCH };
 
-    ISwitch HomeSelectionS[3];
-    ISwitchVectorProperty HomeSelectionSP;
-    ISwitch FindHomeS[1];
+    ISwitch FindHomeS[HOMING_COUNT];
     ISwitchVectorProperty FindHomeSP;
 
     // Rotator Steps
@@ -91,7 +98,9 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     int timeToReadTemperature = 0;
     double ticksPerDegree { 0 };
     uint32_t lastFocuserPosition { 0 };
+    bool haveReadFocusPositionAtLeastOnce = false;
     uint32_t lastRotatorPosition { 0 };
+    bool haveReadRotatorPositionAtLeastOnce = false;
     uint32_t targetPosition { 0 };
     IPState rotationLimit { IPS_IDLE };
     IPState outSwitchLimit { IPS_IDLE };
