@@ -27,6 +27,7 @@
 #include <memory>
 #include <termios.h>
 #include <limits.h>
+#include <indiapi.h>
 
 #define INTEGRA_SKIP_LOOPS_TO_READ_TEMPERATURE 60
 #define INTEGRA_TIMEOUT_IN_S 5
@@ -83,7 +84,7 @@ void ISSnoopDevice (XMLEle *root)
 Integra::Integra() : RotatorInterface(this)
 {
     SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    SetRotatorCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
+    SetRotatorCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
     setFocuserConnection(CONNECTION_SERIAL);
 }
 
@@ -117,7 +118,7 @@ bool Integra::initProperties()
     FocusAbsPosN[0].value = 0;
 
     FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-    FocusRelPosN[0].min   = -FocusRelPosN[0].max;
+    FocusRelPosN[0].min   = 0;
     FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
     FocusRelPosN[0].value = 100;
 
@@ -250,16 +251,48 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Start relativeGotoMotor to %d ...", relativePosition);
     if (relativePosition > 0)
-    {
         MotorMoveCommand = MotorMoveOut;
-    }
     else
-    {
         MotorMoveCommand = MotorMoveIn;
+
+    if (type == MOTOR_FOCUS) {
+        if (relativePosition > 0) {
+            if (lastFocuserPosition + relativePosition > MaxPositionN[MOTOR_FOCUS].value) {
+                int newRelativePosition = MaxPositionN[MOTOR_FOCUS].value - lastFocuserPosition;
+                DEBUGF(INDI::Logger::DBG_SESSION, "Position change %d clipped to %d to stay at MAX %d",
+                       relativePosition, newRelativePosition, MaxPositionN[MOTOR_FOCUS].value);
+                relativePosition = newRelativePosition;
+            }
+        } else {
+            if ((int32_t )lastFocuserPosition + relativePosition < 0) {
+                int newRelativePosition = -lastFocuserPosition;
+                DEBUGF(INDI::Logger::DBG_SESSION, "Position change %d clipped to %d to stay at MIN 0",
+                       relativePosition, newRelativePosition);
+                relativePosition = newRelativePosition;
+            }
+        }
+    } else if (type == MOTOR_ROTATOR) {
+        if (relativePosition > 0) {
+            if (lastRotatorPosition + relativePosition > MaxPositionN[MOTOR_ROTATOR].value) {
+                int newRelativePosition = MaxPositionN[MOTOR_ROTATOR].value - lastRotatorPosition;
+                DEBUGF(INDI::Logger::DBG_SESSION, "Position change %d clipped to %d to stay at MAX %d",
+                       relativePosition, newRelativePosition, MaxPositionN[MOTOR_ROTATOR].value);
+                relativePosition = newRelativePosition;
+            }
+        } else {
+            if (lastRotatorPosition + relativePosition < - MaxPositionN[MOTOR_ROTATOR].value) {
+                int newRelativePosition = - MaxPositionN[MOTOR_ROTATOR].value - lastRotatorPosition;
+                DEBUGF(INDI::Logger::DBG_SESSION, "Position change %d clipped to %d to stay at MIN %d",
+                       relativePosition, newRelativePosition, - MaxPositionN[MOTOR_ROTATOR].value);
+                relativePosition = newRelativePosition;
+            }
+        }
     }
+
     snprintf(cmd, 16, "@%s%d,%d\r\n", MotorMoveCommand, type+1, abs(relativePosition));
 
-    cleanPrint(cmd, cmdnocrlf); DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmdnocrlf);
+    cleanPrint(cmd, cmdnocrlf);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmdnocrlf);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -461,7 +494,7 @@ DEBUGF(INDI::Logger::DBG_SESSION, "we have a new number for %s", dev);
 IPState Integra::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPosition = targetTicks;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Start MoveAbsFocuser to %d ...", targetTicks);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser will move absolute to %d ...", targetTicks);
 
     bool rc = false;
 
@@ -472,7 +505,7 @@ IPState Integra::MoveAbsFocuser(uint32_t targetTicks)
 
     FocusAbsPosNP.s = IPS_BUSY;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser now is moving absolute to %.f ticks...", targetTicks);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser is now moving absolute to %d ticks...", targetTicks);
     return IPS_BUSY;
 }
 
@@ -480,6 +513,7 @@ IPState Integra::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     double newPosition = 0;
     bool rc = false;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser will move motor %d relative %d ticks...", dir, ticks);
 
     if (dir == FOCUS_INWARD)
         newPosition = FocusAbsPosN[0].value - ticks;
@@ -494,7 +528,7 @@ IPState Integra::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     FocusRelPosN[0].value = ticks;
     FocusRelPosNP.s = IPS_BUSY;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser now is moving %.f relative %.f ticks...", dir, ticks);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser is now moving in direction %d relative %d ticks...", dir, ticks);
     return IPS_BUSY;
 }
 
@@ -530,8 +564,10 @@ void Integra::TimerHit()
         return;
     }
 
-    // #2 Get Temperature
-    if (timeToReadTemperature <= 0) {
+    // #2 Get Temperature, only read this when no motors are active, and about once per minute
+    if (FocusAbsPosNP.s != IPS_BUSY && FocusRelPosNP.s != IPS_BUSY
+        && RotatorAbsPosNP.s != IPS_BUSY
+        && timeToReadTemperature <= 0) {
         rc = getTemperature();
         if ( ! rc)
             rc = getTemperature();
