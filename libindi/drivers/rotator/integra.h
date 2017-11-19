@@ -75,6 +75,7 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     bool isHomingComplete();
     void cleanPrint(const char *cmd, char *cleancmd);
     bool saveToEEPROM();
+    bool getMaxPosition(MotorType type);
 
     INumber MaxPositionN[2];
     INumberVectorProperty MaxPositionNP;
@@ -83,14 +84,9 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     INumberVectorProperty SensorNP;
     enum { SENSOR_TEMPERATURE };
 
-    ILight LimitSwitchL[3];
-    ILightVectorProperty LimitSwitchLP;
-    enum { ROTATION_SWITCH, OUT_SWITCH, IN_SWITCH };
-
     ISwitch FindHomeS[HOMING_COUNT];
     ISwitchVectorProperty FindHomeSP;
 
-    // Rotator Steps
     INumber RotatorAbsPosN[1];
     INumberVectorProperty RotatorAbsPosNP;
 
@@ -102,7 +98,4 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     uint32_t lastRotatorPosition { 0 };
     bool haveReadRotatorPositionAtLeastOnce = false;
     uint32_t targetPosition { 0 };
-    IPState rotationLimit { IPS_IDLE };
-    IPState outSwitchLimit { IPS_IDLE };
-    IPState inSwitchLimit { IPS_IDLE };
 };

@@ -29,13 +29,11 @@
 #include <limits.h>
 #include <indiapi.h>
 
-#define INTEGRA_SKIP_LOOPS_TO_READ_TEMPERATURE 60
 #define INTEGRA_TIMEOUT_IN_S 5
+#define INTEGRA_TEMPERATURE_LOOP_SKIPS 60
 #define INTEGRA_TEMPERATURE_TRESHOLD_IN_C 0.1
 
 #define NC_25_STEPS 374920
-#define INTEGRA85_FOCUSER_STEPS 188600 // 0.053 micron per motor step
-#define INTEGRA85_ROTATOR_STEPS 61802
 
 #define POLLMS 1000
 #define ROTATOR_TAB "Rotator"
@@ -92,8 +90,8 @@ bool Integra::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IUFillNumber(&MaxPositionN[0], "Steps", "Focuser", "%.f", 0, 500000, 0., 188600);
-    IUFillNumber(&MaxPositionN[1], "Steps", "Rotator", "%.f", 0, 500000, 0., 188600);
+    IUFillNumber(&MaxPositionN[0], "Steps", "Focuser", "%.f", 0, 188600., 0., 188600.);
+    IUFillNumber(&MaxPositionN[1], "Steps", "Rotator", "%.f", 0, 188600., 0., 61802.);
     IUFillNumberVector(&MaxPositionNP, MaxPositionN, 2, getDeviceName(), "MAX_POSITION", "Max position",
                        SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -122,14 +120,10 @@ bool Integra::initProperties()
     FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
     FocusRelPosN[0].value = 100;
 
-    //////////////////////////////////////////////////////
-    // Rotator Properties
-    /////////////////////////////////////////////////////
-
     INDI::RotatorInterface::initProperties(ROTATOR_TAB);
 
     // Rotator Ticks
-    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 100000., 1000., 0.);
+    IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 61802., 1., 0.);
     IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     addDebugControl();
@@ -151,7 +145,6 @@ bool Integra::updateProperties()
         defineNumber(&MaxPositionNP);
         // Focus
         defineNumber(&SensorNP);
-        defineLight(&LimitSwitchLP);
         defineSwitch(&FindHomeSP);
 
         // Rotator
@@ -163,7 +156,6 @@ bool Integra::updateProperties()
         deleteProperty(MaxPositionNP.name);
         // Focus
         deleteProperty(SensorNP.name);
-        deleteProperty(LimitSwitchLP.name);
         deleteProperty(FindHomeSP.name);
 
         // Rotator
@@ -206,19 +198,22 @@ void Integra::cleanPrint(const char *cmd, char *cleancmd)
     //DEBUGF(INDI::Logger::DBG_DEBUG, "convert <%s> into <%s>", cmd, cleancmd);
 }
 
+
 bool Integra::Ack()
 {
     bool rcFirmware = getFirmware();
     bool rcType = getFocuserType();
-// TODO handle X ?
-    return (rcFirmware && rcType);
+    bool rcMaxPositionMotorFocus = getMaxPosition(MOTOR_FOCUS);
+    if ( ! rcMaxPositionMotorFocus) // first communication attempt, try twice if needed
+        rcMaxPositionMotorFocus = getMaxPosition(MOTOR_FOCUS);
+    bool rcMaxPositionMotorRotator = getMaxPosition(MOTOR_ROTATOR);
+    return (rcFirmware && rcType && rcMaxPositionMotorFocus && rcMaxPositionMotorRotator);
 }
 
 bool Integra::getFirmware()
 {
     char resp[64] = "not available"; // TODO the device cannot report its firmware version yet
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "Firmware %s", resp);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Firmware version %s", resp);
     return true;
 }
 
@@ -572,7 +567,7 @@ void Integra::TimerHit()
         if ( ! rc)
             rc = getTemperature();
         if (rc) {
-            timeToReadTemperature = INTEGRA_SKIP_LOOPS_TO_READ_TEMPERATURE;
+            timeToReadTemperature = INTEGRA_TEMPERATURE_LOOP_SKIPS;
             if (fabs(SensorN[SENSOR_TEMPERATURE].value - lastTemperature) > INTEGRA_TEMPERATURE_TRESHOLD_IN_C) {
                 lastTemperature = SensorN[SENSOR_TEMPERATURE].value;
                 IDSetNumber(&SensorNP, nullptr);
@@ -712,6 +707,52 @@ bool Integra::isMotorMoving(MotorType type) {
         return (res[0] == '1');
     else
         return (res[0] == '2');
+}
+
+bool Integra::getMaxPosition(MotorType type)
+{
+    char cmd[16] = {0};
+    char cmdnocrlf[16] = {0};
+    char res[16] = {0};
+    int position = -1e6;
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    snprintf(cmd, 16, "@RR%d,0\r\n", type+1);
+
+    cleanPrint(cmd, cmdnocrlf);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD GetMaxPosition motor %d <%s>", type, cmdnocrlf);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    if (res[0] != 'R' || res[nbytes_read-1] != '#')
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", __FUNCTION__, res);
+        return false;
+    }
+    res[nbytes_read-1] = '\0';  // wipe the #
+    position = atoi(res+1);     // skip the initial P
+
+    MaxPositionN[type].value = position;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Motor %d max position is %d", type, position);
+    return true;
 }
 
 bool Integra::saveToEEPROM()
