@@ -474,7 +474,8 @@ bool PMC8::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    IDMessage(getDeviceName(), "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION,"Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+
 
     if (slew_pmc8(PortFD, r, d) == false)
     {
@@ -497,7 +498,7 @@ bool PMC8::Sync(double ra, double dec)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    IDMessage(getDeviceName(), "Syncing to RA: %s - DEC: %s", RAStr, DecStr);
+    DEBUGF(INDI::Logger::DBG_SESSION,"Syncing to RA: %s - DEC: %s", RAStr, DecStr);
 
     if (sync_pmc8(PortFD, ra, dec) == false)
     {
@@ -769,7 +770,8 @@ bool PMC8::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 IPState PMC8::GuideNorth(float ms)
 {
     bool rc;
-
+    long timetaken_us;
+    int timeremain_ms;
 
     // If already moving, then stop movement
     if (MovementNSSP.s == IPS_BUSY)
@@ -784,8 +786,14 @@ IPState PMC8::GuideNorth(float ms)
         GuideNSTID = 0;
     }
 
-    rc = start_pmc8_guide(PortFD, PMC8_N, (int)ms);
-    GuideNSTID = IEAddTimer(ms, guideTimeoutHelperN, this);
+    rc = start_pmc8_guide(PortFD, PMC8_N, (int)ms, timetaken_us);
+
+    timeremain_ms = (int)(ms - ((float)timetaken_us)/1000.0);
+
+    if (timeremain_ms < 0)
+        timeremain_ms = 0;
+
+    GuideNSTID = IEAddTimer(timeremain_ms, guideTimeoutHelperN, this);
 
     return IPS_BUSY;
 }
@@ -793,6 +801,8 @@ IPState PMC8::GuideNorth(float ms)
 IPState PMC8::GuideSouth(float ms)
 {
     bool rc;
+    long timetaken_us;
+    int timeremain_ms;
 
     // If already moving, then stop movement
     if (MovementNSSP.s == IPS_BUSY)
@@ -807,16 +817,23 @@ IPState PMC8::GuideSouth(float ms)
          GuideNSTID = 0;
     }
 
-    rc = start_pmc8_guide(PortFD, PMC8_S, (int)ms);
+    rc = start_pmc8_guide(PortFD, PMC8_S, (int)ms, timetaken_us);
 
-    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperS, this);
+    timeremain_ms = (int)(ms - ((float)timetaken_us)/1000.0);
+
+    if (timeremain_ms < 0)
+        timeremain_ms = 0;
+
+    GuideNSTID      = IEAddTimer(timeremain_ms, guideTimeoutHelperS, this);
+
     return IPS_BUSY;
 }
 
 IPState PMC8::GuideEast(float ms)
 {
     bool rc;
-
+    long timetaken_us;
+    int timeremain_ms;
 
     // If already moving (no pulse command), then stop movement
     if (MovementWESP.s == IPS_BUSY)
@@ -831,15 +848,22 @@ IPState PMC8::GuideEast(float ms)
         GuideWETID = 0;
     }
 
-    rc = start_pmc8_guide(PortFD, PMC8_E, (int)ms);
+    rc = start_pmc8_guide(PortFD, PMC8_E, (int)ms, timetaken_us);
 
-    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperE, this);
+    timeremain_ms = (int)(ms - ((float)timetaken_us)/1000.0);
+
+    if (timeremain_ms < 0)
+        timeremain_ms = 0;
+
+    GuideWETID      = IEAddTimer(timeremain_ms, guideTimeoutHelperE, this);
     return IPS_BUSY;
 }
 
 IPState PMC8::GuideWest(float ms)
 {
     bool rc;
+    long timetaken_us;
+    int timeremain_ms;
 
     // If already moving (no pulse command), then stop movement
     if (MovementWESP.s == IPS_BUSY)
@@ -853,10 +877,14 @@ IPState PMC8::GuideWest(float ms)
         IERmTimer(GuideWETID);
         GuideWETID = 0;
     }
+    rc = start_pmc8_guide(PortFD, PMC8_W, (int)ms, timetaken_us);
 
-    rc = start_pmc8_guide(PortFD, PMC8_W, (int)ms);
+    timeremain_ms = (int)(ms - ((float)timetaken_us)/1000.0);
 
-    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperW, this);
+    if (timeremain_ms < 0)
+        timeremain_ms = 0;
+
+    GuideWETID      = IEAddTimer(timeremain_ms, guideTimeoutHelperW, this);
     return IPS_BUSY;
 }
 #else
@@ -893,7 +921,7 @@ IPState PMC8::GuideWest(float ms)
 void PMC8::guideTimeout(PMC8_DIRECTION calldir)
 {
     // end previous pulse command
-    stop_pmc8_guide(PortFD);
+    stop_pmc8_guide(PortFD, calldir);
 
     if (calldir == PMC8_N || calldir == PMC8_S)
     {
