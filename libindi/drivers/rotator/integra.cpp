@@ -91,7 +91,7 @@ bool Integra::initProperties()
     INDI::Focuser::initProperties();
 
     IUFillNumber(&MaxPositionN[0], "Steps", "Focuser", "%.f", 0, 188600., 0., 188600.);
-    IUFillNumber(&MaxPositionN[1], "Steps", "Rotator", "%.f", 0, 188600., 0., 61802.);
+    IUFillNumber(&MaxPositionN[1], "Steps", "Rotator", "%.f", 0, 61802.0, 0., 61802.);
     IUFillNumberVector(&MaxPositionNP, MaxPositionN, 2, getDeviceName(), "MAX_POSITION", "Max position",
                        SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -224,10 +224,11 @@ bool Integra::getFocuserType()
 
     if (strcmp(resp, "Integra85") == 0)
     {
-        RotatorAbsPosN[0].min = -NC_25_STEPS;
-        RotatorAbsPosN[0].max = NC_25_STEPS;
+        RotatorAbsPosN[0].min = 0;
+        RotatorAbsPosN[0].max = 61802;
     }
     ticksPerDegree = RotatorAbsPosN[0].max / 360.0;
+    rotatorDegreesPerTick = 360.0 / RotatorAbsPosN[0].max;
 
     return true;
 }
@@ -384,7 +385,7 @@ bool Integra::getPosition(MotorType type)
     {
         if (type == MOTOR_FOCUS) {
             if (FocusAbsPosN[0].value != position) {
-                int position_from = FocusAbsPosN[0].value;
+                int position_from = (int) FocusAbsPosN[0].value;
                 int position_to = position;
                 DEBUGF(INDI::Logger::DBG_SESSION, "Focus position changed from %d to %d", position_from, position_to);
                 FocusAbsPosN[0].value = position;
@@ -392,7 +393,9 @@ bool Integra::getPosition(MotorType type)
         }
         else if (type == MOTOR_ROTATOR) {
             if (RotatorAbsPosN[0].value != position) {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Rotator position changed from %d to %d", RotatorAbsPosN[0].value, position);
+                int position_from = (int) RotatorAbsPosN[0].value;
+                int position_to = position;
+                DEBUGF(INDI::Logger::DBG_SESSION, "Rotator position changed from %d to %d",  position_from, position_to);
                 RotatorAbsPosN[0].value = position;
             }
         }
@@ -703,10 +706,13 @@ bool Integra::isMotorMoving(MotorType type) {
         return true; // error, be safe by saying that motor is moving
     }
 
+    /* bug, both motors return 1 at res[0] when running
     if (type == MOTOR_FOCUS)
         return (res[0] == '1');
     else
         return (res[0] == '2');
+    */
+    return (res[0] == '1');
 }
 
 bool Integra::getMaxPosition(MotorType type)
@@ -944,26 +950,17 @@ bool Integra::saveConfigItems(FILE *fp)
     return true;
 }
 
+// Integra position 0..61802 ticks , angle 0..360 deg, position 0 corresponds to 180 deg
+// We need to map the Integra frame to that of the IndiRotatorInterface.
+// Only absolute position Rotators are supported.
+// Angle is ranged from 0 to 360 increasing clockwise when looking at the back of the camera.
 IPState Integra::MoveRotator(double angle)
 {
-    // Find shortest distance given target degree
-    double a=angle;
-    double b=GotoRotatorN[0].value;
-    double d=fabs(a-b);
-    double r=(d > 180) ? 360 - d : d;
-    int sign = (a - b >= 0 && a - b <= 180) || (a - b <=-180 && a- b>= -360) ? 1 : -1;
+    uint32_t p1 = lastRotatorPosition;
+    uint32_t p2 = rotatorDegreesToTicks(angle);
 
-    r *= sign;
-
-    double newTarget = (r+b) * ticksPerDegree;
-
-    if (newTarget < RotatorAbsPosN[0].min)
-        newTarget -= RotatorAbsPosN[0].min;
-    else if (newTarget > RotatorAbsPosN[0].max)
-        newTarget -= RotatorAbsPosN[0].max;
-
-    bool rc = gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(newTarget));
-
+    DEBUGF(INDI::Logger::DBG_SESSION, "MoveRotator to %.f degrees, from position %d to %d ...", angle, p1, p2);
+    bool rc = relativeGotoMotor(MOTOR_ROTATOR, p2 - p1);
     if (rc)
     {
         RotatorAbsPosNP.s = IPS_BUSY;
@@ -985,3 +982,62 @@ bool Integra::AbortRotator()
 
     return rc;
 }
+
+uint32_t Integra::rotatorDegreesToTicks(double angle)
+{
+    uint32_t position = 61802 / 2;
+    if (angle >= 0.0 && angle <= 180.0) {
+        position = (uint32_t) lround(61802.0 - (180.0 - angle) / rotatorDegreesPerTick);
+    } else if (angle > 180 && angle <= 360) {
+        position = (uint32_t) lround(61802.0 - (540.0 - angle) / rotatorDegreesPerTick);
+    } else {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %.f is out of range", __FUNCTION__, angle);
+    }
+    return position;
+}
+
+bool Integra::SyncRotator(double angle)
+{
+    char cmd[16] = {0};
+    char cmdnocrlf[16] = {0};
+    char res[16] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    uint32_t position = rotatorDegreesToTicks(angle);
+
+    snprintf(cmd, 16, "@PW2,%d\r\n", position);
+
+    cleanPrint(cmd, cmdnocrlf);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD SyncRotator %.f degrees == %d ticks <%s>", angle, position, cmdnocrlf);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    if (res[0] != 'P' || res[nbytes_read-1] != '#')
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", __FUNCTION__, res);
+        return false;
+    }
+
+    haveReadRotatorPositionAtLeastOnce = false;
+
+    return true;
+}
+

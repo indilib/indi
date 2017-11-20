@@ -55,6 +55,7 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     // Rotator
     virtual IPState MoveRotator(double angle);
     virtual bool AbortRotator();
+    virtual bool SyncRotator(double angle);
 
     // Misc.
     virtual bool saveConfigItems(FILE *fp);
@@ -76,6 +77,7 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     void cleanPrint(const char *cmd, char *cleancmd);
     bool saveToEEPROM();
     bool getMaxPosition(MotorType type);
+    uint32_t rotatorDegreesToTicks(double angle);
 
     INumber MaxPositionN[2];
     INumberVectorProperty MaxPositionNP;
@@ -93,6 +95,7 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     double lastTemperature { 0 };
     int timeToReadTemperature = 0;
     double ticksPerDegree { 0 };
+    double rotatorDegreesPerTick = 0.0;
     uint32_t lastFocuserPosition { 0 };
     bool haveReadFocusPositionAtLeastOnce = false;
     uint32_t lastRotatorPosition { 0 };
