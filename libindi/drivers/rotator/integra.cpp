@@ -26,14 +26,10 @@
 #include <cstring>
 #include <memory>
 #include <termios.h>
-#include <limits.h>
-#include <indiapi.h>
 
 #define INTEGRA_TIMEOUT_IN_S 5
 #define INTEGRA_TEMPERATURE_LOOP_SKIPS 60
 #define INTEGRA_TEMPERATURE_TRESHOLD_IN_C 0.1
-
-#define NC_25_STEPS 374920
 
 #define POLLMS 1000
 #define ROTATOR_TAB "Rotator"
@@ -195,9 +191,7 @@ void Integra::cleanPrint(const char *cmd, char *cleancmd)
             cleancmd[j++] = cmd[i];
         }
     }
-    //DEBUGF(INDI::Logger::DBG_DEBUG, "convert <%s> into <%s>", cmd, cleancmd);
 }
-
 
 bool Integra::Ack()
 {
@@ -236,14 +230,9 @@ bool Integra::getFocuserType()
 bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
 {
     char cmd[16] = {0};
-    char cmdnocrlf[16] = {0};
-    char res[16] = {0};
     char *MotorMoveCommand;
     char MotorMoveIn[] = "MI";
     char MotorMoveOut[] = "MO";
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Start relativeGotoMotor to %d ...", relativePosition);
     if (relativePosition > 0)
@@ -286,28 +275,7 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
     }
 
     snprintf(cmd, 16, "@%s%d,%d\r\n", MotorMoveCommand, type+1, abs(relativePosition));
-
-    cleanPrint(cmd, cmdnocrlf);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmdnocrlf);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-    return true;
+    return genericIntegraCommand(__FUNCTION__, cmd, "M", nullptr);
 }
 
 bool Integra::gotoMotor(MotorType type, int32_t position)
@@ -331,56 +299,14 @@ bool Integra::gotoMotor(MotorType type, int32_t position)
 bool Integra::getPosition(MotorType type)
 {
     char cmd[16] = {0};
-    char cmdnocrlf[16] = {0};
-    char res[16] = {0};
-    int position = -1e6;
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-
     snprintf(cmd, 16, "@PR%d,0\r\n", type+1);
-
-    cleanPrint(cmd, cmdnocrlf); DEBUGF(INDI::Logger::DBG_DEBUG, "CMD GetPosition motor %d <%s>", type, cmdnocrlf);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    char res[16] = {0};
+    if ( ! genericIntegraCommand(__FUNCTION__, "@CR1,0\r\n", "C", res))
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
         return false;
     }
-
-    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-
-    if (res[0] != 'P' || res[nbytes_read-1] != '#')
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", __FUNCTION__, res);
-        return false;
-    }
-    res[nbytes_read-1] = '\0';  // wipe the #
-//    DEBUGF(INDI::Logger::DBG_DEBUG, "RES cleaned up for parse [%s]", res+1);
-    position = atoi(res+1);     // skip the initial P
-//    DEBUGF(INDI::Logger::DBG_DEBUG, "RES parsed with atoi to %d == %d", position, position);
-//    errno = 0;
-//    char *endptr;
-//    position = (int) strtol(res+1, &endptr, 10);
-//    if (    (errno == ERANGE && (position == LONG_MAX || position == LONG_MIN))
-//         || (errno != 0 && position == 0)
-//         || (endptr == res+1)
-//       ) {
-//        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: strtol error <%s>", __FUNCTION__, res+1);
-//        return false;
-//    }
-//    DEBUGF(INDI::Logger::DBG_DEBUG, "RES parsed with strtol to %d == %d", position, position);
-
+    int position = -1e6;
+    position = atoi(res);
     if (position != -1e6)
     {
         if (type == MOTOR_FOCUS) {
@@ -642,120 +568,34 @@ bool Integra::AbortFocuser()
 bool Integra::stopMotor(MotorType type)
 {
     char cmd[16] = {0};
-    char res[16] = {0};
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-
     snprintf(cmd, 16, "@SW%d,0\r\n", type+1);
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    if ( (rc = tty_read(PortFD, res, 2, INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    res[nbytes_read] = '\0';
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-
-    return (res[0] == 'S');
+    return genericIntegraCommand(__FUNCTION__, cmd, "S", nullptr);
 }
 
 bool Integra::isMotorMoving(MotorType type) {
-    char cmd[16] = {0};
     char res[16] = {0};
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-
-    snprintf(cmd, 16, "X");
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK) {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s", __FUNCTION__, errstr);
-        return true; // error, be safe by saying that motor is moving
+    if ( ! genericIntegraCommand(__FUNCTION__, "X", nullptr, res))
+    {
+        return false;
     }
-
-    if ((rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK) {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s", __FUNCTION__, errstr);
-        return true; // error, be safe by saying that motor is moving
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-
-    if (res[1] != '#') {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error interpreting %s", __FUNCTION__, res);
-        return true; // error, be safe by saying that motor is moving
-    }
-
-    /* bug, both motors return 1 at res[0] when running
     if (type == MOTOR_FOCUS)
         return (res[0] == '1');
     else
-        return (res[0] == '2');
-    */
-    return (res[0] == '1');
+        return (res[0] == '1');
+    // bug, both motors return 1 at res[0] when running
+    //  return (res[0] == '2');
 }
 
 bool Integra::getMaxPosition(MotorType type)
 {
     char cmd[16] = {0};
-    char cmdnocrlf[16] = {0};
     char res[16] = {0};
-    int position = -1e6;
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-
     snprintf(cmd, 16, "@RR%d,0\r\n", type+1);
-
-    cleanPrint(cmd, cmdnocrlf);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD GetMaxPosition motor %d <%s>", type, cmdnocrlf);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if ( ! genericIntegraCommand(__FUNCTION__, cmd, "R", res))
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
         return false;
     }
-
-    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-
-    if (res[0] != 'R' || res[nbytes_read-1] != '#')
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", __FUNCTION__, res);
-        return false;
-    }
-    res[nbytes_read-1] = '\0';  // wipe the #
-    position = atoi(res+1);     // skip the initial P
-
+    int position = atoi(res);
     MaxPositionN[type].value = position;
     DEBUGF(INDI::Logger::DBG_SESSION, "Motor %d max position is %d", type, position);
     return true;
@@ -763,182 +603,37 @@ bool Integra::getMaxPosition(MotorType type)
 
 bool Integra::saveToEEPROM()
 {
-    char cmd[16] = "@ZW\r\n";
-    char cmdnocrlf[16] = {0};
-    char res[16] = {0};
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-
-    cleanPrint(cmd, cmdnocrlf);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmdnocrlf);
-
-    tcflush(PortFD, TCIOFLUSH);
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-
-    if (res[0] != 'Z' || res[nbytes_read-1] != '#')
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", __FUNCTION__, res);
-        return false;
-    }
-
-    return true;
+    return genericIntegraCommand(__FUNCTION__, "@ZW\r\n", "Z", nullptr);
 }
 
-bool Integra::getTemperature()
-{
-    char cmd[16] = "@TR\r\n";
-    char cmdnocrlf[16] = {0};
+bool Integra::getTemperature() {
     char res[16] = {0};
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-
-    cleanPrint(cmd, cmdnocrlf); DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmdnocrlf);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if (genericIntegraCommand(__FUNCTION__, "@TR\r\n", "T", res))
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
+        SensorN[SENSOR_TEMPERATURE].value = strtod(res, NULL);
+        return true;
     }
-
-    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-
-    if (res[0] != 'T' || res[nbytes_read-1] != '#')
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", __FUNCTION__, res);
-        return false;
-    }
-    res[nbytes_read-1] = '\0';
-    SensorN[SENSOR_TEMPERATURE].value = strtod(res+1, NULL);
-
-    return true;
+    return false;
 }
 
 bool Integra::findHome()
 {
-    char cmd[16] = {0};
-    char cmdnocrlf[16] = {0};
-    char res[16] = {0};
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-
-    snprintf(cmd, 16, "@CS1,0\r\n");
-
-    cleanPrint(cmd, cmdnocrlf);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmdnocrlf);
-
-    tcflush(PortFD, TCIOFLUSH);
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-
-    return (res[0] == 'C' && res[1] == 'S');
+    return genericIntegraCommand(__FUNCTION__, "@CS1,0\r\n", "CS", nullptr);
 }
 
 bool Integra::abortHome()
 {
-    char cmd[16] = {0};
-    char cmdnocrlf[16] = {0};
-    char res[16] = {0};
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-
-    snprintf(cmd, 16, "@CE1,0\r\n");
-
-    cleanPrint(cmd, cmdnocrlf);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmdnocrlf);
-
-    tcflush(PortFD, TCIOFLUSH);
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-
-    return (res[0] == 'C' && res[1] == 'E');
+    return genericIntegraCommand(__FUNCTION__, "@CE1,0\r\n", "CE", nullptr);
 }
 
 bool Integra::isHomingComplete()
 {
-    char cmd[16] = {0};
-    char cmdnocrlf[16] = {0};
     char res[16] = {0};
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-
-    snprintf(cmd, 16, "@CR1,0\r\n");
-
-    cleanPrint(cmd, cmdnocrlf);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmdnocrlf);
-
-    tcflush(PortFD, TCIOFLUSH);
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if (genericIntegraCommand(__FUNCTION__, "@CR1,0\r\n", "C", res))
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
+        return (res[0] == '1');
     }
-
-    if ( (rc = tty_read_section(PortFD, res, '#', 2 * INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-
-    return (res[0] == 'C' && res[1] == '1');
+    return false;
 }
 
 bool Integra::saveConfigItems(FILE *fp)
@@ -997,52 +692,19 @@ uint32_t Integra::rotatorDegreesToTicks(double angle)
 }
 
 
-bool Integra::SyncRotator(double angle)
-{
+bool Integra::SyncRotator(double angle) {
     char cmd[16] = {0};
-    char cmdnocrlf[16] = {0};
-    char res[16] = {0};
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-
     uint32_t position = rotatorDegreesToTicks(angle);
-
     snprintf(cmd, 16, "@PW2,%d\r\n", position);
-
-    cleanPrint(cmd, cmdnocrlf);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD SyncRotator %.f degrees == %d ticks <%s>", angle, position, cmdnocrlf);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if (genericIntegraCommand(__FUNCTION__, cmd, "P", nullptr))
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
-        return false;
+        haveReadRotatorPositionAtLeastOnce = false;
+        return true;
     }
-
-    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
-
-    if (res[0] != 'P' || res[nbytes_read-1] != '#')
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", __FUNCTION__, res);
-        return false;
-    }
-
-    haveReadRotatorPositionAtLeastOnce = false;
-
-    return true;
+    return false;
 }
 
-bool Integra::ReverseRotator(bool enabled)
+bool Integra::ReverseRotator(bool)
 {
     return genericIntegraCommand(__FUNCTION__, "@IW2,0\r\n", "I", nullptr);
 }
