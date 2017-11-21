@@ -56,12 +56,14 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     virtual IPState MoveRotator(double angle);
     virtual bool AbortRotator();
     virtual bool SyncRotator(double angle);
+    virtual bool ReverseRotator(bool enabled);
 
     // Misc.
     virtual bool saveConfigItems(FILE *fp);
     virtual void TimerHit();
 
   private:
+    bool genericIntegraCommand(const char *name, const char *cmd, const char *expectStart, char *returnValueString);
     bool getFirmware();
     bool getFocuserType();
     bool Ack();

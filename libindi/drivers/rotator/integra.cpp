@@ -996,6 +996,7 @@ uint32_t Integra::rotatorDegreesToTicks(double angle)
     return position;
 }
 
+
 bool Integra::SyncRotator(double angle)
 {
     char cmd[16] = {0};
@@ -1041,3 +1042,61 @@ bool Integra::SyncRotator(double angle)
     return true;
 }
 
+bool Integra::ReverseRotator(bool enabled)
+{
+    return genericIntegraCommand(__FUNCTION__, "@IW2,0\r\n", "I", nullptr);
+}
+
+bool Integra::genericIntegraCommand(const char *name, const char *cmd, const char *expectStart, char *returnValueString)
+{
+    char cmdnocrlf[16] = {0};
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char res[16] = {0};
+    char errstr[MAXRBUF];
+
+    cleanPrint(cmd, cmdnocrlf);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD %s <%s>", name, cmdnocrlf);
+
+    tcflush(PortFD, TCIOFLUSH);
+    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", name, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", name, errstr);
+        return false;
+    }
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES %s <%s>", name, res);
+
+    // check begin of result string
+    if (expectStart != nullptr)
+    {
+        int expectStrlen = strlen(expectStart);
+        for (int i=0; i<expectStrlen; i++)
+        {
+            if (res[i] != expectStart[i])
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", name, res);
+                return false;
+            }
+        }
+    }
+    // check end of result string
+    if (res[nbytes_read-1] != '#')
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", name, res);
+        return false;
+    }
+    res[nbytes_read-1] = '\0';  // wipe the #
+
+    if (returnValueString != nullptr)
+        strcpy(returnValueString, res+1);
+
+    return true;
+}
