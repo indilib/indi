@@ -11,9 +11,10 @@ find_package(ZLIB REQUIRED)
 find_package(USB-1 REQUIRED)
 find_package(Threads REQUIRED)
 
-# Using ASI SDK Version 0.6.0915 updated on 2017-09-18
+# Using ASI Camera SDK Version 0.6.0921 updated on 2017-11-21
+# Using ASI EFW SDK Version 3.0214 updated on 2017-11-21
 set(ASI_VERSION_MAJOR 0)
-set(ASI_VERSION_MINOR 6)
+set(ASI_VERSION_MINOR 7)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_asi.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_asi.xml)
