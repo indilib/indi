@@ -569,7 +569,16 @@ bool Integra::stopMotor(MotorType type)
 {
     char cmd[16] = {0};
     snprintf(cmd, 16, "@SW%d,0\r\n", type+1);
-    return genericIntegraCommand(__FUNCTION__, cmd, "S", nullptr);
+    if (genericIntegraCommand(__FUNCTION__, cmd, "S", nullptr))
+    {
+        if (type == MOTOR_FOCUS) {
+            haveReadFocusPositionAtLeastOnce = false;
+        } else {
+            haveReadRotatorPositionAtLeastOnce = false;
+        }
+        return true;
+    }
+    return false;
 }
 
 bool Integra::isMotorMoving(MotorType type) {
