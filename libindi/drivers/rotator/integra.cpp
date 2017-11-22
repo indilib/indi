@@ -221,7 +221,7 @@ bool Integra::getFocuserType()
         RotatorAbsPosN[0].min = 0;
         RotatorAbsPosN[0].max = 61802;
     }
-    ticksPerDegree = RotatorAbsPosN[0].max / 360.0;
+    rotatorTicksPerDegree = RotatorAbsPosN[0].max / 360.0;
     rotatorDegreesPerTick = 360.0 / RotatorAbsPosN[0].max;
 
     return true;
@@ -301,7 +301,7 @@ bool Integra::getPosition(MotorType type)
     char cmd[16] = {0};
     snprintf(cmd, 16, "@PR%d,0\r\n", type+1);
     char res[16] = {0};
-    if ( ! genericIntegraCommand(__FUNCTION__, "@CR1,0\r\n", "C", res))
+    if ( ! genericIntegraCommand(__FUNCTION__, cmd, "P", res))
     {
         return false;
     }
@@ -313,7 +313,11 @@ bool Integra::getPosition(MotorType type)
             if (FocusAbsPosN[0].value != position) {
                 int position_from = (int) FocusAbsPosN[0].value;
                 int position_to = position;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Focus position changed from %d to %d", position_from, position_to);
+                if (haveReadFocusPositionAtLeastOnce) {
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Focus position changed from %d to %d", position_from, position_to);
+                } else {
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Focus position is %d", position_to);
+                }
                 FocusAbsPosN[0].value = position;
             }
         }
@@ -321,7 +325,13 @@ bool Integra::getPosition(MotorType type)
             if (RotatorAbsPosN[0].value != position) {
                 int position_from = (int) RotatorAbsPosN[0].value;
                 int position_to = position;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Rotator position changed from %d to %d",  position_from, position_to);
+                if (haveReadRotatorPositionAtLeastOnce) {
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Rotator changed angle from %.f to %.f, position changed from %d to %d",
+                           rotatorTicksToDegrees(position_from), rotatorTicksToDegrees(position_to), position_from, position_to);
+                } else {
+                    DEBUGF(INDI::Logger::DBG_SESSION, "Rotator angle is %.f, position is %d",
+                           rotatorTicksToDegrees(position_to), position_to);
+                }
                 RotatorAbsPosN[0].value = position;
             }
         }
@@ -511,16 +521,21 @@ void Integra::TimerHit()
     {
         if ( ! isMotorMoving(MOTOR_FOCUS))
         {
+            DEBUG(INDI::Logger::DBG_SESSION, "Focuser stopped");
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
             rc = getPosition(MOTOR_FOCUS);
             if (rc) {
-                haveReadFocusPositionAtLeastOnce = true;
                 if (FocusAbsPosN[0].value != lastFocuserPosition) {
                     lastFocuserPosition = FocusAbsPosN[0].value;
                     IDSetNumber(&FocusAbsPosNP, nullptr);
                     IDSetNumber(&FocusRelPosNP, nullptr);
-                    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser reached requested position %d", lastFocuserPosition);
+                    if (haveReadFocusPositionAtLeastOnce) {
+                        DEBUGF(INDI::Logger::DBG_SESSION, "Focuser reached requested position %d", lastFocuserPosition);
+                    } else {
+                        DEBUGF(INDI::Logger::DBG_SESSION, "Focuser is at %d", lastFocuserPosition);
+                        haveReadFocusPositionAtLeastOnce = true;
+                    }
                     savePositionsToEEPROM = true;
                 }
             }
@@ -534,17 +549,24 @@ void Integra::TimerHit()
     {
         if ( ! isMotorMoving(MOTOR_ROTATOR))
         {
+            DEBUG(INDI::Logger::DBG_SESSION, "Rotator stopped");
             RotatorAbsPosNP.s = IPS_OK;
             GotoRotatorNP.s = IPS_OK;
             rc = getPosition(MOTOR_ROTATOR);
             if (rc) {
-                haveReadRotatorPositionAtLeastOnce = true;
                 if (RotatorAbsPosN[0].value != lastRotatorPosition) {
                     lastRotatorPosition = RotatorAbsPosN[0].value;
-                    GotoRotatorN[0].value = range360(RotatorAbsPosN[0].value / ticksPerDegree);
+                    GotoRotatorN[0].value = rotatorTicksToDegrees(lastRotatorPosition); //range360(RotatorAbsPosN[0].value / rotatorTicksPerDegree);
                     IDSetNumber(&RotatorAbsPosNP, nullptr);
                     IDSetNumber(&GotoRotatorNP, nullptr);
-                    DEBUGF(INDI::Logger::DBG_SESSION, "Rotator reached requested position %d", lastRotatorPosition);
+                    if (haveReadRotatorPositionAtLeastOnce)
+                        DEBUGF(INDI::Logger::DBG_SESSION, "Rotator reached requested angle %.f, position %d",
+                               rotatorTicksToDegrees(lastRotatorPosition), lastRotatorPosition);
+                    else {
+                        DEBUGF(INDI::Logger::DBG_SESSION, "Rotator is at angle %.f, position %d",
+                               rotatorTicksToDegrees(lastRotatorPosition), lastRotatorPosition);
+                        haveReadRotatorPositionAtLeastOnce = true;
+                    }
                     savePositionsToEEPROM = true;
                 }
             }
@@ -567,6 +589,7 @@ bool Integra::AbortFocuser()
 
 bool Integra::stopMotor(MotorType type)
 {
+    // TODO (if focuser?) handle CR 2
     char cmd[16] = {0};
     snprintf(cmd, 16, "@SW%d,0\r\n", type+1);
     if (genericIntegraCommand(__FUNCTION__, cmd, "S", nullptr))
@@ -583,16 +606,28 @@ bool Integra::stopMotor(MotorType type)
 
 bool Integra::isMotorMoving(MotorType type) {
     char res[16] = {0};
-    if ( ! genericIntegraCommand(__FUNCTION__, "X", nullptr, res))
-    {
+    if ( ! genericIntegraCommand(__FUNCTION__, "X", nullptr, res)) {
         return false;
     }
-    if (type == MOTOR_FOCUS)
-        return (res[0] == '1');
-    else
-        return (res[0] == '1');
-    // bug, both motors return 1 at res[0] when running
-    //  return (res[0] == '2');
+    if (type == MOTOR_FOCUS) {
+        if (res[0] == '1') {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Focus motor is running");
+            return true;
+        } else {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Focus motor is not running");
+            return false;
+        }
+    } else {
+        // bug, both motors return 1 at res[0] when running
+        //  return (res[0] == '2');
+        if (res[0] == '1') {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Rotator motor is running");
+            return true;
+        } else {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Rotator motor is not running");
+            return false;
+        }
+    }
 }
 
 bool Integra::getMaxPosition(MotorType type)
@@ -656,14 +691,15 @@ bool Integra::saveConfigItems(FILE *fp)
 
 // Integra position 0..61802 ticks , angle 0..360 deg, position 0 corresponds to 180 deg
 // We need to map the Integra frame to that of the IndiRotatorInterface.
-// Only absolute position Rotators are supported.
+// INDI rotatorInterface: Only absolute position Rotators are supported.
 // Angle is ranged from 0 to 360 increasing clockwise when looking at the back of the camera.
 IPState Integra::MoveRotator(double angle)
 {
     uint32_t p1 = lastRotatorPosition;
     uint32_t p2 = rotatorDegreesToTicks(angle);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "MoveRotator to %.f degrees, from position %d to %d ...", angle, p1, p2);
+    DEBUGF(INDI::Logger::DBG_SESSION, "MoveRotator from %.f to %.f degrees, from position %d to %d ...",
+           rotatorTicksToDegrees(lastRotatorPosition), angle, p1, p2);
     bool rc = relativeGotoMotor(MOTOR_ROTATOR, p2 - p1);
     if (rc)
     {
@@ -700,6 +736,11 @@ uint32_t Integra::rotatorDegreesToTicks(double angle)
     return position;
 }
 
+double Integra::rotatorTicksToDegrees(uint32_t ticks)
+{
+    double degrees = range360(180.0 + ticks * rotatorDegreesPerTick);
+    return degrees;
+}
 
 bool Integra::SyncRotator(double angle) {
     char cmd[16] = {0};
@@ -766,8 +807,14 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
     }
     res[nbytes_read-1] = '\0';  // wipe the #
 
-    if (returnValueString != nullptr)
-        strcpy(returnValueString, res+1);
+    if (returnValueString != nullptr) {
+        // handle the exception case X that returns a result that does NOT start with an identifier
+        if (res[0] < 'A' || res[0] > 'Z') {
+            strcpy(returnValueString, res);
+        } else {
+            strcpy(returnValueString, res+1);
+        }
+    }
 
     return true;
 }

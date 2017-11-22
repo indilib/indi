@@ -80,6 +80,7 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     bool saveToEEPROM();
     bool getMaxPosition(MotorType type);
     uint32_t rotatorDegreesToTicks(double angle);
+    double rotatorTicksToDegrees(uint32_t ticks);
 
     INumber MaxPositionN[2];
     INumberVectorProperty MaxPositionNP;
@@ -96,7 +97,7 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
 
     double lastTemperature { 0 };
     int timeToReadTemperature = 0;
-    double ticksPerDegree { 0 };
+    double rotatorTicksPerDegree { 0 };
     double rotatorDegreesPerTick = 0.0;
     uint32_t lastFocuserPosition { 0 };
     bool haveReadFocusPositionAtLeastOnce = false;
