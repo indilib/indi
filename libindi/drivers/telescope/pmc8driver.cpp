@@ -854,8 +854,6 @@ bool set_pmc8_axis_motor_rate(int fd, PMC8_AXIS axis, int mrate, bool fast)
     char response[24];
     int nbytes_read    = 0;
     int nbytes_written = 0;
-    int rateval;
-    bool rc;
 
     snprintf(cmd, sizeof(cmd), "ESSr%d%04X!", axis, mrate);
 
@@ -1144,11 +1142,6 @@ bool get_pmc8_guide_rate(int fd, double *rate)
 
 bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
 {
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    int nbytes_written = 0;
-
     bool rc;
     int cur_ra_rate;
     int cur_dec_rate;
