@@ -272,7 +272,6 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 {
     if (!strcmp(dev, getDeviceName()))
     {
-#if 1
         // FIXME - (MSF) will add setting guide rate when firmware supports
         // Guiding Rate
         if (!strcmp(name, GuideRateNP.name))
@@ -294,7 +293,6 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
             processGuiderProperties(name, values, names, n);
             return true;
         }
-#endif
     }
 
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
@@ -443,8 +441,6 @@ bool PMC8::ReadScopeStatus()
                    if (stop_pmc8_tracking_motion(PortFD))
                        DEBUG(INDI::Logger::DBG_DEBUG, "Mount tracking is off.");
 
-
-
                    SetParked(true);
 
                    saveConfig(true);
@@ -544,8 +540,6 @@ bool PMC8::Abort()
         return true;
     }
 
-
-
     return abort_pmc8(PortFD);
 }
 
@@ -574,7 +568,9 @@ bool PMC8::Park()
         return true;
     }
     else
+    {
         return false;
+    }
 }
 
 bool PMC8::UnPark()
@@ -586,7 +582,9 @@ bool PMC8::UnPark()
         return true;
     }
     else
+    {
         return false;
+    }
 }
 
 bool PMC8::Handshake()
@@ -610,7 +608,6 @@ bool PMC8::updateTime(ln_date *utc, double utc_offset)
     // mark unused
     INDI_UNUSED(utc);
     INDI_UNUSED(utc_offset);
-
 
 #if 1
     DEBUG(INDI::Logger::DBG_ERROR, "PMC8::updateTime() not implemented!");
@@ -709,7 +706,9 @@ bool PMC8::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
                 return false;
             }
             else
+            {
                 DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
+            }
             break;
 
         case MOTION_STOP:
@@ -719,7 +718,9 @@ bool PMC8::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
                 return false;
             }
             else
+            {
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
+            }
             break;
     }
 
@@ -748,7 +749,9 @@ bool PMC8::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
                 return false;
             }
             else
+            {
                 DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
+            }
             break;
 
         case MOTION_STOP:
@@ -758,15 +761,34 @@ bool PMC8::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
                 return false;
             }
             else
+            {
                 DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
+
+                // restore tracking
+
+                if (TrackState == SCOPE_TRACKING)
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Move E/W complete, tracking...");
+
+                    if (!SetTrackEnabled(true))
+                    {
+                        DEBUG(INDI::Logger::DBG_ERROR, "slew complete - unable to enable tracking");
+                        return false;
+                    }
+
+                    if (!SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP)))
+                    {
+                        DEBUG(INDI::Logger::DBG_ERROR, "slew complete - unable to set track mode");
+                        return false;
+                    }
+                }
+            }
             break;
     }
 
     return true;
 }
 
-#if 1
-// not implemented on PMC8
 IPState PMC8::GuideNorth(float ms)
 {
     bool rc;
@@ -887,36 +909,6 @@ IPState PMC8::GuideWest(float ms)
     GuideWETID      = IEAddTimer(timeremain_ms, guideTimeoutHelperW, this);
     return IPS_BUSY;
 }
-#else
-IPState PMC8::GuideNorth(float ms)
-{
-    INDI_UNUSED(ms);
-
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideNorth(float ms) not implemented!");
-    return IPS_ALERT;
-}
-IPState PMC8::GuideSouth(float ms)
-{
-    INDI_UNUSED(ms);
-
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideSouth(float ms) not implemented!");
-    return IPS_ALERT;
-}
-IPState PMC8::GuideEast(float ms)
-{
-    INDI_UNUSED(ms);
-
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideEast(int index)) not implemented!");
-    return IPS_ALERT;
-}
-IPState PMC8::GuideWest(float ms)
-{
-    INDI_UNUSED(ms);
-
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::GuideWest(float ms) not implemented!");
-    return IPS_ALERT;
-}
-#endif
 
 void PMC8::guideTimeout(PMC8_DIRECTION calldir)
 {
@@ -940,7 +932,7 @@ void PMC8::guideTimeout(PMC8_DIRECTION calldir)
         IDSetNumber(&GuideWENP, nullptr);
     }
 
-    DEBUG(INDI::Logger::DBG_WARNING, "GUIDE CMD COMPLETED");
+    DEBUG(INDI::Logger::DBG_DEBUG, "GUIDE CMD COMPLETED");
 }
 
 //GUIDE The timer helper functions.
