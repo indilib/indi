@@ -37,7 +37,6 @@
 // only used for test timing of pulse guiding
 #include <sys/time.h>
 
-
 #define PMC8_TIMEOUT 5 /* FD timeout in seconds */
 
 #define PMC8_SIMUL_VERSION_RESP "ESGvES06B9T9"
@@ -61,6 +60,18 @@
 //              custom rate is higher than sidereal
 #define PMC8_MINSLEWRATE 55
 
+<<<<<<< edc7cc786da6fff0b81821d13823c5f0e68859e0
+=======
+// any guide pulses less than this are ignored as it will not result in any actual motor motion
+#define PMC8_PULSE_GUIDE_MIN_MS 20
+
+// guide pulses longer than this require using a timer
+#define PMC8_PULSE_GUIDE_MAX_NOTIMER 250
+
+// dont send pulses if already moving faster than this
+#define PMC8_PULSE_GUIDE_MAX_CURRATE 100
+
+>>>>>>> Remove unused code and try to fix problem with DEC guide calibration 'flipping' after a slew in a particular direction left DEC direction flag in PMC8 in an opposite state
 bool pmc8_debug                 = false;
 bool pmc8_simulation            = false;
 char pmc8_device[MAXINDIDEVICE] = "PMC8";
@@ -442,10 +453,7 @@ bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate)
     strcpy(num_str, "0X");
     strncat(num_str, response+5, 6);
 
-    //point = atoi(num_str);
     rate = (int)strtol(num_str, NULL, 0);
-
-//    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get rates num_str = %s atoi() returns %d", num_str, rate);
 
     return true;
 }
@@ -506,8 +514,6 @@ bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
     strncat(num_str, response+5, 2);
 
     dir = (int)strtol(num_str, NULL, 0);
-
-    //DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get dir num_str = %s atoi() returns %d", num_str, dir);
 
     return true;
 }
@@ -595,9 +601,6 @@ bool get_pmc8_is_scope_slewing(int fd, bool &isslew)
         return false;
     }
 
-//    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get_pmc8_is_scope_slewing(): rarate=%d decreate=%d", rarate, decrate);
-
-
     if (pmc8_simulation)
     {
         isslew = (simPMC8Info.systemStatus == ST_SLEWING);
@@ -607,8 +610,6 @@ bool get_pmc8_is_scope_slewing(int fd, bool &isslew)
     {
         isslew = ((rarate > PMC8_MINSLEWRATE) || (decrate > PMC8_MINSLEWRATE));
     }
-
-//    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get_pmc8_is_scope_slewing(): isslew=%d", isslew);
 
     return true;
 }
@@ -689,50 +690,6 @@ bool start_pmc8_motion(int fd, PMC8_DIRECTION dir, int mode)
         set_pmc8_custom_dec_move_rate(fd, decrate);
 
     return true;
-
-
-#if 0
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    int nbytes_written = 0;
-
-    switch (dir)
-    {
-        case PMC8_N:
-            strcpy(cmd, ":mn#");
-            break;
-        case PMC8_S:
-            strcpy(cmd, ":ms#");
-            break;
-        case PMC8_W:
-            strcpy(cmd, ":mw#");
-            break;
-        case PMC8_E:
-            strcpy(cmd, ":me#");
-            break;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-        return true;
-
-    tcflush(fd, TCIFLUSH);
-
-    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-        return false;
-    }
-
-    tcflush(fd, TCIFLUSH);
-    return true;
-#else
-    // FIXME - (MSF) implement start_pmc8_motion
-    return false;
-#endif
 }
 
 bool stop_pmc8_tracking_motion(int fd)
@@ -754,7 +711,6 @@ bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir)
 {
     bool rc;
 
-    // FIXME - (MSF) this should restart tracking in right direction based on state before start_pmc8_motion() was called!!
     switch (dir)
     {
         case PMC8_N:
@@ -1048,8 +1004,11 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate)
         return false;
     }
 
+<<<<<<< edc7cc786da6fff0b81821d13823c5f0e68859e0
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 internal precise rate %d for requested rate %f", rateval, rate);
 
+=======
+>>>>>>> Remove unused code and try to fix problem with DEC guide calibration 'flipping' after a slew in a particular direction left DEC direction flag in PMC8 in an opposite state
     snprintf(cmd, sizeof(cmd), "ESTr%04X!", rateval);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -1167,19 +1126,10 @@ bool set_pmc8_custom_dec_move_rate(int fd, double rate)
 // rate is fraction of sidereal
 bool set_pmc8_guide_rate(int fd, double rate)
 {
-
-#if 1
     INDI_UNUSED(fd);
     pmc8_guide_rate = rate * 15.0;
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_guide_rate: guide rate set to %f arcsec/sec", pmc8_guide_rate);
     return true;
-#else
-    INDI_UNUSED(fd);
-    INDI_UNUSED(rate);
-
-    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_guide_rate not implemented!");
-    return false;
-#endif
 }
 
 // not yet implemented for PMC8
@@ -1305,20 +1255,19 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
             new_ra_dir = 0;
     }
 
+    // FIXME (MSF) - not sure about handling direction for guide corrections in relation to N/S and EpW vs WpE??
     if (new_dec_rate < 0)
-    {
-        new_dec_rate = abs(new_dec_rate);
-        if (cur_dec_dir == 0)
-            new_dec_dir = 1;
-        else
-            new_dec_dir = 0;
-    }
+        new_dec_dir = 1;
+    else
+        new_dec_dir = 0;
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): gdir=%d dur=%d cur_ra_rate=%d cur_ra_dir=%d cur_dec_rate=%d cur_dec_dir=%d",
-                                                       gdir, ms, cur_ra_rate, cur_ra_dir, cur_dec_rate, cur_dec_dir);
+    new_dec_rate = abs(new_dec_rate);
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): new_ra_rate=%d new_ra_dir=%d new_dec_rate=%d new_dec_dir=%d",
-                                                       new_ra_rate, new_ra_dir, new_dec_rate, new_dec_dir);
+//    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): gdir=%d dur=%d cur_ra_rate=%d cur_ra_dir=%d cur_dec_rate=%d cur_dec_dir=%d",
+//                                                       gdir, ms, cur_ra_rate, cur_ra_dir, cur_dec_rate, cur_dec_dir);
+
+//    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): new_ra_rate=%d new_ra_dir=%d new_dec_rate=%d new_dec_dir=%d",
+//                                                       new_ra_rate, new_ra_dir, new_dec_rate, new_dec_dir);
 
     if ((new_ra_rate != cur_ra_rate) || (new_ra_dir != cur_ra_dir))
     {
@@ -1351,6 +1300,7 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
     }
 
     // store state
+<<<<<<< edc7cc786da6fff0b81821d13823c5f0e68859e0
     pulse_guide_active = true;
     PulseGuideTrackingState.cur_ra_rate  = cur_ra_rate;
     PulseGuideTrackingState.cur_ra_dir   = cur_ra_dir;
@@ -1363,6 +1313,60 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
 
     // wait duration
     usleep(ms*1000);
+=======
+    pstate->pulseguideactive = true;
+    pstate->fakepulse = false;
+    pstate->ms = ms;
+    pstate->pulse_start_us = pulse_start_us;
+    pstate->cur_ra_rate  = cur_ra_rate;
+    pstate->cur_ra_dir   = cur_ra_dir;
+    pstate->cur_dec_rate = cur_dec_rate;
+    pstate->cur_dec_dir  = cur_dec_dir;
+    pstate->new_ra_rate  = new_ra_rate;
+    pstate->new_ra_dir   = new_ra_dir;
+    pstate->new_dec_rate = new_dec_rate;
+    pstate->new_dec_dir  = new_dec_dir;
+
+    // see how long we've waited
+    gettimeofday(&tp, NULL);
+    pulse_sofar_us = (tp.tv_sec*1000000+tp.tv_usec) - pulse_start_us;
+
+    timetaken_us = pulse_sofar_us;
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): timetaken_us=%d us", timetaken_us);
+
+    return true;
+}
+
+bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
+{
+    struct timeval tp;
+    long long pulse_end_us;
+
+    PulseGuideState *pstate;
+
+    // figure out which state variable to use
+    switch (gdir)
+    {
+        case PMC8_N:
+        case PMC8_S:
+            pstate = &NS_PulseGuideState;
+            break;
+
+        case PMC8_W:
+        case PMC8_E:
+            pstate = &EW_PulseGuideState;
+            break;
+    }
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_stop_guide(): pulse dir=%d dur=%d ms", gdir, pstate->ms);
+
+    if (!pstate->pulseguideactive)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_stop_guide(): pulse guide not active!!");
+        return false;
+    }
+>>>>>>> Remove unused code and try to fix problem with DEC guide calibration 'flipping' after a slew in a particular direction left DEC direction flag in PMC8 in an opposite state
 
     // flush any responses to commands we ignored above!
     tcflush(fd, TCIFLUSH);
@@ -1394,7 +1398,7 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): requested = %d ms, actual = %f ms",ms, (pulse_end_us-pulse_start_us)/1000.0);
 
     // sleep to let any responses occurs and clean up!
-    usleep(15000);
+//    usleep(15000);
 
     // flush any responses to commands we ignored above!
     tcflush(fd, TCIFLUSH);
@@ -1962,452 +1966,6 @@ bool set_pmc8_radec(int fd, double ra, double dec)
     return true;
 }
 
-#if 0
-// convert as required
-bool set_ieqpro_longitude(int fd, double longitude)
-{
-    char cmd[16];
-    char sign;
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    if (longitude >= 0)
-        sign = '+';
-    else
-        sign = '-';
-
-    int longitude_arcsecs = fabs(longitude) * 60 * 60;
-    snprintf(cmd, 16, ":Sg%c%06d#", sign, longitude_arcsecs);
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-    {
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
-bool set_ieqpro_latitude(int fd, double latitude)
-{
-    char cmd[16];
-    char sign;
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    if (latitude >= 0)
-        sign = '+';
-    else
-        sign = '-';
-
-    int latitude_arcsecs = fabs(latitude) * 60 * 60;
-    snprintf(cmd, 16, ":St%c%06d#", sign, latitude_arcsecs);
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-    {
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
-bool get_ieqpro_longitude(int fd, double *longitude)
-{
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    strcpy(cmd, ":Gg#");
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-    {
-        strcpy(response, "+172800");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-
-        int longitude_arcsecs = 0;
-
-        if (sscanf(response, "%d#", &longitude_arcsecs) > 0)
-        {
-            *longitude = longitude_arcsecs / 3600.0;
-            return true;
-        }
-
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error: Malformed result (%s).", response);
-        return false;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 8.", nbytes_read);
-    return false;
-}
-
-bool get_ieqpro_latitude(int fd, double *latitude)
-{
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    strcpy(cmd, ":Gt#");
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-    {
-        strcpy(response, "+106200");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-
-        int latitude_arcsecs = 0;
-
-        if (sscanf(response, "%d#", &latitude_arcsecs) > 0)
-        {
-            *latitude = latitude_arcsecs / 3600.0;
-            return true;
-        }
-
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Error: Malformed result (%s).", response);
-        return false;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 8.", nbytes_read);
-    return false;
-}
-
-bool set_ieqpro_local_date(int fd, int yy, int mm, int dd)
-{
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    snprintf(cmd, 16, ":SC%02d%02d%02d#", yy, mm, dd);
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-    {
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
-bool set_ieqpro_local_time(int fd, int hh, int mm, int ss)
-{
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    snprintf(cmd, 16, ":SL%02d%02d%02d#", hh, mm, ss);
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-    {
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
-bool set_ieqpro_daylight_saving(int fd, bool enabled)
-{
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    if (enabled)
-        strcpy(cmd, ":SDS1#");
-    else
-        strcpy(cmd, ":SDS0#");
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-    {
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
-bool set_ieqpro_utc_offset(int fd, double offset)
-{
-    char cmd[16];
-    char sign;
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    if (offset >= 0)
-        sign = '+';
-    else
-        sign = '-';
-
-    int offset_minutes = fabs(offset) * 60.0;
-
-    snprintf(cmd, 16, ":SG%c%03d#", sign, offset_minutes);
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-    {
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-#endif
-
 bool get_pmc8_coords(int fd, double &ra, double &dec)
 {
     int racounts, deccounts;
@@ -2450,105 +2008,3 @@ bool get_pmc8_coords(int fd, double &ra, double &dec)
 
     return rc;
 }
-
-#if 0
-bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss)
-{
-    char cmd[]  = ":GLT#";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[32];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    // Format according to Manual is sMMMYYMMDDHHMMSS#
-    // However as pointed out by user Shepherd on INDI forums, actual format is
-    // sMMMxYYMMDDHHMMSS#
-    // Where x is either 0 or 1 denoting daying savings
-    if (pmc8_simulation)
-    {
-        strncpy(response, "+1800150331173000#", 32);
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        tcflush(fd, TCIFLUSH);
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        char utc_str[8]={0}, yy_str[8]={0}, mm_str[8]={0}, dd_str[8]={0}, hh_str[8]={0}, minute_str[8]={0}, ss_str[8]={0}, dst_str[8]={0};
-
-        // UTC Offset
-        strncpy(utc_str, response, 4);
-        // Daylight savings
-        strncpy(dst_str, response + 4, 1);
-        // Year
-        strncpy(yy_str, response + 5, 2);
-        // Month
-        strncpy(mm_str, response + 7, 2);
-        // Day
-        strncpy(dd_str, response + 9, 2);
-        // Hour
-        strncpy(hh_str, response + 11, 2);
-        // Minute
-        strncpy(minute_str, response + 13, 2);
-        // Second
-        strncpy(ss_str, response + 15, 2);
-
-        *utc_hours = atoi(utc_str) / 60.0;
-        *yy        = atoi(yy_str) + 2000;
-        *mm        = atoi(mm_str) + 1;
-        *dd        = atoi(dd_str);
-        *hh        = atoi(hh_str);
-        *minute    = atoi(minute_str);
-        *ss        = atoi(ss_str);
-
-        ln_zonedate localTime;
-        ln_date utcTime;
-
-        localTime.years   = *yy;
-        localTime.months  = *mm;
-        localTime.days    = *dd;
-        localTime.hours   = *hh;
-        localTime.minutes = *minute;
-        localTime.seconds = *ss;
-        localTime.gmtoff  = *utc_hours * 3600;
-
-        ln_zonedate_to_date(&localTime, &utcTime);
-
-        *yy     = utcTime.years;
-        *mm     = utcTime.months;
-        *dd     = utcTime.days;
-        *hh     = utcTime.hours;
-        *minute = utcTime.minutes;
-        *ss     = utcTime.seconds;
-
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
-#endif
