@@ -26,7 +26,7 @@ class LX200Basic : public INDI::Telescope
 {
   public:
     LX200Basic();
-    ~LX200Basic();
+    ~LX200Basic() = default;
 
     virtual const char *getDefaultName() override;
     virtual bool Handshake() override;

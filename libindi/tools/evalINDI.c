@@ -29,15 +29,15 @@
 
 extern int compileExpr(char *expr, char *errmsg);
 extern int evalExpr(double *vp, char *errmsg);
-extern int allOperandsSet(void);
+extern int allOperandsSet();
 extern int getAllOperands(char ***ops);
 extern int getSetOperands(char ***ops);
 extern int getUnsetOperands(char ***ops);
 extern int setOperand(char *name, double valu);
 
-static void usage(void);
+static void usage();
 static void compileINDI(char *expr);
-static FILE *openINDIServer(void);
+static FILE *openINDIServer();
 static void getProps(FILE *fp);
 static void initProps(FILE *fp);
 static int pstatestr(char *state);
@@ -274,7 +274,7 @@ static void compileINDI(char *expr)
 /* open a connection to the given host and port or die.
  * return FILE pointer to socket.
  */
-static FILE *openINDIServer(void)
+static FILE *openINDIServer()
 {
     struct sockaddr_in serv_addr;
     struct hostent *hp;

@@ -38,6 +38,9 @@ class LX200AstroPhysics : public LX200Generic
     LX200AstroPhysics();
     ~LX200AstroPhysics() {}
 
+    typedef enum { MCV_G, MCV_H, MCV_I, MCV_J, MCV_L, MCV_UNKNOWN} ControllerVersion;
+    typedef enum { GTOCP1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
+
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual void ISGetProperties(const char *dev) override;
@@ -62,6 +65,10 @@ class LX200AstroPhysics : public LX200Generic
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual bool SetSlewRate(int index) override;
+
+    virtual int  SendPulseCmd(int direction, int duration_msec) override;
+
+    virtual bool getUTFOffset(double *offset) override;
 
     // Tracking
     virtual bool SetTrackMode(uint8_t mode) override;
@@ -108,6 +115,8 @@ class LX200AstroPhysics : public LX200Generic
     // Side of pier
     void syncSideOfPier();
 
-    bool timeUpdated, locationUpdated;
-    int initStatus;
+    bool timeUpdated=false, locationUpdated=false;
+    ControllerVersion controllerType = MCV_UNKNOWN;
+    ServoVersion servoType = GTOCP_UNKNOWN;
+    uint8_t initStatus = MOUNTNOTINITIALIZED;
 };

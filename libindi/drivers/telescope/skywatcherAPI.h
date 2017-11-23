@@ -187,9 +187,9 @@ class SkywatcherAPI
     /// \brief Set the motion mode per the specified axis
     /// \param[in] Axis - The axis to use.
     /// \param[in] Func - the slewing mode
-    /// - 0 = Low speed SlewTo mode
+    /// - 0 = High speed SlewTo mode
     /// - 1 = Low speed Slew mode
-    /// - 2 = High speed SlewTo mode
+    /// - 2 = Low speed SlewTo mode
     /// - 3 = High Speed Slew mode
     /// \param[in] Direction - the direction to slew in
     /// - 0 = Forward

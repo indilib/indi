@@ -10,8 +10,8 @@
 #include <memory>
 #include "inovaplx_ccd.h"
 
-int timerNS;
-int timerWE;
+int timerNS = -1;
+int timerWE = -1;
 unsigned char DIR		  = 0xF;
 //unsigned char OLD_DIR	  = 0xF;
 const int POLLMS		   = 500;	   /* Polling interval 500 ms */
@@ -41,7 +41,6 @@ static void timerWestEast(void * arg)
     DIR |= 0x09;
     iNovaSDK_SendST4(DIR);
     IERmCallback(timerWE);
-    timerWE = -1;
 }
 
 static void timerNorthSouth(void * arg)
@@ -50,7 +49,6 @@ static void timerNorthSouth(void * arg)
     DIR |= 0x06;
     iNovaSDK_SendST4(DIR);
     IERmCallback(timerNS);
-    timerNS = -1;
 }
 
 void ISGetProperties(const char *dev)
@@ -385,45 +383,37 @@ void INovaCCD::TimerHit()
 
 IPState INovaCCD::GuideEast(float ms)
 {
-    if(timerWE < 0) {
-        DIR |= 0x09;
-        DIR &= 0x0E;
-        iNovaSDK_SendST4(DIR);
-        timerWE = IEAddTimer(ms, timerWestEast, (void *)this);
-    }
+    DIR |= 0x09;
+    DIR &= 0x0E;
+    iNovaSDK_SendST4(DIR);
+    timerWE = IEAddTimer(ms, timerWestEast, (void *)this);
     return IPS_IDLE;
 }
 
 IPState INovaCCD::GuideWest(float ms)
 {
-    if(timerWE < 0) {
-        DIR |= 0x09;
-        DIR &= 0x07;
-        iNovaSDK_SendST4(DIR);
-        timerWE = IEAddTimer(ms, timerWestEast, (void *)this);
-    }
+    DIR |= 0x09;
+    DIR &= 0x07;
+    iNovaSDK_SendST4(DIR);
+    timerWE = IEAddTimer(ms, timerWestEast, (void *)this);
     return IPS_IDLE;
 }
 
 IPState INovaCCD::GuideNorth(float ms)
 {
-    if(timerNS < 0) {
-        DIR |= 0x06;
-        DIR &= 0x0D;
-        iNovaSDK_SendST4(DIR);
-        timerNS = IEAddTimer(ms, timerNorthSouth, (void *)this);
-    }
+    DIR |= 0x06;
+    DIR &= 0x0D;
+    iNovaSDK_SendST4(DIR);
+    timerNS = IEAddTimer(ms, timerNorthSouth, (void *)this);
     return IPS_IDLE;
 }
 
 IPState INovaCCD::GuideSouth(float ms)
 {
-    if(timerNS < 0) {
-        DIR |= 0x06;
-        DIR &= 0x0B;
-        iNovaSDK_SendST4(DIR);
-        timerNS = IEAddTimer(ms, timerNorthSouth, (void *)this);
-    }
+    DIR |= 0x06;
+    DIR &= 0x0B;
+    iNovaSDK_SendST4(DIR);
+    timerNS = IEAddTimer(ms, timerNorthSouth, (void *)this);
     return IPS_IDLE;
 }
 
