@@ -43,6 +43,11 @@ class LX200SS2000PC : public LX200Generic
     bool setCalenderDate(int year, int month, int day);
     bool setUTCOffset(const int offset_in_hours);
 
+    bool updateLocation(double latitude, double longitude, double elevation);
+    int setLongitude(double Long);
+    int setLatitude(double Long);
+    int sendCommand(int fd, const char *data);
+
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
 

@@ -147,12 +147,14 @@ class StreamManager
     IBLOB *imageB;
 
     // Encoder Selector. It's static now but should this implemented as plugin interface?
-    ISwitch EncoderS[1];
+    ISwitch EncoderS[2];
     ISwitchVectorProperty EncoderSP;
+    enum { ENCODER_RAW, ENCODER_MJPEG };
 
     // Recorder Selector. Static but should be implmeneted as a dynamic plugin interface
     ISwitch RecorderS[2];
     ISwitchVectorProperty RecorderSP;
+    enum { RECORDER_RAW, RECORDER_OGV };
 
     bool m_isStreaming;
     bool m_isRecording;

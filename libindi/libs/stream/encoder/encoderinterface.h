@@ -45,7 +45,7 @@ class EncoderInterface
 
     virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
 
-    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint32_t size, bool isCompressed=false) = 0;
+    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t height, bool isCompressed=false) = 0;
 
     const char *getName();
 

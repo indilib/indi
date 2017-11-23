@@ -308,6 +308,7 @@ ENDIF(OGGTHEORA_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.cpp
         ${theorarecorder_CXX_SRC}
         )
     IF (UNITY_BUILD)
@@ -1211,6 +1212,7 @@ if (UNIX)
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/encoder COMPONENT Devel)
    INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recordermanager.h

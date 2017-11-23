@@ -21,6 +21,7 @@
 
 #include "encodermanager.h"
 #include "rawencoder.h"
+#include "mjpegencoder.h"
 
 namespace INDI
 {
@@ -28,6 +29,7 @@ namespace INDI
 EncoderManager::EncoderManager()
 {
     encoder_list.push_back(new RawEncoder());
+    encoder_list.push_back(new MJPEGEncoder());
     default_encoder = encoder_list.at(0);
 }
 

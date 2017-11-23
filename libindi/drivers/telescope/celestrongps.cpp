@@ -1,6 +1,6 @@
 #if 0
 Celestron GPS
-Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
+Copyright (C) 2003-2017 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
 This library is free software;
 you can redistribute it and / or
@@ -104,7 +104,7 @@ void ISSnoopDevice(XMLEle *root)
 
 CelestronGPS::CelestronGPS()
 {
-    setVersion(3, 0);
+    setVersion(3, 1);
 
     fwInfo.Version           = "Invalid";
     fwInfo.controllerVersion = 0;
@@ -293,6 +293,13 @@ bool CelestronGPS::updateProperties()
         if (fwInfo.controllerVersion >= 2.3)
         {
             CELESTRON_TRACK_MODE mode;
+            if (isSimulation())
+            {
+                if (isParked())
+                    set_sim_track_mode(TRACKING_OFF);
+                else
+                    set_sim_track_mode(TRACK_EQN);
+            }
             if (get_celestron_track_mode(PortFD, &mode))
             {
                 if (mode != TRACKING_OFF)
@@ -302,12 +309,16 @@ bool CelestronGPS::updateProperties()
                     TrackModeS[mode-1].s = ISS_ON;
                     TrackModeSP.s      = IPS_OK;
 
+                    // If tracking is ON then mount is NOT parked.
+                    if (isParked())
+                        SetParked(false);
+
                     TrackState = SCOPE_TRACKING;
                 }
                 else
                 {
                     DEBUG(INDI::Logger::DBG_SESSION, "Mount tracking is off.");
-                    TrackState = SCOPE_IDLE;
+                    TrackState = isParked() ? SCOPE_PARKED : SCOPE_IDLE;
                 }
             }
             else
@@ -339,6 +350,8 @@ bool CelestronGPS::updateProperties()
                 IDSetText(&TimeTP, nullptr);
             }
         }
+        else
+            DEBUG(INDI::Logger::DBG_WARNING, "Mount does not support retrieval of date and time settings.");
     }
     else
     {
@@ -640,8 +653,12 @@ bool CelestronGPS::Handshake()
         set_sim_dec(90);
     }
 
-    // Check if we need to wake up
-    if (UseHibernateS[0].s == ISS_ON)
+    bool parkDataValid = (LoadParkData() == nullptr);
+    // Check if we need to wake up IF:
+    // 1. Park data exists in ParkData.xml
+    // 2. Mount is current parked.
+    // 3. Hiberate option is enabled
+    if (parkDataValid && isParked() && UseHibernateS[0].s == ISS_ON)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Waking up mount...");
         bool rc = wakeup(PortFD);
@@ -988,14 +1005,24 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
 
 bool CelestronGPS::Park()
 {
-    double parkAZ  = GetAxis1Park();
+    double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
     char AzStr[16], AltStr[16];
-    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AzStr, parkAz, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
+    if (slew_celestron_azalt(PortFD, LocationN[LOCATION_LATITUDE].value, parkAz, parkAlt))
+    {
+        TrackState = SCOPE_PARKING;
+        DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
+        return true;
+    }
+
+    return false;
+
+#if 0
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
     horizontalPos.az = parkAZ + 180;
@@ -1029,17 +1056,17 @@ bool CelestronGPS::Park()
     }
     else
         return false;
+#endif
 }
 
 bool CelestronGPS::UnPark()
 {
-    if (INDI::Telescope::isLocked())
-    {
-        DEBUG(INDI::Logger::DBG_SESSION,
-              "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
-        return false;
-    }
+    // Set tracking mode to whatever it was stored before
+    SetParked(false);
+    loadConfig(true, "TELESCOPE_TRACK_MODE");
+    return true;
 
+#if 0
     double parkAZ  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
@@ -1080,6 +1107,7 @@ bool CelestronGPS::UnPark()
     }
     else
         return false;
+#endif
 }
 
 bool CelestronGPS::SetCurrentPark()
@@ -1143,6 +1171,7 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
     if (set_celestron_track_mode(PortFD, mode))
     {
         TrackState = (mode == TRACKING_OFF) ? SCOPE_IDLE : SCOPE_TRACKING;
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Tracking mode set to %s.", TrackModeS[mode].label);
         return true;
     }
 

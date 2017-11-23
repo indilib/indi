@@ -399,7 +399,7 @@ IPState HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t
 
 bool HitecAstroDCFocuser::saveConfigItems(FILE *fp)
 {
-    INDI::Focuser::saveAllConfigItems(fp);
+    INDI::Focuser::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &MaxPositionNP);
     IUSaveConfigNumber(fp, &SlewSpeedNP);

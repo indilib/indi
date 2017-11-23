@@ -132,12 +132,13 @@ bool StreamManager::initProperties()
                        60, IPS_IDLE);
 
     // Encoder Selection
-    IUFillSwitch(&EncoderS[0], "RAW", "RAW", ISS_ON);
+    IUFillSwitch(&EncoderS[ENCODER_RAW], "RAW", "RAW", ISS_ON);
+    IUFillSwitch(&EncoderS[ENCODER_MJPEG], "MJPEG", "MJPEG", ISS_OFF);
     IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Recorder Selector
-    IUFillSwitch(&RecorderS[0], "SER", "SER", ISS_ON);
-    IUFillSwitch(&RecorderS[1], "OGV", "OGV", ISS_OFF);
+    IUFillSwitch(&RecorderS[RECORDER_RAW], "SER", "SER", ISS_ON);
+    IUFillSwitch(&RecorderS[RECORDER_OGV], "OGV", "OGV", ISS_OFF);
     IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     return true;
