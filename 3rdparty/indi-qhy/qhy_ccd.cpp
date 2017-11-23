@@ -74,6 +74,13 @@ std::vector<std::string> GetDevicesIDs()
     deviceCount = ScanQHYCCD();
 #endif
 
+    if (deviceCount > MAX_DEVICES)
+    {
+        deviceCount = MAX_DEVICES;
+        IDLog("Devicescan found %d devices. The driver is compiled to support only up to %d devices.",
+               deviceCount, MAX_DEVICES);
+    }
+
     for (int i = 0; i < deviceCount; i++)
     {
         memset(camid, '\0', MAXINDIDEVICE);

@@ -20,9 +20,16 @@
 
 #include "indicom.h"
 
-#define SYNSCAN_SLEW_RATES 9
+#include <libnova/transform.h>
+// libnova specifies round() on old systems and it collides with the new gcc 5.x/6.x headers
+#define HAVE_ROUND
+#include <libnova/utility.h>
 
-using namespace INDI::AlignmentSubsystem;
+#include <cmath>
+#include <memory>
+#include <cstring>
+
+#define SYNSCAN_SLEW_RATES 9
 
 // We declare an auto pointer to Synscan.
 std::unique_ptr<SynscanMount> synscan(new SynscanMount());
@@ -79,8 +86,13 @@ bool SynscanMount::Connect()
     if (isConnected())
         return true;
 
-    //rc=Connect(PortT[0].text, atoi(IUFindOnSwitch(&BaudRateSP)->name));
-    return INDI::Telescope::Connect();
+    bool Ret = INDI::Telescope::Connect();
+
+    if (Ret)
+    {
+        AnalyzeHandset();
+    }
+    return Ret;
 }
 
 const char *SynscanMount::getDefaultName()
@@ -90,77 +102,61 @@ const char *SynscanMount::getDefaultName()
 
 bool SynscanMount::initProperties()
 {
-    bool r;
+    bool Ret = INDI::Telescope::initProperties();
 
-    //fprintf(stderr,"Synscan initProperties\n");
-    //  call base class
-    r = INDI::Telescope::initProperties();
-
-    //SetTelescopeCapability(TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION ,SYNSCAN_SLEW_RATES);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
                            SYNSCAN_SLEW_RATES);
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
     //  probably want to debug this
     addDebugControl();
+    addConfigurationControl();
 
-    DEBUG(INDI::Logger::DBG_SESSION, "InitProperties");
-    // Add alignment properties
-    InitAlignmentProperties(this);
-    // Force the alignment system to always be on
-    getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
+    // Set up property variables
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::FwVersion], "FW_VERSION", "Firmware version", "-");
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::MountCode], "MOUNT_CODE", "Mount code", "-");
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::AlignmentStatus], "ALIGNMENT_STATUS", "Alignment status", "-");
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::GotoStatus], "GOTO_STATUS", "Goto status", "-");
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::MountPointingStatus], "MOUNT_POINTING_STATUS",
+               "Mount pointing status", "-");
+    IUFillText(&BasicMountInfo[(int)MountInfoItems::TrackingMode], "TRACKING_MODE", "Tracking mode", "-");
+    IUFillTextVector(&BasicMountInfoV, BasicMountInfo, 6, getDeviceName(), "BASIC_MOUNT_INFO",
+                     "Mount information", MountInfoPage.c_str(), IP_RO, 60, IPS_IDLE);
 
-    return r;
+    return Ret;
 }
 
 void SynscanMount::ISGetProperties(const char *dev)
 {
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
+
+    if (isConnected())
+    {
+        UpdateMountInformation(false);
+        defineText(&BasicMountInfoV);
+    }
 }
 
 bool SynscanMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // It is for us
-        ProcessAlignmentNumberProperties(this, name, values, names, n);
-    }
-    // Pass it up the chain
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
 bool SynscanMount::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // It is for us
-        ProcessAlignmentSwitchProperties(this, name, states, names, n);
-    }
-    // Pass it up the chain
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool SynscanMount::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                              char *formats[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        // It is for us
-        ProcessAlignmentBLOBProperties(this, name, sizes, blobsizes, blobs, formats, names, n);
-    }
-    // Pass it up the chain
     return INDI::Telescope::ISNewBLOB(dev, name, sizes, blobsizes, blobs, formats, names, n);
 }
 
 bool SynscanMount::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        ProcessAlignmentTextProperties(this, name, texts, names, n);
-    }
-    // Pass it up the chain
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
@@ -171,96 +167,112 @@ bool SynscanMount::updateProperties()
 
     if (isConnected())
     {
+        UpdateMountInformation(false);
+        defineText(&BasicMountInfoV);
     }
     else
     {
+        deleteProperty(BasicMountInfoV.name);
     }
 
     return true;
+}
+
+int SynscanMount::HexStrToInteger(const std::string &str)
+{
+    return std::stoi(str, nullptr, 16);
 }
 
 bool SynscanMount::AnalyzeHandset()
 {
     bool rc = true;
     int caps = 0;
+    int tmp = 0;
+    int bytesWritten = 0;
+    int bytesRead, numread;
+    char str[20];
 
-    //  call the parent
-    //r=INDI::Telescope::Connect();
-    //if( !r) {
-    //	return r;
-    //}
-    //  get the basics
     caps = GetTelescopeCapability();
 
-    IDMessage(getDeviceName(), "Detecting Synscan Handset Capabilities");
     rc = ReadLocation();
     if (rc)
     {
         CanSetLocation = true;
-        //caps |= TELESCOPE_HAS_LOCATION;
         ReadTime();
-        //if(rc) caps |= TELESCOPE_HAS_TIME;
     }
-    else
-    {
-        //CanSetLocation=false;
-    }
-
-    int tmp, tmp1, tmp2;
-    int bytesWritten, bytesRead;
-    char str[20];
 
     bytesRead = 0;
     memset(str, 0, 20);
     tty_write(PortFD, "J", 1, &bytesWritten);
     tty_read(PortFD, str, 2, 2, &bytesRead);
-    tmp = str[0];
 
-    bytesRead = 0;
-    memset(str, 0, 20);
-    tty_write(PortFD, "m", 1, &bytesWritten);
-    tty_read(PortFD, str, 2, 2, &bytesRead);
-    tmp = str[0];
-    //fprintf(stderr,"Model %d\n",tmp);
-    IDMessage(getDeviceName(), "Mount Model %d", tmp);
-
+    // Read the handset version
     bytesRead = 0;
     memset(str, 0, 20);
     tty_write(PortFD, "V", 1, &bytesWritten);
-    tty_read(PortFD, str, 3, 2, &bytesRead);
-    tmp  = str[0];
-    tmp1 = str[1];
-    tmp2 = str[2];
-    //fprintf(stderr,"version %d %d %d\n",tmp,tmp1,tmp2);
+    tty_read(PortFD, str, 7, 2, &bytesRead);
+    if (bytesRead == 3)
+    {
+        int tmp1 { 0 }, tmp2 { 0 };
 
-    FirmwareVersion = tmp2;
-    FirmwareVersion /= 100;
-    FirmwareVersion += tmp1;
-    FirmwareVersion /= 100;
-    FirmwareVersion += tmp;
-    //fprintf(stderr,"FirmwareVersion %6.4f\n",FirmwareVersion);
-    IDMessage(getDeviceName(), "Handset Firmware Version %lf", FirmwareVersion);
+        tmp  = str[0];
+        tmp1 = str[1];
+        tmp2 = str[2];
+        FirmwareVersion = tmp2;
+        FirmwareVersion /= 100;
+        FirmwareVersion += tmp1;
+        FirmwareVersion /= 100;
+        FirmwareVersion += tmp;
+    } else {
+        FirmwareVersion = (double)HexStrToInteger(std::string(&str[0], 2));
+        FirmwareVersion += (double)HexStrToInteger(std::string(&str[2], 2)) / 100;
+        FirmwareVersion += (double)HexStrToInteger(std::string(&str[4], 2)) / 10000;
+    }
+    DEBUGF(INDI::Logger::DBG_SESSION, "Firmware version: %lf", FirmwareVersion);
+    if (FirmwareVersion < 3.38 || (FirmwareVersion >= 4.0 && FirmwareVersion < 4.38))
+    {
+        IDMessage(nullptr, "Update Synscan firmware to V3.38/V4.38 or above");
+        DEBUG(INDI::Logger::DBG_SESSION, "Too old firmware version!");
+    } else {
+        NewFirmware = true;
+    }
+    HandsetFwVersion = std::to_string(FirmwareVersion);
+
+    memset(str, 0, 2);
+    tty_write(PortFD, "m", 1, &bytesWritten);
+    tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (bytesRead == 2)
+    {
+        // This workaround is needed because the firmware 3.39 sends these bytes swapped.
+        if (str[1] == '#')
+            MountCode = (int)*reinterpret_cast<unsigned char*>(&str[0]);
+        else
+            MountCode = (int)*reinterpret_cast<unsigned char*>(&str[1]);
+    }
+
+    // Check the tracking status
+    memset(str, 0, 2);
+    tty_write(PortFD, "t", 1, &bytesWritten);
+    numread = tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#' && (int)str[0] != 0)
+    {
+        TrackState = SCOPE_TRACKING;
+    }
 
     SetTelescopeCapability(caps, SYNSCAN_SLEW_RATES);
 
     if (InitPark())
     {
-        //fprintf(stderr,"InitPark returns true\n");
         SetAxis1ParkDefault(0);
         SetAxis2ParkDefault(90);
     }
     else
     {
-        //fprintf(stderr,"InitPark returns false\n");
         SetAxis1Park(0);
         SetAxis2Park(90);
         SetAxis1ParkDefault(0);
         SetAxis2ParkDefault(90);
     }
-
-    //SetApproximateMountAlignmentFromMountType(EQUATORIAL);
-    //SetApproximateMountAlignment(NORTH_CELESTIAL_POLE);
-
     return true;
 }
 
@@ -272,20 +284,18 @@ bool SynscanMount::ReadScopeStatus()
     double ra, dec;
     long unsigned int n1, n2;
 
-    //IDLog("SynScan Read Status\n");
-    //tty_write(PortFD,(unsigned char *)"Ka",2, &bytesWritten);  //  test for an echo
-
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
     if (str[1] != '#')
     {
-        //  this is not a correct echo
-        if (isDebug())
-            IDLog("ReadStatus Echo Fail. %s\n", str);
-        IDMessage(getDeviceName(), "Mount Not Responding");
-        HasFailed = true;
+        DEBUG(INDI::Logger::DBG_SESSION, "Synscan Mount not responding");
+        // Usually, Abort() recovers the communication
+        RecoverTrials++;
+        Abort();
+//        HasFailed = true;
         return false;
     }
+    RecoverTrials = 0;
 
     /*
     //  With 3.37 firmware, on the older line of eq6 mounts
@@ -311,35 +321,60 @@ bool SynscanMount::ReadScopeStatus()
         }
     */
 
-    if (FirstConnect)
+    //  on subsequent passes, we just need to read the time
+    if (HasTime())
     {
-        //fprintf(stderr,"sending fake radec\n");
-        //NewRaDec(0,0);
-        //return true;
-        //  the first time we come thru, we need to figure out a few things about our handset
-        //  ie can it do date and time etc
-        AnalyzeHandset();
-        FirstConnect = false;
-        return true;
+        ReadTime();
     }
-    else
+    if (HasLocation())
     {
-        //  on subsequent passes, we just need to read the time
-        if (HasTime())
+        //  this flag is set when we get a new lat/long from the host
+        //  so we should go thru the read routine once now, so things update
+        //  correctly in the client displays
+        if (ReadLatLong)
         {
-            ReadTime();
-        }
-        if (HasLocation())
-        {
-            //  this flag is set when we get a new lat/long from the host
-            //  so we should go thru the read routine once now, so things update
-            //  correctly in the client displays
-            if (ReadLatLong)
-            {
-                ReadLocation();
-            }
+            ReadLocation();
         }
     }
+
+    // Query mount information
+    memset(str, 0, 2);
+    tty_write(PortFD, "J", 1, &bytesWritten);
+    numread = tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#')
+    {
+        AlignmentStatus = std::to_string((int)str[0]);
+    }
+    memset(str, 0, 2);
+    tty_write(PortFD, "L", 1, &bytesWritten);
+    numread = tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#')
+    {
+        GotoStatus = str[0];
+    }
+    memset(str, 0, 2);
+    tty_write(PortFD, "p", 1, &bytesWritten);
+    numread = tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#')
+    {
+        MountPointingStatus = str[0];
+    }
+    memset(str, 0, 2);
+    tty_write(PortFD, "t", 1, &bytesWritten);
+    numread = tty_read(PortFD, str, 2, 2, &bytesRead);
+    if (str[1] == '#')
+    {
+        if ((int)str[0] == 0)
+            TrackingMode = "Tracking off";
+        if ((int)str[0] == 1)
+            TrackingMode = "Alt/Az tracking";
+        if ((int)str[0] == 2)
+            TrackingMode = "EQ tracking";
+        if ((int)str[0] == 3)
+            TrackingMode = "PEC mode";
+    }
+
+    UpdateMountInformation(true);
 
     if (TrackState == SCOPE_SLEWING)
     {
@@ -347,10 +382,7 @@ bool SynscanMount::ReadScopeStatus()
         //  lets see if it's complete
         //  This only works for ra/dec goto commands
         //  The goto complete flag doesn't trip for ALT/AZ commands
-        memset(str, 0, 3);
-        tty_write(PortFD, "L", 1, &bytesWritten);
-        numread = tty_read(PortFD, str, 2, 3, &bytesRead);
-        if (str[0] != 48)
+        if (GotoStatus != "0")
         {
             //  Nothing to do here
         }
@@ -358,13 +390,10 @@ bool SynscanMount::ReadScopeStatus()
         {
             if (TrackState == SCOPE_PARKING)
                 TrackState = SCOPE_PARKED;
-            else
-                TrackState = SCOPE_TRACKING;
         }
     }
     if (TrackState == SCOPE_PARKING)
     {
-        //IDMessage(getDeviceName(),"Firmware %lf",FirmwareVersion);
         if (FirmwareVersion == 4.103500)
         {
             //  With this firmware the correct way
@@ -385,7 +414,6 @@ bool SynscanMount::ReadScopeStatus()
                 else
                 {
                     TrackState = SCOPE_PARKED;
-                    //IDMessage(getDeviceName(),"Telescope is Parked");
                     SetParked(true);
                 }
             }
@@ -442,109 +470,200 @@ bool SynscanMount::ReadScopeStatus()
     tty_write(PortFD, "e", 1, &bytesWritten);
     numread = tty_read(PortFD, str, 18, 1, &bytesRead);
     if (bytesRead != 18)
-    //if(str[17] != '#')
     {
-        IDLog("read status bytes didn't get a full read\n");
+        DEBUG(INDI::Logger::DBG_DEBUG, "Read current position failed");
         return false;
     }
 
-    if (isDebug())
-        IDLog("Bytes read is (%s)\n", str);
-
-    // bytes read is as expected
-    //sscanf((char *)str,"%x",&n1);
-    //sscanf((char *)&str[9],"%x",&n2);
-
-    // JM read as unsigned long int, otherwise we get negative RA!
     sscanf(str, "%lx,%lx#", &n1, &n2);
-
     ra  = (double)n1 / 0x100000000 * 24.0;
     dec = (double)n2 / 0x100000000 * 360.0;
-    //  we need uncorrected data to be saved
-    //  to use in a sync
-    currentRA  = ra;
-    currentDEC = dec;
+    CurrentRA  = ra;
+    CurrentDEC = dec;
 
-    //  Before we pass this back to a client
-    //  run it thru the alignment matrix to correct the data
-    ln_equ_posn eq { 0, 0 };
-
-    eq = TelescopeToSky(ra, dec);
     //  Now feed the rest of the system with corrected data
-    NewRaDec(eq.ra, eq.dec);
+    NewRaDec(ra, dec);
 
-    /*
+    if (TrackState == SCOPE_SLEWING && MountCode >= 128 && (SlewTargetAz != -1 || SlewTargetAlt != -1))
+    {
+        ln_hrz_posn CurrentAltAz { 0, 0 };
+        double DiffAlt { 0 };
+        double DiffAz { 0 };
 
-        if(GetAlignmentDatabase().size() > 1) {
+        CurrentAltAz = GetAltAzPosition(ra, dec);
+        DiffAlt = CurrentAltAz.alt-SlewTargetAlt;
+        if (SlewTargetAlt != -1 && std::abs(DiffAlt) > 0.01)
+        {
+            int NewRate = 2;
 
-        	double RightAscension,Declination;
-        	ln_equ_posn eq;
-        	TelescopeDirectionVector TDV;
-
-        	eq.ra=ra*360/24;
-        	eq.dec=dec;
-
-        	TDV=TelescopeDirectionVectorFromEquatorialCoordinates(eq);
-        	if (TransformTelescopeToCelestial( TDV, RightAscension, Declination)) {
-    	    if(RightAscension < 0) RightAscension+=24.0;
-    	    //fprintf(stderr,"new values %6.4f %6.4f %6.4f  %6.4f Deltas %3.0lf %3.0lf\n",ra,dec,RightAscension,Declination,(ra-RightAscension)*60,(dec-Declination)*60);
-
-        	} else {
-    	    //fprintf(stderr,"Conversion failed\n");
-                RightAscension=ra;
-                Declination=dec;
-        	}
-
-        	NewRaDec(RightAscension,Declination);
-        } else {
-        	NewRaDec(ra,dec);
+            if (std::abs(DiffAlt) > 4)
+            {
+                NewRate = 9;
+            } else
+            if (std::abs(DiffAlt) > 1.2)
+            {
+                NewRate = 7;
+            } else
+            if (std::abs(DiffAlt) > 0.5)
+            {
+                NewRate = 5;
+            } else
+            if (std::abs(DiffAlt) > 0.2)
+            {
+                NewRate = 4;
+            } else
+            if (std::abs(DiffAlt) > 0.025)
+            {
+                NewRate = 3;
+            }
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing Alt axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
+                   CurrentAltAz.alt, SlewTargetAlt, CurrentAltAz.alt-SlewTargetAlt, CustomNSSlewRate);
+            if (NewRate != CustomNSSlewRate)
+            {
+                if (DiffAlt < 0)
+                {
+                    CustomNSSlewRate = NewRate;
+                    MoveNS(DIRECTION_NORTH, MOTION_START);
+                } else {
+                    CustomNSSlewRate = NewRate;
+                    MoveNS(DIRECTION_SOUTH, MOTION_START);
+                }
+            }
+        } else
+        if (SlewTargetAlt != -1 && std::abs(DiffAlt) < 0.01)
+        {
+            MoveNS(DIRECTION_NORTH, MOTION_STOP);
+            SlewTargetAlt = -1;
+            DEBUG(INDI::Logger::DBG_SESSION, "Slewing on Alt axis finished");
         }
-    */
+        DiffAz = CurrentAltAz.az-SlewTargetAz;
+        if (DiffAz < -180)
+            DiffAz = (DiffAz+360)*2;
+        else
+        if (DiffAz > 180)
+            DiffAz = (DiffAz-360)*2;
+        if (SlewTargetAz != -1 && std::abs(DiffAz) > 0.01)
+        {
+            int NewRate = 2;
+
+            if (std::abs(DiffAz) > 4)
+            {
+                NewRate = 9;
+            } else
+            if (std::abs(DiffAz) > 1.2)
+            {
+                NewRate = 7;
+            } else
+            if (std::abs(DiffAz) > 0.5)
+            {
+                NewRate = 5;
+            } else
+            if (std::abs(DiffAz) > 0.2)
+            {
+                NewRate = 4;
+            } else
+            if (std::abs(DiffAz) > 0.025)
+            {
+                NewRate = 3;
+            }
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing Az axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
+                   CurrentAltAz.az, SlewTargetAz, CurrentAltAz.az-SlewTargetAz, CustomWESlewRate);
+            if (NewRate != CustomWESlewRate)
+            {
+                if (DiffAz > 0)
+                {
+                    CustomWESlewRate = NewRate;
+                    MoveWE(DIRECTION_WEST, MOTION_START);
+                } else {
+                    CustomWESlewRate = NewRate;
+                    MoveWE(DIRECTION_EAST, MOTION_START);
+                }
+            }
+        } else
+        if (SlewTargetAz != -1 && std::abs(DiffAz) < 0.01)
+        {
+            MoveWE(DIRECTION_WEST, MOTION_STOP);
+            SlewTargetAz = -1;
+            DEBUG(INDI::Logger::DBG_SESSION, "Slewing on Az axis finished");
+        }
+        if (SlewTargetAz == -1 && SlewTargetAlt == -1)
+        {
+            StartTrackMode();
+        }
+    }
+    return true;
+}
+
+bool SynscanMount::StartTrackMode()
+{
+    char str[20];
+    int numread, bytesWritten, bytesRead;
+
+    TrackState = SCOPE_TRACKING;
+    DEBUG(INDI::Logger::DBG_SESSION, "Tracking started");
+    // Start tracking
+    str[0] = 'T';
+    // Check the mount type to choose tracking mode
+    if (MountCode >= 128)
+    {
+        // Alt/Az tracking mode
+        str[1] = 1;
+    } else {
+        // EQ tracking mode
+        str[1] = 2;
+    }
+    tty_write(PortFD, str, 2, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+    if (bytesRead != 1 || str[0] != '#')
+    {
+        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to start tracking.");
+        return false;
+    }
     return true;
 }
 
 bool SynscanMount::Goto(double ra, double dec)
 {
     char str[20];
-    int n1, n2;
-    int numread, bytesWritten, bytesRead;
-    ln_equ_posn eq { 0, 0 };
-    double RightAscension, Declination;
+    int bytesWritten, bytesRead;
+    ln_hrz_posn TargetAltAz { 0, 0 };
 
-    //fprintf(stderr,"Enter Goto  %4.4lf %4.4lf\n",ra,dec);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Enter Goto %g %g", ra, dec);
-
-    eq             = SkyToTelescope(ra, dec);
-    RightAscension = eq.ra;
-    Declination    = eq.dec;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Corrected Goto %g %g", RightAscension, Declination);
-
-    //  not fleshed in yet
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
     if (str[1] != '#')
     {
+        DEBUG(INDI::Logger::DBG_SESSION, "Wrong answer from the mount");
         //  this is not a correct echo
         //  so we are not talking to a mount properly
         return false;
     }
-    //  Ok, mount is alive and well
-    //  so, lets format up a goto command
-    n1 = RightAscension * 0x1000000 / 24;
-    n2 = Declination * 0x1000000 / 360;
-    n1 = n1 << 8;
-    n2 = n2 << 8;
-    sprintf((char *)str, "r%08X,%08X", n1, n2);
-    tty_write(PortFD, str, 18, &bytesWritten);
     TrackState = SCOPE_SLEWING;
-    numread    = tty_read(PortFD, str, 1, 60, &bytesRead);
-    if (bytesRead != 1 || str[0] != '#')
+    // EQ mount has a different Goto mode
+    if (MountCode < 128)
     {
-        if (isDebug())
-            IDLog("Timeout waiting for scope to complete slewing.");
-        return false;
-    }
+        int n1 = ra * 0x1000000 / 24;
+        int n2 = dec * 0x1000000 / 360;
+        int numread;
 
+        n1 = n1 << 8;
+        n2 = n2 << 8;
+        sprintf((char*)str, "r%08X,%08X", n1, n2);
+        tty_write(PortFD, str, 18, &bytesWritten);
+        memset(&str[18], 0, 1);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Goto - ra: %g de: %g", ra, dec);
+        numread = tty_read(PortFD, str, 1, 60, &bytesRead);
+        if (bytesRead != 1 || str[0] != '#')
+        {
+            DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to complete goto.");
+            return false;
+        }
+        return true;
+    }
+    TargetAltAz = GetAltAzPosition(ra, dec);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Goto - ra: %g de: %g (az: %g alt: %g)", ra, dec,
+           TargetAltAz.az, TargetAltAz.alt);
+    SlewTargetAz = TargetAltAz.az;
+    SlewTargetAlt = TargetAltAz.alt;
     return true;
 }
 
@@ -564,12 +683,13 @@ bool SynscanMount::Park()
         return false;
     }
     //  Now we stop tracking
-    tty_write(PortFD, "T0", 2, &bytesWritten);
+    str[0] = 'T';
+    str[1] = 0;
+    tty_write(PortFD, str, 2, &bytesWritten);
     numread = tty_read(PortFD, str, 1, 60, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
-        if (isDebug())
-            IDLog("Timeout waiting for scope to stop tracking.");
+        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to stop tracking.");
         return false;
     }
 
@@ -578,14 +698,15 @@ bool SynscanMount::Park()
     numread = tty_read(PortFD, str, 1, 60, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
-        if (isDebug())
-            IDLog("Timeout waiting for scope to respond to park.");
+        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to respond to park.");
         return false;
     }
 
     TrackState = SCOPE_PARKING;
     if (NumPark == 0)
-        IDMessage(getDeviceName(), "Parking Mount...");
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Parking Mount...");
+    }
     StopCount = 0;
     return true;
 }
@@ -599,15 +720,14 @@ bool SynscanMount::UnPark()
 
 bool SynscanMount::SetCurrentPark()
 {
-    IDMessage(getDeviceName(), "Setting Default Park Position");
-    IDMessage(getDeviceName(), "Arbitrary park positions not yet supported.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Setting arbitrary park positions is not supported yet.");
     return false;
 }
 
 bool SynscanMount::SetDefaultPark()
 {
     // By default az to north, and alt to pole
-    IDMessage(getDeviceName(), "Setting Park Data to Default.");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Setting Park Data to Default.");
     SetAxis1Park(0);
     SetAxis2Park(90);
 
@@ -616,8 +736,28 @@ bool SynscanMount::SetDefaultPark()
 
 bool SynscanMount::Abort()
 {
+    if (TrackState == SCOPE_IDLE || RecoverTrials >= 3)
+        return true;
+
     char str[20];
-    int bytesWritten, bytesRead;
+    int numread, bytesWritten, bytesRead;
+
+    DEBUG(INDI::Logger::DBG_SESSION, "Abort any motions");
+    TrackState = SCOPE_IDLE;
+    SlewTargetAlt = -1;
+    SlewTargetAz = -1;
+    CustomNSSlewRate = -1;
+    CustomWESlewRate = -1;
+    // Stop tracking
+    str[0] = 'T';
+    str[1] = 0;
+    tty_write(PortFD, str, 2, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+    if (bytesRead != 1 || str[0] != '#')
+    {
+        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to stop tracking.");
+        return false;
+    }
 
     // Hmmm twice only stops it
     tty_write(PortFD, "M", 1, &bytesWritten);
@@ -631,25 +771,21 @@ bool SynscanMount::Abort()
 
 bool SynscanMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    //fprintf(stderr,"MoveNS %d rate %d dir %d\n",command,SlewRate,dir);
     if (command != MOTION_START)
     {
-        //fprintf(stderr,"Stop Motion N/S\n");
         PassthruCommand(37, 17, 2, 0, 0);
     }
     else
     {
-        int tt = SlewRate;
+        int tt = (CustomNSSlewRate == -1 ? SlewRate : CustomNSSlewRate);
 
         tt = tt << 16;
         if (dir != DIRECTION_NORTH)
         {
-            //fprintf(stderr,"Start Motion South\n");
             PassthruCommand(37, 17, 2, tt, 0);
         }
         else
         {
-            //fprintf(stderr,"Start Motion North\n");
             PassthruCommand(36, 17, 2, tt, 0);
         }
     }
@@ -659,27 +795,22 @@ bool SynscanMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
 bool SynscanMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
-    //fprintf(stderr,"MoveWE %d rate %d dir %d\n",command,SlewRate,dir);
-
     if (command != MOTION_START)
     {
-        //fprintf(stderr,"Stop Motion E/W\n");
         PassthruCommand(37, 16, 2, 0, 0);
     }
     else
     {
-        int tt = SlewRate;
+        int tt = (CustomWESlewRate == -1 ? SlewRate : CustomWESlewRate);
 
         tt = tt << 16;
         if (dir != DIRECTION_WEST)
         {
-            //fprintf(stderr,"Start Motion East\n");
-            PassthruCommand(37, 16, 2, tt, 0);
+            PassthruCommand(36, 16, 2, tt, 0);
         }
         else
         {
-            //fprintf(stderr,"Start Motion West\n");
-            PassthruCommand(36, 16, 2, tt, 0);
+            PassthruCommand(37, 16, 2, tt, 0);
         }
     }
 
@@ -689,7 +820,6 @@ bool SynscanMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 bool SynscanMount::SetSlewRate(int s)
 {
     SlewRate = s + 1;
-    //fprintf(stderr,"Slew rate %d\n",SlewRate);
     return true;
 }
 
@@ -719,13 +849,7 @@ int SynscanMount::PassthruCommand(int cmd, int target, int msgsize, int data, in
 
     tty_write(PortFD, test, 8, &bytesWritten);
     memset(test, 0, 20);
-    //fprintf(stderr,"Start Passthru %d %d %d %d\n",cmd,target,msgsize,data);
     tty_read(PortFD, test, numReturn + 1, 2, &bytesRead);
-    //fprintf(stderr,"Got %d bytes\n",bytesRead);
-    //for(int x=0; x<bytesRead; x++) {
-    //    fprintf(stderr,"%x ",test[x]);
-    //}
-    //fprintf(stderr,"\n");
     if (numReturn > 0)
     {
         int retval = 0;
@@ -755,14 +879,12 @@ bool SynscanMount::ReadTime()
     bytesRead = 0;
     tty_write(PortFD, "h", 1, &bytesWritten);
     tty_read(PortFD, str, 9, 2, &bytesRead);
-    //fprintf(stderr,"Read Time returns %d\n",bytesRead);
     if (str[8] == '#')
     {
         ln_zonedate localTime;
         ln_date utcTime;
-
         int offset, daylightflag;
-        //fprintf(stderr,"Got a good terminator\n");
+
         localTime.hours   = str[0];
         localTime.minutes = str[1];
         localTime.seconds = str[2];
@@ -804,13 +926,11 @@ bool SynscanMount::ReadLocation()
     char str[20];
     int bytesWritten = 0, bytesRead = 0;
 
-    //fprintf(stderr,"Read Location\n");
-
     tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
     if (str[1] != '#')
     {
-        fprintf(stderr, "bad echo in ReadLocation\n");
+        DEBUG(INDI::Logger::DBG_SESSION, "Bad echo in ReadLocation");
     }
     else
     {
@@ -863,7 +983,7 @@ bool SynscanMount::ReadLocation()
         }
         else
         {
-            fprintf(stderr, "Mount does not support setting location\n");
+            DEBUG(INDI::Logger::DBG_SESSION, "Mount does not support setting location");
         }
     }
     return false;
@@ -877,8 +997,6 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     //  start by formatting a time for the hand controller
     //  we are going to set controller to local time
     //
-
-    //fprintf(stderr,"Update time\n");
     struct ln_zonedate ltm;
 
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
@@ -902,18 +1020,15 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     tty_read(PortFD, str, 1, 2, &bytesRead);
     if (str[0] != '#')
     {
-        fprintf(stderr, "Invalid return from set time\n");
+        DEBUG(INDI::Logger::DBG_SESSION, "Invalid return from set time");
     }
-    else
-    {
-        //fprintf(stderr,"Set time returns correctly\n");
-    }
-
     return true;
 }
 
 bool SynscanMount::updateLocation(double latitude, double longitude, double elevation)
 {
+    INDI_UNUSED(elevation);
+
     char str[20];
     int bytesWritten = 0, bytesRead = 0;
     int s = 0;
@@ -922,9 +1037,6 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
     ln_lnlat_posn p1 { 0, 0 };
     lnh_lnlat_posn p2;
-
-    //  call the alignment subsystem with our location
-    UpdateLocation(latitude, longitude, elevation);
 
     LocationN[LOCATION_LATITUDE].value  = latitude;
     LocationN[LOCATION_LONGITUDE].value = longitude;
@@ -936,7 +1048,6 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Enter Update Location %4.6lf  %4.6lf\n", latitude, longitude);
         if (longitude > 180)
         {
             p1.lng = 360.0 - longitude;
@@ -948,6 +1059,8 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
         }
         p1.lat = latitude;
         ln_lnlat_to_hlnlat(&p1, &p2);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Update location - latitude %d:%d:%1.2f longitude %d:%d:%1.2f\n",
+               p2.lat.degrees, p2.lat.minutes, p2.lat.seconds, p2.lng.degrees, p2.lng.minutes, p2.lng.seconds);
 
         str[0] = 'W';
         str[1] = p2.lat.degrees;
@@ -956,9 +1069,11 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
         s      = (int)tmp; //  put in an int that's rounded
         str[3] = s;
         if (p2.lat.neg == 0)
+        {
             str[4] = 0;
-        else
+        } else {
             str[4] = 1;
+        }
 
         str[5] = p2.lng.degrees;
         str[6] = p2.lng.minutes;
@@ -974,11 +1089,7 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
         tty_read(PortFD, str, 1, 2, &bytesRead);
         if (str[0] != '#')
         {
-            fprintf(stderr, "Invalid return from set location\n");
-        }
-        else
-        {
-            //fprintf(stderr,"Set location returns correctly\n");
+            DEBUG(INDI::Logger::DBG_SESSION, "Invalid response for location setting");
         }
         //  want to read it on the next cycle, so we update the fields in the client
         ReadLatLong = true;
@@ -989,184 +1100,135 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
 bool SynscanMount::Sync(double ra, double dec)
 {
-    ln_equ_posn eq { 0, 0 };
-    AlignmentDatabaseEntry NewEntry;
-    double lst = 0, lha = 0;
+    bool IsTrackingBeforeSync = (TrackState == SCOPE_TRACKING);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Sync %g %g -> %g %g\n", currentRA, currentDEC, ra, dec);
+    // Abort any motion before syncing
+    Abort();
 
-    //  this is where we think we are pointed now
-    //  and we need to set a sync point in the alignment database
+    DEBUGF(INDI::Logger::DBG_SESSION, "Sync %g %g -> %g %g", CurrentRA, CurrentDEC, ra, dec);
 
-    /*
-    //  working entirely in eq co-ordinates, this is all we need to do here
-    //  we need these numbers in degrees
-    eq.ra=currentRA*360.0/24.0;	//  this is wanted in degrees, not hours
-    eq.dec=currentDEC;
-    NewEntry.TelescopeDirection=TelescopeDirectionVectorFromEquatorialCoordinates(eq);
+    char str[20];
+    int numread, bytesWritten, bytesRead;
+    ln_hrz_posn TargetAltAz { 0, 0 };
 
-    //  if working in alt/az co-ordinates, we need to do this as well
-    here.lat=LocationN[LOCATION_LATITUDE].value;
-    here.lng=LocationN[LOCATION_LONGITUDE].value;
-    ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
-    NewEntry.TelescopeDirection=TelescopeDirectionVectorFromAltitudeAzimuth(altaz);
-    */
-
-    //  if we are working in lha/dec co-ordinates, we need to do these steps
-    //  the steps above dont matter
-    lst = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
-    lha = get_local_hour_angle(lst, currentRA);
-    //  convert lha to degrees
-    lha                         = lha * 360.0 / 24.0;
-    eq.ra                       = lha;
-    eq.dec                      = currentDEC;
-    NewEntry.TelescopeDirection = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
-
-    //  Flesh out the rest of the information for this sync point
-    NewEntry.ObservationJulianDate = ln_get_julian_from_sys();
-    NewEntry.RightAscension        = ra;
-    NewEntry.Declination           = dec;
-    NewEntry.PrivateDataSize       = 0;
-    if (!CheckForDuplicateSyncPoint(NewEntry))
+    TargetAltAz = GetAltAzPosition(ra, dec);
+    if (isDebug())
     {
-        GetAlignmentDatabase().push_back(NewEntry);
-        // Tell the client about size change
-        UpdateSize();
-        // Tell the math plugin to reinitialise
-        Initialise(this);
-        return true;
+        DEBUGF(INDI::Logger::DBG_SESSION, "Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
+               TargetAltAz.az, TargetAltAz.alt);
+    } else {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
+               TargetAltAz.az, TargetAltAz.alt);
     }
-    return false;
+    // Assemble the Reset Position command for Az axis
+    int Az = (int)(TargetAltAz.az*16777216 / 360);
+
+    str[0] = 'P';
+    str[1] = 4;
+    str[2] = 16;
+    str[3] = 4;
+    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Az / 65536);
+    Az -= (Az / 65536)*65536;
+    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Az / 256);
+    Az -= (Az / 256)*256;
+    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Az;
+    str[7] = 0;
+    tty_write(PortFD, str, 8, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 3, &bytesRead);
+    // Assemble the Reset Position command for Alt axis
+    int Alt = (int)(TargetAltAz.alt*16777216 / 360);
+
+    str[0] = 'P';
+    str[1] = 4;
+    str[2] = 17;
+    str[3] = 4;
+    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Alt / 65536);
+    Alt -= (Alt / 65536)*65536;
+    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Alt / 256);
+    Alt -= (Alt / 256)*256;
+    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Alt;
+    str[7] = 0;
+    tty_write(PortFD, str, 8, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+
+    // Pass the sync command to the handset
+    int n1 = ra * 0x1000000 / 24;
+    int n2 = dec * 0x1000000 / 360;
+
+    n1 = n1 << 8;
+    n2 = n2 << 8;
+    sprintf((char*)str, "s%08X,%08X", n1, n2);
+    memset(&str[18], 0, 1);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Send Sync command to the handset (%s)", str);
+    tty_write(PortFD, str, 18, &bytesWritten);
+    numread = tty_read(PortFD, str, 1, 60, &bytesRead);
+    if (bytesRead != 1 || str[0] != '#')
+    {
+        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to complete syncing.");
+        return false;
+    }
+    // Start tracking again
+    if (IsTrackingBeforeSync)
+        StartTrackMode();
+
+    return true;
 }
 
-ln_equ_posn SynscanMount::TelescopeToSky(double ra, double dec)
+ln_hrz_posn SynscanMount::GetAltAzPosition(double ra, double dec)
 {
-    double RightAscension, Declination;
-    ln_equ_posn eq { 0, 0 };
+    ln_lnlat_posn Location { 0, 0 };
+    ln_equ_posn Eq { 0, 0 };
+    ln_hrz_posn AltAz { 0, 0 };
 
-    if (GetAlignmentDatabase().size() > 1)
-    {
-        TelescopeDirectionVector TDV;
+    // Set the current location
+    Location.lat = LocationN[LOCATION_LATITUDE].value;
+    Location.lng = LocationN[LOCATION_LONGITUDE].value;
 
-        /*  Use this if we ar converting eq co-ords
-        //  but it's broken for now
-           	eq.ra=ra*360/24;
-           	eq.dec=dec;
-           	TDV=TelescopeDirectionVectorFromEquatorialCoordinates(eq);
-        */
+    Eq.ra  = ra*360.0 / 24.0;
+    Eq.dec = dec;
+    ln_get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys(), &AltAz);
+    AltAz.az -= 180;
+    if (AltAz.az < 0)
+        AltAz.az += 360;
 
-        /* This code does a conversion from ra/dec to alt/az
-        // before calling the alignment stuff
-            ln_lnlat_posn here;
-        	ln_hrz_posn altaz;
-
-        	here.lat=LocationN[LOCATION_LATITUDE].value;
-        	here.lng=LocationN[LOCATION_LONGITUDE].value;
-        	eq.ra=ra*360.0/24.0;	//  this is wanted in degrees, not hours
-        	eq.dec=dec;
-        	ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
-        	TDV=TelescopeDirectionVectorFromAltitudeAzimuth(altaz);
-        */
-
-        /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
-        double lha, lst;
-        lst = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
-        lha = get_local_hour_angle(lst, ra);
-        //  convert lha to degrees
-        lha    = lha * 360 / 24;
-        eq.ra  = lha;
-        eq.dec = dec;
-        TDV    = TelescopeDirectionVectorFromLocalHourAngleDeclination(eq);
-
-        if (TransformTelescopeToCelestial(TDV, RightAscension, Declination))
-        {
-            //  if we get here, the conversion was successful
-            //fprintf(stderr,"new values %6.4f %6.4f %6.4f  %6.4f Deltas %3.0lf %3.0lf\n",ra,dec,RightAscension,Declination,(ra-RightAscension)*60,(dec-Declination)*60);
-        }
-        else
-        {
-            //if the conversion failed, return raw data
-            RightAscension = ra;
-            Declination    = dec;
-        }
-    }
-    else
-    {
-        //  With less than 2 align points
-        // Just return raw data
-        RightAscension = ra;
-        Declination    = dec;
-    }
-
-    eq.ra  = RightAscension;
-    eq.dec = Declination;
-    return eq;
+    return AltAz;
 }
 
-ln_equ_posn SynscanMount::SkyToTelescope(double ra, double dec)
+void SynscanMount::UpdateMountInformation(bool inform_client)
 {
-    ln_equ_posn eq { 0, 0 };
-    TelescopeDirectionVector TDV;
-    double RightAscension = 0, Declination = 0;
+    bool BasicMountInfoHasChanged = false;
+    std::string MountCodeStr = std::to_string(MountCode);
 
-    /*
-    */
-
-    if (GetAlignmentDatabase().size() > 1)
+    if (std::string(BasicMountInfo[(int)MountInfoItems::FwVersion].text) != HandsetFwVersion)
     {
-        //  if the alignment system has been turned off
-        //  this transformation will fail, and we fall thru
-        //  to using raw co-ordinates from the mount
-        if (TransformCelestialToTelescope(ra, dec, 0.0, TDV))
-        {
-            /*  Initial attemp, using RA/DEC co-ordinates talking to alignment system
-            EquatorialCoordinatesFromTelescopeDirectionVector(TDV,eq);
-            RightAscension=eq.ra*24.0/360;
-            Declination=eq.dec;
-            if(RightAscension < 0) RightAscension+=24.0;
-            DEBUGF(INDI::Logger::DBG_SESSION,"Transformed Co-ordinates %g %g\n",RightAscension,Declination);
-            */
-
-            //  nasty altaz kludge, use al/az co-ordinates to talk to alignment system
-            /*
-                eq.ra=ra*360/24;
-                eq.dec=dec;
-                here.lat=LocationN[LOCATION_LATITUDE].value;
-                here.lng=LocationN[LOCATION_LONGITUDE].value;
-                ln_get_hrz_from_equ(&eq,&here,ln_get_julian_from_sys(),&altaz);
-            AltitudeAzimuthFromTelescopeDirectionVector(TDV,altaz);
-            //  now convert the resulting altaz into radec
-                ln_get_equ_from_hrz(&altaz,&here,ln_get_julian_from_sys(),&eq);
-            RightAscension=eq.ra*24.0/360.0;
-            Declination=eq.dec;
-                */
-
-            /* now lets convert from telescope to lha/dec */
-            double lst;
-            LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, eq);
-            //  and now we have to convert from lha back to RA
-            lst            = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
-            eq.ra          = eq.ra * 24 / 360;
-            RightAscension = lst - eq.ra;
-            RightAscension = range24(RightAscension);
-            Declination    = eq.dec;
-        }
-        else
-        {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Transform failed, using raw co-ordinates %g %g\n", ra, dec);
-            RightAscension = ra;
-            Declination    = dec;
-        }
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::FwVersion], HandsetFwVersion.c_str());
+        BasicMountInfoHasChanged = true;
     }
-    else
+    if (std::string(BasicMountInfo[(int)MountInfoItems::MountCode].text) != MountCodeStr)
     {
-        RightAscension = ra;
-        Declination    = dec;
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::MountCode], MountCodeStr.c_str());
+        BasicMountInfoHasChanged = true;
     }
-
-    eq.ra  = RightAscension;
-    eq.dec = Declination;
-    //eq.ra=ra;
-    //eq.dec=dec;
-    return eq;
+    if (std::string(BasicMountInfo[(int)MountInfoItems::AlignmentStatus].text) != AlignmentStatus)
+    {
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::AlignmentStatus], AlignmentStatus.c_str());
+        BasicMountInfoHasChanged = true;
+    }
+    if (std::string(BasicMountInfo[(int)MountInfoItems::GotoStatus].text) != GotoStatus)
+    {
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::GotoStatus], GotoStatus.c_str());
+        BasicMountInfoHasChanged = true;
+    }
+    if (std::string(BasicMountInfo[(int)MountInfoItems::MountPointingStatus].text) != MountPointingStatus)
+    {
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::MountPointingStatus], MountPointingStatus.c_str());
+        BasicMountInfoHasChanged = true;
+    }
+    if (std::string(BasicMountInfo[(int)MountInfoItems::TrackingMode].text) != TrackingMode)
+    {
+        IUSaveText(&BasicMountInfo[(int)MountInfoItems::TrackingMode], TrackingMode.c_str());
+        BasicMountInfoHasChanged = true;
+    }
+    if (BasicMountInfoHasChanged && inform_client)
+        IDSetText(&BasicMountInfoV, nullptr);
 }

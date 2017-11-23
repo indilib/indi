@@ -39,16 +39,8 @@
 /* Constructor */
 LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 {
-    timeUpdated = locationUpdated = false;
-    initStatus                    = MOUNTNOTINITIALIZED;
-
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
-
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);
-
-    //ctor
-    currentRA  = get_local_sideral_time(0);
-    currentDEC = 90;
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);    
 }
 
 const char *LX200AstroPhysics::getDefaultName()
@@ -283,12 +275,16 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
 
                 NewRaDec(currentRA, currentDEC);
 
-                VersionInfo.tp[0].text = new char[64];
-
-                getAPVersionNumber(PortFD, VersionInfo.tp[0].text);
-
+                char versionString[64];
+                getAPVersionNumber(PortFD, versionString);
                 VersionInfo.s = IPS_OK;
+                IUSaveText(&VersionT[0], versionString);
                 IDSetText(&VersionInfo, nullptr);
+
+                // TODO check controller type here
+                INDI_UNUSED(controllerType);
+                INDI_UNUSED(servoType);
+                //controllerType = ...;
 
                 StartUpSP.s = IPS_OK;
                 IDSetSwitch(&StartUpSP, "Mount initialized.");
@@ -625,6 +621,13 @@ bool LX200AstroPhysics::Goto(double r, double d)
     DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
+
+
+int LX200AstroPhysics::SendPulseCmd(int direction, int duration_msec)
+{
+    return APSendPulseCmd(PortFD, direction, duration_msec);
+}
+
 
 bool LX200AstroPhysics::Handshake()
 {
@@ -1087,4 +1090,9 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
     }
 
     return true;
+}
+
+bool LX200AstroPhysics::getUTFOffset(double *offset)
+{
+    return (getAPUTCOffset(PortFD, offset) == 0);
 }

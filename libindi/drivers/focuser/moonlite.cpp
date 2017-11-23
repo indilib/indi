@@ -152,8 +152,6 @@ bool MoonLite::updateProperties()
 
         GetFocusParams();
 
-        loadConfig(true);
-
         DEBUG(INDI::Logger::DBG_SESSION, "MoonLite paramaters updated, focuser ready for use.");
     }
     else
@@ -690,6 +688,7 @@ bool MoonLite::ISNewNumber(const char *dev, const char *name, double values[], c
 
             TemperatureSettingNP.s = IPS_OK;
             IDSetNumber(&TemperatureSettingNP, nullptr);
+            return true;
         }
     }
 
