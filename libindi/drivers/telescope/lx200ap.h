@@ -98,6 +98,9 @@ class LX200AstroPhysics : public LX200Generic
     ISwitchVectorProperty SyncCMRSP;
     enum { USE_REGULAR_SYNC, USE_CMR_SYNC };
 
+    ISwitch APGuideSpeedS[3];
+    ISwitchVectorProperty APGuideSpeedSP;
+
     IText VersionT[1];
     ITextVectorProperty VersionInfo;
 
