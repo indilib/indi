@@ -39,16 +39,8 @@
 /* Constructor */
 LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 {
-    timeUpdated = locationUpdated = false;
-    initStatus                    = MOUNTNOTINITIALIZED;
-
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
-
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);
-
-    //ctor
-    currentRA  = get_local_sideral_time(0);
-    currentDEC = 90;
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);    
 }
 
 const char *LX200AstroPhysics::getDefaultName()
@@ -148,7 +140,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
 
 bool LX200AstroPhysics::updateProperties()
 {
-    INDI::Telescope::updateProperties();
+    LX200Generic::updateProperties();
 
     if (isConnected())
     {
@@ -233,8 +225,8 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
                 StartUpSP.s = IPS_OK;
                 IDSetSwitch(&StartUpSP, "Mount initialized.");
 
-                currentRA  = 0;
-                currentDEC = 90;
+                //currentRA  = 0;
+                //currentDEC = 90;
             }
             else
             {
@@ -283,12 +275,16 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
 
                 NewRaDec(currentRA, currentDEC);
 
-                VersionInfo.tp[0].text = new char[64];
-
-                getAPVersionNumber(PortFD, VersionInfo.tp[0].text);
-
+                char versionString[64];
+                getAPVersionNumber(PortFD, versionString);
                 VersionInfo.s = IPS_OK;
+                IUSaveText(&VersionT[0], versionString);
                 IDSetText(&VersionInfo, nullptr);
+
+                // TODO check controller type here
+                INDI_UNUSED(controllerType);
+                INDI_UNUSED(servoType);
+                //controllerType = ...;
 
                 StartUpSP.s = IPS_OK;
                 IDSetSwitch(&StartUpSP, "Mount initialized.");
@@ -626,6 +622,13 @@ bool LX200AstroPhysics::Goto(double r, double d)
     return true;
 }
 
+
+int LX200AstroPhysics::SendPulseCmd(int direction, int duration_msec)
+{
+    return APSendPulseCmd(PortFD, direction, duration_msec);
+}
+
+
 bool LX200AstroPhysics::Handshake()
 {
     if (isSimulation())
@@ -823,20 +826,45 @@ bool LX200AstroPhysics::Park()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    if (setAPObjectAZ(PortFD, parkAz) < 0 || setAPObjectAlt(PortFD, parkAlt) < 0)
+    if (isSimulation())
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting Az/Alt.");
-        return false;
+        ln_lnlat_posn observer;
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+
+        horizontalPos.az = parkAz + 180;
+        if (horizontalPos.az > 360)
+            horizontalPos.az -= 360;
+        horizontalPos.alt = parkAlt;
+
+        ln_equ_posn equatorialPos;
+
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
-
-    int err = 0;
-
-    /* Slew reads the '0', that is not the end of the slew */
-    if ((err = Slew(PortFD)))
+    else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to Az %s - Alt %s", AzStr, AltStr);
-        slewError(err);
-        return false;
+        if (setAPObjectAZ(PortFD, parkAz) < 0 || setAPObjectAlt(PortFD, parkAlt) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting Az/Alt.");
+            return false;
+        }
+
+        int err = 0;
+
+        /* Slew reads the '0', that is not the end of the slew */
+        if ((err = Slew(PortFD)))
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to Az %s - Alt %s", AzStr, AltStr);
+            slewError(err);
+            return false;
+        }
     }
 
     EqNP.s     = IPS_BUSY;
@@ -849,7 +877,7 @@ bool LX200AstroPhysics::Park()
 bool LX200AstroPhysics::UnPark()
 {
     // First we unpark astrophysics
-    if (!isSimulation())
+    if (isSimulation() == false)
     {
         if (setAPUnPark(PortFD) < 0)
         {
@@ -867,17 +895,43 @@ bool LX200AstroPhysics::UnPark()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Syncing to parked coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    if (setAPObjectAZ(PortFD, parkAz) < 0 || (setAPObjectAlt(PortFD, parkAlt)) < 0)
+    if (isSimulation())
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting Az/Alt.");
-        return false;
-    }
+        ln_lnlat_posn observer;
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (observer.lng > 180)
+            observer.lng -= 360;
 
-    char syncString[256];
-    if (APSyncCM(PortFD, syncString) < 0)
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+
+        horizontalPos.az = parkAz + 180;
+        if (horizontalPos.az > 360)
+            horizontalPos.az -= 360;
+        horizontalPos.alt = parkAlt;
+
+        ln_equ_posn equatorialPos;
+
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        currentRA = equatorialPos.ra / 15.0;
+        currentDEC= equatorialPos.dec;
+    }
+    else
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Sync failed.");
-        return false;
+        if (setAPObjectAZ(PortFD, parkAz) < 0 || (setAPObjectAlt(PortFD, parkAlt)) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Error setting Az/Alt.");
+            return false;
+        }
+
+        char syncString[256];
+        if (APSyncCM(PortFD, syncString) < 0)
+        {
+            DEBUG(INDI::Logger::DBG_WARNING, "Sync failed.");
+            return false;
+        }
     }
 
     SetParked(false);
@@ -1036,4 +1090,9 @@ bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
     }
 
     return true;
+}
+
+bool LX200AstroPhysics::getUTFOffset(double *offset)
+{
+    return (getAPUTCOffset(PortFD, offset) == 0);
 }

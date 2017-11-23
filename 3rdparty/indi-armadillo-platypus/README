@@ -1,0 +1,45 @@
+Lunatico Armadillo & Platypus INDI Driver
+=========================================
+
+This package provides the INDI driver for Lunatico Astronomia Armadillo & Platypus controllers.
+As of this version, it covers focuser functionality, in one port of the controller. 
+
+Requirtments
+============
+
++ INDI >= v0.6 (http://indi.sf.net)
+
+	You need to install both indi and indi-devel to build this package.
+	
+	
+Installation
+============
+
+	See INSTALL
+	
+How to Use
+==========
+
+You can use the driver in any INDI-compatible client (such as KStars or Xephem) - just select 
+the Armadillo / Platypus from the focuser list
+
+To run the driver from the command line:
+
+$ indiserver indi_armadillo_focuser
+
+or
+
+$ indiserver indi_platypus_focuser
+
+You can then connect to the driver from any client, the default port is 7624.
+If you're using KStars, the drivers will be automatically listed in KStars' Device Manager.
+
+Select the port the focuser motor is attached to, if not the Main (which is the default) and then
+save the settings; nothing else is needed for our standard motors.
+
+As a check list, the default motor options are:
+- Half step: off
+- Wiring: Lunatico normal
+- Motor type: unipolar
+- Speed: 9800 (matches 10 ms/step)
+

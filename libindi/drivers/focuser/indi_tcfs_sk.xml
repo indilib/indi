@@ -1,7 +1,7 @@
 <INDIDriver>
 <defSwitchVector device="Optec TCF-S" name="FOCUS_MODE" label="Mode" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
     <defSwitch name="Manual" label="">
-Off
+On
     </defSwitch>
     <defSwitch name="Auto A" label="">
 Off
@@ -10,7 +10,7 @@ Off
 Off
     </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="Optec TCF-S" name="FOCUS_GOTO" label="Go to" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
+<defSwitchVector device="Optec TCF-S" name="FOCUS_GOTO" label="Go to" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="0">
     <defSwitch name="FOCUS_MIN" label="Min">
 Off
     </defSwitch>
@@ -29,7 +29,7 @@ Off
 0
     </defNumber>
 </defNumberVector>
-<defSwitchVector device="Optec TCF-S" name="FOCUS_POWER" label="Power" group="Operation" state="Idle" perm="rw" rule="OneOfMany" timeout="0">
+<defSwitchVector device="Optec TCF-S" name="FOCUS_POWER" label="Power" group="Operation" state="Idle" perm="rw" rule="AtMostOne" timeout="0">
     <defSwitch name="FOCUS_SLEEP" label="Sleep">
 Off
     </defSwitch>

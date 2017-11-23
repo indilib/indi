@@ -104,7 +104,7 @@ bool INDI::Telescope::initProperties()
     IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
     IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
     IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Scope Location", SITE_TAB,
-                       IP_RW, 60, IPS_OK);
+                       IP_RW, 60, IPS_IDLE);
 
     // Pier Side
     IUFillSwitch(&PierSideS[PIER_WEST], "PIER_WEST", "West (pointing east)", ISS_OFF);
@@ -998,8 +998,20 @@ bool INDI::Telescope::ISNewSwitch(const char *dev, const char *name, ISState *st
                 ParkS[1].s = ISS_ON;
                 ParkSP.s   = IPS_IDLE;
                 DEBUG(INDI::Logger::DBG_SESSION, "Telescope already unparked.");
+                IsParked = false;
                 IDSetSwitch(&ParkSP, nullptr);
                 return true;
+            }
+
+            if (toPark == false && isLocked())
+            {
+               IUResetSwitch(&ParkSP);
+               ParkS[0].s = ISS_ON;
+               ParkSP.s   = IPS_IDLE;
+               DEBUG(INDI::Logger::DBG_WARNING, "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab.");
+               IsParked = true;
+               IDSetSwitch(&ParkSP, nullptr);
+               return true;
             }
 
             if (toPark && TrackState == SCOPE_PARKED)

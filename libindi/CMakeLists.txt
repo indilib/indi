@@ -45,7 +45,7 @@ ENDIF ()
 
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
-set(CMAKE_INDI_VERSION_MINOR 5)
+set(CMAKE_INDI_VERSION_MINOR 6)
 set(CMAKE_INDI_VERSION_RELEASE 0)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
@@ -227,7 +227,7 @@ SET(indiclientqt_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp)
 IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(indiclientqt_c indiclientqt_C_SRC 10 cpp)
+    ENABLE_UNITY_BUILD(indiclientqt_c indiclientqt_C_SRC 10 c)
     ENABLE_UNITY_BUILD(indiclientqt_cxx indiclientqt_CXX_SRC 10 cpp)
 ENDIF ()
 
@@ -644,6 +644,25 @@ add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
 
+
+################ Sesto Senso Focuser ################
+SET(sesto_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/sestosenso.cpp)
+
+add_executable(indi_sestosenso_focus ${sesto_SRC})
+target_link_libraries(indi_sestosenso_focus indidriver)
+install(TARGETS indi_sestosenso_focus RUNTIME DESTINATION bin)
+
+########### Lakeside ###########
+set(indilakeside_SRCS  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/lakeside.cpp)
+
+add_executable(indi_lakeside_focus ${indilakeside_SRCS})
+IF (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+    set_target_properties(indi_lakeside_focus PROPERTIES COMPILE_FLAGS "-Wno-format-overflow")
+ENDIF ()
+target_link_libraries(indi_lakeside_focus indidriver)
+install(TARGETS indi_lakeside_focus RUNTIME DESTINATION bin )
+
 ################ Pegasus DMFC Focuser ################
 SET(pegasus_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/dmfc.cpp)
@@ -939,6 +958,15 @@ IF (UNIX AND NOT APPLE)
     INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-flipflat.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
 
+########### SnapCap Driver ###############
+
+SET(snapcap_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/snapcap.cpp)
+
+add_executable(indi_snapcap ${snapcap_SRC})
+target_link_libraries(indi_snapcap indidriver)
+install(TARGETS indi_snapcap RUNTIME DESTINATION bin)
+
 ########### Sky Quality Meter ###############
 
 SET(sqm_SRC
@@ -1018,8 +1046,17 @@ add_executable(indi_simulator_gps ${gpssimulator_SRC})
 target_link_libraries(indi_simulator_gps indidriver)
 install(TARGETS indi_simulator_gps RUNTIME DESTINATION bin)
 
+########### USB_Dewpoint Driver ###############
+
+SET(usb_dewpoint_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/usb_dewpoint.cpp)
+
+add_executable(indi_usbdewpoint ${usb_dewpoint_SRC})
+target_link_libraries(indi_usbdewpoint indidriver)
+install(TARGETS indi_usbdewpoint RUNTIME DESTINATION bin)
+
 #####################################
-############ AUX GROUP ##############
+########## WEATHER GROUP ############
 #####################################
 
 ########### Weather Meta Driver ###############
@@ -1030,6 +1067,15 @@ SET(weathermeta_SRC
 add_executable(indi_meta_weather ${weathermeta_SRC})
 target_link_libraries(indi_meta_weather indidriver)
 install(TARGETS indi_meta_weather RUNTIME DESTINATION bin )
+
+########### MBox Driver ###############
+
+SET(mbox_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/mbox.cpp)
+
+add_executable(indi_mbox_weather ${mbox_SRC})
+target_link_libraries(indi_mbox_weather indidriver)
+install(TARGETS indi_mbox_weather RUNTIME DESTINATION bin)
 
 ########### Vantage Driver ###############
 

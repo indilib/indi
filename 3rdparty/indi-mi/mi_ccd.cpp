@@ -173,7 +173,7 @@ void ISSnoopDevice(XMLEle *root)
     }
 }
 
-MICCD::MICCD(int camId, bool eth)
+MICCD::MICCD(int camId, bool eth) : FilterInterface(this)
 {
     cameraId = camId;
     isEth    = eth;
@@ -232,7 +232,7 @@ const char *MICCD::getDefaultName()
 bool MICCD::initProperties()
 {
     INDI::CCD::initProperties();
-    initFilterProperties(getDeviceName(), FILTER_TAB);
+    INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = numFilters;
@@ -299,10 +299,7 @@ void MICCD::ISGetProperties(const char *dev)
 
         if (numFilters > 0)
         {
-            //Define the Filter Slot and name properties
-            defineNumber(&FilterSlotNP);
-            if (FilterNameT != NULL)
-                defineText(FilterNameTP);
+           INDI::FilterInterface::updateProperties();
         }
     }
 }
@@ -333,12 +330,7 @@ bool MICCD::updateProperties()
 
         if (numFilters > 0)
         {
-            //Define the Filter Slot and name properties
-            defineNumber(&FilterSlotNP);
-            if (FilterNameT == NULL)
-                GetFilterNames(FILTER_TAB);
-            if (FilterNameT)
-                defineText(FilterNameTP);
+            INDI::FilterInterface::updateProperties();
         }
 
         // Let's get parameters now from CCD
@@ -368,8 +360,7 @@ bool MICCD::updateProperties()
 
         if (numFilters > 0)
         {
-            deleteProperty(FilterSlotNP.name);
-            deleteProperty(FilterNameTP->name);
+            INDI::FilterInterface::updateProperties();
         }
         RemoveTimer(timerID);
     }
@@ -769,39 +760,6 @@ bool MICCD::SelectFilter(int position)
     return true;
 }
 
-bool MICCD::SetFilterNames()
-{
-    // Cannot save it in hardware, so let's just save it in the config file to be loaded later
-    saveConfig();
-    return true;
-}
-
-bool MICCD::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    char filterBand[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-
-    if (FilterNameT != NULL)
-        delete FilterNameT;
-
-    FilterNameT = new IText[MaxFilter];
-
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        snprintf(filterBand, MAXINDILABEL, "Filter #%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterBand);
-    }
-
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     0, IPS_IDLE);
-
-    return true;
-}
-
 IPState MICCD::GuideNorth(float duration)
 {
     if (gxccd_move_telescope(cameraHandle, 0, duration) < 0)
@@ -872,7 +830,7 @@ bool MICCD::ISNewText(const char *dev, const char *name, char *texts[], char *na
     {
         if (!strcmp(name, FilterNameTP->name))
         {
-            processFilterName(dev, texts, names, n);
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
     }
@@ -886,7 +844,7 @@ bool MICCD::ISNewNumber(const char *dev, const char *name, double values[], char
     {
         if (!strcmp(name, FilterSlotNP.name))
         {
-            processFilterSlot(getDeviceName(), values, names);
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
 
@@ -1030,8 +988,7 @@ bool MICCD::saveConfigItems(FILE *fp)
 
     if (numFilters > 0)
     {
-        IUSaveConfigNumber(fp, &FilterSlotNP);
-        IUSaveConfigText(fp, FilterNameTP);
+        INDI::FilterInterface::saveConfigItems(fp);
     }
 
     if (maxFanValue > 0)

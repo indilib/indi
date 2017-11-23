@@ -44,7 +44,7 @@ set_target_properties(apogee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${AP
 
 target_link_libraries(apogee ${LIBUSB_1_LIBRARIES} ${CURL_LIBRARY} ${Boost_LIBRARIES})
 
-install(TARGETS apogee LIBRARY DESTINATION lib)
+install(TARGETS apogee LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 file(GLOB libapogee_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 install( FILES ${libapogee_HEADERS} DESTINATION include/libapogee COMPONENT Devel)

@@ -60,6 +60,27 @@ This speeds only are taken into account for protocol buttons, not for the HC But
 :RC0,1,2 -->preselect guide speed  (HC doesn't shows it)
 :Mn# :Ms# :Me# :Mw#  (move until :Q# at guiding or center speed :RG# (works)or :RC#(not work, use :RC0/1/2 instead))
 :MnXXX# :MsXXX# :MeXXX# :MwXXX#  (move XXX ms at guiding speed no mather what :RCx#,:RGX# or :RSX# was issue)
+
+Firmware update (HC v1.10 -> v1.12, also mainboard firmware)
+------------------------------------------------------------------
+HC8406 CMD hardware TEST
+V1.12 2011-08-12
+UPGRADE INFO ON: http://www.ioptron.com/Articles.asp?ID=268
+
+:RT9#     -> stop tracking
+:RT0#     -> start tracking at sidera speed. Formerly only preselect sideral speed but
+             not start the tracking itself
+
+:Me#
+:Mw#
+:Mexxx#
+:Mwxxx#   ->Al this commands are broken. Only RA axes, the equivalent :Ms#,:Mn#... work.
+
+Summarizing:
+
+old firmware v1.10: is not possible to start/stop tracking. Guide/move commands OK
+new firmware v1.12: is possible to start/stop tracking. Guide/move commands NOT OK
+
 */
 
 /* SOCAT sniffer
@@ -86,12 +107,14 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 #define ioptronHC8406_TIMEOUT 1 /* timeout */
 #define ioptronHC8406_CALDATE_RESULT "                                #                 " /* result of calendar date */
 
+
 ioptronHC8406::ioptronHC8406()
 {
     setVersion(1, 1);
-    //setDeviceName("ioptronHC8406");
-    setLX200Capability(LX200_HAS_FOCUS);
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE);
+    setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_PULSE_GUIDING);
+    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | 
+                      TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | 
+                      TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK);
 
 }
 
@@ -100,15 +123,15 @@ bool ioptronHC8406::initProperties()
     LX200Generic::initProperties();
 
     // Sync Type
-    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_ON);
-    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_OFF);
-    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
+    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], "USE_REGULAR_SYNC", ":CM#", ISS_ON);
+    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], "USE_CMR_SYNC", ":CMR#", ISS_OFF);
+    IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNC_MODE", "Sync", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
 
     // Cursor move Guiding/Center
-    IUFillSwitch(&CursorMoveSpeedS[USE_GUIDE_SPEED], "Guide Speed", "", ISS_ON);
-    IUFillSwitch(&CursorMoveSpeedS[USE_CENTERING_SPEED], "Centering Speed", "", ISS_OFF);
+    IUFillSwitch(&CursorMoveSpeedS[USE_GUIDE_SPEED],"USE_GUIDE_SPEED", "Guide Speed", ISS_ON);
+    IUFillSwitch(&CursorMoveSpeedS[USE_CENTERING_SPEED],"USE_CENTERING_SPEED", "Centering Speed", ISS_OFF);
     IUFillSwitchVector(&CursorMoveSpeedSP, CursorMoveSpeedS, 2, getDeviceName(),
-	 "MOVE_SPEED", "Cursor Move Speed", MOTION_TAB, IP_RO, ISR_1OFMANY, 0,IPS_IDLE);
+	 "CURSOR_MOVE_MODE", "Cursor Move Speed", MOTION_TAB, IP_RO, ISR_1OFMANY, 0,IPS_IDLE);
 
     // Guide Rate
     IUFillSwitch(&GuideRateS[0], "0.25x", "", ISS_OFF);
@@ -117,7 +140,7 @@ bool ioptronHC8406::initProperties()
     IUFillSwitchVector(&GuideRateSP, GuideRateS, 3, getDeviceName(),
           "GUIDE_RATE", "Guide Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
 
-    // Guide Rate
+    // Center Rate
     IUFillSwitch(&CenterRateS[0], "12x", "", ISS_OFF);
     IUFillSwitch(&CenterRateS[1], "64x", "", ISS_ON);
     IUFillSwitch(&CenterRateS[2], "600x", "", ISS_OFF);
@@ -149,6 +172,7 @@ bool ioptronHC8406::updateProperties()
         defineSwitch(&CenterRateSP);
         //defineSwitch(&SlewRateSP); //NOT WORK!!
         defineSwitch(&CursorMoveSpeedSP);
+        ioptronHC8406Init();
     }
     else
     {
@@ -218,6 +242,7 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+
         // Sync type
         if (!strcmp(name, SyncCMRSP.name))
         {
@@ -319,7 +344,7 @@ bool ioptronHC8406::isSlewComplete()
     /* HC8406 doesn't have :SE# or :SE? command, thus we check if the slew is 
        completed comparing targetRA/DEC with actual RA/DEC */
 
-    float tolerance=30/3600.;  // 5 arcsec
+    float tolerance=1/3600.;  // 5 arcsec
 
     if (fabs(currentRA-targetRA) <= tolerance && fabs(currentDEC-targetDEC) <= tolerance) 
 	return true;
@@ -329,10 +354,20 @@ bool ioptronHC8406::isSlewComplete()
 
 void ioptronHC8406::getBasicData()
 {
-//TBD
-    UnPark();
+    checkLX200Format(PortFD);
     sendScopeLocation();
     sendScopeTime();
+}
+
+void ioptronHC8406::ioptronHC8406Init()
+{
+    //This mount doesn't report anything so we send some CMD
+    //just to get syncronize with the GUI at start time
+    DEBUG(INDI::Logger::DBG_WARNING, "Sending init CMDs. Unpark, Stop tracking");
+    UnPark();
+    TrackState = SCOPE_IDLE;
+    SetTrackEnabled(false);    
+    setioptronHC8406GuideRate(1);
 }
 
 bool ioptronHC8406::Goto(double r, double d)
@@ -373,6 +408,13 @@ bool ioptronHC8406::Goto(double r, double d)
         // sleep for 100 mseconds
         usleep(100000);
     }
+
+    // If parking/parked, let's unpark it first.
+    /*
+    if (TrackState == SCOPE_PARKING || TrackState == SCOPE_PARKED)
+    {
+	UnPark();
+    }*/
 
     if (!isSimulation())
     {
@@ -459,7 +501,7 @@ int ioptronHC8406::ioptronHC8406SyncCMR(char *matchedObject)
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", "#:CMR#");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", ":CMR#");
 
     if ((error_type = tty_write_string(PortFD, ":CMR#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -694,7 +736,7 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 
     error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
 
-    // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ioptronHC8406
+    // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure 
     
     usleep(10000);
     tcflush(fd, TCIFLUSH);
@@ -718,9 +760,20 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
     return 0;
 }
 
+bool ioptronHC8406::SetTrackEnabled(bool enabled)
+{
+    if (enabled) {
+     DEBUG(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> START TRACKING AT SIDERAL SPEED (:RT2#)");
+     return setioptronHC8406TrackMode(0);
+    } else {
+     DEBUG(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> STOP TRACKING (:RT9#)");
+     return setioptronHC8406TrackMode(3);
+    }
+}
+
 bool ioptronHC8406::SetTrackMode(uint8_t mode)
 {
-    return (setioptronHC8406TrackMode(mode) == 0);
+    return (setioptronHC8406TrackMode(mode));
 }
 
 int ioptronHC8406::setioptronHC8406TrackMode(int mode)
@@ -750,7 +803,7 @@ int ioptronHC8406::setioptronHC8406TrackMode(int mode)
     if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    return 0;
+    return 1;
 }
 
 bool ioptronHC8406::Park()
@@ -761,8 +814,8 @@ bool ioptronHC8406::Park()
 
     if ((error_type = tty_write_string(PortFD, ":KA#", &nbytes_write)) != TTY_OK)
         return error_type;
-
     tcflush(PortFD, TCIFLUSH);
+    DEBUG(DBG_SCOPE, "CMD <:KA#>");
 
     EqNP.s     = IPS_BUSY;
     TrackState = SCOPE_PARKING;
@@ -791,23 +844,51 @@ bool ioptronHC8406::ReadScopeStatus()
         return true;
     }
 
-    //if (IUFindSwitch(&CoordSP, "TRACK")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)
-
+    switch (TrackState) {
+	case SCOPE_IDLE:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> IDLE");		
+	    break;
+	case SCOPE_SLEWING:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> SLEWING");		
+	    break;
+	case SCOPE_TRACKING:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> TRACKING");		
+	    break;
+	case SCOPE_PARKING:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> PARKING");		
+	    break;
+	case SCOPE_PARKED:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> PARKED");		
+	    break;
+	default:
+	    DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> UNDEFINED");		
+	    break;
+    }
 
     if (TrackState == SCOPE_SLEWING )
     {
         // Check if LX200 is done slewing
         if (isSlewComplete())
         {
-            TrackState = SCOPE_TRACKING;
-            IDMessage(getDeviceName(), "Slew is complete. Tracking...");
+            usleep(1000000); //Wait until :MS# finish
+            if (IUFindSwitch(&CoordSP, "SYNC")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)  {
+	            TrackState = SCOPE_IDLE;
+	            DEBUG(INDI::Logger::DBG_WARNING, "Slew is complete. IDLE");
+		    SetTrackEnabled(false);
+	    } else {
+	            TrackState = SCOPE_TRACKING;
+	            DEBUG(INDI::Logger::DBG_WARNING, "Slew is complete. TRACKING");
+		    SetTrackEnabled(true);
+	    }
         }
     }
     else if (TrackState == SCOPE_PARKING)
     {
-        if (isSlewComplete())
+        // isSlewComplete() not work because is base on actual RA/DEC vs target RA/DEC. DO ALWAYS
+        if (true || isSlewComplete()) 
         {
             SetParked(true);
+	    TrackState = SCOPE_PARKED;
         }
     }
 
@@ -1119,7 +1200,8 @@ void ioptronHC8406::sendScopeTime()
     time_epoch = mktime(&ltm);
 
     // Convert to TimeT
-    time_epoch -= (int)(atof(TimeT[1].text) * 3600.0);
+    //time_epoch -= (int)(atof(TimeT[1].text) * 3600.0);
+    time_epoch -= (int)(lx200_utc_offset * 3600.0);
 
     // Get UTC (we're using localtime_r, but since we shifted time_epoch above by UTCOffset, we should be getting the real UTC time
     localtime_r(&time_epoch, &utm);
@@ -1133,5 +1215,56 @@ void ioptronHC8406::sendScopeTime()
 
     // Let's send everything to the client
     IDSetText(&TimeTP, nullptr);
+}
+
+int ioptronHC8406::SendPulseCmd(int direction, int Tduration_msec)
+{
+    DEBUGF(INDI::Logger::DBG_DEBUG, "<%s>", __FUNCTION__);
+    int rc = 0,  nbytes_written = 0;
+    char cmd[20];
+    int duration_msec,Rduration;
+    if (Tduration_msec >=1000) {
+	    duration_msec=999;    		    //limited to 999
+	    Rduration=Tduration_msec-duration_msec; //pending ms
+    } else {
+	    duration_msec=Tduration_msec;
+	    Rduration=0;
+       	    DEBUGF(INDI::Logger::DBG_DEBUG, "Pulse %d <999 Sent only one",Tduration_msec);
+    }
+
+    switch (direction)
+    {
+        case LX200_NORTH:
+            sprintf(cmd, ":Mn%03d#", duration_msec);
+            break;
+        case LX200_SOUTH:
+            sprintf(cmd, ":Ms%03d#", duration_msec);
+            break;
+        case LX200_EAST:
+            sprintf(cmd, ":Me%03d#", duration_msec);
+            break;
+        case LX200_WEST:
+            sprintf(cmd, ":Mw%03d#", duration_msec);
+            break;
+        default:
+            return 1;
+    }
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    {
+        char errmsg[256];
+        tty_error_msg(rc, errmsg, 256);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        return 1;
+    }
+    tcflush(PortFD, TCIFLUSH);
+
+    if (Rduration!=0) {
+    	DEBUGF(INDI::Logger::DBG_DEBUG, "pulse guide. Pulse >999. ms left:%d",Rduration);
+        usleep(1000000);   //wait until the previous one has fineshed
+        return SendPulseCmd(direction,Rduration);
+    }
+    return 0;
 }
 

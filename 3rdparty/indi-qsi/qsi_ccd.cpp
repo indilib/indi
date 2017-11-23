@@ -124,7 +124,7 @@ void ISSnoopDevice(XMLEle *root)
     qsiCCD->ISSnoopDevice(root);
 }
 
-QSICCD::QSICCD()
+QSICCD::QSICCD() : FilterInterface(this)
 {
     canSetGain            = false;
     canControlFan         = false;
@@ -194,7 +194,7 @@ bool QSICCD::initProperties()
     IUFillSwitchVector(&ABSP, ABS, 2, getDeviceName(), "AntiBlooming", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
 
-    initFilterProperties(getDeviceName(), FILTER_TAB);
+    INDI::FilterInterface::initProperties(FILTER_TAB);
 
     addDebugControl();
 
@@ -217,10 +217,7 @@ bool QSICCD::updateProperties()
 
         if (filterCount > 0)
         {
-            defineSwitch(&FilterSP);
-            defineNumber(&FilterSlotNP);
-            if (FilterNameT != nullptr)
-                defineText(FilterNameTP);
+            INDI::FilterInterface::updateProperties();
         }
 
         manageDefaults();
@@ -247,10 +244,7 @@ bool QSICCD::updateProperties()
 
         if (filterCount > 0)
         {
-            deleteProperty(FilterSlotNP.name);
-            deleteProperty(FilterSP.name);
-            if (FilterNameT != nullptr)
-                deleteProperty(FilterNameTP->name);
+            INDI::FilterInterface::updateProperties();
         }
 
         rmTimer(timerID);
@@ -323,8 +317,8 @@ bool QSICCD::setupParams()
     }
 
     // Only generate filter names if there are none initially
-    if (FilterNameT == nullptr)
-        GetFilterNames(FILTER_TAB);
+    //if (FilterNameT == nullptr)
+        //GetFilterNames(FILTER_TAB);
 
     double minDuration = 0;
 
@@ -708,35 +702,9 @@ bool QSICCD::ISNewText(const char *dev, const char *name, char *texts[], char *n
     {
         if (strcmp(name, FilterNameTP->name) == 0)
         {
-            processFilterName(dev, texts, names, n);
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
-
-        /*if (!strcmp(name, FilterNameTP->name))
-        {
-            if (IUUpdateText(FilterNameTP, texts, names, n) < 0)
-            {
-                FilterNameTP->s = IPS_ALERT;
-                IDSetText(FilterNameTP, "Error updating names. XML corrupted.");
-                return false;
-            }
-
-            for (int i = 0; i < maxFilters; i++)
-                filterDesignation[i] = FilterNameT[i].text;
-
-            if (SetFilterNames() == true)
-            {
-                FilterNameTP->s = IPS_OK;
-                IDSetText(FilterNameTP, nullptr);
-                return true;
-            }
-            else
-            {
-                FilterNameTP->s = IPS_ALERT;
-                IDSetText(FilterNameTP, "Error updating filter names.");
-                return false;
-            }
-        }*/
     }
 
     return INDI::CCD::ISNewText(dev, name, texts, names, n);
@@ -746,64 +714,9 @@ bool QSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 {
     if (strcmp(dev, getDeviceName()) == 0)
     {
-        /*if (!strcmp(FilterSlotNP.name, name))
-        {
-            targetFilter = values[0];
-
-            np = IUFindNumber(&FilterSlotNP, names[0]);
-
-            if (!np)
-            {
-                FilterSlotNP.s = IPS_ALERT;
-                IDSetNumber(&FilterSlotNP, "Unknown error. %s is not a member of %s property.", names[0], name);
-                return false;
-            }
-
-            int filter_count;
-            try
-            {
-                QSICam.get_FilterCount(filter_count);
-            }
-            catch (std::runtime_error err)
-            {
-                DEBUGF(INDI::Logger::DBG_ERROR, "get_FilterCount() failed. %s.", err.what());
-                IDSetNumber(&FilterSlotNP, nullptr);
-            }
-            if (targetFilter < FIRST_FILTER || targetFilter > filter_count)
-            {
-                FilterSlotNP.s = IPS_ALERT;
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error: valid range of filter is from %d to %d", FIRST_FILTER,
-                       LAST_FILTER);
-                IDSetNumber(&FilterSlotNP, nullptr);
-                return false;
-            }
-
-            IUUpdateNumber(&FilterSlotNP, values, names, n);
-
-            FilterSlotNP.s = IPS_BUSY;
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current filter to slot %d", targetFilter);
-            IDSetNumber(&FilterSlotNP, nullptr);
-
-            SelectFilter(targetFilter);
-
-            // Check current filter position
-            short newFilter = QueryFilter();
-
-            if (newFilter == targetFilter)
-            {
-                FilterSlotN[0].value = targetFilter;
-                FilterSlotNP.s       = IPS_OK;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Filter set to slot #%d", targetFilter);
-                IDSetNumber(&FilterSlotNP, nullptr);
-                return true;
-            }
-            else
-                return false;
-        }*/
-
         if (strcmp(name, FilterSlotNP.name) == 0)
         {
-            processFilterSlot(getDeviceName(), values, names);
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
     }
@@ -931,8 +844,7 @@ bool QSICCD::UpdateCCDFrame(int x, int y, int w, int h)
         return false;
     }
 
-    if (isDebug())
-        IDLog("The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, x_2, y_2);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, x_2, y_2);
 
     imageWidth  = x_2 - x_1;
     imageHeight = y_2 - y_1;
@@ -1579,14 +1491,14 @@ IPState QSICCD::GuideWest(float duration)
     return IPS_OK;
 }
 
-bool QSICCD::GetFilterNames(const char *groupName)
+bool QSICCD::GetFilterNames()
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
 
     if (FilterNameT != nullptr)
     {
-        delete FilterNameT;
+        delete [] FilterNameT;
         FilterNameT = nullptr;
     }
 
@@ -1611,7 +1523,7 @@ bool QSICCD::GetFilterNames(const char *groupName)
         snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
         IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i].c_str());
     }
-    IUFillTextVector(FilterNameTP, FilterNameT, filterCount, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW, 1, IPS_IDLE);
+    IUFillTextVector(FilterNameTP, FilterNameT, filterCount, getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 1, IPS_IDLE);
     delete [] filterDesignation;
     return true;
 }
@@ -1635,6 +1547,8 @@ bool QSICCD::SetFilterNames()
         return false;
     }
     delete [] filterDesignation;
+
+    saveConfig(true, FilterNameTP->name);
 
     return true;
 }
@@ -1691,6 +1605,8 @@ int QSICCD::QueryFilter()
 bool QSICCD::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
+    if (filterCount > 0)
+        INDI::FilterInterface::saveConfigItems(fp);
 
     if (canSetGain)
         IUSaveConfigSwitch(fp, &GainSP);

@@ -77,7 +77,7 @@ void ISSnoopDevice(XMLEle *root)
 
 WatchDog::WatchDog()
 {
-    setVersion(0, 1);
+    setVersion(0, 2);
     setDriverInterface(AUX_INTERFACE);
 
     watchdogClient = new WatchDogClient();
@@ -139,14 +139,14 @@ bool WatchDog::initProperties()
     IUFillTextVector(&SettingsTP, SettingsT, 3, getDeviceName(), "WATCHDOG_SETTINGS", "Settings", MAIN_CONTROL_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    IUFillSwitch(&ShutdownProcedureS[0], "PARK_MOUNT", "Park Mount", ISS_OFF);
-    IUFillSwitch(&ShutdownProcedureS[1], "PARK_DOME", "Park Dome", ISS_OFF);
-    IUFillSwitch(&ShutdownProcedureS[2], "EXECUTE_SCRIPT", "Execute Script", ISS_OFF);
+    IUFillSwitch(&ShutdownProcedureS[PARK_MOUNT], "PARK_MOUNT", "Park Mount", ISS_OFF);
+    IUFillSwitch(&ShutdownProcedureS[PARK_DOME], "PARK_DOME", "Park Dome", ISS_OFF);
+    IUFillSwitch(&ShutdownProcedureS[EXECUTE_SCRIPT], "EXECUTE_SCRIPT", "Execute Script", ISS_OFF);
     IUFillSwitchVector(&ShutdownProcedureSP, ShutdownProcedureS, 3, getDeviceName(), "WATCHDOG_SHUTDOWN", "Shutdown",
                        MAIN_CONTROL_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
 
-    IUFillText(&ActiveDeviceT[0], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
-    IUFillText(&ActiveDeviceT[1], "ACTIVE_DOME", "Dome", "Dome Simulator");
+    IUFillText(&ActiveDeviceT[ACTIVE_TELESCOPE], "ACTIVE_TELESCOPE", "Telescope", "Telescope Simulator");
+    IUFillText(&ActiveDeviceT[ACTIVE_DOME], "ACTIVE_DOME", "Dome", "Dome Simulator");
     IUFillTextVector(&ActiveDeviceTP, ActiveDeviceT, 2, getDeviceName(), "ACTIVE_DEVICES", "Active devices",
                      OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -165,7 +165,9 @@ void WatchDog::ISGetProperties(const char *dev)
     defineSwitch(&ShutdownProcedureSP);
     defineText(&ActiveDeviceTP);
 
-    loadConfig(true);
+    // Only load config first time and not on subsequent client connections
+    if (watchDogTimer == -1)
+        loadConfig(true);
 
     //watchdogClient->setTelescope(ActiveDeviceT[0].text);
     //watchdogClient->setDome(ActiveDeviceT[1].text);
@@ -284,6 +286,8 @@ bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
 bool WatchDog::saveConfigItems(FILE *fp)
 {
+    INDI::DefaultDevice::saveConfigItems(fp);
+
     IUSaveConfigNumber(fp, &HeartBeatNP);
     IUSaveConfigText(fp, &SettingsTP);
     IUSaveConfigText(fp, &ActiveDeviceTP);
@@ -319,10 +323,12 @@ void WatchDog::TimerHit()
                 break;
             }
 
-            // Watch mount
-            watchdogClient->setDome(ActiveDeviceT[0].text);
+            // Watch mount if requied
+            if (ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
+                watchdogClient->setMount(ActiveDeviceT[0].text);
             // Watch dome
-            watchdogClient->setMount(ActiveDeviceT[1].text);
+            if (ShutdownProcedureS[PARK_DOME].s == ISS_ON)
+                watchdogClient->setDome(ActiveDeviceT[1].text);
 
             // Set indiserver host and port
             watchdogClient->setServer(SettingsT[0].text, atoi(SettingsT[1].text));
