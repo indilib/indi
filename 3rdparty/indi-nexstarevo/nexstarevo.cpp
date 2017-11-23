@@ -67,7 +67,8 @@ const double NexStarEvo::TRACK_SCALE = 60000 / STEPS_PER_DEGREE;
 NexStarEvo::NexStarEvo()
     : ScopeStatus(IDLE), AxisStatusALT(STOPPED), AxisDirectionALT(FORWARD), AxisStatusAZ(STOPPED),
       AxisDirectionAZ(FORWARD), TraceThisTickCount(0), TraceThisTick(false),
-      DBG_NSEVO(INDI::Logger::getInstance().addDebugLevel("NexStar Evo Verbose", "NSEVO"))
+      DBG_NSEVO(INDI::Logger::DBG_SESSION),
+      DBG_MOUNT(INDI::Logger::getInstance().addDebugLevel("NexStar Evo Verbose", "NSEVO"))
 {
     setVersion(NSEVO_VERSION_MAJOR, NSEVO_VERSION_MINOR);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |

@@ -12,7 +12,7 @@
 
 #define BUFFER_SIZE 10240
 int MAX_CMD_LEN = 32;
-bool DEBUG      = false;
+bool DEBUG      = true;
 
 //////////////////////////////////////////////////
 /////// Utility functions
@@ -724,9 +724,12 @@ int sendBuffer(int sock, buffer buf, long tout_msec)
         setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(struct timeval));
         n = send(sock, buf.data(), buf.size(), 0);
         msleep(50);
-        //        if (n!=buf.size()) {
-        //            fprintf(stderr, "sendBuffer: incomplete send n=%d size=%d\n", n, buf.size());
-        //        }
+        if (n == -1) {
+            perror("NSEVO::sendBuffer");
+        }
+        if (n!=buf.size()) {
+            fprintf(stderr, "sendBuffer: incomplete send n=%d size=%d\n", n, buf.size());
+        }
         return n;
     }
     else
