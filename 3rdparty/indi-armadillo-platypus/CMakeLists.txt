@@ -31,14 +31,14 @@ set(indiplatypusfocuser_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/platypus_focuser.cpp
    )
 
-add_executable(indi_armadillo_focuser ${indiarmadillofocuser_SRCS})
-add_executable(indi_platypus_focuser ${indiplatypusfocuser_SRCS})
+add_executable(indi_armadillo_focus ${indiarmadillofocuser_SRCS})
+add_executable(indi_platypus_focus ${indiplatypusfocuser_SRCS})
 
-target_link_libraries(indi_armadillo_focuser ${INDI_LIBRARIES} )
-target_link_libraries(indi_platypus_focuser ${INDI_LIBRARIES} )
+target_link_libraries(indi_armadillo_focus ${INDI_LIBRARIES} )
+target_link_libraries(indi_platypus_focus ${INDI_LIBRARIES} )
 
-install(TARGETS indi_armadillo_focuser RUNTIME DESTINATION bin )
-install(TARGETS indi_platypus_focuser RUNTIME DESTINATION bin )
+install(TARGETS indi_armadillo_focus RUNTIME DESTINATION bin )
+install(TARGETS indi_platypus_focus RUNTIME DESTINATION bin )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_armplatfocuser.xml DESTINATION ${INDI_DATA_DIR})
 
