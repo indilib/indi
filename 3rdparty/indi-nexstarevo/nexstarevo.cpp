@@ -149,7 +149,7 @@ bool NexStarEvo::Connect()
 bool NexStarEvo::Handshake()
 {
     //scope.initScope(tcpConnection->host(), tcpConnection->port());
-    return scope.Connect();
+    return scope.Connect(PortFD);
 }
 
 bool NexStarEvo::Disconnect()
