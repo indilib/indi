@@ -1061,6 +1061,7 @@ bool LX200AstroPhysics::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &SyncCMRSP);
     IUSaveConfigSwitch(fp, &APSlewSpeedSP);
+    IUSaveConfigSwitch(fp, &APGuideSpeedSP);
 
     return true;
 }
