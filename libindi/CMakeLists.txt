@@ -795,6 +795,15 @@ add_executable(indi_pyxis_rotator ${pyxis_SRC})
 target_link_libraries(indi_pyxis_rotator indidriver)
 install(TARGETS indi_pyxis_rotator RUNTIME DESTINATION bin)
 
+################ Integra85 Focusing Rotator ################
+
+SET(integra_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/rotator/integra.cpp)
+
+add_executable(indi_integra_focus ${integra_SRC})
+target_link_libraries(indi_integra_focus indidriver)
+install(TARGETS indi_integra_focus RUNTIME DESTINATION bin)
+
 #################################################################################
 
 #####################################
