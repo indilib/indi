@@ -309,11 +309,13 @@ bool NexStarAUXScope::Connect(int PortFD)
     }
 
     // Detect the scope by UDP broadcasts from port 2000 to port 55555
+    // This is just to print where is the scope if there is no connection
     if (!detectScope())
     {
         fprintf(stderr, "Cannot detect the scope!\n");
-        return false;
     }
+    return false;
+
 }
 
 bool NexStarAUXScope::Disconnect()
