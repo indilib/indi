@@ -46,6 +46,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <config-usb.h>
+
 /*
  * Control request fields.
  */
@@ -168,7 +170,7 @@ static struct
 
 libusb_context *ctx = NULL;
 
-#ifdef NO_ERROR_NAME
+#ifndef USB1_HAS_LIBUSB_ERROR_NAME
 static char *libusb_error_name(int rc)
 {
     static char buffer[30];
