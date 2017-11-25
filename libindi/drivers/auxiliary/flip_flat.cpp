@@ -701,7 +701,7 @@ void FlipFlat::TimerHit()
     getStatus();
 
     // parking or unparking timed out, try again
-    if (ParkCapSP.s == IPS_BUSY && !strcmp(StatusT[0].text, "Timed Out"))
+    if (ParkCapSP.s == IPS_BUSY && !strcmp(StatusT[0].text, "Timed out"))
     {
         if (ParkCapS[0].s == ISS_ON)
             ParkCap();
