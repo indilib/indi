@@ -315,6 +315,16 @@ bool FlipFlat::getStartupData()
 {
     bool rc1 = getFirmwareVersion();
     bool rc2 = getStatus();
+
+    // parking or unparking timed out, try again
+    if (ParkCapSP.s == IPS_BUSY && !strcmp(StatusT[0].text, "Timed Out"))
+    {
+        if (ParkCapS[0].s == ISS_ON)
+            ParkCap();
+        else
+            UnParkCap();
+    }
+
     bool rc3 = getBrightness();
 
     return (rc1 && rc2 && rc3);
