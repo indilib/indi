@@ -915,7 +915,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     long bin_width  = w / PrimaryCCD.getBinX();
     long bin_height = h / PrimaryCCD.getBinY();
 
-    bin_width  = bin_width - (bin_width % 8);
+    bin_width  = bin_width - (bin_width % 2);
     bin_height = bin_height - (bin_height % 2);
 
     w = bin_width * PrimaryCCD.getBinX();
