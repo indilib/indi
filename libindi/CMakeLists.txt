@@ -268,7 +268,7 @@ find_package(USB1 REQUIRED)
 find_package(CURL REQUIRED)
 find_package(GSL REQUIRED)
 # libjpeg for V4L2
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   find_package(JPEG REQUIRED)
 ENDIF ()
 # Math Library
@@ -282,7 +282,7 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${USB1_INCLUDE_DIRS})
 include_directories( ${GSL_INCLUDE_DIRS})
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam)
     include_directories( ${JPEG_INCLUDE_DIR} )
 ENDIF ()
@@ -300,7 +300,7 @@ ELSE ()
     SET(hidapi_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hid_libusb.c)
 ENDIF()
 
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     SET(libwebcam_C_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_c2.c
@@ -389,7 +389,7 @@ set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
 target_link_libraries(indidriver ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(indidriver -lpthread)
 ENDIF ()
 install(TARGETS indidriver LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -721,7 +721,7 @@ SET(perfectstar_SRC
 add_executable(indi_perfectstar_focus ${perfectstar_SRC})
 target_link_libraries(indi_perfectstar_focus indidriver)
 install(TARGETS indi_perfectstar_focus RUNTIME DESTINATION bin)
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-perfectstar.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
 
@@ -733,7 +733,7 @@ SET(hitecastrodcfocuser_SRC
 add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRC})
 target_link_libraries(indi_hitecastrodc_focus indidriver)
 install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin)
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-hitecastrodcfocuser.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
 
@@ -900,7 +900,7 @@ install(TARGETS indi_script_dome RUNTIME DESTINATION bin)
 #########################################
 
 ########### INDI::CCD V4L Driver ###############
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     SET(v4l2driverccd_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/lx/Lx.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/video/v4l2driver.cpp
@@ -965,7 +965,7 @@ add_executable(indi_flipflat ${flipflat_SRC})
 target_link_libraries(indi_flipflat indidriver)
 install(TARGETS indi_flipflat RUNTIME DESTINATION bin)
 
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-flipflat.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
 
@@ -1029,12 +1029,12 @@ add_executable(indi_gpusb ${gpusb_SRC})
 target_link_libraries(indi_gpusb indidriver)
 install(TARGETS indi_gpusb RUNTIME DESTINATION bin)
 
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-gpusb.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
 
 ########### Joystick Driver ###############
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     SET(joystick_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/joystickdriver.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/joystick.cpp)
@@ -1097,7 +1097,7 @@ add_executable(indi_vantage_weather ${vantage_SRC})
 target_link_libraries(indi_vantage_weather indidriver)
 install(TARGETS indi_vantage_weather RUNTIME DESTINATION bin)
 
-IF (UNIX AND NOT APPLE)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/99-vantage.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
 
@@ -1200,7 +1200,7 @@ install( FILES drivers.xml ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/indi_tcfs
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libindi.pc.cmake ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INSTALL_PREFIX})
 
-if (UNIX AND NOT APPLE)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
