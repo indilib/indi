@@ -774,6 +774,21 @@ bool LX200Generic::Abort()
     return true;
 }
 
+bool LX200Generic::setLocalDate(uint8_t days, uint8_t months, uint8_t years)
+{
+    return (setCalenderDate(PortFD, days, months, years) == 0);
+}
+
+bool LX200Generic::setLocalTime24(uint8_t hour, uint8_t minute, uint8_t second)
+{
+    return (setLocalTime(PortFD, hour, minute, second) == 0);
+}
+
+bool LX200Generic::setUTCOffset(double offset)
+{
+    return (::setUTCOffset(PortFD, (offset * -1.0)) == 0);
+}
+
 bool LX200Generic::updateTime(ln_date *utc, double utc_offset)
 {
     struct ln_zonedate ltm;
@@ -785,24 +800,24 @@ bool LX200Generic::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float)JD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %.2f", JD);
 
     // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
     // is the opposite of the standard definition of UTC offset!
-    if (setUTCOffset(PortFD, (utc_offset * -1.0)) < 0)
+    if (setUTCOffset(utc_offset) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
         return false;
     }
 
     // Set Local Time
-    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
+    if (setLocalTime24(ltm.hours, ltm.minutes, ltm.seconds) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
         return false;
     }
 
-    if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
+    if (setLocalDate(ltm.days, ltm.months, ltm.years) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
         return false;

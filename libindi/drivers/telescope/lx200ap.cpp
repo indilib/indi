@@ -746,7 +746,7 @@ bool LX200AstroPhysics::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float)JD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %.2f", JD);
 
     // Set Local Time
     if (setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
