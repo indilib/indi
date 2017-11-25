@@ -37,11 +37,13 @@ class LX200SS2000PC : public LX200Generic
     virtual void getBasicData(void);
     virtual bool isSlewComplete(void);
     virtual bool saveConfigItems(FILE *fp);
+    virtual bool setUTCOffset(double offset);
+    //bool setUTCOffset(const int offset_in_hours);
 
   private:
     bool getCalendarDate(int &year, int &month, int &day);
     bool setCalenderDate(int year, int month, int day);
-    bool setUTCOffset(const int offset_in_hours);
+
 
     bool updateLocation(double latitude, double longitude, double elevation);
     int setLongitude(double Long);
