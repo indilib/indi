@@ -837,6 +837,8 @@ bool StreamManager::uploadStream()
     subW = currentCCD->PrimaryCCD.getSubW();
     subH = currentCCD->PrimaryCCD.getSubH();
 
+    uint16_t streamW=subW, streamH=subH, streamComponents=1;
+
     // If stream frame was not yet initilized, let's do that now
     if (StreamFrameN[CCDChip::FRAME_W].value == 0 || StreamFrameN[CCDChip::FRAME_H].value == 0)
     {
@@ -850,6 +852,10 @@ bool StreamManager::uploadStream()
         StreamFrameN[CCDChip::FRAME_W].value = subH / binFactor;
         StreamFrameNP.s                      = IPS_IDLE;
         IDSetNumber(&StreamFrameNP, nullptr);
+
+        streamW = StreamFrameN[CCDChip::FRAME_W].value;
+        streamH = StreamFrameN[CCDChip::FRAME_H].value;
+        streamComponents = (currentCCD->PrimaryCCD.getNAxis() == 2) ? 1 : 3;
     }
     // Check if we need to subframe
     else if ((StreamFrameN[CCDChip::FRAME_W].value > 0 && StreamFrameN[CCDChip::FRAME_H].value > 0) &&
@@ -870,8 +876,9 @@ bool StreamManager::uploadStream()
                 memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value), srcBuffer + subW * i,
                        StreamFrameN[CCDChip::FRAME_W].value);
 
-            totalBytes =
-                (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) / (binFactor * binFactor);
+            streamW = StreamFrameN[CCDChip::FRAME_W].value;
+            streamH = StreamFrameN[CCDChip::FRAME_H].value;
+            streamComponents = 1;
         }
         // For Color
         else
@@ -879,7 +886,7 @@ bool StreamManager::uploadStream()
             // Subframe offset in source frame. i.e. where we start copying data from in the original data frame
             int sourceOffset = (subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value;
             // Total bytes
-            totalBytes = (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) * 3;
+            //totalBytes = (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) * 3;
 
             // Copy each color component back into buffer. Since each subframed page is equal or small than source component
             // no need to a new buffer
@@ -891,10 +898,14 @@ bool StreamManager::uploadStream()
             for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
                 memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value * 3),
                        srcBuffer + subW * 3 * i, StreamFrameN[CCDChip::FRAME_W].value * 3);
+
+            streamW = StreamFrameN[CCDChip::FRAME_W].value;
+            streamH = StreamFrameN[CCDChip::FRAME_H].value;
+            streamComponents = 3;
         }
     }
 
-    if (encoder->upload(imageB, buffer, totalBytes, currentCCD->PrimaryCCD.isCompressed()))
+    if (encoder->upload(imageB, buffer, streamW, streamH, streamComponents, currentCCD->PrimaryCCD.isCompressed()))
     {
         // Upload to client now
         imageBP->s = IPS_OK;

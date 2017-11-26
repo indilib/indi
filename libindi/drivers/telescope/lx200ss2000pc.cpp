@@ -132,7 +132,7 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
         }
         // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
         // is the opposite of the standard definition of UTC offset!
-        else if (!setUTCOffset(-static_cast<int>(utc_offset)))
+        else if (!setUTCOffset(-(utc_offset)))
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
         }
@@ -226,15 +226,15 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
     return result;
 }
 
-bool LX200SS2000PC::setUTCOffset(const int offset_in_hours)
+bool LX200SS2000PC::setUTCOffset(double offset)
 {
     bool result = true;
     int ss_timezone;
-    const bool send_to_skysensor = (getUTCOffset(PortFD, &ss_timezone) != 0 || offset_in_hours != ss_timezone);
+    const bool send_to_skysensor = (getUTCOffset(PortFD, &ss_timezone) != 0 || offset != ss_timezone);
     if (send_to_skysensor)
     {
         char temp_string[12];
-        snprintf(temp_string, sizeof(temp_string), ":SG %+03d#", offset_in_hours);
+        snprintf(temp_string, sizeof(temp_string), ":SG %+03d#", static_cast<int>(offset));
         result = (setStandardProcedure(PortFD, temp_string) == 0);
     }
     return result;

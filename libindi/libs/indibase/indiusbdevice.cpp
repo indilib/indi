@@ -21,7 +21,9 @@
 
 #include "indiusbdevice.h"
 
-#ifdef NO_ERROR_NAME
+#include <config-usb.h>
+
+#ifndef USB1_HAS_LIBUSB_ERROR_NAME
 const char *LIBUSB_CALL libusb_error_name(int errcode)
 {
     static char buffer[30];

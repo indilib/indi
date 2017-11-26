@@ -51,13 +51,13 @@ namespace INDI
 
 MJPEGEncoder::MJPEGEncoder()
 {
-    name = "MJPEG";
-    compressedFrame = (uint8_t *)malloc(1);
+    name = "MJPEG";    
+    jpegBuffer = (uint8_t *)malloc(1);
 }
 
 MJPEGEncoder::~MJPEGEncoder()
 {
-    free(compressedFrame);
+    free(jpegBuffer);
 }
 
 const char *MJPEGEncoder::getDeviceName()
@@ -65,7 +65,7 @@ const char *MJPEGEncoder::getDeviceName()
     return currentCCD->getDeviceName();
 }
 
-bool MJPEGEncoder::upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t height, bool isCompressed)
+bool MJPEGEncoder::upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t height, uint8_t components, bool isCompressed)
 {
     // We do not support compression
     if (isCompressed)
@@ -74,12 +74,16 @@ bool MJPEGEncoder::upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t h
         return false;
     }
 
-    int bufsize = width * height;
-    uint8_t jpeg_buffer[bufsize];
+    int bufsize = width * height * components;
+    if (bufsize != jpegBufferSize)
+    {
+        jpegBuffer = (uint8_t*)realloc(jpegBuffer, bufsize);
+        jpegBufferSize = bufsize;
+    }
 
-    jpeg_compress_8u_gray(buffer, width, height, width, jpeg_buffer, &bufsize, 1);
+    jpeg_compress_8u_gray(buffer, width, height, width, jpegBuffer, &bufsize, 1);
 
-    bp->blob    = jpeg_buffer;
+    bp->blob    = jpegBuffer;
     bp->bloblen = bufsize;
     bp->size    = bufsize;
     strcpy(bp->format, ".stream_jpg");

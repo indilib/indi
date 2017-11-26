@@ -30,13 +30,14 @@ public:
     MJPEGEncoder();
     ~MJPEGEncoder();
 
-    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t height, bool isCompressed=false) override;
+    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t height, uint8_t components, bool isCompressed=false) override;
 
 private:
     const char *getDeviceName();
     int jpeg_compress_8u_gray (const uint8_t * src, uint16_t width, uint16_t height, int stride, uint8_t * dest, int * destsize, int quality);
     int jpeg_compress_8u_rgb (const uint8_t * src, uint16_t width, uint16_t height, int stride, uint8_t * dest, int * destsize, int quality);
-    uint8_t *compressedFrame = nullptr;
+    uint8_t *jpegBuffer = nullptr;
+    uint16_t jpegBufferSize=1;
 
 };
 

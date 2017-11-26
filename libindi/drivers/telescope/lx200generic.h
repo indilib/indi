@@ -111,11 +111,14 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
 
     // Get local calender date (NOT UTC) from mount. Expected format is YYYY-MM-DD
     virtual bool getLocalDate(char *dateString);
+    virtual bool setLocalDate(uint8_t days, uint8_t months, uint8_t years);
 
     // Get Local time in 24 hour format from mount. Expected format is HH:MM:SS
     virtual bool getLocalTime(char *timeString);
+    virtual bool setLocalTime24(uint8_t hour, uint8_t minute, uint8_t second);
 
     // Return UTC Offset from mount in hours.
+    virtual bool setUTCOffset(double offset);
     virtual bool getUTFOffset(double * offset);
 
     // Send slew error message to client

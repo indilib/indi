@@ -112,4 +112,6 @@ class NexStarEvo : public INDI::Telescope, public INDI::AlignmentSubsystem::Alig
     bool TraceThisTick;
 
     unsigned int DBG_NSEVO;
+    unsigned int DBG_MOUNT;
+
 };

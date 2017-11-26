@@ -49,6 +49,10 @@ class LX200_OnStep : public LX200Generic
     virtual bool UnPark() override;
     virtual bool SetTrackEnabled(bool enabled) override;
 
+    virtual bool setLocalDate(uint8_t days, uint8_t months, uint8_t years) override;
+
+    bool sendOnStepCommand(const char *cmd);
+
     ITextVectorProperty ObjectInfoTP;
     IText ObjectInfoT[1];
 

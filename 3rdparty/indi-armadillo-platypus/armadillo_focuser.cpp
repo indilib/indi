@@ -1,7 +1,8 @@
 /*
-    Copyright (C) 2017 by Jasem Mutlaq <mutlaqja@ikarustech.com>
+    Lunatico Armadillo Focuser
 
-    Encoder Interface
+    (c) Lunatico Astronomia 2017, Jaime Alemany
+    Based on previous drivers by Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -18,24 +19,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
+#define ARMADILLO
+#include "arm_plat_focuser_common.cpp"
 
-#include "encoderinterface.h"
-
-namespace INDI
-{
-
-class RawEncoder : public EncoderInterface
-{
-public:
-    RawEncoder();
-    ~RawEncoder();
-
-    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t height, uint8_t components, bool isCompressed=false) override;
-
-private:
-    const char *getDeviceName();
-    uint8_t *compressedFrame = nullptr;
-
-};
-
-}
