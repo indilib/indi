@@ -81,7 +81,10 @@ bool MJPEGEncoder::upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t h
         jpegBufferSize = bufsize;
     }
 
-    jpeg_compress_8u_gray(buffer, width, height, width, jpegBuffer, &bufsize, 1);
+    if (components == 1)
+        jpeg_compress_8u_gray(buffer, width, height, width, jpegBuffer, &bufsize, 70);
+    else
+        jpeg_compress_8u_rgb(buffer, width, height, width*3, jpegBuffer, &bufsize, 70);
 
     bp->blob    = jpegBuffer;
     bp->bloblen = bufsize;

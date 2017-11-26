@@ -803,6 +803,7 @@ bool StreamManager::setStream(bool enable)
 
 bool StreamManager::saveConfigItems(FILE *fp)
 {
+    IUSaveConfigSwitch(fp, &EncoderSP);
     IUSaveConfigText(fp, &RecordFileTP);
     IUSaveConfigNumber(fp, &RecordOptionsNP);
     IUSaveConfigSwitch(fp, &RecorderSP);
@@ -852,10 +853,6 @@ bool StreamManager::uploadStream()
         StreamFrameN[CCDChip::FRAME_W].value = subH / binFactor;
         StreamFrameNP.s                      = IPS_IDLE;
         IDSetNumber(&StreamFrameNP, nullptr);
-
-        streamW = StreamFrameN[CCDChip::FRAME_W].value;
-        streamH = StreamFrameN[CCDChip::FRAME_H].value;
-        streamComponents = (currentCCD->PrimaryCCD.getNAxis() == 2) ? 1 : 3;
     }
     // Check if we need to subframe
     else if ((StreamFrameN[CCDChip::FRAME_W].value > 0 && StreamFrameN[CCDChip::FRAME_H].value > 0) &&
@@ -878,7 +875,6 @@ bool StreamManager::uploadStream()
 
             streamW = StreamFrameN[CCDChip::FRAME_W].value;
             streamH = StreamFrameN[CCDChip::FRAME_H].value;
-            streamComponents = 1;
         }
         // For Color
         else
@@ -898,13 +894,12 @@ bool StreamManager::uploadStream()
             for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
                 memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value * 3),
                        srcBuffer + subW * 3 * i, StreamFrameN[CCDChip::FRAME_W].value * 3);
-
-            streamW = StreamFrameN[CCDChip::FRAME_W].value;
-            streamH = StreamFrameN[CCDChip::FRAME_H].value;
-            streamComponents = 3;
         }
     }
 
+    streamW = StreamFrameN[CCDChip::FRAME_W].value;
+    streamH = StreamFrameN[CCDChip::FRAME_H].value;
+    streamComponents = (currentCCD->PrimaryCCD.getNAxis() == 2) ? 1 : 3;
     if (encoder->upload(imageB, buffer, streamW, streamH, streamComponents, currentCCD->PrimaryCCD.isCompressed()))
     {
         // Upload to client now
