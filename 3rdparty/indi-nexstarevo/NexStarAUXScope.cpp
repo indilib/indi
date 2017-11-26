@@ -215,6 +215,7 @@ NexStarAUXScope::~NexStarAUXScope()
 void NexStarAUXScope::initScope(char const *ip, int port)
 {
     fprintf(stderr, "Preset scope IP %s:%d\n", ip, port);
+    detectScope();
     bzero(&addr, sizeof(addr));
     addr.sin_family      = AF_INET;
     addr.sin_addr.s_addr = inet_addr(ip);
@@ -295,46 +296,26 @@ bool NexStarAUXScope::detectScope()
     return false;
 }
 
-bool NexStarAUXScope::Connect()
+bool NexStarAUXScope::Connect(int PortFD)
 {
-    if (sock > 0)
+    if (PortFD > 0)
     {
-        // We are connected. Nothing to do!
+        // We are connected. Just start processing!
+        fprintf(stderr, "Connection ready. Starting Processing.\n");
+        sock=PortFD;
+        msleep(500);
+        readMsgs();
         return true;
     }
 
     // Detect the scope by UDP broadcasts from port 2000 to port 55555
+    // This is just to print where is the scope if there is no connection
     if (!detectScope())
     {
-        return false;
+        fprintf(stderr, "Cannot detect the scope!\n");
     }
+    return false;
 
-    // Create client socket
-    if ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        perror("Socket error");
-        return false;
-    }
-
-    fprintf(stderr, "Connecting to %s:%d ... ", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-    // Connect to the scope
-    if (connect(sock, (struct sockaddr *)&addr, sizeof addr) < 0)
-    {
-        perror("Connect error");
-        return false;
-    }
-    /*
-    int flags;
-    flags = fcntl(sock,F_GETFL,0);
-    assert(flags != -1);
-    fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-    fprintf(stderr, "Socket:%d\n", sock);
-    */
-    fprintf(stderr, "OK\n");
-    msleep(500);
-    readMsgs();
-    //processMsgs();
-    return true;
 }
 
 bool NexStarAUXScope::Disconnect()
@@ -724,9 +705,12 @@ int sendBuffer(int sock, buffer buf, long tout_msec)
         setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(struct timeval));
         n = send(sock, buf.data(), buf.size(), 0);
         msleep(50);
-        //        if (n!=buf.size()) {
-        //            fprintf(stderr, "sendBuffer: incomplete send n=%d size=%d\n", n, buf.size());
-        //        }
+        if (n == -1) {
+            perror("NSEVO::sendBuffer");
+        }
+        if ((unsigned)n!=buf.size()) {
+            fprintf(stderr, "sendBuffer: incomplete send n=%d size=%d\n", n, (int)buf.size());
+        }
         return n;
     }
     else
