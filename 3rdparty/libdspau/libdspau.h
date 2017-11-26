@@ -40,8 +40,8 @@ enum dspau_conversiontype {
 * @brief Create a spectrum from a double array of values
 * @param in the input stream. (input)
 * @param out the output stream. (output)
-* @param bandwidth the bandwidth of the spectrum.
-* @param len the length of the input stream (input/output).
+* @param dims the number of dimensions of the input stream (input).
+* @param sizes array with the lengths of each dimension of the input stream (input).
 * @param conversion the output magnitude dspau_conversiontype type.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
