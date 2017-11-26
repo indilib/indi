@@ -110,6 +110,7 @@ class ASICCD : public INDI::CCD
     ISwitch *VideoFormatS;
     ISwitchVectorProperty VideoFormatSP;
     uint8_t rememberVideoFormat = { 0 };
+    ASI_IMG_TYPE currentVideoFormat;
 
     double minimumExposureDuration = 0;
     struct timeval ExpStart;

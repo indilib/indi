@@ -747,6 +747,7 @@ bool ASICCD::setVideoFormat(uint8_t index)
 
     updateRecorderFormat();
 
+    VideoFormatSP.s = IPS_OK;
     IDSetSwitch(&VideoFormatSP, nullptr);
 
     return true;
@@ -1547,7 +1548,9 @@ void ASICCD::updateControls()
 
 void ASICCD::updateRecorderFormat()
 {
-    switch (getImageType())
+    currentVideoFormat = getImageType();
+
+    switch (currentVideoFormat)
     {
         case ASI_IMG_Y8:
             Streamer->setPixelFormat(INDI_MONO);
@@ -1605,9 +1608,9 @@ void *ASICCD::streamVideo()
         // release condMutex
         pthread_mutex_unlock(&condMutex);
 
-        unsigned char *targetFrame = (unsigned char *)PrimaryCCD.getFrameBuffer();
-        uint32_t totalBytes        = PrimaryCCD.getFrameBufferSize();
-        int waitMS                 = ExposureRequest * 2000 + 500;
+        uint8_t *targetFrame = PrimaryCCD.getFrameBuffer();
+        uint32_t totalBytes  = PrimaryCCD.getFrameBufferSize();
+        int waitMS           = ExposureRequest * 2000 + 500;
 
         if ((ret = ASIGetVideoData(m_camInfo->CameraID, targetFrame, totalBytes, waitMS)) != ASI_SUCCESS)
         {
@@ -1618,6 +1621,17 @@ void *ASICCD::streamVideo()
             streamPredicate = 0;
             Streamer->setStream(false);
             continue;
+        }
+
+        // Swap
+        if (currentVideoFormat == ASI_IMG_RGB24)
+        {
+            for (uint32_t i=0; i < totalBytes; i+=3)
+            {
+                uint8_t r = targetFrame[i];
+                targetFrame[i] = targetFrame[i+2];
+                targetFrame[i+2] = r;
+            }
         }
 
         Streamer->newFrame();
