@@ -509,6 +509,50 @@ int selectAPTrackingMode(int fd, int trackMode)
     return 0;
 }
 
+int selectAPGuideRate(int fd, int guideRate)
+{
+    int error_type;
+    int nbytes_write = 0;
+    switch (guideRate)
+    {
+    /* 0.25x */
+    case 0:
+
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPGuideRate: Setting guide to rate to 0.25x");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RG0#");
+
+        if ((error_type = tty_write_string(fd, "#:RG0#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
+
+    /* 0.50x */
+    case 1:
+
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPGuideRate: Setting guide to rate to 0.50x");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RG1#");
+
+        if ((error_type = tty_write_string(fd, "#:RG1#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
+
+
+    /* 1.00x */
+    case 2:
+
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "selectAPGuideRate: Setting guide to rate to 1.00x");
+        DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", "#:RG2#");
+
+        if ((error_type = tty_write_string(fd, "#:RG2#", &nbytes_write)) != TTY_OK)
+            return error_type;
+        break;
+
+    default:
+        return -1;
+        break;
+    }
+    return 0;
+}
+
 int swapAPButtons(int fd, int currentSwap)
 {
     int error_type;
@@ -693,4 +737,35 @@ int setAPDETrackRate(int fd, double rate)
 
     DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
     return -1;
+}
+
+int APSendPulseCmd(int fd, int direction, int duration_msec)
+{
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "<%s>", __FUNCTION__);
+    int nbytes_write = 0;
+    char cmd[20];
+    switch (direction)
+    {
+        case LX200_NORTH:
+            sprintf(cmd, ":Mn%04d#", duration_msec);
+            break;
+        case LX200_SOUTH:
+            sprintf(cmd, ":Ms%04d#", duration_msec);
+	    break;
+        case LX200_EAST:
+            sprintf(cmd, ":Me%04d#", duration_msec);
+	    break;
+        case LX200_WEST:
+            sprintf(cmd, ":Mw%04d#", duration_msec);
+	    break;
+        default:
+            return 1;
+    }
+
+    DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "CMD <%s>", cmd);
+
+    tty_write_string(fd, cmd, &nbytes_write);
+
+    tcflush(fd, TCIFLUSH);
+    return 0;
 }

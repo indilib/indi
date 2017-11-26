@@ -51,6 +51,7 @@ int APSyncCMR(int fd, char *matchedObject);
 int selectAPMoveToRate(int fd, int moveToRate);
 int selectAPSlewRate(int fd, int slewRate);
 int selectAPTrackingMode(int fd, int trackMode);
+int selectAPGuideRate(int fd, int guideRate);
 int selectAPPECState(int fd, int pecstate);
 int swapAPButtons(int fd, int currentSwap);
 int setAPObjectRA(int fd, double ra);
@@ -59,6 +60,7 @@ int setAPSiteLongitude(int fd, double Long);
 int setAPSiteLatitude(int fd, double Lat);
 int setAPRATrackRate(int fd, double rate);
 int setAPDETrackRate(int fd, double rate);
+int APSendPulseCmd(int fd, int direction, int duration_msec);
 
 #ifdef __cplusplus
 }

@@ -8,12 +8,13 @@ include(GNUInstallDirs)
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(USB-1 REQUIRED)
+find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
 
-# Using ASI SDK Version 0.6.0915 updated on 2017-09-18
+# Using ASI Camera SDK Version 0.6.0921 updated on 2017-11-21
+# Using ASI EFW SDK Version 3.0214 updated on 2017-11-21
 set(ASI_VERSION_MAJOR 0)
-set(ASI_VERSION_MINOR 6)
+set(ASI_VERSION_MINOR 7)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_asi.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_asi.xml)
@@ -66,7 +67,7 @@ set(indi_asi_SRCS
 
 add_executable(indi_asi_ccd ${indi_asi_SRCS})
 
-target_link_libraries(indi_asi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${ASICAMLIB} ${LIBUSB_1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_asi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${ASICAMLIB} ${USB1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
 
 ########### indi_asi_wheel ###########
@@ -75,7 +76,7 @@ IF (APPLE)
 set(CMAKE_EXE_LINKER_FLAGS "-framework IOKit -framework CoreFoundation")
 target_link_libraries(indi_asi_wheel ${INDI_LIBRARIES} ${ASIFWLIB} ${LIBUSB_LIBRARIES})
 ELSE()
-target_link_libraries(indi_asi_wheel ${INDI_LIBRARIES} ${ASIFWLIB} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_asi_wheel ${INDI_LIBRARIES} ${ASIFWLIB} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 ENDIF()
 
 

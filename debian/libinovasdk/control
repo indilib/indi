@@ -2,7 +2,7 @@ Source: libinovasdk
 Section: libs
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 6), cdbs, cmake, zlib1g-dev, libusb-dev
+Build-Depends: debhelper (>= 6), cdbs, cmake, zlib1g-dev, libusb-1.0-0-dev
 Standards-Version: 3.9.2
 
 Package: libinovasdk

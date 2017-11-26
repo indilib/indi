@@ -77,6 +77,7 @@ option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 option(WITH_MGEN "Install MGen Autoguider" On)
 option(WITH_RTLSDR "Install RTL-SDR Receiver" On)
 option(WITH_RADIOSIM "Install RadioSim Receiver" On)
+option(WITH_GPSNMEA "Install GPS NMEA Driver" ON)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -247,6 +248,11 @@ endif (WITH_QHY)
 if (WITH_GPSD)
 add_subdirectory(indi-gpsd)
 endif (WITH_GPSD)
+
+## GPS NMEA
+if (WITH_GPSNMEA)
+add_subdirectory(indi-gpsnmea)
+endif(WITH_GPSNMEA)
 
 ## GIGE
 if (WITH_GIGE)

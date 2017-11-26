@@ -180,7 +180,7 @@ void INDI::FilterInterface::generateSampleFilters()
     char filterLabel[MAXINDILABEL];
     int MaxFilter = FilterSlotN[0].max;
 
-    const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
+    const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminance" };
 
     if (FilterNameT != nullptr)
         delete [] FilterNameT;
