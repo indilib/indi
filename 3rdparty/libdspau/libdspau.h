@@ -48,7 +48,7 @@ enum dspau_conversiontype {
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_spectrum(double* in, double* out, int *len, int conversion);
+DLL_EXPORT int dspau_spectrum(double* in, double* out, int dims, int *sizes, int conversion);
 
 /**
 * @brief A square law filter
