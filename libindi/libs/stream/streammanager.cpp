@@ -20,6 +20,8 @@
 
 */
 
+#include <config.h>
+
 #include "streammanager.h"
 #include "indiccd.h"
 #include "indilogger.h"
@@ -142,6 +144,10 @@ bool StreamManager::initProperties()
     IUFillSwitch(&RecorderS[RECORDER_RAW], "SER", "SER", ISS_ON);
     IUFillSwitch(&RecorderS[RECORDER_OGV], "OGV", "OGV", ISS_OFF);
     IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    // If we do not have theora installed, let's just define SER default recorder
+    #ifndef HAVE_THEORA
+    RecorderSP.nsp = 1;
+    #endif
 
     return true;
 }
@@ -156,7 +162,6 @@ void StreamManager::ISGetProperties(const char *dev)
         currentCCD->defineSwitch(&StreamSP);
         currentCCD->defineNumber(&StreamOptionsNP);
         currentCCD->defineNumber(&FpsNP);
-        //ccd->defineNumber(&FramestoDropNP);
         currentCCD->defineSwitch(&RecordStreamSP);
         currentCCD->defineText(&RecordFileTP);
         currentCCD->defineNumber(&RecordOptionsNP);
@@ -176,7 +181,6 @@ bool StreamManager::updateProperties()
         currentCCD->defineSwitch(&StreamSP);
         currentCCD->defineNumber(&StreamOptionsNP);
         currentCCD->defineNumber(&FpsNP);
-        //ccd->defineNumber(&FramestoDropNP);
         currentCCD->defineSwitch(&RecordStreamSP);
         currentCCD->defineText(&RecordFileTP);
         currentCCD->defineNumber(&RecordOptionsNP);
