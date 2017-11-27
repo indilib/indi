@@ -102,11 +102,13 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
 // Streaming
     bool StartStreaming() override;
     bool StopStreaming() override;
-    bool captureLiveVideo();
+
+    bool startLiveVideo();
+    bool stopLiveVideo();
 
     // Preview
-    bool startLivePreview();
-    bool stopLivePreview();
+    //bool startLivePreview();
+
 
   private:
     ISwitch *create_switch(const char *basestr, char **options, int max_opts, int setidx);

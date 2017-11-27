@@ -649,6 +649,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
 
         // Live preview
+#if 0
         if (!strcmp(name, livePreviewSP.name))
         {
             IUUpdateSwitch(&livePreviewSP, states, names, n);
@@ -676,6 +677,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IDSetSwitch(&livePreviewSP, NULL);
             return true;
         }
+#endif
 
         // Capture target
         if (!strcmp(captureTargetSP.name, name))
@@ -1058,7 +1060,7 @@ void GPhotoCCD::TimerHit()
 
     if (Streamer->isBusy())
     {
-        bool rc = captureLiveVideo();
+        bool rc = startLiveVideo();
 
         if (rc)
             timerID = SetTimer(STREAMPOLLMS);
@@ -1069,6 +1071,7 @@ void GPhotoCCD::TimerHit()
         }
     }
 
+/*
     if (livePreviewSP.s == IPS_BUSY)
     {
         bool rc = startLivePreview();
@@ -1084,6 +1087,7 @@ void GPhotoCCD::TimerHit()
             IDSetSwitch(&livePreviewSP, NULL);
         }
     }
+*/
 
     if (FocusTimerNP.s == IPS_BUSY)
     {
@@ -1634,11 +1638,11 @@ bool GPhotoCCD::StartStreaming()
 
 bool GPhotoCCD::StopStreaming()
 {
-    stopLivePreview();
+    stopLiveVideo();
     return true;
 }
 
-bool GPhotoCCD::captureLiveVideo()
+bool GPhotoCCD::startLiveVideo()
 {
     //static int last_naxis = -1;, last_w = -1, last_h = -1;
 
@@ -1708,7 +1712,7 @@ bool GPhotoCCD::captureLiveVideo()
     if (naxis != PrimaryCCD.getNAxis())
     {
         if (naxis == 3)
-            Streamer->setPixelFormat(INDI_RGB);
+            Streamer->setPixelFormat(INDI_JPG);
         else
             Streamer->setPixelFormat(INDI_MONO);
 
@@ -1736,7 +1740,7 @@ bool GPhotoCCD::captureLiveVideo()
     return true;
 }
 
-
+#if 0
 bool GPhotoCCD::startLivePreview()
 {
     if (sim)
@@ -1798,8 +1802,9 @@ bool GPhotoCCD::startLivePreview()
 
     return true;
 }
+#endif
 
-bool GPhotoCCD::stopLivePreview()
+bool GPhotoCCD::stopLiveVideo()
 {
     if (sim)
         return false;
