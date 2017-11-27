@@ -123,7 +123,7 @@ bool CCDSim::SetupParms()
     nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    Streamer->setPixelFormat(INDI_MONO, 8);
+    Streamer->setPixelFormat(INDI_MONO, 16);
     Streamer->setRecorderSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
     return true;
@@ -131,9 +131,7 @@ bool CCDSim::SetupParms()
 
 bool CCDSim::Connect()
 {
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
-#endif
     return true;
 }
 
@@ -208,9 +206,7 @@ bool CCDSim::initProperties()
     cap |= CCD_HAS_GUIDE_HEAD;
     cap |= CCD_HAS_SHUTTER;
     cap |= CCD_HAS_ST4_PORT;
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
     cap |= CCD_HAS_STREAMING;
-#endif
 
     SetCCDCapability(cap);
 
@@ -1194,6 +1190,7 @@ int CCDSim::QueryFilter()
 
 bool CCDSim::StartStreaming()
 {
+    ExposureRequest = 1.0 / Streamer->getTargetFPS();
     pthread_mutex_lock(&condMutex);
     streamPredicate = 1;
     pthread_mutex_unlock(&condMutex);
@@ -1232,8 +1229,8 @@ void *CCDSim::streamVideoHelper(void *context)
 
 void *CCDSim::streamVideo()
 {
-    uint8_t *streamBuffer = nullptr;
-    uint32_t streamBufferSize = 0;
+    struct itimerval tframe1, tframe2;
+    double s1, s2, deltas;
 
     while (true)
     {
@@ -1242,9 +1239,6 @@ void *CCDSim::streamVideo()
         while (streamPredicate == 0)
         {
             pthread_cond_wait(&cv, &condMutex);
-            delete [] streamBuffer;
-            streamBufferSize = PrimaryCCD.getSubW()*PrimaryCCD.getSubH();
-            streamBuffer = new uint8_t[streamBufferSize];
             // remove time factor contribution
             ExposureRequest /= TimeFactor;
         }
@@ -1256,29 +1250,25 @@ void *CCDSim::streamVideo()
         pthread_mutex_unlock(&condMutex);
 
         // Simulate exposure time
-        usleep(ExposureRequest*1e4);
-
-        uint8_t *ccdBuffer = PrimaryCCD.getFrameBuffer();
-        uint32_t ccdBufferSize = PrimaryCCD.getFrameBufferSize();
-        uint16_t *simBuffer = reinterpret_cast<uint16_t*>(ccdBuffer);
+        //usleep(ExposureRequest*1e5);
 
         // 16 bit
         DrawCcdFrame(&PrimaryCCD);
 
-        // Downscale to 8bit
-        for (uint32_t i=0; i < streamBufferSize; i++)
-            streamBuffer[i] = std::max(0, std::min(static_cast<int>(simBuffer[i]), UINT8_MAX));
+        getitimer(ITIMER_REAL, &tframe1);
 
-        PrimaryCCD.setFrameBuffer(streamBuffer);
-        PrimaryCCD.setFrameBufferSize(streamBufferSize, false);
+        s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
+        s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
+        deltas = fabs(s2 - s1);
+
+        if (deltas < ExposureRequest)
+            usleep(fabs(ExposureRequest-deltas)*1e6);
 
         Streamer->newFrame();
 
-        PrimaryCCD.setFrameBuffer(ccdBuffer);
-        PrimaryCCD.setFrameBufferSize(ccdBufferSize, false);
+        getitimer(ITIMER_REAL, &tframe2);
     }
 
-    delete [] streamBuffer;
     pthread_mutex_unlock(&condMutex);
     return 0;
 }
