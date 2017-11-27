@@ -26,12 +26,6 @@
 #include <cstdint>
 #include <stdio.h>
 
-#ifdef OSX_EMBEDED_MODE
-//#include "videodev2.h"
-#else
-#include <linux/videodev2.h>
-#endif
-
 typedef struct ser_header
 {
     char FileID[14];
