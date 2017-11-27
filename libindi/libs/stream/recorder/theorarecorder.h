@@ -44,12 +44,11 @@ class TheoraRecorder : public RecorderInterface
     virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
     virtual bool open(const char *filename, char *errmsg);
     virtual bool close();
-    virtual bool writeFrame(uint8_t *frame);
+    virtual bool writeFrame(uint8_t *frame, uint32_t nbytes);
     virtual void setStreamEnabled(bool enable) { isStreamingActive = enable; }
 
   protected:
     bool isRecordingActive = false, isStreamingActive = false;
-    uint32_t frame_size;
     uint32_t number_of_planes;
     uint16_t subX = 0, subY = 0, subW = 0, subH = 0, rawWidth = 0, rawHeight = 0;
     std::vector<uint64_t> frameStamps;

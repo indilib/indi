@@ -213,10 +213,12 @@ bool SER_Recorder::close()
     return true;
 }
 
-bool SER_Recorder::writeFrame(uint8_t *frame)
+bool SER_Recorder::writeFrame(uint8_t *frame, uint32_t nbytes)
 {
     if (!isRecordingActive)
         return false;
+
+    INDI_UNUSED(nbytes);
 
     if (serh.ColorID == SER_MONO)
     {

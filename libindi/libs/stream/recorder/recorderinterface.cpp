@@ -29,13 +29,6 @@
 
 namespace INDI
 {
-RecorderInterface::RecorderInterface()
-{
-}
-
-RecorderInterface::~RecorderInterface()
-{
-}
 
 const char *RecorderInterface::getName()
 {

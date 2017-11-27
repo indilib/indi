@@ -44,17 +44,16 @@ const char *RawEncoder::getDeviceName()
     return currentCCD->getDeviceName();
 }
 
-bool RawEncoder::upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t height, uint8_t components, bool isCompressed)
+bool RawEncoder::upload(IBLOB *bp, uint8_t *buffer, uint32_t nbytes, bool isCompressed)
 {
-    uint32_t size = width * height * components;
     // Do we want to compress ?
     if (isCompressed)
     {
         /* Compress frame */
-        compressedFrame = (uint8_t *)realloc(compressedFrame, sizeof(uint8_t) * size + size / 64 + 16 + 3);
-        uLongf compressedBytes = sizeof(uint8_t) * size + size / 64 + 16 + 3;
+        compressedFrame = (uint8_t *)realloc(compressedFrame, sizeof(uint8_t) * nbytes + nbytes / 64 + 16 + 3);
+        uLongf compressedBytes = sizeof(uint8_t) * nbytes + nbytes / 64 + 16 + 3;
 
-        int ret = compress2(compressedFrame, &compressedBytes, buffer, size, 4);
+        int ret = compress2(compressedFrame, &compressedBytes, buffer, nbytes, 4);
         if (ret != Z_OK)
         {
             /* this should NEVER happen */
@@ -65,15 +64,15 @@ bool RawEncoder::upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t hei
         // Send it compressed
         bp->blob    = compressedFrame;
         bp->bloblen = compressedBytes;
-        bp->size    = size;
+        bp->size    = nbytes;
         strcpy(bp->format, ".stream.z");
     }
     else
     {
         // Send it uncompressed
         bp->blob    = buffer;
-        bp->bloblen = size;
-        bp->size    = size;
+        bp->bloblen = nbytes;
+        bp->size    = nbytes;
         strcpy(bp->format, ".stream");
     }
 

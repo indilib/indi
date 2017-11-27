@@ -20,6 +20,7 @@
 */
 
 #include "theorarecorder.h"
+#include "jpegutils.h"
 
 #define _FILE_OFFSET_BITS 64
 
@@ -426,7 +427,7 @@ bool TheoraRecorder::close()
     return true;
 }
 
-bool TheoraRecorder::writeFrame(uint8_t *frame)
+bool TheoraRecorder::writeFrame(uint8_t *frame, uint32_t nbytes)
 {
     if (!isRecordingActive)
         return false;
@@ -437,6 +438,10 @@ bool TheoraRecorder::writeFrame(uint8_t *frame)
         // Cb and Cr values to 0x80 (128) for grayscale image
         memset(ycbcr[1].data, 0x80, ycbcr[1].stride * ycbcr[1].height);
         memset(ycbcr[2].data, 0x80, ycbcr[2].stride * ycbcr[2].height);
+    }
+    else if (m_PixelFormat == INDI_JPG)
+    {
+        decode_jpeg_raw(frame, nbytes, 0, 0, rawWidth, rawHeight, ycbcr[0].data, ycbcr[1].data, ycbcr[2].data );
     }
     else
         return false;

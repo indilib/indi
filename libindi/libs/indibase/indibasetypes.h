@@ -72,6 +72,7 @@ typedef enum
     INDI_BAYER_YMCY = 18,
     INDI_BAYER_MYYC = 19,
     INDI_RGB        = 100,
-    INDI_BGR        = 101
+    INDI_BGR        = 101,
+    INDI_JPG        = 200,
 } INDI_PIXEL_FORMAT;
 

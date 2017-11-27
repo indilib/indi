@@ -444,8 +444,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
             V4LFrame->height = h;
             PrimaryCCD.setResolution(w, h);
             updateFrameSize();
-            //recorder->setsize(w, h);
-            Streamer->setRecorderSize(w, h);
+            Streamer->setSize(w, h);
 
             CaptureSizesSP.s = IPS_OK;
             IDSetSwitch(&CaptureSizesSP, "Capture size (discrete): %d. %s", index, CaptureSizesSP.sp[index].name);
@@ -715,7 +714,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
             PrimaryCCD.setResolution(w, h);
             CaptureSizesNP.s = IPS_OK;
             updateFrameSize();
-            Streamer->setRecorderSize(w, h);
+            Streamer->setSize(w, h);
 
             IDSetNumber(&CaptureSizesNP, "Capture size (step/cont): %dx%d", w, h);
             return true;
@@ -1081,10 +1080,7 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
         V4LFrame->height = crect.height;
         PrimaryCCD.setFrame(x, y, w, h);
         updateFrameSize();
-        //recorder->setsize(w, h);
-        Streamer->setRecorderSize(w, h);
-        //DEBUGF(INDI::Logger::DBG_SESSION, "updateCCDFrame ok: %d %d %d %d", x, y, w, h);
-        //IDLog("updateCCDFrame ok: %d %d %d %d\n", x, y, w, h);
+        Streamer->setSize(w, h);
         return true;
     }
     else
@@ -1201,8 +1197,8 @@ void V4L2_Driver::newFrame()
             }
         }
 
-        memcpy(PrimaryCCD.getFrameBuffer(), buffer, frameBytes);
-        Streamer->newFrame();
+        //memcpy(PrimaryCCD.getFrameBuffer(), buffer, frameBytes);
+        Streamer->newFrame(buffer, frameBytes);
         return;
     }
 
@@ -1500,7 +1496,7 @@ void V4L2_Driver::getBasicData()
     if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
         Streamer->setPixelFormat(pixelFormat, pixelDepth);
 
-    Streamer->setRecorderSize(w, h);
+    Streamer->setSize(w, h);
 }
 
 void V4L2_Driver::updateV4L2Controls()

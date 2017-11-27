@@ -52,12 +52,11 @@ namespace INDI
 MJPEGEncoder::MJPEGEncoder()
 {
     name = "MJPEG";    
-    jpegBuffer = (uint8_t *)malloc(1);
 }
 
 MJPEGEncoder::~MJPEGEncoder()
 {
-    free(jpegBuffer);
+    delete [] jpegBuffer;
 }
 
 const char *MJPEGEncoder::getDeviceName()
@@ -65,7 +64,7 @@ const char *MJPEGEncoder::getDeviceName()
     return currentCCD->getDeviceName();
 }
 
-bool MJPEGEncoder::upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t height, uint8_t components, bool isCompressed)
+bool MJPEGEncoder::upload(IBLOB *bp, uint8_t *buffer, uint32_t nbytes, bool isCompressed)
 {
     // We do not support compression
     if (isCompressed)
@@ -74,17 +73,19 @@ bool MJPEGEncoder::upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t h
         return false;
     }
 
-    int bufsize = width * height * components;
+    INDI_UNUSED(nbytes);
+    int bufsize = rawWidth * rawHeight * (pixelFormat == INDI_RGB) ? 3 : 1;
     if (bufsize != jpegBufferSize)
     {
-        jpegBuffer = (uint8_t*)realloc(jpegBuffer, bufsize);
+        delete [] jpegBuffer;
+        jpegBuffer = new uint8_t[bufsize];
         jpegBufferSize = bufsize;
     }
 
-    if (components == 1)
-        jpeg_compress_8u_gray(buffer, width, height, width, jpegBuffer, &bufsize, 70);
+    if (pixelFormat == INDI_RGB)
+        jpeg_compress_8u_rgb(buffer, rawWidth, rawHeight, rawWidth*3, jpegBuffer, &bufsize, 70);
     else
-        jpeg_compress_8u_rgb(buffer, width, height, width*3, jpegBuffer, &bufsize, 70);
+        jpeg_compress_8u_gray(buffer, rawWidth, rawHeight, rawWidth, jpegBuffer, &bufsize, 70);
 
     bp->blob    = jpegBuffer;
     bp->bloblen = bufsize;

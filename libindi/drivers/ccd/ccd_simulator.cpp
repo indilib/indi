@@ -120,11 +120,11 @@ bool CCDSim::SetupParms()
     rotationCW = SimulatorSettingsN[13].value;
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
-    nbuf += 512;
+    //nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     Streamer->setPixelFormat(INDI_MONO, 16);
-    Streamer->setRecorderSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+    Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
     return true;
 }
@@ -1211,13 +1211,13 @@ bool CCDSim::StopStreaming()
 
 bool CCDSim::UpdateCCDFrame(int x, int y, int w, int h)
 {
-
     long bin_width  = w / PrimaryCCD.getBinX();
     long bin_height = h / PrimaryCCD.getBinY();
 
-    bin_width  = bin_width - (bin_width % 8);
+    bin_width  = bin_width - (bin_width % 2);
     bin_height = bin_height - (bin_height % 2);
-    Streamer->setRecorderSize(bin_width, bin_height);
+
+    Streamer->setSize(bin_width, bin_height);
 
     return INDI::CCD::UpdateCCDFrame(x,y,w,h);
 }
@@ -1255,6 +1255,8 @@ void *CCDSim::streamVideo()
         // 16 bit
         DrawCcdFrame(&PrimaryCCD);
 
+        PrimaryCCD.binFrame();
+
         getitimer(ITIMER_REAL, &tframe1);
 
         s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
@@ -1264,7 +1266,8 @@ void *CCDSim::streamVideo()
         if (deltas < ExposureRequest)
             usleep(fabs(ExposureRequest-deltas)*1e6);
 
-        Streamer->newFrame();
+        uint32_t size = PrimaryCCD.getFrameBufferSize() / (PrimaryCCD.getBinX()*PrimaryCCD.getBinY());
+        Streamer->newFrame(PrimaryCCD.getFrameBuffer(), size);
 
         getitimer(ITIMER_REAL, &tframe2);
     }

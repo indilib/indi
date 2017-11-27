@@ -107,7 +107,7 @@ CCDChip::~CCDChip()
     free(RawFrame);
     RawFrameSize = 0;
     RawFrame     = nullptr;
-    free(BinFrame);
+    delete[] BinFrame;
 }
 
 void CCDChip::setFrameType(CCD_FRAME type)
@@ -225,7 +225,10 @@ void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
     RawFrame = (uint8_t *)realloc(RawFrame, nbuf * sizeof(uint8_t));
 
     if (BinFrame)
-        BinFrame = (uint8_t *)realloc(BinFrame, nbuf * sizeof(uint8_t));
+    {
+        delete [] BinFrame;
+        BinFrame = new uint8_t[nbuf * sizeof(uint8_t)];
+    }
 }
 
 void CCDChip::setExposureLeft(double duration)
@@ -294,7 +297,7 @@ void CCDChip::binFrame()
 
     // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
     if (BinFrame == nullptr)
-        BinFrame = (uint8_t *)malloc(RawFrameSize);
+        BinFrame = new uint8_t[RawFrameSize];
 
     memset(BinFrame, 0, RawFrameSize);
 
@@ -1705,6 +1708,9 @@ bool CCD::UpdateCCDBin(int hor, int ver)
 {
     // Just set value, unless HW layer overrides this and performs its own processing
     PrimaryCCD.setBin(hor, ver);
+    // Reset size
+    if (HasStreaming())
+        Streamer->setSize(PrimaryCCD.getSubW()/hor, PrimaryCCD.getSubH()/ver);
     return true;
 }
 

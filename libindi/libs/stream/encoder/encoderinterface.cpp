@@ -30,9 +30,6 @@
 
 namespace INDI
 {
-EncoderInterface::EncoderInterface()
-{    
-}
 
 const char *EncoderInterface::getName()
 {
@@ -42,6 +39,13 @@ const char *EncoderInterface::getName()
 void EncoderInterface::init(CCD *activeCCD)
 {
     currentCCD = activeCCD;
+}
+
+bool EncoderInterface::setSize(uint16_t width, uint16_t height)
+{
+    rawWidth  = width;
+    rawHeight = height;
+    return true;
 }
 
 bool EncoderInterface::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)

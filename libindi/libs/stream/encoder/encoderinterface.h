@@ -38,14 +38,16 @@ class CCD;
 class EncoderInterface
 {
   public:
-    EncoderInterface();
+    EncoderInterface() = default;
     virtual ~EncoderInterface() = default;
 
     virtual void init(CCD *activeCCD);
 
     virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
 
-    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t height, uint8_t components, bool isCompressed=false) = 0;
+    virtual bool setSize(uint16_t width, uint16_t height);
+
+    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint32_t nbytes, bool isCompressed=false) = 0;
 
     const char *getName();
 
@@ -54,6 +56,7 @@ class EncoderInterface
     CCD *currentCCD = nullptr;
     INDI_PIXEL_FORMAT pixelFormat;            // INDI Pixel Format
     uint8_t pixelDepth = 8;                   // Bits per Pixels
+    uint16_t rawWidth, rawHeight;
 };
 
 }

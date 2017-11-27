@@ -30,7 +30,7 @@ public:
     RawEncoder();
     ~RawEncoder();
 
-    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint16_t width, uint16_t height, uint8_t components, bool isCompressed=false) override;
+    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint32_t nbytes, bool isCompressed=false) override;
 
 private:
     const char *getDeviceName();

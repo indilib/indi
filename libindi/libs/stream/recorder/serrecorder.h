@@ -76,7 +76,7 @@ class SER_Recorder : public RecorderInterface
     virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
     virtual bool open(const char *filename, char *errmsg);
     virtual bool close();
-    virtual bool writeFrame(uint8_t *frame);
+    virtual bool writeFrame(uint8_t *frame, uint32_t nbytes);
     virtual void setStreamEnabled(bool enable) { isStreamingActive = enable; }
 
     // Public constants
