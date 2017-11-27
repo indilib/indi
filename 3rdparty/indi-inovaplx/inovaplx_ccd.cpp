@@ -335,7 +335,7 @@ bool INovaCCD::ISNewNumber(const char *dev, const char *name, double values[], c
 /**************************************************************************************
 ** INDI is asking us to add any FITS keywords to the FITS header
 ***************************************************************************************/
-void INovaCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
+void INovaCCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
     // Let's first add parent keywords
     INDI::CCD::addFITSKeywords(fptr, targetChip);

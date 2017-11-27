@@ -519,11 +519,11 @@ bool MICCD::StartExposure(float duration)
 
     imageFrameType = PrimaryCCD.getFrameType();
 
-    if (imageFrameType == CCDChip::BIAS_FRAME)
+    if (imageFrameType == INDI::CCDChip::BIAS_FRAME)
     {
         duration = minExpTime;
     }
-    else if (imageFrameType == CCDChip::DARK_FRAME)
+    else if (imageFrameType == INDI::CCDChip::DARK_FRAME)
     {
         useShutter = false;
     }

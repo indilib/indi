@@ -1446,14 +1446,16 @@ bool QHYCCD::saveConfigItems(FILE *fp)
 
 bool QHYCCD::StartStreaming()
 {
-    if (PrimaryCCD.getBPP() != 8)
+    /*if (PrimaryCCD.getBPP() != 8)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Streaming only supported for 8 bit images.");
         return false;
     }
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Starting streaming with a period of %g seconds.",
-           PrimaryCCD.getExposureDuration());
+           PrimaryCCD.getExposureDuration());*/
+
+    ExposureRequest = 1.0 / Streamer->getTargetFPS();
 
     // N.B. There is no corresponding value for GBGR. It is odd that QHY selects this as the default as no one seems to process it
     const std::map<const char *, INDI_PIXEL_FORMAT> formats = { { "GBGR", INDI_MONO },
@@ -1465,7 +1467,7 @@ bool QHYCCD::StartStreaming()
     if (BayerT[2].text && formats.count(BayerT[2].text) != 0)
         qhyFormat = formats.at(BayerT[2].text);
 
-    Streamer->setPixelFormat(qhyFormat);
+    Streamer->setPixelFormat(qhyFormat, PrimaryCCD.getBPP());
 
     SetQHYCCDStreamMode(camhandle, 0x01);
     BeginQHYCCDLive(camhandle);

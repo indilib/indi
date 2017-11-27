@@ -66,7 +66,7 @@ class SSAGCCD : public INDI::CCD
     IPState GuideNorth(float time);
     IPState GuideSouth(float time);
 
-    void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+    void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip);
     bool saveConfigItems(FILE *fp);
 
   protected:

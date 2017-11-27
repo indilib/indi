@@ -89,7 +89,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
   protected:
     // Misc.
     bool saveConfigItems(FILE *fp) override;
-    void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) override;
+    void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;
     void TimerHit() override;
 
     // Upload Mode
@@ -100,11 +100,9 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
 
 // Streaming
-#ifdef __linux__
     bool StartStreaming() override;
     bool StopStreaming() override;
     bool captureLiveVideo();
-#endif
 
     // Preview
     bool startLivePreview();

@@ -755,6 +755,7 @@ bool ASICCD::setVideoFormat(uint8_t index)
 
 bool ASICCD::StartStreaming()
 {
+#if 0
     ASI_IMG_TYPE type = getImageType();
 
     rememberVideoFormat = IUFindOnSwitchIndex(&VideoFormatSP);
@@ -780,7 +781,9 @@ bool ASICCD::StartStreaming()
             return false;
         }
     }
+#endif
 
+    ExposureRequest = 1.0 / Streamer->getTargetFPS();
     ASIStartVideoCapture(m_camInfo->CameraID);
     pthread_mutex_lock(&condMutex);
     streamPredicate = 1;
@@ -1568,13 +1571,16 @@ void ASICCD::updateRecorderFormat()
             break;
 
         case ASI_IMG_RAW16:
-            if (m_camInfo->BayerPattern == ASI_BAYER_BG)
-                Streamer->setPixelFormat(INDI_BAYER_BGGR, 16);
-            else
-            {
-                DEBUGF(INDI::Logger::DBG_WARNING, "16 bit bayer format %s it not supported by the SER recorder.",
-                       getBayerString());
-            }
+        if (m_camInfo->IsColorCam == ASI_FALSE)
+            Streamer->setPixelFormat(INDI_MONO, 16);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_RG)
+            Streamer->setPixelFormat(INDI_BAYER_RGGB, 16);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_BG)
+            Streamer->setPixelFormat(INDI_BAYER_BGGR, 16);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_GR)
+            Streamer->setPixelFormat(INDI_BAYER_GRBG, 16);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
+            Streamer->setPixelFormat(INDI_BAYER_GBRG, 16);
             break;
 
         case ASI_IMG_RGB24:
