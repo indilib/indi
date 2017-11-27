@@ -73,6 +73,7 @@ StreamManager::~StreamManager()
 {
     delete (recorderManager);
     delete (encoderManager);
+    delete [] downscaleBuffer;
 }
 
 const char *StreamManager::getDeviceName()
@@ -89,9 +90,10 @@ bool StreamManager::initProperties()
                        STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Stream Rate divisor */
-    IUFillNumber(&StreamOptionsN[0], "STREAM_RATE", "Rate Divisor", "%3.0f", 0, 60.0, 5, 0);
+    IUFillNumber(&StreamOptionsN[OPTION_TARGET_FPS], "STREAM_FPS", "Target FPS", "%.f", 0, 30.0, 1, 10);
+    IUFillNumber(&StreamOptionsN[OPTION_RATE_DIVISOR], "STREAM_RATE", "Rate Divisor", "%3.0f", 0, 60.0, 5, 0);
     IUFillNumberVector(&StreamOptionsNP, StreamOptionsN, NARRAY(StreamOptionsN), getDeviceName(), "STREAM_OPTIONS",
-                       "Streaming", STREAM_TAB, IP_RW, 60, IPS_IDLE);
+                       "Settings", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
     IUFillNumber(&FpsN[FPS_INSTANT], "EST_FPS", "Instant.", "%3.2f", 0.0, 999.0, 0.0, 30);
@@ -234,7 +236,7 @@ void StreamManager::newFrame()
     if (StreamSP.s == IPS_BUSY)
     {
         streamframeCount++;
-        if (streamframeCount >= StreamOptionsN[0].value)
+        if (streamframeCount >= StreamOptionsN[OPTION_RATE_DIVISOR].value)
         {
             uploadStream();
             streamframeCount = 0;
@@ -286,12 +288,14 @@ bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelD
 }
 
 
-void StreamManager::recordStream(double deltams)
+bool StreamManager::recordStream(double deltams)
 {
     if (!m_isRecording)
-        return;
+        return false;
 
-    recorder->writeFrame(currentCCD->PrimaryCCD.getFrameBuffer());
+    bool rc = recorder->writeFrame(currentCCD->PrimaryCCD.getFrameBuffer());
+    if (rc == false)
+        return rc;
 
     /*if (currentCCD->PrimaryCCD.getNAxis() == 2)
         recorder->writeFrameMono(currentCCD->PrimaryCCD.getFrameBuffer());
@@ -321,6 +325,8 @@ void StreamManager::recordStream(double deltams)
         RecordStreamSP.s       = IPS_IDLE;
         IDSetSwitch(&RecordStreamSP, nullptr);
     }
+
+    return true;
 }
 
 int StreamManager::mkpath(std::string s, mode_t mode)
@@ -741,13 +747,12 @@ bool StreamManager::setStream(bool enable)
         {
             StreamSP.s       = IPS_BUSY;
             streamframeCount = 0;
-            if (StreamOptionsN[0].value > 0 && currentCCD->ExposureTime > 0)
+            if (StreamOptionsN[OPTION_RATE_DIVISOR].value > 0)
                 DEBUGF(INDI::Logger::DBG_SESSION,
-                       "Starting the video stream with single frame exposure of %f seconds and rate divisor of %g.",
-                       currentCCD->ExposureTime, StreamOptionsN[0].value);
-            else if (currentCCD->ExposureTime > 0)
-                DEBUGF(INDI::Logger::DBG_SESSION, "Starting the video stream with single frame exposure of %f seconds.",
-                       currentCCD->ExposureTime, StreamOptionsN[0].value);
+                       "Starting the video stream with target FPS %.f and rate divisor of %.f",
+                       StreamOptionsN[OPTION_TARGET_FPS].value, StreamOptionsN[OPTION_RATE_DIVISOR].value);
+            else
+                DEBUGF(INDI::Logger::DBG_SESSION, "Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
 
             streamframeCount = 0;
 
@@ -900,7 +905,52 @@ bool StreamManager::uploadStream()
     streamW = StreamFrameN[CCDChip::FRAME_W].value;
     streamH = StreamFrameN[CCDChip::FRAME_H].value;
     streamComponents = (currentCCD->PrimaryCCD.getNAxis() == 2) ? 1 : 3;
-    if (encoder->upload(imageB, buffer, streamW, streamH, streamComponents, currentCCD->PrimaryCCD.isCompressed()))
+
+    uint8_t *streamBuffer = buffer;
+
+    // Must downscale to 8bit
+    if (m_PixelDepth == 16)
+    {
+        uint32_t npixels = streamW*streamH*streamComponents;
+        // Allocale new buffer if size changes
+        if (downscaleBufferSize != npixels)
+        {
+            downscaleBufferSize = npixels;
+            delete [] downscaleBuffer;
+            downscaleBuffer = new uint8_t[npixels];
+        }
+
+        uint16_t *srcBuffer = reinterpret_cast<uint16_t*>(buffer);
+        streamBuffer = downscaleBuffer;
+
+        // Slow method: proper downscale
+        /*
+
+        uint16_t max = 32768;
+        uint16_t min = 0;
+
+        for (uint32_t i=0; i < npixels; i++)
+        {
+            if (srcBuffer[i] > max)
+                max = srcBuffer[i];
+            else if (srcBuffer[i] < min)
+                min = srcBuffer[i];
+        }
+
+        double bscale = 255. / (max - min);
+        double bzero  = (-min) * (255. / (max - min));
+
+        for (uint32_t i=0; i < npixels; i++)
+            streamBuffer[i] = srcBuffer[i] * bscale + bzero;
+        */
+
+        // Fast method: Cut off anything higher than 255. Image will be saturated.
+        // Dividing by 255 works, but for astronomical images it's too dark.
+        for (uint32_t i=0; i < npixels; i++)
+            streamBuffer[i] = std::max(0, std::min(255, static_cast<int>(srcBuffer[i])));
+    }
+
+    if (encoder->upload(imageB, streamBuffer, streamW, streamH, streamComponents, currentCCD->PrimaryCCD.isCompressed()))
     {
         // Upload to client now
         imageBP->s = IPS_OK;
@@ -910,6 +960,5 @@ bool StreamManager::uploadStream()
 
     return false;
 }
-
 
 }

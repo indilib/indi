@@ -79,7 +79,7 @@ class StreamManager
          * @brief recordStream Calls the backend recorder to record a single frame.
          * @param deltams time in milliseconds since last frame
          */
-    void recordStream(double deltams);
+    bool recordStream(double deltams);
 
     /**
          * @brief setStream Enables (starts) or disables (stops) streaming.
@@ -93,6 +93,7 @@ class StreamManager
     bool isStreaming() { return m_isStreaming; }
     bool isRecording() { return m_isRecording; }
     bool isBusy() { return (isStreaming() || isRecording()); }
+    uint8_t getTargetFPS() { return static_cast<uint8_t>(StreamOptionsN[OPTION_TARGET_FPS].value); }
     const char *getDeviceName();
 
     void setRecorderSize(uint16_t width, uint16_t height);
@@ -126,8 +127,9 @@ class StreamManager
     ITextVectorProperty RecordFileTP;
 
     /* Streaming Options */
-    INumber StreamOptionsN[1];
+    INumber StreamOptionsN[2];
     INumberVectorProperty StreamOptionsNP;
+    enum { OPTION_TARGET_FPS, OPTION_RATE_DIVISOR};
 
     /* Measured FPS */
     INumber FpsN[2];
@@ -182,5 +184,9 @@ class StreamManager
 
     INDI_PIXEL_FORMAT m_PixelFormat;
     uint8_t m_PixelDepth;
+
+    // Downscale buffer for streaming
+    uint8_t *downscaleBuffer = nullptr;
+    uint32_t downscaleBufferSize=0;
 };
 }
