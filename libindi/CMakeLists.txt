@@ -253,7 +253,7 @@ endif (INDI_BUILD_QT5_CLIENT)
 if (INDI_BUILD_DRIVERS)
 if (WIN32 OR ANDROID)
     message(WARNING "INDI drivers are only supported under Linux, BSD, MacOS, and Cygwin while current system is " ${CMAKE_SYSTEM_NAME})
-else()
+else(WIN32 OR ANDROID)
 # 1. Dependencies
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -262,10 +262,7 @@ find_package(Nova REQUIRED)
 find_package(USB1 REQUIRED)
 find_package(CURL REQUIRED)
 find_package(GSL REQUIRED)
-# libjpeg for V4L2
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-  find_package(JPEG REQUIRED)
-ENDIF ()
+find_package(JPEG REQUIRED)
 # Math Library
 FIND_LIBRARY(M_LIB m)
 # 2. Includes
@@ -277,11 +274,10 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${USB1_INCLUDE_DIRS})
 include_directories( ${GSL_INCLUDE_DIRS})
+include_directories( ${JPEG_INCLUDE_DIR} )
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam)
-    include_directories( ${JPEG_INCLUDE_DIR} )
-ENDIF ()
-ENDIF ()
+ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
 
@@ -303,6 +299,7 @@ INCLUDE_DIRECTORIES(${THEORA_INCLUDE_DIRS})
 SET(HAVE_THEORA 1)
 SET (theorarecorder_CXX_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/theorarecorder.cpp)
 ENDIF(OGGTHEORA_FOUND)
+
     SET(libstream_CXX_SRC
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/recorderinterface.cpp
@@ -332,8 +329,9 @@ ENDIF(OGGTHEORA_FOUND)
         IF (UNITY_BUILD)
             ENABLE_UNITY_BUILD(libwebcam libwebcam_C_SRC 10 c)
             ENABLE_UNITY_BUILD(libwebcam libwebcam_CXX_SRC 10 cpp)
-    ENDIF ()
-ENDIF (UNIX)
+        ENDIF (UNITY_BUILD)
+     ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+ENDIF(UNIX)
 
 SET(indidriver_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
