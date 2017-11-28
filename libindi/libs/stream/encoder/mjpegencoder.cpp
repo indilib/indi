@@ -74,7 +74,7 @@ bool MJPEGEncoder::upload(IBLOB *bp, uint8_t *buffer, uint32_t nbytes, bool isCo
     }
 
     INDI_UNUSED(nbytes);
-    int bufsize = rawWidth * rawHeight * (pixelFormat == INDI_RGB) ? 3 : 1;
+    int bufsize = rawWidth * rawHeight * ((pixelFormat == INDI_RGB) ? 3 : 1);
     if (bufsize != jpegBufferSize)
     {
         delete [] jpegBuffer;

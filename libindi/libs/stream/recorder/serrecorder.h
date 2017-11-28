@@ -72,8 +72,7 @@ class SER_Recorder : public RecorderInterface
 
     virtual const char *getExtension() { return ".ser"; }
     virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
-    virtual bool setSize(uint16_t width, uint16_t height);
-    virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
+    virtual bool setSize(uint16_t width, uint16_t height);    
     virtual bool open(const char *filename, char *errmsg);
     virtual bool close();
     virtual bool writeFrame(uint8_t *frame, uint32_t nbytes);
@@ -93,7 +92,7 @@ class SER_Recorder : public RecorderInterface
     FILE *f;
     uint32_t frame_size;
     uint32_t number_of_planes;
-    uint16_t offsetX = 0, offsetY = 0, rawWidth = 0, rawHeight = 0;
+    uint16_t rawWidth = 0, rawHeight = 0;
     std::vector<uint64_t> frameStamps;
 
   private:

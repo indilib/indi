@@ -70,6 +70,7 @@ protected:
     virtual void activeDevicesUpdated() override;
     virtual int SetTemperature(double temperature) override;
     virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int hor, int ver) override;
 
     virtual bool StartStreaming() override;
     virtual bool StopStreaming() override;

@@ -148,19 +148,6 @@ bool SER_Recorder::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDe
     return true;
 }
 
-bool SER_Recorder::setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
-{
-    if (isRecordingActive)
-        return false;
-
-    offsetX          = x;
-    offsetY          = y;
-    serh.ImageWidth  = width;
-    serh.ImageHeight = height;
-
-    return true;
-}
-
 bool SER_Recorder::setSize(uint16_t width, uint16_t height)
 {
     if (isRecordingActive)
@@ -168,6 +155,9 @@ bool SER_Recorder::setSize(uint16_t width, uint16_t height)
 
     rawWidth  = width;
     rawHeight = height;
+
+    serh.ImageWidth = width;
+    serh.ImageHeight = height;
     return true;
 }
 
@@ -218,8 +208,7 @@ bool SER_Recorder::writeFrame(uint8_t *frame, uint32_t nbytes)
     if (!isRecordingActive)
         return false;
 
-    INDI_UNUSED(nbytes);
-
+#if 0
     if (serh.ColorID == SER_MONO)
     {
         if (isStreamingActive == false &&
@@ -253,10 +242,11 @@ bool SER_Recorder::writeFrame(uint8_t *frame, uint32_t nbytes)
                 memcpy(destBuffer + i * imageWidth * 3, srcBuffer + rawWidth * 3 * i, imageWidth * 3);
         }
    }
+#endif
 
     frameStamps.push_back(getUTCTimeStamp());
 
-    fwrite(frame, frame_size, 1, f);
+    fwrite(frame, nbytes, 1, f);
     serh.FrameCount += 1;
     return true;
 }

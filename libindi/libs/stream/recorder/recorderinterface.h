@@ -64,8 +64,6 @@ class RecorderInterface
     virtual bool setSize(uint16_t width, uint16_t height) = 0;
     // Set FPS
     virtual bool setFPS(float FPS) { m_FPS = FPS; return true; }
-    // Set subframed dimensions that gets recorded
-    virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height) = 0;
     virtual bool open(const char *filename, char *errmsg)                          = 0;
     virtual bool close()                                                           = 0;
     // when frame is in known encoding format

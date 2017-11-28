@@ -238,7 +238,7 @@ void StreamManager::newFrame(uint8_t *buffer, uint32_t nbytes)
     IDSetNumber(&FpsNP, nullptr);
 
     // For streaming, downscale 16 to 8
-    if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecorderSP.s == IPS_BUSY))
+    if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
     {
         // Do not downscale for SER recorder.
         if (!strcmp(recorder->getName(), "SER"))
@@ -323,28 +323,32 @@ void StreamManager::newFrame(uint8_t *buffer, uint32_t nbytes)
 
 void StreamManager::setSize(uint16_t width, uint16_t height)
 {
-    StreamFrameN[CCDChip::FRAME_X].value = 0;
-    StreamFrameN[CCDChip::FRAME_X].max   = width - 1;
-    StreamFrameN[CCDChip::FRAME_Y].value = 0;
-    StreamFrameN[CCDChip::FRAME_Y].max   = height - 1;
-    StreamFrameN[CCDChip::FRAME_W].value = width;
-    StreamFrameN[CCDChip::FRAME_W].min   = 10;
-    StreamFrameN[CCDChip::FRAME_W].max   = width;
-    StreamFrameN[CCDChip::FRAME_H].value = height;
-    StreamFrameN[CCDChip::FRAME_H].min   = 10;
-    StreamFrameN[CCDChip::FRAME_H].max   = height;
+    if (width != StreamFrameN[CCDChip::FRAME_W].value || height != StreamFrameN[CCDChip::FRAME_H].value)
+    {
+        StreamFrameN[CCDChip::FRAME_X].value = 0;
+        StreamFrameN[CCDChip::FRAME_X].max   = width - 1;
+        StreamFrameN[CCDChip::FRAME_Y].value = 0;
+        StreamFrameN[CCDChip::FRAME_Y].max   = height - 1;
+        StreamFrameN[CCDChip::FRAME_W].value = width;
+        StreamFrameN[CCDChip::FRAME_W].min   = 10;
+        StreamFrameN[CCDChip::FRAME_W].max   = width;
+        StreamFrameN[CCDChip::FRAME_H].value = height;
+        StreamFrameN[CCDChip::FRAME_H].min   = 10;
+        StreamFrameN[CCDChip::FRAME_H].max   = height;
+
+        StreamFrameNP.s = IPS_OK;
+        IUUpdateMinMax(&StreamFrameNP);
+    }
 
     // Width & Height are BINNED dimensions.
     // Since they're the final size to make it to encoders and recorders.
     rawWidth = width;
     rawHeight = height;
 
-    encoder->setSize(rawWidth, rawHeight);
-    recorder->setSize(rawWidth, rawHeight);
-    recorder->setFrame(0, 0, rawWidth, rawHeight);
-
-    StreamFrameNP.s = IPS_OK;
-    IUUpdateMinMax(&StreamFrameNP);
+    for (EncoderInterface *oneEncoder : encoderManager->getEncoderList())
+        oneEncoder->setSize(rawWidth, rawHeight);
+    for (RecorderInterface *oneRecorder : recorderManager->getRecorderList())
+        oneRecorder->setSize(rawWidth, rawHeight);
 }
 
 bool StreamManager::close()
@@ -701,8 +705,6 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
             {
                 recorderManager->setRecorder(oneRecorder);
 
-                //oneRecorder->setFrame(StreamFrameN[CCDChip::FRAME_X].value, StreamFrameN[CCDChip::FRAME_Y].value,
-                                   //StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
                 oneRecorder->setPixelFormat(m_PixelFormat, m_PixelDepth);
 
                 recorder = oneRecorder;
@@ -788,8 +790,7 @@ bool StreamManager::ISNewNumber(const char *dev, const char *name, double values
         if (StreamFrameN[CCDChip::FRAME_Y].value + StreamFrameN[CCDChip::FRAME_H].value > subH)
             StreamFrameN[CCDChip::FRAME_H].value = subH - StreamFrameN[CCDChip::FRAME_Y].value;
 
-        recorder->setFrame(StreamFrameN[CCDChip::FRAME_X].value, StreamFrameN[CCDChip::FRAME_Y].value,
-                           StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
+        setSize(StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
 
         IDSetNumber(&StreamFrameNP, nullptr);
         return true;

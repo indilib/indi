@@ -481,7 +481,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
     if (targetChip->getXRes() == 500)
         ExposureTime = GuideExposureRequest;
     else if (Streamer->isStreaming())
-        ExposureTime = (ExposureRequest < 1) ? ExposureRequest * 100 : ExposureRequest * 2;
+        ExposureTime = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
     else
         ExposureTime = ExposureRequest;
 
@@ -1222,6 +1222,25 @@ bool CCDSim::UpdateCCDFrame(int x, int y, int w, int h)
     return INDI::CCD::UpdateCCDFrame(x,y,w,h);
 }
 
+bool CCDSim::UpdateCCDBin(int hor, int ver)
+{
+    if (hor == 3 || ver == 3)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "3x3 binning is not supported.");
+        return false;
+    }
+
+    long bin_width  = PrimaryCCD.getSubW() / hor;
+    long bin_height = PrimaryCCD.getSubH() / ver;
+
+    bin_width  = bin_width - (bin_width % 2);
+    bin_height = bin_height - (bin_height % 2);
+
+    Streamer->setSize(bin_width, bin_height);
+
+    return INDI::CCD::UpdateCCDBin(hor,ver);
+}
+
 void *CCDSim::streamVideoHelper(void *context)
 {
     return ((CCDSim *)context)->streamVideo();
@@ -1239,8 +1258,7 @@ void *CCDSim::streamVideo()
         while (streamPredicate == 0)
         {
             pthread_cond_wait(&cv, &condMutex);
-            // remove time factor contribution
-            ExposureRequest /= TimeFactor;
+            ExposureRequest = 1.0 / Streamer->getTargetFPS();
         }
 
         if (terminateThread)

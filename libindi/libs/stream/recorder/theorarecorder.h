@@ -40,8 +40,7 @@ class TheoraRecorder : public RecorderInterface
 
     virtual const char *getExtension() { return ".ogv"; }
     virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
-    virtual bool setSize(uint16_t width, uint16_t height);    
-    virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
+    virtual bool setSize(uint16_t width, uint16_t height);        
     virtual bool open(const char *filename, char *errmsg);
     virtual bool close();
     virtual bool writeFrame(uint8_t *frame, uint32_t nbytes);
@@ -50,7 +49,7 @@ class TheoraRecorder : public RecorderInterface
   protected:
     bool isRecordingActive = false, isStreamingActive = false;
     uint32_t number_of_planes;
-    uint16_t subX = 0, subY = 0, subW = 0, subH = 0, rawWidth = 0, rawHeight = 0;
+    uint16_t rawWidth = 0, rawHeight = 0;
     std::vector<uint64_t> frameStamps;
     INDI_PIXEL_FORMAT m_PixelFormat;
     uint8_t m_PixelDepth=8;

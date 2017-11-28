@@ -67,21 +67,6 @@ bool TheoraRecorder::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixel
     return true;
 }
 
-bool TheoraRecorder::setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height)
-{
-    if (isRecordingActive)
-        return false;
-
-    subX     = x;
-    subY     = y;
-    subW     = width;
-    subH     = height;
-
-    allocateBuffers();
-
-    return true;
-}
-
 bool TheoraRecorder::setSize(uint16_t width, uint16_t height)
 {
     if (isRecordingActive)
@@ -89,15 +74,16 @@ bool TheoraRecorder::setSize(uint16_t width, uint16_t height)
 
     rawWidth  = width;
     rawHeight = height;
-    return true;
+
+    return allocateBuffers();
 }
 
 bool TheoraRecorder::allocateBuffers()
 {
     /* Must hold: yuv_w >= w */
-    uint16_t yuv_w = (subW + 15) & ~15;
+    uint16_t yuv_w = (rawWidth + 15) & ~15;
     /* Must hold: yuv_h >= h */
-    uint16_t yuv_h = (subH + 15) & ~15;
+    uint16_t yuv_h = (rawHeight + 15) & ~15;
 
     /* Do we need to allocate a buffer */
     if (!ycbcr[0].data || yuv_w != ycbcr[0].width || yuv_h != ycbcr[0].height)
@@ -192,10 +178,10 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
     }
 
     th_info_init(&ti);
-    ti.frame_width = ((subW + 15) >>4)<<4;
-    ti.frame_height = ((subH + 15)>>4)<<4;
-    ti.pic_width = subW;
-    ti.pic_height = subH;
+    ti.frame_width = ((rawWidth + 15) >>4)<<4;
+    ti.frame_height = ((rawHeight + 15)>>4)<<4;
+    ti.pic_width = rawWidth;
+    ti.pic_height = rawHeight;
     ti.pic_x = 0;
     ti.pic_y = 0;
     frac(m_FPS, video_fps_numerator, video_fps_denominator);
