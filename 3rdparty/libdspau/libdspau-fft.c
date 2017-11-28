@@ -84,20 +84,24 @@ void complex2phirad(fftw_complex* in, double* out, int len)
 	}
 }
 
-int dspau_spectrum(double* in, double* out, int *c, int conversion)
+int dspau_spectrum(double* in, double* out, int dims, int *sizes, int conversion)
 {
 	int i = 0;
-	int len = *c;
+	int len = sizes[0];
 	int ret = 0;
 	fftw_complex *fft_in, *fft_out;
 	fftw_plan p;
+	for(int d = 1; d < dims; d++)
+	{
+		len *= sizes[d];
+	}
 	fft_in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * len);
 	fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * len);
 	for(i = 0; i < len; i++) {
 		fft_in[i][0] = in[i];
 		fft_in[i][1] = 0;
 	}
-	p = fftw_plan_dft_1d(len, fft_in, fft_out, FFTW_FORWARD, FFTW_ESTIMATE);
+	p = fftw_plan_dft(dims, sizes, fft_in, fft_out, FFTW_FORWARD, FFTW_ESTIMATE);
 	fftw_execute(p);
 	len = (len / 2) - (len % 2);
 	switch (conversion) {
@@ -126,6 +130,5 @@ int dspau_spectrum(double* in, double* out, int *c, int conversion)
 	fftw_destroy_plan(p);
 	fftw_free(fft_in);
 	fftw_free(fft_out);
-	*c = len;
 	return ret;
 }
