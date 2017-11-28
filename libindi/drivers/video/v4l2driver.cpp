@@ -1061,6 +1061,7 @@ bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
     }
 
     PrimaryCCD.setBin(hor, ver);
+    //Streamer->setSize(PrimaryCCD.getSubW()/hor, PrimaryCCD.getSubH()/ver);
 
     return true;
 }
