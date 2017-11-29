@@ -521,13 +521,9 @@ void LX200AstroPhysics::getBasicData()
         checkLX200Format(PortFD);
         timeFormat = LX200_24;
 
-        if (genericCapability & LX200_HAS_TRACKING_FREQ)
-        {
-            if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to get tracking frequency from device.");
-            else
-                IDSetNumber(&TrackingFreqNP, nullptr);
-        }
+        // not used by lx200ap
+        IDSetText(&SiteNameTP, nullptr);
+        IDSetNumber(&TrackingFreqNP, nullptr);
     }
 
     sendScopeLocation();
