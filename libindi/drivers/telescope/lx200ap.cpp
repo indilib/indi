@@ -174,7 +174,7 @@ bool LX200AstroPhysics::updateProperties()
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
-        defineSwitch(&APGuideSpeedSP);
+        deleteProperty(APGuideSpeedSP.name);
         deleteProperty(SlewAccuracyNP.name);
     }
 
