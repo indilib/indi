@@ -64,6 +64,7 @@ class LX200AstroPhysics : public LX200Generic
     virtual bool Goto(double, double) override;
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual void getBasicData();
     virtual bool SetSlewRate(int index) override;
 
     virtual int  SendPulseCmd(int direction, int duration_msec) override;

@@ -509,6 +509,33 @@ bool LX200AstroPhysics::ReadScopeStatus()
     return true;
 }
 
+// Called by updateProperties - pulled from lx200ap_10micron
+void LX200AstroPhysics::getBasicData()
+{
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+
+    // cannot call LX200Generic::getBasicData(); as getTimeFormat :Gc# and getSiteName :GM# are not implemented on AP
+    // TODO delete SiteNameT SiteNameTP
+    if (!isSimulation())
+    {
+        checkLX200Format(PortFD);
+        timeFormat = LX200_24;
+
+        if (genericCapability & LX200_HAS_TRACKING_FREQ)
+        {
+            if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to get tracking frequency from device.");
+            else
+                IDSetNumber(&TrackingFreqNP, nullptr);
+        }
+    }
+
+    sendScopeLocation();
+    sendScopeTime();
+}
+
+
+
 bool LX200AstroPhysics::setBasicDataPart0()
 {
     int err;
