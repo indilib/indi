@@ -206,6 +206,11 @@ bool StreamManager::updateProperties()
     return true;
 }
 
+/*
+ * The camera driver is expected to send the FULL FRAME of the Camera after BINNING without any subframing at all
+ * Subframing for streaming/recording is done in the stream manager.
+ * Therefore nbytes is expected to be SubW/BinX * SubH/BinY * Bytes_Per_Pixels * Number_Color_Components
+ * Binned frame must be sent from the camera driver for this to work consistentaly for all drivers.*/
 void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
 {
     double ms1, ms2, deltams;
@@ -241,13 +246,13 @@ void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
     if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
     {
         // Do not downscale for SER recorder.
-        if (!strcmp(recorder->getName(), "SER"))
+        if (isRecording() && !strcmp(recorder->getName(), "SER"))
         {
             recordStream(buffer, nbytes, deltams);
         }
 
-        //uint32_t npixels = (currentCCD->PrimaryCCD.getSubW()/currentCCD->PrimaryCCD.getBinX()) * (currentCCD->PrimaryCCD.getSubH()/currentCCD->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
-        uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+        uint32_t npixels = (currentCCD->PrimaryCCD.getSubW()/currentCCD->PrimaryCCD.getBinX()) * (currentCCD->PrimaryCCD.getSubH()/currentCCD->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+        //uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
         // Allocale new buffer if size changes
         if (downscaleBufferSize != npixels)
         {
@@ -298,7 +303,7 @@ void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
         }
 
         // If anything but SER, let's call recorder. Otherwise, it's been called up before.
-        if (strcmp(recorder->getName(), "SER"))
+        if (isRecording() && strcmp(recorder->getName(), "SER"))
         {
             recordStream(downscaleBuffer, nbytes, deltams);
         }
@@ -965,7 +970,7 @@ bool StreamManager::uploadStream(const uint8_t *buffer, uint32_t nbytes)
               StreamFrameN[CCDChip::FRAME_W].value != subW || StreamFrameN[CCDChip::FRAME_H].value != subH))
     {
         uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
-        if (downscaleBufferSize != npixels)
+        if (downscaleBufferSize < npixels)
         {
             downscaleBufferSize = npixels;
             delete [] downscaleBuffer;
