@@ -543,3 +543,28 @@ int read_jpeg_mem(unsigned char *inBuffer, unsigned long inSize, uint8_t **mempt
 
     return 0;
 }
+
+int read_jpeg_size(unsigned char *inBuffer, unsigned long inSize, int *w, int *h)
+{
+    /* these are standard libjpeg structures for reading(decompression) */
+    struct jpeg_decompress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+
+    /* here we set up the standard libjpeg error handler */
+    cinfo.err = jpeg_std_error(&jerr);
+    /* setup decompression process and source, then read JPEG header */
+    jpeg_create_decompress(&cinfo);
+    /* this makes the library read from infile */
+    jpeg_mem_src(&cinfo, inBuffer, inSize);
+
+    /* reading the image header which contains image information */
+    jpeg_read_header(&cinfo, (boolean)TRUE);
+
+    *w     = cinfo.image_width;
+    *h     = cinfo.image_height;
+
+    /* wrap up decompression, destroy objects, free pointers and close open files */
+    jpeg_destroy_decompress(&cinfo);
+
+    return 0;
+}

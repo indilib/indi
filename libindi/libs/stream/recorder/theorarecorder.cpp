@@ -413,7 +413,7 @@ bool TheoraRecorder::close()
     return true;
 }
 
-bool TheoraRecorder::writeFrame(uint8_t *frame, uint32_t nbytes)
+bool TheoraRecorder::writeFrame(const uint8_t *frame, uint32_t nbytes)
 {
     if (!isRecordingActive)
         return false;
@@ -427,7 +427,7 @@ bool TheoraRecorder::writeFrame(uint8_t *frame, uint32_t nbytes)
     }
     else if (m_PixelFormat == INDI_JPG)
     {
-        decode_jpeg_raw(frame, nbytes, 0, 0, rawWidth, rawHeight, ycbcr[0].data, ycbcr[1].data, ycbcr[2].data );
+        decode_jpeg_raw((const_cast<uint8_t *>(frame)), nbytes, 0, 0, rawWidth, rawHeight, ycbcr[0].data, ycbcr[1].data, ycbcr[2].data );
     }
     else
         return false;

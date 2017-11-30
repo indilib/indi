@@ -206,7 +206,7 @@ bool StreamManager::updateProperties()
     return true;
 }
 
-void StreamManager::newFrame(uint8_t *buffer, uint32_t nbytes)
+void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
 {
     double ms1, ms2, deltams;
 
@@ -246,7 +246,8 @@ void StreamManager::newFrame(uint8_t *buffer, uint32_t nbytes)
             recordStream(buffer, nbytes, deltams);
         }
 
-        uint32_t npixels = (currentCCD->PrimaryCCD.getSubW()/currentCCD->PrimaryCCD.getBinX()) * (currentCCD->PrimaryCCD.getSubH()/currentCCD->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+        //uint32_t npixels = (currentCCD->PrimaryCCD.getSubW()/currentCCD->PrimaryCCD.getBinX()) * (currentCCD->PrimaryCCD.getSubH()/currentCCD->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+        uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
         // Allocale new buffer if size changes
         if (downscaleBufferSize != npixels)
         {
@@ -255,8 +256,8 @@ void StreamManager::newFrame(uint8_t *buffer, uint32_t nbytes)
             downscaleBuffer = new uint8_t[npixels];
         }
 
-        uint16_t *srcBuffer = reinterpret_cast<uint16_t*>(buffer);
-        buffer = downscaleBuffer;
+        const uint16_t *srcBuffer = reinterpret_cast<const uint16_t*>(buffer);
+        //buffer = downscaleBuffer;
 
         // Slow method: proper downscale
         /*
@@ -282,7 +283,7 @@ void StreamManager::newFrame(uint8_t *buffer, uint32_t nbytes)
         // Fast method: Cut off anything higher than 255. Image will be saturated.
         // Dividing by 255 works, but for astronomical images it's too dark.
         for (uint32_t i=0; i < npixels; i++)
-            buffer[i] = std::max(0, std::min(255, static_cast<int>(srcBuffer[i])));
+            downscaleBuffer[i] = std::max(0, std::min(255, static_cast<int>(srcBuffer[i])));
 
         nbytes /= 2;
 
@@ -291,7 +292,7 @@ void StreamManager::newFrame(uint8_t *buffer, uint32_t nbytes)
             streamframeCount++;
             if (streamframeCount >= StreamOptionsN[OPTION_RATE_DIVISOR].value)
             {
-                uploadStream(buffer, nbytes);
+                uploadStream(downscaleBuffer, nbytes);
                 streamframeCount = 0;
             }
         }
@@ -299,7 +300,7 @@ void StreamManager::newFrame(uint8_t *buffer, uint32_t nbytes)
         // If anything but SER, let's call recorder. Otherwise, it's been called up before.
         if (strcmp(recorder->getName(), "SER"))
         {
-            recordStream(buffer, nbytes, deltams);
+            recordStream(downscaleBuffer, nbytes, deltams);
         }
     }
     else
@@ -309,14 +310,24 @@ void StreamManager::newFrame(uint8_t *buffer, uint32_t nbytes)
             streamframeCount++;
             if (streamframeCount >= StreamOptionsN[OPTION_RATE_DIVISOR].value)
             {
-                uploadStream(buffer, nbytes);
+                if (uploadStream(buffer, nbytes) == false)
+                {
+                    DEBUG(INDI::Logger::DBG_ERROR, "Streaming failed.");
+                    setStream(false);
+                    return;
+                }
                 streamframeCount = 0;
             }
         }
 
         if (RecordStreamSP.s == IPS_BUSY)
         {
-            recordStream(buffer, nbytes, deltams);
+            if (recordStream(buffer, nbytes, deltams) == false)
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Recording failed.");
+                stopRecording();
+                return;
+            }
         }
     }
 }
@@ -358,15 +369,23 @@ bool StreamManager::close()
 
 bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)
 {
-    direct_record = recorder->setPixelFormat(pixelFormat, pixelDepth);
-    encoder->setPixelFormat(pixelFormat, pixelDepth);
+    bool recorderOK = recorder->setPixelFormat(pixelFormat, pixelDepth);
+    if (recorderOK == false)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Pixel format is not supported by %s recorder.", recorder->getName());
+    }
+    bool encoderOK = encoder->setPixelFormat(pixelFormat, pixelDepth);
+    if (encoderOK == false)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Pixel format is not supported by %s encoder.", encoder->getName());
+    }
 
     m_PixelFormat = pixelFormat;
     m_PixelDepth  = pixelDepth;
     return true;
 }
 
-bool StreamManager::recordStream(uint8_t *buffer, uint32_t nbytes, double deltams)
+bool StreamManager::recordStream(const uint8_t *buffer, uint32_t nbytes, double deltams)
 {
     if (!m_isRecording)
         return false;
@@ -892,13 +911,14 @@ void StreamManager::getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16
     *h = StreamFrameN[CCDChip::FRAME_H].value;
 }
 
-bool StreamManager::uploadStream(uint8_t *buffer, uint32_t nbytes)
+bool StreamManager::uploadStream(const uint8_t *buffer, uint32_t nbytes)
 {
     // Send as is, already encoded.
     if (m_PixelFormat == INDI_JPG)
     {
         // Upload to client now
-        imageB->blob    = buffer;
+
+        imageB->blob    = (const_cast<uint8_t *>(buffer));
         imageB->bloblen = nbytes;
         imageB->size    = nbytes;
         strcpy(imageB->format, ".stream_jpg");
@@ -924,7 +944,7 @@ bool StreamManager::uploadStream(uint8_t *buffer, uint32_t nbytes)
     subW = currentCCD->PrimaryCCD.getSubW() / currentCCD->PrimaryCCD.getBinX();
     subH = currentCCD->PrimaryCCD.getSubH() / currentCCD->PrimaryCCD.getBinY();
 
-    uint8_t *streamBuffer = buffer;
+    //uint8_t *streamBuffer = buffer;
 
     // If stream frame was not yet initilized, let's do that now
     if (StreamFrameN[CCDChip::FRAME_W].value == 0 || StreamFrameN[CCDChip::FRAME_H].value == 0)
@@ -944,21 +964,39 @@ bool StreamManager::uploadStream(uint8_t *buffer, uint32_t nbytes)
              (StreamFrameN[CCDChip::FRAME_X].value != subX || StreamFrameN[CCDChip::FRAME_Y].value != subY ||
               StreamFrameN[CCDChip::FRAME_W].value != subW || StreamFrameN[CCDChip::FRAME_H].value != subH))
     {
+        uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+        if (downscaleBufferSize != npixels)
+        {
+            downscaleBufferSize = npixels;
+            delete [] downscaleBuffer;
+            downscaleBuffer = new uint8_t[npixels];
+        }
+
         uint32_t sourceOffset = (subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value;
         uint8_t components = (m_PixelFormat == INDI_RGB) ? 3 : 1;
 
-        uint8_t *srcBuffer  = streamBuffer + sourceOffset * components;
+        const uint8_t *srcBuffer  = buffer + sourceOffset * components;
         uint32_t sourceStride = subW * components;
 
-        uint8_t *destBuffer = streamBuffer;
+        uint8_t *destBuffer = downscaleBuffer;
         uint32_t desStride = StreamFrameN[CCDChip::FRAME_W].value * components;
 
         // Copy line-by-line
         for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
             memcpy(destBuffer + i * desStride, srcBuffer + sourceStride * i, desStride);
 
-        encoder->setSize(StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
+        //encoder->setSize(StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
         nbytes = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value;
+
+        if (encoder->upload(imageB, downscaleBuffer, nbytes, currentCCD->PrimaryCCD.isCompressed()))
+        {
+            // Upload to client now
+            imageBP->s = IPS_OK;
+            IDSetBLOB(imageBP, nullptr);
+            return true;
+        }
+
+        return false;
     }
 #if 0
         // For MONO
@@ -999,7 +1037,7 @@ bool StreamManager::uploadStream(uint8_t *buffer, uint32_t nbytes)
         }
 #endif
 
-    if (encoder->upload(imageB, streamBuffer, nbytes, currentCCD->PrimaryCCD.isCompressed()))
+    if (encoder->upload(imageB, buffer, nbytes, currentCCD->PrimaryCCD.isCompressed()))
     {
         // Upload to client now
         imageBP->s = IPS_OK;

@@ -1038,7 +1038,14 @@ bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
 {
     if (ImageColorS[IMAGE_COLOR].s == ISS_ON)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Binning color frames is currently not supported.");
+        if (hor == 1 && ver == 1)
+        {
+            PrimaryCCD.setBin(hor, ver);
+            Streamer->setSize(PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+            return true;
+        }
+
+        DEBUG(INDI::Logger::DBG_WARNING, "Binning color frames is currently not supported.");                
         return false;
     }
 
@@ -1061,7 +1068,7 @@ bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
     }
 
     PrimaryCCD.setBin(hor, ver);
-    //Streamer->setSize(PrimaryCCD.getSubW()/hor, PrimaryCCD.getSubH()/ver);
+    Streamer->setSize(PrimaryCCD.getSubW()/hor, PrimaryCCD.getSubH()/ver);
 
     return true;
 }
@@ -1198,8 +1205,14 @@ void V4L2_Driver::newFrame()
             }
         }
 
-        //memcpy(PrimaryCCD.getFrameBuffer(), buffer, frameBytes);
-        Streamer->newFrame(buffer, frameBytes);
+        if (PrimaryCCD.getBinX() > 1)
+        {
+            memcpy(PrimaryCCD.getFrameBuffer(), buffer, totalBytes);
+            PrimaryCCD.binFrame();
+            Streamer->newFrame(PrimaryCCD.getFrameBuffer(), frameBytes/PrimaryCCD.getBinX());
+        }
+        else
+            Streamer->newFrame(buffer, frameBytes);
         return;
     }
 

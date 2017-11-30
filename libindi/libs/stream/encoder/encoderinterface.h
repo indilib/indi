@@ -47,7 +47,7 @@ class EncoderInterface
 
     virtual bool setSize(uint16_t width, uint16_t height);
 
-    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint32_t nbytes, bool isCompressed=false) = 0;
+    virtual bool upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed=false) = 0;
 
     const char *getName();
 

@@ -74,12 +74,7 @@ class StreamManager
     /**
          * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
          */
-    void newFrame(uint8_t *buffer, uint32_t nbytes);
-    /**
-         * @brief recordStream Calls the backend recorder to record a single frame.
-         * @param deltams time in milliseconds since last frame
-         */
-    bool recordStream(uint8_t *buffer, uint32_t nbytes, double deltams);
+    void newFrame(const uint8_t *buffer, uint32_t nbytes);
 
     /**
          * @brief setStream Enables (starts) or disables (stops) streaming.
@@ -116,7 +111,19 @@ class StreamManager
     bool startRecording();
     bool stopRecording();
 
-    bool uploadStream(uint8_t *buffer, uint32_t nbytes);
+    /**
+     * @brief uploadStream Upload frame to client using the selected encoder
+     * @param buffer pointer to frame image buffer
+     * @param nbytes size of frame in bytes
+     * @return True if frame is encoded and sent to client, false otherwise.
+     */
+    bool uploadStream(const uint8_t *buffer, uint32_t nbytes);
+
+    /**
+         * @brief recordStream Calls the backend recorder to record a single frame.
+         * @param deltams time in milliseconds since last frame
+         */
+    bool recordStream(const uint8_t *buffer, uint32_t nbytes, double deltams);
 
     /* Stream switch */
     ISwitch StreamS[2];

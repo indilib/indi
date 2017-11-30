@@ -44,7 +44,7 @@ const char *RawEncoder::getDeviceName()
     return currentCCD->getDeviceName();
 }
 
-bool RawEncoder::upload(IBLOB *bp, uint8_t *buffer, uint32_t nbytes, bool isCompressed)
+bool RawEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed)
 {
     // Do we want to compress ?
     if (isCompressed)
@@ -70,7 +70,7 @@ bool RawEncoder::upload(IBLOB *bp, uint8_t *buffer, uint32_t nbytes, bool isComp
     else
     {
         // Send it uncompressed
-        bp->blob    = buffer;
+        bp->blob    = (const_cast<uint8_t *>(buffer));
         bp->bloblen = nbytes;
         bp->size    = nbytes;
         strcpy(bp->format, ".stream");

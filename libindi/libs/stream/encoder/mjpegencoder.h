@@ -30,7 +30,7 @@ public:
     MJPEGEncoder();
     ~MJPEGEncoder();
 
-    virtual bool upload(IBLOB *bp, uint8_t *buffer, uint32_t nbytes, bool isCompressed=false) override;
+    virtual bool upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed=false) override;
 
 private:
     const char *getDeviceName();

@@ -263,7 +263,7 @@ GPhotoCCD::GPhotoCCD()
     on_off[0]        = strdup("On");
     on_off[1]        = strdup("Off");
 
-    setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);
+    setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);    
 }
 
 GPhotoCCD::GPhotoCCD(const char *model, const char *port)
@@ -1632,6 +1632,7 @@ bool GPhotoCCD::StartStreaming()
         return false;
     }
 
+    Streamer->setPixelFormat(INDI_JPG);
     SetTimer(STREAMPOLLMS);
     return true;
 }
@@ -1687,6 +1688,20 @@ bool GPhotoCCD::startLiveVideo()
         }
     }
 
+    /*if (PrimaryCCD.getSubW() != w || PrimaryCCD.getSubH() != h)
+    {
+        Streamer->setSize(w, h);
+        PrimaryCCD.setFrame(0, 0, w, h);
+    }*/
+
+    int w=0,h=0;
+    unsigned char *inBuffer = (unsigned char *)(const_cast<char *>(previewData));
+    read_jpeg_size(inBuffer, previewSize, &w, &h);
+    Streamer->setSize(w,h);
+    Streamer->newFrame(inBuffer, previewSize);
+
+#if 0
+
     uint8_t *ccdBuffer      = PrimaryCCD.getFrameBuffer();
     unsigned char *inBuffer = (unsigned char *)(const_cast<char *>(previewData));
     size_t size             = 0;
@@ -1722,7 +1737,7 @@ bool GPhotoCCD::startLiveVideo()
     //if (last_w != w || last_h != h)
     if (PrimaryCCD.getSubW() != w || PrimaryCCD.getSubH() != h)
     {
-        Streamer->setRecorderSize(w, h);
+        Streamer->setSize(w, h);
         PrimaryCCD.setFrame(0, 0, w, h);
     }
 
@@ -1736,6 +1751,7 @@ bool GPhotoCCD::startLiveVideo()
     }
 
     Streamer->newFrame();
+#endif
 
     return true;
 }
