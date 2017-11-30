@@ -575,7 +575,7 @@ bool LX200AstroPhysics::setBasicDataPart1()
     // Stop
     if (!isSimulation() && (err = setAPMotionStop(PortFD)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Stop motion (:Q#) failed, check the mount (%d): %s", strerror(err));
+      DEBUGF(INDI::Logger::DBG_ERROR, "Stop motion (:Q#) failed, check the mount (%d): %s", err, strerror(err));
         return false;
     }
 
