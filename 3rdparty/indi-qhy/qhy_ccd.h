@@ -142,7 +142,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     // Temperature tracking
     float TemperatureRequest;
     int temperatureID;
-    bool coolerEnabled, useSoftBin;
+    bool coolerEnabled;//, useSoftBin;
 
     // Exposure progress
     float ExposureRequest;

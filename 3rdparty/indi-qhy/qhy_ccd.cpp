@@ -659,9 +659,9 @@ bool QHYCCD::Connect()
         camybin = 1;
 
         // Always use INDI software binning
-        useSoftBin = true;
+        //useSoftBin = true;
 
-        /*
+
         ret = IsQHYCCDControlAvailable(camhandle,CAM_BIN1X1MODE);
         if(ret == QHYCCD_SUCCESS)
         {
@@ -676,9 +676,7 @@ bool QHYCCD::Connect()
         ret &= IsQHYCCDControlAvailable(camhandle,CAM_BIN4X4MODE);
 
         // Only use software binning if NOT supported by hardware
-        useSoftBin = !(ret == QHYCCD_SUCCESS);
-
-        */
+        //useSoftBin = !(ret == QHYCCD_SUCCESS);
 
         DEBUGF(INDI::Logger::DBG_DEBUG, "Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");
 
@@ -783,7 +781,7 @@ bool QHYCCD::setupParams()
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     Streamer->setPixelFormat(INDI_MONO);
-    Streamer->setRecorderSize(imagew, imageh);
+    Streamer->setSize(imagew, imageh);
     return true;
 }
 
@@ -874,8 +872,7 @@ bool QHYCCD::StartExposure(float duration)
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDBinMode (%dx%d). Software binning (%dx%d)", camxbin, camybin,
-           PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
+    DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDBinMode (%dx%d).", camxbin, camybin);
 
     if (sim)
         ret = QHYCCD_SUCCESS;
@@ -958,22 +955,22 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
       return false;
   }*/
 
-    camroix      = x;
-    camroiy      = y;
-    camroiwidth  = w;
-    camroiheight = h;
+    camroix      = x / PrimaryCCD.getBinX();
+    camroiy      = y / PrimaryCCD.getBinY();
+    camroiwidth  = w / PrimaryCCD.getBinX();
+    camroiheight = h / PrimaryCCD.getBinY();
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Final binned (%dx%d) image area is (%d, %d), (%d, %d)", PrimaryCCD.getBinX(),
-           PrimaryCCD.getBinY(), camroix / PrimaryCCD.getBinX(), camroiy / PrimaryCCD.getBinY(),
-           camroiwidth / PrimaryCCD.getBinX(), camroiheight / PrimaryCCD.getBinY());
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Final binned (%dx%d) image area is (%d, %d), (%d, %d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(),
+           camroix, camroiy, camroiwidth, camroiheight);
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
-    int nbuf;
-    nbuf = (camroiwidth * camroiheight * PrimaryCCD.getBPP() / 8); //  this is pixel count
+    // Total bytes required for image buffer
+    uint32_t nbuf = (camroiwidth * camroiheight * PrimaryCCD.getBPP() / 8);
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    Streamer->setRecorderSize(camroiwidth, camroiheight);
+    // Streamer is always updated with BINNED size.
+    Streamer->setSize(camroiwidth, camroiheight);
     return true;
 }
 
@@ -999,9 +996,10 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
         return false;
     }
 
-    if (useSoftBin)
+    /*if (useSoftBin)
         ret = QHYCCD_SUCCESS;
-    else if (hor == 1 && ver == 1)
+    else */
+    if (hor == 1 && ver == 1)
     {
         ret = IsQHYCCDControlAvailable(camhandle, CAM_BIN1X1MODE);
     }
@@ -1019,6 +1017,7 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
     }
 
     // Binning ALWAYS succeeds
+#if 0
     if (ret != QHYCCD_SUCCESS)
     {
         useSoftBin = true;
@@ -1027,6 +1026,16 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
     // We always use software binning so QHY binning is always at 1x1
     camxbin = 1;
     camybin = 1;
+#endif
+
+    if (ret != QHYCCD_SUCCESS)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%dx%d binning is not supported.", hor, ver);
+        return false;
+    }
+
+    camxbin = hor;
+    camybin = ver;
 
     PrimaryCCD.setBin(hor, ver);
 
@@ -1078,8 +1087,8 @@ int QHYCCD::grabImage()
     }
 
     // Perform software binning if necessary
-    if (useSoftBin)
-        PrimaryCCD.binFrame();
+    //if (useSoftBin)
+    //    PrimaryCCD.binFrame();
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
     if (ExposureRequest > POLLMS * 5)
@@ -1469,6 +1478,7 @@ bool QHYCCD::StartStreaming()
 
     Streamer->setPixelFormat(qhyFormat, PrimaryCCD.getBPP());
 
+    SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, ExposureRequest * 1000 * 1000);
     SetQHYCCDStreamMode(camhandle, 0x01);
     BeginQHYCCDLive(camhandle);
     pthread_mutex_lock(&condMutex);
@@ -1517,7 +1527,7 @@ void *QHYCCD::streamVideo()
 
         if ((ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) ==
             QHYCCD_SUCCESS)
-            Streamer->newFrame();
+            Streamer->newFrame(PrimaryCCD.getFrameBuffer(), PrimaryCCD.getFrameBufferSize());
     }
 
     pthread_mutex_unlock(&condMutex);
