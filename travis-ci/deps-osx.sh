@@ -5,7 +5,7 @@ set -e
 brew update
 brew tap 'homebrew/homebrew-science'
 brew tap 'caskroom/drivers'
-brew tap 'jochym/indi'
+#brew tap 'jochym/indi'
 
 brew install \
 	cmake \
