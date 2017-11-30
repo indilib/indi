@@ -1554,22 +1554,22 @@ void ASICCD::updateRecorderFormat()
 
     switch (currentVideoFormat)
     {
-        case ASI_IMG_Y8:
-            Streamer->setPixelFormat(INDI_MONO);
-            break;
+    case ASI_IMG_Y8:
+        Streamer->setPixelFormat(INDI_MONO);
+        break;
 
-        case ASI_IMG_RAW8:
-            if (m_camInfo->BayerPattern == ASI_BAYER_RG)
-                Streamer->setPixelFormat(INDI_BAYER_RGGB);
-            else if (m_camInfo->BayerPattern == ASI_BAYER_BG)
-                Streamer->setPixelFormat(INDI_BAYER_BGGR);
-            else if (m_camInfo->BayerPattern == ASI_BAYER_GR)
-                Streamer->setPixelFormat(INDI_BAYER_GRBG);
-            else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
-                Streamer->setPixelFormat(INDI_BAYER_GBRG);
-            break;
+    case ASI_IMG_RAW8:
+        if (m_camInfo->BayerPattern == ASI_BAYER_RG)
+            Streamer->setPixelFormat(INDI_BAYER_RGGB);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_BG)
+            Streamer->setPixelFormat(INDI_BAYER_BGGR);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_GR)
+            Streamer->setPixelFormat(INDI_BAYER_GRBG);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
+            Streamer->setPixelFormat(INDI_BAYER_GBRG);
+        break;
 
-        case ASI_IMG_RAW16:
+    case ASI_IMG_RAW16:
         if (m_camInfo->IsColorCam == ASI_FALSE)
             Streamer->setPixelFormat(INDI_MONO, 16);
         else if (m_camInfo->BayerPattern == ASI_BAYER_RG)
@@ -1580,14 +1580,14 @@ void ASICCD::updateRecorderFormat()
             Streamer->setPixelFormat(INDI_BAYER_GRBG, 16);
         else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
             Streamer->setPixelFormat(INDI_BAYER_GBRG, 16);
-            break;
+        break;
 
-        case ASI_IMG_RGB24:
-            Streamer->setPixelFormat(INDI_RGB);
-            break;
+    case ASI_IMG_RGB24:
+        Streamer->setPixelFormat(INDI_RGB);
+        break;
 
-        case ASI_IMG_END:
-            break;
+    case ASI_IMG_END:
+        break;
     }
 }
 
