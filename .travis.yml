@@ -67,7 +67,7 @@ branches:
 before_install:
     - eval "${MATRIX_EVAL}"
     - echo Install dependencies
-    - rvm get stable
+      #    - rvm get stable
     - travis-ci/deps-${TRAVIS_OS_NAME}.sh
 
 install:
@@ -88,5 +88,5 @@ install:
 script:
     - travis-ci/run-tests.sh 
 
-after_script: set +e
+# after_script: set +e
 
