@@ -939,9 +939,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "ASISetStartPos (%d,%d) error (%d)", x_1, y_1, errCode);
         return false;
-    }
-
-    Streamer->setSize(bin_width, bin_height);
+    }    
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
@@ -951,12 +949,13 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     if (getImageType() == ASI_IMG_RGB24)
         nChannels = 3;
 
-    int nbuf;
-    nbuf = (bin_width * bin_height * PrimaryCCD.getBPP() / 8) * nChannels; //  this is pixel count
-    //nbuf += 512;    //  leave a little extra at the end
+    // Total bytes required for image buffer
+    uint32_t nbuf = (bin_width * bin_height * PrimaryCCD.getBPP() / 8) * nChannels;
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting frame buffer size to %d bytes.", nbuf);
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting frame buffer size to %d bytes.", nbuf);
+    // Always set BINNED size
+    Streamer->setSize(bin_width, bin_height);
 
     return true;
 }
