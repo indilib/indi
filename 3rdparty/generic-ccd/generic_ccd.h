@@ -54,7 +54,7 @@ class GenericCCD : public INDI::CCD
     void TimerHit();
     virtual bool UpdateCCDFrame(int x, int y, int w, int h);
     virtual bool UpdateCCDBin(int binx, int biny);
-    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+    virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType);
 
     // Guide Port
     virtual IPState GuideNorth(float ms);
@@ -72,7 +72,7 @@ class GenericCCD : public INDI::CCD
 
     int timerID;
 
-    CCDChip::CCD_FRAME imageFrameType;
+    INDI::CCDChip::CCD_FRAME imageFrameType;
 
     struct timeval ExpStart;
 

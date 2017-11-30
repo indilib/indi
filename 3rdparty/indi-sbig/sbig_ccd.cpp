@@ -860,7 +860,7 @@ int SBIGCCD::SetTemperature(double temperature)
     return -1;
 }
 
-int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
+int SBIGCCD::StartExposure(INDI::CCDChip *targetChip, double duration)
 {
     int res, binning, shutter;
 
@@ -873,10 +873,10 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
         return res;
     }
 
-    CCDChip::CCD_FRAME frameType;
+    INDI::CCDChip::CCD_FRAME frameType;
     getFrameType(targetChip, &frameType);
     ulong expTime = (ulong)floor(duration * 100.0 + 0.5);
-    if (frameType == CCDChip::BIAS_FRAME) // Flat frame = zero seconds
+    if (frameType == INDI::CCDChip::BIAS_FRAME) // Flat frame = zero seconds
     {
         expTime = 0;
     }
@@ -930,19 +930,19 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
         return res;
     }
 
-    if (frameType == CCDChip::LIGHT_FRAME)
+    if (frameType == INDI::CCDChip::LIGHT_FRAME)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Light Frame exposure in progress...");
     }
-    else if (frameType == CCDChip::DARK_FRAME)
+    else if (frameType == INDI::CCDChip::DARK_FRAME)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Dark Frame exposure in progress...");
     }
-    else if (frameType == CCDChip::FLAT_FRAME)
+    else if (frameType == INDI::CCDChip::FLAT_FRAME)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Flat Frame exposure in progress...");
     }
-    else if (frameType == CCDChip::BIAS_FRAME)
+    else if (frameType == INDI::CCDChip::BIAS_FRAME)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Bias Frame exposure in progress...");
     }
@@ -979,7 +979,7 @@ bool SBIGCCD::StartGuideExposure(float duration)
     return true;
 }
 
-int SBIGCCD::AbortExposure(CCDChip *targetChip)
+int SBIGCCD::AbortExposure(INDI::CCDChip *targetChip)
 {
     int ccd;
     if (targetChip == &PrimaryCCD)
@@ -1044,9 +1044,9 @@ bool SBIGCCD::AbortGuideExposure()
     return true;
 }
 
-bool SBIGCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool SBIGCCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
 {
-    CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
+    INDI::CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
     if (fType != imageFrameType)
     {
         PrimaryCCD.setFrameType(fType);
@@ -1054,7 +1054,7 @@ bool SBIGCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
     return true;
 }
 
-bool SBIGCCD::updateFrameProperties(CCDChip *targetChip)
+bool SBIGCCD::updateFrameProperties(INDI::CCDChip *targetChip)
 {
     int wCcd, hCcd, binning;
     double wPixel, hPixel;
@@ -1212,7 +1212,7 @@ void *SBIGCCD::grabCCDHelper(void *context)
 void *SBIGCCD::grabCCD()
 {
     DEBUG(INDI::Logger::DBG_DEBUG, "grabCCD thread started...");
-    CCDChip *targetChip = NULL;
+    INDI::CCDChip *targetChip = NULL;
     pthread_mutex_lock(&condMutex);
     while (true)
     {
@@ -1237,7 +1237,7 @@ void *SBIGCCD::grabCCD()
 }
 #endif
 
-bool SBIGCCD::grabImage(CCDChip *targetChip)
+bool SBIGCCD::grabImage(INDI::CCDChip *targetChip)
 {
     unsigned short left   = (unsigned short)targetChip->getSubX() / targetChip->getBinX();
     unsigned short top    = (unsigned short)targetChip->getSubY() / targetChip->getBinX();
@@ -1296,7 +1296,7 @@ bool SBIGCCD::saveConfigItems(FILE *fp)
 void SBIGCCD::TimerHit()
 {
     long timeleft       = 1e6;
-    CCDChip *targetChip = NULL;
+    INDI::CCDChip *targetChip = NULL;
     if (isConnected() == false)
     {
         return;
@@ -1999,7 +1999,7 @@ bool SBIGCCD::CheckLink()
     return false;
 }
 
-/*int SBIGCCD::getNumberOfCCDChips()
+/*int SBIGCCD::getNumberOfINDI::CCDChips()
 {
     int res;
 
@@ -2067,7 +2067,7 @@ void SBIGCCD::InitVars()
 
 //==========================================================================
 
-int SBIGCCD::getBinningMode(CCDChip *targetChip, int &binning)
+int SBIGCCD::getBinningMode(INDI::CCDChip *targetChip, int &binning)
 {
     int res = CE_NO_ERROR;
     if (targetChip->getBinX() == 1 && targetChip->getBinY() == 1)
@@ -2094,16 +2094,16 @@ int SBIGCCD::getBinningMode(CCDChip *targetChip, int &binning)
     return res;
 }
 
-int SBIGCCD::getFrameType(CCDChip *targetChip, CCDChip::CCD_FRAME *frameType)
+int SBIGCCD::getFrameType(INDI::CCDChip *targetChip, INDI::CCDChip::CCD_FRAME *frameType)
 {
     *frameType = targetChip->getFrameType();
     return CE_NO_ERROR;
 }
 
-int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
+int SBIGCCD::getShutterMode(INDI::CCDChip *targetChip, int &shutter)
 {
     int res = CE_NO_ERROR;
-    CCDChip::CCD_FRAME frameType;
+    INDI::CCDChip::CCD_FRAME frameType;
     getFrameType(targetChip, &frameType);
     int ccd = CCD_IMAGING;
     if (targetChip == &PrimaryCCD)
@@ -2114,7 +2114,7 @@ int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
     {
         ccd = useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING;
     }
-    if (frameType == CCDChip::LIGHT_FRAME || frameType == CCDChip::FLAT_FRAME)
+    if (frameType == INDI::CCDChip::LIGHT_FRAME || frameType == INDI::CCDChip::FLAT_FRAME)
     {
         if (ccd == CCD_EXT_TRACKING)
         {
@@ -2125,7 +2125,7 @@ int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
             shutter = SC_OPEN_SHUTTER;
         }
     }
-    else if (frameType == CCDChip::DARK_FRAME || frameType == CCDChip::BIAS_FRAME)
+    else if (frameType == INDI::CCDChip::DARK_FRAME || frameType == INDI::CCDChip::BIAS_FRAME)
     {
         if (ccd == CCD_EXT_TRACKING)
         {
@@ -2242,7 +2242,7 @@ void SBIGCCD::updateTemperature()
     IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
 }
 
-bool SBIGCCD::isExposureDone(CCDChip *targetChip)
+bool SBIGCCD::isExposureDone(INDI::CCDChip *targetChip)
 {
     int ccd;
     if (isSimulation())
@@ -2308,7 +2308,7 @@ bool SBIGCCD::isExposureDone(CCDChip *targetChip)
 //==========================================================================
 
 int SBIGCCD::readoutCCD(unsigned short left, unsigned short top, unsigned short width, unsigned short height,
-                        unsigned short *buffer, CCDChip *targetChip)
+                        unsigned short *buffer, INDI::CCDChip *targetChip)
 {
     int h, ccd, binning, res;
     if (targetChip == &PrimaryCCD)

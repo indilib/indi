@@ -23,9 +23,7 @@
 #include "qhy_ccd.h"
 
 #include "config.h"
-#ifndef __APPLE__
-#include "stream_recorder.h"
-#endif
+#include <stream/streammanager.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -44,9 +42,6 @@
 
 static int cameraCount = 0;
 static QHYCCD *cameras[MAX_DEVICES];
-
-pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
 namespace
 {
@@ -580,11 +575,7 @@ bool QHYCCD::Connect()
     {
         DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s.", camid);
 
-#ifdef __APPLE__
-        cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME;
-#else
         cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING;
-#endif
 
         // Disable the stream mode before connecting
         ret = SetQHYCCDStreamMode(camhandle, 0);
@@ -725,9 +716,7 @@ bool QHYCCD::Connect()
 
         terminateThread = false;
 
-#ifndef __APPLE__
         pthread_create(&primary_thread, NULL, &streamVideoHelper, this);
-#endif
         return true;
     }
 
@@ -741,9 +730,7 @@ bool QHYCCD::Disconnect()
     DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
 
     pthread_mutex_lock(&condMutex);
-#ifndef __APPLE__
     streamPredicate = 0;
-#endif
     terminateThread = true;
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&condMutex);
@@ -795,10 +782,8 @@ bool QHYCCD::setupParams()
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-#ifndef __APPLE__
-    Streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
+    Streamer->setPixelFormat(INDI_MONO);
     Streamer->setRecorderSize(imagew, imageh);
-#endif
     return true;
 }
 
@@ -825,13 +810,11 @@ bool QHYCCD::StartExposure(float duration)
 {
     unsigned int ret = QHYCCD_ERROR;
 
-#ifndef __APPLE__
     if (Streamer->isBusy())
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Cannot take exposure while streaming/recording is active.");
         return false;
     }
-#endif
     //AbortPrimaryFrame = false;
 
     /*
@@ -853,7 +836,7 @@ bool QHYCCD::StartExposure(float duration)
     else*/
     if (GetCCDCapability() & CCD_HAS_SHUTTER)
     {
-        if (imageFrameType == CCDChip::DARK_FRAME || imageFrameType == CCDChip::BIAS_FRAME)
+        if (imageFrameType == INDI::CCDChip::DARK_FRAME || imageFrameType == INDI::CCDChip::BIAS_FRAME)
             ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_CLOSE);
         else
             ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_FREE);
@@ -990,9 +973,7 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
     nbuf = (camroiwidth * camroiheight * PrimaryCCD.getBPP() / 8); //  this is pixel count
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-#ifndef __APPLE__
     Streamer->setRecorderSize(camroiwidth, camroiheight);
-#endif
     return true;
 }
 
@@ -1463,29 +1444,30 @@ bool QHYCCD::saveConfigItems(FILE *fp)
     return true;
 }
 
-#ifndef __APPLE__
 bool QHYCCD::StartStreaming()
 {
-    if (PrimaryCCD.getBPP() != 8)
+    /*if (PrimaryCCD.getBPP() != 8)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Streaming only supported for 8 bit images.");
         return false;
     }
 
     DEBUGF(INDI::Logger::DBG_SESSION, "Starting streaming with a period of %g seconds.",
-           PrimaryCCD.getExposureDuration());
+           PrimaryCCD.getExposureDuration());*/
+
+    ExposureRequest = 1.0 / Streamer->getTargetFPS();
 
     // N.B. There is no corresponding value for GBGR. It is odd that QHY selects this as the default as no one seems to process it
-    const std::map<const char *, uint32_t> formats = { { "GBGR", V4L2_PIX_FMT_GREY },
-                                                       { "GRGB", V4L2_PIX_FMT_SGRBG8 },
-                                                       { "BGGR", V4L2_PIX_FMT_SBGGR8 },
-                                                       { "RGGB", V4L2_PIX_FMT_SRGGB8 } };
+    const std::map<const char *, INDI_PIXEL_FORMAT> formats = { { "GBGR", INDI_MONO },
+                                                                { "GRGB", INDI_BAYER_GRBG },
+                                                                { "BGGR", INDI_BAYER_BGGR },
+                                                                { "RGGB", INDI_BAYER_RGGB } };
 
-    uint32_t qhyFormat = V4L2_PIX_FMT_GREY;
+    INDI_PIXEL_FORMAT qhyFormat = INDI_MONO;
     if (BayerT[2].text && formats.count(BayerT[2].text) != 0)
         qhyFormat = formats.at(BayerT[2].text);
 
-    Streamer->setPixelFormat(qhyFormat);
+    Streamer->setPixelFormat(qhyFormat, PrimaryCCD.getBPP());
 
     SetQHYCCDStreamMode(camhandle, 0x01);
     BeginQHYCCDLive(camhandle);
@@ -1541,7 +1523,6 @@ void *QHYCCD::streamVideo()
     pthread_mutex_unlock(&condMutex);
     return 0;
 }
-#endif
 
 void QHYCCD::debugTriggered(bool enable)
 {

@@ -1,7 +1,7 @@
 /*
     Copyright (C) 2014 by geehalel <geehalel@gmail.com>
 
-    V4L2 Record
+    SER Recorder
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -21,16 +21,10 @@
 
 #pragma once
 
-#include "v4l2_record.h"
+#include "recorderinterface.h"
 
 #include <cstdint>
 #include <stdio.h>
-
-#ifdef OSX_EMBEDED_MODE
-//#include "videodev2.h"
-#else
-#include <linux/videodev2.h>
-#endif
 
 typedef struct ser_header
 {
@@ -67,23 +61,21 @@ enum ser_color_id
 #define SER_BIG_ENDIAN    0
 #define SER_LITTLE_ENDIAN 1
 
-class SER_Recorder : public V4L2_Recorder
+namespace INDI
+{
+
+class SER_Recorder : public RecorderInterface
 {
   public:
     SER_Recorder();
     virtual ~SER_Recorder();
 
-    virtual void init();
-    virtual bool setPixelFormat(uint32_t f);
-    virtual bool setSize(uint16_t width, uint16_t height);
-    virtual bool setFrame(uint16_t x, uint16_t y, uint16_t width, uint16_t height);
+    virtual const char *getExtension() { return ".ser"; }
+    virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
+    virtual bool setSize(uint16_t width, uint16_t height);    
     virtual bool open(const char *filename, char *errmsg);
     virtual bool close();
-    virtual bool writeFrame(unsigned char *frame);
-    virtual bool writeFrameMono(unsigned char *frame);  // default way to write a GREY frame
-    virtual bool writeFrameColor(unsigned char *frame); // default way to write a RGB3 frame
-    virtual void setDefaultMono();                      // prepare to write GREY frame
-    virtual void setDefaultColor();                     // prepare to write RGB24 frame
+    virtual bool writeFrame(const uint8_t *frame, uint32_t nbytes);
     virtual void setStreamEnabled(bool enable) { isStreamingActive = enable; }
 
     // Public constants
@@ -100,7 +92,7 @@ class SER_Recorder : public V4L2_Recorder
     FILE *f;
     uint32_t frame_size;
     uint32_t number_of_planes;
-    uint16_t offsetX = 0, offsetY = 0, rawWidth = 0, rawHeight = 0;
+    uint16_t rawWidth = 0, rawHeight = 0;
     std::vector<uint64_t> frameStamps;
 
   private:
@@ -127,3 +119,4 @@ class SER_Recorder : public V4L2_Recorder
     static const uint32_t m_days_in_400_years            = 303 * 365 + 97 * 366;
     static const uint64_t m_septaseconds_per_400_years   = m_days_in_400_years * m_septaseconds_per_day;
 };
+}

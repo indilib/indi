@@ -440,7 +440,7 @@ bool FLICCD::StartExposure(float duration)
         duration = minDuration;
     }
 
-    if (PrimaryCCD.getFrameType() == CCDChip::BIAS_FRAME)
+    if (PrimaryCCD.getFrameType() == INDI::CCDChip::BIAS_FRAME)
     {
         duration = minDuration;
         DEBUGF(INDI::Logger::DBG_DEBUG, "Bias Frame (s) : %g", minDuration);
@@ -484,19 +484,19 @@ bool FLICCD::AbortExposure()
     return true;
 }
 
-bool FLICCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool FLICCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
 {
     INDI_UNUSED(fType);
     int err                           = 0;
-    CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
+    INDI::CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
     // in indiccd.cpp imageFrameType is already set
     if (sim)
         return true;
 
     switch (imageFrameType)
     {
-        case CCDChip::BIAS_FRAME:
-        case CCDChip::DARK_FRAME:
+        case INDI::CCDChip::BIAS_FRAME:
+        case INDI::CCDChip::DARK_FRAME:
             if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_DARK)))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "FLISetFrameType() failed. %s.", strerror((int)-err));
@@ -504,8 +504,8 @@ bool FLICCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
             }
             break;
 
-        case CCDChip::LIGHT_FRAME:
-        case CCDChip::FLAT_FRAME:
+        case INDI::CCDChip::LIGHT_FRAME:
+        case INDI::CCDChip::FLAT_FRAME:
             if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL)))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "FLISetFrameType() failed. %s.", strerror((int)-err));

@@ -25,10 +25,10 @@
 #include <string>
 
 /**
- * \class INDI::Telescope
+ * \class Telescope
  * \brief Class to provide general functionality of a telescope device.
  *
- * Developers need to subclass INDI::Telescope to implement any driver for telescopes within INDI.
+ * Developers need to subclass Telescope to implement any driver for telescopes within INDI.
  *
  * Implementing a basic telescope driver involves the child class performing the following steps:
  * <ul>
@@ -40,13 +40,13 @@
  * provide controls for both serial and TCP/IP connections.</li>
  * <li>Once the parent class calls Connect(), the child class attempts to connect to the telescope and
  * return either success of failure</li>
- * <li>INDI::Telescope calls updateProperties() to enable the child class to define which properties to
+ * <li>Telescope calls updateProperties() to enable the child class to define which properties to
  * send to the client upon connection</li>
- * <li>INDI::Telescope calls ReadScopeStatus() to check the link to the telescope and update its state
+ * <li>Telescope calls ReadScopeStatus() to check the link to the telescope and update its state
  * and position. The child class should call newRaDec() whenever
  * a new value is read from the telescope.</li>
  * <li>The child class should implement Goto() and Sync(), and Park()/UnPark() if applicable.</li>
- * <li>INDI::Telescope calls disconnect() when the client request a disconnection. The child class
+ * <li>Telescope calls disconnect() when the client request a disconnection. The child class
  * should remove any additional properties it defined in updateProperties() if applicable</li>
  * </ul>
  *
@@ -62,9 +62,12 @@
  * Ideally, the child class should avoid changing property states directly within a function call from the base class as such state changes take place in the base class
  * after checking the return values of such functions.
  * \author Jasem Mutlaq, Gerry Rozema
- * \see TelescopeSimulator and SynScan drivers for examples of implementations of INDI::Telescope.
+ * \see TelescopeSimulator and SynScan drivers for examples of implementations of Telescope.
  */
-class INDI::Telescope : public INDI::DefaultDevice
+namespace INDI
+{
+
+class Telescope : public DefaultDevice
 {
   public:
     enum TelescopeStatus
@@ -343,7 +346,7 @@ class INDI::Telescope : public INDI::DefaultDevice
 
     /**
      * @brief setTelescopeConnection Set telescope connection mode. Child class should call this
-     * in the constructor before INDI::Telescope registers any connection interfaces
+     * in the constructor before Telescope registers any connection interfaces
      * @param value ORed combination of TelescopeConnection values.
      */
     void setTelescopeConnection(const uint8_t &value);
@@ -375,7 +378,7 @@ class INDI::Telescope : public INDI::DefaultDevice
      *   <li>Read coordinates</li>
      * </ol>
      * \return True if reading scope status is OK, false if an error is encounterd.
-     * \note This function is not implemented in INDI::Telescope, it must be implemented in the
+     * \note This function is not implemented in Telescope, it must be implemented in the
      * child class
      */
     virtual bool ReadScopeStatus() = 0;
@@ -532,7 +535,7 @@ class INDI::Telescope : public INDI::DefaultDevice
      * @param index Index of slew rate where 0 is slowest rate and capability.nSlewRate-1 is maximum rate.
      * @return True is operation successful, false otherwise.
      *
-     * \note This function as implemented in INDI::Telescope performs no function and always return
+     * \note This function as implemented in Telescope performs no function and always return
      * true. Only reimplement it if you need to issue a command to change the slew rate at the hardware
      * level. Most telescope drivers only utilize slew rate when issuing a motion command.
      */
@@ -758,5 +761,7 @@ private:
     IPState lastEqState;
 
     uint8_t telescopeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
-    INDI::Controller *controller;
+    Controller *controller;
 };
+
+}
