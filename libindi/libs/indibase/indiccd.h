@@ -357,11 +357,11 @@ class CCDChip
     float PixelSizey;
     /// Bytes per Pixel
     int BPP;
-    bool Interlaced;
-    uint8_t *RawFrame;
-    uint8_t *BinFrame;
-    int RawFrameSize;
-    bool SendCompressed;
+    bool Interlaced = false;
+    uint8_t *RawFrame = nullptr;
+    uint8_t *BinFrame = nullptr;
+    int RawFrameSize = 0;
+    bool SendCompressed = false;
     CCD_FRAME FrameType;
     double exposureDuration;
     timeval startExposureTime;

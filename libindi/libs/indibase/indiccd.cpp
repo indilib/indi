@@ -85,9 +85,6 @@ CCDChip::CCDChip()
     SendCompressed = false;
     Interlaced     = false;
 
-    RawFrame     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
-    RawFrameSize = 0;
-
     SubX = SubY = 0;
     SubW = SubH = 1;
     BPP         = 8;
@@ -104,9 +101,7 @@ CCDChip::CCDChip()
 
 CCDChip::~CCDChip()
 {
-    free(RawFrame);
-    RawFrameSize = 0;
-    RawFrame     = nullptr;
+    delete [] RawFrame;
     delete[] BinFrame;
 }
 
@@ -222,12 +217,12 @@ void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    RawFrame = (uint8_t *)realloc(RawFrame, nbuf * sizeof(uint8_t));
+    RawFrame = new uint8_t[nbuf];
 
     if (BinFrame)
     {
         delete [] BinFrame;
-        BinFrame = new uint8_t[nbuf * sizeof(uint8_t)];
+        BinFrame = new uint8_t[nbuf];
     }
 }
 
@@ -334,8 +329,8 @@ void CCDChip::binFrame()
 
         case 16:
         {
-            uint16_t *bin_buf    = (uint16_t *)BinFrame;
-            uint16_t *RawFrame16 = (uint16_t *)RawFrame;
+            uint16_t *bin_buf    = reinterpret_cast<uint16_t *>(BinFrame);
+            uint16_t *RawFrame16 = reinterpret_cast<uint16_t *>(RawFrame);
             uint16_t val;
             for (int i = 0; i < SubH; i += BinX)
                 for (int j = 0; j < SubW; j += BinX)
@@ -2654,12 +2649,12 @@ bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalByte
     if (targetChip->SendCompressed)
     {
         compressedBytes = sizeof(char) * totalBytes + totalBytes / 64 + 16 + 3;
-        compressedData  = (unsigned char *)malloc(compressedBytes);
+        compressedData  = new uint8_t[compressedBytes];
 
         if (fitsData == nullptr || compressedData == nullptr)
         {
             if (compressedData)
-                free(compressedData);
+                delete [] compressedData;
             DEBUG(Logger::DBG_ERROR, "Error: Ran out of memory compressing image");
             return false;
         }
@@ -2669,7 +2664,7 @@ bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalByte
         {
             /* this should NEVER happen */
             DEBUG(Logger::DBG_ERROR, "Error: Failed to compress image");
-            free(compressedData);
+            delete [] compressedData;
             return false;
         }
 
@@ -2679,7 +2674,7 @@ bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalByte
     }
     else
     {
-        targetChip->FitsB.blob    = (unsigned char *)fitsData;
+        targetChip->FitsB.blob    = const_cast<void *>(fitsData);
         targetChip->FitsB.bloblen = totalBytes;
         snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s", targetChip->getImageExtension());
     }
@@ -2691,7 +2686,7 @@ bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalByte
         IDSetBLOB(&targetChip->FitsBP, nullptr);
 
     if (compressedData)
-        free(compressedData);
+        delete [] compressedData;
 
     DEBUG(Logger::DBG_DEBUG, "Upload complete");
 
