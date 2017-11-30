@@ -144,6 +144,7 @@ class LX200Generic : public INDI::Telescope, public INDI::GuiderInterface
     int currentSiteNum;
     int trackingMode;
     long guide_direction;
+    bool sendTimeOnStartup=true, sendLocationOnStartup=true;
 
     unsigned int DBG_SCOPE;
 

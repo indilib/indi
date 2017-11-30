@@ -1324,9 +1324,9 @@ void LX200Generic::getBasicData()
 
     }
 
-    if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
+    if (sendLocationOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION))
         sendScopeLocation();
-    if (GetTelescopeCapability() & TELESCOPE_HAS_TIME)
+    if (sendTimeOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_TIME))
         sendScopeTime();
 }
 
