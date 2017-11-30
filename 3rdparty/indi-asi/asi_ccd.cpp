@@ -550,7 +550,7 @@ bool ASICCD::setupParams()
     ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
 
     updateRecorderFormat();
-    Streamer->setRecorderSize(w, h);
+    Streamer->setSize(w, h);
 
     return true;
 }
@@ -941,7 +941,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
         return false;
     }
 
-    Streamer->setRecorderSize(bin_width, bin_height);
+    Streamer->setSize(bin_width, bin_height);
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
@@ -1640,7 +1640,7 @@ void *ASICCD::streamVideo()
             }
         }
 
-        Streamer->newFrame();
+        Streamer->newFrame(targetFrame, totalBytes);
     }
 
     pthread_mutex_unlock(&condMutex);
