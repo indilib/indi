@@ -511,6 +511,29 @@ bool LX200AstroPhysics::ReadScopeStatus()
     return true;
 }
 
+// Called by updateProperties - pulled from lx200ap_10micron
+void LX200AstroPhysics::getBasicData()
+{
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+
+    // cannot call LX200Generic::getBasicData(); as getTimeFormat :Gc# and getSiteName :GM# are not implemented on AP
+    // TODO delete SiteNameT SiteNameTP
+    if (!isSimulation())
+    {
+        checkLX200Format(PortFD);
+        timeFormat = LX200_24;
+
+        // not used by lx200ap
+        IDSetText(&SiteNameTP, nullptr);
+        IDSetNumber(&TrackingFreqNP, nullptr);
+    }
+
+    sendScopeLocation();
+    sendScopeTime();
+}
+
+
+
 bool LX200AstroPhysics::setBasicDataPart0()
 {
     int err;
