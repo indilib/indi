@@ -87,3 +87,5 @@ install:
 script:
     - travis-ci/run-tests.sh 
 
+after_script: set +e
+
