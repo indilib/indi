@@ -27,7 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "v4l2driver.h"
 #include "indistandardproperty.h"
 #include "lx/Lx.h"
-#include "webcam/v4l2_record/stream_recorder.h"
 
 V4L2_Driver::V4L2_Driver()
 {
@@ -151,14 +150,14 @@ bool V4L2_Driver::initProperties()
 
     SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING | CCD_CAN_ABORT);
 
-    strncpy(v4l_base->deviceName, getDeviceName(), MAXINDIDEVICE);
+    v4l_base->setDeviceName(getDeviceName());
 
     return true;
 }
 
 void V4L2_Driver::initCamBase()
 {
-    v4l_base = new V4L2_Base();
+    v4l_base = new INDI::V4L2_Base();
 }
 
 void V4L2_Driver::ISGetProperties(const char *dev)
@@ -238,7 +237,7 @@ bool V4L2_Driver::updateProperties()
         SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
         PrimaryCCD.setImageExtension("fits");
 
-        v4l_base->setRecorder(Streamer->getRecorder());
+        //v4l_base->setRecorder(Streamer->getRecorder());
 
         if (v4l_base->isLXmodCapable())
             lx->updateProperties();
@@ -395,10 +394,13 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetText(&CaptureColorSpaceTP, nullptr);
 #endif
             //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
-            Streamer->setPixelFormat(v4l_base->fmt.fmt.pix.pixelformat);
+            INDI_PIXEL_FORMAT pixelFormat;
+            uint8_t pixelDepth=8;
+            if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
+                Streamer->setPixelFormat(pixelFormat, pixelDepth);
 
-            IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
-            return true;
+           IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
+           return true;
         }
     }
 
@@ -442,8 +444,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
             V4LFrame->height = h;
             PrimaryCCD.setResolution(w, h);
             updateFrameSize();
-            //recorder->setsize(w, h);
-            Streamer->setRecorderSize(w, h);
+            Streamer->setSize(w, h);
 
             CaptureSizesSP.s = IPS_OK;
             IDSetSwitch(&CaptureSizesSP, "Capture size (discrete): %d. %s", index, CaptureSizesSP.sp[index].name);
@@ -504,6 +505,13 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
         }
 
         updateFrameSize();
+#if 0
+        INDI_PIXEL_FORMAT pixelFormat;
+        uint8_t pixelDepth=8;
+        if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
+            Streamer->setPixelFormat(pixelFormat, pixelDepth);
+#endif
+        Streamer->setPixelFormat((ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON) ? INDI_MONO : INDI_RGB, 8);
         IDSetSwitch(&ImageColorSP, nullptr);
         return true;
     }
@@ -706,7 +714,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
             PrimaryCCD.setResolution(w, h);
             CaptureSizesNP.s = IPS_OK;
             updateFrameSize();
-            Streamer->setRecorderSize(w, h);
+            Streamer->setSize(w, h);
 
             IDSetNumber(&CaptureSizesNP, "Capture size (step/cont): %dx%d", w, h);
             return true;
@@ -940,6 +948,11 @@ void V4L2_Driver::stdtimerCallback(void *userpointer)
 
 bool V4L2_Driver::start_capturing(bool do_stream)
 {
+    // FIXME Must migrate completely to Stream
+    // The class shouldn't be making calls to encoder/recorder directly
+    // Stream? Yes or No
+    // Direct Record?
+    INDI_UNUSED(do_stream);
     if (Streamer->isBusy())
     {
         DEBUG(INDI::Logger::DBG_WARNING, "Cannot start exposure while streaming is in progress");
@@ -960,8 +973,8 @@ bool V4L2_Driver::start_capturing(bool do_stream)
         return false;
     }
 
-    if (do_stream)
-        v4l_base->doRecord(Streamer->isDirectRecording());
+    //if (do_stream)
+        //v4l_base->doRecord(Streamer->isDirectRecording());
 
     is_capturing = true;
     return true;
@@ -981,8 +994,9 @@ bool V4L2_Driver::stop_capturing()
                getRemainingExposure());
     }
 
+    // FIXME what to do with doRecord?
     //if(Streamer->isDirectRecording())
-    v4l_base->doRecord(false);
+    //v4l_base->doRecord(false);
 
     char errmsg[ERRMSGSIZ];
 
@@ -1024,7 +1038,14 @@ bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
 {
     if (ImageColorS[IMAGE_COLOR].s == ISS_ON)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Binning color frames is currently not supported.");
+        if (hor == 1 && ver == 1)
+        {
+            PrimaryCCD.setBin(hor, ver);
+            Streamer->setSize(PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+            return true;
+        }
+
+        DEBUG(INDI::Logger::DBG_WARNING, "Binning color frames is currently not supported.");                
         return false;
     }
 
@@ -1047,6 +1068,7 @@ bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
     }
 
     PrimaryCCD.setBin(hor, ver);
+    Streamer->setSize(PrimaryCCD.getSubW()/hor, PrimaryCCD.getSubH()/ver);
 
     return true;
 }
@@ -1066,10 +1088,7 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
         V4LFrame->height = crect.height;
         PrimaryCCD.setFrame(x, y, w, h);
         updateFrameSize();
-        //recorder->setsize(w, h);
-        Streamer->setRecorderSize(w, h);
-        //DEBUGF(INDI::Logger::DBG_SESSION, "updateCCDFrame ok: %d %d %d %d", x, y, w, h);
-        //IDLog("updateCCDFrame ok: %d %d %d %d\n", x, y, w, h);
+        Streamer->setSize(w, h);
         return true;
     }
     else
@@ -1186,8 +1205,14 @@ void V4L2_Driver::newFrame()
             }
         }
 
-        memcpy(PrimaryCCD.getFrameBuffer(), buffer, frameBytes);
-        Streamer->newFrame();
+        if (PrimaryCCD.getBinX() > 1)
+        {
+            memcpy(PrimaryCCD.getFrameBuffer(), buffer, totalBytes);
+            PrimaryCCD.binFrame();
+            Streamer->newFrame(PrimaryCCD.getFrameBuffer(), frameBytes/PrimaryCCD.getBinX());
+        }
+        else
+            Streamer->newFrame(buffer, frameBytes);
         return;
     }
 
@@ -1480,8 +1505,12 @@ void V4L2_Driver::getBasicData()
     updateFrameSize();
     //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
     //recorder->setsize(w, h);
-    Streamer->setPixelFormat(v4l_base->fmt.fmt.pix.pixelformat);
-    Streamer->setRecorderSize(w, h);
+    INDI_PIXEL_FORMAT pixelFormat;
+    uint8_t pixelDepth=8;
+    if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
+        Streamer->setPixelFormat(pixelFormat, pixelDepth);
+
+    Streamer->setSize(w, h);
 }
 
 void V4L2_Driver::updateV4L2Controls()
@@ -1597,3 +1626,126 @@ bool V4L2_Driver::saveConfigItems(FILE *fp)
 
     return Streamer->saveConfigItems(fp);
 }
+
+bool V4L2_Driver::getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT & pixelFormat, uint8_t & pixelDepth)
+{
+    //IDLog("recorder: setpixelformat %d\n", format);
+    pixelDepth = 8;
+    switch (v4l2format)
+    {
+        case V4L2_PIX_FMT_GREY:
+#ifdef V4L2_PIX_FMT_Y10
+        case V4L2_PIX_FMT_Y10:
+#endif
+#ifdef V4L2_PIX_FMT_Y12
+        case V4L2_PIX_FMT_Y12:
+#endif
+#ifdef V4L2_PIX_FMT_Y16
+        case V4L2_PIX_FMT_Y16:
+#endif
+            pixelFormat = INDI_MONO;
+#ifdef V4L2_PIX_FMT_Y10
+            if (v4l2format == V4L2_PIX_FMT_Y10)
+                pixelDepth = 10;
+#endif
+#ifdef V4L2_PIX_FMT_Y12
+            if (v4l2format == V4L2_PIX_FMT_Y12)
+                pixelDepth = 12;
+#endif
+#ifdef V4L2_PIX_FMT_Y16
+            if (v4l2format == V4L2_PIX_FMT_Y16)
+                pixelDepth = 16;
+#endif
+            return true;
+        case V4L2_PIX_FMT_SBGGR8:
+#ifdef V4L2_PIX_FMT_SBGGR10
+        case V4L2_PIX_FMT_SBGGR10:
+#endif
+#ifdef V4L2_PIX_FMT_SBGGR12
+        case V4L2_PIX_FMT_SBGGR12:
+#endif
+        case V4L2_PIX_FMT_SBGGR16:
+            pixelFormat = INDI_BAYER_BGGR;
+#ifdef V4L2_PIX_FMT_SBGGR10
+            if (v4l2format == V4L2_PIX_FMT_SBGGR10)
+                pixelDepth = 10;
+#endif
+#ifdef V4L2_PIX_FMT_SBGGR12
+            if (v4l2format == V4L2_PIX_FMT_SBGGR12)
+                pixelDepth = 12;
+#endif
+            if (v4l2format == V4L2_PIX_FMT_SBGGR16)
+                pixelDepth = 16;
+            return true;
+        case V4L2_PIX_FMT_SGBRG8:
+#ifdef V4L2_PIX_FMT_SGBRG10
+        case V4L2_PIX_FMT_SGBRG10:
+#endif
+#ifdef V4L2_PIX_FMT_SGBRG12
+        case V4L2_PIX_FMT_SGBRG12:
+#endif
+            pixelFormat = INDI_BAYER_GBRG;
+#ifdef V4L2_PIX_FMT_SGBRG10
+            if (v4l2format == V4L2_PIX_FMT_SGBRG10)
+                pixelDepth = 10;
+#endif
+#ifdef V4L2_PIX_FMT_SGBRG12
+            if (v4l2format == V4L2_PIX_FMT_SGBRG12)
+                pixelDepth = 12;
+#endif
+            return true;
+#if defined(V4L2_PIX_FMT_SGRBG8) || defined(V4L2_PIX_FMT_SGRBG10) || defined(V4L2_PIX_FMT_SGRBG12)
+#ifdef V4L2_PIX_FMT_SGRBG8
+        case V4L2_PIX_FMT_SGRBG8:
+#endif
+#ifdef V4L2_PIX_FMT_SGRBG10
+        case V4L2_PIX_FMT_SGRBG10:
+#endif
+#ifdef V4L2_PIX_FMT_SGRBG12
+        case V4L2_PIX_FMT_SGRBG12:
+#endif
+            pixelDepth = INDI_BAYER_GRBG;
+#ifdef V4L2_PIX_FMT_SGRBG10
+            if (v4l2format == V4L2_PIX_FMT_SGRBG10)
+                pixelDepth = 10;
+
+#endif
+#ifdef V4L2_PIX_FMT_SGRBG12
+            if (v4l2format == V4L2_PIX_FMT_SGRBG12)
+                pixelDepth = 12;
+#endif
+            return true;
+#endif
+#if defined(V4L2_PIX_FMT_SRGGB8) || defined(V4L2_PIX_FMT_SRGGB10) || defined(V4L2_PIX_FMT_SRGGB12)
+#ifdef V4L2_PIX_FMT_SRGGB8
+        case V4L2_PIX_FMT_SRGGB8:
+#endif
+#ifdef V4L2_PIX_FMT_SRGGB10
+        case V4L2_PIX_FMT_SRGGB10:
+#endif
+#ifdef V4L2_PIX_FMT_SRGGB12
+        case V4L2_PIX_FMT_SRGGB12:
+#endif
+            pixelFormat = INDI_BAYER_RGGB;
+#ifdef V4L2_PIX_FMT_SRGGB10
+            if (v4l2format == V4L2_PIX_FMT_SRGGB10)
+                pixelDepth = 10;
+#endif
+#ifdef V4L2_PIX_FMT_SRGGB12
+            if (v4l2format == V4L2_PIX_FMT_SRGGB12)
+                pixelDepth = 12;
+#endif
+            return true;
+#endif
+        case V4L2_PIX_FMT_RGB24:
+            pixelFormat = INDI_RGB;
+            return true;
+        case V4L2_PIX_FMT_BGR24:
+            pixelFormat = INDI_BGR;
+            return true;
+        default:
+            return false;
+    }
+}
+
+

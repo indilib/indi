@@ -22,12 +22,13 @@
 
 #pragma once
 
-#include "indiccd.h"
 #include "indidevapi.h"
-#include "v4l2_record.h"
+#include "recorder/recordermanager.h"
+#include "encoder/encodermanager.h"
 
 #include <string>
 #include <map>
+#include <sys/time.h>
 
 #include <stdint.h>
 
@@ -41,7 +42,12 @@
 
 \author Jean-Luc Geehalel, Jasem Mutlaq
 */
-class StreamRecorder
+namespace INDI
+{
+
+class CCD;
+
+class StreamManager
 {
   public:
     enum
@@ -52,8 +58,8 @@ class StreamRecorder
         RECORD_OFF
     };
 
-    StreamRecorder(INDI::CCD *mainCCD);
-    ~StreamRecorder();
+    StreamManager(CCD *mainCCD);
+    ~StreamManager();
 
     virtual void ISGetProperties(const char *dev);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
@@ -68,12 +74,7 @@ class StreamRecorder
     /**
          * @brief newFrame CCD drivers call this function when a new frame is received. It is then streamed, or recorded, or both according to the settings in the streamer.
          */
-    void newFrame();
-    /**
-         * @brief recordStream Calls the backend recorder to record a single frame.
-         * @param deltams time in milliseconds since last frame
-         */
-    void recordStream(double deltams);
+    void newFrame(const uint8_t *buffer, uint32_t nbytes);
 
     /**
          * @brief setStream Enables (starts) or disables (stops) streaming.
@@ -82,20 +83,25 @@ class StreamRecorder
          */
     bool setStream(bool enable);
 
-    V4L2_Recorder *getRecorder() { return recorder; }
+    RecorderInterface *getRecorder() { return recorder; }
     bool isDirectRecording() { return direct_record; }
-    bool isStreaming() { return is_streaming; }
-    bool isRecording() { return is_recording; }
+    bool isStreaming() { return m_isStreaming; }
+    bool isRecording() { return m_isRecording; }
     bool isBusy() { return (isStreaming() || isRecording()); }
-    const char *getDeviceName() { return ccd->getDeviceName(); }
+    uint8_t getTargetFPS() { return static_cast<uint8_t>(StreamOptionsN[OPTION_TARGET_FPS].value); }
 
-    void setRecorderSize(uint16_t width, uint16_t height);
-    bool setPixelFormat(uint32_t format);
+    uint8_t *getDownscaleBuffer() { return downscaleBuffer; }
+    uint32_t getDownscaleBufferSize() { return downscaleBufferSize; }
+
+    const char *getDeviceName();
+
+    void setSize(uint16_t width, uint16_t height);
+    bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth=8);
     void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
     bool close();
 
   protected:
-    INDI::CCD *ccd;
+    CCD *currentCCD = nullptr;
 
   private:
     /* Utility for record file */
@@ -105,7 +111,19 @@ class StreamRecorder
     bool startRecording();
     bool stopRecording();
 
-    bool uploadStream();
+    /**
+     * @brief uploadStream Upload frame to client using the selected encoder
+     * @param buffer pointer to frame image buffer
+     * @param nbytes size of frame in bytes
+     * @return True if frame is encoded and sent to client, false otherwise.
+     */
+    bool uploadStream(const uint8_t *buffer, uint32_t nbytes);
+
+    /**
+         * @brief recordStream Calls the backend recorder to record a single frame.
+         * @param deltams time in milliseconds since last frame
+         */
+    bool recordStream(const uint8_t *buffer, uint32_t nbytes, double deltams);
 
     /* Stream switch */
     ISwitch StreamS[2];
@@ -120,12 +138,14 @@ class StreamRecorder
     ITextVectorProperty RecordFileTP;
 
     /* Streaming Options */
-    INumber StreamOptionsN[1];
+    INumber StreamOptionsN[2];
     INumberVectorProperty StreamOptionsNP;
+    enum { OPTION_TARGET_FPS, OPTION_RATE_DIVISOR};
 
     /* Measured FPS */
     INumber FpsN[2];
     INumberVectorProperty FpsNP;
+    enum { FPS_INSTANT, FPS_AVERAGE };
 
     /* Record Options */
     INumber RecordOptionsN[2];
@@ -139,20 +159,32 @@ class StreamRecorder
     IBLOBVectorProperty *imageBP;
     IBLOB *imageB;
 
-    bool is_streaming;
-    bool is_recording;
+    // Encoder Selector. It's static now but should this implemented as plugin interface?
+    ISwitch EncoderS[2];
+    ISwitchVectorProperty EncoderSP;
+    enum { ENCODER_RAW, ENCODER_MJPEG };
+
+    // Recorder Selector. Static but should be implmeneted as a dynamic plugin interface
+    ISwitch RecorderS[2];
+    ISwitchVectorProperty RecorderSP;
+    enum { RECORDER_RAW, RECORDER_OGV };
+
+    bool m_isStreaming;
+    bool m_isRecording;
 
     int streamframeCount;
     int recordframeCount;
-    double recordDuration;
+    double recordDuration;    
 
-    uint8_t *compressedFrame;
-
-    // Record frames
-    V4L2_Record *v4l2_record;
-    V4L2_Recorder *recorder;
+    // Recorder
+    RecorderManager *recorderManager = nullptr;
+    RecorderInterface *recorder = nullptr;
     bool direct_record;
     std::string recordfiledir, recordfilename; /* in case we should move it */
+
+    // Encoders
+    EncoderManager *encoderManager = nullptr;
+    EncoderInterface *encoder = nullptr;
 
     // Measure FPS
     // timer_t fpstimer;
@@ -160,4 +192,13 @@ class StreamRecorder
     // use bsd timers
     struct itimerval tframe1, tframe2;
     double mssum, framecountsec;
+
+    INDI_PIXEL_FORMAT m_PixelFormat;
+    uint8_t m_PixelDepth;
+    uint16_t rawWidth=0, rawHeight=0;
+
+    // Downscale buffer for streaming
+    uint8_t *downscaleBuffer = nullptr;
+    uint32_t downscaleBufferSize=0;
 };
+}

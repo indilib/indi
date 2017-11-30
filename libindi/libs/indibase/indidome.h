@@ -68,7 +68,10 @@ class TCP;
 
 \author Jasem Mutlaq
 */
-class INDI::Dome : public INDI::DefaultDevice
+namespace INDI
+{
+
+class Dome : public DefaultDevice
 {
   public:
     /** \typedef DomeMeasurements
@@ -170,7 +173,7 @@ class INDI::Dome : public INDI::DefaultDevice
     static void buttonHelper(const char *button_n, ISState state, void *context);
 
     /**
-         * @brief setDomeConnection Set Dome connection mode. Child class should call this in the constructor before INDI::Dome registers
+         * @brief setDomeConnection Set Dome connection mode. Child class should call this in the constructor before Dome registers
          * any connection interfaces
          * @param value ORed combination of DomeConnection values.
          */
@@ -510,7 +513,7 @@ class INDI::Dome : public INDI::DefaultDevice
 
     void triggerSnoop(const char *driverName, const char *propertyName);
 
-    INDI::Controller *controller = nullptr;
+    Controller *controller = nullptr;
 
     DomeState domeState;
 
@@ -535,3 +538,5 @@ class INDI::Dome : public INDI::DefaultDevice
     bool callHandshake();
     uint8_t domeConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 };
+
+}

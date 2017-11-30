@@ -22,15 +22,10 @@
 
 #include <cstring>
 
-INDI::DustCapInterface::DustCapInterface()
+namespace INDI
 {
-}
 
-INDI::DustCapInterface::~DustCapInterface()
-{
-}
-
-void INDI::DustCapInterface::initDustCapProperties(const char *deviceName, const char *groupName)
+void DustCapInterface::initDustCapProperties(const char *deviceName, const char *groupName)
 {
     strncpy(dustCapName, deviceName, MAXINDIDEVICE);
 
@@ -41,7 +36,7 @@ void INDI::DustCapInterface::initDustCapProperties(const char *deviceName, const
                        IPS_IDLE);
 }
 
-bool INDI::DustCapInterface::processDustCapSwitch(const char *dev, const char *name, ISState *states, char *names[],
+bool DustCapInterface::processDustCapSwitch(const char *dev, const char *name, ISState *states, char *names[],
                                                   int n)
 {
     INDI_UNUSED(dev);
@@ -68,14 +63,15 @@ bool INDI::DustCapInterface::processDustCapSwitch(const char *dev, const char *n
     return false;
 }
 
-IPState INDI::DustCapInterface::ParkCap()
+IPState DustCapInterface::ParkCap()
 {
     // Must be implemented by child class
     return IPS_ALERT;
 }
 
-IPState INDI::DustCapInterface::UnParkCap()
+IPState DustCapInterface::UnParkCap()
 {
     // Must be implemented by child class
     return IPS_ALERT;
+}
 }

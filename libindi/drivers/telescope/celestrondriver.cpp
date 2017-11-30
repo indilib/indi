@@ -203,10 +203,7 @@ bool get_celestron_firmware(int fd, FirmwareInfo *info)
         return false;
 
     DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller variant...");
-    rc = get_celestron_variant(fd, info);
-
-    if (rc == false)
-        return false;
+    get_celestron_variant(fd, info);
 
     if (((info->controllerVariant == ISSTARSENSE) &&
           info->controllerVersion >= MINSTSENSVER) ||
@@ -323,17 +320,19 @@ bool get_celestron_variant (int fd, FirmwareInfo * info)
     {
         tcflush(fd, TCIOFLUSH);
 
+        // No critical errors for this
         if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "%s", errmsg);
             return false;
         }
 
-        if ( (errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
+        // No critical errors for this
+        if ( (errcode = tty_read_section(fd, response, '#', 1, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "%s", errmsg);
             return false;
         }
     }
@@ -350,7 +349,7 @@ bool get_celestron_variant (int fd, FirmwareInfo * info)
         }
     }
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 2.", nbytes_read);
+    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Received #%d bytes, expected 2.", nbytes_read);
     return false;
 
 }

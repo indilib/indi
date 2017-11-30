@@ -98,6 +98,7 @@ bool SSAGCCD::initProperties()
     SetCCDCapability(CCD_HAS_ST4_PORT | CCD_CAN_ABORT);
     SetCCDParams(WIDTH, HEIGHT, 8, 5.2, 5.2);
     setDriverInterface(CCD_INTERFACE | GUIDER_INTERFACE);
+    return true;
 }
 
 bool SSAGCCD::updateProperties()
@@ -114,6 +115,7 @@ bool SSAGCCD::updateProperties()
     {
         deleteProperty(GainNP.name);
     }
+    return true;
 }
 
 bool SSAGCCD::Connect()
@@ -195,7 +197,7 @@ bool SSAGCCD::ISNewNumber(const char *dev, const char *name, double values[], ch
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
-void SSAGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
+void SSAGCCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
     int status;
     fits_update_key_s(fptr, TDOUBLE, "GAIN   ", &GainN[0].value, "Gain", &status);

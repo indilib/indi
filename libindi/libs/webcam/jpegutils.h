@@ -46,6 +46,10 @@
 #define Y4M_CHROMA_MONO     6 /** luma plane only                      */
 #define Y4M_CHROMA_444ALPHA 7 /** 4:4:4 with an alpha channel          */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @short decode JPEG buffer
  */
@@ -63,5 +67,8 @@ int decode_jpeg_gray_raw(unsigned char *jpeg_data, int len, int itype, int ctype
  */
 int encode_jpeg_raw(unsigned char *jpeg_data, int len, int quality, int itype, int ctype, unsigned int width,
                     unsigned int height, unsigned char *raw0, unsigned char *raw1, unsigned char *raw2);
+#ifdef __cplusplus
+}
+#endif
 
 /*@}*/

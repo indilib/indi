@@ -51,6 +51,7 @@ int APSyncCMR(int fd, char *matchedObject);
 int selectAPMoveToRate(int fd, int moveToRate);
 int selectAPSlewRate(int fd, int slewRate);
 int selectAPTrackingMode(int fd, int trackMode);
+int selectAPGuideRate(int fd, int guideRate);
 int selectAPPECState(int fd, int pecstate);
 int swapAPButtons(int fd, int currentSwap);
 int setAPObjectRA(int fd, double ra);

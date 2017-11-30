@@ -278,7 +278,11 @@ class DetectorDevice
  * \author Jasem Mutlaq, Ilia Platone
  *
  */
-class INDI::Detector : public INDI::DefaultDevice
+
+namespace INDI
+{
+
+class Detector : public DefaultDevice
 {
   public:
     Detector();
@@ -347,7 +351,7 @@ class INDI::Detector : public INDI::DefaultDevice
      * Return 1 if setting the temperature to the requested value is complete.
      * \note Upon returning 0, the property becomes BUSY. Once the temperature reaches the requested
      * value, change the state to OK.
-     * \note This function is not implemented in INDI::Detector, it must be implemented in the child class
+     * \note This function is not implemented in Detector, it must be implemented in the child class
      */
     virtual int SetTemperature(double temperature);
 
@@ -355,7 +359,7 @@ class INDI::Detector : public INDI::DefaultDevice
      * \brief Start capture from the Detector device
      * \param duration Duration in seconds
      * \return true if OK and Capture will take some time to complete, false on error.
-     * \note This function is not implemented in INDI::Detector, it must be implemented in the child class
+     * \note This function is not implemented in Detector, it must be implemented in the child class
      */
     virtual bool StartCapture(float duration);
 
@@ -366,7 +370,7 @@ class INDI::Detector : public INDI::DefaultDevice
      * \param sfreq Sampling frequency of the detector (Hz, electronic speed of the detector).
      * \param bps Bit resolution of a single sample.
      * \return true if OK and Capture will take some time to complete, false on error.
-     * \note This function is not implemented in INDI::Detector, it must be implemented in the child class
+     * \note This function is not implemented in Detector, it must be implemented in the child class
      */
     virtual bool CaptureParamsUpdated(float sr, float freq, float bps);
 
@@ -374,14 +378,14 @@ class INDI::Detector : public INDI::DefaultDevice
      * \brief Uploads target Device exposed buffer as FITS to the client. Dervied classes should class
      * this function when an Capture is complete.
      * @param targetDevice device that contains upload capture data
-     * \note This function is not implemented in INDI::Detector, it must be implemented in the child class
+     * \note This function is not implemented in Detector, it must be implemented in the child class
      */
     virtual bool CaptureComplete(DetectorDevice *targetDevice);
 
     /**
      * \brief Abort ongoing Capture
      * \return true is abort is successful, false otherwise.
-     * \note This function is not implemented in INDI::Detector, it must be implemented in the child class
+     * \note This function is not implemented in Detector, it must be implemented in the child class
      */
     virtual bool AbortCapture();
 
@@ -410,7 +414,7 @@ class INDI::Detector : public INDI::DefaultDevice
      * </ul>
      *
      * To add additional information, override this function in the child class and ensure to call
-     * INDI::Detector::addFITSKeywords.
+     * Detector::addFITSKeywords.
      */
     virtual void addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, int blobIndex);
 
@@ -499,3 +503,5 @@ class INDI::Detector : public INDI::DefaultDevice
     void getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp);
     int getFileIndex(const char *dir, const char *prefix, const char *ext);
 };
+
+}

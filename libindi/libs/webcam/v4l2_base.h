@@ -32,7 +32,7 @@
 //#include "indilogger.h"
 #include "v4l2_decode/v4l2_decode.h"
 // for direct recording
-#include "v4l2_record/v4l2_record.h"
+#include "stream/streammanager.h"
 
 #include <stdio.h>
 #include <cstdlib>
@@ -41,12 +41,17 @@
 
 #define VIDEO_COMPRESSION_LEVEL 4
 
+class V4L2_Driver;
+
 enum
 {
     LX_ACTIVE = 0,
     LX_TRIGGERED,
     LX_ACCUMULATING
 };
+
+namespace INDI
+{
 
 class V4L2_Base
 {
@@ -66,6 +71,7 @@ class V4L2_Base
     virtual int connectCam(const char *devpath, char *errmsg, int pixelFormat = -1, int width = -1, int height = -1);
     virtual void disconnectCam(bool stopcapture);
     char *getDeviceName();
+    void setDeviceName(const char *name);
     bool isLXmodCapable();
 
     /* Updates */
@@ -133,9 +139,7 @@ class V4L2_Base
     short getlxstate() { return lxstate; }
     bool isstreamactive() { return streamactive; }
 
-    void doDecode(bool);
-    void setRecorder(V4L2_Recorder *r);
-    void doRecord(bool);
+    void doDecode(bool);    
 
   protected:
     int xioctl(int fd, int request, void *arg, char const *const request_str);
@@ -206,13 +210,10 @@ class V4L2_Base
     V4L2_Decoder *decoder;
     bool dodecode;
 
-    V4L2_Record *v4l2_record;
-    V4L2_Recorder *recorder;
-    bool dorecord;
-
     int bpp;
 
-    friend class V4L2_Driver;
+    friend class ::V4L2_Driver;
 
     char deviceName[MAXINDIDEVICE];
 };
+}

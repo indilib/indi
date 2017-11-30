@@ -59,3 +59,20 @@ typedef enum {
     INDI_PROPERTY_DUPLICATED = -3, /*!< Property duplicated error */
     INDI_DISPATCH_ERROR      = -4  /*!< Dispatch error */
 } INDI_ERROR_TYPE;
+
+typedef enum
+{
+    INDI_MONO       = 0,
+    INDI_BAYER_RGGB = 8,
+    INDI_BAYER_GRBG = 9,
+    INDI_BAYER_GBRG = 10,
+    INDI_BAYER_BGGR = 11,
+    INDI_BAYER_CYYM = 16,
+    INDI_BAYER_YCMY = 17,
+    INDI_BAYER_YMCY = 18,
+    INDI_BAYER_MYYC = 19,
+    INDI_RGB        = 100,
+    INDI_BGR        = 101,
+    INDI_JPG        = 200,
+} INDI_PIXEL_FORMAT;
+

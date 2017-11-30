@@ -11,7 +11,7 @@ set(INDI_MGENAUTOGUIDER_VERSION_MINOR 1)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(FTDI1 REQUIRED)
-find_package(USB-1 REQUIRED)
+find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
@@ -21,7 +21,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${INDI_INCLUDE_DIR})
 include_directories(${FTDI1_INCLUDE_DIR})
-include_directories(${LIBUSB_1_INCLUDE_DIRS})
+include_directories(${USB1_INCLUDE_DIRS})
 
 include(CMakeCommon)
 
@@ -37,7 +37,7 @@ ENDIF ()
 
 add_executable(indi_mgenautoguider ${indimgenautoguider_SRCS})
 
-target_link_libraries(indi_mgenautoguider ${INDI_DRIVER_LIBRARIES} ${FTDI1_LIBRARIES} ${LIBUSB_1_LIBRARIES} pthread)
+target_link_libraries(indi_mgenautoguider ${INDI_DRIVER_LIBRARIES} ${FTDI1_LIBRARIES} ${USB1_LIBRARIES} pthread)
 
 install(TARGETS indi_mgenautoguider RUNTIME DESTINATION bin )
 

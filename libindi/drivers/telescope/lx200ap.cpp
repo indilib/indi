@@ -41,6 +41,9 @@ LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);    
+
+    sendLocationOnStartup = false;
+    sendTimeOnStartup = false;
 }
 
 const char *LX200AstroPhysics::getDefaultName()
@@ -51,6 +54,8 @@ const char *LX200AstroPhysics::getDefaultName()
 bool LX200AstroPhysics::initProperties()
 {
     LX200Generic::initProperties();
+
+    timeFormat = LX200_24;
 
     IUFillSwitch(&StartUpS[0], "COLD", "Cold", ISS_OFF);
     IUFillSwitch(&StartUpS[1], "WARM", "Warm", ISS_OFF);
@@ -99,6 +104,13 @@ bool LX200AstroPhysics::initProperties()
     IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
+    // guide speed
+    IUFillSwitch(&APGuideSpeedS[0], "0.25", "0.25x", ISS_OFF);
+    IUFillSwitch(&APGuideSpeedS[1], "0.5", "0.50x", ISS_ON);
+    IUFillSwitch(&APGuideSpeedS[2], "1.0", "1.0x", ISS_OFF);
+    IUFillSwitchVector(&APGuideSpeedSP, APGuideSpeedS, 3, getDeviceName(), "Guide Rate", "", GUIDE_TAB, IP_RW, ISR_1OFMANY,
+                       0, IPS_IDLE);
+
     IUFillText(&VersionT[0], "Number", "", 0);
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
 
@@ -132,6 +144,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
+        defineSwitch(&APGuideSpeedSP);
         defineNumber(&SlewAccuracyNP);
 
         DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
@@ -153,6 +166,7 @@ bool LX200AstroPhysics::updateProperties()
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
+        defineSwitch(&APGuideSpeedSP);
         defineNumber(&SlewAccuracyNP);
 
         DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
@@ -165,6 +179,7 @@ bool LX200AstroPhysics::updateProperties()
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
+        deleteProperty(APGuideSpeedSP.name);
         deleteProperty(SlewAccuracyNP.name);
     }
 
@@ -339,6 +354,25 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
 
         APSlewSpeedSP.s = IPS_OK;
         IDSetSwitch(&APSlewSpeedSP, nullptr);
+        return true;
+    }
+
+    // ===========================================================
+    // Guide Speed.
+    // ===========================================================
+    if (!strcmp(name, APGuideSpeedSP.name))
+    {
+        IUUpdateSwitch(&APGuideSpeedSP, states, names, n);
+        int guideRate = IUFindOnSwitchIndex(&APGuideSpeedSP);
+
+        if (!isSimulation() && (err = selectAPGuideRate(PortFD, guideRate) < 0))
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting guiding to rate (%d).", err);
+            return false;
+        }
+
+        APGuideSpeedSP.s = IPS_OK;
+        IDSetSwitch(&APGuideSpeedSP, nullptr);
         return true;
     }
 
@@ -546,7 +580,7 @@ bool LX200AstroPhysics::setBasicDataPart1()
     // Stop
     if (!isSimulation() && (err = setAPMotionStop(PortFD)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Stop motion (:Q#) failed, check the mount (%d): %s", strerror(err));
+        DEBUGF(INDI::Logger::DBG_ERROR, "Stop motion (:Q#) failed, check the mount (%d): %s", err, strerror(err));
         return false;
     }
 
@@ -717,7 +751,7 @@ bool LX200AstroPhysics::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float)JD);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %.2f", JD);
 
     // Set Local Time
     if (setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
@@ -1032,6 +1066,7 @@ bool LX200AstroPhysics::saveConfigItems(FILE *fp)
 
     IUSaveConfigSwitch(fp, &SyncCMRSP);
     IUSaveConfigSwitch(fp, &APSlewSpeedSP);
+    IUSaveConfigSwitch(fp, &APGuideSpeedSP);
 
     return true;
 }

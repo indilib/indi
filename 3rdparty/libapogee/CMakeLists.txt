@@ -13,7 +13,7 @@ set(CONF_DIR "/etc/Apogee/camera" CACHE STRING "Configuration directory")
 set(APOGEE_VERSION "3.0.3234")
 set(APOGEE_SOVERSION "3")
 
-find_package(USB-1 REQUIRED)
+find_package(USB1 REQUIRED)
 find_package(CURL REQUIRED)
 
 set(Boost_USE_STATIC_LIBS OFF)
@@ -42,7 +42,7 @@ add_library(apogee SHARED ${libapogee_SRCS})
 
 set_target_properties(apogee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${APOGEE_SOVERSION})
 
-target_link_libraries(apogee ${LIBUSB_1_LIBRARIES} ${CURL_LIBRARY} ${Boost_LIBRARIES})
+target_link_libraries(apogee ${USB1_LIBRARIES} ${CURL_LIBRARY} ${Boost_LIBRARIES})
 
 install(TARGETS apogee LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
