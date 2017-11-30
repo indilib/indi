@@ -52,6 +52,8 @@ bool LX200AstroPhysics::initProperties()
 {
     LX200Generic::initProperties();
 
+    timeFormat = LX200_24;
+
     IUFillSwitch(&StartUpS[0], "COLD", "Cold", ISS_OFF);
     IUFillSwitch(&StartUpS[1], "WARM", "Warm", ISS_OFF);
     IUFillSwitchVector(&StartUpSP, StartUpS, 2, getDeviceName(), "STARTUP", "Mount init.", MAIN_CONTROL_TAB, IP_RW,
@@ -174,7 +176,7 @@ bool LX200AstroPhysics::updateProperties()
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
-        defineSwitch(&APGuideSpeedSP);
+        deleteProperty(APGuideSpeedSP.name);
         deleteProperty(SlewAccuracyNP.name);
     }
 
@@ -575,7 +577,7 @@ bool LX200AstroPhysics::setBasicDataPart1()
     // Stop
     if (!isSimulation() && (err = setAPMotionStop(PortFD)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Stop motion (:Q#) failed, check the mount (%d): %s", strerror(err));
+        DEBUGF(INDI::Logger::DBG_ERROR, "Stop motion (:Q#) failed, check the mount (%d): %s", err, strerror(err));
         return false;
     }
 

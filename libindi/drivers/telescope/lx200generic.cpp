@@ -1287,7 +1287,8 @@ void LX200Generic::getBasicData()
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
             getAlignment();
 
-        if (GetTelescopeCapability() & TELESCOPE_HAS_TIME)
+        // Only check time format if it is not already initialized by the class
+        if ( (GetTelescopeCapability() & TELESCOPE_HAS_TIME) && timeFormat == -1)
         {
             if (getTimeFormat(PortFD, &timeFormat) < 0)
                 DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve time format from device.");
