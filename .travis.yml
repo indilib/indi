@@ -6,21 +6,18 @@ sudo: required
 dist: trusty
 osx_image: xcode8.3
 
-os: 
- - linux
- - osx
-
 matrix:
   include:
-    - os: linux
-      addons:
-        apt:
-          packages:
-            - g++-5
-          sources: &sources
-            - ubuntu-toolchain-r-test
-      env:
-        - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+    - os: osx
+#    - os: linux
+#      addons:
+#        apt:
+#          packages:
+#            - g++-5
+#          sources: &sources
+#            - ubuntu-toolchain-r-test
+#      env:
+#        - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
     - os: linux
       addons:
