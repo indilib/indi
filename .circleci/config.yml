@@ -6,9 +6,9 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Greeting
-          command: echo Hello, world.
+          name: Check env
+          command: ls -l
       - run:
-          name: Print the Current Time
-          command: date
+          name: Install deps
+          command: sudo apt update && sudo apt install cmake
 
