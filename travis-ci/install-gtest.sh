@@ -12,7 +12,7 @@ pushd googletest
 mkdir build
 cd build
 cmake .. -DCMAKE_CXX_FLAGS="-fPIC"
-make install
+sudo make install
 popd
 rm -rf googletest
 popd
