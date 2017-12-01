@@ -217,6 +217,7 @@ void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
+    delete [] RawFrame;
     RawFrame = new uint8_t[nbuf];
 
     if (BinFrame)
