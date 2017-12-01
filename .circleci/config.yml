@@ -2,12 +2,9 @@ version: 2
 jobs:
   build:
     docker:
-      - image: debian:stretch
+      - image: jochym/indi
     steps:
       - checkout
-      - run:
-          name: Check env
-          command: ls -l
       - run:
           name: Install deps
           command: .circleci/deps-linux.sh
