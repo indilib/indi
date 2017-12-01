@@ -8,6 +8,7 @@ apt-get -q -y install \
  cdbs \
  dpkg-dev \
  debhelper \
+ cmake \
  curl \
  dcraw \
  fakeroot \
