@@ -26,6 +26,7 @@ apt-get -q -y install \
  libusb-1.0-0-dev \
  librtlsdr-dev \
  libfftw3-dev \
+ zlib1g-dev \
  wget
 
 # Install libftdi for MGen driver
