@@ -99,11 +99,10 @@ int dspau_spectrum(double* in, double* out, int dims, int *sizes, int conversion
 	fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * len);
 	for(i = 0; i < len; i++) {
 		fft_in[i][0] = in[i];
-		fft_in[i][1] = 0;
+		fft_in[i][1] = in[i];
 	}
 	p = fftw_plan_dft(dims, sizes, fft_in, fft_out, FFTW_FORWARD, FFTW_ESTIMATE);
 	fftw_execute(p);
-	len = (len / 2) - (len % 2);
 	switch (conversion) {
 	case magnitude:
 		complex2mag(fft_out, out, len);
