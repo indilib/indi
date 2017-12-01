@@ -12,6 +12,7 @@ apt-get -q -y install \
  curl \
  dcraw \
  fakeroot \
+ libcurl3 \
  libboost-dev \
  libboost-regex-dev \
  libcfitsio-dev \
