@@ -1,8 +1,8 @@
 CMakeLists.txt.user*
 
 # Ignore build directory
-build
-build-*
+build/
+build-*/
 
 # Gedit backup files
 *~
