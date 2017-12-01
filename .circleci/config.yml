@@ -10,9 +10,12 @@ jobs:
           command: ls -l
       - run:
           name: Install deps
-          command: sudo apt update && sudo apt -y install cmake
+          command: .circleci/deps-linux.sh
       - run: 
-          name: Install toolchain
-          command: sudo apt -y full-upgrade
+          name: Build core
+          command: .circleci/build-core.sh
+      - run: 
+          name: Build libs
+          command: .circleci/build-libs.sh
 
 
