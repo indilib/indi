@@ -32,7 +32,7 @@ for lib in $LIBS ; do
     pushd build/$lib
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local . $SRC/$lib -DFIX_WARNINGS=ON -DCMAKE_BUILD_TYPE=$1
     make
-    sudo make install
+    make install
     popd
 )
 done
