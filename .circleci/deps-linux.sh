@@ -50,12 +50,12 @@ set -x -e
 #dpkg -i libftdi1-dev_1.2-5build1_amd64.deb
 #cd $CURDIR
 
-if [ ! -z $BUILD_INSTALL_GTEST ]; then
-  DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-  /bin/bash ${DIR}/install-gtest.sh
-else
-  echo "==> BUILD_INSTALL_GTEST not specified"
-fi
+#if [ ! -z $BUILD_INSTALL_GTEST ]; then
+#  DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+#  /bin/bash ${DIR}/install-gtest.sh
+#else
+#  echo "==> BUILD_INSTALL_GTEST not specified"
+#fi
 
 exit 0
 
