@@ -11,11 +11,11 @@ apt-get -q -y install \
  fakeroot \
  libboost-dev \
  libboost-regex-dev \
- libcfitsio3-dev \
+ libcfitsio-dev \
  libftdi-dev \
  libgphoto2-dev \
  libgps-dev \
- libgsl0-dev \
+ libgsl-dev \
  libjpeg-dev \
  libnova-dev \
  libopenal-dev \
