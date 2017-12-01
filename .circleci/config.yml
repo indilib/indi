@@ -17,5 +17,8 @@ jobs:
       - run: 
           name: Build libs
           command: .circleci/build-libs.sh
+      - run: 
+          name: Build 3rd party drivers
+          command: .circleci/build-3rdparty.sh
 
 
