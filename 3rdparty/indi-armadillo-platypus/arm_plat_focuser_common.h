@@ -114,6 +114,11 @@ protected:
     INumber MaxSpeedN[1];
     INumberVectorProperty MaxSpeedNP;
 
+    // Sync motor pos
+    INumber SyncN[1];
+    INumberVectorProperty SyncNP;
+
+
     // Firmware Version
     IText FirmwareVersionT[1];
     ITextVectorProperty FirmwareVersionTP;
