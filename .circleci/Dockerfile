@@ -9,4 +9,4 @@ RUN apt-get -qqy install \
         libnova-dev libopenal-dev libraw-dev libusb-1.0-0-dev librtlsdr-dev \
         libfftw3-dev zlib1g-dev libconfuse-dev python3-all-dev doxygen \
         libboost-test-dev python-all-dev swig g++ libftdi1-dev \
-        googletest google-mock
+        googletest google-mock clang
