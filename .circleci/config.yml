@@ -10,5 +10,9 @@ jobs:
           command: ls -l
       - run:
           name: Install deps
-          command: sudo apt update && sudo apt install cmake
+          command: sudo apt update && sudo apt -y install cmake
+      - run: 
+          name: Install toolchain
+          command: sudo apt -y full-upgrade
+
 
