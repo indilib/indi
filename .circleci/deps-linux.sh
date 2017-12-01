@@ -7,6 +7,7 @@ apt-get -qq update
 apt-get -q -y install \
  cdbs \
  dpkg-dev \
+ debhelper \
  curl \
  dcraw \
  fakeroot \
