@@ -20,5 +20,8 @@ jobs:
       - run: 
           name: Build 3rd party drivers
           command: .circleci/build-3rdparty.sh
+      - run: 
+          name: Run tests
+          command: .circleci/run-tests.sh
 
 
