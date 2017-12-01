@@ -2,7 +2,7 @@ version: 2
 jobs:
   build_stretch:
     docker:
-      - image: jochym/indi
+      - image: jochym/indi-stretch
     steps:
       - checkout
       - run: 
