@@ -10,3 +10,6 @@ RUN apt-get -qqy install \
         libfftw3-dev zlib1g-dev libconfuse-dev python3-all-dev doxygen \
         libboost-test-dev python-all-dev swig g++ libftdi1-dev \
         googletest google-mock clang
+
+RUN apt-get clean && apt-get autoclean
+
