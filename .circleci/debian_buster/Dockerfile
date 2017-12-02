@@ -11,5 +11,3 @@ RUN apt-get -qqy install \
         libboost-test-dev python-all-dev swig g++ libftdi1-dev \
         googletest google-mock clang
 
-RUN apt-get clean && apt-get autoclean
-

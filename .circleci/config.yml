@@ -72,6 +72,47 @@ jobs:
           name: Run tests
           command: .circleci/run-tests.sh
 
+  build_clang4:
+    docker:
+      - image: jochym/indi-artful
+        environment:
+          CC: clang
+          CXX: clang++
+    steps:
+      - checkout
+      - run: 
+          name: Build core
+          command: .circleci/build-core.sh
+      - run: 
+          name: Build libs
+          command: .circleci/build-libs.sh
+      - run: 
+          name: Build 3rd party drivers
+          command: .circleci/build-3rdparty.sh
+      - run: 
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_clang5:
+    docker:
+      - image: jochym/indi-bionic
+        environment:
+          CC: clang
+          CXX: clang++
+    steps:
+      - checkout
+      - run: 
+          name: Build core
+          command: .circleci/build-core.sh
+      - run: 
+          name: Build libs
+          command: .circleci/build-libs.sh
+      - run: 
+          name: Build 3rd party drivers
+          command: .circleci/build-3rdparty.sh
+      - run: 
+          name: Run tests
+          command: .circleci/run-tests.sh
 
 workflows:
   version: 2
@@ -81,4 +122,5 @@ workflows:
       - build_buster
       - build_artful
       - build_bionic
-
+      - build_clang4
+      - build_clang5
