@@ -10,6 +10,19 @@ matrix:
   include:
     - os: osx
 
+# Default config (on trusty gcc4)
+    - os: linux
+
+    - os: linux
+      addons:
+        apt:
+          packages:
+            - g++-5
+          sources: &sources
+            - ubuntu-toolchain-r-test
+      env:
+        - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+
     - os: linux
       addons:
         apt:
