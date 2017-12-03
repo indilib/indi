@@ -203,7 +203,7 @@ DLL_EXPORT int dspau_removemean(double* in, double* out, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_stretch(double* in, double* out, int len, int min, int max);
+DLL_EXPORT int dspau_stretch(double* in, double* out, int len, double min, double max);
 
 /**
 * @brief Normalize the input stream to the minimum and maximum values
@@ -219,7 +219,7 @@ DLL_EXPORT int dspau_stretch(double* in, double* out, int len, int min, int max)
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_normalize(double* in, double* out, int len, int min, int max);
+DLL_EXPORT int dspau_normalize(double* in, double* out, int len, double min, double max);
 
 /**
 * @brief Subtract elements of one stream from another's
