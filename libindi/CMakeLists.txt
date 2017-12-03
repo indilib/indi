@@ -270,6 +270,7 @@ include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream)
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${USB1_INCLUDE_DIRS})
@@ -311,7 +312,7 @@ ENDIF(OGGTHEORA_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.cpp        
         ${theorarecorder_CXX_SRC}
         )
-    SET(libstream_C_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/jpegutils.c)
+    SET(libstream_C_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.c)
     IF (UNITY_BUILD)
         ENABLE_UNITY_BUILD(libstream libstream_C_SRC 10 c)
         ENABLE_UNITY_BUILD(libstream libstream_CXX_SRC 10 cpp)
@@ -1226,6 +1227,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libindi.pc DESTINATION ${PKGCONFIG_INS
 if (UNIX)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream COMPONENT Devel)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.h
@@ -1246,7 +1248,6 @@ if (UNIX)
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/jpegutils.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     ENDIF()
 ENDIF ()
