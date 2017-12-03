@@ -12,6 +12,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 /**
  * \defgroup jpegSpace Functions to encode and decode JPEG
@@ -56,6 +57,19 @@ extern "C" {
 int decode_jpeg_raw(unsigned char *jpeg_data, int len, int itype, int ctype, unsigned int width, unsigned int height,
                     unsigned char *raw0, unsigned char *raw1, unsigned char *raw2);
 
+/**
+ * @brief decode_jpeg_rgb Read jpeg in memory buffer and produce RGB image
+ * @param inBuffer pointer to jpeg file in memory
+ * @param inSize file of jpeg file in bytes
+ * @param memptr pointer to store RGB data. To enhance performance, the memory must be allocated at least byte. memptr = malloc(1) since subsequent calls
+ * will use realloc to allocate memory. The caller is responsible for free(*memptr) eventually.
+ * @param memsize size of RGB data as determined after jpeg decompression
+ * @param naxis 1 for mono, 3 for color
+ * @param w width of image in pixels
+ * @param h height image in pixels
+ * @return 0 if decoding sucseeds, -1 otherwise.
+ */
+int decode_jpeg_rgb(unsigned char *inBuffer, unsigned long inSize, uint8_t **memptr, size_t *memsize, int *naxis, int *w, int *h);
 /**
  * @short decode JPEG raw gray buffer
  */

@@ -1304,3 +1304,55 @@ ERR_EXIT:
     jpeg_destroy_compress(&cinfo);
     return -1;
 }
+
+int decode_jpeg_rgb(unsigned char *inBuffer, unsigned long inSize, uint8_t **memptr, size_t *memsize, int *naxis, int *w, int *h)
+{
+    /* these are standard libjpeg structures for reading(decompression) */
+    struct jpeg_decompress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+    /* libjpeg data structure for storing one row, that is, scanline of an image */
+    JSAMPROW row_pointer[1] = { NULL };
+
+    /* here we set up the standard libjpeg error handler */
+    cinfo.err = jpeg_std_error(&jerr);
+    /* setup decompression process and source, then read JPEG header */
+    jpeg_create_decompress(&cinfo);
+    /* this makes the library read from infile */
+    jpeg_mem_src(&cinfo, inBuffer, inSize);
+
+    /* reading the image header which contains image information */
+    jpeg_read_header(&cinfo, (boolean)TRUE);
+
+    /* Start decompression jpeg here */
+    jpeg_start_decompress(&cinfo);
+
+    *memsize = cinfo.output_width * cinfo.output_height * cinfo.num_components;
+    *memptr  = (uint8_t *)realloc(*memptr, *memsize);
+
+    uint8_t *destmem = *memptr;
+
+    *naxis = cinfo.num_components;
+    *w     = cinfo.output_width;
+    *h     = cinfo.output_height;
+
+    /* now actually read the jpeg into the raw buffer */
+    row_pointer[0] = (unsigned char *)malloc(cinfo.output_width * cinfo.num_components);
+
+    /* read one scan line at a time */
+    for (unsigned int row = 0; row < cinfo.image_height; row++)
+    {
+        unsigned char *ppm8 = row_pointer[0];
+        jpeg_read_scanlines(&cinfo, row_pointer, 1);
+        memcpy(destmem, ppm8, cinfo.output_width * cinfo.num_components);
+        destmem += cinfo.output_width * cinfo.num_components;
+    }
+
+    /* wrap up decompression, destroy objects, free pointers and close open files */
+    jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+
+    if (row_pointer[0])
+        free(row_pointer[0]);
+
+    return 0;
+}
