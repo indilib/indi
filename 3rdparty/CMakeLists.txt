@@ -290,7 +290,7 @@ endif()
 # Check if libraries are found. If not, we must build them, install them, THEN run CMake again to build and instal the drivers. If all the libraraies are installed, then we build and install the drivers only now.
 if (LIBRARIES_FOUND)
 message(STATUS "############################################################################")
-message(STATUS "######### All libraraies are found. Building all INDI 3rd party drivers now.")
+message(STATUS "######### All libraries are found. Building all INDI 3rd party drivers now.")
 message(STATUS "############################################################################")
 else (LIBRARIES_FOUND)
 message(STATUS "####################################################################################################################################")
