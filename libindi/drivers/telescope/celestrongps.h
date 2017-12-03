@@ -120,4 +120,5 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
     double targetRA, targetDEC, targetAZ, targetALT;
 
     FirmwareInfo fwInfo;
+    bool usePreciseCoords=false;
 };

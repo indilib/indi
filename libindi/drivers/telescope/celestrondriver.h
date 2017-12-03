@@ -78,6 +78,12 @@ void set_sim_alt(double alt);
 bool check_celestron_connection(int fd);
 
 /**************************************************************************
+ Send command and get response
+ Returns number of bytes read or -1 if error
+**************************************************************************/
+int sendCommand(int fd, const char *cmd, char *response);
+
+/**************************************************************************
  Get Info
 **************************************************************************/
 /** Get All firmware information in addition to model and version */
@@ -95,9 +101,10 @@ bool get_celestron_ra_firmware(int fd, FirmwareInfo *info);
 /** Get DEC Firmware version */
 bool get_celestron_dec_firmware(int fd, FirmwareInfo *info);
 /** Get RA/DEC */
-bool get_celestron_coords(int fd, double *ra, double *dec);
+bool get_celestron_radec(int fd, double *ra, double *dec, bool precise=false);
 /** Get Az/Alt */
-bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt);
+//bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt);
+bool get_celestron_azalt(int fd, double *az, double *alt, bool precise=false);
 /** Get UTC/Date/Time */
 bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
 
@@ -107,9 +114,9 @@ bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, in
 bool start_celestron_motion(int fd, CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate);
 bool stop_celestron_motion(int fd, CELESTRON_DIRECTION dir);
 bool abort_celestron(int fd);
-bool slew_celestron(int fd, double ra, double dec);
-bool slew_celestron_azalt(int fd, double latitude, double az, double alt);
-bool sync_celestron(int fd, double ra, double dec);
+bool slew_celestron_radec(int fd, double ra, double dec, bool precise=false);
+bool slew_celestron_azalt(int fd, double az, double alt, bool precise=false);
+bool sync_celestron(int fd, double ra, double dec, bool precise=false);
 
 /**************************************************************************
  Time & Location

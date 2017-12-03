@@ -211,6 +211,8 @@ bool CelestronGPS::updateProperties()
             IUSaveText(&FirmwareT[FW_GPS], fwInfo.GPSFirmware.c_str());
             IUSaveText(&FirmwareT[FW_RA], fwInfo.RAFirmware.c_str());
             IUSaveText(&FirmwareT[FW_DEC], fwInfo.DEFirmware.c_str());
+
+            usePreciseCoords = (fwInfo.controllerVersion > 2.2);
         }
         else
         {
@@ -372,8 +374,6 @@ bool CelestronGPS::updateProperties()
 
 bool CelestronGPS::Goto(double ra, double dec)
 {
-    char RAStr[32], DecStr[32];
-
     targetRA  = ra;
     targetDEC = dec;
 
@@ -384,7 +384,7 @@ bool CelestronGPS::Goto(double ra, double dec)
         usleep(500000);
     }
 
-    if (slew_celestron(PortFD, targetRA, targetDEC) == false)
+    if (slew_celestron_radec(PortFD, targetRA, targetDEC, usePreciseCoords) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew telescope in RA/DEC.");
         return false;
@@ -393,6 +393,8 @@ bool CelestronGPS::Goto(double ra, double dec)
     //HorizontalCoordsNP.s = IPS_BUSY;
 
     TrackState = SCOPE_SLEWING;
+
+    char RAStr[32], DecStr[32];
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
     DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to JNOW RA %s - DEC %s", RAStr, DecStr);
@@ -412,7 +414,7 @@ bool CelestronGPS::Sync(double ra, double dec)
         return false;
     }
 
-    if (sync_celestron(PortFD, ra, dec) == false)
+    if (sync_celestron(PortFD, ra, dec, usePreciseCoords) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Sync failed.");
         return false;
@@ -543,7 +545,7 @@ bool CelestronGPS::ReadScopeStatus()
     if (isSimulation())
         mountSim();
 
-    if (get_celestron_coords(PortFD, &currentRA, &currentDEC) == false)
+    if (get_celestron_radec(PortFD, &currentRA, &currentDEC, usePreciseCoords) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to read RA/DEC values.");
         return false;
@@ -1013,7 +1015,7 @@ bool CelestronGPS::Park()
     fs_sexa(AltStr, parkAlt, 2, 3600);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    if (slew_celestron_azalt(PortFD, LocationN[LOCATION_LATITUDE].value, parkAz, parkAlt))
+    if (slew_celestron_azalt(PortFD, parkAz, parkAlt, usePreciseCoords))
     {
         TrackState = SCOPE_PARKING;
         DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
