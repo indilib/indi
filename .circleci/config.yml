@@ -79,6 +79,19 @@ jobs:
           name: Run tests
           command: .circleci/run-tests.sh
 
+  build_fedora:
+    docker:
+      - image: jochym/indi-fedora
+    steps:
+      - checkout
+      - run: 
+          name: Build all
+          command: .circleci/build-all.sh
+      - run: 
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+
 workflows:
   version: 2
   build_all:
@@ -89,6 +102,7 @@ workflows:
       - build_bionic
       - build_clang4
       - build_clang5
+#      - build_fedora
 
 
 
