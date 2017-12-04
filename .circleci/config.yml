@@ -120,8 +120,8 @@ jobs:
       - image: debian:stretch
     steps:
       - run:
-        name: Run all builders
-        command: echo Done
+          name: Run all builders
+          command: echo Done
 
 workflows:
   version: 2
