@@ -130,7 +130,7 @@ workflows:
       - build_stretch
       - all_builders:
           requires:
-            - build_stretch
+            - build_buster
           filters:
             branches:
               only: master
