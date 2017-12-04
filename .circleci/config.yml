@@ -123,26 +123,26 @@ jobs:
         name: Run all builders
         command: echo Done
 
-workflows:
-  version: 2
-  build_all:
-    jobs:
-      - build_stretch
-      - build_buster
-      - build_artful
-      - build_bionic
-      - build_clang4
-      - build_clang5
-      - all_builders
-        requires:
-          - build_stretch
-          - build_buster
-          - build_artful
-          - build_bionic
-          - build_clang4
-          - build_clang5
+#workflows:
+#  version: 2
+#  build_all:
+#    jobs:
+#      - build_stretch
+#      - build_buster
+#      - build_artful
+#      - build_bionic
+#      - build_clang4
+#      - build_clang5
+#      - all_builders
+#        requires:
+#          - build_stretch
+#          - build_buster
+#          - build_artful
+#          - build_bionic
+#          - build_clang4
+#          - build_clang5
 
-#        filters:
+##        filters:
 #          branches:
 #            only:
 #              - master
