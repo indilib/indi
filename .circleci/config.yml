@@ -117,7 +117,7 @@ jobs:
 
   all_builders:
     docker:
-      - image: debian/stretch
+      - image: debian:stretch
     steps:
       - run:
         name: Run all builders
