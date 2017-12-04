@@ -128,7 +128,7 @@ workflows:
   build_all:
     jobs:
       - build_stretch
-      - all_builders:
+      - all_builders
 #        requires:
 #          - build_stretch
 #          - build_buster
