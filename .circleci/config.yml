@@ -129,6 +129,8 @@ workflows:
     jobs:
       - build_stretch
       - all_builders:
+          requires:
+            - build_stretch
           filters:
             branches:
               only: develop
