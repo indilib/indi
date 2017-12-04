@@ -10,14 +10,15 @@ build_all () {
     ./build-3rdparty.sh
 }
 
+set
 
-if [ .${CI_BRANCH%_*} == '.drv' ] ; then
+if [ .${CIRCLE_BRANCH%_*} == '.drv' ] ; then
     # Driver build branch
     build_all
 else
     for i in "${br[@]}"
     do
-       if [ ${CI_BRANCH} == $i ]; then
+       if [ ${CIRCLE_BRANCH} == $i ]; then
         build_all
        fi
     done

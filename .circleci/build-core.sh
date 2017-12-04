@@ -2,7 +2,7 @@
 
 set -x -e
 
-if [ .${CI_BRANCH%_*} == '.drv' ] ; then 
+if [ .${CIRCLE_BRANCH%_*} == '.drv' ] ; then 
     # Skip the build just use recent upstream version if it exists
     sudo apt-add-repository -y ppa:jochym/indi-devel
     sudo apt-get -qq update

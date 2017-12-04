@@ -2,11 +2,9 @@
 
 set -x -e
 
-echo ${TRAVIS_OS_NAME}
-
 # The build-libs.sh must be run first for this to work
-if [ .${CI_BRANCH%_*} == '.drv' ] ; then 
-    DRV="indi-${CI_BRANCH#drv_}"
+if [ .${CIRCLE_BRANCH%_*} == '.drv' ] ; then 
+    DRV="indi-${CIRCLE_BRANCH#drv_}"
     echo "Building $DRV"
     mkdir -p build/$DRV
     pushd build/$DRV
