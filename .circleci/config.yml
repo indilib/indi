@@ -128,8 +128,8 @@ workflows:
   build_all:
     jobs:
       - all_builders
-#        requires:
-#          - build_stretch
+        requires:
+          - build_stretch
 #          - build_buster
 #          - build_artful
 #          - build_bionic
