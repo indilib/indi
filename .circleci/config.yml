@@ -7,14 +7,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
@@ -25,14 +19,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
@@ -43,14 +31,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
@@ -61,14 +43,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
@@ -82,14 +58,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
@@ -103,25 +73,11 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
-
-  all_builders:
-    docker:
-      - image: debian:stretch
-    steps:
-      - run:
-          name: Run all builders
-          command: echo Done
 
 workflows:
   version: 2
@@ -133,34 +89,6 @@ workflows:
       - build_bionic
       - build_clang4
       - build_clang5
-      - all_builders:
-          requires:
-            - build_buster
-          filters:
-            branches:
-              only: develop
-#        requires:
-#          - build_stretch
-#          - build_buster
-#          - build_artful
-#          - build_bionic
-#          - build_clang4
-#          - build_clang5
-#      - build_stretch
-#      - build_buster
-#      - build_artful
-#      - build_bionic
-#      - build_clang4
-#      - build_clang5
-
-##        filters:
-#          branches:
-#            only:
-#              - master
-#              - develop
-#              - package
-#              - /drv_.*$/
-#              - refactor/unittest
 
 
 
