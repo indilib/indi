@@ -127,14 +127,14 @@ workflows:
           - build_bionic
           - build_clang4
           - build_clang5
-        filters:
-          branches:
-            only:
-              - master
-              - develop
-              - package
-              - /drv_.*$/
-              - refactor/unittest
+#        filters:
+#          branches:
+#            only:
+#              - master
+#              - develop
+#              - package
+#              - /drv_.*$/
+#              - refactor/unittest
 
 
 
