@@ -5,12 +5,11 @@ set -x -e
 br=( master develop package travis )
 
 build_all () {
-    ./build-core.sh
-    ./build-libs.sh
-    ./build-3rdparty.sh
+    .circleci/build-core.sh
+    .circleci/build-libs.sh
+    .circleci/build-3rdparty.sh
 }
 
-set
 
 if [ .${CIRCLE_BRANCH%_*} == '.drv' ] ; then
     # Driver build branch
