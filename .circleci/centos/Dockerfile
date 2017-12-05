@@ -1,14 +1,20 @@
-FROM fedora:latest
+FROM centos:latest
 
-RUN dnf -y upgrade
+RUN yum -y install epel-release
 
-RUN dnf -y install \
-        cdbs cmake curl dcraw wget git openssh \
-        libcurl-devel boost-devel cfitsio-devel \
+RUN yum -y upgrade
+
+RUN yum -y groupinstall 'Development Tools'
+
+RUN yum -y install \
+        cdbs cmake3 curl dcraw wget git openssh \
+        libcurl-devel boost-devel cfitsio-devel libusbx-devel \
         libftdi-devel libgphoto2-devel gpsd-devel gsl-devel libjpeg-turbo-devel \
         libnova-devel openal-soft-devel LibRaw-devel libusb-devel rtl-sdr-devel \
         fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
-        python-devel swig gcc-c++ gtest gmock clang
+        python-devel swig gcc-c++ gtest gmock clang vim
+        
+RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
 
 WORKDIR /home
 

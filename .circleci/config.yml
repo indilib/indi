@@ -91,6 +91,31 @@ jobs:
           name: Run tests
           command: .circleci/run-tests.sh
 
+  build_centos:
+    docker:
+      - image: jochym/indi-centos
+    steps:
+      - checkout
+      - run: 
+          name: Build all
+          command: .circleci/build-all.sh
+      - run: 
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_opensuse:
+    docker:
+      - image: jochym/indi-opensuse
+    steps:
+      - checkout
+      - run: 
+          name: Build all
+          command: .circleci/build-all.sh
+      - run: 
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+
 
 workflows:
   version: 2
@@ -103,6 +128,8 @@ workflows:
       - build_clang4
       - build_clang5
 #      - build_fedora
+#      - build_centos
+#      - build_opensuse
 
 
 
