@@ -13,8 +13,10 @@ RUN apt-get -qqy install \
 
 WORKDIR /home
 
-RUN echo "#!/bin/bash" > /home/run-build.sh
-RUN echo "git clone https://github.com/jochym/indi.git " >> /home/run-build.sh
-RUN echo "cd indi && CIRCLE_BRANCH=master ./.circleci/build-all.sh" >> /home/run-build.sh
-RUN echo "CIRCLE_BRANCH=master ./.circleci/run-tests.sh" >> /home/run-build.sh
-RUN chmod a+x /home/run-build.sh
+RUN printf '%s\n' \
+    "#!/bin/bash" \
+    "git clone https://github.com/jochym/indi.git " \
+    "cd indi " \
+    "CIRCLE_BRANCH=master ./.circleci/build-all.sh" \
+    "CIRCLE_BRANCH=master ./.circleci/run-tests.sh" > /home/run-build.sh && \
+    chmod a+x /home/run-build.sh
