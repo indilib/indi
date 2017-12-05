@@ -895,19 +895,8 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                 return false;
             }
 
-            if (TrackState == SCOPE_TRACKING)
+            if (TrackState == SCOPE_TRACKING && !strcmp(IUFindOnSwitch(&TrackModeSP)->name, "TRACK_CUSTOM"))
             {
-                // Check that we have custom mode selected
-                if (strcmp(IUFindOnSwitch(&TrackModeSP)->name, "TRACK_CUSTOM"))
-                {
-                    DEBUG(Logger::DBG_ERROR, "Tracking mode must be set to CUSTOM first.");
-                    TrackRateNP.s = IPS_ALERT;
-                    TrackRateN[AXIS_RA].value = preAxis1;
-                    TrackRateN[AXIS_DE].value = preAxis2;
-                    IDSetNumber(&TrackRateNP, nullptr);
-                    return false;
-                }
-
                 // Check that we do not abruplty change positive tracking rates to negative ones.
                 // tracking must be stopped first.
                 // Give warning is tracking sign would cause a reverse in direction
@@ -925,6 +914,14 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
                    TrackRateN[AXIS_RA].value = preAxis1;
                    TrackRateN[AXIS_DE].value = preAxis2;
                 }
+            }
+
+            // If we are already tracking but tracking mode is NOT custom
+            // We just inform the user that it must be set to custom for these values to take
+            // effect.
+            if (TrackState == SCOPE_TRACKING && strcmp(IUFindOnSwitch(&TrackModeSP)->name, "TRACK_CUSTOM"))
+            {
+                DEBUG(Logger::DBG_SESSION, "Custom tracking rates set. Tracking mode must be set to Custom for these rates to take effect.");
             }
 
             // If mount is NOT tracking, we simply accept whatever valid values for use when mount tracking is engaged.
