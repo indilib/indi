@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This is a script building libraries for CI
+# This is a script building libraries for travis-ci
 # It is *not* for general audience
 
 SRC=../../3rdparty/
