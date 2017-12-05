@@ -29,6 +29,7 @@ WORKDIR /home
 RUN echo "#!/bin/bash" > /home/run-build.sh
 RUN echo "git clone https://github.com/jochym/indi.git " >> /home/run-build.sh
 RUN echo "cd indi && CIRCLE_BRANCH=master ./.circleci/build-all.sh" >> /home/run-build.sh
+RUN echo "CIRCLE_BRANCH=master ./.circleci/run-tests.sh" >> /home/run-build.sh
 RUN chmod a+x /home/run-build.sh
 
 RUN zypper -n install gpsd python-gpsd python-curses
