@@ -205,16 +205,21 @@ bool LX200AstroPhysics::updateProperties()
 bool LX200AstroPhysics::initMount()
 {
     // Make sure that the mount is setup according to the properties
-    int err=0;
-    int switch_nr = IUFindOnSwitchIndex(&TrackModeSP);
+    int err=0, switch_nr=0;
 
-    if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, switch_nr)) < 0)
+    // We only set Tracking Mode if mount is already unparked
+    if (isParked() == false)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
-        return false;
-    }
+        switch_nr = IUFindOnSwitchIndex(&TrackModeSP);
 
-    TrackState = (switch_nr != AP_TRACKING_OFF) ? SCOPE_TRACKING : SCOPE_IDLE;
+        if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, switch_nr)) < 0)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
+            return false;
+        }
+
+        TrackState = (switch_nr != AP_TRACKING_OFF) ? SCOPE_TRACKING : SCOPE_IDLE;
+    }
 
     // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
     // lx200ap is different - some of the MoveTo speeds are not VALID
