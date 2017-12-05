@@ -12,7 +12,7 @@ find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
 
 # Using ASI Camera SDK Version 0.6.0921 updated on 2017-11-21
-# Using ASI EFW SDK Version 3.0214 updated on 2017-11-21
+# Using ASI EFW SDK Version 0.3.1205 updated on 2017-12-05
 set(ASI_VERSION_MAJOR 0)
 set(ASI_VERSION_MINOR 7)
 
