@@ -31,7 +31,7 @@
 #define ISNEXSTAR       0x11
 #define ISSTARSENSE     0x13
 #define MINSTSENSVER    float(1.18)
-#define MAX_RESP_SIZE 16
+#define MAX_RESP_SIZE   20
 
 typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
 typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9 } CELESTRON_SLEW_RATE;
