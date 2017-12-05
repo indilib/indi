@@ -38,28 +38,32 @@ double complex_phi(fftw_complex n)
 
 void complex2mag(fftw_complex* in, double* out, int len)
 {
-	for (int i = 0; i < len; i++) {
+    int i;
+	for (i = 0; i < len; i++) {
 		out [i] = complex_mag(in [i]);
 	}
 }
 
 void complex2magpow(fftw_complex* in, double* out, int len)
 {
-	for (int i = 0; i < len; i++) {
+    int i;
+	for (i = 0; i < len; i++) {
 		out [i] = pow(complex_mag(in [i]), 2);
 	}
 }
 
 void complex2magsqrt(fftw_complex* in, double* out, int len)
 {
-	for (int i = 0; i < len; i++) {
+    int i;
+	for (i = 0; i < len; i++) {
 		out [i] = sqrt (complex_mag(in [i]));
 	}
 }
 
 void complex2magdbv(fftw_complex* in, double* out, int len)
 {
-	for (int i = 0; i < len; i++) {
+    int i;
+	for (i = 0; i < len; i++) {
 		double magVal = complex_mag(in [i]);
 
 		if (magVal <= 0.0)
@@ -72,14 +76,16 @@ void complex2magdbv(fftw_complex* in, double* out, int len)
 void complex2phideg(fftw_complex* in, double* out, int len)
 {
 	double sf = 180.0 / M_PI;
-	for (int i = 0; i < len; i++) {
+    int i;
+	for (i = 0; i < len; i++) {
 		out [i] = complex_phi(in [i]) * sf;
 	}
 }
 
 void complex2phirad(fftw_complex* in, double* out, int len)
 {
-	for (int i = 0; i < len; i++) {
+    int i;
+	for (i = 0; i < len; i++) {
 		out [i] = complex_phi(in [i]);
 	}
 }
@@ -89,9 +95,10 @@ int dspau_spectrum(double* in, double* out, int dims, int *sizes, int conversion
 	int i = 0;
 	int len = sizes[0];
 	int ret = 0;
+	int d;
 	fftw_complex *fft_in, *fft_out;
 	fftw_plan p;
-	for(int d = 1; d < dims; d++)
+	for(d = 1; d < dims; d++)
 	{
 		len *= sizes[d];
 	}
