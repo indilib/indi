@@ -127,9 +127,9 @@ workflows:
       - build_bionic
       - build_clang4
       - build_clang5
-#      - build_fedora
-#      - build_centos
-#      - build_opensuse
+      - build_fedora
+      - build_centos
+      - build_opensuse
 
 
 
