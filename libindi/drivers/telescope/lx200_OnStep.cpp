@@ -22,19 +22,22 @@
 #include "lx200_OnStep.h"
 
 #include "lx200driver.h"
+#include "indicom.h"
 
 #include <cstring>
 #include <unistd.h>
+#include <termios.h>
 
 #define LIBRARY_TAB  "Library"
 #define FIRMWARE_TAB "Firmware data"
+#define ONSTEP_TIMEOUT  3
 
 LX200_OnStep::LX200_OnStep() : LX200Generic()
 {
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK);
 }
@@ -432,21 +435,21 @@ void LX200_OnStep::getBasicData()
 
     if (!isSimulation())
     {
-        VersionTP.tp[0].text = new char[64];
-        getVersionDate(PortFD, VersionTP.tp[0].text);
-        VersionTP.tp[1].text = new char[64];
-        getVersionTime(PortFD, VersionTP.tp[1].text);
-        VersionTP.tp[2].text = new char[64];
-        getVersionNumber(PortFD, VersionTP.tp[2].text);
-        VersionTP.tp[3].text = new char[128];
-        getProductName(PortFD, VersionTP.tp[3].text);
-        //VersionTP.tp[4].text = new char[128];
-        // getFullVersion(PortFD, VersionTP.tp[4].text); //ToDo not supported by OnStep firmware
+        char buffer[128];
+        getVersionDate(PortFD, buffer);
+        IUSaveText(&VersionT[0], buffer);
+        getVersionTime(PortFD, buffer);
+        IUSaveText(&VersionT[1], buffer);
+        getVersionNumber(PortFD, buffer);
+        IUSaveText(&VersionT[2], buffer);
+        getProductName(PortFD, buffer);
+        IUSaveText(&VersionT[3], buffer);
 
         LX200_OnStep::OnStepStat();
+
+        IDSetText(&VersionTP, nullptr);
     }
-    IDSetText(&VersionTP, nullptr);
-    DEBUG(INDI::Logger::DBG_ERROR, "OnStep GetBasicData");
+    //DEBUG(INDI::Logger::DBG_ERROR, "OnStep GetBasicData");
 }
 
 bool LX200_OnStep::UnPark()
@@ -569,4 +572,40 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled)
     }
 
     return false;
+}
+
+bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint8_t years)
+{
+    years = years % 100;
+    char cmd[32];
+
+    snprintf(cmd, 32, ":SC%02d/%02d/%02d#", months, days, years);
+
+    return sendOnStepCommand(cmd);
+}
+
+bool LX200_OnStep::sendOnStepCommand(const char *cmd)
+{
+    char response[1];
+    int error_type;
+    int nbytes_write = 0, nbytes_read = 0;
+
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIFLUSH);
+
+    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    error_type = tty_read(PortFD, response, 1, ONSTEP_TIMEOUT, &nbytes_read);
+
+    tcflush(PortFD, TCIFLUSH);
+
+    if (nbytes_read < 1)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Unable to parse response.");
+        return error_type;
+    }
+
+    return (response[0] == '1');
 }

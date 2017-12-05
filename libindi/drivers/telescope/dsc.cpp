@@ -400,7 +400,7 @@ bool DSC::ReadScopeStatus()
     Axis2Degrees = range360(Axis2Degrees);
 
     // Adjust for LST
-    double LST = get_local_sideral_time(observer.lng);
+    double LST = get_local_sidereal_time(observer.lng);
 
     // Final aligned equatorial position
     ln_equ_posn eq { 0, 0 };
@@ -454,7 +454,7 @@ bool DSC::Sync(double ra, double dec)
 
     if (MountTypeS[MOUNT_EQUATORIAL].s == ISS_ON)
     {
-        double LST = get_local_sideral_time(observer.lng);
+        double LST = get_local_sidereal_time(observer.lng);
         RaDec.ra   = ((LST - encoderEquatorialCoordinates.ra) * 360.0) / 24.0;
         RaDec.dec  = encoderEquatorialCoordinates.dec;
     }
@@ -505,7 +505,7 @@ ln_equ_posn DSC::TelescopeEquatorialToSky()
 
         /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
         double lha, lst;
-        lst = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
+        lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
         lha = get_local_hour_angle(lst, encoderEquatorialCoordinates.ra);
         //  convert lha to degrees
         lha    = lha * 360 / 24;

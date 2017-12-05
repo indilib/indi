@@ -25,7 +25,7 @@
 #include "indibase.h"
 
 /**
- * \class INDI::FilterInterface
+ * \class FilterInterface
    \brief Provides interface to implement Filter Wheel functionality.
 
    A filter wheel can be an independent device, or an embedded filter wheel within another device (e.g. CCD camera). Child class must implement all the
@@ -39,7 +39,10 @@
    \note Filter position starts from 1 and \e not 0
 \author Gerry Rozema, Jasem Mutlaq
 */
-class INDI::FilterInterface
+namespace INDI
+{
+
+class FilterInterface
 {
   public:
     /** \brief Return current filter position */
@@ -80,7 +83,7 @@ class INDI::FilterInterface
      * @brief FilterInterface Initiailize Filter Interface
      * @param defaultDevice default device that owns the interface
      */
-    explicit FilterInterface(INDI::DefaultDevice *defaultDevice);
+    explicit FilterInterface(DefaultDevice *defaultDevice);
     ~FilterInterface();
 
     /**
@@ -126,5 +129,6 @@ class INDI::FilterInterface
     int TargetFilter;
     bool loadingFromConfig = false;
 
-    INDI::DefaultDevice *m_defaultDevice { nullptr };
+    DefaultDevice *m_defaultDevice { nullptr };
 };
+}

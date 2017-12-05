@@ -35,10 +35,10 @@ class TCP;
 }
 
 /**
- * \class INDI::Weather
+ * \class Weather
  * \brief Class to provide general functionality of a weather device.
  *
- * The INDI::Weather provides a simple interface for weather devices. Parameters such as temperature,
+ * The Weather provides a simple interface for weather devices. Parameters such as temperature,
  * wind, humidity etc can be added by the child class as supported by the physical device. With each
  * parameter, the caller specifies the minimum and maximum ranges of OK and WARNING zones. Any value
  * outside of the warning zone is automatically treated as ALERT.
@@ -62,7 +62,9 @@ class TCP;
  *
  * \author Jasem Mutlaq
  */
-class INDI::Weather : public INDI::DefaultDevice
+namespace INDI
+{
+class Weather : public DefaultDevice
 {
   public:
     enum WeatherLocation
@@ -96,7 +98,7 @@ class INDI::Weather : public INDI::DefaultDevice
   protected:
     /**
      * @brief updateWeather Update weather conditions from device or service. The function should
-     * not change the state of any property in the device as this is handled by INDI::Weather. It
+     * not change the state of any property in the device as this is handled by Weather. It
      * should only update the raw values.
      * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if
      * weather update is in progress. IPS_ALERT is there is an error. The clients will only accept
@@ -156,7 +158,7 @@ class INDI::Weather : public INDI::DefaultDevice
 
     /**
      * @brief setWeatherConnection Set Weather connection mode. Child class should call this
-     * in the constructor before INDI::Weather registers any connection interfaces
+     * in the constructor before Weather registers any connection interfaces
      * @param value ORed combination of WeatherConnection values.
      */
     void setWeatherConnection(const uint8_t &value);
@@ -213,3 +215,4 @@ class INDI::Weather : public INDI::DefaultDevice
     bool callHandshake();
     uint8_t weatherConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 };
+}

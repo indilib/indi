@@ -14,7 +14,7 @@ set (DSI_VERSION_MINOR 2)
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(USB-1 REQUIRED)
+find_package(USB1 REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_dsi.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_dsi.xml)
@@ -47,7 +47,7 @@ ENDIF ()
 
 add_executable(indi_dsi_ccd ${indidsi_SRCS})
 
-target_link_libraries(indi_dsi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} )
+target_link_libraries(indi_dsi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${USB1_LIBRARIES} )
 
 install(TARGETS indi_dsi_ccd RUNTIME DESTINATION bin )
 

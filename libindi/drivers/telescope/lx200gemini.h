@@ -35,9 +35,12 @@ class LX200Gemini : public LX200Generic
 
     virtual void ISGetProperties(const char *dev) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
   protected:
     virtual const char *getDefaultName() override;
+
+    virtual bool Connect() override;
 
     virtual bool initProperties() override ;
     virtual bool updateProperties() override;
@@ -49,6 +52,7 @@ class LX200Gemini : public LX200Generic
     virtual bool UnPark() override;
 
     virtual bool SetTrackMode(uint8_t mode) override;
+    virtual bool SetTrackEnabled(bool enabled) override;
 
     virtual bool checkConnection() override;
 
@@ -59,8 +63,26 @@ class LX200Gemini : public LX200Generic
     bool sleepMount();
     bool wakeupMount();
 
+    bool getGeminiProperty(uint8_t propertyNumber, char* value);
+    bool setGeminiProperty(uint8_t propertyNumber, char* value);
+
     // Checksum for private commands
     uint8_t calculateChecksum(char *cmd);
+
+    INumber ManualSlewingSpeedN[1];
+    INumberVectorProperty ManualSlewingSpeedNP;
+
+    INumber GotoSlewingSpeedN[1];
+    INumberVectorProperty GotoSlewingSpeedNP;
+
+    INumber MoveSpeedN[1];
+    INumberVectorProperty MoveSpeedNP;
+
+    INumber GuidingSpeedN[1];
+    INumberVectorProperty GuidingSpeedNP;
+
+    INumber CenteringSpeedN[1];
+    INumberVectorProperty CenteringSpeedNP;
 
     ISwitch ParkSettingsS[3];
     ISwitchVectorProperty ParkSettingsSP;
@@ -88,5 +110,30 @@ class LX200Gemini : public LX200Generic
         GEMINI_TRACK_SOLAR
 
     };
+
+    enum MovementState
+    {
+        NO_MOVEMENT,
+        TRACKING,
+        GUIDING,
+        CENTERING,
+        SLEWING,
+        STALLED
+    };
+
+    enum ParkingState
+    {
+        NOT_PARKED,
+        PARKED,
+        PARK_IN_PROGRESS
+    };
+
     const uint8_t GEMINI_TIMEOUT = 3;
+
+    void setTrackState(INDI::Telescope::TelescopeStatus state);
+    void updateMovementState();
+    MovementState getMovementState();
+    ParkingState getParkingState();
+
+    ParkingState priorParkingState = PARK_IN_PROGRESS;
 };

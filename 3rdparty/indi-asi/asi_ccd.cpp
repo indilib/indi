@@ -23,9 +23,7 @@
 
 #include "config.h"
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
-#include <stream_recorder.h>
-#endif
+#include <stream/streammanager.h>
 
 #include <math.h>
 #include <unistd.h>
@@ -45,8 +43,8 @@ static int iConnectedCamerasCount;
 static ASI_CAMERA_INFO *pASICameraInfo;
 static ASICCD *cameras[MAX_DEVICES];
 
-pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+//pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+//pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void cleanup()
 {
@@ -196,8 +194,8 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
     m_camInfo    = camInfo;
 
     exposureRetries = 0;
-    streamPredicate = 0;
-    terminateThread = false;
+    //streamPredicate = 0;
+    //terminateThread = false;
 
     InWEPulse = InNSPulse = false;
     WEPulseRequest = NSPulseRequest = 0;
@@ -276,20 +274,13 @@ bool ASICCD::initProperties()
     if (m_camInfo->IsColorCam)
         cap |= CCD_HAS_BAYER;
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
     cap |= CCD_HAS_STREAMING;
-#endif
 
     SetCCDCapability(cap);
 
     addAuxControls();
 
     return true;
-}
-
-void ASICCD::ISGetProperties(const char *dev)
-{
-    INDI::CCD::ISGetProperties(dev);
 }
 
 bool ASICCD::updateProperties()
@@ -384,9 +375,8 @@ bool ASICCD::Connect()
 
     TemperatureUpdateCounter = 0;
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
-#endif
+
     DEBUG(INDI::Logger::DBG_SESSION, "Setting intital bandwidth to AUTO on connection.");
     if ((errCode = ASISetControlValue(m_camInfo->CameraID, ASI_BANDWIDTHOVERLOAD, 40, ASI_FALSE)) != ASI_SUCCESS)
     {
@@ -559,10 +549,8 @@ bool ASICCD::setupParams()
            m_camInfo->MaxHeight, 1, imgType);
     ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
     updateRecorderFormat();
-    Streamer->setRecorderSize(w, h);
-#endif
+    Streamer->setSize(w, h);
 
     return true;
 }
@@ -702,7 +690,6 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
         if (!strcmp(name, VideoFormatSP.name))
         {            
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
             if (Streamer->isBusy())
             {
                 VideoFormatSP.s = IPS_ALERT;
@@ -710,7 +697,7 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 IDSetSwitch(&VideoFormatSP, nullptr);
                 return true;
             }
-#endif
+
             const char *targetFormat = IUFindOnSwitchName(states, names, n);
             int targetIndex=-1;
             for (int i=0; i < VideoFormatSP.nsp; i++)
@@ -760,14 +747,15 @@ bool ASICCD::setVideoFormat(uint8_t index)
 
     updateRecorderFormat();
 
+    VideoFormatSP.s = IPS_OK;
     IDSetSwitch(&VideoFormatSP, nullptr);
 
     return true;
 }
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
 bool ASICCD::StartStreaming()
 {
+#if 0
     ASI_IMG_TYPE type = getImageType();
 
     rememberVideoFormat = IUFindOnSwitchIndex(&VideoFormatSP);
@@ -793,7 +781,9 @@ bool ASICCD::StartStreaming()
             return false;
         }
     }
+#endif
 
+    ExposureRequest = 1.0 / Streamer->getTargetFPS();
     ASIStartVideoCapture(m_camInfo->CameraID);
     pthread_mutex_lock(&condMutex);
     streamPredicate = 1;
@@ -802,9 +792,7 @@ bool ASICCD::StartStreaming()
 
     return true;
 }
-#endif
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
 bool ASICCD::StopStreaming()
 {
     pthread_mutex_lock(&condMutex);
@@ -818,7 +806,6 @@ bool ASICCD::StopStreaming()
 
     return true;
 }
-#endif
 
 int ASICCD::SetTemperature(double temperature)
 {
@@ -875,7 +862,7 @@ bool ASICCD::StartExposure(float duration)
     for (int i = 0; i < 3; i++)
     {
         if ((errCode = ASIStartExposure(m_camInfo->CameraID,
-                                        (PrimaryCCD.getFrameType() == CCDChip::DARK_FRAME) ? ASI_TRUE : ASI_FALSE)) !=
+                                        (PrimaryCCD.getFrameType() == INDI::CCDChip::DARK_FRAME) ? ASI_TRUE : ASI_FALSE)) !=
             ASI_SUCCESS)
         {
             DEBUGF(INDI::Logger::DBG_ERROR, "ASIStartExposure error (%d)", errCode);
@@ -915,7 +902,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     long bin_width  = w / PrimaryCCD.getBinX();
     long bin_height = h / PrimaryCCD.getBinY();
 
-    bin_width  = bin_width - (bin_width % 8);
+    bin_width  = bin_width - (bin_width % 2);
     bin_height = bin_height - (bin_height % 2);
 
     w = bin_width * PrimaryCCD.getBinX();
@@ -952,11 +939,7 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "ASISetStartPos (%d,%d) error (%d)", x_1, y_1, errCode);
         return false;
-    }
-
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
-    Streamer->setRecorderSize(bin_width, bin_height);
-#endif
+    }    
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
@@ -966,12 +949,13 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     if (getImageType() == ASI_IMG_RGB24)
         nChannels = 3;
 
-    int nbuf;
-    nbuf = (bin_width * bin_height * PrimaryCCD.getBPP() / 8) * nChannels; //  this is pixel count
-    //nbuf += 512;    //  leave a little extra at the end
+    // Total bytes required for image buffer
+    uint32_t nbuf = (bin_width * bin_height * PrimaryCCD.getBPP() / 8) * nChannels;
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting frame buffer size to %d bytes.", nbuf);
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting frame buffer size to %d bytes.", nbuf);
+    // Always set BINNED size
+    Streamer->setSize(bin_width, bin_height);
 
     return true;
 }
@@ -1566,45 +1550,47 @@ void ASICCD::updateControls()
 
 void ASICCD::updateRecorderFormat()
 {
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
-    switch (getImageType())
+    currentVideoFormat = getImageType();
+
+    switch (currentVideoFormat)
     {
-        case ASI_IMG_Y8:
-            Streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
-            break;
+    case ASI_IMG_Y8:
+        Streamer->setPixelFormat(INDI_MONO);
+        break;
 
-        case ASI_IMG_RAW8:
-            if (m_camInfo->BayerPattern == ASI_BAYER_RG)
-                Streamer->setPixelFormat(V4L2_PIX_FMT_SRGGB8);
-            else if (m_camInfo->BayerPattern == ASI_BAYER_BG)
-                Streamer->setPixelFormat(V4L2_PIX_FMT_SBGGR8);
-            else if (m_camInfo->BayerPattern == ASI_BAYER_GR)
-                Streamer->setPixelFormat(V4L2_PIX_FMT_SGRBG8);
-            else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
-                Streamer->setPixelFormat(V4L2_PIX_FMT_SGBRG8);
-            break;
+    case ASI_IMG_RAW8:
+        if (m_camInfo->BayerPattern == ASI_BAYER_RG)
+            Streamer->setPixelFormat(INDI_BAYER_RGGB);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_BG)
+            Streamer->setPixelFormat(INDI_BAYER_BGGR);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_GR)
+            Streamer->setPixelFormat(INDI_BAYER_GRBG);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
+            Streamer->setPixelFormat(INDI_BAYER_GBRG);
+        break;
 
-        case ASI_IMG_RAW16:
-            if (m_camInfo->BayerPattern == ASI_BAYER_BG)
-                Streamer->setPixelFormat(V4L2_PIX_FMT_SBGGR16);
-            else
-            {
-                DEBUGF(INDI::Logger::DBG_WARNING, "16 bit bayer format %s it not supported by the SER recorder.",
-                       getBayerString());
-            }
-            break;
+    case ASI_IMG_RAW16:
+        if (m_camInfo->IsColorCam == ASI_FALSE)
+            Streamer->setPixelFormat(INDI_MONO, 16);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_RG)
+            Streamer->setPixelFormat(INDI_BAYER_RGGB, 16);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_BG)
+            Streamer->setPixelFormat(INDI_BAYER_BGGR, 16);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_GR)
+            Streamer->setPixelFormat(INDI_BAYER_GRBG, 16);
+        else if (m_camInfo->BayerPattern == ASI_BAYER_GB)
+            Streamer->setPixelFormat(INDI_BAYER_GBRG, 16);
+        break;
 
-        case ASI_IMG_RGB24:
-            Streamer->setPixelFormat(V4L2_PIX_FMT_RGB24);
-            break;
+    case ASI_IMG_RGB24:
+        Streamer->setPixelFormat(INDI_RGB);
+        break;
 
-        case ASI_IMG_END:
-            break;
+    case ASI_IMG_END:
+        break;
     }
-#endif
 }
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
 void *ASICCD::streamVideoHelper(void *context)
 {
     return ((ASICCD *)context)->streamVideo();
@@ -1627,9 +1613,9 @@ void *ASICCD::streamVideo()
         // release condMutex
         pthread_mutex_unlock(&condMutex);
 
-        unsigned char *targetFrame = (unsigned char *)PrimaryCCD.getFrameBuffer();
-        uint32_t totalBytes        = PrimaryCCD.getFrameBufferSize();
-        int waitMS                 = ExposureRequest * 2000 + 500;
+        uint8_t *targetFrame = PrimaryCCD.getFrameBuffer();
+        uint32_t totalBytes  = PrimaryCCD.getFrameBufferSize();
+        int waitMS           = ExposureRequest * 2000 + 500;
 
         if ((ret = ASIGetVideoData(m_camInfo->CameraID, targetFrame, totalBytes, waitMS)) != ASI_SUCCESS)
         {
@@ -1642,15 +1628,25 @@ void *ASICCD::streamVideo()
             continue;
         }
 
-        Streamer->newFrame();
+        // Swap
+        if (currentVideoFormat == ASI_IMG_RGB24)
+        {
+            for (uint32_t i=0; i < totalBytes; i+=3)
+            {
+                uint8_t r = targetFrame[i];
+                targetFrame[i] = targetFrame[i+2];
+                targetFrame[i+2] = r;
+            }
+        }
+
+        Streamer->newFrame(targetFrame, totalBytes);
     }
 
     pthread_mutex_unlock(&condMutex);
     return 0;
 }
-#endif
 
-void ASICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
+void ASICCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 

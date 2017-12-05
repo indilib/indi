@@ -201,6 +201,10 @@ int jsonParse(char *s, char **endptr, JsonValue *value, JsonAllocator &allocator
         *endptr = s++;
         switch (**endptr)
         {
+#if __GNUC__ > 6
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
             case '-':
                 if (!isdigit(*s) && *s != '.')
                 {
@@ -225,6 +229,9 @@ int jsonParse(char *s, char **endptr, JsonValue *value, JsonAllocator &allocator
                     return JSON_BAD_NUMBER;
                 }
                 break;
+#if __GNUC__ > 6
+#pragma GCC diagnostic pop
+#endif
             case '"':
                 o = JsonValue(JSON_STRING, s);
                 for (char *it = s; *s; ++it, ++s)

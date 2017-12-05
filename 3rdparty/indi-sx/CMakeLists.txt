@@ -16,7 +16,7 @@ configure_file (
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_sx.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_sx.xml )
 
 find_package(CFITSIO REQUIRED)
-find_package(USB-1 REQUIRED)
+find_package(USB1 REQUIRED)
 find_package(INDI REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -27,13 +27,15 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 
 include(CMakeCommon)
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config-usb.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-usb.h)
+
 set(indisxccd_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/sxccd.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/sxccdusb.cpp
    )
 
 add_executable(indi_sx_ccd ${indisxccd_SRCS})
-target_link_libraries(indi_sx_ccd ${INDI_LIBRARIES} ${LIBUSB_1_LIBRARIES})
+target_link_libraries(indi_sx_ccd ${INDI_LIBRARIES} ${USB1_LIBRARIES})
 
 #IF (APPLE)
 #set(indisxwheel_SRCS
@@ -46,7 +48,7 @@ target_link_libraries(indi_sx_ccd ${INDI_LIBRARIES} ${LIBUSB_1_LIBRARIES})
 #  ${CMAKE_CURRENT_SOURCE_DIR}/hid_win.c
 #  )
 #ELSE ()
-#include_directories(${LIBUSB_1_INCLUDE_DIRS})
+#include_directories(${USB1_INCLUDE_DIRS})
 #set(indisxwheel_SRCS
 #  ${CMAKE_CURRENT_SOURCE_DIR}/sxwheel.cpp
 #  ${CMAKE_CURRENT_SOURCE_DIR}/hid_libusb.c
@@ -60,7 +62,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-framework IOKit -framework CoreFoundation")
 target_link_libraries(indi_sx_wheel ${INDI_LIBRARIES} ${LIBUSB_LIBRARIES})
 ELSEIF (WIN32)
 ELSE ()
-target_link_libraries(indi_sx_wheel ${INDI_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_sx_wheel ${INDI_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 ENDIF()
 
 if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
@@ -80,7 +82,7 @@ set(sx_ccd_test_SRCS
    )
 
 add_executable(sx_ccd_test ${sx_ccd_test_SRCS})
-target_link_libraries(sx_ccd_test ${LIBUSB_1_LIBRARIES})
+target_link_libraries(sx_ccd_test ${USB1_LIBRARIES})
 
 install(TARGETS indi_sx_ccd RUNTIME DESTINATION bin)
 install(TARGETS indi_sx_wheel RUNTIME DESTINATION bin)

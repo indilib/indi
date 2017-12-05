@@ -240,21 +240,22 @@ void GPSNMEA::parseNEMA()
                     time_t raw_time;
                     struct tm *utc, *local;
 
-                    minmea_gettime(&timesp, &frame.date, &frame.time);
+                    if (minmea_gettime(&timesp, &frame.date, &frame.time) == -1)
+                        break;
 
                     raw_time = timesp.tv_sec;
                     utc = gmtime(&raw_time);
-                    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
+                    strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
                     IUSaveText(&TimeT[0], ts);
 
                     local = localtime(&raw_time);
-                    snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff / 3600.0));
+                    snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
                     IUSaveText(&TimeT[1], ts);
-
 
                     pthread_mutex_lock(&lock);
                     locationPending = false;
                     timePending = false;
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Threaded Location and Time updates complete.");
                     pthread_mutex_unlock(&lock);
                 }
             }
@@ -294,16 +295,17 @@ void GPSNMEA::parseNEMA()
 
                     raw_time = timesp.tv_sec;
                     utc = gmtime(&raw_time);
-                    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
+                    strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
                     IUSaveText(&TimeT[0], ts);
 
                     local = localtime(&raw_time);
-                    snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff / 3600.0));
+                    snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
                     IUSaveText(&TimeT[1], ts);
 
                     pthread_mutex_lock(&lock);
                     timePending = false;
                     locationPending = false;
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Threaded Location and Time updates complete.");
                     pthread_mutex_unlock(&lock);
                 }
             }
@@ -365,15 +367,16 @@ void GPSNMEA::parseNEMA()
 
                 raw_time = timesp.tv_sec;
                 utc = gmtime(&raw_time);
-                strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utc);
+                strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
                 IUSaveText(&TimeT[0], ts);
 
                 local = localtime(&raw_time);
-                snprintf(ts, sizeof(ts), "%4.2f", (local->tm_gmtoff / 3600.0));
+                snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
                 IUSaveText(&TimeT[1], ts);
 
                 pthread_mutex_lock(&lock);
                 timePending = false;
+                DEBUG(INDI::Logger::DBG_DEBUG, "Threaded Time update complete.");
                 pthread_mutex_unlock(&lock);
             }
             else {

@@ -4,14 +4,15 @@ compiler:
 language: cpp
 sudo: required
 dist: trusty
-osx_image: xcode8.1
-
-os: 
- - linux
- - osx
+osx_image: xcode8.3
 
 matrix:
   include:
+    - os: osx
+
+# Default config (on trusty gcc4)
+    - os: linux
+
     - os: linux
       addons:
         apt:

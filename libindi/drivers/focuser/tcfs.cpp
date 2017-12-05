@@ -173,17 +173,27 @@ bool TCFS::Handshake()
         return true;
     }
 
+    char response[TCFS_MAX_CMD] = { 0 };
+
     dispatch_command(FWAKUP);
-    read_tcfs();
+    read_tcfs(response);
 
-    dispatch_command(FMMODE);
-    read_tcfs();
+    for(int retry=0; retry<5; retry++)
+    {
+        dispatch_command(FMMODE);
+        read_tcfs(response);
+        if (strcmp(response, "!") == 0)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+            DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to TCF-S Focuser in Manual Mode.");
+            return true;
+        }
+    }
+    tcflush(PortFD, TCIOFLUSH);
 
-    tcflush(fd, TCIOFLUSH);
+    DEBUG(INDI::Logger::DBG_ERROR, "Failed connection to TCF-S Focuser.");
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to TCF-S Focuser in Manual Mode.");
-
-    return true;
+    return false;
 }
 
 /****************************************************************
@@ -208,6 +218,8 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        char response[TCFS_MAX_CMD] = { 0 };
+
         if (!strcmp(FocusPowerSP->name, name))
         {
             IUUpdateSwitch(FocusPowerSP, states, names, n);
@@ -225,7 +237,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             else
                 dispatch_command(FWAKUP);
 
-            if (read_tcfs() == false)
+            if (read_tcfs(response) == false)
             {
                 IUResetSwitch(FocusPowerSP);
                 FocusPowerSP->s = IPS_ALERT;
@@ -310,7 +322,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             if (!strcmp(sp->name, "Manual"))
             {
                 dispatch_command(FMMODE);
-                read_tcfs();
+                read_tcfs(response);
                 if (!isSimulation() && strcmp(response, "!") != 0)
                 {
                     IUResetSwitch(FocusModeSP);
@@ -322,7 +334,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             else if (!strcmp(sp->name, "Auto A"))
             {
                 dispatch_command(FAMODE);
-                read_tcfs();
+                read_tcfs(response);
                 if (!isSimulation() && strcmp(response, "A") != 0)
                 {
                     IUResetSwitch(FocusModeSP);
@@ -334,7 +346,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             else
             {
                 dispatch_command(FBMODE);
-                read_tcfs();
+                read_tcfs(response);
                 if (!isSimulation() && strcmp(response, "B") != 0)
                 {
                     IUResetSwitch(FocusModeSP);
@@ -392,7 +404,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             else if (!strcmp(sp->name, "FOCUS_HOME"))
             {
                 dispatch_command(FHOME);
-                read_tcfs();
+                read_tcfs(response);
 
                 if (isSimulation())
                     strncpy(response, "DONE", TCFS_MAX_CMD);
@@ -469,9 +481,7 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
 {
     int err_code = 0, nbytes_written = 0;
     char tcfs_error[TCFS_ERROR_BUFFER];
-
-    // Clear string
-    command[0] = '\0';
+    char command[TCFS_MAX_CMD] = {0};
 
     switch (command_type)
     {
@@ -537,14 +547,14 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
             break;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Dispatching command #%s#", command);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
 
     if (isSimulation())
         return true;
 
-    tcflush(fd, TCIOFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
-    if ((err_code = tty_write(fd, command, TCFS_MAX_CMD, &nbytes_written) != TTY_OK))
+    if ((err_code = tty_write(PortFD, command, strlen(command), &nbytes_written) != TTY_OK))
     {
         tty_error_msg(err_code, tcfs_error, TCFS_ERROR_BUFFER);
         DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", tcfs_error);
@@ -566,6 +576,7 @@ void TCFS::TimerHit()
 
     int f_position      = 0;
     float f_temperature = 0;
+    char response[TCFS_MAX_CMD] = { 0 };
 
     if (FocusGotoSP->s == IPS_BUSY)
     {
@@ -573,7 +584,7 @@ void TCFS::TimerHit()
 
         if (sp != nullptr && strcmp(sp->name, "FOCUS_CENTER") == 0)
         {
-            bool rc = read_tcfs(true);
+            bool rc = read_tcfs(response, true);
 
             if (!rc)
             {
@@ -604,7 +615,7 @@ void TCFS::TimerHit()
             if (FocusModeSP->sp[0].s == ISS_ON)
                 dispatch_command(FPOSRO);
 
-            if (read_tcfs() == false)
+            if (read_tcfs(response) == false)
             {
                 SetTimer(POLLMS);
                 return;
@@ -624,7 +635,7 @@ void TCFS::TimerHit()
             break;
 
         case IPS_BUSY:
-            if (read_tcfs(true) == false)
+            if (read_tcfs(response, true) == false)
             {
                 SetTimer(POLLMS);
                 return;
@@ -670,7 +681,7 @@ void TCFS::TimerHit()
         if (FocusModeSP->sp[0].s == ISS_ON)
             dispatch_command(FTMPRO);
 
-        if (read_tcfs() == false)
+        if (read_tcfs(response) == false)
         {
             SetTimer(POLLMS);
             return;
@@ -693,13 +704,10 @@ void TCFS::TimerHit()
     SetTimer(POLLMS);
 }
 
-bool TCFS::read_tcfs(bool silent)
+bool TCFS::read_tcfs(char *response, bool silent)
 {
     int err_code = 0, nbytes_read = 0;
     char err_msg[TCFS_ERROR_BUFFER];
-
-    // Clear string
-    response[0] = '\0';
 
     if (isSimulation())
     {
@@ -708,7 +716,7 @@ bool TCFS::read_tcfs(bool silent)
     }
 
     // Read until encountring a CR
-    if ((err_code = tty_read_section(fd, response, 0x0D, 5, &nbytes_read)) != TTY_OK)
+    if ((err_code = tty_read_section(PortFD, response, 0x0D, 5, &nbytes_read)) != TTY_OK)
     {
         if (!silent)
         {
@@ -722,8 +730,7 @@ bool TCFS::read_tcfs(bool silent)
     // Remove LF & CR
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Bytes Read: %d - strlen(response): %ld - Response from TCF-S: #%s#", nbytes_read,
-           strlen(response), response);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
     return true;
 }

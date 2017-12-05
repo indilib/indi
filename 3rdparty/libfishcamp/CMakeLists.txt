@@ -9,7 +9,7 @@ set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 #***********************************************************
 
-find_package(USB-1 REQUIRED)
+find_package(USB1 REQUIRED)
 
 ADD_DEFINITIONS(-Wno-multichar)
 
@@ -26,7 +26,7 @@ ADD_LIBRARY(fishcamp SHARED ${fishcamp_LIB_SRCS})
 
 set_target_properties(fishcamp PROPERTIES VERSION ${LIBFISHCAMP_VERSION} SOVERSION ${LIBFISHCAMP_SOVERSION})
 
-target_link_libraries(fishcamp ${LIBUSB_1_LIBRARIES})
+target_link_libraries(fishcamp ${USB1_LIBRARIES})
 
 INSTALL(FILES fishcamp.h fishcamp_common.h DESTINATION include/libfishcamp)
 

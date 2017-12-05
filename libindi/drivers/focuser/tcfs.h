@@ -72,17 +72,13 @@ class TCFS : public INDI::Focuser
     virtual void TimerHit();
 
   private:
-    bool read_tcfs(bool silent = false);
+    bool read_tcfs(char *response, bool silent = false);
     bool dispatch_command(TCFSCommand command_type);
 
     ISwitchVectorProperty *FocusPowerSP { nullptr };
     ISwitchVectorProperty *FocusModeSP { nullptr };
     ISwitchVectorProperty *FocusGotoSP { nullptr };
     INumberVectorProperty *FocusTemperatureNP { nullptr };
-
-    int fd { 0 };
-    char command[TCFS_MAX_CMD];
-    char response[TCFS_MAX_CMD];
 
     unsigned int simulated_position { 3000 };
     float simulated_temperature { 25.4 };

@@ -730,7 +730,7 @@ bool QSICCD::StartExposure(float duration)
 {
     imageFrameType = PrimaryCCD.getFrameType();
 
-    if (imageFrameType == CCDChip::BIAS_FRAME)
+    if (imageFrameType == INDI::CCDChip::BIAS_FRAME)
     {
         ExposureRequest = 0;
         PrimaryCCD.setExposureDuration(0);
@@ -755,7 +755,7 @@ bool QSICCD::StartExposure(float duration)
     }
 
     /* BIAS frame is the same as DARK but with minimum period. i.e. readout from camera electronics.*/
-    if (imageFrameType == CCDChip::BIAS_FRAME || imageFrameType == CCDChip::DARK_FRAME)
+    if (imageFrameType == INDI::CCDChip::BIAS_FRAME || imageFrameType == INDI::CCDChip::DARK_FRAME)
     {
         try
         {
@@ -767,7 +767,7 @@ bool QSICCD::StartExposure(float duration)
             return false;
         }
     }
-    else if (imageFrameType == CCDChip::LIGHT_FRAME || imageFrameType == CCDChip::FLAT_FRAME)
+    else if (imageFrameType == INDI::CCDChip::LIGHT_FRAME || imageFrameType == INDI::CCDChip::FLAT_FRAME)
     {
         try
         {
@@ -935,7 +935,7 @@ int QSICCD::grabImage()
     return 0;
 }
 
-void QSICCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
+void QSICCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
