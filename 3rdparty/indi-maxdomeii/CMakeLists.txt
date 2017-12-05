@@ -24,7 +24,7 @@ include(CMakeCommon)
 
 ########### MaxDome II ###########
 set(indimaxdomeii_SRCS
-   ${CMAKE_CURRENT_SOURCE_DIR}/maxdomeiidriver.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/maxdomeiidriver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/maxdomeii.cpp
    )
 

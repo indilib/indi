@@ -103,7 +103,10 @@ bool MaxDomeII::SetupParms()
 
 bool MaxDomeII::Handshake()
 {
-    return (Ack_MaxDomeII(PortFD) == 0);
+    driver.SetDevice(getDeviceName());
+    driver.SetPortFD(PortFD);
+
+    return !driver.Ack();
 }
 
 MaxDomeII::~MaxDomeII()
@@ -125,7 +128,7 @@ bool MaxDomeII::initProperties()
                        "Home azimuth", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Ticks per turn
-    IUFillNumber(&TicksPerTurnN[0], "TICKS_PER_TURN", "Ticks per turn", "%5.2f", 0., 360., 0., nTicksPerTurn);
+    IUFillNumber(&TicksPerTurnN[0], "TICKS_PER_TURN", "Ticks per turn", "%5.2f", 100., 2000., 0., nTicksPerTurn);
     IUFillNumberVector(&TicksPerTurnNP, TicksPerTurnN, NARRAY(TicksPerTurnN), getDeviceName(), "TICKS_PER_TURN",
                        "Ticks per turn", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
@@ -207,15 +210,15 @@ bool MaxDomeII::saveConfigItems(FILE *fp)
 
 bool MaxDomeII::Disconnect()
 {
-    Disconnect_MaxDomeII(PortFD);
+    driver.Disconnect();
 
     return INDI::Dome::Disconnect();
 }
 
 void MaxDomeII::TimerHit()
 {
-    SH_Status nShutterStatus;
-    AZ_Status nAzimuthStatus;
+    ShStatus shutterSt;
+    AzStatus nAzimuthStatus;
     unsigned nHomePosition;
     float nAz;
     int nError;
@@ -224,7 +227,7 @@ void MaxDomeII::TimerHit()
     if (isConnected() == false)
         return; //  No need to reset timer if we are not connected anymore
 
-    nError = Status_MaxDomeII(PortFD, &nShutterStatus, &nAzimuthStatus, &nCurrentTicks, &nHomePosition);
+    nError = driver.Status(&shutterSt, &nAzimuthStatus, &nCurrentTicks, &nHomePosition);
     handle_driver_error(&nError, &nRetry); // This is a timer, we will not repeat in order to not delay the execution.
 
     // Increment movment time counter
@@ -238,7 +241,7 @@ void MaxDomeII::TimerHit()
     if (WatchDogNP.np[0].value > 0 && WatchDogNP.np[0].value <= nTimeSinceLastCommunication)
     {
         // Close Shutter if it is not
-        if (nShutterStatus != Ss_CLOSED)
+        if (shutterSt != SS_CLOSED)
         {
             DomeShutterSP.s = ControlShutter(SHUTTER_CLOSE);
             IDSetSwitch(&DomeShutterSP, "Closing shutter due watch dog");
@@ -248,7 +251,7 @@ void MaxDomeII::TimerHit()
     if (getWeatherState() == IPS_ALERT)
     {
         // Close Shutter if it is not
-        if (nShutterStatus != Ss_CLOSED)
+        if (shutterSt != SS_CLOSED)
         {
             DomeShutterSP.s = ControlShutter(SHUTTER_CLOSE);
             IDSetSwitch(&DomeShutterSP, "Closing shutter due Weather conditions");
@@ -258,9 +261,9 @@ void MaxDomeII::TimerHit()
     if (!nError)
     {
         // Shutter
-        switch (nShutterStatus)
+        switch (shutterSt)
         {
-            case Ss_CLOSED:
+            case SS_CLOSED:
                 if (DomeShutterS[1].s == ISS_ON) // Close Shutter
                 {
                     if (DomeShutterSP.s == IPS_BUSY || DomeShutterSP.s == IPS_ALERT)
@@ -289,7 +292,7 @@ void MaxDomeII::TimerHit()
                     }
                 }
                 break;
-            case Ss_OPENING:
+            case SS_OPENING:
                 if (DomeShutterS[0].s == ISS_OFF) // not opening Shutter
                 {                                 // For some reason the shutter is opening (manual operation?)
                     DomeShutterSP.s   = IPS_ALERT;
@@ -309,7 +312,7 @@ void MaxDomeII::TimerHit()
                     IDSetSwitch(&DomeShutterSP, "Shutter is opening");
                 }
                 break;
-            case Ss_OPEN:
+            case SS_OPEN:
                 if (DomeShutterS[0].s == ISS_ON) // Open Shutter
                 {
                     if (DomeShutterSP.s == IPS_BUSY || DomeShutterSP.s == IPS_ALERT)
@@ -338,7 +341,7 @@ void MaxDomeII::TimerHit()
                     }
                 }
                 break;
-            case Ss_CLOSING:
+            case SS_CLOSING:
                 if (DomeShutterS[1].s == ISS_OFF) // Not closing Shutter
                 {                                 // For some reason the shutter is closing (manual operation?)
                     DomeShutterSP.s   = IPS_ALERT;
@@ -358,8 +361,8 @@ void MaxDomeII::TimerHit()
                     IDSetSwitch(&DomeShutterSP, "Shutter is closing");
                 }
                 break;
-            case Ss_ABORTED:
-            case Ss_ERROR:
+            case SS_ABORTED:
+            case SS_ERROR:
             default:
                 if (nTimeSinceShutterStart >= 0)
                 {
@@ -383,8 +386,8 @@ void MaxDomeII::TimerHit()
 
         switch (nAzimuthStatus)
         {
-            case As_IDLE:
-            case As_IDEL2:
+            case AS_IDLE:
+            case AS_IDLE2:
                 if (nTimeSinceAzimuthStart > 3)
                 {
                     if (nTargetAzimuth >= 0 &&
@@ -412,8 +415,8 @@ void MaxDomeII::TimerHit()
                     }
                 }
                 break;
-            case As_MOVING_WE:
-            case As_MOVING_EW:
+            case AS_MOVING_WE:
+            case AS_MOVING_EW:
                 if (nTimeSinceAzimuthStart < 0)
                 {
                     nTimeSinceAzimuthStart = 0;
@@ -422,7 +425,7 @@ void MaxDomeII::TimerHit()
                     IDSetNumber(&DomeAbsPosNP, "Unexpected dome moving");
                 }
                 break;
-            case As_ERROR:
+            case AS_ERROR:
                 if (nTimeSinceAzimuthStart >= 0)
                 {
                     DomeAbsPosNP.s         = IPS_ALERT;
@@ -473,7 +476,7 @@ IPState MaxDomeII::MoveAbs(double newAZ)
 
     while (nRetry)
     {
-        error = Goto_Azimuth_MaxDomeII(PortFD, nDir, newPos);
+        error = driver.GotoAzimuth(nDir, newPos);
         handle_driver_error(&error, &nRetry);
     }
 
@@ -487,6 +490,14 @@ IPState MaxDomeII::MoveAbs(double newAZ)
     return IPS_BUSY;
 }
 
+IPState MaxDomeII::Move(DomeDirection dir, DomeMotionCommand operation)
+{
+    // TODO
+    INDI_UNUSED(operation);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Move dir=%d", dir);
+    return IPS_OK;
+}
+
 bool MaxDomeII::Abort()
 {
     int error  = 0;
@@ -494,13 +505,13 @@ bool MaxDomeII::Abort()
 
     while (nRetry)
     {
-        error = Abort_Azimuth_MaxDomeII(PortFD);
+        error = driver.AbortAzimuth();
         handle_driver_error(&error, &nRetry);
     }
 
     while (nRetry)
     {
-        error = Abort_Shutter_MaxDomeII(PortFD);
+        error = driver.AbortShutter();
         handle_driver_error(&error, &nRetry);
     }
 
@@ -543,11 +554,11 @@ bool MaxDomeII::ISNewNumber(const char *dev, const char *name, double values[], 
             return false;
 
         nVal = values[0];
-        if (nVal >= 100 && nVal <= 500)
+        if (nVal >= 100 && nVal <= 2000)
         {
             while (nRetry)
             {
-                error = SetTicksPerCount_MaxDomeII(PortFD, nVal);
+                error = driver.SetTicksPerTurn(nVal);
                 handle_driver_error(&error, &nRetry);
             }
             if (error >= 0)
@@ -698,7 +709,7 @@ bool MaxDomeII::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
         while (nRetry)
         {
-            error = Home_Azimuth_MaxDomeII(PortFD);
+            error = driver.HomeAzimuth();
             handle_driver_error(&error, &nRetry);
         }
         nTimeSinceAzimuthStart = 0;
@@ -841,7 +852,7 @@ IPState MaxDomeII::ConfigurePark(int nCSBP, double ParkAzimuth)
     {
         while (nRetry)
         {
-            error = SetPark_MaxDomeII(PortFD, nCSBP, AzimuthToTicks(ParkAzimuth));
+            error = driver.SetPark(nCSBP, AzimuthToTicks(ParkAzimuth));
             handle_driver_error(&error, &nRetry);
         }
         if (error >= 0)
@@ -891,7 +902,7 @@ IPState MaxDomeII::ControlShutter(ShutterOperation operation)
     {
         while (nRetry)
         {
-            error = Close_Shutter_MaxDomeII(PortFD);
+            error = driver.CloseShutter();
             handle_driver_error(&error, &nRetry);
         }
         nTimeSinceShutterStart = 0; // Init movement timer
@@ -908,7 +919,7 @@ IPState MaxDomeII::ControlShutter(ShutterOperation operation)
         { // Open Shutter
             while (nRetry)
             {
-                error = Open_Shutter_MaxDomeII(PortFD);
+                error = driver.OpenShutter();
                 handle_driver_error(&error, &nRetry);
             }
             nTimeSinceShutterStart = 0; // Init movement timer
@@ -923,7 +934,7 @@ IPState MaxDomeII::ControlShutter(ShutterOperation operation)
         { // Open upper shutter only
             while (nRetry)
             {
-                error = Open_Upper_Shutter_Only_MaxDomeII(PortFD);
+                error = driver.OpenUpperShutterOnly();
                 handle_driver_error(&error, &nRetry);
             }
             nTimeSinceShutterStart = 0; // Init movement timer
