@@ -3,10 +3,9 @@ FROM fedora:latest
 RUN dnf -y upgrade
 
 RUN dnf -y install \
-        cdbs dpkg-dev debhelper cmake curl dcraw fakeroot wget git ssh \
-        libcurl4-gnutls-dev libboost-dev libboost-regex-dev libcfitsio-dev \
-        libftdi-dev libgphoto2-dev libgps-dev libgsl-dev libjpeg-dev \
-        libnova-dev libopenal-dev libraw-dev libusb-1.0-0-dev librtlsdr-dev \
-        libfftw3-dev zlib1g-dev libconfuse-dev python3-all-dev doxygen \
-        libboost-test-dev python-all-dev swig g++ libftdi1-dev \
-        googletest google-mock clang
+        cdbs cmake curl dcraw wget git openssh \
+        libcurl-devel boost-devel cfitsio-devel \
+        ftdi-devel libgphoto2-devel gpsd-devel gsl-devel libjpeg-turbo-devel \
+        libnova-devel openal-soft-devel LibRaw-devel libusb-devel rtl-sdr-devel \
+        fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
+        python-devel swig gcc-c++ gtest gmock clang
