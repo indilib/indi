@@ -27,7 +27,8 @@ int dspau_bandpasscorrelate(double* in, double* out, int *c, int skip, double Q)
 	int len = *c;
 	int l = (len / 2) - (len % 2);
 	double* filtered = (double*)malloc(sizeof(double) * len);
-	for(int i = skip; i < l; i++)
+	int i;
+	for(i = skip; i < l; i++)
 	{
 		dspau_bandpassfilter(in, filtered, len, len, i, Q);
 		out[i - skip] = 0;
@@ -46,9 +47,10 @@ int dspau_autocorrelate(double* in, double* out, int *c, int skip)
 	int len = *c;
 	int l = (len / 2) - (len % 2);
 	double min, mid, max;
+	int i;
 	mid = dspau_minmidmax(in, len, &min, &max);
 	dspau_sub1(in, out, len, mid);
-	for(int i = skip; i < l; i++) {
+	for(i = skip; i < l; i++) {
 		double x1 = 0;
 		double x2 = 0;
 		double y = 0;

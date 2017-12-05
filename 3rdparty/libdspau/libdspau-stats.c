@@ -26,7 +26,8 @@ double dspau_minmidmax(double* in, int len, double *min, double *max)
 {
 	double mn = DBL_MAX;
 	double mx = DBL_MIN;
-	for(int i = 0; i < len; i++) {
+	int i;
+	for(i = 0; i < len; i++) {
 		mn = (in[i] < mn ? in[i] : mn);
 		mx = (in[i] > mx ? in[i] : mx);
 	}
@@ -39,7 +40,8 @@ double dspau_mean(double* in, int len)
 {
 	double mean = 0.0;
 	double l = (double)len;
-	for(int i = 0; i < len; i++) {
+	int i;
+	for(i = 0; i < len; i++) {
 		mean += in[i];
 	}
 	mean /=  l;
