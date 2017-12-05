@@ -8,6 +8,7 @@ include(GNUInstallDirs)
 set(INDI_MGENAUTOGUIDER_VERSION_MAJOR 0)
 set(INDI_MGENAUTOGUIDER_VERSION_MINOR 1)
 
+find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(FTDI1 REQUIRED)
@@ -22,6 +23,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${INDI_INCLUDE_DIR})
 include_directories(${FTDI1_INCLUDE_DIR})
 include_directories(${USB1_INCLUDE_DIRS})
+include_directories(${CFITSIO_INCLUDE_DIR})
 
 include(CMakeCommon)
 
