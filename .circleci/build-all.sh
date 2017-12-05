@@ -17,7 +17,7 @@ if [ .${CIRCLE_BRANCH%_*} == '.drv' ] ; then
 else
     for i in "${br[@]}"
     do
-       if [ ${CIRCLE_BRANCH} == $i ]; then
+       if [ .${CIRCLE_BRANCH} == .$i ]; then
         build_all
        fi
     done
