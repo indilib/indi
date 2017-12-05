@@ -57,10 +57,12 @@ bool LX200AstroPhysics::initProperties()
 
     timeFormat = LX200_24;
 
+#if 0
     IUFillSwitch(&StartUpS[0], "COLD", "Cold", ISS_OFF);
     IUFillSwitch(&StartUpS[1], "WARM", "Warm", ISS_OFF);
     IUFillSwitchVector(&StartUpSP, StartUpS, 2, getDeviceName(), "STARTUP", "Mount init.", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
+#endif
 
     IUFillNumber(&HourangleCoordsN[0], "HA", "HA H:M:S", "%10.6m", 0., 24., 0., 0.);
     IUFillNumber(&HourangleCoordsN[1], "DEC", "Dec D:M:S", "%10.6m", -90.0, 90.0, 0., 0.);
@@ -157,10 +159,8 @@ bool LX200AstroPhysics::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&StartUpSP);
+        //defineSwitch(&StartUpSP);
         defineText(&VersionInfo);
-
-        //defineText(&DeclinationAxisTP);
 
         /* Motion group */
         defineSwitch(&APSlewSpeedSP);
@@ -169,19 +169,99 @@ bool LX200AstroPhysics::updateProperties()
         defineSwitch(&APGuideSpeedSP);
         defineNumber(&SlewAccuracyNP);
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
+        if (InitPark())
+        {
+            // If loading parking data is successful, we just set the default parking values.
+            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        }
+        else
+        {
+            // Otherwise, we set all parking data to default in case no parking data is found.
+            SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value);
+
+            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        }
+
+        initMount();
+
+        //DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
     }
     else
-    {
-        deleteProperty(StartUpSP.name);
+    {        
         deleteProperty(VersionInfo.name);
-        //deleteProperty(DeclinationAxisTP.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
         deleteProperty(SyncCMRSP.name);
         deleteProperty(APGuideSpeedSP.name);
         deleteProperty(SlewAccuracyNP.name);
     }
+
+    return true;
+}
+
+bool LX200AstroPhysics::initMount()
+{
+    // Make sure that the mount is setup according to the properties
+    int err=0;
+    int switch_nr = IUFindOnSwitchIndex(&TrackModeSP);
+
+    if (isSimulation() == false && (err = selectAPTrackingMode(PortFD, switch_nr)) < 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
+        return false;
+    }
+
+    TrackState = (switch_nr != AP_TRACKING_OFF) ? SCOPE_TRACKING : SCOPE_IDLE;
+
+    // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
+    // lx200ap is different - some of the MoveTo speeds are not VALID
+    // Slew speeds so we have to keep two lists.
+    //
+    // SlewRateS is used as the MoveTo speed
+    switch_nr = IUFindOnSwitchIndex(&SlewRateSP);
+    if (isSimulation() == false && (err = selectAPMoveToRate(PortFD, switch_nr)) < 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error setting move rate (%d).", err);
+        return false;
+    }
+
+    SlewRateSP.s = IPS_OK;
+    IDSetSwitch(&SlewRateSP, nullptr);
+
+    // APSlewSpeedsS defines the Slew (GOTO) speeds valid on the AP mounts
+    switch_nr = IUFindOnSwitchIndex(&APSlewSpeedSP);
+    if (isSimulation() == false && (err = selectAPSlewRate(PortFD, switch_nr)) < 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error setting slew to rate (%d).", err);
+        return false;
+    }
+    APSlewSpeedSP.s = IPS_OK;
+    IDSetSwitch(&APSlewSpeedSP, nullptr);
+
+    //getLX200RA(PortFD, &currentRA);
+    //getLX200DEC(PortFD, &currentDEC);
+
+    //targetRA  = currentRA;
+    //targetDEC = currentDEC;
+
+    //NewRaDec(currentRA, currentDEC);
+
+    char versionString[64];
+    if (isSimulation())
+        strncpy(versionString, "Simulation", 64);
+    else
+        getAPVersionNumber(PortFD, versionString);
+    VersionInfo.s = IPS_OK;
+    IUSaveText(&VersionT[0], versionString);
+    IDSetText(&VersionInfo, nullptr);
+
+    // TODO check controller type here
+    INDI_UNUSED(controllerType);
+    INDI_UNUSED(servoType);
+    //controllerType = ...;
 
     return true;
 }
@@ -197,6 +277,7 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
     // ============================================================
     // Satisfy AP mount initialization, see AP key pad manual p. 76
     // ============================================================
+#if 0
     if (!strcmp(name, StartUpSP.name))
     {
         int switch_nr;
@@ -313,6 +394,7 @@ bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *
         }
         return true;
     }
+#endif
 
     // =======================================
     // Swap Buttons
@@ -441,15 +523,17 @@ bool LX200AstroPhysics::ISNewNumber(const char *dev, const char *name, double va
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
+#if 0
 bool LX200AstroPhysics::isMountInit()
 {
     return (StartUpSP.s != IPS_IDLE);
 }
+#endif
 
 bool LX200AstroPhysics::ReadScopeStatus()
 {
-    if (!isMountInit())
-        return false;
+    //if (!isMountInit())
+        //return false;
 
     if (isSimulation())
     {
@@ -514,6 +598,7 @@ bool LX200AstroPhysics::ReadScopeStatus()
     return true;
 }
 
+# if 0
 bool LX200AstroPhysics::setBasicDataPart0()
 {
     int err;
@@ -589,6 +674,7 @@ bool LX200AstroPhysics::setBasicDataPart1()
 
     return true;
 }
+#endif
 
 bool LX200AstroPhysics::Goto(double r, double d)
 {
@@ -671,7 +757,26 @@ bool LX200AstroPhysics::Handshake()
         return true;
     }
 
-    return setBasicDataPart0();
+    int err=0;
+
+    if ((err = setAPClearBuffer(PortFD)) < 0)
+    {
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error clearing the buffer (%d): %s", err, strerror(err));
+        return false;
+    }
+
+    if ((err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
+    {
+        // It seems we need to send it twice before it works!
+        if ((err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting back lash compensation (%d): %s.", err, strerror(err));
+            return false;
+        }
+    }
+
+    // Detect and set fomat. It should be LONG.
+    return (checkLX200Format(PortFD) == 0);
 }
 
 bool LX200AstroPhysics::Disconnect()
@@ -846,11 +951,11 @@ bool LX200AstroPhysics::SetSlewRate(int index)
 
 bool LX200AstroPhysics::Park()
 {
-    if (initStatus == MOUNTNOTINITIALIZED)
+    /*if (initStatus == MOUNTNOTINITIALIZED)
     {
         DEBUG(INDI::Logger::DBG_WARNING, "You must initialize the mount before parking.");
         return false;
-    }
+    }*/
 
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();

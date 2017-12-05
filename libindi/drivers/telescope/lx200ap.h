@@ -48,7 +48,7 @@ class LX200AstroPhysics : public LX200Generic
   protected:
     virtual const char *getDefaultName() override;
     virtual bool initProperties() override;
-    virtual bool updateProperties() override;
+    virtual bool updateProperties() override;    
 
     virtual bool ReadScopeStatus() override;
     virtual bool Handshake() override;
@@ -111,9 +111,15 @@ class LX200AstroPhysics : public LX200Generic
     INumberVectorProperty SlewAccuracyNP;
 
   private:
+    bool initMount();
+
+
+#if 0
     bool isMountInit();
     bool setBasicDataPart0();
     bool setBasicDataPart1();
+    uint8_t initStatus = MOUNTNOTINITIALIZED;
+#endif
 
     // Side of pier
     void syncSideOfPier();
@@ -121,5 +127,5 @@ class LX200AstroPhysics : public LX200Generic
     bool timeUpdated=false, locationUpdated=false;
     ControllerVersion controllerType = MCV_UNKNOWN;
     ServoVersion servoType = GTOCP_UNKNOWN;
-    uint8_t initStatus = MOUNTNOTINITIALIZED;
+
 };
