@@ -15,10 +15,12 @@ RUN yum -y install \
         python-devel swig gcc-c++ gtest gmock clang vim
         
 RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
+RUN ln -s /usr/bin/ctest3 /usr/bin/ctest
 
 WORKDIR /home
 
 RUN echo "#!/bin/bash" > /home/run-build.sh
 RUN echo "git clone https://github.com/jochym/indi.git " >> /home/run-build.sh
 RUN echo "cd indi && CIRCLE_BRANCH=master ./.circleci/build-all.sh" >> /home/run-build.sh
+RUN echo "CIRCLE_BRANCH=master ./.circleci/run-tests.sh" >> /home/run-build.sh
 RUN chmod a+x /home/run-build.sh
