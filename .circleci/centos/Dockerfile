@@ -7,7 +7,7 @@ RUN yum -y upgrade
 RUN yum -y groupinstall 'Development Tools'
 
 RUN yum -y install \
-        cdbs cmake3 curl dcraw wget git openssh \
+        cdbs cmake3 curl dcraw wget git openssh redhat-lsb-core \
         libcurl-devel boost-devel cfitsio-devel libusbx-devel \
         libftdi-devel libgphoto2-devel gpsd-devel gsl-devel libjpeg-turbo-devel \
         libnova-devel openal-soft-devel LibRaw-devel libusb-devel rtl-sdr-devel \
@@ -23,6 +23,7 @@ RUN printf '%s\n' \
     "#!/bin/bash" \
     "git clone https://github.com/jochym/indi.git " \
     "cd indi " \
-    "CIRCLE_BRANCH=master ./.circleci/build-all.sh" \
-    "CIRCLE_BRANCH=master ./.circleci/run-tests.sh" > /home/run-build.sh && \
-    chmod a+x /home/run-build.sh
+    "if [ .\$1 == '.' ] ; then export CIRCLE_BRANCH=master ; else export CIRCLE_BRANCH=\$1 ; fi "\
+    "./.circleci/build-all.sh" \
+    "./.circleci/run-tests.sh" > /home/run-build.sh && \
+   chmod a+x /home/run-build.sh

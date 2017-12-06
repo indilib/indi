@@ -9,7 +9,7 @@ RUN apt-get -qqy install \
         libnova-dev libopenal-dev libraw-dev libusb-1.0-0-dev librtlsdr-dev \
         libfftw3-dev zlib1g-dev libconfuse-dev python3-all-dev doxygen \
         libboost-test-dev python-all-dev swig g++ libftdi1-dev \
-        googletest google-mock clang
+        googletest google-mock clang lsb-release dirmngr vim
 
 WORKDIR /home
 
@@ -17,6 +17,7 @@ RUN printf '%s\n' \
     "#!/bin/bash" \
     "git clone https://github.com/jochym/indi.git " \
     "cd indi " \
-    "CIRCLE_BRANCH=master ./.circleci/build-all.sh" \
-    "CIRCLE_BRANCH=master ./.circleci/run-tests.sh" > /home/run-build.sh && \
+    "if [ .\$1 == '.' ] ; then export CIRCLE_BRANCH=master ; else export CIRCLE_BRANCH=\$1 ; fi "\
+    "./.circleci/build-all.sh" \
+    "./.circleci/run-tests.sh" > /home/run-build.sh && \
     chmod a+x /home/run-build.sh

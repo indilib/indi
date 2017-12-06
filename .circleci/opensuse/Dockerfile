@@ -2,13 +2,13 @@ FROM opensuse:tumbleweed
 
 RUN zypper refresh && zypper  --non-interactive update
 
-RUN zypper --non-interactive install \
+RUN zypper --non-interactive install lsb-release \
         cmake curl dcraw wget git openssh gcc gcc-c++ clang swig \
         libcurl-devel boost-devel cfitsio-devel \
         libftdi1-devel libgphoto2-devel gsl-devel libjpeg-devel \
         libnova-devel openal-soft-devel libraw-devel libusb-devel \
         fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
-        python-devel vim rtl-sdr-devel 
+        python-devel vim rtl-sdr-devel vim
 
 RUN zypper -n install gpsd python-gpsd python-curses
 RUN zypper -n download gpsd-devel libgps23
@@ -23,8 +23,9 @@ RUN printf '%s\n' \
     "#!/bin/bash" \
     "git clone https://github.com/jochym/indi.git " \
     "cd indi " \
-    "CIRCLE_BRANCH=master ./.circleci/build-all.sh" \
-    "CIRCLE_BRANCH=master ./.circleci/run-tests.sh" > /home/run-build.sh && \
+    "if [ .\$1 == '.' ] ; then export CIRCLE_BRANCH=master ; else export CIRCLE_BRANCH=\$1 ; fi "\
+    "./.circleci/build-all.sh" \
+    "./.circleci/run-tests.sh" > /home/run-build.sh && \
     chmod a+x /home/run-build.sh
 
 
