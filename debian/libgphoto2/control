@@ -5,7 +5,7 @@ Maintainer: Debian PhotoTools Maintainers <pkg-phototools-devel@lists.alioth.deb
 Uploaders: Herbert Parentes Fortes Neto <hpfn@debian.org>,
            Frederic Peters <fpeters@debian.org>,
            Gürkan Sengün <gurkan@phys.ethz.ch>
-Build-Depends: debhelper (>= 9),
+Build-Depends: debhelper (>= 10),
                dh-autoreconf,
                doxygen,
                graphviz,
@@ -36,8 +36,8 @@ Depends: libexif-dev,
          libgphoto2-6 (= ${binary:Version}),
          pkg-config,
          ${misc:Depends}
-Breaks: libgphoto2-2-dev (<< 2.5.2-1~)
-Replaces: libgphoto2-2-dev (<< 2.5.2-1~)
+Breaks: libgphoto2-2-dev (<< 2.5.16)
+Replaces: libgphoto2-2-dev (<< 2.5.16)
 Description: gphoto2 digital camera library (development files)
  The gphoto2 library can be used by applications to access various
  digital camera models, via standard protocols such as USB Mass Storage
@@ -59,11 +59,11 @@ Description: gphoto2 digital camera library (development documentation)
 Package: libgphoto2-port12
 Architecture: any
 Multi-Arch: same
-Breaks: libgphoto2-port10 (>= 2.5.7)
-Replaces: libgphoto2-port10 (>= 2.5.7)
+Breaks: libgphoto2-port10 (>= 2.5.16)
+Replaces: libgphoto2-port10 (>= 2.5.16)
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Suggests: gphoto2 (>= 2.5.7)
+Suggests: gphoto2 (>= 2.5.17)
 Description: gphoto2 digital camera port library
  The gphoto2 library can be used by applications to access various
  digital camera models, via standard protocols such as USB Mass Storage
@@ -77,7 +77,7 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Recommends: libgphoto2-l10n (>= ${source:Version})
-Suggests: gphoto2 (>= 2.5.7)
+Suggests: gphoto2 (>= 2.5.17)
 Description: gphoto2 digital camera library
  The gphoto2 library can be used by applications to access various
  digital camera models, via standard protocols such as USB Mass Storage
