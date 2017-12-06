@@ -129,11 +129,19 @@ workflows:
       - build_bionic:
           requires:
             - build_artful
-      - build_clang4
-      - build_clang5
       - build_fedora
       - build_centos
+          requires:
+            - build_fedora
       - build_opensuse
+          requires:
+            - build_fedora
+      - build_clang4
+          requires:
+            - build_fedora
+      - build_clang5
+          requires:
+            - build_fedora
 
 
 
