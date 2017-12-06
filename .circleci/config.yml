@@ -122,9 +122,13 @@ workflows:
   build_all:
     jobs:
       - build_stretch
-      - build_buster
+      - build_buster:
+          requires:
+            - build_stretch
       - build_artful
-      - build_bionic
+      - build_bionic:
+          requires:
+            - build_artful
       - build_clang4
       - build_clang5
       - build_fedora
