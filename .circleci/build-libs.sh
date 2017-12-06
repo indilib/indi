@@ -7,7 +7,7 @@ SRC=../../3rdparty/
 
 LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau"
 
-if [ .${CIRCLE_BRANCH%_*} == '.drv' ] ; then 
+if [ .${CIRCLE_BRANCH%_*} == '.drv' -a `lsb_release -si` == 'Ubuntu' ] ; then 
     DRV=lib"${CIRCLE_BRANCH#drv_}"
     if [ -d 3rdparty/$DRV ] ; then
         LIBS="$DRV"

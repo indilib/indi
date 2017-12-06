@@ -11,7 +11,7 @@ build_all () {
 }
 
 
-if [ .${CIRCLE_BRANCH%_*} == '.drv' ] ; then
+if [ .${CIRCLE_BRANCH%_*} == '.drv' -a `lsb_release -si` == 'Ubuntu' ] ; then
     # Driver build branch
     build_all
 else

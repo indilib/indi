@@ -3,7 +3,7 @@
 set -x -e
 
 # The build-libs.sh must be run first for this to work
-if [ .${CIRCLE_BRANCH%_*} == '.drv' ] ; then 
+if [ .${CIRCLE_BRANCH%_*} == '.drv' -a `lsb_release -si` == 'Ubuntu' ] ; then 
     DRV="indi-${CIRCLE_BRANCH#drv_}"
     echo "Building $DRV"
     mkdir -p build/$DRV

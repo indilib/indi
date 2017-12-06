@@ -2,7 +2,7 @@
 
 set -x -e
 
-if [ .${CIRCLE_BRANCH%_*} == '.drv' ] ; then 
+if [ .${CIRCLE_BRANCH%_*} == '.drv' -a `lsb_release -si` == 'Ubuntu' ] ; then 
     # Skip the build just use recent upstream version if it exists
     echo 'deb http://ppa.launchpad.net/jochym/indi-devel/ubuntu ' `lsb_release -cs` main > /etc/apt/sources.list.d/indi.list
     apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys DD9784BC4376B5DC
