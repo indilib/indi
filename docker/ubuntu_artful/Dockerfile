@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:artful
 
 RUN apt-get -qq update && apt-get -qqy dist-upgrade
 
@@ -13,11 +13,4 @@ RUN apt-get -qqy install \
 
 WORKDIR /home
 
-RUN printf '%s\n' \
-    "#!/bin/bash" \
-    "git clone https://github.com/jochym/indi.git " \
-    "cd indi " \
-    "if [ .\$1 == '.' ] ; then export CIRCLE_BRANCH=master ; else export CIRCLE_BRANCH=\$1 ; fi "\
-    "./.circleci/build-all.sh" \
-    "./.circleci/run-tests.sh" > /home/run-build.sh && \
-    chmod a+x /home/run-build.sh
+ADD https://raw.githubusercontent.com/jochym/indi/master/docker/run-build.sh /home/

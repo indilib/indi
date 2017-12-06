@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM ubuntu:bionic
 
 RUN apt-get -qq update && apt-get -qqy dist-upgrade
 
@@ -15,9 +15,13 @@ WORKDIR /home
 
 RUN printf '%s\n' \
     "#!/bin/bash" \
-    "git clone https://github.com/jochym/indi.git " \
+    "if [ .\$1 == '.' ] ; then export REPO=indilib ; else export REPO=\$1 ; fi "\
+    "git clone https://github.com/\$REPO/indi.git " \
     "cd indi " \
-    "if [ .\$1 == '.' ] ; then export CIRCLE_BRANCH=master ; else export CIRCLE_BRANCH=\$1 ; fi "\
+    "if [ .\$2 == '.' ] ; then export CIRCLE_BRANCH=master ; else export CIRCLE_BRANCH=\$2 ; fi "\
+    "git checkout \$CIRCLE_BRANCH" \
     "./.circleci/build-all.sh" \
     "./.circleci/run-tests.sh" > /home/run-build.sh && \
     chmod a+x /home/run-build.sh
+    
+COPY ../runner /home/
