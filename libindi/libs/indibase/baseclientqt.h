@@ -52,7 +52,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
     Q_OBJECT
 
   public:
-    BaseClientQt();
+    BaseClientQt(QObject *parent = Q_NULLPTR);
     virtual ~BaseClientQt();
 
     /** \brief Set the server host name and port
