@@ -126,20 +126,18 @@ workflows:
           requires:
             - build_stretch
       - build_artful
-      - build_bionic:
+      - build_bionic
+      - build_clang4:
           requires:
             - build_artful
+      - build_clang5:
+          requires:
+            - build_bionic
       - build_fedora
       - build_centos:
           requires:
             - build_fedora
       - build_opensuse:
-          requires:
-            - build_fedora
-      - build_clang4:
-          requires:
-            - build_fedora
-      - build_clang5:
           requires:
             - build_fedora
 
