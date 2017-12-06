@@ -80,7 +80,7 @@ inline uint32_t dd2pnex(double angle)
     if (angle < 0)
         angle += 360.0;
 
-    return (uint16_t)(angle * 0x100000000 / 360.0);
+    return (uint32_t)(angle * 0x100000000 / 360.0);
 }
 
 // Convert NexStar angle to decimal degrees
@@ -231,10 +231,13 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp, int 
                 DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR, "%s", errmsg);
                 return 0;
             }
+
+            tcflush(fd, TCIOFLUSH);
         }
     }
 
-    if (resp_len >= 0 && nbytes != resp_len)
+    //if (resp_len >= 0 && nbytes != resp_len)
+    if (resp_len > 0 && nbytes != resp_len)
     {
         DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR,
                      "Received %d bytes, expected %d.", nbytes, resp_len);
