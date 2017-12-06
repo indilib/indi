@@ -145,6 +145,8 @@ bool INDI::BaseClientQt::disconnectServer()
 
     cDeviceNames.clear();
 
+    serverDisconnected(0);
+
     return true;
 }
 
