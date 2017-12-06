@@ -13,13 +13,5 @@ RUN apt-get -qqy install \
 
 WORKDIR /home
 
-RUN printf '%s\n' \
-    "#!/bin/bash" \
-    "if [ .\$1 == '.' ] ; then export REPO=indilib ; else export REPO=\$1 ; fi "\
-    "git clone https://github.com/\$REPO/indi.git " \
-    "cd indi " \
-    "if [ .\$2 == '.' ] ; then export CIRCLE_BRANCH=master ; else export CIRCLE_BRANCH=\$2 ; fi "\
-    "git checkout \$CIRCLE_BRANCH" \
-    "./.circleci/build-all.sh" \
-    "./.circleci/run-tests.sh" > /home/run-build.sh && \
-    chmod a+x /home/run-build.sh
+ADD https://raw.githubusercontent.com/jochym/indi/master/docker/run-build.sh /home/
+RUN chmod a+x /home/run-build.sh
