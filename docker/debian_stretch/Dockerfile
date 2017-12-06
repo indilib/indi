@@ -1,4 +1,4 @@
-FROM ubuntu:artful
+FROM debian:stretch
 
 RUN apt-get -qq update && apt-get -qqy dist-upgrade
 
@@ -9,4 +9,9 @@ RUN apt-get -qqy install \
         libnova-dev libopenal-dev libraw-dev libusb-1.0-0-dev librtlsdr-dev \
         libfftw3-dev zlib1g-dev libconfuse-dev python3-all-dev doxygen \
         libboost-test-dev python-all-dev swig g++ libftdi1-dev \
-        googletest google-mock clang
+        googletest google-mock clang lsb-release dirmngr vim
+
+WORKDIR /home
+
+ADD https://raw.githubusercontent.com/jochym/indi/master/docker/run-build.sh /home/
+RUN chmod a+x /home/run-build.sh
