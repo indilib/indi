@@ -51,7 +51,7 @@ extern const char *ErrorMessages[];
 class MaxDomeIIDriver
 {
     public:
-        MaxDomeIIDriver() {}
+        MaxDomeIIDriver() { fd = 0; }
 
         void SetPortFD(int port_fd);
         void SetDevice(const char *name);
@@ -81,6 +81,6 @@ class MaxDomeIIDriver
         int SendCommand(char cmdId, const char *payload, int payloadLen);
 
     private:
-        int fd = 0;
+        int fd;
         char buffer[16];
 };
