@@ -54,12 +54,18 @@ void hex_dump(char *buf, const char *data, int size)
         buf[3 * size - 1] = '\0';
 }
 
-//TODO: check this function
-// Limit an angle between -90 and 90 degrees
-inline double trimAngle(double angle)
+// Account for the quadrant in declination
+inline double trimDecAngle(double angle)
 {
-    if (angle < -90.0001) angle += 360;
-    if (angle > 90.0001) angle -= 360;
+    angle = angle - 360*floor(angle/360);
+    if (angle < 0)
+        angle += 360.0;
+
+    if ((angle > 90.) && (angle <= 270.))
+        angle = 180. - angle;
+    else if ((angle > 270.) && (angle <= 360.))
+        angle = angle - 360.;
+
     return angle;
 }
 
@@ -80,7 +86,7 @@ inline uint32_t dd2pnex(double angle)
     if (angle < 0)
         angle += 360.0;
 
-    return (uint16_t)(angle * 0x100000000 / 360.0);
+    return (uint32_t)(angle * 0x100000000 / 360.0);
 }
 
 // Convert NexStar angle to decimal degrees
@@ -203,8 +209,8 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp, int 
     char errmsg[MAXRBUF];
     char hexbuf[3 * MAX_RESP_SIZE];
 
-    // Some commands must be represented as hex strings when debugging
-    if (cmd[0] == 0x50 || cmd[0] == 'W' || cmd[0] == 'H')
+    // Some commands should be represented as hex strings when debugging
+    if (strchr("\x50WH", cmd[0]))
     {
         hex_dump(hexbuf, cmd, cmd_len);
         DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "CMD <%s>", hexbuf);
@@ -242,8 +248,15 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp, int 
     }
     resp[nbytes] = '\0';
 
-    hex_dump(hexbuf, resp, resp_len);
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "RES <%s>", hexbuf);
+    // Some responses should be represented as hex strings when debugging
+    if (!strchr("eEzZ", cmd[0]))
+    {
+        hex_dump(hexbuf, resp, resp_len);
+        DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "RES <%s>", hexbuf);
+    }
+    else
+        DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "RES <%s>", resp);
+
     return nbytes;
 }
 
@@ -270,7 +283,8 @@ bool CelestronDriver::check_connection()
 {
     DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Initializing Celestron using Kx CMD...");
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++)
+    {
         if (echo())
             return true;
 
@@ -491,7 +505,7 @@ bool CelestronDriver::slew_radec(double ra, double dec, bool precise)
     fs_sexa(RAStr, ra, 2, 3600);
     fs_sexa(DecStr, dec, 2, 3600);
 
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Goto (%s,%s)", RAStr, DecStr);
+    DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Goto RA-DEC (%s,%s)", RAStr, DecStr);
 
     set_sim_slewing(true);
 
@@ -587,7 +601,7 @@ bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
 
     parseCoordsResponse(response, ra, dec, precise);
     *ra /= 15.0;
-    *dec = trimAngle(*dec);
+    *dec = trimDecAngle(*dec);
 
     char RAStr[16], DecStr[16];
     fs_sexa(RAStr, *ra, 2, 3600);
@@ -629,6 +643,9 @@ bool CelestronDriver::get_azalt(double *az, double *alt, bool precise)
 
 bool CelestronDriver::set_location(double longitude, double latitude)
 {
+    DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION,
+                 "Setting location (%.3f,%.3f)", longitude, latitude);
+
     // Convert from INDI standard to regular east/west -180 to 180
     if (longitude > 180)
         longitude -= 360;
@@ -655,6 +672,8 @@ bool CelestronDriver::set_location(double longitude, double latitude)
 
 bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset)
 {
+    DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, "Setting date");
+
     struct ln_zonedate local_date;
 
     // Celestron takes local time
