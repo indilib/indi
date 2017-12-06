@@ -47,37 +47,20 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
-/* send client definitions of all properties */
-void ISInit()
-{
-    static int isInit = 0;
-
-    if (isInit)
-        return;
-
-    isInit = 1;
-
-    // if(telescope.get() == 0) telescope.reset();
-}
-
 void ISGetProperties(const char *dev)
 {
-    ISInit();
     telescope->ISGetProperties(dev);
 }
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    ISInit();
     telescope->ISNewSwitch(dev, name, states, names, n);
 }
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    ISInit();
     telescope->ISNewText(dev, name, texts, names, n);
 }
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    ISInit();
     telescope->ISNewNumber(dev, name, values, names, n);
 }
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -94,13 +77,8 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 }
 void ISSnoopDevice(XMLEle *root)
 {
-    ISInit();
     telescope->ISSnoopDevice(root);
 }
-
-/**************************************************
-*** LX200 Generic Implementation
-***************************************************/
 
 CelestronGPS::CelestronGPS()
 {
