@@ -104,8 +104,8 @@ class LX200AstroPhysics : public LX200Generic
     IText VersionT[1];
     ITextVectorProperty VersionInfo;
 
-    IText DeclinationAxisT[1];
-    ITextVectorProperty DeclinationAxisTP;
+    //IText DeclinationAxisT[1];
+    //ITextVectorProperty DeclinationAxisTP;
 
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;

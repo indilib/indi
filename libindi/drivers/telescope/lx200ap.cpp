@@ -33,9 +33,6 @@
 #include <unistd.h>
 #include <termios.h>
 
-#define FIRMWARE_TAB "Firmware data"
-#define MOUNT_TAB    "Mount"
-
 /* Constructor */
 LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 {
@@ -116,14 +113,14 @@ bool LX200AstroPhysics::initProperties()
     IUFillText(&VersionT[0], "Version", "Version", "");
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillText(&DeclinationAxisT[0], "RELHA", "rel. to HA", "undefined");
+    /*IUFillText(&DeclinationAxisT[0], "RELHA", "rel. to HA", "undefined");
     IUFillTextVector(&DeclinationAxisTP, DeclinationAxisT, 1, getDeviceName(), "DECLINATIONAXIS", "Declination axis",
-                     MOUNT_TAB, IP_RO, 0, IPS_IDLE);
+                     MOUNT_TAB, IP_RO, 0, IPS_IDLE);*/
 
     // Slew threshold
     IUFillNumber(&SlewAccuracyN[0], "SlewRA", "RA (arcmin)", "%10.6m", 0., 60., 1., 3.0);
     IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
-    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, 2, getDeviceName(), "Slew Accuracy", "", MOUNT_TAB, IP_RW, 0,
+    IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, 2, getDeviceName(), "Slew Accuracy", "", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     SetParkDataType(PARK_AZ_ALT);
