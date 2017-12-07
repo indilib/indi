@@ -121,15 +121,25 @@ workflows:
   version: 2
   build_all:
     jobs:
-      - build_stretch
-      - build_buster
       - build_artful
-      - build_bionic
-      - build_clang4
-      - build_clang5
+      - build_stretch
       - build_fedora
-      - build_centos
-      - build_opensuse
+      - build_clang4
+      - build_bionic:
+          requires:
+            - build_artful
+      - build_buster:
+          requires:
+            - build_stretch
+      - build_clang5:
+          requires:
+            - build_clang4
+      - build_centos:
+          requires:
+            - build_fedora
+      - build_opensuse:
+          requires:
+            - build_fedora
 
 
 
