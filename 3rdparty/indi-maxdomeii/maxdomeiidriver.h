@@ -48,6 +48,9 @@ enum ShStatus
 
 extern const char *ErrorMessages[];
 
+void hex_dump(char *buf, const char *data, int size);
+
+
 class MaxDomeIIDriver
 {
     public:
