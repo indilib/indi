@@ -81,9 +81,9 @@ class BaseDevice
     /** \return Return vector number property given its name */
     INumberVectorProperty *getNumber(const char *name);
     /** \return Return vector text property given its name */
-    ITextVectorProperty *getText(const char *name);
+    ITextVectorProperty *getText(const char *name) const;
     /** \return Return vector switch property given its name */
-    ISwitchVectorProperty *getSwitch(const char *name);
+    ISwitchVectorProperty *getSwitch(const char *name) const;
     /** \return Return vector light property given its name */
     ILightVectorProperty *getLight(const char *name);
     /** \return Return vector BLOB property given its name */
@@ -112,7 +112,7 @@ class BaseDevice
         is the property type (Number, Text, Switch..etc).
 
     */
-    void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN);
+    void *getRawProperty(const char *name, INDI_PROPERTY_TYPE type = INDI_UNKNOWN) const;
 
     /** \brief Return a property and its type given its name.
         \param name of property to be found.
@@ -140,7 +140,7 @@ class BaseDevice
     bool buildSkeleton(const char *filename);
 
     /** \return True if the device is connected (CONNECT=ON), False otherwise */
-    bool isConnected();
+    bool isConnected() const;
 
     /** \brief Set the device name
       \param dev new device name
@@ -148,7 +148,7 @@ class BaseDevice
     void setDeviceName(const char *dev);
 
     /** \return Returns the device name */
-    const char *getDeviceName();
+    const char *getDeviceName() const;
 
     /** \brief Add message to the driver's message queue.
         \param msg Message to add.
@@ -198,7 +198,7 @@ class BaseDevice
                cout << "We received a camera!" << endl;
      @endcode
      */
-    virtual uint16_t getDriverInterface();
+    virtual uint16_t getDriverInterface() const;
 
   protected:
     /** \brief Build a property given the supplied XML element (defXXX)
