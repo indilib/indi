@@ -61,10 +61,6 @@ Dome::Dome()
 
     parkDataType = PARK_NONE;
     Parkdatafile = "~/.indi/ParkData.xml";
-    IsParked     = false;
-    IsLocked     = true;
-    HaveLatLong  = false;
-    HaveRaDec    = false;
 }
 
 Dome::~Dome()
