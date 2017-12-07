@@ -7,6 +7,7 @@
  */
 
 #include "MathPlugin.h"
+#include <cstdio>
 
 namespace INDI
 {

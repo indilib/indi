@@ -13,6 +13,7 @@
 #include "inditelescope.h"
 
 #include <memory>
+#include <string>
 
 namespace INDI
 {

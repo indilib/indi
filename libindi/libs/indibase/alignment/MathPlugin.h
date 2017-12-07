@@ -9,6 +9,7 @@
 #pragma once
 
 #include "InMemoryDatabase.h"
+#include <string>
 
 namespace INDI
 {
