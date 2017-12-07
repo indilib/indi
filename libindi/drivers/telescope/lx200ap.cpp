@@ -592,7 +592,13 @@ bool LX200AstroPhysics::ReadScopeStatus()
                 return false;
             }
 
+            // Turn off tracking.
+            SetTrackEnabled(false);
+
             SetParked(true);
+
+
+            DEBUG(INDI::Logger::DBG_SESSION, "Please disconnect and power off the mount.");
         }
     }
 
@@ -1030,6 +1036,8 @@ bool LX200AstroPhysics::UnPark()
         }
     }
 
+#if 0
+
     // Then we sync with to our last stored position
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
@@ -1078,7 +1086,13 @@ bool LX200AstroPhysics::UnPark()
         }
     }
 
+#endif
+
+    // Enable tracking
+    SetTrackEnabled(true);
+
     SetParked(false);
+
     return true;
 }
 
