@@ -39,6 +39,13 @@ bool InMemoryDatabase::CheckForDuplicateSyncPoint(const AlignmentDatabaseEntry &
             return true;
     }
     */
+    for (AlignmentDatabaseType::const_iterator iTr = MySyncPoints.begin(); iTr != MySyncPoints.end(); iTr++)
+    {
+        if ((std::abs((*iTr).ObservationJulianDate - CandidateEntry.ObservationJulianDate) == 0.0) &&
+	    ((std::abs((*iTr).RightAscension - CandidateEntry.RightAscension) < 24.0 * Tolerance / 100.0) &&
+             (std::abs((*iTr).Declination - CandidateEntry.Declination) < 180.0 * Tolerance / 100.0)))
+	    return true;
+    }
     return false;
 }
 
