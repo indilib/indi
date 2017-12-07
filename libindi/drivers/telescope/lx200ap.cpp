@@ -113,8 +113,8 @@ bool LX200AstroPhysics::initProperties()
     IUFillSwitchVector(&APGuideSpeedSP, APGuideSpeedS, 3, getDeviceName(), "Guide Rate", "", GUIDE_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
-    IUFillText(&VersionT[0], "Number", "", 0);
-    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillText(&VersionT[0], "Version", "Version", "");
+    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillText(&DeclinationAxisT[0], "RELHA", "rel. to HA", "undefined");
     IUFillTextVector(&DeclinationAxisTP, DeclinationAxisT, 1, getDeviceName(), "DECLINATIONAXIS", "Declination axis",
@@ -254,9 +254,9 @@ bool LX200AstroPhysics::initMount()
 
     //NewRaDec(currentRA, currentDEC);
 
-    char versionString[64];
+    char versionString[128];
     if (isSimulation())
-        strncpy(versionString, "Simulation", 64);
+        strncpy(versionString, "Simulation", 128);
     else
         getAPVersionNumber(PortFD, versionString);
     VersionInfo.s = IPS_OK;
