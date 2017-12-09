@@ -22,7 +22,11 @@
 #ifdef WIN_OS
 #include <memory>
 #else
+#ifdef __APPLE__
+#include <memory>
+#else
 #include <tr1/memory>
+#endif
 #endif
 
 #include "CameraStatusRegs.h" 

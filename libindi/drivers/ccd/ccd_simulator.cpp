@@ -17,8 +17,9 @@
 *******************************************************************************/
 
 #include "ccd_simulator.h"
+#ifndef __APPLE__
 #include "stream/streammanager.h"
-
+#endif
 #include "locale_compat.h"
 
 #include <libnova/julian_day.h>
@@ -483,8 +484,10 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 
     if (targetChip->getXRes() == 500)
         ExposureTime = GuideExposureRequest;
+#ifndef __APPLE__
     else if (Streamer->isStreaming())
         ExposureTime = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
+#endif
     else
         ExposureTime = ExposureRequest;
 

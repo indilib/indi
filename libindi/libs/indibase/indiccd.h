@@ -42,9 +42,9 @@ extern const char *RAPIDGUIDE_TAB;
 
 namespace INDI
 {
-
+#ifndef __APPLE__
 class StreamManager;
-
+#endif
 /**
  * @brief The CCDChip class provides functionality of a CCD Chip within a CCD.
  */
@@ -789,8 +789,9 @@ class CCD : public DefaultDevice, GuiderInterface
     std::vector<std::string> FilterNames;
     int CurrentFilterSlot;
 
+#ifndef __APPLE__
     std::unique_ptr<StreamManager> Streamer;
-
+#endif
     CCDChip PrimaryCCD;
     CCDChip GuideCCD;
 

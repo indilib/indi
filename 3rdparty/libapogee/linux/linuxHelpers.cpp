@@ -12,7 +12,11 @@
 #include "linuxHelpers.h"
 #include "../CamHelpers.h" // for UsbFrmwr namespace
 #include "../apgHelper.h"
+#ifdef OSX_EMBEDED_MODE
+#include <libusb.h>
+#else
 #include <libusb-1.0/libusb.h>
+#endif
 #include <sstream>
 
 ////////////////////////////

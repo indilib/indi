@@ -23,7 +23,9 @@
 #include "qhy_ccd.h"
 
 #include "config.h"
-#include <stream/streammanager.h>
+#ifndef __APPLE__
+#include "stream/streammanager.h"
+#endif
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -811,12 +813,14 @@ bool QHYCCD::StartExposure(float duration)
 {
     unsigned int ret = QHYCCD_ERROR;
 
+#ifndef __APPLE__
     if (Streamer->isBusy())
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Cannot take exposure while streaming/recording is active.");
         return false;
     }
-    //AbortPrimaryFrame = false;
+#endif
+  //AbortPrimaryFrame = false;
 
     /*
     if (duration < MINIMUM_CCD_EXPOSURE)

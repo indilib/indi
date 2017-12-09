@@ -17,6 +17,9 @@
 #if defined (WIN_OS)
     #include "winsock2.h"
 #else
+#ifdef __APPLE__
+#include <sys/select.h>
+#endif
 	#include <netinet/in.h>
     #include <sys/socket.h>
     #include <netdb.h>
@@ -223,7 +226,7 @@ std::vector<std::string> UdpSocketBase::GetReturnedMsgs()
 		tv.tv_sec = 1;
 		tv.tv_usec = 0;
 
-        int32_t result = select( m_SocketDescriptor + 1, &rset, 0, 0, &tv );
+     int32_t result = select( m_SocketDescriptor + 1, &rset, 0, 0, &tv );
         
     	if( SOCKET_ERROR == result ) 
 		{

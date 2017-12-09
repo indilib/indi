@@ -23,7 +23,9 @@
 
 #include "config.h"
 
-#include <stream/streammanager.h>
+#ifndef __APPLE__
+#include "stream/streammanager.h"
+#endif
 
 #include <math.h>
 #include <unistd.h>
