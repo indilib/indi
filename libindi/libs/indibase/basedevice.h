@@ -38,7 +38,10 @@
 
    \author Jasem Mutlaq
  */
-class INDI::BaseDevice
+namespace INDI
+{
+
+class BaseDevice
 {
   public:
     BaseDevice();
@@ -224,3 +227,5 @@ class INDI::BaseDevice
     friend class INDI::BaseClientQt;
     friend class INDI::DefaultDevice;
 };
+
+}

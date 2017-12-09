@@ -40,7 +40,7 @@ protected:
     bool StartExposure(float duration);
     bool AbortExposure();
     void TimerHit();
-    void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+    void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip);
 
     // Guiding
     IPState GuideEast(float ms);

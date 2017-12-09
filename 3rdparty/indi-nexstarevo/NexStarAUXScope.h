@@ -93,7 +93,7 @@ class NexStarAUXScope
     bool TimerTick(double dt);
     bool UpdateLocation(double lat, double lon, double elev);
     bool Park();
-    bool Connect();
+    bool Connect(int PortFD);
     bool Disconnect();
 
   private:

@@ -25,11 +25,13 @@ void TelescopeDirectionVector::RotateAroundY(double Angle)
     gsl_matrix *pRotationMatrix = gsl_matrix_alloc(3, 3);
     gsl_matrix_set(pRotationMatrix, 0, 0, cos(Angle));
     gsl_matrix_set(pRotationMatrix, 0, 1, 0.0);
-    gsl_matrix_set(pRotationMatrix, 0, 2, sin(Angle));
+    //geehalel 0,2 is -sin
+    gsl_matrix_set(pRotationMatrix, 0, 2, -sin(Angle));
     gsl_matrix_set(pRotationMatrix, 1, 0, 0.0);
     gsl_matrix_set(pRotationMatrix, 1, 1, 1.0);
     gsl_matrix_set(pRotationMatrix, 1, 2, 0.0);
-    gsl_matrix_set(pRotationMatrix, 2, 0, -sin(Angle));
+    //geehalel 2,0 is +sin
+    gsl_matrix_set(pRotationMatrix, 2, 0, sin(Angle));
     gsl_matrix_set(pRotationMatrix, 2, 1, 0.0);
     gsl_matrix_set(pRotationMatrix, 2, 2, cos(Angle));
     gsl_vector *pGSLOutputVector = gsl_vector_alloc(3);

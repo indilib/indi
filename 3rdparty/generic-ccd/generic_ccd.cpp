@@ -379,7 +379,7 @@ bool GenericCCD::StartExposure(float duration)
         duration = minDuration;
     }
 
-    if (imageFrameType == CCDChip::BIAS_FRAME)
+    if (imageFrameType == INDI::CCDChip::BIAS_FRAME)
     {
         duration = minDuration;
         DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g\n", minDuration);
@@ -429,17 +429,17 @@ bool GenericCCD::AbortExposure()
     return true;
 }
 
-bool GenericCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool GenericCCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
 {
-    CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
+    INDI::CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
 
     if (fType == imageFrameType)
         return true;
 
     switch (imageFrameType)
     {
-        case CCDChip::BIAS_FRAME:
-        case CCDChip::DARK_FRAME:
+        case INDI::CCDChip::BIAS_FRAME:
+        case INDI::CCDChip::DARK_FRAME:
             /**********************************************************
      *
      *
@@ -457,8 +457,8 @@ bool GenericCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
      **********************************************************/
             break;
 
-        case CCDChip::LIGHT_FRAME:
-        case CCDChip::FLAT_FRAME:
+        case INDI::CCDChip::LIGHT_FRAME:
+        case INDI::CCDChip::FLAT_FRAME:
             /**********************************************************
      *
      *

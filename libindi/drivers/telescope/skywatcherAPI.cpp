@@ -526,9 +526,9 @@ bool SkywatcherAPI::SetGotoTargetOffset(AXISID Axis, long OffsetInMicrosteps)
     return TalkWithAxis(Axis, 'H', Parameters, Response);
 }
 
-/// Func - 0 Low speed slew to mode (goto)
+/// Func - 0 High speed slew to mode (goto)
 /// Func - 1 Low speed slew mode
-/// Func - 2 High speed slew to mode (goto)
+/// Func - 2 Low speed slew to mode (goto)
 /// Func - 3 High speed slew mode
 bool SkywatcherAPI::SetMotionMode(AXISID Axis, char Func, char Direction)
 {

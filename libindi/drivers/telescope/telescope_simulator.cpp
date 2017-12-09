@@ -162,6 +162,13 @@ bool ScopeSim::initProperties()
 
     setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
+    double longitude=0, latitude=90;
+    // Get value from config file if it exists.
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+    currentRA  = get_local_sidereal_time(longitude);
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+    currentDEC = latitude > 0 ? 90 : -90;
+
     return true;
 }
 
@@ -194,14 +201,11 @@ bool ScopeSim::updateProperties()
         defineSwitch(&PEErrNSSP);
         defineSwitch(&PEErrWESP);
 
-        double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-        double DEC = 90;
-
         if (InitPark())
         {
             // If loading parking data is successful, we just set the default parking values.
-            SetAxis1ParkDefault(HA);
-            SetAxis2ParkDefault(DEC);
+            SetAxis1ParkDefault(currentRA);
+            SetAxis2ParkDefault(currentDEC);
 
             if (isParked())
             {
@@ -212,10 +216,10 @@ bool ScopeSim::updateProperties()
         else
         {
             // Otherwise, we set all parking data to default in case no parking data is found.
-            SetAxis1Park(HA);
-            SetAxis2Park(DEC);
-            SetAxis1ParkDefault(HA);
-            SetAxis2ParkDefault(DEC);
+            SetAxis1Park(currentRA);
+            SetAxis2Park(currentDEC);
+            SetAxis1ParkDefault(currentRA);
+            SetAxis2ParkDefault(currentDEC);
         }
     }
     else
@@ -621,12 +625,6 @@ bool ScopeSim::Park()
 
 bool ScopeSim::UnPark()
 {
-    if (INDI::Telescope::isLocked())
-    {
-        DEBUG(INDI::Logger::DBG_SESSION,
-              "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab");
-        return false;
-    }
     SetParked(false);
     return true;
 }
@@ -809,7 +807,7 @@ bool ScopeSim::SetCurrentPark()
 bool ScopeSim::SetDefaultPark()
 {
     // By default set RA to HA
-    SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
+    SetAxis1Park(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value));
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park((LocationN[LOCATION_LATITUDE].value > 0) ? 90 : -90);

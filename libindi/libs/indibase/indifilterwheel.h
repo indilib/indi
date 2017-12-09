@@ -22,19 +22,22 @@
 #include "indifilterinterface.h"
 
 /**
- * \class INDI::FilterWheel
+ * \class FilterWheel
  * \brief Class to provide general functionality of a filter wheel device.
  *
- * Developers need to subclass INDI::FilterWheel to implement any driver for filter wheels within INDI.
+ * Developers need to subclass FilterWheel to implement any driver for filter wheels within INDI.
  *
  * \author Gerry Rozema, Jasem Mutlaq
- * \see INDI::FilterInterface
+ * \see FilterInterface
  */
-class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterface
+namespace INDI
+{
+
+class FilterWheel : public DefaultDevice, public FilterInterface
 {
   protected:
     FilterWheel();
-    virtual ~FilterWheel();
+    virtual ~FilterWheel() = default;
 
   public:
     /**
@@ -60,7 +63,7 @@ class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterfa
     static void buttonHelper(const char *button_n, ISState state, void *context);
 
     /**
-     * @brief setFilterConnection Set Filter connection mode. Child class should call this in the constructor before INDI::Filter registers
+     * @brief setFilterConnection Set Filter connection mode. Child class should call this in the constructor before Filter registers
      * any connection interfaces
      * @param value ORed combination of FilterConnection values.
      */
@@ -75,8 +78,6 @@ class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterfa
     virtual bool saveConfigItems(FILE *fp);
     virtual int QueryFilter();
     virtual bool SelectFilter(int);
-    virtual bool SetFilterNames();
-    virtual bool GetFilterNames(const char *groupName);
 
     /** \brief perform handshake with device to check communication */
     virtual bool Handshake();
@@ -84,7 +85,7 @@ class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterfa
     void processJoystick(const char *joystick_n, double mag, double angle);
     void processButton(const char *button_n, ISState state);
 
-    INDI::Controller *controller;
+    Controller *controller;
 
     Connection::Serial *serialConnection = NULL;
     Connection::TCP *tcpConnection       = NULL;
@@ -96,3 +97,4 @@ class INDI::FilterWheel : public INDI::DefaultDevice, public INDI::FilterInterfa
     bool callHandshake();
     uint8_t filterConnection = CONNECTION_NONE;
 };
+}

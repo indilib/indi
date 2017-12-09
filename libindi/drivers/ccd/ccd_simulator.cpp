@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include "ccd_simulator.h"
+#include "stream/streammanager.h"
 
 #include "locale_compat.h"
 
@@ -24,6 +25,12 @@
 #include <libnova/precession.h>
 
 #include <cmath>
+#include <unistd.h>
+
+pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+
+#define POLLMS  1000
 
 // We declare an auto pointer to ccdsim.
 std::unique_ptr<CCDSim> ccdsim(new CCDSim());
@@ -67,22 +74,13 @@ void ISSnoopDevice(XMLEle *root)
     ccdsim->ISSnoopDevice(root);
 }
 
-CCDSim::CCDSim()
-{
-    uint32_t cap = 0;
-
-    cap |= CCD_CAN_ABORT;
-    cap |= CCD_CAN_BIN;
-    cap |= CCD_CAN_SUBFRAME;
-    cap |= CCD_HAS_COOLER;
-    cap |= CCD_HAS_GUIDE_HEAD;
-    cap |= CCD_HAS_SHUTTER;
-    cap |= CCD_HAS_ST4_PORT;
-
-    SetCCDCapability(cap);
-
+CCDSim::CCDSim() : INDI::FilterInterface(this)
+{    
     raPE  = RA;
     decPE = Dec;
+
+    streamPredicate = 0;
+    terminateThread = false;
 
     primaryFocalLength = 900; //  focal length of the telescope in millimeters
     guiderFocalLength  = 300;
@@ -122,19 +120,29 @@ bool CCDSim::SetupParms()
     rotationCW = SimulatorSettingsN[13].value;
 
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
-    nbuf += 512;
+    //nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    // Only generate filter names if there are none initially
-    if (FilterNameT == nullptr)
-        GetFilterNames(FILTER_TAB);
+    Streamer->setPixelFormat(INDI_MONO, 16);
+    Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
     return true;
 }
 
 bool CCDSim::Connect()
 {
-    SetTimer(1000); //  start the timer
+    pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
+    return true;
+}
+
+bool CCDSim::Disconnect()
+{
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 1;
+    terminateThread = true;
+    pthread_cond_signal(&cv);
+    pthread_mutex_unlock(&condMutex);
+
     return true;
 }
 
@@ -149,8 +157,8 @@ bool CCDSim::initProperties()
     //  but the simulators are a special case
     INDI::CCD::initProperties();
 
-    IUFillNumber(&SimulatorSettingsN[0], "SIM_XRES", "CCD X resolution", "%4.0f", 0, 4096, 0, 1280);
-    IUFillNumber(&SimulatorSettingsN[1], "SIM_YRES", "CCD Y resolution", "%4.0f", 0, 4096, 0, 1024);
+    IUFillNumber(&SimulatorSettingsN[0], "SIM_XRES", "CCD X resolution", "%4.0f", 0, 8192, 0, 1280);
+    IUFillNumber(&SimulatorSettingsN[1], "SIM_YRES", "CCD Y resolution", "%4.0f", 0, 8192, 0, 1024);
     IUFillNumber(&SimulatorSettingsN[2], "SIM_XSIZE", "CCD X Pixel Size", "%4.2f", 0, 60, 0, 5.2);
     IUFillNumber(&SimulatorSettingsN[3], "SIM_YSIZE", "CCD Y Pixel Size", "%4.2f", 0, 60, 0, 5.2);
     IUFillNumber(&SimulatorSettingsN[4], "SIM_MAXVAL", "CCD Maximum ADU", "%4.0f", 0, 65000, 0, 65000);
@@ -189,7 +197,20 @@ bool CCDSim::initProperties()
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
 
-    initFilterProperties(getDeviceName(), FILTER_TAB);
+    uint32_t cap = 0;
+
+    cap |= CCD_CAN_ABORT;
+    cap |= CCD_CAN_BIN;
+    cap |= CCD_CAN_SUBFRAME;
+    cap |= CCD_HAS_COOLER;
+    cap |= CCD_HAS_GUIDE_HEAD;
+    cap |= CCD_HAS_SHUTTER;
+    cap |= CCD_HAS_ST4_PORT;
+    cap |= CCD_HAS_STREAMING;
+
+    SetCCDCapability(cap);
+
+    INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = 8;
@@ -230,24 +251,19 @@ bool CCDSim::updateProperties()
         }
 
         // Define the Filter Slot and name properties
-        defineNumber(&FilterSlotNP);
-        if (FilterNameT != nullptr)
-            defineText(FilterNameTP);
+        INDI::FilterInterface::updateProperties();
+
+        updatePeriodMS = POLLMS;
+        SetTimer(updatePeriodMS);
     }
     else
     {
         if (HasCooler())
             deleteProperty(CoolerSP.name);
 
-        deleteProperty(FilterSlotNP.name);
-        deleteProperty(FilterNameTP->name);
+        INDI::FilterInterface::updateProperties();
     }
 
-    return true;
-}
-
-bool CCDSim::Disconnect()
-{
     return true;
 }
 
@@ -337,7 +353,7 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
 
 void CCDSim::TimerHit()
 {
-    int nexttimer = 1000;
+    uint32_t nextTimer = updatePeriodMS;
 
     if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
@@ -365,11 +381,12 @@ void CCDSim::TimerHit()
                 if (timeleft <= 0.001)
                 {
                     InExposure = false;
+                    PrimaryCCD.binFrame();
                     ExposureComplete(&PrimaryCCD);
                 }
                 else
                 {
-                    nexttimer = timeleft * 1000; //  set a shorter timer
+                    nextTimer = timeleft * 1000; //  set a shorter timer
                 }
             }
         }
@@ -396,7 +413,7 @@ void CCDSim::TimerHit()
                 InGuideExposure = false;
                 if (!AbortGuideFrame)
                 {
-                    //IDLog("Sending guider frame\n");
+                    GuideCCD.binFrame();
                     ExposureComplete(&GuideCCD);
                     if (InGuideExposure)
                     {
@@ -404,7 +421,7 @@ void CCDSim::TimerHit()
                         timeleft = CalcTimeLeft(GuideExpStart, GuideExposureRequest);
                         if (timeleft < 1.0)
                         {
-                            nexttimer = timeleft * 1000;
+                            nextTimer = timeleft * 1000;
                         }
                     }
                 }
@@ -416,7 +433,7 @@ void CCDSim::TimerHit()
             }
             else
             {
-                nexttimer = timeleft * 1000; //  set a shorter timer
+                nextTimer = timeleft * 1000; //  set a shorter timer
             }
         }
     }
@@ -449,22 +466,22 @@ void CCDSim::TimerHit()
         }
     }
 
-    SetTimer(nexttimer);
+    SetTimer(nextTimer);
 }
 
-int CCDSim::DrawCcdFrame(CCDChip *targetChip)
+int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 {
-    //  Ok, lets just put a silly pattern into this
-    //  CCd frame is 16 bit data
-    unsigned short int *ptr;
-    unsigned short int val;
+    //  CCD frame is 16 bit data
+    uint16_t val;
     float ExposureTime;
     float targetFocalLength;
 
-    ptr = (unsigned short int *)targetChip->getFrameBuffer();
+    uint16_t *ptr = reinterpret_cast<uint16_t*>(targetChip->getFrameBuffer());
 
     if (targetChip->getXRes() == 500)
         ExposureTime = GuideExposureRequest;
+    else if (Streamer->isStreaming())
+        ExposureTime = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
     else
         ExposureTime = ExposureRequest;
 
@@ -624,9 +641,9 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
             lookuplimit = 11;
 
         //  if this is a light frame, we need a star field drawn
-        CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
+        INDI::CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
 
-        if (ftype == CCDChip::LIGHT_FRAME)
+        if (ftype == INDI::CCDChip::LIGHT_FRAME)
         {
             AutoCNumeric locale;
 
@@ -697,7 +714,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
                         // Invert horizontally
                         ccdx = ccdW - ccdx;
 
-                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy);
+                        rc = DrawImageStar(targetChip, mag, ccdx, ccdy, ExposureTime);
                         drawn += rc;
                         if (rc == 1)
                         {
@@ -723,13 +740,13 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
         //  this is essentially the same math as drawing a dim star with
         //  fwhm equivalent to the full field of view
 
-        if (ftype == CCDChip::LIGHT_FRAME || ftype == CCDChip::FLAT_FRAME)
+        if (ftype == INDI::CCDChip::LIGHT_FRAME || ftype == INDI::CCDChip::FLAT_FRAME)
         {
             float skyflux;
             //  calculate flux from our zero point and gain values
             float glow = skyglow;
 
-            if (ftype == CCDChip::FLAT_FRAME)
+            if (ftype == INDI::CCDChip::FLAT_FRAME)
             {
                 //  Assume flats are done with a diffuser
                 //  in broad daylight, so, the sky magnitude
@@ -747,7 +764,7 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
 
             unsigned short *pt;
 
-            pt = (unsigned short int *)targetChip->getFrameBuffer();
+            pt = (uint16_t *)targetChip->getFrameBuffer();
 
             nheight = targetChip->getSubH();
             nwidth  = targetChip->getSubW();
@@ -831,14 +848,12 @@ int CCDSim::DrawCcdFrame(CCDChip *targetChip)
             *ptr = val++;
             ptr++;
         }
-    }
-
-    targetChip->binFrame();
+    }    
 
     return 0;
 }
 
-int CCDSim::DrawImageStar(CCDChip *targetChip, float mag, float x, float y)
+int CCDSim::DrawImageStar(INDI::CCDChip *targetChip, float mag, float x, float y, float ExposureTime)
 {
     //float d;
     //float r;
@@ -847,7 +862,6 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag, float x, float y)
     int boxsizex = 5;
     int boxsizey = 5;
     float flux;
-    float ExposureTime;
 
     int subX = targetChip->getSubX();
     int subY = targetChip->getSubY();
@@ -859,11 +873,6 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag, float x, float y)
         //  this star is not on the ccd frame anyways
         return 0;
     }
-
-    if (targetChip->getXRes() == 500)
-        ExposureTime = GuideExposureRequest * 4;
-    else
-        ExposureTime = ExposureRequest;
 
     //  calculate flux from our zero point and gain values
     flux = pow(10, ((mag - z) * k / -2.5));
@@ -913,7 +922,7 @@ int CCDSim::DrawImageStar(CCDChip *targetChip, float mag, float x, float y)
     return drew;
 }
 
-int CCDSim::AddToPixel(CCDChip *targetChip, int x, int y, int val)
+int CCDSim::AddToPixel(INDI::CCDChip *targetChip, int x, int y, int val)
 {
     int nwidth  = targetChip->getSubW();
     int nheight = targetChip->getSubH();
@@ -934,7 +943,7 @@ int CCDSim::AddToPixel(CCDChip *targetChip, int x, int y, int val)
                     int newval;
                     drew++;
 
-                    pt = (unsigned short int *)targetChip->getFrameBuffer();
+                    pt = (uint16_t *)targetChip->getFrameBuffer();
 
                     pt += (y * nwidth);
                     pt += x;
@@ -1008,7 +1017,7 @@ bool CCDSim::ISNewText(const char *dev, const char *name, char *texts[], char *n
         //  Now lets see if it's something we process here
         if (strcmp(name, FilterNameTP->name) == 0)
         {
-            processFilterName(dev, texts, names, n);
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
     }
@@ -1042,7 +1051,7 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
 
         if (strcmp(name, FilterSlotNP.name) == 0)
         {
-            processFilterSlot(getDeviceName(), values, names);
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
     }
@@ -1154,8 +1163,13 @@ bool CCDSim::ISSnoopDevice(XMLEle *root)
 
 bool CCDSim::saveConfigItems(FILE *fp)
 {
+    // Save CCD Config
     INDI::CCD::saveConfigItems(fp);
 
+    // Save Filter Wheel Config
+    INDI::FilterInterface::saveConfigItems(fp);
+
+    // Save CCD Simulator Config
     IUSaveConfigNumber(fp, SimulatorSettingsNV);
     IUSaveConfigSwitch(fp, TimeFactorSV);
 
@@ -1169,33 +1183,113 @@ bool CCDSim::SelectFilter(int f)
     return true;
 }
 
-bool CCDSim::GetFilterNames(const char *groupName)
+int CCDSim::QueryFilter()
 {
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
+    return CurrentFilter;
+}
 
-    const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminosity" };
-
-    if (FilterNameT != nullptr)
-        delete FilterNameT;
-
-    FilterNameT = new IText[MaxFilter];
-
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterDesignation[i]);
-    }
-
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter names", groupName,
-                     IP_RW, 0, IPS_IDLE);
+bool CCDSim::StartStreaming()
+{
+    ExposureRequest = 1.0 / Streamer->getTargetFPS();
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 1;
+    pthread_mutex_unlock(&condMutex);
+    pthread_cond_signal(&cv);
 
     return true;
 }
 
-int CCDSim::QueryFilter()
+bool CCDSim::StopStreaming()
 {
-    return CurrentFilter;
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 0;
+    pthread_mutex_unlock(&condMutex);
+    pthread_cond_signal(&cv);
+
+    return true;
+}
+
+bool CCDSim::UpdateCCDFrame(int x, int y, int w, int h)
+{
+    long bin_width  = w / PrimaryCCD.getBinX();
+    long bin_height = h / PrimaryCCD.getBinY();
+
+    bin_width  = bin_width - (bin_width % 2);
+    bin_height = bin_height - (bin_height % 2);
+
+    Streamer->setSize(bin_width, bin_height);
+
+    return INDI::CCD::UpdateCCDFrame(x,y,w,h);
+}
+
+bool CCDSim::UpdateCCDBin(int hor, int ver)
+{
+    if (hor == 3 || ver == 3)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "3x3 binning is not supported.");
+        return false;
+    }
+
+    long bin_width  = PrimaryCCD.getSubW() / hor;
+    long bin_height = PrimaryCCD.getSubH() / ver;
+
+    bin_width  = bin_width - (bin_width % 2);
+    bin_height = bin_height - (bin_height % 2);
+
+    Streamer->setSize(bin_width, bin_height);
+
+    return INDI::CCD::UpdateCCDBin(hor,ver);
+}
+
+void *CCDSim::streamVideoHelper(void *context)
+{
+    return ((CCDSim *)context)->streamVideo();
+}
+
+void *CCDSim::streamVideo()
+{
+    struct itimerval tframe1, tframe2;
+    double s1, s2, deltas;
+
+    while (true)
+    {
+        pthread_mutex_lock(&condMutex);
+
+        while (streamPredicate == 0)
+        {
+            pthread_cond_wait(&cv, &condMutex);
+            ExposureRequest = 1.0 / Streamer->getTargetFPS();
+        }
+
+        if (terminateThread)
+            break;
+
+        // release condMutex
+        pthread_mutex_unlock(&condMutex);
+
+        // Simulate exposure time
+        //usleep(ExposureRequest*1e5);
+
+        // 16 bit
+        DrawCcdFrame(&PrimaryCCD);
+
+        PrimaryCCD.binFrame();
+
+        getitimer(ITIMER_REAL, &tframe1);
+
+        s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
+        s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
+        deltas = fabs(s2 - s1);
+
+        if (deltas < ExposureRequest)
+            usleep(fabs(ExposureRequest-deltas)*1e6);
+
+        uint32_t size = PrimaryCCD.getFrameBufferSize() / (PrimaryCCD.getBinX()*PrimaryCCD.getBinY());
+        Streamer->newFrame(PrimaryCCD.getFrameBuffer(), size);
+
+        getitimer(ITIMER_REAL, &tframe2);
+    }
+
+    pthread_mutex_unlock(&condMutex);
+    return 0;
 }

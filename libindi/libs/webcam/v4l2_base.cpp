@@ -124,6 +124,9 @@ using namespace std;
   return src;
 }*/
 
+namespace INDI
+{
+
 V4L2_Base::V4L2_Base()
 {
     frameRate.numerator   = 1;
@@ -152,11 +155,6 @@ V4L2_Base::V4L2_Base()
     decoder->init();
     dodecode = true;
 
-    v4l2_record = new V4L2_Record();
-    recorder    = v4l2_record->getDefaultRecorder();
-    recorder->init();
-    dorecord = false;
-
     bpp                                           = 8;
     has_ext_pix_format                            = false;
     const std::vector<unsigned int> &vsuppformats = decoder->getsupportedformats();
@@ -182,7 +180,6 @@ V4L2_Base::V4L2_Base()
 V4L2_Base::~V4L2_Base()
 {
     delete v4l2_decode;
-    delete v4l2_record;
 }
 
 /** @brief Helper indicating whether current pixel format is compressed or not.
@@ -202,6 +199,7 @@ bool V4L2_Base::is_compressed() const
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
     switch (fmt.fmt.pix.pixelformat)
     {
+        case V4L2_PIX_FMT_JPEG:
         case V4L2_PIX_FMT_MJPEG:
             DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: format %c%c%c%c patched to be considered compressed",
                          __FUNCTION__, fmt.fmt.pix.pixelformat, fmt.fmt.pix.pixelformat >> 8,
@@ -356,16 +354,6 @@ int V4L2_Base::errno_exit(const char *s, char *errmsg)
 void V4L2_Base::doDecode(bool d)
 {
     dodecode = d;
-}
-
-void V4L2_Base::doRecord(bool d)
-{
-    dorecord = d;
-}
-
-void V4L2_Base::setRecorder(V4L2_Recorder *r)
-{
-    recorder = r;
 }
 
 int V4L2_Base::connectCam(const char *devpath, char *errmsg, int pixelFormat, int width, int height)
@@ -641,12 +629,14 @@ int V4L2_Base::read_frame(char *errmsg)
                 decoder->decode((unsigned char *)(buffers[buf.index].start), &buf);
             }
 
+            /*
             if (dorecord)
             {
                 DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: [%p] recording %d-byte buffer %p", __FUNCTION__,
                              recorder, buf.bytesused, buffers[buf.index].start);
                 recorder->writeFrame((unsigned char *)(buffers[buf.index].start));
             }
+            */
 
             //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"lxstate is %d, dropFrame %c\n", lxstate, (dropFrame?'Y':'N'));
 
@@ -2916,4 +2906,10 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
     *noptions = nopt;
 
     return true;
+}
+
+void V4L2_Base::setDeviceName(const char *name)
+{
+    strncpy(deviceName, name, MAXINDIDEVICE);
+}
 }

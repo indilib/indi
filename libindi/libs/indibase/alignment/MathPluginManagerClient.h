@@ -6,6 +6,8 @@
 
 #include "indibase/alignment/AlignmentSubsystemForClients.h"
 
+#include <string>
+
 class MathPluginManagerClient : public INDI::BaseClient, INDI::AlignmentSubsystem::AlignmentSubsystemForClients
 {
   public:

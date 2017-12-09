@@ -271,7 +271,7 @@ int SBIGCCD::CloseDevice()
 
 //==========================================================================
 
-SBIGCCD::SBIGCCD()
+SBIGCCD::SBIGCCD() : FilterInterface(this)
 {
     InitVars();
     int res = OpenDriver();
@@ -451,7 +451,7 @@ bool SBIGCCD::initProperties()
 
     IUSaveText(&BayerT[2], "BGGR");
 
-    initFilterProperties(getDeviceName(), FILTER_TAB);
+    INDI::FilterInterface::initProperties(FILTER_TAB);
 
     FilterSlotN[0].min = 1;
     FilterSlotN[0].max = MAX_CFW_TYPES;
@@ -555,7 +555,7 @@ bool SBIGCCD::ISNewText(const char *dev, const char *name, char *texts[], char *
         }
         if (strcmp(name, FilterNameTP->name) == 0)
         {
-            processFilterName(dev, texts, names, n);
+            INDI::FilterInterface::processText(dev, name, texts, names, n);
             return true;
         }
     }
@@ -653,7 +653,7 @@ bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], ch
     {
         if (strcmp(name, FilterSlotNP.name) == 0)
         {
-            processFilterSlot(dev, values, names);
+            INDI::FilterInterface::processNumber(dev, name, values, names, n);
             return true;
         }
     }
@@ -860,7 +860,7 @@ int SBIGCCD::SetTemperature(double temperature)
     return -1;
 }
 
-int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
+int SBIGCCD::StartExposure(INDI::CCDChip *targetChip, double duration)
 {
     int res, binning, shutter;
 
@@ -873,10 +873,10 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
         return res;
     }
 
-    CCDChip::CCD_FRAME frameType;
+    INDI::CCDChip::CCD_FRAME frameType;
     getFrameType(targetChip, &frameType);
     ulong expTime = (ulong)floor(duration * 100.0 + 0.5);
-    if (frameType == CCDChip::BIAS_FRAME) // Flat frame = zero seconds
+    if (frameType == INDI::CCDChip::BIAS_FRAME) // Flat frame = zero seconds
     {
         expTime = 0;
     }
@@ -930,19 +930,19 @@ int SBIGCCD::StartExposure(CCDChip *targetChip, double duration)
         return res;
     }
 
-    if (frameType == CCDChip::LIGHT_FRAME)
+    if (frameType == INDI::CCDChip::LIGHT_FRAME)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Light Frame exposure in progress...");
     }
-    else if (frameType == CCDChip::DARK_FRAME)
+    else if (frameType == INDI::CCDChip::DARK_FRAME)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Dark Frame exposure in progress...");
     }
-    else if (frameType == CCDChip::FLAT_FRAME)
+    else if (frameType == INDI::CCDChip::FLAT_FRAME)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Flat Frame exposure in progress...");
     }
-    else if (frameType == CCDChip::BIAS_FRAME)
+    else if (frameType == INDI::CCDChip::BIAS_FRAME)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Bias Frame exposure in progress...");
     }
@@ -979,7 +979,7 @@ bool SBIGCCD::StartGuideExposure(float duration)
     return true;
 }
 
-int SBIGCCD::AbortExposure(CCDChip *targetChip)
+int SBIGCCD::AbortExposure(INDI::CCDChip *targetChip)
 {
     int ccd;
     if (targetChip == &PrimaryCCD)
@@ -1044,9 +1044,9 @@ bool SBIGCCD::AbortGuideExposure()
     return true;
 }
 
-bool SBIGCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool SBIGCCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
 {
-    CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
+    INDI::CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
     if (fType != imageFrameType)
     {
         PrimaryCCD.setFrameType(fType);
@@ -1054,7 +1054,7 @@ bool SBIGCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
     return true;
 }
 
-bool SBIGCCD::updateFrameProperties(CCDChip *targetChip)
+bool SBIGCCD::updateFrameProperties(INDI::CCDChip *targetChip)
 {
     int wCcd, hCcd, binning;
     double wPixel, hPixel;
@@ -1212,7 +1212,7 @@ void *SBIGCCD::grabCCDHelper(void *context)
 void *SBIGCCD::grabCCD()
 {
     DEBUG(INDI::Logger::DBG_DEBUG, "grabCCD thread started...");
-    CCDChip *targetChip = NULL;
+    INDI::CCDChip *targetChip = NULL;
     pthread_mutex_lock(&condMutex);
     while (true)
     {
@@ -1237,7 +1237,7 @@ void *SBIGCCD::grabCCD()
 }
 #endif
 
-bool SBIGCCD::grabImage(CCDChip *targetChip)
+bool SBIGCCD::grabImage(INDI::CCDChip *targetChip)
 {
     unsigned short left   = (unsigned short)targetChip->getSubX() / targetChip->getBinX();
     unsigned short top    = (unsigned short)targetChip->getSubY() / targetChip->getBinX();
@@ -1280,20 +1280,15 @@ bool SBIGCCD::grabImage(CCDChip *targetChip)
     return true;
 }
 
-void SBIGCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
-{
-    INDI::CCD::addFITSKeywords(fptr, targetChip);
-    int status = 0;
-    fits_update_key_s(fptr, TSTRING, "INSTRUME", ProductInfoT[0].text, "CCD Name", &status);
-}
-
 bool SBIGCCD::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &PortSP);
     IUSaveConfigText(fp, &IpTP);
-    IUSaveConfigNumber(fp, &FilterSlotNP);
-    IUSaveConfigText(fp, FilterNameTP);
+
+    if (FilterNameT)
+        INDI::FilterInterface::saveConfigItems(fp);
+
     IUSaveConfigSwitch(fp, &FilterTypeSP);
     return true;
 }
@@ -1301,7 +1296,7 @@ bool SBIGCCD::saveConfigItems(FILE *fp)
 void SBIGCCD::TimerHit()
 {
     long timeleft       = 1e6;
-    CCDChip *targetChip = NULL;
+    INDI::CCDChip *targetChip = NULL;
     if (isConnected() == false)
     {
         return;
@@ -2004,7 +1999,7 @@ bool SBIGCCD::CheckLink()
     return false;
 }
 
-/*int SBIGCCD::getNumberOfCCDChips()
+/*int SBIGCCD::getNumberOfINDI::CCDChips()
 {
     int res;
 
@@ -2072,7 +2067,7 @@ void SBIGCCD::InitVars()
 
 //==========================================================================
 
-int SBIGCCD::getBinningMode(CCDChip *targetChip, int &binning)
+int SBIGCCD::getBinningMode(INDI::CCDChip *targetChip, int &binning)
 {
     int res = CE_NO_ERROR;
     if (targetChip->getBinX() == 1 && targetChip->getBinY() == 1)
@@ -2099,16 +2094,16 @@ int SBIGCCD::getBinningMode(CCDChip *targetChip, int &binning)
     return res;
 }
 
-int SBIGCCD::getFrameType(CCDChip *targetChip, CCDChip::CCD_FRAME *frameType)
+int SBIGCCD::getFrameType(INDI::CCDChip *targetChip, INDI::CCDChip::CCD_FRAME *frameType)
 {
     *frameType = targetChip->getFrameType();
     return CE_NO_ERROR;
 }
 
-int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
+int SBIGCCD::getShutterMode(INDI::CCDChip *targetChip, int &shutter)
 {
     int res = CE_NO_ERROR;
-    CCDChip::CCD_FRAME frameType;
+    INDI::CCDChip::CCD_FRAME frameType;
     getFrameType(targetChip, &frameType);
     int ccd = CCD_IMAGING;
     if (targetChip == &PrimaryCCD)
@@ -2119,7 +2114,7 @@ int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
     {
         ccd = useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING;
     }
-    if (frameType == CCDChip::LIGHT_FRAME || frameType == CCDChip::FLAT_FRAME)
+    if (frameType == INDI::CCDChip::LIGHT_FRAME || frameType == INDI::CCDChip::FLAT_FRAME)
     {
         if (ccd == CCD_EXT_TRACKING)
         {
@@ -2130,7 +2125,7 @@ int SBIGCCD::getShutterMode(CCDChip *targetChip, int &shutter)
             shutter = SC_OPEN_SHUTTER;
         }
     }
-    else if (frameType == CCDChip::DARK_FRAME || frameType == CCDChip::BIAS_FRAME)
+    else if (frameType == INDI::CCDChip::DARK_FRAME || frameType == INDI::CCDChip::BIAS_FRAME)
     {
         if (ccd == CCD_EXT_TRACKING)
         {
@@ -2176,36 +2171,6 @@ bool SBIGCCD::SelectFilter(int position)
         return false;
     }
     return false;
-}
-
-bool SBIGCCD::SetFilterNames()
-{
-    // Cannot save it in hardware, so let's just save it in the config file to be loaded later
-    saveConfig();
-    return true;
-}
-
-bool SBIGCCD::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    char filterBand[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-    if (FilterNameT != NULL)
-    {
-        delete FilterNameT;
-    }
-    FilterNameT = new IText[MaxFilter];
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-        snprintf(filterBand, MAXINDILABEL, "Filter #%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterBand);
-    }
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     0, IPS_IDLE);
-    return true;
 }
 
 int SBIGCCD::QueryFilter()
@@ -2277,7 +2242,7 @@ void SBIGCCD::updateTemperature()
     IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
 }
 
-bool SBIGCCD::isExposureDone(CCDChip *targetChip)
+bool SBIGCCD::isExposureDone(INDI::CCDChip *targetChip)
 {
     int ccd;
     if (isSimulation())
@@ -2343,7 +2308,7 @@ bool SBIGCCD::isExposureDone(CCDChip *targetChip)
 //==========================================================================
 
 int SBIGCCD::readoutCCD(unsigned short left, unsigned short top, unsigned short width, unsigned short height,
-                        unsigned short *buffer, CCDChip *targetChip)
+                        unsigned short *buffer, INDI::CCDChip *targetChip)
 {
     int h, ccd, binning, res;
     if (targetChip == &PrimaryCCD)
@@ -2509,15 +2474,16 @@ int SBIGCCD::CFWConnect()
         }
         DEBUGF(INDI::Logger::DBG_DEBUG, "CFW min: 1 Max: %g Current Slot: %g", FilterSlotN[0].max,
                FilterSlotN[0].value);
+
         defineNumber(&FilterSlotNP);
-        DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_SLOT from config file...");
-        loadConfig(true, "FILTER_SLOT");
         if (FilterNameT == NULL)
-            GetFilterNames(FILTER_TAB);
+            GetFilterNames();
         if (FilterNameT)
             defineText(FilterNameTP);
-        DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_NAME from config file...");
-        loadConfig(true, "FILTER_NAME");
+
+        DEBUG(INDI::Logger::DBG_DEBUG, "Loading FILTER_SLOT from config file...");
+        loadConfig(true, "FILTER_SLOT");
+
         FilterConnectionSP.s = IPS_OK;
         DEBUG(INDI::Logger::DBG_SESSION, "CFW connected.");
         FilterConnectionS[0].s = ISS_ON;

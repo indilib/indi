@@ -76,8 +76,6 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     // Filter Wheel CFW
     virtual int QueryFilter() override;
     virtual bool SelectFilter(int position) override;
-    virtual bool SetFilterNames() override;
-    virtual bool GetFilterNames(const char *groupName) override;
 
 #ifndef __APPLE__
     // Streaming
@@ -138,13 +136,13 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     bool HasFilters;
 
     qhyccd_handle *camhandle;
-    CCDChip::CCD_FRAME imageFrameType;
+    INDI::CCDChip::CCD_FRAME imageFrameType;
     bool sim;
 
     // Temperature tracking
     float TemperatureRequest;
     int temperatureID;
-    bool coolerEnabled, useSoftBin;
+    bool coolerEnabled;//, useSoftBin;
 
     // Exposure progress
     float ExposureRequest;
@@ -156,12 +154,12 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     float GainRequest;
     float LastGainRequest;
 
-// Thread conditions
-#ifndef OSX_EMBEDED_MODE
+    // Threading
     int streamPredicate;
-#endif
     pthread_t primary_thread;
     bool terminateThread;
+    pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

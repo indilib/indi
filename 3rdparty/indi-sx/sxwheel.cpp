@@ -78,14 +78,14 @@ SXWHEEL::SXWHEEL()
     FilterSlotN[0].max = -1;
     CurrentFilter      = 1;
     handle             = 0;
-    setDeviceName(getDefaultName());
+    //setDeviceName(getDefaultName());
     setVersion(VERSION_MAJOR, VERSION_MINOR);
 }
 
 SXWHEEL::~SXWHEEL()
 {
     if (isSimulation())
-        IDMessage(getDeviceName(), "simulation: disconnected");
+        DEBUG(INDI::Logger::DBG_DEBUG, "simulation: disconnected");
     else
     {
         if (handle)
@@ -94,46 +94,18 @@ SXWHEEL::~SXWHEEL()
     }
 }
 
-void SXWHEEL::debugTriggered(bool enable)
-{
-    INDI_UNUSED(enable);
-}
-
-void SXWHEEL::simulationTriggered(bool enable)
-{
-    INDI_UNUSED(enable);
-}
-
 const char *SXWHEEL::getDefaultName()
 {
     return (char *)"SX Wheel";
-}
-
-bool SXWHEEL::GetFilterNames(const char *groupName)
-{
-    char filterName[MAXINDINAME];
-    char filterLabel[MAXINDILABEL];
-    int MaxFilter = FilterSlotN[0].max;
-    if (FilterNameT != NULL)
-        delete FilterNameT;
-    FilterNameT = new IText[MaxFilter];
-    for (int i = 0; i < MaxFilter; i++)
-    {
-        snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-        snprintf(filterLabel, MAXINDILABEL, "Filter #%d", i + 1);
-        IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
-    }
-    IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, getDeviceName(), "FILTER_NAME", "Filter", groupName, IP_RW,
-                     0, IPS_IDLE);
-    return true;
 }
 
 bool SXWHEEL::Connect()
 {
     if (isSimulation())
     {
-        IDMessage(getDeviceName(), "simulation: connected");
+        DEBUG(INDI::Logger::DBG_DEBUG, "simulation: connected");
         handle = (hid_device *)1;
+        SelectFilter(CurrentFilter);
     }
     else
     {
@@ -147,7 +119,7 @@ bool SXWHEEL::Connect()
 bool SXWHEEL::Disconnect()
 {
     if (isSimulation())
-        IDMessage(getDeviceName(), "simulation: disconnected");
+        DEBUG(INDI::Logger::DBG_DEBUG, "simulation: disconnected");
     else
     {
         if (handle)
@@ -165,40 +137,35 @@ bool SXWHEEL::initProperties()
     return true;
 }
 
-void SXWHEEL::ISGetProperties(const char *dev)
-{
-    INDI::FilterWheel::ISGetProperties(dev);
-    return;
-}
-
 int SXWHEEL::SendWheelMessage(int a, int b)
 {
     if (isSimulation())
     {
-        IDMessage(getDeviceName(), "simulation: command %d %d", a, b);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "simulation: command %d %d", a, b);
         if (a > 0)
-            CurrentFilter = a;
+            CurrentFilter = a - 0x80;
+        FilterSlotN[0].max = 5;
         return 0;
     }
     if (!handle)
     {
-        IDMessage(getDeviceName(), "Filter wheel not connected\n");
+        DEBUG(INDI::Logger::DBG_ERROR, "Filter wheel not connected.");
         return -1;
     }
     unsigned char buf[2] = { static_cast<unsigned char>(a), static_cast<unsigned char>(b) };
     int rc               = hid_write(handle, buf, 2);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "SendWheelMessage: hid_write( { %d, %d } ) -> %d\n", buf[0], buf[1], rc);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "SendWheelMessage: hid_write( { %d, %d } ) -> %d", buf[0], buf[1], rc);
     if (rc != 2)
     {
-        IDMessage(getDeviceName(), "Failed to write to wheel \n");
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to write to wheel");
         return -1;
     }
     usleep(100);
     rc = hid_read(handle, buf, 2);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "SendWheelMessage: hid_read() -> { %d, %d } %d\n", buf[0], buf[1], rc);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "SendWheelMessage: hid_read() -> { %d, %d } %d", buf[0], buf[1], rc);
     if (rc != 2)
     {
-        IDMessage(getDeviceName(), "Failed to read from wheel\n");
+        DEBUG(INDI::Logger::DBG_DEBUG, "Failed to read from wheel.");
         return -1;
     }
     CurrentFilter      = buf[0];

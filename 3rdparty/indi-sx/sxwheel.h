@@ -42,20 +42,13 @@ class SXWHEEL : public INDI::FilterWheel
     SXWHEEL();
     ~SXWHEEL();
 
-    void debugTriggered(bool enable);
-    void simulationTriggered(bool enable);
-
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();
 
     bool initProperties();
 
-    void ISGetProperties(const char *dev);
-
     int QueryFilter();
     bool SelectFilter(int);
     void TimerHit();
-    virtual bool SetFilterNames() { return true; }
-    bool GetFilterNames(const char *);
 };

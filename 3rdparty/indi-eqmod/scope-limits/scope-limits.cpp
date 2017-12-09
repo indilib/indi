@@ -21,6 +21,8 @@
 
 #include <indicom.h>
 
+#include <cstring>
+
 #include <algorithm> // std::sort
 #include <wordexp.h>
 

@@ -39,7 +39,7 @@
 #pragma warning(disable : 4996)
 #endif
 
-INDI::BaseClientQt::BaseClientQt()
+INDI::BaseClientQt::BaseClientQt(QObject *parent) : QObject(parent)
 {
     cServer    = "localhost";
     cPort      = 7624;

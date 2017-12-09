@@ -159,6 +159,16 @@ extern void IUSaveConfigSwitch(FILE *fp, const ISwitchVectorProperty *svp);
 */
 extern void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp);
 
+/**
+ * @brief IUGetConfigNumber Opens configuration file and reads number property.
+ * @param dev name of device
+ * @param property name of vector property
+ * @param member name of member property
+ * @param value pointer to save value of property if found.
+ * @return 0 on success, -1 if not found.
+ */
+extern int IUGetConfigNumber(const char *dev, const char *property, const char *member, double *value);
+
 /*@}*/
 
 #ifdef __cplusplus

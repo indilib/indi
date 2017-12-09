@@ -443,7 +443,7 @@ bool TemmaMount::Park()
     double RightAscension;
 
     lha            = rangeHA(GetAxis1Park());
-    lst            = get_local_sideral_time(Longitude);
+    lst            = get_local_sidereal_time(Longitude);
     RightAscension = lst - (lha); //  Get the park position
     RightAscension = range24(RightAscension);
     DEBUGF(INDI::Logger::DBG_DEBUG, "head to Park position %4.2f %4.2f  %4.2f %4.2f", GetAxis1Park(), lha,
@@ -480,7 +480,7 @@ bool TemmaMount::SetCurrentPark()
     //SetAxis1Park(0);
     //SetAxis2Park(90);
 
-    lst = get_local_sideral_time(Longitude);
+    lst = get_local_sidereal_time(Longitude);
     lha = lst - currentRA;
     lha = rangeHA(lha);
     //  base class wont store a negative number here
@@ -750,14 +750,14 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
         //  We were NOT intialized, so, in case there is not park position set
         //  Sync to the position of bar vertical, telescope pointed at pole
         double RightAscension;
-        lst            = get_local_sideral_time(Longitude);
+        lst            = get_local_sidereal_time(Longitude);
         RightAscension = lst - (-6); //  Hour angle is negative 6 in this case
         RightAscension = range24(RightAscension);
         DEBUGF(INDI::Logger::DBG_DEBUG, "Initial sync on %4.2f", RightAscension);
 
         TemmaSync(RightAscension, 90);
     }
-    lst = get_local_sideral_time(longitude);
+    lst = get_local_sidereal_time(longitude);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "lst here is %4.1f", lst);
     //  if the mount is parked, then we should sync it on our park position
@@ -765,7 +765,7 @@ bool TemmaMount::updateLocation(double latitude, double longitude, double elevat
     {
         //  Here we have to sync on our park position
         double RightAscension;
-        lst            = get_local_sideral_time(Longitude);
+        lst            = get_local_sidereal_time(Longitude);
         RightAscension = lst - (rangeHA(GetAxis1Park())); //  Get the park position
         RightAscension = range24(RightAscension);
         DEBUGF(INDI::Logger::DBG_DEBUG, "Sync to Park position %4.2f %4.2f  %4.2f", GetAxis1Park(), RightAscension,
@@ -815,7 +815,7 @@ ln_equ_posn TemmaMount::TelescopeToSky(double ra, double dec)
 
         /*  and here we convert from ra/dec to hour angle / dec before calling alignment stuff */
         double lha, lst;
-        lst = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
+        lst = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
         lha = get_local_hour_angle(lst, ra);
         //  convert lha to degrees
         lha    = lha * 360 / 24;
@@ -890,7 +890,7 @@ ln_equ_posn TemmaMount::SkyToTelescope(double ra, double dec)
             double lst;
             LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, eq);
             //  and now we have to convert from lha back to RA
-            lst            = get_local_sideral_time(LocationN[LOCATION_LONGITUDE].value);
+            lst            = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
             eq.ra          = eq.ra * 24 / 360;
             RightAscension = lst - eq.ra;
             RightAscension = range24(RightAscension);
@@ -1021,7 +1021,7 @@ bool TemmaMount::SetTemmaLst()
     double lst = 0;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Setting lst with %4.2f", Longitude);
-    lst = get_local_sideral_time(Longitude);
+    lst = get_local_sidereal_time(Longitude);
     sprintf(str, "T%.2d%.2d%.2d\r\n", (int)lst, ((int)(lst * 60)) % 60, ((int)(lst * 3600)) % 60);
     DEBUGF(INDI::Logger::DBG_DEBUG, "SetLst : %s", str);
     tty_write(PortFD, str, strlen(str), &bytesWritten); // get lst

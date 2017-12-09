@@ -82,6 +82,7 @@ class WatchDog : public INDI::DefaultDevice
 
     ITextVectorProperty ActiveDeviceTP;
     IText ActiveDeviceT[2];
+    enum { ACTIVE_TELESCOPE, ACTIVE_DOME };
 
     WatchDogClient *watchdogClient;
     int watchDogTimer;

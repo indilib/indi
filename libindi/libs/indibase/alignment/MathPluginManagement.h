@@ -13,6 +13,7 @@
 #include "inditelescope.h"
 
 #include <memory>
+#include <string>
 
 namespace INDI
 {
@@ -122,7 +123,9 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
     ISwitchVectorProperty AlignmentSubsystemMathPluginInitialiseV;
     ISwitch AlignmentSubsystemActive;
     ISwitchVectorProperty AlignmentSubsystemActiveV;
-
+    IBLOB AlignmentSubsystemMathPluginInternalBlob;
+    IBLOBVectorProperty AlignmentSubsystemMathPluginInternalBlobV;
+    
     InMemoryDatabase *CurrentInMemoryDatabase;
 
     // The following property is used for configuration purposes only and is not propagated to the client
@@ -139,6 +142,8 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
                                                        TelescopeDirectionVector &TelescopeDirectionVector);
     bool (MathPlugin::*pTransformTelescopeToCelestial)(const TelescopeDirectionVector &TelescopeDirectionVector,
                                                        double &RightAscension, double &Declination);
+    std::string (MathPlugin::*pGetInternalDataRepresentation)(std::string PluginDisplayName);
+    
     MathPlugin *pLoadedMathPlugin;
     void *LoadedMathPluginHandle;
 

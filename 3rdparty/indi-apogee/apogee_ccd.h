@@ -96,7 +96,7 @@ class ApogeeCCD : public INDI::CCD
     double ExposureRequest;
     int imageWidth, imageHeight;
     int timerID;
-    CCDChip::CCD_FRAME imageFrameType;
+    INDI::CCDChip::CCD_FRAME imageFrameType;
     struct timeval ExpStart;
 
     std::string ioInterface;

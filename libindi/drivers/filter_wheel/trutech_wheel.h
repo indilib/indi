@@ -39,9 +39,6 @@ class TruTech : public INDI::FilterWheel
     bool SelectFilter(int);
     void TimerHit();
 
-    virtual bool SetFilterNames() { return true; }
-    virtual bool GetFilterNames(const char *groupName);
-
   private:
     ISwitch HomeS[1];
     ISwitchVectorProperty HomeSP;

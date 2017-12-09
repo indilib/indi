@@ -24,7 +24,7 @@
 #include <stdint.h>
 
 /**
- * \class INDI::RotatorInterface
+ * \class RotatorInterface
    \brief Provides interface to implement Rotator functionality.
 
    A Rotator can be an independent device, or an embedded Rotator within another device (usually a rotating focuser). Child class must implement all the
@@ -37,7 +37,10 @@
 
 \author Jasem Mutlaq
 */
-class INDI::RotatorInterface
+namespace INDI
+{
+
+class RotatorInterface
 {
   public:    
 
@@ -86,20 +89,20 @@ class INDI::RotatorInterface
 
 protected:
 
-    RotatorInterface();
+    explicit RotatorInterface(DefaultDevice *defaultDevice);
 
     /**
      * \brief Initilize Rotator properties. It is recommended to call this function within
      * initProperties() of your primary device
      * \param groupName Group or tab name to be used to define Rotator properties.
      */
-    void initProperties(INDI::DefaultDevice *defaultDevice, const char *groupName);
+    void initProperties(const char *groupName);
 
     /**
      * @brief updateRotatorProperties Define or Delete Rotator properties based on the connection status of the base device
      * @return True if successful, false otherwise.
      */
-    bool updateProperties(INDI::DefaultDevice *defaultDevice);
+    bool updateProperties();
 
     /** \brief Process Rotator number properties */
     bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
@@ -157,5 +160,7 @@ protected:
     enum { REVERSE_ENABLED, REVERSE_DISABLED };
 
     uint32_t rotatorCapability = 0;
-    char rotatorName[MAXINDIDEVICE];
+    DefaultDevice *m_defaultDevice { nullptr };
 };
+
+}

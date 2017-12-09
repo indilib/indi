@@ -98,7 +98,7 @@ class FilterIFW : public INDI::FilterWheel
     virtual void simulationTriggered(bool enable) override;
     virtual bool loadConfig(bool silent = false, const char *property = nullptr) override;
     virtual bool SetFilterNames() override;
-    virtual bool GetFilterNames(const char *groupName) override;
+    virtual bool GetFilterNames() override;
     bool GetWheelID();
     int GetFilterPos();
     bool GetFirmware();

@@ -34,7 +34,6 @@ class ASICCD : public INDI::CCD
     virtual const char *getDefaultName() override;
 
     virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
 
     virtual bool Connect() override;
@@ -44,20 +43,16 @@ class ASICCD : public INDI::CCD
     virtual bool StartExposure(float duration) override;
     virtual bool AbortExposure() override;
 
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
     static void *streamVideoHelper(void *context);
     void *streamVideo();
-#endif
 
   protected:
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
 // Streaming
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
     virtual bool StartStreaming() override;
     virtual bool StopStreaming() override;
-#endif
 
     virtual void TimerHit() override;
     virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
@@ -70,7 +65,7 @@ class ASICCD : public INDI::CCD
     virtual IPState GuideWest(float ms) override;
 
     // ASI specific keywords
-    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) override;
+    virtual void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;
 
     // Save config
     virtual bool saveConfigItems(FILE *fp) override;
@@ -106,15 +101,16 @@ class ASICCD : public INDI::CCD
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
 
-    INumber *ControlN = NULL;
+    INumber *ControlN = nullptr;
     INumberVectorProperty ControlNP;
 
-    ISwitch *ControlS = NULL;
+    ISwitch *ControlS = nullptr;
     ISwitchVectorProperty ControlSP;
 
     ISwitch *VideoFormatS;
     ISwitchVectorProperty VideoFormatSP;
     uint8_t rememberVideoFormat = { 0 };
+    ASI_IMG_TYPE currentVideoFormat;
 
     double minimumExposureDuration = 0;
     struct timeval ExpStart;
@@ -126,11 +122,14 @@ class ASICCD : public INDI::CCD
     ASI_CONTROL_CAPS *pControlCaps;
 
     bool sim;
+
+    // Threads
     int streamPredicate;
-#if !defined(__APPLE__) && !defined(__CYGWIN__)
-    pthread_t primary_thread;
-#endif
     bool terminateThread;
+    pthread_t primary_thread;
+    pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+
     int exposureRetries;
 
     // ST4

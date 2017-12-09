@@ -38,6 +38,4 @@ class QFW : public INDI::FilterWheel
 
     int QueryFilter();
     bool SelectFilter(int);
-    virtual bool SetFilterNames() { return true; }
-    bool GetFilterNames(const char *);
 };

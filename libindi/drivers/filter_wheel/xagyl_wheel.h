@@ -66,8 +66,6 @@ class XAGYLWheel : public INDI::FilterWheel
     void TimerHit();
 
     bool SelectFilter(int);
-    virtual bool SetFilterNames() { return true; }
-    virtual bool GetFilterNames(const char *groupName);
 
   private:
     bool getCommand(GET_COMMAND cmd, char *result);

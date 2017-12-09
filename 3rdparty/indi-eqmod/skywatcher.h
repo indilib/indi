@@ -194,16 +194,16 @@ class Skywatcher
 
     typedef struct SkyWatcherFeatures
     {
-        bool inPPECTraining;
-        bool inPPEC;
-        bool hasEncoder;
-        bool hasPPEC;
-        bool hasHomeIndexer;
-        bool isAZEQ;
-        bool hasPolarLed;
-        bool hasCommonSlewStart; // supports :J3
-        bool hasHalfCurrentTracking;
-        bool hasWifi;
+        bool inPPECTraining = false;
+        bool inPPEC = false;
+        bool hasEncoder = false;
+        bool hasPPEC = false;
+        bool hasHomeIndexer = false;
+        bool isAZEQ = false;
+        bool hasPolarLed = false;
+        bool hasCommonSlewStart = false; // supports :J3
+        bool hasHalfCurrentTracking = false;
+        bool hasWifi = false;
     } SkyWatcherFeatures;
 
     enum SkywatcherGetFeatureCmd

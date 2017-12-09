@@ -31,7 +31,7 @@ int dspau_removemean(double* in, double* out, int len)
 	return 0;
 }
 
-int dspau_stretch(double* in, double* out, int len, int min, int max)
+int dspau_stretch(double* in, double* out, int len, double min, double max)
 {
 	double mn, mx;
 	dspau_minmidmax(in, len, &mn, &mx);
@@ -43,7 +43,7 @@ int dspau_stretch(double* in, double* out, int len, int min, int max)
 	return 0;
 }
 
-int dspau_normalize(double* in, double* out, int len, int min, int max)
+int dspau_normalize(double* in, double* out, int len, double min, double max)
 {
 	for(int k = 0; k < len; k++) {
 		out[k] = (in[k] < min ? min : (in[k] > max ? max : in[k]));

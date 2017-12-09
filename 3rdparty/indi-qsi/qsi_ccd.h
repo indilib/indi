@@ -68,14 +68,14 @@ protected:
 
     virtual bool UpdateCCDFrame(int x, int y, int w, int h);
     virtual bool UpdateCCDBin(int binx, int biny);
-    virtual void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip);
+    virtual void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip);
 
     virtual IPState GuideNorth(float);
     virtual IPState GuideSouth(float);
     virtual IPState GuideEast(float);
     virtual IPState GuideWest(float);
 
-    virtual bool GetFilterNames(const char *groupName);
+    virtual bool GetFilterNames();
     virtual bool SetFilterNames();
     virtual bool SelectFilter(int);
     virtual int QueryFilter();
@@ -126,7 +126,7 @@ private:
 
     // Image Data
     int imageWidth, imageHeight;
-    CCDChip::CCD_FRAME imageFrameType;
+    INDI::CCDChip::CCD_FRAME imageFrameType;
     int grabImage();
 
     // Timers

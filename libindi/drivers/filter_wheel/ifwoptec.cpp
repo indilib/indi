@@ -415,7 +415,7 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 DEBUG(INDI::Logger::DBG_DEBUG, "Getting filter information...");
 
-                if (!(GetFilterNames(FILTER_TAB) && GetFilterPos() != 0))
+                if (!(GetFilterNames() && GetFilterPos() != 0))
                 {
                     HomeSP.s = IPS_ALERT;
                     result   = false;
@@ -443,22 +443,22 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             if ((FilterNbrS[0].s == ISS_ON) & (FilterSlotN[0].max != 5))
             {
                 strncpy(filterSim, filterSim5, sizeof(filterSim));
-                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
+                FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
             else if ((FilterNbrS[1].s == ISS_ON) & (FilterSlotN[0].max != 6))
             {
                 strncpy(filterSim, filterSim6, sizeof(filterSim));
-                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
+                FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
             else if ((FilterNbrS[2].s == ISS_ON) & (FilterSlotN[0].max != 8))
             {
                 strncpy(filterSim, filterSim8, sizeof(filterSim));
-                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
+                FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
             else if ((FilterNbrS[3].s == ISS_ON) & (FilterSlotN[0].max != 9))
             {
                 strncpy(filterSim, filterSim9, sizeof(filterSim));
-                FilterNbrSP.s = (GetFilterNames(FILTER_TAB) && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
+                FilterNbrSP.s = (GetFilterNames() && GetFilterPos() != 0) ? IPS_OK : IPS_ALERT;
             }
             else
                 FilterNbrSP.s = IPS_OK;
@@ -596,7 +596,7 @@ bool FilterIFW::SelectFilter(int f)
 /************************************************************************************
 *
 ************************************************************************************/
-bool FilterIFW::GetFilterNames(const char *groupName)
+bool FilterIFW::GetFilterNames()
 {
     DEBUGTAG();
     bool result = true;
@@ -679,7 +679,7 @@ bool FilterIFW::GetFilterNames(const char *groupName)
             deleteProperty(FilterNameTP->name);
 
             if (FilterNameT != nullptr)
-                delete FilterNameT;
+                delete [] FilterNameT;
             FilterNameT = new IText[maxFilter];
 
             for (int i = 0; i < maxFilter; i++)
@@ -689,7 +689,7 @@ bool FilterIFW::GetFilterNames(const char *groupName)
                 IUFillText(&FilterNameT[i], filterName, filterLabel, filterNameIFW[i]);
             }
 
-            IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filters", groupName,
+            IUFillTextVector(FilterNameTP, FilterNameT, maxFilter, getDeviceName(), "FILTER_NAME", "Filters", FilterSlotNP.group,
                              IP_RW, 0, IPS_OK);
             defineText(FilterNameTP);
 
@@ -712,11 +712,12 @@ bool FilterIFW::GetFilterNames(const char *groupName)
             return true;
         }
         else
-            DEBUGF(INDI::Logger::DBG_ERROR, "List of filter's name is wrong Nbr char red are: %s", lenResponse);
+            DEBUGF(INDI::Logger::DBG_ERROR, "List of filters name is wrong Nbr char red are: %s", lenResponse);
     }
 
     FilterNameTP->s = IPS_ALERT;
-    IDSetText(FilterNameTP, "*** UNABLE TO READ FILTERS NAME ***");
+    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read filter names!");
+    IDSetText(FilterNameTP, nullptr);
     return false;
 }
 
@@ -953,7 +954,7 @@ bool FilterIFW::moveHome()
         }
     }
 
-    if (!result || !GetWheelID() || !GetFilterNames(FILTER_TAB) || (GetFilterPos() <= 0))
+    if (!result || !GetWheelID() || !GetFilterNames() || (GetFilterPos() <= 0))
     {
         HomeSP.s = WheelIDTP.s = IPS_ALERT;
         IDSetSwitch(&HomeSP, "*** INITIALISATION FAILED ***");

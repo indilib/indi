@@ -25,7 +25,7 @@
 #include <stdint.h>
 
 /**
- * \class INDI::FocuserInterface
+ * \class FocuserInterface
    \brief Provides interface to implement focuser functionality.
 
    A focuser can be an independent device, or an embedded focuser within another device (e.g. Camera).
@@ -35,7 +35,10 @@
    \e IMPORTANT: processFocuserNumber() and processFocuserSwitch() must be called in your driver's ISNewNumber() and ISNewSwitch functions recepectively.
 \author Jasem Mutlaq
 */
-class INDI::FocuserInterface
+namespace INDI
+{
+
+class FocuserInterface
 {
   public:
     enum FocusDirection
@@ -84,8 +87,8 @@ class INDI::FocuserInterface
     bool HasVariableSpeed() { return capability & FOCUSER_HAS_VARIABLE_SPEED; }
 
   protected:
-    FocuserInterface();
-    virtual ~FocuserInterface();
+    FocuserInterface() = default;
+    virtual ~FocuserInterface() = default;
 
     /**
      * \brief Initilize focuser properties. It is recommended to call this function within
@@ -163,3 +166,4 @@ class INDI::FocuserInterface
     char focuserName[MAXINDIDEVICE];
     double lastTimerValue;
 };
+}

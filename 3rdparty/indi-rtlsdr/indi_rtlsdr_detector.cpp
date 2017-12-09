@@ -394,7 +394,7 @@ void RTLSDR::grabData()
 	continuum[0] = (unsigned char)dspau_mean(flat48, len);
 
         //Create the spectrum
-	dspau_spectrum(data48, spectrum, &len, magnitude_rooted);
+	dspau_spectrum(data48, spectrum, 1, &len, magnitude_rooted);
 	if(len != PrimaryDetector.getSpectrumBufferSize()) {
 		PrimaryDetector.setSpectrumBufferSize(len, false);
 		PrimaryDetector.setSpectrumBuffer(spectrum);

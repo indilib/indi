@@ -47,7 +47,6 @@ class FLICFW : public INDI::FilterWheel
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
   protected:
-    virtual bool GetFilterNames(const char *groupName);
     virtual bool SelectFilter(int);
     virtual int QueryFilter();
     void TimerHit();
