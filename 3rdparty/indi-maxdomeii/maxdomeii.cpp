@@ -142,14 +142,13 @@ bool MaxDomeII::initProperties()
     IUFillSwitch(&ShutterConflictS[0], "MOVE", "Move", ISS_ON);
     IUFillSwitch(&ShutterConflictS[1], "NO_MOVE", "No move", ISS_OFF);
     IUFillSwitchVector(&ShutterConflictSP, ShutterConflictS, NARRAY(ShutterConflictS), getDeviceName(),
-                       "AZIMUTH_ON_SHUTTER", "Azimuth on operating shutter", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+            "AZIMUTH_ON_SHUTTER", "Azimuth on operating shutter", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Shutter mode
     IUFillSwitch(&ShutterModeS[0], "FULL", "Open full", ISS_ON);
     IUFillSwitch(&ShutterModeS[1], "UPPER", "Open upper only", ISS_OFF);
-    IUFillSwitchVector(&ShutterModeSP, ShutterModeS, NARRAY(ShutterModeS), getDeviceName(), "SHUTTER_MODE",
-                       "Shutter open mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ShutterModeSP, ShutterModeS, NARRAY(ShutterModeS), getDeviceName(),
+            "SHUTTER_MODE", "Shutter open mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Home - Home command
     IUFillSwitch(&HomeS[0], "HOME", "Home", ISS_OFF);
@@ -361,8 +360,13 @@ void MaxDomeII::TimerHit()
                     IDSetSwitch(&DomeShutterSP, "Shutter is closing");
                 }
                 break;
-            case SS_ABORTED:
             case SS_ERROR:
+                DomeShutterSP.s   = IPS_ALERT;
+                DomeShutterS[1].s = ISS_OFF;
+                DomeShutterS[0].s = ISS_OFF;
+                IDSetSwitch(&DomeShutterSP, "Shutter error");
+                break;
+            case SS_ABORTED:
             default:
                 if (nTimeSinceShutterStart >= 0)
                 {
@@ -735,19 +739,8 @@ bool MaxDomeII::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         if (IUUpdateSwitch(&ShutterConflictSP, states, names, n) < 0)
             return false;
 
-        int error;
-        int nCSBP;
-
-        if (ShutterConflictS[0].s == ISS_ON)
-        {
-            nCSBP = 1;
-        }
-        else
-        {
-            nCSBP = 0;
-        }
-
-        error = ConfigurePark(nCSBP, nParkPosition);
+        int nCSBP = ShutterConflictS[0].s == ISS_ON ? 1 : 0;
+        int error = ConfigurePark(nCSBP, nParkPosition);
 
         if (error == IPS_OK)
         {
@@ -759,7 +752,15 @@ bool MaxDomeII::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             ShutterConflictSP.s = IPS_ALERT;
             IDSetSwitch(&ShutterConflictSP, "%s", ErrorMessages[-error]);
         }
+        return true;
+    }
 
+    if (!strcmp(name, ShutterModeSP.name)) {
+        if (IUUpdateSwitch(&ShutterModeSP, states, names, n) < 0)
+            return false;
+
+        ShutterModeSP.s = IPS_OK;
+        IDSetSwitch(&ShutterModeSP, "Shutter opening mode set");
         return true;
     }
 
