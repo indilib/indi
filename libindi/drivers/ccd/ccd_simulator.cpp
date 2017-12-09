@@ -17,8 +17,9 @@
 *******************************************************************************/
 
 #include "ccd_simulator.h"
+#ifndef __APPLE__
 #include "stream/streammanager.h"
-
+#endif
 #include "locale_compat.h"
 
 #include <libnova/julian_day.h>
@@ -123,15 +124,18 @@ bool CCDSim::SetupParms()
     //nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
+#ifndef __APPLE__
     Streamer->setPixelFormat(INDI_MONO, 16);
     Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
-
+#endif
     return true;
 }
 
 bool CCDSim::Connect()
 {
+#ifndef __APPLE__
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
+#endif
     return true;
 }
 
@@ -480,8 +484,10 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 
     if (targetChip->getXRes() == 500)
         ExposureTime = GuideExposureRequest;
+#ifndef __APPLE__
     else if (Streamer->isStreaming())
         ExposureTime = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
+#endif
     else
         ExposureTime = ExposureRequest;
 
@@ -1188,6 +1194,7 @@ int CCDSim::QueryFilter()
     return CurrentFilter;
 }
 
+#ifndef __APPLE__
 bool CCDSim::StartStreaming()
 {
     ExposureRequest = 1.0 / Streamer->getTargetFPS();
@@ -1208,6 +1215,7 @@ bool CCDSim::StopStreaming()
 
     return true;
 }
+#endif
 
 bool CCDSim::UpdateCCDFrame(int x, int y, int w, int h)
 {
@@ -1217,8 +1225,10 @@ bool CCDSim::UpdateCCDFrame(int x, int y, int w, int h)
     bin_width  = bin_width - (bin_width % 2);
     bin_height = bin_height - (bin_height % 2);
 
+#ifndef __APPLE__
     Streamer->setSize(bin_width, bin_height);
-
+#endif
+  
     return INDI::CCD::UpdateCCDFrame(x,y,w,h);
 }
 
@@ -1236,10 +1246,14 @@ bool CCDSim::UpdateCCDBin(int hor, int ver)
     bin_width  = bin_width - (bin_width % 2);
     bin_height = bin_height - (bin_height % 2);
 
+#ifndef __APPLE__
     Streamer->setSize(bin_width, bin_height);
-
+#endif
+  
     return INDI::CCD::UpdateCCDBin(hor,ver);
 }
+
+#ifndef __APPLE__
 
 void *CCDSim::streamVideoHelper(void *context)
 {
@@ -1293,3 +1307,5 @@ void *CCDSim::streamVideo()
     pthread_mutex_unlock(&condMutex);
     return 0;
 }
+
+#endif

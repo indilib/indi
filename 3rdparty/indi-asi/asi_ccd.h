@@ -51,9 +51,11 @@ class ASICCD : public INDI::CCD
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
 // Streaming
+#ifndef __APPLE__
     virtual bool StartStreaming() override;
     virtual bool StopStreaming() override;
-
+#endif
+  
     virtual void TimerHit() override;
     virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
     virtual bool UpdateCCDBin(int binx, int biny) override;

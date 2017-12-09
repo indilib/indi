@@ -23,7 +23,9 @@
 #include "qhy_ccd.h"
 
 #include "config.h"
-#include <stream/streammanager.h>
+#ifndef __APPLE__
+#include "stream/streammanager.h"
+#endif
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -713,8 +715,9 @@ bool QHYCCD::Connect()
         SetCCDCapability(cap);
 
         terminateThread = false;
-
+#ifndef __APPLE__
         pthread_create(&primary_thread, NULL, &streamVideoHelper, this);
+#endif
         return true;
     }
 
@@ -780,8 +783,10 @@ bool QHYCCD::setupParams()
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
+#ifndef __APPLE__
     Streamer->setPixelFormat(INDI_MONO);
     Streamer->setSize(imagew, imageh);
+#endif
     return true;
 }
 
@@ -808,12 +813,14 @@ bool QHYCCD::StartExposure(float duration)
 {
     unsigned int ret = QHYCCD_ERROR;
 
+#ifndef __APPLE__
     if (Streamer->isBusy())
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Cannot take exposure while streaming/recording is active.");
         return false;
     }
-    //AbortPrimaryFrame = false;
+#endif
+  //AbortPrimaryFrame = false;
 
     /*
     if (duration < MINIMUM_CCD_EXPOSURE)
@@ -970,7 +977,9 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     // Streamer is always updated with BINNED size.
+#ifndef __APPLE__
     Streamer->setSize(camroiwidth, camroiheight);
+#endif
     return true;
 }
 
@@ -1453,6 +1462,8 @@ bool QHYCCD::saveConfigItems(FILE *fp)
     return true;
 }
 
+#ifndef __APPLE__
+
 bool QHYCCD::StartStreaming()
 {
     /*if (PrimaryCCD.getBPP() != 8)
@@ -1533,6 +1544,8 @@ void *QHYCCD::streamVideo()
     pthread_mutex_unlock(&condMutex);
     return 0;
 }
+
+#endif
 
 void QHYCCD::debugTriggered(bool enable)
 {
