@@ -72,9 +72,11 @@ protected:
     virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
     virtual bool UpdateCCDBin(int hor, int ver) override;
 
+#ifndef __APPLE__
     virtual bool StartStreaming() override;
     virtual bool StopStreaming() override;
-
+#endif
+    
     // Filter
     bool SelectFilter(int) override;
     int QueryFilter() override;

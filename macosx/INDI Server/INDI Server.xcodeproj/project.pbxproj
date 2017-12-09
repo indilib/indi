@@ -181,9 +181,6 @@
 		594499401C1363C400E0E281 /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
 		594499491C13643F00E0E281 /* asi_ccd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 594499461C13643F00E0E281 /* asi_ccd.cpp */; };
 		594499511C1365C400E0E281 /* stream_recorder.h in Headers */ = {isa = PBXBuildFile; fileRef = 5944994F1C1365C400E0E281 /* stream_recorder.h */; };
-		594499521C13660200E0E281 /* stream_recorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5944994E1C1365C400E0E281 /* stream_recorder.cpp */; };
-		594499581C13677F00E0E281 /* v4l2_record.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 594499551C13677F00E0E281 /* v4l2_record.cpp */; };
-		5944995E1C136C5800E0E281 /* ser_recorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5944995C1C136C5800E0E281 /* ser_recorder.cpp */; };
 		594499601C136C9100E0E281 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
 		594499611C136CE300E0E281 /* indi_asi.xml in Resources */ = {isa = PBXBuildFile; fileRef = 594499471C13643F00E0E281 /* indi_asi.xml */; };
 		594499641C136E9F00E0E281 /* indi_asi_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 594499451C1363C400E0E281 /* indi_asi_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -3034,6 +3031,7 @@
 		59567D4A1A8D418E0057A35A /* indi_usbfocusv3_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_usbfocusv3_focus; sourceTree = BUILT_PRODUCTS_DIR; };
 		59567D581A8D4EA70057A35A /* README.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = README.txt; path = ../README.txt; sourceTree = "<group>"; };
 		595FA8BC1C54C0FD003869DE /* asi_ccd.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = asi_ccd.h; sourceTree = "<group>"; };
+		596026E41FDBE6C50075171B /* config-usb.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "config-usb.h"; path = "../../libindi/config-usb.h"; sourceTree = "<group>"; };
 		596556781C4A3E530044680B /* indi_qsi_ccd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_qsi_ccd; sourceTree = BUILT_PRODUCTS_DIR; };
 		5965568D1C4A3EF60044680B /* qsi_ccd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qsi_ccd.cpp; sourceTree = "<group>"; };
 		5965568F1C4A3F120044680B /* ConvertUTF.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ConvertUTF.c; path = ../libqsi/ConvertUTF.c; sourceTree = "<group>"; };
@@ -4270,6 +4268,7 @@
 				59D7E0BB1F8A0CEA00C9906E /* CMakeLists.txt */,
 				59567D581A8D4EA70057A35A /* README.txt */,
 				9DDA43B61A8CD8940004AA95 /* config.h */,
+				596026E41FDBE6C50075171B /* config-usb.h */,
 				9DDA43AD1A8CD3240004AA95 /* libindi */,
 				59567CEC1A8D40150057A35A /* cloudmakers */,
 				59567C081A8D325E0057A35A /* 3rd */,
@@ -7232,10 +7231,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5944995E1C136C5800E0E281 /* ser_recorder.cpp in Sources */,
 				594499491C13643F00E0E281 /* asi_ccd.cpp in Sources */,
-				594499521C13660200E0E281 /* stream_recorder.cpp in Sources */,
-				594499581C13677F00E0E281 /* v4l2_record.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

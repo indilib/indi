@@ -375,8 +375,9 @@ bool ASICCD::Connect()
 
     TemperatureUpdateCounter = 0;
 
+#ifndef __APPLE__
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
-
+#endif
     DEBUG(INDI::Logger::DBG_SESSION, "Setting intital bandwidth to AUTO on connection.");
     if ((errCode = ASISetControlValue(m_camInfo->CameraID, ASI_BANDWIDTHOVERLOAD, 40, ASI_FALSE)) != ASI_SUCCESS)
     {
@@ -384,7 +385,6 @@ bool ASICCD::Connect()
     }
     /* Success! */
     DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
-
     return true;
 }
 
@@ -460,6 +460,7 @@ bool ASICCD::setupParams()
             break;
     }
 
+#ifndef __APPLE__
     if (VideoFormatSP.nsp > 0)
         free(VideoFormatS);
 
@@ -551,7 +552,7 @@ bool ASICCD::setupParams()
 
     updateRecorderFormat();
     Streamer->setSize(w, h);
-
+#endif
     return true;
 }
 
@@ -687,7 +688,7 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             return true;
         }
-
+#ifndef __APPLE__
         if (!strcmp(name, VideoFormatSP.name))
         {            
             if (Streamer->isBusy())
@@ -719,11 +720,12 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             return setVideoFormat(targetIndex);
         }
+#endif
     }
-
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
+#ifndef __APPLE__
 bool ASICCD::setVideoFormat(uint8_t index)
 {
     IUResetSwitch(&VideoFormatSP);
@@ -806,6 +808,7 @@ bool ASICCD::StopStreaming()
 
     return true;
 }
+#endif
 
 int ASICCD::SetTemperature(double temperature)
 {
@@ -955,8 +958,9 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     // Always set BINNED size
+#ifndef __APPLE__
     Streamer->setSize(bin_width, bin_height);
-
+#endif
     return true;
 }
 
@@ -1548,6 +1552,8 @@ void ASICCD::updateControls()
     IDSetSwitch(&ControlSP, nullptr);
 }
 
+#ifndef __APPLE__
+
 void ASICCD::updateRecorderFormat()
 {
     currentVideoFormat = getImageType();
@@ -1645,6 +1651,7 @@ void *ASICCD::streamVideo()
     pthread_mutex_unlock(&condMutex);
     return 0;
 }
+#endif
 
 void ASICCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {

@@ -713,8 +713,9 @@ bool QHYCCD::Connect()
         SetCCDCapability(cap);
 
         terminateThread = false;
-
+#ifndef __APPLE__
         pthread_create(&primary_thread, NULL, &streamVideoHelper, this);
+#endif
         return true;
     }
 
@@ -780,8 +781,10 @@ bool QHYCCD::setupParams()
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
+#ifndef __APPLE__
     Streamer->setPixelFormat(INDI_MONO);
     Streamer->setSize(imagew, imageh);
+#endif
     return true;
 }
 
@@ -970,7 +973,9 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     // Streamer is always updated with BINNED size.
+#ifndef __APPLE__
     Streamer->setSize(camroiwidth, camroiheight);
+#endif
     return true;
 }
 
@@ -1453,6 +1458,8 @@ bool QHYCCD::saveConfigItems(FILE *fp)
     return true;
 }
 
+#ifndef __APPLE__
+
 bool QHYCCD::StartStreaming()
 {
     /*if (PrimaryCCD.getBPP() != 8)
@@ -1533,6 +1540,8 @@ void *QHYCCD::streamVideo()
     pthread_mutex_unlock(&condMutex);
     return 0;
 }
+
+#endif
 
 void QHYCCD::debugTriggered(bool enable)
 {
