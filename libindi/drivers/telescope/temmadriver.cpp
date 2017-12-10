@@ -30,6 +30,7 @@
 #define TEMMA_SLEW_RATES 2
 #define TEMMA_TIMEOUT   5
 #define TEMMA_BUFFER    64
+#define TEMMA_SLEWRATE  5        /* slew rate, degrees/s */
 
 // TODO enable Alignment System Later
 #if 0
@@ -268,6 +269,29 @@ bool TemmaMount::SendCommand(const char *cmd, char *response)
         if (response == nullptr)
             return true;
 
+        switch (cmd[0])
+        {
+            // Version
+            case 'v':
+                strncpy(response, "Simulation v1.0", TEMMA_BUFFER);
+                break;
+
+            // Get LST
+            case 'g':
+                if (TemmaInitialized == false || std::isnan(Longitude))
+                    return false;
+                else
+                {
+                    double lst = get_local_sidereal_time(Longitude);
+                    snprintf(response, TEMMA_BUFFER, "%02d%02d%02d", (int)lst, ((int)(lst * 60)) % 60, ((int)(lst * 3600)) % 60);
+                }
+            break;
+
+            default:
+            DEBUGF(INDI::Logger::DBG_ERROR, "Command %c is unhandled in Simulation.", cmd[0]);
+            return false;
+        }
+
         return true;
     }
 
@@ -370,6 +394,12 @@ bool TemmaMount::ReadScopeStatus()
     // JM: Do not read mount until it is initilaized.
     if (TemmaInitialized == false)
         return false;
+
+    if (isSimulation())
+    {
+        mountSim();
+        return true;
+    }
 
     bool rc = GetCoords();
 
@@ -1033,6 +1063,8 @@ bool TemmaMount::GetVersion()
         return false;
     }
 
+    DEBUGF(INDI::Logger::DBG_SESSION, "Detected version: %s", res);
+
     return true;
 }
 
@@ -1217,3 +1249,102 @@ int TemmaMount::TemmaRead(char *buf, int size)
     return -1;
 }
 #endif
+
+void TemmaMount::mountSim()
+{
+    static struct timeval ltv;
+    struct timeval tv;
+    double dt=0, da=0, dx=0;
+    int nlocked=0;
+
+    /* update elapsed time since last poll, don't presume exactly POLLMS */
+    gettimeofday(&tv, nullptr);
+
+    if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
+        ltv = tv;
+
+    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
+    ltv = tv;
+    da  = TEMMA_SLEWRATE * dt;
+
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    switch (TrackState)
+    {
+
+    case SCOPE_IDLE:
+        currentRA  += (TRACKRATE_SIDEREAL/3600.0 * dt / 15.);
+        break;
+
+    case SCOPE_TRACKING:
+        switch (IUFindOnSwitchIndex(&TrackModeSP))
+        {
+        case TRACK_SIDEREAL:
+            da = 0;
+            dx = 0;
+            break;
+
+        case TRACK_LUNAR:
+            da = ((TRACKRATE_LUNAR-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
+            dx = 0;
+            break;
+
+        case TRACK_SOLAR:
+            da = ((TRACKRATE_SOLAR-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
+            dx = 0;
+            break;
+
+        case TRACK_CUSTOM:
+            da = ((TrackRateN[AXIS_RA].value-TRACKRATE_SIDEREAL)/3600.0 * dt / 15.);
+            dx = (TrackRateN[AXIS_DE].value/3600.0 * dt);
+            break;
+
+        }
+
+        currentRA  += da;
+        currentDEC += dx;
+        break;
+
+    case SCOPE_SLEWING:
+    case SCOPE_PARKING:
+        /* slewing - nail it when both within one pulse @ LX200_GENERIC_SLEWRATE */
+        nlocked = 0;
+
+        dx = targetRA - currentRA;
+
+        if (fabs(dx) <= da)
+        {
+            currentRA = targetRA;
+            nlocked++;
+        }
+        else if (dx > 0)
+            currentRA += da / 15.;
+        else
+            currentRA -= da / 15.;
+
+        dx = targetDEC - currentDEC;
+        if (fabs(dx) <= da)
+        {
+            currentDEC = targetDEC;
+            nlocked++;
+        }
+        else if (dx > 0)
+            currentDEC += da;
+        else
+            currentDEC -= da;
+
+        if (nlocked == 2)
+        {
+            if (TrackState == SCOPE_SLEWING)
+                TrackState = SCOPE_TRACKING;
+            else
+                SetParked(true);
+        }
+
+        break;
+
+    default:
+        break;
+    }
+
+    NewRaDec(currentRA, currentDEC);
+}

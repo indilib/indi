@@ -71,6 +71,8 @@ class TemmaMount : public INDI::Telescope,
 private:
     //int TemmaRead(char *buf, int size);
 
+    void mountSim();
+
     bool GetVersion();
     bool GetCoords();
 
@@ -93,9 +95,7 @@ private:
 
     //bool TemmaConnect(const char *port);
 
-    double currentRA { 0 };
-    double currentDEC { 0 };
-    double alignedRA, alignedDEC;
+    double currentRA=0, currentDEC=0, targetRA=0, targetDEC=0, alignedRA=0, alignedDEC=0;
 
     bool MotorStatus { false };    
     bool TemmaInitialized { false };
