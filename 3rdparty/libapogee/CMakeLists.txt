@@ -91,7 +91,7 @@ set_target_properties(apogee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${AP
 
 target_link_libraries(apogee ${LIBUSB_1_LIBRARIES} ${CURL_LIBRARY} ${Boost_LIBRARIES})
 
-install(TARGETS apogee LIBRARY DESTINATION lib)
+install(TARGETS apogee LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install( FILES ApogeeCam.h Alta.h AltaF.h Ascent.h CamGen2Base.h CameraInfo.h CameraStatusRegs.h Aspen.h FindDeviceEthernet.h FindDeviceUsb.h HiC.h ApogeeFilterWheel.h Quad.h DefDllExport.h versionNo.h doc.h ApgLogger.h LoggerSyslog.h DESTINATION include/libapogee COMPONENT Devel)
 
