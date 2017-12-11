@@ -804,6 +804,11 @@ bool INDI::BaseClientQt::getDevices(std::vector<INDI::BaseDevice *> &deviceList,
     return (deviceList.size() > 0);
 }
 
+bool INDI::BaseClientQt::isServerConnected() const
+{
+    return sConnected;
+}
+
 #if defined(_MSC_VER)
 #undef snprintf
 #pragma warning(pop)
