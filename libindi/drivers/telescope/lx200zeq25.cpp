@@ -36,7 +36,9 @@
 
 LX200ZEQ25::LX200ZEQ25()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
+
+    setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                                TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
@@ -77,11 +79,6 @@ bool LX200ZEQ25::updateProperties()
 
     if (isConnected())
     {
-        // Delete unsupported properties
-        deleteProperty(AlignmentSP.name);
-        deleteProperty(SiteSP.name);
-        deleteProperty(TrackingFreqNP.name);
-        deleteProperty(SiteNameTP.name);
 
         defineSwitch(&HomeSP);
         defineNumber(&GuideRateNP);

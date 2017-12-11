@@ -115,19 +115,19 @@
         </device>
         <device label="ZEQ25">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.0</version>
+                <version>1.1</version>
         </device>
         <device label="iEQ30">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.0</version>
+                <version>1.1</version>
         </device>
         <device label="iEQ45">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.0</version>
+                <version>1.1</version>
         </device>
         <device label="SmartEQ">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.0</version>
+                <version>1.1</version>
         </device>
         <device label="GotoNova 8400 Kit">
                 <driver name="GotoNova">indi_lx200gotonova</driver>
