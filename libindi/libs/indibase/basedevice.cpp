@@ -78,7 +78,7 @@ INumberVectorProperty *BaseDevice::getNumber(const char *name)
     return nvp;
 }
 
-ITextVectorProperty *BaseDevice::getText(const char *name)
+ITextVectorProperty *BaseDevice::getText(const char *name) const
 {
     ITextVectorProperty *tvp = nullptr;
 
@@ -87,7 +87,7 @@ ITextVectorProperty *BaseDevice::getText(const char *name)
     return tvp;
 }
 
-ISwitchVectorProperty *BaseDevice::getSwitch(const char *name)
+ISwitchVectorProperty *BaseDevice::getSwitch(const char *name) const
 {
     ISwitchVectorProperty *svp = nullptr;
 
@@ -235,13 +235,13 @@ IPerm BaseDevice::getPropertyPermission(const char *name)
     return perm;
 }
 
-void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type)
+void *BaseDevice::getRawProperty(const char *name, INDI_PROPERTY_TYPE type) const
 {
     INDI_PROPERTY_TYPE pType;
     void *pPtr = nullptr;
     bool pRegistered = false;
 
-    std::vector<INDI::Property *>::iterator orderi = pAll.begin();
+    std::vector<INDI::Property *>::const_iterator orderi = pAll.begin();
 
     INumberVectorProperty *nvp = nullptr;
     ITextVectorProperty *tvp = nullptr;
@@ -916,7 +916,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
     return (0);
 }
 
-bool BaseDevice::isConnected()
+bool BaseDevice::isConnected() const
 {
     ISwitchVectorProperty *svp = getSwitch(INDI::SP::CONNECTION);
     if (!svp)
@@ -1206,7 +1206,7 @@ void BaseDevice::setDeviceName(const char *dev)
     strncpy(deviceID, dev, MAXINDINAME);
 }
 
-const char *BaseDevice::getDeviceName()
+const char *BaseDevice::getDeviceName() const
 {
     return deviceID;
 }
@@ -1398,7 +1398,7 @@ const char *BaseDevice::getDriverVersion()
     return nullptr;
 }
 
-uint16_t BaseDevice::getDriverInterface()
+uint16_t BaseDevice::getDriverInterface() const
 {
     ITextVectorProperty *driverInfo = getText("DRIVER_INFO");
 
