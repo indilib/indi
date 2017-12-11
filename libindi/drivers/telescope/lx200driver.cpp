@@ -863,8 +863,8 @@ int setAlignmentMode(int fd, unsigned int alignMode)
 int setCalenderDate(int fd, int dd, int mm, int yy)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
-    char read_buffer[32];
-    char dummy_buffer[32];
+    char read_buffer[64];
+    char dummy_buffer[64];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     yy = yy % 100;

@@ -37,7 +37,7 @@ TARGET_LINK_LIBRARIES(qsiapi ${FTDI_LIBRARIES})
 #add an install target here
 INSTALL(FILES qsiapi.h QSIError.h DESTINATION include)
 
-INSTALL(TARGETS qsiapi LIBRARY DESTINATION lib)
+INSTALL(TARGETS qsiapi LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # build API test
 set(qsiapitest_SRCS

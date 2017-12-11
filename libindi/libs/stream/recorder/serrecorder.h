@@ -64,6 +64,9 @@ enum ser_color_id
 namespace INDI
 {
 
+/**
+ * @brief The SER_Recorder class implements recording of video streams in SER format.
+ */
 class SER_Recorder : public RecorderInterface
 {
   public:

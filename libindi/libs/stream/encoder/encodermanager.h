@@ -25,6 +25,9 @@
 namespace INDI
 {
 
+/**
+ * @brief The EncoderManager class contains a list of active supported encoders.
+ */
 class EncoderManager
 {
   public:

@@ -33,14 +33,59 @@
 #include <stdint.h>
 
 /**
- * \class StreamRecorder
+ * \class StreamManager
    \brief Class to provide video streaming and recording functionality.
 
-   INDI::CCD can utilize this class to add streaming and recording functionality to their driver. Currently, only SER recording backend is supported.
+   INDI::CCD can utilize this class to add streaming and recording functionality to the driver.
 
-   \example Check V4L2 CCD and ZWO ASI drivers for example implementations.
+   Transfer of the video stream is done via the same BLOB property \e CCD1 used for transfer of image data to the client. Therefore,
+   it is not possible to transmit image data and video stream at the same time. Two formats are accepted for video streaming:
 
-\author Jean-Luc Geehalel, Jasem Mutlaq
+   + Grayscale 8bit frame that represents intensity/lumienance.
+   + Color 24bit RGB frame.
+
+   Use setPixelFormat() and setSize() before uploading the stream data. 16bit frames are only supported in some recorders. You can send
+   16bit frames, but they will be downscaled to 8bit when necessary for streaming and recording purposes. Base classes must implement
+   startStreaming() and stopStreaming() functions. When a frame is ready, use uploadStream() to send the data to active encoders and recorders.
+
+   It is highly recommended to implement the streaming functionality in a dedicated thread.
+
+   \section Encoders
+
+   Encoders are responsible for encoding the frame and transmitting it to the client. The CCD1 BLOB format is set to the desired format.
+   Default encoding format is RAW (format = ".stream").
+
+   Currently, two encoders are supported:
+
+   1. RAW Encoder: Frame is sent as is (lossless). If compression is enabled, the frame is compressed with zlib. Uncompressed format is ".stream"
+   and compressed format is ".stream.z"
+   2. MJPEG Encoder: Frame is encoded to a JPEG image before being transmitted. Format is ".stream_jpg"
+
+   \section Recorders
+
+   Recorders are responsible for recording the video stream to a file. The recording file directory and name can be set via the RECORD_FILE
+   property which is composed of RECORD_FILE_DIR and RECORD_FILE_NAME elements. You can specify a record directory name together with a file name.
+   You may use special character sequences to generate dynamic names:
+   * _D_ is replaced with the date ('YYYY-MM-DD')
+   * _H_ is replaced with the time ('hh-mm-ss')
+   * _T_ is replaced with a timestamp
+   * _F_ is replaced with the filter name currently in use (see Snoop Devices in Options tab)
+
+   Currently, two recorders are supported:
+
+   1. SER recorder: Saves video streams along with timestamps in <a href=http://www.grischa-hahn.homepage.t-online.de/astro/ser/">SER format</a>.
+   2. OGV recorder: Saves video streams in libtheora OGV files. INDI must be compiled with the optional OGG Theora support for this functionality to be
+   available. Frame rate is estimated from the average FPS.
+
+   \section Subframing
+
+   By default, the full image width and height are used for transmitting the data. Subframing is possible by updating the CCD_STREAM_FRAME
+   property. All values set in this property must be set in BINNED coordinates, unlike the CCD_FRAME which is set in UNBINNED coordinates.
+
+   \example Check CCD Simulator, V4L2 CCD, and ZWO ASI drivers for example implementations.
+
+\author Jasem Mutlaq
+\author Jean-Luc Geehalel
 */
 namespace INDI
 {

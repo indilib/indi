@@ -24,6 +24,11 @@
 namespace INDI
 {
 
+/**
+ * @brief The MJPEGEncoder class encodes frames in JPEG format before transmitting them to the client.
+ *
+ * The quality is now hard-coded at 70 when encoding the JPEG image. Further compression is not supported.
+ */
 class MJPEGEncoder : public EncoderInterface
 {
 public:

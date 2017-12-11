@@ -1,4 +1,5 @@
 version: 2
+
 jobs:
   build_stretch:
     docker:
@@ -6,14 +7,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
@@ -24,14 +19,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
@@ -42,14 +31,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
@@ -60,14 +43,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
@@ -81,14 +58,8 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
@@ -102,25 +73,73 @@ jobs:
     steps:
       - checkout
       - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
+          name: Build all
+          command: .circleci/build-all.sh
       - run: 
           name: Run tests
           command: .circleci/run-tests.sh
+
+  build_fedora:
+    docker:
+      - image: jochym/indi-fedora
+    steps:
+      - checkout
+      - run: 
+          name: Build all
+          command: .circleci/build-all.sh
+      - run: 
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_centos:
+    docker:
+      - image: jochym/indi-centos
+    steps:
+      - checkout
+      - run: 
+          name: Build all
+          command: .circleci/build-all.sh
+      - run: 
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_opensuse:
+    docker:
+      - image: jochym/indi-opensuse
+    steps:
+      - checkout
+      - run: 
+          name: Build all
+          command: .circleci/build-all.sh
+      - run: 
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+
 
 workflows:
   version: 2
   build_all:
     jobs:
-      - build_stretch
-      - build_buster
       - build_artful
-      - build_bionic
+      - build_stretch
+      - build_fedora
       - build_clang4
-      - build_clang5
+      - build_bionic:
+          requires:
+            - build_artful
+      - build_buster:
+          requires:
+            - build_stretch
+      - build_clang5:
+          requires:
+            - build_clang4
+      - build_centos:
+          requires:
+            - build_fedora
+      - build_opensuse:
+          requires:
+            - build_fedora
+
+
+

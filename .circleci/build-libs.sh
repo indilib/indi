@@ -5,24 +5,16 @@
 
 SRC=../../3rdparty/
 
-if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
-    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau"
-else 
-    LIBS="libqsi"
-fi
+LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau"
 
-if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then 
-    DRV=lib"${TRAVIS_BRANCH#drv_}"
+if [ .${CIRCLE_BRANCH%_*} == '.drv' -a `lsb_release -si` == 'Ubuntu' ] ; then 
+    DRV=lib"${CIRCLE_BRANCH#drv_}"
     if [ -d 3rdparty/$DRV ] ; then
         LIBS="$DRV"
     else 
         LIBS=""
     fi
     echo "[$DRV] [$LIBS]"
-    if [ ${TRAVIS_OS_NAME} == "osx" ] ; then
-        echo "Cannot build one driver on OSX"
-        LIBS=""
-    fi
 fi
 
 for lib in $LIBS ; do
