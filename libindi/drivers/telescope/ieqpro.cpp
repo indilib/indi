@@ -470,12 +470,18 @@ bool IEQPro::ReadScopeStatus()
         case ST_TRACKING_PEC_OFF:
         case ST_TRACKING_PEC_ON:
         case ST_GUIDING:
-            TrackModeSP.s = IPS_BUSY;
-            TrackState    = SCOPE_TRACKING;
-            if (scopeInfo.systemStatus == ST_SLEWING)
-                DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
-            else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
-                DEBUG(INDI::Logger::DBG_SESSION, "Meridian flip complete, tracking...");
+            // If slew to parking position is complete, issue park command now.
+            if (TrackState == SCOPE_PARKING)
+                park_ieqpro(PortFD);
+            else
+            {
+                TrackModeSP.s = IPS_BUSY;
+                TrackState    = SCOPE_TRACKING;
+                if (scopeInfo.systemStatus == ST_SLEWING)
+                    DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
+                else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
+                    DEBUG(INDI::Logger::DBG_SESSION, "Meridian flip complete, tracking...");
+            }
             break;
         }
 
@@ -553,24 +559,27 @@ bool IEQPro::Park()
 {
     targetRA  = GetAxis1Park();
     targetDEC = GetAxis2Park();
+
     if (set_ieqpro_ra(PortFD, targetRA) == false || set_ieqpro_dec(PortFD, targetDEC) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
         return false;
     }
 
-    if (park_ieqpro(PortFD))
+    if (slew_ieqpro(PortFD) == false)
     {
-        char RAStr[64]={0}, DecStr[64]={0};
-        fs_sexa(RAStr, targetRA, 2, 3600);
-        fs_sexa(DecStr, targetDEC, 2, 3600);
-
-        TrackState = SCOPE_PARKING;
-        DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
-        return true;
-    }
-    else
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew tp parking position.");
         return false;
+    }
+
+    char RAStr[64]={0}, DecStr[64]={0};
+    fs_sexa(RAStr, targetRA, 2, 3600);
+    fs_sexa(DecStr, targetDEC, 2, 3600);
+
+    TrackState = SCOPE_PARKING;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
+
+    return true;
 }
 
 bool IEQPro::UnPark()
