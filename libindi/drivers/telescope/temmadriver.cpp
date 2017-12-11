@@ -104,22 +104,31 @@ bool TemmaMount::initProperties()
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
 
-    IUFillSwitch(&SlewRateS[0], "SLEW_GUIDE", "Guide", ISS_OFF);
+    /*IUFillSwitch(&SlewRateS[0], "SLEW_GUIDE", "Guide", ISS_OFF);
     IUFillSwitch(&SlewRateS[1], "SLEW_MAX", "Max", ISS_ON);
     IUFillSwitchVector(&SlewRateSP, SlewRateS, 2, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);*/
 
     //  Temma runs at 19200 8 e 1
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
     serialConnection->setParity(1);
 
-// TODO enable later
+    addSimulationControl();
+
+    // TODO enable later
 #if 0
     InitAlignmentProperties(this);
 
     // Force the alignment system to always be on
     getSwitch("ALIGNMENT_SUBSYSTEM_ACTIVE")->sp[0].s = ISS_ON;
 #endif
+
+    double longitude=0, latitude=90;
+    // Get value from config file if it exists.
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+    currentRA  = get_local_sidereal_time(longitude);
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+    currentDEC = latitude > 0 ? 90 : -90;
 
     return true;
 }
@@ -271,24 +280,59 @@ bool TemmaMount::SendCommand(const char *cmd, char *response)
 
         switch (cmd[0])
         {
-            // Version
-            case 'v':
-                strncpy(response, "Simulation v1.0", TEMMA_BUFFER);
-                break;
-
-            // Get LST
-            case 'g':
-                if (TemmaInitialized == false || std::isnan(Longitude))
-                    return false;
-                else
-                {
-                    double lst = get_local_sidereal_time(Longitude);
-                    snprintf(response, TEMMA_BUFFER, "%02d%02d%02d", (int)lst, ((int)(lst * 60)) % 60, ((int)(lst * 3600)) % 60);
-                }
+        // Version
+        case 'v':
+            strncpy(response, "vSimulation v1.0", TEMMA_BUFFER);
             break;
 
-            default:
-            DEBUGF(INDI::Logger::DBG_ERROR, "Command %c is unhandled in Simulation.", cmd[0]);
+            // Get LST
+        case 'g':
+            if (TemmaInitialized == false || std::isnan(Longitude))
+                return false;
+            else
+            {
+                double lst = get_local_sidereal_time(Longitude);
+                snprintf(response, TEMMA_BUFFER, "%02d%02d%02d", (int)lst, ((int)(lst * 60)) % 60, ((int)(lst * 3600)) % 60);
+            }
+            break;
+
+            // Get coords
+        case 'E':
+        {
+            char sign;
+            double dec = currentDEC;
+            if (dec < 0)
+                sign = '-';
+            else
+                sign = '+';
+
+            dec = fabs(dec);
+
+            // Computing meridian side is quite involved.. so for simulation now just set it to east always if slewing or parking
+            char state = 'E';
+            if (TrackState == SCOPE_PARKED || TrackState == SCOPE_IDLE || TrackState == SCOPE_TRACKING)
+                state = 'F';
+            snprintf(response, TEMMA_BUFFER, "E%.2d%.2d%.2d%c%.2d%.2d%.1d%c", (int)currentRA, (int)(currentRA * (double)60) % 60,
+                     ((int)(currentRA * (double)6000)) % 100, sign, (int)dec, (int)(dec * (double)60) % 60,
+                     ((int)(dec * (double)600)) % 10, state);
+        }
+            break;
+
+            // Sync
+        case 'D':
+            currentRA = targetRA;
+            currentDEC = targetDEC;
+            strncpy(response, "R0", TEMMA_BUFFER);
+            break;
+
+            // Goto
+        case 'P':
+            TrackState = SCOPE_SLEWING;
+            strncpy(response, "R0", TEMMA_BUFFER);
+            break;
+
+        default:
+            DEBUGF(INDI::Logger::DBG_ERROR, "Command %s is unhandled in Simulation.", cmd);
             return false;
         }
 
@@ -409,7 +453,7 @@ bool TemmaMount::ReadScopeStatus()
     alignedRA = currentRA;
     alignedDEC = currentDEC;
 
-// TODO enable alignment system later
+    // TODO enable alignment system later
 #if 0
     if (IsAlignmentSubsystemActive())
     {
@@ -462,6 +506,7 @@ bool TemmaMount::ReadScopeStatus()
 
     NewRaDec(currentRA, currentDEC);
 
+    // If NSWE directional slew is ongoing, continue to command the mount.
     if (SlewActive)
     {
         char cmd[3] = {0};
@@ -478,6 +523,9 @@ bool TemmaMount::Sync(double ra, double dec)
 {
     char cmd[TEMMA_BUFFER] = {0}, res[TEMMA_BUFFER] = {0};
     char sign;
+
+    targetRA = ra;
+    targetDEC = dec;
 
     /*  sync involves jumping thru considerable hoops
     first we have to set local sideral time
@@ -499,8 +547,8 @@ bool TemmaMount::Sync(double ra, double dec)
     dec = fabs(dec);
 
     snprintf(cmd, TEMMA_BUFFER, "D%.2d%.2d%.2d%c%.2d%.2d%.1d", (int)ra, (int)(ra * (double)60) % 60,
-            ((int)(ra * (double)6000)) % 100, sign, (int)dec, (int)(dec * (double)60) % 60,
-            ((int)(dec * (double)600)) % 10);
+             ((int)(ra * (double)6000)) % 100, sign, (int)dec, (int)(dec * (double)60) % 60,
+             ((int)(dec * (double)600)) % 10);
 
     if (SendCommand(cmd, res) == false)
         return false;
@@ -526,6 +574,9 @@ bool TemmaMount::Goto(double ra, double dec)
     char cmd[TEMMA_BUFFER] = {0}, res[TEMMA_BUFFER] = {0};
     char sign;
 
+    targetRA = ra;
+    targetDEC = dec;
+
     /*  goto involves hoops, but, not as many as a sync
         first set sideral time
         then issue the goto command
@@ -547,8 +598,8 @@ bool TemmaMount::Goto(double ra, double dec)
     dec = fabs(dec);
 
     snprintf(cmd, TEMMA_BUFFER, "P%.2d%.2d%.2d%c%.2d%.2d%.1d", (int)ra, (int)(ra * (double)60) % 60,
-            ((int)(ra * (double)6000)) % 100, sign, (int)dec, (int)(dec * (double)60) % 60,
-            ((int)(dec * (double)600)) % 10);
+             ((int)(ra * (double)6000)) % 100, sign, (int)dec, (int)(dec * (double)60) % 60,
+             ((int)(dec * (double)600)) % 10);
 
     if (SendCommand(cmd, res) == false)
         return false;
@@ -739,6 +790,7 @@ bool TemmaMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return SendCommand(cmd);
 }
 
+#if 0
 bool TemmaMount::SetSlewRate(int index)
 {
     // Is this possible for Temma?
@@ -746,6 +798,7 @@ bool TemmaMount::SetSlewRate(int index)
     SlewRate = index;
     return true;
 }
+#endif
 
 // TODO For large ms > 1000ms this function should be asynchronous
 IPState TemmaMount::GuideNorth(float ms)
@@ -1063,7 +1116,7 @@ bool TemmaMount::GetVersion()
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Detected version: %s", res);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Detected version: %s", res+1);
 
     return true;
 }

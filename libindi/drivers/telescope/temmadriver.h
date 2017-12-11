@@ -45,7 +45,7 @@ class TemmaMount : public INDI::Telescope,
     virtual bool Park() override;
     virtual bool UnPark() override;
     virtual bool Abort() override;
-    virtual bool SetSlewRate(int index) override;
+    //virtual bool SetSlewRate(int index) override;
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;

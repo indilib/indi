@@ -533,11 +533,11 @@ install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin)
 SET(temma_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/temmadriver.cpp )
 
-add_executable(indi_temma ${temma_SRC})
+add_executable(indi_temma_telescope ${temma_SRC})
 
-target_link_libraries(indi_temma indidriver AlignmentDriver)
+target_link_libraries(indi_temma_telescope indidriver AlignmentDriver)
 
-install(TARGETS indi_temma RUNTIME DESTINATION bin)
+install(TARGETS indi_temma_telescope RUNTIME DESTINATION bin)
 #################################################################################
 
 ########### Paramount ##########
