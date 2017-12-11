@@ -26,6 +26,9 @@
 namespace INDI
 {
 
+/**
+ * @brief The RecorderManager class contains a list of active supported recorders.
+ */
 class RecorderManager
 {
   public:

@@ -24,6 +24,11 @@
 namespace INDI
 {
 
+/**
+ * @brief The RawEncoder class sends the image as-is (lossless) to the client.
+ *
+ * It supports compression via zlib (.stream.z)
+ */
 class RawEncoder : public EncoderInterface
 {
 public:
