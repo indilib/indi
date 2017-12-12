@@ -37,8 +37,7 @@
  * Interface to either a real ScopeDome card or simulator
  */
 
-typedef enum
-{
+typedef enum {
     ACK_c = 1,
     FunctionNotSupported,
     MotionConflict,
@@ -220,28 +219,27 @@ typedef enum
     IsFullSystemCalReq
 } ScopeDomeCommand;
 
-typedef enum
-{
-    NO_ERROR = 0,
-    FT_INVALID_HANDLE = 1,
-    FT_DEVICE_NOT_FOUND = 2,
-    FT_DEVICE_NOT_OPENED = 3,
-    FT_IO_ERROR = 4,
-    FT_INSUFFICIENT_RESOURCES = 5,
-    FT_INVALID_PARAMETER = 6,
-    FT_INVALID_BAUD_RATE = 7,
+typedef enum {
+    NO_ERROR                       = 0,
+    FT_INVALID_HANDLE              = 1,
+    FT_DEVICE_NOT_FOUND            = 2,
+    FT_DEVICE_NOT_OPENED           = 3,
+    FT_IO_ERROR                    = 4,
+    FT_INSUFFICIENT_RESOURCES      = 5,
+    FT_INVALID_PARAMETER           = 6,
+    FT_INVALID_BAUD_RATE           = 7,
     FT_DEVICE_NOT_OPENED_FOR_ERASE = 8,
     FT_DEVICE_NOT_OPENED_FOR_WRITE = 9,
-    FT_FAILED_TO_WRITE_DEVICE = 10,
-    FT_EEPROM_READ_FAILED = 11,
-    FT_EEPROM_WRITE_FAILED = 12,
-    FT_EEPROM_ERASE_FAILED = 13,
-    FT_EEPROM_NOT_PRESENT = 14,
-    FT_EEPROM_NOT_PROGRAMMED = 15,
-    FT_INVALID_ARGS = 16,
-    FT_NOT_SUPPORTED = 17,
-    FT_OTHER_ERROR = 18,
-    NO_CONNECTION = 100,
+    FT_FAILED_TO_WRITE_DEVICE      = 10,
+    FT_EEPROM_READ_FAILED          = 11,
+    FT_EEPROM_WRITE_FAILED         = 12,
+    FT_EEPROM_ERASE_FAILED         = 13,
+    FT_EEPROM_NOT_PRESENT          = 14,
+    FT_EEPROM_NOT_PROGRAMMED       = 15,
+    FT_INVALID_ARGS                = 16,
+    FT_NOT_SUPPORTED               = 17,
+    FT_OTHER_ERROR                 = 18,
+    NO_CONNECTION                  = 100,
     READ_TIMEOUT_ERROR,
     WRITE_TIMEOUT_ERROR,
     CHECKSUM_ERROR,
@@ -256,95 +254,93 @@ typedef enum
     CARD_REOPEN,
 } ScopeDomeError;
 
-typedef enum
-{
-    OUT_CCW = 0,
-    OUT_CW = 1,
-    OUT_OPEN1 = 2,
-    OUT_CLOSE1 = 3,
-    OUT_FAN = 4,
-    OUT_LIGHT = 5,
-    OUT_CCD = 6,
-    OUT_SCOPE = 7,
-    IN_REMOTE1 = 8,
-    IN_REMOTE2 = 9,
-    IN_REMOTE3 = 10,
-    IN_REMOTE4 = 11,
-    IN_ENCODER = 12,
-    IN_HOME = 13,
-    IN_OPEN1 = 14,
-    IN_CLOSED1 = 15,
-    IN_FREE = 16,
-    IN_S_HOME = 17,
-    IN_SAFE = 18,
-    IN_CLOUD = 19,
-    OUT_RELAY1 = 20,
-    OUT_RELAY2 = 21,
-    OUT_RELAY3 = 22,
-    OUT_RELAY4 = 23,
-    OUT_OPEN2 = 24,
-    OUT_CLOSE2 = 25,
-    IN_OPEN2 = 26,
-    IN_CLOSED2 = 27,
-    IN_SHIFT = 28,
-    IN_SCOPE_SYNC = 29,
-    IN_WIND_SYNC = 30,
+typedef enum {
+    OUT_CCW            = 0,
+    OUT_CW             = 1,
+    OUT_OPEN1          = 2,
+    OUT_CLOSE1         = 3,
+    OUT_FAN            = 4,
+    OUT_LIGHT          = 5,
+    OUT_CCD            = 6,
+    OUT_SCOPE          = 7,
+    IN_REMOTE1         = 8,
+    IN_REMOTE2         = 9,
+    IN_REMOTE3         = 10,
+    IN_REMOTE4         = 11,
+    IN_ENCODER         = 12,
+    IN_HOME            = 13,
+    IN_OPEN1           = 14,
+    IN_CLOSED1         = 15,
+    IN_FREE            = 16,
+    IN_S_HOME          = 17,
+    IN_SAFE            = 18,
+    IN_CLOUD           = 19,
+    OUT_RELAY1         = 20,
+    OUT_RELAY2         = 21,
+    OUT_RELAY3         = 22,
+    OUT_RELAY4         = 23,
+    OUT_OPEN2          = 24,
+    OUT_CLOSE2         = 25,
+    IN_OPEN2           = 26,
+    IN_CLOSED2         = 27,
+    IN_SHIFT           = 28,
+    IN_SCOPE_SYNC      = 29,
+    IN_WIND_SYNC       = 30,
     IN_WEATHER_PROTECT = 31,
-    IN_CLOUDS = 32,
-    IN_ENCODER_ROT = 33,
-    IN_HOME_ROT = 34,
-    IN_ROT_LINK = 35
+    IN_CLOUDS          = 32,
+    IN_ENCODER_ROT     = 33,
+    IN_HOME_ROT        = 34,
+    IN_ROT_LINK        = 35
 } ScopeDomeDigitalIO;
-
 
 class ScopeDomeCard
 {
-public:
+  public:
     /** Destructor. */
     virtual ~ScopeDomeCard() = default;
 
     virtual bool detect() = 0;
-    virtual int writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t* buff) = 0;
+    virtual int writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t *buff) = 0;
     virtual int write(ScopeDomeCommand cmd) = 0;
-    virtual int readBuf(ScopeDomeCommand& cmd, uint8_t len, uint8_t* buff) = 0;
-    virtual int read(ScopeDomeCommand& cmd) = 0;
+    virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff) = 0;
+    virtual int read(ScopeDomeCommand &cmd) = 0;
     const char *getDeviceName() { return (const char *)"ScopeDome Dome"; };
 
-protected:
+  protected:
     /** Default constructor. */
     ScopeDomeCard() = default;
 
-private:
+  private:
     /** Prevent copy construction. */
-    ScopeDomeCard(const ScopeDomeCard& rOriginalP);
+    ScopeDomeCard(const ScopeDomeCard &rOriginalP);
     /** Prevent assignment. */
-    ScopeDomeCard& operator=(const ScopeDomeCard& rRhsP);
+    ScopeDomeCard &operator=(const ScopeDomeCard &rRhsP);
 };
 
 /**
  * ScopeDome USB Card 2.1
  */
-class ScopeDomeUSB21: public ScopeDomeCard
+class ScopeDomeUSB21 : public ScopeDomeCard
 {
-public:
+  public:
     /** Default constructor. */
     ScopeDomeUSB21(int fd) { PortFD = fd; };
     /** Destructor. */
     virtual ~ScopeDomeUSB21() = default;
 
     virtual bool detect() override;
-    virtual int writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t* buff) override;
+    virtual int writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t *buff) override;
     virtual int write(ScopeDomeCommand cmd) override;
-    virtual int readBuf(ScopeDomeCommand& cmd, uint8_t len, uint8_t* buff) override;
-    virtual int read(ScopeDomeCommand& cmd) override;
+    virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff) override;
+    virtual int read(ScopeDomeCommand &cmd) override;
 
-private:
+  private:
     uint8_t CRC(uint8_t crc, uint8_t data);
 
     /** Prevent copy construction. */
-    ScopeDomeUSB21(const ScopeDomeUSB21& rOriginalP);
+    ScopeDomeUSB21(const ScopeDomeUSB21 &rOriginalP);
     /** Prevent assignment. */
-    ScopeDomeUSB21& operator=(const ScopeDomeUSB21& rRhsP);
+    ScopeDomeUSB21 &operator=(const ScopeDomeUSB21 &rRhsP);
 
     int PortFD;
 };
@@ -352,21 +348,21 @@ private:
 /**
  * ScopeDome simulator
  */
-class ScopeDomeSim: public ScopeDomeCard
+class ScopeDomeSim : public ScopeDomeCard
 {
-public:
+  public:
     /** Default constructor. */
-    ScopeDomeSim() {};
+    ScopeDomeSim(){};
     /** Destructor. */
     virtual ~ScopeDomeSim() = default;
 
     virtual bool detect() override;
-    virtual int writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t* buff) override;
+    virtual int writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t *buff) override;
     virtual int write(ScopeDomeCommand cmd) override;
-    virtual int readBuf(ScopeDomeCommand& cmd, uint8_t len, uint8_t* buff) override;
-    virtual int read(ScopeDomeCommand& cmd) override;
+    virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff) override;
+    virtual int read(ScopeDomeCommand &cmd) override;
 
-private:
+  private:
     ScopeDomeCommand lastCmd;
 
     int stepsPerRevolution;
@@ -375,17 +371,15 @@ private:
     int shutterStatus;
 
     /** Prevent copy construction. */
-    ScopeDomeSim(const ScopeDomeSim& rOriginalP);
+    ScopeDomeSim(const ScopeDomeSim &rOriginalP);
     /** Prevent assignment. */
-    ScopeDomeSim& operator=(const ScopeDomeSim& rRhsP);
+    ScopeDomeSim &operator=(const ScopeDomeSim &rRhsP);
 };
-
-
 
 class ScopeDome : public INDI::Dome
 {
   public:
-    typedef enum { DOME_UNKNOWN, DOME_CALIBRATING, DOME_READY, DOME_HOMING } DomeStatus;
+    typedef enum { DOME_UNKNOWN, DOME_CALIBRATING, DOME_READY, DOME_HOMING, DOME_DEROTATING } DomeStatus;
 
     ScopeDome();
     virtual ~ScopeDome() = default;
@@ -424,18 +418,21 @@ class ScopeDome : public INDI::Dome
     // Misc
     bool SetupParms();
 
-    DomeStatus status { DOME_UNKNOWN };
-    double targetAz { 0 };
-    ShutterOperation targetShutter { SHUTTER_OPEN };
-    bool sim { false };
-    double simShutterTimer { 0 };
-    ShutterStatus simShutterStatus { SHUTTER_OPENED };
+    DomeStatus status{ DOME_UNKNOWN };
+    double targetAz{ 0 };
+    ShutterOperation targetShutter{ SHUTTER_OPEN };
+    bool sim{ false };
+    double simShutterTimer{ 0 };
+    ShutterStatus simShutterStatus{ SHUTTER_OPENED };
 
     INumberVectorProperty DomeHomePositionNP;
     INumber DomeHomePositionN[1];
 
     ISwitch FindHomeS[1];
     ISwitchVectorProperty FindHomeSP;
+
+    ISwitch DerotateS[1];
+    ISwitchVectorProperty DerotateSP;
 
     ISwitch PowerRelaysS[4];
     ISwitchVectorProperty PowerRelaysSP;
@@ -469,13 +466,13 @@ class ScopeDome : public INDI::Dome
     int16_t readS16(ScopeDomeCommand cmd);
     uint32_t readU32(ScopeDomeCommand cmd);
     int32_t readS32(ScopeDomeCommand cmd);
-    int readBuffer(ScopeDomeCommand cmd, int len, uint8_t* cbuf);
+    int readBuffer(ScopeDomeCommand cmd, int len, uint8_t *cbuf);
 
     int writeCmd(ScopeDomeCommand cmd);
     int writeU8(ScopeDomeCommand cmd, uint8_t value);
     int writeU16(ScopeDomeCommand cmd, uint16_t value);
     int writeU32(ScopeDomeCommand cmd, uint32_t value);
-    int writeBuffer(ScopeDomeCommand cmd, int len, uint8_t* cbuf);
+    int writeBuffer(ScopeDomeCommand cmd, int len, uint8_t *cbuf);
 
     // Dew point calculation
     float getDewPoint(float RH, float T);

@@ -31,11 +31,10 @@ bool ScopeDomeSim::detect()
     return true;
 }
 
-
-int ScopeDomeSim::writeBuf(ScopeDomeCommand cmd, uint8_t len, uint8_t* buff)
+int ScopeDomeSim::writeBuf(ScopeDomeCommand cmd, uint8_t len, uint8_t *buff)
 {
     int err = 0;
-    switch(cmd)
+    switch (cmd)
     {
         default:
             err = FUNCTION_NOT_SUPPORTED_BY_FIRMWARE;
@@ -48,7 +47,7 @@ int ScopeDomeSim::writeBuf(ScopeDomeCommand cmd, uint8_t len, uint8_t* buff)
 int ScopeDomeSim::write(ScopeDomeCommand cmd)
 {
     int err = 0;
-    switch(cmd)
+    switch (cmd)
     {
         default:
             err = FUNCTION_NOT_SUPPORTED_BY_FIRMWARE;
@@ -58,20 +57,20 @@ int ScopeDomeSim::write(ScopeDomeCommand cmd)
     return err;
 }
 
-int ScopeDomeSim::readBuf(ScopeDomeCommand& cmd, uint8_t len, uint8_t* buff)
+int ScopeDomeSim::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
 {
-    int err = 0;
-    int BytesToRead = len+4;
-    uint8_t cbuf[BytesToRead] = {0};
+    int err                   = 0;
+    int BytesToRead           = len + 4;
+    uint8_t cbuf[BytesToRead] = { 0 };
 
     cmd = lastCmd;
     return err;
 }
 
-int ScopeDomeSim::read(ScopeDomeCommand& cmd)
+int ScopeDomeSim::read(ScopeDomeCommand &cmd)
 {
-    int err = 0;
-    uint8_t cbuf[4] = {0};
+    int err         = 0;
+    uint8_t cbuf[4] = { 0 };
 
     cmd = lastCmd;
     return err;
