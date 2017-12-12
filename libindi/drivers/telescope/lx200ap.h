@@ -24,25 +24,16 @@
 
 #include "lx200generic.h"
 
-#define SYNCCM  0
-#define SYNCCMR 1
-
-#define NOTESTABLISHED      0
-#define ESTABLISHED         1
-#define MOUNTNOTINITIALIZED 0
-#define MOUNTINITIALIZED    1
-
 class LX200AstroPhysics : public LX200Generic
 {
   public:
     LX200AstroPhysics();
     ~LX200AstroPhysics() {}
 
-    typedef enum { MCV_G, MCV_H, MCV_I, MCV_J, MCV_L, MCV_UNKNOWN} ControllerVersion;
+    typedef enum { MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_L, MCV_UNKNOWN} ControllerVersion;
     typedef enum { GTOCP1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
 
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual void ISGetProperties(const char *dev) override;
 
   protected:
@@ -75,12 +66,15 @@ class LX200AstroPhysics : public LX200Generic
     virtual bool SetTrackEnabled(bool enabled) override;
     virtual bool SetTrackRate(double raRate, double deRate) override;
 
+    // NSWE Motion Commands
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+
     virtual bool saveConfigItems(FILE *fp) override;
 
     virtual void debugTriggered(bool enable) override;
 
-    ISwitch StartUpS[2];
-    ISwitchVectorProperty StartUpSP;
+    void handleGTOCP2MotionBug();
 
     INumber HourangleCoordsN[2];
     INumberVectorProperty HourangleCoordsNP;
@@ -104,22 +98,8 @@ class LX200AstroPhysics : public LX200Generic
     IText VersionT[1];
     ITextVectorProperty VersionInfo;
 
-    //IText DeclinationAxisT[1];
-    //ITextVectorProperty DeclinationAxisTP;
-
-    INumber SlewAccuracyN[2];
-    INumberVectorProperty SlewAccuracyNP;
-
   private:
     bool initMount();
-
-
-#if 0
-    bool isMountInit();
-    bool setBasicDataPart0();
-    bool setBasicDataPart1();
-    uint8_t initStatus = MOUNTNOTINITIALIZED;
-#endif
 
     // Side of pier
     void syncSideOfPier();
@@ -128,4 +108,9 @@ class LX200AstroPhysics : public LX200Generic
     ControllerVersion controllerType = MCV_UNKNOWN;
     ServoVersion servoType = GTOCP_UNKNOWN;
 
+    double currentAlt=0, currentAz=0;
+    double lastRA=0, lastDE=0;
+    double lastAZ=0, lastAL=0;
+
+    bool motionCommanded=false;
 };
