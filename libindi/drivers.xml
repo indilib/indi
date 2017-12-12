@@ -249,6 +249,10 @@
                 <driver name="CCD Simulator">indi_simulator_ccd</driver>
                 <version>1.0</version>
         </device>
+        <device label="Guide Simulator" mdpd="true">
+                <driver name="Guide Simulator">indi_simulator_guide</driver>
+                <version>1.0</version>
+        </device>
         <device label="DMK CCD">
                 <driver name="V4L2 CCD">indi_v4l2_ccd</driver>
                 <version>1.0</version>
