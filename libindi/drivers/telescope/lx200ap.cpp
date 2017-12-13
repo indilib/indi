@@ -119,8 +119,6 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
     {        
         defineText(&VersionInfo);
 
-        //defineText(&DeclinationAxisTP);
-
         /* Motion group */
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
@@ -159,7 +157,12 @@ bool LX200AstroPhysics::updateProperties()
             SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
 
-        initMount();
+        double longitude=-1000, latitude=-1000;
+        // Get value from config file if it exists.
+        IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+        IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+        if (longitude != -1000 && latitude != -1000)
+            updateLocation(latitude, longitude, 0);
     }
     else
     {        
@@ -178,12 +181,20 @@ bool LX200AstroPhysics::initMount()
     // Make sure that the mount is setup according to the properties
     int err=0;
 
-    bool raOK = (getLX200RA(PortFD, &currentRA) == 0);
-    bool deOK = (getLX200DEC(PortFD, &currentDEC) == 0);
+    bool raOK=false, deOK=false;
+    if (isSimulation())
+    {
+        raOK = deOK = true;
+    }
+    else
+    {
+        raOK = (getLX200RA(PortFD, &currentRA) == 0);
+        deOK = (getLX200DEC(PortFD, &currentDEC) == 0);
+    }
 
     // If we either failed to get coords; OR
     // RA and DE are zero, then mount is not initialized and we need to initialized it.
-    if ( (raOK == false && deOK == false) || (currentRA == 0 && currentDEC == 0))
+    if ( (raOK == false && deOK == false) || (currentRA == 0 && (currentDEC == 0 || currentDEC == 90)))
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Mount is not yet initialized. Initializing it...");
 
@@ -201,8 +212,10 @@ bool LX200AstroPhysics::initMount()
             abortSlew(PortFD);
         }
     }
-    else
-        DEBUG(INDI::Logger::DBG_DEBUG, "Mount is initialized.");
+
+    mountInitialized = true;
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "Mount is initialized.");
 
     // Astrophysics mount is always unparked on startup
     // In this driver, unpark only sets the tracking ON.
@@ -235,7 +248,7 @@ bool LX200AstroPhysics::initMount()
 
     char versionString[128];
     if (isSimulation())
-        strncpy(versionString, "Simulation", 128);
+        strncpy(versionString, "VCP4-P01-01", 128);
     else
         getAPVersionNumber(PortFD, versionString);
 
@@ -244,16 +257,34 @@ bool LX200AstroPhysics::initMount()
     IDSetText(&VersionInfo, nullptr);
 
     // Check controller version
-    // FIXME: What about before 'E'?
-    int typeIndex = VersionT[0].text[0] - 'E';
-    if (typeIndex >= 0)
+    if (strstr(versionString, "VCP"))
     {
-        controllerType = static_cast<ControllerVersion>(typeIndex);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Controller Type index: %d", typeIndex);
+        int type=-1;
+        if (sscanf(versionString, "VCP%d%*s", &type) == 1)
+        {
+            servoType = static_cast<ServoVersion>(type);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Servo Box Controller: GTOCP%d.", servoType);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Firmware Version: %s", versionString+5);
+            firmwareVersion = MCV_P;
+        }
     }
+    // Check earliar versions
+    else if (strlen(versionString) == 1)
+    {
+        int typeIndex = VersionT[0].text[0] - 'E';
+        if (typeIndex >= 0)
+        {
+            firmwareVersion = static_cast<ControllerVersion>(typeIndex);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Firmware version index: %d", typeIndex);
+            if (firmwareVersion < MCV_G)
+                servoType = GTOCP2;
+            else
+                servoType = GTOCP3;
 
-    // TODO: How do we know servo box type? GTOCP1, 2..etc?
-    INDI_UNUSED(servoType);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Servo Box Controller: GTOCP%d.", servoType);
+            DEBUGF(INDI::Logger::DBG_SESSION, "Firmware Version: %c", VersionT[0].text[0]);
+        }
+    }
 
     return true;
 }
@@ -516,7 +547,7 @@ bool LX200AstroPhysics::Goto(double r, double d)
 
 int LX200AstroPhysics::SendPulseCmd(int direction, int duration_msec)
 {
-    if (controllerType == MCV_E)
+    if (firmwareVersion == MCV_E)
         handleGTOCP2MotionBug();
 
     return APSendPulseCmd(PortFD, direction, duration_msec);
@@ -555,7 +586,8 @@ bool LX200AstroPhysics::Handshake()
 bool LX200AstroPhysics::Disconnect()
 {
     timeUpdated     = false;
-    locationUpdated = false;
+    //locationUpdated = false;
+    mountInitialized = false;
 
     return LX200Generic::Disconnect();
 }
@@ -619,12 +651,6 @@ bool LX200AstroPhysics::updateTime(ln_date *utc, double utc_offset)
 {
     struct ln_zonedate ltm;
 
-    if (isSimulation())
-    {
-        timeUpdated = true;
-        return true;
-    }
-
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
 
     JD = ln_get_julian_day(utc);
@@ -632,7 +658,7 @@ bool LX200AstroPhysics::updateTime(ln_date *utc, double utc_offset)
     DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %.2f", JD);
 
     // Set Local Time
-    if (setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
+    if (isSimulation() == false && setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
         return false;
@@ -641,7 +667,7 @@ bool LX200AstroPhysics::updateTime(ln_date *utc, double utc_offset)
     DEBUGF(INDI::Logger::DBG_DEBUG, "Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
            (int)ltm.seconds);
 
-    if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
+    if (isSimulation() == false && setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
         return false;
@@ -649,7 +675,7 @@ bool LX200AstroPhysics::updateTime(ln_date *utc, double utc_offset)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
 
-    if (setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
+    if (isSimulation() == false && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
         return false;
@@ -661,18 +687,15 @@ bool LX200AstroPhysics::updateTime(ln_date *utc, double utc_offset)
 
     timeUpdated = true;
 
+    if (locationUpdated && timeUpdated && mountInitialized == false)
+        initMount();
+
     return true;
 }
 
 bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
-
-    if (isSimulation())
-    {
-        locationUpdated = true;
-        return true;
-    }
 
     if (!isSimulation() && setAPSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
@@ -693,6 +716,9 @@ bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double
     DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
 
     locationUpdated = true;
+
+    if (locationUpdated && timeUpdated && mountInitialized == false)
+        initMount();
 
     return true;
 }
