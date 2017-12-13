@@ -40,13 +40,13 @@
         <device label="ETX90">
                 <driver name="LX200 GPS">indi_lx200gps</driver>
 		<version>2.0</version>
-	</device>
-	<device label="LX200 Astro-Physics">
-		<driver name="AstroPhysics">indi_lx200ap</driver>
-		<version>1.0</version>
-	</device>
+        </device>
         <device label="AstroPhysics">
                 <driver name="AstroPhysics">indi_lx200ap</driver>
+                <version>1.0</version>
+        </device>
+        <device label="AstroPhysics Legacy">
+                <driver name="AstroPhysics Legacy">indi_lx200ap_legacy</driver>
                 <version>1.0</version>
         </device>
         <device label="Celestron GPS">
@@ -115,19 +115,19 @@
         </device>
         <device label="ZEQ25">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.0</version>
+                <version>1.1</version>
         </device>
         <device label="iEQ30">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.0</version>
+                <version>1.1</version>
         </device>
         <device label="iEQ45">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.0</version>
+                <version>1.1</version>
         </device>
         <device label="SmartEQ">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.0</version>
+                <version>1.1</version>
         </device>
         <device label="GotoNova 8400 Kit">
                 <driver name="GotoNova">indi_lx200gotonova</driver>
@@ -247,6 +247,10 @@
 <devGroup group="CCDs">
         <device label="CCD Simulator" mdpd="true">
                 <driver name="CCD Simulator">indi_simulator_ccd</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Guide Simulator" mdpd="true">
+                <driver name="Guide Simulator">indi_simulator_guide</driver>
                 <version>1.0</version>
         </device>
         <device label="DMK CCD">

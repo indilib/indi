@@ -25,11 +25,13 @@
 #pragma once
 
 #include <string>
+#include "indicom.h"
 
 /* Starsense specific constants */
 #define ISNEXSTAR       0x11
 #define ISSTARSENSE     0x13
 #define MINSTSENSVER    float(1.18)
+#define MAX_RESP_SIZE   20
 
 typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
 typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9 } CELESTRON_SLEW_RATE;
@@ -45,83 +47,100 @@ typedef struct
     std::string GPSFirmware;
     std::string RAFirmware;
     std::string DEFirmware;
-
     float controllerVersion;
     char controllerVariant;
-
 } FirmwareInfo;
 
-/**************************************************************************
- Misc.
-**************************************************************************/
-void set_celestron_debug(bool enable);
-void set_celestron_simulation(bool enable);
-void set_celestron_device(const char *name);
 
-/**************************************************************************
- Simulation
-**************************************************************************/
-void set_sim_gps_status(CELESTRON_GPS_STATUS value);
-void set_sim_slew_rate(CELESTRON_SLEW_RATE value);
-void set_sim_track_mode(CELESTRON_TRACK_MODE value);
-void set_sim_slewing(bool isSlewing);
-void set_sim_ra(double ra);
-double get_sim_ra();
-void set_sim_dec(double dec);
-double get_sim_dec();
-void set_sim_az(double az);
-void set_sim_alt(double alt);
+typedef struct
+{
+    double ra;
+    double dec;
+    double az;
+    double alt;
+    CELESTRON_SLEW_RATE slewRate;
+    CELESTRON_TRACK_MODE trackMode;
+    CELESTRON_GPS_STATUS gpsStatus;
+    bool isSlewing;
+} SimData;
 
-/**************************************************************************
- Diagnostics
-**************************************************************************/
-bool check_celestron_connection(int fd);
 
-/**************************************************************************
- Get Info
-**************************************************************************/
-/** Get All firmware information in addition to model and version */
-bool get_celestron_firmware(int fd, FirmwareInfo *info);
-/** Get version */
-bool get_celestron_version(int fd, FirmwareInfo *info);
-/** Get hand controller variant */
-bool get_celestron_variant(int fd, FirmwareInfo * info);
-/** Get Mount model */
-bool get_celestron_model(int fd, FirmwareInfo *info);
-/** Get GPS Firmware version */
-bool get_celestron_gps_firmware(int fd, FirmwareInfo *info);
-/** Get RA Firmware version */
-bool get_celestron_ra_firmware(int fd, FirmwareInfo *info);
-/** Get DEC Firmware version */
-bool get_celestron_dec_firmware(int fd, FirmwareInfo *info);
-/** Get RA/DEC */
-bool get_celestron_coords(int fd, double *ra, double *dec);
-/** Get Az/Alt */
-bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt);
-/** Get UTC/Date/Time */
-bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
+class CelestronDriver
+{
+    public:
+        CelestronDriver() {}
 
-/**************************************************************************
- Motion
-**************************************************************************/
-bool start_celestron_motion(int fd, CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate);
-bool stop_celestron_motion(int fd, CELESTRON_DIRECTION dir);
-bool abort_celestron(int fd);
-bool slew_celestron(int fd, double ra, double dec);
-bool slew_celestron_azalt(int fd, double latitude, double az, double alt);
-bool sync_celestron(int fd, double ra, double dec);
+        // Misc.
+        void set_port_fd(int port_fd);
+        void set_debug(bool enable);
+        void set_simulation(bool enable);
+        void set_device(const char *name);
 
-/**************************************************************************
- Time & Location
-**************************************************************************/
-bool set_celestron_location(int fd, double longitude, double latitude);
-bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset);
+        // Simulation
+        void set_sim_slew_rate(CELESTRON_SLEW_RATE value);
+        void set_sim_track_mode(CELESTRON_TRACK_MODE value);
+        void set_sim_gps_status(CELESTRON_GPS_STATUS value);
+        void set_sim_slewing(bool isSlewing);
+        void set_sim_ra(double ra);
+        void set_sim_dec(double dec);
+        void set_sim_az(double az);
+        void set_sim_alt(double alt);
+        double get_sim_ra();
+        double get_sim_dec();
 
-/**************************************************************************
- Track Mode
-**************************************************************************/
-bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE *mode);
-bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode);
+        bool echo();
+        bool check_connection();
+
+        // Get info
+        bool get_firmware(FirmwareInfo *info);
+        bool get_version(char *version, int size);
+        bool get_variant(char *variant);
+        bool get_model(char *model, int size);
+        bool get_dev_firmware(int dev, char *version, int size);
+        bool get_radec(double *ra, double *dec, bool precise);
+        bool get_azalt(double *az, double *alt, bool precise);
+        bool get_utc_date_time(double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
+
+        // Motion
+        bool start_motion(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate);
+        bool stop_motion(CELESTRON_DIRECTION dir);
+        bool abort();
+        bool slew_radec(double ra, double dec, bool precise);
+        bool slew_azalt(double az, double alt, bool precise);
+        bool sync(double ra, double dec, bool precise);
+
+        // Time & Location
+        bool set_location(double longitude, double latitude);
+        bool set_datetime(struct ln_date *utc, double utc_offset);
+
+        // Track Mode
+        bool get_track_mode(CELESTRON_TRACK_MODE *mode);
+        bool set_track_mode(CELESTRON_TRACK_MODE mode);
+
+        bool is_slewing();
+
+        // Hibernate/Wakup
+        bool hibernate();
+        bool wakeup();
+
+        // Pulse Guide (experimental)
+        int send_pulse(CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
+        int get_pulse_status(CELESTRON_DIRECTION direction, bool &pulse_state);
+
+    protected:
+        int send_command(const char *cmd, int cmd_len, char *resp, int resp_len);
+        int send_passthrough(int dest, int cmd_id, const char *payload,
+                             int payload_len, char *response, int response_len);
+
+    private:
+        int fd = 0;
+        bool debug = false;
+        bool simulation = false;
+        //double currentRA, currentDEC, currentSlewRate;
+        char response[MAX_RESP_SIZE];
+        SimData sim_data;
+};
+
 
 /**************************************************************************
  Utility functions
@@ -131,17 +150,3 @@ uint16_t get_de_fraction(double de);
 uint16_t get_az_fraction(double az);
 uint16_t get_alt_fraction(double lat, double alt, double az);
 uint16_t get_angle_fraction(double angle);
-
-bool is_scope_slewing(int fd);
-
-/**************************************************************************
- Hibernate/Wakup
- *************************************************************************/
-bool hibernate(int fd);
-bool wakeup(int fd);
-
-/**************************************************************************
- Pulse Guide (experimental)
- *************************************************************************/
-int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
-int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool &pulse_state);

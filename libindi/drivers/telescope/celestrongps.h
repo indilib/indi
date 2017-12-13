@@ -34,90 +34,92 @@
 //GUIDE: guider parent
 class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
 {
-  public:
-    CelestronGPS();
-    virtual ~CelestronGPS() {}
+    public:
+        CelestronGPS();
+        virtual ~CelestronGPS() {}
 
-    virtual const char *getDefaultName() override;
-    virtual bool Handshake() override;
-    virtual bool ReadScopeStatus() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
+        virtual const char *getDefaultName() override;
+        virtual bool Handshake() override;
+        virtual bool ReadScopeStatus() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-    //GUIDE guideTimeout() funcion
-    void guideTimeout(CELESTRON_DIRECTION calldir);
+        //GUIDE guideTimeout() funcion
+        void guideTimeout(CELESTRON_DIRECTION calldir);
 
-  protected:
-    // Goto, Sync, and Motion
-    virtual bool Goto(double ra, double dec) override;
-    //bool GotoAzAlt(double az, double alt);
-    virtual bool Sync(double ra, double dec) override;
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
-    virtual bool Abort() override;
+    protected:
+        // Goto, Sync, and Motion
+        virtual bool Goto(double ra, double dec) override;
+        //bool GotoAzAlt(double az, double alt);
+        virtual bool Sync(double ra, double dec) override;
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+        virtual bool Abort() override;
 
-    // Time and Location
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
+        // Time and Location
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
-    //GUIDE: guiding functions
-    virtual IPState GuideNorth(float ms) override;
-    virtual IPState GuideSouth(float ms) override;
-    virtual IPState GuideEast(float ms) override;
-    virtual IPState GuideWest(float ms) override;
+        //GUIDE: guiding functions
+        virtual IPState GuideNorth(float ms) override;
+        virtual IPState GuideSouth(float ms) override;
+        virtual IPState GuideEast(float ms) override;
+        virtual IPState GuideWest(float ms) override;
 
-    //GUIDE guideTimeoutHelper() function
-    static void guideTimeoutHelperN(void *p);
-    static void guideTimeoutHelperS(void *p);
-    static void guideTimeoutHelperW(void *p);
-    static void guideTimeoutHelperE(void *p);
+        //GUIDE guideTimeoutHelper() function
+        static void guideTimeoutHelperN(void *p);
+        static void guideTimeoutHelperS(void *p);
+        static void guideTimeoutHelperW(void *p);
+        static void guideTimeoutHelperE(void *p);
 
-    // Tracking
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool SetTrackEnabled(bool enabled) override;
+        // Tracking
+        virtual bool SetTrackMode(uint8_t mode) override;
+        virtual bool SetTrackEnabled(bool enabled) override;
 
-    // Parking
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
+        // Parking
+        virtual bool Park() override;
+        virtual bool UnPark() override;
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual void simulationTriggered(bool enable) override;
+        virtual void simulationTriggered(bool enable) override;
 
-    void mountSim();
+        void mountSim();
 
-    //GUIDE variables.
-    int GuideNSTID;
-    int GuideWETID;
-    CELESTRON_DIRECTION guide_direction;
+        //GUIDE variables.
+        int GuideNSTID;
+        int GuideWETID;
+        CELESTRON_DIRECTION guide_direction;
 
-    /* Firmware */
-    IText FirmwareT[5];
-    ITextVectorProperty FirmwareTP;
+        /* Firmware */
+        IText FirmwareT[5];
+        ITextVectorProperty FirmwareTP;
 
-    //INumberVectorProperty HorizontalCoordsNP;
-    //INumber HorizontalCoordsN[2];
+        //INumberVectorProperty HorizontalCoordsNP;
+        //INumber HorizontalCoordsN[2];
 
-    //ISwitch TrackS[4];
-    //ISwitchVectorProperty TrackSP;
+        //ISwitch TrackS[4];
+        //ISwitchVectorProperty TrackSP;
 
-    //GUIDE Pulse guide switch
-    ISwitchVectorProperty UsePulseCmdSP;
-    ISwitch UsePulseCmdS[2];
+        //GUIDE Pulse guide switch
+        ISwitchVectorProperty UsePulseCmdSP;
+        ISwitch UsePulseCmdS[2];
 
-    ISwitchVectorProperty UseHibernateSP;
-    ISwitch UseHibernateS[2];
+        ISwitchVectorProperty UseHibernateSP;
+        ISwitch UseHibernateS[2];
 
-  private:
-    bool setTrackMode(CELESTRON_TRACK_MODE mode);
+    private:
+        bool setTrackMode(CELESTRON_TRACK_MODE mode);
 
-    double currentRA, currentDEC, currentAZ, currentALT;
-    double targetRA, targetDEC, targetAZ, targetALT;
+        double currentRA, currentDEC, currentAZ, currentALT;
+        double targetRA, targetDEC, targetAZ, targetALT;
 
-    FirmwareInfo fwInfo;
+        CelestronDriver driver;
+        FirmwareInfo fwInfo;
+        bool usePreciseCoords=false;
 };

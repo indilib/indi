@@ -78,7 +78,6 @@ bool Skywatcher::Handshake()
     if (isSimulation())
     {
         telescope->simulator->Connect();
-        return true;
     }
 
     unsigned long tmpMCVersion = 0;

@@ -169,6 +169,11 @@ bool ArmPlat::initProperties()
     FocusAbsPosN[0].value = 50000;
     FocusAbsPosN[0].step  = 5000;
 
+    // Focus Sync
+    IUFillNumber(&SyncN[0], "SYNC", "Ticks", "%.f", 0, 100000., 0., 0.);
+    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "Sync", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE );
+
+
     addDebugControl();
 
     updatePeriodMS = POLLMS;
@@ -194,6 +199,7 @@ bool ArmPlat::updateProperties()
         defineSwitch(&HalfStepSP);
         defineSwitch(&MotorTypeSP);
         defineSwitch(&WiringSP);
+	defineNumber(&SyncNP);
         defineText(&FirmwareVersionTP);
 	if ( !loadConfig() )
         	DEBUG(INDI::Logger::DBG_ERROR, "Error loading config" );
@@ -212,6 +218,7 @@ bool ArmPlat::updateProperties()
         deleteProperty(MotorTypeSP.name);
         deleteProperty(MaxSpeedNP.name);
         deleteProperty(FirmwareVersionTP.name);
+        deleteProperty(SyncNP.name);
     }
 
     return true;
@@ -388,7 +395,17 @@ bool ArmPlat::ISNewNumber(const char *dev, const char *name, double values[], ch
             IDSetNumber(&BacklashNP, nullptr);
             return true;
         }
-        /////////////////////////////////////////////
+        if (strcmp(name, SyncNP.name) == 0)
+        {
+            bool rc = sync(static_cast<uint32_t>(values[0]));
+            SyncNP.s = rc ? IPS_OK : IPS_ALERT;
+            if (rc)
+                SyncN[0].value = values[0];
+
+            IDSetNumber(&SyncNP, nullptr);
+            return true;
+        }
+	/////////////////////////////////////////////
         // Relative goto
         /////////////////////////////////////////////
         else if (strcmp(name, FocusRelPosNP.name) == 0)

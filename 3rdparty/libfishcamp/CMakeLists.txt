@@ -30,7 +30,7 @@ target_link_libraries(fishcamp ${USB1_LIBRARIES})
 
 INSTALL(FILES fishcamp.h fishcamp_common.h DESTINATION include/libfishcamp)
 
-INSTALL(TARGETS fishcamp LIBRARY DESTINATION lib)
+INSTALL(TARGETS fishcamp LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install( FILES gdr_usb.hex Guider_mono_rev16_intel.srec DESTINATION ${FIRMWARE_INSTALL_DIR})
 

@@ -24,54 +24,65 @@
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
   public:
+
     CCDSim();
     virtual ~CCDSim() = default;
 
-    const char *getDefaultName();
+    const char *getDefaultName() override;
 
-    bool initProperties();
-    bool updateProperties();
+    bool initProperties() override;
+    bool updateProperties() override;
 
-    void ISGetProperties(const char *dev);
+    void ISGetProperties(const char *dev) override;
 
-    bool Connect();
-    bool Disconnect();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISSnoopDevice(XMLEle *root) override;
 
-    bool StartExposure(float duration);
-    bool StartGuideExposure(float);
+    static void *streamVideoHelper(void *context);
+    void *streamVideo();
 
-    bool AbortExposure();
-    bool AbortGuideExposure();
+protected:
 
-    void TimerHit();
+    bool Connect() override;
+    bool Disconnect() override;
 
-    int DrawCcdFrame(CCDChip *targetChip);
+    bool StartExposure(float duration) override;
+    bool StartGuideExposure(float) override;
 
-    int DrawImageStar(CCDChip *targetChip, float, float, float);
-    int AddToPixel(CCDChip *targetChip, int, int, int);
+    bool AbortExposure() override;
+    bool AbortGuideExposure() override;
 
-    IPState GuideNorth(float);
-    IPState GuideSouth(float);
-    IPState GuideEast(float);
-    IPState GuideWest(float);
+    void TimerHit() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISSnoopDevice(XMLEle *root);
+    int DrawCcdFrame(INDI::CCDChip *targetChip);
 
-  protected:
-    virtual bool saveConfigItems(FILE *fp);
-    virtual void activeDevicesUpdated();
-    virtual int SetTemperature(double temperature);
+    int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
+    int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
 
-  private:
-    float CalcTimeLeft(timeval, float);
-    bool SetupParms();
+    IPState GuideNorth(float) override;
+    IPState GuideSouth(float) override;
+    IPState GuideEast(float) override;
+    IPState GuideWest(float) override;
+
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual void activeDevicesUpdated() override;
+    virtual int SetTemperature(double temperature) override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int hor, int ver) override;
+
+    virtual bool StartStreaming() override;
+    virtual bool StopStreaming() override;
 
     // Filter
-    bool SelectFilter(int);
-    int QueryFilter();
+    bool SelectFilter(int) override;
+    int QueryFilter() override;
+
+  private:
+
+    float CalcTimeLeft(timeval, float);
+    bool SetupParms();    
 
     float TemperatureRequest { 0 };
 
@@ -120,6 +131,10 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     float polarError { 0 };
     float polarDrift { 0 };
 
+    int streamPredicate;
+    pthread_t primary_thread;
+    bool terminateThread;
+
     //  And this lives in our simulator settings page
 
     INumberVectorProperty *SimulatorSettingsNV;
@@ -131,10 +146,6 @@ class CCDSim : public INDI::CCD, public INDI::FilterInterface
     //  We are going to snoop these from focuser
     INumberVectorProperty FWHMNP;
     INumber FWHMN[1];
-
-    // We are going to snoop these from telescope
-    //INumber ScopeParametersN[4];
-    //INumberVectorProperty ScopeParametersNP;
 
     INumberVectorProperty EqPENP;
     INumber EqPEN[2];

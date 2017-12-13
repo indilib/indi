@@ -400,10 +400,10 @@ bool FishCampCCD::AbortExposure()
     return true;
 }
 
-bool FishCampCCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool FishCampCCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
 {
     // We only support light frames
-    if (fType != CCDChip::LIGHT_FRAME)
+    if (fType != INDI::CCDChip::LIGHT_FRAME)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Only light frames are supported in this camera.");
         return false;

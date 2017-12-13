@@ -214,7 +214,10 @@ void DetectorDevice::setCaptureExtension(const char *ext)
     strncpy(captureExtention, ext, MAXINDIBLOBFMT);
 }
 
-INDI::Detector::Detector()
+namespace INDI
+{
+
+Detector::Detector()
 {
     //ctor
     capability = 0;
@@ -234,18 +237,18 @@ INDI::Detector::Detector()
     primaryAperture = primaryFocalLength - 1;
 }
 
-INDI::Detector::~Detector()
+Detector::~Detector()
 {
 }
 
-void INDI::Detector::SetDetectorCapability(uint32_t cap)
+void Detector::SetDetectorCapability(uint32_t cap)
 {
     capability = cap;
 
     setDriverInterface(getDriverInterface());
 }
 
-bool INDI::Detector::initProperties()
+bool Detector::initProperties()
 {
     DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
@@ -341,7 +344,7 @@ bool INDI::Detector::initProperties()
     return true;
 }
 
-void INDI::Detector::ISGetProperties(const char *dev)
+void Detector::ISGetProperties(const char *dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
@@ -349,9 +352,9 @@ void INDI::Detector::ISGetProperties(const char *dev)
     loadConfig(true, "ACTIVE_DEVICES");
 }
 
-bool INDI::Detector::updateProperties()
+bool Detector::updateProperties()
 {
-    //IDLog("INDI::PrimaryDetector UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
+    //IDLog("PrimaryDetector UpdateProperties isConnected returns %d %d\n",isConnected(),Connected);
     if (isConnected())
     {
         defineNumber(&PrimaryDetector.FramedCaptureNP);
@@ -398,7 +401,7 @@ bool INDI::Detector::updateProperties()
     return true;
 }
 
-bool INDI::Detector::ISSnoopDevice(XMLEle *root)
+bool Detector::ISSnoopDevice(XMLEle *root)
 {
     XMLEle *ep           = nullptr;
     const char *propName = findXMLAttValu(root, "name");
@@ -458,10 +461,10 @@ bool INDI::Detector::ISSnoopDevice(XMLEle *root)
         }
     }
 
-    return INDI::DefaultDevice::ISSnoopDevice(root);
+    return DefaultDevice::ISSnoopDevice(root);
 }
 
-bool INDI::Detector::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool Detector::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -506,20 +509,20 @@ bool INDI::Detector::ISNewText(const char *dev, const char *name, char *texts[],
         }
     }
 
-    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
+    return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool INDI::Detector::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool Detector::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    //IDLog("INDI::Detector::ISNewNumber %s\n",name);
+    //IDLog("Detector::ISNewNumber %s\n",name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (!strcmp(name, "DETECTOR_CAPTURE"))
         {
             if ((values[0] < PrimaryDetector.FramedCaptureN[0].min || values[0] > PrimaryDetector.FramedCaptureN[0].max))
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Requested capture value (%g) seconds out of bounds [%g,%g].",
+                DEBUGF(Logger::DBG_ERROR, "Requested capture value (%g) seconds out of bounds [%g,%g].",
                        values[0], PrimaryDetector.FramedCaptureN[0].min, PrimaryDetector.FramedCaptureN[0].max);
                 PrimaryDetector.FramedCaptureNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryDetector.FramedCaptureNP, nullptr);
@@ -531,7 +534,7 @@ bool INDI::Detector::ISNewNumber(const char *dev, const char *name, double value
             if (PrimaryDetector.FramedCaptureNP.s == IPS_BUSY)
             {
                 if (CanAbort() && AbortCapture() == false)
-                    DEBUG(INDI::Logger::DBG_WARNING, "Warning: Aborting capture failed.");
+                    DEBUG(Logger::DBG_WARNING, "Warning: Aborting capture failed.");
             }
 
             if (StartCapture(CaptureTime))
@@ -548,7 +551,7 @@ bool INDI::Detector::ISNewNumber(const char *dev, const char *name, double value
             if (values[0] < TemperatureN[0].min || values[0] > TemperatureN[0].max)
             {
                 TemperatureNP.s = IPS_ALERT;
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
+                DEBUGF(Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
                        TemperatureN[0].min, TemperatureN[0].max);
                 IDSetNumber(&TemperatureNP, nullptr);
                 return false;
@@ -583,7 +586,7 @@ bool INDI::Detector::ISNewNumber(const char *dev, const char *name, double value
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool INDI::Detector::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -596,18 +599,18 @@ bool INDI::Detector::ISNewSwitch(const char *dev, const char *name, ISState *sta
 
             if (UploadS[0].s == ISS_ON)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client only.");
+                DEBUG(Logger::DBG_SESSION, "Upload settings set to client only.");
                 if (prevMode != 0)
                     deleteProperty(FileNameTP.name);
             }
             else if (UploadS[1].s == ISS_ON)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to local only.");
+                DEBUG(Logger::DBG_SESSION, "Upload settings set to local only.");
                 defineText(&FileNameTP);
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Upload settings set to client and local.");
+                DEBUG(Logger::DBG_SESSION, "Upload settings set to client and local.");
                 defineText(&FileNameTP);
             }
             return true;
@@ -648,36 +651,36 @@ bool INDI::Detector::ISNewSwitch(const char *dev, const char *name, ISState *sta
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-int INDI::Detector::SetTemperature(double temperature)
+int Detector::SetTemperature(double temperature)
 {
     INDI_UNUSED(temperature);
-    DEBUGF(INDI::Logger::DBG_WARNING, "INDI::Detector::SetTemperature %4.2f -  Should never get here", temperature);
+    DEBUGF(Logger::DBG_WARNING, "Detector::SetTemperature %4.2f -  Should never get here", temperature);
     return -1;
 }
 
-bool INDI::Detector::StartCapture(float duration)
+bool Detector::StartCapture(float duration)
 {
     INDI_UNUSED(duration);
-    DEBUGF(INDI::Logger::DBG_WARNING, "INDI::Detector::StartCapture %4.2f -  Should never get here", duration);
+    DEBUGF(Logger::DBG_WARNING, "Detector::StartCapture %4.2f -  Should never get here", duration);
     return false;
 }
 
-bool INDI::Detector::CaptureParamsUpdated(float sr, float freq, float bps)
+bool Detector::CaptureParamsUpdated(float sr, float freq, float bps)
 {
     INDI_UNUSED(sr);
     INDI_UNUSED(freq);
     INDI_UNUSED(bps);
-    DEBUGF(INDI::Logger::DBG_WARNING, "INDI::Detector::CaptureParamsUpdated %15.0f %15.0f %15.0f -  Should never get here", sr, freq, bps);
+    DEBUGF(Logger::DBG_WARNING, "Detector::CaptureParamsUpdated %15.0f %15.0f %15.0f -  Should never get here", sr, freq, bps);
     return false;
 }
 
-bool INDI::Detector::AbortCapture()
+bool Detector::AbortCapture()
 {
-    DEBUG(INDI::Logger::DBG_WARNING, "INDI::Detector::AbortCapture -  Should never get here");
+    DEBUG(Logger::DBG_WARNING, "Detector::AbortCapture -  Should never get here");
     return false;
 }
 
-void INDI::Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, int blobIndex)
+void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, int blobIndex)
 {
     INDI_UNUSED(blobIndex);
     int status = 0;
@@ -794,14 +797,14 @@ void INDI::Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevic
     setlocale(LC_NUMERIC, orig);
 }
 
-void INDI::Detector::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation,
+void Detector::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation,
                                   int *status)
 {
     // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
 }
 
-bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
+bool Detector::CaptureComplete(DetectorDevice *targetDevice)
 {
     bool sendCapture = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveCapture = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
@@ -868,7 +871,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
                 memptr  = malloc(memsize);
                 if (!memptr)
                 {
-                    DEBUGF(INDI::Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
+                    DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
                 }
 
                 fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
@@ -877,7 +880,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
                 {
                     fits_report_error(stderr, status); /* print out any error messages */
                     fits_get_errstatus(status, error_status);
-                    DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                     return false;
                 }
 
@@ -887,7 +890,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
                 {
                     fits_report_error(stderr, status); /* print out any error messages */
                     fits_get_errstatus(status, error_status);
-                    DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                     return false;
                 }
 
@@ -899,7 +902,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
                 {
                     fits_report_error(stderr, status); /* print out any error messages */
                     fits_get_errstatus(status, error_status);
-                    DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                     return false;
                 }
 
@@ -946,7 +949,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
                 memptr  = malloc(memsize);
                 if (!memptr)
                 {
-                    DEBUGF(INDI::Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
+                    DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
                 }
 
                 fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
@@ -955,7 +958,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
                 {
                     fits_report_error(stderr, status); /* print out any error messages */
                     fits_get_errstatus(status, error_status);
-                    DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                     return false;
                 }
 
@@ -965,7 +968,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
                 {
                     fits_report_error(stderr, status); /* print out any error messages */
                     fits_get_errstatus(status, error_status);
-                    DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                     return false;
                 }
 
@@ -977,7 +980,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
                 {
                     fits_report_error(stderr, status); /* print out any error messages */
                     fits_get_errstatus(status, error_status);
-                    DEBUGF(INDI::Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                     return false;
                 }
 
@@ -997,7 +1000,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
         if (sendCapture)
 	    IDSetBLOB(&targetDevice->FitsBP, nullptr);
 
-        DEBUG(INDI::Logger::DBG_DEBUG, "Upload complete");
+        DEBUG(Logger::DBG_DEBUG, "Upload complete");
     }
 
     targetDevice->FramedCaptureNP.s = IPS_OK;
@@ -1011,7 +1014,7 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
             PrimaryDetector.FramedCaptureNP.s = IPS_BUSY;
         else
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Autoloop: PrimaryDetector Capture Error!");
+            DEBUG(Logger::DBG_DEBUG, "Autoloop: PrimaryDetector Capture Error!");
             PrimaryDetector.FramedCaptureNP.s = IPS_ALERT;
         }
 
@@ -1021,11 +1024,11 @@ bool INDI::Detector::CaptureComplete(DetectorDevice *targetDevice)
     return true;
 }
 
-bool INDI::Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsData, size_t totalBytes, bool sendCapture,
+bool Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsData, size_t totalBytes, bool sendCapture,
                            bool saveCapture, int blobIndex)
 {
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendCapture? %s, saveCapture? %s",
+    DEBUGF(Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendCapture? %s, saveCapture? %s",
            targetDevice->getCaptureExtension(), totalBytes, sendCapture ? "Yes" : "No", saveCapture ? "Yes" : "No");
 
     if (saveCapture)
@@ -1043,7 +1046,7 @@ bool INDI::Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsDa
 
         if (maxIndex < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error iterating directory %s. %s", UploadSettingsT[0].text,
+            DEBUGF(Logger::DBG_ERROR, "Error iterating directory %s. %s", UploadSettingsT[0].text,
                    strerror(errno));
             return false;
         }
@@ -1071,7 +1074,7 @@ bool INDI::Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsDa
         fp = fopen(captureFileName, "w");
         if (fp == nullptr)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unable to save capture file (%s). %s", captureFileName, strerror(errno));
+            DEBUGF(Logger::DBG_ERROR, "Unable to save capture file (%s). %s", captureFileName, strerror(errno));
             return false;
         }
 
@@ -1084,7 +1087,7 @@ bool INDI::Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsDa
         // Save capture file path
         IUSaveText(&FileNameT[0], captureFileName);
 
-        DEBUGF(INDI::Logger::DBG_SESSION, "Capture saved to %s", captureFileName);
+        DEBUGF(Logger::DBG_SESSION, "Capture saved to %s", captureFileName);
         FileNameTP.s = IPS_OK;
         IDSetText(&FileNameTP, nullptr);
     }
@@ -1098,7 +1101,7 @@ bool INDI::Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsDa
     return true;
 }
 
-void INDI::Detector::SetDetectorParams(float samplerate, float freq, float bps)
+void Detector::SetDetectorParams(float samplerate, float freq, float bps)
 {
     PrimaryDetector.setSampleRate(samplerate);
     PrimaryDetector.setFrequency(freq);
@@ -1106,7 +1109,7 @@ void INDI::Detector::SetDetectorParams(float samplerate, float freq, float bps)
     CaptureParamsUpdated(samplerate, freq, bps);
 }
 
-bool INDI::Detector::saveConfigItems(FILE *fp)
+bool Detector::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
@@ -1118,7 +1121,7 @@ bool INDI::Detector::saveConfigItems(FILE *fp)
     return true;
 }
 
-void INDI::Detector::getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp)
+void Detector::getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp)
 {
     int ind         = 0, i, j;
     int captureHeight = 1;
@@ -1206,7 +1209,7 @@ std::string regex_replace_compat2(const std::string &input, const std::string &p
     return s.str();
 }
 
-int INDI::Detector::getFileIndex(const char *dir, const char *prefix, const char *ext)
+int Detector::getFileIndex(const char *dir, const char *prefix, const char *ext)
 {
     INDI_UNUSED(ext);
 
@@ -1223,9 +1226,9 @@ int INDI::Detector::getFileIndex(const char *dir, const char *prefix, const char
 
     if (stat(dir, &st) == -1)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Creating directory %s...", dir);
+        DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
         if (_det_mkdir(dir, 0755) == -1)
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
+            DEBUGF(Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
     }
 
     dpdf = opendir(dir);
@@ -1258,4 +1261,6 @@ int INDI::Detector::getFileIndex(const char *dir, const char *prefix, const char
     }
 
     return (maxIndex + 1);
+}
+
 }

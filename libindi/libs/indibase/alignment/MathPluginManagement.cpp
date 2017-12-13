@@ -22,6 +22,7 @@ MathPluginManagement::MathPluginManagement() : CurrentInMemoryDatabase(nullptr),
     pSetApproximateMountAlignment(&MathPlugin::SetApproximateMountAlignment),
     pTransformCelestialToTelescope(&MathPlugin::TransformCelestialToTelescope),
     pTransformTelescopeToCelestial(&MathPlugin::TransformTelescopeToCelestial),
+    pGetInternalDataRepresentation(&MathPlugin::GetInternalDataRepresentation),
     pLoadedMathPlugin(&BuiltInPlugin), LoadedMathPluginHandle(nullptr)
 {
 }
@@ -61,6 +62,12 @@ void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
     IUFillTextVector(&AlignmentSubsystemCurrentMathPluginV, &AlignmentSubsystemCurrentMathPlugin, 1,
                      ChildTelescope->getDeviceName(), "ALIGNMENT_SUBSYSTEM_CURRENT_MATH_PLUGIN", "Current Math Plugin",
                      ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+    
+    IUFillBLOB(&AlignmentSubsystemMathPluginInternalBlob, "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INTERNAL_BLOB", "Plugin Internals", ".xml");
+    IUFillBLOBVector(&AlignmentSubsystemMathPluginInternalBlobV, &AlignmentSubsystemMathPluginInternalBlob, 1,
+                       ChildTelescope->getDeviceName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INTERNAL_BLOB",
+                       "Math Plugin Data", ALIGNMENT_TAB, IP_RO, 60, IPS_IDLE);
+    ChildTelescope->registerProperty(&AlignmentSubsystemMathPluginInternalBlobV, INDI_BLOB);    
 }
 
 void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const char *name, char *texts[], char *names[],
@@ -72,6 +79,9 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
         AlignmentSubsystemCurrentMathPluginV.s = IPS_OK;
         IUUpdateText(&AlignmentSubsystemCurrentMathPluginV, texts, names, n);
 
+	// geehalel keep the alignment type when loading plugins
+	MountAlignment_t MountAlignment = GetApproximateMountAlignment();
+	
         if (0 != strcmp(AlignmentSubsystemMathPlugins.get()[0].label, AlignmentSubsystemCurrentMathPlugin.text))
         {
             // Unload old plugin if required
@@ -173,6 +183,10 @@ void MathPluginManagement::ProcessTextProperties(Telescope *pTelescope, const ch
             //  Update client
             IDSetSwitch(&AlignmentSubsystemMathPluginsV, nullptr);
         }
+	// geehalel: intialise and set alignment type
+	(pLoadedMathPlugin->*pSetApproximateMountAlignment)(MountAlignment);
+	//(pLoadedMathPlugin->*Initialise)(CurrentInMemoryDatabase);
+	Initialise(CurrentInMemoryDatabase);
     }
 }
 
@@ -187,6 +201,8 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const 
         IUUpdateSwitch(&AlignmentSubsystemMathPluginsV, states, names, n);
         AlignmentSubsystemMathPluginsV.s = IPS_OK; // Assume OK for the time being
         int NewPlugin                    = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
+	// geehalel keep the alignment type when loading plugins
+	MountAlignment_t MountAlignment = GetApproximateMountAlignment();
         if (NewPlugin != CurrentPlugin)
         {
             // New plugin requested
@@ -226,7 +242,7 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const 
                     if (nullptr != Create)
                     {
                         pLoadedMathPlugin = Create();
-                        IUSaveText(&AlignmentSubsystemCurrentMathPlugin, PluginPath.c_str());
+                        IUSaveText(&AlignmentSubsystemCurrentMathPlugin, PluginPath.c_str());			
                     }
                     else
                     {
@@ -245,6 +261,10 @@ void MathPluginManagement::ProcessSwitchProperties(Telescope *pTelescope, const 
                 // It is in built plugin just set up the pointers
                 pLoadedMathPlugin = &BuiltInPlugin;
             }
+	    // geehalel: intialise and set alignment type
+	    (pLoadedMathPlugin->*pSetApproximateMountAlignment)(MountAlignment);
+	    //(pLoadedMathPlugin->*Initialise)(CurrentInMemoryDatabase);
+	    Initialise(CurrentInMemoryDatabase);
         }
 
         //  Update client
@@ -310,7 +330,18 @@ MountAlignment_t MathPluginManagement::GetApproximateMountAlignment()
 
 bool MathPluginManagement::Initialise(InMemoryDatabase *pInMemoryDatabase)
 {
-    return (pLoadedMathPlugin->*pInitialise)(pInMemoryDatabase);
+    bool retcode = (pLoadedMathPlugin->*pInitialise)(pInMemoryDatabase);
+    if (retcode)
+    {
+        int CurrentPlugin = IUFindOnSwitchIndex(&AlignmentSubsystemMathPluginsV);
+	std::string PluginName= ((CurrentPlugin == 0 || CurrentPlugin == -1) ? "Inbuilt Math Plugin" : MathPluginDisplayNames[CurrentPlugin - 1]);
+	std::string internal_data_representation = (pLoadedMathPlugin->*pGetInternalDataRepresentation)(PluginName);
+        AlignmentSubsystemMathPluginInternalBlob.blob = (void *)internal_data_representation.c_str();
+        AlignmentSubsystemMathPluginInternalBlob.bloblen = internal_data_representation.size();
+	AlignmentSubsystemMathPluginInternalBlob.size = internal_data_representation.size();
+	IDSetBLOB(&AlignmentSubsystemMathPluginInternalBlobV, "New ALignment Subsytem Internal data");
+    }
+    return retcode;
 }
 
 void MathPluginManagement::SetApproximateMountAlignment(MountAlignment_t ApproximateAlignment)

@@ -34,6 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx200_16.h"
 #include "lx200_OnStep.h"
 #include "lx200ap.h"
+#include "lx200ap_legacy.h"
 #include "lx200classic.h"
 #include "lx200driver.h"
 #include "lx200fs2.h"
@@ -121,6 +122,13 @@ void ISInit()
 
         if (telescope.get() == 0)
             telescope.reset(new LX200AstroPhysics());
+    }
+    else if (strstr(me, "indi_lx200ap_legacy"))
+    {
+        IDLog("initializing from Astrophysics Legacy device...\n");
+
+        if (telescope.get() == 0)
+            telescope.reset(new LX200AstroPhysicsLegacy());
     }
     else if (strstr(me, "indi_lx200gemini"))
     {
@@ -1287,7 +1295,8 @@ void LX200Generic::getBasicData()
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
             getAlignment();
 
-        if (GetTelescopeCapability() & TELESCOPE_HAS_TIME)
+        // Only check time format if it is not already initialized by the class
+        if ( (GetTelescopeCapability() & TELESCOPE_HAS_TIME) && timeFormat == -1)
         {
             if (getTimeFormat(PortFD, &timeFormat) < 0)
                 DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve time format from device.");
@@ -1323,9 +1332,9 @@ void LX200Generic::getBasicData()
 
     }
 
-    if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
+    if (sendLocationOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION))
         sendScopeLocation();
-    if (GetTelescopeCapability() & TELESCOPE_HAS_TIME)
+    if (sendTimeOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_TIME))
         sendScopeTime();
 }
 

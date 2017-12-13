@@ -41,6 +41,9 @@ class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
     virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
                                                double &RightAscension, double &Declination);
 
+    /// \brief Override for the base class virtual function
+    virtual std::string GetInternalDataRepresentation(std::string PluginDisplayName);
+    
   protected:
     /// \brief Calculate tranformation matrices from the supplied vectors
     /// \param[in] Alpha1 Pointer to the first coordinate in the alpha reference frame
@@ -94,11 +97,21 @@ class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
     bool RayTriangleIntersection(TelescopeDirectionVector &Ray, TelescopeDirectionVector &TriangleVertex1,
                                  TelescopeDirectionVector &TriangleVertex2, TelescopeDirectionVector &TriangleVertex3);
 
+    /// \brief Computes the cross product of two vectors u and v and put the result in product
+    void CrossProduct(const gsl_vector *u, const gsl_vector *v, gsl_vector *product);
+
+    /// \brief  Computes the rotation matrix pR that rotates unit vector pA to unit vector pB    
+    void RotationMatrixFromVectors(gsl_vector *pA, gsl_vector *pB, gsl_matrix *pR);
+      
     // Transformation matrixes for 1, 2 and 2 sync points case
+    // geehalel: adding a 2nd matrix for the 2 syncpoint case (nearest)
     gsl_matrix *pActualToApparentTransform;
+    gsl_matrix *pActualToApparentTransform_2;
     gsl_matrix *pApparentToActualTransform;
+    gsl_matrix *pApparentToActualTransform_2;
 
     // Convex hulls for 4+ sync points case
+    // geehalel used also for 3 point case
     ConvexHull ActualConvexHull;
     ConvexHull ApparentConvexHull;
     // Actual direction cosines for the 4+ case

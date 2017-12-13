@@ -26,9 +26,7 @@
 #include "gphoto_driver.h"
 #include "gphoto_readimage.h"
 
-#if defined(__linux__)
-#include <stream_recorder.h>
-#endif
+#include <stream/streammanager.h>
 
 #include <math.h>
 #include <unistd.h>
@@ -265,7 +263,7 @@ GPhotoCCD::GPhotoCCD()
     on_off[0]        = strdup("On");
     on_off[1]        = strdup("Off");
 
-    setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);
+    setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);    
 }
 
 GPhotoCCD::GPhotoCCD(const char *model, const char *port)
@@ -374,11 +372,7 @@ bool GPhotoCCD::initProperties()
     // Most cameras have this by default, so let's set it as default.
     IUSaveText(&BayerT[2], "RGGB");
 
-#ifdef __linux__
     SetCCDCapability(CCD_CAN_SUBFRAME | CCD_HAS_BAYER | CCD_HAS_STREAMING);
-#else
-    SetCCDCapability(CCD_CAN_SUBFRAME | CCD_HAS_BAYER);
-#endif
 
     SetFocuserCapability(FOCUSER_HAS_VARIABLE_SPEED);
 
@@ -655,11 +649,11 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
 
         // Live preview
+#if 0
         if (!strcmp(name, livePreviewSP.name))
         {
             IUUpdateSwitch(&livePreviewSP, states, names, n);
 
-#ifdef __linux__
             if (Streamer->isBusy())
             {
                 livePreviewS[0].s = ISS_OFF;
@@ -669,7 +663,6 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 IDSetSwitch(&livePreviewSP, NULL);
                 return true;
             }
-#endif
 
             if (livePreviewS[0].s == ISS_ON)
             {
@@ -684,6 +677,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IDSetSwitch(&livePreviewSP, NULL);
             return true;
         }
+#endif
 
         // Capture target
         if (!strcmp(captureTargetSP.name, name))
@@ -1064,10 +1058,9 @@ void GPhotoCCD::TimerHit()
     if (isConnected() == false)
         return;
 
-#ifdef __linux__
     if (Streamer->isBusy())
     {
-        bool rc = captureLiveVideo();
+        bool rc = startLiveVideo();
 
         if (rc)
             timerID = SetTimer(STREAMPOLLMS);
@@ -1077,8 +1070,8 @@ void GPhotoCCD::TimerHit()
             Streamer->setStream(false);
         }
     }
-#endif
 
+/*
     if (livePreviewSP.s == IPS_BUSY)
     {
         bool rc = startLivePreview();
@@ -1094,6 +1087,7 @@ void GPhotoCCD::TimerHit()
             IDSetSwitch(&livePreviewSP, NULL);
         }
     }
+*/
 
     if (FocusTimerNP.s == IPS_BUSY)
     {
@@ -1630,7 +1624,6 @@ bool GPhotoCCD::SetFocuserSpeed(int speed)
     return false;
 }
 
-#ifdef __linux__
 bool GPhotoCCD::StartStreaming()
 {
     if (livePreviewSP.s == IPS_BUSY)
@@ -1639,17 +1632,18 @@ bool GPhotoCCD::StartStreaming()
         return false;
     }
 
+    Streamer->setPixelFormat(INDI_JPG);
     SetTimer(STREAMPOLLMS);
     return true;
 }
 
 bool GPhotoCCD::StopStreaming()
 {
-    stopLivePreview();
+    stopLiveVideo();
     return true;
 }
 
-bool GPhotoCCD::captureLiveVideo()
+bool GPhotoCCD::startLiveVideo()
 {
     //static int last_naxis = -1;, last_w = -1, last_h = -1;
 
@@ -1694,6 +1688,20 @@ bool GPhotoCCD::captureLiveVideo()
         }
     }
 
+    /*if (PrimaryCCD.getSubW() != w || PrimaryCCD.getSubH() != h)
+    {
+        Streamer->setSize(w, h);
+        PrimaryCCD.setFrame(0, 0, w, h);
+    }*/
+
+    int w=0,h=0;
+    unsigned char *inBuffer = (unsigned char *)(const_cast<char *>(previewData));
+    read_jpeg_size(inBuffer, previewSize, &w, &h);
+    Streamer->setSize(w,h);
+    Streamer->newFrame(inBuffer, previewSize);
+
+#if 0
+
     uint8_t *ccdBuffer      = PrimaryCCD.getFrameBuffer();
     unsigned char *inBuffer = (unsigned char *)(const_cast<char *>(previewData));
     size_t size             = 0;
@@ -1719,9 +1727,9 @@ bool GPhotoCCD::captureLiveVideo()
     if (naxis != PrimaryCCD.getNAxis())
     {
         if (naxis == 3)
-            Streamer->setPixelFormat(V4L2_PIX_FMT_RGB24);
+            Streamer->setPixelFormat(INDI_JPG);
         else
-            Streamer->setPixelFormat(V4L2_PIX_FMT_GREY);
+            Streamer->setPixelFormat(INDI_MONO);
 
         PrimaryCCD.setNAxis(naxis);
     }
@@ -1729,7 +1737,7 @@ bool GPhotoCCD::captureLiveVideo()
     //if (last_w != w || last_h != h)
     if (PrimaryCCD.getSubW() != w || PrimaryCCD.getSubH() != h)
     {
-        Streamer->setRecorderSize(w, h);
+        Streamer->setSize(w, h);
         PrimaryCCD.setFrame(0, 0, w, h);
     }
 
@@ -1743,11 +1751,12 @@ bool GPhotoCCD::captureLiveVideo()
     }
 
     Streamer->newFrame();
+#endif
 
     return true;
 }
-#endif
 
+#if 0
 bool GPhotoCCD::startLivePreview()
 {
     if (sim)
@@ -1809,8 +1818,9 @@ bool GPhotoCCD::startLivePreview()
 
     return true;
 }
+#endif
 
-bool GPhotoCCD::stopLivePreview()
+bool GPhotoCCD::stopLiveVideo()
 {
     if (sim)
         return false;
@@ -1850,7 +1860,7 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
     return true;
 }
 
-void GPhotoCCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
+void GPhotoCCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 

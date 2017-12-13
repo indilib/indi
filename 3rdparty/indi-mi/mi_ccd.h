@@ -108,7 +108,7 @@ class MICCD : public INDI::CCD, public INDI::FilterInterface
 
     bool downloading;
 
-    CCDChip::CCD_FRAME imageFrameType;
+    INDI::CCDChip::CCD_FRAME imageFrameType;
 
     float TemperatureRequest;
     float ExposureRequest;

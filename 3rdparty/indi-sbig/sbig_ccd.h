@@ -136,7 +136,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
 #ifdef ASYNC_READOUT
     static void *grabCCDHelper(void *context);
 #endif
-    bool isExposureDone(CCDChip *targetChip);
+    bool isExposureDone(INDI::CCDChip *targetChip);
 
   protected:
     virtual void TimerHit() override;
@@ -145,7 +145,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     virtual bool UpdateGuiderFrame(int x, int y, int w, int h) override;
     virtual bool UpdateCCDBin(int binx, int biny) override;
     virtual bool UpdateGuiderBin(int binx, int biny) override;
-    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType) override;
+    virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType) override;
     virtual bool saveConfigItems(FILE *fp) override;
     virtual IPState GuideNorth(float) override;
     virtual IPState GuideSouth(float) override;
@@ -216,7 +216,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     unsigned short *imageBuffer;
     int timerID;
 
-    CCDChip::CCD_FRAME imageFrameType;
+    INDI::CCDChip::CCD_FRAME imageFrameType;
 
     struct timeval ExpStart;
     struct timeval GuideExpStart;
@@ -226,7 +226,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     float TemperatureRequest;
 
     float CalcTimeLeft(timeval, float);
-    bool grabImage(CCDChip *targetChip);
+    bool grabImage(INDI::CCDChip *targetChip);
     bool setupParams();
 
 #ifdef ASYNC_READOUT
@@ -314,13 +314,13 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     int getCCDSizeInfo(int ccd, int rm, int &frmW, int &frmH, double &pixW, double &pixH);
     bool IsFanControlAvailable();
 
-    bool updateFrameProperties(CCDChip *targetChip);
-    int StartExposure(CCDChip *targetChip, double duration);
-    int AbortExposure(CCDChip *targetChip);
-    int GetSelectedCcdChip(int &ccd_request);
-    int getBinningMode(CCDChip *targetChip, int &binning);
-    int getFrameType(CCDChip *targetChip, CCDChip::CCD_FRAME *frameType);
-    int getShutterMode(CCDChip *targetChip, int &shutter);
+    bool updateFrameProperties(INDI::CCDChip *targetChip);
+    int StartExposure(INDI::CCDChip *targetChip, double duration);
+    int AbortExposure(INDI::CCDChip *targetChip);
+    int GetSelectedCCDChip(int &ccd_request);
+    int getBinningMode(INDI::CCDChip *targetChip, int &binning);
+    int getFrameType(INDI::CCDChip *targetChip, INDI::CCDChip::CCD_FRAME *frameType);
+    int getShutterMode(INDI::CCDChip *targetChip, int &shutter);
 
     int CFWConnect();
     int CFWDisconnect();
@@ -330,7 +330,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     int CFWGotoMonitor(CFWResults *);
 
     int readoutCCD(unsigned short left, unsigned short top, unsigned short width, unsigned short height,
-                   unsigned short *buffer, CCDChip *targetChip);
+                   unsigned short *buffer, INDI::CCDChip *targetChip);
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISSnoopDevice(XMLEle *root);

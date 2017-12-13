@@ -24,15 +24,10 @@
 
 #include <cstring>
 
-INDI::FocuserInterface::FocuserInterface()
+namespace INDI
 {
-}
 
-INDI::FocuserInterface::~FocuserInterface()
-{
-}
-
-void INDI::FocuserInterface::initFocuserProperties(const char *deviceName, const char *groupName)
+void FocuserInterface::initFocuserProperties(const char *deviceName, const char *groupName)
 {
     strncpy(focuserName, deviceName, MAXINDIDEVICE);
 
@@ -62,7 +57,7 @@ void INDI::FocuserInterface::initFocuserProperties(const char *deviceName, const
                        ISR_ATMOST1, 60, IPS_IDLE);
 }
 
-bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *name, double values[], char *names[],
+bool FocuserInterface::processFocuserNumber(const char *dev, const char *name, double values[], char *names[],
                                                   int n)
 {
     //  This is for our device
@@ -117,7 +112,7 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
         {
             FocusAbsPosNP.s = IPS_ALERT;
             IDSetNumber(&FocusAbsPosNP, nullptr);
-            DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus minimum position is %g",
+            DEBUGFDEVICE(dev, Logger::DBG_ERROR, "Requested position out of bound. Focus minimum position is %g",
                          FocusAbsPosN[0].min);
             return false;
         }
@@ -125,7 +120,7 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
         {
             FocusAbsPosNP.s = IPS_ALERT;
             IDSetNumber(&FocusAbsPosNP, nullptr);
-            DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR, "Requested position out of bound. Focus maximum position is %g",
+            DEBUGFDEVICE(dev, Logger::DBG_ERROR, "Requested position out of bound. Focus maximum position is %g",
                          FocusAbsPosN[0].max);
             return false;
         }
@@ -136,20 +131,20 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
         {
             FocusAbsPosNP.s = IPS_OK;
             IUUpdateNumber(&FocusAbsPosNP, values, names, n);
-            DEBUGFDEVICE(dev, INDI::Logger::DBG_SESSION, "Focuser moved to position %d", newPos);
+            DEBUGFDEVICE(dev, Logger::DBG_SESSION, "Focuser moved to position %d", newPos);
             IDSetNumber(&FocusAbsPosNP, nullptr);
             return true;
         }
         else if (ret == IPS_BUSY)
         {
             FocusAbsPosNP.s = IPS_BUSY;
-            DEBUGFDEVICE(dev, INDI::Logger::DBG_SESSION, "Focuser is moving to position %d", newPos);
+            DEBUGFDEVICE(dev, Logger::DBG_SESSION, "Focuser is moving to position %d", newPos);
             IDSetNumber(&FocusAbsPosNP, nullptr);
             return true;
         }
 
         FocusAbsPosNP.s = IPS_ALERT;
-        DEBUGDEVICE(dev, INDI::Logger::DBG_ERROR, "Focuser failed to move to new requested position.");
+        DEBUGDEVICE(dev, Logger::DBG_ERROR, "Focuser failed to move to new requested position.");
         IDSetNumber(&FocusAbsPosNP, nullptr);
         return false;
     }
@@ -160,7 +155,7 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
 
         if (newPos <= 0)
         {
-            DEBUGDEVICE(dev, INDI::Logger::DBG_ERROR, "Relative ticks value must be greater than zero.");
+            DEBUGDEVICE(dev, Logger::DBG_ERROR, "Relative ticks value must be greater than zero.");
             FocusRelPosNP.s = IPS_ALERT;
             IDSetNumber(&FocusRelPosNP, nullptr);
             return false;
@@ -176,7 +171,7 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
                 {
                     FocusRelPosNP.s = IPS_ALERT;
                     IDSetNumber(&FocusRelPosNP, nullptr);
-                    DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR,
+                    DEBUGFDEVICE(dev, Logger::DBG_ERROR,
                                  "Requested position out of bound. Focus minimum position is %g", FocusAbsPosN[0].min);
                     return false;
                 }
@@ -187,7 +182,7 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
                 {
                     FocusRelPosNP.s = IPS_ALERT;
                     IDSetNumber(&FocusRelPosNP, nullptr);
-                    DEBUGFDEVICE(dev, INDI::Logger::DBG_ERROR,
+                    DEBUGFDEVICE(dev, Logger::DBG_ERROR,
                                  "Requested position out of bound. Focus maximum position is %g", FocusAbsPosN[0].max);
                     return false;
                 }
@@ -214,7 +209,7 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
         }
 
         FocusRelPosNP.s = IPS_ALERT;
-        DEBUGDEVICE(dev, INDI::Logger::DBG_ERROR, "Focuser failed to move to new requested position.");
+        DEBUGDEVICE(dev, Logger::DBG_ERROR, "Focuser failed to move to new requested position.");
         IDSetNumber(&FocusRelPosNP, nullptr);
         return false;
     }
@@ -222,7 +217,7 @@ bool INDI::FocuserInterface::processFocuserNumber(const char *dev, const char *n
     return false;
 }
 
-bool INDI::FocuserInterface::processFocuserSwitch(const char *dev, const char *name, ISState *states, char *names[],
+bool FocuserInterface::processFocuserSwitch(const char *dev, const char *name, ISState *states, char *names[],
                                                   int n)
 {
     INDI_UNUSED(dev);
@@ -266,7 +261,7 @@ bool INDI::FocuserInterface::processFocuserSwitch(const char *dev, const char *n
     return false;
 }
 
-IPState INDI::FocuserInterface::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
+IPState FocuserInterface::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     INDI_UNUSED(dir);
     INDI_UNUSED(speed);
@@ -275,7 +270,7 @@ IPState INDI::FocuserInterface::MoveFocuser(FocusDirection dir, int speed, uint1
     return IPS_ALERT;
 }
 
-IPState INDI::FocuserInterface::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+IPState FocuserInterface::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     INDI_UNUSED(dir);
     INDI_UNUSED(ticks);
@@ -283,32 +278,33 @@ IPState INDI::FocuserInterface::MoveRelFocuser(FocusDirection dir, uint32_t tick
     return IPS_ALERT;
 }
 
-IPState INDI::FocuserInterface::MoveAbsFocuser(uint32_t ticks)
+IPState FocuserInterface::MoveAbsFocuser(uint32_t ticks)
 {
     INDI_UNUSED(ticks);
     // Must be implemented by child class
     return IPS_ALERT;
 }
 
-bool INDI::FocuserInterface::AbortFocuser()
+bool FocuserInterface::AbortFocuser()
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
-    DEBUGDEVICE(focuserName, INDI::Logger::DBG_ERROR, "Focuser does not support abort motion.");
+    DEBUGDEVICE(focuserName, Logger::DBG_ERROR, "Focuser does not support abort motion.");
     return false;
 }
 
-bool INDI::FocuserInterface::SetFocuserSpeed(int speed)
+bool FocuserInterface::SetFocuserSpeed(int speed)
 {
     INDI_UNUSED(speed);
 
     //  This should be a virtual function, because the low level hardware class
     //  must override this
-    DEBUGDEVICE(focuserName, INDI::Logger::DBG_ERROR, "Focuser does not support variable speed.");
+    DEBUGDEVICE(focuserName, Logger::DBG_ERROR, "Focuser does not support variable speed.");
     return false;
 }
 
-void INDI::FocuserInterface::SetFocuserCapability(uint32_t cap)
+void FocuserInterface::SetFocuserCapability(uint32_t cap)
 {
     capability = cap;
+}
 }
