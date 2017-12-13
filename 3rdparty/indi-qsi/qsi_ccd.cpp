@@ -395,9 +395,15 @@ bool QSICCD::setupParams()
 
     if (canSetAB)
     {
-        IUResetSwitch(&ABSP);
-        ABS[cAB].s = ISS_ON;
-        defineSwitch(&ABSP);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "Antiblooming setting is. %d.", cAB);
+
+        // cAB returns 3 on some a sample QSI 660 WSG
+        if(cAB == 0 || cAB == 1 )
+        {
+            IUResetSwitch(&ABSP);
+            ABS[cAB].s = ISS_ON;
+            defineSwitch(&ABSP);
+        }
     }
 
     QSICamera::FanMode fMode = QSICamera::fanOff;
