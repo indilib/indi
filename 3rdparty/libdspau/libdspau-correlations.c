@@ -76,8 +76,8 @@ double dspau_crosscorrelate(double* in1, double* in2, double* out, int len1, int
 				x2 += in2[j];
 			} else {
 				y += in1[j] * in2[i];
-				x1 += in2[j];
-				x2 += in3[i];
+				x1 += in1[j];
+				x2 += in2[i];
 			}
 		}
 		out[i] = y / (x1 * x2);

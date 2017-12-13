@@ -133,7 +133,7 @@ DLL_EXPORT int dspau_bandrejectfilter(double* in, double* out, int len, double s
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_autocorrelate(double* in, double* out, int *len, int skip);
+DLL_EXPORT int dspau_autocorrelate(double* in, double* out, int *len);
 
 /**
 * @brief A cross-correlator
