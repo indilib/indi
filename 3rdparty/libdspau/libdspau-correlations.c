@@ -24,14 +24,15 @@
 
 int dspau_bandpasscorrelate(double* in, double* out, int *c, int skip, double Q)
 {
+	int i, x;
 	int len = *c;
 	int l = (len / 2) - (len % 2);
 	double* filtered = (double*)malloc(sizeof(double) * len);
-	for(int i = skip; i < l; i++)
+	for(i = skip; i < l; i++)
 	{
 		dspau_bandpassfilter(in, filtered, len, len, i, Q);
 		out[i - skip] = 0;
-		for(int x = 0; x < len; x++)
+		for(x = 0; x < len; x++)
 		{
 			out[i - skip] += filtered[x];
 		}
@@ -43,13 +44,14 @@ int dspau_bandpasscorrelate(double* in, double* out, int *c, int skip, double Q)
 
 int dspau_autocorrelate(double* in, double* out, int *c)
 {
+	int i, j;
 	int len = *c;
 	*c = (len / 2) - (len % 2);
-	for(int i = 0; i < *c; i++) {
+	for(i = 0; i < *c; i++) {
 		double x1 = 0;
 		double x2 = 0;
 		double y = 0;
-		for(int j = 0; j < *c; j++) {
+		for(j = 0; j < *c; j++) {
 			y += in[j] * in[j + i];
 			x1 += in[j];
 			x2 += in[j + i];
@@ -61,15 +63,15 @@ int dspau_autocorrelate(double* in, double* out, int *c)
 
 double dspau_crosscorrelate(double* in1, double* in2, double* out, int len1, int len2, int *len)
 {
-	double min, mid, max;
+	int i, j;
 	int l1 = max(len1, len2);
 	int l2 = min(len1, len2);
 	*len = l1 - l2;
-	for(int i = 0; i < *len; i++) {
+	for(i = 0; i < *len; i++) {
 		double y = 0;
 		double x1 = 0;
 		double x2 = 0;
-		for(int j = 0; j < l2; j++) {
+		for(j = 0; j < l2; j++) {
 			if(len1 > len2) {
 				y += in1[i] * in2[j];
 				x1 += in1[i];
