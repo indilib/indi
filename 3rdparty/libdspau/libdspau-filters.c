@@ -102,6 +102,8 @@ int dspau_bandrejectfilter(double* in, double* out, int len, double SamplingFreq
 int dspau_bandpassfilter(double* in, double* out, int len, double SamplingFrequency, double Frequency, double Q) {
 	double wo = 2.0 * M_PI * Frequency / SamplingFrequency;
 
+	double mn, mx;
+	dspau_minmidmax(in, len, &mn, &mx);
 	struct Coefficient coefficient;
 	coefficient.e = 1 / (1 + tan (wo / (Q * 2)));
 	coefficient.p = cos (wo);
@@ -109,7 +111,13 @@ int dspau_bandpassfilter(double* in, double* out, int len, double SamplingFreque
 	coefficient.d1 = 2 * coefficient.e * coefficient.p;
 	coefficient.d2 = (2 * coefficient.e - 1);
 	for (int x = 0; x < len; x ++) {
-		out [x] = in [x] - dspau_singlefilter (in [x], &coefficient);
+		out [x] -= mn;
+		out [x] *= 2.0 / (mx - mn);
+		out [x] -= 1.0;
+		out [x] = in [x] / dspau_singlefilter (in [x], &coefficient);
+		out [x] += 1.0;
+		out [x] *= (mx - mn) / 2.0;
+		out [x] += mn;
 	}
 	return 0;
 }

@@ -137,13 +137,19 @@ DLL_EXPORT int dspau_autocorrelate(double* in, double* out, int *len, int skip);
 
 /**
 * @brief A cross-correlator
-* @param x the first input stream. (input)
-* @param y the second input stream. (input)
-* @param len the length of the input streams.
+* @param in1 the first input stream. (input)
+* @param in2 the second input stream. (input)
+* @param out the output stream. (output)
+* @param len1 the length of the first input stream. (input)
+* @param len2 the length of the second input stream. (input)
+* @param len the length of the output stream. (output)
 * @return the resulting correlation degree.
-* Return the correlation degree.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
 */
-double dspau_crosscorrelate(double* x, double* y, int len);
+double dspau_crosscorrelate(double* in1, double* in2, double* out, int len1, int len2, int *len);
 
 /**
 * @brief A band-pass auto-correlator (Warning: high memory usage!)
