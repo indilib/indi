@@ -1592,6 +1592,9 @@ bool Telescope::processLocationInfo(double latitude, double longitude, double el
         //  Update client display
         IDSetNumber(&LocationNP, nullptr);
 
+        // Always save geographic coord config immediately.
+        saveConfig(true, "GEOGRAPHIC_COORD");
+
         return true;
     }
     else

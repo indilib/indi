@@ -30,8 +30,8 @@ class LX200AstroPhysics : public LX200Generic
     LX200AstroPhysics();
     ~LX200AstroPhysics() {}
 
-    typedef enum { MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_L, MCV_UNKNOWN} ControllerVersion;
-    typedef enum { GTOCP1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
+    typedef enum { MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_L, MCV_P, MCV_UNKNOWN} ControllerVersion;
+    typedef enum { GTOCP1=1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
 
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual void ISGetProperties(const char *dev) override;
@@ -105,7 +105,7 @@ class LX200AstroPhysics : public LX200Generic
     void syncSideOfPier();
 
     bool timeUpdated=false, locationUpdated=false;
-    ControllerVersion controllerType = MCV_UNKNOWN;
+    ControllerVersion firmwareVersion = MCV_UNKNOWN;
     ServoVersion servoType = GTOCP_UNKNOWN;
 
     double currentAlt=0, currentAz=0;
@@ -113,4 +113,5 @@ class LX200AstroPhysics : public LX200Generic
     double lastAZ=0, lastAL=0;
 
     bool motionCommanded=false;
+    bool mountInitialized=false;
 };
