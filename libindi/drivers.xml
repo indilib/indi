@@ -41,11 +41,11 @@
                 <driver name="LX200 GPS">indi_lx200gps</driver>
 		<version>2.0</version>
         </device>
-        <device label="AstroPhysics">
-                <driver name="AstroPhysics">indi_lx200ap</driver>
+        <device label="AstroPhysics Experimental">
+                <driver name="AstroPhysics Experimental">indi_lx200ap_experimental</driver>
                 <version>1.0</version>
         </device>
-        <device label="AstroPhysics Legacy">
+        <device label="AstroPhysics">
                 <driver name="AstroPhysics Legacy">indi_lx200ap_legacy</driver>
                 <version>1.0</version>
         </device>
