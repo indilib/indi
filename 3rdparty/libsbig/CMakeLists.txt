@@ -4,6 +4,8 @@ PROJECT(libsbig C CXX)
 set(SBIG_VERSION "2.1.1")
 set(SBIG_SOVERSION "2")
 
+include(GNUInstallDirs)
+
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")

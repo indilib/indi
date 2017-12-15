@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(libqhy C CXX)
 
+include(GNUInstallDirs)
+
 set(LIBQHY_VERSION "1.0.1")
 set(LIBQHY_SOVERSION "1")
 
