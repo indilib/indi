@@ -101,40 +101,40 @@
                 <driver name="SkySensor2000PC">indi_lx200ss2000pc</driver>
                 <version>0.1</version>
         </device>
-        <device label="iEQ45 Pro">
+        <device label="iOptron iEQ45 Pro">
                 <driver name="iEQ">indi_ieq_telescope</driver>
                 <version>1.5</version>
         </device>
-        <device label="CEM60">
+        <device label="iOptron CEM60">
                 <driver name="iEQ">indi_ieq_telescope</driver>
                 <version>1.5</version>
         </device>
-        <device label="CEM25">
+        <device label="iOptron CEM25">
                 <driver name="iEQ">indi_ieq_telescope</driver>
                 <version>1.5</version>
         </device>
-        <device label="ZEQ25">
+        <device label="iOptron ZEQ25">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.1</version>
+                <version>1.2</version>
         </device>
-        <device label="iEQ30">
+        <device label="iOptron iEQ30">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.1</version>
+                <version>1.2</version>
         </device>
-        <device label="iEQ45">
+        <device label="iOptron iEQ45">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.1</version>
+                <version>1.2</version>
         </device>
-        <device label="SmartEQ">
+        <device label="iOptron SmartEQ">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.1</version>
+                <version>1.2</version>
         </device>
         <device label="GotoNova 8400 Kit">
                 <driver name="GotoNova">indi_lx200gotonova</driver>
                 <version>1.0</version>
         </device>
-        <device label="IOptron HC8406">
-                <driver name="IOptron HC8406">indi_ioptronHC8406</driver>
+        <device label="iOptron HC8406">
+                <driver name="iOptron HC8406">indi_ioptronHC8406</driver>
                 <version>1.1</version>
         </device>
         <device label="Pulsar2">

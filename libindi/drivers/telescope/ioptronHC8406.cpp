@@ -188,7 +188,7 @@ bool ioptronHC8406::updateProperties()
 
 const char *ioptronHC8406::getDefaultName()
 {
-    return (const char *)"IOptron HC8406";
+    return (const char *)"iOptron HC8406";
 }
 
 bool ioptronHC8406::checkConnection()
@@ -203,7 +203,7 @@ bool ioptronHC8406::checkConnection()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing IOptron using :V# CMD...");
+    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing iOptron using :V# CMD...");
 
     for (int i = 0; i < 2; i++)
     {
