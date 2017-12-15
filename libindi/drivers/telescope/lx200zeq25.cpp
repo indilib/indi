@@ -248,7 +248,7 @@ bool LX200ZEQ25::isSlewComplete()
     //strncpy(cmd, ":SE#", 16);
     const char *cmd = ":SE#";
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -292,7 +292,7 @@ bool LX200ZEQ25::getMountInfo()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -491,7 +491,7 @@ bool LX200ZEQ25::SetSlewRate(int index)
 
     snprintf(cmd, 8, ":SR%d#", index + 1);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -535,7 +535,7 @@ int LX200ZEQ25::getZEQ25MoveRate()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -855,9 +855,10 @@ int LX200ZEQ25::setZEQ25TrackMode(int mode)
 
 int LX200ZEQ25::setZEQ25Park()
 {
-    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", ":MP1#");
 
     if ((error_type = tty_write_string(PortFD, ":MP1#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -868,9 +869,10 @@ int LX200ZEQ25::setZEQ25Park()
 
 int LX200ZEQ25::setZEQ25UnPark()
 {
-    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", ":MP0#");
 
     if ((error_type = tty_write_string(PortFD, ":MP0#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -893,7 +895,7 @@ bool LX200ZEQ25::isZEQ25Parked()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -1032,6 +1034,7 @@ bool LX200ZEQ25::UnPark()
     }
 
     // Then we sync with to our last stored position
+#if 0
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
@@ -1069,6 +1072,7 @@ bool LX200ZEQ25::UnPark()
         DEBUG(INDI::Logger::DBG_WARNING, "Sync failed.");
         return false;
     }
+#endif
 
     SetParked(false);
     return true;
@@ -1208,7 +1212,7 @@ int LX200ZEQ25::getZEQ25GuideRate(double *rate)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (isSimulation())
     {
@@ -1270,7 +1274,7 @@ int LX200ZEQ25::setZEQ25GuideRate(double rate)
     int num = rate * 100;
     snprintf(cmd, 16, ":RG%03d#", num);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (isSimulation())
     {
@@ -1331,7 +1335,7 @@ int LX200ZEQ25::SendPulseCmd(int direction, int duration_msec)
             return 1;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     tty_write_string(PortFD, cmd, &nbytes_write);
 
