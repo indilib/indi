@@ -36,7 +36,7 @@
 
 LX200ZEQ25::LX200ZEQ25()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -249,6 +249,8 @@ bool LX200ZEQ25::isSlewComplete()
     const char *cmd = ":SE#";
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((errcode = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
     {
