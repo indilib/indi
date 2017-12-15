@@ -339,7 +339,9 @@ bool MathPluginManagement::Initialise(InMemoryDatabase *pInMemoryDatabase)
         AlignmentSubsystemMathPluginInternalBlob.blob = (void *)internal_data_representation.c_str();
         AlignmentSubsystemMathPluginInternalBlob.bloblen = internal_data_representation.size();
 	AlignmentSubsystemMathPluginInternalBlob.size = internal_data_representation.size();
-	IDSetBLOB(&AlignmentSubsystemMathPluginInternalBlobV, "New ALignment Subsytem Internal data");
+    //2017-12-15 JM: Disabling this BLOB since it can be distacting for clients to properly handle and stow away and confusing
+    // for many users. It should probably be logged to ~/.indi
+    //IDSetBLOB(&AlignmentSubsystemMathPluginInternalBlobV, "New ALignment Subsytem Internal data");
     }
     return retcode;
 }
