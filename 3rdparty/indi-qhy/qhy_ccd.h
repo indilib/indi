@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "qhyccd.h"
+#include <qhyccd.h>
 
 #include <indiccd.h>
 #include <indifilterinterface.h>
@@ -155,7 +155,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     float LastGainRequest;
 
     // Threading
-    int streamPredicate;
+    int streamPredicate=0;
     pthread_t primary_thread;
     bool terminateThread;
     pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;

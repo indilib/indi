@@ -561,14 +561,16 @@ bool QHYCCD::Connect()
     // Query the current CCD cameras. This method makes the driver more robust and
     // it fixes a crash with the new QHC SDK when the INDI driver reopens the same camera
     // with OpenQHYCCD() without a ScanQHYCCD() call before.
-    std::vector<std::string> devices = GetDevicesIDs();
+    // 2017-12-15 JM: No this method ReleaseQHYCCDResource which ends up clearing handles for multiple
+    // cameras
+    /*std::vector<std::string> devices = GetDevicesIDs();
 
     // The CCD device is not available anymore
     if (std::find(devices.begin(), devices.end(), std::string(camid)) == devices.end())
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error: Camera %s is not connected", camid);
         return false;
-    }
+    }*/
     camhandle = OpenQHYCCD(camid);
 
     if (camhandle != NULL)
@@ -990,11 +992,11 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
         return false;
     }
 
-    if (hor > 1 && GetCCDCapability() & CCD_HAS_BAYER)
+    /*if (hor > 1 && GetCCDCapability() & CCD_HAS_BAYER)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Binning not supported for color CCDs.");
         return false;
-    }
+    }*/
 
     /*if (useSoftBin)
         ret = QHYCCD_SUCCESS;
