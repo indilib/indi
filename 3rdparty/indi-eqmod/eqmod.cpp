@@ -3147,7 +3147,7 @@ void EQMod::timedguideWECallback(void *userpointer)
         }
     }
     p->GuideComplete(AXIS_RA);
-    DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_SESSION, "End Timed guide West/East");
+    DEBUGDEVICE(p->getDeviceName(), INDI::Logger::DBG_DEBUG, "End Timed guide West/East");
     IERmTimer(p->GuideTimerWE);
 }
 
