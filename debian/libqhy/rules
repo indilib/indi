@@ -5,3 +5,8 @@ include /usr/share/cdbs/1/class/cmake.mk
 
 DEB_SRCDIR=libqhy
 DEB_DH_SHLIBDEPS_ARGS=-u--ignore-missing-info
+
+override_dh_auto_configure:
+	dh_auto_configure
+	sed 's/@DEB_HOST_MULTIARCH@/$(DEB_HOST_MULTIARCH)/g' \
+		debian/libqhy.links.in > debian/libqhy.links
