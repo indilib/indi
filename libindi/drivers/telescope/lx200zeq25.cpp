@@ -36,7 +36,7 @@
 
 LX200ZEQ25::LX200ZEQ25()
 {
-    setVersion(1, 1);
+    setVersion(1, 3);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -248,7 +248,9 @@ bool LX200ZEQ25::isSlewComplete()
     //strncpy(cmd, ":SE#", 16);
     const char *cmd = ":SE#";
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((errcode = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
     {
@@ -290,7 +292,7 @@ bool LX200ZEQ25::getMountInfo()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -431,10 +433,10 @@ bool LX200ZEQ25::Goto(double r, double d)
             return false;
         }
 
-        if (slewZEQ25() == 0)
+        if (slewZEQ25() == false)
         {
             EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(1);
             return false;
         }
@@ -447,7 +449,7 @@ bool LX200ZEQ25::Goto(double r, double d)
     return true;
 }
 
-int LX200ZEQ25::slewZEQ25()
+bool LX200ZEQ25::slewZEQ25()
 {
     DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
     char slewNum[2];
@@ -472,7 +474,7 @@ int LX200ZEQ25::slewZEQ25()
 
     DEBUGF(DBG_SCOPE, "RES <%c>", slewNum[0]);
 
-    return slewNum[0];
+    return (slewNum[0] == '1');
 }
 
 bool LX200ZEQ25::SetSlewRate(int index)
@@ -489,7 +491,7 @@ bool LX200ZEQ25::SetSlewRate(int index)
 
     snprintf(cmd, 8, ":SR%d#", index + 1);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -533,7 +535,7 @@ int LX200ZEQ25::getZEQ25MoveRate()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -853,9 +855,10 @@ int LX200ZEQ25::setZEQ25TrackMode(int mode)
 
 int LX200ZEQ25::setZEQ25Park()
 {
-    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", ":MP1#");
 
     if ((error_type = tty_write_string(PortFD, ":MP1#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -866,9 +869,10 @@ int LX200ZEQ25::setZEQ25Park()
 
 int LX200ZEQ25::setZEQ25UnPark()
 {
-    DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
     int error_type;
     int nbytes_write = 0;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", ":MP0#");
 
     if ((error_type = tty_write_string(PortFD, ":MP0#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -891,7 +895,7 @@ bool LX200ZEQ25::isZEQ25Parked()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
@@ -1001,12 +1005,11 @@ bool LX200ZEQ25::Park()
         return false;
     }
 
-    int err = 0;
     /* Slew reads the '0', that is not the end of the slew */
-    if (slewZEQ25() == 0)
+    if (slewZEQ25() == false)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to Az %s - Alt %s", AzStr, AltStr);
-        slewError(err);
+        slewError(1);
         return false;
     }
 
@@ -1030,6 +1033,7 @@ bool LX200ZEQ25::UnPark()
     }
 
     // Then we sync with to our last stored position
+#if 0
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
 
@@ -1067,6 +1071,7 @@ bool LX200ZEQ25::UnPark()
         DEBUG(INDI::Logger::DBG_WARNING, "Sync failed.");
         return false;
     }
+#endif
 
     SetParked(false);
     return true;
@@ -1206,7 +1211,7 @@ int LX200ZEQ25::getZEQ25GuideRate(double *rate)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (isSimulation())
     {
@@ -1268,7 +1273,7 @@ int LX200ZEQ25::setZEQ25GuideRate(double rate)
     int num = rate * 100;
     snprintf(cmd, 16, ":RG%03d#", num);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (isSimulation())
     {
@@ -1329,7 +1334,7 @@ int LX200ZEQ25::SendPulseCmd(int direction, int duration_msec)
             return 1;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     tty_write_string(PortFD, cmd, &nbytes_write);
 

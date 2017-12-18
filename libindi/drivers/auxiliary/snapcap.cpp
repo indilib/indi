@@ -177,7 +177,7 @@ bool SnapCap::updateProperties()
 
 const char *SnapCap::getDefaultName()
 {
-    return (const char *)"SnapScap";
+    return (const char *)"SnapCap";
 }
 
 bool SnapCap::Handshake()
@@ -281,7 +281,12 @@ bool SnapCap::saveConfigItems(FILE *fp)
 
 bool SnapCap::ping()
 {
-    return getFirmwareVersion();
+    bool found = getFirmwareVersion();
+    // Sometimes the controller does a corrupt reply at first connect
+    // so retry once just in case
+    if (!found)
+        found = getFirmwareVersion();
+    return found;
 }
 
 bool SnapCap::getStartupData()

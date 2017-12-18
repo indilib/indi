@@ -48,7 +48,7 @@ LX200AstroPhysicsLegacy::LX200AstroPhysicsLegacy() : LX200Generic()
 
 const char *LX200AstroPhysicsLegacy::getDefaultName()
 {
-    return (const char *)"AstroPhysics Legacy";
+    return (const char *)"AstroPhysics";
 }
 
 bool LX200AstroPhysicsLegacy::initProperties()

@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(libqhy C CXX)
 
-set(LIBQHY_VERSION "1.0.1")
+include(GNUInstallDirs)
+
+# QHY SDK Built on 2017-12-15
+set(LIBQHY_VERSION "1.0.6")
 set(LIBQHY_SOVERSION "1")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")

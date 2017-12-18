@@ -30,9 +30,14 @@
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
 #include "stdint.h"
+#include <libusb.h>
 
 #ifdef WIN32
 #include "cyapi.h"
+#endif
+
+#ifdef LINUX
+#include <unistd.h>
 #endif
 
 #ifndef __QHYCCD_H__
@@ -43,6 +48,28 @@ typedef CCyUSBDevice qhyccd_handle;
 #elif defined (LINUX)
 typedef struct libusb_device_handle qhyccd_handle;
 #endif
+
+EXPORTC void STDCALL LibUsbInit(libusb_context **pContext);
+EXPORTC void STDCALL LibUsbExit(libusb_context *pContext);
+
+//EXPORTC void STDCALL DevMutexInit();
+//EXPORTC void STDCALL DevMutexDestroy();
+//EXPORTC void STDCALL DevMutexLock();
+//EXPORTC void STDCALL DevMutexUnlock();
+//EXPORTC int STDCALL DevMutexTrylock();
+
+EXPORTC void STDCALL msSleep(uint32_t ms);
+EXPORTC uint32_t qhyccd_handle2index(qhyccd_handle *pHandle);
+
+#ifdef LINUX
+static uint32_t DeviceIsQHYCCD(uint32_t index, libusb_device *pDevice);
+#else
+static uint32_t DeviceIsQHYCCD(uint32_t index, uint32_t vid, uint32_t pid);
+#endif
+static uint32_t QHYCCDSeriesMatch(uint32_t index, qhyccd_handle *pHandle);
+static uint32_t GetIdFromCam(qhyccd_handle *pHandle, char *id);
+uint32_t qhyccd_handle2index(qhyccd_handle *pHandle);
+uint32_t InitQHYCCDClass(uint32_t camtype, uint32_t index);
 
 /** \fn uint32_t InitQHYCCDResource()
       \brief initialize QHYCCD SDK resource
@@ -409,7 +436,6 @@ EXPORTC void  STDCALL HistInfo192x130(qhyccd_handle *h,uint32_t x,uint32_t y,uin
 EXPORTC uint32_t STDCALL OSXInitQHYCCDFirmware(char *path);
 
 
-
 /** @fn uint32_t GetQHYCCDChipInfo(qhyccd_handle *h,double *chipw,double *chiph,uint32_t *imagew,uint32_t *imageh,double *pixelw,double *pixelh,uint32_t *bpp)
       @brief get the camera's ccd/cmos chip info
       @param h camera control handle
@@ -705,5 +731,7 @@ EXPORTC uint32_t STDCALL QHYCCDReadUSB_SYNC(qhyccd_handle *pDevHandle, uint8_t e
 EXPORTC uint32_t STDCALL QHYCCDLibusbBulkTransfer(qhyccd_handle *pDevHandle, uint8_t endpoint, uint8_t *data, uint32_t length, int32_t *transferred, uint32_t timeout);
 
 EXPORTC uint32_t STDCALL GetQHYCCDSDKVersion(uint32_t *year,uint32_t *month,uint32_t *day,uint32_t *subday);
+
+EXPORTC void STDCALL print_cydev(char *pTitle);
 
 #endif

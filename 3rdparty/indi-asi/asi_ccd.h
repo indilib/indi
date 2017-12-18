@@ -124,8 +124,8 @@ class ASICCD : public INDI::CCD
     bool sim;
 
     // Threads
-    int streamPredicate;
-    bool terminateThread;
+    int streamPredicate=0;
+    bool terminateThread=false;
     pthread_t primary_thread;
     pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
     pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
