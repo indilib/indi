@@ -6,6 +6,6 @@ include /usr/share/cdbs/1/class/cmake.mk
 
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 DEB_SRCDIR=libsbig
-DEB_DH_SHLIBDEPS_ARGS=-u--ignore-missing-info
-DEB_DH_LINK_ARGS := usr/lib/${DEB_HOST_MULTIARCH}/libsbigudrv.so.$(DEB_UPSTREAM_VERSION) usr/lib/${DEB_HOST_MULTIARCH}/libsbigudrv.so.2 \
+DEB_DH_SHLIBDEPS_ARGS=-u--ignore-missing-infoz
+DEB_DH_LINK_ARGS := usr/lib/${DEB_HOST_MULTIARCH}/libsbigudrv.so.$(DEB_VERSION) usr/lib/${DEB_HOST_MULTIARCH}/libsbigudrv.so.2 \
                     usr/lib/${DEB_HOST_MULTIARCH}/libsbigudrv.so.2 usr/lib/${DEB_HOST_MULTIARCH}/libsbigudrv.so
