@@ -36,7 +36,7 @@
 
 LX200ZEQ25::LX200ZEQ25()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -433,10 +433,10 @@ bool LX200ZEQ25::Goto(double r, double d)
             return false;
         }
 
-        if (slewZEQ25() == 0)
+        if (slewZEQ25() == false)
         {
             EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(1);
             return false;
         }
@@ -449,7 +449,7 @@ bool LX200ZEQ25::Goto(double r, double d)
     return true;
 }
 
-int LX200ZEQ25::slewZEQ25()
+bool LX200ZEQ25::slewZEQ25()
 {
     DEBUGF(DBG_SCOPE, "<%s>", __FUNCTION__);
     char slewNum[2];
@@ -474,7 +474,7 @@ int LX200ZEQ25::slewZEQ25()
 
     DEBUGF(DBG_SCOPE, "RES <%c>", slewNum[0]);
 
-    return slewNum[0];
+    return (slewNum[0] == '1');
 }
 
 bool LX200ZEQ25::SetSlewRate(int index)
@@ -1005,12 +1005,11 @@ bool LX200ZEQ25::Park()
         return false;
     }
 
-    int err = 0;
     /* Slew reads the '0', that is not the end of the slew */
-    if (slewZEQ25() == 0)
+    if (slewZEQ25() == false)
     {
         DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to Az %s - Alt %s", AzStr, AltStr);
-        slewError(err);
+        slewError(1);
         return false;
     }
 
