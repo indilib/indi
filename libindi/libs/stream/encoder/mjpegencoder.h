@@ -19,6 +19,8 @@
 
 */
 
+#pragma once
+
 #include "encoderinterface.h"
 
 namespace INDI
