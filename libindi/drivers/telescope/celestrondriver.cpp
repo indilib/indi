@@ -2,6 +2,7 @@
     Celestron driver
 
     Copyright (C) 2015 Jasem Mutlaq
+    Copyright (C) 2017 Juan Menendez
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -196,21 +197,22 @@ void CelestronDriver::set_sim_alt(double alt)
 
 // Send a command to the mount. Return the number of bytes received or 0 if
 // case of error
-int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp, int resp_len)
+int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
+        int resp_len, bool ascii_cmd, bool ascii_resp)
 {
     int err;
     int nbytes = resp_len;
     char errmsg[MAXRBUF];
     char hexbuf[3 * MAX_RESP_SIZE];
 
-    // Some commands must be represented as hex strings when debugging
-    if (cmd[0] == 0x50 || cmd[0] == 'W' || cmd[0] == 'H')
+    if (ascii_cmd)
+        DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    else
     {
+        // Non-ASCII commands should be represented as hex strings
         hex_dump(hexbuf, cmd, cmd_len);
         DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "CMD <%s>", hexbuf);
     }
-    else
-        DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (!simulation && fd)
     {
@@ -225,7 +227,12 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp, int 
 
         if (resp_len > 0)
         {
-            if ((err = tty_read_section(fd, resp, '#', CELESTRON_TIMEOUT, &nbytes)))
+            if (ascii_resp)
+                err = tty_read_section(fd, resp, '#', CELESTRON_TIMEOUT, &nbytes);
+            else
+                err = tty_read(fd, resp, resp_len, CELESTRON_TIMEOUT, &nbytes);
+
+            if (err)
             {
                 tty_error_msg(err, errmsg, MAXRBUF);
                 DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -245,8 +252,15 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp, int 
     }
     resp[nbytes] = '\0';
 
-    hex_dump(hexbuf, resp, resp_len);
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "RES <%s>", hexbuf);
+    if (ascii_resp)
+        DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "RES <%s>", resp);
+    else
+    {
+        // Non-ASCII commands should be represented as hex strings
+        hex_dump(hexbuf, resp, resp_len);
+        DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "RES <%s>", hexbuf);
+    }
+
     return nbytes;
 }
 
@@ -266,7 +280,7 @@ int CelestronDriver::send_passthrough(int dest, int cmd_id,
     // payload_len must be <= 3 !
     memcpy(cmd + 4, payload, payload_len);
 
-    return send_command(cmd, 8, response, response_len + 1);
+    return send_command(cmd, 8, response, response_len + 1, false, false);
 }
 
 bool CelestronDriver::check_connection()
@@ -333,7 +347,7 @@ bool CelestronDriver::echo()
 {
     strcpy(response, "x#");  // Simulated response
 
-    if (!send_command("Kx", 2, response, 2))
+    if (!send_command("Kx", 2, response, 2, true, true))
         return false;
 
     return !strcmp(response, "x#");
@@ -343,7 +357,7 @@ bool CelestronDriver::get_version(char *version, int size)
 {
     strcpy(response, "\x04\x04#");  // Simulated response
 
-    if (!send_command("V", 1, response, 3))
+    if (!send_command("V", 1, response, 3, true, false))
         return false;
 
     snprintf(version, size, "%d.%02d", response[0], response[1]);
@@ -357,7 +371,7 @@ bool CelestronDriver::get_variant(char *variant)
 {
     strcpy(response, "\x11#");  // Simulated response
 
-    if (!send_command("v", 1, response, 2))
+    if (!send_command("v", 1, response, 2, true, false))
         return false;
 
     *variant = response[0];
@@ -385,7 +399,7 @@ bool CelestronDriver::get_model(char *model, int size)
 
     strcpy(response, "\x06#");  // Simulated response
 
-    if (!send_command("m", 1, response, 2))
+    if (!send_command("m", 1, response, 2, true, false))
         return false;
 
     int m = response[0];
@@ -484,7 +498,7 @@ bool CelestronDriver::stop_motion(CELESTRON_DIRECTION dir)
 bool CelestronDriver::abort()
 {
     strcpy(response, "#");  // Simulated response
-    return send_command("M", 1, response, 1);
+    return send_command("M", 1, response, 1, true, true);
 }
 
 //TODO: check response length ("Requested object is below horizon")
@@ -505,7 +519,7 @@ bool CelestronDriver::slew_radec(double ra, double dec, bool precise)
         sprintf(cmd, "R%04X,%04X", dd2nex(ra*15), dd2nex(dec));
 
     strcpy(response, "#");  // Simulated response
-    return send_command(cmd, strlen(cmd), response, 1);
+    return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
 //TODO: check response length ("Requested object is below horizon")
@@ -526,7 +540,7 @@ bool CelestronDriver::slew_azalt(double az, double alt, bool precise)
         sprintf(cmd, "B%04X,%04X", dd2nex(az), dd2nex(alt));
 
     strcpy(response, "#");  // Simulated response
-    return send_command(cmd, strlen(cmd), response, 1);
+    return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
 //TODO: check response length ("Requested object is below horizon")
@@ -548,7 +562,7 @@ bool CelestronDriver::sync(double ra, double dec, bool precise)
         sprintf(cmd, "S%04X,%04X", dd2nex(ra*15), dd2nex(dec));
 
     strcpy(response, "#");  // Simulated response
-    return send_command(cmd, 10, response, 1);
+    return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
 void parseCoordsResponse(char *response, double *d1, double *d2, bool precise)
@@ -576,7 +590,7 @@ bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
         if (simulation)
             sprintf(response, "%08X,%08X#", dd2pnex(sim_data.ra*15), dd2pnex(sim_data.dec));
 
-        if (!send_command("e", 1, response, 18))
+        if (!send_command("e", 1, response, 18, true, true))
             return false;
     }
     else
@@ -584,7 +598,7 @@ bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
         if (simulation)
             sprintf(response, "%04X,%04X#", dd2nex(sim_data.ra*15), dd2nex(sim_data.dec));
 
-        if (!send_command("E", 1, response, 10))
+        if (!send_command("E", 1, response, 10, true, true))
             return false;
     }
 
@@ -608,7 +622,7 @@ bool CelestronDriver::get_azalt(double *az, double *alt, bool precise)
         //if (simulation)
         //sprintf(response, "%08X,%08X#", dd2pnex(sim_data.az), dd2pnex(sim_data.alt));
 
-        if (!send_command("z", 1, response, 18))
+        if (!send_command("z", 1, response, 18, true, true))
             return false;
     }
     else
@@ -616,7 +630,7 @@ bool CelestronDriver::get_azalt(double *az, double *alt, bool precise)
         //if (simulation)
         //sprintf(response, "%04X,%04X#", dd2nex(sim_data.az), dd2nex(sim_data.alt));
 
-        if (!send_command("Z", 1, response, 10))
+        if (!send_command("Z", 1, response, 10, true, true))
             return false;
     }
 
@@ -653,7 +667,7 @@ bool CelestronDriver::set_location(double longitude, double latitude)
     cmd[8] = long_d > 0 ? 0 : 1;
 
     strcpy(response, "#");  // Simulated response
-    return send_command(cmd, 9, response, 1);
+    return send_command(cmd, 9, response, 1, false, true);
 }
 
 bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset)
@@ -681,7 +695,7 @@ bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset)
     cmd[8] = 0;
 
     strcpy(response, "#");  // Simulated response
-    return send_command(cmd, 9, response, 1);
+    return send_command(cmd, 9, response, 1, false, true);
 }
 
 bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
@@ -691,7 +705,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     char sim_resp[] = {17, 30, 10, 4, 1, 15, 3, 0, '#'};
     strcpy(response, sim_resp);
 
-    if (!send_command("h", 1, response, 9))
+    if (!send_command("h", 1, response, 9, true, false))
         return false;
 
     // HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT
@@ -733,7 +747,7 @@ bool CelestronDriver::is_slewing()
 {
     sprintf(response, "%d#", sim_data.isSlewing);    // Simulated response
 
-    if (!send_command("L", 1, response, 2))
+    if (!send_command("L", 1, response, 2, true, true))
         return false;
 
     return response[0] != '0';
@@ -743,7 +757,7 @@ bool CelestronDriver::get_track_mode(CELESTRON_TRACK_MODE *mode)
 {
     strcpy(response, "\02#");   // Simulated response
 
-    if (!send_command("t", 1, response, 2))
+    if (!send_command("t", 1, response, 2, true, false))
         return false;
 
     *mode = ((CELESTRON_TRACK_MODE)response[0]);
@@ -756,16 +770,16 @@ bool CelestronDriver::set_track_mode(CELESTRON_TRACK_MODE mode)
     sprintf(cmd, "T%c", mode);
     strcpy(response, "#");  // Simulated response
 
-    return send_command(cmd, 2, response, 1);
+    return send_command(cmd, 2, response, 1, false, true);
 }
 
 bool CelestronDriver::hibernate()
 {
-    return send_command("x#", 2, response, 0);
+    return send_command("x#", 2, response, 0, true, true);
 }
 
 bool CelestronDriver::wakeup()
 {
     strcpy(response, "#");  // Simulated response
-    return send_command("y#", 2, response, 1);
+    return send_command("y#", 2, response, 1, true, true);
 }

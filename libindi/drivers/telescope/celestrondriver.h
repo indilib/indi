@@ -2,6 +2,7 @@
     Celestron driver
 
     Copyright (C) 2015 Jasem Mutlaq
+    Copyright (C) 2017 Juan Menendez
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -128,9 +129,10 @@ class CelestronDriver
         int get_pulse_status(CELESTRON_DIRECTION direction, bool &pulse_state);
 
     protected:
-        int send_command(const char *cmd, int cmd_len, char *resp, int resp_len);
+        int send_command(const char *cmd, int cmd_len, char *resp, int resp_len,
+                bool ascii_cmd, bool ascii_resp);
         int send_passthrough(int dest, int cmd_id, const char *payload,
-                             int payload_len, char *response, int response_len);
+                int payload_len, char *response, int response_len);
 
     private:
         int fd = 0;
