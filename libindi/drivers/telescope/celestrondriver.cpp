@@ -43,6 +43,20 @@
 #define CELESTRON_DEV_DEC 0x11
 #define CELESTRON_DEV_GPS 0xb0
 
+// logging macros
+#define LOG_DEBUG(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, (txt))
+#define LOG_INFO(txt)   DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, (txt))
+#define LOG_WARN(txt)   DEBUGDEVICE(device_str, INDI::Logger::DBG_WARNING, (txt))
+#define LOG_ERROR(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, (txt))
+#define LOG_EXTRA(...)  DEBUGDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, (txt))
+
+#define LOGF_DEBUG(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, __VA_ARGS__)
+#define LOGF_INFO(...)  DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION, __VA_ARGS__)
+#define LOGF_WARN(...)  DEBUGFDEVICE(device_str, INDI::Logger::DBG_WARNING, __VA_ARGS__)
+#define LOGF_ERROR(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR, __VA_ARGS__)
+#define LOGF_EXTRA(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, __VA_ARGS__)
+
+
 char device_str[MAXINDIDEVICE] = "Celestron GPS";
 
 
@@ -96,35 +110,6 @@ inline double pnex2dd(uint32_t value)
     return 360.0 * ((double)value / 0x100000000);
 }
 
-/*
-uint16_t get_az_fraction(double az)
-{
-    return (uint16_t)(az * 65536 / 360.0) + 0x4000;
-}
-
-uint16_t get_alt_fraction(double lat, double alt, double az)
-{
-    uint16_t alt_int = 0;
-
-    if (alt >= 0)
-    {
-        // North
-        if (az >= 270 || az <= 90)
-            alt_int = (uint16_t)((alt - lat) * 65536 / 360.0) + 0x4000;
-        else
-            alt_int = (uint16_t)((180 - (lat + alt)) * 65536 / 360.0) + 0x4000;
-    }
-    else
-    {
-        if (az >= 270 || az <= 90)
-            alt_int = (uint16_t)((360 - lat + alt) * 65536 / 360.0) + 0x4000;
-        else
-            alt_int = (uint16_t)((180 - (lat + alt)) * 65536 / 360.0) + 0x4000;
-    }
-
-    return alt_int;
-}
-*/
 
 void CelestronDriver::set_port_fd(int port_fd)
 {
@@ -206,12 +191,12 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
     char hexbuf[3 * MAX_RESP_SIZE];
 
     if (ascii_cmd)
-        DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+        LOGF_DEBUG("CMD <%s>", cmd);
     else
     {
         // Non-ASCII commands should be represented as hex strings
         hex_dump(hexbuf, cmd, cmd_len);
-        DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "CMD <%s>", hexbuf);
+        LOGF_DEBUG("CMD <%s>", hexbuf);
     }
 
     if (!simulation && fd)
@@ -221,7 +206,7 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
         if ((err = tty_write(fd, cmd, cmd_len, &nbytes)) != TTY_OK)
         {
             tty_error_msg(err, errmsg, MAXRBUF);
-            DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return 0;
         }
 
@@ -235,7 +220,7 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
             if (err)
             {
                 tty_error_msg(err, errmsg, MAXRBUF);
-                DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR, "%s", errmsg);
+                LOGF_ERROR("%s", errmsg);
                 return 0;
             }
 
@@ -246,19 +231,18 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
     //if (resp_len >= 0 && nbytes != resp_len)
     if (resp_len > 0 && nbytes != resp_len)
     {
-        DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR,
-                     "Received %d bytes, expected %d.", nbytes, resp_len);
+        LOGF_ERROR("Received %d bytes, expected %d.", nbytes, resp_len);
         return 0;
     }
     resp[nbytes] = '\0';
 
     if (ascii_resp)
-        DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "RES <%s>", resp);
+        LOGF_DEBUG("RES <%s>", resp);
     else
     {
         // Non-ASCII commands should be represented as hex strings
         hex_dump(hexbuf, resp, resp_len);
-        DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "RES <%s>", hexbuf);
+        LOGF_DEBUG("RES <%s>", hexbuf);
     }
 
     return nbytes;
@@ -266,8 +250,8 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
 
 // Send a 'passthrough command' to the mount. Return the number of bytes
 // received or 0 in case of error
-int CelestronDriver::send_passthrough(int dest, int cmd_id,
-                                      const char *payload, int payload_len, char *response, int response_len)
+int CelestronDriver::send_passthrough(int dest, int cmd_id, const char *payload,
+        int payload_len, char *response, int response_len)
 {
     char cmd[8] = {0};
 
@@ -285,7 +269,7 @@ int CelestronDriver::send_passthrough(int dest, int cmd_id,
 
 bool CelestronDriver::check_connection()
 {
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Initializing Celestron using Kx CMD...");
+    LOG_DEBUG("Initializing Celestron using Kx CMD...");
 
     for (int i = 0; i < 2; i++) {
         if (echo())
@@ -301,13 +285,13 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
 {
     char version[8], model[16], RAVersion[8], DEVersion[8];
 
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Getting controller version...");
+    LOG_DEBUG("Getting controller version...");
     if (!get_version(version, 8))
         return false;
     info->Version = version;
     info->controllerVersion = atof(version);
 
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Getting controller variant...");
+    LOG_DEBUG("Getting controller variant...");
     info->controllerVariant = ISNEXSTAR;
     get_variant(&(info->controllerVariant));
 
@@ -315,7 +299,7 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
             info->controllerVersion >= MINSTSENSVER) ||
             (info->controllerVersion >= 2.2))
     {
-        DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Getting controller model...");
+        LOG_DEBUG("Getting controller model...");
         if (!get_model(model, 16))
             return false;
         info->Model = model;
@@ -323,19 +307,19 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
     else
         info->Model = "Unknown";
 
-    //DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Getting GPS firmware version...");
+    //LOG_DEBUG("Getting GPS firmware version...");
     // char GPSVersion[8];
     //if (!get_dev_firmware(CELESTRON_DEV_GPS, GPSVersion, 8))
     //return false;
     //info->GPSFirmware = GPSVersion;
     info->GPSFirmware = "0.0";
 
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Getting RA firmware version...");
+    LOG_DEBUG("Getting RA firmware version...");
     if (!get_dev_firmware(CELESTRON_DEV_RA, RAVersion, 8))
         return false;
     info->RAFirmware = RAVersion;
 
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Getting DEC firmware version...");
+    LOG_DEBUG("Getting DEC firmware version...");
     if (!get_dev_firmware(CELESTRON_DEV_DEC, DEVersion, 8))
         return false;
     info->DEFirmware = DEVersion;
@@ -362,7 +346,7 @@ bool CelestronDriver::get_version(char *version, int size)
 
     snprintf(version, size, "%d.%02d", response[0], response[1]);
 
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION, "Controller version: %s", version);
+    LOGF_INFO("Controller version: %s", version);
     return true;
 }
 
@@ -407,12 +391,12 @@ bool CelestronDriver::get_model(char *model, int size)
     if (models.find(m) != models.end())
     {
         strncpy(model, models[m].c_str(), size);
-        DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION, "Mount model: %s", model);
+        LOGF_INFO("Mount model: %s", model);
     }
     else
     {
         strncpy(model, "Unknown", size);
-        DEBUGFDEVICE(device_str, INDI::Logger::DBG_WARNING, "Unrecognized model (%d).", model);
+        LOGF_WARN("Unrecognized model (%d).", model);
     }
     return true;
 }
@@ -501,14 +485,13 @@ bool CelestronDriver::abort()
     return send_command("M", 1, response, 1, true, true);
 }
 
-//TODO: check response length ("Requested object is below horizon")
 bool CelestronDriver::slew_radec(double ra, double dec, bool precise)
 {
     char RAStr[16], DecStr[16];
     fs_sexa(RAStr, ra, 2, 3600);
     fs_sexa(DecStr, dec, 2, 3600);
 
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Goto (%s,%s)", RAStr, DecStr);
+    LOGF_DEBUG("Goto (%s,%s)", RAStr, DecStr);
 
     set_sim_slewing(true);
 
@@ -522,14 +505,13 @@ bool CelestronDriver::slew_radec(double ra, double dec, bool precise)
     return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
-//TODO: check response length ("Requested object is below horizon")
 bool CelestronDriver::slew_azalt(double az, double alt, bool precise)
 {
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, az, 3, 3600);
     fs_sexa(AltStr, alt, 2, 3600);
 
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Goto AZM-ALT (%s,%s)", AzStr, AltStr);
+    LOGF_DEBUG("Goto AZM-ALT (%s,%s)", AzStr, AltStr);
 
     set_sim_slewing(true);
 
@@ -543,14 +525,13 @@ bool CelestronDriver::slew_azalt(double az, double alt, bool precise)
     return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
-//TODO: check response length ("Requested object is below horizon")
 bool CelestronDriver::sync(double ra, double dec, bool precise)
 {
     char RAStr[16], DecStr[16];
     fs_sexa(RAStr, ra, 2, 3600);
     fs_sexa(DecStr, dec, 2, 3600);
 
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "Sync (%s,%s)", RAStr, DecStr);
+    LOGF_DEBUG("Sync (%s,%s)", RAStr, DecStr);
 
     sim_data.ra  = ra;
     sim_data.dec = dec;
@@ -610,7 +591,7 @@ bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
     fs_sexa(RAStr, *ra, 2, 3600);
     fs_sexa(DecStr, *dec, 2, 3600);
 
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, "RA-DEC (%s,%s)", RAStr, DecStr);
+    LOGF_EXTRA("RA-DEC (%s,%s)", RAStr, DecStr);
     return true;
 }
 
@@ -639,8 +620,7 @@ bool CelestronDriver::get_azalt(double *az, double *alt, bool precise)
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, *az, 3, 3600);
     fs_sexa(AltStr, *alt, 2, 3600);
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_EXTRA_1,
-                 "RES <%s> ==> AZM-ALT (%s,%s)", response, AzStr, AltStr);
+    LOGF_EXTRA("RES <%s> ==> AZM-ALT (%s,%s)", response, AzStr, AltStr);
     return true;
 }
 
