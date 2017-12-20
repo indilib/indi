@@ -62,12 +62,12 @@ EXPORTC void STDCALL msSleep(uint32_t ms);
 EXPORTC uint32_t qhyccd_handle2index(qhyccd_handle *pHandle);
 
 #ifdef LINUX
-static uint32_t DeviceIsQHYCCD(uint32_t index, libusb_device *pDevice);
+uint32_t DeviceIsQHYCCD(uint32_t index, libusb_device *pDevice);
 #else
-static uint32_t DeviceIsQHYCCD(uint32_t index, uint32_t vid, uint32_t pid);
+uint32_t DeviceIsQHYCCD(uint32_t index, uint32_t vid, uint32_t pid);
 #endif
-static uint32_t QHYCCDSeriesMatch(uint32_t index, qhyccd_handle *pHandle);
-static uint32_t GetIdFromCam(qhyccd_handle *pHandle, char *id);
+uint32_t QHYCCDSeriesMatch(uint32_t index, qhyccd_handle *pHandle);
+uint32_t GetIdFromCam(qhyccd_handle *pHandle, char *id);
 uint32_t qhyccd_handle2index(qhyccd_handle *pHandle);
 uint32_t InitQHYCCDClass(uint32_t camtype, uint32_t index);
 
