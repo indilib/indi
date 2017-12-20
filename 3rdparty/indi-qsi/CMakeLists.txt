@@ -34,7 +34,7 @@ set(indiqsi_SRCS
 
 add_executable(indi_qsi_ccd ${indiqsi_SRCS})
 
-target_link_libraries(indi_qsi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${QSI_LIBRARIES} )
+target_link_libraries(indi_qsi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${QSI_LIBRARIES})
 
 install(TARGETS indi_qsi_ccd RUNTIME DESTINATION bin )
 
