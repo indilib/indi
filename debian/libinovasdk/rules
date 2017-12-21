@@ -2,9 +2,10 @@
 
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/cmake.mk
-include /usr/share/cdbs/1/rules/buildvars.mk
 
 DEB_SRCDIR=libinovasdk
 DEB_DH_SHLIBDEPS_ARGS=-u--ignore-missing-info
-DEB_DH_LINK_ARGS := usr/lib/${DEB_HOST_MULTIARCH}/libinovasdk.so.$(DEB_VERSION) usr/lib/${DEB_HOST_MULTIARCH}/libinovasdk.so.1 \
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+DEB_PACKAGE_VERSION := $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+DEB_DH_LINK_ARGS := usr/lib/${DEB_HOST_MULTIARCH}/libinovasdk.so.${DEB_PACKAGE_VERSION} usr/lib/${DEB_HOST_MULTIARCH}/libinovasdk.so.1 \
 	            usr/lib/${DEB_HOST_MULTIARCH}/libinovasdk.so.1 usr/lib/${DEB_HOST_MULTIARCH}/libinovasdk.so
