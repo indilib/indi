@@ -3,8 +3,8 @@ PROJECT(libqhy C CXX)
 
 include(GNUInstallDirs)
 
-# QHY SDK Built on 2017-12-15
-set(LIBQHY_VERSION "1.0.6")
+# QHY SDK Built on 2017-12-20
+set(LIBQHY_VERSION "1.0.8")
 set(LIBQHY_SOVERSION "1")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
@@ -12,7 +12,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 
 IF (APPLE)
 
-install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h DESTINATION include/libqhy)
+install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h DESTINATION include/libqhy)
 install(FILES libqhy.dylib DESTINATION lib RENAME libqhy.0.dylib)
 
 # Make sure symbolic links are installed
@@ -52,7 +52,7 @@ exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.so.${LIBQHY_VERSION}
 exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.so.${LIBQHY_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so)\n
 ")
 
-install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h DESTINATION include/libqhy)
+install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h DESTINATION include/libqhy)
 install(FILES ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
 install(FILES 85-qhy.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 install(

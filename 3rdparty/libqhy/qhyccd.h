@@ -22,15 +22,11 @@
  file called LICENSE.
  */
 
-/*! 
- * @file qhyccd.h
- * @brief QHYCCD SDK interface for programmers
- */
+#include "qhycam.h"
 #include "qhyccderr.h"
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
 #include "stdint.h"
-#include <libusb.h>
 
 #ifdef WIN32
 #include "cyapi.h"
@@ -38,6 +34,7 @@
 
 #ifdef LINUX
 #include <unistd.h>
+#include <libusb.h>
 #endif
 
 #ifndef __QHYCCD_H__
@@ -49,8 +46,7 @@ typedef CCyUSBDevice qhyccd_handle;
 typedef struct libusb_device_handle qhyccd_handle;
 #endif
 
-EXPORTC void STDCALL LibUsbInit(libusb_context **pContext);
-EXPORTC void STDCALL LibUsbExit(libusb_context *pContext);
+uint32_t qhyccd_handle2index(qhyccd_handle *pHandle);
 
 //EXPORTC void STDCALL DevMutexInit();
 //EXPORTC void STDCALL DevMutexDestroy();
@@ -59,17 +55,18 @@ EXPORTC void STDCALL LibUsbExit(libusb_context *pContext);
 //EXPORTC int STDCALL DevMutexTrylock();
 
 EXPORTC void STDCALL msSleep(uint32_t ms);
-EXPORTC uint32_t qhyccd_handle2index(qhyccd_handle *pHandle);
 
 #ifdef LINUX
-uint32_t DeviceIsQHYCCD(uint32_t index, libusb_device *pDevice);
+//EXPORTC void STDCALL LibUsbInit(libusb_context **pContext);
+//EXPORTC void STDCALL LibUsbExit(libusb_context *pContext);
+uint32_t DeviceIsQHYCCD(uint32_t index, qhyccd_device *pDevice);
 #else
 uint32_t DeviceIsQHYCCD(uint32_t index, uint32_t vid, uint32_t pid);
 #endif
+
 uint32_t QHYCCDSeriesMatch(uint32_t index, qhyccd_handle *pHandle);
 uint32_t GetIdFromCam(qhyccd_handle *pHandle, char *id);
-uint32_t qhyccd_handle2index(qhyccd_handle *pHandle);
-uint32_t InitQHYCCDClass(uint32_t camtype, uint32_t index);
+EXPORTC uint32_t STDCALL InitQHYCCDClass(uint32_t camtype, uint32_t index);
 
 /** \fn uint32_t InitQHYCCDResource()
       \brief initialize QHYCCD SDK resource
