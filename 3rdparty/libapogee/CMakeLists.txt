@@ -10,7 +10,12 @@ include(GNUInstallDirs)
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 set(CONF_DIR "/etc/Apogee/camera" CACHE STRING "Configuration directory")
 
+IF(APPLE)
+set(APOGEE_VERSION "3.0.3.2.3.4")
+ELSE(APPLE)
 set(APOGEE_VERSION "3.0.3234")
+ENDIF()
+
 set(APOGEE_SOVERSION "3")
 
 find_package(USB1 REQUIRED)
