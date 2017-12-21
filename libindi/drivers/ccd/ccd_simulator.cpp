@@ -17,6 +17,7 @@
 *******************************************************************************/
 
 #include "ccd_simulator.h"
+#include "indicom.h"
 #include "stream/streammanager.h"
 
 #include "locale_compat.h"
@@ -191,7 +192,7 @@ bool CCDSim::initProperties()
 
     IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqPENP, EqPEN, 2, ActiveDeviceT[0].text, "EQUATORIAL_PE", "EQ PE", "Main Control", IP_RW, 60,
+    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config" , IP_RW, 60,
                        IPS_IDLE);
 
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
@@ -231,6 +232,7 @@ void CCDSim::ISGetProperties(const char *dev)
 
     defineNumber(SimulatorSettingsNV);
     defineSwitch(TimeFactorSV);
+    defineNumber(&EqPENP);
 }
 
 bool CCDSim::updateProperties()
@@ -1027,14 +1029,9 @@ bool CCDSim::ISNewText(const char *dev, const char *name, char *texts[], char *n
 
 bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    //  first check if it's for our device
-    //IDLog("INDI::CCD::ISNewNumber %s\n",name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        //  This is for our device
-        //  Now lets see if it's something we process here
 
-        //IDLog("CCDSim::ISNewNumber %s\n",name);
         if (strcmp(name, "SIMULATOR_SETTINGS") == 0)
         {
             IUUpdateNumber(SimulatorSettingsNV, values, names, n);
@@ -1044,8 +1041,26 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
             SetupParms();
             IDSetNumber(SimulatorSettingsNV, nullptr);
 
-            //IDLog("Frame set to %4.0f,%4.0f %4.0f x %4.0f\n",CcdFrameN[0].value,CcdFrameN[1].value,CcdFrameN[2].value,CcdFrameN[3].value);
-            //seeing=SimulatorSettingsN[0].value;
+            return true;
+        }
+
+        // Record PE EQ to simulate different position in the sky than actual mount coordinate
+        // This can be useful to simulate Periodic Error or cone error or any arbitrary error.
+        if (!strcmp(name, EqPENP.name))
+        {
+            IUUpdateNumber(&EqPENP, values, names, n);
+            EqPENP.s = IPS_OK;
+
+            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            epochPos.ra  = EqPEN[AXIS_RA].value * 15.0;
+            epochPos.dec = EqPEN[AXIS_DE].value;
+
+            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+            raPE  = J2000Pos.ra / 15.0;
+            decPE = J2000Pos.dec;
+            usePE = true;
+
+            IDSetNumber(&EqPENP, nullptr);
             return true;
         }
 
@@ -1055,8 +1070,7 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
     }
-    //  if we didn't process it, continue up the chain, let somebody else
-    //  give it a shot
+
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -1119,12 +1133,15 @@ void CCDSim::activeDevicesUpdated()
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
 
-    strncpy(EqPENP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
+    //strncpy(EqPENP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
     strncpy(FWHMNP.device, ActiveDeviceT[1].text, MAXINDIDEVICE);
 }
 
 bool CCDSim::ISSnoopDevice(XMLEle *root)
 {
+    XMLEle *ep           = nullptr;
+    const char *propName = findXMLAttValu(root, "name");
+
     if (IUSnoopNumber(root, &FWHMNP) == 0)
     {
         seeing = FWHMNP.np[0].value;
@@ -1134,28 +1151,39 @@ bool CCDSim::ISSnoopDevice(XMLEle *root)
     }
 
     // We try to snoop EQPEC first, if not found, we snoop regular EQNP
-    if (IUSnoopNumber(root, &EqPENP) == 0)
+    if (!strcmp(propName, EqPENP.name))
     {
-        double newra, newdec;
-        newra  = EqPEN[0].value;
-        newdec = EqPEN[1].value;
-        if ((newra != raPE) || (newdec != decPE))
-        {
-            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-            epochPos.ra  = newra * 15.0;
-            epochPos.dec = newdec;
+            int rc_ra = -1, rc_de = -1;
+            double newra = 0, newdec = 0;
 
-            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+            for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+            {
+                const char *elemName = findXMLAttValu(ep, "name");
 
-            raPE  = J2000Pos.ra / 15.0;
-            decPE = J2000Pos.dec;
+                if (!strcmp(elemName, "RA_PE"))
+                    rc_ra = f_scansexa(pcdataXMLEle(ep), &newra);
+                else if (!strcmp(elemName, "DEC_PE"))
+                    rc_de = f_scansexa(pcdataXMLEle(ep), &newdec);
+            }
 
-            usePE = true;
+            if (rc_ra == 0 && rc_de == 0 && ((newra != raPE) || (newdec != decPE)))
+            {
+                ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+                epochPos.ra  = newra * 15.0;
+                epochPos.dec = newdec;
+                ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+                raPE  = J2000Pos.ra / 15.0;
+                decPE = J2000Pos.dec;
+                usePE = true;
 
-            DEBUGF(INDI::Logger::DBG_DEBUG, "raPE %g  decPE %g Snooped raPE %g  decPE %g", raPE, decPE, newra, newdec);
+                EqPEN[AXIS_RA].value = newra;
+                EqPEN[AXIS_DE].value = newdec;
+                IDSetNumber(&EqPENP, nullptr);
 
-            return true;
-        }
+                DEBUGF(INDI::Logger::DBG_DEBUG, "raPE %g  decPE %g Snooped raPE %g  decPE %g", raPE, decPE, newra, newdec);
+
+                return true;
+            }
     }
 
     return INDI::CCD::ISSnoopDevice(root);
