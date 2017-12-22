@@ -12,25 +12,22 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 
 IF (APPLE)
 
+set(FIRMWARE_INSTALL_DIR "/usr/local/lib/qhy/firmware" CACHE STRING "QHY firmware installation directory")
+
 install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h DESTINATION include/libqhy)
-install(FILES libqhy.dylib DESTINATION lib RENAME libqhy.0.dylib)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libqhy.dylib DESTINATION ${LIB_INSTALL_DIR})
 
 # Make sure symbolic links are installed
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake "
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.${LIBQHY_VERSION}.dylib libqhy.dylib)\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.${LIBQHY_SOVERSION}.dylib libqhy.${LIBQHY_VERSION}.dylib)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.${LIBQHY_VERSION}.dylib ${LIB_INSTALL_DIR}/libqhy.dylib)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.${LIBQHY_SOVERSION}.dylib ${LIB_INSTALL_DIR}/libqhy.${LIBQHY_VERSION}.dylib)\n
 ")
 
 install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libqhy.dylib DESTINATION lib)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libqhy.${LIBQHY_VERSION}.dylib DESTINATION lib)
-
-file(GLOB FIRMWARE "firmware/*")
-install(FILES ${FIRMWARE} DESTINATION "/usr/local/lib/qhy/firmware")
 
 ELSE()
 
-set(FIRMWARE_INSTALL_DIR "/lib/firmware/qhy")
+set(FIRMWARE_INSTALL_DIR "/lib/firmware/qhy" CACHE STRING "QHY firmware installation directory")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
@@ -55,13 +52,13 @@ exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.so.${LIBQHY_SOVERSIO
 install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h DESTINATION include/libqhy)
 install(FILES ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
 install(FILES 85-qhy.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake)
+
+ENDIF (APPLE)
+
 install(
    CODE "
    file(GLOB QHY_FIRMWARE ${CMAKE_CURRENT_SOURCE_DIR}/firmware/*) \n
    file(INSTALL DESTINATION ${FIRMWARE_INSTALL_DIR} TYPE FILE FILES \${QHY_FIRMWARE})"
  )
-
-install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake)
-
-ENDIF (APPLE)
 
