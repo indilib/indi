@@ -15,14 +15,19 @@ set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 IF (APPLE)
 
 set(FIRMWARE_INSTALL_DIR "/usr/local/lib/qhy/firmware" CACHE STRING "QHY firmware installation directory")
-set(LIB_EXT "dylib")
-exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy.dylib ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION})
+exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy.dylib ${CMAKE_BINARY_DIR}/libqhy.${LIBQHY_VERSION}.dylib)
+install(FILES ${CMAKE_BINARY_DIR}/libqhy.${LIBQHY_VERSION}.dylib DESTINATION ${LIB_INSTALL_DIR})
+
+# Make sure symbolic links are installed
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake "
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.${LIBQHY_VERSION}.dylib ${LIB_INSTALL_DIR}/libqhy.${LIBQHY_SOVERSION}.dylib)\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.${LIBQHY_SOVERSION}.dylib ${LIB_INSTALL_DIR}/libqhy.dylib)\n
+")
 
 ELSE()
 
 set(FIRMWARE_INSTALL_DIR "/lib/firmware/qhy" CACHE STRING "QHY firmware installation directory")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
-set(LIB_EXT "so")
 
 IF(UNIX AND NOT WIN32)
  IF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l" OR CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7l")
@@ -37,17 +42,18 @@ IF(UNIX AND NOT WIN32)
 ENDIF(UNIX AND NOT WIN32)
 
 install(FILES 85-qhy.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-
-ENDIF (APPLE)
-
 install(FILES ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
-install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h DESTINATION include/libqhy)
 
 # Make sure symbolic links are installed
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake "
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.${LIB_EXT}.${LIBQHY_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.${LIB_EXT}.${LIBQHY_SOVERSION})\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.${LIB_EXT}.${LIBQHY_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.${LIB_EXT})\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.so.${LIBQHY_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so.${LIBQHY_SOVERSION})\n
+exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.so.${LIBQHY_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so)\n
 ")
+
+ENDIF (APPLE)
+
+install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h DESTINATION include/libqhy)
+
 install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake)
 install(
    CODE "
