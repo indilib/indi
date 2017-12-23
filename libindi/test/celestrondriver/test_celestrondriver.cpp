@@ -11,10 +11,9 @@
 using namespace Celestron;
 using ::testing::_;
 using ::testing::StrEq;
-using ::testing::ElementsAreArray;
 
 
-// create a new matcher that compares two byte arrays
+// Define a new matcher that compares two byte arrays
 MATCHER_P2(MemEq, buf, n, "") {
     uint8_t *b1 = (uint8_t *)buf;
     uint8_t *b2 = (uint8_t *)arg;
@@ -33,21 +32,24 @@ MATCHER_P2(MemEq, buf, n, "") {
 class MockCelestronDriver : public CelestronDriver {
     public:
         MockCelestronDriver() { fd = 1; simulation = false; }
-        void set_response(const char *fmt, ...);
+
+        void set_response(const char *fmt, ...) {
+            // simulate the response for the next command
+            va_list args;
+            va_start(args, fmt);
+            vsprintf(response, fmt, args);
+            va_end(args);
+        }
 
         MOCK_METHOD3(serial_write, int (const char *cmd, int nbytes, int *nbytes_written));
         MOCK_METHOD2(serial_read, int (int nbytes, int *nbytes_read));
-        MOCK_METHOD2(serial_read_section, int (char stop_char, int *nbytes_read));
-};
 
-// Set the expected response for the next command
-void MockCelestronDriver::set_response(const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    vsprintf(response, fmt, args);
-    va_end(args);
-}
+        int serial_read_section(char stop_char, int *nbytes_read) {
+            INDI_UNUSED(stop_char);
+            INDI_UNUSED(nbytes_read);
+            return 0;
+        }
+};
 
 
 TEST(CelestronDriverTest, set_simulation) {
@@ -56,7 +58,6 @@ TEST(CelestronDriverTest, set_simulation) {
 
     EXPECT_CALL(driver, serial_write(_, _, _)).Times(0);
     EXPECT_CALL(driver, serial_read(_, _)).Times(0);
-    EXPECT_CALL(driver, serial_read_section(_, _)).Times(0);
     EXPECT_TRUE(driver.echo());
 }
 
@@ -65,7 +66,6 @@ TEST(CelestronDriverTest, echoCommand) {
     driver.set_response("x#");
 
     EXPECT_CALL(driver, serial_write(_, 2, _));
-    EXPECT_CALL(driver, serial_read_section('#', _));
     EXPECT_TRUE(driver.echo());
 }
 
@@ -74,12 +74,10 @@ TEST(CelestronDriverTest, syncCommand) {
     driver.set_response("#");
 
     EXPECT_CALL(driver, serial_write(StrEq("S2000,2000"), 10, _));
-    EXPECT_CALL(driver, serial_read_section('#', _));
-    EXPECT_TRUE(driver.sync(-45.0, 45.0, false));
+    EXPECT_TRUE(driver.sync(3.0, 45.0, false));
 
     EXPECT_CALL(driver, serial_write(StrEq("s20000000,20000000"), 18, _));
-    EXPECT_CALL(driver, serial_read_section('#', _));
-    EXPECT_TRUE(driver.sync(-45.0, 45.0, true));
+    EXPECT_TRUE(driver.sync(3.0, 45.0, true));
 }
 
 TEST(CelestronDriverTest, gotoCommands) {
@@ -87,20 +85,45 @@ TEST(CelestronDriverTest, gotoCommands) {
     driver.set_response("#");
 
     EXPECT_CALL(driver, serial_write(StrEq("R2000,2000"), 10, _));
-    EXPECT_CALL(driver, serial_read_section('#', _));
-    EXPECT_TRUE(driver.slew_radec(-45.0, 45.0, false));
+    EXPECT_TRUE(driver.slew_radec(3.0, 45.0, false));
 
     EXPECT_CALL(driver, serial_write(StrEq("r20000000,20000000"), 18, _));
-    EXPECT_CALL(driver, serial_read_section('#', _));
-    EXPECT_TRUE(driver.slew_radec(-45.0, 45.0, true));
+    EXPECT_TRUE(driver.slew_radec(3.0, 45.0, true));
 
     EXPECT_CALL(driver, serial_write(StrEq("B2000,2000"), 10, _));
-    EXPECT_CALL(driver, serial_read_section('#', _));
     EXPECT_TRUE(driver.slew_azalt(45.0, 45.0, false));
 
     EXPECT_CALL(driver, serial_write(StrEq("b20000000,20000000"), 18, _));
-    EXPECT_CALL(driver, serial_read_section('#', _));
     EXPECT_TRUE(driver.slew_azalt(45.0, 45.0, true));
+}
+
+TEST(CelestronDriverTest, getCoordsCommands) {
+    double ra, dec, az, alt;
+    MockCelestronDriver driver;
+
+    driver.set_response("2000,2000#");
+    EXPECT_CALL(driver, serial_write(StrEq("E"), 1, _));
+    EXPECT_TRUE(driver.get_radec(&ra, &dec, false));
+    ASSERT_FLOAT_EQ(3.0, ra);
+    ASSERT_FLOAT_EQ(45.0, dec);
+
+    driver.set_response("20000000,20000000#");
+    EXPECT_CALL(driver, serial_write(StrEq("e"), 1, _));
+    EXPECT_TRUE(driver.get_radec(&ra, &dec, true));
+    ASSERT_FLOAT_EQ(3.0, ra);
+    ASSERT_FLOAT_EQ(45.0, dec);
+
+    driver.set_response("2000,2000#");
+    EXPECT_CALL(driver, serial_write(StrEq("Z"), 1, _));
+    EXPECT_TRUE(driver.get_azalt(&az, &alt, false));
+    ASSERT_FLOAT_EQ(45.0, az);
+    ASSERT_FLOAT_EQ(45.0, alt);
+
+    driver.set_response("20000000,20000000#");
+    EXPECT_CALL(driver, serial_write(StrEq("z"), 1, _));
+    EXPECT_TRUE(driver.get_azalt(&az, &alt, true));
+    ASSERT_FLOAT_EQ(45.0, az);
+    ASSERT_FLOAT_EQ(45.0, alt);
 }
 
 TEST(CelestronDriverTest, slewingCommands) {
@@ -145,11 +168,32 @@ TEST(CelestronDriverTest, setDateTime) {
     utc.seconds = 43.1;
 
     driver.set_response("#");
-    uint8_t cmd1[] = {'H', 10, 35, 43, 12, 18, 17, 0, 0};
+    uint8_t cmd1[] = {'H', 8, 35, 43, 12, 18, 17, 254, 0};
     EXPECT_CALL(driver, serial_write(MemEq(cmd1, 9), 9, _));
-    EXPECT_CALL(driver, serial_read_section('#', _));
-    EXPECT_TRUE(driver.set_datetime(&utc, 0.0));
+    EXPECT_TRUE(driver.set_datetime(&utc, -2.0));
 }
+
+TEST(CelestronDriverTest, setLocation) {
+    MockCelestronDriver driver;
+
+    driver.set_response("#");
+    uint8_t cmd1[] = {'W', 40, 25, 0, 0, 3, 42, 1, 1};
+    EXPECT_CALL(driver, serial_write(MemEq(cmd1, 9), 9, _));
+    EXPECT_TRUE(driver.set_location(-3.7003, 40.4167));
+}
+
+/*
+TEST(CelestronDriverTest, getLocation) {
+    MockCelestronDriver driver;
+
+    driver.set_response("%c%c%c%c%c%c%c%c#", 40, 25, 0, 0, 3, 42, 1, 1);
+    EXPECT_CALL(driver, serial_write(StrEq("w"), 1, _));
+    double lon, lat;
+    EXPECT_TRUE(driver.get_location(&lon, &lat));
+    ASSERT_FLOAT_EQ(-3.7003, lon);
+    ASSERT_FLOAT_EQ(40.4167, lat);
+}
+*/
 
 TEST(CelestronDriverTest, trimDecAngle) {
     ASSERT_FLOAT_EQ(0, trimDecAngle(0));
@@ -209,6 +253,7 @@ TEST(CelestronDriverTest, pnex2dd) {
     ASSERT_FLOAT_EQ(337.5, pnex2dd(0xf0000000));
     ASSERT_FLOAT_EQ(26.25193834305, pnex2dd(0x12ab0500));
 }
+
 
 int main(int argc, char **argv)
 {
