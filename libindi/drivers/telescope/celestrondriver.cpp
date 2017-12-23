@@ -546,9 +546,11 @@ bool CelestronDriver::sync(double ra, double dec, bool precise)
         sprintf(cmd, "s%08X,%08X", dd2pnex(ra*15), dd2pnex(dec));
     else
         sprintf(cmd, "S%04X,%04X", dd2nex(ra*15), dd2nex(dec));
+    
+    int cmd_size = (precise)?18:10;
 
     strcpy(response, "#");  // Simulated response
-    return send_command(cmd, 10, response, 1);
+    return send_command(cmd, cmd_size, response, 1);
 }
 
 void parseCoordsResponse(char *response, double *d1, double *d2, bool precise)
