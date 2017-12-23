@@ -256,7 +256,7 @@ void UploadFW()
     {
         fprintf(stderr, "Can't get device list\n");
     }
-    int count = 0;
+    //int count = 0;
     struct libusb_device_descriptor descriptor;
     for (int i = 0; i < total; i++)
     {

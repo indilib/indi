@@ -61,7 +61,7 @@ EXPORTC void STDCALL msSleep(uint32_t ms);
 //EXPORTC void STDCALL LibUsbExit(libusb_context *pContext);
 uint32_t DeviceIsQHYCCD(uint32_t index, qhyccd_device *pDevice);
 #else
-static uint32_t DeviceIsQHYCCD(uint32_t index, uint32_t vid, uint32_t pid);
+uint32_t DeviceIsQHYCCD(uint32_t index, uint32_t vid, uint32_t pid);
 #endif
 
 uint32_t QHYCCDSeriesMatch(uint32_t index, qhyccd_handle *pHandle);

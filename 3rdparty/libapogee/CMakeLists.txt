@@ -7,10 +7,19 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
-set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
-set(CONF_DIR "/etc/Apogee/camera" CACHE STRING "Configuration directory")
-
+IF(APPLE)
+set(APOGEE_VERSION "3.0.3.2.3.4")
+set(CONF_DIR "/usr/local/etc" CACHE STRING "Base configuration directory")
+ELSE(APPLE)
 set(APOGEE_VERSION "3.0.3234")
+set(CONF_DIR "/etc" CACHE STRING "Base configuration directory")
+set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
+ENDIF()
+
+# IMPORTANT: When update libapogee code to upstream. Do not forget to save apgHelper.cpp as the configuration file
+# is hardcoded in the upstream version while it is used from configuration file here.
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+
 set(APOGEE_SOVERSION "3")
 
 find_package(USB1 REQUIRED)
@@ -52,8 +61,10 @@ install( FILES ${libapogee_HEADERS} DESTINATION include/libapogee COMPONENT Deve
 install(
    CODE "
    file(GLOB APOGEE_CONF ${CMAKE_CURRENT_SOURCE_DIR}/conf/*) \n
-   file(INSTALL DESTINATION ${CONF_DIR} TYPE FILE FILES \${APOGEE_CONF})"
+   file(INSTALL DESTINATION ${CONF_DIR}/Apogee/camera TYPE FILE FILES \${APOGEE_CONF})"
  )
 
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES 99-apogee.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+ENDIF()
 

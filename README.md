@@ -137,6 +137,8 @@ How I submit a PR:
 6. Go to the official repo's github website in a browser, it will popup a message to create a PR. Create it.
 7. Pushing updates to the PR: just update your branch (git push -f my_fork my_branch:my_branch)..
 
+If you would like to make cleaner PR (recommended!) please read this [tutorial](https://blog.adamspiers.org/2015/03/24/why-and-how-to-correctly-amend-github-pull-requests/) and follow it. The best way is to keep *one logical change per commit* and not pollute the history by multiple small fixes to the PR.
+
 # Unit tests
 
 In order to run the unit test suite you must first install the [Google Test Framework](https://github.com/google/googletest). You will need to build and install this from source code as Google does not recommend package managers for distributing distros.(This is because each build system is often unique and a one size fits all aproach does not work well).
