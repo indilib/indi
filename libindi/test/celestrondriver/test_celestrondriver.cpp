@@ -1,14 +1,157 @@
 #include <gtest/gtest.h>
-#include <stdio.h>
+#include <gmock/gmock.h>
+#include <stdarg.h>
 #include <math.h>
 #include <stdint.h>
+#include <libnova/julian_day.h>
+#include "indilogger.h"
 #include "celestrondriver.h"
 
+
 using namespace Celestron;
+using ::testing::_;
+using ::testing::StrEq;
+using ::testing::ElementsAreArray;
 
 
-TEST(CelestronDriverTest, trimDecAngle)
+// create a new matcher that compares two byte arrays
+MATCHER_P2(MemEq, buf, n, "") {
+    uint8_t *b1 = (uint8_t *)buf;
+    uint8_t *b2 = (uint8_t *)arg;
+
+    for (int i=0; i<n; i++) {
+        if (b1[i] != b2[i]) {
+            *result_listener << "byte number " << i + 1 << " do not mach: " \
+                << (int)b1[i] << " != " << (int)b2[i];
+            return false;
+        }
+    }
+    return true;
+}
+
+
+class MockCelestronDriver : public CelestronDriver {
+    public:
+        MockCelestronDriver() { fd = 1; simulation = false; }
+        void set_response(const char *fmt, ...);
+
+        MOCK_METHOD3(serial_write, int (const char *cmd, int nbytes, int *nbytes_written));
+        MOCK_METHOD2(serial_read, int (int nbytes, int *nbytes_read));
+        MOCK_METHOD2(serial_read_section, int (char stop_char, int *nbytes_read));
+};
+
+// Set the expected response for the next command
+void MockCelestronDriver::set_response(const char *fmt, ...)
 {
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(response, fmt, args);
+    va_end(args);
+}
+
+
+TEST(CelestronDriverTest, set_simulation) {
+    MockCelestronDriver driver;
+    driver.set_simulation(true);
+
+    EXPECT_CALL(driver, serial_write(_, _, _)).Times(0);
+    EXPECT_CALL(driver, serial_read(_, _)).Times(0);
+    EXPECT_CALL(driver, serial_read_section(_, _)).Times(0);
+    EXPECT_TRUE(driver.echo());
+}
+
+TEST(CelestronDriverTest, echoCommand) {
+    MockCelestronDriver driver;
+    driver.set_response("x#");
+
+    EXPECT_CALL(driver, serial_write(_, 2, _));
+    EXPECT_CALL(driver, serial_read_section('#', _));
+    EXPECT_TRUE(driver.echo());
+}
+
+TEST(CelestronDriverTest, syncCommand) {
+    MockCelestronDriver driver;
+    driver.set_response("#");
+
+    EXPECT_CALL(driver, serial_write(StrEq("S2000,2000"), 10, _));
+    EXPECT_CALL(driver, serial_read_section('#', _));
+    EXPECT_TRUE(driver.sync(-45.0, 45.0, false));
+
+    EXPECT_CALL(driver, serial_write(StrEq("s20000000,20000000"), 18, _));
+    EXPECT_CALL(driver, serial_read_section('#', _));
+    EXPECT_TRUE(driver.sync(-45.0, 45.0, true));
+}
+
+TEST(CelestronDriverTest, gotoCommands) {
+    MockCelestronDriver driver;
+    driver.set_response("#");
+
+    EXPECT_CALL(driver, serial_write(StrEq("R2000,2000"), 10, _));
+    EXPECT_CALL(driver, serial_read_section('#', _));
+    EXPECT_TRUE(driver.slew_radec(-45.0, 45.0, false));
+
+    EXPECT_CALL(driver, serial_write(StrEq("r20000000,20000000"), 18, _));
+    EXPECT_CALL(driver, serial_read_section('#', _));
+    EXPECT_TRUE(driver.slew_radec(-45.0, 45.0, true));
+
+    EXPECT_CALL(driver, serial_write(StrEq("B2000,2000"), 10, _));
+    EXPECT_CALL(driver, serial_read_section('#', _));
+    EXPECT_TRUE(driver.slew_azalt(45.0, 45.0, false));
+
+    EXPECT_CALL(driver, serial_write(StrEq("b20000000,20000000"), 18, _));
+    EXPECT_CALL(driver, serial_read_section('#', _));
+    EXPECT_TRUE(driver.slew_azalt(45.0, 45.0, true));
+}
+
+TEST(CelestronDriverTest, slewingCommands) {
+    MockCelestronDriver driver;
+    driver.set_response("#");
+}
+
+TEST(CelestronDriverTest, getVersionCommands) {
+    char version[8];
+    MockCelestronDriver driver;
+
+    driver.set_response("\x04\x29#");
+    EXPECT_CALL(driver, serial_write(StrEq("V"), 1, _));
+    EXPECT_CALL(driver, serial_read(3, _));
+    EXPECT_TRUE(driver.get_version(version, 8));
+    ASSERT_STREQ(version, "4.41");
+
+    driver.set_response("\x05\x07#");
+    uint8_t cmd1[] = {'P', 1, 0x10, 0xfe, 0, 0, 0, 2};
+    EXPECT_CALL(driver, serial_write(MemEq(cmd1, 8), 8, _));
+    EXPECT_CALL(driver, serial_read(3, _));
+    EXPECT_TRUE(driver.get_dev_firmware(CELESTRON_DEV_RA, version, 8));
+    ASSERT_STREQ(version, "5.07");
+
+    driver.set_response("\x03\x26#");
+    uint8_t cmd2[] = {'P', 1, 0x11, 0xfe, 0, 0, 0, 2};
+    EXPECT_CALL(driver, serial_write(MemEq(cmd2, 8), 8, _));
+    EXPECT_CALL(driver, serial_read(3, _));
+    EXPECT_TRUE(driver.get_dev_firmware(CELESTRON_DEV_DEC, version, 8));
+    ASSERT_STREQ(version, "3.38");
+}
+
+TEST(CelestronDriverTest, setDateTime) {
+    MockCelestronDriver driver;
+
+    struct ln_date utc;
+    utc.years = 2017;
+    utc.months = 12;
+    utc.days = 18;
+    utc.hours = 10;
+    utc.minutes = 35;
+    utc.seconds = 43.1;
+
+    driver.set_response("#");
+    uint8_t cmd1[] = {'H', 10, 35, 43, 12, 18, 17, 0, 0};
+    EXPECT_CALL(driver, serial_write(MemEq(cmd1, 9), 9, _));
+    EXPECT_CALL(driver, serial_read_section('#', _));
+    EXPECT_TRUE(driver.set_datetime(&utc, 0.0));
+}
+
+TEST(CelestronDriverTest, trimDecAngle) {
     ASSERT_FLOAT_EQ(0, trimDecAngle(0));
     ASSERT_FLOAT_EQ(0, trimDecAngle(180));
     ASSERT_FLOAT_EQ(0, trimDecAngle(360));
@@ -29,8 +172,7 @@ TEST(CelestronDriverTest, trimDecAngle)
     ASSERT_FLOAT_EQ(-5, trimDecAngle(355 + 360));
 }
 
-TEST(CelestronDriverTest, dd2nex)
-{
+TEST(CelestronDriverTest, dd2nex) {
     ASSERT_EQ(0x0000, dd2nex(0.0));
     ASSERT_EQ(0x2000, dd2nex(45.0));
     ASSERT_EQ(0xc000, dd2nex(270.0));
@@ -41,8 +183,7 @@ TEST(CelestronDriverTest, dd2nex)
     ASSERT_EQ(0xc000, dd2nex(-90.0));
 }
 
-TEST(CelestronDriverTest, dd2pnex)
-{
+TEST(CelestronDriverTest, dd2pnex) {
     ASSERT_EQ(0x00000000, dd2pnex(0.0));
     ASSERT_EQ(0x20000000, dd2pnex(45.0));
     ASSERT_EQ(0xc0000000, dd2pnex(270.0));
@@ -53,8 +194,7 @@ TEST(CelestronDriverTest, dd2pnex)
     ASSERT_EQ(0xc0000000, dd2pnex(-90.0));
 }
 
-TEST(CelestronDriverTest, nex2dd)
-{
+TEST(CelestronDriverTest, nex2dd) {
     ASSERT_FLOAT_EQ(0.0, nex2dd(0x0000));
     ASSERT_FLOAT_EQ(45.0, nex2dd(0x2000));
     ASSERT_FLOAT_EQ(270.0, nex2dd(0xc000));
@@ -62,8 +202,7 @@ TEST(CelestronDriverTest, nex2dd)
     ASSERT_FLOAT_EQ(26.4441, nex2dd(0x12ce));
 }
 
-TEST(CelestronDriverTest, pnex2dd)
-{
+TEST(CelestronDriverTest, pnex2dd) {
     ASSERT_FLOAT_EQ(0.0, pnex2dd(0x00000000));
     ASSERT_FLOAT_EQ(45.0, pnex2dd(0x20000000));
     ASSERT_FLOAT_EQ(270.0, pnex2dd(0xc0000000));
@@ -73,6 +212,10 @@ TEST(CelestronDriverTest, pnex2dd)
 
 int main(int argc, char **argv)
 {
+    INDI::Logger::getInstance().configure("", INDI::Logger::file_off,
+            INDI::Logger::DBG_ERROR, INDI::Logger::DBG_ERROR);
+
     ::testing::InitGoogleTest(&argc, argv);
+    ::testing::InitGoogleMock(&argc, argv);
     return RUN_ALL_TESTS();
 }

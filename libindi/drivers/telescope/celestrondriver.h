@@ -34,6 +34,11 @@
 #define MINSTSENSVER    float(1.18)
 #define MAX_RESP_SIZE   20
 
+// device IDs
+#define CELESTRON_DEV_RA  0x10
+#define CELESTRON_DEV_DEC 0x11
+#define CELESTRON_DEV_GPS 0xb0
+
 typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
 typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_9 } CELESTRON_SLEW_RATE;
 typedef enum { TRACKING_OFF, TRACK_ALTAZ, TRACK_EQN, TRACK_EQS } CELESTRON_TRACK_MODE;
@@ -84,22 +89,21 @@ class CelestronDriver
         CelestronDriver() {}
 
         // Misc.
-        void set_port_fd(int port_fd);
-        void set_debug(bool enable);
-        void set_simulation(bool enable);
+        void set_port_fd(int port_fd) { fd = port_fd; }
+        void set_simulation(bool enable) { simulation = enable; }
         void set_device(const char *name);
 
         // Simulation
-        void set_sim_slew_rate(CELESTRON_SLEW_RATE value);
-        void set_sim_track_mode(CELESTRON_TRACK_MODE value);
-        void set_sim_gps_status(CELESTRON_GPS_STATUS value);
-        void set_sim_slewing(bool isSlewing);
-        void set_sim_ra(double ra);
-        void set_sim_dec(double dec);
-        void set_sim_az(double az);
-        void set_sim_alt(double alt);
-        double get_sim_ra();
-        double get_sim_dec();
+        void set_sim_slew_rate(CELESTRON_SLEW_RATE val) { sim_data.slewRate = val; }
+        void set_sim_track_mode(CELESTRON_TRACK_MODE val) { sim_data.trackMode = val; }
+        void set_sim_gps_status(CELESTRON_GPS_STATUS val) { sim_data.gpsStatus = val; }
+        void set_sim_slewing(bool isSlewing) { sim_data.isSlewing = isSlewing; };
+        void set_sim_ra(double ra) { sim_data.ra = ra; }
+        void set_sim_dec(double dec) { sim_data.dec = dec; }
+        void set_sim_az(double az) { sim_data.az = az; }
+        void set_sim_alt(double alt) { sim_data.alt = alt; }
+        double get_sim_ra() { return sim_data.ra; }
+        double get_sim_dec() { return sim_data.dec; }
 
         bool echo();
         bool check_connection();
@@ -141,16 +145,18 @@ class CelestronDriver
         int get_pulse_status(CELESTRON_DIRECTION direction, bool &pulse_state);
 
     protected:
+        void set_sim_response(const char *fmt, ...);
+        virtual int serial_write(const char *cmd, int nbytes, int *nbytes_written);
+        virtual int serial_read(int nbytes, int *nbytes_read);
+        virtual int serial_read_section(char stop_char, int *nbytes_read);
+
         int send_command(const char *cmd, int cmd_len, char *resp, int resp_len,
                 bool ascii_cmd, bool ascii_resp);
         int send_passthrough(int dest, int cmd_id, const char *payload,
                 int payload_len, char *response, int response_len);
 
-    private:
-        int fd = 0;
-        bool debug = false;
-        bool simulation = false;
-        //double currentRA, currentDEC, currentSlewRate;
         char response[MAX_RESP_SIZE];
+        bool simulation = false;
         SimData sim_data;
+        int fd = 0;
 };
