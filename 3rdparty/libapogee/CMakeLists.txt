@@ -8,7 +8,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
-set(CONF_DIR "/etc/Apogee/camera" CACHE STRING "Configuration directory")
+set(CONF_DIR "${CMAKE_INSTALL_PREFIX}/etc/Apogee/camera" CACHE STRING "Configuration directory")
 
 IF(APPLE)
 set(APOGEE_VERSION "3.0.3.2.3.4")
@@ -60,5 +60,7 @@ install(
    file(INSTALL DESTINATION ${CONF_DIR} TYPE FILE FILES \${APOGEE_CONF})"
  )
 
+IF (NOT APPLE)
 install(FILES 99-apogee.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+ENDIF()
 
