@@ -23,10 +23,9 @@
     Version with experimental pulse guide support. GC 04.12.2015
 */
 
-#include "celestrondriver.h"
-
 #include "indicom.h"
 #include "indilogger.h"
+#include "celestrondriver.h"
 
 #include <libnova/julian_day.h>
 
@@ -57,29 +56,28 @@
 #define LOGF_EXTRA(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, __VA_ARGS__)
 
 
+using namespace Celestron;
+
+
 char device_str[MAXINDIDEVICE] = "Celestron GPS";
 
-
-void hex_dump(char *buf, const char *data, int size)
+// Account for the quadrant in declination
+double Celestron::trimDecAngle(double angle)
 {
-    for (int i = 0; i < size; i++)
-        sprintf(buf + 3 * i, "%02X ", (unsigned char)data[i]);
+    angle = angle - 360*floor(angle/360);
+    if (angle < 0)
+        angle += 360.0;
 
-    if (size > 0)
-        buf[3 * size - 1] = '\0';
-}
+    if ((angle > 90.) && (angle <= 270.))
+        angle = 180. - angle;
+    else if ((angle > 270.) && (angle <= 360.))
+        angle = angle - 360.;
 
-//TODO: check this function
-// Limit an angle between -90 and 90 degrees
-inline double trimAngle(double angle)
-{
-    if (angle < -90.0001) angle += 360;
-    if (angle > 90.0001) angle -= 360;
     return angle;
 }
 
 // Convert decimal degrees to NexStar angle
-inline uint16_t dd2nex(double angle)
+uint16_t Celestron::dd2nex(double angle)
 {
     angle = angle - 360*floor(angle/360);
     if (angle < 0)
@@ -89,7 +87,7 @@ inline uint16_t dd2nex(double angle)
 }
 
 // Convert decimal degrees to NexStar angle (precise)
-inline uint32_t dd2pnex(double angle)
+uint32_t Celestron::dd2pnex(double angle)
 {
     angle = angle - 360*floor(angle/360);
     if (angle < 0)
@@ -99,15 +97,24 @@ inline uint32_t dd2pnex(double angle)
 }
 
 // Convert NexStar angle to decimal degrees
-inline double nex2dd(uint16_t value)
+double Celestron::nex2dd(uint16_t value)
 {
     return 360.0 * ((double)value / 0x10000);
 }
 
 // Convert NexStar angle to decimal degrees (precise)
-inline double pnex2dd(uint32_t value)
+double Celestron::pnex2dd(uint32_t value)
 {
     return 360.0 * ((double)value / 0x100000000);
+}
+
+void hex_dump(char *buf, const char *data, int size)
+{
+    for (int i = 0; i < size; i++)
+        sprintf(buf + 3 * i, "%02X ", (unsigned char)data[i]);
+
+    if (size > 0)
+        buf[3 * size - 1] = '\0';
 }
 
 
@@ -271,7 +278,8 @@ bool CelestronDriver::check_connection()
 {
     LOG_DEBUG("Initializing Celestron using Kx CMD...");
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++)
+    {
         if (echo())
             return true;
 
@@ -491,7 +499,7 @@ bool CelestronDriver::slew_radec(double ra, double dec, bool precise)
     fs_sexa(RAStr, ra, 2, 3600);
     fs_sexa(DecStr, dec, 2, 3600);
 
-    LOGF_DEBUG("Goto (%s,%s)", RAStr, DecStr);
+    LOGF_DEBUG("Goto RA-DEC(%s,%s)", RAStr, DecStr);
 
     set_sim_slewing(true);
 
@@ -585,7 +593,7 @@ bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
 
     parseCoordsResponse(response, ra, dec, precise);
     *ra /= 15.0;
-    *dec = trimAngle(*dec);
+    *dec = trimDecAngle(*dec);
 
     char RAStr[16], DecStr[16];
     fs_sexa(RAStr, *ra, 2, 3600);
@@ -626,6 +634,9 @@ bool CelestronDriver::get_azalt(double *az, double *alt, bool precise)
 
 bool CelestronDriver::set_location(double longitude, double latitude)
 {
+    DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION,
+                 "Setting location (%.3f,%.3f)", longitude, latitude);
+
     // Convert from INDI standard to regular east/west -180 to 180
     if (longitude > 180)
         longitude -= 360;
@@ -652,6 +663,8 @@ bool CelestronDriver::set_location(double longitude, double latitude)
 
 bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset)
 {
+    DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, "Setting date");
+
     struct ln_zonedate local_date;
 
     // Celestron takes local time

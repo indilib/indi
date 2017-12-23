@@ -66,6 +66,18 @@ typedef struct
 } SimData;
 
 
+/**************************************************************************
+ Utility functions
+**************************************************************************/
+namespace Celestron {
+    double trimDecAngle(double angle);
+    uint16_t dd2nex(double angle);
+    uint32_t dd2pnex(double angle);
+    double nex2dd(uint16_t value);
+    double pnex2dd(uint32_t value);
+}
+
+
 class CelestronDriver
 {
     public:
@@ -142,13 +154,3 @@ class CelestronDriver
         char response[MAX_RESP_SIZE];
         SimData sim_data;
 };
-
-
-/**************************************************************************
- Utility functions
-**************************************************************************/
-uint16_t get_ra_fraction(double ra);
-uint16_t get_de_fraction(double de);
-uint16_t get_az_fraction(double az);
-uint16_t get_alt_fraction(double lat, double alt, double az);
-uint16_t get_angle_fraction(double angle);
