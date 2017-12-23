@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include "ApgLogger.h" 
 #include "helpers.h"
+#include "config.h"
 
 //CROSS-PLATFORM SLEEP
 #ifdef WIN_OS
@@ -384,13 +385,8 @@ std::string apgHelper::GetCfgDir()
 }
 #else
 
-// for linx and mac
-#ifndef SYSCONFDIR
-# define SYSCONFDIR "/usr/local/etc/"
-#endif
-
 // SYSCONFDIR set by autotools on configuraiton
-const char * sysconfdir = SYSCONFDIR;
+const char * sysconfdir = APOGEE_CONF_DIR;
 
 //----------------------------------------------
 //  GET    CFG         DIR
