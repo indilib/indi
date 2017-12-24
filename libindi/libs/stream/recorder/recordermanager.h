@@ -20,6 +20,8 @@
 
 */
 
+#pragma once
+
 #include <vector>
 #include "recorderinterface.h"
 
