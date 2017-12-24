@@ -18,4 +18,5 @@ INCLUDE_DIRECTORIES ( ${CMAKE_SOURCE_DIR} )
 # Workaround for fixing a linking error caused by "-pie" flag in CMakeCommon
 STRING(REPLACE "-pie" "" CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
 
-#ADD_SUBDIRECTORY(core)
+ADD_SUBDIRECTORY(core)
+ADD_SUBDIRECTORY(celestrondriver)

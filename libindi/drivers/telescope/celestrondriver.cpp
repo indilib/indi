@@ -23,10 +23,9 @@
     Version with experimental pulse guide support. GC 04.12.2015
 */
 
-#include "celestrondriver.h"
-
 #include "indicom.h"
 #include "indilogger.h"
+#include "celestrondriver.h"
 
 #include <libnova/julian_day.h>
 
@@ -37,11 +36,6 @@
 #include <unistd.h>
 
 #define CELESTRON_TIMEOUT 5 /* FD timeout in seconds */
-
-// device IDs
-#define CELESTRON_DEV_RA  0x10
-#define CELESTRON_DEV_DEC 0x11
-#define CELESTRON_DEV_GPS 0xb0
 
 // logging macros
 #define LOG_DEBUG(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, (txt))
@@ -57,8 +51,57 @@
 #define LOGF_EXTRA(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, __VA_ARGS__)
 
 
+using namespace Celestron;
+
+
 char device_str[MAXINDIDEVICE] = "Celestron GPS";
 
+// Account for the quadrant in declination
+double Celestron::trimDecAngle(double angle)
+{
+    angle = angle - 360*floor(angle/360);
+    if (angle < 0)
+        angle += 360.0;
+
+    if ((angle > 90.) && (angle <= 270.))
+        angle = 180. - angle;
+    else if ((angle > 270.) && (angle <= 360.))
+        angle = angle - 360.;
+
+    return angle;
+}
+
+// Convert decimal degrees to NexStar angle
+uint16_t Celestron::dd2nex(double angle)
+{
+    angle = angle - 360*floor(angle/360);
+    if (angle < 0)
+        angle += 360.0;
+
+    return (uint16_t)(angle * 0x10000 / 360.0);
+}
+
+// Convert decimal degrees to NexStar angle (precise)
+uint32_t Celestron::dd2pnex(double angle)
+{
+    angle = angle - 360*floor(angle/360);
+    if (angle < 0)
+        angle += 360.0;
+
+    return (uint32_t)(angle * 0x100000000 / 360.0);
+}
+
+// Convert NexStar angle to decimal degrees
+double Celestron::nex2dd(uint16_t value)
+{
+    return 360.0 * ((double)value / 0x10000);
+}
+
+// Convert NexStar angle to decimal degrees (precise)
+double Celestron::pnex2dd(uint32_t value)
+{
+    return 360.0 * ((double)value / 0x100000000);
+}
 
 void hex_dump(char *buf, const char *data, int size)
 {
@@ -69,115 +112,41 @@ void hex_dump(char *buf, const char *data, int size)
         buf[3 * size - 1] = '\0';
 }
 
-//TODO: check this function
-// Limit an angle between -90 and 90 degrees
-inline double trimAngle(double angle)
-{
-    if (angle < -90.0001) angle += 360;
-    if (angle > 90.0001) angle -= 360;
-    return angle;
-}
-
-// Convert decimal degrees to NexStar angle
-inline uint16_t dd2nex(double angle)
-{
-    angle = angle - 360*floor(angle/360);
-    if (angle < 0)
-        angle += 360.0;
-
-    return (uint16_t)(angle * 0x10000 / 360.0);
-}
-
-// Convert decimal degrees to NexStar angle (precise)
-inline uint32_t dd2pnex(double angle)
-{
-    angle = angle - 360*floor(angle/360);
-    if (angle < 0)
-        angle += 360.0;
-
-    return (uint32_t)(angle * 0x100000000 / 360.0);
-}
-
-// Convert NexStar angle to decimal degrees
-inline double nex2dd(uint16_t value)
-{
-    return 360.0 * ((double)value / 0x10000);
-}
-
-// Convert NexStar angle to decimal degrees (precise)
-inline double pnex2dd(uint32_t value)
-{
-    return 360.0 * ((double)value / 0x100000000);
-}
-
-
-void CelestronDriver::set_port_fd(int port_fd)
-{
-    fd = port_fd;
-}
-void CelestronDriver::set_debug(bool enable)
-{
-    debug = enable;
-}
-
-void CelestronDriver::set_simulation(bool enable)
-{
-    simulation = enable;
-}
 
 void CelestronDriver::set_device(const char *name)
 {
     strncpy(device_str, name, MAXINDIDEVICE);
 }
 
-void CelestronDriver::set_sim_gps_status(CELESTRON_GPS_STATUS value)
+// Virtual method for testing
+int CelestronDriver::serial_write(const char *cmd, int nbytes, int *nbytes_written)
 {
-    sim_data.gpsStatus = value;
+    LOG_DEBUG("serial_write");
+    tcflush(fd, TCIOFLUSH);
+    return tty_write(fd, cmd, nbytes, nbytes_written);
 }
 
-void CelestronDriver::set_sim_slew_rate(CELESTRON_SLEW_RATE value)
+// Virtual method for testing
+int CelestronDriver::serial_read(int nbytes, int *nbytes_read)
 {
-    sim_data.slewRate = value;
+    return tty_read(fd, response, nbytes, CELESTRON_TIMEOUT, nbytes_read);
 }
 
-void CelestronDriver::set_sim_track_mode(CELESTRON_TRACK_MODE value)
+// Virtual method for testing
+int CelestronDriver::serial_read_section(char stop_char, int *nbytes_read)
 {
-    sim_data.trackMode = value;
+    return tty_read_section(fd, response, stop_char, CELESTRON_TIMEOUT, nbytes_read);
 }
 
-void CelestronDriver::set_sim_slewing(bool isSlewing)
+// Set the expected response for a command in simulation mode
+void CelestronDriver::set_sim_response(const char *fmt, ...)
 {
-    sim_data.isSlewing = isSlewing;
-}
-
-void CelestronDriver::set_sim_ra(double ra)
-{
-    sim_data.ra = ra;
-}
-
-double CelestronDriver::get_sim_ra()
-{
-    return sim_data.ra;
-}
-
-void CelestronDriver::set_sim_dec(double dec)
-{
-    sim_data.dec = dec;
-}
-
-double CelestronDriver::get_sim_dec()
-{
-    return sim_data.dec;
-}
-
-void CelestronDriver::set_sim_az(double az)
-{
-    sim_data.az = az;
-}
-
-void CelestronDriver::set_sim_alt(double alt)
-{
-    sim_data.alt = alt;
+    if (simulation) {
+        va_list args;
+        va_start(args, fmt);
+        vsprintf(response, fmt, args);
+        va_end(args);
+    }
 }
 
 // Send a command to the mount. Return the number of bytes received or 0 if
@@ -201,35 +170,30 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
 
     if (!simulation && fd)
     {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((err = tty_write(fd, cmd, cmd_len, &nbytes)) != TTY_OK)
+        if ((err = serial_write(cmd, cmd_len, &nbytes)) != TTY_OK)
         {
             tty_error_msg(err, errmsg, MAXRBUF);
-            LOGF_ERROR("%s", errmsg);
+            LOGF_ERROR("Serial write error: %s", errmsg);
             return 0;
         }
 
         if (resp_len > 0)
         {
             if (ascii_resp)
-                err = tty_read_section(fd, resp, '#', CELESTRON_TIMEOUT, &nbytes);
+                err = serial_read_section('#', &nbytes);
             else
-                err = tty_read(fd, resp, resp_len, CELESTRON_TIMEOUT, &nbytes);
+                err = serial_read(resp_len, &nbytes);
 
             if (err)
             {
                 tty_error_msg(err, errmsg, MAXRBUF);
-                LOGF_ERROR("%s", errmsg);
+                LOGF_ERROR("Serial read error: %s", errmsg);
                 return 0;
             }
-
-            tcflush(fd, TCIOFLUSH);
         }
     }
 
-    //if (resp_len >= 0 && nbytes != resp_len)
-    if (resp_len > 0 && nbytes != resp_len)
+    if (resp_len >= 0 && nbytes != resp_len)
     {
         LOGF_ERROR("Received %d bytes, expected %d.", nbytes, resp_len);
         return 0;
@@ -271,7 +235,8 @@ bool CelestronDriver::check_connection()
 {
     LOG_DEBUG("Initializing Celestron using Kx CMD...");
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++)
+    {
         if (echo())
             return true;
 
@@ -329,7 +294,7 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
 
 bool CelestronDriver::echo()
 {
-    strcpy(response, "x#");  // Simulated response
+    set_sim_response("x#");
 
     if (!send_command("Kx", 2, response, 2, true, true))
         return false;
@@ -339,7 +304,7 @@ bool CelestronDriver::echo()
 
 bool CelestronDriver::get_version(char *version, int size)
 {
-    strcpy(response, "\x04\x04#");  // Simulated response
+    set_sim_response("\x04\x29#");
 
     if (!send_command("V", 1, response, 3, true, false))
         return false;
@@ -353,7 +318,7 @@ bool CelestronDriver::get_version(char *version, int size)
 //TODO: no critical errors for this command
 bool CelestronDriver::get_variant(char *variant)
 {
-    strcpy(response, "\x11#");  // Simulated response
+    set_sim_response("\x11#");
 
     if (!send_command("v", 1, response, 2, true, false))
         return false;
@@ -381,7 +346,7 @@ bool CelestronDriver::get_model(char *model, int size)
         {20, "AVX"},
     };
 
-    strcpy(response, "\x06#");  // Simulated response
+    set_sim_response("\x06#");  // Simulated response
 
     if (!send_command("m", 1, response, 2, true, false))
         return false;
@@ -403,7 +368,7 @@ bool CelestronDriver::get_model(char *model, int size)
 
 bool CelestronDriver::get_dev_firmware(int dev, char *version, int size)
 {
-    strcpy(response, "\x01\x09#");
+    set_sim_response("\x01\x09#");
 
     int rlen = send_passthrough(dev, 0xfe, NULL, 0, response, 2);
 
@@ -436,7 +401,7 @@ int CelestronDriver::send_pulse(CELESTRON_DIRECTION dir, signed char rate, unsig
     payload[0] = (dir == CELESTRON_N || dir == CELESTRON_W) ? rate : -rate;
     payload[1] = duration_csec;
 
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     return send_passthrough(dev, 0x26, payload, 2, response, 1);
 }
 
@@ -451,7 +416,7 @@ int CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir, bool &pulse_state
     int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
     char payload[2] = {0, 0};
 
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     if (!send_passthrough(dev, 0x27, payload, 2, response, 1))
         return false;
 
@@ -466,7 +431,7 @@ bool CelestronDriver::start_motion(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE 
     char payload[1];
     payload[0] = rate + 1;
 
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     return send_passthrough(dev, cmd_id, payload, 1, response, 1);
 }
 
@@ -475,13 +440,13 @@ bool CelestronDriver::stop_motion(CELESTRON_DIRECTION dir)
     int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
     char payload[] = { 0 };
 
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     return send_passthrough(dev, 0x24, payload, 1, response, 1);
 }
 
 bool CelestronDriver::abort()
 {
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     return send_command("M", 1, response, 1, true, true);
 }
 
@@ -491,7 +456,7 @@ bool CelestronDriver::slew_radec(double ra, double dec, bool precise)
     fs_sexa(RAStr, ra, 2, 3600);
     fs_sexa(DecStr, dec, 2, 3600);
 
-    LOGF_DEBUG("Goto (%s,%s)", RAStr, DecStr);
+    LOGF_DEBUG("Goto RA-DEC(%s,%s)", RAStr, DecStr);
 
     set_sim_slewing(true);
 
@@ -501,7 +466,7 @@ bool CelestronDriver::slew_radec(double ra, double dec, bool precise)
     else
         sprintf(cmd, "R%04X,%04X", dd2nex(ra*15), dd2nex(dec));
 
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
@@ -521,7 +486,7 @@ bool CelestronDriver::slew_azalt(double az, double alt, bool precise)
     else
         sprintf(cmd, "B%04X,%04X", dd2nex(az), dd2nex(alt));
 
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
@@ -542,7 +507,7 @@ bool CelestronDriver::sync(double ra, double dec, bool precise)
     else
         sprintf(cmd, "S%04X,%04X", dd2nex(ra*15), dd2nex(dec));
 
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
@@ -568,16 +533,14 @@ bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
 {
     if (precise)
     {
-        if (simulation)
-            sprintf(response, "%08X,%08X#", dd2pnex(sim_data.ra*15), dd2pnex(sim_data.dec));
+        set_sim_response("%08X,%08X#", dd2pnex(sim_data.ra*15), dd2pnex(sim_data.dec));
 
         if (!send_command("e", 1, response, 18, true, true))
             return false;
     }
     else
     {
-        if (simulation)
-            sprintf(response, "%04X,%04X#", dd2nex(sim_data.ra*15), dd2nex(sim_data.dec));
+        set_sim_response("%04X,%04X#", dd2nex(sim_data.ra*15), dd2nex(sim_data.dec));
 
         if (!send_command("E", 1, response, 10, true, true))
             return false;
@@ -585,7 +548,7 @@ bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
 
     parseCoordsResponse(response, ra, dec, precise);
     *ra /= 15.0;
-    *dec = trimAngle(*dec);
+    *dec = trimDecAngle(*dec);
 
     char RAStr[16], DecStr[16];
     fs_sexa(RAStr, *ra, 2, 3600);
@@ -595,21 +558,18 @@ bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
     return true;
 }
 
-//TODO: simulation not implemented
 bool CelestronDriver::get_azalt(double *az, double *alt, bool precise)
 {
     if (precise)
     {
-        //if (simulation)
-        //sprintf(response, "%08X,%08X#", dd2pnex(sim_data.az), dd2pnex(sim_data.alt));
+        set_sim_response("%08X,%08X#", dd2pnex(sim_data.az), dd2pnex(sim_data.alt));
 
         if (!send_command("z", 1, response, 18, true, true))
             return false;
     }
     else
     {
-        //if (simulation)
-        //sprintf(response, "%04X,%04X#", dd2nex(sim_data.az), dd2nex(sim_data.alt));
+        set_sim_response("%04X,%04X#", dd2nex(sim_data.az), dd2nex(sim_data.alt));
 
         if (!send_command("Z", 1, response, 10, true, true))
             return false;
@@ -626,6 +586,8 @@ bool CelestronDriver::get_azalt(double *az, double *alt, bool precise)
 
 bool CelestronDriver::set_location(double longitude, double latitude)
 {
+    LOGF_DEBUG("Setting location (%.3f,%.3f)", longitude, latitude);
+
     // Convert from INDI standard to regular east/west -180 to 180
     if (longitude > 180)
         longitude -= 360;
@@ -646,7 +608,7 @@ bool CelestronDriver::set_location(double longitude, double latitude)
     cmd[7] = long_s;
     cmd[8] = long_d > 0 ? 0 : 1;
 
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     return send_command(cmd, 9, response, 1, false, true);
 }
 
@@ -674,7 +636,7 @@ bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset)
     // Always assume standard time
     cmd[8] = 0;
 
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     return send_command(cmd, 9, response, 1, false, true);
 }
 
@@ -682,8 +644,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
                                         int *dd, int *hh, int *minute, int *ss)
 {
     // Simulated response (HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT)
-    char sim_resp[] = {17, 30, 10, 4, 1, 15, 3, 0, '#'};
-    strcpy(response, sim_resp);
+    set_sim_response("%c%c%c%c%c%c%c%c#", 17, 30, 10, 4, 1, 15, 3, 0);
 
     if (!send_command("h", 1, response, 9, true, false))
         return false;
@@ -725,7 +686,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
 
 bool CelestronDriver::is_slewing()
 {
-    sprintf(response, "%d#", sim_data.isSlewing);    // Simulated response
+    set_sim_response("%d#", sim_data.isSlewing);
 
     if (!send_command("L", 1, response, 2, true, true))
         return false;
@@ -735,7 +696,7 @@ bool CelestronDriver::is_slewing()
 
 bool CelestronDriver::get_track_mode(CELESTRON_TRACK_MODE *mode)
 {
-    strcpy(response, "\02#");   // Simulated response
+    set_sim_response("\02#");
 
     if (!send_command("t", 1, response, 2, true, false))
         return false;
@@ -748,7 +709,7 @@ bool CelestronDriver::set_track_mode(CELESTRON_TRACK_MODE mode)
 {
     char cmd[3];
     sprintf(cmd, "T%c", mode);
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
 
     return send_command(cmd, 2, response, 1, false, true);
 }
@@ -760,6 +721,6 @@ bool CelestronDriver::hibernate()
 
 bool CelestronDriver::wakeup()
 {
-    strcpy(response, "#");  // Simulated response
+    set_sim_response("#");
     return send_command("y#", 2, response, 1, true, true);
 }
