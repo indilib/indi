@@ -20,7 +20,7 @@ add_definitions(-U__STRICT_ANSI__)
 endif(CYGWIN)
 
 option(WITH_ALIGN "Enable Alignment Subsystem" ON)
-option(WITH_ALIGN_GEEHALEL "Enable EQMod Alignment" OFF)
+option(WITH_ALIGN_GEEHALEL "Enable EQMod Alignment" ON)
 option(WITH_SCOPE_LIMITS "Enable Scope limits" ON)
 
 set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")

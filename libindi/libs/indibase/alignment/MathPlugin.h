@@ -9,7 +9,6 @@
 #pragma once
 
 #include "InMemoryDatabase.h"
-#include <string>
 
 namespace INDI
 {
@@ -73,16 +72,7 @@ class MathPlugin
     virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
                                                double &RightAscension, double &Declination) = 0;
 
-    /// \brief Get a string representation of the internal plugin data for debugging/monitoring purpose
-    /// \param[in] PluginDisplayName the name of the current plugin
-    /// \return the string representation of internal data
-    virtual std::string GetInternalDataRepresentation(std::string PluginDisplayName);
-    
-    /// \brief Get a string representation of the sync points database for debugging/monitoring purpose
-    /// \return the string representation of the sync points database
-    virtual std::string GetDatabaseRepresentation();
-
-   protected:
+  protected:
     // Protected properties
     /// \brief Describe the approximate alignment of the mount. This information is normally used in a one star alignment
     /// calculation.
