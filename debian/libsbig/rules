@@ -7,5 +7,5 @@ DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 DEB_PACKAGE_VERSION := $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
 DEB_SRCDIR=libsbig
 DEB_DH_SHLIBDEPS_ARGS=-u--ignore-missing-info
-DEB_DH_LINK_ARGS := usr/lib/${DEB_HOST_MULTIARCH}/libsbigudrv.so.${DEB_PACKAGE_VERSION} usr/lib/${DEB_HOST_MULTIARCH}/libsbigudrv.so.2 \
-                    usr/lib/${DEB_HOST_MULTIARCH}/libsbigudrv.so.2 usr/lib/${DEB_HOST_MULTIARCH}/libsbigudrv.so
+DEB_DH_LINK_ARGS := usr/lib/${DEB_HOST_MULTIARCH}/libsbig.so.${DEB_PACKAGE_VERSION} usr/lib/${DEB_HOST_MULTIARCH}/libsbig.so.2 \
+                    usr/lib/${DEB_HOST_MULTIARCH}/libsbig.so.2 usr/lib/${DEB_HOST_MULTIARCH}/libsbig.so

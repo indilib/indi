@@ -1,3 +1,9 @@
+libsbig (2.1.2) xenial; urgency=low
+
+  * Package name updated again to libsbig to be consistent
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Thu, 28 Dec 2017 00:02:00 +0300
+
 libsbig (2.1.1) xenial; urgency=low
 
   * Library name updated.
