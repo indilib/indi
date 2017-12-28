@@ -9,6 +9,8 @@ Standards-Version: 3.9.1
 Package: libsbig
 Architecture: i386 amd64 armhf
 Depends: ${shlibs:Depends}, ${misc:Depends}, fxload
+conflicts: libsbiugudrv
+replaces: libsbigudrv
 Description: Santa Barbra Instrument Group (SBIG) Universal Library Driver
  The Official Santa Barbra Instrument Group (SBIG) Universal Library
  Driver is used by applications to access and control the USB,
