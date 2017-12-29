@@ -77,7 +77,8 @@ option(WITH_ASICAM "Install ZWO Optics ASI Driver" On)
 option(WITH_MGEN "Install MGen Autoguider" On)
 option(WITH_RTLSDR "Install RTL-SDR Receiver" On)
 option(WITH_RADIOSIM "Install RadioSim Receiver" On)
-option(WITH_GPSNMEA "Install GPS NMEA Driver" ON)
+option(WITH_GPSNMEA "Install GPS NMEA Driver" On)
+option(WITH_ARMADILLO "Install Armadillo & Platypus Driver" On)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
