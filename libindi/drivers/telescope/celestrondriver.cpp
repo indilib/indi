@@ -121,7 +121,6 @@ void CelestronDriver::set_device(const char *name)
 // Virtual method for testing
 int CelestronDriver::serial_write(const char *cmd, int nbytes, int *nbytes_written)
 {
-    LOG_DEBUG("serial_write");
     tcflush(fd, TCIOFLUSH);
     return tty_write(fd, cmd, nbytes, nbytes_written);
 }
@@ -193,11 +192,15 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
         }
     }
 
-    if (resp_len >= 0 && nbytes != resp_len)
+    if (resp_len == 0)
+        return true;
+
+    if (nbytes != resp_len)
     {
         LOGF_ERROR("Received %d bytes, expected %d.", nbytes, resp_len);
         return 0;
     }
+
     resp[nbytes] = '\0';
 
     if (ascii_resp)
@@ -208,7 +211,6 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
         hex_dump(hexbuf, resp, resp_len);
         LOGF_DEBUG("RES <%s>", hexbuf);
     }
-
     return nbytes;
 }
 
