@@ -54,6 +54,20 @@
 #define EXIT_SHUTTER            0x04 // Command send to shutter on program exit
 #define ABORT_SHUTTER           0x07
 
+// logging macros
+#define LOG_DEBUG(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, (txt))
+#define LOG_INFO(txt)   DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, (txt))
+#define LOG_WARN(txt)   DEBUGDEVICE(device_str, INDI::Logger::DBG_WARNING, (txt))
+#define LOG_ERROR(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, (txt))
+#define LOG_EXTRA(...)  DEBUGDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, (txt))
+
+#define LOGF_DEBUG(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, __VA_ARGS__)
+#define LOGF_INFO(...)  DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION, __VA_ARGS__)
+#define LOGF_WARN(...)  DEBUGFDEVICE(device_str, INDI::Logger::DBG_WARNING, __VA_ARGS__)
+#define LOGF_ERROR(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR, __VA_ARGS__)
+#define LOGF_EXTRA(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, __VA_ARGS__)
+
+
 // Error messages
 const char *ErrorMessages[] = {
 	"Ok",                              // no error
@@ -160,14 +174,14 @@ int MaxDomeIIDriver::ReadResponse()
         err = tty_read(fd, buffer, 1, MAXDOME_TIMEOUT, &nbytes);
 
     if (err != TTY_OK || buffer[0] != START_BYTE) {
-        DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, ErrorMessages[1]);
+        LOG_ERROR(ErrorMessages[1]);
         return -1;
     }
 
     // Read message length
     err = tty_read(fd, buffer + 1, 1, MAXDOME_TIMEOUT, &nbytes);
     if (err != TTY_OK || buffer[1] < 0x02 || buffer[1] > 0x0e) {
-        DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, ErrorMessages[2]);
+        LOG_ERROR(ErrorMessages[2]);
         return -2;
     }
 
@@ -176,12 +190,12 @@ int MaxDomeIIDriver::ReadResponse()
     // Read the rest of the message
     err = tty_read(fd, buffer + 2, len, MAXDOME_TIMEOUT, &nbytes);
     if (err != TTY_OK || nbytes != len) {
-        DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, ErrorMessages[3]);
+        LOG_ERROR(ErrorMessages[3]);
         return -3;
     }
 
     if (computeChecksum(buffer, len + 2) != 0) {
-        DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, ErrorMessages[4]);
+        LOG_ERROR(ErrorMessages[4]);
         return -4;
     }
 
@@ -219,14 +233,14 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
     memcpy(cmd + 3, payload, payloadLen);
 
     //hex_dump(hexbuf, cmd, 4 + payloadLen);
-    //DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "CMD (%s)", hexbuf);
+    //LOGF_DEBUG("CMD (%s)", hexbuf);
 
     tcflush(fd, TCIOFLUSH);
 
     if ((err = tty_write(fd, cmd, 4 + payloadLen, &nbytes)) != TTY_OK)
     {
         tty_error_msg(err, errmsg, MAXRBUF);
-        DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, errmsg);
+        LOG_ERROR(errmsg);
         return -5;
     }
 
@@ -235,12 +249,12 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
         return nbytes;
 
     if (buffer[2] != (char)(cmdId | TO_COMPUTER)) {
-        DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, ErrorMessages[6]);
+        LOG_ERROR(ErrorMessages[6]);
         return -6;
     }
 
     //hex_dump(hexbuf, buffer, nbytes);
-    //DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, "RES (%s)", hexbuf);
+    //LOGF_DEBUG("RES (%s)", hexbuf);
 
     return 0;
 }
@@ -252,7 +266,7 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
 */
 int MaxDomeIIDriver::AbortAzimuth()
 {
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, "Azimuth movement aborted");
+    LOG_INFO("Azimuth movement aborted");
     return SendCommand(ABORT_CMD, NULL, 0);
 }
 
@@ -263,7 +277,7 @@ int MaxDomeIIDriver::AbortAzimuth()
 */
 int MaxDomeIIDriver::HomeAzimuth()
 {
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, "Homing azimuth");
+    LOG_INFO("Homing azimuth");
     return SendCommand(HOME_CMD, NULL, 0);
 }
 
@@ -276,8 +290,7 @@ int MaxDomeIIDriver::HomeAzimuth()
 */
 int MaxDomeIIDriver::GotoAzimuth(int nDir, int nTicks)
 {
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG,
-            "Moving dome to azimuth: %d", nTicks);
+    LOGF_DEBUG("Moving dome to azimuth: %d", nTicks);
 
     char payload[3];
     payload[0] = (char)nDir;
@@ -309,8 +322,7 @@ int MaxDomeIIDriver::Status(ShStatus *shStatus, AzStatus *azStatus,
     *azimuthPos = (unsigned)(((uint8_t)buffer[5]) * 256 + ((uint8_t)buffer[6]));
     *homePos    = ((unsigned)buffer[7]) * 256 + ((unsigned)buffer[8]);
 
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG,
-            "Dome status: az=%d home=%d", *azimuthPos, *homePos);
+    LOGF_DEBUG("Dome status: az=%d home=%d", *azimuthPos, *homePos);
     return 0;
 }
 
@@ -321,7 +333,7 @@ int MaxDomeIIDriver::Status(ShStatus *shStatus, AzStatus *azStatus,
 */
 int MaxDomeIIDriver::Ack()
 {
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, "ACK sent");
+    LOG_DEBUG("ACK sent");
     return SendCommand(ACK_CMD, NULL, 0);
 }
 
@@ -336,8 +348,7 @@ int MaxDomeIIDriver::Ack()
 */
 int MaxDomeIIDriver::SetPark(int nParkOnShutter, int nTicks)
 {
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION,
-            "Setting park position: %d", nTicks);
+    LOGF_INFO("Setting park position: %d", nTicks);
 
     char payload[3];
     payload[0] = (char)nParkOnShutter;
@@ -355,8 +366,7 @@ int MaxDomeIIDriver::SetPark(int nParkOnShutter, int nTicks)
  */
 int MaxDomeIIDriver::SetTicksPerTurn(int nTicks)
 {
-    DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION,
-            "Setting ticks per turn: %d", nTicks);
+    LOGF_INFO("Setting ticks per turn: %d", nTicks);
 
     char payload[2];
     payload[0] = (char)(nTicks / 256);
@@ -378,7 +388,7 @@ int MaxDomeIIDriver::SetTicksPerTurn(int nTicks)
 */
 int MaxDomeIIDriver::OpenShutter()
 {
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, "Opening shutter");
+    LOG_INFO("Opening shutter");
 
     char payload[] = { OPEN_SHUTTER };
     return SendCommand(SHUTTER_CMD, payload, sizeof(payload));
@@ -391,7 +401,7 @@ int MaxDomeIIDriver::OpenShutter()
 */
 int MaxDomeIIDriver::OpenUpperShutterOnly()
 {
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, "Opening upper shutter");
+    LOG_INFO("Opening upper shutter");
 
     char payload[] = { OPEN_UPPER_ONLY_SHUTTER };
     return SendCommand(SHUTTER_CMD, payload, sizeof(payload));
@@ -404,7 +414,7 @@ int MaxDomeIIDriver::OpenUpperShutterOnly()
 */
 int MaxDomeIIDriver::CloseShutter()
 {
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, "Closing shutter");
+    LOG_INFO("Closing shutter");
 
     char payload[] = { CLOSE_SHUTTER };
     return SendCommand(SHUTTER_CMD, payload, sizeof(payload));
@@ -417,7 +427,7 @@ int MaxDomeIIDriver::CloseShutter()
 */
 int MaxDomeIIDriver::AbortShutter()
 {
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, "Aborting shutter operation");
+    LOG_INFO("Aborting shutter operation");
 
     char payload[] = { ABORT_SHUTTER };
     return SendCommand(SHUTTER_CMD, payload, sizeof(payload));
@@ -430,7 +440,7 @@ int MaxDomeIIDriver::AbortShutter()
 */
 int MaxDomeIIDriver::ExitShutter()
 {
-    DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, "Exiting shutter");
+    LOG_INFO("Exiting shutter");
 
     char payload[] = { EXIT_SHUTTER };
     return SendCommand(SHUTTER_CMD, payload, sizeof(payload));

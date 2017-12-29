@@ -1,5 +1,5 @@
 /*
-    MaxDome II 
+    MaxDome II
     Copyright (C) 2009 Ferran Casarramona (ferran.casarramona@gmail.com)
 
     Migrated to INDI::Dome by Jasem Mutlaq (2014)
@@ -31,6 +31,20 @@
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
+
+// logging macros
+#define LOG_DEBUG(txt)  DEBUG(INDI::Logger::DBG_DEBUG, (txt))
+#define LOG_INFO(txt)   DEBUG(INDI::Logger::DBG_SESSION, (txt))
+#define LOG_WARN(txt)   DEBUG(INDI::Logger::DBG_WARNING, (txt))
+#define LOG_ERROR(txt)  DEBUG(INDI::Logger::DBG_ERROR, (txt))
+
+#define LOGF_DEBUG(...) DEBUGF(INDI::Logger::DBG_DEBUG, __VA_ARGS__)
+#define LOGF_INFO(...)  DEBUGF(INDI::Logger::DBG_SESSION, __VA_ARGS__)
+#define LOGF_WARN(...)  DEBUGF(INDI::Logger::DBG_WARNING, __VA_ARGS__)
+#define LOGF_ERROR(...) DEBUGF(INDI::Logger::DBG_ERROR, __VA_ARGS__)
+
+
+const int POLLMS = 1000; // Period of update, 1 second.
 
 // We declare an auto pointer to dome.
 std::unique_ptr<MaxDomeII> dome(new MaxDomeII());
@@ -407,7 +421,7 @@ void MaxDomeII::TimerHit()
                         {
                             setDomeState(DOME_SYNCED);
                             nTimeSinceAzimuthStart = -1;
-                            DEBUG(INDI::Logger::DBG_SESSION, "Dome is on target position");
+                            LOG_INFO("Dome is on target position");
                         }
                         if (HomeS[0].s == ISS_ON)
                         {
@@ -443,7 +457,7 @@ void MaxDomeII::TimerHit()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Error: %s. Please reconnect and try again.", ErrorMessages[-nError]);
+        LOGF_DEBUG("Error: %s. Please reconnect and try again.", ErrorMessages[-nError]);
         return;
     }
 
@@ -498,7 +512,7 @@ IPState MaxDomeII::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     // TODO
     INDI_UNUSED(operation);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Move dir=%d", dir);
+    LOGF_INFO("Move dir=%d", dir);
     return IPS_OK;
 }
 
@@ -577,7 +591,7 @@ bool MaxDomeII::ISNewNumber(const char *dev, const char *name, double values[], 
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "MAX DOME II: %s", ErrorMessages[-error]);
+                LOGF_ERROR("MAX DOME II: %s", ErrorMessages[-error]);
                 TicksPerTurnNP.s = IPS_ALERT;
                 IDSetNumber(&TicksPerTurnNP, NULL);
             }
@@ -720,7 +734,7 @@ bool MaxDomeII::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         nTargetAzimuth         = -1;
         if (error)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error Homing Azimuth (%s).", ErrorMessages[-error]);
+            LOGF_ERROR("Error Homing Azimuth (%s).", ErrorMessages[-error]);
             HomeSP.s = IPS_ALERT;
             IDSetSwitch(&HomeSP, "Error Homing Azimuth");
             return false;
@@ -826,14 +840,14 @@ int MaxDomeII::handle_driver_error(int *error, int *nRetry)
         case -5: // can't connect
             // This error can happen if port connection is lost, i.e. a usb-serial reconnection
             // Reconnect
-            DEBUG(INDI::Logger::DBG_ERROR, "MAX DOME II: Reconnecting ...");
+            LOG_ERROR("MAX DOME II: Reconnecting ...");
             Connect();
             if (PortFD < 0)
                 *nRetry = 0; // Can't open the port. Don't retry anymore.
             break;
 
         default: // Do nothing in all other errors.
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error on command: (%s).", ErrorMessages[-*error]);
+            LOGF_ERROR("Error on command: (%s).", ErrorMessages[-*error]);
             break;
     }
 
@@ -860,11 +874,11 @@ IPState MaxDomeII::ConfigurePark(int nCSBP, double ParkAzimuth)
         {
             nParkPosition           = ParkAzimuth;
             nCloseShutterBeforePark = nCSBP;
-            DEBUGF(INDI::Logger::DBG_SESSION, "New park position set. %d %d", nCSBP, AzimuthToTicks(ParkAzimuth));
+            LOGF_INFO("New park position set. %d %d", nCSBP, AzimuthToTicks(ParkAzimuth));
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "MAX DOME II: %s", ErrorMessages[-error]);
+            LOGF_ERROR("MAX DOME II: %s", ErrorMessages[-error]);
             return IPS_ALERT;
         }
     }
@@ -909,7 +923,7 @@ IPState MaxDomeII::ControlShutter(ShutterOperation operation)
         nTimeSinceShutterStart = 0; // Init movement timer
         if (error)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error closing shutter (%s).", ErrorMessages[-error]);
+            LOGF_ERROR("Error closing shutter (%s).", ErrorMessages[-error]);
             return IPS_ALERT;
         }
         return IPS_BUSY;
@@ -926,7 +940,7 @@ IPState MaxDomeII::ControlShutter(ShutterOperation operation)
             nTimeSinceShutterStart = 0; // Init movement timer
             if (error)
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error opening shutter (%s).", ErrorMessages[-error]);
+                LOGF_ERROR("Error opening shutter (%s).", ErrorMessages[-error]);
                 return IPS_ALERT;
             }
             return IPS_BUSY;
@@ -941,7 +955,7 @@ IPState MaxDomeII::ControlShutter(ShutterOperation operation)
             nTimeSinceShutterStart = 0; // Init movement timer
             if (error)
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error opening upper shutter only (%s).", ErrorMessages[-error]);
+                LOGF_ERROR("Error opening upper shutter only (%s).", ErrorMessages[-error]);
                 return IPS_ALERT;
             }
             return IPS_BUSY;
