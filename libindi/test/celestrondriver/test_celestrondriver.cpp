@@ -182,6 +182,14 @@ TEST(CelestronDriverTest, setLocation) {
     EXPECT_TRUE(driver.set_location(-3.7003, 40.4167));
 }
 
+TEST(CelestronDriverTest, hibernate) {
+    MockCelestronDriver driver;
+
+    EXPECT_CALL(driver, serial_write(StrEq("x#"), 2, _));
+    EXPECT_CALL(driver, serial_read(_, _)).Times(0);
+    EXPECT_TRUE(driver.hibernate());
+}
+
 /*
 TEST(CelestronDriverTest, getLocation) {
     MockCelestronDriver driver;

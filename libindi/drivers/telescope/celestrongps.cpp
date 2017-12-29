@@ -1133,7 +1133,7 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
     if (driver.set_track_mode(mode))
     {
         TrackState = (mode == TRACKING_OFF) ? SCOPE_IDLE : SCOPE_TRACKING;
-        LOGF_DEBUG("Tracking mode set to %s.", TrackModeS[mode].label);
+        LOGF_DEBUG("Tracking mode set to %s.", TrackModeS[mode - 1].label);
         return true;
     }
 

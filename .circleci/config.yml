@@ -6,10 +6,10 @@ jobs:
       - image: jochym/indi-stretch
     steps:
       - checkout
-      - run: 
+      - run:
           name: Build all
           command: .circleci/build-all.sh
-      - run: 
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
@@ -18,10 +18,10 @@ jobs:
       - image: jochym/indi-buster
     steps:
       - checkout
-      - run: 
+      - run:
           name: Build all
           command: .circleci/build-all.sh
-      - run: 
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
@@ -30,10 +30,10 @@ jobs:
       - image: jochym/indi-artful
     steps:
       - checkout
-      - run: 
+      - run:
           name: Build all
           command: .circleci/build-all.sh
-      - run: 
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
@@ -42,10 +42,10 @@ jobs:
       - image: jochym/indi-bionic
     steps:
       - checkout
-      - run: 
+      - run:
           name: Build all
           command: .circleci/build-all.sh
-      - run: 
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
@@ -57,10 +57,10 @@ jobs:
           CXX: clang++
     steps:
       - checkout
-      - run: 
+      - run:
           name: Build all
           command: .circleci/build-all.sh
-      - run: 
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
@@ -72,10 +72,10 @@ jobs:
           CXX: clang++
     steps:
       - checkout
-      - run: 
+      - run:
           name: Build all
           command: .circleci/build-all.sh
-      - run: 
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
@@ -84,10 +84,10 @@ jobs:
       - image: jochym/indi-fedora
     steps:
       - checkout
-      - run: 
+      - run:
           name: Build all
           command: .circleci/build-all.sh
-      - run: 
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
@@ -96,10 +96,10 @@ jobs:
       - image: jochym/indi-centos
     steps:
       - checkout
-      - run: 
+      - run:
           name: Build all
           command: .circleci/build-all.sh
-      - run: 
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
@@ -108,13 +108,12 @@ jobs:
       - image: jochym/indi-opensuse
     steps:
       - checkout
-      - run: 
+      - run:
           name: Build all
           command: .circleci/build-all.sh
-      - run: 
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
-
 
 
 workflows:
@@ -140,6 +139,3 @@ workflows:
       - build_opensuse:
           requires:
             - build_fedora
-
-
-
