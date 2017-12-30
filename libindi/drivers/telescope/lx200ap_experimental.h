@@ -24,11 +24,11 @@
 
 #include "lx200generic.h"
 
-class LX200AstroPhysicsExperiemtal : public LX200Generic
+class LX200AstroPhysicsExperimental : public LX200Generic
 {
   public:
-    LX200AstroPhysicsExperiemtal();
-    ~LX200AstroPhysicsExperiemtal() {}
+    LX200AstroPhysicsExperimental();
+    ~LX200AstroPhysicsExperimental() {}
 
     typedef enum { MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_L, MCV_P, MCV_UNKNOWN} ControllerVersion;
     typedef enum { GTOCP1=1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;

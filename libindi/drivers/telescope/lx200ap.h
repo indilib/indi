@@ -32,11 +32,11 @@
 #define MOUNTNOTINITIALIZED 0
 #define MOUNTINITIALIZED    1
 
-class LX200AstroPhysicsLegacy : public LX200Generic
+class LX200AstroPhysics : public LX200Generic
 {
   public:
-    LX200AstroPhysicsLegacy();
-    ~LX200AstroPhysicsLegacy() {}
+    LX200AstroPhysics();
+    ~LX200AstroPhysics() {}
 
     typedef enum { MCV_G, MCV_H, MCV_I, MCV_J, MCV_L, MCV_UNKNOWN} ControllerVersion;
     typedef enum { GTOCP1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;

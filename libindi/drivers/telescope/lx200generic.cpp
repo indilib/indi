@@ -34,7 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx200_16.h"
 #include "lx200_OnStep.h"
 #include "lx200ap_experimental.h"
-#include "lx200ap_legacy.h"
+#include "lx200ap.h"
 #include "lx200classic.h"
 #include "lx200driver.h"
 #include "lx200fs2.h"
@@ -121,14 +121,14 @@ void ISInit()
         IDLog("initializing from Astrophysics device...\n");
 
         if (telescope.get() == 0)
-            telescope.reset(new LX200AstroPhysicsExperiemtal());
+            telescope.reset(new LX200AstroPhysicsExperimental());
     }
-    else if (strstr(me, "indi_lx200ap_legacy"))
+    else if (strstr(me, "indi_lx200ap"))
     {
-        IDLog("initializing from Astrophysics Legacy device...\n");
+        IDLog("initializing from Astrophysics device...\n");
 
         if (telescope.get() == 0)
-            telescope.reset(new LX200AstroPhysicsLegacy());
+            telescope.reset(new LX200AstroPhysics());
     }
     else if (strstr(me, "indi_lx200gemini"))
     {

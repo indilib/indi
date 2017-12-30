@@ -20,7 +20,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "lx200ap_legacy.h"
+#include "lx200ap.h"
 
 #include "indicom.h"
 #include "lx200driver.h"
@@ -37,7 +37,7 @@
 #define MOUNT_TAB    "Mount"
 
 /* Constructor */
-LX200AstroPhysicsLegacy::LX200AstroPhysicsLegacy() : LX200Generic()
+LX200AstroPhysics::LX200AstroPhysics() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);    
@@ -46,12 +46,12 @@ LX200AstroPhysicsLegacy::LX200AstroPhysicsLegacy() : LX200Generic()
     sendTimeOnStartup = false;
 }
 
-const char *LX200AstroPhysicsLegacy::getDefaultName()
+const char *LX200AstroPhysics::getDefaultName()
 {
     return (const char *)"AstroPhysics";
 }
 
-bool LX200AstroPhysicsLegacy::initProperties()
+bool LX200AstroPhysics::initProperties()
 {
     LX200Generic::initProperties();
 
@@ -129,7 +129,7 @@ bool LX200AstroPhysicsLegacy::initProperties()
     return true;
 }
 
-void LX200AstroPhysicsLegacy::ISGetProperties(const char *dev)
+void LX200AstroPhysics::ISGetProperties(const char *dev)
 {
     LX200Generic::ISGetProperties(dev);
 
@@ -151,7 +151,7 @@ void LX200AstroPhysicsLegacy::ISGetProperties(const char *dev)
     }
 }
 
-bool LX200AstroPhysicsLegacy::updateProperties()
+bool LX200AstroPhysics::updateProperties()
 {
     LX200Generic::updateProperties();
 
@@ -186,7 +186,7 @@ bool LX200AstroPhysicsLegacy::updateProperties()
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool LX200AstroPhysics::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     int err = 0;
 
@@ -418,7 +418,7 @@ bool LX200AstroPhysicsLegacy::ISNewSwitch(const char *dev, const char *name, ISS
 /**************************************************************************************
 **
 ***************************************************************************************/
-bool LX200AstroPhysicsLegacy::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool LX200AstroPhysics::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (strcmp(getDeviceName(), dev))
         return false;
@@ -441,12 +441,12 @@ bool LX200AstroPhysicsLegacy::ISNewNumber(const char *dev, const char *name, dou
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
-bool LX200AstroPhysicsLegacy::isMountInit()
+bool LX200AstroPhysics::isMountInit()
 {
     return (StartUpSP.s != IPS_IDLE);
 }
 
-bool LX200AstroPhysicsLegacy::ReadScopeStatus()
+bool LX200AstroPhysics::ReadScopeStatus()
 {
     if (!isMountInit())
         return false;
@@ -514,7 +514,7 @@ bool LX200AstroPhysicsLegacy::ReadScopeStatus()
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::setBasicDataPart0()
+bool LX200AstroPhysics::setBasicDataPart0()
 {
     int err;
     //struct ln_date utm;
@@ -554,7 +554,7 @@ bool LX200AstroPhysicsLegacy::setBasicDataPart0()
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::setBasicDataPart1()
+bool LX200AstroPhysics::setBasicDataPart1()
 {
     int err = 0;
 
@@ -590,7 +590,7 @@ bool LX200AstroPhysicsLegacy::setBasicDataPart1()
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::Goto(double r, double d)
+bool LX200AstroPhysics::Goto(double r, double d)
 {
     targetRA  = r;
     targetDEC = d;
@@ -657,13 +657,13 @@ bool LX200AstroPhysicsLegacy::Goto(double r, double d)
 }
 
 
-int LX200AstroPhysicsLegacy::SendPulseCmd(int direction, int duration_msec)
+int LX200AstroPhysics::SendPulseCmd(int direction, int duration_msec)
 {
     return APSendPulseCmd(PortFD, direction, duration_msec);
 }
 
 
-bool LX200AstroPhysicsLegacy::Handshake()
+bool LX200AstroPhysics::Handshake()
 {
     if (isSimulation())
     {
@@ -674,7 +674,7 @@ bool LX200AstroPhysicsLegacy::Handshake()
     return setBasicDataPart0();
 }
 
-bool LX200AstroPhysicsLegacy::Disconnect()
+bool LX200AstroPhysics::Disconnect()
 {
     timeUpdated     = false;
     locationUpdated = false;
@@ -682,7 +682,7 @@ bool LX200AstroPhysicsLegacy::Disconnect()
     return LX200Generic::Disconnect();
 }
 
-bool LX200AstroPhysicsLegacy::Sync(double ra, double dec)
+bool LX200AstroPhysics::Sync(double ra, double dec)
 {
     char syncString[256];
 
@@ -737,7 +737,7 @@ bool LX200AstroPhysicsLegacy::Sync(double ra, double dec)
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::updateTime(ln_date *utc, double utc_offset)
+bool LX200AstroPhysics::updateTime(ln_date *utc, double utc_offset)
 {
     struct ln_zonedate ltm;
 
@@ -786,7 +786,7 @@ bool LX200AstroPhysicsLegacy::updateTime(ln_date *utc, double utc_offset)
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::updateLocation(double latitude, double longitude, double elevation)
+bool LX200AstroPhysics::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
 
@@ -819,7 +819,7 @@ bool LX200AstroPhysicsLegacy::updateLocation(double latitude, double longitude, 
     return true;
 }
 
-void LX200AstroPhysicsLegacy::debugTriggered(bool enable)
+void LX200AstroPhysics::debugTriggered(bool enable)
 {
     INDI_UNUSED(enable);
     LX200Generic::debugTriggered(enable);
@@ -830,7 +830,7 @@ void LX200AstroPhysicsLegacy::debugTriggered(bool enable)
 // For most mounts the SetSlewRate() method sets both the MoveTo and Slew (GOTO) speeds.
 // For AP mounts these two speeds are handled separately - so SetSlewRate() actually sets the MoveTo speed for AP mounts - confusing!
 // ApSetSlew
-bool LX200AstroPhysicsLegacy::SetSlewRate(int index)
+bool LX200AstroPhysics::SetSlewRate(int index)
 {
     if (!isSimulation() && selectAPMoveToRate(PortFD, index) < 0)
     {
@@ -844,7 +844,7 @@ bool LX200AstroPhysicsLegacy::SetSlewRate(int index)
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::Park()
+bool LX200AstroPhysics::Park()
 {
     if (initStatus == MOUNTNOTINITIALIZED)
     {
@@ -908,7 +908,7 @@ bool LX200AstroPhysicsLegacy::Park()
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::UnPark()
+bool LX200AstroPhysics::UnPark()
 {
     // First we unpark astrophysics
     if (isSimulation() == false)
@@ -972,7 +972,7 @@ bool LX200AstroPhysicsLegacy::UnPark()
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::SetCurrentPark()
+bool LX200AstroPhysics::SetCurrentPark()
 {
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
@@ -1006,7 +1006,7 @@ bool LX200AstroPhysicsLegacy::SetCurrentPark()
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::SetDefaultPark()
+bool LX200AstroPhysics::SetDefaultPark()
 {
     // Az = 0 for North hemisphere
     SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
@@ -1017,7 +1017,7 @@ bool LX200AstroPhysicsLegacy::SetDefaultPark()
     return true;
 }
 
-void LX200AstroPhysicsLegacy::syncSideOfPier()
+void LX200AstroPhysics::syncSideOfPier()
 {
     const char *cmd = ":pS#";
     // Response
@@ -1060,7 +1060,7 @@ void LX200AstroPhysicsLegacy::syncSideOfPier()
 
 }
 
-bool LX200AstroPhysicsLegacy::saveConfigItems(FILE *fp)
+bool LX200AstroPhysics::saveConfigItems(FILE *fp)
 {
     LX200Generic::saveConfigItems(fp);
 
@@ -1071,7 +1071,7 @@ bool LX200AstroPhysicsLegacy::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::SetTrackMode(uint8_t mode)
+bool LX200AstroPhysics::SetTrackMode(uint8_t mode)
 {
     int err=0;
 
@@ -1095,12 +1095,12 @@ bool LX200AstroPhysicsLegacy::SetTrackMode(uint8_t mode)
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::SetTrackEnabled(bool enabled)
+bool LX200AstroPhysics::SetTrackEnabled(bool enabled)
 {
    return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
 }
 
-bool LX200AstroPhysicsLegacy::SetTrackRate(double raRate, double deRate)
+bool LX200AstroPhysics::SetTrackRate(double raRate, double deRate)
 {
     // Convert to arcsecs/s to AP sidereal multiplier
     /*
@@ -1127,7 +1127,7 @@ bool LX200AstroPhysicsLegacy::SetTrackRate(double raRate, double deRate)
     return true;
 }
 
-bool LX200AstroPhysicsLegacy::getUTFOffset(double *offset)
+bool LX200AstroPhysics::getUTFOffset(double *offset)
 {
     return (getAPUTCOffset(PortFD, offset) == 0);
 }

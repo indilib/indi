@@ -34,7 +34,7 @@
 #include <termios.h>
 
 /* Constructor */
-LX200AstroPhysicsExperiemtal::LX200AstroPhysicsExperiemtal() : LX200Generic()
+LX200AstroPhysicsExperimental::LX200AstroPhysicsExperimental() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);    
@@ -43,12 +43,12 @@ LX200AstroPhysicsExperiemtal::LX200AstroPhysicsExperiemtal() : LX200Generic()
     sendTimeOnStartup = false;
 }
 
-const char *LX200AstroPhysicsExperiemtal::getDefaultName()
+const char *LX200AstroPhysicsExperimental::getDefaultName()
 {
     return (const char *)"AstroPhysics Experimental";
 }
 
-bool LX200AstroPhysicsExperiemtal::initProperties()
+bool LX200AstroPhysicsExperimental::initProperties()
 {
     LX200Generic::initProperties();
 
@@ -111,7 +111,7 @@ bool LX200AstroPhysicsExperiemtal::initProperties()
     return true;
 }
 
-void LX200AstroPhysicsExperiemtal::ISGetProperties(const char *dev)
+void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 {
     LX200Generic::ISGetProperties(dev);
 
@@ -127,7 +127,7 @@ void LX200AstroPhysicsExperiemtal::ISGetProperties(const char *dev)
     }
 }
 
-bool LX200AstroPhysicsExperiemtal::updateProperties()
+bool LX200AstroPhysicsExperimental::updateProperties()
 {
     LX200Generic::updateProperties();
 
@@ -176,7 +176,7 @@ bool LX200AstroPhysicsExperiemtal::updateProperties()
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::initMount()
+bool LX200AstroPhysicsExperimental::initMount()
 {
     // Make sure that the mount is setup according to the properties
     int err=0;
@@ -289,7 +289,7 @@ bool LX200AstroPhysicsExperiemtal::initMount()
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool LX200AstroPhysicsExperimental::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     int err = 0;
 
@@ -398,7 +398,7 @@ bool LX200AstroPhysicsExperiemtal::ISNewSwitch(const char *dev, const char *name
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool LX200AstroPhysicsExperiemtal::ReadScopeStatus()
+bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 {
     if (isSimulation())
     {
@@ -474,7 +474,7 @@ bool LX200AstroPhysicsExperiemtal::ReadScopeStatus()
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::Goto(double r, double d)
+bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 {
     targetRA  = r;
     targetDEC = d;
@@ -545,7 +545,7 @@ bool LX200AstroPhysicsExperiemtal::Goto(double r, double d)
 }
 
 
-int LX200AstroPhysicsExperiemtal::SendPulseCmd(int direction, int duration_msec)
+int LX200AstroPhysicsExperimental::SendPulseCmd(int direction, int duration_msec)
 {
     if (firmwareVersion == MCV_E)
         handleGTOCP2MotionBug();
@@ -553,7 +553,7 @@ int LX200AstroPhysicsExperiemtal::SendPulseCmd(int direction, int duration_msec)
     return APSendPulseCmd(PortFD, direction, duration_msec);
 }
 
-bool LX200AstroPhysicsExperiemtal::Handshake()
+bool LX200AstroPhysicsExperimental::Handshake()
 {
     if (isSimulation())
     {
@@ -583,7 +583,7 @@ bool LX200AstroPhysicsExperiemtal::Handshake()
     return (checkLX200Format(PortFD) == 0);
 }
 
-bool LX200AstroPhysicsExperiemtal::Disconnect()
+bool LX200AstroPhysicsExperimental::Disconnect()
 {
     timeUpdated     = false;
     //locationUpdated = false;
@@ -592,7 +592,7 @@ bool LX200AstroPhysicsExperiemtal::Disconnect()
     return LX200Generic::Disconnect();
 }
 
-bool LX200AstroPhysicsExperiemtal::Sync(double ra, double dec)
+bool LX200AstroPhysicsExperimental::Sync(double ra, double dec)
 {
     char syncString[256];
 
@@ -647,7 +647,7 @@ bool LX200AstroPhysicsExperiemtal::Sync(double ra, double dec)
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::updateTime(ln_date *utc, double utc_offset)
+bool LX200AstroPhysicsExperimental::updateTime(ln_date *utc, double utc_offset)
 {
     struct ln_zonedate ltm;
 
@@ -693,7 +693,7 @@ bool LX200AstroPhysicsExperiemtal::updateTime(ln_date *utc, double utc_offset)
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::updateLocation(double latitude, double longitude, double elevation)
+bool LX200AstroPhysicsExperimental::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
 
@@ -723,7 +723,7 @@ bool LX200AstroPhysicsExperiemtal::updateLocation(double latitude, double longit
     return true;
 }
 
-void LX200AstroPhysicsExperiemtal::debugTriggered(bool enable)
+void LX200AstroPhysicsExperimental::debugTriggered(bool enable)
 {
     LX200Generic::debugTriggered(enable);
     set_lx200ap_name(getDeviceName(), DBG_SCOPE);
@@ -732,7 +732,7 @@ void LX200AstroPhysicsExperiemtal::debugTriggered(bool enable)
 // For most mounts the SetSlewRate() method sets both the MoveTo and Slew (GOTO) speeds.
 // For AP mounts these two speeds are handled separately - so SetSlewRate() actually sets the MoveTo speed for AP mounts - confusing!
 // ApSetSlew
-bool LX200AstroPhysicsExperiemtal::SetSlewRate(int index)
+bool LX200AstroPhysicsExperimental::SetSlewRate(int index)
 {
     if (!isSimulation() && selectAPMoveToRate(PortFD, index) < 0)
     {
@@ -746,7 +746,7 @@ bool LX200AstroPhysicsExperiemtal::SetSlewRate(int index)
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::Park()
+bool LX200AstroPhysicsExperimental::Park()
 {
     double parkAz  = GetAxis1Park();
     double parkAlt = GetAxis2Park();
@@ -808,7 +808,7 @@ bool LX200AstroPhysicsExperiemtal::Park()
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::UnPark()
+bool LX200AstroPhysicsExperimental::UnPark()
 {
     // The AP :PO# should only be used during initilization and not here as indicated by email from Preston on 2017-12-12
 
@@ -820,7 +820,7 @@ bool LX200AstroPhysicsExperiemtal::UnPark()
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::SetCurrentPark()
+bool LX200AstroPhysicsExperimental::SetCurrentPark()
 {
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
@@ -853,7 +853,7 @@ bool LX200AstroPhysicsExperiemtal::SetCurrentPark()
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::SetDefaultPark()
+bool LX200AstroPhysicsExperimental::SetDefaultPark()
 {
     // Az = 0 for North hemisphere
     SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
@@ -864,7 +864,7 @@ bool LX200AstroPhysicsExperiemtal::SetDefaultPark()
     return true;
 }
 
-void LX200AstroPhysicsExperiemtal::syncSideOfPier()
+void LX200AstroPhysicsExperimental::syncSideOfPier()
 {
     const char *cmd = ":pS#";
     // Response
@@ -907,7 +907,7 @@ void LX200AstroPhysicsExperiemtal::syncSideOfPier()
 
 }
 
-bool LX200AstroPhysicsExperiemtal::saveConfigItems(FILE *fp)
+bool LX200AstroPhysicsExperimental::saveConfigItems(FILE *fp)
 {
     LX200Generic::saveConfigItems(fp);
 
@@ -918,7 +918,7 @@ bool LX200AstroPhysicsExperiemtal::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::SetTrackMode(uint8_t mode)
+bool LX200AstroPhysicsExperimental::SetTrackMode(uint8_t mode)
 {
     int err=0;
 
@@ -942,12 +942,12 @@ bool LX200AstroPhysicsExperiemtal::SetTrackMode(uint8_t mode)
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::SetTrackEnabled(bool enabled)
+bool LX200AstroPhysicsExperimental::SetTrackEnabled(bool enabled)
 {
    return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
 }
 
-bool LX200AstroPhysicsExperiemtal::SetTrackRate(double raRate, double deRate)
+bool LX200AstroPhysicsExperimental::SetTrackRate(double raRate, double deRate)
 {
     // Convert to arcsecs/s to AP sidereal multiplier
     /*
@@ -974,12 +974,12 @@ bool LX200AstroPhysicsExperiemtal::SetTrackRate(double raRate, double deRate)
     return true;
 }
 
-bool LX200AstroPhysicsExperiemtal::getUTFOffset(double *offset)
+bool LX200AstroPhysicsExperimental::getUTFOffset(double *offset)
 {
     return (getAPUTCOffset(PortFD, offset) == 0);
 }
 
-bool LX200AstroPhysicsExperiemtal::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
+bool LX200AstroPhysicsExperimental::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     bool rc = LX200Generic::MoveNS(dir, command);
 
@@ -989,7 +989,7 @@ bool LX200AstroPhysicsExperiemtal::MoveNS(INDI_DIR_NS dir, TelescopeMotionComman
     return rc;
 }
 
-bool LX200AstroPhysicsExperiemtal::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
+bool LX200AstroPhysicsExperimental::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     bool rc = LX200Generic::MoveWE(dir, command);
 
@@ -999,7 +999,7 @@ bool LX200AstroPhysicsExperiemtal::MoveWE(INDI_DIR_WE dir, TelescopeMotionComman
     return rc;
 }
 
-void LX200AstroPhysicsExperiemtal::handleGTOCP2MotionBug()
+void LX200AstroPhysicsExperimental::handleGTOCP2MotionBug()
 {
     // GTOCP2 (Version 'E' and earilar) has a bug that would reset the guide rate to whatever last motion took place
     // So it must be reset to the user setting in order for guiding to work properly.
