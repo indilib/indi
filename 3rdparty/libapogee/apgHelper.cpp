@@ -392,7 +392,13 @@ const char * sysconfdir = APOGEE_CONF_DIR;
 //  GET    CFG         DIR
 std::string apgHelper::GetCfgDir()
 {
-    std::string path( help::FixPath( sysconfdir ) );
+    std::string path;
+
+    // N.B. Prefer environment variable over compiled value if it exists
+    if (getenv("APOGEE_ETC_DIR") != NULL)
+        path = help::FixPath( getenv("APOGEE_ETC_DIR"));
+    else
+        path = help::FixPath( sysconfdir );
     path.append( "Apogee/");
     return path;
 }
