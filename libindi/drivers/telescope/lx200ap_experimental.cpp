@@ -176,25 +176,82 @@ bool LX200AstroPhysicsExperimental::updateProperties()
     return true;
 }
 
+bool LX200AstroPhysicsExperimental::getFirmwareVersion()
+{
+    bool success;
+    char rev[8];
+    char versionString[128];
+
+    success = false;
+
+    if (isSimulation())
+        strncpy(versionString, "VCP4-P01-01", 128);
+    else
+        getAPVersionNumber(PortFD, versionString);
+
+    VersionInfo.s = IPS_OK;
+    IUSaveText(&VersionT[0], versionString);
+    IDSetText(&VersionInfo, nullptr);
+
+    // Check controller version
+    // example "VCP4-P01-01" for CP4 or newer
+    //         single or double letter like "T" or "V1" for CP3 and older
+
+    // CP4
+    if (strstr(versionString, "VCP4"))
+    {
+        firmwareVersion = MCV_V;
+        servoType = GTOCP4;
+        strcpy(rev, "V");
+        success = true;
+    }
+    else if (strlen(versionString) == 1 || strlen(versionString) == 2)
+    {
+        // Check earlier versions
+        // FIXME could probably use better range checking in case we get a letter like 'Z' that doesn't map to anything!
+        int typeIndex = VersionT[0].text[0] - 'E';
+        if (typeIndex >= 0)
+        {
+            firmwareVersion = static_cast<ControllerVersion>(typeIndex);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Firmware version index: %d", typeIndex);
+            if (firmwareVersion < MCV_G)
+                servoType = GTOCP2;
+            else
+                servoType = GTOCP3;
+
+            strcpy(rev, versionString);
+
+            success = true;
+        }
+    }
+
+    if (success)
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Servo Box Controller: GTOCP%d.", servoType);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Firmware Version: '%s' - %s", rev, versionString+5);
+    }
+
+    return success;
+}
+
 bool LX200AstroPhysicsExperimental::initMount()
 {
     // Make sure that the mount is setup according to the properties
     int err=0;
 
-    bool raOK=false, deOK=false;
-    if (isSimulation())
+    if (!IsMountInitialized(&mountInitialized))
     {
-        raOK = deOK = true;
-    }
-    else
-    {
-        raOK = (getLX200RA(PortFD, &currentRA) == 0);
-        deOK = (getLX200DEC(PortFD, &currentDEC) == 0);
+        DEBUG(INDI::Logger::DBG_ERROR, "Error determining if mount is initialized!");
+        return false;
     }
 
-    // If we either failed to get coords; OR
-    // RA and DE are zero, then mount is not initialized and we need to initialized it.
-    if ( (raOK == false && deOK == false) || (currentRA == 0 && (currentDEC == 0 || currentDEC == 90)))
+    if (!IsMountParked(&mountParked))
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error determining if mount is parked!");
+        return false;
+    }
+
+    if (!mountInitialized)
     {
         DEBUG(INDI::Logger::DBG_DEBUG, "Mount is not yet initialized. Initializing it...");
 
@@ -245,46 +302,6 @@ bool LX200AstroPhysicsExperimental::initMount()
 
     APSlewSpeedSP.s = IPS_OK;
     IDSetSwitch(&APSlewSpeedSP, nullptr);
-
-    char versionString[128];
-    if (isSimulation())
-        strncpy(versionString, "VCP4-P01-01", 128);
-    else
-        getAPVersionNumber(PortFD, versionString);
-
-    VersionInfo.s = IPS_OK;
-    IUSaveText(&VersionT[0], versionString);
-    IDSetText(&VersionInfo, nullptr);
-
-    // Check controller version
-    if (strstr(versionString, "VCP"))
-    {
-        int type=-1;
-        if (sscanf(versionString, "VCP%d%*s", &type) == 1)
-        {
-            servoType = static_cast<ServoVersion>(type);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Servo Box Controller: GTOCP%d.", servoType);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Firmware Version: %s", versionString+5);
-            firmwareVersion = MCV_P;
-        }
-    }
-    // Check earliar versions
-    else if (strlen(versionString) == 1)
-    {
-        int typeIndex = VersionT[0].text[0] - 'E';
-        if (typeIndex >= 0)
-        {
-            firmwareVersion = static_cast<ControllerVersion>(typeIndex);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Firmware version index: %d", typeIndex);
-            if (firmwareVersion < MCV_G)
-                servoType = GTOCP2;
-            else
-                servoType = GTOCP3;
-
-            DEBUGF(INDI::Logger::DBG_SESSION, "Servo Box Controller: GTOCP%d.", servoType);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Firmware Version: %c", VersionT[0].text[0]);
-        }
-    }
 
     return true;
 }
@@ -474,6 +491,97 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
     return true;
 }
 
+// experimental function needs testing!!!
+bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
+{
+    double ra, dec;
+    bool raZE, deZE, de90;
+
+    double epscheck = 1e-5; // two doubles this close are considered equal
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "EXPERIMENTAL: LX200AstroPhysicsExperimental::IsMountInitialized()");
+
+    if (getLX200RA(PortFD, &ra) || getLX200DEC(PortFD, &dec))
+        return false;
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "IsMountInitialized: RA: %f - DEC: %f", ra, dec);
+
+    raZE = (fabs(ra) < epscheck);
+    deZE = (fabs(dec) < epscheck);
+    de90 = (fabs(dec-90) < epscheck);
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "IsMountInitialized: raZE: %d - deZE: %d - de90: %d", raZE, deZE, de90);
+
+    // RA is zero and DEC is zero or 90
+    // then mount is not initialized and we need to initialized it.
+    if ( (raZE && deZE) || (raZE && de90))
+    {
+        DEBUG(INDI::Logger::DBG_DEBUG, "Mount is not yet initialized.");
+        *initialized = false;
+        return true;
+    }
+
+    // mount is initialized
+    DEBUG(INDI::Logger::DBG_DEBUG, "Mount is initialized.");
+    *initialized = true;
+
+    return true;
+}
+
+// experimental function needs testing!!!
+bool LX200AstroPhysicsExperimental::IsMountParked(bool *isParked)
+{
+    double ra1, ra2;
+
+    DEBUG(INDI::Logger::DBG_DEBUG, "EXPERIMENTAL: LX200AstroPhysicsExperimental::IsMountParked()");
+
+    // try one method
+    if (getMountStatus(isParked))
+    {
+        return true;
+    }
+
+    // fallback for older controllers
+    if (getLX200RA(PortFD, &ra1))
+        return false;
+
+    // wait 250ms
+    usleep(250000);
+
+    if (getLX200RA(PortFD, &ra2))
+        return false;
+
+    // if within an arcsec then assume RA is constant
+    if (abs(ra1-ra2) < (1.0/(15.0*3600.0)))
+    {
+        *isParked=false;
+        return true;
+    }
+
+    // can't determine
+    return false;
+
+}
+
+bool LX200AstroPhysicsExperimental::getMountStatus(bool *isParked)
+{
+    // check for newer
+    if ((firmwareVersion != MCV_UNKNOWN) && (firmwareVersion >= MCV_T))
+    {
+        char parkStatus;
+
+        if (check_lx200ap_status(PortFD, &parkStatus) == 0)
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "parkStatus: %c", parkStatus);
+
+            *isParked = (parkStatus == 'P');
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 {
     targetRA  = r;
@@ -547,9 +655,6 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 
 int LX200AstroPhysicsExperimental::SendPulseCmd(int direction, int duration_msec)
 {
-    if (firmwareVersion == MCV_E)
-        handleGTOCP2MotionBug();
-
     return APSendPulseCmd(PortFD, direction, duration_msec);
 }
 
@@ -577,6 +682,22 @@ bool LX200AstroPhysicsExperimental::Handshake()
             DEBUGF(INDI::Logger::DBG_ERROR, "Error setting back lash compensation (%d): %s.", err, strerror(err));
             return false;
         }
+    }
+
+    // get firmware version
+    bool rc=false;
+
+    rc = getFirmwareVersion();
+
+    // see if firmware is 'V' or not
+    if (!rc || firmwareVersion == MCV_UNKNOWN || firmwareVersion < MCV_V)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Firmware version is not 'V' - too old to use the experimental driver!");
+        return false;
+    }
+    else
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Firmware level 'V' detected - driver loaded.");
     }
 
     // Detect and set fomat. It should be LONG.
