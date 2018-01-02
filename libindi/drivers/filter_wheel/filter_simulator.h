@@ -20,6 +20,9 @@
 
 #include "indifilterwheel.h"
 
+/**
+ * @brief The FilterSim class provides a simple simulator to change filters. The filter names are saved to a config file when updated.
+ */
 class FilterSim : public INDI::FilterWheel
 {
   public:

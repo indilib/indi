@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 <p>INDI is a simple XML-like communications protocol described for interactive and automated remote control of diverse instrumentation. INDI is small, easy to parse, and stateless.</p>
 <p>In the INDI paradigm each Device poses all command and status functions in terms of settings and getting Properties.
+
 Each Property is a vector of one or more names members. Each property has a current value vector; a target value vector; provides information about how it should be sequenced with
 respect to other Properties to accomplish one coordinated unit of observation; and provides hints as to how it might be displayed for interactive manipulation in a GUI.</p>
 
@@ -40,7 +41,7 @@ For a complete review on the INDI protocol, please refer to the INDI <a href="ht
 
 \section Audience Intended Audience
 
-INDI is intended for developers who seek a scalable API for device control and automation. Hardware drivers written under INDI can be used under any INDI-compatible client. INDI serves as a backend only, you need frontend clients to control devices. Current clients include <a href="http://edu.kde.org/kstars">KStars</a>, <a href="http://www.clearyskyinstitute.com/xephem">Xephem</a>, <a href="http://pygtkindiclient.sourceforge.net/">DCD</a>, and <a href="http://www.stargazing.net/astropc">Cartes du Ciel</a>.
+INDI is intended for developers who seek a scalable API for device control and automation. Hardware drivers written under INDI can be used under any INDI-compatible client. INDI serves as a backend only, you need frontend clients to control devices. Current clients include <a href="http://edu.kde.org/kstars">KStars</a>, <a href="http://www.clearyskyinstitute.com/xephem">Xephem</a>, and <a href="http://www.stargazing.net/astropc">Cartes du Ciel</a>.
 
 \section Development Developing under INDI
 
@@ -57,16 +58,21 @@ INDI is intended for developers who seek a scalable API for device control and a
 <li><a href="classINDI_1_1GuiderInterface.html">Guider</a></li>
 <li><a href="classINDI_1_1FilterWheel.html">Filter Wheel</a></li>
 <li><a href="classINDI_1_1Focuser.html">Focuser</a></li>
+<li><a href="classINDI_1_1Rotator.html">Rotator</a></li>
+<li><a href="classINDI_1_1Detector.html">Detector</a></li>
 <li><a href="classINDI_1_1Dome.html">Dome</a></li>
+<li><a href="classLightBoxInterface.html">Light Panel</a></li>
 <li><a href="classINDI_1_1Weather.html">Weather</a></li>
 <li><a href="classINDI_1_1GPS.html">GPS</a></li>
 <li><a href="classINDI_1_1USBDevice.html">USB</a></li>
 </ul>
+<li>@ref Connection "INDI Connection Interface"</li>
 <li>@ref INDI::SP "INDI Standard Properties"</li>
 <li><a href="md_libs_indibase_alignment_alignment_white_paper.html">INDI Alignment Subsystem</a></li>
 <li><a href="structINDI_1_1Logger.html">INDI Debugging & Logging API</a></li>
 <li><a href="indicom_8h.html">INDI Common Routine Library</a></li>
 <li><a href="lilxml_8h.html">INDI LilXML Library</a></li>
+<li><a href="classStreamManager.html">INDI Stream Manager for video encoding, streaming, and recording.</a></li>
 <li><a href="group__configFunctions.html">Configuration</a></li>
 </ul>
 
@@ -78,14 +84,15 @@ INDI Library includes a number of tutorials to illustrate development of INDI dr
 
 Simulators provide a great framework to test drivers and equipment alike. INDI Library provides the following simulators:
 <ul>
-<li><b>Telescope Simulator</b>: Offers GOTO capability, motion control, guiding, and ability to set Periodic Error (PE) which is read by the CCD simulator when generating images.</li>
-<li><b>CCD Simulator</b>: Offers a very flexible CCD simulator with a primary CCD chip and a guide chip. The simulator generate images based on the RA & DEC coordinates it
+<li><b>@ref ScopeSim "Telescope Simulator"</b>: Offers GOTO capability, motion control, guiding, and ability to set Periodic Error (PE) which is read by the CCD simulator when generating images.</li>
+<li><b>@ref CCDSim "CCD Simulator"</b>: Offers a very flexible CCD simulator with a primary CCD chip and a guide chip. The simulator generate images based on the RA & DEC coordinates it
  snoops from the telescope driver using General Star Catalog (GSC). Please note that you must install GSC for the CCD simulator to work properly. Furthermore,
  The simulator snoops FWHM from the focuser simulator which affects the generated images focus. All images are generated in standard FITS format.</li>
-<li><b>Filter Wheel Simulator</b>: Offers a simple simulator to change filter wheels and their corresponding designations.</li>
-<li><b>Focuser Simulator</b>: Offers a simple simualtor for an absolute position focuser. It generates a simulated FWHM value that may be used by other simulator such as the CCD simulator.</li>
-<li><b>Dome Simulator</b>: Offers a simple simulator for an absolute position dome with shutter.
-<li><b>GPS Simulator</b>: Offers a simple simulator for GPS devices that send time and location data to the client and other drivers.
+<li><b>@ref GuideSim "Guide Simulator"</b>: Simple dedicated Guide Simulator.
+<li><b>@ref FilterSim "Filter Wheel Simulator"</b>: Offers a simple simulator to change filter wheels and their corresponding designations.</li>
+<li><b>@ref FocusSim "Focuser Simulator"</b>: Offers a simple simualtor for an absolute position focuser. It generates a simulated FWHM value that may be used by other simulator such as the CCD simulator.</li>
+<li><b>@ref DomeSim "Dome Simulator"</b>: Offers a simple simulator for an absolute position dome with shutter.
+<li><b>@ref GPSSimulator "GPS Simulator"</b>: Offers a simple simulator for GPS devices that send time and location data to the client and other drivers.
 </ul>
 
 \section Help
@@ -94,6 +101,9 @@ You can find information on INDI development in the <a href="http://www.indilib.
 
 \author Jasem Mutlaq
 \author Elwood Downey
+
+For a full list of contributors, please check <a href="https://github.com/indilib/indi/graphs/contributors">Contributors page</a> on Github.
+
 */
 
 /** \file indiapi.h

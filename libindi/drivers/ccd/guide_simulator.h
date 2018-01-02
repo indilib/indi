@@ -21,6 +21,11 @@
 
 #include "indiccd.h"
 
+/**
+ * @brief The GuideSim class provides a simple Guide CCD simulator driver.
+ *
+ * It can stream video and generate images based on General-Star-Catalog tool (gsc). It simulates guiding pulses.
+ */
 class GuideSim : public INDI::CCD
 {
   public:

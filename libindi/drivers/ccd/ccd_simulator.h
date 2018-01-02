@@ -1,4 +1,5 @@
 /*******************************************************************************
+  Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
 
  This library is free software; you can redistribute it and/or
@@ -21,6 +22,22 @@
 #include "indiccd.h"
 #include "indifilterinterface.h"
 
+/**
+ * @brief The CCDSim class provides an advanced simulator for a CCD that includes a dedicated on-board guide chip.
+ *
+ * The CCD driver can generate star fields given that General-Star-Catalog (gsc) tool is installed on the same machine the driver is running.
+ *
+ * Many simulator parameters can be configured to generate the final star field image. In addition to support guider chip and guiding pulses (ST4),
+ * a filter wheel support is provided for 8 filter wheels. Cooler and temperature control is also supported.
+ *
+ * The driver can snoop the mount equatorial coords to draw the star field. It listens to EQUATORIAL_PE property and also defines it so that the user
+ * can set it manually.
+ *
+ * Video streaming can be enabled from the Stream property group with several encoders and recorders supported.
+ *
+ * @author Gerry Rozema
+ * @author Jasem Mutlaq
+ */
 class CCDSim : public INDI::CCD, public INDI::FilterInterface
 {
   public:
