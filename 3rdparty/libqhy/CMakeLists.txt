@@ -44,20 +44,17 @@ ENDIF(UNIX AND NOT WIN32)
 install(FILES 85-qhy.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 install(FILES ${CMAKE_BINARY_DIR}/libqhy.so.${LIBQHY_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
 
-# Make sure symbolic links are installed
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake "
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.so.${LIBQHY_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so.${LIBQHY_SOVERSION})\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhy.so.${LIBQHY_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libqhy.so)\n
-")
-
 ENDIF (APPLE)
 
 install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h DESTINATION include/libqhy)
+# Make sure symbolic links are installed
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"libqhy.so.${LIBQHY_VERSION}\" \"libqhy.so.${LIBQHY_SOVERSION}\" WORKING_DIRECTORY 
+\"\$ENV{DESTDIR}/${BUILD_ROOT}${LIB_INSTALL_DIR}${LIB_POSTFIX}\" )" )
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"libqhy.so.${LIBQHY_SOVERSION}\" \"libqhy.so\" WORKING_DIRECTORY 
+\"\$ENV{DESTDIR}/${BUILD_ROOT}${LIB_INSTALL_DIR}${LIB_POSTFIX}\" )" )
 
-install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake)
 install(
    CODE "
    file(GLOB QHY_FIRMWARE ${CMAKE_CURRENT_SOURCE_DIR}/firmware/*) \n
    file(INSTALL DESTINATION ${FIRMWARE_INSTALL_DIR} TYPE FILE FILES \${QHY_FIRMWARE})"
  )
-
