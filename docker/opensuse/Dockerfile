@@ -14,8 +14,12 @@ RUN zypper -n install gpsd python-gpsd python-curses
 RUN zypper -n download gpsd-devel libgps23
 RUN rpm -iv --nodeps /var/cache/zypp/packages/OSS/suse/x86_64/*gps*rpm
 
-# No stable packages for gtest & gmock in opensuse
-# RUN zypper --non-interactive install gtest gmock
+# Install googletest
+WORKDIR /home
+RUN git clone https://github.com/google/googletest.git
+WORKDIR /home/googletest
+RUN cmake .
+RUN make install
 
 WORKDIR /home
 
