@@ -3,7 +3,6 @@
 set -e
 
 brew update
-brew tap 'homebrew/homebrew-science'
 brew tap 'caskroom/drivers'
 brew tap 'indilib/indi'
 
