@@ -1056,6 +1056,9 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
             epochPos.ra  = EqPEN[AXIS_RA].value * 15.0;
             epochPos.dec = EqPEN[AXIS_DE].value;
 
+            RA = EqPEN[AXIS_RA].value;
+            Dec = EqPEN[AXIS_DE].value;
+
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
             raPE  = J2000Pos.ra / 15.0;
             decPE = J2000Pos.dec;
