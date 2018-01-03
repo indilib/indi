@@ -9,9 +9,7 @@
 #include <functional>
 #include <string>
 #include <set>
-namespace DSI
-{
-    /* */
+
 template <class TValue, class T>
 class NamedEnum
 {
@@ -88,5 +86,4 @@ template <class TValue, class T>
 inline NamedEnum<TValue, T>::NamedEnum(std::string name, const TValue &value) : m_value(value), m_name(name)
 {
     s_instances.insert(this);
-}
 }
