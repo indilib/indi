@@ -26,6 +26,7 @@
 #include <iostream>
 #include <math.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 const int POLLMS = 250;
 
@@ -87,6 +88,13 @@ bool DSICCD::Connect()
     std::string ccd;
 
     dsi = DSI::DeviceFactory::getInstance(NULL);
+    #ifdef __APPLE__
+    if (!dsi)
+    {
+        sleep(2);
+        dsi = DSI::DeviceFactory::getInstance(NULL);
+    }
+    #endif
     if (!dsi)
     {
         /* The vendor and product ID for all DSI's (I/II/III) are the same.

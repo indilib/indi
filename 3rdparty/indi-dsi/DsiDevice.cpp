@@ -200,7 +200,7 @@ void DSI::Device::initImager(const char *devname)
         {
             if ((desc.idVendor == 0x156c) && (desc.idProduct == 0x0100 || desc.idProduct == 0x01ed))
             {
-                libusb_open(dev, &handle);
+                libusb_open(list[i], &handle);
                 if (handle)
                 {
                     libusb_kernel_driver_active(handle, 0);
@@ -218,6 +218,7 @@ void DSI::Device::initImager(const char *devname)
         }
      }
     libusb_free_device_list(list, 0);
+    list=NULL;
     #endif
 
     cnt = libusb_get_device_list(NULL, &list);

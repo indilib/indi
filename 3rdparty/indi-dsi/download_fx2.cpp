@@ -349,7 +349,6 @@ int fx2_ram_download (libusb_device_handle *h, char *filename, unsigned char ext
         return -1;
     }
     sleep(1);
-    fprintf(stderr, "A\n");
     if ( extended ) {
         r = fx2_load_vendax(h);
         if ( r != 0 ) {
@@ -358,10 +357,8 @@ int fx2_ram_download (libusb_device_handle *h, char *filename, unsigned char ext
             return -2;
         }
     }
-    fprintf(stderr, "B\n");
     
 LoadRam:
-    fprintf(stderr, "C\n");
     while ( fgets(hexdata, MAX_LINE_LENGTH, fp1) != NULL ) {
         len += strlen(hexdata);
         if ( hexdata[8] == '1' )
@@ -386,7 +383,6 @@ LoadRam:
             }
         }
     }
-    fprintf(stderr, "D\n");
     
     if ( extended ) {
         /* All data has been loaded on external RAM. Now halt the CPU and load the internal RAM. */
@@ -403,7 +399,6 @@ LoadRam:
         sleep(1);
         goto LoadRam;
     }
-    fprintf(stderr, "E\n");
     
     fclose(fp1);
     
@@ -414,7 +409,6 @@ LoadRam:
         snprintf(errmsg, MAXRBUF, "Error: Failed to release FX2 from reset");
         return -5;
     }
-    fprintf(stderr, "F\n");
     
     return 0;
 }
