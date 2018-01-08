@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 PROJECT(libinovasdk C CXX)
 
-set(INOVASDK_VERSION "1.3.2")
+set(INOVASDK_VERSION "1.3.4")
 set(INOVASDK_SOVERSION "1")
 
 include(GNUInstallDirs)
