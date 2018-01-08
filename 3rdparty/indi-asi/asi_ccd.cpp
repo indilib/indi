@@ -307,6 +307,12 @@ bool ASICCD::updateProperties()
             defineSwitch(&CoolerSP);
             loadConfig(true, "CCD_COOLER");
         }
+        // Even if there is no cooler, we define temperature property as READ ONLY
+        else
+        {
+            TemperatureNP.p = IP_RO;
+            defineNumber(&TemperatureNP);
+        }
 
         if (ControlNP.nnp > 0)
         {
@@ -478,12 +484,6 @@ void ASICCD::setupParams()
         }
         defineNumber(&CoolerNP);
         defineSwitch(&CoolerSP);
-    }
-    // Even if there is no cooler, we define temperature property as READ ONLY
-    else
-    {
-        TemperatureNP.p = IP_RO;
-        defineNumber(&TemperatureNP);
     }
 
 // Set minimum ASI_BANDWIDTHOVERLOAD on ARM
