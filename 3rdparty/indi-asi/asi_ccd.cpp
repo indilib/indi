@@ -29,7 +29,6 @@
 #include <math.h>
 #include <unistd.h>
 
-#define EXP_TIMER_MS            1000 /* Exposure polling time (ms) */
 #define MAX_EXP_RETRIES         3
 #define VERBOSE_EXPOSURE        3
 #define TEMP_TIMER_MS           1000 /* Temperature polling time (ms) */
@@ -1262,10 +1261,18 @@ void ASICCD::TimerNS()
 {
     NStimerID = -1;
     float timeleft = calcTimeLeft(NSPulseRequest, &NSPulseStart);
-    if ((timeleft >= 0.000001) && (timeleft <= 0.0001))
+    if (timeleft >= 0.000001)
     {
-        int uSecs = (int)(timeleft * 1000000.0);
-        usleep(uSecs);
+        if (timeleft < 0.001)
+        {
+            int uSecs = (int)(timeleft * 1000000.0);
+            usleep(uSecs);
+        }
+        else
+        {
+            NStimerID = IEAddTimer(1, ASICCD::TimerHelperNS, this);
+            return;
+        }
     }
     ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Stopping %s guide.", NSDirName);
@@ -1294,9 +1301,13 @@ const char *dirName)
     DEBUGF(INDI::Logger::DBG_DEBUG, "Starting %s guide for %f ms",
       NSDirName, ms);
 
+    /*
+     * If the pulse is for a ms or longer then schedule a timer callback
+     * to turn off the pulse, otherwise wait here to turn it off
+     */
     int mSecs = 0;
     int uSecs = 0;
-    if (ms > 1.0)
+    if (ms >= 1.0)
     {
         mSecs = (int)ms;
         NSPulseRequest = ms;
@@ -1343,10 +1354,18 @@ void ASICCD::TimerWE()
 {
     WEtimerID = -1;
     float timeleft = calcTimeLeft(WEPulseRequest, &WEPulseStart);
-    if ((timeleft >= 0.000001) && (timeleft <= 0.0001))
+    if (timeleft >= 0.000001)
     {
-        int uSecs = (int)(timeleft * 1000000.0);
-        usleep(uSecs);
+        if (timeleft < 0.001)
+        {
+            int uSecs = (int)(timeleft * 1000000.0);
+            usleep(uSecs);
+        }
+        else
+        {
+            WEtimerID = IEAddTimer(1, ASICCD::TimerHelperWE, this);
+            return;
+        }
     }
     ASIPulseGuideOff(m_camInfo->CameraID, WEDir);
     DEBUGF(INDI::Logger::DBG_DEBUG, "Stopping %s guide.", WEDirName);
@@ -1374,9 +1393,13 @@ const char *dirName)
     DEBUGF(INDI::Logger::DBG_DEBUG, "Starting %s guide for %f ms",
       WEDirName, ms);
 
+    /*
+     * If the pulse is for a ms or longer then schedule a timer callback
+     * to turn off the pulse, otherwise wait here to turn it off
+     */
     int mSecs = 0;
     int uSecs = 0;
-    if (ms > 1.0)
+    if (ms >= 1.0)
     {
         mSecs = (int)ms;
         WEPulseRequest = ms;
