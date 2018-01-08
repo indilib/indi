@@ -120,8 +120,8 @@ For a full list of contributors, please check <a href="https://github.com/indili
 
 /* INDI Library version */
 #define INDI_VERSION_MAJOR   1
-#define INDI_VERSION_MINOR   5
-#define INDI_VERSION_RELEASE 0
+#define INDI_VERSION_MINOR   6
+#define INDI_VERSION_RELEASE 1
 
 /*******************************************************************************
  * Manifest constants
