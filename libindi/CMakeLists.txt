@@ -597,11 +597,11 @@ target_link_libraries(indi_ieq_telescope indidriver)
 install(TARGETS indi_ieq_telescope RUNTIME DESTINATION bin)
 
 ########### Explore Scientific PMC8 #############
-SET(ieq_SRC
+SET(pmc8_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/pmc8driver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/pmc8.cpp)
 
-add_executable(indi_pmc8_telescope ${ieq_SRC})
+add_executable(indi_pmc8_telescope ${pmc8_SRC})
 
 target_link_libraries(indi_pmc8_telescope indidriver)
 
