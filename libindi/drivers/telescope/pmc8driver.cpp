@@ -41,12 +41,12 @@
 
 #define PMC8_SIMUL_VERSION_RESP "ESGvES06B9T9"
 
-// FIXME - (MSF) these should be read from the controller? Depends on mount type.
+// FIXME - these should be read from the controller? Depends on mount type.
 #define PMC8_AXIS0_SCALE 4608000.0
 #define PMC8_AXIS1_SCALE 4608000.0
 #define ARCSEC_IN_CIRCLE 1296000.0
 
-// FIXME - (MSF) just placeholders need better way to represent
+// FIXME - (just placeholders need better way to represent
 //         This value is from PMC8 SDK document
 #define PMC8_MAX_PRECISE_MOTOR_RATE 2641
 
@@ -54,14 +54,12 @@
 #define PMC8_MAX_MOVE_MOTOR_RATE (256*15)
 
 // if tracking speed above this then mount is slewing
-// NOTE - (MSF) 55 is fine since sidereal rate is 53 in these units
+// NOTE -       55 is fine since sidereal rate is 53 in these units
 //              BUT if custom tracking rates are allowed in future
 //              must change this limit to accomodate possibility
 //              custom rate is higher than sidereal
 #define PMC8_MINSLEWRATE 55
 
-<<<<<<< edc7cc786da6fff0b81821d13823c5f0e68859e0
-=======
 // any guide pulses less than this are ignored as it will not result in any actual motor motion
 #define PMC8_PULSE_GUIDE_MIN_MS 20
 
@@ -71,7 +69,6 @@
 // dont send pulses if already moving faster than this
 #define PMC8_PULSE_GUIDE_MAX_CURRATE 100
 
->>>>>>> Remove unused code and try to fix problem with DEC guide calibration 'flipping' after a slew in a particular direction left DEC direction flag in PMC8 in an opposite state
 bool pmc8_debug                 = false;
 bool pmc8_simulation            = false;
 char pmc8_device[MAXINDIDEVICE] = "PMC8";
@@ -81,8 +78,12 @@ double pmc8_guide_rate = 0.5*15.0;    // default to 0.5 sidereal
 PMC8Info simPMC8Info;
 
 // state variable for driver based pulse guiding
-struct
+typedef struct
 {
+    bool pulseguideactive = false;
+    bool fakepulse = false;
+    int ms;
+    long long pulse_start_us;
     int cur_ra_rate;
     int cur_dec_rate;
     int cur_ra_dir;
@@ -91,9 +92,12 @@ struct
     int new_dec_rate;
     int new_ra_dir;
     int new_dec_dir;
-} PulseGuideTrackingState;
+} PulseGuideState;
 
-bool pulse_guide_active = false;
+// need one for NS and EW pulses which may be simultaneous
+PulseGuideState NS_PulseGuideState, EW_PulseGuideState;
+
+//bool pulse_guide_active = false;
 
 struct
 {
@@ -229,7 +233,7 @@ bool check_pmc8_connection(int fd)
             response[nbytes_read] = '\0';
             DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-            // FIXME - (MSF) need to put in better check for a valid firmware version response
+            // FIXME - need to put in better check for a valid firmware version response
             if (!strncmp(response, "ESGvES", 6))
                 return true;
         }
@@ -947,7 +951,7 @@ bool set_pmc8_track_enabled(int fd, bool enabled)
 
     if (pmc8_simulation)
     {
-        // FIXME - (MSF) - need to implement pmc8 track enabled sim
+        // FIXME - need to implement pmc8 track enabled sim
 //        simPMC8Info.systemStatus = enabled ? ST_TRACKING_PEC_ON : ST_STOPPED;
 //        strcpy(response, "1");
 //        nbytes_read = strlen(response);
@@ -1002,11 +1006,6 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate)
         return false;
     }
 
-<<<<<<< edc7cc786da6fff0b81821d13823c5f0e68859e0
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 internal precise rate %d for requested rate %f", rateval, rate);
-
-=======
->>>>>>> Remove unused code and try to fix problem with DEC guide calibration 'flipping' after a slew in a particular direction left DEC direction flag in PMC8 in an opposite state
     snprintf(cmd, sizeof(cmd), "ESTr%04X!", rateval);
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -1089,7 +1088,7 @@ bool set_pmc8_custom_ra_move_rate(int fd, double rate)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_ra move_rate() called rate=%f ", rate);
 
-    // (MSF) safe guard for now - only all use to STOP slewing or MOVE commands with this
+    // safe guard for now - only all use to STOP slewing or MOVE commands with this
     if (fabs(rate) > PMC8_MAX_MOVE_MOTOR_RATE)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_ra_move rate only supports low rates currently");
@@ -1109,7 +1108,7 @@ bool set_pmc8_custom_dec_move_rate(int fd, double rate)
 
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_custom_dec_move_rate() called rate=%f ", rate);
 
-    // (MSF) safe guard for now - only all use to STOP slewing with this
+    // safe guard for now - only all use to STOP slewing with this
     if (fabs(rate) > PMC8_MAX_MOVE_MOTOR_RATE)
     {
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_custom_dec_move_rate only supports low rates currently");
@@ -1140,7 +1139,8 @@ bool get_pmc8_guide_rate(int fd, double *rate)
     return false;
 }
 
-bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
+// if return value is true then timetaken will return how much pulse time has already occurred
+bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us)
 {
     bool rc;
     int cur_ra_rate;
@@ -1151,7 +1151,41 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
     // used to test timing
     struct timeval tp;
     long long pulse_start_us;
-    long long pulse_end_us;
+    long long pulse_sofar_us;
+
+    PulseGuideState *pstate;
+
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): pulse dir=%d dur=%d ms", gdir, ms);
+
+    // figure out which state variable to use
+    switch (gdir)
+    {
+        case PMC8_N:
+        case PMC8_S:
+            pstate = &NS_PulseGuideState;
+            break;
+
+        case PMC8_W:
+        case PMC8_E:
+            pstate = &EW_PulseGuideState;
+            break;
+    }
+
+    if (pstate->pulseguideactive)
+    {
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): already executing a pulse guide!");
+        return false;
+    }
+
+    // ignore short pulses - they do nothing
+    if (ms < PMC8_PULSE_GUIDE_MIN_MS)
+    {
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): ignore short pulse ms=%d ms", ms);
+        timetaken_us = ms*1000;
+        pstate->pulseguideactive = true;
+        pstate->fakepulse = true;
+        return true;
+    }
 
     // experimental implementation:
     //  1) Get current rates
@@ -1159,7 +1193,7 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
     //  3) Wait guide duration
     //  4) Set back to initial rates
     //
-    // NOTE FIXME HACK: (MSF) This blocks for duration of guide correction!!
+    // NOTE FIXME HACK: This blocks for duration of guide correction!!
     //
 
     rc = get_pmc8_tracking_rate_axis(fd, PMC8_AXIS_RA, cur_ra_rate);
@@ -1179,7 +1213,7 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
     }
 
     // if slewing abort
-    if ((cur_ra_rate > PMC8_MINSLEWRATE) || (cur_dec_rate > PMC8_MINSLEWRATE))
+    if ((cur_ra_rate > PMC8_PULSE_GUIDE_MAX_CURRATE) || (cur_dec_rate > PMC8_PULSE_GUIDE_MAX_CURRATE))
     {
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_start_guide(): Cannot send guide correction while slewing! rarate=%d decrate=%d",
                                                            cur_ra_rate, cur_dec_rate);
@@ -1213,7 +1247,7 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
     new_ra_dir = cur_ra_dir;
     new_dec_dir = cur_dec_dir;
 
-    // FIXME - (MSF) hard code guide rate as 0.5 siedereal for testing
+    // FIXME - hard code guide rate as 0.5 siedereal for testing
     int guide_mrate;
 
     // convert to motor rate
@@ -1248,7 +1282,7 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
             new_ra_dir = 0;
     }
 
-    // FIXME (MSF) - not sure about handling direction for guide corrections in relation to N/S and EpW vs WpE??
+    // FIXME - not sure about handling direction for guide corrections in relation to N/S and EpW vs WpE??
     if (new_dec_rate < 0)
         new_dec_dir = 1;
     else
@@ -1262,51 +1296,49 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms)
 //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): new_ra_rate=%d new_ra_dir=%d new_dec_rate=%d new_dec_dir=%d",
 //                                                       new_ra_rate, new_ra_dir, new_dec_rate, new_dec_dir);
 
+
+    // we will either send an RA pulse or DEC pulse but not both, so have to get start time of pulse in both code sections
     if ((new_ra_rate != cur_ra_rate) || (new_ra_dir != cur_ra_dir))
     {
-        // not sure if best to flip dir or rate first!
-        if (new_ra_rate != cur_ra_rate)
-            if (!set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, new_ra_rate, true))
-                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_ra_rate");
 
+        // measure time when we start pulse
         gettimeofday(&tp, NULL);
         pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
 
+        // the commands to set rate and direction take 10-20 msec to return due to they wait for the response from the mount
+        // we need to incorporate that time in our total pulse delay later!
+
+        // not sure if best to flip dir or rate first!
+        if (new_ra_rate != cur_ra_rate)
+            if (!set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, new_ra_rate, false))
+                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_ra_rate");
+
         if (new_ra_dir != cur_ra_dir)
-            if (!set_pmc8_direction_axis(fd, PMC8_AXIS_RA, new_ra_dir, true))
+            if (!set_pmc8_direction_axis(fd, PMC8_AXIS_RA, new_ra_dir, false))
                 DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_ra_dir");
     }
 
     if ((new_dec_rate != cur_dec_rate) || (new_dec_dir != cur_dec_dir))
     {
-        // not sure if best to flip dir or rate first!
-        if (new_dec_rate != cur_dec_rate)
-            if (!set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, new_dec_rate, true))
-                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_dec_rate");
 
+        // measure time when we start pulse
         gettimeofday(&tp, NULL);
         pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
 
+        // the commands to set rate and direction take 10-20 msec to return due to they wait for the response from the mount
+        // we need to incorporate that time in our total pulse delay later!
+
+        // not sure if best to flip dir or rate first!
+        if (new_dec_rate != cur_dec_rate)
+            if (!set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, new_dec_rate, false))
+                DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_dec_rate");
+
         if (new_dec_dir != cur_dec_dir)
-            if (!set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, new_dec_dir, true))
+            if (!set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, new_dec_dir, false))
                 DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_dec_dir");
     }
 
     // store state
-<<<<<<< edc7cc786da6fff0b81821d13823c5f0e68859e0
-    pulse_guide_active = true;
-    PulseGuideTrackingState.cur_ra_rate  = cur_ra_rate;
-    PulseGuideTrackingState.cur_ra_dir   = cur_ra_dir;
-    PulseGuideTrackingState.cur_dec_rate = cur_dec_rate;
-    PulseGuideTrackingState.cur_dec_dir  = cur_dec_dir;
-    PulseGuideTrackingState.new_ra_rate  = new_ra_rate;
-    PulseGuideTrackingState.new_ra_dir   = new_ra_dir;
-    PulseGuideTrackingState.new_dec_rate = new_dec_rate;
-    PulseGuideTrackingState.new_dec_dir  = new_dec_dir;
-
-    // wait duration
-    usleep(ms*1000);
-=======
     pstate->pulseguideactive = true;
     pstate->fakepulse = false;
     pstate->ms = ms;
@@ -1359,42 +1391,62 @@ bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "pmc8_stop_guide(): pulse guide not active!!");
         return false;
     }
->>>>>>> Remove unused code and try to fix problem with DEC guide calibration 'flipping' after a slew in a particular direction left DEC direction flag in PMC8 in an opposite state
 
     // flush any responses to commands we ignored above!
     tcflush(fd, TCIFLUSH);
 
+    // "fake pulse" - it was so short we would have overshot its length AND the motors wouldn't have moved anyways
+    if (pstate->fakepulse)
+    {
+
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_stop_guide(): fake pulse done");
+        pstate->pulseguideactive = false;
+        return true;
+    }
+
     // restore previous tracking - only change ones we need to!
-    if ((PulseGuideTrackingState.new_ra_rate != PulseGuideTrackingState.cur_ra_rate) ||
-        (PulseGuideTrackingState.new_ra_dir  != PulseGuideTrackingState.cur_ra_dir))
+    if ((pstate->new_ra_rate != pstate->cur_ra_rate) ||
+        (pstate->new_ra_dir  != pstate->cur_ra_dir))
     {
         // not sure if best to flip dir or rate first!
 //        if (new_ra_rate != cur_ra_rate)
 //            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, cur_ra_rate, true);
-        // FIXME - (MSF) for now restore sidereal tracking
-        if (PulseGuideTrackingState.new_ra_rate != PulseGuideTrackingState.cur_ra_rate)
+        // FIXME - for now restore sidereal tracking
+        gettimeofday(&tp, NULL);
+        pulse_end_us = tp.tv_sec*1000000+tp.tv_usec;
+
+        if (pstate->new_ra_rate != pstate->cur_ra_rate)
             set_pmc8_track_mode(fd, PMC8_TRACK_SIDEREAL);
-        if (PulseGuideTrackingState.new_ra_dir != PulseGuideTrackingState.cur_ra_dir)
-            set_pmc8_direction_axis(fd, PMC8_AXIS_RA, PulseGuideTrackingState.cur_ra_dir);
+        if (pstate->new_ra_dir != pstate->cur_ra_dir)
+            set_pmc8_direction_axis(fd, PMC8_AXIS_RA, pstate->cur_ra_dir, false);
+
     }
 
-    if ((PulseGuideTrackingState.new_dec_rate != PulseGuideTrackingState.cur_dec_rate) ||
-        (PulseGuideTrackingState.new_dec_dir  != PulseGuideTrackingState.cur_dec_dir))
+    if ((pstate->new_dec_rate != pstate->cur_dec_rate) ||
+        (pstate->new_dec_dir  != pstate->cur_dec_dir))
     {
         // not sure if best to flip dir or rate first!
-        if (PulseGuideTrackingState.new_dec_rate != PulseGuideTrackingState.cur_dec_rate)
-            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, PulseGuideTrackingState.cur_dec_rate, true);
-        if (PulseGuideTrackingState.new_dec_dir != PulseGuideTrackingState.cur_dec_dir)
-            set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, PulseGuideTrackingState.cur_dec_dir);
+        gettimeofday(&tp, NULL);
+        pulse_end_us = tp.tv_sec*1000000+tp.tv_usec;
+
+        if (pstate->new_dec_rate != pstate->cur_dec_rate)
+            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_DEC, pstate->cur_dec_rate, false);
+        if (pstate->new_dec_dir != pstate->cur_dec_dir)
+            set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, pstate->cur_dec_dir, false);
+
     }
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): requested = %d ms, actual = %f ms",ms, (pulse_end_us-pulse_start_us)/1000.0);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_stop_guide(): requested = %d ms, actual = %f ms",
+                 pstate->ms, (pulse_end_us-pstate->pulse_start_us)/1000.0);
 
     // sleep to let any responses occurs and clean up!
 //    usleep(15000);
 
     // flush any responses to commands we ignored above!
     tcflush(fd, TCIFLUSH);
+
+    // mark pulse done
+    pstate->pulseguideactive = false;
 
     return true;
 }
@@ -1594,7 +1646,7 @@ bool set_pmc8_position_axis(int fd, PMC8_AXIS axis, int point)
 
     if (pmc8_simulation)
     {
-        // FIXME - (MSF) - need to implement simulation code for setting point position
+        // FIXME - need to implement simulation code for setting point position
         return true;
     }
 
@@ -1665,7 +1717,7 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
 
     if (pmc8_simulation)
     {
-        // FIXME - (MSF) - need to implement simulation code for setting point position
+        // FIXME - need to implement simulation code for setting point position
         return true;
     }
 
@@ -1747,7 +1799,7 @@ bool park_pmc8(int fd)
 
     rc = set_pmc8_target_position(fd, 0, 0);
 
-    // FIXME - (MSF) Need to add code to handle simulation and also setting any scope state values
+    // FIXME - Need to add code to handle simulation and also setting any scope state values
 
     return rc;
 }
@@ -1766,7 +1818,7 @@ bool unpark_pmc8(int fd)
     }
 
 
-    // FIXME - (MSF) probably need to set a state variable to show we're unparked
+    // FIXME - probably need to set a state variable to show we're unparked
     DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 unparked");
 
     return true;
@@ -1779,7 +1831,7 @@ bool abort_pmc8(int fd)
 
     if (pmc8_simulation)
     {
-        // FIXME - (MSF) need to do something to represent mount has stopped slewing
+        // FIXME - need to do something to represent mount has stopped slewing
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "PMC8 slew stopped in simulation - need to add more code?");
         return true;
     }
@@ -1893,7 +1945,7 @@ bool sync_pmc8(int fd, double ra, double dec)
 
     if (pmc8_simulation)
     {
-        // FIXME - (MSF) need to implement pmc8 sync sim
+        // FIXME - need to implement pmc8 sync sim
 //        strcpy(response, "1");
 //        nbytes_read = strlen(response);
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Need to implement PMC8 sync simulation");
@@ -1938,7 +1990,7 @@ bool set_pmc8_radec(int fd, double ra, double dec)
 
     if (pmc8_simulation)
     {
-        // FIXME - (MSF) need to implement pmc8 sync sim
+        // FIXME - need to implement pmc8 sync sim
 //        strcpy(response, "1");
 //        nbytes_read = strlen(response);
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Need to implement PMC8 sync simulation");

@@ -37,7 +37,6 @@
 
 #define MOUNTINFO_TAB "Mount Info"
 
-// We declare an auto pointer to IEQPro.
 std::unique_ptr<PMC8> scope(new PMC8());
 
 void ISGetProperties(const char *dev)
@@ -86,15 +85,6 @@ PMC8::PMC8()
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC = 90;
 
-
-    // FIXME - (MSF) Not sure we even need a scopeInfo object(?)
-//    scopeInfo.gpsStatus    = GPS_OFF;
-//    scopeInfo.systemStatus = ST_STOPPED;
-//    scopeInfo.trackRate    = TR_SIDEREAL;
-//    scopeInfo.slewRate     = SR_1;
-//    scopeInfo.timeSource   = TS_RS232;
-//    scopeInfo.hemisphere   = HEMI_NORTH;
-
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
@@ -116,16 +106,6 @@ bool PMC8::initProperties()
 {
     INDI::Telescope::initProperties();
 
-    /* Firmware */
-    // FIXME - (MSF) Need to figure out which fields we're keeping and initialize
-//    IUFillText(&FirmwareT[FW_MODEL], "Model", "", 0);
-//    IUFillText(&FirmwareT[FW_BOARD], "Board", "", 0);
-//    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "", 0);
-//    IUFillText(&FirmwareT[FW_RA], "RA", "", 0);
-//    IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
-//    IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
-//                     IPS_IDLE);
-
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
     AddTrackMode("TRACK_SOLAR", "Solar");
@@ -144,16 +124,12 @@ bool PMC8::initProperties()
     strcpy(SlewRateSP.sp[2].label, "64x");
     strcpy(SlewRateSP.sp[3].label, "256x");
 
-#if 1
-    // (MSF) not currently possible to set guide speed
-
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 1.0, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     initGuiderProperties(getDeviceName(), MOTION_TAB);
-#endif
 
     TrackState = SCOPE_IDLE;
 
@@ -170,7 +146,6 @@ bool PMC8::updateProperties()
 
     if (isConnected())
     {
-        // (MSF) not possible to control guiding parameters (yet)
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
@@ -200,27 +175,10 @@ void PMC8::getStartupData()
     DEBUG(INDI::Logger::DBG_DEBUG, "Getting firmware data...");
     if (get_pmc8_firmware(PortFD, &firmwareInfo))
     {
-        // FIXME - (MSF) Need to add code to get firmware data
-//        IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
-//        IUSaveText(&FirmwareT[1], firmwareInfo.MainBoardFirmware.c_str());
-//        IUSaveText(&FirmwareT[2], firmwareInfo.ControllerFirmware.c_str());
-//        IUSaveText(&FirmwareT[3], firmwareInfo.RAFirmware.c_str());
-//        IUSaveText(&FirmwareT[4], firmwareInfo.DEFirmware.c_str());
-
+        // FIXME - Need to add code to get firmware data
         FirmwareTP.s = IPS_OK;
         IDSetText(&FirmwareTP, nullptr);
     }
-
-#if 0
-    // FIXME - (MSF) Need to implement guide rate functions
-    DEBUG(INDI::Logger::DBG_DEBUG, "Getting guiding rate...");
-    double guideRate = 0;
-    if (get_pmc8_guide_rate(PortFD, &guideRate))
-    {
-        GuideRateN[0].value = guideRate;
-        IDSetNumber(&GuideRateNP, nullptr);
-    }
-#endif
 
     // PMC8 doesn't store location permanently so read from config and set
     // Convert to INDI standard longitude (0 to 360 Eastward)
@@ -235,7 +193,7 @@ void PMC8::getStartupData()
     set_pmc8_location(latitude, longitude);
 
 #if 0
-    // FIXEME - (MSF) Need to handle southern hemisphere for DEC?
+    // FIXEME - Need to handle southern hemisphere for DEC?
     double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     double DEC = 90;
 
@@ -257,7 +215,7 @@ void PMC8::getStartupData()
 #endif
 
 #if 0
-    // FIXME - (MSF) Need to implement simulation functionality
+    // FIXME - Need to implement simulation functionality
     if (isSimulation())
     {
         if (isParked())
@@ -272,7 +230,7 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 {
     if (!strcmp(dev, getDeviceName()))
     {
-        // FIXME - (MSF) will add setting guide rate when firmware supports
+        // FIXME - will add setting guide rate when firmware supports
         // Guiding Rate
         if (!strcmp(name, GuideRateNP.name))
         {
@@ -314,80 +272,6 @@ bool PMC8::ReadScopeStatus()
 
     if (isSimulation())
         mountSim();
-
-#if 0
-
-    PMC8Info newInfo;
-
-    rc = get_pmc8_status(PortFD, &newInfo);
-
-    if (rc)
-    {
-        /*
-        TelescopeTrackMode trackMode = TRACK_SIDEREAL;
-
-        switch (newInfo.trackRate)
-        {
-            case TR_SIDEREAL:
-                trackMode = TRACK_SIDEREAL;
-                break;
-            case TR_SOLAR:
-                trackMode = TRACK_SOLAR;
-                break;
-            case TR_LUNAR:
-                trackMode = TRACK_LUNAR;
-                break;
-            case TR_KING:
-                trackMode = TRACK_SIDEREAL;
-                break;
-            case TR_CUSTOM:
-                trackMode = TRACK_CUSTOM;
-                break;
-        }*/
-
-#if 0
-        // FIXME - (MSF) do we need a status for the mount now we have new tracking code?
-        switch (newInfo.systemStatus)
-        {
-            case ST_STOPPED:
-                TrackModeSP.s = IPS_IDLE;
-                TrackState    = SCOPE_IDLE;
-                break;
-            case ST_PARKED:
-                TrackModeSP.s = IPS_IDLE;
-                TrackState    = SCOPE_PARKED;
-                if (isParked() == false)
-                    SetParked(true);
-                break;
-            case ST_HOME:
-                TrackModeSP.s = IPS_IDLE;
-                TrackState    = SCOPE_IDLE;
-                break;
-            case ST_SLEWING:
-            case ST_MERIDIAN_FLIPPING:
-                if (TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKING)
-                    TrackState = SCOPE_SLEWING;
-                break;
-            case ST_TRACKING_PEC_OFF:
-            case ST_TRACKING_PEC_ON:
-            case ST_GUIDING:
-                TrackModeSP.s = IPS_BUSY;
-                TrackState    = SCOPE_TRACKING;
-                if (scopeInfo.systemStatus == ST_SLEWING)
-                    DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
-                else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
-                    DEBUG(INDI::Logger::DBG_SESSION, "Meridian flip complete, tracking...");
-                break;
-        }
-        IUResetSwitch(&TrackModeSP);
-        TrackModeS[newInfo.trackRate].s = ISS_ON;
-        IDSetSwitch(&TrackModeSP, nullptr);
-#endif
-
-        // FIXME - (MSF) Need to figure out how to integrate this to simulation
-        //scopeInfo = newInfo;
-    }
-#endif
 
    bool slewing;
 
@@ -546,7 +430,7 @@ bool PMC8::Abort()
 bool PMC8::Park()
 {
 #if 0
-    // FIXME - (MSF) Currently only support parking at motor position (0, 0)
+    // FIXME - Currently only support parking at motor position (0, 0)
     targetRA  = GetAxis1Park();
     targetDEC = GetAxis2Park();
     if (set_pmc8_radec(PortFD, r, d) == false)
@@ -558,12 +442,7 @@ bool PMC8::Park()
 
     if (park_pmc8(PortFD))
     {
-//        char RAStr[64]={0}, DecStr[64]={0};
-//        fs_sexa(RAStr, targetRA, 2, 3600);
-//        fs_sexa(DecStr, targetDEC, 2, 3600);
-
         TrackState = SCOPE_PARKING;
-//        DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
         DEBUG(INDI::Logger::DBG_SESSION, "Telescope parking in progress to motor position (0, 0)");
         return true;
     }
@@ -609,43 +488,9 @@ bool PMC8::updateTime(ln_date *utc, double utc_offset)
     INDI_UNUSED(utc);
     INDI_UNUSED(utc_offset);
 
-#if 1
     DEBUG(INDI::Logger::DBG_ERROR, "PMC8::updateTime() not implemented!");
     return false;
-#else
-    struct ln_zonedate ltm;
 
-    ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
-
-    // Set Local Time
-    if (set_ieqpro_local_time(PortFD, ltm.hours, ltm.minutes, ltm.seconds) == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
-        return false;
-    }
-
-    // Send it as YY (i.e. 2015 --> 15)
-    ltm.years -= 2000;
-
-    // Set Local date
-    if (set_ieqpro_local_date(PortFD, ltm.years, ltm.months, ltm.days) == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
-        return false;
-    }
-
-    // UTC Offset
-    if (set_ieqpro_utc_offset(PortFD, utc_offset) == false)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
-        return false;
-    }
-
-    DEBUG(INDI::Logger::DBG_SESSION, "Time and date updated.");
-
-    return true;
-
-#endif
 }
 
 bool PMC8::updateLocation(double latitude, double longitude, double elevation)
@@ -1108,7 +953,7 @@ bool PMC8::SetTrackMode(uint8_t mode)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "PMC8::SetTrackMode called mode=%d", mode);
 
-    // FIXME - (MSF) Need to make sure track modes are handled properly!
+    // FIXME - Need to make sure track modes are handled properly!
     //PMC8_TRACK_RATE rate = static_cast<PMC8_TRACK_RATE>(mode);
 
     switch (mode)
@@ -1154,7 +999,7 @@ bool PMC8::SetTrackRate(double raRate, double deRate)
     // Convert to arcsecs/s to +/- 0.0100 accepted by
     //double pmc8RARate = raRate - TRACKRATE_SIDEREAL;
 
-    // (MSF) for now just send rate
+    // for now just send rate
     pmc8RARate = raRate;
 
     if (deRate != 0 && deRateWarning)
