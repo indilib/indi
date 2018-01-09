@@ -167,13 +167,6 @@ void set_pmc8_sim_move_rate(PMC8_MOVE_RATE value)
     simPMC8Data.moveRate = value;
 }
 
-#if 0
-void set_sim_hemisphere(IEQ_HEMISPHERE value)
-{
-    simPMC8Info.hemisphere = value;
-}
-#endif // prob not needed pmc8
-
 void set_pmc8_sim_ra(double ra)
 {
     simPMC8Data.ra = ra;
@@ -244,79 +237,6 @@ bool check_pmc8_connection(int fd)
     return false;
 }
 
-// really dont think we need this since PMC8 doesnt give status
-#if 0
-bool get_pmc8_status(int fd, PMC8Info *info)
-{
-    char cmd[]  = ":GAS#";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-#if 1
-    DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "get_pmc8_status() not implemented!");
-    return false;
-
-#else
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-    {
-        // FIXME - (MSF) Need to implement simcode for get status
-//        snprintf(response, 8, "%d%d%d%d%d%d#", simPMC8Info.gpsStatus, simPMC8Info.systemStatus, simPMC8Info.trackRate,
-//                 simPMC8Info.slewRate + 1, simPMC8Info.timeSource + 1, simPMC8Info.hemisphere);
-//        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_EXTRA_1, "RES (%s)", response);
-
-#if 0
-        // FIXME - (MSF) need to implement pmc8 get status command
-        if (nbytes_read == 7)
-        {
-            info->gpsStatus    = (IEQ_GPS_STATUS)(response[0] - '0');
-            info->systemStatus = (IEQ_SYSTEM_STATUS)(response[1] - '0');
-            info->trackRate    = (IEQ_TRACK_RATE)(response[2] - '0');
-            info->slewRate     = (IEQ_SLEW_RATE)(response[3] - '0' - 1);
-            info->timeSource   = (IEQ_TIME_SOURCE)(response[4] - '0' - 1);
-            info->hemisphere   = (IEQ_HEMISPHERE)(response[5] - '0');
-
-            tcflush(fd, TCIFLUSH);
-
-            return true;
-        }
-#endif
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 7.", nbytes_read);
-    return false;
-#endif
-}
-#endif
-
 bool get_pmc8_model(int fd, FirmwareInfo *info)
 {
     INDI_UNUSED(fd);
@@ -383,7 +303,6 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
     DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 13.", nbytes_read);
     return false;
 }
-
 
 bool get_pmc8_firmware(int fd, FirmwareInfo *info)
 {
@@ -731,61 +650,6 @@ bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir)
     return rc;
 }
 
-#if 0
-// PMC8 slew rate is 25x the tracking rate - no need to set
-bool set_pmc8_slew_rate(int fd, IEQ_SLEW_RATE rate)
-{
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    snprintf(cmd, 16, ":SR%d#", ((int)rate) + 1);
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (pmc8_simulation)
-    {
-        simPMC8Info.slewRate = rate;
-        strcpy(response, "1");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, PMC8_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-        return true;
-    }
-
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-#endif
-
-
 // convert mount count to 6 character two complement hex string
 void convert_motor_counts_to_hex(int val, char *hex)
 {
@@ -933,8 +797,6 @@ bool set_pmc8_axis_move_rate(int fd, PMC8_AXIS axis, float rate)
     return rc;
 }
 
-
-
 #if 0
 bool set_pmc8_track_enabled(int fd, bool enabled)
 {
@@ -1049,7 +911,6 @@ bool set_pmc8_custom_ra_track_rate(int fd, double rate)
     return set_pmc8_direction_axis(fd, PMC8_AXIS_RA, 1, false);
 }
 
-
 #if 0
 bool set_pmc8_custom_dec_track_rate(int fd, double rate)
 {
@@ -1100,7 +961,6 @@ bool set_pmc8_custom_ra_move_rate(int fd, double rate)
 
     return rc;
 }
-
 
 bool set_pmc8_custom_dec_move_rate(int fd, double rate)
 {
