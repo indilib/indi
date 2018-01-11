@@ -1148,6 +1148,10 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us)
         case PMC8_E:
             new_ra_rate = cur_ra_rate - guide_mrate;
             break;
+
+        default:
+            return false;
+            break;
     }
 
     // see if we need to switch direction
@@ -1174,14 +1178,17 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us)
 //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): new_ra_rate=%d new_ra_dir=%d new_dec_rate=%d new_dec_dir=%d",
 //                                                       new_ra_rate, new_ra_dir, new_dec_rate, new_dec_dir);
 
+    // measure time when we start pulse
+    gettimeofday(&tp, NULL);
+    pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
 
-    // we will either send an RA pulse or DEC pulse but not both, so have to get start time of pulse in both code sections
+    // we will either send an RA pulse or DEC pulse but not both
+    // code above ensures we either are moving E/W or N/S but not a combination
     if ((new_ra_rate != cur_ra_rate) || (new_ra_dir != cur_ra_dir))
     {
-
         // measure time when we start pulse
-        gettimeofday(&tp, NULL);
-        pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
+//        gettimeofday(&tp, NULL);
+//        pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
 
         // the commands to set rate and direction take 10-20 msec to return due to they wait for the response from the mount
         // we need to incorporate that time in our total pulse delay later!
@@ -1195,13 +1202,12 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us)
             if (!set_pmc8_direction_axis(fd, PMC8_AXIS_RA, new_ra_dir, false))
                 DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_start_guide(): error settings new_ra_dir");
     }
-
-    if ((new_dec_rate != cur_dec_rate) || (new_dec_dir != cur_dec_dir))
+    else if ((new_dec_rate != cur_dec_rate) || (new_dec_dir != cur_dec_dir))
     {
 
         // measure time when we start pulse
-        gettimeofday(&tp, NULL);
-        pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
+//        gettimeofday(&tp, NULL);
+//        pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
 
         // the commands to set rate and direction take 10-20 msec to return due to they wait for the response from the mount
         // we need to incorporate that time in our total pulse delay later!
@@ -1302,6 +1308,8 @@ bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
         if (pstate->new_ra_dir != pstate->cur_ra_dir)
             set_pmc8_direction_axis(fd, PMC8_AXIS_RA, pstate->cur_ra_dir, false);
 
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_stop_guide(): requested = %d ms, actual = %f ms",
+                     pstate->ms, (pulse_end_us-pstate->pulse_start_us)/1000.0);
     }
 
     if ((pstate->new_dec_rate != pstate->cur_dec_rate) ||
@@ -1316,10 +1324,10 @@ bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
         if (pstate->new_dec_dir != pstate->cur_dec_dir)
             set_pmc8_direction_axis(fd, PMC8_AXIS_DEC, pstate->cur_dec_dir, false);
 
+        DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_stop_guide(): requested = %d ms, actual = %f ms",
+                     pstate->ms, (pulse_end_us-pstate->pulse_start_us)/1000.0);
     }
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "pmc8_stop_guide(): requested = %d ms, actual = %f ms",
-                 pstate->ms, (pulse_end_us-pstate->pulse_start_us)/1000.0);
 
     // sleep to let any responses occurs and clean up!
 //    usleep(15000);
