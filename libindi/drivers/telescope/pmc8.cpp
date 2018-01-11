@@ -137,6 +137,9 @@ bool PMC8::initProperties()
 
     addAuxControls();
 
+    IUFillText(&FirmwareT[0], "Version", "Version", "");
+    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
     return true;
 }
 
@@ -175,8 +178,13 @@ void PMC8::getStartupData()
     DEBUG(INDI::Logger::DBG_DEBUG, "Getting firmware data...");
     if (get_pmc8_firmware(PortFD, &firmwareInfo))
     {
+        const char *c;
+
         // FIXME - Need to add code to get firmware data
         FirmwareTP.s = IPS_OK;
+        c = firmwareInfo.MainBoardFirmware.c_str();
+        DEBUGF(INDI::Logger::DBG_SESSION, "firmware = %s.", c);
+        IUSaveText(&FirmwareT[0], c);
         IDSetText(&FirmwareTP, nullptr);
     }
 
@@ -191,6 +199,16 @@ void PMC8::getStartupData()
 
     // must also keep "low level" aware of position to convert motor counts to RA/DEC
     set_pmc8_location(latitude, longitude);
+
+
+    // seems like best place to put a warning that will be seen in log window of EKOS/etc
+    DEBUG(INDI::Logger::DBG_SESSION, "NOTICE!!!");
+    DEBUG(INDI::Logger::DBG_SESSION, "The PMC-Eight driver is in BETA development currently.");
+    DEBUG(INDI::Logger::DBG_SESSION, "When using this driver please remember it is being tested so stay near your mount");
+    DEBUG(INDI::Logger::DBG_SESSION, "and be prepared to intervene if something unexpected occurs.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Please read the instructions at:");
+    DEBUG(INDI::Logger::DBG_SESSION, "    http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/");
+    DEBUG(INDI::Logger::DBG_SESSION, "before using this driver!");
 
 #if 0
     // FIXEME - Need to handle southern hemisphere for DEC?

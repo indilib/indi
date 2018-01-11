@@ -207,7 +207,7 @@ bool check_pmc8_connection(int fd)
             if ((errcode = tty_write(fd, initCMD, strlen(initCMD), &nbytes_written)) != TTY_OK)
             {
                 tty_error_msg(errcode, errmsg, MAXRBUF);
-                DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+                DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "1 %s", errmsg);
                 usleep(50000);
                 continue;
             }
@@ -215,7 +215,14 @@ bool check_pmc8_connection(int fd)
             if ((errcode = tty_read_section(fd, response, '!', PMC8_TIMEOUT, &nbytes_read)))
             {
                 tty_error_msg(errcode, errmsg, MAXRBUF);
-                DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+
+                DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "check_pmc8_connection(): Error connecting - %s. "
+                                                                   "Please read the instructions at: "
+                                                                   "http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/ "
+                                                                   "before using this driver!"
+                                                                   "A special USB SERIAL cable setup is REQUIRED for it work currently.",
+                                                                   errmsg);
+
                 usleep(50000);
                 continue;
             }
@@ -270,14 +277,14 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
         if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "3 %s", errmsg);
             return false;
         }
 
-        if ((errcode = tty_read_section(fd, response, '#', PMC8_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read_section(fd, response, '!', PMC8_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+            DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "get_pmc8_main_firmware(): Error reading response - %s", errmsg);
             return false;
         }
     }
@@ -287,9 +294,9 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
         response[nbytes_read] = '\0';
         DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
-        if (nbytes_read == 13)
+        if (nbytes_read == 14)
         {
-            response[12] = '\0';
+            response[13] = '\0';
             strncpy(board, response+6, 6);
 
             info->MainBoardFirmware.assign(board, 6);
@@ -300,7 +307,7 @@ bool get_pmc8_main_firmware(int fd, FirmwareInfo *info)
         }
     }
 
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 13.", nbytes_read);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 14.", nbytes_read);
     return false;
 }
 
