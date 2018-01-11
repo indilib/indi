@@ -639,7 +639,7 @@ bool stop_pmc8_tracking_motion(int fd)
 
 bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir)
 {
-    bool rc;
+    bool rc = false;
 
     switch (dir)
     {
@@ -651,6 +651,10 @@ bool stop_pmc8_motion(int fd, PMC8_DIRECTION dir)
         case PMC8_W:
         case PMC8_E:
             rc = set_pmc8_custom_ra_move_rate(fd, 0);
+            break;
+
+        default:
+            return false;
             break;
     }
 
@@ -839,7 +843,7 @@ bool set_pmc8_track_enabled(int fd, bool enabled)
 
 bool set_pmc8_track_mode(int fd, uint rate)
 {
-    float ratereal;
+    float ratereal=0;
 
     switch (rate)
     {
@@ -851,6 +855,9 @@ bool set_pmc8_track_mode(int fd, uint rate)
             break;
         case PMC8_TRACK_SOLAR:
             ratereal = 15.041;
+            break;
+        default:
+            return false;
             break;
     }
 
@@ -1035,6 +1042,10 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us)
         case PMC8_W:
         case PMC8_E:
             pstate = &EW_PulseGuideState;
+            break;
+
+        default:
+            return false;
             break;
     }
 
@@ -1248,6 +1259,10 @@ bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
         case PMC8_W:
         case PMC8_E:
             pstate = &EW_PulseGuideState;
+            break;
+
+        default:
+            return false;
             break;
     }
 

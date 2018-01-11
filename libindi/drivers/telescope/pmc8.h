@@ -126,7 +126,7 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
     double currentRA, currentDEC;
     double targetRA, targetDEC;
 
-    PMC8Info scopeInfo;
+    //PMC8Info scopeInfo;
     FirmwareInfo firmwareInfo;
 };
 
