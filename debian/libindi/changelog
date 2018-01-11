@@ -1,3 +1,15 @@
+libindi (1.6.2) bionic; urgency=medium
+
+  * Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 8 Jan 2018 15:00:00 +0300
+ 
+libindi (1.6.1) bionic; urgency=medium
+
+  * Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 8 Jan 2018 04:00:00 +0300
+
 libindi (1.6.0) xenial; urgency=medium
 
   * Upstream release.
