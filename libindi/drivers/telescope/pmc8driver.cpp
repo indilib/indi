@@ -67,7 +67,7 @@
 #define PMC8_PULSE_GUIDE_MAX_NOTIMER 250
 
 // dont send pulses if already moving faster than this
-#define PMC8_PULSE_GUIDE_MAX_CURRATE 100
+#define PMC8_PULSE_GUIDE_MAX_CURRATE 120
 
 bool pmc8_debug                 = false;
 bool pmc8_simulation            = false;
@@ -985,7 +985,7 @@ bool set_pmc8_guide_rate(int fd, double rate)
 {
     INDI_UNUSED(fd);
     pmc8_guide_rate = rate * 15.0;
-    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "set_pmc8_guide_rate: guide rate set to %f arcsec/sec", pmc8_guide_rate);
+    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "set_pmc8_guide_rate: guide rate set to %f arcsec/sec", pmc8_guide_rate);
     return true;
 }
 
