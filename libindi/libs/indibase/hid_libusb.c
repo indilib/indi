@@ -54,6 +54,8 @@
 extern "C" {
 #endif
 
+#define DEBUG_PRINTF
+
 #ifdef DEBUG_PRINTF
 #define LOG(...) fprintf(stderr, __VA_ARGS__)
 #else
@@ -437,6 +439,8 @@ struct hid_device_info HID_API_EXPORT *hid_enumerate(unsigned short vendor_id, u
     libusb_device_handle *handle;
     ssize_t num_devs;
     int i = 0;
+
+    LOG("Searching for HID Device VID: %#04x PID: %#04x\n", vendor_id, product_id);
 
     struct hid_device_info *root    = NULL; // return object
     struct hid_device_info *cur_dev = NULL;
