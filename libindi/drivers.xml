@@ -165,6 +165,10 @@
                 <driver name="Digital Setting Circle">indi_dsc_telescope</driver>
                 <version>1.0</version>
         </device>
+        <device label="Explore Scientific PMC-Eight">
+                <driver name="SynScan">indi_pmc8_telescope</driver>
+                <version>0.0.1</version>
+	</device>
 </devGroup>
 <devGroup group="Focusers">
         <device label="Focuser Simulator">
