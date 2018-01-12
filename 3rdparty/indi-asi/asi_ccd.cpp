@@ -1270,7 +1270,8 @@ void ASICCD::TimerNS()
         }
         else
         {
-            NStimerID = IEAddTimer(1, ASICCD::TimerHelperNS, this);
+            int mSecs = (int)(timeleft * 1000.0);
+            NStimerID = IEAddTimer(mSecs, ASICCD::TimerHelperNS, this);
             return;
         }
     }
@@ -1310,7 +1311,7 @@ const char *dirName)
     if (ms >= 1.0)
     {
         mSecs = (int)ms;
-        NSPulseRequest = ms;
+        NSPulseRequest = ms / 1000.0;
         gettimeofday(&NSPulseStart, nullptr);
     }
     else
@@ -1363,7 +1364,8 @@ void ASICCD::TimerWE()
         }
         else
         {
-            WEtimerID = IEAddTimer(1, ASICCD::TimerHelperWE, this);
+            int mSecs = (int)(timeleft * 1000.0);
+            WEtimerID = IEAddTimer(mSecs, ASICCD::TimerHelperWE, this);
             return;
         }
     }
@@ -1402,7 +1404,7 @@ const char *dirName)
     if (ms >= 1.0)
     {
         mSecs = (int)ms;
-        WEPulseRequest = ms;
+        WEPulseRequest = ms / 1000.0;
         gettimeofday(&WEPulseStart, nullptr);
     }
     else
