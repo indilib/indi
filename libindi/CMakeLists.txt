@@ -696,9 +696,6 @@ SET(focusmaster_SRC
 add_executable(indi_focusmaster_focus ${focusmaster_SRC})
 target_link_libraries(indi_focusmaster_focus indidriver)
 install(TARGETS indi_focusmaster_focus RUNTIME DESTINATION bin)
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-focusmaster.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 
 ########### Lakeside ###########
 set(indilakeside_SRCS  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/lakeside.cpp)
@@ -766,9 +763,6 @@ SET(perfectstar_SRC
 add_executable(indi_perfectstar_focus ${perfectstar_SRC})
 target_link_libraries(indi_perfectstar_focus indidriver)
 install(TARGETS indi_perfectstar_focus RUNTIME DESTINATION bin)
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-perfectstar.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 
 ################ hitechfocus Focuser ################
 
@@ -778,9 +772,6 @@ SET(hitecastrodcfocuser_SRC
 add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRC})
 target_link_libraries(indi_hitecastrodc_focus indidriver)
 install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin)
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-hitecastrodcfocuser.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 
 ################ JMI Smart Focus Focuser ################
 
@@ -805,6 +796,11 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake
 "exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_tcfs_focus \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
 set_target_properties(indi_tcfs_focus PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake)
 
+#### UDEV Rules File for Focusers ####
+#### One rule for for all INDI standard focusers ####
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-focusers.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+ENDIF ()
 #################################################################################
 
 #####################################
