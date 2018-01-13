@@ -669,7 +669,7 @@ hid_device *hid_open(unsigned short vendor_id, unsigned short product_id, const 
 static void read_callback(struct libusb_transfer *transfer)
 {
     hid_device *dev = transfer->user_data;
-    int res;
+    int res=0;
 
     if (transfer->status == LIBUSB_TRANSFER_COMPLETED)
     {
@@ -726,14 +726,14 @@ static void read_callback(struct libusb_transfer *transfer)
     }
     else
     {
-        LOG("Unknown transfer code: %d\n", transfer->status);
+        LOG("Unknown transfer code: #%d %s\n", transfer->status, libusb_error_name(res));
     }
 
     /* Re-submit the transfer object. */
     res = libusb_submit_transfer(transfer);
     if (res != 0)
     {
-        LOG("Unable to submit URB. libusb error code: %d\n", res);
+        LOG("Unable to submit URB. libusb error code: #%d %s\n", res, libusb_error_name(res));
         dev->shutdown_thread = 1;
     }
 }
@@ -765,7 +765,7 @@ static void *read_thread(void *param)
         if (res < 0)
         {
             /* There was an error. */
-            LOG("read_thread(): libusb reports error # %d\n", res);
+            LOG("read_thread(): libusb reports error #%d %s\n", res, libusb_error_name(res));
 
             /* Break out of this loop only on fatal error.*/
             if (res != LIBUSB_ERROR_BUSY && res != LIBUSB_ERROR_TIMEOUT && res != LIBUSB_ERROR_OVERFLOW &&
@@ -850,7 +850,7 @@ hid_device *HID_API_EXPORT hid_open_path(const char *path)
                         res = libusb_open(usb_dev, &dev->device_handle);
                         if (res < 0)
                         {
-                            LOG("can't open device\n");
+                            LOG("can't open device: %s\n", libusb_error_name(res));
                             free(dev_path);
                             break;
                         }
@@ -864,7 +864,7 @@ hid_device *HID_API_EXPORT hid_open_path(const char *path)
                             if (res < 0)
                             {
                                 libusb_close(dev->device_handle);
-                                LOG("Unable to detach Kernel Driver\n");
+                                LOG("Unable to detach Kernel Driver: %s\n", libusb_error_name(res));
                                 free(dev_path);
                                 good_open = 0;
                                 break;
@@ -874,7 +874,7 @@ hid_device *HID_API_EXPORT hid_open_path(const char *path)
                         res = libusb_claim_interface(dev->device_handle, intf_desc->bInterfaceNumber);
                         if (res < 0)
                         {
-                            LOG("can't claim interface %d: %d\n", intf_desc->bInterfaceNumber, res);
+                            LOG("can't claim interface %d: %d %s\n", intf_desc->bInterfaceNumber, res, libusb_error_name(res));
                             free(dev_path);
                             libusb_close(dev->device_handle);
                             good_open = 0;
