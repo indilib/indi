@@ -335,11 +335,21 @@ bool FocusMaster::AbortFocuser()
 
     bool rc = sendCommand(command);
 
-    if (rc && FullMotionSP.s == IPS_BUSY)
+    if (rc)
     {
-        IUResetSwitch(&FullMotionSP);
-        FullMotionSP.s = IPS_IDLE;
-        IDSetSwitch(&FullMotionSP, nullptr);
+        if (FullMotionSP.s == IPS_BUSY)
+        {
+            IUResetSwitch(&FullMotionSP);
+            FullMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&FullMotionSP, nullptr);
+        }
+
+        if (FocusMotionSP.s == IPS_BUSY)
+        {
+            IUResetSwitch(&FocusMotionSP);
+            FocusMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&FocusMotionSP, nullptr);
+        }
     }
 
     return rc;
