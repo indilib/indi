@@ -75,7 +75,12 @@ this is very invasive as it requires the detach
 and re-attach of the kernel driver. See comments inside hid_enumerate().
 libusb HIDAPI programs are encouraged to use the interface number
 instead to differentiate between interfaces on a composite HID device. */
-/*#define INVASIVE_GET_USAGE*/
+
+// 2018-01-13 JM: It seems that on ARM systems, we need to detach and reattach the kernel driver otherwise we get LIBUSB_ERROR_BUSY
+// So for now we use INVASIVE_GET_USAGE
+#ifdef __arm__
+#define INVASIVE_GET_USAGE
+#endif
 
 /* Linked List of input reports received from the device. */
 struct input_report
