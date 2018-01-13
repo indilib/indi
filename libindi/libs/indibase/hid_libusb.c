@@ -193,7 +193,7 @@ static uint32_t get_bytes(uint8_t *rpt, size_t len, size_t num_bytes, size_t cur
    The return value is 0 on success and -1 on failure. */
 static int get_usage(uint8_t *report_descriptor, size_t size, unsigned short *usage_page, unsigned short *usage)
 {
-    int i = 0;
+    size_t i = 0;
     int size_code;
     int data_len, key_size;
     int usage_found = 0, usage_page_found = 0;
