@@ -266,6 +266,8 @@ IPState FocusMaster::MoveFocuser(FocusDirection dir, int speed, uint16_t duratio
         command[1] = 0x22;
     }
 
+    sendCommand(command);
+
     gettimeofday(&focusMoveStart, nullptr);
     focusMoveRequest = duration / 1000.0;
 
