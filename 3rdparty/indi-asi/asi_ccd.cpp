@@ -983,7 +983,6 @@ bool ASICCD::StartExposure(float duration)
         DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
 
     InExposure = true;
-    usleep(10000);
     pthread_mutex_lock(&condMutex);
     threadRequest = StateExposure;
     pthread_cond_signal(&cv);
@@ -1850,6 +1849,10 @@ void ASICCD::getExposure()
     int uSecs = 1000000;
     ASI_EXPOSURE_STATUS status = ASI_EXP_IDLE;
     ASI_ERROR_CODE errCode;
+
+    pthread_mutex_unlock(&condMutex);
+    usleep(10000);
+    pthread_mutex_lock(&condMutex);
 
     while (threadRequest == StateExposure)
     {
