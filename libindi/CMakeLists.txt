@@ -596,6 +596,17 @@ target_link_libraries(indi_ieq_telescope indidriver)
 
 install(TARGETS indi_ieq_telescope RUNTIME DESTINATION bin)
 
+########### Explore Scientific PMC8 #############
+SET(pmc8_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/pmc8driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/pmc8.cpp)
+
+add_executable(indi_pmc8_telescope ${pmc8_SRC})
+
+target_link_libraries(indi_pmc8_telescope indidriver)
+
+install(TARGETS indi_pmc8_telescope RUNTIME DESTINATION bin)
+
 ########### Telescope Simulator ##############
 SET(telescopesimulator_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/telescope_simulator.cpp)
@@ -696,9 +707,6 @@ SET(focusmaster_SRC
 add_executable(indi_focusmaster_focus ${focusmaster_SRC})
 target_link_libraries(indi_focusmaster_focus indidriver)
 install(TARGETS indi_focusmaster_focus RUNTIME DESTINATION bin)
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-focusmaster.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 
 ########### Lakeside ###########
 set(indilakeside_SRCS  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/lakeside.cpp)
@@ -766,9 +774,6 @@ SET(perfectstar_SRC
 add_executable(indi_perfectstar_focus ${perfectstar_SRC})
 target_link_libraries(indi_perfectstar_focus indidriver)
 install(TARGETS indi_perfectstar_focus RUNTIME DESTINATION bin)
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-perfectstar.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 
 ################ hitechfocus Focuser ################
 
@@ -778,9 +783,6 @@ SET(hitecastrodcfocuser_SRC
 add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRC})
 target_link_libraries(indi_hitecastrodc_focus indidriver)
 install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin)
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-hitecastrodcfocuser.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 
 ################ JMI Smart Focus Focuser ################
 
@@ -805,6 +807,11 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake
 "exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_tcfs_focus \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
 set_target_properties(indi_tcfs_focus PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake)
 
+#### UDEV Rules File for Focusers ####
+#### One rule for for all INDI standard focusers ####
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-focusers.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+ENDIF ()
 #################################################################################
 
 #####################################
@@ -1228,6 +1235,23 @@ add_executable(indi_eval ${indi_eval_SRC})
 target_link_libraries(indi_eval ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_eval RUNTIME DESTINATION bin )
+
+########### HID Test ##############
+SET(indi_hid_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidtest.cpp
+    )
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indi_hid indi_hid_SRC 10 cpp)
+ENDIF ()
+
+SET(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
+
+add_executable(indi_hid_test ${indi_hid_SRC})
+
+target_link_libraries(indi_hid_test ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
+install(TARGETS indi_hid_test RUNTIME DESTINATION bin )
 
 #################################################################################
 ## Build Examples
