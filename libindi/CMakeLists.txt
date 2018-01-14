@@ -1245,11 +1245,15 @@ IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indi_hid indi_hid_SRC 10 cpp)
 ENDIF ()
 
+if(APPLE)
+set(LIBS "-framework IOKit -framework CoreFoundation")
+endif(APPLE)
+
 SET(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
 
 add_executable(indi_hid_test ${indi_hid_SRC})
 
-target_link_libraries(indi_hid_test ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_hid_test ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
 
 install(TARGETS indi_hid_test RUNTIME DESTINATION bin )
 
