@@ -29,6 +29,11 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 
 include(CMakeCommon)
 
+# This warning only valid for Clang above version 3.9
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.8.9)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-undefined-var-template")
+ENDIF ()
+
 ########### DSI ###########
 set(indidsi_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/dsi_ccd.cpp

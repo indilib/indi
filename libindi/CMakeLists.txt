@@ -518,10 +518,6 @@ SET(celestrongps_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/celestrondriver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/celestrongps.cpp)
 
-IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(celestrongps celestrongps_SRC 10 cpp)
-ENDIF ()
-
 add_executable(indi_celestron_gps ${celestrongps_SRC})
 
 target_link_libraries(indi_celestron_gps indidriver)
