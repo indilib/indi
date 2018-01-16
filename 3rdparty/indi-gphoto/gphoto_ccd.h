@@ -74,6 +74,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     bool Disconnect() override;
 
     bool StartExposure(float duration) override;
+    bool AbortExposure() override;
     bool UpdateCCDFrame(int x, int y, int w, int h) override;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
@@ -99,7 +100,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     bool SetFocuserSpeed(int speed) override;
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
 
-// Streaming
+    // Streaming
     bool StartStreaming() override;
     bool StopStreaming() override;
 

@@ -96,8 +96,9 @@ enum
 {
     DSLR_CMD_BULB_CAPTURE = 0x01,
     DSLR_CMD_CAPTURE      = 0x02,
-    DSLR_CMD_DONE         = 0x04,
-    DSLR_CMD_THREAD_EXIT  = 0x08,
+    DSLR_CMD_ABORT        = 0x04,
+    DSLR_CMD_DONE         = 0x08,
+    DSLR_CMD_THREAD_EXIT  = 0x10,
 };
 
 static char device[64];
@@ -445,17 +446,18 @@ static void *stop_bulb(void *arg)
         // All camera opertions take place with the mutex held, so we are thread-safe
         pthread_cond_timedwait(&gphoto->signal, &gphoto->mutex, &timeout);
         //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"timeout expired");
-        if (!(gphoto->command & DSLR_CMD_DONE) && (gphoto->command & DSLR_CMD_BULB_CAPTURE))
+        if (!(gphoto->command & DSLR_CMD_DONE) && ( (gphoto->command & DSLR_CMD_BULB_CAPTURE) || (gphoto->command & DSLR_CMD_ABORT)))
         {
-            //result = gp_camera_wait_for_event(gphoto->camera, 1, &event, &data, gphoto->context);
-            /*switch (event) {
-                //TODO: Handle unexpected events
-                default: break;
-            }*/
-            gettimeofday(&curtime, NULL);
-            timeleft = ((gphoto->bulb_end.tv_sec - curtime.tv_sec) * 1000) +
-                       ((gphoto->bulb_end.tv_usec - curtime.tv_usec) / 1000);
-            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Time left: %ld", timeleft);
+            if (gphoto->command & DSLR_CMD_BULB_CAPTURE)
+            {
+                gettimeofday(&curtime, NULL);
+                timeleft = ((gphoto->bulb_end.tv_sec - curtime.tv_sec) * 1000) +
+                           ((gphoto->bulb_end.tv_usec - curtime.tv_usec) / 1000);
+                DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Time left: %ld", timeleft);
+            }
+            else
+                timeleft = 0;
+
             if (timeleft <= 0)
             {
                 //shut off bulb mode
@@ -465,8 +467,8 @@ static void *stop_bulb(void *arg)
                     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using widget:%s", gphoto->bulb_widget->name);
                     if (strcmp(gphoto->bulb_widget->name, "eosremoterelease") == 0)
                     {
-                        gphoto_set_widget_num(gphoto, gphoto->bulb_widget,
-                                              EOS_RELEASE_FULL); //600D eosremoterelease RELEASE FULL
+                        //600D eosremoterelease RELEASE FULL
+                        gphoto_set_widget_num(gphoto, gphoto->bulb_widget, EOS_RELEASE_FULL);
                     }
                     else
                     {
@@ -959,6 +961,25 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
         //pthread_mutex_lock(&gphoto->mutex);
     }
     pthread_mutex_unlock(&gphoto->mutex);
+    return 0;
+}
+
+int gphoto_abort_exposure(gphoto_driver *gphoto)
+{
+    gphoto->command = DSLR_CMD_ABORT;
+    pthread_cond_signal(&gphoto->signal);
+    pthread_mutex_unlock(&gphoto->mutex);
+
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Aborting exposure...");
+
+    // Wait until exposure is aborted
+    pthread_mutex_lock(&gphoto->mutex);
+    if (!(gphoto->command & DSLR_CMD_DONE))
+        pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
+
+    pthread_mutex_unlock(&gphoto->mutex);
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure aborted.");
+
     return 0;
 }
 
