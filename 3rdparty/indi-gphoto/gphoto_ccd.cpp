@@ -372,7 +372,7 @@ bool GPhotoCCD::initProperties()
     // Most cameras have this by default, so let's set it as default.
     IUSaveText(&BayerT[2], "RGGB");
 
-    SetCCDCapability(CCD_CAN_SUBFRAME | CCD_HAS_BAYER | CCD_HAS_STREAMING);
+    SetCCDCapability(CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_HAS_BAYER | CCD_HAS_STREAMING);
 
     SetFocuserCapability(FOCUSER_HAS_VARIABLE_SPEED);
 
@@ -1021,6 +1021,13 @@ bool GPhotoCCD::StartExposure(float duration)
 
     SetTimer(POLLMS);
 
+    return true;
+}
+
+bool GPhotoCCD::AbortExposure()
+{
+    gphoto_abort_exposure(gphotodrv);
+    InExposure = false;
     return true;
 }
 
