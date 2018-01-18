@@ -770,10 +770,10 @@ int APSendPulseCmd(int fd, int direction, int duration_msec)
     return 0;
 }
 
+#if 0
 // experimental function!!!
-int check_lx200ap_status(int fd, char *parkStatus)
+int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
 {
-    int i = 0;
     char temp_string[64];
     int error_type;
     int nbytes_write = 0;
@@ -806,6 +806,7 @@ int check_lx200ap_status(int fd, char *parkStatus)
                      nbytes_write, temp_string);
 
         *parkStatus = temp_string[0];
+        *slewStatus = temp_string[3];
 
         return 0;
     }
@@ -815,3 +816,4 @@ int check_lx200ap_status(int fd, char *parkStatus)
 
     return -1;
 }
+#endif
