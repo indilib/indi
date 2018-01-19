@@ -155,8 +155,6 @@ SET(LIBRARIES_FOUND FALSE)
 endif (QSI_FOUND)
 endif (WITH_QSI)
 
-#if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
 ## SBIG
 if (WITH_SBIG)
 find_package(SBIG)
@@ -280,11 +278,12 @@ if (WITH_RADIOSIM)
 add_subdirectory(indi-radiosim)
 endif (WITH_RADIOSIM)
 
-#endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
+if (WITH_ARMADILLO)
+add_subdirectory(indi-armadillo-platypus)
+endif(WITH_ARMADILLO)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-add_subdirectory(fxload-libusb)
+add_subdirectory(fxload)
 endif()
 
 # Check if libraries are found. If not, we must build them, install them, THEN run CMake again to build and instal the drivers. If all the libraraies are installed, then we build and install the drivers only now.
