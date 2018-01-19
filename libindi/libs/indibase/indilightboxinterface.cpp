@@ -82,7 +82,7 @@ bool LightBoxInterface::updateLightBoxProperties()
         {
             device->deleteProperty(FilterIntensityNP.name);
             FilterIntensityNP.nnp = 0;
-            delete (FilterIntensityN);
+            free (FilterIntensityN);
             FilterIntensityN = nullptr;
         }
     }
