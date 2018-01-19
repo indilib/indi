@@ -133,6 +133,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
 {
     LX200Generic::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         defineSwitch(&StartUpSP);
@@ -140,7 +141,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
 
         //defineText(&DeclinationAxisTP);
 
-        /* Motion group */
+        // Motion group
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
@@ -149,6 +150,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
 
         DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
     }
+    */
 }
 
 bool LX200AstroPhysics::updateProperties()

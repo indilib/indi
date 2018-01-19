@@ -242,6 +242,7 @@ void JoyStick::ISGetProperties(const char *dev)
     defineText(&PortTP);
     loadConfig(true, INDI::SP::DEVICE_PORT);
 
+    /*
     if (isConnected())
     {
         for (int i = 0; i < driver->getNumOfJoysticks(); i++)
@@ -250,6 +251,7 @@ void JoyStick::ISGetProperties(const char *dev)
         defineNumber(&AxisNP);
         defineSwitch(&ButtonSP);
     }
+    */
 }
 
 bool JoyStick::ISSnoopDevice(XMLEle *root)

@@ -367,6 +367,7 @@ void LX200Generic::ISGetProperties(const char *dev)
 
     INDI::Telescope::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
@@ -394,6 +395,7 @@ void LX200Generic::ISGetProperties(const char *dev)
             defineSwitch(&FocusModeSP);
         }
     }
+    */
 }
 
 bool LX200Generic::updateProperties()

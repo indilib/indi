@@ -99,6 +99,7 @@ void LX200Classic::ISGetProperties(const char *dev)
 
     LX200Generic::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         defineNumber(&ElevationLimitNP);
@@ -109,6 +110,7 @@ void LX200Classic::ISGetProperties(const char *dev)
         defineNumber(&ObjectNoNP);
         defineNumber(&MaxSlewRateNP);
     }
+    */
 }
 
 bool LX200Classic::updateProperties()
