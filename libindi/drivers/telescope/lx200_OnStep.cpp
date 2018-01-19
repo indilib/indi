@@ -37,7 +37,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 1);
+    setVersion(1, 2);
 
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK);
 }
@@ -124,19 +124,6 @@ void LX200_OnStep::ISGetProperties(const char *dev)
         return;
 
     LX200Generic::ISGetProperties(dev);
-
-    if (isConnected())
-    {
-        //defineSwitch(&EnaTrackSP);
-        defineSwitch(&ReticSP);
-        defineNumber(&ElevationLimitNP);
-        defineText(&ObjectInfoTP);
-        defineSwitch(&SolarSP);
-        defineSwitch(&StarCatalogSP);
-        defineSwitch(&DeepSkyCatalogSP);
-        defineNumber(&ObjectNoNP);
-        defineNumber(&MaxSlewRateNP);
-    }
 }
 
 bool LX200_OnStep::updateProperties()
@@ -608,4 +595,36 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)
     }
 
     return (response[0] == '1');
+}
+
+bool LX200_OnStep::updateLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(elevation);
+
+    if (isSimulation())
+        return true;
+
+    double onstep_long = longitude - 360;
+    if (onstep_long < -180)
+        onstep_long += 360;
+
+    if (!isSimulation() && setSiteLongitude(PortFD, onstep_long) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        return false;
+    }
+
+    if (!isSimulation() && setSiteLatitude(PortFD, latitude) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        return false;
+    }
+
+    char l[32]={0}, L[32]={0};
+    fs_sexa(l, latitude, 3, 3600);
+    fs_sexa(L, longitude, 4, 3600);
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
+
+    return true;
 }
