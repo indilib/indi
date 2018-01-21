@@ -697,12 +697,12 @@ target_link_libraries(indi_sestosenso_focus indidriver)
 install(TARGETS indi_sestosenso_focus RUNTIME DESTINATION bin)
 
 ################ Televue FocusMaster ################
-SET(focusmaster_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/focusmaster.cpp)
+#SET(focusmaster_SRC
+#    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/focusmaster.cpp)
 
-add_executable(indi_focusmaster_focus ${focusmaster_SRC})
-target_link_libraries(indi_focusmaster_focus indidriver)
-install(TARGETS indi_focusmaster_focus RUNTIME DESTINATION bin)
+#add_executable(indi_focusmaster_focus ${focusmaster_SRC})
+#target_link_libraries(indi_focusmaster_focus indidriver)
+#install(TARGETS indi_focusmaster_focus RUNTIME DESTINATION bin)
 
 ########### Lakeside ###########
 set(indilakeside_SRCS  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/lakeside.cpp)

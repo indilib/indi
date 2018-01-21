@@ -235,10 +235,6 @@
                 <driver name="Sesto Senso">indi_sestosenso_focus</driver>
                 <version>1.0</version>
         </device>
-        <device label="FocusMaster">
-                <driver name="FocusMaster">indi_focusmaster_focus</driver>
-                <version>1.0</version>
-        </device>
         <device label="Lakeside">
                 <driver name="Lakeside">indi_lakeside_focus</driver>
                 <version>1.0</version>
