@@ -730,7 +730,7 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isParked)
         return false;
 
     // if within an arcsec then assume RA is constant
-    if (abs(ra1-ra2) < (1.0/(15.0*3600.0)))
+    if (fabs(ra1-ra2) < (1.0/(15.0*3600.0)))
     {
         *isParked=false;
         return true;
@@ -1169,34 +1169,28 @@ bool LX200AstroPhysicsExperimental::UnPark()
     // The AP :PO# should only be used during initilization and not here as indicated by email from Preston on 2017-12-12
 
     // check the unpark from position and set mount as appropriate
-    ParkPosition unparkPos = (ParkPosition) IUFindOnSwitchIndex(&UnparkFromSP);
+    ParkPosition unparkPos;
+    
+    unparkPos = (ParkPosition) IUFindOnSwitchIndex(&UnparkFromSP);
+
     DEBUGF(INDI::Logger::DBG_DEBUG, "Unpark() -> unpark position = %d", unparkPos);
-
-    bool syncmount;
-    double unparkAlt, unparkAz;
-
-    syncmount = false;
 
     if (unparkPos == PARK_LAST)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Unparking from last parked position...");
-        syncmount = false;
     }
     else
     {
+        double unparkAlt, unparkAz;
+	
         if (!calcParkPosition(unparkPos, &unparkAlt, &unparkAz))
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error calculating unpark position!");
             return false;
         }
 
-        syncmount = true;
-    }
+        DEBUGF(INDI::Logger::DBG_DEBUG, "unparkPos=%d unparkAlt=%f unparkAz=%f", unparkPos, unparkAlt, unparkAz);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "unparkPos=%d syncmount=%d unparkAlt=%f unparkAz=%f", unparkPos, syncmount, unparkAlt, unparkAz);
-
-    if (syncmount)
-    {
         if (setAPObjectAZ(PortFD, unparkAz) < 0 || (setAPObjectAlt(PortFD, unparkAlt)) < 0)
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error setting Az/Alt.");
