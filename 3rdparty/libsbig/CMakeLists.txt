@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 PROJECT(libsbig C CXX)
 
-set(SBIG_VERSION "2.1.2")
+set(SBIG_VERSION "2.1.3")
 set(SBIG_SOVERSION "2")
 
 include(GNUInstallDirs)
