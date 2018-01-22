@@ -769,3 +769,51 @@ int APSendPulseCmd(int fd, int direction, int duration_msec)
     tcflush(fd, TCIFLUSH);
     return 0;
 }
+
+#if 0
+// experimental function!!!
+int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
+{
+    char temp_string[64];
+    int error_type;
+    int nbytes_write = 0;
+    int nbytes_read  = 0;
+
+    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "EXPERIMENTAL: check status...");
+
+    if (fd <= 0)
+    {
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                    "check_lx200ap_connection: not a valid file descriptor received");
+
+        return -1;
+    }
+
+    if ((error_type = tty_write_string(fd, "#:GOS#", &nbytes_write)) != TTY_OK)
+    {
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                     "check_lx200ap_connection: unsuccessful write to telescope, %d", nbytes_write);
+
+        return error_type;
+    }
+    tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+    if (nbytes_read > 1)
+    {
+        temp_string[nbytes_read - 1] = '\0';
+
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "check_lx200ap_status: received bytes %d, [%s]",
+                     nbytes_write, temp_string);
+
+        *parkStatus = temp_string[0];
+        *slewStatus = temp_string[3];
+
+        return 0;
+    }
+
+
+    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_status: wrote, but nothing received.");
+
+    return -1;
+}
+#endif
