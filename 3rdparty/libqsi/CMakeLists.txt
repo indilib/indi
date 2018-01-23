@@ -29,7 +29,7 @@ set(qsi_LIB_SRCS
 #build a shared library
 ADD_LIBRARY(qsiapi SHARED ${qsi_LIB_SRCS})
 
-set_target_properties(qsiapi PROPERTIES VERSION 7.6.0 SOVERSION 7)
+set_target_properties(qsiapi PROPERTIES VERSION 7.6.1 SOVERSION 7)
 
 #need to link to some other libraries ? just add them here
 TARGET_LINK_LIBRARIES(qsiapi ${FTDI1_LIBRARIES})
