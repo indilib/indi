@@ -131,7 +131,7 @@ INDI server only provides convenient port, fork and data steering services. If d
 How I submit a PR:
 1. Login with a Github account and fork the official INDI repository.
 2. Clone the official INDI repository and add the forked INDI repository as a remote (git remote add ...).
-3. Create a local Git branch (git co -b my_branch).
+3. Create a local Git branch (git checkout -b my_branch).
 4. Work on the patch and commit the changes.
 5. If it is ready push this branch to your fork repo (git push -f my_fork my_branch:my_branch).
 6. Go to the official repo's github website in a browser, it will popup a message to create a PR. Create it.
