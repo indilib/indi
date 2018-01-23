@@ -40,12 +40,21 @@
 
 #include <memory>
 
+#ifdef OSX_EMBEDED_MODE
+ #include "Alta.h"
+ #include "AltaF.h"
+ #include "Ascent.h"
+ #include "Aspen.h"
+ #include "Quad.h"
+ #include "ApgLogger.h"
+#else
 #include <libapogee/Alta.h>
 #include <libapogee/AltaF.h>
 #include <libapogee/Ascent.h>
 #include <libapogee/Aspen.h>
 #include <libapogee/Quad.h>
 #include <libapogee/ApgLogger.h>
+#endif
 
 #include <fitsio.h>
 

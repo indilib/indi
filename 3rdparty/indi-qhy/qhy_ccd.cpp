@@ -121,15 +121,15 @@ void ISInit()
     }
 #endif
 
-#if defined(OSX_EMBEDED_MODE)
-    char firmwarePath[128];
-    sprintf(firmwarePath, "%s/Contents/Resources", getenv("INDIPREFIX"));
-    OSXInitQHYCCDFirmware(firmwarePath);
-#elif defined(__APPLE__)
-    char firmwarePath[128] = "/usr/local/lib/qhy";
-    if (getenv("QHY_FIRMWARE_DIR") != NULL)
-        strncpy(firmwarePath, getenv("QHY_FIRMWARE_DIR"), 128);
-    OSXInitQHYCCDFirmware(firmwarePath);
+//On OS X, Prefer embedded App location if it exists
+#if defined(__APPLE__)
+	char driverSupportPath[128];
+	if (getenv("INDIPREFIX") != NULL)
+		sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
+	else
+		strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
+	strncat(driverSupportPath, "/DriverSupport/qhy", 128);
+	OSXInitQHYCCDFirmware(driverSupportPath);
 #endif
 
     std::vector<std::string> devices = GetDevicesIDs();

@@ -205,12 +205,15 @@ void DSI::Device::initImager(const char *devname)
                 {
                     libusb_kernel_driver_active(handle, 0);
                     libusb_claim_interface(handle, 0);
-                    char hexpath[MAXRBUF] = "/usr/local/lib/firmware/meade-deepskyimager.hex";
-                    // Override in case an environment variable is defined.
-                    if (getenv("DSI_FIRMWARE_DIR") != NULL)
-                        snprintf(hexpath, MAXRBUF, "%s/meade-deepskyimager.hex", getenv("DSI_FIRMWARE_DIR"));
+                    char driverSupportPath[MAXRBUF];
+                    //On OS X, Prefer embedded App location if it exists
+                    if (getenv("INDIPREFIX") != NULL)
+                    	snprintf(driverSupportPath, MAXRBUF, "%s/Contents/Resources", getenv("INDIPREFIX"));
+                    else
+                    	strncpy(driverSupportPath, "/usr/local/lib/indi", MAXRBUF);
+                    strncat(driverSupportPath, "/DriverSupport/dsi/meade-deepskyimager.hex", MAXRBUF);
                     char errmsg[MAXRBUF];
-                    if (fx2_ram_download(handle, hexpath, 1, errmsg))
+                    if (fx2_ram_download(handle, driverSupportPath, 1, errmsg))
                         throw dsi_exception(std::string("failed to upload firmware: ") + errmsg);
                     libusb_close(handle);
                 }
