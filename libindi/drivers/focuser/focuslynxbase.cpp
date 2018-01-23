@@ -174,11 +174,11 @@ bool FocusLynxBase::initProperties()
     int nModels = 1;
     ModelS      = (ISwitch *)malloc(sizeof(ISwitch));
     // Need to be able to select no focuser to avoid troubles with Ekos
-    IUFillSwitch(ModelS, "ZZ", "No Focuser", ISS_ON);
+    IUFillSwitch(ModelS, "No Focuser", "No Focuser", ISS_ON);
     for (iter = lynxModels.begin(); iter != lynxModels.end(); ++iter)
     {
         ModelS = (ISwitch *)realloc(ModelS, (nModels + 1) * sizeof(ISwitch));
-        IUFillSwitch(ModelS + nModels, (iter->second).c_str(), (iter->first).c_str(), ISS_OFF);
+        IUFillSwitch(ModelS + nModels, (iter->first).c_str(), (iter->first).c_str(), ISS_OFF);
 
         nModels++;
     }
