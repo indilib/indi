@@ -271,24 +271,10 @@
   for (NSString *path in [mainBundle pathsForResourcesOfType:@"xml" inDirectory:nil]) {
     [self parseConfig:path];
   }
-//  [self parseConfig:[mainBundle pathForResource: @"drivers" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_atik" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_eqmod" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_sx" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_shoestring" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_maxdomeii" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_spectracyber" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_aagcloudwatcher" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_usbfocus" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_asiccd" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_sbig" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_qsi" ofType: @"xml"]];
-//  [self parseConfig:[mainBundle pathForResource: @"indi_nexstarevo" ofType: @"xml"]];
   NSString *customXML = [NSString stringWithFormat:CUSTOM_XML, getlogin()];
   if ([[NSFileManager defaultManager] fileExistsAtPath:customXML]) {
     [self parseConfig:customXML];
   }
-  // NSLog(@"drivers %@", root);
   [_deviceTree reloadData];
   devices = [NSMutableArray array];
   NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];

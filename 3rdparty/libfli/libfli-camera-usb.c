@@ -951,7 +951,8 @@ long fli_camera_usb_get_temperature(flidev_t dev, double *temperature)
 
 long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 {
-  flicamdata_t *cam = DEVICE->device_data;
+	flicamdata_t *cam = DEVICE->device_data;
+	int abort = 0;
 
 	if(width > (size_t) (cam->image_area.lr.x - cam->image_area.ul.x))
 	{
@@ -1055,7 +1056,6 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 		case FLIUSB_PROLINE_ID+1:
 		{
 			long rlen, rtotal;
-			int abort = 0;
 
 			/* First we need to determine if the row is in memory */
 			while ( (cam->grabrowcounttot < cam->grabrowwidth) && (abort == 0) )
@@ -1209,7 +1209,7 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 		case FLIUSB_PROLINE_ID:
 		{
 			long rlen = 0, rtotal = 0;
-			int abort = 0, index = 0;
+			int index = 0;
 
 			/*
 			 * cam->gbuf_siz -- size of the grab buffer (bytes)
@@ -1597,7 +1597,8 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
 			break;
 	}
-
+	/* return IO error if the reading failed */
+	if (abort) return -EIO;
 	return 0;
 }
 
@@ -2403,12 +2404,13 @@ long fli_camera_usb_get_cooler_power(flidev_t dev, double *power)
 		{
 			short pwm;
 
-			if (DEVICE->devinfo.fwrev == 0x0100)
-			{
-				r = -EFAULT;
-			}
-			else
-			{
+			// Commented this block as it prevents PL9000 form working
+			//if (DEVICE->devinfo.fwrev == 0x0100)
+			//{
+			///	r = -EFAULT;
+			//}
+			//else
+			//{
 
 				rlen = 14; wlen = 2;
 				IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_TEMPERATURE);
@@ -2416,7 +2418,7 @@ long fli_camera_usb_get_cooler_power(flidev_t dev, double *power)
 
 				IOREAD_U16(buf, 4, pwm);
 				*power = (double) pwm;
-			}
+			//}
 		}
 		break;
 

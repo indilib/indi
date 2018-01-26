@@ -1,11 +1,15 @@
 /* INDIDUINOMETEO FIRMWARE.
 NACHO MAS 2013. http://indiduino.wordpress.com
+Magnus W. Eriksen 2017 https://github.com/magnue
 
 Several modifications over indiduinoTemplate:
-.- Include  "i2cmaster.h",  "Adafruit_BMP085.h" and  "dht.h" libraries 
+.- Include  "i2cmaster.h",  "Adafruit_BMP085.h", "Adafruit_MLX90614.h" and  "dht.h" libraries
    to read the sensors.
+.- Add custimization of pinnumbers, and flags for frezzing and daylight.
+.- Allow user to disable any sensor(s) and its (their) code when compiling.
 .- Several additional functions to read the sensor and calculate flags,
    cloudcover and dew point.
+.- Extend event loop fail checks to awoid reading values from unreadable sensors (IR, P and DHT).
 .- Overwrite firmata TOTAL_ANALOG_PINS and TOTAL_PINS to make room for
    aditional (>6) analog calculate inputs.
 .- Use pullup resitor on inputs for signal flags.
@@ -13,37 +17,59 @@ Several modifications over indiduinoTemplate:
 IMPORTANT: Customize following values to match your setup
 */
 
-//Comment out if you setup don't include some sensor.
-#define USE_DHT_SENSOR   //USE DHT HUMITITY SENSOR. Comment if not.
-#define USE_IR_SENSOR   //USE MELEXIS IR SENSOR. Comment if not.
-#define USE_P_SENSOR   //USE BMP085 PRESSURE SENSOR. Comment if not.
+//Comment out if your setup don't include some sensor.
+#define USE_DHT_SENSOR          //USE DHT HUMITITY SENSOR. Comment if not.
+#define USE_IR_SENSOR           //USE MELEXIS IR SENSOR. Comment if not.
+#define USE_P_SENSOR            //USE BMP085 PRESSURE SENSOR. Comment if not.
+#define USE_IRRADIANCE_SENSOR   //USE IRRADIANCE SENSOR (solar cell). Comment if not.
 
-//All sensors (Thr=DHT22,Tir=MELEXIS and Tp=BMP085) include a ambient temperature
+//Not everyone consider zero celsius as frezzing and other drivers will react to frezzing as an alert.
+//define temperature limit for issuing alert.
+//Default 0
+#define FREZZING 0
+
+//All sensors (Thr=DHT22,Tir=MELEXIS and Tp=BMP[085,180]) include a ambient temperature
 //Chosse  that sensor, only one, is going to use for main Ambient Temperature:
 //#define T_MAIN_Thr
-#define T_MAIN_Tir  
-//#define T_MAIN_Tp
+//#define T_MAIN_Tir
+#define T_MAIN_Tp
 
-//Cloudy sky is warmer that clear sky. Thus sky temperature meassure by IR sensor
-//is a good indicator to estimate cloud cover. However IR really meassure the
-//temperatura of all the air column above increassing with ambient temperature.
-//So it is important include some correction factor:
-//From AAG Cloudwatcher formula. Need to improve futher.
-//http://www.aagware.eu/aag/cloudwatcher700/WebHelp/index.htm#page=Operational%20Aspects/23-TemperatureFactor-.htm
-//Sky temp correction factor. Tsky=Tsky_meassure - Tcorrection
-//Formula Tcorrection = (K1 / 100) * (Thr - K2 / 10) + (K3 / 100) * pow((exp (K4 / 1000* Thr)) , (K5 / 100));
-#define  K1 33.
-#define  K2 0. 
-#define  K3 4.
-#define  K4 100.
-#define  K5 100.
+#ifdef USE_DHT_SENSOR
+  // what pin we're connected DHT22 to
+  #define DHTPIN 3
+#endif //USE_DHT_SENSOR
 
-//Clear sky corrected temperature (temp below means 0% clouds)
-#define CLOUD_TEMP_CLEAR  -8 
-//Totally cover sky corrected temperature (temp above means 100% clouds)
-#define CLOUD_TEMP_OVERCAST  0  
-//Activation treshold for cloudFlag (%)
-#define CLOUD_FLAG_PERCENT  30 
+#ifdef USE_IRRADIANCE_SENSOR
+  //A multitude of solar cells can be used as IRRADIANCE sensor.
+  //Set MINIMUM_DAYLIGHT to the IRRADIANCE output at start of dusk.
+  #define MINIMUM_DAYLIGHT 100
+
+   // what analog pin we connected IRRADCIANCE to
+  #define IR_RADIANCE_PIN 0
+#endif //USE_IRRADIANCE_SENSOR
+
+#ifdef USE_IR_SENSOR
+  //Cloudy sky is warmer that clear sky. Thus sky temperature meassure by IR sensor
+  //is a good indicator to estimate cloud cover. However IR really meassure the
+  //temperatura of all the air column above increassing with ambient temperature.
+  //So it is important include some correction factor:
+  //From AAG Cloudwatcher formula. Need to improve futher.
+  //http://www.aagware.eu/aag/cloudwatcher700/WebHelp/index.htm#page=Operational%20Aspects/23-TemperatureFactor-.htm
+  //Sky temp correction factor. Tsky=Tsky_meassure - Tcorrection
+  //Formula Tcorrection = (K1 / 100) * (Thr - K2 / 10) + (K3 / 100) * pow((exp (K4 / 1000* Thr)) , (K5 / 100));
+  #define  K1 33.
+  #define  K2 0.
+  #define  K3 4.
+  #define  K4 100.
+  #define  K5 100.
+
+  //Clear sky corrected temperature (temp below means 0% clouds)
+  #define CLOUD_TEMP_CLEAR  -8
+  //Totally cover sky corrected temperature (temp above means 100% clouds)
+  #define CLOUD_TEMP_OVERCAST  0
+  //Activation treshold for cloudFlag (%)
+  #define CLOUD_FLAG_PERCENT  30
+#endif //USE_IR_SENSOR
 
 
 
@@ -107,17 +133,17 @@ IMPORTANT: Customize following values to match your setup
  */
 
 #include <Servo.h>
-#include <Wire.h>
+#include "Wire.h"
 #include <Firmata.h>
 
 
 #ifdef USE_IR_SENSOR
-  #include "i2cmaster.h"
+  #include "Adafruit_MLX90614.h"
+  Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 #endif //USE_IR_SENSOR
 
 #ifdef USE_DHT_SENSOR
   #include "dht.h"
-  #define DHTPIN 2         // what pin we're connected DHT22 to
   dht DHT;
 #endif //USE_DHT_SENSOR
 
@@ -127,17 +153,38 @@ IMPORTANT: Customize following values to match your setup
 #endif //USE_P_SENSOR
 
 
-
 float P,HR,IR,T,Tp,Thr,Tir,Dew,Light,Clouds,skyT;
 int cloudy,dewing,frezzing;
+bool irSuccess,bmpSuccess;
 
 #define TOTAL_ANALOG_PINS       11
 #define TOTAL_PINS              25
 
 void setupMeteoStation(){
+#ifdef USE_IR_SENSOR
+        if (!(irSuccess=mlx.begin())) {
+            //set IR sensor fail flag
+            digitalWrite(PIN_TO_DIGITAL(7), HIGH);
+            IR=0;
+            Tir=0;
+        } else digitalWrite(PIN_TO_DIGITAL(7), LOW); //Make sure IR sensor fail flag is off on success
+
+#endif //USE_IR_SENSOR
+
 #ifdef USE_P_SENSOR
-        bmp.begin();
+        if (!(bmpSuccess=bmp.begin())) {
+            //set P sensor fail flag
+            digitalWrite(PIN_TO_DIGITAL(9), HIGH);
+            Tp=0;
+            P=0;
+        } else digitalWrite(PIN_TO_DIGITAL(9), LOW); //Make sure P sensor fail flag is off on success
+
 #endif //USE_P_SENSOR
+
+#ifndef USE_IRRADIANCE_SENSOR
+    Light=0;
+#endif //USE_IRRADIANCE_SENSOR
+
 }
 
 /*==============================================================================
@@ -145,99 +192,76 @@ void setupMeteoStation(){
  *============================================================================*/
 void runMeteoStation() {
   
-#ifdef USE_IR_SENSOR  
-    double tempData = 0x0000; // zero out the data
-    int dev = 0x5A<<1;
-    int data_low = 0;
-    int data_high = 0;
-    int pec = 0;
-
-    i2c_start_wait(dev+I2C_WRITE);
-    i2c_write(0x07);
+#ifdef USE_IR_SENSOR
+    if (irSuccess) {
+        Tir=mlx.readAmbientTempC();
+        IR=mlx.readObjectTempC();
+    } else if (irSuccess=mlx.begin()) {
+        // Retry mlx.begin(), and clear IR sensor fail flag
+        digitalWrite(PIN_TO_DIGITAL(7), LOW);
+    }
     
-    // read
-    i2c_rep_start(dev+I2C_READ);
-    data_low = i2c_readAck(); //Read 1 byte and then send ack
-    data_high = i2c_readAck(); //Read 1 byte and then send ack
-    pec = i2c_readNak();
-    i2c_stop();
-       
-    // This masks off the error bit of the high byte, then moves it left 8 bits and adds the low byte.
-    tempData = (double)(((data_high & 0x007F) << 8) + data_low);
-    tempData = (tempData /50);
-    
-    IR = tempData - 273.15;
-
-    i2c_start_wait(dev+I2C_WRITE);
-    i2c_write(0x06);
-    
-    // read
-    i2c_rep_start(dev+I2C_READ);
-    data_low = i2c_readAck(); //Read 1 byte and then send ack
-    data_high = i2c_readAck(); //Read 1 byte and then send ack
-    pec = i2c_readNak();
-    i2c_stop();
-  
-  
-    // This masks off the error bit of the high byte, then moves it left 8 bits and adds the low byte.
-    tempData = (double)(((data_high & 0x007F) << 8) + data_low);
-    tempData = (tempData /50);
-    
-    Tir = tempData - 273.15;
     Clouds=cloudIndex();
     skyT=skyTemp();
-    if (Clouds >CLOUD_FLAG_PERCENT) {
-      cloudy=1;
+    if (Clouds>CLOUD_FLAG_PERCENT) {
+        cloudy=1;
     } else {
-      cloudy=0;
+        cloudy=0;
     }
 #else
     //set IR sensor fail flag
-    digitalWrite(PIN_TO_DIGITAL(7), HIGH); 
-#endif //USE_IR_SENSOR  
+    digitalWrite(PIN_TO_DIGITAL(7), HIGH);
+#endif //USE_IR_SENSOR
 
 #ifdef USE_P_SENSOR
-    Tp=bmp.readTemperature();
-    P=bmp.readPressure(); 
+    if (bmpSuccess) {
+        Tp=bmp.readTemperature();
+        P=bmp.readPressure();
+    } else if (bmpSuccess=bmp.begin()) {
+        // Retry bmp.begin(), and clear P sensor fail flag
+        digitalWrite(PIN_TO_DIGITAL(9), LOW);
+    }
 #else
     //set P sensor fail flag
-    digitalWrite(PIN_TO_DIGITAL(9), HIGH);     
-#endif //USE_P_SENSOR  
+    digitalWrite(PIN_TO_DIGITAL(9), HIGH);
+#endif //USE_P_SENSOR
 
 #ifdef USE_DHT_SENSOR
-     int chk = DHT.read22(DHTPIN);
-     if (chk == DHTLIB_OK) {
-         //OK.clear HR sensor fail flag       
-         digitalWrite(PIN_TO_DIGITAL(8), LOW); 
-         HR=DHT.humidity;  
+     int chk=DHT.read22(DHTPIN);
+     if (chk==DHTLIB_OK) {
+         //OK.clear HR sensor fail flag
+         digitalWrite(PIN_TO_DIGITAL(8), LOW);
+         HR=DHT.humidity;
          Thr=DHT.temperature;
      } else {
          //set HR sensor fail flag
-         digitalWrite(PIN_TO_DIGITAL(8), HIGH); 
+         digitalWrite(PIN_TO_DIGITAL(8), HIGH);
      }
 
     Dew=dewPoint(Thr,HR);
-    if (Thr<=Dew+2) { 
-       dewing=1;
+    if (Thr<=Dew+2) {
+        dewing=1;
     } else {
-       dewing=0;
+        dewing=0;
     }
 #else
     //set HR sensor fail flag
-    digitalWrite(PIN_TO_DIGITAL(8), HIGH); 
-#endif //USE_DHT_SENSOR    
+    digitalWrite(PIN_TO_DIGITAL(8), HIGH);
+#endif //USE_DHT_SENSOR
 
-    Light=analogRead(0);
+#ifdef USE_IRRADIANCE_SENSOR
+    Light=analogRead(IR_RADIANCE_PIN);
+#endif //USE_IRRADIANCE_SENSOR
 
 #if defined T_MAIN_Thr
     T=Thr;
-#elif defined T_MAIN_Tir  
+#elif defined T_MAIN_Tir
     T=Tir;
 #elif defined T_MAIN_Tp
     T=Tp;
-#endif  //T_MAIN  
+#endif  //T_MAIN
 
-    if (T <=2) {
+    if (T<FREZZING) {
       frezzing=1;
     } else {
       frezzing=0;
@@ -247,41 +271,41 @@ void runMeteoStation() {
 void checkMeteo() {
 
     if (cloudy==1) {
-       digitalWrite(PIN_TO_DIGITAL(3), HIGH); // enable internal pull-ups 
+       digitalWrite(PIN_TO_DIGITAL(3), HIGH); // enable internal pull-ups
     } else {
-       digitalWrite(PIN_TO_DIGITAL(3), LOW); // disable internal pull-ups  
+       digitalWrite(PIN_TO_DIGITAL(3), LOW); // disable internal pull-ups
     }
   
-   if (dewing==1) {
-       digitalWrite(PIN_TO_DIGITAL(4), HIGH); // enable internal pull-ups 
+    if (dewing==1) {
+       digitalWrite(PIN_TO_DIGITAL(4), HIGH); // enable internal pull-ups
     } else {
-       digitalWrite(PIN_TO_DIGITAL(4), LOW); // disable internal pull-ups 
+       digitalWrite(PIN_TO_DIGITAL(4), LOW); // disable internal pull-ups
     }
 
-   if (frezzing == 1) {
-       digitalWrite(PIN_TO_DIGITAL(5), HIGH); // enable internal pull-ups 
+    if (frezzing == 1) {
+       digitalWrite(PIN_TO_DIGITAL(5), HIGH); // enable internal pull-ups
     } else {
-       digitalWrite(PIN_TO_DIGITAL(5), LOW); // disable internal pull-ups 
-    }   
+       digitalWrite(PIN_TO_DIGITAL(5), LOW); // disable internal pull-ups
+    }
   
-    if (Light>500) {
-       digitalWrite(PIN_TO_DIGITAL(6), HIGH); // enable internal pull-ups 
+    if (Light>MINIMUM_DAYLIGHT) {
+       digitalWrite(PIN_TO_DIGITAL(6), HIGH); // enable internal pull-ups
     } else {
-       digitalWrite(PIN_TO_DIGITAL(6), LOW); // disable internal pull-ups  
-    }  
+       digitalWrite(PIN_TO_DIGITAL(6), LOW); // disable internal pull-ups
+    }
 
 }
 
 #ifdef USE_DHT_SENSOR
 // dewPoint function NOAA
-// reference: http://wahiduddin.net/calc/density_algorithms.htm 
+// reference: http://wahiduddin.net/calc/density_algorithms.htm
 double dewPoint(double celsius, double humidity)
 {
         double A0= 373.15/(273.15 + celsius);
         double SUM = -7.90298 * (A0-1);
         SUM += 5.02808 * log10(A0);
-        SUM += -1.3816e-7 * (pow(10, (11.344*(1-1/A0)))-1) ;
-        SUM += 8.1328e-3 * (pow(10,(-3.49149*(A0-1)))-1) ;
+        SUM += -1.3816e-7 * (pow(10, (11.344*(1-1/A0)))-1);
+        SUM += 8.1328e-3 * (pow(10,(-3.49149*(A0-1)))-1);
         SUM += log10(1013.246);
         double VP = pow(10, SUM-3) * humidity;
         double T = log(VP/0.61078);   // temp var
@@ -324,62 +348,62 @@ double cloudIndex() {
 }
 #endif //USE_IR_SENSOR
 
-/* Nacho Mas. 
+/* Nacho Mas.
 	Change the value returned by readAnalog before send through
 	firmata protocol. By this you can adapt the 0-1024 stadard ADC range
 	to more apropiate range (i.e phisical range of a sensor). Also you 
-	can do some logic or event sent a variable value instead of 
-	readAnalog. 
+	can do some logic or event sent a variable value instead of
+	readAnalog.
 */
 int mapAndSendAnalog(int pin) {
-  
-//some scalation are use. Don't change without changing also skeleton file  
+
+//some scalation are use. Don't change without changing also skeleton file
   int value=0;
   int result=0;
  
   switch(pin) {
       //PIN 14->A0, 24->A10
-       case 0:     
+       case 0:
                result=(IR+273)*20;
-               break;       
-       case 1:     
+               break;
+       case 1:
                result=(Tir+273)*20;
-               break;   
-       case 2:     
+               break;
+       case 2:
                result=(P/10);
-               break;       
-       case 3:     
+               break;
+       case 3:
                result=(Tp+273)*20;
-               break;                      
-       case 4:     
+               break;
+       case 4:
                result=HR*100;
-               break;       
-       case 5:     
+               break;
+       case 5:
                result=(Thr+273)*20;
-               break;                      
-       case 6:     
+               break;
+       case 6:
                result=(Dew+273)*20;
-               break;       
-       case 7:     
+               break;
+       case 7:
                result=Light;
-               break;       
-       case 8:     
+               break;
+       case 8:
                result=Clouds;
-               break;   
-       case 9:     
+               break;
+       case 9:
                result=(skyT+273)*20;
-               break;   
-       case 10:     
+               break;
+       case 10:
                result=(T+273)*20;
-               break;   
-               
-               
+               break;
+
+
        default:
              result=value;
              break;
   }
   Firmata.sendAnalog(pin,result);
-} 
+}
 
 /* Nacho Mas.
 	Change the value recived through firmata protocol before write to

@@ -3,7 +3,6 @@ PROJECT(indi_tess CXX C)
 Include (CheckCXXSourceCompiles)
 include(GNUInstallDirs)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 
@@ -21,6 +20,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${INDI_INCLUDE_DIR})
 include_directories( ${NOVA_INCLUDE_DIR})
 
+include(CMakeCommon)
 
 ##################### indi arduino #####################
 set(inditess_SRCS
@@ -28,8 +28,12 @@ set(inditess_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/tess_algebra.cpp
    )
 
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(inditess inditess_SRCS 10 cpp)
+ENDIF ()
+
 add_executable(indi_tess ${inditess_SRCS})
-target_link_libraries(indi_tess ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES})
+target_link_libraries(indi_tess ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 
 install(TARGETS indi_tess RUNTIME DESTINATION bin)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_tess.xml DESTINATION ${INDI_DATA_DIR})

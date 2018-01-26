@@ -32,9 +32,9 @@ namespace
 
 //////////////////////////// 
 // CTOR 
-AltaCcdAcqParams::AltaCcdAcqParams(std::tr1::shared_ptr<CApnCamData> & camData,
-                           std::tr1::shared_ptr<CameraIo> & camIo,  
-                           std::tr1::shared_ptr<PlatformData> & platformData) : 
+AltaCcdAcqParams::AltaCcdAcqParams(std::shared_ptr<CApnCamData> & camData,
+                           std::shared_ptr<CameraIo> & camIo,  
+                           std::shared_ptr<PlatformData> & platformData) : 
                                                                 CcdAcqParams(camData,camIo,platformData),
                                                                 m_fileName(__FILE__),
                                                                 m_Adc12BitGain(0),

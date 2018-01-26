@@ -15,54 +15,53 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef EQMOD_H
-#define EQMOD_H
-
-#include <inditelescope.h>
-#include <indiguiderinterface.h>
-#include <libnova.h>
+#pragma once
 
 #include "config.h"
 #include "skywatcher.h"
 #ifdef WITH_ALIGN_GEEHALEL
 #include "align/align.h"
 #endif
-#ifdef WITH_SIMULATOR
 #include "simulator/simulator.h"
-#endif
 #ifdef WITH_SCOPE_LIMITS
 #include "scope-limits/scope-limits.h"
 #endif
 
-	typedef struct SyncData {
-	  double lst,jd;
-	  double targetRA, targetDEC;
-	  double telescopeRA, telescopeDEC;
-	  double deltaRA, deltaDEC;
-	  unsigned long targetRAEncoder, targetDECEncoder;
-	  unsigned long telescopeRAEncoder, telescopeDECEncoder;
-	  long deltaRAEncoder, deltaDECEncoder;
-	} SyncData;
+#include <inditelescope.h>
+#include <indiguiderinterface.h>
+
+#include <libnova/ln_types.h>
+
+typedef struct SyncData
+{
+    double lst, jd;
+    double targetRA, targetDEC;
+    double telescopeRA, telescopeDEC;
+    double deltaRA, deltaDEC;
+    unsigned long targetRAEncoder, targetDECEncoder;
+    unsigned long telescopeRAEncoder, telescopeDECEncoder;
+    long deltaRAEncoder, deltaDECEncoder;
+} SyncData;
 #ifdef WITH_ALIGN
 
 #include <alignment/AlignmentSubsystemForDrivers.h>
 
-class EQMod : public INDI::Telescope, public INDI::GuiderInterface, INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
+class EQMod : public INDI::Telescope,
+              public INDI::GuiderInterface,
+              INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
 #else
 class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 #endif
 {
-    protected:
-    private:
+  protected:
+  private:
     Skywatcher *mount;
-    
 
+    unsigned long currentRAEncoder, zeroRAEncoder, totalRAEncoder;
+    unsigned long currentDEEncoder, zeroDEEncoder, totalDEEncoder;
 
-	unsigned long currentRAEncoder, zeroRAEncoder, totalRAEncoder;
-	unsigned long currentDEEncoder, zeroDEEncoder, totalDEEncoder;
-
-	unsigned long homeRAEncoder, parkRAEncoder;
-	unsigned long homeDEEncoder, parkDEEncoder;	
+    unsigned long homeRAEncoder, parkRAEncoder;
+    unsigned long homeDEEncoder, parkDEEncoder;
 
     double currentRA, currentHA;
     double currentDEC;
@@ -70,184 +69,204 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     double ghalignedRA, ghalignedDEC;
     double targetRA;
     double targetDEC;
-    
+
 #ifdef WITH_ALIGN_GEEHALEL
-	Align *align;
+    Align *align;
 #endif
-	
-    TelescopeStatus RememberTrackState;
+
     int last_motion_ns;
     int last_motion_ew;
-	
-	/* for use with libnova */
-	struct ln_equ_posn lnradec;
-	struct ln_lnlat_posn lnobserver; 
-	struct ln_hrz_posn lnaltaz;
-        
-	/* Time variables */
-	struct tm utc;
-	struct ln_date lndate;
-	struct timeval lasttimeupdate;
-	struct timespec lastclockupdate;
-	double juliandate;
 
-	int GuideTimerNS;
+    /* for use with libnova */
+    struct ln_equ_posn lnradec;
+    struct ln_lnlat_posn lnobserver;
+    struct ln_hrz_posn lnaltaz;
 
-	int GuideTimerWE;
+    /* Time variables */
+    struct tm utc;
+    struct ln_date lndate;
+    struct timeval lasttimeupdate;
+    struct timespec lastclockupdate;
+    double juliandate;
 
-    INumber *GuideRateN;
-    INumberVectorProperty *GuideRateNP;
+    int GuideTimerNS;
 
-	ITextVectorProperty *MountInformationTP;
-	INumberVectorProperty *SteppersNP;
-	INumberVectorProperty *CurrentSteppersNP;
-	INumberVectorProperty *PeriodsNP;
-	INumberVectorProperty *JulianNP;
-	INumberVectorProperty *TimeLSTNP;
-	ITextVectorProperty *TimeUTCTP;
-	ILightVectorProperty *RAStatusLP;
-	ILightVectorProperty *DEStatusLP;
-	INumberVectorProperty *SlewSpeedsNP;
-	ISwitchVectorProperty *SlewModeSP;
-	ISwitchVectorProperty *HemisphereSP;
-	ISwitchVectorProperty *PierSideSP;
-	ISwitchVectorProperty *TrackModeSP;
-	ISwitchVectorProperty *TrackDefaultSP;
-       	INumberVectorProperty *TrackRatesNP;
-	//ISwitchVectorProperty *AbortMotionSP;
-	INumberVectorProperty *HorizontalCoordNP;
-	INumberVectorProperty *StandardSyncNP;
-	INumberVectorProperty *StandardSyncPointNP;
-	INumberVectorProperty *SyncPolarAlignNP;
-	ISwitchVectorProperty *SyncManageSP; 
-  	INumberVectorProperty *ParkPositionNP;
-	ISwitchVectorProperty *ParkOptionSP;
-    ISwitchVectorProperty *ReverseDECSP;
-  	INumberVectorProperty *BacklashNP;
-	ISwitchVectorProperty *UseBacklashSP;
+    int GuideTimerWE;
+
+    INumber *GuideRateN                        = NULL;
+    INumberVectorProperty *GuideRateNP         = NULL;
+    ITextVectorProperty *MountInformationTP    = NULL;
+    INumberVectorProperty *SteppersNP          = NULL;
+    INumberVectorProperty *CurrentSteppersNP   = NULL;
+    INumberVectorProperty *PeriodsNP           = NULL;
+    INumberVectorProperty *JulianNP            = NULL;
+    INumberVectorProperty *TimeLSTNP           = NULL;
+    ILightVectorProperty *RAStatusLP           = NULL;
+    ILightVectorProperty *DEStatusLP           = NULL;
+    INumberVectorProperty *SlewSpeedsNP        = NULL;
+    ISwitchVectorProperty *HemisphereSP        = NULL;    
+    ISwitchVectorProperty *TrackDefaultSP      = NULL;
+    INumberVectorProperty *HorizontalCoordNP   = NULL;
+    INumberVectorProperty *StandardSyncNP      = NULL;
+    INumberVectorProperty *StandardSyncPointNP = NULL;
+    INumberVectorProperty *SyncPolarAlignNP    = NULL;
+    ISwitchVectorProperty *SyncManageSP        = NULL;
+    ISwitchVectorProperty *ReverseDECSP        = NULL;
+    INumberVectorProperty *BacklashNP          = NULL;
+    ISwitchVectorProperty *UseBacklashSP       = NULL;
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
-	ISwitch AlignMethodS[2];
-	ISwitchVectorProperty AlignMethodSP;
+    ISwitch AlignMethodS[2];
+    ISwitchVectorProperty AlignMethodSP;
 #endif
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
-	ISwitchVectorProperty *AlignSyncModeSP;
+    ISwitchVectorProperty *AlignSyncModeSP = NULL;
 #endif
-	ISwitchVectorProperty *AutoHomeSP;
-	
-	enum Hemisphere {NORTH=0, SOUTH=1 };
-	enum PierSide {WEST=0, EAST=1};
-	typedef struct GotoParams {
-	  double ratarget, detarget, racurrent, decurrent;
-	  unsigned long ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
-          unsigned long limiteast, limitwest;
-	  unsigned int iterative_count;
-	  bool forcecwup, checklimits, outsidelimits, completed;
-	} GotoParams;
+    ISwitchVectorProperty *AutoHomeSP   = NULL;
+    ISwitchVectorProperty *AuxEncoderSP = NULL;
+    INumberVectorProperty *AuxEncoderNP = NULL;
 
-	Hemisphere Hemisphere;
-    PierSide pierside, lastPierSide;
-	bool RAInverted, DEInverted;
-        GotoParams gotoparams;
-	SyncData syncdata, syncdata2;
+    ISwitchVectorProperty *ST4GuideRateNSSP = NULL;
+    ISwitchVectorProperty *ST4GuideRateWESP = NULL;
 
-	double tpa_alt, tpa_az;
+    ISwitchVectorProperty *RAPPECTrainingSP = NULL;
+    ISwitchVectorProperty *DEPPECTrainingSP = NULL;
+    ISwitchVectorProperty *RAPPECSP         = NULL;
+    ISwitchVectorProperty *DEPPECSP         = NULL;
 
-	void EncodersToRADec(unsigned long rastep, unsigned long destep, double lst, double *ra, double *de, double *ha);
-	double EncoderToHours(unsigned long destep, unsigned long initdestep, unsigned long totalrastep, enum Hemisphere h);
-	double EncoderToDegrees(unsigned long destep, unsigned long initdestep, unsigned long totalrastep, enum Hemisphere h);
-	double EncoderFromHour(double hour, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-	double EncoderFromRA(double ratarget, double detarget, double lst, 
-			     unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-	double EncoderFromDegree(double degree, PierSide p, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-	double EncoderFromDec( double detarget, PierSide p, 
-				      unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-	void EncoderTarget(GotoParams *g);
+    enum Hemisphere
+    {
+        NORTH = 0,
+        SOUTH = 1
+    };
+
+    typedef struct GotoParams
+    {
+        double ratarget, detarget, racurrent, decurrent;
+        unsigned long ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
+        unsigned long limiteast, limitwest;
+        unsigned int iterative_count;
+        bool forcecwup, checklimits, outsidelimits, completed;
+    } GotoParams;
+
+    Hemisphere Hemisphere;
+    bool RAInverted, DEInverted;
+    GotoParams gotoparams;
+    SyncData syncdata, syncdata2;
+
+    double tpa_alt, tpa_az;
+
+    void EncodersToRADec(unsigned long rastep, unsigned long destep, double lst, double *ra, double *de, double *ha);
+    double EncoderToHours(unsigned long destep, unsigned long initdestep, unsigned long totalrastep, enum Hemisphere h);
+    double EncoderToDegrees(unsigned long destep, unsigned long initdestep, unsigned long totalrastep,
+                            enum Hemisphere h);
+    double EncoderFromHour(double hour, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
+    double EncoderFromRA(double ratarget, double detarget, double lst, unsigned long initstep, unsigned long totalstep,
+                         enum Hemisphere h);
+    double EncoderFromDegree(double degree, TelescopePierSide p, unsigned long initstep, unsigned long totalstep,
+                             enum Hemisphere h);
+    double EncoderFromDec(double detarget, TelescopePierSide p, unsigned long initstep, unsigned long totalstep,
+                          enum Hemisphere h);
+    void EncoderTarget(GotoParams *g);
     void SetSouthernHemisphere(bool southern);
-	PierSide SideOfPier(double ha);
-	double GetRATrackRate();
-	double GetDETrackRate();
-	double GetDefaultRATrackRate();
-	double GetDefaultDETrackRate();
-	static void timedguideNSCallback(void *userpointer);
-	static void timedguideWECallback(void *userpointer);
-	double GetRASlew();
-	double GetDESlew();
-	bool gotoInProgress();
+    double GetRATrackRate();
+    double GetDETrackRate();
+    double GetDefaultRATrackRate();
+    double GetDefaultDETrackRate();
+    static void timedguideNSCallback(void *userpointer);
+    static void timedguideWECallback(void *userpointer);
+    double GetRASlew();
+    double GetDESlew();
+    bool gotoInProgress();
 
     bool loadProperties();
-	void setStepperSimulation (bool enable);
 
-	void computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaalt, double *tpaaz);
-	void starPolarAlign(double lst, double ra, double dec, double theta, double gamma, double *tra, double *tdec);     
+    void setStepperSimulation(bool enable);
+
+    void computePolarAlign(SyncData s1, SyncData s2, double lat, double *tpaalt, double *tpaaz);
+    void starPolarAlign(double lst, double ra, double dec, double theta, double gamma, double *tra, double *tdec);
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
-	bool isStandardSync();
+    bool isStandardSync();
 #endif
-	// Autohoming for EQ8/AZEQ6
-	int ah_confirm_timeout;
-	bool ah_bSlewingUp_RA, ah_bSlewingUp_DE;
-	unsigned long ah_iPosition_RA, ah_iPosition_DE;
-	int ah_iChanges;
-	bool ah_bIndexChanged_RA, ah_bIndexChanged_DE;
-	unsigned long ah_sHomeIndexPosition_RA, ah_sHomeIndexPosition_DE;
-	int ah_waitRA, ah_waitDE;
-		 
-    public:
-        EQMod();
-        virtual ~EQMod();
+    // Autohoming for EQ8
+    int ah_confirm_timeout;
+    bool ah_bSlewingUp_RA, ah_bSlewingUp_DE;
+    unsigned long ah_iPosition_RA, ah_iPosition_DE;
+    int ah_iChanges;
+    bool ah_bIndexChanged_RA, ah_bIndexChanged_DE;
+    unsigned long ah_sHomeIndexPosition_RA, ah_sHomeIndexPosition_DE;
+    int ah_waitRA, ah_waitDE;
 
-        virtual const char *getDefaultName();
-        virtual bool Connect();
-        virtual bool Connect(const char *port, uint32_t baud);
-        virtual bool Disconnect();
-        virtual void TimerHit();
-        virtual bool ReadScopeStatus();
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual void ISGetProperties(const char *dev);
-        virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    // save PPEC status when guiding
+    bool restartguideRAPPEC;
+    bool restartguideDEPPEC;
+
+  public:
+    EQMod();
+    virtual ~EQMod();
+
+    virtual const char *getDefaultName();
+    virtual bool Handshake();
+    virtual bool Disconnect();
+    virtual void TimerHit();
+    virtual bool ReadScopeStatus();
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 #ifdef WITH_ALIGN
-	virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n);
 #endif
-        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-        virtual bool Abort();
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    virtual bool Abort();
 
-        virtual IPState GuideNorth(float ms);
-        virtual IPState GuideSouth(float ms);
-        virtual IPState GuideEast(float ms);
-        virtual IPState GuideWest(float ms);
+    virtual IPState GuideNorth(float ms);
+    virtual IPState GuideSouth(float ms);
+    virtual IPState GuideEast(float ms);
+    virtual IPState GuideWest(float ms);
 
-        bool Goto(double ra,double dec);
-        bool Park();
-        bool UnPark();
-        void SetCurrentPark();
-        void SetDefaultPark();
-        bool Sync(double ra,double dec);
+    bool Goto(double ra, double dec);
+    bool Park();
+    bool UnPark();
+    bool SetCurrentPark();
+    bool SetDefaultPark();
+    bool Sync(double ra, double dec);
 
-        virtual bool saveConfigItems(FILE *fp);
+    // Tracking
+    bool SetTrackMode(uint8_t mode);
+    bool SetTrackRate(double raRate, double deRate);
+    bool SetTrackEnabled(bool enabled);
 
-        bool updateTime(ln_date *lndate_utc, double utc_offset);
-        bool updateLocation(double latitude, double longitude, double elevation);
+    virtual bool saveConfigItems(FILE *fp);
 
-        double getLongitude();
-        double getLatitude();
-        double getJulianDate();
-        double getLst(double jd, double lng);
+    bool updateTime(ln_date *lndate_utc, double utc_offset);
+    bool updateLocation(double latitude, double longitude, double elevation);
 
-#ifdef WITH_SIMULATOR
-	EQModSimulator *simulator;
-#endif
+    double getLongitude();
+    double getLatitude();
+    double getJulianDate();
+    double getLst(double jd, double lng);
+
+    EQModSimulator *simulator;
 
 #ifdef WITH_SCOPE_LIMITS
-	HorizonLimits *horizon;
+    HorizonLimits *horizon;
 #endif
-	// AutoHoming for EQ8/AZEQ6
-	static const TelescopeStatus SCOPE_AUTOHOMING = static_cast<TelescopeStatus>(SCOPE_PARKED + 1);
-	enum AutoHomeStatus {AUTO_HOME_IDLE, AUTO_HOME_CONFIRM, AUTO_HOME_WAIT_PHASE1, AUTO_HOME_WAIT_PHASE2, AUTO_HOME_WAIT_PHASE3,
-	AUTO_HOME_WAIT_PHASE4, AUTO_HOME_WAIT_PHASE5, AUTO_HOME_WAIT_PHASE6};
-	AutoHomeStatus AutohomeState;
+    // AutoHoming for EQ8
+    static const TelescopeStatus SCOPE_AUTOHOMING = static_cast<TelescopeStatus>(SCOPE_PARKED + 1);
+    enum AutoHomeStatus
+    {
+        AUTO_HOME_IDLE,
+        AUTO_HOME_CONFIRM,
+        AUTO_HOME_WAIT_PHASE1,
+        AUTO_HOME_WAIT_PHASE2,
+        AUTO_HOME_WAIT_PHASE3,
+        AUTO_HOME_WAIT_PHASE4,
+        AUTO_HOME_WAIT_PHASE5,
+        AUTO_HOME_WAIT_PHASE6
+    };
+    AutoHomeStatus AutohomeState;
 };
-
-#endif // EQMOD_H

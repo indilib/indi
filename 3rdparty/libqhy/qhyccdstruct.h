@@ -34,10 +34,6 @@
 #endif
 
 
-#ifdef LINUX
-#include <libusb-1.0/libusb.h>
-#endif
-
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -189,7 +185,11 @@ enum CONTROL_ID
 	ScreenStretchB,
 	ScreenStretchW,
 	CONTROL_DDR,
-	CAM_LIGHT_PERFORMANCE_MODE
+	CAM_LIGHT_PERFORMANCE_MODE,
+
+	CAM_QHY5II_GUIDE_MODE,
+	DDR_BUFFER_CAPACITY,
+	DDR_BUFFER_READ_THRESHOLD
 };
 
 /**

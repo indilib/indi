@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 3.0)
 PROJECT(indi-fishcamp CXX C)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
@@ -11,7 +11,7 @@ find_package(ZLIB REQUIRED)
 find_package(FISHCAMP REQUIRED)
 
 set (FISHCAMP_VERSION_MAJOR 1)
-set (FISHCAMP_VERSION_MINOR 0)
+set (FISHCAMP_VERSION_MINOR 1)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_fishcamp.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_fishcamp.xml )
@@ -22,6 +22,8 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${FISHCAMP_INCLUDE_DIR})
 
+include(CMakeCommon)
+
 ############# FISHCAMP STARFISH CCD ###############
 set(fishcampccd_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/indi_fishcamp.cpp
@@ -29,7 +31,7 @@ set(fishcampccd_SRCS
 
 add_executable(indi_fishcamp_ccd ${fishcampccd_SRCS})
 
-target_link_libraries(indi_fishcamp_ccd ${FISHCAMP_LIBRARIES} ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} m ${ZLIB_LIBRARY})
+target_link_libraries(indi_fishcamp_ccd ${FISHCAMP_LIBRARIES} ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} m ${ZLIB_LIBRARY})
 
 install(TARGETS indi_fishcamp_ccd RUNTIME DESTINATION bin)
 

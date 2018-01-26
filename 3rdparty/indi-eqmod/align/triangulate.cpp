@@ -15,58 +15,60 @@
     along with the Skywatcher Protocol INDI driver.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "triangulate.h" 
+#include "triangulate.h"
 
 Triangulate::Triangulate(std::map<HtmID, PointSet::Point> *p)
 {
-  pmap = p;
+    pmap = p;
 }
 
 void Triangulate::Reset()
 {
-  isvalid=false;
-  vvertices.clear();
-  vfaces.clear();
+    isvalid = false;
+    vvertices.clear();
+    vfaces.clear();
 }
 
 void Triangulate::AddPoint(HtmID id)
 {
-  isvalid=false;
+    INDI_UNUSED(id);
+    isvalid = false;
 }
 
 XMLEle *Triangulate::toXML()
-{ 
-  XMLEle *root;
-  std::vector<Face *>::iterator it;
+{
+    XMLEle *root;
+    std::vector<Face *>::iterator it;
 
-  root = addXMLEle(NULL, "triangulation");
-  
-  for ( it=vfaces.begin() ; it != vfaces.end(); it++ ) {
-    XMLEle *face;
-    XMLEle *vertex;
-    char pcdata[10];
-    face=addXMLEle(root, "face");
-    vertex=addXMLEle(face, "vindex");
-    snprintf(pcdata, sizeof(pcdata), "%d", pmap->at((*it)->v[0]).index);
-    editXMLEle(vertex, pcdata);
-    vertex=addXMLEle(face, "vindex");
-    snprintf(pcdata, sizeof(pcdata), "%d", pmap->at((*it)->v[1]).index);
-    editXMLEle(vertex, pcdata);
-    vertex=addXMLEle(face, "vindex");
-    snprintf(pcdata, sizeof(pcdata), "%d", pmap->at((*it)->v[2]).index);
-    editXMLEle(vertex, pcdata);
-  }
+    root = addXMLEle(NULL, "triangulation");
 
-  return(root);
+    for (it = vfaces.begin(); it != vfaces.end(); it++)
+    {
+        XMLEle *face;
+        XMLEle *vertex;
+        char pcdata[10];
+        face   = addXMLEle(root, "face");
+        vertex = addXMLEle(face, "vindex");
+        snprintf(pcdata, sizeof(pcdata), "%d", pmap->at((*it)->v[0]).index);
+        editXMLEle(vertex, pcdata);
+        vertex = addXMLEle(face, "vindex");
+        snprintf(pcdata, sizeof(pcdata), "%d", pmap->at((*it)->v[1]).index);
+        editXMLEle(vertex, pcdata);
+        vertex = addXMLEle(face, "vindex");
+        snprintf(pcdata, sizeof(pcdata), "%d", pmap->at((*it)->v[2]).index);
+        editXMLEle(vertex, pcdata);
+    }
+
+    return (root);
 }
 
 std::vector<Face *> Triangulate::getFaces()
 {
-  isvalid=true;
-  return vfaces;
+    isvalid = true;
+    return vfaces;
 }
 
 bool Triangulate::isValid()
 {
-  return isvalid;
+    return isvalid;
 }

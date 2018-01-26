@@ -7,7 +7,7 @@ set (VERSION_MINOR 8)
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
-  
+
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -22,6 +22,8 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${SBIG_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
+include(CMakeCommon)
+
 ############# SBIG CCD ###############
 if (CFITSIO_FOUND)
 
@@ -31,7 +33,7 @@ set(sbigccd_SRCS
 
 add_executable(indi_sbig_ccd ${sbigccd_SRCS})
 
-target_link_libraries(indi_sbig_ccd ${INDI_DRIVER_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_sbig_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_sbig_ccd RUNTIME DESTINATION bin)
 

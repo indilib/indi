@@ -20,8 +20,7 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef STAR2KDRIVER_H
-#define STAR2KDRIVER_H
+#pragma once
 
 /********************************** some defines ******************************/
 
@@ -40,14 +39,14 @@
 #define EAST  2
 #define SOUTH 3
 
-#define ALL  -1
+#define ALL -1
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 int ConnectSTAR2k(char *port);
-void DisconnectSTAR2k(void);
+void DisconnectSTAR2k();
 
 void StartPulse(int direction);
 void StopPulse(int direction);
@@ -55,6 +54,3 @@ void StopPulse(int direction);
 #ifdef __cplusplus
 }
 #endif
-
-#endif
-

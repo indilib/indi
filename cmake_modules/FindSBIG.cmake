@@ -22,7 +22,7 @@ else (SBIG_INCLUDE_DIR AND SBIG_LIBRARIES)
     ${GNUWIN32_DIR}/include
   )
 
-  find_library(SBIG_LIBRARIES NAMES sbigudrv
+  find_library(SBIG_LIBRARIES NAMES sbig
     PATHS
     ${_obLinkDir}
     ${GNUWIN32_DIR}/lib

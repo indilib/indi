@@ -18,44 +18,34 @@
 
 */
 
-#ifndef MOONLITE_H
-#define MOONLITE_H
+#pragma once
 
-#include "indibase/indifocuser.h"
+#include "indifocuser.h"
 
 class MoonLite : public INDI::Focuser
 {
-public:
+  public:
     MoonLite();
-    ~MoonLite();
+    virtual ~MoonLite() = default;
 
     typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-    virtual bool Connect();
-    virtual bool Disconnect();
-    const char * getDefaultName();
+    virtual bool Handshake();
+    const char *getDefaultName();
     virtual bool initProperties();
     virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual bool SetFocuserSpeed(int speed);
     virtual bool AbortFocuser();
     virtual void TimerHit();
 
-private:
-
-    int PortFD;
-    double targetPos, lastPos, lastTemperature;
-    unsigned int currentSpeed;
-
-    struct timeval focusMoveStart;
-    float focusMoveRequest;
-
+  private:
     void GetFocusParams();
-    bool reset();
+    bool sync(uint16_t offset);
     bool updateStepMode();
     bool updateTemperature();
     bool updatePosition();
@@ -69,7 +59,15 @@ private:
     bool setTemperatureCalibration(double calibration);
     bool setTemperatureCoefficient(double coefficient);
     bool setTemperatureCompensation(bool enable);
-    float CalcTimeLeft(timeval,float);
+    float CalcTimeLeft(timeval, float);
+
+    double targetPos { 0 };
+    double lastPos { 0 };
+    double lastTemperature { 0 };
+    unsigned int currentSpeed { 0 };
+
+    struct timeval focusMoveStart { 0, 0 };
+    float focusMoveRequest { 0 };
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
@@ -86,9 +84,6 @@ private:
     ISwitch TemperatureCompensateS[2];
     ISwitchVectorProperty TemperatureCompensateSP;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
-
+    INumber SyncN[1];
+    INumberVectorProperty SyncNP;
 };
-
-#endif // MOONLITE_H

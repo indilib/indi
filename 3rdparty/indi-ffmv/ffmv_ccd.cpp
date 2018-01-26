@@ -29,7 +29,6 @@
 #include "ffmv_ccd.h"
 #include "config.h"
 
-
 const int POLLMS = 250;
 
 std::unique_ptr<FFMVCCD> ffmvCCD(new FFMVCCD());
@@ -40,18 +39,20 @@ std::unique_ptr<FFMVCCD> ffmvCCD(new FFMVCCD());
  */
 dc1394error_t FFMVCCD::writeMicronReg(unsigned int offset, unsigned int val)
 {
-        dc1394error_t err;
-        err = dc1394_set_control_register(dcam, 0x1A00, offset);
-        if (err != DC1394_SUCCESS) {
-            return err;
-        }
+    dc1394error_t err;
+    err = dc1394_set_control_register(dcam, 0x1A00, offset);
+    if (err != DC1394_SUCCESS)
+    {
+        return err;
+    }
 
-        err = dc1394_set_control_register(dcam, 0x1A04, val);
-        if (err != DC1394_SUCCESS) {
-            return err;
-        }
+    err = dc1394_set_control_register(dcam, 0x1A04, val);
+    if (err != DC1394_SUCCESS)
+    {
+        return err;
+    }
 
-        return DC1394_SUCCESS;
+    return DC1394_SUCCESS;
 }
 
 /**
@@ -60,62 +61,64 @@ dc1394error_t FFMVCCD::writeMicronReg(unsigned int offset, unsigned int val)
  */
 dc1394error_t FFMVCCD::readMicronReg(unsigned int offset, unsigned int *val)
 {
-        dc1394error_t err;
-        err = dc1394_set_control_register(dcam, 0x1A00, offset);
-        if (err != DC1394_SUCCESS) {
-            return err;
-        }
+    dc1394error_t err;
+    err = dc1394_set_control_register(dcam, 0x1A00, offset);
+    if (err != DC1394_SUCCESS)
+    {
+        return err;
+    }
 
-        err = dc1394_get_control_register(dcam, 0x1A04, val);
-        if (err != DC1394_SUCCESS) {
-            return err;
-        }
+    err = dc1394_get_control_register(dcam, 0x1A04, val);
+    if (err != DC1394_SUCCESS)
+    {
+        return err;
+    }
 
-        return DC1394_SUCCESS;
+    return DC1394_SUCCESS;
 }
 
 void ISGetProperties(const char *dev)
 {
-         ffmvCCD->ISGetProperties(dev);
+    ffmvCCD->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-         ffmvCCD->ISNewSwitch(dev, name, states, names, num);
+    ffmvCCD->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-         ffmvCCD->ISNewText(dev, name, texts, names, num);
+    ffmvCCD->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-         ffmvCCD->ISNewNumber(dev, name, values, names, num);
+    ffmvCCD->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
-   INDI_UNUSED(dev);
-   INDI_UNUSED(name);
-   INDI_UNUSED(sizes);
-   INDI_UNUSED(blobsizes);
-   INDI_UNUSED(blobs);
-   INDI_UNUSED(formats);
-   INDI_UNUSED(names);
-   INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
-     ffmvCCD->ISSnoopDevice(root);
+    ffmvCCD->ISSnoopDevice(root);
 }
-
 
 FFMVCCD::FFMVCCD()
 {
     InExposure = false;
-    capturing = false;
+    capturing  = false;
 
     setVersion(FFMV_VERSION_MAJOR, FFMV_VERSION_MINOR);
 
@@ -137,71 +140,85 @@ bool FFMVCCD::Connect()
     float min, max;
 
     dc1394 = dc1394_new();
-    if (!dc1394) {
+    if (!dc1394)
+    {
         return false;
     }
 
     err = dc1394_camera_enumerate(dc1394, &list);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Could not find DC1394 cameras!");
         return false;
     }
-    if (!list->num) {
+    if (!list->num)
+    {
         IDMessage(getDeviceName(), "No DC1394 cameras found!");
         return false;
     }
     dcam = dc1394_camera_new(dc1394, list->ids[0].guid);
-    if (!dcam) {
+    if (!dcam)
+    {
         IDMessage(getDeviceName(), "Unable to connect to camera!");
         return false;
     }
 
     /* Reset camera */
     err = dc1394_camera_reset(dcam);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Unable to reset camera!");
         return false;
     }
 
     /* Set mode */
     err = dc1394_video_set_mode(dcam, DC1394_VIDEO_MODE_640x480_MONO16);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Unable to connect to set videomode!");
         return false;
     }
     /* Disable Auto exposure control */
     err = dc1394_feature_set_power(dcam, DC1394_FEATURE_EXPOSURE, DC1394_OFF);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Unable to disable auto exposure control");
         return false;
     }
 
     /* Set frame rate to the lowest possible */
     err = dc1394_video_set_framerate(dcam, DC1394_FRAMERATE_7_5);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Unable to connect to set framerate!");
         return false;
     }
     /* Turn frame rate control off to enable extended exposure (subs of 512ms) */
     err = dc1394_feature_set_power(dcam, DC1394_FEATURE_FRAME_RATE, DC1394_OFF);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Unable to disable framerate!");
         return false;
     }
 
     /* Get the longest possible exposure length */
     err = dc1394_feature_set_mode(dcam, DC1394_FEATURE_SHUTTER, DC1394_FEATURE_MODE_MANUAL);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Failed to enable manual shutter control.");
-    } 
+    }
     err = dc1394_feature_set_absolute_control(dcam, DC1394_FEATURE_SHUTTER, DC1394_ON);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Failed to enable absolute shutter control.");
-    } 
+    }
     err = dc1394_feature_get_absolute_boundaries(dcam, DC1394_FEATURE_SHUTTER, &min, &max);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Could not get max shutter length");
-    } else {
+    }
+    else
+    {
         max_exposure = max;
     }
 
@@ -211,8 +228,9 @@ bool FFMVCCD::Connect()
      */
     err = dc1394_set_control_register(dcam, 0x820, 0x40);
     //err = dc1394_set_control_register(dcam, 0x820, 0x7f);
-    if (err != DC1394_SUCCESS) {
-            return err;
+    if (err != DC1394_SUCCESS)
+    {
+        return err;
     }
 #if 0
     /* Set absolute gain to max */
@@ -233,37 +251,43 @@ bool FFMVCCD::Connect()
 
     /* Set brightness */
     err = dc1394_feature_set_mode(dcam, DC1394_FEATURE_BRIGHTNESS, DC1394_FEATURE_MODE_MANUAL);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Failed to enable manual brightness control.");
-    } 
+    }
     err = dc1394_feature_set_absolute_control(dcam, DC1394_FEATURE_BRIGHTNESS, DC1394_ON);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Failed to enable ansolute brightness control.");
-    } 
+    }
     err = dc1394_feature_set_absolute_value(dcam, DC1394_FEATURE_BRIGHTNESS, 1);
-    if (err != DC1394_SUCCESS) {
-            IDMessage(getDeviceName(), "Could not set max brightness value");
+    if (err != DC1394_SUCCESS)
+    {
+        IDMessage(getDeviceName(), "Could not set max brightness value");
     }
 
     /* Turn gamma control off */
     err = dc1394_feature_set_absolute_value(dcam, DC1394_FEATURE_GAMMA, 1);
-    if (err != DC1394_SUCCESS) {
-            IDMessage(getDeviceName(), "Could not set gamma value");
+    if (err != DC1394_SUCCESS)
+    {
+        IDMessage(getDeviceName(), "Could not set gamma value");
     }
     err = dc1394_feature_set_power(dcam, DC1394_FEATURE_GAMMA, DC1394_OFF);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Unable to disable gamma!");
         return false;
     }
 
     /* Turn off white balance */
     err = dc1394_feature_set_power(dcam, DC1394_FEATURE_WHITE_BALANCE, DC1394_OFF);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Unable to disable white balance!");
         return false;
     }
 
-    err=dc1394_capture_setup(dcam,10, DC1394_CAPTURE_FLAGS_DEFAULT);
+    err = dc1394_capture_setup(dcam, 10, DC1394_CAPTURE_FLAGS_DEFAULT);
 
     return true;
 }
@@ -273,7 +297,8 @@ bool FFMVCCD::Connect()
 ***************************************************************************************/
 bool FFMVCCD::Disconnect()
 {
-    if (dcam) {
+    if (dcam)
+    {
         dc1394_capture_stop(dcam);
         dc1394_camera_free(dcam);
     }
@@ -285,7 +310,7 @@ bool FFMVCCD::Disconnect()
 /**************************************************************************************
 ** INDI is asking us for our default device name
 ***************************************************************************************/
-const char * FFMVCCD::getDefaultName()
+const char *FFMVCCD::getDefaultName()
 {
     return "FireFly MV";
 }
@@ -304,10 +329,10 @@ bool FFMVCCD::initProperties()
     /* Add Gain Vref switch */
     IUFillSwitch(&GainS[0], "GAINVREF", "Vref Boost", ISS_OFF);
     IUFillSwitch(&GainS[1], "GAIN2X", "2x Digital Boost", ISS_OFF);
-    IUFillSwitchVector(&GainSP, GainS, 2, getDeviceName(), "GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_WO, ISR_NOFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&GainSP, GainS, 2, getDeviceName(), "GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_WO, ISR_NOFMANY, 0,
+                       IPS_IDLE);
 
     return true;
-
 }
 
 /********************************************************************************************
@@ -321,14 +346,15 @@ bool FFMVCCD::updateProperties()
 
     if (isConnected())
     {
-
         // Let's get parameters now from CCD
         setupParams();
 
         // Start the timer
         SetTimer(POLLMS);
         defineSwitch(&GainSP);
-    } else {
+    }
+    else
+    {
         deleteProperty(GainSP.name);
     }
 
@@ -345,7 +371,7 @@ void FFMVCCD::setupParams()
 
     // Let's calculate how much memory we need for the primary CCD buffer
     int nbuf;
-    nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;
+    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 }
 
@@ -366,80 +392,87 @@ bool FFMVCCD::StartExposure(float duration)
     float sub_length;
     float fval;
 
-    ms = duration* 1000;
+    ms = duration * 1000;
 
     //IDMessage(getDeviceName(), "Doing %d sub exposures at %f %s each", sub_count, absShutter, prop_info.pUnits);
 
-    ExposureRequest=duration;
+    ExposureRequest = duration;
 
     // Since we have only have one CCD with one chip, we set the exposure duration of the primary CCD
     PrimaryCCD.setBPP(16);
     PrimaryCCD.setExposureDuration(duration);
 
-    gettimeofday(&ExpStart,NULL);
+    gettimeofday(&ExpStart, NULL);
 
-    InExposure=true;
+    InExposure = true;
     IDMessage(getDeviceName(), "Exposure has begun.");
 
     // Let's get a pointer to the frame buffer
-    uint8_t * image = PrimaryCCD.getFrameBuffer();
+    uint8_t *image = PrimaryCCD.getFrameBuffer();
 
     // Get width and height
-    int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
+    int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
     int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
     memset(image, 0, PrimaryCCD.getFrameBufferSize());
 
-    if (duration != last_exposure_length) {
+    if (duration != last_exposure_length)
+    {
         /* Calculate the number of exposures needed */
         sub_count = duration / max_exposure;
-        if (ms % ((int) (max_exposure * 1000))) {
+        if (ms % ((int)(max_exposure * 1000)))
+        {
             ++sub_count;
         }
         sub_length = duration / sub_count;
 
-        IDMessage(getDeviceName(), "Triggering a %f second exposure using %d subs of %f seconds",
-                duration, sub_count, sub_length);
-        /* Set sub length */
-        #if 0
+        IDMessage(getDeviceName(), "Triggering a %f second exposure using %d subs of %f seconds", duration, sub_count,
+                  sub_length);
+/* Set sub length */
+#if 0
     err = dc1394_feature_set_absolute_control(dcam, DC1394_FEATURE_SHUTTER, DC1394_ON);
     if (err != DC1394_SUCCESS) {
         IDMessage(getDeviceName(), "Failed to enable ansolute shutter control.");
-    } 
-    #endif
+    }
+#endif
         err = dc1394_feature_set_absolute_value(dcam, DC1394_FEATURE_SHUTTER, sub_length);
-        if (err != DC1394_SUCCESS) {
+        if (err != DC1394_SUCCESS)
+        {
             IDMessage(getDeviceName(), "Unable to set shutter value.");
         }
         err = dc1394_feature_get_absolute_value(dcam, DC1394_FEATURE_SHUTTER, &fval);
-        if (err != DC1394_SUCCESS) {
+        if (err != DC1394_SUCCESS)
+        {
             IDMessage(getDeviceName(), "Unable to get shutter value.");
         }
         IDMessage(getDeviceName(), "Shutter value is %f.", fval);
-
     }
 
     /* Flush the DMA buffer */
-    while (1) {
-       err=dc1394_capture_dequeue(dcam, DC1394_CAPTURE_POLICY_POLL, &frame);
-       if (err != DC1394_SUCCESS) {
+    while (1)
+    {
+        err = dc1394_capture_dequeue(dcam, DC1394_CAPTURE_POLICY_POLL, &frame);
+        if (err != DC1394_SUCCESS)
+        {
             IDMessage(getDeviceName(), "Flushing DMA buffer failed!");
             break;
-       }
-       if (!frame) {
-           break;
-       }
-       dc1394_capture_enqueue(dcam, frame);
+        }
+        if (!frame)
+        {
+            break;
+        }
+        dc1394_capture_enqueue(dcam, frame);
     }
 
     /*-----------------------------------------------------------------------
      *  have the camera start sending us data
      *-----------------------------------------------------------------------*/
     IDMessage(getDeviceName(), "start transmission");
-    err=dc1394_video_set_transmission(dcam, DC1394_ON);
-    if (err != DC1394_SUCCESS) {
-            IDMessage(getDeviceName(), "Unable to start transmission");
-            return false;
+    err = dc1394_video_set_transmission(dcam, DC1394_ON);
+    if (err != DC1394_SUCCESS)
+    {
+        IDMessage(getDeviceName(), "Unable to start transmission");
+        return false;
     }
 
     // We're done
@@ -463,12 +496,13 @@ float FFMVCCD::CalcTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now,NULL);
+    gettimeofday(&now, NULL);
 
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec/1000);
-    timesince=timesince/1000;
+    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+                (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
+    timesince = timesince / 1000;
 
-    timeleft=ExposureRequest-timesince;
+    timeleft = ExposureRequest - timesince;
     return timeleft;
 }
 
@@ -481,20 +515,29 @@ dc1394error_t FFMVCCD::setDigitalGain(ISState state)
     dc1394error_t err;
     unsigned int val;
 
-    if (state == ISS_OFF) {
+    if (state == ISS_OFF)
+    {
         err = writeMicronReg(0x80, 0xF4);
         err = readMicronReg(0x80, &val);
-        if (err == DC1394_SUCCESS) { 
+        if (err == DC1394_SUCCESS)
+        {
             IDMessage(getDeviceName(), "Turned off digital gain boost. Tiled Digital Gain = 0x%x", val);
-        } else {
+        }
+        else
+        {
             IDMessage(getDeviceName(), "readMicronReg failed!");
         }
-    } else {
+    }
+    else
+    {
         err = writeMicronReg(0x80, 0xF8);
         err = readMicronReg(0x80, &val);
-        if (err == DC1394_SUCCESS) { 
+        if (err == DC1394_SUCCESS)
+        {
             IDMessage(getDeviceName(), "Turned on digital gain boost. Tiled Digital Gain = 0x%x", val);
-        } else {
+        }
+        else
+        {
             IDMessage(getDeviceName(), "readMicronReg failed!");
         }
     }
@@ -511,20 +554,29 @@ dc1394error_t FFMVCCD::setGainVref(ISState state)
     dc1394error_t err;
     unsigned int val;
 
-    if (state == ISS_OFF) {
+    if (state == ISS_OFF)
+    {
         err = writeMicronReg(0x2C, 4);
         err = readMicronReg(0x2C, &val);
-        if (err == DC1394_SUCCESS) { 
+        if (err == DC1394_SUCCESS)
+        {
             IDMessage(getDeviceName(), "Turned off Gain boost. VREF_ADC = 0x%x", val);
-        } else {
+        }
+        else
+        {
             IDMessage(getDeviceName(), "readMicronReg failed!");
         }
-    } else {
+    }
+    else
+    {
         err = writeMicronReg(0x2C, 0);
         err = readMicronReg(0x2C, &val);
-        if (err == DC1394_SUCCESS) { 
+        if (err == DC1394_SUCCESS)
+        {
             IDMessage(getDeviceName(), "Turned on Gain boost. VREF_ADC = 0x%x", val);
-        } else {
+        }
+        else
+        {
             IDMessage(getDeviceName(), "readMicronReg failed!");
         }
     }
@@ -533,23 +585,24 @@ dc1394error_t FFMVCCD::setGainVref(ISState state)
 
 bool FFMVCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (strcmp(dev, getDeviceName()) == 0) {
+    if (strcmp(dev, getDeviceName()) == 0)
+    {
         /* Reset */
-        if (!strcmp(name, GainSP.name)) {
-            if (IUUpdateSwitch(&GainSP, states, names, n) < 0) {
+        if (!strcmp(name, GainSP.name))
+        {
+            if (IUUpdateSwitch(&GainSP, states, names, n) < 0)
+            {
                 return false;
             }
             setGainVref(GainS[0].s);
             setDigitalGain(GainS[1].s);
             return true;
         }
-
     }
 
     //  Nobody has claimed this, so, ignore it
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
-
 
 /**************************************************************************************
 ** Main device loop. We check for exposure progress
@@ -558,16 +611,19 @@ void FFMVCCD::TimerHit()
 {
     long timeleft;
 
-    if(isConnected() == false) {
-        return;  //  No need to reset timer if we are not connected anymore
+    if (isConnected() == false)
+    {
+        return; //  No need to reset timer if we are not connected anymore
     }
 
-    if (InExposure) {
-        timeleft=CalcTimeLeft();
+    if (InExposure)
+    {
+        timeleft = CalcTimeLeft();
 
         // Less than a 0.1 second away from exposure completion
         // This is an over simplified timing method, check CCDSimulator and ffmvCCD for better timing checks
-        if (timeleft < 0.1) {
+        if (timeleft < 0.1)
+        {
             /* We're done exposing */
             IDMessage(getDeviceName(), "Exposure done, downloading image...");
 
@@ -579,7 +635,9 @@ void FFMVCCD::TimerHit()
 
             /* grab and save image */
             grabImage();
-        } else {
+        }
+        else
+        {
             // Just update time left in client
             PrimaryCCD.setExposureLeft(timeleft);
         }
@@ -594,61 +652,68 @@ void FFMVCCD::TimerHit()
  */
 void FFMVCCD::grabImage()
 {
-   dc1394error_t err;
-   dc1394video_frame_t *frame;
-   uint32_t uheight, uwidth;
-   int sub;
-   uint16_t val;
-   struct timeval start, end;
+    dc1394error_t err;
+    dc1394video_frame_t *frame;
+    uint32_t uheight, uwidth;
+    int sub;
+    uint16_t val;
+    struct timeval start, end;
 
-   // Let's get a pointer to the frame buffer
-   uint8_t * image = PrimaryCCD.getFrameBuffer();
+    // Let's get a pointer to the frame buffer
+    uint8_t *image = PrimaryCCD.getFrameBuffer();
 
-   // Get width and height
-   int width = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
-   int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+    // Get width and height
+    int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
+    int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
-   memset(image, 0, PrimaryCCD.getFrameBufferSize());
+    memset(image, 0, PrimaryCCD.getFrameBufferSize());
 
-
-   /*-----------------------------------------------------------------------
+    /*-----------------------------------------------------------------------
     *  stop data transmission
     *-----------------------------------------------------------------------*/
 
+    gettimeofday(&start, NULL);
+    for (sub = 0; sub < sub_count; ++sub)
+    {
+        IDMessage(getDeviceName(), "Getting sub %d of %d", sub, sub_count);
+        err = dc1394_capture_dequeue(dcam, DC1394_CAPTURE_POLICY_WAIT, &frame);
+        if (err != DC1394_SUCCESS)
+        {
+            IDMessage(getDeviceName(), "Could not capture frame");
+        }
+        dc1394_get_image_size_from_video_mode(dcam, DC1394_VIDEO_MODE_640x480_MONO16, &uwidth, &uheight);
 
-   gettimeofday(&start, NULL);
-   for (sub = 0; sub < sub_count; ++sub) {
-       IDMessage(getDeviceName(), "Getting sub %d of %d", sub, sub_count);
-       err=dc1394_capture_dequeue(dcam, DC1394_CAPTURE_POLICY_WAIT, &frame);
-       if (err != DC1394_SUCCESS) {
-              IDMessage(getDeviceName(), "Could not capture frame");
-       }
-       dc1394_get_image_size_from_video_mode(dcam,DC1394_VIDEO_MODE_640x480_MONO16, &uwidth, &uheight);
+        if (DC1394_TRUE == dc1394_capture_is_frame_corrupt(dcam, frame))
+        {
+            IDMessage(getDeviceName(), "Corrupt frame!");
+            continue;
+        }
+        // Fill buffer with random pattern
+        for (int i = 0; i < height; i++)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                /* Detect unsigned overflow */
+                val = ((uint16_t *)image)[i * width + j] + ntohs(((uint16_t *)(frame->image))[i * width + j]);
+                if (val > ((uint16_t *)image)[i * width + j])
+                {
+                    ((uint16_t *)image)[i * width + j] = val;
+                }
+                else
+                {
+                    ((uint16_t *)image)[i * width + j] = 0xFFFF;
+                }
+            }
+        }
 
-       if (DC1394_TRUE == dc1394_capture_is_frame_corrupt(dcam, frame)) {
-              IDMessage(getDeviceName(), "Corrupt frame!");
-              continue;
-       }
-       // Fill buffer with random pattern
-       for (int i=0; i < height ; i++) {
-           for (int j=0; j < width; j++) {
-               /* Detect unsigned overflow */
-               val = ((uint16_t *) image)[i*width+j] + ntohs(((uint16_t*) (frame->image))[i*width+j]);
-               if (val > ((uint16_t *) image)[i*width+j]) {
-                   ((uint16_t *) image)[i*width+j] = val;
-               } else {
-                   ((uint16_t *) image)[i*width+j] = 0xFFFF;
-               }
-           }
-       }
+        dc1394_capture_enqueue(dcam, frame);
+    }
+    err = dc1394_video_set_transmission(dcam, DC1394_OFF);
+    IDMessage(getDeviceName(), "Download complete.");
+    gettimeofday(&end, NULL);
+    IDMessage(getDeviceName(), "Download took %d uS",
+              (int)((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)));
 
-       dc1394_capture_enqueue(dcam, frame);
-   }
-   err=dc1394_video_set_transmission(dcam,DC1394_OFF);
-   IDMessage(getDeviceName(), "Download complete.");
-   gettimeofday(&end, NULL);
-   IDMessage(getDeviceName(), "Download took %d uS", (int) ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)));
-
-   // Let INDI::CCD know we're done filling the image buffer
-   ExposureComplete(&PrimaryCCD);
+    // Let INDI::CCD know we're done filling the image buffer
+    ExposureComplete(&PrimaryCCD);
 }

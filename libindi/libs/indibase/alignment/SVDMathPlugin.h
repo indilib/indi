@@ -5,22 +5,21 @@
 ///
 /// This file provides the Singular Value Decomposition (Markley) math plugin functionality
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_SVDMATHPLUGIN_H
-#define INDI_ALIGNMENTSUBSYSTEM_SVDMATHPLUGIN_H
+#pragma once
 
 #include "BasicMathPlugin.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
-
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 /*!
  * \class SVDMathPlugin
  * \brief This class implements the SVD math plugin.
  */
 class SVDMathPlugin : public BasicMathPlugin
 {
-private:
-
+  private:
     /// \brief Calculate tranformation matrices from the supplied vectors
     /// \param[in] Alpha1 Pointer to the first coordinate in the alpha reference frame
     /// \param[in] Alpha2 Pointer to the second coordinate in the alpha reference frame
@@ -30,13 +29,11 @@ private:
     /// \param[in] Beta3 Pointer to the third coordinate in the beta reference frame
     /// \param[in] pAlphaToBeta Pointer to a matrix to receive the Alpha to Beta transformation matrix
     /// \param[in] pBetaToAlpha Pointer to a matrix to receive the Beta to Alpha transformation matrix
-    void CalculateTransformMatrices(const TelescopeDirectionVector& Alpha1, const TelescopeDirectionVector& Alpha2, const TelescopeDirectionVector& Alpha3,
-                            const TelescopeDirectionVector& Beta1, const TelescopeDirectionVector& Beta2, const TelescopeDirectionVector& Beta3,
-                            gsl_matrix *pAlphaToBeta, gsl_matrix *pBetaToAlpha);
-
+    void CalculateTransformMatrices(const TelescopeDirectionVector &Alpha1, const TelescopeDirectionVector &Alpha2,
+                                    const TelescopeDirectionVector &Alpha3, const TelescopeDirectionVector &Beta1,
+                                    const TelescopeDirectionVector &Beta2, const TelescopeDirectionVector &Beta3,
+                                    gsl_matrix *pAlphaToBeta, gsl_matrix *pBetaToAlpha);
 };
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_SVDMATHPLUGIN_H

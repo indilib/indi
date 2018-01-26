@@ -6,16 +6,13 @@
  *
  */
 
-
-
 #include "indilogger.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
-
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 int DBG_ALIGNMENT = INDI::Logger::getInstance().addDebugLevel("Alignment Subsystem", "ALIGNMENT");
-
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-

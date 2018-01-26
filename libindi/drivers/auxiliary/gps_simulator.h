@@ -22,26 +22,26 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef GPSSIMULATOR_H
-#define GPSSIMULATOR_H
+#pragma once
 
 #include "indigps.h"
 
+/**
+ * @brief The GPSSimulator class provides a simple simulator that provide GPS Time and Location services.
+ *
+ * The time is fetched from the system time while the location is hard-coded to Latitude: 29.1 and Longitude: 48.5
+ */
 class GPSSimulator : public INDI::GPS
 {
-    public:
+  public:
     GPSSimulator();
-    virtual ~GPSSimulator();
+    virtual ~GPSSimulator() = default;
 
-    protected:
-
+  protected:
     //  Generic indi device entries
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();
 
     IPState updateGPS();
-
 };
-
-#endif // GPSSIMULATOR_H

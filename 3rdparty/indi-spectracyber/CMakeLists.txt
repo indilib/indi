@@ -30,9 +30,11 @@ set(indispectracyber_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/spectracyber.cpp
    )
 
+include(CMakeCommon)
+
 add_executable(indi_spectracyber ${indispectracyber_SRCS})
 
-target_link_libraries(indi_spectracyber ${INDI_DRIVER_LIBRARIES} ${NOVA_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_spectracyber ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_spectracyber RUNTIME DESTINATION bin)
 

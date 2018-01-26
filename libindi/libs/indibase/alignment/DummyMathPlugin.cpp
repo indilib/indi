@@ -4,27 +4,26 @@
 
 #include "DummyMathPlugin.h"
 
-namespace INDI {
-namespace AlignmentSubsystem {
-
-
-// Standard functions required for all plugins
-extern "C"
+namespace INDI
 {
-    DummyMathPlugin* Create()
-    {
-        return new DummyMathPlugin;
-    }
+namespace AlignmentSubsystem
+{
+// Standard functions required for all plugins
+extern "C" {
+DummyMathPlugin *Create()
+{
+    return new DummyMathPlugin;
+}
 
-    void Destroy(DummyMathPlugin *pPlugin)
-    {
-        delete pPlugin;
-    }
+void Destroy(DummyMathPlugin *pPlugin)
+{
+    delete pPlugin;
+}
 
-    const char *GetDisplayName()
-    {
-        return "Dummy Math Plugin";
-    }
+const char *GetDisplayName()
+{
+    return "Dummy Math Plugin";
+}
 }
 
 DummyMathPlugin::DummyMathPlugin()
@@ -37,7 +36,7 @@ DummyMathPlugin::~DummyMathPlugin()
     //dtor
 }
 
-bool DummyMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
+bool DummyMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
 {
     // Call the base class to initialise to in in memory database pointer
     MathPlugin::Initialise(pInMemoryDatabase);
@@ -45,13 +44,15 @@ bool DummyMathPlugin::Initialise(InMemoryDatabase* pInMemoryDatabase)
     return false;
 }
 
-bool DummyMathPlugin::TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
-                                                        TelescopeDirectionVector& ApparentTelescopeDirectionVector)
+bool DummyMathPlugin::TransformCelestialToTelescope(const double RightAscension, const double Declination,
+                                                    double JulianOffset,
+                                                    TelescopeDirectionVector &ApparentTelescopeDirectionVector)
 {
     return false;
 }
 
-bool DummyMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector& ApparentTelescopeDirectionVector, double& RightAscension, double& Declination)
+bool DummyMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+                                                    double &RightAscension, double &Declination)
 {
     return false;
 }

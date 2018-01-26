@@ -22,6 +22,6 @@ public:
 	Filter(void);
 	~Filter(void);
 	std::string Name;
-	int32_t Offset;
-	short Trim;
+	int32_t Offset = 0;
+	short Trim = 0;
 };

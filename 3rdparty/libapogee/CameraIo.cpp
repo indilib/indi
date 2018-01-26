@@ -167,7 +167,7 @@ void CameraIo::GetUsbVendorInfo( uint16_t & VendorId,
          __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-     std::tr1::dynamic_pointer_cast<CamUsbIo>(
+     std::dynamic_pointer_cast<CamUsbIo>(
             m_Interface)->GetUsbVendorInfo( VendorId, ProductId, DeviceId );
 }
 
@@ -362,7 +362,7 @@ std::string CameraIo::GetUsbFirmwareVersion()
          __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    return std::tr1::dynamic_pointer_cast<CamUsbIo>(
+    return std::dynamic_pointer_cast<CamUsbIo>(
             m_Interface)->GetUsbFirmwareVersion();
 }
 
@@ -385,7 +385,7 @@ uint8_t CameraIo::ReadBufConReg( uint16_t reg ) const
             __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    return std::tr1::dynamic_pointer_cast<CamUsbIo>(
+    return std::dynamic_pointer_cast<CamUsbIo>(
         m_Interface)->ReadBufConReg( reg ) ;
 }
 
@@ -400,7 +400,7 @@ void CameraIo::WriteBufConReg( uint16_t reg, uint8_t val )
                 __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    std::tr1::dynamic_pointer_cast<CamUsbIo>(m_Interface)->WriteBufConReg( reg, val );
+    std::dynamic_pointer_cast<CamUsbIo>(m_Interface)->WriteBufConReg( reg, val );
 }
 
 
@@ -415,7 +415,7 @@ uint8_t CameraIo::ReadFx2Reg( uint16_t reg )
                 __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    return std::tr1::dynamic_pointer_cast<CamUsbIo>(
+    return std::dynamic_pointer_cast<CamUsbIo>(
         m_Interface)->ReadFx2Reg( reg );
 }
 
@@ -430,7 +430,7 @@ void CameraIo::WriteFx2Reg( uint16_t reg, uint8_t val )
                 __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    std::tr1::dynamic_pointer_cast<CamUsbIo>(m_Interface)->WriteFx2Reg( reg, val );
+    std::dynamic_pointer_cast<CamUsbIo>(m_Interface)->WriteFx2Reg( reg, val );
 }
 
 //////////////////////////// 
@@ -445,7 +445,7 @@ std::string CameraIo::GetFirmwareHdr()
     }
 
     Eeprom::Header hdr;
-    std::tr1::dynamic_pointer_cast<CamUsbIo>(
+    std::dynamic_pointer_cast<CamUsbIo>(
         m_Interface)->ReadHeader( hdr );
 
     std::stringstream strm;
@@ -474,7 +474,7 @@ std::string CameraIo::GetSerialNumber()
                 __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    return std::tr1::dynamic_pointer_cast<CamUsbIo>(
+    return std::dynamic_pointer_cast<CamUsbIo>(
         m_Interface)->GetSerialNumber();
 }
 
@@ -489,7 +489,7 @@ void CameraIo::SetSerialNumber( const std::string & num )
                 __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    std::tr1::dynamic_pointer_cast<CamUsbIo>(
+    std::dynamic_pointer_cast<CamUsbIo>(
         m_Interface)->SetSerialNumber( num );
 }
 

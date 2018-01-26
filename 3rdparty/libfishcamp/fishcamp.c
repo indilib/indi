@@ -2635,7 +2635,11 @@ int fcUsb_CloseCamera(int camNum)
     	libusb_close(gCamerasFound[camNum - 1].dev);
 
 		gCamerasFound[camNum - 1].dev = NULL;
+
+        return 0;
 		}
+
+    return -1;
 
 }
 
@@ -3856,7 +3860,7 @@ int fcUsb_cmd_getRawFrame(int camNum, UInt16 numRows, UInt16 numCols, UInt16 *fr
 				numBytesRead = RcvUSB(camNum, (unsigned char*)frameBuffer, maxBytes);
 				}
 
-			sprintf( buffer, "   fcUsb_cmd_getRawFrame - numBytesRead - 0x%08x\n", numBytesRead);
+			sprintf( buffer, "   fcUsb_cmd_getRawFrame - numBytesRead - 0x%08x\n", (unsigned int)numBytesRead);
 			Starfish_Log( buffer );
 
 			if (gReadBlack[camNum - 1])

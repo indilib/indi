@@ -1,5 +1,5 @@
-#ifndef MATHPLUGINMANAGERCLIENT_H
-#define MATHPLUGINMANAGERCLIENT_H
+
+#pragma once
 
 #include "indibase/baseclient.h"
 #include "indibase/basedevice.h"
@@ -8,18 +8,17 @@
 
 class MathPluginManagerClient : public INDI::BaseClient, INDI::AlignmentSubsystem::AlignmentSubsystemForClients
 {
-public:
+  public:
     MathPluginManagerClient();
     virtual ~MathPluginManagerClient();
 
     // Public methods
 
-    void Initialise(int argc, char* argv[]);
+    void Initialise(int argc, char *argv[]);
 
     void Test();
 
-protected:
-
+  protected:
     // Protected methods
 
     virtual void newBLOB(IBLOB *bp) {}
@@ -34,9 +33,7 @@ protected:
     virtual void serverConnected() {}
     virtual void serverDisconnected(int exit_code) {}
 
-private:
+  private:
     INDI::BaseDevice *Device;
     std::string DeviceName;
 };
-
-#endif // MATHPLUGINMANAGERCLIENT_H

@@ -1,3 +1,9 @@
+libfli (1.9) bionic; urgency=medium
+
+  * New release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 22 Jan 2018 08:45:00 +0300
+
 libfli1 (1.8.ubuntu5) oneiric; urgency=low
 
   * Oneiric release

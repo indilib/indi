@@ -18,11 +18,11 @@
 std::vector<std::string> DeviceStr::GetVect( std::string data )
 {
     std::string pattern( "<d>(.*?)</d>" );
-    std::tr1::regex re( pattern );
-    std::tr1::sregex_iterator m1( data.begin(), data.end(), re );
-    std::tr1::sregex_iterator m2;
+    std::regex re( pattern );
+    std::sregex_iterator m1( data.begin(), data.end(), re );
+    std::sregex_iterator m2;
 
-    std::tr1::sregex_iterator iter;
+    std::sregex_iterator iter;
     std::vector<std::string> matchStrs;
     for(iter = m1; iter != m2; ++iter)
     {

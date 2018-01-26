@@ -15,22 +15,25 @@
 #include <stdlib.h>
 #include <firmata.h>
 
-int main(int argc, char** argv) {
-	if (argc < 2) {
-		fprintf(stderr,"Usage: read_msg <serial port path> \n");
-		exit(1);
-	}
-	char* serial = argv[1];
-	Firmata* sf = new Firmata(serial);
-	sf->setPinMode(14,FIRMATA_MODE_ANALOG);
-	sf->setSamplingInterval(1000);
-	sf->reportAnalogPorts(1);//SPONTANEOUS. NO POLLING
-	while(true) {
-		sf->OnIdle();
-		sleep(2);
-		printf("ANALOG A0 (pin 14) is:%lu\n",sf->pin_info[14].value);
-	}
+int main(int argc, char **argv)
+{
+    if (argc < 2)
+    {
+        fprintf(stderr, "Usage: read_msg <serial port path> \n");
+        exit(1);
+    }
+    char *serial = argv[1];
+    Firmata *sf  = new Firmata(serial);
+    sf->setPinMode(14, FIRMATA_MODE_ANALOG);
+    sf->setSamplingInterval(1000);
+    sf->reportAnalogPorts(1); //SPONTANEOUS. NO POLLING
+    while (true)
+    {
+        sf->OnIdle();
+        sleep(2);
+        printf("ANALOG A0 (pin 14) is:%lu\n", sf->pin_info[14].value);
+    }
 
-	delete sf;
-	return 0;
+    delete sf;
+    return 0;
 }

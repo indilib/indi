@@ -22,56 +22,26 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef VANTAGE_H
-#define VANTAGE_H
+#pragma once
 
 #include "indiweather.h"
 
 class Vantage : public INDI::Weather
 {
-    public:
-
-    // Forcecast bit mask from Davis Vantage manual
-    enum { W_RAINY            = 1 << 0,
-           W_CLOUDY           = 1 << 1,
-           W_PARTLY_CLOUDY    = 1 << 2,
-           W_SUNNY            = 1 << 3,
-           W_SNOW             = 1 << 4 };
-
+  public:
     Vantage();
-    virtual ~Vantage();
+    virtual ~Vantage() = default;
 
     //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
+    virtual bool Handshake() override;
+    virtual const char *getDefaultName() override;
 
-    virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool initProperties() override;
 
-    protected:
+  protected:
+    virtual IPState updateWeather() override;
 
-    virtual IPState updateWeather();
-
-    virtual bool saveConfigItems(FILE *fp);
-
-private:
-
+  private:
     bool ack();
     bool wakeup();
-
-    // Device physical port
-    ITextVectorProperty PortTP;
-    IText PortT[1];
-
-    // Baud Rate
-    ISwitch BaudRateS[6];
-    ISwitchVectorProperty BaudRateSP;
-
-
-    int PortFD;
 };
-
-#endif

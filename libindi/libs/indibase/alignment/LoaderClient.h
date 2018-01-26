@@ -1,5 +1,5 @@
-#ifndef LOADERCLIENT_H
-#define LOADERCLIENT_H
+
+#pragma once
 
 #include "indibase/baseclient.h"
 #include "indibase/basedevice.h"
@@ -8,17 +8,16 @@
 
 class LoaderClient : public INDI::BaseClient, INDI::AlignmentSubsystem::AlignmentSubsystemForClients
 {
-public:
+  public:
     LoaderClient();
     virtual ~LoaderClient();
 
     // Public methods
 
-    void Initialise(int argc, char* argv[]);
+    void Initialise(int argc, char *argv[]);
     void Load();
 
-protected:
-
+  protected:
     // Protected methods
 
     virtual void newBLOB(IBLOB *bp);
@@ -33,9 +32,7 @@ protected:
     virtual void serverConnected() {}
     virtual void serverDisconnected(int exit_code) {}
 
-private:
+  private:
     INDI::BaseDevice *Device;
     std::string DeviceName;
 };
-
-#endif // LOADERCLIENT_H

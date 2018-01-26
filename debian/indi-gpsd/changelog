@@ -1,3 +1,9 @@
+indi-gpsd (0.4) bionic; urgency=medium
+
+  * Upstream update
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 14 Nov 2017 13:00:00 +0300
+
 indi-gpsd (0.3) stable; urgency=medium
 
   * Improve fix detection. Use 2D fixes with zero altitude.

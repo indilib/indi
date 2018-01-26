@@ -1,3 +1,21 @@
+indi-qsi (0.8) bionic; urgency=medium
+
+  * New release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 22 Jan 2018 08:45:00 +0300
+
+indi-qsi (0.7.0) bionic; urgency=low
+
+  * New upstream version.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 15 Nov 2017 16:30:00 +0300
+
+indi-qsi (0.6.0) xenial; urgency=low
+
+  * New upstream version.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 7 Jul 2017 15:30:00 +0300
+
 indi-qsi (0.5.0) xenial; urgency=low
 
   * New upstream version.

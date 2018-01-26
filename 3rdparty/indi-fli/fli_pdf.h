@@ -1,6 +1,3 @@
-#ifndef FLI_PDF_H
-#define FLI_PDF_H
-
 #if 0
     FLI PDF
     INDI Interface for Finger Lakes Instrument Focusers
@@ -22,17 +19,17 @@
 
 #endif
 
+#pragma once
+
 #include <libfli.h>
 #include <indifocuser.h>
 #include <iostream>
 
 using namespace std;
 
-
 class FLIPDF : public INDI::Focuser
 {
-public:
-
+  public:
     FLIPDF();
     virtual ~FLIPDF();
 
@@ -45,16 +42,14 @@ public:
     bool Connect();
     bool Disconnect();
 
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    protected:
-
+  protected:
     virtual IPState MoveAbsFocuser(uint32_t ticks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     void TimerHit();
 
-    private:
-
+  private:
     typedef struct
     {
         flidomain_t domain;
@@ -90,9 +85,4 @@ public:
     bool findFLIPDF(flidomain_t domain);
     bool setupParams();
     void goHomePosition();
-
-
-
 };
-
-#endif // FLI_PDF_H

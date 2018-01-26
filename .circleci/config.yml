@@ -1,0 +1,141 @@
+version: 2
+
+jobs:
+  build_stretch:
+    docker:
+      - image: jochym/indi-stretch
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_buster:
+    docker:
+      - image: jochym/indi-buster
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_artful:
+    docker:
+      - image: jochym/indi-artful
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_bionic:
+    docker:
+      - image: jochym/indi-bionic
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_clang4:
+    docker:
+      - image: jochym/indi-artful
+        environment:
+          CC: clang
+          CXX: clang++
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_clang5:
+    docker:
+      - image: jochym/indi-bionic
+        environment:
+          CC: clang
+          CXX: clang++
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_fedora:
+    docker:
+      - image: jochym/indi-fedora
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_centos:
+    docker:
+      - image: jochym/indi-centos
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_opensuse:
+    docker:
+      - image: jochym/indi-opensuse
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+
+workflows:
+  version: 2
+  build_all:
+    jobs:
+      - build_artful
+      - build_stretch
+      - build_fedora
+      - build_clang4
+      - build_bionic:
+          requires:
+            - build_artful
+      - build_buster:
+          requires:
+            - build_stretch
+      - build_clang5:
+          requires:
+            - build_clang4
+      - build_centos:
+          requires:
+            - build_fedora
+      - build_opensuse:
+          requires:
+            - build_fedora

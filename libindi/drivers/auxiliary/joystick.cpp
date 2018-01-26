@@ -19,9 +19,14 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
+
 #include "joystick.h"
+
 #include "joystickdriver.h"
+#include "indistandardproperty.h"
+
 #include <memory>
+#include <cstring>
 
 #define POLLMS 250
 
@@ -30,61 +35,54 @@ std::unique_ptr<JoyStick> joystick(new JoyStick());
 
 void ISGetProperties(const char *dev)
 {
-        joystick->ISGetProperties(dev);
+    joystick->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-        joystick->ISNewSwitch(dev, name, states, names, num);
+    joystick->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-        joystick->ISNewText(dev, name, texts, names, num);
+    joystick->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-        joystick->ISNewNumber(dev, name, values, names, num);
+    joystick->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
 {
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
 }
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice(XMLEle *root)
 {
-    INDI_UNUSED(root);
+    joystick->ISSnoopDevice(root);
 }
 
 JoyStick::JoyStick()
 {
     driver = new JoyStickDriver();
-
-    JoyStickNP = NULL;
-    JoyStickN = NULL;
-    AxisN = NULL;
-    ButtonS = NULL;
 }
 
 JoyStick::~JoyStick()
 {
-    //dtor
-
     delete (driver);
-
 }
 
-const char * JoyStick::getDefaultName()
+const char *JoyStick::getDefaultName()
 {
-    return (char *)"Joystick";
+    return (const char *)"Joystick";
 }
 
 bool JoyStick::Connect()
@@ -93,30 +91,28 @@ bool JoyStick::Connect()
 
     if (rc)
     {
-        IDMessage(getDeviceName(), "Joystick is online.");
+        DEBUG(INDI::Logger::DBG_SESSION, "Joystick is online.");
 
         setupParams();
-
     }
     else
-        IDMessage(getDeviceName(), "Error: cannot find Joystick device.");
+        DEBUG(INDI::Logger::DBG_SESSION, "Error: cannot find Joystick device.");
 
     return rc;
-    
 }
 
 bool JoyStick::Disconnect()
 {
-    IDMessage(getDeviceName(), "Joystick is offline.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Joystick is offline.");
 
     return driver->Disconnect();
 }
 
 void JoyStick::setupParams()
 {
-    char propName[16], propLabel[16];
+    char propName[16]={0}, propLabel[16]={0};
 
-    if (driver == NULL)
+    if (driver == nullptr)
         return;
 
     int nAxis      = driver->getNumOfAxes();
@@ -124,57 +120,59 @@ void JoyStick::setupParams()
     int nButtons   = driver->getNumrOfButtons();
 
     JoyStickNP = new INumberVectorProperty[nJoysticks];
-    JoyStickN  = new INumber[nJoysticks*2];
+    JoyStickN  = new INumber[nJoysticks * 2];
 
-    AxisN     = new INumber[nAxis];
+    AxisN = new INumber[nAxis];
 
-    ButtonS   = new ISwitch[nButtons];
+    ButtonS = new ISwitch[nButtons];
 
-    for (int i=0; i < nJoysticks*2; i+=2)
+    for (int i = 0; i < nJoysticks * 2; i += 2)
     {
-        snprintf(propName, 16, "JOYSTICK_%d", i/2+1);
-        snprintf(propLabel, 16, "Joystick %d", i/2+1);
+        snprintf(propName, 16, "JOYSTICK_%d", i / 2 + 1);
+        snprintf(propLabel, 16, "Joystick %d", i / 2 + 1);
 
         IUFillNumber(&JoyStickN[i], "JOYSTICK_MAGNITUDE", "Magnitude", "%g", -32767.0, 32767.0, 0, 0);
-        IUFillNumber(&JoyStickN[i+1], "JOYSTICK_ANGLE", "Angle", "%g", 0, 360.0, 0, 0);
-        IUFillNumberVector(&JoyStickNP[i/2], JoyStickN + i, 2, getDeviceName(), propName, propLabel, "Monitor", IP_RO, 0, IPS_IDLE);
+        IUFillNumber(&JoyStickN[i + 1], "JOYSTICK_ANGLE", "Angle", "%g", 0, 360.0, 0, 0);
+        IUFillNumberVector(&JoyStickNP[i / 2], JoyStickN + i, 2, getDeviceName(), propName, propLabel, "Monitor", IP_RO,
+                           0, IPS_IDLE);
     }
 
-    for (int i=0; i < nAxis; i++)
+    for (int i = 0; i < nAxis; i++)
     {
-        snprintf(propName, 16, "AXIS_%d", i+1);
-        snprintf(propLabel, 16, "Axis %d", i+1);
+        snprintf(propName, 16, "AXIS_%d", i + 1);
+        snprintf(propLabel, 16, "Axis %d", i + 1);
 
         IUFillNumber(&AxisN[i], propName, propLabel, "%g", -32767.0, 32767.0, 0, 0);
     }
 
-    IUFillNumberVector(&AxisNP, AxisN, nAxis, getDeviceName(), "JOYSTICK_AXES", "Axes", "Monitor", IP_RO, 0, IPS_IDLE );
+    IUFillNumberVector(&AxisNP, AxisN, nAxis, getDeviceName(), "JOYSTICK_AXES", "Axes", "Monitor", IP_RO, 0, IPS_IDLE);
 
-    for (int i=0; i < nButtons; i++)
+    for (int i = 0; i < nButtons; i++)
     {
-        snprintf(propName, 16, "BUTTON_%d", i+1);
-        snprintf(propLabel, 16, "Button %d", i+1);
+        snprintf(propName, 16, "BUTTON_%d", i + 1);
+        snprintf(propLabel, 16, "Button %d", i + 1);
 
         IUFillSwitch(&ButtonS[i], propName, propLabel, ISS_OFF);
     }
 
-    IUFillSwitchVector(&ButtonSP, ButtonS, nButtons, getDeviceName(), "JOYSTICK_BUTTONS", "Buttons", "Monitor", IP_RO, ISR_NOFMANY, 0, IPS_IDLE );
-
+    IUFillSwitchVector(&ButtonSP, ButtonS, nButtons, getDeviceName(), "JOYSTICK_BUTTONS", "Buttons", "Monitor", IP_RO,
+                       ISR_NOFMANY, 0, IPS_IDLE);
 }
 
 bool JoyStick::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    IUFillText(&PortT[0],"PORT","Port","/dev/input/js0");
-    IUFillTextVector(&PortTP,PortT,1,getDeviceName(),"DEVICE_PORT","Ports",OPTIONS_TAB,IP_RW,60,IPS_IDLE);
+    IUFillText(&PortT[0], "PORT", "Port", "/dev/input/js0");
+    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillText(&JoystickInfoT[0],"JOYSTICK_NAME","Name","");
-    IUFillText(&JoystickInfoT[1],"JOYSTICK_VERSION","Version","");
-    IUFillText(&JoystickInfoT[2],"JOYSTICK_NJOYSTICKS","# Joysticks","");
-    IUFillText(&JoystickInfoT[3],"JOYSTICK_NAXES","# Axes","");
-    IUFillText(&JoystickInfoT[4],"JOYSTICK_NBUTTONS","# Buttons","");
-    IUFillTextVector(&JoystickInfoTP,JoystickInfoT,5,getDeviceName(),"JOYSTICK_INFO","Joystick Info",MAIN_CONTROL_TAB,IP_RO,60,IPS_IDLE);
+    IUFillText(&JoystickInfoT[0], "JOYSTICK_NAME", "Name", "");
+    IUFillText(&JoystickInfoT[1], "JOYSTICK_VERSION", "Version", "");
+    IUFillText(&JoystickInfoT[2], "JOYSTICK_NJOYSTICKS", "# Joysticks", "");
+    IUFillText(&JoystickInfoT[3], "JOYSTICK_NAXES", "# Axes", "");
+    IUFillText(&JoystickInfoT[4], "JOYSTICK_NBUTTONS", "# Buttons", "");
+    IUFillTextVector(&JoystickInfoTP, JoystickInfoT, 5, getDeviceName(), "JOYSTICK_INFO", "Joystick Info",
+                     MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
     addDebugControl();
 
@@ -183,7 +181,6 @@ bool JoyStick::initProperties()
 
 bool JoyStick::updateProperties()
 {
-
     INDI::DefaultDevice::updateProperties();
 
     if (isConnected())
@@ -206,7 +203,7 @@ bool JoyStick::updateProperties()
 
         defineText(&JoystickInfoTP);
 
-        for (int i=0; i < driver->getNumOfJoysticks(); i++)
+        for (int i = 0; i < driver->getNumOfJoysticks(); i++)
             defineNumber(&JoyStickNP[i]);
 
         defineNumber(&AxisNP);
@@ -223,54 +220,55 @@ bool JoyStick::updateProperties()
     {
         deleteProperty(JoystickInfoTP.name);
 
-        for (int i=0; i < driver->getNumOfJoysticks(); i++)
+        for (int i = 0; i < driver->getNumOfJoysticks(); i++)
             deleteProperty(JoyStickNP[i].name);
 
         deleteProperty(AxisNP.name);
         deleteProperty(ButtonSP.name);
 
-        delete [] JoyStickNP;
-        delete [] JoyStickN;
-        delete [] AxisN;
-        delete [] ButtonS;
+        delete[] JoyStickNP;
+        delete[] JoyStickN;
+        delete[] AxisN;
+        delete[] ButtonS;
     }
 
     return true;
 }
 
-void JoyStick::ISGetProperties (const char *dev)
+void JoyStick::ISGetProperties(const char *dev)
 {
     INDI::DefaultDevice::ISGetProperties(dev);
 
     defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
+    loadConfig(true, INDI::SP::DEVICE_PORT);
 
+    /*
     if (isConnected())
     {
-        for (int i=0; i < driver->getNumOfJoysticks(); i++)
+        for (int i = 0; i < driver->getNumOfJoysticks(); i++)
             defineNumber(&JoyStickNP[i]);
 
         defineNumber(&AxisNP);
         defineSwitch(&ButtonSP);
     }
+    */
 }
 
-bool JoyStick::ISSnoopDevice (XMLEle *root)
+bool JoyStick::ISSnoopDevice(XMLEle *root)
 {
     return INDI::DefaultDevice::ISSnoopDevice(root);
 }
 
-bool JoyStick::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool JoyStick::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if(strcmp(name,PortTP.name)==0)
+        if (strcmp(name, PortTP.name) == 0)
         {
-
-            PortTP.s=IPS_OK;
-            IUUpdateText(&PortTP,texts,names,n);
+            PortTP.s = IPS_OK;
+            IUUpdateText(&PortTP, texts, names, n);
             //  Update client display
-            IDSetText(&PortTP,NULL);
+            IDSetText(&PortTP, nullptr);
 
             driver->setPort(PortT[0].text);
 
@@ -278,13 +276,12 @@ bool JoyStick::ISNewText (const char *dev, const char *name, char *texts[], char
         }
     }
 
-    return DefaultDevice::ISNewText(dev,name,texts,names,n);
+    return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
 void JoyStick::joystickHelper(int joystick_n, double mag, double angle)
 {
     joystick->joystickEvent(joystick_n, mag, angle);
-
 }
 
 void JoyStick::buttonHelper(int button_n, int value)
@@ -299,11 +296,10 @@ void JoyStick::axisHelper(int axis_n, int value)
 
 void JoyStick::joystickEvent(int joystick_n, double mag, double angle)
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
-    if (isDebug())
-        IDLog("joystickEvent[%d]: %g @ %g\n", joystick_n, mag, angle);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "joystickEvent[%d]: %g @ %g", joystick_n, mag, angle);
 
     if (mag == 0)
         JoyStickNP[joystick_n].s = IPS_IDLE;
@@ -313,16 +309,15 @@ void JoyStick::joystickEvent(int joystick_n, double mag, double angle)
     JoyStickNP[joystick_n].np[0].value = mag;
     JoyStickNP[joystick_n].np[1].value = angle;
 
-    IDSetNumber(&JoyStickNP[joystick_n], NULL);
+    IDSetNumber(&JoyStickNP[joystick_n], nullptr);
 }
 
 void JoyStick::axisEvent(int axis_n, int value)
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
-    if (isDebug())
-        IDLog("axisEvent[%d]: %d\n", axis_n, value);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "axisEvent[%d]: %d", axis_n, value);
 
     if (value == 0)
         AxisNP.s = IPS_IDLE;
@@ -331,20 +326,27 @@ void JoyStick::axisEvent(int axis_n, int value)
 
     AxisNP.np[axis_n].value = value;
 
-    IDSetNumber(&AxisNP, NULL);
+    IDSetNumber(&AxisNP, nullptr);
 }
 
 void JoyStick::buttonEvent(int button_n, int value)
 {
-    if (isConnected() == false)
+    if (!isConnected())
         return;
 
-    if (isDebug())
-        IDLog("buttonEvent[%d]: %s\n", button_n, value > 0 ? "On" : "Off");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "buttonEvent[%d]: %s", button_n, value > 0 ? "On" : "Off");
 
-    ButtonSP.s = IPS_OK;
-    ButtonS[button_n].s = (value == 0 )? ISS_OFF : ISS_ON;
+    ButtonSP.s          = IPS_OK;
+    ButtonS[button_n].s = (value == 0) ? ISS_OFF : ISS_ON;
 
-    IDSetSwitch(&ButtonSP, NULL);
+    IDSetSwitch(&ButtonSP, nullptr);
 }
 
+bool JoyStick::saveConfigItems(FILE *fp)
+{
+    INDI::DefaultDevice::saveConfigItems(fp);
+
+    IUSaveConfigText(fp, &PortTP);
+
+    return true;
+}

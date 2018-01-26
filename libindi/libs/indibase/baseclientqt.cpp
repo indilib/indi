@@ -18,64 +18,65 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
-
-#include <sys/types.h>
-#include <fcntl.h>
-#include <locale.h>
-#include <iostream>
-
-#ifndef _WIN32
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <pthread.h>
-#endif
-
 #include "baseclientqt.h"
-#include "basedevice.h"
-#include "indicom.h"
 
-#include <errno.h>
+#include "base64.h"
+#include "basedevice.h"
+#include "locale_compat.h"
+#include "indistandardproperty.h"
+
+#include <iostream>
+#include <string>
+
+#include <cstdlib>
 
 #define MAXINDIBUF 49152
 
-#if defined(  _MSC_VER )
+#if defined(_MSC_VER)
 #define snprintf _snprintf
 #pragma warning(push)
 ///@todo Introduce plattform indipendent safe functions as macros to fix this
-#pragma warning(disable: 4996)
+#pragma warning(disable : 4996)
 #endif
 
-INDI::BaseClientQt::BaseClientQt()
+INDI::BaseClientQt::BaseClientQt(QObject *parent) : QObject(parent)
 {
-    cServer = "localhost";
-    cPort   = 7624;
+    cServer    = "localhost";
+    cPort      = 7624;
     sConnected = false;
-    verbose = false;
-    lillp=NULL;
+    verbose    = false;
+    lillp      = nullptr;
 
-    timeout_sec=3;
-    timeout_us=0;
+    timeout_sec = 3;
+    timeout_us  = 0;
 
     connect(&client_socket, SIGNAL(readyRead()), this, SLOT(listenINDI()));
-    connect(&client_socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(processSocketError(QAbstractSocket::SocketError)));
+    connect(&client_socket, SIGNAL(error(QAbstractSocket::SocketError)), this,
+            SLOT(processSocketError(QAbstractSocket::SocketError)));
 }
 
 INDI::BaseClientQt::~BaseClientQt()
 {
+    clear();
 }
 
+void INDI::BaseClientQt::clear()
+{
+    while (!cDevices.empty())
+        delete cDevices.back(), cDevices.pop_back();
+    cDevices.clear();
+    while (!blobModes.empty())
+        delete blobModes.back(), blobModes.pop_back();
+    blobModes.clear();
+}
 
-void INDI::BaseClientQt::setServer(const char * hostname, unsigned int port)
+void INDI::BaseClientQt::setServer(const char *hostname, unsigned int port)
 {
     cServer = hostname;
     cPort   = port;
 }
 
-void INDI::BaseClientQt::watchDevice(const char * deviceName)
+void INDI::BaseClientQt::watchDevice(const char *deviceName)
 {
     cDeviceNames.push_back(deviceName);
 }
@@ -84,11 +85,13 @@ bool INDI::BaseClientQt::connectServer()
 {
     client_socket.connectToHost(cServer.c_str(), cPort);
 
-    if (client_socket.waitForConnected(timeout_sec*1000) == false)
+    if (client_socket.waitForConnected(timeout_sec * 1000) == false)
     {
         sConnected = false;
         return false;
     }
+
+    clear();
 
     lillp = newLilXML();
 
@@ -96,50 +99,53 @@ bool INDI::BaseClientQt::connectServer()
 
     serverConnected();
 
-    char *orig = setlocale(LC_NUMERIC,"C");
+    AutoCNumeric locale;
+
     QString getProp;
     if (cDeviceNames.empty())
     {
-       getProp = QString("<getProperties version='%1'/>\n").arg(QString::number(INDIV));
+        getProp = QString("<getProperties version='%1'/>\n").arg(QString::number(INDIV));
 
-       client_socket.write(getProp.toLatin1());
+        client_socket.write(getProp.toLatin1());
 
-       if (verbose)
-           std::cerr << getProp.toLatin1().constData() << std::endl;
+        if (verbose)
+            std::cerr << getProp.toLatin1().constData() << std::endl;
     }
     else
     {
-        vector<string>::const_iterator stri;
-        for ( stri = cDeviceNames.begin(); stri != cDeviceNames.end(); stri++)
+        for (auto& str : cDeviceNames)
         {
-            getProp = QString("<getProperties version='%1' device='%2'/>\n").arg(QString::number(INDIV)).arg( (*stri).c_str());
+            getProp =
+                QString("<getProperties version='%1' device='%2'/>\n").arg(QString::number(INDIV)).arg(str.c_str());
 
             client_socket.write(getProp.toLatin1());
             if (verbose)
                 std::cerr << getProp.toLatin1().constData() << std::endl;
         }
     }
-    setlocale(LC_NUMERIC,orig);    
 
-    return true;    
+    return true;
 }
 
 bool INDI::BaseClientQt::disconnectServer()
-{    
+{
     if (sConnected == false)
         return true;
 
-    sConnected = false;    
+    sConnected = false;
 
     client_socket.close();
     if (lillp)
     {
-       delLilXML(lillp);
-       lillp=NULL;
+        delLilXML(lillp);
+        lillp = nullptr;
     }
 
-    cDevices.clear();
+    clear();
+
     cDeviceNames.clear();
+
+    serverDisconnected(0);
 
     return true;
 }
@@ -156,18 +162,18 @@ void INDI::BaseClientQt::disconnectDevice(const char *deviceName)
 
 void INDI::BaseClientQt::setDriverConnection(bool status, const char *deviceName)
 {
-    INDI::BaseDevice *drv = getDevice(deviceName);
-    ISwitchVectorProperty *drv_connection = NULL;
+    INDI::BaseDevice *drv                 = getDevice(deviceName);
+    ISwitchVectorProperty *drv_connection = nullptr;
 
-    if (drv == NULL)
+    if (drv == nullptr)
     {
         IDLog("INDI::BaseClientQt: Error. Unable to find driver %s\n", deviceName);
         return;
     }
 
-    drv_connection = drv->getSwitch("CONNECTION");
+    drv_connection = drv->getSwitch(INDI::SP::CONNECTION);
 
-    if (drv_connection == NULL)
+    if (drv_connection == nullptr)
         return;
 
     // If we need to connect
@@ -178,7 +184,7 @@ void INDI::BaseClientQt::setDriverConnection(bool status, const char *deviceName
             return;
 
         IUResetSwitch(drv_connection);
-        drv_connection->s = IPS_BUSY;
+        drv_connection->s       = IPS_BUSY;
         drv_connection->sp[0].s = ISS_ON;
         drv_connection->sp[1].s = ISS_OFF;
 
@@ -191,36 +197,39 @@ void INDI::BaseClientQt::setDriverConnection(bool status, const char *deviceName
             return;
 
         IUResetSwitch(drv_connection);
-        drv_connection->s = IPS_BUSY;
+        drv_connection->s       = IPS_BUSY;
         drv_connection->sp[0].s = ISS_OFF;
         drv_connection->sp[1].s = ISS_ON;
 
         sendNewSwitch(drv_connection);
-
     }
 }
 
-INDI::BaseDevice * INDI::BaseClientQt::getDevice(const char * deviceName)
+INDI::BaseDevice *INDI::BaseClientQt::getDevice(const char *deviceName)
 {
-    vector<INDI::BaseDevice *>::const_iterator devi;
-    for ( devi = cDevices.begin(); devi != cDevices.end(); ++devi)
-        if (!strcmp(deviceName, (*devi)->getDeviceName()))
-            return (*devi);
-
-    return NULL;
+    for (auto& dev : cDevices)
+    {
+        if (!strcmp(deviceName, dev->getDeviceName()))
+            return dev;
+    }
+    return nullptr;
 }
 
-void * INDI::BaseClientQt::listenHelper(void *context)
+void *INDI::BaseClientQt::listenHelper(void *context)
 {
-  (static_cast<INDI::BaseClientQt *> (context))->listenINDI();
-  return NULL;
+    (static_cast<INDI::BaseClientQt *>(context))->listenINDI();
+    return nullptr;
 }
 
 void INDI::BaseClientQt::listenINDI()
 {
     char buffer[MAXINDIBUF];
     char errorMsg[MAXRBUF];
-    int err_code=0;
+    int err_code = 0;
+
+    XMLEle **nodes;
+    XMLEle *root;
+    int inode = 0;
 
     if (sConnected == false)
         return;
@@ -228,70 +237,75 @@ void INDI::BaseClientQt::listenINDI()
     while (client_socket.bytesAvailable() > 0)
     {
         qint64 readBytes = client_socket.read(buffer, MAXINDIBUF - 1);
-        if ( readBytes > 0 )
-            buffer[ readBytes ] = '\0';
+        if (readBytes > 0)
+            buffer[readBytes] = '\0';
 
-        for (int i = 0; i < readBytes; i++)
+        nodes = parseXMLChunk(lillp, buffer, readBytes, errorMsg);
+        if (!nodes)
         {
-            XMLEle *root = readXMLEle (lillp, buffer[i], errorMsg);
-            if (root)
+            if (errorMsg[0])
             {
-                if (verbose)
-                    prXMLEle(stderr, root, 0);
-
-                if ( (err_code = dispatchCommand(root, errorMsg)) < 0)
-                {
-                        // Silenty ignore property duplication errors
-                        if (err_code != INDI_PROPERTY_DUPLICATED)
-                        {
-                            IDLog("Dispatch command error(%d): %s\n", err_code, errorMsg);
-                            prXMLEle (stderr, root, 0);
-                        }
-                }
-
-                delXMLEle (root);	// not yet, delete and continue
-            }
-            else if (errorMsg[0])
-            {
-                IDLog("Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
+                fprintf(stderr, "Bad XML from %s/%d: %s\n%s\n", cServer.c_str(), cPort, errorMsg, buffer);
                 return;
             }
+            return;
         }
-    }    
+        root = nodes[inode];
+        while (root)
+        {
+            if (verbose)
+                prXMLEle(stderr, root, 0);
+
+            if ((err_code = dispatchCommand(root, errorMsg)) < 0)
+            {
+                // Silenty ignore property duplication errors
+                if (err_code != INDI_PROPERTY_DUPLICATED)
+                {
+                    IDLog("Dispatch command error(%d): %s\n", err_code, errorMsg);
+                    prXMLEle(stderr, root, 0);
+                }
+            }
+
+            delXMLEle(root); // not yet, delete and continue
+            inode++;
+            root = nodes[inode];
+        }
+        free(nodes);
+        inode = 0;
+    }
 }
 
-int INDI::BaseClientQt::dispatchCommand(XMLEle *root, char * errmsg)
+int INDI::BaseClientQt::dispatchCommand(XMLEle *root, char *errmsg)
 {
-    if  (!strcmp (tagXMLEle(root), "message"))
+    if (!strcmp(tagXMLEle(root), "message"))
         return messageCmd(root, errmsg);
-    else if  (!strcmp (tagXMLEle(root), "delProperty"))
+    else if (!strcmp(tagXMLEle(root), "delProperty"))
         return delPropertyCmd(root, errmsg);
+    // Just ignore any getProperties we might get
+    else if (!strcmp(tagXMLEle(root), "getProperties"))
+        return INDI_PROPERTY_DUPLICATED;
 
     /* Get the device, if not available, create it */
-    INDI::BaseDevice *dp = findDev (root, 1, errmsg);
-    if (dp == NULL)
+    INDI::BaseDevice *dp = findDev(root, 1, errmsg);
+    if (dp == nullptr)
     {
-        strcpy(errmsg,"No device available and none was created");
+        strcpy(errmsg, "No device available and none was created");
         return INDI_DEVICE_NOT_FOUND;
     }
 
     // FIXME REMOVE THIS
 
     // Ignore echoed newXXX and getProperties
-    if (strstr(tagXMLEle(root), "new") ||strstr(tagXMLEle(root), "getProperties"))
+    if (strstr(tagXMLEle(root), "new") || strstr(tagXMLEle(root), "getProperties"))
         return 0;
 
-    if ((!strcmp (tagXMLEle(root), "defTextVector"))  ||
-            (!strcmp (tagXMLEle(root), "defNumberVector")) ||
-            (!strcmp (tagXMLEle(root), "defSwitchVector")) ||
-            (!strcmp (tagXMLEle(root), "defLightVector"))  ||
-            (!strcmp (tagXMLEle(root), "defBLOBVector")))
+    if ((!strcmp(tagXMLEle(root), "defTextVector")) || (!strcmp(tagXMLEle(root), "defNumberVector")) ||
+        (!strcmp(tagXMLEle(root), "defSwitchVector")) || (!strcmp(tagXMLEle(root), "defLightVector")) ||
+        (!strcmp(tagXMLEle(root), "defBLOBVector")))
         return dp->buildProp(root, errmsg);
-    else if (!strcmp (tagXMLEle(root), "setTextVector") ||
-             !strcmp (tagXMLEle(root), "setNumberVector") ||
-             !strcmp (tagXMLEle(root), "setSwitchVector") ||
-             !strcmp (tagXMLEle(root), "setLightVector") ||
-             !strcmp (tagXMLEle(root), "setBLOBVector"))
+    else if (!strcmp(tagXMLEle(root), "setTextVector") || !strcmp(tagXMLEle(root), "setNumberVector") ||
+             !strcmp(tagXMLEle(root), "setSwitchVector") || !strcmp(tagXMLEle(root), "setLightVector") ||
+             !strcmp(tagXMLEle(root), "setBLOBVector"))
         return dp->setValue(root, errmsg);
 
     return INDI_DISPATCH_ERROR;
@@ -302,24 +316,30 @@ int INDI::BaseClientQt::dispatchCommand(XMLEle *root, char * errmsg)
  * if no property name attribute at all, delete the whole device regardless.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
-int INDI::BaseClientQt::delPropertyCmd (XMLEle *root, char * errmsg)
+int INDI::BaseClientQt::delPropertyCmd(XMLEle *root, char *errmsg)
 {
     XMLAtt *ap;
     INDI::BaseDevice *dp;
 
     /* dig out device and optional property name */
-    dp = findDev (root, 0, errmsg);
+    dp = findDev(root, 0, errmsg);
     if (!dp)
         return INDI_DEVICE_NOT_FOUND;
 
     dp->checkMessage(root);
 
-    ap = findXMLAtt (root, "name");
+    ap = findXMLAtt(root, "name");
 
     /* Delete property if it exists, otherwise, delete the whole device */
     if (ap)
     {
         INDI::Property *rProp = dp->getProperty(valuXMLAtt(ap));
+        if (rProp == nullptr)
+        {
+            snprintf(errmsg, MAXRBUF, "Cannot delete property %s as it is not defined yet. Check driver.", valuXMLAtt(ap));
+            return -1;
+        }
+
         removeProperty(rProp);
         int errCode = dp->removeProperty(valuXMLAtt(ap), errmsg);
 
@@ -330,57 +350,55 @@ int INDI::BaseClientQt::delPropertyCmd (XMLEle *root, char * errmsg)
         return deleteDevice(dp->getDeviceName(), errmsg);
 }
 
-int INDI::BaseClientQt::deleteDevice( const char * devName, char * errmsg )
+int INDI::BaseClientQt::deleteDevice(const char *devName, char *errmsg)
 {
     std::vector<INDI::BaseDevice *>::iterator devicei;
 
-    for (devicei =cDevices.begin(); devicei != cDevices.end();)
+    for (devicei = cDevices.begin(); devicei != cDevices.end();)
     {
-
-      if (!strcmp(devName, (*devicei)->getDeviceName()))
-      {
-          removeDevice(*devicei);
-          delete *devicei;
-          devicei = cDevices.erase(devicei);
-          return 0;
-      }
-      else
-          ++devicei;
+        if (!strcmp(devName, (*devicei)->getDeviceName()))
+        {
+            removeDevice(*devicei);
+            delete *devicei;
+            devicei = cDevices.erase(devicei);
+            return 0;
+        }
+        else
+            ++devicei;
     }
 
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
     return INDI_DEVICE_NOT_FOUND;
 }
 
-INDI::BaseDevice * INDI::BaseClientQt::findDev( const char * devName, char * errmsg )
+INDI::BaseDevice *INDI::BaseClientQt::findDev(const char *devName, char *errmsg)
 {
     std::vector<INDI::BaseDevice *>::const_iterator devicei;
 
     for (devicei = cDevices.begin(); devicei != cDevices.end(); devicei++)
     {
         if (!strcmp(devName, (*devicei)->getDeviceName()))
-         return (*devicei);
-
+            return (*devicei);
     }
 
     snprintf(errmsg, MAXRBUF, "Device %s not found", devName);
-    return NULL;
+    return nullptr;
 }
 
 /* add new device */
-INDI::BaseDevice * INDI::BaseClientQt::addDevice (XMLEle *dep, char * errmsg)
+INDI::BaseDevice *INDI::BaseClientQt::addDevice(XMLEle *dep, char *errmsg)
 {
     //devicePtr dp(new INDI::BaseDriver());
     INDI::BaseDevice *dp = new INDI::BaseDevice();
     XMLAtt *ap;
-    char * device_name;
+    char *device_name;
 
     /* allocate new INDI::BaseDriver */
-    ap = findXMLAtt (dep, "device");
+    ap = findXMLAtt(dep, "device");
     if (!ap)
     {
         strncpy(errmsg, "Unable to find device attribute in XML element. Cannot add device.", MAXRBUF);
-        return NULL;
+        return nullptr;
     }
 
     device_name = valuXMLAtt(ap);
@@ -396,18 +414,18 @@ INDI::BaseDevice * INDI::BaseClientQt::addDevice (XMLEle *dep, char * errmsg)
     return dp;
 }
 
-INDI::BaseDevice * INDI::BaseClientQt::findDev (XMLEle *root, int create, char * errmsg)
+INDI::BaseDevice *INDI::BaseClientQt::findDev(XMLEle *root, int create, char *errmsg)
 {
     XMLAtt *ap;
     INDI::BaseDevice *dp;
     char *dn;
 
     /* get device name */
-    ap = findXMLAtt (root, "device");
+    ap = findXMLAtt(root, "device");
     if (!ap)
     {
         snprintf(errmsg, MAXRBUF, "No device attribute found in element %s", tagXMLEle(root));
-        return (NULL);
+        return (nullptr);
     }
 
     dn = valuXMLAtt(ap);
@@ -415,7 +433,7 @@ INDI::BaseDevice * INDI::BaseClientQt::findDev (XMLEle *root, int create, char *
     if (*dn == '\0')
     {
         snprintf(errmsg, MAXRBUF, "Device name is empty! %s", tagXMLEle(root));
-        return (NULL);
+        return (nullptr);
     }
 
     dp = findDev(dn, errmsg);
@@ -425,18 +443,18 @@ INDI::BaseDevice * INDI::BaseClientQt::findDev (XMLEle *root, int create, char *
 
     /* not found, create if ok */
     if (create)
-        return (addDevice (root, errmsg));
+        return (addDevice(root, errmsg));
 
     snprintf(errmsg, MAXRBUF, "INDI: <%s> no such device %s", tagXMLEle(root), dn);
-    return NULL;
+    return nullptr;
 }
 
 /* a general message command received from the device.
  * return 0 if ok, else -1 with reason in errmsg[].
  */
-int INDI::BaseClientQt::messageCmd (XMLEle *root, char * errmsg)
+int INDI::BaseClientQt::messageCmd(XMLEle *root, char *errmsg)
 {
-    INDI::BaseDevice *dp =findDev (root, 0, errmsg);
+    INDI::BaseDevice *dp = findDev(root, 0, errmsg);
 
     if (dp)
         dp->checkMessage(root);
@@ -444,10 +462,9 @@ int INDI::BaseClientQt::messageCmd (XMLEle *root, char * errmsg)
     return (0);
 }
 
-
-void INDI::BaseClientQt::sendNewText (ITextVectorProperty *tvp)
+void INDI::BaseClientQt::sendNewText(ITextVectorProperty *tvp)
 {
-    char *orig = setlocale(LC_NUMERIC,"C");
+    AutoCNumeric locale;
 
     tvp->s = IPS_BUSY;
 
@@ -457,7 +474,7 @@ void INDI::BaseClientQt::sendNewText (ITextVectorProperty *tvp)
     prop += QString("  device='%1'\n").arg(tvp->device);
     prop += QString("  name='%1'\n>").arg(tvp->name);
 
-    for (int i=0; i < tvp->ntp; i++)
+    for (int i = 0; i < tvp->ntp; i++)
     {
         prop += QString("  <oneText\n");
         prop += QString("    name='%1'>\n").arg(tvp->tp[i].name);
@@ -466,26 +483,25 @@ void INDI::BaseClientQt::sendNewText (ITextVectorProperty *tvp)
     }
     prop += QString("</newTextVector>\n");
 
-    client_socket.write(prop.toLatin1());    
-
-    setlocale(LC_NUMERIC,orig);
+    client_socket.write(prop.toLatin1());
 }
 
-void INDI::BaseClientQt::sendNewText (const char * deviceName, const char * propertyName, const char* elementName, const char *text)
+void INDI::BaseClientQt::sendNewText(const char *deviceName, const char *propertyName, const char *elementName,
+                                     const char *text)
 {
     INDI::BaseDevice *drv = getDevice(deviceName);
 
-    if (drv == NULL)
+    if (drv == nullptr)
         return;
 
     ITextVectorProperty *tvp = drv->getText(propertyName);
 
-    if (tvp == NULL)
+    if (tvp == nullptr)
         return;
 
-    IText * tp = IUFindText(tvp, elementName);
+    IText *tp = IUFindText(tvp, elementName);
 
-    if (tp == NULL)
+    if (tp == nullptr)
         return;
 
     IUSaveText(tp, text);
@@ -493,9 +509,9 @@ void INDI::BaseClientQt::sendNewText (const char * deviceName, const char * prop
     sendNewText(tvp);
 }
 
-void INDI::BaseClientQt::sendNewNumber (INumberVectorProperty *nvp)
+void INDI::BaseClientQt::sendNewNumber(INumberVectorProperty *nvp)
 {
-   char *orig = setlocale(LC_NUMERIC,"C");
+    AutoCNumeric locale;
 
     nvp->s = IPS_BUSY;
 
@@ -505,7 +521,7 @@ void INDI::BaseClientQt::sendNewNumber (INumberVectorProperty *nvp)
     prop += QString("  device='%1'\n").arg(nvp->device);
     prop += QString("  name='%1'\n>").arg(nvp->name);
 
-    for (int i=0; i < nvp->nnp; i++)
+    for (int i = 0; i < nvp->nnp; i++)
     {
         prop += QString("  <oneNumber\n");
         prop += QString("    name='%1'>\n").arg(nvp->np[i].name);
@@ -514,38 +530,36 @@ void INDI::BaseClientQt::sendNewNumber (INumberVectorProperty *nvp)
     }
     prop += QString("</newNumberVector>\n");
 
-    client_socket.write(prop.toLatin1());    
-
-   setlocale(LC_NUMERIC,orig);
+    client_socket.write(prop.toLatin1());
 }
 
-void INDI::BaseClientQt::sendNewNumber (const char *deviceName, const char *propertyName, const char* elementName, double value)
+void INDI::BaseClientQt::sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName,
+                                       double value)
 {
     INDI::BaseDevice *drv = getDevice(deviceName);
 
-    if (drv == NULL)
+    if (drv == nullptr)
         return;
 
     INumberVectorProperty *nvp = drv->getNumber(propertyName);
 
-    if (nvp == NULL)
+    if (nvp == nullptr)
         return;
 
-    INumber * np = IUFindNumber(nvp, elementName);
+    INumber *np = IUFindNumber(nvp, elementName);
 
-    if (np == NULL)
+    if (np == nullptr)
         return;
 
     np->value = value;
 
     sendNewNumber(nvp);
-
 }
 
-void INDI::BaseClientQt::sendNewSwitch (ISwitchVectorProperty *svp)
+void INDI::BaseClientQt::sendNewSwitch(ISwitchVectorProperty *svp)
 {
-    svp->s = IPS_BUSY;
-    ISwitch *onSwitch = IUFindOnSwitch(svp);    
+    svp->s            = IPS_BUSY;
+    ISwitch *onSwitch = IUFindOnSwitch(svp);
 
     QString prop;
 
@@ -563,7 +577,7 @@ void INDI::BaseClientQt::sendNewSwitch (ISwitchVectorProperty *svp)
     }
     else
     {
-        for (int i=0; i < svp->nsp; i++)
+        for (int i = 0; i < svp->nsp; i++)
         {
             prop += QString("  <oneSwitch\n");
             prop += QString("    name='%1'>\n").arg(svp->sp[i].name);
@@ -577,30 +591,29 @@ void INDI::BaseClientQt::sendNewSwitch (ISwitchVectorProperty *svp)
     client_socket.write(prop.toLatin1());
 }
 
-void INDI::BaseClientQt::sendNewSwitch (const char *deviceName, const char *propertyName, const char *elementName)
+void INDI::BaseClientQt::sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName)
 {
     INDI::BaseDevice *drv = getDevice(deviceName);
 
-    if (drv == NULL)
+    if (drv == nullptr)
         return;
 
     ISwitchVectorProperty *svp = drv->getSwitch(propertyName);
 
-    if (svp == NULL)
+    if (svp == nullptr)
         return;
 
-    ISwitch * sp = IUFindSwitch(svp, elementName);
+    ISwitch *sp = IUFindSwitch(svp, elementName);
 
-    if (sp == NULL)
+    if (sp == nullptr)
         return;
 
     sp->s = ISS_ON;
 
     sendNewSwitch(svp);
-
 }
 
-void INDI::BaseClientQt::startBlob( const char *devName, const char *propName, const char *timestamp)
+void INDI::BaseClientQt::startBlob(const char *devName, const char *propName, const char *timestamp)
 {
     QString prop;
 
@@ -609,23 +622,85 @@ void INDI::BaseClientQt::startBlob( const char *devName, const char *propName, c
     prop += QString("  name='%1'\n").arg(propName);
     prop += QString("  timestamp='%1'>\n").arg(timestamp);
 
-    client_socket.write(prop.toLatin1());    
+    client_socket.write(prop.toLatin1());
 }
 
-void INDI::BaseClientQt::sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer)
+void INDI::BaseClientQt::sendOneBlob(IBLOB *bp)
 {
+    QString prop;
+    unsigned char *encblob;
+    int l;
+
+    encblob = (unsigned char *)malloc(4 * bp->size / 3 + 4);
+    l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(bp->blob), bp->size);
+
+    prop += QString("  <oneBLOB\n");
+    prop += QString("    name='%1'\n").arg(bp->name);
+    prop += QString("    size='%1'\n").arg(QString::number(bp->size));
+    prop += QString("    enclen='%1'\n").arg(QString::number(l));
+    prop += QString("    format='%1'>\n").arg(bp->format);
+
+    client_socket.write(prop.toLatin1());
+
+    size_t written = 0;
+    size_t towrite = l;
+
+    while ((int)written < l)
+    {
+        towrite   = ((l - written) > 72) ? 72 : l - written;
+        size_t wr = client_socket.write(reinterpret_cast<const char *>(encblob + written), towrite);
+        if (wr > 0)
+            written += wr;
+        if ((written % 72) == 0)
+            client_socket.write("\n");
+    }
+
+    if ((written % 72) != 0)
+        client_socket.write("\n");
+
+    free(encblob);
+
+    client_socket.write("   </oneBLOB>\n");
+}
+
+void INDI::BaseClientQt::sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat,
+                                     void *blobBuffer)
+{
+    unsigned char *encblob;
+    int l;
+
+    encblob = (unsigned char *)malloc(4 * blobSize / 3 + 4);
+    l       = to64frombits(encblob, reinterpret_cast<const unsigned char *>(blobBuffer), blobSize);
+
     QString prop;
 
     prop += QString("  <oneBLOB\n");
     prop += QString("    name='%1'\n").arg(blobName);
     prop += QString("    size='%1'\n").arg(QString::number(blobSize));
+    prop += QString("    enclen='%1'\n").arg(QString::number(l));
     prop += QString("    format='%1'>\n").arg(blobFormat);
 
     client_socket.write(prop.toLatin1());
 
-    client_socket.write(static_cast<char *>(blobBuffer), blobSize);
+    size_t written = 0;
+    size_t towrite = l;
 
-    client_socket.write("   </oneBLOB>\n");    
+    while ((int)written < l)
+    {
+        towrite   = ((l - written) > 72) ? 72 : l - written;
+        size_t wr = client_socket.write(reinterpret_cast<const char *>(encblob + written), towrite);
+        if (wr > 0)
+            written += wr;
+        if ((written % 72) == 0)
+            client_socket.write("\n");
+    }
+
+    if ((written % 72) != 0)
+        client_socket.write("\n");
+
+    free(encblob);
+
+    client_socket.write("   </oneBLOB>\n");
 }
 
 void INDI::BaseClientQt::finishBlob()
@@ -634,34 +709,76 @@ void INDI::BaseClientQt::finishBlob()
 }
 
 void INDI::BaseClientQt::setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop)
-{   
+{
     if (!dev[0])
         return;
 
+    BLOBMode *bMode = findBLOBMode(std::string(dev), prop ? std::string(prop) : std::string());
+
+    if (bMode == nullptr)
+    {
+        BLOBMode *newMode = new BLOBMode();
+        newMode->device   = std::string(dev);
+        newMode->property = (prop ? std::string(prop) : std::string());
+        newMode->blobMode = blobH;
+        blobModes.push_back(newMode);
+    }
+    else
+    {
+        // If nothing changed, nothing to to do
+        if (bMode->blobMode == blobH)
+            return;
+
+        bMode->blobMode = blobH;
+    }
+
     QString blobOpenTag;
     QString blobEnableTag;
-    if (prop != NULL)
+    if (prop != nullptr)
         blobOpenTag = QString("<enableBLOB device='%1' name='%2'>").arg(dev).arg(prop);
     else
         blobOpenTag = QString("<enableBLOB device='%1'>").arg(dev);
 
-     switch (blobH)
-     {
-     case B_NEVER:
-         blobEnableTag = QString("%1Never</enableBLOB>\n").arg(blobOpenTag);
-         break;
-     case B_ALSO:
-         blobEnableTag = QString("%1Also</enableBLOB>\n").arg(blobOpenTag);
-         break;
-     case B_ONLY:
-         blobEnableTag = QString("%1Only</enableBLOB>\n").arg(blobOpenTag);
-         break;
-     }
+    switch (blobH)
+    {
+        case B_NEVER:
+            blobEnableTag = QString("%1Never</enableBLOB>\n").arg(blobOpenTag);
+            break;
+        case B_ALSO:
+            blobEnableTag = QString("%1Also</enableBLOB>\n").arg(blobOpenTag);
+            break;
+        case B_ONLY:
+            blobEnableTag = QString("%1Only</enableBLOB>\n").arg(blobOpenTag);
+            break;
+    }
 
-     client_socket.write(blobEnableTag.toLatin1());  
+    client_socket.write(blobEnableTag.toLatin1());
 }
 
-void INDI::BaseClientQt::processSocketError( QAbstractSocket::SocketError socketError )
+BLOBHandling INDI::BaseClientQt::getBLOBMode(const char *dev, const char *prop)
+{
+    BLOBHandling bHandle = B_ALSO;
+
+    BLOBMode *bMode = findBLOBMode(dev, (prop ? std::string(prop) : std::string()));
+
+    if (bMode)
+        bHandle = bMode->blobMode;
+
+    return bHandle;
+}
+
+INDI::BaseClientQt::BLOBMode *INDI::BaseClientQt::findBLOBMode(const std::string& device, const std::string& property)
+{
+    for (auto& blob : blobModes)
+    {
+        if (blob->device == device && blob->property == property)
+            return blob;
+    }
+
+    return nullptr;
+}
+
+void INDI::BaseClientQt::processSocketError(QAbstractSocket::SocketError socketError)
 {
     if (sConnected == false)
         return;
@@ -669,12 +786,30 @@ void INDI::BaseClientQt::processSocketError( QAbstractSocket::SocketError socket
     // TODO Handle what happens on socket failure!
     INDI_UNUSED(socketError);
     IDLog("Socket Error: %s\n", client_socket.errorString().toLatin1().constData());
-    fprintf (stderr,"INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
-    disconnectServer();
+    fprintf(stderr, "INDI server %s/%d disconnected.\n", cServer.c_str(), cPort);
+    delLilXML(lillp);
+    client_socket.close();
+    // Let client handle server disconnection
     serverDisconnected(-1);
 }
 
-#if defined(  _MSC_VER )
+bool INDI::BaseClientQt::getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface )
+{
+    for (INDI::BaseDevice *device : cDevices)
+    {
+        if (device->getDriverInterface() | driverInterface)
+            deviceList.push_back(device);
+    }
+
+    return (deviceList.size() > 0);
+}
+
+bool INDI::BaseClientQt::isServerConnected() const
+{
+    return sConnected;
+}
+
+#if defined(_MSC_VER)
 #undef snprintf
 #pragma warning(pop)
 #endif

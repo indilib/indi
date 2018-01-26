@@ -59,11 +59,11 @@ AltaIo::AltaIo( CamModel::InterfaceType type,
     switch( m_type )
     {
         case CamModel::ETHERNET:
-              m_Interface = std::tr1::shared_ptr<ICamIo>( new AltaEthernetIo( deviceAddr ) );
+              m_Interface = std::shared_ptr<ICamIo>( new AltaEthernetIo( deviceAddr ) );
         break;
 
         case CamModel::USB:
-            m_Interface = std::tr1::shared_ptr<ICamIo>( new AltaUsbIo( deviceAddr ) );
+            m_Interface = std::shared_ptr<ICamIo>( new AltaUsbIo( deviceAddr ) );
         break;
 
         default:
@@ -98,7 +98,7 @@ void AltaIo::Program(const std::string & FilenameCamCon,
          __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    std::tr1::dynamic_pointer_cast<AltaUsbIo>(m_Interface)->Program(FilenameCamCon,
+    std::dynamic_pointer_cast<AltaUsbIo>(m_Interface)->Program(FilenameCamCon,
         FilenameBufCon, FilenameFx2, FilenameGpifCamCon,
         FilenameGpifBufCon, FilenameGpifFifo, Print2StdOut);
 }
@@ -123,7 +123,7 @@ std::string AltaIo::GetMacAddress()
     }
 
     std::string result;
-    std::tr1::dynamic_pointer_cast<AltaEthernetIo>(
+    std::dynamic_pointer_cast<AltaEthernetIo>(
             m_Interface)->GetMacAddress( result );
 
     return result;
@@ -142,7 +142,7 @@ void AltaIo::SetSerialBaudRate( const uint16_t PortId , const uint32_t BaudRate 
                 __LINE__, Apg::ErrorType_InvalidUsage );
     }
 
-    std::tr1::dynamic_pointer_cast<IAltaSerialPortIo>(
+    std::dynamic_pointer_cast<IAltaSerialPortIo>(
             m_Interface)->SetSerialBaudRate( PortId, BaudRate );
 }
 
@@ -152,7 +152,7 @@ uint32_t AltaIo::GetSerialBaudRate(  const uint16_t PortId  )
 {
     VerifyPortIdGood(  PortId );
 
-    return std::tr1::dynamic_pointer_cast<IAltaSerialPortIo>(
+    return std::dynamic_pointer_cast<IAltaSerialPortIo>(
             m_Interface)->GetSerialBaudRate( PortId );
 }
 
@@ -162,7 +162,7 @@ Apg::SerialFC AltaIo::GetSerialFlowControl( uint16_t PortId )
 {
     VerifyPortIdGood(  PortId );
 
-    return std::tr1::dynamic_pointer_cast<IAltaSerialPortIo>(
+    return std::dynamic_pointer_cast<IAltaSerialPortIo>(
             m_Interface)->GetSerialFlowControl( PortId );
 }
 
@@ -173,7 +173,7 @@ void AltaIo::SetSerialFlowControl( uint16_t PortId,
 {
     VerifyPortIdGood( PortId );
 
-    std::tr1::dynamic_pointer_cast<IAltaSerialPortIo>(
+    std::dynamic_pointer_cast<IAltaSerialPortIo>(
             m_Interface)->SetSerialFlowControl( PortId, FlowControl );
 }
 
@@ -183,7 +183,7 @@ Apg::SerialParity AltaIo::GetSerialParity( uint16_t PortId )
 {
     VerifyPortIdGood(  PortId );
 
-    return std::tr1::dynamic_pointer_cast<IAltaSerialPortIo>(
+    return std::dynamic_pointer_cast<IAltaSerialPortIo>(
             m_Interface)->GetSerialParity( PortId );
 }
 
@@ -193,7 +193,7 @@ void AltaIo::SetSerialParity( uint16_t PortId, Apg::SerialParity Parity )
 {
     VerifyPortIdGood(  PortId );
 
-    std::tr1::dynamic_pointer_cast<IAltaSerialPortIo>(
+    std::dynamic_pointer_cast<IAltaSerialPortIo>(
             m_Interface)->SetSerialParity( PortId, Parity );
 }
 
@@ -203,7 +203,7 @@ void AltaIo::ReadSerial( uint16_t PortId, std::string & buffer )
 {
     VerifyPortIdGood(  PortId );
 
-    std::tr1::dynamic_pointer_cast<IAltaSerialPortIo>(
+    std::dynamic_pointer_cast<IAltaSerialPortIo>(
             m_Interface)->ReadSerial( PortId, buffer );
 }
 
@@ -213,7 +213,7 @@ void AltaIo::WriteSerial( uint16_t PortId, const std::string & buffer )
 {
     VerifyPortIdGood(  PortId );
 
-    std::tr1::dynamic_pointer_cast<IAltaSerialPortIo>(
+    std::dynamic_pointer_cast<IAltaSerialPortIo>(
             m_Interface)->WriteSerial( PortId, buffer );
 }
 

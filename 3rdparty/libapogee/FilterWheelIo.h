@@ -18,11 +18,7 @@
 #include <stdint.h>
 #include <string>
 
-#ifdef WIN_OS
 #include <memory>
-#else
-#include <tr1/memory>
-#endif
 
 class IUsb;
 
@@ -56,11 +52,11 @@ class DLL_EXPORT FilterWheelIo
 //from http://www.unknownroad.com/rtfm/VisualStudio/warningC4251.html
 #ifdef WIN_OS
 #if _MSC_VER < 1600
-        template class DLL_EXPORT std::tr1::shared_ptr<IUsb>;
+        template class DLL_EXPORT std::shared_ptr<IUsb>;
 #endif
 #endif
 
-          std::tr1::shared_ptr<IUsb> m_Usb; 
+          std::shared_ptr<IUsb> m_Usb; 
 }; 
 
 #endif

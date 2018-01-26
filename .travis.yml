@@ -1,28 +1,62 @@
-language: cpp
-compiler: gcc
+compiler:
+ - gcc
+
 language: cpp
 sudo: required
 dist: trusty
-os: linux
+osx_image: xcode8.3
+
+matrix:
+  include:
+    - os: osx
+      env:
+        - BUILD_INSTALL_GTEST=YES
+
+    # Default config (on trusty gcc4)
+    - os: linux
+
+    # For completness - gcc5 build
+    - os: linux
+      addons:
+        apt:
+          packages:
+            - g++-5
+          sources: &sources
+            - ubuntu-toolchain-r-test
+      env:
+        - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+
 
 branches:
   only:
-    - develop
     - master
-    - refactor/unittest 
+    - develop
+    - package
+    - /drv_.*$/
+    - travis
+    - refactor/unittest
+    - feature/travisosx
 
 before_install:
+    - eval "${MATRIX_EVAL}"
     - echo Install dependencies
-    - travis-ci/deps.sh
+    - travis-ci/deps-${TRAVIS_OS_NAME}.sh
 
 install:
-    - echo Building INDI Core
-    - travis-ci/build-core.sh 
+    - echo Building INDI Core and drivers
+    - travis-ci/build-core.sh
+    - travis-ci/build-libs.sh
     - travis-ci/build-3rdparty.sh
     - travis-ci/build-deb-packages.sh
+#    - travis-ci/build-core.sh Debug
+#    - travis-ci/build-libs.sh Debug
+#    - travis-ci/build-3rdparty.sh Debug
+#    - travis-ci/build-deb-packages.sh Debug
+#    - travis-ci/build-core.sh Release
+#    - travis-ci/build-libs.sh Release
+#    - travis-ci/build-3rdparty.sh Release
+#    - travis-ci/build-deb-packages.sh Release
 
 script:
-    - pwd
-    - cd build/libindi/test
-    - ctest -V
+    - travis-ci/run-tests.sh 
 

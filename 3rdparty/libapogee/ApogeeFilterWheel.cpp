@@ -97,7 +97,7 @@ void ApogeeFilterWheel::Init( const ApogeeFilterWheel::Type type,
             Apg::ErrorType_InvalidUsage );
     }
 
-    m_Usb =  std::tr1::shared_ptr<FilterWheelIo>(new FilterWheelIo( DeviceAddr ) );
+    m_Usb =  std::shared_ptr<FilterWheelIo>(new FilterWheelIo( DeviceAddr ) );
     m_type = type;
     m_connected = true;
 

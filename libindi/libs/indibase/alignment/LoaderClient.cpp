@@ -1,10 +1,7 @@
 #include "LoaderClient.h"
 
-
-
 #include <cstring>
 #include <sstream>
-
 
 using namespace INDI::AlignmentSubsystem;
 
@@ -20,7 +17,7 @@ LoaderClient::~LoaderClient()
 
 // Public methods
 
-void LoaderClient::Initialise(int argc, char* argv[])
+void LoaderClient::Initialise(int argc, char *argv[])
 {
     std::string HostName("localhost");
     int Port = 7624;
@@ -43,7 +40,7 @@ void LoaderClient::Initialise(int argc, char* argv[])
 
     connectServer();
 
-    setBLOBMode(B_ALSO, DeviceName.c_str(), NULL);
+    setBLOBMode(B_ALSO, DeviceName.c_str(), nullptr);
 }
 
 void LoaderClient::Load()
@@ -58,8 +55,8 @@ void LoaderClient::Load()
     InsertSyncPoint(2, CurrentValues);
     DeleteSyncPoint(0);
     CurrentValues.PrivateData.reset(new unsigned char[50]);
-    strcpy((char*)CurrentValues.PrivateData.get(), "This is a test BLOB");
-    CurrentValues.PrivateDataSize = strlen((char*)CurrentValues.PrivateData.get()) + 1;
+    strcpy((char *)CurrentValues.PrivateData.get(), "This is a test BLOB");
+    CurrentValues.PrivateDataSize = strlen((char *)CurrentValues.PrivateData.get()) + 1;
     AppendSyncPoint(CurrentValues);
 }
 

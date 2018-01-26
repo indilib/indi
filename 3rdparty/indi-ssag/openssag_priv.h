@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-extern void IDMessage (const char *dev, const char *fmt, ...);
+extern void IDMessage(const char *dev, const char *fmt, ...);
 #ifdef __cplusplus
 }
 #endif
