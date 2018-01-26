@@ -35,7 +35,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
    currentCatalog = LX200_STAR_C;
    currentSubCatalog = 0;
 
-   setVersion(1, 0);
+   setVersion(1, 2);
 }
 
 const char * LX200_OnStep::getDefaultName()
