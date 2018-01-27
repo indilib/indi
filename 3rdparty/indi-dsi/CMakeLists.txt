@@ -6,7 +6,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 
 IF(APPLE)
-set(FIRMWARE_INSTALL_DIR "/usr/local/lib/firmware")
+set(FIRMWARE_INSTALL_DIR "/usr/local/lib/indi/DriverSupport/dsi")
 ELSE(APPLE)
 set(RULES_INSTALL_DIR "/etc/udev/rules.d")
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")

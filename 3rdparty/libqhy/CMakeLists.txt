@@ -14,7 +14,7 @@ set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
 IF (APPLE)
 
-set(FIRMWARE_INSTALL_DIR "/usr/local/lib/qhy/firmware" CACHE STRING "QHY firmware installation directory")
+set(FIRMWARE_INSTALL_DIR "/usr/local/lib/indi/DriverSupport/qhy" CACHE STRING "QHY firmware installation directory")
 exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy.dylib ${CMAKE_BINARY_DIR}/libqhy.${LIBQHY_VERSION}.dylib)
 install(FILES ${CMAKE_BINARY_DIR}/libqhy.${LIBQHY_VERSION}.dylib DESTINATION ${LIB_INSTALL_DIR})
 
