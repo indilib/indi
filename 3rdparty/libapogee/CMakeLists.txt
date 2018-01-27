@@ -9,7 +9,7 @@ include(GNUInstallDirs)
 
 IF(APPLE)
 set(APOGEE_VERSION "3.0.3.2.3.4")
-set(CONF_DIR "/usr/local/etc" CACHE STRING "Base configuration directory")
+set(CONF_DIR "/usr/local/lib/indi/DriverSupport/" CACHE STRING "Base configuration directory")
 ELSE(APPLE)
 set(APOGEE_VERSION "3.0.3234")
 set(CONF_DIR "/etc" CACHE STRING "Base configuration directory")
@@ -67,4 +67,3 @@ install(
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES 99-apogee.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF()
-
