@@ -45,9 +45,9 @@ static unsigned char eeprom[] = { SSAG_EEPROM };
 
 bool Loader::Connect()
 {
-    if (this->handle = libusb_open_device_with_vid_pid(ctx, SSAG_LOADER_VENDOR_ID, SSAG_LOADER_PRODUCT_ID))
+    if ((this->handle = libusb_open_device_with_vid_pid(ctx, SSAG_LOADER_VENDOR_ID, SSAG_LOADER_PRODUCT_ID)))
         return true;
-    if (this->handle = libusb_open_device_with_vid_pid(ctx, QHY5_LOADER_VENDOR_ID, QHY5_LOADER_PRODUCT_ID))
+    if ((this->handle = libusb_open_device_with_vid_pid(ctx, QHY5_LOADER_VENDOR_ID, QHY5_LOADER_PRODUCT_ID)))
         return true;
     DBG("Failed to connect device");
     return false;
@@ -114,7 +114,7 @@ bool Loader::Upload(unsigned char *data)
 
 bool Loader::LoadFirmware()
 {
-    unsigned char *data = NULL;
+    //unsigned char *data = NULL;
 
     /* Load bootloader */
     this->EnterResetMode();

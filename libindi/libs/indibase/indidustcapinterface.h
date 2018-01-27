@@ -23,7 +23,7 @@
 #include "indibase.h"
 
 /**
- * \class INDI::DustCapInterface
+ * \class DustCapInterface
    \brief Provides interface to implement remotely controlled dust cover
 
    \e IMPORTANT: initDustCapProperties() must be called before any other function to initilize the Dust Cap properties.
@@ -31,7 +31,10 @@
    \e IMPORTANT: processDustCapSwitch() must be called in your driver ISNewSwitch function.
 \author Jasem Mutlaq
 */
-class INDI::DustCapInterface
+namespace INDI
+{
+
+class DustCapInterface
 {
   public:
     enum
@@ -41,8 +44,8 @@ class INDI::DustCapInterface
     };
 
   protected:
-    DustCapInterface();
-    virtual ~DustCapInterface();
+    DustCapInterface() = default;
+    virtual ~DustCapInterface() = default;
 
     /**
          * @brief Park dust cap (close cover). Must be implemented by child.
@@ -72,3 +75,4 @@ class INDI::DustCapInterface
   private:
     char dustCapName[MAXINDIDEVICE];
 };
+}

@@ -16,11 +16,7 @@
 #include <vector>
 #include <stdint.h>
 
-#ifdef WIN_OS
 #include <memory>
-#else
-#include <tr1/memory>
-#endif
 
 #include "CameraStatusRegs.h" 
 

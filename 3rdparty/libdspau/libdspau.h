@@ -19,7 +19,26 @@
 #ifndef _DSPAU_H
 #define _DSPAU_H
 
+#ifndef min(a,b)
+#define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+#endif
+
+#ifndef max(a,b)
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+#endif
+
+#ifndef M_PI
+#    define M_PI 3.14159265358979323846
+#endif
+
 #ifdef  __cplusplus
+
 extern "C" {
 #endif
 #ifdef _WIN32
@@ -40,15 +59,15 @@ enum dspau_conversiontype {
 * @brief Create a spectrum from a double array of values
 * @param in the input stream. (input)
 * @param out the output stream. (output)
-* @param bandwidth the bandwidth of the spectrum.
-* @param len the length of the input stream (input/output).
+* @param dims the number of dimensions of the input stream (input).
+* @param sizes array with the lengths of each dimension of the input stream (input).
 * @param conversion the output magnitude dspau_conversiontype type.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_spectrum(double* in, double* out, int *len, int conversion);
+DLL_EXPORT int dspau_spectrum(double* in, double* out, int dims, int *sizes, int conversion);
 
 /**
 * @brief A square law filter
@@ -133,17 +152,23 @@ DLL_EXPORT int dspau_bandrejectfilter(double* in, double* out, int len, double s
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_autocorrelate(double* in, double* out, int *len, int skip);
+DLL_EXPORT int dspau_autocorrelate(double* in, double* out, int *len);
 
 /**
 * @brief A cross-correlator
-* @param x the first input stream. (input)
-* @param y the second input stream. (input)
-* @param len the length of the input streams.
+* @param in1 the first input stream. (input)
+* @param in2 the second input stream. (input)
+* @param out the output stream. (output)
+* @param len1 the length of the first input stream. (input)
+* @param len2 the length of the second input stream. (input)
+* @param len the length of the output stream. (output)
 * @return the resulting correlation degree.
-* Return the correlation degree.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
 */
-double dspau_crosscorrelate(double* x, double* y, int len);
+double dspau_crosscorrelate(double* in1, double* in2, double* out, int len1, int len2, int *len);
 
 /**
 * @brief A band-pass auto-correlator (Warning: high memory usage!)
@@ -203,7 +228,7 @@ DLL_EXPORT int dspau_removemean(double* in, double* out, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_stretch(double* in, double* out, int len, int min, int max);
+DLL_EXPORT int dspau_stretch(double* in, double* out, int len, double min, double max);
 
 /**
 * @brief Normalize the input stream to the minimum and maximum values
@@ -219,7 +244,7 @@ DLL_EXPORT int dspau_stretch(double* in, double* out, int len, int min, int max)
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_normalize(double* in, double* out, int len, int min, int max);
+DLL_EXPORT int dspau_normalize(double* in, double* out, int len, double min, double max);
 
 /**
 * @brief Subtract elements of one stream from another's

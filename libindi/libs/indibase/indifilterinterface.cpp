@@ -22,25 +22,28 @@
 #include <cstring>
 #include "indilogger.h"
 
-INDI::FilterInterface::FilterInterface(DefaultDevice *defaultDevice) : m_defaultDevice(defaultDevice)
+namespace INDI
+{
+
+FilterInterface::FilterInterface(DefaultDevice *defaultDevice) : m_defaultDevice(defaultDevice)
 {
     FilterNameTP = new ITextVectorProperty;
     FilterNameT  = nullptr;
 }
 
-INDI::FilterInterface::~FilterInterface()
+FilterInterface::~FilterInterface()
 {
     delete FilterNameTP;
 }
 
-void INDI::FilterInterface::initProperties(const char *groupName)
+void FilterInterface::initProperties(const char *groupName)
 {
     IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
     IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, m_defaultDevice->getDeviceName(), "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60,
                        IPS_IDLE);
 }
 
-bool INDI::FilterInterface::updateProperties()
+bool FilterInterface::updateProperties()
 {
     if (m_defaultDevice->isConnected())
     {
@@ -63,7 +66,7 @@ bool INDI::FilterInterface::updateProperties()
     return true;
 }
 
-bool INDI::FilterInterface::processNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool FilterInterface::processNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     INDI_UNUSED(n);
 
@@ -104,7 +107,7 @@ bool INDI::FilterInterface::processNumber(const char *dev, const char *name, dou
     return false;
 }
 
-bool INDI::FilterInterface::processText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool FilterInterface::processText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (dev && !strcmp(dev, m_defaultDevice->getDeviceName()) && !strcmp(name, "FILTER_NAME"))
     {
@@ -154,7 +157,7 @@ bool INDI::FilterInterface::processText(const char *dev, const char *name, char 
     return false;
 }
 
-bool INDI::FilterInterface::saveConfigItems(FILE *fp)
+bool FilterInterface::saveConfigItems(FILE *fp)
 {
     IUSaveConfigNumber(fp, &FilterSlotNP);
     if (FilterNameTP)
@@ -163,7 +166,7 @@ bool INDI::FilterInterface::saveConfigItems(FILE *fp)
     return true;
 }
 
-void INDI::FilterInterface::SelectFilterDone(int f)
+void FilterInterface::SelectFilterDone(int f)
 {
     //  The hardware has finished changing
     //  filters
@@ -174,7 +177,7 @@ void INDI::FilterInterface::SelectFilterDone(int f)
     IDSetNumber(&FilterSlotNP, nullptr);
 }
 
-void INDI::FilterInterface::generateSampleFilters()
+void FilterInterface::generateSampleFilters()
 {
     char filterName[MAXINDINAME];
     char filterLabel[MAXINDILABEL];
@@ -197,7 +200,7 @@ void INDI::FilterInterface::generateSampleFilters()
     IUFillTextVector(FilterNameTP, FilterNameT, MaxFilter, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
 }
 
-bool INDI::FilterInterface::GetFilterNames()
+bool FilterInterface::GetFilterNames()
 {
     // Load from config
     if (FilterNameT == nullptr)
@@ -212,7 +215,8 @@ bool INDI::FilterInterface::GetFilterNames()
     return true;
 }
 
-bool INDI::FilterInterface::SetFilterNames()
+bool FilterInterface::SetFilterNames()
 {
     return m_defaultDevice->saveConfig(true, "FILTER_NAME");
+}
 }

@@ -177,6 +177,7 @@ void ScopeSim::ISGetProperties(const char *dev)
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         defineNumber(&GuideNSNP);
@@ -186,6 +187,7 @@ void ScopeSim::ISGetProperties(const char *dev)
         defineSwitch(&PEErrNSSP);
         defineSwitch(&PEErrWESP);
     }
+    */
 }
 
 bool ScopeSim::updateProperties()

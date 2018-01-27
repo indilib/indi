@@ -40,12 +40,21 @@
 
 #include <memory>
 
+#ifdef OSX_EMBEDED_MODE
+ #include "Alta.h"
+ #include "AltaF.h"
+ #include "Ascent.h"
+ #include "Aspen.h"
+ #include "Quad.h"
+ #include "ApgLogger.h"
+#else
 #include <libapogee/Alta.h>
 #include <libapogee/AltaF.h>
 #include <libapogee/Ascent.h>
 #include <libapogee/Aspen.h>
 #include <libapogee/Quad.h>
 #include <libapogee/ApgLogger.h>
+#endif
 
 #include <fitsio.h>
 
@@ -511,7 +520,7 @@ bool ApogeeCCD::StartExposure(float duration)
 
     imageFrameType = PrimaryCCD.getFrameType();
 
-    if (imageFrameType == CCDChip::BIAS_FRAME)
+    if (imageFrameType == INDI::CCDChip::BIAS_FRAME)
     {
         ExposureRequest = minDuration;
         DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", ExposureRequest);
@@ -521,7 +530,7 @@ bool ApogeeCCD::StartExposure(float duration)
         ApgCam->SetImageCount(1);
 
     /* BIAS frame is the same as DARK but with minimum period. i.e. readout from camera electronics.*/
-    if (imageFrameType == CCDChip::BIAS_FRAME || imageFrameType == CCDChip::DARK_FRAME)
+    if (imageFrameType == INDI::CCDChip::BIAS_FRAME || imageFrameType == INDI::CCDChip::DARK_FRAME)
     {
         try
         {
@@ -537,7 +546,7 @@ bool ApogeeCCD::StartExposure(float duration)
             return false;
         }
     }
-    else if (imageFrameType == CCDChip::LIGHT_FRAME || imageFrameType == CCDChip::FLAT_FRAME)
+    else if (imageFrameType == INDI::CCDChip::LIGHT_FRAME || imageFrameType == INDI::CCDChip::FLAT_FRAME)
     {
         try
         {

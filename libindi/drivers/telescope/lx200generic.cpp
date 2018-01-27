@@ -33,6 +33,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx200_10micron.h"
 #include "lx200_16.h"
 #include "lx200_OnStep.h"
+#include "lx200ap_experimental.h"
+#include "lx200ap_gtocp2.h"
 #include "lx200ap.h"
 #include "lx200classic.h"
 #include "lx200driver.h"
@@ -114,6 +116,20 @@ void ISInit()
 
         if (telescope.get() == 0)
             telescope.reset(new LX200Autostar());
+    }
+    else if (strstr(me, "indi_lx200ap_experimental"))
+    {
+        IDLog("initializing from Astrophysics Experiemtal device...\n");
+
+        if (telescope.get() == 0)
+            telescope.reset(new LX200AstroPhysicsExperimental());
+    }
+    else if (strstr(me, "indi_lx200ap_gtocp2"))
+    {
+        IDLog("initializing from Astrophysics GTOCP2 device...\n");
+
+        if (telescope.get() == 0)
+            telescope.reset(new LX200AstroPhysicsGTOCP2());
     }
     else if (strstr(me, "indi_lx200ap"))
     {
@@ -359,6 +375,7 @@ void LX200Generic::ISGetProperties(const char *dev)
 
     INDI::Telescope::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
@@ -386,6 +403,7 @@ void LX200Generic::ISGetProperties(const char *dev)
             defineSwitch(&FocusModeSP);
         }
     }
+    */
 }
 
 bool LX200Generic::updateProperties()
@@ -1287,7 +1305,8 @@ void LX200Generic::getBasicData()
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
             getAlignment();
 
-        if (GetTelescopeCapability() & TELESCOPE_HAS_TIME)
+        // Only check time format if it is not already initialized by the class
+        if ( (GetTelescopeCapability() & TELESCOPE_HAS_TIME) && timeFormat == -1)
         {
             if (getTimeFormat(PortFD, &timeFormat) < 0)
                 DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve time format from device.");
@@ -1323,9 +1342,9 @@ void LX200Generic::getBasicData()
 
     }
 
-    if (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION)
+    if (sendLocationOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION))
         sendScopeLocation();
-    if (GetTelescopeCapability() & TELESCOPE_HAS_TIME)
+    if (sendTimeOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_TIME))
         sendScopeTime();
 }
 

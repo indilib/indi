@@ -2635,7 +2635,11 @@ int fcUsb_CloseCamera(int camNum)
     	libusb_close(gCamerasFound[camNum - 1].dev);
 
 		gCamerasFound[camNum - 1].dev = NULL;
+
+        return 0;
 		}
+
+    return -1;
 
 }
 

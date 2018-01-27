@@ -26,6 +26,11 @@
 
 #include "indigps.h"
 
+/**
+ * @brief The GPSSimulator class provides a simple simulator that provide GPS Time and Location services.
+ *
+ * The time is fetched from the system time while the location is hard-coded to Latitude: 29.1 and Longitude: 48.5
+ */
 class GPSSimulator : public INDI::GPS
 {
   public:

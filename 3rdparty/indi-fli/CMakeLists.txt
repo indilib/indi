@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 3.0)
 PROJECT(indi_fli C CXX)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
@@ -13,7 +13,7 @@ find_package(FLI REQUIRED)
 find_package(ZLIB REQUIRED)
 
 set (FLI_CCD_VERSION_MAJOR 1)
-set (FLI_CCD_VERSION_MINOR 1)
+set (FLI_CCD_VERSION_MINOR 2)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_fli.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_fli.xml )

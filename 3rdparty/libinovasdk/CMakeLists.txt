@@ -1,12 +1,14 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 PROJECT(libinovasdk C CXX)
 
-set(INOVASDK_VERSION "1.3.2")
+set(INOVASDK_VERSION "1.3.4")
 set(INOVASDK_SOVERSION "1")
+
+include(GNUInstallDirs)
 
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
-set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")

@@ -169,8 +169,8 @@ void LX200Basic::ISGetProperties(const char *dev)
 
     INDI::Telescope::ISGetProperties(dev);
 
-    if (isConnected())
-        defineNumber(&SlewAccuracyNP);
+    //if (isConnected())
+    //    defineNumber(&SlewAccuracyNP);
 }
 
 /**************************************************************************************

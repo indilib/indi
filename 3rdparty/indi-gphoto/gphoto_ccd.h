@@ -74,6 +74,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     bool Disconnect() override;
 
     bool StartExposure(float duration) override;
+    bool AbortExposure() override;
     bool UpdateCCDFrame(int x, int y, int w, int h) override;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
@@ -89,7 +90,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
   protected:
     // Misc.
     bool saveConfigItems(FILE *fp) override;
-    void addFITSKeywords(fitsfile *fptr, CCDChip *targetChip) override;
+    void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;
     void TimerHit() override;
 
     // Upload Mode
@@ -99,16 +100,16 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     bool SetFocuserSpeed(int speed) override;
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
 
-// Streaming
-#ifdef __linux__
+    // Streaming
     bool StartStreaming() override;
     bool StopStreaming() override;
-    bool captureLiveVideo();
-#endif
+
+    bool startLiveVideo();
+    bool stopLiveVideo();
 
     // Preview
-    bool startLivePreview();
-    bool stopLivePreview();
+    //bool startLivePreview();
+
 
   private:
     ISwitch *create_switch(const char *basestr, char **options, int max_opts, int setidx);

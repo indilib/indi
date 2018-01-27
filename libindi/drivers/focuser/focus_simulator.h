@@ -20,6 +20,17 @@
 
 #include "indifocuser.h"
 
+/**
+ * @brief The FocusSim class provides a simple Focuser simulator that can simulator the following devices:
+ * + Absolute Focuser with encoders.
+ * + Relative Focuser.
+ * + Simple DC Focuser.
+ *
+ * The focuser type must be selected before establishing connection to the focuser.
+ *
+ * The driver defines FWHM property that is used in the @ref CCDSim "CCD Simulator" driver to simulate the fuzziness of star images.
+ * It can be used to test AutoFocus routines among other applications.
+ */
 class FocusSim : public INDI::Focuser
 {
   public:

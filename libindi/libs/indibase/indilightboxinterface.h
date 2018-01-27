@@ -25,7 +25,7 @@
 #include <stdint.h>
 
 /**
- * \class INDI::LightBoxInterface
+ * \class LightBoxInterface
    \brief Provides interface to implement controllable light box/switch device.
 
    Filter durations preset can be defined if the active filter name is set. Once the filter names are retrieved, the duration in seconds can be set for each filter.
@@ -40,7 +40,10 @@
    \e IMPORTANT: processLightBoxText() must be called in your driver ISNewText function.
 \author Jasem Mutlaq
 */
-class INDI::LightBoxInterface
+namespace INDI
+{
+
+class LightBoxInterface
 {
   public:
     enum
@@ -50,7 +53,7 @@ class INDI::LightBoxInterface
     };
 
   protected:
-    LightBoxInterface(INDI::DefaultDevice *device, bool isDimmable);
+    LightBoxInterface(DefaultDevice *device, bool isDimmable);
     virtual ~LightBoxInterface();
 
     /** \brief Initilize light box properties. It is recommended to call this function within initProperties() of your primary device
@@ -110,7 +113,8 @@ class INDI::LightBoxInterface
   private:
     void addFilterDuration(const char *filterName, uint16_t filterDuration);
 
-    INDI::DefaultDevice *device;
+    DefaultDevice *device;
     uint8_t currentFilterSlot;
     bool isDimmable;
 };
+}

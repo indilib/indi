@@ -331,7 +331,9 @@
     sleep(1);
     log = fopen([logname cStringUsingEncoding:NSASCIIStringEncoding], "r");
   }
-  _statusImage.image = [NSImage imageNamed:@"NSStatusAvailable"];
+  dispatch_async(dispatch_get_main_queue(), ^{
+     _statusImage.image = [NSImage imageNamed:@"NSStatusAvailable"];
+   });
   service = [[NSNetService alloc] initWithDomain:@"" type:@"_indi._tcp" name:@"" port:7624];
   if(service) {
     [service setDelegate:self];
@@ -340,7 +342,9 @@
   else {
     NSLog(@"An error occurred initializing the NSNetService object.");
   }
-  _statusLabel.stringValue = @"Server is running (idle)";
+  dispatch_async(dispatch_get_main_queue(), ^{
+     _statusLabel.stringValue = @"Server is running (idle)";
+  });
   while (true) {
     pos = ftell(log);
     while (!fgets(buffer, 1024, log)) {
@@ -357,17 +361,19 @@
       NSLog(@"Failed %s", driver);
       [self setStatus:FAILED to:[NSString stringWithCString:driver encoding:NSASCIIStringEncoding]];
     } else if (sscanf(buffer, "CLIENTS %d", &count) == 1) {
-      switch (count) {
-        case 0:
-          _statusLabel.stringValue = @"Server is running (idle)";
-          break;
-        case 1:
-          _statusLabel.stringValue = @"Server is running (1 client)";
-          break;
-        default:
-          _statusLabel.stringValue = [NSString stringWithFormat:@"Server is running (%d clients)", count];
-          break;
-      }
+      dispatch_async(dispatch_get_main_queue(), ^{
+         switch (count) {
+           case 0:
+             _statusLabel.stringValue = @"Server is running (idle)";
+             break;
+           case 1:
+             _statusLabel.stringValue = @"Server is running (1 client)";
+             break;
+           default:
+             _statusLabel.stringValue = [NSString stringWithFormat:@"Server is running (%d clients)", count];
+             break;
+         }
+      });
     }
   }
 }

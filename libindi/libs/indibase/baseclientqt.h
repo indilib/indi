@@ -52,7 +52,7 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
     Q_OBJECT
 
   public:
-    BaseClientQt();
+    BaseClientQt(QObject *parent = Q_NULLPTR);
     virtual ~BaseClientQt();
 
     /** \brief Set the server host name and port
@@ -83,6 +83,8 @@ class INDI::BaseClientQt : public QObject, public INDI::BaseMediator
         \return True if disconnection is successful, false otherwise.
     */
     bool disconnectServer();
+
+    bool isServerConnected() const;
 
     /** \brief Connect to INDI driver
         \param deviceName Name of the device to connect to.

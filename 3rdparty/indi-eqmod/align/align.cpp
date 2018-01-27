@@ -19,6 +19,8 @@
 
 #include "../eqmod.h"
 
+#include <cstring>
+#include <cmath>
 #include <libnova/sidereal_time.h>
 #include <libnova/transform.h>
 

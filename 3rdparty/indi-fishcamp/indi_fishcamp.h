@@ -53,7 +53,7 @@ class FishCampCCD : public INDI::CCD
     void TimerHit();
     virtual bool UpdateCCDFrame(int x, int y, int w, int h);
     virtual bool UpdateCCDBin(int binx, int biny);
-    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+    virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType);
     virtual int SetTemperature(double temperature);
 
     virtual void simulationTriggered(bool enable);
@@ -83,7 +83,7 @@ class FishCampCCD : public INDI::CCD
     fc_camInfo camInfo;
     int timerID;
 
-    CCDChip::CCD_FRAME imageFrameType;
+    INDI::CCDChip::CCD_FRAME imageFrameType;
 
     struct timeval ExpStart;
 
