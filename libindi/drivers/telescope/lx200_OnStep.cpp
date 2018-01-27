@@ -62,21 +62,18 @@ bool LX200_OnStep::initProperties()
     IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 1, getDeviceName(), "Slew elevation Limit", "",
                        MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
-    /*
-    IUFillSwitch(&EnaTrackS[0], "ENABLE", "TrackOn/Off", ISS_OFF);
-    IUFillSwitchVector(&EnaTrackSP, EnaTrackS, 1, getDeviceName(), "TELESCOPE_TRACK_ENABLE", "Tracking On/Off",
-                       MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-                       */
 
-    IUFillSwitch(&AlignS[0], "AlignOn", "Align On", ISS_OFF);
-    IUFillSwitch(&AlignS[1], "AlignOff", "Align Off", ISS_OFF);
-    IUFillSwitchVector(&AlignSP, AlignS, 2, getDeviceName(), "alignOnStep", "Alignment Start", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitch(&OSAlignS[0], "1", "1 Star", ISS_OFF);
+    IUFillSwitch(&OSAlignS[1], "2", "2 Stars", ISS_OFF);
+    IUFillSwitch(&OSAlignS[2], "3", "3 Stars", ISS_OFF);
+    IUFillSwitchVector(&OSAlignSP, OSAlignS, 3, getDeviceName(), "AlignStar", "Align using n stars", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillText(&OSAlignT[0], "OSStarAlign", "Align x Star(s)", "");
+    IUFillTextVector(&OSAlignTP, OSAlignT, 1, getDeviceName(), "Process Align", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
     IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
-    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB,
-                       IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_ALERT);
 
     // ============== CONNECTION_TAB
 
@@ -105,8 +102,7 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&StarCatalogS[0], "Star", "", ISS_ON);
     IUFillSwitch(&StarCatalogS[1], "SAO", "", ISS_OFF);
     IUFillSwitch(&StarCatalogS[2], "GCVS", "", ISS_OFF);
-    IUFillSwitchVector(&StarCatalogSP, StarCatalogS, 3, getDeviceName(), "Star Catalogs", "", LIBRARY_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&StarCatalogSP, StarCatalogS, 3, getDeviceName(), "Star Catalogs", "", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&DeepSkyCatalogS[0], "NGC", "", ISS_ON);
     IUFillSwitch(&DeepSkyCatalogS[1], "IC", "", ISS_OFF);
@@ -115,8 +111,7 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&DeepSkyCatalogS[4], "Arp", "", ISS_OFF);
     IUFillSwitch(&DeepSkyCatalogS[5], "Abell", "", ISS_OFF);
     IUFillSwitch(&DeepSkyCatalogS[6], "Messier", "", ISS_OFF);
-    IUFillSwitchVector(&DeepSkyCatalogSP, DeepSkyCatalogS, 7, getDeviceName(), "Deep Sky Catalogs", "", LIBRARY_TAB,
-                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&DeepSkyCatalogSP, DeepSkyCatalogS, 7, getDeviceName(), "Deep Sky Catalogs", "", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&SolarS[0], "Select", "Select item", ISS_ON);
     IUFillSwitch(&SolarS[1], "1", "Mercury", ISS_OFF);
@@ -128,12 +123,10 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&SolarS[7], "7", "Uranus", ISS_OFF);
     IUFillSwitch(&SolarS[8], "8", "Neptune", ISS_OFF);
     IUFillSwitch(&SolarS[9], "9", "Pluto", ISS_OFF);
-    IUFillSwitchVector(&SolarSP, SolarS, 10, getDeviceName(), "SOLAR_SYSTEM", "Solar System", LIBRARY_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&SolarSP, SolarS, 10, getDeviceName(), "SOLAR_SYSTEM", "Solar System", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&ObjectNoN[0], "ObjectN", "Number", "%+03f", 1.0, 1000.0, 1.0, 0);
-    IUFillNumberVector(&ObjectNoNP, ObjectNoN, 1, getDeviceName(), "Object Number", "", LIBRARY_TAB, IP_RW, 0,
-                       IPS_IDLE);
+    IUFillNumberVector(&ObjectNoNP, ObjectNoN, 1, getDeviceName(), "Object Number", "", LIBRARY_TAB, IP_RW, 0, IPS_IDLE);
 
     // ============== STATUS_TAB
     IUFillText(&OnstepStat[0], ":GU# return", "", "");
@@ -165,7 +158,8 @@ bool LX200_OnStep::updateProperties()
     {
         //defineSwitch(&EnaTrackSP);
         defineSwitch(&ReticSP);
-        defineSwitch(&AlignSP);
+        defineSwitch(&OSAlignSP);
+        defineText(&OSAlignTP);
         defineText(&VersionTP);
         defineNumber(&ElevationLimitNP);
         defineText(&ObjectInfoTP);
@@ -181,7 +175,8 @@ bool LX200_OnStep::updateProperties()
     {
         //deleteProperty(EnaTrackSP.name);
         deleteProperty(ReticSP.name);
-        deleteProperty(AlignSP.name);
+        deleteProperty(OSAlignSP.name);
+        deleteProperty(OSAlignTP.name);
         deleteProperty(VersionTP.name);
         deleteProperty(ElevationLimitNP.name);
         deleteProperty(ObjectInfoTP.name);
@@ -329,31 +324,45 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         }*/
 
         // Align Buttons
-        if (!strcmp(name, AlignSP.name))
+        if (!strcmp(name, OSAlignSP.name))
         {
             int ret = 0;
 
-            IUUpdateSwitch(&AlignSP, states, names, n);
-            AlignSP.s = IPS_OK;
+            if (IUUpdateSwitch(&OSAlignSP, states, names, n) < 0)
+                return false;
 
-            if (AlignS[0].s == ISS_ON)
-            {
-                ret = OnStepalign(PortFD);
-                IDSetSwitch(&AlignSP, "Olign On");
-            }
-            else
-            {
-                ret = OnStepalign(PortFD);
-                IDSetSwitch(&AlignSP, "Align Off");
-            }
+            index = IUFindOnSwitchIndex(&OSAlignSP);
 
-            IUResetSwitch(&AlignSP);
-            //            AlignSP.s = IPS_IDLE;
-            IDSetSwitch(&AlignSP, nullptr);
-            return true;
+            if (index == 0)
+            {
+                //IDSetText(&OSAlignTP,"1 Stars Align");
+                IUSaveText(&OSAlignT[0],"1 Star Align: choose a star => Goto => center => sync");
+                ret = OnStepalign1(PortFD);
+                DEBUG(INDI::Logger::DBG_WARNING, "choix1");
+            }
+            if (index == 1)
+            {
+                IUSaveText(&OSAlignT[0],"2 Stars Align: choose a star => Goto => center => sync");
+                ret = OnStepalign2(PortFD);
+                DEBUG(INDI::Logger::DBG_WARNING, "choix2");
+            }
+            if (index == 2)
+            {
+                IUSaveText(&OSAlignT[0],"3 Star Align: choose a star => Goto => center => sync");
+                ret = OnStepalign3(PortFD);
+                DEBUG(INDI::Logger::DBG_WARNING, "choix3");
+            }
+            OSAlignSP.s = IPS_OK;
+            IDSetSwitch(&OSAlignSP, nullptr);
+            IDSetText(&OSAlignTP, nullptr);
+
         }
 
+/*        if (!strcmp(name, OSAlignTP.name))
+        {
 
+        }
+*/
         // Reticlue +/- Buttons
         if (!strcmp(name, ReticSP.name))
         {
@@ -532,8 +541,8 @@ Errors Lasterror = ERR_NONE;
     getStatus(PortFD, OSStat);
     // ============= Tracking Status
     IUSaveText(&OnstepStat[0],OSStat);
-    if (strstr(OSStat,"n")) IUSaveText(&OnstepStat[1],"Not Tracking");
-    if (strstr(OSStat,"N")) IUSaveText(&OnstepStat[1],"Not Slewing");
+    if (strstr(OSStat,"n") && !strstr(OSStat,"N")) IUSaveText(&OnstepStat[1],"Sleewing");
+    if (strstr(OSStat,"N") && !strstr(OSStat,"n")) IUSaveText(&OnstepStat[1],"Tracking");
     if (strstr(OSStat,"t")) IUSaveText(&OnstepStat[1],"Tracking");
 
     // ============= Refractoring

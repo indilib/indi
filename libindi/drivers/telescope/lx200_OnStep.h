@@ -30,7 +30,9 @@
 #define ReticPlus(fd)      write(fd, "#:B+#", 5)            // azwing
 #define ReticMoins(fd)     write(fd, "#:B-#", 5)            // azwing
 #define getStatus(fd, x)   getCommandString(fd, x, "#:GU#") // azwing
-#define OnStepalign(fd)          write(fd, "#:A1#", 5)            // azwing
+#define OnStepalign1(fd)   write(fd, "#:A1#", 5)            // azwing
+#define OnStepalign2(fd)   write(fd, "#:A2#", 5)            // azwing
+#define OnStepalign3(fd)   write(fd, "#:A3#", 5)            // azwing
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
 
@@ -95,8 +97,10 @@ class LX200_OnStep : public LX200Generic
     ISwitch ReticS[2];
 
     // Align Buttons
-    ISwitchVectorProperty AlignSP;
-    ISwitch AlignS[2];
+    ISwitchVectorProperty OSAlignSP;
+    ISwitch OSAlignS[3];
+    IText OSAlignT[20];
+    ITextVectorProperty OSAlignTP;
 
     char OnStepStatus[160];
     char OSStat[20];
