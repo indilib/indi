@@ -68,8 +68,8 @@ bool LX200_OnStep::initProperties()
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
                        */
 
-    IUFillSwitch(&AlignS[0], "AlignOn", "Align-", ISS_OFF);
-    IUFillSwitch(&AlignS[1], "AlignOff", "Align+", ISS_OFF);
+    IUFillSwitch(&AlignS[0], "AlignOn", "Align On", ISS_OFF);
+    IUFillSwitch(&AlignS[1], "AlignOff", "Align Off", ISS_OFF);
     IUFillSwitchVector(&AlignSP, AlignS, 2, getDeviceName(), "alignOnStep", "Alignment Start", MAIN_CONTROL_TAB,
                        IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -138,12 +138,13 @@ bool LX200_OnStep::initProperties()
     // ============== STATUS_TAB
     IUFillText(&OnstepStat[0], ":GU# return", "", "");
     IUFillText(&OnstepStat[1], "Tracking", "", "");
-    IUFillText(&OnstepStat[2], "Park", "", "");
-    IUFillText(&OnstepStat[3], "Pec", "", "");
-    IUFillText(&OnstepStat[4], "TimeSync", "", "");
-    IUFillText(&OnstepStat[5], "Mount Type", "", "");
-    IUFillText(&OnstepStat[6], "Error", "", "");
-    IUFillTextVector(&OnstepStatTP, OnstepStat, 6, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillText(&OnstepStat[2], "Refractoring", "", "");
+    IUFillText(&OnstepStat[3], "Park", "", "");
+    IUFillText(&OnstepStat[4], "Pec", "", "");
+    IUFillText(&OnstepStat[5], "TimeSync", "", "");
+    IUFillText(&OnstepStat[6], "Mount Type", "", "");
+    IUFillText(&OnstepStat[7], "Error", "", "");
+    IUFillTextVector(&OnstepStatTP, OnstepStat, 8, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_IDLE);
 
     return true;
 }
@@ -338,12 +339,12 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             if (AlignS[0].s == ISS_ON)
             {
                 ret = OnStepalign(PortFD);
-                IDSetSwitch(&AlignSP, "Bright");
+                IDSetSwitch(&AlignSP, "Olign On");
             }
             else
             {
                 ret = OnStepalign(PortFD);
-                IDSetSwitch(&AlignSP, "Dark");
+                IDSetSwitch(&AlignSP, "Align Off");
             }
 
             IUResetSwitch(&AlignSP);
@@ -526,78 +527,55 @@ bool LX200_OnStep::UnPark()
 
 void LX200_OnStep::OnStepStat()
 {
+Errors Lasterror = ERR_NONE;
+
     getStatus(PortFD, OSStat);
     // ============= Tracking Status
     IUSaveText(&OnstepStat[0],OSStat);
-    if (strstr(OSStat,"n")) IUSaveText(&OnstepStat[1],"Tracking");
-    if (strstr(OSStat,"N"))
-    {
-    IUSaveText(&OnstepStat[1],"Slewing");
-    }
-    if (strstr(OSStat,"r") && strstr(OSStat,"t"))
-    {
-    IUSaveText(&OnstepStat[1],"Full Comp");
-    }
-    // ============= Parkstatus
-    if (strstr(OSStat,"P"))
-    {
-    IUSaveText(&OnstepStat[2],"Parked");
-    }
-    if (strstr(OSStat,"p"))
-    {
-    IUSaveText(&OnstepStat[2],"UnParked");
-    }
-    if (strstr(OSStat,"I"))
-    {
-    IUSaveText(&OnstepStat[2],"Park in Progress");
-    }
-    if (strstr(OSStat,"F"))
-    {
-    IUSaveText(&OnstepStat[2],"Parking Failed");
-    }
-    // ============= Pec Status
-    if (!strstr(OSStat,"R") && !strstr(OSStat,"W"))
-    {
-    IUSaveText(&OnstepStat[3],"N/A");
-    }
-    if (strstr(OSStat,"R"))
-    {
-    IUSaveText(&OnstepStat[3],"Recorded");
-    }
-    if (strstr(OSStat,"W"))
-    {
-    IUSaveText(&OnstepStat[3],"Autorecord");
-    }
+    if (strstr(OSStat,"n")) IUSaveText(&OnstepStat[1],"Not Tracking");
+    if (strstr(OSStat,"N")) IUSaveText(&OnstepStat[1],"Not Slewing");
+    if (strstr(OSStat,"t")) IUSaveText(&OnstepStat[1],"Tracking");
 
+    // ============= Refractoring
+    if (strstr(OSStat,"r")) IUSaveText(&OnstepStat[2],"Refractoring On");
+    if (strstr(OSStat,"s")) IUSaveText(&OnstepStat[2],"Refractoring Off");
+    if (strstr(OSStat,"r") && strstr(OSStat,"t")) IUSaveText(&OnstepStat[2],"Full Comp");
+    if (strstr(OSStat,"r") && !strstr(OSStat,"t")) IUSaveText(&OnstepStat[2],"Refractory Comp");
+
+    // ============= Parkstatus
+    if (strstr(OSStat,"P")) IUSaveText(&OnstepStat[3],"Parked");
+    if (strstr(OSStat,"p")) IUSaveText(&OnstepStat[3],"UnParked");
+    if (strstr(OSStat,"I")) IUSaveText(&OnstepStat[3],"Park in Progress");
+    if (strstr(OSStat,"F")) IUSaveText(&OnstepStat[3],"Parking Failed");
+    if (strstr(OSStat,"H")) IUSaveText(&OnstepStat[3],"At Home");
+    if (strstr(OSStat,"W")) IUSaveText(&OnstepStat[3],"Waiting at Home");
+
+    // ============= Pec Status
+    if (!strstr(OSStat,"R") && !strstr(OSStat,"W")) IUSaveText(&OnstepStat[4],"N/A");
+    if (strstr(OSStat,"R")) IUSaveText(&OnstepStat[4],"Recorded");
+    if (strstr(OSStat,"W")) IUSaveText(&OnstepStat[4],"Autorecord");
 
     // ============= Time Sync Status
-    if (!strstr(OSStat,"S"))
-    {
-    IUSaveText(&OnstepStat[4],"N/A");
-    }
-    if (strstr(OSStat,"S"))
-    {
-    IUSaveText(&OnstepStat[4],"PPS / GPS Sync Ok");
-    }
+    if (!strstr(OSStat,"S")) IUSaveText(&OnstepStat[5],"N/A");
+    if (strstr(OSStat,"S")) IUSaveText(&OnstepStat[5],"PPS / GPS Sync Ok");
 
     // ============= Mount Types
-    if (strstr(OSStat,"E"))
-    {
-    IUSaveText(&OnstepStat[5],"German Mount");
-    }
-    if (strstr(OSStat,"F"))
-    {
-    IUSaveText(&OnstepStat[5],"Fork Mount");
-    }
-    if (strstr(OSStat,"k"))
-    {
-    IUSaveText(&OnstepStat[5],"Fork Alt Mount");
-    }
-    if (strstr(OSStat,"A"))
-    {
-    IUSaveText(&OnstepStat[5],"AltAZ Mount");
-    }
+    if (strstr(OSStat,"E")) IUSaveText(&OnstepStat[6],"German Mount");
+    if (strstr(OSStat,"F")) IUSaveText(&OnstepStat[6],"Fork Mount");
+    if (strstr(OSStat,"k")) IUSaveText(&OnstepStat[6],"Fork Alt Mount");
+    if (strstr(OSStat,"A")) IUSaveText(&OnstepStat[6],"AltAZ Mount");
+
     // ============= Error Code
+    Lasterror=(Errors)(OSStat[strlen(OSStat)-1]-'0');
+    if (Lasterror==ERR_NONE) IUSaveText(&OnstepStat[7],"None");
+    if (Lasterror==ERR_MOTOR_FAULT) IUSaveText(&OnstepStat[7],"Motor Fault");
+    if (Lasterror==ERR_ALT) IUSaveText(&OnstepStat[7],"Altitude Min/Max");
+    if (Lasterror==ERR_LIMIT_SENSE) IUSaveText(&OnstepStat[7],"Limit Sense");
+    if (Lasterror==ERR_DEC) IUSaveText(&OnstepStat[7],"Dec Limit Exceeded");
+    if (Lasterror==ERR_AZM) IUSaveText(&OnstepStat[7],"Azm Limit Exceeded");
+    if (Lasterror==ERR_UNDER_POLE) IUSaveText(&OnstepStat[7],"Under Pole Limit Exceeded");
+    if (Lasterror==ERR_MERIDIAN) IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded");
+    if (Lasterror==ERR_SYNC) IUSaveText(&OnstepStat[7],"Sync. ignored >30&deg;");
 
     DEBUG(INDI::Logger::DBG_DEBUG, OnStepStatus);
 }

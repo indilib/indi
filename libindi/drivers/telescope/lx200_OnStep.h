@@ -32,6 +32,9 @@
 #define getStatus(fd, x)   getCommandString(fd, x, "#:GU#") // azwing
 #define OnStepalign(fd)          write(fd, "#:A1#", 5)            // azwing
 
+enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
+
+
 class LX200_OnStep : public LX200Generic
 {
   public:
