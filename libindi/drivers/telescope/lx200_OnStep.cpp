@@ -21,12 +21,7 @@
 
 #include "lx200_OnStep.h"
 
-#include "lx200driver.h"
-#include "indicom.h"
 
-#include <cstring>
-#include <unistd.h>
-#include <termios.h>
 
 #define LIBRARY_TAB  "Library"
 #define FIRMWARE_TAB "Firmware data"
@@ -41,7 +36,16 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
 
     setVersion(1, 4);
 
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE );
+/* Already inherited from lx200generic
+Default TELESCOPE_CAN_ABORT
+Default TELESCOPE_CAN_GOTO
+Default TELESCOPE_CAN_PARK
+Default TELESCOPE_CAN_SYNC
+Default TELESCOPE_HAS_LOCATION
+Default TELESCOPE_HAS_TIME
+Default TELESCOPE_HAS_TRACK_MODE
+*/
 }
 
 const char *LX200_OnStep::getDefaultName()
@@ -49,18 +53,29 @@ const char *LX200_OnStep::getDefaultName()
     return (const char *)"LX200 OnStep";
 }
 
+/*
+bool LX200_OnStep::loadProperties()
+{
+    buildSkeleton("OnStep_sk.xml");
+
+    INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);
+    INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), INFO_TAB);
+
+
+    return true;
+}
+*/
+
 bool LX200_OnStep::initProperties()
 {
     LX200Generic::initProperties();
     // ============== MAIN_CONTROL_TAB
     IUFillText(&ObjectInfoT[0], "Info", "", "");
-    IUFillTextVector(&ObjectInfoTP, ObjectInfoT, 1, getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, IP_RO, 0,
-                     IPS_IDLE);
+    IUFillTextVector(&ObjectInfoTP, ObjectInfoT, 1, getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&ElevationLimitN[0], "minAlt", "Speed", "%+03f", -90.0, 90.0, 0.0, 0.0); // double % typo
-    IUFillNumber(&ElevationLimitN[1], "maxAlt", "Speed", "%+03f", -90.0, 90.0, 0.0, 0.0);
-    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 1, getDeviceName(), "Slew elevation Limit", "",
-                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&ElevationLimitN[0], "minAlt", "Elev Min", "%+03f", -90.0, 90.0, 1.0, -30.0);
+    IUFillNumber(&ElevationLimitN[1], "maxAlt", "Elev Max", "%+03f", -90.0, 90.0, 1.0, 89.0);
+    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 2, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
 
     IUFillSwitch(&OSAlignS[0], "1", "1 Star", ISS_OFF);
@@ -80,9 +95,9 @@ bool LX200_OnStep::initProperties()
     // ============== OPTION_TAB
 
     // ============== MOTION_CONTROL_TAB
-    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 2.0, 9.0, 1.0, 9.0);
-    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,
-                       IPS_IDLE);
+
+    IUFillNumber(&MaxSlewRateN[0], "maxSlew", "Rate", "%g", 1.0, 9.0, 1.0, 5.0);    //2.0, 9.0, 1.0, 9.0
+    IUFillNumberVector(&MaxSlewRateNP, MaxSlewRateN, 1, getDeviceName(), "Max slew Rate", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
 
     // ============== SITE_MANAGEMENT_TAB
 
@@ -169,6 +184,7 @@ bool LX200_OnStep::updateProperties()
         defineNumber(&ObjectNoNP);
         defineNumber(&MaxSlewRateNP);
         defineText(&OnstepStatTP);
+
         return true;
     }
     else
@@ -186,6 +202,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(ObjectNoNP.name);
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(OnstepStatTP.name);
+
         return true;
     }
 }
@@ -225,16 +242,24 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
 
         if (!strcmp(name, MaxSlewRateNP.name))
         {
-            if (setMaxSlewRate(PortFD, (int)values[0]) < 0)
+            int ret;
+            char cmd[4];
+            snprintf(cmd, 4, ":R%d#", (int)values[0]);
+            ret = sendOnStepCommandBlind(cmd);
+
+            //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
+            if (ret == -1)
             {
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Pas OK Return value =%d", ret);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Setting Max Slew Rate to %f\n", values[0]);
                 MaxSlewRateNP.s = IPS_ALERT;
-                IDSetNumber(&MaxSlewRateNP, "Error setting maximum slew rate.");
+                IDSetNumber(&MaxSlewRateNP, "Setting Max Slew Rate Failed");
                 return false;
             }
-
+            DEBUGF(INDI::Logger::DBG_DEBUG, "OK Return value =%d", ret);
             MaxSlewRateNP.s           = IPS_OK;
             MaxSlewRateNP.np[0].value = values[0];
-            IDSetNumber(&MaxSlewRateNP, nullptr);
+            IDSetNumber(&MaxSlewRateNP, "Slewrate set to %04.1f", values[0]);
             return true;
         }
 
@@ -358,11 +383,6 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
         }
 
-/*        if (!strcmp(name, OSAlignTP.name))
-        {
-
-        }
-*/
         // Reticlue +/- Buttons
         if (!strcmp(name, ReticSP.name))
         {
@@ -615,6 +635,21 @@ bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint8_t years)
     snprintf(cmd, 32, ":SC%02d/%02d/%02d#", months, days, years);
 
     return sendOnStepCommand(cmd);
+}
+
+bool LX200_OnStep::sendOnStepCommandBlind(const char *cmd)
+{
+    int error_type;
+    int nbytes_write = 0;
+
+    DEBUGF(DBG_SCOPE, "CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIFLUSH);
+
+    if ((error_type = tty_write_string(PortFD, cmd, &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    return 1;
 }
 
 bool LX200_OnStep::sendOnStepCommand(const char *cmd)

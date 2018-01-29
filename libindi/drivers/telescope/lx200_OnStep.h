@@ -23,6 +23,13 @@
 
 #include "lx200generic.h"
 
+#include "lx200driver.h"
+#include "indicom.h"
+
+#include <cstring>
+#include <unistd.h>
+#include <termios.h>
+
 #define UnParkOnStep(fd)   write(fd, "#:hR#", 5)            // azwing
 #define setParkOnStep(fd)  write(fd, "#:hQ#", 5)            // azwing
 #define EnaTrackOnStep(fd) write(fd, "#:Te#", 5)            // azwing
@@ -34,7 +41,9 @@
 #define OnStepalign2(fd)   write(fd, "#:A2#", 5)            // azwing
 #define OnStepalign3(fd)   write(fd, "#:A3#", 5)            // azwing
 
+
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
+
 
 
 class LX200_OnStep : public LX200Generic
@@ -50,6 +59,9 @@ class LX200_OnStep : public LX200Generic
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
+
+    bool loadProperties(); //test
+
   protected:
     virtual void getBasicData() override;
     virtual bool UnPark() override;
@@ -59,6 +71,8 @@ class LX200_OnStep : public LX200Generic
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint8_t years) override;
 
     bool sendOnStepCommand(const char *cmd);
+    bool sendOnStepCommandBlind(const char *cmd);
+
 
     ITextVectorProperty ObjectInfoTP;
     IText ObjectInfoT[1];
@@ -76,7 +90,7 @@ class LX200_OnStep : public LX200Generic
     INumber ObjectNoN[1];
 
     INumberVectorProperty MaxSlewRateNP;
-    INumber MaxSlewRateN[1];
+    INumber MaxSlewRateN[2];
 
     INumberVectorProperty ElevationLimitNP;
     INumber ElevationLimitN[2];
@@ -109,4 +123,6 @@ class LX200_OnStep : public LX200Generic
   private:
     int currentCatalog;
     int currentSubCatalog;
+
+
 };
