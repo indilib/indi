@@ -240,7 +240,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             return true;
         }
 
-        if (!strcmp(name, MaxSlewRateNP.name))
+        if (!strcmp(name, MaxSlewRateNP.name))      // Tested
         {
             int ret;
             char cmd[4];
@@ -263,11 +263,13 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             return true;
         }
 
-        if (!strcmp(name, ElevationLimitNP.name))
+        if (!strcmp(name, ElevationLimitNP.name))       // Tested
         {
             // new elevation limits
             double minAlt = 0, maxAlt = 0;
             int i, nset;
+            char cmd[7];
+
 
             for (nset = i = 0; i < n; i++)
             {
@@ -275,12 +277,12 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 if (altp == &ElevationLimitN[0])
                 {
                     minAlt = values[i];
-                    nset += minAlt >= -90.0 && minAlt <= 90.0;
+                    nset += minAlt >= -30.0 && minAlt <= 30.0;  //range -30 to 30
                 }
                 else if (altp == &ElevationLimitN[1])
                 {
                     maxAlt = values[i];
-                    nset += maxAlt >= -90.0 && maxAlt <= 90.0;
+                    nset += maxAlt >= 60.0 && maxAlt <= 90.0;   //range 60 to 90
                 }
             }
             if (nset == 2)
@@ -288,11 +290,18 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 if (setMinElevationLimit(PortFD, (int)minAlt) < 0)
                 {
                     ElevationLimitNP.s = IPS_ALERT;
-                    IDSetNumber(&ElevationLimitNP, "Error setting elevation limit.");
-                    return false;
+                    IDSetNumber(&ElevationLimitNP, "Error setting min elevation limit.");
+                    //return false;
                 }
 
-                setMaxElevationLimit(PortFD, (int)maxAlt);
+                snprintf(cmd, 7, ":So%d#", (int)maxAlt);               // Workarround Wrong LX200 implementation in OnStep
+//                if (setMaxElevationLimit(PortFD, (int)maxAlt) < 0)   // According to standard command is :SoDD*#
+                if(!sendOnStepCommand(cmd))                            // not :SoDD#
+                {
+                    ElevationLimitNP.s = IPS_ALERT;
+                    IDSetNumber(&ElevationLimitNP, "Error setting max elevation limit.");
+                    return false;
+                }
                 ElevationLimitNP.np[0].value = minAlt;
                 ElevationLimitNP.np[1].value = maxAlt;
                 ElevationLimitNP.s           = IPS_OK;
