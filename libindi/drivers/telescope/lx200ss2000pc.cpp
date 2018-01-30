@@ -35,8 +35,9 @@ const int LX200SS2000PC::LongTimeOut  = 10; // In seconds.
 
 LX200SS2000PC::LX200SS2000PC(void) : LX200Generic()
 {
-    setVersion(1, 0);
-    setLX200Capability(0);
+    setVersion(1, 1);
+
+    setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(
         TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);    
