@@ -28,6 +28,8 @@
 #define STATUS_TAB "ONStep Status"
 
 #define ONSTEP_TIMEOUT  3
+#define RB_MAX_LEN 64
+
 
 LX200_OnStep::LX200_OnStep() : LX200Generic()
 {
@@ -54,7 +56,7 @@ const char *LX200_OnStep::getDefaultName()
 }
 
 /*
-bool LX200_OnStep::loadProperties()
+bool LX200_OnStep::loadProperties() //Test
 {
     buildSkeleton("OnStep_sk.xml");
 
@@ -268,8 +270,6 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             // new elevation limits
             double minAlt = 0, maxAlt = 0;
             int i, nset;
-            char cmd[7];
-
 
             for (nset = i = 0; i < n; i++)
             {
@@ -291,12 +291,9 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 {
                     ElevationLimitNP.s = IPS_ALERT;
                     IDSetNumber(&ElevationLimitNP, "Error setting min elevation limit.");
-                    //return false;
                 }
 
-                snprintf(cmd, 7, ":So%d#", (int)maxAlt);               // Workarround Wrong LX200 implementation in OnStep
-//                if (setMaxElevationLimit(PortFD, (int)maxAlt) < 0)   // According to standard command is :SoDD*#
-                if(!sendOnStepCommand(cmd))                            // not :SoDD#
+                if (setMaxElevationLimit(PortFD, (int)maxAlt) < 0)
                 {
                     ElevationLimitNP.s = IPS_ALERT;
                     IDSetNumber(&ElevationLimitNP, "Error setting max elevation limit.");
@@ -718,3 +715,15 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
 
     return true;
 }
+
+int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standard command is :SoDD*#
+{
+    DEBUGF(INDI::Logger::DBG_SESSION, "<%s>", __FUNCTION__);
+
+    char read_buffer[RB_MAX_LEN]={0};
+
+    snprintf(read_buffer, sizeof(read_buffer), ":So%02d#", max);
+
+    return (setStandardProcedure(fd, read_buffer));
+}
+
