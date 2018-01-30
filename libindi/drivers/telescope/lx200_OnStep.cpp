@@ -36,7 +36,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 4);
+    setVersion(1, 3);
 
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE );
 /* Already inherited from lx200generic
