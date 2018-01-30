@@ -65,7 +65,12 @@ class LX200_OnStep : public LX200Generic
     virtual bool UnPark() override;
     virtual bool SetTrackEnabled(bool enabled) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+<<<<<<< HEAD
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint8_t years) override;
+=======
+
+    virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
+>>>>>>> upstream/master
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
