@@ -792,7 +792,7 @@ bool LX200Generic::Abort()
     return true;
 }
 
-bool LX200Generic::setLocalDate(uint8_t days, uint8_t months, uint8_t years)
+bool LX200Generic::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 {
     return (setCalenderDate(PortFD, days, months, years) == 0);
 }
