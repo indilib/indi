@@ -72,13 +72,11 @@ bool LX200_OnStep::initProperties()
 {
     LX200Generic::initProperties();
     // ============== MAIN_CONTROL_TAB
-    IUFillText(&ObjectInfoT[0], "Info", "", "");
-    IUFillTextVector(&ObjectInfoTP, ObjectInfoT, 1, getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillNumber(&ElevationLimitN[0], "minAlt", "Elev Min", "%+03f", -90.0, 90.0, 1.0, -30.0);
-    IUFillNumber(&ElevationLimitN[1], "maxAlt", "Elev Max", "%+03f", -90.0, 90.0, 1.0, 89.0);
-    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 2, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
+    IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
+    IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
+    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_ALERT);
 
     IUFillSwitch(&OSAlignS[0], "1", "1 Star", ISS_OFF);
     IUFillSwitch(&OSAlignS[1], "2", "2 Stars", ISS_OFF);
@@ -88,9 +86,12 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OSAlignT[0], "OSStarAlign", "Align x Star(s)", "");
     IUFillTextVector(&OSAlignTP, OSAlignT, 1, getDeviceName(), "Process Align", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
-    IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
-    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_ALERT);
+    IUFillNumber(&ElevationLimitN[0], "minAlt", "Elev Min", "%+03f", -90.0, 90.0, 1.0, -30.0);
+    IUFillNumber(&ElevationLimitN[1], "maxAlt", "Elev Max", "%+03f", -90.0, 90.0, 1.0, 89.0);
+    IUFillNumberVector(&ElevationLimitNP, ElevationLimitN, 2, getDeviceName(), "Slew elevation Limit", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
+    IUFillText(&ObjectInfoT[0], "Info", "", "");
+    IUFillTextVector(&ObjectInfoTP, ObjectInfoT, 1, getDeviceName(), "Object Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // ============== CONNECTION_TAB
 
@@ -112,7 +113,6 @@ bool LX200_OnStep::initProperties()
     IUFillText(&VersionT[1], "Time", "", "");
     IUFillText(&VersionT[2], "Number", "", "");
     IUFillText(&VersionT[3], "Name", "", "");
-    //IUFillText(&VersionT[4], "Full", "", ""); //ToDo is not supported by OnStep Firmware
     IUFillTextVector(&VersionTP, VersionT, 4, getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
 
     // ============== LIBRARY_TAB
