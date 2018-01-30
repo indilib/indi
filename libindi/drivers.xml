@@ -103,7 +103,7 @@
         </device>
         <device label="SkySensor2000PC">
                 <driver name="SkySensor2000PC">indi_lx200ss2000pc</driver>
-                <version>0.1</version>
+                <version>1.1</version>
         </device>
         <device label="iOptron iEQ45 Pro">
                 <driver name="iEQ">indi_ieq_telescope</driver>
