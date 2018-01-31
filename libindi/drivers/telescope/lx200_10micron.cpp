@@ -451,6 +451,7 @@ int LX200_10MICRON::setStandardProcedureAndExpect(int fd, const char *data, cons
 
     return 0;
 }
+
 int LX200_10MICRON::setStandardProcedureAndReturnResponse(int fd, const char *data, char *response, int max_response_length)
 {
     int error_type;
@@ -502,6 +503,14 @@ bool LX200_10MICRON::SyncConfigBehaviour(bool cmcfg)
         return false;
     }
     return true;
+}
+
+bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
+{
+    DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "<%s>", __FUNCTION__);
+    char data[64];
+    snprintf(data, sizeof(data), ":SC%04d-%02d-%02d#", years, months, days);
+    return 0 == setStandardProcedureAndExpect(fd, data, "1");
 }
 
 int LX200_10MICRON::SetRefractionModelTemperature(double temperature)
