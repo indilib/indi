@@ -58,19 +58,13 @@ class LX200_OnStep : public LX200Generic
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    bool loadProperties(); //test
-
   protected:
     virtual void getBasicData() override;
     virtual bool UnPark() override;
     virtual bool SetTrackEnabled(bool enabled) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-<<<<<<< HEAD
-    virtual bool setLocalDate(uint8_t days, uint8_t months, uint8_t years) override;
-=======
 
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
->>>>>>> upstream/master
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
@@ -104,9 +98,6 @@ class LX200_OnStep : public LX200Generic
     ITextVectorProperty OnstepStatTP;
     IText OnstepStat[10];
 
-    // Enable / Disable Tracking
-    //ISwitchVectorProperty EnaTrackSP;
-    //ISwitch EnaTrackS[1];
     int IsTracking = 0;
 
     // Reticle +/- Buttons

@@ -37,36 +37,14 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     currentSubCatalog = 0;
 
     setVersion(1, 3);
-
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE );
-/* Already inherited from lx200generic
-Default TELESCOPE_CAN_ABORT
-Default TELESCOPE_CAN_GOTO
-Default TELESCOPE_CAN_PARK
-Default TELESCOPE_CAN_SYNC
-Default TELESCOPE_HAS_LOCATION
-Default TELESCOPE_HAS_TIME
-Default TELESCOPE_HAS_TRACK_MODE
-*/
+//  CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODEAlready inherited from lx200generic
 }
 
 const char *LX200_OnStep::getDefaultName()
 {
     return (const char *)"LX200 OnStep";
 }
-
-/*
-bool LX200_OnStep::loadProperties() //Test
-{
-    buildSkeleton("OnStep_sk.xml");
-
-    INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), MOTION_TAB);
-    INDI::GuiderInterface::initGuiderProperties(this->getDeviceName(), INFO_TAB);
-
-
-    return true;
-}
-*/
 
 bool LX200_OnStep::initProperties()
 {
@@ -173,7 +151,6 @@ bool LX200_OnStep::updateProperties()
 
     if (isConnected())
     {
-        //defineSwitch(&EnaTrackSP);
         defineSwitch(&ReticSP);
         defineSwitch(&OSAlignSP);
         defineText(&OSAlignTP);
@@ -191,7 +168,6 @@ bool LX200_OnStep::updateProperties()
     }
     else
     {
-        //deleteProperty(EnaTrackSP.name);
         deleteProperty(ReticSP.name);
         deleteProperty(OSAlignSP.name);
         deleteProperty(OSAlignTP.name);
@@ -313,7 +289,6 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             }
         }
     }
-
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -323,36 +298,6 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Track Enable Button
-        /*
-        if (!strcmp(name, EnaTrackSP.name))
-        {
-            int ret = 0;
-
-            if (TrackState == SCOPE_PARKED)
-            {
-                IDSetSwitch(&EnaTrackSP, "Telescope is Parked, Unpark before tracking");
-                return false;
-            }
-            if (TrackState == SCOPE_TRACKING)
-            {
-                IUResetSwitch(&EnaTrackSP);
-                EnaTrackSP.s = IPS_IDLE;
-                ret = DisTrackOnStep(PortFD);
-                TrackState = SCOPE_IDLE;
-                IDSetSwitch(&EnaTrackSP, "Idle");
-            }
-            else
-            {
-                IUResetSwitch(&EnaTrackSP);
-                EnaTrackSP.s = IPS_OK;
-                ret = EnaTrackOnStep(PortFD);
-                TrackState = SCOPE_TRACKING;
-                IDSetSwitch(&EnaTrackSP, "Tracking");
-            }
-            LX200_OnStep::OnStepStat();
-            return true;
-        }*/
 
         // Align Buttons
         if (!strcmp(name, OSAlignSP.name))
@@ -503,8 +448,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             getObjectDEC(PortFD, &targetDEC);
 
             Goto(targetRA, targetDEC);
-
-            return true;
+             return true;
         }
     }
 
