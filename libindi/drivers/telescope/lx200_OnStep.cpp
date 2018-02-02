@@ -133,6 +133,7 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[6], "Mount Type", "", "");
     IUFillText(&OnstepStat[7], "Error", "", "");
     IUFillTextVector(&OnstepStatTP, OnstepStat, 8, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_IDLE);
+    //initPark(); Attention in getbasicdata
 
     return true;
 }
@@ -163,6 +164,8 @@ bool LX200_OnStep::updateProperties()
         defineNumber(&ObjectNoNP);
         defineNumber(&MaxSlewRateNP);
         defineText(&OnstepStatTP);
+        defineSwitch(&ParkOptionSP);
+
 
         return true;
     }
@@ -180,6 +183,7 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(ObjectNoNP.name);
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(OnstepStatTP.name);
+        deleteProperty(ParkOptionSP.name);
 
         return true;
     }
@@ -475,10 +479,28 @@ void LX200_OnStep::getBasicData()
         LX200_OnStep::OnStepStat();
 
         IDSetText(&VersionTP, nullptr);
+
+            if (InitPark())
+            {
+                // If loading parking data is successful, we just set the default parking values.
+                DEBUG(INDI::Logger::DBG_SESSION, "=============== Parkdata loaded");
+                //SetAxis1ParkDefault(currentRA);
+                //SetAxis2ParkDefault(currentDEC);
+            }
+            else
+            {
+                // Otherwise, we set all parking data to default in case no parking data is found.
+                DEBUG(INDI::Logger::DBG_SESSION, "=============== Parkdata Load Failed");
+                //SetAxis1Park(currentRA);
+                //SetAxis2Park(currentDEC);
+                //SetAxis1ParkDefault(currentRA);
+                //SetAxis2ParkDefault(currentDEC);
+            }
+
     }
     //DEBUG(INDI::Logger::DBG_ERROR, "OnStep GetBasicData");
 }
-
+/*
 bool LX200_OnStep::UnPark()
 {
     //int ret = 0;
@@ -495,7 +517,6 @@ bool LX200_OnStep::UnPark()
 
     DEBUG(INDI::Logger::DBG_SESSION, "OnStep UnParking telescope in progress... ");
     SetParked(false);
-
     //ret = EnaTrackOnStep(PortFD);
     //ParkSP.s   = IPS_OK;
     SetTrackEnabled(true);
@@ -503,62 +524,160 @@ bool LX200_OnStep::UnPark()
 
     return true;
 }
+*/
+
+bool LX200_OnStep::UnPark()
+{
+    char response[32];
+
+    if (!isSimulation())
+    {
+        if(!getCommandString(PortFD, response, ":hR#"))
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Unpark %s", response);
+            OnStepStat();   // Refresh status
+            return false;
+        }
+            SetParked(false);
+            //SetTrackEnabled(true);
+     }
+    OnStepStat();   // Refresh status
+    //SetParked(true);
+    return true;
+}
+
+bool LX200_OnStep::Park()  // Testing
+{
+    if (!isSimulation())
+    {
+        // If scope is moving, let's stop it first.
+        if (EqNP.s == IPS_BUSY)
+        {
+            if (!isSimulation() && abortSlew(PortFD) < 0)
+            {
+                AbortSP.s = IPS_ALERT;
+                IDSetSwitch(&AbortSP, "Abort slew failed.");
+                return false;
+            }
+
+            AbortSP.s = IPS_OK;
+            EqNP.s    = IPS_IDLE;
+            IDSetSwitch(&AbortSP, "Slew aborted.");
+            IDSetNumber(&EqNP, nullptr);
+
+            if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+            {
+                MovementNSSP.s = MovementWESP.s = IPS_IDLE;
+                EqNP.s                          = IPS_IDLE;
+                IUResetSwitch(&MovementNSSP);
+                IUResetSwitch(&MovementWESP);
+
+                IDSetSwitch(&MovementNSSP, nullptr);
+                IDSetSwitch(&MovementWESP, nullptr);
+            }
+
+            // sleep for 100 msec
+            usleep(100000);
+        }
+
+        if (!isSimulation() && slewToPark(PortFD) < 0)
+        {
+            ParkSP.s = IPS_ALERT;
+            IDSetSwitch(&ParkSP, "Parking Failed.");
+            return false;
+        }
+    }
+
+    ParkSP.s   = IPS_BUSY;
+    TrackState = SCOPE_PARKING;
+    DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking telescope in progress...");
+    OnStepStat();   //Update OnStep Status
+    return true;
+}
 
 void LX200_OnStep::OnStepStat()
 {
 Errors Lasterror = ERR_NONE;
 
-    getStatus(PortFD, OSStat);
+    //getStatus(PortFD, OSStat);
+    getCommandString(PortFD,OSStat,":GU#");
     // ============= Tracking Status
     IUSaveText(&OnstepStat[0],OSStat);
-    if (strstr(OSStat,"n") && !strstr(OSStat,"N")) IUSaveText(&OnstepStat[1],"Sleewing");
-    if (strstr(OSStat,"N") && !strstr(OSStat,"n")) IUSaveText(&OnstepStat[1],"Tracking");
-    if (strstr(OSStat,"t")) IUSaveText(&OnstepStat[1],"Tracking");
+    if (strstr(OSStat,"n") && strstr(OSStat,"N")) {IUSaveText(&OnstepStat[1],"Tracking Off"); }
+    if (strstr(OSStat,"n") && !strstr(OSStat,"N")) {IUSaveText(&OnstepStat[1],"Sleewing"); }
+    if (strstr(OSStat,"N") && !strstr(OSStat,"n")) {IUSaveText(&OnstepStat[1],"Tracking"); }
+    if (strstr(OSStat,"t")) {IUSaveText(&OnstepStat[1],"Tracking"); }
 
     // ============= Refractoring
-    if (strstr(OSStat,"r")) IUSaveText(&OnstepStat[2],"Refractoring On");
-    if (strstr(OSStat,"s")) IUSaveText(&OnstepStat[2],"Refractoring Off");
-    if (strstr(OSStat,"r") && strstr(OSStat,"t")) IUSaveText(&OnstepStat[2],"Full Comp");
-    if (strstr(OSStat,"r") && !strstr(OSStat,"t")) IUSaveText(&OnstepStat[2],"Refractory Comp");
+    if (strstr(OSStat,"r")) {IUSaveText(&OnstepStat[2],"Refractoring On"); }
+    if (strstr(OSStat,"s")) {IUSaveText(&OnstepStat[2],"Refractoring Off"); }
+    if (strstr(OSStat,"r") && strstr(OSStat,"t")) {IUSaveText(&OnstepStat[2],"Full Comp"); }
+    if (strstr(OSStat,"r") && !strstr(OSStat,"t")) { IUSaveText(&OnstepStat[2],"Refractory Comp"); }
 
     // ============= Parkstatus
-    if (strstr(OSStat,"P")) IUSaveText(&OnstepStat[3],"Parked");
-    if (strstr(OSStat,"p")) IUSaveText(&OnstepStat[3],"UnParked");
-    if (strstr(OSStat,"I")) IUSaveText(&OnstepStat[3],"Park in Progress");
-    if (strstr(OSStat,"F")) IUSaveText(&OnstepStat[3],"Parking Failed");
-    if (strstr(OSStat,"H")) IUSaveText(&OnstepStat[3],"At Home");
-    if (strstr(OSStat,"W")) IUSaveText(&OnstepStat[3],"Waiting at Home");
+    if (strstr(OSStat,"P")) { IUSaveText(&OnstepStat[3],"Parked"); }
+    if (strstr(OSStat,"p")) { IUSaveText(&OnstepStat[3],"UnParked"); }
+    if (strstr(OSStat,"I")) { IUSaveText(&OnstepStat[3],"Park in Progress"); }
+    if (strstr(OSStat,"F")) { IUSaveText(&OnstepStat[3],"Parking Failed"); }
+    if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
+    if (strstr(OSStat,"W")) { IUSaveText(&OnstepStat[3],"Waiting at Home"); }
 
     // ============= Pec Status
-    if (!strstr(OSStat,"R") && !strstr(OSStat,"W")) IUSaveText(&OnstepStat[4],"N/A");
-    if (strstr(OSStat,"R")) IUSaveText(&OnstepStat[4],"Recorded");
-    if (strstr(OSStat,"W")) IUSaveText(&OnstepStat[4],"Autorecord");
+    if (!strstr(OSStat,"R") && !strstr(OSStat,"W")) { IUSaveText(&OnstepStat[4],"N/A"); }
+    if (strstr(OSStat,"R")) { IUSaveText(&OnstepStat[4],"Recorded"); }
+    if (strstr(OSStat,"W")) { IUSaveText(&OnstepStat[4],"Autorecord"); }
 
     // ============= Time Sync Status
-    if (!strstr(OSStat,"S")) IUSaveText(&OnstepStat[5],"N/A");
-    if (strstr(OSStat,"S")) IUSaveText(&OnstepStat[5],"PPS / GPS Sync Ok");
+    if (!strstr(OSStat,"S")) { IUSaveText(&OnstepStat[5],"N/A"); }
+    if (strstr(OSStat,"S")) { IUSaveText(&OnstepStat[5],"PPS / GPS Sync Ok"); }
 
     // ============= Mount Types
-    if (strstr(OSStat,"E")) IUSaveText(&OnstepStat[6],"German Mount");
-    if (strstr(OSStat,"F")) IUSaveText(&OnstepStat[6],"Fork Mount");
-    if (strstr(OSStat,"k")) IUSaveText(&OnstepStat[6],"Fork Alt Mount");
-    if (strstr(OSStat,"A")) IUSaveText(&OnstepStat[6],"AltAZ Mount");
+    if (strstr(OSStat,"E")) { IUSaveText(&OnstepStat[6],"German Mount"); }
+    if (strstr(OSStat,"K")) { IUSaveText(&OnstepStat[6],"Fork Mount"); }
+    if (strstr(OSStat,"k")) { IUSaveText(&OnstepStat[6],"Fork Alt Mount"); }
+    if (strstr(OSStat,"A")) { IUSaveText(&OnstepStat[6],"AltAZ Mount"); }
 
     // ============= Error Code
     Lasterror=(Errors)(OSStat[strlen(OSStat)-1]-'0');
-    if (Lasterror==ERR_NONE) IUSaveText(&OnstepStat[7],"None");
-    if (Lasterror==ERR_MOTOR_FAULT) IUSaveText(&OnstepStat[7],"Motor Fault");
-    if (Lasterror==ERR_ALT) IUSaveText(&OnstepStat[7],"Altitude Min/Max");
-    if (Lasterror==ERR_LIMIT_SENSE) IUSaveText(&OnstepStat[7],"Limit Sense");
-    if (Lasterror==ERR_DEC) IUSaveText(&OnstepStat[7],"Dec Limit Exceeded");
-    if (Lasterror==ERR_AZM) IUSaveText(&OnstepStat[7],"Azm Limit Exceeded");
-    if (Lasterror==ERR_UNDER_POLE) IUSaveText(&OnstepStat[7],"Under Pole Limit Exceeded");
-    if (Lasterror==ERR_MERIDIAN) IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded");
-    if (Lasterror==ERR_SYNC) IUSaveText(&OnstepStat[7],"Sync. ignored >30&deg;");
+    if (Lasterror==ERR_NONE) { IUSaveText(&OnstepStat[7],"None"); }
+    if (Lasterror==ERR_MOTOR_FAULT) { IUSaveText(&OnstepStat[7],"Motor Fault"); }
+    if (Lasterror==ERR_ALT) { IUSaveText(&OnstepStat[7],"Altitude Min/Max"); }
+    if (Lasterror==ERR_LIMIT_SENSE) { IUSaveText(&OnstepStat[7],"Limit Sense"); }
+    if (Lasterror==ERR_DEC) { IUSaveText(&OnstepStat[7],"Dec Limit Exceeded"); }
+    if (Lasterror==ERR_AZM) { IUSaveText(&OnstepStat[7],"Azm Limit Exceeded"); }
+    if (Lasterror==ERR_UNDER_POLE) { IUSaveText(&OnstepStat[7],"Under Pole Limit Exceeded"); }
+    if (Lasterror==ERR_MERIDIAN) { IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded"); }
+    if (Lasterror==ERR_SYNC) { IUSaveText(&OnstepStat[7],"Sync. ignored >30&deg;"); }
 
+    IDSetText(&OnstepStatTP, "==> Update OnsTep Status"); //update test
     DEBUG(INDI::Logger::DBG_DEBUG, OnStepStatus);
+
 }
 
+bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled by inditelescope
+{
+    char response[32];
+
+    if (enabled)
+    {
+        if(!getCommandString(PortFD, response, ":Te#"))
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Track On %s", response);
+            return false;
+        }
+    }
+    else
+    {
+    if(!getCommandString(PortFD, response, ":Td#"))
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Track Off %s", response);
+            return false;
+        }
+    }
+    OnStepStat();   //update OnsTep Status
+    return true;
+}
+/*
 bool LX200_OnStep::SetTrackEnabled(bool enabled)
 {
     int ret = 0;
@@ -576,7 +695,7 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled)
 
     return false;
 }
-
+*/
 bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 {
     years = years % 100;
@@ -584,7 +703,8 @@ bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 
     snprintf(cmd, 32, ":SC%02d/%02d/%02d#", months, days, years);
 
-    return sendOnStepCommand(cmd);
+    if (!sendOnStepCommand(cmd)) return true;
+    return false;
 }
 
 bool LX200_OnStep::sendOnStepCommandBlind(const char *cmd)
@@ -625,7 +745,7 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)
         return error_type;
     }
 
-    return (response[0] == '1');
+    return (response[0] == '0');
 }
 
 bool LX200_OnStep::updateLocation(double latitude, double longitude, double elevation)

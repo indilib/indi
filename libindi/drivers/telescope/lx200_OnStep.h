@@ -30,13 +30,13 @@
 #include <unistd.h>
 #include <termios.h>
 
-#define UnParkOnStep(fd)   write(fd, "#:hR#", 5)            // azwing
+//#define UnParkOnStep(fd)   write(fd, "#:hR#", 5)            // azwing
 #define setParkOnStep(fd)  write(fd, "#:hQ#", 5)            // azwing
-#define EnaTrackOnStep(fd) write(fd, "#:Te#", 5)            // azwing
-#define DisTrackOnStep(fd) write(fd, "#:Td#", 5)            // azwing
+//#define EnaTrackOnStep(fd) write(fd, "#:Te#", 5)            // azwing
+//#define DisTrackOnStep(fd) write(fd, "#:Td#", 5)            // azwing
 #define ReticPlus(fd)      write(fd, "#:B+#", 5)            // azwing
 #define ReticMoins(fd)     write(fd, "#:B-#", 5)            // azwing
-#define getStatus(fd, x)   getCommandString(fd, x, "#:GU#") // azwing
+//#define getStatus(fd, x)   getCommandString(fd, x, "#:GU#") // azwing
 #define OnStepalign1(fd)   write(fd, "#:A1#", 5)            // azwing
 #define OnStepalign2(fd)   write(fd, "#:A2#", 5)            // azwing
 #define OnStepalign3(fd)   write(fd, "#:A3#", 5)            // azwing
@@ -61,6 +61,7 @@ class LX200_OnStep : public LX200Generic
   protected:
     virtual void getBasicData() override;
     virtual bool UnPark() override;
+    virtual bool Park() override;   //Testing
     virtual bool SetTrackEnabled(bool enabled) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
