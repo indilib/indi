@@ -41,9 +41,6 @@ class GPSD : public INDI::GPS
     INumber PolarisN[1];
     INumberVectorProperty PolarisNP;
 
-    ISwitch RefreshS[1];
-    ISwitchVectorProperty RefreshSP;
-
   protected:
     gpsmm *gps;
     //  Generic indi device entries
