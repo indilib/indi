@@ -27,13 +27,11 @@ IF(UNIX AND NOT WIN32 AND NOT APPLE)
  ENDIF (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv6l")
 ENDIF(UNIX AND NOT WIN32 AND NOT APPLE)
 
-# Make sure symbolic links are installed
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_inovasdk_symlink.cmake "
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libinovasdk.so.${INOVASDK_VERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libinovasdk.so.${INOVASDK_SOVERSION})\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libinovasdk.so.${INOVASDK_SOVERSION} ${LIB_INSTALL_DIR}${LIB_POSTFIX}/libinovasdk.so)\n
-")
-
 install( FILES ${CMAKE_BINARY_DIR}/libinovasdk.so.${INOVASDK_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
 install( FILES inovasdk.h DESTINATION include/inovasdk)
 install( FILES 99-inovaplx.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-install( SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_inovasdk_symlink.cmake)
+# Make sure symbolic links are installed
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"libinovasdk.so.${INOVASDK_VERSION}\" \"libinovasdk.so.${INOVASDK_SOVERSION}\" 
+WORKING_DIRECTORY \"\$ENV{DESTDIR}/${BUILD_ROOT}${LIB_INSTALL_DIR}${LIB_POSTFIX}\" )" )
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"libinovasdk.so.${INOVASDK_SOVERSION}\" \"libinovasdk.so\" WORKING_DIRECTORY 
+\"\$ENV{DESTDIR}/${BUILD_ROOT}${LIB_INSTALL_DIR}${LIB_POSTFIX}\" )" )
