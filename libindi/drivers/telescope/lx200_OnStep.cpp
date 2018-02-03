@@ -49,6 +49,10 @@ const char *LX200_OnStep::getDefaultName()
 bool LX200_OnStep::initProperties()
 {
     LX200Generic::initProperties();
+
+    // Testing
+    SetParkDataType(PARK_RA_DEC);
+
     // ============== MAIN_CONTROL_TAB
 
 
@@ -165,9 +169,37 @@ bool LX200_OnStep::updateProperties()
         defineNumber(&MaxSlewRateNP);
         defineText(&OnstepStatTP);
         defineSwitch(&ParkOptionSP);
+// testing start
+        if (InitPark())
+                {
+                    // If loading parking data is successful, we just set the default parking values.
+                    SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+                    SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+                }
+                else
+                {
+                    // Otherwise, we set all parking data to default in case no parking data is found.
+                    SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+                    SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value);
 
+                    SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+                    SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+                }
 
-        return true;
+                double longitude=-1000, latitude=-1000;
+                // Get value from config file if it exists.
+                IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+                IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+                if (longitude != -1000 && latitude != -1000)
+                    updateLocation(latitude, longitude, 0);
+
+                DEBUGF(INDI::Logger::DBG_SESSION, "======== Parking Axis 1 =%f", GetAxis1Park());
+                DEBUGF(INDI::Logger::DBG_SESSION, "======== Parking Axis 2 =%f", GetAxis2Park());
+                DEBUGF(INDI::Logger::DBG_SESSION, "======== Parking Axis 1 Default =%f", GetAxis1ParkDefault());
+                DEBUGF(INDI::Logger::DBG_SESSION, "======== Parking Axis 2 Default =%f", GetAxis2ParkDefault());
+        // testing end
+        //return true;
+
     }
     else
     {
@@ -185,8 +217,9 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(OnstepStatTP.name);
         deleteProperty(ParkOptionSP.name);
 
-        return true;
+        //return true;
     }
+    return true;
 }
 
 bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -500,6 +533,35 @@ void LX200_OnStep::getBasicData()
     }
     //DEBUG(INDI::Logger::DBG_ERROR, "OnStep GetBasicData");
 }
+
+/*======================== Parking =======================
+ *
+ * */
+
+bool LX200_OnStep::SetCurrentPark() //Testing
+{
+    char response[32];
+
+    if(!getCommandString(PortFD, response, ":hQ#"))
+        {
+            DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Set Park Pos %s", response);
+            return false;
+        }
+
+    SetAxis1Park(currentRA);
+    SetAxis2Park(currentDEC);
+    DEBUG(INDI::Logger::DBG_WARNING, "Park Value set to current postion");
+    return true;
+}
+
+bool LX200_OnStep::SetDefaultPark() //Testing
+{
+    IDMessage(getDeviceName(), "Setting Park Data to Default.");
+    SetAxis1Park(20);
+    SetAxis2Park(80);
+    DEBUG(INDI::Logger::DBG_WARNING, "Park Position set to Default value, 20/80");
+    return true;
+}
 /*
 bool LX200_OnStep::UnPark()
 {
@@ -526,7 +588,7 @@ bool LX200_OnStep::UnPark()
 }
 */
 
-bool LX200_OnStep::UnPark()
+bool LX200_OnStep::UnPark() //Testing
 {
     char response[32];
 
@@ -650,8 +712,7 @@ Errors Lasterror = ERR_NONE;
     if (Lasterror==ERR_SYNC) { IUSaveText(&OnstepStat[7],"Sync. ignored >30&deg;"); }
 
     IDSetText(&OnstepStatTP, "==> Update OnsTep Status"); //update test
-    DEBUG(INDI::Logger::DBG_DEBUG, OnStepStatus);
-
+    DEBUG(INDI::Logger::DBG_SESSION, OSStat);
 }
 
 bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled by inditelescope
@@ -790,4 +851,5 @@ int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standa
 
     return (setStandardProcedure(fd, read_buffer));
 }
+
 

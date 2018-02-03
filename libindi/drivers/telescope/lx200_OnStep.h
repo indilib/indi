@@ -58,10 +58,15 @@ class LX200_OnStep : public LX200Generic
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
+
   protected:
     virtual void getBasicData() override;
-    virtual bool UnPark() override;
+
     virtual bool Park() override;   //Testing
+    virtual bool UnPark() override; //Testing
+    virtual bool SetCurrentPark() override; //Testing
+    virtual bool SetDefaultPark() override; //Testing
+
     virtual bool SetTrackEnabled(bool enabled) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
