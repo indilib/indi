@@ -150,17 +150,35 @@ bool GPSD::updateProperties()
 IPState GPSD::updateGPS()
 {
     // Indicate gps refresh in progress
-    TimeTP.s = IPS_BUSY;
-    IDSetText(&TimeTP, NULL);
-    LocationNP.s = IPS_BUSY;
-    IDSetNumber(&LocationNP, NULL);
+    if (TimeTP.s != IPS_BUSY)
+    {
+        TimeTP.s = IPS_BUSY;
+        IDSetText(&TimeTP, NULL);
+    }
 
-    GPSstatusTP.s = IPS_BUSY;
-    IDSetText(&GPSstatusTP, NULL);
-    PolarisNP.s = IPS_BUSY;
-    IDSetNumber(&PolarisNP, NULL);
-    RefreshSP.s = IPS_BUSY;
-    IDSetSwitch(&RefreshSP, NULL);
+    if (LocationNP.s != IPS_BUSY)
+    {
+        LocationNP.s = IPS_BUSY;
+        IDSetNumber(&LocationNP, NULL);
+    }
+
+    if (GPSstatusTP.s != IPS_BUSY)
+    {
+        GPSstatusTP.s = IPS_BUSY;
+        IDSetText(&GPSstatusTP, NULL);
+    }
+
+    if (PolarisNP.s != IPS_BUSY)
+    {
+        PolarisNP.s = IPS_BUSY;
+        IDSetNumber(&PolarisNP, NULL);
+    }
+
+    if (RefreshSP.s != IPS_BUSY)
+    {
+        RefreshSP.s = IPS_BUSY;
+        IDSetSwitch(&RefreshSP, NULL);
+    }
 
     struct gps_data_t *gpsData;
 
