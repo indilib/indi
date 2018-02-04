@@ -72,6 +72,8 @@ class LX200_OnStep : public LX200Generic
 
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
 
+    virtual bool ReadScopeStatus() override;
+
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
     int  setMaxElevationLimit(int fd, int max);
@@ -116,9 +118,13 @@ class LX200_OnStep : public LX200Generic
     IText OSAlignT[20];
     ITextVectorProperty OSAlignTP;
 
-    char OnStepStatus[160];
+    ISwitchVectorProperty TrackCompSP;
+    ISwitch TrackCompS[3];
+
+
+    //char OnStepStatus[160];
     char OSStat[20];
-    void OnStepStat();
+    char OldOSStat[20];
 
   private:
     int currentCatalog;
