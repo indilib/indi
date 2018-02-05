@@ -22,7 +22,6 @@
 #pragma once
 
 #include "lx200generic.h"
-
 #include "lx200driver.h"
 #include "indicom.h"
 
@@ -30,20 +29,14 @@
 #include <unistd.h>
 #include <termios.h>
 
-//#define UnParkOnStep(fd)   write(fd, "#:hR#", 5)            // azwing
-#define setParkOnStep(fd)  write(fd, "#:hQ#", 5)            // azwing
-//#define EnaTrackOnStep(fd) write(fd, "#:Te#", 5)            // azwing
-//#define DisTrackOnStep(fd) write(fd, "#:Td#", 5)            // azwing
-#define ReticPlus(fd)      write(fd, "#:B+#", 5)            // azwing
-#define ReticMoins(fd)     write(fd, "#:B-#", 5)            // azwing
-//#define getStatus(fd, x)   getCommandString(fd, x, "#:GU#") // azwing
-#define OnStepalign1(fd)   write(fd, "#:A1#", 5)            // azwing
-#define OnStepalign2(fd)   write(fd, "#:A2#", 5)            // azwing
-#define OnStepalign3(fd)   write(fd, "#:A3#", 5)            // azwing
+#define setParkOnStep(fd)  write(fd, "#:hQ#", 5)
+#define ReticPlus(fd)      write(fd, "#:B+#", 5)
+#define ReticMoins(fd)     write(fd, "#:B-#", 5)
+#define OnStepalign1(fd)   write(fd, "#:A1#", 5)
+#define OnStepalign2(fd)   write(fd, "#:A2#", 5)
+#define OnStepalign3(fd)   write(fd, "#:A3#", 5)
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
-
-
 
 class LX200_OnStep : public LX200Generic
 {
@@ -58,26 +51,20 @@ class LX200_OnStep : public LX200Generic
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-
   protected:
     virtual void getBasicData() override;
-
-    virtual bool Park() override;   //Testing
-    virtual bool UnPark() override; //Testing
-    virtual bool SetCurrentPark() override; //Testing
-    virtual bool SetDefaultPark() override; //Testing
-
+    virtual bool Park() override;
+    virtual bool UnPark() override;
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
     virtual bool SetTrackEnabled(bool enabled) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
-
     virtual bool ReadScopeStatus() override;
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
     int  setMaxElevationLimit(int fd, int max);
-
 
     ITextVectorProperty ObjectInfoTP;
     IText ObjectInfoT[1];
@@ -96,6 +83,9 @@ class LX200_OnStep : public LX200Generic
 
     INumberVectorProperty MaxSlewRateNP;
     INumber MaxSlewRateN[2];
+
+    INumberVectorProperty BacklashNP;    //test
+    INumber BacklashN[2];    //Test
 
     INumberVectorProperty ElevationLimitNP;
     INumber ElevationLimitN[2];
@@ -121,13 +111,16 @@ class LX200_OnStep : public LX200Generic
     ISwitchVectorProperty TrackCompSP;
     ISwitch TrackCompS[3];
 
+    ISwitchVectorProperty SetHomeSP;
+    ISwitch SetHomeS[2];
 
-    //char OnStepStatus[160];
     char OSStat[20];
     char OldOSStat[20];
+
+    char OSPier[2];
+    char OldOSPier[2];
 
   private:
     int currentCatalog;
     int currentSubCatalog;
-
 };

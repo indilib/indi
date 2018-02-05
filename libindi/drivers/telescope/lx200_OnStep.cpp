@@ -21,8 +21,6 @@
 
 #include "lx200_OnStep.h"
 
-
-
 #define LIBRARY_TAB  "Library"
 #define FIRMWARE_TAB "Firmware data"
 #define STATUS_TAB "ONStep Status"
@@ -30,15 +28,15 @@
 #define ONSTEP_TIMEOUT  3
 #define RB_MAX_LEN 64
 
-
 LX200_OnStep::LX200_OnStep() : LX200Generic()
 {
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
     setVersion(1, 3);
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE );
-//  CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODEAlready inherited from lx200generic
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
+    //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODEAlready inherited from lx200generic,
+    // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
 }
 
 const char *LX200_OnStep::getDefaultName()
@@ -50,12 +48,9 @@ bool LX200_OnStep::initProperties()
 {
     LX200Generic::initProperties();
 
-    // Testing
     SetParkDataType(PARK_RA_DEC);
 
     // ============== MAIN_CONTROL_TAB
-
-
     IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
     IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
     IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_ALERT);
@@ -78,6 +73,9 @@ bool LX200_OnStep::initProperties()
     // ============== CONNECTION_TAB
 
     // ============== OPTION_TAB
+    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);    //test
+    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);    //test
+    IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);    //test
 
     // ============== MOTION_CONTROL_TAB
 
@@ -90,6 +88,9 @@ bool LX200_OnStep::initProperties()
     IUFillSwitchVector(&TrackCompSP, TrackCompS, 3, getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // ============== SITE_MANAGEMENT_TAB
+    IUFillSwitch(&SetHomeS[0], "COLD_START", "Cold Start", ISS_OFF);
+    IUFillSwitch(&SetHomeS[1], "WARM_START", "Init Home", ISS_OFF);
+    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_ALERT);
 
     // ============== GUIDE_TAB
 
@@ -142,16 +143,13 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[6], "Mount Type", "", "");
     IUFillText(&OnstepStat[7], "Error", "", "");
     IUFillTextVector(&OnstepStatTP, OnstepStat, 8, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_IDLE);
-    //initPark(); Attention in getbasicdata
 
     return true;
 }
 
 void LX200_OnStep::ISGetProperties(const char *dev)
 {
-    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
-        return;
-
+    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0) return;
     LX200Generic::ISGetProperties(dev);
 }
 
@@ -174,38 +172,34 @@ bool LX200_OnStep::updateProperties()
         defineNumber(&MaxSlewRateNP);
         defineText(&OnstepStatTP);
         defineSwitch(&ParkOptionSP);
+        defineSwitch(&SetHomeSP);
         defineSwitch(&TrackCompSP);
-// testing start
+        defineNumber(&BacklashNP);  //test
+
         if (InitPark())
-                {
-                    // If loading parking data is successful, we just set the default parking values.
-                    SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-                    SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
-                }
-                else
-                {
-                    // Otherwise, we set all parking data to default in case no parking data is found.
-                    SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-                    SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        {
+            // If loading parking data is successful, we just set the default parking values.
+            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+        }
+        else
+        {
+            // Otherwise, we set all parking data to default in case no parking data is found.
+            SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value);
 
-                    SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
-                    SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
-                }
+            SetAxis1ParkDefault(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+         }
 
-                double longitude=-1000, latitude=-1000;
-                // Get value from config file if it exists.
-                IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
-                IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
-                if (longitude != -1000 && latitude != -1000)
-                    updateLocation(latitude, longitude, 0);
-
-                DEBUGF(INDI::Logger::DBG_SESSION, "======== Parking Axis 1 =%f", GetAxis1Park());
-                DEBUGF(INDI::Logger::DBG_SESSION, "======== Parking Axis 2 =%f", GetAxis2Park());
-                DEBUGF(INDI::Logger::DBG_SESSION, "======== Parking Axis 1 Default =%f", GetAxis1ParkDefault());
-                DEBUGF(INDI::Logger::DBG_SESSION, "======== Parking Axis 2 Default =%f", GetAxis2ParkDefault());
-        // testing end
-        //return true;
-
+         double longitude=-1000, latitude=-1000;
+         // Get value from config file if it exists.
+         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+         IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+         if (longitude != -1000 && latitude != -1000)
+         {
+             updateLocation(latitude, longitude, 0);
+         }
     }
     else
     {
@@ -222,9 +216,9 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(OnstepStatTP.name);
         deleteProperty(ParkOptionSP.name);
+        deleteProperty(SetHomeSP.name);
         deleteProperty(TrackCompSP.name);
-
-        //return true;
+        deleteProperty(BacklashNP.name);    //test
     }
     return true;
 }
@@ -257,7 +251,6 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 IUSaveText(&ObjectInfoTP.tp[0], object_name);
                 IDSetText(&ObjectInfoTP, nullptr);
             }
-
             Goto(targetRA, targetDEC);
             return true;
         }
@@ -283,6 +276,60 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             MaxSlewRateNP.np[0].value = values[0];
             IDSetNumber(&MaxSlewRateNP, "Slewrate set to %04.1f", values[0]);
             return true;
+        }
+
+        if (!strcmp(name, BacklashNP.name))      // tested
+        {
+            char cmd[9];
+            int i, nset;
+            double bklshdec=0, bklshra=0;
+
+            for (nset = i = 0; i < n; i++)
+            {
+                INumber *bktp = IUFindNumber(&BacklashNP, names[i]);
+                if (bktp == &BacklashN[0])
+                {
+                    bklshdec = values[i];
+                    //DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Backlash DEC= %f", bklshdec);
+                    nset += bklshdec >= 0 && bklshdec <= 999;  //range 0 to 999
+                }
+                else if (bktp == &BacklashN[1])
+                {
+                    bklshra = values[i];
+                    //DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Backlash RA= %f", bklshra);
+                    nset += bklshra >= 0 && bklshra <= 999;   //range 0 to 999
+                }
+            }
+            if (nset == 2)
+            {
+                snprintf(cmd, 9, ":$BD%d#", (int)bklshdec);
+                if (sendOnStepCommand(cmd))
+                {
+                    BacklashNP.s = IPS_ALERT;
+                    IDSetNumber(&BacklashNP, "Error Backlash DEC limit.");
+                }
+
+                usleep(100000);
+
+                snprintf(cmd, 9, ":$BR%d#", (int)bklshra);
+                if (sendOnStepCommand(cmd))
+                {
+                    BacklashNP.s = IPS_ALERT;
+                    IDSetNumber(&BacklashNP, "Error Backlash RA limit.");
+                }
+
+                BacklashNP.np[0].value = bklshdec;
+                BacklashNP.np[1].value = bklshra;
+                BacklashNP.s           = IPS_OK;
+                IDSetNumber(&BacklashNP, nullptr);
+                return true;
+            }
+            else
+            {
+                BacklashNP.s = IPS_ALERT;
+                IDSetNumber(&BacklashNP, "Backlash invalid.");
+                return false;
+            }
         }
 
         if (!strcmp(name, ElevationLimitNP.name))       // Tested
@@ -344,7 +391,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
     {
 
         // Align Buttons
-        if (!strcmp(name, OSAlignSP.name))
+        if (!strcmp(name, OSAlignSP.name))      // Tested
         {
             int ret = 0;
 
@@ -379,7 +426,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         }
 
         // Reticlue +/- Buttons
-        if (!strcmp(name, ReticSP.name))
+        if (!strcmp(name, ReticSP.name))      // Tested
         {
             int ret = 0;
 
@@ -403,8 +450,32 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             return true;
         }
 
+        // Homing, Cold and Warm Init
+        if (!strcmp(name, SetHomeSP.name))      // Tested
+        {
+            IUUpdateSwitch(&SetHomeSP, states, names, n);
+            SetHomeSP.s = IPS_OK;
+
+            if (SetHomeS[0].s == ISS_ON)
+            {
+                if(sendOnStepCommandBlind(":hC#"))
+                IDSetSwitch(&SetHomeSP, "Cold Start");
+                return false;
+            }
+            else
+            {
+                if(sendOnStepCommandBlind(":hF#"))
+                IDSetSwitch(&SetHomeSP, "Home Init");
+                return false;
+            }
+            IUResetSwitch(&ReticSP);
+            SetHomeSP.s = IPS_IDLE;
+            IDSetSwitch(&SetHomeSP, nullptr);
+            return true;
+        }
+
         // Tracking Compensation selection
-        if (!strcmp(name, TrackCompSP.name))
+        if (!strcmp(name, TrackCompSP.name))      // Tested
         {
             IUUpdateSwitch(&TrackCompSP, states, names, n);
             TrackCompSP.s = IPS_OK;
@@ -433,7 +504,6 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                     return true;
                 }
             }
-
             IUResetSwitch(&TrackCompSP);
             TrackCompSP.s = IPS_IDLE;
             IDSetSwitch(&TrackCompSP, nullptr);
@@ -571,32 +641,26 @@ void LX200_OnStep::getBasicData()
                 //SetAxis1ParkDefault(currentRA);
                 //SetAxis2ParkDefault(currentDEC);
             }
-
     }
-    //DEBUG(INDI::Logger::DBG_ERROR, "OnStep GetBasicData");
 }
 
-/*======================== Parking =======================
- *
- * */
-
-bool LX200_OnStep::SetCurrentPark() //Testing
+//======================== Parking =======================
+bool LX200_OnStep::SetCurrentPark()      // Tested
 {
     char response[32];
 
     if(!getCommandString(PortFD, response, ":hQ#"))
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Set Park Pos %s", response);
+            DEBUGF(INDI::Logger::DBG_WARNING, "===CMD==> Set Park Pos %s", response);
             return false;
         }
-
     SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
     DEBUG(INDI::Logger::DBG_WARNING, "Park Value set to current postion");
     return true;
 }
 
-bool LX200_OnStep::SetDefaultPark() //Testing
+bool LX200_OnStep::SetDefaultPark()      // Tested
 {
     IDMessage(getDeviceName(), "Setting Park Data to Default.");
     SetAxis1Park(20);
@@ -605,7 +669,7 @@ bool LX200_OnStep::SetDefaultPark() //Testing
     return true;
 }
 
-bool LX200_OnStep::UnPark()
+bool LX200_OnStep::UnPark()      // Tested
 {
     char response[32];
 
@@ -613,15 +677,14 @@ bool LX200_OnStep::UnPark()
     {
         if(!getCommandString(PortFD, response, ":hR#"))
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Unpark %s", response);
+            //DEBUGF(INDI::Logger::DBG_WARNING, "===CMD==> Unpark %s", response);
             return false;
         }
      }
-
     return true;
 }
 
-bool LX200_OnStep::Park()
+bool LX200_OnStep::Park()      // Tested
 {
     if (!isSimulation())
     {
@@ -662,22 +725,25 @@ bool LX200_OnStep::Park()
             return false;
         }
     }
-
     ParkSP.s   = IPS_BUSY;
-    //TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking telescope in progress...");
+    //DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking telescope in progress...");
     return true;
 }
 
-bool LX200_OnStep::ReadScopeStatus()
+// Periodically read OnStep Parameter from controller
+bool LX200_OnStep::ReadScopeStatus()      // Tested
 {
-Errors Lasterror = ERR_NONE;
-    if (isSimulation())
+    char OSbacklashDEC[5];
+    char OSbacklashRA[5];
+    Errors Lasterror = ERR_NONE;
+
+    if (isSimulation()) //if Simulation is selected
     {
         mountSim();
         return true;
     }
-    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+
+    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0) // Update actual position
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error reading RA/DEC.");
@@ -686,15 +752,12 @@ Errors Lasterror = ERR_NONE;
 
     NewRaDec(currentRA, currentDEC);    // Update Scope Position
 
-    //getStatus(PortFD, OSStat);
-    getCommandString(PortFD,OSStat,":GU#");
-    if (OSStat == OldOSStat)
+    getCommandString(PortFD,OSStat,":GU#"); // :GU# returns a string containg controller status
+    if (strcmp(OSStat,OldOSStat) != 0)  //if status changed
     {
-        return true;
-    }
-    else
-    {
-    // ============= Tracking Status
+    // ============= Telescope Status
+    strcpy(OldOSStat ,OSStat);
+
     IUSaveText(&OnstepStat[0],OSStat);
     if (strstr(OSStat,"n") && strstr(OSStat,"N")) {IUSaveText(&OnstepStat[1],"Tracking Off"); }
     if (strstr(OSStat,"n") && !strstr(OSStat,"N"))
@@ -718,22 +781,29 @@ Errors Lasterror = ERR_NONE;
     if (strstr(OSStat,"P"))
     {
         TrackState=SCOPE_PARKED;
-        SetParked(true);
+        //SetParked(true);
         IUSaveText(&OnstepStat[3],"Parked");
     }
     if (strstr(OSStat,"p"))
     {
         TrackState=SCOPE_IDLE;
-        SetParked(false);
+        //SetParked(false);
         IUSaveText(&OnstepStat[3],"UnParked");
+        DEBUG(INDI::Logger::DBG_SESSION, "OnStep Unparked...");
     }
     if (strstr(OSStat,"I"))
     {
         TrackState=SCOPE_PARKING;
-        SetParked(false);
+        //SetParked(false);
         IUSaveText(&OnstepStat[3],"Park in Progress");
+        DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking in Progress...");
     }
-    if (strstr(OSStat,"F")) { IUSaveText(&OnstepStat[3],"Parking Failed"); }
+    if (strstr(OSStat,"F"))
+    {
+        IUSaveText(&OnstepStat[3],"Parking Failed");
+        DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking failed...");
+        TrackState=SCOPE_IDLE;
+    }
     if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
     if (strstr(OSStat,"W")) { IUSaveText(&OnstepStat[3],"Waiting at Home"); }
 
@@ -764,13 +834,46 @@ Errors Lasterror = ERR_NONE;
     if (Lasterror==ERR_MERIDIAN) { IUSaveText(&OnstepStat[7],"Meridian Limit (W) Exceeded"); }
     if (Lasterror==ERR_SYNC) { IUSaveText(&OnstepStat[7],"Sync. ignored >30&deg;"); }
     }
-    IDSetText(&OnstepStatTP, "==> Update OnsTep Status"); //update test
-    // DEBUG(INDI::Logger::DBG_SESSION, OSStat);
+
+    // Get actual Pier Side
+    getCommandString(PortFD,OSPier,":Gm#");
+    if (strcmp(OSPier, OldOSPier) !=0)  // any change ?
+    {
+        strcpy(OldOSPier, OSPier);
+        switch(OSPier[0])
+        {
+        case 'E':
+            setPierSide(PIER_EAST);
+        break;
+
+        case 'W':
+            setPierSide(PIER_WEST);
+        break;
+
+        case 'N':
+            setPierSide(PIER_UNKNOWN);
+        break;
+
+        case '?':
+            setPierSide(PIER_UNKNOWN);
+        break;
+        }
+    }
+
+    //========== Get actual Backlash values
+    getCommandString(PortFD,OSbacklashDEC, ":%BD#");
+    getCommandString(PortFD,OSbacklashRA, ":%BR#");
+    BacklashNP.np[0].value = atof(OSbacklashDEC);
+    BacklashNP.np[1].value = atof(OSbacklashRA);
+    IDSetNumber(&BacklashNP, nullptr);
+
+    // Update OnStep Status TAB
+    IDSetText(&OnstepStatTP, "==> Update OnsTep Status");
     return true;
 }
 
 
-bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled by inditelescope
+bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled by inditelescope       Tested
 {
     char response[32];
 
@@ -793,7 +896,7 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
     return true;
 }
 
-bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
+bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint16_t years)      // Tested
 {
     years = years % 100;
     char cmd[32];
@@ -819,7 +922,7 @@ bool LX200_OnStep::sendOnStepCommandBlind(const char *cmd)
     return 1;
 }
 
-bool LX200_OnStep::sendOnStepCommand(const char *cmd)
+bool LX200_OnStep::sendOnStepCommand(const char *cmd)      // Tested
 {
     char response[1];
     int error_type;
@@ -845,7 +948,7 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)
     return (response[0] == '0');
 }
 
-bool LX200_OnStep::updateLocation(double latitude, double longitude, double elevation)
+bool LX200_OnStep::updateLocation(double latitude, double longitude, double elevation)      // Tested
 {
     INDI_UNUSED(elevation);
 
@@ -877,7 +980,7 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
     return true;
 }
 
-int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standard command is :SoDD*#
+int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standard command is :SoDD*#       Tested
 {
     DEBUGF(INDI::Logger::DBG_SESSION, "<%s>", __FUNCTION__);
 
