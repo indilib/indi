@@ -129,6 +129,7 @@ void ISInit()
 	else
 		strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
 	strncat(driverSupportPath, "/DriverSupport/qhy", 128);
+    IDLog("QHY firmware path: %s\n", driverSupportPath);
 	OSXInitQHYCCDFirmware(driverSupportPath);
 #endif
 
