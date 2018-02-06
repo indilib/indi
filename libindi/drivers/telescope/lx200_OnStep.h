@@ -123,4 +123,5 @@ class LX200_OnStep : public LX200Generic
   private:
     int currentCatalog;
     int currentSubCatalog;
+    bool FirstRead=true;
 };

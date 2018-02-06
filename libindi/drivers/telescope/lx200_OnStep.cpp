@@ -677,7 +677,6 @@ bool LX200_OnStep::UnPark()      // Tested
     {
         if(!getCommandString(PortFD, response, ":hR#"))
         {
-            //DEBUGF(INDI::Logger::DBG_WARNING, "===CMD==> Unpark %s", response);
             return false;
         }
      }
@@ -697,7 +696,6 @@ bool LX200_OnStep::Park()      // Tested
                 IDSetSwitch(&AbortSP, "Abort slew failed.");
                 return false;
             }
-
             AbortSP.s = IPS_OK;
             EqNP.s    = IPS_IDLE;
             IDSetSwitch(&AbortSP, "Slew aborted.");
@@ -713,11 +711,7 @@ bool LX200_OnStep::Park()      // Tested
                 IDSetSwitch(&MovementNSSP, nullptr);
                 IDSetSwitch(&MovementWESP, nullptr);
             }
-
-            // sleep for 100 msec
-            usleep(100000);
         }
-
         if (!isSimulation() && slewToPark(PortFD) < 0)
         {
             ParkSP.s = IPS_ALERT;
@@ -726,11 +720,10 @@ bool LX200_OnStep::Park()      // Tested
         }
     }
     ParkSP.s   = IPS_BUSY;
-    //DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking telescope in progress...");
     return true;
 }
 
-// Periodically read OnStep Parameter from controller
+// Periodically Polls OnStep Parameter from controller
 bool LX200_OnStep::ReadScopeStatus()      // Tested
 {
     char OSbacklashDEC[5];
@@ -778,32 +771,72 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     if (strstr(OSStat,"r") && !strstr(OSStat,"t")) { IUSaveText(&OnstepStat[2],"Refractory Comp"); }
 
     // ============= Parkstatus
-    if (strstr(OSStat,"P"))
+    if(FirstRead)   // it is the first time I read the status so I need to update
     {
-        TrackState=SCOPE_PARKED;
-        //SetParked(true);
-        IUSaveText(&OnstepStat[3],"Parked");
+        if (strstr(OSStat,"P"))
+        {
+            TrackState=SCOPE_PARKED;
+            SetParked(true);
+            IUSaveText(&OnstepStat[3],"Parked");
+         }
+        if (strstr(OSStat,"F"))
+        {
+            TrackState=SCOPE_IDLE;
+            SetParked(false);
+            IUSaveText(&OnstepStat[3],"Parking Failed");
+        }
+        if (strstr(OSStat,"I"))
+        {
+            TrackState=SCOPE_PARKING;
+            SetParked(false);
+            IUSaveText(&OnstepStat[3],"Park in Progress");
+        }
+        if (strstr(OSStat,"p"))
+        {
+            TrackState=SCOPE_IDLE;
+            SetParked(false);
+            IUSaveText(&OnstepStat[3],"UnParked");
+        }
+    FirstRead=false;
     }
-    if (strstr(OSStat,"p"))
+    else
     {
-        TrackState=SCOPE_IDLE;
-        //SetParked(false);
-        IUSaveText(&OnstepStat[3],"UnParked");
-        DEBUG(INDI::Logger::DBG_SESSION, "OnStep Unparked...");
+        if (!isParked())
+        {
+            if(strstr(OSStat,"P"))
+            {
+                TrackState=SCOPE_PARKED;
+                SetParked(true);
+                IUSaveText(&OnstepStat[3],"Parked");
+                //DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking Succeded");
+            }
+            if (strstr(OSStat,"I"))
+            {
+                TrackState=SCOPE_PARKING;
+                SetParked(false);
+                IUSaveText(&OnstepStat[3],"Park in Progress");
+                DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking in Progress...");
+            }
+        }
+        if (isParked())
+        {
+            if (strstr(OSStat,"F"))
+            {
+                TrackState=SCOPE_IDLE;
+                SetParked(false);
+                IUSaveText(&OnstepStat[3],"Parking Failed");
+                DEBUG(INDI::Logger::DBG_ERROR, "OnStep Parking failed, need to re Init OnStep at home");
+            }
+            if (strstr(OSStat,"p"))
+            {
+                TrackState=SCOPE_IDLE;
+                SetParked(false);
+                IUSaveText(&OnstepStat[3],"UnParked");
+                //DEBUG(INDI::Logger::DBG_SESSION, "OnStep Unparked...");
+            }
+        }
     }
-    if (strstr(OSStat,"I"))
-    {
-        TrackState=SCOPE_PARKING;
-        //SetParked(false);
-        IUSaveText(&OnstepStat[3],"Park in Progress");
-        DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking in Progress...");
-    }
-    if (strstr(OSStat,"F"))
-    {
-        IUSaveText(&OnstepStat[3],"Parking Failed");
-        DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking failed...");
-        TrackState=SCOPE_IDLE;
-    }
+
     if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
     if (strstr(OSStat,"W")) { IUSaveText(&OnstepStat[3],"Waiting at Home"); }
 
@@ -881,7 +914,7 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
     {
         if(!getCommandString(PortFD, response, ":Te#"))
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Track On %s", response);
+            DEBUGF(INDI::Logger::DBG_ERROR, "===CMD==> Track On %s", response);
             return false;
         }
     }
@@ -889,7 +922,7 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
     {
     if(!getCommandString(PortFD, response, ":Td#"))
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Track Off %s", response);
+            DEBUGF(INDI::Logger::DBG_ERROR, "===CMD==> Track Off %s", response);
             return false;
         }
     }
