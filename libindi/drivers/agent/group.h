@@ -1,6 +1,6 @@
 /*******************************************************************************
  Copyright(c) 2013-2016 CloudMakers, s. r. o. All rights reserved.
- Copyright(c) 2017 Marco Gulino <marco.gulino@gmai.com>
+ Copyright(c) 2017-2018 Marco Gulino <marco.gulino@gmai.com>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
