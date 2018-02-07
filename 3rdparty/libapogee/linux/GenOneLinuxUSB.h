@@ -15,7 +15,12 @@
 
 #include <string>
 #include <vector>
-#include <libusb-1.0/libusb.h>
+
+#ifdef OSX_EMBEDED_MODE
+	#include <libusb.h>
+#else
+	#include <libusb-1.0/libusb.h>
+#endif
 
 #include "../IUsb.h"
 

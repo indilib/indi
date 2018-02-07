@@ -484,7 +484,7 @@ bool SXCCD::StartExposure(float n)
     }
     else
         sxClearPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0);
-    if (HasShutter && PrimaryCCD.getFrameType() != CCDChip::DARK_FRAME)
+    if (HasShutter && PrimaryCCD.getFrameType() != INDI::CCDChip::DARK_FRAME)
         sxSetShutter(handle, 0);
     int time = (int)(1000 * n);
     if (time < 1)

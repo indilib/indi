@@ -270,7 +270,7 @@ bool Logger::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         return true;
     }
 
-    return true;
+    return false;
 }
 
 // Definition (and initialization) of static attributes

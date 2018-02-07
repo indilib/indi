@@ -3,7 +3,7 @@
 # This is a script building libraries for travis-ci
 # It is *not* for general audience
 
-LIBS="libapogee libfishcamp libfli libfli libqhy libqsi libsbig"
+LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig"
 
 for lib in $LIBS ; do
 (

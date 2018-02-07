@@ -31,7 +31,7 @@
 
 #define USBFOCUSV3_TIMEOUT 3
 
-#define POLLMS 250
+#define POLLMS 500
 
 #define SRTUS 25000
 

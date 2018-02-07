@@ -23,7 +23,8 @@
 
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
-*******************************************************************************/#include "skysafari.h"
+*******************************************************************************/
+#include "skysafari.h"
 #include "skysafariclient.h"
 
 #include "indicom.h"
@@ -539,7 +540,9 @@ void SkySafari::processCommand(std::string cmd)
         int dd = 0, mm = 0, ss = 0;
         if (sscanf(cmd.c_str(), "Sd%d*%d:%d", &dd, &mm, &ss) == 3)
         {
-            DE = dd + mm / 60.0 + ss / 3600.0;
+            DE = abs(dd) + mm / 60.0 + ss / 3600.0;
+            if (dd < 0)
+                DE *= -1;
         }
 
         // Always respond with valid

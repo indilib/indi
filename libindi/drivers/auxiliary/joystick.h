@@ -61,14 +61,14 @@ class JoyStick : public INDI::DefaultDevice
     void axisEvent(int axis_n, int value);
     void buttonEvent(int button_n, int value);
 
-    INumberVectorProperty *JoyStickNP;
-    INumber *JoyStickN;
+    INumberVectorProperty *JoyStickNP = nullptr;
+    INumber *JoyStickN = nullptr;
 
     INumberVectorProperty AxisNP;
-    INumber *AxisN;
+    INumber *AxisN = nullptr;
 
     ISwitchVectorProperty ButtonSP;
-    ISwitch *ButtonS;
+    ISwitch *ButtonS = nullptr;
 
     ITextVectorProperty PortTP; //  A text vector that stores out physical port name
     IText PortT[1];
@@ -76,5 +76,5 @@ class JoyStick : public INDI::DefaultDevice
     ITextVectorProperty JoystickInfoTP;
     IText JoystickInfoT[5];
 
-    JoyStickDriver *driver;
+    JoyStickDriver *driver = nullptr;
 };

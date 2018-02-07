@@ -23,7 +23,7 @@
 #include <cstring>
 #include <memory>
 
-#define POLLMS         100   /* 0.1s */
+#define POLLMS         500   /* 0.5s */
 #define HID_TIMEOUT    10000 /* 10s */
 #define FUDGE_FACTOR_H 1000
 #define FUDGE_FACTOR_L 885
@@ -103,6 +103,9 @@ bool HitecAstroDCFocuser::Connect()
     }
 
     _handle = hid_open(0x04D8, 0xFAC2, nullptr);
+
+    if (_handle == nullptr)
+        _handle = hid_open(0x04D8, 0xF53A, nullptr);
 
     DEBUG(INDI::Logger::DBG_DEBUG, _handle ? "HitecAstroDCFocuser opened." : "HitecAstroDCFocuser failed.");
 
@@ -399,7 +402,7 @@ IPState HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t
 
 bool HitecAstroDCFocuser::saveConfigItems(FILE *fp)
 {
-    INDI::Focuser::saveAllConfigItems(fp);
+    INDI::Focuser::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &MaxPositionNP);
     IUSaveConfigNumber(fp, &SlewSpeedNP);

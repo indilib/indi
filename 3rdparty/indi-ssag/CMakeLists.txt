@@ -6,7 +6,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 
 find_package(INDI REQUIRED)
-find_package(USB-1 REQUIRED)
+find_package(USB1 REQUIRED)
 #find_package(ZLIB REQUIRED)
 #find_package(Threads REQUIRED)
 #find_package(CFITSIO REQUIRED)
@@ -33,7 +33,7 @@ ENDIF ()
 
 add_executable(indi_ssag_ccd ${indissag_SRCS})
 
-target_link_libraries(indi_ssag_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${LIBUSB_1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_ssag_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
 target_link_libraries(indi_ssag_ccd rt)

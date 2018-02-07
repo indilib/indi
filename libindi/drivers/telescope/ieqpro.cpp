@@ -80,10 +80,6 @@ IEQPro::IEQPro()
 {
     set_ieqpro_device(getDeviceName());
 
-    //ctor
-    currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    currentDEC = 90;
-
     scopeInfo.gpsStatus    = GPS_OFF;
     scopeInfo.systemStatus = ST_STOPPED;
     scopeInfo.trackRate    = TR_SIDEREAL;
@@ -96,10 +92,6 @@ IEQPro::IEQPro()
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE,
                            9);
-}
-
-IEQPro::~IEQPro()
-{
 }
 
 const char *IEQPro::getDefaultName()
@@ -175,6 +167,13 @@ bool IEQPro::initProperties()
 
     addAuxControls();
 
+    double longitude=0, latitude=90;
+    // Get value from config file if it exists.
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LONG", &longitude);
+    currentRA  = get_local_sidereal_time(longitude);
+    IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
+    currentDEC = latitude > 0 ? 90 : -90;
+
     return true;
 }
 
@@ -235,25 +234,7 @@ void IEQPro::getStartupData()
     {
         GuideRateN[0].value = guideRate;
         IDSetNumber(&GuideRateNP, nullptr);
-    }
-
-    double HA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
-    double DEC = (HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90;
-
-    if (InitPark())
-    {
-        // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(HA);
-        SetAxis2ParkDefault(DEC);
-    }
-    else
-    {
-        // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(HA);
-        SetAxis2Park(DEC);
-        SetAxis1ParkDefault(HA);
-        SetAxis2ParkDefault(DEC);
-    }
+    }    
 
     double utc_offset;
     int yy, dd, mm, hh, minute, ss;
@@ -286,6 +267,23 @@ void IEQPro::getStartupData()
         LocationNP.s                        = IPS_OK;
 
         IDSetNumber(&LocationNP, nullptr);
+    }
+
+    double DEC = (latitude > 0) ? 90 : -90;
+
+    if (InitPark())
+    {
+        // If loading parking data is successful, we just set the default parking values.
+        SetAxis1ParkDefault(currentRA);
+        SetAxis2ParkDefault(DEC);
+    }
+    else
+    {
+        // Otherwise, we set all parking data to default in case no parking data is found.
+        SetAxis1Park(currentRA);
+        SetAxis2Park(DEC);
+        SetAxis1ParkDefault(currentRA);
+        SetAxis2ParkDefault(DEC);
     }
 
     if (isSimulation())
@@ -472,12 +470,18 @@ bool IEQPro::ReadScopeStatus()
         case ST_TRACKING_PEC_OFF:
         case ST_TRACKING_PEC_ON:
         case ST_GUIDING:
-            TrackModeSP.s = IPS_BUSY;
-            TrackState    = SCOPE_TRACKING;
-            if (scopeInfo.systemStatus == ST_SLEWING)
-                DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
-            else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
-                DEBUG(INDI::Logger::DBG_SESSION, "Meridian flip complete, tracking...");
+            // If slew to parking position is complete, issue park command now.
+            if (TrackState == SCOPE_PARKING)
+                park_ieqpro(PortFD);
+            else
+            {
+                TrackModeSP.s = IPS_BUSY;
+                TrackState    = SCOPE_TRACKING;
+                if (scopeInfo.systemStatus == ST_SLEWING)
+                    DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
+                else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
+                    DEBUG(INDI::Logger::DBG_SESSION, "Meridian flip complete, tracking...");
+            }
             break;
         }
 
@@ -555,24 +559,27 @@ bool IEQPro::Park()
 {
     targetRA  = GetAxis1Park();
     targetDEC = GetAxis2Park();
+
     if (set_ieqpro_ra(PortFD, targetRA) == false || set_ieqpro_dec(PortFD, targetDEC) == false)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
         return false;
     }
 
-    if (park_ieqpro(PortFD))
+    if (slew_ieqpro(PortFD) == false)
     {
-        char RAStr[64]={0}, DecStr[64]={0};
-        fs_sexa(RAStr, targetRA, 2, 3600);
-        fs_sexa(DecStr, targetDEC, 2, 3600);
-
-        TrackState = SCOPE_PARKING;
-        DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
-        return true;
-    }
-    else
+        DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew tp parking position.");
         return false;
+    }
+
+    char RAStr[64]={0}, DecStr[64]={0};
+    fs_sexa(RAStr, targetRA, 2, 3600);
+    fs_sexa(DecStr, targetDEC, 2, 3600);
+
+    TrackState = SCOPE_PARKING;
+    DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
+
+    return true;
 }
 
 bool IEQPro::UnPark()
@@ -881,8 +888,8 @@ bool IEQPro::SetCurrentPark()
 
 bool IEQPro::SetDefaultPark()
 {
-    // By default set RA to HA
-    SetAxis1Park(ln_get_apparent_sidereal_time(ln_get_julian_from_sys()));
+    // By default set RA to LST
+    SetAxis1Park(get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value));
 
     // Set DEC to 90 or -90 depending on the hemisphere
     SetAxis2Park((HemisphereS[HEMI_NORTH].s == ISS_ON) ? 90 : -90);

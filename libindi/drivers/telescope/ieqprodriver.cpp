@@ -980,7 +980,7 @@ bool get_ieqpro_guide_rate(int fd, double *rate)
             return false;
         }
 
-        if ((errcode = tty_read(fd, response, 4, IEQPRO_TIMEOUT, &nbytes_read)))
+        if ((errcode = tty_read_section(fd, response, '#', IEQPRO_TIMEOUT, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
@@ -990,12 +990,12 @@ bool get_ieqpro_guide_rate(int fd, double *rate)
 
     if (nbytes_read > 0)
     {
-        response[nbytes_read] = '\0';
+        response[nbytes_read-1] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
         int rate_num;
 
-        if (sscanf(response, "%d#", &rate_num) > 0)
+        if (sscanf(response, "%d", &rate_num) > 0)
         {
             *rate = rate_num / 100.0;
             tcflush(fd, TCIFLUSH);
@@ -1643,14 +1643,14 @@ bool get_ieqpro_longitude(int fd, double *longitude)
 
     if (nbytes_read > 0)
     {
-        response[nbytes_read] = '\0';
+        response[nbytes_read-1] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
         tcflush(fd, TCIFLUSH);
 
         int longitude_arcsecs = 0;
 
-        if (sscanf(response, "%d#", &longitude_arcsecs) > 0)
+        if (sscanf(response, "%d", &longitude_arcsecs) > 0)
         {
             *longitude = longitude_arcsecs / 3600.0;
             return true;
@@ -1702,14 +1702,14 @@ bool get_ieqpro_latitude(int fd, double *latitude)
 
     if (nbytes_read > 0)
     {
-        response[nbytes_read] = '\0';
+        response[nbytes_read-1] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
 
         tcflush(fd, TCIFLUSH);
 
         int latitude_arcsecs = 0;
 
-        if (sscanf(response, "%d#", &latitude_arcsecs) > 0)
+        if (sscanf(response, "%d", &latitude_arcsecs) > 0)
         {
             *latitude = latitude_arcsecs / 3600.0;
             return true;

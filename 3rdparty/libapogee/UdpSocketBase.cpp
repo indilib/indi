@@ -17,8 +17,9 @@
 #if defined (WIN_OS)
     #include "winsock2.h"
 #else
-	#include <netinet/in.h>
+    #include <netinet/in.h>
     #include <sys/socket.h>
+    #include <sys/select.h>
     #include <netdb.h>
     #include <stdexcept>
 	const int32_t SOCKET_ERROR = -1;

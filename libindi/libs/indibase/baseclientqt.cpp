@@ -39,7 +39,7 @@
 #pragma warning(disable : 4996)
 #endif
 
-INDI::BaseClientQt::BaseClientQt()
+INDI::BaseClientQt::BaseClientQt(QObject *parent) : QObject(parent)
 {
     cServer    = "localhost";
     cPort      = 7624;
@@ -144,6 +144,8 @@ bool INDI::BaseClientQt::disconnectServer()
     clear();
 
     cDeviceNames.clear();
+
+    serverDisconnected(0);
 
     return true;
 }
@@ -800,6 +802,11 @@ bool INDI::BaseClientQt::getDevices(std::vector<INDI::BaseDevice *> &deviceList,
     }
 
     return (deviceList.size() > 0);
+}
+
+bool INDI::BaseClientQt::isServerConnected() const
+{
+    return sConnected;
 }
 
 #if defined(_MSC_VER)

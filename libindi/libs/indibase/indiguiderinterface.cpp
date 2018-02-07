@@ -22,15 +22,18 @@
 
 #include <cstring>
 
-INDI::GuiderInterface::GuiderInterface()
+namespace INDI
+{
+
+GuiderInterface::GuiderInterface()
 {
 }
 
-INDI::GuiderInterface::~GuiderInterface()
+GuiderInterface::~GuiderInterface()
 {
 }
 
-void INDI::GuiderInterface::initGuiderProperties(const char *deviceName, const char *groupName)
+void GuiderInterface::initGuiderProperties(const char *deviceName, const char *groupName)
 {
     IUFillNumber(&GuideNSN[DIRECTION_NORTH], "TIMED_GUIDE_N", "North (ms)", "%.f", 0, 60000, 100, 0);
     IUFillNumber(&GuideNSN[DIRECTION_SOUTH], "TIMED_GUIDE_S", "South (ms)", "%.f", 0, 60000, 100, 0);
@@ -43,7 +46,7 @@ void INDI::GuiderInterface::initGuiderProperties(const char *deviceName, const c
                        60, IPS_IDLE);
 }
 
-void INDI::GuiderInterface::processGuiderProperties(const char *name, double values[], char *names[], int n)
+void GuiderInterface::processGuiderProperties(const char *name, double values[], char *names[], int n)
 {
     if (strcmp(name, GuideNSNP.name) == 0)
     {
@@ -80,7 +83,7 @@ void INDI::GuiderInterface::processGuiderProperties(const char *name, double val
     }
 }
 
-void INDI::GuiderInterface::GuideComplete(INDI_EQ_AXIS axis)
+void GuiderInterface::GuideComplete(INDI_EQ_AXIS axis)
 {
     switch (axis)
     {
@@ -94,4 +97,5 @@ void INDI::GuiderInterface::GuideComplete(INDI_EQ_AXIS axis)
             IDSetNumber(&GuideWENP, nullptr);
             break;
     }
+}
 }

@@ -27,7 +27,7 @@ class Serial;
 class TCP;
 }
 /**
- * \class INDI::Rotator
+ * \class Rotator
    \brief Class to provide general functionality of a rotator device.
 
    Rotators must be able to move to a specific angle. Other capabilities including abort, syncing, homing are optional.
@@ -35,11 +35,14 @@ class TCP;
    The angle is to be interpreted as the raw angle and not necessairly the position angle as this definition should be
    handled by clients after homing and syncing.
 
-   This class is designed for pure rotator devices. To utilize Rotator Interface in another type of device, inherit from INDI::RotatorInterface.
+   This class is designed for pure rotator devices. To utilize Rotator Interface in another type of device, inherit from RotatorInterface.
 
 \author Jasem Mutlaq
 */
-class INDI::Rotator : public INDI::DefaultDevice, public INDI::RotatorInterface
+namespace INDI
+{
+
+class Rotator : public DefaultDevice, public RotatorInterface
 {
   public:
     Rotator();
@@ -62,7 +65,7 @@ class INDI::Rotator : public INDI::DefaultDevice, public INDI::RotatorInterface
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     /**
-         * @brief setRotatorConnection Set Rotator connection mode. Child class should call this in the constructor before INDI::Rotator registers
+         * @brief setRotatorConnection Set Rotator connection mode. Child class should call this in the constructor before Rotator registers
          * any connection interfaces
          * @param value ORed combination of RotatorConnection values.
          */
@@ -98,3 +101,4 @@ class INDI::Rotator : public INDI::DefaultDevice, public INDI::RotatorInterface
     bool callHandshake();
     uint8_t rotatorConnection = CONNECTION_SERIAL | CONNECTION_TCP;
 };
+}

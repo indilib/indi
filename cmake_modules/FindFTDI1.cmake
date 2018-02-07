@@ -21,6 +21,7 @@ if (FTDI1_INCLUDE_DIR AND FTDI1_LIBRARIES)
 else (FTDI1_INCLUDE_DIR AND FTDI1_LIBRARIES)
 
   find_path(FTDI1_INCLUDE_DIR ftdi.h
+    PATH_SUFFIXES libftdi1
     ${_obIncDir}
     ${GNUWIN32_DIR}/include
     /usr/local/include

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 3.0)
 PROJECT(libfli CXX C)
 
 include(GNUInstallDirs)
@@ -17,7 +17,7 @@ set(fli_LIB_SRCS
 #build a shared library
 ADD_LIBRARY(fli SHARED ${fli_LIB_SRCS})
 
-set_target_properties(fli PROPERTIES VERSION 1.8 SOVERSION 1)
+set_target_properties(fli PROPERTIES VERSION 1.9 SOVERSION 1)
 
 #need to link to some other libraries ? just add them here
 TARGET_LINK_LIBRARIES(fli -lm)
@@ -25,4 +25,4 @@ TARGET_LINK_LIBRARIES(fli -lm)
 #add an install target here
 INSTALL(FILES libfli.h DESTINATION include)
 
-INSTALL(TARGETS fli LIBRARY DESTINATION lib)
+INSTALL(TARGETS fli LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

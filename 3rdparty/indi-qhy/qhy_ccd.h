@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "qhyccd.h"
+#include <qhyccd.h>
 
 #include <indiccd.h>
 #include <indifilterinterface.h>
@@ -77,11 +77,9 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     virtual int QueryFilter() override;
     virtual bool SelectFilter(int position) override;
 
-#ifndef __APPLE__
     // Streaming
     virtual bool StartStreaming() override;
     virtual bool StopStreaming() override;
-#endif
 
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
@@ -136,13 +134,13 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     bool HasFilters;
 
     qhyccd_handle *camhandle;
-    CCDChip::CCD_FRAME imageFrameType;
+    INDI::CCDChip::CCD_FRAME imageFrameType;
     bool sim;
 
     // Temperature tracking
     float TemperatureRequest;
     int temperatureID;
-    bool coolerEnabled, useSoftBin;
+    bool coolerEnabled;//, useSoftBin;
 
     // Exposure progress
     float ExposureRequest;
@@ -154,12 +152,12 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     float GainRequest;
     float LastGainRequest;
 
-// Thread conditions
-#ifndef OSX_EMBEDED_MODE
-    int streamPredicate;
-#endif
+    // Threading
+    int streamPredicate=0;
     pthread_t primary_thread;
     bool terminateThread;
+    pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

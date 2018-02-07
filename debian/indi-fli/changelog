@@ -1,3 +1,9 @@
+indi-fli (1.2) bionic; urgency=medium
+
+  * New release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 22 Jan 2018 08:45:00 +0300
+
 indi-fli (1.0.0ubuntu3) maverick; urgency=low
 
   * Fix failure to build due to missing libfli-dev 

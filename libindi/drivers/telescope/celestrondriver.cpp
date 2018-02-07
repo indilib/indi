@@ -2,6 +2,7 @@
     Celestron driver
 
     Copyright (C) 2015 Jasem Mutlaq
+    Copyright (C) 2017 Juan Menendez
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -22,163 +23,224 @@
     Version with experimental pulse guide support. GC 04.12.2015
 */
 
-#include "celestrondriver.h"
-
 #include "indicom.h"
 #include "indilogger.h"
+#include "celestrondriver.h"
 
 #include <libnova/julian_day.h>
 
 #include <map>
-
 #include <cstring>
 #include <cmath>
 #include <termios.h>
 #include <unistd.h>
 
 #define CELESTRON_TIMEOUT 5 /* FD timeout in seconds */
-std::map<int, std::string> celestronModels;
 
-bool celestron_debug                 = false;
-bool celestron_simulation            = false;
-char celestron_device[MAXINDIDEVICE] = "Celestron GPS";
-double currentRA, currentDEC, currentSlewRate;
+// logging macros
+#define LOG_DEBUG(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, (txt))
+#define LOG_INFO(txt)   DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, (txt))
+#define LOG_WARN(txt)   DEBUGDEVICE(device_str, INDI::Logger::DBG_WARNING, (txt))
+#define LOG_ERROR(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, (txt))
+#define LOG_EXTRA(...)  DEBUGDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, (txt))
 
-struct
+#define LOGF_DEBUG(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, __VA_ARGS__)
+#define LOGF_INFO(...)  DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION, __VA_ARGS__)
+#define LOGF_WARN(...)  DEBUGFDEVICE(device_str, INDI::Logger::DBG_WARNING, __VA_ARGS__)
+#define LOGF_ERROR(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR, __VA_ARGS__)
+#define LOGF_EXTRA(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, __VA_ARGS__)
+
+
+using namespace Celestron;
+
+
+char device_str[MAXINDIDEVICE] = "Celestron GPS";
+
+// Account for the quadrant in declination
+double Celestron::trimDecAngle(double angle)
 {
-    double ra;
-    double dec;
-    double az;
-    double alt;
-    CELESTRON_GPS_STATUS gpsStatus;
-    CELESTRON_SLEW_RATE slewRate;
-    bool isSlewing;
-} simData;
+    angle = angle - 360*floor(angle/360);
+    if (angle < 0)
+        angle += 360.0;
 
-void set_celestron_debug(bool enable)
-{
-    celestron_debug = enable;
+    if ((angle > 90.) && (angle <= 270.))
+        angle = 180. - angle;
+    else if ((angle > 270.) && (angle <= 360.))
+        angle = angle - 360.;
+
+    return angle;
 }
 
-void set_celestron_simulation(bool enable)
+// Convert decimal degrees to NexStar angle
+uint16_t Celestron::dd2nex(double angle)
 {
-    celestron_simulation = enable;
+    angle = angle - 360*floor(angle/360);
+    if (angle < 0)
+        angle += 360.0;
+
+    return (uint16_t)(angle * 0x10000 / 360.0);
 }
 
-void set_celestron_device(const char *name)
+// Convert decimal degrees to NexStar angle (precise)
+uint32_t Celestron::dd2pnex(double angle)
 {
-    strncpy(celestron_device, name, MAXINDIDEVICE);
+    angle = angle - 360*floor(angle/360);
+    if (angle < 0)
+        angle += 360.0;
+
+    return (uint32_t)(angle * 0x100000000 / 360.0);
 }
 
-void set_sim_gps_status(CELESTRON_GPS_STATUS value)
+// Convert NexStar angle to decimal degrees
+double Celestron::nex2dd(uint16_t value)
 {
-    simData.gpsStatus = value;
+    return 360.0 * ((double)value / 0x10000);
 }
 
-void set_sim_slew_rate(CELESTRON_SLEW_RATE value)
+// Convert NexStar angle to decimal degrees (precise)
+double Celestron::pnex2dd(uint32_t value)
 {
-    simData.slewRate = value;
+    return 360.0 * ((double)value / 0x100000000);
 }
 
-void set_sim_slewing(bool isSlewing)
+void hex_dump(char *buf, const char *data, int size)
 {
-    simData.isSlewing = isSlewing;
+    for (int i = 0; i < size; i++)
+        sprintf(buf + 3 * i, "%02X ", (unsigned char)data[i]);
+
+    if (size > 0)
+        buf[3 * size - 1] = '\0';
 }
 
-void set_sim_ra(double ra)
+
+void CelestronDriver::set_device(const char *name)
 {
-    simData.ra = ra;
+    strncpy(device_str, name, MAXINDIDEVICE);
 }
 
-double get_sim_ra()
+// Virtual method for testing
+int CelestronDriver::serial_write(const char *cmd, int nbytes, int *nbytes_written)
 {
-    return simData.ra;
+    tcflush(fd, TCIOFLUSH);
+    return tty_write(fd, cmd, nbytes, nbytes_written);
 }
 
-void set_sim_dec(double dec)
+// Virtual method for testing
+int CelestronDriver::serial_read(int nbytes, int *nbytes_read)
 {
-    simData.dec = dec;
+    return tty_read(fd, response, nbytes, CELESTRON_TIMEOUT, nbytes_read);
 }
 
-double get_sim_dec()
+// Virtual method for testing
+int CelestronDriver::serial_read_section(char stop_char, int *nbytes_read)
 {
-    return simData.dec;
+    return tty_read_section(fd, response, stop_char, CELESTRON_TIMEOUT, nbytes_read);
 }
 
-void set_sim_az(double az)
+// Set the expected response for a command in simulation mode
+void CelestronDriver::set_sim_response(const char *fmt, ...)
 {
-    simData.az = az;
+    if (simulation) {
+        va_list args;
+        va_start(args, fmt);
+        vsprintf(response, fmt, args);
+        va_end(args);
+    }
 }
 
-void set_sim_alt(double alt)
+// Send a command to the mount. Return the number of bytes received or 0 if
+// case of error
+int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
+        int resp_len, bool ascii_cmd, bool ascii_resp)
 {
-    simData.alt = alt;
-}
-
-bool check_celestron_connection(int fd)
-{
-    char initCMD[] = "Kx";
-    int errcode    = 0;
+    int err;
+    int nbytes = resp_len;
     char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
+    char hexbuf[3 * MAX_RESP_SIZE];
 
-    if (celestronModels.empty())
+    if (ascii_cmd)
+        LOGF_DEBUG("CMD <%s>", cmd);
+    else
     {
-        celestronModels[1]  = "GPS Series";
-        celestronModels[3]  = "i-Series";
-        celestronModels[4]  = "i-Series SE";
-        celestronModels[5]  = "CGE";
-        celestronModels[6]  = "Advanced GT";
-        celestronModels[7]  = "SLT";
-        celestronModels[9]  = "CPC";
-        celestronModels[10] = "GT";
-        celestronModels[11] = "4/5 SE";
-        celestronModels[12] = "6/8 SE";
-        celestronModels[13] = "CGE Pro";
-        celestronModels[14] = "CGEM DX";
-        celestronModels[20] = "AVX";
+        // Non-ASCII commands should be represented as hex strings
+        hex_dump(hexbuf, cmd, cmd_len);
+        LOGF_DEBUG("CMD <%s>", hexbuf);
     }
 
-    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Initializing Celestron using Kx CMD...");
+    if (!simulation && fd)
+    {
+        if ((err = serial_write(cmd, cmd_len, &nbytes)) != TTY_OK)
+        {
+            tty_error_msg(err, errmsg, MAXRBUF);
+            LOGF_ERROR("Serial write error: %s", errmsg);
+            return 0;
+        }
+
+        if (resp_len > 0)
+        {
+            if (ascii_resp)
+                err = serial_read_section('#', &nbytes);
+            else
+                err = serial_read(resp_len, &nbytes);
+
+            if (err)
+            {
+                tty_error_msg(err, errmsg, MAXRBUF);
+                LOGF_ERROR("Serial read error: %s", errmsg);
+                return 0;
+            }
+        }
+    }
+
+    if (resp_len == 0)
+        return true;
+
+    if (nbytes != resp_len)
+    {
+        LOGF_ERROR("Received %d bytes, expected %d.", nbytes, resp_len);
+        return 0;
+    }
+
+    resp[nbytes] = '\0';
+
+    if (ascii_resp)
+        LOGF_DEBUG("RES <%s>", resp);
+    else
+    {
+        // Non-ASCII commands should be represented as hex strings
+        hex_dump(hexbuf, resp, resp_len);
+        LOGF_DEBUG("RES <%s>", hexbuf);
+    }
+    return nbytes;
+}
+
+// Send a 'passthrough command' to the mount. Return the number of bytes
+// received or 0 in case of error
+int CelestronDriver::send_passthrough(int dest, int cmd_id, const char *payload,
+        int payload_len, char *response, int response_len)
+{
+    char cmd[8] = {0};
+
+    cmd[0] = 0x50;
+    cmd[1] = (char)(payload_len + 1);
+    cmd[2] = (char)dest;
+    cmd[3] = (char)cmd_id;
+    cmd[7] = (char)response_len;
+
+    // payload_len must be <= 3 !
+    memcpy(cmd + 4, payload, payload_len);
+
+    return send_command(cmd, 8, response, response_len + 1, false, false);
+}
+
+bool CelestronDriver::check_connection()
+{
+    LOG_DEBUG("Initializing Celestron using Kx CMD...");
 
     for (int i = 0; i < 2; i++)
     {
-        if (celestron_simulation)
-        {
-            strcpy(response, "x#");
-            nbytes_read = strlen(response);
-        }
-        else
-        {
-            tcflush(fd, TCIOFLUSH);
-
-            if ((errcode = tty_write(fd, initCMD, 2, &nbytes_written)) != TTY_OK)
-            {
-                tty_error_msg(errcode, errmsg, MAXRBUF);
-                DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-                usleep(50000);
-                continue;
-            }
-
-            if ((errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-            {
-                tty_error_msg(errcode, errmsg, MAXRBUF);
-                DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-                usleep(50000);
-                continue;
-            }
-        }
-
-        if (nbytes_read > 0)
-        {
-            response[nbytes_read] = '\0';
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-            if (!strcmp(response, "x#"))
-                return true;
-        }
+        if (echo())
+            return true;
 
         usleep(50000);
     }
@@ -186,1165 +248,358 @@ bool check_celestron_connection(int fd)
     return false;
 }
 
-bool get_celestron_firmware(int fd, FirmwareInfo *info)
+bool CelestronDriver::get_firmware(FirmwareInfo *info)
 {
-    bool rc = false;
+    char version[8], model[16], RAVersion[8], DEVersion[8];
 
-    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller version...");
-    rc = get_celestron_version(fd, info);
-
-    if (!rc)
+    LOG_DEBUG("Getting controller version...");
+    if (!get_version(version, 8))
         return false;
+    info->Version = version;
+    info->controllerVersion = atof(version);
 
-    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller variant...");
-    rc = get_celestron_variant(fd, info);
-
-    if (rc == false)
-        return false;
+    LOG_DEBUG("Getting controller variant...");
+    info->controllerVariant = ISNEXSTAR;
+    get_variant(&(info->controllerVariant));
 
     if (((info->controllerVariant == ISSTARSENSE) &&
-          info->controllerVersion >= MINSTSENSVER) ||
-        (info->controllerVersion >= 2.2))
+            info->controllerVersion >= MINSTSENSVER) ||
+            (info->controllerVersion >= 2.2))
     {
-        DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting controller model...");
-        rc = get_celestron_model(fd, info);
-        if (!rc)
-            return rc;
+        LOG_DEBUG("Getting controller model...");
+        if (!get_model(model, 16))
+            return false;
+        info->Model = model;
     }
     else
         info->Model = "Unknown";
 
-    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting GPS firmware version...");
-    rc = get_celestron_gps_firmware(fd, info);
+    //LOG_DEBUG("Getting GPS firmware version...");
+    // char GPSVersion[8];
+    //if (!get_dev_firmware(CELESTRON_DEV_GPS, GPSVersion, 8))
+    //return false;
+    //info->GPSFirmware = GPSVersion;
+    info->GPSFirmware = "0.0";
 
-    if (!rc)
-        return rc;
+    LOG_DEBUG("Getting RA firmware version...");
+    if (!get_dev_firmware(CELESTRON_DEV_RA, RAVersion, 8))
+        return false;
+    info->RAFirmware = RAVersion;
 
-    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting RA firmware version...");
-    rc = get_celestron_ra_firmware(fd, info);
+    LOG_DEBUG("Getting DEC firmware version...");
+    if (!get_dev_firmware(CELESTRON_DEV_DEC, DEVersion, 8))
+        return false;
+    info->DEFirmware = DEVersion;
 
-    if (!rc)
-        return rc;
-
-    DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Getting DE firmware version...");
-    rc = get_celestron_dec_firmware(fd, info);
-
-    return rc;
+    return true;
 }
 
-bool get_celestron_version(int fd, FirmwareInfo *info)
+bool CelestronDriver::echo()
 {
-    char cmd[]  = "V";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[16];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
+    set_sim_response("x#");
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    if (!send_command("Kx", 2, response, 2, true, true))
+        return false;
 
-    if (celestron_simulation)
+    return !strcmp(response, "x#");
+}
+
+bool CelestronDriver::get_version(char *version, int size)
+{
+    set_sim_response("\x04\x29#");
+
+    if (!send_command("V", 1, response, 3, true, false))
+        return false;
+
+    snprintf(version, size, "%d.%02d", response[0], response[1]);
+
+    LOGF_INFO("Controller version: %s", version);
+    return true;
+}
+
+//TODO: no critical errors for this command
+bool CelestronDriver::get_variant(char *variant)
+{
+    set_sim_response("\x11#");
+
+    if (!send_command("v", 1, response, 2, true, false))
+        return false;
+
+    *variant = response[0];
+    return true;
+}
+
+bool CelestronDriver::get_model(char *model, int size)
+{
+    std::map<int, std::string> models =
     {
-        char major = 4;
-        char minor = 4;
-        snprintf(response, 16, "%c%c#", major, minor);
-        nbytes_read = strlen(response);
+        {1, "GPS Series"},
+        {3, "i-Series"},
+        {4, "i-Series SE"},
+        {5, "CGE"},
+        {6, "Advanced GT"},
+        {7, "SLT"},
+        {9, "CPC"},
+        {10, "GT"},
+        {11, "4/5 SE"},
+        {12, "6/8 SE"},
+        {13, "CGE Pro"},
+        {14, "CGEM DX"},
+        {20, "AVX"},
+    };
+
+    set_sim_response("\x06#");  // Simulated response
+
+    if (!send_command("m", 1, response, 2, true, false))
+        return false;
+
+    int m = response[0];
+
+    if (models.find(m) != models.end())
+    {
+        strncpy(model, models[m].c_str(), size);
+        LOGF_INFO("Mount model: %s", model);
     }
     else
     {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        strncpy(model, "Unknown", size);
+        LOGF_WARN("Unrecognized model (%d).", model);
     }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1],
-                     response[2]);
-
-        if (nbytes_read == 3)
-        {
-            int major = response[0];
-            int minor = response[1];
-
-            char versionStr[8];
-            snprintf(versionStr, 8, "%01d.%01d", major, minor);
-
-            info->controllerVersion = atof(versionStr);
-            info->Version           = versionStr;
-
-            return true;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 3.", nbytes_read);
-    return false;
+    return true;
 }
 
-bool get_celestron_variant (int fd, FirmwareInfo * info)
+bool CelestronDriver::get_dev_firmware(int dev, char *version, int size)
 {
-    char cmd[] = "v";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[16];
-    int nbytes_read = 0;
-    int nbytes_written = 0;
+    set_sim_response("\x01\x09#");
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    int rlen = send_passthrough(dev, 0xfe, NULL, 0, response, 2);
 
-    if (celestron_simulation)
-    {
-        char res = 0x11;
-        snprintf(response, 16, "%c#", res);
-        nbytes_read = strlen(response);
-    }
+    if (rlen == 3)
+        snprintf(version, size, "%d.%02d", response[0], response[1]);
+    else if (rlen == 2) // some GPS models return only 2 bytes
+        snprintf(version, size, "%01d.0", response[0]);
     else
-    {
-        tcflush(fd, TCIOFLUSH);
+        return false;
 
-        if ( (errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ( (errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X)", response[0], response[1]);
-
-        if (nbytes_read == 2)
-        {
-            info->controllerVariant = response[0];
-            return true;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 2.", nbytes_read);
-    return false;
-
-}
-
-bool get_celestron_model(int fd, FirmwareInfo *info)
-{
-    char cmd[]  = "m";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[16];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
-    {
-        char device = 6;
-        snprintf(response, 16, "%c#", device);
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X)", response[0], response[1]);
-
-        if (nbytes_read == 2)
-        {
-            response[1] = '\0';
-            int model   = response[0];
-
-            if (celestronModels.find(model) != celestronModels.end())
-                info->Model = celestronModels[model];
-            else
-            {
-                DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "Unrecognized model (%d).", model);
-                info->Model = "Unknown";
-            }
-
-            return true;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 2.", nbytes_read);
-    return false;
-}
-
-bool get_celestron_ra_firmware(int fd, FirmwareInfo *info)
-{
-    unsigned char cmd[] = { 0x50, 0x01, 0x10, 0xFE, 0x0, 0x0, 0x0, 0x02 };
-    int errcode         = 0;
-    char errmsg[MAXRBUF];
-    char response[16];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],
-                 cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
-
-    if (celestron_simulation)
-    {
-        char major = 1;
-        char minor = 9;
-        snprintf(response, 16, "%c%c#", major, minor);
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, (char *)cmd, 8, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1],
-                     response[2]);
-
-        if (nbytes_read == 3)
-        {
-            int major = response[0];
-            int minor = response[1];
-
-            char versionStr[8];
-            snprintf(versionStr, 8, "%01d.%01d", major, minor);
-
-            info->RAFirmware = versionStr;
-
-            return true;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 3.", nbytes_read);
-    return false;
-}
-
-bool get_celestron_dec_firmware(int fd, FirmwareInfo *info)
-{
-    unsigned char cmd[] = { 0x50, 0x01, 0x11, 0xFE, 0x0, 0x0, 0x0, 0x02 };
-    int errcode         = 0;
-    char errmsg[MAXRBUF];
-    char response[16];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],
-                 cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
-
-    if (celestron_simulation)
-    {
-        char major = 1;
-        char minor = 6;
-        snprintf(response, 16, "%c%c#", major, minor);
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, (char *)cmd, 8, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1],
-                     response[2]);
-
-        if (nbytes_read == 3)
-        {
-            int major = response[0];
-            int minor = response[1];
-
-            char versionStr[8];
-            snprintf(versionStr, 8, "%01d.%01d", major, minor);
-
-            info->DEFirmware = versionStr;
-
-            return true;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 3.", nbytes_read);
-    return false;
-}
-
-bool get_celestron_gps_firmware(int fd, FirmwareInfo *info)
-{
-    unsigned char cmd[] = { 0x50, 0x01, 0x10, 0xFE, 0x0, 0x0, 0x0, 0x02 };
-    int errcode         = 0;
-    char errmsg[MAXRBUF];
-    char response[16];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],
-                 cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
-
-    if (celestron_simulation)
-    {
-        char major = 1;
-        char minor = 6;
-        snprintf(response, 16, "%c%c#", major, minor);
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, (char *)cmd, 8, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X)", response[0], response[1],
-                     response[2]);
-
-        if (nbytes_read == 3)
-        {
-            int major = response[0];
-            int minor = response[1];
-
-            char versionStr[8];
-            snprintf(versionStr, 8, "%01d.%01d", major, minor);
-
-            info->GPSFirmware = versionStr;
-            return true;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 3.", nbytes_read);
-    return false;
+    return true;
 }
 
 /*****************************************************************
- PulseGuide commands, experimental:                              *
-                                                                 *
-     SendPulseCmd( int fd,                                       *
-                   CELESTRON_DIRECTION direction,                *
-                   signed char rate,                             *
-                   unsigned char duration_csec );                *
-                                                                 *
-       Send a guiding pulse to the  mount connected to "fd",     *
-       in direction "direction". "rate" should be a * signed     *
-       8-bit integer in the range (-100,100) that represents     *
-       the pulse  velocity in % of sidereal. "duration_csec"     *
-       is an unsigned  8-bit integer (0,255) with  the pulse     *
-       duration in centiseconds (i.e. 1/100 s  =  10ms). The     *
-       max pulse duration is 2550 ms.                            *
-                                                                 *
-                                                                 *
-     SendPulseStatusCmd( int fd,                                 *
-                         CELESTRON_DIRECTION direction,          *
-                         bool & pulse_state );                   *
-                                                                 *
-       Send the guiding pulse status check command to device     *
-       "fd" for the motor responsible for "direction". If  a     *
-       pulse is being executed, "pulse_state" is  set  to 1,     *
-       whereas if the pulse motion has been  completed it is     *
-       set to 0. Return "false" if the status command fails,     *
-       otherwise return "true".                                  *
+    PulseGuide commands, experimental
 ******************************************************************/
 
-int SendPulseCmd(int fd, CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_csec)
+/*****************************************************************
+    Send a guiding pulse to the  mount in direction "dir".
+    "rate" should be a signed 8-bit integer in the range (-100,100) that
+    represents the pulse velocity in % of sidereal.
+    "duration_csec" is an unsigned  8-bit integer (0,255) with  the pulse
+    duration in centiseconds (i.e. 1/100 s  =  10ms).
+    The max pulse duration is 2550 ms.
+******************************************************************/
+int CelestronDriver::send_pulse(CELESTRON_DIRECTION dir, signed char rate, unsigned char duration_csec)
 {
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING,
-                 " PULSE REQUEST: (FD:%02X, DIR:%02i, RATE:%02i, CSEC:%02i)", fd, direction, rate, duration_csec);
+    int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
+    char payload[2];
+    payload[0] = (dir == CELESTRON_N || dir == CELESTRON_W) ? rate : -rate;
+    payload[1] = duration_csec;
 
-    char cmd[]  = { 0x50, 0x04, 0x11, 0x26, 0x00, 0x00, 0x00, 0x00 };
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    int nbytes_written = 0, nbytes_read = 0;
-    char response[8];
-
-    switch (direction)
-    {
-        case CELESTRON_N:
-            cmd[2] = 0x11;
-            cmd[4] = rate;
-            cmd[5] = duration_csec;
-            break;
-
-        case CELESTRON_S:
-            cmd[2] = 0x11;
-            cmd[4] = -rate;
-            cmd[5] = duration_csec;
-            break;
-
-        case CELESTRON_W:
-            cmd[2] = 0x10;
-            cmd[4] = rate;
-            cmd[5] = duration_csec;
-            break;
-
-        case CELESTRON_E:
-            cmd[2] = 0x10;
-            cmd[4] = -rate;
-            cmd[5] = duration_csec;
-            break;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "   COMMAND (%02X %02X %02X %02X %02X %02X %02X %02X)",
-                 cmd[0], cmd[1], cmd[2], cmd[3], (unsigned char)cmd[4], (unsigned char)cmd[5], cmd[6], cmd[7]);
-
-    if (celestron_simulation)
-    {
-        strcpy(response, "#");
-        nbytes_read = strlen(response);
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    SIMULATION: NBYTES = %02i, RESPONSE = %s",
-                     nbytes_read, response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        // Send command and check success.
-        DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "   ISSUING COMMAND");
-        if ((errcode = tty_write(fd, cmd, 8, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "   WAITING FOR REPLY");
-        // Receive response and check success.
-        if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read == 1)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    NBYTES = %i, RESPONSE = %02X", nbytes_read,
-                     response[0]);
-
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "    RECEIVED %d BYTES, expected 1", nbytes_read);
-    return false;
+    set_sim_response("#");
+    return send_passthrough(dev, 0x26, payload, 2, response, 1);
 }
 
-int SendPulseStatusCmd(int fd, CELESTRON_DIRECTION direction, bool &pulse_state)
+/*****************************************************************
+    Send the guiding pulse status check command to the mount for the motor
+    responsible for "dir". If  a pulse is being executed, "pulse_state" is set
+    to 1, whereas if the pulse motion has been  completed it is set to 0.
+    Return "false" if the status command fails, otherwise return "true".
+******************************************************************/
+int CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir, bool &pulse_state)
 {
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, " PULSE STATUS REQUEST: (FD:%02X, DIR:%02i)", fd,
-                 direction);
+    int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
+    char payload[2] = {0, 0};
 
-    char cmd[]  = { 0x50, 0x03, 0x11, 0x27, 0x00, 0x00, 0x00, 0x01 };
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    int nbytes_written = 0, nbytes_read = 0;
-    char response[8];
+    set_sim_response("#");
+    if (!send_passthrough(dev, 0x27, payload, 2, response, 1))
+        return false;
 
-    switch (direction)
-    {
-        case CELESTRON_N:
-        case CELESTRON_S:
-            cmd[2] = 0x11;
-            break;
-        case CELESTRON_W:
-        case CELESTRON_E:
-            cmd[2] = 0x10;
-            break;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "   COMMAND (%02X %02X %02X %02X %02X %02X %02X %02X)",
-                 cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
-
-    if (celestron_simulation)
-    {
-        strcpy(response, "0#");
-        nbytes_read = strlen(response);
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    SIMULATION: NBYTES = %02i, RESPONSE = %s",
-                     nbytes_read, response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "   ISSUING COMMAND");
-        if ((errcode = tty_write(fd, cmd, 8, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-        DEBUGDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "   WAITING FOR REPLY");
-        if ((errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read == 2)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    NBYTES = %i, RESPONSE = %02X %02X", nbytes_read,
-                     (unsigned char)response[0], (unsigned char)response[1]);
-
-        if (response[0] == 0 && response[1] == '#')
-        {
-            pulse_state = 0;
-        }
-        else if (response[0] == 1 && response[1] == '#')
-        {
-            pulse_state = 1;
-        }
-        else
-        {
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_WARNING, "    UNEXPECTED RESPONSE: %02X %02X",
-                         (unsigned char)response[0], (unsigned char)response[1]);
-            return false;
-        }
-
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "    RECEIVED %d BYTES, expected 2", nbytes_read);
-    return false;
+    pulse_state = (bool)response[0];
+    return true;
 }
 
-bool start_celestron_motion(int fd, CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate)
+bool CelestronDriver::start_motion(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate)
 {
-    char cmd[]  = { 0x50, 0x02, 0x11, 0x24, 0x09, 0x00, 0x00, 0x00 };
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    int nbytes_written = 0, nbytes_read = 0;
-    char response[8];
+    int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
+    int cmd_id = (dir == CELESTRON_N || dir == CELESTRON_W) ? 0x24 : 0x25;
+    char payload[1];
+    payload[0] = rate + 1;
 
-    switch (dir)
-    {
-        case CELESTRON_N:
-            cmd[2] = 0x11;
-            cmd[3] = 0x24;
-            cmd[4] = rate + 1;
-            break;
-
-        case CELESTRON_S:
-            cmd[2] = 0x11;
-            cmd[3] = 0x25;
-            cmd[4] = rate + 1;
-            break;
-
-        case CELESTRON_W:
-            cmd[2] = 0x10;
-            cmd[3] = 0x24;
-            cmd[4] = rate + 1;
-            break;
-
-        case CELESTRON_E:
-            cmd[2] = 0x10;
-            cmd[3] = 0x25;
-            cmd[4] = rate + 1;
-            break;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],
-                 cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
-
-    if (celestron_simulation)
-    {
-        strcpy(response, "#");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, 8, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    set_sim_response("#");
+    return send_passthrough(dev, cmd_id, payload, 1, response, 1);
 }
 
-bool stop_celestron_motion(int fd, CELESTRON_DIRECTION dir)
+bool CelestronDriver::stop_motion(CELESTRON_DIRECTION dir)
 {
-    char cmd[]  = { 0x50, 0x02, 0x11, 0x24, 0x00, 0x00, 0x00, 0x00 };
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
+    int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
+    char payload[] = { 0 };
 
-    switch (dir)
-    {
-        case CELESTRON_N:
-        case CELESTRON_S:
-            cmd[2] = 0x11;
-            cmd[3] = 0x24;
-            break;
-
-        case CELESTRON_W:
-        case CELESTRON_E:
-            cmd[2] = 0x10;
-            cmd[3] = 0x24;
-            break;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X)", cmd[0],
-                 cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7]);
-
-    if (celestron_simulation)
-    {
-        strcpy(response, "#");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, 8, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    set_sim_response("#");
+    return send_passthrough(dev, 0x24, payload, 1, response, 1);
 }
 
-bool abort_celestron(int fd)
+bool CelestronDriver::abort()
 {
-    char cmd[]  = "M";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
-    {
-        strcpy(response, "#");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    set_sim_response("#");
+    return send_command("M", 1, response, 1, true, true);
 }
 
-bool slew_celestron(int fd, double ra, double dec)
+bool CelestronDriver::slew_radec(double ra, double dec, bool precise)
 {
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    int ra_int, de_int;
-
-    ra_int = get_ra_fraction(ra);
-    de_int = get_de_fraction(dec);
-
     char RAStr[16], DecStr[16];
     fs_sexa(RAStr, ra, 2, 3600);
     fs_sexa(DecStr, dec, 2, 3600);
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Goto (%s,%s)", RAStr, DecStr);
+    LOGF_DEBUG("Goto RA-DEC(%s,%s)", RAStr, DecStr);
 
-    snprintf(cmd, 16, "R%04X,%04X", ra_int, de_int);
+    set_sim_slewing(true);
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
-    {
-        strcpy(response, "#");
-        nbytes_read = strlen(response);
-        set_sim_slewing(true);
-    }
+    char cmd[20];
+    if (precise)
+        sprintf(cmd, "r%08X,%08X", dd2pnex(ra*15), dd2pnex(dec));
     else
-    {
-        tcflush(fd, TCIOFLUSH);
+        sprintf(cmd, "R%04X,%04X", dd2nex(ra*15), dd2nex(dec));
 
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        if (!strcmp(response, "#"))
-        {
-            return true;
-        }
-        else
-        {
-            DEBUGDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Requested object is below horizon.");
-            return false;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    set_sim_response("#");
+    return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
-bool slew_celestron_azalt(int fd, double latitude, double az, double alt)
+bool CelestronDriver::slew_azalt(double az, double alt, bool precise)
 {
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    uint16_t az_int, alt_int;
-
-    az_int  = get_az_fraction(az);
-    alt_int = get_alt_fraction(latitude, alt, az);
-
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, az, 3, 3600);
     fs_sexa(AltStr, alt, 2, 3600);
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Goto AZM-ALT (%s,%s)", AzStr, AltStr);
+    LOGF_DEBUG("Goto AZM-ALT (%s,%s)", AzStr, AltStr);
 
-    snprintf(cmd, 16, "B%04X,%04X", az_int, alt_int);
+    set_sim_slewing(true);
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
-    {
-        strcpy(response, "#");
-        nbytes_read = strlen(response);
-        set_sim_slewing(true);
-    }
+    char cmd[20];
+    if (precise)
+        sprintf(cmd, "b%08X,%08X", dd2pnex(az), dd2pnex(alt));
     else
-    {
-        tcflush(fd, TCIOFLUSH);
+        sprintf(cmd, "B%04X,%04X", dd2nex(az), dd2nex(alt));
 
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        if (!strcmp(response, "#"))
-        {
-            return true;
-        }
-        else
-        {
-            DEBUGDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Requested object is below horizon.");
-            return false;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    set_sim_response("#");
+    return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
-bool sync_celestron(int fd, double ra, double dec)
+bool CelestronDriver::sync(double ra, double dec, bool precise)
 {
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    int ra_int, de_int;
-
     char RAStr[16], DecStr[16];
     fs_sexa(RAStr, ra, 2, 3600);
     fs_sexa(DecStr, dec, 2, 3600);
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "Sync (%s,%s)", RAStr, DecStr);
 
-    ra_int = get_ra_fraction(ra);
-    de_int = get_de_fraction(dec);
+    LOGF_DEBUG("Sync (%s,%s)", RAStr, DecStr);
 
-    snprintf(cmd, 16, "S%04X,%04X", ra_int, de_int);
+    sim_data.ra  = ra;
+    sim_data.dec = dec;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    char cmd[20];
+    if (precise)
+        sprintf(cmd, "s%08X,%08X", dd2pnex(ra*15), dd2pnex(dec));
+    else
+        sprintf(cmd, "S%04X,%04X", dd2nex(ra*15), dd2nex(dec));
 
-    if (celestron_simulation)
+    set_sim_response("#");
+    return send_command(cmd, strlen(cmd), response, 1, true, true);
+}
+
+void parseCoordsResponse(char *response, double *d1, double *d2, bool precise)
+{
+    uint32_t d1_int = 0, d2_int = 0;
+
+    sscanf(response, "%x,%x#", &d1_int, &d2_int);
+
+    if (precise)
     {
-        simData.ra  = ra;
-        simData.dec = dec;
-        strcpy(response, "#");
-        nbytes_read = strlen(response);
+        *d1 = pnex2dd(d1_int);
+        *d2 = pnex2dd(d2_int);
     }
     else
     {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
+        *d1 = nex2dd(d1_int);
+        *d2 = nex2dd(d2_int);
     }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        if (!strcmp(response, "#"))
-        {
-            return true;
-        }
-        else
-        {
-            DEBUGDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Requested object is below horizon.");
-            return false;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
-    return false;
 }
 
-bool get_celestron_coords(int fd, double *ra, double *dec)
+bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
 {
-    char cmd[]  = "E";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[16];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
+    if (precise)
     {
-        int ra_int = get_ra_fraction(simData.ra);
-        int de_int = get_de_fraction(simData.dec);
-        snprintf(response, 16, "%04X,%04X#", ra_int, de_int);
-        nbytes_read = strlen(response);
+        set_sim_response("%08X,%08X#", dd2pnex(sim_data.ra*15), dd2pnex(sim_data.dec));
+
+        if (!send_command("e", 1, response, 18, true, true))
+            return false;
     }
     else
     {
-        tcflush(fd, TCIOFLUSH);
+        set_sim_response("%04X,%04X#", dd2nex(sim_data.ra*15), dd2nex(sim_data.dec));
 
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        if (!send_command("E", 1, response, 10, true, true))
             return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
+    parseCoordsResponse(response, ra, dec, precise);
+    *ra /= 15.0;
+    *dec = trimDecAngle(*dec);
 
-        char ra_str[16], de_str[16];
-        memset(ra_str, 0, 16);
-        memset(de_str, 0, 16);
+    char RAStr[16], DecStr[16];
+    fs_sexa(RAStr, *ra, 2, 3600);
+    fs_sexa(DecStr, *dec, 2, 3600);
 
-        strncpy(ra_str, response, 4);
-        strncpy(de_str, response + 5, 4);
-
-        int CELESTRONRA = strtol(ra_str, nullptr, 16);
-        int CELESTRONDE = strtol(de_str, nullptr, 16);
-
-        *ra  = (CELESTRONRA / 65536.0) * (360.0 / 15.0);
-        *dec = (CELESTRONDE / 65536.0) * 360.0;
-
-        /* Account for the quadrant in declination
-         * Author:  John Kielkopf (kielkopf@louisville.edu)  */
-        /* 90 to 180 */
-        if ((*dec > 90.) && (*dec <= 180.))
-            *dec = 180. - *dec;
-        /* 180 to 270 */
-        if ((*dec > 180.) && (*dec <= 270.))
-            *dec = *dec - 270.;
-        /* 270 to 360 */
-        if ((*dec > 270.) && (*dec <= 360.))
-            *dec = *dec - 360.;
-
-        char RAStr[16], DecStr[16];
-        fs_sexa(RAStr, *ra, 2, 3600);
-        fs_sexa(DecStr, *dec, 2, 3600);
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s) ==> RA-DEC (%s,%s)", response, RAStr,
-                     DecStr);
-
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 10.", nbytes_read);
-    return false;
+    LOGF_EXTRA("RA-DEC (%s,%s)", RAStr, DecStr);
+    return true;
 }
 
-bool get_celestron_coords_azalt(int fd, double latitude, double *az, double *alt)
+bool CelestronDriver::get_azalt(double *az, double *alt, bool precise)
 {
-    char cmd[]  = "Z";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[16];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
+    if (precise)
     {
-        int az_int  = get_az_fraction(simData.az);
-        int alt_int = get_alt_fraction(latitude, simData.alt, simData.az);
-        snprintf(response, 16, "%04X,%04X#", az_int, alt_int);
-        nbytes_read = strlen(response);
+        set_sim_response("%08X,%08X#", dd2pnex(sim_data.az), dd2pnex(sim_data.alt));
+
+        if (!send_command("z", 1, response, 18, true, true))
+            return false;
     }
     else
     {
-        tcflush(fd, TCIOFLUSH);
+        set_sim_response("%04X,%04X#", dd2nex(sim_data.az), dd2nex(sim_data.alt));
 
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+        if (!send_command("Z", 1, response, 10, true, true))
             return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
     }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
+    parseCoordsResponse(response, az, alt, precise);
 
-        uint16_t CELESTRONAZ = 0, CELESTRONALT = 0;
-
-        sscanf(response, "%hx,%hx#", &CELESTRONAZ, &CELESTRONALT);
-
-        *az  = ((CELESTRONAZ - 0x4000) / 65536.0) * 360.0;
-        *alt = ((CELESTRONALT - 0x4000) / 65536.0) * 360.0 + latitude;
-
-        *az = range360(*az);
-
-        if (*alt > 90 && *alt <= 270)
-            *alt = 180 - *alt;
-        //else if (*alt > 180 && *alt < 270)
-        //  *alt = 180 - *alt;
-        else if (*alt > 270)
-            *alt -= 360;
-
-        char AzStr[16], AltStr[16];
-        fs_sexa(AzStr, *az, 3, 3600);
-        fs_sexa(AltStr, *alt, 2, 3600);
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_EXTRA_1, "RES (%s) ==> AZM-ALT (%s,%s)", response, AzStr,
-                     AltStr);
-
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 10.", nbytes_read);
-    return false;
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, *az, 3, 3600);
+    fs_sexa(AltStr, *alt, 2, 3600);
+    LOGF_EXTRA("RES <%s> ==> AZM-ALT (%s,%s)", response, AzStr, AltStr);
+    return true;
 }
 
-bool set_celestron_location(int fd, double longitude, double latitude)
+bool CelestronDriver::set_location(double longitude, double latitude)
 {
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    int lat_d, lat_m, lat_s;
-    int long_d, long_m, long_s;
+    LOGF_DEBUG("Setting location (%.3f,%.3f)", longitude, latitude);
 
     // Convert from INDI standard to regular east/west -180 to 180
     if (longitude > 180)
         longitude -= 360;
 
+    int lat_d, lat_m, lat_s;
+    int long_d, long_m, long_s;
     getSexComponents(latitude, &lat_d, &lat_m, &lat_s);
     getSexComponents(longitude, &long_d, &long_m, &long_s);
 
+    char cmd[9];
     cmd[0] = 'W';
     cmd[1] = abs(lat_d);
     cmd[2] = lat_m;
@@ -1355,59 +610,18 @@ bool set_celestron_location(int fd, double longitude, double latitude)
     cmd[7] = long_s;
     cmd[8] = long_d > 0 ? 0 : 1;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X %02X)",
-                 cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7], cmd[8]);
-
-    if (celestron_simulation)
-    {
-        strcpy(response, "#");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, 9, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    set_sim_response("#");
+    return send_command(cmd, 9, response, 1, false, true);
 }
 
-bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset)
+bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset)
 {
-    char cmd[16];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
     struct ln_zonedate local_date;
 
     // Celestron takes local time
     ln_date_to_zonedate(utc, &local_date, utc_offset * 3600);
 
+    char cmd[9];
     cmd[0] = 'H';
     cmd[1] = local_date.hours;
     cmd[2] = local_date.minutes;
@@ -1424,428 +638,91 @@ bool set_celestron_datetime(int fd, struct ln_date *utc, double utc_offset)
     // Always assume standard time
     cmd[8] = 0;
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%02X %02X %02X %02X %02X %02X %02X %02X %02X)",
-                 cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7], cmd[8]);
-
-    if (celestron_simulation)
-    {
-        strcpy(response, "#");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, 9, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    set_sim_response("#");
+    return send_command(cmd, 9, response, 1, false, true);
 }
 
-bool get_celestron_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss)
+bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
+                                        int *dd, int *hh, int *minute, int *ss)
 {
-    char cmd[]  = "h";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[32];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
+    // Simulated response (HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT)
+    set_sim_response("%c%c%c%c%c%c%c%c#", 17, 30, 10, 4, 1, 15, 3, 0);
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
-    {
-        // HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT
-        response[0] = 17;
-        response[1] = 30;
-        response[2] = 10;
-        response[3] = 4;
-        response[4] = 1;
-        response[5] = 15;
-        response[6] = 3;
-        response[7] = 0;
-        response[8] = '#';
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read_section(fd, response, '#', CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        unsigned char *res    = (unsigned char *)response;
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X %02X %02X %02X %02X %02X %02X)", res[0],
-                     res[1], res[2], res[3], res[4], res[5], res[6], res[7]);
-
-        // HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT
-        *hh        = res[0];
-        *minute    = res[1];
-        *ss        = res[2];
-        *mm        = res[3];
-        *dd        = res[4];
-        *yy        = res[5] + 2000;
-        *utc_hours = res[6];
-
-        if (*utc_hours > 12)
-            *utc_hours -= 256;
-
-        ln_zonedate localTime;
-        ln_date utcTime;
-
-        localTime.years   = *yy;
-        localTime.months  = *mm;
-        localTime.days    = *dd;
-        localTime.hours   = *hh;
-        localTime.minutes = *minute;
-        localTime.seconds = *ss;
-        localTime.gmtoff  = *utc_hours * 3600;
-
-        ln_zonedate_to_date(&localTime, &utcTime);
-
-        *yy     = utcTime.years;
-        *mm     = utcTime.months;
-        *dd     = utcTime.days;
-        *hh     = utcTime.hours;
-        *minute = utcTime.minutes;
-        *ss     = utcTime.seconds;
-
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
-bool is_scope_slewing(int fd)
-{
-    char cmd[]  = "L";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
-    {
-        if (simData.isSlewing)
-            strcpy(response, "1#");
-        else
-            strcpy(response, "0#");
-
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 2, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        tcflush(fd, TCIFLUSH);
-
-        if (response[0] == '0')
-            return false;
-        else
-            return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
-bool get_celestron_track_mode(int fd, CELESTRON_TRACK_MODE *mode)
-{
-    char cmd[]  = "t";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
-    {
-        response[0] = 2;
-        response[1] = '#';
-        nbytes_read = 2;
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 2, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%02X %02X)", response[0], response[1]);
-
-        tcflush(fd, TCIFLUSH);
-
-        *mode = ((CELESTRON_TRACK_MODE)response[0]);
-
-        return true;
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
-bool set_celestron_track_mode(int fd, CELESTRON_TRACK_MODE mode)
-{
-    char cmd[2];
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    char response[8];
-    int nbytes_read    = 0;
-    int nbytes_written = 0;
-
-    cmd[0] = 'T';
-    cmd[1] = mode;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
-    {
-        strcpy(response, "#");
-        nbytes_read = strlen(response);
-    }
-    else
-    {
-        tcflush(fd, TCIOFLUSH);
-
-        if ((errcode = tty_write(fd, cmd, 2, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-
-        if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-        {
-            tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
-            return false;
-        }
-    }
-
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        if (!strcmp(response, "#"))
-        {
-            tcflush(fd, TCIFLUSH);
-            return true;
-        }
-        else
-        {
-            DEBUGDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Error setting tracking mode.");
-            tcflush(fd, TCIFLUSH);
-            return false;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
-    return false;
-}
-
-bool hibernate(int fd)
-{
-    char cmd[]  = "x#";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    int nbytes_written = 0;
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
-        return true;
-
-    tcflush(fd, TCIOFLUSH);
-
-    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+    if (!send_command("h", 1, response, 9, true, false))
         return false;
-    }
+
+    // HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT
+    *hh        = response[0];
+    *minute    = response[1];
+    *ss        = response[2];
+    *mm        = response[3];
+    *dd        = response[4];
+    *yy        = response[5] + 2000;
+    *utc_hours = response[6];
+
+    if (*utc_hours > 12)
+        *utc_hours -= 256;
+
+    ln_zonedate localTime;
+    ln_date utcTime;
+
+    localTime.years   = *yy;
+    localTime.months  = *mm;
+    localTime.days    = *dd;
+    localTime.hours   = *hh;
+    localTime.minutes = *minute;
+    localTime.seconds = *ss;
+    localTime.gmtoff  = *utc_hours * 3600;
+
+    ln_zonedate_to_date(&localTime, &utcTime);
+
+    *yy     = utcTime.years;
+    *mm     = utcTime.months;
+    *dd     = utcTime.days;
+    *hh     = utcTime.hours;
+    *minute = utcTime.minutes;
+    *ss     = utcTime.seconds;
 
     return true;
 }
 
-bool wakeup(int fd)
+bool CelestronDriver::is_slewing()
 {
-    char cmd[]  = "y#";
-    int errcode = 0;
-    char errmsg[MAXRBUF];
-    int nbytes_written = 0;
-    int nbytes_read    = 0;
-    char response[2];
+    set_sim_response("%d#", sim_data.isSlewing);
 
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
-
-    if (celestron_simulation)
-        return true;
-
-    tcflush(fd, TCIOFLUSH);
-
-    if ((errcode = tty_write(fd, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+    if (!send_command("L", 1, response, 2, true, true))
         return false;
-    }
 
-    if ((errcode = tty_read(fd, response, 1, CELESTRON_TIMEOUT, &nbytes_read)))
-    {
-        tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "%s", errmsg);
+    return response[0] != '0';
+}
+
+bool CelestronDriver::get_track_mode(CELESTRON_TRACK_MODE *mode)
+{
+    set_sim_response("\02#");
+
+    if (!send_command("t", 1, response, 2, true, false))
         return false;
-    }
 
-    if (nbytes_read > 0)
-    {
-        response[nbytes_read] = '\0';
-        DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-        if (!strcmp(response, "#"))
-        {
-            tcflush(fd, TCIFLUSH);
-            return true;
-        }
-        else
-        {
-            DEBUGDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Error waking up the mount.");
-            tcflush(fd, TCIFLUSH);
-            return false;
-        }
-    }
-
-    DEBUGFDEVICE(celestron_device, INDI::Logger::DBG_ERROR, "Received #%d bytes, expected 1.", nbytes_read);
-    return false;
+    *mode = ((CELESTRON_TRACK_MODE)response[0]);
+    return true;
 }
 
-uint16_t get_angle_fraction(double angle)
+bool CelestronDriver::set_track_mode(CELESTRON_TRACK_MODE mode)
 {
-    if (angle >= 0)
-        return ((uint16_t)(angle * 65536 / 360.0));
-    else
-        return ((uint16_t)((angle + 360) * 65536 / 360.0));
+    char cmd[3];
+    sprintf(cmd, "T%c", mode);
+    set_sim_response("#");
+
+    return send_command(cmd, 2, response, 1, false, true);
 }
 
-uint16_t get_ra_fraction(double ra)
+bool CelestronDriver::hibernate()
 {
-    return ((uint16_t)(ra * 15.0 * 65536 / 360.0));
+    return send_command("x#", 2, response, 0, true, true);
 }
 
-uint16_t get_de_fraction(double de)
+bool CelestronDriver::wakeup()
 {
-    uint16_t de_int = 0;
-
-    if (de >= 0)
-        de_int = (uint16_t)(de * 65536 / 360.0);
-    else
-        de_int = (uint16_t)((de + 360.0) * 65536 / 360.0);
-
-    return de_int;
-}
-
-uint16_t get_az_fraction(double az)
-{
-    return (uint16_t)(az * 65536 / 360.0) + 0x4000;
-}
-
-uint16_t get_alt_fraction(double lat, double alt, double az)
-{
-    uint16_t alt_int = 0;
-
-    if (alt >= 0)
-    {
-        // North
-        if (az >= 270 || az <= 90)
-            alt_int = (uint16_t)((alt - lat) * 65536 / 360.0) + 0x4000;
-        else
-            alt_int = (uint16_t)((180 - (lat + alt)) * 65536 / 360.0) + 0x4000;
-    }
-    else
-    {
-        if (az >= 270 || az <= 90)
-            alt_int = (uint16_t)((360 - lat + alt) * 65536 / 360.0) + 0x4000;
-        else
-            alt_int = (uint16_t)((180 - (lat + alt)) * 65536 / 360.0) + 0x4000;
-    }
-
-    return alt_int;
+    set_sim_response("#");
+    return send_command("y#", 2, response, 1, true, true);
 }

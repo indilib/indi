@@ -32,7 +32,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define MBOX_TIMEOUT 5
+#define MBOX_TIMEOUT 6
 #define MBOX_BUF     64
 
 // We declare an auto pointer to MBox.
@@ -139,9 +139,19 @@ bool MBox::updateProperties()
 
 bool MBox::Handshake()
 {
-    if (ack())
+    tty_set_debug(1);
+
+    AckResponse rc = ack();
+
+    if (rc == ACK_OK_STARTUP)
     {
         getCalibration(false);
+        return true;
+    }
+    else if (rc == ACK_OK_INIT)
+    {
+        //getCalibration(true);
+        CalibrationNP.s = IPS_BUSY;
         return true;
     }
 
@@ -154,6 +164,15 @@ IPState MBox::updateWeather()
     char errstr[MAXRBUF];    
     char response[MBOX_BUF];
 
+    if (CalibrationNP.s == IPS_BUSY)
+    {
+        if (getCalibration(true))
+        {
+            CalibrationNP.s = IPS_OK;
+            IDSetNumber(&CalibrationNP, nullptr);
+        }
+    }
+
     if (isSimulation())
     {
         strncpy(response, "$PXDR,P,96276.0,P,0,C,31.8,C,1,H,40.8,P,2,C,16.8,C,3,1.1*31\r\n", MBOX_BUF);
@@ -164,7 +183,7 @@ IPState MBox::updateWeather()
         if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "% error: %s.", __FUNCTION__, errstr);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
             return IPS_ALERT;
         }
 
@@ -267,19 +286,15 @@ IPState MBox::updateWeather()
     return IPS_OK;
 }
 
-bool MBox::ack()
+MBox::AckResponse MBox::ack()
 {
     int nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    const char *command = ":calget*";
-    char response[MBOX_BUF];
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+    char response[MBOX_BUF];    
 
     if (isSimulation())
     {
-        strncpy(response, "MBox by Astromi.ch\r\n", 64);
-        strncpy(response, "$PCAL,P,20,T,50,H,-10*79\r\n", 64);
+        strncpy(response, "MBox by Astromi.ch\r\n", 64);        
         nbytes_read = strlen(response);
     }
     else
@@ -287,8 +302,19 @@ bool MBox::ack()
         if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "% error: %s.", __FUNCTION__, errstr);
-            return false;
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            return ACK_ERROR;
+        }
+
+        // Read again if we only recieved a newline character
+        if (response[0] == '\n')
+        {
+            if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
+            {
+                tty_error_msg(rc, errstr, MAXRBUF);
+                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+                return ACK_ERROR;
+            }
         }
     }
 
@@ -298,9 +324,12 @@ bool MBox::ack()
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
     if (strstr(response, "MBox"))
-        return true;
+        return ACK_OK_STARTUP;
+    // Check if already initialized
+    else if (strstr(response, "PXDR"))
+        return ACK_OK_INIT;
 
-    return false;
+    return ACK_ERROR;
 }
 
 bool MBox::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -309,11 +338,31 @@ bool MBox::ISNewNumber(const char *dev, const char *name, double values[], char 
     {
         if (!strcmp(name, CalibrationNP.name))
         {
+            double prevPressure = CalibrationN[CAL_PRESSURE].value;
+            double prevTemperature = CalibrationN[CAL_TEMPERATURE].value;
+            double prevHumidaty = CalibrationN[CAL_HUMIDITY].value;
             IUUpdateNumber(&CalibrationNP, values, names, n);
-            if (setCalibration())
-                CalibrationNP.s = IPS_OK;
-            else
-                CalibrationNP.s = IPS_ALERT;
+            double targetPressure = CalibrationN[CAL_PRESSURE].value;
+            double targetTemperature = CalibrationN[CAL_TEMPERATURE].value;
+            double targetHumidity = CalibrationN[CAL_HUMIDITY].value;
+
+            bool rc = true;
+            if (targetPressure != prevPressure)
+            {
+                rc = setCalibration(CAL_PRESSURE);
+                usleep(200000);
+            }
+            if (targetTemperature != prevTemperature)
+            {
+                rc = setCalibration(CAL_TEMPERATURE);
+                usleep(200000);
+            }
+            if (targetHumidity != prevHumidaty)
+            {
+                rc = setCalibration(CAL_HUMIDITY);
+            }
+
+            CalibrationNP.s = rc ? IPS_OK : IPS_ALERT;
             IDSetNumber(&CalibrationNP, nullptr);
             return true;
         }
@@ -331,15 +380,22 @@ bool MBox::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             if (resetCalibration())
             {
                 ResetSP.s = IPS_OK;
+                IDSetSwitch(&ResetSP, nullptr);
                 DEBUG(INDI::Logger::DBG_SESSION, "Calibration values are reset.");
 
-                CalibrationNP.s = getCalibration() ? IPS_OK : IPS_ALERT;
+                CalibrationN[CAL_PRESSURE].value = 0;
+                CalibrationN[CAL_TEMPERATURE].value = 0;
+                CalibrationN[CAL_HUMIDITY].value = 0;
+                CalibrationNP.s = IPS_IDLE;
                 IDSetNumber(&CalibrationNP, nullptr);
             }
             else
+            {
                 ResetSP.s = IPS_ALERT;
+                IDSetSwitch(&ResetSP, nullptr);
+            }
 
-            IDSetSwitch(&ResetSP, nullptr);
+
             return true;
         }
     }
@@ -371,7 +427,7 @@ bool MBox::getCalibration(bool sendCommand)
             if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
             {
                 tty_error_msg(rc, errstr, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+                DEBUGF(INDI::Logger::DBG_ERROR, "%s write error: %s.", __FUNCTION__, errstr);
                 return false;
             }
         }
@@ -379,8 +435,19 @@ bool MBox::getCalibration(bool sendCommand)
         if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "% error: %s.", __FUNCTION__, errstr);
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s read error: %s.", __FUNCTION__, errstr);
             return false;
+        }
+
+        // If token is invalid, read again
+        if (strstr(response, "$PCAL") == nullptr)
+        {
+            if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
+            {
+                tty_error_msg(rc, errstr, MAXRBUF);
+                DEBUGF(INDI::Logger::DBG_ERROR, "%s read error: %s.", __FUNCTION__, errstr);
+                return false;
+            }
         }
     }
 
@@ -434,78 +501,78 @@ bool MBox::getCalibration(bool sendCommand)
         DEBUG(INDI::Logger::DBG_ERROR, "Invalid response.");
         return false;
     }
-    CalibrationN[CAL_TEMPERATURE].value = atof(token)/10.0;
+    CalibrationN[CAL_HUMIDITY].value = atof(token)/10.0;
 
     return true;
 }
 
-bool MBox::setCalibration()
+bool MBox::setCalibration(CalibrationType type)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char command[16] = {0};
 
-    // Pressure.
-    snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationN[CAL_PRESSURE].value*10.0));
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
-
-    if (isSimulation() == false)
+    if (type == CAL_PRESSURE)
     {
-        tcflush(PortFD, TCIOFLUSH);
+        // Pressure.
+        snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationN[CAL_PRESSURE].value*10.0));
 
-        if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+
+        if (isSimulation() == false)
         {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-            return false;
-        }
+            tcflush(PortFD, TCIOFLUSH);
 
-        // 100ms
-        usleep(100000);
+            if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+            {
+                tty_error_msg(rc, errstr, MAXRBUF);
+                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+                return false;
+            }
+
+        }
+    }
+    else if (type == CAL_TEMPERATURE)
+    {
+        // Temperature
+        snprintf(command, 16, ":calt,%d*", static_cast<int32_t>(CalibrationN[CAL_TEMPERATURE].value*10.0));
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+
+        if (isSimulation() == false)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+
+            if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+            {
+                tty_error_msg(rc, errstr, MAXRBUF);
+                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+                return false;
+            }
+        }
+    }
+    else
+    {
+        // Humidity
+        snprintf(command, 16, ":calh,%d*", static_cast<int32_t>(CalibrationN[CAL_HUMIDITY].value*10.0));
+
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+
+        if (isSimulation() == false)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+
+            if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+            {
+                tty_error_msg(rc, errstr, MAXRBUF);
+                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+                return false;
+            }
+
+        }
     }
 
-    // Temperature
-    snprintf(command, 16, ":calt,%d*", static_cast<int32_t>(CalibrationN[CAL_TEMPERATURE].value*10.0));
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
-
-    if (isSimulation() == false)
-    {
-        tcflush(PortFD, TCIOFLUSH);
-
-        if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-            return false;
-        }
-
-        // 100ms
-        usleep(100000);
-    }
-
-    // Humidity
-    snprintf(command, 16, ":calh,%d*", static_cast<int32_t>(CalibrationN[CAL_HUMIDITY].value*10.0));
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
-
-    if (isSimulation() == false)
-    {
-        tcflush(PortFD, TCIOFLUSH);
-
-        if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
-            return false;
-        }
-
-        // 100ms
-        usleep(100000);
-    }
-
-    return true;
+    return getCalibration(false);
 }
 
 bool MBox::resetCalibration()

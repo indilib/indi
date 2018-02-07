@@ -9,7 +9,7 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
-find_package(USB-1 REQUIRED)
+find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
 
 set(INDI_MI_VERSION_MAJOR 1)
@@ -45,7 +45,7 @@ set(indi_miccd_SRCS
 add_executable(indi_mi_ccd ${indi_miccd_SRCS})
 
 target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES}
-                      ${MILIB} ${LIBUSB_1_LIBRARIES} rt)
+                      ${MILIB} ${USB1_LIBRARIES} rt)
 
 if(THREADS_HAVE_PTHREAD_ARG)
   target_compile_options(indi_mi_ccd "-pthread")

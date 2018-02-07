@@ -1,6 +1,11 @@
+indi-nexdome (1.1) bionic; urgency=medium
+
+  * New release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 22 Jan 2018 08:45:00 +0300
+
 indi-nexdome (1.0.0ubuntu1) xenial; urgency=low
 
   * Initial release
 
  -- Gerry Rozema <gerryr@rozeware.com>  Tue, 12 Sep 2017 16:01:27 -0700
-

@@ -51,6 +51,8 @@ class ioptronHC8406 : public LX200Generic
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
+    virtual int SendPulseCmd(int direction, int duration_msec) override;
+
     virtual bool saveConfigItems(FILE *fp) override;
 
     virtual bool Park() override;

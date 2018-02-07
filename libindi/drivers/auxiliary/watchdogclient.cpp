@@ -51,15 +51,14 @@ WatchDogClient::~WatchDogClient()
 ***************************************************************************************/
 void WatchDogClient::newDevice(INDI::BaseDevice *dp)
 {
-    IDLog("Receiving %s Device...\n", dp->getDeviceName());
+    IDLog("Receiving new device: %s\n", dp->getDeviceName());
 
-    if (std::string(dp->getDeviceName()) == dome)
+    if (dome.empty() || std::string(dp->getDeviceName()) == dome)
         domeOnline = true;
-    else if (std::string(dp->getDeviceName()) == mount)
+    if (mount.empty() || std::string(dp->getDeviceName()) == mount)
         mountOnline = true;
 
-    if (domeOnline && mountOnline)
-        isReady = true;
+    isReady = (domeOnline && mountOnline);
 }
 
 /**************************************************************************************

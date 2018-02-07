@@ -20,6 +20,10 @@
 #include <memory>
 #include <unistd.h>
 
+#ifdef __APPLE__
+#include "download_fx2.h"
+#endif
+
 /* Convenient mnemonic for libusb timeouts which are always in this unit. */
 #ifndef MILLISEC
 #define MILLISEC 2
@@ -185,6 +189,41 @@ void DSI::Device::initImager(const char *devname)
     {
         throw dsi_exception(libusb_error_name(rc));
     }
+
+    // Upload firmware in case of MacOS
+    #ifdef __APPLE__
+    cnt = libusb_get_device_list(NULL, &list);
+    handle = NULL;
+    for (i = 0; i < cnt; ++i)
+    {
+        if (!libusb_get_device_descriptor(list[i], &desc))
+        {
+            if ((desc.idVendor == 0x156c) && (desc.idProduct == 0x0100 || desc.idProduct == 0x01ed))
+            {
+                libusb_open(list[i], &handle);
+                if (handle)
+                {
+                    libusb_kernel_driver_active(handle, 0);
+                    libusb_claim_interface(handle, 0);
+                    char driverSupportPath[MAXRBUF];
+                    //On OS X, Prefer embedded App location if it exists
+                    if (getenv("INDIPREFIX") != NULL)
+                    	snprintf(driverSupportPath, MAXRBUF, "%s/Contents/Resources", getenv("INDIPREFIX"));
+                    else
+                    	strncpy(driverSupportPath, "/usr/local/lib/indi", MAXRBUF);
+                    strncat(driverSupportPath, "/DriverSupport/dsi/meade-deepskyimager.hex", MAXRBUF);
+                    char errmsg[MAXRBUF];
+                    if (fx2_ram_download(handle, driverSupportPath, 1, errmsg))
+                        throw dsi_exception(std::string("failed to upload firmware: ") + errmsg);
+                    libusb_close(handle);
+                }
+            }
+        }
+     }
+    libusb_free_device_list(list, 0);
+    list=NULL;
+    #endif
+
     cnt = libusb_get_device_list(NULL, &list);
 
     handle = NULL;
@@ -192,7 +231,7 @@ void DSI::Device::initImager(const char *devname)
     {
         if (!libusb_get_device_descriptor(list[i], &desc))
         {
-            if ((desc.idVendor == 0x156c) && (desc.idProduct = 0x0101))
+            if ((desc.idVendor == 0x156c) && (desc.idProduct == 0x0101))
             {
                 dev = list[i];
                 if (libusb_open(dev, &handle))
@@ -200,7 +239,7 @@ void DSI::Device::initImager(const char *devname)
                     dev = NULL;
                 }
                 break;
-            }
+            }            
         }
     }
     libusb_free_device_list(list, 0);
