@@ -497,7 +497,7 @@ void Imager::newDevice(INDI::BaseDevice *dp)
 {
     std::string deviceName{dp->getDeviceName()};
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Device %s detected", deviceName);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Device %s detected", deviceName.c_str());
     if (deviceName == controlledCCD)
         StatusL[0].s = IPS_BUSY;
     if (deviceName == controlledFilterWheel)
