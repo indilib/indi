@@ -37,7 +37,7 @@ class Group
 
     int filterSlot() const;
     int binning() const;
-    int exposure() const;
+    double exposure() const;
     int count() const;
   private:
     std::string groupName;
