@@ -113,4 +113,8 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
     INumber FilterSlotN[1];
 
     std::vector<std::shared_ptr<Group>> groups;
+    std::shared_ptr<Group> currentGroup() const;
+    std::shared_ptr<Group> nextGroup() const;
+    std::shared_ptr<Group> getGroup(int index) const;
+    
 };

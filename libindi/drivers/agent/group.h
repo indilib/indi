@@ -21,6 +21,7 @@
 
 #include "baseclient.h"
 #include "defaultdevice.h"
+#include <vector>
 
 class Imager;
 
@@ -34,12 +35,16 @@ class Group
     void defineProperties();
     void deleteProperties();
 
-    INumberVectorProperty GroupSettingsNP;
-    INumber GroupSettingsN[4];
+    int filterSlot() const;
+    int binning() const;
+    int exposure() const;
+    int count() const;
   private:
     std::string groupName;
     std::string groupSettingsName;
     Imager* imager;
+    INumberVectorProperty GroupSettingsNP;
+    std::vector<INumber> GroupSettingsN;
 };
 
 

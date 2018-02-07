@@ -97,6 +97,22 @@ bool Imager::isFilterConnected()
     return StatusL[1].s == IPS_OK;
 }
 
+std::shared_ptr<Group> Imager::getGroup(int index) const {
+    if(index > -1 && index <= maxGroup)
+        return groups[index];
+    return {};
+}
+
+std::shared_ptr<Group> Imager::currentGroup() const {
+    return getGroup(group - 1); 
+}
+
+
+
+std::shared_ptr<Group> Imager::nextGroup() const {
+    return getGroup(group);
+}
+
 void Imager::initiateNextFilter()
 {
     if (!isRunning())
@@ -104,8 +120,7 @@ void Imager::initiateNextFilter()
 
     if (group > 0 && image > 0 && group <= maxGroup && image <= maxImage)
     {
-        INumber *groupSettings = groups[group - 1]->GroupSettingsN;
-        int filterSlot         = groupSettings[2].value;
+        int filterSlot = currentGroup()->filterSlot();
 
         if (!isFilterConnected())
         {
@@ -146,10 +161,9 @@ void Imager::initiateNextCapture()
                 IDSetNumber(&ProgressNP, "CCD is not connected");
                 return;
             }
-            INumber *groupSettings = groups[group - 1]->GroupSettingsN;
-            CCDImageBinN[0].value = CCDImageBinN[1].value = groupSettings[1].value;
+            CCDImageBinN[0].value = CCDImageBinN[1].value = currentGroup()->binning();
             sendNewNumber(&CCDImageBinNP);
-            CCDImageExposureN[0].value = groupSettings[3].value;
+            CCDImageExposureN[0].value = currentGroup()->exposure();
             sendNewNumber(&CCDImageExposureNP);
             IUSaveText(&CCDUploadSettingsT[0], ImageNameT[0].text);
             IUSaveText(&CCDUploadSettingsT[1], "_TMP_");
@@ -168,7 +182,7 @@ void Imager::startBatch()
     DEBUG(INDI::Logger::DBG_DEBUG, "Batch started");
     ProgressN[0].value = group = 1;
     ProgressN[1].value = image = 1;
-    maxImage                   = (int)groups[group - 1]->GroupSettingsN[0].value;
+    maxImage                   = currentGroup()->count();
     ProgressNP.s               = IPS_BUSY;
     IDSetNumber(&ProgressNP, nullptr);
     initiateNextFilter();
@@ -560,7 +574,7 @@ void Imager::newBLOB(IBLOB *bp)
             }
             else
             {
-                maxImage           = (int)groups[group]->GroupSettingsN[0].value;
+                maxImage           = nextGroup()->count();
                 ProgressN[0].value = group = group + 1;
                 ProgressN[1].value = image = 1;
                 IDSetNumber(&ProgressNP, nullptr);
@@ -655,7 +669,7 @@ void Imager::newText(ITextVectorProperty *tvp)
                 }
                 else
                 {
-                    maxImage           = (int)groups[group]->GroupSettingsN[0].value;
+                    maxImage           = nextGroup()->count();
                     ProgressN[0].value = group = group + 1;
                     ProgressN[1].value = image = 1;
                     IDSetNumber(&ProgressNP, nullptr);
