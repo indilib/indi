@@ -25,7 +25,7 @@
 
 #include <bitset>
 #include <unistd.h>
-#include <termio.h>
+#include <termios.h>
 
 #define TEMMA_SLEW_RATES 2
 #define TEMMA_TIMEOUT   5
