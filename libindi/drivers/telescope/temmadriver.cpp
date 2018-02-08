@@ -91,6 +91,8 @@ TemmaMount::TemmaMount()
     // Should be set to invalid first
     Longitude = std::numeric_limits<double>::quiet_NaN();
     Latitude  = std::numeric_limits<double>::quiet_NaN();
+
+    setVersion(0, 2);
 }
 
 const char *TemmaMount::getDefaultName()
