@@ -61,6 +61,7 @@ class LX200_OnStep : public LX200Generic
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
     virtual bool ReadScopeStatus() override;
+    virtual int setSiteLongitude(int fd, double Long);
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);

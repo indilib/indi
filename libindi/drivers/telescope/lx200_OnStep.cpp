@@ -1024,4 +1024,15 @@ int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standa
     return (setStandardProcedure(fd, read_buffer));
 }
 
+int LX200_OnStep::setSiteLongitude(int fd, double Long)
+{
+    //DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    int d, m, s;
+    char read_buffer[32];
 
+    getSexComponents(Long, &d, &m, &s);
+
+    snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d#", d, m);
+
+    return (setStandardProcedure(fd, read_buffer));
+}
