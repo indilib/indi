@@ -57,7 +57,7 @@ bool LX200SS2000PC::initProperties()
 
 bool LX200SS2000PC::updateProperties()
 {
-    INDI::Telescope::updateProperties();
+    LX200Generic::updateProperties();
 
     if (isConnected())
     {
@@ -95,7 +95,7 @@ bool LX200SS2000PC::ISNewNumber(const char *dev, const char *name, double values
 
 bool LX200SS2000PC::saveConfigItems(FILE *fp)
 {
-    INDI::Telescope::saveConfigItems(fp);
+    LX200Generic::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &SlewAccuracyNP);
 
