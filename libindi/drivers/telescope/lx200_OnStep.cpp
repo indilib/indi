@@ -829,7 +829,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
             }
             if (strstr(OSStat,"p"))
             {
-                TrackState=SCOPE_IDLE;
+                //TrackState=SCOPE_IDLE;
                 SetParked(false);
                 IUSaveText(&OnstepStat[3],"UnParked");
                 //DEBUG(INDI::Logger::DBG_SESSION, "OnStep Unparked...");
