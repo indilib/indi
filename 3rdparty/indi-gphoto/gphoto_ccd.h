@@ -166,6 +166,14 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
         CAPTURE_SD_CARD
     };
 
+    ISwitch SDCardImageS[2];
+    ISwitchVectorProperty SDCardImageSP;
+    enum
+    {
+        SD_CARD_SAVE_IMAGE,
+        SD_CARD_DELETE_IMAGE
+    };
+
     ISwitch autoFocusS[1];
     ISwitchVectorProperty autoFocusSP;
 
