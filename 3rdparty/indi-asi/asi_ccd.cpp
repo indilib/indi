@@ -216,10 +216,6 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
     setDeviceName(this->name);
 }
 
-ASICCD::~ASICCD()
-{
-}
-
 const char *ASICCD::getDefaultName()
 {
     return "ZWO CCD";
@@ -359,11 +355,11 @@ bool ASICCD::Connect()
 {
     DEBUGF(INDI::Logger::DBG_DEBUG, "Attempting to open %s...", name);
 
-    sim = isSimulation();
+
 
     ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
-    if (sim == false)
+    if (isSimulation() == false)
         errCode = ASIOpenCamera(m_camInfo->CameraID);
 
     if (errCode != ASI_SUCCESS)
@@ -372,7 +368,7 @@ bool ASICCD::Connect()
         return false;
     }
 
-    if (sim == false)
+    if (isSimulation() == false)
         errCode = ASIInitCamera(m_camInfo->CameraID);
 
     if (errCode != ASI_SUCCESS)
@@ -430,7 +426,7 @@ bool ASICCD::Disconnect()
     pthread_mutex_unlock(&condMutex);
     pthread_join(imagingThread, nullptr);
     tState = StateNone;
-    if (sim == false)
+    if (isSimulation() == false)
     {
         if (tState == StateStream)
             ASIStopVideoCapture(m_camInfo->CameraID);
