@@ -75,6 +75,7 @@ struct _gphoto_driver
     int iso;
     int format;
     int upload_settings;
+    bool delete_sdcard_image;
 
     char *model;
     char *manufacturer;
@@ -621,7 +622,7 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     int captureTarget = -1;
     gphoto_get_capture_target(gphoto, &captureTarget);
     // If it was set to RAM
-    if (captureTarget == 0 && !strstr(gphoto->model, "20D"))
+    if ((gphoto->delete_sdcard_image || captureTarget == 0) && !strstr(gphoto->model, "20D"))
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Deleting.");
         result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
@@ -1267,6 +1268,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto->manufacturer    = NULL;
     gphoto->model           = NULL;
     gphoto->upload_settings = GP_UPLOAD_CLIENT;
+    gphoto->delete_sdcard_image = false;
 
     if (gphoto->format_widget != NULL)
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Image Format Widget: %s", gphoto->format_widget->name);
@@ -1865,6 +1867,13 @@ int gphoto_set_capture_target(gphoto_driver *gphoto, int capture_target)
         return GP_ERROR_NOT_SUPPORTED;
 
     gphoto_set_widget_num(gphoto, gphoto->capturetarget_widget, capture_target);
+
+    return GP_OK;
+}
+
+int gphoto_delete_sdcard_image(gphoto_driver *gphoto, bool delete_sdcard_image)
+{
+    gphoto->delete_sdcard_image = delete_sdcard_image;
 
     return GP_OK;
 }

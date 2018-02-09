@@ -367,6 +367,11 @@ bool GPhotoCCD::initProperties()
     IUFillSwitchVector(&captureTargetSP, captureTargetS, 2, getDeviceName(), "CCD_CAPTURE_TARGET", "Capture Target",
                        IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&SDCardImageS[SD_CARD_SAVE_IMAGE], "Save", "", ISS_ON);
+    IUFillSwitch(&SDCardImageS[SD_CARD_DELETE_IMAGE], "Delete", "", ISS_OFF);
+    IUFillSwitchVector(&SDCardImageSP, SDCardImageS, 2, getDeviceName(), "CCD_SD_CARD_ACTION", "SD Image",
+                       IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
 
     // Most cameras have this by default, so let's set it as default.
@@ -389,6 +394,9 @@ bool GPhotoCCD::initProperties()
     gphoto_set_debug(getDeviceName());
     gphoto_read_set_debug(getDeviceName());
 
+    // Add Debug, Simulator, and Configuration controls
+    addAuxControls();
+
     return true;
 }
 
@@ -399,6 +407,7 @@ void GPhotoCCD::ISGetProperties(const char *dev)
     defineText(&PortTP);
     loadConfig(true, "DEVICE_PORT");
 
+#if 0
     if (isConnected())
     {
         if (mExposurePresetSP.nsp > 0)
@@ -423,9 +432,7 @@ void GPhotoCCD::ISGetProperties(const char *dev)
         if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
             defineNumber(&mMirrorLockNP);
     }
-
-    // Add Debug, Simulator, and Configuration controls
-    addAuxControls();
+#endif
 }
 
 bool GPhotoCCD::updateProperties()
@@ -449,7 +456,10 @@ bool GPhotoCCD::updateProperties()
         defineNumber(&FocusTimerNP);
 
         if (captureTargetSP.s == IPS_OK)
+        {
             defineSwitch(&captureTargetSP);
+            defineSwitch(&SDCardImageSP);
+        }
 
         imageBP = getBLOB("CCD1");
         imageB  = imageBP->bp;
@@ -485,7 +495,10 @@ bool GPhotoCCD::updateProperties()
         deleteProperty(FocusTimerNP.name);
 
         if (captureTargetSP.s != IPS_IDLE)
+        {
             deleteProperty(captureTargetSP.name);
+            deleteProperty(SDCardImageSP.name);
+        }
 
         HideExtendedOptions();
         //rmTimer(timerID);
@@ -701,6 +714,28 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             }
 
             IDSetSwitch(&captureTargetSP, NULL);
+            return true;
+        }
+
+        if (!strcmp(SDCardImageSP.name, name))
+        {
+            const char *onSwitch = IUFindOnSwitchName(states, names, n);
+            bool delete_sdcard_image = (!strcmp(onSwitch, SDCardImageS[SD_CARD_DELETE_IMAGE].name));
+            int ret = gphoto_delete_sdcard_image(gphotodrv, delete_sdcard_image);
+
+            if (ret == GP_OK)
+            {
+                SDCardImageSP.s = IPS_OK;
+                IUUpdateSwitch(&SDCardImageSP, states, names, n);
+                DEBUGF(INDI::Logger::DBG_SESSION, "Images shall be %s the camera SD card after capture if capture target is set to SD Card.", delete_sdcard_image ? "deleted from" : "saved in");
+            }
+            else
+            {
+                SDCardImageSP.s = IPS_ALERT;
+                DEBUG(INDI::Logger::DBG_SESSION, "Failed to set SD card action.");
+            }
+
+            IDSetSwitch(&SDCardImageSP, NULL);
             return true;
         }
 
@@ -1851,7 +1886,11 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
 
     // Capture Target
     if (captureTargetSP.s == IPS_OK)
+    {
         IUSaveConfigSwitch(fp, &captureTargetSP);
+        // SD Card delete?
+        IUSaveConfigSwitch(fp, &SDCardImageSP);
+    }
 
     // ISO Settings
     if (mIsoSP.nsp > 0)
@@ -1862,7 +1901,7 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
         IUSaveConfigSwitch(fp, &mFormatSP);
 
     // Transfer Format
-    IUSaveConfigSwitch(fp, &transferFormatSP);
+    IUSaveConfigSwitch(fp, &transferFormatSP);    
 
     return true;
 }

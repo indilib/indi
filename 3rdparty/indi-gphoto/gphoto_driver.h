@@ -109,3 +109,4 @@ void gphoto_set_debug(const char *name);
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec);
 const char *gphoto_get_manufacturer(gphoto_driver *gphoto);
 const char *gphoto_get_model(gphoto_driver *gphoto);
+int gphoto_delete_sdcard_image(gphoto_driver *gphoto, bool delete_sdcard_image);
