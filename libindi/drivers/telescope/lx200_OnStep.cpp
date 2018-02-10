@@ -1084,10 +1084,11 @@ bool LX200_OnStep::GetAlignStatus()
         }
     IDSetText(&OSAlignTP, "Alignment Star reached, apply corrections and validate");
     }
-    if (OSAlignStat && TrackState==SCOPE_SLEWING) OSAlignFlag=true;
+    if (OSAlignProcess && TrackState==SCOPE_SLEWING) OSAlignFlag=true;
     if (OSAlignFlag && TrackState==SCOPE_TRACKING)
     {
         OSAlignFlag=false;
+        OSAlignProcess=false;
         if(kdedialog("kdialog 'OnStep Align' --title 'OnStep Align' --msgbox 'Align Star reached, apply corections and confirm with Align'")) return true;
     }
 
