@@ -75,9 +75,9 @@ else(WITH_ALIGN)
   target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 endif(WITH_ALIGN)
 
-if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 target_link_libraries(indi_eqmod_telescope rt)
-endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+endif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 
 install(TARGETS indi_eqmod_telescope RUNTIME DESTINATION bin )
 
