@@ -1,3 +1,8 @@
+This is a fork so I can play with, and ideally make merging easy for azwing's fork for OnStep work.
+
+Go here to commit: https://github.com/azwing/indi (I think the plan is to merge into indi when it's all/mostly working right.) So if this or azwing's gets stale, check the main indi. 
+
+
 # libindi
 [![Build Status](https://travis-ci.org/indilib/indi.svg?branch=master)](https://travis-ci.org/indilib/indi)
 [![CircleCI](https://circleci.com/gh/indilib/indi.svg?style=svg)](https://circleci.com/gh/indilib/indi)
