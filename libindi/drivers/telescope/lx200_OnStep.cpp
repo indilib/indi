@@ -837,6 +837,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
         }
     }
 
+      
     if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
     if (strstr(OSStat,"W")) { IUSaveText(&OnstepStat[3],"Waiting at Home"); }
 
@@ -989,10 +990,11 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
         return true;
 
     double onstep_long = 360 - longitude ;
-	while (onstep_long < 0)
+    if (onstep_long < -180)
         onstep_long += 360;
-	while (onstep_long > 360)
-		onstep_long -= 360;
+    if (onstep_long > 180)
+        onstep_long -= 360;
+
 
     if (!isSimulation() && setSiteLongitude(PortFD, onstep_long) < 0)
     {
