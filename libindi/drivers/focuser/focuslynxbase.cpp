@@ -1571,7 +1571,7 @@ bool FocusLynxBase::setDeviceType(int index)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<%sSCDT%s>", getFocusTarget(), ModelS[index].name);
+    snprintf(cmd, 16, "<%sSCDT%s>", getFocusTarget(), index > 0 ? lynxModels[ModelS[index].name].c_str() : "ZZ");
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 
