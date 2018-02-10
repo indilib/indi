@@ -1,6 +1,10 @@
 ﻿/*
     LX200 LX200_OnStep
     Based on LX200 classic, azwing (alain@zwingelstein.org)
+    Contributors:
+    James Lan https://github.com/james-lan
+    Ray Wells http://www.indilib.org/support/community/httpsgithub-comblueshawkarduino-cgem-driver/profile.html
+
     Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -1080,5 +1084,18 @@ bool LX200_OnStep::GetAlignStatus()
         }
     IDSetText(&OSAlignTP, "Alignment Star reached, apply corrections and validate");
     }
+    if (OSAlignStat && TrackState==SCOPE_SLEWING) OSAlignFlag=true;
+    if (OSAlignFlag && TrackState==SCOPE_TRACKING)
+    {
+        OSAlignFlag=false;
+        if(kdedialog("kdialog 'OnStep Align' --title 'OnStep Align' --msgbox 'Align Star reached, apply corections and confirm with Align'")) return true;
+    }
+
 return true;
 }
+
+bool LX200_OnStep::kdedialog(const char * commande)
+{
+    return system(commande);
+}
+

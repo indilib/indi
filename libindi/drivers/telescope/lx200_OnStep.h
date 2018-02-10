@@ -1,6 +1,10 @@
 /*
     LX200 OnStep
     based on LX200 Classic azwing (alain@zwingelstein.org)
+    Contributors:
+    James Lan https://github.com/james-lan
+    Ray Wells http://www.indilib.org/support/community/httpsgithub-comblueshawkarduino-cgem-driver/profile.html
+
     Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -64,6 +68,7 @@ class LX200_OnStep : public LX200Generic
     virtual bool ReadScopeStatus() override;
     virtual int setSiteLongitude(int fd, double Long);
     virtual bool GetAlignStatus();
+    virtual bool kdedialog(const char * commande);
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
@@ -123,6 +128,7 @@ class LX200_OnStep : public LX200Generic
     char OSAlignStat[10];
     char oldOSAlignStat[10]="300";
     bool OSAlignProcess=false;
+    bool OSAlignFlag=false;
 
     char OSPier[2];
     char OldOSPier[2];
