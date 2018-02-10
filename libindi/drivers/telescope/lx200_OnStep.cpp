@@ -1,4 +1,4 @@
-/*
+﻿/*
     LX200 LX200_OnStep
     Based on LX200 classic, azwing (alain@zwingelstein.org)
     Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
@@ -58,10 +58,11 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSAlignS[0], "1", "1 Star", ISS_OFF);
     IUFillSwitch(&OSAlignS[1], "2", "2 Stars", ISS_OFF);
     IUFillSwitch(&OSAlignS[2], "3", "3 Stars", ISS_OFF);
-    IUFillSwitchVector(&OSAlignSP, OSAlignS, 3, getDeviceName(), "AlignStar", "Align using n stars", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&OSAlignS[3], "4", "Align", ISS_OFF);
+    IUFillSwitchVector(&OSAlignSP, OSAlignS, 4, getDeviceName(), "AlignStar", "Align using n stars", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillText(&OSAlignT[0], "OSStarAlign", "Align x Star(s)", "");
-    IUFillTextVector(&OSAlignTP, OSAlignT, 1, getDeviceName(), "Process Align", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillText(&OSAlignT[0], "OSStarAlign", "Align x Star(s)", "Manual Alignment Process Idle");
+    IUFillTextVector(&OSAlignTP, OSAlignT, 1, getDeviceName(), "Align Process", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillNumber(&ElevationLimitN[0], "minAlt", "Elev Min", "%+03f", -90.0, 90.0, 1.0, -30.0);
     IUFillNumber(&ElevationLimitN[1], "maxAlt", "Elev Max", "%+03f", -90.0, 90.0, 1.0, 89.0);
@@ -393,8 +394,6 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Align Buttons
         if (!strcmp(name, OSAlignSP.name))      // Tested
         {
-            int ret = 0;
-
             if (IUUpdateSwitch(&OSAlignSP, states, names, n) < 0)
                 return false;
 
@@ -402,27 +401,26 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             if (index == 0)
             {
-                //IDSetText(&OSAlignTP,"1 Stars Align");
-                IUSaveText(&OSAlignT[0],"1 Star Align: choose a star => Goto => center => sync");
-                ret = OnStepalign1(PortFD);
-                DEBUG(INDI::Logger::DBG_WARNING, "choix1");
+                if(sendOnStepCommand(":A1#"))
+                DEBUG(INDI::Logger::DBG_DEBUG, "1 Star");
             }
             if (index == 1)
             {
-                IUSaveText(&OSAlignT[0],"2 Stars Align: choose a star => Goto => center => sync");
-                ret = OnStepalign2(PortFD);
-                DEBUG(INDI::Logger::DBG_WARNING, "choix2");
+                if(sendOnStepCommand(":A2#"))
+                DEBUG(INDI::Logger::DBG_DEBUG, "2 Stars");
             }
             if (index == 2)
             {
-                IUSaveText(&OSAlignT[0],"3 Star Align: choose a star => Goto => center => sync");
-                ret = OnStepalign3(PortFD);
-                DEBUG(INDI::Logger::DBG_WARNING, "choix3");
+                if(sendOnStepCommand(":A3#"))
+                DEBUG(INDI::Logger::DBG_DEBUG, "3 Stars");
+            }
+            if (index == 3)
+            {
+                if(sendOnStepCommand(":A+#"))
+                DEBUG(INDI::Logger::DBG_DEBUG, "Align");
             }
             OSAlignSP.s = IPS_OK;
             IDSetSwitch(&OSAlignSP, nullptr);
-            IDSetText(&OSAlignTP, nullptr);
-
         }
 
         // Reticlue +/- Buttons
@@ -903,6 +901,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
 
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, "==> Update OnsTep Status");
+    if(!GetAlignStatus()) DEBUG(INDI::Logger::DBG_WARNING, "Fail Align Command");
     return true;
 }
 
@@ -1039,4 +1038,47 @@ int LX200_OnStep::setSiteLongitude(int fd, double Long)
     snprintf(read_buffer, sizeof(read_buffer), ":Sg%.03d:%02d#", d, m);
 
     return (setStandardProcedure(fd, read_buffer));
+}
+
+bool LX200_OnStep::GetAlignStatus()
+{
+    char msg[40];
+    int mx_stars, act_star, nb_stars;
+
+    if(getCommandString(PortFD, OSAlignStat, ":A?#"))
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "Align Status response Error, response = %s>", OSAlignStat);
+        return false;
+    }
+    if(strcmp(OSAlignStat, oldOSAlignStat) != 0)    //no change
+    {
+        strcpy(oldOSAlignStat, OSAlignStat);
+        mx_stars = OSAlignStat[0] - '0';
+        act_star = OSAlignStat[1] - '0';
+        nb_stars = OSAlignStat[2] - '0';
+
+        //DEBUGF(INDI::Logger::DBG_SESSION, "Response = %s>", OSAlignStat);
+        if (nb_stars !=0)
+        {
+            if (act_star <= nb_stars)
+            {
+                snprintf(msg, sizeof(msg), "%s Manual Align: Star %d/%d", OSAlignStat, act_star, nb_stars );
+                IUSaveText(&OSAlignT[0],msg);
+                OSAlignProcess=true;
+            }
+            if (act_star > nb_stars)
+            {
+                snprintf(msg, sizeof(msg), "Manual Align: Completed");
+                IUSaveText(&OSAlignT[0],msg);
+            }
+        }
+        else
+        {
+            snprintf(msg, sizeof(msg), "Manual Align: Idle");
+            OSAlignProcess=false;
+            IUSaveText(&OSAlignT[0],msg);
+        }
+    IDSetText(&OSAlignTP, "Alignment Star reached, apply corrections and validate");
+    }
+return true;
 }

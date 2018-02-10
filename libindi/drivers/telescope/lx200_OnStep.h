@@ -35,6 +35,7 @@
 #define OnStepalign1(fd)   write(fd, "#:A1#", 5)
 #define OnStepalign2(fd)   write(fd, "#:A2#", 5)
 #define OnStepalign3(fd)   write(fd, "#:A3#", 5)
+#define OnStepalignOK(fd)   write(fd, "#:A+#", 5)
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
 
@@ -62,6 +63,7 @@ class LX200_OnStep : public LX200Generic
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
     virtual bool ReadScopeStatus() override;
     virtual int setSiteLongitude(int fd, double Long);
+    virtual bool GetAlignStatus();
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
@@ -105,8 +107,8 @@ class LX200_OnStep : public LX200Generic
 
     // Align Buttons
     ISwitchVectorProperty OSAlignSP;
-    ISwitch OSAlignS[3];
-    IText OSAlignT[20];
+    ISwitch OSAlignS[4];
+    IText OSAlignT[1];
     ITextVectorProperty OSAlignTP;
 
     ISwitchVectorProperty TrackCompSP;
@@ -117,6 +119,10 @@ class LX200_OnStep : public LX200Generic
 
     char OSStat[20];
     char OldOSStat[20];
+
+    char OSAlignStat[10];
+    char oldOSAlignStat[10]="300";
+    bool OSAlignProcess=false;
 
     char OSPier[2];
     char OldOSPier[2];
