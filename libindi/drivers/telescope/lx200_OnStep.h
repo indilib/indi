@@ -3,7 +3,7 @@
     based on LX200 Classic azwing (alain@zwingelstein.org)
     Contributors:
     James Lan https://github.com/james-lan
-    Ray Wells http://www.indilib.org/support/community/httpsgithub-comblueshawkarduino-cgem-driver/profile.html
+    Ray Wells https://github.com/blueshawk
 
     Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
