@@ -407,16 +407,19 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 if(sendOnStepCommand(":A1#"))
                 DEBUG(INDI::Logger::DBG_DEBUG, "1 Star");
+                OSAlignOn=true;
             }
             if (index == 1)
             {
                 if(sendOnStepCommand(":A2#"))
                 DEBUG(INDI::Logger::DBG_DEBUG, "2 Stars");
+                OSAlignOn=true;
             }
             if (index == 2)
             {
                 if(sendOnStepCommand(":A3#"))
                 DEBUG(INDI::Logger::DBG_DEBUG, "3 Stars");
+                OSAlignOn=true;
             }
             if (index == 3)
             {
@@ -905,7 +908,10 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
 
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, "==> Update OnsTep Status");
-    if(!GetAlignStatus()) DEBUG(INDI::Logger::DBG_WARNING, "Fail Align Command");
+    if (OSAlignOn)  //don't Poll if no Aligning
+    {
+        if(!GetAlignStatus()) DEBUG(INDI::Logger::DBG_WARNING, "Fail Align Command");
+    }
     return true;
 }
 
@@ -1073,6 +1079,7 @@ bool LX200_OnStep::GetAlignStatus()
             if (act_star > nb_stars)
             {
                 snprintf(msg, sizeof(msg), "Manual Align: Completed");
+                OSAlignOn=false;
                 IUSaveText(&OSAlignT[0],msg);
             }
         }

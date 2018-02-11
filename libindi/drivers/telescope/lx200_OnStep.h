@@ -129,6 +129,7 @@ class LX200_OnStep : public LX200Generic
     char oldOSAlignStat[10]="300";
     bool OSAlignProcess=false;
     bool OSAlignFlag=false;
+    bool OSAlignOn=false;
 
     char OSPier[2];
     char OldOSPier[2];
