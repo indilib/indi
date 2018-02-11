@@ -1407,7 +1407,7 @@ const char *dirName)
         uSecs = (int)(ms * 1000.0);
     }
 
-    ASIPulseGuideOn(m_camInfo->CameraID, NSDir);
+    ASIPulseGuideOn(m_camInfo->CameraID, WEDir);
     if (uSecs != 0)
     {
         usleep(uSecs);
