@@ -40,6 +40,15 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
     //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODEAlready inherited from lx200generic,
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
+    //setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
+    /*
+     * Get generic capabilities but discard the followng:
+     * LX200_HAS_FOCUS
+     *
+     *
+    */
+    setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING);
+
 }
 
 const char *LX200_OnStep::getDefaultName()
@@ -77,9 +86,9 @@ bool LX200_OnStep::initProperties()
     // ============== CONNECTION_TAB
 
     // ============== OPTION_TAB
-    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);    //test
-    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);    //test
-    IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);    //test
+    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
+    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
+    IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
 
     // ============== MOTION_CONTROL_TAB
 
@@ -99,6 +108,43 @@ bool LX200_OnStep::initProperties()
     // ============== GUIDE_TAB
 
     // ============== FOCUSER_TAB
+    // Focuser 1
+    //IUFillSwitch(&OSFocus1SelS[0], "Focus1_Sel1", "Foc 1", ISS_OFF);
+    //IUFillSwitch(&OSFocus1SelS[1], "Focus1_Sel2", "Foc 2", ISS_OFF);
+    //IUFillSwitchVector(&OSFocus1SelSP, OSFocus1SelS, 2, getDeviceName(), "Foc1Sel", "Focuser 1", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    IUFillSwitch(&OSFocus1MotionS[0], "Focus1_In", "In", ISS_OFF);
+    IUFillSwitch(&OSFocus1MotionS[1], "Focus1_Out", "Out", ISS_OFF);
+    IUFillSwitch(&OSFocus1MotionS[2], "Focus1_Stop", "Stop", ISS_OFF);
+    IUFillSwitchVector(&OSFocus1MotionSP, OSFocus1MotionS, 3, getDeviceName(), "Foc1Mot", "Foc 1 Motion", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    IUFillSwitch(&OSFocus1RateS[0], "Focus1_1", "min", ISS_OFF);
+    IUFillSwitch(&OSFocus1RateS[1], "Focus1_2", "0.01", ISS_OFF);
+    IUFillSwitch(&OSFocus1RateS[2], "Focus1_3", "0.1", ISS_OFF);
+    IUFillSwitch(&OSFocus1RateS[3], "Focus1_4", "1", ISS_OFF);
+    IUFillSwitchVector(&OSFocus1RateSP, OSFocus1RateS, 4, getDeviceName(), "Foc1Rate", "Foc 1 Rates", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    IUFillNumber(&OSFocus1TargN[0], "FocusTarget1", "Abs Pos", "%g", -25000, 25000, 1, 0);
+    IUFillNumberVector(&OSFocus1TargNP, OSFocus1TargN, 1, getDeviceName(), "Foc1Targ", "Foc 1 Target", FOCUS_TAB, IP_RW, 0,IPS_IDLE);
+
+    // Focuser 2
+    //IUFillSwitch(&OSFocus2SelS[0], "Focus2_Sel1", "Foc 1", ISS_OFF);
+    //IUFillSwitch(&OSFocus2SelS[1], "Focus2_Sel2", "Foc 2", ISS_OFF);
+    //IUFillSwitchVector(&OSFocus2SelSP, OSFocus2SelS, 2, getDeviceName(), "Foc2Sel", "Foc 2", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    IUFillSwitch(&OSFocus2MotionS[0], "Focus2_In", "In", ISS_OFF);
+    IUFillSwitch(&OSFocus2MotionS[1], "Focus2_Out", "Out", ISS_OFF);
+    IUFillSwitch(&OSFocus2MotionS[2], "Focus2_Stop", "Stop", ISS_OFF);
+    IUFillSwitchVector(&OSFocus2MotionSP, OSFocus2MotionS, 3, getDeviceName(), "Foc2Mot", "Foc 2 Motion", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    IUFillSwitch(&OSFocus2RateS[0], "Focus2_1", "min", ISS_OFF);
+    IUFillSwitch(&OSFocus2RateS[1], "Focus2_2", "0.01", ISS_OFF);
+    IUFillSwitch(&OSFocus2RateS[2], "Focus2_3", "0.1", ISS_OFF);
+    IUFillSwitch(&OSFocus2RateS[3], "Focus2_4", "1", ISS_OFF);
+    IUFillSwitchVector(&OSFocus2RateSP, OSFocus2RateS, 4, getDeviceName(), "Foc2Rate", "Foc 2 Rates", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    IUFillNumber(&OSFocus2TargN[0], "FocusTarget2", "Abs Pos", "%g", -25000, 25000, 1, 0);
+    IUFillNumberVector(&OSFocus2TargNP, OSFocus2TargN, 1, getDeviceName(), "Foc2Targ", "Foc 2 Target", FOCUS_TAB, IP_RW, 0,IPS_IDLE);
 
     // ============== FIRMWARE_TAB
     IUFillText(&VersionT[0], "Date", "", "");
@@ -163,22 +209,59 @@ bool LX200_OnStep::updateProperties()
 
     if (isConnected())
     {
+        // keep sorted by TABs is easier
+        // Main Control
         defineSwitch(&ReticSP);
         defineSwitch(&OSAlignSP);
         defineText(&OSAlignTP);
-        defineText(&VersionTP);
         defineNumber(&ElevationLimitNP);
         defineText(&ObjectInfoTP);
+
+        // Connection
+
+        // Options
+
+        // Motion Control
+        defineNumber(&MaxSlewRateNP);
+        defineSwitch(&TrackCompSP);
+        defineNumber(&BacklashNP);
+
+        // Site Management
+        defineSwitch(&ParkOptionSP);
+        defineSwitch(&SetHomeSP);
+
+        // Guide
+
+        // Focuser
+
+        // Focuser 1
+        if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
+        {
+            //defineSwitch(&OSFocus1SelSP);
+            defineSwitch(&OSFocus1MotionSP);
+            defineSwitch(&OSFocus1RateSP);
+            defineNumber(&OSFocus1TargNP);
+        }
+        // Focuser 2
+        if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2
+        {
+            //defineSwitch(&OSFocus2SelSP);
+            defineSwitch(&OSFocus2MotionSP);
+            defineSwitch(&OSFocus2RateSP);
+            defineNumber(&OSFocus2TargNP);
+        }
+
+        // Firmware Data
+        defineText(&VersionTP);
+
+        // Library
         defineSwitch(&SolarSP);
         defineSwitch(&StarCatalogSP);
         defineSwitch(&DeepSkyCatalogSP);
         defineNumber(&ObjectNoNP);
-        defineNumber(&MaxSlewRateNP);
+
+        // OnStep Status
         defineText(&OnstepStatTP);
-        defineSwitch(&ParkOptionSP);
-        defineSwitch(&SetHomeSP);
-        defineSwitch(&TrackCompSP);
-        defineNumber(&BacklashNP);  //test
 
         if (InitPark())
         {
@@ -207,22 +290,49 @@ bool LX200_OnStep::updateProperties()
     }
     else
     {
+        // keep sorted by TABs is easier
+        // Main Control
         deleteProperty(ReticSP.name);
         deleteProperty(OSAlignSP.name);
         deleteProperty(OSAlignTP.name);
-        deleteProperty(VersionTP.name);
         deleteProperty(ElevationLimitNP.name);
+        // Connection
+
+        // Options
+
+        // Motion Control
+        deleteProperty(MaxSlewRateNP.name);
+        deleteProperty(TrackCompSP.name);
+        deleteProperty(BacklashNP.name);
+
+        // Site Management
+        deleteProperty(ParkOptionSP.name);
+        deleteProperty(SetHomeSP.name);
+        // Guide
+
+        // Focuser
+        // Focuser 1
+        //deleteProperty(OSFocus1SelSP.name);
+        deleteProperty(OSFocus1MotionSP.name);
+        deleteProperty(OSFocus1RateSP.name);
+        deleteProperty(OSFocus1TargNP.name);
+        // Focuser 2
+        //deleteProperty(OSFocus2SelSP.name);
+        deleteProperty(OSFocus2MotionSP.name);
+        deleteProperty(OSFocus2RateSP.name);
+        deleteProperty(OSFocus2TargNP.name);
+
+        // Firmware Data
+        deleteProperty(VersionTP.name);
+        // Library
         deleteProperty(ObjectInfoTP.name);
         deleteProperty(SolarSP.name);
         deleteProperty(StarCatalogSP.name);
         deleteProperty(DeepSkyCatalogSP.name);
         deleteProperty(ObjectNoNP.name);
-        deleteProperty(MaxSlewRateNP.name);
+
+        // OnStep Status
         deleteProperty(OnstepStatTP.name);
-        deleteProperty(ParkOptionSP.name);
-        deleteProperty(SetHomeSP.name);
-        deleteProperty(TrackCompSP.name);
-        deleteProperty(BacklashNP.name);    //test
     }
     return true;
 }
@@ -312,9 +422,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                     BacklashNP.s = IPS_ALERT;
                     IDSetNumber(&BacklashNP, "Error Backlash DEC limit.");
                 }
-
-                usleep(100000);
-
+                usleep(100000); // time for OnStep to respond to previous cmd
                 snprintf(cmd, 9, ":$BR%d#", (int)bklshra);
                 if (sendOnStepCommand(cmd))
                 {
@@ -384,6 +492,47 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             }
         }
     }
+
+    // Focuser
+    // Focuser 1 Target
+    if (!strcmp(name, OSFocus1TargNP.name))
+    {
+        char cmd[32];
+
+        if ((values[0] >= -25000) && (values[0] <= 25000))
+        {
+            snprintf(cmd, 15, ":FR%d#", (int)values[0]);
+            sendOnStepCommandBlind(cmd);
+            OSFocus1TargNP.s           = IPS_OK;
+            IDSetNumber(&OSFocus1TargNP, "Slewrate set to %d", (int)values[0]);
+        }
+        else
+        {
+            OSFocus1TargNP.s = IPS_ALERT;
+            IDSetNumber(&OSFocus1TargNP, "Setting Max Slew Rate Failed");
+        }
+        return true;
+    }
+    // Focuser 2 Target
+    if (!strcmp(name, OSFocus2TargNP.name))
+    {
+        char cmd[32];
+
+        if ((values[0] >= -25000) && (values[0] <= 25000))
+        {
+            snprintf(cmd, 15, ":fR%d#", (int)values[0]);
+            sendOnStepCommandBlind(cmd);
+            OSFocus2TargNP.s           = IPS_OK;
+            IDSetNumber(&OSFocus2TargNP, "Slewrate set to %d", (int)values[0]);
+        }
+        else
+        {
+            OSFocus2TargNP.s = IPS_ALERT;
+            IDSetNumber(&OSFocus2TargNP, "Setting Max Slew Rate Failed");
+        }
+        return true;
+    }
+
     return LX200Generic::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -512,6 +661,101 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             TrackCompSP.s = IPS_IDLE;
             IDSetSwitch(&TrackCompSP, nullptr);
             return true;
+        }
+
+        // Focuser
+        // Focuser 1 Rates
+        if (!strcmp(name, OSFocus1RateSP.name))
+        {
+            char cmd[32];
+
+            if (IUUpdateSwitch(&OSFocus1RateSP, states, names, n) < 0)
+                return false;
+
+            index = IUFindOnSwitchIndex(&OSFocus1RateSP);
+            snprintf(cmd, 5, ":F%d#", index+1);
+            sendOnStepCommandBlind(cmd);
+            OSFocus1RateS[index].s=ISS_OFF;
+            OSFocus1RateSP.s = IPS_OK;
+            IDSetSwitch(&OSFocus1RateSP, nullptr);
+        }
+        // Focuser 1 Motion
+        if (!strcmp(name, OSFocus1MotionSP.name))
+        {
+            char cmd[32];
+
+            if (IUUpdateSwitch(&OSFocus1MotionSP, states, names, n) < 0)
+                return false;
+
+            index = IUFindOnSwitchIndex(&OSFocus1MotionSP);
+            if (index ==0)
+            {
+                strcpy(cmd, ":F+#");
+            }
+            if (index ==1)
+            {
+                strcpy(cmd, ":F-#");
+            }
+            if (index ==2)
+            {
+                strcpy(cmd, ":FQ#");
+            }
+            sendOnStepCommandBlind(cmd);
+            usleep(100000); // Pulse 0,1 s
+            if(index != 2)
+            {
+                sendOnStepCommandBlind(":FQ#");
+            }
+            OSFocus1MotionS[index].s=ISS_OFF;
+            OSFocus1MotionSP.s = IPS_OK;
+            IDSetSwitch(&OSFocus1MotionSP, nullptr);
+        }
+
+        // Focuser 2 Rates
+        if (!strcmp(name, OSFocus2RateSP.name))
+        {
+            char cmd[32];
+
+            if (IUUpdateSwitch(&OSFocus2RateSP, states, names, n) < 0)
+                return false;
+
+            index = IUFindOnSwitchIndex(&OSFocus2RateSP);
+            snprintf(cmd, 5, ":F%d#", index+1);
+            sendOnStepCommandBlind(cmd);
+            OSFocus2RateS[index].s=ISS_OFF;
+            OSFocus2RateSP.s = IPS_OK;
+            IDSetSwitch(&OSFocus2RateSP, nullptr);
+        }
+        // Focuser 2 Motion
+        if (!strcmp(name, OSFocus2MotionSP.name))
+        {
+            char cmd[32];
+
+            if (IUUpdateSwitch(&OSFocus2MotionSP, states, names, n) < 0)
+                return false;
+
+            index = IUFindOnSwitchIndex(&OSFocus2MotionSP);
+            if (index ==0)
+            {
+                strcpy(cmd, ":f+#");
+            }
+            if (index ==1)
+            {
+                strcpy(cmd, ":f-#");
+            }
+            if (index ==2)
+            {
+                strcpy(cmd, ":fQ#");
+            }
+            sendOnStepCommandBlind(cmd);
+            usleep(100000); // Pulse 0,1 s
+            if(index != 2)
+            {
+                sendOnStepCommandBlind(":fQ#");
+            }
+            OSFocus2MotionS[index].s=ISS_OFF;
+            OSFocus2MotionSP.s = IPS_OK;
+            IDSetSwitch(&OSFocus2MotionSP, nullptr);
         }
 
         // Star Catalog
@@ -911,6 +1155,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     {
         if(!GetAlignStatus()) DEBUG(INDI::Logger::DBG_WARNING, "Fail Align Command");
     }
+    OSUpdateFocuser();  // Update Focuser Position
     return true;
 }
 
@@ -1106,3 +1351,13 @@ bool LX200_OnStep::kdedialog(const char * commande)
     return system(commande);
 }
 
+void LX200_OnStep::OSUpdateFocuser()
+{
+    char value[10];
+    getCommandString(PortFD, value, ":FG#");
+    OSFocus1TargNP.np[0].value = atoi(value);
+    IDSetNumber(&OSFocus1TargNP, nullptr);
+    getCommandString(PortFD, value, ":fG#");
+    OSFocus2TargNP.np[0].value = atoi(value);
+    IDSetNumber(&OSFocus2TargNP, nullptr);
+}

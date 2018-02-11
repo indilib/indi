@@ -70,9 +70,11 @@ class LX200_OnStep : public LX200Generic
     virtual bool GetAlignStatus();
     virtual bool kdedialog(const char * commande);
 
+
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
     int  setMaxElevationLimit(int fd, int max);
+    void OSUpdateFocuser();
 
     ITextVectorProperty ObjectInfoTP;
     IText ObjectInfoT[1];
@@ -101,8 +103,37 @@ class LX200_OnStep : public LX200Generic
     ITextVectorProperty VersionTP;
     IText VersionT[5];
 
+    // OnStep Status controls
     ITextVectorProperty OnstepStatTP;
     IText OnstepStat[10];
+
+    // Focuser controls
+    // Focuser 1
+    //ISwitchVectorProperty OSFocus1SelSP;
+    //ISwitch OSFocus1SelS[2];
+
+    ISwitchVectorProperty OSFocus1RateSP;
+    ISwitch OSFocus1RateS[4];
+
+    ISwitchVectorProperty OSFocus1MotionSP;
+    ISwitch OSFocus1MotionS[3];
+
+    INumberVectorProperty OSFocus1TargNP;
+    INumber OSFocus1TargN[1];
+
+    // Focuser 2
+    //ISwitchVectorProperty OSFocus2SelSP;
+    //ISwitch OSFocus2SelS[2];
+
+    ISwitchVectorProperty OSFocus2RateSP;
+    ISwitch OSFocus2RateS[4];
+
+    ISwitchVectorProperty OSFocus2MotionSP;
+    ISwitch OSFocus2MotionS[3];
+
+    INumberVectorProperty OSFocus2TargNP;
+    INumber OSFocus2TargN[1];
+
 
     int IsTracking = 0;
 
