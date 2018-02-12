@@ -37,7 +37,7 @@
 LX200AstroPhysicsGTOCP2::LX200AstroPhysicsGTOCP2() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);    
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);
 
     sendLocationOnStartup = false;
     sendTimeOnStartup = false;
@@ -116,7 +116,7 @@ void LX200AstroPhysicsGTOCP2::ISGetProperties(const char *dev)
     LX200Generic::ISGetProperties(dev);
 
     if (isConnected())
-    {        
+    {
         defineText(&VersionInfo);
 
         /* Motion group */
@@ -165,7 +165,7 @@ bool LX200AstroPhysicsGTOCP2::updateProperties()
             updateLocation(latitude, longitude, 0);
     }
     else
-    {        
+    {
         deleteProperty(VersionInfo.name);
         deleteProperty(APSlewSpeedSP.name);
         deleteProperty(SwapSP.name);
@@ -284,7 +284,7 @@ bool LX200AstroPhysicsGTOCP2::ISNewSwitch(const char *dev, const char *name, ISS
 
     // ignore if not ours //
     if (strcmp(getDeviceName(), dev))
-        return false;    
+        return false;
 
     // =======================================
     // Swap Buttons
@@ -465,6 +465,8 @@ bool LX200AstroPhysicsGTOCP2::ReadScopeStatus()
 
 bool LX200AstroPhysicsGTOCP2::Goto(double r, double d)
 {
+    const struct timespec timeout = {0, 100000000L};
+
     targetRA  = r;
     targetDEC = d;
 
@@ -498,7 +500,7 @@ bool LX200AstroPhysicsGTOCP2::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        usleep(100000);
+        nanosleep(&timeout, NULL);
     }
 
     if (!isSimulation())

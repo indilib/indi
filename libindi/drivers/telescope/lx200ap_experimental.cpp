@@ -709,6 +709,7 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 // experimental function needs testing!!!
 bool LX200AstroPhysicsExperimental::IsMountParked(bool *isParked)
 {
+    const struct timespec timeout = {0, 250000000L};
     double ra1, ra2;
 
     DEBUG(INDI::Logger::DBG_DEBUG, "EXPERIMENTAL: LX200AstroPhysicsExperimental::IsMountParked()");
@@ -724,7 +725,7 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isParked)
         return false;
 
     // wait 250ms
-    usleep(250000);
+    nanosleep(&timeout, NULL);
 
     if (getLX200RA(PortFD, &ra2))
         return false;
@@ -763,6 +764,8 @@ bool LX200AstroPhysicsExperimental::getMountStatus(bool *isParked)
 
 bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 {
+    const struct timespec timeout = {0, 100000000L};
+
     targetRA  = r;
     targetDEC = d;
 
@@ -796,7 +799,7 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        usleep(100000);
+        nanosleep(&timeout, NULL);
     }
 
     if (!isSimulation())
@@ -1170,7 +1173,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
 
     // check the unpark from position and set mount as appropriate
     ParkPosition unparkPos;
-    
+
     unparkPos = (ParkPosition) IUFindOnSwitchIndex(&UnparkFromSP);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Unpark() -> unpark position = %d", unparkPos);
@@ -1182,7 +1185,7 @@ bool LX200AstroPhysicsExperimental::UnPark()
     else
     {
         double unparkAlt, unparkAz;
-	
+
         if (!calcParkPosition(unparkPos, &unparkAlt, &unparkAz))
         {
             DEBUG(INDI::Logger::DBG_ERROR, "Error calculating unpark position!");
