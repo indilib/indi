@@ -102,6 +102,7 @@ bool LX200ZEQ25::checkConnection()
     if (isSimulation())
         return true;
 
+    const struct timespec timeout = {0, 50000000L};
     char initCMD[] = ":V#";
     int errcode    = 0;
     char errmsg[MAXRBUF];
@@ -117,7 +118,7 @@ bool LX200ZEQ25::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            usleep(50000);
+            nanosleep(&timeout, NULL);
             continue;
         }
 
@@ -125,7 +126,7 @@ bool LX200ZEQ25::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            usleep(50000);
+            nanosleep(&timeout, NULL);
             continue;
         }
 
@@ -138,7 +139,7 @@ bool LX200ZEQ25::checkConnection()
                 return true;
         }
 
-        usleep(50000);
+        nanosleep(&timeout, NULL);
     }
 
     return false;
@@ -205,6 +206,7 @@ bool LX200ZEQ25::ISNewNumber(const char *dev, const char *name, double values[],
 
 bool LX200ZEQ25::isZEQ25Home()
 {
+    const struct timespec timeout = {0, 10000000L};
     char bool_return[2];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
@@ -220,9 +222,9 @@ bool LX200ZEQ25::isZEQ25Home()
     error_type = tty_read(PortFD, bool_return, 1, 5, &nbytes_read);
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ZEQ25
-    usleep(10000);
+    nanosleep(&timeout, NULL);
     tcflush(PortFD, TCIFLUSH);
-    usleep(10000);
+    nanosleep(&timeout, NULL);
 
     if (nbytes_read < 1)
         return false;
@@ -238,7 +240,7 @@ int LX200ZEQ25::gotoZEQ25Home()
 }
 
 bool LX200ZEQ25::isSlewComplete()
-{    
+{
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
@@ -388,6 +390,8 @@ void LX200ZEQ25::getBasicData()
 
 bool LX200ZEQ25::Goto(double r, double d)
 {
+    const struct timespec timeout = {0, 100000000L};
+
     targetRA  = r;
     targetDEC = d;
     char RAStr[64], DecStr[64];
@@ -421,7 +425,7 @@ bool LX200ZEQ25::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        usleep(100000);
+        nanosleep(&timeout, NULL);
     }
 
     if (!isSimulation())
@@ -695,6 +699,7 @@ int LX200ZEQ25::setZEQ25UTCOffset(double hours)
 
 int LX200ZEQ25::setZEQ25StandardProcedure(int fd, const char *data)
 {
+    const struct timespec timeout = {0, 10000000L};
     char bool_return[2];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
@@ -707,9 +712,9 @@ int LX200ZEQ25::setZEQ25StandardProcedure(int fd, const char *data)
     error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ZEQ25
-    usleep(10000);
+    nanosleep(&timeout, NULL);
     tcflush(fd, TCIFLUSH);
-    usleep(10000);
+    nanosleep(&timeout, NULL);
 
     if (nbytes_read < 1)
         return error_type;

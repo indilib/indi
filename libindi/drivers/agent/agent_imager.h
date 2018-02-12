@@ -1,5 +1,6 @@
 /*******************************************************************************
  Copyright(c) 2013-2016 CloudMakers, s. r. o. All rights reserved.
+ Copyright(c) 2017 Marco Gulino <marco.gulino@gmai.com>
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -20,29 +21,13 @@
 
 #include "baseclient.h"
 #include "defaultdevice.h"
-
 #define MAX_GROUP_COUNT 16
 
-class Group
-{
-  public:
-    explicit Group(int id);
-
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-
-    void defineProperties();
-    void deleteProperties();
-
-    INumberVectorProperty GroupSettingsNP;
-    INumber GroupSettingsN[4];
-  private:
-    char groupName[16];
-    char groupSettingsName[32];
-};
-
+class Group;
 class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClient
 {
   public:
+    static const std::string DEVICE_NAME;
     Imager();
     virtual ~Imager() = default;
 
@@ -128,5 +113,9 @@ class Imager : public virtual INDI::DefaultDevice, public virtual INDI::BaseClie
     INumberVectorProperty FilterSlotNP;
     INumber FilterSlotN[1];
 
-    Group *groups[MAX_GROUP_COUNT];
+    std::vector<std::shared_ptr<Group>> groups;
+    std::shared_ptr<Group> currentGroup() const;
+    std::shared_ptr<Group> nextGroup() const;
+    std::shared_ptr<Group> getGroup(int index) const;
+    
 };

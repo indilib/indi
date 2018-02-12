@@ -30,7 +30,7 @@ class ASICCD : public INDI::CCD
 {
   public:
     explicit ASICCD(ASI_CAMERA_INFO *camInfo);
-    virtual ~ASICCD();
+    ~ASICCD() = default;
 
     virtual const char *getDefaultName() override;
 
@@ -48,7 +48,7 @@ class ASICCD : public INDI::CCD
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-// Streaming
+    // Streaming
     virtual bool StartStreaming() override;
     virtual bool StopStreaming() override;
 
@@ -146,8 +146,6 @@ class ASICCD : public INDI::CCD
     ASI_CONTROL_CAPS *pControlCaps;
 
     int genTimerID;
-
-    bool sim;
 
     // Imaging thread
     ImageState threadRequest;

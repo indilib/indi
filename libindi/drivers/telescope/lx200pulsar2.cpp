@@ -1146,6 +1146,7 @@ bool LX200Pulsar2::updateLocation(double latitude, double longitude, double elev
 
 bool LX200Pulsar2::Goto(double r, double d)
 {
+    const struct timespec timeout = {0, 100000000L};
     char RAStr[64], DecStr[64];
     fs_sexa(RAStr, targetRA = r, 2, 3600);
     fs_sexa(DecStr, targetDEC = d, 2, 3600);
@@ -1174,7 +1175,7 @@ bool LX200Pulsar2::Goto(double r, double d)
             IDSetSwitch(&MovementNSSP, nullptr);
             IDSetSwitch(&MovementWESP, nullptr);
         }
-        usleep(100000); // sleep for 100 mseconds
+        nanosleep(&timeout, NULL);
     }
 
     if (!isSimulation())
@@ -1203,6 +1204,8 @@ bool LX200Pulsar2::Goto(double r, double d)
 
 bool LX200Pulsar2::Park()
 {
+    const struct timespec timeout = {0, 100000000L};
+
     if (!isSimulation())
     {
         if (!Pulsar2Commands::isHomeSet(PortFD))
@@ -1244,7 +1247,7 @@ bool LX200Pulsar2::Park()
             IDSetSwitch(&MovementNSSP, nullptr);
             IDSetSwitch(&MovementWESP, nullptr);
         }
-        usleep(100000); // sleep for 100 msec
+        nanosleep(&timeout, NULL);
     }
 
     if (!isSimulation() && !Pulsar2Commands::park(PortFD))
@@ -1261,6 +1264,7 @@ bool LX200Pulsar2::Park()
 
 bool LX200Pulsar2::Sync(double ra, double dec)
 {
+    const struct timespec timeout = {0, 300000000L};
     bool result = true;
     if (!isSimulation())
     {
@@ -1272,7 +1276,7 @@ bool LX200Pulsar2::Sync(double ra, double dec)
         }
         else
         {
-            usleep(300000L); // This seems to be necessary
+            nanosleep(&timeout, NULL); // This seems to be necessary
             result = Pulsar2Commands::sync(PortFD);
             if (result)
             {
@@ -1351,6 +1355,8 @@ bool LX200Pulsar2::isSlewComplete()
 
 bool LX200Pulsar2::checkConnection()
 {
+    const struct timespec timeout = {0, 50000000L};
+
     if (isSimulation())
         return true;
 
@@ -1370,7 +1376,7 @@ bool LX200Pulsar2::checkConnection()
                        (version[0] > '2' ? "Pulsar2" : "Pulsar"), version, year, month, day);
                 return true;
             }
-            usleep(50000);
+            nanosleep(&timeout, NULL);
         }
     }
     return false;

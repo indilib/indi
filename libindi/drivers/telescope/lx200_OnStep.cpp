@@ -561,7 +561,7 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled)
     return false;
 }
 
-bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint8_t years)
+bool LX200_OnStep::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 {
     years = years % 100;
     char cmd[32];
