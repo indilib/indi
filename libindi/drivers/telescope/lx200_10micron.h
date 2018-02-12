@@ -93,18 +93,19 @@ class LX200_10MICRON : public LX200Generic
     LX200_10MICRON();
     ~LX200_10MICRON() {}
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    virtual const char *getDefaultName() override;
-    virtual bool Handshake() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ReadScopeStatus() override;
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-    virtual bool SyncConfigBehaviour(bool cmcfg);
+    const char *getDefaultName() override;
+    bool Handshake() override;
+    bool initProperties() override;
+    bool updateProperties() override;
+    bool ReadScopeStatus() override;
+    bool Park() override;
+    bool UnPark() override;
+    bool SyncConfigBehaviour(bool cmcfg);
+    bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
 
     int AddSyncPoint(double MRa, double MDec, double MSide, double PRa, double PDec, double SidTime);
     int AddSyncPointHere(double PRa, double PDec);
@@ -116,7 +117,7 @@ class LX200_10MICRON : public LX200Generic
     int setStandardProcedureAndReturnResponse(int fd, const char *data, char *response, int max_response_length);
 
   protected:
-    virtual void getBasicData() override;
+    void getBasicData() override;
 
     IText ProductT[4];
     ITextVectorProperty ProductTP;

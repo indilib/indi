@@ -99,15 +99,15 @@ bool LX200AstroPhysics::initProperties()
     IUFillSwitchVector(&SwapSP, SwapS, 2, getDeviceName(), "SWAP", "Swap buttons", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_ON);
-    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_OFF);
+    IUFillSwitch(&SyncCMRS[USE_REGULAR_SYNC], ":CM#", ":CM#", ISS_OFF);
+    IUFillSwitch(&SyncCMRS[USE_CMR_SYNC], ":CMR#", ":CMR#", ISS_ON);
     IUFillSwitchVector(&SyncCMRSP, SyncCMRS, 2, getDeviceName(), "SYNCCMR", "Sync", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // guide speed
     IUFillSwitch(&APGuideSpeedS[0], "0.25", "0.25x", ISS_OFF);
-    IUFillSwitch(&APGuideSpeedS[1], "0.5", "0.50x", ISS_ON);
-    IUFillSwitch(&APGuideSpeedS[2], "1.0", "1.0x", ISS_OFF);
+    IUFillSwitch(&APGuideSpeedS[1], "0.5", "0.50x", ISS_OFF);
+    IUFillSwitch(&APGuideSpeedS[2], "1.0", "1.0x", ISS_ON);
     IUFillSwitchVector(&APGuideSpeedSP, APGuideSpeedS, 3, getDeviceName(), "Guide Rate", "", GUIDE_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
@@ -133,6 +133,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
 {
     LX200Generic::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         defineSwitch(&StartUpSP);
@@ -140,7 +141,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
 
         //defineText(&DeclinationAxisTP);
 
-        /* Motion group */
+        // Motion group
         defineSwitch(&APSlewSpeedSP);
         defineSwitch(&SwapSP);
         defineSwitch(&SyncCMRSP);
@@ -149,6 +150,7 @@ void LX200AstroPhysics::ISGetProperties(const char *dev)
 
         DEBUG(INDI::Logger::DBG_SESSION, "Please initialize the mount before issuing any command.");
     }
+    */
 }
 
 bool LX200AstroPhysics::updateProperties()

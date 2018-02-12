@@ -17,7 +17,7 @@ set(fli_LIB_SRCS
 #build a shared library
 ADD_LIBRARY(fli SHARED ${fli_LIB_SRCS})
 
-set_target_properties(fli PROPERTIES VERSION 1.8 SOVERSION 1)
+set_target_properties(fli PROPERTIES VERSION 1.9 SOVERSION 1)
 
 #need to link to some other libraries ? just add them here
 TARGET_LINK_LIBRARIES(fli -lm)

@@ -185,6 +185,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
         loadConfig(true, "Hibernate");
     }
 
+    /*
     if (isConnected())
     {
         //defineNumber(&HorizontalCoordsNP);
@@ -199,6 +200,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
         if (fwInfo.Version != "Invalid")
             defineText(&FirmwareTP);
     }
+    */
 }
 
 bool CelestronGPS::updateProperties()

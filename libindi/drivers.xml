@@ -19,7 +19,7 @@
 	</device>
         <device label="LX200 OnStep">
                 <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-                <version>1.1</version>
+                <version>1.2</version>
         </device>	
         <device label="LX200 16">
 		<driver name="LX200 16">indi_lx200_16</driver>
@@ -43,6 +43,10 @@
         </device>
         <device label="AstroPhysics Experimental">
                 <driver name="AstroPhysics Experimental">indi_lx200ap_experimental</driver>
+                <version>1.0</version>
+        </device>
+        <device label="AstroPhysics GTOCP2">
+                <driver name="AstroPhysics GTOCP2">indi_lx200ap_gtocp2</driver>
                 <version>1.0</version>
         </device>
         <device label="AstroPhysics">
@@ -86,8 +90,8 @@
 		<version>1.0</version>
 	</device>
         <device label="Temma Takahashi">
-		<driver name="Temma">indi_temma</driver>
-	  	<version>0.1</version>
+                <driver name="Temma">indi_temma_telescope</driver>
+                <version>0.2</version>
         </device>
         <device label="Argo Navis">
 		<driver name="LX200 Basic">indi_lx200basic</driver>
@@ -99,7 +103,7 @@
         </device>
         <device label="SkySensor2000PC">
                 <driver name="SkySensor2000PC">indi_lx200ss2000pc</driver>
-                <version>0.1</version>
+                <version>1.1</version>
         </device>
         <device label="iOptron iEQ45 Pro">
                 <driver name="iEQ">indi_ieq_telescope</driver>
@@ -165,6 +169,10 @@
                 <driver name="Digital Setting Circle">indi_dsc_telescope</driver>
                 <version>1.0</version>
         </device>
+        <device label="Explore Scientific PMC-Eight">
+                <driver name="PMC8">indi_pmc8_telescope</driver>
+                <version>0.1</version>
+        </device>
 </devGroup>
 <devGroup group="Focusers">
         <device label="Focuser Simulator">
@@ -229,10 +237,6 @@
         </device>
         <device label="Sesto Senso">
                 <driver name="Sesto Senso">indi_sestosenso_focus</driver>
-                <version>1.0</version>
-        </device>
-        <device label="FocusMaster">
-                <driver name="FocusMaster">indi_focusmaster_focus</driver>
                 <version>1.0</version>
         </device>
         <device label="Lakeside">

@@ -660,12 +660,13 @@ void LX200Pulsar2::ISGetProperties(const char *dev)
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
     LX200Generic::ISGetProperties(dev);
-    if (isConnected())
+
+    /*if (isConnected())
     {
         defineSwitch(&PeriodicErrorCorrectionSP);
         defineSwitch(&PoleCrossingSP);
         defineSwitch(&RefractionCorrectionSP);
-    }
+    }*/
 }
 
 bool LX200Pulsar2::initProperties()

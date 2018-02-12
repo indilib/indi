@@ -74,6 +74,7 @@ void LX200_16::ISGetProperties(const char *dev)
     // process parent first
     LX200GPS::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         defineNumber(&HorizontalCoordsNP);
@@ -81,6 +82,7 @@ void LX200_16::ISGetProperties(const char *dev)
         defineSwitch(&HomeSearchSP);
         defineSwitch(&FieldDeRotatorSP);
     }
+    */
 }
 
 bool LX200_16::updateProperties()

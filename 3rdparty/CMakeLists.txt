@@ -35,7 +35,7 @@ IF (UNIX OR APPLE)
             STRING(FIND ${SOURCE_FILE} libqhy DIR4_FOUND)
             STRING(FIND ${SOURCE_FILE} libqsi DIR5_FOUND)
             STRING(FIND ${SOURCE_FILE} libsbig DIR6_FOUND)
-            STRING(FIND ${SOURCE_FILE} fxload-libusb DIR7_FOUND)
+            STRING(FIND ${SOURCE_FILE} fxload DIR7_FOUND)
             STRING(FIND ${SOURCE_FILE} libinovasdk DIR8_FOUND)
             STRING(FIND ${SOURCE_FILE} libdspau DIR9_FOUND)
             IF (NOT ${DIR1_FOUND} EQUAL -1 OR NOT ${DIR2_FOUND} EQUAL -1 OR NOT ${DIR3_FOUND} EQUAL -1 OR NOT ${DIR4_FOUND} EQUAL -1 OR
@@ -79,6 +79,7 @@ option(WITH_RTLSDR "Install RTL-SDR Receiver" On)
 option(WITH_RADIOSIM "Install RadioSim Receiver" On)
 option(WITH_GPSNMEA "Install GPS NMEA Driver" On)
 option(WITH_ARMADILLO "Install Armadillo & Platypus Driver" On)
+option(WITH_FXLOAD "Install FX3 compatible fxload tool" Off)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -89,7 +90,7 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_DUINO Off)
     set(WITH_FISHCAMP Off)
     set(WITH_GIGE Off)
-#    set(WITH_DSI Off)
+    set(WITH_FXLOAD Off)
     set(WITH_MGEN Off)
     set(WITH_RTLSDR Off)
     set(WITH_RADIOSIM Off)
@@ -154,8 +155,6 @@ add_subdirectory(libqsi)
 SET(LIBRARIES_FOUND FALSE)
 endif (QSI_FOUND)
 endif (WITH_QSI)
-
-#if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 ## SBIG
 if (WITH_SBIG)
@@ -280,11 +279,12 @@ if (WITH_RADIOSIM)
 add_subdirectory(indi-radiosim)
 endif (WITH_RADIOSIM)
 
-#endif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+if (WITH_ARMADILLO)
+add_subdirectory(indi-armadillo-platypus)
+endif(WITH_ARMADILLO)
 
-
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-add_subdirectory(fxload-libusb)
+if (WITH_FXLOAD)
+add_subdirectory(fxload)
 endif()
 
 # Check if libraries are found. If not, we must build them, install them, THEN run CMake again to build and instal the drivers. If all the libraraies are installed, then we build and install the drivers only now.

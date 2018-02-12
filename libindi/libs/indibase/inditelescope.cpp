@@ -254,13 +254,18 @@ void Telescope::ISGetProperties(const char *dev)
 
     defineNumber(&ScopeParametersNP);
     defineText(&ScopeConfigNameTP);
+
     if (HasDefaultScopeConfig())
     {
         LoadScopeConfig();
-    } else {
+    }
+    else
+    {
         loadConfig(true, "TELESCOPE_INFO");
         loadConfig(true, "SCOPE_CONFIG_NAME");
     }
+
+    /*
     if (isConnected())
     {
         //  Now we add our telescope specific stuff
@@ -312,6 +317,7 @@ void Telescope::ISGetProperties(const char *dev)
 
         defineSwitch(&ScopeConfigsSP);
     }
+    */
 
     if (CanGOTO())
         controller->ISGetProperties(dev);

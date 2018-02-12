@@ -74,6 +74,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     bool Disconnect() override;
 
     bool StartExposure(float duration) override;
+    bool AbortExposure() override;
     bool UpdateCCDFrame(int x, int y, int w, int h) override;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
@@ -99,7 +100,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     bool SetFocuserSpeed(int speed) override;
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
 
-// Streaming
+    // Streaming
     bool StartStreaming() override;
     bool StopStreaming() override;
 
@@ -163,6 +164,14 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     {
         CAPTURE_INTERNAL_RAM,
         CAPTURE_SD_CARD
+    };
+
+    ISwitch SDCardImageS[2];
+    ISwitchVectorProperty SDCardImageSP;
+    enum
+    {
+        SD_CARD_SAVE_IMAGE,
+        SD_CARD_DELETE_IMAGE
     };
 
     ISwitch autoFocusS[1];

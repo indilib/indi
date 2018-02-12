@@ -6,7 +6,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 
 IF(APPLE)
-set(FIRMWARE_INSTALL_DIR "/usr/local/lib/firmware")
+set(FIRMWARE_INSTALL_DIR "/usr/local/lib/indi/DriverSupport/dsi")
 ELSE(APPLE)
 set(RULES_INSTALL_DIR "/etc/udev/rules.d")
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
@@ -28,6 +28,11 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
 include(CMakeCommon)
+
+# This warning only valid for Clang above version 3.9
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.8.9)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-undefined-var-template")
+ENDIF ()
 
 ########### DSI ###########
 set(indidsi_SRCS

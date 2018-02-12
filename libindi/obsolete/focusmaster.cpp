@@ -266,6 +266,8 @@ IPState FocusMaster::MoveFocuser(FocusDirection dir, int speed, uint16_t duratio
         command[1] = 0x22;
     }
 
+    sendCommand(command);
+
     gettimeofday(&focusMoveStart, nullptr);
     focusMoveRequest = duration / 1000.0;
 
@@ -335,11 +337,21 @@ bool FocusMaster::AbortFocuser()
 
     bool rc = sendCommand(command);
 
-    if (rc && FullMotionSP.s == IPS_BUSY)
+    if (rc)
     {
-        IUResetSwitch(&FullMotionSP);
-        FullMotionSP.s = IPS_IDLE;
-        IDSetSwitch(&FullMotionSP, nullptr);
+        if (FullMotionSP.s == IPS_BUSY)
+        {
+            IUResetSwitch(&FullMotionSP);
+            FullMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&FullMotionSP, nullptr);
+        }
+
+        if (FocusMotionSP.s == IPS_BUSY)
+        {
+            IUResetSwitch(&FocusMotionSP);
+            FocusMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&FocusMotionSP, nullptr);
+        }
     }
 
     return rc;

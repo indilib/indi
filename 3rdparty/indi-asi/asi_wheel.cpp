@@ -159,7 +159,7 @@ void ISSnoopDevice(XMLEle *root)
 
 ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate)
 {
-    char str[100];
+    char str[MAXINDIDEVICE];
 
     if (enumerate)
         snprintf(str, sizeof(str), "ASI %s %d", info.Name, id);
@@ -170,9 +170,11 @@ ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate)
     CurrentFilter      = 0;
     FilterSlotN[0].min = 0;
     FilterSlotN[0].max = 0;
-    strncpy(name, str, sizeof(name));
+    strncpy(name, str, MAXINDIDEVICE);
     setDeviceName(str);
     setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "FW ID: %d FW Name: %d enumerate? %s", id, info.Name, enumerate ? "true":"false");
 }
 
 ASIWHEEL::~ASIWHEEL()
@@ -246,8 +248,7 @@ bool ASIWHEEL::Disconnect()
 bool ASIWHEEL::initProperties()
 {
     INDI::FilterWheel::initProperties();
-    addDebugControl();
-    addSimulationControl();
+    addAuxControls();
     return true;
 }
 

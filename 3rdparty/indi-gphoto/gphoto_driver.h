@@ -74,6 +74,7 @@ typedef struct _gphoto_widget_list gphoto_widget_list;
 
 int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirror_lock);
 int gphoto_read_exposure(gphoto_driver *gphoto);
+int gphoto_abort_exposure(gphoto_driver *gphoto);
 int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd);
 void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting);
 void gphoto_get_minmax_exposure(gphoto_driver *gphoto, double *min, double *max);
@@ -108,3 +109,4 @@ void gphoto_set_debug(const char *name);
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec);
 const char *gphoto_get_manufacturer(gphoto_driver *gphoto);
 const char *gphoto_get_model(gphoto_driver *gphoto);
+int gphoto_delete_sdcard_image(gphoto_driver *gphoto, bool delete_sdcard_image);
