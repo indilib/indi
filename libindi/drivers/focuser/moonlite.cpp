@@ -30,8 +30,7 @@
 #include <unistd.h>
 
 #define MOONLITE_TIMEOUT 3
-
-#define POLLMS 250
+#define POLLMS 500
 
 std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
@@ -201,7 +200,7 @@ bool MoonLite::Ack()
         return false;
     }
 
-    if ((rc = tty_read(PortFD, resp, 5, 2, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read(PortFD, resp, 5, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
