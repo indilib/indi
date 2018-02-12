@@ -1247,6 +1247,8 @@ ENDIF ()
 
 if(APPLE)
 set(LIBS "-framework IOKit -framework CoreFoundation")
+elseif(CYGWIN)
+set(LIBS ${ICONV_LIBRARIES})
 endif(APPLE)
 
 SET(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
