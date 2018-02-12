@@ -36,7 +36,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 3);
+    setVersion(1, 301);
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
     //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODEAlready inherited from lx200generic,
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
@@ -65,7 +65,7 @@ bool LX200_OnStep::initProperties()
     // ============== MAIN_CONTROL_TAB
     IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
     IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
-    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_ALERT);
+    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
 
     IUFillSwitch(&OSAlignS[0], "1", "1 Star", ISS_OFF);
     IUFillSwitch(&OSAlignS[1], "2", "2 Stars", ISS_OFF);
@@ -237,14 +237,17 @@ bool LX200_OnStep::updateProperties()
         // Focuser 1
         if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
         {
+            OSFocuser1 = true;
             //defineSwitch(&OSFocus1SelSP);
             defineSwitch(&OSFocus1MotionSP);
             defineSwitch(&OSFocus1RateSP);
             defineNumber(&OSFocus1TargNP);
+
         }
         // Focuser 2
         if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2
         {
+            OSFocuser2 = true;
             //defineSwitch(&OSFocus2SelSP);
             defineSwitch(&OSFocus2MotionSP);
             defineSwitch(&OSFocus2RateSP);
@@ -572,6 +575,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             if (index == 3)
             {
                 if(sendOnStepCommand(":A+#"))
+                    OSAlignS[3].s=ISS_OFF;
                 DEBUG(INDI::Logger::DBG_DEBUG, "Align");
             }
             OSAlignSP.s = IPS_OK;
@@ -589,16 +593,17 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             if (ReticS[0].s == ISS_ON)
             {
                 ret = ReticPlus(PortFD);
+                ReticS[0].s=ISS_OFF;
                 IDSetSwitch(&ReticSP, "Bright");
             }
             else
             {
                 ret = ReticMoins(PortFD);
+                ReticS[1].s=ISS_OFF;
                 IDSetSwitch(&ReticSP, "Dark");
             }
 
             IUResetSwitch(&ReticSP);
-            //            ReticSP.s = IPS_IDLE;
             IDSetSwitch(&ReticSP, nullptr);
             return true;
         }
@@ -1354,10 +1359,16 @@ bool LX200_OnStep::kdedialog(const char * commande)
 void LX200_OnStep::OSUpdateFocuser()
 {
     char value[10];
-    getCommandString(PortFD, value, ":FG#");
-    OSFocus1TargNP.np[0].value = atoi(value);
-    IDSetNumber(&OSFocus1TargNP, nullptr);
-    getCommandString(PortFD, value, ":fG#");
-    OSFocus2TargNP.np[0].value = atoi(value);
-    IDSetNumber(&OSFocus2TargNP, nullptr);
+    if(OSFocuser1)
+    {
+        getCommandString(PortFD, value, ":FG#");
+        OSFocus1TargNP.np[0].value = atoi(value);
+        IDSetNumber(&OSFocus1TargNP, nullptr);
+    }
+    if(OSFocuser2)
+    {
+        getCommandString(PortFD, value, ":fG#");
+        OSFocus2TargNP.np[0].value = atoi(value);
+        IDSetNumber(&OSFocus2TargNP, nullptr);
+    }
 }

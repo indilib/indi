@@ -111,7 +111,7 @@ class LX200_OnStep : public LX200Generic
     // Focuser 1
     //ISwitchVectorProperty OSFocus1SelSP;
     //ISwitch OSFocus1SelS[2];
-
+    bool OSFocuser1=false;
     ISwitchVectorProperty OSFocus1RateSP;
     ISwitch OSFocus1RateS[4];
 
@@ -124,7 +124,7 @@ class LX200_OnStep : public LX200Generic
     // Focuser 2
     //ISwitchVectorProperty OSFocus2SelSP;
     //ISwitch OSFocus2SelS[2];
-
+    bool OSFocuser2=false;
     ISwitchVectorProperty OSFocus2RateSP;
     ISwitch OSFocus2RateS[4];
 
