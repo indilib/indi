@@ -25,6 +25,7 @@
 #include "lx200driver.h"
 
 #include <cstring>
+#include <strings.h>
 #include <termios.h>
 #include <math.h>
 
