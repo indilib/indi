@@ -235,6 +235,7 @@ bool LX200_16::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
 bool LX200_16::handleAltAzSlew()
 {
+    const struct timespec timeout = {0, 100000000L};
     char altStr[64], azStr[64];
 
     if (HorizontalCoordsNP.s == IPS_BUSY)
@@ -242,7 +243,7 @@ bool LX200_16::handleAltAzSlew()
         abortSlew(PortFD);
 
         // sleep for 100 mseconds
-        usleep(100000);
+        nanosleep(&timeout, NULL);
     }
 
     if (!isSimulation() && slewToAltAz(PortFD))
