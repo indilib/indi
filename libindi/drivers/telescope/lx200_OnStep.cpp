@@ -989,27 +989,11 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
     if (isSimulation())
         return true;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     double onstep_long = 360 - longitude ;
 	while (onstep_long < 0)
         onstep_long += 360;
 	while (onstep_long > 360)
 		onstep_long -= 360;
-=======
-    double onstep_long = longitude;
-=======
-    double onstep_long = 360 - longitude ;
->>>>>>> b1c4e21a4fd8e37e13958717fa0e522c44bb4774
-    if (onstep_long < -180)
-        onstep_long += 360;
-    if (onstep_long > 180)
-        onstep_long -= 360;
-<<<<<<< HEAD
->>>>>>> 61f1b7b48904ba8cf06187ed9285316aba49c897
-=======
-
->>>>>>> b1c4e21a4fd8e37e13958717fa0e522c44bb4774
 
     if (!isSimulation() && setSiteLongitude(PortFD, onstep_long) < 0)
     {
