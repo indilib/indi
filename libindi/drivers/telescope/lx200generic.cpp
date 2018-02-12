@@ -528,6 +528,8 @@ bool LX200Generic::ReadScopeStatus()
 
 bool LX200Generic::Goto(double ra, double dec)
 {
+    const struct timespec timeout = {0, 100000000L};
+
     targetRA  = ra;
     targetDEC = dec;
     char RAStr[64]={0}, DecStr[64]={0};
@@ -574,7 +576,7 @@ bool LX200Generic::Goto(double ra, double dec)
         }
 
         // sleep for 100 mseconds
-        usleep(100000);
+        nanosleep(&timeout, NULL);
     }
 
     if (!isSimulation())
@@ -637,6 +639,7 @@ bool LX200Generic::Sync(double ra, double dec)
 
 bool LX200Generic::Park()
 {
+    const struct timespec timeout = {0, 100000000L};
     if (!isSimulation())
     {
         // If scope is moving, let's stop it first.
@@ -666,7 +669,7 @@ bool LX200Generic::Park()
             }
 
             // sleep for 100 msec
-            usleep(100000);
+            nanosleep(&timeout, NULL);
         }
 
         if (!isSimulation() && slewToPark(PortFD) < 0)

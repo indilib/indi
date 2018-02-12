@@ -476,6 +476,8 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
 
 bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 {
+    const struct timespec timeout = {0, 100000000L};
+
     targetRA  = r;
     targetDEC = d;
 
@@ -509,7 +511,7 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        usleep(100000);
+        nanosleep(&timeout, NULL);
     }
 
     if (!isSimulation())
