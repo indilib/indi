@@ -1,6 +1,10 @@
 /*
     LX200 OnStep
     based on LX200 Classic azwing (alain@zwingelstein.org)
+    Contributors:
+    James Lan https://github.com/james-lan
+    Ray Wells https://github.com/blueshawk
+
     Copyright (C) 2003 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
@@ -35,6 +39,7 @@
 #define OnStepalign1(fd)   write(fd, "#:A1#", 5)
 #define OnStepalign2(fd)   write(fd, "#:A2#", 5)
 #define OnStepalign3(fd)   write(fd, "#:A3#", 5)
+#define OnStepalignOK(fd)   write(fd, "#:A+#", 5)
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
 
@@ -62,10 +67,14 @@ class LX200_OnStep : public LX200Generic
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
     virtual bool ReadScopeStatus() override;
     virtual int setSiteLongitude(int fd, double Long);
+    virtual bool GetAlignStatus();
+    virtual bool kdedialog(const char * commande);
+
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
     int  setMaxElevationLimit(int fd, int max);
+    void OSUpdateFocuser();
 
     ITextVectorProperty ObjectInfoTP;
     IText ObjectInfoT[1];
@@ -94,8 +103,37 @@ class LX200_OnStep : public LX200Generic
     ITextVectorProperty VersionTP;
     IText VersionT[5];
 
+    // OnStep Status controls
     ITextVectorProperty OnstepStatTP;
     IText OnstepStat[10];
+
+    // Focuser controls
+    // Focuser 1
+    //ISwitchVectorProperty OSFocus1SelSP;
+    //ISwitch OSFocus1SelS[2];
+
+    ISwitchVectorProperty OSFocus1RateSP;
+    ISwitch OSFocus1RateS[4];
+
+    ISwitchVectorProperty OSFocus1MotionSP;
+    ISwitch OSFocus1MotionS[3];
+
+    INumberVectorProperty OSFocus1TargNP;
+    INumber OSFocus1TargN[1];
+
+    // Focuser 2
+    //ISwitchVectorProperty OSFocus2SelSP;
+    //ISwitch OSFocus2SelS[2];
+
+    ISwitchVectorProperty OSFocus2RateSP;
+    ISwitch OSFocus2RateS[4];
+
+    ISwitchVectorProperty OSFocus2MotionSP;
+    ISwitch OSFocus2MotionS[3];
+
+    INumberVectorProperty OSFocus2TargNP;
+    INumber OSFocus2TargN[1];
+
 
     int IsTracking = 0;
 
@@ -105,8 +143,8 @@ class LX200_OnStep : public LX200Generic
 
     // Align Buttons
     ISwitchVectorProperty OSAlignSP;
-    ISwitch OSAlignS[3];
-    IText OSAlignT[20];
+    ISwitch OSAlignS[4];
+    IText OSAlignT[1];
     ITextVectorProperty OSAlignTP;
 
     ISwitchVectorProperty TrackCompSP;
@@ -117,6 +155,12 @@ class LX200_OnStep : public LX200Generic
 
     char OSStat[20];
     char OldOSStat[20];
+
+    char OSAlignStat[10];
+    char oldOSAlignStat[10]="300";
+    bool OSAlignProcess=false;
+    bool OSAlignFlag=false;
+    bool OSAlignOn=false;
 
     char OSPier[2];
     char OldOSPier[2];
