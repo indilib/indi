@@ -2874,8 +2874,10 @@ int CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
         }
     }
     else
+    {
+        closedir(dpdf);
         return -1;
-
+    }
     int maxIndex = 0;
 
     for (int i = 0; i < (int)files.size(); i++)
@@ -2893,6 +2895,7 @@ int CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
         }
     }
 
+    closedir(dpdf);
     return (maxIndex + 1);
 }
 
