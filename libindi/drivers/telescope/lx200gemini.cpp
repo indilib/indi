@@ -28,7 +28,7 @@
 #include "indicom.h"
 #include "lx200driver.h"
 #include "connectionplugins/connectioninterface.h"
-#include"connectionplugins/connectiontcp.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <cstring>
 #include <termios.h>
@@ -125,7 +125,7 @@ bool LX200Gemini::updateProperties()
 {
     const int MAX_VALUE_LENGTH = 32;
     char value[MAX_VALUE_LENGTH];
-    uint speed = 0;
+    unsigned int speed = 0;
     float guidingSpeed = 0.0;
 
     LX200Generic::updateProperties();

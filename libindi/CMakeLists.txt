@@ -309,7 +309,7 @@ ENDIF(OGGTHEORA_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.cpp        
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.cpp
         ${theorarecorder_CXX_SRC}
         )
     SET(libstream_C_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.c)
@@ -491,7 +491,7 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 add_executable(indi_lx200generic ${lx200generic_SRCS})
-
+target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
 target_link_libraries(indi_lx200generic indidriver)
 
 install(TARGETS indi_lx200generic RUNTIME DESTINATION bin )
@@ -1247,6 +1247,8 @@ ENDIF ()
 
 if(APPLE)
 set(LIBS "-framework IOKit -framework CoreFoundation")
+elseif(CYGWIN)
+set(LIBS ${ICONV_LIBRARIES})
 endif(APPLE)
 
 SET(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
