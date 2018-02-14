@@ -71,7 +71,7 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSAlignS[1], "2", "2 Stars", ISS_OFF);
     IUFillSwitch(&OSAlignS[2], "3", "3 Stars", ISS_OFF);
     IUFillSwitch(&OSAlignS[3], "4", "Align", ISS_OFF);
-    IUFillSwitchVector(&OSAlignSP, OSAlignS, 4, getDeviceName(), "AlignStar", "Align using n stars", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSAlignSP, OSAlignS, 4, getDeviceName(), "AlignStar", "Align using n stars", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillText(&OSAlignT[0], "OSStarAlign", "Align x Star(s)", "Manual Alignment Process Idle");
     IUFillTextVector(&OSAlignTP, OSAlignT, 1, getDeviceName(), "Align Process", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
@@ -103,7 +103,7 @@ bool LX200_OnStep::initProperties()
     // ============== SITE_MANAGEMENT_TAB
     IUFillSwitch(&SetHomeS[0], "COLD_START", "Cold Start", ISS_OFF);
     IUFillSwitch(&SetHomeS[1], "WARM_START", "Init Home", ISS_OFF);
-    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_ALERT);
+    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
 
     // ============== GUIDE_TAB
 
@@ -575,8 +575,8 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             if (index == 3)
             {
                 if(sendOnStepCommand(":A+#"))
-                    OSAlignS[3].s=ISS_OFF;
-                DEBUG(INDI::Logger::DBG_DEBUG, "Align");
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Align");
+                OSAlignS[3].s=ISS_OFF;
             }
             OSAlignSP.s = IPS_OK;
             IDSetSwitch(&OSAlignSP, nullptr);
@@ -616,15 +616,17 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             if (SetHomeS[0].s == ISS_ON)
             {
-                if(sendOnStepCommandBlind(":hC#"))
+                if(!sendOnStepCommandBlind(":hC#"))
+                    return false;
                 IDSetSwitch(&SetHomeSP, "Cold Start");
-                return false;
+                SetHomeS[0].s = ISS_OFF;
             }
             else
             {
-                if(sendOnStepCommandBlind(":hF#"))
+                if(!sendOnStepCommandBlind(":hF#"))
+                    return false;
                 IDSetSwitch(&SetHomeSP, "Home Init");
-                return false;
+                SetHomeS[1].s = ISS_OFF;
             }
             IUResetSwitch(&ReticSP);
             SetHomeSP.s = IPS_IDLE;
@@ -1091,7 +1093,15 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     }
 
       
-    if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
+    //if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
+    if (strstr(OSStat,"H") && strstr(OSStat,"P"))
+    {
+        IUSaveText(&OnstepStat[3],"At Home and Parked");
+    }
+    if (strstr(OSStat,"H") && strstr(OSStat,"p"))
+    {
+        IUSaveText(&OnstepStat[3],"At Home and UnParked");
+    }
     if (strstr(OSStat,"W")) { IUSaveText(&OnstepStat[3],"Waiting at Home"); }
 
     // ============= Pec Status
