@@ -41,21 +41,9 @@
 
 */
 
-#ifndef _LIBFLI_PARPORT_H_
-#define _LIBFLI_PARPORT_H_
+#ifndef _LIBFLI_SERIAL_H_
+#define _LIBFLI_SERIAL_H_
 
-#if defined(__linux__)
+long serportio(flidev_t dev, void *buf, long *wlen, long *rlen);
 
-#define unix_parportio unix_parportio_linux
-
-#elif defined(__FreeBSD__) || defined(__NetBSD__)
-
-#define unix_parportio NULL
-
-#else
-#error "Unknown system"
-#endif
-
-long unix_parportio_linux(flidev_t dev, void *buf, long *wlen, long *rlen);
-
-#endif /* _LIBFLI_PARPORT_H_ */
+#endif /* _LIBFLI_SERIAL_H_ */

@@ -41,33 +41,99 @@
 
 */
 
-#include <stdint.h>
+#include <syslog.h>
+#include <stdarg.h>
+#include <stdio.h>
 
-// contains defines for USB to compile and do not depend on kernel, where
-// location of this changes
-/*
- * USB directions
- *
- * This bit flag is used in endpoint descriptors' bEndpointAddress field.
- * It's also one of three fields in control requests bRequestType.
- */
-#define USB_DIR_OUT			0		/* to device */
-#define USB_DIR_IN			0x80		/* to host */
+#include "libfli-libfli.h"
 
-/* Device descriptor */
-struct usb_device_descriptor {
-	uint8_t  bLength;
-	uint8_t  bDescriptorType;
-	uint16_t bcdUSB;
-	uint8_t  bDeviceClass;
-	uint8_t  bDeviceSubClass;
-	uint8_t  bDeviceProtocol;
-	uint8_t  bMaxPacketSize0;
-	uint16_t idVendor;
-	uint16_t idProduct;
-	uint16_t bcdDevice;
-	uint8_t  iManufacturer;
-	uint8_t  iProduct;
-	uint8_t  iSerialNumber;
-	uint8_t  bNumConfigurations;
-} __attribute__ ((packed));
+#define LOGPREFIX "libfli"
+
+static char *_loghost = NULL;
+static flidebug_t _loglevel = FLIDEBUG_NONE;
+static int _logopen = 0;
+
+int sysloglevel(int level)
+{
+  switch (level)
+  {
+  case FLIDEBUG_INFO:
+    return LOG_INFO;
+    break;
+
+  case FLIDEBUG_WARN:
+    return LOG_WARNING;
+    break;
+
+  case FLIDEBUG_FAIL:
+    return LOG_ERR;
+    break;
+
+  case FLIDEBUG_ALL:
+    return LOG_EMERG | LOG_ALERT | LOG_CRIT | LOG_ERR | LOG_WARNING |
+      LOG_NOTICE | LOG_INFO | LOG_DEBUG;
+    break;
+  }
+
+  return 0;
+}
+
+int debugopen(char *host)
+{
+  if (host != NULL)
+    openlog(LOGPREFIX, LOG_PID | LOG_PERROR, LOG_USER);
+
+  return 0;
+}
+
+int debugclose(void)
+{
+  if (_loghost != NULL)
+    closelog();
+
+  return 0;
+}
+
+void debug(int level, char *format, ...)
+{
+  va_list ap;
+
+  va_start(ap, format);
+
+  if (_loghost != NULL)
+    vsyslog(sysloglevel(level), format, ap);
+  else if (level > FLIDEBUG_NONE && level <= _loglevel)
+  {
+    fprintf(stderr, LOGPREFIX ": ");
+    vfprintf(stderr, format, ap);
+    fprintf(stderr, "\n");
+  }
+
+  va_end(ap);
+
+  return;
+}
+
+void setdebuglevel(char *host, long level)
+{
+  _loghost = host;
+  _loglevel = level;
+
+  if (level == FLIDEBUG_NONE)
+  {
+    debugclose();
+    _logopen = 0;
+    return;
+  }
+
+  if (!_logopen)
+  {
+    debugopen(host);
+    _logopen = 1;
+  }
+
+  if (host != NULL)
+    setlogmask(LOG_UPTO(sysloglevel(level)));
+
+  return;
+}

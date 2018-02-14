@@ -49,7 +49,7 @@
 /* Structure to describe string descriptor transfers */
 typedef struct {
   unsigned int index;
-  char buf[64];
+  unsigned char buf[64];
 } fliusb_string_descriptor_t;
 
 /* Structure to describe bulk transfers */

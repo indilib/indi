@@ -33,7 +33,7 @@ class FLICCD : public INDI::CCD
 {
   public:
     FLICCD();
-    virtual ~FLICCD();
+    ~FLICCD() = default;
 
     const char *getDefaultName();
 
@@ -107,5 +107,5 @@ class FLICCD : public INDI::CCD
     cam_t FLICam;
 
     // Simulation mode
-    bool sim;
+    bool sim=false;
 };

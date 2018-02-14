@@ -44,13 +44,23 @@
 #ifndef _LIBFLI_USB_H_
 #define _LIBFLI_USB_H_
 
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__LIBUSB__)
 
-#define unix_bulkwrite		linux_bulkwrite
-#define unix_bulkread		linux_bulkread
-#define unix_usb_connect	linux_usb_connect
-#define unix_usb_disconnect	linux_usb_disconnect
-#define unix_bulktransfer	linux_bulktransfer
+#define unix_bulkwrite  linux_bulkwrite
+#define unix_bulkread linux_bulkread
+#define unix_usb_connect  linux_usb_connect
+#define unix_usb_disconnect linux_usb_disconnect
+#define unix_bulktransfer linux_bulktransfer
+#define unix_usb_list unix_fli_list_glob
+
+#elif defined(__linux__) && defined(__LIBUSB__)
+
+#define unix_bulkwrite	libusb_bulkwrite
+#define unix_bulkread	libusb_bulkread
+#define unix_usb_connect libusb_usb_connect
+#define unix_usb_disconnect	libusb_usb_disconnect
+#define unix_bulktransfer	libusb_bulktransfer
+#define unix_usb_list libusb_list
 
 #elif defined(__FreeBSD__) || defined(__NetBSD__)
 
@@ -59,6 +69,24 @@
 #define unix_usb_connect	bsd_usb_connect
 #define unix_usb_disconnect	bsd_usb_disconnect
 #define unix_bulktransfer	bsd_bulktransfer
+#define unix_usb_list unix_fli_list_glob
+
+#elif defined(__APPLE__) && !defined(__LIBUSB__)
+#define unix_bulkwrite		mac_bulkwrite
+#define unix_bulkread		mac_bulkread
+#define unix_usb_connect	mac_usb_connect
+#define unix_usb_disconnect	mac_usb_disconnect
+#define unix_bulktransfer	mac_bulktransfer
+#define unix_usb_list unix_fli_list_glob
+
+#elif defined(__APPLE__) && defined(__LIBUSB__)
+
+#define unix_bulkwrite	libusb_bulkwrite
+#define unix_bulkread	libusb_bulkread
+#define unix_usb_connect libusb_usb_connect
+#define unix_usb_disconnect	libusb_usb_disconnect
+#define unix_bulktransfer	libusb_bulktransfer
+#define unix_usb_list libusb_list
 
 #else
 #error "Unknown system"
@@ -68,9 +96,14 @@ long unix_bulkwrite(flidev_t dev, void *buf, long *wlen);
 long unix_bulkread(flidev_t dev, void *buf, long *rlen);
 long unix_usbio(flidev_t dev, void *buf, long *wlen, long *rlen);
 long unix_usb_connect(flidev_t dev, fli_unixio_t *io, char *name);
-long unix_usb_disconnect(flidev_t dev);
+long unix_usb_disconnect(flidev_t dev, fli_unixio_t *io);
 long unix_bulktransfer(flidev_t dev, int ep, void *buf, long *len);
+long unix_usb_list(char *pattern, flidomain_t domain,char ***names);
 
-#define usb_bulktransfer unix_bulktransfer /* XXX */
+#if defined(__APPLE__) && !defined(__LIBUSB__)
+#define usb_bulktransfer mac_bulktransfer
+#else
+#define usb_bulktransfer unix_bulktransfer 
+#endif 
 
 #endif /* _LIBFLI_USB_H_ */

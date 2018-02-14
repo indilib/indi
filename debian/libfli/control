@@ -2,12 +2,12 @@ Source: libfli1
 Section: libs
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 5), cdbs, cmake
-Standards-Version: 3.9.1
+Build-Depends: debhelper (>= 6), cdbs, cmake, libusb-dev
+Standards-Version: 3.9.2
 
 Package: libfli1
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, fliusb-dkms
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Finger Lakes Instrument library is used by applications to control FLI CCDs and Filter wheels.
 
 Package: libfli-dev

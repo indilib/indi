@@ -53,7 +53,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <glob.h>
-#include <sys/ioctl.h>
+#include <pthread.h>
 
 #include "libfli-libfli.h"
 #include "libfli-debug.h"
@@ -64,8 +64,6 @@
 #include "libfli-parport.h"
 #include "libfli-usb.h"
 #include "libfli-serial.h"
-#include "fliusb_ioctl.h"
-#include "fli-usb.h"
 
 static long unix_fli_list_parport(flidomain_t domain, char ***names);
 static long unix_fli_list_usb(flidomain_t domain, char ***names);
@@ -73,8 +71,11 @@ static long unix_fli_list_serial(flidomain_t domain, char ***names);
 
 long unix_fli_connect(flidev_t dev, char *name, long domain)
 {
-  fli_unixio_t *io;
-  struct usb_device_descriptor usbdesc;
+  fli_unixio_t *io = NULL;
+  pthread_mutex_t mutex;
+  pthread_mutexattr_t fliattr;
+  fli_unixsysinfo_t *sys;
+  int err;
 
   CHKDEVICE(dev);
 
@@ -84,77 +85,15 @@ long unix_fli_connect(flidev_t dev, char *name, long domain)
   /* Lock functions should be set before any other functions used */
   DEVICE->fli_lock = unix_fli_lock;
   DEVICE->fli_unlock = unix_fli_unlock;
-
+  DEVICE->fli_trylock = unix_fli_trylock;
+  
   DEVICE->domain = domain & 0x00ff;
   DEVICE->devinfo.type = domain & 0xff00;
 
   debug(FLIDEBUG_INFO, "Domain: 0x%04x", DEVICE->domain);
   debug(FLIDEBUG_INFO, "  Type: 0x%04x", DEVICE->devinfo.type);
-
-  if ((io = xcalloc(1, sizeof(fli_unixio_t))) == NULL)
-    return -ENOMEM;
-
-  if ((io->fd = open(name, O_RDWR)) == -1)
-  {
-    xfree(io);
-    return -errno;
-  }
-
-  switch (DEVICE->domain)
-  {
-  case FLIDOMAIN_PARALLEL_PORT:
-    DEVICE->fli_io = unix_parportio;
-    break;
-
-  case FLIDOMAIN_USB:
-    {
-      int r;
-
-      if ((r = unix_usb_connect(dev, io, name)))
-      {
-	close(io->fd);
-	xfree(io);
-	return r;
-      }
-
-      if (ioctl(io->fd, FLIUSB_GET_DEVICE_DESCRIPTOR, &usbdesc) == -1)
-      {
-        debug(FLIDEBUG_FAIL, "%s: Could not read descriptor: %s",
-              __PRETTY_FUNCTION__, strerror(errno));
-        return -EIO;
-      }
-
-      // try to open only device with correct idProduct
-      switch (DEVICE->devinfo.type)
-      {
-        case FLIDEVICE_CAMERA:
-	  if (!(usbdesc.idProduct == 0x0002 || usbdesc.idProduct == 0x000a))
-	    return -ENODEV;
-          break;
-        case FLIDEVICE_FOCUSER:
-	  if (usbdesc.idProduct != 0x0006)
-	    return -ENODEV;
-	  break;
-        case FLIDEVICE_FILTERWHEEL:
-          if (usbdesc.idProduct != 0x0007)
-            return -ENODEV;
-          break;
-      }
-
-      DEVICE->fli_io = unix_usbio;
-    }
-    break;
-
-  case FLIDOMAIN_SERIAL:
-    DEVICE->fli_io = unix_serialio;
-    break;
-
-  default:
-    close(io->fd);
-    xfree(io);
-    return -EINVAL;
-  }
-
+  
+  /* Check for valid device type */  
   switch (DEVICE->devinfo.type)
   {
   case FLIDEVICE_CAMERA:
@@ -176,14 +115,125 @@ long unix_fli_connect(flidev_t dev, char *name, long domain)
     break;
 
   default:
-    close(io->fd);
+    return -EINVAL;
+  }
+
+  if ((io = xcalloc(1, sizeof(fli_unixio_t))) == NULL)
+    return -ENOMEM;
+    
+  io->fd = (-1); /* No device open at this time */
+  io->han = NULL;
+
+  switch (DEVICE->domain)
+  {
+  /*
+  case FLIDOMAIN_PARALLEL_PORT:
+	  if ((io->fd = open(name, O_RDWR)) == -1)
+	  {
+	    xfree(io);
+	    return -errno;
+	  }
+
+    DEVICE->fli_io = unix_parportio;
+    break;
+  */
+  case FLIDOMAIN_USB:
+    {
+      int r;
+
+      if ((r = unix_usb_connect(dev, io, name)))
+      {
+				unix_usb_disconnect(dev,io);
+        xfree(io);
+        return r;
+      }
+      
+      switch(DEVICE->devinfo.type)
+      {
+        case FLIDEVICE_CAMERA:
+          if (!((DEVICE->devinfo.devid == FLIUSB_CAM_ID) ||
+          	(DEVICE->devinfo.devid == FLIUSB_PROLINE_ID)))
+          {
+						unix_usb_disconnect(dev,io);
+            xfree(io);
+            return -ENODEV;
+          }
+          break;
+
+        case FLIDEVICE_FOCUSER:
+          if (DEVICE->devinfo.devid != FLIUSB_FOCUSER_ID)
+          {
+						unix_usb_disconnect(dev,io);
+            xfree(io);
+            return -ENODEV;
+          }
+          break;
+
+        case FLIDEVICE_FILTERWHEEL:
+          if (!((DEVICE->devinfo.devid == FLIUSB_FILTER_ID) ||
+          	(DEVICE->devinfo.devid == FLIUSB_CFW4_ID)))
+          {
+            debug(FLIDEBUG_INFO, "FW Not Recognized");
+						unix_usb_disconnect(dev,io);
+            xfree(io);
+            return -ENODEV;
+          }
+          break;
+
+        default:
+          debug(FLIDEBUG_INFO, "Device Not Recognized");
+					unix_usb_disconnect(dev,io);
+          xfree(io);
+          return -ENODEV;
+      }
+      
+      DEVICE->fli_io = unix_usbio;
+    }
+    break;
+
+  case FLIDOMAIN_SERIAL:
+	  if ((io->fd = open(name, O_RDWR)) == -1)
+	  {
+	    xfree(io);
+	    return -errno;
+	  }
+
+    DEVICE->fli_io = unix_serialio;
+    break;
+
+  default:
     xfree(io);
     return -EINVAL;
   }
 
+  if((sys = xcalloc(1, sizeof(fli_unixsysinfo_t))) == NULL)
+  {
+    unix_fli_disconnect(dev);
+    return -ENOMEM;
+  }
+  DEVICE->sys_data = sys;
+
+  /* Create synchronization object */
+  if((err = pthread_mutexattr_init(&fliattr)) != 0)
+    return err;
+  
+  if((err = pthread_mutexattr_settype(&fliattr, PTHREAD_MUTEX_NORMAL)) != 0)
+    return err;
+  
+  if((err = pthread_mutexattr_setpshared(&fliattr, PTHREAD_PROCESS_SHARED)) != 0)
+    return err;
+  
+  if((err = pthread_mutex_init(&mutex,&fliattr)) != 0)
+    return err;
+
+  ((fli_unixsysinfo_t *) (DEVICE->sys_data))->mutex = mutex;
+  ((fli_unixsysinfo_t *) (DEVICE->sys_data))->attr = fliattr;
+  
   DEVICE->io_data = io;
   DEVICE->name = xstrdup(name);
   DEVICE->io_timeout = 60 * 1000; /* 1 min. */
+
+  debug(FLIDEBUG_INFO, "Connected");
 
   return 0;
 }
@@ -192,29 +242,42 @@ long unix_fli_disconnect(flidev_t dev)
 {
   int err = 0;
   fli_unixio_t *io;
+  fli_unixsysinfo_t *sys;
 
   CHKDEVICE(dev);
 
   if ((io = DEVICE->io_data) == NULL)
     return -EINVAL;
 
+  if ((sys = DEVICE->sys_data) == NULL)
+    return -EINVAL;
+
+  err = pthread_mutex_destroy(&(sys->mutex));
+  err = pthread_mutexattr_destroy(&(sys->attr));
+
   switch (DEVICE->domain)
   {
   case FLIDOMAIN_USB:
-    err = unix_usb_disconnect(dev);
+    err = unix_usb_disconnect(dev,io);
     break;
 
   default:
+  	err = close(io->fd);
     break;
   }
 
-  if (close(io->fd))
-    if (!err)
-      err = -errno;
+  if (err)
+    err = -errno;
 
   xfree(DEVICE->io_data);
-
   DEVICE->io_data = NULL;
+
+  if(DEVICE->sys_data != NULL)
+  {
+    xfree(DEVICE->sys_data);
+    DEVICE->sys_data = NULL;
+  }
+
   DEVICE->fli_lock = NULL;
   DEVICE->fli_unlock = NULL;
   DEVICE->fli_io = NULL;
@@ -225,7 +288,91 @@ long unix_fli_disconnect(flidev_t dev)
   return err;
 }
 
-#if defined(_USE_FLOCK_)
+#if defined(_USE_PTHREAD_LOCK_)
+
+long unix_fli_lock(flidev_t dev)
+{
+  long r = -ENODEV;
+  fli_unixsysinfo_t *sys;
+  pthread_mutex_t mutex;
+
+  CHKDEVICE(dev);
+
+  if ((sys = DEVICE->sys_data) == NULL)
+  {
+    debug(FLIDEBUG_WARN, "lock(): Mutex is NULL!");
+    return r;
+  }
+
+  mutex = sys->mutex;
+
+  r = pthread_mutex_lock(&mutex);
+  if(r != 0)
+  {
+    debug(FLIDEBUG_WARN, "Could not acquire mutex: %d", r);
+    r = -ENODEV;
+  }
+
+//  debug(FLIDEBUG_INFO, "Pthread Lock obtained");
+
+  return r;
+}
+
+long unix_fli_unlock(flidev_t dev)
+{
+  int r = -ENODEV;
+  fli_unixsysinfo_t *sys;
+  pthread_mutex_t mutex;
+
+  CHKDEVICE(dev);
+  
+  sys = DEVICE->sys_data;
+
+  if (sys == NULL)
+  {
+    debug(FLIDEBUG_WARN, "unlock(): Mutex is NULL!");
+    return r;
+  }
+
+  mutex = sys->mutex;
+
+  r = pthread_mutex_unlock(&mutex);
+  if( r != 0)
+  {
+    debug(FLIDEBUG_WARN, "Could not release mutex: %d", r);
+    return -ENODEV;
+  }
+
+  return r;
+}
+
+long unix_fli_trylock(flidev_t dev)
+{
+  long r = -ENODEV;
+  fli_unixsysinfo_t *sys;
+  pthread_mutex_t mutex;
+
+  CHKDEVICE(dev);
+
+  if ((sys = DEVICE->sys_data) == NULL)
+  {
+    debug(FLIDEBUG_WARN, "trylock(): Mutex is NULL!");
+    return r;
+  }
+
+  mutex = sys->mutex;
+
+  r = pthread_mutex_trylock(&mutex);
+  if(r != 0)
+  {
+    debug(FLIDEBUG_WARN, "Could not acquire mutex with trylock: %d", r);
+    r = -ENODEV;
+  }
+
+  return r;
+}
+
+#elif defined(_USE_FLOCK_)
 
 long unix_fli_lock(flidev_t dev)
 {
@@ -253,9 +400,15 @@ long unix_fli_unlock(flidev_t dev)
     return 0;
 }
 
+long unix_fli_trylock(flidev_t dev)
+{
+  return -ENODEV;
+}
+
 #else /* !defined(_USE_FLOCK_) */
 
-#define PUBLIC_DIR "/var/spool/lock"
+//#define PUBLIC_DIR "/var/spool/lock"
+#define PUBLIC_DIR "/tmp"
 
 long unix_fli_lock(flidev_t dev)
 {
@@ -383,6 +536,11 @@ long unix_fli_unlock(flidev_t dev)
   return 0;
 }
 
+long unix_fli_trylock(flidev_t dev)
+{
+  return -ENODEV;
+}
+
 #undef PUBLIC_DIR
 
 #endif /* defined(_USE_FLOCK_) */
@@ -413,7 +571,7 @@ long unix_fli_list(flidomain_t domain, char ***names)
   return -EINVAL;
 }
 
-static long unix_fli_list_glob(char *pattern, flidomain_t domain,
+long unix_fli_list_glob(char *pattern, flidomain_t domain,
 			       char ***names)
 {
   int retval, i, found = 0;
@@ -451,8 +609,7 @@ static long unix_fli_list_glob(char *pattern, flidomain_t domain,
       continue;
 
     if ((list[found] = xmalloc(strlen(g.gl_pathv[i]) +
-			       (DEVICE->devinfo.model ? strlen(DEVICE->devinfo.model) : 6) +
-			       2)) == NULL)
+			       strlen(DEVICE->devinfo.model) + 2)) == NULL)
     {
       int j;
 
@@ -480,25 +637,17 @@ static long unix_fli_list_glob(char *pattern, flidomain_t domain,
   return 0;
 }
 
-#ifdef __linux__
-
-static long unix_fli_list_parport(flidomain_t domain, char ***names)
-{
-  return unix_fli_list_glob(PARPORT_GLOB, domain, names);
-}
-
-#else
-
 static long unix_fli_list_parport(flidomain_t domain, char ***names)
 {
   return -EINVAL;
+//  return unix_fli_list_glob(PARPORT_GLOB, domain, names);
+/* If you still have a parallel port FLI camera, buy a new one or use the older SDK. Functionality didn't
+ * magically appear in the older hardware requiring this update. */
 }
-
-#endif
 
 static long unix_fli_list_usb(flidomain_t domain, char ***names)
 {
-  return unix_fli_list_glob(USB_GLOB, domain, names);
+  return unix_usb_list(USB_GLOB, domain, names);
 }
 
 static long unix_fli_list_serial(flidomain_t domain, char ***names)
