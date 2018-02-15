@@ -1017,9 +1017,9 @@ bool GPhotoCCD::StartExposure(float duration)
         return false;
     }
 
-    if (PrimaryCCD.isExposing())
+    if (InExposure)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "GPhoto driver is already exposing. Can not abort.");
+        DEBUG(INDI::Logger::DBG_ERROR, "GPhoto driver is already exposing.");
         return false;
     }
 
