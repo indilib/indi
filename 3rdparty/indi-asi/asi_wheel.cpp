@@ -174,7 +174,7 @@ ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate)
     setDeviceName(str);
     setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "FW ID: %d FW Name: %d enumerate? %s", id, info.Name, enumerate ? "true":"false");
+    DEBUGF(INDI::Logger::DBG_DEBUG, "FW ID: %d FW Name: %s enumerate? %s", id, info.Name, enumerate ? "true":"false");
 }
 
 ASIWHEEL::~ASIWHEEL()
@@ -221,6 +221,11 @@ bool ASIWHEEL::Connect()
         SelectFilter(current + 1);
         DEBUGF(INDI::Logger::DBG_DEBUG, "%s(): current filter position %d", __FUNCTION__, CurrentFilter);
     }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
+        return false;
+    }
     return true;
 }
 
@@ -241,6 +246,11 @@ bool ASIWHEEL::Disconnect()
             return false;
         }
     }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
+        return false;
+    }
     fw_id = -1;
     return true;
 }
@@ -254,17 +264,27 @@ bool ASIWHEEL::initProperties()
 
 int ASIWHEEL::QueryFilter()
 {
-    EFW_ERROR_CODE result = EFW_SUCCESS;
-
-    if (!isSimulation() && fw_id >= 0)
-        result = EFWGetPosition(fw_id, &CurrentFilter);
-
-    CurrentFilter++;
-    if (result != EFW_SUCCESS)
+    if (isSimulation())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWSetPosition() = %d", __FUNCTION__, result);
+        ;
+    }
+    else if (fw_id >= 0)
+    {
+        EFW_ERROR_CODE result;
+        result = EFWGetPosition(fw_id, &CurrentFilter);
+        if (result != EFW_SUCCESS)
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWGetPosition() = %d", __FUNCTION__, result);
+            return 0;
+        }
+        CurrentFilter++;
+    }
+    else
+    {
+        DEBUGF(INDI::Logger::DBG_SESSION, "%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
         return 0;
     }
+
     return CurrentFilter;
 }
 
@@ -302,7 +322,7 @@ bool ASIWHEEL::SelectFilter(int f)
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s(): no fw_id", __FUNCTION__);
+        DEBUGF(INDI::Logger::DBG_SESSION, "%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
         return false;
     }
     return true;
