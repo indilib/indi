@@ -60,7 +60,7 @@ static void cleanup()
     }
 }
 
-void ISInit()
+void ASI_CCD_ISInit()
 {
     static bool isInit = false;
     if (!isInit)
@@ -110,7 +110,7 @@ void ISInit()
 
 void ISGetProperties(const char *dev)
 {
-    ISInit();
+    ASI_CCD_ISInit();
 
     if (iConnectedCamerasCount == 0)
     {
@@ -132,7 +132,7 @@ void ISGetProperties(const char *dev)
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-    ISInit();
+    ASI_CCD_ISInit();
     for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
@@ -147,7 +147,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-    ISInit();
+    ASI_CCD_ISInit();
     for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
@@ -162,7 +162,7 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-    ISInit();
+    ASI_CCD_ISInit();
     for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
@@ -190,7 +190,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    ISInit();
+    ASI_CCD_ISInit();
 
     for (int i = 0; i < iConnectedCamerasCount; i++)
     {
