@@ -510,19 +510,19 @@ bool FLICCD::UpdateCCDFrame(int x, int y, int w, int h)
     long bin_right  = x + (w / PrimaryCCD.getBinX());
     long bin_bottom = y + (h / PrimaryCCD.getBinY());
 
-    if (bin_right > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+    if ( (x+w) > PrimaryCCD.getXRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %d", w);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid frame requested (%d,%d) size(%d,%d)", x, y, w, h);
         return false;
     }
-    else if (bin_bottom > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+    else if ( (y+h) > PrimaryCCD.getYRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %d", h);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid frame requested (%d,%d) size(%d,%d)", x, y, w, h);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Binning (%dx%d). Final image area is (%ld, %ld), (%ld, %ld). Size (%dx%d)", x, y, bin_right, bin_bottom,
-           w / PrimaryCCD.getBinX(), h / PrimaryCCD.getBinY());
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Binning (%dx%d). Final FLI image area is (%ld, %ld), (%ld, %ld). Size (%dx%d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(),
+           x, y, bin_right, bin_bottom, w / PrimaryCCD.getBinX(), h / PrimaryCCD.getBinY());
 
     if (!sim && (err = FLISetImageArea(fli_dev, x, y, bin_right, bin_bottom)))
     {
