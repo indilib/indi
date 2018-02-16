@@ -45,13 +45,9 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODEAlready inherited from lx200generic,
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
     //setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
-    /*
-     * Get generic capabilities but discard the followng:
-     * LX200_HAS_FOCUS
-     *
-     *
-    */
-    
+    //
+    // Get generic capabilities but discard the followng:
+    // LX200_HAS_FOCUS
 
 }
 
