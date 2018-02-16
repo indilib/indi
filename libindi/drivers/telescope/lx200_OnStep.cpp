@@ -36,8 +36,12 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 301);
+    setVersion(1, 3);
+    
+    setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING);
+    
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
+    
     //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODEAlready inherited from lx200generic,
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
     //setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
@@ -47,7 +51,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
      *
      *
     */
-    setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING);
+    
 
 }
 
