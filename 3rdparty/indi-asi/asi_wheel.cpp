@@ -162,9 +162,9 @@ ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate)
     char str[MAXINDIDEVICE];
 
     if (enumerate)
-        snprintf(str, sizeof(str), "ASI %s %d", info.Name, id);
+        snprintf(str, MAXINDIDEVICE, "ASI %s %d", info.Name, id);
     else
-        snprintf(str, sizeof(str), "ASI %s", info.Name);
+        snprintf(str, MAXINDIDEVICE, "ASI %s", info.Name);
 
     fw_id              = id;
     CurrentFilter      = 0;
@@ -265,10 +265,9 @@ bool ASIWHEEL::initProperties()
 int ASIWHEEL::QueryFilter()
 {
     if (isSimulation())
-    {
-        ;
-    }
-    else if (fw_id >= 0)
+     return CurrentFilter;
+    
+    if (fw_id >= 0)
     {
         EFW_ERROR_CODE result;
         result = EFWGetPosition(fw_id, &CurrentFilter);
@@ -294,8 +293,10 @@ bool ASIWHEEL::SelectFilter(int f)
     if (isSimulation())
     {
         CurrentFilter = TargetFilter;
+        return true;
     }
-    else if (fw_id >= 0)
+ 
+    if (fw_id >= 0)
     {
         EFW_ERROR_CODE result;
         result = EFWSetPosition(fw_id, f - 1);
