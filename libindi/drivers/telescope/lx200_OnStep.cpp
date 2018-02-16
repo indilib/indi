@@ -209,6 +209,7 @@ bool LX200_OnStep::updateProperties()
 
     if (isConnected())
     {
+        // Firstinitialize some variables
         // keep sorted by TABs is easier
         // Main Control
         defineSwitch(&ReticSP);
