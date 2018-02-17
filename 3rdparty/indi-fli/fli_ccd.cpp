@@ -364,7 +364,7 @@ bool FLICCD::setupParams()
         TemperatureN[0].max   = MAX_CCD_TEMP;
         IUUpdateMinMax(&TemperatureNP);
         IDSetNumber(&TemperatureNP, NULL);
-        DEBUGF(INDI::Logger::DBG_SESSION, "FLIGetVisibleArea() succeed -> %f", FLICam.temperature);
+        DEBUGF(INDI::Logger::DBG_SESSION, "FLIGetTemperature() succeed -> %f", FLICam.temperature);
     }
 
     SetCCDParams(FLICam.Visible_Area[2] - FLICam.Visible_Area[0], FLICam.Visible_Area[3] - FLICam.Visible_Area[1], 16,
@@ -611,6 +611,7 @@ void FLICCD::TimerHit()
     long timeleft   = 0;
     double ccdTemp  = 0;
     double ccdPower = 0;
+    long camera_status = 0;
 
     if (isConnected() == false)
         return; //  No need to reset timer if we are not connected anymore
@@ -625,7 +626,14 @@ void FLICCD::TimerHit()
         }
         else
         {
-            //timeleft=calcTimeLeft();
+	    if ((err = FLIGetDeviceStatus(fli_dev, &camera_status))) 
+            {
+               DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetDeviceStatus() failed. %s.", strerror((int)-err));
+               SetTimer(POLLMS);
+               return;
+            }
+            DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetDeviceStatus() succeed -> %ld", camera_status);
+ 
             if ((err = FLIGetExposureStatus(fli_dev, &timeleft)))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetExposureStatus() failed. %s.", strerror((int)-err));
@@ -633,18 +641,10 @@ void FLICCD::TimerHit()
                 return;
             }
             DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetExposureStatus() succeed -> %ld", timeleft);
-            if (timeleft < 1000)
+          
+            if (!sim && (((camera_status == FLI_CAMERA_STATUS_UNKNOWN) && (timeleft == 0)) ||
+                               ((camera_status != FLI_CAMERA_STATUS_UNKNOWN) && ((camera_status & FLI_CAMERA_DATA_READY) != 0))))
             {
-                while (!sim && timeleft > 0)
-                {
-                    if ((err = FLIGetExposureStatus(fli_dev, &timeleft)))
-                    {
-                        DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetExposureStatus() failed. %s.", strerror((int)-err));
-                        SetTimer(POLLMS);
-                        return;
-                    }
-                    usleep(1000 * timeleft);
-                }
 
                 /* We're done exposing */
                 DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
