@@ -31,12 +31,15 @@ set(fli_LIB_SRCS
    unix/libfli-serial.c
    unix/libfli-sys.c
    
-   unix/linux/libfli-parport.c
    #unix/linux/libfli-usb-sys.c
    
    # LIBUSB support
    unix/libusb/libfli-usb-sys.c
 )
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+list(APPEND fli_LIB_SRCS unix/linux/libfli-parport.c)
+endif()
 
 #build a shared library
 ADD_LIBRARY(fli SHARED ${fli_LIB_SRCS})
