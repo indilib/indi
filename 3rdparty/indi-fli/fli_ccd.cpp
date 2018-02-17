@@ -364,7 +364,7 @@ bool FLICCD::setupParams()
         TemperatureN[0].max   = MAX_CCD_TEMP;
         IUUpdateMinMax(&TemperatureNP);
         IDSetNumber(&TemperatureNP, NULL);
-        DEBUGF(INDI::Logger::DBG_SESSION, "FLIGetTemperature() succeed -> %f", FLICam.temperature);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetTemperature() succeed -> %f", FLICam.temperature);
     }
 
     SetCCDParams(FLICam.Visible_Area[2] - FLICam.Visible_Area[0], FLICam.Visible_Area[3] - FLICam.Visible_Area[1], 16,
