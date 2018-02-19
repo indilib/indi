@@ -307,6 +307,9 @@ bool CCDSim::StartExposure(float duration)
     //  Now compress the actual wait time
     ExposureRequest = duration * TimeFactor;
     InExposure      = true;
+
+    TimerHit();
+
     return true;
 }
 
