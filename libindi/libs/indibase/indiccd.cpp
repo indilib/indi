@@ -1118,6 +1118,7 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
                 }
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
+                SetTimer(10);
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -1974,7 +1975,10 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
 {
     // If looping is on, let's immediately take another capture
     if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
+    {
         StartExposure(targetChip->getExposureDuration());
+        SetTimer(10);
+    }
 
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
