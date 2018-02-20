@@ -1862,9 +1862,11 @@ void ASICCD::getExposure()
                 PrimaryCCD.setExposureLeft(0.0);
                 DEBUG(INDI::Logger::DBG_SESSION,
                     "Exposure done, downloading image...");
-                grabImage();
                 pthread_mutex_lock(&condMutex);
                 exposureSetRequest(StateIdle);
+                pthread_mutex_unlock(&condMutex);
+                grabImage();
+                pthread_mutex_lock(&condMutex);
                 break;
             }
             else if (status == ASI_EXP_FAILED)
