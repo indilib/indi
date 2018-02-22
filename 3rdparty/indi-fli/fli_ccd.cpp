@@ -521,7 +521,7 @@ bool FLICCD::UpdateCCDFrame(int x, int y, int w, int h)
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Binning (%dx%d). Final FLI image area is (%ld, %ld), (%ld, %ld). Size (%dx%d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(),
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Binning (%dx%d). Final FLI image area is (%d, %d), (%ld, %ld). Size (%dx%d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(),
            x, y, bin_right, bin_bottom, w / PrimaryCCD.getBinX(), h / PrimaryCCD.getBinY());
 
     if (!sim && (err = FLISetImageArea(fli_dev, x, y, bin_right, bin_bottom)))
