@@ -30,8 +30,7 @@
 #include <unistd.h>
 
 #define MOONLITE_TIMEOUT 3
-
-#define POLLMS 250
+#define POLLMS 500
 
 std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
@@ -201,7 +200,7 @@ bool MoonLite::Ack()
         return false;
     }
 
-    if ((rc = tty_read(PortFD, resp, 5, 2, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read(PortFD, resp, 5, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
@@ -259,8 +258,7 @@ bool MoonLite::updateTemperature()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[5]={0};
-    unsigned int temp;
+    char resp[16]={0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -273,7 +271,7 @@ bool MoonLite::updateTemperature()
         return false;
     }
 
-    if ((rc = tty_read(PortFD, resp, 5, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read_section(PortFD, resp, '#', MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "updateTemperature error: %s.", errstr);
@@ -282,11 +280,15 @@ bool MoonLite::updateTemperature()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    rc = sscanf(resp, "%X#", &temp);
+    resp[nbytes_read-1] = '\0';
+
+    uint32_t temp = 0;
+    rc = sscanf(resp, "%X", &temp);
 
     if (rc > 0)
     {
-        TemperatureN[0].value = ((int)temp) / 2.0;
+        // Signed hex
+        TemperatureN[0].value = static_cast<int16_t>(temp) / 2.0;
     }
     else
     {

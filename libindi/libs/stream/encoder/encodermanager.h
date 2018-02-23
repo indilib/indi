@@ -19,6 +19,8 @@
 
 */
 
+#pragma once
+
 #include <vector>
 #include "encoderinterface.h"
 

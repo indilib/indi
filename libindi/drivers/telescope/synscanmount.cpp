@@ -132,11 +132,11 @@ void SynscanMount::ISGetProperties(const char *dev)
     /* First we let our parent populate */
     INDI::Telescope::ISGetProperties(dev);
 
-    if (isConnected())
+    /*if (isConnected())
     {
         UpdateMountInformation(false);
         defineText(&BasicMountInfoV);
-    }
+    }*/
 }
 
 bool SynscanMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)

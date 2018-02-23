@@ -5,6 +5,9 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-function")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-function")
+
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(QHY REQUIRED)
@@ -44,9 +47,9 @@ add_executable(indi_qhy_ccd ${indiqhy_SRCS})
 
 target_link_libraries(indi_qhy_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${QHY_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
-if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 target_link_libraries(indi_qhy_ccd rt)
-endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+endif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 
 install(TARGETS indi_qhy_ccd RUNTIME DESTINATION bin )
 
@@ -56,9 +59,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_qhy.xml DESTINATION ${INDI_DATA_D
 add_executable(qhy_ccd_test ${CMAKE_CURRENT_SOURCE_DIR}/qhy_ccd_test.cpp)
 target_link_libraries(qhy_ccd_test ${QHY_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
-if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
     target_link_libraries(qhy_ccd_test rt)
-endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+endif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 
 install(TARGETS qhy_ccd_test RUNTIME DESTINATION bin )
 

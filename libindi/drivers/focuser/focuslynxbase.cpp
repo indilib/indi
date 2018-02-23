@@ -51,15 +51,14 @@ FocusLynxBase::FocusLynxBase()
     lynxModels["Optec Fast Focus Secondary Focuser"] = "OD";
     lynxModels["Optec TCF-S Classic converted"] = "OE";
     lynxModels["Optec TCF-S3 Classic converted"] = "OF";
-    //  lynxModels["OG"] = "Optec Gemini (reserved for future use)";
+    //  lynxModels["Optec Gemini (reserved for future use)"] = "OG";
     lynxModels["FocusLynx QuickSync FT Hi-Torque"] = "FA";
     lynxModels["FocusLynx QuickSync FT Hi-Speed"] = "FB";
-    //  lynxModels["FC"] = "FocusLynx QuickSync SV (reserved for future use)";
+    //  lynxModels["FocusLynx QuickSync SV (reserved for future use)"] = "FC";
     lynxModels["DirectSync TEC with bipolar motor - higher speed"] = "FD";
     lynxModels["FocusLynx QuickSync  Long Travel Hi-Torque"] = "FE";
     lynxModels["FocusLynx QuickSync Long Travel Hi-Speed"] = "FF";
     lynxModels["FeatherTouch Motor PDMS"] = "FE";
-    lynxModels["FeatherTouch Motor Hi-Speed"] = "FE";
     lynxModels["FeatherTouch Motor Hi-Speed"] = "SO";
     lynxModels["FeatherTouch Motor Hi-Torque"] = "SP";
     lynxModels["Starlight Instruments - FTM with MicroTouch"] = "SQ";
@@ -174,15 +173,15 @@ bool FocusLynxBase::initProperties()
     int nModels = 1;
     ModelS      = (ISwitch *)malloc(sizeof(ISwitch));
     // Need to be able to select no focuser to avoid troubles with Ekos
-    IUFillSwitch(ModelS, "ZZ", "No Focuser", ISS_ON);
+    IUFillSwitch(ModelS, "No Focuser", "No Focuser", ISS_ON);
     for (iter = lynxModels.begin(); iter != lynxModels.end(); ++iter)
     {
         ModelS = (ISwitch *)realloc(ModelS, (nModels + 1) * sizeof(ISwitch));
-        IUFillSwitch(ModelS + nModels, (iter->second).c_str(), (iter->first).c_str(), ISS_OFF);
+        IUFillSwitch(ModelS + nModels, (iter->first).c_str(), (iter->first).c_str(), ISS_OFF);
 
         nModels++;
     }
-    IUFillSwitchVector(&ModelSP, ModelS, nModels, getDeviceName(), "Model", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+    IUFillSwitchVector(&ModelSP, ModelS, nModels, getDeviceName(), "Model", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Sync to a particular position
@@ -878,7 +877,7 @@ bool FocusLynxBase::getFocusConfig()
 
     IUResetSwitch(&TemperatureCompensateSP);
     TemperatureCompensateS[0].s = TCompOn ? ISS_ON : ISS_OFF;
-    TemperatureCompensateS[0].s = TCompOn ? ISS_OFF : ISS_ON;
+    TemperatureCompensateS[1].s = TCompOn ? ISS_OFF : ISS_ON;
     TemperatureCompensateSP.s   = IPS_OK;
     IDSetSwitch(&TemperatureCompensateSP, nullptr);
 
@@ -1571,7 +1570,7 @@ bool FocusLynxBase::setDeviceType(int index)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<%sSCDT%s>", getFocusTarget(), ModelS[index].name);
+    snprintf(cmd, 16, "<%sSCDT%s>", getFocusTarget(), index > 0 ? lynxModels[ModelS[index].name].c_str() : "ZZ");
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
 

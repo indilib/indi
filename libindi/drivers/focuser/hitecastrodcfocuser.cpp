@@ -104,6 +104,9 @@ bool HitecAstroDCFocuser::Connect()
 
     _handle = hid_open(0x04D8, 0xFAC2, nullptr);
 
+    if (_handle == nullptr)
+        _handle = hid_open(0x04D8, 0xF53A, nullptr);
+
     DEBUG(INDI::Logger::DBG_DEBUG, _handle ? "HitecAstroDCFocuser opened." : "HitecAstroDCFocuser failed.");
 
     if (_handle != nullptr)

@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include "ApgLogger.h" 
 #include "helpers.h"
+#include "config.h"
 
 //CROSS-PLATFORM SLEEP
 #ifdef WIN_OS
@@ -384,20 +385,27 @@ std::string apgHelper::GetCfgDir()
 }
 #else
 
-// for linx and mac
-#ifndef SYSCONFDIR
-# define SYSCONFDIR "/usr/local/etc/"
-#endif
-
 // SYSCONFDIR set by autotools on configuraiton
-const char * sysconfdir = SYSCONFDIR;
+const char * sysconfdir = APOGEE_CONF_DIR;
 
 //----------------------------------------------
 //  GET    CFG         DIR
 std::string apgHelper::GetCfgDir()
 {
-    std::string path( help::FixPath( sysconfdir ) );
-    path.append( "Apogee/");
+    std::string path;
+
+    //On OS X, Prefer embedded App location if it exists
+#if defined(__APPLE__)
+	std::string driverSupportPath;
+	if (getenv("INDIPREFIX") != NULL)
+		driverSupportPath = std::string(getenv("INDIPREFIX")).append("/Contents/Resources");
+	else
+		driverSupportPath = "/usr/local/lib/indi";
+	path = help::FixPath( driverSupportPath );
+#else
+	path = help::FixPath( sysconfdir );
+#endif
+    path.append( "Apogee/" );
     return path;
 }
 

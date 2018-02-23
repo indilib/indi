@@ -224,10 +224,28 @@ bool FocuserInterface::processFocuserSwitch(const char *dev, const char *name, I
     //  This one is for us
     if (strcmp(name, "FOCUS_MOTION") == 0)
     {
-        //  client is telling us what to do with focus direction
-        FocusMotionSP.s = IPS_OK;
+        // Record last direction and state.
+        FocusDirection prevDirection = FocusMotionS[FOCUS_INWARD].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD;
+        IPState prevState = FocusMotionSP.s;
+
         IUUpdateSwitch(&FocusMotionSP, states, names, n);
-        //  Update client display
+
+        FocusDirection targetDirection = FocusMotionS[FOCUS_INWARD].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD;
+
+        if (CanRelMove() || CanAbsMove() || HasVariableSpeed())
+        {
+            FocusMotionSP.s = IPS_OK;
+        }
+        // If we are dealing with a simple dumb DC focuser, we move in a specific direction in an open-loop fashion until stopped.
+        else
+        {
+            // If we are reversing direction let's issue abort first.
+            if (prevDirection != targetDirection && prevState == IPS_BUSY)
+                AbortFocuser();
+
+            FocusMotionSP.s = MoveFocuser(targetDirection, 0, 0);
+        }
+
         IDSetSwitch(&FocusMotionSP, nullptr);
 
         return true;

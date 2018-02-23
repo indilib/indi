@@ -97,6 +97,7 @@ void LX200GPS::ISGetProperties(const char *dev)
     // process parent first
     LX200Autostar::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         defineSwitch(&GPSPowerSP);
@@ -110,6 +111,7 @@ void LX200GPS::ISGetProperties(const char *dev)
         defineNumber(&OTATempNP);
         defineSwitch(&OTAUpdateSP);
     }
+    */
 }
 
 bool LX200GPS::updateProperties()

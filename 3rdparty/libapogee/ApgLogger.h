@@ -17,11 +17,7 @@
 #include <string>
 #include <stdexcept>
 
-#ifdef WIN_OS
 #include <memory>
-#else
-#include <tr1/memory>
-#endif
 
 class ILog;
 

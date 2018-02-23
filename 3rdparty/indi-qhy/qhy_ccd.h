@@ -77,11 +77,9 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     virtual int QueryFilter() override;
     virtual bool SelectFilter(int position) override;
 
-#ifndef __APPLE__
     // Streaming
     virtual bool StartStreaming() override;
     virtual bool StopStreaming() override;
-#endif
 
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;

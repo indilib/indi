@@ -79,8 +79,8 @@ void Rotator::ISGetProperties(const char *dev)
     DefaultDevice::ISGetProperties(dev);
 
     // If connected, let's define properties.
-    if (isConnected())
-        RotatorInterface::updateProperties();
+    //if (isConnected())
+    //    RotatorInterface::updateProperties();
 
     return;
 }

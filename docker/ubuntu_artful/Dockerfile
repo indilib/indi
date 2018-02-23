@@ -9,7 +9,12 @@ RUN apt-get -qqy install \
         libnova-dev libopenal-dev libraw-dev libusb-1.0-0-dev librtlsdr-dev \
         libfftw3-dev zlib1g-dev libconfuse-dev python3-all-dev doxygen \
         libboost-test-dev python-all-dev swig g++ libftdi1-dev \
-        googletest google-mock clang lsb-release dirmngr vim
+        googletest clang lsb-release dirmngr vim
+
+# Build and install gtest and gmock libraries
+WORKDIR /usr/src/googletest
+RUN cmake .
+RUN make install
 
 WORKDIR /home
 

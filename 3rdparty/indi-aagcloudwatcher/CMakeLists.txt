@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 3.0)
 PROJECT(aagcloudwatcher CXX C)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
@@ -6,7 +6,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 
 set (AAG_VERSION_MAJOR 1)
-set (AAG_VERSION_MINOR 3)
+set (AAG_VERSION_MINOR 4)
 
 find_package(INDI REQUIRED)
 find_package(Threads REQUIRED)

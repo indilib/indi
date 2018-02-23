@@ -116,7 +116,7 @@ class FocuserInterface
      * finite duration.
      * \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
      * \param speed Speed of focuser if supported by the focuser.
-     * \param duration The timeout in milliseconds before the focus motion halts.
+     * \param duration The timeout in milliseconds before the focus motion halts. Pass 0 to move indefinitely.
      * \return Return IPS_OK if motion is completed and focuser reached requested position.
      * Return IPS_BUSY if focuser started motion to requested position and is in progress.
      * Return IPS_ALERT if there is an error.

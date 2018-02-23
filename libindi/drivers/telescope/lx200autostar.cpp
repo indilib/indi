@@ -65,6 +65,7 @@ void LX200Autostar::ISGetProperties(const char *dev)
 
     LX200Generic::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         defineText(&VersionTP);
@@ -74,6 +75,7 @@ void LX200Autostar::ISGetProperties(const char *dev)
         // Therefore, we don't need the classical one
         deleteProperty(FocusModeSP.name);
     }
+    */
 }
 
 bool LX200Autostar::updateProperties()

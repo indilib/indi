@@ -28,6 +28,26 @@
 
 #include <pthread.h>
 
+/**
+ * @brief The AstrometryDriver class is an INDI driver frontend for astrometry.net
+ *
+ * There are two supported methods to solve an image:
+ *
+ * 1. Upload an image using the BLOB property.
+ * 2. Listen to uploaded BLOBs as emitted from a CCD driver. Set the CCD driver name to listen to in Options.
+ *
+ * The solver settings should be set before running the solver in order to ensure correct and timely response from astrometry.net
+ * It is assumed that astrometry.net is property set-up in the same machine the driver is running along with the appropiate index files.
+ *
+ * If the solver is successfull, the driver sets the solver results which include:
+ * + Pixel Scale (arcsec/pixel).
+ * + Orientation (E or W) degrees.
+ * + Center RA (J2000) Hours.
+ * + Center DE (J2000) Degrees.
+ * + Parity
+ *
+ * @author Jasem Mutlaq
+ */
 class AstrometryDriver : public INDI::DefaultDevice
 {
   public:

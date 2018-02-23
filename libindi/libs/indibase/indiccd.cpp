@@ -648,6 +648,14 @@ bool CCD::initProperties()
                      IPS_IDLE);
 
     /**********************************************/
+    /****************** Exposure Looping **********/
+    /***************** Primary CCD Only ***********/
+    IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_ON], "LOOP_ON", "Enabled", ISS_OFF);
+    IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_OFF], "LOOP_OFF", "Disabled", ISS_ON);
+    IUFillSwitchVector(&ExposureLoopSP, ExposureLoopS, 2, getDeviceName(), "CCD_EXPOSURE_LOOP", "Rapid Looping", OPTIONS_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    /**********************************************/
     /**************** Snooping ********************/
     /**********************************************/
 
@@ -785,6 +793,8 @@ bool CCD::updateProperties()
         if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
         defineText(&UploadSettingsTP);
+
+        defineSwitch(&ExposureLoopSP);
     }
     else
     {
@@ -849,6 +859,8 @@ bool CCD::updateProperties()
         deleteProperty(WorldCoordSP.name);
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
+
+        deleteProperty(ExposureLoopSP.name);
     }
 
 // Streamer
@@ -1071,7 +1083,8 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
             else
                 PrimaryCCD.ImageExposureN[0].value = ExposureTime = values[0];
 
-            if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY)
+            // Only abort when busy if we are not already in an exposure loops
+            if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY && ExposureLoopS[EXPOSURE_LOOP_OFF].s == ISS_ON)
             {
                 if (CanAbort() && AbortExposure() == false)
                     DEBUG(Logger::DBG_WARNING, "Warning: Aborting exposure failed.");
@@ -1105,6 +1118,7 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
                 }
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
+                SetTimer(10);
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -1391,6 +1405,15 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             IUUpdateSwitch(&TelescopeTypeSP, states, names, n);
             TelescopeTypeSP.s = IPS_OK;
             IDSetSwitch(&TelescopeTypeSP, nullptr);
+            return true;
+        }
+
+        // Exposure Looping
+        if (!strcmp(name, ExposureLoopSP.name))
+        {
+            IUUpdateSwitch(&ExposureLoopSP, states, names, n);
+            ExposureLoopSP.s = IPS_OK;
+            IDSetSwitch(&ExposureLoopSP, nullptr);
             return true;
         }
 
@@ -1950,6 +1973,13 @@ void CCD::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p,
 
 bool CCD::ExposureComplete(CCDChip *targetChip)
 {
+    // If looping is on, let's immediately take another capture
+    if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
+    {
+        StartExposure(targetChip->getExposureDuration());
+        SetTimer(10);
+    }
+
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
     //bool useSolver = (SolverS[0].s == ISS_ON);
@@ -2722,6 +2752,7 @@ bool CCD::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
+    IUSaveConfigSwitch(fp, &ExposureLoopSP);
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
@@ -2874,8 +2905,10 @@ int CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
         }
     }
     else
+    {
+        closedir(dpdf);
         return -1;
-
+    }
     int maxIndex = 0;
 
     for (int i = 0; i < (int)files.size(); i++)
@@ -2893,6 +2926,7 @@ int CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
         }
     }
 
+    closedir(dpdf);
     return (maxIndex + 1);
 }
 

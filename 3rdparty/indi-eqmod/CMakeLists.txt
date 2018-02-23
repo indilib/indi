@@ -1,5 +1,5 @@
 PROJECT(indi-eqmod C CXX)
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 2.8)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
@@ -13,14 +13,14 @@ find_package(ZLIB REQUIRED)
 find_package(GSL REQUIRED)
 
 set(EQMOD_VERSION_MAJOR 0)
-set(EQMOD_VERSION_MINOR 3)
+set(EQMOD_VERSION_MINOR 4)
 
 if (CYGWIN)
 add_definitions(-U__STRICT_ANSI__)
 endif(CYGWIN)
 
 option(WITH_ALIGN "Enable Alignment Subsystem" ON)
-option(WITH_ALIGN_GEEHALEL "Enable EQMod Alignment" OFF)
+option(WITH_ALIGN_GEEHALEL "Enable EQMod Alignment" ON)
 option(WITH_SCOPE_LIMITS "Enable Scope limits" ON)
 
 set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
@@ -75,9 +75,9 @@ else(WITH_ALIGN)
   target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 endif(WITH_ALIGN)
 
-if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 target_link_libraries(indi_eqmod_telescope rt)
-endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+endif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 
 install(TARGETS indi_eqmod_telescope RUNTIME DESTINATION bin )
 

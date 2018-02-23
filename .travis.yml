@@ -9,6 +9,8 @@ osx_image: xcode8.3
 matrix:
   include:
     - os: osx
+      env:
+        - BUILD_INSTALL_GTEST=YES
 
     # Default config (on trusty gcc4)
     - os: linux
@@ -46,14 +48,14 @@ install:
     - travis-ci/build-libs.sh
     - travis-ci/build-3rdparty.sh
     - travis-ci/build-deb-packages.sh
-    - travis-ci/build-core.sh Debug
-    - travis-ci/build-libs.sh Debug
-    - travis-ci/build-3rdparty.sh Debug
-    - travis-ci/build-deb-packages.sh Debug
-    - travis-ci/build-core.sh Release
-    - travis-ci/build-libs.sh Release
-    - travis-ci/build-3rdparty.sh Release
-    - travis-ci/build-deb-packages.sh Release
+#    - travis-ci/build-core.sh Debug
+#    - travis-ci/build-libs.sh Debug
+#    - travis-ci/build-3rdparty.sh Debug
+#    - travis-ci/build-deb-packages.sh Debug
+#    - travis-ci/build-core.sh Release
+#    - travis-ci/build-libs.sh Release
+#    - travis-ci/build-3rdparty.sh Release
+#    - travis-ci/build-deb-packages.sh Release
 
 script:
     - travis-ci/run-tests.sh 

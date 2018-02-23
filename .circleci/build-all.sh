@@ -2,7 +2,7 @@
 
 set -x -e
 
-br=( master develop package travis )
+br=( master develop package travis pull )
 
 build_all () {
     .circleci/build-core.sh
@@ -17,13 +17,8 @@ if [ .${CIRCLE_BRANCH%_*} == '.drv' -a `lsb_release -si` == 'Ubuntu' ] ; then
 else
     for i in "${br[@]}"
     do
-       if [ .${CIRCLE_BRANCH} == .$i ]; then
+       if [ .${CIRCLE_BRANCH%/*} == .$i ]; then
         build_all
        fi
     done
 fi
-
-
-
-
-

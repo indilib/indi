@@ -34,7 +34,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx200_16.h"
 #include "lx200_OnStep.h"
 #include "lx200ap_experimental.h"
-#include "lx200ap_legacy.h"
+#include "lx200ap_gtocp2.h"
+#include "lx200ap.h"
 #include "lx200classic.h"
 #include "lx200driver.h"
 #include "lx200fs2.h"
@@ -118,17 +119,24 @@ void ISInit()
     }
     else if (strstr(me, "indi_lx200ap_experimental"))
     {
+        IDLog("initializing from Astrophysics Experiemtal device...\n");
+
+        if (telescope.get() == 0)
+            telescope.reset(new LX200AstroPhysicsExperimental());
+    }
+    else if (strstr(me, "indi_lx200ap_gtocp2"))
+    {
+        IDLog("initializing from Astrophysics GTOCP2 device...\n");
+
+        if (telescope.get() == 0)
+            telescope.reset(new LX200AstroPhysicsGTOCP2());
+    }
+    else if (strstr(me, "indi_lx200ap"))
+    {
         IDLog("initializing from Astrophysics device...\n");
 
         if (telescope.get() == 0)
-            telescope.reset(new LX200AstroPhysicsExperiemtal());
-    }
-    else if (strstr(me, "indi_lx200ap_legacy"))
-    {
-        IDLog("initializing from Astrophysics Legacy device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200AstroPhysicsLegacy());
+            telescope.reset(new LX200AstroPhysics());
     }
     else if (strstr(me, "indi_lx200gemini"))
     {
@@ -367,6 +375,7 @@ void LX200Generic::ISGetProperties(const char *dev)
 
     INDI::Telescope::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
@@ -394,6 +403,7 @@ void LX200Generic::ISGetProperties(const char *dev)
             defineSwitch(&FocusModeSP);
         }
     }
+    */
 }
 
 bool LX200Generic::updateProperties()
@@ -528,6 +538,8 @@ bool LX200Generic::ReadScopeStatus()
 
 bool LX200Generic::Goto(double ra, double dec)
 {
+    const struct timespec timeout = {0, 100000000L};
+
     targetRA  = ra;
     targetDEC = dec;
     char RAStr[64]={0}, DecStr[64]={0};
@@ -574,7 +586,7 @@ bool LX200Generic::Goto(double ra, double dec)
         }
 
         // sleep for 100 mseconds
-        usleep(100000);
+        nanosleep(&timeout, NULL);
     }
 
     if (!isSimulation())
@@ -637,6 +649,7 @@ bool LX200Generic::Sync(double ra, double dec)
 
 bool LX200Generic::Park()
 {
+    const struct timespec timeout = {0, 100000000L};
     if (!isSimulation())
     {
         // If scope is moving, let's stop it first.
@@ -666,7 +679,7 @@ bool LX200Generic::Park()
             }
 
             // sleep for 100 msec
-            usleep(100000);
+            nanosleep(&timeout, NULL);
         }
 
         if (!isSimulation() && slewToPark(PortFD) < 0)
@@ -782,7 +795,7 @@ bool LX200Generic::Abort()
     return true;
 }
 
-bool LX200Generic::setLocalDate(uint8_t days, uint8_t months, uint8_t years)
+bool LX200Generic::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 {
     return (setCalenderDate(PortFD, days, months, years) == 0);
 }

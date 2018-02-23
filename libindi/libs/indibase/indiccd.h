@@ -844,6 +844,15 @@ class CCD : public DefaultDevice, GuiderInterface
     INumber CCDRotationN[1];
     INumberVectorProperty CCDRotationNP;
 
+    // Exposure Looping
+    ISwitch ExposureLoopS[2];
+    ISwitchVectorProperty ExposureLoopSP;
+    enum
+    {
+        EXPOSURE_LOOP_ON,
+        EXPOSURE_LOOP_OFF
+    };
+
     // FITS Header
     IText FITSHeaderT[2];
     ITextVectorProperty FITSHeaderTP;
