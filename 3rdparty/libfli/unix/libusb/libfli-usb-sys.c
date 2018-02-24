@@ -166,6 +166,7 @@ long libusb_usb_connect(flidev_t dev, fli_unixio_t *io, char *name)
   {
     debug(FLIDEBUG_FAIL, "%s: Could not claim interface: %s",
 	    __PRETTY_FUNCTION__, libusb_error_name(r));
+      return -ENODEV;
   }
 
 #ifdef CLEAR_HALT
@@ -250,10 +251,9 @@ long libusb_bulktransfer(flidev_t dev, int ep, void *buf, long *len)
     if( r != 0)
     {
       debug(FLIDEBUG_WARN, "LibUSB Error: %s", libusb_error_name(r));
+      break;
     }
 
-    if (bytes < 0)
-      break;
     remaining -= bytes;
     if (bytes < count)
       break;
