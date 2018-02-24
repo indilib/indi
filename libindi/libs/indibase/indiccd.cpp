@@ -1226,17 +1226,14 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
 
         if (!strcmp(name, "CCD_FRAME"))
         {
-            //  We are being asked to set CCD Frame
-            if (IUUpdateNumber(&PrimaryCCD.ImageFrameNP, values, names, n) < 0)
-                return false;
+            DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is (%3.0f,%3.0f) (%3.0f x %3.0f)", values[0], values[1],  values[2], values[3]);
 
-            PrimaryCCD.ImageFrameNP.s = IPS_OK;
-
-            DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is (%3.0f,%3.0f) (%3.0f x %3.0f)", values[0], values[1],
-                   values[2], values[3]);
-
-            if (UpdateCCDFrame(PrimaryCCD.ImageFrameN[0].value, PrimaryCCD.ImageFrameN[1].value,
-                               PrimaryCCD.ImageFrameN[2].value, PrimaryCCD.ImageFrameN[3].value) == false)
+            if (UpdateCCDFrame(values[0], values[1],  values[2], values[3]))
+            {
+                    PrimaryCCD.ImageFrameNP.s = IPS_OK;
+                    IUUpdateNumber(&PrimaryCCD.ImageFrameNP, values, names, n);
+            }
+            else
                 PrimaryCCD.ImageFrameNP.s = IPS_ALERT;
 
             IDSetNumber(&PrimaryCCD.ImageFrameNP, nullptr);

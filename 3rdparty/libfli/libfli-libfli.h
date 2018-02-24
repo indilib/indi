@@ -45,6 +45,7 @@
 #define _LIBFLI_LIBFLI_H_
 
 //#define OLDUSBDRIVER
+//#define BADCOLUMN
 
 #include <string.h>
 
@@ -54,7 +55,7 @@
 
 #ifdef _WIN32
 #ifndef LIBFLIAPI
-#define LIBFLIAPI __declspec(dllexport) long __stdcall
+//#define LIBFLIAPI __declspec(dllexport) long __stdcall
 #endif
 #define stricmp _stricmp
 #endif
@@ -131,6 +132,8 @@
 #define IOBUF_MAX_SIZ (64)
 typedef unsigned char iobuf_t;
 
+#define CLEARIO { memset(_buf, 0, IOBUF_MAX_SIZ); }
+
 #define IOREAD_U16L(b, i, y) { y = (*(b + i + 1) << 8) | *(b + i); }
 
 #define IOREAD_U8(b, i, y)  { y = *(b + i); }
@@ -184,6 +187,7 @@ typedef struct _flidevdesc_t {
   /* System-specific functions */
   long (*fli_lock)(flidev_t dev);
   long (*fli_unlock)(flidev_t dev);
+  long (*fli_trylock)(flidev_t dev);
 
   /* Domain-specific functions */
   long (*fli_io)(flidev_t dev, void *buf, long *wlen, long *rlen);
@@ -230,6 +234,8 @@ extern flidevdesc_t *devices[MAX_OPEN_DEVICES];
   FLI_COMMAND(FLI_GET_STEPS_REMAINING, 1)		\
   FLI_COMMAND(FLI_GET_FILTER_COUNT, 1)		\
   FLI_COMMAND(FLI_STEP_MOTOR, 1)		\
+	FLI_COMMAND(FLI_SET_ACTIVE_WHEEL, 1)		\
+	FLI_COMMAND(FLI_GET_ACTIVE_WHEEL, 1)		\
   FLI_COMMAND(FLI_STEP_MOTOR_ASYNC, 1)		\
   FLI_COMMAND(FLI_GET_STEPPER_POS, 1)		\
   FLI_COMMAND(FLI_GET_FOCUSER_EXTENT, 1)		\
@@ -238,9 +244,8 @@ extern flidevdesc_t *devices[MAX_OPEN_DEVICES];
   FLI_COMMAND(FLI_HOME_DEVICE, 0) \
   FLI_COMMAND(FLI_GET_COOLER_POWER, 1)		\
   FLI_COMMAND(FLI_SET_CAMERA_MODE, 1)		\
-  FLI_COMMAND(FLI_GET_CAMERA_MODE_STRING, 2)		\
+  FLI_COMMAND(FLI_GET_CAMERA_MODE_STRING, 3)		\
   FLI_COMMAND(FLI_GET_CAMERA_MODE, 1)		\
-  FLI_COMMAND(FLI_GET_SERIAL_STRING, 2)		\
   FLI_COMMAND(FLI_SET_CAMERA_GAIN, 1)		\
   FLI_COMMAND(FLI_GET_CAMERA_GAIN, 1)		\
   FLI_COMMAND(FLI_SET_CAMERA_OFFSET, 1)		\
@@ -253,6 +258,13 @@ extern flidevdesc_t *devices[MAX_OPEN_DEVICES];
 	FLI_COMMAND(FLI_END_EXPOSURE, 0)  \
 	FLI_COMMAND(FLI_TRIGGER_EXPOSURE, 0)  \
   FLI_COMMAND(FLI_SET_FAN_SPEED, 1)		\
+	FLI_COMMAND(FLI_SET_VERTICAL_TABLE_ENTRY, 4) \
+	FLI_COMMAND(FLI_GET_VERTICAL_TABLE_ENTRY, 4) \
+	FLI_COMMAND(FLI_GET_READOUT_DIMENSIONS, 6) \
+	FLI_COMMAND(FLI_ENABLE_VERTICAL_TABLE, 3) \
+	FLI_COMMAND(FLI_READ_EEPROM, 4) \
+	FLI_COMMAND(FLI_WRITE_EEPROM, 4) \
+	FLI_COMMAND(FLI_GET_FILTER_NAME, 3) \
 
 /* Enumerate the commands */
 enum _commands {

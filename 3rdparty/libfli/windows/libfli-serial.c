@@ -41,44 +41,89 @@
 
 */
 
-#include <stdio.h>
 #include <errno.h>
-#include <stdarg.h>
 
-#include "libfli-libfli.h"
-#include "libfli-debug.h"
-#include "libfli-mem.h"
-#include "libfli-raw.h"
+#include "..\libfli-libfli.h"
+#include "..\libfli-debug.h"
+#include "libfli-sys.h"
+#include "libfli-serial.h"
 
-long fli_raw_open(flidev_t dev)
+long serportio(flidev_t dev, void *buf, long *wlen, long *rlen)
 {
-	return 0;
-}
+  fli_io_t *io;
+	fli_sysinfo_t *sys;
+  int err = 0, locked = 0;
+  long org_wlen = *wlen, org_rlen = *rlen;
+	COMMTIMEOUTS CommTimeout;
 
-long fli_raw_close(flidev_t dev)
-{
-  if (DEVICE->devinfo.model != NULL)
+  io = DEVICE->io_data;
+//  cam = DEVICE->device_data;
+	sys = DEVICE->sys_data;
+
+  locked = 1;
+
+	if (fli_lock(dev))
   {
-    xfree(DEVICE->devinfo.model);
-    DEVICE->devinfo.model = NULL;
+    debug(FLIDEBUG_WARN, "Could not lock device");
+		locked = 0;
   }
 
-  if (DEVICE->devinfo.devnam != NULL)
+	CommTimeout.ReadIntervalTimeout = 100;
+	CommTimeout.ReadTotalTimeoutConstant = DEVICE->io_timeout;
+	CommTimeout.ReadTotalTimeoutMultiplier = 1; // 1 unit per character
+	CommTimeout.WriteTotalTimeoutConstant = 0;
+	CommTimeout.WriteTotalTimeoutMultiplier = 0;
+	if(SetCommTimeouts(io->fd, &CommTimeout) == FALSE)
+	{
+		debug(FLIDEBUG_WARN, "Error setting communications timeouts, %d", GetLastError());
+	}
+
+	if (*wlen > 0)
+	{
+		debug(FLIDEBUG_INFO, "SER IOW: %02x [%02x %02x]", *wlen,
+			((unsigned char *) buf)[0], ((unsigned char *) buf)[1]);
+
+		WriteFile(io->fd, buf, *wlen, wlen, NULL);
+		if (*wlen != org_wlen)
+		{
+			debug(FLIDEBUG_WARN, "write failed, only %d of %d bytes written",
+			*wlen, org_wlen);
+			err = -EIO;
+			goto done;
+		}
+	}
+
+  if (*rlen > 0)
   {
-    xfree(DEVICE->devinfo.devnam);
-    DEVICE->devinfo.devnam = NULL;
+		if(ReadFile(io->fd, buf, *rlen, rlen, NULL) != TRUE)
+		{
+			debug(FLIDEBUG_WARN, "read failed.");
+			err = -EIO;
+			goto done;
+		}
+		debug(FLIDEBUG_INFO, "SER IOR: %02x [%02x %02x]", *wlen,
+			((unsigned char *) buf)[0], ((unsigned char *) buf)[1]);
+
+		if (*rlen != org_rlen)
+		{
+      debug(FLIDEBUG_WARN, "read failed, only %d of %d bytes read",
+	    *rlen, org_rlen);
+      err = -EIO;
+      goto done;
+    }
   }
 
-  if (DEVICE->device_data != NULL)
+ done:
+
+  if (locked)
   {
-    xfree(DEVICE->device_data);
-    DEVICE->device_data = NULL;
+    int r;
+
+    if ((r = fli_unlock(dev)))
+      debug(FLIDEBUG_WARN, "Unlock failed");
+    if (err == 0)
+      err = r;
   }
 
-	return 0;
-}
-
-long fli_raw_command(flidev_t dev, int cmd, int argc, ...)
-{
-	return -EINVAL;		
+  return err;
 }

@@ -1,3 +1,9 @@
+libfli (2.0) bionic; urgency=medium
+
+  * New release based on libusb
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 14 Feb 2018 13:00:00 +0300
+
 libfli (1.9) bionic; urgency=medium
 
   * New release

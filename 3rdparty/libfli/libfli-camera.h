@@ -47,12 +47,15 @@
 #define CAPABILITY_VIDEO					(0x00010000)
 #define CAPABILITY_TDI						(0x00000001)
 #define CAPABILITY_BGFLUSH				(0x00000002)
+#define CAPABILITY_VERTICAL_TABLE	(0x00020000)
 
 #define SUPPORTS_VIDEO(x) ((((flicamdata_t *) (x->device_data))->capabilities & CAPABILITY_VIDEO) != 0)
 #define SUPPORTS_TDI(x) ((((flicamdata_t *) (x->device_data))->capabilities & CAPABILITY_TDI) != 0)
+#define SUPPORTS_VERTICAL_TABLE(x) ((((flicamdata_t *) (x->device_data))->capabilities & CAPABILITY_VERTICAL_TABLE) != 0)
 #define SUPPORTS_BGFLUSH(x) ((((flicamdata_t *) (x->device_data))->capabilities & CAPABILITY_BGFLUSH) != 0)
 #define SUPPORTS_END_EXPOSURE(x) ((x->devinfo.fwrev >= 0x0120) && (x->devinfo.devid == FLIUSB_PROLINE_ID) != 0)
 #define SUPPORTS_SOFTWARE_TRIGGER(x) ((x->devinfo.fwrev >= 0x0120) && (x->devinfo.devid == FLIUSB_PROLINE_ID) != 0)
+#define SUPPORTS_16BIT_VBIN(x) (((x->devinfo.fwrev < 0x0200) && (x->devinfo.fwrev >= 0x0130)) && (x->devinfo.devid == FLIUSB_PROLINE_ID) != 0)
 
 /* Video mode stuff */
 typedef enum {
@@ -107,6 +110,10 @@ typedef struct {
 	long tdirate;
 	long tdiflags;
 
+#ifdef BADCOLUMN
+	int badcolumns[1024];
+#endif
+
   double tempslope;
   double tempintercept;
 
@@ -142,6 +149,7 @@ typedef struct {
 	int background_flush;
 	int force_overscan;
 	video_mode_t video_mode;
+	int vertical_table;
 
 	/* Capability flags */
 	long capabilities;

@@ -45,6 +45,7 @@
 #define _LIBFLI_SYS_H
 
 #include <limits.h>
+#include <pthread.h>
 
 #define LIBFLIAPI long
 
@@ -55,28 +56,63 @@
 #if defined(__linux__)
 
 #define __SYSNAME__ "Linux"
-#define __LIBFLI_MINOR__ 99
+#define __LIBFLI_MINOR__ 999.1
 #define USB_READ_SIZ_MAX (1024 * 64)
-#define _USE_FLOCK_
+#define _USE_PTHREAD_LOCK_
+//#define _USE_FLOCK_
 #define PARPORT_GLOB "/dev/ccd*"
 #define USB_GLOB "/dev/fliusb*"
 #define SERIAL_GLOB "/dev/ttyS[0-9]*"
 
+#define fli_connect unix_fli_connect
+#define fli_disconnect unix_fli_disconnect
+#define fli_list unix_fli_list
+
 #elif defined(__FreeBSD__)
 
 #define __SYSNAME__ "FreeBSD"
-#define __LIBFLI_MINOR__ 13
+#define __LIBFLI_MINOR__ 999
 #define USB_READ_SIZ_MAX 65536
 #define USB_GLOB "/dev/ugen[0-9]"
 #define SERIAL_GLOB "/dev/cuaa*"
 
+#define fli_connect unix_fli_connect
+#define fli_disconnect unix_fli_disconnect
+#define fli_list unix_fli_list
+
 #elif defined (__NetBSD__)
 
 #define __SYSNAME__ "NetBSD"
-#define __LIBFLI_MINOR__ 13
+#define __LIBFLI_MINOR__ 999
 #define USB_READ_SIZ_MAX 65536
 #define USB_GLOB "/dev/ugen*.0" __STRINGIFY(FLI_USB_CMDENDPOINT)
 #define SERIAL_GLOB "/dev/dty0*"
+
+#define fli_connect unix_fli_connect
+#define fli_disconnect unix_fli_disconnect
+#define fli_list unix_fli_list
+
+#elif defined (__APPLE__)
+
+#define __SYSNAME__ "MacOSX"
+#define __LIBFLI_MINOR__ 999
+#define USB_READ_SIZ_MAX 65536
+#define USB_GLOB "/dev/ugen*.0" __STRINGIFY(FLI_USB_CMDENDPOINT)
+#define SERIAL_GLOB "/dev/dty0*"
+
+#if defined(__LIBUSB__)
+#define fli_connect unix_fli_connect
+#define fli_disconnect unix_fli_disconnect
+#define fli_list unix_fli_list
+#else
+#define fli_connect mac_fli_connect 
+#define fli_disconnect mac_fli_disconnect
+#define fli_list mac_fli_list
+#endif
+
+#define unix_fli_lock mac_fli_lock
+#define unix_fli_unlock	mac_fli_unlock
+#define unix_fli_trylock mac_fli_trylock
 
 #else
 #error "Unknown system"
@@ -84,16 +120,21 @@
 
 typedef struct {
   int fd;
+  void *han;
 } fli_unixio_t;
+
+typedef struct {
+  pthread_mutex_t mutex;
+  pthread_mutexattr_t attr;
+  long locked;
+  long OS;
+} fli_unixsysinfo_t;
 
 long unix_fli_connect(flidev_t dev, char *name, long domain);
 long unix_fli_disconnect(flidev_t dev);
 long unix_fli_lock(flidev_t dev);
 long unix_fli_unlock(flidev_t dev);
+long unix_fli_trylock(flidev_t dev);
 long unix_fli_list(flidomain_t domain, char ***names);
-
-#define fli_connect unix_fli_connect
-#define fli_disconnect unix_fli_disconnect
-#define fli_list unix_fli_list
 
 #endif /* _LIBFLI_SYS_H */

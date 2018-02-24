@@ -41,20 +41,21 @@
 
 */
 
-#ifndef _LIBFLI_DEBUG_H_
-#define _LIBFLI_DEBUG_H_
+#ifndef _LIBFLI_PARPORT_H_
+#define _LIBFLI_PARPORT_H_
 
-#ifdef _DEBUG
-#define _DEBUGSTRING
-#define _DEBUG_IO
+#if defined(__linux__)
+
+#define unix_parportio unix_parportio_linux
+
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+
+#define unix_parportio NULL
+
+#else
+#error "Unknown system"
 #endif
 
-#define _DEBUG_IO
+long unix_parportio_linux(flidev_t dev, void *buf, long *wlen, long *rlen);
 
-/* Debug functions */
-int debugclose(void);
-int debugopen(char *host);
-void debug(int level, char *format, ...);
-void setdebuglevel(char *host, long level);
-
-#endif /* _LIBFLI_DEBUG_H_ */
+#endif /* _LIBFLI_PARPORT_H_ */

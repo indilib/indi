@@ -41,20 +41,48 @@
 
 */
 
-#ifndef _LIBFLI_DEBUG_H_
-#define _LIBFLI_DEBUG_H_
+#ifndef _LIBFLI_SYSDEP_H
+#define _LIBFLI_SYSDEP_H
+#include <windows.h>
+#include <limits.h>
 
-#ifdef _DEBUG
-#define _DEBUGSTRING
-#define _DEBUG_IO
+#ifndef LIBFLIAPI
+#define LIBFLIAPI __declspec(dllimport) long __stdcall
+#endif /* LIBFLIAPI */
+
+#define __SYSNAME__ "Windows"
+#define __LIBFLI_MINOR__ 104
+
+#define snprintf _snprintf
+
+#define USB_READ_SIZ_MAX (65535)
+#define USB_MAX_PIPES (10)
+
+#ifndef EOVERFLOW
+#define EOVERFLOW ERROR_INSUFFICIENT_BUFFER
 #endif
 
-#define _DEBUG_IO
+typedef struct {
+  HANDLE fd;
+	int port;
+	int dir;
+	int notecp;
+	char portval[6];
+	/* This is used to map and endpoint to a pipe */
+	int endpointlist[USB_MAX_PIPES];
+} fli_io_t;
 
-/* Debug functions */
-int debugclose(void);
-int debugopen(char *host);
-void debug(int level, char *format, ...);
-void setdebuglevel(char *host, long level);
+/* System specific information */
+typedef struct {
+  HANDLE mutex;
+	long locked;
+	long OS;
+} fli_sysinfo_t;
 
-#endif /* _LIBFLI_DEBUG_H_ */
+long fli_connect(flidev_t dev, char *name, long domain);
+long fli_disconnect(flidev_t dev);
+long fli_lock(flidev_t dev);
+long fli_unlock(flidev_t dev);
+long fli_list(flidomain_t domain, char ***names);
+
+#endif /* _LIBFLI_SYSDEP_H */

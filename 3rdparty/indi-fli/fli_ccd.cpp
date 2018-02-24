@@ -38,7 +38,6 @@
 #define MIN_CCD_TEMP   -55  /* Min CCD temperature */
 #define MAX_X_BIN      16   /* Max Horizontal binning */
 #define MAX_Y_BIN      16   /* Max Vertical binning */
-#define MAX_PIXELS     4096 /* Max number of pixels in one dimension */
 #define POLLMS         1000 /* Polling time (ms) */
 #define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
 #define NFLUSHES       1    /* Number of times a CCD array is flushed before an exposure */
@@ -86,13 +85,7 @@ void ISSnoopDevice(XMLEle *root)
 
 FLICCD::FLICCD()
 {
-    sim = false;
-
     setVersion(FLI_CCD_VERSION_MAJOR, FLI_CCD_VERSION_MINOR);
-}
-
-FLICCD::~FLICCD()
-{
 }
 
 const char *FLICCD::getDefaultName()
@@ -123,8 +116,8 @@ bool FLICCD::initProperties()
 
     SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER);
 
-    addSimulationControl();
-    addDebugControl();
+    addAuxControls();
+
     return true;
 }
 
@@ -371,7 +364,7 @@ bool FLICCD::setupParams()
         TemperatureN[0].max   = MAX_CCD_TEMP;
         IUUpdateMinMax(&TemperatureNP);
         IDSetNumber(&TemperatureNP, NULL);
-        DEBUGF(INDI::Logger::DBG_SESSION, "FLIGetVisibleArea() succeed -> %f", FLICam.temperature);
+        DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetTemperature() succeed -> %f", FLICam.temperature);
     }
 
     SetCCDParams(FLICam.Visible_Area[2] - FLICam.Visible_Area[0], FLICam.Visible_Area[3] - FLICam.Visible_Area[1], 16,
@@ -404,9 +397,7 @@ bool FLICCD::setupParams()
         }
     }
 
-    int nbuf;
-    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8; //  this is pixel count
-    nbuf += 512;                                                                  //  leave a little extra at the end
+    int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
@@ -424,7 +415,7 @@ int FLICCD::SetTemperature(double temperature)
 
     FLICam.temperature = temperature;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+06.2f C", temperature);
+    DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %.2f C", temperature);
     return 0;
 }
 
@@ -434,9 +425,7 @@ bool FLICCD::StartExposure(float duration)
 
     if (duration < minDuration)
     {
-        DEBUGF(INDI::Logger::DBG_WARNING,
-               "Exposure shorter than minimum duration %g s requested.  Setting exposure time to %g s.", duration,
-               minDuration);
+        DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration, minDuration);
         duration = minDuration;
     }
 
@@ -485,22 +474,19 @@ bool FLICCD::AbortExposure()
 }
 
 bool FLICCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
-{
-    INDI_UNUSED(fType);
-    int err                           = 0;
-    INDI::CCDChip::CCD_FRAME imageFrameType = PrimaryCCD.getFrameType();
-    // in indiccd.cpp imageFrameType is already set
+{    
     if (sim)
         return true;
 
-    switch (imageFrameType)
+    int err = 0;
+    switch (fType)
     {
         case INDI::CCDChip::BIAS_FRAME:
         case INDI::CCDChip::DARK_FRAME:
             if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_DARK)))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "FLISetFrameType() failed. %s.", strerror((int)-err));
-                return -1;
+                return false;
             }
             break;
 
@@ -509,7 +495,7 @@ bool FLICCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
             if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL)))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "FLISetFrameType() failed. %s.", strerror((int)-err));
-                return -1;
+                return false;
             }
             break;
     }
@@ -524,18 +510,19 @@ bool FLICCD::UpdateCCDFrame(int x, int y, int w, int h)
     long bin_right  = x + (w / PrimaryCCD.getBinX());
     long bin_bottom = y + (h / PrimaryCCD.getBinY());
 
-    if (bin_right > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+    if ( (x+w) > PrimaryCCD.getXRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %d", w);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid frame requested (%d,%d) size(%d,%d)", x, y, w, h);
         return false;
     }
-    else if (bin_bottom > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+    else if ( (y+h) > PrimaryCCD.getYRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %d", h);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid frame requested (%d,%d) size(%d,%d)", x, y, w, h);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%ld, %ld), (%ld, %ld)", x, y, bin_right, bin_bottom);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Binning (%dx%d). Final FLI image area is (%d, %d), (%ld, %ld). Size (%dx%d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(),
+           x, y, bin_right, bin_bottom, w / PrimaryCCD.getBinX(), h / PrimaryCCD.getBinY());
 
     if (!sim && (err = FLISetImageArea(fli_dev, x, y, bin_right, bin_bottom)))
     {
@@ -546,9 +533,7 @@ bool FLICCD::UpdateCCDFrame(int x, int y, int w, int h)
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
 
-    int nbuf;
-    nbuf = (w / PrimaryCCD.getBinX()) * (h / PrimaryCCD.getBinY()) * (PrimaryCCD.getBPP() / 8); //  this is pixel count
-    nbuf += 512; //  leave a little extra at the end
+    int nbuf = (w / PrimaryCCD.getBinX()) * (h / PrimaryCCD.getBinY()) * (PrimaryCCD.getBPP() / 8);
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
@@ -601,10 +586,13 @@ bool FLICCD::grabImage()
             {
                 /* print this error once but read to the end to flush the array */
                 if (success)
+                {
                     DEBUGF(INDI::Logger::DBG_ERROR, "FLIGrabRow() failed at row %d. %s.", i, strerror((int)-err));
-                success = false;
+                    success = false;
+                }
             }
         }
+
         if (!success)
             return false;
     }
@@ -623,6 +611,7 @@ void FLICCD::TimerHit()
     long timeleft   = 0;
     double ccdTemp  = 0;
     double ccdPower = 0;
+    long camera_status = 0;
 
     if (isConnected() == false)
         return; //  No need to reset timer if we are not connected anymore
@@ -637,7 +626,14 @@ void FLICCD::TimerHit()
         }
         else
         {
-            //timeleft=calcTimeLeft();
+	    if ((err = FLIGetDeviceStatus(fli_dev, &camera_status))) 
+            {
+               DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetDeviceStatus() failed. %s.", strerror((int)-err));
+               SetTimer(POLLMS);
+               return;
+            }
+            DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetDeviceStatus() succeed -> %ld", camera_status);
+ 
             if ((err = FLIGetExposureStatus(fli_dev, &timeleft)))
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetExposureStatus() failed. %s.", strerror((int)-err));
@@ -645,18 +641,10 @@ void FLICCD::TimerHit()
                 return;
             }
             DEBUGF(INDI::Logger::DBG_DEBUG, "FLIGetExposureStatus() succeed -> %ld", timeleft);
-            if (timeleft < 1000)
+          
+            if (!sim && (((camera_status == FLI_CAMERA_STATUS_UNKNOWN) && (timeleft == 0)) ||
+                               ((camera_status != FLI_CAMERA_STATUS_UNKNOWN) && ((camera_status & FLI_CAMERA_DATA_READY) != 0))))
             {
-                while (!sim && timeleft > 0)
-                {
-                    if ((err = FLIGetExposureStatus(fli_dev, &timeleft)))
-                    {
-                        DEBUGF(INDI::Logger::DBG_ERROR, "FLIGetExposureStatus() failed. %s.", strerror((int)-err));
-                        SetTimer(POLLMS);
-                        return;
-                    }
-                    usleep(1000 * timeleft);
-                }
 
                 /* We're done exposing */
                 DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
