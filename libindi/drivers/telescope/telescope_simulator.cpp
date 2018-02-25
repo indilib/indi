@@ -223,6 +223,8 @@ bool ScopeSim::updateProperties()
             SetAxis1ParkDefault(currentRA);
             SetAxis2ParkDefault(currentDEC);
         }
+
+        sendTimeFromSystem();
     }
     else
     {
