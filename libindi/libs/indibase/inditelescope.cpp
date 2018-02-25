@@ -28,6 +28,7 @@
 #include <pwd.h>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <unistd.h>
 #include <wordexp.h>
 #include <limits>
@@ -2614,6 +2615,27 @@ bool Telescope::CheckFile(const std::string &file_name, bool writable) const
         return true;
     }
     return false;
+}
+
+void Telescope::sendTimeFromSystem()
+{
+    char ts[32]={0};
+
+    std::time_t current_time;
+    std::time(&current_time);
+
+    struct std::tm *utctimeinfo = std::gmtime(&current_time);
+    struct std::tm *localtimeinfo = std::localtime(&current_time);
+
+    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
+    IUSaveText(&TimeT[0], ts);
+
+    snprintf(ts, sizeof(ts), "%4.2f", (localtimeinfo->tm_gmtoff / 3600.0));
+    IUSaveText(&TimeT[1], ts);
+
+    TimeTP.s = IPS_OK;
+
+    IDSetText(&TimeTP, nullptr);
 }
 
 }

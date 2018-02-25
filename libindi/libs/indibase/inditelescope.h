@@ -656,6 +656,7 @@ class Telescope : public DefaultDevice
     // UTC and UTC Offset
     IText TimeT[2];
     ITextVectorProperty TimeTP;
+    void sendTimeFromSystem();
 
     // Active GPS/Dome device to snoop
     ITextVectorProperty ActiveDeviceTP;
