@@ -2621,15 +2621,13 @@ void Telescope::sendTimeFromSystem()
 {
     char ts[32]={0};
 
-    std::time_t current_time;
-    std::time(&current_time);
-
-    struct std::tm *utctimeinfo = std::gmtime(&current_time);
-    struct std::tm *localtimeinfo = std::localtime(&current_time);
+    std::time_t t = std::time(nullptr);
+    struct std::tm *utctimeinfo = std::gmtime(&t);
 
     strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
     IUSaveText(&TimeT[0], ts);
 
+    struct std::tm *localtimeinfo = std::localtime(&t);
     snprintf(ts, sizeof(ts), "%4.2f", (localtimeinfo->tm_gmtoff / 3600.0));
     IUSaveText(&TimeT[1], ts);
 
