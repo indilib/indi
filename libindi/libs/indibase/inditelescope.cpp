@@ -236,6 +236,8 @@ bool Telescope::initProperties()
     IDSnoopDevice(ActiveDeviceT[1].text, "DOME_PARK");
     IDSnoopDevice(ActiveDeviceT[1].text, "DOME_SHUTTER");
 
+    addPollPeriodControl();
+
     return true;
 }
 
