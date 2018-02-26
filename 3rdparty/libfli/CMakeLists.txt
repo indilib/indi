@@ -9,6 +9,9 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 
 ADD_DEFINITIONS(-Wall -O2 -D__LIBUSB__)
 
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+
 find_package(USB1 REQUIRED)
 
 #SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
