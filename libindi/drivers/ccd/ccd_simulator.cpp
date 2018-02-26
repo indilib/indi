@@ -32,8 +32,6 @@
 pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define POLLMS  1000
-
 // We declare an auto pointer to ccdsim.
 std::unique_ptr<CCDSim> ccdsim(new CCDSim());
 
@@ -134,6 +132,7 @@ bool CCDSim::SetupParms()
 bool CCDSim::Connect()
 {
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
+    SetTimer(updatePeriodMS);
     return true;
 }
 
@@ -255,9 +254,6 @@ bool CCDSim::updateProperties()
 
         // Define the Filter Slot and name properties
         INDI::FilterInterface::updateProperties();
-
-        updatePeriodMS = POLLMS;
-        SetTimer(updatePeriodMS);
     }
     else
     {
@@ -307,8 +303,6 @@ bool CCDSim::StartExposure(float duration)
     //  Now compress the actual wait time
     ExposureRequest = duration * TimeFactor;
     InExposure      = true;
-
-    TimerHit();
 
     return true;
 }
@@ -361,8 +355,9 @@ void CCDSim::TimerHit()
 {
     uint32_t nextTimer = updatePeriodMS;
 
+    //  No need to reset timer if we are not connected anymore
     if (!isConnected())
-        return; //  No need to reset timer if we are not connected anymore
+        return;
 
     if (InExposure)
     {
@@ -392,7 +387,8 @@ void CCDSim::TimerHit()
                 }
                 else
                 {
-                    nextTimer = timeleft * 1000; //  set a shorter timer
+                    //  set a shorter timer
+                    nextTimer = timeleft * 1000;
                 }
             }
         }
@@ -471,6 +467,7 @@ void CCDSim::TimerHit()
             IDSetSwitch(&CoolerSP, nullptr);
         }
     }
+
 
     SetTimer(nextTimer);
 }
@@ -559,10 +556,12 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         Scalex = (targetChip->getPixelSizeX() / targetFocalLength) * 206.3;
         Scaley = (targetChip->getPixelSizeY() / targetFocalLength) * 206.3;
 
+#if 0
         DEBUGF(
             INDI::Logger::DBG_DEBUG,
             "pprx: %g pixels per radian ppry: %g pixels per radian ScaleX: %g arcsecs/pixel ScaleY: %g arcsecs/pixel",
             pprx, ppry, Scalex, Scaley);
+#endif
 
         double theta = rotationCW + 270;
         if (theta > 360)
@@ -625,7 +624,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         //  we have radius in arcseconds now
         radius = radius / 60; //  convert to arcminutes
 
+#if 0
         DEBUGF(INDI::Logger::DBG_DEBUG, "Lookup radius %4.2f", radius);
+#endif
 
         //  A saturationmag star saturates in one second
         //  and a limitingmag produces a one adu level in one second

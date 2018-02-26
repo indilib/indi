@@ -35,6 +35,8 @@
 
 #include <stdint.h>
 
+#define WITH_EXPOSURE_LOOPING
+
 extern const char *IMAGE_SETTINGS_TAB;
 extern const char *IMAGE_INFO_TAB;
 extern const char *GUIDE_HEAD_TAB;
@@ -844,6 +846,7 @@ class CCD : public DefaultDevice, GuiderInterface
     INumber CCDRotationN[1];
     INumberVectorProperty CCDRotationNP;
 
+#ifdef WITH_EXPOSURE_LOOPING
     // Exposure Looping
     ISwitch ExposureLoopS[2];
     ISwitchVectorProperty ExposureLoopSP;
@@ -852,6 +855,12 @@ class CCD : public DefaultDevice, GuiderInterface
         EXPOSURE_LOOP_ON,
         EXPOSURE_LOOP_OFF
     };
+
+    // Exposure Looping Count
+    INumber ExposureLoopCountN[1];
+    INumberVectorProperty ExposureLoopCountNP;
+    double uploadTime = { 0 };
+#endif
 
     // FITS Header
     IText FITSHeaderT[2];
@@ -863,7 +872,7 @@ class CCD : public DefaultDevice, GuiderInterface
     };
 
   private:
-    uint32_t capability;
+    uint32_t capability;    
 
     bool ValidCCDRotation;
 

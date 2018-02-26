@@ -38,6 +38,7 @@
 
 #include <cmath>
 #include <regex>
+#include <chrono>
 
 #include <dirent.h>
 #include <cerrno>
@@ -51,6 +52,8 @@ const char *GUIDE_HEAD_TAB     = "Guider Head";
 const char *GUIDE_CONTROL_TAB  = "Guider Control";
 const char *RAPIDGUIDE_TAB     = "Rapid Guide";
 const char *WCS_TAB            = "WCS";
+
+#define POLLMS  1000
 
 // Create dir recursively
 static int _ccd_mkdir(const char *dir, mode_t mode)
@@ -96,7 +99,7 @@ CCDChip::CCDChip()
     strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
 
     FrameType  = LIGHT_FRAME;
-    lastRapidX = lastRapidY = -1;
+    lastRapidX = lastRapidY = -1;    
 }
 
 CCDChip::~CCDChip()
@@ -229,6 +232,7 @@ void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
 
 void CCDChip::setExposureLeft(double duration)
 {
+    ImageExposureNP.s = IPS_BUSY;
     ImageExposureN[0].value = duration;
 
     IDSetNumber(&ImageExposureNP, nullptr);
@@ -650,10 +654,16 @@ bool CCD::initProperties()
     /**********************************************/
     /****************** Exposure Looping **********/
     /***************** Primary CCD Only ***********/
+#ifdef WITH_EXPOSURE_LOOPING
     IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_ON], "LOOP_ON", "Enabled", ISS_OFF);
     IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_OFF], "LOOP_OFF", "Disabled", ISS_ON);
     IUFillSwitchVector(&ExposureLoopSP, ExposureLoopS, 2, getDeviceName(), "CCD_EXPOSURE_LOOP", "Rapid Looping", OPTIONS_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // CCD Should loop until the number of frames specified in this property is completed
+    IUFillNumber(&ExposureLoopCountN[0], "FRAMES", "Frames", "%.f", 0, 100000, 1, 1);
+    IUFillNumberVector(&ExposureLoopCountNP, ExposureLoopCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Rapid Count", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+#endif
 
     /**********************************************/
     /**************** Snooping ********************/
@@ -692,6 +702,8 @@ bool CCD::initProperties()
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
+
+    addPollPeriodControl();
 
     setDriverInterface(CCD_INTERFACE | GUIDER_INTERFACE);
 
@@ -794,7 +806,10 @@ bool CCD::updateProperties()
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
         defineText(&UploadSettingsTP);
 
+#ifdef WITH_EXPOSURE_LOOPING
         defineSwitch(&ExposureLoopSP);
+        defineNumber(&ExposureLoopCountNP);
+#endif
     }
     else
     {
@@ -860,7 +875,10 @@ bool CCD::updateProperties()
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
 
+#ifdef WITH_EXPOSURE_LOOPING
         deleteProperty(ExposureLoopSP.name);
+        deleteProperty(ExposureLoopCountNP.name);
+#endif
     }
 
 // Streamer
@@ -1084,7 +1102,8 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
                 PrimaryCCD.ImageExposureN[0].value = ExposureTime = values[0];
 
             // Only abort when busy if we are not already in an exposure loops
-            if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY && ExposureLoopS[EXPOSURE_LOOP_OFF].s == ISS_ON)
+            //if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY && ExposureLoopS[EXPOSURE_LOOP_OFF].s == ISS_ON)
+            if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY)
             {
                 if (CanAbort() && AbortExposure() == false)
                     DEBUG(Logger::DBG_WARNING, "Warning: Aborting exposure failed.");
@@ -1118,7 +1137,7 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
                 }
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
-                SetTimer(10);
+                updatePeriodMS = 10;
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -1282,6 +1301,16 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
             return true;
         }
 
+#ifdef WITH_EXPOSURE_LOOPING
+        if (!strcmp(name, ExposureLoopCountNP.name))
+        {
+            IUUpdateNumber(&ExposureLoopCountNP, values, names, n);
+            ExposureLoopCountNP.s = IPS_OK;
+            IDSetNumber(&ExposureLoopCountNP, nullptr);
+            return true;
+        }
+#endif
+
         // CCD TEMPERATURE:
         if (!strcmp(name, TemperatureNP.name))
         {
@@ -1405,6 +1434,7 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             return true;
         }
 
+#ifdef WITH_EXPOSURE_LOOPING
         // Exposure Looping
         if (!strcmp(name, ExposureLoopSP.name))
         {
@@ -1413,6 +1443,7 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             IDSetSwitch(&ExposureLoopSP, nullptr);
             return true;
         }
+#endif
 
         // WCS Enable/Disable
         if (!strcmp(name, WorldCoordSP.name))
@@ -1970,16 +2001,37 @@ void CCD::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p,
 
 bool CCD::ExposureComplete(CCDChip *targetChip)
 {
+#ifdef WITH_EXPOSURE_LOOPING
     // If looping is on, let's immediately take another capture
-    if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
+    if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON && ExposureLoopCountN[0].value > 1)
     {
-        StartExposure(targetChip->getExposureDuration());
-        SetTimer(10);
+        ExposureLoopCountN[0].value--;
+        IDSetNumber(&ExposureLoopCountNP, nullptr);
+
+        if (uploadTime < targetChip->getExposureDuration())
+        {
+            StartExposure(targetChip->getExposureDuration());
+            PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
+            IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
+            updatePeriodMS = 10;
+        }
+        else
+        {
+            DEBUGF(INDI::Logger::DBG_ERROR, "Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, targetChip->getExposureDuration());
+            PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
+            IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
+            return false;
+        }
     }
+    else
+        updatePeriodMS = getPollingPeriod();
+#endif
+
+    auto start = std::chrono::system_clock::now();
 
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
-    //bool useSolver = (SolverS[0].s == ISS_ON);
+
     bool showMarker = false;
     bool autoLoop   = false;
     bool sendData   = false;
@@ -2542,6 +2594,13 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
     targetChip->ImageExposureNP.s = IPS_OK;
     IDSetNumber(&targetChip->ImageExposureNP, nullptr);
 
+    auto end = std::chrono::system_clock::now();
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Image upload/save took %d ms.", (std::chrono::duration_cast<std::chrono::milliseconds>(end - start)).count());
+    #ifdef WITH_EXPOSURE_LOOPING
+    uploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - start)).count() / 1000.0;
+    #endif
+
     if (autoLoop)
     {
         if (targetChip == &PrimaryCCD)
@@ -2749,7 +2808,9 @@ bool CCD::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
+#ifdef WITH_EXPOSURE_LOOPING
     IUSaveConfigSwitch(fp, &ExposureLoopSP);
+#endif
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
