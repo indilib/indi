@@ -1135,7 +1135,7 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
                 if (ExposureTime*1000 < POLLMS)
-                    POLLMS = ExposureTime*1000;
+                    POLLMS = ExposureTime*950;
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -2000,6 +2000,9 @@ void CCD::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p,
 
 bool CCD::ExposureComplete(CCDChip *targetChip)
 {
+    // Reset POLLMS to default value
+    POLLMS = getPollingPeriod();
+
 #ifdef WITH_EXPOSURE_LOOPING
     // If looping is on, let's immediately take another capture
     if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
@@ -2017,7 +2020,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
                 auto end = std::chrono::system_clock::now();                
 
                 uploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - exposureLoopStartup)).count() / 1000.0 - duration;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Image upload/save took %.3f seconds.", uploadTime);
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Image download and upload/save took %.3f seconds.", uploadTime);
 
                 exposureLoopStartup = end;
             }
@@ -2032,13 +2035,17 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
                 if (duration*1000 < POLLMS)
-                    POLLMS = duration*1000;
+                    POLLMS = duration*950;
             }
             else
             {
                 DEBUGF(INDI::Logger::DBG_ERROR, "Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
+                ExposureLoopCountN[0].value=1;
+                ExposureLoopCountNP.s = IPS_IDLE;
+                IDSetNumber(&ExposureLoopCountNP, nullptr);
+                uploadTime = 0;
                 return false;
             }
         }
@@ -2047,12 +2054,8 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             ExposureLoopCountNP.s = IPS_IDLE;
             IDSetNumber(&ExposureLoopCountNP, nullptr);
         }
-    }
-    else
-        POLLMS = getPollingPeriod();
+    }    
 #endif
-
-
 
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
