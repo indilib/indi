@@ -38,7 +38,6 @@
 
 #include <cmath>
 #include <regex>
-#include <chrono>
 
 #include <dirent.h>
 #include <cerrno>
@@ -2003,34 +2002,57 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
 {
 #ifdef WITH_EXPOSURE_LOOPING
     // If looping is on, let's immediately take another capture
-    if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON && ExposureLoopCountN[0].value > 1)
+    if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
     {
-        ExposureLoopCountN[0].value--;
-        IDSetNumber(&ExposureLoopCountNP, nullptr);
-
         double duration = targetChip->getExposureDuration();
 
-        if (uploadTime < duration)
+        if (ExposureLoopCountN[0].value > 1)
         {
-            StartExposure(duration);
-            PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
-            IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-            if (duration*1000 < POLLMS)
-                POLLMS = duration*1000;
+            if (ExposureLoopCountNP.s != IPS_BUSY)
+            {
+                exposureLoopStartup = std::chrono::system_clock::now();
+            }
+            else
+            {
+                auto end = std::chrono::system_clock::now();                
+
+                uploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - exposureLoopStartup)).count() / 1000.0 - duration;
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Image upload/save took %.3f seconds.", uploadTime);
+
+                exposureLoopStartup = end;
+            }
+
+            ExposureLoopCountNP.s = IPS_BUSY;
+            ExposureLoopCountN[0].value--;
+            IDSetNumber(&ExposureLoopCountNP, nullptr);
+
+            if (uploadTime < duration)
+            {
+                StartExposure(duration);
+                PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
+                IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
+                if (duration*1000 < POLLMS)
+                    POLLMS = duration*1000;
+            }
+            else
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
+                PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
+                IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
+                return false;
+            }
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
-            PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
-            IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-            return false;
+            ExposureLoopCountNP.s = IPS_IDLE;
+            IDSetNumber(&ExposureLoopCountNP, nullptr);
         }
     }
     else
         POLLMS = getPollingPeriod();
 #endif
 
-    auto start = std::chrono::system_clock::now();
+
 
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
@@ -2596,13 +2618,6 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
 
     targetChip->ImageExposureNP.s = IPS_OK;
     IDSetNumber(&targetChip->ImageExposureNP, nullptr);
-
-    auto end = std::chrono::system_clock::now();
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Image upload/save took %d ms.", (std::chrono::duration_cast<std::chrono::milliseconds>(end - start)).count());
-    #ifdef WITH_EXPOSURE_LOOPING
-    uploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - start)).count() / 1000.0;
-    #endif
 
     if (autoLoop)
     {

@@ -32,6 +32,7 @@
 
 #include <memory>
 #include <cstring>
+#include <chrono>
 
 #include <stdint.h>
 
@@ -860,6 +861,7 @@ class CCD : public DefaultDevice, GuiderInterface
     INumber ExposureLoopCountN[1];
     INumberVectorProperty ExposureLoopCountNP;
     double uploadTime = { 0 };
+    std::chrono::system_clock::time_point exposureLoopStartup;
 #endif
 
     // FITS Header
