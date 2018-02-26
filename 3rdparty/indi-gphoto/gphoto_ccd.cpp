@@ -889,7 +889,7 @@ bool GPhotoCCD::Connect()
         options = gphoto_get_formats(gphotodrv, &max_opts);
     }
 
-    if (!sim && max_opts > 0)
+    if (max_opts > 0)
     {
         mFormatS      = create_switch("FORMAT", options, max_opts, setidx);
         mFormatSP.sp  = mFormatS;
@@ -937,12 +937,9 @@ bool GPhotoCCD::Connect()
         options = gphoto_get_iso(gphotodrv, &max_opts);
     }
 
-    if (!sim)
-    {
-        mIsoS      = create_switch("ISO", options, max_opts, setidx);
-        mIsoSP.sp  = mIsoS;
-        mIsoSP.nsp = max_opts;
-    }
+    mIsoS      = create_switch("ISO", options, max_opts, setidx);
+    mIsoSP.sp  = mIsoS;
+    mIsoSP.nsp = max_opts;
 
     if (mExposurePresetS)
     {
@@ -964,7 +961,7 @@ bool GPhotoCCD::Connect()
         options  = gphoto_get_exposure_presets(gphotodrv, &max_opts);
     }
 
-    if (!sim && max_opts > 0)
+    if (max_opts > 0)
     {
         mExposurePresetS      = create_switch("EXPOSURE_PRESET", options, max_opts, setidx);
         mExposurePresetSP.sp  = mExposurePresetS;
