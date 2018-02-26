@@ -4,6 +4,8 @@
  Copyright (c) 2012 Cloudmakers, s. r. o.
  All Rights Reserved.
 
+ Copyright(c) 2018 Jasem Mutlaq. All rights reserved.
+
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the Free
  Software Foundation; either version 2 of the License, or (at your option)
@@ -30,6 +32,7 @@
 
 #include <memory>
 #include <string.h>
+#include <connectionplugins/connectionserial.h>
 
 std::unique_ptr<SXAO> sxao(new SXAO);
 
@@ -70,37 +73,9 @@ void ISSnoopDevice(XMLEle *root)
     INDI_UNUSED(root);
 }
 
-int SXAO::aoCommand(const char *request, char *response, int nbytes)
-{
-    if (isSimulation())
-    {
-        IDMessage(getDeviceName(), "simulation: command %s", request);
-        if (!strcmp(request, "X"))
-            strcpy(response, "Y");
-        else
-            strcpy(response, "*");
-        return TTY_OK;
-    }
-    int actual;
-    int rc = tty_write(PortFD, request, strlen(request), &actual);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "aoCommand: tty_write('%s') -> %d\n", request, rc);
-    if (rc == TTY_OK)
-    {
-        rc               = tty_read(PortFD, response, nbytes, 10, &actual);
-        response[actual] = 0;
-        DEBUGF(INDI::Logger::DBG_DEBUG, "aoCommand: tty_read() -> '%s', %d\n", response, rc);
-    }
-    return rc;
-}
-
 SXAO::SXAO()
 {
-    setDeviceName(getDefaultName());
     setVersion(VERSION_MAJOR, VERSION_MINOR);
-}
-
-SXAO::~SXAO()
-{
 }
 
 const char *SXAO::getDefaultName()
@@ -108,92 +83,45 @@ const char *SXAO::getDefaultName()
     return (char *)"SX AO";
 }
 
-void SXAO::debugTriggered(bool enable)
+int SXAO::aoCommand(const char *request, char *response, int nbytes)
 {
-    INDI_UNUSED(enable);
-}
-
-void SXAO::simulationTriggered(bool enable)
-{
-    INDI_UNUSED(enable);
-}
-
-bool SXAO::Connect()
-{
-    if (isConnected())
-    {
-        return true;
-    }
-    char buf[MAXRBUF];
-    bool rc = false;
-    const char *port = PortT[0].text;
-
     if (isSimulation())
-        IDMessage(getDeviceName(), "simulation: connected");
-    else
     {
-        if ((rc = tty_connect(port, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
-        {
-            tty_error_msg(rc, buf, MAXRBUF);
-            IDMessage(getDeviceName(), "Failed to connect to SXAO on %s (%s)", port, buf);
-            return false;
-        }
+        DEBUGF(INDI::Logger::DBG_DEBUG, "simulation: command %s", request);
+
+        if (!strcmp(request, "X"))
+            strcpy(response, "Y");
+        else
+            strcpy(response, "*");
+        return TTY_OK;
     }
 
-    rc = aoCommand("X", buf, 1);
+    int actual;
+    int rc = tty_write(PortFD, request, strlen(request), &actual);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", request);
+
     if (rc == TTY_OK)
     {
-        if (!strcmp(buf, "Y"))
-        {
-            aoCommand("V", FWT[0].text, 4);
-            IDMessage(getDeviceName(), "SXAO [%s] is connected on %s.", FWT[0].text, port);
-            if (!strcmp(FWT[0].text, "V000"))
-            {
-                IDMessage(getDeviceName(), "Firmware needs to be updated!");
-                tty_disconnect(PortFD);
-                return false;
-            }
-            AOCenter();
-            return true;
-        }
-        else
-        {
-            IDMessage(getDeviceName(), "Not a SXAO on %s", port);
-            tty_disconnect(PortFD);
-            return false;
-        }
+        rc = tty_read(PortFD, response, nbytes, 10, &actual);
+        response[actual] = 0;
+        DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", response);
+    }
+    else
+    {
+        char errstr[MAXRBUF];
+        tty_error_msg(rc, errstr, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "aoCommand TTY error: %s", errstr);
     }
 
-    IDMessage(getDeviceName(), "Failed to connect to SXAO on %s (%d)", port, rc);
-    tty_disconnect(PortFD);
-
-    return false;
-}
-
-bool SXAO::Disconnect()
-{
-    if (isSimulation())
-        IDMessage(getDeviceName(), "simulation: disconnected");
-    else
-        tty_disconnect(PortFD);
-    IDMessage(getDeviceName(), "SXAO is disconnected.");
-    return true;
+    return rc;
 }
 
 bool SXAO::initProperties()
 {
     DefaultDevice::initProperties();
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
-    addDebugControl();
-    addSimulationControl();
-#if __APPLE__
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/cu.usbserial-FTDFZ2FW");
-#else
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
-#endif
-    IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
-    defineText(&PortTP);
-    loadConfig(true, "DEVICE_PORT");
+
     IUFillNumber(&AONS[0], "AO_N", "North (steps)", "%g", 0, 80, 1, 0);
     IUFillNumber(&AONS[1], "AO_S", "South (steps)", "%g", 0, 80, 1, 0);
     IUFillNumberVector(&AONSNP, AONS, 2, getDeviceName(), "AO_NS", "AO Tilt North/South", GUIDE_CONTROL_TAB, IP_RW, 60,
@@ -213,12 +141,53 @@ bool SXAO::initProperties()
     IUFillLightVector(&AtLimitLP, AtLimitL, 4, getDeviceName(), "AT_LIMIT", "At limit", MAIN_CONTROL_TAB, IPS_IDLE);
     IUFillText(&FWT[0], "FIRMWARE", "Firmware version", "V000");
     IUFillTextVector(&FWTP, FWT, 1, getDeviceName(), "INFO", "Info", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
+
+    serialConnection = new Connection::Serial(this);
+    serialConnection->registerHandshake([&]() { return Handshake(); });
+    registerConnection(serialConnection);
+
+    addDebugControl();
+    addSimulationControl();
+
+    setDriverInterface(AO_INTERFACE | GUIDER_INTERFACE);
+
     return true;
+}
+
+bool SXAO::Handshake()
+{
+    PortFD = serialConnection->getPortFD();
+
+    char buf[8]={0};
+    int rc = aoCommand("X", buf, 1);
+
+    if (rc == TTY_OK)
+    {
+        if (!strcmp(buf, "Y"))
+        {
+            aoCommand("V", FWT[0].text, 4);
+            if (!strcmp(FWT[0].text, "V000"))
+            {
+                DEBUG(INDI::Logger::DBG_ERROR, "Firmware needs to be updated!");
+                return false;
+            }
+            AOCenter();
+            return true;
+        }
+        else
+        {
+            DEBUG(INDI::Logger::DBG_ERROR, "Not SXAO was detected.");
+            return false;
+        }
+    }
+
+    return false;
 }
 
 bool SXAO::updateProperties()
 {
     INDI::DefaultDevice::updateProperties();
+
     if (isConnected())
     {
         defineNumber(&GuideNSNP);
@@ -240,15 +209,6 @@ bool SXAO::updateProperties()
         deleteProperty(AtLimitLP.name);
     }
     return true;
-}
-
-void SXAO::ISGetProperties(const char *dev)
-{
-    DefaultDevice::ISGetProperties(dev);
-
-    loadConfig(true, "DEVICE_PORT");
-
-    return;
 }
 
 bool SXAO::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -291,22 +251,13 @@ bool SXAO::ISNewNumber(const char *dev, const char *name, double values[], char 
         CheckLimit(false);
         return true;
     }
-    else
-        processGuiderProperties(name, values, names, n);
-    return DefaultDevice::ISNewNumber(dev, name, values, names, n);
-}
-
-bool SXAO::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    if (strcmp(name, PortTP.name) == 0)
+    else if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
     {
-        int rc;
-        PortTP.s = IPS_OK;
-        rc       = IUUpdateText(&PortTP, texts, names, n);
-        IDSetText(&PortTP, NULL);
+        processGuiderProperties(name, values, names, n);
         return true;
     }
-    return DefaultDevice::ISNewText(dev, name, texts, names, n);
+
+    return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
 bool SXAO::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -331,6 +282,7 @@ bool SXAO::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         CheckLimit(true);
         return true;
     }
+
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 

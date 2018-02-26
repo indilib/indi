@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 2.8)
 PROJECT(indi_sx CXX C)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
@@ -6,8 +6,9 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 set(RULES_INSTALL_DIR "/lib/udev/rules.d/")
 
+SET(CMAKE_CXX_STANDARD 11)
 set (VERSION_MAJOR 1)
-set (VERSION_MINOR 12)
+set (VERSION_MINOR 13)
 
 configure_file (
   "${CMAKE_CURRENT_SOURCE_DIR}/sxconfig.h.in"
