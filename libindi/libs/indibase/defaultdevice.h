@@ -119,6 +119,9 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     /** \brief Add Configuration control to the driver */
     void addConfigurationControl();
 
+    /** \brief Add Polling period control to the driver */
+    void addPollPeriodControl();
+
     /** \brief Set all properties to IDLE state */
     void resetProperties();
 
@@ -433,6 +436,9 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     /** @return Return actively selected connection plugin */
     Connection::Interface *getActiveConnection() { return activeConnection; }
 
+    void setDefaultPollingPeriod(uint32_t period);
+    uint32_t getPollingPeriod() { return PollPeriodN[0].value; }
+
     /** \return Default name of the device. */
     virtual const char *getDefaultName() = 0;
 
@@ -452,11 +458,13 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     ISwitch SimulationS[2];
     ISwitch ConfigProcessS[3];
     ISwitch ConnectionS[2];
+    INumber PollPeriodN[1];
 
     ISwitchVectorProperty DebugSP;
     ISwitchVectorProperty SimulationSP;
     ISwitchVectorProperty ConfigProcessSP;
     ISwitchVectorProperty ConnectionSP;
+    INumberVectorProperty PollPeriodNP;
 
     IText DriverInfoT[4];
     ITextVectorProperty DriverInfoTP;
