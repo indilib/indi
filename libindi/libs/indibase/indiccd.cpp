@@ -2051,6 +2051,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
         }
         else
         {
+            uploadTime = 0;
             ExposureLoopCountNP.s = IPS_IDLE;
             IDSetNumber(&ExposureLoopCountNP, nullptr);
         }
