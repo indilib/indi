@@ -38,7 +38,6 @@
 #define MIN_CCD_TEMP   -55  /* Min CCD temperature */
 #define MAX_X_BIN      16   /* Max Horizontal binning */
 #define MAX_Y_BIN      16   /* Max Vertical binning */
-#define POLLMS         1000 /* Polling time (ms) */
 #define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
 #define NFLUSHES       1    /* Number of times a CCD array is flushed before an exposure */
 

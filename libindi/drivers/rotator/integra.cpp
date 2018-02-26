@@ -32,7 +32,6 @@
 #define INTEGRA_TEMPERATURE_TRESHOLD_IN_C 0.1
 #define INTEGRA_ROUNDING_FUDGE 0.001
 
-#define POLLMS 1000
 #define ROTATOR_TAB "Rotator"
 #define SETTINGS_TAB "Settings"
 
@@ -124,8 +123,6 @@ bool Integra::initProperties()
     IUFillNumberVector(&RotatorAbsPosNP, RotatorAbsPosN, 1, getDeviceName(), "ABS_ROTATOR_POSITION", "Goto", ROTATOR_TAB, IP_RW, 0, IPS_IDLE );
 
     addDebugControl();
-
-    updatePeriodMS = POLLMS;
 
     serialConnection->setDefaultPort("/dev/integra_focusing_rotator1");
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);

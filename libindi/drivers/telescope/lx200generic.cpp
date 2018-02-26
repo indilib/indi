@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 2013 - 10 - 27:
     Updated driver to use INDI::Telescope (JM)
   2015 - 11 - 25:
-  Use variable updatePeriodMS instead of static POLLMS
+  Use variable POLLMS instead of static POLLMS
 
   #endif
 

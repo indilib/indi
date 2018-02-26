@@ -34,8 +34,6 @@
 // We declare an auto pointer to AstrometryDriver.
 std::unique_ptr<AstrometryDriver> astrometry(new AstrometryDriver());
 
-#define POLLMS 1000
-
 void ISGetProperties(const char *dev)
 {
     astrometry->ISGetProperties(dev);

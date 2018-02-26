@@ -79,7 +79,6 @@ double max(void);
 
 #define FILTER_WHEEL_TAB "Filter Wheel"
 
-#define POLLMS         1000 /* Polling time (ms) */
 #define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
 #define NFLUSHES       1    /* Number of times a CCD array is flushed before an exposure */
 

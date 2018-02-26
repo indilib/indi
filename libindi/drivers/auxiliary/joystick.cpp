@@ -28,8 +28,6 @@
 #include <memory>
 #include <cstring>
 
-#define POLLMS 250
-
 // We declare an auto pointer to joystick.
 std::unique_ptr<JoyStick> joystick(new JoyStick());
 

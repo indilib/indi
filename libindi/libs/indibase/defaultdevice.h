@@ -443,7 +443,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     virtual const char *getDefaultName() = 0;
 
     /// Period in milliseconds to call TimerHit(). Default 1000 ms
-    uint32_t updatePeriodMS = 1000;
+    uint32_t POLLMS = 1000;
 
   private:
     bool isInit;

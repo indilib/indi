@@ -53,8 +53,6 @@ const char *GUIDE_CONTROL_TAB  = "Guider Control";
 const char *RAPIDGUIDE_TAB     = "Rapid Guide";
 const char *WCS_TAB            = "WCS";
 
-#define POLLMS  1000
-
 // Create dir recursively
 static int _ccd_mkdir(const char *dir, mode_t mode)
 {
@@ -1137,7 +1135,7 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
                 }
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
-                updatePeriodMS = 10;
+                POLLMS = 10;
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -2013,7 +2011,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             StartExposure(targetChip->getExposureDuration());
             PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
             IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-            updatePeriodMS = 10;
+            POLLMS = 10;
         }
         else
         {
@@ -2024,7 +2022,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
         }
     }
     else
-        updatePeriodMS = getPollingPeriod();
+        POLLMS = getPollingPeriod();
 #endif
 
     auto start = std::chrono::system_clock::now();

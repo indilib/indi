@@ -40,8 +40,6 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#define POLLMS 100
-
 // We declare unique pointer to my lovely German Shephard Tommy (http://indilib.org/images/juli_tommy.jpg)
 std::unique_ptr<SkySafari> tommyGoodBoy(new SkySafari());
 
@@ -138,6 +136,8 @@ bool SkySafari::initProperties()
                      OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     addDebugControl();
+
+    setDefaultPollingPeriod(100);
 
     return true;
 }

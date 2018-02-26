@@ -60,8 +60,6 @@ std::unique_ptr<EQMod> eqmod(new EQMod());
 #define SLEW_LIMIT      2   /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
 #define FINE_SLEW_LIMIT 0.5 /* Move at FINE_SLEW_RATE until distance from target is FINE_SLEW_LIMIT degrees */
 
-#define POLLMS 1000
-
 #define GOTO_ITERATIVE_LIMIT 5 /* Max GOTO Iterations */
 #define RAGOTORESOLUTION     5 /* GOTO Resolution in arcsecs */
 #define DEGOTORESOLUTION     5 /* GOTO Resolution in arcsecs */

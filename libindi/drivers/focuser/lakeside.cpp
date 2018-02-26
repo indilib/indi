@@ -53,9 +53,6 @@ Modifications
 //  or nothing in the buffer during GetLakesideStatus()
 #define LAKESIDE_TIMEOUT_RETRIES   2
 
-// poll ever 1 second
-#define POLLMS  1000
-
 std::unique_ptr<Lakeside> lakeside(new Lakeside());
 
 void ISGetProperties(const char *dev)
@@ -183,6 +180,8 @@ bool Lakeside::initProperties()
 
     // shephpj - not used
     //FocusAbsPosN[0].max = 65536.;
+
+    setDefaultPollingPeriod(1000);
 
     addDebugControl();
 

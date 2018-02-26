@@ -30,7 +30,6 @@
 #include <unistd.h>
 
 #define MOONLITE_TIMEOUT 3
-#define POLLMS 500
 
 std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
@@ -129,9 +128,8 @@ bool MoonLite::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
 
+    setDefaultPollingPeriod(500);
     addDebugControl();
-
-    updatePeriodMS = POLLMS;
 
     return true;
 }

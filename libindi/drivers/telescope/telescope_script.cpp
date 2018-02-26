@@ -24,7 +24,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#define POLLMS  1000
 #define MAXARGS 20
 
 typedef enum

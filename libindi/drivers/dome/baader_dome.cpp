@@ -32,7 +32,6 @@
 // We declare an auto pointer to BaaderDome.
 std::unique_ptr<BaaderDome> baaderDome(new BaaderDome());
 
-#define POLLMS            1000 /* Update frequency 1000 ms */
 #define DOME_CMD          9    /* Dome command in bytes */
 #define DOME_BUF          16   /* Dome command buffer */
 #define DOME_TIMEOUT      3    /* 3 seconds comm timeout */

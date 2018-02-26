@@ -45,8 +45,6 @@
 #define RESOLUTION_PX(size) (RESOLUTION_AS(size) * IMAGE_WIDTH / (FOV_DEG*60*60))
 #define RESOLUTION_PY(size) (RESOLUTION_AS(size) * IMAGE_HEIGHT / (FOV_DEG*60*60))
 
-const int POLLMS = 500; /* Polling interval 500 ms */
-
 static RadioSim *receiver;
 
 static void cleanup()
@@ -192,6 +190,8 @@ bool RadioSim::initProperties()
 
 	// Add Debug, Simulator, and Configuration controls
 	addAuxControls();
+
+        setDefaultPollingPeriod(500);
 
 	return true;
 }

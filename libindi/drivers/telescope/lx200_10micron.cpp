@@ -191,7 +191,7 @@ bool LX200_10MICRON::updateProperties()
     return result;
 }
 
-// INDI::Telescope calls ReadScopeStatus() every updatePeriodMS to check the link to the telescope and update its state and position.
+// INDI::Telescope calls ReadScopeStatus() every POLLMS to check the link to the telescope and update its state and position.
 // The child class should call newRaDec() whenever a new value is read from the telescope.
 bool LX200_10MICRON::ReadScopeStatus()
 {

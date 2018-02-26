@@ -32,8 +32,6 @@
 
 #define MICROTOUCH_TIMEOUT 3
 
-#define POLLMS 1000
-
 std::unique_ptr<Microtouch> microTouch(new Microtouch());
 
 void ISGetProperties(const char *dev)

@@ -41,7 +41,6 @@
 #define ArmPlat_TIMEOUT 2
 #define FOCUS_SETTINGS_TAB "Settings"
 
-#define POLLMS 1000
 #define SLP_SEND_BUF_SIZE 80
 
 #define OPERATIVES	2		// relating the hw/fw info from the controller
@@ -175,8 +174,6 @@ bool ArmPlat::initProperties()
 
 
     addDebugControl();
-
-    updatePeriodMS = POLLMS;
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
@@ -693,7 +690,7 @@ void ArmPlat::TimerHit()
 
     if (!isConnected())
     {
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
         return;
     }
 
@@ -704,7 +701,7 @@ void ArmPlat::TimerHit()
 		DEBUG( INDI::Logger::DBG_WARNING, "Port must be selected (and configuration saved)" );
 		portWarned = true;
 	}
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
 	return;
     }
     else
@@ -747,7 +744,7 @@ void ArmPlat::TimerHit()
 	}
     }
 
-    SetTimer(updatePeriodMS);
+    SetTimer(POLLMS);
 }
 
 bool ArmPlat::AbortFocuser()

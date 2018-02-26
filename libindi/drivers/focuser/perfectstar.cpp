@@ -24,7 +24,6 @@
 #include <cstring>
 #include <memory>
 
-#define POLLMS              1000 /* 1000 ms */
 #define PERFECTSTAR_TIMEOUT 1000 /* 1000 ms */
 
 #define FOCUS_SETTINGS_TAB "Settings"

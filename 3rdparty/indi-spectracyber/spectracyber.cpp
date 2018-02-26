@@ -50,8 +50,6 @@
 #define CONT_CHANNEL 0
 #define SPEC_CHANNEL 1
 
-const int POLLMS = 1000;
-
 //const int SPECTROMETER_READ_BUFFER  = 16;
 const int SPECTROMETER_ERROR_BUFFER = 128;
 const int SPECTROMETER_CMD_LEN      = 5;

@@ -1474,7 +1474,7 @@ void Telescope::TimerHit()
             IDSetNumber(&EqNP, nullptr);
         }
 
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
     }
 }
 

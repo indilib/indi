@@ -35,7 +35,6 @@
 #define NC_30_STEPS 444080
 #define NC_35_STEPS 505960
 
-#define POLLMS 500
 #define ROTATOR_TAB "Rotator"
 #define AUX_TAB "Aux"
 #define SETTINGS_TAB "Settings"
@@ -187,7 +186,7 @@ bool NightCrawler::initProperties()
 
     addDebugControl();
 
-    updatePeriodMS = POLLMS;
+    setDefaultPollingPeriod(500);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_57600);
 

@@ -37,7 +37,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#define POLLMS      250 /* Polling time (ms) */
 #define MAX_DEVICES 16  /* Max device cameraCount */
 
 static int num_wheels;
@@ -274,6 +273,7 @@ bool ASIWHEEL::initProperties()
 {
     INDI::FilterWheel::initProperties();
     addAuxControls();
+    setDefaultPollingPeriod(250);
     return true;
 }
 

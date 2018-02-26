@@ -8,7 +8,6 @@
 
 using namespace INDI::AlignmentSubsystem;
 
-#define POLLMS              1000 // Default timer tick
 #define MAX_SLEW_RATE       9
 #define FIND_SLEW_RATE      7
 #define CENTERING_SLEW_RATE 3

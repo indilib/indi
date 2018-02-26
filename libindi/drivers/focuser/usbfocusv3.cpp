@@ -31,8 +31,6 @@
 
 #define USBFOCUSV3_TIMEOUT 3
 
-#define POLLMS 500
-
 #define SRTUS 25000
 
 /***************************** Class USBFocusV3 *******************************/
@@ -165,6 +163,8 @@ bool USBFocusV3::initProperties()
     FocusAbsPosN[0].step  = 1;
 
     addDebugControl();
+
+    setDefaultPollingPeriod(500);
 
     return true;
 }

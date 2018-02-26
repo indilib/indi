@@ -32,8 +32,6 @@
 
 #include <unistd.h>
 
-#define POLLMS 250
-
 // We declare an auto pointer to gpGuide.
 std::unique_ptr<STAR2000> s2kGuide(new STAR2000());
 
@@ -136,6 +134,8 @@ bool STAR2000::initProperties()
     addDebugControl();
 
     setDriverInterface(TELESCOPE_INTERFACE);
+
+    setDefaultPollingPeriod(250);
 
     return (rc);
 }

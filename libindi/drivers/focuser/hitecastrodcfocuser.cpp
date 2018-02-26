@@ -23,7 +23,6 @@
 #include <cstring>
 #include <memory>
 
-#define POLLMS         500   /* 0.5s */
 #define HID_TIMEOUT    10000 /* 10s */
 #define FUDGE_FACTOR_H 1000
 #define FUDGE_FACTOR_L 885
@@ -173,6 +172,8 @@ bool HitecAstroDCFocuser::initProperties()
     FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
     FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
     FocusRelPosN[0].value = 100;
+
+    setDefaultPollingPeriod(500);
 
     return true;
 }

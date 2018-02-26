@@ -32,8 +32,6 @@
 
 #define USBDEWPOINT_TIMEOUT 3
 
-#define POLLMS 10000
-
 std::unique_ptr<USBDewpoint> usbDewpoint(new USBDewpoint());
 
 void ISGetProperties(const char *dev)
@@ -149,6 +147,7 @@ bool USBDewpoint::initProperties()
 
     addDebugControl();
     addConfigurationControl();
+    setDefaultPollingPeriod(10000);
     // No simulation control for now
 
     serialConnection = new Connection::Serial(this);

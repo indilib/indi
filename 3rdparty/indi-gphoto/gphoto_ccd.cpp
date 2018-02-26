@@ -33,7 +33,6 @@
 
 #define FOCUS_TAB    "Focus"
 #define MAX_DEVICES  5 /* Max device cameraCount */
-#define POLLMS       1000
 #define STREAMPOLLMS 50
 #define FOCUS_TIMER  50
 #define MAX_RETRIES  3

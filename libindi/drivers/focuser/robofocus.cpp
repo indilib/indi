@@ -47,8 +47,6 @@
 #define currentMaxPosition      MinMaxPositionN[1].value
 #define currentMaxTravel        MaxTravelN[0].value
 
-#define POLLMS 1000
-
 #define SETTINGS_TAB "Settings"
 
 std::unique_ptr<RoboFocus> roboFocus(new RoboFocus());
