@@ -2,7 +2,7 @@ Source: libfli
 Section: libs
 Priority: extra
 Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
-Build-Depends: debhelper (>= 6), cdbs, cmake, libusb-dev
+Build-Depends: debhelper (>= 6), cdbs, cmake, libusb-1.0-0-dev
 Standards-Version: 3.9.2
 
 Package: libfli2
