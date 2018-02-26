@@ -1135,7 +1135,8 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
                 }
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
-                POLLMS = 10;
+                if (ExposureTime*1000 < POLLMS)
+                    POLLMS = ExposureTime*1000;
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -1496,6 +1497,7 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
+            POLLMS = getPollingPeriod();
             IDSetSwitch(&PrimaryCCD.AbortExposureSP, nullptr);
             IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
 
@@ -2006,16 +2008,19 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
         ExposureLoopCountN[0].value--;
         IDSetNumber(&ExposureLoopCountNP, nullptr);
 
-        if (uploadTime < targetChip->getExposureDuration())
+        double duration = targetChip->getExposureDuration();
+
+        if (uploadTime < duration)
         {
-            StartExposure(targetChip->getExposureDuration());
+            StartExposure(duration);
             PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
             IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-            POLLMS = 10;
+            if (duration*1000 < POLLMS)
+                POLLMS = duration*1000;
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, targetChip->getExposureDuration());
+            DEBUGF(INDI::Logger::DBG_ERROR, "Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
             PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
             return false;
