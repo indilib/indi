@@ -1499,6 +1499,13 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             }
 
             POLLMS = getPollingPeriod();
+            if (ExposureLoopCountNP.s == IPS_BUSY)
+            {
+                uploadTime=0;
+                ExposureLoopCountNP.s = IPS_IDLE;
+                ExposureLoopCountN[0].value = 1;
+                IDSetNumber(&ExposureLoopCountNP, nullptr);
+            }
             IDSetSwitch(&PrimaryCCD.AbortExposureSP, nullptr);
             IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
 
