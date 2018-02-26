@@ -1266,7 +1266,6 @@ void QSICCD::TimerHit()
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Image not ready, time left %ld\n", timeleft);
             PrimaryCCD.setExposureLeft(timeleft);
         }
     }
