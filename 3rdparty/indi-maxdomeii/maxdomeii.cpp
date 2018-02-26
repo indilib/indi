@@ -44,8 +44,6 @@
 #define LOGF_ERROR(...) DEBUGF(INDI::Logger::DBG_ERROR, __VA_ARGS__)
 
 
-const int POLLMS = 1000; // Period of update, 1 second.
-
 // We declare an auto pointer to dome.
 std::unique_ptr<MaxDomeII> dome(new MaxDomeII());
 
