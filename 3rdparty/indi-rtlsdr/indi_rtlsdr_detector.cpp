@@ -28,8 +28,6 @@
 #define SUBFRAME_SIZE 256
 #define SAMPLE_RATE 10000
 
-const int POLLMS = 500; /* Polling interval 500 ms */
-
 static int iNumofConnectedDetectors;
 static RTLSDR *receivers[MAX_DEVICES];
 
@@ -235,6 +233,8 @@ bool RTLSDR::initProperties()
 
 	// Add Debug, Simulator, and Configuration controls
 	addAuxControls();
+
+    setDefaultPollingPeriod(500);
 
 	return true;
 }
