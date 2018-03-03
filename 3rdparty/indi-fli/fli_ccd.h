@@ -47,6 +47,7 @@ class FLICCD : public INDI::CCD
     bool StartExposure(float duration);
     bool AbortExposure();
 
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
   protected:
@@ -57,6 +58,7 @@ class FLICCD : public INDI::CCD
     virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType);
 
     virtual void debugTriggered(bool enable);
+    virtual bool saveConfigItems(FILE *fp);
 
   private:
     // Find FLI CCD
@@ -76,7 +78,7 @@ class FLICCD : public INDI::CCD
         flidomain_t domain;
         char *dname;
         char *name;
-        char model[32];
+        char model[32]={0};
         long HWRevision;
         long FWRevision;
         double x_pixel_size;
@@ -96,8 +98,13 @@ class FLICCD : public INDI::CCD
     INumber CoolerN[1];
     INumberVectorProperty CoolerNP;
 
-    double minDuration;
-    int timerID;
+    INumber FlushN[1];
+    INumberVectorProperty FlushNP;
+
+    ISwitch BackgroundFlushS[2];
+    ISwitchVectorProperty BackgroundFlushSP;
+
+    int timerID=0;
 
     // Exposure timing
     struct timeval ExpStart;
