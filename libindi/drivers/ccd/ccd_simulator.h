@@ -140,8 +140,8 @@ protected:
     float PEPeriod { 8*60 };
     float PEMax { 11 };
 
-    double raPE { 0 };
-    double decPE { 0 };
+    double currentRA { 0 };
+    double currentDE { 0 };
     bool usePE { false };
     time_t RunStart;
 

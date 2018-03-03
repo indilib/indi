@@ -76,8 +76,8 @@ void ISSnoopDevice(XMLEle *root)
 
 CCDSim::CCDSim() : INDI::FilterInterface(this)
 {    
-    raPE  = RA;
-    decPE = Dec;
+    currentRA  = RA;
+    currentDE = Dec;
 
     streamPredicate = 0;
     terminateThread = false;
@@ -195,7 +195,13 @@ bool CCDSim::initProperties()
     IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config" , IP_RW, 60,
                        IPS_IDLE);
 
+    #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
+    #else
+    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    #endif
+
+
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
 
     uint32_t cap = 0;
@@ -231,7 +237,7 @@ void CCDSim::ISGetProperties(const char *dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineNumber(SimulatorSettingsNV);
-    defineSwitch(TimeFactorSV);
+    defineSwitch(TimeFactorSV);    
     defineNumber(&EqPENP);
 }
 
@@ -585,29 +591,34 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         ImageScalex = Scalex;
         ImageScaley = Scaley;
 
+        #ifdef USE_EQUATORIAL_PE
         if (!usePE)
         {
-            raPE  = RA;
-            decPE = Dec;
+        #endif
+
+            currentRA  = RA;
+            currentDE = Dec;
 
             ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
-            epochPos.ra  = raPE * 15.0;
-            epochPos.dec = decPE;
+            epochPos.ra  = currentRA * 15.0;
+            epochPos.dec = currentDE;
 
             // Convert from JNow to J2000
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
 
-            raPE  = J2000Pos.ra / 15.0;
-            decPE = J2000Pos.dec;
+            currentRA  = J2000Pos.ra / 15.0;
+            currentDE = J2000Pos.dec;
+        #ifdef USE_EQUATORIAL_PE
         }
+        #endif
 
         //  calc this now, we will use it a lot later
-        rad = raPE * 15.0;
+        rad = currentRA * 15.0;
         rar = rad * 0.0174532925;
         //  offsetting the dec by the guide head offset
         float cameradec;
-        cameradec = decPE + OAGoffset / 60;
+        cameradec = currentDE + OAGoffset / 60;
         decr      = cameradec * 0.0174532925;
 
         decDrift = (polarDrift * polarError * cos(decr)) / 3.81;
@@ -976,7 +987,7 @@ IPState CCDSim::GuideNorth(float v)
 
     c     = v / 1000 * GuideRate; //
     c     = c / 3600;
-    decPE = decPE + c;
+    currentDE += c;
 
     return IPS_OK;
 }
@@ -987,7 +998,7 @@ IPState CCDSim::GuideSouth(float v)
 
     c     = v / 1000 * GuideRate; //
     c     = c / 3600;
-    decPE = decPE - c;
+    currentDE -= c;
 
     return IPS_OK;
 }
@@ -998,8 +1009,8 @@ IPState CCDSim::GuideEast(float v)
 
     c    = v / 1000 * GuideRate;
     c    = c / 3600.0 / 15.0;
-    c    = c / (cos(decPE * 0.0174532925));
-    raPE = raPE + c;
+    c    = c / (cos(currentDE * 0.0174532925));
+    currentRA += c;
 
     return IPS_OK;
 }
@@ -1010,8 +1021,8 @@ IPState CCDSim::GuideWest(float v)
 
     c    = v / 1000 * GuideRate; //
     c    = c / 3600.0 / 15.0;
-    c    = c / (cos(decPE * 0.0174532925));
-    raPE = raPE - c;
+    c    = c / (cos(currentDE * 0.0174532925));
+    currentRA -= c;
 
     return IPS_OK;
 }
@@ -1064,8 +1075,8 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
             Dec = EqPEN[AXIS_DE].value;
 
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-            raPE  = J2000Pos.ra / 15.0;
-            decPE = J2000Pos.dec;
+            currentRA  = J2000Pos.ra / 15.0;
+            currentDE = J2000Pos.dec;
             usePE = true;
 
             IDSetNumber(&EqPENP, nullptr);
@@ -1138,29 +1149,30 @@ bool CCDSim::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
 void CCDSim::activeDevicesUpdated()
 {
+    #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
+    #else
+    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    #endif
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
 
-    //strncpy(EqPENP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
     strncpy(FWHMNP.device, ActiveDeviceT[1].text, MAXINDIDEVICE);
 }
 
 bool CCDSim::ISSnoopDevice(XMLEle *root)
 {
-    XMLEle *ep           = nullptr;
-    const char *propName = findXMLAttValu(root, "name");
-
     if (IUSnoopNumber(root, &FWHMNP) == 0)
     {
         seeing = FWHMNP.np[0].value;
-
-        //IDLog("CCD Simulator: New FWHM value of %g\n", seeing);
         return true;
     }
 
     // We try to snoop EQPEC first, if not found, we snoop regular EQNP
+    #ifdef USE_EQUATORIAL_PE
+    const char *propName = findXMLAttValu(root, "name");
     if (!strcmp(propName, EqPENP.name))
     {
+            XMLEle *ep = nullptr;
             int rc_ra = -1, rc_de = -1;
             double newra = 0, newdec = 0;
 
@@ -1193,6 +1205,7 @@ bool CCDSim::ISSnoopDevice(XMLEle *root)
                 return true;
             }
     }
+    #endif
 
     return INDI::CCD::ISSnoopDevice(root);
 }
