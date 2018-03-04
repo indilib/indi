@@ -56,9 +56,35 @@
 #define DEBUG(priority, msg) INDI::Logger::getInstance().print(getDeviceName(), priority, __FILE__, __LINE__, msg)
 #define DEBUGF(priority, msg, ...) \
     INDI::Logger::getInstance().print(getDeviceName(), priority, __FILE__, __LINE__, msg, __VA_ARGS__)
+
 #define DEBUGDEVICE(device, priority, msg) INDI::Logger::getInstance().print(device, priority, __FILE__, __LINE__, msg)
 #define DEBUGFDEVICE(device, priority, msg, ...) \
     INDI::Logger::getInstance().print(device, priority, __FILE__, __LINE__, msg, __VA_ARGS__)
+
+/**
+ * @brief Shorter logging macros. In order to use these macros, the function
+ * (or method) "getDeviceName()" must be defined in the calling scope.
+ *
+ * Usage examples:
+ *	    LOG_DEBUG("hello " << "world");
+ *	    LOGF_WARN("hello %s", "world");
+ */
+#define LOG_ERROR(txt)  DEBUG(INDI::Logger::DBG_ERROR, (txt))
+#define LOG_WARN(txt)   DEBUG(INDI::Logger::DBG_WARNING, (txt))
+#define LOG_INFO(txt)   DEBUG(INDI::Logger::DBG_SESSION, (txt))
+#define LOG_DEBUG(txt)  DEBUG(INDI::Logger::DBG_DEBUG, (txt))
+#define LOG_EXTRA1(txt)  DEBUG(INDI::Logger::DBG_EXTRA_1, (txt))
+#define LOG_EXTRA2(txt)  DEBUG(INDI::Logger::DBG_EXTRA_2, (txt))
+#define LOG_EXTRA3(txt)  DEBUG(INDI::Logger::DBG_EXTRA_3, (txt))
+
+#define LOGF_ERROR(...) DEBUGF(INDI::Logger::DBG_ERROR, __VA_ARGS__)
+#define LOGF_WARN(...)  DEBUGF(INDI::Logger::DBG_WARNING, __VA_ARGS__)
+#define LOGF_INFO(...)  DEBUGF(INDI::Logger::DBG_SESSION, __VA_ARGS__)
+#define LOGF_DEBUG(...) DEBUGF(INDI::Logger::DBG_DEBUG, __VA_ARGS__)
+#define LOGF_EXTRA1(...) DEBUGF(INDI::Logger::DBG_EXTRA_1, __VA_ARGS__)
+#define LOGF_EXTRA2(...) DEBUGF(INDI::Logger::DBG_EXTRA_2, __VA_ARGS__)
+#define LOGF_EXTRA3(...) DEBUGF(INDI::Logger::DBG_EXTRA_3, __VA_ARGS__)
+
 
 namespace INDI
 {
