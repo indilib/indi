@@ -25,6 +25,12 @@
 #include "config.h"
 #include <stream/streammanager.h>
 
+// Avoid duplicated definitions (macros previously defined in indibase)
+#undef LOG_DEBUG
+#undef LOG_INFO
+#undef LOG_WARN
+#undef LOG_ERROR
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <log4z.h>

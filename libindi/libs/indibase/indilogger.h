@@ -77,13 +77,13 @@
 #define LOG_EXTRA2(txt)  DEBUG(INDI::Logger::DBG_EXTRA_2, (txt))
 #define LOG_EXTRA3(txt)  DEBUG(INDI::Logger::DBG_EXTRA_3, (txt))
 
-#define LOGF_ERROR(...) DEBUGF(INDI::Logger::DBG_ERROR, __VA_ARGS__)
-#define LOGF_WARN(...)  DEBUGF(INDI::Logger::DBG_WARNING, __VA_ARGS__)
-#define LOGF_INFO(...)  DEBUGF(INDI::Logger::DBG_SESSION, __VA_ARGS__)
-#define LOGF_DEBUG(...) DEBUGF(INDI::Logger::DBG_DEBUG, __VA_ARGS__)
-#define LOGF_EXTRA1(...) DEBUGF(INDI::Logger::DBG_EXTRA_1, __VA_ARGS__)
-#define LOGF_EXTRA2(...) DEBUGF(INDI::Logger::DBG_EXTRA_2, __VA_ARGS__)
-#define LOGF_EXTRA3(...) DEBUGF(INDI::Logger::DBG_EXTRA_3, __VA_ARGS__)
+#define LOGF_ERROR(fmt, ...) DEBUGF(INDI::Logger::DBG_ERROR, (fmt), __VA_ARGS__)
+#define LOGF_WARN(fmt, ...)  DEBUGF(INDI::Logger::DBG_WARNING, (fmt), __VA_ARGS__)
+#define LOGF_INFO(fmt, ...)  DEBUGF(INDI::Logger::DBG_SESSION, (fmt), __VA_ARGS__)
+#define LOGF_DEBUG(fmt, ...) DEBUGF(INDI::Logger::DBG_DEBUG, (fmt), __VA_ARGS__)
+#define LOGF_EXTRA1(fmt, ...) DEBUGF(INDI::Logger::DBG_EXTRA_1, (fmt), __VA_ARGS__)
+#define LOGF_EXTRA2(fmt, ...) DEBUGF(INDI::Logger::DBG_EXTRA_2, (fmt), __VA_ARGS__)
+#define LOGF_EXTRA3(fmt, ...) DEBUGF(INDI::Logger::DBG_EXTRA_3, (fmt), __VA_ARGS__)
 
 
 namespace INDI
