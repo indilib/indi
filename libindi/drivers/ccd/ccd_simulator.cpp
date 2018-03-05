@@ -609,6 +609,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 
             currentRA  = J2000Pos.ra / 15.0;
             currentDE = J2000Pos.dec;
+
+            currentDE += guideNSOffset;
+            currentRA += guideWEOffset;
         #ifdef USE_EQUATORIAL_PE
         }
         #endif
@@ -983,46 +986,34 @@ int CCDSim::AddToPixel(INDI::CCDChip *targetChip, int x, int y, int val)
 
 IPState CCDSim::GuideNorth(float v)
 {
-    float c;
-
-    c     = v / 1000 * GuideRate; //
-    c     = c / 3600;
-    currentDE += c;
-
+    guideNSOffset    += v / 1000 * GuideRate / 3600;
     return IPS_OK;
 }
 
 IPState CCDSim::GuideSouth(float v)
 {
-    float c;
-
-    c     = v / 1000 * GuideRate; //
-    c     = c / 3600;
-    currentDE -= c;
-
+    guideNSOffset    += v / -1000 * GuideRate / 3600;
     return IPS_OK;
 }
 
 IPState CCDSim::GuideEast(float v)
 {
-    float c;
+    float c   = v / 1000 * GuideRate;
+    c   = c/ 3600.0 / 15.0;
+    c   = c/ (cos(currentDE * 0.0174532925));
 
-    c    = v / 1000 * GuideRate;
-    c    = c / 3600.0 / 15.0;
-    c    = c / (cos(currentDE * 0.0174532925));
-    currentRA += c;
+    guideWEOffset += c;
 
     return IPS_OK;
 }
 
 IPState CCDSim::GuideWest(float v)
 {
-    float c;
+    float c   = v / -1000 * GuideRate;
+    c   = c/ 3600.0 / 15.0;
+    c   = c/ (cos(currentDE * 0.0174532925));
 
-    c    = v / 1000 * GuideRate; //
-    c    = c / 3600.0 / 15.0;
-    c    = c / (cos(currentDE * 0.0174532925));
-    currentRA -= c;
+    guideWEOffset += c;
 
     return IPS_OK;
 }

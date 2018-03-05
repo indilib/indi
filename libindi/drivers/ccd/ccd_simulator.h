@@ -145,6 +145,9 @@ protected:
     bool usePE { false };
     time_t RunStart;
 
+    float guideNSOffset {0};
+    float guideWEOffset {0};
+
     float polarError { 0 };
     float polarDrift { 0 };
 

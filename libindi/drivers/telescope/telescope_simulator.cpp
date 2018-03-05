@@ -129,8 +129,8 @@ bool ScopeSim::initProperties()
 #endif
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
-    IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
+    IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.5);
+    IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
@@ -278,6 +278,7 @@ bool ScopeSim::ReadScopeStatus()
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
+    // Time diff is seconds
     dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
 
@@ -302,8 +303,8 @@ bool ScopeSim::ReadScopeStatus()
         switch (rate)
         {
             case SLEW_GUIDE:
-                da_ra  = FINE_SLEW_RATE * dt * 0.05;
-                da_dec = FINE_SLEW_RATE * dt * 0.05;
+                da_ra  = TrackRateN[AXIS_RA].value/(3600.0*15) * GuideRateN[RA_AXIS].value * dt;
+                da_dec = TrackRateN[AXIS_RA].value/3600.0 * GuideRateN[DEC_AXIS].value * dt;;
                 break;
 
             case SLEW_CENTERING:
@@ -424,6 +425,14 @@ bool ScopeSim::ReadScopeStatus()
 
                     TrackState = SCOPE_TRACKING;
 
+                    if (IUFindOnSwitchIndex(&SlewRateSP) != SLEW_CENTERING)
+                    {
+                        IUResetSwitch(&SlewRateSP);
+                        SlewRateS[SLEW_CENTERING].s = ISS_ON;
+                        IDSetSwitch(&SlewRateSP, nullptr);
+                    }
+
+
                     EqNP.s = IPS_OK;
                     DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
                 }
@@ -475,22 +484,21 @@ bool ScopeSim::ReadScopeStatus()
                 DEBUGF(INDI::Logger::DBG_DEBUG, "Commanded to GUIDE EAST for %g ms", guiderEWTarget[GUIDE_EAST]);
             }
 
+            if ( (ns_guide_dir != -1 || we_guide_dir != -1) && IUFindOnSwitchIndex(&SlewRateSP) != SLEW_GUIDE)
+            {
+                IUResetSwitch(&SlewRateSP);
+                SlewRateS[SLEW_GUIDE].s = ISS_ON;
+                IDSetSwitch(&SlewRateSP, nullptr);
+            }
+
             if (ns_guide_dir != -1)
             {
-                dec_guide_dt = TrackRateN[AXIS_RA].value/3600.0 * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 *
-                               (ns_guide_dir == GUIDE_NORTH ? 1 : -1);
+                dec_guide_dt = (TrackRateN[AXIS_RA].value * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 *
+                               (ns_guide_dir == GUIDE_NORTH ? 1 : -1)) / 3600.0;
 
-                // If time remaining is more that dt, then decrement and
-                if (guiderNSTarget[ns_guide_dir] >= dt)
-                    guiderNSTarget[ns_guide_dir] -= dt;
-                else
-                    guiderNSTarget[ns_guide_dir] = 0;
-
-                if (guiderNSTarget[ns_guide_dir] == 0)
-                {
-                    GuideNSNP.s = IPS_IDLE;
-                    IDSetNumber(&GuideNSNP, nullptr);
-                }
+                guiderNSTarget[ns_guide_dir] = 0;
+                GuideNSNP.s = IPS_IDLE;
+                IDSetNumber(&GuideNSNP, nullptr);
 
                 #ifdef USE_EQUATORIAL_PE
                 EqPEN[DEC_AXIS].value += dec_guide_dt;
@@ -501,19 +509,14 @@ bool ScopeSim::ReadScopeStatus()
 
             if (we_guide_dir != -1)
             {
-                ra_guide_dt = (TrackRateN[AXIS_RA].value/3600.0) / 15.0 * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 *
-                              (we_guide_dir == GUIDE_WEST ? -1 : 1);
+                ra_guide_dt = (TrackRateN[AXIS_RA].value * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 *
+                              (we_guide_dir == GUIDE_WEST ? -1 : 1)) / (3600.0*15.0);
 
-                if (guiderEWTarget[we_guide_dir] >= dt)
-                    guiderEWTarget[we_guide_dir] -= dt;
-                else
-                    guiderEWTarget[we_guide_dir] = 0;
+                ra_guide_dt /= (cos(currentDEC * 0.0174532925));
 
-                if (guiderEWTarget[we_guide_dir] == 0)
-                {
-                    GuideWENP.s = IPS_IDLE;
-                    IDSetNumber(&GuideWENP, nullptr);
-                }
+                guiderEWTarget[we_guide_dir] = 0;
+                GuideWENP.s = IPS_IDLE;
+                IDSetNumber(&GuideWENP, nullptr);
 
                 #ifdef USE_EQUATORIAL_PE
                 EqPEN[RA_AXIS].value += ra_guide_dt;
@@ -613,6 +616,13 @@ bool ScopeSim::Goto(double r, double d)
         {
             forceMeridianFlip = true;
         }
+    }
+
+    if (IUFindOnSwitchIndex(&TrackModeSP) != SLEW_MAX)
+    {
+        IUResetSwitch(&TrackModeSP);
+        TrackModeS[SLEW_MAX].s = ISS_ON;
+        IDSetSwitch(&TrackModeSP, nullptr);
     }
 
     TrackState = SCOPE_SLEWING;
