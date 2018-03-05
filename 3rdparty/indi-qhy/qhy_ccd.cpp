@@ -51,7 +51,7 @@ static void QhyCCDCleanup()
         delete cameras[i];
     }
 
-    //ReleaseQHYCCDResource();
+    ReleaseQHYCCDResource();
 }
 
 // Scan for the available devices
@@ -257,11 +257,6 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
     setVersion(INDI_QHY_VERSION_MAJOR, INDI_QHY_VERSION_MINOR);
 
     sim = false;
-}
-
-QHYCCD::~QHYCCD()
-{
-    ReleaseQHYCCDResource();
 }
 
 const char *QHYCCD::getDefaultName()
@@ -1135,18 +1130,17 @@ void QHYCCD::TimerHit()
 
                     PrimaryCCD.setExposureLeft(0);
                     InExposure = false;
-                    /* grab and save image */
+
+                    // grab and save image
                     grabImage();
                 }
             }
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
             SetTimer(POLLMS);
         }
-
-        PrimaryCCD.setExposureLeft(timeleft);
     }
 }
 
