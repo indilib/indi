@@ -118,7 +118,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     void ShowExtendedOptions(void);
     void HideExtendedOptions(void);
 
-    float CalcTimeLeft();
+    double CalcTimeLeft();
     bool grabImage();
 
     char name[MAXINDIDEVICE];

@@ -1074,7 +1074,7 @@ bool GPhotoCCD::UpdateCCDFrame(int x, int y, int w, int h)
     return true;
 }
 
-float GPhotoCCD::CalcTimeLeft()
+double GPhotoCCD::CalcTimeLeft()
 {
     double timesince;
     double timeleft;
@@ -1090,7 +1090,6 @@ float GPhotoCCD::CalcTimeLeft()
 
 void GPhotoCCD::TimerHit()
 {
-    long timeleft = 1e6;
     int timerID   = -1;
 
     if (isConnected() == false)
@@ -1153,7 +1152,7 @@ void GPhotoCCD::TimerHit()
 
     if (InExposure)
     {
-        timeleft = CalcTimeLeft();
+        double timeleft = CalcTimeLeft();
 
         if (timeleft < 1.0)
         {
@@ -1193,12 +1192,11 @@ void GPhotoCCD::TimerHit()
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Capture in progress. Time left %ld", timeleft);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Capture in progress. Time left %.2f", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
             if (timerID == -1)
                 SetTimer(POLLMS);
         }
-
-        PrimaryCCD.setExposureLeft(timeleft);
     }
 }
 
