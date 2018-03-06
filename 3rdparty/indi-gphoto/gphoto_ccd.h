@@ -139,6 +139,9 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     int timerID;
     bool frameInitialized;
 
+    int liveVideoWidth = {-1};
+    int liveVideoHeight= {-1};
+
     ISwitch mConnectS[2];
     ISwitchVectorProperty mConnectSP;
     IText mPortT[1];

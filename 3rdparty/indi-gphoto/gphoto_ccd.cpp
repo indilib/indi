@@ -1714,10 +1714,12 @@ bool GPhotoCCD::startLiveVideo()
         PrimaryCCD.setFrame(0, 0, w, h);
     }*/
 
-    int w=0,h=0;
     unsigned char *inBuffer = (unsigned char *)(const_cast<char *>(previewData));
-    read_jpeg_size(inBuffer, previewSize, &w, &h);
-    Streamer->setSize(w,h);
+    if (liveVideoWidth <= 0)
+    {
+        read_jpeg_size(inBuffer, previewSize, &liveVideoWidth, &liveVideoHeight);
+        Streamer->setSize(liveVideoWidth,liveVideoHeight);
+    }
     Streamer->newFrame(inBuffer, previewSize);
 
 #if 0
