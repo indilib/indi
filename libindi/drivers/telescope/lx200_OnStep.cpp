@@ -37,17 +37,17 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
     currentSubCatalog = 0;
 
     setVersion(1, 3);
+    
+    setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING);
+    
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
+    
     //CAN_ABORT, CAN_GOTO ,CAN_PARK ,CAN_SYNC ,HAS_LOCATION ,HAS_TIME ,HAS_TRACK_MODEAlready inherited from lx200generic,
     // 4 stands for the number of Slewrate Buttons as defined in Inditelescope.cpp
     //setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
-    /*
-     * Get generic capabilities but discard the followng:
-     * LX200_HAS_FOCUS
-     *
-     *
-    */
-    setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING);
+    //
+    // Get generic capabilities but discard the followng:
+    // LX200_HAS_FOCUS
 
 }
 
@@ -65,13 +65,13 @@ bool LX200_OnStep::initProperties()
     // ============== MAIN_CONTROL_TAB
     IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
     IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
-    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_ALERT);
+    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
 
     IUFillSwitch(&OSAlignS[0], "1", "1 Star", ISS_OFF);
     IUFillSwitch(&OSAlignS[1], "2", "2 Stars", ISS_OFF);
     IUFillSwitch(&OSAlignS[2], "3", "3 Stars", ISS_OFF);
     IUFillSwitch(&OSAlignS[3], "4", "Align", ISS_OFF);
-    IUFillSwitchVector(&OSAlignSP, OSAlignS, 4, getDeviceName(), "AlignStar", "Align using n stars", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&OSAlignSP, OSAlignS, 4, getDeviceName(), "AlignStar", "Align using n stars", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillText(&OSAlignT[0], "OSStarAlign", "Align x Star(s)", "Manual Alignment Process Idle");
     IUFillTextVector(&OSAlignTP, OSAlignT, 1, getDeviceName(), "Align Process", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
@@ -103,7 +103,7 @@ bool LX200_OnStep::initProperties()
     // ============== SITE_MANAGEMENT_TAB
     IUFillSwitch(&SetHomeS[0], "COLD_START", "Cold Start", ISS_OFF);
     IUFillSwitch(&SetHomeS[1], "WARM_START", "Init Home", ISS_OFF);
-    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_ALERT);
+    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
 
     // ============== GUIDE_TAB
 
@@ -209,6 +209,7 @@ bool LX200_OnStep::updateProperties()
 
     if (isConnected())
     {
+        // Firstinitialize some variables
         // keep sorted by TABs is easier
         // Main Control
         defineSwitch(&ReticSP);
@@ -237,14 +238,17 @@ bool LX200_OnStep::updateProperties()
         // Focuser 1
         if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
         {
+            OSFocuser1 = true;
             //defineSwitch(&OSFocus1SelSP);
             defineSwitch(&OSFocus1MotionSP);
             defineSwitch(&OSFocus1RateSP);
             defineNumber(&OSFocus1TargNP);
+
         }
         // Focuser 2
         if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2
         {
+            OSFocuser2 = true;
             //defineSwitch(&OSFocus2SelSP);
             defineSwitch(&OSFocus2MotionSP);
             defineSwitch(&OSFocus2RateSP);
@@ -572,7 +576,8 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             if (index == 3)
             {
                 if(sendOnStepCommand(":A+#"))
-                DEBUG(INDI::Logger::DBG_DEBUG, "Align");
+                    DEBUG(INDI::Logger::DBG_DEBUG, "Align");
+                OSAlignS[3].s=ISS_OFF;
             }
             OSAlignSP.s = IPS_OK;
             IDSetSwitch(&OSAlignSP, nullptr);
@@ -589,16 +594,17 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             if (ReticS[0].s == ISS_ON)
             {
                 ret = ReticPlus(PortFD);
+                ReticS[0].s=ISS_OFF;
                 IDSetSwitch(&ReticSP, "Bright");
             }
             else
             {
                 ret = ReticMoins(PortFD);
+                ReticS[1].s=ISS_OFF;
                 IDSetSwitch(&ReticSP, "Dark");
             }
 
             IUResetSwitch(&ReticSP);
-            //            ReticSP.s = IPS_IDLE;
             IDSetSwitch(&ReticSP, nullptr);
             return true;
         }
@@ -611,15 +617,17 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             if (SetHomeS[0].s == ISS_ON)
             {
-                if(sendOnStepCommandBlind(":hC#"))
+                if(!sendOnStepCommandBlind(":hC#"))
+                    return false;
                 IDSetSwitch(&SetHomeSP, "Cold Start");
-                return false;
+                SetHomeS[0].s = ISS_OFF;
             }
             else
             {
-                if(sendOnStepCommandBlind(":hF#"))
+                if(!sendOnStepCommandBlind(":hF#"))
+                    return false;
                 IDSetSwitch(&SetHomeSP, "Home Init");
-                return false;
+                SetHomeS[1].s = ISS_OFF;
             }
             IUResetSwitch(&ReticSP);
             SetHomeSP.s = IPS_IDLE;
@@ -1086,7 +1094,15 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     }
 
       
-    if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
+    //if (strstr(OSStat,"H")) { IUSaveText(&OnstepStat[3],"At Home"); }
+    if (strstr(OSStat,"H") && strstr(OSStat,"P"))
+    {
+        IUSaveText(&OnstepStat[3],"At Home and Parked");
+    }
+    if (strstr(OSStat,"H") && strstr(OSStat,"p"))
+    {
+        IUSaveText(&OnstepStat[3],"At Home and UnParked");
+    }
     if (strstr(OSStat,"W")) { IUSaveText(&OnstepStat[3],"Waiting at Home"); }
 
     // ============= Pec Status
@@ -1353,10 +1369,16 @@ bool LX200_OnStep::kdedialog(const char * commande)
 void LX200_OnStep::OSUpdateFocuser()
 {
     char value[10];
-    getCommandString(PortFD, value, ":FG#");
-    OSFocus1TargNP.np[0].value = atoi(value);
-    IDSetNumber(&OSFocus1TargNP, nullptr);
-    getCommandString(PortFD, value, ":fG#");
-    OSFocus2TargNP.np[0].value = atoi(value);
-    IDSetNumber(&OSFocus2TargNP, nullptr);
+    if(OSFocuser1)
+    {
+        getCommandString(PortFD, value, ":FG#");
+        OSFocus1TargNP.np[0].value = atoi(value);
+        IDSetNumber(&OSFocus1TargNP, nullptr);
+    }
+    if(OSFocuser2)
+    {
+        getCommandString(PortFD, value, ":fG#");
+        OSFocus2TargNP.np[0].value = atoi(value);
+        IDSetNumber(&OSFocus2TargNP, nullptr);
+    }
 }

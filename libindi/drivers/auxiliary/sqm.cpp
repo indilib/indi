@@ -36,7 +36,6 @@
 std::unique_ptr<SQM> sqm(new SQM());
 
 #define UNIT_TAB    "Unit"
-#define POLLMS      1000
 
 void ISGetProperties(const char *dev)
 {

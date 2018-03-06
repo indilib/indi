@@ -37,8 +37,6 @@ std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 #define GOTO_LIMIT      5       /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
 #define SLEW_LIMIT      1       /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
 
-#define POLLMS 250 /* poll period, ms */
-
 #define RA_AXIS     0
 #define DEC_AXIS    1
 #define GUIDE_NORTH 0
@@ -169,6 +167,8 @@ bool ScopeSim::initProperties()
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
     currentDEC = latitude > 0 ? 90 : -90;
 
+    setDefaultPollingPeriod(250);
+
     return true;
 }
 
@@ -223,6 +223,8 @@ bool ScopeSim::updateProperties()
             SetAxis1ParkDefault(currentRA);
             SetAxis2ParkDefault(currentDEC);
         }
+
+        sendTimeFromSystem();
     }
     else
     {

@@ -1,5 +1,7 @@
 /*******************************************************************************
- Copyright(c) 2010, 2011 Gerry Rozema, Jasem Mutlaq. All rights reserved.
+ Copyright(c) 2010-2018 Jasem Mutlaq. All rights reserved.
+
+ Copyright(c) 2010, 2011 Gerry Rozema. All rights reserved.
 
  Rapid Guide support added by CloudMakers, s. r. o.
  Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
@@ -96,7 +98,7 @@ CCDChip::CCDChip()
     strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
 
     FrameType  = LIGHT_FRAME;
-    lastRapidX = lastRapidY = -1;
+    lastRapidX = lastRapidY = -1;    
 }
 
 CCDChip::~CCDChip()
@@ -229,6 +231,7 @@ void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
 
 void CCDChip::setExposureLeft(double duration)
 {
+    ImageExposureNP.s = IPS_BUSY;
     ImageExposureN[0].value = duration;
 
     IDSetNumber(&ImageExposureNP, nullptr);
@@ -648,6 +651,20 @@ bool CCD::initProperties()
                      IPS_IDLE);
 
     /**********************************************/
+    /****************** Exposure Looping **********/
+    /***************** Primary CCD Only ***********/
+#ifdef WITH_EXPOSURE_LOOPING
+    IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_ON], "LOOP_ON", "Enabled", ISS_OFF);
+    IUFillSwitch(&ExposureLoopS[EXPOSURE_LOOP_OFF], "LOOP_OFF", "Disabled", ISS_ON);
+    IUFillSwitchVector(&ExposureLoopSP, ExposureLoopS, 2, getDeviceName(), "CCD_EXPOSURE_LOOP", "Rapid Looping", OPTIONS_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    // CCD Should loop until the number of frames specified in this property is completed
+    IUFillNumber(&ExposureLoopCountN[0], "FRAMES", "Frames", "%.f", 0, 100000, 1, 1);
+    IUFillNumberVector(&ExposureLoopCountNP, ExposureLoopCountN, 1, getDeviceName(), "CCD_EXPOSURE_LOOP_COUNT", "Rapid Count", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+#endif
+
+    /**********************************************/
     /**************** Snooping ********************/
     /**********************************************/
 
@@ -684,6 +701,8 @@ bool CCD::initProperties()
 
     // Guider Interface
     initGuiderProperties(getDeviceName(), GUIDE_CONTROL_TAB);
+
+    addPollPeriodControl();
 
     setDriverInterface(CCD_INTERFACE | GUIDER_INTERFACE);
 
@@ -785,6 +804,11 @@ bool CCD::updateProperties()
         if (UploadSettingsT[UPLOAD_DIR].text == nullptr)
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
         defineText(&UploadSettingsTP);
+
+#ifdef WITH_EXPOSURE_LOOPING
+        defineSwitch(&ExposureLoopSP);
+        defineNumber(&ExposureLoopCountNP);
+#endif
     }
     else
     {
@@ -849,6 +873,11 @@ bool CCD::updateProperties()
         deleteProperty(WorldCoordSP.name);
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
+
+#ifdef WITH_EXPOSURE_LOOPING
+        deleteProperty(ExposureLoopSP.name);
+        deleteProperty(ExposureLoopCountNP.name);
+#endif
     }
 
 // Streamer
@@ -1071,6 +1100,8 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
             else
                 PrimaryCCD.ImageExposureN[0].value = ExposureTime = values[0];
 
+            // Only abort when busy if we are not already in an exposure loops
+            //if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY && ExposureLoopS[EXPOSURE_LOOP_OFF].s == ISS_ON)
             if (PrimaryCCD.ImageExposureNP.s == IPS_BUSY)
             {
                 if (CanAbort() && AbortExposure() == false)
@@ -1105,6 +1136,8 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
                 }
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
+                if (ExposureTime*1000 < POLLMS)
+                    POLLMS = ExposureTime*950;
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -1212,17 +1245,14 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
 
         if (!strcmp(name, "CCD_FRAME"))
         {
-            //  We are being asked to set CCD Frame
-            if (IUUpdateNumber(&PrimaryCCD.ImageFrameNP, values, names, n) < 0)
-                return false;
+            DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is (%3.0f,%3.0f) (%3.0f x %3.0f)", values[0], values[1],  values[2], values[3]);
 
-            PrimaryCCD.ImageFrameNP.s = IPS_OK;
-
-            DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is (%3.0f,%3.0f) (%3.0f x %3.0f)", values[0], values[1],
-                   values[2], values[3]);
-
-            if (UpdateCCDFrame(PrimaryCCD.ImageFrameN[0].value, PrimaryCCD.ImageFrameN[1].value,
-                               PrimaryCCD.ImageFrameN[2].value, PrimaryCCD.ImageFrameN[3].value) == false)
+            if (UpdateCCDFrame(values[0], values[1],  values[2], values[3]))
+            {
+                    PrimaryCCD.ImageFrameNP.s = IPS_OK;
+                    IUUpdateNumber(&PrimaryCCD.ImageFrameNP, values, names, n);
+            }
+            else
                 PrimaryCCD.ImageFrameNP.s = IPS_ALERT;
 
             IDSetNumber(&PrimaryCCD.ImageFrameNP, nullptr);
@@ -1270,6 +1300,16 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
             processGuiderProperties(name, values, names, n);
             return true;
         }
+
+#ifdef WITH_EXPOSURE_LOOPING
+        if (!strcmp(name, ExposureLoopCountNP.name))
+        {
+            IUUpdateNumber(&ExposureLoopCountNP, values, names, n);
+            ExposureLoopCountNP.s = IPS_OK;
+            IDSetNumber(&ExposureLoopCountNP, nullptr);
+            return true;
+        }
+#endif
 
         // CCD TEMPERATURE:
         if (!strcmp(name, TemperatureNP.name))
@@ -1394,6 +1434,17 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             return true;
         }
 
+#ifdef WITH_EXPOSURE_LOOPING
+        // Exposure Looping
+        if (!strcmp(name, ExposureLoopSP.name))
+        {
+            IUUpdateSwitch(&ExposureLoopSP, states, names, n);
+            ExposureLoopSP.s = IPS_OK;
+            IDSetSwitch(&ExposureLoopSP, nullptr);
+            return true;
+        }
+#endif
+
         // WCS Enable/Disable
         if (!strcmp(name, WorldCoordSP.name))
         {
@@ -1447,6 +1498,14 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
             }
 
+            POLLMS = getPollingPeriod();
+            if (ExposureLoopCountNP.s == IPS_BUSY)
+            {
+                uploadTime=0;
+                ExposureLoopCountNP.s = IPS_IDLE;
+                ExposureLoopCountN[0].value = 1;
+                IDSetNumber(&ExposureLoopCountNP, nullptr);
+            }
             IDSetSwitch(&PrimaryCCD.AbortExposureSP, nullptr);
             IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
 
@@ -1950,9 +2009,67 @@ void CCD::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p,
 
 bool CCD::ExposureComplete(CCDChip *targetChip)
 {
+    // Reset POLLMS to default value
+    POLLMS = getPollingPeriod();
+
+#ifdef WITH_EXPOSURE_LOOPING
+    // If looping is on, let's immediately take another capture
+    if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
+    {
+        double duration = targetChip->getExposureDuration();
+
+        if (ExposureLoopCountN[0].value > 1)
+        {
+            if (ExposureLoopCountNP.s != IPS_BUSY)
+            {
+                exposureLoopStartup = std::chrono::system_clock::now();
+            }
+            else
+            {
+                auto end = std::chrono::system_clock::now();                
+
+                uploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - exposureLoopStartup)).count() / 1000.0 - duration;
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Image download and upload/save took %.3f seconds.", uploadTime);
+
+                exposureLoopStartup = end;
+            }
+
+            ExposureLoopCountNP.s = IPS_BUSY;
+            ExposureLoopCountN[0].value--;
+            IDSetNumber(&ExposureLoopCountNP, nullptr);
+
+            if (uploadTime < duration)
+            {
+                StartExposure(duration);
+                PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
+                IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
+                if (duration*1000 < POLLMS)
+                    POLLMS = duration*950;
+            }
+            else
+            {
+                DEBUGF(INDI::Logger::DBG_ERROR, "Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
+                PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
+                IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
+                ExposureLoopCountN[0].value=1;
+                ExposureLoopCountNP.s = IPS_IDLE;
+                IDSetNumber(&ExposureLoopCountNP, nullptr);
+                uploadTime = 0;
+                return false;
+            }
+        }
+        else
+        {
+            uploadTime = 0;
+            ExposureLoopCountNP.s = IPS_IDLE;
+            IDSetNumber(&ExposureLoopCountNP, nullptr);
+        }
+    }    
+#endif
+
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
-    //bool useSolver = (SolverS[0].s == ISS_ON);
+
     bool showMarker = false;
     bool autoLoop   = false;
     bool sendData   = false;
@@ -2722,6 +2839,9 @@ bool CCD::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
+#ifdef WITH_EXPOSURE_LOOPING
+    IUSaveConfigSwitch(fp, &ExposureLoopSP);
+#endif
 
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
@@ -2874,8 +2994,10 @@ int CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
         }
     }
     else
+    {
+        closedir(dpdf);
         return -1;
-
+    }
     int maxIndex = 0;
 
     for (int i = 0; i < (int)files.size(); i++)
@@ -2893,6 +3015,7 @@ int CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
         }
     }
 
+    closedir(dpdf);
     return (maxIndex + 1);
 }
 

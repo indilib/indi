@@ -31,7 +31,6 @@
 #define PYXIS_TIMEOUT 3
 #define PYRIX_BUF 7
 #define PYRIX_CMD 6
-#define POLLMS 1000
 #define SETTINGS_TAB    "Settings"
 
 std::unique_ptr<Pyxis> pyxis(new Pyxis());
@@ -99,8 +98,6 @@ bool Pyxis::initProperties()
     IUFillSwitch(&PowerS[POWER_SLEEP], "POWER_SLEEP", "Sleep", ISS_OFF);
     IUFillSwitch(&PowerS[POWER_WAKEUP], "POWER_WAKEUP", "Wake Up", ISS_OFF);
     IUFillSwitchVector(&PowerSP, PowerS, 2, getDeviceName(), "POWER_STATE", "Power", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-
-    updatePeriodMS = POLLMS;
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
@@ -486,7 +483,7 @@ void Pyxis::TimerHit()
 {
     if (!isConnected() || PowerS[POWER_SLEEP].s == ISS_ON)
     {
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
         return;
     }    
 
@@ -528,7 +525,7 @@ void Pyxis::TimerHit()
         IDSetNumber(&GotoRotatorNP, nullptr);
     }
 
-    SetTimer(updatePeriodMS);
+    SetTimer(POLLMS);
 }
 
 bool Pyxis::isMotionComplete()

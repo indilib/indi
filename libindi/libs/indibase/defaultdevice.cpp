@@ -98,6 +98,7 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
 bool DefaultDevice::saveConfigItems(FILE *fp)
 {
     IUSaveConfigSwitch(fp, &DebugSP);
+    IUSaveConfigNumber(fp, &PollPeriodNP);
     if (ConnectionModeS != nullptr)
         IUSaveConfigSwitch(fp, &ConnectionModeSP);
 
@@ -510,6 +511,17 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
 bool DefaultDevice::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    ////////////////////////////////////////////////////
+    // Polling Period
+    ////////////////////////////////////////////////////
+    if (!strcmp(name, PollPeriodNP.name))
+    {
+        IUUpdateNumber(&PollPeriodNP, values, names, n);
+        PollPeriodNP.s = IPS_OK;
+        IDSetNumber(&PollPeriodNP, nullptr);
+        return true;
+    }
+
     for (Connection::Interface *oneConnection : connections)
         oneConnection->ISNewNumber(dev, name, values, names, n);
 
@@ -561,11 +573,17 @@ void DefaultDevice::addConfigurationControl()
     registerProperty(&ConfigProcessSP, INDI_SWITCH);
 }
 
+void DefaultDevice::addPollPeriodControl()
+{
+    registerProperty(&PollPeriodNP, INDI_NUMBER);
+}
+
 void DefaultDevice::addAuxControls()
 {
     addDebugControl();
     addSimulationControl();
     addConfigurationControl();
+    addPollPeriodControl();
 }
 
 void DefaultDevice::setDebug(bool enable)
@@ -728,6 +746,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
         loadConfig(true, "DEBUG");
         loadConfig(true, "DEBUG_LEVEL");
         loadConfig(true, "LOGGING_LEVEL");
+        loadConfig(true, "POLLING_PERIOD");
         loadConfig(true, "LOG_OUTPUT");
     }
 
@@ -905,6 +924,9 @@ bool DefaultDevice::initProperties()
     IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS",
                        "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
+    IUFillNumber(&PollPeriodN[0], "PERIOD_MS", "Period (ms)", "%.f", 10, 60000, 1000, POLLMS);
+    IUFillNumberVector(&PollPeriodNP, PollPeriodN, 1, getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0, IPS_IDLE);
+
     INDI::Logger::initProperties(this);
 
     // Ready the logger
@@ -994,8 +1016,8 @@ bool DefaultDevice::Connect()
     if (rc)
     {
         saveConfig(true, "CONNECTION_MODE");
-        if (updatePeriodMS > 0)
-            SetTimer(updatePeriodMS);
+        if (POLLMS > 0)
+            SetTimer(POLLMS);
     }
 
     return rc;
@@ -1047,4 +1069,9 @@ bool DefaultDevice::unRegisterConnection(Connection::Interface *existingConnecti
     return false;
 }
 
+void DefaultDevice::setDefaultPollingPeriod(uint32_t period)
+{
+    PollPeriodN[0].value = period;
+    POLLMS = period;
+}
 }

@@ -39,7 +39,6 @@ std::unique_ptr<FlipFlat> flipflat(new FlipFlat());
 #define FLAT_CMD     6
 #define FLAT_RES     8
 #define FLAT_TIMEOUT 3
-#define POLLMS       1000
 
 void ISGetProperties(const char *dev)
 {

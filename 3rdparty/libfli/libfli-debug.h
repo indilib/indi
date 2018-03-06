@@ -44,13 +44,17 @@
 #ifndef _LIBFLI_DEBUG_H_
 #define _LIBFLI_DEBUG_H_
 
+#ifdef _DEBUG
 #define _DEBUGSTRING
+#define _DEBUG_IO
+#endif
+
 #define _DEBUG_IO
 
 /* Debug functions */
 int debugclose(void);
 int debugopen(char *host);
 void debug(int level, char *format, ...);
-void setdebuglevel(char *host, int level);
+void setdebuglevel(char *host, long level);
 
 #endif /* _LIBFLI_DEBUG_H_ */

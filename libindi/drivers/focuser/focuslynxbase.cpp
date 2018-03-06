@@ -28,8 +28,6 @@
 #define FOCUS_SETTINGS_TAB "Settings"
 #define FOCUS_STATUS_TAB   "Status"
 
-#define POLLMS 1000
-
 /************************************************************************************
  *
 * ***********************************************************************************/
@@ -51,15 +49,14 @@ FocusLynxBase::FocusLynxBase()
     lynxModels["Optec Fast Focus Secondary Focuser"] = "OD";
     lynxModels["Optec TCF-S Classic converted"] = "OE";
     lynxModels["Optec TCF-S3 Classic converted"] = "OF";
-    //  lynxModels["OG"] = "Optec Gemini (reserved for future use)";
+    //  lynxModels["Optec Gemini (reserved for future use)"] = "OG";
     lynxModels["FocusLynx QuickSync FT Hi-Torque"] = "FA";
     lynxModels["FocusLynx QuickSync FT Hi-Speed"] = "FB";
-    //  lynxModels["FC"] = "FocusLynx QuickSync SV (reserved for future use)";
+    //  lynxModels["FocusLynx QuickSync SV (reserved for future use)"] = "FC";
     lynxModels["DirectSync TEC with bipolar motor - higher speed"] = "FD";
     lynxModels["FocusLynx QuickSync  Long Travel Hi-Torque"] = "FE";
     lynxModels["FocusLynx QuickSync Long Travel Hi-Speed"] = "FF";
     lynxModels["FeatherTouch Motor PDMS"] = "FE";
-    lynxModels["FeatherTouch Motor Hi-Speed"] = "FE";
     lynxModels["FeatherTouch Motor Hi-Speed"] = "SO";
     lynxModels["FeatherTouch Motor Hi-Torque"] = "SP";
     lynxModels["Starlight Instruments - FTM with MicroTouch"] = "SQ";
@@ -878,7 +875,7 @@ bool FocusLynxBase::getFocusConfig()
 
     IUResetSwitch(&TemperatureCompensateSP);
     TemperatureCompensateS[0].s = TCompOn ? ISS_ON : ISS_OFF;
-    TemperatureCompensateS[0].s = TCompOn ? ISS_OFF : ISS_ON;
+    TemperatureCompensateS[1].s = TCompOn ? ISS_OFF : ISS_ON;
     TemperatureCompensateSP.s   = IPS_OK;
     IDSetSwitch(&TemperatureCompensateSP, nullptr);
 

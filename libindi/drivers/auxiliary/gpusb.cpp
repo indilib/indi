@@ -28,8 +28,6 @@
 #include <cstring>
 #include <unistd.h>
 
-#define POLLMS 250
-
 // We declare an auto pointer to gpGuide.
 std::unique_ptr<GPUSB> gpGuide(new GPUSB());
 
@@ -114,11 +112,15 @@ bool GPUSB::Disconnect()
 
 bool GPUSB::initProperties()
 {
+    INDI::DefaultDevice::initProperties();
+
     initGuiderProperties(getDeviceName(), MAIN_CONTROL_TAB);
 
     addDebugControl();
 
-    return INDI::DefaultDevice::initProperties();
+    setDefaultPollingPeriod(250);
+
+    return true;
 }
 
 bool GPUSB::updateProperties()

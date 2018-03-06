@@ -38,8 +38,6 @@
 
 #define FOCUS_SETTINGS_TAB "Settings"
 
-#define POLLMS 500
-
 std::unique_ptr<SteelDrive> steelDrive(new SteelDrive());
 
 void ISGetProperties(const char *dev)
@@ -159,6 +157,8 @@ bool SteelDrive::initProperties()
     updateFocusMaxRange(fSettings[4].maxTrip, fSettings[4].gearRatio);
 
     addAuxControls();
+
+    setDefaultPollingPeriod(500);
 
     return true;
 }

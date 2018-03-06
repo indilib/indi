@@ -33,7 +33,6 @@
 #include <algorithm>
 #include <math.h>
 
-#define POLLMS               1000  /* Polling time (ms) */
 #define TEMP_THRESHOLD       0.2   /* Differential temperature threshold (C)*/
 #define MAX_DEVICES          4     /* Max device cameraCount */
 

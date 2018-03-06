@@ -34,8 +34,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <cstring>
 #include <unistd.h>
 
-#define POLLMS 1000
-
 /* Simulation Parameters */
 #define SLEWRATE 1        /* slew rate, degrees/s */
 #define SIDRATE  0.004178 /* sidereal rate, degrees/s */

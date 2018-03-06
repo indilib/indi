@@ -1,5 +1,7 @@
-/*******************************************************************************
- Copyright(c) 2010, 2011 Gerry Rozema, Jasem Mutlaq. All rights reserved.
+/******************************************************************************* 
+ Copyright(c) 2010-2018 Jasem Mutlaq. All rights reserved.
+
+ Copyright(c) 2010, 2011 Gerry Rozema. All rights reserved.
 
  Rapid Guide support added by CloudMakers, s. r. o.
  Copyright(c) 2013 CloudMakers, s. r. o. All rights reserved.
@@ -32,8 +34,11 @@
 
 #include <memory>
 #include <cstring>
+#include <chrono>
 
 #include <stdint.h>
+
+#define WITH_EXPOSURE_LOOPING
 
 extern const char *IMAGE_SETTINGS_TAB;
 extern const char *IMAGE_INFO_TAB;
@@ -844,6 +849,23 @@ class CCD : public DefaultDevice, GuiderInterface
     INumber CCDRotationN[1];
     INumberVectorProperty CCDRotationNP;
 
+#ifdef WITH_EXPOSURE_LOOPING
+    // Exposure Looping
+    ISwitch ExposureLoopS[2];
+    ISwitchVectorProperty ExposureLoopSP;
+    enum
+    {
+        EXPOSURE_LOOP_ON,
+        EXPOSURE_LOOP_OFF
+    };
+
+    // Exposure Looping Count
+    INumber ExposureLoopCountN[1];
+    INumberVectorProperty ExposureLoopCountNP;
+    double uploadTime = { 0 };
+    std::chrono::system_clock::time_point exposureLoopStartup;
+#endif
+
     // FITS Header
     IText FITSHeaderT[2];
     ITextVectorProperty FITSHeaderTP;
@@ -854,7 +876,7 @@ class CCD : public DefaultDevice, GuiderInterface
     };
 
   private:
-    uint32_t capability;
+    uint32_t capability;    
 
     bool ValidCCDRotation;
 

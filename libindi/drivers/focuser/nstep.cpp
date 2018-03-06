@@ -27,8 +27,6 @@
 #include <cstring>
 #include <memory>
 
-#define POLLMS 2000
-
 #define currentSpeed            SpeedN[0].value
 #define currentPosition         FocusAbsPosN[0].value
 #define currentTemperature      TemperatureN[0].value
@@ -134,6 +132,8 @@ bool NSTEP::initProperties()
     IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 3, getDeviceName(), "STEPPING_MODE", "Stepping mode",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
     steppingMode = '2';
+
+    setDefaultPollingPeriod(2000);
 
     return true;
 }

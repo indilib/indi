@@ -31,8 +31,6 @@
 
 #define SESTOSENSO_TIMEOUT 3
 
-#define POLLMS 500
-
 std::unique_ptr<SestoSenso> sesto(new SestoSenso());
 
 void ISGetProperties(const char *dev)
@@ -108,7 +106,7 @@ bool SestoSenso::initProperties()
 
     addAuxControls();
 
-    updatePeriodMS = POLLMS;
+    setDefaultPollingPeriod(500);
 
     return true;
 }

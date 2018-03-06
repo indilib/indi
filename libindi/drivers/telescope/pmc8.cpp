@@ -33,7 +33,6 @@
 
 /* Simulation Parameters */
 #define SLEWRATE 3          /* slew rate, degrees/s */
-#define POLLMS   1000       /* poll period, ms */
 
 #define MOUNTINFO_TAB "Mount Info"
 

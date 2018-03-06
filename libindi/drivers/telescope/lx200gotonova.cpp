@@ -116,6 +116,7 @@ bool LX200GotoNova::checkConnection()
     if (isSimulation())
         return true;
 
+    const struct timespec timeout = {0, 50000000L};
     char initCMD[] = ":V#";
     int errcode    = 0;
     char errmsg[MAXRBUF];
@@ -131,7 +132,7 @@ bool LX200GotoNova::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            usleep(50000);
+            nanosleep(&timeout, NULL);
             continue;
         }
 
@@ -139,7 +140,7 @@ bool LX200GotoNova::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
-            usleep(50000);
+            nanosleep(&timeout, NULL);
             continue;
         }
 
@@ -152,7 +153,7 @@ bool LX200GotoNova::checkConnection()
                 return true;
         }
 
-        usleep(50000);
+        nanosleep(&timeout, NULL);
     }
 
     return false;
@@ -271,6 +272,8 @@ void LX200GotoNova::getBasicData()
 
 bool LX200GotoNova::Goto(double r, double d)
 {
+    const struct timespec timeout = {0, 100000000L};
+
     targetRA  = r;
     targetDEC = d;
     char RAStr[64], DecStr[64];
@@ -304,7 +307,7 @@ bool LX200GotoNova::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        usleep(100000);
+        nanosleep(&timeout, NULL);
     }
 
     if (!isSimulation())
@@ -389,6 +392,7 @@ bool LX200GotoNova::Sync(double ra, double dec)
 
 int LX200GotoNova::GotonovaSyncCMR(char *matchedObject)
 {
+    const struct timespec timeout = {0, 10000000L};
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
@@ -406,7 +410,7 @@ int LX200GotoNova::GotonovaSyncCMR(char *matchedObject)
     DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    usleep(10000);
+    nanosleep(&timeout, NULL);
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -503,6 +507,7 @@ bool LX200GotoNova::updateTime(ln_date *utc, double utc_offset)
 
 int LX200GotoNova::setCalenderDate(int fd, int dd, int mm, int yy)
 {
+    const struct timespec timeout = {0, 10000000L};
     char read_buffer[16];
     char response[67];
     char good_result[] = GOTONOVA_CALDATE_RESULT;
@@ -524,7 +529,7 @@ int LX200GotoNova::setCalenderDate(int fd, int dd, int mm, int yy)
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
-    {   
+    {
         DEBUG(INDI::Logger::DBG_ERROR, "Unable to read response");
         return error_type;
     }
@@ -538,7 +543,7 @@ int LX200GotoNova::setCalenderDate(int fd, int dd, int mm, int yy)
     }
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    usleep(10000);
+    nanosleep(&timeout, NULL);
     tcflush(fd, TCIFLUSH);
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Set date failed! Response: <%s>", response);
@@ -637,6 +642,7 @@ int LX200GotoNova::setGotoNovaUTCOffset(double hours)
 
 int LX200GotoNova::setGotoNovaStandardProcedure(int fd, const char *data)
 {
+    const struct timespec timeout = {0, 10000000L};
     char bool_return[2];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
@@ -649,9 +655,9 @@ int LX200GotoNova::setGotoNovaStandardProcedure(int fd, const char *data)
     error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on GotoNova
-    usleep(10000);
+    nanosleep(&timeout, NULL);
     tcflush(fd, TCIFLUSH);
-    usleep(10000);
+    nanosleep(&timeout, NULL);
 
     if (nbytes_read < 1)
         return error_type;

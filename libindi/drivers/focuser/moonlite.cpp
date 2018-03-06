@@ -31,8 +31,6 @@
 
 #define MOONLITE_TIMEOUT 3
 
-#define POLLMS 250
-
 std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
 void ISGetProperties(const char *dev)
@@ -130,9 +128,8 @@ bool MoonLite::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
 
+    setDefaultPollingPeriod(500);
     addDebugControl();
-
-    updatePeriodMS = POLLMS;
 
     return true;
 }
@@ -201,7 +198,7 @@ bool MoonLite::Ack()
         return false;
     }
 
-    if ((rc = tty_read(PortFD, resp, 5, 2, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read(PortFD, resp, 5, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);

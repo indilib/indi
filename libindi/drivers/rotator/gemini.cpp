@@ -39,8 +39,6 @@
 #define ROTATOR_TAB "Rotator"
 #define HUB_TAB "Hub"
 
-#define POLLMS 1000
-
 std::unique_ptr<Gemini> geminiFR(new Gemini());
 
 void ISGetProperties(const char *dev)

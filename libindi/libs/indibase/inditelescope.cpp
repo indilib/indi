@@ -28,6 +28,7 @@
 #include <pwd.h>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <unistd.h>
 #include <wordexp.h>
 #include <limits>
@@ -234,6 +235,8 @@ bool Telescope::initProperties()
 
     IDSnoopDevice(ActiveDeviceT[1].text, "DOME_PARK");
     IDSnoopDevice(ActiveDeviceT[1].text, "DOME_SHUTTER");
+
+    addPollPeriodControl();
 
     return true;
 }
@@ -1471,7 +1474,7 @@ void Telescope::TimerHit()
             IDSetNumber(&EqNP, nullptr);
         }
 
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
     }
 }
 
@@ -2614,6 +2617,25 @@ bool Telescope::CheckFile(const std::string &file_name, bool writable) const
         return true;
     }
     return false;
+}
+
+void Telescope::sendTimeFromSystem()
+{
+    char ts[32]={0};
+
+    std::time_t t = std::time(nullptr);
+    struct std::tm *utctimeinfo = std::gmtime(&t);
+
+    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
+    IUSaveText(&TimeT[0], ts);
+
+    struct std::tm *localtimeinfo = std::localtime(&t);
+    snprintf(ts, sizeof(ts), "%4.2f", (localtimeinfo->tm_gmtoff / 3600.0));
+    IUSaveText(&TimeT[1], ts);
+
+    TimeTP.s = IPS_OK;
+
+    IDSetText(&TimeTP, nullptr);
 }
 
 }

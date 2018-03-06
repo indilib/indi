@@ -144,7 +144,6 @@ long fli_camera_close(flidev_t dev)
     cam->ibuf = NULL;
   }
 
-
   if (DEVICE->devinfo.model != NULL)
   {
     xfree(DEVICE->devinfo.model);
@@ -455,6 +454,85 @@ long fli_camera_command(flidev_t dev, int cmd, int argc, ...)
 				{
 					case FLIDOMAIN_USB:
 						r = fli_camera_usb_set_fan_speed(dev, fan_speed);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
+		case FLI_SET_VERTICAL_TABLE_ENTRY:
+			if (argc != 4)
+				r = -EINVAL;
+			else
+			{
+				long index;
+				long height;
+				long bin;
+				long mode;
+
+				index = *va_arg(ap, long *);
+				height = *va_arg(ap, long *);
+				bin = *va_arg(ap, long *);
+				mode = *va_arg(ap, long *);
+
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_set_vertical_table_entry(dev, index, height, bin, mode);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
+		case FLI_ENABLE_VERTICAL_TABLE:
+			if (argc != 3)
+				r = -EINVAL;
+			else
+			{
+				long width;
+				long offset;
+				long flags;
+
+				width = *va_arg(ap, long *);
+				offset = *va_arg(ap, long *);
+				flags = *va_arg(ap, long *);
+
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_enable_vertical_table(dev, width, offset, flags);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
+		case FLI_GET_VERTICAL_TABLE_ENTRY:
+			if (argc != 4)
+				r = -EINVAL;
+			else
+			{
+				long index;
+				long *height;
+				long *bin;
+				long *mode;
+
+				index = *va_arg(ap, long *);
+				height = va_arg(ap, long *);
+				bin = va_arg(ap, long *);
+				mode = va_arg(ap, long *);
+
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_get_vertical_table_entry(dev, index, height, bin, mode);
 						break;
 
 					default:
@@ -820,6 +898,44 @@ long fli_camera_command(flidev_t dev, int cmd, int argc, ...)
 			}
 			break;
 
+		case FLI_GET_READOUT_DIMENSIONS:
+			if (argc != 6)
+				r = -EINVAL;
+			else
+			{
+				long *width, *hoffset, *hbin, *height, *voffset, *vbin;
+				flicamdata_t *cam = DEVICE->device_data;
+
+				width = va_arg(ap, long *);
+				hoffset = va_arg(ap, long *);
+				hbin = va_arg(ap, long *);
+				height = va_arg(ap, long *);
+				voffset = va_arg(ap, long *);
+				vbin = va_arg(ap, long *);
+
+				if (width != NULL)
+					*width = cam->image_area.lr.x - cam->image_area.ul.x;
+
+				if (hoffset != NULL)
+					*hoffset = cam->image_area.ul.x;
+
+				if (hbin != NULL)
+					*hbin = cam->hbin;
+
+				if (height != NULL)
+					*height = cam->image_area.lr.y - cam->image_area.ul.y;
+
+				if (voffset != NULL)
+					*voffset = cam->image_area.ul.y;
+
+				if (vbin != NULL)
+					*vbin = cam->vbin;
+
+				r = 0;
+			}
+			break;
+
+
 		case FLI_CONTROL_SHUTTER:
 			if (argc != 1)
 				r = -EINVAL;
@@ -1068,6 +1184,68 @@ long fli_camera_command(flidev_t dev, int cmd, int argc, ...)
 
 					case FLIDOMAIN_USB:
 						r = fli_camera_usb_end_exposure(dev);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
+		case FLI_READ_EEPROM:
+			if (argc != 4)
+				r = -EINVAL;
+			else
+			{
+				long loc;
+				long address;
+				long length;
+				void *rbuf;
+
+				loc = *va_arg(ap, long *);
+				address = *va_arg(ap, long *);
+				length = *va_arg(ap, long *);
+				rbuf = va_arg(ap, void *);
+
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_PARALLEL_PORT:
+						r = -EINVAL;
+						break;
+
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_read_eeprom(dev, loc, address, length, rbuf);
+						break;
+
+					default:
+						r = -EINVAL;
+				}
+			}
+			break;
+
+		case FLI_WRITE_EEPROM:
+			if (argc != 4)
+				r = -EINVAL;
+			else
+			{
+				long loc;
+				long address;
+				long length;
+				void *rbuf;
+
+				loc = *va_arg(ap, long *);
+				address = *va_arg(ap, long *);
+				length = *va_arg(ap, long *);
+				rbuf = va_arg(ap, void *);
+
+				switch (DEVICE->domain)
+				{
+					case FLIDOMAIN_PARALLEL_PORT:
+						r = -EINVAL;
+						break;
+
+					case FLIDOMAIN_USB:
+						r = fli_camera_usb_write_eeprom(dev, loc, address, length, rbuf);
 						break;
 
 					default:

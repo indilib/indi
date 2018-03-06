@@ -59,6 +59,7 @@ bool Focuser::initProperties()
                        IPS_IDLE);
 
     addDebugControl();
+    addPollPeriodControl();
 
     controller->mapController("Focus In", "Focus In", Controller::CONTROLLER_BUTTON, "BUTTON_1");
     controller->mapController("Focus Out", "Focus Out", Controller::CONTROLLER_BUTTON, "BUTTON_2");
