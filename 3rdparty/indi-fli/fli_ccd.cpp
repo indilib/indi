@@ -146,6 +146,8 @@ bool FLICCD::updateProperties()
     {
         defineText(&CamInfoTP);
         defineNumber(&CoolerNP);
+        defineNumber(&FlushNP);
+        defineSwitch(&BackgroundFlushSP);
 
         setupParams();
 
@@ -155,6 +157,8 @@ bool FLICCD::updateProperties()
     {
         deleteProperty(CamInfoTP.name);
         deleteProperty(CoolerNP.name);
+        deleteProperty(FlushNP.name);
+        deleteProperty(BackgroundFlushSP.name);
 
         rmTimer(timerID);
     }
