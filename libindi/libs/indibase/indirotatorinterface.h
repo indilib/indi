@@ -23,6 +23,8 @@
 #include "indibase.h"
 #include <stdint.h>
 
+using RI = INDI::RotatorInterface;
+
 /**
  * \class RotatorInterface
    \brief Provides interface to implement Rotator functionality.
@@ -59,13 +61,13 @@ class RotatorInterface
     /**
      * @brief GetRotatorCapability returns the capability of the Rotator
      */
-    uint32_t GetRotatorCapability() const { return rotatorCapability; }
+    uint32_t GetCapability() const { return rotatorCapability; }
 
     /**
      * @brief SetRotatorCapability sets the Rotator capabilities. All capabilities must be initialized.
      * @param cap pointer to Rotator capability struct.
      */
-    void SetRotatorCapability(uint32_t cap) { rotatorCapability = cap; }
+    void SetCapability(uint32_t cap) { rotatorCapability = cap; }
 
     /**
      * @return Whether Rotator can abort.
@@ -99,7 +101,7 @@ protected:
     void initProperties(const char *groupName);
 
     /**
-     * @brief updateRotatorProperties Define or Delete Rotator properties based on the connection status of the base device
+     * @brief updateProperties Define or Delete Rotator properties based on the connection status of the base device
      * @return True if successful, false otherwise.
      */
     bool updateProperties();

@@ -93,7 +93,7 @@ FLIPDF::FLIPDF()
 {
     sim = false;
 
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
 FLIPDF::~FLIPDF()

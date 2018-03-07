@@ -252,7 +252,7 @@ void ISSnoopDevice(XMLEle *root)
 }
 
 //==========================================================================
-GPhotoCCD::GPhotoCCD()
+GPhotoCCD::GPhotoCCD() : FI(this)
 {
     memset(model, 0, MAXINDINAME);
     memset(port, 0, MAXINDINAME);
@@ -265,7 +265,7 @@ GPhotoCCD::GPhotoCCD()
     setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);    
 }
 
-GPhotoCCD::GPhotoCCD(const char *model, const char *port)
+GPhotoCCD::GPhotoCCD(const char *model, const char *port) : FI(this)
 {
     strncpy(this->port, port, MAXINDINAME);
     strncpy(this->model, model, MAXINDINAME);
@@ -329,7 +329,7 @@ bool GPhotoCCD::initProperties()
     // Init parent properties first
     INDI::CCD::initProperties();
 
-    initFocuserProperties(getDeviceName(), FOCUS_TAB);
+    FI::initProperties(FOCUS_TAB);
 
     IUFillText(&mPortT[0], "PORT", "Port", "");
     IUFillTextVector(&PortTP, mPortT, NARRAY(mPortT), getDeviceName(), "DEVICE_PORT", "Shutter Release",
@@ -378,7 +378,7 @@ bool GPhotoCCD::initProperties()
 
     SetCCDCapability(CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_HAS_BAYER | CCD_HAS_STREAMING);
 
-    SetFocuserCapability(FOCUSER_HAS_VARIABLE_SPEED);
+    FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED);
 
     FocusSpeedN[0].min   = 0;
     FocusSpeedN[0].max   = 3;
@@ -450,9 +450,8 @@ bool GPhotoCCD::updateProperties()
         defineSwitch(&livePreviewSP);
         defineSwitch(&transferFormatSP);
         defineSwitch(&autoFocusSP);
-        defineSwitch(&FocusMotionSP);
-        defineNumber(&FocusSpeedNP);
-        defineNumber(&FocusTimerNP);
+
+        FI::updateProperties();
 
         if (captureTargetSP.s == IPS_OK)
         {
@@ -489,9 +488,8 @@ bool GPhotoCCD::updateProperties()
         deleteProperty(livePreviewSP.name);
         deleteProperty(autoFocusSP.name);
         deleteProperty(transferFormatSP.name);
-        deleteProperty(FocusMotionSP.name);
-        deleteProperty(FocusSpeedNP.name);
-        deleteProperty(FocusTimerNP.name);
+
+        FI::updateProperties();
 
         if (captureTargetSP.s != IPS_IDLE)
         {
@@ -740,7 +738,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
         if (strstr(name, "FOCUS"))
         {
-            return processFocuserSwitch(dev, name, states, names, n);
+            return FI::processSwitch(dev, name, states, names, n);
         }
 
         if (CamOptions.find(name) != CamOptions.end())
@@ -793,7 +791,7 @@ bool GPhotoCCD::ISNewNumber(const char *dev, const char *name, double values[], 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strstr(name, "FOCUS_"))
-            return processFocuserNumber(dev, name, values, names, n);
+            return FI::processNumber(dev, name, values, names, n);
 
         if (!strcmp(name, mMirrorLockNP.name))
         {

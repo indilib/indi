@@ -84,8 +84,8 @@ void ISSnoopDevice (XMLEle *root)
 NightCrawler::NightCrawler() : RotatorInterface(this)
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    SetRotatorCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC);
 }
 
 bool NightCrawler::initProperties()

@@ -68,7 +68,7 @@ FocusLynxBase::FocusLynxBase()
     simPosition      = 0;
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 
     isAbsolute = false;
     isSynced   = false;

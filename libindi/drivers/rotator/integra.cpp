@@ -77,9 +77,12 @@ void ISSnoopDevice (XMLEle *root)
 
 Integra::Integra() : RotatorInterface(this)
 {
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    SetRotatorCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
-    setFocuserConnection(CONNECTION_SERIAL);
+    // Rotator
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
+
+    // Focuser
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    setConnection(CONNECTION_SERIAL);
 }
 
 bool Integra::initProperties()
@@ -142,7 +145,7 @@ bool Integra::updateProperties()
         defineSwitch(&FindHomeSP);
 
         // Rotator
-        INDI::RotatorInterface::updateProperties();
+        RI::updateProperties();
         defineNumber(&RotatorAbsPosNP);
     }
     else
@@ -153,7 +156,7 @@ bool Integra::updateProperties()
         deleteProperty(FindHomeSP.name);
 
         // Rotator
-        INDI::RotatorInterface::updateProperties();
+        RI::updateProperties();
         deleteProperty(RotatorAbsPosNP.name);
     }
 
