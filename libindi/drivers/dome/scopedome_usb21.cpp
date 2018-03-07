@@ -65,7 +65,7 @@ uint8_t ScopeDomeUSB21::CRC(uint8_t crc, uint8_t data)
     return crc;
 }
 
-int ScopeDomeUSB21::writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t *buff)
+int ScopeDomeUSB21::writeBuf(ScopeDomeCommand cmd, uint8_t len, uint8_t *buff)
 {
     int BytesToWrite   = len + 4;
     int BytesWritten   = 0;
@@ -78,7 +78,7 @@ int ScopeDomeUSB21::writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t *buf
     cbuf[3] = CRC(0, cbuf[0]);
     cbuf[1] = len;
     cbuf[3] = CRC(cbuf[3], cbuf[1]);
-    cbuf[2] = Command;
+    cbuf[2] = cmd;
     cbuf[3] = CRC(cbuf[3], cbuf[2]);
 
     for (int i = 0; i < len; i++)
@@ -89,11 +89,13 @@ int ScopeDomeUSB21::writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t *buf
 
     tcflush(PortFD, TCIOFLUSH);
 
+    prevcmd = cmd;
+
     // Write buffer
     if ((rc = tty_write(PortFD, (const char *)cbuf, sizeof(cbuf), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing command: %s. Cmd %d", errstr, Command);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing command: %s. Cmd %d", errstr, cmd);
     }
     return rc;
 }
@@ -112,6 +114,8 @@ int ScopeDomeUSB21::write(ScopeDomeCommand cmd)
     cbuf[3] = CRC(cbuf[3], cbuf[1]);
     cbuf[2] = cmd;
     cbuf[3] = CRC(cbuf[3], cbuf[2]);
+
+    prevcmd = cmd;
 
     // Write buffer
     //DEBUGF(INDI::Logger::DBG_ERROR, "write cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
@@ -134,7 +138,7 @@ int ScopeDomeUSB21::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
     if ((rc = tty_read(PortFD, (char *)cbuf, sizeof(cbuf), SCOPEDOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading: %s. Cmd: %d", errstr, cmd);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading: %s. Cmd: %d", errstr, prevcmd);
         return rc;
     }
 
@@ -152,7 +156,7 @@ int ScopeDomeUSB21::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
 
     if (cbuf[3] != Checksum)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "readbuf checksum error, cmd: %d", cmd);
+        DEBUGF(INDI::Logger::DBG_ERROR, "readbuf checksum error, cmd: %d", prevcmd);
         return CHECKSUM_ERROR;
     }
     if (cmd == FunctionNotSupported)
@@ -163,7 +167,7 @@ int ScopeDomeUSB21::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
 
     if (cbuf[1] > len)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "readbuf packet length error, cmd: %d", cmd);
+        DEBUGF(INDI::Logger::DBG_ERROR, "readbuf packet length error, cmd: %d", prevcmd);
         return PACKET_LENGTH_ERROR;
     }
     return rc;
@@ -180,7 +184,7 @@ int ScopeDomeUSB21::read(ScopeDomeCommand &cmd)
     if ((rc = tty_read(PortFD, (char *)cbuf, sizeof(cbuf), SCOPEDOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading: %s. Cmd %d", errstr, cmd);
+        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading: %s. Cmd %d", errstr, prevcmd);
         return rc;
     }
 
@@ -192,7 +196,7 @@ int ScopeDomeUSB21::read(ScopeDomeCommand &cmd)
 
     if (cbuf[3] != Checksum || cbuf[1] != 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "read checksum error, cmd: %d", cmd);
+        DEBUGF(INDI::Logger::DBG_ERROR, "read checksum error, cmd: %d", prevcmd);
         return CHECKSUM_ERROR;
     }
     switch (cmd)

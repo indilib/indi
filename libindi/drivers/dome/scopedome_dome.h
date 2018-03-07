@@ -343,6 +343,8 @@ class ScopeDomeUSB21 : public ScopeDomeCard
     ScopeDomeUSB21 &operator=(const ScopeDomeUSB21 &rRhsP);
 
     int PortFD;
+
+    ScopeDomeCommand prevcmd;
 };
 
 /**
