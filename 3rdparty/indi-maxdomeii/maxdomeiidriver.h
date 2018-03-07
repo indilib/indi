@@ -48,7 +48,7 @@ enum ShStatus
 
 extern const char *ErrorMessages[];
 
-void hex_dump(char *buf, const char *data, int size);
+void hexDump(char *buf, const char *data, int size);
 
 
 class MaxDomeIIDriver
@@ -56,6 +56,7 @@ class MaxDomeIIDriver
     public:
         MaxDomeIIDriver() { fd = 0; }
 
+        const char *getDeviceName();
         void SetPortFD(int port_fd);
         void SetDevice(const char *name);
 

@@ -2,12 +2,12 @@
 #include "maxdomeiidriver.h"
 
 
-TEST(MaxDomeIIDriver, hex_dump)
+TEST(MaxDomeIIDriver, hexDump)
 {
     char data[] = "abcd";
     char out[(sizeof(data) - 1)*3];
 
-    hex_dump(out, data, sizeof(data) - 1);
+    hexDump(out, data, sizeof(data) - 1);
     ASSERT_STREQ(out, "61 62 63 64");
 }
 
