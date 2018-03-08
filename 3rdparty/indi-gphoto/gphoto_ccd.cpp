@@ -1072,7 +1072,7 @@ bool GPhotoCCD::UpdateCCDFrame(int x, int y, int w, int h)
     return true;
 }
 
-float GPhotoCCD::CalcTimeLeft()
+double GPhotoCCD::CalcTimeLeft()
 {
     double timesince;
     double timeleft;
@@ -1088,7 +1088,6 @@ float GPhotoCCD::CalcTimeLeft()
 
 void GPhotoCCD::TimerHit()
 {
-    long timeleft = 1e6;
     int timerID   = -1;
 
     if (isConnected() == false)
@@ -1151,52 +1150,35 @@ void GPhotoCCD::TimerHit()
 
     if (InExposure)
     {
-        timeleft = CalcTimeLeft();
+        double timeleft = CalcTimeLeft();
+
+        if (timeleft < 0)
+            timeleft = 0;
+
+        PrimaryCCD.setExposureLeft(timeleft);
 
         if (timeleft < 1.0)
         {
             if (timeleft > 0.25 && timerID == -1)
-            {
-                //  a quarter of a second or more
-                //  just set a tighter timer
-                timerID = SetTimer(250);
-            }
+                timerID = SetTimer(timeleft*900);
             else
             {
-                if (timeleft > 0.07 && timerID == -1)
+                PrimaryCCD.setExposureLeft(0);
+                InExposure = false;
+                // grab and save image
+                bool rc = grabImage();
+                if (rc == false)
                 {
-                    //  use an even tighter timer
-                    timerID = SetTimer(50);
-                }
-                else
-                {
-                    //  it's real close now, so spin on it
-                    while (!sim && timeleft > 0)
-                    {
-                        int slv;
-                        slv = 100000 * timeleft;
-                        usleep(slv);
-                    }
-
-                    PrimaryCCD.setExposureLeft(0);
-                    InExposure = false;
-                    /* grab and save image */
-                    bool rc = grabImage();
-                    if (rc == false)
-                    {
-                        PrimaryCCD.setExposureFailed();
-                    }
+                    PrimaryCCD.setExposureFailed();
                 }
             }
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Capture in progress. Time left %ld", timeleft);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Capture in progress. Time left %.2f", timeleft);
             if (timerID == -1)
                 SetTimer(POLLMS);
         }
-
-        PrimaryCCD.setExposureLeft(timeleft);
     }
 }
 
@@ -1730,10 +1712,12 @@ bool GPhotoCCD::startLiveVideo()
         PrimaryCCD.setFrame(0, 0, w, h);
     }*/
 
-    int w=0,h=0;
     unsigned char *inBuffer = (unsigned char *)(const_cast<char *>(previewData));
-    read_jpeg_size(inBuffer, previewSize, &w, &h);
-    Streamer->setSize(w,h);
+    if (liveVideoWidth <= 0)
+    {
+        read_jpeg_size(inBuffer, previewSize, &liveVideoWidth, &liveVideoHeight);
+        Streamer->setSize(liveVideoWidth,liveVideoHeight);
+    }
     Streamer->newFrame(inBuffer, previewSize);
 
 #if 0

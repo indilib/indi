@@ -341,6 +341,9 @@ void StreamManager::setSize(uint16_t width, uint16_t height)
 {
     if (width != StreamFrameN[CCDChip::FRAME_W].value || height != StreamFrameN[CCDChip::FRAME_H].value)
     {
+        if (m_PixelFormat == INDI_JPG)
+            DEBUG(INDI::Logger::DBG_WARNING, "Cannot subframe JPEG streams.");
+
         StreamFrameN[CCDChip::FRAME_X].value = 0;
         StreamFrameN[CCDChip::FRAME_X].max   = width - 1;
         StreamFrameN[CCDChip::FRAME_Y].value = 0;

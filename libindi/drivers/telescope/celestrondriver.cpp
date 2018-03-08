@@ -37,24 +37,10 @@
 
 #define CELESTRON_TIMEOUT 5 /* FD timeout in seconds */
 
-// logging macros
-#define LOG_DEBUG(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, (txt))
-#define LOG_INFO(txt)   DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, (txt))
-#define LOG_WARN(txt)   DEBUGDEVICE(device_str, INDI::Logger::DBG_WARNING, (txt))
-#define LOG_ERROR(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, (txt))
-#define LOG_EXTRA(...)  DEBUGDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, (txt))
-
-#define LOGF_DEBUG(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, __VA_ARGS__)
-#define LOGF_INFO(...)  DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION, __VA_ARGS__)
-#define LOGF_WARN(...)  DEBUGFDEVICE(device_str, INDI::Logger::DBG_WARNING, __VA_ARGS__)
-#define LOGF_ERROR(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR, __VA_ARGS__)
-#define LOGF_EXTRA(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, __VA_ARGS__)
-
-
 using namespace Celestron;
 
-
 char device_str[MAXINDIDEVICE] = "Celestron GPS";
+
 
 // Account for the quadrant in declination
 double Celestron::trimDecAngle(double angle)
@@ -112,6 +98,11 @@ void hex_dump(char *buf, const char *data, int size)
         buf[3 * size - 1] = '\0';
 }
 
+// This method is required by the logging macros
+const char *CelestronDriver::getDeviceName()
+{
+    return device_str;
+}
 
 void CelestronDriver::set_device(const char *name)
 {
@@ -556,7 +547,7 @@ bool CelestronDriver::get_radec(double *ra, double *dec, bool precise)
     fs_sexa(RAStr, *ra, 2, 3600);
     fs_sexa(DecStr, *dec, 2, 3600);
 
-    LOGF_EXTRA("RA-DEC (%s,%s)", RAStr, DecStr);
+    LOGF_EXTRA1("RA-DEC (%s,%s)", RAStr, DecStr);
     return true;
 }
 
@@ -582,7 +573,7 @@ bool CelestronDriver::get_azalt(double *az, double *alt, bool precise)
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, *az, 3, 3600);
     fs_sexa(AltStr, *alt, 2, 3600);
-    LOGF_EXTRA("RES <%s> ==> AZM-ALT (%s,%s)", response, AzStr, AltStr);
+    LOGF_EXTRA1("RES <%s> ==> AZM-ALT (%s,%s)", response, AzStr, AltStr);
     return true;
 }
 

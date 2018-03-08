@@ -518,6 +518,7 @@ bool DefaultDevice::ISNewNumber(const char *dev, const char *name, double values
     {
         IUUpdateNumber(&PollPeriodNP, values, names, n);
         PollPeriodNP.s = IPS_OK;
+        POLLMS = PollPeriodN[0].value;
         IDSetNumber(&PollPeriodNP, nullptr);
         return true;
     }

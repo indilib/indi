@@ -35,17 +35,6 @@ Version with experimental pulse guide support. GC 04.12.2015
 #include <cstring>
 #include <unistd.h>
 
-// logging macros
-#define LOG_DEBUG(txt)  DEBUG(INDI::Logger::DBG_DEBUG, (txt))
-#define LOG_INFO(txt)   DEBUG(INDI::Logger::DBG_SESSION, (txt))
-#define LOG_WARN(txt)   DEBUG(INDI::Logger::DBG_WARNING, (txt))
-#define LOG_ERROR(txt)   DEBUG(INDI::Logger::DBG_ERROR, (txt))
-
-#define LOGF_DEBUG(...) DEBUGF(INDI::Logger::DBG_DEBUG, __VA_ARGS__)
-#define LOGF_INFO(...)  DEBUGF(INDI::Logger::DBG_SESSION, __VA_ARGS__)
-#define LOGF_WARN(...)  DEBUGF(INDI::Logger::DBG_WARNING, __VA_ARGS__)
-#define LOGF_ERROR(...)  DEBUGF(INDI::Logger::DBG_ERROR, __VA_ARGS__)
-
 // Simulation Parameters
 #define GOTO_RATE       5        // slew rate, degrees/s
 #define SLEW_RATE       0.5      // slew rate, degrees/s
