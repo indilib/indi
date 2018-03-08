@@ -158,7 +158,7 @@ bool Integra::initProperties()
     FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
     FocusRelPosN[0].value = 100;
 
-    INDI::RotatorInterface::initProperties(ROTATOR_TAB);
+    RI::initProperties(ROTATOR_TAB);
 
     // Rotator Ticks
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 61802., 1., 0.);
@@ -166,8 +166,9 @@ bool Integra::initProperties()
 
     addDebugControl();
 
-    serialConnection->setDefaultPort("/dev/integra_focusing_rotator1");
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+    // 2018-03-08 JM: Disable custom port and baud rates. User should select those
+    //serialConnection->setDefaultPort("/dev/integra_focusing_rotator1");
+    //serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     return true;
 }
