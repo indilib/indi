@@ -115,7 +115,7 @@ bool FLICCD::initProperties()
     // Number of flush pre-exposure
     IUFillNumber(&FlushN[0], "FLUSH_COUNT", "Count", "%.f", 0., 16., 1, 0);
     IUFillNumberVector(&FlushNP, FlushN, 1, getDeviceName(), "CCD_FLUSH_COUNT", "N Flush", OPTIONS_TAB,
-                       IP_RO, 60, IPS_IDLE);
+                       IP_RW, 60, IPS_IDLE);
 
     // Background Flushing
     IUFillSwitch(&BackgroundFlushS[0], "ENABLED", "Enabled", ISS_OFF);
