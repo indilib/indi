@@ -863,6 +863,8 @@ bool ASICCD::StartStreaming()
 #endif
 
     ExposureRequest = 1.0 / Streamer->getTargetFPS();
+    long uSecs = (long)(ExposureRequest * 950000.0);
+    ASISetControlValue(m_camInfo->CameraID, ASI_EXPOSURE, uSecs, ASI_FALSE);
     ASIStartVideoCapture(m_camInfo->CameraID);
     pthread_mutex_lock(&condMutex);
     threadRequest = StateStream;
