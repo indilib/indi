@@ -7,6 +7,7 @@
 
 #include <cstring>
 
+
 class LX200StarGo : public LX200Generic
 {
 public:
@@ -25,6 +26,9 @@ protected:
     ISwitch SyncHomeS[1];
 
     virtual const char *getDefaultName() override;
+    virtual bool syncHomePosition();
+    virtual int getSiteLatitude(double *siteLat);
+    virtual int getSiteLongitude(double *siteLong);
 
     /*
     virtual void getBasicData() override;
