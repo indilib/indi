@@ -146,7 +146,7 @@ bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], ch
     return Telescope::ISNewText(dev, name, texts, names, n);
 }
 
-bool DomeScript::RunScript(int script, ...)
+bool ScopeScript::RunScript(int script, ...)
 {
   char tmp[256];
   strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
