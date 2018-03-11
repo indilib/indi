@@ -141,6 +141,7 @@ bool DomeScript::ISNewText(const char *dev, const char *name, char *texts[], cha
         if (strcmp(name, ScriptsTP.name) == 0)
         {
             IUUpdateText(&ScriptsTP, texts, names, n);
+            ScriptsTP.s = IPS_OK;
             IDSetText(&ScriptsTP, nullptr);
             return true;
         }
@@ -150,6 +151,48 @@ bool DomeScript::ISNewText(const char *dev, const char *name, char *texts[], cha
 
 bool DomeScript::RunScript(int script, ...)
 {
+    char tmp[256];
+    strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
+  
+    char **args = (char **)malloc(MAXARGS * sizeof(char *));
+    int arg     = 1;
+    char *p     = tmp;
+    args[0] = p;
+    while (arg < MAXARGS)
+    {
+      char *pp = strstr(p, " ");
+      if (pp == nullptr)
+        break;
+      *pp++       = 0;
+      args[arg++] = pp;
+      p           = pp;
+    }
+    va_list ap;
+    va_start(ap, script);
+    while (arg < MAXARGS)
+    {
+      char *pp    = va_arg(ap, char *);
+      args[arg++] = pp;
+      if (pp == nullptr)
+        break;
+    }
+    va_end(ap);
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
+
+    if (isDebug())
+    { char dbg[8 * 1024];
+      snprintf(dbg, sizeof(dbg), "execvp('%s'", path);
+      for (int i = 0; args[i]; i++)
+      {
+        strcat(dbg, ", '");
+        strcat(dbg, args[i]);
+        strcat(dbg, "'");
+      }
+      strcat(dbg, ", NULL)");
+      DEBUG(INDI::Logger::DBG_ERROR, dbg);
+    }
+
     int pid = fork();
     if (pid == -1)
     {
@@ -158,36 +201,6 @@ bool DomeScript::RunScript(int script, ...)
     }
     else if (pid == 0)
     {
-        char tmp[256];
-
-        strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
-
-        char **args = (char **)malloc(MAXARGS * sizeof(char *));
-        int arg     = 1;
-        char *p     = tmp;
-
-        while (arg < MAXARGS)
-        {
-            char *pp = strstr(p, " ");
-
-            if (pp == nullptr)
-                break;
-            *pp++       = 0;
-            args[arg++] = pp;
-            p           = pp;
-        }
-        va_list ap;
-        va_start(ap, script);
-        while (arg < MAXARGS)
-        {
-            char *pp    = va_arg(ap, char *);
-            args[arg++] = pp;
-            if (pp == nullptr)
-                break;
-        }
-        va_end(ap);
-        char path[256];
-        snprintf(path, 256, "%s/%s", ScriptsT[0].text, tmp);
         execvp(path, args);
         DEBUG(INDI::Logger::DBG_DEBUG, "Failed to execute script");
         exit(0);
@@ -224,7 +237,8 @@ void DomeScript::TimerHit()
 {
     if (!isConnected())
         return;
-    char *name  = tmpnam(nullptr);
+    char name[1024];
+    tmpnam(name);
     bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {

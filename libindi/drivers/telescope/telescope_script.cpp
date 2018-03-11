@@ -146,58 +146,69 @@ bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], ch
     return Telescope::ISNewText(dev, name, texts, names, n);
 }
 
-bool ScopeScript::RunScript(int script, ...)
+bool DomeScript::RunScript(int script, ...)
 {
-    int pid = fork();
-
-    if (pid == -1)
+  char tmp[256];
+  strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
+  
+  char **args = (char **)malloc(MAXARGS * sizeof(char *));
+  int arg     = 1;
+  char *p     = tmp;
+  args[0] = p;
+  while (arg < MAXARGS)
+  {
+    char *pp = strstr(p, " ");
+    if (pp == nullptr)
+      break;
+    *pp++       = 0;
+    args[arg++] = pp;
+    p           = pp;
+  }
+  va_list ap;
+  va_start(ap, script);
+  while (arg < MAXARGS)
+  {
+    char *pp    = va_arg(ap, char *);
+    args[arg++] = pp;
+    if (pp == nullptr)
+      break;
+  }
+  va_end(ap);
+  char path[1024];
+  snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
+  
+  if (isDebug())
+  { char dbg[8 * 1024];
+    snprintf(dbg, sizeof(dbg), "execvp('%s'", path);
+    for (int i = 0; args[i]; i++)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Fork failed");
-        return false;
+      strcat(dbg, ", '");
+      strcat(dbg, args[i]);
+      strcat(dbg, "'");
     }
-    else if (pid == 0)
-    {
-        char tmp[256];
-
-        strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
-
-        auto **args = (char **)malloc(MAXARGS * sizeof(char *));
-        int arg     = 1;
-        char *p     = tmp;
-
-        while (arg < MAXARGS)
-        {
-            char *pp = strstr(p, " ");
-
-            if (pp == nullptr)
-                break;
-            *pp++       = 0;
-            args[arg++] = pp;
-            p           = pp;
-        }
-        va_list ap;
-        va_start(ap, script);
-        while (arg < MAXARGS)
-        {
-            char *pp    = va_arg(ap, char *);
-            args[arg++] = pp;
-            if (pp == nullptr)
-                break;
-        }
-        va_end(ap);
-        char path[256];
-        snprintf(path, 256, "%s/%s", ScriptsT[0].text, tmp);
-        execvp(path, args);
-        DEBUG(INDI::Logger::DBG_DEBUG, "Failed to execute script");
-        exit(0);
-    }
-    else
-    {
-        int status;
-        waitpid(pid, &status, 0);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Script %s returned %d", ScriptsT[script].text, status);
-        return status == 0;
-    }
+    strcat(dbg, ", NULL)");
+    DEBUG(INDI::Logger::DBG_ERROR, dbg);
+  }
+  
+  int pid = fork();
+  if (pid == -1)
+  {
+    DEBUG(INDI::Logger::DBG_ERROR, "Fork failed");
+    return false;
+  }
+  else if (pid == 0)
+  {
+    execvp(path, args);
+    DEBUG(INDI::Logger::DBG_DEBUG, "Failed to execute script");
+    exit(0);
+  }
+  else
+  {
+    int status;
+    waitpid(pid, &status, 0);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Script %s returned %d", ScriptsT[script].text, status);
+    return status == 0;
+  }
 }
 
 bool ScopeScript::Handshake()
@@ -231,7 +242,8 @@ bool ScopeScript::Disconnect()
 
 bool ScopeScript::ReadScopeStatus()
 {
-    char *name  = tmpnam(nullptr);
+    char name[1024];
+    tmpnam(name);
     bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {
