@@ -93,7 +93,7 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
         // sync home position
         if (!strcmp(name, SyncHomeSP.name))
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Synching Home Position not implemented yet!");
+            syncHomePosition();
         }
         // tracking mode
         else if (!strcmp(name, TrackModeSP.name))
@@ -138,5 +138,64 @@ bool LX200StarGo::updateProperties()
         deleteProperty(SyncHomeSP.name);
     }
     return true;
+}
+
+
+bool LX200StarGo::syncHomePosition()
+{
+    double siteLong = 0.0;
+    double lst;
+
+    // step one: determine site longitude
+    if (getSiteLongitude(&siteLong) != TTY_OK)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site latitude from device.");
+        return false;
+    }
+
+    // determine local sidereal time
+    lst = get_local_sidereal_time(siteLong);
+    LOGF_DEBUG("Current local sidereal time = %.8f", lst);
+
+    // translate into hh:mm:ss
+    int h=0, m=0, s=0;
+    getSexComponents(lst, &h, &m, &s);
+
+    char cmd[12];
+    sprintf(cmd, ":X31%02d%02d%02d#", h, m, s);
+    LOGF_DEBUG("Executing CMD <%s>", cmd);
+
+    int result = TTY_OK;
+    result = setStandardProcedure(PortFD, cmd);
+
+    if (result == TTY_OK)
+    {
+        DEBUG(INDI::Logger::DBG_DEBUG, "Synching home position succeeded.");
+        SyncHomeSP.s = IPS_OK;
+    } else
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Synching home position failed.");
+        SyncHomeSP.s = IPS_ALERT;
+    }
+    IDSetSwitch(&SyncHomeSP, nullptr);
+    return (result == TTY_OK);
+}
+
+/*
+ * Determine the site latitude. In contrast to a standard LX200 implementation,
+ * StarGo returns the location in arc seconds precision.
+ */
+
+int LX200StarGo::getSiteLatitude(double *siteLat) {
+    return getCommandSexa(PortFD, siteLat, ":Gg#");
+}
+
+/*
+ * Determine the site longitude. In contrast to a standard LX200 implementation,
+ * StarGo returns the location in arc seconds precision.
+ */
+
+int LX200StarGo::getSiteLongitude(double *siteLong) {
+    return getCommandSexa(PortFD, siteLong, ":Gg#");
 }
 
