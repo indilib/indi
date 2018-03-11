@@ -44,6 +44,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx200zeq25.h"
 #include "lx200gotonova.h"
 #include "ioptronHC8406.h"
+#include "lx200stargo.h"
 
 #include <libnova/sidereal_time.h>
 
@@ -185,6 +186,13 @@ void ISInit()
 
         if (telescope.get() == 0)
             telescope.reset(new LX200_10MICRON());
+    }
+    else if (strstr(me, "indi_lx200stargo"))
+    {
+        IDLog("initializing for Avalon StarGo mount...\n");
+
+        if (telescope.get() == 0)
+            telescope.reset(new LX200StarGo());
     }
     // be nice and give them a generic device
     else if (telescope.get() == 0)
