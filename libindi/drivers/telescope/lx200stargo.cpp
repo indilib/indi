@@ -62,7 +62,7 @@ LX200StarGo::LX200StarGo() : LX200Generic::LX200Generic()
 ***************************************************************************************/
 const char *LX200StarGo::getDefaultName()
 {
-    return (const char *)"LX200 Avalon StarGo";
+    return (const char *)"Avalon StarGo";
 }
 
 
