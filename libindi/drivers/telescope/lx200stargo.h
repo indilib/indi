@@ -26,13 +26,20 @@ protected:
     ISwitch SyncHomeS[1];
 
     virtual const char *getDefaultName() override;
+    virtual void getBasicData();
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+
     virtual bool syncHomePosition();
+
+    bool sendScopeLocation();
+
     virtual int getSiteLatitude(double *siteLat);
+    virtual int setSiteLatitude(double Lat);
     virtual int getSiteLongitude(double *siteLong);
+    virtual int setSiteLongitude(double Long);
 
     /*
     virtual void getBasicData() override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual bool checkConnection() override;
     virtual bool isSlewComplete() override;
 
