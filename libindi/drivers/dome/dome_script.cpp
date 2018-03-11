@@ -190,7 +190,7 @@ bool DomeScript::RunScript(int script, ...)
         strcat(dbg, "'");
       }
       strcat(dbg, ", NULL)");
-      DEBUG(INDI::Logger::DBG_ERROR, dbg);
+      DEBUG(INDI::Logger::DBG_DEBUG, dbg);
     }
 
     int pid = fork();
