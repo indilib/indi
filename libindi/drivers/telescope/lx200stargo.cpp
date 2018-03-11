@@ -53,8 +53,7 @@ LX200StarGo::LX200StarGo() : LX200Generic::LX200Generic()
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TRACK_MODE,
-                           4);
+                           TELESCOPE_HAS_TRACK_MODE, 4);
 }
 
 /**************************************************************************************
@@ -181,13 +180,96 @@ bool LX200StarGo::syncHomePosition()
     return (result == TTY_OK);
 }
 
+void LX200StarGo::getBasicData()
+{
+    if (!isSimulation())
+    {
+        checkLX200Format(PortFD);
+
+        if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
+            getAlignment();
+
+
+        if (genericCapability & LX200_HAS_TRACKING_FREQ)
+        {
+            if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
+                DEBUG(INDI::Logger::DBG_ERROR, "Failed to get tracking frequency from device.");
+            else
+                IDSetNumber(&TrackingFreqNP, nullptr);
+        }
+
+    }
+
+    if (sendLocationOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION))
+        sendScopeLocation();
+    if (sendTimeOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_TIME))
+        sendScopeTime();
+}
+
+
+bool LX200StarGo::sendScopeLocation()
+{
+    if (isSimulation())
+    {
+        return LX200Generic::sendScopeLocation();
+    }
+
+    double siteLat = 0.0, siteLong = 0.0;
+    if (getSiteLatitude(&siteLat) != TTY_OK)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site latitude from device.");
+        return false;
+    }
+    if (getSiteLongitude(&siteLong) != TTY_OK)
+    {
+        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site longitude from device.");
+        return false;
+    }
+    LocationNP.np[LOCATION_LATITUDE].value = siteLat;
+    LocationNP.np[LOCATION_LONGITUDE].value = siteLong;
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
+
+    IDSetNumber(&LocationNP, nullptr);
+
+    return true;
+}
+
+bool LX200StarGo::updateLocation(double latitude, double longitude, double elevation)
+{
+    INDI_UNUSED(elevation);
+
+    if (isSimulation())
+        return true;
+
+    if (!isSimulation() && setSiteLongitude(longitude) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        return false;
+    }
+
+    if (!isSimulation() && setSiteLatitude(latitude) < 0)
+    {
+        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        return false;
+    }
+
+    char l[32]={0}, L[32]={0};
+    fs_sexa(l, latitude, 3, 3600);
+    fs_sexa(L, longitude, 4, 3600);
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
+
+    return true;
+}
+
 /*
  * Determine the site latitude. In contrast to a standard LX200 implementation,
  * StarGo returns the location in arc seconds precision.
  */
 
 int LX200StarGo::getSiteLatitude(double *siteLat) {
-    return getCommandSexa(PortFD, siteLat, ":Gg#");
+    return getCommandSexa(PortFD, siteLat, ":Gt#");
 }
 
 /*
@@ -197,5 +279,33 @@ int LX200StarGo::getSiteLatitude(double *siteLat) {
 
 int LX200StarGo::getSiteLongitude(double *siteLong) {
     return getCommandSexa(PortFD, siteLong, ":Gg#");
+}
+
+/*
+ * Determine the site longitude. In contrast to a standard LX200 implementation,
+ * StarGo returns the location in arc seconds precision.
+ */
+int LX200StarGo::setSiteLongitude(double Long)
+{
+    int d, m, s;
+    char read_buffer[32];
+
+    getSexComponents(Long, &d, &m, &s);
+
+    snprintf(read_buffer, sizeof(read_buffer), ":Sg%+03d*%02d:%02d#", d, m, s);
+
+    return (setStandardProcedure(PortFD, read_buffer));
+}
+
+int LX200StarGo::setSiteLatitude(double Lat)
+{
+    int d, m, s;
+    char read_buffer[32];
+
+    getSexComponents(Lat, &d, &m, &s);
+
+    snprintf(read_buffer, sizeof(read_buffer), ":St%+03d*%02d:%02d#", d, m, s);
+
+    return (setStandardProcedure(PortFD, read_buffer));
 }
 
