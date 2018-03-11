@@ -31,8 +31,6 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#define POLLMS 1000 /* Polling time (ms) */
-
 std::unique_ptr<FLIPDF> fliPDF(new FLIPDF());
 
 const flidomain_t Domains[] = { FLIDOMAIN_USB, FLIDOMAIN_SERIAL, FLIDOMAIN_PARALLEL_PORT, FLIDOMAIN_INET };
@@ -95,7 +93,7 @@ FLIPDF::FLIPDF()
 {
     sim = false;
 
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
 FLIPDF::~FLIPDF()

@@ -29,8 +29,6 @@
 
 #include "fli_cfw.h"
 
-#define POLLMS 1000 /* Polling time (ms) */
-
 std::unique_ptr<FLICFW> fliCFW(new FLICFW());
 
 const flidomain_t Domains[] = { FLIDOMAIN_USB, FLIDOMAIN_SERIAL, FLIDOMAIN_PARALLEL_PORT, FLIDOMAIN_INET };

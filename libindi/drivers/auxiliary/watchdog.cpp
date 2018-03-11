@@ -33,8 +33,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#define POLLMS 1000
-
 // We declare unique pointer to my lovely German Shephard Juli (http://indilib.org/images/juli_tommy.jpg)
 std::unique_ptr<WatchDog> goodgirrrl(new WatchDog());
 

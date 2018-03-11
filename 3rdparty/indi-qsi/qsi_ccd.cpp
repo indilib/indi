@@ -79,7 +79,6 @@ double max(void);
 
 #define FILTER_WHEEL_TAB "Filter Wheel"
 
-#define POLLMS         1000 /* Polling time (ms) */
 #define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
 #define NFLUSHES       1    /* Number of times a CCD array is flushed before an exposure */
 
@@ -1267,7 +1266,6 @@ void QSICCD::TimerHit()
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Image not ready, time left %ld\n", timeleft);
             PrimaryCCD.setExposureLeft(timeleft);
         }
     }

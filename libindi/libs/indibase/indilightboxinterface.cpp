@@ -82,7 +82,7 @@ bool LightBoxInterface::updateLightBoxProperties()
         {
             device->deleteProperty(FilterIntensityNP.name);
             FilterIntensityNP.nnp = 0;
-            delete (FilterIntensityN);
+            free (FilterIntensityN);
             FilterIntensityN = nullptr;
         }
     }
@@ -159,7 +159,6 @@ bool LightBoxInterface::processLightBoxNumber(const char *dev, const char *name,
             IUUpdateNumber(&FilterIntensityNP, values, names, n);
             FilterIntensityNP.s = IPS_OK;
             IDSetNumber(&FilterIntensityNP, nullptr);
-
             return true;
         }
     }
@@ -208,15 +207,47 @@ bool LightBoxInterface::snoopLightBox(XMLEle *root)
         return false;
 
     XMLEle *ep           = nullptr;
+    const char *propTag  = tagXMLEle(root);
     const char *propName = findXMLAttValu(root, "name");
 
-    if (FilterIntensityN == nullptr && !strcmp(propName, "FILTER_NAME"))
+    if (!strcmp(propTag, "delProperty"))
+        return false;
+
+    if (!strcmp(propName, "FILTER_NAME"))
     {
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        if (FilterIntensityN != nullptr)
         {
-            // If new, add.
-            addFilterDuration(pcdataXMLEle(ep), 0);
+            int snoopCounter=0;
+            bool isDifferent=false;
+            for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+            {
+                if (snoopCounter >= FilterIntensityNP.nnp || (strcmp(FilterIntensityN[snoopCounter].label, pcdataXMLEle(ep))))
+                {
+                    isDifferent = true;
+                    break;
+                }
+
+                snoopCounter++;
+            }
+
+            if (isDifferent == false && snoopCounter != FilterIntensityNP.nnp)
+                isDifferent = true;
+
+            // Check if we have different FILTER_NAME
+            // If identical, no need to recreate it.
+            if (isDifferent)
+            {
+                device->deleteProperty(FilterIntensityNP.name);
+                FilterIntensityNP.nnp=0;
+                free(FilterIntensityN);
+                FilterIntensityN = nullptr;
+            }
+            else
+                return false;
         }
+
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+            addFilterDuration(pcdataXMLEle(ep), 0);
 
         device->defineNumber(&FilterIntensityNP);
         char errmsg[MAXRBUF];
@@ -268,7 +299,7 @@ void LightBoxInterface::addFilterDuration(const char *filterName, uint16_t filte
     if (FilterIntensityN == nullptr)
     {
         FilterIntensityN = (INumber *)malloc(sizeof(INumber));
-        DEBUGDEVICE(device->getDeviceName(), Logger::DBG_SESSION, "Filter intensity preset created.");
+        DEBUGDEVICE(device->getDeviceName(), Logger::DBG_DEBUG, "Filter intensity preset created.");
     }
     else
     {

@@ -32,8 +32,6 @@
 #define mydev           "Optec TCF-S"
 #define currentPosition FocusAbsPosN[0].value
 
-const int POLLMS = 500;
-
 // We declare an auto pointer to TCFS.
 std::unique_ptr<TCFS> tcfs(new TCFS());
 
@@ -82,7 +80,7 @@ void ISSnoopDevice(XMLEle *root)
 *****************************************************************/
 TCFS::TCFS()
 {
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
 /****************************************************************
@@ -129,7 +127,7 @@ bool TCFS::initProperties()
 
     addAuxControls();
 
-    updatePeriodMS = POLLMS;
+    setDefaultPollingPeriod(500);
 
     return true;
 }

@@ -31,8 +31,6 @@
 
 #define SESTOSENSO_TIMEOUT 3
 
-#define POLLMS 500
-
 std::unique_ptr<SestoSenso> sesto(new SestoSenso());
 
 void ISGetProperties(const char *dev)
@@ -76,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 SestoSenso::SestoSenso()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
 bool SestoSenso::initProperties()
@@ -108,7 +106,7 @@ bool SestoSenso::initProperties()
 
     addAuxControls();
 
-    updatePeriodMS = POLLMS;
+    setDefaultPollingPeriod(500);
 
     return true;
 }

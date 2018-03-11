@@ -24,7 +24,6 @@
 #include <cstring>
 #include <memory>
 
-#define POLLMS              1000 /* 1000 ms */
 #define PERFECTSTAR_TIMEOUT 1000 /* 1000 ms */
 
 #define FOCUS_SETTINGS_TAB "Settings"
@@ -74,8 +73,8 @@ void ISSnoopDevice(XMLEle *root)
 
 PerfectStar::PerfectStar()
 {
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    setFocuserConnection(CONNECTION_NONE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    setConnection(CONNECTION_NONE);
 }
 
 bool PerfectStar::Connect()

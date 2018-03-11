@@ -29,9 +29,6 @@
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 
-#define POLLMS 1000 /* poll period, ms */
-
-//GUIDE: guider parent
 class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:

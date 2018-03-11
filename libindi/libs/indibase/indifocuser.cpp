@@ -27,7 +27,7 @@
 namespace INDI
 {
 
-Focuser::Focuser()
+Focuser::Focuser() : FI(this)
 {
     controller = new Controller(this);
 
@@ -43,7 +43,7 @@ bool Focuser::initProperties()
 {
     DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
-    initFocuserProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    FI::initProperties(MAIN_CONTROL_TAB);
 
     // Presets
     IUFillNumber(&PresetN[0], "PRESET_1", "Preset 1", "%.f", 0, 100000, 1000, 0);
@@ -59,6 +59,7 @@ bool Focuser::initProperties()
                        IPS_IDLE);
 
     addDebugControl();
+    addPollPeriodControl();
 
     controller->mapController("Focus In", "Focus In", Controller::CONTROLLER_BUTTON, "BUTTON_1");
     controller->mapController("Focus Out", "Focus Out", Controller::CONTROLLER_BUTTON, "BUTTON_2");
@@ -96,22 +97,10 @@ void Focuser::ISGetProperties(const char *dev)
 
 bool Focuser::updateProperties()
 {
-    if (isConnected())
-    {
-        //  Now we add our focusser specific stuff
-        defineSwitch(&FocusMotionSP);
+    FI::updateProperties();
 
-        if (HasVariableSpeed())
-        {
-            defineNumber(&FocusSpeedNP);
-            defineNumber(&FocusTimerNP);
-        }
-        if (CanRelMove())
-            defineNumber(&FocusRelPosNP);
-        if (CanAbsMove())
-            defineNumber(&FocusAbsPosNP);
-        if (CanAbort())
-            defineSwitch(&AbortSP);
+    if (isConnected())
+    {        
         if (CanAbsMove())
         {
             defineNumber(&PresetNP);
@@ -120,18 +109,6 @@ bool Focuser::updateProperties()
     }
     else
     {
-        deleteProperty(FocusMotionSP.name);
-        if (HasVariableSpeed())
-        {
-            deleteProperty(FocusSpeedNP.name);
-            deleteProperty(FocusTimerNP.name);
-        }
-        if (CanRelMove())
-            deleteProperty(FocusRelPosNP.name);
-        if (CanAbsMove())
-            deleteProperty(FocusAbsPosNP.name);
-        if (CanAbort())
-            deleteProperty(AbortSP.name);
         if (CanAbsMove())
         {
             deleteProperty(PresetNP.name);
@@ -160,7 +137,7 @@ bool Focuser::ISNewNumber(const char *dev, const char *name, double values[], ch
         }
 
         if (strstr(name, "FOCUS_"))
-            return processFocuserNumber(dev, name, values, names, n);
+            return FI::processNumber(dev, name, values, names, n);
     }
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -208,7 +185,7 @@ bool Focuser::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         }
 
         if (strstr(name, "FOCUS_"))
-            return processFocuserSwitch(dev, name, states, names, n);
+            return FI::processSwitch(dev, name, states, names, n);
     }
 
     controller->ISNewSwitch(dev, name, states, names, n);
@@ -366,12 +343,7 @@ bool Focuser::callHandshake()
     return Handshake();
 }
 
-uint8_t Focuser::getFocuserConnection() const
-{
-    return focuserConnection;
-}
-
-void Focuser::setFocuserConnection(const uint8_t &value)
+void Focuser::setConnection(const uint8_t &value)
 {
     uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
 

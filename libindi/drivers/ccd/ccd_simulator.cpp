@@ -32,8 +32,6 @@
 pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define POLLMS  1000
-
 // We declare an auto pointer to ccdsim.
 std::unique_ptr<CCDSim> ccdsim(new CCDSim());
 
@@ -78,8 +76,8 @@ void ISSnoopDevice(XMLEle *root)
 
 CCDSim::CCDSim() : INDI::FilterInterface(this)
 {    
-    raPE  = RA;
-    decPE = Dec;
+    currentRA  = RA;
+    currentDE = Dec;
 
     streamPredicate = 0;
     terminateThread = false;
@@ -134,6 +132,7 @@ bool CCDSim::SetupParms()
 bool CCDSim::Connect()
 {
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
+    SetTimer(POLLMS);
     return true;
 }
 
@@ -196,7 +195,13 @@ bool CCDSim::initProperties()
     IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config" , IP_RW, 60,
                        IPS_IDLE);
 
+    #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
+    #else
+    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    #endif
+
+
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
 
     uint32_t cap = 0;
@@ -232,7 +237,7 @@ void CCDSim::ISGetProperties(const char *dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineNumber(SimulatorSettingsNV);
-    defineSwitch(TimeFactorSV);
+    defineSwitch(TimeFactorSV);    
     defineNumber(&EqPENP);
 }
 
@@ -255,9 +260,6 @@ bool CCDSim::updateProperties()
 
         // Define the Filter Slot and name properties
         INDI::FilterInterface::updateProperties();
-
-        updatePeriodMS = POLLMS;
-        SetTimer(updatePeriodMS);
     }
     else
     {
@@ -307,6 +309,7 @@ bool CCDSim::StartExposure(float duration)
     //  Now compress the actual wait time
     ExposureRequest = duration * TimeFactor;
     InExposure      = true;
+
     return true;
 }
 
@@ -356,10 +359,11 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
 
 void CCDSim::TimerHit()
 {
-    uint32_t nextTimer = updatePeriodMS;
+    uint32_t nextTimer = POLLMS;
 
+    //  No need to reset timer if we are not connected anymore
     if (!isConnected())
-        return; //  No need to reset timer if we are not connected anymore
+        return;
 
     if (InExposure)
     {
@@ -389,7 +393,8 @@ void CCDSim::TimerHit()
                 }
                 else
                 {
-                    nextTimer = timeleft * 1000; //  set a shorter timer
+                    //  set a shorter timer
+                    nextTimer = timeleft * 1000;
                 }
             }
         }
@@ -468,6 +473,7 @@ void CCDSim::TimerHit()
             IDSetSwitch(&CoolerSP, nullptr);
         }
     }
+
 
     SetTimer(nextTimer);
 }
@@ -556,10 +562,12 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         Scalex = (targetChip->getPixelSizeX() / targetFocalLength) * 206.3;
         Scaley = (targetChip->getPixelSizeY() / targetFocalLength) * 206.3;
 
+#if 0
         DEBUGF(
             INDI::Logger::DBG_DEBUG,
             "pprx: %g pixels per radian ppry: %g pixels per radian ScaleX: %g arcsecs/pixel ScaleY: %g arcsecs/pixel",
             pprx, ppry, Scalex, Scaley);
+#endif
 
         double theta = rotationCW + 270;
         if (theta > 360)
@@ -583,29 +591,37 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         ImageScalex = Scalex;
         ImageScaley = Scaley;
 
+        #ifdef USE_EQUATORIAL_PE
         if (!usePE)
         {
-            raPE  = RA;
-            decPE = Dec;
+        #endif
+
+            currentRA  = RA;
+            currentDE = Dec;
 
             ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
-            epochPos.ra  = raPE * 15.0;
-            epochPos.dec = decPE;
+            epochPos.ra  = currentRA * 15.0;
+            epochPos.dec = currentDE;
 
             // Convert from JNow to J2000
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
 
-            raPE  = J2000Pos.ra / 15.0;
-            decPE = J2000Pos.dec;
+            currentRA  = J2000Pos.ra / 15.0;
+            currentDE = J2000Pos.dec;
+
+            currentDE += guideNSOffset;
+            currentRA += guideWEOffset;
+        #ifdef USE_EQUATORIAL_PE
         }
+        #endif
 
         //  calc this now, we will use it a lot later
-        rad = raPE * 15.0;
+        rad = currentRA * 15.0;
         rar = rad * 0.0174532925;
         //  offsetting the dec by the guide head offset
         float cameradec;
-        cameradec = decPE + OAGoffset / 60;
+        cameradec = currentDE + OAGoffset / 60;
         decr      = cameradec * 0.0174532925;
 
         decDrift = (polarDrift * polarError * cos(decr)) / 3.81;
@@ -622,7 +638,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         //  we have radius in arcseconds now
         radius = radius / 60; //  convert to arcminutes
 
+#if 0
         DEBUGF(INDI::Logger::DBG_DEBUG, "Lookup radius %4.2f", radius);
+#endif
 
         //  A saturationmag star saturates in one second
         //  and a limitingmag produces a one adu level in one second
@@ -968,46 +986,34 @@ int CCDSim::AddToPixel(INDI::CCDChip *targetChip, int x, int y, int val)
 
 IPState CCDSim::GuideNorth(float v)
 {
-    float c;
-
-    c     = v / 1000 * GuideRate; //
-    c     = c / 3600;
-    decPE = decPE + c;
-
+    guideNSOffset    += v / 1000 * GuideRate / 3600;
     return IPS_OK;
 }
 
 IPState CCDSim::GuideSouth(float v)
 {
-    float c;
-
-    c     = v / 1000 * GuideRate; //
-    c     = c / 3600;
-    decPE = decPE - c;
-
+    guideNSOffset    += v / -1000 * GuideRate / 3600;
     return IPS_OK;
 }
 
 IPState CCDSim::GuideEast(float v)
 {
-    float c;
+    float c   = v / 1000 * GuideRate;
+    c   = c/ 3600.0 / 15.0;
+    c   = c/ (cos(currentDE * 0.0174532925));
 
-    c    = v / 1000 * GuideRate;
-    c    = c / 3600.0 / 15.0;
-    c    = c / (cos(decPE * 0.0174532925));
-    raPE = raPE + c;
+    guideWEOffset += c;
 
     return IPS_OK;
 }
 
 IPState CCDSim::GuideWest(float v)
 {
-    float c;
+    float c   = v / -1000 * GuideRate;
+    c   = c/ 3600.0 / 15.0;
+    c   = c/ (cos(currentDE * 0.0174532925));
 
-    c    = v / 1000 * GuideRate; //
-    c    = c / 3600.0 / 15.0;
-    c    = c / (cos(decPE * 0.0174532925));
-    raPE = raPE - c;
+    guideWEOffset += c;
 
     return IPS_OK;
 }
@@ -1060,8 +1066,8 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
             Dec = EqPEN[AXIS_DE].value;
 
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-            raPE  = J2000Pos.ra / 15.0;
-            decPE = J2000Pos.dec;
+            currentRA  = J2000Pos.ra / 15.0;
+            currentDE = J2000Pos.dec;
             usePE = true;
 
             IDSetNumber(&EqPENP, nullptr);
@@ -1134,29 +1140,30 @@ bool CCDSim::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
 void CCDSim::activeDevicesUpdated()
 {
+    #ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
+    #else
+    IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
+    #endif
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
 
-    //strncpy(EqPENP.device, ActiveDeviceT[0].text, MAXINDIDEVICE);
     strncpy(FWHMNP.device, ActiveDeviceT[1].text, MAXINDIDEVICE);
 }
 
 bool CCDSim::ISSnoopDevice(XMLEle *root)
 {
-    XMLEle *ep           = nullptr;
-    const char *propName = findXMLAttValu(root, "name");
-
     if (IUSnoopNumber(root, &FWHMNP) == 0)
     {
         seeing = FWHMNP.np[0].value;
-
-        //IDLog("CCD Simulator: New FWHM value of %g\n", seeing);
         return true;
     }
 
     // We try to snoop EQPEC first, if not found, we snoop regular EQNP
+    #ifdef USE_EQUATORIAL_PE
+    const char *propName = findXMLAttValu(root, "name");
     if (!strcmp(propName, EqPENP.name))
     {
+            XMLEle *ep = nullptr;
             int rc_ra = -1, rc_de = -1;
             double newra = 0, newdec = 0;
 
@@ -1189,6 +1196,7 @@ bool CCDSim::ISSnoopDevice(XMLEle *root)
                 return true;
             }
     }
+    #endif
 
     return INDI::CCD::ISSnoopDevice(root);
 }

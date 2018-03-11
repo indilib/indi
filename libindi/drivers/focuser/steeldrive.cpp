@@ -38,8 +38,6 @@
 
 #define FOCUS_SETTINGS_TAB "Settings"
 
-#define POLLMS 500
-
 std::unique_ptr<SteelDrive> steelDrive(new SteelDrive());
 
 void ISGetProperties(const char *dev)
@@ -83,7 +81,7 @@ void ISSnoopDevice(XMLEle *root)
 SteelDrive::SteelDrive()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
 }
 
 bool SteelDrive::initProperties()
@@ -159,6 +157,8 @@ bool SteelDrive::initProperties()
     updateFocusMaxRange(fSettings[4].maxTrip, fSettings[4].gearRatio);
 
     addAuxControls();
+
+    setDefaultPollingPeriod(500);
 
     return true;
 }

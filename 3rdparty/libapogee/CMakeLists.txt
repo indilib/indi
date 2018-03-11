@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 PROJECT(libapogee C CXX)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -7,11 +7,12 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
+set(APOGEE_VERSION "3.1")
+set(APOGEE_SOVERSION "3")
+
 IF(APPLE)
-set(APOGEE_VERSION "3.0.3.2.3.4")
-set(CONF_DIR "/usr/local/etc" CACHE STRING "Base configuration directory")
+set(CONF_DIR "/usr/local/lib/indi/DriverSupport/" CACHE STRING "Base configuration directory")
 ELSE(APPLE)
-set(APOGEE_VERSION "3.0.3234")
 set(CONF_DIR "/etc" CACHE STRING "Base configuration directory")
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 ENDIF()
@@ -19,8 +20,6 @@ ENDIF()
 # IMPORTANT: When update libapogee code to upstream. Do not forget to save apgHelper.cpp as the configuration file
 # is hardcoded in the upstream version while it is used from configuration file here.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
-
-set(APOGEE_SOVERSION "3")
 
 find_package(USB1 REQUIRED)
 find_package(CURL REQUIRED)
@@ -67,4 +66,3 @@ install(
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES 99-apogee.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF()
-

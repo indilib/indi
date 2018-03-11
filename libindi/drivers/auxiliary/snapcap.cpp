@@ -41,7 +41,6 @@ std::unique_ptr<SnapCap> snapcap(new SnapCap());
 #define SNAP_CMD 7
 #define SNAP_RES 8
 #define SNAP_TIMEOUT 3
-#define POLLMS 1000
 
 void ISGetProperties(const char *dev)
 {

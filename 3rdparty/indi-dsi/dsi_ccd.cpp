@@ -28,8 +28,6 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-const int POLLMS = 250;
-
 std::unique_ptr<DSICCD> dsiCCD(new DSICCD());
 
 void ISGetProperties(const char *dev)
@@ -220,6 +218,8 @@ bool DSICCD::initProperties()
        for taking bias frames.                                                */
 
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 3600, 1, false);
+
+    setDefaultPollingPeriod(250);
 
     return true;
 }

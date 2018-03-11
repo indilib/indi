@@ -45,6 +45,7 @@
 #define _FLI_FILTER_FOCUSER_H_
 
 #define FLI_FILTERPOSITION_HOME (-1)
+#define FLI_FILTERMAXWHEELS (4)
 
 /* Filter wheel and focuser parameters */
 typedef struct _flifilterfocuserdata_t {
@@ -56,6 +57,11 @@ typedef struct _flifilterfocuserdata_t {
 	long extent;
 	long hwtype;
 	long uselong;
+
+	long activewheel;
+	long numwheels;
+	long numslotswheel[2];
+	char *nameinfobuf;
 } flifilterfocuserdata_t;
 
 typedef struct {

@@ -37,7 +37,6 @@
 #define MAX_X_BIN      16   /* Max Horizontal binning */
 #define MAX_Y_BIN      16   /* Max Vertical binning */
 #define MAX_PIXELS     4096 /* Max number of pixels in one dimension */
-#define POLLMS         1000 /* Polling time (ms) */
 #define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
 #define MAX_DEVICES    20   /* Max device cameraCount */
 

@@ -32,11 +32,49 @@
 #define INTEGRA_TEMPERATURE_TRESHOLD_IN_C 0.1
 #define INTEGRA_ROUNDING_FUDGE 0.001
 
-#define POLLMS 1000
 #define ROTATOR_TAB "Rotator"
 #define SETTINGS_TAB "Settings"
 
 std::unique_ptr<Integra> integra(new Integra());
+
+typedef struct
+{
+    const char cmd[12];
+    char ret[2][3];
+} COMMANDDESC;
+
+static const COMMANDDESC IntegraProtocol[] = {
+        { "@SW%d,0\r\n",  { "S", "SW"}},
+        { "@CS%d,0\r\n",  { "C", "CS"}},
+        { "@CE%d,0\r\n",  { "CE", "CE"}},
+        { "@CR%d,0\r\n",  { "CR", "CR"}},
+        { "@TR\r\n",      { "T", "TR"}},
+        { "@PW%d,0\r\n",  { "P", "PW"}},
+        { "@PR%d,0\r\n",  { "P", "PR"}},
+        { "@MI%d,%d\r\n", { "M", "MI"}},
+        { "@MO%d,%d\r\n", { "M", "MO"}},
+        { "@RR%d,0\r\n",  { "R", "RR"}},
+        { "X\r\n",            { "", ""}},
+        { "@IW%d,0\r\n",  { "I", "IW"}},
+        { "@ZW\r\n",      { "", "ZW"}}
+};
+
+enum {
+    stop_motor,
+    calibrate,
+    calibrate_interrupt,
+    calibration_state,
+    get_temperature,
+    set_motstep,
+    get_motstep,
+    move_mot_in,
+    move_mot_out,
+    get_motrange,
+    is_moving,
+    invert_dir,
+    EEPROMwrite
+};
+
 
 void ISGetProperties(const char *dev)
 {
@@ -78,9 +116,12 @@ void ISSnoopDevice (XMLEle *root)
 
 Integra::Integra() : RotatorInterface(this)
 {
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    SetRotatorCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
-    setFocuserConnection(CONNECTION_SERIAL);
+    // Rotator
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_SYNC | ROTATOR_CAN_REVERSE);
+
+    // Focuser
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    setConnection(CONNECTION_SERIAL);
 }
 
 bool Integra::initProperties()
@@ -117,7 +158,7 @@ bool Integra::initProperties()
     FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
     FocusRelPosN[0].value = 100;
 
-    INDI::RotatorInterface::initProperties(ROTATOR_TAB);
+    RI::initProperties(ROTATOR_TAB);
 
     // Rotator Ticks
     IUFillNumber(&RotatorAbsPosN[0], "ROTATOR_ABSOLUTE_POSITION", "Ticks", "%.f", 0., 61802., 1., 0.);
@@ -125,10 +166,9 @@ bool Integra::initProperties()
 
     addDebugControl();
 
-    updatePeriodMS = POLLMS;
-
-    serialConnection->setDefaultPort("/dev/integra_focusing_rotator1");
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+    // 2018-03-08 JM: Disable custom port and baud rates. User should select those
+    //serialConnection->setDefaultPort("/dev/integra_focusing_rotator1");
+    //serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     return true;
 }
@@ -145,7 +185,7 @@ bool Integra::updateProperties()
         defineSwitch(&FindHomeSP);
 
         // Rotator
-        INDI::RotatorInterface::updateProperties();
+        RI::updateProperties();
         defineNumber(&RotatorAbsPosNP);
     }
     else
@@ -156,7 +196,7 @@ bool Integra::updateProperties()
         deleteProperty(FindHomeSP.name);
 
         // Rotator
-        INDI::RotatorInterface::updateProperties();
+        RI::updateProperties();
         deleteProperty(RotatorAbsPosNP.name);
     }
 
@@ -168,7 +208,7 @@ bool Integra::Handshake()
     if (Ack())
         return true;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from Integra, please ensure Integra controller is powered and the port is correct.");
+    DEBUG(INDI::Logger::DBG_SESSION, "Error retrieving data from Integra, please ensure Integra controller is powered and the port is correct.");
     return false;
 }
 
@@ -179,9 +219,9 @@ const char * Integra::getDefaultName()
 
 void Integra::cleanPrint(const char *cmd, char *cleancmd)
 {
-    int len = strlen(cmd);
+    size_t len = strlen(cmd);
     int j = 0;
-    for (int i = 0; i<=len; i++) {
+    for (size_t i = 0; i<=len; i++) {
         if (cmd[i] == 0xA) {
             cleancmd[j++] = '\\';
             cleancmd[j++] = 'n';
@@ -207,7 +247,24 @@ bool Integra::Ack()
 
 bool Integra::getFirmware()
 {
-    char resp[64] = "not available"; // TODO the device cannot report its firmware version yet
+    char resp[64] = "not available";
+
+    // two firmware versions :  25.01.2017 & 20.12.2017
+    // still no direct command to retrieve the version but the protocol
+    // has changed. the later version is returning the full command prefix as response prefix
+    // version 25.01.2017 : cmd RR1,0 => R188600#
+    // version 20.12.2017 : cmd RR1.0 => RR188600#
+
+    // to identify the version we try both protocol.
+    if ( genericIntegraCommand(__FUNCTION__, "@RR1,0\r\n", "RR", nullptr))
+    {
+        strcpy(resp, "20.12.2017");
+        this->firmwareVersion = VERSION_20122017;
+    } else {
+        strcpy(resp, "25.01.2017");
+        this->firmwareVersion = VERSION_25012017;
+    }
+
     DEBUGF(INDI::Logger::DBG_SESSION, "Firmware version %s", resp);
     return true;
 }
@@ -230,21 +287,18 @@ bool Integra::getFocuserType()
 
 bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
 {
-    char cmd[16] = {0};
-    char *MotorMoveCommand;
-    char MotorMoveIn[] = "MI";
-    char MotorMoveOut[] = "MO";
+    int motorMoveCommand;
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "Start relativeGotoMotor to %d ...", relativePosition);
     if (relativePosition > 0)
-        MotorMoveCommand = MotorMoveOut;
+        motorMoveCommand = move_mot_out;
     else
-        MotorMoveCommand = MotorMoveIn;
+        motorMoveCommand = move_mot_in;
 
     if (type == MOTOR_FOCUS) {
         if (relativePosition > 0) {
             if (lastFocuserPosition + relativePosition > MaxPositionN[MOTOR_FOCUS].value) {
-                int newRelativePosition = MaxPositionN[MOTOR_FOCUS].value - lastFocuserPosition;
+                int newRelativePosition = (int32_t)floor(MaxPositionN[MOTOR_FOCUS].value) - lastFocuserPosition;
                 DEBUGF(INDI::Logger::DBG_SESSION, "Focus position change %d clipped to %d to stay at MAX %d",
                        relativePosition, newRelativePosition, MaxPositionN[MOTOR_FOCUS].value);
                 relativePosition = newRelativePosition;
@@ -260,14 +314,14 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
     } else if (type == MOTOR_ROTATOR) {
         if (relativePosition > 0) {
             if (lastRotatorPosition + relativePosition > MaxPositionN[MOTOR_ROTATOR].value) {
-                int newRelativePosition = MaxPositionN[MOTOR_ROTATOR].value - lastRotatorPosition;
+                int newRelativePosition = (int32_t)floor(MaxPositionN[MOTOR_ROTATOR].value) - lastRotatorPosition;
                 DEBUGF(INDI::Logger::DBG_SESSION, "Rotator position change %d clipped to %d to stay at MAX %d",
                        relativePosition, newRelativePosition, MaxPositionN[MOTOR_ROTATOR].value);
                 relativePosition = newRelativePosition;
             }
         } else {
             if (lastRotatorPosition + relativePosition < - MaxPositionN[MOTOR_ROTATOR].value) {
-                int newRelativePosition = - MaxPositionN[MOTOR_ROTATOR].value - lastRotatorPosition;
+                int newRelativePosition = - (int32_t)floor(MaxPositionN[MOTOR_ROTATOR].value) - lastRotatorPosition;
                 DEBUGF(INDI::Logger::DBG_SESSION, "Rotator position change %d clipped to %d to stay at MIN %d",
                        relativePosition, newRelativePosition, - MaxPositionN[MOTOR_ROTATOR].value);
                 relativePosition = newRelativePosition;
@@ -275,8 +329,7 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
         }
     }
 
-    snprintf(cmd, 16, "@%s%d,%d\r\n", MotorMoveCommand, type+1, abs(relativePosition));
-    return genericIntegraCommand(__FUNCTION__, cmd, "M", nullptr);
+    return  integraMotorSetCommand( __FUNCTION__, motorMoveCommand, type, abs(relativePosition), nullptr);
 }
 
 bool Integra::gotoMotor(MotorType type, int32_t position)
@@ -299,10 +352,8 @@ bool Integra::gotoMotor(MotorType type, int32_t position)
 
 bool Integra::getPosition(MotorType type)
 {
-    char cmd[16] = {0};
-    snprintf(cmd, 16, "@PR%d,0\r\n", type+1);
     char res[16] = {0};
-    if ( ! genericIntegraCommand(__FUNCTION__, cmd, "P", res))
+    if ( !integraMotorGetCommand(__FUNCTION__, get_motstep, type, res ))
     {
         return false;
     }
@@ -312,7 +363,7 @@ bool Integra::getPosition(MotorType type)
     {
         if (type == MOTOR_FOCUS) {
             if (FocusAbsPosN[0].value != position) {
-                int position_from = (int) FocusAbsPosN[0].value;
+                auto position_from = (int) FocusAbsPosN[0].value;
                 int position_to = position;
                 if (haveReadFocusPositionAtLeastOnce) {
                     DEBUGF(INDI::Logger::DBG_DEBUG, "Focus position changed from %d to %d", position_from, position_to);
@@ -324,7 +375,7 @@ bool Integra::getPosition(MotorType type)
         }
         else if (type == MOTOR_ROTATOR) {
             if (RotatorAbsPosN[0].value != position) {
-                int position_from = (int) RotatorAbsPosN[0].value;
+                auto position_from = (int) RotatorAbsPosN[0].value;
                 int position_to = position;
                 if (haveReadRotatorPositionAtLeastOnce) {
                     DEBUGF(INDI::Logger::DBG_DEBUG, "Rotator changed angle from %.2f to %.2f, position from %d to %d",
@@ -512,7 +563,7 @@ void Integra::TimerHit()
     }
 
     // #5 Focus Position & Status
-    if (haveReadFocusPositionAtLeastOnce == false || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    //if (!haveReadFocusPositionAtLeastOnce || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
         if ( ! isMotorMoving(MOTOR_FOCUS))
         {
@@ -540,7 +591,7 @@ void Integra::TimerHit()
     }
 
     // #6 Rotator Position & Status
-    if (haveReadRotatorPositionAtLeastOnce == false || RotatorAbsPosNP.s == IPS_BUSY)
+    //if (!haveReadRotatorPositionAtLeastOnce  || RotatorAbsPosNP.s == IPS_BUSY)
     {
         if ( ! isMotorMoving(MOTOR_ROTATOR))
         {
@@ -584,9 +635,7 @@ bool Integra::AbortFocuser()
 bool Integra::stopMotor(MotorType type)
 {
     // TODO (if focuser?) handle CR 2
-    char cmd[16] = {0};
-    snprintf(cmd, 16, "@SW%d,0\r\n", type+1);
-    if (genericIntegraCommand(__FUNCTION__, cmd, "S", nullptr))
+    if (integraGetCommand(__FUNCTION__, stop_motor, nullptr))
     {
         if (type == MOTOR_FOCUS) {
             haveReadFocusPositionAtLeastOnce = false;
@@ -600,7 +649,7 @@ bool Integra::stopMotor(MotorType type)
 
 bool Integra::isMotorMoving(MotorType type) {
     char res[16] = {0};
-    if ( ! genericIntegraCommand(__FUNCTION__, "X", nullptr, res)) {
+    if ( ! integraGetCommand( __FUNCTION__, is_moving, res)) {
         return false;
     }
     if (type == MOTOR_FOCUS) {
@@ -626,10 +675,8 @@ bool Integra::isMotorMoving(MotorType type) {
 
 bool Integra::getMaxPosition(MotorType type)
 {
-    char cmd[16] = {0};
     char res[16] = {0};
-    snprintf(cmd, 16, "@RR%d,0\r\n", type+1);
-    if ( ! genericIntegraCommand(__FUNCTION__, cmd, "R", res))
+    if ( ! integraMotorGetCommand(__FUNCTION__, get_motrange, type, res))
     {
         return false;
     }
@@ -641,14 +688,14 @@ bool Integra::getMaxPosition(MotorType type)
 
 bool Integra::saveToEEPROM()
 {
-    return genericIntegraCommand(__FUNCTION__, "@ZW\r\n", "Z", nullptr);
+    return integraGetCommand(__FUNCTION__, EEPROMwrite, nullptr);
 }
 
 bool Integra::getTemperature() {
     char res[16] = {0};
-    if (genericIntegraCommand(__FUNCTION__, "@TR\r\n", "T", res))
+    if (integraGetCommand(__FUNCTION__, get_temperature, res ) )
     {
-        SensorN[SENSOR_TEMPERATURE].value = strtod(res, NULL);
+        SensorN[SENSOR_TEMPERATURE].value = strtod(res, nullptr);
         return true;
     }
     return false;
@@ -656,18 +703,18 @@ bool Integra::getTemperature() {
 
 bool Integra::findHome()
 {
-    return genericIntegraCommand(__FUNCTION__, "@CS1,0\r\n", "CS", nullptr);
+    return integraMotorGetCommand(__FUNCTION__, calibrate, MOTOR_FOCUS, nullptr);
 }
 
 bool Integra::abortHome()
 {
-    return genericIntegraCommand(__FUNCTION__, "@CE1,0\r\n", "CE", nullptr);
+    return integraMotorGetCommand(__FUNCTION__, calibrate_interrupt, MOTOR_FOCUS, nullptr);
 }
 
 bool Integra::isHomingComplete()
 {
     char res[16] = {0};
-    if (genericIntegraCommand(__FUNCTION__, "@CR1,0\r\n", "C", res))
+    if (integraMotorGetCommand(__FUNCTION__, calibration_state, MOTOR_FOCUS, res))
     {
         return (res[0] == '1');
     }
@@ -734,10 +781,8 @@ double Integra::rotatorTicksToDegrees(uint32_t ticks)
 }
 
 bool Integra::SyncRotator(double angle) {
-    char cmd[16] = {0};
     uint32_t position = rotatorDegreesToTicks(angle);
-    snprintf(cmd, 16, "@PW2,%d\r\n", position);
-    if (genericIntegraCommand(__FUNCTION__, cmd, "P", nullptr))
+    if ( integraMotorSetCommand(__FUNCTION__, set_motstep, MOTOR_ROTATOR, position, nullptr ))
     {
         haveReadRotatorPositionAtLeastOnce = false;
         return true;
@@ -747,7 +792,25 @@ bool Integra::SyncRotator(double angle) {
 
 bool Integra::ReverseRotator(bool)
 {
-    return genericIntegraCommand(__FUNCTION__, "@IW2,0\r\n", "I", nullptr);
+    return  integraMotorGetCommand(__FUNCTION__, invert_dir, MOTOR_ROTATOR, nullptr);
+}
+
+bool Integra::integraGetCommand( const char *name,int commandIdx, char *returnValueString ) {
+    char cmd[16] = {0};
+    snprintf(cmd, 16, "%s", IntegraProtocol[commandIdx].cmd);
+    return genericIntegraCommand(name, cmd , IntegraProtocol[commandIdx].ret[this->firmwareVersion], returnValueString);
+}
+
+bool Integra::integraMotorGetCommand( const char *name,int commandIdx, MotorType motor, char *returnValueString ) {
+    char cmd[16] = {0};
+    snprintf(cmd, 16, IntegraProtocol[commandIdx].cmd, motor+1);
+    return genericIntegraCommand(name, cmd , IntegraProtocol[commandIdx].ret[this->firmwareVersion], returnValueString);
+}
+
+bool Integra::integraMotorSetCommand(const char *name, int commandIdx, MotorType motor, int value, char *returnValueString ) {
+    char cmd[16] = {0};
+    snprintf(cmd, 16, IntegraProtocol[commandIdx].cmd, motor+1, value);
+    return genericIntegraCommand(name, cmd , IntegraProtocol[commandIdx].ret[this->firmwareVersion], returnValueString);
 }
 
 bool Integra::genericIntegraCommand(const char *name, const char *cmd, const char *expectStart, char *returnValueString)
@@ -758,10 +821,10 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
     char errstr[MAXRBUF];
 
     cleanPrint(cmd, cmdnocrlf);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD %s <%s>", name, cmdnocrlf);
+    DEBUGF(INDI::Logger::DBG_SESSION, "CMD %s -%s-", name, cmdnocrlf);
 
     tcflush(PortFD, TCIOFLUSH);
-    if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+    if ( (rc = tty_write(PortFD, cmd, (int)strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", name, errstr);
@@ -775,13 +838,13 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES %s <%s>", name, res);
+    DEBUGF(INDI::Logger::DBG_SESSION, "RES %s -%s-", name, res);
 
     // check begin of result string
     if (expectStart != nullptr)
     {
-        int expectStrlen = strlen(expectStart);
-        for (int i=0; i<expectStrlen; i++)
+        size_t expectStrlen = strlen(expectStart);
+        for (size_t i=0; i<expectStrlen; i++)
         {
             if (res[i] != expectStart[i])
             {
@@ -798,13 +861,9 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
     }
     res[nbytes_read-1] = '\0';  // wipe the #
 
-    if (returnValueString != nullptr) {
-        // handle the exception case X that returns a result that does NOT start with an identifier
-        if (res[0] < 'A' || res[0] > 'Z') {
-            strcpy(returnValueString, res);
-        } else {
-            strcpy(returnValueString, res+1);
-        }
+    if (returnValueString != nullptr && expectStart != nullptr) {
+        size_t expectStrlen = strlen(expectStart);
+        strcpy(returnValueString, res + expectStrlen);
     }
 
     return true;

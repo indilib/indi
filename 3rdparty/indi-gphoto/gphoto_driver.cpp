@@ -75,6 +75,7 @@ struct _gphoto_driver
     int iso;
     int format;
     int upload_settings;
+    bool delete_sdcard_image;
 
     char *model;
     char *manufacturer;
@@ -96,8 +97,9 @@ enum
 {
     DSLR_CMD_BULB_CAPTURE = 0x01,
     DSLR_CMD_CAPTURE      = 0x02,
-    DSLR_CMD_DONE         = 0x04,
-    DSLR_CMD_THREAD_EXIT  = 0x08,
+    DSLR_CMD_ABORT        = 0x04,
+    DSLR_CMD_DONE         = 0x08,
+    DSLR_CMD_THREAD_EXIT  = 0x10,
 };
 
 static char device[64];
@@ -445,17 +447,18 @@ static void *stop_bulb(void *arg)
         // All camera opertions take place with the mutex held, so we are thread-safe
         pthread_cond_timedwait(&gphoto->signal, &gphoto->mutex, &timeout);
         //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"timeout expired");
-        if (!(gphoto->command & DSLR_CMD_DONE) && (gphoto->command & DSLR_CMD_BULB_CAPTURE))
+        if (!(gphoto->command & DSLR_CMD_DONE) && ( (gphoto->command & DSLR_CMD_BULB_CAPTURE) || (gphoto->command & DSLR_CMD_ABORT)))
         {
-            //result = gp_camera_wait_for_event(gphoto->camera, 1, &event, &data, gphoto->context);
-            /*switch (event) {
-                //TODO: Handle unexpected events
-                default: break;
-            }*/
-            gettimeofday(&curtime, NULL);
-            timeleft = ((gphoto->bulb_end.tv_sec - curtime.tv_sec) * 1000) +
-                       ((gphoto->bulb_end.tv_usec - curtime.tv_usec) / 1000);
-            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Time left: %ld", timeleft);
+            if (gphoto->command & DSLR_CMD_BULB_CAPTURE)
+            {
+                gettimeofday(&curtime, NULL);
+                timeleft = ((gphoto->bulb_end.tv_sec - curtime.tv_sec) * 1000) +
+                           ((gphoto->bulb_end.tv_usec - curtime.tv_usec) / 1000);
+                DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Time left: %ld", timeleft);
+            }
+            else
+                timeleft = 0;
+
             if (timeleft <= 0)
             {
                 //shut off bulb mode
@@ -465,8 +468,8 @@ static void *stop_bulb(void *arg)
                     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using widget:%s", gphoto->bulb_widget->name);
                     if (strcmp(gphoto->bulb_widget->name, "eosremoterelease") == 0)
                     {
-                        gphoto_set_widget_num(gphoto, gphoto->bulb_widget,
-                                              EOS_RELEASE_FULL); //600D eosremoterelease RELEASE FULL
+                        //600D eosremoterelease RELEASE FULL
+                        gphoto_set_widget_num(gphoto, gphoto->bulb_widget, EOS_RELEASE_FULL);
                     }
                     else
                     {
@@ -619,7 +622,7 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     int captureTarget = -1;
     gphoto_get_capture_target(gphoto, &captureTarget);
     // If it was set to RAM
-    if (captureTarget == 0 && !strstr(gphoto->model, "20D"))
+    if ((gphoto->delete_sdcard_image || captureTarget == 0) && !strstr(gphoto->model, "20D"))
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Deleting.");
         result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
@@ -962,6 +965,25 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
     return 0;
 }
 
+int gphoto_abort_exposure(gphoto_driver *gphoto)
+{
+    gphoto->command = DSLR_CMD_ABORT;
+    pthread_cond_signal(&gphoto->signal);
+    pthread_mutex_unlock(&gphoto->mutex);
+
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Aborting exposure...");
+
+    // Wait until exposure is aborted
+    pthread_mutex_lock(&gphoto->mutex);
+    if (!(gphoto->command & DSLR_CMD_DONE))
+        pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
+
+    pthread_mutex_unlock(&gphoto->mutex);
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure aborted.");
+
+    return 0;
+}
+
 int gphoto_read_exposure(gphoto_driver *gphoto)
 {
     return gphoto_read_exposure_fd(gphoto, -1);
@@ -1246,6 +1268,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto->manufacturer    = NULL;
     gphoto->model           = NULL;
     gphoto->upload_settings = GP_UPLOAD_CLIENT;
+    gphoto->delete_sdcard_image = false;
 
     if (gphoto->format_widget != NULL)
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Image Format Widget: %s", gphoto->format_widget->name);
@@ -1844,6 +1867,13 @@ int gphoto_set_capture_target(gphoto_driver *gphoto, int capture_target)
         return GP_ERROR_NOT_SUPPORTED;
 
     gphoto_set_widget_num(gphoto, gphoto->capturetarget_widget, capture_target);
+
+    return GP_OK;
+}
+
+int gphoto_delete_sdcard_image(gphoto_driver *gphoto, bool delete_sdcard_image)
+{
+    gphoto->delete_sdcard_image = delete_sdcard_image;
 
     return GP_OK;
 }

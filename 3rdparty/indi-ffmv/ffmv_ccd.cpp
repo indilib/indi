@@ -29,8 +29,6 @@
 #include "ffmv_ccd.h"
 #include "config.h"
 
-const int POLLMS = 250;
-
 std::unique_ptr<FFMVCCD> ffmvCCD(new FFMVCCD());
 
 /**
@@ -331,6 +329,8 @@ bool FFMVCCD::initProperties()
     IUFillSwitch(&GainS[1], "GAIN2X", "2x Digital Boost", ISS_OFF);
     IUFillSwitchVector(&GainSP, GainS, 2, getDeviceName(), "GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_WO, ISR_NOFMANY, 0,
                        IPS_IDLE);
+
+    setDefaultPollingPeriod(250);
 
     return true;
 }

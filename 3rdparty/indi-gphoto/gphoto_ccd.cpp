@@ -33,7 +33,6 @@
 
 #define FOCUS_TAB    "Focus"
 #define MAX_DEVICES  5 /* Max device cameraCount */
-#define POLLMS       1000
 #define STREAMPOLLMS 50
 #define FOCUS_TIMER  50
 #define MAX_RETRIES  3
@@ -253,7 +252,7 @@ void ISSnoopDevice(XMLEle *root)
 }
 
 //==========================================================================
-GPhotoCCD::GPhotoCCD()
+GPhotoCCD::GPhotoCCD() : FI(this)
 {
     memset(model, 0, MAXINDINAME);
     memset(port, 0, MAXINDINAME);
@@ -266,7 +265,7 @@ GPhotoCCD::GPhotoCCD()
     setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);    
 }
 
-GPhotoCCD::GPhotoCCD(const char *model, const char *port)
+GPhotoCCD::GPhotoCCD(const char *model, const char *port) : FI(this)
 {
     strncpy(this->port, port, MAXINDINAME);
     strncpy(this->model, model, MAXINDINAME);
@@ -330,7 +329,7 @@ bool GPhotoCCD::initProperties()
     // Init parent properties first
     INDI::CCD::initProperties();
 
-    initFocuserProperties(getDeviceName(), FOCUS_TAB);
+    FI::initProperties(FOCUS_TAB);
 
     IUFillText(&mPortT[0], "PORT", "Port", "");
     IUFillTextVector(&PortTP, mPortT, NARRAY(mPortT), getDeviceName(), "DEVICE_PORT", "Shutter Release",
@@ -367,14 +366,19 @@ bool GPhotoCCD::initProperties()
     IUFillSwitchVector(&captureTargetSP, captureTargetS, 2, getDeviceName(), "CCD_CAPTURE_TARGET", "Capture Target",
                        IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&SDCardImageS[SD_CARD_SAVE_IMAGE], "Save", "", ISS_ON);
+    IUFillSwitch(&SDCardImageS[SD_CARD_DELETE_IMAGE], "Delete", "", ISS_OFF);
+    IUFillSwitchVector(&SDCardImageSP, SDCardImageS, 2, getDeviceName(), "CCD_SD_CARD_ACTION", "SD Image",
+                       IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
 
     // Most cameras have this by default, so let's set it as default.
     IUSaveText(&BayerT[2], "RGGB");
 
-    SetCCDCapability(CCD_CAN_SUBFRAME | CCD_HAS_BAYER | CCD_HAS_STREAMING);
+    SetCCDCapability(CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_HAS_BAYER | CCD_HAS_STREAMING);
 
-    SetFocuserCapability(FOCUSER_HAS_VARIABLE_SPEED);
+    FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED);
 
     FocusSpeedN[0].min   = 0;
     FocusSpeedN[0].max   = 3;
@@ -389,6 +393,9 @@ bool GPhotoCCD::initProperties()
     gphoto_set_debug(getDeviceName());
     gphoto_read_set_debug(getDeviceName());
 
+    // Add Debug, Simulator, and Configuration controls
+    addAuxControls();
+
     return true;
 }
 
@@ -399,6 +406,7 @@ void GPhotoCCD::ISGetProperties(const char *dev)
     defineText(&PortTP);
     loadConfig(true, "DEVICE_PORT");
 
+#if 0
     if (isConnected())
     {
         if (mExposurePresetSP.nsp > 0)
@@ -423,9 +431,7 @@ void GPhotoCCD::ISGetProperties(const char *dev)
         if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
             defineNumber(&mMirrorLockNP);
     }
-
-    // Add Debug, Simulator, and Configuration controls
-    addAuxControls();
+#endif
 }
 
 bool GPhotoCCD::updateProperties()
@@ -444,12 +450,14 @@ bool GPhotoCCD::updateProperties()
         defineSwitch(&livePreviewSP);
         defineSwitch(&transferFormatSP);
         defineSwitch(&autoFocusSP);
-        defineSwitch(&FocusMotionSP);
-        defineNumber(&FocusSpeedNP);
-        defineNumber(&FocusTimerNP);
+
+        FI::updateProperties();
 
         if (captureTargetSP.s == IPS_OK)
+        {
             defineSwitch(&captureTargetSP);
+            defineSwitch(&SDCardImageSP);
+        }
 
         imageBP = getBLOB("CCD1");
         imageB  = imageBP->bp;
@@ -480,12 +488,14 @@ bool GPhotoCCD::updateProperties()
         deleteProperty(livePreviewSP.name);
         deleteProperty(autoFocusSP.name);
         deleteProperty(transferFormatSP.name);
-        deleteProperty(FocusMotionSP.name);
-        deleteProperty(FocusSpeedNP.name);
-        deleteProperty(FocusTimerNP.name);
+
+        FI::updateProperties();
 
         if (captureTargetSP.s != IPS_IDLE)
+        {
             deleteProperty(captureTargetSP.name);
+            deleteProperty(SDCardImageSP.name);
+        }
 
         HideExtendedOptions();
         //rmTimer(timerID);
@@ -704,9 +714,31 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             return true;
         }
 
+        if (!strcmp(SDCardImageSP.name, name))
+        {
+            const char *onSwitch = IUFindOnSwitchName(states, names, n);
+            bool delete_sdcard_image = (!strcmp(onSwitch, SDCardImageS[SD_CARD_DELETE_IMAGE].name));
+            int ret = gphoto_delete_sdcard_image(gphotodrv, delete_sdcard_image);
+
+            if (ret == GP_OK)
+            {
+                SDCardImageSP.s = IPS_OK;
+                IUUpdateSwitch(&SDCardImageSP, states, names, n);
+                DEBUGF(INDI::Logger::DBG_SESSION, "Images shall be %s the camera SD card after capture if capture target is set to SD Card.", delete_sdcard_image ? "deleted from" : "saved in");
+            }
+            else
+            {
+                SDCardImageSP.s = IPS_ALERT;
+                DEBUG(INDI::Logger::DBG_SESSION, "Failed to set SD card action.");
+            }
+
+            IDSetSwitch(&SDCardImageSP, NULL);
+            return true;
+        }
+
         if (strstr(name, "FOCUS"))
         {
-            return processFocuserSwitch(dev, name, states, names, n);
+            return FI::processSwitch(dev, name, states, names, n);
         }
 
         if (CamOptions.find(name) != CamOptions.end())
@@ -759,7 +791,7 @@ bool GPhotoCCD::ISNewNumber(const char *dev, const char *name, double values[], 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strstr(name, "FOCUS_"))
-            return processFocuserNumber(dev, name, values, names, n);
+            return FI::processNumber(dev, name, values, names, n);
 
         if (!strcmp(name, mMirrorLockNP.name))
         {
@@ -855,7 +887,7 @@ bool GPhotoCCD::Connect()
         options = gphoto_get_formats(gphotodrv, &max_opts);
     }
 
-    if (!sim && max_opts > 0)
+    if (max_opts > 0)
     {
         mFormatS      = create_switch("FORMAT", options, max_opts, setidx);
         mFormatSP.sp  = mFormatS;
@@ -903,12 +935,9 @@ bool GPhotoCCD::Connect()
         options = gphoto_get_iso(gphotodrv, &max_opts);
     }
 
-    if (!sim)
-    {
-        mIsoS      = create_switch("ISO", options, max_opts, setidx);
-        mIsoSP.sp  = mIsoS;
-        mIsoSP.nsp = max_opts;
-    }
+    mIsoS      = create_switch("ISO", options, max_opts, setidx);
+    mIsoSP.sp  = mIsoS;
+    mIsoSP.nsp = max_opts;
 
     if (mExposurePresetS)
     {
@@ -930,7 +959,7 @@ bool GPhotoCCD::Connect()
         options  = gphoto_get_exposure_presets(gphotodrv, &max_opts);
     }
 
-    if (!sim && max_opts > 0)
+    if (max_opts > 0)
     {
         mExposurePresetS      = create_switch("EXPOSURE_PRESET", options, max_opts, setidx);
         mExposurePresetSP.sp  = mExposurePresetS;
@@ -982,9 +1011,9 @@ bool GPhotoCCD::StartExposure(float duration)
         return false;
     }
 
-    if (PrimaryCCD.isExposing())
+    if (InExposure)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "GPhoto driver is already exposing. Can not abort.");
+        DEBUG(INDI::Logger::DBG_ERROR, "GPhoto driver is already exposing.");
         return false;
     }
 
@@ -1024,6 +1053,13 @@ bool GPhotoCCD::StartExposure(float duration)
     return true;
 }
 
+bool GPhotoCCD::AbortExposure()
+{
+    gphoto_abort_exposure(gphotodrv);
+    InExposure = false;
+    return true;
+}
+
 bool GPhotoCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
     if (transferFormatS[0].s != ISS_ON)
@@ -1036,7 +1072,7 @@ bool GPhotoCCD::UpdateCCDFrame(int x, int y, int w, int h)
     return true;
 }
 
-float GPhotoCCD::CalcTimeLeft()
+double GPhotoCCD::CalcTimeLeft()
 {
     double timesince;
     double timeleft;
@@ -1052,7 +1088,6 @@ float GPhotoCCD::CalcTimeLeft()
 
 void GPhotoCCD::TimerHit()
 {
-    long timeleft = 1e6;
     int timerID   = -1;
 
     if (isConnected() == false)
@@ -1115,52 +1150,35 @@ void GPhotoCCD::TimerHit()
 
     if (InExposure)
     {
-        timeleft = CalcTimeLeft();
+        double timeleft = CalcTimeLeft();
+
+        if (timeleft < 0)
+            timeleft = 0;
+
+        PrimaryCCD.setExposureLeft(timeleft);
 
         if (timeleft < 1.0)
         {
             if (timeleft > 0.25 && timerID == -1)
-            {
-                //  a quarter of a second or more
-                //  just set a tighter timer
-                timerID = SetTimer(250);
-            }
+                timerID = SetTimer(timeleft*900);
             else
             {
-                if (timeleft > 0.07 && timerID == -1)
+                PrimaryCCD.setExposureLeft(0);
+                InExposure = false;
+                // grab and save image
+                bool rc = grabImage();
+                if (rc == false)
                 {
-                    //  use an even tighter timer
-                    timerID = SetTimer(50);
-                }
-                else
-                {
-                    //  it's real close now, so spin on it
-                    while (!sim && timeleft > 0)
-                    {
-                        int slv;
-                        slv = 100000 * timeleft;
-                        usleep(slv);
-                    }
-
-                    PrimaryCCD.setExposureLeft(0);
-                    InExposure = false;
-                    /* grab and save image */
-                    bool rc = grabImage();
-                    if (rc == false)
-                    {
-                        PrimaryCCD.setExposureFailed();
-                    }
+                    PrimaryCCD.setExposureFailed();
                 }
             }
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Capture in progress. Time left %ld", timeleft);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Capture in progress. Time left %.2f", timeleft);
             if (timerID == -1)
                 SetTimer(POLLMS);
         }
-
-        PrimaryCCD.setExposureLeft(timeleft);
     }
 }
 
@@ -1694,10 +1712,12 @@ bool GPhotoCCD::startLiveVideo()
         PrimaryCCD.setFrame(0, 0, w, h);
     }*/
 
-    int w=0,h=0;
     unsigned char *inBuffer = (unsigned char *)(const_cast<char *>(previewData));
-    read_jpeg_size(inBuffer, previewSize, &w, &h);
-    Streamer->setSize(w,h);
+    if (liveVideoWidth <= 0)
+    {
+        read_jpeg_size(inBuffer, previewSize, &liveVideoWidth, &liveVideoHeight);
+        Streamer->setSize(liveVideoWidth,liveVideoHeight);
+    }
     Streamer->newFrame(inBuffer, previewSize);
 
 #if 0
@@ -1844,7 +1864,11 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
 
     // Capture Target
     if (captureTargetSP.s == IPS_OK)
+    {
         IUSaveConfigSwitch(fp, &captureTargetSP);
+        // SD Card delete?
+        IUSaveConfigSwitch(fp, &SDCardImageSP);
+    }
 
     // ISO Settings
     if (mIsoSP.nsp > 0)
@@ -1855,7 +1879,7 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
         IUSaveConfigSwitch(fp, &mFormatSP);
 
     // Transfer Format
-    IUSaveConfigSwitch(fp, &transferFormatSP);
+    IUSaveConfigSwitch(fp, &transferFormatSP);    
 
     return true;
 }

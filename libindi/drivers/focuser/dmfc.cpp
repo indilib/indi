@@ -34,8 +34,6 @@
 #define FOCUS_SETTINGS_TAB "Settings"
 #define TEMPERATURE_THRESHOLD 0.1
 
-#define POLLMS 500
-
 std::unique_ptr<DMFC> dmfc(new DMFC());
 
 void ISGetProperties(const char *dev)
@@ -79,7 +77,7 @@ void ISSnoopDevice(XMLEle *root)
 DMFC::DMFC()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
 bool DMFC::initProperties()
@@ -149,7 +147,7 @@ bool DMFC::initProperties()
 
     addDebugControl();
 
-    updatePeriodMS = POLLMS;
+    setDefaultPollingPeriod(500);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
@@ -816,7 +814,7 @@ void DMFC::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
         return;
     }
 
@@ -837,7 +835,7 @@ void DMFC::TimerHit()
         }
     }
 
-    SetTimer(updatePeriodMS);
+    SetTimer(POLLMS);
 }
 
 bool DMFC::AbortFocuser()

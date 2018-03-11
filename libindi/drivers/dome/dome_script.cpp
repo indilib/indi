@@ -26,7 +26,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#define POLLMS  2000
 #define MAXARGS 20
 
 typedef enum
@@ -117,6 +116,8 @@ bool DomeScript::initProperties()
     IUFillText(&ScriptsT[SCRIPT_ABORT], "SCRIPT_ABORT", "Abort motion script", "abort.py");
     IUFillTextVector(&ScriptsTP, ScriptsT, SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60,
                      IPS_IDLE);
+
+    setDefaultPollingPeriod(2000);
     return true;
 }
 

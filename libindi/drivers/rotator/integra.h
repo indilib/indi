@@ -28,6 +28,8 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
 
     typedef enum { MOTOR_FOCUS, MOTOR_ROTATOR } MotorType;
 
+    typedef enum { VERSION_25012017, VERSION_20122017 } FirmwareVersion;
+
     enum INTEGRA_HOMING_STATE
     {
         HOMING_IDLE,
@@ -64,6 +66,9 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
 
   private:
     bool genericIntegraCommand(const char *name, const char *cmd, const char *expectStart, char *returnValueString);
+    bool integraGetCommand(const char *name, int command, char *returnValueString );
+    bool integraMotorGetCommand(const char *name, int command, MotorType motor, char *returnValueString);
+    bool integraMotorSetCommand(const char *name, int command, MotorType motor, int value, char *returnValueString);
     bool getFirmware();
     bool getFocuserType();
     bool Ack();
@@ -104,4 +109,5 @@ class Integra : public INDI::Focuser, public INDI::RotatorInterface
     uint32_t lastRotatorPosition { 0 };
     bool haveReadRotatorPositionAtLeastOnce = false;
     uint32_t targetPosition { 0 };
+    FirmwareVersion firmwareVersion { VERSION_25012017 };
 };

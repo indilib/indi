@@ -394,12 +394,18 @@ std::string apgHelper::GetCfgDir()
 {
     std::string path;
 
-    // N.B. Prefer environment variable over compiled value if it exists
-    if (getenv("APOGEE_ETC_DIR") != NULL)
-        path = help::FixPath( getenv("APOGEE_ETC_DIR"));
-    else
-        path = help::FixPath( sysconfdir );
-    path.append( "Apogee/");
+    //On OS X, Prefer embedded App location if it exists
+#if defined(__APPLE__)
+	std::string driverSupportPath;
+	if (getenv("INDIPREFIX") != NULL)
+		driverSupportPath = std::string(getenv("INDIPREFIX")).append("/Contents/Resources");
+	else
+		driverSupportPath = "/usr/local/lib/indi";
+	path = help::FixPath( driverSupportPath );
+#else
+	path = help::FixPath( sysconfdir );
+#endif
+    path.append( "Apogee/" );
     return path;
 }
 

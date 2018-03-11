@@ -57,10 +57,10 @@ static long fli_freelist(char **names);
 
 flidevdesc_t *devices[MAX_OPEN_DEVICES] = {NULL,};
 
-#define SHOWFUNCTIONS
+//#define SHOWFUNCTIONS
 
 const char* version = \
-"FLI Software Development Library for " __SYSNAME__ " " __LIBFLIVER__;
+"Software Development Library for " __SYSNAME__ " " __LIBFLIVER__;
 
 static long devalloc(flidev_t *dev)
 {
@@ -138,7 +138,7 @@ static long fli_open(flidev_t *dev, char *name, long domain)
 
   if ((retval = fli_connect(*dev, name, domain)) != 0)
   {
-    debug(FLIDEBUG_WARN, "fli_connect() error %d [%s]",
+    debug(FLIDEBUG_WARN, "connect() error %d [%s]",
 	  retval, strerror(-retval));
     devfree(*dev);
     return retval;
@@ -146,7 +146,7 @@ static long fli_open(flidev_t *dev, char *name, long domain)
 
   if ((retval = devices[*dev]->fli_open(*dev)) != 0)
   {
-    debug(FLIDEBUG_WARN, "fli_open() error %d [%s]",
+    debug(FLIDEBUG_WARN, "open() error %d [%s]",
 	  retval, strerror(-retval));
     fli_disconnect(*dev);
     devfree(*dev);
@@ -187,9 +187,15 @@ static long fli_freelist(char **names)
 /* This is for FLI INTERNAL USE ONLY */
 #ifdef _WIN32
 long usb_bulktransfer(flidev_t dev, int ep, void *buf, long *len);
-#else
+#elif defined(__APPLE__) && !defined(__LIBUSB__)
+long mac_bulktransfer(flidev_t dev, int ep, void *buf, long *len);
+#define usb_bulktransfer mac_bulktransfer
+#elif defined(__LINUX__)
 long linux_bulktransfer(flidev_t dev, int ep, void *buf, long *len);
 #define usb_bulktransfer linux_bulktransfer
+#else 
+long libusb_bulktransfer(flidev_t dev, int ep, void *buf, long *len);
+#define usb_bulktransfer libusb_bulktransfer
 #endif
 
 LIBFLIAPI FLIStartVideoMode(flidev_t dev)
@@ -218,7 +224,6 @@ LIBFLIAPI FLIUsbBulkIO(flidev_t dev, int ep, void *buf, long *len)
 	return usb_bulktransfer(dev, ep, buf, len);
 }
 
-/* This function is not implemented */
 LIBFLIAPI FLIGrabFrame(flidev_t dev, void* buff,
 		       size_t buffsize, size_t* bytesgrabbed)
 {
@@ -235,6 +240,7 @@ LIBFLIAPI FLIGrabFrame(flidev_t dev, void* buff,
    @return Non-zero on failure.
 
    @see FLIExposeFrame
+	 @see FLIEndExposure
    @see FLIGetExposureStatus
    @see FLISetExposureTime
 */
@@ -243,6 +249,49 @@ LIBFLIAPI FLICancelExposure(flidev_t dev)
   CHKDEVICE(dev);
 
   return DEVICE->fli_command(dev, FLI_CANCEL_EXPOSURE, 0);
+}
+
+/**
+   End an exposure for a given camera.  This function causes the exposure
+	 to end and image download begins immediately.
+
+   @param dev Camera to end the exposure of.
+
+   @return Zero on success.
+   @return Non-zero on failure.
+
+   @see FLIExposeFrame
+	 @see FLICancelExposure
+   @see FLIGetExposureStatus
+   @see FLISetExposureTime
+*/
+LIBFLIAPI FLIEndExposure(flidev_t dev)
+{
+  CHKDEVICE(dev);
+
+  return DEVICE->fli_command(dev, FLI_END_EXPOSURE, 0);
+}
+
+/**
+   Trigger an exposure that is awaiting an external trigger. This is a 
+	 software override for the external trigger option.
+
+   @param dev Camera to trigger the exposure of.
+
+   @return Zero on success.
+   @return Non-zero on failure.
+
+   @see FLIExposeFrame
+	 @see FLICancelExposure
+	 @see FLIEndExposure
+   @see FLIGetExposureStatus
+   @see FLISetExposureTime
+*/
+LIBFLIAPI FLITriggerExposure(flidev_t dev)
+{
+  CHKDEVICE(dev);
+
+  return DEVICE->fli_command(dev, FLI_TRIGGER_EXPOSURE, 0);
 }
 
 /**
@@ -260,13 +309,13 @@ LIBFLIAPI FLIClose(flidev_t dev)
 	long r;
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
 #endif
 
 	r = fli_close(dev);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Exiting %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Exiting " __FUNCTION__);
 #endif
 
 	return r;
@@ -379,73 +428,6 @@ LIBFLIAPI FLIGetHWRevision(flidev_t dev, long *hwrev)
 }
 
 /**
-   Get the device type.
-
-   @param dev Device to find the hardware revision of.
-
-   @param devid Pointer to a long which will receive the device ID. Expected values are listed in libfli-libfli.h (FLIUSB_PROLINEID..).
-
-   @return Zero on success.
-   @return Non-zero on failure.
-
-   @see FLIGetModel
-   @see FLIGetFWRevision
-   @see FLIGetHWRevision
-*/
-LIBFLIAPI FLIGetDeviceID(flidev_t dev, long *devid)
-{
-  CHKDEVICE(dev);
-
-  *devid = DEVICE->devinfo.devid;
-  return 0;
-}
-
-/**
-   Get the serial number of a given device.
-
-   @param dev Device to find the hardware revision of.
-
-   @param serno Pointer to a long which will receive the serial number.
-
-   @return Zero on success.
-   @return Non-zero on failure.
-
-   @see FLIGetModel
-   @see FLIGetFWRevision
-   @see FLIGetHWRevision
-*/
-LIBFLIAPI FLIGetSerialNum(flidev_t dev, long *serno)
-{
-  CHKDEVICE(dev);
-
-  *serno = DEVICE->devinfo.serno;
-  return 0;
-}
-
-/**
-   Get name of a given device.
-
-   @param dev Device to find the hardware revision of.
-
-   @param devnam Pointer to a char pointer, which will point to device name.
-
-   @return Zero on success.
-   @return Non-zero on failure.
-
-   @see FLIGetModel
-   @see FLIGetFWRevision
-   @see FLIGetHWRevision
-*/
-
-LIBFLIAPI FLIGetDeviceName(flidev_t dev, const char **devnam)
-{
-  CHKDEVICE(dev);
-
-  *devnam = DEVICE->devinfo.devnam;
-  return 0;
-}
-
-/**
    Get the current library version.  This function copies up to
    \texttt{len - 1} characters of the current library version string
    followed by a terminating \texttt{NULL} character into the buffer
@@ -466,6 +448,46 @@ LIBFLIAPI FLIGetLibVersion(char* ver, size_t len)
     return -EINVAL;
 
   if ((size_t) snprintf(ver, len, "%s", version) >= len)
+    return -EOVERFLOW;
+  else
+    return 0;
+}
+
+/**
+   Get the serial string of a given device.  This function copies up to
+   \texttt{len - 1} characters of the serial string for device
+   \texttt{dev}, followed by a terminating \texttt{NULL} character
+   into the buffer pointed to by \texttt{serial}.
+
+   @param dev Device to find serial of.
+
+   @param serial Pointer to a character buffer where the serial string
+   is to be placed.
+
+   @param len The size in bytes of buffer pointed to by
+   \texttt{serial}.
+
+   @return Zero on success.
+   @return Non-zero on failure.
+
+   @see FLIGetHWRevision
+   @see FLIGetFWRevision
+   @see FLIGetModel
+*/
+LIBFLIAPI FLIGetSerialString(flidev_t dev, char* serial, size_t len)
+{
+  if (serial == NULL)
+    return -EINVAL;
+
+  CHKDEVICE(dev);
+
+  if (DEVICE->devinfo.serial == NULL)
+  {
+    serial[0] = '\0';
+    return 0;
+  }
+
+  if ((size_t) snprintf(serial, len, "%s", DEVICE->devinfo.serial) >= len)
     return -EOVERFLOW;
   else
     return 0;
@@ -613,13 +635,13 @@ LIBFLIAPI FLIOpen(flidev_t *dev, char *name, flidomain_t domain)
 	long r;
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
 #endif
 
   r = fli_open(dev, name, domain);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Exiting %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Exiting " __FUNCTION__);
 #endif
 
 	return r;
@@ -721,6 +743,13 @@ LIBFLIAPI FLISetFrameType(flidev_t dev, fliframe_t frametype)
   return DEVICE->fli_command(dev, FLI_SET_FRAME_TYPE, 1, &frametype);
 }
 
+LIBFLIAPI FLISetTDI(flidev_t dev, flitdirate_t tdi_rate, flitdiflags_t flags) 
+{
+  CHKDEVICE(dev);
+
+	return DEVICE->fli_command(dev, FLI_SET_TDI, 2, &tdi_rate, &flags);
+}
+
 /**
    Get the cooler power level. The function places the current cooler
 	 power in percent in the
@@ -757,6 +786,14 @@ LIBFLIAPI FLIGetCameraMode(flidev_t dev, flimode_t *mode_index)
   return DEVICE->fli_command(dev, FLI_GET_CAMERA_MODE, 1, mode_index);
 }
 
+LIBFLIAPI FLIGetFilterName(flidev_t dev, long filter, char *name, size_t len)
+{
+  CHKDEVICE(dev);
+
+  return DEVICE->fli_command(dev, FLI_GET_FILTER_NAME, 3, filter, name, len);
+}
+
+
 LIBFLIAPI FLISetCameraMode(flidev_t dev, flimode_t mode_index)
 {
   CHKDEVICE(dev);
@@ -764,12 +801,12 @@ LIBFLIAPI FLISetCameraMode(flidev_t dev, flimode_t mode_index)
   return DEVICE->fli_command(dev, FLI_SET_CAMERA_MODE, 1, mode_index);
 }
 
-LIBFLIAPI FLIGetDeviceStatus(flidev_t dev, long *camera_status)
+LIBFLIAPI FLIGetDeviceStatus(flidev_t dev, long *status)
 {
   CHKDEVICE(dev);
 
-	*camera_status = 0xffffffff;
-  return DEVICE->fli_command(dev, FLI_GET_STATUS, 1, camera_status);
+	*status = 0xffffffff;
+  return DEVICE->fli_command(dev, FLI_GET_STATUS, 1, status);
 }
 
 /**
@@ -1222,7 +1259,7 @@ LIBFLIAPI FLIControlBackgroundFlush(flidev_t dev, flibgflush_t bgflush)
 */
 LIBFLIAPI FLIList(flidomain_t domain, char ***names)
 {
-  debug(FLIDEBUG_INFO, "FLIList() domain %04x", domain);
+  debug(FLIDEBUG_INFO, "List() domain %04x", domain);
   return fli_list(domain, names);
 }
 
@@ -1261,6 +1298,20 @@ LIBFLIAPI FLISetFilterPos(flidev_t dev, long filter)
   CHKDEVICE(dev);
 
   return DEVICE->fli_command(dev, FLI_SET_FILTER_POS, 1, &filter);
+}
+
+LIBFLIAPI FLISetActiveWheel(flidev_t dev, long wheel)
+{
+  CHKDEVICE(dev);
+
+  return DEVICE->fli_command(dev, FLI_SET_ACTIVE_WHEEL, 1, &wheel);
+}
+
+LIBFLIAPI FLIGetActiveWheel(flidev_t dev, long *wheel)
+{
+  CHKDEVICE(dev);
+
+  return DEVICE->fli_command(dev, FLI_GET_ACTIVE_WHEEL, 1, wheel);
 }
 
 /**
@@ -1305,13 +1356,13 @@ LIBFLIAPI FLIGetStepsRemaining(flidev_t dev, long *steps)
   CHKDEVICE(dev);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
 #endif
 
   r = DEVICE->fli_command(dev, FLI_GET_STEPS_REMAINING, 1, steps);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Exiting %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Exiting " __FUNCTION__);
 #endif
 
 	return r;
@@ -1357,13 +1408,13 @@ LIBFLIAPI FLIStepMotorAsync(flidev_t dev, long steps)
   CHKDEVICE(dev);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
 #endif
 
   r = DEVICE->fli_command(dev, FLI_STEP_MOTOR_ASYNC, 1, &steps);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Exiting %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Exiting " __FUNCTION__);
 #endif
 
 	return r;
@@ -1391,13 +1442,13 @@ LIBFLIAPI FLIStepMotor(flidev_t dev, long steps)
 	CHKDEVICE(dev);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
 #endif
 
 	r = DEVICE->fli_command(dev, FLI_STEP_MOTOR, 1, &steps);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Exiting %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Exiting  " __FUNCTION__);
 #endif
 
 	return r;
@@ -1425,15 +1476,52 @@ LIBFLIAPI FLIGetStepperPosition(flidev_t dev, long *position)
   CHKDEVICE(dev);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
 #endif
 
   r = DEVICE->fli_command(dev, FLI_GET_STEPPER_POS, 1, position);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Exiting %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Exiting " __FUNCTION__);
 #endif
 	
+	return r;
+}
+
+/**
+   Home focuser or filter wheel specified by \texttt{dev}.
+	 The home position of a device is defined as where the electromechanical
+	 home sensor detects home. Note that on color filter wheels this may not
+	 be located at filter slot zero and may in fact be between filter slots.
+	 It should be noted that this function replaces the deprecated function
+	 FLIHomeFocuser(). This function may not return immediately as older FLI devices
+	 blocked during a HOME operation. Use the function FLIGetDeviceStatus() to
+	 determine if the filter wheel or focuser is still moving (or is capable of reporting
+	 device status).
+
+   @param dev Device handle.
+
+   @return Zero on success.
+   @return Non-zero on failure.
+
+	 @see FLIGetDeviceStatus
+*/
+LIBFLIAPI FLIHomeDevice(flidev_t dev)
+{
+	long r;
+
+	CHKDEVICE(dev);
+
+#ifdef SHOWFUNCTIONS
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
+#endif
+
+	r = DEVICE->fli_command(dev, FLI_HOME_DEVICE, 0);
+
+#ifdef SHOWFUNCTIONS
+	debug(FLIDEBUG_INFO, "Exiting " __FUNCTION__);
+#endif
+
 	return r;
 }
 
@@ -1452,13 +1540,13 @@ LIBFLIAPI FLIHomeFocuser(flidev_t dev)
 	CHKDEVICE(dev);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
 #endif
 
 	r = DEVICE->fli_command(dev, FLI_HOME_FOCUSER, 0);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Exiting %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Exiting " __FUNCTION__);
 #endif
 
 	return r;
@@ -1480,13 +1568,13 @@ LIBFLIAPI FLIGetFocuserExtent(flidev_t dev, long *extent)
 	CHKDEVICE(dev);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
 #endif
 
   r = DEVICE->fli_command(dev, FLI_GET_FOCUSER_EXTENT, 1, extent);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Exiting %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Exiting " __FUNCTION__);
 #endif
 
 	return r;
@@ -1510,13 +1598,13 @@ LIBFLIAPI FLIReadTemperature(flidev_t dev, flichannel_t channel, double *tempera
 	CHKDEVICE(dev);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Entering %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Entering " __FUNCTION__);
 #endif
 
 	r = DEVICE->fli_command(dev, FLI_READ_TEMPERATURE, 2, channel, temperature);
 
 #ifdef SHOWFUNCTIONS
-	debug(FLIDEBUG_INFO, "Exiting %s", __FUNCTION__);
+	debug(FLIDEBUG_INFO, "Exiting " __FUNCTION__);
 #endif
 
 	return r;
@@ -1756,3 +1844,68 @@ LIBFLIAPI FLISetFanSpeed(flidev_t dev, long fan_speed)
 	return r;
 }
 
+LIBFLIAPI FLISetVerticalTableEntry(flidev_t dev, long index, long height, long bin, long mode)
+{
+	long r;
+
+	CHKDEVICE(dev);
+
+	r = DEVICE->fli_command(dev, FLI_SET_VERTICAL_TABLE_ENTRY, 4, &index, &height, &bin, &mode);
+
+	return r;
+}
+
+LIBFLIAPI FLIGetVerticalTableEntry(flidev_t dev, long index, long *height, long *bin, long *mode)
+{
+	long r;
+
+	CHKDEVICE(dev);
+
+	r = DEVICE->fli_command(dev, FLI_GET_VERTICAL_TABLE_ENTRY, 4, &index, height, bin, mode);
+
+	return r;
+}
+
+LIBFLIAPI FLIGetReadoutDimensions(flidev_t dev, long *width, long *hoffset, long *hbin, long *height, long *voffset, long *vbin)
+{
+	long r;
+
+	CHKDEVICE(dev);
+
+	r = DEVICE->fli_command(dev, FLI_GET_READOUT_DIMENSIONS, 6, width, hoffset, hbin, height, voffset, vbin);
+
+	return r;
+}
+
+LIBFLIAPI FLIEnableVerticalTable(flidev_t dev, long width, long offset, long flags)
+{
+	long r;
+
+	CHKDEVICE(dev);
+
+	r = DEVICE->fli_command(dev, FLI_ENABLE_VERTICAL_TABLE, 3, &width, &offset, &flags);
+
+	return r;
+}
+
+LIBFLIAPI FLIReadUserEEPROM(flidev_t dev, long loc, long address, long length, void *rbuf)
+{
+	long r;
+
+	CHKDEVICE(dev);
+
+	r = DEVICE->fli_command(dev, FLI_READ_EEPROM, 4, &loc, &address, &length, rbuf);
+
+	return r;
+}
+
+LIBFLIAPI FLIWriteUserEEPROM(flidev_t dev, long loc, long address, long length, void *wbuf)
+{
+	long r;
+
+	CHKDEVICE(dev);
+
+	r = DEVICE->fli_command(dev, FLI_WRITE_EEPROM, 4, &loc, &address, &length, wbuf);
+
+	return r;
+}

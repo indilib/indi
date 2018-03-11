@@ -159,6 +159,7 @@ int selectSubCatalog(int fd, int catalog, int subCatalog);
 
 int check_lx200_connection(int in_fd)
 {
+    const struct timespec timeout = {0, 50000000L};
     int i       = 0;
     char ack[1] = { (char)0x06 };
     char MountAlign[64];
@@ -179,7 +180,7 @@ int check_lx200_connection(int in_fd)
             DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing successful!");
             return 0;
         }
-        usleep(50000);
+        nanosleep(&timeout, NULL);
     }
 
     DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Failure. Telescope is not responding to ACK!");
@@ -863,6 +864,7 @@ int setAlignmentMode(int fd, unsigned int alignMode)
 int setCalenderDate(int fd, int dd, int mm, int yy)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    const struct timespec timeout = {0, 10000000L};
     char read_buffer[64];
     char dummy_buffer[64];
     int error_type;
@@ -899,7 +901,7 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
         return -1;
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    usleep(10000);
+    nanosleep(&timeout, NULL);
     tcflush(fd, TCIFLUSH);
 
     return 0;
@@ -1277,6 +1279,7 @@ int abortSlew(int fd)
 int Sync(int fd, char *matchedObject)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+    const struct timespec timeout = {0, 10000000L};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
@@ -1295,7 +1298,7 @@ int Sync(int fd, char *matchedObject)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    usleep(10000);
+    nanosleep(&timeout, NULL);
     tcflush(fd, TCIFLUSH);
 
     return 0;

@@ -31,8 +31,6 @@
 pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define POLLMS  1000
-
 // We declare an auto pointer to GuideSim.
 std::unique_ptr<GuideSim> guideSim(new GuideSim());
 
@@ -90,6 +88,7 @@ GuideSim::GuideSim()
     SimulatorSettingsNV = new INumberVectorProperty;
     TimeFactorSV        = new ISwitchVectorProperty;
 
+    setDefaultPollingPeriod(750);
 }
 
 bool GuideSim::SetupParms()
@@ -121,6 +120,7 @@ bool GuideSim::SetupParms()
 bool GuideSim::Connect()
 {
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
+    SetTimer(POLLMS);
     return true;
 }
 
@@ -213,10 +213,7 @@ bool GuideSim::updateProperties()
 
     if (isConnected())
     {
-        SetupParms();
-
-        updatePeriodMS = POLLMS;
-        SetTimer(updatePeriodMS);
+        SetupParms();        
     }
 
     return true;
@@ -272,7 +269,7 @@ float GuideSim::CalcTimeLeft(timeval start, float req)
 
 void GuideSim::TimerHit()
 {
-    uint32_t nextTimer = updatePeriodMS;
+    uint32_t nextTimer = POLLMS;
 
     if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore

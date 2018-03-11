@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.4.7)
 PROJECT(indi_gphoto C CXX)
 
 set(INDI_GPHOTO_VERSION_MAJOR 1)
-set(INDI_GPHOTO_VERSION_MINOR 6)
+set(INDI_GPHOTO_VERSION_MINOR 7)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
@@ -46,10 +46,6 @@ include_directories( ${CFITSIO_INCLUDE_DIR})
 include_directories( ${GPHOTO2_INCLUDE_DIR})
 include_directories( ${LibRaw_INCLUDE_DIR})
 include_directories( ${USB1_INCLUDE_DIRS})
-
-#if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
-#add_definitions(-DUSE_THUMB_SIZE)
-#endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
 
 ########### Gphoto ###########
 set(indigphoto_SRCS

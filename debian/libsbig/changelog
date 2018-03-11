@@ -1,3 +1,9 @@
+libsbig (2.1.3) bionic; urgency=medium
+
+  * New release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 22 Jan 2018 08:45:00 +0300
+
 libsbig (2.1.2) xenial; urgency=low
 
   * Package name updated again to libsbig to be consistent

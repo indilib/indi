@@ -19,8 +19,6 @@
 
 using namespace INDI::AlignmentSubsystem;
 
-#define POLLMS 1000 // Default timer tick
-
 // We declare an auto pointer to ScopeSim.
 std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 

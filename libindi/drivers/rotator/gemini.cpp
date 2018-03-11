@@ -39,8 +39,6 @@
 #define ROTATOR_TAB "Rotator"
 #define HUB_TAB "Hub"
 
-#define POLLMS 1000
-
 std::unique_ptr<Gemini> geminiFR(new Gemini());
 
 void ISGetProperties(const char *dev)
@@ -90,10 +88,10 @@ Gemini::Gemini() : RotatorInterface(this)
     focuserSimPosition      = 0;
 
     // Can move in Absolute & Relative motions and can AbortFocuser motion.
-    SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 
     // Rotator capabilities
-    SetRotatorCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
 
     isFocuserAbsolute = true;
     isFocuserHoming   = false;

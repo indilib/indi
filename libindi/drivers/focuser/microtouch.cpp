@@ -32,8 +32,6 @@
 
 #define MICROTOUCH_TIMEOUT 3
 
-#define POLLMS 1000
-
 std::unique_ptr<Microtouch> microTouch(new Microtouch());
 
 void ISGetProperties(const char *dev)
@@ -77,7 +75,7 @@ void ISSnoopDevice(XMLEle *root)
 Microtouch::Microtouch()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE |
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE |
                          FOCUSER_CAN_ABORT /*| FOCUSER_HAS_VARIABLE_SPEED*/);
 }
 

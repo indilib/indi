@@ -27,38 +27,77 @@
 namespace INDI
 {
 
-void FocuserInterface::initFocuserProperties(const char *deviceName, const char *groupName)
+FocuserInterface::FocuserInterface(DefaultDevice *defaultDevice) : m_defaultDevice(defaultDevice)
 {
-    strncpy(focuserName, deviceName, MAXINDIDEVICE);
+}
 
+void FocuserInterface::initProperties(const char *groupName)
+{
     IUFillNumber(&FocusSpeedN[0], "FOCUS_SPEED_VALUE", "Focus Speed", "%3.0f", 0.0, 255.0, 1.0, 255.0);
-    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, deviceName, "FOCUS_SPEED", "Speed", groupName, IP_RW, 60, IPS_OK);
+    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, m_defaultDevice->getDeviceName(), "FOCUS_SPEED", "Speed", groupName, IP_RW, 60, IPS_OK);
 
     IUFillNumber(&FocusTimerN[0], "FOCUS_TIMER_VALUE", "Focus Timer (ms)", "%4.0f", 0.0, 5000.0, 50.0, 1000.0);
-    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, deviceName, "FOCUS_TIMER", "Timer", groupName, IP_RW, 60, IPS_OK);
+    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, m_defaultDevice->getDeviceName(), "FOCUS_TIMER", "Timer", groupName, IP_RW, 60, IPS_OK);
     lastTimerValue = 1000.0;
 
     IUFillSwitch(&FocusMotionS[0], "FOCUS_INWARD", "Focus In", ISS_ON);
     IUFillSwitch(&FocusMotionS[1], "FOCUS_OUTWARD", "Focus Out", ISS_OFF);
-    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, deviceName, "FOCUS_MOTION", "Direction", groupName, IP_RW,
+    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2 ,m_defaultDevice->getDeviceName(), "FOCUS_MOTION", "Direction", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_OK);
 
     // Driver can define those to clients if there is support
     IUFillNumber(&FocusAbsPosN[0], "FOCUS_ABSOLUTE_POSITION", "Ticks", "%4.0f", 0.0, 100000.0, 1000.0, 0);
-    IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, deviceName, "ABS_FOCUS_POSITION", "Absolute Position",
+    IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, m_defaultDevice->getDeviceName(), "ABS_FOCUS_POSITION", "Absolute Position",
                        groupName, IP_RW, 60, IPS_OK);
 
     IUFillNumber(&FocusRelPosN[0], "FOCUS_RELATIVE_POSITION", "Ticks", "%4.0f", 0.0, 100000.0, 1000.0, 0);
-    IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, deviceName, "REL_FOCUS_POSITION", "Relative Position",
+    IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, m_defaultDevice->getDeviceName(), "REL_FOCUS_POSITION", "Relative Position",
                        groupName, IP_RW, 60, IPS_OK);
 
     IUFillSwitch(&AbortS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&AbortSP, AbortS, 1, deviceName, "FOCUS_ABORT_MOTION", "Abort Motion", groupName, IP_RW,
+    IUFillSwitchVector(&AbortSP, AbortS, 1, m_defaultDevice->getDeviceName(), "FOCUS_ABORT_MOTION", "Abort Motion", groupName, IP_RW,
                        ISR_ATMOST1, 60, IPS_IDLE);
 }
 
-bool FocuserInterface::processFocuserNumber(const char *dev, const char *name, double values[], char *names[],
-                                                  int n)
+bool FocuserInterface::updateProperties()
+{
+    if (m_defaultDevice->isConnected())
+    {
+        //  Now we add our focusser specific stuff
+        m_defaultDevice->defineSwitch(&FocusMotionSP);
+
+        if (HasVariableSpeed())
+        {
+            m_defaultDevice->defineNumber(&FocusSpeedNP);
+            m_defaultDevice->defineNumber(&FocusTimerNP);
+        }
+        if (CanRelMove())
+            m_defaultDevice->defineNumber(&FocusRelPosNP);
+        if (CanAbsMove())
+            m_defaultDevice->defineNumber(&FocusAbsPosNP);
+        if (CanAbort())
+            m_defaultDevice->defineSwitch(&AbortSP);
+    }
+    else
+    {
+        m_defaultDevice->deleteProperty(FocusMotionSP.name);
+        if (HasVariableSpeed())
+        {
+            m_defaultDevice->deleteProperty(FocusSpeedNP.name);
+            m_defaultDevice->deleteProperty(FocusTimerNP.name);
+        }
+        if (CanRelMove())
+            m_defaultDevice->deleteProperty(FocusRelPosNP.name);
+        if (CanAbsMove())
+            m_defaultDevice->deleteProperty(FocusAbsPosNP.name);
+        if (CanAbort())
+            m_defaultDevice->deleteProperty(AbortSP.name);
+    }
+
+    return true;
+}
+
+bool FocuserInterface::processNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  This is for our device
     //  Now lets see if it's something we process here
@@ -217,8 +256,7 @@ bool FocuserInterface::processFocuserNumber(const char *dev, const char *name, d
     return false;
 }
 
-bool FocuserInterface::processFocuserSwitch(const char *dev, const char *name, ISState *states, char *names[],
-                                                  int n)
+bool FocuserInterface::processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     INDI_UNUSED(dev);
     //  This one is for us
@@ -307,7 +345,7 @@ bool FocuserInterface::AbortFocuser()
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
-    DEBUGDEVICE(focuserName, Logger::DBG_ERROR, "Focuser does not support abort motion.");
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Focuser does not support abort motion.");
     return false;
 }
 
@@ -317,12 +355,8 @@ bool FocuserInterface::SetFocuserSpeed(int speed)
 
     //  This should be a virtual function, because the low level hardware class
     //  must override this
-    DEBUGDEVICE(focuserName, Logger::DBG_ERROR, "Focuser does not support variable speed.");
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Focuser does not support variable speed.");
     return false;
 }
 
-void FocuserInterface::SetFocuserCapability(uint32_t cap)
-{
-    capability = cap;
-}
 }

@@ -47,8 +47,6 @@
 #define VERSION                 1
 #define SUBVERSION              3
 
-#define POLLMS  1000
-
 class FocusLynxBase : public INDI::Focuser
 {
   public:

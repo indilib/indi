@@ -89,7 +89,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SmartFocus::SmartFocus()
 {
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
 bool SmartFocus::initProperties()
@@ -122,7 +122,7 @@ bool SmartFocus::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1;
 
-    updatePeriodMS = TimerInterval;
+    POLLMS = TimerInterval;
 
     return true;
 }

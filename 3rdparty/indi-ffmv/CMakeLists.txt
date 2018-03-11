@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 3.0)
 PROJECT(indi-ffmv CXX C)
 
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
@@ -14,7 +14,7 @@ find_package(ZLIB REQUIRED)
 find_package(DC1394 REQUIRED)
 
 set (FFMV_VERSION_MAJOR 0)
-set (FFMV_VERSION_MINOR 1)
+set (FFMV_VERSION_MINOR 2)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_ffmv.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_ffmv.xml )

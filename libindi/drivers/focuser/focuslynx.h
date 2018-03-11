@@ -21,7 +21,6 @@
 
 #include "focuslynxbase.h"
 
-#define POLLMS 1000
 #define FOCUSNAMEF1 "FocusLynx F1"
 #define FOCUSNAMEF2 "FocusLynx F2"
 

@@ -46,7 +46,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 6)
-set(CMAKE_INDI_VERSION_RELEASE 2)
+set(CMAKE_INDI_VERSION_RELEASE 4)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -309,7 +309,7 @@ ENDIF(OGGTHEORA_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encoderinterface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/rawencoder.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.cpp        
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.cpp
         ${theorarecorder_CXX_SRC}
         )
     SET(libstream_C_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.c)
@@ -433,6 +433,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/alignment)
 ########### Imager ##############
 set(imager_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/agent/agent_imager.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/agent/group.cpp
    )
 
 add_executable(indi_imager_agent ${imager_SRCS})
@@ -475,8 +476,10 @@ SET(lx200generic_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200zeq25.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200gotonova.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200pulsar2.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ap_experimentaldriver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ap_experimental.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ap.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ap_gtocp2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200fs2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ss2000pc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_OnStep.cpp
@@ -489,7 +492,7 @@ IF (UNITY_BUILD)
 ENDIF ()
 
 add_executable(indi_lx200generic ${lx200generic_SRCS})
-
+target_compile_definitions(indi_lx200generic PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
 target_link_libraries(indi_lx200generic indidriver)
 
 install(TARGETS indi_lx200generic RUNTIME DESTINATION bin )
@@ -500,6 +503,7 @@ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_16)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gps)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap_experimental)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap_gtocp2)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ap)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200gemini)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200zeq25)\n
@@ -521,10 +525,6 @@ SET(celestrongps_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/celestrondriver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/celestrongps.cpp)
 
-IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(celestrongps celestrongps_SRC 10 cpp)
-ENDIF ()
-
 add_executable(indi_celestron_gps ${celestrongps_SRC})
 
 target_link_libraries(indi_celestron_gps indidriver)
@@ -538,11 +538,11 @@ install(TARGETS indi_celestron_gps RUNTIME DESTINATION bin)
 SET(temma_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/temmadriver.cpp )
 
-add_executable(indi_temma ${temma_SRC})
+add_executable(indi_temma_telescope ${temma_SRC})
 
-target_link_libraries(indi_temma indidriver AlignmentDriver)
+target_link_libraries(indi_temma_telescope indidriver AlignmentDriver)
 
-install(TARGETS indi_temma RUNTIME DESTINATION bin)
+install(TARGETS indi_temma_telescope RUNTIME DESTINATION bin)
 #################################################################################
 
 ########### Paramount ##########
@@ -598,6 +598,17 @@ add_executable(indi_ieq_telescope ${ieq_SRC})
 target_link_libraries(indi_ieq_telescope indidriver)
 
 install(TARGETS indi_ieq_telescope RUNTIME DESTINATION bin)
+
+########### Explore Scientific PMC8 #############
+SET(pmc8_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/pmc8driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/pmc8.cpp)
+
+add_executable(indi_pmc8_telescope ${pmc8_SRC})
+
+target_link_libraries(indi_pmc8_telescope indidriver)
+
+install(TARGETS indi_pmc8_telescope RUNTIME DESTINATION bin)
 
 ########### Telescope Simulator ##############
 SET(telescopesimulator_SRC
@@ -693,15 +704,12 @@ target_link_libraries(indi_sestosenso_focus indidriver)
 install(TARGETS indi_sestosenso_focus RUNTIME DESTINATION bin)
 
 ################ Televue FocusMaster ################
-SET(focusmaster_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/focusmaster.cpp)
+#SET(focusmaster_SRC
+#    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/focusmaster.cpp)
 
-add_executable(indi_focusmaster_focus ${focusmaster_SRC})
-target_link_libraries(indi_focusmaster_focus indidriver)
-install(TARGETS indi_focusmaster_focus RUNTIME DESTINATION bin)
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-focusmaster.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
+#add_executable(indi_focusmaster_focus ${focusmaster_SRC})
+#target_link_libraries(indi_focusmaster_focus indidriver)
+#install(TARGETS indi_focusmaster_focus RUNTIME DESTINATION bin)
 
 ########### Lakeside ###########
 set(indilakeside_SRCS  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/lakeside.cpp)
@@ -769,9 +777,6 @@ SET(perfectstar_SRC
 add_executable(indi_perfectstar_focus ${perfectstar_SRC})
 target_link_libraries(indi_perfectstar_focus indidriver)
 install(TARGETS indi_perfectstar_focus RUNTIME DESTINATION bin)
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-perfectstar.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 
 ################ hitechfocus Focuser ################
 
@@ -781,9 +786,6 @@ SET(hitecastrodcfocuser_SRC
 add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRC})
 target_link_libraries(indi_hitecastrodc_focus indidriver)
 install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin)
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-hitecastrodcfocuser.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 
 ################ JMI Smart Focus Focuser ################
 
@@ -808,6 +810,11 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake
 "exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_tcfs_focus \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
 set_target_properties(indi_tcfs_focus PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake)
 
+#### UDEV Rules File for Focusers ####
+#### One rule for for all INDI standard focusers ####
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/99-focusers.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+ENDIF ()
 #################################################################################
 
 #####################################
@@ -1231,6 +1238,29 @@ add_executable(indi_eval ${indi_eval_SRC})
 target_link_libraries(indi_eval ${NOVA_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_eval RUNTIME DESTINATION bin )
+
+########### HID Test ##############
+SET(indi_hid_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidtest.cpp
+    )
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(indi_hid indi_hid_SRC 10 cpp)
+ENDIF ()
+
+if(APPLE)
+set(LIBS "-framework IOKit -framework CoreFoundation")
+elseif(CYGWIN)
+set(LIBS ${ICONV_LIBRARIES})
+endif(APPLE)
+
+SET(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
+
+add_executable(indi_hid_test ${indi_hid_SRC})
+
+target_link_libraries(indi_hid_test ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
+
+install(TARGETS indi_hid_test RUNTIME DESTINATION bin )
 
 #################################################################################
 ## Build Examples

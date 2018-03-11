@@ -53,6 +53,7 @@ Description: desktop planetarium for KDE
 
 Package: kstars-bleeding-data
 Architecture: all
+Multi-Arch: allowed
 Section: science
 conflicts: kstars-data
 replaces: kstars-data

@@ -40,12 +40,21 @@
 
 #include <memory>
 
+#ifdef OSX_EMBEDED_MODE
+ #include "Alta.h"
+ #include "AltaF.h"
+ #include "Ascent.h"
+ #include "Aspen.h"
+ #include "Quad.h"
+ #include "ApgLogger.h"
+#else
 #include <libapogee/Alta.h>
 #include <libapogee/AltaF.h>
 #include <libapogee/Ascent.h>
 #include <libapogee/Aspen.h>
 #include <libapogee/Quad.h>
 #include <libapogee/ApgLogger.h>
+#endif
 
 #include <fitsio.h>
 
@@ -66,7 +75,6 @@ double max(void);
 #define MAX_X_BIN               16   /* Max Horizontal binning */
 #define MAX_Y_BIN               16   /* Max Vertical binning */
 #define MAX_PIXELS              4096 /* Max number of pixels in one dimension */
-#define POLLMS                  1000 /* Polling time (ms) */
 #define TEMP_THRESHOLD          .25  /* Differential temperature threshold (C)*/
 #define NFLUSHES                1    /* Number of times a CCD array is flushed before an exposure */
 #define TEMP_UPDATE_THRESHOLD   0.05

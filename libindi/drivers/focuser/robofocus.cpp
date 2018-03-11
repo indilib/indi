@@ -47,8 +47,6 @@
 #define currentMaxPosition      MinMaxPositionN[1].value
 #define currentMaxTravel        MaxTravelN[0].value
 
-#define POLLMS 1000
-
 #define SETTINGS_TAB "Settings"
 
 std::unique_ptr<RoboFocus> roboFocus(new RoboFocus());
@@ -93,7 +91,7 @@ void ISSnoopDevice(XMLEle *root)
 
 RoboFocus::RoboFocus()
 {
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
 bool RoboFocus::initProperties()

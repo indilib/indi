@@ -14,7 +14,6 @@ int timerNS = -1;
 int timerWE = -1;
 unsigned char DIR          = 0xF;
 //unsigned char OLD_DIR      = 0xF;
-const int POLLMS           = 500;       /* Polling interval 500 ms */
 //const int MAX_CCD_GAIN     = 1023;        /* Max CCD gain */
 //const int MIN_CCD_GAIN     = 0;        /* Min CCD gain */
 //const int MAX_CCD_KLEVEL   = 255;        /* Max CCD black level */
@@ -162,6 +161,8 @@ bool INovaCCD::initProperties()
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 1000, 1, false);
     if(iNovaSDK_HasColorSensor())
         IUSaveText(&BayerT[2], "RGGB");
+
+    setDefaultPollingPeriod(500);
 
     return true;
 

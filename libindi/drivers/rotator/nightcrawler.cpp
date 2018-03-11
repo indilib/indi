@@ -35,7 +35,6 @@
 #define NC_30_STEPS 444080
 #define NC_35_STEPS 505960
 
-#define POLLMS 500
 #define ROTATOR_TAB "Rotator"
 #define AUX_TAB "Aux"
 #define SETTINGS_TAB "Settings"
@@ -85,8 +84,8 @@ void ISSnoopDevice (XMLEle *root)
 NightCrawler::NightCrawler() : RotatorInterface(this)
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    SetRotatorCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC);
 }
 
 bool NightCrawler::initProperties()
@@ -187,7 +186,7 @@ bool NightCrawler::initProperties()
 
     addDebugControl();
 
-    updatePeriodMS = POLLMS;
+    setDefaultPollingPeriod(500);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_57600);
 

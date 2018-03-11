@@ -25,6 +25,12 @@
 #include "config.h"
 #include <stream/streammanager.h>
 
+// Avoid duplicated definitions (macros previously defined in indibase)
+#undef LOG_DEBUG
+#undef LOG_INFO
+#undef LOG_WARN
+#undef LOG_ERROR
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <log4z.h>
@@ -33,7 +39,6 @@
 #include <algorithm>
 #include <math.h>
 
-#define POLLMS               1000  /* Polling time (ms) */
 #define TEMP_THRESHOLD       0.2   /* Differential temperature threshold (C)*/
 #define MAX_DEVICES          4     /* Max device cameraCount */
 
@@ -52,7 +57,7 @@ static void QhyCCDCleanup()
         delete cameras[i];
     }
 
-    //ReleaseQHYCCDResource();
+    ReleaseQHYCCDResource();
 }
 
 // Scan for the available devices
@@ -121,15 +126,16 @@ void ISInit()
     }
 #endif
 
-#if defined(OSX_EMBEDED_MODE)
-    char firmwarePath[128];
-    sprintf(firmwarePath, "%s/Contents/Resources", getenv("INDIPREFIX"));
-    OSXInitQHYCCDFirmware(firmwarePath);
-#elif defined(__APPLE__)
-    char firmwarePath[128] = "/usr/local/lib/qhy";
-    if (getenv("QHY_FIRMWARE_DIR") != NULL)
-        strncpy(firmwarePath, getenv("QHY_FIRMWARE_DIR"), 128);
-    OSXInitQHYCCDFirmware(firmwarePath);
+//On OS X, Prefer embedded App location if it exists
+#if defined(__APPLE__)
+	char driverSupportPath[128];
+	if (getenv("INDIPREFIX") != NULL)
+		sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
+	else
+		strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
+	strncat(driverSupportPath, "/DriverSupport/qhy", 128);
+    IDLog("QHY firmware path: %s\n", driverSupportPath);
+	OSXInitQHYCCDFirmware(driverSupportPath);
 #endif
 
     std::vector<std::string> devices = GetDevicesIDs();
@@ -257,11 +263,6 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
     setVersion(INDI_QHY_VERSION_MAJOR, INDI_QHY_VERSION_MINOR);
 
     sim = false;
-}
-
-QHYCCD::~QHYCCD()
-{
-    ReleaseQHYCCDResource();
 }
 
 const char *QHYCCD::getDefaultName()
@@ -1135,18 +1136,17 @@ void QHYCCD::TimerHit()
 
                     PrimaryCCD.setExposureLeft(0);
                     InExposure = false;
-                    /* grab and save image */
+
+                    // grab and save image
                     grabImage();
                 }
             }
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %ld", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
             SetTimer(POLLMS);
         }
-
-        PrimaryCCD.setExposureLeft(timeleft);
     }
 }
 

@@ -39,7 +39,6 @@
 
 #define TEMPERATURE_POLL_MS 5000 /* Temperature Polling time (ms) */
 #define MAX_RESOLUTION      4096 /* Maximum resolutoin for secondary chip */
-#define POLLMS              1000 /* Polling time (ms) */
 #define MAX_DEVICES         20   /* Max device cameraCount */
 #define MAX_THREAD_RETRIES  3
 #define MAX_THREAD_WAIT     300000

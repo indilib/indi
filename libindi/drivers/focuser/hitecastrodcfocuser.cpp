@@ -23,7 +23,6 @@
 #include <cstring>
 #include <memory>
 
-#define POLLMS         500   /* 0.5s */
 #define HID_TIMEOUT    10000 /* 10s */
 #define FUDGE_FACTOR_H 1000
 #define FUDGE_FACTOR_L 885
@@ -74,8 +73,8 @@ void ISSnoopDevice(XMLEle *root)
 
 HitecAstroDCFocuser::HitecAstroDCFocuser() : _handle(nullptr)
 {
-    SetFocuserCapability(FOCUSER_CAN_REL_MOVE); // | FOCUSER_HAS_VARIABLE_SPEED);
-    setFocuserConnection(CONNECTION_NONE);
+    FI::SetCapability(FOCUSER_CAN_REL_MOVE); // | FOCUSER_HAS_VARIABLE_SPEED);
+    setConnection(CONNECTION_NONE);
 }
 
 HitecAstroDCFocuser::~HitecAstroDCFocuser()
@@ -103,6 +102,9 @@ bool HitecAstroDCFocuser::Connect()
     }
 
     _handle = hid_open(0x04D8, 0xFAC2, nullptr);
+
+    if (_handle == nullptr)
+        _handle = hid_open(0x04D8, 0xF53A, nullptr);
 
     DEBUG(INDI::Logger::DBG_DEBUG, _handle ? "HitecAstroDCFocuser opened." : "HitecAstroDCFocuser failed.");
 
@@ -170,6 +172,8 @@ bool HitecAstroDCFocuser::initProperties()
     FocusRelPosN[0].max   = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
     FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
     FocusRelPosN[0].value = 100;
+
+    setDefaultPollingPeriod(500);
 
     return true;
 }
