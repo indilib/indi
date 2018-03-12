@@ -82,9 +82,11 @@ XAGYLWheel::XAGYLWheel()
     strncpy(simData.version, "FW3.1.5", 16);
     strncpy(simData.serial, "S/N: 123456", 16);
 
-    setVersion(0, 1);
+    setVersion(0, 2);
 
     setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
+
+    setDefaultPollingPeriod(500);
 }
 
 const char *XAGYLWheel::getDefaultName()
@@ -369,14 +371,14 @@ bool XAGYLWheel::getCommand(GET_COMMAND cmd, char *result)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    if (!sim && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+    if (!isSimulation() && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
         return false;
     }
 
-    if (sim)
+    if (isSimulation())
     {
         switch (cmd)
         {
@@ -471,7 +473,7 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    if (!sim && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+    if (!isSimulation() && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
@@ -492,7 +494,7 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
 
     char response[XAGYL_MAXBUF];
 
-    if (sim)
+    if (isSimulation())
     {
         switch (cmd)
         {
@@ -555,7 +557,7 @@ bool XAGYLWheel::SelectFilter(int f)
 
     if (rc)
     {
-        SetTimer(500);
+        SetTimer(POLLMS);
         return true;
     }
     else
@@ -568,14 +570,14 @@ void XAGYLWheel::TimerHit()
 
     if (!rc)
     {
-        SetTimer(500);
+        SetTimer(POLLMS);
         return;
     }
 
     if (CurrentFilter == TargetFilter)
         SelectFilterDone(CurrentFilter);
     else
-        SetTimer(500);
+        SetTimer(POLLMS);
 }
 
 bool XAGYLWheel::getStartupData()
@@ -742,7 +744,7 @@ bool XAGYLWheel::reset(int value)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    if (!sim && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+    if (!isSimulation() && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
@@ -770,14 +772,14 @@ bool XAGYLWheel::setOffset(int filter, int value)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    if (!sim && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+    if (!isSimulation() && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
         return false;
     }
 
-    if (sim)
+    if (isSimulation())
     {
         simData.offset[filter] += value;
         snprintf(resp, XAGYL_MAXBUF, "P%d Offset %02d", filter + 1, simData.offset[filter]);
@@ -816,14 +818,14 @@ bool XAGYLWheel::getOffset(int filter)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
 
-    if (!sim && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
+    if (!isSimulation() && (rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
         return false;
     }
 
-    if (sim)
+    if (isSimulation())
         snprintf(resp, XAGYL_MAXBUF, "P%d Offset %02d", filter + 1, simData.offset[filter]);
     else
     {
@@ -849,4 +851,13 @@ bool XAGYLWheel::getOffset(int filter)
     }
     else
         return false;
+}
+
+bool XAGYLWheel::saveConfigItems(FILE *fp)
+{
+    INDI::FilterWheel::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &SettingsNP);
+
+    return true;
 }
