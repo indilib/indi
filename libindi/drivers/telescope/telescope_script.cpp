@@ -243,7 +243,7 @@ bool ScopeScript::Disconnect()
 bool ScopeScript::ReadScopeStatus()
 {
     char name[1024];
-    tmpnam(name);
+    INDI_UNUSED(tmpnam(name));
     bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {
