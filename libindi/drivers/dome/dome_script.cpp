@@ -238,7 +238,7 @@ void DomeScript::TimerHit()
     if (!isConnected())
         return;
     char name[1024];
-    tmpnam(name);
+    INDI_UNUSED(tmpnam(name));
     bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {
