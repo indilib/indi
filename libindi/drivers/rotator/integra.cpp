@@ -166,9 +166,10 @@ bool Integra::initProperties()
 
     addDebugControl();
 
-    // udev creates /dev/integra_focusing_rotator0 for the first focusing_rotator, 1 for the second and so on
-    serialConnection->setDefaultPort("/dev/integra_focusing_rotator0");
-    // mandatory baud speed. The device does not work with anything else
+    // The device uses an Arduino which shows up as /dev/ttyACM0 on Linux
+    // An udev rule example is provided that can create a more logical name like /dev/integra_focusing_rotator0
+    serialConnection->setDefaultPort("/dev/ttyACM0");
+    // Set mandatory baud speed. The device does not work with anything else.
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     return true;
