@@ -166,9 +166,10 @@ bool Integra::initProperties()
 
     addDebugControl();
 
-    // 2018-03-08 JM: Disable custom port and baud rates. User should select those
-    //serialConnection->setDefaultPort("/dev/integra_focusing_rotator1");
-    //serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+    // udev creates /dev/integra_focusing_rotator0 for the first focusing_rotator, 1 for the second and so on
+    serialConnection->setDefaultPort("/dev/integra_focusing_rotator0");
+    // mandatory baud speed. The device does not work with anything else
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     return true;
 }
