@@ -151,7 +151,7 @@ install(TARGETS indi_SVD_MathPlugin
     RUNTIME DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY})
 
 ##################################################
-############ Skywatcher Alt-Az Mount ################
+########### Skywatcher Alt-Az Mount ##############
 ##################################################
 set(skywatcherAltAzMount_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/skywatcherAPIMount.cpp
@@ -162,4 +162,14 @@ target_link_libraries(indi_skywatcherAltAzMount indidriver AlignmentDriver)
 
 install(TARGETS indi_skywatcherAltAzMount RUNTIME DESTINATION bin)
 
+#########################################################
+########### Skywatcher Alt-Az Simple Mount ##############
+#########################################################
+set(skywatcherAltAzSimple_SRCS
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/skywatcherAltAzSimple.cpp
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/skywatcherAPI.cpp )
 
+add_executable(indi_skywatcherAltAzSimple ${skywatcherAltAzSimple_SRCS})
+target_link_libraries(indi_skywatcherAltAzSimple indidriver)
+
+install(TARGETS indi_skywatcherAltAzSimple RUNTIME DESTINATION bin)
