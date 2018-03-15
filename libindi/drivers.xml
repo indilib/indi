@@ -157,8 +157,12 @@
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
                 <version>1.0</version>
         </device>
-        <device label="Skywatcher Alt-Az Mount">
-                <driver name="Skywatcher Alt-Az Mount">indi_skywatcherAltAzMount</driver>
+        <device label="Skywatcher Alt-Az">
+                <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Skywatcher Alt-Az Wedge">
+                <driver name="Skywatcher Alt-Az Wedge">indi_skywatcherAltAzSimple</driver>
                 <version>1.0</version>
         </device>
         <device label="Telescope Scripting Gateway">
