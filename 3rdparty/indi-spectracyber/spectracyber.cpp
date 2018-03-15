@@ -245,7 +245,7 @@ bool SpectraCyber::Connect()
 
     if (isSimulation())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s Spectrometer: Simulating connection to port %s.", type_name.c_str(),
+        LOGF_INFO("%s Spectrometer: Simulating connection to port %s.", type_name.c_str(),
                tProp->tp[0].text);
         SetTimer(POLLMS);
         return true;
@@ -253,7 +253,7 @@ bool SpectraCyber::Connect()
 
     if (tty_connect(tProp->tp[0].text, 2400, 8, 0, 1, &fd) != TTY_OK)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR,
+        LOGF_ERROR(
                "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.",
                tProp->tp[0].text);
         return false;
@@ -262,7 +262,7 @@ bool SpectraCyber::Connect()
     // We perform initial handshake check by resetting all parameter and watching for echo reply
     if (reset() == true)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Spectrometer is online. Retrieving preliminary data...");
+        LOG_INFO("Spectrometer is online. Retrieving preliminary data...");
         SetTimer(POLLMS);
         return init_spectrometer();
     }

@@ -95,7 +95,7 @@ void ISSnoopDevice(XMLEle *root)
 ***************************************************************************************/
 indiduino::indiduino()
 {
-    DEBUG(INDI::Logger::DBG_DEBUG, "Indiduino driver start...");
+    LOG_DEBUG("Indiduino driver start...");
     setVersion(DUINO_VERSION_MAJOR, DUINO_VERSION_MINOR);
     controller = new INDI::Controller(this);
     controller->setJoystickCallback(joystickHelper);

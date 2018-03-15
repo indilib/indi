@@ -210,7 +210,7 @@ bool SkywatcherAPI::GetMicrostepsPerRevolution(AXISID Axis)
     MicrostepsPerDegree[(int)Axis] = tmpMicrostepsPerRevolution / 360.0;
     DegreesPerMicrostep[(int)Axis] = 360.0 / tmpMicrostepsPerRevolution;
 
-    MYDEBUGF(INDI::Logger::DBG_SESSION, "Axis %d: %lf microsteps/degree, %lf microsteps/arcsec", Axis,
+    MYDEBUGF(DBG_SCOPE, "Axis %d: %lf microsteps/degree, %lf microsteps/arcsec", Axis,
              (double)tmpMicrostepsPerRevolution / 360.0, (double)tmpMicrostepsPerRevolution / 360.0 / 60 / 60);
 
     return true;
@@ -635,14 +635,14 @@ void SkywatcherAPI::Slew(AXISID Axis, double SpeedInRadiansPerSecond, bool Ignor
 
 void SkywatcherAPI::SlewTo(AXISID Axis, long OffsetInMicrosteps)
 {
-    MYDEBUGF(INDI::Logger::DBG_SESSION, "SlewTo axis: %d offset: %ld", (int)Axis, OffsetInMicrosteps);
+    MYDEBUGF(DBG_SCOPE, "SlewTo axis: %d offset: %ld", (int)Axis, OffsetInMicrosteps);
     if (0 == OffsetInMicrosteps)
         // Nothing to do
         return;
 
     // Debugging
     LastSlewToTarget[Axis] = CurrentEncoders[Axis] + OffsetInMicrosteps;
-    MYDEBUGF(INDI::Logger::DBG_SESSION, "SlewTo axis %d Offset %ld CurrentEncoder %ld SlewToTarget %ld", Axis,
+    MYDEBUGF(DBG_SCOPE, "SlewTo axis %d Offset %ld CurrentEncoder %ld SlewToTarget %ld", Axis,
              OffsetInMicrosteps, CurrentEncoders[Axis], LastSlewToTarget[Axis]);
 
     char Direction;

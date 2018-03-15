@@ -2050,7 +2050,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
                 auto end = std::chrono::system_clock::now();                
 
                 uploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - exposureLoopStartup)).count() / 1000.0 - duration;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Image download and upload/save took %.3f seconds.", uploadTime);
+                LOGF_DEBUG("Image download and upload/save took %.3f seconds.", uploadTime);
 
                 exposureLoopStartup = end;
             }
@@ -2069,7 +2069,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
+                LOGF_ERROR("Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
                 ExposureLoopCountN[0].value=1;

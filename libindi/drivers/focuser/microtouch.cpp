@@ -157,7 +157,7 @@ bool Microtouch::updateProperties()
 
         GetFocusParams();
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Microtouch paramaters updated, focuser ready for use.");
+        LOG_INFO("Microtouch paramaters updated, focuser ready for use.");
     }
     else
     {
@@ -179,11 +179,11 @@ bool Microtouch::Handshake()
 
     if (Ack())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Microtouch is online. Getting focus parameters...");
+        LOG_INFO("Microtouch is online. Getting focus parameters...");
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from Microtouch, please ensure Microtouch controller is "
+    LOG_INFO("Error retreiving data from Microtouch, please ensure Microtouch controller is "
                                      "powered and the port is correct.");
     return false;
 }
@@ -222,7 +222,7 @@ bool Microtouch::updateTemperature()
 
     tcomp_coeff = (double)(((double)WriteCmdGetInt(CMD_GET_COEFF)) / 128);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "updateTemperature : RESP (%02X %02X %02X %02X %02X %02X)", resp[0], resp[1],
+    LOGF_DEBUG("updateTemperature : RESP (%02X %02X %02X %02X %02X %02X)", resp[0], resp[1],
            resp[2], resp[3], resp[4], resp[5]);
 
     TemperatureN[0].value        = raw_temp + raw_coeff;
@@ -258,14 +258,14 @@ bool Microtouch::updateSpeed()
     if ( (rc = tty_write(PortFD, ":GD#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateSpeed error: %s.", errstr);
+        LOGF_ERROR("updateSpeed error: %s.", errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, resp, 3, MICROTOUCH_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateSpeed error: %s.", errstr);
+        LOGF_ERROR("updateSpeed error: %s.", errstr);
         return false;
     }
 
@@ -285,7 +285,7 @@ bool Microtouch::updateSpeed()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser speed value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser speed value (%s)", resp);
         return false;
     }
     */
@@ -296,7 +296,7 @@ bool Microtouch::updateMotorSpeed()
 {
     IUResetSwitch(&MotorSpeedSP);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "MotorSpeed: %d.", WriteCmdGetByte(CMD_GET_MOTOR_SPEED));
+    LOGF_DEBUG("MotorSpeed: %d.", WriteCmdGetByte(CMD_GET_MOTOR_SPEED));
 
     if (WriteCmdGetByte(CMD_GET_MOTOR_SPEED) == 8)
         MotorSpeedS[0].s = ISS_ON;
@@ -304,7 +304,7 @@ bool Microtouch::updateMotorSpeed()
         MotorSpeedS[1].s = ISS_ON;
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: updateMotorSpeed (%s)", WriteCmdGetByte(CMD_GET_MOTOR_SPEED));
+        LOGF_ERROR("Unknown error: updateMotorSpeed (%s)", WriteCmdGetByte(CMD_GET_MOTOR_SPEED));
         return false;
     }
 
@@ -325,11 +325,11 @@ bool Microtouch::setTemperatureCoefficient(double coefficient)
 {
     int tcoeff = (int)(coefficient * 128);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting new temperaturecoefficient  : %d.", tcoeff);
+    LOGF_DEBUG("Setting new temperaturecoefficient  : %d.", tcoeff);
 
     if (!(WriteCmdSetInt(CMD_SET_COEFF, tcoeff)))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "setTemperatureCoefficient error: Setting temperaturecoefficient failed.");
+        LOG_ERROR("setTemperatureCoefficient error: Setting temperaturecoefficient failed.");
         return false;
     }
     return true;
@@ -349,11 +349,11 @@ bool Microtouch::reset(double pos)
 
 bool Microtouch::MoveFocuser(unsigned int position)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "MoveFocuser to Position: %d", position);
+    LOGF_DEBUG("MoveFocuser to Position: %d", position);
 
     if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Requested position value out of bound: %d", position);
+        LOGF_ERROR("Requested position value out of bound: %d", position);
         return false;
     }
     return WriteCmdSetIntAsDigits(CMD_UPDATE_POSITION, position);
@@ -385,7 +385,7 @@ bool Microtouch::setSpeed(unsigned short speed)
     if ( (rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setSpeed error: %s.", errstr);
+        LOGF_ERROR("setSpeed error: %s.", errstr);
         return false;
     }
     */
@@ -679,7 +679,7 @@ void Microtouch::TimerHit()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
+            LOG_INFO("Focuser reached requested position.");
         }
     }
 
@@ -717,12 +717,12 @@ bool Microtouch::WriteCmd(char cmd)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmd : %02x ", cmd);
+    LOGF_DEBUG("WriteCmd : %02x ", cmd);
 
     if ((rc = tty_write(PortFD, &cmd, 1, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmd error: %s.", errstr);
+        LOGF_ERROR("WriteCmd error: %s.", errstr);
         return false;
     }
     return true;
@@ -738,7 +738,7 @@ bool Microtouch::WriteCmdGetResponse(char cmd, char *readbuffer, char numbytes)
         if ((rc = tty_read(PortFD, readbuffer, numbytes, MICROTOUCH_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmdGetResponse error: %s.", errstr);
+            LOGF_ERROR("WriteCmdGetResponse error: %s.", errstr);
             return false;
         }
 
@@ -754,7 +754,7 @@ char Microtouch::WriteCmdGetByte(char cmd)
 
     if (WriteCmdGetResponse(cmd, read, 2))
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdGetByte : %02x %02x ", read[0], read[1]);
+        LOGF_DEBUG("WriteCmdGetByte : %02x %02x ", read[0], read[1]);
         return read[1];
     }
     else
@@ -770,14 +770,14 @@ bool Microtouch::WriteCmdSetByte(char cmd, char val)
     write_buffer[0] = cmd;
     write_buffer[1] = val;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetByte : CMD %02x %02x ", write_buffer[0], write_buffer[1]);
+    LOGF_DEBUG("WriteCmdSetByte : CMD %02x %02x ", write_buffer[0], write_buffer[1]);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, write_buffer, 2, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmdSetByte error: %s.", errstr);
+        LOGF_ERROR("WriteCmdSetByte error: %s.", errstr);
         return false;
     }
     return true;
@@ -803,7 +803,7 @@ bool Microtouch::WriteCmdSetShortInt(char cmd, short int val)
     write_buffer[1] = val & 0xFF;
     write_buffer[2] = val >> 8;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetShortInt : %02x %02x %02x ", write_buffer[0], write_buffer[1],
+    LOGF_DEBUG("WriteCmdSetShortInt : %02x %02x %02x ", write_buffer[0], write_buffer[1],
            write_buffer[2]);
 
     tcflush(PortFD, TCIOFLUSH);
@@ -811,7 +811,7 @@ bool Microtouch::WriteCmdSetShortInt(char cmd, short int val)
     if ((rc = tty_write(PortFD, write_buffer, 3, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmdSetShortInt error: %s.", errstr);
+        LOGF_ERROR("WriteCmdSetShortInt error: %s.", errstr);
         return false;
     }
     return true;
@@ -840,7 +840,7 @@ bool Microtouch::WriteCmdSetInt(char cmd, int val)
     write_buffer[3] = val >> 16;
     write_buffer[4] = val >> 24;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetInt : %02x %02x %02x %02x %02x ", write_buffer[0], write_buffer[1],
+    LOGF_DEBUG("WriteCmdSetInt : %02x %02x %02x %02x %02x ", write_buffer[0], write_buffer[1],
            write_buffer[2], write_buffer[3], write_buffer[4]);
 
     tcflush(PortFD, TCIOFLUSH);
@@ -848,7 +848,7 @@ bool Microtouch::WriteCmdSetInt(char cmd, int val)
     if ((rc = tty_write(PortFD, write_buffer, 5, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmdSetInt error: %s.", errstr);
+        LOGF_ERROR("WriteCmdSetInt error: %s.", errstr);
         return false;
     }
     return true;
@@ -866,7 +866,7 @@ bool Microtouch::WriteCmdSetIntAsDigits(char cmd, int val)
     write_buffer[3] = (val / 100) % 10;
     write_buffer[4] = (val / 1000);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "WriteCmdSetIntAsDigits : CMD (%02x %02x %02x %02x %02x) ", write_buffer[0],
+    LOGF_DEBUG("WriteCmdSetIntAsDigits : CMD (%02x %02x %02x %02x %02x) ", write_buffer[0],
            write_buffer[1], write_buffer[2], write_buffer[3], write_buffer[4]);
 
     tcflush(PortFD, TCIOFLUSH);
@@ -874,7 +874,7 @@ bool Microtouch::WriteCmdSetIntAsDigits(char cmd, int val)
     if ((rc = tty_write(PortFD, write_buffer, 5, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "WriteCmdSetIntAsDigits error: %s.", errstr);
+        LOGF_ERROR("WriteCmdSetIntAsDigits error: %s.", errstr);
         return false;
     }
     return true;

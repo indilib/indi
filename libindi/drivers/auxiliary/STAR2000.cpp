@@ -340,7 +340,7 @@ IPState STAR2000::GuideNorth(float ms)
 
     NSDir = NORTH;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting NORTH guide");
+    LOG_DEBUG("Starting NORTH guide");
 
     if (ms <= POLLMS)
     {
@@ -366,7 +366,7 @@ IPState STAR2000::GuideSouth(float ms)
 
     StartPulse(SOUTH);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting SOUTH guide");
+    LOG_DEBUG("Starting SOUTH guide");
 
     NSDir = SOUTH;
 
@@ -394,7 +394,7 @@ IPState STAR2000::GuideEast(float ms)
 
     StartPulse(EAST);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting EAST guide");
+    LOG_DEBUG("Starting EAST guide");
 
     WEDir = EAST;
 
@@ -422,7 +422,7 @@ IPState STAR2000::GuideWest(float ms)
 
     StartPulse(WEST);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting WEST guide");
+    LOG_DEBUG("Starting WEST guide");
 
     WEDir = WEST;
 

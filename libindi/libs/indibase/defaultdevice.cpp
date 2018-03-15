@@ -81,10 +81,10 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
     {
         if (pResult)
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully loaded.");
+            LOG_DEBUG("Configuration successfully loaded.");
         }
         else
-            DEBUGF(INDI::Logger::DBG_ERROR,
+            LOGF_ERROR(
                    "Error loading user configuration. %s. To save user configuration, click Save under the "
                    "Configuration property in the Options tab. ",
                    errmsg);
@@ -169,7 +169,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         if (fp == nullptr)
         {
             if (!silent)
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
+                LOGF_ERROR("Error saving configuration. %s", errmsg);
             return false;
         }
 
@@ -183,7 +183,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
 
         IUSaveDefaultConfig(nullptr, nullptr, deviceID);
 
-        DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully saved.");
+        LOG_DEBUG("Configuration successfully saved.");
     }
     else
     {
@@ -192,7 +192,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         if (fp == nullptr)
         {
             //if (!silent)
-             //   DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
+             //   LOGF_ERROR("Error saving configuration. %s", errmsg);
             //return false;
             // If we don't have an existing file pointer, save all properties.
             return saveConfig(silent);
@@ -287,7 +287,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
             prXMLEle(fp, root, 0);
             fclose(fp);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Configuration successfully saved for %s.", property);
+            LOGF_DEBUG("Configuration successfully saved for %s.", property);
             return true;
         }
         else
@@ -308,14 +308,14 @@ bool DefaultDevice::loadDefaultConfig()
     else
         snprintf(configDefaultFileName, MAXRBUF, "%s/.indi/%s_config.xml.default", getenv("HOME"), deviceID);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Requesting to load default config with: %s", configDefaultFileName);
+    LOGF_DEBUG("Requesting to load default config with: %s", configDefaultFileName);
 
     pResult = IUReadConfig(configDefaultFileName, deviceID, nullptr, 0, errmsg) == 0 ? true : false;
 
     if (pResult)
-        DEBUG(INDI::Logger::DBG_SESSION, "Default configuration loaded.");
+        LOG_INFO("Default configuration loaded.");
     else
-        DEBUGF(INDI::Logger::DBG_SESSION, "Error loading default configuraiton. %s", errmsg);
+        LOGF_INFO("Error loading default configuraiton. %s", errmsg);
 
     return pResult;
 }
@@ -604,7 +604,7 @@ void DefaultDevice::setDebug(bool enable)
         if (sp)
         {
             sp->s = ISS_ON;
-            DEBUG(INDI::Logger::DBG_SESSION, "Debug is enabled.");
+            LOG_INFO("Debug is enabled.");
         }
     }
     else
@@ -613,7 +613,7 @@ void DefaultDevice::setDebug(bool enable)
         if (sp)
         {
             sp->s = ISS_ON;
-            DEBUG(INDI::Logger::DBG_SESSION, "Debug is disabled.");
+            LOG_INFO("Debug is disabled.");
         }
     }
 
@@ -644,7 +644,7 @@ void DefaultDevice::setSimulation(bool enable)
         ISwitch *sp = IUFindSwitch(&SimulationSP, "ENABLE");
         if (sp)
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Simulation is enabled.");
+            LOG_INFO("Simulation is enabled.");
             sp->s = ISS_ON;
         }
     }
@@ -654,7 +654,7 @@ void DefaultDevice::setSimulation(bool enable)
         if (sp)
         {
             sp->s = ISS_ON;
-            DEBUG(INDI::Logger::DBG_SESSION, "Simulation is disabled.");
+            LOG_INFO("Simulation is disabled.");
         }
     }
 
@@ -1006,7 +1006,7 @@ bool DefaultDevice::Connect()
 
     if (activeConnection == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "No active connection defined.");
+        LOG_ERROR("No active connection defined.");
         return false;
     }
 

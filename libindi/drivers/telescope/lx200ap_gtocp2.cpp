@@ -196,7 +196,7 @@ bool LX200AstroPhysicsGTOCP2::initMount()
     // RA and DE are zero, then mount is not initialized and we need to initialized it.
     if ( (raOK == false && deOK == false) || (currentRA == 0 && (currentDEC == 0 || currentDEC == 90)))
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Mount is not yet initialized. Initializing it...");
+        LOG_DEBUG("Mount is not yet initialized. Initializing it...");
 
         if (isSimulation() == false)
         {
@@ -204,7 +204,7 @@ bool LX200AstroPhysicsGTOCP2::initMount()
             // :PO#
             if (setAPUnPark(PortFD) < 0)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "UnParking Failed.");
+                LOG_ERROR("UnParking Failed.");
                 return false;
             }
 
@@ -215,7 +215,7 @@ bool LX200AstroPhysicsGTOCP2::initMount()
 
     mountInitialized = true;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Mount is initialized.");
+    LOG_DEBUG("Mount is initialized.");
 
     // Astrophysics mount is always unparked on startup
     // In this driver, unpark only sets the tracking ON.
@@ -229,7 +229,7 @@ bool LX200AstroPhysicsGTOCP2::initMount()
     // SlewRateS is used as the MoveTo speed
     if (isSimulation() == false && (err = selectAPMoveToRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP))) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error setting move rate (%d).", err);
+        LOGF_ERROR("Error setting move rate (%d).", err);
         return false;
     }
 
@@ -239,7 +239,7 @@ bool LX200AstroPhysicsGTOCP2::initMount()
     // APSlewSpeedsS defines the Slew (GOTO) speeds valid on the AP mounts
     if (isSimulation() == false && (err = selectAPSlewRate(PortFD, IUFindOnSwitchIndex(&APSlewSpeedSP))) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error setting slew to rate (%d).", err);
+        LOGF_ERROR("Error setting slew to rate (%d).", err);
         return false;
     }
 
@@ -258,7 +258,7 @@ bool LX200AstroPhysicsGTOCP2::initMount()
 
     if (strlen(versionString) != 1)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Version not supported GTOCP2 driver: %s", versionString);
+        LOGF_ERROR("Version not supported GTOCP2 driver: %s", versionString);
         return false;
     }
 
@@ -266,12 +266,12 @@ bool LX200AstroPhysicsGTOCP2::initMount()
     if (typeIndex >= 0)
     {
         firmwareVersion = static_cast<ControllerVersion>(typeIndex);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Firmware version index: %d", typeIndex);
-        DEBUGF(INDI::Logger::DBG_SESSION, "Firmware Version: %c", VersionT[0].text[0]);
+        LOGF_DEBUG("Firmware version index: %d", typeIndex);
+        LOGF_INFO("Firmware Version: %c", VersionT[0].text[0]);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid version: %s", versionString);
+        LOGF_ERROR("Invalid version: %s", versionString);
         return false;
     }
 
@@ -299,7 +299,7 @@ bool LX200AstroPhysicsGTOCP2::ISNewSwitch(const char *dev, const char *name, ISS
 
         if ((!isSimulation() && (err = swapAPButtons(PortFD, currentSwap)) < 0))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error swapping buttons (%d).", err);
+            LOGF_ERROR("Error swapping buttons (%d).", err);
             return false;
         }
 
@@ -320,7 +320,7 @@ bool LX200AstroPhysicsGTOCP2::ISNewSwitch(const char *dev, const char *name, ISS
 
         if (!isSimulation() && (err = selectAPSlewRate(PortFD, slewRate) < 0))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting move to rate (%d).", err);
+            LOGF_ERROR("Error setting move to rate (%d).", err);
             return false;
         }
 
@@ -339,7 +339,7 @@ bool LX200AstroPhysicsGTOCP2::ISNewSwitch(const char *dev, const char *name, ISS
 
         if (!isSimulation() && (err = selectAPGuideRate(PortFD, guideRate) < 0))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting guiding to rate (%d).", err);
+            LOGF_ERROR("Error setting guiding to rate (%d).", err);
             return false;
         }
 
@@ -374,7 +374,7 @@ bool LX200AstroPhysicsGTOCP2::ISNewSwitch(const char *dev, const char *name, ISS
 
         if (!isSimulation() && (err = selectAPPECState(PortFD, pecstate) < 0))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting PEC state (%d).", err);
+            LOGF_ERROR("Error setting PEC state (%d).", err);
             return false;
         }
 
@@ -407,13 +407,13 @@ bool LX200AstroPhysicsGTOCP2::ReadScopeStatus()
         double dx = lastRA - currentRA;
         double dy = lastDE - currentDEC;
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing... currentRA: %g dx: %g currentDE: %g dy: %g", currentRA, dx, currentDEC, dy);
+        LOGF_DEBUG("Slewing... currentRA: %g dx: %g currentDE: %g dy: %g", currentRA, dx, currentDEC, dy);
 
         // Wait until acknowledged
         if (dx == 0 && dy == 0)
         {
             TrackState = SCOPE_TRACKING;
-            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
+            LOG_INFO("Slew is complete. Tracking...");
         }
 
         // Keep try of last values to determine if the mount settled.
@@ -432,15 +432,15 @@ bool LX200AstroPhysicsGTOCP2::ReadScopeStatus()
         double dx = lastAZ - currentAz;
         double dy = lastAL - currentAlt;
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Parking... currentAz: %g dx: %g currentAlt: %g dy: %g", currentAz, dx, currentAlt, dy);
+        LOGF_DEBUG("Parking... currentAz: %g dx: %g currentAlt: %g dy: %g", currentAz, dx, currentAlt, dy);
 
         if (dx == 0 && dy == 0)
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Parking slew is complete. Asking astrophysics mount to park...");
+            LOG_DEBUG("Parking slew is complete. Asking astrophysics mount to park...");
 
             if (!isSimulation() && setAPPark(PortFD) < 0)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Parking Failed.");
+                LOG_ERROR("Parking Failed.");
                 return false;
             }
 
@@ -449,7 +449,7 @@ bool LX200AstroPhysicsGTOCP2::ReadScopeStatus()
 
             SetParked(true);
 
-            DEBUG(INDI::Logger::DBG_SESSION, "Please disconnect and power off the mount.");
+            LOG_INFO("Please disconnect and power off the mount.");
         }
 
         lastAZ = currentAz;
@@ -531,7 +531,7 @@ bool LX200AstroPhysicsGTOCP2::Goto(double r, double d)
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -548,7 +548,7 @@ bool LX200AstroPhysicsGTOCP2::Handshake()
 {
     if (isSimulation())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Simulated Astrophysics is online. Retrieving basic data...");
+        LOG_INFO("Simulated Astrophysics is online. Retrieving basic data...");
         return true;
     }
 
@@ -556,7 +556,7 @@ bool LX200AstroPhysicsGTOCP2::Handshake()
 
     if ((err = setAPClearBuffer(PortFD)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error clearing the buffer (%d): %s", err, strerror(err));
+        LOGF_ERROR("Error clearing the buffer (%d): %s", err, strerror(err));
         return false;
     }
 
@@ -565,7 +565,7 @@ bool LX200AstroPhysicsGTOCP2::Handshake()
         // It seems we need to send it twice before it works!
         if ((err = setAPBackLashCompensation(PortFD, 0, 0, 0)) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting back lash compensation (%d): %s.", err, strerror(err));
+            LOGF_ERROR("Error setting back lash compensation (%d): %s.", err, strerror(err));
             return false;
         }
     }
@@ -628,8 +628,8 @@ bool LX200AstroPhysicsGTOCP2::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
-    DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
+    LOGF_DEBUG("%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
+    LOG_INFO("Synchronization successful.");
 
     EqNP.s     = IPS_OK;
 
@@ -646,35 +646,35 @@ bool LX200AstroPhysicsGTOCP2::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %.2f", JD);
+    LOGF_DEBUG("New JD is %.2f", JD);
 
     // Set Local Time
     if (isSimulation() == false && setLocalTime(PortFD, ltm.hours, ltm.minutes, (int)ltm.seconds) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+        LOG_ERROR("Error setting local time.");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
+    LOGF_DEBUG("Set Local Time %02d:%02d:%02d is successful.", ltm.hours, ltm.minutes,
            (int)ltm.seconds);
 
     if (isSimulation() == false && setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+        LOG_ERROR("Error setting local date.");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
+    LOGF_DEBUG("Set Local Date %02d/%02d/%02d is successful.", ltm.days, ltm.months, ltm.years);
 
     if (isSimulation() == false && setAPUTCOffset(PortFD, fabs(utc_offset)) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+        LOG_ERROR("Error setting UTC Offset.");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
+    LOGF_DEBUG("Set UTC Offset %g (always positive for AP) is successful.", fabs(utc_offset));
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Time updated.");
+    LOG_INFO("Time updated.");
 
     timeUpdated = true;
 
@@ -690,13 +690,13 @@ bool LX200AstroPhysicsGTOCP2::updateLocation(double latitude, double longitude, 
 
     if (!isSimulation() && setAPSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        LOG_ERROR("Error setting site longitude coordinates");
         return false;
     }
 
     if (!isSimulation() && setAPSiteLatitude(PortFD, latitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        LOG_ERROR("Error setting site latitude coordinates");
         return false;
     }
 
@@ -704,7 +704,7 @@ bool LX200AstroPhysicsGTOCP2::updateLocation(double latitude, double longitude, 
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
+    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     locationUpdated = true;
 
@@ -745,7 +745,7 @@ bool LX200AstroPhysicsGTOCP2::Park()
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAz, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
+    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
     if (isSimulation())
     {
@@ -773,7 +773,7 @@ bool LX200AstroPhysicsGTOCP2::Park()
     {
         if (setAPObjectAZ(PortFD, parkAz) < 0 || setAPObjectAlt(PortFD, parkAlt) < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting Az/Alt.");
+            LOG_ERROR("Error setting Az/Alt.");
             return false;
         }
 
@@ -782,7 +782,7 @@ bool LX200AstroPhysicsGTOCP2::Park()
         /* Slew reads the '0', that is not the end of the slew */
         if ((err = Slew(PortFD)))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to Az %s - Alt %s", AzStr, AltStr);
+            LOGF_ERROR("Error Slewing to Az %s - Alt %s", AzStr, AltStr);
             slewError(err);
             return false;
         }
@@ -794,7 +794,7 @@ bool LX200AstroPhysicsGTOCP2::Park()
 
     EqNP.s     = IPS_BUSY;
     TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
+    LOG_INFO("Parking is in progress...");
 
     return true;
 }
@@ -836,7 +836,7 @@ bool LX200AstroPhysicsGTOCP2::SetCurrentPark()
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current parking position to coordinates Az (%s) Alt (%s)", AzStr, AltStr);
+    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)", AzStr, AltStr);
 
     SetAxis1Park(parkAZ);
     SetAxis2Park(parkAlt);
@@ -862,7 +862,7 @@ void LX200AstroPhysicsGTOCP2::syncSideOfPier()
     char response[16] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -870,7 +870,7 @@ void LX200AstroPhysicsGTOCP2::syncSideOfPier()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return;
     }
 
@@ -879,7 +879,7 @@ void LX200AstroPhysicsGTOCP2::syncSideOfPier()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error reading from device %s (%d)", errmsg, rc);
         return;
     }
 
@@ -887,14 +887,14 @@ void LX200AstroPhysicsGTOCP2::syncSideOfPier()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
+    LOGF_DEBUG("RES: <%s>", response);
 
     if (!strcmp(response, "East"))
         setPierSide(INDI::Telescope::PIER_EAST);
     else if (!strcmp(response, "West"))
         setPierSide(INDI::Telescope::PIER_WEST);
     else
-        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid pier side response from device-> %s", response);
+        LOGF_ERROR("Invalid pier side response from device-> %s", response);
 
 }
 
@@ -917,7 +917,7 @@ bool LX200AstroPhysicsGTOCP2::SetTrackMode(uint8_t mode)
     {
         if (!isSimulation() && (err = selectAPTrackingMode(PortFD, AP_TRACKING_SIDEREAL)) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
+            LOGF_ERROR("Error setting tracking mode (%d).", err);
             return false;
         }
 
@@ -926,7 +926,7 @@ bool LX200AstroPhysicsGTOCP2::SetTrackMode(uint8_t mode)
 
     if (!isSimulation() && (err = selectAPTrackingMode(PortFD, mode)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error setting tracking mode (%d).", err);
+        LOGF_ERROR("Error setting tracking mode (%d).", err);
         return false;
     }
 
@@ -992,13 +992,13 @@ bool LX200AstroPhysicsGTOCP2::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand com
 
 void LX200AstroPhysicsGTOCP2::handleGTOCP2MotionBug()
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Motion commanded? %s", __FUNCTION__, motionCommanded ? "True":"False");
+    LOGF_DEBUG("%s: Motion commanded? %s", __FUNCTION__, motionCommanded ? "True":"False");
 
     // GTOCP2 (Version 'E' and earilar) has a bug that would reset the guide rate to whatever last motion took place
     // So it must be reset to the user setting in order for guiding to work properly.
     if (motionCommanded)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Issuing select guide rate index: %d", __FUNCTION__, IUFindOnSwitchIndex(&APGuideSpeedSP));
+        LOGF_DEBUG("%s: Issuing select guide rate index: %d", __FUNCTION__, IUFindOnSwitchIndex(&APGuideSpeedSP));
         selectAPGuideRate(PortFD, IUFindOnSwitchIndex(&APGuideSpeedSP));
         motionCommanded = false;
     }

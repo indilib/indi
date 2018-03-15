@@ -349,23 +349,23 @@ bool LX200GPS::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %.2f", JD);
+    LOGF_DEBUG("New JD is %.2f", JD);
 
     ln_date_to_zonedate(utc, &ltm, utc_offset * 3600);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Local time is %02d:%02d:%02g", ltm.hours, ltm.minutes, ltm.seconds);
+    LOGF_DEBUG("Local time is %02d:%02d:%02g", ltm.hours, ltm.minutes, ltm.seconds);
 
     // Set Local Time
     if (setLocalTime24(ltm.hours, ltm.minutes, ltm.seconds) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time time.");
+        LOG_ERROR("Error setting local time time.");
         return false;
     }
 
     // UTC Date, it's not Local for LX200GPS
     if (setLocalDate(utc->days, utc->months, utc->years) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC date.");
+        LOG_ERROR("Error setting UTC date.");
         return false;
     }
 
@@ -373,11 +373,11 @@ bool LX200GPS::updateTime(ln_date *utc, double utc_offset)
     // is the opposite of the standard definition of UTC offset!
     if (setUTCOffset(utc_offset) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+        LOG_ERROR("Error setting UTC Offset.");
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Time updated, updating planetary data...");
+    LOG_INFO("Time updated, updating planetary data...");
     return true;
 }
 

@@ -139,7 +139,7 @@ bool SimpleScope::Goto(double ra, double dec)
     TrackState = SCOPE_SLEWING;
 
     // Inform client we are slewing to a new position
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
 
     // Success!
     return true;
@@ -221,7 +221,7 @@ bool SimpleScope::ReadScopeStatus()
                 // Let's set state to TRACKING
                 TrackState = SCOPE_TRACKING;
 
-                DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
+                LOG_INFO("Telescope slew is complete. Tracking...");
             }
             break;
 

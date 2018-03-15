@@ -87,7 +87,7 @@ int SXAO::aoCommand(const char *request, char *response, int nbytes)
 {
     if (isSimulation())
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "simulation: command %s", request);
+        LOGF_DEBUG("simulation: command %s", request);
 
         if (!strcmp(request, "X"))
             strcpy(response, "Y");
@@ -99,19 +99,19 @@ int SXAO::aoCommand(const char *request, char *response, int nbytes)
     int actual;
     int rc = tty_write(PortFD, request, strlen(request), &actual);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", request);
+    LOGF_DEBUG("CMD <%s>", request);
 
     if (rc == TTY_OK)
     {
         rc = tty_read(PortFD, response, nbytes, 10, &actual);
         response[actual] = 0;
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", response);
+        LOGF_DEBUG("RES <%s>", response);
     }
     else
     {
         char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "aoCommand TTY error: %s", errstr);
+        LOGF_ERROR("aoCommand TTY error: %s", errstr);
     }
 
     return rc;
@@ -168,7 +168,7 @@ bool SXAO::Handshake()
             aoCommand("V", FWT[0].text, 4);
             if (!strcmp(FWT[0].text, "V000"))
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Firmware needs to be updated!");
+                LOG_ERROR("Firmware needs to be updated!");
                 return false;
             }
             AOCenter();
@@ -176,7 +176,7 @@ bool SXAO::Handshake()
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Not SXAO was detected.");
+            LOG_ERROR("Not SXAO was detected.");
             return false;
         }
     }

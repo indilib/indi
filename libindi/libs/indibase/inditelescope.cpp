@@ -1006,7 +1006,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 IUResetSwitch(&ParkSP);
                 ParkS[1].s = ISS_ON;
                 ParkSP.s   = IPS_IDLE;
-                DEBUG(INDI::Logger::DBG_SESSION, "Telescope already unparked.");
+                LOG_INFO("Telescope already unparked.");
                 IsParked = false;
                 IDSetSwitch(&ParkSP, nullptr);
                 return true;
@@ -1017,7 +1017,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                IUResetSwitch(&ParkSP);
                ParkS[0].s = ISS_ON;
                ParkSP.s   = IPS_IDLE;
-               DEBUG(INDI::Logger::DBG_WARNING, "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab.");
+               LOG_WARN("Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab.");
                IsParked = true;
                IDSetSwitch(&ParkSP, nullptr);
                return true;

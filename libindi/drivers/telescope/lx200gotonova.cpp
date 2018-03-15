@@ -124,14 +124,14 @@ bool LX200GotoNova::checkConnection()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing IOptron using :V# CMD...");
+    LOG_DEBUG("Initializing IOptron using :V# CMD...");
 
     for (int i = 0; i < 2; i++)
     {
         if ((errcode = tty_write(PortFD, initCMD, 3, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             nanosleep(&timeout, NULL);
             continue;
         }
@@ -139,7 +139,7 @@ bool LX200GotoNova::checkConnection()
         if ((errcode = tty_read_section(PortFD, response, '#', 3, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             nanosleep(&timeout, NULL);
             continue;
         }
@@ -147,7 +147,7 @@ bool LX200GotoNova::checkConnection()
         if (nbytes_read > 0)
         {
             response[nbytes_read] = '\0';
-            DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+            LOGF_DEBUG("RES (%s)", response);
 
             if (!strcmp(response, "V1.00#"))
                 return true;
@@ -224,26 +224,26 @@ bool LX200GotoNova::isSlewComplete()
 
     const char *cmd = ":SE?#";
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
     if ((errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         tcflush(PortFD, TCIFLUSH);
 
@@ -253,7 +253,7 @@ bool LX200GotoNova::isSlewComplete()
             return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    LOGF_ERROR("Only received #%d bytes, expected 1.", nbytes_read);
     return false;
 }
 
@@ -331,7 +331,7 @@ bool LX200GotoNova::Goto(double r, double d)
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -380,8 +380,8 @@ bool LX200GotoNova::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
-    DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
+    LOGF_DEBUG("%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
+    LOG_INFO("Synchronization successful.");
 
     EqNP.s     = IPS_OK;
 
@@ -397,7 +397,7 @@ int LX200GotoNova::GotonovaSyncCMR(char *matchedObject)
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", "#:CMR#");
+    LOGF_DEBUG("CMD <%s>", "#:CMR#");
 
     if ((error_type = tty_write_string(PortFD, ":CMR#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -407,7 +407,7 @@ int LX200GotoNova::GotonovaSyncCMR(char *matchedObject)
 
     matchedObject[nbytes_read - 1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", matchedObject);
+    LOGF_DEBUG("RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
     nanosleep(&timeout, NULL);
@@ -458,12 +458,12 @@ bool LX200GotoNova::SetSlewRate(int index)
 
     snprintf(cmd, 8, ":RC%d#", index);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
@@ -481,24 +481,24 @@ bool LX200GotoNova::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float)JD);
+    LOGF_DEBUG("New JD is %f", (float)JD);
 
     // Set Local Time
     if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+        LOG_ERROR("Error setting local time.");
         return false;
     }
 
     if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+        LOG_ERROR("Error setting local date.");
         return false;
     }
 
     if (setGotoNovaUTCOffset(utc_offset) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+        LOG_ERROR("Error setting UTC Offset.");
         return false;
     }
 
@@ -530,7 +530,7 @@ int LX200GotoNova::setCalenderDate(int fd, int dd, int mm, int yy)
 
     if (nbytes_read < 1)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Unable to read response");
+        LOG_ERROR("Unable to read response");
         return error_type;
     }
 
@@ -546,7 +546,7 @@ int LX200GotoNova::setCalenderDate(int fd, int dd, int mm, int yy)
     nanosleep(&timeout, NULL);
     tcflush(fd, TCIFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Set date failed! Response: <%s>", response);
+    LOGF_DEBUG("Set date failed! Response: <%s>", response);
 
     return -1;
 }
@@ -567,13 +567,13 @@ bool LX200GotoNova::updateLocation(double latitude, double longitude, double ele
 
     if (!isSimulation() && setGotoNovaLongitude(final_longitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        LOG_ERROR("Error setting site longitude coordinates");
         return false;
     }
 
     if (!isSimulation() && setGotoNovaLatitude(latitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        LOG_ERROR("Error setting site latitude coordinates");
         return false;
     }
 
@@ -581,7 +581,7 @@ bool LX200GotoNova::updateLocation(double latitude, double longitude, double ele
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
+    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -703,7 +703,7 @@ bool LX200GotoNova::Park()
 
     EqNP.s     = IPS_BUSY;
     TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
+    LOG_INFO("Parking is in progress...");
 
     return true;
 }
@@ -731,7 +731,7 @@ bool LX200GotoNova::ReadScopeStatus()
         if (isSlewComplete())
         {
             TrackState = SCOPE_TRACKING;
-            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
+            LOG_INFO("Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -835,7 +835,7 @@ int LX200GotoNova::getGotoNovaGuideRate(int *rate)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -849,14 +849,14 @@ int LX200GotoNova::getGotoNovaGuideRate(int *rate)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return errcode;
         }
 
         if ((errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return errcode;
         }
     }
@@ -864,14 +864,14 @@ int LX200GotoNova::getGotoNovaGuideRate(int *rate)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         *rate = atoi(response);
 
         return 0;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    LOGF_ERROR("Only received #%d bytes, expected 1.", nbytes_read);
     return -1;
 }
 
@@ -884,7 +884,7 @@ int LX200GotoNova::setGotoNovaGuideRate(int rate)
 
     snprintf(cmd, 16, ":SGS%0d#", rate);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -896,7 +896,7 @@ int LX200GotoNova::setGotoNovaGuideRate(int rate)
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return errcode;
     }
 
@@ -919,7 +919,7 @@ void LX200GotoNova::syncSideOfPier()
     char response[16] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -927,7 +927,7 @@ void LX200GotoNova::syncSideOfPier()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return;
     }
 
@@ -936,7 +936,7 @@ void LX200GotoNova::syncSideOfPier()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error reading from device %s (%d)", errmsg, rc);
         return;
     }
 
@@ -944,7 +944,7 @@ void LX200GotoNova::syncSideOfPier()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
+    LOGF_DEBUG("RES: <%s>", response);
 
     if (!strcmp(response, "East"))
         setPierSide(INDI::Telescope::PIER_EAST);
