@@ -39,7 +39,6 @@
 #define MAX_X_BIN      16   /* Max Horizontal binning */
 #define MAX_Y_BIN      16   /* Max Vertical binning */
 #define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
-#define NFLUSHES       1    /* Number of times a CCD array is flushed before an exposure */
 
 std::unique_ptr<FLICCD> fliCCD(new FLICCD());
 
@@ -113,7 +112,19 @@ bool FLICCD::initProperties()
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB,
                        IP_RO, 60, IPS_IDLE);
 
+    // Number of flush pre-exposure
+    IUFillNumber(&FlushN[0], "FLUSH_COUNT", "Count", "%.f", 0., 16., 1, 0);
+    IUFillNumberVector(&FlushNP, FlushN, 1, getDeviceName(), "CCD_FLUSH_COUNT", "N Flush", OPTIONS_TAB,
+                       IP_RW, 60, IPS_IDLE);
+
+    // Background Flushing
+    IUFillSwitch(&BackgroundFlushS[0], "ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&BackgroundFlushS[1], "DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&BackgroundFlushSP, BackgroundFlushS, 2, getDeviceName(), "CCD_BACKGROUND_FLUSH", "BKG. Flush", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER);
+
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.04, 3600, 1, false);
 
     addAuxControls();
 
@@ -125,8 +136,6 @@ void FLICCD::ISGetProperties(const char *dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineSwitch(&PortSP);
-
-    addAuxControls();
 }
 
 bool FLICCD::updateProperties()
@@ -137,6 +146,8 @@ bool FLICCD::updateProperties()
     {
         defineText(&CamInfoTP);
         defineNumber(&CoolerNP);
+        defineNumber(&FlushNP);
+        defineSwitch(&BackgroundFlushSP);
 
         setupParams();
 
@@ -146,6 +157,8 @@ bool FLICCD::updateProperties()
     {
         deleteProperty(CamInfoTP.name);
         deleteProperty(CoolerNP.name);
+        deleteProperty(FlushNP.name);
+        deleteProperty(BackgroundFlushSP.name);
 
         rmTimer(timerID);
     }
@@ -153,11 +166,38 @@ bool FLICCD::updateProperties()
     return true;
 }
 
+bool FLICCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(name, FlushNP.name))
+        {
+            int err=0;
+            long nflushes = values[0];
+
+            if ((err = FLISetNFlushes(fli_dev, nflushes)))
+            {
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Error: FLISetNFlushes() failed. %s.", strerror((int)-err));
+                FlushNP.s = IPS_ALERT;
+                IDSetNumber(&FlushNP, nullptr);
+                return true;
+            }
+
+            IUUpdateNumber(&FlushNP, values, names, n);
+            FlushNP.s = IPS_OK;
+            IDSetNumber(&FlushNP, nullptr);
+            return true;
+        }
+    }
+
+    return INDI::CCD::ISNewNumber(dev, name, values, names, n);
+}
+
 bool FLICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (strcmp(dev, getDeviceName()) == 0)
     {
-        /* Ports */
+        // Ports
         if (!strcmp(name, PortSP.name))
         {
             if (IUUpdateSwitch(&PortSP, states, names, n) < 0)
@@ -165,6 +205,25 @@ bool FLICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             PortSP.s = IPS_OK;
             IDSetSwitch(&PortSP, NULL);
+            return true;
+        }
+
+        // Background Flushing
+        if (!strcmp(name, BackgroundFlushSP.name))
+        {
+            int err=0;
+            bool enabled = !strcmp(IUFindOnSwitchName(states, names, n), "ENABLED");
+            if ((err = FLIControlBackgroundFlush(fli_dev, enabled ? FLI_BGFLUSH_START : FLI_BGFLUSH_STOP)))
+            {
+                DEBUGF(INDI::Logger::DBG_DEBUG, "Error: FLIControlBackgroundFlush() %s failed. %s.", (enabled ? "starting" : "stopping"), strerror((int)-err));
+                BackgroundFlushSP.s = IPS_ALERT;
+                IDSetSwitch(&BackgroundFlushSP, nullptr);
+                return true;
+            }
+
+            IUUpdateSwitch(&BackgroundFlushSP, states, names, n);
+            BackgroundFlushSP.s = IPS_OK;
+            IDSetSwitch(&BackgroundFlushSP, nullptr);
             return true;
         }
     }
@@ -229,7 +288,7 @@ bool FLICCD::setupParams()
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Retieving camera parameters...");
 
-    char hw_rev[16], fw_rev[16];
+    char hw_rev[16]={0}, fw_rev[16]={0};
 
     //////////////////////
     // 1. Get Camera Model
@@ -369,9 +428,6 @@ bool FLICCD::setupParams()
     SetCCDParams(FLICam.Visible_Area[2] - FLICam.Visible_Area[0], FLICam.Visible_Area[3] - FLICam.Visible_Area[1], 16,
                  FLICam.x_pixel_size, FLICam.y_pixel_size);
 
-    /* 50 ms */
-    minDuration = 0.05;
-
     if (!sim)
     {
         /* Default frame type is NORMAL */
@@ -422,16 +478,10 @@ bool FLICCD::StartExposure(float duration)
 {
     int err = 0;
 
-    if (duration < minDuration)
-    {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration, minDuration);
-        duration = minDuration;
-    }
-
     if (PrimaryCCD.getFrameType() == INDI::CCDChip::BIAS_FRAME)
     {
-        duration = minDuration;
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Bias Frame (s) : %g", minDuration);
+        // TODO check if this work with the SDK
+        duration = 0;
     }
 
     if (!sim)
@@ -821,6 +871,17 @@ bool FLICCD::findFLICCD(flidomain_t domain)
     }
 
     DEBUG(INDI::Logger::DBG_DEBUG, "FindFLICCD() finished successfully.");
+
+    return true;
+}
+
+bool FLICCD::saveConfigItems(FILE *fp)
+{
+    // Save CCD Config
+    INDI::CCD::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &FlushNP);
+    IUSaveConfigSwitch(fp, &BackgroundFlushSP);
 
     return true;
 }

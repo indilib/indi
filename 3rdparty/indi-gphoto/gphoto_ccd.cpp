@@ -252,7 +252,7 @@ void ISSnoopDevice(XMLEle *root)
 }
 
 //==========================================================================
-GPhotoCCD::GPhotoCCD()
+GPhotoCCD::GPhotoCCD() : FI(this)
 {
     memset(model, 0, MAXINDINAME);
     memset(port, 0, MAXINDINAME);
@@ -265,7 +265,7 @@ GPhotoCCD::GPhotoCCD()
     setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);    
 }
 
-GPhotoCCD::GPhotoCCD(const char *model, const char *port)
+GPhotoCCD::GPhotoCCD(const char *model, const char *port) : FI(this)
 {
     strncpy(this->port, port, MAXINDINAME);
     strncpy(this->model, model, MAXINDINAME);
@@ -329,7 +329,7 @@ bool GPhotoCCD::initProperties()
     // Init parent properties first
     INDI::CCD::initProperties();
 
-    initFocuserProperties(getDeviceName(), FOCUS_TAB);
+    FI::initProperties(FOCUS_TAB);
 
     IUFillText(&mPortT[0], "PORT", "Port", "");
     IUFillTextVector(&PortTP, mPortT, NARRAY(mPortT), getDeviceName(), "DEVICE_PORT", "Shutter Release",
@@ -378,7 +378,7 @@ bool GPhotoCCD::initProperties()
 
     SetCCDCapability(CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_HAS_BAYER | CCD_HAS_STREAMING);
 
-    SetFocuserCapability(FOCUSER_HAS_VARIABLE_SPEED);
+    FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED);
 
     FocusSpeedN[0].min   = 0;
     FocusSpeedN[0].max   = 3;
@@ -450,9 +450,8 @@ bool GPhotoCCD::updateProperties()
         defineSwitch(&livePreviewSP);
         defineSwitch(&transferFormatSP);
         defineSwitch(&autoFocusSP);
-        defineSwitch(&FocusMotionSP);
-        defineNumber(&FocusSpeedNP);
-        defineNumber(&FocusTimerNP);
+
+        FI::updateProperties();
 
         if (captureTargetSP.s == IPS_OK)
         {
@@ -489,9 +488,8 @@ bool GPhotoCCD::updateProperties()
         deleteProperty(livePreviewSP.name);
         deleteProperty(autoFocusSP.name);
         deleteProperty(transferFormatSP.name);
-        deleteProperty(FocusMotionSP.name);
-        deleteProperty(FocusSpeedNP.name);
-        deleteProperty(FocusTimerNP.name);
+
+        FI::updateProperties();
 
         if (captureTargetSP.s != IPS_IDLE)
         {
@@ -740,7 +738,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
         if (strstr(name, "FOCUS"))
         {
-            return processFocuserSwitch(dev, name, states, names, n);
+            return FI::processSwitch(dev, name, states, names, n);
         }
 
         if (CamOptions.find(name) != CamOptions.end())
@@ -793,7 +791,7 @@ bool GPhotoCCD::ISNewNumber(const char *dev, const char *name, double values[], 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strstr(name, "FOCUS_"))
-            return processFocuserNumber(dev, name, values, names, n);
+            return FI::processNumber(dev, name, values, names, n);
 
         if (!strcmp(name, mMirrorLockNP.name))
         {
@@ -1074,7 +1072,7 @@ bool GPhotoCCD::UpdateCCDFrame(int x, int y, int w, int h)
     return true;
 }
 
-float GPhotoCCD::CalcTimeLeft()
+double GPhotoCCD::CalcTimeLeft()
 {
     double timesince;
     double timeleft;
@@ -1090,7 +1088,6 @@ float GPhotoCCD::CalcTimeLeft()
 
 void GPhotoCCD::TimerHit()
 {
-    long timeleft = 1e6;
     int timerID   = -1;
 
     if (isConnected() == false)
@@ -1153,52 +1150,35 @@ void GPhotoCCD::TimerHit()
 
     if (InExposure)
     {
-        timeleft = CalcTimeLeft();
+        double timeleft = CalcTimeLeft();
+
+        if (timeleft < 0)
+            timeleft = 0;
+
+        PrimaryCCD.setExposureLeft(timeleft);
 
         if (timeleft < 1.0)
         {
             if (timeleft > 0.25 && timerID == -1)
-            {
-                //  a quarter of a second or more
-                //  just set a tighter timer
-                timerID = SetTimer(250);
-            }
+                timerID = SetTimer(timeleft*900);
             else
             {
-                if (timeleft > 0.07 && timerID == -1)
+                PrimaryCCD.setExposureLeft(0);
+                InExposure = false;
+                // grab and save image
+                bool rc = grabImage();
+                if (rc == false)
                 {
-                    //  use an even tighter timer
-                    timerID = SetTimer(50);
-                }
-                else
-                {
-                    //  it's real close now, so spin on it
-                    while (!sim && timeleft > 0)
-                    {
-                        int slv;
-                        slv = 100000 * timeleft;
-                        usleep(slv);
-                    }
-
-                    PrimaryCCD.setExposureLeft(0);
-                    InExposure = false;
-                    /* grab and save image */
-                    bool rc = grabImage();
-                    if (rc == false)
-                    {
-                        PrimaryCCD.setExposureFailed();
-                    }
+                    PrimaryCCD.setExposureFailed();
                 }
             }
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Capture in progress. Time left %ld", timeleft);
+            DEBUGF(INDI::Logger::DBG_DEBUG, "Capture in progress. Time left %.2f", timeleft);
             if (timerID == -1)
                 SetTimer(POLLMS);
         }
-
-        PrimaryCCD.setExposureLeft(timeleft);
     }
 }
 
@@ -1732,10 +1712,12 @@ bool GPhotoCCD::startLiveVideo()
         PrimaryCCD.setFrame(0, 0, w, h);
     }*/
 
-    int w=0,h=0;
     unsigned char *inBuffer = (unsigned char *)(const_cast<char *>(previewData));
-    read_jpeg_size(inBuffer, previewSize, &w, &h);
-    Streamer->setSize(w,h);
+    if (liveVideoWidth <= 0)
+    {
+        read_jpeg_size(inBuffer, previewSize, &liveVideoWidth, &liveVideoHeight);
+        Streamer->setSize(liveVideoWidth,liveVideoHeight);
+    }
     Streamer->newFrame(inBuffer, previewSize);
 
 #if 0

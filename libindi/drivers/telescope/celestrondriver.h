@@ -89,6 +89,7 @@ class CelestronDriver
         CelestronDriver() {}
 
         // Misc.
+        const char *getDeviceName();
         void set_port_fd(int port_fd) { fd = port_fd; }
         void set_simulation(bool enable) { simulation = enable; }
         void set_device(const char *name);

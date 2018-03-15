@@ -96,7 +96,7 @@ Lakeside::Lakeside()
 {
     setVersion(LAKESIDE_VERSION_MAJOR, LAKESIDE_VERSION_MINOR);
 
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_ABORT );
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_ABORT );
 
     lastPos = 0;
     lastTemperature = 0;

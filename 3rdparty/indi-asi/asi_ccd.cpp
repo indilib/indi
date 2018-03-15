@@ -884,8 +884,8 @@ bool ASICCD::StopStreaming()
     pthread_mutex_unlock(&condMutex);
     ASIStopVideoCapture(m_camInfo->CameraID);
 
-    if (IUFindOnSwitchIndex(&VideoFormatSP) != rememberVideoFormat)
-        setVideoFormat(rememberVideoFormat);
+    //if (IUFindOnSwitchIndex(&VideoFormatSP) != rememberVideoFormat)
+        //setVideoFormat(rememberVideoFormat);
 
     return true;
 }

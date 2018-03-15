@@ -89,7 +89,7 @@ void ISSnoopDevice(XMLEle *root)
 ArmPlat::ArmPlat()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT );
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT );
 }
 
 bool ArmPlat::initProperties()

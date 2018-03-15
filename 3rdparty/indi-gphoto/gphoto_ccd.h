@@ -118,7 +118,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     void ShowExtendedOptions(void);
     void HideExtendedOptions(void);
 
-    float CalcTimeLeft();
+    double CalcTimeLeft();
     bool grabImage();
 
     char name[MAXINDIDEVICE];
@@ -138,6 +138,9 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     char *on_off[2];
     int timerID;
     bool frameInitialized;
+
+    int liveVideoWidth = {-1};
+    int liveVideoHeight= {-1};
 
     ISwitch mConnectS[2];
     ISwitchVectorProperty mConnectSP;
