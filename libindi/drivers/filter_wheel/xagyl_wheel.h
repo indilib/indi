@@ -51,7 +51,7 @@ class XAGYLWheel : public INDI::FilterWheel
     typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION } SET_COMMAND;
 
     XAGYLWheel();
-    virtual ~XAGYLWheel() = default;
+    virtual ~XAGYLWheel();
 
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
