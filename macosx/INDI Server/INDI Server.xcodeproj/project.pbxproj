@@ -5161,9 +5161,9 @@
 				594D0B35188300ED00B50F4E /* Frameworks */,
 				594D0B34188300ED00B50F4E /* Products */,
 			);
-			indentWidth = 2;
+			indentWidth = 4;
 			sourceTree = "<group>";
-			tabWidth = 2;
+			tabWidth = 4;
 			wrapsLines = 0;
 		};
 		594D0B34188300ED00B50F4E /* Products */ = {

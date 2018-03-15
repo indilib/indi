@@ -366,6 +366,7 @@ void SXCCD::getCameraParams()
     struct t_sxccd_params params;
     model             = sxGetCameraModel(handle);
     bool isInterlaced = sxIsInterlaced(model);
+    bool isICX453     = sxIsICX453(model);
     PrimaryCCD.setInterlaced(isInterlaced);
     sxGetCameraParams(handle, 0, &params);
     if (isInterlaced)
@@ -374,18 +375,33 @@ void SXCCD::getCameraParams()
         params.height *= 2;
         wipeDelay = 130000;
     }
+    else if (isICX453)
+    {
+        params.width = 2016;
+        params.height = 3032;
+    }
     SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
     int nbuf = params.width * params.height;
     if (params.bits_per_pixel == 16)
         nbuf *= 2;
     nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
-    if (evenBuf != NULL)
-        delete evenBuf;
-    if (oddBuf != NULL)
-        delete oddBuf;
-    evenBuf      = new char[nbuf / 2];
-    oddBuf       = new char[nbuf / 2];
+    if (isInterlaced)
+    {
+        if (evenBuf != NULL)
+            delete evenBuf;
+        if (oddBuf != NULL)
+            delete oddBuf;
+        evenBuf      = new char[nbuf / 2];
+        oddBuf       = new char[nbuf / 2];
+    }
+    else if (isICX453)
+    {
+        if (evenBuf != NULL)
+            delete evenBuf;
+        evenBuf      = new char[nbuf];
+    }
+        
     HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
     HasCooler    = params.extra_caps & SXUSB_CAPS_COOLER;
     HasShutter   = params.extra_caps & SXUSB_CAPS_SHUTTER;
@@ -541,6 +557,7 @@ void SXCCD::ExposureTimerHit()
             int binX          = PrimaryCCD.getBinX();
             int binY          = PrimaryCCD.getBinY();
             int subWW         = subW * 2;
+            bool isICX453     = sxIsICX453(model);
             uint8_t *buf      = PrimaryCCD.getFrameBuffer();
             int size;
             if (isInterlaced && binY > 1)
@@ -583,6 +600,30 @@ void SXCCD::ExposureTimerHit()
                             memcpy(buf + ((i + 1) * subWW), evenBuf + (j * subWW), subWW);
                         }
                         //            deinterlace((unsigned short *)buf, subW, subH);
+                    }
+                }
+            }
+            else if (isICX453 && binX == 1 && binY == 1)
+            {
+                rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX * 2, subY / 2, subW * 2, subH / 2, binX, binY);
+                if (rc)
+                {
+                    rc = sxReadPixels(handle, evenBuf, size * 2);
+                    if (rc)
+                    {
+                        for (int i = 0; i < subH; i += 2)
+                        {
+                            for (int j = 0; j < subW; j += 2)
+                            {
+                                int isubWW = i * subWW;
+                                int i1subWW = (i + 1) * subWW;
+                                int j2 = j * 2;
+                                buf[isubWW + j]  = evenBuf[isubWW + j2];
+                                buf[isubWW + j + 1]  = evenBuf[isubWW + j2 + 2];
+                                buf[i1subWW + j]  = evenBuf[isubWW + j2 + 1];
+                                buf[i1subWW + j + 1]  = evenBuf[isubWW + j2 + 3];
+                            }
+                        }
                     }
                 }
             }
