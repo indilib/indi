@@ -377,8 +377,8 @@ void SXCCD::getCameraParams()
     }
     else if (isICX453)
     {
-        params.width = 2016;
-        params.height = 3032;
+        params.width = 3032;
+        params.height = 2016;
     }
     SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
     int nbuf = params.width * params.height;
@@ -611,17 +611,20 @@ void SXCCD::ExposureTimerHit()
                     rc = sxReadPixels(handle, evenBuf, size * 2);
                     if (rc)
                     {
+                        uint16_t *buf16 = (uint16_t *)buf;
+                        uint16_t *evenBuf16 = (uint16_t *)evenBuf;
+
                         for (int i = 0; i < subH; i += 2)
                         {
                             for (int j = 0; j < subW; j += 2)
                             {
-                                int isubWW = i * subWW;
-                                int i1subWW = (i + 1) * subWW;
+                                int isubW = i * subW;
+                                int i1subW = (i + 1) * subW;
                                 int j2 = j * 2;
-                                buf[isubWW + j]  = evenBuf[isubWW + j2];
-                                buf[isubWW + j + 1]  = evenBuf[isubWW + j2 + 2];
-                                buf[i1subWW + j]  = evenBuf[isubWW + j2 + 1];
-                                buf[i1subWW + j + 1]  = evenBuf[isubWW + j2 + 3];
+                                buf16[isubW + j]  = evenBuf16[isubW + j2];
+                                buf16[isubW + j + 1]  = evenBuf16[isubW + j2 + 2];
+                                buf16[i1subW + j]  = evenBuf16[isubW + j2 + 1];
+                                buf16[i1subW + j + 1]  = evenBuf16[isubW + j2 + 3];
                             }
                         }
                     }
