@@ -41,6 +41,7 @@ protected:
     virtual const char *getDefaultName() override;
     virtual void getBasicData();
     virtual bool ReadScopeStatus() override;
+    virtual bool Park() override;
     virtual bool UnPark() override;
 
     // StarGo stuff
@@ -48,6 +49,7 @@ protected:
 
     // scope status
     virtual bool UpdateMotionStatus();
+    TelescopeSlewRate CurrentSlewRate;
 
     // location
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
@@ -61,7 +63,9 @@ protected:
     // queries to the scope interface
     virtual bool sendQuery(const char* cmd, char* response);
     virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
+    virtual bool queryMountMotionStateShort();
     virtual bool queryFirmwareInfo(char *version);
+    virtual bool querySetSlewRate(TelescopeSlewRate rate);
 
     // helper functions
     virtual bool receive(char* buffer, int* bytes);
@@ -82,7 +86,6 @@ protected:
 
     virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool Park() override;
 */
 };
 
