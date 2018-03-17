@@ -4,8 +4,16 @@
 #include "lx200generic.h"
 #include "lx200driver.h"
 #include "indicom.h"
+#include "indilogger.h"
+#include "termios.h"
 
 #include <cstring>
+
+#define LX200_TIMEOUT 5 /* FD timeout in seconds */
+#define RB_MAX_LEN    64
+#define AVALON_TIMEOUT                                  5
+#define AVALON_COMMAND_BUFFER_LENGTH                    32
+#define AVALON_RESPONSE_BUFFER_LENGTH                   32
 
 
 class LX200StarGo : public LX200Generic
@@ -25,25 +33,46 @@ protected:
     ISwitchVectorProperty SyncHomeSP;
     ISwitch SyncHomeS[1];
 
+    // firmware info
+    ITextVectorProperty MountInfoTP;
+    IText MountFirmwareInfoT[1];
+
+    // override LX200Generic
     virtual const char *getDefaultName() override;
     virtual void getBasicData();
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual bool ReadScopeStatus() override;
+    virtual bool UnPark() override;
 
+    // StarGo stuff
     virtual bool syncHomePosition();
 
-    bool sendScopeLocation();
+    // scope status
+    virtual bool UpdateMotionStatus();
 
+    // location
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual int getSiteLatitude(double *siteLat);
     virtual int setSiteLatitude(double Lat);
     virtual int getSiteLongitude(double *siteLong);
     virtual int setSiteLongitude(double Long);
+
+    bool sendScopeLocation();
+
+    // queries to the scope interface
+    virtual bool sendQuery(const char* cmd, char* response);
+    virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
+    virtual bool queryFirmwareInfo(char *version);
+
+    // helper functions
+    virtual bool receive(char* buffer, int* bytes);
+    virtual void flush();
+    virtual bool transmit(const char* buffer);
 
     /*
     virtual void getBasicData() override;
     virtual bool checkConnection() override;
     virtual bool isSlewComplete() override;
 
-    virtual bool ReadScopeStatus() override;
 
     virtual bool SetSlewRate(int index) override;
     virtual bool SetTrackMode(uint8_t mode) override;
@@ -54,7 +83,6 @@ protected:
     virtual bool saveConfigItems(FILE *fp) override;
 
     virtual bool Park() override;
-    virtual bool UnPark() override;
 */
 };
 

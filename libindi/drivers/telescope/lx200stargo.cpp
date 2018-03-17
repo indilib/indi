@@ -118,6 +118,10 @@ bool LX200StarGo::initProperties()
     IUFillSwitchVector(&SyncHomeSP, SyncHomeS, 1, getDeviceName(), "TELESCOPE_SYNC_HOME", "Home Position", MAIN_CONTROL_TAB,
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    IUFillText(&MountFirmwareInfoT[0], "MOUNT_FIRMWARE_INFO", "Firmware", "");
+    IUFillTextVector(&MountInfoTP, MountFirmwareInfoT, 1, getDeviceName(), "MOUNT_INFO", "Mount Info", INFO_TAB, IP_RO, 60, IPS_OK);
+
+
     return true;
 }
 
@@ -126,17 +130,71 @@ bool LX200StarGo::initProperties()
 ***************************************************************************************/
 bool LX200StarGo::updateProperties()
 {
+    char firmwareInfo[48] = {0};
+
     if (! LX200Generic::updateProperties()) return false;
 
     if (isConnected())
     {
         defineSwitch(&SyncHomeSP);
+        if (queryFirmwareInfo(firmwareInfo)) {
+            MountFirmwareInfoT[0].text = firmwareInfo;
+            defineText(&MountInfoTP);
+        }
     }
     else
     {
         deleteProperty(SyncHomeSP.name);
+        deleteProperty(MountInfoTP.name);
     }
     return true;
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200StarGo::ReadScopeStatus()
+{
+    bool result;
+
+    result = LX200Generic::ReadScopeStatus();
+    result = UpdateMotionStatus();
+
+    return result;
+}
+
+bool LX200StarGo::UpdateMotionStatus() {
+    // m = 0 both motors are OFF (no power)
+    // m = 1 RA motor OFF DEC motor ON
+    // m = 2 RA motor ON DEC motor OFF
+    // m = 3 both motors are ON
+    //
+    // Tracking speeds
+    // t = 0 no tracking at all
+    // t = 1 tracking at moon speed
+    // t = 2 tracking at sun speed
+    // t = 3 tracking at stars speed (sidereal speed)
+    //
+    // No tracking speeds
+    // s = 0 GUIDE speed
+    // s = 1 CENTERING speed
+    // s = 2 FINDING speed
+    // s = 3 SLEWING speed
+
+    int motorsState, speedState, nrTrackingSpeed = -1;
+    bool result;
+
+    result = queryMountMotionState(&motorsState, &speedState, &nrTrackingSpeed);
+
+    switch (motorsState) {
+    case 0: TrackState = SCOPE_PARKED; break;
+    case 1: TrackState = SCOPE_TRACKING; break;
+    case 2: TrackState = SCOPE_TRACKING; break;
+    case 3: TrackState = SCOPE_SLEWING; break;
+    default: DEBUGF(INDI::Logger::DBG_ERROR, "%s: Unsupported motor state %d.", getDeviceName(), motorsState); break;
+    }
+
+    return result;
 }
 
 
@@ -309,3 +367,149 @@ int LX200StarGo::setSiteLatitude(double Lat)
     return (setStandardProcedure(PortFD, read_buffer));
 }
 
+
+bool LX200StarGo::UnPark() {
+    // in: :X370#
+    // out: "p0#"
+
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (sendQuery(":X370#", response) && strcmp(response, "p0#") == 0) {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Scope Unparked.", getDeviceName());
+        return true;
+    } else {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Unpark failed.", getDeviceName());
+        return false;
+    }
+
+}
+
+/*********************************************************************************
+ * Queries
+ *********************************************************************************/
+
+bool LX200StarGo::sendQuery(const char* cmd, char* response) {
+    flush();
+    if(!transmit(cmd)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: query <%s> failed.", getDeviceName(), cmd);
+        return false;
+    }
+    int bytesReceived = 0;
+    if (!receive(response, &bytesReceived)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive response to <%s>.", getDeviceName(), cmd);
+        return false;
+    }
+    return true;
+}
+
+
+bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed) {
+    // Command  - :X3C#
+    // Response - :Z1mts#
+    flush();
+    if (!transmit(":X3C#")) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send query mount motion state command.", getDeviceName());
+        return false;
+    }
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    int bytesReceived = 0;
+    if (!receive(response, &bytesReceived)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive query mount motion state response.", getDeviceName());
+        return false;
+    }
+    int tempMotorsState = 0;
+    int tempSpeedState = 0;
+    int tempNrTrackingSpeed = 0;
+    int returnCode = sscanf(response, ":Z1%01d%01d%01d", &tempMotorsState, &tempSpeedState, &tempNrTrackingSpeed);
+    if (returnCode <= 0) {
+       DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to parse query mount motion state response.", getDeviceName());
+       return false;
+    }
+    (*motorsState) = tempMotorsState;
+    (*speedState) = tempSpeedState;
+    (*nrTrackingSpeed) = tempNrTrackingSpeed;
+    return true;
+}
+
+bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo) {
+
+    int bytesReceived = 0;
+    std::string infoStr;
+    char manufacturer[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+    // step 1: retrieve manufacturer
+    flush();
+    if (!transmit(":GVP#")) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send get manufacturer request.", getDeviceName());
+        return false;
+    }
+    if (!receive(manufacturer, &bytesReceived)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get manufacturer response.", getDeviceName());
+        return false;
+    }
+    // Replace # with \0
+    infoStr.assign(manufacturer, bytesReceived - 1);
+    flush();
+
+    // step 2: retrieve firmware version
+    char firmwareVersion[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (!transmit(":GVN#")) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send get firmware version request.", getDeviceName());
+        return false;
+    }
+    if (!receive(firmwareVersion, &bytesReceived)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get firmware version response.", getDeviceName());
+        return false;
+    }
+    infoStr.append(" - ").append(firmwareVersion, bytesReceived -1);
+    flush();
+
+    // step 3: retrieve firmware date
+    char firmwareDate[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (!transmit(":GVD#")) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send get firmware date request.", getDeviceName());
+        return false;
+    }
+    if (!receive(firmwareDate, &bytesReceived)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get firmware date response.", getDeviceName());
+        return false;
+    }
+    infoStr.append(" - ").append(firmwareDate, 1, bytesReceived - 2);
+
+    strcpy(firmwareInfo, infoStr.c_str());
+
+    return true;
+}
+
+/*********************************************************************************
+ * Helper functions
+ *********************************************************************************/
+
+
+
+bool LX200StarGo::receive(char* buffer, int* bytes) {
+    int returnCode = tty_read_section(PortFD, buffer, '#', AVALON_TIMEOUT, bytes);
+    if (returnCode != TTY_OK) {
+        char errorString[MAXRBUF];
+        tty_error_msg(returnCode, errorString, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_WARNING, "%s: Failed to receive full response: %s.", getDeviceName(), errorString);
+        return false;
+    }
+    return true;
+}
+
+
+void LX200StarGo::flush() {
+    tcflush(PortFD, TCIOFLUSH);
+}
+
+bool LX200StarGo::transmit(const char* buffer) {
+    int bytesWritten = 0;
+    int returnCode = tty_write_string(PortFD, buffer, &bytesWritten);
+    if (returnCode != TTY_OK) {
+        char errorString[MAXRBUF];
+        tty_error_msg(returnCode, errorString, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_WARNING, "%s: Failed to transmit %s. Wrote %d bytes and got error %s.", getDeviceName(), buffer, bytesWritten, errorString);
+        return false;
+    }
+    return true;
+}
