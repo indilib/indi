@@ -58,15 +58,15 @@ bool LX200_10MICRON::Handshake()
 
     if (isSimulation() == true)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Simulate Connect.");
+        LOG_INFO("Simulate Connect.");
         return true;
     }
 
     // Set Ultra Precision Mode #:U2# , replies like 15:58:19.49 instead of 15:21.2
-    DEBUG(INDI::Logger::DBG_SESSION, "Setting Ultra Precision Mode.");
+    LOG_INFO("Setting Ultra Precision Mode.");
     if (setCommandInt(fd, 2, "#:U") < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to set Ultra Precision Mode.");
+        LOG_ERROR("Failed to set Ultra Precision Mode.");
         return false;
     }
 
@@ -245,11 +245,11 @@ bool LX200_10MICRON::ReadScopeStatus()
     {
         if (OldGstat != GSTAT_UNSET)
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Gstat changed from %d to %d", OldGstat, Ginfo.Gstat);
+            LOGF_INFO("Gstat changed from %d to %d", OldGstat, Ginfo.Gstat);
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Gstat initialized at %d", Ginfo.Gstat);
+            LOGF_INFO("Gstat initialized at %d", Ginfo.Gstat);
         }
     }
     switch (Ginfo.Gstat)
@@ -335,11 +335,11 @@ void LX200_10MICRON::getBasicData()
 
         if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Failed to get tracking frequency from device.");
+            LOG_WARN("Failed to get tracking frequency from device.");
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Tracking frequency is %.1f Hz", TrackFreqN[0].value);
+            LOGF_INFO("Tracking frequency is %.1f Hz", TrackFreqN[0].value);
             IDSetNumber(&TrackingFreqNP, nullptr);
         }
 
@@ -348,7 +348,7 @@ void LX200_10MICRON::getBasicData()
         float rmtemp;
         sscanf(RefractionModelTemperature, "%f#", &rmtemp);
         RefractionModelTemperatureN[0].value = (double) rmtemp;
-        DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelTemperature is %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
+        LOGF_INFO("RefractionModelTemperature is %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
         IDSetNumber(&RefractionModelTemperatureNP, nullptr);
 
         char RefractionModelPressure[80];
@@ -356,19 +356,19 @@ void LX200_10MICRON::getBasicData()
         float rmpres;
         sscanf(RefractionModelPressure, "%f#", &rmpres);
         RefractionModelPressureN[0].value = (double) rmpres;
-        DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelPressure is %06.1f hPa", RefractionModelPressureN[0].value);
+        LOGF_INFO("RefractionModelPressure is %06.1f hPa", RefractionModelPressureN[0].value);
         IDSetNumber(&RefractionModelPressureNP, nullptr);
 
         int ModelCount;
         getCommandInt(PortFD, &ModelCount, "#:modelcnt#");
         ModelCountN[0].value = (double) ModelCount;
-        DEBUGF(INDI::Logger::DBG_SESSION, "%d Alignment Models", (int) ModelCountN[0].value);
+        LOGF_INFO("%d Alignment Models", (int) ModelCountN[0].value);
         IDSetNumber(&ModelCountNP, nullptr);
 
         int AlignmentPoints;
         getCommandInt(PortFD, &AlignmentPoints, "#:getalst#");
         AlignmentPointsN[0].value = (double) AlignmentPoints;
-        DEBUGF(INDI::Logger::DBG_SESSION, "%d Alignment Stars in active model", (int) AlignmentPointsN[0].value);
+        LOGF_INFO("%d Alignment Stars in active model", (int) AlignmentPointsN[0].value);
         IDSetNumber(&AlignmentPointsNP, nullptr);
     }
     sendScopeLocation();
@@ -394,7 +394,7 @@ bool LX200_10MICRON::getMountInfo()
     char FirmwareDate[80];
     snprintf(FirmwareDate, 80, "%04d-%02d-%02dT%s", yyyy, monthToNumber(mon), dd, FirmwareDate2);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Product:%s Control box:%s Firmware:%s of %s", ProductName, ControlBox, FirmwareVersion, FirmwareDate);
+    LOGF_INFO("Product:%s Control box:%s Firmware:%s of %s", ProductName, ControlBox, FirmwareVersion, FirmwareDate);
 
     IUFillText(&ProductT[PRODUCT_NAME], "NAME", "Product Name", ProductName);
     IUFillText(&ProductT[PRODUCT_CONTROL_BOX], "CONTROL_BOX", "Control Box", ControlBox);
@@ -477,7 +477,7 @@ int LX200_10MICRON::setStandardProcedureAndReturnResponse(int fd, const char *da
 
 bool LX200_10MICRON::Park()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking.");
+    LOG_INFO("Parking.");
     if (setStandardProcedureWithoutRead(fd, "#:KA#") < 0)
     {
         return false;
@@ -487,7 +487,7 @@ bool LX200_10MICRON::Park()
 
 bool LX200_10MICRON::UnPark()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Unparking.");
+    LOG_INFO("Unparking.");
     if (setStandardProcedureWithoutRead(fd, "#:PO#") < 0)
     {
         return false;
@@ -498,7 +498,7 @@ bool LX200_10MICRON::UnPark()
 
 bool LX200_10MICRON::SyncConfigBehaviour(bool cmcfg)
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "SyncConfig.");
+    LOG_INFO("SyncConfig.");
     if (setCommandInt(fd, cmcfg, "#:CMCFG") < 0)
     {
         return false;
@@ -546,12 +546,12 @@ int LX200_10MICRON::AddSyncPoint(double MRa, double MDec, double MSide, double P
 
     char command[80];
     snprintf(command, 80, "#:newalpt%s,%s,%c,%s,%s,%s#", MRa_str, MDec_str, MSide_char, PRa_str, PDec_str, SidTime_str);
-    DEBUGF(INDI::Logger::DBG_SESSION, "AddSyncPoint %s", command);
+    LOGF_INFO("AddSyncPoint %s", command);
 
     char response[6];
     if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 5) || response[0] == 'E')
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPoint error");
+        LOG_ERROR("AddSyncPoint error");
         return 1;
     }
     response[4] = 0;
@@ -559,10 +559,10 @@ int LX200_10MICRON::AddSyncPoint(double MRa, double MDec, double MSide, double P
     int nbytes_read = sscanf(response, "%3d#", &points);
     if (nbytes_read < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "AddSyncPoint response error %d", nbytes_read);
+        LOGF_ERROR("AddSyncPoint response error %d", nbytes_read);
         return 1;
     }
-    DEBUGF(INDI::Logger::DBG_SESSION, "AddSyncPoint responded [%4s], there are now %d new alignment points", response, points);
+    LOGF_INFO("AddSyncPoint responded [%4s], there are now %d new alignment points", response, points);
     NewAlignmentPointsN[0].value = points;
     IDSetNumber(&NewAlignmentPointsNP, nullptr);
 
@@ -584,14 +584,14 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             IUUpdateNumber(&RefractionModelTemperatureNP, values, names, n);
             if (0 != SetRefractionModelTemperature(RefractionModelTemperatureN[0].value))
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "SetRefractionModelTemperature error");
+                LOG_ERROR("SetRefractionModelTemperature error");
                 RefractionModelTemperatureNP.s = IPS_ALERT;
                 IDSetNumber(&RefractionModelTemperatureNP, nullptr);
                 return false;
             }
             RefractionModelTemperatureNP.s = IPS_OK;
             IDSetNumber(&RefractionModelTemperatureNP, nullptr);
-            DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelTemperature set to %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
+            LOGF_INFO("RefractionModelTemperature set to %0+6.1f degrees C", RefractionModelTemperatureN[0].value);
             return true;
         }
         if (strcmp(name, "REFRACTION_MODEL_PRESSURE") == 0)
@@ -599,14 +599,14 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             IUUpdateNumber(&RefractionModelPressureNP, values, names, n);
             if (0 != SetRefractionModelPressure(RefractionModelPressureN[0].value))
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "SetRefractionModelPressure error");
+                LOG_ERROR("SetRefractionModelPressure error");
                 RefractionModelPressureNP.s = IPS_ALERT;
                 IDSetNumber(&RefractionModelPressureNP, nullptr);
                 return false;
             }
             RefractionModelPressureNP.s = IPS_OK;
             IDSetNumber(&RefractionModelPressureNP, nullptr);
-            DEBUGF(INDI::Logger::DBG_SESSION, "RefractionModelPressure set to %06.1f hPa", RefractionModelPressureN[0].value);
+            LOGF_INFO("RefractionModelPressure set to %06.1f hPa", RefractionModelPressureN[0].value);
             return true;
         }
         if (strcmp(name, "MODEL_COUNT") == 0)
@@ -614,7 +614,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             IUUpdateNumber(&ModelCountNP, values, names, n);
             ModelCountNP.s = IPS_OK;
             IDSetNumber(&ModelCountNP, nullptr);
-            DEBUGF(INDI::Logger::DBG_SESSION, "ModelCount %d", ModelCountN[0].value);
+            LOGF_INFO("ModelCount %d", ModelCountN[0].value);
             return true;
         }
         if (strcmp(name, "MINIMAL_NEW_ALIGNMENT_POINT_RO") == 0)
@@ -628,14 +628,14 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
         {
             if (AlignmentState != ALIGN_START)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Cannot add alignment points yet, need to start a new alignment first");
+                LOG_ERROR("Cannot add alignment points yet, need to start a new alignment first");
                 return false;
             }
 
             IUUpdateNumber(&MiniNewAlpNP, values, names, n);
             if (0 != AddSyncPointHere(MiniNewAlpN[MALP_PRA].value, MiniNewAlpN[MALP_PDEC].value))
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPointHere error");
+                LOG_ERROR("AddSyncPointHere error");
                 MiniNewAlpNP.s = IPS_ALERT;
                 IDSetNumber(&MiniNewAlpNP, nullptr);
                 return false;
@@ -648,7 +648,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
         {
             if (AlignmentState != ALIGN_START)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Cannot add alignment points yet, need to start a new alignment first");
+                LOG_ERROR("Cannot add alignment points yet, need to start a new alignment first");
                 return false;
             }
 
@@ -656,7 +656,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             if (0 != AddSyncPoint(NewAlpN[ALP_MRA].value, NewAlpN[ALP_MDEC].value, NewAlpN[ALP_MSIDE].value,
                     NewAlpN[ALP_PRA].value, NewAlpN[ALP_PDEC].value, NewAlpN[ALP_SIDTIME].value))
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "AddSyncPoint error");
+                LOG_ERROR("AddSyncPoint error");
                 NewAlpNP.s = IPS_ALERT;
                 IDSetNumber(&NewAlpNP, nullptr);
                 return false;
@@ -670,7 +670,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             IUUpdateNumber(&NewAlignmentPointsNP, values, names, n);
             NewAlignmentPointsNP.s = IPS_OK;
             IDSetNumber(&NewAlignmentPointsNP, nullptr);
-            DEBUGF(INDI::Logger::DBG_SESSION, "New unnamed Model now has %d alignment points", NewAlignmentPointsN[0].value);
+            LOGF_INFO("New unnamed Model now has %d alignment points", NewAlignmentPointsN[0].value);
             return true;
         }
     }
@@ -692,42 +692,42 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             {
                 case ALIGN_IDLE:
                     AlignmentState = ALIGN_IDLE;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Alignment state is IDLE");
+                    LOG_INFO("Alignment state is IDLE");
                     break;
 
                 case ALIGN_START:
                     if (0 != setStandardProcedureAndExpect(fd, "#:newalig#", "V"))
                     {
-                        DEBUG(INDI::Logger::DBG_ERROR, "New alignment start error");
+                        LOG_ERROR("New alignment start error");
                         AlignmentSP.s = IPS_ALERT;
                         IDSetSwitch(&AlignmentSP, nullptr);
                         return false;
                     }
-                    DEBUG(INDI::Logger::DBG_SESSION, "New Alignment started");
+                    LOG_INFO("New Alignment started");
                     AlignmentState = ALIGN_START;
                     break;
 
                 case ALIGN_END:
                     if (0 != setStandardProcedureAndExpect(fd, "#:endalig#", "V"))
                     {
-                        DEBUG(INDI::Logger::DBG_ERROR, "New alignment end error");
+                        LOG_ERROR("New alignment end error");
                         AlignmentSP.s = IPS_ALERT;
                         IDSetSwitch(&AlignmentSP, nullptr);
                         return false;
                     }
-                    DEBUG(INDI::Logger::DBG_SESSION, "New Alignment ended");
+                    LOG_INFO("New Alignment ended");
                     AlignmentState = ALIGN_END;
                     break;
 
                 case ALIGN_DELETE_CURRENT:
                     if (0 != setStandardProcedureAndExpect(fd, "#:delalig#", "#"))
                     {
-                        DEBUG(INDI::Logger::DBG_ERROR, "Delete current alignment error");
+                        LOG_ERROR("Delete current alignment error");
                         AlignmentSP.s = IPS_ALERT;
                         IDSetSwitch(&AlignmentSP, nullptr);
                         return false;
                     }
-                    DEBUG(INDI::Logger::DBG_SESSION, "Current Alignment deleted");
+                    LOG_INFO("Current Alignment deleted");
                     AlignmentState = ALIGN_DELETE_CURRENT;
                     break;
 
@@ -756,7 +756,7 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
             IUUpdateText(&NewModelNameTP, texts, names, n);
             NewModelNameTP.s = IPS_OK;
             IDSetText(&NewModelNameTP, nullptr);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Model saved with name %s", NewModelNameT[0].text);
+            LOGF_INFO("Model saved with name %s", NewModelNameT[0].text);
             return true;
         }
     }

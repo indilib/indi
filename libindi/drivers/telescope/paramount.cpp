@@ -265,22 +265,22 @@ bool Paramount::Handshake()
             "Out = sky6RASCOMTele.IsConnected;",
             MAXRBUF);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
+    LOGF_DEBUG("CMD: %s", pCMD);
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
+        LOG_ERROR("Error writing to TheSky6 TCP server.");
         return false;
     }
 
     // Should we read until we encounter string terminator? or what?
     if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
+        LOG_ERROR("Error reading from TheSky6 TCP server.");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
+    LOGF_DEBUG("RES: %s", pRES);
     int isTelescopeConnected = -1;
 
     std::regex rgx(R"((\d+)\|(.+)\. Error = (\d+)\.)");
@@ -291,7 +291,7 @@ bool Paramount::Handshake()
 
     if (isTelescopeConnected <= 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to telescope: %s (%d).", match.str(1).c_str(),
+        LOGF_ERROR("Error connecting to telescope: %s (%d).", match.str(1).c_str(),
                atoi(match.str(2).c_str()));
         return false;
     }
@@ -312,22 +312,22 @@ bool Paramount::getMountRADE()
             "Out = String(sky6RASCOMTele.dRa) + ',' + String(sky6RASCOMTele.dDec);",
             MAXRBUF);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
+    LOGF_DEBUG("CMD: %s", pCMD);
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
+        LOG_ERROR("Error writing to TheSky6 TCP server.");
         return false;
     }
 
     // Should we read until we encounter string terminator? or what?
     if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
+        LOG_ERROR("Error reading from TheSky6 TCP server.");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
+    LOGF_DEBUG("RES: %s", pRES);
 
     std::regex rgx(R"((.+),(.+)\|(.+)\. Error = (\d+)\.)");
     std::smatch match;
@@ -349,7 +349,7 @@ bool Paramount::getMountRADE()
     if (coordsOK)
         return true;
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Error reading coordinates %s (%d).", match.str(3).c_str(), errorCode);
+    LOGF_ERROR("Error reading coordinates %s (%d).", match.str(3).c_str(), errorCode);
     return false;
 }
 
@@ -367,7 +367,7 @@ bool Paramount::ReadScopeStatus()
         if (isSlewComplete())
         {
             TrackState = SCOPE_TRACKING;
-            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
+            LOG_INFO("Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -375,7 +375,7 @@ bool Paramount::ReadScopeStatus()
         if (isSlewComplete())
         {
             SetParked(true);
-            //DEBUG(INDI::Logger::DBG_SESSION, "Mount is parked. Disconnecting...");
+            //LOG_INFO("Mount is parked. Disconnecting...");
             //Disconnect();
         }
 
@@ -428,7 +428,7 @@ bool Paramount::Goto(double r, double d)
 
     EqNP.s = IPS_BUSY;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -443,22 +443,22 @@ bool Paramount::isSlewComplete()
             "Out = sky6RASCOMTele.IsSlewComplete;",
             MAXRBUF);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
+    LOGF_DEBUG("CMD: %s", pCMD);
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
+        LOG_ERROR("Error writing to TheSky6 TCP server.");
         return false;
     }
 
     // Should we read until we encounter string terminator? or what?
     if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
+        LOG_ERROR("Error reading from TheSky6 TCP server.");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
+    LOGF_DEBUG("RES: %s", pRES);
 
     std::regex rgx(R"((.+)|(.+)\. Error = (\d+)\.)");
     std::smatch match;
@@ -474,7 +474,7 @@ bool Paramount::isSlewComplete()
         }
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Error reading isSlewComplete %s (%d).", match.str(2).c_str(), errorCode);
+    LOGF_ERROR("Error reading isSlewComplete %s (%d).", match.str(2).c_str(), errorCode);
     return false;
 }
 
@@ -489,22 +489,22 @@ bool Paramount::isTheSkyParked()
             "Out = sky6RASCOMTele.IsParked();",
             MAXRBUF);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
+    LOGF_DEBUG("CMD: %s", pCMD);
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
+        LOG_ERROR("Error writing to TheSky6 TCP server.");
         return false;
     }
 
     // Should we read until we encounter string terminator? or what?
     if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
+        LOG_ERROR("Error reading from TheSky6 TCP server.");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
+    LOGF_DEBUG("RES: %s", pRES);
 
     std::regex rgx(R"((.+)\|(.+)\. Error = (\d+)\.)");
     std::smatch match;
@@ -515,7 +515,7 @@ bool Paramount::isTheSkyParked()
         return strcmp("true", match.str(1).c_str()) == 0;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Error checking for park. Invalid response: %s", pRES);
+    LOGF_ERROR("Error checking for park. Invalid response: %s", pRES);
     return false;
 }
 
@@ -530,22 +530,22 @@ bool Paramount::isTheSkyTracking()
             "Out = sky6RASCOMTele.IsTracking;",
             MAXRBUF);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
+    LOGF_DEBUG("CMD: %s", pCMD);
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
+        LOG_ERROR("Error writing to TheSky6 TCP server.");
         return false;
     }
 
     // Should we read until we encounter string terminator? or what?
     if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
+        LOG_ERROR("Error reading from TheSky6 TCP server.");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
+    LOGF_DEBUG("RES: %s", pRES);
 
     std::regex rgx(R"((.+)\|(.+)\. Error = (\d+)\.)");
     std::smatch match;
@@ -556,7 +556,7 @@ bool Paramount::isTheSkyTracking()
         return strcmp("1", match.str(1).c_str()) == 0;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Error checking for tracking. Invalid response: %s", pRES);
+    LOGF_ERROR("Error checking for tracking. Invalid response: %s", pRES);
     return false;
 }
 
@@ -571,7 +571,7 @@ bool Paramount::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Sync is successful.");
+    LOG_INFO("Sync is successful.");
 
     EqNP.s = IPS_OK;
 
@@ -591,7 +591,7 @@ bool Paramount::Park()
         return false;
 
     TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking telescope in progress...");
+    LOG_INFO("Parking telescope in progress...");
     return true;
 }
 
@@ -665,7 +665,7 @@ bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        LOG_ERROR("Please unpark the mount before issuing any motion commands.");
         return false;
     }
 
@@ -678,21 +678,21 @@ bool Paramount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         case MOTION_START:
             if (!isSimulation() && !startOpenLoopMotion(motion, rate))
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+                LOG_ERROR("Error setting N/S motion direction.");
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (motion == PARAMOUNT_NORTH) ? "North" : "South");
+                LOGF_INFO("Moving toward %s.", (motion == PARAMOUNT_NORTH) ? "North" : "South");
             break;
 
         case MOTION_STOP:
             if (!isSimulation() && !stopOpenLoopMotion())
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+                LOG_ERROR("Error stopping N/S motion.");
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s halted.",
+                LOGF_INFO("Moving toward %s halted.",
                        (motion == PARAMOUNT_NORTH) ? "North" : "South");
             break;
     }
@@ -704,7 +704,7 @@ bool Paramount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        LOG_ERROR("Please unpark the mount before issuing any motion commands.");
         return false;
     }
 
@@ -716,21 +716,21 @@ bool Paramount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         case MOTION_START:
             if (!isSimulation() && !startOpenLoopMotion(motion, rate))
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
+                LOG_ERROR("Error setting W/E motion direction.");
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (motion == PARAMOUNT_WEST) ? "West" : "East");
+                LOGF_INFO("Moving toward %s.", (motion == PARAMOUNT_WEST) ? "West" : "East");
             break;
 
         case MOTION_STOP:
             if (!isSimulation() && !stopOpenLoopMotion())
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+                LOG_ERROR("Error stopping W/E motion.");
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                LOGF_INFO("Movement toward %s halted.",
                        (motion == PARAMOUNT_WEST) ? "West" : "East");
             break;
     }
@@ -764,7 +764,7 @@ bool Paramount::updateLocation(double latitude, double longitude, double elevati
         lnobserver.lng -= 360;
     lnobserver.lat = latitude;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
+    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
     return true;
 }
 
@@ -804,7 +804,7 @@ bool Paramount::SetParkPosition(double Axis1Value, double Axis2Value)
 {
     INDI_UNUSED(Axis1Value);
     INDI_UNUSED(Axis2Value);
-    DEBUG(INDI::Logger::DBG_ERROR, "Setting custom parking position directly is not supported. Slew to the desired "
+    LOG_ERROR("Setting custom parking position directly is not supported. Slew to the desired "
                                    "parking position and click Current.");
     return false;
 }
@@ -956,21 +956,21 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
              "catch (err) {Out = err; }",
              command);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", pCMD);
+    LOGF_DEBUG("CMD: %s", pCMD);
 
     if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error writing to TheSky6 TCP server.");
+        LOG_ERROR("Error writing to TheSky6 TCP server.");
         return false;
     }
 
     if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', PARAMOUNT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error reading from TheSky6 TCP server.");
+        LOG_ERROR("Error reading from TheSky6 TCP server.");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", pRES);
+    LOGF_DEBUG("RES: %s", pRES);
 
     std::regex rgx(R"((.+)\|(.+)\. Error = (\d+)\.)");
     std::smatch match;
@@ -980,13 +980,13 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
         // If NOT OK, then fail
         if (strcmp("OK", match.str(1).c_str()) != 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error %s %s", errorMessage, match.str(1).c_str());
+            LOGF_ERROR("Error %s %s", errorMessage, match.str(1).c_str());
             return false;
         }
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error %s. Invalid response: %s", errorMessage, pRES);
+        LOGF_ERROR("Error %s. Invalid response: %s", errorMessage, pRES);
         return false;
     }
 

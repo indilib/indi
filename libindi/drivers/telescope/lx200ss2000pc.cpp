@@ -119,27 +119,27 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
         result = false;
         struct ln_zonedate ltm;
         ln_date_to_zonedate(utc, &ltm, static_cast<long>(utc_offset * 3600.0 + 0.5));
-        DEBUGF(INDI::Logger::DBG_DEBUG, "New zonetime is %04d-%02d-%02d %02d:%02d:%06.3f (offset=%ld)", ltm.years,
+        LOGF_DEBUG("New zonetime is %04d-%02d-%02d %02d:%02d:%06.3f (offset=%ld)", ltm.years,
                ltm.months, ltm.days, ltm.hours, ltm.minutes, ltm.seconds, ltm.gmtoff);
         JD = ln_get_julian_day(utc);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", JD);
+        LOGF_DEBUG("New JD is %f", JD);
         if (setLocalTime(PortFD, ltm.hours, ltm.minutes, static_cast<int>(ltm.seconds + 0.5)) < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+            LOG_ERROR("Error setting local time.");
         }
         else if (!setCalenderDate(ltm.years, ltm.months, ltm.days))
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+            LOG_ERROR("Error setting local date.");
         }
         // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
         // is the opposite of the standard definition of UTC offset!
         else if (!setUTCOffset(-(utc_offset)))
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+            LOG_ERROR("Error setting UTC Offset.");
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Time updated.");
+            LOG_INFO("Time updated.");
             result = true;
         }
     }
@@ -165,11 +165,11 @@ bool LX200SS2000PC::getCalendarDate(int &year, int &month, int &day)
 {
     char date[16];
     bool result = (getCommandString(PortFD, date, ":GC#") == 0);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "LX200SS2000PC::getCalendarDate():: Date string from telescope: %s", date);
+    LOGF_DEBUG("LX200SS2000PC::getCalendarDate():: Date string from telescope: %s", date);
     if (result)
     {
         result = (sscanf(date, "%d%*c%d%*c%d", &month, &day, &year) == 3); // Meade format is MM/DD/YY
-        DEBUGF(INDI::Logger::DBG_DEBUG, "setCalenderDate: Date retrieved from telescope: %02d/%02d/%02d.", month, day,
+        LOGF_DEBUG("setCalenderDate: Date retrieved from telescope: %02d/%02d/%02d.", month, day,
                year);
         if (result)
             year +=
@@ -190,8 +190,7 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
     int ss_year = 0, ss_month = 0, ss_day = 0;
     const bool send_to_skysensor =
         (!getCalendarDate(ss_year, ss_month, ss_day) || year != ss_year || month != ss_month || day != ss_day);
-    DEBUGF(INDI::Logger::DBG_DEBUG,
-           "LX200SS2000PC::setCalenderDate(): Driver date %02d/%02d/%02d, SS2000PC date %02d/%02d/%02d.", month, day,
+    LOGF_DEBUG("LX200SS2000PC::setCalenderDate(): Driver date %02d/%02d/%02d, SS2000PC date %02d/%02d/%02d.", month, day,
            year, ss_month, ss_day, ss_year);
     if (send_to_skysensor)
     {
@@ -210,14 +209,14 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
                 if (tty_read_section(PortFD, buffer, '#', ShortTimeOut, &nbytes_read) != TTY_OK ||
                     strncmp(buffer, "Updating        planetary data#", 24) != 0)
                 {
-                    DEBUGF(INDI::Logger::DBG_ERROR,
+                    LOGF_ERROR(
                            "LX200SS2000PC::setCalenderDate(): Received unexpected first line '%s'.", buffer);
                     result = false;
                 }
                 else if (tty_read_section(PortFD, buffer, '#', LongTimeOut, &nbytes_read) != TTY_OK &&
                          strncmp(buffer, "                              #", 24) != 0)
                 {
-                    DEBUGF(INDI::Logger::DBG_ERROR,
+                    LOGF_ERROR(
                            "LX200SS2000PC::setCalenderDate(): Received unexpected second line '%s'.", buffer);
                     result = false;
                 }
@@ -253,12 +252,12 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
 
     if (setLatitude(latitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        LOG_ERROR("Error setting site latitude coordinates");
     }
 
     if (setLongitude(longitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        LOG_ERROR("Error setting site longitude coordinates");
         return false;
     }
 
@@ -266,7 +265,7 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
     fs_sexa(slat, latitude, 3, 3600);
     fs_sexa(slong, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Latitude: %.32s - Longitude: %.32s", slat, slong);
+    LOGF_INFO("Site location updated to Latitude: %.32s - Longitude: %.32s", slat, slong);
 
     return true;
 }
@@ -317,7 +316,7 @@ int LX200SS2000PC::sendCommand(int fd, const char *data)
 
     if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Error writing string to tty: %s", data);
+        LOGF_INFO("Error writing string to tty: %s", data);
         return error_type;
     }
 
@@ -326,13 +325,13 @@ int LX200SS2000PC::sendCommand(int fd, const char *data)
     error_type = tty_read(fd, result, 1, ShortTimeOut, &nbytes_read);
     if (error_type != TTY_OK) 
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "error_type %d, result %c", error_type, result[0]);
+        LOGF_INFO("error_type %d, result %c", error_type, result[0]);
         return error_type;
     }
 
     if (nbytes_read < 1)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "nbytes less than 1 %d", 0);
+        LOGF_INFO("nbytes less than 1 %d", 0);
         return error_type;
     }
 

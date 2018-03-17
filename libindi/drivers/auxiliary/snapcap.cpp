@@ -183,7 +183,7 @@ bool SnapCap::Handshake()
 {
     if (isSimulation())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfully to simulated %s. Retrieving startup data...",
+        LOGF_INFO("Connected successfully to simulated %s. Retrieving startup data...",
                getDeviceName());
 
         SetTimer(POLLMS);
@@ -197,20 +197,20 @@ bool SnapCap::Handshake()
     i |= TIOCM_RTS;
     if (ioctl(PortFD, TIOCMBIC, &i) != 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "IOCTL error %s.", strerror(errno));
+        LOGF_ERROR("IOCTL error %s.", strerror(errno));
         return false;
     }
 
     i |= TIOCM_RTS;
     if (ioctl(PortFD, TIOCMGET, &i) != 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "IOCTL error %s.", strerror(errno));
+        LOGF_ERROR("IOCTL error %s.", strerror(errno));
         return false;
     }
 
     if (!ping())
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Device ping failed.");
+        LOG_ERROR("Device ping failed.");
         return false;
     }
 
@@ -317,7 +317,7 @@ IPState SnapCap::ParkCap()
     else
         strncpy(command, ">C000", SNAP_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[SNAP_CMD - 2] = 0xD;
     command[SNAP_CMD - 1] = 0xA;
@@ -325,20 +325,20 @@ IPState SnapCap::ParkCap()
     if ((rc = tty_write(PortFD, command, SNAP_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return IPS_ALERT;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, SNAP_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return IPS_ALERT;
     }
 
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     if (strcmp(response, "*C000") == 0 || strcmp(response, "*c000") == 0)
     {
@@ -371,7 +371,7 @@ IPState SnapCap::UnParkCap()
     else
         strncpy(command, ">O000", SNAP_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[SNAP_CMD - 2] = 0xD;
     command[SNAP_CMD - 1] = 0xA;
@@ -379,20 +379,20 @@ IPState SnapCap::UnParkCap()
     if ((rc = tty_write(PortFD, command, SNAP_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return IPS_ALERT;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, SNAP_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return IPS_ALERT;
     }
 
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     if (strcmp(response, "*O000") == 0 || strcmp(response, "*o000") == 0)
     {
@@ -422,7 +422,7 @@ IPState SnapCap::Abort()
 
     strncpy(command, ">A000", SNAP_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[SNAP_CMD - 2] = 0xD;
     command[SNAP_CMD - 1] = 0xA;
@@ -430,20 +430,20 @@ IPState SnapCap::Abort()
     if ((rc = tty_write(PortFD, command, SNAP_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return IPS_ALERT;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, SNAP_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return IPS_ALERT;
     }
 
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     if (strcmp(response, "*A000") == 0)
     {
@@ -464,7 +464,7 @@ bool SnapCap::EnableLightBox(bool enable)
 
     if (hasLight && ParkCapS[CAP_UNPARK].s == ISS_ON)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot control light while cap is unparked.");
+        LOG_ERROR("Cannot control light while cap is unparked.");
         return false;
     }
 
@@ -478,7 +478,7 @@ bool SnapCap::EnableLightBox(bool enable)
     else
         strncpy(command, ">D000", SNAP_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[SNAP_CMD - 2] = 0xD;
     command[SNAP_CMD - 1] = 0xA;
@@ -486,20 +486,20 @@ bool SnapCap::EnableLightBox(bool enable)
     if ((rc = tty_write(PortFD, command, SNAP_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, SNAP_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return false;
     }
 
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char expectedResponse[SNAP_RES];
     if (enable)
@@ -552,7 +552,7 @@ bool SnapCap::getStatus()
 
         strncpy(command, ">S000", SNAP_CMD);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+        LOGF_DEBUG("CMD (%s)", command);
 
         command[SNAP_CMD - 2] = 0xD;
         command[SNAP_CMD - 1] = 0xA;
@@ -560,20 +560,20 @@ bool SnapCap::getStatus()
         if ((rc = tty_write(PortFD, command, SNAP_CMD, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+            LOGF_ERROR("%s error: %s.", command, errstr);
             return false;
         }
 
         if ((rc = tty_read_section(PortFD, response, 0xA, SNAP_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+            LOGF_ERROR("%s: %s.", command, errstr);
             return false;
         }
 
         response[nbytes_read - 2] = '\0';
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
     }
 
     char motorStatus = response[2] - '0';
@@ -606,7 +606,7 @@ bool SnapCap::getStatus()
                     IUResetSwitch(&ParkCapSP);
                     ParkCapS[CAP_UNPARK].s = ISS_ON;
                     ParkCapSP.s            = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Cover open.");
+                    LOG_INFO("Cover open.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
                 break;
@@ -618,7 +618,7 @@ bool SnapCap::getStatus()
                     IUResetSwitch(&ParkCapSP);
                     ParkCapS[CAP_PARK].s = ISS_ON;
                     ParkCapSP.s          = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Cover closed.");
+                    LOG_INFO("Cover closed.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
                 break;
@@ -713,7 +713,7 @@ bool SnapCap::getFirmwareVersion()
 
     strncpy(command, ">V000", SNAP_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[SNAP_CMD - 2] = 0xD;
     command[SNAP_CMD - 1] = 0xA;
@@ -721,20 +721,20 @@ bool SnapCap::getFirmwareVersion()
     if ((rc = tty_write(PortFD, command, SNAP_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, SNAP_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return false;
     }
 
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char versionString[4] = { 0 };
     snprintf(versionString, 4, "%s", response + 2);
@@ -770,7 +770,7 @@ bool SnapCap::getBrightness()
 
     strncpy(command, ">J000", SNAP_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[SNAP_CMD - 2] = 0xD;
     command[SNAP_CMD - 1] = 0xA;
@@ -778,20 +778,20 @@ bool SnapCap::getBrightness()
     if ((rc = tty_write(PortFD, command, SNAP_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, SNAP_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return false;
     }
 
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char brightnessString[4] = { 0 };
     snprintf(brightnessString, 4, "%s", response + 2);
@@ -801,7 +801,7 @@ bool SnapCap::getBrightness()
 
     if (rc <= 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unable to parse brightness value (%s)", response);
+        LOGF_ERROR("Unable to parse brightness value (%s)", response);
         return false;
     }
 
@@ -833,7 +833,7 @@ bool SnapCap::SetLightBoxBrightness(uint16_t value)
 
     snprintf(command, SNAP_CMD, ">B%03d", value);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[SNAP_CMD - 2] = 0xD;
     command[SNAP_CMD - 1] = 0xA;
@@ -841,20 +841,20 @@ bool SnapCap::SetLightBoxBrightness(uint16_t value)
     if ((rc = tty_write(PortFD, command, SNAP_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, SNAP_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return false;
     }
 
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char brightnessString[4] = { 0 };
     snprintf(brightnessString, 4, "%s", response + 2);
@@ -864,7 +864,7 @@ bool SnapCap::SetLightBoxBrightness(uint16_t value)
 
     if (rc <= 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unable to parse brightness value (%s)", response);
+        LOGF_ERROR("Unable to parse brightness value (%s)", response);
         return false;
     }
 

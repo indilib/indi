@@ -190,7 +190,7 @@ bool USBFocusV3::updateProperties()
 
         loadConfig(true);
 
-        DEBUG(INDI::Logger::DBG_SESSION, "USB Focus V3 paramaters updated, focuser ready for use.");
+        LOG_INFO("USB Focus V3 paramaters updated, focuser ready for use.");
     }
     else
     {
@@ -212,11 +212,11 @@ bool USBFocusV3::Handshake()
 {
     if (Ack())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "USB Focus V3 is online. Getting focus parameters...");
+        LOG_INFO("USB Focus V3 is online. Getting focus parameters...");
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from USB Focus V3, please ensure USB Focus V3 controller "
+    LOG_INFO("Error retreiving data from USB Focus V3, please ensure USB Focus V3 controller "
                                      "is powered and the port is correct.");
     return false;
 }
@@ -238,12 +238,12 @@ bool USBFocusV3::Ack()
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+        LOGF_DEBUG("CMD: %s.", cmd);
 
         if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error requesting focuser ID: %s.", errstr);
+            LOGF_ERROR("Error requesting focuser ID: %s.", errstr);
             return false;
         }
 
@@ -252,11 +252,11 @@ bool USBFocusV3::Ack()
         if ((rc = tty_read(PortFD, resp, UFORIDLEN, USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error reading focuser ID: %s.", errstr);
+            LOGF_ERROR("Error reading focuser ID: %s.", errstr);
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s.", resp);
+        LOGF_DEBUG("RES: %s.", resp);
 
         usleep(SRTUS);
 
@@ -270,7 +270,7 @@ bool USBFocusV3::Ack()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "USB Focus V3 not properly identified! Answer was: %s.", resp);
+        LOGF_ERROR("USB Focus V3 not properly identified! Answer was: %s.", resp);
         return false;
     }
 }
@@ -287,12 +287,12 @@ bool USBFocusV3::getControllerStatus()
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+        LOGF_DEBUG("CMD: %s.", cmd);
 
         if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "getControllerStatus error: %s.", errstr);
+            LOGF_ERROR("getControllerStatus error: %s.", errstr);
             return false;
         }
 
@@ -301,11 +301,11 @@ bool USBFocusV3::getControllerStatus()
         if ((rc = tty_read(PortFD, resp, UFORSTLEN, USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "getControllerStatus error: %s.", errstr);
+            LOGF_ERROR("getControllerStatus error: %s.", errstr);
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s.", resp);
+        LOGF_DEBUG("RES: %s.", resp);
 
         usleep(SRTUS);
 
@@ -327,7 +327,7 @@ bool USBFocusV3::updateStepMode()
         StepModeS[1].s = ISS_ON;
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser step value (%d)", stepmode);
+        LOGF_ERROR("Unknown error: focuser step value (%d)", stepmode);
         return false;
     }
 
@@ -344,7 +344,7 @@ bool USBFocusV3::updateRotDir()
         RotDirS[1].s = ISS_ON;
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: rotation direction  (%d)", direction);
+        LOGF_ERROR("Unknown error: rotation direction  (%d)", direction);
         return false;
     }
 
@@ -364,12 +364,12 @@ bool USBFocusV3::updateTemperature()
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+        LOGF_DEBUG("CMD: %s.", cmd);
 
         if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "updateTemperature error: %s.", errstr);
+            LOGF_ERROR("updateTemperature error: %s.", errstr);
             return false;
         }
 
@@ -378,11 +378,11 @@ bool USBFocusV3::updateTemperature()
         if ((rc = tty_read(PortFD, resp, UFORTEMPLEN, USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "updateTemperature error: %s.", errstr);
+            LOGF_ERROR("updateTemperature error: %s.", errstr);
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s.", resp);
+        LOGF_DEBUG("RES: %s.", resp);
 
         usleep(SRTUS);
 
@@ -398,7 +398,7 @@ bool USBFocusV3::updateTemperature()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser temperature value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser temperature value (%s)", resp);
         return false;
     }
 
@@ -424,12 +424,12 @@ bool USBFocusV3::updatePosition()
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+        LOGF_DEBUG("CMD: %s.", cmd);
 
         if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
+            LOGF_ERROR("updatePostion error: %s.", errstr);
             return false;
         }
 
@@ -438,11 +438,11 @@ bool USBFocusV3::updatePosition()
         if ((rc = tty_read(PortFD, resp, UFORPOSLEN, USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
+            LOGF_ERROR("updatePostion error: %s.", errstr);
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s.", resp);
+        LOGF_DEBUG("RES: %s.", resp);
 
         usleep(SRTUS);
 
@@ -458,7 +458,7 @@ bool USBFocusV3::updatePosition()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser position value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser position value (%s)", resp);
         return false;
     }
 
@@ -492,12 +492,12 @@ bool USBFocusV3::updateTempCompSign()
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+        LOGF_DEBUG("CMD: %s.", cmd);
 
         if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "updateTempCompSign error: %s.", errstr);
+            LOGF_ERROR("updateTempCompSign error: %s.", errstr);
             return false;
         }
 
@@ -506,11 +506,11 @@ bool USBFocusV3::updateTempCompSign()
         if ((rc = tty_read(PortFD, resp, UFORSIGNLEN, USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "updateTempCompSign error: %s.", errstr);
+            LOGF_ERROR("updateTempCompSign error: %s.", errstr);
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s.", resp);
+        LOGF_DEBUG("RES: %s.", resp);
 
         usleep(SRTUS);
 
@@ -530,13 +530,13 @@ bool USBFocusV3::updateTempCompSign()
             TempCompSignS[1].s = ISS_ON;
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: temp. comp. sign  (%d)", sign);
+            LOGF_ERROR("Unknown error: temp. comp. sign  (%d)", sign);
             return false;
         }
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: temp. comp. sign value (%s)", resp);
+        LOGF_ERROR("Unknown error: temp. comp. sign value (%s)", resp);
         return false;
     }
 
@@ -570,7 +570,7 @@ bool USBFocusV3::updateSpeed()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser speed value (%d)", speed);
+        LOGF_ERROR("Unknown error: focuser speed value (%d)", speed);
         return false;
     }
 
@@ -590,12 +590,12 @@ bool USBFocusV3::setAutoTempCompThreshold(unsigned int thr)
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+        LOGF_DEBUG("CMD: %s.", cmd);
 
         if ((rc = tty_write(PortFD, cmd, UFOCTLEN, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "setAutoTempCompThreshold error: %s.", errstr);
+            LOGF_ERROR("setAutoTempCompThreshold error: %s.", errstr);
             return false;
         }
 
@@ -604,11 +604,11 @@ bool USBFocusV3::setAutoTempCompThreshold(unsigned int thr)
         if ((rc = tty_read(PortFD, resp, UFORDONELEN, USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "setAutoTempCompThreshold error: %s.", errstr);
+            LOGF_ERROR("setAutoTempCompThreshold error: %s.", errstr);
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s.", resp);
+        LOGF_DEBUG("RES: %s.", resp);
 
         usleep(SRTUS);
 
@@ -623,7 +623,7 @@ bool USBFocusV3::setAutoTempCompThreshold(unsigned int thr)
     } while (oneMoreRead(resp, UFORDONELEN));
 
     sprintf(errstr, "did not receive DONE.");
-    DEBUGF(INDI::Logger::DBG_ERROR, "setAutoTempCompThreshold error: %s.", errstr);
+    LOGF_ERROR("setAutoTempCompThreshold error: %s.", errstr);
 
     return false;
 }
@@ -641,12 +641,12 @@ bool USBFocusV3::setTemperatureCoefficient(unsigned int coefficient)
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+        LOGF_DEBUG("CMD: %s.", cmd);
 
         if ((rc = tty_write(PortFD, cmd, UFOCTLEN, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCoefficient error: %s.", errstr);
+            LOGF_ERROR("setTemperatureCoefficient error: %s.", errstr);
             return false;
         }
 
@@ -663,7 +663,7 @@ bool USBFocusV3::setTemperatureCoefficient(unsigned int coefficient)
     } while (oneMoreRead(resp, UFORDONELEN));
 
     sprintf(errstr, "did not receive DONE.");
-    DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCoefficient error: %s.", errstr);
+    LOGF_ERROR("setTemperatureCoefficient error: %s.", errstr);
 
     return false;
 }
@@ -675,12 +675,12 @@ bool USBFocusV3::reset()
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "reset error: %s.", errstr);
+        LOGF_ERROR("reset error: %s.", errstr);
         return false;
     }
 
@@ -700,13 +700,13 @@ bool USBFocusV3::MoveFocuserUF(FocusDirection dir, unsigned int rticks)
     if ((dir == FOCUS_INWARD) && (rticks > FocusAbsPosN[0].value))
     {
         ticks = FocusAbsPosN[0].value;
-        DEBUGF(INDI::Logger::DBG_WARNING, "Requested %u ticks but inward movement has been limited to %u ticks", rticks,
+        LOGF_WARN("Requested %u ticks but inward movement has been limited to %u ticks", rticks,
                ticks);
     }
     else if ((dir == FOCUS_OUTWARD) && ((FocusAbsPosN[0].value + rticks) > MaxPositionN[0].value))
     {
         ticks = MaxPositionN[0].value - FocusAbsPosN[0].value;
-        DEBUGF(INDI::Logger::DBG_WARNING, "Requested %u ticks but outward movement has been limited to %u ticks",
+        LOGF_WARN("Requested %u ticks but outward movement has been limited to %u ticks",
                rticks, ticks);
     }
     else
@@ -719,12 +719,12 @@ bool USBFocusV3::MoveFocuserUF(FocusDirection dir, unsigned int rticks)
     else
         snprintf(cmd, UFOCMLEN + 1, "%s%05u", UFOCMOVEOUT, ticks);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UFOCMLEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "MoveFocuserUF error: %s.", errstr);
+        LOGF_ERROR("MoveFocuserUF error: %s.", errstr);
         return false;
     }
 
@@ -742,12 +742,12 @@ bool USBFocusV3::setStepMode(FocusStepMode mode)
     else
         snprintf(cmd, UFOCSMLEN + 1, "%s", UFOCSETFSTEPS);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UFOCSMLEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setStepMode error: %s.", errstr);
+        LOGF_ERROR("setStepMode error: %s.", errstr);
         return false;
     }
     else
@@ -771,12 +771,12 @@ bool USBFocusV3::setRotDir(unsigned int dir)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UFOCDLEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setRotDir error: %s.", errstr);
+        LOGF_ERROR("setRotDir error: %s.", errstr);
         return false;
     }
     else
@@ -800,7 +800,7 @@ bool USBFocusV3::setMaxPos(unsigned int maxp)
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Focuser max. pos. value %d out of bounds", maxp);
+        LOGF_ERROR("Focuser max. pos. value %d out of bounds", maxp);
         return false;
     }
 
@@ -808,12 +808,12 @@ bool USBFocusV3::setMaxPos(unsigned int maxp)
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+        LOGF_DEBUG("CMD: %s.", cmd);
 
         if ((rc = tty_write(PortFD, cmd, UFOCMMLEN, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "setMaxPos error: %s.", errstr);
+            LOGF_ERROR("setMaxPos error: %s.", errstr);
             return false;
         }
 
@@ -822,11 +822,11 @@ bool USBFocusV3::setMaxPos(unsigned int maxp)
         if ((rc = tty_read(PortFD, resp, UFORDONELEN, USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "setMaxPos error: %s.", errstr);
+            LOGF_ERROR("setMaxPos error: %s.", errstr);
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s.", resp);
+        LOGF_DEBUG("RES: %s.", resp);
 
         usleep(SRTUS);
 
@@ -842,7 +842,7 @@ bool USBFocusV3::setMaxPos(unsigned int maxp)
     } while (oneMoreRead(resp, UFORDONELEN));
 
     sprintf(errstr, "did not receive DONE.");
-    DEBUGF(INDI::Logger::DBG_ERROR, "setMaxPos error: %s.", errstr);
+    LOGF_ERROR("setMaxPos error: %s.", errstr);
 
     return false;
 }
@@ -878,7 +878,7 @@ bool USBFocusV3::setSpeed(unsigned short drvspeed)
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Focuser speed value %d out of bounds", drvspeed);
+        LOGF_ERROR("Focuser speed value %d out of bounds", drvspeed);
         return false;
     }
 
@@ -886,12 +886,12 @@ bool USBFocusV3::setSpeed(unsigned short drvspeed)
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+        LOGF_DEBUG("CMD: %s.", cmd);
 
         if ((rc = tty_write(PortFD, cmd, UFOCSLEN, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "setSpeed error: %s.", errstr);
+            LOGF_ERROR("setSpeed error: %s.", errstr);
             return false;
         }
 
@@ -900,11 +900,11 @@ bool USBFocusV3::setSpeed(unsigned short drvspeed)
         if ((rc = tty_read(PortFD, resp, UFORDONELEN, USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "setSpeed error: %s.", errstr);
+            LOGF_ERROR("setSpeed error: %s.", errstr);
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s.", resp);
+        LOGF_DEBUG("RES: %s.", resp);
 
         usleep(SRTUS);
 
@@ -919,7 +919,7 @@ bool USBFocusV3::setSpeed(unsigned short drvspeed)
     } while (oneMoreRead(resp, UFORDONELEN));
 
     sprintf(errstr, "did not receive DONE.");
-    DEBUGF(INDI::Logger::DBG_ERROR, "setSpeed error: %s.", errstr);
+    LOGF_ERROR("setSpeed error: %s.", errstr);
 
     return false;
 }
@@ -935,12 +935,12 @@ bool USBFocusV3::setTemperatureCompensation(bool enable)
     else
         snprintf(cmd, UFOCTCLEN + 1, "%s", UFOCSETMANU);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UFOCTCLEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCompensation error: %s.", errstr);
+        LOGF_ERROR("setTemperatureCompensation error: %s.", errstr);
         return false;
     }
 
@@ -960,12 +960,12 @@ bool USBFocusV3::setTempCompSign(unsigned int sign)
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+        LOGF_DEBUG("CMD: %s.", cmd);
 
         if ((rc = tty_write(PortFD, cmd, UFOCDLEN, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "setTempCompSign error: %s.", errstr);
+            LOGF_ERROR("setTempCompSign error: %s.", errstr);
             return false;
         }
 
@@ -974,11 +974,11 @@ bool USBFocusV3::setTempCompSign(unsigned int sign)
         if ((rc = tty_read(PortFD, resp, UFORDONELEN, USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "setTempCompSign error: %s.", errstr);
+            LOGF_ERROR("setTempCompSign error: %s.", errstr);
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s.", resp);
+        LOGF_DEBUG("RES: %s.", resp);
 
         usleep(SRTUS);
 
@@ -992,7 +992,7 @@ bool USBFocusV3::setTempCompSign(unsigned int sign)
     } while (oneMoreRead(resp, UFORDONELEN));
 
     sprintf(errstr, "did not receive DONE.");
-    DEBUGF(INDI::Logger::DBG_ERROR, "setTempCompSign error: %s.", errstr);
+    LOGF_ERROR("setTempCompSign error: %s.", errstr);
 
     return false;
 }
@@ -1374,7 +1374,7 @@ void USBFocusV3::TimerHit()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
+            LOG_INFO("Focuser reached requested position.");
         }
     }
 
@@ -1386,7 +1386,7 @@ bool USBFocusV3::AbortFocuser()
     char cmd[] = UFOCABORT;
     int nbytes_written;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if (tty_write(PortFD, cmd, strlen(cmd), &nbytes_written) == TTY_OK)
     {

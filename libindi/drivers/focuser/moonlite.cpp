@@ -149,7 +149,7 @@ bool MoonLite::updateProperties()
 
         GetFocusParams();
 
-        DEBUG(INDI::Logger::DBG_SESSION, "MoonLite paramaters updated, focuser ready for use.");
+        LOG_INFO("MoonLite paramaters updated, focuser ready for use.");
     }
     else
     {
@@ -168,7 +168,7 @@ bool MoonLite::Handshake()
 {
     if (Ack())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "MoonLite is online. Getting focus parameters...");
+        LOG_INFO("MoonLite is online. Getting focus parameters...");
         return true;
     }
 
@@ -194,14 +194,14 @@ bool MoonLite::Ack()
     if ((rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
+        LOGF_ERROR("updatePostion error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read(PortFD, resp, 5, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
+        LOGF_ERROR("updatePostion error: %s.", errstr);
         return false;
     }
 
@@ -223,14 +223,14 @@ bool MoonLite::updateStepMode()
     if ((rc = tty_write(PortFD, ":GH#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateStepMode error: %s.", errstr);
+        LOGF_ERROR("updateStepMode error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read(PortFD, resp, 3, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateStepMode error: %s.", errstr);
+        LOGF_ERROR("updateStepMode error: %s.", errstr);
         return false;
     }
 
@@ -245,7 +245,7 @@ bool MoonLite::updateStepMode()
         StepModeS[1].s = ISS_ON;
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser step value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser step value (%s)", resp);
         return false;
     }
 
@@ -265,14 +265,14 @@ bool MoonLite::updateTemperature()
     if ((rc = tty_write(PortFD, ":GT#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateTemperature error: %s.", errstr);
+        LOGF_ERROR("updateTemperature error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '#', MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateTemperature error: %s.", errstr);
+        LOGF_ERROR("updateTemperature error: %s.", errstr);
         return false;
     }
 
@@ -290,7 +290,7 @@ bool MoonLite::updateTemperature()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser temperature value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser temperature value (%s)", resp);
         return false;
     }
 
@@ -309,14 +309,14 @@ bool MoonLite::updatePosition()
     if ((rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
+        LOGF_ERROR("updatePostion error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read(PortFD, resp, 5, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updatePostion error: %s.", errstr);
+        LOGF_ERROR("updatePostion error: %s.", errstr);
         return false;
     }
 
@@ -330,7 +330,7 @@ bool MoonLite::updatePosition()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser position value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser position value (%s)", resp);
         return false;
     }
 
@@ -349,14 +349,14 @@ bool MoonLite::updateSpeed()
     if ((rc = tty_write(PortFD, ":GD#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateSpeed error: %s.", errstr);
+        LOGF_ERROR("updateSpeed error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read(PortFD, resp, 3, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateSpeed error: %s.", errstr);
+        LOGF_ERROR("updateSpeed error: %s.", errstr);
         return false;
     }
 
@@ -378,7 +378,7 @@ bool MoonLite::updateSpeed()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: focuser speed value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser speed value (%s)", resp);
         return false;
     }
 
@@ -396,14 +396,14 @@ bool MoonLite::isMoving()
     if ((rc = tty_write(PortFD, ":GI#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "isMoving error: %s.", errstr);
+        LOGF_ERROR("isMoving error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read(PortFD, resp, 3, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "isMoving error: %s.", errstr);
+        LOGF_ERROR("isMoving error: %s.", errstr);
         return false;
     }
 
@@ -415,7 +415,7 @@ bool MoonLite::isMoving()
     else if (strcmp(resp, "00#") == 0)
         return false;
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error: isMoving value (%s)", resp);
+    LOGF_ERROR("Unknown error: isMoving value (%s)", resp);
     return false;
 }
 
@@ -433,7 +433,7 @@ bool MoonLite::setTemperatureCalibration(double calibration)
     if ((rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCalibration error: %s.", errstr);
+        LOGF_ERROR("setTemperatureCalibration error: %s.", errstr);
         return false;
     }
 
@@ -455,7 +455,7 @@ bool MoonLite::setTemperatureCoefficient(double coefficient)
     if ((rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCoefficient error: %s.", errstr);
+        LOGF_ERROR("setTemperatureCoefficient error: %s.", errstr);
         return false;
     }
 
@@ -474,7 +474,7 @@ bool MoonLite::sync(uint16_t offset)
     if ((rc = tty_write(PortFD, cmd, 8, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "reset error: %s.", errstr);
+        LOGF_ERROR("reset error: %s.", errstr);
         return false;
     }
 
@@ -489,13 +489,13 @@ bool MoonLite::MoveFocuser(unsigned int position)
 
     if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Requested position value out of bound: %d", position);
+        LOGF_ERROR("Requested position value out of bound: %d", position);
         return false;
     }
 
     /*if (fabs(position - FocusAbsPosN[0].value) > MaxTravelN[0].value)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Requested position value of %d exceeds maximum travel limit of %g", position, MaxTravelN[0].value);
+        LOGF_ERROR("Requested position value of %d exceeds maximum travel limit of %g", position, MaxTravelN[0].value);
         return false;
     }*/
 
@@ -505,7 +505,7 @@ bool MoonLite::MoveFocuser(unsigned int position)
     if ((rc = tty_write(PortFD, cmd, 8, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setPosition error: %s.", errstr);
+        LOGF_ERROR("setPosition error: %s.", errstr);
         return false;
     }
 
@@ -513,7 +513,7 @@ bool MoonLite::MoveFocuser(unsigned int position)
     if ((rc = tty_write(PortFD, ":FG#", 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "MoveFocuser error: %s.", errstr);
+        LOGF_ERROR("MoveFocuser error: %s.", errstr);
         return false;
     }
 
@@ -536,7 +536,7 @@ bool MoonLite::setStepMode(FocusStepMode mode)
     if ((rc = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setStepMode error: %s.", errstr);
+        LOGF_ERROR("setStepMode error: %s.", errstr);
         return false;
     }
 
@@ -558,7 +558,7 @@ bool MoonLite::setSpeed(unsigned short speed)
     if ((rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setSpeed error: %s.", errstr);
+        LOGF_ERROR("setSpeed error: %s.", errstr);
         return false;
     }
 
@@ -581,7 +581,7 @@ bool MoonLite::setTemperatureCompensation(bool enable)
     if ((rc = tty_write(PortFD, cmd, 3, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureCompensation error: %s.", errstr);
+        LOGF_ERROR("setTemperatureCompensation error: %s.", errstr);
         return false;
     }
 
@@ -845,7 +845,7 @@ void MoonLite::TimerHit()
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
+            LOG_INFO("Focuser reached requested position.");
         }
     }
 

@@ -151,7 +151,7 @@ bool NSTEP::updateProperties()
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read position");
+            LOG_ERROR("Failed to read position");
         }
         if (command(":RT", buf, 4))
         {
@@ -169,7 +169,7 @@ bool NSTEP::updateProperties()
                 }
                 else
                 {
-                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature change for compensation");
+                    LOG_ERROR("Failed to read temperature change for compensation");
                 }
                 if (command(":RB", buf, 3))
                 {
@@ -180,7 +180,7 @@ bool NSTEP::updateProperties()
                 }
                 else
                 {
-                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature step for compensation");
+                    LOG_ERROR("Failed to read temperature step for compensation");
                 }
                 if (command(":RG", buf, 1))
                 {
@@ -191,17 +191,17 @@ bool NSTEP::updateProperties()
                 }
                 else
                 {
-                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read compensation mode");
+                    LOG_ERROR("Failed to read compensation mode");
                 }
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Temperature sensor is not connected");
+                LOG_ERROR("Temperature sensor is not connected");
             }
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature");
+            LOG_ERROR("Failed to read temperature");
         }
         if (command(":RS", buf, 3))
         {
@@ -217,12 +217,12 @@ bool NSTEP::updateProperties()
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to read step rate");
+                LOG_ERROR("Failed to read step rate");
             }
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read max step rate");
+            LOG_ERROR("Failed to read max step rate");
         }
         if (command(":RW", buf, 1))
         {
@@ -234,7 +234,7 @@ bool NSTEP::updateProperties()
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read stepping phase");
+            LOG_ERROR("Failed to read stepping phase");
         }
     defineSwitch(&SteppingModeSP);
     }
@@ -255,7 +255,7 @@ bool NSTEP::Handshake()
 {
     if (isSimulation())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "NStep simulation is connected.");
+        LOG_INFO("NStep simulation is connected.");
         return true;
     }
 
@@ -279,61 +279,61 @@ const char *NSTEP::getDefaultName()
 
 bool NSTEP::command(const char *request, char *response, int count)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Write [%s]", request);
+    LOGF_DEBUG("Write [%s]", request);
     if (isSimulation())
     {
         if (strcmp(request, ":RT") == 0)
         {
             strncpy(response, "+150", 5);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            LOGF_DEBUG("Read [%s]", response);
             return true;
         }
         if (strcmp(request, ":RP") == 0)
         {
             sprintf(response, "%+07ld", sim_position);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            LOGF_DEBUG("Read [%s]", response);
             return true;
         }
         if (strcmp(request, ":RS") == 0)
         {
             strncpy(response, "100", 4);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            LOGF_DEBUG("Read [%s]", response);
             return true;
         }
         if (strcmp(request, ":RO") == 0)
         {
             strncpy(response, "001", 4);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            LOGF_DEBUG("Read [%s]", response);
             return true;
         }
         if (strcmp(request, ":RA") == 0)
         {
             strncpy(response, "+010", 5);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            LOGF_DEBUG("Read [%s]", response);
             return true;
         }
         if (strcmp(request, ":RB") == 0)
         {
             strncpy(response, "005", 4);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            LOGF_DEBUG("Read [%s]", response);
             return true;
         }
         if (strcmp(request, ":RG") == 0)
         {
             strncpy(response, "2", 2);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            LOGF_DEBUG("Read [%s]", response);
             return true;
         }
         if (strcmp(request, ":RW") == 0)
         {
             strncpy(response, "0", 2);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            LOGF_DEBUG("Read [%s]", response);
             return true;
         }
         if (strcmp(request, "S") == 0)
         {
             strncpy(response, "0", 2);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+            LOGF_DEBUG("Read [%s]", response);
             return true;
         }
         return true;
@@ -359,11 +359,11 @@ bool NSTEP::command(const char *request, char *response, int count)
     {
         char message[MAXRBUF];
         tty_error_msg(rc, message, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", message);
+        LOGF_ERROR("%s", message);
         pthread_mutex_unlock(&lock);
         return false;
     }
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Read [%s]", response);
+    LOGF_DEBUG("Read [%s]", response);
     pthread_mutex_unlock(&lock);
     return true;
 }
@@ -504,7 +504,7 @@ IPState NSTEP::moveFocuserRelative(FocusDirection dir, unsigned int ticks)
         }
 
         sprintf(buf, ":F%c%c%03d#", dir == FOCUS_INWARD ? '0' : '1', steppingMode, subTicks);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "About to send command %s", buf);
+        LOGF_DEBUG("About to send command %s", buf);
         if (!command(buf, nullptr, 0))
         {
             FocusAbsPosNP.s = IPS_ALERT;
@@ -535,7 +535,7 @@ IPState NSTEP::moveFocuserRelative(FocusDirection dir, unsigned int ticks)
 
 IPState NSTEP::MoveAbsFocuser(uint32_t targetTicks)
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser is moving to requested position %d", targetTicks);
+    LOGF_INFO("Focuser is moving to requested position %d", targetTicks);
 
     unsigned int newAbsPos = 0;
     IPState retCode        = IPS_ALERT;
@@ -588,7 +588,7 @@ void NSTEP::TimerHit()
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to read temperature");
+            LOG_ERROR("Failed to read temperature");
         }
 
         if (command("S", buf, 1))

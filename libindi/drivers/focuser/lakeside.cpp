@@ -214,7 +214,7 @@ bool Lakeside::updateProperties()
 
         GetFocusParams();
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Lakeside paramaters updated, focuser ready for use.");
+        LOG_INFO("Lakeside paramaters updated, focuser ready for use.");
     }
     else
     {
@@ -257,21 +257,21 @@ bool Lakeside::Connect()
     if ( (rc = tty_connect(serialConnection->port(), 9600, 8, 0, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(rc, errorMsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to connect to port %s, with Error %s", serialConnection->port(), errorMsg);
+        LOGF_INFO("Failed to connect to port %s, with Error %s", serialConnection->port(), errorMsg);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connected to port %s",serialConnection->port());
+    LOGF_INFO("Connected to port %s",serialConnection->port());
 
     if (LakesideOnline())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Lakeside is online on port %s",serialConnection->port());
+        LOGF_INFO("Lakeside is online on port %s",serialConnection->port());
         SetTimer(POLLMS);
         return true;
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Unable to connect to Lakeside Focuser. Please ensure the controller is powered on and the port (%s) is correct.",serialConnection->port());
+        LOGF_INFO("Unable to connect to Lakeside Focuser. Please ensure the controller is powered on and the port (%s) is correct.",serialConnection->port());
         return false;
     }
 }
@@ -280,7 +280,7 @@ bool Lakeside::Connect()
 // Disconnect from focuser
 bool Lakeside::Disconnect()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Lakeside is offline.");
+    LOG_INFO("Lakeside is offline.");
     return INDI::Focuser::Disconnect();
 }
 #endif
@@ -312,12 +312,12 @@ bool Lakeside::SendCmd(const char* in_cmd)
     if ( (rc = tty_write_string(PortFD, in_cmd, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "SendCmd: Write for command (%s) failed - %s", in_cmd,errstr);
+        LOGF_ERROR("SendCmd: Write for command (%s) failed - %s", in_cmd,errstr);
         return false;
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "SendCmd: Successfully sent (%s)", in_cmd);
+        LOGF_DEBUG("SendCmd: Successfully sent (%s)", in_cmd);
     }
 
     return true;
@@ -342,13 +342,13 @@ bool Lakeside::ReadBuffer(char* response)
     if ( (rc = tty_read_section(PortFD, resp, 0x23, LAKESIDE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "ReadBuffer: Read failed - %s",errstr);
+        LOGF_ERROR("ReadBuffer: Read failed - %s",errstr);
         strncpy(response,"ERROR", LAKESIDE_LEN);
         return false;
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "ReadBuffer: Received (%s)", resp);
+        LOGF_DEBUG("ReadBuffer: Received (%s)", resp);
     }
 
     strncpy(response,resp, LAKESIDE_LEN);
@@ -371,7 +371,7 @@ bool Lakeside::LakesideOnline()
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "LakesideOnline: Successfully sent (%s)", cmd);
+    LOGF_DEBUG("LakesideOnline: Successfully sent (%s)", cmd);
 
     if (!ReadBuffer(resp))
     {
@@ -379,16 +379,16 @@ bool Lakeside::LakesideOnline()
     }
 
     // if SendCmd succeeded, resp contains response from the command
-    DEBUGF(INDI::Logger::DBG_DEBUG, "LakesideOnline: Received (%s)", resp);
+    LOGF_DEBUG("LakesideOnline: Received (%s)", resp);
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "LakesideOnline: Received OK# - Lakeside responded");
+        LOG_DEBUG("LakesideOnline: Received OK# - Lakeside responded");
         return true;
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "LakesideOnline: OK# not found. Instead, received (%s)",resp);
+        LOGF_ERROR("LakesideOnline: OK# not found. Instead, received (%s)",resp);
         return false;
     }
 
@@ -422,17 +422,17 @@ bool Lakeside::updateMoveDirection()
     if ( temp == 0)
     {
         MoveDirectionS[0].s = ISS_ON;
-        DEBUGF(INDI::Logger::DBG_DEBUG, "updateMoveDirection: Move Direction is (%d)", temp);
+        LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
     }
     else
         if ( temp == 1)
         {
             MoveDirectionS[1].s = ISS_ON;
-            DEBUGF(INDI::Logger::DBG_DEBUG, "updateMoveDirection: Move Direction is (%d)", temp);
+            LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "updateMoveDirection: Unknown move Direction response (%s)", resp);
+            LOGF_ERROR("updateMoveDirection: Unknown move Direction response (%s)", resp);
             return false;
         }
 
@@ -452,7 +452,7 @@ char Lakeside::DecodeBuffer(char* in_response)
 {
     int temp=0, pos=0, rc=-1;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "DecodeBuffer: in_response (%s)", in_response);
+    LOGF_DEBUG("DecodeBuffer: in_response (%s)", in_response);
 
     // if focuser finished moving, DONE# received
     if (!strncmp(in_response,"DONE#",5))
@@ -478,7 +478,7 @@ char Lakeside::DecodeBuffer(char* in_response)
     {
         // need to divide result by 2
         TemperatureN[0].value = ((int) temp)/2.0;
-        DEBUGF(INDI::Logger::DBG_DEBUG, "DecodeBuffer: Result (%3.1f)", TemperatureN[0].value);
+        LOGF_DEBUG("DecodeBuffer: Result (%3.1f)", TemperatureN[0].value);
 
         return 'T';
     }
@@ -489,7 +489,7 @@ char Lakeside::DecodeBuffer(char* in_response)
     {
         // need to divide result by 2
         TemperatureKN[0].value = ((int) temp)/2.00;
-        DEBUGF(INDI::Logger::DBG_DEBUG, "DecodeBuffer: Result (%3.2f)", TemperatureKN[0].value);
+        LOGF_DEBUG("DecodeBuffer: Result (%3.2f)", TemperatureKN[0].value);
 
         return 'K';
     }
@@ -502,12 +502,12 @@ char Lakeside::DecodeBuffer(char* in_response)
         FocusAbsPosN[0].value = pos;
         IDSetNumber(&FocusAbsPosNP, NULL);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "DecodeBuffer: Returned position (%d)", pos);
+        LOGF_DEBUG("DecodeBuffer: Returned position (%d)", pos);
         return 'P';
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "DecodeBuffer: Unknown response : (%s)", in_response);
+        LOGF_ERROR("DecodeBuffer: Unknown response : (%s)", in_response);
         return '?';
     }
 }
@@ -534,7 +534,7 @@ bool Lakeside::updateTemperature()
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "updateTemperature: Read response (%s)", resp);
+    LOGF_DEBUG("updateTemperature: Read response (%s)", resp);
 
     // ascertain contents of buffer & update temp if necessary
     buffer_response=DecodeBuffer(resp);
@@ -572,7 +572,7 @@ bool Lakeside::updateTemperatureK()
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "updateTemperatureK: Read response (%s)", resp);
+    LOGF_DEBUG("updateTemperatureK: Read response (%s)", resp);
 
     // ascertain contents of buffer & update temp in K if necessary
     buffer_response=DecodeBuffer(resp);
@@ -605,14 +605,14 @@ bool Lakeside::updatePosition()
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "updatePosition: Successfully sent (%s)",cmd);
+    LOGF_DEBUG("updatePosition: Successfully sent (%s)",cmd);
 
     if (!ReadBuffer(resp))
     {
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "updatePosition: Fetched (%s)", resp);
+    LOGF_DEBUG("updatePosition: Fetched (%s)", resp);
 
     // ascertain contents of buffer & update position if necessary
     buffer_response=DecodeBuffer(resp);
@@ -651,11 +651,11 @@ bool Lakeside::updateBacklash()
     if ( temp >= 0)
     {
         BacklashN[0].value = temp;
-        DEBUGF(INDI::Logger::DBG_DEBUG,"updateBacklash: Backlash is (%d)", temp);
+        LOGF_DEBUG("updateBacklash: Backlash is (%d)", temp);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateBacklash: Backlash request error (%s)", resp);
+        LOGF_ERROR("updateBacklash: Backlash request error (%s)", resp);
         return false;
     }
 
@@ -686,11 +686,11 @@ bool Lakeside::updateSlope1Inc()
     if ( temp >= 0)
     {
         Slope1IncN[0].value = temp;
-        DEBUGF(INDI::Logger::DBG_DEBUG,"updateSlope1Inc: Slope 1 Increments is (%d)", temp);
+        LOGF_DEBUG("updateSlope1Inc: Slope 1 Increments is (%d)", temp);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateSlope1Inc: Slope 1 Increment request error (%s)", resp);
+        LOGF_ERROR("updateSlope1Inc: Slope 1 Increment request error (%s)", resp);
         return false;
     }
 
@@ -721,11 +721,11 @@ bool Lakeside::updateSlope2Inc()
     if ( temp >= 0)
     {
         Slope2IncN[0].value = temp;
-        DEBUGF(INDI::Logger::DBG_DEBUG,"updateSlope2Inc: Slope 2 Increments is (%d)", temp);
+        LOGF_DEBUG("updateSlope2Inc: Slope 2 Increments is (%d)", temp);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateSlope2Inc: Slope 2 Increment request error (%s)", resp);
+        LOGF_ERROR("updateSlope2Inc: Slope 2 Increment request error (%s)", resp);
         return false;
     }
 
@@ -756,7 +756,7 @@ bool Lakeside::updateSlope1Dir()
     if ( temp == 0)
     {
         Slope1DirS[0].s = ISS_ON;
-        DEBUGF(INDI::Logger::DBG_DEBUG,"updateSlope1Dir: Slope 1 Direction is (%d)", temp);
+        LOGF_DEBUG("updateSlope1Dir: Slope 1 Direction is (%d)", temp);
     }
     else
         if ( temp == 1)
@@ -765,7 +765,7 @@ bool Lakeside::updateSlope1Dir()
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "updateSlope1Dir: Unknown Slope 1 Direction response (%s)", resp);
+            LOGF_ERROR("updateSlope1Dir: Unknown Slope 1 Direction response (%s)", resp);
             return false;
         }
 
@@ -796,7 +796,7 @@ bool Lakeside::updateSlope2Dir()
     if ( temp == 0)
     {
         Slope2DirS[0].s = ISS_ON;
-        DEBUGF(INDI::Logger::DBG_DEBUG,"updateSlope2Dir: Slope 2 Direction is (%d)", temp);
+        LOGF_DEBUG("updateSlope2Dir: Slope 2 Direction is (%d)", temp);
     }
     else
         if ( temp == 1)
@@ -805,7 +805,7 @@ bool Lakeside::updateSlope2Dir()
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "updateSlope2Dir: Unknown Slope 2 Direction response (%s)", resp);
+            LOGF_ERROR("updateSlope2Dir: Unknown Slope 2 Direction response (%s)", resp);
             return false;
         }
 
@@ -836,11 +836,11 @@ bool Lakeside::updateSlope1Deadband()
     if ( temp >= 0)
     {
         Slope1DeadbandN[0].value = temp;
-        DEBUGF(INDI::Logger::DBG_DEBUG,"updateSlope1Deadband: Slope 1 Deadband is (%d)", temp);
+        LOGF_DEBUG("updateSlope1Deadband: Slope 1 Deadband is (%d)", temp);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateSlope1Deadband: Slope 1 Deadband request error (%s)", resp);
+        LOGF_ERROR("updateSlope1Deadband: Slope 1 Deadband request error (%s)", resp);
         return false;
     }
 
@@ -871,11 +871,11 @@ bool Lakeside::updateSlope2Deadband()
     if ( temp >= 0)
     {
         Slope2DeadbandN[0].value = temp;
-        DEBUGF(INDI::Logger::DBG_DEBUG,"updateSlope2Deadband: Slope 2 Deadband is (%d)", temp);
+        LOGF_DEBUG("updateSlope2Deadband: Slope 2 Deadband is (%d)", temp);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateSlope2Deadband: Slope 2 Deadband request error (%s)", resp);
+        LOGF_ERROR("updateSlope2Deadband: Slope 2 Deadband request error (%s)", resp);
         return false;
     }
 
@@ -906,11 +906,11 @@ bool Lakeside::updateSlope1Period()
     if ( temp >= 0)
     {
         Slope1PeriodN[0].value = temp;
-        DEBUGF(INDI::Logger::DBG_DEBUG,"updateSlope1Period: Slope 1 Period is (%d)", temp);
+        LOGF_DEBUG("updateSlope1Period: Slope 1 Period is (%d)", temp);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateSlope1Period: Slope 1 Period request error (%s)", resp);
+        LOGF_ERROR("updateSlope1Period: Slope 1 Period request error (%s)", resp);
         return false;
     }
 
@@ -941,11 +941,11 @@ bool Lakeside::updateSlope2Period()
     if ( temp >= 0)
     {
         Slope2PeriodN[0].value = temp;
-        DEBUGF(INDI::Logger::DBG_DEBUG,"updateSlope2Period: Slope 2 Period is (%d)", temp);
+        LOGF_DEBUG("updateSlope2Period: Slope 2 Period is (%d)", temp);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateSlope2Period: Slope 2 Period request error (%s)", resp);
+        LOGF_ERROR("updateSlope2Period: Slope 2 Period request error (%s)", resp);
         return false;
     }
 
@@ -976,11 +976,11 @@ bool Lakeside::updateMaxTravel()
     if ( temp > 0)
     {
         MaxTravelN[0].value = temp;
-        DEBUGF(INDI::Logger::DBG_DEBUG, "updateMaxTravel: MaxTravel is (%d)", temp);
+        LOGF_DEBUG("updateMaxTravel: MaxTravel is (%d)", temp);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateMaxTravel: MaxTravel request error (%s)", resp);
+        LOGF_ERROR("updateMaxTravel: MaxTravel request error (%s)", resp);
         return false;
     }
 
@@ -999,7 +999,7 @@ bool Lakeside::updateStepSize()
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "updateStepSize: Sent (%s)", cmd);
+    LOGF_DEBUG("updateStepSize: Sent (%s)", cmd);
 
     if (!ReadBuffer(resp))
     {
@@ -1013,11 +1013,11 @@ bool Lakeside::updateStepSize()
     if ( temp > 0)
     {
         StepSizeN[0].value = temp;
-        DEBUGF(INDI::Logger::DBG_DEBUG, "updateStepSize: step size is (%d)", temp);
+        LOGF_DEBUG("updateStepSize: step size is (%d)", temp);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "updateStepSize: StepSize request error (%s)", resp);
+        LOGF_ERROR("updateStepSize: StepSize request error (%s)", resp);
         return false;
     }
 
@@ -1046,7 +1046,7 @@ bool Lakeside::gotoPosition(uint32_t position)
     // MaxTravelN[0].value is set by "calibrate" via the control box, & read at connect
     if ( position > MaxTravelN[0].value )
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min, MaxTravelN[0].value);
+        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min, MaxTravelN[0].value);
         FocusAbsPosNP.s = IPS_ALERT;
         return false;
     }
@@ -1055,7 +1055,7 @@ bool Lakeside::gotoPosition(uint32_t position)
     if ( calc_steps < 0 )
     {
         sprintf(cmd,"CO%d#",abs(calc_steps));
-        DEBUGF(INDI::Logger::DBG_DEBUG, "MoveFocuser: move-out cmd to send (%s)", cmd);
+        LOGF_DEBUG("MoveFocuser: move-out cmd to send (%s)", cmd);
     }
     else
         // ve == Move In
@@ -1063,12 +1063,12 @@ bool Lakeside::gotoPosition(uint32_t position)
         {
             // Move in nnnnn steps = CInnnnn#
             sprintf(cmd,"CI%d#",calc_steps);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "MoveFocuser: move-in cmd to send (%s)", cmd);
+            LOGF_DEBUG("MoveFocuser: move-in cmd to send (%s)", cmd);
         }
         else
         {
             // Zero == no steps to move
-            DEBUGF(INDI::Logger::DBG_DEBUG, "MoveFocuser: No steps to move. calc_steps = %d", calc_steps);
+            LOGF_DEBUG("MoveFocuser: No steps to move. calc_steps = %d", calc_steps);
             FocusAbsPosNP.s = IPS_OK;
             return false;
         }
@@ -1082,7 +1082,7 @@ bool Lakeside::gotoPosition(uint32_t position)
         return false;
     }
     else
-        DEBUGF(INDI::Logger::DBG_DEBUG, "MoveFocuser: Sent cmd (%s)", cmd);
+        LOGF_DEBUG("MoveFocuser: Sent cmd (%s)", cmd);
 
     // At this point, the move command has been sent, so set BUSY & return true
     FocusAbsPosNP.s = IPS_BUSY;
@@ -1114,11 +1114,11 @@ bool Lakeside::setBacklash(int backlash )
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Backlash steps set to %d", backlash);
+        LOGF_INFO("Backlash steps set to %d", backlash);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setBacklash: Unknown result (%s)", resp);
+        LOGF_ERROR("setBacklash: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1151,11 +1151,11 @@ bool Lakeside::setStepSize(int stepsize )
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "setStepSize: cmd (%s) - %s", cmd, resp);
+        LOGF_DEBUG("setStepSize: cmd (%s) - %s", cmd, resp);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setStepSize: Unknown result (%s)", resp);
+        LOGF_ERROR("setStepSize: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1191,7 +1191,7 @@ bool Lakeside::setMoveDirection(int direction)
             strncpy(cmd, "CRD1#", LAKESIDE_LEN);
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "setMoveDirection: Unknown direction (%d)", direction);
+            LOGF_ERROR("setMoveDirection: Unknown direction (%d)", direction);
             return false;
         }
 
@@ -1207,15 +1207,15 @@ bool Lakeside::setMoveDirection(int direction)
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "setMoveDirection: Completed cmd (%s). Result - %s", cmd, resp);
+        LOGF_DEBUG("setMoveDirection: Completed cmd (%s). Result - %s", cmd, resp);
         if (direction == 0)
-            DEBUG(INDI::Logger::DBG_SESSION, "Move Direction : Normal");
+            LOG_INFO("Move Direction : Normal");
         else
-            DEBUG(INDI::Logger::DBG_SESSION, "Move Direction : Reversed");
+            LOG_INFO("Move Direction : Reversed");
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setMoveDirection: Unknown result (%s)", resp);
+        LOGF_ERROR("setMoveDirection: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1240,16 +1240,16 @@ bool Lakeside::setTemperatureTracking(bool enable)
     if ( (rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setTemperatureTracking: Write for command (%s) failed - %s", cmd, errstr);
+        LOGF_ERROR("setTemperatureTracking: Write for command (%s) failed - %s", cmd, errstr);
         return false;
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "setTemperatureTracking: Sent (%s)", cmd);
+        LOGF_DEBUG("setTemperatureTracking: Sent (%s)", cmd);
         if (enable)
-            DEBUG(INDI::Logger::DBG_SESSION, "Temperature Tracking : Enabled");
+            LOG_INFO("Temperature Tracking : Enabled");
         else
-            DEBUG(INDI::Logger::DBG_SESSION, "Temperature Tracking : Disabled");
+            LOG_INFO("Temperature Tracking : Disabled");
     }
 
     // NOTE: NO reply string is sent back
@@ -1278,7 +1278,7 @@ bool Lakeside::setActiveTemperatureSlope(uint32_t active_slope)
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "setActiveTemperatureSlope: Sent (%s)", cmd);
+    LOGF_DEBUG("setActiveTemperatureSlope: Sent (%s)", cmd);
 
     if (!ReadBuffer(resp))
     {
@@ -1287,11 +1287,11 @@ bool Lakeside::setActiveTemperatureSlope(uint32_t active_slope)
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Selected Active Temperature Slope is %d",active_slope);
+        LOGF_INFO("Selected Active Temperature Slope is %d",active_slope);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setActiveTemperatureSlope: Unknown result (%s)", resp);
+        LOGF_ERROR("setActiveTemperatureSlope: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1324,11 +1324,11 @@ bool Lakeside::setSlope1Inc(uint32_t slope1_inc)
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Slope 1 0.1 counts per degree set to %d", slope1_inc);
+        LOGF_INFO("Slope 1 0.1 counts per degree set to %d", slope1_inc);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setSlope1Inc: Unknown result (%s)", resp);
+        LOGF_ERROR("setSlope1Inc: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1360,11 +1360,11 @@ bool Lakeside::setSlope2Inc(uint32_t slope2_inc)
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Slope 2 0.1 counts per degree set to %d", slope2_inc);
+        LOGF_INFO("Slope 2 0.1 counts per degree set to %d", slope2_inc);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setSlope2Inc: Unknown result (%s)", resp);
+        LOGF_ERROR("setSlope2Inc: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1396,11 +1396,11 @@ bool Lakeside::setSlope1Dir(uint32_t slope1_direction)
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Slope 1 Direction set to %d", slope1_direction);
+        LOGF_INFO("Slope 1 Direction set to %d", slope1_direction);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setSlope1Dir: Unknown result (%s)", resp);
+        LOGF_ERROR("setSlope1Dir: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1432,11 +1432,11 @@ bool Lakeside::setSlope2Dir(uint32_t slope2_direction)
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Slope 2 Direction set to %d", slope2_direction);
+        LOGF_INFO("Slope 2 Direction set to %d", slope2_direction);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setSlope2Dir: Unknown result (%s)", resp);
+        LOGF_ERROR("setSlope2Dir: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1468,11 +1468,11 @@ bool Lakeside::setSlope1Deadband(uint32_t slope1_deadband)
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Slope 1 deadband set to %d", slope1_deadband);
+        LOGF_INFO("Slope 1 deadband set to %d", slope1_deadband);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setSlope1Deadband: Unknown result (%s)", resp);
+        LOGF_ERROR("setSlope1Deadband: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1504,11 +1504,11 @@ bool Lakeside::setSlope2Deadband(uint32_t slope2_deadband)
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Slope 2 deadband set to %d", slope2_deadband);
+        LOGF_INFO("Slope 2 deadband set to %d", slope2_deadband);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setSlope2Deadband: Unknown result (%s)", resp);
+        LOGF_ERROR("setSlope2Deadband: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1540,11 +1540,11 @@ bool Lakeside::setSlope1Period(uint32_t slope1_period)
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Slope 1 Period set to %d", slope1_period);
+        LOGF_INFO("Slope 1 Period set to %d", slope1_period);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setSlope1Period: Unknown result (%s)", resp);
+        LOGF_ERROR("setSlope1Period: Unknown result (%s)", resp);
         return false;
     }
 
@@ -1576,11 +1576,11 @@ bool Lakeside::setSlope2Period(uint32_t slope2_period)
 
     if (!strncmp(resp,"OK#",3))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Slope 2 Period set to %d", slope2_period);
+        LOGF_INFO("Slope 2 Period set to %d", slope2_period);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "setSlope2Period: Unknown result (%s)", resp);
+        LOGF_ERROR("setSlope2Period: Unknown result (%s)", resp);
         return false;
     }
 
@@ -2214,12 +2214,12 @@ IPState Lakeside::MoveAbsFocuser(uint32_t targetTicks)
     if (rc == true)
     {
         FocusAbsPosNP.s = IPS_BUSY;
-        //DEBUG(INDI::Logger::DBG_DEBUG, "MoveAbsFocuser: returning IPS_BUSY");
+        //LOG_DEBUG("MoveAbsFocuser: returning IPS_BUSY");
         return IPS_BUSY;
     }
     else
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "MoveAbsFocuser: move failed");
+        LOG_DEBUG("MoveAbsFocuser: move failed");
         return FocusAbsPosNP.s;
     }
 }
@@ -2248,7 +2248,7 @@ void Lakeside::TimerHit()
         if ( IsMoving )
         {
             // GetLakesideStatus() shows position as it is moving
-            DEBUG(INDI::Logger::DBG_DEBUG, "TimerHit: Focuser still moving");
+            LOG_DEBUG("TimerHit: Focuser still moving");
         }
         else
         {
@@ -2260,7 +2260,7 @@ void Lakeside::TimerHit()
             // Lakeside will abort move if command received during move
             rc=updatePosition();
             IDSetNumber(&FocusAbsPosNP, NULL);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Focuser reached requested position %.f",FocusAbsPosN[0].value);
+            LOGF_INFO("Focuser reached requested position %.f",FocusAbsPosN[0].value);
         }
     }
 
@@ -2279,7 +2279,7 @@ void Lakeside::TimerHit()
     // IPS_ALERT - any alert situation generated
     if ( FocusAbsPosNP.s == IPS_ALERT )
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "TimerHit: Focuser state = IPS_ALERT");
+        LOG_DEBUG("TimerHit: Focuser state = IPS_ALERT");
     }
 
     SetTimer(POLLMS);
@@ -2312,12 +2312,12 @@ bool Lakeside::GetLakesideStatus()
             // Retry LAKESIDE_TIMEOUT_RETRIES times to make sure focuser
             // is not in between status returns
             count_timeouts++;
-            DEBUGF(INDI::Logger::DBG_DEBUG, "GetLakesideStatus: read buffer retry attempts : %d, error=%s", count_timeouts,errstr);
+            LOGF_DEBUG("GetLakesideStatus: read buffer retry attempts : %d, error=%s", count_timeouts,errstr);
 
             if (count_timeouts > LAKESIDE_TIMEOUT_RETRIES)
             {
                 tty_error_msg(rc, errstr, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "GetLakesideStatus: Timeout limit (%d) reached reading buffer. Error - %s", LAKESIDE_TIMEOUT_RETRIES, errstr);
+                LOGF_DEBUG("GetLakesideStatus: Timeout limit (%d) reached reading buffer. Error - %s", LAKESIDE_TIMEOUT_RETRIES, errstr);
 
                 // force a get focuser position update
                 rc=updatePosition();
@@ -2333,7 +2333,7 @@ bool Lakeside::GetLakesideStatus()
     // At this point, something has been returned from the buffer
     // Therefore, decode response
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "GetLakesideStatus: Read buffer contains : %s", resp);
+    LOGF_DEBUG("GetLakesideStatus: Read buffer contains : %s", resp);
 
     // decode the contents of the buffer (Temp & Pos are also updated)
     buffer_response=DecodeBuffer(resp);
@@ -2341,7 +2341,7 @@ bool Lakeside::GetLakesideStatus()
     // If DONE# then focuser has finished a move, so get position
     if ( buffer_response == 'D' )
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "GetLakesideStatus: Found DONE# after move request");
+        LOG_DEBUG("GetLakesideStatus: Found DONE# after move request");
 
         // update the current position
         rc = updatePosition();
@@ -2359,7 +2359,7 @@ bool Lakeside::GetLakesideStatus()
     {
         // get step position for update message
         rc = sscanf(resp, "P%5d#", &pos);
-        DEBUGF(INDI::Logger::DBG_SESSION, "Focuser Moving... position : %d",pos);
+        LOGF_INFO("Focuser Moving... position : %d",pos);
         // Update current position
         FocusAbsPosN[0].value = pos;
         IDSetNumber(&FocusAbsPosNP, NULL);
@@ -2371,7 +2371,7 @@ bool Lakeside::GetLakesideStatus()
     // Possible that Temperature response still in the buffer?
     if ( buffer_response == 'T' )
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "GetLakesideStatus: Temperature status response found - %s",resp);
+        LOGF_DEBUG("GetLakesideStatus: Temperature status response found - %s",resp);
         // return false as focuser is not known to be moving
 
         // IPS_IDLE turns off light, IPS_OK turns light green
@@ -2383,7 +2383,7 @@ bool Lakeside::GetLakesideStatus()
     // Possible that Temperature in K response still in the buffer?
     if ( buffer_response == 'K' )
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "GetLakesideStatus: Temperature in K status response found - %s",resp);
+        LOGF_DEBUG("GetLakesideStatus: Temperature in K status response found - %s",resp);
         // return false as focuser is not known to be moving
 
         // IPS_IDLE turns off light, IPS_OK turns light green
@@ -2393,7 +2393,7 @@ bool Lakeside::GetLakesideStatus()
     }
 
     // At this point, something else is returned
-    DEBUGF(INDI::Logger::DBG_DEBUG, "GetLakesideStatus: Unknown response from buffer read : (%s)",resp);
+    LOGF_DEBUG("GetLakesideStatus: Unknown response from buffer read : (%s)",resp);
     FocusAbsPosNP.s = IPS_OK;
 
     // return false as focuser is not known to be moving
@@ -2415,13 +2415,13 @@ bool Lakeside::AbortFocuser()
         // IPS_IDLE turns off light, IPS_OK turns light green
         FocusAbsPosNP.s = IPS_IDLE;
         FocusAbsPosNP.s = IPS_OK;
-        DEBUG(INDI::Logger::DBG_SESSION, "Focuser Abort Sent");
+        LOG_INFO("Focuser Abort Sent");
         return true;
     }
     else
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "AbortFocuser: Write command (%s) failed - %s",cmd, errstr);
+        LOGF_ERROR("AbortFocuser: Write command (%s) failed - %s",cmd, errstr);
         return false;
     }
 }

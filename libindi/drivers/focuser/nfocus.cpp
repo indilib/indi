@@ -182,7 +182,7 @@ bool NFocus::updateProperties()
         defineNumber(&SyncNP);
 
         if (GetFocusParams())
-            DEBUG(INDI::Logger::DBG_SESSION, "NFocus is ready.");
+            LOG_INFO("NFocus is ready.");
     }
     else
     {
@@ -213,7 +213,7 @@ int NFocus::SendCommand(char *rf_cmd)
     int nbytes_written = 0, err_code = 0;
     char nfocus_error[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", rf_cmd);
+    LOGF_DEBUG("CMD <%s>", rf_cmd);
 
     if (!isSimulation())
     {
@@ -222,7 +222,7 @@ int NFocus::SendCommand(char *rf_cmd)
         if ((err_code = tty_write(PortFD, rf_cmd, strlen(rf_cmd) + 1, &nbytes_written) != TTY_OK))
         {
             tty_error_msg(err_code, nfocus_error, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", nfocus_error);
+            LOGF_ERROR("TTY error detected: %s", nfocus_error);
             return -1;
         }
     }
@@ -234,7 +234,7 @@ int NFocus::SendRequest(char *rf_cmd)
 {
     int nbytes_read = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", rf_cmd);
+    LOGF_DEBUG("CMD <%s>", rf_cmd);
 
     SendCommand(rf_cmd);
 
@@ -248,7 +248,7 @@ int NFocus::SendRequest(char *rf_cmd)
         rf_cmd[nbytes_read - 1] = 0;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", rf_cmd);
+    LOGF_DEBUG("RES <%s>", rf_cmd);
 
     return 0;
 }
@@ -265,13 +265,13 @@ int NFocus::ReadResponse(char *buf, int nbytes, int timeout)
         if ((err_code = tty_read(PortFD, buf + totalBytesRead, nbytes - totalBytesRead, timeout, &bytesRead)) != TTY_OK)
         {
             tty_error_msg(err_code, nfocus_error, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", nfocus_error);
+            LOGF_ERROR("TTY error detected: %s", nfocus_error);
             return -1;
         }
 
         if (bytesRead < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "TTY error detected: Bytes read < 0");
+            LOG_ERROR("TTY error detected: Bytes read < 0");
             return -1;
         }
 
@@ -280,7 +280,7 @@ int NFocus::ReadResponse(char *buf, int nbytes, int timeout)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", buf);
+    LOGF_DEBUG("RES <%s>", buf);
 
     /*
     if (isDebug())
@@ -401,7 +401,7 @@ int NFocus::moveNFInward(const double *value)
     rf_cmd[0] = 0;
 
     int newval = (int)(currentInOutScalar * (*value));
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Moving %d real steps but virtually counting %.0f", newval, *value);
+    LOGF_DEBUG("Moving %d real steps but virtually counting %.0f", newval, *value);
 
     if (!isSimulation())
     {
@@ -851,7 +851,7 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
                 return false;
             }
 
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser sycned to %g ticks", new_apos);
+            LOGF_DEBUG("Focuser sycned to %g ticks", new_apos);
             SyncN[0].value = new_apos;
             SyncNP.s       = IPS_OK;
             IDSetNumber(&SyncNP, nullptr);
@@ -924,7 +924,7 @@ IPState NFocus::MoveAbsFocuser(uint32_t targetTicks)
     int ret         = -1;
     double new_apos = targetTicks;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser is moving to requested position %d", targetTicks);
+    LOGF_DEBUG("Focuser is moving to requested position %d", targetTicks);
 
     if ((ret = setNFAbsolutePosition(&new_apos)) < 0)
     {

@@ -110,14 +110,14 @@ bool LX200ZEQ25::checkConnection()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing IOptron using :V# CMD...");
+    LOG_DEBUG("Initializing IOptron using :V# CMD...");
 
     for (int i = 0; i < 2; i++)
     {
         if ((errcode = tty_write(PortFD, initCMD, 3, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             nanosleep(&timeout, NULL);
             continue;
         }
@@ -125,7 +125,7 @@ bool LX200ZEQ25::checkConnection()
         if ((errcode = tty_read_section(PortFD, response, '#', 3, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             nanosleep(&timeout, NULL);
             continue;
         }
@@ -133,7 +133,7 @@ bool LX200ZEQ25::checkConnection()
         if (nbytes_read > 0)
         {
             response[nbytes_read] = '\0';
-            DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+            LOGF_DEBUG("RES (%s)", response);
 
             if (!strcmp(response, "V1.00#"))
                 return true;
@@ -155,7 +155,7 @@ bool LX200ZEQ25::ISNewSwitch(const char *dev, const char *name, ISState *states,
             //if (HomeS[0].s == ISS_ON)
             if (isZEQ25Home())
             {
-                DEBUG(INDI::Logger::DBG_WARNING, "Telescope is already homed.");
+                LOG_WARN("Telescope is already homed.");
                 HomeS[0].s = ISS_ON;
                 HomeSP.s   = IPS_OK;
                 IDSetSwitch(&HomeSP, nullptr);
@@ -165,12 +165,12 @@ bool LX200ZEQ25::ISNewSwitch(const char *dev, const char *name, ISState *states,
             if (gotoZEQ25Home() < 0)
             {
                 HomeSP.s = IPS_ALERT;
-                DEBUG(INDI::Logger::DBG_ERROR, "Error slewing to home position.");
+                LOG_ERROR("Error slewing to home position.");
             }
             else
             {
                 HomeSP.s = IPS_BUSY;
-                DEBUG(INDI::Logger::DBG_SESSION, "Slewing to home position.");
+                LOG_INFO("Slewing to home position.");
             }
 
             IDSetSwitch(&HomeSP, nullptr);
@@ -250,28 +250,28 @@ bool LX200ZEQ25::isSlewComplete()
     //strncpy(cmd, ":SE#", 16);
     const char *cmd = ":SE#";
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ((errcode = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
     if ((errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         tcflush(PortFD, TCIFLUSH);
 
@@ -281,7 +281,7 @@ bool LX200ZEQ25::isSlewComplete()
             return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    LOGF_ERROR("Only received #%d bytes, expected 1.", nbytes_read);
     return false;
 }
 
@@ -294,39 +294,39 @@ bool LX200ZEQ25::getMountInfo()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
     if ((errcode = tty_read(PortFD, response, 4, 3, &nbytes_read)))
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if (nbytes_read == 4)
         {
             if (!strcmp(response, "8407"))
-                DEBUG(INDI::Logger::DBG_SESSION, "Detected iEQ45/iEQ30 Mount.");
+                LOG_INFO("Detected iEQ45/iEQ30 Mount.");
             else if (!strcmp(response, "8497"))
-                DEBUG(INDI::Logger::DBG_SESSION, "Detected iEQ45 AA Mount.");
+                LOG_INFO("Detected iEQ45 AA Mount.");
             else if (!strcmp(response, "8408"))
-                DEBUG(INDI::Logger::DBG_SESSION, "Detected ZEQ25 Mount.");
+                LOG_INFO("Detected ZEQ25 Mount.");
             else if (!strcmp(response, "8498"))
-                DEBUG(INDI::Logger::DBG_SESSION, "Detected SmartEQ Mount.");
+                LOG_INFO("Detected SmartEQ Mount.");
             else
-                DEBUG(INDI::Logger::DBG_SESSION, "Unknown mount detected.");
+                LOG_INFO("Unknown mount detected.");
 
             tcflush(PortFD, TCIFLUSH);
 
@@ -334,7 +334,7 @@ bool LX200ZEQ25::getMountInfo()
         }
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 4.", nbytes_read);
+    LOGF_ERROR("Only received #%d bytes, expected 4.", nbytes_read);
     return false;
 }
 
@@ -371,7 +371,7 @@ void LX200ZEQ25::getBasicData()
         SetParked(isMountParked);
 
     // Is home?
-    DEBUG(INDI::Logger::DBG_DEBUG, "Checking if mount is at home position...");
+    LOG_DEBUG("Checking if mount is at home position...");
     if (isZEQ25Home())
     {
         HomeS[0].s = ISS_ON;
@@ -379,7 +379,7 @@ void LX200ZEQ25::getBasicData()
         IDSetSwitch(&HomeSP, nullptr);
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Getting guiding rate...");
+    LOG_DEBUG("Getting guiding rate...");
     double guideRate = 0;
     if (getZEQ25GuideRate(&guideRate) == TTY_OK)
     {
@@ -440,7 +440,7 @@ bool LX200ZEQ25::Goto(double r, double d)
         if (slewZEQ25() == false)
         {
             EqNP.s = IPS_ALERT;
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
+            LOGF_DEBUG("Error Slewing to JNow RA %s - DEC %s\n", RAStr, DecStr);
             slewError(1);
             return false;
         }
@@ -449,7 +449,7 @@ bool LX200ZEQ25::Goto(double r, double d)
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -495,33 +495,33 @@ bool LX200ZEQ25::SetSlewRate(int index)
 
     snprintf(cmd, 8, ":SR%d#", index + 1);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
     if ((errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         tcflush(PortFD, TCIFLUSH);
 
         return (response[0] == '1');
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    LOGF_ERROR("Only received #%d bytes, expected 1.", nbytes_read);
     return false;
 }
 
@@ -539,26 +539,26 @@ int LX200ZEQ25::getZEQ25MoveRate()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return -1;
     }
 
     if ((errcode = tty_read_section(PortFD, response, '#', 3, &nbytes_read)))
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return -1;
     }
 
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         tcflush(PortFD, TCIFLUSH);
 
@@ -569,7 +569,7 @@ int LX200ZEQ25::getZEQ25MoveRate()
         return moveRate;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 2.", nbytes_read);
+    LOGF_ERROR("Only received #%d bytes, expected 2.", nbytes_read);
     return -1;
 }
 
@@ -584,24 +584,24 @@ bool LX200ZEQ25::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", (float)JD);
+    LOGF_DEBUG("New JD is %f", (float)JD);
 
     // Set Local Time
     if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+        LOG_ERROR("Error setting local time.");
         return false;
     }
 
     if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+        LOG_ERROR("Error setting local date.");
         return false;
     }
 
     if (setZEQ25UTCOffset(utc_offset) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+        LOG_ERROR("Error setting UTC Offset.");
         return false;
     }
 
@@ -624,13 +624,13 @@ bool LX200ZEQ25::updateLocation(double latitude, double longitude, double elevat
 
     if (!isSimulation() && setZEQ25Longitude(final_longitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        LOG_ERROR("Error setting site longitude coordinates");
         return false;
     }
 
     if (!isSimulation() && setZEQ25Latitude(latitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        LOG_ERROR("Error setting site latitude coordinates");
         return false;
     }
 
@@ -638,7 +638,7 @@ bool LX200ZEQ25::updateLocation(double latitude, double longitude, double elevat
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
+    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -741,22 +741,22 @@ bool LX200ZEQ25::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         case MOTION_START:
             if (!isSimulation() && moveZEQ25To(current_move) < 0)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+                LOG_ERROR("Error setting N/S motion direction.");
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.",
+                LOGF_INFO("Moving toward %s.",
                        (current_move == LX200_NORTH) ? "North" : "South");
             break;
 
         case MOTION_STOP:
             if (!isSimulation() && haltZEQ25Movement() < 0)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+                LOG_ERROR("Error stopping N/S motion.");
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                LOGF_INFO("Movement toward %s halted.",
                        (current_move == LX200_NORTH) ? "North" : "South");
             break;
     }
@@ -773,21 +773,21 @@ bool LX200ZEQ25::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         case MOTION_START:
             if (!isSimulation() && moveZEQ25To(current_move) < 0)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
+                LOG_ERROR("Error setting W/E motion direction.");
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
+                LOGF_INFO("Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
             break;
 
         case MOTION_STOP:
             if (!isSimulation() && haltZEQ25Movement() < 0)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+                LOG_ERROR("Error stopping W/E motion.");
                 return false;
             }
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                LOGF_INFO("Movement toward %s halted.",
                        (current_move == LX200_WEST) ? "West" : "East");
             break;
     }
@@ -863,7 +863,7 @@ int LX200ZEQ25::setZEQ25Park()
     int error_type;
     int nbytes_write = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", ":MP1#");
+    LOGF_DEBUG("CMD <%s>", ":MP1#");
 
     if ((error_type = tty_write_string(PortFD, ":MP1#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -877,7 +877,7 @@ int LX200ZEQ25::setZEQ25UnPark()
     int error_type;
     int nbytes_write = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", ":MP0#");
+    LOGF_DEBUG("CMD <%s>", ":MP0#");
 
     if ((error_type = tty_write_string(PortFD, ":MP0#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -900,33 +900,33 @@ bool LX200ZEQ25::isZEQ25Parked()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
     if ((errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         tcflush(PortFD, TCIFLUSH);
 
         return (response[0] == '1');
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    LOGF_ERROR("Only received #%d bytes, expected 1.", nbytes_read);
     return false;
 }
 
@@ -955,7 +955,7 @@ bool LX200ZEQ25::SetCurrentPark()
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
+    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr,
            AltStr);
 
     SetAxis1Park(parkAZ);
@@ -984,7 +984,7 @@ bool LX200ZEQ25::Park()
     fs_sexa(AzStr, parkAz, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
+    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
@@ -1006,21 +1006,21 @@ bool LX200ZEQ25::Park()
 
     if (setObjectRA(PortFD, equatorialPos.ra) < 0 || (setObjectDEC(PortFD, equatorialPos.dec)) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/Dec.");
+        LOG_ERROR("Error setting RA/Dec.");
         return false;
     }
 
     /* Slew reads the '0', that is not the end of the slew */
     if (slewZEQ25() == false)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to Az %s - Alt %s", AzStr, AltStr);
+        LOGF_ERROR("Error Slewing to Az %s - Alt %s", AzStr, AltStr);
         slewError(1);
         return false;
     }
 
     EqNP.s     = IPS_BUSY;
     TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
+    LOG_INFO("Parking is in progress...");
 
     return true;
 }
@@ -1032,7 +1032,7 @@ bool LX200ZEQ25::UnPark()
     {
         if (setZEQ25UnPark() < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "UnParking Failed.");
+            LOG_ERROR("UnParking Failed.");
             return false;
         }
     }
@@ -1045,7 +1045,7 @@ bool LX200ZEQ25::UnPark()
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAz, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Syncing to parked coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+    LOGF_DEBUG("Syncing to parked coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
 
     ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
@@ -1067,13 +1067,13 @@ bool LX200ZEQ25::UnPark()
 
     if (setObjectRA(PortFD, equatorialPos.ra) < 0 || (setObjectDEC(PortFD, equatorialPos.dec)) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
+        LOG_ERROR("Error setting RA/DEC.");
         return false;
     }
 
     if (Sync(equatorialPos.ra, equatorialPos.dec) == false)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Sync failed.");
+        LOG_WARN("Sync failed.");
         return false;
     }
 #endif
@@ -1102,7 +1102,7 @@ bool LX200ZEQ25::ReadScopeStatus()
         {
             HomeS[0].s = ISS_ON;
             HomeSP.s   = IPS_OK;
-            DEBUG(INDI::Logger::DBG_SESSION, "Telescope arrived at home position.");
+            LOG_INFO("Telescope arrived at home position.");
             IDSetSwitch(&HomeSP, nullptr);
         }
     }
@@ -1113,7 +1113,7 @@ bool LX200ZEQ25::ReadScopeStatus()
         if (isSlewComplete())
         {
             TrackState = SCOPE_TRACKING;
-            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
+            LOG_INFO("Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -1216,7 +1216,7 @@ int LX200ZEQ25::getZEQ25GuideRate(double *rate)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if (isSimulation())
     {
@@ -1230,14 +1230,14 @@ int LX200ZEQ25::getZEQ25GuideRate(double *rate)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return errcode;
         }
 
         if ((errcode = tty_read(PortFD, response, 4, 3, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return errcode;
         }
     }
@@ -1245,7 +1245,7 @@ int LX200ZEQ25::getZEQ25GuideRate(double *rate)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         int rate_num;
 
@@ -1257,12 +1257,12 @@ int LX200ZEQ25::getZEQ25GuideRate(double *rate)
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Malformed result (%s).", response);
+            LOGF_ERROR("Error: Malformed result (%s).", response);
             return -1;
         }
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    LOGF_ERROR("Only received #%d bytes, expected 1.", nbytes_read);
     return -1;
 }
 
@@ -1278,7 +1278,7 @@ int LX200ZEQ25::setZEQ25GuideRate(double rate)
     int num = rate * 100;
     snprintf(cmd, 16, ":RG%03d#", num);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if (isSimulation())
     {
@@ -1292,14 +1292,14 @@ int LX200ZEQ25::setZEQ25GuideRate(double rate)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return errcode;
         }
 
         if ((errcode = tty_read(PortFD, response, 1, 3, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return errcode;
         }
     }
@@ -1307,13 +1307,13 @@ int LX200ZEQ25::setZEQ25GuideRate(double rate)
     if (nbytes_read > 0)
     {
         response[nbytes_read] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         tcflush(PortFD, TCIFLUSH);
         return true;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
+    LOGF_ERROR("Only received #%d bytes, expected 1.", nbytes_read);
     return -1;
 }
 
@@ -1339,7 +1339,7 @@ int LX200ZEQ25::SendPulseCmd(int direction, int duration_msec)
             return 1;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tty_write_string(PortFD, cmd, &nbytes_write);
 

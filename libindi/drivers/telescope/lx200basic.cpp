@@ -118,7 +118,7 @@ LX200Basic::LX200Basic()
 
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from LX200 Basic device...");
+    LOG_DEBUG("Initializing from LX200 Basic device...");
 }
 
 /**************************************************************************************
@@ -203,7 +203,7 @@ bool LX200Basic::Handshake()
 {
     if (getLX200RA(PortFD, &currentRA) != 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error communication with telescope.");
+        LOG_ERROR("Error communication with telescope.");
         return false;
     }
 
@@ -247,7 +247,7 @@ bool LX200Basic::ReadScopeStatus()
         if (isSlewComplete())
         {
             TrackState = SCOPE_TRACKING;
-            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
+            LOG_INFO("Slew is complete. Tracking...");
         }
     }
 
@@ -311,7 +311,7 @@ bool LX200Basic::Goto(double r, double d)
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -339,7 +339,7 @@ bool LX200Basic::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
+    LOG_INFO("Synchronization successful.");
 
     EqNP.s     = IPS_OK;
 
@@ -380,7 +380,7 @@ bool LX200Basic::Abort()
 {
     if (!isSimulation() && abortSlew(PortFD) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort slew.");
+        LOG_ERROR("Failed to abort slew.");
         return false;
     }
 
@@ -388,7 +388,7 @@ bool LX200Basic::Abort()
     TrackState = SCOPE_IDLE;
     IDSetNumber(&EqNP, nullptr);
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Slew aborted.");
+    LOG_INFO("Slew aborted.");
     return true;
 }
 

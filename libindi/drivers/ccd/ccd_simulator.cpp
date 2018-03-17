@@ -292,7 +292,7 @@ bool CCDSim::StartExposure(float duration)
 {
     if (std::isnan(RA) && std::isnan(Dec))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Telescope coordinates missing. Make sure telescope is connected and its name is set in CCD Options.");
+        LOG_ERROR("Telescope coordinates missing. Make sure telescope is connected and its name is set in CCD Options.");
         return false;
     }
 
@@ -450,7 +450,7 @@ void CCDSim::TimerHit()
     {
         if (fabs(TemperatureRequest - TemperatureN[0].value) <= 0.5)
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Temperature reached requested value %.2f degrees C", TemperatureRequest);
+            LOGF_INFO("Temperature reached requested value %.2f degrees C", TemperatureRequest);
             TemperatureN[0].value = TemperatureRequest;
             TemperatureNP.s       = IPS_OK;
         }
@@ -639,7 +639,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         radius = radius / 60; //  convert to arcminutes
 
 #if 0
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Lookup radius %4.2f", radius);
+        LOGF_DEBUG("Lookup radius %4.2f", radius);
 #endif
 
         //  A saturationmag star saturates in one second
@@ -671,7 +671,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
             //sprintf(gsccmd,"gsc -c %8.6f %+8.6f -r 120 -m 0 9.1",rad+PEOffset,decPE);
             sprintf(gsccmd, "gsc -c %8.6f %+8.6f -r %4.1f -m 0 %4.2f -n 3000", rad + PEOffset, cameradec, radius,
                     lookuplimit);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "%s", gsccmd);
+            LOGF_DEBUG("%s", gsccmd);
             pp = popen(gsccmd, "r");
             if (pp != nullptr)
             {
@@ -739,8 +739,8 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
                         drawn += rc;
                         if (rc == 1)
                         {
-                            //DEBUGF(INDI::Logger::DBG_DEBUG, "star %s scope %6.4f %6.4f star %6.4f %6.4f ccd %6.2f %6.2f",id,rad,decPE,ra,dec,ccdx,ccdy);
-                            //DEBUGF(INDI::Logger::DBG_DEBUG, "star %s ccd %6.2f %6.2f",id,ccdx,ccdy);
+                            //LOGF_DEBUG("star %s scope %6.4f %6.4f star %6.4f %6.4f ccd %6.2f %6.2f",id,rad,decPE,ra,dec,ccdx,ccdy);
+                            //LOGF_DEBUG("star %s ccd %6.2f %6.2f",id,ccdx,ccdy);
                         }
                     }
                 }
@@ -748,11 +748,11 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error looking up stars, is gsc installed with appropriate environment variables set ??");
+                LOG_ERROR("Error looking up stars, is gsc installed with appropriate environment variables set ??");
             }
             if (drawn == 0)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Got no stars, is gsc installed with appropriate environment variables set ??");
+                LOG_ERROR("Got no stars, is gsc installed with appropriate environment variables set ??");
             }
         }
         //fprintf(stderr,"Got %d stars from %d lines drew %d\n",stars,lines,drawn);
@@ -1191,7 +1191,7 @@ bool CCDSim::ISSnoopDevice(XMLEle *root)
                 EqPEN[AXIS_DE].value = newdec;
                 IDSetNumber(&EqPENP, nullptr);
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "raPE %g  decPE %g Snooped raPE %g  decPE %g", raPE, decPE, newra, newdec);
+                LOGF_DEBUG("raPE %g  decPE %g Snooped raPE %g  decPE %g", raPE, decPE, newra, newdec);
 
                 return true;
             }
@@ -1266,7 +1266,7 @@ bool CCDSim::UpdateCCDBin(int hor, int ver)
 {
     if (hor == 3 || ver == 3)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "3x3 binning is not supported.");
+        LOG_ERROR("3x3 binning is not supported.");
         return false;
     }
 

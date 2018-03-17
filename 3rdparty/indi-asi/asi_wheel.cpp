@@ -185,7 +185,7 @@ ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate)
     setDeviceName(str);
     setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "FW ID: %d FW Name: %s enumerate? %s", id, info.Name, enumerate ? "true":"false");
+    LOGF_DEBUG("FW ID: %d FW Name: %s enumerate? %s", id, info.Name, enumerate ? "true":"false");
 }
 
 ASIWHEEL::~ASIWHEEL()
@@ -202,7 +202,7 @@ bool ASIWHEEL::Connect()
 {
     if (isSimulation())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Simulation connected.");
+        LOG_INFO("Simulation connected.");
         fw_id = 0;
     }
     else if (fw_id >= 0)
@@ -210,7 +210,7 @@ bool ASIWHEEL::Connect()
         EFW_ERROR_CODE result = EFWOpen(fw_id);
         if (result != EFW_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWOpen() = %d", __FUNCTION__, result);
+            LOGF_ERROR("%s(): EFWOpen() = %d", __FUNCTION__, result);
             return false;
         }
 
@@ -218,7 +218,7 @@ bool ASIWHEEL::Connect()
         result = EFWGetProperty(fw_id, &info);
         if (result != EFW_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWGetProperty() = %d", __FUNCTION__, result);
+            LOGF_ERROR("%s(): EFWGetProperty() = %d", __FUNCTION__, result);
             return false;
         }
         FilterSlotN[0].min = 1;
@@ -229,15 +229,15 @@ bool ASIWHEEL::Connect()
         result = EFWGetPosition(fw_id, &current);
         if (result != EFW_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWGetPosition() = %d", __FUNCTION__, result);
+            LOGF_ERROR("%s(): EFWGetPosition() = %d", __FUNCTION__, result);
             return false;
         }
         SelectFilter(current + 1);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s(): current filter position %d", __FUNCTION__, CurrentFilter);
+        LOGF_DEBUG("%s(): current filter position %d", __FUNCTION__, CurrentFilter);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
+        LOGF_INFO("%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
         return false;
     }
     return true;
@@ -249,20 +249,20 @@ bool ASIWHEEL::Disconnect()
 
     if (isSimulation())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Simulation disconnected.");
+        LOG_INFO("Simulation disconnected.");
     }
     else if (fw_id >= 0)
     {
         result = EFWClose(fw_id);
         if (result != EFW_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWClose() = %d", __FUNCTION__, result);
+            LOGF_ERROR("%s(): EFWClose() = %d", __FUNCTION__, result);
             return false;
         }
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
+        LOGF_INFO("%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
         return false;
     }
     // NOTE: do not unset fw_id here, otherwise we cannot reconnect without reloading the driver
@@ -288,14 +288,14 @@ int ASIWHEEL::QueryFilter()
         result = EFWGetPosition(fw_id, &CurrentFilter);
         if (result != EFW_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWGetPosition() = %d", __FUNCTION__, result);
+            LOGF_ERROR("%s(): EFWGetPosition() = %d", __FUNCTION__, result);
             return 0;
         }
         CurrentFilter++;
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
+        LOGF_INFO("%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
         return 0;
     }
 
@@ -326,19 +326,19 @@ bool ASIWHEEL::SelectFilter(int f)
             } while (result == EFW_SUCCESS && CurrentFilter != TargetFilter);
             if (result != EFW_SUCCESS)
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWSetPosition() = %d", __FUNCTION__, result);
+                LOGF_ERROR("%s(): EFWSetPosition() = %d", __FUNCTION__, result);
                 return false;
             }
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s(): EFWSetPosition() = %d", __FUNCTION__, result);
+            LOGF_ERROR("%s(): EFWSetPosition() = %d", __FUNCTION__, result);
             return false;
         }
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
+        LOGF_INFO("%s(): no filter wheel known, fw_id = %d", __FUNCTION__, fw_id);
         return false;
     }
     return true;

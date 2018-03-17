@@ -100,7 +100,7 @@ bool TCFS::initProperties()
         FocusRelPosN[0].max  = 2000;
         FocusRelPosN[0].step = FocusAbsPosN[0].step = 100;
         FocusRelPosN[0].value                       = 0;
-        DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S3 detected. Updating maximum position value to 9999.");
+        LOG_DEBUG("TCF-S3 detected. Updating maximum position value to 9999.");
     }
     else
     {
@@ -110,7 +110,7 @@ bool TCFS::initProperties()
         FocusRelPosN[0].max  = 2000;
         FocusRelPosN[0].step = FocusAbsPosN[0].step = 100;
         FocusRelPosN[0].value                       = 0;
-        DEBUG(INDI::Logger::DBG_DEBUG, "TCF-S detected. Updating maximum position value to 7000.");
+        LOG_DEBUG("TCF-S detected. Updating maximum position value to 7000.");
     }
 
     setDynamicPropertiesBehavior(false, false);
@@ -166,7 +166,7 @@ bool TCFS::Handshake()
 {
     if (isSimulation())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "TCF-S: Simulating connection.");
+        LOG_INFO("TCF-S: Simulating connection.");
         currentPosition = simulated_position;
         return true;
     }
@@ -183,13 +183,13 @@ bool TCFS::Handshake()
         if (strcmp(response, "!") == 0)
         {
             tcflush(PortFD, TCIOFLUSH);
-            DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected to TCF-S Focuser in Manual Mode.");
+            LOG_INFO("Successfully connected to TCF-S Focuser in Manual Mode.");
             return true;
         }
     }
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUG(INDI::Logger::DBG_ERROR, "Failed connection to TCF-S Focuser.");
+    LOG_ERROR("Failed connection to TCF-S Focuser.");
 
     return false;
 }
@@ -304,7 +304,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             if (svp)
             {
                 svp->s = IPS_IDLE;
-                DEBUG(INDI::Logger::DBG_WARNING, "Focuser is still in sleep mode. Wake up in order to issue commands.");
+                LOG_WARN("Focuser is still in sleep mode. Wake up in order to issue commands.");
                 IDSetSwitch(svp, nullptr);
             }
             return true;
@@ -364,7 +364,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             {
                 FocusGotoSP->s = IPS_IDLE;
                 IDSetSwitch(FocusGotoSP, nullptr);
-                DEBUG(INDI::Logger::DBG_WARNING, "The focuser can only be moved in Manual mode.");
+                LOG_WARN("The focuser can only be moved in Manual mode.");
                 return false;
             }
 
@@ -445,7 +445,7 @@ IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     if (FocusModeSP->sp[0].s != ISS_ON)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "The focuser can only be moved in Manual mode.");
+        LOG_WARN("The focuser can only be moved in Manual mode.");
         return IPS_ALERT;
     }
 
@@ -545,7 +545,7 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
             break;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+    LOGF_DEBUG("CMD <%s>", command);
 
     if (isSimulation())
         return true;
@@ -555,7 +555,7 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
     if ((err_code = tty_write(PortFD, command, strlen(command), &nbytes_written) != TTY_OK))
     {
         tty_error_msg(err_code, tcfs_error, TCFS_ERROR_BUFFER);
-        DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", tcfs_error);
+        LOGF_ERROR("TTY error detected: %s", tcfs_error);
         return false;
     }
 
@@ -602,7 +602,7 @@ void TCFS::TimerHit()
                 IDSetSwitch(FocusGotoSP, nullptr);
                 IDSetNumber(&FocusAbsPosNP, nullptr);
 
-                DEBUG(INDI::Logger::DBG_SESSION, "Focuser moved to center position.");
+                LOG_INFO("Focuser moved to center position.");
             }
         }
     }
@@ -642,7 +642,7 @@ void TCFS::TimerHit()
             // Ignore error
             if (strstr(response, "ER") != nullptr)
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Received error: %s", response);
+                LOGF_DEBUG("Received error: %s", response);
                 SetTimer(POLLMS);
                 return;
             }
@@ -652,7 +652,7 @@ void TCFS::TimerHit()
 
             if (strcmp(response, "*") == 0)
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Moving focuser %d steps to position %d.", targetTicks, targetPosition);
+                LOGF_DEBUG("Moving focuser %d steps to position %d.", targetTicks, targetPosition);
                 FocusAbsPosNP.s = IPS_OK;
                 FocusRelPosNP.s = IPS_OK;
                 FocusGotoSP->s  = IPS_OK;
@@ -663,7 +663,7 @@ void TCFS::TimerHit()
             else
             {
                 FocusAbsPosNP.s = IPS_ALERT;
-                DEBUGF(INDI::Logger::DBG_ERROR, "Unable to read response from focuser #%s#.", response);
+                LOGF_ERROR("Unable to read response from focuser #%s#.", response);
                 IDSetNumber(&FocusAbsPosNP, nullptr);
             }
             break;
@@ -719,7 +719,7 @@ bool TCFS::read_tcfs(char *response, bool silent)
         if (!silent)
         {
             tty_error_msg(err_code, err_msg, 32);
-            DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", err_msg);
+            LOGF_ERROR("TTY error detected: %s", err_msg);
         }
 
         return false;
@@ -728,7 +728,7 @@ bool TCFS::read_tcfs(char *response, bool silent)
     // Remove LF & CR
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     return true;
 }

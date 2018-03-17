@@ -180,11 +180,11 @@ bool RTLSDR::Connect()
     int r = rtlsdr_open(&rtl_dev, detectorIndex);
     if (r < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to open rtlsdr device index %d.", detectorIndex);
+        LOGF_ERROR("Failed to open rtlsdr device index %d.", detectorIndex);
 		return false;
 	}
 
-    DEBUG(INDI::Logger::DBG_SESSION, "RTL-SDR Detector connected successfully!");
+    LOG_INFO("RTL-SDR Detector connected successfully!");
 	// Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
     //SetTimer(POLLMS);
@@ -202,7 +202,7 @@ bool RTLSDR::Disconnect()
 	rtlsdr_close(rtl_dev);
 	free(continuum);
 	free(spectrum);
-	DEBUG(INDI::Logger::DBG_SESSION, "RTL-SDR Detector disconnected successfully!");
+	LOG_INFO("RTL-SDR Detector disconnected successfully!");
 	return true;
 }
 
@@ -351,7 +351,7 @@ void RTLSDR::TimerHit()
 		if(timeleft < 0.1)
 		{
 			/* We're done capturing */
-			DEBUG(INDI::Logger::DBG_SESSION, "Capture done, downloading data...");
+			LOG_INFO("Capture done, downloading data...");
 			grabData();
 			InCapture = false;
 			timeleft = 0.0;
@@ -402,7 +402,7 @@ void RTLSDR::grabData()
 	free(data8);
 	free(data48);
 
-	DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+	LOG_INFO("Download complete.");
 
 	// Let INDI::Detector know we're done filling the data buffers
 	CaptureComplete(&PrimaryDetector);
