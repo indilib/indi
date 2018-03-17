@@ -53,6 +53,7 @@ typedef struct
 static CamDriverInfo camInfos[] = { { "indi_gphoto_ccd", "GPhoto CCD", "GPhoto" },
                                     { "indi_canon_ccd", "Canon DSLR", "Canon" },
                                     { "indi_nikon_ccd", "Nikon DSLR", "Nikon" },
+                                    { "indi_pentax_ccd", "Pentax DSLR", "Pentax" },
                                     { NULL, NULL, NULL } };
 
 /**********************************************************
