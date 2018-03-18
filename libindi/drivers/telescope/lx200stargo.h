@@ -63,9 +63,8 @@ protected:
     // queries to the scope interface
     virtual bool sendQuery(const char* cmd, char* response);
     virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
-    virtual bool queryMountMotionStateShort();
     virtual bool queryFirmwareInfo(char *version);
-    virtual bool querySetSlewRate(TelescopeSlewRate rate);
+    virtual bool querySetTracking(bool enable);
 
     // helper functions
     virtual bool receive(char* buffer, int* bytes);
