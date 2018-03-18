@@ -101,7 +101,12 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
                 return false;
             int trackMode = IUFindOnSwitchIndex(&TrackModeSP);
 
-            bool result = SetTrackMode(trackMode);
+            bool result;
+            if (trackMode != 3) {
+                result = SetTrackMode(trackMode);
+            } else {
+                result = querySetTracking(false);
+            }
             if (result) TrackModeSP.s = IPS_OK;
             else TrackModeSP.s = IPS_ALERT;
 
@@ -130,6 +135,8 @@ bool LX200StarGo::initProperties()
     IUFillText(&MountFirmwareInfoT[0], "MOUNT_FIRMWARE_INFO", "Firmware", "");
     IUFillTextVector(&MountInfoTP, MountFirmwareInfoT, 1, getDeviceName(), "MOUNT_INFO", "Mount Info", INFO_TAB, IP_RO, 60, IPS_OK);
 
+    // overwrite the custom tracking mode button
+    IUFillSwitch(&TrackModeS[3], "TRACK_NONE", "None", ISS_OFF);
 
     return true;
 }
@@ -172,6 +179,10 @@ bool LX200StarGo::ReadScopeStatus()
     return result;
 }
 
+/**************************************************************************************
+**
+***************************************************************************************/
+
 bool LX200StarGo::UpdateMotionStatus() {
 
     int motorsState, speedState, nrTrackingSpeed = -1;
@@ -179,6 +190,10 @@ bool LX200StarGo::UpdateMotionStatus() {
 
     result = queryMountMotionState(&motorsState, &speedState, &nrTrackingSpeed);
 
+    // m = 0 both motors are OFF (no power)
+    // m = 1 RA motor OFF DEC motor ON
+    // m = 2 RA motor ON DEC motor OFF
+    // m = 3 both motors are ON
     switch (motorsState) {
     case 0:
         if (TrackState == SCOPE_PARKING) {
@@ -191,9 +206,55 @@ bool LX200StarGo::UpdateMotionStatus() {
         break;
     }
 
+    // Tracking speeds
+    // t = 0 no tracking at all
+    // t = 1 tracking at moon speed
+    // t = 2 tracking at sun speed
+    // t = 3 tracking at stars speed (sidereal speed)
+    switch (speedState) {
+    case 0:
+        if (TrackModeS[TRACK_CUSTOM].s != ISS_ON) {
+            IUResetSwitch(&TrackModeSP);
+            TrackModeS[TRACK_CUSTOM].s = ISS_ON;
+            TrackModeSP.s   = IPS_OK;
+            IDSetSwitch(&TrackModeSP, nullptr);
+        }
+        break;
+    case 1:
+        if (TrackModeS[TRACK_LUNAR].s != ISS_ON) {
+            IUResetSwitch(&TrackModeSP);
+            TrackModeS[TRACK_LUNAR].s = ISS_ON;
+            TrackModeSP.s   = IPS_OK;
+            IDSetSwitch(&TrackModeSP, nullptr);
+        }
+        break;
+    case 2:
+        if (TrackModeS[TRACK_SOLAR].s != ISS_ON) {
+            IUResetSwitch(&TrackModeSP);
+            TrackModeS[TRACK_SOLAR].s = ISS_ON;
+            TrackModeSP.s   = IPS_OK;
+            IDSetSwitch(&TrackModeSP, nullptr);
+        }
+        break;
+    case 3:
+        if (TrackModeS[TRACK_SIDEREAL].s != ISS_ON) {
+            IUResetSwitch(&TrackModeSP);
+            TrackModeS[TRACK_SIDEREAL].s = ISS_ON;
+            TrackModeSP.s   = IPS_OK;
+            IDSetSwitch(&TrackModeSP, nullptr);
+        }
+        break;
+    }
+
+    // No tracking speeds
+    // s = 0 GUIDE speed
+    // s = 1 CENTERING speed
+    // s = 2 FINDING speed
+    // s = 3 SLEWING speed
     switch (nrTrackingSpeed) {
     case 0:
         if (CurrentSlewRate != SLEW_GUIDE) {
+            IUResetSwitch(&SlewRateSP);
             CurrentSlewRate = SLEW_GUIDE;
             SlewRateS[SLEW_GUIDE].s = ISS_ON;
             SlewRateSP.s   = IPS_OK;
@@ -202,6 +263,7 @@ bool LX200StarGo::UpdateMotionStatus() {
         break;
     case 1:
         if (CurrentSlewRate != SLEW_CENTERING) {
+            IUResetSwitch(&SlewRateSP);
             CurrentSlewRate = SLEW_CENTERING;
             SlewRateS[SLEW_CENTERING].s = ISS_ON;
             SlewRateSP.s   = IPS_OK;
@@ -210,6 +272,7 @@ bool LX200StarGo::UpdateMotionStatus() {
         break;
     case 2:
         if (CurrentSlewRate != SLEW_FIND) {
+            IUResetSwitch(&SlewRateSP);
             CurrentSlewRate = SLEW_FIND;
             SlewRateS[SLEW_FIND].s = ISS_ON;
             SlewRateSP.s   = IPS_OK;
@@ -218,6 +281,7 @@ bool LX200StarGo::UpdateMotionStatus() {
         break;
     case 3:
         if (CurrentSlewRate != SLEW_MAX) {
+            IUResetSwitch(&SlewRateSP);
             CurrentSlewRate = SLEW_MAX;
             SlewRateS[SLEW_MAX].s = ISS_ON;
             SlewRateSP.s   = IPS_OK;
@@ -230,16 +294,6 @@ bool LX200StarGo::UpdateMotionStatus() {
     return result;
 }
 
-
-/**************************************************************************************
-**
-***************************************************************************************/
-
-bool LX200StarGo::querySetSlewRate(TelescopeSlewRate rate) {
-
-    LOGF_DEBUG("Setting slew rate to %d.", rate);
-    return true;
-}
 
 /**************************************************************************************
 **
@@ -285,6 +339,11 @@ bool LX200StarGo::syncHomePosition()
     return (result == TTY_OK);
 }
 
+
+/**************************************************************************************
+**
+***************************************************************************************/
+
 void LX200StarGo::getBasicData()
 {
     if (!isSimulation())
@@ -312,6 +371,9 @@ void LX200StarGo::getBasicData()
 }
 
 
+/**************************************************************************************
+**
+***************************************************************************************/
 bool LX200StarGo::sendScopeLocation()
 {
     if (isSimulation())
@@ -339,6 +401,11 @@ bool LX200StarGo::sendScopeLocation()
 
     return true;
 }
+
+
+/**************************************************************************************
+**
+***************************************************************************************/
 
 bool LX200StarGo::updateLocation(double latitude, double longitude, double elevation)
 {
@@ -414,6 +481,11 @@ int LX200StarGo::setSiteLatitude(double Lat)
     return (setStandardProcedure(PortFD, read_buffer));
 }
 
+
+/**************************************************************************************
+**
+***************************************************************************************/
+
 bool LX200StarGo::Park() {
     // in: :X362#
     // out: "pB#"
@@ -440,6 +512,7 @@ bool LX200StarGo::UnPark() {
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (sendQuery(":X370#", response) && strcmp(response, "p0#") == 0) {
         DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Scope Unparked.", getDeviceName());
+        TrackState = SCOPE_TRACKING;
         return true;
     } else {
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: Unpark failed.", getDeviceName());
@@ -469,23 +542,7 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response) {
 
 bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed) {
     // Command  - :X3C#
-    // responses
-    // m = 0 both motors are OFF (no power)
-    // m = 1 RA motor OFF DEC motor ON
-    // m = 2 RA motor ON DEC motor OFF
-    // m = 3 both motors are ON
-    //
-    // Tracking speeds
-    // t = 0 no tracking at all
-    // t = 1 tracking at moon speed
-    // t = 2 tracking at sun speed
-    // t = 3 tracking at stars speed (sidereal speed)
-    //
-    // No tracking speeds
-    // s = 0 GUIDE speed
-    // s = 1 CENTERING speed
-    // s = 2 FINDING speed
-    // s = 3 SLEWING speed
+
     flush();
     if (!transmit(":X3C#")) {
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send query mount motion state command.", getDeviceName());
@@ -510,29 +567,27 @@ bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* 
     (*speedState) = tempSpeedState;
     (*nrTrackingSpeed) = tempNrTrackingSpeed;
 
-    queryMountMotionStateShort();
     return true;
 }
 
+bool LX200StarGo::querySetTracking (bool enable) {
+    // Command tracking on  - :X122#
+    //         tracking off - :X120#
 
-bool LX200StarGo::queryMountMotionStateShort() {
-    // Command  - :X34#
-    // Response - :mxy# and :p2#
     flush();
-    if (!transmit(":X3C#")) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send :X34# query mount motion state command.", getDeviceName());
-        return false;
+    if (enable) {
+        if (!transmit(":X122#")) {
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send query for enable tracking.", getDeviceName());
+            return false;
+        }
+    } else {
+        if (!transmit(":X120#")) {
+            DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send query for disable tracking.", getDeviceName());
+            return false;
+        }
     }
-    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    int bytesReceived = 0;
-    if (!receive(response, &bytesReceived)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive :X34# query mount motion state response.", getDeviceName());
-        return false;
-    }
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Motion result: '%s'", getDeviceName(), response);
     return true;
 }
-
 
 bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo) {
 
