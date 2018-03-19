@@ -2,14 +2,6 @@
 
 set -x -e
 
-sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-
-sudo apt-get -qq update
-
-# try to use gcc5 for the build
-sudo apt-get -q -y install gcc-6 g++-6
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 60 --slave /usr/bin/g++ g++ /usr/bin/g++-6
-
 sudo apt-get -qq update
 
 sudo apt-get -q -y install \
