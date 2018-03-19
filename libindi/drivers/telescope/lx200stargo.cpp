@@ -157,6 +157,23 @@ bool LX200StarGo::updateProperties()
             MountFirmwareInfoT[0].text = firmwareInfo;
             defineText(&MountInfoTP);
         }
+        bool isParked, isSynched;
+        if (queryParkSync(&isParked, &isSynched)) {
+            if (isParked) {
+                TrackState = SCOPE_PARKED;
+                ParkS[0].s = ISS_ON;
+                ParkS[1].s = ISS_OFF;
+            } else {
+                ParkS[1].s = ISS_ON;
+                ParkS[0].s = ISS_OFF;
+            }
+            IDSetSwitch(&ParkSP, nullptr);
+            if (isSynched) {
+                SyncHomeS[0].s = ISS_ON;
+                SyncHomeSP.s = IPS_OK;
+                IDSetSwitch(&SyncHomeSP, nullptr);
+            }
+        }
     }
     else
     {
@@ -567,6 +584,38 @@ bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* 
     (*speedState) = tempSpeedState;
     (*nrTrackingSpeed) = tempNrTrackingSpeed;
 
+    return true;
+}
+
+bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched) {
+    // Command   - :X38#
+    // Answer unparked         - p0
+    // Answer at home position - p1
+    // Answer parked           - p2
+
+    int bytesReceived = 0;
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+    flush();
+    if (!transmit(":X38#")) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send get parking status request.", getDeviceName());
+        return false;
+    }
+    if (!receive(response, &bytesReceived)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get parking status response.", getDeviceName());
+        return false;
+    }
+    int answer = 0;
+    if (! sscanf(response, "p%01d", &answer)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Unexpected parking status response '%s'.", getDeviceName(), response);
+        return false;
+    }
+
+    switch (answer) {
+    case 0: (*isParked) = false; (*isSynched) = false; break;
+    case 1: (*isParked) = false; (*isSynched) = true; break;
+    case 2: (*isParked) = true; (*isSynched) = true; break;
+    }
     return true;
 }
 

@@ -65,6 +65,7 @@ protected:
     virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
     virtual bool queryFirmwareInfo(char *version);
     virtual bool querySetTracking(bool enable);
+    virtual bool queryParkSync(bool *isParked, bool *isSynched);
 
     // helper functions
     virtual bool receive(char* buffer, int* bytes);
