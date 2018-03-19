@@ -20,8 +20,7 @@
     reached at nemosoft@smcc.demon.nl.
 */
 
-#ifndef CCVT_TYPES_H
-#define CCVT_TYPES_H
+#pragma once
 
 typedef struct
 {
@@ -53,9 +52,11 @@ typedef struct
     unsigned char b;
 } PIXTYPE_rgb24;
 
-#define SAT(c) \
-	if (c & (~255)) { if (c < 0) c = 0; else c = 255; }
-
-
-
-#endif
+#define SAT(c)       \
+    if (c & (~255))  \
+    {                \
+        if (c < 0)   \
+            c = 0;   \
+        else         \
+            c = 255; \
+    }

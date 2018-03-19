@@ -9,14 +9,14 @@ if [ .${TRAVIS_BRANCH%_*} == '.drvi' ] ; then
         sudo apt-get -qq update
         sudo apt-get -q -y install libindi-dev
     else
-        brew install jochym/indi/libindi
+        brew install indilib/indi/libindi
     fi
 else
     # Build everything on master
     echo "==> Building INDI Core"
     mkdir -p build/libindi
     pushd build/libindi
-    cmake -DINDI_BUILD_UNITTESTS=ON -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../libindi/
+    cmake -DINDI_BUILD_UNITTESTS=ON -DCMAKE_INSTALL_PREFIX=/usr/local/ . ../../libindi/ -DFIX_WARNINGS=ON -DCMAKE_BUILD_TYPE=$1
     make
     sudo make install
     popd

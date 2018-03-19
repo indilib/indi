@@ -384,9 +384,9 @@ std::string AspenEthernetIo::GetNetworkSettings()
    // with the pretty formatting.  g++ doesn't
    // seem to have full regex support
     //make the format pretty
-//    std::tr1::regex rx("[\"\\}\\{ ]");
+//    std::regex rx("[\"\\}\\{ ]");
 //    std::string replacement("");
-//    info = std::tr1::regex_replace(info, rx, replacement);
+//    info = std::regex_replace(info, rx, replacement);
 
     return info;
 }

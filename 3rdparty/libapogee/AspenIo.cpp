@@ -34,11 +34,11 @@ AspenIo::AspenIo( CamModel::InterfaceType type,
     switch( m_type )
     {
         case CamModel::ETHERNET:
-              m_Interface = std::tr1::shared_ptr<ICamIo>( new AspenEthernetIo( deviceAddr ) );
+              m_Interface = std::shared_ptr<ICamIo>( new AspenEthernetIo( deviceAddr ) );
         break;
 
         case CamModel::USB:
-            m_Interface = std::tr1::shared_ptr<ICamIo>( new AspenUsbIo( deviceAddr ) );
+            m_Interface = std::shared_ptr<ICamIo>( new AspenUsbIo( deviceAddr ) );
         break;
 
         default:
@@ -73,7 +73,7 @@ void AspenIo::Program(const std::string & FilenameFpga,
          __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-      std::tr1::dynamic_pointer_cast<AspenUsbIo>(m_Interface)->Program(
+      std::dynamic_pointer_cast<AspenUsbIo>(m_Interface)->Program(
           FilenameFpga, FilenameFx2, FilenameDescriptor, FilenameWebPage,
           FilenameWebServer, FilenameWebCfg, Print2StdOut );
 }
@@ -115,7 +115,7 @@ std::string AspenIo::GetMacAddress()
     }
 
     std::string result;
-    std::tr1::dynamic_pointer_cast<AspenEthernetIo>(
+    std::dynamic_pointer_cast<AspenEthernetIo>(
             m_Interface)->GetMacAddress( result );
 
     return result;
@@ -132,7 +132,7 @@ void AspenIo::WriteStrDatabase( const CamInfo::StrDb & info )
          __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    std::tr1::dynamic_pointer_cast<AspenUsbIo>(
+    std::dynamic_pointer_cast<AspenUsbIo>(
         m_Interface)->WriteStrDatabase( 
          CamInfo::MkStrVectFromStrDb( info )  );
 }
@@ -145,12 +145,12 @@ CamInfo::StrDb AspenIo::ReadStrDatabase()
      
     if( CamModel::ETHERNET == m_type )
     {
-        result = std::tr1::dynamic_pointer_cast<AspenEthernetIo>(
+        result = std::dynamic_pointer_cast<AspenEthernetIo>(
            m_Interface)->ReadStrDatabase();
     }
     else
     {
-        result = std::tr1::dynamic_pointer_cast<AspenUsbIo>(
+        result = std::dynamic_pointer_cast<AspenUsbIo>(
            m_Interface)->ReadStrDatabase();
     }
 
@@ -167,7 +167,7 @@ CamInfo::StrDb AspenIo::ReadStrDatabase()
          __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    return std::tr1::dynamic_pointer_cast<AspenUsbIo>(
+    return std::dynamic_pointer_cast<AspenUsbIo>(
         m_Interface)->GetFlashBuffer( StartAddr, numBytes );
  }
  
@@ -184,7 +184,7 @@ CamInfo::NetDb AspenIo::ReadNetDatabase()
          __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    result = std::tr1::dynamic_pointer_cast<AspenUsbIo>(
+    result = std::dynamic_pointer_cast<AspenUsbIo>(
 		m_Interface)->ReadNetDatabase();
 
      return result;
@@ -201,6 +201,6 @@ void AspenIo::WriteNetDatabase( const CamInfo::NetDb & input )
          __LINE__, Apg::ErrorType_InvalidOperation );
     }
 
-    std::tr1::dynamic_pointer_cast<AspenUsbIo>(
+    std::dynamic_pointer_cast<AspenUsbIo>(
         m_Interface)->WriteNetDatabase( input );
 }

@@ -12,7 +12,7 @@ if (QHY_INCLUDE_DIR AND QHY_LIBRARIES)
 
   # in cache already
   set(QHY_FOUND TRUE)
-  message(STATUS "Found libqhy: ${QHY_LIBRARIES}")
+  message(STATUS "Found libqhyccd: ${QHY_LIBRARIES}")
 
 else (QHY_INCLUDE_DIR AND QHY_LIBRARIES)
 
@@ -22,7 +22,7 @@ else (QHY_INCLUDE_DIR AND QHY_LIBRARIES)
     ${GNUWIN32_DIR}/include
   )
 
-  find_library(QHY_LIBRARIES NAMES qhy
+  find_library(QHY_LIBRARIES NAMES qhyccd
     PATHS
     ${_obLinkDir}
     ${GNUWIN32_DIR}/lib

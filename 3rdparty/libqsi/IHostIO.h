@@ -8,12 +8,22 @@
 
 #include "CameraID.h"
 #include <vector>
+#include "WinTypes.h"
 
 enum IOTimeout
 {
 	IOTimeout_Normal = 0,
 	IOTimeout_Short	 = 1,
 	IOTimeout_Long	 = 2
+};
+
+enum IOType
+{
+	IOType_Stream = 0,
+	IOType_MultiRow = 1,
+	IOType_SingleRow = 2,
+	IOType_Fixed = 3,
+	IOType_Packet = 4
 };
 
 class IHostIO
@@ -34,5 +44,9 @@ public:
 	virtual int SetStandardReadTimeout ( int ulTimeout) = 0;
 	virtual int SetStandardWriteTimeout( int ulTimeout) = 0;
 	virtual int SetIOTimeout(IOTimeout ioTimeout) = 0;
+	virtual int MaxBytesPerReadBlock() = 0;
+	virtual int WritePacket(UCHAR * pBuff, int iBuffLen, int * iBytesWritten) = 0;
+	virtual int ReadPacket(UCHAR * pBuff, int iBuffLen, int * iBytesRead) = 0;
+	virtual IOType GetTransferType() = 0;
 };
 

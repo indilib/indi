@@ -1,8 +1,8 @@
 #!/usr/bin/python
 #-*- coding: iso-8859-15 -*-
 # INDUINO METEOSTATION
-# http://induino.wordpress.com 
-# 
+# http://induino.wordpress.com
+#
 # NACHO MAS 2013
 
 import sys, os
@@ -23,7 +23,7 @@ def writeJson(consolidation,resolution):
    try:
 	ret = rrdtool.fetch('meteo.rrd',consolidation,"--start",str(start),"--end",str(end),"--resolution",str(res));
 	if ret:
-	 	print rrdtool.error() 
+	 	print rrdtool.error()
 	#print ret
 	mags=ret[1]
 	values=ret[2][0]
@@ -31,7 +31,7 @@ def writeJson(consolidation,resolution):
 	for mag in mags:
 		#print mag,values[i]
 		json_dict[mag]=int(values[i]*100)/100.
-		i=i++1	
+		i=i+1
 	#print consolidation,json_dict
 	x = simplejson.dumps(json_dict)
         fi=open(filename,"w")

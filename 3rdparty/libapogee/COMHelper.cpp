@@ -29,7 +29,7 @@ void COMHelper::GetCamInfo( const std::string & intrfcStr,
                            std::string & addr, uint16_t & frmwrRev,
                            uint16_t & camId )
 {
-     std::tr1::shared_ptr<CameraIo> cam;
+     std::shared_ptr<CameraIo> cam;
 
      bool IsEthernet = false;
     
@@ -46,12 +46,12 @@ void COMHelper::GetCamInfo( const std::string & intrfcStr,
             // robust when we have more time
             try
             {
-                cam = std::tr1::shared_ptr<CameraIo>(
+                cam = std::shared_ptr<CameraIo>(
                     new AltaIo( CamModel::ETHERNET, addr) );
             }
             catch( std::exception & err )
             {
-                 cam = std::tr1::shared_ptr<CameraIo>(
+                 cam = std::shared_ptr<CameraIo>(
                     new AspenIo( CamModel::ETHERNET, addr) );
             }
 
@@ -69,17 +69,17 @@ void COMHelper::GetCamInfo( const std::string & intrfcStr,
             windozeHelpers::GetVidAndPid( usb_enum, vid, pid );
             if( UsbFrmwr::ALTA_USB_PID == pid )
             {
-                cam = std::tr1::shared_ptr<CameraIo>(
+                cam = std::shared_ptr<CameraIo>(
                     new AltaIo(CamModel::USB, addr ) );
             }
             else if( UsbFrmwr::ASCENT_USB_PID == pid )
             {
-                 cam = std::tr1::shared_ptr<CameraIo>(
+                 cam = std::shared_ptr<CameraIo>(
                     new AscentBasedIo(CamModel::USB, addr ) );
             }
             else if(  UsbFrmwr::ASPEN_USB_PID == pid )
             {
-                 cam = std::tr1::shared_ptr<CameraIo>(
+                 cam = std::shared_ptr<CameraIo>(
                     new AspenIo(CamModel::USB, addr ) );
             }
             else

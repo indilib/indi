@@ -16,46 +16,63 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <fcntl.h>
-
-#include "indicom.h"
-#include "indilogger.h"
 #include "connectiontcp.h"
+
+#include "indilogger.h"
+#include "indistandardproperty.h"
+
+#include <cerrno>
+#include <netdb.h>
+#include <cstring>
+#include <unistd.h>
 
 namespace Connection
 {
+extern const char *CONNECTION_TAB;
 
-extern const char * CONNECTION_TAB;
-
-TCP::TCP(INDI::DefaultDevice * dev) : Interface(dev)
+TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
 {
     // Address/Port
     IUFillText(&AddressT[0], "ADDRESS", "Address", "");
-    IUFillText(&AddressT[1], "PORT",    "Port",    "");
-    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_TCP_ADDRESS", "TCP Server", CONNECTION_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillText(&AddressT[1], "PORT", "Port", "");
+    IUFillTextVector(&AddressTP, AddressT, 2, getDeviceName(), "DEVICE_ADDRESS", "Server", CONNECTION_TAB,
+                     IP_RW, 60, IPS_IDLE);
+
+    IUFillSwitch(&TcpUdpS[0], "TCP", "TCP", ISS_ON);
+    IUFillSwitch(&TcpUdpS[1], "UDP", "UDP", ISS_OFF);
+    IUFillSwitchVector(&TcpUdpSP, TcpUdpS, 2, getDeviceName(), "CONNECTION_TYPE", "Connection Type",
+                       CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
 }
 
-TCP::~TCP()
+bool TCP::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-
-}
-
-bool TCP::ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n)
-{
-    if(!strcmp(dev,device->getDeviceName()))
+    if (!strcmp(dev, device->getDeviceName()))
     {
         // TCP Server settings
         if (!strcmp(name, AddressTP.name))
         {
             IUUpdateText(&AddressTP, texts, names, n);
             AddressTP.s = IPS_OK;
-            IDSetText(&AddressTP, NULL);
+            IDSetText(&AddressTP, nullptr);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (!strcmp(dev, device->getDeviceName()))
+    {
+        if (!strcmp(name, TcpUdpSP.name))
+        {
+            IUUpdateSwitch(&TcpUdpSP, states, names, n);
+            TcpUdpSP.s = IPS_OK;
+
+            IDSetSwitch(&TcpUdpSP, nullptr);
+
             return true;
         }
     }
@@ -65,26 +82,27 @@ bool TCP::ISNewText (const char * dev, const char * name, char * texts[], char *
 
 bool TCP::Connect()
 {
-    if (AddressT[0].text == NULL || AddressT[0].text[0] == '\0' || AddressT[1].text == NULL || AddressT[1].text[0] == '\0')
+    if (AddressT[0].text == nullptr || AddressT[0].text[0] == '\0' || AddressT[1].text == nullptr ||
+        AddressT[1].text[0] == '\0')
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error! Server address is missing or invalid.");
+        LOG_ERROR("Error! Server address is missing or invalid.");
         return false;
     }
 
-    const char * hostname = AddressT[0].text;
-    const char * port     = AddressT[1].text;
+    const char *hostname = AddressT[0].text;
+    const char *port     = AddressT[1].text;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
+    LOGF_INFO("Connecting to %s@%s ...", hostname, port);
 
     if (device->isSimulation() == false)
     {
         struct sockaddr_in serv_addr;
-        struct hostent * hp = NULL;
-        int ret = 0;
+        struct hostent *hp = nullptr;
+        int ret            = 0;
 
         struct timeval ts;
-        ts.tv_sec = SOCKET_TIMEOUT;
-        ts.tv_usec=0;
+        ts.tv_sec  = SOCKET_TIMEOUT;
+        ts.tv_usec = 0;
 
         if (sockfd != -1)
             close(sockfd);
@@ -93,49 +111,60 @@ bool TCP::Connect()
         hp = gethostbyname(hostname);
         if (!hp)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
+            LOG_ERROR("Failed to lookup IP Address or hostname.");
             return false;
         }
 
-        memset (&serv_addr, 0, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
+        memset(&serv_addr, 0, sizeof(serv_addr));
+        serv_addr.sin_family      = AF_INET;
         serv_addr.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr_list[0]))->s_addr;
-        serv_addr.sin_port = htons(atoi(port));
+        serv_addr.sin_port        = htons(atoi(port));
 
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        int socketType = 0;
+        if (TcpUdpS[0].s == ISS_ON)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
+            socketType = SOCK_STREAM;
+        }
+        else
+        {
+            socketType = SOCK_DGRAM;
+        }
+
+        if ((sockfd = socket(AF_INET, socketType, 0)) < 0)
+        {
+            LOG_ERROR("Failed to create socket.");
             return false;
         }
 
         // Connect to the mount
-        if ( (ret = ::connect (sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))) < 0)
+        if ((ret = ::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
+            LOGF_ERROR("Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
             close(sockfd);
-            sockfd=-1;
+            sockfd = -1;
             return false;
         }
 
         // Set the socket receiving and sending timeouts
-        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts,sizeof(struct timeval));
-        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts,sizeof(struct timeval));
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&ts, sizeof(struct timeval));
+        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&ts, sizeof(struct timeval));
     }
 
     PortFD = sockfd;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Connection successful, attempting handshake...");
+    LOG_DEBUG("Connection successful, attempting handshake...");
     bool rc = Handshake();
 
     if (rc)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
-        device->saveConfig(true, "DEVICE_TCP_ADDRESS");
+        LOGF_INFO("%s is online.", getDeviceName());
+        device->saveConfig(true, "DEVICE_ADDRESS");
+        device->saveConfig(true, "CONNECTION_TYPE");
     }
     else
-        DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
+        LOG_DEBUG("Handshake failed.");
 
-    return true;
+    return rc;
 }
 
 bool TCP::Disconnect()
@@ -152,22 +181,26 @@ bool TCP::Disconnect()
 void TCP::Activated()
 {
     device->defineText(&AddressTP);
-    device->loadConfig(true, "DEVICE_TCP_ADDRESS");
+    device->defineSwitch(&TcpUdpSP);
+    device->loadConfig(true, "DEVICE_ADDRESS");
+    device->loadConfig(true, "CONNECTION_TYPE");
 }
 
 void TCP::Deactivated()
 {
     device->deleteProperty(AddressTP.name);
+    device->deleteProperty(TcpUdpSP.name);
 }
 
-bool TCP::saveConfigItems(FILE * fp)
+bool TCP::saveConfigItems(FILE *fp)
 {
     IUSaveConfigText(fp, &AddressTP);
+    IUSaveConfigSwitch(fp, &TcpUdpSP);
 
     return true;
 }
 
-void TCP::setDefaultHost(const char * addressHost)
+void TCP::setDefaultHost(const char *addressHost)
 {
     IUSaveText(&AddressT[0], addressHost);
 }
@@ -179,4 +212,10 @@ void TCP::setDefaultPort(uint32_t addressPort)
     IUSaveText(&AddressT[1], portStr);
 }
 
+void TCP::setConnectionType(int type)
+{
+    IUResetSwitch(&TcpUdpSP);
+    TcpUdpS[type].s = ISS_ON;
+    IDSetSwitch(&TcpUdpSP, nullptr);
+}
 }

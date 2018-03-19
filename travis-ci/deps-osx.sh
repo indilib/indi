@@ -3,34 +3,24 @@
 set -e
 
 brew update
-brew tap 'homebrew/homebrew-science'
 brew tap 'caskroom/drivers'
-brew tap 'jochym/indi'
+brew tap 'indilib/indi'
 
-# Not available in homebrew:
-# cdbs
-# libgps
-# libgsl0 
-# libopenal
-
-# Already installed:
-# boost
-
+brew upgrade cmake
 
 brew install \
-			curl \
-			cmake \
-			dcraw \
-			fakeroot \
-			gsl \
-			libftdi \
-			libgphoto2 \
-			libjpeg \
-			libusb \
-			gpsd \
-			libraw \
-			libcfitsio \
-			libnova 
+	dcraw \
+	fakeroot \
+	gsl \
+	libftdi \
+	libgphoto2 \
+	libusb \
+	gpsd \
+	libraw \
+	libcfitsio \
+	libnova  \
+	librtlsdr  \
+	libfftw3
 			
 brew cask install \
 	sbig-universal-driver

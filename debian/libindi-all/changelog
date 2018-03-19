@@ -1,3 +1,15 @@
+indi-full (1.6.4) bionic; urgency=medium
+
+  * Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Thu, 08 Mar 2018 09:00:00 +0300
+
+indi-full (1.6.2) bionic; urgency=medium
+
+  * New upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 23 Jan 2018 10:30:00 +0300
+
 indi-full (1.4) zesty; urgency=medium
 
   * New upstream release.

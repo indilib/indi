@@ -14,7 +14,6 @@ namespace INDI
 {
 namespace AlignmentSubsystem
 {
-
 // Public methods
 
 bool ClientAPIForMathPluginManagement::EnumerateMathPlugins(MathPluginsList &AvailableMathPlugins)
@@ -24,40 +23,37 @@ bool ClientAPIForMathPluginManagement::EnumerateMathPlugins(MathPluginsList &Ava
 
     AvailableMathPlugins.clear();
 
-    ISwitchVectorProperty * pPlugins = MathPlugins->getSwitch();
+    ISwitchVectorProperty *pPlugins = MathPlugins->getSwitch();
 
     for (int i = 0; i < pPlugins->nsp; i++)
-        AvailableMathPlugins.push_back(std::string(pPlugins->sp[i].label));
+        AvailableMathPlugins.emplace_back(std::string(pPlugins->sp[i].label));
 
     return true;
 }
 
-void ClientAPIForMathPluginManagement::Initialise(INDI::BaseClient * BaseClient)
+void ClientAPIForMathPluginManagement::Initialise(INDI::BaseClient *BaseClient)
 {
     ClientAPIForMathPluginManagement::BaseClient = BaseClient;
 }
 
-void ClientAPIForMathPluginManagement::ProcessNewDevice(INDI::BaseDevice * DevicePointer)
+void ClientAPIForMathPluginManagement::ProcessNewDevice(INDI::BaseDevice *DevicePointer)
 {
     Device = DevicePointer;
 }
 
-void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property * PropertyPointer)
+void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property *PropertyPointer)
 {
-    int ReturnCode;
     bool GotOneOfMine = true;
 
-    if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS"))
+    if (strcmp(PropertyPointer->getName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS") == 0)
         MathPlugins = PropertyPointer;
-    else if (!strcmp(PropertyPointer->getName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE"))
+    else if (strcmp(PropertyPointer->getName(), "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE") == 0)
         PluginInitialise = PropertyPointer;
     else
         GotOneOfMine = false;
 
     // Tell the client when all the database proeprties have been set up
-    if (GotOneOfMine
-            && (NULL != MathPlugins)
-            && (NULL != PluginInitialise))
+    if (GotOneOfMine && (nullptr != MathPlugins) && (nullptr != PluginInitialise))
     {
         // The DriverActionComplete state variable is initialised to false
         // So I need to call this to set it to true and signal anyone
@@ -66,14 +62,14 @@ void ClientAPIForMathPluginManagement::ProcessNewProperty(INDI::Property * Prope
     }
 }
 
-void ClientAPIForMathPluginManagement::ProcessNewSwitch(ISwitchVectorProperty * SwitchVectorProperty)
+void ClientAPIForMathPluginManagement::ProcessNewSwitch(ISwitchVectorProperty *SwitchVectorProperty)
 {
-    if (!strcmp(SwitchVectorProperty->name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS"))
+    if (strcmp(SwitchVectorProperty->name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGINS") == 0)
     {
         if (IPS_BUSY != SwitchVectorProperty->s)
             SignalDriverCompletion();
     }
-    else if (!strcmp(SwitchVectorProperty->name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE"))
+    else if (strcmp(SwitchVectorProperty->name, "ALIGNMENT_SUBSYSTEM_MATH_PLUGIN_INITIALISE") == 0)
     {
         if (IPS_BUSY != SwitchVectorProperty->s)
             SignalDriverCompletion();
@@ -85,7 +81,7 @@ bool ClientAPIForMathPluginManagement::SelectMathPlugin(const std::string &MathP
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty * pPlugins = MathPlugins->getSwitch();
+    ISwitchVectorProperty *pPlugins = MathPlugins->getSwitch();
 
     int i;
     for (i = 0; i < pPlugins->nsp; i++)
@@ -95,7 +91,6 @@ bool ClientAPIForMathPluginManagement::SelectMathPlugin(const std::string &MathP
     }
     if (i >= pPlugins->nsp)
         return false;
-
 
     IUResetSwitch(pPlugins);
     pPlugins->sp[i].s = ISS_ON;
@@ -115,7 +110,7 @@ bool ClientAPIForMathPluginManagement::ReInitialiseMathPlugin()
     // Wait for driver to initialise if neccessary
     WaitForDriverCompletion();
 
-    ISwitchVectorProperty * pPluginInitialise = PluginInitialise->getSwitch();
+    ISwitchVectorProperty *pPluginInitialise = PluginInitialise->getSwitch();
 
     IUResetSwitch(pPluginInitialise);
     pPluginInitialise->sp[0].s = ISS_ON;
@@ -134,50 +129,44 @@ bool ClientAPIForMathPluginManagement::ReInitialiseMathPlugin()
 
 bool ClientAPIForMathPluginManagement::SetDriverBusy()
 {
-    int ReturnCode;
-    ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
-    if (ReturnCode)
+    int ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+
+    if (ReturnCode != 0)
         return false;
     DriverActionComplete = false;
     IDLog("SetDriverBusy\n");
     ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
-    if (ReturnCode)
-        return false;
-    else
-        return true;
+    return ReturnCode == 0;
 }
 
 bool ClientAPIForMathPluginManagement::SignalDriverCompletion()
 {
-    int ReturnCode;
-    ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
-    if (ReturnCode)
+    int ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+
+    if (ReturnCode != 0)
         return false;
     DriverActionComplete = true;
-    ReturnCode = pthread_cond_signal(&DriverActionCompleteCondition);
-    if (ReturnCode)
+    ReturnCode           = pthread_cond_signal(&DriverActionCompleteCondition);
+    if (ReturnCode != 0)
     {
         ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
         return false;
     }
     IDLog("SignalDriverCompletion\n");
     ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
-    if (ReturnCode)
-        return false;
-    else
-        return true;
+    return ReturnCode == 0;
 }
 
 bool ClientAPIForMathPluginManagement::WaitForDriverCompletion()
 {
-    int ReturnCode;
-    ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
-    while(!DriverActionComplete)
+    int ReturnCode = pthread_mutex_lock(&DriverActionCompleteMutex);
+
+    while (!DriverActionComplete)
     {
         IDLog("WaitForDriverCompletion - Waiting\n");
         ReturnCode = pthread_cond_wait(&DriverActionCompleteCondition, &DriverActionCompleteMutex);
         IDLog("WaitForDriverCompletion - Back from wait ReturnCode = %d\n", ReturnCode);
-        if (ReturnCode)
+        if (ReturnCode != 0)
         {
             ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
             return false;
@@ -185,10 +174,7 @@ bool ClientAPIForMathPluginManagement::WaitForDriverCompletion()
     }
     IDLog("WaitForDriverCompletion - Finished waiting\n");
     ReturnCode = pthread_mutex_unlock(&DriverActionCompleteMutex);
-    if (ReturnCode)
-        return false;
-    else
-        return true;
+    return ReturnCode == 0;
 }
 
 } // namespace AlignmentSubsystem

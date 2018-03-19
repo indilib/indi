@@ -25,9 +25,9 @@ namespace
 
 //////////////////////////// 
 // CTOR 
-CcdAcqParams::CcdAcqParams(std::tr1::shared_ptr<CApnCamData> & camData,
-                           std::tr1::shared_ptr<CameraIo> & camIo,  
-                           std::tr1::shared_ptr<PlatformData> & platformData) : 
+CcdAcqParams::CcdAcqParams(std::shared_ptr<CApnCamData> & camData,
+                           std::shared_ptr<CameraIo> & camIo,  
+                           std::shared_ptr<PlatformData> & platformData) : 
                                                     m_fileName( __FILE__ ),
                                                     m_CamData(camData),
                                                     m_CamIo(camIo),
@@ -752,7 +752,7 @@ void CcdAcqParams::BalanceSections( const uint16_t BottomMaxRows,
 
 //////////////////////////// 
 // UPDATE      APNCAM        DATA
-void CcdAcqParams::UpdateApnCamData( std::tr1::shared_ptr<CApnCamData> & newCamData )
+void CcdAcqParams::UpdateApnCamData( std::shared_ptr<CApnCamData> & newCamData )
 {
     m_CamData = newCamData;
 }

@@ -26,30 +26,31 @@
 #include <math.h>
 void vector_cross(const vector *a, const vector *b, vector *out)
 {
-   out->x = a->y * b->z - a->z * b->y;
-   out->y = a->z * b->x - a->x * b->z;
-   out->z = a->x * b->y - a->y * b->x;
+    out->x = a->y * b->z - a->z * b->y;
+    out->y = a->z * b->x - a->x * b->z;
+    out->z = a->x * b->y - a->y * b->x;
 }
 
 float vector_dot(const vector *a, const vector *b)
 {
-   return a->x * b->x + a->y * b->y + a->z * b->z;
+    return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
 void vector_normalize(vector *a)
 {
-   float mag = sqrt(vector_dot(a, a));
-   if(mag!=0){
-     a->x /= mag;
-     a->y /= mag;
-     a->z /= mag;
-   }
-   else {
-     a->x = 0.1;
-     a->y = 0.1;
-     a->z = 0.1;
-   }
-
+    float mag = sqrt(vector_dot(a, a));
+    if (mag != 0)
+    {
+        a->x /= mag;
+        a->y /= mag;
+        a->z /= mag;
+    }
+    else
+    {
+        a->x = 0.1;
+        a->y = 0.1;
+        a->z = 0.1;
+    }
 }
 
 //--------------------------------------------------------------------
@@ -58,71 +59,68 @@ void vector_normalize(vector *a)
 //--------------------------------------------------------------------
 int get_heading(const vector *a, const vector *m, const vector *p, vector *headingVector)
 {
-  vector E;
-  vector N;
-  float  k;
-  float roll,pitch,heading;
+    vector E;
+    vector N;
+    float k;
+    float roll, pitch, heading;
 
- // cross magnetic vector (magnetic north + inclination) with "down" (acceleration vector) to produce "east"
-  vector_cross(m, a, &E);
-  vector_normalize(&E);
+    // cross magnetic vector (magnetic north + inclination) with "down" (acceleration vector) to produce "east"
+    vector_cross(m, a, &E);
+    vector_normalize(&E);
 
- // cross "down" with "east" to produce "north" (parallel to the ground)
-  vector_cross(a, &E, &N);
-  vector_normalize(&N);
+    // cross "down" with "east" to produce "north" (parallel to the ground)
+    vector_cross(a, &E, &N);
+    vector_normalize(&N);
 
-  //Calcula Roll
-  k = pow(a->y, 2) + pow(a->z, 2);
-  if(k != 0)
-     roll =  atan(a->x/sqrt(k));
-  roll = roll*180/M_PI;
+    //Calcula Roll
+    k = pow(a->y, 2) + pow(a->z, 2);
+    if (k != 0)
+        roll = atan(a->x / sqrt(k));
+    roll = roll * 180 / M_PI;
 
-  //Calcula Altura
-  k = pow(a->x, 2) + pow(a->z, 2);
-  if( k!= 0)
-      pitch =  atan(a->y/sqrt(k));
-  pitch = pitch*180/M_PI;
+    //Calcula Altura
+    k = pow(a->x, 2) + pow(a->z, 2);
+    if (k != 0)
+        pitch = atan(a->y / sqrt(k));
+    pitch = pitch * 180 / M_PI;
 
-  //Calcula heading
-  heading = atan2(vector_dot(&E, p), vector_dot(&N, p)) * 180 / M_PI;
-  if (heading < 0)
-    heading += 360;
+    //Calcula heading
+    heading = atan2(vector_dot(&E, p), vector_dot(&N, p)) * 180 / M_PI;
+    if (heading < 0)
+        heading += 360;
 
-  headingVector->x=roll;
-  headingVector->y=pitch;
-  headingVector->z=heading;
+    headingVector->x = roll;
+    headingVector->y = pitch;
+    headingVector->z = heading;
 
-  return heading;
+    return heading;
 }
 
-void MaxMin(vector *m_avg,vector *MagMax,vector *MagMin)
+void MaxMin(vector *m_avg, vector *MagMax, vector *MagMin)
 {
-  if (m_avg->x > MagMax->x)
-    MagMax->x =   m_avg->x;
-  if (m_avg->y > MagMax->y)
-    MagMax->y =   m_avg->y;
-  if (m_avg->z > MagMax->z)
-    MagMax->z =   m_avg->z;
+    if (m_avg->x > MagMax->x)
+        MagMax->x = m_avg->x;
+    if (m_avg->y > MagMax->y)
+        MagMax->y = m_avg->y;
+    if (m_avg->z > MagMax->z)
+        MagMax->z = m_avg->z;
 
-  if (m_avg->x < MagMin->x)
-    MagMin->x =   m_avg->x;
-  if (m_avg->y < MagMin->y)
-    MagMin->y =   m_avg->y;
-  if (m_avg->z < MagMin->z)
-    MagMin->z =   m_avg->z;
-
+    if (m_avg->x < MagMin->x)
+        MagMin->x = m_avg->x;
+    if (m_avg->y < MagMin->y)
+        MagMin->y = m_avg->y;
+    if (m_avg->z < MagMin->z)
+        MagMin->z = m_avg->z;
 }
 
 //--- resetea variables magnetometro --------
-void magReset(vector *MagMax,vector *MagMin)
+void magReset(vector *MagMax, vector *MagMin)
 {
-  MagMax->x = -5000;
-  MagMax->y = -5000;
-  MagMax->z = -5000;
+    MagMax->x = -5000;
+    MagMax->y = -5000;
+    MagMax->z = -5000;
 
-  MagMin->x = 5000;
-  MagMin->y = 5000;
-  MagMin->z = 5000;
+    MagMin->x = 5000;
+    MagMin->y = 5000;
+    MagMin->z = 5000;
 }
-
-

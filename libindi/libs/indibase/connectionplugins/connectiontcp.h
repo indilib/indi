@@ -18,71 +18,69 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef CONNECTIONTCP_H
-#define CONNECTIONTCP_H
+#pragma once
 
 #include "connectioninterface.h"
 
+#include <stdint.h>
+#include <cstdlib>
+#include <string>
+
 namespace Connection
 {
+/**
+ * @brief The TCP class manages connection with devices over the network via TCP/IP.
+ * Upon successfull connection, reads & writes from and to the device are performed via the returned file descriptor
+ * using standard UNIX read/write functions.
+ */
 
 class TCP : public Interface
 {
+  public:
+    enum ConnectionType
+    {
+        TYPE_TCP = 0,
+        TYPE_UDP
+    };
 
-    public:
+    TCP(INDI::DefaultDevice *dev);
+    virtual ~TCP() = default;
 
-        TCP(INDI::DefaultDevice * dev);
-        virtual ~TCP();
+    virtual bool Connect();
 
-        virtual bool Connect();
+    virtual bool Disconnect();
 
-        virtual bool Disconnect();
+    virtual void Activated();
 
-        virtual void Activated();
+    virtual void Deactivated();
 
-        virtual void Deactivated();
+    virtual std::string name() { return "CONNECTION_TCP"; }
 
-        virtual const std::string name()
-        {
-            return "CONNECTION_TCP";
-        }
+    virtual std::string label() { return "Ethernet"; }
 
-        virtual const std::string label()
-        {
-            return "Ethernet";
-        }
+    virtual const char *host() { return AddressT[0].text; }
+    virtual uint32_t port() { return atoi(AddressT[0].text); }
 
-        virtual const char * host()
-        {
-            return AddressT[0].text;
-        }
-        virtual const uint32_t port()
-        {
-            return atoi(AddressT[0].text);
-        }
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool saveConfigItems(FILE *fp);
 
-        virtual bool ISNewText (const char * dev, const char * name, char * texts[], char * names[], int n);
-        virtual bool saveConfigItems(FILE * fp);
+    int getPortFD() const { return PortFD; }
+    void setDefaultHost(const char *addressHost);
+    void setDefaultPort(uint32_t addressPort);
+    void setConnectionType(int type);
 
-        const int getPortFD() const
-        {
-            return PortFD;
-        }
-        void setDefaultHost(const char * addressHost);
-        void setDefaultPort(uint32_t addressPort);
+  protected:
+    // IP Address/Port
+    ITextVectorProperty AddressTP;
+    IText AddressT[2];
 
-    protected:
+    ISwitch TcpUdpS[2];
+    ISwitchVectorProperty TcpUdpSP;
 
-        // IP Address/Port
-        ITextVectorProperty AddressTP;
-        IText AddressT[2];
+    int sockfd                   = -1;
+    const uint8_t SOCKET_TIMEOUT = 5;
 
-        int sockfd = -1;
-        const uint8_t SOCKET_TIMEOUT = 5;
-
-        int PortFD=-1;
+    int PortFD = -1;
 };
-
 }
-
-#endif

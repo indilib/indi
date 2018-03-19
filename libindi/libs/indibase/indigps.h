@@ -22,64 +22,81 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef INDIGPS_H
-#define INDIGPS_H
+#pragma once
 
-#include <defaultdevice.h>
+#include "defaultdevice.h"
 
 /**
- * \class INDI::GPS
+ * \class GPS
    \brief Class to provide general functionality of a GPS device.
 
-   The INDI::GPS provides a simple interface for GPS devices. It reports time in INDI standard property TIME_UTC. Location is reported in INDI standard property GEOGRAPHIC_COORD
+   The GPS provides a simple interface for GPS devices. It reports time in INDI standard property TIME_UTC. Location is reported in INDI standard property GEOGRAPHIC_COORD
    Only one function is called by the INDI framework to update GPS data (updateGPS()). If the data is valid, it is sent to the client. If GPS data is not ready yet, updateGPS will
    be called every second until the data becomes available and then INDI sends the data to the client.
 
    updateGPS() is called upon successful connection and whenever the client requests a data refresh.
 
-   \example GPS Simulator is available under Auxiliary drivers as a sample implementation of INDI::GPS
+   \example GPS Simulator is available under Auxiliary drivers as a sample implementation of GPS
    \e IMPORTANT: GEOGRAPHIC_COORD stores latitude and longitude in INDI specific format, refer to <a href="http://indilib.org/develop/developer-manual/101-standard-properties.html">INDI Standard Properties</a> for details.
 
 \author Jasem Mutlaq
 */
-class INDI::GPS : public INDI::DefaultDevice
+namespace INDI
 {
-    public:
 
-        enum GPSLocation { LOCATION_LATITUDE, LOCATION_LONGITUDE, LOCATION_ELEVATION };
+class GPS : public DefaultDevice
+{
+  public:
+    enum GPSLocation
+    {
+        LOCATION_LATITUDE,
+        LOCATION_LONGITUDE,
+        LOCATION_ELEVATION
+    };
 
-        GPS();
-        virtual ~GPS();
+    GPS() = default;
+    virtual ~GPS() = default;
 
-        virtual bool initProperties();
-        virtual bool updateProperties();
-        virtual bool ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n);
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-    protected:
-
-        /**
+  protected:
+    /**
          * @brief updateGPS Retrieve Location & Time from GPS. Update LocationNP & TimeTP properties (value and state) without sending them to the client (i.e. IDSetXXX).
          * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if GPS fix is in progress. IPS_ALERT is there is an error. The clients will only accept values with IPS_OK state.
          */
-        virtual IPState updateGPS();
+    virtual IPState updateGPS();
 
-        /**
+    /**
          * @brief TimerHit Keep calling updateGPS() until it is successfull, if it fails upon first connection.
          */
-        virtual void TimerHit();
+    virtual void TimerHit();
 
-        //  A number vector that stores lattitude and longitude
-        INumberVectorProperty LocationNP;
-        INumber LocationN[3];
+    /**
+     * @brief saveConfigItems Save refresh period
+     * @param fp pointer to config file
+     * @return True if all is OK
+     */
+    virtual bool saveConfigItems(FILE *fp);
 
-        // UTC and UTC Offset
-        IText TimeT[2];
-        ITextVectorProperty TimeTP;
+    //  A number vector that stores lattitude and longitude
+    INumberVectorProperty LocationNP;
+    INumber LocationN[3];
 
-        // Refresh data
-        ISwitch RefreshS[1];
-        ISwitchVectorProperty RefreshSP;
+    // UTC and UTC Offset
+    IText TimeT[2];
+    ITextVectorProperty TimeTP;
 
+    // Refresh data
+    ISwitch RefreshS[1];
+    ISwitchVectorProperty RefreshSP;
+
+    // Refresh Period
+    INumber PeriodN[1];
+    INumberVectorProperty PeriodNP;
+
+    int timerID = -1;
 };
-
-#endif // INDIGPS_H
+}

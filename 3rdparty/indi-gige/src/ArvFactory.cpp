@@ -24,22 +24,24 @@
 #endif
 #include <string.h>
 
-#define BLACKFLY_MODEL  "BFLY-PGE-31S4M"
+#define BLACKFLY_MODEL "BFLY-PGE-31S4M"
 
-arv::ArvCamera* ArvFactory::find_first_available(void)
+arv::ArvCamera *ArvFactory::find_first_available(void)
 {
-	::ArvCamera* camera = arv_camera_new(NULL);
-    const char* model_name = arv_camera_get_model_name(camera);
+    ::ArvCamera *camera    = arv_camera_new(NULL);
+    const char *model_name = arv_camera_get_model_name(camera);
 
     if ((camera == NULL) || (model_name == NULL))
         return NULL;
 
-    if (memmem(model_name, strlen(model_name), BLACKFLY_MODEL, strlen(BLACKFLY_MODEL))) {
+    if (memmem(model_name, strlen(model_name), BLACKFLY_MODEL, strlen(BLACKFLY_MODEL)))
+    {
         printf("Creating BlackFly...\n");
-        return new BlackFly((void*)camera);
-    } else {
+        return new BlackFly((void *)camera);
+    }
+    else
+    {
         printf("Creating Generic...\n");
-        return new ArvGeneric((void*)camera);
+        return new ArvGeneric((void *)camera);
     }
 }
-        

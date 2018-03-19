@@ -70,7 +70,6 @@ long fli_camera_parport_open(flidev_t dev)
 	cam->removebias = 1;
 	cam->biasoffset = 200;
 
-
   /* Set timeout values */
   cam->readto = 1000;
   cam->writeto = 1000;
@@ -766,8 +765,9 @@ long fli_camera_parport_write_ioport(flidev_t dev, long ioportset)
 {
   long rlen, wlen;
   unsigned short buf;
+	unsigned short _ioportset = (unsigned short) ioportset;
 
-  correctioportdatawrite(dev, (unsigned short *) &ioportset);
+  correctioportdatawrite(dev, &_ioportset);
   buf = htons((unsigned short) (0x7100 | (ioportset & 0x00ff)));
 
   rlen = 2; wlen = 2;
@@ -780,8 +780,9 @@ long fli_camera_parport_configure_ioport(flidev_t dev, long ioportset)
 {
   long rlen, wlen;
   unsigned short buf;
+	unsigned short _ioportset = (unsigned short) ioportset;
 
-  correctioportdatawrite(dev, (unsigned short *) &ioportset);
+  correctioportdatawrite(dev, &_ioportset);
   buf = htons((unsigned short) (0x7000 | (ioportset & 0x00ff)));
 
   rlen = 2; wlen = 2;

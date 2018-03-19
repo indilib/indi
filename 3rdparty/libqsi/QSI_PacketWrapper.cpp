@@ -19,6 +19,7 @@ REVISION HISTORY
 QSI_PacketWrapper::QSI_PacketWrapper()
 {
 	m_log = new QSILog(_T("QSIINTERFACELOG.TXT"), _T("LOGUSBTOFILE"), _T("PACKET"));
+	m_iStatus = 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -75,114 +76,94 @@ int QSI_PacketWrapper::PKT_SendPacket( IHostIO * con, unsigned char * pvTxBuffer
 
 	int dwBytesToWrite = 0,   // Holds # of bytes to write for Tx packet
 		dwBytesWritten = 0,   // Holds # of bytes written of Tx packet
-		dwBytesToRead = 0,    // Holds # of bytes to read for Rx packet
+		dwBytesInPacket = 0,    // Holds # of bytes to read for Rx packet
 		dwBytesReturned = 0;  // Holds # of bytes read of Rx packet
 
 	// Make sure we're starting with clean queues
 	m_iStatus = PKT_CheckQueues(con);
-	if (m_iStatus != ALL_OK)
+	if (m_iStatus != ALL_OK) 
 		goto SendPacketExit;
-
+  
 	// Get command and length from Tx packet
 	ucTxCommand = *(ucTxBuffer+PKT_COMMAND);
 	dwBytesToWrite = *(ucTxBuffer+PKT_LENGTH) + PKT_HEAD_LENGTH;
-
+  
 	// Make sure Tx packet isn't greater than allowed
-	if (dwBytesToWrite + (unsigned int)PKT_HEAD_LENGTH > (unsigned int)MAX_PKT_LENGTH)
+	if (dwBytesToWrite + PKT_HEAD_LENGTH > MAX_PKT_LENGTH)
 	{
 		m_iStatus = ERR_PKT_TxPacketTooLong;
 		goto SendPacketExit;
 	}
 
-	m_log->Write(2, _T("***Send Request Packet*** %d bytes total length. Packet Data Follows:"), dwBytesToWrite);
+	m_log->Write(2, _T("***Send Request Packet to Camera*** %d bytes total length. Packet Data Follows:"), dwBytesToWrite);
 	m_log->WriteBuffer(2, ucTxBuffer, dwBytesToWrite, dwBytesToWrite, 256);
 	m_log->Write(2, _T("***Send Request Packet*** Done"));
 
 	if (ioTimeout != IOTimeout_Normal)
-	{
-		m_log->Write(2, _T("***Reset timeout***"));
 		con->SetIOTimeout(ioTimeout);
-	}
+
 	// Write Tx packet to buffer
-	m_iStatus = con->Write(ucTxBuffer, dwBytesToWrite, &dwBytesWritten);
+	m_iStatus = con->WritePacket(ucTxBuffer, dwBytesToWrite, &dwBytesWritten);
 	if (m_iStatus != ALL_OK)
 	{
-		m_log->Write(2, _T("***USB Write Error %d***"), m_iStatus);
 		m_iStatus += ERR_PKT_TxFailed;
 		goto SendPacketExit;
 	}
+  
+	///////////////////////////////////////////////////////////////////////////////////
 
 	// Make sure the entire Tx packet was sent
 	if (dwBytesWritten == 0)
 	{
-		m_log->Write(2, _T("***Zero Bytes Written!***"));
 		m_iStatus = ERR_PKT_TxNone;
 		goto SendPacketExit;
 	}
 	else if (dwBytesWritten < dwBytesToWrite)
 	{
-		m_log->Write(2, _T("***Not Enough Bytes Written!*** Write Request: %d, Written %d"), dwBytesToWrite, dwBytesWritten);
 		m_iStatus = ERR_PKT_TxTooLittle;
 		goto SendPacketExit;
 	}
+  
+	/////////////////////////////////////////////////////////////////////////////////////
+	// Get the reponse packet from camera and validate it
+	/////////////////////////////////////////////////////////////////////////////////////
+	m_log->Write(2, _T("Read Returned Packet."));
+	m_iStatus = con->ReadPacket(ucRxBuffer, 256, &dwBytesReturned);
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	  
-	// Read command and length of Rx packet
-	m_iStatus = con->Read(ucRxBuffer, PKT_HEAD_LENGTH, &dwBytesReturned);
 	if (m_iStatus != ALL_OK)
 	{
+		m_log->Write(2, _T("***Read Returned Packet Status Failed. Error code %x"), m_iStatus);
 		m_iStatus += ERR_PKT_RxHeaderFailed;
-		goto SendPacketExit;
-	}
-	// Make sure the entire Rx packet header was read
-	if (dwBytesReturned != (unsigned int)PKT_HEAD_LENGTH)
-	{
-		m_iStatus = ERR_PKT_RxHeaderFailed;
 		goto SendPacketExit;
 	}
 
 	// Get command and length from Rx packet
 	ucRxCommand = *(ucRxBuffer+PKT_COMMAND);
-	dwBytesToRead = (DWORD) *(ucRxBuffer+PKT_LENGTH);
-
+	dwBytesInPacket = (DWORD) *(ucRxBuffer+PKT_LENGTH) + 2;
+  
 	// Make sure Tx and Rx commands match
 	if (ucTxCommand != ucRxCommand)
 	{
+		m_log->Write(2, _T("***Read Returned Packet Header Failed. Tx/Rx Command mismatched. TX: %x, RX: %x"), ucTxCommand, ucRxCommand);
 		m_iStatus = ERR_PKT_RxBadHeader;
 		goto SendPacketExit;
 	}
 
-	// Make sure Rx packet isn't greater than allowed
-	if (dwBytesToRead + (unsigned int)PKT_HEAD_LENGTH > (unsigned int)MAX_PKT_LENGTH)
-	{
-		m_iStatus = ERR_PKT_RxPacketTooLong;
-		goto SendPacketExit;
-	}
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// We have the response packet, do final checks and return
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	// Get remaining data of Rx packet
-	m_iStatus = con->Read(ucRxBuffer+PKT_HEAD_LENGTH, dwBytesToRead, &dwBytesReturned);
-	if (m_iStatus != ALL_OK)
+	// Check Packet Length
+	if (dwBytesReturned < dwBytesInPacket)
 	{
-		m_iStatus += ERR_PKT_RxFailed;
-		goto SendPacketExit;
-	}
-
-	// Make sure the entire Rx packet was read
-	if (dwBytesReturned == 0)
-	{
-		m_iStatus = ERR_PKT_RxNone;
-		goto SendPacketExit;
-	}
-	else if (dwBytesReturned < dwBytesToRead)
-	{
+		m_log->Write(2, _T("***Read Remaining Packeted Data Failed. Too Few Bytes Returned from Read.  BytesToRead %d, BytesReturned %d"), dwBytesInPacket, dwBytesReturned);
 		m_iStatus = ERR_PKT_RxTooLittle;
 		goto SendPacketExit;
-	}	
+	}
 
-	m_log->Write(2, _T("***Read Request Packet Response*** %d bytes total length. Packet Data Follows:"), dwBytesReturned+2);
-	m_log->WriteBuffer(2, ucRxBuffer, dwBytesReturned+2, dwBytesReturned+2, 256);
-	m_log->Write(2, _T("***Read Request Packet Response*** Done."));
+	m_log->Write(2, _T("***Packet Response Read from Camera*** %d bytes total length. Packet Data Follows:"), dwBytesReturned+2);
+	m_log->WriteBuffer(2, ucRxBuffer, dwBytesReturned, dwBytesReturned, 256);
+	m_log->Write(2, _T("***Packet Response Read Done.***"));
 
 	// Make sure queues are clean
 	//
@@ -192,7 +173,7 @@ int QSI_PacketWrapper::PKT_SendPacket( IHostIO * con, unsigned char * pvTxBuffer
 	// To avoid a race condition with the camera this can only be done on all commands except 
 	// TransferImage and AutoZero.
 	//
-	// This is implemented in those routines in QSI_Interface by setting bPostCheckQueues false
+	// This is implemented in those routines in QSI_Interface by setting bPostCheckQueues false 
 	//
 
 	if (bPostCheckQueues)
@@ -206,30 +187,4 @@ SendPacketExit:
 	return m_iStatus;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-int QSI_PacketWrapper::PKT_ReadBlock( IHostIO * con, PVOID pRxBuffer, int iBytesToRead, int * iBytesReturned )
-{
-  // Declare variables
-
-  int iReadBytesReturned = 0;
-  int iTotalBytesRead = 0;
-
-  *iBytesReturned = 0;
-  // Make sure the entire Rx packet was read
-  int retry = 2;
-  while (iTotalBytesRead < iBytesToRead)
-  {
-	  iReadBytesReturned = 0;
-	  m_iStatus = con->Read((BYTE*)pRxBuffer + iTotalBytesRead, iBytesToRead - iTotalBytesRead,  &iReadBytesReturned);
-	  if (m_iStatus != ALL_OK)
-		  return m_iStatus + ERR_PKT_BlockRxFailed;
-	  
-	  iTotalBytesRead += iReadBytesReturned;
-  }
-  if (iBytesToRead != iTotalBytesRead)
-	  return ERR_PKT_BlockRxTooLittle;
-	
-  *iBytesReturned = iTotalBytesRead;
-  return ALL_OK;
-}
 

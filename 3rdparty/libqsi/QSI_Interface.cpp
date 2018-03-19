@@ -109,6 +109,8 @@ QSI_Interface::QSI_Interface ( void )
 	m_CCDSpecs.MaxADU	= 0xffff;
 	m_CCDSpecs.maxExp	= 14400;
 	m_CCDSpecs.minExp   = 0.03;
+
+	m_MaxBytesPerReadBlock = 65536;
 	
 	return;
 }
@@ -169,7 +171,7 @@ int QSI_Interface::GetDeviceInfo( int iIndex, CameraID & cID )
 	std::vector<CameraID> vID;
 	m_iError = this->ListDevices(vID, iNumFound); 
 
-	if( iIndex >= vID.size() || m_iError != 0 ) 
+	if( iIndex >= (int)vID.size() || m_iError != 0 ) 
 	{
 		m_iError += ERR_IFC_GetDeviceInfo;
 		m_log->Write(2, "GetDeviceInfo Description failed. iIndex: %d, iNumFound: %d, Error Code: %x", iIndex, iNumFound, m_iError);
@@ -221,7 +223,8 @@ int QSI_Interface::OpenCamera ( std::string strSerialNumber )
 	m_log->TestForLogging();
 	m_log->Write(2, "OpenCamera by serial number started.");
 
-	if (iError = ListDevices(vID, iNumFound) == 0)
+	iError = ListDevices(vID, iNumFound);
+	if (iError == 0)
 	{
 		// Find the CameraID for this serial number
 		iError = ERR_PKT_OpenFailed;
@@ -238,7 +241,7 @@ int QSI_Interface::OpenCamera ( std::string strSerialNumber )
 	else
 	{
 		// Handle case where list devices failed.
-		cID = CameraID(std::string(strSerialNumber), std::string(strSerialNumber), "Unknown", 0x403, 0xeb48);
+		cID = CameraID(std::string(strSerialNumber), std::string(strSerialNumber), "Unknown", 0x403, 0xeb48, CameraID::CP_USB);
 		iError = 0;
 	}
 
@@ -263,6 +266,10 @@ int QSI_Interface::OpenCamera( CameraID cID )
 	iError = m_HostCon.Open( cID );
 	if (iError != 0)
 		return iError;	
+
+	m_MaxBytesPerReadBlock = reg.GetMaxPixelsPerBlock( (m_HostCon.m_HostIO) ? m_HostCon.m_HostIO->MaxBytesPerReadBlock() : 65536 );
+	if (m_MaxBytesPerReadBlock < 1) m_MaxBytesPerReadBlock = 1;	
+	m_log->Write(2, _T("Open: MaxBytesPerReadBlock: %d for this connection."), m_MaxBytesPerReadBlock);
 
 	m_hpmMap = HotPixelMap(cID.SerialNumber);
 	m_log->Write(2, "OpenCamera completed. Error Code: %x", m_iError);
@@ -334,16 +341,50 @@ int QSI_Interface::CloseCamera ( void )
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //
-int QSI_Interface::ReadImage ( PVOID pvRxBuffer, int iBytesToRead, int * iBytesReturned )
+int  QSI_Interface::ReadImageByRow(PVOID pvRxBuffer, int iRowsRequested, int iColumnsRequested, int iStride, int iPixelSize, int & iRowsRead)
 {
 	int iError;
+	int iRowsToRead;
+	int iBytesReturned;
 
-	m_log->Write(2, "ReadImage started. Bytes to read: %x", iBytesToRead);
+	// ReadImageByRow may return fewer rows than requested.  It is up to the caller to make additional calls to retreive the entire image.
+	// iStride is in BYTES per horizontal row.
 
-	iError = m_PacketWrapper.PKT_ReadBlock(m_HostCon.m_HostIO, pvRxBuffer, iBytesToRead, iBytesReturned );
+	m_bCameraStateCacheInvalid = true;
+	m_log->Write(2, _T("ReadImageByRow started. Rows requested to read: %d"), iRowsRequested);
 
-	m_log->Write(2, "ReadImage (block) completed. Error Code: %x", iError);
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 
+	// Calculate number of rows to read, based on connection type. Some protocols are limited to one row at a time
+	int iMaxRows = m_MaxBytesPerReadBlock / (iColumnsRequested * iPixelSize);
+	if (iMaxRows == 0)
+		iMaxRows = 1;
+	
+	if (m_HostCon.m_HostIO->GetTransferType() == IOType_SingleRow)
+		iRowsToRead = 1;
+	else if (iColumnsRequested * iPixelSize != iStride) // Non-contiguous rows, so read one row at a time
+		iRowsToRead = 1;
+	else if (iRowsRequested < iMaxRows)
+		iRowsToRead = iRowsRequested;
+	else
+		iRowsToRead = iMaxRows;
+
+	iError = m_HostCon.m_HostIO->Read((unsigned char *)pvRxBuffer, iRowsToRead * iColumnsRequested * iPixelSize, &iBytesReturned);
+
+	iRowsRead = (iBytesReturned / iPixelSize) / iColumnsRequested;
+
+	if (iRowsRead != iRowsToRead)
+	{
+		iError = ERR_IFC_TransferImage + ERR_PKT_BlockRxTooLittle;
+		m_log->Write(2, _T("ReadImageByRow completed with Error Code: %d"), iError);
+		return iError;
+	}
+
+	m_log->Write(2, _T("ReadImageByRow completed."));
 	return iError;
 }
 
@@ -352,7 +393,12 @@ int QSI_Interface::ReadImage ( PVOID pvRxBuffer, int iBytesToRead, int * iBytesR
 int QSI_Interface::CMD_InitCamera ( void )
 {
 	m_log->Write(2, "InitCamera started.");
-	
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	//
 	//	Send the Init Request.  This may take up to 600ms to run.
 	//
@@ -397,6 +443,13 @@ int QSI_Interface::CMD_InitCamera ( void )
 int QSI_Interface::CMD_GetDeviceDetails ( QSI_DeviceDetails & DeviceDetails )
 {
 	m_log->Write(2, "GetDeviceDetails started");
+	
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Define command packet structure
 	const int CMD_Command  = 0;
 	const int CMD_Length   = 1;
@@ -565,7 +618,7 @@ int QSI_Interface::AutoGainAdjust(QSI_ExposureSettings ExpSettings, QSI_AdvSetti
 	// We don't change gain on every exposure, as that would slow the frame rate considerably.
 	if (gainRequired != m_CameraAdvSettingsCache.CameraGainIndex)
 	{
-		// Update Camera and cace settings
+		// Update Camera and cache settings
 		m_log->Write(3, _T("AutoGain cache invalid.  Update Gain setting camera to gain index: %d"), gainRequired);
 		newAdvSettings.CameraGainIndex = gainRequired;
 		UpdateAdvSettings(newAdvSettings);
@@ -584,6 +637,12 @@ int QSI_Interface::CMD_StartExposure ( QSI_ExposureSettings ExposureSettings )
 {
 	m_log->Write(2,  "StartExposure Started %d milliseconds, %d x, %d y",ExposureSettings.Duration * 10, ExposureSettings.ColumnsToRead, ExposureSettings.RowsToRead);
 
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	AutoGainAdjust( ExposureSettings, m_UserRequestedAdvSettings);
 	
 	// Define command packet structure
@@ -656,6 +715,13 @@ int QSI_Interface::CMD_StartExposure ( QSI_ExposureSettings ExposureSettings )
 int QSI_Interface::CMD_StartExposureEx( QSI_ExposureSettings ExposureSettings )
 {
 	m_log->Write(2, "StartExposureEx started. Duration: %d, DurationUSec: %d.", ExposureSettings.Duration, ExposureSettings.DurationUSec);
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	if (ExposureSettings.OpenShutter)
 		m_log->Write(2, "StartExposureEx Light = true.");
 	else
@@ -753,6 +819,7 @@ int QSI_Interface::HasFastExposure( bool & bFast )
 {
 	m_log->Write(2, "Probe for StartExposureEx started.");
 	QSI_ExposureSettings ExposureSettings;
+
 	ExposureSettings.ProbeForImplemented = true;
 
 	// Send command
@@ -781,6 +848,13 @@ int QSI_Interface::CMD_AbortExposure ( void )
 	// Define response packet structure
 	const int RSP_DeviceError = 2;
 	m_log->Write(2, "AbortExposure started");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_ABORTEXPOSURE;
 	Cmd_Pkt[CMD_Length] = 2;
@@ -815,6 +889,13 @@ int QSI_Interface::CMD_TransferImage ( void )
 	// Define response packet structure
 	const int RSP_DeviceError = 2;
 	m_log->Write(2, "TransferImage started");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_TRANSFERIMAGE;
 	Cmd_Pkt[CMD_Length] = 0;
@@ -854,6 +935,13 @@ int QSI_Interface::CMD_GetAutoZero( QSI_AutoZeroData & AutoZeroData )
 	const int RSP_PixelCount     = 5;
 	const int RSP_DeviceError    = 7;
 	m_log->Write(2, "GetAutoZero started.");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_GETAUTOZERO;
 	Cmd_Pkt[CMD_Length] = 0;
@@ -908,6 +996,13 @@ int QSI_Interface::CMD_GetDeviceState ( int & iCameraState, bool & bShutterOpen,
 	const int RSP_DeviceError  = 5;
 
 	m_log->Write(2, "GetDeviceState started");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_GETDEVICESTATE;
 	Cmd_Pkt[CMD_Length] = 0;
@@ -969,6 +1064,13 @@ int QSI_Interface::CMD_SetTemperature ( bool bCoolerOn, bool bGoToAmbient, doubl
 	const int RSP_DeviceError  = 2;
 
 	m_log->Write(2, "SetTemperature started Cooler: %s, Set point: %f", bCoolerOn?"On":"Off", dSetPoint);
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_SETTEMPERATURE;
 	Cmd_Pkt[CMD_Length]  = 4;
@@ -1017,6 +1119,13 @@ int QSI_Interface::CMD_GetTemperature ( int & iCoolerState, double & dCoolerTemp
 	const int RSP_CoolerPower  = 7;
 	const int RSP_DeviceError  = 9;
 	m_log->Write(2, "GetTemperature started");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_GETTEMPERATURE;
 	Cmd_Pkt[CMD_Length]  = 0;
@@ -1086,6 +1195,12 @@ int QSI_Interface::CMD_GetTemperatureEx( int & iCoolerState, double & dCoolerTem
 
 	m_log->Write(2, _T("GetTemperatureEx started"));
 
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_GETTEMPERATUREEX;
 	Cmd_Pkt[CMD_Length]  = 0;
@@ -1127,9 +1242,6 @@ int QSI_Interface::CMD_GetTemperatureEx( int & iCoolerState, double & dCoolerTem
 	// Retrieve each parameter from response packet
 	iCoolerState  = Rsp_Pkt[RSP_CoolerState];
 
-	short tmp = Get2Bytes(&Rsp_Pkt[RSP_CoolerTemp]);
-	double a = tmp / 100.0;
-
 	dCoolerTemp   = (short) Get2Bytes(&Rsp_Pkt[RSP_CoolerTemp]) / 100.0;
 	dHotsideTemp  = (short) Get2Bytes(&Rsp_Pkt[RSP_HotsideTemp]) / 100.0;
 	usCoolerPower = (short) ( Get2Bytes(&Rsp_Pkt[RSP_CoolerPower]) / 100.0 );
@@ -1155,6 +1267,13 @@ int QSI_Interface::CMD_ActivateRelay ( int iXRelay, int iYRelay )
 	// Define response packet structure
 	const int RSP_DeviceError  = 2;
 	m_log->Write(2, "ActivateRelay started. X: %x Y: %x", iXRelay, iYRelay);
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_ACTIVATERELAY; 
 	Cmd_Pkt[CMD_Length]  = 4;
@@ -1193,6 +1312,13 @@ int QSI_Interface::CMD_IsRelayDone ( bool & bGuiderRelayState )
 	const int RSP_GuiderRelayState = 2;
 	const int RSP_DeviceError   = 3;
 	m_log->Write(2, "IsRelayDone started.");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_ISRELAYDONE;
 	Cmd_Pkt[CMD_Length]  = 0;
@@ -1230,6 +1356,13 @@ int QSI_Interface::CMD_SetFilterWheel ( int iFilterPosition )
 	// Define response packet structure
 	const int RSP_DeviceError = 2;
 	m_log->Write(2, "SetFilterWheel started. Pos: %x", iFilterPosition);
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_SETFILTERWHEEL;
 	Cmd_Pkt[CMD_Length]  = 1;
@@ -1285,6 +1418,13 @@ int QSI_Interface::CMD_GetCamDefaultAdvDetails( QSI_AdvSettings & AdvDefaultSett
 	const int RSP_OptimizeReadoutDefault= 19;
 	const int RSP_DeviceError           = 20;
 	m_log->Write(2, "GetAdvDetails started.");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_GETDEFAULTADVDETAILS;
 	Cmd_Pkt[CMD_Length]  = 0;
@@ -1399,6 +1539,12 @@ int QSI_Interface::UpdateAdvSettings ( QSI_AdvSettings AdvSettings )
 	m_log->Write(2, _T("SendAdvSettings: Flush index %d"), AdvSettings.PreExposureFlushIndex);
 	m_log->Write(2, _T("SendAdvSettings: Show progress %d"), AdvSettings.ShowDLProgress?1:0);
 	m_log->Write(2, _T("SendAdvSettings: Optimize readout speed %d"), AdvSettings.OptimizeReadoutSpeed?1:0);
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command]  = CMD_SETADVSETTINGS;
@@ -1456,6 +1602,13 @@ int QSI_Interface::CMD_GetSetPoint( double & dSetPoint)
 	const int RSP_SetPoint  = 2;
 	const int RSP_DeviceError = 4;
 	m_log->Write(2, "GetSetPoint started");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_GETSETPOINT;
 	Cmd_Pkt[CMD_Length]  = 0;
@@ -1493,6 +1646,13 @@ int QSI_Interface::CMD_SetShutter( bool bOpen )
 	// Define response packet structure
 	const int RSP_DeviceError   = 2;
 	m_log->Write(2, "SetShutter started. Shutter Open: %s", bOpen?"T":"F");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_SETSHUTTER;
 	Cmd_Pkt[CMD_Length]  = 1;
@@ -1529,6 +1689,13 @@ int QSI_Interface::CMD_AbortRelays( void )
 	// Define response packet structure
 	const int RSP_DeviceError = 2;
 	m_log->Write(2, "AbortRelays started.");
+	
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_ABORTRELAYS;
 	Cmd_Pkt[CMD_Length] = 0;
@@ -1563,6 +1730,13 @@ int QSI_Interface::CMD_GetLastExposure( double & dExposure )
 	const int RSP_ExpTime = 2;
 	const int RSP_DeviceError = 5;
 	m_log->Write(2, "GetLastExposureTime started.");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_GETLASTEXPOSURETIME;
 	Cmd_Pkt[CMD_Length] = 0;
@@ -1602,6 +1776,13 @@ int QSI_Interface::CMD_CanAbortExposure( bool & bCanAbort )
 	const int RSP_CanAbort		= 2;
 	const int RSP_DeviceError	= 3;
 	m_log->Write(2, "CanAbortExposure started.");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_CANABORTEXPOSURE;
 	Cmd_Pkt[CMD_Length] = 0;
@@ -1623,9 +1804,11 @@ int QSI_Interface::CMD_CanAbortExposure( bool & bCanAbort )
 	}
 
 	bCanAbort = GetBoolean(Rsp_Pkt[RSP_CanAbort]);
-	if( m_log->LoggingEnabled(2))
+	m_log->Write(2, "CanAbortExposure completed ok. Can abort %s", bCanAbort?"T":"F");
+		
 	return ALL_OK;
 }
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // 
 int QSI_Interface::CMD_CanStopExposure( bool & bCanStop )
@@ -1638,6 +1821,13 @@ int QSI_Interface::CMD_CanStopExposure( bool & bCanStop )
 	const int RSP_CanStop = 2;
 	const int RSP_DeviceError = 3;
 	m_log->Write(2, "CanStopExposure started.");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_CANSTOPEXPOSURE;
 	Cmd_Pkt[CMD_Length] = 0;
@@ -1674,6 +1864,13 @@ int QSI_Interface::CMD_GetFilterPosition( int & iPosition )
 	const int RSP_Position = 2;
 	const int RSP_DeviceError = 3;
 	m_log->Write(2, "GetFilterPosition started.");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_GETFILTERPOSITION;
 	Cmd_Pkt[CMD_Length] = 0;
@@ -1715,6 +1912,13 @@ int QSI_Interface::CMD_GetCCDSpecs( QSI_CCDSpecs & CCDSpecs)
 	const int RSP_MaxExp = 10;
 	const int RSP_DeviceError = 12;
 	m_log->Write(2, "GetCCDSpecs started.");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_GETCCDSPECS;
 	Cmd_Pkt[CMD_Length] = 0;
@@ -1822,6 +2026,12 @@ int QSI_Interface::CMD_GetAltMode1( unsigned char & ucMode)
 
 	m_log->Write(2, "GetAltMode1 started.");
 
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_GETALTMODE1;
 	Cmd_Pkt[CMD_Length] = 0;
@@ -1860,6 +2070,12 @@ int QSI_Interface::CMD_SetAltMode1( unsigned char ucMode)
 
 	m_log->Write(2, "SetAltMode1 started. Altmode1: %x ", ucMode);
 
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_SETALTMODE1;
 	Cmd_Pkt[CMD_Length] = 1;
@@ -1897,6 +2113,12 @@ int QSI_Interface::CMD_GetFeatures(BYTE* pMem, int iFeatureArraySize, int & iCou
 
 	m_log->Write(2, "GetFeatures started.");
 
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	iCountReturned = 0;
 
 	// Construct command packet
@@ -1973,6 +2195,13 @@ int QSI_Interface::CMD_GetEEPROM(USHORT usAddress, BYTE & bData)
 	const int RSP_DeviceError    = 3;
 
 	m_log->Write(2, "GetEEPROM started.");
+
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
+	
 	// Construct command packet
 	Cmd_Pkt[CMD_Command] = CMD_GETEEPROM;
 	Cmd_Pkt[CMD_Length] = 2;
@@ -2005,6 +2234,9 @@ int QSI_Interface::CMD_GetEEPROM(USHORT usAddress, BYTE & bData)
 int QSI_Interface::GetVersionInfo(char tszHWVersion[], char tszFWVersion[])
 {
 	// Camera EEPROM addresses for public data
+	
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 	const USHORT EE_MODEL	= 0x0000;
 	const USHORT EE_MFGDATE	= 0x0008;
 	const USHORT EE_HWSN	= 0x0010;
@@ -2017,6 +2249,7 @@ int QSI_Interface::GetVersionInfo(char tszHWVersion[], char tszFWVersion[])
 	const USHORT EE_CLOFF	= 0x0059;
 	const USHORT EE_COLS	= 0x005B;
 
+	
 	BYTE data;
 	m_log->Write(2, "GetVersionInfo started.");
 
@@ -2055,6 +2288,7 @@ int QSI_Interface::GetVersionInfo(char tszHWVersion[], char tszFWVersion[])
 	m_log->Write(2, _T("GetVersionInfo completed. HW %s FW %s"), tszHWVersion, tszFWVersion);
 	return ALL_OK;
 }
+#pragma GCC diagnostic pop
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // GetBoolean converts a 1 byte value to either true or false (0 = false, 1-255 = true)
@@ -2148,11 +2382,11 @@ void QSI_Interface::GetAutoZeroAdjustment(QSI_AutoZeroData autoZeroData, USHORT 
 	int iMedian = 0;
 	int iMean = 0;
 	int iTotal = 0;
-	int iDelta = 0;
+
 	double dMedian = 0;
 	double dMean = 0;
 	double dTotal = 0;
-	double dDelta = 0;
+
 	double val = 0;
 	int size = 0;
 	int iAvg = 0;
@@ -2168,12 +2402,12 @@ void QSI_Interface::GetAutoZeroAdjustment(QSI_AutoZeroData autoZeroData, USHORT 
 	}
 
 	//
-	// First sort the pixels to optionaly remove the start/end pixels
+	// First sort the pixels to optionally remove the start/end pixels
 	//
 	size = autoZeroData.pixelCount;
 	qsort(zeroPixels, size, sizeof(USHORT), compareUSHORT);
 
-	//Calc net size of overscan array to use
+	//Calc net size of over-scan array to use
 	size = size - (m_dwAutoZeroSkipStartPixels + m_dwAutoZeroSkipEndPixels);
 	if ( size <= 0)
 	{
@@ -2285,8 +2519,6 @@ void QSI_Interface::GetAutoZeroAdjustment(QSI_AutoZeroData autoZeroData, USHORT 
 int QSI_Interface::AdjustZero(USHORT* pSrc, USHORT* pDst, int iPixelsPerRow, int iRowsLeft, int usAdjust, bool bAdjust)
 {
 	int pixel;
-	int size;
-	double val;
 	int result;
 	int iNegPixelCount;
 	int iLowPixel;
@@ -2388,9 +2620,6 @@ int QSI_Interface::AdjustZero(USHORT* pSrc, USHORT* pDst, int iPixelsPerRow, int
 int QSI_Interface::AdjustZero(USHORT* pSrc, double * pDst, int iPixelsPerRow, int iRowsLeft, double dAdjust, bool bAdjust)
 {
 	double pixel;
-	int size;
-	double dPix;
-	double val;
 	int result;
 	int iNegPixelCount;
 	double dLowPixel;
@@ -2496,8 +2725,6 @@ int QSI_Interface::AdjustZero(USHORT* pSrc, double * pDst, int iPixelsPerRow, in
 int QSI_Interface::AdjustZero(USHORT* pSrc, long* pDst, int iPixelsPerRow, int iRowsLeft, int usAdjust, bool bAdjust)
 {
 	int pixel;
-	int size;
-	double val;
 	int result;
 	int iNegPixelCount;
 	int iLowPixel;
@@ -2586,7 +2813,7 @@ int QSI_Interface::AdjustZero(USHORT* pSrc, long* pDst, int iPixelsPerRow, int i
 		{
 			for (int j = 0; j < 16 && iSampleSize > 0; j++)
 			{
-				snprintf(m_log->m_Message+(j*6), MSGSIZE, _T("%5u "), ((long*)pDst)[(i*16)+j]);
+				snprintf(m_log->m_Message+(j*6), MSGSIZE, _T("%5ld "), ((long*)pDst)[(i*16)+j]);
 				iSampleSize--;
 			}
 			m_log->Write(6);
@@ -2608,6 +2835,11 @@ int compareUSHORT( const void *val1, const void *val2)
 int QSI_Interface::QSIRead(unsigned char * Buffer, int BytesToRead, int * BytesReturned)
 {
 	m_log->Write(2, _T("QSIRead started."));
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	m_iError = m_HostCon.m_HostIO->Read(Buffer, BytesToRead, BytesReturned);
 	m_log->Write(2, _T("QSIRead finished. Error Code: %I32X"), m_iError);
 	
@@ -2617,6 +2849,11 @@ int QSI_Interface::QSIRead(unsigned char * Buffer, int BytesToRead, int * BytesR
 int QSI_Interface::QSIWrite(unsigned char * Buffer, int BytesToWrite, int * BytesWritten)
 {
 	m_log->Write(2, _T("QSIWrite started."));
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	m_iError = m_HostCon.m_HostIO->Write(Buffer, BytesToWrite, BytesWritten);
 	m_log->Write(2, _T("QSIWrite finished. Error Code: %I32X"), m_iError);
 	
@@ -2627,6 +2864,11 @@ int QSI_Interface::QSIReadDataAvailable(int * count)
 {	
 	int temp;
 	m_log->Write(2, _T("QSIReadDataAvailable started."));
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	m_iError = m_HostCon.m_HostIO->GetReadWriteQueueStatus(count, &temp);
 	m_log->Write(2, _T("QSIReadDataAvailable finished. Error Code: %I32X"), m_iError);
 
@@ -2637,6 +2879,11 @@ int QSI_Interface::QSIWriteDataPending(int * count)
 {
 	int temp;
 	m_log->Write(2, _T("QSIWriteDataPending started."));
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	m_iError = m_HostCon.m_HostIO->GetReadWriteQueueStatus(&temp, count);
 	m_log->Write(2, _T("QSIWriteDataAvailable finished. Error Code: %I32X"), m_iError);
 
@@ -2655,6 +2902,11 @@ int QSI_Interface::QSIReadTimeout(int timeout)
 int QSI_Interface::QSIWriteTimeout(int timeout)
 {
 	m_log->Write(2, _T("QSIWriteTimeout started."));
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	m_iError = m_HostCon.m_HostIO->SetStandardWriteTimeout((ULONG)timeout);
 	m_log->Write(2, _T("QSIWriteTimeout finished. Error Code: %I32X"), m_iError);
 
@@ -2671,6 +2923,12 @@ void QSI_Interface::HotPixelRemap(	BYTE * Image, int RowPad, QSI_ExposureSetting
 
 int QSI_Interface::CMD_SetFilterTrim(int pos, bool probe)
 {
+	m_log->Write(2, _T("SetFilterTrim started."));
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	if (!m_DeviceDetails.HasFilter)
 	{
 		m_log->Write(2, _T("SetFilterTrim: No filter wheel configured."));
@@ -2766,7 +3024,11 @@ int QSI_Interface::CMD_BurstBlock(int Count, BYTE * Buffer, int * Status)
 
 	m_bCameraStateCacheInvalid = true;
 	m_log->Write(2, _T("BurstBlock started. Count: %d"), Count);
-
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_BURSTBLOCK;
 	Cmd_Pkt[CMD_Length]  = 1;
@@ -2810,7 +3072,7 @@ int QSI_Interface::CMD_HSRExposure( QSI_ExposureSettings ExposureSettings, QSI_A
 	const int CMD_Command          = 0;
 	const int CMD_Length           = 1;
 	const int CMD_Duration         = 2; // 3 byte duration in 10ms increments
-	const int CMD_DurationUSec	   = 5; // remaining dureation in 100uSec increments
+	const int CMD_DurationUSec	   = 5; // remaining duration in 100uSec increments
 	const int CMD_ColumnOffset     = 6;
 	const int CMD_RowOffset        = 8;
 	const int CMD_ColumnsToRead    = 10;
@@ -2827,8 +3089,8 @@ int QSI_Interface::CMD_HSRExposure( QSI_ExposureSettings ExposureSettings, QSI_A
 	const int CMD_END			   = 26;
 
 	// Define response packet structure
-	const int RSP_Command			= 0;
-	const int RSP_Length			= 1;
+	//const int RSP_Command			= 0;
+	//const int RSP_Length			= 1;
 	const int RSP_AZEnable			= 2;
 	const int RSP_AZLevel			= 3;
 	const int RSP_AZPixelCount		= 5;
@@ -2836,7 +3098,11 @@ int QSI_Interface::CMD_HSRExposure( QSI_ExposureSettings ExposureSettings, QSI_A
 	m_bCameraStateCacheInvalid = true;
 
 	m_log->Write(2, _T("HSRExposure started."));
-
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	// Construct command packet header
 	Cmd_Pkt[CMD_Command] = CMD_HSREXPOSURE;
 	Cmd_Pkt[CMD_Length] = CMD_END - 2;	// Don't count the first two bytes
@@ -2911,7 +3177,11 @@ int QSI_Interface::CMD_SetHSRMode( bool enable)
 	const int RSP_DeviceError	= 2;
 
 	m_log->Write(2, _T("SetHSRMode started. : %d"), enable?1:0);
-
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_SETHSRMODE; 
 	Cmd_Pkt[CMD_Length]  = 1;
@@ -2950,7 +3220,11 @@ int QSI_Interface::CMD_ExtTrigMode( BYTE action, BYTE polarity)
 	const int RSP_DeviceError	= 2;
 
 	m_log->Write(2, _T("ExtTrigMode started. : %d, %d"), action, polarity);
-
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_BASICHWTRIGGER; 
 	Cmd_Pkt[CMD_Length]  = 1;
@@ -3013,7 +3287,11 @@ int QSI_Interface::CMD_GetShutterState( int & iState )
 	const int RSP_DeviceError	= 3;
 
 	m_log->Write(2, _T("Get Shutter State started."));
-
+	if (m_HostCon.m_HostIO == NULL)
+	{
+		m_log->Write(2, _T("NULL m_HostIO pointer"));
+		return ERR_PKT_NoConnection;
+	}
 	// Construct transmit packet header
 	Cmd_Pkt[CMD_Command] = CMD_GETSHUTTERSTATE; 
 	Cmd_Pkt[CMD_Length]  = 0;
@@ -3038,4 +3316,9 @@ int QSI_Interface::CMD_GetShutterState( int & iState )
 	iState = Rsp_Pkt[RSP_ShutterState];
 	m_log->Write(2, _T("Get Shutter State completed OK, State: %d"), iState);
 	return ALL_OK;
+}
+
+int QSI_Interface::GetMaxBytesPerReadBlock(void)
+{
+	return m_MaxBytesPerReadBlock;
 }

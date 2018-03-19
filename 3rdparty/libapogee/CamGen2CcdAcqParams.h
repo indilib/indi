@@ -31,8 +31,8 @@ class CamGen2CcdAcqParams : public CcdAcqParams
             uint16_t offset;
         };
 
-        CamGen2CcdAcqParams(std::tr1::shared_ptr<CApnCamData> & camData,
-            std::tr1::shared_ptr<CameraIo> & camIo, std::tr1::shared_ptr<PlatformData> & platformData);
+        CamGen2CcdAcqParams(std::shared_ptr<CApnCamData> & camData,
+            std::shared_ptr<CameraIo> & camIo, std::shared_ptr<PlatformData> & platformData);
         virtual ~CamGen2CcdAcqParams(); 
 
         void Init();

@@ -21,19 +21,19 @@
 
 class BlackFly : public ArvGeneric
 {
-    public:
-        BlackFly(void* camera_device);
-        bool connect();
-        void exposure_start(void);
+  public:
+    BlackFly(void *camera_device);
+    bool connect();
+    void exposure_start(void);
 
-    protected:
-        bool _configure(void);
-        bool _get_initial_config();
-        bool _set_initial_config();
+  protected:
+    bool _configure(void);
+    bool _get_initial_config();
+    bool _set_initial_config();
 
-    private:
-        bool _custom_settings();
-        void _fixup();
+  private:
+    bool _custom_settings();
+    void _fixup();
 };
 
 #endif

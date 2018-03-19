@@ -165,7 +165,7 @@ void QSILog::Write(int iReqLevel, const char * msg, ...)
 	llNetTick = (tvCurrentTick.tv_sec * 1000000) + tvCurrentTick.tv_usec;
 	llNetTick = llNetTick - ((m_tvLastTick.tv_sec * 1000000) + m_tvLastTick.tv_usec);
 
-	snprintf(tcsBuf, MSGSIZE, "%04d-%02d-%02dT%02d:%02d:%02d.%03d: delta usec: %012lld: ", 
+	snprintf(tcsBuf, MSGSIZE, "%04d-%02d-%02d,%02d:%02d:%02d.%03d,delta_usec:%012lld,", 
 				tmGMT->tm_year + 1900, 
 				tmGMT->tm_mon + 1, 
 				tmGMT->tm_mday, 
@@ -180,7 +180,7 @@ void QSILog::Write(int iReqLevel, const char * msg, ...)
 
 	fputs(tcsBuf, m_pfLogFile);
 	PID = getpid();
-	snprintf(tcsBuf, MSGSIZE, "Thread: %08u :", PID);
+	snprintf(tcsBuf, MSGSIZE, "Thread:%08u,", PID);
 	fputs(tcsBuf, m_pfLogFile);
 	fputs(m_tszPreFixName, m_pfLogFile);
 	fputs(":", m_pfLogFile);

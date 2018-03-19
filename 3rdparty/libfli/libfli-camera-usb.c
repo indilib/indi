@@ -43,6 +43,7 @@
 
 #ifdef _WIN32
 #include <winsock.h>
+#define strncasecmp _strnicmp
 #else
 #include <sys/param.h>
 #include <netinet/in.h>
@@ -375,11 +376,43 @@ long fli_camera_usb_open(flidev_t dev)
 				DEVICE->devinfo.model = xstrndup((char *) &buf[32], 32);
 			}
 
+//#ifdef _WIN32_
+//			/* Check the registry to determine if we are overriding any settings */
+//			{
+//				HKEY hKey;
+//				DWORD t = 0;
+//				DWORD len;
+//
+//				if (RegOpenKey(HKEY_CURRENT_USER,
+//					"SOFTWARE\\Finger Lakes Instrumentation\\libfli",
+//					&hKey) == ERROR_SUCCESS)
+//				{
+//					len = sizeof(DWORD);
+//					if (RegQueryValueEx(hKey, "fw_rev", NULL, NULL, (LPBYTE) &t, &len) == ERROR_SUCCESS)
+//					{
+//						debug(FLIDEBUG_INFO, "Found a request to override camera FWREV.");
+//					}
+//					RegCloseKey(hKey);
+//					DEVICE->devinfo.fwrev = t;
+//				}
+//			}
+//#endif
+
+			if (DEVICE->devinfo.fwrev == 0x0100)
+				DEVICE->devinfo.fwrev = 0x0101;
+
 			/* FW dependent capabilities */
 			if (DEVICE->devinfo.fwrev >= 0x0110)
 			{
 				cam->capabilities |= CAPABILITY_TDI;
 				cam->capabilities |= CAPABILITY_BGFLUSH;
+			}
+
+			if (strncasecmp(DEVICE->devinfo.model, "MicroLine ML4022", 16) == 0)
+			{
+				debug(FLIDEBUG_INFO, "ML4022, overriding pixel size.");
+				cam->ccd.pixelheight = 7.4e-6;
+				cam->ccd.pixelwidth = 7.4e-6;
 			}
 
 			debug(FLIDEBUG_INFO, "Device has following capabilities:");
@@ -389,6 +422,8 @@ long fli_camera_usb_open(flidev_t dev)
 			if SUPPORTS_BGFLUSH(DEVICE) debug(FLIDEBUG_INFO, "   SUPPORTS_BGFLUSH");
 			if SUPPORTS_END_EXPOSURE(DEVICE) debug(FLIDEBUG_INFO, "   SUPPORTS_END_EXPOSURE");
 			if SUPPORTS_SOFTWARE_TRIGGER(DEVICE) debug(FLIDEBUG_INFO, "   SUPPORTS_SOFTWARE_TRIGGER");
+			if SUPPORTS_VERTICAL_TABLE(DEVICE) debug(FLIDEBUG_INFO, "   SUPPORTS_VERTICAL_TABLE");
+			if SUPPORTS_16BIT_VBIN(DEVICE) debug(FLIDEBUG_INFO, "   SUPPORTS_16BIT_VBIN");
 
 			/* Initialize all varaibles to something */
 			cam->vflushbin = 0;
@@ -408,6 +443,7 @@ long fli_camera_usb_open(flidev_t dev)
 			cam->background_flush = 1;
 			cam->tempslope = 1.0;
 			cam->tempintercept = 0.0;
+			cam->vertical_table = 0;
 
 			cam->grabrowwidth =
 				(cam->image_area.lr.x - cam->image_area.ul.x) / cam->hbin;
@@ -446,6 +482,40 @@ long fli_camera_usb_open(flidev_t dev)
 
 	debug(FLIDEBUG_INFO, " Pix Size: (%g, %g)", cam->ccd.pixelwidth, cam->ccd.pixelheight);
 	debug(FLIDEBUG_INFO, "    Temp.: T = AD x %g + %g", cam->tempslope, cam->tempintercept);
+
+	
+#ifdef BADCOLUMN
+	{
+		char b[128];
+		int index = 0;
+		FILE *fp = NULL;
+
+		fp = fopen("C:\\badcolumns.txt", "r");
+
+		if (fp != NULL)
+		{
+			debug(FLIDEBUG_INFO, "Loading bad column list.");
+	
+			memset(b, '\0', 128);
+
+			while ((index < 1023) && (fgets(b, 127, fp) != NULL))
+			{
+				if (!isdigit(b[0])) continue;
+
+				cam->badcolumns[index] = strtol(b, NULL, 0);
+
+				debug(FLIDEBUG_INFO, "Adding bad column %d to list", cam->badcolumns[index]);
+
+				index++;
+			}
+
+			fclose(fp);
+		}
+
+		cam->badcolumns[index] = (-1);
+	}
+#endif
+
 
 	return 0;
 }
@@ -561,6 +631,8 @@ long fli_camera_usb_set_image_area(flidev_t dev, long ul_x, long ul_y,
 {
   flicamdata_t *cam = DEVICE->device_data;
 	int r = 0;
+
+	cam->vertical_table = 0;
 
 	if( (DEVICE->devinfo.fwrev < 0x0300) &&
 			((DEVICE->devinfo.hwrev & 0xff00) == 0x0100) &&
@@ -712,10 +784,16 @@ long fli_camera_usb_set_vbin(flidev_t dev, long vbin)
 			/* We do nothing here, h_bin is sent with start exposure command
 			   this may be a bug, TDI imaging will require this */
 
+			if SUPPORTS_16BIT_VBIN(DEVICE)
+			{
+				if ((vbin < 1) || (vbin > 32767))
+					return -EINVAL;
+			}
+			else
+			{
 			if ((vbin < 1) || (vbin > 255))
 				return -EINVAL;
-
-
+		}
 		}
 		break;
 
@@ -951,8 +1029,8 @@ long fli_camera_usb_get_temperature(flidev_t dev, double *temperature)
 
 long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 {
-	flicamdata_t *cam = DEVICE->device_data;
-	int abort = 0;
+  flicamdata_t *cam = DEVICE->device_data;
+  int abort = 0;
 
 	if(width > (size_t) (cam->image_area.lr.x - cam->image_area.ul.x))
 	{
@@ -1056,6 +1134,7 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 		case FLIUSB_PROLINE_ID+1:
 		{
 			long rlen, rtotal;
+			int abort = 0;
 
 			/* First we need to determine if the row is in memory */
 			while ( (cam->grabrowcounttot < cam->grabrowwidth) && (abort == 0) )
@@ -1590,15 +1669,63 @@ long fli_camera_usb_grab_row(flidev_t dev, void *buff, size_t width)
 			}
 			cam->grabrowindex ++;
 		}
-		break;
 
+#ifdef BADCOLUMN
+
+		/* Only do this bin 1 */
+		if ( (cam->hbin == 1) && (width > 1) )
+		{
+			int index = 0;
+			long t;
+			int column;
+			unsigned short *row = (unsigned short *) buff;
+
+			while ((index < 1024) && ((column = cam->badcolumns[index]) >= 0))
+			{
+				index++;
+
+				/* Subtract the offset */
+				column -= cam->image_area.ul.x;
+
+				if (column < 0) continue;
+
+				if (column == 0) /* Right at the edge */
+				{
+					row[0] = row[1];
+//					row[0] = 65535;
+				}
+				else if (column < ((long) width - 1)) /* Somewhere in between */
+				{
+					t = (row[column - 1] + row[column + 1]) >> 1;
+					row[column] = (unsigned short) t;
+
+//					row[column] = 65535;
+				}
+				else if (column == (width - 1)) /* Last column */
+				{
+					row[column] = row[column - 1];
+
+//					row[column] = 65535;
+				}
+			}
+
+		}
+
+#endif
+
+
+		break;
 
 		default:
 			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
 			break;
 	}
-	/* return IO error if the reading failed */
-	if (abort) return -EIO;
+
+	if(abort)
+	{
+		return -EIO;
+	}
+
 	return 0;
 }
 
@@ -1963,6 +2090,7 @@ long fli_camera_usb_expose_frame(flidev_t dev)
 
 			/* Vertical bin */
 			IOWRITE_U8(buf, 11, cam->vbin);
+			IOWRITE_U8(buf, 18, (((unsigned) cam->vbin) >> 8)); /* Allow for 16-bit vbin */
 
 			/* Exposure */
 			IOWRITE_U32(buf, 12, cam->exposure);
@@ -1973,6 +2101,7 @@ long fli_camera_usb_expose_frame(flidev_t dev)
 			buf[16] |= ((cam->exttrigger != 0) && (cam->exttriggerpol == 0)) ? 0x02 : 0x00;
 			buf[16] |= ((cam->exttrigger != 0) && (cam->exttriggerpol != 0)) ? 0x04 : 0x00;
 			buf[16] |= (cam->extexposurectrl != 0) ? 0x20 : 0x00;
+			buf[16] |= (cam->vertical_table != 0) ? 0x40 : 0x00;
 
 			if ((cam->video_mode == VIDEO_MODE_BEGIN) && SUPPORTS_VIDEO(DEVICE))
 			{
@@ -2404,13 +2533,12 @@ long fli_camera_usb_get_cooler_power(flidev_t dev, double *power)
 		{
 			short pwm;
 
-			// Commented this block as it prevents PL9000 form working
-			//if (DEVICE->devinfo.fwrev == 0x0100)
-			//{
-			///	r = -EFAULT;
-			//}
-			//else
-			//{
+			if (DEVICE->devinfo.fwrev == 0x0100)
+			{
+				r = -EFAULT;
+			}
+			else
+			{
 
 				rlen = 14; wlen = 2;
 				IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_TEMPERATURE);
@@ -2418,7 +2546,7 @@ long fli_camera_usb_get_cooler_power(flidev_t dev, double *power)
 
 				IOREAD_U16(buf, 4, pwm);
 				*power = (double) pwm;
-			//}
+			}
 		}
 		break;
 
@@ -2751,3 +2879,276 @@ long fli_camera_usb_set_fan_speed(flidev_t dev, long fan_speed)
   return r;
 }
 
+long fli_camera_usb_set_vertical_table_entry(flidev_t dev, long index, long height, long bin, long mode)
+{
+  flicamdata_t *cam = DEVICE->device_data;
+	iobuf_t buf[IOBUF_MAX_SIZ];
+	long rlen, wlen;
+	long r = 0;
+
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
+	switch (DEVICE->devinfo.devid)
+  {
+		/* MaxCam and IMG cameras */
+		case FLIUSB_CAM_ID:
+		{
+			r = -EFAULT;
+		}
+		break;
+
+		/* Proline Camera */
+		case FLIUSB_PROLINE_ID:
+		{
+			if (!SUPPORTS_VERTICAL_TABLE(DEVICE))
+			{
+				debug(FLIDEBUG_WARN, "Camera does not support vertical table.");
+				return -EFAULT;
+			}
+
+			if (cam->vertical_table == 0)
+			{
+				debug(FLIDEBUG_FAIL, "Vertical tables not enabled.");
+				return -EFAULT;
+			}
+
+			rlen = 6; wlen = 8;
+			IOWRITE_U16(buf, 0, PROLINE_COMMAND_SET_VERTICAL_TABLE_ENTRY);
+			IOWRITE_U16(buf, 2, (short) index);
+			IOWRITE_U16(buf, 4, height);
+			IOWRITE_U8(buf, 6, bin);
+			IOWRITE_U8(buf, 7, mode);
+
+			IO(dev, buf, &wlen, &rlen);
+
+			/* Reset our dimensions */
+			cam->image_area.ul.y = 0;
+			IOREAD_U16(buf, 4, cam->image_area.lr.y);
+
+			debug(FLIDEBUG_INFO, "Vertical table updated, new overall height %d.", cam->image_area.lr.y);
+		}
+		break;
+
+		default:
+			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
+			break;
+	}
+
+  return r;
+}
+
+long fli_camera_usb_read_eeprom(flidev_t dev, long loc, long address, long length, void *rbuf)
+{
+	iobuf_t buf[IOBUF_MAX_SIZ];
+	long rlen, wlen;
+	long r = 0;
+
+	int ret = 0;
+	long addr;
+	int pagesize = 32;
+
+	switch (DEVICE->devinfo.devid)
+  {
+		/* MaxCam and IMG cameras */
+		case FLIUSB_CAM_ID:
+		{
+			r = -EFAULT;
+		}
+		break;
+
+		/* Proline Camera */
+		case FLIUSB_PROLINE_ID:
+		{
+			if ( (loc < 0) || (loc > 1) )
+			{
+				debug(FLIDEBUG_FAIL, "Read EEPRPOM invalid Location");
+				return (-EINVAL);
+			}
+
+			for (addr = 0; (addr < length); addr += pagesize)
+			{
+				unsigned char eelen = (unsigned char) (((length - addr) > pagesize)?pagesize:(length - addr));
+
+				rlen = eelen + 1; wlen = 6;
+				IOWRITE_U16(buf, 0, PROLINE_COMMAND_READ_USER_EEPROM);
+				IOWRITE_U16(buf, 2, (address + addr));
+				IOWRITE_U8(buf, 4, loc);
+				IOWRITE_U8(buf, 5, eelen);
+
+				debug(FLIDEBUG_INFO, "Reading %d bytes starting at %#04x", (int) eelen, address + addr);
+
+				IO(dev, buf, &wlen, &rlen);
+
+				memcpy(&((unsigned char *) rbuf)[addr], &buf[1], eelen);
+			}
+		}
+
+		break;
+
+		default:
+			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
+		break;
+	}
+
+	return ret;
+}
+
+long fli_camera_usb_write_eeprom(flidev_t dev, long loc, long address, long length, void *wbuf)
+{
+	iobuf_t buf[IOBUF_MAX_SIZ];
+	long rlen, wlen;
+	long r = 0;
+
+	int ret = 0;
+	long addr;
+	int pagesize = 32;
+
+	switch (DEVICE->devinfo.devid)
+  {
+		/* MaxCam and IMG cameras */
+		case FLIUSB_CAM_ID:
+		{
+			r = -EFAULT;
+		}
+		break;
+
+		/* Proline Camera */
+		case FLIUSB_PROLINE_ID:
+		{
+			if ( (loc < 0) || (loc > 1) )
+			{
+				debug(FLIDEBUG_FAIL, "Read EEPRPOM invalid location");
+				return (-EINVAL);
+			}
+
+			for (addr = 0; (addr < length); addr += pagesize)
+			{
+				unsigned char eelen;
+				
+				if ((addr % pagesize) == 0) /* On page boundary */
+				{
+					eelen = (unsigned char) (((length - addr) > pagesize)?pagesize:(length - addr));
+				}
+				else
+				{
+					eelen = (unsigned char) (pagesize - (addr % pagesize));
+					eelen = (unsigned char) (((length - addr) > eelen)?eelen:(length - addr));
+				}
+
+				rlen = eelen + 6; wlen = 6 + eelen;
+				IOWRITE_U16(buf, 0, PROLINE_COMMAND_WRITE_USER_EEPROM);
+				IOWRITE_U16(buf, 2, (address + addr));
+				IOWRITE_U8(buf, 4, loc);
+				IOWRITE_U8(buf, 5, eelen);
+
+				memcpy(&buf[6], &((unsigned char *) wbuf)[addr], eelen);
+
+				debug(FLIDEBUG_INFO, "Writing %d bytes starting at %#04x", (int) eelen, address + addr);
+
+				IO(dev, buf, &wlen, &rlen);
+			}
+		}
+		break;
+	}
+
+	return ret;
+}
+
+long fli_camera_usb_get_vertical_table_entry(flidev_t dev, long index, long *height, long *bin, long *mode)
+{
+//  flicamdata_t *cam = DEVICE->device_data;
+	iobuf_t buf[IOBUF_MAX_SIZ];
+	long rlen, wlen;
+	long r = 0;
+
+	memset(buf, 0x00, IOBUF_MAX_SIZ);
+
+	if (height != NULL)
+		*height = 0;
+
+	if (bin != NULL)
+		*bin = 0;
+
+	if (mode != NULL)
+		*mode = 0;
+
+	switch (DEVICE->devinfo.devid)
+  {
+		/* MaxCam and IMG cameras */
+		case FLIUSB_CAM_ID:
+		{
+			r = -EFAULT;
+		}
+		break;
+
+		/* Proline Camera */
+		case FLIUSB_PROLINE_ID:
+		{
+			if (!SUPPORTS_VERTICAL_TABLE(DEVICE))
+			{
+				debug(FLIDEBUG_WARN, "Camera does not support vertical table.");
+				return -EFAULT;
+			}
+
+			rlen = 6; wlen = 4;
+			IOWRITE_U16(buf, 0, PROLINE_COMMAND_GET_VERTICAL_TABLE_ENTRY);
+			IOWRITE_U16(buf, 2, (short) index);
+			IO(dev, buf, &wlen, &rlen);
+
+			if (height != NULL)
+				IOREAD_U16(buf, 0, *height);
+
+			if (bin != NULL)
+				IOREAD_U8(buf, 2, *bin);
+
+			if (mode != NULL)
+				IOREAD_U8(buf, 3, *mode);
+		}
+		break;
+
+		default:
+			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
+			break;
+	}
+
+  return r;
+}
+
+long fli_camera_usb_enable_vertical_table(flidev_t dev, long width, long offset, long flags)
+{
+	flicamdata_t *cam = DEVICE->device_data;
+	long r = 0;
+
+	switch (DEVICE->devinfo.devid)
+  {
+		/* MaxCam and IMG cameras */
+		case FLIUSB_CAM_ID:
+		{
+			r = -EFAULT;
+		}
+		break;
+
+		/* Proline Camera */
+		case FLIUSB_PROLINE_ID:
+		{
+			if (!SUPPORTS_VERTICAL_TABLE(DEVICE))
+			{
+				debug(FLIDEBUG_WARN, "Camera does not support vertical table.");
+				return -EFAULT;
+			}
+			
+			cam->vertical_table = 1;
+			cam->image_area.ul.x = offset;
+			cam->image_area.lr.x = offset + width;
+
+			r = fli_camera_usb_set_vertical_table_entry(dev, 63, 0, 0, 0);
+		}
+		break;
+
+		default:
+			debug(FLIDEBUG_WARN, "Hmmm, shouldn't be here, operation on NO camera...");
+			break;
+	}
+
+  return r;
+}

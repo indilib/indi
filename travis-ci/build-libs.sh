@@ -6,9 +6,9 @@
 SRC=../../3rdparty/
 
 if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
-    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig"
+    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau"
 else 
-    LIBS="libqsi"
+    LIBS="libapogee libqsi"
 fi
 
 if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then 
@@ -30,7 +30,7 @@ for lib in $LIBS ; do
     echo "Building $lib ..."
     mkdir -p build/$lib
     pushd build/$lib
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local . $SRC/$lib
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local . $SRC/$lib -DFIX_WARNINGS=ON -DCMAKE_BUILD_TYPE=$1
     make
     sudo make install
     popd

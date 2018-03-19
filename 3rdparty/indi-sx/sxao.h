@@ -4,6 +4,8 @@
  Copyright (c) 2012 Cloudmakers, s. r. o.
  All Rights Reserved.
 
+ Copyright(c) 2018 Jasem Mutlaq. All rights reserved.
+
  This program is free software; you can redistribute it and/or modify it
  under the terms of the GNU General Public License as published by the Free
  Software Foundation; either version 2 of the License, or (at your option)
@@ -22,47 +24,21 @@
  file called LICENSE.
  */
 
-#ifndef SXAO_H
-#define SXAO_H
+#pragma once
 
 #include <defaultdevice.h>
 #include <indiguiderinterface.h>
 
 extern const char *GUIDE_CONTROL_TAB;
 
-class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
-  private:
-    int PortFD;
-    char lastLimit = -1;
-    ITextVectorProperty PortTP;
-    IText PortT[1];
-    INumber AONS[2];
-    INumberVectorProperty AONSNP;
-    INumber AOWE[2];
-    INumberVectorProperty AOWENP;
-    ISwitch Center[2];
-    ISwitchVectorProperty CenterP;
-    IText FWT[1];
-    ITextVectorProperty FWTP;
-    ILight AtLimitL[4];
-    ILightVectorProperty AtLimitLP;
-
-    int aoCommand(const char *request, char *response, int nbytes);
-
+class SXAO : public INDI::DefaultDevice, INDI::GuiderInterface
+{
   public:
     SXAO();
-    ~SXAO();
+    ~SXAO() = default;
 
-    void debugTriggered(bool enable);
-    void simulationTriggered(bool enable);
-
-    void ISGetProperties (const char *dev);
-    bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-
-    bool Connect();
-    bool Disconnect();
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     bool initProperties();
     bool updateProperties();
@@ -79,10 +55,33 @@ class SXAO: public INDI::DefaultDevice, INDI::GuiderInterface {
 
     bool AOCenter();
     bool AOUnjam();
-  
+
     void CheckLimit(bool force);
 
-    const char *getDefaultName();
-};
+    const char *getDefaultName();    
 
-#endif // SXAO_H
+private:
+  int aoCommand(const char *request, char *response, int nbytes);
+  bool Handshake();
+
+  INumber AONS[2];
+  INumberVectorProperty AONSNP;
+
+  INumber AOWE[2];
+  INumberVectorProperty AOWENP;
+
+  ISwitch Center[2];
+  ISwitchVectorProperty CenterP;
+
+  IText FWT[1];
+  ITextVectorProperty FWTP;
+
+  ILight AtLimitL[4];
+  ILightVectorProperty AtLimitLP;
+
+  char lastLimit = -1;
+
+  Connection::Serial *serialConnection { nullptr };
+
+  int PortFD { -1 };
+};

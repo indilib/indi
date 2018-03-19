@@ -36,9 +36,9 @@ namespace
 
 //////////////////////////// 
 // CTOR 
-CamGen2CcdAcqParams::CamGen2CcdAcqParams(std::tr1::shared_ptr<CApnCamData> & camData,
-                           std::tr1::shared_ptr<CameraIo> & camIo,  
-                           std::tr1::shared_ptr<PlatformData> & platformData) : 
+CamGen2CcdAcqParams::CamGen2CcdAcqParams(std::shared_ptr<CApnCamData> & camData,
+                           std::shared_ptr<CameraIo> & camIo,  
+                           std::shared_ptr<PlatformData> & platformData) : 
                                             CcdAcqParams(camData,camIo,platformData),       
                                             m_fileName(__FILE__) 
 { 

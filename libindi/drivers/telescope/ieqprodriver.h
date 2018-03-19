@@ -18,30 +18,39 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef IEQPRODRIVER_H
-#define IEQPRODRIVER_H
+#pragma once
 
 #include <string>
 
-typedef enum     { GPS_OFF, GPS_ON, GPS_DATA_OK } IEQ_GPS_STATUS;
-typedef enum     { ST_STOPPED, ST_TRACKING_PEC_OFF, ST_SLEWING, ST_GUIDING, ST_MERIDIAN_FLIPPING, ST_TRACKING_PEC_ON, ST_PARKED, ST_HOME } IEQ_SYSTEM_STATUS;
-typedef enum     { TR_SIDEREAL, TR_LUNAR, TR_SOLAR, TR_KING, TR_CUSTOM} IEQ_TRACK_RATE;
-typedef enum     { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_MAX} IEQ_SLEW_RATE;
-typedef enum     { TS_RS232, TS_CONTROLLER, TS_GPS } IEQ_TIME_SOURCE;
-typedef enum     { HEMI_SOUTH, HEMI_NORTH} IEQ_HEMISPHERE;
-typedef enum     { FW_MODEL, FW_BOARD, FW_CONTROLLER, FW_RA, FW_DEC } IEQ_FIRMWARE;
-typedef enum     { RA_AXIS, DEC_AXIS } IEQ_AXIS;
-typedef enum     { IEQ_N, IEQ_S, IEQ_W, IEQ_E} IEQ_DIRECTION;
-typedef enum     { IEQ_FIND_HOME, IEQ_SET_HOME, IEQ_GOTO_HOME} IEQ_HOME_OPERATION;
+typedef enum { GPS_OFF, GPS_ON, GPS_DATA_OK } IEQ_GPS_STATUS;
+typedef enum {
+    ST_STOPPED,
+    ST_TRACKING_PEC_OFF,
+    ST_SLEWING,
+    ST_GUIDING,
+    ST_MERIDIAN_FLIPPING,
+    ST_TRACKING_PEC_ON,
+    ST_PARKED,
+    ST_HOME
+} IEQ_SYSTEM_STATUS;
+typedef enum { TR_SIDEREAL, TR_LUNAR, TR_SOLAR, TR_KING, TR_CUSTOM } IEQ_TRACK_RATE;
+typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_MAX } IEQ_SLEW_RATE;
+typedef enum { TS_RS232, TS_CONTROLLER, TS_GPS } IEQ_TIME_SOURCE;
+typedef enum { HEMI_SOUTH, HEMI_NORTH } IEQ_HEMISPHERE;
+typedef enum { FW_MODEL, FW_BOARD, FW_CONTROLLER, FW_RA, FW_DEC } IEQ_FIRMWARE;
+typedef enum { RA_AXIS, DEC_AXIS } IEQ_AXIS;
+typedef enum { IEQ_N, IEQ_S, IEQ_W, IEQ_E } IEQ_DIRECTION;
+typedef enum { IEQ_FIND_HOME, IEQ_SET_HOME, IEQ_GOTO_HOME } IEQ_HOME_OPERATION;
 
 typedef struct
 {
-    IEQ_GPS_STATUS      gpsStatus;
-    IEQ_SYSTEM_STATUS   systemStatus;
-    IEQ_TRACK_RATE      trackRate;
-    IEQ_SLEW_RATE       slewRate;
-    IEQ_TIME_SOURCE     timeSource;
-    IEQ_HEMISPHERE      hemisphere;
+    IEQ_GPS_STATUS gpsStatus;
+    IEQ_SYSTEM_STATUS systemStatus;
+    IEQ_SYSTEM_STATUS rememberSystemStatus;
+    IEQ_TRACK_RATE trackRate;
+    IEQ_SLEW_RATE slewRate;
+    IEQ_TIME_SOURCE timeSource;
+    IEQ_HEMISPHERE hemisphere;
 } IEQInfo;
 
 typedef struct
@@ -103,8 +112,10 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
 bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir);
 bool stop_ieqpro_motion(int fd, IEQ_DIRECTION dir);
 bool set_ieqpro_slew_rate(int fd, IEQ_SLEW_RATE rate);
-bool set_ieqpro_custom_track_rate(int fd, double rate);
+bool set_ieqpro_custom_ra_track_rate(int fd, double rate);
+bool set_ieqpro_custom_de_track_rate(int fd, double rate);
 bool set_ieqpro_track_mode(int fd, IEQ_TRACK_RATE rate);
+bool set_ieqpro_track_enabled(int fd, bool enabled);
 bool abort_ieqpro(int fd);
 bool slew_ieqpro(int fd);
 bool sync_ieqpro(int fd);
@@ -129,7 +140,7 @@ bool unpark_ieqpro(int fd);
 **************************************************************************/
 bool set_ieqpro_guide_rate(int fd, double rate);
 bool get_ieqpro_guide_rate(int fd, double *rate);
-bool start_ieqpro_guide(int fd,  IEQ_DIRECTION dir, int ms);
+bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms);
 
 /**************************************************************************
  Time & Location
@@ -142,5 +153,3 @@ bool set_ieqpro_local_date(int fd, int yy, int mm, int dd);
 bool set_ieqpro_local_time(int fd, int hh, int mm, int ss);
 bool set_ieqpro_utc_offset(int fd, double offset_hours);
 bool set_ieqpro_daylight_saving(int fd, bool enabled);
-
-#endif

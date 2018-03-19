@@ -21,6 +21,8 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
+include(CMakeCommon)
+
 ############# GENERIC CCD ###############
 set(genericccd_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/generic_ccd.cpp

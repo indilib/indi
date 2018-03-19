@@ -17,11 +17,7 @@
 #include <string>
 #include <stdexcept>
 
-#ifdef WIN_OS
 #include <memory>
-#else
-#include <tr1/memory>
-#endif
 
 class ILog;
 
@@ -56,7 +52,7 @@ class ApgLogger
         ApgLogger & operator=(ApgLogger  const&); 
         ~ApgLogger(); 
 
-        std::tr1::shared_ptr<ILog> m_theLogger;
+        std::shared_ptr<ILog> m_theLogger;
         ApgLogger::Level m_level;
 }; 
 

@@ -16,53 +16,51 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef DomeSIM_H
-#define DomeSIM_H
+#pragma once
 
-#include "indibase/indidome.h"
+#include "indidome.h"
 
-/*  Some headers we need */
-#include <math.h>
-#include <sys/time.h>
-
-
+/**
+ * @brief The DomeSim class provides an absolute position dome that supports parking, unparking, and slaving.
+ *
+ * The driver can support custom parking positions and includes shutter control. It can be used to simulate dome slaving.
+ *
+ * The dome parameters must be set before slaving is enabled. Furthermore, the dome listens to changes in the TARGET_EOD_COORS of the mount driver
+ * in order to make the decision to move to a new target location.
+ *
+ * All the mathematical models are taken care of in the base INDI::Dome class.
+ */
 class DomeSim : public INDI::Dome
 {
+  public:
+    DomeSim();
+    virtual ~DomeSim() = default;
 
-    public:
-        DomeSim();
-        virtual ~DomeSim();
+    virtual bool initProperties();
+    const char *getDefaultName();
+    bool updateProperties();
 
-        virtual bool initProperties();
-        const char *getDefaultName();
-        bool updateProperties();
+  protected:
+    bool Connect();
+    bool Disconnect();
 
-protected:
-        bool Connect();
-        bool Disconnect();
+    void TimerHit();
 
-        void TimerHit();
+    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
+    virtual IPState MoveRel(double azDiff);
+    virtual IPState MoveAbs(double az);
+    virtual IPState Park();
+    virtual IPState UnPark();
+    virtual IPState ControlShutter(ShutterOperation operation);
+    virtual bool Abort();
 
-        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
-        virtual IPState MoveRel(double azDiff);
-        virtual IPState MoveAbs(double az);
-        virtual IPState Park();
-        virtual IPState UnPark();
-        virtual IPState ControlShutter(ShutterOperation operation);
-        virtual bool Abort();
+    // Parking
+    virtual bool SetCurrentPark();
+    virtual bool SetDefaultPark();
 
-        // Parking
-        virtual bool SetCurrentPark();
-        virtual bool SetDefaultPark();
-
-
-private:
-
-        double targetAz;
-        double shutterTimer;
-        bool SetupParms();
-        int TimeSinceUpdate;
-
+  private:
+    double targetAz;
+    double shutterTimer;
+    bool SetupParms();
+    int TimeSinceUpdate;
 };
-
-#endif

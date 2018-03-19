@@ -22,14 +22,13 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef WUNDERGROUND_H
-#define WUNDERGROUND_H
+#pragma once
 
 #include "indiweather.h"
 
 class WunderGround : public INDI::Weather
 {
-    public:
+  public:
     WunderGround();
     virtual ~WunderGround();
 
@@ -39,23 +38,18 @@ class WunderGround : public INDI::Weather
     const char *getDefaultName();
 
     virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual void ISGetProperties(const char *dev);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-    protected:
-
+  protected:
     virtual IPState updateWeather();
 
     virtual bool saveConfigItems(FILE *fp);
     virtual bool updateLocation(double latitude, double longitude, double elevation);
 
-private:
-
+  private:
     IText wunderAPIKeyT[1];
     ITextVectorProperty wunderAPIKeyTP;
 
     double wunderLat, wunderLong;
-
 };
-
-#endif // WUNDERGROUND_H

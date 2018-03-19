@@ -1,3 +1,9 @@
+indi-mi (1.3) bionic; urgency=low
+
+  * Updated release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Thu, 10 Nov 2017 00:20:00 +0300
+
 indi-mi (1.1) xenial; urgency=low
 
   * Updated release.

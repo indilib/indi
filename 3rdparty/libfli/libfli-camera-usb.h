@@ -94,6 +94,10 @@
 #define PROLINE_COMMAND_SET_TDI_MODE					(0x0013)
 #define PROLINE_COMMAND_UPDATE_EXPOSURE			  (0x0015)
 #define PROLINE_COMMAND_SET_FAN_SPEED					(0x0016)
+#define PROLINE_COMMAND_SET_VERTICAL_TABLE_ENTRY	(0x0017)
+#define PROLINE_COMMAND_GET_VERTICAL_TABLE_ENTRY	(0x0018)
+#define PROLINE_COMMAND_READ_USER_EEPROM			(0x0020)
+#define PROLINE_COMMAND_WRITE_USER_EEPROM			(0x0021)
 
 long fli_camera_usb_open(flidev_t dev);
 long fli_camera_usb_get_array_area(flidev_t dev, long *ul_x, long *ul_y,
@@ -133,5 +137,12 @@ long fli_camera_usb_grab_video_frame(flidev_t dev, void *buff, size_t size);
 long fli_camera_usb_end_exposure(flidev_t dev);
 long fli_camera_usb_trigger_exposure(flidev_t dev);
 long fli_camera_usb_set_fan_speed(flidev_t dev, long fan_speed);
+long fli_camera_usb_enable_custom_vertical_table(flidev_t dev, long width, long offset, long bin, long flags);
+long fli_camera_usb_get_vertical_table_entry(flidev_t dev, long index, long *height, long *bin, long *mode);
+long fli_camera_usb_set_vertical_table_entry(flidev_t dev, long index, long height, long bin, long mode);
+long fli_camera_usb_get_readout_dimensions(flidev_t dev, long *width, long *hoffset, long *hbin, long *height, long *voffset, long *vbin);
+long fli_camera_usb_enable_vertical_table(flidev_t dev, long width, long offset, long flags);
+long fli_camera_usb_read_eeprom(flidev_t dev, long loc, long address, long length, void *rbuf);
+long fli_camera_usb_write_eeprom(flidev_t dev, long loc, long address, long length, void *wbuf);
 
 #endif /* _LIBFLI_CAMERA_USB_H_ */

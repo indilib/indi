@@ -18,32 +18,42 @@
 
 */
 
-#ifndef LX200SS2000PC_H
-#define LX200SS2000PC_H
+#pragma once
 
 #include "lx200generic.h"
 
-class LX200SS2000PC : public LX200Generic {
- public:
-  LX200SS2000PC(void);
-  
-  virtual const char* getDefaultName(void);
-  virtual bool updateProperties(void);
-  virtual bool updateTime      (ln_date * utc, double utc_offset);
+class LX200SS2000PC : public LX200Generic
+{
+  public:
+    LX200SS2000PC(void);
 
- protected:
-  virtual void getBasicData  (void);
-  virtual bool isSlewComplete(void);
-  
- private:
-  bool getCalendarDate(int& year,int& month,int& day);
-  bool setCalenderDate(int  year,int  month,int  day);
-  bool setUTCOffset   (const int offset_in_hours);
+    virtual const char *getDefaultName(void);
+    virtual bool updateTime(ln_date *utc, double utc_offset);
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-  static const int ShortTimeOut;
-  static const int LongTimeOut;
+  protected:
+    virtual void getBasicData(void);
+    virtual bool isSlewComplete(void);
+    virtual bool saveConfigItems(FILE *fp);
+    virtual bool setUTCOffset(double offset);
+    //bool setUTCOffset(const int offset_in_hours);
+
+  private:
+    bool getCalendarDate(int &year, int &month, int &day);
+    bool setCalenderDate(int year, int month, int day);
+
+
+    bool updateLocation(double latitude, double longitude, double elevation);
+    int setLongitude(double Long);
+    int setLatitude(double Long);
+    int sendCommand(int fd, const char *data);
+
+    INumber SlewAccuracyN[2];
+    INumberVectorProperty SlewAccuracyNP;
+
+    static const int ShortTimeOut;
+    static const int LongTimeOut;
 };
 
-
-#endif
- 

@@ -1,15 +1,13 @@
-#ifndef INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORMATHPLUGINS_H
-#define INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORMATHPLUGINS_H
+
+#pragma once
 
 #include "MathPlugin.h"
-#include "InMemoryDatabase.h"
 #include "TelescopeDirectionVectorSupportFunctions.h"
 
 namespace INDI
 {
 namespace AlignmentSubsystem
 {
-
 /*!
  * \class AlignmentSubsystemForMathPlugins
  * \brief This class encapsulates all the alignment subsystem classes that are useful to math plugin implementations.
@@ -17,12 +15,10 @@ namespace AlignmentSubsystem
  */
 class AlignmentSubsystemForMathPlugins : public MathPlugin, public TelescopeDirectionVectorSupportFunctions
 {
-    public:
-        /// \brief Virtual destructor
-        virtual ~AlignmentSubsystemForMathPlugins() {}
+  public:
+    /// \brief Virtual destructor
+    virtual ~AlignmentSubsystemForMathPlugins() {}
 };
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_ALIGNMENTSUBSYSTEMFORMATHPLUGINS_H

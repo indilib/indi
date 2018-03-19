@@ -16,70 +16,87 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef SYNSCANMOUNT_H
-#define SYNSCANMOUNT_H
+#pragma once
 
-#include "indibase/inditelescope.h"
-#include "indibase/alignment/AlignmentSubsystemForDrivers.h"
+#include "inditelescope.h"
 
-
-#define SYNSCAN_SLEW_RATES 9
-
-class SynscanMount : public INDI::Telescope, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
+class SynscanMount : public INDI::Telescope
 {
-    private:
- 	double FirmwareVersion;
-	int MountModel;
-	char LastParkRead[20];
-	int NumPark;
-	int StopCount;
-        int SlewRate;
-	int PassthruCommand(int cmd,int target,int msgsize,int data,int numReturn);
-	double currentRA;
-	double currentDEC;
+  public:
+    SynscanMount();
+    virtual ~SynscanMount() = default;
 
-	bool CanSetLocation;
-	bool ReadLatLong;
-	bool HasFailed;
-	bool FirstConnect;
-	//int NumSyncPoints;
-      	bool AnalyzeHandset();
-	ln_equ_posn TelescopeToSky(double ra,double dec);
-	ln_equ_posn SkyToTelescope(double ra,double dec);
+    //  overrides of base class virtual functions
+    //bool initProperties();
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool updateProperties() override;
+    virtual const char *getDefaultName() override;
 
-    public:
-        SynscanMount();
-        virtual ~SynscanMount();
+    virtual bool Connect() override;
+    virtual bool initProperties() override;
+    virtual bool ReadScopeStatus() override;
+    bool StartTrackMode();
+    virtual bool Goto(double, double) override;
+    virtual bool Park() override;
+    virtual bool UnPark() override;
+    virtual bool Abort() override;
+    virtual bool SetSlewRate(int index) override;
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+    bool ReadTime();
+    bool ReadLocation();
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+    virtual bool updateTime(ln_date *utc, double utc_offset) override;
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
 
-        //  overrides of base class virtual functions
-        //bool initProperties();
-        virtual void ISGetProperties (const char *dev);
-    	virtual bool updateProperties();
-        virtual const char *getDefaultName();
+    //  methods added for alignment subsystem
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool Sync(double ra, double dec) override;
 
-	virtual bool initProperties();
-        virtual bool ReadScopeStatus();
-	virtual bool Connect();
-        bool Goto(double,double);
-        bool Park();
-	bool UnPark();
-        bool Abort();        
-        bool SetSlewRate(int);
-	bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-	bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-	bool ReadTime();
-	bool ReadLocation();
-       	bool updateLocation(double latitude, double longitude, double elevation);        
-        bool updateTime(ln_date *utc, double utc_offset);
-	bool SetCurrentPark();
-	bool SetDefaultPark();
+  private:
+    int PassthruCommand(int cmd, int target, int msgsize, int data, int numReturn);
+    ln_hrz_posn GetAltAzPosition(double ra, double dec);
+    int HexStrToInteger(const std::string &str);
+    bool AnalyzeHandset();
+    void UpdateMountInformation(bool inform_client);
 
-	//  methods added for alignment subsystem
-	virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-	virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-	virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-	virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-	bool Sync(double ra, double dec);
+    double FirmwareVersion { 0 };
+    char LastParkRead[20];
+    int NumPark { 0 };
+    int StopCount { 0 };
+    int SlewRate { 5 };
+    int CustomNSSlewRate { -1 };
+    int CustomWESlewRate { -1 };
+    double SlewTargetAlt { -1 };
+    double SlewTargetAz { -1 };
+    double CurrentRA { 0 };
+    double CurrentDEC { 0 };
+    bool CanSetLocation { false };
+    bool ReadLatLong { false };
+    int RecoverTrials { 0 };
+//    bool HasFailed { true };
+    bool NewFirmware { false };
+    const std::string MountInfoPage { "Mount Information" };
+    enum class MountInfoItems
+    {
+        FwVersion,
+        MountCode,
+        AlignmentStatus,
+        GotoStatus,
+        MountPointingStatus,
+        TrackingMode
+    };
+    IText BasicMountInfo[6];
+    ITextVectorProperty BasicMountInfoV;
+    std::string HandsetFwVersion;
+    int MountCode { 0 };
+    std::string AlignmentStatus;
+    std::string GotoStatus;
+    std::string MountPointingStatus;
+    std::string TrackingMode;
 };
-
-#endif // SYNSCANMOUNT_H

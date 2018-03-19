@@ -507,7 +507,7 @@
 #define DEVICETYPE_QHY10_FOCUS  9012
 
 /**
- * Type define for UNKNOW */
-#define DEVICETYPE_UNKNOW       -1
+ * Type define for UNKNOWN */
+#define DEVICETYPE_UNKNOWN       -1
 
 #endif
