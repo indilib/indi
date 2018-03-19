@@ -2,7 +2,7 @@
 
 set -x -e
 
-if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then 
+if [ .${TRAVIS_BRANCH%_*} == '.drvi' ] ; then 
     # Skip the build just use recent upstream version if it exists
     if [ ${TRAVIS_OS_NAME} == 'linux' ] ; then
         sudo apt-add-repository -y ppa:jochym/indi-devel
