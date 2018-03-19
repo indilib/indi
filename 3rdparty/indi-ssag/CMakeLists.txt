@@ -35,9 +35,9 @@ add_executable(indi_ssag_ccd ${indissag_SRCS})
 
 target_link_libraries(indi_ssag_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
-if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 target_link_libraries(indi_ssag_ccd rt)
-endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+endif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 
 install(TARGETS indi_ssag_ccd RUNTIME DESTINATION bin )
 

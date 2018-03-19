@@ -31,8 +31,6 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#define POLLMS 1000 /* Polling time (ms) */
-
 std::unique_ptr<FLIPDF> fliPDF(new FLIPDF());
 
 const flidomain_t Domains[] = { FLIDOMAIN_USB, FLIDOMAIN_SERIAL, FLIDOMAIN_PARALLEL_PORT, FLIDOMAIN_INET };
@@ -95,7 +93,7 @@ FLIPDF::FLIPDF()
 {
     sim = false;
 
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
 FLIPDF::~FLIPDF()
@@ -211,19 +209,19 @@ bool FLIPDF::Connect()
 
     if (findFLIPDF(Domains[portSwitchIndex]) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error: no focusers were detected.");
+        LOG_ERROR("Error: no focusers were detected.");
         return false;
     }
 
     if ((err = FLIOpen(&fli_dev, FLIFocus.name, FLIDEVICE_FOCUSER | FLIFocus.domain)))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: FLIOpen() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("Error: FLIOpen() failed. %s.", strerror((int)-err));
 
         return false;
     }
 
     /* Success! */
-    DEBUG(INDI::Logger::DBG_SESSION, "Focuser is online. Retrieving basic data.");
+    LOG_INFO("Focuser is online. Retrieving basic data.");
     return true;
 }
 
@@ -236,12 +234,12 @@ bool FLIPDF::Disconnect()
 
     if ((err = FLIClose(fli_dev)))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: FLIClose() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("Error: FLIClose() failed. %s.", strerror((int)-err));
 
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Focuser is offline.");
+    LOG_INFO("Focuser is offline.");
     return true;
 }
 

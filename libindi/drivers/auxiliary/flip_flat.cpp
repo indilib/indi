@@ -39,7 +39,6 @@ std::unique_ptr<FlipFlat> flipflat(new FlipFlat());
 #define FLAT_CMD     6
 #define FLAT_RES     8
 #define FLAT_TIMEOUT 3
-#define POLLMS       1000
 
 void ISGetProperties(const char *dev)
 {
@@ -166,7 +165,7 @@ bool FlipFlat::Handshake()
 {
     if (isSimulation())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Connected successfuly to simulated %s. Retrieving startup data...",
+        LOGF_INFO("Connected successfuly to simulated %s. Retrieving startup data...",
                getDeviceName());
 
         SetTimer(POLLMS);
@@ -184,20 +183,20 @@ bool FlipFlat::Handshake()
     i |= TIOCM_RTS;
     if (ioctl(PortFD, TIOCMBIC, &i) != 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "IOCTL error %s.", strerror(errno));
+        LOGF_ERROR("IOCTL error %s.", strerror(errno));
         return false;
     }
 
     i |= TIOCM_RTS;
     if (ioctl(PortFD, TIOCMGET, &i) != 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "IOCTL error %s.", strerror(errno));
+        LOGF_ERROR("IOCTL error %s.", strerror(errno));
         return false;
     }
 
     if (!ping())
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Device ping failed.");
+        LOG_ERROR("Device ping failed.");
         return false;
     }
 
@@ -263,7 +262,7 @@ bool FlipFlat::ping()
 
     strncpy(command, ">P000", FLAT_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[FLAT_CMD - 1] = 0xA;
 
@@ -281,13 +280,13 @@ bool FlipFlat::ping()
     if (i == 3)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return false;
     }
 
     response[nbytes_read - 1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char productString[3] = { 0 };
     snprintf(productString, 3, "%s", response + 2);
@@ -296,7 +295,7 @@ bool FlipFlat::ping()
 
     if (rc <= 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unable to parse input (%s)", response);
+        LOGF_ERROR("Unable to parse input (%s)", response);
         return false;
     }
 
@@ -337,27 +336,27 @@ IPState FlipFlat::ParkCap()
 
     strncpy(command, ">C000", FLAT_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[FLAT_CMD - 1] = 0xA;
 
     if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return IPS_ALERT;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return IPS_ALERT;
     }
 
     response[nbytes_read - 1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char expectedResponse[FLAT_RES];
     snprintf(expectedResponse, FLAT_RES, "*C%02d000", productID);
@@ -389,27 +388,27 @@ IPState FlipFlat::UnParkCap()
 
     strncpy(command, ">O000", FLAT_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[FLAT_CMD - 1] = 0xA;
 
     if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return IPS_ALERT;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return IPS_ALERT;
     }
 
     response[nbytes_read - 1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char expectedResponse[FLAT_RES];
     snprintf(expectedResponse, FLAT_RES, "*O%02d000", productID);
@@ -433,7 +432,7 @@ bool FlipFlat::EnableLightBox(bool enable)
 
     if (isFlipFlat && ParkCapS[1].s == ISS_ON)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot control light while cap is unparked.");
+        LOG_ERROR("Cannot control light while cap is unparked.");
         return false;
     }
 
@@ -447,27 +446,27 @@ bool FlipFlat::EnableLightBox(bool enable)
     else
         strncpy(command, ">D000", FLAT_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[FLAT_CMD - 1] = 0xA;
 
     if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return false;
     }
 
     response[nbytes_read - 1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char expectedResponse[FLAT_RES];
     if (enable)
@@ -520,27 +519,27 @@ bool FlipFlat::getStatus()
 
         strncpy(command, ">S000", FLAT_CMD);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+        LOGF_DEBUG("CMD (%s)", command);
 
         command[FLAT_CMD - 1] = 0xA;
 
         if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+            LOGF_ERROR("%s error: %s.", command, errstr);
             return false;
         }
 
         if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+            LOGF_ERROR("%s: %s.", command, errstr);
             return false;
         }
 
         response[nbytes_read - 1] = '\0';
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
     }
 
     char motorStatus = *(response + 4) - '0';
@@ -568,7 +567,7 @@ bool FlipFlat::getStatus()
                     IUResetSwitch(&ParkCapSP);
                     ParkCapS[0].s = ISS_ON;
                     ParkCapSP.s   = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Cover closed.");
+                    LOG_INFO("Cover closed.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
                 break;
@@ -580,7 +579,7 @@ bool FlipFlat::getStatus()
                     IUResetSwitch(&ParkCapSP);
                     ParkCapS[1].s = ISS_ON;
                     ParkCapSP.s   = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Cover open.");
+                    LOG_INFO("Cover open.");
                     IDSetSwitch(&ParkCapSP, nullptr);
                 }
                 break;
@@ -663,27 +662,27 @@ bool FlipFlat::getFirmwareVersion()
 
     strncpy(command, ">V000", FLAT_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[FLAT_CMD - 1] = 0xA;
 
     if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return false;
     }
 
     response[nbytes_read - 1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char versionString[4]={0};
     snprintf(versionString, 4, "%s", response + 4);
@@ -728,27 +727,27 @@ bool FlipFlat::getBrightness()
 
     strncpy(command, ">J000", FLAT_CMD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[FLAT_CMD - 1] = 0xA;
 
     if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return false;
     }
 
     response[nbytes_read - 1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char brightnessString[4]={0};
     snprintf(brightnessString, 4, "%s", response + 4);
@@ -758,7 +757,7 @@ bool FlipFlat::getBrightness()
 
     if (rc <= 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unable to parse brightness value (%s)", response);
+        LOGF_ERROR("Unable to parse brightness value (%s)", response);
         return false;
     }
 
@@ -790,27 +789,27 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
 
     snprintf(command, FLAT_CMD, ">B%03d", value);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[FLAT_CMD - 1] = 0xA;
 
     if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", command, errstr);
+        LOGF_ERROR("%s error: %s.", command, errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", command, errstr);
+        LOGF_ERROR("%s: %s.", command, errstr);
         return false;
     }
 
     response[nbytes_read - 1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char brightnessString[4]={0};
     snprintf(brightnessString, 4, "%s", response + 4);
@@ -820,7 +819,7 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
 
     if (rc <= 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unable to parse brightness value (%s)", response);
+        LOGF_ERROR("Unable to parse brightness value (%s)", response);
         return false;
     }
 

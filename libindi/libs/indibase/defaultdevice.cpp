@@ -81,10 +81,10 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
     {
         if (pResult)
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully loaded.");
+            LOG_DEBUG("Configuration successfully loaded.");
         }
         else
-            DEBUGF(INDI::Logger::DBG_ERROR,
+            LOGF_ERROR(
                    "Error loading user configuration. %s. To save user configuration, click Save under the "
                    "Configuration property in the Options tab. ",
                    errmsg);
@@ -98,6 +98,7 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
 bool DefaultDevice::saveConfigItems(FILE *fp)
 {
     IUSaveConfigSwitch(fp, &DebugSP);
+    IUSaveConfigNumber(fp, &PollPeriodNP);
     if (ConnectionModeS != nullptr)
         IUSaveConfigSwitch(fp, &ConnectionModeSP);
 
@@ -168,7 +169,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         if (fp == nullptr)
         {
             if (!silent)
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
+                LOGF_ERROR("Error saving configuration. %s", errmsg);
             return false;
         }
 
@@ -182,7 +183,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
 
         IUSaveDefaultConfig(nullptr, nullptr, deviceID);
 
-        DEBUG(INDI::Logger::DBG_DEBUG, "Configuration successfully saved.");
+        LOG_DEBUG("Configuration successfully saved.");
     }
     else
     {
@@ -191,7 +192,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         if (fp == nullptr)
         {
             //if (!silent)
-             //   DEBUGF(INDI::Logger::DBG_ERROR, "Error saving configuration. %s", errmsg);
+             //   LOGF_ERROR("Error saving configuration. %s", errmsg);
             //return false;
             // If we don't have an existing file pointer, save all properties.
             return saveConfig(silent);
@@ -286,7 +287,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
             prXMLEle(fp, root, 0);
             fclose(fp);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Configuration successfully saved for %s.", property);
+            LOGF_DEBUG("Configuration successfully saved for %s.", property);
             return true;
         }
         else
@@ -307,14 +308,14 @@ bool DefaultDevice::loadDefaultConfig()
     else
         snprintf(configDefaultFileName, MAXRBUF, "%s/.indi/%s_config.xml.default", getenv("HOME"), deviceID);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Requesting to load default config with: %s", configDefaultFileName);
+    LOGF_DEBUG("Requesting to load default config with: %s", configDefaultFileName);
 
     pResult = IUReadConfig(configDefaultFileName, deviceID, nullptr, 0, errmsg) == 0 ? true : false;
 
     if (pResult)
-        DEBUG(INDI::Logger::DBG_SESSION, "Default configuration loaded.");
+        LOG_INFO("Default configuration loaded.");
     else
-        DEBUGF(INDI::Logger::DBG_SESSION, "Error loading default configuraiton. %s", errmsg);
+        LOGF_INFO("Error loading default configuraiton. %s", errmsg);
 
     return pResult;
 }
@@ -510,6 +511,18 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
 bool DefaultDevice::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    ////////////////////////////////////////////////////
+    // Polling Period
+    ////////////////////////////////////////////////////
+    if (!strcmp(name, PollPeriodNP.name))
+    {
+        IUUpdateNumber(&PollPeriodNP, values, names, n);
+        PollPeriodNP.s = IPS_OK;
+        POLLMS = PollPeriodN[0].value;
+        IDSetNumber(&PollPeriodNP, nullptr);
+        return true;
+    }
+
     for (Connection::Interface *oneConnection : connections)
         oneConnection->ISNewNumber(dev, name, values, names, n);
 
@@ -561,11 +574,17 @@ void DefaultDevice::addConfigurationControl()
     registerProperty(&ConfigProcessSP, INDI_SWITCH);
 }
 
+void DefaultDevice::addPollPeriodControl()
+{
+    registerProperty(&PollPeriodNP, INDI_NUMBER);
+}
+
 void DefaultDevice::addAuxControls()
 {
     addDebugControl();
     addSimulationControl();
     addConfigurationControl();
+    addPollPeriodControl();
 }
 
 void DefaultDevice::setDebug(bool enable)
@@ -585,7 +604,7 @@ void DefaultDevice::setDebug(bool enable)
         if (sp)
         {
             sp->s = ISS_ON;
-            DEBUG(INDI::Logger::DBG_SESSION, "Debug is enabled.");
+            LOG_INFO("Debug is enabled.");
         }
     }
     else
@@ -594,7 +613,7 @@ void DefaultDevice::setDebug(bool enable)
         if (sp)
         {
             sp->s = ISS_ON;
-            DEBUG(INDI::Logger::DBG_SESSION, "Debug is disabled.");
+            LOG_INFO("Debug is disabled.");
         }
     }
 
@@ -625,7 +644,7 @@ void DefaultDevice::setSimulation(bool enable)
         ISwitch *sp = IUFindSwitch(&SimulationSP, "ENABLE");
         if (sp)
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Simulation is enabled.");
+            LOG_INFO("Simulation is enabled.");
             sp->s = ISS_ON;
         }
     }
@@ -635,7 +654,7 @@ void DefaultDevice::setSimulation(bool enable)
         if (sp)
         {
             sp->s = ISS_ON;
-            DEBUG(INDI::Logger::DBG_SESSION, "Simulation is disabled.");
+            LOG_INFO("Simulation is disabled.");
         }
     }
 
@@ -728,6 +747,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
         loadConfig(true, "DEBUG");
         loadConfig(true, "DEBUG_LEVEL");
         loadConfig(true, "LOGGING_LEVEL");
+        loadConfig(true, "POLLING_PERIOD");
         loadConfig(true, "LOG_OUTPUT");
     }
 
@@ -905,6 +925,9 @@ bool DefaultDevice::initProperties()
     IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS",
                        "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
+    IUFillNumber(&PollPeriodN[0], "PERIOD_MS", "Period (ms)", "%.f", 10, 60000, 1000, POLLMS);
+    IUFillNumberVector(&PollPeriodNP, PollPeriodN, 1, getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0, IPS_IDLE);
+
     INDI::Logger::initProperties(this);
 
     // Ready the logger
@@ -983,7 +1006,7 @@ bool DefaultDevice::Connect()
 
     if (activeConnection == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "No active connection defined.");
+        LOG_ERROR("No active connection defined.");
         return false;
     }
 
@@ -994,8 +1017,8 @@ bool DefaultDevice::Connect()
     if (rc)
     {
         saveConfig(true, "CONNECTION_MODE");
-        if (updatePeriodMS > 0)
-            SetTimer(updatePeriodMS);
+        if (POLLMS > 0)
+            SetTimer(POLLMS);
     }
 
     return rc;
@@ -1047,4 +1070,9 @@ bool DefaultDevice::unRegisterConnection(Connection::Interface *existingConnecti
     return false;
 }
 
+void DefaultDevice::setDefaultPollingPeriod(uint32_t period)
+{
+    PollPeriodN[0].value = period;
+    POLLMS = period;
+}
 }

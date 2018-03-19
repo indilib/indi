@@ -4,7 +4,7 @@ RUN zypper refresh && zypper  --non-interactive update
 
 RUN zypper --non-interactive install lsb-release \
         cmake curl dcraw wget git openssh gcc gcc-c++ clang swig \
-        libcurl-devel boost-devel cfitsio-devel \
+        libcurl-devel boost-devel libboost_regex1_66_0-devel cfitsio-devel \
         libftdi1-devel libgphoto2-devel gsl-devel libjpeg-devel \
         libnova-devel openal-soft-devel libraw-devel libusb-devel \
         fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
@@ -14,8 +14,12 @@ RUN zypper -n install gpsd python-gpsd python-curses
 RUN zypper -n download gpsd-devel libgps23
 RUN rpm -iv --nodeps /var/cache/zypp/packages/OSS/suse/x86_64/*gps*rpm
 
-# No stable packages for gtest & gmock in opensuse
-# RUN zypper --non-interactive install gtest gmock
+# Install googletest
+WORKDIR /home
+RUN git clone https://github.com/google/googletest.git
+WORKDIR /home/googletest
+RUN cmake .
+RUN make install
 
 WORKDIR /home
 

@@ -20,6 +20,9 @@ Makefile
 moc_*.cpp
 CMakeFiles
 cmake_install.cmake
+CTestTestfile.cmake
+Testing
+libindi/test/celestrondriver/test_celestrondriver
 libindi/libs/indibase/alignment/indi_skywatcherAPIMount
 libindi/libs/indibase/alignment/indi_skywatcherAltAzMount
 libindi/make_lx200generic_symlink.cmake
@@ -44,6 +47,7 @@ libindi/indi_dsc_telescope
 libindi/indi_eval
 libindi/indi_flipflat
 libindi/indi_gemini_focus
+libindi/indi_integra_focus
 libindi/indi_getprop
 libindi/indi_gpusb
 libindi/indi_hitecastrodc_focus

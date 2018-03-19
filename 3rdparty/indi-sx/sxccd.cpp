@@ -305,12 +305,12 @@ bool SXCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     if (x_2 > PrimaryCCD.getXRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Requested image out of bounds (%ld, %ld)", x_2, y_2);
+        LOGF_ERROR("Error: Requested image out of bounds (%ld, %ld)", x_2, y_2);
         return false;
     }
     else if (y_2 > PrimaryCCD.getYRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Requested image out of bounds (%ld, %ld)", x_2, y_2);
+        LOGF_ERROR("Error: Requested image out of bounds (%ld, %ld)", x_2, y_2);
         return false;
     }
 

@@ -41,7 +41,6 @@
 #define ArmPlat_TIMEOUT 2
 #define FOCUS_SETTINGS_TAB "Settings"
 
-#define POLLMS 1000
 #define SLP_SEND_BUF_SIZE 80
 
 #define OPERATIVES	2		// relating the hw/fw info from the controller
@@ -90,7 +89,7 @@ void ISSnoopDevice(XMLEle *root)
 ArmPlat::ArmPlat()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT );
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT );
 }
 
 bool ArmPlat::initProperties()
@@ -169,9 +168,12 @@ bool ArmPlat::initProperties()
     FocusAbsPosN[0].value = 50000;
     FocusAbsPosN[0].step  = 5000;
 
-    addDebugControl();
+    // Focus Sync
+    IUFillNumber(&SyncN[0], "SYNC", "Ticks", "%.f", 0, 100000., 0., 0.);
+    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "Sync", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE );
 
-    updatePeriodMS = POLLMS;
+
+    addDebugControl();
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
@@ -194,9 +196,10 @@ bool ArmPlat::updateProperties()
         defineSwitch(&HalfStepSP);
         defineSwitch(&MotorTypeSP);
         defineSwitch(&WiringSP);
+	defineNumber(&SyncNP);
         defineText(&FirmwareVersionTP);
 	if ( !loadConfig() )
-        	DEBUG(INDI::Logger::DBG_ERROR, "Error loading config" );
+        	LOG_ERROR("Error loading config" );
     }
     else
     {
@@ -212,6 +215,7 @@ bool ArmPlat::updateProperties()
         deleteProperty(MotorTypeSP.name);
         deleteProperty(MaxSpeedNP.name);
         deleteProperty(FirmwareVersionTP.name);
+        deleteProperty(SyncNP.name);
     }
 
     return true;
@@ -229,11 +233,11 @@ bool ArmPlat::Handshake()
 {
     if (echo())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, CONTROLLER_NAME " is online.");
+        LOG_INFO(CONTROLLER_NAME " is online.");
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error communicating with the " CONTROLLER_NAME ", please ensure it is powered and the port is correct.");
+    LOG_INFO("Error communicating with the " CONTROLLER_NAME ", please ensure it is powered and the port is correct.");
     return false;
 }
 
@@ -267,7 +271,7 @@ bool ArmPlat::echo()
 		DEBUGF( INDI::Logger::DBG_WARNING, "Actual model (%s) and driver (" CONTROLLER_NAME ") mismatch - can lead to limited operability", models[model] );
 	
 	IUSaveText( &FirmwareVersionT[0], txt );
-    	DEBUGF(INDI::Logger::DBG_SESSION, "Setting version to [%s]", txt );
+    	LOGF_INFO("Setting version to [%s]", txt );
 
 	return true;
     }
@@ -388,7 +392,17 @@ bool ArmPlat::ISNewNumber(const char *dev, const char *name, double values[], ch
             IDSetNumber(&BacklashNP, nullptr);
             return true;
         }
-        /////////////////////////////////////////////
+        if (strcmp(name, SyncNP.name) == 0)
+        {
+            bool rc = sync(static_cast<uint32_t>(values[0]));
+            SyncNP.s = rc ? IPS_OK : IPS_ALERT;
+            if (rc)
+                SyncN[0].value = values[0];
+
+            IDSetNumber(&SyncNP, nullptr);
+            return true;
+        }
+	/////////////////////////////////////////////
         // Relative goto
         /////////////////////////////////////////////
         else if (strcmp(name, FocusRelPosNP.name) == 0)
@@ -496,7 +510,7 @@ bool ArmPlat::setMaxSpeed(uint16_t nspeed)
     rc = (int)(500000-((nspeed-1)*50));
     if ( ( rc < 50 ) || ( rc > 500000 ) )
     {
-    	DEBUGF(INDI::Logger::DBG_ERROR, "Wrong speed %d", nspeed );
+    	LOGF_ERROR("Wrong speed %d", nspeed );
 	return false;
     }
 
@@ -537,7 +551,7 @@ bool ArmPlat::setHalfStep( bool active )
     if ( port == -1 )
 	return false;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Halfstep set to %s", active ? "true" : "false" );
+    LOGF_DEBUG("Halfstep set to %s", active ? "true" : "false" );
     int rc = -1;
     char cmd[SLP_SEND_BUF_SIZE]={0};
 
@@ -561,7 +575,7 @@ bool ArmPlat::setMotorType(uint16_t type)
     int rc = -1;
     char cmd[SLP_SEND_BUF_SIZE]={0};
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Motor type set to %d", type );
+    LOGF_DEBUG("Motor type set to %d", type );
     sprintf(cmd, "!step model %d %d#", port, type );	
 
     if ( slpSendRxInt( cmd, &rc ) )
@@ -575,7 +589,7 @@ bool ArmPlat::setMotorType(uint16_t type)
 
 bool ArmPlat::setTempSensorInUse( uint16_t sensor )
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Temp sensor set to %d", sensor );
+    LOGF_DEBUG("Temp sensor set to %d", sensor );
     tempSensInUse = sensor;
 
     return true;
@@ -583,7 +597,7 @@ bool ArmPlat::setTempSensorInUse( uint16_t sensor )
 
 bool ArmPlat::setPort( uint16_t newport )
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Port set to %d", newport );
+    LOGF_DEBUG("Port set to %d", newport );
     if ( port != newport )
     {
     	port = newport;
@@ -596,7 +610,7 @@ bool ArmPlat::setPort( uint16_t newport )
 	if ( motortype != -1 )
 		setMotorType( (uint16_t)motortype );
 
-    	DEBUG(INDI::Logger::DBG_SESSION, "Applying motor config, as port is active now" );
+    	LOG_INFO("Applying motor config, as port is active now" );
 	//loadConfig();
     }
 
@@ -608,7 +622,7 @@ bool ArmPlat::setBacklash(uint16_t value)
     if ( port == -1 )
 	return false;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Backlash %d", value );
+    LOGF_DEBUG("Backlash %d", value );
     backlash = value;
 
     return true;
@@ -622,7 +636,7 @@ IPState ArmPlat::MoveAbsFocuser(uint32_t targetTicks)
     char cmd[SLP_SEND_BUF_SIZE]={0};
     int rc = -1;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Abs move to %d", targetTicks );
+    LOGF_DEBUG("Abs move to %d", targetTicks );
     sprintf(cmd, "!step goto %d %i %i#", port, targetTicks, backlash );	
 
     if ( slpSendRxInt( cmd, &rc ) )
@@ -653,7 +667,7 @@ IPState ArmPlat::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     else
         realticks = ticks;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Rel move to %d", realticks );
+    LOGF_DEBUG("Rel move to %d", realticks );
     sprintf(cmd, "!step gopr %d %d#", port, realticks );	
 
     if ( slpSendRxInt( cmd, &rc ) )
@@ -676,7 +690,7 @@ void ArmPlat::TimerHit()
 
     if (!isConnected())
     {
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
         return;
     }
 
@@ -687,7 +701,7 @@ void ArmPlat::TimerHit()
 		DEBUG( INDI::Logger::DBG_WARNING, "Port must be selected (and configuration saved)" );
 		portWarned = true;
 	}
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
 	return;
     }
     else
@@ -711,7 +725,7 @@ void ArmPlat::TimerHit()
             {
                 FocusAbsPosNP.s = IPS_OK;
                 FocusRelPosNP.s = IPS_OK;
-                DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
+                LOG_INFO("Focuser reached requested position.");
             }
         }
     }
@@ -730,7 +744,7 @@ void ArmPlat::TimerHit()
 	}
     }
 
-    SetTimer(updatePeriodMS);
+    SetTimer(POLLMS);
 }
 
 bool ArmPlat::AbortFocuser()
@@ -741,7 +755,7 @@ bool ArmPlat::AbortFocuser()
     int rc = -1;
     char cmd[SLP_SEND_BUF_SIZE]={0};
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Aborting motion" );
+    LOG_DEBUG("Aborting motion" );
     sprintf(cmd, "!step stop %d#", port );	
 
     if ( slpSendRxInt( cmd, &rc ) )
@@ -782,13 +796,13 @@ bool ArmPlat::slpSendRxInt( char *command, int *rcode )
     char errstr[MAXRBUF];
     char res[SLP_SEND_BUF_SIZE]={0};
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Tx [%s]", command);
+    LOGF_DEBUG("Tx [%s]", command);
     //tty_set_debug( 1 );
     if ((rc = tty_write_string(PortFD, command, &nbytes_wrrd)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
        	//IDLog( "ERROR Tx: <%s>\n", errstr );
-        DEBUGF(INDI::Logger::DBG_ERROR, "Send error: %s.", errstr);
+        LOGF_ERROR("Send error: %s.", errstr);
         return false;
     }
 
@@ -796,10 +810,10 @@ bool ArmPlat::slpSendRxInt( char *command, int *rcode )
     {
         tty_error_msg(rc, errstr, MAXRBUF);
        	//IDLog( "ERROR Rx: <%s> error msg <%s>\n", res, errstr );
-        DEBUGF(INDI::Logger::DBG_ERROR, "Echo receiving error: %s.", errstr);
+        LOGF_ERROR("Echo receiving error: %s.", errstr);
         return false;
     }
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Rx [%s]", res);
+    LOGF_DEBUG("Rx [%s]", res);
     //if ( ( strstr( command, "getpos" ) == NULL ) && ( strstr( command, "temps" ) == NULL ) ) 
     	//IDLog( "Rx: <%s>\n", res );
     return getIntResultCode( command, res, rcode );
@@ -811,7 +825,7 @@ bool ArmPlat::getIntResultCode( char *sent, char *rxed, int *rcode )
 	char *cp = std::strtok( rxed, ":" );
 	if ( strcmp( cp, sent ) )
 	{
-    		DEBUGF(INDI::Logger::DBG_DEBUG, "ERROR retrieving answer: Tx[%s] Rx[%s]", sent, rxed );
+    		LOGF_DEBUG("ERROR retrieving answer: Tx[%s] Rx[%s]", sent, rxed );
 		return false;
 	}
 	cp = std::strtok( NULL, ":" );

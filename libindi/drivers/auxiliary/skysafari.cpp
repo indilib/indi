@@ -23,7 +23,8 @@
 
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
-*******************************************************************************/#include "skysafari.h"
+*******************************************************************************/
+#include "skysafari.h"
 #include "skysafariclient.h"
 
 #include "indicom.h"
@@ -38,8 +39,6 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-
-#define POLLMS 100
 
 // We declare unique pointer to my lovely German Shephard Tommy (http://indilib.org/images/juli_tommy.jpg)
 std::unique_ptr<SkySafari> tommyGoodBoy(new SkySafari());
@@ -137,6 +136,8 @@ bool SkySafari::initProperties()
                      OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     addDebugControl();
+
+    setDefaultPollingPeriod(100);
 
     return true;
 }
@@ -262,7 +263,7 @@ void SkySafari::TimerHit()
         }
         else if (cli_fd < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to SkySafari. %s", strerror(errno));
+            LOGF_ERROR("Failed to connect to SkySafari. %s", strerror(errno));
             SetTimer(POLLMS);
             return;
         }
@@ -273,19 +274,19 @@ void SkySafari::TimerHit()
         // Get socket flags
         if ((flags = fcntl(clientFD, F_GETFL, 0)) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to SkySafari. F_GETFL: %s", strerror(errno));
+            LOGF_ERROR("Error connecting to SkySafari. F_GETFL: %s", strerror(errno));
         }
 
         // Set to Non-Blocking
         if (fcntl(clientFD, F_SETFL, flags | O_NONBLOCK) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to SkySafari. F_SETFL: %s", strerror(errno));
+            LOGF_ERROR("Error connecting to SkySafari. F_SETFL: %s", strerror(errno));
         }
 
         // Only show message first time SkySafari connects
         if (isSkySafariConnected == false)
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Connected to SkySafari.");
+            LOG_INFO("Connected to SkySafari.");
             isSkySafariConnected = true;
         }
     }
@@ -307,7 +308,7 @@ void SkySafari::TimerHit()
         // EOF
         else if (rc == 0)
         {
-            //DEBUG(INDI::Logger::DBG_ERROR, "SkySafari Disconnected? Reconnect again.");
+            //LOG_ERROR("SkySafari Disconnected? Reconnect again.");
             close(clientFD);
             clientFD = -1;
         }
@@ -328,20 +329,20 @@ bool SkySafari::startServer()
     /* make socket endpoint */
     if ((sfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error starting server. socket: %s", strerror(errno));
+        LOGF_ERROR("Error starting server. socket: %s", strerror(errno));
         return false;
     }
 
     // Get socket flags
     if ((flags = fcntl(sfd, F_GETFL, 0)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error starting server. F_GETFL: %s", strerror(errno));
+        LOGF_ERROR("Error starting server. F_GETFL: %s", strerror(errno));
     }
 
     // Set to Non-Blocking
     if (fcntl(sfd, F_SETFL, flags | O_NONBLOCK) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error starting server. F_SETFL: %s", strerror(errno));
+        LOGF_ERROR("Error starting server. F_SETFL: %s", strerror(errno));
     }
 
     /* bind to given port for any IP address */
@@ -351,20 +352,20 @@ bool SkySafari::startServer()
     serv_socket.sin_port        = htons((unsigned short)atoi(SettingsT[SKYSAFARI_PORT].text));
     if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error starting server. setsockopt: %s", strerror(errno));
+        LOGF_ERROR("Error starting server. setsockopt: %s", strerror(errno));
         return false;
     }
 
     if (::bind(sfd, (struct sockaddr *)&serv_socket, sizeof(serv_socket)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error starting server. bind: %s", strerror(errno));
+        LOGF_ERROR("Error starting server. bind: %s", strerror(errno));
         return false;
     }
 
     /* willing to accept connections with a backlog of 5 pending */
     if (listen(sfd, 5) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error starting server. listen: %s", strerror(errno));
+        LOGF_ERROR("Error starting server. listen: %s", strerror(errno));
         return false;
     }
 
@@ -388,11 +389,11 @@ bool SkySafari::stopServer()
 
 void SkySafari::processCommand(std::string cmd)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd.c_str());
+    LOGF_DEBUG("CMD <%s>", cmd.c_str());
 
     if (skySafariClient->isConnected() == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Internal client is not connected! Please make sure the mount name is set in the Options tab. Disconnect and reconnect to try again.");
+        LOG_ERROR("Internal client is not connected! Please make sure the mount name is set in the Options tab. Disconnect and reconnect to try again.");
         return;
     }
 
@@ -438,7 +439,7 @@ void SkySafari::processCommand(std::string cmd)
         if (sscanf(cmd.c_str(), "SG%d", &ofs) == 1)
         {
             ofs = -ofs;
-            DEBUGF(INDI::Logger::DBG_DEBUG, "UTC Offset: %d", ofs);
+            LOGF_DEBUG("UTC Offset: %d", ofs);
 
             timeUTCOffset = ofs;
             haveUTCoffset = true;
@@ -456,7 +457,7 @@ void SkySafari::processCommand(std::string cmd)
         int hh, mm, ss;
         if (sscanf(cmd.c_str(), "SL%d:%d:%d", &hh, &mm, &ss) == 3)
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "TIME : %02d:%02d:%02d", hh, mm, ss);
+            LOGF_DEBUG("TIME : %02d:%02d:%02d", hh, mm, ss);
 
             timeHour    = hh;
             timeMin     = mm;
@@ -476,7 +477,7 @@ void SkySafari::processCommand(std::string cmd)
         int yyyy, mm, dd;
         if (sscanf(cmd.c_str(), "SC%d/%d/%d", &mm, &dd, &yyyy) == 3)
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "DATE : %02d-%02d-%02d", yyyy, mm, dd);
+            LOGF_DEBUG("DATE : %02d-%02d-%02d", yyyy, mm, dd);
 
             timeYear    = yyyy;
             timeMonth   = mm;
@@ -496,7 +497,7 @@ void SkySafari::processCommand(std::string cmd)
         INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
         if (eqCoordsNP == nullptr)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Unable to communicate with mount, is mount turned on and connected?");
+            LOG_WARN("Unable to communicate with mount, is mount turned on and connected?");
             return;
         }
 
@@ -512,7 +513,7 @@ void SkySafari::processCommand(std::string cmd)
         INumberVectorProperty *eqCoordsNP = skySafariClient->getEquatorialCoords();
         if (eqCoordsNP == nullptr)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Unable to communicate with mount, is mount turned on and connected?");
+            LOG_WARN("Unable to communicate with mount, is mount turned on and connected?");
             return;
         }
         int dd, mm, ss;
@@ -539,7 +540,9 @@ void SkySafari::processCommand(std::string cmd)
         int dd = 0, mm = 0, ss = 0;
         if (sscanf(cmd.c_str(), "Sd%d*%d:%d", &dd, &mm, &ss) == 3)
         {
-            DE = dd + mm / 60.0 + ss / 3600.0;
+            DE = abs(dd) + mm / 60.0 + ss / 3600.0;
+            if (dd < 0)
+                DE *= -1;
         }
 
         // Always respond with valid
@@ -735,7 +738,7 @@ void SkySafari::sendGeographicCoords()
 
 bool SkySafari::sendSkySafari(const char *message)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", message);
+    LOGF_DEBUG("RES <%s>", message);
 
     int bytesWritten = 0, totalBytes = strlen(message);
 
@@ -746,7 +749,7 @@ bool SkySafari::sendSkySafari(const char *message)
             bytesWritten += bytesSent;
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to SkySafari. %s", strerror(errno));
+            LOGF_ERROR("Error writing to SkySafari. %s", strerror(errno));
             return false;
         }
     }
@@ -786,7 +789,7 @@ void SkySafari::sendUTCtimedate()
         IUSaveText(IUFindText(timeUTC, "UTC"), bufDT);
         IUSaveText(IUFindText(timeUTC, "OFFSET"), bufOff);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "send to timedate. %s, %s", bufDT, bufOff);
+        LOGF_DEBUG("send to timedate. %s, %s", bufDT, bufOff);
 
         skySafariClient->setTimeUTC();
 

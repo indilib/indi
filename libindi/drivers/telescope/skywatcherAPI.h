@@ -70,9 +70,13 @@ class SkywatcherAPI
     unsigned long Highstr2long(std::string &String);
     bool CheckIfDCMotor();
 
-    /// \brief Check if the current mount is an AltAz (Virtuoso)
+    /// \brief Check if the current mount is a Virtuoso (AltAz)
     /// \return True if the current mount is Virtuoso otherwise false.
     bool IsVirtuosoMount() const;
+
+    /// \brief Check if the current mount is a Merlin (AltAz)
+    /// \return True if the current mount is Merlin otherwise false.
+    bool IsMerlinMount() const;
 
     /// \brief Convert a slewing rate in degrees per second into the required
     /// clock ticks per microstep setting.
@@ -230,8 +234,9 @@ class SkywatcherAPI
     /// \brief Slew to the given offset and stop
     /// \param[in] Axis - The axis to use.
     /// \param[in] OffsetInMicrosteps - The number of microsteps to
+    /// \param[in] verbose - Verbose mode
     /// slew from the current axis position.
-    void SlewTo(AXISID Axis, long OffsetInMicrosteps);
+    void SlewTo(AXISID Axis, long OffsetInMicrosteps, bool verbose = true);
 
     /// \brief Bring the axis to slow stop in the distance specified
     /// by SetSlewModeDeccelerationRampLength
@@ -267,7 +272,7 @@ class SkywatcherAPI
     };
     unsigned long MountCode { 0 };
     bool IsDCMotor { false };
-    bool SilentSlewMode { false };
+    bool SilentSlewMode { true };
 
     // Values from mount
     long MicrostepsPerRevolution[2];     // Number of microsteps for 360 degree revolution

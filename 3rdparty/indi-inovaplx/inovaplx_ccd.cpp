@@ -12,13 +12,12 @@
 
 int timerNS = -1;
 int timerWE = -1;
-unsigned char DIR		  = 0xF;
-//unsigned char OLD_DIR	  = 0xF;
-const int POLLMS		   = 500;	   /* Polling interval 500 ms */
-//const int MAX_CCD_GAIN	 = 1023;		/* Max CCD gain */
-//const int MIN_CCD_GAIN	 = 0;		/* Min CCD gain */
-//const int MAX_CCD_KLEVEL   = 255;		/* Max CCD black level */
-//const int MIN_CCD_KLEVEL   = 0;		/* Min CCD black level */
+unsigned char DIR          = 0xF;
+//unsigned char OLD_DIR      = 0xF;
+//const int MAX_CCD_GAIN     = 1023;        /* Max CCD gain */
+//const int MIN_CCD_GAIN     = 0;        /* Min CCD gain */
+//const int MAX_CCD_KLEVEL   = 255;        /* Max CCD black level */
+//const int MIN_CCD_KLEVEL   = 0;        /* Min CCD black level */
 
 /* Macro shortcut to CCD values */
 //#define TEMP_FILE "/tmp/inovaInstanceNumber.tmp"
@@ -27,13 +26,6 @@ const int POLLMS		   = 500;	   /* Polling interval 500 ms */
 //extern char *__progname;
 
 std::unique_ptr<INovaCCD> inova(new INovaCCD());
-
-static void * capture_Thread(void * arg)
-{
-    INDI_UNUSED(arg);
-    inova->CaptureThread();
-    return nullptr;
-}
 
 static void timerWestEast(void * arg)
 {
@@ -61,7 +53,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     inova->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(    const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     inova->ISNewText(dev, name, texts, names, num);
 }
@@ -100,11 +92,11 @@ bool INovaCCD::Connect()
     if(iNovaSDK_MaxCamera() > 0)
     {
         Sn = iNovaSDK_OpenCamera(1);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Serial Number: %s", Sn);
+        LOGF_DEBUG("Serial Number: %s", Sn);
         if(Sn[0] >= '0' && Sn[0] < '3')
         {
             iNovaSDK_InitST4();
-            DEBUGF(INDI::Logger::DBG_SESSION, "Camera model is %s", iNovaSDK_GetName());
+            LOGF_INFO("Camera model is %s", iNovaSDK_GetName());
             iNovaSDK_InitCamera(RESOLUTION_FULL);
             //maxW = iNovaSDK_GetImageWidth();
             //maxH = iNovaSDK_GetImageHeight();
@@ -112,11 +104,6 @@ bool INovaCCD::Connect()
             iNovaSDK_SetFrameSpeed(FRAME_SPEED_LOW);
             iNovaSDK_CancelLongExpTime();
             iNovaSDK_OpenVideo();
-
-            threadsRunning = true;
-
-            RawData = (unsigned char *)malloc(iNovaSDK_GetArraySize() * (iNovaSDK_GetDataWide() > 0 ? 2 : 1));
-            pthread_create(&captureThread, NULL, capture_Thread, (void*)this);
 
             CameraPropertiesNP.s = IPS_IDLE;
 
@@ -128,14 +115,12 @@ bool INovaCCD::Connect()
         }
         iNovaSDK_CloseCamera();
     }
-    DEBUG(INDI::Logger::DBG_ERROR, "No cameras opened.");
+    LOG_ERROR("No cameras opened.");
     return false;
 }
 
 bool INovaCCD::Disconnect()
 {
-    threadsRunning = false;
-    pthread_join(captureThread, NULL);
     iNovaSDK_SensorPowerDown();
     iNovaSDK_CloseVideo();
     iNovaSDK_CloseCamera();
@@ -174,6 +159,10 @@ bool INovaCCD::initProperties()
 
     // Set minimum exposure speed to 0.001 seconds
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 1000, 1, false);
+    if(iNovaSDK_HasColorSensor())
+        IUSaveText(&BayerT[2], "RGGB");
+
+    setDefaultPollingPeriod(500);
 
     return true;
 
@@ -241,7 +230,7 @@ void INovaCCD::setupParams()
     // Let's calculate how much memory we need for the primary CCD buffer
     int nbuf;
     nbuf=PrimaryCCD.getXRes()*PrimaryCCD.getYRes() * PrimaryCCD.getBPP()/8;
-    nbuf+=512;	//  leave a little extra at the end
+    nbuf+=512;    //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 }
 
@@ -311,25 +300,6 @@ bool INovaCCD::ISNewNumber(const char *dev, const char *name, double values[], c
     }
 
     return INDI::CCD::ISNewNumber(dev,name,values,names,n);
-
-    /*
-    {
-        binX = PrimaryCCD.getBinX();
-        binY = PrimaryCCD.getBinY();
-        startX = PrimaryCCD.getSubX();
-        startY = PrimaryCCD.getSubY();
-        endX = startX + PrimaryCCD.getSubW();
-        endY = startY + PrimaryCCD.getSubH();
-        endX = (endX > maxW ? maxW : endX);
-        endY = (endY > maxH ? maxH : endY);
-
-        PrimaryCCD.setFrame (startX, startY, endX-startX, endY-startY);
-
-        return true;
-    }
-
-    return false;
-    */
 }
 
 /**************************************************************************************
@@ -366,15 +336,24 @@ void INovaCCD::TimerHit()
 
         // Less than a 0.1 second away from exposure completion
         // This is an over simplified timing method, check CCDSimulator and inova for better timing checks
-        if(timeleft < 0.1)
+        if(timeleft >= 0.0)
         {
-            /* We're done exposing */
-            DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
-        }
-        else
             // Just update time left in client
             PrimaryCCD.setExposureLeft(timeleft);
+        }
+        else
+        {
+            /* We're done exposing */
+            LOG_INFO("Exposure done, downloading image...");
+            RawData = (unsigned char*)iNovaSDK_GrabFrame();
+            if(RawData != NULL)
+            {
+                // We're no longer exposing...
+                InExposure = false;
 
+                grabImage();
+            }
+        }
     }
 
     SetTimer(POLLMS);
@@ -415,21 +394,6 @@ IPState INovaCCD::GuideSouth(float ms)
     iNovaSDK_SendST4(DIR);
     timerNS = IEAddTimer(ms, timerNorthSouth, (void *)this);
     return IPS_IDLE;
-}
-
-void INovaCCD::CaptureThread()
-{
-    while(threadsRunning)
-    {
-        RawData = (unsigned char*)iNovaSDK_GrabFrame();
-        if(RawData != NULL && InExposure)
-        {
-            // We're no longer exposing...
-            InExposure = false;
-
-            grabImage();
-        }
-    }
 }
 
 void INovaCCD::grabImage()
@@ -485,7 +449,7 @@ void INovaCCD::grabImage()
             }
         }
         // Let INDI::CCD know we're done filling the image buffer
-        DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+        LOG_INFO("Download complete.");
         ExposureComplete(&PrimaryCCD);
     }
 }

@@ -23,8 +23,6 @@
 #include "indicom.h"
 #include "indidevapi.h"
 
-#define POLLMS 1000 /* poll period, ms */
-
 /*
    The device name below eventhough we have a Magellan I
    should remain set to a KStars registered telescope so

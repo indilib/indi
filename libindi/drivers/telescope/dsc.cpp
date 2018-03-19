@@ -264,11 +264,11 @@ bool DSC::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 
             if (AxisRangeS[AXIS_FULL_STEP].s == ISS_ON)
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Axis range is from 0 to %.f", AxisSettingsN[AXIS1_TICKS].value);
+                LOGF_INFO("Axis range is from 0 to %.f", AxisSettingsN[AXIS1_TICKS].value);
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Axis range is from -%.f to %.f",
+                LOGF_INFO("Axis range is from -%.f to %.f",
                        AxisSettingsN[AXIS1_TICKS].value / 2, AxisSettingsN[AXIS1_TICKS].value / 2);
             }
             IDSetSwitch(&AxisRangeSP, nullptr);
@@ -294,7 +294,7 @@ bool DSC::ReadScopeStatus()
     char response[16] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %#02X", CR[0]);
+    LOGF_DEBUG("CMD: %#02X", CR[0]);
 
     if (isSimulation())
     {
@@ -308,7 +308,7 @@ bool DSC::ReadScopeStatus()
         {
             char errmsg[256];
             tty_error_msg(rc, errmsg, 256);
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+            LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
             return false;
         }
 
@@ -321,13 +321,13 @@ bool DSC::ReadScopeStatus()
             {
                 char errmsg[256];
                 tty_error_msg(rc, errmsg, 256);
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+                LOGF_ERROR("Error reading from device %s (%d)", errmsg, rc);
                 return false;
             }
         }
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", response);
+    LOGF_DEBUG("RES: %s", response);
 
     double Axis1Encoder = 0, Axis2Encoder = 0;
     std::regex rgx(R"((\+?\-?\d+)\s(\+?\-?\d+))");
@@ -341,13 +341,13 @@ bool DSC::ReadScopeStatus()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error processing response: %s", response);
+        LOGF_ERROR("Error processing response: %s", response);
         EncoderNP.s = IPS_ALERT;
         IDSetNumber(&EncoderNP, nullptr);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Axis encoders. Axis1: %g Axis2: %g", Axis1Encoder, Axis2Encoder);
+    LOGF_DEBUG("Raw Axis encoders. Axis1: %g Axis2: %g", Axis1Encoder, Axis2Encoder);
 
     EncoderN[AXIS1_RAW_ENCODER].value = Axis1Encoder;
     EncoderN[AXIS2_RAW_ENCODER].value = Axis2Encoder;
@@ -378,7 +378,7 @@ bool DSC::ReadScopeStatus()
     if (ReverseS[AXIS2_ENCODER].s == ISS_ON)
         Axis2 = AxisSettingsN[AXIS2_TICKS].value - Axis2;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Axis encoders after reverse. Axis1: %g Axis2: %g", Axis1, Axis2);
+    LOGF_DEBUG("Axis encoders after reverse. Axis1: %g Axis2: %g", Axis1, Axis2);
 
     // Apply raw offsets
 
@@ -386,7 +386,7 @@ bool DSC::ReadScopeStatus()
     //Axis1 = (Axis1 * EncoderOffsetN[OFFSET_AXIS1_SCALE].value + EncoderOffsetN[OFFSET_AXIS1_OFFSET].value);
     //Axis2 = (Axis2 * EncoderOffsetN[OFFSET_AXIS2_SCALE].value + EncoderOffsetN[OFFSET_AXIS2_OFFSET].value);
 
-    //DEBUGF(INDI::Logger::DBG_DEBUG, "Axis encoders after raw offsets. Axis1: %g Axis2: %g", Axis1, Axis2);
+    //LOGF_DEBUG("Axis encoders after raw offsets. Axis1: %g Axis2: %g", Axis1, Axis2);
 
     EncoderN[AXIS1_ENCODER].value = Axis1;
     EncoderN[AXIS2_ENCODER].value = Axis2;
@@ -432,7 +432,7 @@ bool DSC::ReadScopeStatus()
         char AzStr[64], AltStr[64];
         fs_sexa(AzStr, Axis1Degrees, 2, 3600);
         fs_sexa(AltStr, Axis2Degrees, 2, 3600);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Current Az: %s Current Alt: %s", AzStr, AltStr);
+        LOGF_DEBUG("Current Az: %s Current Alt: %s", AzStr, AltStr);
 
         //ln_get_equ_from_hrz(&encoderHorizontalCoordinates, &observer, ln_get_julian_from_sys(), &encoderEquatorialCoordinates);
         //equatorialPos.ra /= 15.0;
@@ -587,7 +587,7 @@ bool DSC::updateLocation(double latitude, double longitude, double elevation)
         observer.lng -= 360;
     observer.lat = latitude;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Location updated: Longitude (%g) Latitude (%g)", observer.lng, observer.lat);
+    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", observer.lng, observer.lat);
     return true;
 }
 

@@ -508,6 +508,23 @@ class Dome : public DefaultDevice
     Connection::Serial *serialConnection = NULL;
     Connection::TCP *tcpConnection       = NULL;
 
+    // States
+    DomeState domeState;
+    IPState mountState;
+    IPState weatherState;
+
+    // Observer geographic coords. Snooped from mount driver.
+    struct ln_lnlat_posn observer;
+    // Do we have valid geographic coords from mount driver?
+    bool HaveLatLong = false;
+
+
+    // Mount horizontal and equatorial coords. Snoops from mount driver.
+    struct ln_hrz_posn mountHoriztonalCoords;
+    struct ln_equ_posn mountEquatorialCoords;
+    // Do we have valid coords from mount driver?
+    bool HaveRaDec = false;
+
   private:
     void processButton(const char *button_n, ISState state);
 
@@ -515,25 +532,15 @@ class Dome : public DefaultDevice
 
     Controller *controller = nullptr;
 
-    DomeState domeState;
+    bool IsParked = false;
+    bool IsLocked = true;
 
-    struct ln_lnlat_posn observer;
-    struct ln_hrz_posn mountHoriztonalCoords;
-    struct ln_equ_posn mountEquatorialCoords;
-
-    IPState mountState;
-    IPState weatherState;
-
-    bool IsParked;
-    bool IsLocked;
     const char *ParkDeviceName;
     const char *Parkdatafile;
     XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;
 
     double Axis1ParkPosition;
     double Axis1DefaultParkPosition;
-    bool HaveLatLong = false;
-    bool HaveRaDec = false;
 
     bool callHandshake();
     uint8_t domeConnection = CONNECTION_SERIAL | CONNECTION_TCP;

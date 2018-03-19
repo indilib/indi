@@ -173,7 +173,7 @@ void DomeSim::TimerHit()
         if (fabs(targetAz - DomeAbsPosN[0].value) <= DOME_SPEED)
         {
             DomeAbsPosN[0].value = targetAz;
-            DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
+            LOG_INFO("Dome reached requested azimuth angle.");
 
             if (getDomeState() == DOME_PARKING)
                 SetParked(true);
@@ -192,7 +192,7 @@ void DomeSim::TimerHit()
         {
             shutterTimer    = 0;
             DomeShutterSP.s = IPS_OK;
-            DEBUGF(INDI::Logger::DBG_SESSION, "Shutter is %s.", (DomeShutterS[0].s == ISS_ON ? "open" : "closed"));
+            LOGF_INFO("Shutter is %s.", (DomeShutterS[0].s == ISS_ON ? "open" : "closed"));
             IDSetSwitch(&DomeShutterSP, nullptr);
 
             if (getDomeState() == DOME_UNPARKING)

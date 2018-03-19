@@ -20,12 +20,17 @@
 
 */
 
+#pragma once
+
 #include <vector>
 #include "recorderinterface.h"
 
 namespace INDI
 {
 
+/**
+ * @brief The RecorderManager class contains a list of active supported recorders.
+ */
 class RecorderManager
 {
   public:

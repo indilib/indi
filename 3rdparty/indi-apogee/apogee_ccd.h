@@ -26,9 +26,9 @@
 #include <indiguiderinterface.h>
 #include <iostream>
 
-#include <ApogeeCam.h>
-#include <FindDeviceEthernet.h>
-#include <FindDeviceUsb.h>
+#include "ApogeeCam.h"
+#include "FindDeviceEthernet.h"
+#include "FindDeviceUsb.h"
 
 class ApogeeCCD : public INDI::CCD
 {

@@ -69,7 +69,7 @@ bool MJPEGEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, boo
     // We do not support compression
     if (isCompressed)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Compression is not supported in MJPEG stream.");
+        LOG_ERROR("Compression is not supported in MJPEG stream.");
         return false;
     }
 

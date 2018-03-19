@@ -23,7 +23,8 @@
 
 int dspau_u8todouble(unsigned char* in, double* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (double)in[k];
 	}
 	return 0;
@@ -31,7 +32,8 @@ int dspau_u8todouble(unsigned char* in, double* out, int len)
 
 int dspau_u16todouble(unsigned short int* in, double* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (double)in[k];
 	}
 	return 0;
@@ -39,7 +41,8 @@ int dspau_u16todouble(unsigned short int* in, double* out, int len)
 
 int dspau_u32todouble(unsigned int* in, double* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (double)in[k];
 	}
 	return 0;
@@ -47,7 +50,8 @@ int dspau_u32todouble(unsigned int* in, double* out, int len)
 
 int dspau_u64todouble(unsigned long int* in, double* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (double)in[k];
 	}
 	return 0;
@@ -55,7 +59,8 @@ int dspau_u64todouble(unsigned long int* in, double* out, int len)
 
 int dspau_s8todouble(signed char* in, double* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (double)in[k];
 	}
 	return 0;
@@ -63,7 +68,8 @@ int dspau_s8todouble(signed char* in, double* out, int len)
 
 int dspau_s16todouble(signed short int* in, double* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (double)in[k];
 	}
 	return 0;
@@ -71,7 +77,8 @@ int dspau_s16todouble(signed short int* in, double* out, int len)
 
 int dspau_s32todouble(signed int* in, double* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (double)in[k];
 	}
 	return 0;
@@ -79,7 +86,8 @@ int dspau_s32todouble(signed int* in, double* out, int len)
 
 int dspau_s64todouble(signed long int* in, double* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (double)in[k];
 	}
 	return 0;
@@ -87,7 +95,8 @@ int dspau_s64todouble(signed long int* in, double* out, int len)
 
 int dspau_doubletou8(double* in, unsigned char* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (unsigned char)in[k];
 	}
 	return 0;
@@ -95,7 +104,8 @@ int dspau_doubletou8(double* in, unsigned char* out, int len)
 
 int dspau_doubletou16(double* in, unsigned short int* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (unsigned short int)in[k];
 	}
 	return 0;
@@ -103,7 +113,8 @@ int dspau_doubletou16(double* in, unsigned short int* out, int len)
 
 int dspau_doubletou32(double* in, unsigned int* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (unsigned int)in[k];
 	}
 	return 0;
@@ -111,7 +122,8 @@ int dspau_doubletou32(double* in, unsigned int* out, int len)
 
 int dspau_doubletou64(double* in, unsigned long int* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (unsigned long int)in[k];
 	}
 	return 0;
@@ -119,7 +131,8 @@ int dspau_doubletou64(double* in, unsigned long int* out, int len)
 
 int dspau_doubletos8(double* in, signed char* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (signed char)in[k];
 	}
 	return 0;
@@ -127,7 +140,8 @@ int dspau_doubletos8(double* in, signed char* out, int len)
 
 int dspau_doubletos16(double* in, signed short int* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (signed short int)in[k];
 	}
 	return 0;
@@ -135,7 +149,8 @@ int dspau_doubletos16(double* in, signed short int* out, int len)
 
 int dspau_doubletos32(double* in, signed int* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (signed int)in[k];
 	}
 	return 0;
@@ -143,7 +158,8 @@ int dspau_doubletos32(double* in, signed int* out, int len)
 
 int dspau_doubletos64(double* in, signed long int* out, int len)
 {
-	for(int k = 0; k < len; k++) {
+	int k;
+	for(k = 0; k < len; k++) {
 		out[k] = (signed long int)in[k];
 	}
 	return 0;

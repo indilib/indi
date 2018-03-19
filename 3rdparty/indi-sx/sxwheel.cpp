@@ -85,7 +85,7 @@ SXWHEEL::SXWHEEL()
 SXWHEEL::~SXWHEEL()
 {
     if (isSimulation())
-        DEBUG(INDI::Logger::DBG_DEBUG, "simulation: disconnected");
+        LOG_DEBUG("simulation: disconnected");
     else
     {
         if (handle)
@@ -103,7 +103,7 @@ bool SXWHEEL::Connect()
 {
     if (isSimulation())
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "simulation: connected");
+        LOG_DEBUG("simulation: connected");
         handle = (hid_device *)1;
         SelectFilter(CurrentFilter);
     }
@@ -119,7 +119,7 @@ bool SXWHEEL::Connect()
 bool SXWHEEL::Disconnect()
 {
     if (isSimulation())
-        DEBUG(INDI::Logger::DBG_DEBUG, "simulation: disconnected");
+        LOG_DEBUG("simulation: disconnected");
     else
     {
         if (handle)
@@ -141,7 +141,7 @@ int SXWHEEL::SendWheelMessage(int a, int b)
 {
     if (isSimulation())
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "simulation: command %d %d", a, b);
+        LOGF_DEBUG("simulation: command %d %d", a, b);
         if (a > 0)
             CurrentFilter = a - 0x80;
         FilterSlotN[0].max = 5;
@@ -149,23 +149,23 @@ int SXWHEEL::SendWheelMessage(int a, int b)
     }
     if (!handle)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Filter wheel not connected.");
+        LOG_ERROR("Filter wheel not connected.");
         return -1;
     }
     unsigned char buf[2] = { static_cast<unsigned char>(a), static_cast<unsigned char>(b) };
     int rc               = hid_write(handle, buf, 2);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "SendWheelMessage: hid_write( { %d, %d } ) -> %d", buf[0], buf[1], rc);
+    LOGF_DEBUG("SendWheelMessage: hid_write( { %d, %d } ) -> %d", buf[0], buf[1], rc);
     if (rc != 2)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to write to wheel");
+        LOG_ERROR("Failed to write to wheel");
         return -1;
     }
     usleep(100);
     rc = hid_read(handle, buf, 2);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "SendWheelMessage: hid_read() -> { %d, %d } %d", buf[0], buf[1], rc);
+    LOGF_DEBUG("SendWheelMessage: hid_read() -> { %d, %d } %d", buf[0], buf[1], rc);
     if (rc != 2)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Failed to read from wheel.");
+        LOG_DEBUG("Failed to read from wheel.");
         return -1;
     }
     CurrentFilter      = buf[0];

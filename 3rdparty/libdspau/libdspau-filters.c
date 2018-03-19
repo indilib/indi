@@ -39,7 +39,8 @@ int dspau_squarelawfilter(double* in, double* out, int len)
 {
 	double mean = dspau_mean(in, len);
 	int val = 0;
-	for (int i = 0; i < len; i++) {
+	int i;
+	for(i = 0; i < len; i++) {
 		val = in [i] - mean;
 		out [i] = (abs (val) + mean);
 	}
@@ -48,11 +49,12 @@ int dspau_squarelawfilter(double* in, double* out, int len)
 
 int dspau_lowpassfilter(double* in, double* out, int len, double SamplingFrequency, double Frequency, double Q)
 {
+	int i;
 	double RC = 1.0 / (Frequency * 2.0 * M_PI); 
 	double dt = 1.0 / (SamplingFrequency * 2.0 * M_PI); 
 	double alpha = dt / (RC + dt) / Q;
 	out [0] = in [0];
-	for (int i = 1; i < len; ++i) { 
+	for(i = 1; i < len; ++i) { 
 		out [i] = (out [i - 1] + (alpha * (in [i] - out [i - 1])));
 	}
 	return 0;
@@ -60,11 +62,12 @@ int dspau_lowpassfilter(double* in, double* out, int len, double SamplingFrequen
 
 int dspau_highpassfilter(double* in, double* out, int len, double SamplingFrequency, double Frequency, double Q)
 {
+	int i;
 	double RC = 1.0 / (Frequency * 2.0 * M_PI);
 	double dt = 1.0 / (SamplingFrequency * 2.0 * M_PI);
 	double alpha = dt / (RC + dt) / Q;
 	out [0] = in [0];
-	for (int i = 1; i < len; ++i) { 
+	for(i = 1; i < len; ++i) { 
 		out [i] = (in[i] - (out [i - 1] + (alpha * (in [i] - out [i - 1]))));
 	}
 	return 0;
@@ -85,6 +88,7 @@ double dspau_singlefilter(double yin, struct Coefficient *coefficient) {
 }
 
 int dspau_bandrejectfilter(double* in, double* out, int len, double SamplingFrequency, double Frequency, double Q) {
+	int x;
 	double wo = 2.0 * M_PI * Frequency / SamplingFrequency;
 
 	struct Coefficient coefficient;
@@ -93,23 +97,32 @@ int dspau_bandrejectfilter(double* in, double* out, int len, double SamplingFreq
 	coefficient.d0 = coefficient.e;
 	coefficient.d1 = 2 * coefficient.e * coefficient.p;
 	coefficient.d2 = (2 * coefficient.e - 1);
-	for (int x = 0; x < len; x ++) {
+	for(x = 0; x < len; x ++) {
 		out [x] = dspau_singlefilter (in [x], &coefficient);
 	}
 	return 0;
 }
 
 int dspau_bandpassfilter(double* in, double* out, int len, double SamplingFrequency, double Frequency, double Q) {
+	int x;
 	double wo = 2.0 * M_PI * Frequency / SamplingFrequency;
 
+	double mn, mx;
+	dspau_minmidmax(in, len, &mn, &mx);
 	struct Coefficient coefficient;
 	coefficient.e = 1 / (1 + tan (wo / (Q * 2)));
 	coefficient.p = cos (wo);
 	coefficient.d0 = coefficient.e;
 	coefficient.d1 = 2 * coefficient.e * coefficient.p;
 	coefficient.d2 = (2 * coefficient.e - 1);
-	for (int x = 0; x < len; x ++) {
-		out [x] = in [x] - dspau_singlefilter (in [x], &coefficient);
+	for(x = 0; x < len; x ++) {
+		out [x] -= mn;
+		out [x] *= 2.0 / (mx - mn);
+		out [x] -= 1.0;
+		out [x] = in [x] / dspau_singlefilter (in [x], &coefficient);
+		out [x] += 1.0;
+		out [x] *= (mx - mn) / 2.0;
+		out [x] += mn;
 	}
 	return 0;
 }

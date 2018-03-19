@@ -21,6 +21,21 @@
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 
+/**
+ * @brief The ScopeSim class provides a simple mount simulator of an equatorial mount.
+ *
+ * It supports the following features:
+ * + Sideral and Custom Tracking rates.
+ * + Goto & Sync
+ * + NWSE Hand controller direciton key slew.
+ * + Tracking On/Off.
+ * + Parking & Unparking with custom parking positions.
+ * + Setting Time & Location.
+ *
+ * On startup and by default the mount shall point to the celestial pole.
+ *
+ * @author Jasem Mutlaq
+ */
 class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 {
   public:
@@ -79,6 +94,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     INumber GuideRateN[2];
     INumberVectorProperty GuideRateNP;
 
+#ifdef USE_EQUATORIAL_PE
     INumberVectorProperty EqPENV;
     INumber EqPEN[2];
 
@@ -87,4 +103,5 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 
     ISwitch PEErrWES[2];
     ISwitchVectorProperty PEErrWESP;
+#endif
 };

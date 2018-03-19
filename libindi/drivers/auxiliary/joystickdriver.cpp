@@ -238,6 +238,9 @@ __u8 JoyStickDriver::getNumOfJoysticks()
 {
     int n_joysticks = axes / 2;
 
+    if (axes % 2 != 0)
+        n_joysticks++;
+
     if (n_joysticks > MAX_JOYSTICKS)
         n_joysticks = MAX_JOYSTICKS;
 

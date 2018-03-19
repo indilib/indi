@@ -23,7 +23,6 @@
 #include <cstring>
 #include <memory>
 
-#define POLLMS         500   /* 0.5s */
 #define HID_TIMEOUT    10000 /* 10s */
 #define FUDGE_FACTOR_H 1000
 #define FUDGE_FACTOR_L 885
@@ -74,8 +73,8 @@ void ISSnoopDevice(XMLEle *root)
 
 HitecAstroDCFocuser::HitecAstroDCFocuser() : _handle(nullptr)
 {
-    SetFocuserCapability(FOCUSER_CAN_REL_MOVE); // | FOCUSER_HAS_VARIABLE_SPEED);
-    setFocuserConnection(CONNECTION_NONE);
+    FI::SetCapability(FOCUSER_CAN_REL_MOVE); // | FOCUSER_HAS_VARIABLE_SPEED);
+    setConnection(CONNECTION_NONE);
 }
 
 HitecAstroDCFocuser::~HitecAstroDCFocuser()
@@ -99,12 +98,15 @@ bool HitecAstroDCFocuser::Connect()
 
     if (hid_init() != 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "hid_init() failed.");
+        LOG_ERROR("hid_init() failed.");
     }
 
     _handle = hid_open(0x04D8, 0xFAC2, nullptr);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, _handle ? "HitecAstroDCFocuser opened." : "HitecAstroDCFocuser failed.");
+    if (_handle == nullptr)
+        _handle = hid_open(0x04D8, 0xF53A, nullptr);
+
+    LOG_DEBUG(_handle ? "HitecAstroDCFocuser opened." : "HitecAstroDCFocuser failed.");
 
     if (_handle != nullptr)
     {
@@ -114,7 +116,7 @@ bool HitecAstroDCFocuser::Connect()
         return true;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to focuser: %s", hid_error(_handle));
+    LOGF_ERROR("Failed to connect to focuser: %s", hid_error(_handle));
     return false;
 }
 
@@ -126,7 +128,7 @@ bool HitecAstroDCFocuser::Disconnect()
         _handle = nullptr;
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "HitecAstroDCFocuser closed.");
+    LOG_DEBUG("HitecAstroDCFocuser closed.");
     return true;
 }
 
@@ -171,6 +173,8 @@ bool HitecAstroDCFocuser::initProperties()
     FocusRelPosN[0].step  = FocusRelPosN[0].max / 100.0;
     FocusRelPosN[0].value = 100;
 
+    setDefaultPollingPeriod(500);
+
     return true;
 }
 
@@ -209,7 +213,7 @@ void HitecAstroDCFocuser::TimerHit()
             rc         = hid_write(_handle, command, 8);
             if (rc < 0)
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "::MoveFocuser() fail (%s)", hid_error(_handle));
+                LOGF_DEBUG("::MoveFocuser() fail (%s)", hid_error(_handle));
             }
             hid_read_timeout(_handle, command, 8, 1000);
         }
@@ -266,11 +270,11 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     unsigned char command[8]={0};
     IPState rval;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "::move() begin %d ticks at speed %d", ticks, speed);
+    LOGF_DEBUG("::move() begin %d ticks at speed %d", ticks, speed);
 
     if (_handle == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "::move() bad handle");
+        LOG_DEBUG("::move() bad handle");
         return IPS_ALERT;
     }
 
@@ -290,7 +294,7 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     if (speed > 100)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "::move() over speed %d, limiting to 100", ticks, speed);
+        LOGF_DEBUG("::move() over speed %d, limiting to 100", ticks, speed);
         speed = 100;
     }
 
@@ -307,13 +311,13 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     command[6] = 0;
     command[7] = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "==> TX %2.2x %2.2x%2.2x %2.2x %2.2x %2.2x%2.2x%2.2x", command[0], command[1],
+    LOGF_DEBUG("==> TX %2.2x %2.2x%2.2x %2.2x %2.2x %2.2x%2.2x%2.2x", command[0], command[1],
            command[2], command[3], command[4], command[5], command[6], command[7]);
 
     rc = hid_write(_handle, command, 8);
     if (rc < 0)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "::MoveRelFocuser() fail (%s)", hid_error(_handle));
+        LOGF_DEBUG("::MoveRelFocuser() fail (%s)", hid_error(_handle));
         return IPS_ALERT;
     }
 
@@ -321,7 +325,7 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     memset(command, 0, 8);
     hid_read_timeout(_handle, command, 8, HID_TIMEOUT);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "==> RX %2.2x %2.2x%2.2x %2.2x %2.2x %2.2x%2.2x%2.2x", command[0], command[1],
+    LOGF_DEBUG("==> RX %2.2x %2.2x%2.2x %2.2x %2.2x %2.2x%2.2x%2.2x", command[0], command[1],
            command[2], command[3], command[4], command[5], command[6], command[7]);
 
     rval = command[1] == 0x21 ? IPS_OK : IPS_ALERT;
@@ -338,7 +342,7 @@ IPState HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t
     unsigned char command[8]={0};
     IPState rval;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "::MoveFocuser(%d %d %d)", dir, speed, duration);
+    LOGF_DEBUG("::MoveFocuser(%d %d %d)", dir, speed, duration);
 
     if (_handle == nullptr)
     {
@@ -355,7 +359,7 @@ IPState HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t
 
     if (speed > 100)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "::MoveFocuser() over speed %d, limiting to 100", speed);
+        LOGF_DEBUG("::MoveFocuser() over speed %d, limiting to 100", speed);
         speed = 100;
     }
 
@@ -371,19 +375,19 @@ IPState HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t
     command[6] = 0;
     command[7] = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "==> TX %2.2x %2.2x%2.2x %2.2x %2.2x %2.2x%2.2x%2.2x", command[0], command[1],
+    LOGF_DEBUG("==> TX %2.2x %2.2x%2.2x %2.2x %2.2x %2.2x%2.2x%2.2x", command[0], command[1],
            command[2], command[3], command[4], command[5], command[6], command[7]);
 
     rc = hid_write(_handle, command, 8);
     if (rc < 0)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "::MoveFocuser() fail (%s)", hid_error(_handle));
+        LOGF_DEBUG("::MoveFocuser() fail (%s)", hid_error(_handle));
         return IPS_ALERT;
     }
 
     memset(command, 0, 8);
     hid_read_timeout(_handle, command, 8, HID_TIMEOUT);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "==> RX %2.2x %2.2x%2.2x %2.2x %2.2x %2.2x%2.2x%2.2x", command[0], command[1],
+    LOGF_DEBUG("==> RX %2.2x %2.2x%2.2x %2.2x %2.2x %2.2x%2.2x%2.2x", command[0], command[1],
            command[2], command[3], command[4], command[5], command[6], command[7]);
 
     rval = command[1] == 0x24 ? IPS_OK : IPS_ALERT;

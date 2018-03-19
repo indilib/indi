@@ -61,7 +61,7 @@ bool BasicMathPlugin::Initialise(InMemoryDatabase *pInMemoryDatabase)
             AlignmentDatabaseEntry &Entry1 = SyncPoints[0];
             ln_equ_posn RaDec;
             ln_hrz_posn ActualSyncPoint1;
-            ln_lnlat_posn Position { 0, 0 };
+            ln_lnlat_posn Position;
             if (!pInMemoryDatabase->GetDatabaseReferencePosition(Position))
                 return false;
             RaDec.dec = Entry1.Declination;
@@ -532,7 +532,7 @@ bool BasicMathPlugin::TransformCelestialToTelescope(const double RightAscension,
 bool BasicMathPlugin::TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
                                                     double &RightAscension, double &Declination)
 {
-    ln_lnlat_posn Position { 0, 0 };
+    ln_lnlat_posn Position;
 
     ln_hrz_posn ApparentAltAz;
     ln_hrz_posn ActualAltAz;

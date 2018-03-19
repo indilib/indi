@@ -49,6 +49,7 @@ void set_lx200ap_name(const char *deviceName, unsigned int debug_level)
 
 int check_lx200ap_connection(int fd)
 {
+    const struct timespec timeout = {0, 50000000L};
     int i = 0;
     char temp_string[64];
     int error_type;
@@ -84,7 +85,7 @@ int check_lx200ap_connection(int fd)
 
             return 0;
         }
-        usleep(50000);
+        nanosleep(&timeout, NULL);
     }
 
     DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_connection: wrote, but nothing received.");
@@ -271,6 +272,7 @@ int setAPUTCOffset(int fd, double hours)
 }
 int APSyncCM(int fd, char *matchedObject)
 {
+    const struct timespec timeout = {0, 10000000L};
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
@@ -288,7 +290,7 @@ int APSyncCM(int fd, char *matchedObject)
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    usleep(10000);
+    nanosleep(&timeout, NULL);
 
     tcflush(fd, TCIFLUSH);
 
@@ -297,6 +299,7 @@ int APSyncCM(int fd, char *matchedObject)
 
 int APSyncCMR(int fd, char *matchedObject)
 {
+    const struct timespec timeout = {0, 10000000L};
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
@@ -315,7 +318,7 @@ int APSyncCMR(int fd, char *matchedObject)
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    usleep(10000);
+    nanosleep(&timeout, NULL);
 
     tcflush(fd, TCIFLUSH);
 
@@ -751,13 +754,13 @@ int APSendPulseCmd(int fd, int direction, int duration_msec)
             break;
         case LX200_SOUTH:
             sprintf(cmd, ":Ms%04d#", duration_msec);
-	    break;
+        break;
         case LX200_EAST:
             sprintf(cmd, ":Me%04d#", duration_msec);
-	    break;
+        break;
         case LX200_WEST:
             sprintf(cmd, ":Mw%04d#", duration_msec);
-	    break;
+        break;
         default:
             return 1;
     }
@@ -769,3 +772,51 @@ int APSendPulseCmd(int fd, int direction, int duration_msec)
     tcflush(fd, TCIFLUSH);
     return 0;
 }
+
+#if 0
+// experimental function!!!
+int check_lx200ap_status(int fd, char *parkStatus, char *slewStatus)
+{
+    char temp_string[64];
+    int error_type;
+    int nbytes_write = 0;
+    int nbytes_read  = 0;
+
+    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "EXPERIMENTAL: check status...");
+
+    if (fd <= 0)
+    {
+        DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                    "check_lx200ap_connection: not a valid file descriptor received");
+
+        return -1;
+    }
+
+    if ((error_type = tty_write_string(fd, "#:GOS#", &nbytes_write)) != TTY_OK)
+    {
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR,
+                     "check_lx200ap_connection: unsuccessful write to telescope, %d", nbytes_write);
+
+        return error_type;
+    }
+    tty_read_section(fd, temp_string, '#', LX200_TIMEOUT, &nbytes_read);
+    tcflush(fd, TCIFLUSH);
+    if (nbytes_read > 1)
+    {
+        temp_string[nbytes_read - 1] = '\0';
+
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "check_lx200ap_status: received bytes %d, [%s]",
+                     nbytes_write, temp_string);
+
+        *parkStatus = temp_string[0];
+        *slewStatus = temp_string[3];
+
+        return 0;
+    }
+
+
+    DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_status: wrote, but nothing received.");
+
+    return -1;
+}
+#endif

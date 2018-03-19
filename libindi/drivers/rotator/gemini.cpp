@@ -39,8 +39,6 @@
 #define ROTATOR_TAB "Rotator"
 #define HUB_TAB "Hub"
 
-#define POLLMS 1000
-
 std::unique_ptr<Gemini> geminiFR(new Gemini());
 
 void ISGetProperties(const char *dev)
@@ -90,10 +88,10 @@ Gemini::Gemini() : RotatorInterface(this)
     focuserSimPosition      = 0;
 
     // Can move in Absolute & Relative motions and can AbortFocuser motion.
-    SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 
     // Rotator capabilities
-    SetRotatorCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
 
     isFocuserAbsolute = true;
     isFocuserHoming   = false;
@@ -319,10 +317,10 @@ bool Gemini::updateProperties()
         defineNumber(&LedNP);
 
         if (getFocusConfig() && getRotatorConfig())
-            DEBUG(INDI::Logger::DBG_SESSION, "Gemini paramaters updated, rotating focuser ready for use.");
+            LOG_INFO("Gemini paramaters updated, rotating focuser ready for use.");
         else
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve rotating focuser configuration settings...");
+            LOG_ERROR("Failed to retrieve rotating focuser configuration settings...");
             return false;
         }
     }
@@ -372,11 +370,11 @@ bool Gemini::Handshake()
 {
     if (ack())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Gemini is online. Getting focus parameters...");
+        LOG_INFO("Gemini is online. Getting focus parameters...");
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from Gemini, please ensure Gemini controller is "
+    LOG_INFO("Error retreiving data from Gemini, please ensure Gemini controller is "
                                      "powered and the port is correct.");
     return false;
 }
@@ -564,7 +562,7 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     FocusAbsPosNP.s = IPS_BUSY;
                     IDSetNumber(&FocusAbsPosNP, nullptr);
                     isFocuserHoming = true;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to home position...");
+                    LOG_INFO("Focuser moving to home position...");
                 }
                 else
                     FocuserGotoSP.s = IPS_ALERT;
@@ -574,7 +572,7 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 if (center(DEVICE_FOCUSER))
                 {
                     FocuserGotoSP.s = IPS_BUSY;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to center position...");
+                    LOG_INFO("Focuser moving to center position...");
                     FocusAbsPosNP.s = IPS_BUSY;
                     IDSetNumber(&FocusAbsPosNP, nullptr);
                 }
@@ -607,7 +605,7 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     RotatorAbsPosNP.s = IPS_BUSY;
                     IDSetNumber(&RotatorAbsPosNP, nullptr);
                     isRotatorHoming = true;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Rotator moving to home position...");
+                    LOG_INFO("Rotator moving to home position...");
                 }
                 else
                     RotatorGotoSP.s = IPS_ALERT;
@@ -617,7 +615,7 @@ bool Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 if (center(DEVICE_ROTATOR))
                 {
                     RotatorGotoSP.s = IPS_BUSY;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Rotator moving to center position...");
+                    LOG_INFO("Rotator moving to center position...");
                     RotatorAbsPosNP.s = IPS_BUSY;
                     IDSetNumber(&RotatorAbsPosNP, nullptr);
                 }
@@ -705,7 +703,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
             {
                 if (setTemperatureCompensationCoeff('A' + i, TemperatureCoeffN[i].value) == false)
                 {
-                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to set temperature coefficeints.");
+                    LOG_ERROR("Failed to set temperature coefficeints.");
                     TemperatureCoeffNP.s = IPS_ALERT;
                     IDSetNumber(&TemperatureCoeffNP, nullptr);
                     return false;
@@ -723,7 +721,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
             IUUpdateNumber(&FocuserBacklashNP, values, names, n);
             if (setBacklashCompensationSteps(DEVICE_FOCUSER, FocuserBacklashN[0].value) == false)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to set focuser backlash value.");
+                LOG_ERROR("Failed to set focuser backlash value.");
                 FocuserBacklashNP.s = IPS_ALERT;
                 IDSetNumber(&FocuserBacklashNP, nullptr);
                 return false;
@@ -740,7 +738,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
             IUUpdateNumber(&RotatorBacklashNP, values, names, n);
             if (setBacklashCompensationSteps(DEVICE_ROTATOR, RotatorBacklashN[0].value) == false)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to set rotator backlash value.");
+                LOG_ERROR("Failed to set rotator backlash value.");
                 RotatorBacklashNP.s = IPS_ALERT;
                 IDSetNumber(&RotatorBacklashNP, nullptr);
                 return false;
@@ -759,7 +757,7 @@ bool Gemini::ISNewNumber(const char *dev, const char *name, double values[], cha
                 LedNP.s = IPS_OK;
             else
                 LedNP.s = IPS_ALERT;
-            DEBUGF(INDI::Logger::DBG_SESSION, "Focuser LED level intensity : %f", LedN[0].value);
+            LOGF_INFO("Focuser LED level intensity : %f", LedN[0].value);
             IDSetNumber(&LedNP, nullptr);
             return true;
         }
@@ -818,7 +816,7 @@ bool Gemini::ack()
 
     memset(response, 0, sizeof(response));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -830,7 +828,7 @@ bool Gemini::ack()
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -840,7 +838,7 @@ bool Gemini::ack()
         if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -848,8 +846,8 @@ bool Gemini::ack()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s is detected.", response);
+        LOGF_DEBUG("RES (%s)", response);
+        LOGF_INFO("%s is detected.", response);
 
         // Read 'END'
         tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read);
@@ -878,7 +876,7 @@ bool Gemini::getFocusConfig()
 
     memset(response, 0, sizeof(response));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -892,7 +890,7 @@ bool Gemini::getFocusConfig()
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -902,7 +900,7 @@ bool Gemini::getFocusConfig()
         /*if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }*/
     }
@@ -910,7 +908,7 @@ bool Gemini::getFocusConfig()
     /*if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if ((strcmp(response, "CONFIG1")) && (strcmp(response, "CONFIG2")))
             return false;
@@ -927,11 +925,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char nickname[16];
     int rc = sscanf(response, "%16[^=]=%16[^\n]s", key, nickname);
@@ -956,11 +954,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     uint32_t maxPos = 0;
     rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
@@ -993,11 +991,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     // Get Status Parameters
     memset(response, 0, sizeof(response));
@@ -1011,11 +1009,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int TCompOn;
     rc = sscanf(response, "%16[^=]=%d", key, &TCompOn);
@@ -1039,11 +1037,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int TCoeffA;
     rc = sscanf(response, "%16[^=]=%d", key, &TCoeffA);
@@ -1063,11 +1061,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int TCoeffB;
     rc = sscanf(response, "%16[^=]=%d", key, &TCoeffB);
@@ -1087,11 +1085,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int TCoeffC;
     rc = sscanf(response, "%16[^=]=%d", key, &TCoeffC);
@@ -1111,11 +1109,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int TCoeffD;
     rc = sscanf(response, "%16[^=]=%d", key, &TCoeffD);
@@ -1135,11 +1133,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int TCoeffE;
     rc = sscanf(response, "%16[^=]=%d", key, &TCoeffE);
@@ -1162,11 +1160,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char compensateMode;
     rc = sscanf(response, "%16[^=]= %c", key, &compensateMode);
@@ -1182,7 +1180,7 @@ bool Gemini::getFocusConfig()
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid index %d for compensation mode.", index);
+        LOGF_ERROR("Invalid index %d for compensation mode.", index);
         TemperatureCompensateModeSP.s = IPS_ALERT;
     }
 
@@ -1198,11 +1196,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int BLCCompensate;
     rc = sscanf(response, "%16[^=]=%d", key, &BLCCompensate);
@@ -1225,11 +1223,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int BLCValue;
     rc = sscanf(response, "%16[^=]=%d", key, &BLCValue);
@@ -1250,11 +1248,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int TCOnStart;
     rc = sscanf(response, "%16[^=]=%d", key, &TCOnStart);
@@ -1279,11 +1277,11 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int StartOnHome;
     rc = sscanf(response, "%16[^=]=%d", key, &StartOnHome);
@@ -1307,7 +1305,7 @@ bool Gemini::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
@@ -1316,7 +1314,7 @@ bool Gemini::getFocusConfig()
         response[nbytes_read - 1] = '\0';
 
         // Display the response to be sure to have read the complet TTY Buffer.
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if (strcmp(response, "END"))
             return false;
@@ -1345,7 +1343,7 @@ bool Gemini::getRotatorStatus()
 
     memset(response, 0, sizeof(response));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1359,7 +1357,7 @@ bool Gemini::getRotatorStatus()
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -1369,7 +1367,7 @@ bool Gemini::getRotatorStatus()
         /*if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }*/
     }
@@ -1386,7 +1384,7 @@ bool Gemini::getRotatorStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -1418,7 +1416,7 @@ bool Gemini::getRotatorStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -1436,7 +1434,7 @@ bool Gemini::getRotatorStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -1469,7 +1467,7 @@ bool Gemini::getRotatorStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -1489,7 +1487,7 @@ bool Gemini::getRotatorStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -1514,7 +1512,7 @@ bool Gemini::getRotatorStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -1543,7 +1541,7 @@ bool Gemini::getRotatorStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -1568,7 +1566,7 @@ bool Gemini::getRotatorStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
@@ -1577,11 +1575,11 @@ bool Gemini::getRotatorStatus()
         response[nbytes_read - 1] = '\0';
 
         // Display the response to be sure to have read the complet TTY Buffer.
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if (strcmp(response, "END"))
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Invalid END response.");
+            LOG_WARN("Invalid END response.");
             return false;
         }
     }
@@ -1608,7 +1606,7 @@ bool Gemini::getRotatorConfig()
 
     memset(response, 0, sizeof(response));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1622,7 +1620,7 @@ bool Gemini::getRotatorConfig()
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -1632,7 +1630,7 @@ bool Gemini::getRotatorConfig()
         /*if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }*/
     }
@@ -1640,7 +1638,7 @@ bool Gemini::getRotatorConfig()
     /*if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if ((strcmp(response, "CONFIG1")) && (strcmp(response, "CONFIG2")))
             return false;
@@ -1658,11 +1656,11 @@ bool Gemini::getRotatorConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char nickname[16];
     int rc = sscanf(response, "%16[^=]=%16[^\n]s", key, nickname);
@@ -1687,11 +1685,11 @@ bool Gemini::getRotatorConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     uint32_t maxPos = 0;
     rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
@@ -1718,11 +1716,11 @@ bool Gemini::getRotatorConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     // Get Status Parameters
     memset(response, 0, sizeof(response));
@@ -1739,11 +1737,11 @@ bool Gemini::getRotatorConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int BLCCompensate;
     rc = sscanf(response, "%16[^=]=%d", key, &BLCCompensate);
@@ -1768,11 +1766,11 @@ bool Gemini::getRotatorConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int BLCValue;
     rc = sscanf(response, "%16[^=]=%d", key, &BLCValue);
@@ -1795,11 +1793,11 @@ bool Gemini::getRotatorConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int StartOnHome;
     rc = sscanf(response, "%16[^=]=%d", key, &StartOnHome);
@@ -1824,7 +1822,7 @@ bool Gemini::getRotatorConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -1862,7 +1860,7 @@ bool Gemini::getRotatorConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -1879,7 +1877,7 @@ bool Gemini::getRotatorConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
@@ -1888,7 +1886,7 @@ bool Gemini::getRotatorConfig()
         response[nbytes_read - 1] = '\0';
 
         // Display the response to be sure to have read the complet TTY Buffer.
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if (strcmp(response, "END"))
             return false;
@@ -1917,7 +1915,7 @@ bool Gemini::getFocusStatus()
 
     memset(response, 0, sizeof(response));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1931,7 +1929,7 @@ bool Gemini::getFocusStatus()
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -1941,7 +1939,7 @@ bool Gemini::getFocusStatus()
         /*if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }*/
     }
@@ -1956,7 +1954,7 @@ bool Gemini::getFocusStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -1997,7 +1995,7 @@ bool Gemini::getFocusStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -2025,7 +2023,7 @@ bool Gemini::getFocusStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -2045,7 +2043,7 @@ bool Gemini::getFocusStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -2070,7 +2068,7 @@ bool Gemini::getFocusStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -2102,7 +2100,7 @@ bool Gemini::getFocusStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -2130,7 +2128,7 @@ bool Gemini::getFocusStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -2155,7 +2153,7 @@ bool Gemini::getFocusStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -2180,7 +2178,7 @@ bool Gemini::getFocusStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
@@ -2207,7 +2205,7 @@ bool Gemini::getFocusStatus()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
@@ -2216,11 +2214,11 @@ bool Gemini::getFocusStatus()
         response[nbytes_read - 1] = '\0';
 
         // Display the response to be sure to have read the complet TTY Buffer.
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if (strcmp(response, "END"))
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Invalid END response.");
+            LOG_WARN("Invalid END response.");
             return false;
         }
     }
@@ -2250,7 +2248,7 @@ bool Gemini::setLedLevel(int level)
 
     snprintf(cmd, 16, "<H100SETLED%d>", level);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2264,7 +2262,7 @@ bool Gemini::setLedLevel(int level)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2274,7 +2272,7 @@ bool Gemini::setLedLevel(int level)
         if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -2282,7 +2280,7 @@ bool Gemini::setLedLevel(int level)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -2311,7 +2309,7 @@ bool Gemini::setNickname(DeviceType type, const char *nickname)
 
     snprintf(cmd, 32, "<%c100SETDNN%s>", (type == DEVICE_FOCUSER ? 'F' : 'R'), nickname);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (!isSimulation())
     {
@@ -2320,7 +2318,7 @@ bool Gemini::setNickname(DeviceType type, const char *nickname)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2350,7 +2348,7 @@ bool Gemini::halt(DeviceType type)
     memset(response, 0, sizeof(response));
 
     snprintf(cmd, 32, "<%c100DOHALT>", (type == DEVICE_FOCUSER ? 'F' : 'R'));
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2369,7 +2367,7 @@ bool Gemini::halt(DeviceType type)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2402,7 +2400,7 @@ bool Gemini::home(DeviceType type)
     memset(response, 0, sizeof(response));
 
     snprintf(cmd, 32, "<%c100DOHOME>", (type == DEVICE_FOCUSER ? 'F' : 'R'));
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2424,7 +2422,7 @@ bool Gemini::home(DeviceType type)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2455,7 +2453,7 @@ bool Gemini::homeOnStart(DeviceType type, bool enable)
     memset(response, 0, sizeof(response));
 
     snprintf(cmd, 32, "<%c100SETHOS%d>", (type == DEVICE_FOCUSER ? 'F' : 'R'), enable ? 1 : 0);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation() == false)
     {
@@ -2464,7 +2462,7 @@ bool Gemini::homeOnStart(DeviceType type, bool enable)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2497,7 +2495,7 @@ bool Gemini::center(DeviceType type)
 
     memset(response, 0, sizeof(response));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2520,7 +2518,7 @@ bool Gemini::center(DeviceType type)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2552,7 +2550,7 @@ bool Gemini::setTemperatureCompensation(bool enable)
 
     snprintf(cmd, 16, "<F100SETTCE%d>", enable ? 1 : 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation() == false)
     {
@@ -2561,7 +2559,7 @@ bool Gemini::setTemperatureCompensation(bool enable)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2591,7 +2589,7 @@ bool Gemini::setTemperatureCompensationMode(char mode)
 
     snprintf(cmd, 16, "<F100SETTCM%c>", mode);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation() == false)
     {
@@ -2600,7 +2598,7 @@ bool Gemini::setTemperatureCompensationMode(char mode)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2630,7 +2628,7 @@ bool Gemini::setTemperatureCompensationCoeff(char mode, int16_t coeff)
 
     snprintf(cmd, 32, "<F100SETTCC%c%c%04d>", mode, coeff >= 0 ? '+' : '-', (int)std::abs(coeff));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation() == false)
     {
@@ -2639,7 +2637,7 @@ bool Gemini::setTemperatureCompensationCoeff(char mode, int16_t coeff)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2669,7 +2667,7 @@ bool Gemini::setTemperatureCompensationOnStart(bool enable)
 
     snprintf(cmd, 16, "<F100SETTCS%d>", enable ? 1 : 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -2678,7 +2676,7 @@ bool Gemini::setTemperatureCompensationOnStart(bool enable)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2708,14 +2706,14 @@ bool Gemini::setBacklashCompensation(DeviceType type, bool enable)
 
     snprintf(cmd, 16, "<%c100SETBCE%d>", (type == DEVICE_FOCUSER ? 'F' : 'R'), enable ? 1 : 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation() == false)
     {
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2745,14 +2743,14 @@ bool Gemini::setBacklashCompensationSteps(DeviceType type, uint16_t steps)
 
     snprintf(cmd, 16, "<%c100SETBCS%02d>", (type == DEVICE_FOCUSER ? 'F' : 'R'), steps);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation() == false)
     {
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2782,14 +2780,14 @@ bool Gemini::reverseRotator(bool enable)
 
     snprintf(cmd, 16, "<R100SETREV%d>", enable ? 1 : 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation() == false)
     {
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2817,7 +2815,7 @@ bool Gemini::resetFactory()
 
     memset(response, 0, sizeof(response));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2831,7 +2829,7 @@ bool Gemini::resetFactory()
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -2841,7 +2839,7 @@ bool Gemini::resetFactory()
         if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -2849,7 +2847,7 @@ bool Gemini::resetFactory()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -2887,7 +2885,7 @@ bool Gemini::isResponseOK()
         if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "TTY error: %s", errmsg);
+            LOGF_ERROR("TTY error: %s", errmsg);
             return false;
         }
     }
@@ -2895,7 +2893,7 @@ bool Gemini::isResponseOK()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if (!strcmp(response, "!00"))
             return true;
@@ -2907,11 +2905,11 @@ bool Gemini::isResponseOK()
                 if ((errcode = tty_read_section(PortFD, response, 0xA, GEMINI_TIMEOUT, &nbytes_read)) != TTY_OK)
                 {
                     tty_error_msg(errcode, errmsg, MAXRBUF);
-                    DEBUGF(INDI::Logger::DBG_ERROR, "TTY error: %s", errmsg);
+                    LOGF_ERROR("TTY error: %s", errmsg);
                     return false;
                 }
                 response[nbytes_read - 1] = '\0';
-                DEBUGF(INDI::Logger::DBG_ERROR, "Controller error: %s", response);
+                LOGF_ERROR("Controller error: %s", response);
             }
 
             return false;
@@ -2937,7 +2935,7 @@ IPState Gemini::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     snprintf(cmd, 16, "<F100DOMOVE%c>", (dir == FOCUS_INWARD) ? '0' : '1');
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (!isSimulation())
     {
@@ -2946,7 +2944,7 @@ IPState Gemini::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return IPS_ALERT;
         }
 
@@ -2986,7 +2984,7 @@ IPState Gemini::MoveAbsFocuser(uint32_t targetTicks)
 
     snprintf(cmd, 32, "<F100MOVABS%06d>", targetTicks);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (!isSimulation())
     {
@@ -2995,7 +2993,7 @@ IPState Gemini::MoveAbsFocuser(uint32_t targetTicks)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return IPS_ALERT;
         }
 
@@ -3050,7 +3048,7 @@ void Gemini::TimerHit()
 
     if (statusrc == false)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Unable to read focuser status....");
+        LOG_WARN("Unable to read focuser status....");
         SetTimer(POLLMS);
         return;
     }
@@ -3089,7 +3087,7 @@ void Gemini::TimerHit()
             IDSetSwitch(&FocuserGotoSP, nullptr);
             FocusAbsPosNP.s = IPS_OK;
             IDSetNumber(&FocusRelPosNP, nullptr);
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached home position.");
+            LOG_INFO("Focuser reached home position.");
         }
         else if (FocuserStatusL[STATUS_MOVING].s == IPS_IDLE)
         {
@@ -3103,7 +3101,7 @@ void Gemini::TimerHit()
                 FocuserGotoSP.s = IPS_OK;
                 IDSetSwitch(&FocuserGotoSP, nullptr);
             }
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
+            LOG_INFO("Focuser reached requested position.");
         }
     }
     if (FocuserStatusL[STATUS_HOMING].s == IPS_BUSY && FocuserGotoSP.s != IPS_BUSY)
@@ -3123,7 +3121,7 @@ void Gemini::TimerHit()
 
     if (statusrc == false)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Unable to read rotator status....");
+        LOG_WARN("Unable to read rotator status....");
         SetTimer(POLLMS);
         return;
     }
@@ -3163,7 +3161,7 @@ void Gemini::TimerHit()
             IDSetNumber(&RotatorAbsPosNP, nullptr);
             GotoRotatorNP.s = IPS_OK;
             IDSetNumber(&GotoRotatorNP, nullptr);
-            DEBUG(INDI::Logger::DBG_SESSION, "Rotator reached home position.");
+            LOG_INFO("Rotator reached home position.");
         }
         else if (RotatorStatusL[STATUS_MOVING].s == IPS_IDLE)
         {
@@ -3177,7 +3175,7 @@ void Gemini::TimerHit()
                 HomeRotatorSP.s = IPS_OK;
                 IDSetSwitch(&HomeRotatorSP, nullptr);
             }
-            DEBUG(INDI::Logger::DBG_SESSION, "Rotator reached requested position.");
+            LOG_INFO("Rotator reached requested position.");
         }
     }
     if (RotatorStatusL[STATUS_HOMING].s == IPS_BUSY && HomeRotatorSP.s != IPS_BUSY)
@@ -3203,7 +3201,7 @@ bool Gemini::AbortFocuser()
 
     memset(response, 0, sizeof(response));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -3219,7 +3217,7 @@ bool Gemini::AbortFocuser()
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -3278,7 +3276,7 @@ IPState Gemini::MoveAbsRotatorTicks(uint32_t targetTicks)
 
     snprintf(cmd, 32, "<R100MOVABS%06d>", targetTicks);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (!isSimulation())
     {
@@ -3287,7 +3285,7 @@ IPState Gemini::MoveAbsRotatorTicks(uint32_t targetTicks)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return IPS_ALERT;
         }
 
@@ -3319,7 +3317,7 @@ IPState Gemini::MoveAbsRotatorAngle(double angle)
 
     snprintf(cmd, 32, "<R100MOVEPA%06d>", targetRotatorAngle);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (!isSimulation())
     {
@@ -3328,7 +3326,7 @@ IPState Gemini::MoveAbsRotatorAngle(double angle)
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return IPS_ALERT;
         }
 

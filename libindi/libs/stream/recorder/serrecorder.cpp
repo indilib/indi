@@ -26,11 +26,13 @@
 */
 
 #include "serrecorder.h"
+#include "jpegutils.h"
 
 #include <ctime>
 #include <cerrno>
 #include <cstring>
 #include <sys/time.h>
+
 
 #define ERRMSGSIZ 1024
 
@@ -53,10 +55,13 @@ SER_Recorder::SER_Recorder()
         serh.LittleEndian = SER_BIG_ENDIAN;
     isRecordingActive = false;
     f                 = nullptr;
+
+    jpegBuffer = static_cast<uint8_t*>(malloc(1));
 }
 
 SER_Recorder::~SER_Recorder()
 {
+    free(jpegBuffer);
 }
 
 bool SER_Recorder::is_little_endian()
@@ -114,6 +119,7 @@ void SER_Recorder::write_header(ser_header *s)
 bool SER_Recorder::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)
 {
     serh.PixelDepth  = pixelDepth;
+    m_PixelFormat = pixelFormat;
     number_of_planes = 1;
     switch (pixelFormat)
     {
@@ -140,6 +146,10 @@ bool SER_Recorder::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDe
     case INDI_BGR:
         number_of_planes = 3;
         serh.ColorID     = SER_BGR;
+        break;
+    case INDI_JPG:
+        number_of_planes = 3;
+        serh.ColorID = SER_RGB;
         break;
     default:
         return false;
@@ -246,7 +256,21 @@ bool SER_Recorder::writeFrame(const uint8_t *frame, uint32_t nbytes)
 
     frameStamps.push_back(getUTCTimeStamp());
 
-    fwrite(frame, nbytes, 1, f);
+    // Not technically pixel format, but let's use this for now.
+    if (m_PixelFormat == INDI_JPG)
+    {
+        int w=0,h=0,naxis=1;
+        size_t memsize=0;
+        if (decode_jpeg_rgb(const_cast<uint8_t *>(frame), nbytes, &jpegBuffer, &memsize, &naxis, &w, &h) < 0)
+            return false;
+
+        serh.ImageWidth = w;
+        serh.ImageHeight = h;
+        serh.ColorID = (naxis == 3) ? SER_RGB : SER_MONO;
+        fwrite(jpegBuffer, memsize, 1, f);
+    }
+    else
+        fwrite(frame, nbytes, 1, f);
     serh.FrameCount += 1;
     return true;
 }

@@ -22,10 +22,7 @@
  file called LICENSE.
  */
 
-/*! 
- * @file qhyccd.h
- * @brief QHYCCD SDK interface for programmers
- */
+#include "qhycam.h"
 #include "qhyccderr.h"
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
@@ -35,14 +32,34 @@
 #include "cyapi.h"
 #endif
 
+#ifdef LINUX
+#include <unistd.h>
+#include <libusb.h>
+#endif
+
 #ifndef __QHYCCD_H__
 #define __QHYCCD_H__
 
-#if defined (WIN32)
+#ifdef WIN32
 typedef CCyUSBDevice qhyccd_handle;
-#elif defined (LINUX)
+//EXPORTC void STDCALL LibUsbInit(libusb_context **pContext);
+//EXPORTC void STDCALL LibUsbExit(libusb_context *pContext);
+#else
 typedef struct libusb_device_handle qhyccd_handle;
+uint32_t DeviceIsQHYCCD(uint32_t index, qhyccd_device *pDevice);
 #endif
+
+//EXPORTC void STDCALL DevMutexInit();
+//EXPORTC void STDCALL DevMutexDestroy();
+//EXPORTC void STDCALL DevMutexLock();
+//EXPORTC void STDCALL DevMutexUnlock();
+//EXPORTC int STDCALL DevMutexTrylock();
+//EXPORTC void STDCALL msSleep(uint32_t ms);
+
+uint32_t DeviceIsQHYCCD(uint32_t index, uint32_t vid, uint32_t pid);
+uint32_t QHYCCDSeriesMatch(uint32_t index, qhyccd_handle *pHandle);
+uint32_t GetIdFromCam(qhyccd_handle *pHandle, char *id);
+EXPORTC uint32_t STDCALL InitQHYCCDClass(uint32_t camtype, uint32_t index);
 
 /** \fn uint32_t InitQHYCCDResource()
       \brief initialize QHYCCD SDK resource
@@ -79,7 +96,7 @@ EXPORTC uint32_t STDCALL ScanQHYCCD(void);
 	  on success,return QHYCCD_SUCCESS \n
 	  another QHYCCD_ERROR code on other failures
   */
-EXPORTC uint32_t STDCALL GetQHYCCDId(uint32_t index,char *id);
+EXPORTC uint32_t STDCALL GetQHYCCDId(uint32_t index, char *id);
 
 /** \fn uint32_t GetQHYCCDModel(char *id, char *model)
       \brief get camera model name by id
@@ -409,7 +426,6 @@ EXPORTC void  STDCALL HistInfo192x130(qhyccd_handle *h,uint32_t x,uint32_t y,uin
 EXPORTC uint32_t STDCALL OSXInitQHYCCDFirmware(char *path);
 
 
-
 /** @fn uint32_t GetQHYCCDChipInfo(qhyccd_handle *h,double *chipw,double *chiph,uint32_t *imagew,uint32_t *imageh,double *pixelw,double *pixelh,uint32_t *bpp)
       @brief get the camera's ccd/cmos chip info
       @param h camera control handle
@@ -706,4 +722,8 @@ EXPORTC uint32_t STDCALL QHYCCDLibusbBulkTransfer(qhyccd_handle *pDevHandle, uin
 
 EXPORTC uint32_t STDCALL GetQHYCCDSDKVersion(uint32_t *year,uint32_t *month,uint32_t *day,uint32_t *subday);
 
-#endif
+EXPORTC void STDCALL print_cydev(const char *pTitle);
+
+EXPORTC const char* STDCALL GetTimeStamp();
+
+#endif // __QHYCCD_H__
