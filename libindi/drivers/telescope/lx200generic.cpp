@@ -257,7 +257,7 @@ LX200Generic::LX200Generic()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES |
-                       LX200_HAS_PULSE_GUIDING);
+    LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
@@ -316,7 +316,12 @@ bool LX200Generic::initProperties()
     AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
-    IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
+    if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
+    {
+	    IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.5, 0.001, 60.5);
+    } else {
+	IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
+    }
     IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
@@ -908,14 +913,22 @@ bool LX200Generic::ISNewNumber(const char *dev, const char *name, double values[
         if (!strcmp(name, TrackingFreqNP.name))
         {
             DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set track freq of: %f\n", values[0]);
-
-            if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
+	    if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
+	    {
+		    if (!isSimulation() && setPreciseTrackFreq(PortFD, values[0]) < 0)
+		    {
+			TrackingFreqNP.s = IPS_ALERT;
+			IDSetNumber(&TrackingFreqNP, "Error setting 	tracking frequency");
+			return false;
+		    }
+	    } else
+	    { if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
             {
                 TrackingFreqNP.s = IPS_ALERT;
                 IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
                 return false;
             }
-
+	    }
             TrackingFreqNP.s           = IPS_OK;
             TrackingFreqNP.np[0].value = values[0];
             IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %04.1f", values[0]);
@@ -1115,6 +1128,7 @@ bool LX200Generic::SetTrackMode(uint8_t mode)
     bool rc = (selectTrackingMode(PortFD, mode) == 0);
 
     // Only update tracking frequency if it is defined and not deleted by child classes
+    // Note, that LX200_HAS_PRECISE_TRACKING_FREQ can use the same function.
     if (rc &&  (genericCapability & LX200_HAS_TRACKING_FREQ))
     {
         getTrackFreq(PortFD, &TrackFreqN[0].value);
