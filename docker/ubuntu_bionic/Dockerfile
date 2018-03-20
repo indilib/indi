@@ -9,7 +9,10 @@ RUN apt-get -qqy install \
         libnova-dev libopenal-dev libraw-dev libusb-1.0-0-dev librtlsdr-dev \
         libfftw3-dev zlib1g-dev libconfuse-dev python3-all-dev doxygen \
         libboost-test-dev python-all-dev swig g++ libftdi1-dev \
-        googletest clang5 lsb-release dirmngr vim
+        googletest clang-5.0 lsb-release dirmngr vim
+
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-5.0 100
+RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-5.0 100
 
 # Build and install gtest and gmock libraries
 WORKDIR /usr/src/googletest
