@@ -918,7 +918,7 @@ bool LX200Generic::ISNewNumber(const char *dev, const char *name, double values[
 		    if (!isSimulation() && setPreciseTrackFreq(PortFD, values[0]) < 0)
 		    {
 			TrackingFreqNP.s = IPS_ALERT;
-			IDSetNumber(&TrackingFreqNP, "Error setting 	tracking frequency");
+			IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
 			return false;
 		    }
 	    } else
@@ -1128,7 +1128,7 @@ bool LX200Generic::SetTrackMode(uint8_t mode)
     bool rc = (selectTrackingMode(PortFD, mode) == 0);
 
     // Only update tracking frequency if it is defined and not deleted by child classes
-    // Note, that LX200_HAS_PRECISE_TRACKING_FREQ can use the same function.
+    // Note, that LX200_HAS_PRECISE_TRACKING_FREQ can use the same get function.
     if (rc &&  (genericCapability & LX200_HAS_TRACKING_FREQ))
     {
         getTrackFreq(PortFD, &TrackFreqN[0].value);
