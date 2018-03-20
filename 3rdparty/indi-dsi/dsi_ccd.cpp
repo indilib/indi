@@ -99,33 +99,33 @@ bool DSICCD::Connect()
             * When the Cypress FX2 firmware hasn't been loaded, the PID will
             * be 0x0100. Once the fw is loaded, the PID becomes 0x0101.
             */
-        DEBUG(INDI::Logger::DBG_SESSION, "Unable to find DSI. Has the firmware been loaded?");
+        LOG_INFO("Unable to find DSI. Has the firmware been loaded?");
         return false;
     }
     ccd = dsi->getCcdChipName();
     if (ccd == "ICX254AL")
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Found a DSI Pro!");
+        LOG_INFO("Found a DSI Pro!");
     }
     else if (ccd == "ICX429ALL")
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Found a DSI Pro II!");
+        LOG_INFO("Found a DSI Pro II!");
     }
     else if (ccd == "ICX429AKL")
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Found a DSI Color II!");
+        LOG_INFO("Found a DSI Color II!");
     }
     else if (ccd == "ICX404AK")
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Found a DSI Color!");
+        LOG_INFO("Found a DSI Color!");
     }
     else if (ccd == "ICX285AL")
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Found a DSI Pro III!");
+        LOG_INFO("Found a DSI Pro III!");
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Found a DSI with an unknown CCD: %s", ccd.c_str());
+        LOGF_INFO("Found a DSI with an unknown CCD: %s", ccd.c_str());
     }
 
     cap |= CCD_CAN_ABORT;
@@ -158,7 +158,7 @@ bool DSICCD::Disconnect()
         dsi = NULL;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Successfully disconnected!");
+    LOG_INFO("Successfully disconnected!");
     return true;
 }
 
@@ -290,7 +290,7 @@ bool DSICCD::UpdateCCDBin(int hor, int ver)
     else
     {
         IDMessage(getDeviceName(), "Only 1x1 and 2x2 binning is supported by DSI III.");
-        DEBUG(INDI::Logger::DBG_SESSION, "Only 1x1 and 2x2 binning is supported by DSI III.");
+        LOG_INFO("Only 1x1 and 2x2 binning is supported by DSI III.");
         return false;
     }
 }
@@ -315,7 +315,7 @@ bool DSICCD::StartExposure(float duration)
     gettimeofday(&ExpStart, NULL);
 
     InExposure = true;
-    DEBUG(INDI::Logger::DBG_SESSION, "Exposure has begun.");
+    LOG_INFO("Exposure has begun.");
 
     /* Adjust gain and offset (gs)
        The gain is normalized in the same way as in Meade envisage (0..100)
@@ -445,7 +445,7 @@ void DSICCD::TimerHit()
         if (!dsi->ExposureInProgress())
         {
             /* We're done exposing */
-            DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+            LOG_INFO("Exposure done, downloading image...");
 
             // Set exposure left to zero
             PrimaryCCD.setExposureLeft(0);
@@ -514,7 +514,7 @@ void DSICCD::grabImage()
     }
     catch (...)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Image download failed!");
+        LOG_INFO("Image download failed!");
         return;
     }
 
@@ -531,7 +531,7 @@ void DSICCD::grabImage()
     // Let INDI::CCD know we're done filling the image buffer
     ExposureComplete(&PrimaryCCD);
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Exposure complete.");
+    LOG_INFO("Exposure complete.");
 }
 
 /******************************************************************************/

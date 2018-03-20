@@ -434,18 +434,18 @@ bool CCD::initProperties()
     /**********************************************/
 
     // Primary CCD Region-Of-Interest (ROI)
-    IUFillNumber(&PrimaryCCD.ImageFrameN[0], "X", "Left ", "%4.0f", 0, 0.0, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImageFrameN[1], "Y", "Top", "%4.0f", 0, 0, 0, 0);
-    IUFillNumber(&PrimaryCCD.ImageFrameN[2], "WIDTH", "Width", "%4.0f", 0, 0.0, 0, 0.0);
-    IUFillNumber(&PrimaryCCD.ImageFrameN[3], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0.0);
+    IUFillNumber(&PrimaryCCD.ImageFrameN[CCDChip::FRAME_X], "X", "Left ", "%4.0f", 0, 0.0, 0, 0);
+    IUFillNumber(&PrimaryCCD.ImageFrameN[CCDChip::FRAME_Y], "Y", "Top", "%4.0f", 0, 0, 0, 0);
+    IUFillNumber(&PrimaryCCD.ImageFrameN[CCDChip::FRAME_W], "WIDTH", "Width", "%4.0f", 0, 0.0, 0, 0.0);
+    IUFillNumber(&PrimaryCCD.ImageFrameN[CCDChip::FRAME_H], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0.0);
     IUFillNumberVector(&PrimaryCCD.ImageFrameNP, PrimaryCCD.ImageFrameN, 4, getDeviceName(), "CCD_FRAME", "Frame",
                        IMAGE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Primary CCD Frame Type
-    IUFillSwitch(&PrimaryCCD.FrameTypeS[0], "FRAME_LIGHT", "Light", ISS_ON);
-    IUFillSwitch(&PrimaryCCD.FrameTypeS[1], "FRAME_BIAS", "Bias", ISS_OFF);
-    IUFillSwitch(&PrimaryCCD.FrameTypeS[2], "FRAME_DARK", "Dark", ISS_OFF);
-    IUFillSwitch(&PrimaryCCD.FrameTypeS[3], "FRAME_FLAT", "Flat", ISS_OFF);
+    IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::LIGHT_FRAME], "FRAME_LIGHT", "Light", ISS_ON);
+    IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::BIAS_FRAME], "FRAME_BIAS", "Bias", ISS_OFF);
+    IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::DARK_FRAME], "FRAME_DARK", "Dark", ISS_OFF);
+    IUFillSwitch(&PrimaryCCD.FrameTypeS[CCDChip::FLAT_FRAME], "FRAME_FLAT", "Flat", ISS_OFF);
     IUFillSwitchVector(&PrimaryCCD.FrameTypeSP, PrimaryCCD.FrameTypeS, 4, getDeviceName(), "CCD_FRAME_TYPE",
                        "Frame Type", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -528,10 +528,10 @@ bool CCD::initProperties()
     /***************** Guide Chip *****************/
     /**********************************************/
 
-    IUFillNumber(&GuideCCD.ImageFrameN[0], "X", "Left ", "%4.0f", 0, 0, 0, 0);
-    IUFillNumber(&GuideCCD.ImageFrameN[1], "Y", "Top", "%4.0f", 0, 0, 0, 0);
-    IUFillNumber(&GuideCCD.ImageFrameN[2], "WIDTH", "Width", "%4.0f", 0, 0, 0, 0);
-    IUFillNumber(&GuideCCD.ImageFrameN[3], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0);
+    IUFillNumber(&GuideCCD.ImageFrameN[CCDChip::FRAME_X], "X", "Left ", "%4.0f", 0, 0, 0, 0);
+    IUFillNumber(&GuideCCD.ImageFrameN[CCDChip::FRAME_Y], "Y", "Top", "%4.0f", 0, 0, 0, 0);
+    IUFillNumber(&GuideCCD.ImageFrameN[CCDChip::FRAME_W], "WIDTH", "Width", "%4.0f", 0, 0, 0, 0);
+    IUFillNumber(&GuideCCD.ImageFrameN[CCDChip::FRAME_H], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0);
     IUFillNumberVector(&GuideCCD.ImageFrameNP, GuideCCD.ImageFrameN, 4, getDeviceName(), "GUIDER_FRAME", "Frame",
                        GUIDE_HEAD_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -1245,9 +1245,30 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
 
         if (!strcmp(name, "CCD_FRAME"))
         {
-            DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is (%3.0f,%3.0f) (%3.0f x %3.0f)", values[0], values[1],  values[2], values[3]);
+            int x=-1,y=-1,w=-1,h=-1;
+            for (int i=0; i < n; i++)
+            {
+                if (!strcmp(names[i], "X"))
+                    x = values[i];
+                else if (!strcmp(names[i], "Y"))
+                    y = values[i];
+                else if (!strcmp(names[i], "WIDTH"))
+                    w = values[i];
+                else if (!strcmp(names[i], "HEIGHT"))
+                    h = values[i];
+            }
 
-            if (UpdateCCDFrame(values[0], values[1],  values[2], values[3]))
+            DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is (%d,%d) (%d x %d)", x, y, w, h);
+
+            if (x < 0 || y < 0 || w < 0 || h < 0)
+            {
+                DEBUGF(Logger::DBG_ERROR, "Invalid frame requested (%d,%d) (%d x %d)", x, y, w, h);
+                PrimaryCCD.ImageFrameNP.s = IPS_ALERT;
+                IDSetNumber(&PrimaryCCD.ImageFrameNP, nullptr);
+                return true;
+            }
+
+            if (UpdateCCDFrame(x, y, w, h))
             {
                     PrimaryCCD.ImageFrameNP.s = IPS_OK;
                     IUUpdateNumber(&PrimaryCCD.ImageFrameNP, values, names, n);
@@ -2029,7 +2050,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
                 auto end = std::chrono::system_clock::now();                
 
                 uploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - exposureLoopStartup)).count() / 1000.0 - duration;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Image download and upload/save took %.3f seconds.", uploadTime);
+                LOGF_DEBUG("Image download and upload/save took %.3f seconds.", uploadTime);
 
                 exposureLoopStartup = end;
             }
@@ -2048,7 +2069,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
+                LOGF_ERROR("Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
                 ExposureLoopCountN[0].value=1;

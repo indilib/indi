@@ -105,7 +105,7 @@ bool WatchDog::Connect()
         watchDogTimer = SetTimer(HeartBeatN[0].value * 60 * 1000);
     }
     else
-        DEBUG(INDI::Logger::DBG_SESSION, "Watchdog is disabled.");
+        LOG_INFO("Watchdog is disabled.");
 
     return true;
 }
@@ -115,7 +115,7 @@ bool WatchDog::Disconnect()
     if (watchDogTimer > 0)
     {
         RemoveTimer(watchDogTimer);
-        DEBUG(INDI::Logger::DBG_SESSION, "Watchdog is disabled.");
+        LOG_INFO("Watchdog is disabled.");
     }
 
     shutdownStage = WATCHDOG_IDLE;
@@ -190,7 +190,7 @@ bool WatchDog::ISNewText(const char *dev, const char *name, char *texts[], char 
             {
                 ActiveDeviceTP.s = IPS_ALERT;
                 IDSetText(&ActiveDeviceTP, nullptr);
-                DEBUG(INDI::Logger::DBG_ERROR, "Cannot change devices names while shutdown is in progress...");
+                LOG_ERROR("Cannot change devices names while shutdown is in progress...");
                 return true;
             }
 
@@ -220,7 +220,7 @@ bool WatchDog::ISNewNumber(const char *dev, const char *name, double values[], c
             {
                 HeartBeatNP.s = IPS_ALERT;
                 IDSetNumber(&HeartBeatNP, nullptr);
-                DEBUG(INDI::Logger::DBG_ERROR, "Cannot change heart beat while shutdown is in progress...");
+                LOG_ERROR("Cannot change heart beat while shutdown is in progress...");
                 return true;
             }
 
@@ -228,7 +228,7 @@ bool WatchDog::ISNewNumber(const char *dev, const char *name, double values[], c
             HeartBeatNP.s = IPS_OK;
 
             if (HeartBeatN[0].value == 0)
-                DEBUG(INDI::Logger::DBG_SESSION, "Watchdog is disabled.");
+                LOG_INFO("Watchdog is disabled.");
             else
             {
                 if (isConnected())
@@ -239,13 +239,13 @@ bool WatchDog::ISNewNumber(const char *dev, const char *name, double values[], c
                                "the client.",
                                HeartBeatN[0].value);
 
-                    DEBUG(INDI::Logger::DBG_DEBUG, "Received heart beat from client.");
+                    LOG_DEBUG("Received heart beat from client.");
 
                     RemoveTimer(watchDogTimer);
                     watchDogTimer = SetTimer(HeartBeatN[0].value * 60 * 1000);
                 }
                 else
-                    DEBUG(INDI::Logger::DBG_SESSION, "Watchdog is armed. Please connect to enable it.");
+                    LOG_INFO("Watchdog is armed. Please connect to enable it.");
             }
 
             IDSetNumber(&HeartBeatNP, nullptr);
@@ -268,7 +268,7 @@ bool WatchDog::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON &&
                 (SettingsT[EXECUTE_SCRIPT].text == nullptr || SettingsT[EXECUTE_SCRIPT].text[0] == '\0'))
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error: shutdown script file is not set.");
+                LOG_ERROR("Error: shutdown script file is not set.");
                 ShutdownProcedureSP.s                = IPS_ALERT;
                 ShutdownProcedureS[EXECUTE_SCRIPT].s = ISS_OFF;
             }
@@ -311,7 +311,7 @@ void WatchDog::TimerHit()
             ShutdownProcedureSP.s = IPS_BUSY;
             IDSetSwitch(&ShutdownProcedureSP, nullptr);
 
-            DEBUG(INDI::Logger::DBG_WARNING, "Warning! Heartbeat threshold timed out, executing shutdown procedure...");
+            LOG_WARN("Warning! Heartbeat threshold timed out, executing shutdown procedure...");
 
             // No need to start client if only we need to execute the script
             if (ShutdownProcedureS[PARK_MOUNT].s == ISS_OFF && ShutdownProcedureS[PARK_DOME].s == ISS_OFF &&
@@ -331,7 +331,7 @@ void WatchDog::TimerHit()
             // Set indiserver host and port
             watchdogClient->setServer(SettingsT[0].text, atoi(SettingsT[1].text));
 
-            DEBUG(INDI::Logger::DBG_DEBUG, "Connecting to INDI server...");
+            LOG_DEBUG("Connecting to INDI server...");
 
             watchdogClient->connectServer();
 
@@ -343,7 +343,7 @@ void WatchDog::TimerHit()
             // Check if client is ready
             if (watchdogClient->isConnected())
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Connected to INDI server %s @ %s", SettingsT[0].text,
+                LOGF_DEBUG("Connected to INDI server %s @ %s", SettingsT[0].text,
                        SettingsT[1].text);
 
                 if (ShutdownProcedureS[PARK_MOUNT].s == ISS_ON)
@@ -354,7 +354,7 @@ void WatchDog::TimerHit()
                     executeScript();
             }
             else
-                DEBUG(INDI::Logger::DBG_DEBUG, "Waiting for INDI server connection...");
+                LOG_DEBUG("Waiting for INDI server connection...");
             break;
 
         case WATCHDOG_MOUNT_PARKED:
@@ -364,7 +364,7 @@ void WatchDog::TimerHit()
 
             if (mountState == IPS_OK || mountState == IPS_IDLE)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Mount parked.");
+                LOG_INFO("Mount parked.");
 
                 if (ShutdownProcedureS[PARK_DOME].s == ISS_ON)
                     parkDome();
@@ -383,7 +383,7 @@ void WatchDog::TimerHit()
 
             if (domeState == IPS_OK || domeState == IPS_IDLE)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Dome parked.");
+                LOG_INFO("Dome parked.");
 
                 if (ShutdownProcedureS[EXECUTE_SCRIPT].s == ISS_ON)
                     executeScript();
@@ -394,7 +394,7 @@ void WatchDog::TimerHit()
         break;
 
         case WATCHDOG_COMPLETE:
-            DEBUG(INDI::Logger::DBG_SESSION, "Shutdown procedure complete.");
+            LOG_INFO("Shutdown procedure complete.");
             ShutdownProcedureSP.s = IPS_OK;
             IDSetSwitch(&ShutdownProcedureSP, nullptr);
             watchdogClient->disconnectServer();
@@ -414,12 +414,12 @@ void WatchDog::parkDome()
 {
     if (watchdogClient->parkDome() == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error: Unable to park dome! Shutdown procedure terminated.");
+        LOG_ERROR("Error: Unable to park dome! Shutdown procedure terminated.");
         shutdownStage = WATCHDOG_ERROR;
         return;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking dome...");
+    LOG_INFO("Parking dome...");
     shutdownStage = WATCHDOG_DOME_PARKED;
 }
 
@@ -427,12 +427,12 @@ void WatchDog::parkMount()
 {
     if (watchdogClient->parkMount() == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error: Unable to park mount! Shutdown procedure terminated.");
+        LOG_ERROR("Error: Unable to park mount! Shutdown procedure terminated.");
         shutdownStage = WATCHDOG_ERROR;
         return;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking mount...");
+    LOG_INFO("Parking mount...");
     shutdownStage = WATCHDOG_MOUNT_PARKED;
 }
 
@@ -450,19 +450,19 @@ void WatchDog::executeScript()
     else
     {
         int statval;
-        DEBUGF(INDI::Logger::DBG_SESSION, "Executing script %s...", SettingsT[EXECUTE_SCRIPT].text);
-        DEBUGF(INDI::Logger::DBG_SESSION, "Waiting for script with PID %d to complete...", getpid());
+        LOGF_INFO("Executing script %s...", SettingsT[EXECUTE_SCRIPT].text);
+        LOGF_INFO("Waiting for script with PID %d to complete...", getpid());
         wait(&statval);
         if (WIFEXITED(statval))
         {
             int exit_code = WEXITSTATUS(statval);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Script complete with exit code %d", exit_code);
+            LOGF_INFO("Script complete with exit code %d", exit_code);
 
             if (exit_code == 0)
                 shutdownStage = WATCHDOG_COMPLETE;
             else
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Error: script %s failed. Shutdown procedure terminated.",
+                LOGF_ERROR("Error: script %s failed. Shutdown procedure terminated.",
                        SettingsT[EXECUTE_SCRIPT].text);
                 shutdownStage = WATCHDOG_ERROR;
                 return;
@@ -470,7 +470,7 @@ void WatchDog::executeScript()
         }
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR,
+            LOGF_ERROR(
                    "Error: script %s did not terminate with exit. Shutdown procedure terminated.",
                    SettingsT[EXECUTE_SCRIPT].text);
             shutdownStage = WATCHDOG_ERROR;

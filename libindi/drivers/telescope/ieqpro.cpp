@@ -214,7 +214,7 @@ bool IEQPro::updateProperties()
 
 void IEQPro::getStartupData()
 {
-    DEBUG(INDI::Logger::DBG_DEBUG, "Getting firmware data...");
+    LOG_DEBUG("Getting firmware data...");
     if (get_ieqpro_firmware(PortFD, &firmwareInfo))
     {
         IUSaveText(&FirmwareT[0], firmwareInfo.Model.c_str());
@@ -227,7 +227,7 @@ void IEQPro::getStartupData()
         IDSetText(&FirmwareTP, nullptr);
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Getting guiding rate...");
+    LOG_DEBUG("Getting guiding rate...");
     double guideRate = 0;
     if (get_ieqpro_guide_rate(PortFD, &guideRate))
     {
@@ -248,7 +248,7 @@ void IEQPro::getStartupData()
         IUSaveText(IUFindText(&TimeTP, "UTC"), isoDateTime);
         IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
 
-        DEBUGF(INDI::Logger::DBG_SESSION, "Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
+        LOGF_INFO("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
         IDSetText(&TimeTP, nullptr);
     }
@@ -342,7 +342,7 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 {
                     HomeSP.s = IPS_IDLE;
                     IDSetSwitch(&HomeSP, nullptr);
-                    DEBUG(INDI::Logger::DBG_WARNING, "Home search is not supported in this model.");
+                    LOG_WARN("Home search is not supported in this model.");
                     return true;
                 }
 
@@ -355,7 +355,7 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
                 HomeSP.s = IPS_OK;
                 IDSetSwitch(&HomeSP, nullptr);
-                DEBUG(INDI::Logger::DBG_SESSION, "Searching for home position...");
+                LOG_INFO("Searching for home position...");
                 return true;
 
                 break;
@@ -370,7 +370,7 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
                 HomeSP.s = IPS_OK;
                 IDSetSwitch(&HomeSP, nullptr);
-                DEBUG(INDI::Logger::DBG_SESSION, "Home position set to current coordinates.");
+                LOG_INFO("Home position set to current coordinates.");
                 return true;
 
                 break;
@@ -385,7 +385,7 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
                 HomeSP.s = IPS_OK;
                 IDSetSwitch(&HomeSP, nullptr);
-                DEBUG(INDI::Logger::DBG_SESSION, "Slewing to home position...");
+                LOG_INFO("Slewing to home position...");
                 return true;
 
                 break;
@@ -477,9 +477,9 @@ bool IEQPro::ReadScopeStatus()
                 TrackModeSP.s = IPS_BUSY;
                 TrackState    = SCOPE_TRACKING;
                 if (scopeInfo.systemStatus == ST_SLEWING)
-                    DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
+                    LOG_INFO("Slew complete, tracking...");
                 else if (scopeInfo.systemStatus == ST_MERIDIAN_FLIPPING)
-                    DEBUG(INDI::Logger::DBG_SESSION, "Meridian flip complete, tracking...");
+                    LOG_INFO("Meridian flip complete, tracking...");
             }
             break;
         }
@@ -510,19 +510,19 @@ bool IEQPro::Goto(double r, double d)
 
     if (set_ieqpro_ra(PortFD, r) == false || set_ieqpro_dec(PortFD, d) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
+        LOG_ERROR("Error setting RA/DEC.");
         return false;
     }
 
     if (slew_ieqpro(PortFD) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew.");
+        LOG_ERROR("Failed to slew.");
         return false;
     }
 
     TrackState = SCOPE_SLEWING;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -530,13 +530,13 @@ bool IEQPro::Sync(double ra, double dec)
 {
     if (set_ieqpro_ra(PortFD, ra) == false || set_ieqpro_dec(PortFD, dec) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
+        LOG_ERROR("Error setting RA/DEC.");
         return false;
     }
 
     if (sync_ieqpro(PortFD) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to sync.");
+        LOG_ERROR("Failed to sync.");
     }
 
     EqNP.s     = IPS_OK;
@@ -561,13 +561,13 @@ bool IEQPro::Park()
 
     if (set_ieqpro_ra(PortFD, targetRA) == false || set_ieqpro_dec(PortFD, targetDEC) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
+        LOG_ERROR("Error setting RA/DEC.");
         return false;
     }
 
     if (slew_ieqpro(PortFD) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew tp parking position.");
+        LOG_ERROR("Failed to slew tp parking position.");
         return false;
     }
 
@@ -576,7 +576,7 @@ bool IEQPro::Park()
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
     TrackState = SCOPE_PARKING;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Telescope parking in progress to RA: %s DEC: %s", RAStr, DecStr);
 
     return true;
 }
@@ -620,7 +620,7 @@ bool IEQPro::updateTime(ln_date *utc, double utc_offset)
     // Set Local Time
     if (set_ieqpro_local_time(PortFD, ltm.hours, ltm.minutes, ltm.seconds) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+        LOG_ERROR("Error setting local time.");
         return false;
     }
 
@@ -630,18 +630,18 @@ bool IEQPro::updateTime(ln_date *utc, double utc_offset)
     // Set Local date
     if (set_ieqpro_local_date(PortFD, ltm.years, ltm.months, ltm.days) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+        LOG_ERROR("Error setting local date.");
         return false;
     }
 
     // UTC Offset
     if (set_ieqpro_utc_offset(PortFD, utc_offset) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+        LOG_ERROR("Error setting UTC Offset.");
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Time and date updated.");
+    LOG_INFO("Time and date updated.");
 
     return true;
 }
@@ -655,13 +655,13 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
 
     if (set_ieqpro_longitude(PortFD, longitude) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to set longitude.");
+        LOG_ERROR("Failed to set longitude.");
         return false;
     }
 
     if (set_ieqpro_latitude(PortFD, latitude) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to set longitude.");
+        LOG_ERROR("Failed to set longitude.");
         return false;
     }
 
@@ -669,7 +669,7 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
+    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -688,7 +688,7 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        LOG_ERROR("Please unpark the mount before issuing any motion commands.");
         return false;
     }
 
@@ -697,21 +697,21 @@ bool IEQPro::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     case MOTION_START:
         if (start_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+            LOG_ERROR("Error setting N/S motion direction.");
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
+            LOGF_INFO("Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
         break;
 
     case MOTION_STOP:
         if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_NORTH ? IEQ_N : IEQ_S)) == false)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+            LOG_ERROR("Error stopping N/S motion.");
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
+            LOGF_INFO("%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
         break;
     }
 
@@ -722,7 +722,7 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        LOG_ERROR("Please unpark the mount before issuing any motion commands.");
         return false;
     }
 
@@ -731,21 +731,21 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     case MOTION_START:
         if (start_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+            LOG_ERROR("Error setting N/S motion direction.");
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
+            LOGF_INFO("Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
         break;
 
     case MOTION_STOP:
         if (stop_ieqpro_motion(PortFD, (dir == DIRECTION_WEST ? IEQ_W : IEQ_E)) == false)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+            LOG_ERROR("Error stopping W/E motion.");
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
+            LOGF_INFO("%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
         break;
     }
 
@@ -916,7 +916,7 @@ bool IEQPro::SetTrackRate(double raRate, double deRate)
     {
         // Only send warning once per session
         deRateWarning = false;
-        DEBUG(INDI::Logger::DBG_WARNING, "Custom Declination tracking rate is not implemented yet.");
+        LOG_WARN("Custom Declination tracking rate is not implemented yet.");
     }
 
     if (set_ieqpro_custom_ra_track_rate(PortFD, ieqRARate))

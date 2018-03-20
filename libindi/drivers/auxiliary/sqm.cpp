@@ -149,13 +149,13 @@ bool SQM::getReadings()
     const char *cmd = "rx";
     char buffer[57]={0};
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
+    LOGF_DEBUG("CMD: %s", cmd);
 
     ssize_t written = write(PortFD, cmd, 2);
 
     if (written < 2)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device readings: %s", strerror(errno));
+        LOGF_ERROR("Error getting device readings: %s", strerror(errno));
         return false;
     }
 
@@ -166,7 +166,7 @@ bool SQM::getReadings()
         ssize_t response = read(PortFD, buffer + received, 57 - received);
         if (response < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device readings: %s", strerror(errno));
+            LOGF_ERROR("Error getting device readings: %s", strerror(errno));
             return false;
         }
 
@@ -175,11 +175,11 @@ bool SQM::getReadings()
 
     if (received < 57)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error getting device readings");
+        LOG_ERROR("Error getting device readings");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", buffer);
+    LOGF_DEBUG("RES: %s", buffer);
 
     float mpsas, period_seconds, temperature;
     int frequency, period_counts;
@@ -188,7 +188,7 @@ bool SQM::getReadings()
 
     if (rc < 5)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to parse input %s", buffer);
+        LOGF_ERROR("Failed to parse input %s", buffer);
         return false;
     }
 
@@ -216,13 +216,13 @@ bool SQM::getDeviceInfo()
     } else if (getActiveConnection() == tcpConnection) {
         PortFD = tcpConnection->getPortFD();
     }
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd);
+    LOGF_DEBUG("CMD: %s", cmd);
 
     ssize_t written = write(PortFD, cmd, 2);
 
     if (written < 2)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info while writing to device: %s", strerror(errno));
+        LOGF_ERROR("Error getting device info while writing to device: %s", strerror(errno));
         return false;
     }
 
@@ -233,7 +233,7 @@ bool SQM::getDeviceInfo()
         ssize_t response = read(PortFD, buffer + received, 39 - received);
         if (response < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device info while reading response: %s", strerror(errno));
+            LOGF_ERROR("Error getting device info while reading response: %s", strerror(errno));
             return false;
         }
 
@@ -242,18 +242,18 @@ bool SQM::getDeviceInfo()
 
     if (received < 39)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error getting device info");
+        LOG_ERROR("Error getting device info");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", buffer);
+    LOGF_DEBUG("RES: %s", buffer);
 
     int protocol, model, feature, serial;
     int rc = sscanf(buffer, "i,%d,%d,%d,%d", &protocol, &model, &feature, &serial);
 
     if (rc < 4)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to parse input %s", buffer);
+        LOGF_ERROR("Failed to parse input %s", buffer);
         return false;
     }
 

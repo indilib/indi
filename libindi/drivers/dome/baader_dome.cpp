@@ -202,7 +202,7 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
             if (status == DOME_READY)
             {
                 CalibrateSP.s = IPS_OK;
-                DEBUG(INDI::Logger::DBG_SESSION, "Dome is already calibrated.");
+                LOG_INFO("Dome is already calibrated.");
                 IDSetSwitch(&CalibrateSP, nullptr);
                 return true;
             }
@@ -210,7 +210,7 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
             if (CalibrateSP.s == IPS_BUSY)
             {
                 Abort();
-                DEBUG(INDI::Logger::DBG_SESSION, "Calibration aborted.");
+                LOG_INFO("Calibration aborted.");
                 status        = DOME_UNKNOWN;
                 CalibrateSP.s = IPS_IDLE;
                 IDSetSwitch(&CalibrateSP, nullptr);
@@ -219,7 +219,7 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
             status = DOME_CALIBRATING;
 
-            DEBUG(INDI::Logger::DBG_SESSION, "Starting calibration procedure...");
+            LOG_INFO("Starting calibration procedure...");
 
             calibrationStage = CALIBRATION_STAGE1;
 
@@ -233,7 +233,7 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
             if (MoveAbs(calibrationTarget1) == IPS_IDLE)
             {
                 CalibrateSP.s = IPS_ALERT;
-                DEBUG(INDI::Logger::DBG_ERROR, "Calibration failue due to dome motion failure.");
+                LOG_ERROR("Calibration failue due to dome motion failure.");
                 status = DOME_UNKNOWN;
                 IDSetSwitch(&CalibrateSP, nullptr);
                 return false;
@@ -241,7 +241,7 @@ bool BaaderDome::ISNewSwitch(const char *dev, const char *name, ISState *states,
 
             DomeAbsPosNP.s = IPS_BUSY;
             CalibrateSP.s  = IPS_BUSY;
-            DEBUGF(INDI::Logger::DBG_SESSION, "Calibration is in progress. Moving to position %g.", calibrationTarget1);
+            LOGF_INFO("Calibration is in progress. Moving to position %g.", calibrationTarget1);
             IDSetSwitch(&CalibrateSP, nullptr);
             return true;
         }
@@ -312,11 +312,11 @@ bool BaaderDome::Ack()
     if (!sim && (rc = tty_write(PortFD, "d#getflap", DOME_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "d#getflap Ack error: %s.", errstr);
+        LOGF_ERROR("d#getflap Ack error: %s.", errstr);
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "CMD (d#getflap)");
+    LOG_DEBUG("CMD (d#getflap)");
 
     if (sim)
     {
@@ -326,13 +326,13 @@ bool BaaderDome::Ack()
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Ack error: %s.", errstr);
+        LOGF_ERROR("Ack error: %s.", errstr);
         return false;
     }
 
     resp[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
+    LOGF_DEBUG("RES (%s)", resp);
 
     rc = sscanf(resp, "d#%s", status);
 
@@ -357,11 +357,11 @@ bool BaaderDome::UpdateShutterStatus()
     if (!sim && (rc = tty_write(PortFD, "d#getshut", DOME_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "d#getshut UpdateShutterStatus error: %s.", errstr);
+        LOGF_ERROR("d#getshut UpdateShutterStatus error: %s.", errstr);
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "CMD (d#getshut)");
+    LOG_DEBUG("CMD (d#getshut)");
 
     if (sim)
     {
@@ -376,13 +376,13 @@ bool BaaderDome::UpdateShutterStatus()
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "UpdateShutterStatus error: %s.", errstr);
+        LOGF_ERROR("UpdateShutterStatus error: %s.", errstr);
         return false;
     }
 
     resp[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
+    LOGF_DEBUG("RES (%s)", resp);
 
     rc = sscanf(resp, "d#shut%s", status);
 
@@ -394,7 +394,7 @@ bool BaaderDome::UpdateShutterStatus()
         if (strcmp(status, "ope") == 0)
         {
             if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetShutterStatusString(SHUTTER_OPENED));
+                LOGF_INFO("%s", GetShutterStatusString(SHUTTER_OPENED));
 
             shutterState                 = SHUTTER_OPENED;
             DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
@@ -402,7 +402,7 @@ bool BaaderDome::UpdateShutterStatus()
         else if (strcmp(status, "clo") == 0)
         {
             if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetShutterStatusString(SHUTTER_CLOSED));
+                LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
 
             shutterState                  = SHUTTER_CLOSED;
             DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
@@ -416,7 +416,7 @@ bool BaaderDome::UpdateShutterStatus()
         {
             shutterState    = SHUTTER_UNKNOWN;
             DomeShutterSP.s = IPS_ALERT;
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unknown Shutter status: %s.", resp);
+            LOGF_ERROR("Unknown Shutter status: %s.", resp);
         }
         return true;
     }
@@ -438,11 +438,11 @@ bool BaaderDome::UpdatePosition()
     if (!sim && (rc = tty_write(PortFD, "d#getazim", DOME_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "d#getazim UpdatePosition error: %s.", errstr);
+        LOGF_ERROR("d#getazim UpdatePosition error: %s.", errstr);
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "CMD (d#getazim)");
+    LOG_DEBUG("CMD (d#getazim)");
 
     if (sim)
     {
@@ -455,13 +455,13 @@ bool BaaderDome::UpdatePosition()
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "UpdatePosition error: %s.", errstr);
+        LOGF_ERROR("UpdatePosition error: %s.", errstr);
         return false;
     }
 
     resp[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
+    LOGF_DEBUG("RES (%s)", resp);
 
     rc = sscanf(resp, "d#azr%hu", &domeAz);
 
@@ -471,7 +471,7 @@ bool BaaderDome::UpdatePosition()
         {
             status           = DOME_READY;
             calibrationStage = CALIBRATION_COMPLETE;
-            DEBUG(INDI::Logger::DBG_SESSION, "Dome is calibrated.");
+            LOG_INFO("Dome is calibrated.");
             CalibrateSP.s = IPS_OK;
             IDSetSwitch(&CalibrateSP, nullptr);
         }
@@ -479,7 +479,7 @@ bool BaaderDome::UpdatePosition()
         {
             status           = DOME_READY;
             calibrationStage = CALIBRATION_COMPLETE;
-            DEBUG(INDI::Logger::DBG_SESSION, "Calibration complete.");
+            LOG_INFO("Calibration complete.");
             CalibrateSP.s = IPS_OK;
             IDSetSwitch(&CalibrateSP, nullptr);
         }
@@ -589,7 +589,7 @@ void BaaderDome::TimerHit()
         if (fabs(targetAz - DomeAbsPosN[0].value) < DomeParamN[0].value)
         {
             DomeAbsPosN[0].value = targetAz;
-            DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
+            LOG_INFO("Dome reached requested azimuth angle.");
 
             if (status != DOME_CALIBRATING)
             {
@@ -605,7 +605,7 @@ void BaaderDome::TimerHit()
             {
                 if (calibrationStage == CALIBRATION_STAGE1)
                 {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Calibration stage 1 complete. Starting stage 2...");
+                    LOG_INFO("Calibration stage 1 complete. Starting stage 2...");
                     calibrationTarget2 = DomeAbsPosN[0].value + 2;
                     calibrationStage   = CALIBRATION_STAGE2;
                     MoveAbs(calibrationTarget2);
@@ -622,7 +622,7 @@ void BaaderDome::TimerHit()
                 else if (calibrationStage == CALIBRATION_STAGE3)
                 {
                     calibrationStage = CALIBRATION_COMPLETE;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Dome reached initial position.");
+                    LOG_INFO("Dome reached initial position.");
                 }
             }
         }
@@ -673,7 +673,7 @@ IPState BaaderDome::MoveAbs(double az)
 
     if (status == DOME_UNKNOWN)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Dome is not calibrated. Please calibrate dome before issuing any commands.");
+        LOG_WARN("Dome is not calibrated. Please calibrate dome before issuing any commands.");
         return IPS_ALERT;
     }
 
@@ -686,11 +686,11 @@ IPState BaaderDome::MoveAbs(double az)
     if (!sim && (rc = tty_write(PortFD, cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s MoveAbsDome error: %s.", cmd, errstr);
+        LOGF_ERROR("%s MoveAbsDome error: %s.", cmd, errstr);
         return IPS_ALERT;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (sim)
     {
@@ -700,13 +700,13 @@ IPState BaaderDome::MoveAbs(double az)
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "MoveAbsDome error: %s.", errstr);
+        LOGF_ERROR("MoveAbsDome error: %s.", errstr);
         return IPS_ALERT;
     }
 
     resp[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
+    LOGF_DEBUG("RES (%s)", resp);
 
     if (strcmp(resp, "d#gotmess") == 0)
         return IPS_BUSY;
@@ -776,11 +776,11 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
     if (!sim && (rc = tty_write(PortFD, cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s ControlDomeShutter error: %s.", cmd, errstr);
+        LOGF_ERROR("%s ControlDomeShutter error: %s.", cmd, errstr);
         return IPS_ALERT;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (sim)
     {
@@ -791,13 +791,13 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "ControlDomeShutter error: %s.", errstr);
+        LOGF_ERROR("ControlDomeShutter error: %s.", errstr);
         return IPS_ALERT;
     }
 
     resp[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
+    LOGF_DEBUG("RES (%s)", resp);
 
     if (strcmp(resp, "d#gotmess") == 0)
     {
@@ -812,7 +812,7 @@ IPState BaaderDome::ControlShutter(ShutterOperation operation)
 * ***********************************************************************************/
 bool BaaderDome::Abort()
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "Attempting to abort dome motion by stopping at %g", DomeAbsPosN[0].value);
+    LOGF_INFO("Attempting to abort dome motion by stopping at %g", DomeAbsPosN[0].value);
     MoveAbs(DomeAbsPosN[0].value);
     return true;
 }
@@ -868,11 +868,11 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
     if (!sim && (rc = tty_write(PortFD, cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s ControlDomeFlap error: %s.", cmd, errstr);
+        LOGF_ERROR("%s ControlDomeFlap error: %s.", cmd, errstr);
         return -1;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (sim)
     {
@@ -883,13 +883,13 @@ int BaaderDome::ControlDomeFlap(FlapOperation operation)
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "ControlDomeFlap error: %s.", errstr);
+        LOGF_ERROR("ControlDomeFlap error: %s.", errstr);
         return -1;
     }
 
     resp[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
+    LOGF_DEBUG("RES (%s)", resp);
 
     if (strcmp(resp, "d#gotmess") == 0)
     {
@@ -914,11 +914,11 @@ bool BaaderDome::UpdateFlapStatus()
     if (!sim && (rc = tty_write(PortFD, "d#getflap", DOME_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "d#getflap UpdateflapStatus error: %s.", errstr);
+        LOGF_ERROR("d#getflap UpdateflapStatus error: %s.", errstr);
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "CMD (d#getflap)");
+    LOG_DEBUG("CMD (d#getflap)");
 
     if (sim)
     {
@@ -933,13 +933,13 @@ bool BaaderDome::UpdateFlapStatus()
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "UpdateflapStatus error: %s.", errstr);
+        LOGF_ERROR("UpdateflapStatus error: %s.", errstr);
         return false;
     }
 
     resp[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
+    LOGF_DEBUG("RES (%s)", resp);
 
     rc = sscanf(resp, "d#flap%s", status);
 
@@ -951,7 +951,7 @@ bool BaaderDome::UpdateFlapStatus()
         if (strcmp(status, "ope") == 0)
         {
             if (flapStatus == FLAP_MOVING && targetFlap == FLAP_OPEN)
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetFlapStatusString(FLAP_OPENED));
+                LOGF_INFO("%s", GetFlapStatusString(FLAP_OPENED));
 
             flapStatus             = FLAP_OPENED;
             DomeFlapS[FLAP_OPEN].s = ISS_ON;
@@ -959,7 +959,7 @@ bool BaaderDome::UpdateFlapStatus()
         else if (strcmp(status, "clo") == 0)
         {
             if (flapStatus == FLAP_MOVING && targetFlap == FLAP_CLOSE)
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetFlapStatusString(FLAP_CLOSED));
+                LOGF_INFO("%s", GetFlapStatusString(FLAP_CLOSED));
 
             flapStatus              = FLAP_CLOSED;
             DomeFlapS[FLAP_CLOSE].s = ISS_ON;
@@ -973,7 +973,7 @@ bool BaaderDome::UpdateFlapStatus()
         {
             flapStatus   = FLAP_UNKNOWN;
             DomeFlapSP.s = IPS_ALERT;
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unknown flap status: %s.", resp);
+            LOGF_ERROR("Unknown flap status: %s.", resp);
         }
         return true;
     }
@@ -997,11 +997,11 @@ bool BaaderDome::SaveEncoderPosition()
     if (!sim && (rc = tty_write(PortFD, cmd, DOME_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s SaveEncoderPosition error: %s.", cmd, errstr);
+        LOGF_ERROR("%s SaveEncoderPosition error: %s.", cmd, errstr);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (sim)
     {
@@ -1011,13 +1011,13 @@ bool BaaderDome::SaveEncoderPosition()
     else if ((rc = tty_read(PortFD, resp, DOME_CMD, DOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "SaveEncoderPosition error: %s.", errstr);
+        LOGF_ERROR("SaveEncoderPosition error: %s.", errstr);
         return false;
     }
 
     resp[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", resp);
+    LOGF_DEBUG("RES (%s)", resp);
 
     return strcmp(resp, "d#gotmess") == 0;
 }

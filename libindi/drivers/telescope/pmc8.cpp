@@ -176,7 +176,7 @@ bool PMC8::updateProperties()
 
 void PMC8::getStartupData()
 {
-    DEBUG(INDI::Logger::DBG_DEBUG, "Getting firmware data...");
+    LOG_DEBUG("Getting firmware data...");
     if (get_pmc8_firmware(PortFD, &firmwareInfo))
     {
         const char *c;
@@ -184,7 +184,7 @@ void PMC8::getStartupData()
         // FIXME - Need to add code to get firmware data
         FirmwareTP.s = IPS_OK;
         c = firmwareInfo.MainBoardFirmware.c_str();
-        DEBUGF(INDI::Logger::DBG_SESSION, "firmware = %s.", c);
+        LOGF_INFO("firmware = %s.", c);
         IUSaveText(&FirmwareT[0], c);
         IDSetText(&FirmwareTP, nullptr);
     }
@@ -203,13 +203,13 @@ void PMC8::getStartupData()
 
 
     // seems like best place to put a warning that will be seen in log window of EKOS/etc
-    DEBUG(INDI::Logger::DBG_SESSION, "NOTICE!!!");
-    DEBUG(INDI::Logger::DBG_SESSION, "The PMC-Eight driver is in BETA development currently.");
-    DEBUG(INDI::Logger::DBG_SESSION, "When using this driver please remember it is being tested so stay near your mount");
-    DEBUG(INDI::Logger::DBG_SESSION, "and be prepared to intervene if something unexpected occurs.");
-    DEBUG(INDI::Logger::DBG_SESSION, "Please read the instructions at:");
-    DEBUG(INDI::Logger::DBG_SESSION, "    http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/");
-    DEBUG(INDI::Logger::DBG_SESSION, "before using this driver!");
+    LOG_INFO("NOTICE!!!");
+    LOG_INFO("The PMC-Eight driver is in BETA development currently.");
+    LOG_INFO("When using this driver please remember it is being tested so stay near your mount");
+    LOG_INFO("and be prepared to intervene if something unexpected occurs.");
+    LOG_INFO("Please read the instructions at:");
+    LOG_INFO("    http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/");
+    LOG_INFO("before using this driver!");
 
 #if 0
     // FIXEME - Need to handle southern hemisphere for DEC?
@@ -302,24 +302,24 @@ bool PMC8::ReadScopeStatus()
             rc = get_pmc8_is_scope_slewing(PortFD, slewing);
             if (!rc)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "PMC8::ReadScopeStatus() - unable to check slew state");
+                LOG_ERROR("PMC8::ReadScopeStatus() - unable to check slew state");
             }
             else
             {
                 if (slewing == false)
                 {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Slew complete, tracking...");
+                    LOG_INFO("Slew complete, tracking...");
                     TrackState = SCOPE_TRACKING;
 
                     if (!SetTrackEnabled(true))
                     {
-                        DEBUG(INDI::Logger::DBG_ERROR, "slew complete - unable to enable tracking");
+                        LOG_ERROR("slew complete - unable to enable tracking");
                         return false;
                     }
 
                     if (!SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP)))
                     {
-                        DEBUG(INDI::Logger::DBG_ERROR, "slew complete - unable to set track mode");
+                        LOG_ERROR("slew complete - unable to set track mode");
                         return false;
                     }
                 }
@@ -335,14 +335,14 @@ bool PMC8::ReadScopeStatus()
            rc = get_pmc8_is_scope_slewing(PortFD, slewing);
            if (!rc)
            {
-               DEBUG(INDI::Logger::DBG_ERROR, "PMC8::ReadScopeStatus() - unable to check slew state");
+               LOG_ERROR("PMC8::ReadScopeStatus() - unable to check slew state");
            }
            else
            {
                if (slewing == false)
                {
                    if (stop_pmc8_tracking_motion(PortFD))
-                       DEBUG(INDI::Logger::DBG_DEBUG, "Mount tracking is off.");
+                       LOG_DEBUG("Mount tracking is off.");
 
                    SetParked(true);
 
@@ -378,7 +378,7 @@ bool PMC8::Goto(double r, double d)
 
     if (slew_pmc8(PortFD, r, d) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to slew.");
+        LOG_ERROR("Failed to slew.");
         return false;
     }
 
@@ -401,7 +401,7 @@ bool PMC8::Sync(double ra, double dec)
 
     if (sync_pmc8(PortFD, ra, dec) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to sync.");
+        LOG_ERROR("Failed to sync.");
     }
 
     EqNP.s     = IPS_OK;
@@ -436,7 +436,7 @@ bool PMC8::Abort()
             GuideNSTID = 0;
         }
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Guide aborted.");
+        LOG_INFO("Guide aborted.");
         IDSetNumber(&GuideNSNP, nullptr);
         IDSetNumber(&GuideWENP, nullptr);
 
@@ -454,7 +454,7 @@ bool PMC8::Park()
     targetDEC = GetAxis2Park();
     if (set_pmc8_radec(PortFD, r, d) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting RA/DEC.");
+        LOG_ERROR("Error setting RA/DEC.");
         return false;
     }
 #endif
@@ -462,7 +462,7 @@ bool PMC8::Park()
     if (park_pmc8(PortFD))
     {
         TrackState = SCOPE_PARKING;
-        DEBUG(INDI::Logger::DBG_SESSION, "Telescope parking in progress to motor position (0, 0)");
+        LOG_INFO("Telescope parking in progress to motor position (0, 0)");
         return true;
     }
     else
@@ -507,7 +507,7 @@ bool PMC8::updateTime(ln_date *utc, double utc_offset)
     INDI_UNUSED(utc);
     INDI_UNUSED(utc_offset);
 
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::updateTime() not implemented!");
+    LOG_ERROR("PMC8::updateTime() not implemented!");
     return false;
 
 }
@@ -522,7 +522,7 @@ bool PMC8::updateLocation(double latitude, double longitude, double elevation)
     // do not support Southern Hemisphere yet!
     if (latitude < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Southern Hemisphere not currently supported!");
+        LOG_ERROR("Southern Hemisphere not currently supported!");
         return false;
     }
 
@@ -533,7 +533,7 @@ bool PMC8::updateLocation(double latitude, double longitude, double elevation)
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
+    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -552,38 +552,38 @@ bool PMC8::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        LOG_ERROR("Please unpark the mount before issuing any motion commands.");
         return false;
     }
 
     // read desired move rate
     int currentIndex = IUFindOnSwitchIndex(&SlewRateSP);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "MoveNS at slew index %d", currentIndex);
+    LOGF_DEBUG("MoveNS at slew index %d", currentIndex);
 
     switch (command)
     {
         case MOTION_START:
             if (start_pmc8_motion(PortFD, (dir == DIRECTION_NORTH ? PMC8_N : PMC8_S), currentIndex) == false)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+                LOG_ERROR("Error setting N/S motion direction.");
                 return false;
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
+                LOGF_INFO("Moving toward %s.", (dir == DIRECTION_NORTH) ? "North" : "South");
             }
             break;
 
         case MOTION_STOP:
             if (stop_pmc8_motion(PortFD, (dir == DIRECTION_NORTH ? PMC8_N : PMC8_S)) == false)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+                LOG_ERROR("Error stopping N/S motion.");
                 return false;
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
+                LOGF_INFO("%s motion stopped.", (dir == DIRECTION_NORTH) ? "North" : "South");
             }
             break;
     }
@@ -595,54 +595,54 @@ bool PMC8::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     if (TrackState == SCOPE_PARKED)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        LOG_ERROR("Please unpark the mount before issuing any motion commands.");
         return false;
     }
 
     // read desired move rate
     int currentIndex = IUFindOnSwitchIndex(&SlewRateSP);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "MoveWE at slew index %d", currentIndex);
+    LOGF_DEBUG("MoveWE at slew index %d", currentIndex);
 
     switch (command)
     {
         case MOTION_START:
             if (start_pmc8_motion(PortFD, (dir == DIRECTION_WEST ? PMC8_W : PMC8_E), currentIndex) == false)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+                LOG_ERROR("Error setting N/S motion direction.");
                 return false;
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
+                LOGF_INFO("Moving toward %s.", (dir == DIRECTION_WEST) ? "West" : "East");
             }
             break;
 
         case MOTION_STOP:
             if (stop_pmc8_motion(PortFD, (dir == DIRECTION_WEST ? PMC8_W : PMC8_E)) == false)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+                LOG_ERROR("Error stopping W/E motion.");
                 return false;
             }
             else
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
+                LOGF_INFO("%s motion stopped.", (dir == DIRECTION_WEST) ? "West" : "East");
 
                 // restore tracking
 
                 if (TrackState == SCOPE_TRACKING)
                 {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Move E/W complete, tracking...");
+                    LOG_INFO("Move E/W complete, tracking...");
 
                     if (!SetTrackEnabled(true))
                     {
-                        DEBUG(INDI::Logger::DBG_ERROR, "slew complete - unable to enable tracking");
+                        LOG_ERROR("slew complete - unable to enable tracking");
                         return false;
                     }
 
                     if (!SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP)))
                     {
-                        DEBUG(INDI::Logger::DBG_ERROR, "slew complete - unable to set track mode");
+                        LOG_ERROR("slew complete - unable to set track mode");
                         return false;
                     }
                 }
@@ -796,7 +796,7 @@ void PMC8::guideTimeout(PMC8_DIRECTION calldir)
         IDSetNumber(&GuideWENP, nullptr);
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "GUIDE CMD COMPLETED");
+    LOG_DEBUG("GUIDE CMD COMPLETED");
 }
 
 //GUIDE The timer helper functions.
@@ -955,13 +955,13 @@ bool PMC8::SetDefaultPark()
 #else
 bool PMC8::SetCurrentPark()
 {
-    DEBUG(INDI::Logger::DBG_ERROR, "PPMC8::SetCurrentPark() not implemented!");
+    LOG_ERROR("PPMC8::SetCurrentPark() not implemented!");
     return false;
 }
 
 bool PMC8::SetDefaultPark()
 {
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetDefaultPark() not implemented!");
+    LOG_ERROR("PMC8::SetDefaultPark() not implemented!");
     return false;
 }
 #endif
@@ -970,7 +970,7 @@ bool PMC8::SetTrackMode(uint8_t mode)
 {
     uint pmc8_mode;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "PMC8::SetTrackMode called mode=%d", mode);
+    LOGF_DEBUG("PMC8::SetTrackMode called mode=%d", mode);
 
     // FIXME - Need to make sure track modes are handled properly!
     //PMC8_TRACK_RATE rate = static_cast<PMC8_TRACK_RATE>(mode);
@@ -990,7 +990,7 @@ bool PMC8::SetTrackMode(uint8_t mode)
             pmc8_mode = PMC8_TRACK_CUSTOM;
             break;
         default:
-            DEBUGF(INDI::Logger::DBG_ERROR, "PMC8::SetTrackMode mode=%d not supported!", mode);
+            LOGF_ERROR("PMC8::SetTrackMode mode=%d not supported!", mode);
             return false;
     }
 
@@ -1013,7 +1013,7 @@ bool PMC8::SetTrackRate(double raRate, double deRate)
     static bool deRateWarning = true;
     double pmc8RARate;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "PMC8::SetTrackRate called raRate=%f  deRate=%f", raRate, deRate);
+    LOGF_DEBUG("PMC8::SetTrackRate called raRate=%f  deRate=%f", raRate, deRate);
 
     // Convert to arcsecs/s to +/- 0.0100 accepted by
     //double pmc8RARate = raRate - TRACKRATE_SIDEREAL;
@@ -1025,27 +1025,27 @@ bool PMC8::SetTrackRate(double raRate, double deRate)
     {
         // Only send warning once per session
         deRateWarning = false;
-        DEBUG(INDI::Logger::DBG_WARNING, "Custom Declination tracking rate is not implemented yet.");
+        LOG_WARN("Custom Declination tracking rate is not implemented yet.");
     }
 
     if (set_pmc8_custom_ra_track_rate(PortFD, pmc8RARate))
         return true;
 
-    DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetTrackRate not implemented!");
+    LOG_ERROR("PMC8::SetTrackRate not implemented!");
     return false;
 }
 
 bool PMC8::SetTrackEnabled(bool enabled)
 {
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "PMC8::SetTrackEnabled called enabled=%d", enabled);
+    LOGF_DEBUG("PMC8::SetTrackEnabled called enabled=%d", enabled);
 
     // need to determine current tracking mode and start tracking
     if (enabled)
     {
         if (!SetTrackMode(IUFindOnSwitchIndex(&TrackModeSP)))
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetTrackREnabled - unable to enable tracking");
+            LOG_ERROR("PMC8::SetTrackREnabled - unable to enable tracking");
             return false;
         }
     }
@@ -1056,7 +1056,7 @@ bool PMC8::SetTrackEnabled(bool enabled)
         rc=set_pmc8_custom_ra_track_rate(PortFD, 0);
         if (!rc)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetTrackREnabled - unable to set RA track rate to 0");
+            LOG_ERROR("PMC8::SetTrackREnabled - unable to set RA track rate to 0");
             return false;
         }
 
@@ -1064,7 +1064,7 @@ bool PMC8::SetTrackEnabled(bool enabled)
 //        rc=set_pmc8_custom_dec_track_rate(PortFD, 0);
 //        if (!rc)
 //        {
-//            DEBUG(INDI::Logger::DBG_ERROR, "PMC8::SetTrackREnabled - unable to set DEC track rate to 0");
+//            LOG_ERROR("PMC8::SetTrackREnabled - unable to set DEC track rate to 0");
 //            return false;
 //        }
     }

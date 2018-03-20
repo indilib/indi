@@ -117,7 +117,13 @@
 #define BULK_COMMAND_TIMEOUT 2000
 #define BULK_DATA_TIMEOUT    10000
 
-#define CHUNK_SIZE (10 * 1024 * 1024)
+#ifdef __arm__
+#define CHUNK_SIZE (4 * 1024 * 1024)
+//#warning "ARM mode, 4MB CHUNK_SIZE"
+#else
+#define CHUNK_SIZE (10*1024*1024)
+//#warning "Intel mode, 10MB CHUNK_SIZE"
+#endif
 
 #if 1
 #define TRACE(c) (c)

@@ -383,13 +383,13 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
             //if (setMaxSlewRate(PortFD, (int)values[0]) < 0) //(int) MaxSlewRateN[0].value
             if (ret == -1)
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Pas OK Return value =%d", ret);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Setting Max Slew Rate to %f\n", values[0]);
+                LOGF_DEBUG("Pas OK Return value =%d", ret);
+                LOGF_DEBUG("Setting Max Slew Rate to %f\n", values[0]);
                 MaxSlewRateNP.s = IPS_ALERT;
                 IDSetNumber(&MaxSlewRateNP, "Setting Max Slew Rate Failed");
                 return false;
             }
-            DEBUGF(INDI::Logger::DBG_DEBUG, "OK Return value =%d", ret);
+            LOGF_DEBUG("OK Return value =%d", ret);
             MaxSlewRateNP.s           = IPS_OK;
             MaxSlewRateNP.np[0].value = values[0];
             IDSetNumber(&MaxSlewRateNP, "Slewrate set to %04.1f", values[0]);
@@ -408,13 +408,13 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 if (bktp == &BacklashN[0])
                 {
                     bklshdec = values[i];
-                    //DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Backlash DEC= %f", bklshdec);
+                    //LOGF_INFO("===CMD==> Backlash DEC= %f", bklshdec);
                     nset += bklshdec >= 0 && bklshdec <= 999;  //range 0 to 999
                 }
                 else if (bktp == &BacklashN[1])
                 {
                     bklshra = values[i];
-                    //DEBUGF(INDI::Logger::DBG_SESSION, "===CMD==> Backlash RA= %f", bklshra);
+                    //LOGF_INFO("===CMD==> Backlash RA= %f", bklshra);
                     nset += bklshra >= 0 && bklshra <= 999;   //range 0 to 999
                 }
             }
@@ -558,25 +558,25 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             if (index == 0)
             {
                 if(sendOnStepCommand(":A1#"))
-                DEBUG(INDI::Logger::DBG_DEBUG, "1 Star");
+                LOG_DEBUG("1 Star");
                 OSAlignOn=true;
             }
             if (index == 1)
             {
                 if(sendOnStepCommand(":A2#"))
-                DEBUG(INDI::Logger::DBG_DEBUG, "2 Stars");
+                LOG_DEBUG("2 Stars");
                 OSAlignOn=true;
             }
             if (index == 2)
             {
                 if(sendOnStepCommand(":A3#"))
-                DEBUG(INDI::Logger::DBG_DEBUG, "3 Stars");
+                LOG_DEBUG("3 Stars");
                 OSAlignOn=true;
             }
             if (index == 3)
             {
                 if(sendOnStepCommand(":A+#"))
-                    DEBUG(INDI::Logger::DBG_DEBUG, "Align");
+                    LOG_DEBUG("Align");
                 OSAlignS[3].s=ISS_OFF;
             }
             OSAlignSP.s = IPS_OK;
@@ -884,14 +884,14 @@ void LX200_OnStep::getBasicData()
             if (InitPark())
             {
                 // If loading parking data is successful, we just set the default parking values.
-                DEBUG(INDI::Logger::DBG_SESSION, "=============== Parkdata loaded");
+                LOG_INFO("=============== Parkdata loaded");
                 //SetAxis1ParkDefault(currentRA);
                 //SetAxis2ParkDefault(currentDEC);
             }
             else
             {
                 // Otherwise, we set all parking data to default in case no parking data is found.
-                DEBUG(INDI::Logger::DBG_SESSION, "=============== Parkdata Load Failed");
+                LOG_INFO("=============== Parkdata Load Failed");
                 //SetAxis1Park(currentRA);
                 //SetAxis2Park(currentDEC);
                 //SetAxis1ParkDefault(currentRA);
@@ -907,12 +907,12 @@ bool LX200_OnStep::SetCurrentPark()      // Tested
 
     if(!getCommandString(PortFD, response, ":hQ#"))
         {
-            DEBUGF(INDI::Logger::DBG_WARNING, "===CMD==> Set Park Pos %s", response);
+            LOGF_WARN("===CMD==> Set Park Pos %s", response);
             return false;
         }
     SetAxis1Park(currentRA);
     SetAxis2Park(currentDEC);
-    DEBUG(INDI::Logger::DBG_WARNING, "Park Value set to current postion");
+    LOG_WARN("Park Value set to current postion");
     return true;
 }
 
@@ -921,7 +921,7 @@ bool LX200_OnStep::SetDefaultPark()      // Tested
     IDMessage(getDeviceName(), "Setting Park Data to Default.");
     SetAxis1Park(20);
     SetAxis2Park(80);
-    DEBUG(INDI::Logger::DBG_WARNING, "Park Position set to Default value, 20/80");
+    LOG_WARN("Park Position set to Default value, 20/80");
     return true;
 }
 
@@ -1064,14 +1064,14 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
                 TrackState=SCOPE_PARKED;
                 SetParked(true);
                 IUSaveText(&OnstepStat[3],"Parked");
-                //DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking Succeded");
+                //LOG_INFO("OnStep Parking Succeded");
             }
             if (strstr(OSStat,"I"))
             {
                 TrackState=SCOPE_PARKING;
                 SetParked(false);
                 IUSaveText(&OnstepStat[3],"Park in Progress");
-                DEBUG(INDI::Logger::DBG_SESSION, "OnStep Parking in Progress...");
+                LOG_INFO("OnStep Parking in Progress...");
             }
         }
         if (isParked())
@@ -1081,14 +1081,14 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
                 TrackState=SCOPE_IDLE;
                 SetParked(false);
                 IUSaveText(&OnstepStat[3],"Parking Failed");
-                DEBUG(INDI::Logger::DBG_ERROR, "OnStep Parking failed, need to re Init OnStep at home");
+                LOG_ERROR("OnStep Parking failed, need to re Init OnStep at home");
             }
             if (strstr(OSStat,"p"))
             {
                 //TrackState=SCOPE_IDLE;
                 SetParked(false);
                 IUSaveText(&OnstepStat[3],"UnParked");
-                //DEBUG(INDI::Logger::DBG_SESSION, "OnStep Unparked...");
+                //LOG_INFO("OnStep Unparked...");
             }
         }
     }
@@ -1169,7 +1169,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     IDSetText(&OnstepStatTP, "==> Update OnsTep Status");
     if (OSAlignOn)  //don't Poll if no Aligning
     {
-        if(!GetAlignStatus()) DEBUG(INDI::Logger::DBG_WARNING, "Fail Align Command");
+        if(!GetAlignStatus()) LOG_WARN("Fail Align Command");
     }
     OSUpdateFocuser();  // Update Focuser Position
     return true;
@@ -1184,7 +1184,7 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
     {
         if(!getCommandString(PortFD, response, ":Te#"))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "===CMD==> Track On %s", response);
+            LOGF_ERROR("===CMD==> Track On %s", response);
             return false;
         }
     }
@@ -1192,7 +1192,7 @@ bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled b
     {
     if(!getCommandString(PortFD, response, ":Td#"))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "===CMD==> Track Off %s", response);
+            LOGF_ERROR("===CMD==> Track Off %s", response);
             return false;
         }
     }
@@ -1244,7 +1244,7 @@ bool LX200_OnStep::sendOnStepCommand(const char *cmd)      // Tested
 
     if (nbytes_read < 1)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Unable to parse response.");
+        LOG_ERROR("Unable to parse response.");
         return error_type;
     }
 
@@ -1266,13 +1266,13 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
 
     if (!isSimulation() && setSiteLongitude(PortFD, onstep_long) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        LOG_ERROR("Error setting site longitude coordinates");
         return false;
     }
 
     if (!isSimulation() && setSiteLatitude(PortFD, latitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        LOG_ERROR("Error setting site latitude coordinates");
         return false;
     }
 
@@ -1280,14 +1280,14 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
+    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
 
 int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standard command is :SoDD*#       Tested
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "<%s>", __FUNCTION__);
+    LOGF_INFO("<%s>", __FUNCTION__);
 
     char read_buffer[RB_MAX_LEN]={0};
 
@@ -1316,7 +1316,7 @@ bool LX200_OnStep::GetAlignStatus()
 
     if(getCommandString(PortFD, OSAlignStat, ":A?#"))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Align Status response Error, response = %s>", OSAlignStat);
+        LOGF_INFO("Align Status response Error, response = %s>", OSAlignStat);
         return false;
     }
     if(strcmp(OSAlignStat, oldOSAlignStat) != 0)    //no change
@@ -1326,7 +1326,7 @@ bool LX200_OnStep::GetAlignStatus()
         act_star = OSAlignStat[1] - '0';
         nb_stars = OSAlignStat[2] - '0';
 
-        //DEBUGF(INDI::Logger::DBG_SESSION, "Response = %s>", OSAlignStat);
+        //LOGF_INFO("Response = %s>", OSAlignStat);
         if (nb_stars !=0)
         {
             if (act_star <= nb_stars)

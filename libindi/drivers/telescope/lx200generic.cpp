@@ -263,7 +263,7 @@ LX200Generic::LX200Generic()
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
                            4);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from Generic LX200 device...");
+    LOG_DEBUG("Initializing from Generic LX200 device...");
 }
 
 
@@ -518,7 +518,7 @@ bool LX200Generic::ReadScopeStatus()
             IDSetSwitch(&SlewRateSP, nullptr);
 
             TrackState = SCOPE_TRACKING;
-            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
+            LOG_INFO("Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -608,7 +608,7 @@ bool LX200Generic::Goto(double ra, double dec)
         /* Slew reads the '0', that is not the end of the slew */
         if ((err = Slew(PortFD)))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
             slewError(err);
             return false;
         }
@@ -617,7 +617,7 @@ bool LX200Generic::Goto(double ra, double dec)
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
 
     return true;
 }
@@ -643,7 +643,7 @@ bool LX200Generic::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
+    LOG_INFO("Synchronization successful.");
 
     EqNP.s     = IPS_OK;
 
@@ -697,7 +697,7 @@ bool LX200Generic::Park()
 
     ParkSP.s   = IPS_BUSY;
     TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking telescope in progress...");
+    LOG_INFO("Parking telescope in progress...");
     return true;
 }
 
@@ -710,22 +710,22 @@ bool LX200Generic::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     case MOTION_START:
         if (!isSimulation() && MoveTo(PortFD, current_move) < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting N/S motion direction.");
+            LOG_ERROR("Error setting N/S motion direction.");
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.",
+            LOGF_INFO("Moving toward %s.",
                    (current_move == LX200_NORTH) ? "North" : "South");
         break;
 
     case MOTION_STOP:
         if (!isSimulation() && HaltMovement(PortFD, current_move) < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+            LOG_ERROR("Error stopping N/S motion.");
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+            LOGF_INFO("Movement toward %s halted.",
                    (current_move == LX200_NORTH) ? "North" : "South");
         break;
     }
@@ -742,21 +742,21 @@ bool LX200Generic::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     case MOTION_START:
         if (!isSimulation() && MoveTo(PortFD, current_move) < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting W/E motion direction.");
+            LOG_ERROR("Error setting W/E motion direction.");
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
+            LOGF_INFO("Moving toward %s.", (current_move == LX200_WEST) ? "West" : "East");
         break;
 
     case MOTION_STOP:
         if (!isSimulation() && HaltMovement(PortFD, current_move) < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+            LOG_ERROR("Error stopping W/E motion.");
             return false;
         }
         else
-            DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+            LOGF_INFO("Movement toward %s halted.",
                    (current_move == LX200_WEST) ? "West" : "East");
         break;
     }
@@ -768,7 +768,7 @@ bool LX200Generic::Abort()
 {
     if (!isSimulation() && abortSlew(PortFD) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort slew.");
+        LOG_ERROR("Failed to abort slew.");
         return false;
     }
 
@@ -790,7 +790,7 @@ bool LX200Generic::Abort()
             GuideNSTID = 0;
         }
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Guide aborted.");
+        LOG_INFO("Guide aborted.");
         IDSetNumber(&GuideNSNP, nullptr);
         IDSetNumber(&GuideWENP, nullptr);
 
@@ -826,30 +826,30 @@ bool LX200Generic::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %.2f", JD);
+    LOGF_DEBUG("New JD is %.2f", JD);
 
     // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
     // is the opposite of the standard definition of UTC offset!
     if (setUTCOffset(utc_offset) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+        LOG_ERROR("Error setting UTC Offset.");
         return false;
     }
 
     // Set Local Time
     if (setLocalTime24(ltm.hours, ltm.minutes, ltm.seconds) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+        LOG_ERROR("Error setting local time.");
         return false;
     }
 
     if (setLocalDate(ltm.days, ltm.months, ltm.years) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+        LOG_ERROR("Error setting local date.");
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Time updated, updating planetary data...");
+    LOG_INFO("Time updated, updating planetary data...");
     return true;
 }
 
@@ -862,13 +862,13 @@ bool LX200Generic::updateLocation(double latitude, double longitude, double elev
 
     if (!isSimulation() && setSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        LOG_ERROR("Error setting site longitude coordinates");
         return false;
     }
 
     if (!isSimulation() && setSiteLatitude(PortFD, latitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        LOG_ERROR("Error setting site latitude coordinates");
         return false;
     }
 
@@ -876,7 +876,7 @@ bool LX200Generic::updateLocation(double latitude, double longitude, double elev
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
+    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -912,7 +912,7 @@ bool LX200Generic::ISNewNumber(const char *dev, const char *name, double values[
         // Update Frequency
         if (!strcmp(name, TrackingFreqNP.name))
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set track freq of: %f\n", values[0]);
+	    LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
 	    if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
 	    {
 		    if (!isSimulation() && setPreciseTrackFreq(PortFD, values[0]) < 0)
@@ -921,17 +921,25 @@ bool LX200Generic::ISNewNumber(const char *dev, const char *name, double values[
 			IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
 			return false;
 		    }
+		    TrackingFreqNP.s           = IPS_OK;
+		    TrackingFreqNP.np[0].value = values[0];
+		    IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %8.5f", values[0]);
 	    } else
 	    { if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
+
+            LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
+
+            if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
             {
                 TrackingFreqNP.s = IPS_ALERT;
                 IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
                 return false;
             }
-	    }
             TrackingFreqNP.s           = IPS_OK;
-            TrackingFreqNP.np[0].value = values[0];
-            IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %04.1f", values[0]);
+	    TrackingFreqNP.np[0].value = values[0];
+	    IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %04.1f", values[0]);
+	    }
+            
 
             if (trackingMode != LX200_TRACK_MANUAL)
             {
@@ -1326,7 +1334,7 @@ void LX200Generic::getBasicData()
         if ( (GetTelescopeCapability() & TELESCOPE_HAS_TIME) && timeFormat == -1)
         {
             if (getTimeFormat(PortFD, &timeFormat) < 0)
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve time format from device.");
+                LOG_ERROR("Failed to retrieve time format from device.");
             else
             {
                 int ret = 0;
@@ -1343,7 +1351,7 @@ void LX200Generic::getBasicData()
             SiteNameT[0].text = new char[64];
 
             if (getSiteName(PortFD, SiteNameT[0].text, currentSiteNum) < 0)
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to get site name from device");
+                LOG_ERROR("Failed to get site name from device");
             else
                 IDSetText(&SiteNameTP, nullptr);
         }
@@ -1352,7 +1360,7 @@ void LX200Generic::getBasicData()
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
         {
             if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to get tracking frequency from device.");
+                LOG_ERROR("Failed to get tracking frequency from device.");
             else
                 IDSetNumber(&TrackingFreqNP, nullptr);
         }
@@ -1368,11 +1376,11 @@ void LX200Generic::getBasicData()
 void LX200Generic::slewError(int slewCode)
 {
     if (slewCode == 1)
-        DEBUG(INDI::Logger::DBG_ERROR, "Object below horizon.");
+        LOG_ERROR("Object below horizon.");
     else if (slewCode == 2)
-        DEBUG(INDI::Logger::DBG_ERROR, "Object below the minimum elevation limit.");
+        LOG_ERROR("Object below the minimum elevation limit.");
     else
-        DEBUG(INDI::Logger::DBG_ERROR, "Slew failed.");
+        LOG_ERROR("Slew failed.");
 
     EqNP.s = IPS_ALERT;
     IDSetNumber(&EqNP, nullptr);
@@ -1474,19 +1482,19 @@ bool LX200Generic::sendScopeTime()
     }
     else
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Could not obtain UTC offset from mount!");
+        LOG_WARN("Could not obtain UTC offset from mount!");
         return false;
     }
 
     if (getLocalTime(ctime) == false)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Could not obtain local time from mount!");
+        LOG_WARN("Could not obtain local time from mount!");
         return false;
     }
 
     if (getLocalDate(cdate) == false)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Could not obtain local date from mount!");
+        LOG_WARN("Could not obtain local date from mount!");
         return false;
     }
 
@@ -1497,7 +1505,7 @@ bool LX200Generic::sendScopeTime()
     // Now that date+time are combined, let's get tm representation of it.
     if (strptime(datetime, "%FT%T", &ltm) == NULL)
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Could not process mount date and time: %s", datetime);
+        LOGF_WARN("Could not process mount date and time: %s", datetime);
         return false;
     }
 
@@ -1514,8 +1522,8 @@ bool LX200Generic::sendScopeTime()
     strftime(cdate, 32, "%Y-%m-%dT%H:%M:%S", &utm);
     IUSaveText(&TimeT[0], cdate);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller UTC Time: %s", TimeT[0].text);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller UTC Offset: %s", TimeT[1].text);
+    LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
+    LOGF_DEBUG("Mount controller UTC Offset: %s", TimeT[1].text);
 
     // Let's send everything to the client
     IDSetText(&TimeTP, nullptr);
@@ -1539,7 +1547,7 @@ bool LX200Generic::sendScopeLocation()
 
     if (getSiteLatitude(PortFD, &dd, &mm) < 0)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site latitude from device.");
+        LOG_WARN("Failed to get site latitude from device.");
         return false;
     }
     else
@@ -1552,7 +1560,7 @@ bool LX200Generic::sendScopeLocation()
 
     if (getSiteLongitude(PortFD, &dd, &mm) < 0)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site longitude from device.");
+        LOG_WARN("Failed to get site longitude from device.");
         return false;
     }
     else
@@ -1564,7 +1572,7 @@ bool LX200Generic::sendScopeLocation()
 
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
+    LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
 
@@ -1579,7 +1587,7 @@ IPState LX200Generic::GuideNorth(float ms)
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
@@ -1631,7 +1639,7 @@ IPState LX200Generic::GuideSouth(float ms)
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
@@ -1683,7 +1691,7 @@ IPState LX200Generic::GuideEast(float ms)
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
@@ -1735,7 +1743,7 @@ IPState LX200Generic::GuideWest(float ms)
 
     if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 

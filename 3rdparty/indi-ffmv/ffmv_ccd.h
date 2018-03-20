@@ -63,22 +63,16 @@ class FFMVCCD : public INDI::CCD
     struct timeval ExpStart;
 
     float ExposureRequest;
-    float TemperatureRequest;
-    int timerID;
     float max_exposure;
     float last_exposure_length;
     int sub_count;
 
     ISwitch GainS[2];
     ISwitchVectorProperty GainSP;
-    // We declare the CCD temperature property
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
 
     dc1394_t *dc1394;
     dc1394camera_t *dcam;
 
-    float last_duration;
 };
 
 #endif // FFMVCCD_H

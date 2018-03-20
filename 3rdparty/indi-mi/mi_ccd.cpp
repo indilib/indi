@@ -373,7 +373,7 @@ bool MICCD::Connect()
 
     if (isSimulation())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s", name);
+        LOGF_INFO("Connected to %s", name);
 
         cap = CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_CAN_BIN | CCD_HAS_SHUTTER | CCD_HAS_COOLER;
         SetCCDCapability(cap);
@@ -392,11 +392,11 @@ bool MICCD::Connect()
     }
     if (!cameraHandle)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error connecting to %s.", name);
+        LOGF_ERROR("Error connecting to %s.", name);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s.", name);
+    LOGF_INFO("Connected to %s.", name);
 
     bool value;
     cap = CCD_CAN_ABORT | CCD_CAN_BIN;
@@ -425,7 +425,7 @@ bool MICCD::Connect()
 
 bool MICCD::Disconnect()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
+    LOG_INFO("CCD is offline.");
     gxccd_release(cameraHandle);
     cameraHandle = NULL;
     return true;
@@ -468,7 +468,7 @@ bool MICCD::setupParams()
         {
             char errorStr[MAX_ERROR_LEN];
             gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-            DEBUGF(INDI::Logger::DBG_ERROR, "Getting gain failed: %s.", errorStr);
+            LOGF_ERROR("Getting gain failed: %s.", errorStr);
             GainN[0].value = 0;
             GainNP.s       = IPS_ALERT;
             IDSetNumber(&GainNP, NULL);
@@ -497,7 +497,7 @@ int MICCD::SetTemperature(double temperature)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-        DEBUGF(INDI::Logger::DBG_ERROR, "Setting temperature failed: %s.", errorStr);
+        LOGF_ERROR("Setting temperature failed: %s.", errorStr);
         return -1;
     }
 
@@ -551,7 +551,7 @@ bool MICCD::StartExposure(float duration)
     gettimeofday(&ExpStart, NULL);
     InExposure  = true;
     downloading = false;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
+    LOGF_DEBUG("Taking a %g seconds frame...", ExposureRequest);
     return true;
 }
 
@@ -563,14 +563,14 @@ bool MICCD::AbortExposure()
         {
             char errorStr[MAX_ERROR_LEN];
             gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-            DEBUGF(INDI::Logger::DBG_ERROR, "Aborting exposure failed: %s.", errorStr);
+            LOGF_ERROR("Aborting exposure failed: %s.", errorStr);
             return false;
         }
     }
 
     InExposure  = false;
     downloading = false;
-    DEBUG(INDI::Logger::DBG_SESSION, "Exposure aborted.");
+    LOG_INFO("Exposure aborted.");
     return true;
 }
 
@@ -585,16 +585,16 @@ bool MICCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     if (x_2 > PrimaryCCD.getXRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Requested width out of bounds %ld", x_2);
+        LOGF_ERROR("Error: Requested width out of bounds %ld", x_2);
         return false;
     }
     else if (y_2 > PrimaryCCD.getYRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Requested height out of bounds %ld", y_2);
+        LOGF_ERROR("Error: Requested height out of bounds %ld", y_2);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, x_2, y_2);
+    LOGF_DEBUG("The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, x_2, y_2);
 
     int imageWidth  = x_2 - x_1;
     int imageHeight = y_2 - y_1;
@@ -612,7 +612,7 @@ bool MICCD::UpdateCCDBin(int hor, int ver)
 {
     if (hor < 1 || hor > maxBinX || ver < 1 || ver > maxBinY)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Binning (%dx%d) are out of range. Range from 1x1 to (%dx%d)", maxBinX,
+        LOGF_ERROR("Binning (%dx%d) are out of range. Range from 1x1 to (%dx%d)", maxBinX,
                maxBinY);
         return false;
     }
@@ -620,7 +620,7 @@ bool MICCD::UpdateCCDBin(int hor, int ver)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-        DEBUGF(INDI::Logger::DBG_ERROR, "Setting binning failed: %s.", errorStr);
+        LOGF_ERROR("Setting binning failed: %s.", errorStr);
         return false;
     }
     PrimaryCCD.setBin(hor, ver);
@@ -681,7 +681,7 @@ int MICCD::grabImage()
         {
             char errorStr[MAX_ERROR_LEN];
             gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error getting image: %s.", errorStr);
+            LOGF_ERROR("Error getting image: %s.", errorStr);
         }
         else
         {
@@ -690,7 +690,7 @@ int MICCD::grabImage()
     }
 
     if (ExposureRequest > POLLMS * 5 && !ret)
-        DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+        LOG_INFO("Download complete.");
 
     downloading = false;
     ExposureComplete(&PrimaryCCD);
@@ -712,7 +712,7 @@ void MICCD::TimerHit()
         {
             char errorStr[MAX_ERROR_LEN];
             gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-            DEBUGF(INDI::Logger::DBG_ERROR, "Getting image ready failed: %s.", errorStr);
+            LOGF_ERROR("Getting image ready failed: %s.", errorStr);
         }
         if (ready)
         {
@@ -722,7 +722,7 @@ void MICCD::TimerHit()
 
             // Don't spam the session log unless it is a long exposure > 5 seconds
             if (ExposureRequest > POLLMS * 5)
-                DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+                LOG_INFO("Exposure done, downloading image...");
 
             // grab and save image
             grabImage();
@@ -730,7 +730,7 @@ void MICCD::TimerHit()
         // camera may need some time for image download -> update client only for positive values
         else if (timeleft >= 0)
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure in progress: Time left %.2fs", timeleft);
+            LOGF_DEBUG("Exposure in progress: Time left %.2fs", timeleft);
             PrimaryCCD.setExposureLeft(timeleft);
         }
     }
@@ -749,13 +749,13 @@ bool MICCD::SelectFilter(int position)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-        DEBUGF(INDI::Logger::DBG_ERROR, "Setting filter failed: %s.", errorStr);
+        LOGF_ERROR("Setting filter failed: %s.", errorStr);
         return false;
     }
 
     CurrentFilter = position;
     SelectFilterDone(position);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Filter changed to %d", position);
+    LOGF_DEBUG("Filter changed to %d", position);
     return true;
 }
 
@@ -765,7 +765,7 @@ IPState MICCD::GuideNorth(float duration)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-        DEBUGF(INDI::Logger::DBG_ERROR, "GuideNorth() failed: %s.", errorStr);
+        LOGF_ERROR("GuideNorth() failed: %s.", errorStr);
         return IPS_ALERT;
     }
     return IPS_OK;
@@ -777,7 +777,7 @@ IPState MICCD::GuideSouth(float duration)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-        DEBUGF(INDI::Logger::DBG_ERROR, "GuideSouth() failed: %s.", errorStr);
+        LOGF_ERROR("GuideSouth() failed: %s.", errorStr);
         return IPS_ALERT;
     }
     return IPS_OK;
@@ -789,7 +789,7 @@ IPState MICCD::GuideEast(float duration)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-        DEBUGF(INDI::Logger::DBG_ERROR, "GuideEast() failed: %s.", errorStr);
+        LOGF_ERROR("GuideEast() failed: %s.", errorStr);
         return IPS_ALERT;
     }
     return IPS_OK;
@@ -801,7 +801,7 @@ IPState MICCD::GuideWest(float duration)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-        DEBUGF(INDI::Logger::DBG_ERROR, "GuideWest() failed: %s.", errorStr);
+        LOGF_ERROR("GuideWest() failed: %s.", errorStr);
         return IPS_ALERT;
     }
     return IPS_OK;
@@ -855,7 +855,7 @@ bool MICCD::ISNewNumber(const char *dev, const char *name, double values[], char
             {
                 char errorStr[MAX_ERROR_LEN];
                 gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-                DEBUGF(INDI::Logger::DBG_ERROR, "Setting fan failed: %s.", errorStr);
+                LOGF_ERROR("Setting fan failed: %s.", errorStr);
                 FanNP.s = IPS_ALERT;
             }
             else
@@ -875,7 +875,7 @@ bool MICCD::ISNewNumber(const char *dev, const char *name, double values[], char
             {
                 char errorStr[MAX_ERROR_LEN];
                 gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-                DEBUGF(INDI::Logger::DBG_ERROR, "Setting heating failed: %s.", errorStr);
+                LOGF_ERROR("Setting heating failed: %s.", errorStr);
                 WindowHeatingNP.s = IPS_ALERT;
             }
             else
@@ -895,7 +895,7 @@ bool MICCD::ISNewNumber(const char *dev, const char *name, double values[], char
             {
                 char errorStr[MAX_ERROR_LEN];
                 gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-                DEBUGF(INDI::Logger::DBG_ERROR, "Setting temp. ramp failed: %s.", errorStr);
+                LOGF_ERROR("Setting temp. ramp failed: %s.", errorStr);
                 TemperatureRampNP.s = IPS_ALERT;
             }
             else
@@ -939,14 +939,14 @@ void MICCD::updateTemperature()
         {
             char errorStr[MAX_ERROR_LEN];
             gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-            DEBUGF(INDI::Logger::DBG_ERROR, "Getting temperature failed: %s.", errorStr);
+            LOGF_ERROR("Getting temperature failed: %s.", errorStr);
             err |= 1;
         }
         if (gxccd_get_value(cameraHandle, GV_POWER_UTILIZATION, &ccdpower) < 0)
         {
             char errorStr[MAX_ERROR_LEN];
             gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
-            DEBUGF(INDI::Logger::DBG_ERROR, "Getting voltage failed: %s.", errorStr);
+            LOGF_ERROR("Getting voltage failed: %s.", errorStr);
             err |= 2;
         }
     }

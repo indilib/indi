@@ -151,17 +151,17 @@ bool ShelyakEshel::Connect()
     if ((rc = tty_connect(PortT[0].text, 2400, 8, 0, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(rc, errMsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to port %s. Error: %s", PortT[0].text, errMsg);
+        LOGF_ERROR("Failed to connect to port %s. Error: %s", PortT[0].text, errMsg);
         return false;
     }
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+    LOGF_INFO("%s is online.", getDeviceName());
     return true;
 }
 
 bool ShelyakEshel::Disconnect()
 {
     tty_disconnect(PortFD);
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s is offline.", getDeviceName());
+    LOGF_INFO("%s is offline.", getDeviceName());
     return true;
 }
 
@@ -238,7 +238,7 @@ bool ShelyakEshel::calibrationUnitCommand(char command, char parameter)
     {
         char errmsg[MAXRBUF];
         tty_error_msg(rc, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+        LOGF_ERROR("error: %s.", errmsg);
         return false;
     }
     sleep(1); // wait for the calibration unit to actually flip the switch

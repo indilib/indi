@@ -140,7 +140,7 @@ void Imager::initiateNextFilter()
         {
             FilterSlotN[0].value = filterSlot;
             sendNewNumber(&FilterSlotNP);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, filer %d, filter set initiated on %s",
+            LOGF_DEBUG("Group %d of %d, image %d of %d, filer %d, filter set initiated on %s",
                    group, maxGroup, image, maxImage, (int)FilterSlotN[0].value, FilterSlotNP.device);
         }
         else
@@ -170,8 +170,7 @@ void Imager::initiateNextCapture()
             IUSaveText(&CCDUploadSettingsT[1], "_TMP_");
             sendNewSwitch(&CCDUploadSP);
             sendNewText(&CCDUploadSettingsTP);
-            DEBUGF(INDI::Logger::DBG_DEBUG,
-                   "Group %d of %d, image %d of %d, duration %.1fs, binning %d, capture initiated on %s", group,
+            LOGF_DEBUG("Group %d of %d, image %d of %d, duration %.1fs, binning %d, capture initiated on %s", group,
                    maxGroup, image, maxImage, CCDImageExposureN[0].value, (int)CCDImageBinN[0].value,
                    CCDImageExposureNP.device);
         }
@@ -180,7 +179,7 @@ void Imager::initiateNextCapture()
 
 void Imager::startBatch()
 {
-    DEBUG(INDI::Logger::DBG_DEBUG, "Batch started");
+    LOG_DEBUG("Batch started");
     ProgressN[0].value = group = 1;
     ProgressN[1].value = image = 1;
     maxImage                   = currentGroup()->count();
@@ -224,7 +223,7 @@ void Imager::initiateDownload()
         file.read(data, size);
         file.close();
         remove(name);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d, image %d, download initiated", group, image);
+        LOGF_DEBUG("Group %d, image %d, download initiated", group, image);
         DownloadNP.s = IPS_BUSY;
         IDSetNumber(&DownloadNP, "Download initiated");
         strncpy(FitsB[0].format, format, sizeof(format));
@@ -239,7 +238,7 @@ void Imager::initiateDownload()
     {
         DownloadNP.s = IPS_ALERT;
         IDSetNumber(&DownloadNP, "Download failed");
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d, image %d, upload failed", group, image);
+        LOGF_DEBUG("Group %d, image %d, upload failed", group, image);
     }
 }
 
@@ -488,7 +487,7 @@ bool Imager::Disconnect()
 
 void Imager::serverConnected()
 {
-    DEBUG(INDI::Logger::DBG_DEBUG, "Server connected");
+    LOG_DEBUG("Server connected");
     StatusL[0].s = IPS_ALERT;
     StatusL[1].s = IPS_ALERT;
     IDSetLight(&StatusLP, nullptr);
@@ -498,7 +497,7 @@ void Imager::newDevice(INDI::BaseDevice *dp)
 {
     std::string deviceName{dp->getDeviceName()};
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Device %s detected", deviceName.c_str());
+    LOGF_DEBUG("Device %s detected", deviceName.c_str());
     if (deviceName == controlledCCD)
         StatusL[0].s = IPS_BUSY;
     if (deviceName == controlledFilterWheel)
@@ -524,7 +523,7 @@ void Imager::newProperty(INDI::Property *property)
             else
             {
                 connectDevice(controlledCCD);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting %s", controlledCCD);
+                LOGF_DEBUG("Connecting %s", controlledCCD);
             }
         }
         if (deviceName == controlledFilterWheel)
@@ -536,7 +535,7 @@ void Imager::newProperty(INDI::Property *property)
             else
             {
                 connectDevice(controlledFilterWheel);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Connecting %s", controlledFilterWheel);
+                LOGF_DEBUG("Connecting %s", controlledFilterWheel);
             }
         }
         IDSetLight(&StatusLP, nullptr);
@@ -565,7 +564,7 @@ void Imager::newBLOB(IBLOB *bp)
         file.open(name, std::ios::out | std::ios::binary | std::ios::trunc);
         file.write(static_cast<char *>(bp->blob), bp->bloblen);
         file.close();
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage,
+        LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image, maxImage,
                name);
         if (image == maxImage)
         {
@@ -660,7 +659,7 @@ void Imager::newText(ITextVectorProperty *tvp)
             strncpy(format, strrchr(tvp->tp[0].text, '.'), sizeof(format));
             sprintf(name, IMAGE_NAME, ImageNameT[0].text, ImageNameT[1].text, group, image, format);
             rename(tvp->tp[0].text, name);
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
+            LOGF_DEBUG("Group %d of %d, image %d of %d, saved to %s", group, maxGroup, image,
                    maxImage, name);
             if (image == maxImage)
             {
@@ -701,7 +700,7 @@ void Imager::newMessage(INDI::BaseDevice *dp, int messageID)
 void Imager::serverDisconnected(int exit_code)
 {
     INDI_UNUSED(exit_code);
-    DEBUG(INDI::Logger::DBG_DEBUG, "Server disconnected");
+    LOG_DEBUG("Server disconnected");
     StatusL[0].s = IPS_ALERT;
     StatusL[1].s = IPS_ALERT;
 }

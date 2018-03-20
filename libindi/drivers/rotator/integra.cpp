@@ -166,9 +166,11 @@ bool Integra::initProperties()
 
     addDebugControl();
 
-    // 2018-03-08 JM: Disable custom port and baud rates. User should select those
-    //serialConnection->setDefaultPort("/dev/integra_focusing_rotator1");
-    //serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
+    // The device uses an Arduino which shows up as /dev/ttyACM0 on Linux
+    // An udev rule example is provided that can create a more logical name like /dev/integra_focusing_rotator0
+    serialConnection->setDefaultPort("/dev/ttyACM0");
+    // Set mandatory baud speed. The device does not work with anything else.
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
 
     return true;
 }
@@ -208,7 +210,7 @@ bool Integra::Handshake()
     if (Ack())
         return true;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retrieving data from Integra, please ensure Integra controller is powered and the port is correct.");
+    LOG_INFO("Error retrieving data from Integra, please ensure Integra controller is powered and the port is correct.");
     return false;
 }
 
@@ -265,14 +267,14 @@ bool Integra::getFirmware()
         this->firmwareVersion = VERSION_25012017;
     }
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Firmware version %s", resp);
+    LOGF_INFO("Firmware version %s", resp);
     return true;
 }
 
 bool Integra::getFocuserType()
 {
     char resp[64] = "Integra85"; // TODO this is an assumption until the device can report its type
-    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser Type %s", resp);
+    LOGF_INFO("Focuser Type %s", resp);
 
     if (strcmp(resp, "Integra85") == 0)
     {
@@ -289,7 +291,7 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
 {
     int motorMoveCommand;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Start relativeGotoMotor to %d ...", relativePosition);
+    LOGF_DEBUG("Start relativeGotoMotor to %d ...", relativePosition);
     if (relativePosition > 0)
         motorMoveCommand = move_mot_out;
     else
@@ -299,14 +301,14 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
         if (relativePosition > 0) {
             if (lastFocuserPosition + relativePosition > MaxPositionN[MOTOR_FOCUS].value) {
                 int newRelativePosition = (int32_t)floor(MaxPositionN[MOTOR_FOCUS].value) - lastFocuserPosition;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Focus position change %d clipped to %d to stay at MAX %d",
+                LOGF_INFO("Focus position change %d clipped to %d to stay at MAX %d",
                        relativePosition, newRelativePosition, MaxPositionN[MOTOR_FOCUS].value);
                 relativePosition = newRelativePosition;
             }
         } else {
             if ((int32_t )lastFocuserPosition + relativePosition < 0) {
                 int newRelativePosition = -lastFocuserPosition;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Focus position change %d clipped to %d to stay at MIN 0",
+                LOGF_INFO("Focus position change %d clipped to %d to stay at MIN 0",
                        relativePosition, newRelativePosition);
                 relativePosition = newRelativePosition;
             }
@@ -315,14 +317,14 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
         if (relativePosition > 0) {
             if (lastRotatorPosition + relativePosition > MaxPositionN[MOTOR_ROTATOR].value) {
                 int newRelativePosition = (int32_t)floor(MaxPositionN[MOTOR_ROTATOR].value) - lastRotatorPosition;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Rotator position change %d clipped to %d to stay at MAX %d",
+                LOGF_INFO("Rotator position change %d clipped to %d to stay at MAX %d",
                        relativePosition, newRelativePosition, MaxPositionN[MOTOR_ROTATOR].value);
                 relativePosition = newRelativePosition;
             }
         } else {
             if (lastRotatorPosition + relativePosition < - MaxPositionN[MOTOR_ROTATOR].value) {
                 int newRelativePosition = - (int32_t)floor(MaxPositionN[MOTOR_ROTATOR].value) - lastRotatorPosition;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Rotator position change %d clipped to %d to stay at MIN %d",
+                LOGF_INFO("Rotator position change %d clipped to %d to stay at MIN %d",
                        relativePosition, newRelativePosition, - MaxPositionN[MOTOR_ROTATOR].value);
                 relativePosition = newRelativePosition;
             }
@@ -334,7 +336,7 @@ bool Integra::relativeGotoMotor(MotorType type, int32_t relativePosition)
 
 bool Integra::gotoMotor(MotorType type, int32_t position)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Start gotoMotor to %d", position);
+    LOGF_DEBUG("Start gotoMotor to %d", position);
     if (type == MOTOR_FOCUS)
     {
         return relativeGotoMotor(type, position - lastFocuserPosition);
@@ -345,7 +347,7 @@ bool Integra::gotoMotor(MotorType type, int32_t position)
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: MotorType %d is unknown.", __FUNCTION__, type);
+        LOGF_ERROR("%s error: MotorType %d is unknown.", __FUNCTION__, type);
     }
     return false;
 }
@@ -366,9 +368,9 @@ bool Integra::getPosition(MotorType type)
                 auto position_from = (int) FocusAbsPosN[0].value;
                 int position_to = position;
                 if (haveReadFocusPositionAtLeastOnce) {
-                    DEBUGF(INDI::Logger::DBG_DEBUG, "Focus position changed from %d to %d", position_from, position_to);
+                    LOGF_DEBUG("Focus position changed from %d to %d", position_from, position_to);
                 } else {
-                    DEBUGF(INDI::Logger::DBG_DEBUG, "Focus position is %d", position_to);
+                    LOGF_DEBUG("Focus position is %d", position_to);
                 }
                 FocusAbsPosN[0].value = position;
             }
@@ -378,23 +380,23 @@ bool Integra::getPosition(MotorType type)
                 auto position_from = (int) RotatorAbsPosN[0].value;
                 int position_to = position;
                 if (haveReadRotatorPositionAtLeastOnce) {
-                    DEBUGF(INDI::Logger::DBG_DEBUG, "Rotator changed angle from %.2f to %.2f, position from %d to %d",
+                    LOGF_DEBUG("Rotator changed angle from %.2f to %.2f, position from %d to %d",
                            rotatorTicksToDegrees(position_from), rotatorTicksToDegrees(position_to), position_from, position_to);
                 } else {
-                    DEBUGF(INDI::Logger::DBG_DEBUG, "Rotator angle is %.2f, position is %d",
+                    LOGF_DEBUG("Rotator angle is %.2f, position is %d",
                            rotatorTicksToDegrees(position_to), position_to);
                 }
                 RotatorAbsPosN[0].value = position;
             }
         }
         else {
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: motor type %d is unknown", __FUNCTION__, type);
+            LOGF_ERROR("%s error: motor type %d is unknown", __FUNCTION__, type);
         }
 
         return true;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Invalid Position! %d", position);
+    LOGF_DEBUG("Invalid Position! %d", position);
     return false;
 }
 
@@ -409,7 +411,7 @@ bool Integra::ISNewSwitch (const char * dev, const char * name, ISState * states
             switch (index)
             {
                 case HOMING_IDLE:
-                    DEBUG(INDI::Logger::DBG_SESSION, "Homing state is IDLE");
+                    LOG_INFO("Homing state is IDLE");
                     FindHomeS[HOMING_IDLE].s = ISS_ON;
                     FindHomeSP.s = IPS_OK;
                     break;
@@ -422,18 +424,18 @@ bool Integra::ISNewSwitch (const char * dev, const char * name, ISState * states
                     } else {
                         FindHomeSP.s = IPS_ALERT;
                         FindHomeS[HOMING_START].s = ISS_OFF;
-                        DEBUG(INDI::Logger::DBG_ERROR, "Failed to start homing process.");
+                        LOG_ERROR("Failed to start homing process.");
                     }
                     break;
                 case HOMING_ABORT:
                     if (abortHome()) {
                         FindHomeSP.s = IPS_IDLE;
                         FindHomeS[HOMING_ABORT].s = ISS_ON;
-                        DEBUG(INDI::Logger::DBG_WARNING, "Homing aborted");
+                        LOG_WARN("Homing aborted");
                     } else {
                         FindHomeSP.s = IPS_ALERT;
                         FindHomeS[HOMING_ABORT].s = ISS_OFF;
-                        DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort homing process.");
+                        LOG_ERROR("Failed to abort homing process.");
                     }
                     break;
                 default:
@@ -463,7 +465,7 @@ bool Integra::ISNewNumber (const char * dev, const char * name, double values[],
             RotatorAbsPosNP.s = (gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(values[0])) ? IPS_BUSY : IPS_ALERT);
             IDSetNumber(&RotatorAbsPosNP, nullptr);
             if (RotatorAbsPosNP.s == IPS_BUSY)
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Rotator moving from %d to %.f ticks...", lastRotatorPosition, values[0]);
+                LOGF_DEBUG("Rotator moving from %d to %.f ticks...", lastRotatorPosition, values[0]);
             return true;
         }
         else if (strstr(name, "ROTATOR"))
@@ -479,7 +481,7 @@ bool Integra::ISNewNumber (const char * dev, const char * name, double values[],
 IPState Integra::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPosition = targetTicks;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser will move absolute from %d to %d ...", lastFocuserPosition, targetTicks);
+    LOGF_DEBUG("Focuser will move absolute from %d to %d ...", lastFocuserPosition, targetTicks);
 
     bool rc = false;
     rc = gotoMotor(MOTOR_FOCUS, targetPosition);
@@ -495,7 +497,7 @@ IPState Integra::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     double newPosition = 0;
     bool rc = false;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Focuser will move in direction %d relative %d ticks...", dir, ticks);
+    LOGF_DEBUG("Focuser will move in direction %d relative %d ticks...", dir, ticks);
 
     if (dir == FOCUS_INWARD)
         newPosition = FocusAbsPosN[0].value - ticks;
@@ -532,12 +534,12 @@ void Integra::TimerHit()
             FindHomeSP.s = IPS_OK;
             IDSetSwitch(&FindHomeSP, nullptr);
 
-            DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete");
+            LOG_INFO("Homing is complete");
             // Next read positions and save to EEPROM :
             haveReadFocusPositionAtLeastOnce = false;
             haveReadRotatorPositionAtLeastOnce = false;
         } else {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Homing");
+            LOG_DEBUG("Homing");
         }
 
         SetTimer(POLLMS);
@@ -567,7 +569,7 @@ void Integra::TimerHit()
     {
         if ( ! isMotorMoving(MOTOR_FOCUS))
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Focuser stopped");
+            LOG_DEBUG("Focuser stopped");
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
             rc = getPosition(MOTOR_FOCUS);
@@ -577,16 +579,16 @@ void Integra::TimerHit()
                     IDSetNumber(&FocusAbsPosNP, nullptr);
                     IDSetNumber(&FocusRelPosNP, nullptr);
                     if (haveReadFocusPositionAtLeastOnce) {
-                        DEBUGF(INDI::Logger::DBG_SESSION, "Focuser reached requested position %d", lastFocuserPosition);
+                        LOGF_INFO("Focuser reached requested position %d", lastFocuserPosition);
                     } else {
-                        DEBUGF(INDI::Logger::DBG_SESSION, "Focuser position is %d", lastFocuserPosition);
+                        LOGF_INFO("Focuser position is %d", lastFocuserPosition);
                         haveReadFocusPositionAtLeastOnce = true;
                     }
                     savePositionsToEEPROM = true;
                 }
             }
         } else {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Focusing");
+            LOG_DEBUG("Focusing");
         }
     }
 
@@ -595,7 +597,7 @@ void Integra::TimerHit()
     {
         if ( ! isMotorMoving(MOTOR_ROTATOR))
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Rotator stopped");
+            LOG_DEBUG("Rotator stopped");
             RotatorAbsPosNP.s = IPS_OK;
             GotoRotatorNP.s = IPS_OK;
             rc = getPosition(MOTOR_ROTATOR);
@@ -606,10 +608,10 @@ void Integra::TimerHit()
                     IDSetNumber(&RotatorAbsPosNP, nullptr);
                     IDSetNumber(&GotoRotatorNP, nullptr);
                     if (haveReadRotatorPositionAtLeastOnce)
-                        DEBUGF(INDI::Logger::DBG_SESSION, "Rotator reached requested angle %.2f, position %d",
+                        LOGF_INFO("Rotator reached requested angle %.2f, position %d",
                                rotatorTicksToDegrees(lastRotatorPosition), lastRotatorPosition);
                     else {
-                        DEBUGF(INDI::Logger::DBG_SESSION, "Rotator is at angle %.2f, position %d",
+                        LOGF_INFO("Rotator is at angle %.2f, position %d",
                                rotatorTicksToDegrees(lastRotatorPosition), lastRotatorPosition);
                         haveReadRotatorPositionAtLeastOnce = true;
                     }
@@ -617,7 +619,7 @@ void Integra::TimerHit()
                 }
             }
         } else {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Rotating");
+            LOG_DEBUG("Rotating");
         }
     }
 
@@ -654,20 +656,20 @@ bool Integra::isMotorMoving(MotorType type) {
     }
     if (type == MOTOR_FOCUS) {
         if (res[0] == '1') {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Focus motor is running");
+            LOG_DEBUG("Focus motor is running");
             return true;
         } else {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Focus motor is not running");
+            LOG_DEBUG("Focus motor is not running");
             return false;
         }
     } else {
         // bug, both motors return 1 at res[0] when running
         //  return (res[0] == '2');
         if (res[0] == '1') {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Rotator motor is running");
+            LOG_DEBUG("Rotator motor is running");
             return true;
         } else {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Rotator motor is not running");
+            LOG_DEBUG("Rotator motor is not running");
             return false;
         }
     }
@@ -682,7 +684,7 @@ bool Integra::getMaxPosition(MotorType type)
     }
     int position = atoi(res);
     MaxPositionN[type].value = position;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Motor %d max position is %d", type, position);
+    LOGF_INFO("Motor %d max position is %d", type, position);
     return true;
 }
 
@@ -736,7 +738,7 @@ IPState Integra::MoveRotator(double angle)
     uint32_t p1 = lastRotatorPosition;
     uint32_t p2 = rotatorDegreesToTicks(angle);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "MoveRotator from %.2f to %.2f degrees, from position %d to %d ...",
+    LOGF_INFO("MoveRotator from %.2f to %.2f degrees, from position %d to %d ...",
            rotatorTicksToDegrees(lastRotatorPosition), angle, p1, p2);
     bool rc = relativeGotoMotor(MOTOR_ROTATOR, p2 - p1);
     if (rc)
@@ -769,7 +771,7 @@ uint32_t Integra::rotatorDegreesToTicks(double angle)
     } else if (angle > 180 && angle <= 360) {
         position = (uint32_t) lround(61802.0 - (540.0 - angle) / rotatorDegreesPerTick);
     } else {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %.2f is out of range", __FUNCTION__, angle);
+        LOGF_ERROR("%s error: %.2f is out of range", __FUNCTION__, angle);
     }
     return position;
 }
@@ -821,24 +823,24 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
     char errstr[MAXRBUF];
 
     cleanPrint(cmd, cmdnocrlf);
-    DEBUGF(INDI::Logger::DBG_SESSION, "CMD %s -%s-", name, cmdnocrlf);
+    LOGF_INFO("CMD %s -%s-", name, cmdnocrlf);
 
     tcflush(PortFD, TCIOFLUSH);
     if ( (rc = tty_write(PortFD, cmd, (int)strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", name, errstr);
+        LOGF_ERROR("%s: %s.", name, errstr);
         return false;
     }
 
     if ( (rc = tty_read_section(PortFD, res, '#', INTEGRA_TIMEOUT_IN_S, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", name, errstr);
+        LOGF_ERROR("%s error: %s.", name, errstr);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "RES %s -%s-", name, res);
+    LOGF_INFO("RES %s -%s-", name, res);
 
     // check begin of result string
     if (expectStart != nullptr)
@@ -848,7 +850,7 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
         {
             if (res[i] != expectStart[i])
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", name, res);
+                LOGF_ERROR("%s error: invalid response <%s>", name, res);
                 return false;
             }
         }
@@ -856,7 +858,7 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
     // check end of result string
     if (res[nbytes_read-1] != '#')
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: invalid response <%s>", name, res);
+        LOGF_ERROR("%s error: invalid response <%s>", name, res);
         return false;
     }
     res[nbytes_read-1] = '\0';  // wipe the #

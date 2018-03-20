@@ -198,7 +198,7 @@ bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[],
                 SolverS[0].s = ISS_ON;
                 SolverS[1].s = ISS_OFF;
                 SolverSP.s   = IPS_BUSY;
-                DEBUG(INDI::Logger::DBG_SESSION, "Astrometry solver is enabled.");
+                LOG_INFO("Astrometry solver is enabled.");
                 defineNumber(&SolverResultNP);
             }
 
@@ -259,12 +259,12 @@ bool AstrometryDriver::ISNewSwitch(const char *dev, const char *name, ISState *s
 
             if (SolverS[0].s == ISS_ON)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Astrometry solver is enabled.");
+                LOG_INFO("Astrometry solver is enabled.");
                 defineNumber(&SolverResultNP);
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Astrometry solver is disabled.");
+                LOG_INFO("Astrometry solver is disabled.");
                 deleteProperty(SolverResultNP.name);
             }
 
@@ -312,21 +312,21 @@ bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
 
         if (dataBuffer == nullptr)
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Unable to allocate memory for data buffer");
+            LOG_DEBUG("Unable to allocate memory for data buffer");
             return false;
         }
 
         int r = uncompress(dataBuffer, &destLen, data, len);
         if (r != Z_OK)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Astrometry compression error: %d", r);
+            LOGF_ERROR("Astrometry compression error: %d", r);
             delete[] dataBuffer;
             return false;
         }
 
         if (destLen != size)
         {
-            DEBUGF(INDI::Logger::DBG_WARNING, "Discrepency between uncompressed data size %ld and expected size %ld",
+            LOGF_WARN("Discrepency between uncompressed data size %ld and expected size %ld",
                    size, destLen);
         }
 
@@ -338,7 +338,7 @@ bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
     fp = fopen(imageFileName, "w");
     if (fp == nullptr)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unable to save image file (%s). %s", imageFileName, strerror(errno));
+        LOGF_ERROR("Unable to save image file (%s). %s", imageFileName, strerror(errno));
         if (size != len)
             delete[] processedData;
 
@@ -357,7 +357,7 @@ bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
 
     pthread_mutex_lock(&lock);
     SolverSP.s = IPS_BUSY;
-    DEBUG(INDI::Logger::DBG_SESSION, "Solving image...");
+    LOG_INFO("Solving image...");
     IDSetSwitch(&SolverSP, nullptr);
     pthread_mutex_unlock(&lock);
 
@@ -366,7 +366,7 @@ bool AstrometryDriver::processBLOB(uint8_t *data, uint32_t size, uint32_t len)
     if (result != 0)
     {
         SolverSP.s = IPS_ALERT;
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to create solver thread: %s", strerror(errno));
+        LOGF_INFO("Failed to create solver thread: %s", strerror(errno));
         IDSetSwitch(&SolverSP, nullptr);
     }
 
@@ -386,11 +386,11 @@ void AstrometryDriver::runSolver()
     snprintf(cmd, MAXRBUF, "%s %s -W /tmp/solution.wcs /tmp/ccdsolver.fits",
              SolverSettingsT[ASTROMETRY_SETTINGS_BINARY].text, SolverSettingsT[ASTROMETRY_SETTINGS_OPTIONS].text);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s", cmd);
+    LOGF_DEBUG("%s", cmd);
     FILE *handle = popen(cmd, "r");
     if (handle == nullptr)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Failed to run solver: %s", strerror(errno));
+        LOGF_DEBUG("Failed to run solver: %s", strerror(errno));
         pthread_mutex_lock(&lock);
         SolverSP.s = IPS_ALERT;
         IDSetSwitch(&SolverSP, nullptr);
@@ -400,7 +400,7 @@ void AstrometryDriver::runSolver()
 
     while (fgets(line, sizeof(line), handle) != nullptr)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s", line);
+        LOGF_DEBUG("%s", line);
 
         sscanf(line, "Field rotation angle: up is %f", &angle);
         sscanf(line, "Field center: (RA,Dec) = (%f,%f)", &ra, &dec);
@@ -434,7 +434,7 @@ void AstrometryDriver::runSolver()
             pthread_mutex_unlock(&lock);
 
             fclose(handle);
-            DEBUG(INDI::Logger::DBG_SESSION, "Solver complete.");
+            LOG_INFO("Solver complete.");
             return;
         }
 
@@ -445,7 +445,7 @@ void AstrometryDriver::runSolver()
             IDSetSwitch(&SolverSP, nullptr);
             pthread_mutex_unlock(&lock);
             fclose(handle);
-            DEBUG(INDI::Logger::DBG_SESSION, "Solver cancelled.");
+            LOG_INFO("Solver cancelled.");
             return;
         }
         pthread_mutex_unlock(&lock);
@@ -456,7 +456,7 @@ void AstrometryDriver::runSolver()
     pthread_mutex_lock(&lock);
     SolverSP.s = IPS_ALERT;
     IDSetSwitch(&SolverSP, nullptr);
-    DEBUG(INDI::Logger::DBG_SESSION, "Solver failed.");
+    LOG_INFO("Solver failed.");
     pthread_mutex_unlock(&lock);
 
     pthread_exit(nullptr);

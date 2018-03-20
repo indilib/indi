@@ -205,14 +205,14 @@ bool ioptronHC8406::checkConnection()
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing iOptron using :V# CMD...");
+    LOG_DEBUG("Initializing iOptron using :V# CMD...");
 
     for (int i = 0; i < 2; i++)
     {
         if ((errcode = tty_write(PortFD, initCMD, 3, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             nanosleep(&timeout, NULL);
             continue;
         }
@@ -220,7 +220,7 @@ bool ioptronHC8406::checkConnection()
         if ((errcode = tty_read_section(PortFD, response, '#', 3, &nbytes_read)))
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             nanosleep(&timeout, NULL);
             continue;
         }
@@ -228,7 +228,7 @@ bool ioptronHC8406::checkConnection()
         if (nbytes_read > 0)
         {
             response[nbytes_read] = '\0';
-            DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+            LOGF_DEBUG("RES (%s)", response);
 
             if (!strcmp(response, "V1.00#"))
                 return true;
@@ -365,7 +365,7 @@ void ioptronHC8406::ioptronHC8406Init()
 {
     //This mount doesn't report anything so we send some CMD
     //just to get syncronize with the GUI at start time
-    DEBUG(INDI::Logger::DBG_WARNING, "Sending init CMDs. Unpark, Stop tracking");
+    LOG_WARN("Sending init CMDs. Unpark, Stop tracking");
     UnPark();
     TrackState = SCOPE_IDLE;
     SetTrackEnabled(false);
@@ -382,7 +382,7 @@ bool ioptronHC8406::Goto(double r, double d)
 
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "<GOTO RA/DEC> %s/%s",RAStr,DecStr);
+    LOGF_DEBUG("<GOTO RA/DEC> %s/%s",RAStr,DecStr);
 
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
@@ -440,7 +440,7 @@ bool ioptronHC8406::Goto(double r, double d)
 
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing to RA: %s - DEC: %s",RAStr,DecStr);
+    LOGF_DEBUG("Slewing to RA: %s - DEC: %s",RAStr,DecStr);
     return true;
 }
 
@@ -489,8 +489,8 @@ bool ioptronHC8406::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
-    DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
+    LOGF_DEBUG("%s Synchronization successful %s", (syncType == USE_REGULAR_SYNC ? "CM" : "CMR"), syncString);
+    LOG_INFO("Synchronization successful.");
 
     EqNP.s     = IPS_OK;
 
@@ -506,7 +506,7 @@ int ioptronHC8406::ioptronHC8406SyncCMR(char *matchedObject)
     int nbytes_write = 0;
     int nbytes_read  = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", ":CMR#");
+    LOGF_DEBUG("CMD <%s>", ":CMR#");
 
     if ((error_type = tty_write_string(PortFD, ":CMR#", &nbytes_write)) != TTY_OK)
         return error_type;
@@ -516,7 +516,7 @@ int ioptronHC8406::ioptronHC8406SyncCMR(char *matchedObject)
 
     matchedObject[nbytes_read - 1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", matchedObject);
+    LOGF_DEBUG("RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
     nanosleep(&timeout, NULL);
@@ -568,24 +568,24 @@ bool ioptronHC8406::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %.2f", JD);
+    LOGF_DEBUG("New JD is %.2f", JD);
 
     // Set Local Time
     if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+        LOG_ERROR("Error setting local time.");
         return false;
     }
 
     if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+        LOG_ERROR("Error setting local date.");
         return false;
     }
 
     if (setioptronHC8406UTCOffset(utc_offset) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+        LOG_ERROR("Error setting UTC Offset.");
         return false;
     }
 
@@ -617,7 +617,7 @@ int ioptronHC8406::setCalenderDate(int fd, int dd, int mm, int yy)
 
     if (nbytes_read < 1)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Unable to read response");
+        LOG_ERROR("Unable to read response");
         return error_type;
     }
 
@@ -632,7 +632,7 @@ int ioptronHC8406::setCalenderDate(int fd, int dd, int mm, int yy)
 
     tcflush(fd, TCIFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Set date failed! Response: <%s>", response);
+    LOGF_DEBUG("Set date failed! Response: <%s>", response);
 
     return -1;
 }
@@ -653,13 +653,13 @@ bool ioptronHC8406::updateLocation(double latitude, double longitude, double ele
 
     if (!isSimulation() && setioptronHC8406Longitude(final_longitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        LOG_ERROR("Error setting site longitude coordinates");
         return false;
     }
 
     if (!isSimulation() && setioptronHC8406Latitude(latitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        LOG_ERROR("Error setting site latitude coordinates");
         return false;
     }
 
@@ -769,10 +769,10 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 bool ioptronHC8406::SetTrackEnabled(bool enabled)
 {
     if (enabled) {
-     DEBUG(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> START TRACKING AT SIDERAL SPEED (:RT2#)");
+     LOG_WARN("<SetTrackEnabled> START TRACKING AT SIDERAL SPEED (:RT2#)");
      return setioptronHC8406TrackMode(0);
     } else {
-     DEBUG(INDI::Logger::DBG_WARNING, "<SetTrackEnabled> STOP TRACKING (:RT9#)");
+     LOG_WARN("<SetTrackEnabled> STOP TRACKING (:RT9#)");
      return setioptronHC8406TrackMode(3);
     }
 }
@@ -825,7 +825,7 @@ bool ioptronHC8406::Park()
 
     EqNP.s     = IPS_BUSY;
     TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking is in progress...");
+    LOG_INFO("Parking is in progress...");
 
     return true;
 }
@@ -853,22 +853,22 @@ bool ioptronHC8406::ReadScopeStatus()
 
     switch (TrackState) {
     case SCOPE_IDLE:
-        DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> IDLE");
+        LOG_WARN("<ReadScopeStatus> IDLE");
         break;
     case SCOPE_SLEWING:
-        DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> SLEWING");
+        LOG_WARN("<ReadScopeStatus> SLEWING");
         break;
     case SCOPE_TRACKING:
-        DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> TRACKING");
+        LOG_WARN("<ReadScopeStatus> TRACKING");
         break;
     case SCOPE_PARKING:
-        DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> PARKING");
+        LOG_WARN("<ReadScopeStatus> PARKING");
         break;
     case SCOPE_PARKED:
-        DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> PARKED");
+        LOG_WARN("<ReadScopeStatus> PARKED");
         break;
     default:
-        DEBUG(INDI::Logger::DBG_WARNING, "<ReadScopeStatus> UNDEFINED");
+        LOG_WARN("<ReadScopeStatus> UNDEFINED");
         break;
     }
 
@@ -880,11 +880,11 @@ bool ioptronHC8406::ReadScopeStatus()
             nanosleep(&timeout, NULL); //Wait until :MS# finish
             if (IUFindSwitch(&CoordSP, "SYNC")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)  {
                 TrackState = SCOPE_IDLE;
-                DEBUG(INDI::Logger::DBG_WARNING, "Slew is complete. IDLE");
+                LOG_WARN("Slew is complete. IDLE");
             SetTrackEnabled(false);
         } else {
                 TrackState = SCOPE_TRACKING;
-                DEBUG(INDI::Logger::DBG_WARNING, "Slew is complete. TRACKING");
+                LOG_WARN("Slew is complete. TRACKING");
             SetTrackEnabled(true);
         }
         }
@@ -1052,7 +1052,7 @@ int ioptronHC8406::setMoveRate(int rate,int move_type)
         }
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
 
     tcflush(PortFD, TCIFLUSH);
@@ -1060,7 +1060,7 @@ int ioptronHC8406::setMoveRate(int rate,int move_type)
     if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return errcode;
     }
 
@@ -1075,7 +1075,7 @@ void ioptronHC8406::syncSideOfPier()
     char response[16] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -1083,7 +1083,7 @@ void ioptronHC8406::syncSideOfPier()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return;
     }
 
@@ -1092,7 +1092,7 @@ void ioptronHC8406::syncSideOfPier()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error reading from device %s (%d)", errmsg, rc);
         return;
     }
 
@@ -1100,7 +1100,7 @@ void ioptronHC8406::syncSideOfPier()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
+    LOGF_DEBUG("RES: <%s>", response);
 
     if (!strcmp(response, "East"))
         setPierSide(INDI::Telescope::PIER_EAST);
@@ -1175,12 +1175,12 @@ void ioptronHC8406::sendScopeTime()
     result = sscanf(utc_offset_res, "%d%*c%d%*c%d", &utc_h, &utc_m, &utc_s);
     if (result != 3)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error reading UTC offset from Telescope.");
+        LOG_ERROR("Error reading UTC offset from Telescope.");
         return;
     }
-    DEBUGF(INDI::Logger::DBG_DEBUG, "<VAL> UTC offset: %d:%d:%d --->%g",utc_h,utc_m, utc_s, lx200_utc_offset);
+    LOGF_DEBUG("<VAL> UTC offset: %d:%d:%d --->%g",utc_h,utc_m, utc_s, lx200_utc_offset);
     // LX200 TimeT Offset is defined at the number of hours added to LOCAL TIME to get TimeT. This is contrary to the normal definition.
-    DEBUGF(INDI::Logger::DBG_DEBUG, "<VAL> UTC offset str: %s",utc_offset_res);
+    LOGF_DEBUG("<VAL> UTC offset str: %s",utc_offset_res);
     IUSaveText(&TimeT[1], utc_offset_res);
     //IUSaveText(&TimeT[1], lx200_utc_offset);
 
@@ -1191,7 +1191,7 @@ void ioptronHC8406::sendScopeTime()
     result = sscanf(cdate, "%d%*c%d%*c%d", &year, &month, &day);
     if (result != 3)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error reading date from Telescope.");
+        LOG_ERROR("Error reading date from Telescope.");
         return;
     }
 
@@ -1217,8 +1217,8 @@ void ioptronHC8406::sendScopeTime()
     strftime(cdate, 32, "%Y-%m-%dT%H:%M:%S", &utm);
     IUSaveText(&TimeT[0], cdate);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller Local Time: %02d:%02d:%02d", h, m, s);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount controller UTC Time: %s", TimeT[0].text);
+    LOGF_DEBUG("Mount controller Local Time: %02d:%02d:%02d", h, m, s);
+    LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
 
     // Let's send everything to the client
     IDSetText(&TimeTP, nullptr);
@@ -1226,7 +1226,7 @@ void ioptronHC8406::sendScopeTime()
 
 int ioptronHC8406::SendPulseCmd(int direction, int Tduration_msec)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "<%s>", __FUNCTION__);
+    LOGF_DEBUG("<%s>", __FUNCTION__);
     const timespec timeout = {1, 0L};
     int rc = 0,  nbytes_written = 0;
     char cmd[20];
@@ -1237,7 +1237,7 @@ int ioptronHC8406::SendPulseCmd(int direction, int Tduration_msec)
     } else {
         duration_msec=Tduration_msec;
         Rduration=0;
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Pulse %d <999 Sent only one",Tduration_msec);
+            LOGF_DEBUG("Pulse %d <999 Sent only one",Tduration_msec);
     }
 
     switch (direction)
@@ -1257,19 +1257,19 @@ int ioptronHC8406::SendPulseCmd(int direction, int Tduration_msec)
         default:
             return 1;
     }
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return 1;
     }
     tcflush(PortFD, TCIFLUSH);
 
     if (Rduration!=0) {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "pulse guide. Pulse >999. ms left:%d",Rduration);
+        LOGF_DEBUG("pulse guide. Pulse >999. ms left:%d",Rduration);
         nanosleep(&timeout, NULL);   //wait until the previous one has fineshed
         return SendPulseCmd(direction,Rduration);
     }

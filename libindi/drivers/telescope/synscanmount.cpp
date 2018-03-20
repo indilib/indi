@@ -163,7 +163,7 @@ bool SynscanMount::ISNewText(const char *dev, const char *name, char *texts[], c
 bool SynscanMount::updateProperties()
 {
     INDI::Telescope::updateProperties();
-    DEBUG(INDI::Logger::DBG_SESSION, "Update Properties");
+    LOG_INFO("Update Properties");
 
     if (isConnected())
     {
@@ -228,11 +228,11 @@ bool SynscanMount::AnalyzeHandset()
         FirmwareVersion += (double)HexStrToInteger(std::string(&str[2], 2)) / 100;
         FirmwareVersion += (double)HexStrToInteger(std::string(&str[4], 2)) / 10000;
     }
-    DEBUGF(INDI::Logger::DBG_SESSION, "Firmware version: %lf", FirmwareVersion);
+    LOGF_INFO("Firmware version: %lf", FirmwareVersion);
     if (FirmwareVersion < 3.38 || (FirmwareVersion >= 4.0 && FirmwareVersion < 4.38))
     {
         IDMessage(nullptr, "Update Synscan firmware to V3.38/V4.38 or above");
-        DEBUG(INDI::Logger::DBG_SESSION, "Too old firmware version!");
+        LOG_INFO("Too old firmware version!");
     } else {
         NewFirmware = true;
     }
@@ -288,7 +288,7 @@ bool SynscanMount::ReadScopeStatus()
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
     if (str[1] != '#')
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Synscan Mount not responding");
+        LOG_INFO("Synscan Mount not responding");
         // Usually, Abort() recovers the communication
         RecoverTrials++;
         Abort();
@@ -471,7 +471,7 @@ bool SynscanMount::ReadScopeStatus()
     numread = tty_read(PortFD, str, 18, 1, &bytesRead);
     if (bytesRead != 18)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Read current position failed");
+        LOG_DEBUG("Read current position failed");
         return false;
     }
 
@@ -516,7 +516,7 @@ bool SynscanMount::ReadScopeStatus()
             {
                 NewRate = 3;
             }
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing Alt axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
+            LOGF_DEBUG("Slewing Alt axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
                    CurrentAltAz.alt, SlewTargetAlt, CurrentAltAz.alt-SlewTargetAlt, CustomNSSlewRate);
             if (NewRate != CustomNSSlewRate)
             {
@@ -534,7 +534,7 @@ bool SynscanMount::ReadScopeStatus()
         {
             MoveNS(DIRECTION_NORTH, MOTION_STOP);
             SlewTargetAlt = -1;
-            DEBUG(INDI::Logger::DBG_SESSION, "Slewing on Alt axis finished");
+            LOG_INFO("Slewing on Alt axis finished");
         }
         DiffAz = CurrentAltAz.az-SlewTargetAz;
         if (DiffAz < -180)
@@ -566,7 +566,7 @@ bool SynscanMount::ReadScopeStatus()
             {
                 NewRate = 3;
             }
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Slewing Az axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
+            LOGF_DEBUG("Slewing Az axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
                    CurrentAltAz.az, SlewTargetAz, CurrentAltAz.az-SlewTargetAz, CustomWESlewRate);
             if (NewRate != CustomWESlewRate)
             {
@@ -584,7 +584,7 @@ bool SynscanMount::ReadScopeStatus()
         {
             MoveWE(DIRECTION_WEST, MOTION_STOP);
             SlewTargetAz = -1;
-            DEBUG(INDI::Logger::DBG_SESSION, "Slewing on Az axis finished");
+            LOG_INFO("Slewing on Az axis finished");
         }
         if (SlewTargetAz == -1 && SlewTargetAlt == -1)
         {
@@ -600,7 +600,7 @@ bool SynscanMount::StartTrackMode()
     int numread, bytesWritten, bytesRead;
 
     TrackState = SCOPE_TRACKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "Tracking started");
+    LOG_INFO("Tracking started");
     // Start tracking
     str[0] = 'T';
     // Check the mount type to choose tracking mode
@@ -616,7 +616,7 @@ bool SynscanMount::StartTrackMode()
     numread = tty_read(PortFD, str, 1, 2, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to start tracking.");
+        LOG_DEBUG("Timeout waiting for scope to start tracking.");
         return false;
     }
     return true;
@@ -632,7 +632,7 @@ bool SynscanMount::Goto(double ra, double dec)
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
     if (str[1] != '#')
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Wrong answer from the mount");
+        LOG_INFO("Wrong answer from the mount");
         //  this is not a correct echo
         //  so we are not talking to a mount properly
         return false;
@@ -650,17 +650,17 @@ bool SynscanMount::Goto(double ra, double dec)
         sprintf((char*)str, "r%08X,%08X", n1, n2);
         tty_write(PortFD, str, 18, &bytesWritten);
         memset(&str[18], 0, 1);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Goto - ra: %g de: %g", ra, dec);
+        LOGF_DEBUG("Goto - ra: %g de: %g", ra, dec);
         numread = tty_read(PortFD, str, 1, 60, &bytesRead);
         if (bytesRead != 1 || str[0] != '#')
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to complete goto.");
+            LOG_DEBUG("Timeout waiting for scope to complete goto.");
             return false;
         }
         return true;
     }
     TargetAltAz = GetAltAzPosition(ra, dec);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Goto - ra: %g de: %g (az: %g alt: %g)", ra, dec,
+    LOGF_DEBUG("Goto - ra: %g de: %g (az: %g alt: %g)", ra, dec,
            TargetAltAz.az, TargetAltAz.alt);
     SlewTargetAz = TargetAltAz.az;
     SlewTargetAlt = TargetAltAz.alt;
@@ -689,7 +689,7 @@ bool SynscanMount::Park()
     numread = tty_read(PortFD, str, 1, 60, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to stop tracking.");
+        LOG_DEBUG("Timeout waiting for scope to stop tracking.");
         return false;
     }
 
@@ -698,14 +698,14 @@ bool SynscanMount::Park()
     numread = tty_read(PortFD, str, 1, 60, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to respond to park.");
+        LOG_DEBUG("Timeout waiting for scope to respond to park.");
         return false;
     }
 
     TrackState = SCOPE_PARKING;
     if (NumPark == 0)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Parking Mount...");
+        LOG_INFO("Parking Mount...");
     }
     StopCount = 0;
     return true;
@@ -720,14 +720,14 @@ bool SynscanMount::UnPark()
 
 bool SynscanMount::SetCurrentPark()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Setting arbitrary park positions is not supported yet.");
+    LOG_INFO("Setting arbitrary park positions is not supported yet.");
     return false;
 }
 
 bool SynscanMount::SetDefaultPark()
 {
     // By default az to north, and alt to pole
-    DEBUG(INDI::Logger::DBG_DEBUG, "Setting Park Data to Default.");
+    LOG_DEBUG("Setting Park Data to Default.");
     SetAxis1Park(0);
     SetAxis2Park(90);
 
@@ -742,7 +742,7 @@ bool SynscanMount::Abort()
     char str[20];
     int numread, bytesWritten, bytesRead;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Abort any motions");
+    LOG_INFO("Abort any motions");
     TrackState = SCOPE_IDLE;
     SlewTargetAlt = -1;
     SlewTargetAz = -1;
@@ -755,7 +755,7 @@ bool SynscanMount::Abort()
     numread = tty_read(PortFD, str, 1, 2, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to stop tracking.");
+        LOG_DEBUG("Timeout waiting for scope to stop tracking.");
         return false;
     }
 
@@ -930,7 +930,7 @@ bool SynscanMount::ReadLocation()
     tty_read(PortFD, str, 2, 2, &bytesRead);   //  Read 2 bytes of response
     if (str[1] != '#')
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Bad echo in ReadLocation");
+        LOG_INFO("Bad echo in ReadLocation");
     }
     else
     {
@@ -983,7 +983,7 @@ bool SynscanMount::ReadLocation()
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Mount does not support setting location");
+            LOG_INFO("Mount does not support setting location");
         }
     }
     return false;
@@ -1020,7 +1020,7 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     tty_read(PortFD, str, 1, 2, &bytesRead);
     if (str[0] != '#')
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Invalid return from set time");
+        LOG_INFO("Invalid return from set time");
     }
     return true;
 }
@@ -1059,7 +1059,7 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
         }
         p1.lat = latitude;
         ln_lnlat_to_hlnlat(&p1, &p2);
-        DEBUGF(INDI::Logger::DBG_SESSION, "Update location - latitude %d:%d:%1.2f longitude %d:%d:%1.2f\n",
+        LOGF_INFO("Update location - latitude %d:%d:%1.2f longitude %d:%d:%1.2f\n",
                p2.lat.degrees, p2.lat.minutes, p2.lat.seconds, p2.lng.degrees, p2.lng.minutes, p2.lng.seconds);
 
         str[0] = 'W';
@@ -1089,7 +1089,7 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
         tty_read(PortFD, str, 1, 2, &bytesRead);
         if (str[0] != '#')
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Invalid response for location setting");
+            LOG_INFO("Invalid response for location setting");
         }
         //  want to read it on the next cycle, so we update the fields in the client
         ReadLatLong = true;
@@ -1105,7 +1105,7 @@ bool SynscanMount::Sync(double ra, double dec)
     // Abort any motion before syncing
     Abort();
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Sync %g %g -> %g %g", CurrentRA, CurrentDEC, ra, dec);
+    LOGF_INFO("Sync %g %g -> %g %g", CurrentRA, CurrentDEC, ra, dec);
 
     char str[20];
     int numread, bytesWritten, bytesRead;
@@ -1114,10 +1114,10 @@ bool SynscanMount::Sync(double ra, double dec)
     TargetAltAz = GetAltAzPosition(ra, dec);
     if (isDebug())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
+        LOGF_INFO("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
                TargetAltAz.az, TargetAltAz.alt);
     } else {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
+        LOGF_DEBUG("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
                TargetAltAz.az, TargetAltAz.alt);
     }
     // Assemble the Reset Position command for Az axis
@@ -1159,12 +1159,12 @@ bool SynscanMount::Sync(double ra, double dec)
     n2 = n2 << 8;
     sprintf((char*)str, "s%08X,%08X", n1, n2);
     memset(&str[18], 0, 1);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Send Sync command to the handset (%s)", str);
+    LOGF_DEBUG("Send Sync command to the handset (%s)", str);
     tty_write(PortFD, str, 18, &bytesWritten);
     numread = tty_read(PortFD, str, 1, 60, &bytesRead);
     if (bytesRead != 1 || str[0] != '#')
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Timeout waiting for scope to complete syncing.");
+        LOG_DEBUG("Timeout waiting for scope to complete syncing.");
         return false;
     }
     // Start tracking again

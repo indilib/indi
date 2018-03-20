@@ -116,7 +116,7 @@ bool NexStarEvo::Abort()
     AbortSP.s = IPS_OK;
     IUResetSwitch(&AbortSP);
     IDSetSwitch(&AbortSP, NULL);
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope aborted.");
+    LOG_INFO("Telescope aborted.");
 
     return true;
 }

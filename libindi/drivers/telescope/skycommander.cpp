@@ -87,7 +87,7 @@ bool SkyCommander::ReadScopeStatus()
     char CR[1] = { 0x0D };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %#02X", CR[0]);
+    LOGF_DEBUG("CMD: %#02X", CR[0]);
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -95,7 +95,7 @@ bool SkyCommander::ReadScopeStatus()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to SkyCommander %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to SkyCommander %s (%d)", errmsg, rc);
         return false;
     }
 
@@ -104,25 +104,25 @@ bool SkyCommander::ReadScopeStatus()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from SkyCommander %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error reading from SkyCommander %s (%d)", errmsg, rc);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", coords);
+    LOGF_DEBUG("RES: %s", coords);
 
     float RA = 0.0, DEC = 0.0;
     nbytes_read = sscanf(coords, " %g %g", &RA, &DEC);
 
     if (nbytes_read < 2)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error in Sky commander number format (%s).", coords);
+        LOGF_ERROR("Error in Sky commander number format (%s).", coords);
         return false;
     }
 
     char RAStr[64], DecStr[64];
     fs_sexa(RAStr, RA, 2, 3600);
     fs_sexa(DecStr, DEC, 2, 3600);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Current RA: %s Current DEC: %s", RAStr, DecStr);
+    LOGF_DEBUG("Current RA: %s Current DEC: %s", RAStr, DecStr);
 
     NewRaDec(RA, DEC);
     return true;

@@ -164,7 +164,7 @@ void RollOff::TimerHit()
         // Abort called
         if (MotionRequest < 0)
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Roof motion is stopped.");
+            LOG_INFO("Roof motion is stopped.");
             setDomeState(DOME_IDLE);
             SetTimer(1000);
             return;
@@ -175,7 +175,7 @@ void RollOff::TimerHit()
         {
             if (getFullOpenedLimitSwitch())
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Roof is open.");
+                LOG_INFO("Roof is open.");
                 SetParked(false);
                 return;
             }
@@ -185,7 +185,7 @@ void RollOff::TimerHit()
         {
             if (getFullClosedLimitSwitch())
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Roof is closed.");
+                LOG_INFO("Roof is closed.");
                 SetParked(true);
                 return;
             }
@@ -209,17 +209,17 @@ IPState RollOff::Move(DomeDirection dir, DomeMotionCommand operation)
         // DOME_CW --> OPEN. If can we are ask to "open" while we are fully opened as the limit switch indicates, then we simply return false.
         if (dir == DOME_CW && fullOpenLimitSwitch == ISS_ON)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Roof is already fully opened.");
+            LOG_WARN("Roof is already fully opened.");
             return IPS_ALERT;
         }
         else if (dir == DOME_CW && getWeatherState() == IPS_ALERT)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Weather conditions are in the danger zone. Cannot open roof.");
+            LOG_WARN("Weather conditions are in the danger zone. Cannot open roof.");
             return IPS_ALERT;
         }
         else if (dir == DOME_CCW && fullClosedLimitSwitch == ISS_ON)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Roof is already fully closed.");
+            LOG_WARN("Roof is already fully closed.");
             return IPS_ALERT;
         }
         else if (dir == DOME_CCW && INDI::Dome::isLocked())
@@ -245,7 +245,7 @@ IPState RollOff::Park()
     IPState rc = INDI::Dome::Move(DOME_CCW, MOTION_START);
     if (rc == IPS_BUSY)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Roll off is parking...");
+        LOG_INFO("Roll off is parking...");
         return IPS_BUSY;
     }
     else
@@ -257,7 +257,7 @@ IPState RollOff::UnPark()
     IPState rc = INDI::Dome::Move(DOME_CW, MOTION_START);
     if (rc == IPS_BUSY)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Roll off is unparking...");
+        LOG_INFO("Roll off is unparking...");
         return IPS_BUSY;
     }
     else

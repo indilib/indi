@@ -43,7 +43,7 @@ AAGCloudWatcher::AAGCloudWatcher()
 {
     setVersion(AAG_VERSION_MAJOR, AAG_VERSION_MINOR);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Initializing from AAG Cloud Watcher device...");
+    LOG_DEBUG("Initializing from AAG Cloud Watcher device...");
 
     cwc = NULL;
 
