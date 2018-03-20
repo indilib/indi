@@ -34,7 +34,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 {
   public:
     QHYCCD(const char *name);
-    virtual ~QHYCCD();
+    virtual ~QHYCCD() = default;
 
     virtual const char *getDefaultName() override;
 

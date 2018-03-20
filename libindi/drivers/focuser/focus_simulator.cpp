@@ -74,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 ************************************************************************************/
 FocusSim::FocusSim()
 {
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED);
 }
 
 /************************************************************************************
@@ -210,7 +210,7 @@ bool FocusSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                     return true;
             }
 
-            SetFocuserCapability(cap);
+            FI::SetCapability(cap);
             ModeSP.s = IPS_OK;
             IDSetSwitch(&ModeSP, nullptr);
             return true;

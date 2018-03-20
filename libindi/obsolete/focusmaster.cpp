@@ -76,8 +76,8 @@ void ISSnoopDevice(XMLEle *root)
 
 FocusMaster::FocusMaster()
 {
-    SetFocuserCapability(FOCUSER_CAN_ABORT);
-    setFocuserConnection(CONNECTION_NONE);
+    FI::SetCapability(FOCUSER_CAN_ABORT);
+    setConnection(CONNECTION_NONE);
 }
 
 bool FocusMaster::Connect()
@@ -94,7 +94,7 @@ bool FocusMaster::Connect()
         // N.B. Check here if we have the digital readout gadget.
 
         // if digital readout
-        //SetFocuserCapability(GetFocuserCapability() | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
+        //FI::SetCapability(GetFocuserCapability() | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
 
         SetTimer(POLLMS);
 

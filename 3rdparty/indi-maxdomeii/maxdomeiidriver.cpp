@@ -54,19 +54,6 @@
 #define EXIT_SHUTTER            0x04 // Command send to shutter on program exit
 #define ABORT_SHUTTER           0x07
 
-// logging macros
-#define LOG_DEBUG(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_DEBUG, (txt))
-#define LOG_INFO(txt)   DEBUGDEVICE(device_str, INDI::Logger::DBG_SESSION, (txt))
-#define LOG_WARN(txt)   DEBUGDEVICE(device_str, INDI::Logger::DBG_WARNING, (txt))
-#define LOG_ERROR(txt)  DEBUGDEVICE(device_str, INDI::Logger::DBG_ERROR, (txt))
-#define LOG_EXTRA(...)  DEBUGDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, (txt))
-
-#define LOGF_DEBUG(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_DEBUG, __VA_ARGS__)
-#define LOGF_INFO(...)  DEBUGFDEVICE(device_str, INDI::Logger::DBG_SESSION, __VA_ARGS__)
-#define LOGF_WARN(...)  DEBUGFDEVICE(device_str, INDI::Logger::DBG_WARNING, __VA_ARGS__)
-#define LOGF_ERROR(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_ERROR, __VA_ARGS__)
-#define LOGF_EXTRA(...) DEBUGFDEVICE(device_str, INDI::Logger::DBG_EXTRA_1, __VA_ARGS__)
-
 
 // Error messages
 const char *ErrorMessages[] = {
@@ -83,7 +70,7 @@ const char *ErrorMessages[] = {
 char device_str[MAXINDIDEVICE] = "MaxDome II";
 
 
-void hex_dump(char *buf, const char *data, int size)
+void hexDump(char *buf, const char *data, int size)
 {
     for (int i = 0; i < size; i++)
         sprintf(buf + 3 * i, "%02X ", (unsigned char)data[i]);
@@ -95,6 +82,12 @@ void hex_dump(char *buf, const char *data, int size)
 void MaxDomeIIDriver::SetPortFD(int port_fd)
 {
     fd = port_fd;
+}
+
+// This method is required by the logging macros
+const char *MaxDomeIIDriver::getDeviceName()
+{
+    return device_str;
 }
 
 void MaxDomeIIDriver::SetDevice(const char *name)
@@ -232,7 +225,7 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
 
     memcpy(cmd + 3, payload, payloadLen);
 
-    //hex_dump(hexbuf, cmd, 4 + payloadLen);
+    //hexDump(hexbuf, cmd, 4 + payloadLen);
     //LOGF_DEBUG("CMD (%s)", hexbuf);
 
     tcflush(fd, TCIOFLUSH);
@@ -253,7 +246,7 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
         return -6;
     }
 
-    //hex_dump(hexbuf, buffer, nbytes);
+    //hexDump(hexbuf, buffer, nbytes);
     //LOGF_DEBUG("RES (%s)", hexbuf);
 
     return 0;

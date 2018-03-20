@@ -74,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 SestoSenso::SestoSenso()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
 bool SestoSenso::initProperties()

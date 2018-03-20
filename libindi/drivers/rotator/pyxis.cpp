@@ -76,7 +76,7 @@ void ISSnoopDevice (XMLEle *root)
 Pyxis::Pyxis()
 {
     // We do not have absolute ticks
-    SetRotatorCapability(ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
+    RI::SetCapability(ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
 
     setRotatorConnection(CONNECTION_SERIAL);
 }

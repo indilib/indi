@@ -19,29 +19,16 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "maxdomeii.h"
-
 #include "config.h"
+#include "maxdomeii.h"
 #include "maxdomeiidriver.h"  // MaxDome II Command Set
 
 #include <connectionplugins/connectionserial.h>
 
 #include <memory>
-
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
-
-// logging macros
-#define LOG_DEBUG(txt)  DEBUG(INDI::Logger::DBG_DEBUG, (txt))
-#define LOG_INFO(txt)   DEBUG(INDI::Logger::DBG_SESSION, (txt))
-#define LOG_WARN(txt)   DEBUG(INDI::Logger::DBG_WARNING, (txt))
-#define LOG_ERROR(txt)  DEBUG(INDI::Logger::DBG_ERROR, (txt))
-
-#define LOGF_DEBUG(...) DEBUGF(INDI::Logger::DBG_DEBUG, __VA_ARGS__)
-#define LOGF_INFO(...)  DEBUGF(INDI::Logger::DBG_SESSION, __VA_ARGS__)
-#define LOGF_WARN(...)  DEBUGF(INDI::Logger::DBG_WARNING, __VA_ARGS__)
-#define LOGF_ERROR(...) DEBUGF(INDI::Logger::DBG_ERROR, __VA_ARGS__)
 
 
 // We declare an auto pointer to dome.
