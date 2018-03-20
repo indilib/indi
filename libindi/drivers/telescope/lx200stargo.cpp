@@ -542,6 +542,12 @@ bool LX200StarGo::UnPark() {
  * Queries
  *********************************************************************************/
 
+/**
+ * @brief Send a LX200 query to the communication port and read the result.
+ * @param cmd LX200 query
+ * @param response answer
+ * @return true if the command succeeded, false otherwise
+ */
 bool LX200StarGo::sendQuery(const char* cmd, char* response) {
     flush();
     if(!transmit(cmd)) {
@@ -556,7 +562,14 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response) {
     return true;
 }
 
-
+/**
+ * @brief Query the motion state of the mount.
+ * @param motorsState - tracking status of RA and DEC motor
+ * @param speedState - 0 no tracking at all, 1 tracking at moon speed
+ *        2 tracking at sun speed, 3 tracking at stars speed (sidereal speed)
+ * @param nrTrackingSpeed
+ * @return true if the command succeeded, false otherwise
+ */
 bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed) {
     // Command  - :X3C#
 
@@ -619,6 +632,12 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched) {
     return true;
 }
 
+
+/**
+ * @brief Enable / disable tracking of the mount
+ * @param enable if true, tracking is enabled
+ * @return true if the command succeeded, false otherwise
+ */
 bool LX200StarGo::querySetTracking (bool enable) {
     // Command tracking on  - :X122#
     //         tracking off - :X120#
@@ -638,6 +657,12 @@ bool LX200StarGo::querySetTracking (bool enable) {
     return true;
 }
 
+
+/**
+ * @brief Retrieve the firmware info from the mount
+ * @param firmwareInfo - firmware description
+ * @return
+ */
 bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo) {
 
     int bytesReceived = 0;
@@ -693,7 +718,13 @@ bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo) {
  *********************************************************************************/
 
 
-
+/**
+ * @brief Receive answer from the communication port.
+ * @param buffer - buffer holding the answer
+ * @param bytes - number of bytes contained in the answer
+ * @author CanisUrsa
+ * @return true if communication succeeded, false otherwise
+ */
 bool LX200StarGo::receive(char* buffer, int* bytes) {
     int returnCode = tty_read_section(PortFD, buffer, '#', AVALON_TIMEOUT, bytes);
     if (returnCode != TTY_OK) {
@@ -705,7 +736,10 @@ bool LX200StarGo::receive(char* buffer, int* bytes) {
     return true;
 }
 
-
+/**
+ * @brief Flush the communication port.
+ * @author CanisUrsa
+ */
 void LX200StarGo::flush() {
     tcflush(PortFD, TCIOFLUSH);
 }
