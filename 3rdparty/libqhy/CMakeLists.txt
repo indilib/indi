@@ -16,7 +16,7 @@ IF (APPLE)
 
 set(FIRMWARE_INSTALL_DIR "/usr/local/lib/indi/DriverSupport/qhy/firmware" CACHE STRING "QHY firmware installation directory")
 exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhy.dylib ${CMAKE_BINARY_DIR}/libqhyccd.${LIBQHY_VERSION}.dylib)
-install(FILES ${CMAKE_BINARY_DIR}/libqhy.${LIBQHY_VERSION}.dylib DESTINATION ${LIB_INSTALL_DIR})
+install(FILES ${CMAKE_BINARY_DIR}/libqhyccd.${LIBQHY_VERSION}.dylib DESTINATION ${LIB_INSTALL_DIR})
 
 # Make sure symbolic links are installed
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake "
