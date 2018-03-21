@@ -596,6 +596,21 @@ target_link_libraries(indi_ieq_telescope indidriver)
 
 install(TARGETS indi_ieq_telescope RUNTIME DESTINATION bin)
 
+########### IOptronV3 / CEM120 #############
+SET(ioptronv3_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronv3driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronv3.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(ioptronv3 ioptronv3_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_ioptronv3_telescope ${ioptronv3_SRC})
+
+target_link_libraries(indi_ioptronv3_telescope indidriver)
+
+install(TARGETS indi_ioptronv3_telescope RUNTIME DESTINATION bin)
+
 ########### Explore Scientific PMC8 #############
 SET(pmc8_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/pmc8driver.cpp
