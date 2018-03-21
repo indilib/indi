@@ -44,14 +44,15 @@ ENDIF(UNIX AND NOT WIN32)
 install(FILES 85-qhy.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 install(FILES ${CMAKE_BINARY_DIR}/libqhyccd.so.${LIBQHY_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
 
-ENDIF (APPLE)
-
-install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h DESTINATION include/libqhy)
 # Make sure symbolic links are installed
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"libqhyccd.so.${LIBQHY_VERSION}\" \"libqhyccd.so.${LIBQHY_SOVERSION}\" WORKING_DIRECTORY
 \"\$ENV{DESTDIR}/${BUILD_ROOT}${LIB_INSTALL_DIR}${LIB_POSTFIX}\" )" )
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"libqhyccd.so.${LIBQHY_SOVERSION}\" \"libqhyccd.so\" WORKING_DIRECTORY
 \"\$ENV{DESTDIR}/${BUILD_ROOT}${LIB_INSTALL_DIR}${LIB_POSTFIX}\" )" )
+
+ENDIF (APPLE)
+
+install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h DESTINATION include/libqhy)
 
 install(
    CODE "
