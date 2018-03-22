@@ -32,8 +32,8 @@
 
 #include "scopedome_dome.h"
 
-#include "indicom.h"
 #include "connectionplugins/connectionserial.h"
+#include "indicom.h"
 
 #include <cmath>
 #include <cstring>
@@ -141,8 +141,8 @@ bool ScopeDome::initProperties()
 
     IUFillSwitch(&ParkShutterS[0], "ON", "On", ISS_ON);
     IUFillSwitch(&ParkShutterS[1], "OFF", "Off", ISS_OFF);
-    IUFillSwitchVector(&ParkShutterSP, ParkShutterS, 2, getDeviceName(), "PARK_SHUTTER", "Park controls shutter", OPTIONS_TAB, IP_RW,
-                       ISR_1OFMANY, 0, IPS_OK);
+    IUFillSwitchVector(&ParkShutterSP, ParkShutterS, 2, getDeviceName(), "PARK_SHUTTER", "Park controls shutter",
+                       OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     IUFillSwitch(&FindHomeS[0], "START", "Start", ISS_OFF);
     IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "FIND_HOME", "Find home", MAIN_CONTROL_TAB, IP_RW,
@@ -236,12 +236,14 @@ bool ScopeDome::SetupParms()
 
     if (InitPark())
     {
-        // If loading parking data is successful, we just set the default parking values.
+        // If loading parking data is successful, we just set the default parking
+        // values.
         SetAxis1ParkDefault(0);
     }
     else
     {
-        // Otherwise, we set all parking data to default in case no parking data is found.
+        // Otherwise, we set all parking data to default in case no parking data is
+        // found.
         SetAxis1Park(0);
         SetAxis1ParkDefault(0);
     }
@@ -411,7 +413,9 @@ bool ScopeDome::UpdateShutterStatus()
 {
     int rc = readBuffer(GetAllDigitalExt, 5, digitalSensorState);
 
-    //LOGF_INFO("digitalext %x %x %x %x %x", digitalSensorState[0], digitalSensorState[1], digitalSensorState[2], digitalSensorState[3], digitalSensorState[4]);
+    // LOGF_INFO("digitalext %x %x %x %x %x", digitalSensorState[0],
+    // digitalSensorState[1], digitalSensorState[2], digitalSensorState[3],
+    // digitalSensorState[4]);
     SensorsS[0].s  = getInputState(IN_ENCODER);
     SensorsS[1].s  = ISS_OFF; // ?
     SensorsS[2].s  = getInputState(IN_HOME);
@@ -437,7 +441,7 @@ bool ScopeDome::UpdateShutterStatus()
         {
             LOGF_INFO("%s", GetShutterStatusString(SHUTTER_OPENED));
             setOutputState(OUT_OPEN1, ISS_OFF);
-	    shutterState                 = SHUTTER_OPENED;
+            shutterState = SHUTTER_OPENED;
             if (getDomeState() == DOME_UNPARKING)
                 SetParked(false);
         }
@@ -449,7 +453,7 @@ bool ScopeDome::UpdateShutterStatus()
         {
             LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
             setOutputState(OUT_CLOSE1, ISS_OFF);
-	    shutterState                  = SHUTTER_CLOSED;
+            shutterState = SHUTTER_CLOSED;
 
             if (getDomeState() == DOME_PARKING)
             {
@@ -548,7 +552,7 @@ void ScopeDome::TimerHit()
         return; //  No need to reset timer if we are not connected anymore
 
     currentStatus = readU16(GetStatus);
-    //LOGF_INFO("Status: %x", currentStatus);
+    // LOGF_INFO("Status: %x", currentStatus);
     UpdatePosition();
 
     UpdateShutterStatus();
@@ -730,7 +734,7 @@ IPState ScopeDome::MoveRel(double azDiff)
 IPState ScopeDome::Park()
 {
     // First move to park position and then optionally close shutter
-    targetAz = GetAxis1Park();
+    targetAz  = GetAxis1Park();
     IPState s = MoveAbs(targetAz);
     if (s == IPS_OK && ParkShutterS[0].s == ISS_ON)
     {
@@ -997,7 +1001,8 @@ int ScopeDome::setOutputState(ScopeDomeDigitalIO channel, ISState onOff)
  *   ITS-90 Formulations for Vapor Pressure, Frostpoint Temperature,
  *   Dewpoint Temperature, and Enhancement Factors in the Range 100 to +100 C
  * by Bob Hardy
- * as published in "The Proceedings of the Third International Symposium on Humidity & Moisture",
+ * as published in "The Proceedings of the Third International Symposium on
+ * Humidity & Moisture",
  * Teddington, London, England, April 1998
  */
 static const float k0 = -5.8666426e3;
@@ -1021,7 +1026,8 @@ static float pvsIce(float T)
  * by IAPWS (International Association for the Properties of Water and Steam),
  * Erlangen, Germany, September 1997.
  *
- * This is Equation (30) in Section 8.1 "The Saturation-Pressure Equation (Basic Equation)"
+ * This is Equation (30) in Section 8.1 "The Saturation-Pressure Equation (Basic
+ * Equation)"
  */
 
 static const float n1  = 0.11670521452767e4;
