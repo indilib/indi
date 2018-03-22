@@ -442,6 +442,9 @@ class ScopeDome : public INDI::Dome
     ISwitch RelaysS[4];
     ISwitchVectorProperty RelaysSP;
 
+    ISwitch ParkShutterS[2];
+    ISwitchVectorProperty ParkShutterSP;
+
     ISwitch AutoCloseS[8];
     ISwitchVectorProperty AutoCloseSP;
 

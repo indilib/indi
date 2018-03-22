@@ -125,7 +125,7 @@ ScopeDome::ScopeDome()
                 lineNum++;
             }
             fclose(inertia);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Read inertia file %s", wexp.we_wordv[0]);
+            LOGF_INFO("Read inertia file %s", wexp.we_wordv[0]);
         }
     }
     wordfree(&wexp);
@@ -138,6 +138,11 @@ bool ScopeDome::initProperties()
     IUFillNumber(&DomeHomePositionN[0], "DH_POSITION", "AZ (deg)", "%6.2f", 0.0, 360.0, 1.0, 0.0);
     IUFillNumberVector(&DomeHomePositionNP, DomeHomePositionN, 1, getDeviceName(), "DOME_HOME_POSITION",
                        "Home sensor position", SITE_TAB, IP_RW, 60, IPS_OK);
+
+    IUFillSwitch(&ParkShutterS[0], "ON", "On", ISS_ON);
+    IUFillSwitch(&ParkShutterS[1], "OFF", "Off", ISS_OFF);
+    IUFillSwitchVector(&ParkShutterSP, ParkShutterS, 2, getDeviceName(), "PARK_SHUTTER", "Park controls shutter", OPTIONS_TAB, IP_RW,
+                       ISR_1OFMANY, 0, IPS_OK);
 
     IUFillSwitch(&FindHomeS[0], "START", "Start", ISS_OFF);
     IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "FIND_HOME", "Find home", MAIN_CONTROL_TAB, IP_RW,
@@ -277,6 +282,7 @@ bool ScopeDome::updateProperties()
         defineNumber(&DomeHomePositionNP);
         defineNumber(&EnvironmentSensorsNP);
         defineSwitch(&SensorsSP);
+        defineSwitch(&ParkShutterSP);
         SetupParms();
     }
     else
@@ -289,6 +295,7 @@ bool ScopeDome::updateProperties()
         deleteProperty(AutoCloseSP.name);
         deleteProperty(DomeHomePositionNP.name);
         deleteProperty(EnvironmentSensorsNP.name);
+        deleteProperty(ParkShutterSP.name);
     }
 
     return true;
@@ -349,6 +356,14 @@ bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IDSetSwitch(&RelaysSP, nullptr);
             return true;
         }
+
+        if (strcmp(name, ParkShutterSP.name) == 0)
+        {
+            IUUpdateSwitch(&ParkShutterSP, states, names, n);
+            ParkShutterSP.s = IPS_OK;
+            IDSetSwitch(&ParkShutterSP, nullptr);
+            return true;
+        }
     }
 
     return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
@@ -396,7 +411,7 @@ bool ScopeDome::UpdateShutterStatus()
 {
     int rc = readBuffer(GetAllDigitalExt, 5, digitalSensorState);
 
-    //DEBUGF(INDI::Logger::DBG_DEBUG, "digitalext %x %x %x %x %x", digitalSensorState[0], digitalSensorState[1], digitalSensorState[2], digitalSensorState[3], digitalSensorState[4]);
+    //LOGF_INFO("digitalext %x %x %x %x %x", digitalSensorState[0], digitalSensorState[1], digitalSensorState[2], digitalSensorState[3], digitalSensorState[4]);
     SensorsS[0].s  = getInputState(IN_ENCODER);
     SensorsS[1].s  = ISS_OFF; // ?
     SensorsS[2].s  = getInputState(IN_HOME);
@@ -420,20 +435,27 @@ bool ScopeDome::UpdateShutterStatus()
     {
         if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_OPEN)
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetShutterStatusString(SHUTTER_OPENED));
+            LOGF_INFO("%s", GetShutterStatusString(SHUTTER_OPENED));
             setOutputState(OUT_OPEN1, ISS_OFF);
+	    shutterState                 = SHUTTER_OPENED;
+            if (getDomeState() == DOME_UNPARKING)
+                SetParked(false);
         }
-        shutterState                 = SHUTTER_OPENED;
         DomeShutterS[SHUTTER_OPEN].s = ISS_ON;
     }
     else if (getInputState(IN_CLOSED1) == ISS_ON) // shutter closed switch triggered
     {
         if (shutterState == SHUTTER_MOVING && targetShutter == SHUTTER_CLOSE)
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "%s", GetShutterStatusString(SHUTTER_CLOSED));
+            LOGF_INFO("%s", GetShutterStatusString(SHUTTER_CLOSED));
             setOutputState(OUT_CLOSE1, ISS_OFF);
+	    shutterState                  = SHUTTER_CLOSED;
+
+            if (getDomeState() == DOME_PARKING)
+            {
+                SetParked(true);
+            }
         }
-        shutterState                  = SHUTTER_CLOSED;
         DomeShutterS[SHUTTER_CLOSE].s = ISS_ON;
     }
     else
@@ -452,16 +474,16 @@ bool ScopeDome::UpdatePosition()
     if (stepsPerTurn == -1)
     {
         stepsPerTurn = readU32(GetImpPerTurn);
-        DEBUGF(INDI::Logger::DBG_SESSION, "Steps per turn read as %d", stepsPerTurn);
+        LOGF_INFO("Steps per turn read as %d", stepsPerTurn);
 
         homePosition = readS32(GetHomeSensorPosition);
-        DEBUGF(INDI::Logger::DBG_SESSION, "Home position read as %d", homePosition);
+        LOGF_INFO("Home position read as %d", homePosition);
     }
 
     //    int counter = readS32(GetCounterExt);
     int16_t counter2 = readS16(GetCounter);
 
-    //    DEBUGF(INDI::Logger::DBG_SESSION, "Counters are %d - %d", counter, counter2);
+    //    LOGF_INFO("Counters are %d - %d", counter, counter2);
 
     // We assume counter value 0 is at home sensor position
     double az = ((double)counter2 * -360.0 / stepsPerTurn) + DomeHomePositionN[0].value;
@@ -526,7 +548,7 @@ void ScopeDome::TimerHit()
         return; //  No need to reset timer if we are not connected anymore
 
     currentStatus = readU16(GetStatus);
-    //DEBUGF(INDI::Logger::DBG_SESSION, "Status: %x", currentStatus);
+    //LOGF_INFO("Status: %x", currentStatus);
     UpdatePosition();
 
     UpdateShutterStatus();
@@ -556,7 +578,7 @@ void ScopeDome::TimerHit()
         if ((currentStatus & 2) == 0)
         {
             int currentRotation = readS32(GetCounterExt);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Current rotation is %d", currentRotation);
+            LOGF_INFO("Current rotation is %d", currentRotation);
             if (abs(currentRotation) < 100)
             {
                 // Close enough
@@ -596,10 +618,27 @@ void ScopeDome::TimerHit()
             if (fabs(azDiff) < DomeParamN[0].value)
             {
                 DomeAbsPosN[0].value = targetAz;
-                DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
+                LOG_INFO("Dome reached requested azimuth angle.");
 
                 if (getDomeState() == DOME_PARKING)
-                    SetParked(true);
+                {
+                    if (ParkShutterS[0].s == ISS_ON)
+                    {
+                        if (shutterState == SHUTTER_OPENED)
+                        {
+                            ControlShutter(SHUTTER_CLOSE);
+                            DomeAbsPosNP.s = IPS_OK;
+                        }
+                        else if (shutterState == SHUTTER_CLOSED)
+                        {
+                            SetParked(true);
+                        }
+                    }
+                    else
+                    {
+                        SetParked(true);
+                    }
+                }
                 else if (getDomeState() == DOME_UNPARKING)
                     SetParked(false);
                 else
@@ -633,10 +672,10 @@ void ScopeDome::TimerHit()
 * ***********************************************************************************/
 IPState ScopeDome::MoveAbs(double az)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "MoveAbs (%f)", az);
+    LOGF_DEBUG("MoveAbs (%f)", az);
     targetAz      = az;
     double azDiff = az - DomeAbsPosN[0].value;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "azDiff = %f", azDiff);
+    LOGF_DEBUG("azDiff = %f", azDiff);
 
     // Make relative (-180 - 180) regardless if it passes az 0
     if (azDiff > 180)
@@ -648,22 +687,22 @@ IPState ScopeDome::MoveAbs(double az)
         azDiff += 360;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "azDiff rel = %f", azDiff);
+    LOGF_DEBUG("azDiff rel = %f", azDiff);
 
     if (azDiff < 0)
     {
         uint16_t steps = (uint16_t)(-azDiff * stepsPerTurn / 360.0);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CCW (%d)", steps);
+        LOGF_DEBUG("CCW (%d)", steps);
         steps = compensateInertia(steps);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CCW inertia (%d)", steps);
+        LOGF_DEBUG("CCW inertia (%d)", steps);
         int rc = writeU16(CCWRotation, steps);
     }
     else
     {
         uint16_t steps = (uint16_t)(azDiff * stepsPerTurn / 360.0);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CW (%d)", steps);
+        LOGF_DEBUG("CW (%d)", steps);
         steps = compensateInertia(steps);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CW inertia (%d)", steps);
+        LOGF_DEBUG("CW inertia (%d)", steps);
         int rc = writeU16(CWRotation, steps);
     }
     return IPS_BUSY;
@@ -690,9 +729,15 @@ IPState ScopeDome::MoveRel(double azDiff)
 * ***********************************************************************************/
 IPState ScopeDome::Park()
 {
+    // First move to park position and then optionally close shutter
     targetAz = GetAxis1Park();
-
-    return MoveAbs(targetAz);
+    IPState s = MoveAbs(targetAz);
+    if (s == IPS_OK && ParkShutterS[0].s == ISS_ON)
+    {
+        // Already at home, just close if needed
+        return ControlShutter(SHUTTER_CLOSE);
+    }
+    return s;
 }
 
 /************************************************************************************
@@ -700,6 +745,10 @@ IPState ScopeDome::Park()
 * ***********************************************************************************/
 IPState ScopeDome::UnPark()
 {
+    if (ParkShutterS[0].s == ISS_ON)
+    {
+        return ControlShutter(SHUTTER_OPEN);
+    }
     return IPS_OK;
 }
 
@@ -708,12 +757,14 @@ IPState ScopeDome::UnPark()
 * ***********************************************************************************/
 IPState ScopeDome::ControlShutter(ShutterOperation operation)
 {
+    LOGF_INFO("Control shutter %d", (int)operation);
     targetShutter = operation;
     if (operation == SHUTTER_OPEN)
     {
+        LOG_INFO("Opening shutter");
         if (getInputState(IN_OPEN1))
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Shutter already open");
+            LOG_INFO("Shutter already open");
             return IPS_OK;
         }
         setOutputState(OUT_CLOSE1, ISS_OFF);
@@ -721,9 +772,10 @@ IPState ScopeDome::ControlShutter(ShutterOperation operation)
     }
     else
     {
+        LOG_INFO("Closing shutter");
         if (getInputState(IN_CLOSED1))
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Shutter already closed");
+            LOG_INFO("Shutter already closed");
             return IPS_OK;
         }
         setOutputState(OUT_OPEN1, ISS_OFF);
@@ -751,9 +803,8 @@ bool ScopeDome::saveConfigItems(FILE *fp)
 {
     INDI::Dome::saveConfigItems(fp);
 
-    if (DomeHomePositionN != nullptr)
-        IUSaveConfigNumber(fp, &DomeHomePositionNP);
-
+    IUSaveConfigNumber(fp, &DomeHomePositionNP);
+    IUSaveConfigSwitch(fp, &ParkShutterSP);
     return true;
 }
 
@@ -790,7 +841,7 @@ float ScopeDome::readFloat(ScopeDomeCommand cmd)
         rc = interface->write(cmd);
         rc |= interface->readBuf(c, 4, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "readFloat: %d %f", cmd, value);
+    //    LOGF_ERROR("readFloat: %d %f", cmd, value);
     return value;
 }
 
@@ -805,7 +856,7 @@ uint8_t ScopeDome::readU8(ScopeDomeCommand cmd)
         rc = interface->write(cmd);
         rc |= interface->readBuf(c, 1, &value);
     } while (rc != 0 && --retryCount);
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "readU8: %d %x", cmd, value);
+    //    LOGF_ERROR("readU8: %d %x", cmd, value);
     return value;
 }
 
@@ -820,7 +871,7 @@ int8_t ScopeDome::readS8(ScopeDomeCommand cmd)
         rc = interface->write(cmd);
         rc |= interface->readBuf(c, 1, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "readS8: %d %x", cmd, value);
+    //    LOGF_ERROR("readS8: %d %x", cmd, value);
     return value;
 }
 
@@ -835,7 +886,7 @@ uint16_t ScopeDome::readU16(ScopeDomeCommand cmd)
         rc = interface->write(cmd);
         rc |= interface->readBuf(c, 2, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "readU16: %d %x", cmd, value);
+    //    LOGF_ERROR("readU16: %d %x", cmd, value);
     return value;
 }
 
@@ -850,7 +901,7 @@ int16_t ScopeDome::readS16(ScopeDomeCommand cmd)
         rc = interface->write(cmd);
         rc |= interface->readBuf(c, 2, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "readS16: %d %x", cmd, value);
+    //    LOGF_ERROR("readS16: %d %x", cmd, value);
     return value;
 }
 
@@ -865,7 +916,7 @@ uint32_t ScopeDome::readU32(ScopeDomeCommand cmd)
         rc = interface->write(cmd);
         rc |= interface->readBuf(c, 4, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "readU32: %d %x", cmd, value);
+    //    LOGF_ERROR("readU32: %d %x", cmd, value);
     return value;
 }
 
@@ -880,7 +931,7 @@ int32_t ScopeDome::readS32(ScopeDomeCommand cmd)
         rc = interface->write(cmd);
         rc |= interface->readBuf(c, 4, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
-    //    DEBUGF(INDI::Logger::DBG_ERROR, "readU32: %d %x", cmd, value);
+    //    LOGF_ERROR("readU32: %d %x", cmd, value);
     return value;
 }
 
@@ -1043,10 +1094,10 @@ uint16_t ScopeDome::compensateInertia(uint16_t steps)
     {
         if (inertiaTable[out] > steps)
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "inertia %d -> %d", steps, out - 1);
+            LOGF_INFO("inertia %d -> %d", steps, out - 1);
             return out - 1;
         }
     }
-    DEBUGF(INDI::Logger::DBG_SESSION, "inertia passthrough %d", steps);
+    LOGF_INFO("inertia passthrough %d", steps);
     return steps; // pass value as such if we don't have enough data
 }

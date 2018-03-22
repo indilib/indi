@@ -35,11 +35,11 @@ bool ScopeDomeUSB21::detect()
 {
     int rc = -1;
     ScopeDomeCommand cmd;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Detect! %d", rc);
+    LOGF_INFO("Detect! %d", rc);
     rc = write(ConnectionTest);
-    DEBUGF(INDI::Logger::DBG_SESSION, "write rc: %d", rc);
+    LOGF_INFO("write rc: %d", rc);
     rc = read(cmd);
-    DEBUGF(INDI::Logger::DBG_SESSION, "read rc: %d, cmd %d", rc, (int)cmd);
+    LOGF_INFO("read rc: %d, cmd %d", rc, (int)cmd);
 
     if (cmd != ConnectionTest)
     {
@@ -95,7 +95,7 @@ int ScopeDomeUSB21::writeBuf(ScopeDomeCommand cmd, uint8_t len, uint8_t *buff)
     if ((rc = tty_write(PortFD, (const char *)cbuf, sizeof(cbuf), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing command: %s. Cmd %d", errstr, cmd);
+        LOGF_ERROR("Error writing command: %s. Cmd %d", errstr, cmd);
     }
     return rc;
 }
@@ -118,11 +118,11 @@ int ScopeDomeUSB21::write(ScopeDomeCommand cmd)
     prevcmd = cmd;
 
     // Write buffer
-    //DEBUGF(INDI::Logger::DBG_ERROR, "write cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
+    //LOGF_ERROR("write cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
     if ((rc = tty_write(PortFD, (const char *)cbuf, sizeof(cbuf), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing command: %s. Cmd: %d", errstr, cmd);
+        LOGF_ERROR("Error writing command: %s. Cmd: %d", errstr, cmd);
     }
     return rc;
 }
@@ -138,11 +138,11 @@ int ScopeDomeUSB21::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
     if ((rc = tty_read(PortFD, (char *)cbuf, sizeof(cbuf), SCOPEDOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading: %s. Cmd: %d", errstr, prevcmd);
+        LOGF_ERROR("Error reading: %s. Cmd: %d", errstr, prevcmd);
         return rc;
     }
 
-    //DEBUGF(INDI::Logger::DBG_ERROR, "readbuf cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
+    //LOGF_ERROR("readbuf cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
     uint8_t Checksum = CRC(0, cbuf[0]);
     Checksum         = CRC(Checksum, cbuf[1]);
     cmd              = (ScopeDomeCommand)cbuf[2];
@@ -156,18 +156,18 @@ int ScopeDomeUSB21::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
 
     if (cbuf[3] != Checksum)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "readbuf checksum error, cmd: %d", prevcmd);
+        LOGF_ERROR("readbuf checksum error, cmd: %d", prevcmd);
         return CHECKSUM_ERROR;
     }
     if (cmd == FunctionNotSupported)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "readbuf not supported error");
+        LOG_ERROR("readbuf not supported error");
         return FUNCTION_NOT_SUPPORTED_BY_FIRMWARE;
     }
 
     if (cbuf[1] > len)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "readbuf packet length error, cmd: %d", prevcmd);
+        LOGF_ERROR("readbuf packet length error, cmd: %d", prevcmd);
         return PACKET_LENGTH_ERROR;
     }
     return rc;
@@ -184,11 +184,11 @@ int ScopeDomeUSB21::read(ScopeDomeCommand &cmd)
     if ((rc = tty_read(PortFD, (char *)cbuf, sizeof(cbuf), SCOPEDOME_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading: %s. Cmd %d", errstr, prevcmd);
+        LOGF_ERROR("Error reading: %s. Cmd %d", errstr, prevcmd);
         return rc;
     }
 
-    //DEBUGF(INDI::Logger::DBG_ERROR, "read cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
+    //LOGF_ERROR("read cmd: %x %x %x %x", cbuf[0], cbuf[1], cbuf[2], cbuf[3]);
     uint8_t Checksum = CRC(0, cbuf[0]);
     Checksum         = CRC(Checksum, cbuf[1]);
     cmd              = (ScopeDomeCommand)cbuf[2];
@@ -196,23 +196,23 @@ int ScopeDomeUSB21::read(ScopeDomeCommand &cmd)
 
     if (cbuf[3] != Checksum || cbuf[1] != 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "read checksum error, cmd: %d", prevcmd);
+        LOGF_ERROR("read checksum error, cmd: %d", prevcmd);
         return CHECKSUM_ERROR;
     }
     switch (cmd)
     {
         case MotionConflict:
-            DEBUG(INDI::Logger::DBG_ERROR, "read motion conflict");
+            LOG_ERROR("read motion conflict");
             err = MOTION_CONFLICT;
             break;
 
         case FunctionNotSupported:
-            DEBUG(INDI::Logger::DBG_ERROR, "read function not supported");
+            LOG_ERROR("read function not supported");
             err = FUNCTION_NOT_SUPPORTED;
             break;
 
         case ParamError:
-            DEBUG(INDI::Logger::DBG_ERROR, "read param error");
+            LOG_ERROR("read param error");
             err = PARAM_ERROR;
             break;
         default:
