@@ -891,8 +891,11 @@ bool SynscanMount::ReadTime()
         localTime.months  = str[3];
         localTime.days    = str[4];
         localTime.years   = str[5];
-        localTime.gmtoff  = str[6];
-        offset            = str[6];
+        offset            = (int)str[6];
+        // Negative GMT offset is read. It needs special treatment
+        if (offset > 200)
+            offset -= 256;
+        localTime.gmtoff = offset;
         daylightflag =
             str[7]; //  this is the daylight savings flag in the hand controller, needed if we did not set the time
         localTime.years += 2000;
@@ -999,7 +1002,7 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     //
     struct ln_zonedate ltm;
 
-    ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
+    ln_date_to_zonedate(utc, &ltm, (long)utc_offset * 3600.0);
 
     int yr = ltm.years;
 
@@ -1008,11 +1011,13 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     str[0] = 'H';
     str[1] = ltm.hours;
     str[2] = ltm.minutes;
-    str[3] = ltm.seconds;
+    str[3] = (char)(int)ltm.seconds;
     str[4] = ltm.months;
     str[5] = ltm.days;
     str[6] = yr;
-    str[7] = utc_offset; //  offset from utc so hand controller is running in local time
+    // Strangely enough static_cast<int>(double) results 0 for negative values on arm
+    // We need to use old C-like casts in this case.
+    str[7] = (char)(int)utc_offset; //  offset from utc so hand controller is running in local time
     str[8] = 0;          //  and no daylight savings adjustments, it's already included in the offset
     //  lets write a time to the hand controller
     bytesRead = 0;
