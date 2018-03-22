@@ -22,6 +22,7 @@
 #include "indicom.h"
 
 #include <libnova/julian_day.h>
+#include <inttypes.h>
 
 #include <cmath>
 #include <cstring>
@@ -581,7 +582,7 @@ bool Driver::setUTCDateTime(double JD)
     uint64_t msJD = (JD - J2000) * 8.64e+7;
 
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":SUT%013ld#", msJD);
+    snprintf(cmd, IOP_BUFFER, ":SUT%013" PRIu64 "#", msJD);
 
     simData.JD = JD;
 
@@ -638,7 +639,7 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
     char res[IOP_BUFFER] = {0};
     if (m_Simulation)
     {
-        snprintf(res, IOP_BUFFER, "%c%03d%c%013ld", (simData.utc_offset_minutes >= 0 ? '+' : '-'), abs(simData.utc_offset_minutes),
+        snprintf(res, IOP_BUFFER, "%c%03d%c%013" PRIu64, (simData.utc_offset_minutes >= 0 ? '+' : '-'), abs(simData.utc_offset_minutes),
                  (simData.day_light_saving ? '1' : '0'), static_cast<uint64_t>((simData.JD-J2000)*8.64e+7));
     }
     else if (sendCommand(":GUT#", -1, res) == false)
@@ -652,7 +653,8 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
     *utcOffsetMinutes = atoi(offsetStr);
     *dayLightSaving   = (res[4] == '1');
 
-    *JD = (atoll(JDStr) / 8.64e+7) + J2000;
+    uint64_t iopJD = std::stoull(JDStr);
+    *JD = (iopJD / 8.64e+7) + J2000;
 
     return true;
 }

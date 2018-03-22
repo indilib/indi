@@ -306,13 +306,19 @@ void IOptronV3::getStartupData()
 
     // Get Longitude and Latitude from mount    
     if (driver->getStatus(&scopeInfo))
-    {                
+    {
         LocationN[LOCATION_LATITUDE].value  = scopeInfo.latitude;
         // Convert to INDI standard longitude (0 to 360 Eastward)
         LocationN[LOCATION_LONGITUDE].value = (scopeInfo.longitude < 0) ? scopeInfo.longitude + 360 : scopeInfo.longitude;
         LocationNP.s                        = IPS_OK;
 
         IDSetNumber(&LocationNP, nullptr);
+
+        char l[32]={0}, L[32]={0};
+        fs_sexa(l, LocationN[LOCATION_LATITUDE].value, 3, 3600);
+        fs_sexa(L, LocationN[LOCATION_LONGITUDE].value, 4, 3600);
+
+        LOGF_INFO("Mount Location: Lat %.32s - Long %.32s", l, L);
     }
 
     double DEC = (scopeInfo.latitude > 0) ? 90 : -90;
