@@ -49,6 +49,8 @@ const std::map<std::string,std::string> Driver::models =
     {"5045", "iEQ45 Pro AA"}
 };
 
+const uint16_t Driver::IOP_SLEW_RATES[] = {1, 2, 8, 16, 64, 128, 256, 512, 1024};
+
 Driver::Driver(const char *deviceName): m_DeviceName(deviceName) {}
 
 bool Driver::sendCommand(const char *command, int count, char *response, uint8_t timeout, uint8_t debugLog)
@@ -220,7 +222,7 @@ bool Driver::getStatus(IOPInfo *info)
         int iopLatitude  = (simData.simInfo.latitude+90) * 360000;
         snprintf(res, IOP_BUFFER, "%c%08d%08d%d%d%d%d%d%d", simData.simInfo.longitude > 0 ? '+' : '-',
                  iopLongitude, iopLatitude, simData.simInfo.gpsStatus, simData.simInfo.systemStatus, simData.simInfo.trackRate,
-                 simData.simInfo.slewRate + 1, simData.simInfo.timeSource, simData.simInfo.hemisphere);
+                 simData.simInfo.slewRate, simData.simInfo.timeSource, simData.simInfo.hemisphere);
     }        
     else if (sendCommand(":GLS#", -1, res) == false)
         return false;
@@ -238,7 +240,7 @@ bool Driver::getStatus(IOPInfo *info)
     info->gpsStatus    = (IOP_GPS_STATUS)(res[17] - '0');
     info->systemStatus = (IOP_SYSTEM_STATUS)(res[18] - '0');
     info->trackRate    = (IOP_TRACK_RATE)(res[19] - '0');
-    info->slewRate     = (IOP_SLEW_RATE)(res[20] - '0' - 1);
+    info->slewRate     = (IOP_SLEW_RATE)(res[20] - '0');
     info->timeSource   = (IOP_TIME_SOURCE)(res[21] - '0');
     info->hemisphere   = (IOP_HEMISPHERE)(res[22] - '0');
 
@@ -370,11 +372,15 @@ bool Driver::setSlewRate(IOP_SLEW_RATE rate)
     char cmd[IOP_BUFFER] = {0};
     snprintf(cmd, IOP_BUFFER, ":SR%d#", ((int)rate) + 1);
 
+    simData.simInfo.slewRate = rate;
+
     return sendCommand(cmd);
 }
 
 bool Driver::setTrackMode(IOP_TRACK_RATE rate)
 {
+    simData.simInfo.trackRate = rate;
+
     switch (rate)
     {
         case TR_SIDEREAL:
@@ -572,10 +578,10 @@ bool Driver::setLatitude(double latitude)
 
 bool Driver::setUTCDateTime(double JD)
 {
-    uint32_t msJD = (JD - J2000) * 8.64e+7;
+    uint64_t msJD = (JD - J2000) * 8.64e+7;
 
     char cmd[IOP_BUFFER] = {0};
-    snprintf(cmd, IOP_BUFFER, ":SUT%013d#", msJD);
+    snprintf(cmd, IOP_BUFFER, ":SUT%013ld#", msJD);
 
     simData.JD = JD;
 
@@ -632,8 +638,8 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
     char res[IOP_BUFFER] = {0};
     if (m_Simulation)
     {
-        snprintf(res, IOP_BUFFER, "%c%03d%c%013d", (simData.utc_offset_minutes >= 0 ? '+' : '-'), abs(simData.utc_offset_minutes),
-                 simData.day_light_saving ? '1' : '0', static_cast<uint32_t>((simData.JD-J2000)*8.64e+7));
+        snprintf(res, IOP_BUFFER, "%c%03d%c%013ld", (simData.utc_offset_minutes >= 0 ? '+' : '-'), abs(simData.utc_offset_minutes),
+                 (simData.day_light_saving ? '1' : '0'), static_cast<uint64_t>((simData.JD-J2000)*8.64e+7));
     }
     else if (sendCommand(":GUT#", -1, res) == false)
         return false;
@@ -646,7 +652,7 @@ bool Driver::getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSav
     *utcOffsetMinutes = atoi(offsetStr);
     *dayLightSaving   = (res[4] == '1');
 
-    *JD = (atoi(JDStr) / 8.64e+7) + J2000;
+    *JD = (atoll(JDStr) / 8.64e+7) + J2000;
 
     return true;
 }

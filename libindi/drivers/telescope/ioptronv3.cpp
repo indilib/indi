@@ -31,9 +31,6 @@
 
 using namespace IOPv3;
 
-/* Simulation Parameters */
-#define SLEWRATE 1          /* slew rate, degrees/s */
-
 #define MOUNTINFO_TAB "Mount Info"
 #define PEC_TAB "PEC"
 
@@ -132,12 +129,6 @@ bool IOptronV3::initProperties()
     AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_KING", "King");
     AddTrackMode("TRACK_CUSTOM", "Custom");
-
-    // Set TrackRate limits according to v3 of the docs
-    TrackRateN[AXIS_RA].min = 0.1;
-    TrackRateN[AXIS_RA].max = 1.9;
-    TrackRateN[AXIS_DE].min = 0;
-    TrackRateN[AXIS_DE].max = 0;
 
     /* GPS Status */
     IUFillSwitch(&GPSStatusS[GPS_OFF], "Off", "", ISS_ON);
@@ -893,7 +884,7 @@ IPState IOptronV3::GuideWest(float ms)
 
 bool IOptronV3::SetSlewRate(int index)
 {
-    IOP_SLEW_RATE rate = (IOP_SLEW_RATE)index;
+    IOP_SLEW_RATE rate = (IOP_SLEW_RATE) (index+1);
     return driver->setSlewRate(rate);
 }
 
@@ -922,7 +913,8 @@ void IOptronV3::mountSim()
 
     dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    da  = SLEWRATE * dt;
+    double currentSlewRate = Driver::IOP_SLEW_RATES[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL/3600.0;
+    da  = currentSlewRate * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
@@ -933,7 +925,7 @@ void IOptronV3::mountSim()
         break;
 
     case SCOPE_TRACKING:
-        if (TrackModeS[1].s == ISS_ON)
+        if (TrackModeS[TR_CUSTOM].s == ISS_ON)
         {
             currentRA  += ( ((TRACKRATE_SIDEREAL/3600.0) - (TrackRateN[AXIS_RA].value/3600.0)) * dt) / 15.0;
             currentDEC += ( (TrackRateN[AXIS_DE].value/3600.0) * dt);

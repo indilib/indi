@@ -39,7 +39,7 @@ typedef enum {
     ST_HOME
 } IOP_SYSTEM_STATUS;
 typedef enum { TR_SIDEREAL, TR_LUNAR, TR_SOLAR, TR_KING, TR_CUSTOM } IOP_TRACK_RATE;
-typedef enum { SR_1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_MAX } IOP_SLEW_RATE;
+typedef enum { SR_1=1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_MAX } IOP_SLEW_RATE;
 typedef enum { TS_RS232, TS_CONTROLLER, TS_GPS } IOP_TIME_SOURCE;
 typedef enum { HEMI_SOUTH, HEMI_NORTH } IOP_HEMISPHERE;
 typedef enum { FW_MODEL, FW_BOARD, FW_CONTROLLER, FW_RA, FW_DEC } IOP_FIRMWARE;
@@ -80,6 +80,9 @@ public:
     ~Driver() = default;
 
     static const std::map<std::string,std::string> models;
+    // Slew speeds. N.B. 1024 is arbitrary as the real max value different from
+    // one mount to another. It is used for simulation purposes only.
+    static const uint16_t IOP_SLEW_RATES[];
 
     /**************************************************************************
      Communication
@@ -201,7 +204,6 @@ private:
     static const uint8_t IOP_TIMEOUT=5;
     // Buffer to store mount response
     static const uint8_t IOP_BUFFER=64;
-
 };
 
 }
