@@ -8,6 +8,7 @@
 #include "termios.h"
 
 #include <cstring>
+#include <string>
 
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 #define RB_MAX_LEN    64
@@ -54,9 +55,9 @@ protected:
     // location
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual int getSiteLatitude(double *siteLat);
-    virtual int setSiteLatitude(double Lat);
+    virtual int querySetSiteLatitude(double Lat);
     virtual int getSiteLongitude(double *siteLong);
-    virtual int setSiteLongitude(double Long);
+    virtual int querySetSiteLongitude(double Long);
 
     bool sendScopeLocation();
 
@@ -71,6 +72,7 @@ protected:
     virtual bool receive(char* buffer, int* bytes);
     virtual void flush();
     virtual bool transmit(const char* buffer);
+    virtual bool setStandardProcedureAvalon(char* command);
 
     /*
     virtual void getBasicData() override;
