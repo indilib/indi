@@ -50,10 +50,10 @@ LX200StarGo::LX200StarGo() : LX200Generic::LX200Generic()
      * LX200_HAS_FOCUS
      */
 
-    setLX200Capability(LX200_HAS_PULSE_GUIDING);
+    setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_SITES);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TRACK_MODE, 4);
+                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION, 4);
 }
 
 /**************************************************************************************
@@ -431,13 +431,13 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
     if (isSimulation())
         return true;
 
-    if (!isSimulation() && setSiteLongitude(longitude) < 0)
+    if (!isSimulation() && querySetSiteLongitude(longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
 
-    if (!isSimulation() && setSiteLatitude(latitude) < 0)
+    if (!isSimulation() && querySetSiteLatitude(latitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
         return false;
@@ -468,34 +468,6 @@ int LX200StarGo::getSiteLatitude(double *siteLat) {
 
 int LX200StarGo::getSiteLongitude(double *siteLong) {
     return getCommandSexa(PortFD, siteLong, ":Gg#");
-}
-
-/*
- * Determine the site longitude. In contrast to a standard LX200 implementation,
- * StarGo returns the location in arc seconds precision.
- */
-int LX200StarGo::setSiteLongitude(double Long)
-{
-    int d, m, s;
-    char read_buffer[32];
-
-    getSexComponents(Long, &d, &m, &s);
-
-    snprintf(read_buffer, sizeof(read_buffer), ":Sg%+03d*%02d:%02d#", d, m, s);
-
-    return (setStandardProcedure(PortFD, read_buffer));
-}
-
-int LX200StarGo::setSiteLatitude(double Lat)
-{
-    int d, m, s;
-    char read_buffer[32];
-
-    getSexComponents(Lat, &d, &m, &s);
-
-    snprintf(read_buffer, sizeof(read_buffer), ":St%+03d*%02d:%02d#", d, m, s);
-
-    return (setStandardProcedure(PortFD, read_buffer));
 }
 
 
@@ -561,6 +533,80 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response) {
     }
     return true;
 }
+
+/*
+ * Determine the site longitude. In contrast to a standard LX200 implementation,
+ * StarGo returns the location in arc seconds precision.
+ */
+int LX200StarGo::querySetSiteLongitude(double longitude)
+{
+    int d, m, s;
+    char command[32];
+    if (longitude > 180) longitude = longitude - 360;
+    if (longitude < -180) longitude = 360 + longitude;
+
+    getSexComponents(longitude, &d, &m, &s);
+
+    const char* format = ":Sg+%03d*%02d:%02d#";
+    if (d < 0 || m < 0 || s < 0) format = ":Sg%04d*%02u:%02u#";
+
+    snprintf(command, sizeof(command), format, d, m, s);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Sending set site longitude request '%s'", getDeviceName(), command);
+
+    return (setStandardProcedureAvalon(command));
+}
+
+
+/**
+ * @brief Set the site latitude
+ * @param latitude value
+ * @return true iff the command succeeded
+ */
+int LX200StarGo::querySetSiteLatitude(double Lat)
+{
+    int d, m, s;
+    char command[32];
+
+    getSexComponents(Lat, &d, &m, &s);
+
+    snprintf(command, sizeof(command), ":St%+03d*%02d:%02d#", d, m, s);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Sending set site longitude request '%s'", getDeviceName(), command);
+
+    return (setStandardProcedureAvalon(command));
+}
+
+
+/**
+ * @brief standard set command expecting '0' als confirmation
+ * @param command command to be executed
+ * @return true iff the command succeeded
+ */
+bool LX200StarGo::setStandardProcedureAvalon(char* command) {
+    int bytesReceived = 0;
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+    flush();
+    if (!transmit(command)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send request.", getDeviceName());
+        return false;
+    }
+    if (!receive(response, &bytesReceived)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get response.", getDeviceName());
+        return false;
+    }
+
+
+    if (bytesReceived != 2 || response[0] != '0') {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Unexpected response '%s'", getDeviceName(), response);
+        return false;
+    }
+
+    return true;
+
+}
+
 
 /**
  * @brief Query the motion state of the mount.
