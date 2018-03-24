@@ -488,7 +488,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
     uint16_t *ptr = reinterpret_cast<uint16_t*>(targetChip->getFrameBuffer());
 
     if (targetChip->getXRes() == 500)
-        ExposureTime = GuideExposureRequest;
+        ExposureTime = GuideExposureRequest*4;
     else if (Streamer->isStreaming())
         ExposureTime = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
     else
