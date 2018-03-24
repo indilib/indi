@@ -1122,6 +1122,16 @@ int setTrackFreq(int fd, double trackF)
     return (setStandardProcedure(fd, read_buffer));
 }
 
+int setPreciseTrackFreq(int fd, double trackF)
+{
+	DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
+	char read_buffer[RB_MAX_LEN]={0};
+	
+	snprintf(read_buffer, sizeof(read_buffer), ":ST %08.5f#", trackF);
+	
+	return (setStandardProcedure(fd, read_buffer));
+}
+
 /**********************************************************************
 * Misc
 *********************************************************************/
