@@ -45,8 +45,8 @@ ENDIF ()
 
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
-set(CMAKE_INDI_VERSION_MINOR 6)
-set(CMAKE_INDI_VERSION_RELEASE 4)
+set(CMAKE_INDI_VERSION_MINOR 7)
+set(CMAKE_INDI_VERSION_RELEASE 0)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -595,6 +595,21 @@ add_executable(indi_ieq_telescope ${ieq_SRC})
 target_link_libraries(indi_ieq_telescope indidriver)
 
 install(TARGETS indi_ieq_telescope RUNTIME DESTINATION bin)
+
+########### IOptronV3 / CEM120 #############
+SET(ioptronv3_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronv3driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronv3.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(ioptronv3 ioptronv3_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_ioptronv3_telescope ${ioptronv3_SRC})
+
+target_link_libraries(indi_ioptronv3_telescope indidriver)
+
+install(TARGETS indi_ioptronv3_telescope RUNTIME DESTINATION bin)
 
 ########### Explore Scientific PMC8 #############
 SET(pmc8_SRC

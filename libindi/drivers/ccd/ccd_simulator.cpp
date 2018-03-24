@@ -841,17 +841,20 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         int subW = targetChip->getSubW() + subX;
         int subH = targetChip->getSubH() + subY;
 
-        for (x = subX; x < subW; x++)
+        if (maxnoise > 0)
         {
-            for (y = subY; y < subH; y++)
+            for (x = subX; x < subW; x++)
             {
-                int noise;
+                for (y = subY; y < subH; y++)
+                {
+                    int noise;
 
-                noise = random();
-                noise = noise % maxnoise; //
+                    noise = random();
+                    noise = noise % maxnoise; //
 
-                //IDLog("noise is %d\n", noise);
-                AddToPixel(targetChip, x, y, bias + noise);
+                    //IDLog("noise is %d\n", noise);
+                    AddToPixel(targetChip, x, y, bias + noise);
+                }
             }
         }
     }
