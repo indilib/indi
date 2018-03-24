@@ -29,19 +29,30 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 \section Introduction
 
 <p>INDI is a simple XML-like communications protocol described for interactive and automated remote control of diverse instrumentation. INDI is small, easy to parse, and stateless.</p>
-<p>In the INDI paradigm each Device poses all command and status functions in terms of settings and getting Properties.
+<p>A full description of the INDI protocol is detailed in the INDI <a href="http://www.clearskyinstitute.com/INDI/INDI.pdf">white paper</a></p>
 
-Each Property is a vector of one or more names members. Each property has a current value vector; a target value vector; provides information about how it should be sequenced with
-respect to other Properties to accomplish one coordinated unit of observation; and provides hints as to how it might be displayed for interactive manipulation in a GUI.</p>
+<p>Under INDI, any number of clients can connect to any number of drivers running one or more devices. It is a true N-to-N server/client architecture topology
+allowing for reliable deployments of several INDI server, client, and driver instances distrubted across different systems in different physical and logical locations.</p>
 
-<p>Clients learn the Properties of a particular Device at runtime using introspection. This decouples Client and Device implementation histories. Devices have a complete authority over whether to accept commands from Clients. INDI accommadates intermediate servers, broadcasting, and connection topologies ranging from one-to-one on a single system to many-to-many between systems of different genre.</p>
+<p>The basic premise of INDI is this: Drivers are responsible for defining their functionality in terms of <b>Properties</b>. Clients are not aware of such properties until they establish connection with the driver
+and start receiving streams of defined properties. Each property encompases some functionality or information about the device. These include number, text, switch, light, and BLOB properties.</p>
 
-<p>The INDI protocol can be nested within other XML elements such as constraints for automatic scheduling and execution.
-For a complete review on the INDI protocol, please refer to the INDI <a href="http://www.clearskyinstitute.com/INDI/INDI.pdf">white paper</a>.</p>
+<p>For example, all devices define the <i>CONNECTION</i> vector switch property, which is compromised of two switches:</p>
+<ol>
+<li><strong>CONNECT</strong>: Connect to the device.</li>
+<li><strong>DISCONNECT</strong>: Disconnect to the device.</li>
+</ol>
+
+<p>Therefore, a client, whether it is a GUI client that represents such property as buttons, or a Python script that parses the properties, can change the state
+of the switch to cause the desired action.</p>
+<p>Not all properties are equal. A few properties are reserved to ensure interoperality among different clients that want to target a specific functionality.
+These <i>Standard Properties</i> ensure that different clients agree of a common set of properties with specific meaning since INDI does not impose any specific meaning on the properties themselves.</p>
+
+<p>INDI server acts as a convenient hub to route communications between clients and drivers. While it is not strictly required for controlling driver, it offers many queue and routing capabilities.</p>
 
 \section Audience Intended Audience
 
-INDI is intended for developers who seek a scalable API for device control and automation. Hardware drivers written under INDI can be used under any INDI-compatible client. INDI serves as a backend only, you need frontend clients to control devices. Current clients include <a href="http://edu.kde.org/kstars">KStars</a>, <a href="http://www.clearyskyinstitute.com/xephem">Xephem</a>, and <a href="http://www.stargazing.net/astropc">Cartes du Ciel</a>.
+INDI is intended for developers seeking to add support for their devices in INDI. Any INDI driver can be operated from numerous cross-platform cross-architecture <a href="http://indilib.org/about/clients.html">clients</a>.
 
 \section Development Developing under INDI
 
