@@ -38,7 +38,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic()
 
     setVersion(1, 3);
     
-    setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING);
+    setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
     
@@ -709,7 +709,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 strcpy(cmd, ":FQ#");
             }
             sendOnStepCommandBlind(cmd);
-            usleep(100000); // Pulse 0,1 s
+            usleep(200000); // Pulse 0,2 s
             if(index != 2)
             {
                 sendOnStepCommandBlind(":FQ#");
@@ -1259,11 +1259,10 @@ bool LX200_OnStep::updateLocation(double latitude, double longitude, double elev
         return true;
 
     double onstep_long = 360 - longitude ;
-    if (onstep_long < -180)
+	while (onstep_long < 0)
         onstep_long += 360;
-    if (onstep_long > 180)
-        onstep_long -= 360;
-
+	while (onstep_long > 360)
+		onstep_long -= 360;
 
     if (!isSimulation() && setSiteLongitude(PortFD, onstep_long) < 0)
     {
