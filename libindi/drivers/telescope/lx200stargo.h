@@ -9,6 +9,7 @@
 
 #include <cstring>
 #include <string>
+#include <unistd.h>
 
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 #define RB_MAX_LEN    64
@@ -72,7 +73,7 @@ protected:
     virtual bool receive(char* buffer, int* bytes);
     virtual void flush();
     virtual bool transmit(const char* buffer);
-    virtual bool setStandardProcedureAvalon(char* command);
+    virtual bool setStandardProcedureAvalon(char* command, int wait);
 
     /*
     virtual void getBasicData() override;

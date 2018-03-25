@@ -431,11 +431,16 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
     if (isSimulation())
         return true;
 
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting site longitude '%lf'", longitude);
     if (!isSimulation() && querySetSiteLongitude(longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
         return false;
     }
+
+    double long_result;
+    getSiteLongitude(&long_result);
+    DEBUGF(INDI::Logger::DBG_DEBUG, "Received site longitude request '%lf'", long_result);
 
     if (!isSimulation() && querySetSiteLatitude(latitude) < 0)
     {
@@ -554,7 +559,9 @@ int LX200StarGo::querySetSiteLongitude(double longitude)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Sending set site longitude request '%s'", getDeviceName(), command);
 
-    return (setStandardProcedureAvalon(command));
+    bool result = setStandardProcedureAvalon(command, 500);
+
+    return (result);
 }
 
 
@@ -574,16 +581,17 @@ int LX200StarGo::querySetSiteLatitude(double Lat)
 
     DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Sending set site longitude request '%s'", getDeviceName(), command);
 
-    return (setStandardProcedureAvalon(command));
+    return (setStandardProcedureAvalon(command, 500));
 }
 
 
 /**
  * @brief standard set command expecting '0' als confirmation
  * @param command command to be executed
+ * @param wait time in ms the command should wait before reading the result
  * @return true iff the command succeeded
  */
-bool LX200StarGo::setStandardProcedureAvalon(char* command) {
+bool LX200StarGo::setStandardProcedureAvalon(char* command, int wait) {
     int bytesReceived = 0;
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
 
@@ -592,6 +600,9 @@ bool LX200StarGo::setStandardProcedureAvalon(char* command) {
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send request.", getDeviceName());
         return false;
     }
+
+    if (wait > 0) usleep(wait*1000);
+
     if (!receive(response, &bytesReceived)) {
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get response.", getDeviceName());
         return false;
