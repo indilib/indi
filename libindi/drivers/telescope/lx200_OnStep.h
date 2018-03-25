@@ -21,6 +21,19 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+    ===========================================
+    Version 1.4: Tuning
+    - James Lan implementation of High Precision Tracking
+    - Todo Focuser absolute seting and initiliszation
+    Version 1.3: Complete rework of interface and functionalities
+    - Telescope Status using :GU#
+    - Parking Management
+    - Star Alignment
+    - Tracking Frequency
+    - Focuser rework
+
+    Version 1.2: Initial issue
+
 */
 
 #pragma once
