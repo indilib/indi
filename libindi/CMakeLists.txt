@@ -470,6 +470,7 @@ SET(lx200generic_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_16.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200gps.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200generic.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200telescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200classic.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200apdriver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200gemini.cpp
@@ -484,7 +485,6 @@ SET(lx200generic_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ss2000pc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_OnStep.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_10micron.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200stargo.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronHC8406.cpp)
 
 IF (UNITY_BUILD)
@@ -513,11 +513,27 @@ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200ss2000pc)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_OnStep)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_10micron)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200stargo)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_ioptronHC8406)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
+
+########### LX200 StarGO ###########
+SET(lx200stargo_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200telescope.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200stargo.cpp
+    )
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(lx200stargo lx200stargo_SRCS 10 cpp)
+ENDIF ()
+
+add_executable(indi_lx200stargo ${lx200stargo_SRCS})
+target_compile_definitions(indi_lx200stargo PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
+target_link_libraries(indi_lx200stargo indidriver)
+
+install(TARGETS indi_lx200stargo RUNTIME DESTINATION bin )
 
 
 ########### Celestron GPS ############

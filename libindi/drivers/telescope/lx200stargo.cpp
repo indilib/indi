@@ -19,7 +19,77 @@
 */
 #include "lx200stargo.h"
 
-LX200StarGo::LX200StarGo() : LX200Generic::LX200Generic()
+#include <cmath>
+#include <memory>
+#include <cstring>
+#include <unistd.h>
+
+// We declare an auto pointer to LX200StarGo
+std::unique_ptr<LX200StarGo> starGoScope;
+
+
+void ISInit()
+{
+    static int isInit = 0;
+
+    if (isInit)
+        return;
+
+    isInit = 1;
+    if (starGoScope.get() == 0) {
+        starGoScope.reset(new LX200StarGo());
+    }
+
+}
+
+void ISGetProperties(const char *dev)
+{
+    ISInit();
+    starGoScope->ISGetProperties(dev);
+}
+
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    ISInit();
+    starGoScope->ISNewSwitch(dev, name, states, names, n);
+}
+
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    ISInit();
+    starGoScope->ISNewText(dev, name, texts, names, n);
+}
+
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    ISInit();
+    starGoScope->ISNewNumber(dev, name, values, names, n);
+}
+
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+}
+void ISSnoopDevice(XMLEle *root)
+{
+    ISInit();
+    starGoScope->ISSnoopDevice(root);
+}
+
+/**************************************************
+*** LX200 Generic Implementation
+***************************************************/
+
+
+LX200StarGo::LX200StarGo()
 {
     setVersion(0, 1);
     /* missing capabilities
@@ -116,7 +186,7 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
     }
 
     //  Nobody has claimed this, so pass it to the parent
-    return LX200Generic::ISNewSwitch(dev, name, states, names, n);
+    return LX200Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
 
@@ -126,7 +196,7 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
 bool LX200StarGo::initProperties()
 {
     /* Make sure to init parent properties first */
-    if (!LX200Generic::initProperties()) return false;
+    if (!LX200Telescope::initProperties()) return false;
 
     IUFillSwitch(&SyncHomeS[0], "SYNC_HOME", "Sync Home", ISS_OFF);
     IUFillSwitchVector(&SyncHomeSP, SyncHomeS, 1, getDeviceName(), "TELESCOPE_SYNC_HOME", "Home Position", MAIN_CONTROL_TAB,
@@ -148,7 +218,7 @@ bool LX200StarGo::updateProperties()
 {
     char firmwareInfo[48] = {0};
 
-    if (! LX200Generic::updateProperties()) return false;
+    if (! LX200Telescope::updateProperties()) return false;
 
     if (isConnected())
     {
@@ -190,7 +260,7 @@ bool LX200StarGo::ReadScopeStatus()
 {
     bool result;
 
-    result = LX200Generic::ReadScopeStatus();
+    result = LX200Telescope::ReadScopeStatus();
     result = UpdateMotionStatus();
 
     return result;
@@ -395,7 +465,7 @@ bool LX200StarGo::sendScopeLocation()
 {
     if (isSimulation())
     {
-        return LX200Generic::sendScopeLocation();
+        return LX200Telescope::sendScopeLocation();
     }
 
     double siteLat = 0.0, siteLong = 0.0;

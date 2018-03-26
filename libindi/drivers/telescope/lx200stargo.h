@@ -1,7 +1,9 @@
 #ifndef AVALON_STARGO_H
 #define AVALON_STARGO_H
 
-#include "lx200generic.h"
+#pragma once
+
+#include "lx200telescope.h"
 #include "lx200driver.h"
 #include "indicom.h"
 #include "indilogger.h"
@@ -18,12 +20,13 @@
 #define AVALON_RESPONSE_BUFFER_LENGTH                   32
 
 
-class LX200StarGo : public LX200Generic
+class LX200StarGo : public LX200Telescope
 {
 public:
     LX200StarGo();
-    ~LX200StarGo() = default;
+    virtual ~LX200StarGo() = default;
 
+    virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool updateProperties() override;
@@ -40,7 +43,6 @@ protected:
     IText MountFirmwareInfoT[1];
 
     // override LX200Generic
-    virtual const char *getDefaultName() override;
     virtual void getBasicData();
     virtual bool ReadScopeStatus() override;
     virtual bool Park() override;
