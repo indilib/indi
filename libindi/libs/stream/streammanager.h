@@ -104,7 +104,7 @@ class StreamManager
     };
 
     StreamManager(CCD *mainCCD);
-    ~StreamManager();
+    virtual ~StreamManager();
 
     virtual void ISGetProperties(const char *dev);
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);

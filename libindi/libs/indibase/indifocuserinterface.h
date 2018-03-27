@@ -27,20 +27,31 @@
 // Alias
 using FI = INDI::FocuserInterface;
 
+namespace INDI
+{
+
 /**
  * \class FocuserInterface
    \brief Provides interface to implement focuser functionality.
 
-   A focuser can be an independent device, or an embedded focuser within another device (e.g. Camera).
+   A focuser can be an independent device, or an embedded focuser within another device (e.g. Camera or mount).
 
-   \e IMPORTANT: FI::initProperties() must be called before any other function to initialize the focuser properties.
+   When developing a driver for a fully indepdent focuser device, use INDI::Focuser directly. To add focus functionality to
+   an existing mount or camera driver, subclass INDI::FocuserInterface. In your driver, then call the necessary focuser interface functions.
 
-   \e IMPORTANT: FI::processNumber() and FI::processSwitch() must be called in your driver's ISNewNumber() and ISNewSwitch functions recepectively.
+   <table>
+   <tr><th>Function</th><th>Where to call it from your driver</th></tr>
+   <tr><td>FI::SetCapability</td><td>Constructor</td></tr>
+   <tr><td>FI::initProperties</td><td>initProperties()</td></tr>
+   <tr><td>FI::updateProperties</td><td>updateProperties()</td></tr>
+   <tr><td>FI::processNumber</td><td>ISNewNumber(...) Check if the property name contains FOCUS_* and then call FI::processNumber(..) for such properties</td></tr>
+   <tr><td>FI::processSwitch</td><td>ISNewSwitch(...)</td></tr>
+   </table>
+
+   Implement and overwrite the rest of the virtual functions as needed. INDI GPhoto driver is a good example to check for an actual implementation
+   of a focuser interface within a CCD driver.
 \author Jasem Mutlaq
 */
-namespace INDI
-{
-
 class FocuserInterface
 {
   public:

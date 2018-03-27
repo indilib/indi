@@ -141,6 +141,14 @@
                 <driver name="iOptron HC8406">indi_ioptronHC8406</driver>
                 <version>1.1</version>
         </device>
+        <device label="iOptron v3">
+                <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+                <version>1.0</version>
+        </device>
+        <device label="iOptron CEM120">
+                <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+                <version>1.0</version>
+        </device>
         <device label="Pulsar2">
                 <driver name="Pulsar2">indi_lx200pulsar2</driver>
                 <version>1.0</version>
