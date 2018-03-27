@@ -80,6 +80,7 @@ option(WITH_RADIOSIM "Install RadioSim Receiver" On)
 option(WITH_GPSNMEA "Install GPS NMEA Driver" On)
 option(WITH_ARMADILLO "Install Armadillo & Platypus Driver" On)
 option(WITH_FXLOAD "Install FX3 compatible fxload tool" Off)
+option(WITH_AVALON "Install Avalon StarGO Driver" On)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -280,6 +281,11 @@ endif (WITH_RADIOSIM)
 
 if (WITH_ARMADILLO)
 add_subdirectory(indi-armadillo-platypus)
+endif(WITH_ARMADILLO)
+
+# Avalon StarGO
+if (WITH_AVALON)
+add_subdirectory(indi-avalon)
 endif(WITH_ARMADILLO)
 
 if (WITH_FXLOAD)
