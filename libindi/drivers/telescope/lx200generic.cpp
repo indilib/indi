@@ -259,4 +259,3 @@ LX200Generic::LX200Generic()
     LOG_DEBUG("Initializing from Generic LX200 device...");
 }
 
-

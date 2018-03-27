@@ -176,7 +176,7 @@ bool RoboFocus::updateProperties()
 
         GetFocusParams();
 
-        DEBUG(INDI::Logger::DBG_DEBUG, "RoboFocus paramaters readout complete, focuser ready for use.");
+        LOG_DEBUG("RoboFocus paramaters readout complete, focuser ready for use.");
     }
     else
     {
@@ -201,7 +201,7 @@ bool RoboFocus::Handshake()
     if (isSimulation())
     {
         timerID = SetTimer(POLLMS);
-        DEBUG(INDI::Logger::DBG_SESSION, "Simulated Robofocus is online. Getting focus parameters...");
+        LOG_INFO("Simulated Robofocus is online. Getting focus parameters...");
         FocusAbsPosN[0].value = simulatedPosition;
         updateRFFirmware(firmeware);
         return true;
@@ -210,7 +210,7 @@ bool RoboFocus::Handshake()
     if ((updateRFFirmware(firmeware)) < 0)
     {
         /* This would be the end*/
-        DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus firmware.");
+        LOG_ERROR("Unknown error while reading Robofocus firmware.");
         return false;
     }
 
@@ -233,7 +233,7 @@ unsigned char RoboFocus::CheckSum(char *rf_cmd)
     val = CalculateSum(substr);
 
     if (val != (unsigned char)rf_cmd[8])
-        DEBUGF(INDI::Logger::DBG_WARNING, "Checksum: Wrong (%s,%ld), %x != %x", rf_cmd, strlen(rf_cmd), val,
+        LOGF_WARN("Checksum: Wrong (%s,%ld), %x != %x", rf_cmd, strlen(rf_cmd), val,
                (unsigned char)rf_cmd[8]);
 
     return val;
@@ -269,14 +269,14 @@ int RoboFocus::SendCommand(char *rf_cmd)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X)", rf_cmd_cks[0],
+    LOGF_DEBUG("CMD (%#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X %#02X)", rf_cmd_cks[0],
            rf_cmd_cks[1], rf_cmd_cks[2], rf_cmd_cks[3], rf_cmd_cks[4], rf_cmd_cks[5], rf_cmd_cks[6], rf_cmd_cks[7],
            rf_cmd_cks[8]);
 
     if ((err_code = tty_write(PortFD, rf_cmd_cks, RF_MAX_CMD, &nbytes_written) != TTY_OK))
     {
         tty_error_msg(err_code, robofocus_error, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", robofocus_error);
+        LOGF_ERROR("TTY error detected: %s", robofocus_error);
         return -1;
     }
 
@@ -301,7 +301,7 @@ int RoboFocus::ReadResponse(char *buf)
         if ((err_code = tty_read(PortFD, robofocus_char, 1, RF_TIMEOUT, &bytesRead)) != TTY_OK)
         {
             tty_error_msg(err_code, robofocus_error, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", robofocus_error);
+            LOGF_ERROR("TTY error detected: %s", robofocus_error);
             return -1;
         }
 
@@ -312,7 +312,7 @@ int RoboFocus::ReadResponse(char *buf)
                 if (motion != 0x49)
                 {
                     motion = 0x49;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Moving inward...");
+                    LOG_INFO("Moving inward...");
 
                     if (FocusAbsPosNP.s != IPS_BUSY)
                     {
@@ -329,7 +329,7 @@ int RoboFocus::ReadResponse(char *buf)
                 if (motion != 0x4F)
                 {
                     motion = 0x4F;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Moving outward...");
+                    LOG_INFO("Moving outward...");
 
                     if (FocusAbsPosNP.s != IPS_BUSY)
                     {
@@ -348,13 +348,13 @@ int RoboFocus::ReadResponse(char *buf)
                 if ((err_code = tty_read(PortFD, buf + 1, RF_MAX_CMD - 1, RF_TIMEOUT, &bytesRead)) != TTY_OK)
                 {
                     tty_error_msg(err_code, robofocus_error, MAXRBUF);
-                    DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", robofocus_error);
+                    LOGF_ERROR("TTY error detected: %s", robofocus_error);
                     return -1;
                 }
 
                 if (motion != 0)
                 {
-                    DEBUG(INDI::Logger::DBG_SESSION, "Stopped.");
+                    LOG_INFO("Stopped.");
 
                     // If we set it busy due to external motion, let's set it to OK
                     if (externalMotion)
@@ -382,7 +382,7 @@ int RoboFocus::updateRFPosition(double *value)
     char rf_cmd[RF_MAX_CMD];
     int robofocus_rc;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Querying Position...");
+    LOG_DEBUG("Querying Position...");
 
     if (isSimulation())
     {
@@ -403,14 +403,14 @@ int RoboFocus::updateRFPosition(double *value)
 
     *value = (double)temp;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Position: %g", *value);
+    LOGF_DEBUG("Position: %g", *value);
 
     return 0;
 }
 
 int RoboFocus::updateRFTemperature(double *value)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Update Temperature: %g", value);
+    LOGF_DEBUG("Update Temperature: %g", value);
 
     float temp;
     char rf_cmd[32];
@@ -436,7 +436,7 @@ int RoboFocus::updateRFTemperature(double *value)
 
 int RoboFocus::updateRFBacklash(double *value)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Update Backlash: %g", value);
+    LOGF_DEBUG("Update Backlash: %g", value);
 
     float temp;
     char rf_cmd[32];
@@ -508,7 +508,7 @@ int RoboFocus::updateRFFirmware(char *rf_cmd)
 {
     int robofocus_rc;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Querying RoboFocus Firmware...");
+    LOG_DEBUG("Querying RoboFocus Firmware...");
 
     strncpy(rf_cmd, "FV000000", 9);
 
@@ -525,7 +525,7 @@ int RoboFocus::updateRFFirmware(char *rf_cmd)
 
 int RoboFocus::updateRFMotorSettings(double *duty, double *delay, double *ticks)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Update Motor Settings: Duty (%g), Delay (%g), Ticks(%g)", *duty, *delay, *ticks);
+    LOGF_DEBUG("Update Motor Settings: Duty (%g), Delay (%g), Ticks(%g)", *duty, *delay, *ticks);
 
     char rf_cmd[32];
     int robofocus_rc;
@@ -575,7 +575,7 @@ int RoboFocus::updateRFPositionRelativeInward(double value)
     //float temp ;
     rf_cmd[0] = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Update Relative Position Inward: %g", value);
+    LOGF_DEBUG("Update Relative Position Inward: %g", value);
 
     if (isSimulation())
     {
@@ -617,7 +617,7 @@ int RoboFocus::updateRFPositionRelativeOutward(double value)
     int robofocus_rc;
     //float temp ;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Update Relative Position Outward: %g", value);
+    LOGF_DEBUG("Update Relative Position Outward: %g", value);
 
     if (isSimulation())
     {
@@ -660,7 +660,7 @@ int RoboFocus::updateRFPositionAbsolute(double value)
     char rf_cmd[32];
     int robofocus_rc;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Moving Absolute Position: %g", value);
+    LOGF_DEBUG("Moving Absolute Position: %g", value);
 
     if (isSimulation())
     {
@@ -710,7 +710,7 @@ int RoboFocus::updateRFPowerSwitches(int s, int new_sn, int *cur_s1LL, int *cur_
         return 0;
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Get switch status...");
+    LOG_DEBUG("Get switch status...");
 
     /* Get first the status */
     strncpy(rf_cmd_tmp, "FP000000", 9);
@@ -769,7 +769,7 @@ int RoboFocus::updateRFPowerSwitches(int s, int new_sn, int *cur_s1LL, int *cur_
 
 int RoboFocus::updateRFMaxPosition(double *value)
 {
-    DEBUG(INDI::Logger::DBG_DEBUG, "Query max position...");
+    LOG_DEBUG("Query max position...");
 
     float temp;
     char rf_cmd[32];
@@ -831,14 +831,14 @@ int RoboFocus::updateRFMaxPosition(double *value)
 
     *value = (double)temp;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Max position: %g", *value);
+    LOGF_DEBUG("Max position: %g", *value);
 
     return 0;
 }
 
 int RoboFocus::updateRFSetPosition(const double *value)
 {
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Set Max position: %g", *value);
+    LOGF_DEBUG("Set Max position: %g", *value);
 
     char rf_cmd[32];
     char vl_tmp[6];
@@ -1231,7 +1231,7 @@ bool RoboFocus::ISNewNumber(const char *dev, const char *name, double values[], 
 
                         FocusAbsPosNP.s = IPS_OK;
                         IDSetNumber(&FocusAbsPosNP, "Robofocus position recovered %5.0f", currentPosition);
-                        DEBUG(INDI::Logger::DBG_DEBUG, "Robofocus position recovered resuming normal operation");
+                        LOG_DEBUG("Robofocus position recovered resuming normal operation");
                         /* We have to leave here, because new_apos is not set */
                         return true;
                     }
@@ -1255,7 +1255,7 @@ bool RoboFocus::ISNewNumber(const char *dev, const char *name, double values[], 
                 if ((ret = updateRFPosition(&currentPosition)) < 0)
                 {
                     FocusAbsPosNP.s = IPS_ALERT;
-                    DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error while reading  Robofocus position: %d", ret);
+                    LOGF_ERROR("Unknown error while reading  Robofocus position: %d", ret);
                     IDSetNumber(&FocusAbsPosNP, nullptr);
 
                     return false;
@@ -1266,7 +1266,7 @@ bool RoboFocus::ISNewNumber(const char *dev, const char *name, double values[], 
                 IDSetNumber(&SetRegisterPositionNP, "Robofocus has accepted new register setting");
 
                 FocusAbsPosNP.s = IPS_OK;
-                DEBUGF(INDI::Logger::DBG_SESSION, "Robofocus new position %5.0f", currentPosition);
+                LOGF_INFO("Robofocus new position %5.0f", currentPosition);
                 IDSetNumber(&FocusAbsPosNP, nullptr);
 
                 return true;
@@ -1288,7 +1288,7 @@ void RoboFocus::GetFocusParams()
     if ((ret = updateRFPosition(&currentPosition)) < 0)
     {
         FocusAbsPosNP.s = IPS_ALERT;
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unknown error while reading  Robofocus position: %d", ret);
+        LOGF_ERROR("Unknown error while reading  Robofocus position: %d", ret);
         IDSetNumber(&FocusAbsPosNP, nullptr);
         return;
     }
@@ -1299,7 +1299,7 @@ void RoboFocus::GetFocusParams()
     if ((ret = updateRFTemperature(&currentTemperature)) < 0)
     {
         TemperatureNP.s = IPS_ALERT;
-        DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus temperature.");
+        LOG_ERROR("Unknown error while reading Robofocus temperature.");
         IDSetNumber(&TemperatureNP, nullptr);
         return;
     }
@@ -1311,7 +1311,7 @@ void RoboFocus::GetFocusParams()
     if ((ret = updateRFBacklash(&currentBacklash)) < 0)
     {
         SetBacklashNP.s = IPS_ALERT;
-        DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus backlash.");
+        LOG_ERROR("Unknown error while reading Robofocus backlash.");
         IDSetNumber(&SetBacklashNP, nullptr);
         return;
     }
@@ -1323,7 +1323,7 @@ void RoboFocus::GetFocusParams()
     if ((ret = updateRFMotorSettings(&currentDuty, &currentDelay, &currentTicks)) < 0)
     {
         SettingsNP.s = IPS_ALERT;
-        DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus motor settings.");
+        LOG_ERROR("Unknown error while reading Robofocus motor settings.");
         IDSetNumber(&SettingsNP, nullptr);
         return;
     }
@@ -1334,7 +1334,7 @@ void RoboFocus::GetFocusParams()
     if ((ret = updateRFPowerSwitches(-1, -1, &cur_s1LL, &cur_s2LR, &cur_s3RL, &cur_s4RR)) < 0)
     {
         PowerSwitchesSP.s = IPS_ALERT;
-        DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus power switch settings.");
+        LOG_ERROR("Unknown error while reading Robofocus power switch settings.");
         IDSetSwitch(&PowerSwitchesSP, nullptr);
         return;
     }
@@ -1364,7 +1364,7 @@ void RoboFocus::GetFocusParams()
     if ((ret = updateRFMaxPosition(&currentMaxTravel)) < 0)
     {
         MaxTravelNP.s = IPS_ALERT;
-        DEBUG(INDI::Logger::DBG_ERROR, "Unknown error while reading Robofocus maximum travel");
+        LOG_ERROR("Unknown error while reading Robofocus maximum travel");
         IDSetNumber(&MaxTravelNP, nullptr);
         return;
     }
@@ -1379,13 +1379,13 @@ IPState RoboFocus::MoveAbsFocuser(uint32_t targetTicks)
 
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Error, requested position is out of range.");
+        LOG_DEBUG("Error, requested position is out of range.");
         return IPS_ALERT;
     }
 
     if ((ret = updateRFPositionAbsolute(targetPos)) < 0)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Read out of the absolute movement failed %3d", ret);
+        LOGF_DEBUG("Read out of the absolute movement failed %3d", ret);
         return IPS_ALERT;
     }
 
@@ -1449,7 +1449,7 @@ void RoboFocus::TimerHit()
         else if (nbytes_read < 0)
         {
             FocusAbsPosNP.s = IPS_ALERT;
-            DEBUG(INDI::Logger::DBG_ERROR, "Read error! Reconnect and try again.");
+            LOG_ERROR("Read error! Reconnect and try again.");
             IDSetNumber(&FocusAbsPosNP, nullptr);
             return;
         }
@@ -1480,7 +1480,7 @@ void RoboFocus::TimerHit()
 
 bool RoboFocus::AbortFocuser()
 {
-    DEBUG(INDI::Logger::DBG_DEBUG, "Aborting focuser...");
+    LOG_DEBUG("Aborting focuser...");
 
     int nbytes_written;
     const char *buf = "\r";

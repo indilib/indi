@@ -57,7 +57,7 @@ bool RawEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool 
         if (ret != Z_OK)
         {
             /* this should NEVER happen */
-            DEBUGF(INDI::Logger::DBG_ERROR, "internal error - compression failed: %d", ret);
+            LOGF_ERROR("internal error - compression failed: %d", ret);
             return false;
         }
 

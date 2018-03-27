@@ -87,7 +87,7 @@ bool ScopeSim::Abort()
     AbortSP.s = IPS_OK;
     IUResetSwitch(&AbortSP);
     IDSetSwitch(&AbortSP, nullptr);
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope aborted.");
+    LOG_INFO("Telescope aborted.");
 
     return true;
 }

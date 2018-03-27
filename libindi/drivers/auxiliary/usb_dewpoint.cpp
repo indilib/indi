@@ -177,7 +177,7 @@ bool USBDewpoint::updateProperties()
 
         loadConfig(true);
 
-        DEBUG(INDI::Logger::DBG_SESSION, "USB_Dewpoint paramaters updated, device ready for use.");
+        LOG_INFO("USB_Dewpoint paramaters updated, device ready for use.");
         SetTimer(POLLMS);
     }
     else
@@ -201,7 +201,7 @@ bool USBDewpoint::updateProperties()
 bool USBDewpoint::Handshake()
 {
     PortFD = serialConnection->getPortFD();
-    DEBUG(INDI::Logger::DBG_SESSION, "USB_Dewpoint is online. Getting device parameters...");
+    LOG_INFO("USB_Dewpoint is online. Getting device parameters...");
 
     char cmd[] = UDP_IDENTIFY_CMD;
 
@@ -211,23 +211,23 @@ bool USBDewpoint::Handshake()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "HandShake error: %s.", errstr);
+        LOGF_ERROR("HandShake error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "HandShake error: %s.", errstr);
+        LOGF_ERROR("HandShake error: %s.", errstr);
         return false;
     }
     resp[nbytes_read] = 0;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Resp: %s.", resp);
+    LOGF_DEBUG("Resp: %s.", resp);
 
     int firmware = -1;
 
@@ -259,23 +259,23 @@ bool USBDewpoint::setOutput(unsigned int channel, unsigned int value)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setOutputs error: %s.", errstr);
+        LOGF_ERROR("setOutputs error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setOutputs error: %s.", errstr);
+        LOGF_ERROR("setOutputs error: %s.", errstr);
         return false;
     }
     resp[nbytes_read] = 0;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Resp: %s.", resp);
+    LOGF_DEBUG("Resp: %s.", resp);
     return true;
 }
 
@@ -290,23 +290,23 @@ bool USBDewpoint::setCalibrations(unsigned int ch1, unsigned int ch2, unsigned i
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setCalibrations error: %s.", errstr);
+        LOGF_ERROR("setCalibrations error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setCalibrations error: %s.", errstr);
+        LOGF_ERROR("setCalibrations error: %s.", errstr);
         return false;
     }
     resp[nbytes_read] = 0;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Resp: %s.", resp);
+    LOGF_DEBUG("Resp: %s.", resp);
     return true;
 }
 
@@ -321,23 +321,23 @@ bool USBDewpoint::setThresholds(unsigned int ch1, unsigned int ch2)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setThresholds error: %s.", errstr);
+        LOGF_ERROR("setThresholds error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setThresholds error: %s.", errstr);
+        LOGF_ERROR("setThresholds error: %s.", errstr);
         return false;
     }
     resp[nbytes_read] = 0;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Resp: %s.", resp);
+    LOGF_DEBUG("Resp: %s.", resp);
     return true;
 }
 
@@ -352,23 +352,23 @@ bool USBDewpoint::setAggressivity(unsigned int aggressivity)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setAggressivity error: %s.", errstr);
+        LOGF_ERROR("setAggressivity error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setAggressivity error: %s.", errstr);
+        LOGF_ERROR("setAggressivity error: %s.", errstr);
         return false;
     }
     resp[nbytes_read] = 0;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Resp: %s.", resp);
+    LOGF_DEBUG("Resp: %s.", resp);
     return true;
 }
 
@@ -382,23 +382,23 @@ bool USBDewpoint::reset()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "reset error: %s.", errstr);
+        LOGF_ERROR("reset error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "reset error: %s.", errstr);
+        LOGF_ERROR("reset error: %s.", errstr);
         return false;
     }
     resp[nbytes_read] = 0;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Resp: %s.", resp);
+    LOGF_DEBUG("Resp: %s.", resp);
     return true;
 }
 
@@ -413,23 +413,23 @@ bool USBDewpoint::setAutoMode(bool enable)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setAutoMode error: %s.", errstr);
+        LOGF_ERROR("setAutoMode error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setAutoMode error: %s.", errstr);
+        LOGF_ERROR("setAutoMode error: %s.", errstr);
         return false;
     }
     resp[nbytes_read] = 0;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Resp: %s.", resp);
+    LOGF_DEBUG("Resp: %s.", resp);
     return true;
 }
 
@@ -444,23 +444,23 @@ bool USBDewpoint::setLinkMode(bool enable)
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setLinkMode error: %s.", errstr);
+        LOGF_ERROR("setLinkMode error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setLinkMode error: %s.", errstr);
+        LOGF_ERROR("setLinkMode error: %s.", errstr);
         return false;
     }
     resp[nbytes_read] = 0;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Resp: %s.", resp);
+    LOGF_DEBUG("Resp: %s.", resp);
     return true;
 }
 
@@ -518,7 +518,7 @@ bool USBDewpoint::ISNewNumber(const char *dev, const char *name, double values[]
             int target_mode = IUFindOnSwitchIndex(&AutoModeSP);
             if (target_mode == 1)
             {
-                DEBUG(INDI::Logger::DBG_WARNING, "Setting output power is ignored in auto mode!");
+                LOG_WARN("Setting output power is ignored in auto mode!");
                 return true;
             }
             IUUpdateNumber(&OutputsNP, values, names, n);
@@ -579,23 +579,23 @@ bool USBDewpoint::readSettings()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s.", cmd);
+    LOGF_DEBUG("CMD: %s.", cmd);
 
     if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "readSettings error: %s.", errstr);
+        LOGF_ERROR("readSettings error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "readSettings error: %s.", errstr);
+        LOGF_ERROR("readSettings error: %s.", errstr);
         return false;
     }
     resp[63] = 0;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Resp: %s.", resp);
+    LOGF_DEBUG("Resp: %s.", resp);
 
     // Status response is like:
     // ##22.37/22.62/23.35/50.77/12.55/0/0/0/0/0/0/2/2/0/0/4**

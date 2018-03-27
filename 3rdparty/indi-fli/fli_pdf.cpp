@@ -209,19 +209,19 @@ bool FLIPDF::Connect()
 
     if (findFLIPDF(Domains[portSwitchIndex]) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error: no focusers were detected.");
+        LOG_ERROR("Error: no focusers were detected.");
         return false;
     }
 
     if ((err = FLIOpen(&fli_dev, FLIFocus.name, FLIDEVICE_FOCUSER | FLIFocus.domain)))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: FLIOpen() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("Error: FLIOpen() failed. %s.", strerror((int)-err));
 
         return false;
     }
 
     /* Success! */
-    DEBUG(INDI::Logger::DBG_SESSION, "Focuser is online. Retrieving basic data.");
+    LOG_INFO("Focuser is online. Retrieving basic data.");
     return true;
 }
 
@@ -234,12 +234,12 @@ bool FLIPDF::Disconnect()
 
     if ((err = FLIClose(fli_dev)))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: FLIClose() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("Error: FLIClose() failed. %s.", strerror((int)-err));
 
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Focuser is offline.");
+    LOG_INFO("Focuser is offline.");
     return true;
 }
 

@@ -153,11 +153,11 @@ bool SmartFocus::Handshake()
 
     if (!SFacknowledge())
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "SmartFocus is not communicating.");
+        LOG_DEBUG("SmartFocus is not communicating.");
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "SmartFocus is communicating.");
+    LOG_DEBUG("SmartFocus is communicating.");
     return true;
 }
 
@@ -198,7 +198,7 @@ bool SmartFocus::AbortFocuser()
     bool result = true;
     if (!isSimulation() && SFisMoving())
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "AbortFocuser: stopping motion");
+        LOG_DEBUG("AbortFocuser: stopping motion");
         result = send(&stop_focuser, sizeof(stop_focuser), "AbortFocuser");
         // N.B.: The respons to this stop command will be captured in the TimerHit method!
     }
@@ -221,16 +221,16 @@ IPState SmartFocus::MoveAbsFocuser(uint32_t targetPosition)
         command[0] = goto_position;
         command[1] = ((destination >> 8) & 0xFF);
         command[2] = (destination & 0xFF);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "MoveAbsFocuser: destination= %d", destination);
+        LOGF_DEBUG("MoveAbsFocuser: destination= %d", destination);
         tcflush(PortFD, TCIOFLUSH);
         if (send(command, sizeof(command), "MoveAbsFocuser"))
         {
             char respons;
             if (recv(&respons, sizeof(respons), "MoveAbsFocuser"))
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "MoveAbsFocuser received echo: %c", respons);
+                LOGF_DEBUG("MoveAbsFocuser received echo: %c", respons);
                 if (respons != goto_position)
-                    DEBUGF(INDI::Logger::DBG_ERROR, "MoveAbsFocuser received unexpected respons: %c (0x02x)", respons,
+                    LOGF_ERROR("MoveAbsFocuser received unexpected respons: %c (0x02x)", respons,
                            respons);
                 else
                 {
@@ -290,9 +290,9 @@ void SmartFocus::TimerHit()
         char respons;
         if (read(PortFD, &respons, sizeof(respons)) == sizeof(respons))
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "TimerHit() received character: %c (0x%02x)", respons, respons);
+            LOGF_DEBUG("TimerHit() received character: %c (0x%02x)", respons, respons);
             if (respons != motion_complete && respons != motion_error && respons != motion_stopped)
-                DEBUGF(INDI::Logger::DBG_ERROR, "TimerHit() received unexpected character: %c (0x%02x)", respons,
+                LOGF_ERROR("TimerHit() received unexpected character: %c (0x%02x)", respons,
                        respons);
             state = Idle;
         }
@@ -321,10 +321,10 @@ bool SmartFocus::SFacknowledge()
             char respons[2];
             if (recv(respons, sizeof(respons), "SFacknowledge", false))
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "SFacknowledge received: %c%c", respons[0], respons[1]);
+                LOGF_DEBUG("SFacknowledge received: %c%c", respons[0], respons[1]);
                 success = (respons[0] == read_id_register && respons[1] == read_id_respons);
                 if (!success)
-                    DEBUGF(INDI::Logger::DBG_ERROR, "SFacknowledge received unexpected respons: %c%c (0x02 0x02x)",
+                    LOGF_ERROR("SFacknowledge received unexpected respons: %c%c (0x02 0x02x)",
                            respons[0], respons[1], respons[0], respons[1]);
             }
         }
@@ -349,10 +349,10 @@ SmartFocus::Position SmartFocus::SFgetPosition()
                 {
                     result = (((static_cast<Position>(respons[1]) << 8) & 0xFF00) |
                               (static_cast<Position>(respons[2]) & 0x00FF));
-                    DEBUGF(INDI::Logger::DBG_DEBUG, "SFgetPosition: position=%d", result);
+                    LOGF_DEBUG("SFgetPosition: position=%d", result);
                 }
                 else
-                    DEBUGF(INDI::Logger::DBG_ERROR, "SFgetPosition received unexpected respons: %c (0x02x)", respons[0],
+                    LOGF_ERROR("SFgetPosition received unexpected respons: %c (0x02x)", respons[0],
                            respons[0]);
             }
         }
@@ -374,10 +374,10 @@ SmartFocus::Flags SmartFocus::SFgetFlags()
                 if (respons[0] == read_flags)
                 {
                     result = static_cast<Flags>(respons[1]);
-                    DEBUGF(INDI::Logger::DBG_DEBUG, "SFgetFlags: flags=0x%02x", result);
+                    LOGF_DEBUG("SFgetFlags: flags=0x%02x", result);
                 }
                 else
-                    DEBUGF(INDI::Logger::DBG_ERROR, "SFgetFlags received unexpected respons: %c (0x02x)", respons[0],
+                    LOGF_ERROR("SFgetFlags received unexpected respons: %c (0x02x)", respons[0],
                            respons[0]);
             }
         }
@@ -419,7 +419,7 @@ bool SmartFocus::send(const char *command, const size_t nbytes, const char *from
     {
         char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s (%d of %d bytes written).", from, errstr, nbytes_written, nbytes);
+        LOGF_ERROR("%s: %s (%d of %d bytes written).", from, errstr, nbytes_written, nbytes);
     }
     return success;
 }
@@ -434,7 +434,7 @@ bool SmartFocus::recv(char *respons, const size_t nbytes, const char *from, cons
     {
         char errstr[MAXRBUF];
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s (%d of %d bytes read).", errstr, from, nbytes_read, nbytes);
+        LOGF_ERROR("%s: %s (%d of %d bytes read).", errstr, from, nbytes_read, nbytes);
     }
     return success;
 }

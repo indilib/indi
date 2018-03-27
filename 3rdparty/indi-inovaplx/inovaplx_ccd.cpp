@@ -92,11 +92,11 @@ bool INovaCCD::Connect()
     if(iNovaSDK_MaxCamera() > 0)
     {
         Sn = iNovaSDK_OpenCamera(1);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Serial Number: %s", Sn);
+        LOGF_DEBUG("Serial Number: %s", Sn);
         if(Sn[0] >= '0' && Sn[0] < '3')
         {
             iNovaSDK_InitST4();
-            DEBUGF(INDI::Logger::DBG_SESSION, "Camera model is %s", iNovaSDK_GetName());
+            LOGF_INFO("Camera model is %s", iNovaSDK_GetName());
             iNovaSDK_InitCamera(RESOLUTION_FULL);
             //maxW = iNovaSDK_GetImageWidth();
             //maxH = iNovaSDK_GetImageHeight();
@@ -115,7 +115,7 @@ bool INovaCCD::Connect()
         }
         iNovaSDK_CloseCamera();
     }
-    DEBUG(INDI::Logger::DBG_ERROR, "No cameras opened.");
+    LOG_ERROR("No cameras opened.");
     return false;
 }
 
@@ -344,7 +344,7 @@ void INovaCCD::TimerHit()
         else
         {
             /* We're done exposing */
-            DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+            LOG_INFO("Exposure done, downloading image...");
             RawData = (unsigned char*)iNovaSDK_GrabFrame();
             if(RawData != NULL)
             {
@@ -449,7 +449,7 @@ void INovaCCD::grabImage()
             }
         }
         // Let INDI::CCD know we're done filling the image buffer
-        DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+        LOG_INFO("Download complete.");
         ExposureComplete(&PrimaryCCD);
     }
 }

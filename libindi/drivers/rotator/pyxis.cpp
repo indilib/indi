@@ -109,7 +109,7 @@ bool Pyxis::Handshake()
     if (Ack())
         return true;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from Pyrix, please ensure Pyrix controller is powered and the port is correct.");
+    LOG_INFO("Error retreiving data from Pyrix, please ensure Pyrix controller is powered and the port is correct.");
     return false;
 }
 
@@ -167,31 +167,31 @@ bool Pyxis::Ack()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+    LOGF_DEBUG("RES <%c>", res[0]);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if (res[0] != '!')
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot establish communication. Check power is on and homing is complete.");
+        LOG_ERROR("Cannot establish communication. Check power is on and homing is complete.");
         return false;
     }
 
@@ -262,7 +262,7 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 if (PowerS[POWER_SLEEP].s == ISS_OFF)
                 {
                     PowerSP.s = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_WARNING, "Controller is not in sleep mode.");
+                    LOG_WARN("Controller is not in sleep mode.");
                     IDSetSwitch(&PowerSP, nullptr);
                     return true;
                 }
@@ -273,7 +273,7 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 {
                     IUResetSwitch(&PowerSP);
                     PowerSP.s = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Controller is awake.");
+                    LOG_INFO("Controller is awake.");
                 }
                 else
                     PowerSP.s = IPS_ALERT;
@@ -289,7 +289,7 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 {
                    PowerSP.s = IPS_OK;
                    PowerS[POWER_SLEEP].s = ISS_ON;
-                   DEBUG(INDI::Logger::DBG_SESSION, "Controller in sleep mode. No functions can be used until controller is waken up.");
+                   LOG_INFO("Controller in sleep mode. No functions can be used until controller is waken up.");
                 }
                 else
                     PowerSP.s = IPS_ALERT;
@@ -314,14 +314,14 @@ bool Pyxis::setSteppingMode(uint8_t mode)
 
     snprintf(cmd, PYRIX_BUF, "CZ%dxxx", mode);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
@@ -337,14 +337,14 @@ bool Pyxis::setRotationRate(uint8_t rate)
 
     snprintf(cmd, PYRIX_BUF, "CTxx%02d", rate);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
@@ -360,14 +360,14 @@ bool Pyxis::sleepController()
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
@@ -382,27 +382,27 @@ bool Pyxis::wakeupController()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+    LOGF_DEBUG("RES <%c>", res[0]);
 
     return (res[0] == '!');
 }
@@ -414,14 +414,14 @@ IPState Pyxis::HomeRotator()
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return IPS_ALERT;
     }
 
@@ -442,14 +442,14 @@ IPState Pyxis::MoveRotator(double angle)
 
     snprintf(cmd, PYRIX_BUF, "CPA%03d", targetPA);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return IPS_ALERT;
     }
 
@@ -465,14 +465,14 @@ bool Pyxis::ReverseRotator(bool enabled)
 
     snprintf(cmd, PYRIX_BUF, "CD%dxxx", enabled ? 1 : 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
@@ -494,7 +494,7 @@ void Pyxis::TimerHit()
             HomeRotatorSP.s = IPS_OK;
             HomeRotatorS[0].s = ISS_OFF;
             IDSetSwitch(&HomeRotatorSP, nullptr);
-            DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete.");
+            LOG_INFO("Homing is complete.");
         }
         else
         {
@@ -537,11 +537,11 @@ bool Pyxis::isMotionComplete()
     if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+    LOGF_DEBUG("RES <%c>", res[0]);
 
     // Homing still in progress
     if (res[0] == '!')
@@ -554,7 +554,7 @@ bool Pyxis::isMotionComplete()
     {
         HomeRotatorS[0].s = ISS_OFF;
         HomeRotatorSP.s = IPS_ALERT;
-        DEBUG(INDI::Logger::DBG_ERROR, "Homing failed. Check possible jam.");
+        LOG_ERROR("Homing failed. Check possible jam.");
         tcflush(PortFD, TCIOFLUSH);
     }
 
@@ -569,27 +569,27 @@ bool Pyxis::getPA(uint16_t &PA)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 3, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     if (res[0] == '!')
         return false;
@@ -607,27 +607,27 @@ int Pyxis::getReverseStatus()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return -1;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return -1;
     }
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+    LOGF_DEBUG("RES <%c>", res[0]);
 
     // Subtract from '0' to get actual number (0 or 1)
     return (res[0] - 0x30);

@@ -123,7 +123,7 @@ bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             char filter_command[CMD_SIZE];
             snprintf(filter_command, CMD_SIZE, "%c%c%c%c", COMM_INIT, type, COMM_FILL, chksum);
 
-            DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, COMM_FILL, chksum);
+            LOGF_DEBUG("CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, COMM_FILL, chksum);
 
             if (!isSimulation() &&
                 (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
@@ -132,7 +132,7 @@ bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 tty_error_msg(rc, error_message, ERRMSG_SIZE);
 
                 HomeSP.s = IPS_ALERT;
-                DEBUGF(INDI::Logger::DBG_ERROR, "Sending command Home to filter failed: %s", error_message);
+                LOGF_ERROR("Sending command Home to filter failed: %s", error_message);
             }
             else
             {
@@ -140,7 +140,7 @@ bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 FilterSlotN[0].value = 1;
                 FilterSlotNP.s       = IPS_OK;
                 HomeSP.s             = IPS_OK;
-                DEBUG(INDI::Logger::DBG_SESSION, "Filter set to Home.");
+                LOG_INFO("Filter set to Home.");
                 IDSetNumber(&FilterSlotNP, nullptr);
             }
 
@@ -168,14 +168,14 @@ bool TruTech::SelectFilter(int f)
     uint8_t chksum = COMM_INIT + type + static_cast<uint8_t>(f);
     snprintf(filter_command, CMD_SIZE, "%c%c%c%c", COMM_INIT, type, f, chksum);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, f, chksum);
+    LOGF_DEBUG("CMD: %#02X %#02X %#02X %#02X", COMM_INIT, type, f, chksum);
 
     if (!isSimulation() && (rc = tty_write(PortFD, filter_command, CMD_SIZE, &nbytes_written)) != TTY_OK)
     {
         char error_message[ERRMSG_SIZE];
         tty_error_msg(rc, error_message, ERRMSG_SIZE);
 
-        DEBUGF(INDI::Logger::DBG_ERROR, "Sending command select filter failed: %s", error_message);
+        LOGF_ERROR("Sending command select filter failed: %s", error_message);
         return false;
     }
 

@@ -163,34 +163,34 @@ IPState Vantage::updateWeather()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[6] = 0xA;
 
     if ((rc = tty_write(PortFD, command, 7, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Loop error: %s.", errstr);
+        LOGF_ERROR("Loop error: %s.", errstr);
         return IPS_ALERT;
     }
 
     if ((rc = tty_read(PortFD, response, 1, VANTAGE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Loop error: %s.", errstr);
+        LOGF_ERROR("Loop error: %s.", errstr);
         return IPS_ALERT;
     }
 
     if (response[0] != 0x06)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Expecting 0x06, received %#X", response[0]);
+        LOGF_ERROR("Expecting 0x06, received %#X", response[0]);
         return IPS_ALERT;
     }
 
     if ((rc = tty_read(PortFD, response, 99, VANTAGE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Loop error: %s.", errstr);
+        LOGF_ERROR("Loop error: %s.", errstr);
         return IPS_ALERT;
     }
 
@@ -198,63 +198,63 @@ IPState Vantage::updateWeather()
 
     if (crc != 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "CRC check failed.");
+        LOG_ERROR("CRC check failed.");
         return IPS_ALERT;
     }
 
     uint8_t *loopData = (uint8_t *)response;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Packet Type (%d)", loopData[4]);
+    LOGF_DEBUG("Packet Type (%d)", loopData[4]);
 
     uint8_t forecastValue = loopData[89];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Forecast (%d)", forecastValue);
+    LOGF_DEBUG("Raw Forecast (%d)", forecastValue);
 
     switch (forecastValue)
     {
         // Clear
         case 0x08:
-            DEBUG(INDI::Logger::DBG_SESSION, "Forecast: Mostly Clear.");
+            LOG_INFO("Forecast: Mostly Clear.");
             setParameterValue("WEATHER_FORECAST", 0);
             break;
 
         case 0x06:
-            DEBUG(INDI::Logger::DBG_SESSION, "Forecast: Partly Cloudy.");
+            LOG_INFO("Forecast: Partly Cloudy.");
             setParameterValue("WEATHER_FORECAST", 1);
             break;
 
         case 0x02:
-            DEBUG(INDI::Logger::DBG_SESSION, "Forecast: Mostly Cloudy.");
+            LOG_INFO("Forecast: Mostly Cloudy.");
             setParameterValue("WEATHER_FORECAST", 2);
             break;
 
         case 0x03:
-            DEBUG(INDI::Logger::DBG_SESSION, "Forecast: Mostly Cloudy. Rain within 12 hours.");
+            LOG_INFO("Forecast: Mostly Cloudy. Rain within 12 hours.");
             setParameterValue("WEATHER_FORECAST", 2);
             break;
 
         case 0x12:
-            DEBUG(INDI::Logger::DBG_SESSION, "Forecast: Mostly Cloudy. Snow within 12 hours.");
+            LOG_INFO("Forecast: Mostly Cloudy. Snow within 12 hours.");
             setParameterValue("WEATHER_FORECAST", 2);
             break;
 
         case 0x13:
-            DEBUG(INDI::Logger::DBG_SESSION, "Forecast: Mostly Cloudy. Rain or Snow within 12 hours.");
+            LOG_INFO("Forecast: Mostly Cloudy. Rain or Snow within 12 hours.");
             setParameterValue("WEATHER_FORECAST", 2);
             break;
 
         case 0x07:
-            DEBUG(INDI::Logger::DBG_SESSION, "Forecast: Partly Cloudy. Rain within 12 hours.");
+            LOG_INFO("Forecast: Partly Cloudy. Rain within 12 hours.");
             setParameterValue("WEATHER_FORECAST", 1);
             break;
 
         case 0x16:
-            DEBUG(INDI::Logger::DBG_SESSION, "Forecast: Partly Cloudy. Snow within 12 hours.");
+            LOG_INFO("Forecast: Partly Cloudy. Snow within 12 hours.");
             setParameterValue("WEATHER_FORECAST", 1);
             break;
 
         case 0x17:
-            DEBUG(INDI::Logger::DBG_SESSION, "Forecast: Partly Cloudy. Rain or Snow within 12 hours.");
+            LOG_INFO("Forecast: Partly Cloudy. Rain or Snow within 12 hours.");
             setParameterValue("WEATHER_FORECAST", 1);
             break;
     }
@@ -264,40 +264,40 @@ IPState Vantage::updateWeather()
 
     setParameterValue("WEATHER_TEMPERATURE", ((temperatureValue / 10.0) - 32) / 1.8);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Temperature (%d) [%#4X %#4X]", temperatureValue, loopData[9], loopData[10]);
+    LOGF_DEBUG("Raw Temperature (%d) [%#4X %#4X]", temperatureValue, loopData[9], loopData[10]);
 
     // Barometer
     uint16_t barometerValue = loopData[8] << 8 | loopData[7];
 
     setParameterValue("WEATHER_BAROMETER", (barometerValue / 1000.0) * 33.8639);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Barometer (%d) [%#4X %#4X]", barometerValue, loopData[7], loopData[8]);
+    LOGF_DEBUG("Raw Barometer (%d) [%#4X %#4X]", barometerValue, loopData[7], loopData[8]);
 
     // Wind Speed
     uint8_t windValue = loopData[14];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Wind Speed (%d) [%#X4]", windValue, loopData[14]);
+    LOGF_DEBUG("Raw Wind Speed (%d) [%#X4]", windValue, loopData[14]);
 
     setParameterValue("WEATHER_WIND_SPEED", windValue / 0.62137);
 
     // Wind Direction
     uint16_t windDir = loopData[17] << 8 | loopData[16];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Wind Direction (%d) [%#4X,%#4X]", windDir, loopData[16], loopData[17]);
+    LOGF_DEBUG("Raw Wind Direction (%d) [%#4X,%#4X]", windDir, loopData[16], loopData[17]);
 
     setParameterValue("WEATHER_WIND_DIRECTION", windDir);
 
     // Rain Rate
     uint16_t rainRate = loopData[42] << 8 | loopData[41];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Rain Rate (%d) [%#4X,%#4X]", rainRate, loopData[41], loopData[42]);
+    LOGF_DEBUG("Raw Rain Rate (%d) [%#4X,%#4X]", rainRate, loopData[41], loopData[42]);
 
     setParameterValue("WEATHER_RAIN_RATE", rainRate / (100 * 0.039370));
 
     // Solar Radiation
     uint16_t solarRadiation = loopData[45] << 8 | loopData[44];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Raw Solar Radiation (%d) [%#4X,%#4X]", solarRadiation, loopData[44], loopData[45]);
+    LOGF_DEBUG("Raw Solar Radiation (%d) [%#4X,%#4X]", solarRadiation, loopData[44], loopData[45]);
 
     if (solarRadiation == 32767)
         solarRadiation = 0;
@@ -320,12 +320,12 @@ bool Vantage::wakeup()
 
     for (int i = 0; i < 3; i++)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%#X)", command[0]);
+        LOGF_DEBUG("CMD (%#X)", command[0]);
 
         if ((rc = tty_write(PortFD, command, 1, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "Wakup error: %s.", errstr);
+            LOGF_ERROR("Wakup error: %s.", errstr);
             return false;
         }
 
@@ -335,7 +335,7 @@ bool Vantage::wakeup()
         {
             if (nbytes_read == 2)
             {
-                DEBUG(INDI::Logger::DBG_DEBUG, "Console is awake.");
+                LOG_DEBUG("Console is awake.");
                 return true;
             }
         }
@@ -361,7 +361,7 @@ bool Vantage::ack()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", command);
+    LOGF_DEBUG("CMD (%s)", command);
 
     command[3] = 0xA;
     command[4] = 0;
@@ -369,27 +369,27 @@ bool Vantage::ack()
     if ((rc = tty_write(PortFD, command, 4, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Ack error: %s.", errstr);
+        LOGF_ERROR("Ack error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xD, VANTAGE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Ack error: %s.", errstr);
+        LOGF_ERROR("Ack error: %s.", errstr);
         return false;
     }
 
     if (response[1] != 0xD)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Expecting 0xD, received %#X", response[1]);
+        LOGF_ERROR("Expecting 0xD, received %#X", response[1]);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xD, VANTAGE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Ack error: %s.", errstr);
+        LOGF_ERROR("Ack error: %s.", errstr);
         return false;
     }
 
@@ -397,20 +397,20 @@ bool Vantage::ack()
 
     if (strcmp(response, "OK") != 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error response: %s", response);
+        LOGF_ERROR("Error response: %s", response);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, response, 0xD, VANTAGE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Ack error: %s.", errstr);
+        LOGF_ERROR("Ack error: %s.", errstr);
         return false;
     }
 
     response[nbytes_read - 2] = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     return true;
 }

@@ -62,13 +62,13 @@ StreamManager::StreamManager(CCD *mainCCD)
     recorder    = recorderManager->getDefaultRecorder();    
     direct_record = false;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Using default recorder (%s)", recorder->getName());
+    LOGF_DEBUG("Using default recorder (%s)", recorder->getName());
 
     encoderManager = new EncoderManager();
     encoder = encoderManager->getDefaultEncoder();
     encoder->init(mainCCD);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Using default encoder (%s)", encoder->getName());
+    LOGF_DEBUG("Using default encoder (%s)", encoder->getName());
 }
 
 StreamManager::~StreamManager()
@@ -317,7 +317,7 @@ void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
             {
                 if (uploadStream(buffer, nbytes) == false)
                 {
-                    DEBUG(INDI::Logger::DBG_ERROR, "Streaming failed.");
+                    LOG_ERROR("Streaming failed.");
                     setStream(false);
                     return;
                 }
@@ -329,7 +329,7 @@ void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
         {
             if (recordStream(buffer, nbytes, deltams) == false)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Recording failed.");
+                LOG_ERROR("Recording failed.");
                 stopRecording();
                 return;
             }
@@ -342,7 +342,7 @@ void StreamManager::setSize(uint16_t width, uint16_t height)
     if (width != StreamFrameN[CCDChip::FRAME_W].value || height != StreamFrameN[CCDChip::FRAME_H].value)
     {
         if (m_PixelFormat == INDI_JPG)
-            DEBUG(INDI::Logger::DBG_WARNING, "Cannot subframe JPEG streams.");
+            LOG_WARN("Cannot subframe JPEG streams.");
 
         StreamFrameN[CCDChip::FRAME_X].value = 0;
         StreamFrameN[CCDChip::FRAME_X].max   = width - 1;
@@ -380,12 +380,12 @@ bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelD
     bool recorderOK = recorder->setPixelFormat(pixelFormat, pixelDepth);
     if (recorderOK == false)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Pixel format is not supported by %s recorder.", recorder->getName());
+        LOGF_ERROR("Pixel format is not supported by %s recorder.", recorder->getName());
     }
     bool encoderOK = encoder->setPixelFormat(pixelFormat, pixelDepth);
     if (encoderOK == false)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Pixel format is not supported by %s encoder.", encoder->getName());
+        LOGF_ERROR("Pixel format is not supported by %s encoder.", encoder->getName());
     }
 
     m_PixelFormat = pixelFormat;
@@ -407,7 +407,7 @@ bool StreamManager::recordStream(const uint8_t *buffer, uint32_t nbytes, double 
 
     if ((RecordStreamSP.sp[1].s == ISS_ON) && (recordDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Ending record after %g millisecs", recordDuration);
+        LOGF_INFO("Ending record after %g millisecs", recordDuration);
         stopRecording();
         RecordStreamSP.sp[1].s = ISS_OFF;
         RecordStreamSP.sp[3].s = ISS_ON;
@@ -417,7 +417,7 @@ bool StreamManager::recordStream(const uint8_t *buffer, uint32_t nbytes, double 
 
     if ((RecordStreamSP.sp[2].s == ISS_ON) && (recordframeCount >= (RecordOptionsNP.np[1].value)))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Ending record after %d frames", recordframeCount);
+        LOGF_INFO("Ending record after %d frames", recordframeCount);
         stopRecording();
         RecordStreamSP.sp[2].s = ISS_OFF;
         RecordStreamSP.sp[3].s = ISS_ON;
@@ -448,7 +448,7 @@ int StreamManager::mkpath(std::string s, mode_t mode)
         {
             if (errno != ENOENT || ((mdret = mkdir(dir.c_str(), mode)) && errno != EEXIST))
             {
-                DEBUGF(INDI::Logger::DBG_WARNING, "mkpath: can not create %s", dir.c_str());
+                LOGF_WARN("mkpath: can not create %s", dir.c_str());
                 return mdret;
             }
         }
@@ -456,7 +456,7 @@ int StreamManager::mkpath(std::string s, mode_t mode)
         {
             if (!S_ISDIR(st.st_mode))
             {
-                DEBUGF(INDI::Logger::DBG_WARNING, "mkpath: %s is not a directory", dir.c_str());
+                LOGF_WARN("mkpath: %s is not a directory", dir.c_str());
                 return -1;
             }
         }
@@ -531,7 +531,7 @@ bool StreamManager::startRecording()
     {
         filtername      = currentCCD->FilterNames.at(currentCCD->CurrentFilterSlot - 1);
         patterns["_F_"] = filtername;
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Adding filter pattern %s", filtername.c_str());
+        LOGF_DEBUG("Adding filter pattern %s", filtername.c_str());
     }
 
     recorder->setFPS(FpsN[FPS_AVERAGE].value);
@@ -547,13 +547,13 @@ bool StreamManager::startRecording()
             expfilename += recorder->getExtension();
 
     filename = expfiledir + expfilename;
-    //DEBUGF(INDI::Logger::DBG_SESSION, "Expanded file is %s", filename.c_str());
+    //LOGF_INFO("Expanded file is %s", filename.c_str());
     //filename=recordfiledir+recordfilename;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Record file is %s", filename.c_str());
+    LOGF_INFO("Record file is %s", filename.c_str());
     /* Create/open file/dir */
     if (mkpath(expfiledir, 0755))
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Can not create record directory %s: %s", expfiledir.c_str(),
+        LOGF_WARN("Can not create record directory %s: %s", expfiledir.c_str(),
                strerror(errno));
         return false;
     }
@@ -561,7 +561,7 @@ bool StreamManager::startRecording()
     {
         RecordStreamSP.s = IPS_ALERT;
         IDSetSwitch(&RecordStreamSP, nullptr);
-        DEBUGF(INDI::Logger::DBG_WARNING, "Can not open record file: %s", errmsg);
+        LOGF_WARN("Can not open record file: %s", errmsg);
         return false;
     }
 
@@ -570,7 +570,7 @@ bool StreamManager::startRecording()
     // TODO direct recording should this be part of StreamManager?
     if (direct_record)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Using direct recording (no software cropping).");
+        LOG_INFO("Using direct recording (no software cropping).");
         //v4l_base->doDecode(false);
         //v4l_base->doRecord(true);
     }
@@ -591,7 +591,7 @@ bool StreamManager::startRecording()
     framecountsec = 0;
     if (m_isStreaming == false && currentCCD->StartStreaming() == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to start recording.");
+        LOG_ERROR("Failed to start recording.");
         RecordStreamSP.s = IPS_ALERT;
         IUResetSwitch(&RecordStreamSP);
         RecordStreamS[RECORD_OFF].s = ISS_ON;
@@ -610,7 +610,7 @@ bool StreamManager::stopRecording()
 
     m_isRecording = false;
     recorder->close();
-    DEBUGF(INDI::Logger::DBG_SESSION, "Record Duration(millisec): %g -- Frame count: %d", recordDuration,
+    LOGF_INFO("Record Duration(millisec): %g -- Frame count: %d", recordDuration,
            recordframeCount);
     return true;
 }
@@ -650,7 +650,7 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
             IUResetSwitch(&RecordStreamSP);
             RecordStreamS[prevSwitch].s = ISS_ON;
             IDSetSwitch(&RecordStreamSP, nullptr);
-            DEBUG(INDI::Logger::DBG_WARNING, "Recording device is busy.");
+            LOG_WARN("Recording device is busy.");
             return false;
         }
 
@@ -661,13 +661,13 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
             {
                 RecordStreamSP.s = IPS_BUSY;
                 if (RecordStreamSP.sp[1].s == ISS_ON)
-                    DEBUGF(INDI::Logger::DBG_SESSION, "Starting video record (Duration): %g secs.",
+                    LOGF_INFO("Starting video record (Duration): %g secs.",
                            RecordOptionsNP.np[0].value);
                 else if (RecordStreamSP.sp[2].s == ISS_ON)
-                    DEBUGF(INDI::Logger::DBG_SESSION, "Starting video record (Frame count): %d.",
+                    LOGF_INFO("Starting video record (Frame count): %d.",
                            (int)(RecordOptionsNP.np[1].value));
                 else
-                    DEBUG(INDI::Logger::DBG_SESSION, "Starting video record.");
+                    LOG_INFO("Starting video record.");
 
                 if (!startRecording())
                 {
@@ -684,7 +684,7 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
             RecordStreamSP.s = IPS_IDLE;
             if (m_isRecording)
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Recording stream has been disabled. Frame count %d",
+                LOGF_INFO("Recording stream has been disabled. Frame count %d",
                        recordframeCount);
                 stopRecording();
             }
@@ -756,7 +756,7 @@ bool StreamManager::ISNewText(const char *dev, const char *name, char *texts[], 
         IText *tp = IUFindText(&RecordFileTP, "RECORD_FILE_NAME");
         if (strchr(tp->text, '/'))
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Dir. separator (/) not allowed in filename.");
+            LOG_WARN("Dir. separator (/) not allowed in filename.");
             return false;
         }
 
@@ -787,7 +787,7 @@ bool StreamManager::ISNewNumber(const char *dev, const char *name, double values
     {
         if (m_isRecording)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Recording device is busy");
+            LOG_WARN("Recording device is busy");
             return false;
         }
 
@@ -802,7 +802,7 @@ bool StreamManager::ISNewNumber(const char *dev, const char *name, double values
     {
         if (m_isRecording)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Recording device is busy");
+            LOG_WARN("Recording device is busy");
             return false;
         }
 
@@ -848,7 +848,7 @@ bool StreamManager::setStream(bool enable)
                        "Starting the video stream with target FPS %.f and rate divisor of %.f",
                        StreamOptionsN[OPTION_TARGET_FPS].value, StreamOptionsN[OPTION_RATE_DIVISOR].value);
             else
-                DEBUGF(INDI::Logger::DBG_SESSION, "Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
+                LOGF_INFO("Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
 
             streamframeCount = 0;
 
@@ -860,7 +860,7 @@ bool StreamManager::setStream(bool enable)
                 IUResetSwitch(&StreamSP);
                 StreamS[1].s = ISS_ON;
                 StreamSP.s   = IPS_ALERT;
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to start streaming.");
+                LOG_ERROR("Failed to start streaming.");
                 IDSetSwitch(&StreamSP, nullptr);
                 return false;
             }
@@ -877,14 +877,14 @@ bool StreamManager::setStream(bool enable)
         StreamSP.s = IPS_IDLE;
         if (m_isStreaming)
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "The video stream has been disabled. Frame count %d", streamframeCount);
+            LOGF_DEBUG("The video stream has been disabled. Frame count %d", streamframeCount);
             //if (!is_exposing && !is_recording) stop_capturing();
             if (!m_isRecording)
             {
                 if (currentCCD->StopStreaming() == false)
                 {
                     StreamSP.s = IPS_ALERT;
-                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to stop streaming.");
+                    LOG_ERROR("Failed to stop streaming.");
                     IDSetSwitch(&StreamSP, nullptr);
                     return false;
                 }
