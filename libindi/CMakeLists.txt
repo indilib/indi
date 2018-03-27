@@ -522,23 +522,6 @@ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
 
-########### LX200 StarGO ###########
-SET(lx200stargo_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200telescope.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200stargo.cpp
-    )
-
-IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(lx200stargo lx200stargo_SRCS 10 cpp)
-ENDIF ()
-
-add_executable(indi_lx200stargo ${lx200stargo_SRCS})
-target_compile_definitions(indi_lx200stargo PRIVATE -D_XOPEN_SOURCE=600 -D_POSIX_C_SOURCE=200809L)
-target_link_libraries(indi_lx200stargo indidriver)
-
-install(TARGETS indi_lx200stargo RUNTIME DESTINATION bin )
-
 
 ########### Celestron GPS ############
 SET(celestrongps_SRC
