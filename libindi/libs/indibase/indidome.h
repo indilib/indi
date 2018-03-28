@@ -533,6 +533,7 @@ class Dome : public DefaultDevice
     Controller *controller = nullptr;
 
     bool IsParked = false;
+    bool IsMountParked = false;
     bool IsLocked = true;
 
     const char *ParkDeviceName;
