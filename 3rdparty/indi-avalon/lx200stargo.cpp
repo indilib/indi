@@ -19,13 +19,16 @@
 */
 #include "lx200stargo.h"
 
+#include "lx200stargofocuser.h"
+
 #include <cmath>
 #include <memory>
 #include <cstring>
 #include <unistd.h>
 
 // We declare an auto pointer to LX200StarGo
-std::unique_ptr<LX200StarGo> starGoScope;
+std::unique_ptr<LX200StarGo> telescope;
+std::unique_ptr<LX200StarGoFocuser> focuser;
 
 
 void ISInit()
@@ -36,8 +39,10 @@ void ISInit()
         return;
 
     isInit = 1;
-    if (starGoScope.get() == 0) {
-        starGoScope.reset(new LX200StarGo());
+    if (telescope.get() == 0) {
+        LX200StarGo* myScope = new LX200StarGo();
+        telescope.reset(myScope);
+        focuser.reset(new LX200StarGoFocuser(myScope));
     }
 
 }
@@ -45,25 +50,25 @@ void ISInit()
 void ISGetProperties(const char *dev)
 {
     ISInit();
-    starGoScope->ISGetProperties(dev);
+    telescope->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     ISInit();
-    starGoScope->ISNewSwitch(dev, name, states, names, n);
+    telescope->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     ISInit();
-    starGoScope->ISNewText(dev, name, texts, names, n);
+    telescope->ISNewText(dev, name, texts, names, n);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     ISInit();
-    starGoScope->ISNewNumber(dev, name, values, names, n);
+    telescope->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -81,7 +86,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 void ISSnoopDevice(XMLEle *root)
 {
     ISInit();
-    starGoScope->ISSnoopDevice(root);
+    telescope->ISSnoopDevice(root);
 }
 
 /**************************************************
@@ -208,6 +213,8 @@ bool LX200StarGo::initProperties()
     // overwrite the custom tracking mode button
     IUFillSwitch(&TrackModeS[3], "TRACK_NONE", "None", ISS_OFF);
 
+    focuser->initProperties("AUX1 Focuser");
+
     return true;
 }
 
@@ -250,6 +257,9 @@ bool LX200StarGo::updateProperties()
         deleteProperty(SyncHomeSP.name);
         deleteProperty(MountInfoTP.name);
     }
+
+    focuser->updateProperties();
+
     return true;
 }
 

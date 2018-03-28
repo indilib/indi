@@ -21,6 +21,7 @@ include(CMakeCommon)
 SET(lx200stargo_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libindi/drivers/telescope/lx200telescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../libindi/drivers/telescope/lx200driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lx200stargofocuser.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lx200stargo.cpp
     )
 
