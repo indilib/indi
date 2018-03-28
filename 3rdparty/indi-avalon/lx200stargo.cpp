@@ -42,7 +42,7 @@ void ISInit()
     if (telescope.get() == 0) {
         LX200StarGo* myScope = new LX200StarGo();
         telescope.reset(myScope);
-        focuser.reset(new LX200StarGoFocuser(myScope));
+        focuser.reset(new LX200StarGoFocuser(myScope, "AUX1 Focuser"));
     }
 
 }
