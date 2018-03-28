@@ -22,11 +22,11 @@
 
 */
 
-#include "indifocuser.h"
+#include "indifocuserinterface.h"
 #include "defaultdevice.h"
 
 
-class LX200StarGoFocuser : public INDI::Focuser
+class LX200StarGoFocuser : public INDI::FocuserInterface
 {
 public:
     LX200StarGoFocuser(INDI::DefaultDevice* defaultDevice, const char* name);
@@ -34,9 +34,17 @@ public:
 
     void initProperties(const char *groupName);
     bool updateProperties();
+
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+
+    const char *getDeviceName();
     const char *getDefaultName();
 
+    bool isConnected();
+
 protected:
+
     INumberVectorProperty FocusSyncPosNP;
     INumber FocusSyncPosN[1];
 
@@ -45,9 +53,11 @@ protected:
     bool startMovingFocuserOutward;
     uint32_t moveFocuserDurationRemaining;
 
+
 private:
     INDI::DefaultDevice* baseDevice;
     const char* deviceName;
+    bool isInit = false;
 
 
 };
