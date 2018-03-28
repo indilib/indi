@@ -51,24 +51,28 @@ void ISGetProperties(const char *dev)
 {
     ISInit();
     telescope->ISGetProperties(dev);
+//    focuser->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     ISInit();
     telescope->ISNewSwitch(dev, name, states, names, n);
+    focuser->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     ISInit();
     telescope->ISNewText(dev, name, texts, names, n);
+//    focuser->ISNewText(dev, name, texts, names, n);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     ISInit();
     telescope->ISNewNumber(dev, name, values, names, n);
+    focuser->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -87,6 +91,7 @@ void ISSnoopDevice(XMLEle *root)
 {
     ISInit();
     telescope->ISSnoopDevice(root);
+//    focuser->ISSnoopDevice(root);
 }
 
 /**************************************************
