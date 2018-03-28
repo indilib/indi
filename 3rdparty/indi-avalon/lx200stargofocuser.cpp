@@ -21,10 +21,6 @@
 
 #include "lx200stargofocuser.h"
 
-#include <memory>
-#include <cstring>
-#include <unistd.h>
-
 /**
  * @brief Constructor
  * @param defaultDevice the telescope
@@ -35,6 +31,8 @@ LX200StarGoFocuser::LX200StarGoFocuser(INDI::DefaultDevice* defaultDevice, const
     baseDevice = defaultDevice;
     deviceName = name;
     setDeviceName(name);
+    // we reuse the telescope connection
+    setConnection(CONNECTION_NONE);
 }
 
 /**
