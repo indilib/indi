@@ -3,9 +3,9 @@ PROJECT(libqhy C CXX)
 
 include(GNUInstallDirs)
 
-# QHY SDK Built on 2018-03-02
-set(LIBQHY_VERSION "1.1.1")
-set(LIBQHY_SOVERSION "1")
+# QHY SDK Built on 2018-03-28
+set(LIBQHY_VERSION "2.0.0")
+set(LIBQHY_SOVERSION "2")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
@@ -52,7 +52,7 @@ install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"libqh
 
 ENDIF (APPLE)
 
-install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h DESTINATION include/libqhy)
+install(FILES qhyccd.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h unlockimagequeue.h cyusb.h DESTINATION include/libqhy)
 
 install(
    CODE "
