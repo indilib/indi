@@ -415,7 +415,7 @@ bool LX200StarGo::syncHomePosition()
 
     if (result == TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Synching home position succeeded.");
+        LOGF_INFO("%s: Synching home position succeeded.", getDeviceName());
         SyncHomeSP.s = IPS_OK;
     } else
     {
@@ -482,7 +482,7 @@ bool LX200StarGo::sendScopeLocation()
     LocationNP.np[LOCATION_LATITUDE].value = siteLat;
     LocationNP.np[LOCATION_LONGITUDE].value = siteLong;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
+    LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
 
@@ -501,7 +501,7 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
     if (isSimulation())
         return true;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting site longitude '%lf'", longitude);
+    LOGF_DEBUG("Setting site longitude '%lf'", longitude);
     if (!isSimulation() && querySetSiteLongitude(longitude) < 0)
     {
         DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
@@ -510,7 +510,7 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
 
     double long_result;
     getSiteLongitude(&long_result);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Received site longitude request '%lf'", long_result);
+    LOGF_DEBUG("Received site longitude request '%lf'", long_result);
 
     if (!isSimulation() && querySetSiteLatitude(latitude) < 0)
     {
@@ -556,13 +556,13 @@ bool LX200StarGo::Park() {
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (sendQuery(":X362#", response) && strcmp(response, "pB#") == 0) {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Parking scope...", getDeviceName());
+        LOGF_INFO("%s: Parking scope...", getDeviceName());
 
         // update state
         TrackState = SCOPE_PARKING;
         return true;
     } else {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Parking failed.", getDeviceName());
+        LOGF_ERROR("%s: Parking failed.", getDeviceName());
         return false;
     }
 
@@ -575,11 +575,11 @@ bool LX200StarGo::UnPark() {
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (sendQuery(":X370#", response) && strcmp(response, "p0#") == 0) {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Scope Unparked.", getDeviceName());
+        LOGF_INFO("%s: Scope Unparked.", getDeviceName());
         TrackState = SCOPE_TRACKING;
         return true;
     } else {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Unpark failed.", getDeviceName());
+        LOGF_ERROR("%s: Unpark failed.", getDeviceName());
         return false;
     }
 
@@ -598,12 +598,12 @@ bool LX200StarGo::UnPark() {
 bool LX200StarGo::sendQuery(const char* cmd, char* response) {
     flush();
     if(!transmit(cmd)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: query <%s> failed.", getDeviceName(), cmd);
+        LOGF_ERROR("%s: query <%s> failed.", getDeviceName(), cmd);
         return false;
     }
     int bytesReceived = 0;
     if (!receive(response, &bytesReceived)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive response to <%s>.", getDeviceName(), cmd);
+        LOGF_ERROR("%s: Failed to receive response to <%s>.", getDeviceName(), cmd);
         return false;
     }
     return true;
@@ -627,7 +627,7 @@ int LX200StarGo::querySetSiteLongitude(double longitude)
 
     snprintf(command, sizeof(command), format, d, m, s);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Sending set site longitude request '%s'", getDeviceName(), command);
+    LOGF_DEBUG("%s: Sending set site longitude request '%s'", getDeviceName(), command);
 
     bool result = setStandardProcedureAvalon(command, 500);
 
@@ -649,7 +649,7 @@ int LX200StarGo::querySetSiteLatitude(double Lat)
 
     snprintf(command, sizeof(command), ":St%+03d*%02d:%02d#", d, m, s);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Sending set site longitude request '%s'", getDeviceName(), command);
+    LOGF_DEBUG("%s: Sending set site longitude request '%s'", getDeviceName(), command);
 
     return (setStandardProcedureAvalon(command, 500));
 }
@@ -667,20 +667,20 @@ bool LX200StarGo::setStandardProcedureAvalon(char* command, int wait) {
 
     flush();
     if (!transmit(command)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send request.", getDeviceName());
+        LOGF_ERROR("%s: Failed to send request.", getDeviceName());
         return false;
     }
 
     if (wait > 0) usleep(wait*1000);
 
     if (!receive(response, &bytesReceived)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get response.", getDeviceName());
+        LOGF_ERROR("%s: Failed to receive get response.", getDeviceName());
         return false;
     }
 
 
     if (bytesReceived != 2 || response[0] != '0') {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Unexpected response '%s'", getDeviceName(), response);
+        LOGF_ERROR("%s: Unexpected response '%s'", getDeviceName(), response);
         return false;
     }
 
@@ -702,13 +702,13 @@ bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* 
 
     flush();
     if (!transmit(":X3C#")) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send query mount motion state command.", getDeviceName());
+        LOGF_ERROR("%s: Failed to send query mount motion state command.", getDeviceName());
         return false;
     }
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     int bytesReceived = 0;
     if (!receive(response, &bytesReceived)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive query mount motion state response.", getDeviceName());
+        LOGF_ERROR("%s: Failed to receive query mount motion state response.", getDeviceName());
         return false;
     }
     flush();
@@ -717,7 +717,7 @@ bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* 
     int tempNrTrackingSpeed = 0;
     int returnCode = sscanf(response, ":Z1%01d%01d%01d", &tempMotorsState, &tempSpeedState, &tempNrTrackingSpeed);
     if (returnCode <= 0) {
-       DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to parse query mount motion state response '%s'.", getDeviceName(), response);
+       LOGF_ERROR("%s: Failed to parse query mount motion state response '%s'.", getDeviceName(), response);
        return false;
     }
     (*motorsState) = tempMotorsState;
@@ -744,16 +744,16 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched) {
 
     flush();
     if (!transmit(":X38#")) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send get parking status request.", getDeviceName());
+        LOGF_ERROR("%s: Failed to send get parking status request.", getDeviceName());
         return false;
     }
     if (!receive(response, &bytesReceived)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get parking status response.", getDeviceName());
+        LOGF_ERROR("%s: Failed to receive get parking status response.", getDeviceName());
         return false;
     }
     int answer = 0;
     if (! sscanf(response, "p%01d", &answer)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Unexpected parking status response '%s'.", getDeviceName(), response);
+        LOGF_ERROR("%s: Unexpected parking status response '%s'.", getDeviceName(), response);
         return false;
     }
 
@@ -772,12 +772,12 @@ bool LX200StarGo::querySetTracking (bool enable) {
     flush();
     if (enable) {
         if (!transmit(":X122#")) {
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send query for enable tracking.", getDeviceName());
+            LOGF_ERROR("%s: Failed to send query for enable tracking.", getDeviceName());
             return false;
         }
     } else {
         if (!transmit(":X120#")) {
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send query for disable tracking.", getDeviceName());
+            LOGF_ERROR("%s: Failed to send query for disable tracking.", getDeviceName());
             return false;
         }
     }
@@ -799,11 +799,11 @@ bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo) {
     // step 1: retrieve manufacturer
     flush();
     if (!transmit(":GVP#")) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send get manufacturer request.", getDeviceName());
+        LOGF_ERROR("%s: Failed to send get manufacturer request.", getDeviceName());
         return false;
     }
     if (!receive(manufacturer, &bytesReceived)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get manufacturer response.", getDeviceName());
+        LOGF_ERROR("%s: Failed to receive get manufacturer response.", getDeviceName());
         return false;
     }
     // Replace # with \0
@@ -813,11 +813,11 @@ bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo) {
     // step 2: retrieve firmware version
     char firmwareVersion[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!transmit(":GVN#")) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send get firmware version request.", getDeviceName());
+        LOGF_ERROR("%s: Failed to send get firmware version request.", getDeviceName());
         return false;
     }
     if (!receive(firmwareVersion, &bytesReceived)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get firmware version response.", getDeviceName());
+        LOGF_ERROR("%s: Failed to receive get firmware version response.", getDeviceName());
         return false;
     }
     infoStr.append(" - ").append(firmwareVersion, bytesReceived -1);
@@ -826,11 +826,11 @@ bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo) {
     // step 3: retrieve firmware date
     char firmwareDate[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!transmit(":GVD#")) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send get firmware date request.", getDeviceName());
+        LOGF_ERROR("%s: Failed to send get firmware date request.", getDeviceName());
         return false;
     }
     if (!receive(firmwareDate, &bytesReceived)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive get firmware date response.", getDeviceName());
+        LOGF_ERROR("%s: Failed to receive get firmware date response.", getDeviceName());
         return false;
     }
     infoStr.append(" - ").append(firmwareDate, 1, bytesReceived - 2);
