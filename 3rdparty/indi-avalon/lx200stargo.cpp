@@ -346,7 +346,7 @@ bool LX200StarGo::UpdateMotionStatus() {
             IDSetSwitch(&TrackModeSP, nullptr);
         }
         if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
-            TrackState = SCOPE_TRACKING;
+            TrackState = (motorsState == 0) ? SCOPE_IDLE : SCOPE_TRACKING;
         }
         break;
     case 2:
@@ -357,7 +357,7 @@ bool LX200StarGo::UpdateMotionStatus() {
             IDSetSwitch(&TrackModeSP, nullptr);
         }
         if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
-            TrackState = SCOPE_TRACKING;
+            TrackState = (motorsState == 0) ? SCOPE_IDLE : SCOPE_TRACKING;
         }
         break;
     case 3:
@@ -368,7 +368,7 @@ bool LX200StarGo::UpdateMotionStatus() {
             IDSetSwitch(&TrackModeSP, nullptr);
         }
         if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
-            TrackState = SCOPE_TRACKING;
+            TrackState = (motorsState == 0) ? SCOPE_IDLE : SCOPE_TRACKING;
         }
         break;
     }
@@ -705,46 +705,46 @@ bool LX200StarGo::querySetSiteLatitude(double Lat)
 
 /**
  * @brief LX200 query whether slewing is completed
- * @return true iff the answer is "0#"
+ * @return true iff both motors are back to tracking or stopped
  */
 bool LX200StarGo::queryIsSlewComplete()
 {
-    return (setStandardProcedureAvalon(":D#", 0));
-}
-
-
-/**
- * @brief standard set command expecting '0' als confirmation
- * @param command command to be executed
- * @param wait time in ms the command should wait before reading the result
- * @return true iff the command succeeded
- */
-bool LX200StarGo::setStandardProcedureAvalon(const char* command, int wait) {
-    int bytesReceived = 0;
-    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    // Command  - :X34#
+    // the StarGo replies mxy# where x is the RA / AZ motor status and y
+    // the DEC / ALT motor status meaning:
+    //    x (y) = 0 motor x (y) stopped or unpowered
+    //             (use :X3C# if you want  distinguish if stopped or unpowered)
+    //    x (y) = 1 motor x (y) returned in tracking mode
+    //    x (y) = 2 motor x (y) acelerating
+    //    x (y) = 3 motor x (y) decelerating
+    //    x (y) = 4 motor x (y) moving at low speed to refine
+    //    x (y) = 5 motor x (y) movig at high speed to target
 
     flush();
-    if (!transmit(command)) {
-        LOGF_ERROR("%s: Failed to send request.", getDeviceName());
+    if (!transmit(":X34#")) {
+        LOGF_ERROR("%s: Failed to send query slewing state command.", getDeviceName());
         return false;
     }
-
-    if (wait > 0) usleep(wait*1000);
-
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    int bytesReceived = 0;
     if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive get response.", getDeviceName());
+        LOGF_ERROR("%s: Failed to receive query slewing state response.", getDeviceName());
         return false;
     }
+    flush();
 
-
-    if (bytesReceived != 2 || response[0] != '0') {
-        LOGF_ERROR("%s: Unexpected response '%s'", getDeviceName(), response);
-        return false;
+    int x, y;
+    int returnCode = sscanf(response, "m%01d%01d#", &x, &y);
+    if (returnCode <= 0) {
+       LOGF_ERROR("%s: Failed to parse query slewing state response '%s'.", getDeviceName(), response);
+       return false;
     }
 
-    return true;
+    LOGF_DEBUG("%s: slewing state motors = (%d, %d)", getDeviceName(), x, y);
 
+    return (x < 2 && y < 2);
 }
+
 
 
 /**
@@ -940,3 +940,37 @@ bool LX200StarGo::transmit(const char* buffer) {
     }
     return true;
 }
+
+/**
+ * @brief standard set command expecting '0' als confirmation
+ * @param command command to be executed
+ * @param wait time in ms the command should wait before reading the result
+ * @return true iff the command succeeded
+ */
+bool LX200StarGo::setStandardProcedureAvalon(const char* command, int wait) {
+    int bytesReceived = 0;
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+    flush();
+    if (!transmit(command)) {
+        LOGF_ERROR("%s: Failed to send request.", getDeviceName());
+        return false;
+    }
+
+    if (wait > 0) usleep(wait*1000);
+
+    if (!receive(response, &bytesReceived)) {
+        LOGF_ERROR("%s: Failed to receive get response.", getDeviceName());
+        return false;
+    }
+
+
+    if (bytesReceived != 2 || response[0] != '0') {
+        LOGF_ERROR("%s: Unexpected response '%s'", getDeviceName(), response);
+        return false;
+    }
+
+    return true;
+
+}
+
