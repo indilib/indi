@@ -222,14 +222,20 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             {
                 ISwitchVectorProperty *svp = getSwitch(elemName);
                 if (svp == nullptr)
+                {
+                    delXMLEle(root);
                     return false;
+                }
 
                 XMLEle *sw = nullptr;
                 for (sw = nextXMLEle(ep, 1); sw != nullptr; sw = nextXMLEle(ep, 0))
                 {
                     ISwitch *oneSwitch = IUFindSwitch(svp, findXMLAttValu(sw, "name"));
                     if (oneSwitch == nullptr)
+                    {
+                        delXMLEle(root);
                         return false;
+                    }
                     char formatString[MAXRBUF];
                     snprintf(formatString, MAXRBUF, "      %s\n", sstateStr(oneSwitch->s));
                     editXMLEle(sw, formatString);
@@ -242,7 +248,10 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             {
                 INumberVectorProperty *nvp = getNumber(elemName);
                 if (nvp == nullptr)
+                {
+                    delXMLEle(root);
                     return false;
+                }
 
                 XMLEle *np = nullptr;
                 for (np = nextXMLEle(ep, 1); np != nullptr; np = nextXMLEle(ep, 0))
@@ -263,7 +272,10 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             {
                 ITextVectorProperty *tvp = getText(elemName);
                 if (tvp == nullptr)
+                {
+                    delXMLEle(root);
                     return false;
+                }
 
                 XMLEle *tp = nullptr;
                 for (tp = nextXMLEle(ep, 1); tp != nullptr; tp = nextXMLEle(ep, 0))
@@ -287,11 +299,15 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
             prXMLEle(fp, root, 0);
             fclose(fp);
+            delXMLEle(root);
             LOGF_DEBUG("Configuration successfully saved for %s.", property);
             return true;
         }
         else
+        {
+            delXMLEle(root);
             return false;
+        }
     }
 
     return true;
@@ -393,7 +409,7 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
         int activeConnectionIndex = IUFindOnSwitchIndex(&ConnectionModeSP);
 
-        if (activeConnectionIndex >= 0 && activeConnectionIndex < (int)connections.size())
+        if (activeConnectionIndex >= 0 && activeConnectionIndex < static_cast<int>(connections.size()))
         {
             activeConnection = connections[activeConnectionIndex];
             activeConnection->Activated();
@@ -518,7 +534,7 @@ bool DefaultDevice::ISNewNumber(const char *dev, const char *name, double values
     {
         IUUpdateNumber(&PollPeriodNP, values, names, n);
         PollPeriodNP.s = IPS_OK;
-        POLLMS = PollPeriodN[0].value;
+        POLLMS = static_cast<uint32_t>(PollPeriodN[0].value);
         IDSetNumber(&PollPeriodNP, nullptr);
         return true;
     }
@@ -755,7 +771,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
     {
         if (connections.size() > 0)
         {
-            ConnectionModeS = (ISwitch *)malloc(connections.size() * sizeof(ISwitch));
+            ConnectionModeS = static_cast<ISwitch *>(malloc(connections.size() * sizeof(ISwitch)));
             ISwitch *sp     = ConnectionModeS;
             for (Connection::Interface *oneConnection : connections)
             {
@@ -843,12 +859,12 @@ void DefaultDevice::setConnected(bool status, IPState state, const char *msg)
 
     svp->s = state;
 
-    IDSetSwitch(svp, msg, nullptr);
+    IDSetSwitch(svp, "%s", msg);
 }
 
 //  This is a helper function
 //  that just encapsulates the Indi way into our clean c++ way of doing things
-int DefaultDevice::SetTimer(int ms)
+int DefaultDevice::SetTimer(uint32_t ms)
 {
     return IEAddTimer(ms, timerfunc, this);
 }

@@ -532,6 +532,7 @@ bool BaseDevice::buildSkeleton(const char *filename)
     for (root = nextXMLEle(fproot, 1); root != nullptr; root = nextXMLEle(fproot, 0))
         buildProp(root, errmsg);
 
+    delXMLEle(fproot);
     return true;
     /**************************************************************************/
 }
