@@ -124,6 +124,7 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
                 delete [] FilterNameT;
 
             FilterNameT = new IText[n];
+            memset(FilterNameT, 0, sizeof(IText) * n);
 
             for (int i = 0; i < n; i++)
             {
@@ -189,6 +190,7 @@ void FilterInterface::generateSampleFilters()
         delete [] FilterNameT;
 
     FilterNameT = new IText[MaxFilter];
+    memset(FilterNameT, 0, sizeof(IText) * MaxFilter);
 
     for (int i = 0; i < MaxFilter; i++)
     {
