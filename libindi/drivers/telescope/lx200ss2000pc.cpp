@@ -286,7 +286,7 @@ int LX200SS2000PC::setSiteLatitude(double Lat)
 
     getSexComponents(Lat, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":St %c%03d*%02d:%02d#", sign, d, m, s);
+    snprintf(temp_string, sizeof(temp_string), ":St %c%03d*%02d#", sign, d, m);
 
     return setStandardProcedure(PortFD, temp_string);
 }
@@ -298,16 +298,22 @@ int LX200SS2000PC::setSiteLongitude(double Long)
 {
     int d, m, s;
     char temp_string[32];
-    double temp_long = 360 - Long;
+    double longitude;
 
-    if (temp_long < -180)
-        temp_long += 360;
-    if (temp_long > 180)
-        temp_long -= 360;
+    if (Long < 0)
+    {
+        // Long is negative in KStars, so west of Greenwich
+        longitude = abs(Long);
+    }
+    else 
+    {
+        // Long is positive, so east of Greenwich
+        longitude = 360 - Long;
+    }
 
-    getSexComponents(temp_long, &d, &m, &s);
+    getSexComponents(longitude, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d:%02d#", d, m, s);
+    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d#", d, m);
 
     return setStandardProcedure(PortFD, temp_string);
 }
