@@ -182,7 +182,7 @@ bool LX200SS2000PC::getCalendarDate(int &year, int &month, int &day)
 bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
 {
     // This method differs from the setCalenderDate function in lx200driver.cpp
-    // in that it reads and checks the complete respons from the SkySensor2000PC.
+    // in that it reads and checks the complete response from the SkySensor2000PC.
     // In addition, this method only sends the date when it differs from the date
     // of the SkySensor2000PC because the resulting update of the planetary data
     // takes quite some time.
@@ -250,12 +250,12 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
     if (latitude == 0.0 && longitude == 0.0)
         return true;
 
-    if (setLatitude(latitude) < 0)
+    if (setSiteLatitude(latitude) < 0)
     {
         LOG_ERROR("Error setting site latitude coordinates");
     }
 
-    if (setLongitude(longitude) < 0)
+    if (setSiteLongitude(longitude) < 0)
     {
         LOG_ERROR("Error setting site longitude coordinates");
         return false;
@@ -270,7 +270,10 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
     return true;
 }
 
-int LX200SS2000PC::setLatitude(double Lat)
+// This override is needed, because the Sky Sensor 2000 PC requires a space
+// between the command its argument, unlike the 'standard' LX200 mounts, which
+// does not work on this mount.
+int LX200SS2000PC::setSiteLatitude(double Lat)
 {
     int d, m, s;
     char sign;
@@ -283,63 +286,28 @@ int LX200SS2000PC::setLatitude(double Lat)
 
     getSexComponents(Lat, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":St %c%02d*%02d:%02d#", sign, abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":St %c%03d*%02d:%02d#", sign, d, m, s);
 
-    return (LX200SS2000PC::sendCommand(PortFD, temp_string));
+    return setStandardProcedure(PortFD, temp_string);
 }
 
-int LX200SS2000PC::setLongitude(double Long)
+// This override is needed, because the Sky Sensor 2000 PC requires a space
+// between the command its argument, unlike the 'standard' LX200 mounts, which
+// does not work on this mount.
+int LX200SS2000PC::setSiteLongitude(double Long)
 {
     int d, m, s;
     char temp_string[32];
-    double final_longitude;
+    double temp_long = 360 - Long;
 
-    if (Long > 180)
-        final_longitude = Long - 360.0;
-    else
-        final_longitude = Long;
+    if (temp_long < -180)
+        temp_long += 360;
+    if (temp_long > 180)
+        temp_long -= 360;
 
-    getSexComponents(final_longitude, &d, &m, &s);
+    getSexComponents(temp_long, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d:%02d#", abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d:%02d#", d, m, s);
 
-    return (LX200SS2000PC::sendCommand(PortFD, temp_string));
+    return setStandardProcedure(PortFD, temp_string);
 }
-
-int LX200SS2000PC::sendCommand(int fd, const char *data)
-{
-    char result[2];
-    int error_type;
-    int nbytes_write = 0, nbytes_read = 0;
-
-    tcflush(fd, TCIFLUSH);
-
-    if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
-    {
-        LOGF_INFO("Error writing string to tty: %s", data);
-        return error_type;
-    }
-
-    tcflush(fd, TCIFLUSH);
-
-    error_type = tty_read(fd, result, 1, ShortTimeOut, &nbytes_read);
-    if (error_type != TTY_OK) 
-    {
-        LOGF_INFO("error_type %d, result %c", error_type, result[0]);
-        return error_type;
-    }
-
-    if (nbytes_read < 1)
-    {
-        LOGF_INFO("nbytes less than 1 %d", 0);
-        return error_type;
-    }
-
-    if (result[0] == '0')
-    {
-        return -1;
-    }
-
-    return 0;
-}
-
