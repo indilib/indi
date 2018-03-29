@@ -22,6 +22,8 @@
 
 */
 
+#include "lx200stargo.h"
+
 #include "indifocuserinterface.h"
 #include "defaultdevice.h"
 
@@ -29,7 +31,7 @@
 class LX200StarGoFocuser : public INDI::FocuserInterface
 {
 public:
-    LX200StarGoFocuser(INDI::DefaultDevice* defaultDevice, const char* name);
+    LX200StarGoFocuser(LX200StarGo* defaultDevice, const char* name);
     virtual ~LX200StarGoFocuser() = default;
 
     void initProperties(const char *groupName);
@@ -45,6 +47,26 @@ public:
 
 protected:
 
+    // Avalon specifics
+    void focuserStatus();
+    bool changeFocusSpeed(double values[], char* names[], int n);
+    bool changeFocusMotion(ISState* states, char* names[], int n);
+    bool changeFocusTimer(double values[], char* names[], int n);
+    bool changeFocusAbsPos(double values[], char* names[], int n);
+    bool changeFocusRelPos(double values[], char* names[], int n);
+    bool changeFocusAbort(ISState* states, char* names[], int n);
+    bool changeFocusSyncPos(double values[], char* names[], int n);
+
+    bool SetFocuserSpeed(int speed);
+    IPState MoveFocuser(bool inward, int speed, uint16_t duration);
+    IPState MoveAbsFocuser(uint32_t absolutePosition);
+    IPState moveFocuserRelative(int relativePosition);
+    bool AbortFocuser();
+    IPState syncFocuser(int absolutePosition);
+
+    ISwitchVectorProperty FocusAbortSP;
+    ISwitch FocusAbortS[1];
+
     INumberVectorProperty FocusSyncPosNP;
     INumber FocusSyncPosN[1];
 
@@ -54,8 +76,27 @@ protected:
     uint32_t moveFocuserDurationRemaining;
 
 
+    // LX200 commands
+    bool sendNewFocuserSpeed(int speed);
+    bool sendMoveFocuserToPosition(int position);
+    bool sendAbortFocuser();
+    bool sendSyncFocuserToPosition(int position);
+    bool sendQueryFocuserPosition(int* position);
+
+    // helper functions
+    bool isFocuserMoving();
+    bool atFocuserTargetPosition();
+
+    bool validateFocusSpeed(int speed);
+    bool validateFocusTimer(int time);
+    bool validateFocusAbsPos(int absolutePosition);
+    bool validateFocusRelPos(int relativePosition);
+    bool validateFocusSyncPos(int absolutePosition);
+
+    int getAbsoluteFocuserPositionFromRelative(int relativePosition);
+
 private:
-    INDI::DefaultDevice* baseDevice;
+    LX200StarGo* baseDevice;
     const char* deviceName;
     bool isInit = false;
 

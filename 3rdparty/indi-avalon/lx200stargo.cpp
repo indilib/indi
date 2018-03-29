@@ -133,7 +133,7 @@ LX200StarGo::LX200StarGo()
     setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_SITES);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION, 4);
+                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION| TELESCOPE_HAS_PIER_SIDE, 4);
 }
 
 /**************************************************************************************
@@ -152,7 +152,7 @@ bool LX200StarGo::Handshake()
 {
     if (getLX200RA(PortFD, &currentRA) != 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error communication with telescope.");
+        LOG_ERROR("Error communication with telescope.");
         return false;
     }
 
@@ -281,6 +281,12 @@ bool LX200StarGo::ReadScopeStatus()
     return result;
 }
 
+bool LX200StarGo::isSlewComplete()
+{
+    return (queryIsSlewComplete());
+}
+
+
 /**************************************************************************************
 **
 ***************************************************************************************/
@@ -306,6 +312,13 @@ bool LX200StarGo::UpdateMotionStatus() {
             IDSetSwitch(&ParkSP, nullptr);
         }
         break;
+    case 1:
+    case 2:
+    case 3:
+        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
+            TrackState = SCOPE_TRACKING;
+        }
+        break;
     }
 
     // Tracking speeds
@@ -321,6 +334,9 @@ bool LX200StarGo::UpdateMotionStatus() {
             TrackModeSP.s   = IPS_OK;
             IDSetSwitch(&TrackModeSP, nullptr);
         }
+        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
+            TrackState = SCOPE_IDLE;
+        }
         break;
     case 1:
         if (TrackModeS[TRACK_LUNAR].s != ISS_ON) {
@@ -328,6 +344,9 @@ bool LX200StarGo::UpdateMotionStatus() {
             TrackModeS[TRACK_LUNAR].s = ISS_ON;
             TrackModeSP.s   = IPS_OK;
             IDSetSwitch(&TrackModeSP, nullptr);
+        }
+        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
+            TrackState = SCOPE_TRACKING;
         }
         break;
     case 2:
@@ -337,6 +356,9 @@ bool LX200StarGo::UpdateMotionStatus() {
             TrackModeSP.s   = IPS_OK;
             IDSetSwitch(&TrackModeSP, nullptr);
         }
+        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
+            TrackState = SCOPE_TRACKING;
+        }
         break;
     case 3:
         if (TrackModeS[TRACK_SIDEREAL].s != ISS_ON) {
@@ -344,6 +366,9 @@ bool LX200StarGo::UpdateMotionStatus() {
             TrackModeS[TRACK_SIDEREAL].s = ISS_ON;
             TrackModeSP.s   = IPS_OK;
             IDSetSwitch(&TrackModeSP, nullptr);
+        }
+        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
+            TrackState = SCOPE_TRACKING;
         }
         break;
     }
@@ -409,7 +434,7 @@ bool LX200StarGo::syncHomePosition()
     // step one: determine site longitude
     if (getSiteLongitude(&siteLong) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site latitude from device.");
+        LOG_WARN("Failed to get site latitude from device.");
         return false;
     }
 
@@ -434,7 +459,7 @@ bool LX200StarGo::syncHomePosition()
         SyncHomeSP.s = IPS_OK;
     } else
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Synching home position failed.");
+        LOG_WARN("Synching home position failed.");
         SyncHomeSP.s = IPS_ALERT;
     }
     IDSetSwitch(&SyncHomeSP, nullptr);
@@ -459,7 +484,7 @@ void LX200StarGo::getBasicData()
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
         {
             if (getTrackFreq(PortFD, &TrackFreqN[0].value) < 0)
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to get tracking frequency from device.");
+                LOG_ERROR("Failed to get tracking frequency from device.");
             else
                 IDSetNumber(&TrackingFreqNP, nullptr);
         }
@@ -486,12 +511,12 @@ bool LX200StarGo::sendScopeLocation()
     double siteLat = 0.0, siteLong = 0.0;
     if (getSiteLatitude(&siteLat) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site latitude from device.");
+        LOG_WARN("Failed to get site latitude from device.");
         return false;
     }
     if (getSiteLongitude(&siteLong) != TTY_OK)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Failed to get site longitude from device.");
+        LOG_WARN("Failed to get site longitude from device.");
         return false;
     }
     LocationNP.np[LOCATION_LATITUDE].value = siteLat;
@@ -517,19 +542,15 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
         return true;
 
     LOGF_DEBUG("Setting site longitude '%lf'", longitude);
-    if (!isSimulation() && querySetSiteLongitude(longitude) < 0)
+    if (!isSimulation() && ! querySetSiteLongitude(longitude))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        LOG_ERROR("Error setting site longitude coordinates");
         return false;
     }
 
-    double long_result;
-    getSiteLongitude(&long_result);
-    LOGF_DEBUG("Received site longitude request '%lf'", long_result);
-
-    if (!isSimulation() && querySetSiteLatitude(latitude) < 0)
+    if (!isSimulation() && ! querySetSiteLatitude(latitude))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        LOG_ERROR("Error setting site latitude coordinates");
         return false;
     }
 
@@ -537,7 +558,7 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Lat %.32s - Long %.32s", l, L);
+    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
 
     return true;
 }
@@ -601,6 +622,19 @@ bool LX200StarGo::UnPark() {
 }
 
 /*********************************************************************************
+ * config file
+ *********************************************************************************/
+
+bool LX200StarGo::saveConfigItems(FILE *fp)
+{
+    LX200Telescope::saveConfigItems(fp);
+
+    IUSaveConfigText(fp, &SiteNameTP);
+
+    return true;
+}
+
+/*********************************************************************************
  * Queries
  *********************************************************************************/
 
@@ -628,7 +662,7 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response) {
  * Determine the site longitude. In contrast to a standard LX200 implementation,
  * StarGo returns the location in arc seconds precision.
  */
-int LX200StarGo::querySetSiteLongitude(double longitude)
+bool LX200StarGo::querySetSiteLongitude(double longitude)
 {
     int d, m, s;
     char command[32];
@@ -655,7 +689,7 @@ int LX200StarGo::querySetSiteLongitude(double longitude)
  * @param latitude value
  * @return true iff the command succeeded
  */
-int LX200StarGo::querySetSiteLatitude(double Lat)
+bool LX200StarGo::querySetSiteLatitude(double Lat)
 {
     int d, m, s;
     char command[32];
@@ -669,6 +703,15 @@ int LX200StarGo::querySetSiteLatitude(double Lat)
     return (setStandardProcedureAvalon(command, 500));
 }
 
+/**
+ * @brief LX200 query whether slewing is completed
+ * @return true iff the answer is "0#"
+ */
+bool LX200StarGo::queryIsSlewComplete()
+{
+    return (setStandardProcedureAvalon(":D#", 0));
+}
+
 
 /**
  * @brief standard set command expecting '0' als confirmation
@@ -676,7 +719,7 @@ int LX200StarGo::querySetSiteLatitude(double Lat)
  * @param wait time in ms the command should wait before reading the result
  * @return true iff the command succeeded
  */
-bool LX200StarGo::setStandardProcedureAvalon(char* command, int wait) {
+bool LX200StarGo::setStandardProcedureAvalon(const char* command, int wait) {
     int bytesReceived = 0;
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
 
@@ -872,7 +915,7 @@ bool LX200StarGo::receive(char* buffer, int* bytes) {
     if (returnCode != TTY_OK) {
         char errorString[MAXRBUF];
         tty_error_msg(returnCode, errorString, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_WARNING, "%s: Failed to receive full response: %s.", getDeviceName(), errorString);
+        LOGF_WARN("%s: Failed to receive full response: %s.", getDeviceName(), errorString);
         return false;
     }
     return true;
@@ -892,7 +935,7 @@ bool LX200StarGo::transmit(const char* buffer) {
     if (returnCode != TTY_OK) {
         char errorString[MAXRBUF];
         tty_error_msg(returnCode, errorString, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_WARNING, "%s: Failed to transmit %s. Wrote %d bytes and got error %s.", getDeviceName(), buffer, bytesWritten, errorString);
+        LOGF_WARN("%s: Failed to transmit %s. Wrote %d bytes and got error %s.", getDeviceName(), buffer, bytesWritten, errorString);
         return false;
     }
     return true;
