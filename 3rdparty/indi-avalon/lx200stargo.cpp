@@ -172,7 +172,18 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
         // sync home position
         if (!strcmp(name, SyncHomeSP.name))
         {
-            syncHomePosition();
+            return syncHomePosition();
+        }
+
+        // goto home position
+        if (!strcmp(name, MountGotoHomeSP.name))
+        {
+            return slewToHome(states, names, n);
+        }
+
+        if (!strcmp(name, MountSetParkSP.name))
+        {
+            return setParkPosition(states, names, n);
         }
         // tracking mode
         else if (!strcmp(name, TrackModeSP.name))
@@ -187,8 +198,7 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             } else {
                 result = querySetTracking(false);
             }
-            if (result) TrackModeSP.s = IPS_OK;
-            else TrackModeSP.s = IPS_ALERT;
+            TrackModeSP.s = result ? IPS_OK : IPS_ALERT;
 
             IDSetSwitch(&TrackModeSP, nullptr);
             return result;
@@ -207,6 +217,12 @@ bool LX200StarGo::initProperties()
 {
     /* Make sure to init parent properties first */
     if (!LX200Telescope::initProperties()) return false;
+
+    IUFillSwitch(&MountGotoHomeS[0], "MOUNT_GOTO_HOME_VALUE", "Goto Home", ISS_OFF);
+    IUFillSwitchVector(&MountGotoHomeSP, MountGotoHomeS, 1, getDeviceName(), "MOUNT_GOTO_HOME", "Goto Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
+
+    IUFillSwitch(&MountSetParkS[0], "MOUNT_SET_PARK_VALUE", "Set Park", ISS_OFF);
+    IUFillSwitchVector(&MountSetParkSP, MountSetParkS, 1, getDeviceName(), "MOUNT_SET_PARK", "Set Park", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
     IUFillSwitch(&SyncHomeS[0], "SYNC_HOME", "Sync Home", ISS_OFF);
     IUFillSwitchVector(&SyncHomeSP, SyncHomeS, 1, getDeviceName(), "TELESCOPE_SYNC_HOME", "Home Position", MAIN_CONTROL_TAB,
@@ -235,6 +251,9 @@ bool LX200StarGo::updateProperties()
     if (isConnected())
     {
         defineSwitch(&SyncHomeSP);
+        defineSwitch(&MountGotoHomeSP);
+        defineSwitch(&MountSetParkSP);
+
         if (queryFirmwareInfo(firmwareInfo)) {
             MountFirmwareInfoT[0].text = firmwareInfo;
             defineText(&MountInfoTP);
@@ -259,6 +278,8 @@ bool LX200StarGo::updateProperties()
     }
     else
     {
+        deleteProperty(MountGotoHomeSP.name);
+        deleteProperty(MountSetParkSP.name);
         deleteProperty(SyncHomeSP.name);
         deleteProperty(MountInfoTP.name);
     }
@@ -466,6 +487,31 @@ bool LX200StarGo::syncHomePosition()
     return (result == TTY_OK);
 }
 
+/**************************************************************************************
+* @author CanisUrsa
+***************************************************************************************/
+
+bool LX200StarGo::slewToHome(ISState* states, char* names[], int n) {
+    IUUpdateSwitch(&MountGotoHomeSP, states, names, n);
+    if (querySendMountGotoHome()) {
+        MountGotoHomeSP.s = IPS_OK;
+        TrackState = SCOPE_SLEWING;
+    } else {
+        MountGotoHomeSP.s = IPS_ALERT;
+    }
+    MountGotoHomeS[0].s = ISS_OFF;
+    LOG_INFO("Slewing to home position...");
+    return true;
+}
+
+
+bool LX200StarGo::setParkPosition(ISState* states, char* names[], int n) {
+    IUUpdateSwitch(&MountSetParkSP, states, names, n);
+    MountSetParkSP.s = querySendMountSetPark() ? IPS_OK : IPS_ALERT;
+    MountSetParkS[0].s = ISS_OFF;
+    IDSetSwitch(&MountSetParkSP, nullptr);
+    return true;
+}
 
 /**************************************************************************************
 **
@@ -497,6 +543,33 @@ void LX200StarGo::getBasicData()
         sendScopeTime();
 }
 
+/**************************************************************************************
+* @author CanisUrsa
+***************************************************************************************/
+bool LX200StarGo::querySendMountGotoHome() {
+    // Command  - :X361#
+    // Response - pA#
+    //            :Z1303#
+    //            p0#
+    //            :Z1003#
+    //            p0#
+    flush();
+    if (!transmit(":X361#")) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send mount goto home command.", getDeviceName());
+        return false;
+    }
+    char response[AVALON_COMMAND_BUFFER_LENGTH] = {0};
+    int bytesReceived = 0;
+    if (!receive(response, &bytesReceived)) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive mount goto home response.", getDeviceName());
+        return false;
+    }
+    if (strcmp(response, "pA#") != 0) {
+        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Invalid mount sync goto response '%s'.", getDeviceName(), response);
+        return false;
+    }
+    return true;
+}
 
 /**************************************************************************************
 **
@@ -619,6 +692,27 @@ bool LX200StarGo::UnPark() {
         return false;
     }
 
+}
+
+bool LX200StarGo::querySendMountSetPark() {
+    // Command  - :X352#
+    // Response - 0#
+    flush();
+    if (!transmit(":X352#")) {
+        LOGF_ERROR("%s: Failed to send mount set park position command.", getDeviceName());
+        return false;
+    }
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    int bytesReceived = 0;
+    if (!receive(response, &bytesReceived)) {
+        LOGF_ERROR("%s: Failed to receive mount set park position response.", getDeviceName());
+        return false;
+    }
+    if (response[0] != '0') {
+        LOGF_ERROR("%s: Invalid mount set park position response '%s'.", getDeviceName(), response);
+        return false;
+    }
+    return true;
 }
 
 /*********************************************************************************
