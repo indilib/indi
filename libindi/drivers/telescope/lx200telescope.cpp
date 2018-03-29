@@ -681,7 +681,7 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
         // Update Frequency
         if (!strcmp(name, TrackingFreqNP.name))
         {
-            LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set track freq of: %04.1f", values[0]);
 
             if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
             {
@@ -721,8 +721,7 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
 
             IDSetNumber(&FocusTimerNP, nullptr);
 
-            if (isDebug())
-                IDLog("Setting focus timer to %g\n", FocusTimerN[0].value);
+            LOGF_DEBUG("Setting focus timer to %.2f", FocusTimerN[0].value);
 
             return true;
         }
@@ -927,23 +926,23 @@ void LX200Telescope::updateFocusTimer()
         break;
 
     case IPS_BUSY:
-        if (isDebug())
-            IDLog("Focus Timer Value is %g\n", FocusTimerN[0].value);
+        //if (isDebug())
+            //IDLog("Focus Timer Value is %g\n", FocusTimerN[0].value);
 
         FocusTimerN[0].value -= 50;
 
         if (FocusTimerN[0].value <= 0)
         {
-            if (isDebug())
-                IDLog("Focus Timer Expired\n");
+            //if (isDebug())
+                //IDLog("Focus Timer Expired\n");
 
             if (!isSimulation() && setFocuserSpeedMode(PortFD, 0) < 0)
             {
                 FocusModeSP.s = IPS_ALERT;
                 IDSetSwitch(&FocusModeSP, "Error setting focuser mode.");
 
-                if (isDebug())
-                    IDLog("Error setting focuser mode\n");
+                //if (isDebug())
+                    //IDLog("Error setting focuser mode\n");
 
                 return;
             }
