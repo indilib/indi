@@ -250,12 +250,12 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
     if (latitude == 0.0 && longitude == 0.0)
         return true;
 
-    if (setSiteLatitude(latitude) < 0)
+    if (setSiteLatitude(PortFD, latitude) < 0)
     {
         LOG_ERROR("Error setting site latitude coordinates");
     }
 
-    if (setSiteLongitude(longitude) < 0)
+    if (setSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
         LOG_ERROR("Error setting site longitude coordinates");
         return false;
@@ -273,7 +273,7 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
 // This override is needed, because the Sky Sensor 2000 PC requires a space
 // between the command its argument, unlike the 'standard' LX200 mounts, which
 // does not work on this mount.
-int LX200SS2000PC::setSiteLatitude(double Lat)
+int LX200SS2000PC::setSiteLatitude(int fd, double Lat)
 {
     int d, m, s;
     char sign;
@@ -288,32 +288,20 @@ int LX200SS2000PC::setSiteLatitude(double Lat)
 
     snprintf(temp_string, sizeof(temp_string), ":St %c%03d*%02d#", sign, d, m);
 
-    return setStandardProcedure(PortFD, temp_string);
+    return setStandardProcedure(fd, temp_string);
 }
 
 // This override is needed, because the Sky Sensor 2000 PC requires a space
 // between the command its argument, unlike the 'standard' LX200 mounts, which
 // does not work on this mount.
-int LX200SS2000PC::setSiteLongitude(double Long)
+int LX200SS2000PC::setSiteLongitude(int fd, double Long)
 {
     int d, m, s;
     char temp_string[32];
-    double longitude;
 
-    if (Long < 0)
-    {
-        // Long is negative in KStars, so west of Greenwich
-        longitude = abs(Long);
-    }
-    else 
-    {
-        // Long is positive, so east of Greenwich
-        longitude = 360 - Long;
-    }
-
-    getSexComponents(longitude, &d, &m, &s);
+    getSexComponents(Long, &d, &m, &s);
 
     snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d#", d, m);
 
-    return setStandardProcedure(PortFD, temp_string);
+    return setStandardProcedure(fd, temp_string);
 }

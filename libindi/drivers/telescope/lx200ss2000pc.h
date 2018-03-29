@@ -46,8 +46,8 @@ class LX200SS2000PC : public LX200Generic
 
 
     bool updateLocation(double latitude, double longitude, double elevation);
-    int setSiteLongitude(double Long);
-    int setSiteLatitude(double Long);
+    int setSiteLongitude(int fd, double Long);
+    int setSiteLatitude(int fd, double Long);
 
     INumber SlewAccuracyN[2];
     INumberVectorProperty SlewAccuracyNP;
