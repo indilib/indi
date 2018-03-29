@@ -409,7 +409,7 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
 
         int activeConnectionIndex = IUFindOnSwitchIndex(&ConnectionModeSP);
 
-        if (activeConnectionIndex >= 0 && activeConnectionIndex < (int)connections.size())
+        if (activeConnectionIndex >= 0 && activeConnectionIndex < static_cast<int>(connections.size()))
         {
             activeConnection = connections[activeConnectionIndex];
             activeConnection->Activated();
@@ -534,7 +534,7 @@ bool DefaultDevice::ISNewNumber(const char *dev, const char *name, double values
     {
         IUUpdateNumber(&PollPeriodNP, values, names, n);
         PollPeriodNP.s = IPS_OK;
-        POLLMS = PollPeriodN[0].value;
+        POLLMS = static_cast<uint32_t>(PollPeriodN[0].value);
         IDSetNumber(&PollPeriodNP, nullptr);
         return true;
     }
@@ -771,7 +771,7 @@ void DefaultDevice::ISGetProperties(const char *dev)
     {
         if (connections.size() > 0)
         {
-            ConnectionModeS = (ISwitch *)malloc(connections.size() * sizeof(ISwitch));
+            ConnectionModeS = static_cast<ISwitch *>(malloc(connections.size() * sizeof(ISwitch)));
             ISwitch *sp     = ConnectionModeS;
             for (Connection::Interface *oneConnection : connections)
             {
@@ -859,12 +859,12 @@ void DefaultDevice::setConnected(bool status, IPState state, const char *msg)
 
     svp->s = state;
 
-    IDSetSwitch(svp, msg, nullptr);
+    IDSetSwitch(svp, "%s", msg);
 }
 
 //  This is a helper function
 //  that just encapsulates the Indi way into our clean c++ way of doing things
-int DefaultDevice::SetTimer(int ms)
+int DefaultDevice::SetTimer(uint32_t ms)
 {
     return IEAddTimer(ms, timerfunc, this);
 }
