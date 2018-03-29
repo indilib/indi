@@ -48,6 +48,15 @@ protected:
     ITextVectorProperty MountInfoTP;
     IText MountFirmwareInfoT[1];
 
+    // goto home
+    ISwitchVectorProperty MountGotoHomeSP;
+    ISwitch MountGotoHomeS[1];
+
+    // set parking position
+    ISwitchVectorProperty MountSetParkSP;
+    ISwitch MountSetParkS[1];
+
+
     // override LX200Generic
     virtual void getBasicData();
     virtual bool ReadScopeStatus() override;
@@ -58,17 +67,19 @@ protected:
 
     // StarGo stuff
     virtual bool syncHomePosition();
+    bool slewToHome(ISState *states, char *names[], int n);
+    bool setParkPosition(ISState *states, char *names[], int n);
 
     // scope status
     virtual bool UpdateMotionStatus();
     TelescopeSlewRate CurrentSlewRate;
 
     // location
+    virtual bool sendScopeLocation();
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual int getSiteLatitude(double *siteLat);
     virtual int getSiteLongitude(double *siteLong);
 
-    bool sendScopeLocation();
 
     // queries to the scope interface
     virtual bool sendQuery(const char* cmd, char* response);
@@ -79,20 +90,9 @@ protected:
     virtual bool querySetTracking(bool enable);
     virtual bool queryParkSync(bool *isParked, bool *isSynched);
     virtual bool queryIsSlewComplete();
+    virtual bool querySendMountGotoHome();
+    virtual bool querySendMountSetPark();
 
-    /*
-    virtual void getBasicData() override;
-    virtual bool checkConnection() override;
-
-
-    virtual bool SetSlewRate(int index) override;
-    virtual bool SetTrackMode(uint8_t mode) override;
-    virtual bool Goto(double, double) override;
-    virtual bool Sync(double ra, double dec) override;
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
-
-
-*/
 };
 
 #endif // AVALON_STARGO_H
