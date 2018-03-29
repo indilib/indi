@@ -32,6 +32,12 @@ public:
     virtual bool updateProperties() override;
     virtual bool initProperties() override;
 
+    // helper functions
+    virtual bool receive(char* buffer, int* bytes);
+    virtual void flush();
+    virtual bool transmit(const char* buffer);
+    virtual bool setStandardProcedureAvalon(const char *command, int wait);
+
 protected:
 
     // Sync Home Position
@@ -47,6 +53,8 @@ protected:
     virtual bool ReadScopeStatus() override;
     virtual bool Park() override;
     virtual bool UnPark() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool isSlewComplete() override;
 
     // StarGo stuff
     virtual bool syncHomePosition();
@@ -58,9 +66,7 @@ protected:
     // location
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual int getSiteLatitude(double *siteLat);
-    virtual int querySetSiteLatitude(double Lat);
     virtual int getSiteLongitude(double *siteLong);
-    virtual int querySetSiteLongitude(double Long);
 
     bool sendScopeLocation();
 
@@ -68,19 +74,15 @@ protected:
     virtual bool sendQuery(const char* cmd, char* response);
     virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
     virtual bool queryFirmwareInfo(char *version);
+    virtual bool querySetSiteLatitude(double Lat);
+    virtual bool querySetSiteLongitude(double Long);
     virtual bool querySetTracking(bool enable);
     virtual bool queryParkSync(bool *isParked, bool *isSynched);
-
-    // helper functions
-    virtual bool receive(char* buffer, int* bytes);
-    virtual void flush();
-    virtual bool transmit(const char* buffer);
-    virtual bool setStandardProcedureAvalon(char* command, int wait);
+    virtual bool queryIsSlewComplete();
 
     /*
     virtual void getBasicData() override;
     virtual bool checkConnection() override;
-    virtual bool isSlewComplete() override;
 
 
     virtual bool SetSlewRate(int index) override;
@@ -89,7 +91,6 @@ protected:
     virtual bool Sync(double ra, double dec) override;
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
 
 */
 };
