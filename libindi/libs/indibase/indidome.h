@@ -483,7 +483,7 @@ class Dome : public DefaultDevice
     DomeParkData parkDataType;
 
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[2];
+    IText ActiveDeviceT[2] {};
 
     // Switch to lock id mount is unparked
     ISwitchVectorProperty TelescopeClosedLockTP;

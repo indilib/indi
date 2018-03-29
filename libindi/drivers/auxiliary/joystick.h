@@ -71,10 +71,10 @@ class JoyStick : public INDI::DefaultDevice
     ISwitch *ButtonS = nullptr;
 
     ITextVectorProperty PortTP; //  A text vector that stores out physical port name
-    IText PortT[1];
+    IText PortT[1] {};
 
     ITextVectorProperty JoystickInfoTP;
-    IText JoystickInfoT[5];
+    IText JoystickInfoT[5] {};
 
     JoyStickDriver *driver = nullptr;
 };

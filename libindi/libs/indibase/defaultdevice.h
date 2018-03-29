@@ -466,7 +466,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     ISwitchVectorProperty ConnectionSP;
     INumberVectorProperty PollPeriodNP;
 
-    IText DriverInfoT[4];
+    IText DriverInfoT[4] {};
     ITextVectorProperty DriverInfoTP;
 
     // Connection modes

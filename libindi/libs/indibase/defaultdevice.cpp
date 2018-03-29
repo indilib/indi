@@ -222,14 +222,20 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             {
                 ISwitchVectorProperty *svp = getSwitch(elemName);
                 if (svp == nullptr)
+                {
+                    delXMLEle(root);
                     return false;
+                }
 
                 XMLEle *sw = nullptr;
                 for (sw = nextXMLEle(ep, 1); sw != nullptr; sw = nextXMLEle(ep, 0))
                 {
                     ISwitch *oneSwitch = IUFindSwitch(svp, findXMLAttValu(sw, "name"));
                     if (oneSwitch == nullptr)
+                    {
+                        delXMLEle(root);
                         return false;
+                    }
                     char formatString[MAXRBUF];
                     snprintf(formatString, MAXRBUF, "      %s\n", sstateStr(oneSwitch->s));
                     editXMLEle(sw, formatString);
@@ -242,7 +248,10 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             {
                 INumberVectorProperty *nvp = getNumber(elemName);
                 if (nvp == nullptr)
+                {
+                    delXMLEle(root);
                     return false;
+                }
 
                 XMLEle *np = nullptr;
                 for (np = nextXMLEle(ep, 1); np != nullptr; np = nextXMLEle(ep, 0))
@@ -263,7 +272,10 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             {
                 ITextVectorProperty *tvp = getText(elemName);
                 if (tvp == nullptr)
+                {
+                    delXMLEle(root);
                     return false;
+                }
 
                 XMLEle *tp = nullptr;
                 for (tp = nextXMLEle(ep, 1); tp != nullptr; tp = nextXMLEle(ep, 0))
@@ -287,11 +299,15 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
             fp = IUGetConfigFP(nullptr, deviceID, "w", errmsg);
             prXMLEle(fp, root, 0);
             fclose(fp);
+            delXMLEle(root);
             LOGF_DEBUG("Configuration successfully saved for %s.", property);
             return true;
         }
         else
+        {
+            delXMLEle(root);
             return false;
+        }
     }
 
     return true;
