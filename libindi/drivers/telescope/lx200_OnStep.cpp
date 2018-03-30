@@ -948,13 +948,13 @@ bool LX200_OnStep::Park()      // Tested
         {
             if (!isSimulation() && abortSlew(PortFD) < 0)
             {
-                AbortSP.s = IPS_ALERT;
-                IDSetSwitch(&AbortSP, "Abort slew failed.");
+                Telescope::AbortSP.s = IPS_ALERT;
+                IDSetSwitch(&(Telescope::AbortSP), "Abort slew failed.");
                 return false;
             }
-            AbortSP.s = IPS_OK;
+            Telescope::AbortSP.s = IPS_OK;
             EqNP.s    = IPS_IDLE;
-            IDSetSwitch(&AbortSP, "Slew aborted.");
+            IDSetSwitch(&(Telescope::AbortSP), "Slew aborted.");
             IDSetNumber(&EqNP, nullptr);
 
             if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)

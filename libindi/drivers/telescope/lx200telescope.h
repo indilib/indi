@@ -46,6 +46,7 @@ public:
         LX200_HAS_ALIGNMENT_TYPE    = 1 << 2, /** Define Alignment Type */
         LX200_HAS_SITES             = 1 << 3, /** Define Sites */
         LX200_HAS_PULSE_GUIDING     = 1 << 4, /** Define Pulse Guiding */
+	LX200_HAS_PRECISE_TRACKING_FREQ = 1 << 5, /*Use more precise tracking frequency */
     } LX200Capability;
 
     uint32_t getLX200Capability() const { return genericCapability; }
