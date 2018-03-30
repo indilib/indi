@@ -119,6 +119,7 @@ LX200StarGo::LX200StarGo()
      *        ACK - Alignment Query
      *
      * LX200_HAS_SITES
+     *    Makes no sense in combination with KStars?
      *     missing commands
      *        :GM# (Get Site 1 Name)
      *
@@ -130,7 +131,7 @@ LX200StarGo::LX200StarGo()
      * LX200_HAS_FOCUS
      */
 
-    setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_SITES);
+    setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION| TELESCOPE_HAS_PIER_SIDE, 4);
