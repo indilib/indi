@@ -30,6 +30,7 @@
 
 #include <math.h>
 #include <unistd.h>
+#include <indiapi.h>
 
 #define FOCUS_TAB    "Focus"
 #define MAX_DEVICES  5 /* Max device cameraCount */
@@ -895,6 +896,28 @@ bool GPhotoCCD::Connect()
         mFormatSP.nsp = max_opts;
 
         ISwitch *sp = IUFindOnSwitch(&mFormatSP);
+
+        // Check for smaller capture formats to support binning mode
+        bool FoundMedium  = false;
+        bool FoundSmall   = false;
+
+        for (int i = 0; i < mFormatSP.nsp; i++)
+        {
+            if (std::string(mFormatS[i].label).find("Medium") != std::string::npos)
+            {
+                FoundMedium = true;
+            }
+            if (std::string(mFormatS[i].label).find("Small") != std::string::npos)
+            {
+                FoundSmall = true;
+            }
+        }
+        // Enable binning if at least medium and small size is available
+        if (FoundMedium && FoundSmall)
+        {
+            SetCCDCapability(GetCCDCapability() | CCD_CAN_BIN);
+        }
+
         if (sp && strstr(sp->label, "+"))
         {
             IUResetSwitch(&mFormatSP);
@@ -1021,10 +1044,75 @@ bool GPhotoCCD::StartExposure(float duration)
     if (mFormatS != NULL)
     {
         ISwitch *sp = IUFindOnSwitch(&mFormatSP);
+
         if (sp == NULL)
         {
             LOG_ERROR("Please select a format before capturing an image.");
             return false;
+        }
+        // Use JPEG formats to support
+        if (sp && Binning > 1 && sim == false)
+        {
+            bool Ready = false;
+            int SmallIndex = -1;
+
+            for (int i = 0; i < mFormatSP.nsp; i++)
+            {
+                if (Binning == 2 && std::string(mFormatS[i].label).find("Medium") != std::string::npos)
+                {
+                    LOGF_INFO("Select binning method: %s", mFormatS[i].label);
+                    gphoto_set_format(gphotodrv, i);
+                    PastBinning = true;
+                    Ready = true;
+                    break;
+                }
+                if (std::string(mFormatS[i].label).find("Small") != std::string::npos)
+                {
+                    SmallIndex = i;
+                }
+                if (Binning == 3 && std::string(mFormatS[i].label).find("Small") != std::string::npos)
+                {
+                    LOGF_INFO("Select binning method: %s", mFormatS[i].label);
+                    gphoto_set_format(gphotodrv, i);
+                    PastBinning = true;
+                    Ready = true;
+                    break;
+                }
+                if (Binning == 4 && std::string(mFormatS[i].label).find("Smaller") != std::string::npos)
+                {
+                    LOGF_INFO("Select binning method: %s", mFormatS[i].label);
+                    gphoto_set_format(gphotodrv, i);
+                    PastBinning = true;
+                    Ready = true;
+                    break;
+                }
+            }
+            // Special case when there is no "Smaller" JPEG format
+            if (!Ready && Binning == 4 && SmallIndex > -1)
+            {
+                LOGF_INFO("Select binning method: %s", mFormatS[SmallIndex].label);
+                gphoto_set_format(gphotodrv, SmallIndex);
+            }
+        }
+        else
+        // Restore the original format if needs be after a previous binning operation
+        if (sp && sim == false)
+        {
+            int CurrentFormat = gphoto_get_format_current(gphotodrv);
+
+            for (int i = 0; i < mFormatSP.nsp; i++)
+            {
+                if (mFormatS[i].s == ISS_ON)
+                {
+                    if (CurrentFormat != i)
+                    {
+                        LOGF_INFO("Restore image format: %s", mFormatS[i].label);
+                        gphoto_set_format(gphotodrv, i);
+                    }
+                    break;
+                }
+            }
+            PastBinning = false;
         }
     }
 
@@ -1070,6 +1158,28 @@ bool GPhotoCCD::UpdateCCDFrame(int x, int y, int w, int h)
     }
 
     PrimaryCCD.setFrame(x, y, w, h);
+    return true;
+}
+
+void GPhotoCCD::SetCCDParams(int x, int y, int bpp, float xf, float yf)
+{
+    CCDWidth = x;
+    CCDHeight = y;
+    CCD::SetCCDParams(x, y, bpp, xf, yf);
+}
+
+bool GPhotoCCD::UpdateCCDBin(int binx, int biny)
+{
+    if (Binning != std::max(binx, biny))
+    {
+        Binning = std::max(binx, biny);
+        // Reset the frame resolution after leaving binning mode
+        if (Binning == 1 && CCDWidth > 0 && CCDHeight > 0)
+        {
+            LOGF_INFO("Set frame resolution back to %dx%d", CCDWidth, CCDHeight);
+            PrimaryCCD.setFrame(0, 0, CCDWidth, CCDHeight);
+        }
+    }
     return true;
 }
 
@@ -1331,7 +1441,8 @@ bool GPhotoCCD::grabImage()
         // If subframing is requested
         /*if (frameInitialized &&
                 PrimaryCCD.getSubH() < PrimaryCCD.getYRes() || PrimaryCCD.getSubW() < PrimaryCCD.getXRes())*/
-        if (PrimaryCCD.getSubH() < w || PrimaryCCD.getSubW() < h)
+        LOGF_INFO("Captured resolution: %dx%d (frame: %dx%d)", w, h, PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+        if ((PrimaryCCD.getSubW() < w || PrimaryCCD.getSubH() < h) && Binning == 1 && !PastBinning)
         {
             LOG_DEBUG("Subframing...");
 

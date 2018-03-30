@@ -76,6 +76,8 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     bool StartExposure(float duration) override;
     bool AbortExposure() override;
     bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual void SetCCDParams(int x, int y, int bpp, float xf, float yf) override;
+    virtual bool UpdateCCDBin(int binx, int biny) override;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -183,13 +185,17 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     ISwitch livePreviewS[2];
     ISwitchVectorProperty livePreviewSP;
 
-    ISwitch *mExposurePresetS = NULL;
+    ISwitch *mExposurePresetS { nullptr };
     ISwitchVectorProperty mExposurePresetSP;
 
-    IBLOBVectorProperty *imageBP = NULL;
-    IBLOB *imageB                = NULL;
+    IBLOBVectorProperty *imageBP { nullptr };
+    IBLOB *imageB { nullptr };
 
-    Camera *camera = NULL;
+    Camera *camera { nullptr };
+    int Binning { 1 };
+    int CCDWidth { -1 };
+    int CCDHeight { -1 };
+    bool PastBinning { false };
 
     friend void ::ISSnoopDevice(XMLEle *root);
     friend void ::ISGetProperties(const char *dev);
