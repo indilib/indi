@@ -58,7 +58,7 @@ protected:
     bool changeFocusSyncPos(double values[], char* names[], int n);
 
     bool SetFocuserSpeed(int speed);
-    IPState MoveFocuser(bool inward, int speed, uint16_t duration);
+    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
     IPState MoveAbsFocuser(uint32_t absolutePosition);
     IPState moveFocuserRelative(int relativePosition);
     bool AbortFocuser();
@@ -98,7 +98,6 @@ protected:
 private:
     LX200StarGo* baseDevice;
     const char* deviceName;
-    bool isInit = false;
 
 
 };
