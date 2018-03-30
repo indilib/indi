@@ -58,7 +58,7 @@ protected:
 
 
     // override LX200Generic
-    virtual void getBasicData();
+    virtual void getBasicData() override;
     virtual bool ReadScopeStatus() override;
     virtual bool Park() override;
     virtual bool UnPark() override;

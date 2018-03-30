@@ -168,7 +168,7 @@ bool LX200StarGoFocuser::changeFocusTimer(double values[], char* names[], int n)
     int time = (int)values[0];
     if (validateFocusTimer(time)) {
         IUUpdateNumber(&FocusTimerNP, values, names, n);
-        FocusTimerNP.s = MoveFocuser(FocusMotionS[0].s == ISS_ON, FocusSpeedN[0].value, FocusTimerN[0].value);
+        FocusTimerNP.s = MoveFocuser(FocusMotionS[0].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD, FocusSpeedN[0].value, FocusTimerN[0].value);
         IDSetNumber(&FocusTimerNP, nullptr);
     }
     return true;
@@ -326,13 +326,13 @@ bool LX200StarGoFocuser::SetFocuserSpeed(int speed) {
 
 
 
-IPState LX200StarGoFocuser::MoveFocuser(bool inward, int speed, uint16_t duration) {
+IPState LX200StarGoFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t duration) {
     INDI_UNUSED(speed);
     if (duration == 0) {
         return IPS_OK;
     }
     int position = FocusAbsPosN[0].min;
-    if (!inward) {
+    if (dir == FOCUS_INWARD) {
         position = FocusAbsPosN[0].max;
     }
     moveFocuserDurationRemaining = duration;
