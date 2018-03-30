@@ -679,8 +679,14 @@ bool FilterIFW::GetFilterNames()
             deleteProperty(FilterNameTP->name);
 
             if (FilterNameT != nullptr)
+            {
+                for (int i=0; i < FilterNameTP->ntp; i++)
+                    free(FilterNameT[i].text);
                 delete [] FilterNameT;
+            }
+
             FilterNameT = new IText[maxFilter];
+            memset(FilterNameT, 0, sizeof(IText) * maxFilter);
 
             for (int i = 0; i < maxFilter; i++)
             {

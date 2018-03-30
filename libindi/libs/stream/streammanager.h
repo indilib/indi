@@ -179,7 +179,7 @@ class StreamManager
     ISwitchVectorProperty RecordStreamSP;
 
     /* Record File Info */
-    IText RecordFileT[2];
+    IText RecordFileT[2] {};
     ITextVectorProperty RecordFileTP;
 
     /* Streaming Options */

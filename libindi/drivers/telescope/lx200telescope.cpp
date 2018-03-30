@@ -1,283 +1,63 @@
-#if 0
-LX200 Generic
-Copyright (C) 2003 - 2017 Jasem Mutlaq (mutlaqja@ikarustech.com)
+/*
+ * Standard LX200 implementation.
 
-This library is free software;
-you can redistribute it and / or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation;
-either
-version 2.1 of the License, or (at your option) any later version.
+   Copyright (C) 2003 - 2018 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY;
-without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
+   This library is free software;
+   you can redistribute it and / or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation;
+   either
+   version 2.1 of the License, or (at your option) any later version.
 
-You should have received a copy of the GNU Lesser General Public
-License along with this library;
-if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY;
+   without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
 
-2013 - 10 - 27:
-    Updated driver to use INDI::Telescope (JM)
-  2015 - 11 - 25:
-  Use variable POLLMS instead of static POLLMS
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library;
+   if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
+ */
 
-  #endif
+#include "lx200telescope.h"
 
-#include "lx200generic.h"
+#include "indicom.h"
+#include "lx200driver.h"
 
-#include "lx200_10micron.h"
-#include "lx200_16.h"
-#include "lx200_OnStep.h"
-#include "lx200ap_experimental.h"
-#include "lx200ap_gtocp2.h"
-#include "lx200ap.h"
-#include "lx200classic.h"
-#include "lx200fs2.h"
-#include "lx200gemini.h"
-#include "lx200pulsar2.h"
-#include "lx200ss2000pc.h"
-#include "lx200zeq25.h"
-#include "lx200gotonova.h"
-#include "ioptronHC8406.h"
+#include <libnova/sidereal_time.h>
 
 #include <cmath>
 #include <memory>
 #include <cstring>
 #include <unistd.h>
+#include <time.h>
+
+/* Simulation Parameters */
+#define LX200_GENERIC_SLEWRATE 5        /* slew rate, degrees/s */
+#define SIDRATE  0.004178 /* sidereal rate, degrees/s */
 
 
-
-// We declare an auto pointer to LX200Generic.
-std::unique_ptr<LX200Generic> telescope;
-
-/* There is _one_ binary for all LX200 drivers, but each binary is renamed
-** to its device name (i.e. lx200gps, lx200_16..etc). The main function will
-** fetch from std args the binary name and ISInit will create the apporpiate
-** device afterwards. If the binary name does not match any known devices,
-** we simply create a generic device.
-*/
-extern char *me;
-
-#define LX200_TRACK 0
-#define LX200_SYNC  1
-
-/* send client definitions of all properties */
-void ISInit()
-{
-    static int isInit = 0;
-
-    if (isInit)
-        return;
-
-    isInit = 1;
-
-    if (strstr(me, "indi_lx200classic"))
-    {
-        IDLog("initializing from LX200 classic device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200Classic());
-    }
-    if (strstr(me, "indi_lx200_OnStep"))
-    {
-        IDLog("initializing from LX200 OnStep device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200_OnStep());
-    }
-    else if (strstr(me, "indi_lx200gps"))
-    {
-        IDLog("initializing from LX200 GPS device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200GPS());
-    }
-    else if (strstr(me, "indi_lx200_16"))
-    {
-        IDLog("Initializing from LX200 16 device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200_16());
-    }
-    else if (strstr(me, "indi_lx200autostar"))
-    {
-        IDLog("initializing from Autostar device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200Autostar());
-    }
-    else if (strstr(me, "indi_lx200ap_experimental"))
-    {
-        IDLog("initializing from Astrophysics Experiemtal device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200AstroPhysicsExperimental());
-    }
-    else if (strstr(me, "indi_lx200ap_gtocp2"))
-    {
-        IDLog("initializing from Astrophysics GTOCP2 device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200AstroPhysicsGTOCP2());
-    }
-    else if (strstr(me, "indi_lx200ap"))
-    {
-        IDLog("initializing from Astrophysics device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200AstroPhysics());
-    }
-    else if (strstr(me, "indi_lx200gemini"))
-    {
-        IDLog("initializing from Losmandy Gemini device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200Gemini());
-    }
-    else if (strstr(me, "indi_lx200zeq25"))
-    {
-        IDLog("initializing from ZEQ25 device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200ZEQ25());
-    }
-    else if (strstr(me, "indi_lx200gotonova"))
-    {
-        IDLog("initializing from GotoNova device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200GotoNova());
-    }
-    else if (strstr(me, "indi_ioptronHC8406"))
-    {
-        IDLog("initializing from ioptron telescope Hand Controller HC8406 device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new ioptronHC8406());
-    }
-    else if (strstr(me, "indi_lx200pulsar2"))
-    {
-        IDLog("initializing from pulsar2 device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200Pulsar2());
-    }
-    else if (strstr(me, "indi_lx200ss2000pc"))
-    {
-        IDLog("initializing from skysensor2000pc device...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200SS2000PC());
-    }
-    else if (strstr(me, "indi_lx200fs2"))
-    {
-        IDLog("initializing from Astro-Electronic FS-2...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200FS2());
-    }
-    else if (strstr(me, "indi_lx200_10micron"))
-    {
-        IDLog("initializing for 10Micron mount...\n");
-
-        if (telescope.get() == 0)
-            telescope.reset(new LX200_10MICRON());
-    }
-    // be nice and give them a generic device
-    else if (telescope.get() == 0)
-        telescope.reset(new LX200Generic());
-}
-
-void ISGetProperties(const char *dev)
-{
-    ISInit();
-    telescope->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    ISInit();
-    telescope->ISNewSwitch(dev, name, states, names, n);
-}
-
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    ISInit();
-    telescope->ISNewText(dev, name, texts, names, n);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
-{
-    ISInit();
-    telescope->ISNewNumber(dev, name, values, names, n);
-}
-
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
-{
-    INDI_UNUSED(dev);
-    INDI_UNUSED(name);
-    INDI_UNUSED(sizes);
-    INDI_UNUSED(blobsizes);
-    INDI_UNUSED(blobs);
-    INDI_UNUSED(formats);
-    INDI_UNUSED(names);
-    INDI_UNUSED(n);
-}
-void ISSnoopDevice(XMLEle *root)
-{
-    ISInit();
-    telescope->ISSnoopDevice(root);
-}
-
-/**************************************************
-*** LX200 Generic Implementation
-***************************************************/
-
-LX200Generic::LX200Generic()
-{
-    setVersion(2, 0);
-
-    currentSiteNum = 1;
-    trackingMode   = LX200_TRACK_SIDEREAL;
-    GuideNSTID     = 0;
-    GuideWETID     = 0;
-
-    DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
-
-    setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES |
-    LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
-
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,
-                           4);
-
-    LOG_DEBUG("Initializing from Generic LX200 device...");
-}
-
-<<<<<<< HEAD
-
-void LX200Generic::debugTriggered(bool enable)
+void LX200Telescope::debugTriggered(bool enable)
 {
     INDI_UNUSED(enable);
     setLX200Debug(getDeviceName(), DBG_SCOPE);
 }
 
-const char *LX200Generic::getDefaultName()
+const char *LX200Telescope::getDriverName()
 {
-    return (const char *)"LX200 Generic";
+    return getDefaultName();
 }
 
-const char *LX200Generic::getDriverName()
+const char *LX200Telescope::getDefaultName()
 {
-    return LX200Generic::getDefaultName();
+    return (const char *)"Standard LX200 telescope";
 }
 
-bool LX200Generic::initProperties()
+
+bool LX200Telescope::initProperties()
 {
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
@@ -310,12 +90,7 @@ bool LX200Generic::initProperties()
     AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
-    if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
-    {
-	    IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.5, 0.001, 60.5);
-    } else {
-	IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
-    }
+    IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
     IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
@@ -367,7 +142,7 @@ bool LX200Generic::initProperties()
     return true;
 }
 
-void LX200Generic::ISGetProperties(const char *dev)
+void LX200Telescope::ISGetProperties(const char *dev)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
@@ -405,7 +180,7 @@ void LX200Generic::ISGetProperties(const char *dev)
     */
 }
 
-bool LX200Generic::updateProperties()
+bool LX200Telescope::updateProperties()
 {
     INDI::Telescope::updateProperties();
 
@@ -469,7 +244,7 @@ bool LX200Generic::updateProperties()
     return true;
 }
 
-bool LX200Generic::checkConnection()
+bool LX200Telescope::checkConnection()
 {
     if (isSimulation())
         return true;
@@ -477,17 +252,17 @@ bool LX200Generic::checkConnection()
     return (check_lx200_connection(PortFD) == 0);
 }
 
-bool LX200Generic::Handshake()
+bool LX200Telescope::Handshake()
 {
     return checkConnection();
 }
 
-bool LX200Generic::isSlewComplete()
+bool LX200Telescope::isSlewComplete()
 {
     return (::isSlewComplete(PortFD) == 1);
 }
 
-bool LX200Generic::ReadScopeStatus()
+bool LX200Telescope::ReadScopeStatus()
 {
     if (!isConnected())
         return false;
@@ -535,7 +310,7 @@ bool LX200Generic::ReadScopeStatus()
     return true;
 }
 
-bool LX200Generic::Goto(double ra, double dec)
+bool LX200Telescope::Goto(double ra, double dec)
 {
     const struct timespec timeout = {0, 100000000L};
 
@@ -616,7 +391,7 @@ bool LX200Generic::Goto(double ra, double dec)
     return true;
 }
 
-bool LX200Generic::Sync(double ra, double dec)
+bool LX200Telescope::Sync(double ra, double dec)
 {
     char syncString[256]={0};
 
@@ -646,7 +421,7 @@ bool LX200Generic::Sync(double ra, double dec)
     return true;
 }
 
-bool LX200Generic::Park()
+bool LX200Telescope::Park()
 {
     const struct timespec timeout = {0, 100000000L};
     if (!isSimulation())
@@ -695,7 +470,7 @@ bool LX200Generic::Park()
     return true;
 }
 
-bool LX200Generic::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
+bool LX200Telescope::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     int current_move = (dir == DIRECTION_NORTH) ? LX200_NORTH : LX200_SOUTH;
 
@@ -727,7 +502,7 @@ bool LX200Generic::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     return true;
 }
 
-bool LX200Generic::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
+bool LX200Telescope::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     int current_move = (dir == DIRECTION_WEST) ? LX200_WEST : LX200_EAST;
 
@@ -758,7 +533,7 @@ bool LX200Generic::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
-bool LX200Generic::Abort()
+bool LX200Telescope::Abort()
 {
     if (!isSimulation() && abortSlew(PortFD) < 0)
     {
@@ -794,22 +569,22 @@ bool LX200Generic::Abort()
     return true;
 }
 
-bool LX200Generic::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
+bool LX200Telescope::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 {
     return (setCalenderDate(PortFD, days, months, years) == 0);
 }
 
-bool LX200Generic::setLocalTime24(uint8_t hour, uint8_t minute, uint8_t second)
+bool LX200Telescope::setLocalTime24(uint8_t hour, uint8_t minute, uint8_t second)
 {
     return (setLocalTime(PortFD, hour, minute, second) == 0);
 }
 
-bool LX200Generic::setUTCOffset(double offset)
+bool LX200Telescope::setUTCOffset(double offset)
 {
     return (::setUTCOffset(PortFD, (offset * -1.0)) == 0);
 }
 
-bool LX200Generic::updateTime(ln_date *utc, double utc_offset)
+bool LX200Telescope::updateTime(ln_date *utc, double utc_offset)
 {
     struct ln_zonedate ltm;
 
@@ -847,7 +622,7 @@ bool LX200Generic::updateTime(ln_date *utc, double utc_offset)
     return true;
 }
 
-bool LX200Generic::updateLocation(double latitude, double longitude, double elevation)
+bool LX200Telescope::updateLocation(double latitude, double longitude, double elevation)
 {
     INDI_UNUSED(elevation);
 
@@ -875,7 +650,7 @@ bool LX200Generic::updateLocation(double latitude, double longitude, double elev
     return true;
 }
 
-bool LX200Generic::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool LX200Telescope::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -899,29 +674,14 @@ bool LX200Generic::ISNewText(const char *dev, const char *name, char *texts[], c
     return INDI::Telescope::ISNewText(dev, name, texts, names, n);
 }
 
-bool LX200Generic::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Update Frequency
         if (!strcmp(name, TrackingFreqNP.name))
         {
-	    LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
-	    if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
-	    {
-		    if (!isSimulation() && setPreciseTrackFreq(PortFD, values[0]) < 0)
-		    {
-			TrackingFreqNP.s = IPS_ALERT;
-			IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
-			return false;
-		    }
-		    TrackingFreqNP.s           = IPS_OK;
-		    TrackingFreqNP.np[0].value = values[0];
-		    IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %8.5f", values[0]);
-	    } else
-	    { if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
-
-            LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set track freq of: %04.1f", values[0]);
 
             if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
             {
@@ -929,11 +689,10 @@ bool LX200Generic::ISNewNumber(const char *dev, const char *name, double values[
                 IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
                 return false;
             }
+
             TrackingFreqNP.s           = IPS_OK;
-	    TrackingFreqNP.np[0].value = values[0];
-	    IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %04.1f", values[0]);
-	    }
-            
+            TrackingFreqNP.np[0].value = values[0];
+            IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %04.1f", values[0]);
 
             if (trackingMode != LX200_TRACK_MANUAL)
             {
@@ -962,8 +721,7 @@ bool LX200Generic::ISNewNumber(const char *dev, const char *name, double values[
 
             IDSetNumber(&FocusTimerNP, nullptr);
 
-            if (isDebug())
-                IDLog("Setting focus timer to %g\n", FocusTimerN[0].value);
+            LOGF_DEBUG("Setting focus timer to %.2f", FocusTimerN[0].value);
 
             return true;
         }
@@ -976,7 +734,7 @@ bool LX200Generic::ISNewNumber(const char *dev, const char *name, double values[
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
-bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     int index = 0;
 
@@ -1073,7 +831,7 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 FocusTimerNP.s  = IPS_BUSY;
                 FocusMotionSP.s = IPS_BUSY;
-                IEAddTimer(50, LX200Generic::updateFocusHelper, this);
+                IEAddTimer(50, LX200Telescope::updateFocusHelper, this);
             }
 
             FocusMotionSP.s = IPS_OK;
@@ -1122,7 +880,7 @@ bool LX200Generic::ISNewSwitch(const char *dev, const char *name, ISState *state
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool LX200Generic::SetTrackMode(uint8_t mode)
+bool LX200Telescope::SetTrackMode(uint8_t mode)
 {
     if (isSimulation())
         return true;
@@ -1130,7 +888,6 @@ bool LX200Generic::SetTrackMode(uint8_t mode)
     bool rc = (selectTrackingMode(PortFD, mode) == 0);
 
     // Only update tracking frequency if it is defined and not deleted by child classes
-    // Note, that LX200_HAS_PRECISE_TRACKING_FREQ can use the same get function.
     if (rc &&  (genericCapability & LX200_HAS_TRACKING_FREQ))
     {
         getTrackFreq(PortFD, &TrackFreqN[0].value);
@@ -1139,7 +896,7 @@ bool LX200Generic::SetTrackMode(uint8_t mode)
     return rc;
 }
 
-bool LX200Generic::SetSlewRate(int index)
+bool LX200Telescope::SetSlewRate(int index)
 {
     // Convert index to Meade format
     index = 3 - index;
@@ -1156,12 +913,12 @@ bool LX200Generic::SetSlewRate(int index)
     return true;
 }
 
-void LX200Generic::updateFocusHelper(void *p)
+void LX200Telescope::updateFocusHelper(void *p)
 {
-    ((LX200Generic *)p)->updateFocusTimer();
+    ((LX200Telescope *)p)->updateFocusTimer();
 }
 
-void LX200Generic::updateFocusTimer()
+void LX200Telescope::updateFocusTimer()
 {
     switch (FocusTimerNP.s)
     {
@@ -1169,23 +926,23 @@ void LX200Generic::updateFocusTimer()
         break;
 
     case IPS_BUSY:
-        if (isDebug())
-            IDLog("Focus Timer Value is %g\n", FocusTimerN[0].value);
+        //if (isDebug())
+            //IDLog("Focus Timer Value is %g\n", FocusTimerN[0].value);
 
         FocusTimerN[0].value -= 50;
 
         if (FocusTimerN[0].value <= 0)
         {
-            if (isDebug())
-                IDLog("Focus Timer Expired\n");
+            //if (isDebug())
+                //IDLog("Focus Timer Expired\n");
 
-            if (!isSimulation() && setFocuserSpeedMode(telescope->PortFD, 0) < 0)
+            if (!isSimulation() && setFocuserSpeedMode(PortFD, 0) < 0)
             {
                 FocusModeSP.s = IPS_ALERT;
                 IDSetSwitch(&FocusModeSP, "Error setting focuser mode.");
 
-                if (isDebug())
-                    IDLog("Error setting focuser mode\n");
+                //if (isDebug())
+                    //IDLog("Error setting focuser mode\n");
 
                 return;
             }
@@ -1205,7 +962,7 @@ void LX200Generic::updateFocusTimer()
         IDSetNumber(&FocusTimerNP, nullptr);
 
         if (FocusTimerN[0].value > 0)
-            IEAddTimer(50, LX200Generic::updateFocusHelper, this);
+            IEAddTimer(50, LX200Telescope::updateFocusHelper, this);
         break;
 
     case IPS_OK:
@@ -1216,7 +973,7 @@ void LX200Generic::updateFocusTimer()
     }
 }
 
-void LX200Generic::mountSim()
+void LX200Telescope::mountSim()
 {
     static struct timeval ltv;
     struct timeval tv;
@@ -1315,7 +1072,7 @@ void LX200Generic::mountSim()
     NewRaDec(currentRA, currentDEC);
 }
 
-void LX200Generic::getBasicData()
+void LX200Telescope::getBasicData()
 {
     if (!isSimulation())
     {
@@ -1367,7 +1124,7 @@ void LX200Generic::getBasicData()
         sendScopeTime();
 }
 
-void LX200Generic::slewError(int slewCode)
+void LX200Telescope::slewError(int slewCode)
 {
     if (slewCode == 1)
         LOG_ERROR("Object below horizon.");
@@ -1380,7 +1137,7 @@ void LX200Generic::slewError(int slewCode)
     IDSetNumber(&EqNP, nullptr);
 }
 
-void LX200Generic::getAlignment()
+void LX200Telescope::getAlignment()
 {
     signed char align = ACK(PortFD);
     if (align < 0)
@@ -1410,7 +1167,7 @@ void LX200Generic::getAlignment()
     IDSetSwitch(&AlignmentSP, nullptr);
 }
 
-bool LX200Generic::getLocalTime(char *timeString)
+bool LX200Telescope::getLocalTime(char *timeString)
 {
     if (isSimulation())
     {
@@ -1429,7 +1186,7 @@ bool LX200Generic::getLocalTime(char *timeString)
     return true;
 }
 
-bool LX200Generic::getLocalDate(char *dateString)
+bool LX200Telescope::getLocalDate(char *dateString)
 {
     if (isSimulation())
     {
@@ -1444,7 +1201,7 @@ bool LX200Generic::getLocalDate(char *dateString)
     return true;
 }
 
-bool LX200Generic::getUTFOffset(double *offset)
+bool LX200Telescope::getUTFOffset(double *offset)
 {
     if (isSimulation())
     {
@@ -1459,7 +1216,7 @@ bool LX200Generic::getUTFOffset(double *offset)
     return true;
 }
 
-bool LX200Generic::sendScopeTime()
+bool LX200Telescope::sendScopeTime()
 {
     char cdate[32]={0};
     char ctime[32]={0};
@@ -1525,7 +1282,7 @@ bool LX200Generic::sendScopeTime()
     return true;
 }
 
-bool LX200Generic::sendScopeLocation()
+bool LX200Telescope::sendScopeLocation()
 {
     int dd = 0, mm = 0;
 
@@ -1573,7 +1330,7 @@ bool LX200Generic::sendScopeLocation()
     return true;
 }
 
-IPState LX200Generic::GuideNorth(float ms)
+IPState LX200Telescope::GuideNorth(float ms)
 {
     int use_pulse_cmd;
 
@@ -1625,7 +1382,7 @@ IPState LX200Generic::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState LX200Generic::GuideSouth(float ms)
+IPState LX200Telescope::GuideSouth(float ms)
 {
     int use_pulse_cmd;
 
@@ -1677,7 +1434,7 @@ IPState LX200Generic::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState LX200Generic::GuideEast(float ms)
+IPState LX200Telescope::GuideEast(float ms)
 {
     int use_pulse_cmd;
 
@@ -1729,7 +1486,7 @@ IPState LX200Generic::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState LX200Generic::GuideWest(float ms)
+IPState LX200Telescope::GuideWest(float ms)
 {
     int use_pulse_cmd;
 
@@ -1781,17 +1538,17 @@ IPState LX200Generic::GuideWest(float ms)
     return IPS_BUSY;
 }
 
-int LX200Generic::SendPulseCmd(int direction, int duration_msec)
+int LX200Telescope::SendPulseCmd(int direction, int duration_msec)
 {
     return ::SendPulseCmd(PortFD, direction, duration_msec);
 }
 
-void LX200Generic::guideTimeoutHelper(void * p)
+void LX200Telescope::guideTimeoutHelper(void * p)
 {
-    ((LX200Generic *)p)->guideTimeout();
+    ((LX200Telescope *)p)->guideTimeout();
 }
 
-void LX200Generic::guideTimeout()
+void LX200Telescope::guideTimeout()
 {
     int use_pulse_cmd;
 
@@ -1862,7 +1619,7 @@ void LX200Generic::guideTimeout()
     }
 }
 
-bool LX200Generic::saveConfigItems(FILE *fp)
+bool LX200Telescope::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
@@ -1871,5 +1628,3 @@ bool LX200Generic::saveConfigItems(FILE *fp)
 
     return true;
 }
-=======
->>>>>>> upstream/master

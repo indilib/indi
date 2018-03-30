@@ -453,7 +453,11 @@ void IUFillText(IText *tp, const char *name, const char *label, const char *init
         strncpy(tp->label, escapedLabel, MAXINDILABEL);
     else
         strncpy(tp->label, escapedName, MAXINDILABEL);
+
+    if (tp->text && tp->text[0])
+        free(tp->text);
     tp->text = NULL;
+
     tp->tvp  = NULL;
     tp->aux0 = NULL;
     tp->aux1 = NULL;
@@ -1233,6 +1237,8 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
 
     fproot = readXMLFile(fp, lp, errmsg);
 
+    delLilXML(lp);
+
     if (fproot == NULL)
     {
         snprintf(errmsg, MAXRBUF, "Unable to parse config XML: %s", errmsg);
@@ -1249,6 +1255,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
         if (crackDN(root, &rdev, &rname, errmsg) < 0)
         {
             fclose(fp);
+            delXMLEle(fproot);
             return -1;
         }
 
@@ -1264,9 +1271,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
         IDMessage(dev, "[INFO] Device configuration applied.");
 
     fclose(fp);
-    delXMLEle(fproot);
-    delXMLEle(root);
-    delLilXML(lp);
+    delXMLEle(fproot);    
 
     return (0);
 }
@@ -1339,6 +1344,7 @@ int IUGetConfigNumber(const char *dev, const char *property, const char *member,
         if (crackDN(root, &rdev, &rname, errmsg) < 0)
         {
             fclose(fp);
+            delXMLEle(fproot);
             return -1;
         }
 
@@ -1372,7 +1378,7 @@ int IUGetConfigNumber(const char *dev, const char *property, const char *member,
 /* send client a message for a specific device or at large if !dev */
 void IDMessage(const char *dev, const char *fmt, ...)
 {
-    pthread_mutex_lock(&stdout_mutex);
+    pthread_mutex_lock(&stdout_mutex);    
 
     xmlv1();
     printf("<message\n");
@@ -1386,7 +1392,9 @@ void IDMessage(const char *dev, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
+        printf("%s'\n", escapedMessage);
+        free(escapedMessage);
         va_end(ap);
     }
     printf("/>\n");
@@ -1572,7 +1580,9 @@ void IDDefText(const ITextVectorProperty *tvp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
+        printf("%s'\n", escapedMessage);
+        free(escapedMessage);
         va_end(ap);
     }
     printf(">\n");
@@ -1636,7 +1646,9 @@ void IDDefNumber(const INumberVectorProperty *n, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
+        printf("%s'\n", escapedMessage);
+        free(escapedMessage);
         va_end(ap);
     }
     printf(">\n");
@@ -1707,7 +1719,9 @@ void IDDefSwitch(const ISwitchVectorProperty *s, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
+        printf("%s'\n", escapedMessage);
+        free(escapedMessage);
         va_end(ap);
     }
     printf(">\n");
@@ -1766,7 +1780,9 @@ void IDDefLight(const ILightVectorProperty *lvp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
+        printf("%s'\n", escapedMessage);
+        free(escapedMessage);
         va_end(ap);
     }
     printf(">\n");
@@ -1813,7 +1829,9 @@ void IDDefBLOB(const IBLOBVectorProperty *b, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
+        printf("%s'\n", escapedMessage);
+        free(escapedMessage);
         va_end(ap);
     }
     printf(">\n");
@@ -1871,7 +1889,9 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
+        printf("%s'\n", escapedMessage);
+        free(escapedMessage);
         va_end(ap);
     }
     printf(">\n");
@@ -1913,7 +1933,9 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
+        printf("%s'\n", escapedMessage);
+        free(escapedMessage);
         va_end(ap);
     }
     printf(">\n");
@@ -1955,7 +1977,9 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
+        printf("%s'\n", escapedMessage);
+        free(escapedMessage);
         va_end(ap);
     }
     printf(">\n");
@@ -1995,7 +2019,9 @@ void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
+        printf("%s'\n", escapedMessage);
+        free(escapedMessage);
         va_end(ap);
     }
     printf(">\n");

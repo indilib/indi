@@ -654,13 +654,13 @@ class Telescope : public DefaultDevice
     INumberVectorProperty ScopeParametersNP;
 
     // UTC and UTC Offset
-    IText TimeT[2];
+    IText TimeT[2] {};
     ITextVectorProperty TimeTP;
     void sendTimeFromSystem();
 
     // Active GPS/Dome device to snoop
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[2];
+    IText ActiveDeviceT[2] {};
 
     // Switch to lock if dome is closed, and or force parking if dome parks
     ISwitchVectorProperty DomeClosedLockTP;
@@ -733,7 +733,7 @@ class Telescope : public DefaultDevice
 
     // Scope config name
     ITextVectorProperty ScopeConfigNameTP;
-    IText ScopeConfigNameT[1];
+    IText ScopeConfigNameT[1] {};
 
     /// The telescope/guide scope configuration file name
     const std::string ScopeConfigFileName;

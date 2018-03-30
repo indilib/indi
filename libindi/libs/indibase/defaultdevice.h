@@ -43,6 +43,11 @@ extern const char *COMMUNICATION_TAB;
 extern const char *MAIN_CONTROL_TAB;
 
 /**
+ * @brief CONNECTION_TAB Where all device connection settings (serial, usb, ethernet) are defined and controlled.
+ */
+extern const char *CONNECTION_TAB;
+
+/**
  * @brief MOTION_TAB Where all the motion control properties of the device are located.
  */
 extern const char *MOTION_TAB;
@@ -186,7 +191,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
      * \param ms timer duration in milliseconds.
      * \return id of the timer to be used with RemoveTimer
     */
-    int SetTimer(int ms);
+    int SetTimer(uint32_t ms);
 
     /**
      * \brief Remove timer added with SetTimer
@@ -437,7 +442,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     Connection::Interface *getActiveConnection() { return activeConnection; }
 
     void setDefaultPollingPeriod(uint32_t period);
-    uint32_t getPollingPeriod() { return PollPeriodN[0].value; }
+    uint32_t getPollingPeriod() { return static_cast<uint32_t>(PollPeriodN[0].value); }
 
     /** \return Default name of the device. */
     virtual const char *getDefaultName() = 0;
@@ -446,13 +451,13 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     uint32_t POLLMS = 1000;
 
   private:
-    bool isInit;
-    bool pDebug;
-    bool pSimulation;
+    bool isInit { false };
+    bool pDebug { false };
+    bool pSimulation { false };
 
-    uint16_t majorVersion;
-    uint16_t minorVersion;
-    uint16_t interfaceDescriptor;
+    uint16_t majorVersion { 1 };
+    uint16_t minorVersion { 0 };
+    uint16_t interfaceDescriptor { 0 };
 
     ISwitch DebugS[2];
     ISwitch SimulationS[2];
@@ -466,7 +471,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     ISwitchVectorProperty ConnectionSP;
     INumberVectorProperty PollPeriodNP;
 
-    IText DriverInfoT[4];
+    IText DriverInfoT[4] {};
     ITextVectorProperty DriverInfoTP;
 
     // Connection modes

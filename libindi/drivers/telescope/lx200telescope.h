@@ -1,34 +1,40 @@
-/*
-    LX200 Generic
-    Copyright (C) 2003-2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
-
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-*/
+#ifndef LX200TELESCOPE_H
+#define LX200TELESCOPE_H
 
 #pragma once
 
-#include "lx200telescope.h"
+/*
+ * Standard LX200 implementation.
 
-class LX200Generic : public LX200Telescope
+   Copyright (C) 2003 - 2018 Jasem Mutlaq (mutlaqja@ikarustech.com)
+
+   This library is free software;
+   you can redistribute it and / or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation;
+   either
+   version 2.1 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY;
+   without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library;
+   if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
+ */
+
+#include "indiguiderinterface.h"
+#include "inditelescope.h"
+
+class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface
 {
-  public:
-    LX200Generic();
-    virtual ~LX200Generic() = default;
-
-<<<<<<< HEAD
+public:
+    LX200Telescope() = default;
+    virtual ~LX200Telescope() = default;
     /**
      * \struct LX200Capability
      * \brief Holds properties of LX200 Generic that might be used by child classes
@@ -40,7 +46,6 @@ class LX200Generic : public LX200Telescope
         LX200_HAS_ALIGNMENT_TYPE    = 1 << 2, /** Define Alignment Type */
         LX200_HAS_SITES             = 1 << 3, /** Define Sites */
         LX200_HAS_PULSE_GUIDING     = 1 << 4, /** Define Pulse Guiding */
-        LX200_HAS_PRECISE_TRACKING_FREQ = 1 << 5, /*Use more presiceise tracking frequency */
     } LX200Capability;
 
     uint32_t getLX200Capability() const { return genericCapability; }
@@ -187,7 +192,6 @@ class LX200Generic : public LX200Telescope
     ISwitch FocusModeS[3];
 
     uint32_t genericCapability;
-=======
->>>>>>> upstream/master
-
 };
+
+#endif // LX200TELESCOPE_H
