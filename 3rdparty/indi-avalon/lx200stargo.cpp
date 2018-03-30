@@ -194,10 +194,22 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             int trackMode = IUFindOnSwitchIndex(&TrackModeSP);
 
             bool result;
-            if (trackMode != 3) {
-                result = SetTrackMode(trackMode);
-            } else {
+            if (trackMode != 3) result = SetTrackMode(trackMode);
+
+            switch (trackMode) {
+            case TRACK_SIDEREAL:
+                LOG_INFO("Sidereal tracking rate selected.");
+                break;
+            case TRACK_SOLAR:
+                LOG_INFO("Solar tracking rate selected.");
+                break;
+            case TRACK_LUNAR:
+                LOG_INFO("Lunar tracking rate selected");
+                break;
+            case 3:
+                LOG_INFO("Tracking stopped.");
                 result = querySetTracking(false);
+                break;
             }
             TrackModeSP.s = result ? IPS_OK : IPS_ALERT;
 
@@ -295,12 +307,61 @@ bool LX200StarGo::updateProperties()
 ***************************************************************************************/
 bool LX200StarGo::ReadScopeStatus()
 {
-    bool result;
+    if (!isConnected())
+        return false;
 
-    result = LX200Telescope::ReadScopeStatus();
-    result = UpdateMotionStatus();
+    if (isSimulation())
+    {
+        mountSim();
+        return true;
+    }
 
-    return result;
+    if (TrackState == SCOPE_SLEWING)
+    {
+        // Check if LX200 is done slewing
+        if (isSlewComplete()) {
+            if (isIdle()) {
+                TrackState = SCOPE_IDLE;
+                LOG_INFO("Slew is complete. Tracking is off." );
+            }  else {
+                TrackState = SCOPE_TRACKING;
+                LOG_INFO("Slew is complete. Tracking...");
+            }
+
+            if (MountGotoHomeSP.s == IPS_BUSY) {
+                MountGotoHomeSP.s = IPS_OK;
+                IDSetSwitch(&MountGotoHomeSP, nullptr);
+            }
+
+        }
+    }
+    else if (TrackState == SCOPE_PARKING)
+    {
+        if (isSlewComplete()) SetParked(true);
+    }
+
+    UpdateMotionStatus();
+
+    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        return false;
+    }
+
+    NewRaDec(currentRA, currentDEC);
+    return true;
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+
+bool LX200StarGo::isIdle() {
+    int motorsState, speedState, nrTrackingSpeed;
+    queryMountMotionState(&motorsState, &speedState, &nrTrackingSpeed);
+
+    return (speedState == 0);
 }
 
 bool LX200StarGo::isSlewComplete()
@@ -312,6 +373,7 @@ bool LX200StarGo::isSlewComplete()
 /**************************************************************************************
 **
 ***************************************************************************************/
+
 
 bool LX200StarGo::UpdateMotionStatus() {
 
@@ -356,7 +418,7 @@ bool LX200StarGo::UpdateMotionStatus() {
             TrackModeSP.s   = IPS_OK;
             IDSetSwitch(&TrackModeSP, nullptr);
         }
-        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
+        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKED) {
             TrackState = SCOPE_IDLE;
         }
         break;
@@ -495,12 +557,14 @@ bool LX200StarGo::syncHomePosition()
 bool LX200StarGo::slewToHome(ISState* states, char* names[], int n) {
     IUUpdateSwitch(&MountGotoHomeSP, states, names, n);
     if (querySendMountGotoHome()) {
-        MountGotoHomeSP.s = IPS_OK;
+        MountGotoHomeSP.s = IPS_BUSY;
         TrackState = SCOPE_SLEWING;
     } else {
         MountGotoHomeSP.s = IPS_ALERT;
     }
     MountGotoHomeS[0].s = ISS_OFF;
+    IDSetSwitch(&MountGotoHomeSP, nullptr);
+
     LOG_INFO("Slewing to home position...");
     return true;
 }
@@ -687,6 +751,7 @@ bool LX200StarGo::UnPark() {
     if (sendQuery(":X370#", response) && strcmp(response, "p0#") == 0) {
         LOGF_INFO("%s: Scope Unparked.", getDeviceName());
         TrackState = SCOPE_TRACKING;
+        SetParked(false);
         return true;
     } else {
         LOGF_ERROR("%s: Unpark failed.", getDeviceName());
