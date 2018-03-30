@@ -917,6 +917,7 @@ int setUTCOffset(int fd, double hours)
     return (setStandardProcedure(fd, read_buffer));
 }
 
+// Meade defines longitude as 0 to 360 WESTWARD
 int setSiteLongitude(int fd, double Long)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
