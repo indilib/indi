@@ -72,6 +72,7 @@ protected:
 
     // scope status
     virtual bool UpdateMotionStatus();
+    bool isIdle();
     TelescopeSlewRate CurrentSlewRate;
 
     // location
