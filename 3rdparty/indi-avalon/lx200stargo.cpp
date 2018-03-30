@@ -101,7 +101,7 @@ void ISSnoopDevice(XMLEle *root)
 
 LX200StarGo::LX200StarGo()
 {
-    setVersion(0, 1);
+    setVersion(0, 2);
     /* missing capabilities
      * TELESCOPE_HAS_TIME:
      *    missing commands

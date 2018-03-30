@@ -1,0 +1,12 @@
+Version 0.2 - 2018-03-30
+	+ Moved to 3rdparty
+	+ introduction of LX200Telescope as base class separated
+	+ Focuser handling transferred from CanisUrsa's implementation
+	  to LX200StarGoFocuser
+	+ parking, unparking and setting parking position added
+	+ slew home added
+	+ status handling improved
+
+Version 0.1 - 2018-03-20
+	+ Initial version, based on LX200Generic
+	
