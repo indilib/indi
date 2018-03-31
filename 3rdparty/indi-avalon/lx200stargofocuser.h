@@ -57,11 +57,11 @@ protected:
     bool changeFocusAbort(ISState* states, char* names[], int n);
     bool changeFocusSyncPos(double values[], char* names[], int n);
 
-    bool SetFocuserSpeed(int speed);
+    bool SetFocuserSpeed(int speed) override;
     IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
-    IPState MoveAbsFocuser(uint32_t absolutePosition);
+    IPState MoveAbsFocuser(uint32_t absolutePosition) override;
     IPState moveFocuserRelative(int relativePosition);
-    bool AbortFocuser();
+    bool AbortFocuser() override;
     IPState syncFocuser(int absolutePosition);
 
     ISwitchVectorProperty FocusAbortSP;
