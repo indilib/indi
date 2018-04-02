@@ -5,9 +5,6 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-function")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-function")
-
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(QHY REQUIRED)
@@ -31,6 +28,9 @@ include_directories( ${USB1_INCLUDE_DIRS})
 include(CMakeCommon)
 
 ########### QHY CCD ###########
+
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 
 IF (APPLE)
     SET(indiqhy_SRCS
