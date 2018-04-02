@@ -362,6 +362,7 @@ void EQMod::ISGetProperties(const char *dev)
         defineSwitch(HemisphereSP);
         defineNumber(HorizontalCoordNP);
         defineSwitch(ReverseDECSP);
+        defineSwitch(EnforceCWUP);
         defineNumber(StandardSyncNP);
         defineNumber(StandardSyncPointNP);
         defineNumber(SyncPolarAlignNP);
@@ -432,6 +433,7 @@ bool EQMod::loadProperties()
     HemisphereSP       = getSwitch("HEMISPHERE");
     TrackDefaultSP     = getSwitch("TELESCOPE_TRACK_DEFAULT");
     ReverseDECSP       = getSwitch("REVERSEDEC");
+    EnforceCWUP        = getSwitch("FORCECWUP");
 
     HorizontalCoordNP   = getNumber("HORIZONTAL_COORD");
     StandardSyncNP      = getNumber("STANDARDSYNC");
@@ -500,6 +502,7 @@ bool EQMod::updateProperties()
         defineSwitch(HemisphereSP);
         defineNumber(HorizontalCoordNP);
         defineSwitch(ReverseDECSP);
+        defineSwitch(EnforceCWUP);
         defineNumber(StandardSyncNP);
         defineNumber(StandardSyncPointNP);
         defineNumber(SyncPolarAlignNP);
@@ -634,6 +637,7 @@ bool EQMod::updateProperties()
         deleteProperty(HemisphereSP->name);
         deleteProperty(HorizontalCoordNP->name);
         deleteProperty(ReverseDECSP->name);
+        deleteProperty(EnforceCWUP->name);
         deleteProperty(StandardSyncNP->name);
         deleteProperty(StandardSyncPointNP->name);
         deleteProperty(SyncPolarAlignNP->name);
@@ -1894,7 +1898,7 @@ bool EQMod::Goto(double r, double d)
     gotoparams.decurrentencoder = currentDEEncoder;
     gotoparams.completed        = false;
     gotoparams.checklimits      = true;
-    gotoparams.forcecwup        = false;
+    gotoparams.forcecwup        = ForceCwUp;
     gotoparams.outsidelimits    = false;
     gotoparams.limiteast        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
     gotoparams.limitwest        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h
@@ -2554,6 +2558,19 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
             LOG_INFO("Inverting Declination Axis.");
 
             IDSetSwitch(ReverseDECSP, NULL);
+        }
+
+        if (!strcmp(name, "FORCECWUP"))
+        {
+            IUUpdateSwitch(EnforceCWUP, states, names, n);
+
+            EnforceCWUP->s = IPS_OK;
+
+            ForceCwUp = (EnforceCWUP->sp[0].s == ISS_ON) ? true : false;
+
+            LOG_INFO("Enforcing counter weight up");
+
+            IDSetSwitch(EnforceCWUP, NULL);
         }
 
         //if (MountInformationTP && MountInformationTP->tp && (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))) {

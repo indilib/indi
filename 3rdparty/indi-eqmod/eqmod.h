@@ -112,6 +112,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     INumberVectorProperty *SyncPolarAlignNP    = NULL;
     ISwitchVectorProperty *SyncManageSP        = NULL;
     ISwitchVectorProperty *ReverseDECSP        = NULL;
+    ISwitchVectorProperty *EnforceCWUP         = NULL;
     INumberVectorProperty *BacklashNP          = NULL;
     ISwitchVectorProperty *UseBacklashSP       = NULL;
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
@@ -150,6 +151,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
     Hemisphere Hemisphere;
     bool RAInverted, DEInverted;
+    bool ForceCwUp = false;
     GotoParams gotoparams;
     SyncData syncdata, syncdata2;
 
