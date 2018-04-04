@@ -103,8 +103,11 @@ static int upload(libusb_device_handle *handle, const char *hex)
     unsigned char reset = 0;
     FILE *image;
     char path[FILENAME_MAX];
-#ifdef OSX_EMBEDED_MODE
-    sprintf(path, "%s/Contents/Resources/%s", getenv("INDIPREFIX"), hex);
+#if defined(__APPLE__)
+    if (getenv("INDIPREFIX") != NULL)
+        sprintf(path, "%s/Contents/Resources/DriverSupport/qhy/firmware/%s", getenv("INDIPREFIX"), hex);
+    else
+        sprintf(path, "/usr/local/lib/indi/DriverSupport/qhy/firmware/%s", getenv("INDIPREFIX"), hex);
 #else
     sprintf(path, "/usr/local/firmware/%s", hex);
 #endif
