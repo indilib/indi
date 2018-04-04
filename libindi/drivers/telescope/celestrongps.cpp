@@ -656,7 +656,14 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
         if (!strcmp(name, UseHibernateSP.name))
         {
             IUUpdateSwitch(&UseHibernateSP, states, names, n);
-            UseHibernateSP.s = IPS_OK;
+            if (UseHibernateS[0].s == ISS_ON && checkMinVersion(4.22, "hibernation") == false)
+            {
+                UseHibernateS[0].s = ISS_OFF;
+                UseHibernateS[1].s = ISS_ON;
+                UseHibernateSP.s = IPS_ALERT;
+            }
+            else
+                UseHibernateSP.s = IPS_OK;
             IDSetSwitch(&UseHibernateSP, nullptr);
             return true;
         }
