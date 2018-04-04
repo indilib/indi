@@ -333,6 +333,11 @@ bool SXCCD::UpdateCCDBin(int hor, int ver)
         IDMessage(getDeviceName(), "3x3 binning is not supported.");
         return false;
     }
+    if (sxIsICX453(model) && hor != ver)
+    {
+        IDMessage(getDeviceName(), "Asymetric binning is not supported.");
+        return false;
+    }
     PrimaryCCD.setBin(hor, ver);
 
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
@@ -603,30 +608,38 @@ void SXCCD::ExposureTimerHit()
                     }
                 }
             }
-            else if (isICX453 && binX == 1 && binY == 1)
-            {
-                rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX * 2, subY / 2, subW * 2, subH / 2, binX, binY);
+            else if (isICX453)
+            {   rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX * 2, subY / 2, subW * 2, subH / 2, binX, binY);
                 if (rc)
-                {
-                    rc = sxReadPixels(handle, evenBuf, size * 2);
-                    if (rc)
-                    {
-                        uint16_t *buf16 = (uint16_t *)buf;
-                        uint16_t *evenBuf16 = (uint16_t *)evenBuf;
-
-                        for (int i = 0; i < subH; i += 2)
+                {   if (binX == 1 && binY == 1)
+                    {   rc = sxReadPixels(handle, evenBuf, size * 2);
+                        if (rc)
                         {
-                            for (int j = 0; j < subW; j += 2)
+                            uint16_t *buf16 = (uint16_t *)buf;
+                            uint16_t *evenBuf16 = (uint16_t *)evenBuf;
+
+                            for (int i = 0; i < subH; i += 2)
                             {
-                                int isubW = i * subW;
-                                int i1subW = (i + 1) * subW;
-                                int j2 = j * 2;
-                                buf16[isubW + j]  = evenBuf16[isubW + j2];
-                                buf16[isubW + j + 1]  = evenBuf16[isubW + j2 + 2];
-                                buf16[i1subW + j]  = evenBuf16[isubW + j2 + 1];
-                                buf16[i1subW + j + 1]  = evenBuf16[isubW + j2 + 3];
+                                for (int j = 0; j < subW; j += 2)
+                                {
+                                    int isubW = i * subW;
+                                    int i1subW = (i + 1) * subW;
+                                    int j2 = j * 2;
+                                    buf16[isubW + j]  = evenBuf16[isubW + j2];
+                                    buf16[isubW + j + 1]  = evenBuf16[isubW + j2 + 2];
+                                    buf16[i1subW + j]  = evenBuf16[isubW + j2 + 1];
+                                    buf16[i1subW + j + 1]  = evenBuf16[isubW + j2 + 3];
+                                }
                             }
                         }
+                    }
+                    else if (binX == 2 && binY == 2)
+                    {
+                        rc = sxReadPixels(handle, buf, size / 2);
+                    }
+                    else if (binX == 4 && binY == 4)
+                    {
+                        rc = sxReadPixels(handle, buf, size / 8);
                     }
                 }
             }
