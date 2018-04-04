@@ -121,9 +121,14 @@ bool FilterInterface::processText(const char *dev, const char *name, char *texts
             char filterLabel[MAXINDILABEL];
 
             if (FilterNameT != nullptr)
+            {
+                for (int i=0; i < FilterNameTP->ntp; i++)
+                    free(FilterNameT[i].text);
                 delete [] FilterNameT;
+            }
 
             FilterNameT = new IText[n];
+            memset(FilterNameT, 0, sizeof(IText) * n);
 
             for (int i = 0; i < n; i++)
             {
@@ -186,9 +191,14 @@ void FilterInterface::generateSampleFilters()
     const char *filterDesignation[8] = { "Red", "Green", "Blue", "H_Alpha", "SII", "OIII", "LPR", "Luminance" };
 
     if (FilterNameT != nullptr)
+    {
+        for (int i=0; i < FilterNameTP->ntp; i++)
+            free(FilterNameT[i].text);
         delete [] FilterNameT;
+    }
 
     FilterNameT = new IText[MaxFilter];
+    memset(FilterNameT, 0, sizeof(IText) * MaxFilter);
 
     for (int i = 0; i < MaxFilter; i++)
     {

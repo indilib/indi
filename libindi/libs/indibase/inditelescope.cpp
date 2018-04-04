@@ -1934,6 +1934,7 @@ bool Telescope::WriteParkData()
 
     prXMLEle(fp, ParkdataXmlRoot, 0);
     fclose(fp);
+    wordfree(&wexp);
 
     return true;
 }
@@ -2562,6 +2563,7 @@ bool Telescope::UpdateScopeConfig()
     FilePtr = fopen(ScopeConfigFileName.c_str(), "w");
     prXMLEle(FilePtr, RootXmlNode, 0);
     fclose(FilePtr);
+    delXMLEle(RootXmlNode);
     return true;
 }
 

@@ -506,26 +506,8 @@ int MICCD::SetTemperature(double temperature)
 
 bool MICCD::StartExposure(float duration)
 {
-    useShutter = true;
-
-    if (duration < minExpTime)
-    {
-        DEBUGF(INDI::Logger::DBG_WARNING,
-               "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration,
-               minExpTime);
-        duration = minExpTime;
-    }
-
     imageFrameType = PrimaryCCD.getFrameType();
-
-    if (imageFrameType == INDI::CCDChip::BIAS_FRAME)
-    {
-        duration = minExpTime;
-    }
-    else if (imageFrameType == INDI::CCDChip::DARK_FRAME)
-    {
-        useShutter = false;
-    }
+    useShutter = (imageFrameType == INDI::CCDChip::LIGHT_FRAME || imageFrameType == INDI::CCDChip::FLAT_FRAME);
 
     if (!isSimulation())
     {
@@ -551,7 +533,7 @@ bool MICCD::StartExposure(float duration)
     gettimeofday(&ExpStart, NULL);
     InExposure  = true;
     downloading = false;
-    LOGF_DEBUG("Taking a %g seconds frame...", ExposureRequest);
+    LOGF_DEBUG("Taking a %.3f seconds frame...", ExposureRequest);
     return true;
 }
 
@@ -601,10 +583,7 @@ bool MICCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
-    int nbuf = imageWidth * imageHeight * PrimaryCCD.getBPP() / 8; //  this is pixel count
-    nbuf += 512;                                                   //  leave a little extra at the end
-    PrimaryCCD.setFrameBufferSize(nbuf);
-
+    PrimaryCCD.setFrameBufferSize(imageWidth * imageHeight * PrimaryCCD.getBPP() / 8);
     return true;
 }
 

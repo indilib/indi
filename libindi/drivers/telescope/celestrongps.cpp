@@ -1065,7 +1065,12 @@ bool CelestronGPS::UnPark()
 
 bool CelestronGPS::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
+    // The Goto Alt-Az and Get Alt-Az menu items have been renamed Goto Axis Postn and Get Axis Postn
+    // where Postn is an abbreviation for Position. Since this feature doesn't actually refer
+    // to altitude and azimuth when mounted on a wedge, the new designation is more accurate.
+    // Source  : NexStarHandControlVersion4UsersGuide.pdf
+
+    /*ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
 
     ln_lnlat_posn observer;
@@ -1082,7 +1087,16 @@ bool CelestronGPS::SetCurrentPark()
     double parkAZ = horizontalPos.az - 180;
     if (parkAZ < 0)
         parkAZ += 360;
-    double parkAlt = horizontalPos.alt;
+    double parkAlt = horizontalPos.alt;*/
+
+    if (driver.get_azalt(&currentAZ, &currentALT, usePreciseCoords) == false)
+    {
+        LOG_ERROR("Failed to read AZ/ALT values.");
+        return false;
+    }
+
+    double parkAZ = currentAZ;
+    double parkAlt = currentALT;
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
@@ -1099,11 +1113,16 @@ bool CelestronGPS::SetCurrentPark()
 
 bool CelestronGPS::SetDefaultPark()
 {
-    // By defualt azimuth 0 for north hemisphere
-    SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+    // The Goto Alt-Az and Get Alt-Az menu items have been renamed Goto Axis Postn and Get Axis Postn
+    // where Postn is an abbreviation for Position. Since this feature doesn't actually refer
+    // to altitude and azimuth when mounted on a wedge, the new designation is more accurate.
+    // Source  : NexStarHandControlVersion4UsersGuide.pdf
 
-    // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    // By default azimuth 90° ( hemisphere doesn't matter)
+    SetAxis1Park(90);
+
+    // Altitude = 90° (latitude doesn't matter)
+    SetAxis2Park(90);
 
     return true;
 }
