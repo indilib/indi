@@ -1,0 +1,31 @@
+Installation instructions
+=========================
+
+1. Install dependencies (I guess you did it)
+sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev
+
+2. Clone the repository with branch stargo_work
+git clone https://github.com/sterne-jaeger/indi/tree/stargo_work
+git checkout stargo_work
+
+ 3. Build and install the core indi library
+mkdir -p build/libindi
+cd build/libindi
+
+mkdir -p build/indi-avalon
+cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../indi/libindi
+make
+sudo make install 
+
+ 4. Build and install the Avalon driver
+cd ../..
+mkdir -p build/indi-avalon
+cd build/indi-avalon
+mkdir -p build/indi-avalon
+cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../indi/3rdparty/indi-avalon
+make
+sudo make install 
+
+
+And now start the INDI server and kstars.
+
