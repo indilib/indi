@@ -94,6 +94,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     INumber GuideRateN[2];
     INumberVectorProperty GuideRateNP;
 
+#ifdef USE_EQUATORIAL_PE
     INumberVectorProperty EqPENV;
     INumber EqPEN[2];
 
@@ -102,4 +103,5 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 
     ISwitch PEErrWES[2];
     ISwitchVectorProperty PEErrWESP;
+#endif
 };

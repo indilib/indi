@@ -48,8 +48,6 @@ using namespace std;
 /* Our inditess auto pointer */
 unique_ptr<inditess> inditess_prt(new inditess());
 
-const int POLLMS = 100; // Period of update, 0.1 second.
-
 /**************************************************************************************
 ** Send client definitions of all properties.
 ***************************************************************************************/
@@ -424,6 +422,8 @@ bool inditess::initProperties()
     //addAuxControls();
 
     DefaultDevice::initProperties();
+
+    setDefaultPollingPeriod(100);
 
     return true;
 }

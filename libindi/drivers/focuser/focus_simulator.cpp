@@ -74,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 ************************************************************************************/
 FocusSim::FocusSim()
 {
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_HAS_VARIABLE_SPEED);
 }
 
 /************************************************************************************
@@ -210,7 +210,7 @@ bool FocusSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                     return true;
             }
 
-            SetFocuserCapability(cap);
+            FI::SetCapability(cap);
             ModeSP.s = IPS_OK;
             IDSetSwitch(&ModeSP, nullptr);
             return true;
@@ -257,7 +257,7 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
         if (internalTicks < FocusAbsPosN[0].min || internalTicks > FocusAbsPosN[0].max)
         {
             internalTicks -= targetTicks;
-            DEBUG(INDI::Logger::DBG_ERROR, "Cannot move focuser in this direction any further.");
+            LOG_ERROR("Cannot move focuser in this direction any further.");
             return IPS_ALERT;
         }
     }
@@ -269,7 +269,7 @@ IPState FocusSim::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     FWHMN[0].value = 0.5625 * ticks * ticks + SeeingN[0].value;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "TIMER Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
+    LOGF_DEBUG("TIMER Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
            FWHMN[0].value);
 
     if (mode == MODE_ALL)
@@ -305,7 +305,7 @@ IPState FocusSim::MoveAbsFocuser(uint32_t targetTicks)
 
     FWHMN[0].value = 0.5625 * ticks * ticks + SeeingN[0].value;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "ABS Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
+    LOGF_DEBUG("ABS Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
            FWHMN[0].value);
 
     if (FWHMN[0].value < SeeingN[0].value)
@@ -338,7 +338,7 @@ IPState FocusSim::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     ticks = initTicks + (internalTicks - mid) / 5000.0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "REL Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
+    LOGF_DEBUG("REL Current internal ticks: %g FWHM ticks: %g FWHM: %g", internalTicks, ticks,
            FWHMN[0].value);
 
     FWHMN[0].value = 0.5625 * ticks * ticks + SeeingN[0].value;

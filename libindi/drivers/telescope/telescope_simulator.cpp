@@ -37,8 +37,6 @@ std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 #define GOTO_LIMIT      5       /* Move at GOTO_RATE until distance from target is GOTO_LIMIT degrees */
 #define SLEW_LIMIT      1       /* Move at SLEW_LIMIT until distance from target is SLEW_LIMIT degrees */
 
-#define POLLMS 250 /* poll period, ms */
-
 #define RA_AXIS     0
 #define DEC_AXIS    1
 #define GUIDE_NORTH 0
@@ -110,6 +108,7 @@ bool ScopeSim::initProperties()
     /* Make sure to init parent properties first */
     INDI::Telescope::initProperties();
 
+#ifdef USE_EQUATORIAL_PE
     /* Simulated periodic error in RA, DEC */
     IUFillNumber(&EqPEN[RA_AXIS], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 15.);
     IUFillNumber(&EqPEN[DEC_AXIS], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 15.);
@@ -127,10 +126,11 @@ bool ScopeSim::initProperties()
     IUFillSwitch(&PEErrWES[DIRECTION_EAST], "PE_E", "East", ISS_OFF);
     IUFillSwitchVector(&PEErrWESP, PEErrWES, 2, getDeviceName(), "PE_WE", "PE W/E", MOTION_TAB, IP_RW, ISR_ATMOST1, 60,
                        IPS_IDLE);
+#endif
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.3);
-    IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.3);
+    IUFillNumber(&GuideRateN[RA_AXIS], "GUIDE_RATE_WE", "W/E Rate", "%g", 0, 1, 0.1, 0.5);
+    IUFillNumber(&GuideRateN[DEC_AXIS], "GUIDE_RATE_NS", "N/S Rate", "%g", 0, 1, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
@@ -169,6 +169,8 @@ bool ScopeSim::initProperties()
     IUGetConfigNumber(getDeviceName(), "GEOGRAPHIC_COORD", "LAT", &latitude);
     currentDEC = latitude > 0 ? 90 : -90;
 
+    setDefaultPollingPeriod(250);
+
     return true;
 }
 
@@ -199,9 +201,12 @@ bool ScopeSim::updateProperties()
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
+
+        #ifdef USE_EQUATORIAL_PE
         defineNumber(&EqPENV);
         defineSwitch(&PEErrNSSP);
         defineSwitch(&PEErrWESP);
+        #endif
 
         if (InitPark())
         {
@@ -223,14 +228,19 @@ bool ScopeSim::updateProperties()
             SetAxis1ParkDefault(currentRA);
             SetAxis2ParkDefault(currentDEC);
         }
+
+        sendTimeFromSystem();
     }
     else
     {
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
+
+        #ifdef USE_EQUATORIAL_PE
         deleteProperty(EqPENV.name);
         deleteProperty(PEErrNSSP.name);
         deleteProperty(PEErrWESP.name);
+        #endif
         deleteProperty(GuideRateNP.name);
     }
 
@@ -239,14 +249,14 @@ bool ScopeSim::updateProperties()
 
 bool ScopeSim::Connect()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is online.");
+    LOG_INFO("Telescope simulator is online.");
     SetTimer(POLLMS);
     return true;
 }
 
 bool ScopeSim::Disconnect()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope simulator is offline.");
+    LOG_INFO("Telescope simulator is offline.");
     return true;
 }
 
@@ -255,9 +265,12 @@ bool ScopeSim::ReadScopeStatus()
     static struct timeval ltv { 0, 0 };
     struct timeval tv { 0, 0 };
     double dt = 0, da_ra = 0, da_dec = 0, dx = 0, dy = 0, ra_guide_dt = 0, dec_guide_dt = 0;
-    static double last_dx = 0, last_dy = 0;
     int nlocked, ns_guide_dir = -1, we_guide_dir = -1;
+
+    #ifdef USE_EQUATORIAL_PE
+    static double last_dx = 0, last_dy = 0;
     char RA_DISP[64], DEC_DISP[64], RA_GUIDE[64], DEC_GUIDE[64], RA_PE[64], DEC_PE[64], RA_TARGET[64], DEC_TARGET[64];
+    #endif
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
     gettimeofday(&tv, nullptr);
@@ -265,6 +278,7 @@ bool ScopeSim::ReadScopeStatus()
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;
 
+    // Time diff is seconds
     dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
 
@@ -289,8 +303,8 @@ bool ScopeSim::ReadScopeStatus()
         switch (rate)
         {
             case SLEW_GUIDE:
-                da_ra  = FINE_SLEW_RATE * dt * 0.05;
-                da_dec = FINE_SLEW_RATE * dt * 0.05;
+                da_ra  = TrackRateN[AXIS_RA].value/(3600.0*15) * GuideRateN[RA_AXIS].value * dt;
+                da_dec = TrackRateN[AXIS_RA].value/3600.0 * GuideRateN[DEC_AXIS].value * dt;;
                 break;
 
             case SLEW_CENTERING:
@@ -403,15 +417,24 @@ bool ScopeSim::ReadScopeStatus()
                 if (TrackState == SCOPE_SLEWING)
                 {
                     // Initially no PE in both axis.
+                    #ifdef USE_EQUATORIAL_PE
                     EqPEN[0].value = currentRA;
                     EqPEN[1].value = currentDEC;
-
                     IDSetNumber(&EqPENV, nullptr);
+                    #endif
 
                     TrackState = SCOPE_TRACKING;
 
+                    if (IUFindOnSwitchIndex(&SlewRateSP) != SLEW_CENTERING)
+                    {
+                        IUResetSwitch(&SlewRateSP);
+                        SlewRateS[SLEW_CENTERING].s = ISS_ON;
+                        IDSetSwitch(&SlewRateSP, nullptr);
+                    }
+
+
                     EqNP.s = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
+                    LOG_INFO("Telescope slew is complete. Tracking...");
                 }
                 else
                 {
@@ -440,12 +463,12 @@ bool ScopeSim::ReadScopeStatus()
 
             if (guiderNSTarget[GUIDE_NORTH] > 0)
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Commanded to GUIDE NORTH for %g ms", guiderNSTarget[GUIDE_NORTH]);
+                LOGF_DEBUG("Commanded to GUIDE NORTH for %g ms", guiderNSTarget[GUIDE_NORTH]);
                 ns_guide_dir = GUIDE_NORTH;
             }
             else if (guiderNSTarget[GUIDE_SOUTH] > 0)
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Commanded to GUIDE SOUTH for %g ms", guiderNSTarget[GUIDE_SOUTH]);
+                LOGF_DEBUG("Commanded to GUIDE SOUTH for %g ms", guiderNSTarget[GUIDE_SOUTH]);
                 ns_guide_dir = GUIDE_SOUTH;
             }
 
@@ -453,51 +476,53 @@ bool ScopeSim::ReadScopeStatus()
             if (guiderEWTarget[GUIDE_WEST] > 0)
             {
                 we_guide_dir = GUIDE_WEST;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Commanded to GUIDE WEST for %g ms", guiderEWTarget[GUIDE_WEST]);
+                LOGF_DEBUG("Commanded to GUIDE WEST for %g ms", guiderEWTarget[GUIDE_WEST]);
             }
             else if (guiderEWTarget[GUIDE_EAST] > 0)
             {
                 we_guide_dir = GUIDE_EAST;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Commanded to GUIDE EAST for %g ms", guiderEWTarget[GUIDE_EAST]);
+                LOGF_DEBUG("Commanded to GUIDE EAST for %g ms", guiderEWTarget[GUIDE_EAST]);
+            }
+
+            if ( (ns_guide_dir != -1 || we_guide_dir != -1) && IUFindOnSwitchIndex(&SlewRateSP) != SLEW_GUIDE)
+            {
+                IUResetSwitch(&SlewRateSP);
+                SlewRateS[SLEW_GUIDE].s = ISS_ON;
+                IDSetSwitch(&SlewRateSP, nullptr);
             }
 
             if (ns_guide_dir != -1)
             {
-                dec_guide_dt = TrackRateN[AXIS_RA].value/3600.0 * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 *
-                               (ns_guide_dir == GUIDE_NORTH ? 1 : -1);
+                dec_guide_dt = (TrackRateN[AXIS_RA].value * GuideRateN[DEC_AXIS].value * guiderNSTarget[ns_guide_dir] / 1000.0 *
+                               (ns_guide_dir == GUIDE_NORTH ? 1 : -1)) / 3600.0;
 
-                // If time remaining is more that dt, then decrement and
-                if (guiderNSTarget[ns_guide_dir] >= dt)
-                    guiderNSTarget[ns_guide_dir] -= dt;
-                else
-                    guiderNSTarget[ns_guide_dir] = 0;
+                guiderNSTarget[ns_guide_dir] = 0;
+                GuideNSNP.s = IPS_IDLE;
+                IDSetNumber(&GuideNSNP, nullptr);
 
-                if (guiderNSTarget[ns_guide_dir] == 0)
-                {
-                    GuideNSNP.s = IPS_IDLE;
-                    IDSetNumber(&GuideNSNP, nullptr);
-                }
-
+                #ifdef USE_EQUATORIAL_PE
                 EqPEN[DEC_AXIS].value += dec_guide_dt;
+                #else
+                currentDEC += dec_guide_dt;
+                #endif
             }
 
             if (we_guide_dir != -1)
             {
-                ra_guide_dt = (TrackRateN[AXIS_RA].value/3600.0) / 15.0 * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 *
-                              (we_guide_dir == GUIDE_WEST ? -1 : 1);
+                ra_guide_dt = (TrackRateN[AXIS_RA].value * GuideRateN[RA_AXIS].value * guiderEWTarget[we_guide_dir] / 1000.0 *
+                              (we_guide_dir == GUIDE_WEST ? -1 : 1)) / (3600.0*15.0);
 
-                if (guiderEWTarget[we_guide_dir] >= dt)
-                    guiderEWTarget[we_guide_dir] -= dt;
-                else
-                    guiderEWTarget[we_guide_dir] = 0;
+                ra_guide_dt /= (cos(currentDEC * 0.0174532925));
 
-                if (guiderEWTarget[we_guide_dir] == 0)
-                {
-                    GuideWENP.s = IPS_IDLE;
-                    IDSetNumber(&GuideWENP, nullptr);
-                }
+                guiderEWTarget[we_guide_dir] = 0;
+                GuideWENP.s = IPS_IDLE;
+                IDSetNumber(&GuideWENP, nullptr);
 
+                #ifdef USE_EQUATORIAL_PE
                 EqPEN[RA_AXIS].value += ra_guide_dt;
+                #else
+                currentRA += ra_guide_dt;
+                #endif
             }
 
             //Mention the followng:
@@ -505,6 +530,8 @@ bool ScopeSim::ReadScopeStatus()
             // Current DEC displacement and direction
             // Amount of RA GUIDING correction and direction
             // Amount of DEC GUIDING correction and direction
+
+            #ifdef USE_EQUATORIAL_PE
 
             dx = EqPEN[RA_AXIS].value - targetRA;
             dy = EqPEN[DEC_AXIS].value - targetDEC;
@@ -524,19 +551,20 @@ bool ScopeSim::ReadScopeStatus()
             {
                 last_dx = dx;
                 last_dy = dy;
-                //DEBUGF(INDI::Logger::DBG_DEBUG, "dt is %g\n", dt);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "RA Displacement (%c%s) %s -- %s of target RA %s", dx >= 0 ? '+' : '-',
+                //LOGF_DEBUG("dt is %g\n", dt);
+                LOGF_DEBUG("RA Displacement (%c%s) %s -- %s of target RA %s", dx >= 0 ? '+' : '-',
                        RA_DISP, RA_PE, (EqPEN[RA_AXIS].value - targetRA) > 0 ? "East" : "West", RA_TARGET);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "DEC Displacement (%c%s) %s -- %s of target RA %s", dy >= 0 ? '+' : '-',
+                LOGF_DEBUG("DEC Displacement (%c%s) %s -- %s of target RA %s", dy >= 0 ? '+' : '-',
                        DEC_DISP, DEC_PE, (EqPEN[DEC_AXIS].value - targetDEC) > 0 ? "North" : "South", DEC_TARGET);
-                DEBUGF(INDI::Logger::DBG_DEBUG, "RA Guide Correction (%g) %s -- Direction %s", ra_guide_dt, RA_GUIDE,
+                LOGF_DEBUG("RA Guide Correction (%g) %s -- Direction %s", ra_guide_dt, RA_GUIDE,
                        ra_guide_dt > 0 ? "East" : "West");
-                DEBUGF(INDI::Logger::DBG_DEBUG, "DEC Guide Correction (%g) %s -- Direction %s", dec_guide_dt, DEC_GUIDE,
+                LOGF_DEBUG("DEC Guide Correction (%g) %s -- Direction %s", dec_guide_dt, DEC_GUIDE,
                        dec_guide_dt > 0 ? "North" : "South");
             }
 
             if (ns_guide_dir != -1 || we_guide_dir != -1)
                 IDSetNumber(&EqPENV, nullptr);
+            #endif
 
             break;
 
@@ -590,11 +618,18 @@ bool ScopeSim::Goto(double r, double d)
         }
     }
 
+    if (IUFindOnSwitchIndex(&TrackModeSP) != SLEW_MAX)
+    {
+        IUResetSwitch(&TrackModeSP);
+        TrackModeS[SLEW_MAX].s = ISS_ON;
+        IDSetSwitch(&TrackModeSP, nullptr);
+    }
+
     TrackState = SCOPE_SLEWING;
 
     EqNP.s = IPS_BUSY;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
@@ -603,11 +638,13 @@ bool ScopeSim::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
+    #ifdef USE_EQUATORIAL_PE
     EqPEN[RA_AXIS].value  = ra;
     EqPEN[DEC_AXIS].value = dec;
     IDSetNumber(&EqPENV, nullptr);
+    #endif
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Sync is successful.");
+    LOG_INFO("Sync is successful.");
 
     EqNP.s = IPS_OK;
 
@@ -621,7 +658,7 @@ bool ScopeSim::Park()
     targetRA   = GetAxis1Park();
     targetDEC  = GetAxis2Park();
     TrackState = SCOPE_PARKING;
-    DEBUG(INDI::Logger::DBG_SESSION, "Parking telescope in progress...");
+    LOG_INFO("Parking telescope in progress...");
     return true;
 }
 
@@ -672,6 +709,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             return true;
         }
 
+        #ifdef USE_EQUATORIAL_PE
         if (strcmp(name, "PE_NS") == 0)
         {
             IUUpdateSwitch(&PEErrNSSP, states, names, n);
@@ -681,12 +719,12 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             if (PEErrNSS[DIRECTION_NORTH].s == ISS_ON)
             {
                 EqPEN[DEC_AXIS].value += TRACKRATE_SIDEREAL/3600.0 * GuideRateN[DEC_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in NORTH direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
+                LOGF_DEBUG("Simulating PE in NORTH direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
             else
             {
                 EqPEN[DEC_AXIS].value -= TRACKRATE_SIDEREAL/3600.0 * GuideRateN[DEC_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulating PE in SOUTH direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
+                LOGF_DEBUG("Simulating PE in SOUTH direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
 
             IUResetSwitch(&PEErrNSSP);
@@ -705,12 +743,12 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             if (PEErrWES[DIRECTION_WEST].s == ISS_ON)
             {
                 EqPEN[RA_AXIS].value -= TRACKRATE_SIDEREAL/3600.0 / 15. * GuideRateN[RA_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in WEST direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
+                LOGF_DEBUG("Simulator PE in WEST direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
             else
             {
                 EqPEN[RA_AXIS].value += TRACKRATE_SIDEREAL/3600.0 / 15. * GuideRateN[RA_AXIS].value;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Simulator PE in EAST direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
+                LOGF_DEBUG("Simulator PE in EAST direction for value of %g", TRACKRATE_SIDEREAL/3600.0);
             }
 
             IUResetSwitch(&PEErrWESP);
@@ -719,6 +757,7 @@ bool ScopeSim::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
             return true;
         }
+        #endif
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -736,7 +775,7 @@ bool ScopeSim::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     INDI_UNUSED(command);
     if (TrackState == SCOPE_PARKED)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        LOG_ERROR("Please unpark the mount before issuing any motion commands.");
         return false;
     }
 
@@ -749,7 +788,7 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     INDI_UNUSED(command);
     if (TrackState == SCOPE_PARKED)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Please unpark the mount before issuing any motion commands.");
+        LOG_ERROR("Please unpark the mount before issuing any motion commands.");
         return false;
     }
 
@@ -794,7 +833,7 @@ bool ScopeSim::updateLocation(double latitude, double longitude, double elevatio
         lnobserver.lng -= 360;
     lnobserver.lat = latitude;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
+    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
     return true;
 }
 

@@ -26,8 +26,6 @@
 
 #include <cstring>
 
-#define POLLMS  2000
-
 namespace INDI
 {
 
@@ -52,7 +50,7 @@ bool GPS::initProperties()
     IUFillText(&TimeT[1], "OFFSET", "UTC Offset", nullptr);
     IUFillTextVector(&TimeTP, TimeT, 2, getDeviceName(), "TIME_UTC", "UTC", MAIN_CONTROL_TAB, IP_RO, 60, IPS_IDLE);
 
-    updatePeriodMS = PeriodN[0].value;
+    setDefaultPollingPeriod(2000);
 
     return true;
 }

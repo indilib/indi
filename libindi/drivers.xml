@@ -117,6 +117,10 @@
                 <driver name="iEQ">indi_ieq_telescope</driver>
                 <version>1.5</version>
         </device>
+        <device label="iOptron SmartEQ">
+                <driver name="iEQ">indi_ieq_telescope</driver>
+                <version>1.5</version>
+        </device>
         <device label="iOptron ZEQ25">
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.3</version>
@@ -129,10 +133,6 @@
                 <driver name="ZEQ25">indi_lx200zeq25</driver>
                 <version>1.3</version>
         </device>
-        <device label="iOptron SmartEQ">
-                <driver name="ZEQ25">indi_lx200zeq25</driver>
-                <version>1.3</version>
-        </device>
         <device label="GotoNova 8400 Kit">
                 <driver name="GotoNova">indi_lx200gotonova</driver>
                 <version>1.0</version>
@@ -140,6 +140,14 @@
         <device label="iOptron HC8406">
                 <driver name="iOptron HC8406">indi_ioptronHC8406</driver>
                 <version>1.1</version>
+        </device>
+        <device label="iOptron v3">
+                <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+                <version>1.0</version>
+        </device>
+        <device label="iOptron CEM120">
+                <driver name="iOptronV3">indi_ioptronv3_telescope</driver>
+                <version>1.0</version>
         </device>
         <device label="Pulsar2">
                 <driver name="Pulsar2">indi_lx200pulsar2</driver>
@@ -157,8 +165,12 @@
                 <driver name="Telescope Simulator">indi_simulator_telescope</driver>
                 <version>1.0</version>
         </device>
-        <device label="Skywatcher Alt-Az Mount">
-                <driver name="Skywatcher Alt-Az Mount">indi_skywatcherAltAzMount</driver>
+        <device label="Skywatcher Alt-Az">
+                <driver name="Skywatcher Alt-Az">indi_skywatcherAltAzMount</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Skywatcher Alt-Az Wedge">
+                <driver name="Skywatcher Alt-Az Wedge">indi_skywatcherAltAzSimple</driver>
                 <version>1.0</version>
         </device>
         <device label="Telescope Scripting Gateway">
@@ -273,7 +285,7 @@
 <devGroup group="Filter Wheels">
         <device label="XAGYL Wheel">
                 <driver name="XAGYL Wheel">indi_xagyl_wheel</driver>
-                <version>0.1</version>
+                <version>0.2</version>
         </device>
         <device label="Filter Simulator">
                 <driver name="Filter Simulator">indi_simulator_wheel</driver>

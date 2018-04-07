@@ -38,8 +38,6 @@
 /* Our indiduino auto pointer */
 std::unique_ptr<indiduino> indiduino_prt(new indiduino());
 
-const int POLLMS = 500; // Period of update, 1 second.
-
 /**************************************************************************************
 ** Send client definitions of all properties.
 ***************************************************************************************/
@@ -97,7 +95,7 @@ void ISSnoopDevice(XMLEle *root)
 ***************************************************************************************/
 indiduino::indiduino()
 {
-    DEBUG(INDI::Logger::DBG_DEBUG, "Indiduino driver start...");
+    LOG_DEBUG("Indiduino driver start...");
     setVersion(DUINO_VERSION_MAJOR, DUINO_VERSION_MINOR);
     controller = new INDI::Controller(this);
     controller->setJoystickCallback(joystickHelper);
@@ -254,6 +252,8 @@ bool indiduino::initProperties()
     controller->initProperties();
 
     DefaultDevice::initProperties();
+
+    setDefaultPollingPeriod(500);
 
     return true;
 }

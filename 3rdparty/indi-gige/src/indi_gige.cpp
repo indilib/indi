@@ -195,20 +195,20 @@ bool GigECCD::_update_geometry(void)
 
     if (indi_bufsize != frame_byte_size)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unexpected INDI image buffer size, has %i bytes, camera has %i", indi_bufsize,
+        LOGF_ERROR("Unexpected INDI image buffer size, has %i bytes, camera has %i", indi_bufsize,
                frame_byte_size);
         PrimaryCCD.setFrameBufferSize(0);
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Reserving INDI image buffer size %i bytes", indi_bufsize);
+        LOGF_INFO("Reserving INDI image buffer size %i bytes", indi_bufsize);
         PrimaryCCD.setFrameBufferSize(frame_byte_size);
     }
 }
 
 void GigECCD::_update_indi_properties(void)
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "update_indi_properties()");
+    LOG_INFO("update_indi_properties()");
     IUFillNumber(&this->indiprop_gain[0], "Range", "", "%g", (double)this->camera->get_gain().min(),
                  (double)this->camera->get_gain().max(), 1., (double)this->camera->get_gain().val());
     IUFillNumberVector(&this->indiprop_gain_prop, this->indiprop_gain, 1, getDeviceName(), "Gain", "", MAIN_CONTROL_TAB,
@@ -256,13 +256,13 @@ bool GigECCD::updateProperties()
 
 bool GigECCD::Connect()
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s", __PRETTY_FUNCTION__);
+    LOGF_INFO("%s", __PRETTY_FUNCTION__);
     return camera->connect();
 }
 
 bool GigECCD::Disconnect()
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s", __PRETTY_FUNCTION__);
+    LOGF_INFO("%s", __PRETTY_FUNCTION__);
 #if 0
     //TODO: re-iterate and acquire proper camera from AvrFactory (based on ID?)
     return camera->disconnect();
@@ -272,9 +272,9 @@ bool GigECCD::Disconnect()
 
 bool GigECCD::StartExposure(float duration)
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s exposure_time=%.4f", __PRETTY_FUNCTION__, duration);
+    LOGF_INFO("%s exposure_time=%.4f", __PRETTY_FUNCTION__, duration);
     /* Driver will clamp to lowest possible exposure */
-    if (PrimaryCCD.getFrameType() == CCDChip::BIAS_FRAME)
+    if (PrimaryCCD.getFrameType() == INDI::CCDChip::BIAS_FRAME)
         duration = 0;
 
     camera->set_exposure_time((double)(duration)*1000000.0);
@@ -288,14 +288,14 @@ bool GigECCD::StartExposure(float duration)
 
 bool GigECCD::AbortExposure()
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s", __PRETTY_FUNCTION__);
+    LOGF_INFO("%s", __PRETTY_FUNCTION__);
     camera->exposure_abort();
     return true;
 }
 
 void GigECCD::_update_image(uint8_t const *const data, size_t size)
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "Receiving %i bytes image", size);
+    LOGF_INFO("Receiving %i bytes image", size);
 
     size_t const frame_buf_size = PrimaryCCD.getFrameBufferSize();
 
@@ -307,7 +307,7 @@ void GigECCD::_update_image(uint8_t const *const data, size_t size)
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Unexpected failure during image download. Framebuf has %i bytes, got %i",
+        LOGF_ERROR("Unexpected failure during image download. Framebuf has %i bytes, got %i",
                frame_buf_size, size);
         this->_handle_failed();
     }
@@ -321,7 +321,7 @@ void GigECCD::_receive_image_hook(void *const class_ptr, uint8_t const *const da
 
 void GigECCD::_handle_failed(void)
 {
-    DEBUG(INDI::Logger::DBG_ERROR, "Failure occurred, filling image with black");
+    LOG_ERROR("Failure occurred, filling image with black");
 
     camera->exposure_abort();
 
@@ -404,7 +404,7 @@ bool GigECCD::ISNewNumber(const char *dev, const char *name, double values[], ch
 
 bool GigECCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s x=%i y=%i w=%i h=%i", __PRETTY_FUNCTION__, x, y, w, h);
+    LOGF_INFO("%s x=%i y=%i w=%i h=%i", __PRETTY_FUNCTION__, x, y, w, h);
 
     this->camera->set_geometry(x, y, w, h);
     return this->_update_geometry();
@@ -412,14 +412,14 @@ bool GigECCD::UpdateCCDFrame(int x, int y, int w, int h)
 
 bool GigECCD::UpdateCCDBin(int binx, int biny)
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s binx=%i biny=%i", __PRETTY_FUNCTION__, binx, biny);
+    LOGF_INFO("%s binx=%i biny=%i", __PRETTY_FUNCTION__, binx, biny);
     camera->set_bin(binx, biny);
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
-bool GigECCD::UpdateCCDFrameType(CCDChip::CCD_FRAME fType)
+bool GigECCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s", __PRETTY_FUNCTION__);
+    LOGF_INFO("%s", __PRETTY_FUNCTION__);
     PrimaryCCD.setFrameType(fType);
     return true;
 }

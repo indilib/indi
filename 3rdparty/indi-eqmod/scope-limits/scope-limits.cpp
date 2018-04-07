@@ -64,12 +64,12 @@ void HorizonLimits::Init()
         char *res = LoadDataFile(IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
 	if (res)
 	{
-	    DEBUGF(INDI::Logger::DBG_WARNING, "Can not load HorizonLimits Data File %s: %s",
+	    LOGF_WARN("Can not load HorizonLimits Data File %s: %s",
 		     IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text, res);
 	}
 	else
 	{
-	    DEBUGF(INDI::Logger::DBG_SESSION, "HorizonLimits: Data loaded from file %s",
+	    LOGF_INFO("HorizonLimits: Data loaded from file %s",
 		     IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
 	}
     }
@@ -187,7 +187,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
         {
             if (!horizon || horizon->size() == 0)
             {
-                DEBUG(INDI::Logger::DBG_WARNING, "Horizon Limits: Can not traverse empty list");
+                LOG_WARN("Horizon Limits: Can not traverse empty list");
                 HorizonLimitsTraverseSP->s = IPS_ALERT;
                 IDSetSwitch(HorizonLimitsTraverseSP, NULL);
                 return true;
@@ -243,7 +243,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 INumberVectorProperty *horizontalcoords = telescope->getNumber("HORIZONTAL_COORD");
                 if (!horizontalcoords)
                 {
-                    DEBUG(INDI::Logger::DBG_WARNING, "Horizon Limits: Scope does not support horizontal coordinates.");
+                    LOG_WARN("Horizon Limits: Scope does not support horizontal coordinates.");
                     HorizonLimitsManageSP->s = IPS_ALERT;
                     IDSetSwitch(HorizonLimitsManageSP, NULL);
                     return false;
@@ -285,12 +285,12 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
             {
 	      if (!horizon || (horizonindex >= (int)horizon->size()))
                 {
-                    DEBUG(INDI::Logger::DBG_WARNING, "Horizon Limits: Can not delete point");
+                    LOG_WARN("Horizon Limits: Can not delete point");
                     HorizonLimitsManageSP->s = IPS_ALERT;
                     IDSetSwitch(HorizonLimitsManageSP, NULL);
                     return true;
                 }
-                DEBUGF(INDI::Logger::DBG_SESSION, "Horizon Limits: Deleted point Az = %f, Alt  = %f, Rank=%d",
+                LOGF_INFO("Horizon Limits: Deleted point Az = %f, Alt  = %f, Rank=%d",
                        horizon->at(horizonindex).az, horizon->at(horizonindex).alt, horizonindex);
                 horizon->erase(horizon->begin() + horizonindex);
                 if (horizonindex >= (int)horizon->size())
@@ -305,7 +305,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
             }
             else if (!strcmp(sw->name, "HORIZONLIMITSLISTCLEAR"))
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Horizon Limits: List cleared");
+                LOG_INFO("Horizon Limits: List cleared");
                 if (horizon)
                     horizon->erase(horizon->begin(), horizon->end());
                 horizonindex            = -1;
@@ -329,13 +329,13 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 res = WriteDataFile(IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
                 if (res)
                 {
-                    DEBUGF(INDI::Logger::DBG_WARNING, "Can not save HorizonLimits Data to file %s: %s",
+                    LOGF_WARN("Can not save HorizonLimits Data to file %s: %s",
                            IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text, res);
                     HorizonLimitsFileOperationSP->s = IPS_ALERT;
                 }
                 else
                 {
-                    DEBUGF(INDI::Logger::DBG_SESSION, "HorizonLimits: Data saved in file %s",
+                    LOGF_INFO("HorizonLimits: Data saved in file %s",
                            IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
                     HorizonLimitsFileOperationSP->s = IPS_OK;
                 }
@@ -347,13 +347,13 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 res = LoadDataFile(IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
                 if (res)
                 {
-                    DEBUGF(INDI::Logger::DBG_WARNING, "Can not load HorizonLimits Data File %s: %s",
+                    LOGF_WARN("Can not load HorizonLimits Data File %s: %s",
                            IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text, res);
                     HorizonLimitsFileOperationSP->s = IPS_ALERT;
                 }
                 else
                 {
-                    DEBUGF(INDI::Logger::DBG_SESSION, "HorizonLimits: Data loaded from file %s",
+                    LOGF_INFO("HorizonLimits: Data loaded from file %s",
                            IUFindText(HorizonLimitsDataFileTP, "HORIZONLIMITSFILENAME")->text);
                     HorizonLimitsFileOperationSP->s = IPS_OK;
                 }
@@ -582,7 +582,7 @@ bool HorizonLimits::checkLimits(double az, double alt, INDI::Telescope::Telescop
             abortmsg   = "Abort Goto.";
             abortscope = true;
         }
-        DEBUGF(INDI::Logger::DBG_WARNING, "Horizon Limits: Scope outside limits. %s", abortmsg);
+        LOGF_WARN("Horizon Limits: Scope outside limits. %s", abortmsg);
     }
     return (abortscope);
 }

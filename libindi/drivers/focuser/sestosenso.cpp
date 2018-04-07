@@ -31,8 +31,6 @@
 
 #define SESTOSENSO_TIMEOUT 3
 
-#define POLLMS 500
-
 std::unique_ptr<SestoSenso> sesto(new SestoSenso());
 
 void ISGetProperties(const char *dev)
@@ -76,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 SestoSenso::SestoSenso()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
 bool SestoSenso::initProperties()
@@ -108,7 +106,7 @@ bool SestoSenso::initProperties()
 
     addAuxControls();
 
-    updatePeriodMS = POLLMS;
+    setDefaultPollingPeriod(500);
 
     return true;
 }
@@ -123,7 +121,7 @@ bool SestoSenso::updateProperties()
         defineNumber(&TemperatureNP);
         defineText(&FirmwareTP);
 
-        DEBUG(INDI::Logger::DBG_SESSION, "SestoSenso paramaters updated, focuser ready for use.");
+        LOG_INFO("SestoSenso paramaters updated, focuser ready for use.");
 
         GetFocusParams();
     }
@@ -141,7 +139,7 @@ bool SestoSenso::Handshake()
 {
     if (Ack())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "SestoSenso is online. Getting focus parameters...");
+        LOG_INFO("SestoSenso is online. Getting focus parameters...");
         return true;
     }
 
@@ -161,7 +159,7 @@ bool SestoSenso::Ack()
     char errstr[MAXRBUF];
     char resp[16]={0};
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "CMD <#QF!>");
+    LOG_DEBUG("CMD <#QF!>");
 
     if (isSimulation())
     {
@@ -175,14 +173,14 @@ bool SestoSenso::Ack()
         if ((rc = tty_write(PortFD, "#QF!", 4, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             return false;
         }
 
         if ((rc = tty_read_section(PortFD, resp, 0xD, SESTOSENSO_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             return false;
         }
 
@@ -191,7 +189,7 @@ bool SestoSenso::Ack()
 
     resp[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", resp);
+    LOGF_DEBUG("RES <%s>", resp);
 
     IUSaveText(&FirmwareT[0], resp);
 
@@ -204,7 +202,7 @@ bool SestoSenso::updateTemperature()
     char errstr[MAXRBUF];
     char resp[16]={0};
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "CMD <#QT!>");
+    LOG_DEBUG("CMD <#QT!>");
 
     if (isSimulation())
     {
@@ -218,7 +216,7 @@ bool SestoSenso::updateTemperature()
         if ((rc = tty_write(PortFD, "#QT!", 4, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             TemperatureNP.s = IPS_ALERT;
             return false;
         }
@@ -226,7 +224,7 @@ bool SestoSenso::updateTemperature()
         if ((rc = tty_read_section(PortFD, resp, 0xD, SESTOSENSO_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             TemperatureNP.s = IPS_ALERT;
             return false;
         }
@@ -236,7 +234,7 @@ bool SestoSenso::updateTemperature()
 
     resp[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", resp);
+    LOGF_DEBUG("RES <%s>", resp);
 
     TemperatureN[0].value = atof(resp);
     TemperatureNP.s = (TemperatureN[0].value == 99.00) ? IPS_IDLE : IPS_OK;
@@ -250,7 +248,7 @@ bool SestoSenso::updatePosition()
     char errstr[MAXRBUF];
     char resp[16]={0};
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "CMD <#QP!>");
+    LOG_DEBUG("CMD <#QP!>");
 
     if (isSimulation())
     {
@@ -264,7 +262,7 @@ bool SestoSenso::updatePosition()
         if ((rc = tty_write(PortFD, "#QP!", 4, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             FocusAbsPosNP.s = IPS_ALERT;
             return false;
         }
@@ -272,7 +270,7 @@ bool SestoSenso::updatePosition()
         if ((rc = tty_read_section(PortFD, resp, 0xD, SESTOSENSO_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             FocusAbsPosNP.s = IPS_ALERT;
             return false;
         }
@@ -282,7 +280,7 @@ bool SestoSenso::updatePosition()
 
     resp[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", resp);
+    LOGF_DEBUG("RES <%s>", resp);
 
     FocusAbsPosN[0].value = atoi(resp);
     FocusAbsPosNP.s = IPS_OK;
@@ -321,7 +319,7 @@ bool SestoSenso::isMotionComplete()
         if ((rc = tty_read_section(PortFD, resp, 0xD, SESTOSENSO_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             return false;
         }
     }
@@ -348,7 +346,7 @@ bool SestoSenso::sync(uint32_t newPosition)
 
     snprintf(cmd, 16, "#SP%d!", newPosition);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if (isSimulation())
     {
@@ -362,7 +360,7 @@ bool SestoSenso::sync(uint32_t newPosition)
         if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             return false;
         }
     }
@@ -398,14 +396,14 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
     char cmd[16]={0};
 
     snprintf(cmd, 16, "#GT%d!", targetTicks);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if (isSimulation() == false)
     {
         if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             return IPS_ALERT;
         }
     }
@@ -478,14 +476,14 @@ bool SestoSenso::isCommandOK(const char *cmd)
         if ((rc = tty_read_section(PortFD, resp, 0xD, SESTOSENSO_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error for command %s: %s.", __FUNCTION__, cmd, errstr);
+            LOGF_ERROR("%s error for command %s: %s.", __FUNCTION__, cmd, errstr);
             return false;
         }
     }
 
     resp[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", resp);
+    LOGF_DEBUG("RES <%s>", resp);
 
     return (!strcmp(resp, expectedResp));
 }
@@ -506,7 +504,7 @@ void SestoSenso::TimerHit()
             FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusRelPosNP, nullptr);
             IDSetNumber(&FocusAbsPosNP, nullptr);
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
+            LOG_INFO("Focuser reached requested position.");
         }
         else
             IDSetNumber(&FocusAbsPosNP, nullptr);

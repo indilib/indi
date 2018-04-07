@@ -28,33 +28,40 @@
  */
 
 #ifndef WIN32
-#define LINUX
+	#define LINUX
 #else
-#define QHYCCD_OPENCV_SUPPORT
+	#define QHYCCD_OPENCV_SUPPORT
 #endif
 
-
 #ifdef WIN32
-#include <windows.h>
+	#include <windows.h>
+#else // Linux & Mac
+	#include <pthread.h>
 #endif
 
 #ifndef __QHYCCDSTRUCTDEF_H__
 #define __QHYCCDSTRUCTDEF_H__
 
 #ifdef WIN32
- #ifndef EXPORTFUNC
- #define EXPORTFUNC extern "C" __declspec(dllexport)
- #endif
- #ifndef STDCALL
- #define STDCALL __stdcall
- #endif
- #ifndef EXPORTC
- #define EXPORTC extern "C"
- #endif
+ 
+#ifndef EXPORTFUNC
+#define EXPORTFUNC extern "C" __declspec(dllexport)
+#endif
+ 
+#ifndef STDCALL
+#define STDCALL __stdcall
+#endif
+
+#ifndef EXPORTC
+#define EXPORTC extern "C"
+#endif
+
 #else
- #define EXPORTFUNC extern "C"
- #define STDCALL
- #define EXPORTC extern "C"
+
+#define EXPORTFUNC extern "C"
+#define STDCALL
+#define EXPORTC extern "C"
+
 #endif
 
 #include "stdint.h"
@@ -72,6 +79,10 @@
 #define MACHANICALSHUTTER_OPEN  0
 #define MACHANICALSHUTTER_CLOSE 1
 #define MACHANICALSHUTTER_FREE  2
+
+#define TRANSFER_COUNT (16)
+#define TRANSFER_SIZE (76800)
+#define LIBUSB_ASYNC_BULK_TRANSFER_TIMEOUT (3600000)
 
 /**
  * @brief CCDREG struct define

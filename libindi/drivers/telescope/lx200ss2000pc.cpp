@@ -119,27 +119,27 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
         result = false;
         struct ln_zonedate ltm;
         ln_date_to_zonedate(utc, &ltm, static_cast<long>(utc_offset * 3600.0 + 0.5));
-        DEBUGF(INDI::Logger::DBG_DEBUG, "New zonetime is %04d-%02d-%02d %02d:%02d:%06.3f (offset=%ld)", ltm.years,
+        LOGF_DEBUG("New zonetime is %04d-%02d-%02d %02d:%02d:%06.3f (offset=%ld)", ltm.years,
                ltm.months, ltm.days, ltm.hours, ltm.minutes, ltm.seconds, ltm.gmtoff);
         JD = ln_get_julian_day(utc);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", JD);
+        LOGF_DEBUG("New JD is %f", JD);
         if (setLocalTime(PortFD, ltm.hours, ltm.minutes, static_cast<int>(ltm.seconds + 0.5)) < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+            LOG_ERROR("Error setting local time.");
         }
         else if (!setCalenderDate(ltm.years, ltm.months, ltm.days))
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+            LOG_ERROR("Error setting local date.");
         }
         // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
         // is the opposite of the standard definition of UTC offset!
         else if (!setUTCOffset(-(utc_offset)))
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+            LOG_ERROR("Error setting UTC Offset.");
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Time updated.");
+            LOG_INFO("Time updated.");
             result = true;
         }
     }
@@ -165,11 +165,11 @@ bool LX200SS2000PC::getCalendarDate(int &year, int &month, int &day)
 {
     char date[16];
     bool result = (getCommandString(PortFD, date, ":GC#") == 0);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "LX200SS2000PC::getCalendarDate():: Date string from telescope: %s", date);
+    LOGF_DEBUG("LX200SS2000PC::getCalendarDate():: Date string from telescope: %s", date);
     if (result)
     {
         result = (sscanf(date, "%d%*c%d%*c%d", &month, &day, &year) == 3); // Meade format is MM/DD/YY
-        DEBUGF(INDI::Logger::DBG_DEBUG, "setCalenderDate: Date retrieved from telescope: %02d/%02d/%02d.", month, day,
+        LOGF_DEBUG("setCalenderDate: Date retrieved from telescope: %02d/%02d/%02d.", month, day,
                year);
         if (result)
             year +=
@@ -182,7 +182,7 @@ bool LX200SS2000PC::getCalendarDate(int &year, int &month, int &day)
 bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
 {
     // This method differs from the setCalenderDate function in lx200driver.cpp
-    // in that it reads and checks the complete respons from the SkySensor2000PC.
+    // in that it reads and checks the complete response from the SkySensor2000PC.
     // In addition, this method only sends the date when it differs from the date
     // of the SkySensor2000PC because the resulting update of the planetary data
     // takes quite some time.
@@ -190,8 +190,7 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
     int ss_year = 0, ss_month = 0, ss_day = 0;
     const bool send_to_skysensor =
         (!getCalendarDate(ss_year, ss_month, ss_day) || year != ss_year || month != ss_month || day != ss_day);
-    DEBUGF(INDI::Logger::DBG_DEBUG,
-           "LX200SS2000PC::setCalenderDate(): Driver date %02d/%02d/%02d, SS2000PC date %02d/%02d/%02d.", month, day,
+    LOGF_DEBUG("LX200SS2000PC::setCalenderDate(): Driver date %02d/%02d/%02d, SS2000PC date %02d/%02d/%02d.", month, day,
            year, ss_month, ss_day, ss_year);
     if (send_to_skysensor)
     {
@@ -210,14 +209,14 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
                 if (tty_read_section(PortFD, buffer, '#', ShortTimeOut, &nbytes_read) != TTY_OK ||
                     strncmp(buffer, "Updating        planetary data#", 24) != 0)
                 {
-                    DEBUGF(INDI::Logger::DBG_ERROR,
+                    LOGF_ERROR(
                            "LX200SS2000PC::setCalenderDate(): Received unexpected first line '%s'.", buffer);
                     result = false;
                 }
                 else if (tty_read_section(PortFD, buffer, '#', LongTimeOut, &nbytes_read) != TTY_OK &&
                          strncmp(buffer, "                              #", 24) != 0)
                 {
-                    DEBUGF(INDI::Logger::DBG_ERROR,
+                    LOGF_ERROR(
                            "LX200SS2000PC::setCalenderDate(): Received unexpected second line '%s'.", buffer);
                     result = false;
                 }
@@ -251,14 +250,14 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
     if (latitude == 0.0 && longitude == 0.0)
         return true;
 
-    if (setLatitude(latitude) < 0)
+    if (setSiteLatitude(PortFD, latitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        LOG_ERROR("Error setting site latitude coordinates");
     }
 
-    if (setLongitude(longitude) < 0)
+    if (setSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        LOG_ERROR("Error setting site longitude coordinates");
         return false;
     }
 
@@ -266,12 +265,15 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
     fs_sexa(slat, latitude, 3, 3600);
     fs_sexa(slong, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Latitude: %.32s - Longitude: %.32s", slat, slong);
+    LOGF_INFO("Site location updated to Latitude: %.32s - Longitude: %.32s", slat, slong);
 
     return true;
 }
 
-int LX200SS2000PC::setLatitude(double Lat)
+// This override is needed, because the Sky Sensor 2000 PC requires a space
+// between the command its argument, unlike the 'standard' LX200 mounts, which
+// does not work on this mount.
+int LX200SS2000PC::setSiteLatitude(int fd, double Lat)
 {
     int d, m, s;
     char sign;
@@ -284,63 +286,22 @@ int LX200SS2000PC::setLatitude(double Lat)
 
     getSexComponents(Lat, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":St %c%02d*%02d:%02d#", sign, abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":St %c%03d*%02d#", sign, d, m);
 
-    return (LX200SS2000PC::sendCommand(PortFD, temp_string));
+    return setStandardProcedure(fd, temp_string);
 }
 
-int LX200SS2000PC::setLongitude(double Long)
+// This override is needed, because the Sky Sensor 2000 PC requires a space
+// between the command its argument, unlike the 'standard' LX200 mounts, which
+// does not work on this mount.
+int LX200SS2000PC::setSiteLongitude(int fd, double Long)
 {
     int d, m, s;
     char temp_string[32];
-    double final_longitude;
 
-    if (Long > 180)
-        final_longitude = Long - 360.0;
-    else
-        final_longitude = Long;
+    getSexComponents(Long, &d, &m, &s);
 
-    getSexComponents(final_longitude, &d, &m, &s);
+    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d#", d, m);
 
-    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d:%02d#", abs(d), m, s);
-
-    return (LX200SS2000PC::sendCommand(PortFD, temp_string));
+    return setStandardProcedure(fd, temp_string);
 }
-
-int LX200SS2000PC::sendCommand(int fd, const char *data)
-{
-    char result[2];
-    int error_type;
-    int nbytes_write = 0, nbytes_read = 0;
-
-    tcflush(fd, TCIFLUSH);
-
-    if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
-    {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Error writing string to tty: %s", data);
-        return error_type;
-    }
-
-    tcflush(fd, TCIFLUSH);
-
-    error_type = tty_read(fd, result, 1, ShortTimeOut, &nbytes_read);
-    if (error_type != TTY_OK) 
-    {
-        DEBUGF(INDI::Logger::DBG_SESSION, "error_type %d, result %c", error_type, result[0]);
-        return error_type;
-    }
-
-    if (nbytes_read < 1)
-    {
-        DEBUGF(INDI::Logger::DBG_SESSION, "nbytes less than 1 %d", 0);
-        return error_type;
-    }
-
-    if (result[0] == '0')
-    {
-        return -1;
-    }
-
-    return 0;
-}
-

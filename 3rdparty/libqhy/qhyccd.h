@@ -27,6 +27,7 @@
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
 #include "stdint.h"
+#include "cyusb.h"
 
 #ifdef WIN32
 #include "cyapi.h"
@@ -40,32 +41,41 @@
 #ifndef __QHYCCD_H__
 #define __QHYCCD_H__
 
-#if defined (WIN32)
+#ifdef WIN32
+
 typedef CCyUSBDevice qhyccd_handle;
-#elif defined (LINUX)
+
+#else // Linux & Mac
+
+static void con() __attribute__((constructor));
+static void des() __attribute__((destructor));
 typedef struct libusb_device_handle qhyccd_handle;
-#endif
-
-uint32_t qhyccd_handle2index(qhyccd_handle *pHandle);
-
-//EXPORTC void STDCALL DevMutexInit();
-//EXPORTC void STDCALL DevMutexDestroy();
-//EXPORTC void STDCALL DevMutexLock();
-//EXPORTC void STDCALL DevMutexUnlock();
-//EXPORTC int STDCALL DevMutexTrylock();
-
-EXPORTC void STDCALL msSleep(uint32_t ms);
-
-#ifdef LINUX
-//EXPORTC void STDCALL LibUsbInit(libusb_context **pContext);
-//EXPORTC void STDCALL LibUsbExit(libusb_context *pContext);
 uint32_t DeviceIsQHYCCD(uint32_t index, qhyccd_device *pDevice);
-#else
-uint32_t DeviceIsQHYCCD(uint32_t index, uint32_t vid, uint32_t pid);
-#endif
 
+EXPORTC void STDCALL MutexInit();
+EXPORTC void STDCALL MutexDestroy();
+EXPORTC void STDCALL MutexLock();
+EXPORTC void STDCALL MutexUnlock();
+EXPORTC int STDCALL MutexTrylock();
+
+#endif // WIN32
+
+class QHYBASE;
+
+uint32_t DeviceIsQHYCCD(uint32_t index, uint32_t vid, uint32_t pid);
 uint32_t QHYCCDSeriesMatch(uint32_t index, qhyccd_handle *pHandle);
 uint32_t GetIdFromCam(qhyccd_handle *pHandle, char *id);
+
+EXPORTC struct cydev *STDCALL GetCyDevBasedOnInstance(QHYBASE *pCam);
+EXPORTC struct cydev *STDCALL GetCyDevBasedOnHandle(qhyccd_handle *pHandle);
+EXPORTC int GetCyDevIdxBasedOnInstance(QHYBASE *pCam);
+EXPORTC int GetCyDevIdxBasedOnHandle(qhyccd_handle *pHandle);
+
+EXPORTC uint32_t STDCALL GetReceivedRawDataLen(QHYBASE *pCam);
+EXPORTC bool STDCALL SetReceivedRawDataLen(QHYBASE *pCam, uint32_t value);
+EXPORTC bool STDCALL CleanUnlockImageQueue(QHYBASE *pCam);
+//EXPORTC bool STDCALL SetUnlockImageQueue(QHYBASE *pCam);
+
 EXPORTC uint32_t STDCALL InitQHYCCDClass(uint32_t camtype, uint32_t index);
 
 /** \fn uint32_t InitQHYCCDResource()
@@ -103,7 +113,7 @@ EXPORTC uint32_t STDCALL ScanQHYCCD(void);
 	  on success,return QHYCCD_SUCCESS \n
 	  another QHYCCD_ERROR code on other failures
   */
-EXPORTC uint32_t STDCALL GetQHYCCDId(uint32_t index,char *id);
+EXPORTC uint32_t STDCALL GetQHYCCDId(uint32_t index, char *id);
 
 /** \fn uint32_t GetQHYCCDModel(char *id, char *model)
       \brief get camera model name by id
@@ -729,6 +739,8 @@ EXPORTC uint32_t STDCALL QHYCCDLibusbBulkTransfer(qhyccd_handle *pDevHandle, uin
 
 EXPORTC uint32_t STDCALL GetQHYCCDSDKVersion(uint32_t *year,uint32_t *month,uint32_t *day,uint32_t *subday);
 
-EXPORTC void STDCALL print_cydev(char *pTitle);
+EXPORTC void STDCALL print_cydev(const char *pTitle);
 
-#endif
+EXPORTC const char* STDCALL GetTimeStamp();
+
+#endif // __QHYCCD_H__

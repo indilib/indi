@@ -24,11 +24,6 @@
 
 #include <memory>
 
-const int POLLMS           = 500; /* Polling interval 500 ms */
-//const int MAX_CCD_TEMP     = 45;  /* Max CCD temperature */
-//const int MIN_CCD_TEMP     = -55; /* Min CCD temperature */
-//const float TEMP_THRESHOLD = .25; /* Differential temperature threshold (C)*/
-
 /* Macro shortcut to CCD temperature value */
 #define currentCCDTemperature TemperatureN[0].value
 
@@ -115,6 +110,8 @@ bool SimpleCCD::initProperties()
 
     // Add Debug, Simulator, and Configuration controls
     addAuxControls();
+
+    setDefaultPollingPeriod(500);
 
     return true;
 }

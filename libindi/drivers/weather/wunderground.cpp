@@ -101,7 +101,7 @@ bool WunderGround::Connect()
 {
     if (wunderAPIKeyT[0].text == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Weather Underground API Key is not available. Please register your API key at "
+        LOG_ERROR("Weather Underground API Key is not available. Please register your API key at "
                                        "www.wunderground.com and save it under Options.");
         return false;
     }
@@ -209,9 +209,9 @@ IPState WunderGround::updateWeather()
     int status = jsonParse(source, &endptr, &value, allocator);
     if (status != JSON_OK)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s at %zd", jsonStrError(status), endptr - source);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s", requestURL);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s", readBuffer.c_str());
+        LOGF_ERROR("%s at %zd", jsonStrError(status), endptr - source);
+        LOGF_DEBUG("%s", requestURL);
+        LOGF_DEBUG("%s", readBuffer.c_str());
         return IPS_ALERT;
     }
 
@@ -238,7 +238,7 @@ IPState WunderGround::updateWeather()
                     else
                         setParameterValue("WEATHER_FORECAST", 2);
 
-                    DEBUGF(INDI::Logger::DBG_SESSION, "Weather condition: %s", value);
+                    LOGF_INFO("Weather condition: %s", value);
                 }
                 else if (!strcmp(observationIterator->key, "temp_c"))
                 {

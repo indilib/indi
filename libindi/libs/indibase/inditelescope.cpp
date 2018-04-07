@@ -28,6 +28,7 @@
 #include <pwd.h>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <unistd.h>
 #include <wordexp.h>
 #include <limits>
@@ -234,6 +235,8 @@ bool Telescope::initProperties()
 
     IDSnoopDevice(ActiveDeviceT[1].text, "DOME_PARK");
     IDSnoopDevice(ActiveDeviceT[1].text, "DOME_SHUTTER");
+
+    addPollPeriodControl();
 
     return true;
 }
@@ -1003,7 +1006,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 IUResetSwitch(&ParkSP);
                 ParkS[1].s = ISS_ON;
                 ParkSP.s   = IPS_IDLE;
-                DEBUG(INDI::Logger::DBG_SESSION, "Telescope already unparked.");
+                LOG_INFO("Telescope already unparked.");
                 IsParked = false;
                 IDSetSwitch(&ParkSP, nullptr);
                 return true;
@@ -1014,7 +1017,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                IUResetSwitch(&ParkSP);
                ParkS[0].s = ISS_ON;
                ParkSP.s   = IPS_IDLE;
-               DEBUG(INDI::Logger::DBG_WARNING, "Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab.");
+               LOG_WARN("Cannot unpark mount when dome is locking. See: Dome parking policy, in options tab.");
                IsParked = true;
                IDSetSwitch(&ParkSP, nullptr);
                return true;
@@ -1471,7 +1474,7 @@ void Telescope::TimerHit()
             IDSetNumber(&EqNP, nullptr);
         }
 
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
     }
 }
 
@@ -1931,6 +1934,7 @@ bool Telescope::WriteParkData()
 
     prXMLEle(fp, ParkdataXmlRoot, 0);
     fclose(fp);
+    wordfree(&wexp);
 
     return true;
 }
@@ -2559,6 +2563,7 @@ bool Telescope::UpdateScopeConfig()
     FilePtr = fopen(ScopeConfigFileName.c_str(), "w");
     prXMLEle(FilePtr, RootXmlNode, 0);
     fclose(FilePtr);
+    delXMLEle(RootXmlNode);
     return true;
 }
 
@@ -2614,6 +2619,25 @@ bool Telescope::CheckFile(const std::string &file_name, bool writable) const
         return true;
     }
     return false;
+}
+
+void Telescope::sendTimeFromSystem()
+{
+    char ts[32]={0};
+
+    std::time_t t = std::time(nullptr);
+    struct std::tm *utctimeinfo = std::gmtime(&t);
+
+    strftime(ts, sizeof(ts), "%Y-%m-%dT%H:%M:%S", utctimeinfo);
+    IUSaveText(&TimeT[0], ts);
+
+    struct std::tm *localtimeinfo = std::localtime(&t);
+    snprintf(ts, sizeof(ts), "%4.2f", (localtimeinfo->tm_gmtoff / 3600.0));
+    IUSaveText(&TimeT[1], ts);
+
+    TimeTP.s = IPS_OK;
+
+    IDSetText(&TimeTP, nullptr);
 }
 
 }

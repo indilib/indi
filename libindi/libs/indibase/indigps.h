@@ -86,7 +86,7 @@ class GPS : public DefaultDevice
     INumber LocationN[3];
 
     // UTC and UTC Offset
-    IText TimeT[2];
+    IText TimeT[2] {};
     ITextVectorProperty TimeTP;
 
     // Refresh data

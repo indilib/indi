@@ -458,12 +458,12 @@ class Detector : public DefaultDevice
     INumber EqN[2];
 
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[4];
+    IText ActiveDeviceT[4] {};
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
 
-    IText FileNameT[1];
+    IText FileNameT[1] {};
     ITextVectorProperty FileNameTP;
 
     ISwitch DatasetS[1];
@@ -472,7 +472,7 @@ class Detector : public DefaultDevice
     ISwitch UploadS[3];
     ISwitchVectorProperty UploadSP;
 
-    IText UploadSettingsT[2];
+    IText UploadSettingsT[2] {};
     ITextVectorProperty UploadSettingsTP;
     enum
     {
@@ -488,7 +488,7 @@ class Detector : public DefaultDevice
     };
 
     // FITS Header
-    IText FITSHeaderT[2];
+    IText FITSHeaderT[2] {};
     ITextVectorProperty FITSHeaderTP;
     enum
     {

@@ -54,19 +54,19 @@
 
 #define PRINT_ER(error)                                           \
     if (!strcmp(error, "ER=1"))                                   \
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s -> %s", error, MER1); \
+        LOGF_ERROR("%s -> %s", error, MER1); \
     else if (!strcmp(error, "ER=2"))                              \
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s -> %s", error, MER2); \
+        LOGF_ERROR("%s -> %s", error, MER2); \
     else if (!strcmp(error, "ER=3"))                              \
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s -> %s", error, MER3); \
+        LOGF_ERROR("%s -> %s", error, MER3); \
     else if (!strcmp(error, "ER=4"))                              \
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s -> %s", error, MER4); \
+        LOGF_ERROR("%s -> %s", error, MER4); \
     else if (!strcmp(error, "ER=5"))                              \
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s -> %s", error, MER5); \
+        LOGF_ERROR("%s -> %s", error, MER5); \
     else if (!strcmp(error, "ER=6"))                              \
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s -> %s", error, MER6); \
+        LOGF_ERROR("%s -> %s", error, MER6); \
     else if (!strcmp(error, "ER=0"))                              \
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s -> %s", error, MERO);
+        LOGF_ERROR("%s -> %s", error, MERO);
 
 #define DEBUGTAG() DEBUGF(INDI::Logger::DBG_EXTRA_1, "DEBUG -> Function %s() is executing", __FUNCTION__);
 

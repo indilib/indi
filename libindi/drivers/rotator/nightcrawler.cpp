@@ -35,7 +35,6 @@
 #define NC_30_STEPS 444080
 #define NC_35_STEPS 505960
 
-#define POLLMS 500
 #define ROTATOR_TAB "Rotator"
 #define AUX_TAB "Aux"
 #define SETTINGS_TAB "Settings"
@@ -85,8 +84,8 @@ void ISSnoopDevice (XMLEle *root)
 NightCrawler::NightCrawler() : RotatorInterface(this)
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    SetRotatorCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    RI::SetCapability(ROTATOR_CAN_ABORT | ROTATOR_CAN_HOME | ROTATOR_CAN_SYNC);
 }
 
 bool NightCrawler::initProperties()
@@ -187,7 +186,7 @@ bool NightCrawler::initProperties()
 
     addDebugControl();
 
-    updatePeriodMS = POLLMS;
+    setDefaultPollingPeriod(500);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_57600);
 
@@ -255,7 +254,7 @@ bool NightCrawler::Handshake()
     if (Ack())
         return true;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from NightCrawler, please ensure NightCrawler controller is powered and the port is correct.");
+    LOG_INFO("Error retreiving data from NightCrawler, please ensure NightCrawler controller is powered and the port is correct.");
     return false;
 }
 
@@ -283,14 +282,14 @@ bool NightCrawler::getFirmware()
     if ( (rc = tty_write(PortFD, "PV#", 3, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "getFirmware error: %s.", errstr);
+        LOGF_ERROR("getFirmware error: %s.", errstr);
         return false;
     }
 
     if ( (rc = tty_read_section(PortFD, resp, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "getFirmware error: %s.", errstr);
+        LOGF_ERROR("getFirmware error: %s.", errstr);
         return false;
     }
 
@@ -298,7 +297,7 @@ bool NightCrawler::getFirmware()
 
     resp[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Firmware %s", resp);
+    LOGF_INFO("Firmware %s", resp);
 
     return true;
 }
@@ -314,14 +313,14 @@ bool NightCrawler::getFocuserType()
     if ( (rc = tty_write(PortFD, "PF#", 3, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "getFirmware error: %s.", errstr);
+        LOGF_ERROR("getFirmware error: %s.", errstr);
         return false;
     }
 
     if ( (rc = tty_read_section(PortFD, resp, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "getFirmware error: %s.", errstr);
+        LOGF_ERROR("getFirmware error: %s.", errstr);
         return false;
     }
 
@@ -329,7 +328,7 @@ bool NightCrawler::getFocuserType()
 
     resp[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Focuser Type %s", resp);
+    LOGF_INFO("Focuser Type %s", resp);
 
     if (strcmp(resp, "2.5 NC") == 0)
     {
@@ -362,25 +361,25 @@ bool NightCrawler::gotoMotor(MotorType type, int32_t position)
 
     snprintf(cmd, 16, "%dSN %d#", type+1, position);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return startMotor(type);
 }
@@ -396,27 +395,27 @@ bool NightCrawler::getPosition(MotorType type)
 
     snprintf(cmd, 16, "%dGP#", type+1);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 8, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     position = atoi(res);
 
@@ -432,7 +431,7 @@ bool NightCrawler::getPosition(MotorType type)
         return true;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Invalid Position! %d", position);
+    LOGF_DEBUG("Invalid Position! %d", position);
     return false;
 }
 
@@ -456,7 +455,7 @@ bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * s
             if (!atLeastOne)
             {
                 HomeSelectionSP.s = IPS_ALERT;
-                DEBUG(INDI::Logger::DBG_ERROR, "At least one selection must be on.");
+                LOG_ERROR("At least one selection must be on.");
                 IDSetSwitch(&HomeSelectionSP, nullptr);
                 return false;
             }
@@ -481,13 +480,13 @@ bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * s
             {
                 FindHomeSP.s = IPS_BUSY;
                 FindHomeS[0].s = ISS_ON;
-                DEBUG(INDI::Logger::DBG_WARNING, "Homing process can take up to 10 minutes. You cannot control the unit until the process is fully complete.");
+                LOG_WARN("Homing process can take up to 10 minutes. You cannot control the unit until the process is fully complete.");
             }
             else
             {
                 FindHomeSP.s = IPS_ALERT;
                 FindHomeS[0].s = ISS_OFF;
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to start homing process.");
+                LOG_ERROR("Failed to start homing process.");
             }
 
             IDSetSwitch(&FindHomeSP, nullptr);
@@ -498,7 +497,7 @@ bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * s
             IUUpdateSwitch(&EncoderSP, states, names, n);
             EncoderSP.s = setEncodersEnabled(EncoderS[0].s == ISS_ON) ? IPS_OK : IPS_ALERT;
             if (EncoderSP.s == IPS_OK)
-                DEBUGF(INDI::Logger::DBG_SESSION, "Encoders are %s", (EncoderS[0].s == ISS_ON) ? "ON" : "OFF");
+                LOGF_INFO("Encoders are %s", (EncoderS[0].s == ISS_ON) ? "ON" : "OFF");
             IDSetSwitch(&EncoderSP, nullptr);
             return true;
         }
@@ -602,7 +601,7 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
            bool rc = gotoMotor(MOTOR_AUX, static_cast<int32_t>(values[0]));
            GotoAuxNP.s = rc ? IPS_BUSY : IPS_OK;
            IDSetNumber(&GotoAuxNP, nullptr);
-           DEBUGF(INDI::Logger::DBG_SESSION, "Aux moving to %.f...", values[0]);
+           LOGF_INFO("Aux moving to %.f...", values[0]);
            return true;
         }
         else if (strcmp(name, RotatorAbsPosNP.name) == 0)
@@ -610,7 +609,7 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
             RotatorAbsPosNP.s = (gotoMotor(MOTOR_ROTATOR, static_cast<int32_t>(values[0])) ? IPS_BUSY : IPS_ALERT);
             IDSetNumber(&RotatorAbsPosNP, nullptr);
             if (RotatorAbsPosNP.s == IPS_BUSY)
-                DEBUGF(INDI::Logger::DBG_SESSION, "Rotator moving to %.f ticks...", values[0]);
+                LOGF_INFO("Rotator moving to %.f ticks...", values[0]);
             return true;
         }
         else if (strstr(name, "ROTATOR"))
@@ -684,7 +683,7 @@ void NightCrawler::TimerHit()
             FindHomeSP.s = IPS_OK;
             IDSetSwitch(&FindHomeSP, nullptr);
 
-            DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete.");
+            LOG_INFO("Homing is complete.");
         }
 
         SetTimer(POLLMS);
@@ -758,7 +757,7 @@ void NightCrawler::TimerHit()
             RotatorAbsPosNP.s = IPS_OK;
             GotoRotatorNP.s = IPS_OK;
             absRotatorUpdated = true;
-            DEBUG(INDI::Logger::DBG_SESSION, "Rotator motion complete.");
+            LOG_INFO("Rotator motion complete.");
         }
     }
     rc = getPosition(MOTOR_ROTATOR);
@@ -784,7 +783,7 @@ void NightCrawler::TimerHit()
         {
             GotoAuxNP.s = IPS_OK;
             absAuxUpdated = true;
-            DEBUG(INDI::Logger::DBG_SESSION, "Aux motion complete.");
+            LOG_INFO("Aux motion complete.");
         }
     }
     rc = getPosition(MOTOR_AUX);
@@ -814,27 +813,27 @@ bool NightCrawler::syncMotor(MotorType type, uint32_t position)
 
     snprintf(cmd, 16, "%dSP %d#", type+1, position);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return (res[0] == '#');
 }
@@ -849,27 +848,27 @@ bool NightCrawler::startMotor(MotorType type)
 
     snprintf(cmd, 16, "%dSM#", type+1);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return (res[0] == '#');
 }
@@ -884,27 +883,27 @@ bool NightCrawler::stopMotor(MotorType type)
 
     snprintf(cmd, 16, "%dSQ#", type+1);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return (res[0] == '#');
 }
@@ -919,27 +918,27 @@ bool NightCrawler::isMotorMoving(MotorType type)
 
     snprintf(cmd, 16, "%dGM#", type+1);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return (strcmp("01", res) == 0);
 }
@@ -952,27 +951,27 @@ bool NightCrawler::getTemperature()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     SensorN[SENSOR_TEMPERATURE].value = atoi(res) / 10.0;
 
@@ -987,27 +986,27 @@ bool NightCrawler::getVoltage()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     SensorN[SENSOR_VOLTAGE].value = atoi(res) / 10.0;
 
@@ -1023,14 +1022,14 @@ bool NightCrawler::setTemperatureOffset(double offset)
 
     snprintf(cmd, 16, "Pt %03d#", static_cast<int>(offset*10));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
@@ -1047,27 +1046,27 @@ bool NightCrawler::getStepDelay(MotorType type)
 
     snprintf(cmd, 16, "%dSR#", type+1);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     if (type == MOTOR_FOCUS)
         FocusStepDelayN[0].value = atoi(res);
@@ -1089,27 +1088,27 @@ bool NightCrawler::setStepDelay(MotorType type, uint32_t delay)
 
     snprintf(cmd, 16, "%dSR %03d#", type+1, delay);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return (res[0] == '#');
 }
@@ -1122,27 +1121,27 @@ bool NightCrawler::getLimitSwitchStatus()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     int value = atoi(res);
 
@@ -1163,27 +1162,27 @@ bool NightCrawler::findHome(uint8_t motorTypes)
 
     snprintf(cmd, 16, "SH %02d#", motorTypes);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return (res[0] == '#');
 }
@@ -1196,13 +1195,13 @@ bool NightCrawler::isHomingComplete()
     if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         // No error as we are waiting until controller returns "OK#"
-        DEBUG(INDI::Logger::DBG_DEBUG, "Waiting for NightCrawler to complete homing...");
+        LOG_DEBUG("Waiting for NightCrawler to complete homing...");
         return false;
     }
 
     res[nbytes_read-1] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return (strcmp("OK", res) == 0);
 }
@@ -1217,27 +1216,27 @@ bool NightCrawler::setEncodersEnabled(bool enable)
 
     snprintf(cmd, 16, "PE %s#", enable ? "01" : "00");
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read_section(PortFD, res, '#', NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return true;
 }
@@ -1252,27 +1251,27 @@ bool NightCrawler::setDisplayBrightness(uint8_t value)
 
     snprintf(cmd, 16, "PD %03d#", value);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return (res[0] == '#');
 }
@@ -1287,27 +1286,27 @@ bool NightCrawler::setSleepBrightness(uint8_t value)
 
     snprintf(cmd, 16, "PL %03d#", value);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, NIGHTCRAWLER_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     res[nbytes_read] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     return (res[0] == '#');
 }
@@ -1331,7 +1330,7 @@ IPState NightCrawler::HomeRotator()
         FindHomeSP.s = IPS_BUSY;
         FindHomeS[0].s = ISS_ON;
         IDSetSwitch(&FindHomeSP, nullptr);
-        DEBUG(INDI::Logger::DBG_WARNING, "Homing process can take up to 10 minutes. You cannot control the unit until the process is fully complete.");
+        LOG_WARN("Homing process can take up to 10 minutes. You cannot control the unit until the process is fully complete.");
         return IPS_BUSY;
     }
     else
@@ -1339,7 +1338,7 @@ IPState NightCrawler::HomeRotator()
         FindHomeSP.s = IPS_ALERT;
         FindHomeS[0].s = ISS_OFF;
         IDSetSwitch(&FindHomeSP, nullptr);
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to start homing process.");
+        LOG_ERROR("Failed to start homing process.");
         return IPS_ALERT;
     }
 

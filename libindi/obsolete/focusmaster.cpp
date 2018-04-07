@@ -76,8 +76,8 @@ void ISSnoopDevice(XMLEle *root)
 
 FocusMaster::FocusMaster()
 {
-    SetFocuserCapability(FOCUSER_CAN_ABORT);
-    setFocuserConnection(CONNECTION_NONE);
+    FI::SetCapability(FOCUSER_CAN_ABORT);
+    setConnection(CONNECTION_NONE);
 }
 
 bool FocusMaster::Connect()
@@ -86,7 +86,7 @@ bool FocusMaster::Connect()
 
     if (handle == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "No FocusMaster focuser found.");
+        LOG_ERROR("No FocusMaster focuser found.");
         return false;
     }
     else
@@ -94,7 +94,7 @@ bool FocusMaster::Connect()
         // N.B. Check here if we have the digital readout gadget.
 
         // if digital readout
-        //SetFocuserCapability(GetFocuserCapability() | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
+        //FI::SetCapability(GetFocuserCapability() | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
 
         SetTimer(POLLMS);
 
@@ -200,7 +200,7 @@ void FocusMaster::TimerHit()
             }
 
             FocusAbsPosNP.s = IPS_OK;
-            DEBUG(INDI::Logger::DBG_DEBUG, "Focuser reached target position.");
+            LOG_DEBUG("Focuser reached target position.");
         }
     }
 
@@ -303,11 +303,11 @@ bool FocusMaster::sendCommand(const uint8_t *command, char *response)
 
     int rc = hid_write(handle, command, 2);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%#02X %#02X>", command[0], command[1]);
+    LOGF_DEBUG("CMD <%#02X %#02X>", command[0], command[1]);
 
     if (rc < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "<%#02X %#02X>: Error writing to device %s", command[0], command[1], hid_error(handle));
+        LOGF_ERROR("<%#02X %#02X>: Error writing to device %s", command[0], command[1], hid_error(handle));
         return false;
     }
 
@@ -333,7 +333,7 @@ bool FocusMaster::AbortFocuser()
     command[0] = 0x30;
     command[1] = 0x30;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Aborting Focuser...");
+    LOG_DEBUG("Aborting Focuser...");
 
     bool rc = sendCommand(command);
 

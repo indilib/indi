@@ -45,8 +45,6 @@
 #define RESOLUTION_PX(size) (RESOLUTION_AS(size) * IMAGE_WIDTH / (FOV_DEG*60*60))
 #define RESOLUTION_PY(size) (RESOLUTION_AS(size) * IMAGE_HEIGHT / (FOV_DEG*60*60))
 
-const int POLLMS = 500; /* Polling interval 500 ms */
-
 static RadioSim *receiver;
 
 static void cleanup()
@@ -138,7 +136,7 @@ Dec = FOV_DEG / 2;
 bool RadioSim::Connect()
 {
 
-    DEBUG(INDI::Logger::DBG_SESSION, "RadioSim connected successfully!");
+    LOG_INFO("RadioSim connected successfully!");
 	// Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
     //SetTimer(POLLMS);
@@ -154,7 +152,7 @@ bool RadioSim::Disconnect()
 {
 	InCapture = false;
 	free(continuum);
-	DEBUG(INDI::Logger::DBG_SESSION, "RadioSim Detector disconnected successfully!");
+	LOG_INFO("RadioSim Detector disconnected successfully!");
 	return true;
 }
 
@@ -192,6 +190,8 @@ bool RadioSim::initProperties()
 
 	// Add Debug, Simulator, and Configuration controls
 	addAuxControls();
+
+        setDefaultPollingPeriod(500);
 
 	return true;
 }
@@ -350,7 +350,7 @@ void RadioSim::TimerHit()
 		if(timeleft < 0.1)
 		{
 			/* We're done capturing */
-			DEBUG(INDI::Logger::DBG_SESSION, "Capture done, downloading data...");
+			LOG_INFO("Capture done, downloading data...");
 			grabData();
 			InCapture = false;
 			timeleft = 0.0;
@@ -386,7 +386,7 @@ void RadioSim::grabData()
 	continuum[0] = static_cast<unsigned char>(val / (to_read));
 	IDMessage (getDeviceName(), "value: %d", continuum[0]);
 
-	DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+	LOG_INFO("Download complete.");
 
 	// Let INDI::Detector know we're done filling the data buffers
 	CaptureComplete(&PrimaryDetector);

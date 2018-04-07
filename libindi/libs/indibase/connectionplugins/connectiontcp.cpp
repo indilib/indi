@@ -85,14 +85,14 @@ bool TCP::Connect()
     if (AddressT[0].text == nullptr || AddressT[0].text[0] == '\0' || AddressT[1].text == nullptr ||
         AddressT[1].text[0] == '\0')
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error! Server address is missing or invalid.");
+        LOG_ERROR("Error! Server address is missing or invalid.");
         return false;
     }
 
     const char *hostname = AddressT[0].text;
     const char *port     = AddressT[1].text;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
+    LOGF_INFO("Connecting to %s@%s ...", hostname, port);
 
     if (device->isSimulation() == false)
     {
@@ -111,7 +111,7 @@ bool TCP::Connect()
         hp = gethostbyname(hostname);
         if (!hp)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
+            LOG_ERROR("Failed to lookup IP Address or hostname.");
             return false;
         }
 
@@ -132,14 +132,14 @@ bool TCP::Connect()
 
         if ((sockfd = socket(AF_INET, socketType, 0)) < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
+            LOG_ERROR("Failed to create socket.");
             return false;
         }
 
         // Connect to the mount
         if ((ret = ::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
+            LOGF_ERROR("Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
             close(sockfd);
             sockfd = -1;
             return false;
@@ -152,17 +152,17 @@ bool TCP::Connect()
 
     PortFD = sockfd;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Connection successful, attempting handshake...");
+    LOG_DEBUG("Connection successful, attempting handshake...");
     bool rc = Handshake();
 
     if (rc)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+        LOGF_INFO("%s is online.", getDeviceName());
         device->saveConfig(true, "DEVICE_ADDRESS");
         device->saveConfig(true, "CONNECTION_TYPE");
     }
     else
-        DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
+        LOG_DEBUG("Handshake failed.");
 
     return rc;
 }

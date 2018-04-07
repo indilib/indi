@@ -35,17 +35,6 @@ Version with experimental pulse guide support. GC 04.12.2015
 #include <cstring>
 #include <unistd.h>
 
-// logging macros
-#define LOG_DEBUG(txt)  DEBUG(INDI::Logger::DBG_DEBUG, (txt))
-#define LOG_INFO(txt)   DEBUG(INDI::Logger::DBG_SESSION, (txt))
-#define LOG_WARN(txt)   DEBUG(INDI::Logger::DBG_WARNING, (txt))
-#define LOG_ERROR(txt)   DEBUG(INDI::Logger::DBG_ERROR, (txt))
-
-#define LOGF_DEBUG(...) DEBUGF(INDI::Logger::DBG_DEBUG, __VA_ARGS__)
-#define LOGF_INFO(...)  DEBUGF(INDI::Logger::DBG_SESSION, __VA_ARGS__)
-#define LOGF_WARN(...)  DEBUGF(INDI::Logger::DBG_WARNING, __VA_ARGS__)
-#define LOGF_ERROR(...)  DEBUGF(INDI::Logger::DBG_ERROR, __VA_ARGS__)
-
 // Simulation Parameters
 #define GOTO_RATE       5        // slew rate, degrees/s
 #define SLEW_RATE       0.5      // slew rate, degrees/s
@@ -667,7 +656,14 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
         if (!strcmp(name, UseHibernateSP.name))
         {
             IUUpdateSwitch(&UseHibernateSP, states, names, n);
-            UseHibernateSP.s = IPS_OK;
+            if (UseHibernateS[0].s == ISS_ON && checkMinVersion(4.22, "hibernation") == false)
+            {
+                UseHibernateS[0].s = ISS_OFF;
+                UseHibernateS[1].s = ISS_ON;
+                UseHibernateSP.s = IPS_ALERT;
+            }
+            else
+                UseHibernateSP.s = IPS_OK;
             IDSetSwitch(&UseHibernateSP, nullptr);
             return true;
         }
@@ -1076,7 +1072,12 @@ bool CelestronGPS::UnPark()
 
 bool CelestronGPS::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
+    // The Goto Alt-Az and Get Alt-Az menu items have been renamed Goto Axis Postn and Get Axis Postn
+    // where Postn is an abbreviation for Position. Since this feature doesn't actually refer
+    // to altitude and azimuth when mounted on a wedge, the new designation is more accurate.
+    // Source  : NexStarHandControlVersion4UsersGuide.pdf
+
+    /*ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
 
     ln_lnlat_posn observer;
@@ -1093,7 +1094,16 @@ bool CelestronGPS::SetCurrentPark()
     double parkAZ = horizontalPos.az - 180;
     if (parkAZ < 0)
         parkAZ += 360;
-    double parkAlt = horizontalPos.alt;
+    double parkAlt = horizontalPos.alt;*/
+
+    if (driver.get_azalt(&currentAZ, &currentALT, usePreciseCoords) == false)
+    {
+        LOG_ERROR("Failed to read AZ/ALT values.");
+        return false;
+    }
+
+    double parkAZ = currentAZ;
+    double parkAlt = currentALT;
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
@@ -1110,11 +1120,16 @@ bool CelestronGPS::SetCurrentPark()
 
 bool CelestronGPS::SetDefaultPark()
 {
-    // By defualt azimuth 0 for north hemisphere
-    SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+    // The Goto Alt-Az and Get Alt-Az menu items have been renamed Goto Axis Postn and Get Axis Postn
+    // where Postn is an abbreviation for Position. Since this feature doesn't actually refer
+    // to altitude and azimuth when mounted on a wedge, the new designation is more accurate.
+    // Source  : NexStarHandControlVersion4UsersGuide.pdf
 
-    // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    // By default azimuth 90° ( hemisphere doesn't matter)
+    SetAxis1Park(90);
+
+    // Altitude = 90° (latitude doesn't matter)
+    SetAxis2Park(90);
 
     return true;
 }
