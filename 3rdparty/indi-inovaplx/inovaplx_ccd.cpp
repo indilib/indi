@@ -108,8 +108,13 @@ bool INovaCCD::Connect()
             CameraPropertiesNP.s = IPS_IDLE;
 
             // Set camera capabilities
-            uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | (iNovaSDK_HasColorSensor() ? CCD_HAS_BAYER : 0) | (iNovaSDK_HasST4() ? CCD_HAS_ST4_PORT : 0);
+            uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | (iNovaSDK_HasST4() ? CCD_HAS_ST4_PORT : 0);
             SetCCDCapability(cap);
+            if(iNovaSDK_HasColorSensor()) {
+                IUSaveText(&BayerT[2], "RGGB");
+                IDSetText(&BayerTP, NULL);
+                SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
+            }
 
             return true;
         }
@@ -159,8 +164,6 @@ bool INovaCCD::initProperties()
 
     // Set minimum exposure speed to 0.001 seconds
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 1000, 1, false);
-    if(iNovaSDK_HasColorSensor())
-        IUSaveText(&BayerT[2], "RGGB");
 
     setDefaultPollingPeriod(500);
 
