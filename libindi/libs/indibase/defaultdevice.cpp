@@ -859,7 +859,10 @@ void DefaultDevice::setConnected(bool status, IPState state, const char *msg)
 
     svp->s = state;
 
-    IDSetSwitch(svp, msg);
+    if (msg == nullptr)
+      IDSetSwitch(svp, nullptr);
+    else
+      IDSetSwitch(svp, "%s", msg);
 }
 
 //  This is a helper function
