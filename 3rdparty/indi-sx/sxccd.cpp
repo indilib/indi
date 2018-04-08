@@ -604,13 +604,9 @@ void SXCCD::ExposureTimerHit()
                             }
                         }
                     }
-                    else if (binX == 2 && binY == 2)
+                    else
                     {
-                        rc = sxReadPixels(handle, buf, size / 2);
-                    }
-                    else if (binX == 4 && binY == 4)
-                    {
-                        rc = sxReadPixels(handle, buf, size / 8);
+                        rc = sxReadPixels(handle, buf, size * 2);
                     }
                 }
             }
