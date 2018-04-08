@@ -185,6 +185,7 @@
 		594499601C136C9100E0E281 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5944995F1C136C9100E0E281 /* libz.tbd */; };
 		594499611C136CE300E0E281 /* indi_asi.xml in Resources */ = {isa = PBXBuildFile; fileRef = 594499471C13643F00E0E281 /* indi_asi.xml */; };
 		594499641C136E9F00E0E281 /* indi_asi_ccd in Copy Files (33 items) (53 items) */ = {isa = PBXBuildFile; fileRef = 594499451C1363C400E0E281 /* indi_asi_ccd */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5947FA822078FBE400C34391 /* lx200telescope.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5947FA812078FBE200C34391 /* lx200telescope.cpp */; };
 		59499FA21E61E97600567CAD /* usbfocusv3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59499FA01E61E96B00567CAD /* usbfocusv3.cpp */; };
 		59499FAD1E61EA4600567CAD /* libindi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA43A91A8CD3190004AA95 /* libindi.dylib */; };
 		59499FAE1E61EA4600567CAD /* libnova.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DDA422C1A8CB6920004AA95 /* libnova.dylib */; };
@@ -3546,6 +3547,7 @@
 		5944994B1C13651F00E0E281 /* libASICamera2.lib */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libASICamera2.lib; path = mac/libASICamera2.lib; sourceTree = "<group>"; };
 		5944995A1C136C0400E0E281 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		5944995F1C136C9100E0E281 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		5947FA812078FBE200C34391 /* lx200telescope.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lx200telescope.cpp; sourceTree = "<group>"; };
 		59499FA01E61E96B00567CAD /* usbfocusv3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = usbfocusv3.cpp; sourceTree = "<group>"; };
 		59499FA31E61EA2D00567CAD /* hitecastrodcfocuser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hitecastrodcfocuser.cpp; sourceTree = "<group>"; };
 		59499FB31E61EA4600567CAD /* indi_hitecastrodc_focus */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = indi_hitecastrodc_focus; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -5768,6 +5770,7 @@
 		9D75D5381A8D135B008AA08A /* telescope */ = {
 			isa = PBXGroup;
 			children = (
+				5947FA812078FBE200C34391 /* lx200telescope.cpp */,
 				5949E153205596C100B62867 /* pmc8.cpp */,
 				5949E152205596C100B62867 /* pmc8driver.cpp */,
 				5949E14F2055963900B62867 /* paramount.cpp */,
@@ -9197,6 +9200,7 @@
 				9D75D5821A8D16F7008AA08A /* lx200autostar.cpp in Sources */,
 				5949E138205592E000B62867 /* lx200ap_experimental.cpp in Sources */,
 				591BFB411F2944BC00BA7BBD /* lx200gotonova.cpp in Sources */,
+				5947FA822078FBE400C34391 /* lx200telescope.cpp in Sources */,
 				5944982C1C135B3600E0E281 /* lx200pulsar2.cpp in Sources */,
 				9D75D5841A8D16F7008AA08A /* lx200generic.cpp in Sources */,
 				5949E137205592E000B62867 /* ioptronHC8406.cpp in Sources */,

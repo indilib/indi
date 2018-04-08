@@ -55,34 +55,6 @@ static void cleanup()
     }
 }
 
-//static void deinterlace(unsigned short *data, int width, int height)
-//{
-//    int row, column;
-//    long *averages = (long *)malloc((height + 1) * sizeof(long));
-//    for (row = 0; row < height; row++)
-//    {
-//        long average = 0;
-//        int r        = row * width;
-//        for (column = 0; column < width; column++)
-//        {
-//            average += data[r + column];
-//        }
-//        averages[row] = average;
-//    }
-//    averages[row] = averages[row - 1];
-//    for (row = 1; row < height; row += 2)
-//    {
-//        double q = (averages[row]) / ((averages[row - 1] + averages[row + 1]) / 2.0);
-//        int r    = row * width;
-//        for (column = 0; column < width; column++)
-//        {
-//            int c   = r + column;
-//            data[c] = (unsigned short)(data[c] / q);
-//        }
-//    }
-//    free(averages);
-//}
-
 void ISInit()
 {
     static bool isInit = false;
@@ -269,7 +241,7 @@ bool SXCCD::initProperties()
 
     //  we can expose less than 0.01 seconds at a time
     //  and we need to for an allsky in daytime
-    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 3600, 0.0001, true);
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 3600, 0.0001, false);
 
     return true;
 }
@@ -279,6 +251,7 @@ bool SXCCD::updateProperties()
     INDI::CCD::updateProperties();
     if (isConnected())
     {
+        SetupParms();
         if (HasCooler)
             defineSwitch(&CoolerSP);
         if (HasShutter)
@@ -316,12 +289,6 @@ bool SXCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
-    int nbuf;
-    //  this is pixel count
-    nbuf = (w * h) / (PrimaryCCD.getBinX() * PrimaryCCD.getBinY()) * PrimaryCCD.getBPP() / 8;
-    //  leave a little extra at the end
-    nbuf += 512;
-    PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
 }
@@ -349,10 +316,7 @@ bool SXCCD::Connect()
     {
         int rc = sxOpen(device, &handle);
         if (rc >= 0)
-        {
-            getCameraParams();
             return true;
-        }
     }
     return false;
 }
@@ -366,7 +330,7 @@ bool SXCCD::Disconnect()
     return true;
 }
 
-void SXCCD::getCameraParams()
+void SXCCD::SetupParms()
 {
     struct t_sxccd_params params;
     model             = sxGetCameraModel(handle);
@@ -386,6 +350,7 @@ void SXCCD::getCameraParams()
         params.height = 2016;
     }
     SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
+ 
     int nbuf = params.width * params.height;
     if (params.bits_per_pixel == 16)
         nbuf *= 2;
