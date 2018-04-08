@@ -40,7 +40,7 @@ set(FIRMWARE_INSTALL_DIR "/lib/firmware/qhy" CACHE STRING "QHY firmware installa
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
 IF(UNIX AND NOT WIN32)
- IF (CMAKE_SYSTEM_PROCESSOR MATCHES "armv6l" OR CMAKE_SYSTEM_PROCESSOR MATCHES "armv7l")
+ IF (CMAKE_SYSTEM_PROCESSOR MATCHES "armv+")
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhyccd_armv6.bin ${CMAKE_BINARY_DIR}/libqhyccd.so.${LIBQHY_VERSION})
  ELSEIF(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhyccd_armv8.bin ${CMAKE_BINARY_DIR}/libqhyccd.so.${LIBQHY_VERSION})
