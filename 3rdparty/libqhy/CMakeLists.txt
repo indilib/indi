@@ -15,14 +15,24 @@ set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 IF (APPLE)
 
 set(FIRMWARE_INSTALL_DIR "/usr/local/lib/indi/DriverSupport/qhy/firmware" CACHE STRING "QHY firmware installation directory")
+
+# remove all existing libqhyccd
+exec_program(rm ARGS ${LIB_INSTALL_DIR}/libqhyccd*)
+
 exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhyccd.dylib ${CMAKE_BINARY_DIR}/libqhyccd.${LIBQHY_VERSION}.dylib)
+
 install(FILES ${CMAKE_BINARY_DIR}/libqhyccd.${LIBQHY_VERSION}.dylib DESTINATION ${LIB_INSTALL_DIR})
 
+# This is a temporary work-around until a better linking solution is found for MacOS
+exec_program(ln ARGS -s ${LIB_INSTALL_DIR}/libqhyccd.${LIBQHY_VERSION}.dylib ${LIB_INSTALL_DIR}/libqhyccd.${LIBQHY_SOVERSION}.dylib)
+exec_program(ln ARGS -s ${LIB_INSTALL_DIR}/libqhyccd.${LIBQHY_SOVERSION}.dylib ${LIB_INSTALL_DIR}/libqhyccd.dylib)
+
 # Make sure symbolic links are installed
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake "
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhyccd.${LIBQHY_VERSION}.dylib ${LIB_INSTALL_DIR}/libqhyccd.${LIBQHY_SOVERSION}.dylib)\n
-exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhyccd.${LIBQHY_SOVERSION}.dylib ${LIB_INSTALL_DIR}/libqhyccd.dylib)\n
-")
+# Looks like this only works on UNIX
+#file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_libqhy_symlink.cmake "
+#exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhyccd.${LIBQHY_VERSION}.dylib ${LIB_INSTALL_DIR}/libqhyccd.${LIBQHY_SOVERSION}.dylib)\n
+#exec_program(${CMAKE_COMMAND} ARGS -E create_symlink libqhyccd.${LIBQHY_SOVERSION}.dylib ${LIB_INSTALL_DIR}/libqhyccd.dylib)\n
+#")
 
 ELSE()
 
@@ -30,7 +40,7 @@ set(FIRMWARE_INSTALL_DIR "/lib/firmware/qhy" CACHE STRING "QHY firmware installa
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
 IF(UNIX AND NOT WIN32)
- IF (CMAKE_SYSTEM_PROCESSOR MATCHES "armv6l" OR CMAKE_SYSTEM_PROCESSOR MATCHES "armv7l")
+ IF (CMAKE_SYSTEM_PROCESSOR MATCHES "armv+")
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhyccd_armv6.bin ${CMAKE_BINARY_DIR}/libqhyccd.so.${LIBQHY_VERSION})
  ELSEIF(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhyccd_armv8.bin ${CMAKE_BINARY_DIR}/libqhyccd.so.${LIBQHY_VERSION})
