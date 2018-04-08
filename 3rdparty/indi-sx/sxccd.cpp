@@ -316,7 +316,34 @@ bool SXCCD::Connect()
     {
         int rc = sxOpen(device, &handle);
         if (rc >= 0)
+        {
+            struct t_sxccd_params params;
+            model             = sxGetCameraModel(handle);
+            sxGetCameraParams(handle, 0, &params);
+
+            HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
+            HasCooler    = params.extra_caps & SXUSB_CAPS_COOLER;
+            HasShutter   = params.extra_caps & SXUSB_CAPS_SHUTTER;
+            HasST4Port   = params.extra_caps & SXCCD_CAPS_STAR2K;
+
+            uint32_t cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_CAN_BIN;
+
+            if (HasCooler)
+                cap |= CCD_HAS_COOLER;
+
+            if (HasGuideHead)
+                cap |= CCD_HAS_GUIDE_HEAD;
+
+            if (HasShutter)
+                cap |= CCD_HAS_SHUTTER;
+
+            if (HasST4Port)
+                cap |= CCD_HAS_ST4_PORT;
+
+            SetCCDCapability(cap);
+
             return true;
+        }
     }
     return false;
 }
@@ -354,7 +381,7 @@ void SXCCD::SetupParms()
     int nbuf = params.width * params.height;
     if (params.bits_per_pixel == 16)
         nbuf *= 2;
-    nbuf += 512;
+    //nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
     if (isInterlaced)
     {
@@ -371,11 +398,6 @@ void SXCCD::SetupParms()
             delete evenBuf;
         evenBuf      = new char[nbuf];
     }
-        
-    HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
-    HasCooler    = params.extra_caps & SXUSB_CAPS_COOLER;
-    HasShutter   = params.extra_caps & SXUSB_CAPS_SHUTTER;
-    HasST4Port   = params.extra_caps & SXCCD_CAPS_STAR2K;
 
     if (HasGuideHead)
     {
@@ -386,22 +408,6 @@ void SXCCD::SetupParms()
         GuideCCD.setFrameBufferSize(nbuf);
         SetGuiderParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
     }
-
-    uint32_t cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_CAN_BIN;
-
-    if (HasCooler)
-        cap |= CCD_HAS_COOLER;
-
-    if (HasGuideHead)
-        cap |= CCD_HAS_GUIDE_HEAD;
-
-    if (HasShutter)
-        cap |= CCD_HAS_SHUTTER;
-
-    if (HasST4Port)
-        cap |= CCD_HAS_ST4_PORT;
-
-    SetCCDCapability(cap);
 
     SetTimer(TIMER);
 }
