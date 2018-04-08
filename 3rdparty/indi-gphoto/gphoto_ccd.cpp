@@ -1331,10 +1331,8 @@ bool GPhotoCCD::grabImage()
         // If subframing is requested
         /*if (frameInitialized &&
                 PrimaryCCD.getSubH() < PrimaryCCD.getYRes() || PrimaryCCD.getSubW() < PrimaryCCD.getXRes())*/
-        if (PrimaryCCD.getSubH() < w || PrimaryCCD.getSubW() < h)
+        if (PrimaryCCD.getSubW() < w || PrimaryCCD.getSubH() < h)
         {
-            LOG_DEBUG("Subframing...");
-
             int subFrameSize     = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp / 8 * ((naxis == 3) ? 3 : 1);
             int oneFrameSize     = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp / 8;
             uint8_t *subframeBuf = (uint8_t *)malloc(subFrameSize);
@@ -1343,6 +1341,9 @@ bool GPhotoCCD::grabImage()
             int endY   = startY + PrimaryCCD.getSubH();
             int lineW  = PrimaryCCD.getSubW() * bpp / 8;
             int subX   = PrimaryCCD.getSubX();
+
+            LOGF_DEBUG("Subframing... subFrameSize: %d - oneFrameSize: %d - startY: %d - endY: %d - lineW: %d - subX: %d", subFrameSize, oneFrameSize,
+                       startY, endY, lineW, subX);
 
             if (naxis == 2)
             {
@@ -1384,6 +1385,9 @@ bool GPhotoCCD::grabImage()
         {
             // We need to initially set the frame dimensions for the first time since it is unknown at the time of connection.
             //frameInitialized = true;
+
+            if (PrimaryCCD.getSubW() != 0 && (w > PrimaryCCD.getSubW() || h > PrimaryCCD.getSubH()))
+                LOGF_WARN("Camera image size (%dx%d) is less than requested size (%d,%d). Update frame size to match camera size.", w, h, PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 
             PrimaryCCD.setFrame(0, 0, w, h);
             PrimaryCCD.setFrameBuffer(memptr);
