@@ -499,7 +499,7 @@ void Pyxis::TimerHit()
         else
         {
             // Fast timer
-            SetTimer(100);
+            SetTimer(POLLMS);
             return;
         }
     }
@@ -512,7 +512,7 @@ void Pyxis::TimerHit()
         else
         {
             // Fast timer
-            SetTimer(100);
+            SetTimer(POLLMS);
             return;
         }
         //if (PA == targetPA)
@@ -528,6 +528,38 @@ void Pyxis::TimerHit()
     SetTimer(POLLMS);
 }
 
+bool Pyxis::isMotionComplete()
+{
+    int nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+    char res[256] = { 0 };
+
+    if ( (rc = tty_nread_section(PortFD, res, 255, 'F', 1, &nbytes_read)) != TTY_OK)
+    {
+        // '!' motion is not complete yet
+        if (rc == TTY_TIME_OUT)
+            return false;
+
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
+
+        if (HomeRotatorSP.s == IPS_BUSY)
+        {
+            HomeRotatorS[0].s = ISS_OFF;
+            HomeRotatorSP.s = IPS_ALERT;
+            LOG_ERROR("Homing failed. Check possible jam.");
+            tcflush(PortFD, TCIOFLUSH);
+        }
+
+        return false;
+    }
+
+    LOGF_DEBUG("RES <%s>", res);
+
+    return true;
+}
+
+#if 0
 bool Pyxis::isMotionComplete()
 {
     int nbytes_read = 0, rc = -1;
@@ -560,6 +592,7 @@ bool Pyxis::isMotionComplete()
 
     return false;
 }
+#endif
 
 bool Pyxis::getPA(uint16_t &PA)
 {
