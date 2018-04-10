@@ -177,7 +177,7 @@ public:
 
     /* Site Name */
     ITextVectorProperty SiteNameTP;
-    IText SiteNameT[1];
+    IText SiteNameT[1] {};
 
     /* Focus motion */
     ISwitchVectorProperty FocusMotionSP;

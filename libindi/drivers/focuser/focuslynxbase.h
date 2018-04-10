@@ -232,7 +232,7 @@ class FocusLynxBase : public INDI::Focuser
     INumberVectorProperty MaxTravelNP;
 
     // Focus name configure in the HUB
-    IText HFocusNameT[1];
+    IText HFocusNameT[1] {};
     ITextVectorProperty HFocusNameTP;
 
     bool isAbsolute;

@@ -70,7 +70,7 @@ class GigECCD : public INDI::CCD
 
     INumber indiprop_gain[1];
     INumberVectorProperty indiprop_gain_prop;
-    IText indiprop_info[3];
+    IText indiprop_info[3] {};
     ITextVectorProperty indiprop_info_prop;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
