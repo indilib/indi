@@ -148,12 +148,15 @@ void LX200AstroPhysicsExperimental::ISGetProperties(const char *dev)
 
     defineSwitch(&UnparkFromSP);
 
+    // MSF 2018/04/10 - disable this behavior for now - we want to have
+    //                  UnparkFromSP to always start out as "Last Parked" for safety
+    
     // load config to get unpark from position user wants BEFORE we connect to mount
-    if (!isConnected())
-    {
-        LOG_DEBUG("Loading unpark from location from config file");
-        loadConfig(true, UnparkFromSP.name);
-    }
+    //    if (!isConnected())
+    //    {
+    //        LOG_DEBUG("Loading unpark from location from config file");
+    //        loadConfig(true, UnparkFromSP.name);
+    //    }
 
     if (isConnected())
     {
