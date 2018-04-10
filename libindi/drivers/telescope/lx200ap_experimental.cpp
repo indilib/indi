@@ -1309,7 +1309,6 @@ bool LX200AstroPhysicsExperimental::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &SyncCMRSP);
     IUSaveConfigSwitch(fp, &APSlewSpeedSP);
     IUSaveConfigSwitch(fp, &APGuideSpeedSP);
-    IUSaveConfigSwitch(fp, &UnparkFromSP);
     IUSaveConfigSwitch(fp, &ParkToSP);
 
     return true;
