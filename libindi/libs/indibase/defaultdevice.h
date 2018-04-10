@@ -476,7 +476,7 @@ class INDI::DefaultDevice : public INDI::BaseDevice
 
     // Connection modes
     ISwitch *ConnectionModeS = nullptr;
-    ISwitchVectorProperty ConnectionModeSP;
+    ISwitchVectorProperty ConnectionModeSP {};
 
     std::vector<Connection::Interface *> connections;
     Connection::Interface *activeConnection = nullptr;
