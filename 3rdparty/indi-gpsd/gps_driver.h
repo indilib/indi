@@ -35,7 +35,7 @@ class GPSD : public INDI::GPS
     GPSD();
     virtual ~GPSD();
 
-    IText GPSstatusT[1];
+    IText GPSstatusT[1] {};
     ITextVectorProperty GPSstatusTP;
 
     INumber PolarisN[1];

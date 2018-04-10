@@ -94,7 +94,7 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
     void getStartupData();
 
     /* Firmware */
-    IText FirmwareT[5];
+    IText FirmwareT[5] {};
     ITextVectorProperty FirmwareTP;
 
     /* Tracking Mode */

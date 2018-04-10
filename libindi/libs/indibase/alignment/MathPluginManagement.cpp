@@ -24,6 +24,7 @@ MathPluginManagement::MathPluginManagement() : CurrentInMemoryDatabase(nullptr),
     pTransformTelescopeToCelestial(&MathPlugin::TransformTelescopeToCelestial),
     pLoadedMathPlugin(&BuiltInPlugin), LoadedMathPluginHandle(nullptr)
 {
+    memset(&AlignmentSubsystemCurrentMathPlugin, 0, sizeof(IText));
 }
 
 void MathPluginManagement::InitProperties(Telescope *ChildTelescope)

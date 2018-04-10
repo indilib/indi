@@ -62,7 +62,7 @@ class MBox : public INDI::Weather
     ISwitch ResetS[1];
     ISwitchVectorProperty ResetSP;
 
-    IText FirmwareT[1];
+    IText FirmwareT[1] {};
     ITextVectorProperty FirmwareTP;
 
 

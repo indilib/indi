@@ -107,7 +107,7 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
     void getStartupData();
 
     /* Firmware */
-    IText FirmwareT[1];
+    IText FirmwareT[1] {};
     ITextVectorProperty FirmwareTP;
 
     /* Tracking Mode */
