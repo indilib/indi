@@ -126,7 +126,7 @@ class MathPluginManagement : private MathPlugin // Derive from MathPluign to for
     InMemoryDatabase *CurrentInMemoryDatabase;
 
     // The following property is used for configuration purposes only and is not propagated to the client
-    IText AlignmentSubsystemCurrentMathPlugin {};
+    IText AlignmentSubsystemCurrentMathPlugin;
     ITextVectorProperty AlignmentSubsystemCurrentMathPluginV;
 
     // The following hold links to the current loaded math plugin
