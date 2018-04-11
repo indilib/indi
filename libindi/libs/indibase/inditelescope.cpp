@@ -43,6 +43,7 @@ Telescope::Telescope()
     capability     = 0;
     last_we_motion = last_ns_motion = -1;
     parkDataType                    = PARK_NONE;
+    ParkdataXmlRoot                 = nullptr;
     IsParked                        = false;
     IsLocked                        = true;
 
@@ -62,6 +63,9 @@ Telescope::Telescope()
 
 Telescope::~Telescope()
 {
+    if (ParkdataXmlRoot)
+        delXMLEle(ParkdataXmlRoot);
+
     delete (controller);
 }
 
