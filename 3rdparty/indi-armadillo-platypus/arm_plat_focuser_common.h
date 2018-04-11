@@ -120,6 +120,6 @@ protected:
 
 
     // Firmware Version
-    IText FirmwareVersionT[1];
+    IText FirmwareVersionT[1] {};
     ITextVectorProperty FirmwareVersionTP;
 };

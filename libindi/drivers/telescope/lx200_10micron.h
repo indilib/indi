@@ -119,7 +119,7 @@ class LX200_10MICRON : public LX200Generic
   protected:
     void getBasicData() override;
 
-    IText ProductT[4];
+    IText ProductT[4] {};
     ITextVectorProperty ProductTP;
 
     virtual int SetRefractionModelTemperature(double temperature);
@@ -150,7 +150,7 @@ class LX200_10MICRON : public LX200Generic
     INumber NewAlignmentPointsN[1];
     INumberVectorProperty NewAlignmentPointsNP;
 
-    IText NewModelNameT[1];
+    IText NewModelNameT[1] {};
     ITextVectorProperty NewModelNameTP;
 
   private:

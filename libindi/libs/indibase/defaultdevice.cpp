@@ -64,6 +64,7 @@ DefaultDevice::DefaultDevice()
     majorVersion        = 1;
     minorVersion        = 0;
     interfaceDescriptor = GENERAL_INTERFACE;
+    memset(&ConnectionModeSP, 0, sizeof(ConnectionModeSP));
 }
 
 DefaultDevice::~DefaultDevice()
