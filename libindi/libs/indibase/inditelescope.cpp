@@ -794,7 +794,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
 
                 // Remember Track State
                 RememberTrackState = TrackState;
-                // Issue GOTO                
+                // Issue GOTO
                 rc = Goto(ra, dec);
                 if (rc)
                 {
@@ -1874,7 +1874,7 @@ char *Telescope::LoadParkData()
         return (char *)("Unable to parse Park Position Axis 2.");
     }
 
-    if (std::isnan(axis1Pos) == false && std::isnan(axis1Pos) == false)
+    if (std::isnan(axis1Pos) == false && std::isnan(axis2Pos) == false)
     {
         Axis1ParkPosition = axis1Pos;
         Axis2ParkPosition = axis2Pos;
@@ -1939,19 +1939,19 @@ bool Telescope::WriteParkData()
     return true;
 }
 
-double Telescope::GetAxis1Park()
+double Telescope::GetAxis1Park() const
 {
     return Axis1ParkPosition;
 }
-double Telescope::GetAxis1ParkDefault()
+double Telescope::GetAxis1ParkDefault() const
 {
     return Axis1DefaultParkPosition;
 }
-double Telescope::GetAxis2Park()
+double Telescope::GetAxis2Park() const
 {
     return Axis2ParkPosition;
 }
-double Telescope::GetAxis2ParkDefault()
+double Telescope::GetAxis2ParkDefault() const
 {
     return Axis2DefaultParkPosition;
 }
@@ -1980,7 +1980,7 @@ void Telescope::SetAxis2ParkDefault(double value)
     Axis2DefaultParkPosition = value;
 }
 
-bool Telescope::isLocked()
+bool Telescope::isLocked() const
 {
     return (DomeClosedLockT[1].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON) && IsLocked;
 }
