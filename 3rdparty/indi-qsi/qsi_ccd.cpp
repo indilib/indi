@@ -1502,6 +1502,8 @@ bool QSICCD::GetFilterNames()
 
     if (FilterNameT != nullptr)
     {
+        for (int i=0; i < FilterNameTP->ntp; i++)
+            free(FilterNameT[i].text);
         delete [] FilterNameT;
         FilterNameT = nullptr;
     }
@@ -1520,6 +1522,7 @@ bool QSICCD::GetFilterNames()
     }
 
     FilterNameT = new IText[filterCount];
+    memset(FilterNameT, 0, sizeof(IText) * filterCount);
 
     for (int i = 0; i < filterCount; i++)
     {

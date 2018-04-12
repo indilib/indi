@@ -804,7 +804,7 @@ class CCD : public DefaultDevice, GuiderInterface
     INumber EqN[2];
 
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[4];
+    IText ActiveDeviceT[4] {};
     enum
     {
         SNOOP_MOUNT,
@@ -816,16 +816,16 @@ class CCD : public DefaultDevice, GuiderInterface
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
 
-    IText BayerT[3];
+    IText BayerT[3] {};
     ITextVectorProperty BayerTP;
 
-    IText FileNameT[1];
+    IText FileNameT[1] {};
     ITextVectorProperty FileNameTP;
 
     ISwitch UploadS[3];
     ISwitchVectorProperty UploadSP;
 
-    IText UploadSettingsT[2];
+    IText UploadSettingsT[2] {};
     ITextVectorProperty UploadSettingsTP;
     enum
     {
@@ -867,7 +867,7 @@ class CCD : public DefaultDevice, GuiderInterface
 #endif
 
     // FITS Header
-    IText FITSHeaderT[2];
+    IText FITSHeaderT[2] {};
     ITextVectorProperty FITSHeaderTP;
     enum
     {

@@ -755,6 +755,11 @@ bool Dome::ISSnoopDevice(XMLEle *root)
             {
                 const char *elemName = findXMLAttValu(ep, "name");
 
+                if ((!strcmp(elemName, "PARK") && !strcmp(pcdataXMLEle(ep), "On")))
+                    IsMountParked = true;
+                else if ((!strcmp(elemName, "UNPARK") && !strcmp(pcdataXMLEle(ep), "On")))
+                    IsMountParked = false;
+
                 if (IsLocked && !strcmp(elemName, "PARK") && !strcmp(pcdataXMLEle(ep), "On"))
                     IsLocked = false;
                 else if (!IsLocked && !strcmp(elemName, "UNPARK") && !strcmp(pcdataXMLEle(ep), "On"))
@@ -1232,8 +1237,9 @@ void Dome::UpdateMountCoords()
         DEBUGF(Logger::DBG_DEBUG, "Updated telescope Az: %g - Alt: %g", prev_az, prev_alt);
     }
 
-    // Check if we need to move
-    UpdateAutoSync();
+    // Check if we need to move if mount is unparked.
+    if (IsMountParked == false)
+        UpdateAutoSync();
 }
 
 void Dome::UpdateAutoSync()

@@ -105,7 +105,7 @@ class LightBoxInterface
 
     // Active devices to snoop
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1];
+    IText ActiveDeviceT[1] {};
 
     INumberVectorProperty FilterIntensityNP;
     INumber *FilterIntensityN;

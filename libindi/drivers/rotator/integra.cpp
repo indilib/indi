@@ -54,7 +54,7 @@ static const COMMANDDESC IntegraProtocol[] = {
         { "@MI%d,%d\r\n", { "M", "MI"}},
         { "@MO%d,%d\r\n", { "M", "MO"}},
         { "@RR%d,0\r\n",  { "R", "RR"}},
-        { "X\r\n",            { "", ""}},
+        { "X\r\n",        { "", "X"}},
         { "@IW%d,0\r\n",  { "I", "IW"}},
         { "@ZW\r\n",      { "", "ZW"}}
 };
@@ -189,6 +189,7 @@ bool Integra::updateProperties()
         // Rotator
         RI::updateProperties();
         defineNumber(&RotatorAbsPosNP);
+
     }
     else
     {
@@ -238,11 +239,10 @@ void Integra::cleanPrint(const char *cmd, char *cleancmd)
 
 bool Integra::Ack()
 {
+
     bool rcFirmware = getFirmware();
     bool rcType = getFocuserType();
     bool rcMaxPositionMotorFocus = getMaxPosition(MOTOR_FOCUS);
-    if ( ! rcMaxPositionMotorFocus) // first communication attempt, try twice if needed
-        rcMaxPositionMotorFocus = getMaxPosition(MOTOR_FOCUS);
     bool rcMaxPositionMotorRotator = getMaxPosition(MOTOR_ROTATOR);
     return (rcFirmware && rcType && rcMaxPositionMotorFocus && rcMaxPositionMotorRotator);
 }
@@ -262,9 +262,11 @@ bool Integra::getFirmware()
     {
         strcpy(resp, "20.12.2017");
         this->firmwareVersion = VERSION_20122017;
-    } else {
+    } else if ( genericIntegraCommand(__FUNCTION__, "@RR1,0\r\n", "R", nullptr)) {
         strcpy(resp, "25.01.2017");
         this->firmwareVersion = VERSION_25012017;
+    } else {
+        return false;   // cannot retrieve firmware session.
     }
 
     LOGF_INFO("Firmware version %s", resp);
@@ -565,7 +567,7 @@ void Integra::TimerHit()
     }
 
     // #5 Focus Position & Status
-    //if (!haveReadFocusPositionAtLeastOnce || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
+    if (!haveReadFocusPositionAtLeastOnce || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
         if ( ! isMotorMoving(MOTOR_FOCUS))
         {
@@ -593,7 +595,7 @@ void Integra::TimerHit()
     }
 
     // #6 Rotator Position & Status
-    //if (!haveReadRotatorPositionAtLeastOnce  || RotatorAbsPosNP.s == IPS_BUSY)
+    if (!haveReadRotatorPositionAtLeastOnce  || RotatorAbsPosNP.s == IPS_BUSY)
     {
         if ( ! isMotorMoving(MOTOR_ROTATOR))
         {
@@ -623,6 +625,7 @@ void Integra::TimerHit()
         }
     }
 
+
     if (savePositionsToEEPROM) {
         saveToEEPROM();
     }
@@ -637,7 +640,7 @@ bool Integra::AbortFocuser()
 bool Integra::stopMotor(MotorType type)
 {
     // TODO (if focuser?) handle CR 2
-    if (integraGetCommand(__FUNCTION__, stop_motor, nullptr))
+    if (integraMotorGetCommand(__FUNCTION__, stop_motor,type, nullptr))
     {
         if (type == MOTOR_FOCUS) {
             haveReadFocusPositionAtLeastOnce = false;
@@ -646,6 +649,7 @@ bool Integra::stopMotor(MotorType type)
         }
         return true;
     }
+
     return false;
 }
 
@@ -685,7 +689,7 @@ bool Integra::getMaxPosition(MotorType type)
     int position = atoi(res);
     MaxPositionN[type].value = position;
     LOGF_INFO("Motor %d max position is %d", type, position);
-    return true;
+    return position > 0; // cannot consider a max position == 0 as a valid max.
 }
 
 bool Integra::saveToEEPROM()
@@ -820,10 +824,11 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
     char cmdnocrlf[16] = {0};
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char res[16] = {0};
+    char *correctRes = nullptr;
     char errstr[MAXRBUF];
 
     cleanPrint(cmd, cmdnocrlf);
-    LOGF_INFO("CMD %s -%s-", name, cmdnocrlf);
+    LOGF_INFO("CMD %s (%s)", name, cmdnocrlf);
 
     tcflush(PortFD, TCIOFLUSH);
     if ( (rc = tty_write(PortFD, cmd, (int)strlen(cmd), &nbytes_written)) != TTY_OK)
@@ -840,32 +845,28 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
         return false;
     }
 
-    LOGF_INFO("RES %s -%s-", name, res);
+    LOGF_INFO("RES %s (%s)", name, res);
 
     // check begin of result string
     if (expectStart != nullptr)
     {
-        size_t expectStrlen = strlen(expectStart);
-        for (size_t i=0; i<expectStrlen; i++)
-        {
-            if (res[i] != expectStart[i])
-            {
-                LOGF_ERROR("%s error: invalid response <%s>", name, res);
-                return false;
-            }
+        correctRes = strstr(res, expectStart);      // the hw sometimes returns /r or /n at the beginning ot the response
+        if (correctRes == nullptr) {
+            LOGF_ERROR("%s error: invalid response (%s)", name, res);
+            return false;
         }
     }
     // check end of result string
     if (res[nbytes_read-1] != '#')
     {
-        LOGF_ERROR("%s error: invalid response <%s>", name, res);
+        LOGF_ERROR("%s error: invalid response 2 (%s)", name, res);
         return false;
     }
     res[nbytes_read-1] = '\0';  // wipe the #
 
     if (returnValueString != nullptr && expectStart != nullptr) {
         size_t expectStrlen = strlen(expectStart);
-        strcpy(returnValueString, res + expectStrlen);
+        strcpy(returnValueString, correctRes + expectStrlen);
     }
 
     return true;

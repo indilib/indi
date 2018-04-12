@@ -39,7 +39,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 3);
+    setVersion(1, 4);
     
     setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
@@ -976,13 +976,13 @@ bool LX200_OnStep::Park()      // Tested
         {
             if (!isSimulation() && abortSlew(PortFD) < 0)
             {
-		    Telescope::AbortSP.s = IPS_ALERT;
-		    IDSetSwitch(&(Telescope::AbortSP), "Abort slew failed.");
+                Telescope::AbortSP.s = IPS_ALERT;
+                IDSetSwitch(&(Telescope::AbortSP), "Abort slew failed.");
                 return false;
             }
             Telescope::AbortSP.s = IPS_OK;
             EqNP.s    = IPS_IDLE;
-	    IDSetSwitch(&(Telescope::AbortSP), "Slew aborted.");
+            IDSetSwitch(&(Telescope::AbortSP), "Slew aborted.");
             IDSetNumber(&EqNP, nullptr);
 
             if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
