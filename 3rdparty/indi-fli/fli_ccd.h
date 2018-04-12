@@ -92,7 +92,7 @@ class FLICCD : public INDI::CCD
     ISwitch PortS[4];
     ISwitchVectorProperty PortSP;
 
-    IText CamInfoT[3];
+    IText CamInfoT[3] {};
     ITextVectorProperty CamInfoTP;
 
     INumber CoolerN[1];

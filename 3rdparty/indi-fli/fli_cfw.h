@@ -67,7 +67,7 @@ class FLICFW : public INDI::FilterWheel
     ISwitch PortS[4];
     ISwitchVectorProperty PortSP;
 
-    IText FilterInfoT[3];
+    IText FilterInfoT[3] {};
     ITextVectorProperty FilterInfoTP;
 
     ISwitch FilterS[2];

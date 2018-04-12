@@ -81,11 +81,11 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
 
     // Status
     ITextVectorProperty StatusTP;
-    IText StatusT[3];
+    IText StatusT[3] {};
 
     // Firmware version
     ITextVectorProperty FirmwareTP;
-    IText FirmwareT[1];
+    IText FirmwareT[1] {};
 
     // Abort
     ISwitch AbortS[1];
