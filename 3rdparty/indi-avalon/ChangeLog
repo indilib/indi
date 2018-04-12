@@ -1,3 +1,6 @@
+Version 0.3 - 2018-04-12
+	+ showing pier side implemented
+	+ merged with INDI v 1.7.0
 Version 0.2 - 2018-03-30
 	+ Moved to 3rdparty
 	+ introduction of LX200Telescope as base class separated

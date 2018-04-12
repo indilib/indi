@@ -302,7 +302,7 @@ endif(WITH_ARMADILLO)
 # Avalon StarGO
 if (WITH_AVALON)
 add_subdirectory(indi-avalon)
-endif(WITH_ARMADILLO)
+endif(WITH_AVALON)
 
 if (WITH_FXLOAD)
 add_subdirectory(fxload)
