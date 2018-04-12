@@ -318,7 +318,7 @@ bool LX200Generic::initProperties()
 
     if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
     {
-	    IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.5, 0.001, 60.5);
+	    IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 55, 65, 0.0001, 60.0);
     } else {
 	IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
     }

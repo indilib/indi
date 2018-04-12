@@ -28,6 +28,7 @@
 #include "lx200generic.h"
 #include "lx200driver.h"
 #include "indicom.h"
+#include "indifocuserinterface.h"
 
 #include <cstring>
 #include <unistd.h>
@@ -40,10 +41,12 @@
 #define OnStepalign2(fd)   write(fd, "#:A2#", 5)
 #define OnStepalign3(fd)   write(fd, "#:A3#", 5)
 #define OnStepalignOK(fd)   write(fd, "#:A+#", 5)
+#define OnStep
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
 
-class LX200_OnStep : public LX200Generic
+
+class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
 {
   public:
     LX200_OnStep();
@@ -69,7 +72,18 @@ class LX200_OnStep : public LX200Generic
     virtual int setSiteLongitude(int fd, double Long);
     virtual bool GetAlignStatus();
     virtual bool kdedialog(const char * commande);
+    
+    
+    
+    //FocuserInterface
+    
+    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+    IPState MoveAbsFocuser (uint32_t targetTicks) override;
+    IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
+    bool AbortFocuser () override;
 
+    
+    //End FocuserInterface
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
@@ -121,6 +135,8 @@ class LX200_OnStep : public LX200Generic
     INumberVectorProperty OSFocus1TargNP;
     INumber OSFocus1TargN[1];
 
+    INumberVectorProperty OSFocus1TargRelNP;
+    INumber OSFocus1TargRelN[1];
     // Focuser 2
     //ISwitchVectorProperty OSFocus2SelSP;
     //ISwitch OSFocus2SelS[2];
