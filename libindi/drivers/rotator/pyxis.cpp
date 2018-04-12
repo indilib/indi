@@ -33,6 +33,14 @@
 #define PYRIX_CMD 6
 #define SETTINGS_TAB    "Settings"
 
+// Recommended default rates for 3 inch and 2 inch rotators
+#define PYXIS_3INCH_RATE 6
+#define PYXIS_2INCH_RATE 8
+
+// Number of steps per degree for rotators
+#define PYXIS_3INCH_PER_DEG 128
+#define PYXIS_2INCH_PER_DEG 14
+
 std::unique_ptr<Pyxis> pyxis(new Pyxis());
 
 void ISGetProperties(const char *dev)
@@ -99,9 +107,18 @@ bool Pyxis::initProperties()
     IUFillSwitch(&PowerS[POWER_WAKEUP], "POWER_WAKEUP", "Wake Up", ISS_OFF);
     IUFillSwitchVector(&PowerSP, PowerS, 2, getDeviceName(), "POWER_STATE", "Power", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
+    // Firmware version
+    IUFillText(&FirmwareT[0], "FIRMWARE_VERSION", "Version", "Unknown");
+    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_VERSION", "Firmware", INFO_TAB, IP_RO, 0, IPS_IDLE);
+
+    // Firmware version
+    IUFillText(&ModelT[0], "HARDWARE_MODEL", "Model", "Unknown");
+    IUFillTextVector(&ModelTP, ModelT, 1, getDeviceName(), "HARDWARE_MODEL", "Model", INFO_TAB, IP_RO, 0, IPS_IDLE);
+
+
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
-    return true;
+    return true ;
 }
 
 bool Pyxis::Handshake()
@@ -123,11 +140,13 @@ bool Pyxis::updateProperties()
     INDI::Rotator::updateProperties();
 
     if (isConnected())
-    {
-        defineNumber(&RotationRateNP);
+    { 
+        defineNumber(&RotationRateNP)  ;
         defineSwitch(&SteppingSP);
         defineSwitch(&PowerSP);
-
+        defineText(&FirmwareTP) ;
+        defineText(&ModelTP) ;
+        
         queryParams();
     }
     else
@@ -135,6 +154,8 @@ bool Pyxis::updateProperties()
         deleteProperty(RotationRateNP.name);
         deleteProperty(SteppingSP.name);
         deleteProperty(PowerSP.name);
+        deleteProperty(FirmwareTP.name) ;
+        deleteProperty(ModelTP.name) ;
     }
 
     return true;
@@ -156,6 +177,38 @@ void Pyxis::queryParams()
         ReverseRotatorSP.s = IPS_ALERT;
 
     IDSetSwitch(&ReverseRotatorSP, nullptr);
+
+    // Firmware version parameter
+    std::string sversion = getVersion() ;
+    IUSaveText(&FirmwareT[0], sversion.c_str()) ;
+    FirmwareTP.s = IPS_OK;
+    IDSetText(&FirmwareTP, nullptr) ;
+
+    LOGF_DEBUG("queryParms firmware = %s", sversion.c_str()) ;
+
+    // Firmware tells us device type, 3 inch or 2 inch, which defines the correct default rotation rate
+    if (atof(sversion.c_str()) >= 3)
+    {
+        uint16_t rate = (atof(sversion.c_str()) >= 3 ? PYXIS_3INCH_RATE : PYXIS_2INCH_RATE) ;
+        bool rc = setRotationRate(rate) ;
+        LOGF_DEBUG("queryParms rate = %d, firmware = %s", rate, sversion.c_str()) ;
+        if (rc)
+	{
+            RotationRateNP.s = IPS_OK ;
+            RotationRateN[0].value = rate ;
+            IDSetNumber(&RotationRateNP, nullptr) ;
+
+            IUSaveText(&ModelT[0], "Pyxis 3 Inch") ;
+            ModelTP.s = IPS_OK;
+            IDSetText(&ModelTP, nullptr)  ;
+	}
+    }
+    else
+    {
+        IUSaveText(&ModelT[0], "Pyxis 2 Inch") ;
+        ModelTP.s = IPS_OK;
+        IDSetText(&ModelTP, nullptr) ; 
+    }
 
 }
 
@@ -194,7 +247,7 @@ bool Pyxis::Ack()
         LOG_ERROR("Cannot establish communication. Check power is on and homing is complete.");
         return false;
     }
-
+    
     return true;
 }
 
@@ -219,7 +272,6 @@ bool Pyxis::ISNewNumber(const char *dev, const char *name, double values[], char
     }
 
     return Rotator::ISNewNumber(dev, name, values, names, n);
-
 }
 
 bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -331,9 +383,11 @@ bool Pyxis::setSteppingMode(uint8_t mode)
 bool Pyxis::setRotationRate(uint8_t rate)
 {
     char cmd[PYRIX_BUF] = {0};
-
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
+
+    char res[1] = { 0 } ;
+    int nbytes_read = 0 ;
 
     snprintf(cmd, PYRIX_BUF, "CTxx%02d", rate);
 
@@ -348,9 +402,18 @@ bool Pyxis::setRotationRate(uint8_t rate)
         return false;
     }
 
+    if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
     tcflush(PortFD, TCIOFLUSH);
 
-    return true;
+    LOGF_DEBUG("RES <%c>", res[0]);
+
+    return (res[0] == '!');
 }
 
 bool Pyxis::sleepController()
@@ -435,10 +498,14 @@ IPState Pyxis::MoveRotator(double angle)
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
+    uint16_t current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
+ 
     targetPA = static_cast<uint16_t>(round(angle));
 
     if (targetPA > 359)
         targetPA = 0;
+
+    direction = (targetPA >= current ? 1 : -1) ;
 
     snprintf(cmd, PYRIX_BUF, "CPA%03d", targetPA);
 
@@ -504,18 +571,12 @@ void Pyxis::TimerHit()
         }
     }
     else if (GotoRotatorNP.s == IPS_BUSY)
-    {
-        if (isMotionComplete())
+    { 
+        while ( !isMotionComplete() )  
         {
-            GotoRotatorNP.s = IPS_OK;
+            LOGF_DEBUG("Motion in %s", "progress") ;
         }
-        else
-        {
-            // Fast timer
-            SetTimer(POLLMS);
-            return;
-        }
-        //if (PA == targetPA)
+        GotoRotatorNP.s = IPS_OK;
     }
 
     uint16_t PA = 0;
@@ -532,17 +593,32 @@ bool Pyxis::isMotionComplete()
 {
     int nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char res[256] = { 0 };
+    char res[PYXIS_3INCH_PER_DEG+1] = { 0 };
 
-    if ( (rc = tty_nread_section(PortFD, res, 255, 'F', 1, &nbytes_read)) != TTY_OK)
+    bool pyxis3inch = atoi(FirmwareT[0].text) >= 3 ;
+
+    if ( (rc = tty_nread_section(PortFD, res, (pyxis3inch ? PYXIS_3INCH_PER_DEG : PYXIS_2INCH_PER_DEG), 'F', 1, &nbytes_read)) != TTY_OK)
     {
         // '!' motion is not complete yet
         if (rc == TTY_TIME_OUT)
             return false;
+        else if (rc == TTY_OVERFLOW)
+	{
+            LOGF_DEBUG("RES <%s>", res);
+
+            int current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
+            current = current + direction ;
+            GotoRotatorN[0].value = current ;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+ 
+            LOGF_DEBUG("ANGLE = %d", current) ;
+            LOGF_DEBUG("TTY_OVERFLOW, nbytes_read = %d", nbytes_read) ;
+            return false ;
+	}
 
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-
+        
         if (HomeRotatorSP.s == IPS_BUSY)
         {
             HomeRotatorS[0].s = ISS_OFF;
@@ -593,6 +669,43 @@ bool Pyxis::isMotionComplete()
     return false;
 }
 #endif
+
+std::string Pyxis::getVersion()
+{
+    const char *cmd = "CVxxxx";
+    char res[4] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    LOGF_DEBUG("CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
+        return std::string("");;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 3, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
+        return std::string("") ;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    LOGF_DEBUG("RES <%s>", res);
+
+    if (res[0] == '!')
+        return std::string("");
+
+    return std::string(res) ;;
+}
+
 
 bool Pyxis::getPA(uint16_t &PA)
 {
