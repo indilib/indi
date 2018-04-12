@@ -101,7 +101,7 @@ void ISSnoopDevice(XMLEle *root)
 
 LX200StarGo::LX200StarGo()
 {
-    setVersion(0, 2);
+    setVersion(0, 3);
     /* missing capabilities
      * TELESCOPE_HAS_TIME:
      *    missing commands
@@ -350,7 +350,7 @@ bool LX200StarGo::ReadScopeStatus()
     }
 
     NewRaDec(currentRA, currentDEC);
-    return true;
+    return syncSideOfPier();
 }
 
 /**************************************************************************************
@@ -760,26 +760,6 @@ bool LX200StarGo::UnPark() {
 
 }
 
-bool LX200StarGo::querySendMountSetPark() {
-    // Command  - :X352#
-    // Response - 0#
-    flush();
-    if (!transmit(":X352#")) {
-        LOGF_ERROR("%s: Failed to send mount set park position command.", getDeviceName());
-        return false;
-    }
-    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    int bytesReceived = 0;
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive mount set park position response.", getDeviceName());
-        return false;
-    }
-    if (response[0] != '0') {
-        LOGF_ERROR("%s: Invalid mount set park position response '%s'.", getDeviceName(), response);
-        return false;
-    }
-    return true;
-}
 
 /*********************************************************************************
  * config file
@@ -813,6 +793,27 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response) {
     int bytesReceived = 0;
     if (!receive(response, &bytesReceived)) {
         LOGF_ERROR("%s: Failed to receive response to <%s>.", getDeviceName(), cmd);
+        return false;
+    }
+    return true;
+}
+
+bool LX200StarGo::querySendMountSetPark() {
+    // Command  - :X352#
+    // Response - 0#
+    flush();
+    if (!transmit(":X352#")) {
+        LOGF_ERROR("%s: Failed to send mount set park position command.", getDeviceName());
+        return false;
+    }
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    int bytesReceived = 0;
+    if (!receive(response, &bytesReceived)) {
+        LOGF_ERROR("%s: Failed to receive mount set park position response.", getDeviceName());
+        return false;
+    }
+    if (response[0] != '0') {
+        LOGF_ERROR("%s: Invalid mount set park position response '%s'.", getDeviceName(), response);
         return false;
     }
     return true;
@@ -1002,6 +1003,56 @@ bool LX200StarGo::querySetTracking (bool enable) {
     return true;
 }
 
+/**
+ * @brief Retrieve pier side of the mount and sync it back to the client
+ * @return true iff synching succeeds
+ */
+bool LX200StarGo::syncSideOfPier() {
+    // Command query side of pier - :X39#
+    //         side unknown       - PX#
+    //         east pointing west - PE#
+    //         west pointing east - PW#
+
+    int bytesReceived = 0;
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+
+    if (!transmit(":X39#")) {
+        LOGF_ERROR("%s: Failed to send query pier side.", getDeviceName());
+        return false;
+    }
+    if (!receive(response, &bytesReceived)) {
+        LOGF_ERROR("%s: Failed to receive query pier side.", getDeviceName());
+        return false;
+    }
+
+    char answer;
+
+    if (! sscanf(response, "P%c#", &answer)) {
+        LOGF_ERROR("%s: Unexpected query pier side response '%s'.", getDeviceName(), response);
+        return false;
+    }
+
+    switch (answer) {
+    case 'X':
+        LOGF_DEBUG("%s: Detected pier side unknown.", getDeviceName());
+        setPierSide(INDI::Telescope::PIER_UNKNOWN);
+        break;
+    case 'E':
+        LOGF_DEBUG("%s: Detected pier side east.", getDeviceName());
+        setPierSide(INDI::Telescope::PIER_EAST);
+        break;
+    case 'W':
+        LOGF_DEBUG("%s: Detected pier side east.", getDeviceName());
+        setPierSide(INDI::Telescope::PIER_WEST);
+        break;
+    default:
+        break;
+    }
+
+    return true;
+
+}
 
 /**
  * @brief Retrieve the firmware info from the mount

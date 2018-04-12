@@ -94,6 +94,8 @@ protected:
     virtual bool querySendMountGotoHome();
     virtual bool querySendMountSetPark();
 
+    virtual bool syncSideOfPier();
+
 };
 
 #endif // AVALON_STARGO_H
