@@ -38,8 +38,11 @@
 #define PYXIS_2INCH_RATE 8
 
 // Number of steps per degree for rotators
-#define PYXIS_3INCH_PER_DEG 128
+#define PYXIS_3INCH_PER_DEG (128)
 #define PYXIS_2INCH_PER_DEG 14
+
+// 100ms poll rate while rotating
+#define POLL_100MS 100
 
 std::unique_ptr<Pyxis> pyxis(new Pyxis());
 
@@ -507,6 +510,9 @@ IPState Pyxis::MoveRotator(double angle)
 
     direction = (targetPA >= current ? 1 : -1) ;
 
+    if (targetPA == 0 && current > 180)
+        direction = -direction ;
+
     snprintf(cmd, PYRIX_BUF, "CPA%03d", targetPA);
 
     LOGF_DEBUG("CMD <%s>", cmd);
@@ -572,9 +578,11 @@ void Pyxis::TimerHit()
     }
     else if (GotoRotatorNP.s == IPS_BUSY)
     { 
-        while ( !isMotionComplete() )  
+        if (!isMotionComplete())   
         {
             LOGF_DEBUG("Motion in %s", "progress") ;
+            SetTimer(POLL_100MS) ;
+            return ;
         }
         GotoRotatorNP.s = IPS_OK;
     }
@@ -607,6 +615,7 @@ bool Pyxis::isMotionComplete()
             LOGF_DEBUG("RES <%s>", res);
 
             int current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
+		
             current = current + direction ;
             GotoRotatorN[0].value = current ;
             IDSetNumber(&GotoRotatorNP, nullptr);
