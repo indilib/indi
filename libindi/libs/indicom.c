@@ -890,6 +890,13 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
         return TTY_PORT_FAILURE;
     }
 
+    // Get the current options and save them so we can restore the default settings later.
+    if (tcgetattr(t_fd, &tty_setting) == -1)
+    {
+        perror("tty_connect: failed getting tty attributes.");
+        return TTY_PORT_FAILURE;
+    }
+
     /* Control Modes
     Set bps rate */
     switch (bit_rate)

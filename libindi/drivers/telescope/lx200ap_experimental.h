@@ -110,7 +110,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     INumberVectorProperty MeridianDelayNP;
     INumber MeridianDelayN[1];
 
-    IText VersionT[1];
+    IText VersionT[1] {};
     ITextVectorProperty VersionInfo;
 
   private:

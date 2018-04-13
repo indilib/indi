@@ -94,7 +94,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
         CELESTRON_DIRECTION guide_direction;
 
         /* Firmware */
-        IText FirmwareT[5];
+        IText FirmwareT[5] {};
         ITextVectorProperty FirmwareTP;
 
         //INumberVectorProperty HorizontalCoordsNP;

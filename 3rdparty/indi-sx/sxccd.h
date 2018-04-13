@@ -68,7 +68,7 @@ class SXCCD : public INDI::CCD
   protected:
     const char *getDefaultName();
     bool initProperties();
-    void getCameraParams();
+    void SetupParms();
     bool updateProperties();
     bool UpdateCCDFrame(int x, int y, int w, int h);
     bool UpdateCCDBin(int hor, int ver);

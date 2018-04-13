@@ -1,3 +1,31 @@
+From 1.6.3 to 1.7.0
+
+      + Updated QHY SDK.
+      + FLI drivers are now based on libusb rather than legacy kernel driver.
+      + New driver for CEM120 mount.
+      + Several memory leaks were fixed.
+      + Added support for background flushing for FLI CCDs.
+      + Added preliminary support for CCD rapid captures on the millisecond range.
+      + SX CCD driver updated to support ￼ICX453 & M25C.
+      + SX AO driver updated to emply INDI serial connection plugin.
+      + Fix timing issue with GPhoto making it stuck in busy state after initial capture.
+      + ASI driver enhancements. Video format recall fix.
+      + MaxDomeII driver refactored and updated.
+      + Several fixes for Gemini Integra driver.
+      + Polling period for most drivers is now customizable.
+      + GPhoto driver supported Abort exposure. Subframing fixes.
+      + GPS driver can set system time from GPS source.
+      + Astrophyics Experimental Driver with multi-parking support.
+      + Numerous OnStep driver fixes and updates.
+      + SkySensor2000 Pulse guiding support.
+      + Prevent sandbox ACCESS_VIOLATION on Gentoo
+      + Celestron driver refactoring and support for high-precision formats.
+      + Fixed script execution in scripting gateways
+      + Fix flags for Cygwin.
+      + Fix non-standard POSIX C functions.
+      + Replace deprecated usleep with nanosleep.
+      + CCD & Telescope simulator updated so that can be used effectively in any combination with physical devices.
+
 From 1.6.0 to 1.6.2
 
       + INDI API version was not updated to 1.6.X+

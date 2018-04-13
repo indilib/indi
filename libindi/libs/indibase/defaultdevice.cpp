@@ -64,6 +64,7 @@ DefaultDevice::DefaultDevice()
     majorVersion        = 1;
     minorVersion        = 0;
     interfaceDescriptor = GENERAL_INTERFACE;
+    memset(&ConnectionModeSP, 0, sizeof(ConnectionModeSP));
 }
 
 DefaultDevice::~DefaultDevice()
@@ -859,7 +860,10 @@ void DefaultDevice::setConnected(bool status, IPState state, const char *msg)
 
     svp->s = state;
 
-    IDSetSwitch(svp, "%s", msg);
+    if (msg == nullptr)
+      IDSetSwitch(svp, nullptr);
+    else
+      IDSetSwitch(svp, "%s", msg);
 }
 
 //  This is a helper function
