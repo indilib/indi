@@ -189,7 +189,7 @@ void ISSnoopDevice(XMLEle *root)
 RasPiCamera::RasPiCamera(DEVICE device, const char *name)
 {
     this->device = device;
-    snprintf(this->name, 32, "Generic CCD %s", name);
+    snprintf(this->name, 32, "Raspberry Pi Camera %s", name);
     setDeviceName(this->name);
 
     setVersion(GENERIC_VERSION_MAJOR, GENERIC_VERSION_MINOR);
@@ -201,7 +201,7 @@ RasPiCamera::~RasPiCamera()
 
 const char *RasPiCamera::getDefaultName()
 {
-    return "Generic CCD";
+    return "Raspberry Pi Camera";
 }
 
 bool RasPiCamera::initProperties()
@@ -210,7 +210,8 @@ bool RasPiCamera::initProperties()
     INDI::CCD::initProperties();
 
     //uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER | CCD_HAS_ST4_PORT;
-    uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME  ;
+    // Possible: CCD_CAN_BIN 
+    uint32_t cap = CCD_CAN_ABORT  | CCD_CAN_SUBFRAME  ;
     SetCCDCapability(cap);
 
     addConfigurationControl();
