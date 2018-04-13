@@ -239,6 +239,9 @@ bool DMFC::ack()
     // Get rid of 0xA
     res[nbytes_read-1] = 0;
 
+    // Check for '\r' at end of string and replace with NULL (DMFC firmware version 2.8)
+    if( res[nbytes_read-2] == '\r') res[nbytes_read-2] = 0;
+
     LOGF_DEBUG("RES <%s>", res);
 
     tcflush(PortFD, TCIOFLUSH);
@@ -437,6 +440,10 @@ bool DMFC::updateFocusParams()
     }
 
     res[nbytes_read-1] = 0;
+
+    // Check for '\r' at end of string and replace with NULL (DMFC firmware version 2.8)
+    if( res[nbytes_read-2] == '\r') res[nbytes_read-2] = 0;
+
     LOGF_DEBUG("RES <%s>", res);
 
     tcflush(PortFD, TCIOFLUSH);
