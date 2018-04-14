@@ -68,6 +68,7 @@ static void cleanup()
 
 void ISInit()
 {
+    LOG_DEBUG("Raspberry Pi Camera::ISInit()");
     static bool isInit = false;
     if (!isInit)
     {
@@ -101,10 +102,12 @@ void ISInit()
         atexit(cleanup);
         isInit = true;
     }
+    LOG_DEBUG("Raspberry Pi Camera::ISInit() done");
 }
 
 void ISGetProperties(const char *dev)
 {
+    LOG_DEBUG("Raspberry Pi Camera::ISGetProperties()");
     ISInit();
     for (int i = 0; i < cameraCount; i++)
     {
@@ -116,6 +119,7 @@ void ISGetProperties(const char *dev)
                 break;
         }
     }
+    LOG_DEBUG("Raspberry Pi Camera::ISGetProperties()");
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
