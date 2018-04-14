@@ -144,7 +144,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
 
     ISwitch mConnectS[2];
     ISwitchVectorProperty mConnectSP;
-    IText mPortT[1];
+    IText mPortT[1] {};
     ITextVectorProperty PortTP;
 
     INumber mMirrorLockN[1];

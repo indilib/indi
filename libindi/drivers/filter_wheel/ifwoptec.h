@@ -105,7 +105,7 @@ class FilterIFW : public INDI::FilterWheel
 
     // Filter Wheel ID
     ITextVectorProperty WheelIDTP;
-    IText WheelIDT[1];
+    IText WheelIDT[1] {};
 
     // Home function
     ISwitchVectorProperty HomeSP;
@@ -121,7 +121,7 @@ class FilterIFW : public INDI::FilterWheel
 
     // Firmware of teh IFW
     ITextVectorProperty FirmwareTP;
-    IText FirmwareT[1];
+    IText FirmwareT[1] {};
 
     //Filter position in simulation mode
     int actualSimFilter { 1 };

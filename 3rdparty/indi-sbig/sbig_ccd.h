@@ -180,7 +180,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     DEVICE device;
     char name[MAXINDINAME];
 
-    IText ProductInfoT[2];
+    IText ProductInfoT[2] {};
     ITextVectorProperty ProductInfoTP;
 
     ISwitch PortS[8];
@@ -202,7 +202,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     INumberVectorProperty CoolerNP;
 
     // CFW GROUP:
-    IText FilterProdcutT[2];
+    IText FilterProdcutT[2] {};
     ITextVectorProperty FilterProdcutTP;
 
     ISwitch FilterTypeS[MAX_CFW_TYPES];

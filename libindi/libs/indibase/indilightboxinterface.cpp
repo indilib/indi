@@ -304,7 +304,7 @@ void LightBoxInterface::addFilterDuration(const char *filterName, uint16_t filte
     else
     {
         // Ensure no duplicates
-        for (int i = 0; i < FilterIntensityNP.nnp + 1; i++)
+        for (int i = 0; i < FilterIntensityNP.nnp; i++)
         {
             if (!strcmp(filterName, FilterIntensityN[i].name))
                 return;

@@ -85,7 +85,7 @@ private:
         MOUNT_NAME,
         IS_DC_MOTOR
     };
-    IText BasicMountInfo[4];
+    IText BasicMountInfo[4] {};
     ITextVectorProperty BasicMountInfoV;
 
     enum
