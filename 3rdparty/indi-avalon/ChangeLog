@@ -1,3 +1,8 @@
+Version 0.4 - 2018-04-14
+	+ display of parking status
+	+ send LST before unpark
+	+ pier side display corrected
+	+ merged with INDI v 1.7.1
 Version 0.3 - 2018-04-12
 	+ showing pier side implemented
 	+ merged with INDI v 1.7.0

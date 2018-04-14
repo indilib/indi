@@ -52,15 +52,17 @@ protected:
     ISwitchVectorProperty MountGotoHomeSP;
     ISwitch MountGotoHomeS[1];
 
-    // set parking position
+    // parking position
     ISwitchVectorProperty MountSetParkSP;
     ISwitch MountSetParkS[1];
-
+    ILightVectorProperty MountParkingStatusLP;
+    ILight MountParkingStatusL[2];
 
     // override LX200Generic
     virtual void getBasicData() override;
     virtual bool ReadScopeStatus() override;
     virtual bool Park() override;
+    virtual void SetParked(bool isparked);
     virtual bool UnPark() override;
     virtual bool saveConfigItems(FILE *fp) override;
     virtual bool isSlewComplete() override;
@@ -80,6 +82,7 @@ protected:
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual int getSiteLatitude(double *siteLat);
     virtual int getSiteLongitude(double *siteLong);
+    virtual bool getLST_String(char* input);
 
 
     // queries to the scope interface

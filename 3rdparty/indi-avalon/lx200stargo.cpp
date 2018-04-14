@@ -1,7 +1,7 @@
 /*
     Avalon StarGo driver
 
-    Copyright (C) 2018 Wolfgang Reissenberger
+    Copyright (C) 2018 Christopher Contaxis and Wolfgang Reissenberger
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -101,7 +101,7 @@ void ISSnoopDevice(XMLEle *root)
 
 LX200StarGo::LX200StarGo()
 {
-    setVersion(0, 3);
+    setVersion(0, 4);
     /* missing capabilities
      * TELESCOPE_HAS_TIME:
      *    missing commands
@@ -234,6 +234,10 @@ bool LX200StarGo::initProperties()
     IUFillSwitch(&MountGotoHomeS[0], "MOUNT_GOTO_HOME_VALUE", "Goto Home", ISS_OFF);
     IUFillSwitchVector(&MountGotoHomeSP, MountGotoHomeS, 1, getDeviceName(), "MOUNT_GOTO_HOME", "Goto Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
+    IUFillLight(&MountParkingStatusL[0], "MOUNT_IS_PARKED_VALUE", "Parked", IPS_IDLE);
+    IUFillLight(&MountParkingStatusL[1], "MOUNT_IS_UNPARKED_VALUE", "Unparked", IPS_IDLE);
+    IUFillLightVector(&MountParkingStatusLP, MountParkingStatusL, 2, getDeviceName(), "PARKING_STATUS", "Parking Status", MAIN_CONTROL_TAB, IPS_IDLE);
+
     IUFillSwitch(&MountSetParkS[0], "MOUNT_SET_PARK_VALUE", "Set Park", ISS_OFF);
     IUFillSwitchVector(&MountSetParkSP, MountSetParkS, 1, getDeviceName(), "MOUNT_SET_PARK", "Set Park", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
@@ -242,7 +246,7 @@ bool LX200StarGo::initProperties()
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillText(&MountFirmwareInfoT[0], "MOUNT_FIRMWARE_INFO", "Firmware", "");
-    IUFillTextVector(&MountInfoTP, MountFirmwareInfoT, 1, getDeviceName(), "MOUNT_INFO", "Mount Info", INFO_TAB, IP_RO, 60, IPS_OK);
+    IUFillTextVector(&MountInfoTP, MountFirmwareInfoT, 1, getDeviceName(), "MOUNT_INFO", "Mount Info", INFO_TAB, IP_RO, 40, IPS_OK);
 
     // overwrite the custom tracking mode button
     IUFillSwitch(&TrackModeS[3], "TRACK_NONE", "None", ISS_OFF);
@@ -263,6 +267,7 @@ bool LX200StarGo::updateProperties()
 
     if (isConnected())
     {
+        defineLight(&MountParkingStatusLP);
         defineSwitch(&SyncHomeSP);
         defineSwitch(&MountGotoHomeSP);
         defineSwitch(&MountSetParkSP);
@@ -273,15 +278,7 @@ bool LX200StarGo::updateProperties()
         }
         bool isParked, isSynched;
         if (queryParkSync(&isParked, &isSynched)) {
-            if (isParked) {
-                TrackState = SCOPE_PARKED;
-                ParkS[0].s = ISS_ON;
-                ParkS[1].s = ISS_OFF;
-            } else {
-                ParkS[1].s = ISS_ON;
-                ParkS[0].s = ISS_OFF;
-            }
-            IDSetSwitch(&ParkSP, nullptr);
+            SetParked(isParked);
             if (isSynched) {
                 SyncHomeS[0].s = ISS_ON;
                 SyncHomeSP.s = IPS_OK;
@@ -291,6 +288,7 @@ bool LX200StarGo::updateProperties()
     }
     else
     {
+        deleteProperty(MountParkingStatusLP.name);
         deleteProperty(MountGotoHomeSP.name);
         deleteProperty(MountSetParkSP.name);
         deleteProperty(SyncHomeSP.name);
@@ -389,11 +387,7 @@ bool LX200StarGo::UpdateMotionStatus() {
     switch (motorsState) {
     case 0:
         if (TrackState == SCOPE_PARKING) {
-            TrackState = SCOPE_PARKED;
-            ParkS[0].s = ISS_ON;
-            ParkS[1].s = ISS_OFF;
-            ParkSP.s   = IPS_OK;
-            IDSetSwitch(&ParkSP, nullptr);
+            SetParked(true);
         }
         break;
     case 1:
@@ -512,29 +506,16 @@ bool LX200StarGo::UpdateMotionStatus() {
 
 bool LX200StarGo::syncHomePosition()
 {
-    double siteLong = 0.0;
-    double lst;
-
-    // step one: determine site longitude
-    if (getSiteLongitude(&siteLong) != TTY_OK)
-    {
-        LOG_WARN("Failed to get site latitude from device.");
+    char input[12], cmd[12];
+    int result = TTY_OK;
+    if (!getLST_String(input)) {
+        LOG_WARN("Synching home position failed.");
+        SyncHomeSP.s = IPS_ALERT;
         return false;
     }
 
-    // determine local sidereal time
-    lst = get_local_sidereal_time(siteLong);
-    LOGF_DEBUG("Current local sidereal time = %.8f", lst);
+    sprintf(cmd, ":X31%s#", input);
 
-    // translate into hh:mm:ss
-    int h=0, m=0, s=0;
-    getSexComponents(lst, &h, &m, &s);
-
-    char cmd[12];
-    sprintf(cmd, ":X31%02d%02d%02d#", h, m, s);
-    LOGF_DEBUG("Executing CMD <%s>", cmd);
-
-    int result = TTY_OK;
     result = setStandardProcedure(PortFD, cmd);
 
     if (result == TTY_OK)
@@ -743,20 +724,90 @@ bool LX200StarGo::Park() {
 
 }
 
+/**
+ * @brief Set parking state to "parked" and reflect the state
+ *        in the UI.
+ * @param isparked true iff the scope has been parked
+ * @return
+ */
+void LX200StarGo::SetParked(bool isparked) {
+    INDI::Telescope::SetParked(isparked);
+
+    TrackState = SCOPE_PARKED;
+    ParkS[0].s = isparked ? ISS_ON : ISS_OFF;
+    ParkS[1].s = isparked ? ISS_OFF : ISS_ON;
+    ParkSP.s   = IPS_OK;
+    IDSetSwitch(&ParkSP, nullptr);
+    MountParkingStatusL[0].s = isparked ? IPS_OK : IPS_IDLE;
+    MountParkingStatusL[1].s = isparked ? IPS_IDLE : IPS_OK;
+    IDSetLight(&MountParkingStatusLP, nullptr);
+}
+
 bool LX200StarGo::UnPark() {
     // in: :X370#
     // out: "p0#"
 
-    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    // set LST to avoid errors
+    char input[12], cmd[12];
+    if (!getLST_String(input))
+    {
+        LOG_WARN("Obtaining LST before unparking failed.");
+        return false;
+    }
+    sprintf(cmd, ":X32%s#", input);
+
+    char response[AVALON_COMMAND_BUFFER_LENGTH] = {0};
+    bool result = sendQuery(cmd, response);
+
+    if (!result || response[0] != '0')
+    {
+        LOG_WARN("Setting LST before unparking failed.");
+        return false;
+    }
+
+    // and now execute unparking
+    response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (sendQuery(":X370#", response) && strcmp(response, "p0#") == 0) {
         LOGF_INFO("%s: Scope Unparked.", getDeviceName());
         TrackState = SCOPE_TRACKING;
         SetParked(false);
+        MountParkingStatusL[1].s = IPS_OK;
+        MountParkingStatusL[0].s = IPS_IDLE;
+        IDSetLight(&MountParkingStatusLP, nullptr);
+
         return true;
     } else {
         LOGF_ERROR("%s: Unpark failed.", getDeviceName());
         return false;
     }
+
+}
+
+/**
+ * @brief Determine the LST with format HHMMSS
+ * @return LST value for the current scope locateion
+ */
+
+bool LX200StarGo::getLST_String(char* input) {
+    double siteLong;
+
+    // step one: determine site longitude
+    if (getSiteLongitude(&siteLong) != TTY_OK)
+    {
+        LOG_WARN("Failed to get site latitude from device.");
+        return false;
+    }
+
+    // determine local sidereal time
+    double lst = get_local_sidereal_time(siteLong);
+    LOGF_DEBUG("Current local sidereal time = %.8f", lst);
+
+    // translate into hh:mm:ss
+    int h=0, m=0, s=0;
+    getSexComponents(lst, &h, &m, &s);
+
+    sprintf(input, "%02d%02d%02d", h, m, s);
+    return true;
 
 }
 
@@ -1039,12 +1090,13 @@ bool LX200StarGo::syncSideOfPier() {
         setPierSide(INDI::Telescope::PIER_UNKNOWN);
         break;
     case 'E':
-        LOGF_DEBUG("%s: Detected pier side east.", getDeviceName());
-        setPierSide(INDI::Telescope::PIER_EAST);
+        // seems to be vice versa
+        LOGF_DEBUG("%s: Detected pier side west.", getDeviceName());
+        setPierSide(INDI::Telescope::PIER_WEST);
         break;
     case 'W':
         LOGF_DEBUG("%s: Detected pier side east.", getDeviceName());
-        setPierSide(INDI::Telescope::PIER_WEST);
+        setPierSide(INDI::Telescope::PIER_EAST);
         break;
     default:
         break;
@@ -1129,6 +1181,7 @@ bool LX200StarGo::receive(char* buffer, int* bytes) {
         LOGF_WARN("%s: Failed to receive full response: %s.", getDeviceName(), errorString);
         return false;
     }
+    LOGF_DEBUG("LX200 answer: '%s'", buffer);
     return true;
 }
 
@@ -1149,6 +1202,7 @@ bool LX200StarGo::transmit(const char* buffer) {
         LOGF_WARN("%s: Failed to transmit %s. Wrote %d bytes and got error %s.", getDeviceName(), buffer, bytesWritten, errorString);
         return false;
     }
+    LOGF_DEBUG("LX200 CMD: '%s'", buffer);
     return true;
 }
 
