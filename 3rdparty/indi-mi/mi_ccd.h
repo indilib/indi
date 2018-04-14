@@ -85,6 +85,9 @@ class MICCD : public INDI::CCD, public INDI::FilterInterface
     ISwitch ReadModeS[3];
     ISwitchVectorProperty ReadModeSP;
 
+    INumber PreflashN[2];
+    INumberVectorProperty PreflashNP;
+
   private:
     char name[MAXINDIDEVICE];
 
@@ -107,6 +110,8 @@ class MICCD : public INDI::CCD, public INDI::FilterInterface
     int timerID;
 
     bool downloading;
+
+    bool canDoPreflash;
 
     INDI::CCDChip::CCD_FRAME imageFrameType;
 
