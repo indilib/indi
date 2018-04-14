@@ -104,7 +104,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     void OSUpdateFocuser();
 
     ITextVectorProperty ObjectInfoTP;
-    IText ObjectInfoT[1];
+    IText ObjectInfoT[1] {};
 
     ISwitchVectorProperty StarCatalogSP;
     ISwitch StarCatalogS[3];
@@ -128,11 +128,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     INumber ElevationLimitN[2];
 
     ITextVectorProperty VersionTP;
-    IText VersionT[5];
+    IText VersionT[5] {};
 
     // OnStep Status controls
     ITextVectorProperty OnstepStatTP;
-    IText OnstepStat[10];
+    IText OnstepStat[10] {};
 
     // Focuser controls
     // Focuser 1
@@ -173,7 +173,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     // Align Buttons
     ISwitchVectorProperty OSAlignSP;
     ISwitch OSAlignS[4];
-    IText OSAlignT[1];
+    IText OSAlignT[1] {};
     ITextVectorProperty OSAlignTP;
 
     ISwitchVectorProperty TrackCompSP;

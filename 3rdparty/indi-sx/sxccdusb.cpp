@@ -231,6 +231,11 @@ bool sxIsColor(short model)
     return model & 0x80;
 }
 
+bool sxIsICX453(short model)
+{
+    return model == 0x59;
+}
+
 int sxList(DEVICE *sxDevices, const char **names, int maxCount)
 {
     init();

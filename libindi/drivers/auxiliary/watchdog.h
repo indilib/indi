@@ -75,13 +75,13 @@ class WatchDog : public INDI::DefaultDevice
     INumber HeartBeatN[1];
 
     ITextVectorProperty SettingsTP;
-    IText SettingsT[3];
+    IText SettingsT[3] {};
 
     ISwitchVectorProperty ShutdownProcedureSP;
     ISwitch ShutdownProcedureS[3];
 
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[2];
+    IText ActiveDeviceT[2] {};
     enum { ACTIVE_TELESCOPE, ACTIVE_DOME };
 
     WatchDogClient *watchdogClient;

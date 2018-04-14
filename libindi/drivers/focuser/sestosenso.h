@@ -61,7 +61,7 @@ protected:
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
 
-    IText FirmwareT[1];
+    IText FirmwareT[1] {};
     ITextVectorProperty FirmwareTP;
 
     INumber SyncN[1];

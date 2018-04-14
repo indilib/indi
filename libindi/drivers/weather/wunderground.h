@@ -48,7 +48,7 @@ class WunderGround : public INDI::Weather
     virtual bool updateLocation(double latitude, double longitude, double elevation);
 
   private:
-    IText wunderAPIKeyT[1];
+    IText wunderAPIKeyT[1] {};
     ITextVectorProperty wunderAPIKeyTP;
 
     double wunderLat, wunderLong;

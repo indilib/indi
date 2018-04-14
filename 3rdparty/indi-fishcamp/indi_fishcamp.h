@@ -73,7 +73,7 @@ class FishCampCCD : public INDI::CCD
     INumber CoolerN[1];
     INumberVectorProperty CoolerNP;
 
-    IText CamInfoT[6];
+    IText CamInfoT[6] {};
     ITextVectorProperty CamInfoTP;
 
     int cameraNum;

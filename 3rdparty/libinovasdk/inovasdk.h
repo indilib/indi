@@ -2,7 +2,7 @@
 #ifndef _INOVASDK_H
 #define _INOVASDK_H
 
-#define INOVASDK_VERSION 1.3.2 /*!< Current SDK version */
+#define INOVASDK_VERSION 1.3.5 /*!< Current SDK version */
 
 #define RESOLUTION_FULL 0 /*!< Full Resolution */
 #define RESOLUTION_ROI 1 /*!< ROI resolution */
