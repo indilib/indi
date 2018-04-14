@@ -39,7 +39,7 @@
 #define MAX_Y_BIN      16   /* Max Vertical binning */
 #define MAX_PIXELS     4096 /* Max number of pixels in one dimension */
 #define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
-#define MAX_DEVICES    1   /* Max device cameraCount */
+#define MAX_DEVICES    2   /* Max device cameraCount */
 
 static int cameraCount;
 static RasPiCamera *cameras[MAX_DEVICES];
@@ -188,11 +188,13 @@ void ISSnoopDevice(XMLEle *root)
 
 RasPiCamera::RasPiCamera(DEVICE device, const char *name)
 {
+	LOG_DEBUG("Raspberry Pi Camera::RasPiCammera()");
     this->device = device;
     snprintf(this->name, 32, "Raspberry Pi Camera %s", name);
     setDeviceName(this->name);
 
     setVersion(GENERIC_VERSION_MAJOR, GENERIC_VERSION_MINOR);
+	LOG_DEBUG("Raspberry Pi Camera::RasPiCammera() done");
 }
 
 RasPiCamera::~RasPiCamera()
@@ -206,7 +208,8 @@ const char *RasPiCamera::getDefaultName()
 
 bool RasPiCamera::initProperties()
 {
-    // Init parent properties first
+    LOG_DEBUG("Raspberry Pi Camera::initProperties()");
+	// Init parent properties first
     INDI::CCD::initProperties();
 
     //uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER | CCD_HAS_ST4_PORT;
@@ -216,6 +219,7 @@ bool RasPiCamera::initProperties()
 
     addConfigurationControl();
     addDebugControl();
+	LOG_DEBUG("Raspberry Pi Camera::initProperties() done");
     return true;
 }
 
@@ -290,6 +294,7 @@ bool RasPiCamera::Disconnect()
 
 bool RasPiCamera::setupParams()
 {
+	LOG_DEBUG("Raspberry Pi Camera::setupParams()");
     float x_pixel_size, y_pixel_size;
     int bit_depth = 16;
     int x_1, y_1, x_2, y_2;
@@ -359,12 +364,13 @@ bool RasPiCamera::setupParams()
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8; //  this is pixel cameraCount
     nbuf += 512;                                                                  //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
-
+LOG_DEBUG("Raspberry Pi Camera::setupParams() done");
     return true;
 }
 
 int RasPiCamera::SetTemperature(double temperature)
 {
+    LOG_DEBUG("Raspberry Pi Camera::SetTemperature()");
     // If there difference, for example, is less than 0.1 degrees, let's immediately return OK.
     if (fabs(temperature - TemperatureN[0].value) < TEMP_THRESHOLD)
         return 1;
@@ -381,11 +387,13 @@ int RasPiCamera::SetTemperature(double temperature)
     // Otherwise, we set the temperature request and we update the status in TimerHit() function.
     TemperatureRequest = temperature;
     LOGF_INFO("Setting CCD temperature to %+06.2f C", temperature);
+    LOG_DEBUG("Raspberry Pi Camera::SetTemperature() done");
     return 0;
 }
 
 bool RasPiCamera::StartExposure(float duration)
 {
+    LOG_DEBUG("Raspberry Pi Camera::StartExposure()");
     if (duration < minDuration)
     {
         DEBUGF(INDI::Logger::DBG_WARNING,
@@ -425,6 +433,7 @@ bool RasPiCamera::StartExposure(float duration)
     if (RPI_Duration > 6000000) RPI_Duration = 6000000;
     Camera.setShutterSpeed(RPI_Duration);
     Camera.startCapture();
+    LOG_DEBUG("Raspberry Pi Camera::StartExposure() done");
     return true;
 }
 
