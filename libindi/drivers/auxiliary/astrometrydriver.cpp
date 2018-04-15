@@ -79,8 +79,8 @@ bool AstrometryDriver::initProperties()
     /**********************************************/
 
     // Solver Enable/Disable
-    IUFillSwitch(&SolverS[0], "ASTROMETRY_SOLVER_ENABLE", "Enable", ISS_OFF);
-    IUFillSwitch(&SolverS[1], "ASTROMETRY_SOLVER_DISABLE", "Disable", ISS_ON);
+    IUFillSwitch(&SolverS[SOLVER_ENABLE], "ASTROMETRY_SOLVER_ENABLE", "Enable", ISS_OFF);
+    IUFillSwitch(&SolverS[SOLVER_DISABLE], "ASTROMETRY_SOLVER_DISABLE", "Disable", ISS_ON);
     IUFillSwitchVector(&SolverSP, SolverS, 2, getDeviceName(), "ASTROMETRY_SOLVER", "Solver", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -193,10 +193,10 @@ bool AstrometryDriver::ISNewBLOB(const char *dev, const char *name, int sizes[],
             IDSetBLOB(&SolverDataBP, nullptr);
 
             // If the client explicitly uploaded the data then we solve it.
-            if (SolverS[0].s == ISS_OFF)
+            if (SolverS[SOLVER_ENABLE].s == ISS_OFF)
             {
-                SolverS[0].s = ISS_ON;
-                SolverS[1].s = ISS_OFF;
+                SolverS[SOLVER_ENABLE].s = ISS_ON;
+                SolverS[SOLVER_DISABLE].s = ISS_OFF;
                 SolverSP.s   = IPS_BUSY;
                 LOG_INFO("Astrometry solver is enabled.");
                 defineNumber(&SolverResultNP);
@@ -257,7 +257,7 @@ bool AstrometryDriver::ISNewSwitch(const char *dev, const char *name, ISState *s
             IUUpdateSwitch(&SolverSP, states, names, n);
             SolverSP.s = IPS_OK;
 
-            if (SolverS[0].s == ISS_ON)
+            if (SolverS[SOLVER_ENABLE].s == ISS_ON)
             {
                 LOG_INFO("Astrometry solver is enabled.");
                 defineNumber(&SolverResultNP);
@@ -280,7 +280,7 @@ bool AstrometryDriver::ISNewSwitch(const char *dev, const char *name, ISState *s
 
 bool AstrometryDriver::ISSnoopDevice(XMLEle *root)
 {
-    if (SolverS[0].s == ISS_ON && IUSnoopBLOB(root, &CCDDataBP) == 0)
+    if (SolverS[SOLVER_ENABLE].s == ISS_ON && IUSnoopBLOB(root, &CCDDataBP) == 0)
     {
         processBLOB(reinterpret_cast<uint8_t *>(CCDDataB[0].blob), static_cast<uint32_t>(CCDDataB[0].size),
                     static_cast<uint32_t>(CCDDataB[0].bloblen));
@@ -439,7 +439,7 @@ void AstrometryDriver::runSolver()
         }
 
         pthread_mutex_lock(&lock);
-        if (SolverS[1].s == ISS_ON)
+        if (SolverS[SOLVER_DISABLE].s == ISS_ON)
         {
             SolverSP.s = IPS_IDLE;
             IDSetSwitch(&SolverSP, nullptr);
