@@ -212,6 +212,9 @@ const char *RasPiCamera::getDefaultName()
 
 bool RasPiCamera::initProperties()
 {
+	int setidx;
+	char **options;
+	int max_opts;
     LOG_DEBUG("Raspberry Pi Camera::initProperties()");
 	// Init parent properties first
     INDI::CCD::initProperties();
@@ -266,9 +269,7 @@ bool RasPiCamera::updateProperties()
 
 bool RasPiCamera::Connect()
 {
-	int setidx;
-	char **options;
-	int max_opts;
+
     LOG_INFO("Attempting to find the Generic CCD...");
     sim = isSimulation();
 
@@ -312,6 +313,7 @@ bool RasPiCamera::Disconnect()
    **********************************************************/
 
     LOG_INFO("CCD is offline.");
+    Camera.release();
     return true;
 }
 
@@ -362,7 +364,7 @@ bool RasPiCamera::setupParams()
     //TODO: Control
 	if (isoSpeed < 100 || isoSpeed >800) isoSpeed = 100;
     Camera.setISO(isoSpeed);
-    LOGF_INFO("Camera Speed set to %d ISO", %d);
+    LOGF_INFO("Camera Speed set to %d ISO", isoSpeed);
     //TODO: Check encoding
     //Camera.setEncoding ( raspicam::RASPICAM_ENCODING_PNG );
     Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB); //24 Bit RGB
@@ -462,9 +464,9 @@ bool RasPiCamera::StartExposure(float duration)
 
     InExposure = true;
     long int RPI_Duration = duration * 1000;
-    //if (RPI_Duration > 6000000) RPI_Duration = 6000000;
-    
-    if (RPI_Duration > 330000) RPI_Duration = 330000;
+    if (RPI_Duration > 6000000) RPI_Duration = 6000000;
+    Camera.open();
+ //   if (RPI_Duration > 330000) RPI_Duration = 330000;
     Camera.setShutterSpeed(RPI_Duration);
  //   Camera.setExposure(RPI_Duration);
     Camera.setExposure(raspicam::RASPICAM_EXPOSURE_AUTO);
@@ -665,6 +667,7 @@ int RasPiCamera::grabImage()
     
 //     if (type == ASI_IMG_RGB24)
 //     {
+    LOGF_DEBUG("Allocating buffer %d", size );
 	    buffer = (unsigned char *)malloc(size);
 	    if (buffer == nullptr)
 	    {
