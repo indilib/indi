@@ -51,6 +51,9 @@ class RasPiCamera : public INDI::CCD
     int SetTemperature(double temperature);
     bool StartExposure(float duration);
     bool AbortExposure();
+    
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    int isoSpeed;
 
   protected:
     void TimerHit();
@@ -86,6 +89,8 @@ class RasPiCamera : public INDI::CCD
     bool setupParams();
     bool sim;
     raspicam::RaspiCam Camera;
+    ISwitch *mIsoS = NULL;
+    ISwitchVectorProperty mIsoSP;
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
@@ -93,6 +98,7 @@ class RasPiCamera : public INDI::CCD
     friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
     friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                             char *formats[], char *names[], int n);
+    ISwitch *create_switch(const char *basestr, char **options, int max_opts, int setidx);
 };
 
 #endif // GENERIC_CCD_H

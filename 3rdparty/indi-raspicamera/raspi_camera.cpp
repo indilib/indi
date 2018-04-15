@@ -192,13 +192,13 @@ void ISSnoopDevice(XMLEle *root)
 
 RasPiCamera::RasPiCamera(DEVICE device, const char *name)
 {
-	LOG_DEBUG("Raspberry Pi Camera::RasPiCammera()");
+	LOG_DEBUG("Raspberry Pi Camera::RasPiCamera()");
     this->device = device;
     snprintf(this->name, 32, "Raspberry Pi Camera %s", name);
     setDeviceName(this->name);
 
     setVersion(GENERIC_VERSION_MAJOR, GENERIC_VERSION_MINOR);
-	LOG_DEBUG("Raspberry Pi Camera::RasPiCammera() done");
+	LOG_DEBUG("Raspberry Pi Camera::RasPiCamera() done");
 }
 
 RasPiCamera::~RasPiCamera()
@@ -216,13 +216,15 @@ bool RasPiCamera::initProperties()
 	// Init parent properties first
     INDI::CCD::initProperties();
 
-    //uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER | CCD_HAS_ST4_PORT;
+    //uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER | CCD_HAS_ST4_PORT | CCD_HAS_BAYER ;
     // Possible: CCD_CAN_BIN 
     uint32_t cap = CCD_CAN_ABORT  | CCD_CAN_SUBFRAME  ;
     SetCCDCapability(cap);
 
     addConfigurationControl();
     addDebugControl();
+    IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "CCD_ISO", "ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
+		       IPS_IDLE);
 	LOG_DEBUG("Raspberry Pi Camera::initProperties() done");
     return true;
 }
@@ -253,7 +255,11 @@ bool RasPiCamera::updateProperties()
 
 bool RasPiCamera::Connect()
 {
+	int setidx;
+	char **options;
+	int max_opts;
     LOG_INFO("Attempting to find the Generic CCD...");
+    sim = isSimulation();
 
     /**********************************************************
    *
@@ -273,7 +279,19 @@ bool RasPiCamera::Connect()
     
     /* Success! */
     LOG_INFO("CCD is online. Retrieving basic data.");
-
+ //   if (sim)
+//    {
+	    setidx             = 0;
+	    max_opts           = 4;
+	    const char *isos[] = { "100", "200", "400", "800" };
+	    options            = (char **)isos;
+ //   }
+    
+    mIsoS      = create_switch("ISO", options, max_opts, setidx);
+    mIsoSP.sp  = mIsoS;
+    mIsoSP.nsp = max_opts;
+    
+    
     return true;
 }
 
@@ -300,7 +318,7 @@ bool RasPiCamera::setupParams()
 {
 	LOG_DEBUG("Raspberry Pi Camera::setupParams()");
     float x_pixel_size, y_pixel_size;
-    int bit_depth = 16;
+    int bit_depth = 24;
     int x_1, y_1, x_2, y_2;
 
     /**********************************************************
@@ -334,15 +352,14 @@ bool RasPiCamera::setupParams()
 
     // Actucal CALL to CCD to get frame information here
     x_1 = y_1 = 0;
-    x_2       = 3280;
-    y_2       = 2464;
     Camera.setWidth(x_2-x_1);
     Camera.setHeight(y_2-y_1);
     //TODO: Control
-    Camera.setISO(800);
+	if (isoSpeed < 100 || isoSpeed >800) isoSpeed = 100;
+    Camera.setISO(isoSpeed);
     //TODO: Check encoding
-    //Camera.setEncoding ( raspicam::RASPICAM_ENCODING_BMP );
-    //Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB);
+    //Camera.setEncoding ( raspicam::RASPICAM_ENCODING_PNG );
+    Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB); //24 Bit RGB
 
     ///////////////////////////
     // 3. Get temperature
@@ -355,7 +372,8 @@ bool RasPiCamera::setupParams()
     ///////////////////////////
     // 4. Get temperature
     ///////////////////////////
-    bit_depth = 16;
+    bit_depth = 8;
+    PrimaryCCD.setNAxis(3);
     SetCCDParams(x_2 - x_1, y_2 - y_1, bit_depth, x_pixel_size, y_pixel_size);
 
     // Now we usually do the following in the hardware
@@ -365,7 +383,7 @@ bool RasPiCamera::setupParams()
 
     // Let's calculate required buffer
     int nbuf;
-    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8; //  this is pixel cameraCount
+    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8 * PrimaryCCD.getNAxis(); //  this is pixel cameraCount
     nbuf += 512;                                                                  //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 LOG_DEBUG("Raspberry Pi Camera::setupParams() done");
@@ -436,6 +454,7 @@ bool RasPiCamera::StartExposure(float duration)
     long int RPI_Duration = duration * 1000;
     if (RPI_Duration > 6000000) RPI_Duration = 6000000;
     Camera.setShutterSpeed(RPI_Duration);
+ //   Camera.setExposure(RPI_Duration);
     Camera.startCapture();
     LOG_DEBUG("Raspberry Pi Camera::StartExposure() done");
     return true;
@@ -602,9 +621,11 @@ float RasPiCamera::CalcTimeLeft()
  N.B. No processing is done on the image */
 int RasPiCamera::grabImage()
 {
-    uint8_t *image = PrimaryCCD.getFrameBuffer();
-    int width      = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
-    int height     = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+//    uint8_t *image = PrimaryCCD.getFrameBuffer();
+//    int width      = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
+//    int height     = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+//    width= 3280*3;
+//    height = 2464*3;
 
     /**********************************************************
      *
@@ -615,12 +636,68 @@ int RasPiCamera::grabImage()
      *
      *
      **********************************************************/
-    Camera.grab();
-    Camera.retrieve(image);
-//     for (int i = 0; i < height; i++)
-//         for (int j = 0; j < width; j++)
-//             image[i * width + j] = rand() % 255;
 
+
+    uint8_t *image = PrimaryCCD.getFrameBuffer();
+    
+    uint8_t *buffer = image;
+    
+    int x_width     = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
+    int x_height    = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
+//     int nChannels = (type == ASI_IMG_RGB24) ? 3 : 1;
+    int nChannels = 3;
+    size_t size = x_width * x_height * nChannels;
+    
+//     if (type == ASI_IMG_RGB24)
+//     {
+	    buffer = (unsigned char *)malloc(size);
+	    if (buffer == nullptr)
+	    {
+		    LOGF_ERROR("RasPiCamera ID: %d sized malloc failed (RGB 24)", size);
+// 		    LOGF_ERROR("CCD ID: %d malloc failed (RGB 24)",
+// 			       m_camInfo->CameraID);
+		    return -1;
+	    }
+//     }
+    
+    Camera.grab();
+    //Camera.retrieve(image);
+    Camera.retrieve ( buffer,raspicam::RASPICAM_FORMAT_RGB );
+
+    
+    
+    //Below is copied from INDI ASI
+//    if ((errCode = ASIGetDataAfterExp(m_camInfo->CameraID, buffer, size)) != ASI_SUCCESS)
+//     {
+// // 	    LOGF_ERROR("ASIGetDataAfterExp (%dx%d #%d channels) error (%d)", width, height, nChannels,
+// 		       errCode);
+// 	    if (type == ASI_IMG_RGB24)
+// 		    free(buffer);
+// 	    return -1;
+//     }
+    
+//     if (type == ASI_IMG_RGB24)
+//     {
+    if (1) {
+	    uint8_t *subR = image;
+	    uint8_t *subG = image + x_width * x_height;
+	    uint8_t *subB = image + x_width * x_height * 2;
+	    int size      = x_width * x_height * 3 - 3;
+	    
+	    for (int i = 0; i <= size; i += 3)
+	    {
+		    *subB++ = buffer[i];
+		    *subG++ = buffer[i + 1];
+		    *subR++ = buffer[i + 2];
+	    }
+	    
+	    free(buffer);
+//     }
+    }
+    
+    
+    
+    
     LOG_INFO("Download complete.");
 
     ExposureComplete(&PrimaryCCD);
@@ -842,4 +919,62 @@ IPState RasPiCamera::GuideWest(float ms)
      **********************************************************/
 
     return IPS_OK;
+}
+
+//Copied from gphoto_ccd.cpp
+ISwitch *RasPiCamera::create_switch(const char *basestr, char **options, int max_opts, int setidx)
+{
+	int i;
+	ISwitch *sw     = (ISwitch *)calloc(sizeof(ISwitch), max_opts);
+	ISwitch *one_sw = sw;
+	
+	char sw_name[MAXINDINAME];
+	char sw_label[MAXINDILABEL];
+	ISState sw_state;
+	
+	for (i = 0; i < max_opts; i++)
+	{
+		snprintf(sw_name, MAXINDINAME, "%s%d", basestr, i);
+		strncpy(sw_label, options[i], MAXINDILABEL);
+		sw_state = (i == setidx) ? ISS_ON : ISS_OFF;
+		
+		IUFillSwitch(one_sw++, sw_name, sw_label, sw_state);
+	}
+	return sw;
+}
+
+bool RasPiCamera::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+	LOG_DEBUG("RasPiCamera::ISNewSwitch");
+	if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+	{
+		if (!strcmp(name, mIsoSP.name))
+		{
+			LOG_DEBUG("RasPiCamera::ISNewSwitch mIsoSP.name");
+			if (IUUpdateSwitch(&mIsoSP, states, names, n) < 0)
+				return false;
+			
+			for (int i = 0; i < mIsoSP.nsp; i++)
+			{
+
+				ISwitch *onISO = IUFindOnSwitch(&mIsoSP);
+				if (onISO)
+				{
+					isoSpeed = -1;
+					isoSpeed     = atoi(onISO->label);
+					//if (sim == false) {
+					if (isoSpeed > 0)
+						LOGF_INFO("Setting ISO Speed to: %d", isoSpeed);
+						//fits_update_key_s(fptr, TUINT, "ISOSPEED", &isoSpeed, "ISO Speed", &status);
+						Camera.setISO(isoSpeed);
+					//}
+				}
+				mIsoSP.s = IPS_OK;
+				IDSetSwitch(&mIsoSP, NULL);
+				break;
+				
+			}
+		}
+	}
+	return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
