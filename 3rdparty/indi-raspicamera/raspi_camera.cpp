@@ -217,14 +217,25 @@ bool RasPiCamera::initProperties()
     INDI::CCD::initProperties();
 
     //uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER | CCD_HAS_ST4_PORT | CCD_HAS_BAYER ;
-    // Possible: CCD_CAN_BIN 
-    uint32_t cap = CCD_CAN_ABORT  | CCD_CAN_SUBFRAME  ;
+    // Possible: CCD_CAN_BIN | CCD_CAN_SUBFRAME
+    uint32_t cap = CCD_CAN_ABORT  | CCD_CAN_SUBFRAME ;
     SetCCDCapability(cap);
 
     addConfigurationControl();
     addDebugControl();
     IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "CCD_ISO", "ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
 		       IPS_IDLE);
+    //   if (sim)
+    //    {
+    setidx             = 0;
+    max_opts           = 4;
+    const char *isos[] = { "100", "200", "400", "800" };
+    options            = (char **)isos;
+    //   }
+    
+    mIsoS      = create_switch("ISO", options, max_opts, setidx);
+    mIsoSP.sp  = mIsoS;
+    mIsoSP.nsp = max_opts;
 	LOG_DEBUG("Raspberry Pi Camera::initProperties() done");
     return true;
 }
@@ -279,17 +290,7 @@ bool RasPiCamera::Connect()
     
     /* Success! */
     LOG_INFO("CCD is online. Retrieving basic data.");
- //   if (sim)
-//    {
-	    setidx             = 0;
-	    max_opts           = 4;
-	    const char *isos[] = { "100", "200", "400", "800" };
-	    options            = (char **)isos;
- //   }
-    
-    mIsoS      = create_switch("ISO", options, max_opts, setidx);
-    mIsoSP.sp  = mIsoS;
-    mIsoSP.nsp = max_opts;
+
     
     
     return true;
@@ -321,6 +322,10 @@ bool RasPiCamera::setupParams()
     int bit_depth = 24;
     int x_1, y_1, x_2, y_2;
 
+    //x_2= 3280;
+    //y_2=2464;
+    x_2=1280;
+    y_2=960;
     /**********************************************************
    *
    *
@@ -357,10 +362,15 @@ bool RasPiCamera::setupParams()
     //TODO: Control
 	if (isoSpeed < 100 || isoSpeed >800) isoSpeed = 100;
     Camera.setISO(isoSpeed);
+    LOGF_INFO("Camera Speed set to %d ISO", %d);
     //TODO: Check encoding
     //Camera.setEncoding ( raspicam::RASPICAM_ENCODING_PNG );
     Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB); //24 Bit RGB
-
+    Camera.setBrightness(50);
+    Camera.setSharpness (0);
+    Camera.setContrast (0);
+    Camera.setSaturation (0);
+    //Camera.setShutterSpeed( getParamVal ( "-ss",argc,argv,0 ) );
     ///////////////////////////
     // 3. Get temperature
     ///////////////////////////
@@ -452,9 +462,12 @@ bool RasPiCamera::StartExposure(float duration)
 
     InExposure = true;
     long int RPI_Duration = duration * 1000;
-    if (RPI_Duration > 6000000) RPI_Duration = 6000000;
+    //if (RPI_Duration > 6000000) RPI_Duration = 6000000;
+    
+    if (RPI_Duration > 330000) RPI_Duration = 330000;
     Camera.setShutterSpeed(RPI_Duration);
  //   Camera.setExposure(RPI_Duration);
+    Camera.setExposure(raspicam::RASPICAM_EXPOSURE_AUTO);
     Camera.startCapture();
     LOG_DEBUG("Raspberry Pi Camera::StartExposure() done");
     return true;
@@ -641,6 +654,8 @@ int RasPiCamera::grabImage()
     uint8_t *image = PrimaryCCD.getFrameBuffer();
     
     uint8_t *buffer = image;
+    LOGF_DEBUG("Camera.getImageBufferSize() %d", Camera.getImageBufferSize() );
+    LOGF_DEBUG("PrimaryCCD.getFrameBuffer() %d", PrimaryCCD.getFrameBuffer());
     
     int x_width     = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
     int x_height    = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
@@ -659,12 +674,12 @@ int RasPiCamera::grabImage()
 		    return -1;
 	    }
 //     }
-    
+
     Camera.grab();
     //Camera.retrieve(image);
-    Camera.retrieve ( buffer,raspicam::RASPICAM_FORMAT_RGB );
+    Camera.retrieve ( buffer);//,raspicam::RASPICAM_FORMAT_RGB );
 
-    
+    LOG_INFO("Download complete. Starting Conversion from RGBRGB to  RRRR....GGGG...BBBB....");
     
     //Below is copied from INDI ASI
 //    if ((errCode = ASIGetDataAfterExp(m_camInfo->CameraID, buffer, size)) != ASI_SUCCESS)
@@ -678,13 +693,13 @@ int RasPiCamera::grabImage()
     
 //     if (type == ASI_IMG_RGB24)
 //     {
-    if (1) {
+//    if (1) {
 	    uint8_t *subR = image;
 	    uint8_t *subG = image + x_width * x_height;
 	    uint8_t *subB = image + x_width * x_height * 2;
-	    int size      = x_width * x_height * 3 - 3;
+	    int x_size      = x_width * x_height * 3 - 3;
 	    
-	    for (int i = 0; i <= size; i += 3)
+	    for (int i = 0; i <= x_size; i += 3)
 	    {
 		    *subB++ = buffer[i];
 		    *subG++ = buffer[i + 1];
@@ -693,12 +708,12 @@ int RasPiCamera::grabImage()
 	    
 	    free(buffer);
 //     }
-    }
+//    }
+	LOG_INFO("Conversion complete.");
     
     
     
-    
-    LOG_INFO("Download complete.");
+
 
     ExposureComplete(&PrimaryCCD);
 	
