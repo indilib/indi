@@ -170,6 +170,7 @@ void Pyxis::queryParams()
     // Reverse Parameter
     ////////////////////////////////////////////
     int dir = getReverseStatus();
+
     IUResetSwitch(&ReverseRotatorSP);
     ReverseRotatorSP.s = IPS_OK;
     if (dir == 0)
@@ -508,11 +509,17 @@ IPState Pyxis::MoveRotator(double angle)
     if (targetPA > 359)
         targetPA = 0;
 
-    direction = (targetPA >= current ? 1 : -1) ;
-
-    if (targetPA == 0 && current > 180)
-        direction = -direction ;
-
+    // Rotator will only rotation +-180 degress from home (0 degrees) so it make take
+    // the long way to avoid cable wrap
+    if (current <= 180 && targetPA < 180)
+	direction = (targetPA >= current ? 1 : -1) ;
+    else if (current <= 180 && targetPA > 180)
+        direction = -1 ;
+    else if (current > 180 && targetPA >= 180)
+	direction = (targetPA >= current ? 1 : -1) ;
+    else if (current > 180 && targetPA < 180)
+	direction = 1 ;
+    
     snprintf(cmd, PYRIX_BUF, "CPA%03d", targetPA);
 
     LOGF_DEBUG("CMD <%s>", cmd);
@@ -617,6 +624,9 @@ bool Pyxis::isMotionComplete()
             int current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
 		
             current = current + direction ;
+            if (current < 0) current = 359 ;
+            if (current > 360) current = 1 ;
+
             GotoRotatorN[0].value = current ;
             IDSetNumber(&GotoRotatorNP, nullptr);
  
@@ -784,6 +794,5 @@ int Pyxis::getReverseStatus()
 
     LOGF_DEBUG("RES <%c>", res[0]);
 
-    // Subtract from '0' to get actual number (0 or 1)
-    return (res[0] - 0x30);
+    return (res[0] == '1' ? 1 : 0);
 }
