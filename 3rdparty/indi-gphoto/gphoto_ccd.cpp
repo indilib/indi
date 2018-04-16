@@ -725,7 +725,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 SDCardImageSP.s = IPS_OK;
                 IUUpdateSwitch(&SDCardImageSP, states, names, n);
-                LOGF_INFO("Images shall be %s the camera SD card after capture if capture target is set to SD Card.", delete_sdcard_image ? "deleted from" : "saved in");
+                LOGF_WARN("All images and folders shall be %s the camera SD card after capture if capture target is set to SD Card.", delete_sdcard_image ? "deleted from" : "saved in");
             }
             else
             {
@@ -1662,8 +1662,7 @@ bool GPhotoCCD::StartStreaming()
 
 bool GPhotoCCD::StopStreaming()
 {
-    stopLiveVideo();
-    return true;
+    return stopLiveVideo();
 }
 
 bool GPhotoCCD::startLiveVideo()

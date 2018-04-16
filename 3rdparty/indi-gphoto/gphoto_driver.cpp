@@ -328,6 +328,8 @@ int gphoto_set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, float va
 
     if (ret == GP_OK)
         ret = gphoto_set_config(gphoto->camera, gphoto->config, gphoto->context);
+    else
+        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "Failed to set widget %s configuration (%s)", widget->name, gp_result_as_string(ret));
 
     return ret;
 }
@@ -576,8 +578,11 @@ void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting)
 
 static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 {
-    int result;
+    int result=0;
     CameraFileInfo info;
+
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,
+                 "Downloading image... Name: (%s) Folder: (%s) Delete from SD card? (%s) fd (%d)", fn->name, fn->folder, gphoto->delete_sdcard_image ? "true":"false", fd);
 
     strncpy(gphoto->filename, fn->name, sizeof(gphoto->filename));
 
@@ -621,18 +626,23 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     //if (gphoto->upload_settings == GP_UPLOAD_CLIENT && !strstr(gphoto->model, "20D"))
     int captureTarget = -1;
     gphoto_get_capture_target(gphoto, &captureTarget);
-    // If it was set to RAM
+    // If it was set to RAM or SD card image is set to be explicitly deleted
     if ((gphoto->delete_sdcard_image || captureTarget == 0) && !strstr(gphoto->model, "20D"))
     {
-        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Deleting.");
-        result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "  Retval: %d", result);
+        // 2018-04-16 JM: Delete all the folder to make sure there are no ghost images left somehow
+        result = gp_camera_folder_delete_all(gphoto->camera, fn->folder, gphoto->context);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Deleting folder %s (%d)", result);
+
+        // Delete individual file
+        //result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
+        //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "  Retval: %d", result);
     }
 
     if (fd >= 0)
     {
         // This will close the file descriptor
-        gp_file_free(gphoto->camerafile);
+        result = gp_file_free(gphoto->camerafile);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing camera file descriptor (%d)", result);
         gphoto->camerafile = nullptr;
     }
 
@@ -1683,15 +1693,14 @@ int gphoto_capture_preview(gphoto_driver *gphoto, CameraFile *previewFile, char 
 
 int gphoto_stop_preview(gphoto_driver *gphoto)
 {
-    int rc = GP_OK;
-
     // If viewfinder not found, nothing to do
     if (gphoto->viewfinder_widget == nullptr)
-        return rc;
+    {
+        DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "View finder widget is not found. Cannot force camera mirror to go down!");
+        return GP_ERROR_NOT_SUPPORTED;
+    }
 
-    rc = gphoto_set_widget_num(gphoto, gphoto->viewfinder_widget, 0);
-
-    return rc;
+    return gphoto_set_widget_num(gphoto, gphoto->viewfinder_widget, 0);
 }
 
 /* Manual focusing a camera...
