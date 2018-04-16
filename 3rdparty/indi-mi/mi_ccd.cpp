@@ -269,8 +269,8 @@ bool MICCD::initProperties()
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // NIR Preflash
-    IUFillNumber(&PreflashN[0], "NIR_EXPOSURE_TIME", "Preflash duration (s)", "%4.2f", 0, 30, 0.01, 0);
-    IUFillNumber(&PreflashN[1], "NIR_CLEAR_NUM", "Num. clear", "%2.0f", 1, 10, 1, 3);
+    IUFillNumber(&PreflashN[0], "NIR_EXPOSURE_TIME", "Preflash duration (s)", "%4.3f", 0.0, 65.535, 0.001, 0.0);
+    IUFillNumber(&PreflashN[1], "NIR_CLEAR_NUM", "Num. clear", "%2.0f", 1, 16, 1, 3);
     IUFillNumberVector(&PreflashNP, PreflashN, 2, getDeviceName(), "NIR_PRE_FLASH", "NIR Preflash",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
