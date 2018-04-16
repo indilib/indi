@@ -1,3 +1,9 @@
+indi-gphoto (2.0) bionic; urgency=medium
+
+  * Upstream update
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Mon, 16 Apr 2018 18:20:00 +0300
+
 indi-gphoto (1.9) bionic; urgency=medium
 
   * Upstream update
