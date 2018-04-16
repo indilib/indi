@@ -37,7 +37,7 @@ class LX200Classic : public LX200Generic
 
   protected:
     ITextVectorProperty ObjectInfoTP;
-    IText ObjectInfoT[1];
+    IText ObjectInfoT[1] {};
 
     ISwitchVectorProperty StarCatalogSP;
     ISwitch StarCatalogS[3];

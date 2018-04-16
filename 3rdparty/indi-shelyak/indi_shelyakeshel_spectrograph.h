@@ -41,7 +41,7 @@ class ShelyakEshel : public INDI::DefaultDevice
 
     // Options
     ITextVectorProperty PortTP;
-    IText PortT[1];
+    IText PortT[1] {};
 
     // Spectrograph Settings
     INumberVectorProperty SettingsNP;

@@ -52,7 +52,7 @@ protected:
 	INumber HomePositionN[1];
 	INumber BatteryLevelN[2];
 	INumberVectorProperty BatteryLevelNP;
-	IText FirmwareVersionT[1];
+	IText FirmwareVersionT[1] {};
         ITextVectorProperty FirmwareVersionTP;
 	ISwitch ReversedS[2];
 	ISwitchVectorProperty ReversedSP;

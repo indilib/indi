@@ -50,7 +50,7 @@ class DomeScript : public INDI::Dome
     bool RunScript(int script, ...);
 
     ITextVectorProperty ScriptsTP;
-    IText ScriptsT[15];
+    IText ScriptsT[15] {};
     double TargetAz { 0 };
     int TimeSinceUpdate { 0 };
 };

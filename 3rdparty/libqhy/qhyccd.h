@@ -30,12 +30,13 @@
 #include "cyusb.h"
 
 #ifdef WIN32
-#include "cyapi.h"
-#endif
 
-#ifdef LINUX
-#include <unistd.h>
-#include <libusb.h>
+#include "cyapi.h"
+
+//#else // Linux & Mac
+//
+//#include <libusb.h>
+
 #endif
 
 #ifndef __QHYCCD_H__
@@ -47,11 +48,8 @@ typedef CCyUSBDevice qhyccd_handle;
 
 #else // Linux & Mac
 
-static void con() __attribute__((constructor));
-static void des() __attribute__((destructor));
 typedef struct libusb_device_handle qhyccd_handle;
 uint32_t DeviceIsQHYCCD(uint32_t index, qhyccd_device *pDevice);
-
 EXPORTC void STDCALL MutexInit();
 EXPORTC void STDCALL MutexDestroy();
 EXPORTC void STDCALL MutexLock();

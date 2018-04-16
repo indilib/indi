@@ -73,7 +73,7 @@ private:
   ISwitch Center[2];
   ISwitchVectorProperty CenterP;
 
-  IText FWT[1];
+  IText FWT[1] {};
   ITextVectorProperty FWTP;
 
   ILight AtLimitL[4];

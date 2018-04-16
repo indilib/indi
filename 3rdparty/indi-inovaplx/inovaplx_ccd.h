@@ -64,7 +64,7 @@ private:
     float ExposureRequest;      
 
     // We declare the CCD properties
-    IText iNovaInformationT[5];
+    IText iNovaInformationT[5] {};
     ITextVectorProperty iNovaInformationTP;
 
     INumber CameraPropertiesN[2];

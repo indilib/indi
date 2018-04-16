@@ -540,6 +540,10 @@ extern int IUSaveBLOB(IBLOB *bp, int size, int blobsize, char *blob, char *forma
 
 /** \brief Function to update the min and max elements of a number in the client
     \param nvp pointer to an INumberVectorProperty.
+    \warning This call is not INDI protocol compliant. It sends setNumberVector along with updated Min/Max/Step values so that the client
+    updates the range accordingly for this property. In the INDI-compliant paradigm, it is NOT possible to update min/max/step step of an existing number
+    property and the only way is to do so is to delete and redefine the number property again. However, due to the many problems with approach in device drivers,
+    INDI Library defines this function to simplify the update process without requiring a complete delete/define cycle.
  */
 extern void IUUpdateMinMax(const INumberVectorProperty *nvp);
 

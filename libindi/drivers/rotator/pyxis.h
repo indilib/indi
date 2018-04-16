@@ -21,6 +21,7 @@
 #pragma once
 
 #include "indirotator.h"
+#include "string.h"
 
 class Pyxis : public INDI::Rotator
 {
@@ -56,6 +57,7 @@ class Pyxis : public INDI::Rotator
     bool setRotationRate(uint8_t rate);
     bool sleepController();
     bool wakeupController();
+    std::string getVersion() ;
 
     void queryParams();
 
@@ -73,5 +75,14 @@ class Pyxis : public INDI::Rotator
     ISwitchVectorProperty PowerSP;
     enum { POWER_SLEEP, POWER_WAKEUP};
 
+    // Firmware version; tells us if 2 inch or 3 inch device
+    IText FirmwareT[1] {};
+    ITextVectorProperty FirmwareTP;
+    IText ModelT[1] {};
+    ITextVectorProperty ModelTP;
+
     uint16_t targetPA = {0};
+
+    // Direction of rotation; 1->angle increasing; -1->angle decreasing
+    int direction = 1 ;
 };
