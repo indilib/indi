@@ -301,7 +301,7 @@ int gphoto_set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, float va
     if (!widget)
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Invalid widget specified to set_widget_num");
-        return 1;
+        return GP_ERROR_NOT_SUPPORTED;
     }
 
     switch (widget->type)
@@ -323,7 +323,7 @@ int gphoto_set_widget_num(gphoto_driver *gphoto, gphoto_widget *widget, float va
             break;
         default:
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Widget type: %d is unsupported", widget->type);
-            return 1;
+            return GP_ERROR_NOT_SUPPORTED;
     }
 
     if (ret == GP_OK)
@@ -589,36 +589,43 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     if (fd < 0)
     {
         result = gp_file_new(&gphoto->camerafile);
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "gp_file_new result: %d", result);
+        if (result != GP_OK)
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "gp_file_new failed (%s)", gp_result_as_string(result));
     }
     else
     {
         result = gp_file_new_from_fd(&gphoto->camerafile, fd);
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "gp_file_new_from_fd result: %d", result);
+        if (result != GP_OK)
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "gp_file_new_from_fd failed (%s)", gp_result_as_string(result));
     }
-
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Downloading %s/%s", fn->folder, fn->name);
 
     result = gp_camera_file_get(gphoto->camera, fn->folder, fn->name, GP_FILE_TYPE_NORMAL, gphoto->camerafile,
                                 gphoto->context);
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Downloading result: %d", result);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Downloading image (%s) in folder (%s)", fn->name, fn->folder);
 
     if (result != GP_OK)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "Error downloading image from camera: %s",
-                     gp_result_as_string(result));
+        DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "Error downloading image from camera: %s", gp_result_as_string(result));
         gp_file_free(gphoto->camerafile);
         gphoto->camerafile = nullptr;
         return result;
     }
 
-    gp_camera_file_get_info(gphoto->camera, fn->folder, fn->name, &info, gphoto->context);
-    gphoto->width  = info.file.width;
-    gphoto->height = info.file.height;
+    result = gp_camera_file_get_info(gphoto->camera, fn->folder, fn->name, &info, gphoto->context);
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, " Downloaded %dx%d (preview %dx%d)", info.file.width,
-                 info.file.height, info.preview.width, info.preview.height);
+    if (result == GP_OK)
+    {
+        gphoto->width  = info.file.width;
+        gphoto->height = info.file.height;
+
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, " Downloaded %dx%d (preview %dx%d)", info.file.width,
+                     info.file.height, info.preview.width, info.preview.height);
+    }
+    else
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Could not determine image size (%s)", gp_result_as_string(result));
+    }
 
     // For some reason Canon 20D fails when deleting here
     // so this hack is a workaround until a permement fix is found
@@ -631,7 +638,11 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     {
         // 2018-04-16 JM: Delete all the folder to make sure there are no ghost images left somehow
         result = gp_camera_folder_delete_all(gphoto->camera, fn->folder, gphoto->context);
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Deleting folder %s (%d)", result);
+
+        if (result == GP_OK)
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Deleting folder %s is successful.", fn->folder);
+        else
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Could not delete folder %s (%s)", fn->folder, gp_result_as_string(result));
 
         // Delete individual file
         //result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
@@ -642,7 +653,8 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     {
         // This will close the file descriptor
         result = gp_file_free(gphoto->camerafile);
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing camera file descriptor (%d)", result);
+        if (result != GP_OK)
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing camera file descriptor failed (%s)", gp_result_as_string(result));
         gphoto->camerafile = nullptr;
     }
 
@@ -1689,6 +1701,18 @@ int gphoto_capture_preview(gphoto_driver *gphoto, CameraFile *previewFile, char 
         snprintf(errMsg, MAXRBUF, "Error capturing preview: %s", gp_result_as_string(rc));
 
     return rc;
+}
+
+int gphoto_start_preview(gphoto_driver *gphoto)
+{
+    // If viewfinder not found, nothing to do
+    if (gphoto->viewfinder_widget == nullptr)
+    {
+        DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "View finder widget is not found. Cannot force camera mirror to go up!");
+        return GP_ERROR_NOT_SUPPORTED;
+    }
+
+    return gphoto_set_widget_num(gphoto, gphoto->viewfinder_widget, 1);
 }
 
 int gphoto_stop_preview(gphoto_driver *gphoto)
