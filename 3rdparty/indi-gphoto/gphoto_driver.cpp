@@ -76,6 +76,7 @@ struct _gphoto_driver
     int format;
     int upload_settings;
     bool delete_sdcard_image;
+    bool is_aborted;
 
     char *model;
     char *manufacturer;
@@ -451,6 +452,7 @@ static void *stop_bulb(void *arg)
         //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"timeout expired");
         if (!(gphoto->command & DSLR_CMD_DONE) && ( (gphoto->command & DSLR_CMD_BULB_CAPTURE) || (gphoto->command & DSLR_CMD_ABORT)))
         {
+            gphoto->is_aborted = (gphoto->command & DSLR_CMD_ABORT);
             if (gphoto->command & DSLR_CMD_BULB_CAPTURE)
             {
                 gettimeofday(&curtime, nullptr);
@@ -581,8 +583,15 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     int result=0;
     CameraFileInfo info;
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,
-                 "Downloading image... Name: (%s) Folder: (%s) Delete from SD card? (%s) fd (%d)", fn->name, fn->folder, gphoto->delete_sdcard_image ? "true":"false", fd);
+    if (gphoto->is_aborted)
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Deleting aborted image... Name: (%s) Folder: (%s)", fn->name, fn->folder);
+    }
+    else
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,
+                 "Downloading image... Name: (%s) Folder: (%s) Delete from SD card? (%s)", fn->name, fn->folder, gphoto->delete_sdcard_image ? "true":"false");
+    }
 
     strncpy(gphoto->filename, fn->name, sizeof(gphoto->filename));
 
@@ -602,7 +611,8 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     result = gp_camera_file_get(gphoto->camera, fn->folder, fn->name, GP_FILE_TYPE_NORMAL, gphoto->camerafile,
                                 gphoto->context);
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Downloading image (%s) in folder (%s)", fn->name, fn->folder);
+    //if (!(gphoto->command & DSLR_CMD_ABORT))
+    //    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Downloading image (%s) in folder (%s)", fn->name, fn->folder);
 
     if (result != GP_OK)
     {
@@ -634,19 +644,16 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     int captureTarget = -1;
     gphoto_get_capture_target(gphoto, &captureTarget);
     // If it was set to RAM or SD card image is set to be explicitly deleted
-    if ((gphoto->delete_sdcard_image || captureTarget == 0) && !strstr(gphoto->model, "20D"))
+    if ( (gphoto->is_aborted || gphoto->delete_sdcard_image || captureTarget == 0) && !strstr(gphoto->model, "20D"))
     {
         // 2018-04-16 JM: Delete all the folder to make sure there are no ghost images left somehow
-        result = gp_camera_folder_delete_all(gphoto->camera, fn->folder, gphoto->context);
-
-        if (result == GP_OK)
-            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Deleting folder %s is successful.", fn->folder);
-        else
-            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Could not delete folder %s (%s)", fn->folder, gp_result_as_string(result));
+        //result = gp_camera_folder_delete_all(gphoto->camera, fn->folder, gphoto->context);
 
         // Delete individual file
-        //result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
-        //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "  Retval: %d", result);
+        result = gp_camera_file_delete(gphoto->camera, fn->folder, fn->name, gphoto->context);
+
+        if (result != GP_OK)
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Failed to delete file %s (%s)", fn->name, gp_result_as_string(result));
     }
 
     if (fd >= 0)
@@ -964,7 +971,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
                 return result;
                 break;
             case GP_EVENT_UNKNOWN:
-                DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Unknown event.");
+                //DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Unknown event.");
                 break;
             case GP_EVENT_TIMEOUT:
                 DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Event timed out #%d, retrying...", ++timeoutCounter);
@@ -1001,9 +1008,10 @@ int gphoto_abort_exposure(gphoto_driver *gphoto)
         pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
 
     pthread_mutex_unlock(&gphoto->mutex);
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure aborted.");
 
-    return 0;
+    gphoto_read_exposure(gphoto);
+
+    return GP_OK;
 }
 
 int gphoto_read_exposure(gphoto_driver *gphoto)
@@ -1291,6 +1299,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto->model           = nullptr;
     gphoto->upload_settings = GP_UPLOAD_CLIENT;
     gphoto->delete_sdcard_image = false;
+    gphoto->is_aborted = false;
 
     if (gphoto->format_widget != nullptr)
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Image Format Widget: %s", gphoto->format_widget->name);
