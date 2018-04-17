@@ -1178,7 +1178,7 @@ bool LX200StarGo::receive(char* buffer, int* bytes) {
     if (returnCode != TTY_OK) {
         char errorString[MAXRBUF];
         tty_error_msg(returnCode, errorString, MAXRBUF);
-        LOGF_WARN("%s: Failed to receive full response: %s.", getDeviceName(), errorString);
+        LOGF_WARN("Failed to receive full response: %s. (Return code: %d)", errorString, returnCode);
         return false;
     }
     LOGF_DEBUG("LX200 answer: '%s'", buffer);
