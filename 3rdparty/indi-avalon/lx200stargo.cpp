@@ -412,7 +412,7 @@ bool LX200StarGo::UpdateMotionStatus() {
             TrackModeSP.s   = IPS_OK;
             IDSetSwitch(&TrackModeSP, nullptr);
         }
-        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING && TrackState != SCOPE_PARKED) {
+        if (TrackState != SCOPE_PARKED && TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
             TrackState = SCOPE_IDLE;
         }
         break;
@@ -423,7 +423,7 @@ bool LX200StarGo::UpdateMotionStatus() {
             TrackModeSP.s   = IPS_OK;
             IDSetSwitch(&TrackModeSP, nullptr);
         }
-        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
+        if (TrackState != SCOPE_PARKED && TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
             TrackState = (motorsState == 0) ? SCOPE_IDLE : SCOPE_TRACKING;
         }
         break;
@@ -434,7 +434,7 @@ bool LX200StarGo::UpdateMotionStatus() {
             TrackModeSP.s   = IPS_OK;
             IDSetSwitch(&TrackModeSP, nullptr);
         }
-        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
+        if (TrackState != SCOPE_PARKED && TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
             TrackState = (motorsState == 0) ? SCOPE_IDLE : SCOPE_TRACKING;
         }
         break;
@@ -445,7 +445,7 @@ bool LX200StarGo::UpdateMotionStatus() {
             TrackModeSP.s   = IPS_OK;
             IDSetSwitch(&TrackModeSP, nullptr);
         }
-        if (TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
+        if (TrackState != SCOPE_PARKED && TrackState != SCOPE_PARKING && TrackState != SCOPE_SLEWING) {
             TrackState = (motorsState == 0) ? SCOPE_IDLE : SCOPE_TRACKING;
         }
         break;
@@ -733,7 +733,7 @@ bool LX200StarGo::Park() {
 void LX200StarGo::SetParked(bool isparked) {
     INDI::Telescope::SetParked(isparked);
 
-    TrackState = SCOPE_PARKED;
+    TrackState = isparked ? SCOPE_PARKED : SCOPE_TRACKING;
     ParkS[0].s = isparked ? ISS_ON : ISS_OFF;
     ParkS[1].s = isparked ? ISS_OFF : ISS_ON;
     ParkSP.s   = IPS_OK;
