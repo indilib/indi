@@ -12,16 +12,10 @@ git checkout stargo_work
 mkdir -p build/libindi
 cd build/libindi
 
-mkdir -p build/indi-avalon
-cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../indi/libindi
-make
-sudo make install 
-
  4. Build and install the Avalon driver
 cd ../..
 mkdir -p build/indi-avalon
 cd build/indi-avalon
-mkdir -p build/indi-avalon
 cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../indi/3rdparty/indi-avalon
 make
 sudo make install 
