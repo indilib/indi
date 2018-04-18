@@ -70,6 +70,7 @@ void ISSnoopDevice(XMLEle *root)
 GPSSimulator::GPSSimulator()
 {
     setVersion(1, 0);
+    setDriverInterface(GPS_INTERFACE);
 }
 
 const char *GPSSimulator::getDefaultName()
