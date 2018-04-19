@@ -1,8 +1,11 @@
 /*
- Generic CCD
+ Raspi Camera 
+ Copyright (C) 2018 James Lancaster (james.lancaster@makeict.org) 
+ 
+ Based on: Generic CCD
  CCD Template for INDI Developers
  Copyright (C) 2012 Jasem Mutlaq (mutlaqja@ikarustech.com)
-
+ 
  Multiple device support Copyright (C) 2013 Peter Polakovic (peter.polakovic@cloudmakers.eu)
 
  This library is free software; you can redistribute it and/or

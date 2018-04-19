@@ -362,7 +362,7 @@ bool RasPiCamera::setupParams()
     Camera.setWidth(x_2-x_1);
     Camera.setHeight(y_2-y_1);
     //TODO: Control
-	if (isoSpeed < 100 || isoSpeed >800) isoSpeed = 100;
+	if (isoSpeed < 100 || isoSpeed >800) isoSpeed = 800;
     Camera.setISO(isoSpeed);
     LOGF_INFO("Camera Speed set to %d ISO", isoSpeed);
     //TODO: Check encoding
@@ -464,12 +464,14 @@ bool RasPiCamera::StartExposure(float duration)
 
     InExposure = true;
     long int RPI_Duration = duration * 1000;
-    if (RPI_Duration > 6000000) RPI_Duration = 6000000;
-    Camera.open();
- //   if (RPI_Duration > 330000) RPI_Duration = 330000;
+ //   if (RPI_Duration > 6000000) RPI_Duration = 6000000;
+
+    if (RPI_Duration > 330000) RPI_Duration = 330000;
     Camera.setShutterSpeed(RPI_Duration);
+    Camera.setExposure(RASPICAM_EXPOSURE_NIGHTPREVIEW);
  //   Camera.setExposure(RPI_Duration);
     Camera.setExposure(raspicam::RASPICAM_EXPOSURE_AUTO);
+    Camera.open();
     Camera.startCapture();
     LOG_DEBUG("Raspberry Pi Camera::StartExposure() done");
     return true;
