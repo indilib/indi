@@ -3,8 +3,8 @@ PROJECT(libqhy C CXX)
 
 include(GNUInstallDirs)
 
-# QHY SDK Built on 2018-04-11
-set(LIBQHY_VERSION "2.0.0")
+# QHY SDK Built on 2018-04-19
+set(LIBQHY_VERSION "2.0.3")
 set(LIBQHY_SOVERSION "2")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")

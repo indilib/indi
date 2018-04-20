@@ -72,7 +72,7 @@ struct cydev {
     uint32_t raw_frame_height;
     uint32_t raw_frame_bpp;
     
-    int32_t received_raw_data_len; // if unsigned QHY5IIL crashes!!!
+    uint32_t received_raw_data_len; // if unsigned QHY5IIL crashes!!!
 };
 
 /****************************************************************************************
