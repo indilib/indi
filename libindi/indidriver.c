@@ -1426,15 +1426,23 @@ FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, cha
     {
         if (mkdir(configDir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) < 0)
         {
-            snprintf(errmsg, MAXRBUF, "Unable to create config directory. Error %s: %s\n", configDir, strerror(errno));
+            snprintf(errmsg, MAXRBUF, "Unable to create config directory. Error %s: %s", configDir, strerror(errno));
             return NULL;
         }
+    }
+
+    stat(configFileName, &st);
+    /* If file is owned by root and current user is NOT root then abort */
+    if ( (st.st_uid == 0 && getuid() != 0) || (st.st_gid == 0 && getgid() != 0) )
+    {
+        strncpy(errmsg, "Config file is owned by root! This will lead to serious errors. To fix this, run: sudo chown -R $USER:$USER ~/.indi", MAXRBUF);
+        return NULL;
     }
 
     fp = fopen(configFileName, mode);
     if (fp == NULL)
     {
-        snprintf(errmsg, MAXRBUF, "Unable to open config file. Error loading file %s: %s\n", configFileName,
+        snprintf(errmsg, MAXRBUF, "Unable to open config file. Error loading file %s: %s", configFileName,
                  strerror(errno));
         return NULL;
     }
