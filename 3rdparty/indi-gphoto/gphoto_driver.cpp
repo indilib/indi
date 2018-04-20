@@ -851,11 +851,12 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         gphoto->bulb_end.tv_sec  = gphoto->bulb_end.tv_sec + exptime_usec / 1e6;
         gphoto->bulb_end.tv_usec = usec % 1000000;
 #endif
-        gettimeofday(&gphoto->bulb_end, nullptr);
-        struct timeval duration;
+        struct timeval duration, current_time;
+        gettimeofday(&current_time, nullptr);
+
         duration.tv_sec = exptime_usec / 1000000;
         duration.tv_usec= exptime_usec % 1000000;
-        timeradd(&gphoto->bulb_end, &duration, &gphoto->bulb_end);
+        timeradd(&current_time, &duration, &gphoto->bulb_end);
 
         // Start actual exposure
         gphoto->command = DSLR_CMD_BULB_CAPTURE;
