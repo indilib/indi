@@ -51,8 +51,8 @@ void RotatorInterface::initProperties(const char *groupName)
     IUFillSwitchVector(&HomeRotatorSP, HomeRotatorS, 1, m_defaultDevice->getDeviceName(), "ROTATOR_HOME", "Homing", groupName, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Reverse Direction
-    IUFillSwitch(&ReverseRotatorS[REVERSE_ENABLED], "REVERSE_ENABLED", "Enable", ISS_OFF);
-    IUFillSwitch(&ReverseRotatorS[REVERSE_DISABLED], "REVERSE_DISABLED", "Disable", ISS_ON);
+    IUFillSwitch(&ReverseRotatorS[REVERSE_ENABLED], "ENABLED", "Enable", ISS_OFF);
+    IUFillSwitch(&ReverseRotatorS[REVERSE_DISABLED], "DISABLED", "Disable", ISS_ON);
     IUFillSwitchVector(&ReverseRotatorSP, ReverseRotatorS, 2, m_defaultDevice->getDeviceName(), "ROTATOR_REVERSE", "Reverse", groupName, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 }

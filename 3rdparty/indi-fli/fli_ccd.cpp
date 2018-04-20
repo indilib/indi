@@ -254,7 +254,10 @@ bool FLICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 CameraModeSP.s = IPS_ALERT;
             }
             else
+            {
+                LOG_WARN(("Camera mode is updated. Please capture a bias frame now before proceeding further to synchronize the change."));
                 CameraModeSP.s = IPS_OK;
+            }
 
             IDSetSwitch(&CameraModeSP, nullptr);
             return true;
