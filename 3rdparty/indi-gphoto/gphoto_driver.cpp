@@ -432,7 +432,7 @@ static void *stop_bulb(void *arg)
     //CameraEventType event;
     long timeleft;
     struct timespec timeout;
-    struct timeval curtime;
+    struct timeval curtime, diff;
 
     pthread_mutex_lock(&gphoto->mutex);
     pthread_cond_signal(&gphoto->signal);
@@ -456,8 +456,8 @@ static void *stop_bulb(void *arg)
             if (gphoto->command & DSLR_CMD_BULB_CAPTURE)
             {
                 gettimeofday(&curtime, nullptr);
-                timeleft = ((gphoto->bulb_end.tv_sec - curtime.tv_sec) * 1000) +
-                           ((gphoto->bulb_end.tv_usec - curtime.tv_usec) / 1000);
+                timersub(&curtime, &gphoto->bulb_end, &diff);
+                timeleft = diff.tv_sec * 1000 + diff.tv_usec / 1000;
                 DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Time left: %ld ms", timeleft);
             }
             else
