@@ -1049,7 +1049,6 @@ bool GPhotoCCD::StartExposure(float duration)
         return false;
     }
 
-    // JM 2018-04-20: Account for mirror locking time so that ExposureRequest only grabs image when capture is almost complete.
     ExposureRequest = duration;
     gettimeofday(&ExpStart, nullptr);
     InExposure = true;
@@ -1181,7 +1180,7 @@ void GPhotoCCD::TimerHit()
         }
         else
         {
-            LOGF_DEBUG("Capture in progress. Time left %.2f", timeleft);
+            //LOGF_DEBUG("Capture in progress. Time left %.2f seconds", timeleft);
             if (timerID == -1)
                 SetTimer(POLLMS);
         }
