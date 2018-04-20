@@ -853,7 +853,6 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
 #endif
         struct timeval duration, current_time;
         gettimeofday(&current_time, nullptr);
-
         duration.tv_sec = exptime_usec / 1000000;
         duration.tv_usec= exptime_usec % 1000000;
         timeradd(&current_time, &duration, &gphoto->bulb_end);
@@ -894,10 +893,12 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
 
         // Preparing exposure: we let stop_bulb() close the serial port although this could be done here as well
         // because the camera closes the shutter.
-        gettimeofday(&gphoto->bulb_end, nullptr);
-        uint32_t usec            = gphoto->bulb_end.tv_usec + exptime_usec;
-        gphoto->bulb_end.tv_sec  = gphoto->bulb_end.tv_sec + exptime_usec / 1e6;
-        gphoto->bulb_end.tv_usec = usec % 1000000;
+
+        struct timeval duration, current_time;
+        gettimeofday(&current_time, nullptr);
+        duration.tv_sec = exptime_usec / 1000000;
+        duration.tv_usec= exptime_usec % 1000000;
+        timeradd(&current_time, &duration, &gphoto->bulb_end);
 
         // Start actual exposure
         gphoto->command = DSLR_CMD_BULB_CAPTURE;
