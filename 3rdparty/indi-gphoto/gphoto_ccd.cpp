@@ -54,6 +54,7 @@ static CamDriverInfo camInfos[] = { { "indi_gphoto_ccd", "GPhoto CCD", "GPhoto" 
                                     { "indi_canon_ccd", "Canon DSLR", "Canon" },
                                     { "indi_nikon_ccd", "Nikon DSLR", "Nikon" },
                                     { "indi_pentax_ccd", "Pentax DSLR", "Pentax" },
+                                    { "indi_sony_ccd", "Sony DSLR", "Sony" },
                                     { nullptr, nullptr, nullptr } };
 
 /**********************************************************
@@ -1043,11 +1044,15 @@ bool GPhotoCCD::StartExposure(float duration)
         return false;
     }
 
-    ExposureRequest = duration;
+    // JM 2018-04-20: Account for mirror locking time so that ExposureRequest only grabs image when capture is almost complete.
+    ExposureRequest = duration + mMirrorLockN[0].value;
     gettimeofday(&ExpStart, nullptr);
     InExposure = true;
 
-    LOGF_INFO("Starting %g sec exposure", duration);
+    if (mMirrorLockN[0].value > 0)
+        LOGF_INFO("Starting %g seconds exposure (+%g seconds mirror lock).", duration, mMirrorLockN[0].value);
+    else
+        LOGF_INFO("Starting %g seconds exposure.", duration);
 
     SetTimer(POLLMS);
 
