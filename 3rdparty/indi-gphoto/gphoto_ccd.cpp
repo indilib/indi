@@ -1034,9 +1034,14 @@ bool GPhotoCCD::StartExposure(float duration)
      */
 
     // Microseconds
-    int exp_us = (int)ceil(duration * 1e6);
+    uint32_t exp_us = static_cast<uint32_t>(ceil(duration * 1e6));
 
     PrimaryCCD.setExposureDuration(duration);
+
+    if (mMirrorLockN[0].value > 0)
+        LOGF_INFO("Starting %g seconds exposure (+%g seconds mirror lock).", duration, mMirrorLockN[0].value);
+    else
+        LOGF_INFO("Starting %g seconds exposure.", duration);
 
     if (sim == false && gphoto_start_exposure(gphotodrv, exp_us, mMirrorLockN[0].value) < 0)
     {
@@ -1045,14 +1050,9 @@ bool GPhotoCCD::StartExposure(float duration)
     }
 
     // JM 2018-04-20: Account for mirror locking time so that ExposureRequest only grabs image when capture is almost complete.
-    ExposureRequest = duration + mMirrorLockN[0].value;
+    ExposureRequest = duration;
     gettimeofday(&ExpStart, nullptr);
     InExposure = true;
-
-    if (mMirrorLockN[0].value > 0)
-        LOGF_INFO("Starting %g seconds exposure (+%g seconds mirror lock).", duration, mMirrorLockN[0].value);
-    else
-        LOGF_INFO("Starting %g seconds exposure.", duration);
 
     SetTimer(POLLMS);
 
