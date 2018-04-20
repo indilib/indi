@@ -128,7 +128,9 @@ INDI server only provides convenient port, fork and data steering services. If d
 
 ### How to create Github pull request (PR)
 
-How I submit a PR:
+[How to contribute to INDI full guide](http://indilib.org/develop/tutorials/181-how-to-contribute-to-indi-github-development.html)
+
+Here is the short version on how to submit a PR:
 1. Login with a Github account and fork the official INDI repository.
 2. Clone the official INDI repository and add the forked INDI repository as a remote (git remote add ...).
 3. Create a local Git branch (git checkout -b my_branch).

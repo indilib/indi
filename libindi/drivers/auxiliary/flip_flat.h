@@ -75,11 +75,11 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
 
     // Status
     ITextVectorProperty StatusTP;
-    IText StatusT[3];
+    IText StatusT[3] {};
 
     // Firmware version
     ITextVectorProperty FirmwareTP;
-    IText FirmwareT[1];
+    IText FirmwareT[1] {};
 
     int PortFD { -1 };
     int productID { 0 };

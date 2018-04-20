@@ -55,34 +55,6 @@ static void cleanup()
     }
 }
 
-//static void deinterlace(unsigned short *data, int width, int height)
-//{
-//    int row, column;
-//    long *averages = (long *)malloc((height + 1) * sizeof(long));
-//    for (row = 0; row < height; row++)
-//    {
-//        long average = 0;
-//        int r        = row * width;
-//        for (column = 0; column < width; column++)
-//        {
-//            average += data[r + column];
-//        }
-//        averages[row] = average;
-//    }
-//    averages[row] = averages[row - 1];
-//    for (row = 1; row < height; row += 2)
-//    {
-//        double q = (averages[row]) / ((averages[row - 1] + averages[row + 1]) / 2.0);
-//        int r    = row * width;
-//        for (column = 0; column < width; column++)
-//        {
-//            int c   = r + column;
-//            data[c] = (unsigned short)(data[c] / q);
-//        }
-//    }
-//    free(averages);
-//}
-
 void ISInit()
 {
     static bool isInit = false;
@@ -269,7 +241,7 @@ bool SXCCD::initProperties()
 
     //  we can expose less than 0.01 seconds at a time
     //  and we need to for an allsky in daytime
-    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 3600, 0.0001, true);
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 3600, 0.0001, false);
 
     return true;
 }
@@ -279,6 +251,7 @@ bool SXCCD::updateProperties()
     INDI::CCD::updateProperties();
     if (isConnected())
     {
+        SetupParms();
         if (HasCooler)
             defineSwitch(&CoolerSP);
         if (HasShutter)
@@ -316,12 +289,6 @@ bool SXCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
-    int nbuf;
-    //  this is pixel count
-    nbuf = (w * h) / (PrimaryCCD.getBinX() * PrimaryCCD.getBinY()) * PrimaryCCD.getBPP() / 8;
-    //  leave a little extra at the end
-    nbuf += 512;
-    PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
 }
@@ -331,6 +298,11 @@ bool SXCCD::UpdateCCDBin(int hor, int ver)
     if (hor == 3 || ver == 3)
     {
         IDMessage(getDeviceName(), "3x3 binning is not supported.");
+        return false;
+    }
+    if (sxIsICX453(model) && hor != ver)
+    {
+        IDMessage(getDeviceName(), "Asymetric binning is not supported.");
         return false;
     }
     PrimaryCCD.setBin(hor, ver);
@@ -345,7 +317,31 @@ bool SXCCD::Connect()
         int rc = sxOpen(device, &handle);
         if (rc >= 0)
         {
-            getCameraParams();
+            struct t_sxccd_params params;
+            model             = sxGetCameraModel(handle);
+            sxGetCameraParams(handle, 0, &params);
+
+            HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
+            HasCooler    = params.extra_caps & SXUSB_CAPS_COOLER;
+            HasShutter   = params.extra_caps & SXUSB_CAPS_SHUTTER;
+            HasST4Port   = params.extra_caps & SXCCD_CAPS_STAR2K;
+
+            uint32_t cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_CAN_BIN;
+
+            if (HasCooler)
+                cap |= CCD_HAS_COOLER;
+
+            if (HasGuideHead)
+                cap |= CCD_HAS_GUIDE_HEAD;
+
+            if (HasShutter)
+                cap |= CCD_HAS_SHUTTER;
+
+            if (HasST4Port)
+                cap |= CCD_HAS_ST4_PORT;
+
+            SetCCDCapability(cap);
+
             return true;
         }
     }
@@ -361,11 +357,12 @@ bool SXCCD::Disconnect()
     return true;
 }
 
-void SXCCD::getCameraParams()
+void SXCCD::SetupParms()
 {
     struct t_sxccd_params params;
     model             = sxGetCameraModel(handle);
     bool isInterlaced = sxIsInterlaced(model);
+    bool isICX453     = sxIsICX453(model);
     PrimaryCCD.setInterlaced(isInterlaced);
     sxGetCameraParams(handle, 0, &params);
     if (isInterlaced)
@@ -374,22 +371,33 @@ void SXCCD::getCameraParams()
         params.height *= 2;
         wipeDelay = 130000;
     }
+    else if (isICX453)
+    {
+        params.width = 3032;
+        params.height = 2016;
+    }
     SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
+ 
     int nbuf = params.width * params.height;
     if (params.bits_per_pixel == 16)
         nbuf *= 2;
-    nbuf += 512;
+    //nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
-    if (evenBuf != NULL)
-        delete evenBuf;
-    if (oddBuf != NULL)
-        delete oddBuf;
-    evenBuf      = new char[nbuf / 2];
-    oddBuf       = new char[nbuf / 2];
-    HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
-    HasCooler    = params.extra_caps & SXUSB_CAPS_COOLER;
-    HasShutter   = params.extra_caps & SXUSB_CAPS_SHUTTER;
-    HasST4Port   = params.extra_caps & SXCCD_CAPS_STAR2K;
+    if (isInterlaced)
+    {
+        if (evenBuf != NULL)
+            delete evenBuf;
+        if (oddBuf != NULL)
+            delete oddBuf;
+        evenBuf      = new char[nbuf / 2];
+        oddBuf       = new char[nbuf / 2];
+    }
+    else if (isICX453)
+    {
+        if (evenBuf != NULL)
+            delete evenBuf;
+        evenBuf      = new char[nbuf];
+    }
 
     if (HasGuideHead)
     {
@@ -400,22 +408,6 @@ void SXCCD::getCameraParams()
         GuideCCD.setFrameBufferSize(nbuf);
         SetGuiderParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
     }
-
-    uint32_t cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_CAN_BIN;
-
-    if (HasCooler)
-        cap |= CCD_HAS_COOLER;
-
-    if (HasGuideHead)
-        cap |= CCD_HAS_GUIDE_HEAD;
-
-    if (HasShutter)
-        cap |= CCD_HAS_SHUTTER;
-
-    if (HasST4Port)
-        cap |= CCD_HAS_ST4_PORT;
-
-    SetCCDCapability(cap);
 
     SetTimer(TIMER);
 }
@@ -541,6 +533,7 @@ void SXCCD::ExposureTimerHit()
             int binX          = PrimaryCCD.getBinX();
             int binY          = PrimaryCCD.getBinY();
             int subWW         = subW * 2;
+            bool isICX453     = sxIsICX453(model);
             uint8_t *buf      = PrimaryCCD.getFrameBuffer();
             int size;
             if (isInterlaced && binY > 1)
@@ -583,6 +576,37 @@ void SXCCD::ExposureTimerHit()
                             memcpy(buf + ((i + 1) * subWW), evenBuf + (j * subWW), subWW);
                         }
                         //            deinterlace((unsigned short *)buf, subW, subH);
+                    }
+                }
+            }
+            else if (isICX453)
+            {   rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX * 2, subY / 2, subW * 2, subH / 2, binX, binY);
+                if (rc)
+                {   if (binX == 1 && binY == 1)
+                    {   rc = sxReadPixels(handle, evenBuf, size * 2);
+                        if (rc)
+                        {
+                            uint16_t *buf16 = (uint16_t *)buf;
+                            uint16_t *evenBuf16 = (uint16_t *)evenBuf;
+
+                            for (int i = 0; i < subH; i += 2)
+                            {
+                                for (int j = 0; j < subW; j += 2)
+                                {
+                                    int isubW = i * subW;
+                                    int i1subW = (i + 1) * subW;
+                                    int j2 = j * 2;
+                                    buf16[isubW + j]  = evenBuf16[isubW + j2];
+                                    buf16[isubW + j + 1]  = evenBuf16[isubW + j2 + 2];
+                                    buf16[i1subW + j]  = evenBuf16[isubW + j2 + 1];
+                                    buf16[i1subW + j + 1]  = evenBuf16[isubW + j2 + 3];
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        rc = sxReadPixels(handle, buf, size * 2);
                     }
                 }
             }

@@ -51,5 +51,5 @@ class ScopeScript : public INDI::Telescope
     bool RunScript(int script, ...);
 
     ITextVectorProperty ScriptsTP;
-    IText ScriptsT[15];
+    IText ScriptsT[15] {};
 };

@@ -273,7 +273,7 @@ protected:
     ISwitchVectorProperty ResetSP;
 
     // Focus and rotator name configure in the HUB
-    IText HFocusNameT[2];
+    IText HFocusNameT[2] {};
     ITextVectorProperty HFocusNameTP;
 
     // Led Intensity Value

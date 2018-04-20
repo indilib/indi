@@ -53,7 +53,7 @@ class WeatherMeta : public INDI::DefaultDevice
     void updateUpdatePeriod();
 
     // Active stations
-    IText ActiveDeviceT[4];
+    IText ActiveDeviceT[4] {};
     ITextVectorProperty ActiveDeviceTP;
 
     // Stations status

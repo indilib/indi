@@ -1239,6 +1239,7 @@ int Detector::getFileIndex(const char *dir, const char *prefix, const char *ext)
             if (strstr(epdf->d_name, prefixIndex.c_str()))
                 files.push_back(epdf->d_name);
         }
+	closedir(dpdf);
     }
     else
         return -1;
