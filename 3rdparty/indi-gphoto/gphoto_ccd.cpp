@@ -54,6 +54,7 @@ static CamDriverInfo camInfos[] = { { "indi_gphoto_ccd", "GPhoto CCD", "GPhoto" 
                                     { "indi_canon_ccd", "Canon DSLR", "Canon" },
                                     { "indi_nikon_ccd", "Nikon DSLR", "Nikon" },
                                     { "indi_pentax_ccd", "Pentax DSLR", "Pentax" },
+                                    { "indi_sony_ccd", "Sony DSLR", "Sony" },
                                     { nullptr, nullptr, nullptr } };
 
 /**********************************************************
@@ -466,7 +467,7 @@ bool GPhotoCCD::updateProperties()
         // Dummy values until first capture is done
         //SetCCDParams(1280, 1024, 8, 5.4, 5.4);
 
-        if (sim == false)
+        if (isSimulation() == false)
         {
             ShowExtendedOptions();
 
@@ -557,7 +558,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 if (mIsoS[i].s == ISS_ON)
                 {
-                    if (sim == false)
+                    if (isSimulation() == false)
                         gphoto_set_iso(gphotodrv, i);
                     mIsoSP.s = IPS_OK;
                     IDSetSwitch(&mIsoSP, nullptr);
@@ -619,7 +620,7 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 if (mFormatS[i].s == ISS_ON)
                 {
-                    if (sim == false)
+                    if (isSimulation() == false)
                         gphoto_set_format(gphotodrv, i);
                     mFormatSP.s = IPS_OK;
                     IDSetSwitch(&mFormatSP, nullptr);
@@ -829,8 +830,6 @@ bool GPhotoCCD::ISNewNumber(const char *dev, const char *name, double values[], 
 
 bool GPhotoCCD::Connect()
 {
-    sim = isSimulation();
-
     int setidx;
     char **options;
     int max_opts;
@@ -842,7 +841,7 @@ bool GPhotoCCD::Connect()
         shutter_release_port = PortTP.tp[0].text;
     }
 
-    if (sim == false)
+    if (isSimulation() == false)
     {
         // Regular detect
         if (port[0] == '\0')
@@ -857,7 +856,7 @@ bool GPhotoCCD::Connect()
         }
     }
 
-    if (sim)
+    if (isSimulation())
     {
         PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, true);
     }
@@ -875,7 +874,7 @@ bool GPhotoCCD::Connect()
         mFormatS = nullptr;
     }
 
-    if (sim)
+    if (isSimulation())
     {
         setidx             = 0;
         max_opts           = 1;
@@ -923,7 +922,7 @@ bool GPhotoCCD::Connect()
     if (mIsoS)
         free(mIsoS);
 
-    if (sim)
+    if (isSimulation())
     {
         setidx             = 0;
         max_opts           = 4;
@@ -946,7 +945,7 @@ bool GPhotoCCD::Connect()
         mExposurePresetS = nullptr;
     }
 
-    if (sim)
+    if (isSimulation())
     {
         setidx                     = 0;
         max_opts                   = 4;
@@ -970,7 +969,7 @@ bool GPhotoCCD::Connect()
     // Get Capture target
     int captureTarget = -1;
 
-    if (!sim && gphoto_get_capture_target(gphotodrv, &captureTarget) == GP_OK)
+    if (!isSimulation() && gphoto_get_capture_target(gphotodrv, &captureTarget) == GP_OK)
     {
         IUResetSwitch(&captureTargetSP);
         captureTargetS[CAPTURE_INTERNAL_RAM].s = (captureTarget == 0) ? ISS_ON : ISS_OFF;
@@ -980,7 +979,7 @@ bool GPhotoCCD::Connect()
 
     LOGF_INFO("%s is online.", getDeviceName());
 
-    if (!sim && gphoto_get_manufacturer(gphotodrv) && gphoto_get_model(gphotodrv))
+    if (!isSimulation() && gphoto_get_manufacturer(gphotodrv) && gphoto_get_model(gphotodrv))
     {
         LOGF_INFO("Detected %s Model %s.", gphoto_get_manufacturer(gphotodrv),
                gphoto_get_model(gphotodrv));
@@ -993,7 +992,7 @@ bool GPhotoCCD::Connect()
 
 bool GPhotoCCD::Disconnect()
 {
-    if (sim)
+    if (isSimulation())
         return true;
     gphoto_close(gphotodrv);
     gphotodrv        = nullptr;
@@ -1033,11 +1032,16 @@ bool GPhotoCCD::StartExposure(float duration)
      */
 
     // Microseconds
-    int exp_us = (int)ceil(duration * 1e6);
+    uint32_t exp_us = static_cast<uint32_t>(ceil(duration * 1e6));
 
     PrimaryCCD.setExposureDuration(duration);
 
-    if (sim == false && gphoto_start_exposure(gphotodrv, exp_us, mMirrorLockN[0].value) < 0)
+    if (mMirrorLockN[0].value > 0)
+        LOGF_INFO("Starting %g seconds exposure (+%g seconds mirror lock).", duration, mMirrorLockN[0].value);
+    else
+        LOGF_INFO("Starting %g seconds exposure.", duration);
+
+    if (isSimulation() == false && gphoto_start_exposure(gphotodrv, exp_us, mMirrorLockN[0].value) < 0)
     {
         LOG_ERROR("Error starting exposure");
         return false;
@@ -1046,8 +1050,6 @@ bool GPhotoCCD::StartExposure(float duration)
     ExposureRequest = duration;
     gettimeofday(&ExpStart, nullptr);
     InExposure = true;
-
-    LOGF_INFO("Starting %g sec exposure", duration);
 
     SetTimer(POLLMS);
 
@@ -1075,16 +1077,12 @@ bool GPhotoCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
 double GPhotoCCD::CalcTimeLeft()
 {
-    double timesince;
-    double timeleft;
-    struct timeval now;
+    struct timeval now, diff;
     gettimeofday(&now, nullptr);
 
-    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
-                (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
-    timesince = timesince / 1000;
-    timeleft  = ExposureRequest - timesince;
-    return timeleft;
+    timersub(&now, &ExpStart, &diff);
+    double timesince = diff.tv_sec + diff.tv_usec / 1000.0;
+    return (ExposureRequest - timesince);
 }
 
 void GPhotoCCD::TimerHit()
@@ -1176,7 +1174,7 @@ void GPhotoCCD::TimerHit()
         }
         else
         {
-            LOGF_DEBUG("Capture in progress. Time left %.2f", timeleft);
+            //LOGF_DEBUG("Capture in progress. Time left %.2f seconds", timeleft);
             if (timerID == -1)
                 SetTimer(POLLMS);
         }
@@ -1215,7 +1213,7 @@ bool GPhotoCCD::grabImage()
     size_t memsize = 0;
     int fd = 0, naxis = 2, w = 0, h = 0, bpp = 8;
 
-    if (sim)
+    if (isSimulation())
     {
         w                   = PrimaryCCD.getXRes();
         h                   = PrimaryCCD.getYRes();
@@ -1615,7 +1613,7 @@ IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 
     /* gphoto works with steps */
 
-    if (sim || speed == 0)
+    if (isSimulation() || speed == 0)
         return IPS_OK;
 
     if (dir == FOCUS_INWARD)
@@ -1675,7 +1673,7 @@ bool GPhotoCCD::startLiveVideo()
 {
     //static int last_naxis = -1;, last_w = -1, last_h = -1;
 
-    if (sim)
+    if (isSimulation())
         return false;
 
     int rc = GP_OK;
@@ -1789,7 +1787,7 @@ bool GPhotoCCD::startLiveVideo()
 #if 0
 bool GPhotoCCD::startLivePreview()
 {
-    if (sim)
+    if (isSimulation())
         return false;
 
     int rc = GP_OK;
@@ -1852,7 +1850,7 @@ bool GPhotoCCD::startLivePreview()
 
 bool GPhotoCCD::stopLiveVideo()
 {
-    if (sim)
+    if (isSimulation())
         return false;
 
     return (gphoto_stop_preview(gphotodrv) == GP_OK);
@@ -1915,7 +1913,7 @@ void GPhotoCCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 
 bool GPhotoCCD::UpdateCCDUploadMode(CCD_UPLOAD_MODE mode)
 {
-    if (!sim)
+    if (!isSimulation())
         gphoto_set_upload_settings(gphotodrv, mode);
     return true;
 }
