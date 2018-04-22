@@ -364,14 +364,22 @@ bool SynscanMount::ReadScopeStatus()
     numread = tty_read(PortFD, str, 2, 2, &bytesRead);
     if (str[1] == '#')
     {
-        if ((int)str[0] == 0)
+        TrackingStatus = str[0];
+        switch((int)str[0])
+        {
+        case 0:
             TrackingMode = "Tracking off";
-        if ((int)str[0] == 1)
+            break;
+        case 1:
             TrackingMode = "Alt/Az tracking";
-        if ((int)str[0] == 2)
+            break;
+        case 2:
             TrackingMode = "EQ tracking";
-        if ((int)str[0] == 3)
+            break;
+        case 3:
             TrackingMode = "PEC mode";
+            break;
+        }
     }
 
     UpdateMountInformation(true);
@@ -386,10 +394,12 @@ bool SynscanMount::ReadScopeStatus()
         {
             //  Nothing to do here
         }
-        else
+        else if (MountCode < 128)
         {
-            if (TrackState == SCOPE_PARKING)
-                TrackState = SCOPE_PARKED;
+            if (TrackingStatus[0] != 0)
+                TrackState = SCOPE_TRACKING;
+            else
+                TrackState = SCOPE_IDLE;
         }
     }
     if (TrackState == SCOPE_PARKING)
@@ -1023,6 +1033,7 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     bytesRead = 0;
     tty_write(PortFD, str, 9, &bytesWritten);
     tty_read(PortFD, str, 1, 2, &bytesRead);
+    LOGF_INFO("Setting mount date/time to %04d-%02d-%02d %d:%02d:%02d UTC Offset: %d\n", (int)ltm.years, (int)ltm.months, (int)ltm.days, (int)ltm.hours, (int)ltm.minutes, (int)ltm.seconds, (int)utc_offset);
     if (str[0] != '#')
     {
         LOG_INFO("Invalid return from set time");
