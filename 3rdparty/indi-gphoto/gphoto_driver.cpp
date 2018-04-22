@@ -456,7 +456,7 @@ static void *stop_bulb(void *arg)
             if (gphoto->command & DSLR_CMD_BULB_CAPTURE)
             {
                 gettimeofday(&curtime, nullptr);
-                timersub(&curtime, &gphoto->bulb_end, &diff);
+                timersub(&gphoto->bulb_end, &curtime, &diff);
                 timeleft = diff.tv_sec * 1000 + diff.tv_usec / 1000;
                 DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Time left: %ld ms", timeleft);
             }
