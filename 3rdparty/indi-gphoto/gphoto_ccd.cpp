@@ -1081,7 +1081,7 @@ double GPhotoCCD::CalcTimeLeft()
     gettimeofday(&now, nullptr);
 
     timersub(&now, &ExpStart, &diff);
-    double timesince = diff.tv_sec + diff.tv_usec / 1000.0;
+    double timesince = diff.tv_sec + diff.tv_usec / 1000000.0;
     return (ExposureRequest - timesince);
 }
 
