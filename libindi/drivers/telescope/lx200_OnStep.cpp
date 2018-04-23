@@ -742,37 +742,6 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 	    
         }
 
-<<<<<<< HEAD
-=======
-            if (IUUpdateSwitch(&OSFocus1MotionSP, states, names, n) < 0)
-                return false;
-
-            index = IUFindOnSwitchIndex(&OSFocus1MotionSP);
-            if (index ==0)
-            {
-                strcpy(cmd, ":F+#");
-            }
-            if (index ==1)
-            {
-                strcpy(cmd, ":F-#");
-            }
-            if (index ==2)
-            {
-                strcpy(cmd, ":FQ#");
-            }
-            sendOnStepCommandBlind(cmd);
-            const struct timespec timeout = {0, 100000000L};
-            nanosleep(&timeout, NULL); // Pulse 0,1 s
-            if(index != 2)
-            {
-                sendOnStepCommandBlind(":FQ#");
-            }
-            OSFocus1MotionS[index].s=ISS_OFF;
-            OSFocus1MotionSP.s = IPS_OK;
-            IDSetSwitch(&OSFocus1MotionSP, nullptr);
-        }
->>>>>>> upstream/master
-
         // Focuser 2 Rates
         if (!strcmp(name, OSFocus2RateSP.name))
         {
