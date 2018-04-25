@@ -45,6 +45,44 @@ static int cameraCount;
 static RasPiCamera *cameras[MAX_DEVICES];
 
 
+//Stupid hack because of enums used, vs an array... 
+raspicam::RASPICAM_EXPOSURE getExposureFromIndex ( int index ) {
+	if (index==0) return raspicam::RASPICAM_EXPOSURE_OFF;
+	if (index==1) return raspicam::RASPICAM_EXPOSURE_AUTO;
+	if (index==2) return raspicam::RASPICAM_EXPOSURE_NIGHT;
+	if (index==3) return raspicam::RASPICAM_EXPOSURE_NIGHTPREVIEW;
+	if (index==4) return raspicam::RASPICAM_EXPOSURE_BACKLIGHT;
+	if (index==5) return raspicam::RASPICAM_EXPOSURE_SPOTLIGHT;
+	if (index==6) return raspicam::RASPICAM_EXPOSURE_SPORTS;
+	if (index==7) return raspicam::RASPICAM_EXPOSURE_SNOW;
+	if (index==8) return raspicam::RASPICAM_EXPOSURE_BEACH;
+	if (index==9) return raspicam::RASPICAM_EXPOSURE_VERYLONG;
+	if (index==10) return raspicam::RASPICAM_EXPOSURE_FIXEDFPS;
+	if (index==11) return raspicam::RASPICAM_EXPOSURE_ANTISHAKE;
+	if (index==12) return raspicam::RASPICAM_EXPOSURE_FIREWORKS;
+	// If something else
+	return raspicam::RASPICAM_EXPOSURE_AUTO;
+	
+}
+
+
+
+raspicam::RASPICAM_AWB getAwbFromIndex ( int index) {
+	if (index==0) return raspicam::RASPICAM_AWB_OFF;
+	if (index==1) return raspicam::RASPICAM_AWB_AUTO;
+	if (index==2) return raspicam::RASPICAM_AWB_SUNLIGHT;
+	if (index==3) return raspicam::RASPICAM_AWB_CLOUDY;
+	if (index==4) return raspicam::RASPICAM_AWB_SHADE;
+	if (index==5) return raspicam::RASPICAM_AWB_TUNGSTEN;
+	if (index==6) return raspicam::RASPICAM_AWB_FLUORESCENT;
+	if (index==7) return raspicam::RASPICAM_AWB_INCANDESCENT;
+	if (index==8) return raspicam::RASPICAM_AWB_FLASH;
+	if (index==9) return raspicam::RASPICAM_AWB_HORIZON;
+	// If something else
+	return raspicam::RASPICAM_AWB_AUTO;
+}
+
+
 /**********************************************************
  *
  *  IMPORRANT: List supported camera models in initializer of deviceTypes structure
@@ -94,7 +132,7 @@ void ISInit()
      */
 
         /* For demo purposes we are creating two test devices */
-        cameraCount            = 2;
+        cameraCount            = 1;
         struct usb_device *dev = NULL;
         cameras[0]             = new RasPiCamera(dev, deviceTypes[0].name);
         cameras[1]             = new RasPiCamera(dev, deviceTypes[1].name);
@@ -152,6 +190,7 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     }
 }
 
+
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     ISInit();
@@ -164,6 +203,7 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
             if (dev != NULL)
                 break;
         }
+
     }
 }
 
@@ -212,9 +252,9 @@ const char *RasPiCamera::getDefaultName()
 
 bool RasPiCamera::initProperties()
 {
-	int setidx;
-	char **options;
-	int max_opts;
+// 	int setidx;
+// 	char **options;
+// 	int max_opts;
     LOG_DEBUG("Raspberry Pi Camera::initProperties()");
 	// Init parent properties first
     INDI::CCD::initProperties();
@@ -226,20 +266,121 @@ bool RasPiCamera::initProperties()
 
     addConfigurationControl();
     addDebugControl();
-    IUFillSwitchVector(&mIsoSP, NULL, 0, getDeviceName(), "CCD_ISO", "ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60,
-		       IPS_IDLE);
+
     //   if (sim)
     //    {
-    setidx             = 0;
-    max_opts           = 4;
-    const char *isos[] = { "100", "200", "400", "800" };
-    options            = (char **)isos;
+//     setidx             = 0;
+//     max_opts           = 4;
+//     const char *isos[] = { "100", "200", "400", "800" };
+//     options            = (char **)isos;
     //   }
+    IUFillSwitch(&mIsoS[0], "1", "100", ISS_ON);
+    IUFillSwitch(&mIsoS[1], "2", "200", ISS_OFF);
+    IUFillSwitch(&mIsoS[2], "3", "400", ISS_OFF);
+    IUFillSwitch(&mIsoS[3], "4", "800", ISS_OFF);
+//     mIsoS      = create_switch("ISO", options, max_opts, setidx);
+    //mIsoSP.sp  = mIsoS;
+    //mIsoSP.nsp = max_opts;
     
-    mIsoS      = create_switch("ISO", options, max_opts, setidx);
-    mIsoSP.sp  = mIsoS;
-    mIsoSP.nsp = max_opts;
-	LOG_DEBUG("Raspberry Pi Camera::initProperties() done");
+    IUFillSwitchVector(&mIsoSP, mIsoS, 4, getDeviceName(), "CCD_ISO", "ISO", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    
+
+    IUFillSwitch(&rpiExposureS[0], "OFF", "RASPICAM_EXPOSURE_OFF", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[1], "AUTO", "RASPICAM_EXPOSURE_AUTO", ISS_ON);
+    IUFillSwitch(&rpiExposureS[2], "NIGHT", "RASPICAM_EXPOSURE_NIGHT", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[3], "NIGHTPREVIEW", "RASPICAM_EXPOSURE_NIGHTPREVIEW", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[4], "BACKLIGHT", "RASPICAM_EXPOSURE_BACKLIGHT", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[5], "SPOTLIGHT", "RASPICAM_EXPOSURE_SPOTLIGHT", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[6], "6", "RASPICAM_EXPOSURE_SPORTS", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[7], "7", "RASPICAM_EXPOSURE_SNOW", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[8], "8", "RASPICAM_EXPOSURE_BEACH", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[9], "9", "RASPICAM_EXPOSURE_VERYLONG", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[10], "10", "RASPICAM_EXPOSURE_FIXEDFPS", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[11], "11", "RASPICAM_EXPOSURE_ANTISHAKE", ISS_OFF);
+    IUFillSwitch(&rpiExposureS[12], "12", "RASPICAM_EXPOSURE_FIREWORKS", ISS_OFF);
+    
+    
+    
+    
+    IUFillSwitchVector(&rpiExposureSP, rpiExposureS, 13, getDeviceName(), "Exposure Mode", "Exposure Mode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    
+    IUFillSwitch(&rpiAwbS[0], "0", "RASPICAM_AWB_OFF", ISS_OFF);
+    IUFillSwitch(&rpiAwbS[1], "1", "RASPICAM_AWB_AUTO", ISS_ON);
+    IUFillSwitch(&rpiAwbS[2], "2", "RASPICAM_AWB_SUNLIGHT", ISS_OFF);
+    IUFillSwitch(&rpiAwbS[3], "3", "RASPICAM_AWB_CLOUDY", ISS_OFF);
+    IUFillSwitch(&rpiAwbS[4], "4", "RASPICAM_AWB_SHADE", ISS_OFF);
+    IUFillSwitch(&rpiAwbS[5], "5", "RASPICAM_AWB_TUNGSTEN", ISS_OFF);
+    IUFillSwitch(&rpiAwbS[6], "6", "RASPICAM_AWB_FLUORESCENT", ISS_OFF);
+    IUFillSwitch(&rpiAwbS[7], "7", "RASPICAM_AWB_INCANDESCENT", ISS_OFF);
+    IUFillSwitch(&rpiAwbS[8], "8", "RASPICAM_AWB_FLASH", ISS_OFF);
+    IUFillSwitch(&rpiAwbS[9], "9", "RASPICAM_AWB_HORIZON", ISS_OFF);
+    
+    IUFillSwitchVector(&rpiAwbSP, rpiAwbS, 10, getDeviceName(), "AWB Mode", "Auto White Balance Mode", IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    
+    IUFillNumber(&rpiBrightnessN[0], "Brightness", "Brightness", "%g", 0, 100, 1, 50);
+    IUFillNumberVector(&rpiBrightnessNP, rpiBrightnessN, 1, getDeviceName(), "Brightness", "Brightness", IMAGE_SETTINGS_TAB, IP_RW, 0,IPS_IDLE);
+    IUFillNumber(&rpiContrastN[0], "Contrast", "Contrast", "%g", -100, 100, 1, 0);
+    IUFillNumberVector(&rpiContrastNP, rpiContrastN, 1, getDeviceName(), "Contrast", "Contrast", IMAGE_SETTINGS_TAB, IP_RW, 0,IPS_IDLE);
+    IUFillNumber(&rpiSharpnessN[0], "Sharpness", "Sharpness", "%g", -100, 100, 1, 0);
+    IUFillNumberVector(&rpiSharpnessNP, rpiSharpnessN, 1, getDeviceName(), "Sharpness", "Sharpness", IMAGE_SETTINGS_TAB, IP_RW, 0,IPS_IDLE);
+    IUFillNumber(&rpiSaturationN[0], "Saturation", "Saturation", "%g", -100, 100, 1, 0);
+    IUFillNumberVector(&rpiSaturationNP, rpiSaturationN, 1, getDeviceName(), "Saturation", "Saturation", IMAGE_SETTINGS_TAB, IP_RW, 0,IPS_IDLE);
+    IUFillNumber(&rpiEvN[0], "EV", "EV compensation", "%g", -24, 24, 1, 0);
+    IUFillNumberVector(&rpiEvNP, rpiEvN, 1, getDeviceName(), "EV", "EV compensation", IMAGE_SETTINGS_TAB, IP_RW, 0,IPS_IDLE);
+    
+//     // TODO: (From raspistill, which has the best ranges, but EV needs to be checked. 
+//     -vs, --vstab    : Turn on video stabilisation
+//     -ev, --ev       : Set EV compensation - steps of 1/6 stop
+//     -ex, --exposure : Set exposure mode (see Notes)
+//     -fli, --flicker : Set flicker avoid mode (see Notes)
+//     -awb, --awb     : Set AWB mode (see Notes)
+//     -ifx, --imxfx   : Set image effect (see Notes)
+//     -cfx, --colfx   : Set colour effect (U:V)
+//     -mm, --metering : Set metering mode (see Notes)
+//     -rot, --rotation        : Set image rotation (0-359)
+//     -hf, --hflip    : Set horizontal flip
+//     -vf, --vflip    : Set vertical flip
+//     -roi, --roi     : Set region of interest (x,y,w,d as normalised coordinates [0.0-1.0])
+//     -ss, --shutter  : Set shutter speed in microseconds
+//     -awbg, --awbgains       : Set AWB gains - AWB mode must be off
+//     -drc, --drc     : Set DRC Level (see Notes)
+//     -st, --stats    : Force recomputation of statistics on stills capture pass
+//     -a, --annotate  : Enable/Set annotate flags or text
+//     -3d, --stereo   : Select stereoscopic mode
+//     -dec, --decimate        : Half width/height of stereo image
+//     -3dswap, --3dswap       : Swap camera order for stereoscopic
+//     -ae, --annotateex       : Set extra annotation parameters (text size, text colour(hex YUV), bg colour(hex YUV))
+//     -ag, --analoggain       : Set the analog gain (floating point)
+//     -dg, --digitalgain      : Set the digital gain (floating point)
+//     
+//     
+//     Notes
+//     
+//     Exposure mode options :
+//     off,auto,night,nightpreview,backlight,spotlight,sports,snow,beach,verylong,fixedfps,antishake,fireworks
+//     
+//     Flicker avoid mode options :
+//     off,auto,50hz,60hz
+//     
+//     AWB mode options :
+//     off,auto,sun,cloud,shade,tungsten,fluorescent,incandescent,flash,horizon
+//     
+//     Image Effect mode options :
+//     none,negative,solarise,sketch,denoise,emboss,oilpaint,hatch,gpen,pastel,watercolour,film,blur,saturation,colourswap,washedout,posterise,colourpoint,colourbalance,cartoon
+//     
+//     Metering Mode options :
+//     average,spot,backlit,matrix
+//     
+//     Dynamic Range Compression (DRC) options :
+//     off,low,med,high
+//     
+    int maxBin = 1;
+    
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0, 0.033, 0.00001, false);
+    PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, maxBin, 1, false);
+    PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBin, 1, false);
+    
+    LOG_DEBUG("Raspberry Pi Camera::initProperties() done");
     return true;
 }
 
@@ -258,6 +399,15 @@ bool RasPiCamera::updateProperties()
         setupParams();
 
         timerID = SetTimer(POLLMS);
+	defineSwitch(&mIsoSP);
+	defineSwitch(&rpiExposureSP);
+	defineNumber(&rpiBrightnessNP);
+	defineNumber(&rpiContrastNP);
+	defineNumber(&rpiSharpnessNP);
+	defineNumber(&rpiSaturationNP);
+	defineNumber(&rpiEvNP);
+	defineSwitch(&rpiAwbSP);
+	
     }
     else
     {
@@ -367,7 +517,7 @@ bool RasPiCamera::setupParams()
     LOGF_INFO("Camera Speed set to %d ISO", isoSpeed);
     //TODO: Check encoding
     //Camera.setEncoding ( raspicam::RASPICAM_ENCODING_PNG );
-    Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB); //24 Bit RGB
+    //Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB); //24 Bit RGB
     Camera.setBrightness(50);
     Camera.setSharpness (0);
     Camera.setContrast (0);
@@ -397,6 +547,7 @@ bool RasPiCamera::setupParams()
     int nbuf;
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8 * PrimaryCCD.getNAxis(); //  this is pixel cameraCount
     nbuf += 512;                                                                  //  leave a little extra at the end
+    Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB);
     PrimaryCCD.setFrameBufferSize(nbuf);
 LOG_DEBUG("Raspberry Pi Camera::setupParams() done");
     return true;
@@ -468,7 +619,7 @@ bool RasPiCamera::StartExposure(float duration)
 
     if (RPI_Duration > 330000) RPI_Duration = 330000;
     Camera.setShutterSpeed(RPI_Duration);
-    Camera.setExposure(RASPICAM_EXPOSURE_NIGHTPREVIEW);
+    Camera.setExposure(raspicam::RASPICAM_EXPOSURE_NIGHTPREVIEW);
  //   Camera.setExposure(RPI_Duration);
     Camera.setExposure(raspicam::RASPICAM_EXPOSURE_AUTO);
     Camera.open();
@@ -658,6 +809,8 @@ int RasPiCamera::grabImage()
     uint8_t *image = PrimaryCCD.getFrameBuffer();
     
     uint8_t *buffer = image;
+    uint8_t *buffer2 = NULL;
+    uint8_t *buffer3 = NULL;
     LOGF_DEBUG("Camera.getImageBufferSize() %d", Camera.getImageBufferSize() );
     LOGF_DEBUG("PrimaryCCD.getFrameBuffer() %d", PrimaryCCD.getFrameBuffer());
     
@@ -671,6 +824,8 @@ int RasPiCamera::grabImage()
 //     {
     LOGF_DEBUG("Allocating buffer %d", size );
 	    buffer = (unsigned char *)malloc(size);
+	    buffer2 = (unsigned char *)malloc(size);
+	    buffer3 = (unsigned char *)malloc(size);
 	    if (buffer == nullptr)
 	    {
 		    LOGF_ERROR("RasPiCamera ID: %d sized malloc failed (RGB 24)", size);
@@ -685,6 +840,17 @@ int RasPiCamera::grabImage()
     Camera.retrieve ( buffer);//,raspicam::RASPICAM_FORMAT_RGB );
 
     LOG_INFO("Download complete. Starting Conversion from RGBRGB to  RRRR....GGGG...BBBB....");
+    Camera.grab();
+    //Camera.retrieve(image);
+    Camera.retrieve ( buffer2);//,raspicam::RASPICAM_FORMAT_RGB );
+    
+    LOG_INFO("Download complete. Starting Conversion from RGBRGB to  RRRR....GGGG...BBBB....");
+    Camera.grab();
+    //Camera.retrieve(image);
+    Camera.retrieve ( buffer3);//,raspicam::RASPICAM_FORMAT_RGB );
+    
+    LOG_INFO("Download complete. Starting Conversion from RGBRGB to  RRRR....GGGG...BBBB....");
+    
     
     //Below is copied from INDI ASI
 //    if ((errCode = ASIGetDataAfterExp(m_camInfo->CameraID, buffer, size)) != ASI_SUCCESS)
@@ -706,9 +872,9 @@ int RasPiCamera::grabImage()
 	    
 	    for (int i = 0; i <= x_size; i += 3)
 	    {
-		    *subB++ = buffer[i];
-		    *subG++ = buffer[i + 1];
-		    *subR++ = buffer[i + 2];
+		    *subB++ = buffer[i] + buffer2[i] + buffer3[i];
+		    *subG++ = buffer[i + 1] + buffer2[i + 1] + buffer3[i + 1];
+		    *subR++ = buffer[i + 2] + buffer2[i + 1] + buffer3[i + 1];
 	    }
 	    
 	    free(buffer);
@@ -968,6 +1134,27 @@ bool RasPiCamera::ISNewSwitch(const char *dev, const char *name, ISState *states
 	LOG_DEBUG("RasPiCamera::ISNewSwitch");
 	if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
 	{
+		if (!strcmp(name, rpiExposureSP.name))
+		{
+			IUUpdateSwitch(&rpiExposureSP, states, names, n);
+			int index = IUFindOnSwitchIndex(&rpiExposureSP);
+			
+			LOGF_INFO("Setting ExposureMode to: %d", index);
+			Camera.setExposure(getExposureFromIndex(index));
+			rpiExposureSP.s=IPS_OK;
+			IDSetSwitch(&rpiExposureSP, NULL);
+		}
+		if (!strcmp(name, rpiAwbSP.name))
+		{
+			IUUpdateSwitch(&rpiAwbSP, states, names, n);
+			int index = IUFindOnSwitchIndex(&rpiAwbSP);
+			
+			LOGF_INFO("Setting ExposureMode to: %d", index);
+			Camera.setAWB(getAwbFromIndex(index));
+			rpiAwbSP.s=IPS_OK;
+			IDSetSwitch(&rpiAwbSP, NULL);
+			
+		}
 		if (!strcmp(name, mIsoSP.name))
 		{
 			LOG_DEBUG("RasPiCamera::ISNewSwitch mIsoSP.name");
@@ -997,4 +1184,54 @@ bool RasPiCamera::ISNewSwitch(const char *dev, const char *name, ISState *states
 		}
 	}
 	return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
+}
+
+
+bool RasPiCamera::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+{
+	LOG_DEBUG("RasPiCamera::ISNewSwitch");
+	if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+	{
+		if (!strcmp(name, rpiBrightnessNP.name))
+		{
+			
+			LOGF_INFO("Setting Brightness to: %d", (int)values[0]);
+			Camera.setBrightness((int)values[0]);
+			rpiBrightnessNP.s = IPS_OK;
+			rpiBrightnessNP.np[0].value=(int)values[0];
+			IDSetNumber(&rpiBrightnessNP, NULL);
+			return true;
+		}
+		
+		if (!strcmp(name, rpiContrastNP.name))
+		{
+			LOGF_INFO("Setting Contrast to: %d", (int)values[0]);
+			Camera.setContrast((int)values[0]);
+			rpiContrastNP.s = IPS_OK;
+			rpiContrastNP.np[0].value=(int)values[0];
+			IDSetNumber(&rpiContrastNP, NULL);
+			return true;
+		}
+		
+		if (!strcmp(name, rpiSharpnessNP.name))
+		{
+			LOGF_INFO("Setting Sharpness to: %d", (int)values[0]);
+			Camera.setSharpness((int)values[0]);
+			rpiSharpnessNP.s = IPS_OK;
+			rpiSharpnessNP.np[0].value=(int)values[0];
+			IDSetNumber(&rpiSharpnessNP, NULL);
+			return true;
+		}
+		
+		if (!strcmp(name, rpiSaturationNP.name))
+		{
+			LOGF_INFO("Setting Saturation to: %d", (int)values[0]);
+			Camera.setSaturation((int)values[0]);
+			rpiSaturationNP.s = IPS_OK;
+			rpiSaturationNP.np[0].value=(int)values[0];
+			IDSetNumber(&rpiSaturationNP, NULL);
+			return true;
+		}
+	}
+	return INDI::CCD::ISNewNumber(dev, name, values, names, num);
 }

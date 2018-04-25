@@ -24,14 +24,16 @@
 
  */
 
-#ifndef GENERIC_CCD_H
-#define GENERIC_CCD_H
+#ifndef RASPI_CCD_H
+#define RASPI_CCD_H
 
 #include <indiccd.h>
 #include <iostream>
 #include "./raspicam/src/raspicam.h"
 #include "./raspicam/src/raspicam_still.h"
 //#include <raspicam/raspicam.h>
+raspicam::RASPICAM_EXPOSURE getExposureFromIndex ( int index );
+raspicam::RASPICAM_AWB getAwbFromIndex ( int index );
 using namespace std;
 
 #define DEVICE struct usb_device *
@@ -56,6 +58,7 @@ class RasPiCamera : public INDI::CCD
     bool AbortExposure();
     
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num) override;
     int isoSpeed;
 
   protected:
@@ -92,9 +95,26 @@ class RasPiCamera : public INDI::CCD
     bool setupParams();
     bool sim;
     raspicam::RaspiCam Camera;
-    ISwitch *mIsoS = NULL;
+    ISwitch mIsoS[4];
     ISwitchVectorProperty mIsoSP;
-
+    ISwitch rpiExposureS[13];
+    ISwitchVectorProperty rpiExposureSP;
+    
+    INumber rpiBrightnessN[1];
+    INumber rpiContrastN[1];
+    INumber rpiSharpnessN[1];
+    INumber rpiSaturationN[1];
+    INumberVectorProperty rpiBrightnessNP;
+    INumberVectorProperty rpiContrastNP;
+    INumberVectorProperty rpiSharpnessNP;
+    INumberVectorProperty rpiSaturationNP;
+    
+    INumber rpiEvN[1];
+    INumberVectorProperty rpiEvNP;
+    
+    ISwitch rpiAwbS[10];
+    ISwitchVectorProperty rpiAwbSP;
+    
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
     friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
@@ -104,4 +124,4 @@ class RasPiCamera : public INDI::CCD
     ISwitch *create_switch(const char *basestr, char **options, int max_opts, int setidx);
 };
 
-#endif // GENERIC_CCD_H
+#endif // RASPI_CCD_H
