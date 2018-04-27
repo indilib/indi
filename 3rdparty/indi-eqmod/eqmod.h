@@ -208,7 +208,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
     virtual const char *getDefaultName();
     virtual bool Handshake();
-    virtual bool Disconnect();
+    virtual bool Disconnect();    
     virtual void TimerHit();
     virtual bool ReadScopeStatus();
     virtual bool initProperties();
@@ -236,6 +236,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     bool SetCurrentPark();
     bool SetDefaultPark();
     bool Sync(double ra, double dec);
+
+    // Called when there is an unrecoverable tty error
+    void abnormalDisconnect();
 
     // Tracking
     bool SetTrackMode(uint8_t mode);
