@@ -27,6 +27,8 @@
 #ifndef RASPI_CCD_H
 #define RASPI_CCD_H
 
+#define STILLS_ON
+
 #include <indiccd.h>
 #include <iostream>
 #include "./raspicam/src/raspicam.h"
@@ -94,7 +96,11 @@ class RasPiCamera : public INDI::CCD
     int grabImage();
     bool setupParams();
     bool sim;
+#ifdef STILLS_ON
+    raspicam::RaspiCam_Still Camera;
+#else
     raspicam::RaspiCam Camera;
+#endif
     ISwitch mIsoS[4];
     ISwitchVectorProperty mIsoSP;
     ISwitch rpiExposureS[13];

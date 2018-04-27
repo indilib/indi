@@ -376,7 +376,7 @@ bool RasPiCamera::initProperties()
 //     
     int maxBin = 1;
     
-    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0, 0.033, 0.00001, false);
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0, 6, 0.00001, false);
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, maxBin, 1, false);
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, maxBin, 1, false);
     
@@ -474,10 +474,13 @@ bool RasPiCamera::setupParams()
     int bit_depth = 24;
     int x_1, y_1, x_2, y_2;
 
-    //x_2= 3280;
-    //y_2=2464;
+    #ifdef STILLS_ON
+    x_2= 3280;
+    y_2=2464;
+    #else
     x_2=1280;
     y_2=960;
+    #endif
     /**********************************************************
    *
    *
@@ -511,13 +514,15 @@ bool RasPiCamera::setupParams()
     x_1 = y_1 = 0;
     Camera.setWidth(x_2-x_1);
     Camera.setHeight(y_2-y_1);
-    //TODO: Control
 	if (isoSpeed < 100 || isoSpeed >800) isoSpeed = 800;
     Camera.setISO(isoSpeed);
     LOGF_INFO("Camera Speed set to %d ISO", isoSpeed);
     //TODO: Check encoding
-    //Camera.setEncoding ( raspicam::RASPICAM_ENCODING_PNG );
-    //Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB); //24 Bit RGB
+    #ifdef STILLS_ON
+    Camera.setEncoding ( raspicam::RASPICAM_ENCODING_BMP );
+#else
+    Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB); //24 Bit RGB
+#endif
     Camera.setBrightness(50);
     Camera.setSharpness (0);
     Camera.setContrast (0);
@@ -547,7 +552,8 @@ bool RasPiCamera::setupParams()
     int nbuf;
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8 * PrimaryCCD.getNAxis(); //  this is pixel cameraCount
     nbuf += 512;                                                                  //  leave a little extra at the end
-    Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB);
+    //Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB);
+    Camera.setEncoding ( raspicam::RASPICAM_ENCODING_BMP );
     PrimaryCCD.setFrameBufferSize(nbuf);
 LOG_DEBUG("Raspberry Pi Camera::setupParams() done");
     return true;
@@ -617,13 +623,31 @@ bool RasPiCamera::StartExposure(float duration)
     long int RPI_Duration = duration * 1000;
  //   if (RPI_Duration > 6000000) RPI_Duration = 6000000;
 
-    if (RPI_Duration > 330000) RPI_Duration = 330000;
+    //if (RPI_Duration > 330000) RPI_Duration = 330000;
     Camera.setShutterSpeed(RPI_Duration);
-    Camera.setExposure(raspicam::RASPICAM_EXPOSURE_NIGHTPREVIEW);
+  //  Camera.setExposure(raspicam::RASPICAM_EXPOSURE_NIGHTPREVIEW);
  //   Camera.setExposure(RPI_Duration);
-    Camera.setExposure(raspicam::RASPICAM_EXPOSURE_AUTO);
+  //  Camera.setExposure(raspicam::RASPICAM_EXPOSURE_AUTO);
+    
+    int index = IUFindOnSwitchIndex(&rpiExposureSP);
+    LOGF_INFO("For Capture, Setting ExposureMode to: %d", index);
+    Camera.setExposure(getExposureFromIndex(index));
+    index = IUFindOnSwitchIndex(&rpiAwbSP);
+    LOGF_INFO("For Capture, Setting Auto White Balance to: %d", index);
+    Camera.setAWB(getAwbFromIndex(index));
+    
     Camera.open();
+    #ifndef STILLS_ON
     Camera.startCapture();
+    #else
+    //This is to deal with the WB According to things I have read, raspistill throws out the first image because settings might not be right. Given how the network transfer takes, we'll start it here. (Frankly, the still library needs a grab and retrive, but that's more code undone as of yet. 
+//     if(RPI_Duration < 1000 ) { 
+// 	uint8_t *dump_buffer = NULL;
+// 	unsigned long buffersize =Camera.getImageBufferSize() ;
+// 	dump_buffer = (unsigned char *)malloc(buffersize);
+// 	Camera.grab_retrieve(dump_buffer, buffersize);
+//     }
+    #endif
     LOG_DEBUG("Raspberry Pi Camera::StartExposure() done");
     return true;
 }
@@ -809,9 +833,12 @@ int RasPiCamera::grabImage()
     uint8_t *image = PrimaryCCD.getFrameBuffer();
     
     uint8_t *buffer = image;
+#ifdef AUTOSTACK
     uint8_t *buffer2 = NULL;
     uint8_t *buffer3 = NULL;
-    LOGF_DEBUG("Camera.getImageBufferSize() %d", Camera.getImageBufferSize() );
+#endif
+    size_t buffersize =Camera.getImageBufferSize() ;
+    LOGF_DEBUG("Camera.getImageBufferSize() %d", buffersize );
     LOGF_DEBUG("PrimaryCCD.getFrameBuffer() %d", PrimaryCCD.getFrameBuffer());
     
     int x_width     = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
@@ -819,13 +846,16 @@ int RasPiCamera::grabImage()
 //     int nChannels = (type == ASI_IMG_RGB24) ? 3 : 1;
     int nChannels = 3;
     size_t size = x_width * x_height * nChannels;
+    if (size < buffersize) { size=buffersize; }
     
 //     if (type == ASI_IMG_RGB24)
 //     {
     LOGF_DEBUG("Allocating buffer %d", size );
 	    buffer = (unsigned char *)malloc(size);
+	    #ifdef AUTOSTACK
 	    buffer2 = (unsigned char *)malloc(size);
 	    buffer3 = (unsigned char *)malloc(size);
+	    #endif
 	    if (buffer == nullptr)
 	    {
 		    LOGF_ERROR("RasPiCamera ID: %d sized malloc failed (RGB 24)", size);
@@ -835,10 +865,17 @@ int RasPiCamera::grabImage()
 	    }
 //     }
 
-    Camera.grab();
+  //  Camera.grab();
     //Camera.retrieve(image);
-    Camera.retrieve ( buffer);//,raspicam::RASPICAM_FORMAT_RGB );
-
+ //   
+ #ifdef STILLS_ON
+	Camera.grab_retrieve(buffer, buffersize);
+	#else 
+	Camera.grab();
+	Camera.retrieve ( buffer);//,raspicam::RASPICAM_FORMAT_RGB );
+#endif
+    #ifdef AUTOSTACK 
+    //Can't with STILLS_ON
     LOG_INFO("Download complete. Starting Conversion from RGBRGB to  RRRR....GGGG...BBBB....");
     Camera.grab();
     //Camera.retrieve(image);
@@ -850,7 +887,7 @@ int RasPiCamera::grabImage()
     Camera.retrieve ( buffer3);//,raspicam::RASPICAM_FORMAT_RGB );
     
     LOG_INFO("Download complete. Starting Conversion from RGBRGB to  RRRR....GGGG...BBBB....");
-    
+    #endif
     
     //Below is copied from INDI ASI
 //    if ((errCode = ASIGetDataAfterExp(m_camInfo->CameraID, buffer, size)) != ASI_SUCCESS)
@@ -865,16 +902,29 @@ int RasPiCamera::grabImage()
 //     if (type == ASI_IMG_RGB24)
 //     {
 //    if (1) {
+#ifdef STILLS_ON
+    //In BMP mode, we need to get rid of the header.
+    uint8_t header_offset = buffer[0x0a];
+#else
+    uint8_t header_offset = 0;
+#endif
+    
 	    uint8_t *subR = image;
 	    uint8_t *subG = image + x_width * x_height;
 	    uint8_t *subB = image + x_width * x_height * 2;
 	    int x_size      = x_width * x_height * 3 - 3;
 	    
-	    for (int i = 0; i <= x_size; i += 3)
+	    for (int i = 0 + header_offset; i <= x_size + header_offset; i += 3)
 	    {
+		    #ifdef AUTOSTACK
 		    *subB++ = buffer[i] + buffer2[i] + buffer3[i];
 		    *subG++ = buffer[i + 1] + buffer2[i + 1] + buffer3[i + 1];
 		    *subR++ = buffer[i + 2] + buffer2[i + 1] + buffer3[i + 1];
+		    #else
+		    *subB++ = buffer[i];
+		    *subG++ = buffer[i + 1];
+		    *subR++ = buffer[i + 2];
+		    #endif //AUTOSTACK
 	    }
 	    
 	    free(buffer);
@@ -1149,7 +1199,7 @@ bool RasPiCamera::ISNewSwitch(const char *dev, const char *name, ISState *states
 			IUUpdateSwitch(&rpiAwbSP, states, names, n);
 			int index = IUFindOnSwitchIndex(&rpiAwbSP);
 			
-			LOGF_INFO("Setting ExposureMode to: %d", index);
+			LOGF_INFO("Setting Auto White Balance to: %d", index);
 			Camera.setAWB(getAwbFromIndex(index));
 			rpiAwbSP.s=IPS_OK;
 			IDSetSwitch(&rpiAwbSP, NULL);
