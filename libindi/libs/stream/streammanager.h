@@ -155,7 +155,8 @@ class StreamManager
     std::string expand(std::string fname, const std::map<std::string, std::string> &patterns);
 
     bool startRecording();
-    bool stopRecording();
+    // Stop recording. Force stop even in abnormal state if needed.
+    bool stopRecording(bool force=false);
 
     /**
      * @brief uploadStream Upload frame to client using the selected encoder

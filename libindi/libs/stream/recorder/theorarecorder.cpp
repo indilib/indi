@@ -21,6 +21,7 @@
 
 #include "theorarecorder.h"
 #include "jpegutils.h"
+#include "ccvt.h"
 
 #define _FILE_OFFSET_BITS 64
 
@@ -424,6 +425,10 @@ bool TheoraRecorder::writeFrame(const uint8_t *frame, uint32_t nbytes)
         // Cb and Cr values to 0x80 (128) for grayscale image
         memset(ycbcr[1].data, 0x80, ycbcr[1].stride * ycbcr[1].height);
         memset(ycbcr[2].data, 0x80, ycbcr[2].stride * ycbcr[2].height);
+    }
+    else if (m_PixelFormat == INDI_RGB)
+    {
+        BGR2YUV(rawWidth, rawHeight, const_cast<uint8_t*>(frame), ycbcr[0].data, ycbcr[1].data, ycbcr[2].data, 0);
     }
     else if (m_PixelFormat == INDI_JPG)
     {
