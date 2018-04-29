@@ -331,6 +331,11 @@ bool CelestronGPS::updateProperties()
         }
         else
             LOG_WARN("Mount does not support retrieval of date and time settings.");
+
+
+        // Sometimes users start their mount when it is NOT yet aligned and then try to proceed to use it
+        // So we check issue and issue error if not aligned.
+        checkAlignment();
     }
     else
     {
@@ -1458,4 +1463,12 @@ bool CelestronGPS::SetTrackMode(uint8_t mode)
 bool CelestronGPS::SetTrackEnabled(bool enabled)
 {
     return setTrackMode(enabled ? static_cast<CELESTRON_TRACK_MODE>(IUFindOnSwitchIndex(&TrackModeSP)+1) : TRACKING_OFF);
+}
+
+void CelestronGPS::checkAlignment()
+{
+    ReadScopeStatus();
+
+    if (currentRA == 12.0 && currentDEC == 0.0)
+        LOG_WARN("Mount is NOT aligned. You must align the mount first before you can use it. Disconnect, align the mount, and reconnect again.");
 }
