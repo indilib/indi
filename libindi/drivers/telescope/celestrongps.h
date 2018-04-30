@@ -119,5 +119,6 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
 
         CelestronDriver driver;
         FirmwareInfo fwInfo;
-        bool usePreciseCoords=false;
+        bool usePreciseCoords {false};
+        bool usePulseCommand { false };
 };

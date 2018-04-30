@@ -936,8 +936,7 @@ bool LX200Pulsar2::Abort()
 
 IPState LX200Pulsar2::GuideNorth(float ms)
 {
-    const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -953,7 +952,7 @@ IPState LX200Pulsar2::GuideNorth(float ms)
         IERmTimer(GuideNSTID);
         GuideNSTID = 0;
     }
-    if (use_pulse_cmd)
+    if (usePulseCommand)
         (void)Pulsar2Commands::pulseGuide(PortFD, Pulsar2Commands::North, ms);
     else
     {
@@ -977,8 +976,7 @@ IPState LX200Pulsar2::GuideNorth(float ms)
 
 IPState LX200Pulsar2::GuideSouth(float ms)
 {
-    const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -994,7 +992,7 @@ IPState LX200Pulsar2::GuideSouth(float ms)
         IERmTimer(GuideNSTID);
         GuideNSTID = 0;
     }
-    if (use_pulse_cmd)
+    if (usePulseCommand)
         (void)Pulsar2Commands::pulseGuide(PortFD, Pulsar2Commands::South, ms);
     else
     {
@@ -1018,8 +1016,7 @@ IPState LX200Pulsar2::GuideSouth(float ms)
 
 IPState LX200Pulsar2::GuideEast(float ms)
 {
-    const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1035,7 +1032,7 @@ IPState LX200Pulsar2::GuideEast(float ms)
         IERmTimer(GuideWETID);
         GuideWETID = 0;
     }
-    if (use_pulse_cmd)
+    if (usePulseCommand)
         (void)Pulsar2Commands::pulseGuide(PortFD, Pulsar2Commands::East, ms);
     else
     {
@@ -1059,8 +1056,7 @@ IPState LX200Pulsar2::GuideEast(float ms)
 
 IPState LX200Pulsar2::GuideWest(float ms)
 {
-    const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1076,7 +1072,7 @@ IPState LX200Pulsar2::GuideWest(float ms)
         IERmTimer(GuideWETID);
         GuideWETID = 0;
     }
-    if (use_pulse_cmd)
+    if (usePulseCommand)
         (void)Pulsar2Commands::pulseGuide(PortFD, Pulsar2Commands::West, ms);
     else
     {
@@ -1536,7 +1532,6 @@ void LX200Pulsar2::guideTimeoutHelper(void *p)
 
 void LX200Pulsar2::guideTimeout()
 {
-    const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
     if (guide_direction == -1)
     {
         Pulsar2Commands::haltMovement(PortFD, Pulsar2Commands::North);
@@ -1552,7 +1547,7 @@ void LX200Pulsar2::guideTimeout()
         IERmTimer(GuideNSTID);
         IERmTimer(GuideWETID);
     }
-    else if (!use_pulse_cmd)
+    else if (!usePulseCommand)
     {
         switch (guide_direction)
         {
