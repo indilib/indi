@@ -126,13 +126,15 @@ bool WeatherWatcher::createPropertiesFromMap()
             setCriticalParameter("WEATHER_WIND_SPEED");
         }
         else if (x.first == gustT[0].text)
+		{
             addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 0, 50);
-        else if (x.first == rainT[0].text)
+		}        
+		else if (x.first == rainT[0].text)
         {
-            addParameter("WEATHER_RAIN_HOUR", "Precip (mm)", 0, 0, 0, 0);
+            addParameter("WEATHER_RAIN_HOUR", "Rain (mm)", 0, 0, 0, 0);
             setCriticalParameter("WEATHER_RAIN_HOUR");
         }
-        else if (x.first == "forecast")
+        else if (x.first == forecastT[0].text)
         {
             addParameter("WEATHER_FORECAST", "Weather", 0, 0, 0, 1);
             setCriticalParameter("WEATHER_FORECAST");
@@ -148,24 +150,32 @@ bool WeatherWatcher::initProperties()
 {
     INDI::Weather::initProperties();
     
-	IUFillText(&rainT[0], "Rain", "Keyword", nullptr);
+	IUFillText(&rainT[0], "Rain", "Keyword", "precip");
     IUFillTextVector(&rainTP, rainT, 1, getDeviceName(), "RAIN_KEYWORD", "Rain", OPTIONS_TAB, IP_RW,
                      60, IPS_IDLE);
 
-	IUFillText(&tempT[0], "Temp", "Keyword", nullptr);
+	IUFillText(&tempT[0], "Temp", "Keyword", "temperature");
     IUFillTextVector(&tempTP, tempT, 1, getDeviceName(), "TEMP_KEYWORD", "Temp", OPTIONS_TAB, IP_RW,
                      60, IPS_IDLE);
 
-	IUFillText(&windT[0], "Wind", "Keyword", nullptr);
+	IUFillText(&windT[0], "Wind", "Keyword", "wind");
     IUFillTextVector(&windTP, windT, 1, getDeviceName(), "WIND_KEYWORD", "Wind", OPTIONS_TAB, IP_RW,
                      60, IPS_IDLE);
 
-	IUFillText(&gustT[0], "Gust", "Keyword", nullptr);
+	IUFillText(&gustT[0], "Gust", "Keyword", "gust");
     IUFillTextVector(&gustTP, gustT, 1, getDeviceName(), "GUST_KEYWORD", "Gust", OPTIONS_TAB, IP_RW,
+                     60, IPS_IDLE);
+
+	IUFillText(&forecastT[0], "Forecast", "Keyword", "forecast");
+    IUFillTextVector(&forecastTP, forecastT, 1, getDeviceName(), "FORECAST_KEYWORD", "Forecast", OPTIONS_TAB, IP_RW,
                      60, IPS_IDLE);
 
     IUFillText(&watchFileT[0], "URL", "File", nullptr);
     IUFillTextVector(&watchFileTP, watchFileT, 1, getDeviceName(), "WATCH_SOURCE", "Source", OPTIONS_TAB, IP_RW,
+                     60, IPS_IDLE);
+
+    IUFillText(&separatorT[0], "Separator", "Keyword", "=");
+    IUFillTextVector(&separatorTP, separatorT, 1, getDeviceName(), "SEPARATOR_KEYWORD", "Separator", OPTIONS_TAB, IP_RW,
                      60, IPS_IDLE);
 
 #if 0
@@ -191,7 +201,6 @@ void WeatherWatcher::ISGetProperties(const char *dev)
     INDI::Weather::ISGetProperties(dev);
 
     defineText(&watchFileTP);
-
     loadConfig(true, "WATCH_SOURCE");
     
 	defineText(&rainTP);
@@ -205,6 +214,12 @@ void WeatherWatcher::ISGetProperties(const char *dev)
 
 	defineText(&gustTP);
     loadConfig(true, "GUST_KEYWORD");
+
+	defineText(&forecastTP);
+    loadConfig(true, "FORECAST_KEYWORD");
+
+	defineText(&separatorTP);
+    loadConfig(true, "SEPARATOR_KEYWORD");
 
 }
 
@@ -250,6 +265,22 @@ bool WeatherWatcher::ISNewText(const char *dev, const char *name, char *texts[],
             IDSetText(&gustTP, nullptr);
             return true;
         }
+
+        if (!strcmp(forecastTP.name, name))
+        {
+            IUUpdateText(&forecastTP, texts, names, n);
+            forecastTP.s = IPS_OK;
+            IDSetText(&forecastTP, nullptr);
+            return true;
+        }
+
+        if (!strcmp(separatorTP.name, name))
+        {
+            IUUpdateText(&separatorTP, texts, names, n);
+            separatorTP.s = IPS_OK;
+            IDSetText(&separatorTP, nullptr);
+            return true;
+        }
     }
 
     return INDI::Weather::ISNewText(dev, name, texts, names, n);
@@ -279,7 +310,7 @@ IPState WeatherWatcher::updateWeather()
         {
             setParameterValue("WEATHER_RAIN_HOUR", std::strtod(x.second.c_str(), nullptr));
         }
-        else if (x.first == "forecast")
+        else if (x.first == forecastT[0].text)
         {
             setParameterValue("WEATHER_FORECAST", std::strtod(x.second.c_str(), nullptr));
         }
@@ -331,6 +362,8 @@ bool WeatherWatcher::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &tempTP);
     IUSaveConfigText(fp, &windTP);
     IUSaveConfigText(fp, &gustTP);
+    IUSaveConfigText(fp, &forecastTP);
+    IUSaveConfigText(fp, &separatorTP);
 
     return true;
 }

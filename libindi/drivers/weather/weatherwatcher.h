@@ -58,6 +58,12 @@ class WeatherWatcher : public INDI::Weather
     IText gustT[1] {};
     ITextVectorProperty gustTP;
 
+    IText forecastT[1] {};
+    ITextVectorProperty forecastTP;
+
+    IText separatorT[1] {};
+    ITextVectorProperty separatorTP;
+
   private:
     std::map<std::string, std::string> createMap(std::string const& s);
     bool readWatchFile();
@@ -65,8 +71,6 @@ class WeatherWatcher : public INDI::Weather
 
     IText watchFileT[1] {};
     ITextVectorProperty watchFileTP;
-
-
 
     bool initialParse { false };
     std::string readBuffer;
