@@ -26,8 +26,8 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
  indi-bin (>= ${source:Version})
 Pre-Depends: ${misc:Pre-Depends}
 Multi-Arch: same
-conflicts: libindi0, libindi-plugins
-replaces: libindi0, libindi-plugins
+conflicts: libindi0, libindi-plugins, libindialignmentdriver1, libindidriver1
+replaces: libindi0, libindi-plugins, libindialignmentdriver1, libindidriver1
 Description: Instrument-Neutral Device Interface library -- shared library
  INDI (Instrument-Neutral Device Interface) is a distributed XML-based
  control protocol designed to operate astronomical instrumentation.
