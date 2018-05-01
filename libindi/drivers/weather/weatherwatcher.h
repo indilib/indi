@@ -46,6 +46,12 @@ class WeatherWatcher : public INDI::Weather
     virtual IPState updateWeather() override;
     virtual bool saveConfigItems(FILE *fp) override;
 
+    IText keywordT[5] {};
+    ITextVectorProperty keywordTP;
+
+    IText separatorT[1] {};
+    ITextVectorProperty separatorTP;
+
   private:
     std::map<std::string, std::string> createMap(std::string const& s);
     bool readWatchFile();
