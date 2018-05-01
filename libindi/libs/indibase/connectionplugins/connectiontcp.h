@@ -73,7 +73,7 @@ class TCP : public Interface
   protected:
     // IP Address/Port
     ITextVectorProperty AddressTP;
-    IText AddressT[2];
+    IText AddressT[2] {};
 
     ISwitch TcpUdpS[2];
     ISwitchVectorProperty TcpUdpSP;

@@ -104,24 +104,24 @@ bool XAGYLWheel::initProperties()
     INDI::FilterWheel::initProperties();
 
     // Firmware info
-    IUFillText(&FirmwareInfoT[0], "Product", "", nullptr);
-    IUFillText(&FirmwareInfoT[1], "Firmware", "", nullptr);
-    IUFillText(&FirmwareInfoT[2], "Serial #", "", nullptr);
+    IUFillText(&FirmwareInfoT[0], "Product", "Product", nullptr);
+    IUFillText(&FirmwareInfoT[1], "Firmware", "Firmware", nullptr);
+    IUFillText(&FirmwareInfoT[2], "Serial #", "Serial #", nullptr);
     IUFillTextVector(&FirmwareInfoTP, FirmwareInfoT, 3, getDeviceName(), "Info", "Info", MAIN_CONTROL_TAB, IP_RO, 60,
                      IPS_IDLE);
 
     // Settings
-    IUFillNumber(&SettingsN[0], "Speed", "", "%.f", 0, 100, 10., 0.);
-    IUFillNumber(&SettingsN[1], "Jitter", "", "%.f", 0, 10, 1., 0.);
-    IUFillNumber(&SettingsN[2], "Threshold", "", "%.f", 0, 100, 10., 0.);
-    IUFillNumber(&SettingsN[3], "Pulse Width", "", "%.f", 100, 10000, 100., 0.);
+    IUFillNumber(&SettingsN[0], "Speed", "Speed", "%.f", 0, 100, 10., 0.);
+    IUFillNumber(&SettingsN[1], "Jitter", "Jitter", "%.f", 0, 10, 1., 0.);
+    IUFillNumber(&SettingsN[2], "Threshold", "Threshold", "%.f", 0, 100, 10., 0.);
+    IUFillNumber(&SettingsN[3], "Pulse Width", "Pulse", "%.f", 100, 10000, 100., 0.);
     IUFillNumberVector(&SettingsNP, SettingsN, 4, getDeviceName(), "Settings", "Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Reset
-    IUFillSwitch(&ResetS[0], "Reboot", "", ISS_OFF);
-    IUFillSwitch(&ResetS[1], "Initialize", "", ISS_OFF);
-    IUFillSwitch(&ResetS[2], "Clear Calibration", "", ISS_OFF);
-    IUFillSwitch(&ResetS[3], "Perform Calibration", "", ISS_OFF);
+    IUFillSwitch(&ResetS[0], "Reboot", "Reboot", ISS_OFF);
+    IUFillSwitch(&ResetS[1], "Initialize", "Initialize", ISS_OFF);
+    IUFillSwitch(&ResetS[2], "Clear Calibration", "Clear Calibration", ISS_OFF);
+    IUFillSwitch(&ResetS[3], "Perform Calibration", "Perform Calibration", ISS_OFF);
     IUFillSwitchVector(&ResetSP, ResetS, 4, getDeviceName(), "Commands", "Commands", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 

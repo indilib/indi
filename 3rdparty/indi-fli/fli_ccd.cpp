@@ -86,6 +86,12 @@ FLICCD::FLICCD()
     setVersion(FLI_CCD_VERSION_MAJOR, FLI_CCD_VERSION_MINOR);
 }
 
+FLICCD::~FLICCD()
+{
+    if (CameraModeS)
+        delete [] CameraModeS;
+}
+
 const char *FLICCD::getDefaultName()
 {
     return (char *)"FLI CCD";
@@ -151,6 +157,9 @@ bool FLICCD::updateProperties()
 
         setupParams();
 
+        if (CameraModeS != nullptr)
+            defineSwitch(&CameraModeSP);
+
         timerID = SetTimer(POLLMS);
     }
     else
@@ -159,6 +168,9 @@ bool FLICCD::updateProperties()
         deleteProperty(CoolerNP.name);
         deleteProperty(FlushNP.name);
         deleteProperty(BackgroundFlushSP.name);
+
+        if (CameraModeS != nullptr)
+            deleteProperty(CameraModeSP.name);
 
         rmTimer(timerID);
     }
@@ -215,7 +227,7 @@ bool FLICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             bool enabled = !strcmp(IUFindOnSwitchName(states, names, n), "ENABLED");
             if ((err = FLIControlBackgroundFlush(fli_dev, enabled ? FLI_BGFLUSH_START : FLI_BGFLUSH_STOP)))
             {
-                LOGF_DEBUG("Error: FLIControlBackgroundFlush() %s failed. %s.", (enabled ? "starting" : "stopping"), strerror((int)-err));
+                LOGF_ERROR("Error: FLIControlBackgroundFlush() %s failed. %s.", (enabled ? "starting" : "stopping"), strerror((int)-err));
                 BackgroundFlushSP.s = IPS_ALERT;
                 IDSetSwitch(&BackgroundFlushSP, nullptr);
                 return true;
@@ -224,6 +236,30 @@ bool FLICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             IUUpdateSwitch(&BackgroundFlushSP, states, names, n);
             BackgroundFlushSP.s = IPS_OK;
             IDSetSwitch(&BackgroundFlushSP, nullptr);
+            return true;
+        }
+
+        // Camera Modes
+        if (!strcmp(name, CameraModeSP.name))
+        {
+            int currentIndex = IUFindOnSwitchIndex(&CameraModeSP);
+            LIBFLIAPI errCode = 0;
+            IUUpdateSwitch(&CameraModeSP, states, names, n);
+            flimode_t cameraModelIndex = static_cast<flimode_t>(IUFindOnSwitchIndex(&CameraModeSP));
+            if ( (errCode = FLISetCameraMode(fli_dev, cameraModelIndex)))
+            {
+                LOGF_ERROR("Error: FLISetCameraMode(%ld) failed. %s.", cameraModelIndex, strerror((int)-errCode));
+                IUResetSwitch(&CameraModeSP);
+                CameraModeS[currentIndex].s = ISS_ON;
+                CameraModeSP.s = IPS_ALERT;
+            }
+            else
+            {
+                LOG_WARN(("Camera mode is updated. Please capture a bias frame now before proceeding further to synchronize the change."));
+                CameraModeSP.s = IPS_OK;
+            }
+
+            IDSetSwitch(&CameraModeSP, nullptr);
             return true;
         }
     }
@@ -454,6 +490,31 @@ bool FLICCD::setupParams()
 
     int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
+
+    ///////////////////////////
+    // 8. Get Modes
+    ///////////////////////////
+    std::vector<std::string> cameraModeValues;
+    flimode_t index = 0;
+    char cameraModeValue[MAXINDILABEL];
+    while ( FLIGetCameraModeString(fli_dev, index, cameraModeValue, MAXINDILABEL ) == 0)
+    {
+        cameraModeValues.push_back(cameraModeValue);
+        index++;
+    }
+
+    if (index > 0)
+    {
+        if (CameraModeS)
+            delete [] CameraModeS;
+        CameraModeS = new ISwitch[index];
+        for (int i=0; i < index; i++)
+            IUFillSwitch(CameraModeS+i, cameraModeValues.at(i).c_str(), cameraModeValues.at(i).c_str(), ISS_OFF);
+
+        IUFillSwitchVector(&CameraModeSP, CameraModeS, index, getDeviceName(), "CAMERA_MODES", "Modes", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+        FLIGetCameraMode(fli_dev, &index);
+        CameraModeS[index].s = ISS_ON;
+    }
 
     return true;
 }

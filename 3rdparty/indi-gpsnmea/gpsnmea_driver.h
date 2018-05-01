@@ -32,7 +32,7 @@ class GPSNMEA : public INDI::GPS
     GPSNMEA();
     virtual ~GPSNMEA() = default;
 
-    IText GPSstatusT[1];
+    IText GPSstatusT[1] {};
     ITextVectorProperty GPSstatusTP;
 
     static void* parseNMEAHelper(void *);

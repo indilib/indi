@@ -97,7 +97,7 @@ bool ScopeScript::initProperties()
 {
     INDI::Telescope::initProperties();
 
-#ifdef OSX_EMBEDED_MODE
+#if defined(__APPLE__)
     IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/local/share/indi/scripts");
 #else
     IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/share/indi/scripts");

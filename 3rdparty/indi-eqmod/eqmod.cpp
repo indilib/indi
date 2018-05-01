@@ -18,6 +18,9 @@
     2013-10-24: Use updateTime from new INDI framework (Jasem Mutlaq)
     2013-10-31: Added support for joysticks (Jasem Mutlaq)
     2013-11-01: Fixed issues with logger and Skywatcher's readout for InquireHighSpeedRatio.
+    2018-04-27: Added abnormalDisconnect to properly disconnect the driver in case of unrecoverable errors (Jasem Mutlaq)
+    2018-04-27: Since all dispatch_command are always followed by read_eqmod, we decided to include it inside
+                and on failure, we retries up to the EQMOD_MAX_RETRY before giving up in case of occasional traient errors. (Jasem Mutlaq)
 */
 
 /* TODO */
@@ -80,6 +83,7 @@ int DBG_SCOPE_STATUS;
 int DBG_COMM;
 int DBG_MOUNT;
 
+#if 0
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)
 {
     /* Perform the carry for the later subtraction by updating y. */
@@ -104,6 +108,7 @@ int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *
     /* Return 1 if result is negative. */
     return x->tv_sec < y->tv_sec;
 }
+#endif
 
 void ISGetProperties(const char *dev)
 {
@@ -184,7 +189,7 @@ EQMod::EQMod()
 
     /* initialize time */
     tzset();
-    gettimeofday(&lasttimeupdate, NULL); // takes care of DST
+    gettimeofday(&lasttimeupdate, nullptr); // takes care of DST
     gmtime_r(&lasttimeupdate.tv_sec, &utc);
     lndate.seconds = utc.tm_sec + ((double)lasttimeupdate.tv_usec / 1000000);
     lndate.minutes = utc.tm_min;
@@ -194,7 +199,7 @@ EQMod::EQMod()
     lndate.years   = utc.tm_year + 1900;
     get_utc_time(&lastclockupdate);
     /* initialize random seed: */
-    srand(time(NULL));
+    srand(time(nullptr));
     // Others
     AutohomeState      = AUTO_HOME_IDLE;
     restartguideRAPPEC = false;
@@ -206,7 +211,7 @@ EQMod::~EQMod()
     //dtor
     if (mount)
         delete mount;
-    mount = NULL;
+    mount = nullptr;
 }
 
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
@@ -362,6 +367,7 @@ void EQMod::ISGetProperties(const char *dev)
         defineSwitch(HemisphereSP);
         defineNumber(HorizontalCoordNP);
         defineSwitch(ReverseDECSP);
+        defineSwitch(EnforceCWUP);
         defineNumber(StandardSyncNP);
         defineNumber(StandardSyncPointNP);
         defineNumber(SyncPolarAlignNP);
@@ -432,6 +438,7 @@ bool EQMod::loadProperties()
     HemisphereSP       = getSwitch("HEMISPHERE");
     TrackDefaultSP     = getSwitch("TELESCOPE_TRACK_DEFAULT");
     ReverseDECSP       = getSwitch("REVERSEDEC");
+    EnforceCWUP        = getSwitch("FORCECWUP");
 
     HorizontalCoordNP   = getNumber("HORIZONTAL_COORD");
     StandardSyncNP      = getNumber("STANDARDSYNC");
@@ -500,6 +507,7 @@ bool EQMod::updateProperties()
         defineSwitch(HemisphereSP);
         defineNumber(HorizontalCoordNP);
         defineSwitch(ReverseDECSP);
+        defineSwitch(EnforceCWUP);
         defineNumber(StandardSyncNP);
         defineNumber(StandardSyncPointNP);
         defineNumber(SyncPolarAlignNP);
@@ -565,14 +573,14 @@ bool EQMod::updateProperties()
                     RAPPECTrainingSP->sp[0].s = ISS_OFF;
                     RAPPECTrainingSP->sp[1].s = ISS_ON;
                     RAPPECTrainingSP->s       = IPS_BUSY;
-                    IDSetSwitch(RAPPECTrainingSP, NULL);
+                    IDSetSwitch(RAPPECTrainingSP, nullptr);
                 }
                 if (inppec)
                 {
                     RAPPECSP->sp[0].s = ISS_OFF;
                     RAPPECSP->sp[1].s = ISS_ON;
                     RAPPECSP->s       = IPS_BUSY;
-                    IDSetSwitch(RAPPECSP, NULL);
+                    IDSetSwitch(RAPPECSP, nullptr);
                 }
                 mount->GetDEPPECStatus(&intraining, &inppec);
                 if (intraining)
@@ -580,14 +588,14 @@ bool EQMod::updateProperties()
                     DEPPECTrainingSP->sp[0].s = ISS_OFF;
                     DEPPECTrainingSP->sp[1].s = ISS_ON;
                     DEPPECTrainingSP->s       = IPS_BUSY;
-                    IDSetSwitch(DEPPECTrainingSP, NULL);
+                    IDSetSwitch(DEPPECTrainingSP, nullptr);
                 }
                 if (inppec)
                 {
                     DEPPECSP->sp[0].s = ISS_OFF;
                     DEPPECSP->sp[1].s = ISS_ON;
                     DEPPECSP->s       = IPS_BUSY;
-                    IDSetSwitch(DEPPECSP, NULL);
+                    IDSetSwitch(DEPPECSP, nullptr);
                 }
             }
 
@@ -634,6 +642,7 @@ bool EQMod::updateProperties()
         deleteProperty(HemisphereSP->name);
         deleteProperty(HorizontalCoordNP->name);
         deleteProperty(ReverseDECSP->name);
+        deleteProperty(EnforceCWUP->name);
         deleteProperty(StandardSyncNP->name);
         deleteProperty(StandardSyncPointNP->name);
         deleteProperty(SyncPolarAlignNP->name);
@@ -710,6 +719,15 @@ bool EQMod::Handshake()
     return true;
 }
 
+void EQMod::abnormalDisconnect()
+{
+    if (Disconnect())
+    {
+        setConnected(false, IPS_IDLE);
+        updateProperties();
+    }
+}
+
 bool EQMod::Disconnect()
 {
     if (isConnected())
@@ -741,7 +759,7 @@ void EQMod::TimerHit()
         {
             // read was not good
             EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, NULL);
+            IDSetNumber(&EqNP, nullptr);
         }
 
         SetTimer(POLLMS);
@@ -787,11 +805,11 @@ bool EQMod::ReadScopeStatus()
 
     IUUpdateNumber(TimeLSTNP, &lst, (char **)(datenames), 1);
     TimeLSTNP->s = IPS_OK;
-    IDSetNumber(TimeLSTNP, NULL);
+    IDSetNumber(TimeLSTNP, nullptr);
 
     IUUpdateNumber(JulianNP, &juliandate, (char **)(datenames + 1), 1);
     JulianNP->s = IPS_OK;
-    IDSetNumber(JulianNP, NULL);    
+    IDSetNumber(JulianNP, nullptr);
 
     try
     {
@@ -881,22 +899,22 @@ bool EQMod::ReadScopeStatus()
         horizvalues[0] = range360(lnaltaz.az + 180);
         horizvalues[1] = lnaltaz.alt;
         IUUpdateNumber(HorizontalCoordNP, horizvalues, (char **)horiznames, 2);
-        IDSetNumber(HorizontalCoordNP, NULL);
+        IDSetNumber(HorizontalCoordNP, nullptr);
 
         steppervalues[0] = currentRAEncoder;
         steppervalues[1] = currentDEEncoder;
         IUUpdateNumber(CurrentSteppersNP, steppervalues, (char **)steppernames, 2);
-        IDSetNumber(CurrentSteppersNP, NULL);
+        IDSetNumber(CurrentSteppersNP, nullptr);
 
         mount->GetRAMotorStatus(RAStatusLP);
         mount->GetDEMotorStatus(DEStatusLP);
-        IDSetLight(RAStatusLP, NULL);
-        IDSetLight(DEStatusLP, NULL);
+        IDSetLight(RAStatusLP, nullptr);
+        IDSetLight(DEStatusLP, nullptr);
 
         periods[0] = mount->GetRAPeriod();
         periods[1] = mount->GetDEPeriod();
         IUUpdateNumber(PeriodsNP, periods, (char **)periodsnames, 2);
-        IDSetNumber(PeriodsNP, NULL);
+        IDSetNumber(PeriodsNP, nullptr);
 
         if (mount->HasAuxEncoders())
         {
@@ -905,7 +923,7 @@ bool EQMod::ReadScopeStatus()
             auxencodervalues[0]           = mount->GetRAAuxEncoder();
             auxencodervalues[1]           = mount->GetDEAuxEncoder();
             IUUpdateNumber(AuxEncoderNP, auxencodervalues, (char **)auxencodernames, 2);
-            IDSetNumber(AuxEncoderNP, NULL);
+            IDSetNumber(AuxEncoderNP, nullptr);
         }
 
         if (gotoInProgress())
@@ -953,7 +971,7 @@ bool EQMod::ReadScopeStatus()
                     // For AstroEQ (needs an explicit :G command at the end of gotos)
                     mount->ResetMotions();
 
-                    if ((RememberTrackState == SCOPE_TRACKING) || ((sw != NULL) && (sw->s == ISS_ON)))
+                    if ((RememberTrackState == SCOPE_TRACKING) || ((sw != nullptr) && (sw->s == ISS_ON)))
                     {
                         char *name;
                         TrackState = SCOPE_TRACKING;
@@ -1027,7 +1045,7 @@ bool EQMod::ReadScopeStatus()
                     RAPPECTrainingSP->sp[0].s = ISS_ON;
                     RAPPECTrainingSP->sp[1].s = ISS_OFF;
                     RAPPECTrainingSP->s       = IPS_IDLE;
-                    IDSetSwitch(RAPPECTrainingSP, NULL);
+                    IDSetSwitch(RAPPECTrainingSP, nullptr);
                 }
             }
             if (DEPPECTrainingSP->s == IPS_BUSY)
@@ -1040,7 +1058,7 @@ bool EQMod::ReadScopeStatus()
                     DEPPECTrainingSP->sp[0].s = ISS_ON;
                     DEPPECTrainingSP->sp[1].s = ISS_OFF;
                     DEPPECTrainingSP->s       = IPS_IDLE;
-                    IDSetSwitch(DEPPECTrainingSP, NULL);
+                    IDSetSwitch(DEPPECTrainingSP, nullptr);
                 }
             }
         }
@@ -1352,7 +1370,7 @@ bool EQMod::ReadScopeStatus()
                     AutohomeState = AUTO_HOME_IDLE;
                     AutoHomeSP->s = IPS_IDLE;
                     IUResetSwitch(AutoHomeSP);
-                    IDSetSwitch(AutoHomeSP, NULL);
+                    IDSetSwitch(AutoHomeSP, nullptr);
                     LOG_INFO("Autohome: end");
                 }
                 else
@@ -1533,7 +1551,7 @@ void EQMod::SetSouthernHemisphere(bool southern)
         IUUpdateSwitch(HemisphereSP, hemispherevalues, (char **)hemispherenames, 2);
     }
     HemisphereSP->s = IPS_IDLE;
-    IDSetSwitch(HemisphereSP, NULL);
+    IDSetSwitch(HemisphereSP, nullptr);
 }
 
 void EQMod::EncoderTarget(GotoParams *g)
@@ -1774,7 +1792,7 @@ bool EQMod::Goto(double r, double d)
     {
         LOG_WARN("Can not perform goto while goto/park in progress, or scope parked.");
         EqNP.s = IPS_IDLE;
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
         return true;
     }
 
@@ -1796,7 +1814,7 @@ bool EQMod::Goto(double r, double d)
         {
             LOG_WARN("Goto outside Horizon Limits.");
             EqNP.s = IPS_IDLE;
-            IDSetNumber(&EqNP, NULL);
+            IDSetNumber(&EqNP, nullptr);
             return true;
         }
     }
@@ -1894,10 +1912,15 @@ bool EQMod::Goto(double r, double d)
     gotoparams.decurrentencoder = currentDEEncoder;
     gotoparams.completed        = false;
     gotoparams.checklimits      = true;
-    gotoparams.forcecwup        = false;
+    gotoparams.forcecwup        = ForceCwUp;
     gotoparams.outsidelimits    = false;
     gotoparams.limiteast        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
     gotoparams.limitwest        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h
+
+    if (gotoparams.forcecwup) {
+        LOG_WARN("Enforcing the counterweight up prevents a meridian flip and may lead to collisions of the telescope with obstacles.");
+    }
+
     EncoderTarget(&gotoparams);
     try
     {
@@ -1945,7 +1968,7 @@ bool EQMod::Park()
         {
             LOG_INFO("Can not park while slewing...");
             ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, NULL);
+            IDSetSwitch(&ParkSP, nullptr);
             return false;
         }
 
@@ -1971,7 +1994,7 @@ bool EQMod::Park()
         //IDSetSwitch(TrackModeSP, NULL);
         TrackState = SCOPE_PARKING;
         ParkSP.s   = IPS_BUSY;
-        IDSetSwitch(&ParkSP, NULL);
+        IDSetSwitch(&ParkSP, nullptr);
         LOG_INFO("Telescope park in progress...");
 
         return true;
@@ -2005,7 +2028,7 @@ bool EQMod::Sync(double ra, double dec)
     if (TrackState != SCOPE_TRACKING)
     {
         EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
         LOG_WARN("Syncs are allowed only when Tracking");
         return false;
     }
@@ -2101,7 +2124,7 @@ bool EQMod::Sync(double ra, double dec)
 
         IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value = syncdata.deltaRA;
         IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value = syncdata.deltaDEC;
-        IDSetNumber(StandardSyncNP, NULL);
+        IDSetNumber(StandardSyncNP, nullptr);
         IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value           = juliandate;
         IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value     = lst;
         IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value = syncdata.targetRA;
@@ -2112,7 +2135,7 @@ bool EQMod::Sync(double ra, double dec)
         ;
         IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value = syncdata.telescopeDEC;
         ;
-        IDSetNumber(StandardSyncPointNP, NULL);
+        IDSetNumber(StandardSyncPointNP, nullptr);
 
         LOGF_INFO("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA,
                syncdata.deltaDEC);
@@ -2122,7 +2145,7 @@ bool EQMod::Sync(double ra, double dec)
             computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
             IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value = tpa_alt;
             IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value  = tpa_az;
-            IDSetNumber(SyncPolarAlignNP, NULL);
+            IDSetNumber(SyncPolarAlignNP, nullptr);
             IDLog("computePolarAlign: Telescope Polar Axis: alt = %g, az = %g\n", tpa_alt, tpa_az);
         }
     }
@@ -2295,7 +2318,7 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
             }
             IUUpdateNumber(SlewSpeedsNP, values, names, n);
             SlewSpeedsNP->s = IPS_OK;
-            IDSetNumber(SlewSpeedsNP, NULL);
+            IDSetNumber(SlewSpeedsNP, nullptr);
             LOGF_INFO("Setting Slew rates - RA=%.2fx DE=%.2fx",
                    IUFindNumber(SlewSpeedsNP, "RASLEW")->value, IUFindNumber(SlewSpeedsNP, "DESLEW")->value);
             return true;
@@ -2308,9 +2331,9 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
             if (TrackState != SCOPE_TRACKING)
             {
                 GuideNSNP.s = IPS_IDLE;
-                IDSetNumber(&GuideNSNP, NULL);
+                IDSetNumber(&GuideNSNP, nullptr);
                 GuideWENP.s = IPS_IDLE;
-                IDSetNumber(&GuideWENP, NULL);
+                IDSetNumber(&GuideWENP, nullptr);
                 LOG_WARN("Can not guide if not tracking.");
                 return true;
             }
@@ -2323,7 +2346,7 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
         {
             IUUpdateNumber(GuideRateNP, values, names, n);
             GuideRateNP->s = IPS_OK;
-            IDSetNumber(GuideRateNP, NULL);
+            IDSetNumber(GuideRateNP, nullptr);
             LOGF_INFO("Setting Custom Tracking Rates - RA=%1.1f arcsec/s DE=%1.1f arcsec/s",
                    IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value,
                    IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value);
@@ -2334,7 +2357,7 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
         {
             IUUpdateNumber(BacklashNP, values, names, n);
             BacklashNP->s = IPS_OK;
-            IDSetNumber(BacklashNP, NULL);
+            IDSetNumber(BacklashNP, nullptr);
             mount->SetBacklashRA((unsigned long)(IUFindNumber(BacklashNP, "BACKLASHRA")->value));
             mount->SetBacklashDE((unsigned long)(IUFindNumber(BacklashNP, "BACKLASHDE")->value));
             LOGF_INFO("Setting Backlash compensation - RA=%.0f microsteps DE=%.0f microsteps",
@@ -2357,10 +2380,10 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
             syncdata.telescopeDEC = IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value;
             syncdata.deltaRA      = syncdata.targetRA - syncdata.telescopeRA;
             syncdata.deltaDEC     = syncdata.targetDEC - syncdata.telescopeDEC;
-            IDSetNumber(StandardSyncPointNP, NULL);
+            IDSetNumber(StandardSyncPointNP, nullptr);
             IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value = syncdata.deltaRA;
             IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value = syncdata.deltaDEC;
-            IDSetNumber(StandardSyncNP, NULL);
+            IDSetNumber(StandardSyncNP, nullptr);
 
             LOGF_INFO("Mount manually Synced (deltaRA = %.6f deltaDEC = %.6f)",
                    syncdata.deltaRA, syncdata.deltaDEC);
@@ -2370,7 +2393,7 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
                 computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
                 IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value = tpa_alt;
                 IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value  = tpa_az;
-                IDSetNumber(SyncPolarAlignNP, NULL);
+                IDSetNumber(SyncPolarAlignNP, nullptr);
                 IDLog("computePolarAlign: Telescope Polar Axis: alt = %g, az = %g\n", tpa_alt, tpa_az);
             }
 
@@ -2430,7 +2453,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 DEBUG(INDI::Logger::DBG_WARNING,
                       "Mount must be disconnected before you can change simulation settings.");
                 svp->s = IPS_ALERT;
-                IDSetSwitch(svp, NULL);
+                IDSetSwitch(svp, nullptr);
                 return false;
             }
 
@@ -2450,7 +2473,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                    IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s == ISS_ON ? "True" : "False",
                    IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s == ISS_ON ? "True" : "False");
             UseBacklashSP->s = IPS_IDLE;
-            IDSetSwitch(UseBacklashSP, NULL);
+            IDSetSwitch(UseBacklashSP, nullptr);
             return true;
         }
 
@@ -2463,7 +2486,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
             if (swbefore != swafter)
             {
                 TrackDefaultSP->s = IPS_IDLE;
-                IDSetSwitch(TrackDefaultSP, NULL);
+                IDSetSwitch(TrackDefaultSP, nullptr);
                 LOGF_INFO("Changed Track Default (from %s to %s).", swbefore->name,
                        swafter->name);
             }
@@ -2481,7 +2504,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 unsigned char rate = '0' + (unsigned char)IUFindOnSwitchIndex(ST4GuideRateWESP);
                 mount->SetST4RAGuideRate(rate);
                 ST4GuideRateWESP->s = IPS_IDLE;
-                IDSetSwitch(ST4GuideRateWESP, NULL);
+                IDSetSwitch(ST4GuideRateWESP, nullptr);
                 LOGF_INFO("Changed ST4 Guide rate WE (from %s to %s).", swbefore->label,
                        swafter->label);
             }
@@ -2499,7 +2522,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 unsigned char rate = '0' + (unsigned char)IUFindOnSwitchIndex(ST4GuideRateNSSP);
                 mount->SetST4DEGuideRate(rate);
                 ST4GuideRateNSSP->s = IPS_IDLE;
-                IDSetSwitch(ST4GuideRateNSSP, NULL);
+                IDSetSwitch(ST4GuideRateNSSP, nullptr);
                 LOGF_INFO("Changed ST4 Guide rate NS (from %s to %s).", swbefore->label,
                        swafter->label);
             }
@@ -2513,7 +2536,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
             ISwitch *sp = IUFindOnSwitch(svp);
             if (!sp)
                 return false;
-            IDSetSwitch(svp, NULL);
+            IDSetSwitch(svp, nullptr);
 
             if (!strcmp(sp->name, "SYNCCLEARDELTA"))
             {
@@ -2521,7 +2544,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 bzero(&syncdata2, sizeof(syncdata2));
                 IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value = syncdata.deltaRA;
                 IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value = syncdata.deltaDEC;
-                IDSetNumber(StandardSyncNP, NULL);
+                IDSetNumber(StandardSyncNP, nullptr);
                 IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value           = syncdata.jd;
                 IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value     = syncdata.lst;
                 IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value = syncdata.targetRA;
@@ -2532,13 +2555,13 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 ;
                 IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value = syncdata.telescopeDEC;
                 ;
-                IDSetNumber(StandardSyncPointNP, NULL);
+                IDSetNumber(StandardSyncPointNP, nullptr);
                 LOG_INFO("Cleared current Sync Data");
                 tpa_alt                                                     = 0.0;
                 tpa_az                                                      = 0.0;
                 IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value = tpa_alt;
                 IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value  = tpa_az;
-                IDSetNumber(SyncPolarAlignNP, NULL);
+                IDSetNumber(SyncPolarAlignNP, nullptr);
                 return true;
             }
         }
@@ -2553,7 +2576,20 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
 
             LOG_INFO("Inverting Declination Axis.");
 
-            IDSetSwitch(ReverseDECSP, NULL);
+            IDSetSwitch(ReverseDECSP, nullptr);
+        }
+
+        if (!strcmp(name, "FORCECWUP"))
+        {
+            IUUpdateSwitch(EnforceCWUP, states, names, n);
+
+            EnforceCWUP->s = IPS_OK;
+
+            ForceCwUp = (EnforceCWUP->sp[0].s == ISS_ON) ? true : false;
+
+            LOG_INFO("Enforcing counter weight up");
+
+            IDSetSwitch(EnforceCWUP, nullptr);
         }
 
         //if (MountInformationTP && MountInformationTP->tp && (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))) {
@@ -2567,7 +2603,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     {
                         AutoHomeSP->s = IPS_IDLE;
                         IUResetSwitch(AutoHomeSP);
-                        IDSetSwitch(AutoHomeSP, NULL);
+                        IDSetSwitch(AutoHomeSP, nullptr);
                     }
                     LOG_WARN("Can not start AutoHome. Scope not idle");
                     return true;
@@ -2577,7 +2613,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 {
                     AutoHomeSP->s = IPS_IDLE;
                     IUResetSwitch(AutoHomeSP);
-                    IDSetSwitch(AutoHomeSP, NULL);
+                    IDSetSwitch(AutoHomeSP, nullptr);
                     LOG_WARN("Aborting AutoHome.");
                     Abort();
                     return true;
@@ -2587,7 +2623,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 {
                     AutoHomeSP->s = IPS_OK;
                     IUResetSwitch(AutoHomeSP);
-                    IDSetSwitch(AutoHomeSP, NULL);
+                    IDSetSwitch(AutoHomeSP, nullptr);
                     LOG_WARN("*** AutoHome NOT TESTED. Press PERFORM AGAIN TO CONFIRM. ***");
                     AutohomeState      = AUTO_HOME_CONFIRM;
                     ah_confirm_timeout = 10;
@@ -2598,7 +2634,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     IUUpdateSwitch(AutoHomeSP, states, names, n);
                     AutoHomeSP->s = IPS_BUSY;
                     LOG_INFO("Starting Autohome.");
-                    IDSetSwitch(AutoHomeSP, NULL);
+                    IDSetSwitch(AutoHomeSP, nullptr);
                     TrackState = SCOPE_AUTOHOMING;
                     try
                     {
@@ -2647,7 +2683,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     {
                         AutoHomeSP->s = IPS_ALERT;
                         IUResetSwitch(AutoHomeSP);
-                        IDSetSwitch(AutoHomeSP, NULL);
+                        IDSetSwitch(AutoHomeSP, nullptr);
                         AutohomeState = AUTO_HOME_IDLE;
                         TrackState    = SCOPE_IDLE;
                         return (e.DefaultHandleException(this));
@@ -2675,7 +2711,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     mount->TurnRAEncoder(false);
                     mount->TurnDEEncoder(false);
                 }
-                IDSetSwitch(AuxEncoderSP, NULL);
+                IDSetSwitch(AuxEncoderSP, nullptr);
             }
         }
 
@@ -2717,7 +2753,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     LOG_INFO("Turning RA PPEC Training off.");
                     mount->TurnRAPPECTraining(false);
                 }
-                IDSetSwitch(RAPPECTrainingSP, NULL);
+                IDSetSwitch(RAPPECTrainingSP, nullptr);
                 return true;
             }
             if (RAPPECSP && strcmp(name, RAPPECSP->name) == 0)
@@ -2735,7 +2771,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     LOG_INFO("Turning RA PPEC off.");
                     mount->TurnRAPPEC(false);
                 }
-                IDSetSwitch(RAPPECSP, NULL);
+                IDSetSwitch(RAPPECSP, nullptr);
                 return true;
             }
             if (DEPPECTrainingSP && strcmp(name, DEPPECTrainingSP->name) == 0)
@@ -2774,7 +2810,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     LOG_INFO("Turning DEC PPEC Training off.");
                     mount->TurnDEPPECTraining(false);
                 }
-                IDSetSwitch(DEPPECTrainingSP, NULL);
+                IDSetSwitch(DEPPECTrainingSP, nullptr);
                 return true;
             }
             if (DEPPECSP && strcmp(name, DEPPECSP->name) == 0)
@@ -2792,7 +2828,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     LOG_INFO("Turning DEC PPEC off.");
                     mount->TurnDEPPEC(false);
                 }
-                IDSetSwitch(DEPPECSP, NULL);
+                IDSetSwitch(DEPPECSP, nullptr);
                 return true;
             }
         }
@@ -2921,7 +2957,7 @@ bool EQMod::updateTime(ln_date *lndate_utc, double utc_offset)
     utc.tm_mon  = lndate.months - 1;
     utc.tm_year = lndate.years - 1900;
 
-    gettimeofday(&lasttimeupdate, NULL);
+    gettimeofday(&lasttimeupdate, nullptr);
     get_utc_time(&lastclockupdate);
 
     strftime(utc_time, 32, "%Y-%m-%dT%H:%M:%S", &utc);
@@ -3072,9 +3108,9 @@ bool EQMod::Abort()
     }
 
     GuideNSNP.s = IPS_IDLE;
-    IDSetNumber(&GuideNSNP, NULL);
+    IDSetNumber(&GuideNSNP, nullptr);
     GuideWENP.s = IPS_IDLE;
-    IDSetNumber(&GuideWENP, NULL);
+    IDSetNumber(&GuideWENP, nullptr);
 #if 0
     TrackModeSP->s = IPS_IDLE;
     IUResetSwitch(TrackModeSP);
@@ -3083,7 +3119,7 @@ bool EQMod::Abort()
     AutohomeState = AUTO_HOME_IDLE;
     AutoHomeSP->s = IPS_IDLE;
     IUResetSwitch(AutoHomeSP);
-    IDSetSwitch(AutoHomeSP, NULL);
+    IDSetSwitch(AutoHomeSP, nullptr);
     TrackState = SCOPE_IDLE;
     if (gotoparams.completed == false)
         gotoparams.completed = true;

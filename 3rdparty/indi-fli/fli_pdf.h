@@ -70,7 +70,7 @@ class FLIPDF : public INDI::Focuser
     ISwitch HomeS[1];
     ISwitchVectorProperty HomeSP;
 
-    IText FocusInfoT[3];
+    IText FocusInfoT[3] {};
     ITextVectorProperty FocusInfoTP;
 
     int timerID;

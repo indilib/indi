@@ -60,6 +60,7 @@ void Controller::mapController(const char *propertyName, const char *propertyLab
     ControllerType *ctype = (ControllerType *)malloc(sizeof(ControllerType));
     *ctype                = type;
 
+    memset(JoystickSettingT+JoystickSettingTP.ntp, 0, sizeof(IText));
     IUFillText(&JoystickSettingT[JoystickSettingTP.ntp], propertyName, propertyLabel, initialValue);
 
     JoystickSettingT[JoystickSettingTP.ntp++].aux0 = ctype;

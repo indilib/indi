@@ -43,6 +43,7 @@ Telescope::Telescope()
     capability     = 0;
     last_we_motion = last_ns_motion = -1;
     parkDataType                    = PARK_NONE;
+    ParkdataXmlRoot                 = nullptr;
     IsParked                        = false;
     IsLocked                        = true;
 
@@ -62,6 +63,9 @@ Telescope::Telescope()
 
 Telescope::~Telescope()
 {
+    if (ParkdataXmlRoot)
+        delXMLEle(ParkdataXmlRoot);
+
     delete (controller);
 }
 
@@ -794,7 +798,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
 
                 // Remember Track State
                 RememberTrackState = TrackState;
-                // Issue GOTO                
+                // Issue GOTO
                 rc = Goto(ra, dec);
                 if (rc)
                 {
@@ -1572,6 +1576,23 @@ bool Telescope::processTimeInfo(const char *utc, const char *offset)
         IUSaveText(&TimeT[1], offset);
         TimeTP.s = IPS_OK;
         IDSetText(&TimeTP, nullptr);
+
+        // 2018-04-20 JM: Update system time on ARM architecture.
+        #ifdef __arm__
+        #ifdef __linux__
+        struct tm utm;
+        if (strptime(utc, "%Y-%m-%dT%H:%M:%S", &utm))
+        {
+            time_t raw_time = mktime(&utm);
+            time_t now_time;
+            time(&now_time);
+            // Only sync if difference > 30 seconds
+            if (labs(now_time - raw_time) > 30)
+                stime(&raw_time);
+        }
+        #endif
+        #endif
+
         return true;
     }
     else
@@ -1874,7 +1895,7 @@ char *Telescope::LoadParkData()
         return (char *)("Unable to parse Park Position Axis 2.");
     }
 
-    if (std::isnan(axis1Pos) == false && std::isnan(axis1Pos) == false)
+    if (std::isnan(axis1Pos) == false && std::isnan(axis2Pos) == false)
     {
         Axis1ParkPosition = axis1Pos;
         Axis2ParkPosition = axis2Pos;
@@ -1934,23 +1955,24 @@ bool Telescope::WriteParkData()
 
     prXMLEle(fp, ParkdataXmlRoot, 0);
     fclose(fp);
+    wordfree(&wexp);
 
     return true;
 }
 
-double Telescope::GetAxis1Park()
+double Telescope::GetAxis1Park() const
 {
     return Axis1ParkPosition;
 }
-double Telescope::GetAxis1ParkDefault()
+double Telescope::GetAxis1ParkDefault() const
 {
     return Axis1DefaultParkPosition;
 }
-double Telescope::GetAxis2Park()
+double Telescope::GetAxis2Park() const
 {
     return Axis2ParkPosition;
 }
-double Telescope::GetAxis2ParkDefault()
+double Telescope::GetAxis2ParkDefault() const
 {
     return Axis2DefaultParkPosition;
 }
@@ -1979,7 +2001,7 @@ void Telescope::SetAxis2ParkDefault(double value)
     Axis2DefaultParkPosition = value;
 }
 
-bool Telescope::isLocked()
+bool Telescope::isLocked() const
 {
     return (DomeClosedLockT[1].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON) && IsLocked;
 }
@@ -2562,6 +2584,7 @@ bool Telescope::UpdateScopeConfig()
     FilePtr = fopen(ScopeConfigFileName.c_str(), "w");
     prXMLEle(FilePtr, RootXmlNode, 0);
     fclose(FilePtr);
+    delXMLEle(RootXmlNode);
     return true;
 }
 

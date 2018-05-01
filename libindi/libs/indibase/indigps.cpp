@@ -52,6 +52,9 @@ bool GPS::initProperties()
 
     setDefaultPollingPeriod(2000);
 
+    // Default interface, can be overridden by child
+    setDriverInterface(GPS_INTERFACE);
+
     return true;
 }
 

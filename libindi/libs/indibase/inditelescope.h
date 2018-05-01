@@ -286,22 +286,22 @@ class Telescope : public DefaultDevice
     /**
      * @return Get current RA/AZ parking position.
      */
-    double GetAxis1Park();
+    double GetAxis1Park() const;
 
     /**
      * @return Get default RA/AZ parking position.
      */
-    double GetAxis1ParkDefault();
+    double GetAxis1ParkDefault() const;
 
     /**
      * @return Get current DEC/ALT parking position.
      */
-    double GetAxis2Park();
+    double GetAxis2Park() const;
 
     /**
      * @return Get defailt DEC/ALT parking position.
      */
-    double GetAxis2ParkDefault();
+    double GetAxis2ParkDefault() const;
 
     /**
      * @brief SetRAPark Set current RA/AZ parking position. The data park file (stored in
@@ -338,7 +338,7 @@ class Telescope : public DefaultDevice
      * @return true if lock status equals true and DomeClosedLockTP is Dome Locks or Dome Locks and
      * Dome Parks (both).
      */
-    bool isLocked();
+    bool isLocked() const;
 
     // Joystick helpers
     static void joystickHelper(const char *joystick_n, double mag, double angle, void *context);
@@ -654,13 +654,13 @@ class Telescope : public DefaultDevice
     INumberVectorProperty ScopeParametersNP;
 
     // UTC and UTC Offset
-    IText TimeT[2];
+    IText TimeT[2] {};
     ITextVectorProperty TimeTP;
     void sendTimeFromSystem();
 
     // Active GPS/Dome device to snoop
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[2];
+    IText ActiveDeviceT[2] {};
 
     // Switch to lock if dome is closed, and or force parking if dome parks
     ISwitchVectorProperty DomeClosedLockTP;
@@ -733,7 +733,7 @@ class Telescope : public DefaultDevice
 
     // Scope config name
     ITextVectorProperty ScopeConfigNameTP;
-    IText ScopeConfigNameT[1];
+    IText ScopeConfigNameT[1] {};
 
     /// The telescope/guide scope configuration file name
     const std::string ScopeConfigFileName;

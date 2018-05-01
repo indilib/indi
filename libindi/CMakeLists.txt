@@ -45,8 +45,8 @@ ENDIF ()
 
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
-set(CMAKE_INDI_VERSION_MINOR 6)
-set(CMAKE_INDI_VERSION_RELEASE 4)
+set(CMAKE_INDI_VERSION_MINOR 7)
+set(CMAKE_INDI_VERSION_RELEASE 2)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -312,7 +312,10 @@ ENDIF(OGGTHEORA_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.cpp
         ${theorarecorder_CXX_SRC}
         )
-    SET(libstream_C_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.c)
+    SET(libstream_C_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_c2.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_misc.c)
     IF (UNITY_BUILD)
         ENABLE_UNITY_BUILD(libstream libstream_C_SRC 10 c)
         ENABLE_UNITY_BUILD(libstream libstream_CXX_SRC 10 cpp)
@@ -320,9 +323,7 @@ ENDIF(OGGTHEORA_FOUND)
 
     IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
         SET(libwebcam_C_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_c2.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_misc.c)
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c)
         SET(libwebcam_CXX_SRC
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_base.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.cpp
@@ -470,6 +471,7 @@ SET(lx200generic_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_16.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200gps.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200generic.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200telescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200classic.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200apdriver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200gemini.cpp
@@ -595,6 +597,21 @@ add_executable(indi_ieq_telescope ${ieq_SRC})
 target_link_libraries(indi_ieq_telescope indidriver)
 
 install(TARGETS indi_ieq_telescope RUNTIME DESTINATION bin)
+
+########### IOptronV3 / CEM120 #############
+SET(ioptronv3_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronv3driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronv3.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(ioptronv3 ioptronv3_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_ioptronv3_telescope ${ioptronv3_SRC})
+
+target_link_libraries(indi_ioptronv3_telescope indidriver)
+
+install(TARGETS indi_ioptronv3_telescope RUNTIME DESTINATION bin)
 
 ########### Explore Scientific PMC8 #############
 SET(pmc8_SRC
@@ -1131,6 +1148,15 @@ add_executable(indi_meta_weather ${weathermeta_SRC})
 target_link_libraries(indi_meta_weather indidriver)
 install(TARGETS indi_meta_weather RUNTIME DESTINATION bin )
 
+########### Weather File Watcher ###############
+
+SET(weatherwatcher_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weatherwatcher.cpp)
+
+add_executable(indi_watcher_weather ${weatherwatcher_SRC})
+target_link_libraries(indi_watcher_weather indidriver ${CURL_LIBRARIES})
+install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin )
+
 ########### MBox Driver ###############
 
 SET(mbox_SRC
@@ -1279,6 +1305,8 @@ if (UNIX)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_types.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream COMPONENT Devel)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.h
@@ -1292,12 +1320,9 @@ if (UNIX)
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/recorder COMPONENT Devel)
     if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    INSTALL(FILES
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
+    INSTALL(FILES            
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h            
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     ENDIF()

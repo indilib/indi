@@ -214,6 +214,8 @@ MICCD::MICCD(int camId, bool eth) : FilterInterface(this)
     hasGain    = false;
     useShutter = true;
 
+    canDoPreflash = false;
+
     setDeviceName(name);
     setVersion(INDI_MI_VERSION_MAJOR, INDI_MI_VERSION_MINOR);
 }
@@ -266,6 +268,12 @@ bool MICCD::initProperties()
     IUFillSwitchVector(&ReadModeSP, ReadModeS, numReadModes, getDeviceName(), "CCD_READ_MODE", "Read Mode",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    // NIR Preflash
+    IUFillNumber(&PreflashN[0], "NIR_EXPOSURE_TIME", "Preflash duration (s)", "%4.3f", 0.0, 65.535, 0.001, 0.0);
+    IUFillNumber(&PreflashN[1], "NIR_CLEAR_NUM", "Num. clear", "%2.0f", 1, 16, 1, 3);
+    IUFillNumberVector(&PreflashNP, PreflashN, 2, getDeviceName(), "NIR_PRE_FLASH", "NIR Preflash",
+                       MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
     addAuxControls();
 
     setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
@@ -295,6 +303,9 @@ void MICCD::ISGetProperties(const char *dev)
 
         if (hasGain)
             defineNumber(&GainNP);
+
+        if (canDoPreflash)
+            defineNumber(&PreflashNP);
 
         if (numFilters > 0)
         {
@@ -327,6 +338,9 @@ bool MICCD::updateProperties()
         if (hasGain)
             defineNumber(&GainNP);
 
+        if (canDoPreflash)
+            defineNumber(&PreflashNP);
+
         if (numFilters > 0)
         {
             INDI::FilterInterface::updateProperties();
@@ -356,6 +370,9 @@ bool MICCD::updateProperties()
 
         if (hasGain)
             deleteProperty(GainNP.name);
+
+        if (canDoPreflash)
+            deleteProperty(PreflashNP.name);
 
         if (numFilters > 0)
         {
@@ -419,7 +436,10 @@ bool MICCD::Connect()
 
     gxccd_get_boolean_parameter(cameraHandle, GBP_GAIN, &hasGain);
 
+    gxccd_get_boolean_parameter(cameraHandle, GBP_PREFLASH, &canDoPreflash);
+
     SetCCDCapability(cap);
+
     return true;
 }
 
@@ -482,6 +502,17 @@ bool MICCD::setupParams()
         }
     }
 
+    if (!sim && canDoPreflash)
+    {
+        if (gxccd_set_preflash(cameraHandle, PreflashN[0].value, PreflashN[1].value) < 0)
+        {
+            char errorStr[MAX_ERROR_LEN];
+            gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+            LOGF_ERROR("Setting default NIR preflash value failed: %s.", errorStr);
+            PreflashNP.s = IPS_ALERT;
+        }
+    }
+
     return true;
 }
 
@@ -506,26 +537,8 @@ int MICCD::SetTemperature(double temperature)
 
 bool MICCD::StartExposure(float duration)
 {
-    useShutter = true;
-
-    if (duration < minExpTime)
-    {
-        DEBUGF(INDI::Logger::DBG_WARNING,
-               "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration,
-               minExpTime);
-        duration = minExpTime;
-    }
-
     imageFrameType = PrimaryCCD.getFrameType();
-
-    if (imageFrameType == INDI::CCDChip::BIAS_FRAME)
-    {
-        duration = minExpTime;
-    }
-    else if (imageFrameType == INDI::CCDChip::DARK_FRAME)
-    {
-        useShutter = false;
-    }
+    useShutter = (imageFrameType == INDI::CCDChip::LIGHT_FRAME || imageFrameType == INDI::CCDChip::FLAT_FRAME);
 
     if (!isSimulation())
     {
@@ -537,6 +550,7 @@ bool MICCD::StartExposure(float duration)
         else
             mode = prm - IUFindOnSwitchIndex(&ReadModeSP);
         gxccd_set_read_mode(cameraHandle, mode);
+
         // send binned coords
         int x = PrimaryCCD.getSubX() / PrimaryCCD.getBinX();
         int y = PrimaryCCD.getSubY() / PrimaryCCD.getBinY();
@@ -551,7 +565,7 @@ bool MICCD::StartExposure(float duration)
     gettimeofday(&ExpStart, NULL);
     InExposure  = true;
     downloading = false;
-    LOGF_DEBUG("Taking a %g seconds frame...", ExposureRequest);
+    LOGF_DEBUG("Taking a %.3f seconds frame...", ExposureRequest);
     return true;
 }
 
@@ -601,10 +615,7 @@ bool MICCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
-    int nbuf = imageWidth * imageHeight * PrimaryCCD.getBPP() / 8; //  this is pixel count
-    nbuf += 512;                                                   //  leave a little extra at the end
-    PrimaryCCD.setFrameBufferSize(nbuf);
-
+    PrimaryCCD.setFrameBufferSize(imageWidth * imageHeight * PrimaryCCD.getBPP() / 8);
     return true;
 }
 
@@ -904,6 +915,31 @@ bool MICCD::ISNewNumber(const char *dev, const char *name, double values[], char
             }
 
             IDSetNumber(&TemperatureRampNP, NULL);
+            return true;
+        }
+
+        if (!strcmp(name, PreflashNP.name))
+        {
+            IUUpdateNumber(&PreflashNP, values, names, n);
+
+            // set NIR pre-flash if available.
+            if (canDoPreflash)
+            {
+                if (!isSimulation() && gxccd_set_preflash(cameraHandle, PreflashN[0].value, PreflashN[1].value) < 0)
+                {
+                    char errorStr[MAX_ERROR_LEN];
+                    gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
+                    LOGF_ERROR("Setting NIR preflash failed: %s.", errorStr);
+                    PreflashNP.s = IPS_ALERT;
+                }
+                else
+                {
+                    PreflashNP.s = IPS_OK;
+                }
+            }
+
+            IDSetNumber(&PreflashNP, NULL);
+
             return true;
         }
     }

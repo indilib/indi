@@ -122,11 +122,11 @@ bool CelestronGPS::initProperties()
     INDI::Telescope::initProperties();
 
     // Firmware
-    IUFillText(&FirmwareT[FW_MODEL], "Model", "", 0);
-    IUFillText(&FirmwareT[FW_VERSION], "Version", "", 0);
-    IUFillText(&FirmwareT[FW_GPS], "GPS", "", 0);
-    IUFillText(&FirmwareT[FW_RA], "RA", "", 0);
-    IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
+    IUFillText(&FirmwareT[FW_MODEL], "Model", "", nullptr);
+    IUFillText(&FirmwareT[FW_VERSION], "Version", "", nullptr);
+    IUFillText(&FirmwareT[FW_GPS], "GPS", "", nullptr);
+    IUFillText(&FirmwareT[FW_RA], "RA", "", nullptr);
+    IUFillText(&FirmwareT[FW_DEC], "DEC", "", nullptr);
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
@@ -140,8 +140,8 @@ bool CelestronGPS::initProperties()
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     //GUIDE Define "Use Pulse Cmd" property (Switch).
-    IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_ON);
-    IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_OFF);
+    IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_OFF);
+    IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_ON);
     IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -331,6 +331,11 @@ bool CelestronGPS::updateProperties()
         }
         else
             LOG_WARN("Mount does not support retrieval of date and time settings.");
+
+
+        // Sometimes users start their mount when it is NOT yet aligned and then try to proceed to use it
+        // So we check issue and issue error if not aligned.
+        checkAlignment();
     }
     else
     {
@@ -656,7 +661,14 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
         if (!strcmp(name, UseHibernateSP.name))
         {
             IUUpdateSwitch(&UseHibernateSP, states, names, n);
-            UseHibernateSP.s = IPS_OK;
+            if (UseHibernateS[0].s == ISS_ON && checkMinVersion(4.22, "hibernation") == false)
+            {
+                UseHibernateS[0].s = ISS_OFF;
+                UseHibernateS[1].s = ISS_ON;
+                UseHibernateSP.s = IPS_ALERT;
+            }
+            else
+                UseHibernateSP.s = IPS_OK;
             IDSetSwitch(&UseHibernateSP, nullptr);
             return true;
         }
@@ -669,6 +681,8 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
 
             UsePulseCmdSP.s = IPS_OK;
             IDSetSwitch(&UsePulseCmdSP, nullptr);
+            usePulseCommand = (UsePulseCmdS[1].s == ISS_ON);
+            LOGF_INFO("Pulse guiding is %s.", usePulseCommand ? "enabled" : "disabled");
             return true;
         }
     }
@@ -1065,7 +1079,12 @@ bool CelestronGPS::UnPark()
 
 bool CelestronGPS::SetCurrentPark()
 {
-    ln_hrz_posn horizontalPos;
+    // The Goto Alt-Az and Get Alt-Az menu items have been renamed Goto Axis Postn and Get Axis Postn
+    // where Postn is an abbreviation for Position. Since this feature doesn't actually refer
+    // to altitude and azimuth when mounted on a wedge, the new designation is more accurate.
+    // Source  : NexStarHandControlVersion4UsersGuide.pdf
+
+    /*ln_hrz_posn horizontalPos;
     // Libnova south = 0, west = 90, north = 180, east = 270
 
     ln_lnlat_posn observer;
@@ -1082,7 +1101,16 @@ bool CelestronGPS::SetCurrentPark()
     double parkAZ = horizontalPos.az - 180;
     if (parkAZ < 0)
         parkAZ += 360;
-    double parkAlt = horizontalPos.alt;
+    double parkAlt = horizontalPos.alt;*/
+
+    if (driver.get_azalt(&currentAZ, &currentALT, usePreciseCoords) == false)
+    {
+        LOG_ERROR("Failed to read AZ/ALT values.");
+        return false;
+    }
+
+    double parkAZ = currentAZ;
+    double parkAlt = currentALT;
 
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
@@ -1099,11 +1127,16 @@ bool CelestronGPS::SetCurrentPark()
 
 bool CelestronGPS::SetDefaultPark()
 {
-    // By defualt azimuth 0 for north hemisphere
-    SetAxis1Park(LocationN[LOCATION_LATITUDE].value >= 0 ? 0 : 180);
+    // The Goto Alt-Az and Get Alt-Az menu items have been renamed Goto Axis Postn and Get Axis Postn
+    // where Postn is an abbreviation for Position. Since this feature doesn't actually refer
+    // to altitude and azimuth when mounted on a wedge, the new designation is more accurate.
+    // Source  : NexStarHandControlVersion4UsersGuide.pdf
 
-    // Altitude = latitude of observer
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    // By default azimuth 90° ( hemisphere doesn't matter)
+    SetAxis1Park(90);
+
+    // Altitude = 90° (latitude doesn't matter)
+    SetAxis2Park(90);
 
     return true;
 }
@@ -1135,10 +1168,7 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
 IPState CelestronGPS::GuideNorth(float ms)
 {
     LOGF_DEBUG("GUIDE CMD: N %.0f ms", ms);
-    int use_pulse_cmd;
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1157,7 +1187,7 @@ IPState CelestronGPS::GuideNorth(float ms)
         GuideNSTID = 0;
     }
 
-    if (use_pulse_cmd)
+    if (usePulseCommand)
     {
         driver.send_pulse(CELESTRON_N, 50, ms / 10.0);
     }
@@ -1179,10 +1209,7 @@ IPState CelestronGPS::GuideNorth(float ms)
 IPState CelestronGPS::GuideSouth(float ms)
 {
     LOGF_DEBUG("GUIDE CMD: S %.0f ms", ms);
-    int use_pulse_cmd;
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1201,7 +1228,7 @@ IPState CelestronGPS::GuideSouth(float ms)
         GuideNSTID = 0;
     }
 
-    if (use_pulse_cmd)
+    if (usePulseCommand)
     {
         driver.send_pulse(CELESTRON_S, 50, ms / 10.0);
     }
@@ -1223,10 +1250,7 @@ IPState CelestronGPS::GuideSouth(float ms)
 IPState CelestronGPS::GuideEast(float ms)
 {
     LOGF_DEBUG("GUIDE CMD: E %.0f ms", ms);
-    int use_pulse_cmd;
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1245,7 +1269,7 @@ IPState CelestronGPS::GuideEast(float ms)
         GuideWETID = 0;
     }
 
-    if (use_pulse_cmd)
+    if (usePulseCommand)
     {
         driver.send_pulse(CELESTRON_E, 50, ms / 10.0);
     }
@@ -1267,10 +1291,7 @@ IPState CelestronGPS::GuideEast(float ms)
 IPState CelestronGPS::GuideWest(float ms)
 {
     LOGF_DEBUG("GUIDE CMD: W %.0f ms", ms);
-    int use_pulse_cmd;
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1289,7 +1310,7 @@ IPState CelestronGPS::GuideWest(float ms)
         GuideWETID = 0;
     }
 
-    if (use_pulse_cmd)
+    if (usePulseCommand)
     {
         driver.send_pulse(CELESTRON_W, 50, ms / 10.0);
     }
@@ -1337,12 +1358,8 @@ void CelestronGPS::guideTimeoutHelperE(void *p)
 
 void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
 {
-    int use_pulse_cmd;
-
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
     //LOG_DEBUG(" END-OF-TIMER");
-    //LOGF_DEBUG("   USE_PULSE_CMD = %i", use_pulse_cmd);
+    //LOGF_DEBUG("   usePulseCommand = %i", usePulseCommand);
     //LOGF_DEBUG("   GUIDE_DIRECTION = %i", (int)guide_direction);
     //LOGF_DEBUG("   CALL_DIRECTION = %i", calldir);
 
@@ -1362,7 +1379,7 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
 //        IERmTimer(GuideNSTID);
 //        IERmTimer(GuideWETID);
 //    } else
-    if (!use_pulse_cmd)
+    if (!usePulseCommand)
     {
         if (calldir == CELESTRON_N || calldir == CELESTRON_S)
         {
@@ -1432,4 +1449,12 @@ bool CelestronGPS::SetTrackMode(uint8_t mode)
 bool CelestronGPS::SetTrackEnabled(bool enabled)
 {
     return setTrackMode(enabled ? static_cast<CELESTRON_TRACK_MODE>(IUFindOnSwitchIndex(&TrackModeSP)+1) : TRACKING_OFF);
+}
+
+void CelestronGPS::checkAlignment()
+{
+    ReadScopeStatus();
+
+    if (currentRA == 12.0 && currentDEC == 0.0)
+        LOG_WARN("Mount is NOT aligned. You must align the mount first before you can use it. Disconnect, align the mount, and reconnect again.");
 }

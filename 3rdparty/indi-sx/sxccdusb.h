@@ -174,3 +174,4 @@ int sxSetCooler(HANDLE sxHandle, unsigned char SetStatus, unsigned short SetTemp
                 unsigned short *RetTemp);
 bool sxIsInterlaced(short model);
 bool sxIsColor(short model);
+bool sxIsICX453(short model);

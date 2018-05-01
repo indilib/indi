@@ -195,7 +195,7 @@ class Weather : public DefaultDevice
 
     // Active devices to snoop
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1];
+    IText ActiveDeviceT[1] {};
 
     // Update Period
     INumber UpdatePeriodN[1];

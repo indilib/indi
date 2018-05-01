@@ -27,38 +27,53 @@
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
 #include "stdint.h"
+#include "cyusb.h"
 
 #ifdef WIN32
-#include "cyapi.h"
-#endif
 
-#ifdef LINUX
-#include <unistd.h>
-#include <libusb.h>
+#include "cyapi.h"
+
+//#else // Linux & Mac
+//
+//#include <libusb.h>
+
 #endif
 
 #ifndef __QHYCCD_H__
 #define __QHYCCD_H__
 
 #ifdef WIN32
+
 typedef CCyUSBDevice qhyccd_handle;
-//EXPORTC void STDCALL LibUsbInit(libusb_context **pContext);
-//EXPORTC void STDCALL LibUsbExit(libusb_context *pContext);
-#else
+
+#else // Linux & Mac
+
 typedef struct libusb_device_handle qhyccd_handle;
 uint32_t DeviceIsQHYCCD(uint32_t index, qhyccd_device *pDevice);
-#endif
+EXPORTC void STDCALL MutexInit();
+EXPORTC void STDCALL MutexDestroy();
+EXPORTC void STDCALL MutexLock();
+EXPORTC void STDCALL MutexUnlock();
+EXPORTC int STDCALL MutexTrylock();
 
-//EXPORTC void STDCALL DevMutexInit();
-//EXPORTC void STDCALL DevMutexDestroy();
-//EXPORTC void STDCALL DevMutexLock();
-//EXPORTC void STDCALL DevMutexUnlock();
-//EXPORTC int STDCALL DevMutexTrylock();
-//EXPORTC void STDCALL msSleep(uint32_t ms);
+#endif // WIN32
+
+class QHYBASE;
 
 uint32_t DeviceIsQHYCCD(uint32_t index, uint32_t vid, uint32_t pid);
 uint32_t QHYCCDSeriesMatch(uint32_t index, qhyccd_handle *pHandle);
 uint32_t GetIdFromCam(qhyccd_handle *pHandle, char *id);
+
+EXPORTC struct cydev *STDCALL GetCyDevBasedOnInstance(QHYBASE *pCam);
+EXPORTC struct cydev *STDCALL GetCyDevBasedOnHandle(qhyccd_handle *pHandle);
+EXPORTC int GetCyDevIdxBasedOnInstance(QHYBASE *pCam);
+EXPORTC int GetCyDevIdxBasedOnHandle(qhyccd_handle *pHandle);
+
+EXPORTC uint32_t STDCALL GetReceivedRawDataLen(QHYBASE *pCam);
+EXPORTC bool STDCALL SetReceivedRawDataLen(QHYBASE *pCam, uint32_t value);
+EXPORTC bool STDCALL CleanUnlockImageQueue(QHYBASE *pCam);
+//EXPORTC bool STDCALL SetUnlockImageQueue(QHYBASE *pCam);
+
 EXPORTC uint32_t STDCALL InitQHYCCDClass(uint32_t camtype, uint32_t index);
 
 /** \fn uint32_t InitQHYCCDResource()

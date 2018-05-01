@@ -75,8 +75,8 @@ void ISSnoopDevice(XMLEle *root)
 
 GuideSim::GuideSim()
 {    
-    raPE  = RA;
-    decPE = Dec;
+    currentRA  = RA;
+    currentDE = Dec;
 
     streamPredicate = 0;
     terminateThread = false;
@@ -393,10 +393,12 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         Scalex = (targetChip->getPixelSizeX() / targetFocalLength) * 206.3;
         Scaley = (targetChip->getPixelSizeY() / targetFocalLength) * 206.3;
 
+#if 0
         DEBUGF(
             INDI::Logger::DBG_DEBUG,
             "pprx: %g pixels per radian ppry: %g pixels per radian ScaleX: %g arcsecs/pixel ScaleY: %g arcsecs/pixel",
             pprx, ppry, Scalex, Scaley);
+#endif
 
         double theta = rotationCW + 270;
         if (theta > 360)
@@ -420,29 +422,37 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         ImageScalex = Scalex;
         ImageScaley = Scaley;
 
+        #ifdef USE_EQUATORIAL_PE
         if (!usePE)
         {
-            raPE  = RA;
-            decPE = Dec;
+        #endif
+
+            currentRA  = RA;
+            currentDE = Dec;
 
             ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
-            epochPos.ra  = raPE * 15.0;
-            epochPos.dec = decPE;
+            epochPos.ra  = currentRA * 15.0;
+            epochPos.dec = currentDE;
 
             // Convert from JNow to J2000
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
 
-            raPE  = J2000Pos.ra / 15.0;
-            decPE = J2000Pos.dec;
+            currentRA  = J2000Pos.ra / 15.0;
+            currentDE = J2000Pos.dec;
+
+            currentDE += guideNSOffset;
+            currentRA += guideWEOffset;
+        #ifdef USE_EQUATORIAL_PE
         }
+        #endif
 
         //  calc this now, we will use it a lot later
-        rad = raPE * 15.0;
+        rad = currentRA * 15.0;
         rar = rad * 0.0174532925;
         //  offsetting the dec by the guide head offset
         float cameradec;
-        cameradec = decPE + OAGoffset / 60;
+        cameradec = currentDE + OAGoffset / 60;
         decr      = cameradec * 0.0174532925;
 
         decDrift = (polarDrift * polarError * cos(decr)) / 3.81;
@@ -459,7 +469,9 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         //  we have radius in arcseconds now
         radius = radius / 60; //  convert to arcminutes
 
+#if 0
         LOGF_DEBUG("Lookup radius %4.2f", radius);
+#endif
 
         //  A saturationmag star saturates in one second
         //  and a limitingmag produces a one adu level in one second
@@ -660,17 +672,20 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         int subW = targetChip->getSubW() + subX;
         int subH = targetChip->getSubH() + subY;
 
-        for (x = subX; x < subW; x++)
+        if (maxnoise > 0)
         {
-            for (y = subY; y < subH; y++)
+            for (x = subX; x < subW; x++)
             {
-                int noise;
+                for (y = subY; y < subH; y++)
+                {
+                    int noise;
 
-                noise = random();
-                noise = noise % maxnoise; //
+                    noise = random();
+                    noise = noise % maxnoise; //
 
-                //IDLog("noise is %d\n", noise);
-                AddToPixel(targetChip, x, y, bias + noise);
+                    //IDLog("noise is %d\n", noise);
+                    AddToPixel(targetChip, x, y, bias + noise);
+                }
             }
         }
     }
@@ -688,7 +703,7 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
             *ptr = val++;
             ptr++;
         }
-    }    
+    }
 
     return 0;
 }
@@ -805,46 +820,34 @@ int GuideSim::AddToPixel(INDI::CCDChip *targetChip, int x, int y, int val)
 
 IPState GuideSim::GuideNorth(float v)
 {
-    float c;
-
-    c     = v / 1000 * GuideRate; //
-    c     = c / 3600;
-    decPE = decPE + c;
-
+    guideNSOffset    += v / 1000 * GuideRate / 3600;
     return IPS_OK;
 }
 
 IPState GuideSim::GuideSouth(float v)
 {
-    float c;
-
-    c     = v / 1000 * GuideRate; //
-    c     = c / 3600;
-    decPE = decPE - c;
-
+    guideNSOffset    += v / -1000 * GuideRate / 3600;
     return IPS_OK;
 }
 
 IPState GuideSim::GuideEast(float v)
 {
-    float c;
+    float c   = v / 1000 * GuideRate;
+    c   = c/ 3600.0 / 15.0;
+    c   = c/ (cos(currentDE * 0.0174532925));
 
-    c    = v / 1000 * GuideRate;
-    c    = c / 3600.0 / 15.0;
-    c    = c / (cos(decPE * 0.0174532925));
-    raPE = raPE + c;
+    guideWEOffset += c;
 
     return IPS_OK;
 }
 
 IPState GuideSim::GuideWest(float v)
 {
-    float c;
+    float c   = v / -1000 * GuideRate;
+    c   = c/ 3600.0 / 15.0;
+    c   = c/ (cos(currentDE * 0.0174532925));
 
-    c    = v / 1000 * GuideRate; //
-    c    = c / 3600.0 / 15.0;
-    c    = c / (cos(decPE * 0.0174532925));
-    raPE = raPE - c;
+    guideWEOffset += c;
 
     return IPS_OK;
 }
@@ -940,7 +943,7 @@ bool GuideSim::ISSnoopDevice(XMLEle *root)
         double newra, newdec;
         newra  = EqPEN[0].value;
         newdec = EqPEN[1].value;
-        if ((newra != raPE) || (newdec != decPE))
+        if ((newra != currentRA) || (newdec != currentDE))
         {
             ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
             epochPos.ra  = newra * 15.0;
@@ -948,12 +951,12 @@ bool GuideSim::ISSnoopDevice(XMLEle *root)
 
             ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
 
-            raPE  = J2000Pos.ra / 15.0;
-            decPE = J2000Pos.dec;
+            currentRA  = J2000Pos.ra / 15.0;
+            currentDE = J2000Pos.dec;
 
             usePE = true;
 
-            LOGF_DEBUG("raPE %g  decPE %g Snooped raPE %g  decPE %g", raPE, decPE, newra, newdec);
+            LOGF_DEBUG("raPE %g  decPE %g Snooped raPE %g  decPE %g", currentRA, currentDE, newra, newdec);
 
             return true;
         }

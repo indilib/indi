@@ -24,6 +24,7 @@ MathPluginManagement::MathPluginManagement() : CurrentInMemoryDatabase(nullptr),
     pTransformTelescopeToCelestial(&MathPlugin::TransformTelescopeToCelestial),
     pLoadedMathPlugin(&BuiltInPlugin), LoadedMathPluginHandle(nullptr)
 {
+    memset(&AlignmentSubsystemCurrentMathPlugin, 0, sizeof(IText));
 }
 
 void MathPluginManagement::InitProperties(Telescope *ChildTelescope)
@@ -348,13 +349,25 @@ void MathPluginManagement::EnumeratePlugins()
     DIR *dp;
 
     errno = 0;
-    dp    = opendir(INDI_MATH_PLUGINS_DIRECTORY);
+    char MATH_PLUGINS_DIRECTORY[2048];
+    #if defined(__APPLE__)
+        const char *indiprefix = getenv("INDIPREFIX");
+        if (indiprefix)
+            snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, "%s/Contents/Resources/MathPlugins", indiprefix);
+        else
+            snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, INDI_MATH_PLUGINS_DIRECTORY);
+    #else
+        snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, INDI_MATH_PLUGINS_DIRECTORY);
+    #endif
+
+    dp    = opendir(MATH_PLUGINS_DIRECTORY);
+    snprintf(MATH_PLUGINS_DIRECTORY, 2048 - 1, "%s%s", INDI_MATH_PLUGINS_DIRECTORY, "/");
     if (dp)
     {
         while (true)
         {
             void *Handle;
-            std::string PluginPath(INDI_MATH_PLUGINS_DIRECTORY "/");
+            std::string PluginPath(MATH_PLUGINS_DIRECTORY);
 
             errno = 0;
             de    = readdir(dp);
@@ -392,7 +405,7 @@ void MathPluginManagement::EnumeratePlugins()
     }
     else
     {
-        IDLog("EnumeratePlugins - Failed to open %s error %s\n", INDI_MATH_PLUGINS_DIRECTORY, strerror(errno));
+        IDLog("EnumeratePlugins - Failed to open %s error %s\n", MATH_PLUGINS_DIRECTORY, strerror(errno));
     }
 #endif
 }

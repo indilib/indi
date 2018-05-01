@@ -364,14 +364,22 @@ bool SynscanMount::ReadScopeStatus()
     numread = tty_read(PortFD, str, 2, 2, &bytesRead);
     if (str[1] == '#')
     {
-        if ((int)str[0] == 0)
+        TrackingStatus = str[0];
+        switch((int)str[0])
+        {
+        case 0:
             TrackingMode = "Tracking off";
-        if ((int)str[0] == 1)
+            break;
+        case 1:
             TrackingMode = "Alt/Az tracking";
-        if ((int)str[0] == 2)
+            break;
+        case 2:
             TrackingMode = "EQ tracking";
-        if ((int)str[0] == 3)
+            break;
+        case 3:
             TrackingMode = "PEC mode";
+            break;
+        }
     }
 
     UpdateMountInformation(true);
@@ -386,10 +394,12 @@ bool SynscanMount::ReadScopeStatus()
         {
             //  Nothing to do here
         }
-        else
+        else if (MountCode < 128)
         {
-            if (TrackState == SCOPE_PARKING)
-                TrackState = SCOPE_PARKED;
+            if (TrackingStatus[0] != 0)
+                TrackState = SCOPE_TRACKING;
+            else
+                TrackState = SCOPE_IDLE;
         }
     }
     if (TrackState == SCOPE_PARKING)
@@ -891,8 +901,11 @@ bool SynscanMount::ReadTime()
         localTime.months  = str[3];
         localTime.days    = str[4];
         localTime.years   = str[5];
-        localTime.gmtoff  = str[6];
-        offset            = str[6];
+        offset            = (int)str[6];
+        // Negative GMT offset is read. It needs special treatment
+        if (offset > 200)
+            offset -= 256;
+        localTime.gmtoff = offset;
         daylightflag =
             str[7]; //  this is the daylight savings flag in the hand controller, needed if we did not set the time
         localTime.years += 2000;
@@ -999,7 +1012,7 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     //
     struct ln_zonedate ltm;
 
-    ln_date_to_zonedate(utc, &ltm, utc_offset * 3600.0);
+    ln_date_to_zonedate(utc, &ltm, (long)utc_offset * 3600.0);
 
     int yr = ltm.years;
 
@@ -1008,16 +1021,19 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     str[0] = 'H';
     str[1] = ltm.hours;
     str[2] = ltm.minutes;
-    str[3] = ltm.seconds;
+    str[3] = (char)(int)ltm.seconds;
     str[4] = ltm.months;
     str[5] = ltm.days;
     str[6] = yr;
-    str[7] = utc_offset; //  offset from utc so hand controller is running in local time
+    // Strangely enough static_cast<int>(double) results 0 for negative values on arm
+    // We need to use old C-like casts in this case.
+    str[7] = (char)(int)utc_offset; //  offset from utc so hand controller is running in local time
     str[8] = 0;          //  and no daylight savings adjustments, it's already included in the offset
     //  lets write a time to the hand controller
     bytesRead = 0;
     tty_write(PortFD, str, 9, &bytesWritten);
     tty_read(PortFD, str, 1, 2, &bytesRead);
+    LOGF_INFO("Setting mount date/time to %04d-%02d-%02d %d:%02d:%02d UTC Offset: %d\n", (int)ltm.years, (int)ltm.months, (int)ltm.days, (int)ltm.hours, (int)ltm.minutes, (int)ltm.seconds, (int)utc_offset);
     if (str[0] != '#')
     {
         LOG_INFO("Invalid return from set time");

@@ -112,6 +112,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     INumberVectorProperty *SyncPolarAlignNP    = NULL;
     ISwitchVectorProperty *SyncManageSP        = NULL;
     ISwitchVectorProperty *ReverseDECSP        = NULL;
+    ISwitchVectorProperty *EnforceCWUP         = NULL;
     INumberVectorProperty *BacklashNP          = NULL;
     ISwitchVectorProperty *UseBacklashSP       = NULL;
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
@@ -150,6 +151,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
     Hemisphere Hemisphere;
     bool RAInverted, DEInverted;
+    bool ForceCwUp = false;
     GotoParams gotoparams;
     SyncData syncdata, syncdata2;
 
@@ -206,7 +208,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
     virtual const char *getDefaultName();
     virtual bool Handshake();
-    virtual bool Disconnect();
+    virtual bool Disconnect();    
     virtual void TimerHit();
     virtual bool ReadScopeStatus();
     virtual bool initProperties();
@@ -234,6 +236,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     bool SetCurrentPark();
     bool SetDefaultPark();
     bool Sync(double ra, double dec);
+
+    // Called when there is an unrecoverable tty error
+    void abnormalDisconnect();
 
     // Tracking
     bool SetTrackMode(uint8_t mode);

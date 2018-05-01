@@ -33,7 +33,6 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
         CelestronGPS();
-        virtual ~CelestronGPS() {}
 
         virtual const char *getDefaultName() override;
         virtual bool Handshake() override;
@@ -94,7 +93,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
         CELESTRON_DIRECTION guide_direction;
 
         /* Firmware */
-        IText FirmwareT[5];
+        IText FirmwareT[5] {};
         ITextVectorProperty FirmwareTP;
 
         //INumberVectorProperty HorizontalCoordsNP;
@@ -113,11 +112,13 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
     private:
         bool setTrackMode(CELESTRON_TRACK_MODE mode);
         bool checkMinVersion(float minVersion, const char *feature);
+        void checkAlignment();
 
         double currentRA, currentDEC, currentAZ, currentALT;
         double targetRA, targetDEC, targetAZ, targetALT;
 
         CelestronDriver driver;
         FirmwareInfo fwInfo;
-        bool usePreciseCoords=false;
+        bool usePreciseCoords {false};
+        bool usePulseCommand { false };
 };
