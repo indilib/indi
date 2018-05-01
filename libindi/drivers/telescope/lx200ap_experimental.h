@@ -50,6 +50,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     virtual bool ReadScopeStatus() override;
     virtual bool Handshake() override;
     virtual bool Disconnect() override;
+    virtual bool Connect() override;
 
     // Parking
     virtual bool SetCurrentPark() override;
