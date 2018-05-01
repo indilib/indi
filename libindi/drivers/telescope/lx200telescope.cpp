@@ -99,8 +99,8 @@ bool LX200Telescope::initProperties()
     IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
-    IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_ON);
-    IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_OFF);
+    IUFillSwitch(&UsePulseCmdS[0], "Off", "", ISS_OFF);
+    IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_ON);
     IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -899,6 +899,8 @@ bool LX200Telescope::ISNewSwitch(const char *dev, const char *name, ISState *sta
 
             UsePulseCmdSP.s = IPS_OK;
             IDSetSwitch(&UsePulseCmdSP, nullptr);
+            usePulseCommand = (UsePulseCmdS[1].s == ISS_ON);
+            LOGF_INFO("Pulse guiding is %s.", usePulseCommand ? "enabled" : "disabled");
             return true;
         }
     }
@@ -1360,11 +1362,7 @@ bool LX200Telescope::sendScopeLocation()
 
 IPState LX200Telescope::GuideNorth(float ms)
 {
-    int use_pulse_cmd;
-
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1384,7 +1382,7 @@ IPState LX200Telescope::GuideNorth(float ms)
         GuideNSTID = 0;
     }
 
-    if (use_pulse_cmd)
+    if (usePulseCommand)
     {
         SendPulseCmd(LX200_NORTH, ms);
     }
@@ -1412,11 +1410,7 @@ IPState LX200Telescope::GuideNorth(float ms)
 
 IPState LX200Telescope::GuideSouth(float ms)
 {
-    int use_pulse_cmd;
-
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1436,7 +1430,7 @@ IPState LX200Telescope::GuideSouth(float ms)
         GuideNSTID = 0;
     }
 
-    if (use_pulse_cmd)
+    if (usePulseCommand)
     {
         SendPulseCmd(LX200_SOUTH, ms);
     }
@@ -1464,11 +1458,7 @@ IPState LX200Telescope::GuideSouth(float ms)
 
 IPState LX200Telescope::GuideEast(float ms)
 {
-    int use_pulse_cmd;
-
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1488,7 +1478,7 @@ IPState LX200Telescope::GuideEast(float ms)
         GuideWETID = 0;
     }
 
-    if (use_pulse_cmd)
+    if (usePulseCommand)
     {
         SendPulseCmd(LX200_EAST, ms);
     }
@@ -1516,11 +1506,7 @@ IPState LX200Telescope::GuideEast(float ms)
 
 IPState LX200Telescope::GuideWest(float ms)
 {
-    int use_pulse_cmd;
-
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1540,7 +1526,7 @@ IPState LX200Telescope::GuideWest(float ms)
         GuideWETID = 0;
     }
 
-    if (use_pulse_cmd)
+    if (usePulseCommand)
     {
         SendPulseCmd(LX200_WEST, ms);
     }
@@ -1578,9 +1564,9 @@ void LX200Telescope::guideTimeoutHelper(void * p)
 
 void LX200Telescope::guideTimeout()
 {
-    int use_pulse_cmd;
+    int usePulseCommand;
 
-    use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
+    usePulseCommand = IUFindOnSwitchIndex(&UsePulseCmdSP);
     if (guide_direction == -1)
     {
         HaltMovement(PortFD, LX200_NORTH);
@@ -1597,7 +1583,7 @@ void LX200Telescope::guideTimeout()
         IERmTimer(GuideNSTID);
         IERmTimer(GuideWETID);
     }
-    else if (!use_pulse_cmd)
+    else if (!usePulseCommand)
     {
         if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH)
         {

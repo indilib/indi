@@ -354,7 +354,7 @@ void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
             if (recordStream(buffer, nbytes, deltams) == false)
             {
                 LOG_ERROR("Recording failed.");
-                stopRecording();
+                stopRecording(true);
                 return;
             }
         }
@@ -625,15 +625,19 @@ bool StreamManager::startRecording()
     return true;
 }
 
-bool StreamManager::stopRecording()
+bool StreamManager::stopRecording(bool force)
 {
-    if (!m_isRecording)
+    if (!m_isRecording && force == false)
         return true;
     if (!m_isStreaming)
         currentCCD->StopStreaming();
 
     m_isRecording = false;
     recorder->close();
+
+    if (force)
+        return false;
+
     LOGF_INFO("Record Duration(millisec): %g -- Frame count: %d", recordDuration,
               recordframeCount);
     return true;
