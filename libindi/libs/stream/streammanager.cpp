@@ -97,7 +97,7 @@ bool StreamManager::initProperties()
     IUFillNumberVector(&StreamOptionsNP, StreamOptionsN, NARRAY(StreamOptionsN), getDeviceName(), "STREAM_OPTIONS",
                        "Settings", STREAM_TAB, IP_RW, 60, IPS_IDLE);*/
 
-    IUFillNumber(&StreamExposureN[0], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.001, 10, 0.1, 0.1);
+    IUFillNumber(&StreamExposureN[0], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
     IUFillNumberVector(&StreamExposureNP, StreamExposureN, 1, getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
