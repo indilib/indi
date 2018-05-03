@@ -645,7 +645,11 @@ bool RasPiCamera::StartExposure(float duration)
 // 	uint8_t *dump_buffer = NULL;
 // 	unsigned long buffersize =Camera.getImageBufferSize() ;
 // 	dump_buffer = (unsigned char *)malloc(buffersize);
+// 	LOG_INFO("Dumping Image");
 // 	Camera.grab_retrieve(dump_buffer, buffersize);
+// 	//Camera.grab_retrieve(dump_buffer, buffersize);
+// 	LOG_INFO("Dumping Image Done");
+//     
 //     }
     #endif
     LOG_DEBUG("Raspberry Pi Camera::StartExposure() done");
