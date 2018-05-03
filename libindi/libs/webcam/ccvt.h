@@ -49,6 +49,8 @@
 
 #pragma once
 
+#include<stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -179,6 +181,10 @@ void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long in
 void bayer16_2_rgb24(unsigned short *dst, unsigned short *src, long int WIDTH, long int HEIGHT);
 /** Bayer RGGB to RGB 24 */
 void bayer_rggb_2rgb24(unsigned char *dst, unsigned char *srcc, long int WIDTH, long int HEIGHT);
+
+void bayer_grbg_to_rgb24(unsigned char *dst, unsigned char *srcc, long int WIDTH, long int HEIGHT);
+// void convert_border_bayer_line_to_bgr24( uint8_t* bayer, uint8_t* adjacent_bayer, uint8_t *bgr, int width, uint8_t start_with_green, uint8_t blue_line);
+// void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int height, uint8_t start_with_green, uint8_t blue_line);
 
 /*@}*/
 

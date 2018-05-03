@@ -123,7 +123,7 @@ void V4L2_Builtin_Decoder::init()
 void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 {
     //DEBUG(INDI::Logger::DBG_SESSION,"Calling builtin decoder decode");
-    //IDLog("Decoding buffer at %lx, len %d, bytesused %d, bytesperpixel %d, sequence %d, flag %x, field %x, use soft crop %c, do crop %c\n", frame, buf->length, buf->bytesused, fmt.fmt.pix.bytesperline, buf->sequence, buf->flags, buf->field, (useSoftCrop?'y':'n'), (doCrop?'y':'n'));
+	IDLog("Decoding buffer at %lx, len %d, bytesused %d, bytesperline %d, sequence %d, flag %x, field %x, use soft crop %c, do crop %c\n", frame, buf->length, buf->bytesused, fmt.fmt.pix.bytesperline, buf->sequence, buf->flags, buf->field, (useSoftCrop?'y':'n'), (doCrop?'y':'n'));
 
     switch (fmt.fmt.pix.pixelformat)
     {
@@ -459,7 +459,18 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
         case V4L2_PIX_FMT_SRGGB8:
             bayer_rggb_2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
             break;
-
+	case V4L2_PIX_FMT_SGRBG8:
+		//bayer_to_rgbbgr24(pBay, pRGB24, width, height, TRUE, TRUE);
+// 		bayer_rggb_2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
+		
+		IDLog("Decoder: Calling bayer_grbg_to_rgb24");
+// 		bayer_grbg_to_rgb24
+// 		bayer_to_rgbbgr24(frame, rgb24_buffer, fmt.fmt.pix.width, fmt.fmt.pix.height, 1, 1);
+		bayer_grbg_to_rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
+		//bayer_rggb_2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
+		IDLog("Decoder: Finished bayer_grbg_to_rgb24");
+		break;
+		
         case V4L2_PIX_FMT_SBGGR16:
             bayer16_2_rgb24((unsigned short *)rgb24_buffer, (unsigned short *)frame, fmt.fmt.pix.width,
                             fmt.fmt.pix.height);
@@ -607,6 +618,7 @@ void V4L2_Builtin_Decoder::allocBuffers()
         case V4L2_PIX_FMT_RGB565:
         case V4L2_PIX_FMT_SBGGR8:
         case V4L2_PIX_FMT_SRGGB8:
+	case V4L2_PIX_FMT_SGRBG8:
         case V4L2_PIX_FMT_SBGGR16:
             rgb24_buffer = new unsigned char[(bufwidth * bufheight) * (bpp / 8) * 3];
             break;
@@ -650,6 +662,7 @@ void V4L2_Builtin_Decoder::makeY()
         case V4L2_PIX_FMT_RGB565:
         case V4L2_PIX_FMT_SBGGR8:
         case V4L2_PIX_FMT_SRGGB8:
+	case V4L2_PIX_FMT_SGRBG8:
             RGB2YUV(bufwidth, bufheight, rgb24_buffer, YBuf, UBuf, VBuf, 0);
             break;
         case V4L2_PIX_FMT_YUYV:
@@ -793,7 +806,7 @@ unsigned char *V4L2_Builtin_Decoder::getRGBBuffer()
     //cerr << "in get color buffer " << endl;
     //IDLog("Decoder geRGBBuffer %s\n", (doCrop?"true":"false"));
     if (!rgb24_buffer)
-        rgb24_buffer = new unsigned char[(bufwidth * bufheight) * 3];
+        rgb24_buffer = new unsigned char[(bufwidth * bufheight) * 3 + 3];
     switch (fmt.fmt.pix.pixelformat)
     {
         case V4L2_PIX_FMT_GREY:
@@ -819,6 +832,7 @@ unsigned char *V4L2_Builtin_Decoder::getRGBBuffer()
         case V4L2_PIX_FMT_RGB565:
         case V4L2_PIX_FMT_SBGGR8:
         case V4L2_PIX_FMT_SRGGB8:
+	case V4L2_PIX_FMT_SGRBG8:
         case V4L2_PIX_FMT_SBGGR16:
             break;
         default:
@@ -949,6 +963,8 @@ void V4L2_Builtin_Decoder::init_supported_formats()
         std::make_pair(V4L2_PIX_FMT_SBGGR8, new V4L2_Builtin_Decoder::format(V4L2_PIX_FMT_SBGGR8, 8, false)));
     // V4L2_PIX_FMT_SGBRG8  , // v4l2_fourcc('G', 'B', 'R', 'G') /*  8  GBGB.. RGRG.. */
     // V4L2_PIX_FMT_SGRBG8  , // v4l2_fourcc('G', 'R', 'B', 'G') /*  8  GRGR.. BGBG.. */
+    supported_formats.insert(
+	    std::make_pair(V4L2_PIX_FMT_SGRBG8, new V4L2_Builtin_Decoder::format(V4L2_PIX_FMT_SGRBG8, 8, false)));
     //  V4L2_PIX_FMT_SRGGB8  , // v4l2_fourcc('R', 'G', 'G', 'B') /*  8  RGRG.. GBGB.. */
     supported_formats.insert(
         std::make_pair(V4L2_PIX_FMT_SRGGB8, new V4L2_Builtin_Decoder::format(V4L2_PIX_FMT_SRGGB8, 8, false)));
