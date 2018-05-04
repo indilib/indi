@@ -475,6 +475,9 @@ bool GPhotoCCD::updateProperties()
                 defineNumber(&mMirrorLockNP);
         }
 
+        TemperatureNP.p = IP_RO;
+        defineNumber(&TemperatureNP);
+
         //timerID = SetTimer(POLLMS);
     }
     else
@@ -498,6 +501,8 @@ bool GPhotoCCD::updateProperties()
             deleteProperty(captureTargetSP.name);
             deleteProperty(SDCardImageSP.name);
         }
+
+        deleteProperty(TemperatureNP.name);
 
         HideExtendedOptions();
         //rmTimer(timerID);
@@ -1170,6 +1175,9 @@ void GPhotoCCD::TimerHit()
                 {
                     PrimaryCCD.setExposureFailed();
                 }
+
+                TemperatureN[0].value = (double)gphoto_get_last_sensor_temperature(gphotodrv);
+                IDSetNumber(&TemperatureNP, nullptr);
             }
         }
         else
