@@ -123,7 +123,7 @@ void V4L2_Builtin_Decoder::init()
 void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 {
     //DEBUG(INDI::Logger::DBG_SESSION,"Calling builtin decoder decode");
-	IDLog("Decoding buffer at %lx, len %d, bytesused %d, bytesperline %d, sequence %d, flag %x, field %x, use soft crop %c, do crop %c\n", frame, buf->length, buf->bytesused, fmt.fmt.pix.bytesperline, buf->sequence, buf->flags, buf->field, (useSoftCrop?'y':'n'), (doCrop?'y':'n'));
+//IDLog("Decoding buffer at %lx, len %d, bytesused %d, bytesperline %d, sequence %d, flag %x, field %x, use soft crop %c, do crop %c\n", frame, buf->length, buf->bytesused, fmt.fmt.pix.bytesperline, buf->sequence, buf->flags, buf->field, (useSoftCrop?'y':'n'), (doCrop?'y':'n'));
 
     switch (fmt.fmt.pix.pixelformat)
     {
@@ -806,7 +806,7 @@ unsigned char *V4L2_Builtin_Decoder::getRGBBuffer()
     //cerr << "in get color buffer " << endl;
     //IDLog("Decoder geRGBBuffer %s\n", (doCrop?"true":"false"));
     if (!rgb24_buffer)
-        rgb24_buffer = new unsigned char[(bufwidth * bufheight) * 3 + 3];
+        rgb24_buffer = new unsigned char[(bufwidth * bufheight) * 3];
     switch (fmt.fmt.pix.pixelformat)
     {
         case V4L2_PIX_FMT_GREY:
