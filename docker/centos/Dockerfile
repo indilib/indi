@@ -8,7 +8,7 @@ RUN yum -y groupinstall 'Development Tools'
 
 RUN yum -y install \
         cdbs cmake3 curl dcraw wget git openssh redhat-lsb-core \
-        libcurl-devel boost-devel cfitsio-devel libusbx-devel \
+        libcurl-devel boost-devel cfitsio-devel libusbx-devel libtiff-devel \
         libftdi-devel libgphoto2-devel gpsd-devel gsl-devel libjpeg-turbo-devel \
         libnova-devel openal-soft-devel LibRaw-devel libusb-devel rtl-sdr-devel \
         fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
