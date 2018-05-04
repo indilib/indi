@@ -458,8 +458,9 @@ bool GPhotoCCD::updateProperties()
         if (captureTargetSP.s == IPS_OK)
         {
             defineSwitch(&captureTargetSP);
-            defineSwitch(&SDCardImageSP);
         }
+
+        defineSwitch(&SDCardImageSP);
 
         imageBP = getBLOB("CCD1");
         imageB  = imageBP->bp;
@@ -499,10 +500,10 @@ bool GPhotoCCD::updateProperties()
         if (captureTargetSP.s != IPS_IDLE)
         {
             deleteProperty(captureTargetSP.name);
-            deleteProperty(SDCardImageSP.name);
         }
 
         deleteProperty(TemperatureNP.name);
+        deleteProperty(SDCardImageSP.name);
 
         HideExtendedOptions();
         //rmTimer(timerID);
@@ -1086,7 +1087,7 @@ double GPhotoCCD::CalcTimeLeft()
     gettimeofday(&now, nullptr);
 
     timersub(&now, &ExpStart, &diff);
-    double timesince = diff.tv_sec + diff.tv_usec / 1000.0;
+    double timesince = diff.tv_sec + diff.tv_usec / 1000000.0;
     return (ExposureRequest - timesince);
 }
 

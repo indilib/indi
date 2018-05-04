@@ -1,3 +1,9 @@
+libindi (1.7.2) bionic; urgency=medium
+
+  * Minor release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 22 Apr 2018 22:00:00 +0300
+
 libindi (1.7.1) bionic; urgency=medium
 
   * Hotfix release.

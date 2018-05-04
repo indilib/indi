@@ -1411,6 +1411,9 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
         show_widget(gphoto->exposure_widget, "\t\t");
 
     gphoto->format_widget   = find_widget(gphoto, "imageformat");
+    // JM 2018-05-03: Nikon defines it as 'imagequality'
+    if (gphoto->format_widget == nullptr)
+        gphoto->format_widget = find_widget(gphoto, "imagequality");
     gphoto->format          = -1;
     gphoto->manufacturer    = nullptr;
     gphoto->model           = nullptr;

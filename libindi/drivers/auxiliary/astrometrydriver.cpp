@@ -127,6 +127,8 @@ bool AstrometryDriver::initProperties()
 
     addDebugControl();
 
+    setDriverInterface(AUX_INTERFACE);
+
     return true;
 }
 
@@ -445,7 +447,7 @@ void AstrometryDriver::runSolver()
             IDSetSwitch(&SolverSP, nullptr);
             pthread_mutex_unlock(&lock);
             fclose(handle);
-            LOG_INFO("Solver cancelled.");
+            LOG_INFO("Solver canceled.");
             return;
         }
         pthread_mutex_unlock(&lock);

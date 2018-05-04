@@ -170,6 +170,7 @@ public:
     /* Use pulse-guide commands */
     ISwitchVectorProperty UsePulseCmdSP;
     ISwitch UsePulseCmdS[2];
+    bool usePulseCommand { false };
 
     /* Site Management */
     ISwitchVectorProperty SiteSP;
