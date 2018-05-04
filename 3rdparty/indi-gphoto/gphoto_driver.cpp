@@ -671,7 +671,6 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 
     if(strstr(gphoto->manufacturer, "Canon"))
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Going to try to read sensor temperature from (%s)", fn->name);
         // Try to pull the camera temperature out of the EXIF data
         const char *imgData;
         unsigned long imgSize;
@@ -683,17 +682,14 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
             auto tiff = TIFFStreamOpen(fn->name, &is);
             if (tiff)
             {
-                DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Opened TIFF");
                 toff_t exifoffset;
                 if (TIFFGetField (tiff, TIFFTAG_EXIFIFD, &exifoffset) && TIFFReadEXIFDirectory (tiff, exifoffset))
                 {
-                    DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Got EXIF");
                     uint32_t count;
                     uint8_t* data;
                     int ret = TIFFGetField(tiff, EXIFTAG_MAKERNOTE, &count, &data);
                     if(ret != 0)
                     {
-                        DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Found MakerNote");
                         // Got the MakerNote EXIF data, now parse it out.  It's been reverse-engineered and documented at
                         // https://sno.phy.queensu.ca/~phil/exiftool/TagNames/Canon.html
                         struct IFDEntry
@@ -716,7 +712,6 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
                             if (TIFFIsByteSwapped(tiff)) TIFFSwabShort(&tag);
                             if (tag == 4)
                             {
-                                DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Found ShotInfo");
                                 // Found the ShotInfo tag. Extract the CameraTemperature field
                                 uint32_t offset = entry->offset;
                                 if (TIFFIsByteSwapped(tiff)) TIFFSwabLong(&offset);
@@ -726,8 +721,6 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 
                                 // The temperature is offset by 0x80, so correct that
                                 gphoto->last_sensor_temp = (int)(temperature - 0x80);
-
-                                DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Temperature is %d C", gphoto->last_sensor_temp);
 
                                 break;
                             }
