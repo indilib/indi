@@ -460,17 +460,8 @@ void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
             bayer_rggb_2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
             break;
 	case V4L2_PIX_FMT_SGRBG8:
-		//bayer_to_rgbbgr24(pBay, pRGB24, width, height, TRUE, TRUE);
-// 		bayer_rggb_2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
-		
-		IDLog("Decoder: Calling bayer_grbg_to_rgb24");
-// 		bayer_grbg_to_rgb24
-// 		bayer_to_rgbbgr24(frame, rgb24_buffer, fmt.fmt.pix.width, fmt.fmt.pix.height, 1, 1);
 		bayer_grbg_to_rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
-		//bayer_rggb_2rgb24(rgb24_buffer, frame, fmt.fmt.pix.width, fmt.fmt.pix.height);
-		IDLog("Decoder: Finished bayer_grbg_to_rgb24");
 		break;
-		
         case V4L2_PIX_FMT_SBGGR16:
             bayer16_2_rgb24((unsigned short *)rgb24_buffer, (unsigned short *)frame, fmt.fmt.pix.width,
                             fmt.fmt.pix.height);

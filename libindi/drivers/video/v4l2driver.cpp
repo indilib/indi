@@ -965,7 +965,6 @@ bool V4L2_Driver::start_capturing(bool do_stream)
                getRemainingExposure());
         return false;
     }
-// #TOTO
     char errmsg[ERRMSGSIZ];
     if (v4l_base->start_capturing(errmsg))
     {
