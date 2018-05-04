@@ -80,6 +80,7 @@ option(WITH_RADIOSIM "Install RadioSim Receiver" On)
 option(WITH_GPSNMEA "Install GPS NMEA Driver" On)
 option(WITH_ARMADILLO "Install Armadillo & Platypus Driver" On)
 option(WITH_FXLOAD "Install FX3 compatible fxload tool" Off)
+option(WITH_RPICAM "Install Raspberry PI Camera Driver" On)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -284,6 +285,10 @@ endif(WITH_ARMADILLO)
 
 if (WITH_FXLOAD)
 add_subdirectory(fxload)
+endif()
+
+if (WITH_RPICAM)
+add_subdirectory(indi-raspicamera)
 endif()
 
 # Check if libraries are found. If not, we must build them, install them, THEN run CMake again to build and instal the drivers. If all the libraraies are installed, then we build and install the drivers only now.
