@@ -60,8 +60,8 @@
 #include "v4l2_builtin_decoder.h"
 
 //#include "indilogger.h"
-#include "../ccvt.h"
-#include "../v4l2_colorspace.h"
+#include "ccvt.h"
+#include "v4l2_colorspace.h"
 
 #include <cstring> // memcpy
 

@@ -94,7 +94,7 @@ void ccvt_420p_bgr32(int width, int height, const void *src, void *dst);
 void ccvt_420p_rgb32(int width, int height, const void *src, void *dst);
 
 /** 4:2:2 YUYV interlaced to RGB/BGR */
-void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst);
+//void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst);
 /** 4:2:2 YUYV interlaced to RGB/BGR */
 void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst);
 /** 4:2:2 YUYV interlaced to BGR24 */
@@ -131,6 +131,9 @@ void ccvt_rgb32_rgb24(int width, int height, const void *const src, void *const 
 
 /** RGB to YUV */
 int RGB2YUV(int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip);
+
+/** BGR to YUV */
+int BGR2YUV(int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip);
 
 /**
  * @short mjpegtoyuv420p MPEG to YUV 420 P
