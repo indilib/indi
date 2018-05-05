@@ -86,6 +86,7 @@ struct _gphoto_driver
     char **exposure_presets;
     int exposure_presets_count;
 
+    bool supports_temperature;
     int last_sensor_temp;
 
     DSUSBDriver *dsusb;
@@ -760,6 +761,11 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     }
 
     return GP_OK;
+}
+
+bool gphoto_supports_temperature(gphoto_driver *gphoto)
+{
+    return gphoto->supports_temperature;
 }
 
 int gphoto_get_last_sensor_temperature(gphoto_driver *gphoto)
@@ -1488,6 +1494,9 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     // Make sure manufacturer is set to something useful
     if (gphoto->manufacturer == nullptr)
         gphoto->manufacturer = gphoto->model;
+
+    if (strstr(gphoto->manufacturer, "Canon"))
+        gphoto->supports_temperature = true;
 
     // Check for user
     if (shutter_release_port)
