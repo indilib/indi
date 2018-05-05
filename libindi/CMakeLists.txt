@@ -1084,6 +1084,18 @@ add_executable(indi_star2000 ${STAR2000_SRC})
 target_link_libraries(indi_star2000 indidriver)
 install(TARGETS indi_star2000 RUNTIME DESTINATION bin)
 
+########### Arduino ST4 Driver ###############
+
+SET(arduinost4_SRC ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/arduino_st4.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(arduinost4 arduinost4_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_arduinost4 ${arduinost4_SRC})
+target_link_libraries(indi_arduinost4 indidriver)
+install(TARGETS indi_arduinost4 RUNTIME DESTINATION bin)
+
 ########### GPUSB Driver ###############
 
 SET(gpusb_SRC
