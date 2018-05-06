@@ -49,6 +49,8 @@
 
 #pragma once
 
+#include<stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -92,7 +94,7 @@ void ccvt_420p_bgr32(int width, int height, const void *src, void *dst);
 void ccvt_420p_rgb32(int width, int height, const void *src, void *dst);
 
 /** 4:2:2 YUYV interlaced to RGB/BGR */
-void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst);
+//void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst);
 /** 4:2:2 YUYV interlaced to RGB/BGR */
 void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst);
 /** 4:2:2 YUYV interlaced to BGR24 */
@@ -129,6 +131,9 @@ void ccvt_rgb32_rgb24(int width, int height, const void *const src, void *const 
 
 /** RGB to YUV */
 int RGB2YUV(int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip);
+
+/** BGR to YUV */
+int BGR2YUV(int x_dim, int y_dim, void *bmp, void *y_out, void *u_out, void *v_out, int flip);
 
 /**
  * @short mjpegtoyuv420p MPEG to YUV 420 P
@@ -179,6 +184,10 @@ void bayer2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long in
 void bayer16_2_rgb24(unsigned short *dst, unsigned short *src, long int WIDTH, long int HEIGHT);
 /** Bayer RGGB to RGB 24 */
 void bayer_rggb_2rgb24(unsigned char *dst, unsigned char *srcc, long int WIDTH, long int HEIGHT);
+
+void bayer_grbg_to_rgb24(unsigned char *dst, unsigned char *srcc, long int WIDTH, long int HEIGHT);
+// void convert_border_bayer_line_to_bgr24( uint8_t* bayer, uint8_t* adjacent_bayer, uint8_t *bgr, int width, uint8_t start_with_green, uint8_t blue_line);
+// void bayer_to_rgbbgr24(uint8_t *bayer, uint8_t *bgr, int width, int height, uint8_t start_with_green, uint8_t blue_line);
 
 /*@}*/
 

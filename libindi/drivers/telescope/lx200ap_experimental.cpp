@@ -149,8 +149,8 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // meridian delay (experimental!)
-    IUFillNumber(&MeridianDelayN[0], "MeridianDelay", "MERIDIAN_DELAY (experimental!)", "%4.2f", 0.0, 3.0, 0.25, 0.0);
-    IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY (experimental!)", "", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
+    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "Delay (experimental)", "%4.2f", 0.0, 3.0, 0.25, 0.0);
+    IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY", "Meridian Delay", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
 
     SetParkDataType(PARK_AZ_ALT);
 
@@ -697,7 +697,12 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 
     LOG_DEBUG("EXPERIMENTAL: LX200AstroPhysicsExperimental::IsMountInitialized()");
 
-    if (getLX200RA(PortFD, &ra) || getLX200DEC(PortFD, &dec))
+    if (isSimulation())
+    {
+        ra = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+        dec = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+    }
+    else if (getLX200RA(PortFD, &ra) || getLX200DEC(PortFD, &dec))
         return false;
 
     LOGF_DEBUG("IsMountInitialized: RA: %f - DEC: %f", ra, dec);
@@ -762,6 +767,12 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isParked)
 
 bool LX200AstroPhysicsExperimental::getMountStatus(bool *isParked)
 {
+    if (isSimulation())
+    {
+        *isParked = (ParkS[0].s == ISS_ON);
+        return true;
+    }
+
     // check for newer
     if ((firmwareVersion != MCV_UNKNOWN) && (firmwareVersion >= MCV_T))
     {
@@ -1146,31 +1157,39 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
             break;
 
         // Park 1
+        // Northern Hemisphere should be pointing at ALT=0 AZ=0 with scope on WEST side of pier
+        // Southern Hemisphere should be pointing at ALT=0 AZ=180 with scope on WEST side of pier
         case 1:
-            LOG_DEBUG("Computing PARK1 position...");
+            LOG_INFO("Computing PARK1 position...");
             *parkAlt = 0;
-            *parkAz = 0;
+            *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 359.1 : 180.1;
             break;
 
         // Park 2
+        // Northern Hemisphere should be pointing at ALT=0 AZ=90 with scope pointing EAST
+        // Southern Hemisphere should be pointing at ALT=0 AZ=90 with scope pointing EAST
         case 2:
-            LOG_DEBUG("Computing PARK2 position...");
+            LOG_INFO("Computing PARK2 position...");
             *parkAlt = 0;
             *parkAz = 90;
             break;
 
         // Park 3
+        // Northern Hemisphere should be pointing at ALT=LAT AZ=0 with scope pointing NORTH with CW down
+        // Southern Hemisphere should be pointing at ALT=LAT AZ=180 with scope pointing SOUTH with CW down
         case 3:
-            LOG_DEBUG("Computing PARK3 position...");
-            *parkAlt = LocationN[LOCATION_LATITUDE].value;
-            *parkAz = 0;
+            LOG_INFO("Computing PARK3 position...");
+            *parkAlt = fabs(LocationN[LOCATION_LATITUDE].value);
+            *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180;
             break;
 
         // Park 4
+        // Northern Hemisphere should be pointing at ALT=0 AZ=180 with scope on EAST side of pier
+        // Southern Hemisphere should be pointing at ALT=0 AZ=0 with scope on EAST side of pier
         case 4:
-            LOG_DEBUG("Computing PARK4 position...");
+            LOG_INFO("Computing PARK4 position...");
             *parkAlt = 0;
-            *parkAz = 180;
+            *parkAz = LocationN[LOCATION_LATITUDE].value > 0 ? 180.1 : 359.1;
             break;
 
         default:
@@ -1179,7 +1198,7 @@ bool LX200AstroPhysicsExperimental::calcParkPosition(ParkPosition pos, double *p
             break;
     }
 
-    LOGF_DEBUG("calcParkPosition: parkPos=%d parkAlt=%f parkAz=%f", pos, *parkAlt, *parkAz);
+    LOGF_INFO("calcParkPosition: parkPos=%d parkAlt=%f parkAz=%f", pos, *parkAlt, *parkAz);
 
     return true;
 
@@ -1269,11 +1288,11 @@ bool LX200AstroPhysicsExperimental::SetCurrentPark()
 
 bool LX200AstroPhysicsExperimental::SetDefaultPark()
 {
-    // Az = 0 for North hemisphere
+    // Az = 0 for North hemisphere, Az = 180 for South
     SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
 
     // Alt = Latitude
-    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+    SetAxis2Park(fabs(LocationN[LOCATION_LATITUDE].value));
 
     return true;
 }

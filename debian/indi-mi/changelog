@@ -1,3 +1,9 @@
+indi-mi (1.5) bionic; urgency=low
+
+  * Fix launchpad ARM issue.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 01 May 2018 10:30:00 +0300
+
 indi-mi (1.4) bionic; urgency=low
 
   * Updated release.

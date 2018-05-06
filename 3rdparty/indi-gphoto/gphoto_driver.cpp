@@ -33,6 +33,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/ioctl.h> /* ioctl()*/
+#include <tiffio.h>
+#include <tiffio.hxx>
 
 static GPPortInfoList *portinfolist   = nullptr;
 static CameraAbilitiesList *abilities = nullptr;
@@ -83,6 +85,9 @@ struct _gphoto_driver
 
     char **exposure_presets;
     int exposure_presets_count;
+
+    bool supports_temperature;
+    int last_sensor_temp;
 
     DSUSBDriver *dsusb;
 
@@ -578,6 +583,34 @@ void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting)
     gphoto->upload_settings = setting;
 }
 
+// A memory buffer based IO stream, so libtiff can read from memory instead of file
+struct membuf : std::streambuf
+{
+    membuf(char *begin, char *end) : begin(begin), end(end)
+    {
+        this->setg(begin, begin, end);
+    }
+
+    virtual pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode /*which = std::ios_base::in*/) override
+    {
+        if(dir == std::ios_base::cur)
+            gbump(off);
+        else if(dir == std::ios_base::end)
+            setg(begin, end+off, end);
+        else if(dir == std::ios_base::beg)
+            setg(begin, begin+off, end);
+
+        return gptr() - eback();
+    }
+
+    virtual pos_type seekpos(std::streampos pos, std::ios_base::openmode mode) override
+    {
+        return seekoff(pos - pos_type(off_type(0)), std::ios_base::beg, mode);
+    }
+
+    char *begin, *end;
+};
+
 static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 {
     int result=0;
@@ -637,6 +670,68 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Could not determine image size (%s)", gp_result_as_string(result));
     }
 
+    if(strstr(gphoto->manufacturer, "Canon"))
+    {
+        // Try to pull the camera temperature out of the EXIF data
+        const char *imgData;
+        unsigned long imgSize;
+        result = gp_file_get_data_and_size(gphoto->camerafile, &imgData, &imgSize);
+        if (result == GP_OK)
+        {
+            membuf sbuf((char *)imgData, (char *)imgData + imgSize);
+            std::istream is(&sbuf);
+            auto tiff = TIFFStreamOpen(fn->name, &is);
+            if (tiff)
+            {
+                toff_t exifoffset;
+                if (TIFFGetField (tiff, TIFFTAG_EXIFIFD, &exifoffset) && TIFFReadEXIFDirectory (tiff, exifoffset))
+                {
+                    uint32_t count;
+                    uint8_t* data;
+                    int ret = TIFFGetField(tiff, EXIFTAG_MAKERNOTE, &count, &data);
+                    if(ret != 0)
+                    {
+                        // Got the MakerNote EXIF data, now parse it out.  It's been reverse-engineered and documented at
+                        // https://sno.phy.queensu.ca/~phil/exiftool/TagNames/Canon.html
+                        struct IFDEntry
+                        {
+                            uint16_t	tag;
+                            uint16_t	type;
+                            uint32_t	count;
+                            uint32_t	offset;
+                        };
+
+                        // The TIFF library took care of handling byte-ordering for us until now.  But now that we're parsing
+                        // binary data directly, we need to remember to swap bytes when necessary.
+                        uint16_t numEntries = *(uint16_t*)data;
+                        if (TIFFIsByteSwapped(tiff)) TIFFSwabShort(&numEntries);
+                        IFDEntry* entries = (IFDEntry*) (data + sizeof(uint16_t));
+                        for (int i = 0; i < numEntries; i++)
+                        {
+                            IFDEntry* entry = &entries[i];
+                            uint16_t tag = entry->tag;
+                            if (TIFFIsByteSwapped(tiff)) TIFFSwabShort(&tag);
+                            if (tag == 4)
+                            {
+                                // Found the ShotInfo tag. Extract the CameraTemperature field
+                                uint32_t offset = entry->offset;
+                                if (TIFFIsByteSwapped(tiff)) TIFFSwabLong(&offset);
+                                uint16_t* shotInfo = (uint16_t*)(imgData + offset);
+                                uint16_t temperature = shotInfo[12];
+                                if (TIFFIsByteSwapped(tiff)) TIFFSwabShort(&temperature);
+
+                                // The temperature is offset by 0x80, so correct that
+                                gphoto->last_sensor_temp = (int)(temperature - 0x80);
+
+                                break;
+                            }
+                        }
+                    }
+                }
+                TIFFClose(tiff);
+            }
+        }
+    }
     // For some reason Canon 20D fails when deleting here
     // so this hack is a workaround until a permement fix is found
     // JM 2017-05-17
@@ -666,6 +761,16 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     }
 
     return GP_OK;
+}
+
+bool gphoto_supports_temperature(gphoto_driver *gphoto)
+{
+    return gphoto->supports_temperature;
+}
+
+int gphoto_get_last_sensor_temperature(gphoto_driver *gphoto)
+{
+    return gphoto->last_sensor_temp;
 }
 
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
@@ -1258,6 +1363,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto->max_exposure           = 3600;
     gphoto->min_exposure           = 0.001;
     gphoto->dsusb                  = nullptr;
+    gphoto->last_sensor_temp       = -273; // 0 degrees Kelvin
 
     result = gp_camera_get_config(gphoto->camera, &gphoto->config, gphoto->context);
     if (result < GP_OK)
@@ -1304,6 +1410,9 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
         show_widget(gphoto->exposure_widget, "\t\t");
 
     gphoto->format_widget   = find_widget(gphoto, "imageformat");
+    // JM 2018-05-03: Nikon defines it as 'imagequality'
+    if (gphoto->format_widget == nullptr)
+        gphoto->format_widget = find_widget(gphoto, "imagequality");
     gphoto->format          = -1;
     gphoto->manufacturer    = nullptr;
     gphoto->model           = nullptr;
@@ -1385,6 +1494,9 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     // Make sure manufacturer is set to something useful
     if (gphoto->manufacturer == nullptr)
         gphoto->manufacturer = gphoto->model;
+
+    if (strstr(gphoto->manufacturer, "Canon"))
+        gphoto->supports_temperature = true;
 
     // Check for user
     if (shutter_release_port)
