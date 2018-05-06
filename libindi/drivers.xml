@@ -337,6 +337,10 @@
                 <driver name="Pyxis">indi_pyxis_rotator</driver>
                 <version>1.0</version>
         </device>
+        <device label="Arduino ST4">
+                <driver name="Arduino ST4">indi_arduinost4</driver>
+                <version>1.0</version>
+        </device>
         <device label="GPUSB">
                 <driver name="GPUSB">indi_gpusb</driver>
                 <version>0.1</version>

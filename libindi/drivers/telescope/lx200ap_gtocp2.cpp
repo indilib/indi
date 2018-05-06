@@ -248,7 +248,7 @@ bool LX200AstroPhysicsGTOCP2::initMount()
 
     char versionString[128];
     if (isSimulation())
-        strncpy(versionString, "VCP4-P01-01", 128);
+        strncpy(versionString, "E", 128);
     else
         getAPVersionNumber(PortFD, versionString);
 

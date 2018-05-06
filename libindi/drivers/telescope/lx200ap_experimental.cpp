@@ -134,8 +134,8 @@ bool LX200AstroPhysicsExperimental::initProperties()
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // meridian delay (experimental!)
-    IUFillNumber(&MeridianDelayN[0], "MeridianDelay", "MERIDIAN_DELAY (experimental!)", "%4.2f", 0.0, 3.0, 0.25, 0.0);
-    IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY (experimental!)", "", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
+    IUFillNumber(&MeridianDelayN[0], "MERIDIAN_DELAY", "Delay (experimental)", "%4.2f", 0.0, 3.0, 0.25, 0.0);
+    IUFillNumberVector(&MeridianDelayNP, MeridianDelayN, 1, getDeviceName(), "MERIDIAN_DELAY", "Meridian Delay", MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
 
     SetParkDataType(PARK_AZ_ALT);
 
@@ -682,7 +682,12 @@ bool LX200AstroPhysicsExperimental::IsMountInitialized(bool *initialized)
 
     LOG_DEBUG("EXPERIMENTAL: LX200AstroPhysicsExperimental::IsMountInitialized()");
 
-    if (getLX200RA(PortFD, &ra) || getLX200DEC(PortFD, &dec))
+    if (isSimulation())
+    {
+        ra = get_local_sidereal_time(LocationN[LOCATION_LONGITUDE].value);
+        dec = LocationN[LOCATION_LATITUDE].value > 0 ? 90 : -90;
+    }
+    else if (getLX200RA(PortFD, &ra) || getLX200DEC(PortFD, &dec))
         return false;
 
     LOGF_DEBUG("IsMountInitialized: RA: %f - DEC: %f", ra, dec);
@@ -747,6 +752,12 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isParked)
 
 bool LX200AstroPhysicsExperimental::getMountStatus(bool *isParked)
 {
+    if (isSimulation())
+    {
+        *isParked = (ParkS[0].s == ISS_ON);
+        return true;
+    }
+
     // check for newer
     if ((firmwareVersion != MCV_UNKNOWN) && (firmwareVersion >= MCV_T))
     {
