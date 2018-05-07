@@ -35,6 +35,9 @@
 #include <termios.h>
 
 
+// maximum guide pulse request to send to controller
+#define MAX_LX200AP_PULSE_LEN 999
+
 void LX200AstroPhysicsExperimental::disclaimerMessage()
 {
     LOG_INFO("This is an _EXPERIMENTAL_ driver for Astro-Physics mounts - use at own risk!");
@@ -849,9 +852,239 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 }
 
 
+// AP mounts handle guide commands differently enough from the "generic" LX200 we need to override some
+// functions related to the GuiderInterface
+
+IPState LX200AstroPhysicsExperimental::GuideNorth(float ms)
+{
+    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    {
+        LOG_ERROR("Cannot guide while moving.");
+        return IPS_ALERT;
+    }
+
+    // If already moving (no pulse command), then stop movement
+    if (MovementNSSP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementNSSP);
+
+        GuideNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+    }
+
+    if (GuideNSTID)
+    {
+        IERmTimer(GuideNSTID);
+        GuideNSTID = 0;
+    }
+
+    if (ms < MAX_LX200AP_PULSE_LEN)
+    {
+        SendPulseCmd(LX200_NORTH, ms);
+        GuideNSTID = 0;
+        guide_direction = -1;  // only need to set if relying on callback to stop motion
+    }
+    else
+    {
+        MovementNSS[0].s = ISS_ON;
+        GuideNS(DIRECTION_NORTH, MOTION_START);
+
+        // set timer to stop move
+        guide_direction = LX200_NORTH;
+        GuideNSTID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    }
+
+    return IPS_BUSY;
+}
+
+IPState LX200AstroPhysicsExperimental::GuideSouth(float ms)
+{
+    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    {
+        LOG_ERROR("Cannot guide while moving.");
+        return IPS_ALERT;
+    }
+
+    // If already moving (no pulse command), then stop movement
+    if (MovementNSSP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementNSSP);
+
+        GuideNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+    }
+
+    if (GuideNSTID)
+    {
+        IERmTimer(GuideNSTID);
+        GuideNSTID = 0;
+    }
+
+    if (ms <= MAX_LX200AP_PULSE_LEN)
+    {
+        SendPulseCmd(LX200_SOUTH, ms);
+        GuideNSTID = 0;
+        guide_direction = -1;  // only need to set if relying on callback to stop motion
+    }
+    else
+    {
+        MovementNSS[1].s = ISS_ON;
+        GuideNS(DIRECTION_SOUTH, MOTION_START);
+
+        // set timer to stop move
+        guide_direction = LX200_SOUTH;
+        GuideNSTID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    }
+
+    return IPS_BUSY;
+}
+
+IPState LX200AstroPhysicsExperimental::GuideEast(float ms)
+{
+    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    {
+        LOG_ERROR("Cannot guide while moving.");
+        return IPS_ALERT;
+    }
+
+    // If already moving (no pulse command), then stop movement
+    if (MovementWESP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementWESP);
+
+        GuideWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+    }
+
+    if (GuideWETID)
+    {
+        IERmTimer(GuideWETID);
+        GuideWETID = 0;
+    }
+
+    if (ms <= MAX_LX200AP_PULSE_LEN)
+    {
+        SendPulseCmd(LX200_EAST, ms);
+        GuideWETID = 0;
+        guide_direction = -1;  // only need to set if relying on callback to stop motion
+    }
+    else
+    {
+        MovementWES[0].s = ISS_ON;
+        GuideWE(DIRECTION_EAST, MOTION_START);
+
+        // set timer to stop move
+        guide_direction = LX200_EAST;
+        GuideWETID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    }
+
+    return IPS_BUSY;
+}
+
+IPState LX200AstroPhysicsExperimental::GuideWest(float ms)
+{
+    if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+    {
+        LOG_ERROR("Cannot guide while moving.");
+        return IPS_ALERT;
+    }
+
+    // If already moving (no pulse command), then stop movement
+    if (MovementWESP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementWESP);
+
+        GuideWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+    }
+
+    if (GuideWETID)
+    {
+        IERmTimer(GuideWETID);
+        GuideWETID = 0;
+    }
+
+    if (ms <= MAX_LX200AP_PULSE_LEN)
+    {
+        SendPulseCmd(LX200_WEST, ms);
+        GuideWETID = 0;
+        guide_direction = -1;  // only need to set if relying on callback to stop motion
+    }
+    else
+    {
+        MovementWES[0].s = ISS_ON;
+        GuideWE(DIRECTION_WEST, MOTION_START);
+
+        // set timer to stop move
+        guide_direction = LX200_WEST;
+        GuideWETID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    }
+
+    return IPS_BUSY;
+}
+
 int LX200AstroPhysicsExperimental::SendPulseCmd(int direction, int duration_msec)
 {
     return APSendPulseCmd(PortFD, direction, duration_msec);
+}
+
+void LX200AstroPhysicsExperimental::guideTimeoutHelper(void * p)
+{
+    ((LX200AstroPhysicsExperimental *)p)->guideTimeout();
+}
+
+void LX200AstroPhysicsExperimental::guideTimeout()
+{
+    // this function stops guide motions we started when NOT using the pulse guide command to the AP controller
+    // this only happes for guide motions > MAX_LX200AP_PULSE_LEN
+    //
+
+    // this code is from the LX200Telescope implementation but doesn't seem to apply for what we're doing - leaving for reference for not
+//    if (guide_direction == -1)
+//    {
+//        HaltMovement(PortFD, LX200_NORTH);
+//        HaltMovement(PortFD, LX200_SOUTH);
+//        HaltMovement(PortFD, LX200_EAST);
+//        HaltMovement(PortFD, LX200_WEST);
+
+//        MovementNSSP.s = IPS_IDLE;
+//        MovementWESP.s = IPS_IDLE;
+//        IUResetSwitch(&MovementNSSP);
+//        IUResetSwitch(&MovementWESP);
+//        IDSetSwitch(&MovementNSSP, nullptr);
+//        IDSetSwitch(&MovementWESP, nullptr);
+//        IERmTimer(GuideNSTID);
+//        IERmTimer(GuideWETID);
+//    }
+
+    // if guide_direction is -1 it means we got here without a proper start command?
+    if (guide_direction == -1)
+    {
+        LOG_ERROR("guideTimeout() reached with guide_direction == -1!!");
+        return;
+    }
+
+    if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH)
+    {
+        GuideNS(guide_direction == LX200_NORTH ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+
+        if (guide_direction == LX200_NORTH)
+            GuideNSNP.np[0].value = 0;
+        else
+            GuideNSNP.np[1].value = 0;
+
+        GuideNSNP.s = IPS_IDLE;
+        IDSetNumber(&GuideNSNP, nullptr);
+    }
+
+    if (guide_direction == LX200_WEST || guide_direction == LX200_EAST)
+    {
+        GuideWE(guide_direction == LX200_WEST ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+        if (guide_direction == LX200_WEST)
+            GuideWENP.np[0].value = 0;
+        else
+            GuideWENP.np[1].value = 0;
+
+        GuideWENP.s = IPS_IDLE;
+        IDSetNumber(&GuideWENP, nullptr);
+    }
+
 }
 
 bool LX200AstroPhysicsExperimental::Handshake()
@@ -1399,6 +1632,10 @@ bool LX200AstroPhysicsExperimental::getUTFOffset(double *offset)
 
 bool LX200AstroPhysicsExperimental::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
+
+    // restore movement rate to that used by N/S/E/W buttons and not guide rate!
+    selectAPMoveToRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP));
+
     bool rc = LX200Generic::MoveNS(dir, command);
 
     if (command == MOTION_START)
@@ -1409,6 +1646,36 @@ bool LX200AstroPhysicsExperimental::MoveNS(INDI_DIR_NS dir, TelescopeMotionComma
 
 bool LX200AstroPhysicsExperimental::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
+
+    // restore movement rate to that used by N/S/E/W buttons and not guide rate since move command uses last requested rate!
+    selectAPMoveToRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP));
+
+    bool rc = LX200Generic::MoveWE(dir, command);
+
+    if (command == MOTION_START)
+        motionCommanded = true;
+
+    return rc;
+}
+
+bool LX200AstroPhysicsExperimental::GuideNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
+{
+    // restore guide rate
+    selectAPGuideRate(PortFD, IUFindOnSwitchIndex(&APGuideSpeedSP));
+
+    bool rc = LX200Generic::MoveNS(dir, command);
+
+    if (command == MOTION_START)
+           motionCommanded = true;
+
+    return rc;
+}
+
+bool LX200AstroPhysicsExperimental::GuideWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
+{
+    // restore guide rate
+    selectAPGuideRate(PortFD, IUFindOnSwitchIndex(&APGuideSpeedSP));
+
     bool rc = LX200Generic::MoveWE(dir, command);
 
     if (command == MOTION_START)
