@@ -1926,6 +1926,11 @@ void GPhotoCCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
                 fits_update_key_s(fptr, TUINT, "ISOSPEED", &isoSpeed, "ISO Speed", &status);
         }
     }
+
+    if (gphoto_supports_temperature(gphotodrv))
+    {
+        fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celsius)", &status);
+    }
 }
 
 bool GPhotoCCD::UpdateCCDUploadMode(CCD_UPLOAD_MODE mode)
