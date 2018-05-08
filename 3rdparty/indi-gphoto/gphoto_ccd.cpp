@@ -458,8 +458,9 @@ bool GPhotoCCD::updateProperties()
         if (captureTargetSP.s == IPS_OK)
         {
             defineSwitch(&captureTargetSP);
-            defineSwitch(&SDCardImageSP);
         }
+
+        defineSwitch(&SDCardImageSP);
 
         imageBP = getBLOB("CCD1");
         imageB  = imageBP->bp;
@@ -473,6 +474,12 @@ bool GPhotoCCD::updateProperties()
 
             if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
                 defineNumber(&mMirrorLockNP);
+        }
+
+        if (gphoto_supports_temperature(gphotodrv))
+        {
+            TemperatureNP.p = IP_RO;
+            defineNumber(&TemperatureNP);
         }
 
         //timerID = SetTimer(POLLMS);
@@ -496,8 +503,12 @@ bool GPhotoCCD::updateProperties()
         if (captureTargetSP.s != IPS_IDLE)
         {
             deleteProperty(captureTargetSP.name);
-            deleteProperty(SDCardImageSP.name);
         }
+
+        if (gphoto_supports_temperature(gphotodrv))
+            deleteProperty(TemperatureNP.name);
+
+        deleteProperty(SDCardImageSP.name);
 
         HideExtendedOptions();
         //rmTimer(timerID);
@@ -1169,6 +1180,12 @@ void GPhotoCCD::TimerHit()
                 if (rc == false)
                 {
                     PrimaryCCD.setExposureFailed();
+                }
+
+                if (gphoto_supports_temperature(gphotodrv))
+                {
+                    TemperatureN[0].value = (double)gphoto_get_last_sensor_temperature(gphotodrv);
+                    IDSetNumber(&TemperatureNP, nullptr);
                 }
             }
         }

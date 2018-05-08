@@ -150,7 +150,7 @@ public:
     int timeFormat=-1;
     int currentSiteNum;
     int trackingMode;
-    long guide_direction;
+    long guide_direction=-1;
     bool sendTimeOnStartup=true, sendLocationOnStartup=true;
 
     unsigned int DBG_SCOPE;

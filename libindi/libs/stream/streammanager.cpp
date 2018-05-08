@@ -404,12 +404,16 @@ bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelD
     bool recorderOK = recorder->setPixelFormat(pixelFormat, pixelDepth);
     if (recorderOK == false)
     {
-        LOGF_ERROR("Pixel format is not supported by %s recorder.", recorder->getName());
+        LOGF_ERROR("Pixel format %d is not supported by %s recorder.", pixelFormat, recorder->getName());
+    } else {
+	    LOGF_DEBUG("Pixel format %d is supported by %s recorder.", pixelFormat, recorder->getName()); 
     }
     bool encoderOK = encoder->setPixelFormat(pixelFormat, pixelDepth);
     if (encoderOK == false)
     {
-        LOGF_ERROR("Pixel format is not supported by %s encoder.", encoder->getName());
+        LOGF_ERROR("Pixel format %d is not supported by %s encoder.", pixelFormat, encoder->getName());
+    } else {
+	LOGF_DEBUG("Pixel format %d is supported by %s encoder.", pixelFormat, encoder->getName());
     }
 
     m_PixelFormat = pixelFormat;
