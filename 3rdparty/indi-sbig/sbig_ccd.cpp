@@ -1149,41 +1149,41 @@ bool SBIGCCD::UpdateGuiderBin(int binx, int biny)
     return updateFrameProperties(&GuideCCD);
 }
 
-IPState SBIGCCD::GuideNorth(float duration)
+IPState SBIGCCD::GuideNorth(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tYMinus                                      = dur;
     ActivateRelay(&rp);
     return IPS_OK;
 }
 
-IPState SBIGCCD::GuideSouth(float duration)
+IPState SBIGCCD::GuideSouth(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tYPlus                                       = dur;
     ActivateRelay(&rp);
     return IPS_OK;
 }
 
-IPState SBIGCCD::GuideEast(float duration)
+IPState SBIGCCD::GuideEast(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tXPlus                                       = dur;
     ActivateRelay(&rp);
     return IPS_OK;
 }
 
-IPState SBIGCCD::GuideWest(float duration)
+IPState SBIGCCD::GuideWest(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tXMinus                                      = dur;
     ActivateRelay(&rp);
     return IPS_OK;

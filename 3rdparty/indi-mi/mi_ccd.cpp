@@ -770,9 +770,9 @@ bool MICCD::SelectFilter(int position)
     return true;
 }
 
-IPState MICCD::GuideNorth(float duration)
+IPState MICCD::GuideNorth(uint32_t ms)
 {
-    if (gxccd_move_telescope(cameraHandle, 0, duration) < 0)
+    if (gxccd_move_telescope(cameraHandle, 0, static_cast<int16_t>(ms)) < 0)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
@@ -782,9 +782,9 @@ IPState MICCD::GuideNorth(float duration)
     return IPS_OK;
 }
 
-IPState MICCD::GuideSouth(float duration)
+IPState MICCD::GuideSouth(uint32_t ms)
 {
-    if (gxccd_move_telescope(cameraHandle, 0, -duration) < 0)
+    if (gxccd_move_telescope(cameraHandle, 0, (-1 * static_cast<int16_t>(ms))) < 0)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
@@ -794,9 +794,9 @@ IPState MICCD::GuideSouth(float duration)
     return IPS_OK;
 }
 
-IPState MICCD::GuideEast(float duration)
+IPState MICCD::GuideEast(uint32_t ms)
 {
-    if (gxccd_move_telescope(cameraHandle, -duration, 0) < 0)
+    if (gxccd_move_telescope(cameraHandle, (-1 * static_cast<int16_t>(ms)), 0) < 0)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
@@ -806,9 +806,9 @@ IPState MICCD::GuideEast(float duration)
     return IPS_OK;
 }
 
-IPState MICCD::GuideWest(float duration)
+IPState MICCD::GuideWest(uint32_t ms)
 {
-    if (gxccd_move_telescope(cameraHandle, duration, 0) < 0)
+    if (gxccd_move_telescope(cameraHandle, static_cast<int16_t>(ms), 0) < 0)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));

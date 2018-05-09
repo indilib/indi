@@ -615,56 +615,56 @@ void FishCampCCD::TimerHit()
     return;
 }
 
-IPState FishCampCCD::GuideNorth(float duration)
+IPState FishCampCCD::GuideNorth(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYNORTH, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYNORTH, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYNORTH returns %d", rc);
 
     return IPS_OK;
 }
 
-IPState FishCampCCD::GuideSouth(float duration)
+IPState FishCampCCD::GuideSouth(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYSOUTH, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYSOUTH, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYSOUTH returns %d", rc);
 
     return IPS_OK;
 }
 
-IPState FishCampCCD::GuideEast(float duration)
+IPState FishCampCCD::GuideEast(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYEAST, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYEAST, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYEAST returns %d", rc);
 
     return IPS_OK;
 }
 
-IPState FishCampCCD::GuideWest(float duration)
+IPState FishCampCCD::GuideWest(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYWEST, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYWEST, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYWEST returns %d", rc);
 

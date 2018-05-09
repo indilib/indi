@@ -678,9 +678,9 @@ void SXCCD::GuideExposureTimerHit()
     }
 }
 
-IPState SXCCD::GuideWest(float time)
+IPState SXCCD::GuideWest(uint32_t ms)
 {
-    if (!HasST4Port || time < 1)
+    if (!HasST4Port || ms < 1)
     {
         return IPS_ALERT;
     }
@@ -692,20 +692,20 @@ IPState SXCCD::GuideWest(float time)
     GuideStatus &= SX_CLEAR_WE;
     GuideStatus |= SX_GUIDE_WEST;
     sxSetSTAR2000(handle, GuideStatus);
-    if (time < 100)
+    if (ms < 100)
     {
-        usleep(time * 1000);
+        usleep(ms * 1000);
         GuideStatus &= SX_CLEAR_WE;
         sxSetSTAR2000(handle, GuideStatus);
     }
     else
-        WEGuiderTimerID = IEAddTimer(time, WEGuiderTimerCallback, this);
+        WEGuiderTimerID = IEAddTimer(ms, WEGuiderTimerCallback, this);
     return IPS_OK;
 }
 
-IPState SXCCD::GuideEast(float time)
+IPState SXCCD::GuideEast(uint32_t ms)
 {
-    if (!HasST4Port || time < 1)
+    if (!HasST4Port || ms < 1)
     {
         return IPS_ALERT;
     }
@@ -717,14 +717,14 @@ IPState SXCCD::GuideEast(float time)
     GuideStatus &= SX_CLEAR_WE;
     GuideStatus |= SX_GUIDE_EAST;
     sxSetSTAR2000(handle, GuideStatus);
-    if (time < 100)
+    if (ms < 100)
     {
-        usleep(time * 1000);
+        usleep(ms * 1000);
         GuideStatus &= SX_CLEAR_WE;
         sxSetSTAR2000(handle, GuideStatus);
     }
     else
-        WEGuiderTimerID = IEAddTimer(time, WEGuiderTimerCallback, this);
+        WEGuiderTimerID = IEAddTimer(ms, WEGuiderTimerCallback, this);
     return IPS_OK;
 }
 
@@ -736,9 +736,9 @@ void SXCCD::WEGuiderTimerHit()
     GuideComplete(AXIS_RA);
 }
 
-IPState SXCCD::GuideNorth(float time)
+IPState SXCCD::GuideNorth(uint32_t ms)
 {
-    if (!HasST4Port || time < 1)
+    if (!HasST4Port || ms < 1)
     {
         return IPS_ALERT;
     }
@@ -750,20 +750,20 @@ IPState SXCCD::GuideNorth(float time)
     GuideStatus &= SX_CLEAR_NS;
     GuideStatus |= SX_GUIDE_NORTH;
     sxSetSTAR2000(handle, GuideStatus);
-    if (time < 100)
+    if (ms < 100)
     {
-        usleep(time * 1000);
+        usleep(ms * 1000);
         GuideStatus &= SX_CLEAR_NS;
         sxSetSTAR2000(handle, GuideStatus);
     }
     else
-        NSGuiderTimerID = IEAddTimer(time, NSGuiderTimerCallback, this);
+        NSGuiderTimerID = IEAddTimer(ms, NSGuiderTimerCallback, this);
     return IPS_OK;
 }
 
-IPState SXCCD::GuideSouth(float time)
+IPState SXCCD::GuideSouth(uint32_t ms)
 {
-    if (!HasST4Port || time < 1)
+    if (!HasST4Port || ms < 1)
     {
         return IPS_ALERT;
     }
@@ -775,14 +775,14 @@ IPState SXCCD::GuideSouth(float time)
     GuideStatus &= SX_CLEAR_NS;
     GuideStatus |= SX_GUIDE_SOUTH;
     sxSetSTAR2000(handle, GuideStatus);
-    if (time < 100)
+    if (ms < 100)
     {
-        usleep(time * 1000);
+        usleep(ms * 1000);
         GuideStatus &= SX_CLEAR_NS;
         sxSetSTAR2000(handle, GuideStatus);
     }
     else
-        NSGuiderTimerID = IEAddTimer(time, NSGuiderTimerCallback, this);
+        NSGuiderTimerID = IEAddTimer(ms, NSGuiderTimerCallback, this);
     return IPS_OK;
 }
 

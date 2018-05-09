@@ -1150,27 +1150,27 @@ void QHYCCD::TimerHit()
     }
 }
 
-IPState QHYCCD::GuideNorth(float duration)
+IPState QHYCCD::GuideNorth(uint32_t ms)
 {
-    ControlQHYCCDGuide(camhandle, 1, duration);
+    ControlQHYCCDGuide(camhandle, 1, ms);
     return IPS_OK;
 }
 
-IPState QHYCCD::GuideSouth(float duration)
+IPState QHYCCD::GuideSouth(uint32_t ms)
 {
-    ControlQHYCCDGuide(camhandle, 2, duration);
+    ControlQHYCCDGuide(camhandle, 2, ms);
     return IPS_OK;
 }
 
-IPState QHYCCD::GuideEast(float duration)
+IPState QHYCCD::GuideEast(uint32_t ms)
 {
-    ControlQHYCCDGuide(camhandle, 0, duration);
+    ControlQHYCCDGuide(camhandle, 0, ms);
     return IPS_OK;
 }
 
-IPState QHYCCD::GuideWest(float duration)
+IPState QHYCCD::GuideWest(uint32_t ms)
 {
-    ControlQHYCCDGuide(camhandle, 3, duration);
+    ControlQHYCCDGuide(camhandle, 3, ms);
     return IPS_OK;
 }
 
