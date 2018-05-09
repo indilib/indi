@@ -1317,7 +1317,7 @@ int LX200ZEQ25::setZEQ25GuideRate(double rate)
     return -1;
 }
 
-int LX200ZEQ25::SendPulseCmd(int direction, int duration_msec)
+int LX200ZEQ25::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 {
     int nbytes_write = 0;
     char cmd[20];

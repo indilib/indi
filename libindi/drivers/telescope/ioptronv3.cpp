@@ -864,25 +864,25 @@ bool IOptronV3::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
-IPState IOptronV3::GuideNorth(float ms)
+IPState IOptronV3::GuideNorth(uint32_t ms)
 {
     bool rc = driver->startGuide(IOP_N, (uint32_t)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
-IPState IOptronV3::GuideSouth(float ms)
+IPState IOptronV3::GuideSouth(uint32_t ms)
 {
     bool rc = driver->startGuide(IOP_S, (uint32_t)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
-IPState IOptronV3::GuideEast(float ms)
+IPState IOptronV3::GuideEast(uint32_t ms)
 {
     bool rc = driver->startGuide(IOP_E, (uint32_t)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
-IPState IOptronV3::GuideWest(float ms)
+IPState IOptronV3::GuideWest(uint32_t ms)
 {
     bool rc = driver->startGuide(IOP_W, (uint32_t)ms);
     return (rc ? IPS_OK : IPS_ALERT);

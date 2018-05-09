@@ -677,7 +677,7 @@ class CCD : public DefaultDevice, GuiderInterface
      * \note This function is not implemented in CCD, it must be implemented in the child class
      * \return True if successful, false otherwise.
      */
-    virtual IPState GuideNorth(float ms);
+    virtual IPState GuideNorth(uint32_t ms);
 
     /**
      * \brief Guide southward for ms milliseconds
@@ -685,7 +685,7 @@ class CCD : public DefaultDevice, GuiderInterface
      * \note This function is not implemented in CCD, it must be implemented in the child class
      * \return 0 if successful, -1 otherwise.
      */
-    virtual IPState GuideSouth(float ms);
+    virtual IPState GuideSouth(uint32_t ms);
 
     /**
      * \brief Guide easward for ms milliseconds
@@ -693,7 +693,7 @@ class CCD : public DefaultDevice, GuiderInterface
      * \note This function is not implemented in CCD, it must be implemented in the child class
      * \return 0 if successful, -1 otherwise.
      */
-    virtual IPState GuideEast(float ms);
+    virtual IPState GuideEast(uint32_t ms);
 
     /**
      * \brief Guide westward for ms milliseconds
@@ -701,7 +701,7 @@ class CCD : public DefaultDevice, GuiderInterface
      * \note This function is not implemented in CCD, it must be implemented in the child class
      * \return 0 if successful, -1 otherwise.
      */
-    virtual IPState GuideWest(float ms);
+    virtual IPState GuideWest(uint32_t ms);
 
     /**
      * @brief StartStreaming Start live video streaming

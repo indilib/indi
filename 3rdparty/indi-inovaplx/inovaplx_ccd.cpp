@@ -363,7 +363,7 @@ void INovaCCD::TimerHit()
     return;
 }
 
-IPState INovaCCD::GuideEast(float ms)
+IPState INovaCCD::GuideEast(uint32_t ms)
 {
     DIR |= 0x09;
     DIR &= 0x0E;
@@ -372,7 +372,7 @@ IPState INovaCCD::GuideEast(float ms)
     return IPS_IDLE;
 }
 
-IPState INovaCCD::GuideWest(float ms)
+IPState INovaCCD::GuideWest(uint32_t ms)
 {
     DIR |= 0x09;
     DIR &= 0x07;
@@ -381,7 +381,7 @@ IPState INovaCCD::GuideWest(float ms)
     return IPS_IDLE;
 }
 
-IPState INovaCCD::GuideNorth(float ms)
+IPState INovaCCD::GuideNorth(uint32_t ms)
 {
     DIR |= 0x06;
     DIR &= 0x0D;
@@ -390,7 +390,7 @@ IPState INovaCCD::GuideNorth(float ms)
     return IPS_IDLE;
 }
 
-IPState INovaCCD::GuideSouth(float ms)
+IPState INovaCCD::GuideSouth(uint32_t ms)
 {
     DIR |= 0x06;
     DIR &= 0x0B;

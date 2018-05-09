@@ -1305,7 +1305,7 @@ bool SkywatcherAltAzSimple::updateProperties()
     }
 }
 
-IPState SkywatcherAltAzSimple::GuideNorth(float ms)
+IPState SkywatcherAltAzSimple::GuideNorth(uint32_t ms)
 {
     GuidingPulse Pulse;
 
@@ -1316,7 +1316,7 @@ IPState SkywatcherAltAzSimple::GuideNorth(float ms)
     return IPS_OK;
 }
 
-IPState SkywatcherAltAzSimple::GuideSouth(float ms)
+IPState SkywatcherAltAzSimple::GuideSouth(uint32_t ms)
 {
     GuidingPulse Pulse;
 
@@ -1327,7 +1327,7 @@ IPState SkywatcherAltAzSimple::GuideSouth(float ms)
     return IPS_OK;
 }
 
-IPState SkywatcherAltAzSimple::GuideWest(float ms)
+IPState SkywatcherAltAzSimple::GuideWest(uint32_t ms)
 {
     GuidingPulse Pulse;
 
@@ -1338,7 +1338,7 @@ IPState SkywatcherAltAzSimple::GuideWest(float ms)
     return IPS_OK;
 }
 
-IPState SkywatcherAltAzSimple::GuideEast(float ms)
+IPState SkywatcherAltAzSimple::GuideEast(uint32_t ms)
 {
     GuidingPulse Pulse;
 

@@ -2152,7 +2152,7 @@ bool EQMod::Sync(double ra, double dec)
     return true;
 }
 
-IPState EQMod::GuideNorth(float ms)
+IPState EQMod::GuideNorth(uint32_t ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
@@ -2186,7 +2186,7 @@ IPState EQMod::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState EQMod::GuideSouth(float ms)
+IPState EQMod::GuideSouth(uint32_t ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
@@ -2219,7 +2219,7 @@ IPState EQMod::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState EQMod::GuideEast(float ms)
+IPState EQMod::GuideEast(uint32_t ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
@@ -2253,7 +2253,7 @@ IPState EQMod::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState EQMod::GuideWest(float ms)
+IPState EQMod::GuideWest(uint32_t ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;

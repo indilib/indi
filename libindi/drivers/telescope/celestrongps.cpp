@@ -1165,7 +1165,7 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
 }
 
 //GUIDE Guiding functions.
-IPState CelestronGPS::GuideNorth(float ms)
+IPState CelestronGPS::GuideNorth(uint32_t ms)
 {
     LOGF_DEBUG("GUIDE CMD: N %.0f ms", ms);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
@@ -1206,7 +1206,7 @@ IPState CelestronGPS::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState CelestronGPS::GuideSouth(float ms)
+IPState CelestronGPS::GuideSouth(uint32_t ms)
 {
     LOGF_DEBUG("GUIDE CMD: S %.0f ms", ms);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
@@ -1247,7 +1247,7 @@ IPState CelestronGPS::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState CelestronGPS::GuideEast(float ms)
+IPState CelestronGPS::GuideEast(uint32_t ms)
 {
     LOGF_DEBUG("GUIDE CMD: E %.0f ms", ms);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
@@ -1288,7 +1288,7 @@ IPState CelestronGPS::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState CelestronGPS::GuideWest(float ms)
+IPState CelestronGPS::GuideWest(uint32_t ms)
 {
     LOGF_DEBUG("GUIDE CMD: W %.0f ms", ms);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))

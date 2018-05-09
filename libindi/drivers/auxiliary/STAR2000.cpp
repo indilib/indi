@@ -332,7 +332,7 @@ void STAR2000::TimerHit()
     }
 }
 
-IPState STAR2000::GuideNorth(float ms)
+IPState STAR2000::GuideNorth(uint32_t ms)
 {
     RemoveTimer(NStimerID);
 
@@ -360,7 +360,7 @@ IPState STAR2000::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState STAR2000::GuideSouth(float ms)
+IPState STAR2000::GuideSouth(uint32_t ms)
 {
     RemoveTimer(NStimerID);
 
@@ -388,7 +388,7 @@ IPState STAR2000::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState STAR2000::GuideEast(float ms)
+IPState STAR2000::GuideEast(uint32_t ms)
 {
     RemoveTimer(WEtimerID);
 
@@ -416,7 +416,7 @@ IPState STAR2000::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState STAR2000::GuideWest(float ms)
+IPState STAR2000::GuideWest(uint32_t ms)
 {
     RemoveTimer(WEtimerID);
 

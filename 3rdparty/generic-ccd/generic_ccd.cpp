@@ -714,7 +714,7 @@ void GenericCCD::TimerHit()
     return;
 }
 
-IPState GenericCCD::GuideNorth(float ms)
+IPState GenericCCD::GuideNorth(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************
@@ -738,7 +738,7 @@ IPState GenericCCD::GuideNorth(float ms)
     return IPS_OK;
 }
 
-IPState GenericCCD::GuideSouth(float ms)
+IPState GenericCCD::GuideSouth(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************
@@ -762,7 +762,7 @@ IPState GenericCCD::GuideSouth(float ms)
     return IPS_OK;
 }
 
-IPState GenericCCD::GuideEast(float ms)
+IPState GenericCCD::GuideEast(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************
@@ -786,7 +786,7 @@ IPState GenericCCD::GuideEast(float ms)
     return IPS_OK;
 }
 
-IPState GenericCCD::GuideWest(float ms)
+IPState GenericCCD::GuideWest(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************

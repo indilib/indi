@@ -484,7 +484,7 @@ bool LX200Telescope::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         }
         else
             LOGF_INFO("Moving toward %s.",
-                   (current_move == LX200_NORTH) ? "North" : "South");
+                      (current_move == LX200_NORTH) ? "North" : "South");
         break;
 
     case MOTION_STOP:
@@ -495,7 +495,7 @@ bool LX200Telescope::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         }
         else
             LOGF_INFO("Movement toward %s halted.",
-                   (current_move == LX200_NORTH) ? "North" : "South");
+                      (current_move == LX200_NORTH) ? "North" : "South");
         break;
     }
 
@@ -526,7 +526,7 @@ bool LX200Telescope::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         }
         else
             LOGF_INFO("Movement toward %s halted.",
-                   (current_move == LX200_WEST) ? "West" : "East");
+                      (current_move == LX200_WEST) ? "West" : "East");
         break;
     }
 
@@ -929,14 +929,14 @@ void LX200Telescope::updateFocusTimer()
 
     case IPS_BUSY:
         //if (isDebug())
-            //IDLog("Focus Timer Value is %g\n", FocusTimerN[0].value);
+        //IDLog("Focus Timer Value is %g\n", FocusTimerN[0].value);
 
         FocusTimerN[0].value -= 50;
 
         if (FocusTimerN[0].value <= 0)
         {
             //if (isDebug())
-                //IDLog("Focus Timer Expired\n");
+            //IDLog("Focus Timer Expired\n");
 
             if (!isSimulation() && setFocuserSpeedMode(PortFD, 0) < 0)
             {
@@ -944,7 +944,7 @@ void LX200Telescope::updateFocusTimer()
                 IDSetSwitch(&FocusModeSP, "Error setting focuser mode.");
 
                 //if (isDebug())
-                    //IDLog("Error setting focuser mode\n");
+                //IDLog("Error setting focuser mode\n");
 
                 return;
             }
@@ -1332,7 +1332,7 @@ bool LX200Telescope::sendScopeLocation()
     return true;
 }
 
-IPState LX200Telescope::GuideNorth(float ms)
+IPState LX200Telescope::GuideNorth(uint32_t ms)
 {
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1367,7 +1367,7 @@ IPState LX200Telescope::GuideNorth(float ms)
             return IPS_ALERT;
         }
 
-        MovementNSS[0].s = ISS_ON;
+        MovementNSS[DIRECTION_NORTH].s = ISS_ON;
         MoveNS(DIRECTION_NORTH, MOTION_START);
     }
 
@@ -1375,12 +1375,12 @@ IPState LX200Telescope::GuideNorth(float ms)
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = LX200_NORTH;
-    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    guide_direction_ns = LX200_NORTH;
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperNS, this);
     return IPS_BUSY;
 }
 
-IPState LX200Telescope::GuideSouth(float ms)
+IPState LX200Telescope::GuideSouth(uint32_t ms)
 {
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1415,7 +1415,7 @@ IPState LX200Telescope::GuideSouth(float ms)
             return IPS_ALERT;
         }
 
-        MovementNSS[1].s = ISS_ON;
+        MovementNSS[DIRECTION_SOUTH].s = ISS_ON;
         MoveNS(DIRECTION_SOUTH, MOTION_START);
     }
 
@@ -1423,12 +1423,12 @@ IPState LX200Telescope::GuideSouth(float ms)
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = LX200_SOUTH;
-    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    guide_direction_ns = LX200_SOUTH;
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperNS, this);
     return IPS_BUSY;
 }
 
-IPState LX200Telescope::GuideEast(float ms)
+IPState LX200Telescope::GuideEast(uint32_t ms)
 {
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1463,7 +1463,7 @@ IPState LX200Telescope::GuideEast(float ms)
             return IPS_ALERT;
         }
 
-        MovementWES[1].s = ISS_ON;
+        MovementWES[DIRECTION_EAST].s = ISS_ON;
         MoveWE(DIRECTION_EAST, MOTION_START);
     }
 
@@ -1471,12 +1471,12 @@ IPState LX200Telescope::GuideEast(float ms)
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = LX200_EAST;
-    GuideWETID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    guide_direction_we = LX200_EAST;
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperWE, this);
     return IPS_BUSY;
 }
 
-IPState LX200Telescope::GuideWest(float ms)
+IPState LX200Telescope::GuideWest(uint32_t ms)
 {
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
@@ -1511,7 +1511,7 @@ IPState LX200Telescope::GuideWest(float ms)
             return IPS_ALERT;
         }
 
-        MovementWES[0].s = ISS_ON;
+        MovementWES[DIRECTION_WEST].s = ISS_ON;
         MoveWE(DIRECTION_WEST, MOTION_START);
     }
 
@@ -1519,90 +1519,49 @@ IPState LX200Telescope::GuideWest(float ms)
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = LX200_WEST;
-    GuideWETID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    guide_direction_we = LX200_WEST;
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperWE, this);
     return IPS_BUSY;
 }
 
-int LX200Telescope::SendPulseCmd(int direction, int duration_msec)
+int LX200Telescope::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 {
     return ::SendPulseCmd(PortFD, direction, duration_msec);
 }
 
-void LX200Telescope::guideTimeoutHelper(void * p)
+void LX200Telescope::guideTimeoutHelperNS(void * p)
 {
-    ((LX200Telescope *)p)->guideTimeout();
+    static_cast<LX200Telescope *>(p)->guideTimeoutNS();
 }
 
-void LX200Telescope::guideTimeout()
+void LX200Telescope::guideTimeoutHelperWE(void * p)
 {
-    int usePulseCommand;
+    static_cast<LX200Telescope *>(p)->guideTimeoutWE();
+}
 
-    usePulseCommand = IUFindOnSwitchIndex(&UsePulseCmdSP);
-    if (guide_direction == -1)
-    {
-        HaltMovement(PortFD, LX200_NORTH);
-        HaltMovement(PortFD, LX200_SOUTH);
-        HaltMovement(PortFD, LX200_EAST);
-        HaltMovement(PortFD, LX200_WEST);
+void LX200Telescope::guideTimeoutWE()
+{
+    if (usePulseCommand == false)
+        MoveWE(guide_direction_we == LX200_WEST ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
 
-        MovementNSSP.s = IPS_IDLE;
-        MovementWESP.s = IPS_IDLE;
-        IUResetSwitch(&MovementNSSP);
-        IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementNSSP, nullptr);
-        IDSetSwitch(&MovementWESP, nullptr);
-        IERmTimer(GuideNSTID);
-        IERmTimer(GuideWETID);
-    }
-    else if (!usePulseCommand)
-    {
-        if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH)
-        {
-            MoveNS(guide_direction == LX200_NORTH ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+    GuideWENP.np[DIRECTION_WEST].value = 0;
+    GuideWENP.np[DIRECTION_EAST].value = 0;
+    GuideWENP.s           = IPS_IDLE;
+    GuideWETID            = 0;
+    IDSetNumber(&GuideWENP, nullptr);
+}
 
-            if (guide_direction == LX200_NORTH)
-                GuideNSNP.np[0].value = 0;
-            else
-                GuideNSNP.np[1].value = 0;
+void LX200Telescope::guideTimeoutNS()
+{
+    if (usePulseCommand == false)
+        MoveNS(guide_direction_ns == LX200_NORTH ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
 
-            GuideNSNP.s = IPS_IDLE;
-            IDSetNumber(&GuideNSNP, nullptr);
-            MovementNSSP.s = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-        }
-        if (guide_direction == LX200_WEST || guide_direction == LX200_EAST)
-        {
-            MoveWE(guide_direction == LX200_WEST ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
-            if (guide_direction == LX200_WEST)
-                GuideWENP.np[0].value = 0;
-            else
-                GuideWENP.np[1].value = 0;
+    GuideNSNP.np[0].value = 0;
+    GuideNSNP.np[1].value = 0;
+    GuideNSNP.s           = IPS_IDLE;
+    GuideNSTID            = 0;
+    IDSetNumber(&GuideNSNP, nullptr);
 
-            GuideWENP.s = IPS_IDLE;
-            IDSetNumber(&GuideWENP, nullptr);
-            MovementWESP.s = IPS_IDLE;
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementWESP, nullptr);
-        }
-    }
-    if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH || guide_direction == -1)
-    {
-        GuideNSNP.np[0].value = 0;
-        GuideNSNP.np[1].value = 0;
-        GuideNSNP.s           = IPS_IDLE;
-        GuideNSTID            = 0;
-        IDSetNumber(&GuideNSNP, nullptr);
-    }
-    if (guide_direction == LX200_WEST || guide_direction == LX200_EAST || guide_direction == -1)
-    {
-        GuideWENP.np[0].value = 0;
-        GuideWENP.np[1].value = 0;
-        GuideWENP.s           = IPS_IDLE;
-        GuideWETID            = 0;
-        IDSetNumber(&GuideWENP, nullptr);
-    }
 }
 
 bool LX200Telescope::saveConfigItems(FILE *fp)

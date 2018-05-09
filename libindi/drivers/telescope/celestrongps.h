@@ -60,10 +60,10 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
         //GUIDE: guiding functions
-        virtual IPState GuideNorth(float ms) override;
-        virtual IPState GuideSouth(float ms) override;
-        virtual IPState GuideEast(float ms) override;
-        virtual IPState GuideWest(float ms) override;
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
         //GUIDE guideTimeoutHelper() function
         static void guideTimeoutHelperN(void *p);
