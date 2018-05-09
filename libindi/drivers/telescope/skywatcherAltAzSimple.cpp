@@ -49,7 +49,7 @@ bool FileExists(const std::string &name)
 
 std::string GetLogTimestamp()
 {
-    time_t Now = time(NULL);
+    time_t Now = time(nullptr);
     struct tm TimeStruct;
     char Buffer[60];
     std::string FinalStr;

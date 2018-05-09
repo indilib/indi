@@ -500,7 +500,7 @@ bool LX200AstroPhysicsGTOCP2::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation())

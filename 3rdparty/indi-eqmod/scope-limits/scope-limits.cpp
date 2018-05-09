@@ -44,7 +44,7 @@ HorizonLimits::HorizonLimits(INDI::Telescope *t)
 HorizonLimits::~HorizonLimits()
 {
     delete (horizon);
-    horizon      = NULL;
+    horizon      = nullptr;
     horizonindex = -1;
 }
 
@@ -152,7 +152,7 @@ bool HorizonLimits::ISNewNumber(const char *dev, const char *name, double values
             if (IUUpdateNumber(HorizonLimitsPointNP, values, names, n) != 0)
             {
                 HorizonLimitsPointNP->s = IPS_ALERT;
-                IDSetNumber(HorizonLimitsPointNP, NULL);
+                IDSetNumber(HorizonLimitsPointNP, nullptr);
                 return false;
             }
             hp.az  = values[0];
@@ -162,7 +162,7 @@ bool HorizonLimits::ISNewNumber(const char *dev, const char *name, double values
                 DEBUGF(INDI::Logger::DBG_WARNING,
                        "Horizon Limits: point with Az = %f already present. Delete it first.", hp.az);
                 HorizonLimitsPointNP->s = IPS_ALERT;
-                IDSetNumber(HorizonLimitsPointNP, NULL);
+                IDSetNumber(HorizonLimitsPointNP, nullptr);
                 return false;
             }
             horizon->push_back(hp);
@@ -172,7 +172,7 @@ bool HorizonLimits::ISNewNumber(const char *dev, const char *name, double values
             DEBUGF(INDI::Logger::DBG_SESSION,
                    "Horizon Limits: Added point Az = %f, Alt  = %f, Rank=%d (Total %d points)", hp.az, hp.alt,
                    horizonindex, horizon->size());
-            IDSetNumber(HorizonLimitsPointNP, NULL);
+            IDSetNumber(HorizonLimitsPointNP, nullptr);
             return true;
         }
     }
@@ -189,7 +189,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
             {
                 LOG_WARN("Horizon Limits: Can not traverse empty list");
                 HorizonLimitsTraverseSP->s = IPS_ALERT;
-                IDSetSwitch(HorizonLimitsTraverseSP, NULL);
+                IDSetSwitch(HorizonLimitsTraverseSP, nullptr);
                 return true;
             }
             ISwitch *sw;
@@ -221,9 +221,9 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
             az->value               = horizon->at(horizonindex).az;
             alt->value              = horizon->at(horizonindex).alt;
             HorizonLimitsPointNP->s = IPS_OK;
-            IDSetNumber(HorizonLimitsPointNP, NULL);
+            IDSetNumber(HorizonLimitsPointNP, nullptr);
             HorizonLimitsTraverseSP->s = IPS_OK;
-            IDSetSwitch(HorizonLimitsTraverseSP, NULL);
+            IDSetSwitch(HorizonLimitsTraverseSP, nullptr);
             return true;
         }
 
@@ -245,7 +245,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 {
                     LOG_WARN("Horizon Limits: Scope does not support horizontal coordinates.");
                     HorizonLimitsManageSP->s = IPS_ALERT;
-                    IDSetSwitch(HorizonLimitsManageSP, NULL);
+                    IDSetSwitch(HorizonLimitsManageSP, nullptr);
                     return false;
                 }
                 values[0] = IUFindNumber(horizontalcoords, "AZ")->value;
@@ -253,9 +253,9 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 if (IUUpdateNumber(HorizonLimitsPointNP, values, (char **)names, 2) != 0)
                 {
                     HorizonLimitsPointNP->s = IPS_ALERT;
-                    IDSetNumber(HorizonLimitsPointNP, NULL);
+                    IDSetNumber(HorizonLimitsPointNP, nullptr);
                     HorizonLimitsManageSP->s = IPS_ALERT;
-                    IDSetSwitch(HorizonLimitsManageSP, NULL);
+                    IDSetSwitch(HorizonLimitsManageSP, nullptr);
                     return false;
                 }
                 hp.az  = values[0];
@@ -265,7 +265,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                     DEBUGF(INDI::Logger::DBG_WARNING,
                            "Horizon Limits: point with Az = %f already present. Delete it first.", hp.az);
                     HorizonLimitsManageSP->s = IPS_ALERT;
-                    IDSetSwitch(HorizonLimitsManageSP, NULL);
+                    IDSetSwitch(HorizonLimitsManageSP, nullptr);
                     return false;
                 }
                 horizon->push_back(hp);
@@ -276,9 +276,9 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                        "Horizon Limits: Added point Az = %f, Alt  = %f, Rank=%d (Total %d points)", hp.az, hp.alt,
                        horizonindex, horizon->size());
                 HorizonLimitsPointNP->s = IPS_OK;
-                IDSetNumber(HorizonLimitsPointNP, NULL);
+                IDSetNumber(HorizonLimitsPointNP, nullptr);
                 HorizonLimitsManageSP->s = IPS_OK;
-                IDSetSwitch(HorizonLimitsManageSP, NULL);
+                IDSetSwitch(HorizonLimitsManageSP, nullptr);
                 return true;
             }
             else if (!strcmp(sw->name, "HORIZONLIMITSLISTDELETE"))
@@ -287,7 +287,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 {
                     LOG_WARN("Horizon Limits: Can not delete point");
                     HorizonLimitsManageSP->s = IPS_ALERT;
-                    IDSetSwitch(HorizonLimitsManageSP, NULL);
+                    IDSetSwitch(HorizonLimitsManageSP, nullptr);
                     return true;
                 }
                 LOGF_INFO("Horizon Limits: Deleted point Az = %f, Alt  = %f, Rank=%d",
@@ -298,9 +298,9 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 az->value               = horizon->at(horizonindex).az;
                 alt->value              = horizon->at(horizonindex).alt;
                 HorizonLimitsPointNP->s = IPS_OK;
-                IDSetNumber(HorizonLimitsPointNP, NULL);
+                IDSetNumber(HorizonLimitsPointNP, nullptr);
                 HorizonLimitsManageSP->s = IPS_OK;
-                IDSetSwitch(HorizonLimitsManageSP, NULL);
+                IDSetSwitch(HorizonLimitsManageSP, nullptr);
                 return true;
             }
             else if (!strcmp(sw->name, "HORIZONLIMITSLISTCLEAR"))
@@ -312,9 +312,9 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                 az->value               = 0.0;
                 alt->value              = 0.0;
                 HorizonLimitsPointNP->s = IPS_OK;
-                IDSetNumber(HorizonLimitsPointNP, NULL);
+                IDSetNumber(HorizonLimitsPointNP, nullptr);
                 HorizonLimitsManageSP->s = IPS_OK;
-                IDSetSwitch(HorizonLimitsManageSP, NULL);
+                IDSetSwitch(HorizonLimitsManageSP, nullptr);
                 return true;
             }
         }
@@ -358,7 +358,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
                     HorizonLimitsFileOperationSP->s = IPS_OK;
                 }
             }
-            IDSetSwitch(HorizonLimitsFileOperationSP, NULL);
+            IDSetSwitch(HorizonLimitsFileOperationSP, nullptr);
             return true;
         }
 
@@ -366,7 +366,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
         {
             HorizonLimitsOnLimitSP->s = IPS_OK;
             IUUpdateSwitch(HorizonLimitsOnLimitSP, states, names, n);
-            IDSetSwitch(HorizonLimitsOnLimitSP, NULL);
+            IDSetSwitch(HorizonLimitsOnLimitSP, nullptr);
             return true;
         }
 
@@ -374,7 +374,7 @@ bool HorizonLimits::ISNewSwitch(const char *dev, const char *name, ISState *stat
         {
             HorizonLimitsLimitGotoSP->s = IPS_OK;
             IUUpdateSwitch(HorizonLimitsLimitGotoSP, states, names, n);
-            IDSetSwitch(HorizonLimitsLimitGotoSP, NULL);
+            IDSetSwitch(HorizonLimitsLimitGotoSP, nullptr);
             return true;
         }
     }
@@ -389,7 +389,7 @@ bool HorizonLimits::ISNewText(const char *dev, const char *name, char *texts[], 
         if (HorizonLimitsDataFileTP && (strcmp(name, HorizonLimitsDataFileTP->name) == 0))
         {
             IUUpdateText(HorizonLimitsDataFileTP, texts, names, n);
-            IDSetText(HorizonLimitsDataFileTP, NULL);
+            IDSetText(HorizonLimitsDataFileTP, nullptr);
             return true;
         }
     }
@@ -448,14 +448,14 @@ char *HorizonLimits::WriteDataFile(const char *filename)
 
     fclose(fp);
     setlocale(LC_NUMERIC, "");
-    return NULL;
+    return nullptr;
 }
 
 char *HorizonLimits::LoadDataFile(const char *filename)
 {
     wordexp_t wexp;
     FILE *fp;
-    char *line = NULL;
+    char *line = nullptr;
     size_t len = 0;
     ssize_t read;
     horizonpoint hp;
@@ -511,14 +511,14 @@ char *HorizonLimits::LoadDataFile(const char *filename)
     az->value               = 0.0;
     alt->value              = 0.0;
     HorizonLimitsPointNP->s = IPS_OK;
-    IDSetNumber(HorizonLimitsPointNP, NULL);
+    IDSetNumber(HorizonLimitsPointNP, nullptr);
 
     if (line)
         free(line);
 
     fclose(fp);
     setlocale(LC_NUMERIC, "");
-    return NULL;
+    return nullptr;
 }
 
 bool HorizonLimits::inLimits(double az, double alt)

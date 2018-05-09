@@ -78,10 +78,10 @@ void ISGetProperties(const char *dev)
     for (int i = 0; i < count; i++)
     {
         SXCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISGetProperties(camera->name);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -93,10 +93,10 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     for (int i = 0; i < count; i++)
     {
         SXCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewSwitch(camera->name, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -108,10 +108,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     for (int i = 0; i < count; i++)
     {
         SXCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewText(camera->name, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -123,10 +123,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     for (int i = 0; i < count; i++)
     {
         SXCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewNumber(camera->name, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -179,10 +179,10 @@ void NSGuiderTimerCallback(void *p)
 SXCCD::SXCCD(DEVICE device, const char *name)
 {
     this->device          = device;
-    handle                = NULL;
+    handle                = nullptr;
     model                 = 0;
-    oddBuf                = NULL;
-    evenBuf               = NULL;
+    oddBuf                = nullptr;
+    evenBuf               = nullptr;
     GuideStatus           = 0;
     TemperatureRequest    = 0;
     TemperatureReported   = 0;
@@ -312,7 +312,7 @@ bool SXCCD::UpdateCCDBin(int hor, int ver)
 
 bool SXCCD::Connect()
 {
-    if (handle == NULL)
+    if (handle == nullptr)
     {
         int rc = sxOpen(device, &handle);
         if (rc >= 0)
@@ -350,7 +350,7 @@ bool SXCCD::Connect()
 
 bool SXCCD::Disconnect()
 {
-    if (handle != NULL)
+    if (handle != nullptr)
     {
         sxClose(&handle);
     }
@@ -385,16 +385,16 @@ void SXCCD::SetupParms()
     PrimaryCCD.setFrameBufferSize(nbuf);
     if (isInterlaced)
     {
-        if (evenBuf != NULL)
+        if (evenBuf != nullptr)
             delete evenBuf;
-        if (oddBuf != NULL)
+        if (oddBuf != nullptr)
             delete oddBuf;
         evenBuf      = new char[nbuf / 2];
         oddBuf       = new char[nbuf / 2];
     }
     else if (isICX453)
     {
-        if (evenBuf != NULL)
+        if (evenBuf != nullptr)
             delete evenBuf;
         evenBuf      = new char[nbuf];
     }
@@ -430,7 +430,7 @@ void SXCCD::TimerHit()
                     TemperatureNP.s = IPS_OK;
                 else
                     TemperatureNP.s = IPS_BUSY;
-                IDSetNumber(&TemperatureNP, NULL);
+                IDSetNumber(&TemperatureNP, nullptr);
             }
         }
     }
@@ -459,7 +459,7 @@ int SXCCD::SetTemperature(double temperature)
     CoolerSP.s   = IPS_OK;
     CoolerS[0].s = ISS_ON;
     CoolerS[1].s = ISS_OFF;
-    IDSetSwitch(&CoolerSP, NULL);
+    IDSetSwitch(&CoolerSP, nullptr);
 
     return result;
 }
@@ -557,11 +557,11 @@ void SXCCD::ExposureTimerHit()
                     rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2, subW,
                                        subH / 2, binX, 1);
                     struct timeval tv;
-                    gettimeofday(&tv, NULL);
+                    gettimeofday(&tv, nullptr);
                     long startTime = tv.tv_sec * 1000000 + tv.tv_usec;
                     if (rc)
                         rc = sxReadPixels(handle, evenBuf, size);
-                    gettimeofday(&tv, NULL);
+                    gettimeofday(&tv, nullptr);
                     wipeDelay = tv.tv_sec * 1000000 + tv.tv_usec - startTime;
                     if (rc)
                         rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_ODD | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2,
@@ -808,7 +808,7 @@ bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
     {
         IUUpdateSwitch(&ShutterSP, states, names, n);
         ShutterSP.s = IPS_OK;
-        IDSetSwitch(&ShutterSP, NULL);
+        IDSetSwitch(&ShutterSP, nullptr);
         sxSetShutter(handle, ShutterS[0].s != ISS_ON);
         result = true;
     }
@@ -816,14 +816,14 @@ bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
     {
         IUUpdateSwitch(&CoolerSP, states, names, n);
         CoolerSP.s = IPS_OK;
-        IDSetSwitch(&CoolerSP, NULL);
+        IDSetSwitch(&CoolerSP, nullptr);
         unsigned char status;
         unsigned short temperature;
         sxSetCooler(handle, (unsigned char)(CoolerS[0].s == ISS_ON), (unsigned short)(TemperatureRequest * 10 + 2730),
                     &status, &temperature);
         TemperatureReported = TemperatureN[0].value = (temperature - 2730) / 10.0;
         TemperatureNP.s                             = IPS_OK;
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
         result = true;
     }
     else

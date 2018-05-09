@@ -392,7 +392,7 @@ bool FFMVCCD::StartExposure(float duration)
     PrimaryCCD.setBPP(16);
     PrimaryCCD.setExposureDuration(duration);
 
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
 
     InExposure = true;
     IDMessage(getDeviceName(), "Exposure has begun.");
@@ -482,7 +482,7 @@ float FFMVCCD::CalcTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
                 (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
@@ -658,7 +658,7 @@ void FFMVCCD::grabImage()
     *  stop data transmission
     *-----------------------------------------------------------------------*/
 
-    gettimeofday(&start, NULL);
+    gettimeofday(&start, nullptr);
     for (sub = 0; sub < sub_count; ++sub)
     {
         IDMessage(getDeviceName(), "Getting sub %d of %d", sub, sub_count);
@@ -696,7 +696,7 @@ void FFMVCCD::grabImage()
     }
     err = dc1394_video_set_transmission(dcam, DC1394_OFF);
     IDMessage(getDeviceName(), "Download complete.");
-    gettimeofday(&end, NULL);
+    gettimeofday(&end, nullptr);
     IDMessage(getDeviceName(), "Download took %d uS",
               (int)((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)));
 

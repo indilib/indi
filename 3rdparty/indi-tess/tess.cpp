@@ -280,7 +280,7 @@ void inditess::TimerHit()
                 if (!lqp)
                     return;
             }
-            IDSetLight(lvp, NULL);
+            IDSetLight(lvp, nullptr);
         }
 
         //ANALOG
@@ -359,7 +359,7 @@ void inditess::TimerHit()
                     eqp->value = dec;
                 }
             }
-            IDSetNumber(nvp, NULL);
+            IDSetNumber(nvp, nullptr);
         }
 
         //TEXT
@@ -373,11 +373,11 @@ void inditess::TimerHit()
                 if (!eqp)
                     return;
 
-                if (eqp->aux0 == NULL)
+                if (eqp->aux0 == nullptr)
                     continue;
                 strcpy(eqp->text, (char *)eqp->aux0);
                 //IDLog("%s.%s TEXT: %s \n",tvp->name,eqp->name,eqp->text);
-                IDSetText(tvp, NULL);
+                IDSetText(tvp, nullptr);
             }
         }
     }

@@ -32,9 +32,9 @@ bool BlackFly::_custom_settings()
     ::ArvDevice *dev = this->dev;
 #define WRITE_REGISTER(reg, val)                                       \
     {                                                                  \
-        error  = NULL;                                                 \
+        error  = nullptr;                                                 \
         result = arv_device_write_register(dev, (reg), (val), &error); \
-        if ((result != 1) || (error != NULL))                          \
+        if ((result != 1) || (error != nullptr))                          \
         {                                                              \
             goto error;                                                \
         }                                                              \
@@ -42,7 +42,7 @@ bool BlackFly::_custom_settings()
 
     gboolean result;
     guint32 val;
-    GError *error = NULL;
+    GError *error = nullptr;
 
     int i;
     for (i = 0; i < 4; i++)
@@ -85,9 +85,9 @@ void BlackFly::_fixup(void)
     ::ArvDevice *dev = this->dev;
 #define WRITE_REGISTER(reg, val)                                       \
     {                                                                  \
-        error  = NULL;                                                 \
+        error  = nullptr;                                                 \
         result = arv_device_write_register(dev, (reg), (val), &error); \
-        if ((result != 1) || (error != NULL))                          \
+        if ((result != 1) || (error != nullptr))                          \
         {                                                              \
             goto error;                                                \
         }                                                              \
@@ -95,7 +95,7 @@ void BlackFly::_fixup(void)
 
     gboolean result;
     guint32 val;
-    GError *error = NULL;
+    GError *error = nullptr;
 
     int i;
     for (i = 0; i < 4; i++)

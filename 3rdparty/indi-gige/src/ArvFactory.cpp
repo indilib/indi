@@ -28,11 +28,11 @@
 
 arv::ArvCamera *ArvFactory::find_first_available(void)
 {
-    ::ArvCamera *camera    = arv_camera_new(NULL);
+    ::ArvCamera *camera    = arv_camera_new(nullptr);
     const char *model_name = arv_camera_get_model_name(camera);
 
-    if ((camera == NULL) || (model_name == NULL))
-        return NULL;
+    if ((camera == nullptr) || (model_name == nullptr))
+        return nullptr;
 
     if (memmem(model_name, strlen(model_name), BLACKFLY_MODEL, strlen(BLACKFLY_MODEL)))
     {

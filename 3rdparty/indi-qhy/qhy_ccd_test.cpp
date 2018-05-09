@@ -110,7 +110,7 @@ int main(int , char **)
 
     // open camera
     qhyccd_handle *pCamHandle = OpenQHYCCD(camId);
-    if (pCamHandle != NULL) {
+    if (pCamHandle != nullptr) {
         printf("Open QHYCCD success.\n");
     } else {
         printf("Open QHYCCD failure.\n");

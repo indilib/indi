@@ -171,7 +171,7 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
         return false;
     }
 
-    srand(time(NULL));
+    srand(time(nullptr));
     if(ogg_stream_init(&ogg_os, rand()))
     {
         snprintf(errmsg, ERRMSGSIZ, "%s: error: could not create ogg stream state", filename);
@@ -272,7 +272,7 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
          (because there's no way to explicitly request that behavior).
         If we waited until we were actually encoding, it would overwite our
          settings.*/
-        if(th_encode_ctl(td,TH_ENCCTL_2PASS_IN,NULL,0)<0)
+        if(th_encode_ctl(td,TH_ENCCTL_2PASS_IN,nullptr,0)<0)
         {
             snprintf(errmsg, ERRMSGSIZ, "Could not set up the second pass of two-pass mode.");
             return false;

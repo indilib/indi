@@ -360,7 +360,7 @@ bool LX200Telescope::Goto(double ra, double dec)
         }
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation())
@@ -453,7 +453,7 @@ bool LX200Telescope::Park()
             }
 
             // sleep for 100 msec
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
         }
 
         if (!isSimulation() && slewToPark(PortFD) < 0)
@@ -1173,7 +1173,7 @@ bool LX200Telescope::getLocalTime(char *timeString)
 {
     if (isSimulation())
     {
-        time_t now = time (NULL);
+        time_t now = time (nullptr);
         strftime(timeString, 32, "%T", localtime(&now));
     }
     else
@@ -1192,7 +1192,7 @@ bool LX200Telescope::getLocalDate(char *dateString)
 {
     if (isSimulation())
     {
-        time_t now = time (NULL);
+        time_t now = time (nullptr);
         strftime(dateString, 32, "%F", localtime(&now));
     }
     else
@@ -1256,7 +1256,7 @@ bool LX200Telescope::sendScopeTime()
     snprintf(datetime, 64, "%sT%s", cdate, ctime);
 
     // Now that date+time are combined, let's get tm representation of it.
-    if (strptime(datetime, "%FT%T", &ltm) == NULL)
+    if (strptime(datetime, "%FT%T", &ltm) == nullptr)
     {
         LOGF_WARN("Could not process mount date and time: %s", datetime);
         return false;

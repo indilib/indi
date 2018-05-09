@@ -203,7 +203,7 @@ bool ioptronHC8406::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             LOGF_ERROR("%s", errmsg);
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
             continue;
         }
 
@@ -211,7 +211,7 @@ bool ioptronHC8406::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             LOGF_ERROR("%s", errmsg);
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
             continue;
         }
 
@@ -224,7 +224,7 @@ bool ioptronHC8406::checkConnection()
                 return true;
         }
 
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     return false;
@@ -400,7 +400,7 @@ bool ioptronHC8406::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     // If parking/parked, let's unpark it first.
@@ -509,7 +509,7 @@ int ioptronHC8406::ioptronHC8406SyncCMR(char *matchedObject)
     LOGF_DEBUG("RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -734,9 +734,9 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure
 
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
     tcflush(fd, TCIFLUSH);
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
 
 
@@ -867,7 +867,7 @@ bool ioptronHC8406::ReadScopeStatus()
         // Check if LX200 is done slewing
         if (isSlewComplete())
         {
-            nanosleep(&timeout, NULL); //Wait until :MS# finish
+            nanosleep(&timeout, nullptr); //Wait until :MS# finish
             if (IUFindSwitch(&CoordSP, "SYNC")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)  {
                 TrackState = SCOPE_IDLE;
                 LOG_WARN("Slew is complete. IDLE");

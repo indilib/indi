@@ -67,7 +67,7 @@ void ISInit()
 void ISGetProperties(const char *dev)
 {
     ISInit();
-        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        if (dev == nullptr || !strcmp(dev, receiver->getDeviceName()))
         {
             receiver->ISGetProperties(dev);
         }
@@ -76,7 +76,7 @@ void ISGetProperties(const char *dev)
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     ISInit();
-        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        if (dev == nullptr || !strcmp(dev, receiver->getDeviceName()))
         {
             receiver->ISNewSwitch(dev, name, states, names, num);
         }
@@ -85,7 +85,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     ISInit();
-        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        if (dev == nullptr || !strcmp(dev, receiver->getDeviceName()))
         {
             receiver->ISNewText(dev, name, texts, names, num);
         }
@@ -94,7 +94,7 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     ISInit();
-        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        if (dev == nullptr || !strcmp(dev, receiver->getDeviceName()))
         {
             receiver->ISNewNumber(dev, name, values, names, num);
         }
@@ -258,7 +258,7 @@ bool RadioSim::ISNewNumber(const char *dev, const char *name, double values[], c
         DishSize = (DetectorPropertiesN[0].value);
 
         DetectorPropertiesNP.s = IPS_OK;
-        IDSetNumber(&DetectorPropertiesNP, NULL);
+        IDSetNumber(&DetectorPropertiesNP, nullptr);
         return true;
     }
 
@@ -270,7 +270,7 @@ bool RadioSim::ISNewNumber(const char *dev, const char *name, double values[], c
         Dec = (DetectorCoordsN[1].value);
 
         DetectorCoordsNP.s = IPS_OK;
-        IDSetNumber(&DetectorCoordsNP, NULL);
+        IDSetNumber(&DetectorCoordsNP, nullptr);
         return true;
     }
 

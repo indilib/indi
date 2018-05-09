@@ -1171,7 +1171,7 @@ bool LX200Pulsar2::Goto(double r, double d)
             IDSetSwitch(&MovementNSSP, nullptr);
             IDSetSwitch(&MovementWESP, nullptr);
         }
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation())
@@ -1243,7 +1243,7 @@ bool LX200Pulsar2::Park()
             IDSetSwitch(&MovementNSSP, nullptr);
             IDSetSwitch(&MovementWESP, nullptr);
         }
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation() && !Pulsar2Commands::park(PortFD))
@@ -1272,7 +1272,7 @@ bool LX200Pulsar2::Sync(double ra, double dec)
         }
         else
         {
-            nanosleep(&timeout, NULL); // This seems to be necessary
+            nanosleep(&timeout, nullptr); // This seems to be necessary
             result = Pulsar2Commands::sync(PortFD);
             if (result)
             {
@@ -1372,7 +1372,7 @@ bool LX200Pulsar2::checkConnection()
                        (version[0] > '2' ? "Pulsar2" : "Pulsar"), version, year, month, day);
                 return true;
             }
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
         }
     }
     return false;

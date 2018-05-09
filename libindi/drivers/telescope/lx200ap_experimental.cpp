@@ -736,7 +736,7 @@ bool LX200AstroPhysicsExperimental::IsMountParked(bool *isParked)
         return false;
 
     // wait 250ms
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     if (getLX200RA(PortFD, &ra2))
         return false;
@@ -816,7 +816,7 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation())
