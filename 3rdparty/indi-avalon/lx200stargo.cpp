@@ -30,6 +30,7 @@
 std::unique_ptr<LX200StarGo> telescope;
 std::unique_ptr<LX200StarGoFocuser> focuser;
 
+const char *RA_DEC_TAB = "RA / DEC";
 
 void ISInit()
 {
@@ -181,8 +182,8 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
         {
             return slewToHome(states, names, n);
         }
-
-        if (!strcmp(name, MountSetParkSP.name))
+        // parking position
+        else if (!strcmp(name, MountSetParkSP.name))
         {
             return setParkPosition(states, names, n);
         }
@@ -216,11 +217,53 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetSwitch(&TrackModeSP, nullptr);
             return result;
          }
+        else if (!strcmp(name, ST4StatusSP.name))
+        {
+            bool enabled = (states[0] == ISS_OFF);
+            bool result = setST4Enabled(enabled);
+
+            if(result) {
+                ST4StatusS[0].s = enabled ? ISS_OFF : ISS_ON;
+                ST4StatusS[1].s = enabled ? ISS_ON : ISS_OFF;
+                ST4StatusSP.s = IPS_OK;
+            } else {
+                ST4StatusSP.s = IPS_ALERT;
+            }
+            IDSetSwitch(&ST4StatusSP, nullptr);
+            return result;
+        }
+
     }
 
     //  Nobody has claimed this, so pass it to the parent
     return LX200Telescope::ISNewSwitch(dev, name, states, names, n);
 }
+
+bool LX200StarGo::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
+
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0) {
+
+        // sync home position
+        if (!strcmp(name, GuidingSpeedNP.name)) {
+            int raSpeed  = round(values[0] * 100);
+            int decSpeed = round(values[1] * 100);
+            bool result  = setGuidingSpeeds(raSpeed, decSpeed);
+
+            if(result) {
+                GuidingSpeedP[0].value = static_cast<double>(raSpeed) / 100.0;
+                GuidingSpeedP[1].value = static_cast<double>(decSpeed) / 100.0;
+                GuidingSpeedNP.s = IPS_OK;
+            } else {
+                GuidingSpeedNP.s = IPS_ALERT;
+            }
+            IDSetNumber(&GuidingSpeedNP, nullptr);
+            return result;
+        }
+    }
+        //  Nobody has claimed this, so pass it to the parent
+    return LX200Telescope::ISNewNumber(dev, name, values, names, n);
+}
+
 
 
 /**************************************************************************************
@@ -246,7 +289,16 @@ bool LX200StarGo::initProperties()
                        IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillText(&MountFirmwareInfoT[0], "MOUNT_FIRMWARE_INFO", "Firmware", "");
-    IUFillTextVector(&MountInfoTP, MountFirmwareInfoT, 1, getDeviceName(), "MOUNT_INFO", "Mount Info", INFO_TAB, IP_RO, 40, IPS_OK);
+    IUFillTextVector(&MountInfoTP, MountFirmwareInfoT, 1, getDeviceName(), "MOUNT_INFO", "Mount Info", INFO_TAB, IP_RO, 60, IPS_OK);
+
+    // Guiding settings
+    IUFillNumber(&GuidingSpeedP[0], "GUIDING_SPEED_RA", "RA Speed", "%.2f", 0.0, 2.0, 0.1, 0);
+    IUFillNumber(&GuidingSpeedP[1], "GUIDING_SPEED_DEC", "DEC Speed", "%.2f", 0.0, 2.0, 0.1, 0);
+    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedP, 2, getDeviceName(), "GUIDING_SPEED","Autoguiding", RA_DEC_TAB, IP_RW, 60, IPS_IDLE);
+
+    IUFillSwitch(&ST4StatusS[0], "ST4_DISABLED", "disabled", ISS_OFF);
+    IUFillSwitch(&ST4StatusS[1], "ST4_ENABLED", "enabled", ISS_OFF);
+    IUFillSwitchVector(&ST4StatusSP, ST4StatusS, 2, getDeviceName(), "ST4", "ST4", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // overwrite the custom tracking mode button
     IUFillSwitch(&TrackModeS[3], "TRACK_NONE", "None", ISS_OFF);
@@ -271,6 +323,8 @@ bool LX200StarGo::updateProperties()
         defineSwitch(&SyncHomeSP);
         defineSwitch(&MountGotoHomeSP);
         defineSwitch(&MountSetParkSP);
+        defineNumber(&GuidingSpeedNP);
+        defineSwitch(&ST4StatusSP);
 
         if (queryFirmwareInfo(firmwareInfo)) {
             MountFirmwareInfoT[0].text = firmwareInfo;
@@ -285,6 +339,25 @@ bool LX200StarGo::updateProperties()
                 IDSetSwitch(&SyncHomeSP, nullptr);
             }
         }
+        bool ST4Enabled;
+        if (queryGetST4Status(&ST4Enabled)) {
+            ST4StatusS[0].s = ST4Enabled ? ISS_OFF : ISS_ON;
+            ST4StatusS[1].s = ST4Enabled ? ISS_ON : ISS_OFF;
+            ST4StatusSP.s = IPS_OK;
+        } else {
+            ST4StatusSP.s = IPS_ALERT;
+        }
+        IDSetSwitch(&ST4StatusSP, nullptr);
+
+        int raSpeed, decSpeed;
+        if (queryGetGuidingSpeeds(&raSpeed, &decSpeed)) {
+            GuidingSpeedP[0].value = static_cast<double>(raSpeed) / 100.0;
+            GuidingSpeedP[1].value = static_cast<double>(decSpeed) / 100.0;
+            GuidingSpeedNP.s = IPS_OK;
+        } else {
+            GuidingSpeedNP.s = IPS_ALERT;
+        }
+        IDSetNumber(&GuidingSpeedNP, nullptr);
     }
     else
     {
@@ -293,6 +366,8 @@ bool LX200StarGo::updateProperties()
         deleteProperty(MountSetParkSP.name);
         deleteProperty(SyncHomeSP.name);
         deleteProperty(MountInfoTP.name);
+        deleteProperty(GuidingSpeedNP.name);
+        deleteProperty(ST4StatusSP.name);
     }
 
     focuser->updateProperties();
@@ -1053,6 +1128,128 @@ bool LX200StarGo::querySetTracking (bool enable) {
     }
     return true;
 }
+
+/**
+ * @brief Check if the ST4 port is enabled
+ * @param isEnabled - true iff the ST4 port is enabled
+ * @return
+ */
+bool LX200StarGo::queryGetST4Status (bool *isEnabled) {
+    // Command query ST4 status  - :TTGFh#
+    //         response enabled  - vh1
+    //                  disabled - vh0
+
+    int bytesReceived = 0;
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+    flush();
+    if (!transmit(":TTGFh#")) {
+        LOGF_ERROR("%s: Failed to send query ST4 status request.", getDeviceName());
+        return false;
+    }
+    if (!receive(response, &bytesReceived)) {
+        LOGF_ERROR("%s: Failed to receive query ST4 status response.", getDeviceName());
+        return false;
+    }
+    int answer = 0;
+    if (! sscanf(response, "vh%01d", &answer)) {
+        LOGF_ERROR("%s: Unexpected ST4 status response '%s'.", getDeviceName(), response);
+        return false;
+    }
+
+    *isEnabled = (answer == 1);
+    return true;
+}
+
+/**
+ * @brief Determine the guiding speeds for RA and DEC axis
+ * @param raSpeed percentage for RA axis
+ * @param decSpeed percenage for DEC axis
+ * @return
+ */
+bool LX200StarGo::queryGetGuidingSpeeds (int *raSpeed, int *decSpeed) {
+    // Command query guiding speeds  - :X22#
+    //         response              - rrbdd#
+    //         rr RA speed percentage, dd DEC speed percentage
+
+    int bytesReceived = 0;
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+    flush();
+    if (!transmit(":X22#")) {
+        LOGF_ERROR("%s: Failed to send query guiding speeds request.", getDeviceName());
+        return false;
+    }
+    if (!receive(response, &bytesReceived)) {
+        LOGF_ERROR("%s: Failed to receive query guiding speeds response.", getDeviceName());
+        return false;
+    }
+
+    if (! sscanf(response, "%02db%2d", raSpeed, decSpeed)) {
+        LOGF_ERROR("%s: Unexpected guiding speed response '%s'.", getDeviceName(), response);
+        return false;
+    }
+
+    return true;
+}
+
+
+/**
+ * @brief Set the guiding speeds for RA and DEC axis
+ * @param raSpeed percentage for RA axis
+ * @param decSpeed percenage for DEC axis
+ * @return
+ */
+bool LX200StarGo::setGuidingSpeeds (int raSpeed, int decSpeed) {
+    // in RA guiding speed  -  :X20rr#
+    // in DEC guiding speed - :X21dd#
+
+    char cmd[AVALON_COMMAND_BUFFER_LENGTH];
+
+    sprintf(cmd, ":X20%2d#", raSpeed);
+
+    flush();
+    if (transmit(cmd)) {
+        LOGF_INFO("Setting RA speed to %2d%%.", raSpeed);
+    } else {
+        LOGF_ERROR("Setting RA speed to %2d %% FAILED", raSpeed);
+        return false;
+    }
+
+    sprintf(cmd, ":X21%2d#", decSpeed);
+
+    if (transmit(cmd)) {
+        LOGF_INFO("Setting DEC speed to %2d%%.", decSpeed);
+    } else {
+        LOGF_ERROR("Setting DEC speed to %2d%% FAILED", decSpeed);
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Enable or disable the ST4 guiding port
+ * @param enabled flag whether enable or disable
+ * @return
+ */
+
+bool LX200StarGo::setST4Enabled(bool enabled) {
+
+    const char *cmd = enabled ? ":TTSFh#" : ":TTRFh#";
+
+    flush();
+    if (transmit(cmd)) {
+        LOG_INFO(enabled ? "ST4 port enabled." : "ST4 port disabled.");
+        return true;
+    } else {
+        LOG_ERROR("Setting ST4 port FAILED");
+        return false;
+    }
+
+}
+
+
 
 /**
  * @brief Retrieve pier side of the mount and sync it back to the client

@@ -19,6 +19,8 @@
 #define AVALON_COMMAND_BUFFER_LENGTH                    32
 #define AVALON_RESPONSE_BUFFER_LENGTH                   32
 
+// StarGo specific tabs
+extern const char *RA_DEC_TAB;
 
 class LX200StarGo : public LX200Telescope
 {
@@ -29,6 +31,7 @@ public:
     virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool updateProperties() override;
     virtual bool initProperties() override;
 
@@ -58,6 +61,13 @@ protected:
     ILightVectorProperty MountParkingStatusLP;
     ILight MountParkingStatusL[2];
 
+    // guiding
+    INumberVectorProperty GuidingSpeedNP;
+    INumber GuidingSpeedP[2];
+
+    ISwitchVectorProperty ST4StatusSP;
+    ISwitch ST4StatusS[2];
+
     // override LX200Generic
     virtual void getBasicData() override;
     virtual bool ReadScopeStatus() override;
@@ -71,6 +81,9 @@ protected:
     virtual bool syncHomePosition();
     bool slewToHome(ISState *states, char *names[], int n);
     bool setParkPosition(ISState *states, char *names[], int n);
+
+    // autoguiding
+    virtual bool setGuidingSpeeds(int raSpeed, int decSpeed);
 
     // scope status
     virtual bool UpdateMotionStatus();
@@ -96,6 +109,11 @@ protected:
     virtual bool queryIsSlewComplete();
     virtual bool querySendMountGotoHome();
     virtual bool querySendMountSetPark();
+
+    // guiding
+    virtual bool queryGetST4Status(bool *isEnabled);
+    virtual bool queryGetGuidingSpeeds(int *raSpeed, int *decSpeed);
+    virtual bool setST4Enabled(bool enabled);
 
     virtual bool syncSideOfPier();
 
