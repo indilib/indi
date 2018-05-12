@@ -250,16 +250,11 @@ bool LX200_OnStep::updateProperties()
 
         // Focuser 1
 
-//         if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
-//         {
+         if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
+         {
             OSFocuser1 = true;
-            //defineSwitch(&OSFocus1SelSP);
-//             defineSwitch(&OSFocus1MotionSP);
             defineSwitch(&OSFocus1RateSP);
-//             defineNumber(&OSFocus1TargNP);
-// 	    defineNumber(&OSFocus1TargRelNP);
-
-//         }
+         }
         // Focuser 2
         if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2
         {
@@ -1469,6 +1464,9 @@ bool LX200_OnStep::AbortFocuser () {
 void LX200_OnStep::OSUpdateFocuser()
 {
 	char value[10];
+	if (OSFocuser1) {
+	//getCommandString(PortFD, value, ":FA#"); //
+	//if (atoi(value)) {
 	getCommandString(PortFD, value, ":FG#");
 	FocusAbsPosN[0].value =  atoi(value);
 	IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -1506,6 +1504,10 @@ void LX200_OnStep::OSUpdateFocuser()
 	IUUpdateMinMax(&FocusAbsPosNP);
 	IDSetNumber(&FocusAbsPosNP, nullptr);
 	FI::updateProperties();
+//	} else {
+//		LOGF_INFO("Focuser not active");
+	} 
+	
 
 	if(OSFocuser2)
 	{
