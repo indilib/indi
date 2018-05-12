@@ -1594,7 +1594,8 @@ bool Skywatcher::dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, ch
         catch (EQModError)
         {
             // By this time, we just rethrow the error
-            if (i == EQMOD_MAX_RETRY-1)
+            // JM 2018-05-07 immediately rethrow if GET_FEATURES_CMD
+            if (i == EQMOD_MAX_RETRY-1 || cmd == GetFeatureCmd)
                 throw;
         }
 
