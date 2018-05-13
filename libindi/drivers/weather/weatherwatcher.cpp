@@ -117,26 +117,26 @@ bool WeatherWatcher::createPropertiesFromMap()
     {
         if (x.first == keywordT[1].text)
         {
-            addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30);
+            addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);
             setCriticalParameter("WEATHER_TEMPERATURE");
         }
         else if (x.first == keywordT[2].text)
         {
-            addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20);
+            addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 15);
             setCriticalParameter("WEATHER_WIND_SPEED");
         }
         else if (x.first == keywordT[3].text)
 		{
-            addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20);
+            addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 15);
 		}        
 		else if (x.first == keywordT[0].text)
         {
-            addParameter("WEATHER_RAIN_HOUR", "Rain (mm)", 0, 0);
+            addParameter("WEATHER_RAIN_HOUR", "Rain (mm)", 0, 0, 15);
             setCriticalParameter("WEATHER_RAIN_HOUR");
         }
         else if (x.first == keywordT[4].text)
         {
-            addParameter("WEATHER_FORECAST", "Weather", 0, 0);
+            addParameter("WEATHER_FORECAST", "Weather", 0, 0,15);
             setCriticalParameter("WEATHER_FORECAST");
         }
      }
