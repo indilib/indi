@@ -122,14 +122,14 @@ bool Vantage::initProperties()
 {
     INDI::Weather::initProperties();
 
-    addParameter("WEATHER_FORECAST", "Forecast", 0, 0, 0, 1);
-    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, -20, 40);
-    addParameter("WEATHER_BAROMETER", "Barometer (mbar)", 20, 32.5, 20, 32.5);
-    addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 0, 40);
-    addParameter("WEAHTER_WIND_DIRECTION", "Wind Direction", 0, 360, 0, 360);
-    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 0, 100);
-    addParameter("WEATHER_RAIN_RATE", "Rain (mm/h)", 0, 0, 0, 0);
-    addParameter("WEATHER_SOLAR_RADIATION", "Solar Radiation (w/m^2)", 0, 10000, 0, 10000);
+    addParameter("WEATHER_FORECAST", "Forecast", 0, 0);
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30);
+    addParameter("WEATHER_BAROMETER", "Barometer (mbar)", 20, 32.5);
+    addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20);
+    addParameter("WEAHTER_WIND_DIRECTION", "Wind Direction", 0, 360);
+    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100);
+    addParameter("WEATHER_RAIN_RATE", "Rain (mm/h)", 0, 0);
+    addParameter("WEATHER_SOLAR_RADIATION", "Solar Radiation (w/m^2)", 0, 10000);
 
     setCriticalParameter("WEATHER_FORECAST");
     setCriticalParameter("WEATHER_TEMPERATURE");

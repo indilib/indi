@@ -89,10 +89,10 @@ bool MBox::initProperties()
 {
     INDI::Weather::initProperties();
 
-    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, -20, 40);
-    addParameter("WEATHER_BAROMETER", "Barometer (mbar)", 20, 32.5, 20, 32.5);
-    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 0, 100);
-    addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 0, 100);
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30);
+    addParameter("WEATHER_BAROMETER", "Barometer (mbar)", 20, 32.5);
+    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100);
+    addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100);
 
     setCriticalParameter("WEATHER_TEMPERATURE");
 
