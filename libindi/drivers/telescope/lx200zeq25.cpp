@@ -118,7 +118,7 @@ bool LX200ZEQ25::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             LOGF_ERROR("%s", errmsg);
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
             continue;
         }
 
@@ -126,7 +126,7 @@ bool LX200ZEQ25::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             LOGF_ERROR("%s", errmsg);
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
             continue;
         }
 
@@ -139,7 +139,7 @@ bool LX200ZEQ25::checkConnection()
                 return true;
         }
 
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     return false;
@@ -222,9 +222,9 @@ bool LX200ZEQ25::isZEQ25Home()
     error_type = tty_read(PortFD, bool_return, 1, 5, &nbytes_read);
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ZEQ25
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
     tcflush(PortFD, TCIFLUSH);
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     if (nbytes_read < 1)
         return false;
@@ -425,7 +425,7 @@ bool LX200ZEQ25::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation())
@@ -712,9 +712,9 @@ int LX200ZEQ25::setZEQ25StandardProcedure(int fd, const char *data)
     error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ZEQ25
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
     tcflush(fd, TCIFLUSH);
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     if (nbytes_read < 1)
         return error_type;
@@ -1317,7 +1317,7 @@ int LX200ZEQ25::setZEQ25GuideRate(double rate)
     return -1;
 }
 
-int LX200ZEQ25::SendPulseCmd(int direction, int duration_msec)
+int LX200ZEQ25::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 {
     int nbytes_write = 0;
     char cmd[20];

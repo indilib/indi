@@ -57,7 +57,7 @@ void Loader::Disconnect()
 {
     if (this->handle)
         libusb_close(this->handle);
-    this->handle = NULL;
+    this->handle = nullptr;
 }
 
 void Loader::EnterResetMode()
@@ -114,7 +114,7 @@ bool Loader::Upload(unsigned char *data)
 
 bool Loader::LoadFirmware()
 {
-    //unsigned char *data = NULL;
+    //unsigned char *data = nullptr;
 
     /* Load bootloader */
     this->EnterResetMode();

@@ -77,10 +77,10 @@ void ISGetProperties(const char *dev)
     for (int i = 0; i < cameraCount; i++)
     {
         SBIGCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISGetProperties(dev);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -92,10 +92,10 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     for (int i = 0; i < cameraCount; i++)
     {
         SBIGCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewSwitch(dev, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -107,10 +107,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     for (int i = 0; i < cameraCount; i++)
     {
         SBIGCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewText(dev, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -122,10 +122,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     for (int i = 0; i < cameraCount; i++)
     {
         SBIGCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewNumber(dev, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -497,7 +497,7 @@ bool SBIGCCD::updateProperties()
         {
             loadConfig(true, "CFW_TYPE");
             ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
-            if (p != NULL && FilterConnectionS[0].s == ISS_OFF)
+            if (p != nullptr && FilterConnectionS[0].s == ISS_OFF)
             {
                 LOG_DEBUG("Filter type is already selected and filter is not connected. Will "
                                                "attempt to connect to filter now...");
@@ -523,7 +523,7 @@ bool SBIGCCD::updateProperties()
             deleteProperty(FilterConnectionSP.name);
             deleteProperty(FilterTypeSP.name);
             deleteProperty(FilterProdcutTP.name);
-            if (FilterNameT != NULL)
+            if (FilterNameT != nullptr)
             {
                 deleteProperty(FilterNameTP->name);
             }
@@ -544,12 +544,12 @@ bool SBIGCCD::ISNewText(const char *dev, const char *name, char *texts[], char *
             {
                 LOGF_ERROR("Invalid ip address %s.", texts[0]);
                 IpTP.s = IPS_ALERT;
-                IDSetText(&IpTP, NULL);
+                IDSetText(&IpTP, nullptr);
                 return false;
             }
             IpTP.s = IPS_OK;
             IUUpdateText(&IpTP, texts, names, n);
-            IDSetText(&IpTP, NULL);
+            IDSetText(&IpTP, nullptr);
             return true;
         }
         if (strcmp(name, FilterNameTP->name) == 0)
@@ -577,7 +577,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 deleteProperty(IpTP.name);
             }
             PortSP.s = IPS_OK;
-            IDSetSwitch(&PortSP, NULL);
+            IDSetSwitch(&PortSP, nullptr);
             return true;
         }
         if (strcmp(name, FanStateSP.name) == 0)
@@ -602,7 +602,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             IUResetSwitch(&FilterTypeSP);
             IUUpdateSwitch(&FilterTypeSP, states, names, n);
             FilterTypeSP.s = IPS_OK;
-            IDSetSwitch(&FilterTypeSP, NULL);
+            IDSetSwitch(&FilterTypeSP, nullptr);
             return true;
         }
         if (strcmp(name, CoolerSP.name) == 0)
@@ -626,7 +626,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             if (FilterConnectionS[0].s == ISS_ON)
             {
                 ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
-                if (p == NULL)
+                if (p == nullptr)
                 {
                     FilterConnectionSP.s = IPS_ALERT;
                     IUResetSwitch(&FilterConnectionSP);
@@ -693,7 +693,7 @@ bool SBIGCCD::Connect()
             }
             SetCCDCapability(cap);
 #ifdef ASYNC_READOUT
-            pthread_create(&primary_thread, NULL, &grabCCDHelper, this);
+            pthread_create(&primary_thread, nullptr, &grabCCDHelper, this);
 #endif
             return true;
         }
@@ -796,7 +796,7 @@ bool SBIGCCD::setupParams()
 
     int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8 + 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
-    if (PrimaryCCD.getFrameBuffer() == NULL)
+    if (PrimaryCCD.getFrameBuffer() == nullptr)
     {
         LOG_ERROR("Failed to allocate memory for primary camera buffer");
         return false;
@@ -807,7 +807,7 @@ bool SBIGCCD::setupParams()
     {
         nbuf = GuideCCD.getXRes() * GuideCCD.getYRes() * GuideCCD.getBPP() / 8 + 512;
         GuideCCD.setFrameBufferSize(nbuf);
-        if (GuideCCD.getFrameBuffer() == NULL)
+        if (GuideCCD.getFrameBuffer() == nullptr)
         {
             LOG_ERROR("Failed to allocate memory for guide head buffer");
             return false;
@@ -822,9 +822,9 @@ bool SBIGCCD::setupParams()
         QueryTemperatureStatus(regulationEnabled, temp, setPoint, power);
         CoolerS[0].s = regulationEnabled ? ISS_ON : ISS_OFF;
         CoolerS[1].s = regulationEnabled ? ISS_OFF : ISS_ON;
-        IDSetSwitch(&CoolerSP, NULL);
+        IDSetSwitch(&CoolerSP, nullptr);
         CoolerN[0].value = power * 100;
-        IDSetNumber(&CoolerNP, NULL);
+        IDSetNumber(&CoolerNP, nullptr);
         TemperatureN[0].min = MIN_CCD_TEMP;
         TemperatureN[0].max = MAX_CCD_TEMP;
         IUUpdateMinMax(&TemperatureNP);
@@ -833,7 +833,7 @@ bool SBIGCCD::setupParams()
     IUSaveText(&ProductInfoT[0], GetCameraName());
     IUSaveText(&ProductInfoT[1], GetCameraID());
     ProductInfoTP.s = IPS_OK;
-    IDSetText(&ProductInfoTP, NULL);
+    IDSetText(&ProductInfoTP, nullptr);
     return true;
 }
 
@@ -851,7 +851,7 @@ int SBIGCCD::SetTemperature(double temperature)
             CoolerS[0].s = ISS_ON;
             CoolerS[1].s = ISS_OFF;
             CoolerSP.s   = IPS_BUSY;
-            IDSetSwitch(&CoolerSP, NULL);
+            IDSetSwitch(&CoolerSP, nullptr);
         }
         return 0;
     }
@@ -958,7 +958,7 @@ bool SBIGCCD::StartExposure(float duration)
         return false;
     }
     ExposureRequest = duration;
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
     InExposure = true;
     return true;
 }
@@ -973,7 +973,7 @@ bool SBIGCCD::StartGuideExposure(float duration)
         return false;
     }
     GuideExposureRequest = duration;
-    gettimeofday(&GuideExpStart, NULL);
+    gettimeofday(&GuideExpStart, nullptr);
     InGuideExposure = true;
     return true;
 }
@@ -1149,41 +1149,41 @@ bool SBIGCCD::UpdateGuiderBin(int binx, int biny)
     return updateFrameProperties(&GuideCCD);
 }
 
-IPState SBIGCCD::GuideNorth(float duration)
+IPState SBIGCCD::GuideNorth(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tYMinus                                      = dur;
     ActivateRelay(&rp);
     return IPS_OK;
 }
 
-IPState SBIGCCD::GuideSouth(float duration)
+IPState SBIGCCD::GuideSouth(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tYPlus                                       = dur;
     ActivateRelay(&rp);
     return IPS_OK;
 }
 
-IPState SBIGCCD::GuideEast(float duration)
+IPState SBIGCCD::GuideEast(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tXPlus                                       = dur;
     ActivateRelay(&rp);
     return IPS_OK;
 }
 
-IPState SBIGCCD::GuideWest(float duration)
+IPState SBIGCCD::GuideWest(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tXMinus                                      = dur;
     ActivateRelay(&rp);
     return IPS_OK;
@@ -1194,7 +1194,7 @@ float SBIGCCD::CalcTimeLeft(timeval start, float req)
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
     timesince =
         (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
     timesince = timesince / 1000;
@@ -1211,7 +1211,7 @@ void *SBIGCCD::grabCCDHelper(void *context)
 void *SBIGCCD::grabCCD()
 {
     LOG_DEBUG("grabCCD thread started...");
-    INDI::CCDChip *targetChip = NULL;
+    INDI::CCDChip *targetChip = nullptr;
     pthread_mutex_lock(&condMutex);
     while (true)
     {
@@ -1295,7 +1295,7 @@ bool SBIGCCD::saveConfigItems(FILE *fp)
 void SBIGCCD::TimerHit()
 {
     long timeleft       = 1e6;
-    INDI::CCDChip *targetChip = NULL;
+    INDI::CCDChip *targetChip = nullptr;
     if (isConnected() == false)
     {
         return;
@@ -2165,7 +2165,7 @@ bool SBIGCCD::SelectFilter(int position)
     else
     {
         FilterSlotNP.s = IPS_ALERT;
-        IDSetNumber(&FilterSlotNP, NULL);
+        IDSetNumber(&FilterSlotNP, nullptr);
         LOG_INFO("Failed to reach position");
         return false;
     }
@@ -2220,7 +2220,7 @@ void SBIGCCD::updateTemperature()
             CoolerNP.s = IPS_BUSY;
         }
         CoolerN[0].value = power;
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
         IDSetNumber(&CoolerNP, 0);
     }
     else
@@ -2236,7 +2236,7 @@ void SBIGCCD::updateTemperature()
             LOGF_ERROR("Erro reading temperature. %s", GetErrorString(res));
             TemperatureNP.s = IPS_ALERT;
         }
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
     }
     IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
 }
@@ -2370,7 +2370,7 @@ int SBIGCCD::CFWConnect()
         LOG_ERROR("You must establish connection to CCD before connecting to filter wheel.");
         FilterConnectionSP.s   = IPS_IDLE;
         FilterConnectionS[1].s = ISS_ON;
-        IDSetSwitch(&FilterConnectionSP, NULL);
+        IDSetSwitch(&FilterConnectionSP, nullptr);
         return CE_OS_ERROR;
     }
 
@@ -2475,7 +2475,7 @@ int SBIGCCD::CFWConnect()
                FilterSlotN[0].value);
 
         defineNumber(&FilterSlotNP);
-        if (FilterNameT == NULL)
+        if (FilterNameT == nullptr)
             GetFilterNames();
         if (FilterNameT)
             defineText(FilterNameTP);
@@ -2486,7 +2486,7 @@ int SBIGCCD::CFWConnect()
         FilterConnectionSP.s = IPS_OK;
         LOG_INFO("CFW connected.");
         FilterConnectionS[0].s = ISS_ON;
-        IDSetSwitch(&FilterConnectionSP, NULL);
+        IDSetSwitch(&FilterConnectionSP, nullptr);
     }
     else
     {
@@ -2495,7 +2495,7 @@ int SBIGCCD::CFWConnect()
         IUResetSwitch(&FilterConnectionSP);
         FilterConnectionSP.sp[1].s = ISS_ON;
         LOG_ERROR("Failed to connect CFW");
-        IDSetSwitch(&FilterConnectionSP, NULL);
+        IDSetSwitch(&FilterConnectionSP, nullptr);
     }
     return res;
 }

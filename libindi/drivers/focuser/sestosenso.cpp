@@ -100,7 +100,7 @@ bool SestoSenso::initProperties()
     FocusRelPosN[0].step  = 1000;
 
     FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 100000.;
+    FocusAbsPosN[0].max   = 200000.;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
 

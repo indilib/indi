@@ -2884,28 +2884,28 @@ bool CCD::saveConfigItems(FILE *fp)
     return true;
 }
 
-IPState CCD::GuideNorth(float ms)
+IPState CCD::GuideNorth(uint32_t ms)
 {
     INDI_UNUSED(ms);
     DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
-IPState CCD::GuideSouth(float ms)
+IPState CCD::GuideSouth(uint32_t ms)
 {
     INDI_UNUSED(ms);
     DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
-IPState CCD::GuideEast(float ms)
+IPState CCD::GuideEast(uint32_t ms)
 {
     INDI_UNUSED(ms);
     DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
-IPState CCD::GuideWest(float ms)
+IPState CCD::GuideWest(uint32_t ms)
 {
     INDI_UNUSED(ms);
     DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");

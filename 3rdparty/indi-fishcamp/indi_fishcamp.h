@@ -59,10 +59,10 @@ class FishCampCCD : public INDI::CCD
     virtual void simulationTriggered(bool enable);
 
     // Guide Port
-    virtual IPState GuideNorth(float);
-    virtual IPState GuideSouth(float);
-    virtual IPState GuideEast(float);
-    virtual IPState GuideWest(float);
+    virtual IPState GuideNorth(uint32_t ms);
+    virtual IPState GuideSouth(uint32_t ms);
+    virtual IPState GuideEast(uint32_t ms);
+    virtual IPState GuideWest(uint32_t ms);
 
   private:
     char name[MAXINDINAME];

@@ -59,10 +59,10 @@ class SkywatcherAltAzSimple : public SkywatcherAPI,
     virtual bool Sync(double ra, double dec) override;
     virtual void TimerHit() override;
     virtual bool updateProperties() override;
-    virtual IPState GuideNorth(float ms) override;
-    virtual IPState GuideSouth(float ms) override;
-    virtual IPState GuideEast(float ms) override;
-    virtual IPState GuideWest(float ms) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
 private:
     void ResetGuidePulses();

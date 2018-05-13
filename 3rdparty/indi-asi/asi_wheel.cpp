@@ -91,10 +91,10 @@ void ISGetProperties(const char *dev)
     for (int i = 0; i < num_wheels; i++)
     {
         ASIWHEEL *wheel = wheels[i];
-        if (dev == NULL || !strcmp(dev, wheel->name))
+        if (dev == nullptr || !strcmp(dev, wheel->name))
         {
             wheel->ISGetProperties(dev);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -106,10 +106,10 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     for (int i = 0; i < num_wheels; i++)
     {
         ASIWHEEL *wheel = wheels[i];
-        if (dev == NULL || !strcmp(dev, wheel->name))
+        if (dev == nullptr || !strcmp(dev, wheel->name))
         {
             wheel->ISNewSwitch(dev, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -121,10 +121,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     for (int i = 0; i < num_wheels; i++)
     {
         ASIWHEEL *wheel = wheels[i];
-        if (dev == NULL || !strcmp(dev, wheel->name))
+        if (dev == nullptr || !strcmp(dev, wheel->name))
         {
             wheel->ISNewText(dev, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -136,10 +136,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     for (int i = 0; i < num_wheels; i++)
     {
         ASIWHEEL *wheel = wheels[i];
-        if (dev == NULL || !strcmp(dev, wheel->name))
+        if (dev == nullptr || !strcmp(dev, wheel->name))
         {
             wheel->ISNewNumber(dev, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }

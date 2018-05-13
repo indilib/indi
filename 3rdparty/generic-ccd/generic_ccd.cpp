@@ -54,7 +54,7 @@ static struct
     int vid;
     int pid;
     const char *name;
-} deviceTypes[] = { { 0x0001, 0x0001, "Model 1" }, { 0x0001, 0x0002, "Model 2" }, { 0, 0, NULL } };
+} deviceTypes[] = { { 0x0001, 0x0001, "Model 1" }, { 0x0001, 0x0002, "Model 2" }, { 0, 0, nullptr } };
 
 static void cleanup()
 {
@@ -92,7 +92,7 @@ void ISInit()
 
         /* For demo purposes we are creating two test devices */
         cameraCount            = 2;
-        struct usb_device *dev = NULL;
+        struct usb_device *dev = nullptr;
         cameras[0]             = new GenericCCD(dev, deviceTypes[0].name);
         cameras[1]             = new GenericCCD(dev, deviceTypes[1].name);
 
@@ -107,10 +107,10 @@ void ISGetProperties(const char *dev)
     for (int i = 0; i < cameraCount; i++)
     {
         GenericCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISGetProperties(dev);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -122,10 +122,10 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     for (int i = 0; i < cameraCount; i++)
     {
         GenericCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewSwitch(dev, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -137,10 +137,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     for (int i = 0; i < cameraCount; i++)
     {
         GenericCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewText(dev, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -152,10 +152,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     for (int i = 0; i < cameraCount; i++)
     {
         GenericCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewNumber(dev, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -325,7 +325,7 @@ bool GenericCCD::setupParams()
     // Setting sample temperature -- MAKE CALL TO API FUNCTION TO GET TEMPERATURE IN REAL DRIVER
     TemperatureN[0].value = 25.0;
     LOGF_INFO("The CCD Temperature is %f", TemperatureN[0].value);
-    IDSetNumber(&TemperatureNP, NULL);
+    IDSetNumber(&TemperatureNP, nullptr);
 
     ///////////////////////////
     // 4. Get temperature
@@ -401,7 +401,7 @@ bool GenericCCD::StartExposure(float duration)
     PrimaryCCD.setExposureDuration(duration);
     ExposureRequest = duration;
 
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
     LOGF_INFO("Taking a %g seconds frame...", ExposureRequest);
 
     InExposure = true;
@@ -556,7 +556,7 @@ float GenericCCD::CalcTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
                 (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
@@ -702,7 +702,7 @@ void GenericCCD::TimerHit()
             if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
                 TemperatureNP.s = IPS_OK;
 
-            IDSetNumber(&TemperatureNP, NULL);
+            IDSetNumber(&TemperatureNP, nullptr);
             break;
 
         case IPS_ALERT:
@@ -714,7 +714,7 @@ void GenericCCD::TimerHit()
     return;
 }
 
-IPState GenericCCD::GuideNorth(float ms)
+IPState GenericCCD::GuideNorth(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************
@@ -738,7 +738,7 @@ IPState GenericCCD::GuideNorth(float ms)
     return IPS_OK;
 }
 
-IPState GenericCCD::GuideSouth(float ms)
+IPState GenericCCD::GuideSouth(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************
@@ -762,7 +762,7 @@ IPState GenericCCD::GuideSouth(float ms)
     return IPS_OK;
 }
 
-IPState GenericCCD::GuideEast(float ms)
+IPState GenericCCD::GuideEast(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************
@@ -786,7 +786,7 @@ IPState GenericCCD::GuideEast(float ms)
     return IPS_OK;
 }
 
-IPState GenericCCD::GuideWest(float ms)
+IPState GenericCCD::GuideWest(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************

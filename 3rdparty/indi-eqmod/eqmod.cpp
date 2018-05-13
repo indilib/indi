@@ -252,7 +252,7 @@ double EQMod::getJulianDate()
     /*
   struct timeval currenttime, difftime;
   double usecs;
-  gettimeofday(&currenttime, NULL);
+  gettimeofday(&currenttime, nullptr);
   if (timeval_subtract(&difftime, &currenttime, &lasttimeupdate) == -1)
     return juliandate;
   */
@@ -673,7 +673,7 @@ bool EQMod::updateProperties()
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
         deleteProperty(AlignSyncModeSP->name);
 #endif
-        //MountInformationTP=NULL;
+        //MountInformationTP=nullptr;
         //}
     }
 #ifdef WITH_ALIGN_GEEHALEL
@@ -773,7 +773,7 @@ bool EQMod::ReadScopeStatus()
     //double dt=0;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    // gettimeofday (&tv, NULL);
+    // gettimeofday (&tv, nullptr);
 
     //if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
     //  ltv = tv;
@@ -996,13 +996,13 @@ bool EQMod::ReadScopeStatus()
                             IUResetSwitch(TrackModeSP);
                             IUUpdateSwitch(TrackModeSP, &state, &name, 1);
                             TrackModeSP->s = IPS_BUSY;
-                            IDSetSwitch(TrackModeSP, NULL);
+                            IDSetSwitch(TrackModeSP, nullptr);
 #endif
                         }
 
 #if 0
                         TrackModeSP->s = IPS_BUSY;
-                        IDSetSwitch(TrackModeSP, NULL);
+                        IDSetSwitch(TrackModeSP, nullptr);
 #endif
                         LOGF_INFO("Telescope slew is complete. Tracking %s...", name);
                     }
@@ -1953,7 +1953,7 @@ bool EQMod::Goto(double r, double d)
 #if 0
     // 2017-08-01 Jasem: We should set TrackState to IPS_IDLE instead here?
     TrackModeSP->s = IPS_IDLE;
-    IDSetSwitch(TrackModeSP, NULL);
+    IDSetSwitch(TrackModeSP, nullptr);
 #endif
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
@@ -1991,7 +1991,7 @@ bool EQMod::Park()
             return (e.DefaultHandleException(this));
         }
         //TrackModeSP->s = IPS_IDLE;
-        //IDSetSwitch(TrackModeSP, NULL);
+        //IDSetSwitch(TrackModeSP, nullptr);
         TrackState = SCOPE_PARKING;
         ParkSP.s   = IPS_BUSY;
         IDSetSwitch(&ParkSP, nullptr);
@@ -2152,7 +2152,7 @@ bool EQMod::Sync(double ra, double dec)
     return true;
 }
 
-IPState EQMod::GuideNorth(float ms)
+IPState EQMod::GuideNorth(uint32_t ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
@@ -2186,7 +2186,7 @@ IPState EQMod::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState EQMod::GuideSouth(float ms)
+IPState EQMod::GuideSouth(uint32_t ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
@@ -2219,7 +2219,7 @@ IPState EQMod::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState EQMod::GuideEast(float ms)
+IPState EQMod::GuideEast(uint32_t ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
@@ -2253,7 +2253,7 @@ IPState EQMod::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState EQMod::GuideWest(float ms)
+IPState EQMod::GuideWest(uint32_t ms)
 {
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
@@ -3114,7 +3114,7 @@ bool EQMod::Abort()
 #if 0
     TrackModeSP->s = IPS_IDLE;
     IUResetSwitch(TrackModeSP);
-    IDSetSwitch(TrackModeSP, NULL);
+    IDSetSwitch(TrackModeSP, nullptr);
 #endif
     AutohomeState = AUTO_HOME_IDLE;
     AutoHomeSP->s = IPS_IDLE;

@@ -157,7 +157,7 @@ bool ArduinoST4::ISNewNumber(const char *dev, const char *name, double values[],
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-IPState ArduinoST4::GuideNorth(float ms)
+IPState ArduinoST4::GuideNorth(uint32_t ms)
 {
     LOGF_DEBUG("Guiding: N %.0f ms", ms);
 
@@ -175,7 +175,7 @@ IPState ArduinoST4::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState ArduinoST4::GuideSouth(float ms)
+IPState ArduinoST4::GuideSouth(uint32_t ms)
 {
     LOGF_DEBUG("Guiding: S %.0f ms", ms);
 
@@ -193,7 +193,7 @@ IPState ArduinoST4::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState ArduinoST4::GuideEast(float ms)
+IPState ArduinoST4::GuideEast(uint32_t ms)
 {
     LOGF_DEBUG("Guiding: E %.0f ms", ms);
 
@@ -211,7 +211,7 @@ IPState ArduinoST4::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState ArduinoST4::GuideWest(float ms)
+IPState ArduinoST4::GuideWest(uint32_t ms)
 {
     LOGF_DEBUG("Guiding: E %.0f ms", ms);
 

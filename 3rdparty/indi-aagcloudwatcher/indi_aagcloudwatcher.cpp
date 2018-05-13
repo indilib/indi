@@ -45,7 +45,7 @@ AAGCloudWatcher::AAGCloudWatcher()
 
     LOG_DEBUG("Initializing from AAG Cloud Watcher device...");
 
-    cwc = NULL;
+    cwc = nullptr;
 
     lastReadPeriod = 3.0;
 
@@ -112,7 +112,7 @@ bool AAGCloudWatcher::ISNewText(const char *dev, const char *name, char *texts[]
     {
         IUUpdateText(tvp, texts, names, n);
         tvp->s = IPS_OK;
-        IDSetText(tvp, NULL);
+        IDSetText(tvp, nullptr);
 
         return true;
     }
@@ -214,7 +214,7 @@ bool AAGCloudWatcher::ISNewNumber(const char *dev, const char *name, double valu
 
         IUUpdateNumber(nvp, values, names, n);
         nvp->s = IPS_OK;
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
 
         return true;
     }
@@ -232,7 +232,7 @@ bool AAGCloudWatcher::ISNewNumber(const char *dev, const char *name, double valu
 
         IUUpdateNumber(nvp, values, names, n);
         nvp->s = IPS_OK;
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
 
         return true;
     }
@@ -253,7 +253,7 @@ bool AAGCloudWatcher::ISNewNumber(const char *dev, const char *name, double valu
 
         IUUpdateNumber(nvp, values, names, n);
         nvp->s = IPS_OK;
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
 
         return true;
     }
@@ -274,7 +274,7 @@ bool AAGCloudWatcher::ISNewNumber(const char *dev, const char *name, double valu
 
         IUUpdateNumber(nvp, values, names, n);
         nvp->s = IPS_OK;
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
 
         return true;
     }
@@ -295,7 +295,7 @@ bool AAGCloudWatcher::ISNewNumber(const char *dev, const char *name, double valu
 
         IUUpdateNumber(nvp, values, names, n);
         nvp->s = IPS_OK;
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
 
         return true;
     }
@@ -316,7 +316,7 @@ bool AAGCloudWatcher::ISNewNumber(const char *dev, const char *name, double valu
 
         IUUpdateNumber(nvp, values, names, n);
         nvp->s = IPS_OK;
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
 
         return true;
     }
@@ -337,7 +337,7 @@ bool AAGCloudWatcher::ISNewNumber(const char *dev, const char *name, double valu
 
         IUUpdateNumber(nvp, values, names, n);
         nvp->s = IPS_OK;
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
 
         return true;
     }
@@ -435,7 +435,7 @@ bool AAGCloudWatcher::ISNewSwitch(const char *dev, const char *name, ISState *st
         {
             svp->s = IPS_OK;
         }
-        IDSetSwitch(svp, NULL);
+        IDSetSwitch(svp, nullptr);
 
         return true;
     }
@@ -512,13 +512,13 @@ bool AAGCloudWatcher::heatingAlgorithm()
         globalRainSensorHeater = getNumberValueFromVector(sensors, "rainSensorHeater");
     }
 
-    time_t currentTime = time(NULL);
+    time_t currentTime = time(nullptr);
 
     if ((isWetRain()) && (heatingStatus == normal))
     { // We check if sensor is wet.
         if (wetStartTime == -1)
         { // First moment wet
-            wetStartTime = time(NULL);
+            wetStartTime = time(nullptr);
         }
         else
         { // We have been wet for a while
@@ -584,7 +584,7 @@ bool AAGCloudWatcher::heatingAlgorithm()
         else
         {
             // the pulse starts
-            pulseStartTime = time(NULL);
+            pulseStartTime = time(nullptr);
             heatingStatus  = pulse;
         }
     }
@@ -676,7 +676,7 @@ bool AAGCloudWatcher::heatingAlgorithm()
     ISwitchVectorProperty *svp = getSwitch("heaterStatus");
     IUUpdateSwitch(svp, statesSw, namesSw, 3);
     svp->s = IPS_OK;
-    IDSetSwitch(svp, NULL);
+    IDSetSwitch(svp, nullptr);
     return true;
 }
 
@@ -703,7 +703,7 @@ void ISPoll(void *p)
 
 bool AAGCloudWatcher::isConnected()
 {
-    if (cwc != NULL)
+    if (cwc != nullptr)
     {
         return true;
     }
@@ -763,7 +763,7 @@ bool AAGCloudWatcher::sendData()
     INumberVectorProperty *nvp = getNumber("readings");
     IUUpdateNumber(nvp, values, names, N_DATA);
     nvp->s = IPS_OK;
-    IDSetNumber(nvp, NULL);
+    IDSetNumber(nvp, nullptr);
 
     int N_ERRORS = 5;
     double valuesE[N_ERRORS];
@@ -787,7 +787,7 @@ bool AAGCloudWatcher::sendData()
     INumberVectorProperty *nvpE = getNumber("unitErrors");
     IUUpdateNumber(nvpE, valuesE, namesE, N_ERRORS);
     nvpE->s = IPS_OK;
-    IDSetNumber(nvpE, NULL);
+    IDSetNumber(nvpE, nullptr);
 
     int N_SENS = 8;
     double valuesS[N_SENS];
@@ -880,7 +880,7 @@ bool AAGCloudWatcher::sendData()
     INumberVectorProperty *nvpS = getNumber("sensors");
     IUUpdateNumber(nvpS, valuesS, namesS, N_SENS);
     nvpS->s = IPS_OK;
-    IDSetNumber(nvpS, NULL);
+    IDSetNumber(nvpS, nullptr);
 
     ISState states[2];
     char *namesSw[2];
@@ -901,7 +901,7 @@ bool AAGCloudWatcher::sendData()
     ISwitchVectorProperty *svpSw = getSwitch("deviceSwitch");
     IUUpdateSwitch(svpSw, states, namesSw, 2);
     svpSw->s = IPS_OK;
-    IDSetSwitch(svpSw, NULL);
+    IDSetSwitch(svpSw, nullptr);
 
     INumberVectorProperty *nvpLimits = getNumber("limitsCloud");
     int clearLimit                   = getNumberValueFromVector(nvpLimits, "clear");
@@ -939,7 +939,7 @@ bool AAGCloudWatcher::sendData()
     ISwitchVectorProperty *svpCC = getSwitch("cloudConditions");
     IUUpdateSwitch(svpCC, statesCloud, namesCloud, 4);
     svpCC->s = IPS_OK;
-    IDSetSwitch(svpCC, NULL);
+    IDSetSwitch(svpCC, nullptr);
 
     nvpLimits     = getNumber("limitsRain");
     int dryLimit  = getNumberValueFromVector(nvpLimits, "dry");
@@ -977,7 +977,7 @@ bool AAGCloudWatcher::sendData()
     ISwitchVectorProperty *svpRC = getSwitch("rainConditions");
     IUUpdateSwitch(svpRC, statesRain, namesRain, 4);
     svpRC->s = IPS_OK;
-    IDSetSwitch(svpRC, NULL);
+    IDSetSwitch(svpRC, nullptr);
 
     nvpLimits          = getNumber("limitsBrightness");
     int darkLimit      = getNumberValueFromVector(nvpLimits, "dark");
@@ -1009,7 +1009,7 @@ bool AAGCloudWatcher::sendData()
     ISwitchVectorProperty *svpBC = getSwitch("brightnessConditions");
     IUUpdateSwitch(svpBC, statesBrightness, namesBrightness, 3);
     svpBC->s = IPS_OK;
-    IDSetSwitch(svpBC, NULL);
+    IDSetSwitch(svpBC, nullptr);
 
     int windSpeed         = data.windSpeed;
     nvpLimits             = getNumber("limitsWind");
@@ -1054,7 +1054,7 @@ bool AAGCloudWatcher::sendData()
     ISwitchVectorProperty *svpWC = getSwitch("windConditions");
     IUUpdateSwitch(svpWC, statesWind, namesWind, 4);
     svpWC->s = IPS_OK;
-    IDSetSwitch(svpWC, NULL);
+    IDSetSwitch(svpWC, nullptr);
     return true;
 }
 
@@ -1121,7 +1121,7 @@ bool AAGCloudWatcher::resetData()
     INumberVectorProperty *nvp = getNumber("readings");
     IUUpdateNumber(nvp, values, names, N_DATA);
     nvp->s = IPS_IDLE;
-    IDSetNumber(nvp, NULL);
+    IDSetNumber(nvp, nullptr);
 
     int N_ERRORS = 5;
     double valuesE[N_ERRORS];
@@ -1145,7 +1145,7 @@ bool AAGCloudWatcher::resetData()
     INumberVectorProperty *nvpE = getNumber("unitErrors");
     IUUpdateNumber(nvpE, valuesE, namesE, N_ERRORS);
     nvpE->s = IPS_IDLE;
-    IDSetNumber(nvpE, NULL);
+    IDSetNumber(nvpE, nullptr);
 
     int N_SENS = 8;
     double valuesS[N_SENS];
@@ -1178,27 +1178,27 @@ bool AAGCloudWatcher::resetData()
     INumberVectorProperty *nvpS = getNumber("sensors");
     IUUpdateNumber(nvpS, valuesS, namesS, N_SENS);
     nvpS->s = IPS_IDLE;
-    IDSetNumber(nvpS, NULL);
+    IDSetNumber(nvpS, nullptr);
 
     ISwitchVectorProperty *svpSw = getSwitch("deviceSwitch");
     svpSw->s                     = IPS_IDLE;
-    IDSetSwitch(svpSw, NULL);
+    IDSetSwitch(svpSw, nullptr);
 
     ISwitchVectorProperty *svpCC = getSwitch("cloudConditions");
     svpCC->s                     = IPS_IDLE;
-    IDSetSwitch(svpCC, NULL);
+    IDSetSwitch(svpCC, nullptr);
 
     ISwitchVectorProperty *svpRC = getSwitch("rainConditions");
     svpRC->s                     = IPS_IDLE;
-    IDSetSwitch(svpRC, NULL);
+    IDSetSwitch(svpRC, nullptr);
 
     ISwitchVectorProperty *svpBC = getSwitch("brightnessConditions");
     svpBC->s                     = IPS_IDLE;
-    IDSetSwitch(svpBC, NULL);
+    IDSetSwitch(svpBC, nullptr);
 
     ISwitchVectorProperty *svp = getSwitch("heaterStatus");
     svp->s                     = IPS_IDLE;
-    IDSetSwitch(svp, NULL);
+    IDSetSwitch(svp, nullptr);
     return true;
 }
 
@@ -1254,7 +1254,7 @@ bool AAGCloudWatcher::sendConstants()
 
     IUUpdateNumber(nvp, values, names, N_CONSTANTS);
     nvp->s = IPS_OK;
-    IDSetNumber(nvp, NULL);
+    IDSetNumber(nvp, nullptr);
 
     char *valuesT[1];
     char *namesT[1];
@@ -1264,7 +1264,7 @@ bool AAGCloudWatcher::sendConstants()
 
     IUUpdateText(tvp, valuesT, namesT, 1);
     tvp->s = IPS_OK;
-    IDSetText(tvp, NULL);
+    IDSetText(tvp, nullptr);
     return true;
 }
 
@@ -1322,7 +1322,7 @@ bool AAGCloudWatcher::resetConstants()
 
     IUUpdateNumber(nvp, values, names, N_CONSTANTS);
     nvp->s = IPS_IDLE;
-    IDSetNumber(nvp, NULL);
+    IDSetNumber(nvp, nullptr);
 
     char *valuesT[1];
     char *namesT[1];
@@ -1332,13 +1332,13 @@ bool AAGCloudWatcher::resetConstants()
 
     IUUpdateText(tvp, valuesT, namesT, 1);
     tvp->s = IPS_IDLE;
-    IDSetText(tvp, NULL);
+    IDSetText(tvp, nullptr);
     return true;
 }
 
 bool AAGCloudWatcher::Connect()
 {
-    if (cwc == NULL)
+    if (cwc == nullptr)
     {
         ITextVectorProperty *tvp = getText("serial");
 
@@ -1367,7 +1367,7 @@ bool AAGCloudWatcher::Connect()
 
             delete cwc;
 
-            cwc = NULL;
+            cwc = nullptr;
 
             return false;
         }
@@ -1378,7 +1378,7 @@ bool AAGCloudWatcher::Connect()
 
 bool AAGCloudWatcher::Disconnect()
 {
-    if (cwc != NULL)
+    if (cwc != nullptr)
     {
         resetData();
         resetConstants();
@@ -1387,7 +1387,7 @@ bool AAGCloudWatcher::Disconnect()
 
         delete cwc;
 
-        cwc = NULL;
+        cwc = nullptr;
 
         IDMessage(getDefaultName(), "Disconnected from AAG Cloud Watcher\n");
     }

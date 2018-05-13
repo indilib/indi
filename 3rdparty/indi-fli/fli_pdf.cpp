@@ -185,7 +185,7 @@ bool FLIPDF::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 return false;
 
             PortSP.s = IPS_OK;
-            IDSetSwitch(&PortSP, NULL);
+            IDSetSwitch(&PortSP, nullptr);
             return true;
         }
     }
@@ -305,7 +305,7 @@ bool FLIPDF::setupParams()
     snprintf(fw_rev, 16, "%ld", FLIFocus.FWRevision);
     IUSaveText(&FocusInfoT[2], fw_rev);
 
-    IDSetText(&FocusInfoTP, NULL);
+    IDSetText(&FocusInfoTP, nullptr);
     ///////////////////////////
     // 4. Focuser position
     ///////////////////////////
@@ -419,12 +419,12 @@ void FLIPDF::TimerHit()
             if (FocusRelPosNP.s == IPS_BUSY)
             {
                 FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, nullptr);
             }
         }
 
         FocusAbsPosN[0].value = FLIFocus.steps_remaing;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
     else // we need to display the current position after move finished
     {
@@ -437,7 +437,7 @@ void FLIPDF::TimerHit()
             return;
         }
         FocusAbsPosN[0].value = FLIFocus.current_pos;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
     if (timerID == -1)
@@ -510,9 +510,9 @@ bool FLIPDF::findFLIPDF(flidomain_t domain)
         return false;
     }
 
-    if (names != NULL && names[0] != NULL)
+    if (names != nullptr && names[0] != nullptr)
     {
-        for (int i = 0; names[i] != NULL; i++)
+        for (int i = 0; names[i] != nullptr; i++)
         {
             for (int j = 0; names[i][j] != '\0'; j++)
                 if (names[i][j] == ';')

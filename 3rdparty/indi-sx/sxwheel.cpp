@@ -110,10 +110,10 @@ bool SXWHEEL::Connect()
     else
     {
         if (!handle)
-            handle = hid_open(0x1278, 0x0920, NULL);
+            handle = hid_open(0x1278, 0x0920, nullptr);
         SelectFilter(CurrentFilter);
     }
-    return handle != NULL;
+    return handle != nullptr;
 }
 
 bool SXWHEEL::Disconnect()

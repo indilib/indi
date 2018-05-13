@@ -209,10 +209,10 @@ IPState MBox::updateWeather()
     char *token = std::strtok(response, ",");
 
     // Sensor Type: Pressure
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // P Sensor Value
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
         LOG_ERROR("Invalid response.");
@@ -222,14 +222,14 @@ IPState MBox::updateWeather()
     setParameterValue("WEATHER_BAROMETER", atof(token)/100.0);
 
     // Sensor Units (Pascal)
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Sensor ID
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // Sensor Type: Temperature
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // T Sensor value Temperature
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
         LOG_ERROR("Invalid response.");
@@ -238,14 +238,14 @@ IPState MBox::updateWeather()
     setParameterValue("WEATHER_TEMPERATURE", atof(token));
 
     // Sensor Units (C)
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Sensor ID
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // Sensor Type: Humidity
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Humidity
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
         LOG_ERROR("Invalid response.");
@@ -254,14 +254,14 @@ IPState MBox::updateWeather()
     setParameterValue("WEATHER_HUMIDITY", atof(token));
 
     // Sensor Units (Percentage)
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Sensor ID
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // Sensor Type: Dew Point
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Dew Point
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
         LOG_ERROR("Invalid response.");
@@ -270,12 +270,12 @@ IPState MBox::updateWeather()
     setParameterValue("WEATHER_DEWPOINT", atof(token));
 
     // Sensor Units (C)
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Sensor ID
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // Firmware
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (strcmp(token, FirmwareT[0].text))
     {
         IUSaveText(&FirmwareT[0], token);
@@ -470,10 +470,10 @@ bool MBox::getCalibration(bool sendCommand)
     char *token = std::strtok(response, ",");
 
     // P
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // Pressure
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
         LOG_ERROR("Invalid response.");
@@ -482,9 +482,9 @@ bool MBox::getCalibration(bool sendCommand)
     CalibrationN[CAL_PRESSURE].value = atof(token)/10.0;
 
     // T
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Temperature
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
         LOG_ERROR("Invalid response.");
@@ -493,9 +493,9 @@ bool MBox::getCalibration(bool sendCommand)
     CalibrationN[CAL_TEMPERATURE].value = atof(token)/10.0;
 
     // H
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Humidity
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
         LOG_ERROR("Invalid response.");
@@ -610,7 +610,7 @@ bool MBox::verifyCRC(const char *response)
     char *token = std::strtok(checksum_string, "*");
 
     // Checksum string
-    token = std::strtok(NULL, "*");
+    token = std::strtok(nullptr, "*");
     // Hex value
     uint8_t response_checksum_val = std::stoi(token, 0, 16);
     // Terminate it

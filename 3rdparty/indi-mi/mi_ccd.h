@@ -45,10 +45,10 @@ class MICCD : public INDI::CCD, public INDI::FilterInterface
     virtual bool StartExposure(float duration) override;
     virtual bool AbortExposure() override;
 
-    virtual IPState GuideNorth(float) override;
-    virtual IPState GuideSouth(float) override;
-    virtual IPState GuideEast(float) override;
-    virtual IPState GuideWest(float) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) override;

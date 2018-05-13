@@ -61,10 +61,10 @@ class SSAGCCD : public INDI::CCD
     bool AbortExposure();
     void TimerHit();
     bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    IPState GuideWest(float time);
-    IPState GuideEast(float time);
-    IPState GuideNorth(float time);
-    IPState GuideSouth(float time);
+    IPState GuideWest(uint32_t ms);
+    IPState GuideEast(uint32_t ms);
+    IPState GuideNorth(uint32_t ms);
+    IPState GuideSouth(uint32_t ms);
 
     void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip);
     bool saveConfigItems(FILE *fp);

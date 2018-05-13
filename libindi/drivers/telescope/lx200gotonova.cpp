@@ -132,7 +132,7 @@ bool LX200GotoNova::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             LOGF_ERROR("%s", errmsg);
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
             continue;
         }
 
@@ -140,7 +140,7 @@ bool LX200GotoNova::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             LOGF_ERROR("%s", errmsg);
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
             continue;
         }
 
@@ -153,7 +153,7 @@ bool LX200GotoNova::checkConnection()
                 return true;
         }
 
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     return false;
@@ -307,7 +307,7 @@ bool LX200GotoNova::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation())
@@ -410,7 +410,7 @@ int LX200GotoNova::GotonovaSyncCMR(char *matchedObject)
     LOGF_DEBUG("RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -543,7 +543,7 @@ int LX200GotoNova::setCalenderDate(int fd, int dd, int mm, int yy)
     }
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
     tcflush(fd, TCIFLUSH);
 
     LOGF_DEBUG("Set date failed! Response: <%s>", response);
@@ -655,9 +655,9 @@ int LX200GotoNova::setGotoNovaStandardProcedure(int fd, const char *data)
     error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on GotoNova
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
     tcflush(fd, TCIFLUSH);
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     if (nbytes_read < 1)
         return error_type;

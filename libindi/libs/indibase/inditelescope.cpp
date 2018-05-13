@@ -1292,7 +1292,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             if (previousState == targetState)
             {
-                IDSetSwitch(&TrackStateSP, NULL);
+                IDSetSwitch(&TrackStateSP, nullptr);
                 return true;
             }
 
@@ -1320,7 +1320,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 TrackStateS[previousState].s = ISS_ON;
             }
 
-            IDSetSwitch(&TrackStateSP, NULL);
+            IDSetSwitch(&TrackStateSP, nullptr);
             return true;
         }
 
