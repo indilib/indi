@@ -141,7 +141,7 @@ int HaltMovement(int fd, int direction);
 /* Select the tracking mode */
 int selectTrackingMode(int fd, int trackMode);
 /* Send Pulse-Guide command (timed guide move), two valid directions can be stacked */
-int SendPulseCmd(int fd, int direction, int duration_msec);
+int SendPulseCmd(int fd, int direction, uint32_t duration_msec);
 
 /**************************************************************************
  Other Commands
@@ -180,7 +180,7 @@ int check_lx200_connection(int in_fd)
             DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Testing successful!");
             return 0;
         }
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     DEBUGDEVICE(lx200Name, INDI::Logger::DBG_DEBUG, "Failure. Telescope is not responding to ACK!");
@@ -901,7 +901,7 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
         return -1;
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
     tcflush(fd, TCIFLUSH);
 
     return 0;
@@ -1309,7 +1309,7 @@ int Sync(int fd, char *matchedObject)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
     tcflush(fd, TCIFLUSH);
 
     return 0;

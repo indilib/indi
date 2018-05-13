@@ -476,7 +476,9 @@ bool GPhotoCCD::updateProperties()
                 defineNumber(&mMirrorLockNP);
         }
 
-        if (gphoto_supports_temperature(gphotodrv))
+        isTemperatureSupported = gphoto_supports_temperature(gphotodrv);
+
+        if (isTemperatureSupported)
         {
             TemperatureNP.p = IP_RO;
             defineNumber(&TemperatureNP);
@@ -505,7 +507,7 @@ bool GPhotoCCD::updateProperties()
             deleteProperty(captureTargetSP.name);
         }
 
-        if (gphoto_supports_temperature(gphotodrv))
+        if (isTemperatureSupported)
             deleteProperty(TemperatureNP.name);
 
         deleteProperty(SDCardImageSP.name);
@@ -1182,7 +1184,7 @@ void GPhotoCCD::TimerHit()
                     PrimaryCCD.setExposureFailed();
                 }
 
-                if (gphoto_supports_temperature(gphotodrv))
+                if (isTemperatureSupported)
                 {
                     TemperatureN[0].value = (double)gphoto_get_last_sensor_temperature(gphotodrv);
                     IDSetNumber(&TemperatureNP, nullptr);
@@ -1925,6 +1927,11 @@ void GPhotoCCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
             if (isoSpeed > 0)
                 fits_update_key_s(fptr, TUINT, "ISOSPEED", &isoSpeed, "ISO Speed", &status);
         }
+    }
+
+    if (isTemperatureSupported)
+    {
+        fits_update_key_s(fptr, TDOUBLE, "CCD-TEMP", &(TemperatureN[0].value), "CCD Temperature (Celsius)", &status);
     }
 }
 

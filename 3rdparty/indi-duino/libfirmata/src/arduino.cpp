@@ -85,7 +85,7 @@ int Arduino::readPort(void *buff, int count)
     tv.tv_usec = (msec % 1000) * 1000;
     FD_ZERO(&rfds);
     FD_SET(fd, &rfds);
-    if (select(fd + 1, &rfds, NULL, NULL, &tv) == 0)
+    if (select(fd + 1, &rfds, nullptr, nullptr, &tv) == 0)
         return 0;
 
     int n, bits;

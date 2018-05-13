@@ -37,10 +37,10 @@ static struct uninitialized_cameras
     int pid;
     const char *loader;
     const char *firmware;
-} uninitialized_cameras[] = { { 0x1618, 0xb618, NULL, "IMG0H.HEX" },
-                              { 0x1618, 0x0412, NULL, "QHY2.HEX" },
-                              { 0x1618, 0x2850, NULL, "QHY2P.HEX" },
-                              { 0x1618, 0xb285, NULL, "QHY2S.HEX" },
+} uninitialized_cameras[] = { { 0x1618, 0xb618, nullptr, "IMG0H.HEX" },
+                              { 0x1618, 0x0412, nullptr, "QHY2.HEX" },
+                              { 0x1618, 0x2850, nullptr, "QHY2P.HEX" },
+                              { 0x1618, 0xb285, nullptr, "QHY2S.HEX" },
                               { 0x1618, 0x0901, "QHY5LOADER.HEX", "QHY5.HEX" },
                               { 0x1618, 0x1002, "QHY5LOADER.HEX", "QHY5.HEX" },
                               { 0x0547, 0x1002, "QHY5LOADER.HEX", "QHY5.HEX" },
@@ -52,33 +52,33 @@ static struct uninitialized_cameras
                               { 0x16c0, 0x296c, "QHY5LOADER.HEX", "QHY5.HEX" },
                               { 0x16c0, 0x2986, "QHY5LOADER.HEX", "QHY5.HEX" },
                               { 0x1781, 0x0c7c, "QHY5LOADER.HEX", "QHY5.HEX" },
-                              { 0x1618, 0x0920, NULL, "QHY5II.HEX" },
-                              { 0x1618, 0x0921, NULL, "QHY5II.HEX" },
-                              { 0x1618, 0x0259, NULL, "QHY6.HEX" },
-                              { 0x1618, 0x4022, NULL, "QHY7.HEX" },
-                              { 0x1618, 0x6000, NULL, "QHY8.HEX" },
-                              { 0x1618, 0x6002, NULL, "QHY8PRO.HEX" },
-                              { 0x1618, 0x6004, NULL, "QHY8L.HEX" },
-                              { 0x1618, 0x6006, NULL, "QHY8M.HEX" },
-                              { 0x1618, 0x8300, NULL, "QHY9S.HEX" },
-                              { 0x1618, 0x1000, NULL, "QHY10.HEX" },
-                              { 0x1618, 0x1110, NULL, "QHY11.HEX" },
-                              { 0x1618, 0x1200, NULL, "QHY12.HEX" },
-                              { 0x1618, 0x1500, NULL, "QHY15.HEX" },
-                              { 0x1618, 0x1600, NULL, "QHY16.HEX" },
-                              { 0x1618, 0x8050, NULL, "QHY20.HEX" },
-                              { 0x1618, 0x6740, NULL, "QHY21.HEX" },
-                              { 0x1618, 0x6940, NULL, "QHY22.HEX" },
-                              { 0x1618, 0x8140, NULL, "QHY23.HEX" },
-                              { 0x1618, 0x1650, NULL, "QHY27.HEX" },
-                              { 0x1618, 0x1670, NULL, "QHY28.HEX" },
-                              { 0x1618, 0x2950, NULL, "QHY29.HEX" },
-                              { 0x1618, 0x8310, NULL, "IC8300.HEX" },
-                              { 0x1618, 0x1620, NULL, "IC16200A.HEX" },
-                              { 0x1618, 0x1630, NULL, "IC16803.HEX" },
-                              { 0x1618, 0x8320, NULL, "IC90A.HEX" },
-                              { 0x1618, 0x0930, NULL, "miniCam5.HEX" },
-                              { 0, 0, NULL, NULL } };
+                              { 0x1618, 0x0920, nullptr, "QHY5II.HEX" },
+                              { 0x1618, 0x0921, nullptr, "QHY5II.HEX" },
+                              { 0x1618, 0x0259, nullptr, "QHY6.HEX" },
+                              { 0x1618, 0x4022, nullptr, "QHY7.HEX" },
+                              { 0x1618, 0x6000, nullptr, "QHY8.HEX" },
+                              { 0x1618, 0x6002, nullptr, "QHY8PRO.HEX" },
+                              { 0x1618, 0x6004, nullptr, "QHY8L.HEX" },
+                              { 0x1618, 0x6006, nullptr, "QHY8M.HEX" },
+                              { 0x1618, 0x8300, nullptr, "QHY9S.HEX" },
+                              { 0x1618, 0x1000, nullptr, "QHY10.HEX" },
+                              { 0x1618, 0x1110, nullptr, "QHY11.HEX" },
+                              { 0x1618, 0x1200, nullptr, "QHY12.HEX" },
+                              { 0x1618, 0x1500, nullptr, "QHY15.HEX" },
+                              { 0x1618, 0x1600, nullptr, "QHY16.HEX" },
+                              { 0x1618, 0x8050, nullptr, "QHY20.HEX" },
+                              { 0x1618, 0x6740, nullptr, "QHY21.HEX" },
+                              { 0x1618, 0x6940, nullptr, "QHY22.HEX" },
+                              { 0x1618, 0x8140, nullptr, "QHY23.HEX" },
+                              { 0x1618, 0x1650, nullptr, "QHY27.HEX" },
+                              { 0x1618, 0x1670, nullptr, "QHY28.HEX" },
+                              { 0x1618, 0x2950, nullptr, "QHY29.HEX" },
+                              { 0x1618, 0x8310, nullptr, "IC8300.HEX" },
+                              { 0x1618, 0x1620, nullptr, "IC16200A.HEX" },
+                              { 0x1618, 0x1630, nullptr, "IC16803.HEX" },
+                              { 0x1618, 0x8320, nullptr, "IC90A.HEX" },
+                              { 0x1618, 0x0930, nullptr, "miniCam5.HEX" },
+                              { 0, 0, nullptr, nullptr } };
 
 static int poke(libusb_device_handle *handle, unsigned short addr, unsigned char *data, unsigned length)
 {
@@ -104,7 +104,7 @@ static int upload(libusb_device_handle *handle, const char *hex)
     FILE *image;
     char path[FILENAME_MAX];
 #if defined(__APPLE__)
-    if (getenv("INDIPREFIX") != NULL)
+    if (getenv("INDIPREFIX") != nullptr)
         sprintf(path, "%s/Contents/Resources/DriverSupport/qhy/firmware/%s", getenv("INDIPREFIX"), hex);
     else
         sprintf(path, "/usr/local/lib/indi/DriverSupport/qhy/firmware/%s", getenv("INDIPREFIX"), hex);
@@ -247,7 +247,7 @@ static bool initialize(libusb_device *device, int index)
 
 void UploadFW()
 {
-    libusb_context *ctx = NULL;
+    libusb_context *ctx = nullptr;
     int rc              = libusb_init(&ctx);
     if (rc < 0)
     {

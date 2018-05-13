@@ -322,7 +322,7 @@ static int fx2_load_vendax (libusb_device_handle *h)
 
 int fx2_ram_download (libusb_device_handle *h, char *filename, unsigned char extended, char *errmsg)
 {
-    FILE *fp1 = NULL;
+    FILE *fp1 = nullptr;
     int i, r, len = 0;
     char hexdata[MAX_LINE_LENGTH];
     char *fw_p;
@@ -359,7 +359,7 @@ int fx2_ram_download (libusb_device_handle *h, char *filename, unsigned char ext
     }
     
 LoadRam:
-    while ( fgets(hexdata, MAX_LINE_LENGTH, fp1) != NULL ) {
+    while ( fgets(hexdata, MAX_LINE_LENGTH, fp1) != nullptr ) {
         len += strlen(hexdata);
         if ( hexdata[8] == '1' )
             break;

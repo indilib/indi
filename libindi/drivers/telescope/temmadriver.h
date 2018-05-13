@@ -60,10 +60,10 @@ class TemmaMount : public INDI::Telescope,
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     //  methods added for guider interface
-    virtual IPState GuideNorth(float ms) override;
-    virtual IPState GuideSouth(float ms) override;
-    virtual IPState GuideEast(float ms) override;
-    virtual IPState GuideWest(float ms) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     //  Initial implementation doesn't need this one
     //virtual void GuideComplete(INDI_EQ_AXIS axis);

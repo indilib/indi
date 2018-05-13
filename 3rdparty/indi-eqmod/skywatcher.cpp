@@ -107,7 +107,7 @@ bool Skywatcher::Disconnect()
     // Deactivate motor (for geehalel mount only)
     /*
   if (MountCode == 0xF0) {
-    dispatch_command(Deactivate, Axis1, NULL);
+    dispatch_command(Deactivate, Axis1, nullptr);
     //read_eqmod();
   }
   */
@@ -369,7 +369,7 @@ void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP)
     /*
   unsigned long tmpMCVersion = 0;
 
-  dispatch_command(InquireMotorBoardVersion, Axis1, NULL);
+  dispatch_command(InquireMotorBoardVersion, Axis1, nullptr);
   //read_eqmod();
   tmpMCVersion=Revu24str2long(response+1);
   MCVersion = ((tmpMCVersion & 0xFF) << 16) | ((tmpMCVersion & 0xFF00)) | ((tmpMCVersion & 0xFF0000) >> 16);

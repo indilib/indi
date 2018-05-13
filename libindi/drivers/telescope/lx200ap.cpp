@@ -659,7 +659,7 @@ bool LX200AstroPhysics::Goto(double r, double d)
 }
 
 
-int LX200AstroPhysics::SendPulseCmd(int direction, int duration_msec)
+int LX200AstroPhysics::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 {
     return APSendPulseCmd(PortFD, direction, duration_msec);
 }

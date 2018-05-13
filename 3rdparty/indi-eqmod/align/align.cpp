@@ -83,14 +83,14 @@ Align::Align(INDI::Telescope *t)
     currentdeltaDEC  = 0.0;
     lastnearestindex = -1;
 
-    AlignDataFileTP        = NULL;
-    AlignDataBP            = NULL;
-    AlignPointNP           = NULL;
-    AlignListSP            = NULL;
-    AlignModeSP            = NULL;
-    AlignTelescopeCoordsNP = NULL;
+    AlignDataFileTP        = nullptr;
+    AlignDataBP            = nullptr;
+    AlignPointNP           = nullptr;
+    AlignListSP            = nullptr;
+    AlignModeSP            = nullptr;
+    AlignTelescopeCoordsNP = nullptr;
 
-    AlignCountNP = NULL;
+    AlignCountNP = nullptr;
 }
 
 Align::~Align()
@@ -105,7 +105,7 @@ const char *Align::getDeviceName()
 
 void Align::Init()
 {
-    char *loadres = NULL;
+    char *loadres = nullptr;
     if (!pointset->isInitialized())
     {
         pointset->Init();
@@ -118,7 +118,7 @@ void Align::Init()
         }
 	IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value    = pointset->getNbPoints();
 	IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
-	IDSetNumber(AlignCountNP, NULL);
+	IDSetNumber(AlignCountNP, nullptr);
     }
 }
 
@@ -491,7 +491,7 @@ void Align::AlignSync(SyncData globalsync, SyncData thissync)
     syncdata.telescopeRA  = thissync.telescopeRA;
     syncdata.telescopeDEC = thissync.telescopeDEC;
 
-    pointset->AddPoint(syncdata, NULL);
+    pointset->AddPoint(syncdata, nullptr);
     DEBUGF(INDI::Logger::DBG_SESSION,
            "Align Sync: point added: lst=%.8f celestial RA %.8f DEC %.8f Telescope RA %.8f DEC %.8f", syncdata.lst,
            syncdata.targetRA, syncdata.targetDEC, syncdata.telescopeRA, syncdata.telescopeDEC);
@@ -499,13 +499,13 @@ void Align::AlignSync(SyncData globalsync, SyncData thissync)
     pointset->setBlobData(AlignDataBP);
 
     // JM 2015-12-10: Disable setting AlignData temporary
-    //IDSetBLOB(AlignDataBP, NULL);
+    //IDSetBLOB(AlignDataBP, nullptr);
 
     IUUpdateNumber(AlignPointNP, values, (char **)names, 6);
-    IDSetNumber(AlignPointNP, NULL);
+    IDSetNumber(AlignPointNP, nullptr);
     IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value    = pointset->getNbPoints();
     IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
-    IDSetNumber(AlignCountNP, NULL);
+    IDSetNumber(AlignCountNP, nullptr);
 }
 
 void Align::AlignStandardSync(SyncData globalsync, SyncData *thissync, struct ln_lnlat_posn *position)
@@ -556,7 +556,7 @@ void Align::GetAlignedCoords(SyncData globalsync, double jd, struct ln_lnlat_pos
     double values[2]     = { currentRA, currentDEC };
     const char *names[2] = { "ALIGNTELESCOPE_RA", "ALIGNTELESCOPE_DE" };
     IUUpdateNumber(AlignTelescopeCoordsNP, values, (char **)names, 2);
-    IDSetNumber(AlignTelescopeCoordsNP, NULL);
+    IDSetNumber(AlignTelescopeCoordsNP, nullptr);
     switch (GetAlignmentMode())
     {
         case NSTAR:
@@ -596,7 +596,7 @@ bool Align::ISNewNumber(const char *dev, const char *name, double values[], char
         {
             AlignPointNP->s = IPS_OK;
             IUUpdateNumber(AlignPointNP, values, names, n);
-            IDSetNumber(AlignPointNP, NULL);
+            IDSetNumber(AlignPointNP, nullptr);
             return true;
         }
     }
@@ -630,15 +630,15 @@ bool Align::ISNewSwitch(const char *dev, const char *name, ISState *states, char
             sw = IUFindOnSwitch(AlignListSP);
             if (!strcmp(sw->name, "ALIGNLISTADD"))
             {
-                pointset->AddPoint(syncdata, NULL);
+                pointset->AddPoint(syncdata, nullptr);
                 IDMessage(telescope->getDeviceName(), "Align: added point to list");
                 ;
                 pointset->setBlobData(AlignDataBP);
                 // JM 2015-12-10: Disable setting AlignData temporary
-                //IDSetBLOB(AlignDataBP, NULL);
+                //IDSetBLOB(AlignDataBP, nullptr);
                 IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value    = pointset->getNbPoints();
                 IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
-                IDSetNumber(AlignCountNP, NULL);
+                IDSetNumber(AlignCountNP, nullptr);
             }
             else if (!strcmp(sw->name, "ALIGNLISTCLEAR"))
             {
@@ -647,10 +647,10 @@ bool Align::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 ;
                 pointset->setBlobData(AlignDataBP);
                 // JM 2015-12-10: Disable setting AlignData temporary
-                //IDSetBLOB(AlignDataBP, NULL);
+                //IDSetBLOB(AlignDataBP, nullptr);
                 IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value    = pointset->getNbPoints();
                 IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
-                IDSetNumber(AlignCountNP, NULL);
+                IDSetNumber(AlignCountNP, nullptr);
             }
             else if (!strcmp(sw->name, "ALIGNWRITEFILE"))
             {
@@ -676,15 +676,15 @@ bool Align::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                               IUFindText(AlignDataFileTP, "ALIGNDATAFILENAME")->text);
                 pointset->setBlobData(AlignDataBP);
                 // JM 2015-12-10: Disable setting AlignData temporary
-                //IDSetBLOB(AlignDataBP, NULL);
+                //IDSetBLOB(AlignDataBP, nullptr);
                 IUFindNumber(AlignCountNP, "ALIGNCOUNT_POINTS")->value    = pointset->getNbPoints();
                 IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
-                IDSetNumber(AlignCountNP, NULL);
+                IDSetNumber(AlignCountNP, nullptr);
             }
 
             AlignListSP->s = IPS_OK;
             IUUpdateSwitch(AlignListSP, states, names, n);
-            IDSetSwitch(AlignListSP, NULL);
+            IDSetSwitch(AlignListSP, nullptr);
             return true;
         }
     }
@@ -698,7 +698,7 @@ bool Align::ISNewText(const char *dev, const char *name, char *texts[], char *na
     {
         if (AlignDataFileTP && (strcmp(name, AlignDataFileTP->name) == 0))
         {
-            /*	  char *loadres=NULL;
+            /*	  char *loadres=nullptr;
 	  pointset->Reset();
 	  IUUpdateText(AlignDataFileTP,texts,names,n);
 	  loadres=pointset->LoadDataFile(IUFindText(AlignDataFileTP,"ALIGNDATAFILENAME")->text);
@@ -708,10 +708,10 @@ bool Align::ISNewText(const char *dev, const char *name, char *texts[], char *na
 	    AlignDataFileTP->s=IPS_ALERT;
 	  } else 
 	    AlignDataFileTP->s=IPS_OK;
-	  IDSetText(AlignDataFileTP,NULL);
+	  IDSetText(AlignDataFileTP,nullptr);
 	  */
             IUUpdateText(AlignDataFileTP, texts, names, n);
-            IDSetText(AlignDataFileTP, NULL);
+            IDSetText(AlignDataFileTP, nullptr);
             return true;
         }
     }

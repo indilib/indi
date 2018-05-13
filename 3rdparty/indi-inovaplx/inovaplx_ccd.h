@@ -42,10 +42,10 @@ protected:
     void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip);
 
     // Guiding
-    IPState GuideEast(float ms);
-    IPState GuideWest(float ms);
-    IPState GuideNorth(float ms);
-    IPState GuideSouth(float ms);
+    IPState GuideEast(uint32_t ms);
+    IPState GuideWest(uint32_t ms);
+    IPState GuideNorth(uint32_t ms);
+    IPState GuideSouth(uint32_t ms);
 
 private:
 

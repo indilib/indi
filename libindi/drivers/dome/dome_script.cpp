@@ -189,7 +189,7 @@ bool DomeScript::RunScript(int script, ...)
         strcat(dbg, args[i]);
         strcat(dbg, "'");
       }
-      strcat(dbg, ", NULL)");
+      strcat(dbg, ", nullptr)");
       LOG_DEBUG(dbg);
     }
 

@@ -57,10 +57,10 @@ class ASICCD : public INDI::CCD
     virtual bool UpdateCCDBin(int binx, int biny) override;
 
     // Guide Port
-    virtual IPState GuideNorth(float ms) override;
-    virtual IPState GuideSouth(float ms) override;
-    virtual IPState GuideEast(float ms) override;
-    virtual IPState GuideWest(float ms) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     // ASI specific keywords
     virtual void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;

@@ -23,9 +23,9 @@ TriangulateCHull::TriangulateCHull(std::map<HtmID, PointSet::Point> *p) : Triang
 {
     tVertex v;
     vnum     = 0;
-    vertices = NULL;
-    edges    = NULL;
-    faces    = NULL;
+    vertices = nullptr;
+    edges    = nullptr;
+    faces    = nullptr;
     v        = MakeNullVertex();
     v->v[X]  = 0;
     v->v[Y]  = 0;
@@ -39,9 +39,9 @@ void TriangulateCHull::Reset()
     Triangulate::Reset();
     vnum = 0;
     //SHOULD Free everything
-    vertices = NULL;
-    edges    = NULL;
-    faces    = NULL;
+    vertices = nullptr;
+    edges    = nullptr;
+    faces    = nullptr;
     v        = MakeNullVertex();
     v->v[X]  = 0;
     v->v[Y]  = 0;

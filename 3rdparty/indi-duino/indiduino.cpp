@@ -142,7 +142,7 @@ void indiduino::TimerHit()
                     return;
 
                 IO *pin_config = (IO *)lqp->aux;
-                if (pin_config == NULL)
+                if (pin_config == nullptr)
                     continue;
                 if (pin_config->IOType == DI)
                 {
@@ -164,7 +164,7 @@ void indiduino::TimerHit()
                     }
                 }
             }
-            IDSetLight(lvp, NULL);
+            IDSetLight(lvp, nullptr);
         }
 
         //ANALOG
@@ -179,7 +179,7 @@ void indiduino::TimerHit()
                     return;
 
                 IO *pin_config = (IO *)eqp->aux0;
-                if (pin_config == NULL)
+                if (pin_config == nullptr)
                     continue;
 
                 if (pin_config->IOType == AI)
@@ -189,7 +189,7 @@ void indiduino::TimerHit()
                     {
                         eqp->value = pin_config->MulScale * (double)(sf->pin_info[pin].value) + pin_config->AddScale;
                         //IDLog("%f\n",eqp->value);
-                        IDSetNumber(nvp, NULL);
+                        IDSetNumber(nvp, nullptr);
                     }
                 }
             }
@@ -204,10 +204,10 @@ void indiduino::TimerHit()
         //  		if (!eqp)
         //    	    return;
 
-        //if (eqp->aux0 == NULL) continue;
+        //if (eqp->aux0 == nullptr) continue;
         //			strcpy(eqp->text,(char*)eqp->aux0);
         //IDLog("%s.%s TEXT: %s \n",tvp->name,eqp->name,eqp->text);
-        //	IDSetText(tvp, NULL);
+        //	IDSetText(tvp, nullptr);
         //	}
         //	}
     }
@@ -369,7 +369,7 @@ bool indiduino::ISNewNumber(const char *dev, const char *name, double values[], 
             return false;
 
         IO *pin_config = (IO *)eqp->aux0;
-        if (pin_config == NULL)
+        if (pin_config == nullptr)
             continue;
         if ((pin_config->IOType == AO) || (pin_config->IOType == SERVO))
         {
@@ -391,7 +391,7 @@ bool indiduino::ISNewNumber(const char *dev, const char *name, double values[], 
 
     if (change)
     {
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
         return true;
     }
     else
@@ -435,7 +435,7 @@ bool indiduino::ISNewSwitch(const char *dev, const char *name, ISState *states, 
     {
         ISwitch *sqp   = &svp->sp[i];
         IO *pin_config = (IO *)sqp->aux;
-        if (pin_config == NULL)
+        if (pin_config == nullptr)
             continue;
         if (pin_config->IOType == DO)
         {
@@ -572,15 +572,15 @@ const char *indiduino::getDefaultName()
 bool indiduino::setPinModesFromSKEL()
 {
     char errmsg[MAXRBUF];
-    FILE *fp       = NULL;
+    FILE *fp       = nullptr;
     LilXML *lp     = newLilXML();
-    XMLEle *fproot = NULL;
-    XMLEle *ep = NULL, *ioep = NULL, *xmlp = NULL;
+    XMLEle *fproot = nullptr;
+    XMLEle *ep = nullptr, *ioep = nullptr, *xmlp = nullptr;
     int numiopin = 0;
 
     fp = fopen(skelFileName, "r");
 
-    if (fp == NULL)
+    if (fp == nullptr)
     {
         IDLog("Unable to build skeleton. Error loading file %s: %s\n", skelFileName, strerror(errno));
         return false;
@@ -588,7 +588,7 @@ bool indiduino::setPinModesFromSKEL()
 
     fproot = readXMLFile(fp, lp, errmsg);
 
-    if (fproot == NULL)
+    if (fproot == nullptr)
     {
         IDLog("Unable to parse skeleton XML: %s", errmsg);
         return false;
@@ -602,7 +602,7 @@ bool indiduino::setPinModesFromSKEL()
         const char *name = pAll->at(i)->getName();
         INDI_PROPERTY_TYPE type = pAll->at(i)->getType();
 
-        if (ep == NULL)
+        if (ep == nullptr)
         {
             ep = nextXMLEle(fproot, 1);
         }
@@ -610,19 +610,19 @@ bool indiduino::setPinModesFromSKEL()
         {
             ep = nextXMLEle(fproot, 0);
         }
-        if (ep == NULL)
+        if (ep == nullptr)
         {
             break;
         }
-        ioep = NULL;
+        ioep = nullptr;
         if (type == INDI_SWITCH)
         {
             ISwitchVectorProperty *svp = getSwitch(name);
-            ioep = NULL;
+            ioep = nullptr;
             for (int i = 0; i < svp->nsp; i++)
             {
                 ISwitch *sqp = &svp->sp[i];
-                if (ioep == NULL)
+                if (ioep == nullptr)
                 {
                     ioep = nextXMLEle(ep, 1);
                 }
@@ -631,7 +631,7 @@ bool indiduino::setPinModesFromSKEL()
                     ioep = nextXMLEle(ep, 0);
                 }
                 xmlp = findXMLEle(ioep, "indiduino");
-                if (xmlp != NULL)
+                if (xmlp != nullptr)
                 {
                     if (!readInduinoXml(xmlp, numiopin))
                     {
@@ -664,12 +664,12 @@ bool indiduino::setPinModesFromSKEL()
         {
             ITextVectorProperty *tvp = getText(name);
 
-            ioep = NULL;
+            ioep = nullptr;
             for (int i = 0; i < tvp->ntp; i++)
             {
                 IText *tqp = &tvp->tp[i];
 
-                if (ioep == NULL)
+                if (ioep == nullptr)
                 {
                     ioep = nextXMLEle(ep, 1);
                 }
@@ -678,7 +678,7 @@ bool indiduino::setPinModesFromSKEL()
                     ioep = nextXMLEle(ep, 0);
                 }
                 xmlp = findXMLEle(ioep, "indiduino");
-                if (xmlp != NULL)
+                if (xmlp != nullptr)
                 {
                     if (!readInduinoXml(xmlp, 0))
                     {
@@ -697,11 +697,11 @@ bool indiduino::setPinModesFromSKEL()
         {
             ILightVectorProperty *lvp = getLight(name);
 
-            ioep = NULL;
+            ioep = nullptr;
             for (int i = 0; i < lvp->nlp; i++)
             {
                 ILight *lqp = &lvp->lp[i];
-                if (ioep == NULL)
+                if (ioep == nullptr)
                 {
                     ioep = nextXMLEle(ep, 1);
                 }
@@ -710,7 +710,7 @@ bool indiduino::setPinModesFromSKEL()
                     ioep = nextXMLEle(ep, 0);
                 }
                 xmlp = findXMLEle(ioep, "indiduino");
-                if (xmlp != NULL)
+                if (xmlp != nullptr)
                 {
                     if (!readInduinoXml(xmlp, numiopin))
                     {
@@ -732,11 +732,11 @@ bool indiduino::setPinModesFromSKEL()
         {
             INumberVectorProperty *nvp = getNumber(name);
 
-            ioep = NULL;
+            ioep = nullptr;
             for (int i = 0; i < nvp->nnp; i++)
             {
                 INumber *eqp = &nvp->np[i];
-                if (ioep == NULL)
+                if (ioep == nullptr)
                 {
                     ioep = nextXMLEle(ep, 1);
                 }
@@ -745,7 +745,7 @@ bool indiduino::setPinModesFromSKEL()
                     ioep = nextXMLEle(ep, 0);
                 }
                 xmlp = findXMLEle(ioep, "indiduino");
-                if (xmlp != NULL)
+                if (xmlp != nullptr)
                 {
                     if (!readInduinoXml(xmlp, numiopin))
                     {
@@ -788,7 +788,7 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
     char *propertyTag;
     int pin;
 
-    if (ioep == NULL)
+    if (ioep == nullptr)
         return false;
 
     propertyTag = tagXMLEle(parentXMLEle(ioep));

@@ -56,7 +56,7 @@ class LX200AstroPhysicsGTOCP2 : public LX200Generic
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual bool SetSlewRate(int index) override;
 
-    virtual int  SendPulseCmd(int direction, int duration_msec) override;
+    virtual int  SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
 
     virtual bool getUTFOffset(double *offset) override;
 

@@ -172,9 +172,9 @@ static struct
                 { 0x509, "SuperStar", 0 },
                 { 0x525, "UltraStar", 0 },
                 { 0x200, "MX Camera", 0 },
-                { 0, NULL, 0 } };
+                { 0, nullptr, 0 } };
 
-libusb_context *ctx = NULL;
+libusb_context *ctx = nullptr;
 
 #ifndef USB1_HAS_LIBUSB_ERROR_NAME
 static char *libusb_error_name(int rc)
@@ -199,7 +199,7 @@ void log(bool debug, const char *fmt, ...)
 
 static void init()
 {
-    if (ctx == NULL)
+    if (ctx == nullptr)
     {
         int rc = libusb_init(&ctx);
         if (rc < 0)
@@ -342,7 +342,7 @@ int sxOpen(HANDLE *sxHandles)
 void sxClose(HANDLE *sxHandle)
 {
     libusb_close(*sxHandle);
-    *sxHandle = NULL;
+    *sxHandle = nullptr;
     DEBUG(log(true, "sxClose: libusb_close\n"));
 }
 

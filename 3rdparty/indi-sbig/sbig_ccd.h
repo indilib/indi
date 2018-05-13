@@ -147,10 +147,10 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     virtual bool UpdateGuiderBin(int binx, int biny) override;
     virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType) override;
     virtual bool saveConfigItems(FILE *fp) override;
-    virtual IPState GuideNorth(float) override;
-    virtual IPState GuideSouth(float) override;
-    virtual IPState GuideEast(float) override;
-    virtual IPState GuideWest(float) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     // Filter Wheel CFW
     virtual int QueryFilter() override;
