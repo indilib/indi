@@ -1465,47 +1465,47 @@ void LX200_OnStep::OSUpdateFocuser()
 {
 	char value[10];
 	if (OSFocuser1) {
-	//getCommandString(PortFD, value, ":FA#"); //
-	//if (atoi(value)) {
-	getCommandString(PortFD, value, ":FG#");
-	FocusAbsPosN[0].value =  atoi(value);
-	IDSetNumber(&FocusAbsPosNP, nullptr);
-	//  :FT#  get status
-	//         Returns: M# (for moving) or S# (for stopped)
-	getCommandString(PortFD, value, ":FT#");
-	if (value[0] == 'S') {
-		FocusRelPosNP.s = IPS_OK;
-		IDSetNumber(&FocusRelPosNP, nullptr);
-		FocusAbsPosNP.s = IPS_OK;
+	// Alternate option:
+	//if (!sendOnStepCommand(":FA#")) {
+		getCommandString(PortFD, value, ":FG#");
+		FocusAbsPosN[0].value =  atoi(value);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
-	} else if (value[0] == 'M') {
-		FocusRelPosNP.s = IPS_BUSY;
-		IDSetNumber(&FocusRelPosNP, nullptr);
-		FocusAbsPosNP.s = IPS_BUSY;
+		//  :FT#  get status
+		//         Returns: M# (for moving) or S# (for stopped)
+		getCommandString(PortFD, value, ":FT#");
+		if (value[0] == 'S') {
+			FocusRelPosNP.s = IPS_OK;
+			IDSetNumber(&FocusRelPosNP, nullptr);
+			FocusAbsPosNP.s = IPS_OK;
+			IDSetNumber(&FocusAbsPosNP, nullptr);
+		} else if (value[0] == 'M') {
+			FocusRelPosNP.s = IPS_BUSY;
+			IDSetNumber(&FocusRelPosNP, nullptr);
+			FocusAbsPosNP.s = IPS_BUSY;
+			IDSetNumber(&FocusAbsPosNP, nullptr);
+		} else { //INVALID REPLY
+			FocusRelPosNP.s = IPS_ALERT;
+			IDSetNumber(&FocusRelPosNP, nullptr);
+			FocusAbsPosNP.s = IPS_ALERT;
+			IDSetNumber(&FocusAbsPosNP, nullptr);
+		}
+		
+		//  :FM#  Get max position (in microns)
+		//         Returns: n#
+		
+		getCommandString(PortFD, value, ":FM#");
+		FocusAbsPosN[0].max   = atoi(value);
+		IUUpdateMinMax(&FocusAbsPosNP);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
-	} else { //INVALID REPLY
-		FocusRelPosNP.s = IPS_ALERT;
-		IDSetNumber(&FocusRelPosNP, nullptr);
-		FocusAbsPosNP.s = IPS_ALERT;
+		//  :FI#  Get full in position (in microns)
+		//         Returns: n#
+		getCommandString(PortFD, value, ":FI#");
+		FocusAbsPosN[0].min =  atoi(value);
+		IUUpdateMinMax(&FocusAbsPosNP);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
-	}
-	
-	//  :FM#  Get max position (in microns)
-	//         Returns: n#
-	
-	getCommandString(PortFD, value, ":FM#");
-	FocusAbsPosN[0].max   = atoi(value);
-	IUUpdateMinMax(&FocusAbsPosNP);
-	IDSetNumber(&FocusAbsPosNP, nullptr);
-	//  :FI#  Get full in position (in microns)
-	//         Returns: n#
-	getCommandString(PortFD, value, ":FI#");
-	FocusAbsPosN[0].min =  atoi(value);
-	IUUpdateMinMax(&FocusAbsPosNP);
-	IDSetNumber(&FocusAbsPosNP, nullptr);
-	FI::updateProperties();
-//	} else {
-//		LOGF_INFO("Focuser not active");
+		FI::updateProperties();
+	//	} else {
+	//		LOGF_INFO("Focuser not active");
 	} 
 	
 
