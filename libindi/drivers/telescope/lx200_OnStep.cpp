@@ -129,10 +129,9 @@ bool LX200_OnStep::initProperties()
 
     // ============== FOCUSER_TAB
     // Focuser 1
-    IUFillSwitch(&OSFocus1MotionS[2], "Focus1_Stop", "Stop", ISS_OFF);
-    IUFillSwitchVector(&OSFocus1MotionSP, OSFocus1MotionS, 3, getDeviceName(), "Foc1Mot", "Foc 1 Motion", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+//     IUFillSwitch(&OSFocus1MotionS[2], "Focus1_Stop", "Stop", ISS_OFF);
+//     IUFillSwitchVector(&OSFocus1MotionSP, OSFocus1MotionS, 3, getDeviceName(), "Foc1Mot", "Foc 1 Motion", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    //TODO: Rename
     IUFillSwitch(&OSFocus1InitializeS[0], "Focus1_0", "Zero", ISS_OFF);
     IUFillSwitch(&OSFocus1InitializeS[1], "Focus1_2", "Mid", ISS_OFF);
 //     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
@@ -509,46 +508,8 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     }
 
     // Focuser
-    // Focuser 1 Target Absolute
-    if (!strcmp(name, OSFocus1TargNP.name))
-    {
-	    char cmd[32];
-	    
-	    if ((values[0] >= -25000) && (values[0] <= 25000))
-	    {
-		    snprintf(cmd, 15, ":FR%d#", (int)values[0]);
-		    sendOnStepCommandBlind(cmd);
-		    OSFocus1TargNP.s           = IPS_OK;
-		    IDSetNumber(&OSFocus1TargNP, "Focuser 1 position (absolute) moved by %d", (int)values[0]);
-		    OSUpdateFocuser();
-	    }
-	    else
-	    {
-		    OSFocus1TargNP.s = IPS_ALERT;
-		    IDSetNumber(&OSFocus1TargNP, "Setting MFocuser 1 position (absolute) Failed");
-	    }
-	    return true;
-    }
-    // Focuser 1 Target Relative
-    if (!strcmp(name, OSFocus1TargRelNP.name))
-    {
-        char cmd[32];
+    // Focuser 1 Now handled by Focusr Interface
 
-        if ((values[0] >= -5000) && (values[0] <= 5000))
-        {
-            snprintf(cmd, 15, ":FR%d#", (int)values[0]);
-            sendOnStepCommandBlind(cmd);
-            OSFocus1TargRelNP.s           = IPS_OK;
-            IDSetNumber(&OSFocus1TargRelNP, "Focuser 1 position (relative) moved by %d", (int)values[0]);
-	    OSUpdateFocuser();
-        }
-        else
-        {
-            OSFocus1TargRelNP.s = IPS_ALERT;
-	    IDSetNumber(&OSFocus1TargRelNP, "Setting Focuser 1 position (relative) Failed");
-        }
-        return true;
-    }
     // Focuser 2 Target
     if (!strcmp(name, OSFocus2TargNP.name))
     {
@@ -1408,6 +1369,7 @@ AbortFocuser all focus motion. More...
 
 IPState LX200_OnStep::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
+	INDI_UNUSED(speed);
 	//  :FRsnnn#  Set focuser target position relative (in microns)
 	//            Returns: Nothing
 	double output;
