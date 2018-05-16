@@ -141,7 +141,7 @@ class ASICCD : public INDI::CCD
     INumber ADCDepthN;
     INumberVectorProperty ADCDepthNP;
 
-    IText SDKVersionS = {};
+    IText SDKVersionS[1] = {};
     ITextVectorProperty SDKVersionSP;
 
     struct timeval ExpStart;

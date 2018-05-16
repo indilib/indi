@@ -250,8 +250,8 @@ bool ASICCD::initProperties()
     IUFillNumberVector(&ADCDepthNP, &ADCDepthN, 1, getDeviceName(), "ADC_DEPTH", "ADC Depth", IMAGE_INFO_TAB, IP_RO, 60,
                        IPS_IDLE);
 
-    IUFillText(&SDKVersionS, "VERSION", "Version", ASIGetSDKVersion());
-    IUFillTextVector(&SDKVersionSP, &SDKVersionS, 1, getDeviceName(), "SDK", "SDK", INFO_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillText(&SDKVersionS[0], "VERSION", "Version", ASIGetSDKVersion());
+    IUFillTextVector(&SDKVersionSP, SDKVersionS, 1, getDeviceName(), "SDK", "SDK", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     int maxBin = 1;
     for (int i = 0; i < 16; i++)
