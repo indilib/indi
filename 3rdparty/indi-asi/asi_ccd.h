@@ -138,6 +138,12 @@ class ASICCD : public INDI::CCD
     uint8_t rememberVideoFormat = { 0 };
     ASI_IMG_TYPE currentVideoFormat;
 
+    INumber ADCDepthN;
+    INumberVectorProperty ADCDepthNP;
+
+    IText SDKVersionS = {};
+    ITextVectorProperty SDKVersionSP;
+
     struct timeval ExpStart;
     float ExposureRequest;
     float TemperatureRequest;
