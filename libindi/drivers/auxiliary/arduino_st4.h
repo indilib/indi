@@ -53,10 +53,10 @@ class ArduinoST4 : public INDI::DefaultDevice, public INDI::GuiderInterface
     const char *getDefaultName() override;
 
     virtual bool Disconnect() override;
-    virtual IPState GuideNorth(float ms) override;
-    virtual IPState GuideSouth(float ms) override;
-    virtual IPState GuideEast(float ms) override;
-    virtual IPState GuideWest(float ms) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     // Helper functions
     static void guideTimeoutHelperN(void *p);

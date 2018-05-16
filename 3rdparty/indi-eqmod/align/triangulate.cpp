@@ -40,7 +40,7 @@ XMLEle *Triangulate::toXML()
     XMLEle *root;
     std::vector<Face *>::iterator it;
 
-    root = addXMLEle(NULL, "triangulation");
+    root = addXMLEle(nullptr, "triangulation");
 
     for (it = vfaces.begin(); it != vfaces.end(); it++)
     {

@@ -225,10 +225,10 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
     virtual bool Abort();
 
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
+    virtual IPState GuideNorth(uint32_t ms);
+    virtual IPState GuideSouth(uint32_t ms);
+    virtual IPState GuideEast(uint32_t ms);
+    virtual IPState GuideWest(uint32_t ms);
 
     bool Goto(double ra, double dec);
     bool Park();

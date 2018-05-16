@@ -303,7 +303,7 @@ void GPUSB::TimerHit()
     }
 }
 
-IPState GPUSB::GuideNorth(float ms)
+IPState GPUSB::GuideNorth(uint32_t ms)
 {
     RemoveTimer(NStimerID);
 
@@ -330,7 +330,7 @@ IPState GPUSB::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState GPUSB::GuideSouth(float ms)
+IPState GPUSB::GuideSouth(uint32_t ms)
 {
     RemoveTimer(NStimerID);
 
@@ -357,7 +357,7 @@ IPState GPUSB::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState GPUSB::GuideEast(float ms)
+IPState GPUSB::GuideEast(uint32_t ms)
 {
     RemoveTimer(WEtimerID);
 
@@ -384,7 +384,7 @@ IPState GPUSB::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState GPUSB::GuideWest(float ms)
+IPState GPUSB::GuideWest(uint32_t ms)
 {
     RemoveTimer(WEtimerID);
 

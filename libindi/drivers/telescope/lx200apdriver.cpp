@@ -85,7 +85,7 @@ int check_lx200ap_connection(int fd)
 
             return 0;
         }
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_connection: wrote, but nothing received.");
@@ -290,7 +290,7 @@ int APSyncCM(int fd, char *matchedObject)
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     tcflush(fd, TCIFLUSH);
 
@@ -318,7 +318,7 @@ int APSyncCMR(int fd, char *matchedObject)
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     tcflush(fd, TCIFLUSH);
 

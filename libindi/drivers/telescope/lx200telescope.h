@@ -63,8 +63,7 @@ public:
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-    void updateFocusTimer();
-    void guideTimeout();
+    void updateFocusTimer();    
 
   protected:
     // Slew Rate
@@ -84,13 +83,13 @@ public:
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
     // Guide Commands
-    virtual IPState GuideNorth(float ms) override;
-    virtual IPState GuideSouth(float ms) override;
-    virtual IPState GuideEast(float ms) override;
-    virtual IPState GuideWest(float ms) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     // Guide Pulse Commands
-    virtual int SendPulseCmd(int direction, int duration_msec);
+    virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec);
 
     // Goto
     virtual bool Goto(double ra, double dec) override;
@@ -142,18 +141,23 @@ public:
     void mountSim();
 
     static void updateFocusHelper(void *p);
-    static void guideTimeoutHelper(void *p);
 
-    int GuideNSTID;
-    int GuideWETID;
+    static void guideTimeoutHelperNS(void *p);
+    static void guideTimeoutHelperWE(void *p);
+    void guideTimeoutNS();
+    void guideTimeoutWE();
+
+    int GuideNSTID { -1 };
+    int GuideWETID { -1 };
+    int8_t guide_direction_ns { -1 };
+    int8_t guide_direction_we { -1 };
 
     int timeFormat=-1;
     int currentSiteNum;
     int trackingMode;
-    long guide_direction=-1;
-    bool sendTimeOnStartup=true, sendLocationOnStartup=true;
 
-    unsigned int DBG_SCOPE;
+    bool sendTimeOnStartup=true, sendLocationOnStartup=true;
+    uint8_t DBG_SCOPE;
 
     double JD;
     double targetRA, targetDEC;

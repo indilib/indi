@@ -94,8 +94,8 @@ bool MaxDomeII::SetupParms()
 {
     DomeAbsPosN[0].value = 0;
 
-    IDSetNumber(&DomeAbsPosNP, NULL);
-    IDSetNumber(&DomeParamNP, NULL);
+    IDSetNumber(&DomeAbsPosNP, nullptr);
+    IDSetNumber(&DomeParamNP, nullptr);
 
     return true;
 }
@@ -384,7 +384,7 @@ void MaxDomeII::TimerHit()
         { // Only refresh position if it changed
             DomeAbsPosN[0].value = nAz;
             //sprintf(buf,"%d", nCurrentTicks);
-            IDSetNumber(&DomeAbsPosNP, NULL);
+            IDSetNumber(&DomeAbsPosNP, nullptr);
         }
 
         switch (nAzimuthStatus)
@@ -519,7 +519,7 @@ bool MaxDomeII::Abort()
     }
 
     DomeAbsPosNP.s = IPS_IDLE;
-    IDSetNumber(&DomeAbsPosNP, NULL);
+    IDSetNumber(&DomeAbsPosNP, nullptr);
 
     // If we abort while in the middle of opening/closing shutter, alert.
     if (DomeShutterSP.s == IPS_BUSY)
@@ -578,7 +578,7 @@ bool MaxDomeII::ISNewNumber(const char *dev, const char *name, double values[], 
             {
                 LOGF_ERROR("MAX DOME II: %s", ErrorMessages[-error]);
                 TicksPerTurnNP.s = IPS_ALERT;
-                IDSetNumber(&TicksPerTurnNP, NULL);
+                IDSetNumber(&TicksPerTurnNP, nullptr);
             }
 
             return false;

@@ -39,9 +39,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual void ISGetProperties(const char *dev) override;
-
-    void guideTimeout();
+    virtual void ISGetProperties(const char *dev) override;    
 
   protected:
 
@@ -66,15 +64,13 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     virtual bool SetSlewRate(int index) override;
 
     // Guide Commands
-    virtual IPState GuideNorth(float ms) override;
-    virtual IPState GuideSouth(float ms) override;
-    virtual IPState GuideEast(float ms) override;
-    virtual IPState GuideWest(float ms) override;
-    virtual int  SendPulseCmd(int direction, int duration_msec) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
+    virtual int  SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
     virtual bool GuideNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool GuideWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-
-    static void guideTimeoutHelper(void *p);
 
     virtual bool getUTFOffset(double *offset) override;
 
@@ -144,8 +140,8 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     double lastRA=0, lastDE=0;
     double lastAZ=0, lastAL=0;
 
-    int GuideNSTID;
-    int GuideWETID;
+    //int GuideNSTID;
+    //int GuideWETID;
 
     bool motionCommanded=false;
     bool mountInitialized=false;

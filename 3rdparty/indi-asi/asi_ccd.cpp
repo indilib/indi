@@ -1331,12 +1331,12 @@ const char *dirName)
     }
 }
 
-IPState ASICCD::GuideNorth(float ms)
+IPState ASICCD::GuideNorth(uint32_t ms)
 {
     return guidePulseNS(ms, ASI_GUIDE_NORTH, "North");
 }
 
-IPState ASICCD::GuideSouth(float ms)
+IPState ASICCD::GuideSouth(uint32_t ms)
 {
     return guidePulseNS(ms, ASI_GUIDE_SOUTH, "South");
 }
@@ -1424,12 +1424,12 @@ const char *dirName)
     }
 }
 
-IPState ASICCD::GuideEast(float ms)
+IPState ASICCD::GuideEast(uint32_t ms)
 {
     return guidePulseWE(ms, ASI_GUIDE_EAST, "East");
 }
 
-IPState ASICCD::GuideWest(float ms)
+IPState ASICCD::GuideWest(uint32_t ms)
 {
     return guidePulseWE(ms, ASI_GUIDE_WEST, "West");
 }

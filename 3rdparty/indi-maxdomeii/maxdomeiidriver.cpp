@@ -260,7 +260,7 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
 int MaxDomeIIDriver::AbortAzimuth()
 {
     LOG_INFO("Azimuth movement aborted");
-    return SendCommand(ABORT_CMD, NULL, 0);
+    return SendCommand(ABORT_CMD, nullptr, 0);
 }
 
 /*
@@ -271,7 +271,7 @@ int MaxDomeIIDriver::AbortAzimuth()
 int MaxDomeIIDriver::HomeAzimuth()
 {
     LOG_INFO("Homing azimuth");
-    return SendCommand(HOME_CMD, NULL, 0);
+    return SendCommand(HOME_CMD, nullptr, 0);
 }
 
 /*
@@ -305,7 +305,7 @@ int MaxDomeIIDriver::GotoAzimuth(int nDir, int nTicks)
 int MaxDomeIIDriver::Status(ShStatus *shStatus, AzStatus *azStatus,
         unsigned *azimuthPos, unsigned *homePos)
 {
-    int ret = SendCommand(STATUS_CMD, NULL, 0);
+    int ret = SendCommand(STATUS_CMD, nullptr, 0);
     if (ret != 0) {
         return ret;
     }
@@ -327,7 +327,7 @@ int MaxDomeIIDriver::Status(ShStatus *shStatus, AzStatus *azStatus,
 int MaxDomeIIDriver::Ack()
 {
     LOG_DEBUG("ACK sent");
-    return SendCommand(ACK_CMD, NULL, 0);
+    return SendCommand(ACK_CMD, nullptr, 0);
 }
 
 /*

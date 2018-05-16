@@ -109,11 +109,11 @@ enum USB_REQUEST
 
 using namespace OpenSSAG;
 
-libusb_context *ctx = NULL;
+libusb_context *ctx = nullptr;
 
 SSAG::SSAG()
 {
-    if (ctx == NULL)
+    if (ctx == nullptr)
     {
         int rc = libusb_init(&ctx);
         if (rc < 0)
@@ -125,7 +125,7 @@ SSAG::SSAG()
 
 bool SSAG::Connect(bool bootload)
 {
-    if ((this->handle = libusb_open_device_with_vid_pid(ctx, SSAG_VENDOR_ID, SSAG_PRODUCT_ID)) == NULL)
+    if ((this->handle = libusb_open_device_with_vid_pid(ctx, SSAG_VENDOR_ID, SSAG_PRODUCT_ID)) == nullptr)
     {
         if (bootload)
         {
@@ -197,7 +197,7 @@ void SSAG::Disconnect()
 {
     if (this->handle)
         libusb_close(this->handle);
-    this->handle = NULL;
+    this->handle = nullptr;
 }
 
 void SSAG::SetBufferMode()
@@ -214,7 +214,7 @@ void SSAG::SetBufferMode()
 
 bool SSAG::IsConnected()
 {
-    return (this->handle != NULL);
+    return (this->handle != nullptr);
 }
 
 struct raw_image *SSAG::Expose(int duration)
@@ -240,7 +240,7 @@ struct raw_image *SSAG::Expose(int duration)
     if (!image->data)
     {
         free(image);
-        return NULL;
+        return nullptr;
     }
 
     return image;
@@ -324,7 +324,7 @@ void SSAG::InitSequence()
     {
         DBG("Can't send USB_RQ_SET_INIT_PACKET request (%d)", rc);
     }
-    rc = libusb_control_transfer(this->handle, 0x40, USB_RQ_PRE_EXPOSE, PIXEL_OFFSET, 0, NULL, 0, USB_TIMEOUT);
+    rc = libusb_control_transfer(this->handle, 0x40, USB_RQ_PRE_EXPOSE, PIXEL_OFFSET, 0, nullptr, 0, USB_TIMEOUT);
     if (rc < 0)
     {
         DBG("Can't send USB_RQ_PRE_EXPOSE request (%d)", rc);
@@ -344,7 +344,7 @@ unsigned char *SSAG::ReadBuffer(int timeout)
     { // fixed!
         DBG("Failed to receive bytes of image data (%d)", rc);
         free(data);
-        return NULL;
+        return nullptr;
     }
 
     unsigned char *image = (unsigned char *)malloc(IMAGE_WIDTH * IMAGE_HEIGHT);

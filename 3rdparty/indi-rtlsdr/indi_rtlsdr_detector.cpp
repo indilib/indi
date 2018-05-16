@@ -81,10 +81,10 @@ void ISGetProperties(const char *dev)
     for (int i = 0; i < iNumofConnectedDetectors; i++)
     {
         RTLSDR *receiver = receivers[i];
-        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        if (dev == nullptr || !strcmp(dev, receiver->getDeviceName()))
         {
             receiver->ISGetProperties(dev);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -96,10 +96,10 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     for (int i = 0; i < iNumofConnectedDetectors; i++)
     {
         RTLSDR *receiver = receivers[i];
-        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        if (dev == nullptr || !strcmp(dev, receiver->getDeviceName()))
         {
             receiver->ISNewSwitch(dev, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -111,10 +111,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     for (int i = 0; i < iNumofConnectedDetectors; i++)
     {
         RTLSDR *receiver = receivers[i];
-        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        if (dev == nullptr || !strcmp(dev, receiver->getDeviceName()))
         {
             receiver->ISNewText(dev, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -126,10 +126,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     for (int i = 0; i < iNumofConnectedDetectors; i++)
     {
         RTLSDR *receiver = receivers[i];
-        if (dev == NULL || !strcmp(dev, receiver->getDeviceName()))
+        if (dev == nullptr || !strcmp(dev, receiver->getDeviceName()))
         {
             receiver->ISNewNumber(dev, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }

@@ -92,20 +92,20 @@ bool NexStarEvo::Abort()
     {
         IUResetSwitch(&MovementNSSP);
         MovementNSSP.s = IPS_IDLE;
-        IDSetSwitch(&MovementNSSP, NULL);
+        IDSetSwitch(&MovementNSSP, nullptr);
     }
 
     if (MovementWESP.s == IPS_BUSY)
     {
         MovementWESP.s = IPS_IDLE;
         IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementWESP, NULL);
+        IDSetSwitch(&MovementWESP, nullptr);
     }
 
     if (EqNP.s == IPS_BUSY)
     {
         EqNP.s = IPS_IDLE;
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
     }
 
     TrackState = SCOPE_IDLE;
@@ -115,7 +115,7 @@ bool NexStarEvo::Abort()
     scope.Abort();
     AbortSP.s = IPS_OK;
     IUResetSwitch(&AbortSP);
-    IDSetSwitch(&AbortSP, NULL);
+    IDSetSwitch(&AbortSP, nullptr);
     LOG_INFO("Telescope aborted.");
 
     return true;
@@ -135,10 +135,10 @@ bool NexStarEvo::Connect()
 
     } else if (mode == CONNECTION_TCP ) {
         // TCP mode but no IP fields - use detection/default IP:port
-        if (scope == NULL)
+        if (scope == nullptr)
             scope = new NexStarAUXScope();
     }
-    if (scope != NULL) {
+    if (scope != nullptr) {
         scope.Connect();
     }
     return true;
@@ -170,7 +170,7 @@ bool NexStarEvo::Park()
     scope.Park();
     TrackState = SCOPE_PARKING;
     ParkSP.s   = IPS_BUSY;
-    IDSetSwitch(&ParkSP, NULL);
+    IDSetSwitch(&ParkSP, nullptr);
     DEBUG(DBG_NSEVO, "Telescope park in progress...");
 
     return true;
@@ -200,8 +200,8 @@ ln_hrz_posn NexStarEvo::AltAzFromRaDec(double ra, double dec, double ts)
         // Try some simple rotations using the stored observatory position if any
         bool HavePosition = false;
         ln_lnlat_posn Position;
-        if ((NULL != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-            (NULL != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
+        if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
+            (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
             Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -428,7 +428,7 @@ bool NexStarEvo::ISNewSwitch(const char *dev, const char *name, ISState *states,
                 return false;
 
             SlewRateSP.s = IPS_OK;
-            IDSetSwitch(&SlewRateSP, NULL);
+            IDSetSwitch(&SlewRateSP, nullptr);
             return true;
         }
 
@@ -551,8 +551,8 @@ bool NexStarEvo::ReadScopeStatus()
 
         bool HavePosition = false;
         ln_lnlat_posn Position;
-        if ((NULL != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
-            (NULL != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
+        if ((nullptr != IUFindNumber(&LocationNP, "LAT")) && (0 != IUFindNumber(&LocationNP, "LAT")->value) &&
+            (nullptr != IUFindNumber(&LocationNP, "LONG")) && (0 != IUFindNumber(&LocationNP, "LONG")->value))
         {
             // I assume that being on the equator and exactly on the prime meridian is unlikely
             Position.lat = IUFindNumber(&LocationNP, "LAT")->value;
@@ -666,7 +666,7 @@ void NexStarEvo::TimerHit()
     struct timeval tv;         // new system time
     double dt;                 // Elapsed time in seconds since last tick
 
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
 
     if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
         ltv = tv;

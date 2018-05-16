@@ -68,10 +68,10 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     virtual bool UpdateCCDBin(int binx, int biny) override;
 
     // Guide Port
-    virtual IPState GuideNorth(float) override;
-    virtual IPState GuideSouth(float) override;
-    virtual IPState GuideEast(float) override;
-    virtual IPState GuideWest(float) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     // Filter Wheel CFW
     virtual int QueryFilter() override;
