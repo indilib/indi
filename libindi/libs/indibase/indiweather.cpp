@@ -239,8 +239,7 @@ bool Weather::ISNewNumber(const char *dev, const char *name, double values[], ch
 
                 ParametersN[i].min               = ParametersRangeNP[i].np[0].value;
                 ParametersN[i].max               = ParametersRangeNP[i].np[1].value;
-                *((double *)ParametersN[i].aux0) = ParametersRangeNP[i].np[2].value;
-                *((double *)ParametersN[i].aux1) = ParametersRangeNP[i].np[3].value;
+                *((double *)ParametersN[i].aux0)    = ParametersRangeNP[i].np[2].value;
 
                 updateWeatherState();
 
@@ -394,25 +393,22 @@ bool Weather::processLocationInfo(double latitude, double longitude, double elev
     }
 }
 
-void Weather::addParameter(std::string name, std::string label, double minimumOK, double maximumOK,
-                                 double minimumWarning, double maximumWarning)
+void Weather::addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning)
 {
-    DEBUGF(Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g) Warn (%g,%g)", name.c_str(), minimumOK,
-           maximumOK, minimumWarning, maximumWarning);
+    
+    DEBUGF(Logger::DBG_DEBUG, "Parameter %s is added. Ok (%g,%g,%g) ", name.c_str(), numMinOk,
+           numMaxOk, percWarning);
 
     ParametersN = (ParametersN == nullptr) ? (INumber *)malloc(sizeof(INumber)) :
                                              (INumber *)realloc(ParametersN, (ParametersNP.nnp + 1) * sizeof(INumber));
 
-    double *minWarn = (double *)malloc(sizeof(double));
-    double *maxWarn = (double *)malloc(sizeof(double));
+    double *warn = (double *)malloc(sizeof(double));
 
-    *minWarn = minimumWarning;
-    *maxWarn = maximumWarning;
+    *warn = percWarning;
 
-    IUFillNumber(&ParametersN[ParametersNP.nnp], name.c_str(), label.c_str(), "%4.2f", minimumOK, maximumOK, 0, 0);
+    IUFillNumber(&ParametersN[ParametersNP.nnp], name.c_str(), label.c_str(), "%4.2f", numMinOk, numMaxOk, 0, 0);
 
-    ParametersN[ParametersNP.nnp].aux0 = minWarn;
-    ParametersN[ParametersNP.nnp].aux1 = maxWarn;
+    ParametersN[ParametersNP.nnp].aux0 = warn;
 
     ParametersNP.np = ParametersN;
     ParametersNP.nnp++;
@@ -470,12 +466,20 @@ void Weather::updateWeatherState()
         {
             if (!strcmp(critialParametersL[i].name, ParametersN[j].name))
             {
-                double minWarn = *(static_cast<double *>(ParametersN[j].aux0));
-                double maxWarn = *(static_cast<double *>(ParametersN[j].aux1));
+                double warn = *(static_cast<double *>(ParametersN[j].aux0));
 
-                if ((ParametersN[j].value >= ParametersN[j].min) && (ParametersN[j].value <= ParametersN[j].max))
-                    critialParametersL[i].s = IPS_OK;
-                else if ((ParametersN[j].value >= minWarn) && (ParametersN[j].value <= maxWarn))
+                double rangeWarn = (ParametersN[j].max - ParametersN[j].min) * (warn /100); 
+                
+                if ((ParametersN[j].value < ParametersN[j].min) || (ParametersN[j].value > ParametersN[j].max))
+                {
+                    critialParametersL[i].s = IPS_ALERT;
+                    DEBUGF(Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!",
+                           ParametersN[j].label, ParametersN[j].value);
+                }
+                //else if (ParametersN[j].value < (ParametersN[j].min + rangeWarn) || ParametersN[j].value > (ParametersN[j].max - rangeWarn))
+                // FIXME This is a hack to prevent warnings parameters which minimum values are zero (e.g. Wind)
+                else if (   ((ParametersN[j].value < (ParametersN[j].min + rangeWarn)) && ParametersN[j].min != 0)
+                         || ((ParametersN[j].value > (ParametersN[j].max - rangeWarn)) && ParametersN[j].max != 0))
                 {
                     critialParametersL[i].s = IPS_BUSY;
                     DEBUGF(Logger::DBG_WARNING, "Warning: Parameter %s value (%g) is in the warning zone!",
@@ -483,9 +487,7 @@ void Weather::updateWeatherState()
                 }
                 else
                 {
-                    critialParametersL[i].s = IPS_ALERT;
-                    DEBUGF(Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!",
-                           ParametersN[j].label, ParametersN[j].value);
+                    critialParametersL[i].s = IPS_OK;
                 }
                 break;
             }
@@ -506,19 +508,18 @@ void Weather::createParameterRange(std::string name, std::string label)
             (INumberVectorProperty *)malloc(sizeof(INumberVectorProperty)) :
             (INumberVectorProperty *)realloc(ParametersRangeNP, (nRanges + 1) * sizeof(INumberVectorProperty));
 
-    INumber *rangesN = (INumber *)malloc(sizeof(INumber) * 4);
+    INumber *rangesN = (INumber *)malloc(sizeof(INumber) * 3);
 
-    IUFillNumber(&rangesN[0], "MIN_OK", "Min OK", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].min);
-    IUFillNumber(&rangesN[1], "MAX_OK", "Max OK", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].max);
-    IUFillNumber(&rangesN[2], "MIN_WARN", "Min Warn", "%4.2f", -1e6, 1e6, 0, *((double *)ParametersN[nRanges].aux0));
-    IUFillNumber(&rangesN[3], "MAX_WARN", "Max Warn", "%4.2f", -1e6, 1e6, 0, *((double *)ParametersN[nRanges].aux1));
+    IUFillNumber(&rangesN[0], "MIN_OK", "OK range min", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].min);
+    IUFillNumber(&rangesN[1], "MAX_OK", "OK range max", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].max);
+    IUFillNumber(&rangesN[2], "PERC_WARN", "% for Warning", "%g", 0, 100, 1, *((double *)ParametersN[nRanges].aux0));
 
     char propName[MAXINDINAME];
     char propLabel[MAXINDILABEL];
-    snprintf(propName, MAXINDINAME, "%s Range", name.c_str());
-    snprintf(propLabel, MAXINDILABEL, "%s Range", label.c_str());
+    snprintf(propName, MAXINDINAME, "%s", name.c_str());
+    snprintf(propLabel, MAXINDILABEL, "%s", label.c_str());
 
-    IUFillNumberVector(&ParametersRangeNP[nRanges], rangesN, 4, getDeviceName(), propName, propLabel, PARAMETERS_TAB,
+    IUFillNumberVector(&ParametersRangeNP[nRanges], rangesN, 3, getDeviceName(), propName, propLabel, PARAMETERS_TAB,
                        IP_RW, 60, IPS_IDLE);
 
     nRanges++;

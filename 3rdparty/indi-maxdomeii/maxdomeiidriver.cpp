@@ -117,7 +117,7 @@ int MaxDomeIIDriver::Connect(const char *device)
 */
 int MaxDomeIIDriver::Disconnect()
 {
-    ExitShutter(); // Really don't know why this is needed, but ASCOM driver does it
+    //ExitShutter(); // Really don't know why this is needed, but ASCOM driver does it
     tty_disconnect(fd);
 
     return 0;
@@ -216,17 +216,16 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
     int nbytes;
     char errmsg[MAXRBUF];
     char cmd[BUFFER_SIZE];
-    //char hexbuf[3*BUFFER_SIZE];
+    char hexbuf[3*BUFFER_SIZE];
 
     cmd[0] = START_BYTE;
     cmd[1] = payloadLen + 2;
     cmd[2] = cmdId;
+    memcpy(cmd + 3, payload, payloadLen);
     cmd[3 + payloadLen] = computeChecksum(cmd, 3 + payloadLen);
 
-    memcpy(cmd + 3, payload, payloadLen);
-
-    //hexDump(hexbuf, cmd, 4 + payloadLen);
-    //LOGF_DEBUG("CMD (%s)", hexbuf);
+    hexDump(hexbuf, cmd, 4 + payloadLen);
+    LOGF_DEBUG("CMD (%s)", hexbuf);
 
     tcflush(fd, TCIOFLUSH);
 
@@ -246,8 +245,8 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
         return -6;
     }
 
-    //hexDump(hexbuf, buffer, nbytes);
-    //LOGF_DEBUG("RES (%s)", hexbuf);
+    hexDump(hexbuf, buffer, nbytes);
+    LOGF_DEBUG("RES (%s)", hexbuf);
 
     return 0;
 }

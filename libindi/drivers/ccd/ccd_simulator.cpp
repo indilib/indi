@@ -989,19 +989,19 @@ int CCDSim::AddToPixel(INDI::CCDChip *targetChip, int x, int y, int val)
 
 IPState CCDSim::GuideNorth(uint32_t v)
 {
-    guideNSOffset    += v / 1000 * GuideRate / 3600;
+    guideNSOffset    += v / 1000.0 * GuideRate / 3600;
     return IPS_OK;
 }
 
 IPState CCDSim::GuideSouth(uint32_t v)
 {
-    guideNSOffset    += v / -1000 * GuideRate / 3600;
+    guideNSOffset    += v / -1000.0 * GuideRate / 3600;
     return IPS_OK;
 }
 
 IPState CCDSim::GuideEast(uint32_t v)
 {
-    float c   = v / 1000 * GuideRate;
+    float c   = v / 1000.0 * GuideRate;
     c   = c/ 3600.0 / 15.0;
     c   = c/ (cos(currentDE * 0.0174532925));
 
@@ -1012,7 +1012,7 @@ IPState CCDSim::GuideEast(uint32_t v)
 
 IPState CCDSim::GuideWest(uint32_t v)
 {
-    float c   = v / -1000 * GuideRate;
+    float c   = v / -1000.0 * GuideRate;
     c   = c/ 3600.0 / 15.0;
     c   = c/ (cos(currentDE * 0.0174532925));
 

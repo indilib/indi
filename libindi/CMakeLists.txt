@@ -1151,6 +1151,15 @@ install(TARGETS indi_usbdewpoint RUNTIME DESTINATION bin)
 ########## WEATHER GROUP ############
 #####################################
 
+########### Weather Simulator ###############
+
+SET(weathersimulator_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weathersimulator.cpp)
+
+add_executable(indi_simulator_weather ${weathersimulator_SRC})
+target_link_libraries(indi_simulator_weather indidriver)
+install(TARGETS indi_simulator_weather RUNTIME DESTINATION bin )
+
 ########### Weather Meta Driver ###############
 
 SET(weathermeta_SRC
