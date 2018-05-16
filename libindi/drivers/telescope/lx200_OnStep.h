@@ -136,20 +136,10 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
 
     // Focuser controls
     // Focuser 1
-    //ISwitchVectorProperty OSFocus1SelSP;
-    //ISwitch OSFocus1SelS[2];
     bool OSFocuser1=false;
     ISwitchVectorProperty OSFocus1RateSP;
     ISwitch OSFocus1RateS[4];
 
-    ISwitchVectorProperty OSFocus1MotionSP;
-    ISwitch OSFocus1MotionS[3];
-
-    INumberVectorProperty OSFocus1TargNP;
-    INumber OSFocus1TargN[1];
-
-    INumberVectorProperty OSFocus1TargRelNP;
-    INumber OSFocus1TargRelN[1];
     // Focuser 2
     //ISwitchVectorProperty OSFocus2SelSP;
     //ISwitch OSFocus2SelS[2];
