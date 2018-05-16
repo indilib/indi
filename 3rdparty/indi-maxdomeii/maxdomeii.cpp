@@ -486,7 +486,7 @@ IPState MaxDomeII::MoveAbs(double newAZ)
     if (error != 0)
         return IPS_ALERT;
 
-    nTargetAzimuth         = newPos;
+    nTargetAzimuth = newPos;
     nTimeSinceAzimuthStart = 0; // Init movement timer
 
     // It will take a few cycles to reach final position
@@ -495,9 +495,47 @@ IPState MaxDomeII::MoveAbs(double newAZ)
 
 IPState MaxDomeII::Move(DomeDirection dir, DomeMotionCommand operation)
 {
-    // TODO
-    INDI_UNUSED(operation);
-    LOGF_INFO("Move dir=%d", dir);
+    int error;
+    int nRetry = 3;
+
+    if (operation == MOTION_START)
+    {
+        LOGF_DEBUG("Move dir=%d", dir);
+        double currAZ = DomeAbsPosN[0].value;
+        double newAZ = currAZ > 180 ? currAZ - 180 : currAZ + 180;
+        int newPos = AzimuthToTicks(newAZ);
+        int nDir = dir ? MAXDOMEII_WE_DIR : MAXDOMEII_EW_DIR;
+
+        while (nRetry)
+        {
+            error = driver.GotoAzimuth(nDir, newPos);
+            handle_driver_error(&error, &nRetry);
+        }
+
+        if (error != 0)
+            return IPS_ALERT;
+
+        nTargetAzimuth = newPos;
+        nTimeSinceAzimuthStart = 0; // Init movement timer
+        return IPS_BUSY;
+    }
+    else
+    {
+        LOG_DEBUG("Stop movement");
+        while (nRetry)
+        {
+            error = driver.AbortAzimuth();
+            handle_driver_error(&error, &nRetry);
+        }
+
+        if (error != 0)
+            return IPS_ALERT;
+
+        DomeAbsPosNP.s = IPS_IDLE;
+        IDSetNumber(&DomeAbsPosNP, NULL);
+        nTimeSinceAzimuthStart = -1;
+    }
+
     return IPS_OK;
 }
 
