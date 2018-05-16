@@ -476,7 +476,10 @@ void Weather::updateWeatherState()
                     DEBUGF(Logger::DBG_WARNING, "Caution: Parameter %s value (%g) is in the danger zone!",
                            ParametersN[j].label, ParametersN[j].value);
                 }
-                else if (ParametersN[j].value < (ParametersN[j].min + rangeWarn) || ParametersN[j].value > (ParametersN[j].max - rangeWarn))
+                //else if (ParametersN[j].value < (ParametersN[j].min + rangeWarn) || ParametersN[j].value > (ParametersN[j].max - rangeWarn))
+                // FIXME This is a hack to prevent warnings parameters which minimum values are zero (e.g. Wind)
+                else if (   ((ParametersN[j].value < (ParametersN[j].min + rangeWarn)) && ParametersN[j].min != 0)
+                         || ((ParametersN[j].value > (ParametersN[j].max - rangeWarn)) && ParametersN[j].max != 0))
                 {
                     critialParametersL[i].s = IPS_BUSY;
                     DEBUGF(Logger::DBG_WARNING, "Warning: Parameter %s value (%g) is in the warning zone!",
@@ -509,7 +512,7 @@ void Weather::createParameterRange(std::string name, std::string label)
 
     IUFillNumber(&rangesN[0], "MIN_OK", "OK range min", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].min);
     IUFillNumber(&rangesN[1], "MAX_OK", "OK range max", "%4.2f", -1e6, 1e6, 0, ParametersN[nRanges].max);
-    IUFillNumber(&rangesN[2], "PERC_WARN", "Perc for Warning", "%g", 0, 100, 1, *((double *)ParametersN[nRanges].aux0));
+    IUFillNumber(&rangesN[2], "PERC_WARN", "% for Warning", "%g", 0, 100, 1, *((double *)ParametersN[nRanges].aux0));
 
     char propName[MAXINDINAME];
     char propLabel[MAXINDILABEL];
