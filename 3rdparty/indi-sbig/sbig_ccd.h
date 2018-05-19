@@ -29,7 +29,9 @@
 
 #include <indiccd.h>
 #include <indifilterinterface.h>
+#ifdef __APPLE__
 #include <libusb-1.0/libusb.h>
+#endif
 
 #include <sbigudrv.h>
 
@@ -141,8 +143,10 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     bool isExposureDone(INDI::CCDChip *targetChip);
 
   protected:
+  #ifdef __APPLE__
   	libusb_device *dev;
     libusb_device_handle *handle;
+  #endif
   
     virtual void TimerHit() override;
     virtual int SetTemperature(double temperature) override;
