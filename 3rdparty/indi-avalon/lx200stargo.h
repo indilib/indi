@@ -68,6 +68,12 @@ protected:
     ISwitchVectorProperty ST4StatusSP;
     ISwitch ST4StatusS[2];
 
+    // meridian flip
+    ISwitchVectorProperty MeridianFlipEnabledSP;
+    ISwitch MeridianFlipEnabledS[2];
+    ISwitchVectorProperty MeridianFlipForcedSP;
+    ISwitch MeridianFlipForcedS[2];
+
     // override LX200Generic
     virtual void getBasicData() override;
     virtual bool ReadScopeStatus() override;
@@ -114,6 +120,12 @@ protected:
     virtual bool queryGetST4Status(bool *isEnabled);
     virtual bool queryGetGuidingSpeeds(int *raSpeed, int *decSpeed);
     virtual bool setST4Enabled(bool enabled);
+
+    // meridian flip
+    virtual bool queryGetMeridianFlipEnabledStatus(bool *isEnabled);
+    virtual bool queryGetMeridianFlipForcedStatus(bool *isEnabled);
+    virtual bool setMeridianFlipEnabled(bool enabled);
+    virtual bool setMeridianFlipForced(bool enabled);
 
     virtual bool syncSideOfPier();
 
