@@ -1623,6 +1623,9 @@ bool V4L2_Driver::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
 
+    if (ImageAdjustNP.nnp > 0)
+        IUSaveConfigNumber(fp, &ImageAdjustNP);
+
     return Streamer->saveConfigItems(fp);
 }
 

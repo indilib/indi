@@ -974,7 +974,6 @@ bool EQMod::ReadScopeStatus()
                     if ((RememberTrackState == SCOPE_TRACKING) || ((sw != nullptr) && (sw->s == ISS_ON)))
                     {
                         char *name;
-                        TrackState = SCOPE_TRACKING;
 
                         if (RememberTrackState == SCOPE_TRACKING)
                         {
@@ -1000,6 +999,9 @@ bool EQMod::ReadScopeStatus()
 #endif
                         }
 
+                        TrackState = SCOPE_TRACKING;
+                        RememberTrackState = TrackState;
+
 #if 0
                         TrackModeSP->s = IPS_BUSY;
                         IDSetSwitch(TrackModeSP, nullptr);
@@ -1009,6 +1011,7 @@ bool EQMod::ReadScopeStatus()
                     else
                     {
                         TrackState = SCOPE_IDLE;
+                        RememberTrackState = TrackState;
                         LOG_INFO("Telescope slew is complete. Stopping...");
                     }
                     gotoparams.completed = true;
@@ -1085,6 +1088,7 @@ bool EQMod::ReadScopeStatus()
             case AUTO_HOME_CONFIRM:
                 AutohomeState = AUTO_HOME_IDLE;
                 TrackState    = SCOPE_IDLE;
+                RememberTrackState = TrackState;
                 LOG_INFO("Invalid status while Autohoming. Aborting");
                 break;
             case AUTO_HOME_WAIT_PHASE1:
@@ -1367,6 +1371,7 @@ bool EQMod::ReadScopeStatus()
                     mount->SetRAAxisPosition(mount->GetRAEncoderHome());
                     mount->SetDEAxisPosition(mount->GetDEEncoderHome());
                     TrackState    = SCOPE_IDLE;
+                    RememberTrackState = TrackState;
                     AutohomeState = AUTO_HOME_IDLE;
                     AutoHomeSP->s = IPS_IDLE;
                     IUResetSwitch(AutoHomeSP);
@@ -2686,6 +2691,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                         IDSetSwitch(AutoHomeSP, nullptr);
                         AutohomeState = AUTO_HOME_IDLE;
                         TrackState    = SCOPE_IDLE;
+                        RememberTrackState = TrackState;
                         return (e.DefaultHandleException(this));
                     }
                 }
@@ -3027,6 +3033,8 @@ bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             else
                 TrackState = SCOPE_IDLE;
 
+            RememberTrackState = TrackState;
+
             break;
         }
     }
@@ -3072,6 +3080,9 @@ bool EQMod::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             }
             else
                 TrackState = SCOPE_IDLE;
+
+            RememberTrackState = TrackState;
+
             break;
         }
     }
@@ -3121,6 +3132,7 @@ bool EQMod::Abort()
     IUResetSwitch(AutoHomeSP);
     IDSetSwitch(AutoHomeSP, nullptr);
     TrackState = SCOPE_IDLE;
+    RememberTrackState = TrackState;
     if (gotoparams.completed == false)
         gotoparams.completed = true;
 
@@ -3483,6 +3495,7 @@ bool EQMod::SetTrackEnabled(bool enabled)
         {
             LOGF_INFO("Start Tracking (%s).", IUFindOnSwitch(&TrackModeSP)->label);
             TrackState     = SCOPE_TRACKING;
+            RememberTrackState = TrackState;
             mount->StartRATracking(GetRATrackRate());
             mount->StartDETracking(GetDETrackRate());
         }
@@ -3490,6 +3503,7 @@ bool EQMod::SetTrackEnabled(bool enabled)
         {
             LOGF_WARN("Stopping Tracking (%s).", IUFindOnSwitch(&TrackModeSP)->label);
             TrackState     = SCOPE_IDLE;
+            RememberTrackState = TrackState;
             mount->StopRA();
             mount->StopDE();
         }
