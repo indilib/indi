@@ -102,7 +102,7 @@ void ISSnoopDevice(XMLEle *root)
 
 LX200StarGo::LX200StarGo()
 {
-    setVersion(0, 4);
+    setVersion(0, 5);
     /* missing capabilities
      * TELESCOPE_HAS_TIME:
      *    missing commands
@@ -216,9 +216,7 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
 
             IDSetSwitch(&TrackModeSP, nullptr);
             return result;
-         }
-        else if (!strcmp(name, ST4StatusSP.name))
-        {
+         } else if (!strcmp(name, ST4StatusSP.name)) {
             bool enabled = (states[0] == ISS_OFF);
             bool result = setST4Enabled(enabled);
 
@@ -231,6 +229,10 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             }
             IDSetSwitch(&ST4StatusSP, nullptr);
             return result;
+        } else if (!strcmp(name, MeridianFlipEnabledSP.name)) {
+            return setMeridianFlipEnabled(states[0] == ISS_OFF);
+        } else if (!strcmp(name, MeridianFlipForcedSP.name)) {
+            return setMeridianFlipForced(states[0] == ISS_OFF);
         }
 
     }
@@ -300,6 +302,15 @@ bool LX200StarGo::initProperties()
     IUFillSwitch(&ST4StatusS[1], "ST4_ENABLED", "enabled", ISS_OFF);
     IUFillSwitchVector(&ST4StatusSP, ST4StatusS, 2, getDeviceName(), "ST4", "ST4", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
+    // meridian flip
+    IUFillSwitch(&MeridianFlipEnabledS[0], "MERIDIAN_FLIP_DISABLED", "disabled", ISS_OFF);
+    IUFillSwitch(&MeridianFlipEnabledS[1], "MERIDIAN_FLIP_ENABLED", "enabled", ISS_OFF);
+    IUFillSwitchVector(&MeridianFlipEnabledSP, MeridianFlipEnabledS, 2, getDeviceName(), "ENABLE_MERIDIAN_FLIP", "Meridian flip", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    IUFillSwitch(&MeridianFlipForcedS[0], "MERIDIAN_FLIP_AUTOMATIC", "automatic", ISS_OFF);
+    IUFillSwitch(&MeridianFlipForcedS[1], "MERIDIAN_FLIP_FORCED", "forced", ISS_OFF);
+    IUFillSwitchVector(&MeridianFlipForcedSP, MeridianFlipForcedS, 2, getDeviceName(), "FORCE_MERIDIAN_FLIP", "Meridian flip", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     // overwrite the custom tracking mode button
     IUFillSwitch(&TrackModeS[3], "TRACK_NONE", "None", ISS_OFF);
 
@@ -325,6 +336,8 @@ bool LX200StarGo::updateProperties()
         defineSwitch(&MountSetParkSP);
         defineNumber(&GuidingSpeedNP);
         defineSwitch(&ST4StatusSP);
+        // defineSwitch(&MeridianFlipEnabledSP);
+        defineSwitch(&MeridianFlipForcedSP);
 
         if (queryFirmwareInfo(firmwareInfo)) {
             MountFirmwareInfoT[0].text = firmwareInfo;
@@ -339,15 +352,24 @@ bool LX200StarGo::updateProperties()
                 IDSetSwitch(&SyncHomeSP, nullptr);
             }
         }
-        bool ST4Enabled;
-        if (queryGetST4Status(&ST4Enabled)) {
-            ST4StatusS[0].s = ST4Enabled ? ISS_OFF : ISS_ON;
-            ST4StatusS[1].s = ST4Enabled ? ISS_ON : ISS_OFF;
+        bool isEnabled;
+        if (queryGetST4Status(&isEnabled)) {
+            ST4StatusS[0].s = isEnabled ? ISS_OFF : ISS_ON;
+            ST4StatusS[1].s = isEnabled ? ISS_ON : ISS_OFF;
             ST4StatusSP.s = IPS_OK;
         } else {
             ST4StatusSP.s = IPS_ALERT;
         }
         IDSetSwitch(&ST4StatusSP, nullptr);
+
+//        if (queryGetMeridianFlipEnabledStatus(&isEnabled)) {
+//            MeridianFlipEnabledS[0].s = isEnabled ? ISS_OFF : ISS_ON;
+//            MeridianFlipEnabledS[1].s = isEnabled ? ISS_ON : ISS_OFF;
+//            MeridianFlipEnabledSP.s = IPS_OK;
+//        } else {
+//            MeridianFlipEnabledSP.s = IPS_ALERT;
+//        }
+//        IDSetSwitch(&MeridianFlipEnabledSP, nullptr);
 
         int raSpeed, decSpeed;
         if (queryGetGuidingSpeeds(&raSpeed, &decSpeed)) {
@@ -368,6 +390,8 @@ bool LX200StarGo::updateProperties()
         deleteProperty(MountInfoTP.name);
         deleteProperty(GuidingSpeedNP.name);
         deleteProperty(ST4StatusSP.name);
+//        deleteProperty(MeridianFlipEnabledSP.name);
+        deleteProperty(MeridianFlipForcedSP.name);
     }
 
     focuser->updateProperties();
@@ -412,6 +436,17 @@ bool LX200StarGo::ReadScopeStatus()
     {
         if (isSlewComplete()) SetParked(true);
     }
+
+    // update meridian flip status
+    bool isEnabled;
+    if (queryGetMeridianFlipForcedStatus(&isEnabled)) {
+        MeridianFlipForcedS[0].s = isEnabled ? ISS_OFF : ISS_ON;
+        MeridianFlipForcedS[1].s = isEnabled ? ISS_ON : ISS_OFF;
+        MeridianFlipForcedSP.s = IPS_OK;
+    } else {
+        MeridianFlipForcedSP.s = IPS_ALERT;
+    }
+    IDSetSwitch(&MeridianFlipForcedSP, nullptr);
 
     UpdateMotionStatus();
 
@@ -1106,7 +1141,7 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched) {
 
 
 /**
- * @brief Enable / disable tracking of the mount
+ * @brief Check whether the mount is synched or parked.
  * @param enable if true, tracking is enabled
  * @return true if the command succeeded, false otherwise
  */
@@ -1249,7 +1284,124 @@ bool LX200StarGo::setST4Enabled(bool enabled) {
 
 }
 
+/**
+ * @brief Determine whether the meridian flip is enabled
+ * @param isEnabled - true iff flip is enabled
+ * @return true iff check succeeded
+ */
+bool LX200StarGo::queryGetMeridianFlipEnabledStatus (bool *isEnabled) {
+    // Command query meridian flip enabled status  - :TTGFs#
+    //                           response enabled  - vs0
+    //                                    disabled - vs1
 
+    int bytesReceived = 0;
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+    flush();
+    if (!transmit(":TTGFs#")) {
+        LOGF_ERROR("%s: Failed to send query meridian flip enabled status request.", getDeviceName());
+        return false;
+    }
+    if (!receive(response, &bytesReceived)) {
+        LOGF_ERROR("%s: Failed to receive query meridian flip enabled status response.", getDeviceName());
+        return false;
+    }
+    int answer = 0;
+    if (! sscanf(response, "vs%01d", &answer)) {
+        LOGF_ERROR("%s: Unexpected meridian flip enabled status response '%s'.", getDeviceName(), response);
+        return false;
+    }
+
+    *isEnabled = (answer == 0);
+    return true;
+}
+
+/**
+ * @brief Enabling and disabling meridian flip
+ * @param enabled - setting enabled iff true
+ * @return
+ */
+bool LX200StarGo::setMeridianFlipEnabled(bool enabled) {
+
+    const char *cmd = enabled ? ":TTSFs#" : ":TTRFs#";
+
+    flush();
+    bool success = transmit(cmd);
+
+    if (success){
+        LOG_INFO(enabled ? "Meridian flip enabled." : "Meridian flip disabled.");
+
+        MeridianFlipEnabledS[0].s = enabled ? ISS_OFF : ISS_ON;
+        MeridianFlipEnabledS[1].s = enabled ? ISS_ON : ISS_OFF;
+        MeridianFlipEnabledSP.s = IPS_OK;
+    } else {
+        LOG_ERROR("Setting Meridian flip FAILED");
+        MeridianFlipEnabledSP.s = IPS_ALERT;
+    }
+
+    IDSetSwitch(&MeridianFlipEnabledSP, nullptr);
+    return success;
+}
+
+
+/**
+ * @brief Determine whether the forcing meridian flip is enabled
+ * @param isEnabled - true iff forcing flip is enabled
+ * @return true iff check succeeded
+ */
+bool LX200StarGo::queryGetMeridianFlipForcedStatus (bool *isEnabled) {
+    // Command query meridian flip enabled status  - :TTGFd#
+    //                           response enabled  - vd1
+    //                                    disabled - vd0
+
+    int bytesReceived = 0;
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+    flush();
+    if (!transmit(":TTGFd#")) {
+        LOGF_ERROR("%s: Failed to send query meridian flip forced status request.", getDeviceName());
+        return false;
+    }
+    if (!receive(response, &bytesReceived)) {
+        LOGF_ERROR("%s: Failed to receive query meridian flip forced status response.", getDeviceName());
+        return false;
+    }
+    int answer = 0;
+    if (! sscanf(response, "vd%01d", &answer)) {
+        LOGF_ERROR("%s: Unexpected meridian flip forced status response '%s'.", getDeviceName(), response);
+        return false;
+    }
+
+    *isEnabled = (answer == 1);
+    return true;
+}
+
+/**
+ * @brief Enabling and disabling forced meridian flip
+ * @param enabled - setting enabled iff true
+ * @return
+ */
+bool LX200StarGo::setMeridianFlipForced(bool enabled) {
+
+    const char *cmd = enabled ? ":TTSFd#" : ":TTRFd#";
+
+    flush();
+    bool success = transmit(cmd);
+
+    if (success){
+        LOG_INFO(enabled ? "Meridian flip forced." : "Meridian flip automatic.");
+
+        MeridianFlipForcedS[0].s = enabled ? ISS_OFF : ISS_ON;
+        MeridianFlipForcedS[1].s = enabled ? ISS_ON : ISS_OFF;
+        MeridianFlipForcedSP.s = IPS_OK;
+    } else {
+        LOG_ERROR("Forcing Meridian flip FAILED");
+        MeridianFlipForcedSP.s = IPS_ALERT;
+    }
+
+    IDSetSwitch(&MeridianFlipForcedSP, nullptr);
+    return success;
+}
 
 /**
  * @brief Retrieve pier side of the mount and sync it back to the client
