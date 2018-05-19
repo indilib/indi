@@ -29,14 +29,16 @@
 
 #include <indiccd.h>
 #include <indifilterinterface.h>
+#include <libusb-1.0/libusb.h>
 
-#ifdef OSX_EMBEDED_MODE
-#include <SBIGUDrv/SBIGUDrv.h>
-#else
 #include <sbigudrv.h>
-#endif
+
 
 #include <string>
+
+
+typedef unsigned long   ulong;            /* Short for unsigned long */
+
 
 //#define ASYNC_READOUT
 
@@ -139,6 +141,9 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     bool isExposureDone(INDI::CCDChip *targetChip);
 
   protected:
+  	libusb_device *dev;
+    libusb_device_handle *handle;
+  
     virtual void TimerHit() override;
     virtual int SetTemperature(double temperature) override;
     virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
@@ -163,6 +168,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     std::string m_start_exposure_timestamp;
 
     void InitVars();
+    void loadFirmwareOnOSXifNeeded();
     int OpenDriver();
     int CloseDriver();
     unsigned short CalcSetpoint(double temperature);
