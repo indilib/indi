@@ -29,11 +29,15 @@
 
 #include <indiccd.h>
 #include <indifilterinterface.h>
+
 #ifdef __APPLE__
 #include <libusb-1.0/libusb.h>
+#include <libsbig/sbigudrv.h>
+#else
+#include <sbigudrv.h>
 #endif
 
-#include <sbigudrv.h>
+
 
 
 #include <string>

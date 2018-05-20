@@ -184,7 +184,7 @@ static bool ezusb_cpucs(libusb_device_handle *device, uint32_t addr, bool doRun)
 		/* We may get an I/O error from libusb as the device disappears */
 		((!doRun) || (status != LIBUSB_ERROR_IO)))
 	{
-		const char *mesg = "can't modify CPUCS";
+		//const char *mesg = "can't modify CPUCS";
 		//if (status < 0)
 		//	logerror("%s: %s\n", mesg, libusb_error_name(status));
 		//else
@@ -211,7 +211,7 @@ static bool ezusb_fx3_jump(libusb_device_handle *device, uint32_t addr)
 	/* We may get an I/O error from libusb as the device disappears */
 	if ((status != 0) && (status != LIBUSB_ERROR_IO))
 	{
-		const char *mesg = "failed to send jump command";
+		//const char *mesg = "failed to send jump command";
 		//if (status < 0)
 		//	logerror("%s: %s\n", mesg, libusb_error_name(status));
 		//else
