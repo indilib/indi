@@ -37,6 +37,10 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#ifdef __APPLE__
+#include "ezusb.h"
+#endif
+
 #define TEMPERATURE_POLL_MS 5000 /* Temperature Polling time (ms) */
 #define MAX_RESOLUTION      4096 /* Maximum resolutoin for secondary chip */
 #define MAX_DEVICES         20   /* Max device cameraCount */
@@ -156,8 +160,93 @@ void ISSnoopDevice(XMLEle *root)
 
 //==========================================================================
 
+void SBIGCCD::loadFirmwareOnOSXifNeeded()
+{
+// Upload firmware in case of MacOS
+    #ifdef __APPLE__
+    
+    int rc = 0;
+    int i = 0;
+    int cnt = 0;
+    
+    libusb_device **list = nullptr;
+    struct libusb_device_descriptor desc;
+    std::string bus_name, device_name;
+    
+    if ((rc = libusb_init(nullptr)))
+    {
+        LOGF_WARN("Failed to start libusb", __FUNCTION__, libusb_error_name(rc));
+    }
+    
+    //libusb_set_debug(nullptr, verbose);  maybe?
+    
+    cnt = libusb_get_device_list(nullptr, &list);
+    if(cnt < 0)
+    	 LOGF_WARN("Failed to get device list", __FUNCTION__, libusb_error_name(rc));
+    handle = nullptr;
+    for (i = 0; i < cnt; ++i)
+    {
+        if (!libusb_get_device_descriptor(list[i], &desc))
+        {
+        	int sbigCameraTypeFound = 0;
+        	// SBIG ST-7/8/9/10/2K cameras
+        	if ((desc.idVendor == 0x0d97) && (desc.idProduct == 0x0001))
+            	sbigCameraTypeFound = 1;
+            //Need the code here to detect ST-4K Camera, since it has the same Vendor and Product ID as above
+            // SBIG ST-L cameras
+            if ((desc.idVendor == 0x0d97) && (desc.idProduct == 0x0002))
+            	sbigCameraTypeFound = 3;
+            // SBIG ST-402/1603/3200/8300 cameras
+            if ((desc.idVendor == 0x0d97) && (desc.idProduct == 0x0003))
+            	sbigCameraTypeFound = 4;
+            
+            if(sbigCameraTypeFound !=0)
+            {
+                libusb_open(list[i], &handle);
+                if (handle)
+                {
+                    libusb_kernel_driver_active(handle, 0);
+                    libusb_claim_interface(handle, 0);
+                    char driverSupportPath[MAXRBUF];
+                    //On OS X, Prefer embedded App location if it exists
+                    if (getenv("INDIPREFIX") != nullptr)
+                    	snprintf(driverSupportPath, MAXRBUF, "%s/Contents/Resources", getenv("INDIPREFIX"));
+                    else
+                    	strncpy(driverSupportPath, "/usr/local/lib/indi", MAXRBUF);
+                    int status=0;
+                    if(sbigCameraTypeFound == 1) // SBIG ST-7/8/9/10/2K cameras
+                    {
+                    	strncat(driverSupportPath, "/DriverSupport/sbig/sbigucam.hex", MAXRBUF);
+                    	status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX1, IMG_TYPE_HEX, 0);
+                    }
+                    //Note that we NEED to add the code here to load sbigpcam.hex to ST-4K
+                    
+                    if(sbigCameraTypeFound == 3) // SBIG ST-L cameras
+                    {
+                    	strncat(driverSupportPath, "/DriverSupport/sbig/sbiglcam.hex", MAXRBUF);
+                    	status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX1, IMG_TYPE_HEX, 0);
+                    }
+                    if(sbigCameraTypeFound == 4) // SBIG ST-402/1603/3200/8300 cameras
+                    {
+                    	strncat(driverSupportPath, "/DriverSupport/sbig/sbigfcam.hex", MAXRBUF);
+                    	status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX2, IMG_TYPE_HEX, 0);
+                    }
+                    if (status == 0 )
+                        LOGF_DEBUG("Failed to load firmware", __FUNCTION__);
+                    libusb_close(handle);
+                }
+            }
+        }
+     }
+    libusb_free_device_list(list, 0);
+    list=nullptr;
+    #endif
+}
+
 int SBIGCCD::OpenDriver()
 {
+	loadFirmwareOnOSXifNeeded();
+
     GetDriverHandleResults gdhr;
     SetDriverHandleParams sdhp;
     int res = ::SBIGUnivDrvCommand(CC_OPEN_DRIVER, 0, 0);
@@ -661,6 +750,8 @@ bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], ch
 
 bool SBIGCCD::Connect()
 {
+	loadFirmwareOnOSXifNeeded();
+
     if (isConnected())
         return true;
     sim              = isSimulation();
@@ -1972,7 +2063,7 @@ int SBIGCCD::SBIGUnivDrvCommand(PAR_COMMAND command, void *params, void *results
         // Handle is valid so install it in the driver.
         sdhp.handle = GetDriverHandle();
         res         = ::SBIGUnivDrvCommand(CC_SET_DRIVER_HANDLE, &sdhp, 0);
-#if !defined(OSX_EMBEDED_MODE)
+#ifndef __APPLE__
         if (res == CE_FAKE_DRIVER)
         {
             // The user is using the dummy driver. Tell him to download the real driver
