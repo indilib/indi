@@ -13,6 +13,7 @@ find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(SBIG REQUIRED)
 find_package(Threads REQUIRED)
+find_package(USB1 REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
@@ -31,9 +32,15 @@ set(sbigccd_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/sbig_ccd.cpp
 )
 
+if (APPLE)
+    set(sbigccd_SRCS 
+        ${sbigccd_SRCS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/ezusb.c)
+endif()
+
 add_executable(indi_sbig_ccd ${sbigccd_SRCS})
 
-target_link_libraries(indi_sbig_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_sbig_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${SBIG_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${USB1_LIBRARIES})
 
 install(TARGETS indi_sbig_ccd RUNTIME DESTINATION bin)
 
