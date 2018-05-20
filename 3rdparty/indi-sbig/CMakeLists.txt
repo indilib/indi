@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.7)
 PROJECT(indi_sbig CXX C)
 
 set (VERSION_MAJOR 1)
-set (VERSION_MINOR 8)
+set (VERSION_MINOR 9)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
