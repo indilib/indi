@@ -134,6 +134,10 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     ISwitchVectorProperty *RAPPECSP         = NULL;
     ISwitchVectorProperty *DEPPECSP         = NULL;
 
+    INumber *MinPulseN                   = NULL;
+    INumber *MinPulseTimerN              = NULL;
+    INumberVectorProperty *PulseLimitsNP = NULL;
+
     enum Hemisphere
     {
         NORTH = 0,
@@ -201,6 +205,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     // save PPEC status when guiding
     bool restartguideRAPPEC;
     bool restartguideDEPPEC;
+
+    // One bit for each axis
+    uint8_t pulseInProgress;
 
   public:
     EQMod();
