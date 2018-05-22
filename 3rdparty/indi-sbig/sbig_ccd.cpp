@@ -378,7 +378,7 @@ SBIGCCD::SBIGCCD() : FilterInterface(this)
 #endif
     hasGuideHead   = false;
     hasFilterWheel = false;
-    setVersion(1, 8);
+    setVersion(SBIG_VERSION_MAJOR, SBIG_VERSION_MINOR);
 }
 
 //==========================================================================

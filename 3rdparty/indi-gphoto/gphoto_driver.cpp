@@ -428,7 +428,7 @@ static void widget_free(gphoto_widget *widget)
     free(widget);
 }
 
-static double *parse_shutterspeed(gphoto_driver *gphoto, char **choices, int count)
+static double *parse_shutterspeed(gphoto_driver *gphoto, gphoto_widget *widget)
 {
     double *exposure, val;
     int i, num, denom;
@@ -436,39 +436,39 @@ static double *parse_shutterspeed(gphoto_driver *gphoto, char **choices, int cou
     double min_exposure         = 1e6;
     gphoto->bulb_exposure_index = -1;
 
-    if (count <= 0)
+    if (widget->choice_cnt <= 0)
     {
         DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d). Using fallback speeds...",
-                     count);
+                     widget->choice_cnt);
 
-        choices = const_cast<char **>(fallbackShutterSpeeds);
-        count = 56;
+        widget->choices = const_cast<char **>(fallbackShutterSpeeds);
+        widget->choice_cnt = 56;
     }
 
-    if (count > 4)
+    if (widget->choice_cnt > 4)
     {
-        gphoto->exposure_presets       = choices;
-        gphoto->exposure_presets_count = count;
+        gphoto->exposure_presets       = widget->choices;
+        gphoto->exposure_presets_count = widget->choice_cnt;
     }
 
-    exposure = (double *)calloc(sizeof(double), count);
+    exposure = (double *)calloc(sizeof(double), widget->choice_cnt);
 
-    for (i = 0; i < count; i++)
+    for (i = 0; i < widget->choice_cnt; i++)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, choices[i]);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, widget->choices[i]);
 
-        if ((strncasecmp(choices[i], "bulb", 4) == 0) || (strcmp(choices[i], "65535/65535") == 0))
+        if ((strncasecmp(widget->choices[i], "bulb", 4) == 0) || (strcmp(widget->choices[i], "65535/65535") == 0))
         {
             exposure[i] = -1;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= BULB", i);
             gphoto->bulb_exposure_index = i;
         }
-        else if (sscanf(choices[i], "%d/%d", &num, &denom) == 2)
+        else if (sscanf(widget->choices[i], "%d/%d", &num, &denom) == 2)
         {
             exposure[i] = 1.0 * num / (double)denom;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
         }
-        else if ((val = strtod(choices[i], nullptr)))
+        else if ((val = strtod(widget->choices[i], nullptr)))
         {
             exposure[i] = val;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
@@ -1038,8 +1038,13 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     // NOT using bulb mode so let's find an exposure time that would closely match the requested exposure time
     int idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec);
 
-    gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
+    if (idx >= 0)
+    {
+        gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
+    }
+    else
+        DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Could not find optimal exposure value from camera.");
 
     // Lock the mirror if required.
     if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock * 1000))
@@ -1451,13 +1456,15 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
         (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed")) ||
         (gphoto->exposure_widget = find_widget(gphoto, "eos-shutterspeed")))
     {
-        gphoto->exposure =
-            parse_shutterspeed(gphoto, gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
+        gphoto->exposure = parse_shutterspeed(gphoto, gphoto->exposure_widget);
     }
     else if ((gphoto->exposure_widget = find_widget(gphoto, "capturetarget")))
     {
-        const char *choices[2] = { "1/1", "bulb" };
-        gphoto->exposure       = parse_shutterspeed(gphoto, (char **)choices, 2);
+        gphoto_widget tempWidget;
+        const char *choices[2] = { "1/1", "bulb" };        
+        tempWidget.choice_cnt = 2;
+        tempWidget.choices = const_cast<char **>(choices);
+        gphoto->exposure       = parse_shutterspeed(gphoto, &tempWidget);
     }
     else
     {

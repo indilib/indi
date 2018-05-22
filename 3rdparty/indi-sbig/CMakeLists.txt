@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.7)
 PROJECT(indi_sbig CXX C)
 
-set (VERSION_MAJOR 1)
-set (VERSION_MINOR 9)
+set (SBIG_VERSION_MAJOR 1)
+set (SBIG_VERSION_MINOR 9)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
@@ -16,6 +16,7 @@ find_package(Threads REQUIRED)
 find_package(USB1 REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_sbig.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_sbig.xml )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -46,4 +47,4 @@ install(TARGETS indi_sbig_ccd RUNTIME DESTINATION bin)
 
 endif (CFITSIO_FOUND)
 
-install(FILES indi_sbig.xml DESTINATION ${INDI_DATA_DIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_sbig.xml DESTINATION ${INDI_DATA_DIR})
