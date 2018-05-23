@@ -93,6 +93,8 @@ protected:
 
     // scope status
     virtual bool UpdateMotionStatus();
+    virtual void UpdateMotionStatus(int motorsState, int speedState, int nrTrackingSpeed);
+    bool parseMotionState(char *response, int *motorsState, int *speedState, int *nrTrackingSpeed);
     bool isIdle();
     TelescopeSlewRate CurrentSlewRate;
 
