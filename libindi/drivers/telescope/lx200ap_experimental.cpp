@@ -26,6 +26,8 @@
 #include "lx200driver.h"
 #include "lx200apdriver.h"
 #include "lx200ap_experimentaldriver.h"
+#include "connectionplugins/connectioninterface.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <libnova/transform.h>
 
@@ -61,6 +63,19 @@ LX200AstroPhysicsExperimental::LX200AstroPhysicsExperimental() : LX200Generic()
 const char *LX200AstroPhysicsExperimental::getDefaultName()
 {
     return (const char *)"AstroPhysics Experimental";
+}
+
+bool LX200AstroPhysicsExperimental::Connect()
+{
+    Connection::Interface *activeConnection = getActiveConnection();
+    if (!activeConnection->name().compare("CONNECTION_TCP"))
+    {
+        // When using a tcp connection, the GTOCP4 adds trailing LF to response.
+        // this small hack will get rid of them as they are not expected in the driver. and generated
+        // lot of communication errors.
+        tty_clr_trailing_read_lf(1);
+    }
+    return LX200Generic::Connect();
 }
 
 bool LX200AstroPhysicsExperimental::initProperties()
