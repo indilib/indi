@@ -493,6 +493,12 @@ bool LX200StarGo::UpdateMotionStatus() {
     bool result;
 
     result = queryMountMotionState(&motorsState, &speedState, &nrTrackingSpeed);
+    if (result) UpdateMotionStatus(motorsState, speedState, nrTrackingSpeed);
+
+    return result;
+}
+
+void LX200StarGo::UpdateMotionStatus(int motorsState, int speedState, int nrTrackingSpeed) {
 
     // m = 0 both motors are OFF (no power)
     // m = 1 RA motor OFF DEC motor ON
@@ -608,9 +614,6 @@ bool LX200StarGo::UpdateMotionStatus() {
         }
         break;
     }
-
-
-    return result;
 }
 
 
@@ -1024,7 +1027,7 @@ bool LX200StarGo::querySetSiteLatitude(double Lat)
 
     snprintf(command, sizeof(command), ":St%+03d*%02d:%02d#", d, m, s);
 
-    LOGF_DEBUG("%s: Sending set site longitude request '%s'", getDeviceName(), command);
+    LOGF_DEBUG("%s: Sending set site latitude request '%s'", getDeviceName(), command);
 
     return (setStandardProcedureAvalon(command, 500));
 }
@@ -1096,6 +1099,19 @@ bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* 
         return false;
     }
     flush();
+    return parseMotionState(response, motorsState, speedState, nrTrackingSpeed);
+}
+
+
+/**
+ * @brief Parse the motion state response string :Z1mmssnn#
+ * @param response string to be parsed
+ * @param motorsState state of the motors
+ * @param speedState tracking on / off
+ * @param nrTrackingSpeed tracking speed
+ * @return true iff parsing succeeded
+ */
+bool LX200StarGo::parseMotionState (char* response, int* motorsState, int* speedState, int* nrTrackingSpeed) {
     int tempMotorsState = 0;
     int tempSpeedState = 0;
     int tempNrTrackingSpeed = 0;
@@ -1107,7 +1123,6 @@ bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* 
     (*motorsState) = tempMotorsState;
     (*speedState) = tempSpeedState;
     (*nrTrackingSpeed) = tempNrTrackingSpeed;
-
     return true;
 }
 
@@ -1154,16 +1169,9 @@ bool LX200StarGo::querySetTracking (bool enable) {
     //         tracking off - :X120#
 
     flush();
-    if (enable) {
-        if (!transmit(":X122#")) {
-            LOGF_ERROR("%s: Failed to send query for enable tracking.", getDeviceName());
-            return false;
-        }
-    } else {
-        if (!transmit(":X120#")) {
-            LOGF_ERROR("%s: Failed to send query for disable tracking.", getDeviceName());
-            return false;
-        }
+    if (! transmit(enable ? ":X122#" : ":X120#")) {
+        LOGF_ERROR("%s: Failed to send query for %s tracking.", getDeviceName(), enable ? "enable" : "disable");
+        return false;
     }
     return true;
 }
@@ -1278,7 +1286,7 @@ bool LX200StarGo::setST4Enabled(bool enabled) {
     const char *cmd = enabled ? ":TTSFh#" : ":TTRFh#";
 
     flush();
-    if (transmit(cmd)) {
+    if (setStandardProcedureAvalon(cmd, 0)) {
         LOG_INFO(enabled ? "ST4 port enabled." : "ST4 port disabled.");
         return true;
     } else {
@@ -1395,7 +1403,7 @@ bool LX200StarGo::setMeridianFlipForced(bool enabled) {
 
     if (success){
         if (enabled) LOG_WARN("Meridian flip forced. BE CAREFUL, THIS MAY CAUSE DAMAGE TO YOUR MOUNT!");
-        else LOG_INFO(enabled ? "Meridian flip automatic." : "Meridian flip disabled.");
+        else LOG_INFO("Meridian flip automatic.");
 
         MeridianFlipForcedS[0].s = enabled ? ISS_OFF : ISS_ON;
         MeridianFlipForcedS[1].s = enabled ? ISS_ON : ISS_OFF;
