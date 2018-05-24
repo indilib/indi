@@ -24,6 +24,9 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+// use 64-bit values when calling stat()
+#define _FILE_OFFSET_BITS 64
+
 #include "indiccd.h"
 
 #include "indicom.h"
@@ -3000,9 +3003,17 @@ int CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
 
     if (stat(dir, &st) == -1)
     {
-        DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
-        if (_ccd_mkdir(dir, 0755) == -1)
-            DEBUGF(Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
+        if (errno == ENOENT)
+        {
+            DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
+            if (_ccd_mkdir(dir, 0755) == -1)
+                DEBUGF(Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
+        }
+        else
+        {
+            DEBUGF(Logger::DBG_ERROR, "Couldn't stat directory %s: %s", dir, strerror(errno));
+            return -1;
+        }
     }
 
     dpdf = opendir(dir);
