@@ -26,6 +26,8 @@
  * @file qhycam.h
  * @brief QHYCAM class define
  */
+#ifndef _QHYCAM_H_
+#define _QHYCAM_H_
 
 #include <math.h>
 #include "qhyccdstruct.h"
@@ -34,22 +36,15 @@
 #ifdef WIN32
 #include "CyAPI.h"
 #include <process.h>
-
 #else // Linux & Mac 
-
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
 //#include <libusb-1.0/libusb.h>
 #include <libusb.h>
-
 #endif // WIN32
 
 #include "stdint.h"
-
-#ifndef __QHYCAMDEF_H__
-#define __QHYCAMDEF_H__
-
 
 #define IDLE 0
 #define EXPOSING 1
@@ -66,12 +61,9 @@
 #define CAM_16_BITS  16
 
 #ifdef WIN32
-
 typedef void* qhyccd_device;
 typedef CCyUSBDevice qhyccd_handle;
-
 #else // Linux & Mac
-
 typedef struct libusb_device qhyccd_device;
 typedef struct libusb_device_handle qhyccd_handle;
 

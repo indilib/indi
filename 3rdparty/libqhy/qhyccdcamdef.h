@@ -37,6 +37,7 @@
 
 /* IMG series */
 
+
 /**
  * Type define for IMG0S */
 #define DEVICETYPE_IMG0S        1000
@@ -354,9 +355,14 @@
 
 /**
  * Type define for QHY128C*/
-#define DEVICETYPE_QHY128       4052
+#define DEVICETYPE_QHY128        4052
 
 #define DEVICETYPE_QHY128C      4053
+#define DEVICETYPE_QHY294        4054
+#define DEVICETYPE_QHY2020      4055
+#define DEVICETYPE_QHY4040      4056
+  
+
 
 /**
  * Type define for QHY5IIIEND*/
@@ -474,6 +480,11 @@
 #define DEVICETYPE_16803        906
 
 /**
+ * Type define for 16803 */
+#define DEVICETYPE_09000        930
+
+
+/**
  * Type define for 695A*/
 #define DEVICETYPE_695A         916
 
@@ -505,6 +516,10 @@
 #define DEVICETYPE_QHY45GX      9011
 
 #define DEVICETYPE_QHY10_FOCUS  9012
+
+#define DEVICETYPE_QHY50GX      9013
+
+
 
 /**
  * Type define for UNKNOWN */
