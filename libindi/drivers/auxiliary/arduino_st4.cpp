@@ -185,7 +185,7 @@ IPState ArduinoST4::GuideSouth(uint32_t ms)
         GuideNSTID = 0;
     }
 
-    if (sendCommand("DEC0#") == false)
+    if (sendCommand("DEC-#") == false)
         return IPS_ALERT;
 
     guideDirection = ARD_S;
