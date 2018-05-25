@@ -38,6 +38,7 @@
 #include <netinet/in.h>
 
 #ifdef __APPLE__
+#include <sys/stat.h>
 #include "ezusb.h"
 #endif
 
@@ -164,6 +165,18 @@ void SBIGCCD::loadFirmwareOnOSXifNeeded()
 {
 // Upload firmware in case of MacOS
     #ifdef __APPLE__
+    
+    //SBIG Universal Driver Check
+    const std::string name = "/System/Library/Extensions/SBIGUSBEDriver.kext";
+    struct stat buffer;   
+  	if (stat (name.c_str(), &buffer) == 0)
+  	{
+  		LOG_DEBUG("SBIG Universal Driver Detected");
+  	}
+  	else
+  	{
+  	    LOGF_WARN("Failed to Detect SBIG Universal Driver, please install this before running the INDI SBIG driver!", __FUNCTION__);
+  	}
     
     int rc = 0;
     int i = 0;

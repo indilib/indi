@@ -681,9 +681,8 @@ bool Align::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 IUFindNumber(AlignCountNP, "ALIGNCOUNT_TRIANGLES")->value = pointset->getNbTriangles();
                 IDSetNumber(AlignCountNP, nullptr);
             }
-
+            sw->s          = ISS_OFF; // Reset back to off to allow pressing same button multiple times
             AlignListSP->s = IPS_OK;
-            IUUpdateSwitch(AlignListSP, states, names, n);
             IDSetSwitch(AlignListSP, nullptr);
             return true;
         }
