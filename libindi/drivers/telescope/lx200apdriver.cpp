@@ -85,7 +85,7 @@ int check_lx200ap_connection(int fd)
 
             return 0;
         }
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     DEBUGDEVICE(lx200ap_name, INDI::Logger::DBG_ERROR, "check_lx200ap_connection: wrote, but nothing received.");
@@ -290,7 +290,7 @@ int APSyncCM(int fd, char *matchedObject)
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     tcflush(fd, TCIFLUSH);
 
@@ -318,7 +318,7 @@ int APSyncCMR(int fd, char *matchedObject)
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     tcflush(fd, TCIFLUSH);
 
@@ -747,19 +747,27 @@ int APSendPulseCmd(int fd, int direction, int duration_msec)
     DEBUGFDEVICE(lx200ap_name, AP_DBG_SCOPE, "<%s>", __FUNCTION__);
     int nbytes_write = 0;
     char cmd[20];
+
+    // GTOCP3 supports 3 digits for msec duration
+    if (duration_msec > 999)
+    {
+        DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "APSendPulseCmd requested %d msec limited to 999 msec!", duration_msec);
+        duration_msec = 999;
+    }
+
     switch (direction)
     {
         case LX200_NORTH:
-            sprintf(cmd, ":Mn%04d#", duration_msec);
+            sprintf(cmd, ":Mn%03d#", duration_msec);
             break;
         case LX200_SOUTH:
-            sprintf(cmd, ":Ms%04d#", duration_msec);
+            sprintf(cmd, ":Ms%03d#", duration_msec);
         break;
         case LX200_EAST:
-            sprintf(cmd, ":Me%04d#", duration_msec);
+            sprintf(cmd, ":Me%03d#", duration_msec);
         break;
         case LX200_WEST:
-            sprintf(cmd, ":Mw%04d#", duration_msec);
+            sprintf(cmd, ":Mw%03d#", duration_msec);
         break;
         default:
             return 1;

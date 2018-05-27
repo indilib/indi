@@ -301,7 +301,7 @@ bool LX200_10MICRON::ReadScopeStatus()
         default:
             return false;
     }
-    setPierSide(toupper(Ginfo.SideOfPier) ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
+    setPierSide((toupper(Ginfo.SideOfPier) == 'E') ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
 
     OldGstat = Ginfo.Gstat;
     NewRaDec(Ginfo.RA_JNOW, Ginfo.DEC_JNOW);

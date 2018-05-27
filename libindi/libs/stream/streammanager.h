@@ -133,7 +133,8 @@ class StreamManager
     bool isStreaming() { return m_isStreaming; }
     bool isRecording() { return m_isRecording; }
     bool isBusy() { return (isStreaming() || isRecording()); }
-    uint8_t getTargetFPS() { return static_cast<uint8_t>(StreamOptionsN[OPTION_TARGET_FPS].value); }
+    //uint8_t getTargetFPS() { return static_cast<uint8_t>(StreamOptionsN[OPTION_TARGET_FPS].value); }
+    double getTargetFPS() { return 1.0/StreamExposureN[0].value; }
 
     uint8_t *getDownscaleBuffer() { return downscaleBuffer; }
     uint32_t getDownscaleBufferSize() { return downscaleBufferSize; }
@@ -154,7 +155,8 @@ class StreamManager
     std::string expand(std::string fname, const std::map<std::string, std::string> &patterns);
 
     bool startRecording();
-    bool stopRecording();
+    // Stop recording. Force stop even in abnormal state if needed.
+    bool stopRecording(bool force=false);
 
     /**
      * @brief uploadStream Upload frame to client using the selected encoder
@@ -183,9 +185,12 @@ class StreamManager
     ITextVectorProperty RecordFileTP;
 
     /* Streaming Options */
-    INumber StreamOptionsN[2];
+    /*INumber StreamOptionsN[2];
     INumberVectorProperty StreamOptionsNP;
-    enum { OPTION_TARGET_FPS, OPTION_RATE_DIVISOR};
+    enum { OPTION_TARGET_FPS, OPTION_RATE_DIVISOR};*/
+
+    INumber StreamExposureN[1];
+    INumberVectorProperty StreamExposureNP;
 
     /* Measured FPS */
     INumber FpsN[2];

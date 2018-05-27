@@ -117,7 +117,7 @@ int MaxDomeIIDriver::Connect(const char *device)
 */
 int MaxDomeIIDriver::Disconnect()
 {
-    ExitShutter(); // Really don't know why this is needed, but ASCOM driver does it
+    //ExitShutter(); // Really don't know why this is needed, but ASCOM driver does it
     tty_disconnect(fd);
 
     return 0;
@@ -216,17 +216,16 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
     int nbytes;
     char errmsg[MAXRBUF];
     char cmd[BUFFER_SIZE];
-    //char hexbuf[3*BUFFER_SIZE];
+    char hexbuf[3*BUFFER_SIZE];
 
     cmd[0] = START_BYTE;
     cmd[1] = payloadLen + 2;
     cmd[2] = cmdId;
+    memcpy(cmd + 3, payload, payloadLen);
     cmd[3 + payloadLen] = computeChecksum(cmd, 3 + payloadLen);
 
-    memcpy(cmd + 3, payload, payloadLen);
-
-    //hexDump(hexbuf, cmd, 4 + payloadLen);
-    //LOGF_DEBUG("CMD (%s)", hexbuf);
+    hexDump(hexbuf, cmd, 4 + payloadLen);
+    LOGF_DEBUG("CMD (%s)", hexbuf);
 
     tcflush(fd, TCIOFLUSH);
 
@@ -246,8 +245,8 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
         return -6;
     }
 
-    //hexDump(hexbuf, buffer, nbytes);
-    //LOGF_DEBUG("RES (%s)", hexbuf);
+    hexDump(hexbuf, buffer, nbytes);
+    LOGF_DEBUG("RES (%s)", hexbuf);
 
     return 0;
 }
@@ -260,7 +259,7 @@ int MaxDomeIIDriver::SendCommand(char cmdId, const char *payload, int payloadLen
 int MaxDomeIIDriver::AbortAzimuth()
 {
     LOG_INFO("Azimuth movement aborted");
-    return SendCommand(ABORT_CMD, NULL, 0);
+    return SendCommand(ABORT_CMD, nullptr, 0);
 }
 
 /*
@@ -271,7 +270,7 @@ int MaxDomeIIDriver::AbortAzimuth()
 int MaxDomeIIDriver::HomeAzimuth()
 {
     LOG_INFO("Homing azimuth");
-    return SendCommand(HOME_CMD, NULL, 0);
+    return SendCommand(HOME_CMD, nullptr, 0);
 }
 
 /*
@@ -305,7 +304,7 @@ int MaxDomeIIDriver::GotoAzimuth(int nDir, int nTicks)
 int MaxDomeIIDriver::Status(ShStatus *shStatus, AzStatus *azStatus,
         unsigned *azimuthPos, unsigned *homePos)
 {
-    int ret = SendCommand(STATUS_CMD, NULL, 0);
+    int ret = SendCommand(STATUS_CMD, nullptr, 0);
     if (ret != 0) {
         return ret;
     }
@@ -327,7 +326,7 @@ int MaxDomeIIDriver::Status(ShStatus *shStatus, AzStatus *azStatus,
 int MaxDomeIIDriver::Ack()
 {
     LOG_DEBUG("ACK sent");
-    return SendCommand(ACK_CMD, NULL, 0);
+    return SendCommand(ACK_CMD, nullptr, 0);
 }
 
 /*

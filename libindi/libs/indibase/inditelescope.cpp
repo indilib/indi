@@ -1292,7 +1292,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             if (previousState == targetState)
             {
-                IDSetSwitch(&TrackStateSP, NULL);
+                IDSetSwitch(&TrackStateSP, nullptr);
                 return true;
             }
 
@@ -1320,7 +1320,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 TrackStateS[previousState].s = ISS_ON;
             }
 
-            IDSetSwitch(&TrackStateSP, NULL);
+            IDSetSwitch(&TrackStateSP, nullptr);
             return true;
         }
 
@@ -1576,6 +1576,23 @@ bool Telescope::processTimeInfo(const char *utc, const char *offset)
         IUSaveText(&TimeT[1], offset);
         TimeTP.s = IPS_OK;
         IDSetText(&TimeTP, nullptr);
+
+        // 2018-04-20 JM: Update system time on ARM architecture.
+        #ifdef __arm__
+        #ifdef __linux__
+        struct tm utm;
+        if (strptime(utc, "%Y-%m-%dT%H:%M:%S", &utm))
+        {
+            time_t raw_time = mktime(&utm);
+            time_t now_time;
+            time(&now_time);
+            // Only sync if difference > 30 seconds
+            if (labs(now_time - raw_time) > 30)
+                stime(&raw_time);
+        }
+        #endif
+        #endif
+
         return true;
     }
     else

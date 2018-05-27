@@ -95,6 +95,7 @@ class AstrometryDriver : public INDI::DefaultDevice
     // Enable/Disable solver
     ISwitch SolverS[2];
     ISwitchVectorProperty SolverSP;
+    enum { SOLVER_ENABLE, SOLVER_DISABLE};
 
     // Solver Settings
     IText SolverSettingsT[2] {};

@@ -33,7 +33,7 @@ class GPSD : public INDI::GPS
 {
   public:
     GPSD();
-    virtual ~GPSD();
+    virtual ~GPSD() = default;
 
     IText GPSstatusT[1] {};
     ITextVectorProperty GPSstatusTP;
@@ -42,7 +42,7 @@ class GPSD : public INDI::GPS
     INumberVectorProperty PolarisNP;
 
   protected:
-    gpsmm *gps;
+    gpsmm *gps = nullptr;
     //  Generic indi device entries
     virtual bool Connect() override;
     virtual bool Disconnect() override;

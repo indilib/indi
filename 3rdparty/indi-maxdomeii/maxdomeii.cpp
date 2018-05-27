@@ -94,8 +94,8 @@ bool MaxDomeII::SetupParms()
 {
     DomeAbsPosN[0].value = 0;
 
-    IDSetNumber(&DomeAbsPosNP, NULL);
-    IDSetNumber(&DomeParamNP, NULL);
+    IDSetNumber(&DomeAbsPosNP, nullptr);
+    IDSetNumber(&DomeParamNP, nullptr);
 
     return true;
 }
@@ -384,7 +384,7 @@ void MaxDomeII::TimerHit()
         { // Only refresh position if it changed
             DomeAbsPosN[0].value = nAz;
             //sprintf(buf,"%d", nCurrentTicks);
-            IDSetNumber(&DomeAbsPosNP, NULL);
+            IDSetNumber(&DomeAbsPosNP, nullptr);
         }
 
         switch (nAzimuthStatus)
@@ -486,7 +486,7 @@ IPState MaxDomeII::MoveAbs(double newAZ)
     if (error != 0)
         return IPS_ALERT;
 
-    nTargetAzimuth         = newPos;
+    nTargetAzimuth = newPos;
     nTimeSinceAzimuthStart = 0; // Init movement timer
 
     // It will take a few cycles to reach final position
@@ -495,9 +495,47 @@ IPState MaxDomeII::MoveAbs(double newAZ)
 
 IPState MaxDomeII::Move(DomeDirection dir, DomeMotionCommand operation)
 {
-    // TODO
-    INDI_UNUSED(operation);
-    LOGF_INFO("Move dir=%d", dir);
+    int error;
+    int nRetry = 3;
+
+    if (operation == MOTION_START)
+    {
+        LOGF_DEBUG("Move dir=%d", dir);
+        double currAZ = DomeAbsPosN[0].value;
+        double newAZ = currAZ > 180 ? currAZ - 180 : currAZ + 180;
+        int newPos = AzimuthToTicks(newAZ);
+        int nDir = dir ? MAXDOMEII_WE_DIR : MAXDOMEII_EW_DIR;
+
+        while (nRetry)
+        {
+            error = driver.GotoAzimuth(nDir, newPos);
+            handle_driver_error(&error, &nRetry);
+        }
+
+        if (error != 0)
+            return IPS_ALERT;
+
+        nTargetAzimuth = newPos;
+        nTimeSinceAzimuthStart = 0; // Init movement timer
+        return IPS_BUSY;
+    }
+    else
+    {
+        LOG_DEBUG("Stop movement");
+        while (nRetry)
+        {
+            error = driver.AbortAzimuth();
+            handle_driver_error(&error, &nRetry);
+        }
+
+        if (error != 0)
+            return IPS_ALERT;
+
+        DomeAbsPosNP.s = IPS_IDLE;
+        IDSetNumber(&DomeAbsPosNP, NULL);
+        nTimeSinceAzimuthStart = -1;
+    }
+
     return IPS_OK;
 }
 
@@ -519,7 +557,7 @@ bool MaxDomeII::Abort()
     }
 
     DomeAbsPosNP.s = IPS_IDLE;
-    IDSetNumber(&DomeAbsPosNP, NULL);
+    IDSetNumber(&DomeAbsPosNP, nullptr);
 
     // If we abort while in the middle of opening/closing shutter, alert.
     if (DomeShutterSP.s == IPS_BUSY)
@@ -578,7 +616,7 @@ bool MaxDomeII::ISNewNumber(const char *dev, const char *name, double values[], 
             {
                 LOGF_ERROR("MAX DOME II: %s", ErrorMessages[-error]);
                 TicksPerTurnNP.s = IPS_ALERT;
-                IDSetNumber(&TicksPerTurnNP, NULL);
+                IDSetNumber(&TicksPerTurnNP, nullptr);
             }
 
             return false;

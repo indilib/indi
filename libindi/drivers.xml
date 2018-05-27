@@ -337,6 +337,10 @@
                 <driver name="Pyxis">indi_pyxis_rotator</driver>
                 <version>1.0</version>
         </device>
+        <device label="Arduino ST4">
+                <driver name="Arduino ST4">indi_arduinost4</driver>
+                <version>1.0</version>
+        </device>
         <device label="GPUSB">
                 <driver name="GPUSB">indi_gpusb</driver>
                 <version>0.1</version>
@@ -373,6 +377,10 @@
         </device>
 </devGroup>
 <devGroup group="Weather">
+        <device label="Weather Simulator">
+            <driver name="Weather Simulator">indi_simulator_weather</driver>
+            <version>1.0</version>
+        </device>
         <device label="SQM">
                 <driver name="SQM">indi_sqm_weather</driver>
                 <version>1.0</version>
@@ -391,6 +399,10 @@
         </device>
         <device label="Vantage">
                 <driver name="Vantage">indi_vantage_weather</driver>
+                <version>1.0</version>
+        </device>
+        <device label="Weather Watcher">
+                <driver name="Weather Watcher">indi_watcher_weather</driver>
                 <version>1.0</version>
         </device>
 </devGroup>

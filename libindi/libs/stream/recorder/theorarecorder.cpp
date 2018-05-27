@@ -21,6 +21,7 @@
 
 #include "theorarecorder.h"
 #include "jpegutils.h"
+#include "ccvt.h"
 
 #define _FILE_OFFSET_BITS 64
 
@@ -170,7 +171,7 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
         return false;
     }
 
-    srand(time(NULL));
+    srand(time(nullptr));
     if(ogg_stream_init(&ogg_os, rand()))
     {
         snprintf(errmsg, ERRMSGSIZ, "%s: error: could not create ogg stream state", filename);
@@ -271,7 +272,7 @@ bool TheoraRecorder::open(const char *filename, char *errmsg)
          (because there's no way to explicitly request that behavior).
         If we waited until we were actually encoding, it would overwite our
          settings.*/
-        if(th_encode_ctl(td,TH_ENCCTL_2PASS_IN,NULL,0)<0)
+        if(th_encode_ctl(td,TH_ENCCTL_2PASS_IN,nullptr,0)<0)
         {
             snprintf(errmsg, ERRMSGSIZ, "Could not set up the second pass of two-pass mode.");
             return false;
@@ -424,6 +425,10 @@ bool TheoraRecorder::writeFrame(const uint8_t *frame, uint32_t nbytes)
         // Cb and Cr values to 0x80 (128) for grayscale image
         memset(ycbcr[1].data, 0x80, ycbcr[1].stride * ycbcr[1].height);
         memset(ycbcr[2].data, 0x80, ycbcr[2].stride * ycbcr[2].height);
+    }
+    else if (m_PixelFormat == INDI_RGB)
+    {
+        BGR2YUV(rawWidth, rawHeight, const_cast<uint8_t*>(frame), ycbcr[0].data, ycbcr[1].data, ycbcr[2].data, 0);
     }
     else if (m_PixelFormat == INDI_JPG)
     {

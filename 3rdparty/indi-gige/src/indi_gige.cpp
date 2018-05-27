@@ -33,7 +33,7 @@
     })
 #define TIME_VAL_ISSET(x) (((x)->tv_sec != 0) && ((x)->tv_usec != 0))
 #define TIME_VAL_US(x)    (((x)->tv_sec) * 1000000 + ((x)->tv_usec))
-#define TIME_VAL_GET(x)   (gettimeofday(x, NULL))
+#define TIME_VAL_GET(x)   (gettimeofday(x, nullptr))
 
 #define TIMER_TRANSFER_TIMEOUT_US (5000000UL) /* Allow for relatively large link-layer delays */
 #define TIMER_EXPOSURE_TIMEOUT_US (200000UL)  /* GigE cameras are very precise, so set 100ms time-out */
@@ -75,11 +75,11 @@ void ISGetProperties(const char *dev)
     ISInit();
     FOR_EVERY_CAMERA
     {
-        if (dev == NULL || !strcmp(dev, (*camera)->name))
+        if (dev == nullptr || !strcmp(dev, (*camera)->name))
         {
             (*camera)->ISGetProperties(dev);
             //??????????????????
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -91,10 +91,10 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     ISInit();
     FOR_EVERY_CAMERA
     {
-        if (dev == NULL || !strcmp(dev, (*camera)->name))
+        if (dev == nullptr || !strcmp(dev, (*camera)->name))
         {
             (*camera)->ISNewSwitch(dev, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -106,10 +106,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     ISInit();
     FOR_EVERY_CAMERA
     {
-        if (dev == NULL || !strcmp(dev, (*camera)->name))
+        if (dev == nullptr || !strcmp(dev, (*camera)->name))
         {
             (*camera)->ISNewText(dev, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -121,10 +121,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     ISInit();
     FOR_EVERY_CAMERA
     {
-        if (dev == NULL || !strcmp(dev, (*camera)->name))
+        if (dev == nullptr || !strcmp(dev, (*camera)->name))
         {
             (*camera)->ISNewNumber(dev, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -299,7 +299,7 @@ void GigECCD::_update_image(uint8_t const *const data, size_t size)
 
     size_t const frame_buf_size = PrimaryCCD.getFrameBufferSize();
 
-    if ((size == frame_buf_size) && (data != NULL))
+    if ((size == frame_buf_size) && (data != nullptr))
     {
         uint8_t *const image = PrimaryCCD.getFrameBuffer();
         memcpy(image, (void *const)data, frame_buf_size);
@@ -394,7 +394,7 @@ bool GigECCD::ISNewNumber(const char *dev, const char *name, double values[], ch
             /* Get-back from camera system */
             double actual_value = this->camera->get_gain().val();
             IUUpdateNumber(&this->indiprop_gain_prop, &actual_value, names, n);
-            IDSetNumber(&this->indiprop_gain_prop, NULL);
+            IDSetNumber(&this->indiprop_gain_prop, nullptr);
             return true;
         }
     }

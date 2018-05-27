@@ -364,14 +364,22 @@ bool SynscanMount::ReadScopeStatus()
     numread = tty_read(PortFD, str, 2, 2, &bytesRead);
     if (str[1] == '#')
     {
-        if ((int)str[0] == 0)
+        TrackingStatus = str[0];
+        switch((int)str[0])
+        {
+        case 0:
             TrackingMode = "Tracking off";
-        if ((int)str[0] == 1)
+            break;
+        case 1:
             TrackingMode = "Alt/Az tracking";
-        if ((int)str[0] == 2)
+            break;
+        case 2:
             TrackingMode = "EQ tracking";
-        if ((int)str[0] == 3)
+            break;
+        case 3:
             TrackingMode = "PEC mode";
+            break;
+        }
     }
 
     UpdateMountInformation(true);
@@ -386,10 +394,12 @@ bool SynscanMount::ReadScopeStatus()
         {
             //  Nothing to do here
         }
-        else
+        else if (MountCode < 128)
         {
-            if (TrackState == SCOPE_PARKING)
-                TrackState = SCOPE_PARKED;
+            if (TrackingStatus[0] != 0)
+                TrackState = SCOPE_TRACKING;
+            else
+                TrackState = SCOPE_IDLE;
         }
     }
     if (TrackState == SCOPE_PARKING)
@@ -1023,6 +1033,7 @@ bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
     bytesRead = 0;
     tty_write(PortFD, str, 9, &bytesWritten);
     tty_read(PortFD, str, 1, 2, &bytesRead);
+    LOGF_INFO("Setting mount date/time to %04d-%02d-%02d %d:%02d:%02d UTC Offset: %d\n", (int)ltm.years, (int)ltm.months, (int)ltm.days, (int)ltm.hours, (int)ltm.minutes, (int)ltm.seconds, (int)utc_offset);
     if (str[0] != '#')
     {
         LOG_INFO("Invalid return from set time");
@@ -1111,50 +1122,87 @@ bool SynscanMount::Sync(double ra, double dec)
     Abort();
 
     LOGF_INFO("Sync %g %g -> %g %g", CurrentRA, CurrentDEC, ra, dec);
-
     char str[20];
     int numread, bytesWritten, bytesRead;
-    ln_hrz_posn TargetAltAz { 0, 0 };
 
-    TargetAltAz = GetAltAzPosition(ra, dec);
-    if (isDebug())
+    // Alt/Az sync mode
+    if (MountCode >= 128)
     {
-        LOGF_INFO("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
-               TargetAltAz.az, TargetAltAz.alt);
-    } else {
-        LOGF_DEBUG("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
-               TargetAltAz.az, TargetAltAz.alt);
+        ln_hrz_posn TargetAltAz { 0, 0 };
+
+        TargetAltAz = GetAltAzPosition(ra, dec);
+        if (isDebug())
+        {
+            LOGF_INFO("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
+                      TargetAltAz.az, TargetAltAz.alt);
+        } else {
+            LOGF_DEBUG("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
+                       TargetAltAz.az, TargetAltAz.alt);
+        }
+        // Assemble the Reset Position command for Az axis
+        int Az = (int)(TargetAltAz.az*16777216 / 360);
+
+        str[0] = 'P';
+        str[1] = 4;
+        str[2] = 16;
+        str[3] = 4;
+        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Az / 65536);
+        Az -= (Az / 65536)*65536;
+        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Az / 256);
+        Az -= (Az / 256)*256;
+        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Az;
+        str[7] = 0;
+        tty_write(PortFD, str, 8, &bytesWritten);
+        numread = tty_read(PortFD, str, 1, 3, &bytesRead);
+        // Assemble the Reset Position command for Alt axis
+        int Alt = (int)(TargetAltAz.alt*16777216 / 360);
+
+        str[0] = 'P';
+        str[1] = 4;
+        str[2] = 17;
+        str[3] = 4;
+        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Alt / 65536);
+        Alt -= (Alt / 65536)*65536;
+        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Alt / 256);
+        Alt -= (Alt / 256)*256;
+        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Alt;
+        str[7] = 0;
+        tty_write(PortFD, str, 8, &bytesWritten);
+        numread = tty_read(PortFD, str, 1, 2, &bytesRead);
     }
-    // Assemble the Reset Position command for Az axis
-    int Az = (int)(TargetAltAz.az*16777216 / 360);
+    else
+    {
+        // Assemble the Reset Position command for Ra axis
+        int n1 = ra * 0x1000000 / 24;
 
-    str[0] = 'P';
-    str[1] = 4;
-    str[2] = 16;
-    str[3] = 4;
-    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Az / 65536);
-    Az -= (Az / 65536)*65536;
-    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Az / 256);
-    Az -= (Az / 256)*256;
-    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Az;
-    str[7] = 0;
-    tty_write(PortFD, str, 8, &bytesWritten);
-    numread = tty_read(PortFD, str, 1, 3, &bytesRead);
-    // Assemble the Reset Position command for Alt axis
-    int Alt = (int)(TargetAltAz.alt*16777216 / 360);
+        str[0] = 'P';
+        str[1] = 4;
+        str[2] = 16;
+        str[3] = 4;
+        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(n1 / 65536);
+        n1 -= (n1 / 65536)*65536;
+        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(n1 / 256);
+        n1 -= (n1 / 256)*256;
+        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)n1;
+        str[7] = 0;
+        tty_write(PortFD, str, 8, &bytesWritten);
+        numread = tty_read(PortFD, str, 1, 3, &bytesRead);
+        // Assemble the Reset Position command for Dec axis
+        int n2 = dec * 0x1000000 / 360;
 
-    str[0] = 'P';
-    str[1] = 4;
-    str[2] = 17;
-    str[3] = 4;
-    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Alt / 65536);
-    Alt -= (Alt / 65536)*65536;
-    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Alt / 256);
-    Alt -= (Alt / 256)*256;
-    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Alt;
-    str[7] = 0;
-    tty_write(PortFD, str, 8, &bytesWritten);
-    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+        str[0] = 'P';
+        str[1] = 4;
+        str[2] = 17;
+        str[3] = 4;
+        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(n2 / 65536);
+        n2 -= (n2 / 65536)*65536;
+        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(n2 / 256);
+        n2 -= (n2 / 256)*256;
+        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)n2;
+        str[7] = 0;
+        tty_write(PortFD, str, 8, &bytesWritten);
+        numread = tty_read(PortFD, str, 1, 2, &bytesRead);
+    }
 
     // Pass the sync command to the handset
     int n1 = ra * 0x1000000 / 24;

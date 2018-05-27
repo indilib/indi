@@ -33,7 +33,6 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
 {
     public:
         CelestronGPS();
-        virtual ~CelestronGPS() {}
 
         virtual const char *getDefaultName() override;
         virtual bool Handshake() override;
@@ -61,10 +60,10 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
         virtual bool updateTime(ln_date *utc, double utc_offset) override;
 
         //GUIDE: guiding functions
-        virtual IPState GuideNorth(float ms) override;
-        virtual IPState GuideSouth(float ms) override;
-        virtual IPState GuideEast(float ms) override;
-        virtual IPState GuideWest(float ms) override;
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
         //GUIDE guideTimeoutHelper() function
         static void guideTimeoutHelperN(void *p);
@@ -113,11 +112,13 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
     private:
         bool setTrackMode(CELESTRON_TRACK_MODE mode);
         bool checkMinVersion(float minVersion, const char *feature);
+        void checkAlignment();
 
         double currentRA, currentDEC, currentAZ, currentALT;
         double targetRA, targetDEC, targetAZ, targetALT;
 
         CelestronDriver driver;
         FirmwareInfo fwInfo;
-        bool usePreciseCoords=false;
+        bool usePreciseCoords {false};
+        bool usePulseCommand { false };
 };

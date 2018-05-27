@@ -28,7 +28,6 @@ class ioptronHC8406 : public LX200Generic
 {
   public:
     ioptronHC8406();
-    ~ioptronHC8406() {}
 
     virtual bool updateProperties() override;
     virtual bool initProperties() override;
@@ -51,7 +50,7 @@ class ioptronHC8406 : public LX200Generic
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-    virtual int SendPulseCmd(int direction, int duration_msec) override;
+    virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
 
     virtual bool saveConfigItems(FILE *fp) override;
 
@@ -113,8 +112,4 @@ class ioptronHC8406 : public LX200Generic
     /* Center Rate */
     ISwitch CenterRateS[4];
     ISwitchVectorProperty CenterRateSP;
-
-    /* Center Rate */
-    ISwitch SlewRateS[3];
-    ISwitchVectorProperty SlewRateSP;
 };

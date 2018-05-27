@@ -15,6 +15,14 @@
 0.5
 </defNumber>
 </defNumberVector>
+<defNumberVector device="EQMod Mount" name="PULSE_LIMITS" label="Pulse Limits" group="Motion Control" state="Idle" perm="rw">
+<defNumber name="MIN_PULSE" label="Minimum pulse (ms)" format="%3.0f" min="0.0" max="100.0" step="10">
+10
+</defNumber>
+<defNumber name="MIN_PULSE_TIMER" label="Minimum pulse timer (ms)" format="%3.0f" min="0.0" max="500" step="50">
+100
+</defNumber>
+</defNumberVector>
 <defTextVector device="EQMod Mount" name="MOUNTINFORMATION" label="Mount Information" group="Firmware" state="Idle" perm="ro" message="Mount Info message">
 <defText name="MOUNT_TYPE" label="Mount Type"></defText> 
 <defText name="MOTOR_CONTROLLER" label="Firmware Version"></defText> 

@@ -98,7 +98,7 @@ bool GPSNMEA::initProperties()
     // We init parent properties first
     INDI::GPS::initProperties();
 
-    IUFillText(&GPSstatusT[0], "GPS_FIX", "Fix Mode", NULL);
+    IUFillText(&GPSstatusT[0], "GPS_FIX", "Fix Mode", nullptr);
     IUFillTextVector(&GPSstatusTP, GPSstatusT, 1, getDeviceName(), "GPS_STATUS", "GPS Status", MAIN_CONTROL_TAB, IP_RO,
                      60, IPS_IDLE);
 
@@ -115,7 +115,7 @@ bool GPSNMEA::initProperties()
 
     addDebugControl();
 
-    setDriverInterface(AUX_INTERFACE);
+    setDriverInterface(GPS_INTERFACE | AUX_INTERFACE);
 
     return true;
 }
@@ -190,7 +190,12 @@ void GPSNMEA::parseNEMA()
         if (tty_rc < 0)
         {
             if (tty_rc == TTY_OVERFLOW)
-                continue;
+            {
+                LOG_WARN("Overflow detected. Possible remote GPS disconnection. Disconnecting driver...");
+                INDI::GPS::setConnected(false);
+                updateProperties();
+                break;
+            }
             else
             {
                 char errmsg[MAXRBUF];

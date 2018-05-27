@@ -1,5 +1,5 @@
-#ifndef __CYUSB_H
-#define __CYUSB_H
+#ifndef _CYUSB_H_
+#define _CYUSB_H_
 
 /*********************************************************************************\
  * This is the main header file for the cyusb suite for Linux/Mac, called cyusb.h *
@@ -14,87 +14,88 @@
  *       Added new constant to specify number of device ID entries.               *
  *                                                                                *
  \********************************************************************************/
-
-#ifdef LINUX
-#include <libusb.h>
-#include <mutex>  // std::mutex
-#include "qhyccd.h"
+#ifdef  __APPLE__
+    #include <libusb.h>
+    #include <mutex>  // std::mutex
+#elif __linux__
+    #include <libusb-1.0/libusb.h>
+    #include <libusb.h>
+    #include <mutex>  // std::mutex
 #endif
+
+#include "qhyccd.h"
+#include "qhybase.h"
 
 #define MAX_ID_PAIRS    (100)
 #define MAX_DEVICE_TYPES (100)
-#define MAX_OPEN_DEVICES (5)
+// we can open up to 16 QHYCCD cameras now
+// but this depends on available memory
+#define MAX_OPEN_DEVICES (8) 
 #define ID_STR_LEN (0x20)
+
 #define TRANSFER_COUNT (16)
 #define TRANSFER_SIZE (76800)
 
-struct cydev {
-    qhyccd_device *dev;
+#define DATA_CACHE_WIDTH (7400)
+#define DATA_CACHE_HEIGHT (5000)
+#define DATA_CACHE_CHANNELS (4)
+
+class UnlockImageQueue;
+/*
+ ****************************************************************************************
+ * class QhyDevice
+ ****************************************************************************************
+ */
+class QhyDevice {
+	public:
+    	libusb_device *dev;
 #ifdef WIN32
-    void *handle; 
+    	void *handle; 
 #else
-    qhyccd_handle *handle;
+    	libusb_device_handle *handle;
 #endif
-    uint16_t vid; 
-    uint16_t pid; 
-    uint8_t is_open;
-    char id[64]; 
-    QHYBASE *qcam;
+    	uint16_t vid; 
+    	uint16_t pid; 
+    	uint8_t is_open;
+    	char id[64]; 
+    	QHYBASE *qcam;
     
-    // added stuff for libusb async functions
-    struct libusb_transfer *p_libusb_transfer_array[TRANSFER_COUNT];
+    	// added stuff for libusb async functions
+    	struct libusb_transfer *p_libusb_transfer_array[TRANSFER_COUNT];
 
-    UnlockImageQueue *p_image_queue;
-    uint32_t image_queue_len = 0;
+    	UnlockImageQueue *p_image_queue;
+    	uint32_t image_queue_len;
     
-    volatile bool raw_exit = false;
-    volatile int event_count;
+    	bool raw_exit;
+    	int event_count;
 
-    pthread_t raw_handle;
-    std::mutex raw_exit_mutex; 
-    std::mutex event_count_mutex; 
+    	pthread_t raw_handle;
+    	std::mutex raw_exit_mutex; 
+    	std::mutex event_count_mutex; 
 
-    //pthread_mutex_t raw_exit_mutex;
-    //pthread_mutex_t event_count_mutex;
+    	uint8_t sig[16];
+    	uint8_t sigcrc[16];
     
-    uint8_t sig[16];
-    uint8_t sigcrc[16];
-    uint8_t raw_data_cache[7400 * 5000 * 4];
-    uint8_t img_buffer[TRANSFER_COUNT * TRANSFER_SIZE];
-
-    uint32_t header_len;
-    uint32_t frame_len;
-    uint32_t ending_len;
+    	uint8_t *p_raw_data_cache;
+    	uint8_t *p_img_buffer;
     
-    uint32_t sig_len;
-    uint32_t header_type;
-    uint32_t raw_frame_width;
-    uint32_t raw_frame_height;
-    uint32_t raw_frame_bpp;
+    	uint32_t header_len;
+    	uint32_t frame_len;
+    	uint32_t ending_len;
     
-    int32_t received_raw_data_len; // if unsigned QHY5IIL crashes!!!
+    	uint32_t sig_len;
+    	uint32_t header_type;
+    	uint32_t raw_frame_width;
+    	uint32_t raw_frame_height;
+    	uint32_t raw_frame_bpp;
+        uint32_t received_raw_data_len;
+        
+	public:
+        QhyDevice();
+        QhyDevice(int idx);
+		virtual ~QhyDevice();
+		void dump(int idx);
+		void clear();
 };
-
-/****************************************************************************************
-  Prototype    : void cyusb_download_fx2(cyusb_handle *h, char *filename,
-                     unsigned char vendor_command);
-  Description  : Performs firmware download on FX2.
-  Parameters   :
-                 cyusb_handle *h              : Device handle
-                 char * filename              : Path where the firmware file is stored
-                 unsigned char vendor_command : Vendor command that needs to be passed during download
-  Return Value : 0 on success, or an appropriate LIBUSB_ERROR.
- ****************************************************************************************/
-int fx2_ram_download(qhyccd_handle *h, char *filename, unsigned char vendor_command);
-
-/****************************************************************************************
-  Prototype    : void cyusb_download_fx3(cyusb_handle *h, char *filename);
-  Description  : Performs firmware download on FX3.
-  Parameters   :
-                 cyusb_handle *h : Device handle
-                 char *filename  : Path where the firmware file is stored
-  Return Value : 0 on success, or an appropriate LIBUSB_ERROR.
- ***************************************************************************************/
-int fx3_usbboot_download(qhyccd_handle *h, char *filename);
 
 #endif

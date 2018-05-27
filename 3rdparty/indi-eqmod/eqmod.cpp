@@ -18,6 +18,9 @@
     2013-10-24: Use updateTime from new INDI framework (Jasem Mutlaq)
     2013-10-31: Added support for joysticks (Jasem Mutlaq)
     2013-11-01: Fixed issues with logger and Skywatcher's readout for InquireHighSpeedRatio.
+    2018-04-27: Added abnormalDisconnect to properly disconnect the driver in case of unrecoverable errors (Jasem Mutlaq)
+    2018-04-27: Since all dispatch_command are always followed by read_eqmod, we decided to include it inside
+                and on failure, we retries up to the EQMOD_MAX_RETRY before giving up in case of occasional traient errors. (Jasem Mutlaq)
 */
 
 /* TODO */
@@ -80,6 +83,7 @@ int DBG_SCOPE_STATUS;
 int DBG_COMM;
 int DBG_MOUNT;
 
+#if 0
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)
 {
     /* Perform the carry for the later subtraction by updating y. */
@@ -104,6 +108,7 @@ int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *
     /* Return 1 if result is negative. */
     return x->tv_sec < y->tv_sec;
 }
+#endif
 
 void ISGetProperties(const char *dev)
 {
@@ -157,6 +162,7 @@ EQMod::EQMod()
     gotoparams.completed = true;
     last_motion_ns       = -1;
     last_motion_ew       = -1;
+    pulseInProgress      = 0;
 
     DBG_SCOPE_STATUS = INDI::Logger::getInstance().addDebugLevel("Scope Status", "SCOPE");
     DBG_COMM         = INDI::Logger::getInstance().addDebugLevel("Serial Port", "COMM");
@@ -184,7 +190,7 @@ EQMod::EQMod()
 
     /* initialize time */
     tzset();
-    gettimeofday(&lasttimeupdate, NULL); // takes care of DST
+    gettimeofday(&lasttimeupdate, nullptr); // takes care of DST
     gmtime_r(&lasttimeupdate.tv_sec, &utc);
     lndate.seconds = utc.tm_sec + ((double)lasttimeupdate.tv_usec / 1000000);
     lndate.minutes = utc.tm_min;
@@ -194,7 +200,7 @@ EQMod::EQMod()
     lndate.years   = utc.tm_year + 1900;
     get_utc_time(&lastclockupdate);
     /* initialize random seed: */
-    srand(time(NULL));
+    srand(time(nullptr));
     // Others
     AutohomeState      = AUTO_HOME_IDLE;
     restartguideRAPPEC = false;
@@ -206,7 +212,7 @@ EQMod::~EQMod()
     //dtor
     if (mount)
         delete mount;
-    mount = NULL;
+    mount = nullptr;
 }
 
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
@@ -247,7 +253,7 @@ double EQMod::getJulianDate()
     /*
   struct timeval currenttime, difftime;
   double usecs;
-  gettimeofday(&currenttime, NULL);
+  gettimeofday(&currenttime, nullptr);
   if (timeval_subtract(&difftime, &currenttime, &lasttimeupdate) == -1)
     return juliandate;
   */
@@ -351,6 +357,7 @@ void EQMod::ISGetProperties(const char *dev)
         defineNumber(&GuideWENP);
         defineNumber(SlewSpeedsNP);
         defineNumber(GuideRateNP);
+        defineNumber(PulseLimitsNP);
         defineText(MountInformationTP);
         defineNumber(SteppersNP);
         defineNumber(CurrentSteppersNP);
@@ -420,6 +427,10 @@ bool EQMod::loadProperties()
 
     GuideRateNP = getNumber("GUIDE_RATE");
     GuideRateN  = GuideRateNP->np;
+
+    PulseLimitsNP  = getNumber("PULSE_LIMITS");
+    MinPulseN      = IUFindNumber(PulseLimitsNP, "MIN_PULSE");
+    MinPulseTimerN = IUFindNumber(PulseLimitsNP, "MIN_PULSE_TIMER");
 
     MountInformationTP = getText("MOUNTINFORMATION");
     SteppersNP         = getNumber("STEPPERS");
@@ -491,6 +502,7 @@ bool EQMod::updateProperties()
         defineNumber(&GuideWENP);
         defineNumber(SlewSpeedsNP);
         defineNumber(GuideRateNP);
+        defineNumber(PulseLimitsNP);
         defineText(MountInformationTP);
         defineNumber(SteppersNP);
         defineNumber(CurrentSteppersNP);
@@ -568,14 +580,14 @@ bool EQMod::updateProperties()
                     RAPPECTrainingSP->sp[0].s = ISS_OFF;
                     RAPPECTrainingSP->sp[1].s = ISS_ON;
                     RAPPECTrainingSP->s       = IPS_BUSY;
-                    IDSetSwitch(RAPPECTrainingSP, NULL);
+                    IDSetSwitch(RAPPECTrainingSP, nullptr);
                 }
                 if (inppec)
                 {
                     RAPPECSP->sp[0].s = ISS_OFF;
                     RAPPECSP->sp[1].s = ISS_ON;
                     RAPPECSP->s       = IPS_BUSY;
-                    IDSetSwitch(RAPPECSP, NULL);
+                    IDSetSwitch(RAPPECSP, nullptr);
                 }
                 mount->GetDEPPECStatus(&intraining, &inppec);
                 if (intraining)
@@ -583,14 +595,14 @@ bool EQMod::updateProperties()
                     DEPPECTrainingSP->sp[0].s = ISS_OFF;
                     DEPPECTrainingSP->sp[1].s = ISS_ON;
                     DEPPECTrainingSP->s       = IPS_BUSY;
-                    IDSetSwitch(DEPPECTrainingSP, NULL);
+                    IDSetSwitch(DEPPECTrainingSP, nullptr);
                 }
                 if (inppec)
                 {
                     DEPPECSP->sp[0].s = ISS_OFF;
                     DEPPECSP->sp[1].s = ISS_ON;
                     DEPPECSP->s       = IPS_BUSY;
-                    IDSetSwitch(DEPPECSP, NULL);
+                    IDSetSwitch(DEPPECSP, nullptr);
                 }
             }
 
@@ -625,6 +637,7 @@ bool EQMod::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP->name);
+        deleteProperty(PulseLimitsNP->name);
         deleteProperty(MountInformationTP->name);
         deleteProperty(SteppersNP->name);
         deleteProperty(CurrentSteppersNP->name);
@@ -668,7 +681,7 @@ bool EQMod::updateProperties()
 #if defined WITH_ALIGN || defined WITH_ALIGN_GEEHALEL
         deleteProperty(AlignSyncModeSP->name);
 #endif
-        //MountInformationTP=NULL;
+        //MountInformationTP=nullptr;
         //}
     }
 #ifdef WITH_ALIGN_GEEHALEL
@@ -714,6 +727,15 @@ bool EQMod::Handshake()
     return true;
 }
 
+void EQMod::abnormalDisconnect()
+{
+    if (Disconnect())
+    {
+        setConnected(false, IPS_IDLE);
+        updateProperties();
+    }
+}
+
 bool EQMod::Disconnect()
 {
     if (isConnected())
@@ -739,13 +761,22 @@ void EQMod::TimerHit()
     {
         bool rc;
 
-        rc = ReadScopeStatus();
+        // Skip reading scope status if we are in a middle of a pulse
+        // to avoid delaying it
+        if (pulseInProgress != 0)
+        {
+            rc = true;
+        }
+        else
+        {
+            rc = ReadScopeStatus();
+        }
         //IDLog("TrackState after read is %d\n",TrackState);
         if (rc == false)
         {
             // read was not good
             EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, NULL);
+            IDSetNumber(&EqNP, nullptr);
         }
 
         SetTimer(POLLMS);
@@ -759,7 +790,7 @@ bool EQMod::ReadScopeStatus()
     //double dt=0;
 
     /* update elapsed time since last poll, don't presume exactly POLLMS */
-    // gettimeofday (&tv, NULL);
+    // gettimeofday (&tv, nullptr);
 
     //if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
     //  ltv = tv;
@@ -791,11 +822,11 @@ bool EQMod::ReadScopeStatus()
 
     IUUpdateNumber(TimeLSTNP, &lst, (char **)(datenames), 1);
     TimeLSTNP->s = IPS_OK;
-    IDSetNumber(TimeLSTNP, NULL);
+    IDSetNumber(TimeLSTNP, nullptr);
 
     IUUpdateNumber(JulianNP, &juliandate, (char **)(datenames + 1), 1);
     JulianNP->s = IPS_OK;
-    IDSetNumber(JulianNP, NULL);    
+    IDSetNumber(JulianNP, nullptr);
 
     try
     {
@@ -885,22 +916,22 @@ bool EQMod::ReadScopeStatus()
         horizvalues[0] = range360(lnaltaz.az + 180);
         horizvalues[1] = lnaltaz.alt;
         IUUpdateNumber(HorizontalCoordNP, horizvalues, (char **)horiznames, 2);
-        IDSetNumber(HorizontalCoordNP, NULL);
+        IDSetNumber(HorizontalCoordNP, nullptr);
 
         steppervalues[0] = currentRAEncoder;
         steppervalues[1] = currentDEEncoder;
         IUUpdateNumber(CurrentSteppersNP, steppervalues, (char **)steppernames, 2);
-        IDSetNumber(CurrentSteppersNP, NULL);
+        IDSetNumber(CurrentSteppersNP, nullptr);
 
         mount->GetRAMotorStatus(RAStatusLP);
         mount->GetDEMotorStatus(DEStatusLP);
-        IDSetLight(RAStatusLP, NULL);
-        IDSetLight(DEStatusLP, NULL);
+        IDSetLight(RAStatusLP, nullptr);
+        IDSetLight(DEStatusLP, nullptr);
 
         periods[0] = mount->GetRAPeriod();
         periods[1] = mount->GetDEPeriod();
         IUUpdateNumber(PeriodsNP, periods, (char **)periodsnames, 2);
-        IDSetNumber(PeriodsNP, NULL);
+        IDSetNumber(PeriodsNP, nullptr);
 
         if (mount->HasAuxEncoders())
         {
@@ -909,7 +940,7 @@ bool EQMod::ReadScopeStatus()
             auxencodervalues[0]           = mount->GetRAAuxEncoder();
             auxencodervalues[1]           = mount->GetDEAuxEncoder();
             IUUpdateNumber(AuxEncoderNP, auxencodervalues, (char **)auxencodernames, 2);
-            IDSetNumber(AuxEncoderNP, NULL);
+            IDSetNumber(AuxEncoderNP, nullptr);
         }
 
         if (gotoInProgress())
@@ -957,10 +988,9 @@ bool EQMod::ReadScopeStatus()
                     // For AstroEQ (needs an explicit :G command at the end of gotos)
                     mount->ResetMotions();
 
-                    if ((RememberTrackState == SCOPE_TRACKING) || ((sw != NULL) && (sw->s == ISS_ON)))
+                    if ((RememberTrackState == SCOPE_TRACKING) || ((sw != nullptr) && (sw->s == ISS_ON)))
                     {
                         char *name;
-                        TrackState = SCOPE_TRACKING;
 
                         if (RememberTrackState == SCOPE_TRACKING)
                         {
@@ -982,19 +1012,23 @@ bool EQMod::ReadScopeStatus()
                             IUResetSwitch(TrackModeSP);
                             IUUpdateSwitch(TrackModeSP, &state, &name, 1);
                             TrackModeSP->s = IPS_BUSY;
-                            IDSetSwitch(TrackModeSP, NULL);
+                            IDSetSwitch(TrackModeSP, nullptr);
 #endif
                         }
 
+                        TrackState = SCOPE_TRACKING;
+                        RememberTrackState = TrackState;
+
 #if 0
                         TrackModeSP->s = IPS_BUSY;
-                        IDSetSwitch(TrackModeSP, NULL);
+                        IDSetSwitch(TrackModeSP, nullptr);
 #endif
                         LOGF_INFO("Telescope slew is complete. Tracking %s...", name);
                     }
                     else
                     {
                         TrackState = SCOPE_IDLE;
+                        RememberTrackState = TrackState;
                         LOG_INFO("Telescope slew is complete. Stopping...");
                     }
                     gotoparams.completed = true;
@@ -1031,7 +1065,7 @@ bool EQMod::ReadScopeStatus()
                     RAPPECTrainingSP->sp[0].s = ISS_ON;
                     RAPPECTrainingSP->sp[1].s = ISS_OFF;
                     RAPPECTrainingSP->s       = IPS_IDLE;
-                    IDSetSwitch(RAPPECTrainingSP, NULL);
+                    IDSetSwitch(RAPPECTrainingSP, nullptr);
                 }
             }
             if (DEPPECTrainingSP->s == IPS_BUSY)
@@ -1044,7 +1078,7 @@ bool EQMod::ReadScopeStatus()
                     DEPPECTrainingSP->sp[0].s = ISS_ON;
                     DEPPECTrainingSP->sp[1].s = ISS_OFF;
                     DEPPECTrainingSP->s       = IPS_IDLE;
-                    IDSetSwitch(DEPPECTrainingSP, NULL);
+                    IDSetSwitch(DEPPECTrainingSP, nullptr);
                 }
             }
         }
@@ -1071,6 +1105,7 @@ bool EQMod::ReadScopeStatus()
             case AUTO_HOME_CONFIRM:
                 AutohomeState = AUTO_HOME_IDLE;
                 TrackState    = SCOPE_IDLE;
+                RememberTrackState = TrackState;
                 LOG_INFO("Invalid status while Autohoming. Aborting");
                 break;
             case AUTO_HOME_WAIT_PHASE1:
@@ -1353,10 +1388,11 @@ bool EQMod::ReadScopeStatus()
                     mount->SetRAAxisPosition(mount->GetRAEncoderHome());
                     mount->SetDEAxisPosition(mount->GetDEEncoderHome());
                     TrackState    = SCOPE_IDLE;
+                    RememberTrackState = TrackState;
                     AutohomeState = AUTO_HOME_IDLE;
                     AutoHomeSP->s = IPS_IDLE;
                     IUResetSwitch(AutoHomeSP);
-                    IDSetSwitch(AutoHomeSP, NULL);
+                    IDSetSwitch(AutoHomeSP, nullptr);
                     LOG_INFO("Autohome: end");
                 }
                 else
@@ -1537,7 +1573,7 @@ void EQMod::SetSouthernHemisphere(bool southern)
         IUUpdateSwitch(HemisphereSP, hemispherevalues, (char **)hemispherenames, 2);
     }
     HemisphereSP->s = IPS_IDLE;
-    IDSetSwitch(HemisphereSP, NULL);
+    IDSetSwitch(HemisphereSP, nullptr);
 }
 
 void EQMod::EncoderTarget(GotoParams *g)
@@ -1778,7 +1814,7 @@ bool EQMod::Goto(double r, double d)
     {
         LOG_WARN("Can not perform goto while goto/park in progress, or scope parked.");
         EqNP.s = IPS_IDLE;
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
         return true;
     }
 
@@ -1800,7 +1836,7 @@ bool EQMod::Goto(double r, double d)
         {
             LOG_WARN("Goto outside Horizon Limits.");
             EqNP.s = IPS_IDLE;
-            IDSetNumber(&EqNP, NULL);
+            IDSetNumber(&EqNP, nullptr);
             return true;
         }
     }
@@ -1939,7 +1975,7 @@ bool EQMod::Goto(double r, double d)
 #if 0
     // 2017-08-01 Jasem: We should set TrackState to IPS_IDLE instead here?
     TrackModeSP->s = IPS_IDLE;
-    IDSetSwitch(TrackModeSP, NULL);
+    IDSetSwitch(TrackModeSP, nullptr);
 #endif
 
     LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
@@ -1954,7 +1990,7 @@ bool EQMod::Park()
         {
             LOG_INFO("Can not park while slewing...");
             ParkSP.s = IPS_ALERT;
-            IDSetSwitch(&ParkSP, NULL);
+            IDSetSwitch(&ParkSP, nullptr);
             return false;
         }
 
@@ -1977,10 +2013,10 @@ bool EQMod::Park()
             return (e.DefaultHandleException(this));
         }
         //TrackModeSP->s = IPS_IDLE;
-        //IDSetSwitch(TrackModeSP, NULL);
+        //IDSetSwitch(TrackModeSP, nullptr);
         TrackState = SCOPE_PARKING;
         ParkSP.s   = IPS_BUSY;
-        IDSetSwitch(&ParkSP, NULL);
+        IDSetSwitch(&ParkSP, nullptr);
         LOG_INFO("Telescope park in progress...");
 
         return true;
@@ -2014,7 +2050,7 @@ bool EQMod::Sync(double ra, double dec)
     if (TrackState != SCOPE_TRACKING)
     {
         EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, NULL);
+        IDSetNumber(&EqNP, nullptr);
         LOG_WARN("Syncs are allowed only when Tracking");
         return false;
     }
@@ -2110,7 +2146,7 @@ bool EQMod::Sync(double ra, double dec)
 
         IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value = syncdata.deltaRA;
         IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value = syncdata.deltaDEC;
-        IDSetNumber(StandardSyncNP, NULL);
+        IDSetNumber(StandardSyncNP, nullptr);
         IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value           = juliandate;
         IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value     = lst;
         IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value = syncdata.targetRA;
@@ -2121,7 +2157,7 @@ bool EQMod::Sync(double ra, double dec)
         ;
         IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value = syncdata.telescopeDEC;
         ;
-        IDSetNumber(StandardSyncPointNP, NULL);
+        IDSetNumber(StandardSyncPointNP, nullptr);
 
         LOGF_INFO("Mount Synced (deltaRA = %.6f deltaDEC = %.6f)", syncdata.deltaRA,
                syncdata.deltaDEC);
@@ -2131,36 +2167,79 @@ bool EQMod::Sync(double ra, double dec)
             computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
             IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value = tpa_alt;
             IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value  = tpa_az;
-            IDSetNumber(SyncPolarAlignNP, NULL);
+            IDSetNumber(SyncPolarAlignNP, nullptr);
             IDLog("computePolarAlign: Telescope Polar Axis: alt = %g, az = %g\n", tpa_alt, tpa_az);
         }
     }
     return true;
 }
 
-IPState EQMod::GuideNorth(float ms)
+IPState EQMod::GuideNorth(uint32_t ms)
 {
+    if (ms < MinPulseN->value)
+    {
+        return IPS_IDLE;
+    }
+
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
-    LOGF_DEBUG("Timed guide North %d ms at rate %g", (int)(ms), rateshift);
+    LOGF_DEBUG("Timed guide North %d ms at rate %g", ms, rateshift);
     if (DEInverted)
         rateshift = -rateshift;
     try
     {
-        if (ms > 0.0)
+        if (mount->HasPPEC())
         {
-            if (mount->HasPPEC())
+            restartguideDEPPEC = false;
+            if (DEPPECSP->s == IPS_BUSY)
             {
-                restartguideDEPPEC = false;
-                if (DEPPECSP->s == IPS_BUSY)
+                restartguideDEPPEC = true;
+                LOG_INFO("Turning DEC PPEC off while guiding.");
+                mount->TurnDEPPEC(false);
+            }
+        }
+        if (ms >= MinPulseTimerN->value)
+        {
+            pulseInProgress |= 1;
+            GuideTimerNS = IEAddTimer(ms, (IE_TCF *)timedguideNSCallback, this);
+            mount->StartDETracking(GetDETrackRate() + rateshift);
+        }
+        else
+        {
+            struct timespec starttime, endtime;
+            clock_gettime(CLOCK_MONOTONIC, &starttime);
+            mount->StartDETracking(GetDETrackRate() + rateshift);
+            clock_gettime(CLOCK_MONOTONIC, &endtime);
+            double elapsed =
+                (endtime.tv_sec - starttime.tv_sec) * 1000.0 + ((endtime.tv_nsec - starttime.tv_nsec) / 1000000.0);
+            if (elapsed < ms)
+            {
+                uint32_t left = ms - elapsed;
+                usleep(left * 1000);
+            }
+            try
+            {
+                if (mount->HasPPEC())
                 {
-                    restartguideDEPPEC = true;
-                    LOG_INFO("Turning DEC PPEC off while guiding.");
-                    mount->TurnDEPPEC(false);
+                    if (restartguideDEPPEC)
+                    {
+                        restartguideDEPPEC = false;
+                        DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_SESSION, "Turning DEC PPEC on after guiding.");
+                        mount->TurnDEPPEC(true);
+                    }
+                }
+                mount->StartDETracking(GetDETrackRate());
+            }
+            catch (EQModError e)
+            {
+                if (!(e.DefaultHandleException(this)))
+                {
+                    DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_WARNING,
+                                "Timed guide North/South Error: can not restart tracking");
                 }
             }
-            mount->StartDETracking(GetDETrackRate() + rateshift);
-            GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
+            GuideComplete(AXIS_DE);
+            DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_DEBUG, "End Timed guide North/South");
         }
     }
     catch (EQModError e)
@@ -2172,8 +2251,13 @@ IPState EQMod::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState EQMod::GuideSouth(float ms)
+IPState EQMod::GuideSouth(uint32_t ms)
 {
+    if (ms < MinPulseN->value)
+    {
+        return IPS_IDLE;
+    }
+
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
     LOGF_DEBUG("Timed guide South %d ms at rate %g", (int)(ms), rateshift);
@@ -2181,20 +2265,58 @@ IPState EQMod::GuideSouth(float ms)
         rateshift = -rateshift;
     try
     {
-        if (ms > 0.0)
+        if (mount->HasPPEC())
         {
-            if (mount->HasPPEC())
+            restartguideDEPPEC = false;
+            if (DEPPECSP->s == IPS_BUSY)
             {
-                restartguideDEPPEC = false;
-                if (DEPPECSP->s == IPS_BUSY)
-                {
-                    restartguideDEPPEC = true;
-                    LOG_INFO("Turning DEC PPEC off while guiding.");
-                    mount->TurnDEPPEC(false);
-                }
+                restartguideDEPPEC = true;
+                LOG_INFO("Turning DEC PPEC off while guiding.");
+                mount->TurnDEPPEC(false);
             }
+        }
+        if (ms >= MinPulseTimerN->value)
+        {
+            pulseInProgress |= 1;
+            GuideTimerNS = IEAddTimer(ms, (IE_TCF *)timedguideNSCallback, this);
             mount->StartDETracking(GetDETrackRate() - rateshift);
-            GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
+        }
+        else
+        {
+            struct timespec starttime, endtime;
+            clock_gettime(CLOCK_MONOTONIC, &starttime);
+            mount->StartDETracking(GetDETrackRate() - rateshift);
+            clock_gettime(CLOCK_MONOTONIC, &endtime);
+            double elapsed =
+                (endtime.tv_sec - starttime.tv_sec) * 1000.0 + ((endtime.tv_nsec - starttime.tv_nsec) / 1000000.0);
+            if (elapsed < ms)
+            {
+                uint32_t left = ms - elapsed;
+                usleep(left * 1000);
+            }
+            try
+            {
+                if (mount->HasPPEC())
+                {
+                    if (restartguideDEPPEC)
+                    {
+                        restartguideDEPPEC = false;
+                        DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_SESSION, "Turning DEC PPEC on after guiding.");
+                        mount->TurnDEPPEC(true);
+                    }
+                }
+                mount->StartDETracking(GetDETrackRate());
+            }
+            catch (EQModError e)
+            {
+                if (!(e.DefaultHandleException(this)))
+                {
+                    DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_WARNING,
+                                "Timed guide North/South Error: can not restart tracking");
+                }
+            }
+            GuideComplete(AXIS_DE);
+            DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_DEBUG, "End Timed guide North/South");
         }
     }
     catch (EQModError e)
@@ -2205,29 +2327,72 @@ IPState EQMod::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState EQMod::GuideEast(float ms)
+IPState EQMod::GuideEast(uint32_t ms)
 {
+    if (ms < MinPulseN->value)
+    {
+        return IPS_IDLE;
+    }
+
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
-    LOGF_DEBUG("Timed guide East %d ms at rate %g", (int)(ms), rateshift);
+    LOGF_DEBUG("Timed guide East %d ms at rate %g", ms, rateshift);
     if (RAInverted)
         rateshift = -rateshift;
     try
     {
-        if (ms > 0.0)
+        if (mount->HasPPEC())
         {
-            if (mount->HasPPEC())
+            restartguideRAPPEC = false;
+            if (RAPPECSP->s == IPS_BUSY)
             {
-                restartguideRAPPEC = false;
-                if (RAPPECSP->s == IPS_BUSY)
-                {
-                    restartguideRAPPEC = true;
-                    LOG_INFO("Turning RA PPEC off while guiding.");
-                    mount->TurnRAPPEC(false);
-                }
+                restartguideRAPPEC = true;
+                LOG_INFO("Turning RA PPEC off while guiding.");
+                mount->TurnRAPPEC(false);
             }
+        }
+        if (ms >= MinPulseTimerN->value)
+        {
+            pulseInProgress |= 2;
+            GuideTimerWE = IEAddTimer(ms, (IE_TCF *)timedguideWECallback, this);
             mount->StartRATracking(GetRATrackRate() - rateshift);
-            GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
+        }
+        else
+        {
+            struct timespec starttime, endtime;
+            clock_gettime(CLOCK_MONOTONIC, &starttime);
+            mount->StartRATracking(GetRATrackRate() - rateshift);
+            clock_gettime(CLOCK_MONOTONIC, &endtime);
+            double elapsed =
+                (endtime.tv_sec - starttime.tv_sec) * 1000.0 + ((endtime.tv_nsec - starttime.tv_nsec) / 1000000.0);
+            if (elapsed < ms)
+            {
+                uint32_t left = ms - elapsed;
+                usleep(left * 1000);
+            }
+            try
+            {
+                if (mount->HasPPEC())
+                {
+                    if (restartguideRAPPEC)
+                    {
+                        restartguideRAPPEC = false;
+                        DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_SESSION, "Turning RA PPEC on after guiding.");
+                        mount->TurnRAPPEC(true);
+                    }
+                }
+                mount->StartRATracking(GetRATrackRate());
+            }
+            catch (EQModError e)
+            {
+                if (!(e.DefaultHandleException(this)))
+                {
+                    DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_WARNING,
+                                "Timed guide West/East Error: can not restart tracking");
+                }
+            }
+            GuideComplete(AXIS_RA);
+            DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_DEBUG, "End Timed guide West/East");
         }
     }
     catch (EQModError e)
@@ -2239,29 +2404,72 @@ IPState EQMod::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState EQMod::GuideWest(float ms)
+IPState EQMod::GuideWest(uint32_t ms)
 {
+    if (ms < MinPulseN->value)
+    {
+        return IPS_IDLE;
+    }
+
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
-    LOGF_DEBUG("Timed guide West %d ms at rate %g", (int)(ms), rateshift);
+    LOGF_DEBUG("Timed guide West %d ms at rate %g", ms, rateshift);
     if (RAInverted)
         rateshift = -rateshift;
     try
     {
-        if (ms > 0.0)
+        if (mount->HasPPEC())
         {
-            if (mount->HasPPEC())
+            restartguideRAPPEC = false;
+            if (RAPPECSP->s == IPS_BUSY)
             {
-                restartguideRAPPEC = false;
-                if (RAPPECSP->s == IPS_BUSY)
+                restartguideRAPPEC = true;
+                LOG_INFO("Turning RA PPEC off while guiding.");
+                mount->TurnRAPPEC(false);
+            }
+        }
+        if (ms >= MinPulseTimerN->value)
+        {
+            pulseInProgress |= 2;
+            GuideTimerWE = IEAddTimer(ms, (IE_TCF *)timedguideWECallback, this);
+            mount->StartRATracking(GetRATrackRate() + rateshift);
+        }
+        else
+        {
+            struct timespec starttime, endtime;
+            clock_gettime(CLOCK_MONOTONIC, &starttime);
+            mount->StartRATracking(GetRATrackRate() + rateshift);
+            clock_gettime(CLOCK_MONOTONIC, &endtime);
+            double elapsed =
+                (endtime.tv_sec - starttime.tv_sec) * 1000.0 + ((endtime.tv_nsec - starttime.tv_nsec) / 1000000.0);
+            if (elapsed < ms)
+            {
+                uint32_t left = ms - elapsed;
+                usleep(left * 1000);
+            }
+            try
+            {
+                if (mount->HasPPEC())
                 {
-                    restartguideRAPPEC = true;
-                    LOG_INFO("Turning RA PPEC off while guiding.");
-                    mount->TurnRAPPEC(false);
+                    if (restartguideRAPPEC)
+                    {
+                        restartguideRAPPEC = false;
+                        DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_SESSION, "Turning RA PPEC on after guiding.");
+                        mount->TurnRAPPEC(true);
+                    }
+                }
+                mount->StartRATracking(GetRATrackRate());
+            }
+            catch (EQModError e)
+            {
+                if (!(e.DefaultHandleException(this)))
+                {
+                    DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_WARNING,
+                                "Timed guide West/East Error: can not restart tracking");
                 }
             }
-            mount->StartRATracking(GetRATrackRate() + rateshift);
-            GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
+            GuideComplete(AXIS_RA);
+            DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_DEBUG, "End Timed guide West/East");
         }
     }
     catch (EQModError e)
@@ -2304,7 +2512,7 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
             }
             IUUpdateNumber(SlewSpeedsNP, values, names, n);
             SlewSpeedsNP->s = IPS_OK;
-            IDSetNumber(SlewSpeedsNP, NULL);
+            IDSetNumber(SlewSpeedsNP, nullptr);
             LOGF_INFO("Setting Slew rates - RA=%.2fx DE=%.2fx",
                    IUFindNumber(SlewSpeedsNP, "RASLEW")->value, IUFindNumber(SlewSpeedsNP, "DESLEW")->value);
             return true;
@@ -2317,9 +2525,9 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
             if (TrackState != SCOPE_TRACKING)
             {
                 GuideNSNP.s = IPS_IDLE;
-                IDSetNumber(&GuideNSNP, NULL);
+                IDSetNumber(&GuideNSNP, nullptr);
                 GuideWENP.s = IPS_IDLE;
-                IDSetNumber(&GuideWENP, NULL);
+                IDSetNumber(&GuideWENP, nullptr);
                 LOG_WARN("Can not guide if not tracking.");
                 return true;
             }
@@ -2332,10 +2540,20 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
         {
             IUUpdateNumber(GuideRateNP, values, names, n);
             GuideRateNP->s = IPS_OK;
-            IDSetNumber(GuideRateNP, NULL);
+            IDSetNumber(GuideRateNP, nullptr);
             LOGF_INFO("Setting Custom Tracking Rates - RA=%1.1f arcsec/s DE=%1.1f arcsec/s",
                    IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value,
                    IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value);
+            return true;
+        }
+
+        if (strcmp(name, PulseLimitsNP->name) == 0)
+        {
+            IUUpdateNumber(PulseLimitsNP, values, names, n);
+            PulseLimitsNP->s = IPS_OK;
+            IDSetNumber(PulseLimitsNP, nullptr);
+            LOGF_INFO("Setting pulse limits: minimum pulse %3.0f ms, minimum timer pulse %4.0f ms", MinPulseN->value,
+                      MinPulseTimerN->value);
             return true;
         }
 
@@ -2343,7 +2561,7 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
         {
             IUUpdateNumber(BacklashNP, values, names, n);
             BacklashNP->s = IPS_OK;
-            IDSetNumber(BacklashNP, NULL);
+            IDSetNumber(BacklashNP, nullptr);
             mount->SetBacklashRA((unsigned long)(IUFindNumber(BacklashNP, "BACKLASHRA")->value));
             mount->SetBacklashDE((unsigned long)(IUFindNumber(BacklashNP, "BACKLASHDE")->value));
             LOGF_INFO("Setting Backlash compensation - RA=%.0f microsteps DE=%.0f microsteps",
@@ -2366,10 +2584,10 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
             syncdata.telescopeDEC = IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value;
             syncdata.deltaRA      = syncdata.targetRA - syncdata.telescopeRA;
             syncdata.deltaDEC     = syncdata.targetDEC - syncdata.telescopeDEC;
-            IDSetNumber(StandardSyncPointNP, NULL);
+            IDSetNumber(StandardSyncPointNP, nullptr);
             IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value = syncdata.deltaRA;
             IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value = syncdata.deltaDEC;
-            IDSetNumber(StandardSyncNP, NULL);
+            IDSetNumber(StandardSyncNP, nullptr);
 
             LOGF_INFO("Mount manually Synced (deltaRA = %.6f deltaDEC = %.6f)",
                    syncdata.deltaRA, syncdata.deltaDEC);
@@ -2379,7 +2597,7 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
                 computePolarAlign(syncdata2, syncdata, getLatitude(), &tpa_alt, &tpa_az);
                 IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value = tpa_alt;
                 IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value  = tpa_az;
-                IDSetNumber(SyncPolarAlignNP, NULL);
+                IDSetNumber(SyncPolarAlignNP, nullptr);
                 IDLog("computePolarAlign: Telescope Polar Axis: alt = %g, az = %g\n", tpa_alt, tpa_az);
             }
 
@@ -2439,7 +2657,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 DEBUG(INDI::Logger::DBG_WARNING,
                       "Mount must be disconnected before you can change simulation settings.");
                 svp->s = IPS_ALERT;
-                IDSetSwitch(svp, NULL);
+                IDSetSwitch(svp, nullptr);
                 return false;
             }
 
@@ -2459,7 +2677,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                    IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s == ISS_ON ? "True" : "False",
                    IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s == ISS_ON ? "True" : "False");
             UseBacklashSP->s = IPS_IDLE;
-            IDSetSwitch(UseBacklashSP, NULL);
+            IDSetSwitch(UseBacklashSP, nullptr);
             return true;
         }
 
@@ -2472,7 +2690,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
             if (swbefore != swafter)
             {
                 TrackDefaultSP->s = IPS_IDLE;
-                IDSetSwitch(TrackDefaultSP, NULL);
+                IDSetSwitch(TrackDefaultSP, nullptr);
                 LOGF_INFO("Changed Track Default (from %s to %s).", swbefore->name,
                        swafter->name);
             }
@@ -2490,7 +2708,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 unsigned char rate = '0' + (unsigned char)IUFindOnSwitchIndex(ST4GuideRateWESP);
                 mount->SetST4RAGuideRate(rate);
                 ST4GuideRateWESP->s = IPS_IDLE;
-                IDSetSwitch(ST4GuideRateWESP, NULL);
+                IDSetSwitch(ST4GuideRateWESP, nullptr);
                 LOGF_INFO("Changed ST4 Guide rate WE (from %s to %s).", swbefore->label,
                        swafter->label);
             }
@@ -2508,7 +2726,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 unsigned char rate = '0' + (unsigned char)IUFindOnSwitchIndex(ST4GuideRateNSSP);
                 mount->SetST4DEGuideRate(rate);
                 ST4GuideRateNSSP->s = IPS_IDLE;
-                IDSetSwitch(ST4GuideRateNSSP, NULL);
+                IDSetSwitch(ST4GuideRateNSSP, nullptr);
                 LOGF_INFO("Changed ST4 Guide rate NS (from %s to %s).", swbefore->label,
                        swafter->label);
             }
@@ -2522,7 +2740,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
             ISwitch *sp = IUFindOnSwitch(svp);
             if (!sp)
                 return false;
-            IDSetSwitch(svp, NULL);
+            IDSetSwitch(svp, nullptr);
 
             if (!strcmp(sp->name, "SYNCCLEARDELTA"))
             {
@@ -2530,7 +2748,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 bzero(&syncdata2, sizeof(syncdata2));
                 IUFindNumber(StandardSyncNP, "STANDARDSYNC_RA")->value = syncdata.deltaRA;
                 IUFindNumber(StandardSyncNP, "STANDARDSYNC_DE")->value = syncdata.deltaDEC;
-                IDSetNumber(StandardSyncNP, NULL);
+                IDSetNumber(StandardSyncNP, nullptr);
                 IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_JD")->value           = syncdata.jd;
                 IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_SYNCTIME")->value     = syncdata.lst;
                 IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_CELESTIAL_RA")->value = syncdata.targetRA;
@@ -2541,13 +2759,13 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 ;
                 IUFindNumber(StandardSyncPointNP, "STANDARDSYNCPOINT_TELESCOPE_DE")->value = syncdata.telescopeDEC;
                 ;
-                IDSetNumber(StandardSyncPointNP, NULL);
+                IDSetNumber(StandardSyncPointNP, nullptr);
                 LOG_INFO("Cleared current Sync Data");
                 tpa_alt                                                     = 0.0;
                 tpa_az                                                      = 0.0;
                 IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_ALT")->value = tpa_alt;
                 IUFindNumber(SyncPolarAlignNP, "SYNCPOLARALIGN_AZ")->value  = tpa_az;
-                IDSetNumber(SyncPolarAlignNP, NULL);
+                IDSetNumber(SyncPolarAlignNP, nullptr);
                 return true;
             }
         }
@@ -2562,7 +2780,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
 
             LOG_INFO("Inverting Declination Axis.");
 
-            IDSetSwitch(ReverseDECSP, NULL);
+            IDSetSwitch(ReverseDECSP, nullptr);
         }
 
         if (!strcmp(name, "FORCECWUP"))
@@ -2575,7 +2793,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
 
             LOG_INFO("Enforcing counter weight up");
 
-            IDSetSwitch(EnforceCWUP, NULL);
+            IDSetSwitch(EnforceCWUP, nullptr);
         }
 
         //if (MountInformationTP && MountInformationTP->tp && (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))) {
@@ -2589,7 +2807,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     {
                         AutoHomeSP->s = IPS_IDLE;
                         IUResetSwitch(AutoHomeSP);
-                        IDSetSwitch(AutoHomeSP, NULL);
+                        IDSetSwitch(AutoHomeSP, nullptr);
                     }
                     LOG_WARN("Can not start AutoHome. Scope not idle");
                     return true;
@@ -2599,7 +2817,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 {
                     AutoHomeSP->s = IPS_IDLE;
                     IUResetSwitch(AutoHomeSP);
-                    IDSetSwitch(AutoHomeSP, NULL);
+                    IDSetSwitch(AutoHomeSP, nullptr);
                     LOG_WARN("Aborting AutoHome.");
                     Abort();
                     return true;
@@ -2609,7 +2827,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 {
                     AutoHomeSP->s = IPS_OK;
                     IUResetSwitch(AutoHomeSP);
-                    IDSetSwitch(AutoHomeSP, NULL);
+                    IDSetSwitch(AutoHomeSP, nullptr);
                     LOG_WARN("*** AutoHome NOT TESTED. Press PERFORM AGAIN TO CONFIRM. ***");
                     AutohomeState      = AUTO_HOME_CONFIRM;
                     ah_confirm_timeout = 10;
@@ -2620,7 +2838,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     IUUpdateSwitch(AutoHomeSP, states, names, n);
                     AutoHomeSP->s = IPS_BUSY;
                     LOG_INFO("Starting Autohome.");
-                    IDSetSwitch(AutoHomeSP, NULL);
+                    IDSetSwitch(AutoHomeSP, nullptr);
                     TrackState = SCOPE_AUTOHOMING;
                     try
                     {
@@ -2669,9 +2887,10 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     {
                         AutoHomeSP->s = IPS_ALERT;
                         IUResetSwitch(AutoHomeSP);
-                        IDSetSwitch(AutoHomeSP, NULL);
+                        IDSetSwitch(AutoHomeSP, nullptr);
                         AutohomeState = AUTO_HOME_IDLE;
                         TrackState    = SCOPE_IDLE;
+                        RememberTrackState = TrackState;
                         return (e.DefaultHandleException(this));
                     }
                 }
@@ -2697,7 +2916,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     mount->TurnRAEncoder(false);
                     mount->TurnDEEncoder(false);
                 }
-                IDSetSwitch(AuxEncoderSP, NULL);
+                IDSetSwitch(AuxEncoderSP, nullptr);
             }
         }
 
@@ -2739,7 +2958,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     LOG_INFO("Turning RA PPEC Training off.");
                     mount->TurnRAPPECTraining(false);
                 }
-                IDSetSwitch(RAPPECTrainingSP, NULL);
+                IDSetSwitch(RAPPECTrainingSP, nullptr);
                 return true;
             }
             if (RAPPECSP && strcmp(name, RAPPECSP->name) == 0)
@@ -2757,7 +2976,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     LOG_INFO("Turning RA PPEC off.");
                     mount->TurnRAPPEC(false);
                 }
-                IDSetSwitch(RAPPECSP, NULL);
+                IDSetSwitch(RAPPECSP, nullptr);
                 return true;
             }
             if (DEPPECTrainingSP && strcmp(name, DEPPECTrainingSP->name) == 0)
@@ -2796,7 +3015,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     LOG_INFO("Turning DEC PPEC Training off.");
                     mount->TurnDEPPECTraining(false);
                 }
-                IDSetSwitch(DEPPECTrainingSP, NULL);
+                IDSetSwitch(DEPPECTrainingSP, nullptr);
                 return true;
             }
             if (DEPPECSP && strcmp(name, DEPPECSP->name) == 0)
@@ -2814,7 +3033,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                     LOG_INFO("Turning DEC PPEC off.");
                     mount->TurnDEPPEC(false);
                 }
-                IDSetSwitch(DEPPECSP, NULL);
+                IDSetSwitch(DEPPECSP, nullptr);
                 return true;
             }
         }
@@ -2943,7 +3162,7 @@ bool EQMod::updateTime(ln_date *lndate_utc, double utc_offset)
     utc.tm_mon  = lndate.months - 1;
     utc.tm_year = lndate.years - 1900;
 
-    gettimeofday(&lasttimeupdate, NULL);
+    gettimeofday(&lasttimeupdate, nullptr);
     get_utc_time(&lastclockupdate);
 
     strftime(utc_time, 32, "%Y-%m-%dT%H:%M:%S", &utc);
@@ -3013,6 +3232,8 @@ bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             else
                 TrackState = SCOPE_IDLE;
 
+            RememberTrackState = TrackState;
+
             break;
         }
     }
@@ -3058,6 +3279,9 @@ bool EQMod::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             }
             else
                 TrackState = SCOPE_IDLE;
+
+            RememberTrackState = TrackState;
+
             break;
         }
     }
@@ -3094,19 +3318,20 @@ bool EQMod::Abort()
     }
 
     GuideNSNP.s = IPS_IDLE;
-    IDSetNumber(&GuideNSNP, NULL);
+    IDSetNumber(&GuideNSNP, nullptr);
     GuideWENP.s = IPS_IDLE;
-    IDSetNumber(&GuideWENP, NULL);
+    IDSetNumber(&GuideWENP, nullptr);
 #if 0
     TrackModeSP->s = IPS_IDLE;
     IUResetSwitch(TrackModeSP);
-    IDSetSwitch(TrackModeSP, NULL);
+    IDSetSwitch(TrackModeSP, nullptr);
 #endif
     AutohomeState = AUTO_HOME_IDLE;
     AutoHomeSP->s = IPS_IDLE;
     IUResetSwitch(AutoHomeSP);
-    IDSetSwitch(AutoHomeSP, NULL);
+    IDSetSwitch(AutoHomeSP, nullptr);
     TrackState = SCOPE_IDLE;
+    RememberTrackState = TrackState;
     if (gotoparams.completed == false)
         gotoparams.completed = true;
 
@@ -3116,6 +3341,8 @@ bool EQMod::Abort()
 void EQMod::timedguideNSCallback(void *userpointer)
 {
     EQMod *p = ((EQMod *)userpointer);
+    p->pulseInProgress &= ~1;
+
     try
     {
         if (p->mount->HasPPEC())
@@ -3145,6 +3372,8 @@ void EQMod::timedguideNSCallback(void *userpointer)
 void EQMod::timedguideWECallback(void *userpointer)
 {
     EQMod *p = ((EQMod *)userpointer);
+    p->pulseInProgress &= ~2;
+
     try
     {
         if (p->mount->HasPPEC())
@@ -3416,6 +3645,8 @@ bool EQMod::saveConfigItems(FILE *fp)
         IUSaveConfigSwitch(fp, UseBacklashSP);
     if (GuideRateNP)
         IUSaveConfigNumber(fp, GuideRateNP);
+    if (PulseLimitsNP)
+        IUSaveConfigNumber(fp, PulseLimitsNP);
     if (SlewSpeedsNP)
         IUSaveConfigNumber(fp, SlewSpeedsNP);
 
@@ -3469,6 +3700,7 @@ bool EQMod::SetTrackEnabled(bool enabled)
         {
             LOGF_INFO("Start Tracking (%s).", IUFindOnSwitch(&TrackModeSP)->label);
             TrackState     = SCOPE_TRACKING;
+            RememberTrackState = TrackState;
             mount->StartRATracking(GetRATrackRate());
             mount->StartDETracking(GetDETrackRate());
         }
@@ -3476,6 +3708,7 @@ bool EQMod::SetTrackEnabled(bool enabled)
         {
             LOGF_WARN("Stopping Tracking (%s).", IUFindOnSwitch(&TrackModeSP)->label);
             TrackState     = SCOPE_IDLE;
+            RememberTrackState = TrackState;
             mount->StopRA();
             mount->StopDE();
         }

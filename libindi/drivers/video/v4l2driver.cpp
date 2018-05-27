@@ -965,7 +965,6 @@ bool V4L2_Driver::start_capturing(bool do_stream)
                getRemainingExposure());
         return false;
     }
-
     char errmsg[ERRMSGSIZ];
     if (v4l_base->start_capturing(errmsg))
     {
@@ -1624,6 +1623,9 @@ bool V4L2_Driver::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
 
+    if (ImageAdjustNP.nnp > 0)
+        IUSaveConfigNumber(fp, &ImageAdjustNP);
+
     return Streamer->saveConfigItems(fp);
 }
 
@@ -1704,7 +1706,7 @@ bool V4L2_Driver::getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT & pixelF
 #ifdef V4L2_PIX_FMT_SGRBG12
         case V4L2_PIX_FMT_SGRBG12:
 #endif
-            pixelDepth = INDI_BAYER_GRBG;
+	pixelFormat = INDI_BAYER_GRBG;
 #ifdef V4L2_PIX_FMT_SGRBG10
             if (v4l2format == V4L2_PIX_FMT_SGRBG10)
                 pixelDepth = 10;

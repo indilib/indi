@@ -653,7 +653,7 @@ bool PMC8::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
-IPState PMC8::GuideNorth(float ms)
+IPState PMC8::GuideNorth(uint32_t ms)
 {
     bool rc;
     long timetaken_us;
@@ -684,7 +684,7 @@ IPState PMC8::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState PMC8::GuideSouth(float ms)
+IPState PMC8::GuideSouth(uint32_t ms)
 {
     bool rc;
     long timetaken_us;
@@ -715,7 +715,7 @@ IPState PMC8::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState PMC8::GuideEast(float ms)
+IPState PMC8::GuideEast(uint32_t ms)
 {
     bool rc;
     long timetaken_us;
@@ -745,7 +745,7 @@ IPState PMC8::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState PMC8::GuideWest(float ms)
+IPState PMC8::GuideWest(uint32_t ms)
 {
     bool rc;
     long timetaken_us;

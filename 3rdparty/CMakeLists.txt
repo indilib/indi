@@ -85,7 +85,6 @@ option(WITH_AVALON "Install Avalon StarGO Driver" On)
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_MI Off)
-    set(WITH_SBIG Off)
     set(WITH_INOVAPLX Off)
     set(WITH_DUINO Off)
     set(WITH_FISHCAMP Off)

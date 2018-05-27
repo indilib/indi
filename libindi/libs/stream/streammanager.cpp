@@ -59,7 +59,7 @@ StreamManager::StreamManager(CCD *mainCCD)
     setitimer(ITIMER_REAL, &fpssettings, nullptr);
 
     recorderManager = new RecorderManager();
-    recorder    = recorderManager->getDefaultRecorder();    
+    recorder    = recorderManager->getDefaultRecorder();
     direct_record = false;
 
     LOGF_DEBUG("Using default recorder (%s)", recorder->getName());
@@ -92,10 +92,13 @@ bool StreamManager::initProperties()
                        STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Stream Rate divisor */
-    IUFillNumber(&StreamOptionsN[OPTION_TARGET_FPS], "STREAM_FPS", "Target FPS", "%.f", 0, 30.0, 1, 10);
+    /*IUFillNumber(&StreamOptionsN[OPTION_TARGET_FPS], "STREAM_FPS", "Target FPS", "%.f", 0, 30.0, 1, 10);
     IUFillNumber(&StreamOptionsN[OPTION_RATE_DIVISOR], "STREAM_RATE", "Rate Divisor", "%3.0f", 0, 60.0, 5, 0);
     IUFillNumberVector(&StreamOptionsNP, StreamOptionsN, NARRAY(StreamOptionsN), getDeviceName(), "STREAM_OPTIONS",
-                       "Settings", STREAM_TAB, IP_RW, 60, IPS_IDLE);
+                       "Settings", STREAM_TAB, IP_RW, 60, IPS_IDLE);*/
+
+    IUFillNumber(&StreamExposureN[0], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
+    IUFillNumberVector(&StreamExposureNP, StreamExposureN, 1, getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
     IUFillNumber(&FpsN[FPS_INSTANT], "EST_FPS", "Instant.", "%3.2f", 0.0, 999.0, 0.0, 30);
@@ -145,12 +148,13 @@ bool StreamManager::initProperties()
     IUFillSwitch(&RecorderS[RECORDER_OGV], "OGV", "OGV", ISS_OFF);
     IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     // If we do not have theora installed, let's just define SER default recorder
-    #ifndef HAVE_THEORA
+#ifndef HAVE_THEORA
     RecorderSP.nsp = 1;
-    #endif
+#endif
 
     return true;
 }
+
 
 void StreamManager::ISGetProperties(const char *dev)
 {
@@ -160,7 +164,8 @@ void StreamManager::ISGetProperties(const char *dev)
     if (currentCCD->isConnected())
     {
         currentCCD->defineSwitch(&StreamSP);
-        currentCCD->defineNumber(&StreamOptionsNP);
+        //currentCCD->defineNumber(&StreamOptionsNP);
+        currentCCD->defineNumber(&StreamExposureNP);
         currentCCD->defineNumber(&FpsNP);
         currentCCD->defineSwitch(&RecordStreamSP);
         currentCCD->defineText(&RecordFileTP);
@@ -179,7 +184,8 @@ bool StreamManager::updateProperties()
         imageB  = imageBP->bp;
 
         currentCCD->defineSwitch(&StreamSP);
-        currentCCD->defineNumber(&StreamOptionsNP);
+        //currentCCD->defineNumber(&StreamOptionsNP);
+        currentCCD->defineNumber(&StreamExposureNP);
         currentCCD->defineNumber(&FpsNP);
         currentCCD->defineSwitch(&RecordStreamSP);
         currentCCD->defineText(&RecordFileTP);
@@ -191,7 +197,8 @@ bool StreamManager::updateProperties()
     else
     {
         currentCCD->deleteProperty(StreamSP.name);
-        currentCCD->deleteProperty(StreamOptionsNP.name);
+        //currentCCD->deleteProperty(StreamOptionsNP.name);
+        currentCCD->deleteProperty(StreamExposureNP.name);
         currentCCD->deleteProperty(FpsNP.name);
         //ccd->deleteProperty(FramestoDropNP.name);
         currentCCD->deleteProperty(RecordFileTP.name);
@@ -292,6 +299,7 @@ void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
 
         nbytes /= 2;
 
+#if 0
         if (StreamSP.s == IPS_BUSY)
         {
             streamframeCount++;
@@ -301,6 +309,10 @@ void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
                 streamframeCount = 0;
             }
         }
+#endif
+
+        if (StreamSP.s == IPS_BUSY)
+            uploadStream(downscaleBuffer, nbytes);
 
         // If anything but SER, let's call recorder. Otherwise, it's been called up before.
         if (isRecording() && strcmp(recorder->getName(), "SER"))
@@ -310,6 +322,7 @@ void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
     }
     else
     {
+#if 0
         if (StreamSP.s == IPS_BUSY)
         {
             streamframeCount++;
@@ -324,13 +337,24 @@ void StreamManager::newFrame(const uint8_t *buffer, uint32_t nbytes)
                 streamframeCount = 0;
             }
         }
+#endif
+
+        if (StreamSP.s == IPS_BUSY)
+        {
+            if (uploadStream(buffer, nbytes) == false)
+            {
+                LOG_ERROR("Streaming failed.");
+                setStream(false);
+                return;
+            }
+        }
 
         if (RecordStreamSP.s == IPS_BUSY)
         {
             if (recordStream(buffer, nbytes, deltams) == false)
             {
                 LOG_ERROR("Recording failed.");
-                stopRecording();
+                stopRecording(true);
                 return;
             }
         }
@@ -380,12 +404,16 @@ bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelD
     bool recorderOK = recorder->setPixelFormat(pixelFormat, pixelDepth);
     if (recorderOK == false)
     {
-        LOGF_ERROR("Pixel format is not supported by %s recorder.", recorder->getName());
+        LOGF_ERROR("Pixel format %d is not supported by %s recorder.", pixelFormat, recorder->getName());
+    } else {
+	    LOGF_DEBUG("Pixel format %d is supported by %s recorder.", pixelFormat, recorder->getName()); 
     }
     bool encoderOK = encoder->setPixelFormat(pixelFormat, pixelDepth);
     if (encoderOK == false)
     {
-        LOGF_ERROR("Pixel format is not supported by %s encoder.", encoder->getName());
+        LOGF_ERROR("Pixel format %d is not supported by %s encoder.", pixelFormat, encoder->getName());
+    } else {
+	LOGF_DEBUG("Pixel format %d is supported by %s encoder.", pixelFormat, encoder->getName());
     }
 
     m_PixelFormat = pixelFormat;
@@ -544,7 +572,7 @@ bool StreamManager::startRecording()
     recordfilename.assign(RecordFileTP.tp[1].text);
     expfilename = expand(recordfilename, patterns);
     if (expfilename.substr(expfilename.size() - 4, 4) != recorder->getExtension())
-            expfilename += recorder->getExtension();
+        expfilename += recorder->getExtension();
 
     filename = expfiledir + expfilename;
     //LOGF_INFO("Expanded file is %s", filename.c_str());
@@ -554,7 +582,7 @@ bool StreamManager::startRecording()
     if (mkpath(expfiledir, 0755))
     {
         LOGF_WARN("Can not create record directory %s: %s", expfiledir.c_str(),
-               strerror(errno));
+                  strerror(errno));
         return false;
     }
     if (!recorder->open(filename.c_str(), errmsg))
@@ -601,17 +629,21 @@ bool StreamManager::startRecording()
     return true;
 }
 
-bool StreamManager::stopRecording()
+bool StreamManager::stopRecording(bool force)
 {
-    if (!m_isRecording)
+    if (!m_isRecording && force == false)
         return true;
     if (!m_isStreaming)
         currentCCD->StopStreaming();
 
     m_isRecording = false;
     recorder->close();
+
+    if (force)
+        return false;
+
     LOGF_INFO("Record Duration(millisec): %g -- Frame count: %d", recordDuration,
-           recordframeCount);
+              recordframeCount);
     return true;
 }
 
@@ -655,17 +687,17 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
         }
 
         if ((RecordStreamSP.sp[0].s == ISS_ON) || (RecordStreamSP.sp[1].s == ISS_ON) ||
-            (RecordStreamSP.sp[2].s == ISS_ON))
+                (RecordStreamSP.sp[2].s == ISS_ON))
         {
             if (!m_isRecording)
             {
                 RecordStreamSP.s = IPS_BUSY;
                 if (RecordStreamSP.sp[1].s == ISS_ON)
                     LOGF_INFO("Starting video record (Duration): %g secs.",
-                           RecordOptionsNP.np[0].value);
+                              RecordOptionsNP.np[0].value);
                 else if (RecordStreamSP.sp[2].s == ISS_ON)
                     LOGF_INFO("Starting video record (Frame count): %d.",
-                           (int)(RecordOptionsNP.np[1].value));
+                              (int)(RecordOptionsNP.np[1].value));
                 else
                     LOG_INFO("Starting video record.");
 
@@ -685,7 +717,7 @@ bool StreamManager::ISNewSwitch(const char *dev, const char *name, ISState *stat
             if (m_isRecording)
             {
                 LOGF_INFO("Recording stream has been disabled. Frame count %d",
-                       recordframeCount);
+                          recordframeCount);
                 stopRecording();
             }
         }
@@ -774,11 +806,21 @@ bool StreamManager::ISNewNumber(const char *dev, const char *name, double values
         return true;
 
     /* Stream rate */
+#if 0
     if (!strcmp(StreamOptionsNP.name, name))
     {
         IUUpdateNumber(&StreamOptionsNP, values, names, n);
         StreamOptionsNP.s = IPS_OK;
         IDSetNumber(&StreamOptionsNP, nullptr);
+        return true;
+    }
+#endif
+
+    if (!strcmp(StreamExposureNP.name, name))
+    {
+        IUUpdateNumber(&StreamExposureNP, values, names, n);
+        StreamExposureNP.s = IPS_OK;
+        IDSetNumber(&StreamExposureNP, nullptr);
         return true;
     }
 
@@ -843,12 +885,15 @@ bool StreamManager::setStream(bool enable)
         {
             StreamSP.s       = IPS_BUSY;
             streamframeCount = 0;
+#if 0
             if (StreamOptionsN[OPTION_RATE_DIVISOR].value > 0)
                 DEBUGF(INDI::Logger::DBG_SESSION,
                        "Starting the video stream with target FPS %.f and rate divisor of %.f",
                        StreamOptionsN[OPTION_TARGET_FPS].value, StreamOptionsN[OPTION_RATE_DIVISOR].value);
             else
                 LOGF_INFO("Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
+#endif
+            LOGF_INFO("Starting the video stream with target exposure %.f s (FPS %.f)", StreamExposureN[0].value, 1/StreamExposureN[0].value);
 
             streamframeCount = 0;
 
@@ -1007,42 +1052,42 @@ bool StreamManager::uploadStream(const uint8_t *buffer, uint32_t nbytes)
         return false;
     }
 #if 0
-        // For MONO
-        if (currentCCD->PrimaryCCD.getNAxis() == 2)
-        {
-            int binFactor = (currentCCD->PrimaryCCD.getBinX() * currentCCD->PrimaryCCD.getBinY());
-            int offset =
+    // For MONO
+    if (currentCCD->PrimaryCCD.getNAxis() == 2)
+    {
+        int binFactor = (currentCCD->PrimaryCCD.getBinX() * currentCCD->PrimaryCCD.getBinY());
+        int offset =
                 ((subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value) / binFactor;
 
-            uint8_t *srcBuffer  = buffer + offset;
-            uint8_t *destBuffer = buffer;
+        uint8_t *srcBuffer  = buffer + offset;
+        uint8_t *destBuffer = buffer;
 
-            for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
-                memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value), srcBuffer + subW * i,
-                       StreamFrameN[CCDChip::FRAME_W].value);
+        for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
+            memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value), srcBuffer + subW * i,
+                    StreamFrameN[CCDChip::FRAME_W].value);
 
-            streamW = StreamFrameN[CCDChip::FRAME_W].value;
-            streamH = StreamFrameN[CCDChip::FRAME_H].value;
-        }
-        // For Color
-        else
-        {
-            // Subframe offset in source frame. i.e. where we start copying data from in the original data frame
-            int sourceOffset = (subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value;
-            // Total bytes
-            //totalBytes = (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) * 3;
+        streamW = StreamFrameN[CCDChip::FRAME_W].value;
+        streamH = StreamFrameN[CCDChip::FRAME_H].value;
+    }
+    // For Color
+    else
+    {
+        // Subframe offset in source frame. i.e. where we start copying data from in the original data frame
+        int sourceOffset = (subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value;
+        // Total bytes
+        //totalBytes = (StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value) * 3;
 
-            // Copy each color component back into buffer. Since each subframed page is equal or small than source component
-            // no need to a new buffer
+        // Copy each color component back into buffer. Since each subframed page is equal or small than source component
+        // no need to a new buffer
 
-            uint8_t *srcBuffer  = buffer + sourceOffset * 3;
-            uint8_t *destBuffer = buffer;
+        uint8_t *srcBuffer  = buffer + sourceOffset * 3;
+        uint8_t *destBuffer = buffer;
 
-            // RGB
-            for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
-                memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value * 3),
-                       srcBuffer + subW * 3 * i, StreamFrameN[CCDChip::FRAME_W].value * 3);
-        }
+        // RGB
+        for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
+            memcpy(destBuffer + i * static_cast<int>(StreamFrameN[CCDChip::FRAME_W].value * 3),
+                    srcBuffer + subW * 3 * i, StreamFrameN[CCDChip::FRAME_W].value * 3);
+    }
 #endif
 
     if (encoder->upload(imageB, buffer, nbytes, currentCCD->PrimaryCCD.isCompressed()))

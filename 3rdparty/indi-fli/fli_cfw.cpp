@@ -149,7 +149,7 @@ bool FLICFW::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 return false;
 
             PortSP.s = IPS_OK;
-            IDSetSwitch(&PortSP, NULL);
+            IDSetSwitch(&PortSP, nullptr);
             return true;
         }
 
@@ -302,7 +302,7 @@ bool FLICFW::setupParams()
     snprintf(fw_rev, 16, "%ld", FLIFilter.FWRevision);
     IUSaveText(&FilterInfoT[2], fw_rev);
 
-    IDSetText(&FilterInfoTP, NULL);
+    IDSetText(&FilterInfoTP, nullptr);
     ///////////////////////////
     // 4. Filter position
     ///////////////////////////
@@ -431,7 +431,7 @@ void FLICFW::turnWheel()
 
     IUResetSwitch(&FilterSP);
     FilterSP.s = IPS_OK;
-    IDSetSwitch(&FilterSP, NULL);
+    IDSetSwitch(&FilterSP, nullptr);
 }
 
 void FLICFW::TimerHit()
@@ -453,9 +453,9 @@ bool FLICFW::findFLICFW(flidomain_t domain)
         return false;
     }
 
-    if (names != NULL && names[0] != NULL)
+    if (names != nullptr && names[0] != nullptr)
     {
-        for (int i = 0; names[i] != NULL; i++)
+        for (int i = 0; names[i] != nullptr; i++)
         {
             for (int j = 0; names[i][j] != '\0'; j++)
                 if (names[i][j] == ';')

@@ -88,10 +88,10 @@ void ISGetProperties(const char *dev)
     for (int i = 0; i < cameraCount; i++)
     {
         FishCampCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISGetProperties(dev);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -103,10 +103,10 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     for (int i = 0; i < cameraCount; i++)
     {
         FishCampCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewSwitch(dev, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -118,10 +118,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     for (int i = 0; i < cameraCount; i++)
     {
         FishCampCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewText(dev, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -133,10 +133,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     for (int i = 0; i < cameraCount; i++)
     {
         FishCampCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewNumber(dev, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -277,7 +277,7 @@ bool FishCampCCD::ISNewNumber(const char *dev, const char *name, double values[]
             IUUpdateNumber(&GainNP, values, names, n);
             setGain(GainN[0].value);
             GainNP.s = IPS_OK;
-            IDSetNumber(&GainNP, NULL);
+            IDSetNumber(&GainNP, nullptr);
             return true;
         }
     }
@@ -308,7 +308,7 @@ int FishCampCCD::SetTemperature(double temperature)
         CoolerNP.s = IPS_IDLE;
 
     TemperatureNP.s = IPS_BUSY;
-    IDSetNumber(&TemperatureNP, NULL);
+    IDSetNumber(&TemperatureNP, nullptr);
 
     LOGF_INFO("Setting CCD temperature to %+06.2f C", temperature);
 
@@ -378,7 +378,7 @@ bool FishCampCCD::StartExposure(float duration)
 
     LOGF_DEBUG("fcUsb_cmd_startExposure returns %d", rc);
 
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
 
     LOGF_INFO("Taking a %g seconds frame...", ExposureRequest);
 
@@ -469,7 +469,7 @@ float FishCampCCD::CalcTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
                 (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
@@ -568,7 +568,7 @@ void FishCampCCD::TimerHit()
             if (fabs(TemperatureN[0].value - ccdTemp) >= TEMP_THRESHOLD)
             {
                 TemperatureN[0].value = ccdTemp;
-                IDSetNumber(&TemperatureNP, NULL);
+                IDSetNumber(&TemperatureNP, nullptr);
             }
 
             break;
@@ -591,7 +591,7 @@ void FishCampCCD::TimerHit()
             if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
                 TemperatureNP.s = IPS_OK;
 
-            IDSetNumber(&TemperatureNP, NULL);
+            IDSetNumber(&TemperatureNP, nullptr);
             break;
 
         case IPS_ALERT:
@@ -602,7 +602,7 @@ void FishCampCCD::TimerHit()
     {
         case IPS_OK:
             CoolerN[0].value = fcUsb_cmd_getTECPowerLevel(cameraNum);
-            IDSetNumber(&CoolerNP, NULL);
+            IDSetNumber(&CoolerNP, nullptr);
             LOGF_DEBUG("Cooler power level %g %", CoolerN[0].value);
             break;
 
@@ -615,56 +615,56 @@ void FishCampCCD::TimerHit()
     return;
 }
 
-IPState FishCampCCD::GuideNorth(float duration)
+IPState FishCampCCD::GuideNorth(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYNORTH, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYNORTH, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYNORTH returns %d", rc);
 
     return IPS_OK;
 }
 
-IPState FishCampCCD::GuideSouth(float duration)
+IPState FishCampCCD::GuideSouth(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYSOUTH, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYSOUTH, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYSOUTH returns %d", rc);
 
     return IPS_OK;
 }
 
-IPState FishCampCCD::GuideEast(float duration)
+IPState FishCampCCD::GuideEast(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYEAST, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYEAST, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYEAST returns %d", rc);
 
     return IPS_OK;
 }
 
-IPState FishCampCCD::GuideWest(float duration)
+IPState FishCampCCD::GuideWest(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYWEST, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYWEST, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYWEST returns %d", rc);
 

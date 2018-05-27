@@ -826,7 +826,7 @@ bool FocusLynxBase::getFocusConfig()
         // will be overide by the backup restore call
         MaxTravelNP.s = IPS_OK;
         MaxTravelN[0].value = maxPos;
-        IDSetNumber(&MaxTravelNP, NULL);
+        IDSetNumber(&MaxTravelNP, nullptr);
 
     }
     else
@@ -1760,7 +1760,7 @@ bool FocusLynxBase::home()
         targetPosition           = 0;
         FocusAbsPosN[0].value = MaxTravelN[0].value;
         FocusAbsPosNP.s = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
         simStatus[STATUS_HOMING] = ISS_ON;
         simStatus[STATUS_HOMED] = ISS_OFF;
         simPosition = FocusAbsPosN[0].value;
@@ -2660,7 +2660,7 @@ void FocusLynxBase::TimerHit()
             }
             else
                 StatusL[STATUS_MOVING].s = IPS_BUSY;
-            IDSetLight(&StatusLP, NULL);
+            IDSetLight(&StatusLP, nullptr);
         }
 
         if (isHoming && StatusL[STATUS_HOMED].s == IPS_OK)

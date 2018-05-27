@@ -134,6 +134,10 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     ISwitchVectorProperty *RAPPECSP         = NULL;
     ISwitchVectorProperty *DEPPECSP         = NULL;
 
+    INumber *MinPulseN                   = NULL;
+    INumber *MinPulseTimerN              = NULL;
+    INumberVectorProperty *PulseLimitsNP = NULL;
+
     enum Hemisphere
     {
         NORTH = 0,
@@ -202,13 +206,16 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     bool restartguideRAPPEC;
     bool restartguideDEPPEC;
 
+    // One bit for each axis
+    uint8_t pulseInProgress;
+
   public:
     EQMod();
     virtual ~EQMod();
 
     virtual const char *getDefaultName();
     virtual bool Handshake();
-    virtual bool Disconnect();
+    virtual bool Disconnect();    
     virtual void TimerHit();
     virtual bool ReadScopeStatus();
     virtual bool initProperties();
@@ -225,10 +232,10 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
     virtual bool Abort();
 
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
+    virtual IPState GuideNorth(uint32_t ms);
+    virtual IPState GuideSouth(uint32_t ms);
+    virtual IPState GuideEast(uint32_t ms);
+    virtual IPState GuideWest(uint32_t ms);
 
     bool Goto(double ra, double dec);
     bool Park();
@@ -236,6 +243,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     bool SetCurrentPark();
     bool SetDefaultPark();
     bool Sync(double ra, double dec);
+
+    // Called when there is an unrecoverable tty error
+    void abnormalDisconnect();
 
     // Tracking
     bool SetTrackMode(uint8_t mode);
