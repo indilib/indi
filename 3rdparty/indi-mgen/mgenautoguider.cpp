@@ -42,6 +42,7 @@
 #include <memory>
 #include <vector>
 #include <queue>
+#include <array>
 
 #include "indidevapi.h"
 #include "indilogger.h"
