@@ -30,11 +30,7 @@ int main(int argc, char **argv)
     {
         sf->OnIdle();
         sleep(2);
-        #ifdef __APPLE__
-            printf("Digital pin 12 is:%llu\n", sf->pin_info[12].value);
-        #else
-            printf("Digital pin 12 is:%lu\n", sf->pin_info[12].value);
-        #endif
+        printf("Digital pin 12 is:%llu\n", static_cast<unsigned long long> sf->pin_info[12].value);
     }
 
     delete sf;
