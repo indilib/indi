@@ -793,6 +793,13 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
                 }
                 TIFFClose(tiff);
             }
+            if (fd >= 0)
+            {
+                // The gphoto documentation says I don't need to do this,
+                // but reading the source of gp_file_get_data_and_size says otherwise. :(
+                free((void *)imgData);
+                imgData = nullptr;
+            }
         }
     }
     // For some reason Canon 20D fails when deleting here
