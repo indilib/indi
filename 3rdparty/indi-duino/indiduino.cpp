@@ -26,6 +26,7 @@
 #endif
 
 #include "indiduino.h"
+#include "connectionplugins/connectionserial.h"
 
 #include "config.h"
 #include "firmata.h"
@@ -254,6 +255,26 @@ bool indiduino::initProperties()
     DefaultDevice::initProperties();
 
     setDefaultPollingPeriod(500);
+
+    serialConnection = new Connection::Serial(this);
+    serialConnection->registerHandshake([&]() { return Handshake(); });
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_57600);
+    // Arduino default port
+    serialConnection->setDefaultPort("/dev/ttyACM0");
+    registerConnection(serialConnection);
+
+    return true;
+}
+
+bool indiduino::Handshake()
+{
+    if (isSimulation())
+    {
+        LOGF_INFO("Connected successfuly to simulated %s.", getDeviceName());
+        return true;
+    }
+
+    PortFD = serialConnection->getPortFD();
 
     return true;
 }
