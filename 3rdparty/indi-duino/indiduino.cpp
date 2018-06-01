@@ -547,8 +547,12 @@ bool indiduino::ISNewBLOB(const char *dev, const char *name, int sizes[], int bl
 ***************************************************************************************/
 bool indiduino::Connect()
 {
-    ITextVectorProperty *tProp = getText("DEVICE_PORT");
-    sf                         = new Firmata(tProp->tp[0].text);
+    //This way it tries to connect using the Serial connection method with autosearch capability.
+    this->serialConnection->Connect();
+    //Once done, the connection needs to be available for Firmata.
+    this->serialConnection->Disconnect();
+
+    sf = new Firmata(this->serialConnection->port(), this->serialConnection->baud());
     if (sf->portOpen)
     {
         IDLog("ARDUINO BOARD CONNECTED.\n");
