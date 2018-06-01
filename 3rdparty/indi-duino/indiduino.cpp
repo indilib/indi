@@ -26,6 +26,7 @@
 #endif
 
 #include "indiduino.h"
+#include "connectionplugins/connectionserial.h"
 
 #include "config.h"
 #include "firmata.h"
@@ -254,6 +255,26 @@ bool indiduino::initProperties()
     DefaultDevice::initProperties();
 
     setDefaultPollingPeriod(500);
+
+    serialConnection = new Connection::Serial(this);
+    serialConnection->registerHandshake([&]() { return Handshake(); });
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_57600);
+    // Arduino default port
+    serialConnection->setDefaultPort("/dev/ttyACM0");
+    registerConnection(serialConnection);
+
+    return true;
+}
+
+bool indiduino::Handshake()
+{
+    if (isSimulation())
+    {
+        LOGF_INFO("Connected successfuly to simulated %s.", getDeviceName());
+        return true;
+    }
+
+    PortFD = serialConnection->getPortFD();
 
     return true;
 }
@@ -526,8 +547,12 @@ bool indiduino::ISNewBLOB(const char *dev, const char *name, int sizes[], int bl
 ***************************************************************************************/
 bool indiduino::Connect()
 {
-    ITextVectorProperty *tProp = getText("DEVICE_PORT");
-    sf                         = new Firmata(tProp->tp[0].text);
+    //This way it tries to connect using the Serial connection method with autosearch capability.
+    this->serialConnection->Connect();
+    //Once done, the connection needs to be available for Firmata.
+    this->serialConnection->Disconnect();
+
+    sf = new Firmata(this->serialConnection->port(), this->serialConnection->baud());
     if (sf->portOpen)
     {
         IDLog("ARDUINO BOARD CONNECTED.\n");
