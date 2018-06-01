@@ -549,7 +549,6 @@ void bayer_grbg_to_rgb24(unsigned char *dst, unsigned char *src, long int WIDTH,
 	// Output is
 	// RGBRGBRGBRGBRGB row width = 3x width
 	// RGBRGBRGBRGBRGB each pixel = 3 bytes
-
 	
 	long int i;
 	long int row;
