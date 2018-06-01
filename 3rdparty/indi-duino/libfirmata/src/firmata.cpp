@@ -410,7 +410,7 @@ void Firmata::DoMessage(void)
             if (parse_count > 7)
                 pin_info[pin].value |= (parse_buf[6] << 14);
             if (debug)
-                printf("PIN:%u. Mode:%u. Value:%lu\n", pin, pin_info[pin].mode, pin_info[pin].value);
+                printf("PIN:%u. Mode:%u. Value:%llu\n", pin, pin_info[pin].mode, static_cast<unsigned long long>(pin_info[pin].value));
         }
         else if (parse_buf[1] == FIRMATA_STRING_DATA)
         {

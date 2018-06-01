@@ -82,6 +82,7 @@
 int tty_debug = 0;
 int ttyGeminiUdpFormat = 0;
 int sequenceNumber = 1;
+int ttyClrTrailingLF = 0;
 
 #if defined(HAVE_LIBNOVA)
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
@@ -319,6 +320,11 @@ void tty_set_gemini_udp_format(int enabled)
     ttyGeminiUdpFormat = enabled;
 }
 
+void tty_clr_trailing_read_lf(int enabled)
+{
+    ttyClrTrailingLF = enabled;
+}
+
 int tty_timeout(int fd, int timeout)
 {
 #if defined(_WIN32) || defined(ANDROID)
@@ -462,9 +468,19 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
                 IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
         }
 
+        if (*nbytes_read == 0 && ttyClrTrailingLF && *buffer == 0x0A)
+        {
+            if (tty_debug)
+                IDLog("%s: Cleared LF char left in buf\n", __FUNCTION__);
+
+            memcpy(buffer, buffer+1,bytesRead);
+            --bytesRead;
+        }
+
         *nbytes_read += bytesRead;
         numBytesToRead -= bytesRead;
     }
+
 
     if (ttyGeminiUdpFormat)
     {
@@ -546,10 +562,16 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
             if (tty_debug)
                 IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
-            (*nbytes_read)++;
+            if (!(ttyClrTrailingLF && *read_char == 0X0A && *nbytes_read == 0))
+                (*nbytes_read)++;
+            else {
+                if (tty_debug)
+                    IDLog("%s: Cleared LF char left in buf\n", __FUNCTION__);
+            }
 
-            if (*read_char == stop_char)
+            if (*read_char == stop_char) {
                 return TTY_OK;
+            }
         }
     }
 

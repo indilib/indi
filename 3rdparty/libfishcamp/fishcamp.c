@@ -102,6 +102,9 @@ int				gCameraImageFilter[kNumCamsSupported];	// type of image filter for post p
 
 UInt16			gBlackPedestal[kNumCamsSupported];
 
+//Location for Drivers
+char driverSupportPath[MAXRBUF];
+
 // send data via the designated camera's bulk out endpoint
 // valid camNum is 1 -> fcUsb_GetNumCameras()
 //
@@ -453,8 +456,10 @@ void AnchorWrite(struct libusb_device_handle *dev_handle, UInt16 anchorAddress, 
 
 FILE *openFile(UInt16 vendor, UInt16 product)
 {
-    char name[]="/lib/firmware/gdr_usb.hex";
-    char name2[]="/lib/firmware/pro_usb.hex";
+    char name[MAXRBUF];
+    char name2[MAXRBUF];
+    snprintf(name, MAXRBUF, "%s/gdr_usb.hex", driverSupportPath);
+    snprintf(name2, MAXRBUF, "%s/pro_usb.hex", driverSupportPath);
 	char path[256];
 	FILE *hexFile;
  	char buffer[200];
@@ -661,8 +666,8 @@ int GetLatestSrecFileRevNumber(void)
 	while (!done)
 		{
 		// generate the next file name to look for
-        sprintf(fileName, "/lib/firmware/Guider_mono_rev%02d_intel.srec", returnNumber);
-
+		char fileName[MAXRBUF];
+    	snprintf(fileName, MAXRBUF, "%s/Guider_mono_rev%02d_intel.srec", driverSupportPath, returnNumber);
 		sprintf(buffer, "  Looking for file - \"%s\"\n", fileName);
 		Starfish_Log( buffer );
 
@@ -693,7 +698,8 @@ int GetLatestSrecFileRevNumber(void)
 		}
 	else
 		{
-        sprintf(fileName, "/lib/firmware/Guider_mono_rev%02d_intel.srec", returnNumber);
+		char fileName[MAXRBUF];
+    	snprintf(fileName, MAXRBUF, "%s/Guider_mono_rev%02d_intel.srec", driverSupportPath, returnNumber);
 		sprintf(buffer, "  Most recent SREC file is - \"%s\"\n", fileName);
 		Starfish_Log( buffer );
 		}
@@ -709,9 +715,12 @@ int GetLatestSrecFileRevNumber(void)
 //
 FILE *openSrecFile(UInt16 vendor, UInt16 rawProduct)
 {
-    char name[]="/lib/firmware/Guider_mono_rev16_intel.srec";
-    char name1[]="/lib/firmware/ibis_rev1_intel.srec";			// ibis 1300
-    char name2[]="/lib/firmware/StarfishPRO4M_rev1_intel.srec";	// StarfishPRO4M
+	char name[MAXRBUF];
+	char name1[MAXRBUF];
+	char name2[MAXRBUF];
+    snprintf(name, MAXRBUF, "%s/Guider_mono_rev16_intel.srec", driverSupportPath);
+	snprintf(name1, MAXRBUF, "%s/ibis_rev1_intel.srec", driverSupportPath); // ibis 1300
+	snprintf(name2, MAXRBUF, "%s/StarfishPRO4M_rev1_intel.srec", driverSupportPath); // StarfishPRO4M
  	char buffer[200];
 	int	 fileRevNumber;
  	char fileName[200];
@@ -746,7 +755,8 @@ FILE *openSrecFile(UInt16 vendor, UInt16 rawProduct)
 
 			if (fileRevNumber != -1)
 				{
-                sprintf(fileName, "/lib/firmware/Guider_mono_rev%02d_intel.srec", fileRevNumber);
+				char fileName[MAXRBUF];
+    			snprintf(fileName, MAXRBUF, "%s/Guider_mono_rev16d_intel.srec", driverSupportPath);
 
 				sprintf(buffer, "File to open is \"%s\"\n", fileName);
 				Starfish_Log( buffer );
@@ -1955,6 +1965,17 @@ void fcUsb_init(void)
 	int			i;
 	size_t		size;
     UInt16		rows, cols;
+    
+    //On OS X, Prefer embedded App location if it exists
+	#ifdef __APPLE__
+		if (getenv("INDIPREFIX") != NULL)
+			snprintf(driverSupportPath, MAXRBUF, "%s/Contents/Resources", getenv("INDIPREFIX"));
+		else
+			strncpy(driverSupportPath, "/usr/local/lib/indi", MAXRBUF);
+		strncat(driverSupportPath, "/DriverSupport/fishcamp", MAXRBUF);
+	#else
+		snprintf(driverSupportPath, MAXRBUF, "/lib/firmware");
+	#endif
 
 
 	gDoLogging = true;	// default to do logging

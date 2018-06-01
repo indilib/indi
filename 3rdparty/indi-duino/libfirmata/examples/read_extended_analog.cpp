@@ -31,7 +31,7 @@ int main(int argc, char **argv)
     {
         sf->OnIdle();
         sleep(2);
-        printf("ANALOG A0 (pin 14) is:%lu\n", sf->pin_info[14].value);
+        printf("ANALOG A0 (pin 14) is:%llu\n", static_cast<unsigned long long> (sf->pin_info[14].value));
     }
 
     delete sf;

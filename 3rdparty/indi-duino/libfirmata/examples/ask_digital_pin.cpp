@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     {
         sf->askPinState(12);
         sleep(2);
-        printf("Digital pin 12 is:%lu\n", sf->pin_info[12].value);
+        printf("Digital pin 12 is:%llu\n", static_cast<unsigned long long> (sf->pin_info[12].value));
     }
 
     delete sf;

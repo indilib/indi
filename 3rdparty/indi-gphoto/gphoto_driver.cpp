@@ -39,6 +39,67 @@
 static GPPortInfoList *portinfolist   = nullptr;
 static CameraAbilitiesList *abilities = nullptr;
 
+static const char *fallbackShutterSpeeds[] =
+{
+    "1/8000",
+    "1/6400",
+    "1/5000",
+    "1/4000",
+    "1/3200",
+    "1/2500",
+    "1/2000",
+    "1/1600",
+    "1/1250",
+    "1/1000",
+    "1/800",
+    "1/640",
+    "1/500",
+    "1/400",
+    "1/320",
+    "1/250",
+    "1/200",
+    "1/160",
+    "1/125",
+    "1/100",
+    "1/80",
+    "1/60",
+    "1/50",
+    "1/40",
+    "1/30",
+    "1/25",
+    "1/20",
+    "1/15",
+    "1/13",
+    "1/10",
+    "1/8",
+    "1/6",
+    "1/5",
+    "1/4",
+    "1/3",
+    "0.4",
+    "0.5",
+    "0.6",
+    "0.8",
+    "1",
+    "1.3",
+    "1.6",
+    "2",
+    "2.5",
+    "3.2",
+    "4",
+    "5",
+    "6",
+    "8",
+    "10",
+    "13",
+    "15",
+    "20",
+    "25",
+    "30",
+    "BULB"
+};
+
+
 struct _gphoto_widget_list
 {
     struct _gphoto_widget_list *next;
@@ -367,7 +428,7 @@ static void widget_free(gphoto_widget *widget)
     free(widget);
 }
 
-static double *parse_shutterspeed(gphoto_driver *gphoto, char **choices, int count)
+static double *parse_shutterspeed(gphoto_driver *gphoto, gphoto_widget *widget)
 {
     double *exposure, val;
     int i, num, denom;
@@ -375,37 +436,39 @@ static double *parse_shutterspeed(gphoto_driver *gphoto, char **choices, int cou
     double min_exposure         = 1e6;
     gphoto->bulb_exposure_index = -1;
 
-    if (count <= 0)
+    if (widget->choice_cnt <= 0)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d)",
-                     count);
-        return nullptr;
+        DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d). Using fallback speeds...",
+                     widget->choice_cnt);
+
+        widget->choices = const_cast<char **>(fallbackShutterSpeeds);
+        widget->choice_cnt = 56;
     }
 
-    if (count > 4)
+    if (widget->choice_cnt > 4)
     {
-        gphoto->exposure_presets       = choices;
-        gphoto->exposure_presets_count = count;
+        gphoto->exposure_presets       = widget->choices;
+        gphoto->exposure_presets_count = widget->choice_cnt;
     }
 
-    exposure = (double *)calloc(sizeof(double), count);
+    exposure = (double *)calloc(sizeof(double), widget->choice_cnt);
 
-    for (i = 0; i < count; i++)
+    for (i = 0; i < widget->choice_cnt; i++)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, choices[i]);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, widget->choices[i]);
 
-        if ((strncasecmp(choices[i], "bulb", 4) == 0) || (strcmp(choices[i], "65535/65535") == 0))
+        if ((strncasecmp(widget->choices[i], "bulb", 4) == 0) || (strcmp(widget->choices[i], "65535/65535") == 0))
         {
             exposure[i] = -1;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= BULB", i);
             gphoto->bulb_exposure_index = i;
         }
-        else if (sscanf(choices[i], "%d/%d", &num, &denom) == 2)
+        else if (sscanf(widget->choices[i], "%d/%d", &num, &denom) == 2)
         {
             exposure[i] = 1.0 * num / (double)denom;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
         }
-        else if ((val = strtod(choices[i], nullptr)))
+        else if ((val = strtod(widget->choices[i], nullptr)))
         {
             exposure[i] = val;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
@@ -730,6 +793,13 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
                 }
                 TIFFClose(tiff);
             }
+            if (fd >= 0)
+            {
+                // The gphoto documentation says I don't need to do this,
+                // but reading the source of gp_file_get_data_and_size says otherwise. :(
+                free((void *)imgData);
+                imgData = nullptr;
+            }
         }
     }
     // For some reason Canon 20D fails when deleting here
@@ -975,8 +1045,13 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     // NOT using bulb mode so let's find an exposure time that would closely match the requested exposure time
     int idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec);
 
-    gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
+    if (idx >= 0)
+    {
+        gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
+    }
+    else
+        DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Could not find optimal exposure value from camera.");
 
     // Lock the mirror if required.
     if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock * 1000))
@@ -1388,13 +1463,15 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
         (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed")) ||
         (gphoto->exposure_widget = find_widget(gphoto, "eos-shutterspeed")))
     {
-        gphoto->exposure =
-            parse_shutterspeed(gphoto, gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
+        gphoto->exposure = parse_shutterspeed(gphoto, gphoto->exposure_widget);
     }
     else if ((gphoto->exposure_widget = find_widget(gphoto, "capturetarget")))
     {
-        const char *choices[2] = { "1/1", "bulb" };
-        gphoto->exposure       = parse_shutterspeed(gphoto, (char **)choices, 2);
+        gphoto_widget tempWidget;
+        const char *choices[2] = { "1/1", "bulb" };        
+        tempWidget.choice_cnt = 2;
+        tempWidget.choices = const_cast<char **>(choices);
+        gphoto->exposure       = parse_shutterspeed(gphoto, &tempWidget);
     }
     else
     {

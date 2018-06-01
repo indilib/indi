@@ -162,6 +162,7 @@ EQMod::EQMod()
     gotoparams.completed = true;
     last_motion_ns       = -1;
     last_motion_ew       = -1;
+    pulseInProgress      = 0;
 
     DBG_SCOPE_STATUS = INDI::Logger::getInstance().addDebugLevel("Scope Status", "SCOPE");
     DBG_COMM         = INDI::Logger::getInstance().addDebugLevel("Serial Port", "COMM");
@@ -356,6 +357,7 @@ void EQMod::ISGetProperties(const char *dev)
         defineNumber(&GuideWENP);
         defineNumber(SlewSpeedsNP);
         defineNumber(GuideRateNP);
+        defineNumber(PulseLimitsNP);
         defineText(MountInformationTP);
         defineNumber(SteppersNP);
         defineNumber(CurrentSteppersNP);
@@ -425,6 +427,10 @@ bool EQMod::loadProperties()
 
     GuideRateNP = getNumber("GUIDE_RATE");
     GuideRateN  = GuideRateNP->np;
+
+    PulseLimitsNP  = getNumber("PULSE_LIMITS");
+    MinPulseN      = IUFindNumber(PulseLimitsNP, "MIN_PULSE");
+    MinPulseTimerN = IUFindNumber(PulseLimitsNP, "MIN_PULSE_TIMER");
 
     MountInformationTP = getText("MOUNTINFORMATION");
     SteppersNP         = getNumber("STEPPERS");
@@ -496,6 +502,7 @@ bool EQMod::updateProperties()
         defineNumber(&GuideWENP);
         defineNumber(SlewSpeedsNP);
         defineNumber(GuideRateNP);
+        defineNumber(PulseLimitsNP);
         defineText(MountInformationTP);
         defineNumber(SteppersNP);
         defineNumber(CurrentSteppersNP);
@@ -630,6 +637,7 @@ bool EQMod::updateProperties()
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
         deleteProperty(GuideRateNP->name);
+        deleteProperty(PulseLimitsNP->name);
         deleteProperty(MountInformationTP->name);
         deleteProperty(SteppersNP->name);
         deleteProperty(CurrentSteppersNP->name);
@@ -753,7 +761,16 @@ void EQMod::TimerHit()
     {
         bool rc;
 
-        rc = ReadScopeStatus();
+        // Skip reading scope status if we are in a middle of a pulse
+        // to avoid delaying it
+        if (pulseInProgress != 0)
+        {
+            rc = true;
+        }
+        else
+        {
+            rc = ReadScopeStatus();
+        }
         //IDLog("TrackState after read is %d\n",TrackState);
         if (rc == false)
         {
@@ -974,7 +991,6 @@ bool EQMod::ReadScopeStatus()
                     if ((RememberTrackState == SCOPE_TRACKING) || ((sw != nullptr) && (sw->s == ISS_ON)))
                     {
                         char *name;
-                        TrackState = SCOPE_TRACKING;
 
                         if (RememberTrackState == SCOPE_TRACKING)
                         {
@@ -1000,6 +1016,9 @@ bool EQMod::ReadScopeStatus()
 #endif
                         }
 
+                        TrackState = SCOPE_TRACKING;
+                        RememberTrackState = TrackState;
+
 #if 0
                         TrackModeSP->s = IPS_BUSY;
                         IDSetSwitch(TrackModeSP, nullptr);
@@ -1009,6 +1028,7 @@ bool EQMod::ReadScopeStatus()
                     else
                     {
                         TrackState = SCOPE_IDLE;
+                        RememberTrackState = TrackState;
                         LOG_INFO("Telescope slew is complete. Stopping...");
                     }
                     gotoparams.completed = true;
@@ -1085,6 +1105,7 @@ bool EQMod::ReadScopeStatus()
             case AUTO_HOME_CONFIRM:
                 AutohomeState = AUTO_HOME_IDLE;
                 TrackState    = SCOPE_IDLE;
+                RememberTrackState = TrackState;
                 LOG_INFO("Invalid status while Autohoming. Aborting");
                 break;
             case AUTO_HOME_WAIT_PHASE1:
@@ -1367,6 +1388,7 @@ bool EQMod::ReadScopeStatus()
                     mount->SetRAAxisPosition(mount->GetRAEncoderHome());
                     mount->SetDEAxisPosition(mount->GetDEEncoderHome());
                     TrackState    = SCOPE_IDLE;
+                    RememberTrackState = TrackState;
                     AutohomeState = AUTO_HOME_IDLE;
                     AutoHomeSP->s = IPS_IDLE;
                     IUResetSwitch(AutoHomeSP);
@@ -2154,27 +2176,70 @@ bool EQMod::Sync(double ra, double dec)
 
 IPState EQMod::GuideNorth(uint32_t ms)
 {
+    if (ms < MinPulseN->value)
+    {
+        return IPS_IDLE;
+    }
+
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
-    LOGF_DEBUG("Timed guide North %d ms at rate %g", (int)(ms), rateshift);
+    LOGF_DEBUG("Timed guide North %d ms at rate %g", ms, rateshift);
     if (DEInverted)
         rateshift = -rateshift;
     try
     {
-        if (ms > 0.0)
+        if (mount->HasPPEC())
         {
-            if (mount->HasPPEC())
+            restartguideDEPPEC = false;
+            if (DEPPECSP->s == IPS_BUSY)
             {
-                restartguideDEPPEC = false;
-                if (DEPPECSP->s == IPS_BUSY)
+                restartguideDEPPEC = true;
+                LOG_INFO("Turning DEC PPEC off while guiding.");
+                mount->TurnDEPPEC(false);
+            }
+        }
+        if (ms >= MinPulseTimerN->value)
+        {
+            pulseInProgress |= 1;
+            GuideTimerNS = IEAddTimer(ms, (IE_TCF *)timedguideNSCallback, this);
+            mount->StartDETracking(GetDETrackRate() + rateshift);
+        }
+        else
+        {
+            struct timespec starttime, endtime;
+            clock_gettime(CLOCK_MONOTONIC, &starttime);
+            mount->StartDETracking(GetDETrackRate() + rateshift);
+            clock_gettime(CLOCK_MONOTONIC, &endtime);
+            double elapsed =
+                (endtime.tv_sec - starttime.tv_sec) * 1000.0 + ((endtime.tv_nsec - starttime.tv_nsec) / 1000000.0);
+            if (elapsed < ms)
+            {
+                uint32_t left = ms - elapsed;
+                usleep(left * 1000);
+            }
+            try
+            {
+                if (mount->HasPPEC())
                 {
-                    restartguideDEPPEC = true;
-                    LOG_INFO("Turning DEC PPEC off while guiding.");
-                    mount->TurnDEPPEC(false);
+                    if (restartguideDEPPEC)
+                    {
+                        restartguideDEPPEC = false;
+                        DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_SESSION, "Turning DEC PPEC on after guiding.");
+                        mount->TurnDEPPEC(true);
+                    }
+                }
+                mount->StartDETracking(GetDETrackRate());
+            }
+            catch (EQModError e)
+            {
+                if (!(e.DefaultHandleException(this)))
+                {
+                    DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_WARNING,
+                                "Timed guide North/South Error: can not restart tracking");
                 }
             }
-            mount->StartDETracking(GetDETrackRate() + rateshift);
-            GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
+            GuideComplete(AXIS_DE);
+            DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_DEBUG, "End Timed guide North/South");
         }
     }
     catch (EQModError e)
@@ -2188,6 +2253,11 @@ IPState EQMod::GuideNorth(uint32_t ms)
 
 IPState EQMod::GuideSouth(uint32_t ms)
 {
+    if (ms < MinPulseN->value)
+    {
+        return IPS_IDLE;
+    }
+
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
     LOGF_DEBUG("Timed guide South %d ms at rate %g", (int)(ms), rateshift);
@@ -2195,20 +2265,58 @@ IPState EQMod::GuideSouth(uint32_t ms)
         rateshift = -rateshift;
     try
     {
-        if (ms > 0.0)
+        if (mount->HasPPEC())
         {
-            if (mount->HasPPEC())
+            restartguideDEPPEC = false;
+            if (DEPPECSP->s == IPS_BUSY)
             {
-                restartguideDEPPEC = false;
-                if (DEPPECSP->s == IPS_BUSY)
+                restartguideDEPPEC = true;
+                LOG_INFO("Turning DEC PPEC off while guiding.");
+                mount->TurnDEPPEC(false);
+            }
+        }
+        if (ms >= MinPulseTimerN->value)
+        {
+            pulseInProgress |= 1;
+            GuideTimerNS = IEAddTimer(ms, (IE_TCF *)timedguideNSCallback, this);
+            mount->StartDETracking(GetDETrackRate() - rateshift);
+        }
+        else
+        {
+            struct timespec starttime, endtime;
+            clock_gettime(CLOCK_MONOTONIC, &starttime);
+            mount->StartDETracking(GetDETrackRate() - rateshift);
+            clock_gettime(CLOCK_MONOTONIC, &endtime);
+            double elapsed =
+                (endtime.tv_sec - starttime.tv_sec) * 1000.0 + ((endtime.tv_nsec - starttime.tv_nsec) / 1000000.0);
+            if (elapsed < ms)
+            {
+                uint32_t left = ms - elapsed;
+                usleep(left * 1000);
+            }
+            try
+            {
+                if (mount->HasPPEC())
                 {
-                    restartguideDEPPEC = true;
-                    LOG_INFO("Turning DEC PPEC off while guiding.");
-                    mount->TurnDEPPEC(false);
+                    if (restartguideDEPPEC)
+                    {
+                        restartguideDEPPEC = false;
+                        DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_SESSION, "Turning DEC PPEC on after guiding.");
+                        mount->TurnDEPPEC(true);
+                    }
+                }
+                mount->StartDETracking(GetDETrackRate());
+            }
+            catch (EQModError e)
+            {
+                if (!(e.DefaultHandleException(this)))
+                {
+                    DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_WARNING,
+                                "Timed guide North/South Error: can not restart tracking");
                 }
             }
-            mount->StartDETracking(GetDETrackRate() - rateshift);
-            GuideTimerNS = IEAddTimer((int)(ms), (IE_TCF *)timedguideNSCallback, this);
+            GuideComplete(AXIS_DE);
+            DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_DEBUG, "End Timed guide North/South");
         }
     }
     catch (EQModError e)
@@ -2221,27 +2329,70 @@ IPState EQMod::GuideSouth(uint32_t ms)
 
 IPState EQMod::GuideEast(uint32_t ms)
 {
+    if (ms < MinPulseN->value)
+    {
+        return IPS_IDLE;
+    }
+
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
-    LOGF_DEBUG("Timed guide East %d ms at rate %g", (int)(ms), rateshift);
+    LOGF_DEBUG("Timed guide East %d ms at rate %g", ms, rateshift);
     if (RAInverted)
         rateshift = -rateshift;
     try
     {
-        if (ms > 0.0)
+        if (mount->HasPPEC())
         {
-            if (mount->HasPPEC())
+            restartguideRAPPEC = false;
+            if (RAPPECSP->s == IPS_BUSY)
             {
-                restartguideRAPPEC = false;
-                if (RAPPECSP->s == IPS_BUSY)
+                restartguideRAPPEC = true;
+                LOG_INFO("Turning RA PPEC off while guiding.");
+                mount->TurnRAPPEC(false);
+            }
+        }
+        if (ms >= MinPulseTimerN->value)
+        {
+            pulseInProgress |= 2;
+            GuideTimerWE = IEAddTimer(ms, (IE_TCF *)timedguideWECallback, this);
+            mount->StartRATracking(GetRATrackRate() - rateshift);
+        }
+        else
+        {
+            struct timespec starttime, endtime;
+            clock_gettime(CLOCK_MONOTONIC, &starttime);
+            mount->StartRATracking(GetRATrackRate() - rateshift);
+            clock_gettime(CLOCK_MONOTONIC, &endtime);
+            double elapsed =
+                (endtime.tv_sec - starttime.tv_sec) * 1000.0 + ((endtime.tv_nsec - starttime.tv_nsec) / 1000000.0);
+            if (elapsed < ms)
+            {
+                uint32_t left = ms - elapsed;
+                usleep(left * 1000);
+            }
+            try
+            {
+                if (mount->HasPPEC())
                 {
-                    restartguideRAPPEC = true;
-                    LOG_INFO("Turning RA PPEC off while guiding.");
-                    mount->TurnRAPPEC(false);
+                    if (restartguideRAPPEC)
+                    {
+                        restartguideRAPPEC = false;
+                        DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_SESSION, "Turning RA PPEC on after guiding.");
+                        mount->TurnRAPPEC(true);
+                    }
+                }
+                mount->StartRATracking(GetRATrackRate());
+            }
+            catch (EQModError e)
+            {
+                if (!(e.DefaultHandleException(this)))
+                {
+                    DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_WARNING,
+                                "Timed guide West/East Error: can not restart tracking");
                 }
             }
-            mount->StartRATracking(GetRATrackRate() - rateshift);
-            GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
+            GuideComplete(AXIS_RA);
+            DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_DEBUG, "End Timed guide West/East");
         }
     }
     catch (EQModError e)
@@ -2255,27 +2406,70 @@ IPState EQMod::GuideEast(uint32_t ms)
 
 IPState EQMod::GuideWest(uint32_t ms)
 {
+    if (ms < MinPulseN->value)
+    {
+        return IPS_IDLE;
+    }
+
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
-    LOGF_DEBUG("Timed guide West %d ms at rate %g", (int)(ms), rateshift);
+    LOGF_DEBUG("Timed guide West %d ms at rate %g", ms, rateshift);
     if (RAInverted)
         rateshift = -rateshift;
     try
     {
-        if (ms > 0.0)
+        if (mount->HasPPEC())
         {
-            if (mount->HasPPEC())
+            restartguideRAPPEC = false;
+            if (RAPPECSP->s == IPS_BUSY)
             {
-                restartguideRAPPEC = false;
-                if (RAPPECSP->s == IPS_BUSY)
+                restartguideRAPPEC = true;
+                LOG_INFO("Turning RA PPEC off while guiding.");
+                mount->TurnRAPPEC(false);
+            }
+        }
+        if (ms >= MinPulseTimerN->value)
+        {
+            pulseInProgress |= 2;
+            GuideTimerWE = IEAddTimer(ms, (IE_TCF *)timedguideWECallback, this);
+            mount->StartRATracking(GetRATrackRate() + rateshift);
+        }
+        else
+        {
+            struct timespec starttime, endtime;
+            clock_gettime(CLOCK_MONOTONIC, &starttime);
+            mount->StartRATracking(GetRATrackRate() + rateshift);
+            clock_gettime(CLOCK_MONOTONIC, &endtime);
+            double elapsed =
+                (endtime.tv_sec - starttime.tv_sec) * 1000.0 + ((endtime.tv_nsec - starttime.tv_nsec) / 1000000.0);
+            if (elapsed < ms)
+            {
+                uint32_t left = ms - elapsed;
+                usleep(left * 1000);
+            }
+            try
+            {
+                if (mount->HasPPEC())
                 {
-                    restartguideRAPPEC = true;
-                    LOG_INFO("Turning RA PPEC off while guiding.");
-                    mount->TurnRAPPEC(false);
+                    if (restartguideRAPPEC)
+                    {
+                        restartguideRAPPEC = false;
+                        DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_SESSION, "Turning RA PPEC on after guiding.");
+                        mount->TurnRAPPEC(true);
+                    }
+                }
+                mount->StartRATracking(GetRATrackRate());
+            }
+            catch (EQModError e)
+            {
+                if (!(e.DefaultHandleException(this)))
+                {
+                    DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_WARNING,
+                                "Timed guide West/East Error: can not restart tracking");
                 }
             }
-            mount->StartRATracking(GetRATrackRate() + rateshift);
-            GuideTimerWE = IEAddTimer((int)(ms), (IE_TCF *)timedguideWECallback, this);
+            GuideComplete(AXIS_RA);
+            DEBUGDEVICE(getDeviceName(), INDI::Logger::DBG_DEBUG, "End Timed guide West/East");
         }
     }
     catch (EQModError e)
@@ -2350,6 +2544,16 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
             LOGF_INFO("Setting Custom Tracking Rates - RA=%1.1f arcsec/s DE=%1.1f arcsec/s",
                    IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value,
                    IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value);
+            return true;
+        }
+
+        if (strcmp(name, PulseLimitsNP->name) == 0)
+        {
+            IUUpdateNumber(PulseLimitsNP, values, names, n);
+            PulseLimitsNP->s = IPS_OK;
+            IDSetNumber(PulseLimitsNP, nullptr);
+            LOGF_INFO("Setting pulse limits: minimum pulse %3.0f ms, minimum timer pulse %4.0f ms", MinPulseN->value,
+                      MinPulseTimerN->value);
             return true;
         }
 
@@ -2686,6 +2890,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                         IDSetSwitch(AutoHomeSP, nullptr);
                         AutohomeState = AUTO_HOME_IDLE;
                         TrackState    = SCOPE_IDLE;
+                        RememberTrackState = TrackState;
                         return (e.DefaultHandleException(this));
                     }
                 }
@@ -3027,6 +3232,8 @@ bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
             else
                 TrackState = SCOPE_IDLE;
 
+            RememberTrackState = TrackState;
+
             break;
         }
     }
@@ -3072,6 +3279,9 @@ bool EQMod::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
             }
             else
                 TrackState = SCOPE_IDLE;
+
+            RememberTrackState = TrackState;
+
             break;
         }
     }
@@ -3121,6 +3331,7 @@ bool EQMod::Abort()
     IUResetSwitch(AutoHomeSP);
     IDSetSwitch(AutoHomeSP, nullptr);
     TrackState = SCOPE_IDLE;
+    RememberTrackState = TrackState;
     if (gotoparams.completed == false)
         gotoparams.completed = true;
 
@@ -3130,6 +3341,8 @@ bool EQMod::Abort()
 void EQMod::timedguideNSCallback(void *userpointer)
 {
     EQMod *p = ((EQMod *)userpointer);
+    p->pulseInProgress &= ~1;
+
     try
     {
         if (p->mount->HasPPEC())
@@ -3159,6 +3372,8 @@ void EQMod::timedguideNSCallback(void *userpointer)
 void EQMod::timedguideWECallback(void *userpointer)
 {
     EQMod *p = ((EQMod *)userpointer);
+    p->pulseInProgress &= ~2;
+
     try
     {
         if (p->mount->HasPPEC())
@@ -3430,6 +3645,8 @@ bool EQMod::saveConfigItems(FILE *fp)
         IUSaveConfigSwitch(fp, UseBacklashSP);
     if (GuideRateNP)
         IUSaveConfigNumber(fp, GuideRateNP);
+    if (PulseLimitsNP)
+        IUSaveConfigNumber(fp, PulseLimitsNP);
     if (SlewSpeedsNP)
         IUSaveConfigNumber(fp, SlewSpeedsNP);
 
@@ -3483,6 +3700,7 @@ bool EQMod::SetTrackEnabled(bool enabled)
         {
             LOGF_INFO("Start Tracking (%s).", IUFindOnSwitch(&TrackModeSP)->label);
             TrackState     = SCOPE_TRACKING;
+            RememberTrackState = TrackState;
             mount->StartRATracking(GetRATrackRate());
             mount->StartDETracking(GetDETrackRate());
         }
@@ -3490,6 +3708,7 @@ bool EQMod::SetTrackEnabled(bool enabled)
         {
             LOGF_WARN("Stopping Tracking (%s).", IUFindOnSwitch(&TrackModeSP)->label);
             TrackState     = SCOPE_IDLE;
+            RememberTrackState = TrackState;
             mount->StopRA();
             mount->StopDE();
         }
