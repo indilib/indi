@@ -25,6 +25,7 @@
 #include "simulator/simulator.h"
 #ifdef WITH_SCOPE_LIMITS
 #include "scope-limits/scope-limits.h"
+#include "scope-limits/meridian-limits.h"
 #endif
 
 #include <inditelescope.h>
@@ -232,6 +233,10 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
     virtual bool Abort();
 
+#ifdef WITH_SCOPE_LIMITS
+    bool IsCurrentPosInLimit();
+#endif
+
     virtual IPState GuideNorth(uint32_t ms);
     virtual IPState GuideSouth(uint32_t ms);
     virtual IPState GuideEast(uint32_t ms);
@@ -266,6 +271,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
 #ifdef WITH_SCOPE_LIMITS
     HorizonLimits *horizon;
+    MeridianLimits *meridian;
 #endif
     // AutoHoming for EQ8
     static const TelescopeStatus SCOPE_AUTOHOMING = static_cast<TelescopeStatus>(SCOPE_PARKED + 1);

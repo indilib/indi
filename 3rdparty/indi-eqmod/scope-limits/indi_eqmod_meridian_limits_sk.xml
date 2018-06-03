@@ -1,0 +1,53 @@
+<INDIDriver>
+<defTextVector device="EQMod Mount" name="MERIDIAN_LIMITS_DATA_FILE" label="Meridian File" group="Meridian" state="Idle" perm="rw">
+<defText name="MERIDIAN_LIMITS_FILENAME" label="Name">~/.indi/MeridianData.txt</defText> 
+</defTextVector>
+<defBLOBVector device="EQMod Mount" name="MERIDIAN_LIMITS_DATA_FITS" label="Display" group="Meridian" state="Idle" perm="ro">
+<defBLOB name="MERIDIAN_STEPS" label="Meridian"/>
+</defBLOBVector>
+
+<defNumberVector device="EQMod Mount" name="MERIDIAN_LIMITS_STEP" label="Meridian Limit" group="Meridian" state="Idle" perm="rw">
+<defNumber name="MERIDIAN_LIMITS_ENCODER_PIERSIDE_EAST" label="RA Encoder Pier Side East" format="%.0f" min="0.0" max="11136000.0" step="1.0">
+0.0
+</defNumber>
+<defNumber name="MERIDIAN_LIMITS_ENCODER_PIERSIDE_WEST" label="RA Encoder Pier Side West" format="%.0f" min="0.0" max="11136000.0" step="1.0">
+0.0
+</defNumber>
+</defNumberVector>
+
+<defSwitchVector device="EQMod Mount" name="MERIDIAN_LIMITS_SET_CURRENT" label="Set Current RA" group="Meridian" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="MERIDIAN_LIMITS_SET_CURRENT_EAST" label="Pier Side East">
+Off
+</defSwitch>
+<defSwitch name="MERIDIAN_LIMITS_SET_CURRENT_WEST" label="Pier Side West">
+Off
+</defSwitch>
+</defSwitchVector>
+
+<defSwitchVector device="EQMod Mount" name="MERIDIAN_LIMITS_FILE_OPERATION" label="Operation" group="Meridian" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="MERIDIAN_LIMITS_WRITE_FILE" label="Write File">
+Off
+</defSwitch>
+<defSwitch name="MERIDIAN_LIMITS_LOAD_FILE" label="Load File">
+Off
+</defSwitch>
+</defSwitchVector>
+
+<defSwitchVector device="EQMod Mount" name="MERIDIAN_LIMITS_ON_LIMIT" label="On Limit" group="Meridian" state="Idle" perm="rw" rule="AnyOfMany">
+<defSwitch name="MERIDIAN_LIMITS_ON_LIMIT_TRACK" label="Abort Tracking">
+On
+</defSwitch>
+<defSwitch name="MERIDIAN_LIMITS_ON_LIMIT_SLEW" label="Abort Slewing">
+On
+</defSwitch>
+</defSwitchVector>
+
+<defSwitchVector device="EQMod Mount" name="MERIDIAN_LIMITS_LIMIT_GOTO" label="Limit Goto" group="Meridian" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="MERIDIAN_LIMITS_LIMIT_GOTO_DISABLE" label="Disable">
+Off
+</defSwitch>
+<defSwitch name="MERIDIAN_LIMITS_LIMIT_GOTO_ENABLE" label="Enable">
+On
+</defSwitch>
+</defSwitchVector>
+</INDIDriver>

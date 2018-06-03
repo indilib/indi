@@ -59,7 +59,8 @@ if(WITH_ALIGN_GEEHALEL)
 endif(WITH_ALIGN_GEEHALEL)
 if(WITH_SCOPE_LIMITS)
   set(eqmod_CXX_SRCS ${eqmod_CXX_SRCS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/scope-limits/scope-limits.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/scope-limits/scope-limits.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/scope-limits/meridian-limits.cpp)
 endif(WITH_SCOPE_LIMITS)
 
 IF (UNITY_BUILD)
@@ -89,4 +90,5 @@ if(WITH_ALIGN_GEEHALEL)
 endif(WITH_ALIGN_GEEHALEL)
 if(WITH_SCOPE_LIMITS)
   install( FILES  scope-limits/indi_eqmod_scope_limits_sk.xml DESTINATION ${INDI_DATA_DIR})
+  install( FILES  scope-limits/indi_eqmod_meridian_limits_sk.xml DESTINATION ${INDI_DATA_DIR})
 endif(WITH_SCOPE_LIMITS)

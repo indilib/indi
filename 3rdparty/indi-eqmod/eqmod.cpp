@@ -186,6 +186,7 @@ EQMod::EQMod()
 
 #ifdef WITH_SCOPE_LIMITS
     horizon = new HorizonLimits(this);
+    meridian = new MeridianLimits(this, mount);
 #endif
 
     /* initialize time */
@@ -415,6 +416,11 @@ void EQMod::ISGetProperties(const char *dev)
         {
             horizon->ISGetProperties();
         }
+
+        if (meridian)
+        {
+            meridian->ISGetProperties();
+        }
 #endif
 
         simulator->updateProperties(isSimulation());
@@ -483,6 +489,12 @@ bool EQMod::loadProperties()
     if (horizon)
     {
         if (!horizon->initProperties())
+            return false;
+    }
+
+    if (meridian)
+    {
+        if (!meridian->initProperties())
             return false;
     }
 #endif
@@ -696,6 +708,12 @@ bool EQMod::updateProperties()
     if (horizon)
     {
         if (!horizon->updateProperties())
+            return false;
+    }
+
+    if (meridian)
+    {
+        if (!meridian->updateProperties())
             return false;
     }
 #endif
@@ -1041,6 +1059,12 @@ bool EQMod::ReadScopeStatus()
         if (horizon)
         {
             if (horizon->checkLimits(horizvalues[0], horizvalues[1], TrackState, gotoInProgress()))
+                Abort();
+        }
+
+        if (meridian)
+        {
+            if (meridian->checkLimits(mount->GetRAEncoder(), TrackState))
                 Abort();
         }
 #endif
@@ -2628,6 +2652,13 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
         if (compose)
             return true;
     }
+
+    if (meridian)
+    {
+        compose = meridian->ISNewNumber(dev, name, values, names, n);
+        if (compose)
+            return true;
+    }
 #endif
 
 #ifdef WITH_ALIGN
@@ -3088,6 +3119,13 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
         if (compose)
             return true;
     }
+
+    if (meridian)
+    {
+        compose = meridian->ISNewSwitch(dev, name, states, names, n);
+        if (compose)
+            return true;
+    }
 #endif
 #ifdef WITH_ALIGN
     ProcessAlignmentSwitchProperties(this, name, states, names, n);
@@ -3120,6 +3158,13 @@ bool EQMod::ISNewText(const char *dev, const char *name, char *texts[], char *na
     if (horizon)
     {
         compose = horizon->ISNewText(dev, name, texts, names, n);
+        if (compose)
+            return true;
+    }
+
+    if (meridian)
+    {
+        compose = meridian->ISNewText(dev, name, texts, names, n);
         if (compose)
             return true;
     }
@@ -3196,6 +3241,46 @@ double EQMod::GetDESlew()
     return rate;
 }
 
+#ifdef WITH_SCOPE_LIMITS
+bool EQMod::IsCurrentPosInLimit()     //return true if in limits.
+{
+    if (meridian)
+    {
+        if (!(meridian->inLimits(mount->GetRAEncoder())))
+            return true;
+    }
+
+    double juliandate;
+    double lst;
+    struct ln_equ_posn steq;
+    struct ln_hrz_posn staz;
+    double current_az;
+    double current_alt;
+
+    juliandate = getJulianDate();
+    lst        = getLst(juliandate, getLongitude());
+
+    steq.ra  = (currentRA * 360.0) / 24.0;
+    steq.dec = currentDEC;
+
+    /* uses sidereal time, not local sidereal time */
+    /*ln_get_hrz_from_equ_sidereal_time(&lnradec, &lnobserver, lst, &lnaltaz);*/
+    ln_get_hrz_from_equ(&steq, &lnobserver, juliandate, &staz);
+
+    /* libnova measures azimuth from south towards west */
+    current_az  = range360(staz.az + 180);
+    current_alt = staz.alt;
+
+    if (horizon)
+    {
+        if (!(horizon->inLimits(current_az, current_alt)))
+            return true;
+    }
+
+    return false;
+}
+#endif
+
 bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
     const char *dirStr = (dir == DIRECTION_NORTH) ? "North" : "South";
@@ -3211,6 +3296,14 @@ bool EQMod::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
                 LOG_WARN("Can not slew while goto/park in progress, or scope parked.");
                 return false;
             }
+
+#ifdef WITH_SCOPE_LIMITS
+            if (IsCurrentPosInLimit())
+            {
+                LOG_WARN("Can not slew while scope is in limits.");
+                return false;
+            }
+#endif
 
             LOGF_INFO("Starting %s slew.", dirStr);
             if (DEInverted)
@@ -3259,6 +3352,14 @@ bool EQMod::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
                 LOG_WARN("Can not slew while goto/park in progress, or scope parked.");
                 return false;
             }
+
+#ifdef WITH_SCOPE_LIMITS
+            if (IsCurrentPosInLimit())
+            {
+                LOG_WARN("Can not slew while scope is in limits.");
+                return false;
+            }
+#endif
 
             LOGF_INFO("Starting %s slew.", dirStr);
             if (RAInverted)
