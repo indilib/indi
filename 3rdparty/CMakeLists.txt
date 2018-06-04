@@ -65,6 +65,7 @@ option(WITH_FLI "Install FLI Driver" On)
 option(WITH_SBIG "Install SBIG Driver" On)
 option(WITH_INOVAPLX "Install i.Nova PLx Driver" On)
 option(WITH_APOGEE "Install Apogee Driver" On)
+option(WITH_FFMV "Install Point Grey FireFly MV Driver" On)
 option(WITH_QHY "Install QHY Driver" On)
 option(WITH_GPHOTO "Install GPhoto Driver" On)
 option(WITH_QSI "Install QSI Driver" On)
@@ -194,6 +195,11 @@ add_subdirectory(libapogee)
 SET(LIBRARIES_FOUND FALSE)
 endif (APOGEE_FOUND)
 endif(WITH_APOGEE)
+
+## Point Grey FireFly MV
+if (WITH_FFMV)
+add_subdirectory(indi-ffmv)
+endif (WITH_FFMV)
 
 ## Moravian
 if (WITH_MI)
