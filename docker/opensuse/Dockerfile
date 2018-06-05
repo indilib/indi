@@ -5,7 +5,7 @@ RUN zypper refresh && zypper  --non-interactive update
 RUN zypper --non-interactive install lsb-release \
         cmake curl dcraw wget git openssh gcc gcc-c++ clang swig \
         libcurl-devel boost-devel libboost_regex1_66_0-devel cfitsio-devel \
-        libftdi1-devel libdc1394-devel libgphoto2-devel gsl-devel libjpeg-devel \
+        libftdi1-devel libdc1395-devel libgphoto2-devel gsl-devel libjpeg-devel \
         libnova-devel openal-soft-devel libraw-devel libusb-devel \
         fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
         python-devel vim rtl-sdr-devel vim
