@@ -29,7 +29,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define MOONLITE_TIMEOUT 10
+#define MOONLITE_TIMEOUT 3
 
 std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
@@ -190,19 +190,39 @@ bool MoonLite::Ack()
     short pos = -1;
 
     tcflush(PortFD, TCIOFLUSH);
-    sleep(5);
 
-    if ((rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) != TTY_OK)
+    //Try to request the position of the focuser
+    //Test for success on transmission and response
+    //If either one fails, try again, up to 3 times, waiting 1 sec each time
+    //If that fails, then return false.
+
+    int numChecks = 0;
+    bool success = false;
+    while(numChecks < 3 && !success)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updatePostion error: %s.", errstr);
-        return false;
+        numChecks++;
+        sleep(1); //wait 1 second between each test.
+
+        bool transmissionSuccess = (rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) == TTY_OK;
+        if(!transmissionSuccess)
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("Handshake Attempt %i, tty transmission error: %s.", numChecks, errstr);
+        }
+
+        bool responseSuccess = (rc = tty_read(PortFD, resp, 5, MOONLITE_TIMEOUT, &nbytes_read)) == TTY_OK;
+        if(!responseSuccess)
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("Handshake Attempt %i, updatePosition response error: %s.", numChecks, errstr);
+        }
+
+        success = transmissionSuccess && responseSuccess;
     }
 
-    if ((rc = tty_read(PortFD, resp, 5, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if(!success)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updatePostion error: %s.", errstr);
+        LOG_INFO("Handshake failed after 3 attempts");
         return false;
     }
 
