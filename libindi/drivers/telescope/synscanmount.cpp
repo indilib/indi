@@ -1170,39 +1170,6 @@ bool SynscanMount::Sync(double ra, double dec)
         tty_write(PortFD, str, 8, &bytesWritten);
         numread = tty_read(PortFD, str, 1, 2, &bytesRead);
     }
-    else
-    {
-        // Assemble the Reset Position command for Ra axis
-        int n1 = ra * 0x1000000 / 24;
-
-        str[0] = 'P';
-        str[1] = 4;
-        str[2] = 16;
-        str[3] = 4;
-        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(n1 / 65536);
-        n1 -= (n1 / 65536)*65536;
-        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(n1 / 256);
-        n1 -= (n1 / 256)*256;
-        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)n1;
-        str[7] = 0;
-        tty_write(PortFD, str, 8, &bytesWritten);
-        numread = tty_read(PortFD, str, 1, 3, &bytesRead);
-        // Assemble the Reset Position command for Dec axis
-        int n2 = dec * 0x1000000 / 360;
-
-        str[0] = 'P';
-        str[1] = 4;
-        str[2] = 17;
-        str[3] = 4;
-        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(n2 / 65536);
-        n2 -= (n2 / 65536)*65536;
-        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(n2 / 256);
-        n2 -= (n2 / 256)*256;
-        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)n2;
-        str[7] = 0;
-        tty_write(PortFD, str, 8, &bytesWritten);
-        numread = tty_read(PortFD, str, 1, 2, &bytesRead);
-    }
 
     // Pass the sync command to the handset
     int n1 = ra * 0x1000000 / 24;
