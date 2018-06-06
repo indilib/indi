@@ -210,7 +210,7 @@ bool ScopeDome::initProperties()
                        ISR_NOFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&FirmwareVersionsN[0], "MAIN", "Main part", "%2.2f", 0.0, 99.0, 1.0, 0.0);
-    IUFillNumber(&FirmwareVersionsN[1], "ROTARY", "Rotary part", "%2.2f", 0.0, 99.0, 1.0, 0.0);
+    IUFillNumber(&FirmwareVersionsN[1], "ROTARY", "Rotary part", "%2.1f", 0.0, 99.0, 1.0, 0.0);
     IUFillNumberVector(&FirmwareVersionsNP, FirmwareVersionsN, 2, getDeviceName(), "FIRMWARE_VERSION", "Firmware versions", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     SetParkDataType(PARK_AZ);
@@ -254,9 +254,8 @@ bool ScopeDome::SetupParms()
 
     uint16_t fwVersion = readU16(GetVersionFirmware);
     FirmwareVersionsN[0].value = fwVersion / 100.0;
-    fwVersion = 42;
-    fwVersion = readU16(GetVersionFirmwareRotary);
-    FirmwareVersionsN[1].value = fwVersion / 100.0;
+    uint8_t fwVersionRotary = readU8(GetVersionFirmwareRotary);
+    FirmwareVersionsN[1].value = (fwVersionRotary+9) / 10.0;
     FirmwareVersionsNP.s = IPS_OK;
     IDSetNumber(&FirmwareVersionsNP, nullptr);
     return true;
