@@ -133,7 +133,7 @@ bool compelt(PointSet::Distance d1, PointSet::Distance d2)
 PointSet::PointSet(INDI::Telescope *t)
 {
     telescope  = t;
-    lnalignpos = NULL;
+    lnalignpos = nullptr;
     PointSetInitialized = false;
 }
 
@@ -249,10 +249,10 @@ bool PointSet::isInitialized()
 
 void PointSet::Init()
 {
-    //  PointSetMap=NULL;
+    //  PointSetMap=nullptr;
     PointSetMap     = new std::map<HtmID, Point>();
     Triangulation   = new TriangulateCHull(PointSetMap);
-    PointSetXmlRoot = NULL;
+    PointSetXmlRoot = nullptr;
     PointSetInitialized=true;
 }
 
@@ -264,13 +264,13 @@ void PointSet::Reset()
         PointSetMap->clear();
         //delete(PointSetMap);
     }
-    //PointSetMap=NULL;
+    //PointSetMap=nullptr;
     if (PointSetXmlRoot)
         delXMLEle(PointSetXmlRoot);
-    PointSetXmlRoot = NULL;
+    PointSetXmlRoot = nullptr;
     if (lnalignpos)
         free(lnalignpos);
-    lnalignpos = NULL;
+    lnalignpos = nullptr;
     Triangulation->Reset();
 }
 
@@ -291,7 +291,7 @@ char *PointSet::LoadDataFile(const char *filename)
         wordfree(&wexp);
         return (char *)("Badly formed filename");
     }
-    //if (filename == NULL) return;
+    //if (filename == nullptr) return;
     if (!(fp = fopen(wexp.we_wordv[0], "r")))
     {
         wordfree(&wexp);
@@ -362,7 +362,7 @@ char *PointSet::LoadDataFile(const char *filename)
     IDLog("  Point htmID= %lld, htm name = %s,  telescope alt = %f az = %f\n",  (*it).first, (*it).second.htmname, 
 	  (*it).second.telescopeALT,  (*it).second.telescopeAZ);
   */
-    return NULL;
+    return nullptr;
 }
 
 char *PointSet::WriteDataFile(const char *filename)
@@ -382,7 +382,7 @@ char *PointSet::WriteDataFile(const char *filename)
             (fabs(lnalignpos->lat - IUFindNumber(telescope->getNumber("GEOGRAPHIC_COORD"), "LAT")->value)>1E-4))
             return (char *)("Can not mix alignment data from different sites (lng. and/or lat. differs)");
     }
-    //if (filename == NULL) return;
+    //if (filename == nullptr) return;
     if (!(fp = fopen(wexp.we_wordv[0], "w")))
     {
         wordfree(&wexp);
@@ -392,7 +392,7 @@ char *PointSet::WriteDataFile(const char *filename)
 
     prXMLEle(fp, root, 0);
     fclose(fp);
-    return NULL;
+    return nullptr;
 }
 
 XMLEle *PointSet::toXML()
@@ -405,21 +405,21 @@ XMLEle *PointSet::toXML()
     time_t tnow;
     struct tm tm_now;
 
-    root    = addXMLEle(NULL, "aligndata");
+    root    = addXMLEle(nullptr, "aligndata");
     sitexml = addXMLEle(root, "site");
     /* WARNING When an align data file has been loaded this should be taken from the file, not current session */
-    tnow = time(NULL);
+    tnow = time(nullptr);
     localtime_r(&tnow, &tm_now);
     strftime(sitename, sizeof(sitename), "%F@%T", &tm_now);
     addXMLAtt(sitexml, "name", sitename);
 
     snprintf(sitedata, sizeof(sitedata), "%g",
-             ((lnalignpos == NULL) ? IUFindNumber(telescope->getNumber("GEOGRAPHIC_COORD"), "LONG")->value :
+             ((lnalignpos == nullptr) ? IUFindNumber(telescope->getNumber("GEOGRAPHIC_COORD"), "LONG")->value :
                                      lnalignpos->lng));
     addXMLAtt(sitexml, "lon", sitedata);
 
     snprintf(sitedata, sizeof(sitedata), "%g",
-             ((lnalignpos == NULL) ? IUFindNumber(telescope->getNumber("GEOGRAPHIC_COORD"), "LAT")->value :
+             ((lnalignpos == nullptr) ? IUFindNumber(telescope->getNumber("GEOGRAPHIC_COORD"), "LAT")->value :
                                      lnalignpos->lat));
     addXMLAtt(sitexml, "lat", sitedata);
 

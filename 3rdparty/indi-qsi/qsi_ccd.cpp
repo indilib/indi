@@ -1435,11 +1435,11 @@ void QSICCD::turnWheel()
     }
 }
 
-IPState QSICCD::GuideNorth(float duration)
+IPState QSICCD::GuideNorth(uint32_t ms)
 {
     try
     {
-        QSICam.PulseGuide(QSICamera::guideNorth, duration);
+        QSICam.PulseGuide(QSICamera::guideNorth, static_cast<long>(ms));
     }
     catch (std::runtime_error err)
     {
@@ -1450,11 +1450,11 @@ IPState QSICCD::GuideNorth(float duration)
     return IPS_OK;
 }
 
-IPState QSICCD::GuideSouth(float duration)
+IPState QSICCD::GuideSouth(uint32_t ms)
 {
     try
     {
-        QSICam.PulseGuide(QSICamera::guideSouth, duration);
+        QSICam.PulseGuide(QSICamera::guideSouth, static_cast<long>(ms));
     }
     catch (std::runtime_error err)
     {
@@ -1465,11 +1465,11 @@ IPState QSICCD::GuideSouth(float duration)
     return IPS_OK;
 }
 
-IPState QSICCD::GuideEast(float duration)
+IPState QSICCD::GuideEast(uint32_t ms)
 {
     try
     {
-        QSICam.PulseGuide(QSICamera::guideEast, duration);
+        QSICam.PulseGuide(QSICamera::guideEast, static_cast<long>(ms));
     }
     catch (std::runtime_error err)
     {
@@ -1480,11 +1480,11 @@ IPState QSICCD::GuideEast(float duration)
     return IPS_OK;
 }
 
-IPState QSICCD::GuideWest(float duration)
+IPState QSICCD::GuideWest(uint32_t ms)
 {
     try
     {
-        QSICam.PulseGuide(QSICamera::guideWest, duration);
+        QSICam.PulseGuide(QSICamera::guideWest, static_cast<long>(ms));
     }
     catch (std::runtime_error err)
     {

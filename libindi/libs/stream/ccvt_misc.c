@@ -538,6 +538,184 @@ void bayer_rggb_2rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, l
     }
 }
 
+void bayer_grbg_to_rgb24(unsigned char *dst, unsigned char *src, long int WIDTH, long int HEIGHT)
+{
+	//Format is
+	// GRGRGRGRGR row width = width,  
+	// BGBGBGBGBG this interpolates it as simply as possible
+	// GRGRGRGRGR 
+	// BGBGBGBGBG
+	
+	// Output is
+	// RGBRGBRGBRGBRGB row width = 3x width
+	// RGBRGBRGBRGBRGB each pixel = 3 bytes
+	
+	long int i;
+	long int row;
+	long int col;
+	long int width=WIDTH;
+	int RED = 0;
+	int GREEN = 1;
+	int BLUE = 2;
+	for (row = 0; row < HEIGHT; row++) {
+		for (col = 0; col < WIDTH; col++) {
+			i=(row*WIDTH+col)*3;  //Output is in 3 bytes RGB, so convert a single pixel (3 bytes) each time. (USE RED, GREEN, BLUE as offsets 0, 1, 2 respectively) 
+			//General case:
+			if(row % 2 == 0) { //GRGRGR Row
+				if(col % 2 == 0) {//Over Green
+					//TODO: Double check 1st/last row
+					if (col != 0 && col != WIDTH -1) { // NORMAL
+					dst[(row*width+col)*3+RED]=(src[row*width+col+1]+src[row*width+col-1])/2; // Reds are to L/R
+					} else { //EDGE
+						if (col == 0) { dst[(row*width+col)*3+RED]=src[row*width+col+1];}
+						if (col == WIDTH -1 ) { dst[(row*width+col)*3+RED]=src[row*width+col-1]; }
+					}
+					dst[(row*width+col)*3+GREEN]=src[row*width+col];
+					if (row !=0 && row !=HEIGHT-1) { // NORMAL
+					dst[(row*width+col)*3+BLUE]=(src[(row+1)*width+col]+src[(row-1)*width+col])/2; //Blues are above and below.
+					} else { // EDGE
+						if (row == 0) {dst[(row*width+col)*3+BLUE]=src[(row+1)*width+col];}
+						if (row == WIDTH -1) {dst[(row*width+col)*3+BLUE]=src[(row-1)*width+col];}
+					}
+				} else { // Over RED
+					dst[(row*width+col)*3+RED]=src[row*width+col]; 
+					if (col != WIDTH -1 && row !=0 ) { // NORMAL (Left side and bottom count as normal
+					dst[(row*width+col)*3+GREEN]=(src[(row+1)*width+col]+src[(row-1)*width+col]+src[(row+0)*width+col+1]+src[(row+0)*width+col-1])/4; //GREENS are in all 4 directions
+					dst[(row*width+col)*3+BLUE]=(src[(row+1)*width+col+1]+src[(row-1)*width+col+1]+src[(row+1)*width+col-1]+src[(row-1)*width+col-1])/4; //Blues are caddy corner and below.
+					} else { // EDGE
+						if (col != WIDTH -1 && row == 0) {
+							//Corner && Side: 
+							//     
+							//,G*G.
+							//,BGB.
+							//,....
+							dst[(row*width+col)*3+GREEN]=(src[(row+1)*width+col]+src[(row)*width+col+1]+src[(row)*width+col+1])/3;
+							dst[(row*width+col)*3+BLUE]=(src[(row+1)*width+col+1]+src[(row+1)*width+col-1])/2;
+						} 
+
+						if (col == WIDTH -1 && row !=0 ) {
+							//Side
+							//...
+							//.BG
+							//.GR
+							//.BG
+							//...
+							dst[(row*width+col)*3+GREEN]=(src[(row+1)*width+col]+src[(row-1)*width+col]+src[(row)*width+col-1])/3;
+							dst[(row*width+col)*3+BLUE]=(src[(row+1)*width+col-1]+src[(row-1)*width+col-1])/2;
+							
+						}
+						if (col == WIDTH -1 && row ==0) {
+							//Corner (col=max, row=0)
+							//
+							//.G*
+							//.BG
+							//...
+							dst[(row*width+col)*3+GREEN]=(src[(row-1)*width+col]+src[(row+0)*width+col-1]+src[(row+1)*width+col])/3;
+							dst[(row*width+col)*3+BLUE]=src[(row+1)*width+col-1];
+						}
+						if (col == 1 && row !=0) { //Unnecessary Left here to explain why 
+							//Side && Corner (col=1, row=max)
+							// .....
+							// BGBG..
+							// G*GR
+							// BGBG..
+							// ,,,,,, 
+							// NORMAL
+							dst[(row*width+col)*3+GREEN]=(src[(row+1)*width+col]+src[(row-1)*width+col]+src[(row+0)*width+col+1]+src[(row+0)*width+col-1])/4; //GREENS are in all 4 directions
+							dst[(row*width+col)*3+BLUE]=(src[(row+1)*width+col+1]+src[(row-1)*width+col+1]+src[(row+1)*width+col-1]+src[(row-1)*width+col-1])/4; //Blues are caddy corner and below.
+						}
+						if (row == HEIGHT -1) {//Unnecessary Left here to explain why 
+							//Bottom row (would actually be HEIGHT -2 it still looks like a normal pixel for us
+							// ,.....
+							// ,.BGBG..
+							// ,.G*RG..
+							// ,.BGBG..
+							//        
+							// NORMAL
+							dst[(row*width+col)*3+GREEN]=(src[(row+1)*width+col]+src[(row-1)*width+col]+src[(row+0)*width+col+1]+src[(row+0)*width+col-1])/4; //GREENS are in all 4 directions
+							dst[(row*width+col)*3+BLUE]=(src[(row+1)*width+col+1]+src[(row-1)*width+col+1]+src[(row+1)*width+col-1]+src[(row-1)*width+col-1])/4; //Blues are caddy corner and below.
+							
+						}
+					}
+				}
+			} else { //BRBRBR Row
+				//if (col != 0 && col != WIDTH -1 && row != 0 && row != HEIGHT-1) {
+				if (col % 2 == 0) {//Over Blue
+					dst[(row*width+col)*3+BLUE]=src[row*width+col];
+					if ( col != 0 && row != HEIGHT -1) { //Normal 
+						// Enough clearance to use this:
+						// RGR
+						// G*G
+						// RGR
+						dst[(row*width+col)*3+RED]=(src[(row+1)*width+col+1]+src[(row-1)*width+col+1]+src[(row+1)*width+col-1]+src[(row-1)*width+col-1])/4;//Reds are caddy corner and below.
+						dst[(row*width+col)*3+GREEN]=(src[(row+1)*width+col]+src[(row-1)*width+col]+src[(row+0)*width+col+1]+src[(row+0)*width+col-1])/4; //GREENS are in all 4 directions
+					} else { // EDGE CASES over blue
+						if (col == 0 && row != HEIGHT -1) {
+							//  ,,,,,,,
+							//  GRGRGR.
+							//  *GBGBG.
+							//  GRGRGR.
+							//  .......
+							dst[(row*width+col)*3+RED]=(src[(row+1)*width+col+1]+src[(row-1)*width+col+1])/2;
+							dst[(row*width+col)*3+GREEN]=(src[(row+1)*width+col]+src[(row+0)*width+col+1]+src[(row+0)*width+col-1])/3;
+						}
+						if (row == HEIGHT -1 && col !=0) {
+							//  ........
+							//  .GRGRGR.
+							//  .BG*GBG.
+							dst[(row*width+col)*3+RED]=(src[(row-1)*width+col+1]+src[(row-1)*width+col-1])/2;
+							dst[(row*width+col)*3+GREEN]=(src[(row+1)*width+col]+src[(row-1)*width+col]+src[(row+0)*width+col+1]+src[(row+0)*width+col-1])/3;
+						}
+						if (row == HEIGHT -1 && col ==0) {
+							//  .....
+							//  GRGR.
+							//  *GBG.
+							dst[(row*width+col)*3+RED]=(src[(row-1)*width+col+1]+src[(row-1)*width+col-1])/2;
+							dst[(row*width+col)*3+GREEN]=(src[(row+1)*width+col]+src[(row-1)*width+col]+src[(row+0)*width+col+1]+src[(row+0)*width+col-1])/3;
+						}
+						
+					}
+				} else { // Over Green
+					dst[(row*width+col)*3+GREEN]=src[row*width+col]; // Over Green Pixel
+					if (col != WIDTH -1 && row != HEIGHT -1) { //NORMAL 
+						// Enough clearance to use this:
+						// GRG
+						// B*B
+						// GRG
+						
+						dst[(row*width+col)*3+RED]=(src[(row+1)*width+col]+src[(row-1)*width+col])/2; // Reds are above/below
+						dst[(row*width+col)*3+BLUE]=(src[row*width+col+1]+src[row*width+col-1])/2; //Blues are left/right
+					} else {
+						if (col == WIDTH -1 && row != HEIGHT -1) {
+							// ,,,,,
+							// .GRGR
+							// .BGB*
+							// .GRGR
+							// .....
+							dst[(row*width+col)*3+RED]=(src[(row+1)*width+col]+src[(row-1)*width+col])/2; // Reds are above/below
+							dst[(row*width+col)*3+BLUE]=src[row*width+col-1]; //Blue is left
+						}
+						if (row == HEIGHT -1 && col != WIDTH -1) {
+							// .....
+							// .GRGR
+							// .B*BG
+							dst[(row*width+col)*3+RED]=src[(row-1)*width+col]; // Red is above
+							dst[(row*width+col)*3+BLUE]=(src[row*width+col+1]+src[row*width+col-1])/2; //Blues are left/right
+						}
+						if (row == HEIGHT -1 && col == WIDTH -1) {
+							// ...
+							// .GR
+							// .B*
+							dst[(row*width+col)*3+RED]=src[(row-1)*width+col]; // Red is above
+							dst[(row*width+col)*3+BLUE]=src[row*width+col-1]; //Blue is left
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 int mjpegtoyuv420p(unsigned char *map, unsigned char *cap_map, int width, int height, unsigned int size)
 {
     unsigned char *yuv[3];

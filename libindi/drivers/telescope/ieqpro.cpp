@@ -752,25 +752,25 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
-IPState IEQPro::GuideNorth(float ms)
+IPState IEQPro::GuideNorth(uint32_t ms)
 {
     bool rc = start_ieqpro_guide(PortFD, IEQ_N, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
-IPState IEQPro::GuideSouth(float ms)
+IPState IEQPro::GuideSouth(uint32_t ms)
 {
     bool rc = start_ieqpro_guide(PortFD, IEQ_S, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
-IPState IEQPro::GuideEast(float ms)
+IPState IEQPro::GuideEast(uint32_t ms)
 {
     bool rc = start_ieqpro_guide(PortFD, IEQ_E, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
-IPState IEQPro::GuideWest(float ms)
+IPState IEQPro::GuideWest(uint32_t ms)
 {
     bool rc = start_ieqpro_guide(PortFD, IEQ_W, (int)ms);
     return (rc ? IPS_OK : IPS_ALERT);

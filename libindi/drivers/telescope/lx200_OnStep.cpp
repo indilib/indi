@@ -427,7 +427,7 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                     IDSetNumber(&BacklashNP, "Error Backlash DEC limit.");
                 }
                 const struct timespec timeout = {0, 100000000L};
-                nanosleep(&timeout, NULL); // time for OnStep to respond to previous cmd
+                nanosleep(&timeout, nullptr); // time for OnStep to respond to previous cmd
                 snprintf(cmd, 9, ":$BR%d#", (int)bklshra);
                 if (sendOnStepCommand(cmd))
                 {
@@ -711,7 +711,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             }
             sendOnStepCommandBlind(cmd);
             const struct timespec timeout = {0, 100000000L};
-            nanosleep(&timeout, NULL); // Pulse 0,1 s
+            nanosleep(&timeout, nullptr); // Pulse 0,1 s
             if(index != 2)
             {
                 sendOnStepCommandBlind(":FQ#");
@@ -759,7 +759,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             }
             sendOnStepCommandBlind(cmd);
             const struct timespec timeout = {0, 100000000L};
-            nanosleep(&timeout, NULL); // Pulse 0,1 s
+            nanosleep(&timeout, nullptr); // Pulse 0,1 s
             if(index != 2)
             {
                 sendOnStepCommandBlind(":fQ#");

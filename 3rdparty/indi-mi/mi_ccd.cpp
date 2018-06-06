@@ -209,7 +209,7 @@ MICCD::MICCD(int camId, bool eth) : FilterInterface(this)
     gxccd_get_integer_parameter(cameraHandle, GIP_MAX_WINDOW_HEATING, &maxHeatingValue);
 
     gxccd_release(cameraHandle);
-    cameraHandle = NULL;
+    cameraHandle = nullptr;
 
     hasGain    = false;
     useShutter = true;
@@ -447,7 +447,7 @@ bool MICCD::Disconnect()
 {
     LOG_INFO("CCD is offline.");
     gxccd_release(cameraHandle);
-    cameraHandle = NULL;
+    cameraHandle = nullptr;
     return true;
 }
 
@@ -491,14 +491,14 @@ bool MICCD::setupParams()
             LOGF_ERROR("Getting gain failed: %s.", errorStr);
             GainN[0].value = 0;
             GainNP.s       = IPS_ALERT;
-            IDSetNumber(&GainNP, NULL);
+            IDSetNumber(&GainNP, nullptr);
             return false;
         }
         else
         {
             GainN[0].value = gain;
             GainNP.s       = IPS_OK;
-            IDSetNumber(&GainNP, NULL);
+            IDSetNumber(&GainNP, nullptr);
         }
     }
 
@@ -562,7 +562,7 @@ bool MICCD::StartExposure(float duration)
     ExposureRequest = duration;
     PrimaryCCD.setExposureDuration(duration);
 
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
     InExposure  = true;
     downloading = false;
     LOGF_DEBUG("Taking a %.3f seconds frame...", ExposureRequest);
@@ -642,7 +642,7 @@ float MICCD::calcTimeLeft()
 {
     double timesince;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (now.tv_sec * 1000.0 + now.tv_usec / 1000.0) - (ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000.0);
     return ExposureRequest - timesince / 1000.0;
@@ -770,9 +770,9 @@ bool MICCD::SelectFilter(int position)
     return true;
 }
 
-IPState MICCD::GuideNorth(float duration)
+IPState MICCD::GuideNorth(uint32_t ms)
 {
-    if (gxccd_move_telescope(cameraHandle, 0, duration) < 0)
+    if (gxccd_move_telescope(cameraHandle, 0, static_cast<int16_t>(ms)) < 0)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
@@ -782,9 +782,9 @@ IPState MICCD::GuideNorth(float duration)
     return IPS_OK;
 }
 
-IPState MICCD::GuideSouth(float duration)
+IPState MICCD::GuideSouth(uint32_t ms)
 {
-    if (gxccd_move_telescope(cameraHandle, 0, -duration) < 0)
+    if (gxccd_move_telescope(cameraHandle, 0, (-1 * static_cast<int16_t>(ms))) < 0)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
@@ -794,9 +794,9 @@ IPState MICCD::GuideSouth(float duration)
     return IPS_OK;
 }
 
-IPState MICCD::GuideEast(float duration)
+IPState MICCD::GuideEast(uint32_t ms)
 {
-    if (gxccd_move_telescope(cameraHandle, -duration, 0) < 0)
+    if (gxccd_move_telescope(cameraHandle, (-1 * static_cast<int16_t>(ms)), 0) < 0)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
@@ -806,9 +806,9 @@ IPState MICCD::GuideEast(float duration)
     return IPS_OK;
 }
 
-IPState MICCD::GuideWest(float duration)
+IPState MICCD::GuideWest(uint32_t ms)
 {
-    if (gxccd_move_telescope(cameraHandle, duration, 0) < 0)
+    if (gxccd_move_telescope(cameraHandle, static_cast<int16_t>(ms), 0) < 0)
     {
         char errorStr[MAX_ERROR_LEN];
         gxccd_get_last_error(cameraHandle, errorStr, sizeof(errorStr));
@@ -826,7 +826,7 @@ bool MICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
         {
             IUUpdateSwitch(&ReadModeSP, states, names, n);
             ReadModeSP.s = IPS_OK;
-            IDSetSwitch(&ReadModeSP, NULL);
+            IDSetSwitch(&ReadModeSP, nullptr);
             return true;
         }
     }
@@ -874,7 +874,7 @@ bool MICCD::ISNewNumber(const char *dev, const char *name, double values[], char
                 FanNP.s = IPS_OK;
             }
 
-            IDSetNumber(&FanNP, NULL);
+            IDSetNumber(&FanNP, nullptr);
             return true;
         }
 
@@ -894,7 +894,7 @@ bool MICCD::ISNewNumber(const char *dev, const char *name, double values[], char
                 WindowHeatingNP.s = IPS_OK;
             }
 
-            IDSetNumber(&WindowHeatingNP, NULL);
+            IDSetNumber(&WindowHeatingNP, nullptr);
             return true;
         }
 
@@ -914,7 +914,7 @@ bool MICCD::ISNewNumber(const char *dev, const char *name, double values[], char
                 TemperatureRampNP.s = IPS_OK;
             }
 
-            IDSetNumber(&TemperatureRampNP, NULL);
+            IDSetNumber(&TemperatureRampNP, nullptr);
             return true;
         }
 
@@ -938,7 +938,7 @@ bool MICCD::ISNewNumber(const char *dev, const char *name, double values[], char
                 }
             }
 
-            IDSetNumber(&PreflashNP, NULL);
+            IDSetNumber(&PreflashNP, nullptr);
 
             return true;
         }
@@ -1009,8 +1009,8 @@ void MICCD::updateTemperature()
         CoolerNP.s = IPS_OK;
     }
 
-    IDSetNumber(&TemperatureNP, NULL);
-    IDSetNumber(&CoolerNP, NULL);
+    IDSetNumber(&TemperatureNP, nullptr);
+    IDSetNumber(&CoolerNP, nullptr);
     temperatureID = IEAddTimer(POLLMS, MICCD::updateTemperatureHelper, this);
 }
 

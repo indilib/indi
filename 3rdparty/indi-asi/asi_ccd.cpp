@@ -245,6 +245,14 @@ bool ASICCD::initProperties()
 
     IUSaveText(&BayerT[2], getBayerString());
 
+    IUFillNumber(&ADCDepthN, "BITS", "Bits", "%2.0f", 0, 32, 1, 0);
+    ADCDepthN.value = m_camInfo->BitDepth;
+    IUFillNumberVector(&ADCDepthNP, &ADCDepthN, 1, getDeviceName(), "ADC_DEPTH", "ADC Depth", IMAGE_INFO_TAB, IP_RO, 60,
+                       IPS_IDLE);
+
+    IUFillText(&SDKVersionS[0], "VERSION", "Version", ASIGetSDKVersion());
+    IUFillTextVector(&SDKVersionSP, SDKVersionS, 1, getDeviceName(), "SDK", "SDK", INFO_TAB, IP_RO, 60, IPS_IDLE);
+
     int maxBin = 1;
     for (int i = 0; i < 16; i++)
     {
@@ -327,6 +335,9 @@ bool ASICCD::updateProperties()
             defineSwitch(&VideoFormatSP);
             loadConfig(true, "CCD_VIDEO_FORMAT");
         }
+
+        defineNumber(&ADCDepthNP);
+        defineText(&SDKVersionSP);
     }
     else
     {
@@ -346,6 +357,9 @@ bool ASICCD::updateProperties()
 
         if (VideoFormatSP.nsp > 0)
             deleteProperty(VideoFormatSP.name);
+
+        deleteProperty(SDKVersionSP.name);
+        deleteProperty(ADCDepthNP.name);
     }
 
     return true;
@@ -354,8 +368,6 @@ bool ASICCD::updateProperties()
 bool ASICCD::Connect()
 {
     LOGF_DEBUG("Attempting to open %s...", name);
-
-
 
     ASI_ERROR_CODE errCode = ASI_SUCCESS;
 
@@ -1331,12 +1343,12 @@ const char *dirName)
     }
 }
 
-IPState ASICCD::GuideNorth(float ms)
+IPState ASICCD::GuideNorth(uint32_t ms)
 {
     return guidePulseNS(ms, ASI_GUIDE_NORTH, "North");
 }
 
-IPState ASICCD::GuideSouth(float ms)
+IPState ASICCD::GuideSouth(uint32_t ms)
 {
     return guidePulseNS(ms, ASI_GUIDE_SOUTH, "South");
 }
@@ -1424,12 +1436,12 @@ const char *dirName)
     }
 }
 
-IPState ASICCD::GuideEast(float ms)
+IPState ASICCD::GuideEast(uint32_t ms)
 {
     return guidePulseWE(ms, ASI_GUIDE_EAST, "East");
 }
 
-IPState ASICCD::GuideWest(float ms)
+IPState ASICCD::GuideWest(uint32_t ms)
 {
     return guidePulseWE(ms, ASI_GUIDE_WEST, "West");
 }

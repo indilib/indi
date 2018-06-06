@@ -78,10 +78,10 @@ protected:
     int DrawImageStar(INDI::CCDChip *targetChip, float, float, float, float ExposureTime);
     int AddToPixel(INDI::CCDChip *targetChip, int, int, int);
 
-    IPState GuideNorth(float) override;
-    IPState GuideSouth(float) override;
-    IPState GuideEast(float) override;
-    IPState GuideWest(float) override;
+    virtual IPState GuideNorth(uint32_t) override;
+    virtual IPState GuideSouth(uint32_t) override;
+    virtual IPState GuideEast(uint32_t) override;
+    virtual IPState GuideWest(uint32_t) override;
 
     virtual bool saveConfigItems(FILE *fp) override;
     virtual void activeDevicesUpdated() override;

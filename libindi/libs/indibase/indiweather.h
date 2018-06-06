@@ -132,13 +132,11 @@ class Weather : public DefaultDevice
      * </ol>
      * @param name Name of parameter
      * @param label Label of paremeter (in GUI)
-     * @param minimumOK Minimum OK value.
-     * @param maximumOK Maximum OK value.
-     * @param minimumWarning Minimum Warning value.
-     * @param maximumWarning Maximum Warning value.
+     * @param numMinOk minimum Ok range value.
+     * @param numMaxOk maximum Ok range value.
+     * @param percWarning percentage for Warning.
      */
-    void addParameter(std::string name, std::string label, double minimumOK, double maximumOK, double minimumWarning,
-                      double maximumWarning);
+    void addParameter(std::string name, std::string label, double numMinOk, double numMaxOk, double percWarning);
 
     /**
      * @brief setCriticalParameter Set parameter that is considered critical to the operation of the

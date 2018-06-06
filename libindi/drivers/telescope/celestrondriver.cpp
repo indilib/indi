@@ -363,7 +363,7 @@ bool CelestronDriver::get_dev_firmware(int dev, char *version, int size)
 {
     set_sim_response("\x01\x09#");
 
-    int rlen = send_passthrough(dev, 0xfe, NULL, 0, response, 2);
+    int rlen = send_passthrough(dev, 0xfe, nullptr, 0, response, 2);
 
     if (rlen == 3)
         snprintf(version, size, "%d.%02d", response[0], response[1]);

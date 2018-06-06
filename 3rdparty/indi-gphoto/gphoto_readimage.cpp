@@ -264,7 +264,7 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "%s", cmd);
     handle = popen(cmd, "r");
     free(cmd);
-    if (handle == NULL)
+    if (handle == nullptr)
     {
         return 1;
     }
@@ -397,7 +397,7 @@ int read_dcraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_a
 
     handle = popen(cmd, "r");
     free(cmd);
-    if (handle == NULL)
+    if (handle == nullptr)
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "read_file_from_dcraw: failed to run dcraw");
         return -1;
@@ -498,7 +498,7 @@ int read_jpeg_mem(unsigned char *inBuffer, unsigned long inSize, uint8_t **mempt
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
     /* libjpeg data structure for storing one row, that is, scanline of an image */
-    JSAMPROW row_pointer[1] = { NULL };
+    JSAMPROW row_pointer[1] = { nullptr };
 
     /* here we set up the standard libjpeg error handler */
     cinfo.err = jpeg_std_error(&jerr);
