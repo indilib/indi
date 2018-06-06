@@ -29,7 +29,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define MOONLITE_TIMEOUT 3
+#define MOONLITE_TIMEOUT 10
 
 std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
@@ -190,6 +190,7 @@ bool MoonLite::Ack()
     short pos = -1;
 
     tcflush(PortFD, TCIOFLUSH);
+    sleep(5);
 
     if ((rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) != TTY_OK)
     {
