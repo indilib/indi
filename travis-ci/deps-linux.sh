@@ -13,7 +13,7 @@ sudo apt-get -q -y install \
  libboost-regex-dev \
  libcfitsio3-dev \
  libftdi-dev \
- libdc1394-dev \
+ libdc1394-22-dev \
  libgphoto2-dev \
  libgps-dev \
  libgsl0-dev \
