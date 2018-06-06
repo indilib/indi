@@ -89,6 +89,7 @@ class Firmata
   public:
     Firmata();
     Firmata(const char *_serialPort);
+    Firmata(const char *_serialPort, uint32_t baud);
     ~Firmata();
 
     int writeDigitalPin(unsigned char pin, unsigned char mode); // mode can be ARDUINO_HIGH or ARDUINO_LOW
@@ -132,6 +133,6 @@ class Firmata
     vector<unsigned char> sysExBuf;
     char firmwareVersion[FIRMATA_FIRMWARE_VERSION_SIZE];
     int digitalPortValue[ARDUINO_DIG_PORTS]; /// bitpacked digital pin state
-    int init(const char *_serialPort);
+    int init(const char *_serialPort, uint32_t baud);
     int sendValueAsTwo7bitBytes(int value);
 };
