@@ -454,6 +454,9 @@ class ScopeDome : public INDI::Dome
     ISwitch SensorsS[13];
     ISwitchVectorProperty SensorsSP;
 
+    INumber FirmwareVersionsN[2];
+    INumberVectorProperty FirmwareVersionsNP;
+
   private:
     uint8_t digitalSensorState[5];
     uint16_t currentStatus;

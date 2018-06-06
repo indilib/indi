@@ -191,7 +191,7 @@ bool ScopeDome::initProperties()
     IUFillNumber(&EnvironmentSensorsN[9], "PRESSURE", "Pressure", "%4.1f", 0.0, 2000.0, 1.0, 0.0);
     IUFillNumber(&EnvironmentSensorsN[10], "DEW_POINT", "Dew point", "%2.2f", -100.0, 100.0, 1.0, 0.0);
     IUFillNumberVector(&EnvironmentSensorsNP, EnvironmentSensorsN, 11, getDeviceName(), "SCOPEDOME_SENSORS",
-                       "Environment sensors", SITE_TAB, IP_RO, 60, IPS_IDLE);
+                       "Environment sensors", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     IUFillSwitch(&SensorsS[0], "AZ_COUNTER", "Az counter", ISS_OFF);
     IUFillSwitch(&SensorsS[1], "ROTATE_CCW", "Rotate CCW", ISS_OFF);
@@ -206,8 +206,12 @@ bool ScopeDome::initProperties()
     IUFillSwitch(&SensorsS[10], "SAFE", "Observatory safe", ISS_OFF);
     IUFillSwitch(&SensorsS[11], "LINK", "Rotary link", ISS_OFF);
     IUFillSwitch(&SensorsS[12], "FREE", "Free input", ISS_OFF);
-    IUFillSwitchVector(&SensorsSP, SensorsS, 13, getDeviceName(), "INPUTS", "Input sensors", SITE_TAB, IP_RO,
+    IUFillSwitchVector(&SensorsSP, SensorsS, 13, getDeviceName(), "INPUTS", "Input sensors", INFO_TAB, IP_RO,
                        ISR_NOFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&FirmwareVersionsN[0], "MAIN", "Main part", "%2.2f", 0.0, 99.0, 1.0, 0.0);
+    IUFillNumber(&FirmwareVersionsN[1], "ROTARY", "Rotary part", "%2.2f", 0.0, 99.0, 1.0, 0.0);
+    IUFillNumberVector(&FirmwareVersionsNP, FirmwareVersionsN, 2, getDeviceName(), "FIRMWARE_VERSION", "Firmware versions", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     SetParkDataType(PARK_AZ);
 
@@ -248,6 +252,13 @@ bool ScopeDome::SetupParms()
         SetAxis1ParkDefault(0);
     }
 
+    uint16_t fwVersion = readU16(GetVersionFirmware);
+    FirmwareVersionsN[0].value = fwVersion / 100.0;
+    fwVersion = 42;
+    fwVersion = readU16(GetVersionFirmwareRotary);
+    FirmwareVersionsN[1].value = fwVersion / 100.0;
+    FirmwareVersionsNP.s = IPS_OK;
+    IDSetNumber(&FirmwareVersionsNP, nullptr);
     return true;
 }
 
@@ -285,6 +296,7 @@ bool ScopeDome::updateProperties()
         defineNumber(&EnvironmentSensorsNP);
         defineSwitch(&SensorsSP);
         defineSwitch(&ParkShutterSP);
+        defineNumber(&FirmwareVersionsNP);
         SetupParms();
     }
     else
@@ -298,6 +310,7 @@ bool ScopeDome::updateProperties()
         deleteProperty(DomeHomePositionNP.name);
         deleteProperty(EnvironmentSensorsNP.name);
         deleteProperty(ParkShutterSP.name);
+        deleteProperty(FirmwareVersionsNP.name);
     }
 
     return true;
@@ -455,7 +468,7 @@ bool ScopeDome::UpdateShutterStatus()
             setOutputState(OUT_CLOSE1, ISS_OFF);
             shutterState = SHUTTER_CLOSED;
 
-            if (getDomeState() == DOME_PARKING)
+            if (getDomeState() == DOME_PARKING && DomeAbsPosNP.s != IPS_BUSY)
             {
                 SetParked(true);
             }
@@ -1096,6 +1109,12 @@ float ScopeDome::getDewPoint(float RH, float T)
 
 uint16_t ScopeDome::compensateInertia(uint16_t steps)
 {
+    if (inertiaTable.size() == 0)
+    {
+        LOGF_INFO("inertia passthrough %d", steps);
+        return steps; // pass value as such if we don't have enough data
+    }
+
     for (uint16_t out = 0; out < inertiaTable.size(); out++)
     {
         if (inertiaTable[out] > steps)
@@ -1104,6 +1123,14 @@ uint16_t ScopeDome::compensateInertia(uint16_t steps)
             return out - 1;
         }
     }
-    LOGF_INFO("inertia passthrough %d", steps);
-    return steps; // pass value as such if we don't have enough data
+    // Check difference from largest table entry and assume we have
+    // similar inertia also after that
+    int lastEntry = inertiaTable.size() - 1;
+    int inertia = inertiaTable[lastEntry] - lastEntry;
+    int movement = (int)steps - inertia;
+    LOGF_INFO("inertia %d -> %d", steps, movement);
+    if (movement <= 0)
+        return 0;
+
+    return movement;
 }

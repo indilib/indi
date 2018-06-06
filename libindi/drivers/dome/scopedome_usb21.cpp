@@ -28,6 +28,7 @@
 #include <termio.h>
 
 #define SCOPEDOME_TIMEOUT 2
+#define SCOPEDOME_MAX_READS 10
 
 static const uint8_t header = 0xaa;
 
@@ -165,7 +166,7 @@ int ScopeDomeUSB21::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
         return FUNCTION_NOT_SUPPORTED_BY_FIRMWARE;
     }
 
-    if (cbuf[1] > len)
+    if (cbuf[1] != len)
     {
         LOGF_ERROR("readbuf packet length error, cmd: %d", prevcmd);
         return PACKET_LENGTH_ERROR;
