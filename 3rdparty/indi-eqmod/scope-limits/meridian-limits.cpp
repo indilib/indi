@@ -138,12 +138,25 @@ bool MeridianLimits::ISNewNumber(const char *dev, const char *name, double value
             unsigned long encoderPierEast = (unsigned long)(values[0]);
             unsigned long encoderPierWest = (unsigned long)(values[1]);
 
-            if (encoderPierEast > encoderPierWest)
+            if (dynamic_cast<EQMod*>(telescope)->IsMountInNorthHemisphere())
             {
-                LOG_WARN("Encoder for pier side EAST is LARGER than encoder setting for pier side WEST !");
-                MeridianLimitsStepNP->s = IPS_ALERT;
-                IDSetNumber(MeridianLimitsStepNP, NULL);
-                return false;
+                if (encoderPierEast > encoderPierWest)
+                {
+                    LOG_WARN("Encoder for pier side EAST should be SMALLER than pier side WEST in NORTH hemisphere !");
+                    MeridianLimitsStepNP->s = IPS_ALERT;
+                    IDSetNumber(MeridianLimitsStepNP, NULL);
+                    return false;
+                }
+            }
+            else
+            {
+                if (encoderPierEast < encoderPierWest)
+                {
+                    LOG_WARN("Encoder for pier side EAST should be LARGER than pier side WEST in SOUTH hemisphere !");
+                    MeridianLimitsStepNP->s = IPS_ALERT;
+                    IDSetNumber(MeridianLimitsStepNP, NULL);
+                    return false;
+                }
             }
 
             if (IUUpdateNumber(MeridianLimitsStepNP, values, names, n) != 0)
@@ -175,6 +188,8 @@ bool MeridianLimits::ISNewSwitch(const char *dev, const char *name, ISState *sta
     {
         if (MeridianLimitsSetCurrentSP && strcmp(name, MeridianLimitsSetCurrentSP->name) == 0)
         {
+            bool isNorthHemisphere = dynamic_cast<EQMod*>(telescope)->IsMountInNorthHemisphere();
+
             ISwitch *sw;
 
             IUUpdateSwitch(MeridianLimitsSetCurrentSP, states, names, n);
@@ -197,9 +212,19 @@ bool MeridianLimits::ISNewSwitch(const char *dev, const char *name, ISState *sta
 
                 values[0] = double(raEncoder);
 
-                if (raEncoder > raMotorEncoderWest)
+                if (isNorthHemisphere)
                 {
-                    values[1] = double(raMotorEncoderWest);
+                    if (raEncoder > raMotorEncoderWest)
+                    {
+                        values[1] = double(raMotorEncoderWest);
+                    }
+                }
+                else
+                {
+                    if (raEncoder < raMotorEncoderWest)
+                    {
+                        values[1] = double(raMotorEncoderWest);
+                    }
                 }
 
                 if (IUUpdateNumber(MeridianLimitsStepNP, values, (char **)names, 2) != 0)
@@ -215,14 +240,10 @@ bool MeridianLimits::ISNewSwitch(const char *dev, const char *name, ISState *sta
                 MeridianLimitsSetCurrentSP->s = IPS_OK;
                 IDSetSwitch(MeridianLimitsSetCurrentSP, NULL);
 
-                raMotorEncoderEast = raEncoder;
+                raMotorEncoderEast = (unsigned long)(values[0]);
+                raMotorEncoderWest = (unsigned long)(values[1]);
 
-                if (raEncoder > raMotorEncoderWest)
-                {
-                    raMotorEncoderWest = raEncoder;
-                }
-
-                LOG_INFO("Meridian limit encoder (pier side WEST) has been updated.");
+                LOG_INFO("Meridian limit encoder (pier side EAST) has been updated.");
 
                 return true;
             }
@@ -244,9 +265,19 @@ bool MeridianLimits::ISNewSwitch(const char *dev, const char *name, ISState *sta
 
                 values[1] = double(raEncoder);
 
-                if (raEncoder < raMotorEncoderEast)
+                if (isNorthHemisphere)
                 {
-                    values[0] = double(raMotorEncoderEast);
+                    if (raEncoder < raMotorEncoderEast)
+                    {
+                        values[0] = double(raMotorEncoderEast);
+                    }
+                }
+                else
+                {
+                    if (raEncoder > raMotorEncoderEast)
+                    {
+                        values[0] = double(raMotorEncoderEast);
+                    }
                 }
 
                 if (IUUpdateNumber(MeridianLimitsStepNP, values, (char **)names, 2) != 0)
@@ -262,14 +293,10 @@ bool MeridianLimits::ISNewSwitch(const char *dev, const char *name, ISState *sta
                 MeridianLimitsSetCurrentSP->s = IPS_OK;
                 IDSetSwitch(MeridianLimitsSetCurrentSP, NULL);
 
-                raMotorEncoderWest = raEncoder;
+                raMotorEncoderEast = (unsigned long)(values[0]);
+                raMotorEncoderWest = (unsigned long)(values[1]);
 
-                if (raEncoder < raMotorEncoderEast)
-                {
-                    raMotorEncoderEast = raEncoder;
-                }
-
-                LOG_INFO("Meridian limit encoder (pier side EAST) has been updated.");
+                LOG_INFO("Meridian limit encoder (pier side WEST) has been updated.");
 
                 return true;
             }
@@ -485,7 +512,10 @@ char *MeridianLimits::LoadDataFile(const char *filename)
 
 bool MeridianLimits::inLimits(unsigned long ra_motor_step)
 {
-    return (raMotorEncoderEast <= ra_motor_step && ra_motor_step <= raMotorEncoderWest);
+    if (dynamic_cast<EQMod*>(telescope)->IsMountInNorthHemisphere())
+        return (raMotorEncoderEast <= ra_motor_step && ra_motor_step <= raMotorEncoderWest);
+    else
+        return (raMotorEncoderWest <= ra_motor_step && ra_motor_step <= raMotorEncoderEast);
 }
 
 bool MeridianLimits::checkLimits(unsigned long ra_motor_step, INDI::Telescope::TelescopeStatus status)

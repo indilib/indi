@@ -234,6 +234,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool Abort();
 
 #ifdef WITH_SCOPE_LIMITS
+    bool IsMountInNorthHemisphere();
     bool IsCurrentPosInLimit();
 #endif
 

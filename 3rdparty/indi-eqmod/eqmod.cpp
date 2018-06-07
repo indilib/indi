@@ -3242,6 +3242,11 @@ double EQMod::GetDESlew()
 }
 
 #ifdef WITH_SCOPE_LIMITS
+bool EQMod::IsMountInNorthHemisphere()
+{
+    return (Hemisphere == NORTH);
+}
+
 bool EQMod::IsCurrentPosInLimit()     //return true if in limits.
 {
     if (meridian)
