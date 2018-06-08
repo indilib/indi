@@ -119,6 +119,12 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&TrackCompS[1], "2", "Refraction", ISS_OFF);
     IUFillSwitch(&TrackCompS[2], "3", "Off", ISS_OFF);
     IUFillSwitchVector(&TrackCompSP, TrackCompS, 3, getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
+    IUFillSwitch(&FrequencyAdjustS[0], "1", "Freqency -", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[1], "2", "Freqency +", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidreal Frequency", ISS_OFF);
+    IUFillSwitchVector(&FrequencyAdjustSP, FrequencyAdjustS, 3, getDeviceName(), "FrequencyAdjust", "Frequency Adjust", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
 
     // ============== SITE_MANAGEMENT_TAB
     IUFillSwitch(&SetHomeS[0], "COLD_START", "Cold Start", ISS_OFF);
@@ -238,6 +244,7 @@ bool LX200_OnStep::updateProperties()
         defineNumber(&MaxSlewRateNP);
         defineSwitch(&TrackCompSP);
         defineNumber(&BacklashNP);
+	defineSwitch(&FrequencyAdjustSP);
 
         // Site Management
         defineSwitch(&ParkOptionSP);
@@ -317,6 +324,8 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(TrackCompSP.name);
         deleteProperty(BacklashNP.name);
+	deleteProperty(FrequencyAdjustSP.name);
+	
 
         // Site Management
         deleteProperty(ParkOptionSP.name);
@@ -664,7 +673,44 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&TrackCompSP, nullptr);
             return true;
         }
-
+        
+        
+        if (!strcmp(name, FrequencyAdjustSP.name))      // 
+		
+	//
+	{
+		IUUpdateSwitch(&FrequencyAdjustSP, states, names, n);
+		FrequencyAdjustSP.s = IPS_OK;
+		
+		if (FrequencyAdjustS[0].s == ISS_ON)
+		{
+			if (!sendOnStepCommandBlind(":T-#"))
+			{
+				IDSetSwitch(&FrequencyAdjustSP, "Frequency decreased");
+				return true;
+			}
+		}
+		if (FrequencyAdjustS[1].s == ISS_ON)
+		{
+			if (!sendOnStepCommandBlind(":T+#"))
+			{
+				IDSetSwitch(&FrequencyAdjustSP, "Frequency increased");
+				return true;
+			}
+		}
+		if (FrequencyAdjustS[2].s == ISS_ON)
+		{
+			if (!sendOnStepCommandBlind(":TR#"))
+			{
+				IDSetSwitch(&FrequencyAdjustSP, "Frequency Reset (TO saved EEPROM)");
+				return true;
+			}
+		}
+		IUResetSwitch(&FrequencyAdjustSP);
+		FrequencyAdjustSP.s = IPS_IDLE;
+		IDSetSwitch(&FrequencyAdjustSP, nullptr);
+		return true;
+	}
         // Focuser
         // Focuser 1 Rates
         if (!strcmp(name, OSFocus1InitializeSP.name))
