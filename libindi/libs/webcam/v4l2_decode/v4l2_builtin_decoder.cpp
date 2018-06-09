@@ -797,7 +797,7 @@ unsigned char *V4L2_Builtin_Decoder::getRGBBuffer()
     //cerr << "in get color buffer " << endl;
     //IDLog("Decoder geRGBBuffer %s\n", (doCrop?"true":"false"));
     if (!rgb24_buffer)
-        rgb24_buffer = new unsigned char[(bufwidth * bufheight) * 3 + 3];
+        rgb24_buffer = new unsigned char[(bufwidth * bufheight) * 3];
     switch (fmt.fmt.pix.pixelformat)
     {
         case V4L2_PIX_FMT_GREY:
