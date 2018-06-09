@@ -1430,7 +1430,7 @@ IPState LX200_OnStep::MoveFocuser(FocusDirection dir, int speed, uint16_t durati
 IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
 	//  :FSsnnn#  Set focuser target position (in microns)
 	//            Returns: Nothing
-	if (FocusAbsPosN[0].max >= targetTicks && FocusAbsPosN[0].min >= targetTicks) {
+	if (FocusAbsPosN[0].max >= targetTicks && FocusAbsPosN[0].min <= targetTicks) {
 		char read_buffer[32];
 		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", targetTicks);
 		sendOnStepCommandBlind(read_buffer);
@@ -1438,6 +1438,7 @@ IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
 	} else {
 		//Out of bounds as reported by OnStep
 		LOG_ERROR("Focuser value outside of limit");
+		LOGF_ERROR("Requested: %d min: %d max: %d", targetTicks, FocusAbsPosN[0].min, FocusAbsPosN[0].max);
 		return IPS_ALERT; 
 	}
 }
@@ -1464,11 +1465,14 @@ bool LX200_OnStep::AbortFocuser () {
 void LX200_OnStep::OSUpdateFocuser()
 {
 	char value[10];
-	if (OSFocuser1) {
+	int current = 0;
 	// Alternate option:
-	//if (!sendOnStepCommand(":FA#")) {
+	//if (OSFocuser1) {
+	if (!sendOnStepCommand(":FA#")) {
 		getCommandString(PortFD, value, ":FG#");
 		FocusAbsPosN[0].value =  atoi(value);
+		current = FocusAbsPosN[0].value;
+		LOGF_DEBUG("Current focurser: %d, %d", atoi(value), FocusAbsPosN[0].value);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
 		//  :FT#  get status
 		//         Returns: M# (for moving) or S# (for stopped)
