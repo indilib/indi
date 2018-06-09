@@ -476,7 +476,10 @@ bool GPhotoCCD::updateProperties()
                 defineNumber(&mMirrorLockNP);
         }
 
-        isTemperatureSupported = gphoto_supports_temperature(gphotodrv);
+        if (isSimulation())
+            isTemperatureSupported = false;
+        else
+            isTemperatureSupported = gphoto_supports_temperature(gphotodrv);
 
         if (isTemperatureSupported)
         {
