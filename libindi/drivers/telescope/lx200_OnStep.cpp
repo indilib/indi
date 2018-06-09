@@ -135,8 +135,6 @@ bool LX200_OnStep::initProperties()
 
     // ============== FOCUSER_TAB
     // Focuser 1
-//     IUFillSwitch(&OSFocus1MotionS[2], "Focus1_Stop", "Stop", ISS_OFF);
-//     IUFillSwitchVector(&OSFocus1MotionSP, OSFocus1MotionS, 3, getDeviceName(), "Foc1Mot", "Foc 1 Motion", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     IUFillSwitch(&OSFocus1InitializeS[0], "Focus1_0", "Zero", ISS_OFF);
     IUFillSwitch(&OSFocus1InitializeS[1], "Focus1_2", "Mid", ISS_OFF);
@@ -1466,9 +1464,9 @@ void LX200_OnStep::OSUpdateFocuser()
 {
 	char value[10];
 	int current = 0;
+	if (OSFocuser1) {
 	// Alternate option:
-	//if (OSFocuser1) {
-	if (!sendOnStepCommand(":FA#")) {
+	//if (!sendOnStepCommand(":FA#")) {
 		getCommandString(PortFD, value, ":FG#");
 		FocusAbsPosN[0].value =  atoi(value);
 		current = FocusAbsPosN[0].value;
