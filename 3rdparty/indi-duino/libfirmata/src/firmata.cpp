@@ -18,12 +18,18 @@ int debug = 0;
 
 Firmata::Firmata()
 {
-    init("/dev/ttyACM0");
+    init("/dev/ttyACM0", FIRMATA_DEFAULT_BAUD);
 }
 
 Firmata::Firmata(const char *_serialPort)
 {
-    init(_serialPort);
+    init(_serialPort, FIRMATA_DEFAULT_BAUD);
+}
+
+
+Firmata::Firmata(const char *_serialPort, uint32_t baud)
+{
+    init(_serialPort, baud);
 }
 
 Firmata::~Firmata()
@@ -218,11 +224,11 @@ int Firmata::sendStringData(char *data)
     return (rv);
 }
 
-int Firmata::init(const char *_serialPort)
+int Firmata::init(const char *_serialPort, uint32_t baud)
 {
     arduino  = new Arduino();
     portOpen = 0;
-    if (arduino->openPort(_serialPort, FIRMATA_DEFAULT_BAUD) != 0)
+    if (arduino->openPort(_serialPort, baud) != 0)
     {
         if (debug)
             fprintf(stderr, "sf->openPort(%s) failed: exiting\n", _serialPort);
