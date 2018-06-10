@@ -1031,7 +1031,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     if (strstr(OSStat,"n") && strstr(OSStat,"N")) {IUSaveText(&OnstepStat[1],"Tracking Off"); }
     if (strstr(OSStat,"n") && !strstr(OSStat,"N"))
     {
-        IUSaveText(&OnstepStat[1],"Sleewing");
+        IUSaveText(&OnstepStat[1],"Slewing");
         TrackState=SCOPE_SLEWING;
     }
     if (strstr(OSStat,"N") && !strstr(OSStat,"n"))
