@@ -546,3 +546,10 @@ bool MeridianLimits::checkLimits(unsigned long ra_motor_step, INDI::Telescope::T
 
     return (abortscope);
 }
+
+bool MeridianLimits::IsLimitedSlewOn()
+{
+    ISwitch *swabortslew  = IUFindSwitch(MeridianLimitsOnLimitSP, "MERIDIAN_LIMITS_ON_LIMIT_SLEW");
+
+    return (swabortslew->s == ISS_ON);
+}

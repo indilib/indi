@@ -72,4 +72,6 @@ class HorizonLimits
     virtual bool inLimits(double az, double alt);
     virtual bool inGotoLimits(double az, double alt);
     virtual bool checkLimits(double az, double alt, INDI::Telescope::TelescopeStatus status, bool ingoto);
+    
+    virtual bool IsLimitedSlewOn();
 };

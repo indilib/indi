@@ -3247,37 +3247,40 @@ bool EQMod::IsMountInNorthHemisphere()
     return (Hemisphere == NORTH);
 }
 
-bool EQMod::IsCurrentPosInLimit()     //return true if in limits.
+bool EQMod::IsCurrentPosInLimit()  //return true if in limits.
 {
-    if (meridian)
+    if (!meridian || !horizon)  //Error in limit checking module itself, return true to avoid dangerous situation.
+        return true;
+
+    if (meridian->IsLimitedSlewOn())
     {
         if (!(meridian->inLimits(mount->GetRAEncoder())))
             return true;
     }
 
-    double juliandate;
-    double lst;
-    struct ln_equ_posn steq;
-    struct ln_hrz_posn staz;
-    double current_az;
-    double current_alt;
-
-    juliandate = getJulianDate();
-    lst        = getLst(juliandate, getLongitude());
-
-    steq.ra  = (currentRA * 360.0) / 24.0;
-    steq.dec = currentDEC;
-
-    /* uses sidereal time, not local sidereal time */
-    /*ln_get_hrz_from_equ_sidereal_time(&lnradec, &lnobserver, lst, &lnaltaz);*/
-    ln_get_hrz_from_equ(&steq, &lnobserver, juliandate, &staz);
-
-    /* libnova measures azimuth from south towards west */
-    current_az  = range360(staz.az + 180);
-    current_alt = staz.alt;
-
-    if (horizon)
+    if (horizon->IsLimitedSlewOn())
     {
+        double juliandate;
+        double lst;
+        struct ln_equ_posn steq;
+        struct ln_hrz_posn staz;
+        double current_az;
+        double current_alt;
+
+        juliandate = getJulianDate();
+        lst        = getLst(juliandate, getLongitude());
+
+        steq.ra  = (currentRA * 360.0) / 24.0;
+        steq.dec = currentDEC;
+
+        /* uses sidereal time, not local sidereal time */
+        /*ln_get_hrz_from_equ_sidereal_time(&lnradec, &lnobserver, lst, &lnaltaz);*/
+        ln_get_hrz_from_equ(&steq, &lnobserver, juliandate, &staz);
+
+        /* libnova measures azimuth from south towards west */
+        current_az  = range360(staz.az + 180);
+        current_alt = staz.alt;
+
         if (!(horizon->inLimits(current_az, current_alt)))
             return true;
     }

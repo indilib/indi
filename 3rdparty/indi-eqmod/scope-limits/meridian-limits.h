@@ -66,4 +66,6 @@ class MeridianLimits
 
     virtual bool inLimits(unsigned long ra_motor_step);
     virtual bool checkLimits(unsigned long ra_motor_step, INDI::Telescope::TelescopeStatus status);
+
+    virtual bool IsLimitedSlewOn();
 };

@@ -564,9 +564,11 @@ bool HorizonLimits::checkLimits(double az, double alt, INDI::Telescope::Telescop
     ISwitch *swaborttrack = IUFindSwitch(HorizonLimitsOnLimitSP, "HORIZONLIMITSONLIMITTRACK");
     ISwitch *swabortslew  = IUFindSwitch(HorizonLimitsOnLimitSP, "HORIZONLIMITSONLIMITSLEW");
     ISwitch *swabortgoto  = IUFindSwitch(HorizonLimitsOnLimitSP, "HORIZONLIMITSONLIMITGOTO");
+
     if (!(inLimits(az, alt)))
     {
         abortmsg = "Nothing to abort.";
+
         if ((status == INDI::Telescope::SCOPE_TRACKING) && (swaborttrack->s == ISS_ON))
         {
             abortmsg   = "Abort Tracking.";
@@ -582,7 +584,16 @@ bool HorizonLimits::checkLimits(double az, double alt, INDI::Telescope::Telescop
             abortmsg   = "Abort Goto.";
             abortscope = true;
         }
+
         LOGF_WARN("Horizon Limits: Scope outside limits. %s", abortmsg);
     }
+
     return (abortscope);
+}
+
+bool HorizonLimits::IsLimitedSlewOn()
+{
+    ISwitch *swabortslew  = IUFindSwitch(HorizonLimitsOnLimitSP, "HORIZONLIMITSONLIMITSLEW");
+
+    return (swabortslew->s == ISS_ON);
 }
