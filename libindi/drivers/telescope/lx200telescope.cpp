@@ -688,7 +688,7 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
         {
          LOGF_DEBUG("Trying to set track freq of: %04.1f", values[0]);
          if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
-	    {
+		{
 		    if (!isSimulation() && setPreciseTrackFreq(PortFD, values[0]) < 0)
 		    {
 			TrackingFreqNP.s = IPS_ALERT;
@@ -698,8 +698,8 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
 		    TrackingFreqNP.s           = IPS_OK;
 		    TrackingFreqNP.np[0].value = values[0];
 		    IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %8.5f", values[0]);
-	    	    } else
-		    { if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
+		} else { //Normal Tracking Frequency
+			if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
 
 		    LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
 		    if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)

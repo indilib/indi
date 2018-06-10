@@ -119,6 +119,12 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&TrackCompS[1], "2", "Refraction", ISS_OFF);
     IUFillSwitch(&TrackCompS[2], "3", "Off", ISS_OFF);
     IUFillSwitchVector(&TrackCompSP, TrackCompS, 3, getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
+    IUFillSwitch(&FrequencyAdjustS[0], "1", "Freqency -", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[1], "2", "Freqency +", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidreal Frequency", ISS_OFF);
+    IUFillSwitchVector(&FrequencyAdjustSP, FrequencyAdjustS, 3, getDeviceName(), "FrequencyAdjust", "Frequency Adjust", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
 
     // ============== SITE_MANAGEMENT_TAB
     IUFillSwitch(&SetHomeS[0], "COLD_START", "Cold Start", ISS_OFF);
@@ -129,14 +135,11 @@ bool LX200_OnStep::initProperties()
 
     // ============== FOCUSER_TAB
     // Focuser 1
-    IUFillSwitch(&OSFocus1MotionS[2], "Focus1_Stop", "Stop", ISS_OFF);
-    IUFillSwitchVector(&OSFocus1MotionSP, OSFocus1MotionS, 3, getDeviceName(), "Foc1Mot", "Foc 1 Motion", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    //TODO: Rename
-    IUFillSwitch(&OSFocus1RateS[0], "Focus1_0", "Zero", ISS_OFF);
-    IUFillSwitch(&OSFocus1RateS[1], "Focus1_2", "Mid", ISS_OFF);
-//     IUFillSwitch(&OSFocus1RateS[2], "Focus1_3", "max", ISS_OFF);
-    IUFillSwitchVector(&OSFocus1RateSP, OSFocus1RateS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitch(&OSFocus1InitializeS[0], "Focus1_0", "Zero", ISS_OFF);
+    IUFillSwitch(&OSFocus1InitializeS[1], "Focus1_2", "Mid", ISS_OFF);
+//     IUFillSwitch(&OSFocus1InitializeS[2], "Focus1_3", "max", ISS_OFF);
+    IUFillSwitchVector(&OSFocus1InitializeSP, OSFocus1InitializeS, 2, getDeviceName(), "Foc1Rate", "Initialize", FOCUS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     
     // Focuser 2
@@ -239,6 +242,7 @@ bool LX200_OnStep::updateProperties()
         defineNumber(&MaxSlewRateNP);
         defineSwitch(&TrackCompSP);
         defineNumber(&BacklashNP);
+	defineSwitch(&FrequencyAdjustSP);
 
         // Site Management
         defineSwitch(&ParkOptionSP);
@@ -250,16 +254,11 @@ bool LX200_OnStep::updateProperties()
 
         // Focuser 1
 
-//         if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
-//         {
+         if (!sendOnStepCommand(":FA#"))  // do we have a Focuser 1
+         {
             OSFocuser1 = true;
-            //defineSwitch(&OSFocus1SelSP);
-//             defineSwitch(&OSFocus1MotionSP);
-            defineSwitch(&OSFocus1RateSP);
-//             defineNumber(&OSFocus1TargNP);
-// 	    defineNumber(&OSFocus1TargRelNP);
-
-//         }
+            defineSwitch(&OSFocus1InitializeSP);
+         }
         // Focuser 2
         if (!sendOnStepCommand(":fA#"))  // Do we have a Focuser 2
         {
@@ -323,6 +322,8 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(TrackCompSP.name);
         deleteProperty(BacklashNP.name);
+	deleteProperty(FrequencyAdjustSP.name);
+	
 
         // Site Management
         deleteProperty(ParkOptionSP.name);
@@ -331,11 +332,8 @@ bool LX200_OnStep::updateProperties()
 
         // Focuser
         // Focuser 1
-        //deleteProperty(OSFocus1SelSP.name);
-        deleteProperty(OSFocus1MotionSP.name);
-        deleteProperty(OSFocus1RateSP.name);
-        deleteProperty(OSFocus1TargNP.name);
-	deleteProperty(OSFocus1TargRelNP.name);
+        deleteProperty(OSFocus1InitializeSP.name);
+	
         // Focuser 2
         //deleteProperty(OSFocus2SelSP.name);
         deleteProperty(OSFocus2MotionSP.name);
@@ -517,46 +515,8 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
     }
 
     // Focuser
-    // Focuser 1 Target Absolute
-    if (!strcmp(name, OSFocus1TargNP.name))
-    {
-	    char cmd[32];
-	    
-	    if ((values[0] >= -25000) && (values[0] <= 25000))
-	    {
-		    snprintf(cmd, 15, ":FR%d#", (int)values[0]);
-		    sendOnStepCommandBlind(cmd);
-		    OSFocus1TargNP.s           = IPS_OK;
-		    IDSetNumber(&OSFocus1TargNP, "Focuser 1 position (absolute) moved by %d", (int)values[0]);
-		    OSUpdateFocuser();
-	    }
-	    else
-	    {
-		    OSFocus1TargNP.s = IPS_ALERT;
-		    IDSetNumber(&OSFocus1TargNP, "Setting MFocuser 1 position (absolute) Failed");
-	    }
-	    return true;
-    }
-    // Focuser 1 Target Relative
-    if (!strcmp(name, OSFocus1TargRelNP.name))
-    {
-        char cmd[32];
+    // Focuser 1 Now handled by Focusr Interface
 
-        if ((values[0] >= -5000) && (values[0] <= 5000))
-        {
-            snprintf(cmd, 15, ":FR%d#", (int)values[0]);
-            sendOnStepCommandBlind(cmd);
-            OSFocus1TargRelNP.s           = IPS_OK;
-            IDSetNumber(&OSFocus1TargRelNP, "Focuser 1 position (relative) moved by %d", (int)values[0]);
-	    OSUpdateFocuser();
-        }
-        else
-        {
-            OSFocus1TargRelNP.s = IPS_ALERT;
-	    IDSetNumber(&OSFocus1TargRelNP, "Setting Focuser 1 position (relative) Failed");
-        }
-        return true;
-    }
     // Focuser 2 Target
     if (!strcmp(name, OSFocus2TargNP.name))
     {
@@ -711,34 +671,66 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&TrackCompSP, nullptr);
             return true;
         }
-
+        
+        
+        if (!strcmp(name, FrequencyAdjustSP.name))      // 
+		
+	//
+	{
+		IUUpdateSwitch(&FrequencyAdjustSP, states, names, n);
+		FrequencyAdjustSP.s = IPS_OK;
+		
+		if (FrequencyAdjustS[0].s == ISS_ON)
+		{
+			if (!sendOnStepCommandBlind(":T-#"))
+			{
+				IDSetSwitch(&FrequencyAdjustSP, "Frequency decreased");
+				return true;
+			}
+		}
+		if (FrequencyAdjustS[1].s == ISS_ON)
+		{
+			if (!sendOnStepCommandBlind(":T+#"))
+			{
+				IDSetSwitch(&FrequencyAdjustSP, "Frequency increased");
+				return true;
+			}
+		}
+		if (FrequencyAdjustS[2].s == ISS_ON)
+		{
+			if (!sendOnStepCommandBlind(":TR#"))
+			{
+				IDSetSwitch(&FrequencyAdjustSP, "Frequency Reset (TO saved EEPROM)");
+				return true;
+			}
+		}
+		IUResetSwitch(&FrequencyAdjustSP);
+		FrequencyAdjustSP.s = IPS_IDLE;
+		IDSetSwitch(&FrequencyAdjustSP, nullptr);
+		return true;
+	}
         // Focuser
         // Focuser 1 Rates
-        if (!strcmp(name, OSFocus1RateSP.name))
+        if (!strcmp(name, OSFocus1InitializeSP.name))
         {
             char cmd[32];
-
-            if (IUUpdateSwitch(&OSFocus1RateSP, states, names, n) < 0)
+            if (IUUpdateSwitch(&OSFocus1InitializeSP, states, names, n) < 0)
                 return false;
-
-            index = IUFindOnSwitchIndex(&OSFocus1RateSP);
-
-	    //TODO Rename
+            index = IUFindOnSwitchIndex(&OSFocus1InitializeSP);
             if (index == 0) {
 		snprintf(cmd, 5, ":FZ#");
 		sendOnStepCommandBlind(cmd);
-		OSFocus1RateS[index].s=ISS_OFF;
-		OSFocus1RateSP.s = IPS_OK;
-		IDSetSwitch(&OSFocus1RateSP, nullptr);    
+		OSFocus1InitializeS[index].s=ISS_OFF;
+		OSFocus1InitializeSP.s = IPS_OK;
+		IDSetSwitch(&OSFocus1InitializeSP, nullptr);    
 	    }
 	    if (index == 1) {
 		    snprintf(cmd, 5, ":FH#");
 		    sendOnStepCommandBlind(cmd);
-		    OSFocus1RateS[index].s=ISS_OFF;
-		    OSFocus1RateSP.s = IPS_OK;
-		    IDSetSwitch(&OSFocus1RateSP, nullptr);
+		    OSFocus1InitializeS[index].s=ISS_OFF;
+		    OSFocus1InitializeSP.s = IPS_OK;
+		    IDSetSwitch(&OSFocus1InitializeSP, nullptr);
 	    }
-	    // End TODO: Rename
         }
 
         // Focuser 2 Rates
@@ -1421,6 +1413,7 @@ AbortFocuser all focus motion. More...
 
 IPState LX200_OnStep::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
+	INDI_UNUSED(speed);
 	//  :FRsnnn#  Set focuser target position relative (in microns)
 	//            Returns: Nothing
 	double output;
@@ -1428,21 +1421,24 @@ IPState LX200_OnStep::MoveFocuser(FocusDirection dir, int speed, uint16_t durati
 	output = duration;
 	if (dir == FOCUS_INWARD) output = 0-output; 
 	snprintf(read_buffer, sizeof(read_buffer), ":FR%5f#", output);
-	
 	sendOnStepCommandBlind(read_buffer);
 	return IPS_BUSY; // Normal case, should be set to normal by update. 
-
 }
 
 IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
 	//  :FSsnnn#  Set focuser target position (in microns)
 	//            Returns: Nothing
-//TODO: Bounds Checking using FI and FM! 
-	char read_buffer[32];
-	snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", targetTicks);
-	
-	sendOnStepCommandBlind(read_buffer);
-	return IPS_BUSY; // Normal case, should be set to normal by update. 
+	if (FocusAbsPosN[0].max >= targetTicks && FocusAbsPosN[0].min <= targetTicks) {
+		char read_buffer[32];
+		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", targetTicks);
+		sendOnStepCommandBlind(read_buffer);
+		return IPS_BUSY; // Normal case, should be set to normal by update. 
+	} else {
+		//Out of bounds as reported by OnStep
+		LOG_ERROR("Focuser value outside of limit");
+		LOGF_ERROR("Requested: %d min: %d max: %d", targetTicks, FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+		return IPS_ALERT; 
+	}
 }
 IPState LX200_OnStep::MoveRelFocuser (FocusDirection dir, uint32_t ticks) {
 	//  :FRsnnn#  Set focuser target position relative (in microns)
@@ -1452,7 +1448,6 @@ IPState LX200_OnStep::MoveRelFocuser (FocusDirection dir, uint32_t ticks) {
 	output = ticks;
 	if (dir == FOCUS_INWARD) output = 0-ticks; 
 	snprintf(read_buffer, sizeof(read_buffer), ":FR%04d#", output);
-	
 	sendOnStepCommandBlind(read_buffer);
 	return IPS_BUSY; // Normal case, should be set to normal by update. 
 }
@@ -1468,43 +1463,49 @@ bool LX200_OnStep::AbortFocuser () {
 void LX200_OnStep::OSUpdateFocuser()
 {
 	char value[10];
-	getCommandString(PortFD, value, ":FG#");
-	FocusAbsPosN[0].value =  atoi(value);
-	IDSetNumber(&FocusAbsPosNP, nullptr);
-	//  :FT#  get status
-	//         Returns: M# (for moving) or S# (for stopped)
-	getCommandString(PortFD, value, ":FT#");
-	if (value[0] == 'S') {
-		FocusRelPosNP.s = IPS_OK;
-		IDSetNumber(&FocusRelPosNP, nullptr);
-		FocusAbsPosNP.s = IPS_OK;
+	int current = 0;
+	if (OSFocuser1) {
+	// Alternate option:
+	//if (!sendOnStepCommand(":FA#")) {
+		getCommandString(PortFD, value, ":FG#");
+		FocusAbsPosN[0].value =  atoi(value);
+		current = FocusAbsPosN[0].value;
+		LOGF_DEBUG("Current focurser: %d, %d", atoi(value), FocusAbsPosN[0].value);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
-	} else if (value[0] == 'M') {
-		FocusRelPosNP.s = IPS_BUSY;
-		IDSetNumber(&FocusRelPosNP, nullptr);
-		FocusAbsPosNP.s = IPS_BUSY;
+		//  :FT#  get status
+		//         Returns: M# (for moving) or S# (for stopped)
+		getCommandString(PortFD, value, ":FT#");
+		if (value[0] == 'S') {
+			FocusRelPosNP.s = IPS_OK;
+			IDSetNumber(&FocusRelPosNP, nullptr);
+			FocusAbsPosNP.s = IPS_OK;
+			IDSetNumber(&FocusAbsPosNP, nullptr);
+		} else if (value[0] == 'M') {
+			FocusRelPosNP.s = IPS_BUSY;
+			IDSetNumber(&FocusRelPosNP, nullptr);
+			FocusAbsPosNP.s = IPS_BUSY;
+			IDSetNumber(&FocusAbsPosNP, nullptr);
+		} else { //INVALID REPLY
+			FocusRelPosNP.s = IPS_ALERT;
+			IDSetNumber(&FocusRelPosNP, nullptr);
+			FocusAbsPosNP.s = IPS_ALERT;
+			IDSetNumber(&FocusAbsPosNP, nullptr);
+		}
+		//  :FM#  Get max position (in microns)
+		//         Returns: n#
+		getCommandString(PortFD, value, ":FM#");
+		FocusAbsPosN[0].max   = atoi(value);
+		IUUpdateMinMax(&FocusAbsPosNP);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
-	} else { //INVALID REPLY
-		FocusRelPosNP.s = IPS_ALERT;
-		IDSetNumber(&FocusRelPosNP, nullptr);
-		FocusAbsPosNP.s = IPS_ALERT;
+		//  :FI#  Get full in position (in microns)
+		//         Returns: n#
+		getCommandString(PortFD, value, ":FI#");
+		FocusAbsPosN[0].min =  atoi(value);
+		IUUpdateMinMax(&FocusAbsPosNP);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
-	}
+		FI::updateProperties();
+	} 
 	
-	//  :FM#  Get max position (in microns)
-	//         Returns: n#
-	
-	getCommandString(PortFD, value, ":FM#");
-	FocusAbsPosN[0].max   = atoi(value);
-	IUUpdateMinMax(&FocusAbsPosNP);
-	IDSetNumber(&FocusAbsPosNP, nullptr);
-	//  :FI#  Get full in position (in microns)
-	//         Returns: n#
-	getCommandString(PortFD, value, ":FI#");
-	FocusAbsPosN[0].min =  atoi(value);
-	IUUpdateMinMax(&FocusAbsPosNP);
-	IDSetNumber(&FocusAbsPosNP, nullptr);
-	FI::updateProperties();
 
 	if(OSFocuser2)
 	{
