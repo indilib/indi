@@ -1596,7 +1596,7 @@ bool SkywatcherAPIMount::updateProperties()
     }
 }
 
-IPState SkywatcherAPIMount::GuideNorth(float ms)
+IPState SkywatcherAPIMount::GuideNorth(uint32_t ms)
 {
     GuidingPulse Pulse;
 
@@ -1612,7 +1612,7 @@ IPState SkywatcherAPIMount::GuideNorth(float ms)
     return IPS_OK;
 }
 
-IPState SkywatcherAPIMount::GuideSouth(float ms)
+IPState SkywatcherAPIMount::GuideSouth(uint32_t ms)
 {
     GuidingPulse Pulse;
 
@@ -1628,7 +1628,7 @@ IPState SkywatcherAPIMount::GuideSouth(float ms)
     return IPS_OK;
 }
 
-IPState SkywatcherAPIMount::GuideWest(float ms)
+IPState SkywatcherAPIMount::GuideWest(uint32_t ms)
 {
     GuidingPulse Pulse;
 
@@ -1644,7 +1644,7 @@ IPState SkywatcherAPIMount::GuideWest(float ms)
     return IPS_OK;
 }
 
-IPState SkywatcherAPIMount::GuideEast(float ms)
+IPState SkywatcherAPIMount::GuideEast(uint32_t ms)
 {
     GuidingPulse Pulse;
 

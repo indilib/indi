@@ -8,12 +8,6 @@ On
     </defSwitch>
 </defSwitchVector>
 
-<defTextVector device="Arduino Servo" name="DEVICE_PORT" label="SERIAL" group="Main Control" state="Idle" perm="rw" timeout="0">
-    <defText name="PORT" label="Port">
-/dev/ttyACM0
-    </defText>
-</defTextVector>
-
 <defNumberVector device="Arduino Servo" name="SERVO3" label="SERVO3" group="Main Control" state="Idle" perm="rw" timeout="0">
     <defNumber name="Servo3" label="Servo3" format="%4.0f" min="0" max="255" step="1">
     <indiduino pin="3" type="servo"/>

@@ -62,7 +62,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
   public:
     explicit GPhotoCCD();
     explicit GPhotoCCD(const char *model, const char *port);
-    virtual ~GPhotoCCD();
+    virtual ~GPhotoCCD() override;
 
     const char *getDefaultName() override;
 
@@ -137,6 +137,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     char *on_off[2];
     int timerID;
     bool frameInitialized;
+    bool isTemperatureSupported { false };
 
     int liveVideoWidth  {-1};
     int liveVideoHeight {-1};

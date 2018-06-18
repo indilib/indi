@@ -190,7 +190,12 @@ void GPSNMEA::parseNEMA()
         if (tty_rc < 0)
         {
             if (tty_rc == TTY_OVERFLOW)
-                continue;
+            {
+                LOG_WARN("Overflow detected. Possible remote GPS disconnection. Disconnecting driver...");
+                INDI::GPS::setConnected(false);
+                updateProperties();
+                break;
+            }
             else
             {
                 char errmsg[MAXRBUF];

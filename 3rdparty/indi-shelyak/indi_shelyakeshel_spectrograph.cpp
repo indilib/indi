@@ -184,7 +184,7 @@ bool ShelyakEshel::ISNewSwitch(const char *dev, const char *name, ISState *state
                 }
             }
             IUUpdateSwitch(&LampSP, states, names, n); // update lamps
-            IDSetSwitch(&LampSP, NULL);                // tell clients to update
+            IDSetSwitch(&LampSP, nullptr);                // tell clients to update
             return true;
         }
         else
@@ -200,7 +200,7 @@ bool ShelyakEshel::ISNewSwitch(const char *dev, const char *name, ISState *state
                 if (!rc)
                     MirrorSP.s = IPS_ALERT;
             }
-            IDSetSwitch(&MirrorSP, NULL); // tell clients to update
+            IDSetSwitch(&MirrorSP, nullptr); // tell clients to update
             return true;
         }
     }
@@ -217,7 +217,7 @@ bool ShelyakEshel::ISNewText(const char *dev, const char *name, char *texts[], c
         {
             IUUpdateText(&PortTP, texts, names, n); // update port
             PortTP.s = IPS_OK;                      // set state to ok
-            IDSetText(&PortTP, NULL);               // tell clients to update the port
+            IDSetText(&PortTP, nullptr);               // tell clients to update the port
             return true;
         }
     }

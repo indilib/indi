@@ -97,7 +97,7 @@ bool StreamManager::initProperties()
     IUFillNumberVector(&StreamOptionsNP, StreamOptionsN, NARRAY(StreamOptionsN), getDeviceName(), "STREAM_OPTIONS",
                        "Settings", STREAM_TAB, IP_RW, 60, IPS_IDLE);*/
 
-    IUFillNumber(&StreamExposureN[0], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%5.2f", 0.001, 10, 0.1, 0.1);
+    IUFillNumber(&StreamExposureN[0], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
     IUFillNumberVector(&StreamExposureNP, StreamExposureN, 1, getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
@@ -404,12 +404,16 @@ bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelD
     bool recorderOK = recorder->setPixelFormat(pixelFormat, pixelDepth);
     if (recorderOK == false)
     {
-        LOGF_ERROR("Pixel format is not supported by %s recorder.", recorder->getName());
+        LOGF_ERROR("Pixel format %d is not supported by %s recorder.", pixelFormat, recorder->getName());
+    } else {
+	    LOGF_DEBUG("Pixel format %d is supported by %s recorder.", pixelFormat, recorder->getName()); 
     }
     bool encoderOK = encoder->setPixelFormat(pixelFormat, pixelDepth);
     if (encoderOK == false)
     {
-        LOGF_ERROR("Pixel format is not supported by %s encoder.", encoder->getName());
+        LOGF_ERROR("Pixel format %d is not supported by %s encoder.", pixelFormat, encoder->getName());
+    } else {
+	LOGF_DEBUG("Pixel format %d is supported by %s encoder.", pixelFormat, encoder->getName());
     }
 
     m_PixelFormat = pixelFormat;

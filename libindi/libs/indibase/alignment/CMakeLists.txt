@@ -54,7 +54,7 @@ ELSE ()
 ENDIF ()
 
 if (INDI_BUILD_QT5)
-qt5_use_modules(AlignmentDriver Network)
+    target_link_libraries(AlignmentDriver Qt5::Network)
 endif(INDI_BUILD_QT5)
 
 set_target_properties(AlignmentDriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indiAlignmentDriver)
@@ -80,7 +80,7 @@ set (AlignmentClient_SRCS
 add_library(AlignmentClient STATIC ${AlignmentClient_SRCS})
 
 if (INDI_BUILD_QT5)
-qt5_use_modules(AlignmentClient Network)
+    target_link_libraries(AlignmentClient Qt5::Network)
 endif(INDI_BUILD_QT5)
 if (NOT CYGWIN AND NOT WIN32)
 SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")

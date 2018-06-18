@@ -57,10 +57,10 @@ class GenericCCD : public INDI::CCD
     virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType);
 
     // Guide Port
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
+    virtual IPState GuideNorth(uint32_t ms);
+    virtual IPState GuideSouth(uint32_t ms);
+    virtual IPState GuideEast(uint32_t ms);
+    virtual IPState GuideWest(uint32_t ms);
 
   private:
     DEVICE device;

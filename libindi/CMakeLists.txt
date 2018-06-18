@@ -46,7 +46,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 7)
-set(CMAKE_INDI_VERSION_RELEASE 2)
+set(CMAKE_INDI_VERSION_RELEASE 3)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -201,7 +201,7 @@ if (ANDROID)
         set(CFITSIO_LIBRARIES ${CFITSIO_DIR}/libcfitsio.a)
     endif ()
 else ()
-    find_package(Qt5Network)
+    find_package(Qt5Network REQUIRED)
     find_package(ZLIB REQUIRED)
     find_package(CFITSIO REQUIRED)
 endif ()
@@ -233,7 +233,7 @@ add_library(indiclientqt STATIC ${indiclientqt_C_SRC} ${indiclientqt_CXX_SRC})
 if (NOT CYGWIN AND NOT WIN32)
 set_target_properties(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
 endif(NOT CYGWIN AND NOT WIN32)
-qt5_use_modules(indiclientqt Network)
+target_link_libraries(indiclientqt Qt5::Network)
 if (WIN32 OR ANDROID)
 install(TARGETS indiclientqt ARCHIVE DESTINATION lib)
 else(WIN32 OR ANDROID)
@@ -1084,6 +1084,18 @@ add_executable(indi_star2000 ${STAR2000_SRC})
 target_link_libraries(indi_star2000 indidriver)
 install(TARGETS indi_star2000 RUNTIME DESTINATION bin)
 
+########### Arduino ST4 Driver ###############
+
+SET(arduinost4_SRC ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/arduino_st4.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(arduinost4 arduinost4_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_arduinost4 ${arduinost4_SRC})
+target_link_libraries(indi_arduinost4 indidriver)
+install(TARGETS indi_arduinost4 RUNTIME DESTINATION bin)
+
 ########### GPUSB Driver ###############
 
 SET(gpusb_SRC
@@ -1138,6 +1150,15 @@ install(TARGETS indi_usbdewpoint RUNTIME DESTINATION bin)
 #####################################
 ########## WEATHER GROUP ############
 #####################################
+
+########### Weather Simulator ###############
+
+SET(weathersimulator_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weathersimulator.cpp)
+
+add_executable(indi_simulator_weather ${weathersimulator_SRC})
+target_link_libraries(indi_simulator_weather indidriver)
+install(TARGETS indi_simulator_weather RUNTIME DESTINATION bin )
 
 ########### Weather Meta Driver ###############
 

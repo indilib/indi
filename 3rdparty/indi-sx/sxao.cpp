@@ -217,7 +217,7 @@ bool SXAO::ISNewNumber(const char *dev, const char *name, double values[], char 
     {
         AONSNP.s = IPS_BUSY;
         IUUpdateNumber(&AONSNP, values, names, n);
-        IDSetNumber(&AONSNP, NULL);
+        IDSetNumber(&AONSNP, nullptr);
         if (AONS[0].value != 0)
         {
             AONSNP.s      = AONorth(AONS[0].value) ? IPS_OK : IPS_ALERT;
@@ -228,7 +228,7 @@ bool SXAO::ISNewNumber(const char *dev, const char *name, double values[], char 
             AONSNP.s      = AOSouth(AONS[1].value) ? IPS_OK : IPS_ALERT;
             AONS[1].value = 0;
         }
-        IDSetNumber(&AONSNP, NULL);
+        IDSetNumber(&AONSNP, nullptr);
         CheckLimit(false);
         return true;
     }
@@ -236,7 +236,7 @@ bool SXAO::ISNewNumber(const char *dev, const char *name, double values[], char 
     {
         AOWENP.s = IPS_BUSY;
         IUUpdateNumber(&AOWENP, values, names, n);
-        IDSetNumber(&AOWENP, NULL);
+        IDSetNumber(&AOWENP, nullptr);
         if (AOWE[0].value != 0)
         {
             AOWENP.s      = AOEast(AOWE[0].value) ? IPS_OK : IPS_ALERT;
@@ -247,7 +247,7 @@ bool SXAO::ISNewNumber(const char *dev, const char *name, double values[], char 
             AOWENP.s      = AOWest(AOWE[1].value) ? IPS_OK : IPS_ALERT;
             AOWE[1].value = 0;
         }
-        IDSetNumber(&AOWENP, NULL);
+        IDSetNumber(&AOWENP, nullptr);
         CheckLimit(false);
         return true;
     }
@@ -265,7 +265,7 @@ bool SXAO::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
     if (strcmp(name, "AO_CENTER") == 0)
     {
         CenterP.s = IPS_BUSY;
-        IDSetSwitch(&CenterP, NULL);
+        IDSetSwitch(&CenterP, nullptr);
         IUUpdateSwitch(&CenterP, states, names, n);
         if (Center[0].s == ISS_ON)
         {
@@ -278,7 +278,7 @@ bool SXAO::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             Center[1].s = ISS_OFF;
         }
         CenterP.s = IPS_OK;
-        IDSetSwitch(&CenterP, NULL);
+        IDSetSwitch(&CenterP, nullptr);
         CheckLimit(true);
         return true;
     }
@@ -286,7 +286,7 @@ bool SXAO::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
-IPState SXAO::GuideNorth(float ms)
+IPState SXAO::GuideNorth(uint32_t ms)
 {
     char buf[8];
     sprintf(buf, "MN%05d", (int)(ms / 10));
@@ -294,7 +294,7 @@ IPState SXAO::GuideNorth(float ms)
     return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
 
-IPState SXAO::GuideSouth(float ms)
+IPState SXAO::GuideSouth(uint32_t ms)
 {
     char buf[8];
     sprintf(buf, "MS%05d", (int)(ms / 10));
@@ -302,7 +302,7 @@ IPState SXAO::GuideSouth(float ms)
     return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
 
-IPState SXAO::GuideEast(float ms)
+IPState SXAO::GuideEast(uint32_t ms)
 {
     char buf[8];
     sprintf(buf, "MT%05d", (int)(ms / 10));
@@ -310,7 +310,7 @@ IPState SXAO::GuideEast(float ms)
     return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
 
-IPState SXAO::GuideWest(float ms)
+IPState SXAO::GuideWest(uint32_t ms)
 {
     char buf[8];
     sprintf(buf, "MW%05d", (int)(ms / 10));
@@ -382,7 +382,7 @@ void SXAO::CheckLimit(bool force)
             AtLimitL[2].s = (limit & 0x02) == 0x02 ? IPS_ALERT : IPS_IDLE;
             AtLimitL[3].s = (limit & 0x08) == 0x08 ? IPS_ALERT : IPS_IDLE;
             AtLimitLP.s   = (limit & 0x0F) ? IPS_ALERT : IPS_IDLE;
-            IDSetLight(&AtLimitLP, NULL);
+            IDSetLight(&AtLimitLP, nullptr);
             lastLimit = limit;
         }
     }

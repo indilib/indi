@@ -204,27 +204,27 @@ void SSAGCCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
     return INDI::CCD::addFITSKeywords(fptr, targetChip);
 }
 
-IPState SSAGCCD::GuideWest(float time)
+IPState SSAGCCD::GuideWest(uint32_t ms)
 {
-    ssag->Guide(OpenSSAG::guide_west, (int)time);
+    ssag->Guide(OpenSSAG::guide_west, ms);
     return IPS_OK;
 }
 
-IPState SSAGCCD::GuideEast(float time)
+IPState SSAGCCD::GuideEast(uint32_t ms)
 {
-    ssag->Guide(OpenSSAG::guide_east, (int)time);
+    ssag->Guide(OpenSSAG::guide_east, ms);
     return IPS_OK;
 }
 
-IPState SSAGCCD::GuideNorth(float time)
+IPState SSAGCCD::GuideNorth(uint32_t ms)
 {
-    ssag->Guide(OpenSSAG::guide_north, (int)time);
+    ssag->Guide(OpenSSAG::guide_north, ms);
     return IPS_OK;
 }
 
-IPState SSAGCCD::GuideSouth(float time)
+IPState SSAGCCD::GuideSouth(uint32_t ms)
 {
-    ssag->Guide(OpenSSAG::guide_south, (int)time);
+    ssag->Guide(OpenSSAG::guide_south, ms);
     return IPS_OK;
 }
 

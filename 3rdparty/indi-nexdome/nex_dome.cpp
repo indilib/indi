@@ -142,8 +142,8 @@ bool NexDome::SetupParms()
     DomeAbsPosN[0].value = 0;
 
 
-    IDSetNumber(&DomeAbsPosNP, NULL);
-    IDSetNumber(&DomeParamNP, NULL);
+    IDSetNumber(&DomeAbsPosNP, nullptr);
+    IDSetNumber(&DomeParamNP, nullptr);
 
     if (InitPark())
     {
@@ -305,7 +305,7 @@ bool NexDome::ISNewNumber(const char *dev,const char *name,double values[],char 
         p=values[0];
 	SyncPositionN[0].value=p;
 	SyncPositionNP.s=IPS_BUSY;
-	IDSetNumber(&SyncPositionNP,NULL);
+	IDSetNumber(&SyncPositionNP,nullptr);
         //fprintf(stderr,"Got a sync at %3.0f\n",p);
 	sprintf(buf,"s %4.1f\n",p);
 	WriteString(buf);
@@ -439,7 +439,7 @@ void NexDome::ProcessDomeMessage(char *buf)
         DomeAbsPosNP.s=IPS_ALERT;
         DomeMotionSP.s=IPS_ALERT;
       }
-      IDSetSwitch(&DomeMotionSP,NULL);
+      IDSetSwitch(&DomeMotionSP,nullptr);
       if(Calibrating) {
 	float delta;
 	time_t now;
@@ -458,7 +458,7 @@ void NexDome::ProcessDomeMessage(char *buf)
       DomeAbsPosNP.s=IPS_BUSY;
       if(HomeSP.s==IPS_OK) {
         HomeSP.s=IPS_IDLE;
-        IDSetSwitch(&HomeSP,NULL);
+        IDSetSwitch(&HomeSP,nullptr);
       }
     }
   }
@@ -467,7 +467,7 @@ void NexDome::ProcessDomeMessage(char *buf)
     float h;
     h=atof(&buf[1]);
     DomeAbsPosN[0].value=h;
-    IDSetNumber(&DomeAbsPosNP,NULL);
+    IDSetNumber(&DomeAbsPosNP,nullptr);
   }
   //  Home sensor
   if(buf[0]=='Z') {
@@ -487,7 +487,7 @@ void NexDome::ProcessDomeMessage(char *buf)
       if(HomeSP.s != IPS_IDLE) {
         if(MotorPower) HomeSP.s=IPS_IDLE;
         else HomeSP.s=IPS_ALERT;
-        IDSetSwitch(&HomeSP,NULL);
+        IDSetSwitch(&HomeSP,nullptr);
       }
     }
     if(t==-1) {
@@ -516,7 +516,7 @@ void NexDome::ProcessDomeMessage(char *buf)
         if(!MotorPower) {
           IDSetNumber(&BatteryLevelNP,"Motor is powered");
           //ParkSP.s=IPS_OK;
-	  //IDSetSwitch(&ParkSP,NULL);
+	  //IDSetSwitch(&ParkSP,nullptr);
         }
         MotorPower=true;
       } else {
@@ -524,16 +524,16 @@ void NexDome::ProcessDomeMessage(char *buf)
         if(MotorPower) IDSetNumber(&BatteryLevelNP,"Motor is NOT powered");
         MotorPower=false;
         DomeAbsPosNP.s=IPS_ALERT;
-        IDSetNumber(&DomeAbsPosNP,NULL);
+        IDSetNumber(&DomeAbsPosNP,nullptr);
  	//ParkSP.s=IPS_ALERT;
-	//IDSetSwitch(&ParkSP,NULL);
+	//IDSetSwitch(&ParkSP,nullptr);
 	HomeSP.s=IPS_ALERT;
-	IDSetSwitch(&HomeSP,NULL);
+	IDSetSwitch(&HomeSP,nullptr);
        
 
         BatteryLevelNP.s=IPS_ALERT;
       } 
-      IDSetNumber(&BatteryLevelNP,NULL);
+      IDSetNumber(&BatteryLevelNP,nullptr);
     }
     //fprintf(stderr,"Battery %d %d\n",b1,b2);
   }
@@ -774,7 +774,7 @@ IPState NexDome::MoveAbs(double az)
     WriteString(buf);
     
       DomeAbsPosNP.s=IPS_BUSY;
-      IDSetNumber(&DomeAbsPosNP,NULL);
+      IDSetNumber(&DomeAbsPosNP,nullptr);
 
     return IPS_BUSY;
 

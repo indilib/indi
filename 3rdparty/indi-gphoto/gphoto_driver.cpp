@@ -33,9 +33,72 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/ioctl.h> /* ioctl()*/
+#include <tiffio.h>
+#include <tiffio.hxx>
 
 static GPPortInfoList *portinfolist   = nullptr;
 static CameraAbilitiesList *abilities = nullptr;
+
+static const char *fallbackShutterSpeeds[] =
+{
+    "1/8000",
+    "1/6400",
+    "1/5000",
+    "1/4000",
+    "1/3200",
+    "1/2500",
+    "1/2000",
+    "1/1600",
+    "1/1250",
+    "1/1000",
+    "1/800",
+    "1/640",
+    "1/500",
+    "1/400",
+    "1/320",
+    "1/250",
+    "1/200",
+    "1/160",
+    "1/125",
+    "1/100",
+    "1/80",
+    "1/60",
+    "1/50",
+    "1/40",
+    "1/30",
+    "1/25",
+    "1/20",
+    "1/15",
+    "1/13",
+    "1/10",
+    "1/8",
+    "1/6",
+    "1/5",
+    "1/4",
+    "1/3",
+    "0.4",
+    "0.5",
+    "0.6",
+    "0.8",
+    "1",
+    "1.3",
+    "1.6",
+    "2",
+    "2.5",
+    "3.2",
+    "4",
+    "5",
+    "6",
+    "8",
+    "10",
+    "13",
+    "15",
+    "20",
+    "25",
+    "30",
+    "BULB"
+};
+
 
 struct _gphoto_widget_list
 {
@@ -83,6 +146,9 @@ struct _gphoto_driver
 
     char **exposure_presets;
     int exposure_presets_count;
+
+    bool supports_temperature;
+    int last_sensor_temp;
 
     DSUSBDriver *dsusb;
 
@@ -362,7 +428,7 @@ static void widget_free(gphoto_widget *widget)
     free(widget);
 }
 
-static double *parse_shutterspeed(gphoto_driver *gphoto, char **choices, int count)
+static double *parse_shutterspeed(gphoto_driver *gphoto, gphoto_widget *widget)
 {
     double *exposure, val;
     int i, num, denom;
@@ -370,37 +436,39 @@ static double *parse_shutterspeed(gphoto_driver *gphoto, char **choices, int cou
     double min_exposure         = 1e6;
     gphoto->bulb_exposure_index = -1;
 
-    if (count <= 0)
+    if (widget->choice_cnt <= 0)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d)",
-                     count);
-        return nullptr;
+        DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d). Using fallback speeds...",
+                     widget->choice_cnt);
+
+        widget->choices = const_cast<char **>(fallbackShutterSpeeds);
+        widget->choice_cnt = 56;
     }
 
-    if (count > 4)
+    if (widget->choice_cnt > 4)
     {
-        gphoto->exposure_presets       = choices;
-        gphoto->exposure_presets_count = count;
+        gphoto->exposure_presets       = widget->choices;
+        gphoto->exposure_presets_count = widget->choice_cnt;
     }
 
-    exposure = (double *)calloc(sizeof(double), count);
+    exposure = (double *)calloc(sizeof(double), widget->choice_cnt);
 
-    for (i = 0; i < count; i++)
+    for (i = 0; i < widget->choice_cnt; i++)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, choices[i]);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, widget->choices[i]);
 
-        if ((strncasecmp(choices[i], "bulb", 4) == 0) || (strcmp(choices[i], "65535/65535") == 0))
+        if ((strncasecmp(widget->choices[i], "bulb", 4) == 0) || (strcmp(widget->choices[i], "65535/65535") == 0))
         {
             exposure[i] = -1;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= BULB", i);
             gphoto->bulb_exposure_index = i;
         }
-        else if (sscanf(choices[i], "%d/%d", &num, &denom) == 2)
+        else if (sscanf(widget->choices[i], "%d/%d", &num, &denom) == 2)
         {
             exposure[i] = 1.0 * num / (double)denom;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
         }
-        else if ((val = strtod(choices[i], nullptr)))
+        else if ((val = strtod(widget->choices[i], nullptr)))
         {
             exposure[i] = val;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
@@ -578,6 +646,34 @@ void gphoto_set_upload_settings(gphoto_driver *gphoto, int setting)
     gphoto->upload_settings = setting;
 }
 
+// A memory buffer based IO stream, so libtiff can read from memory instead of file
+struct membuf : std::streambuf
+{
+    membuf(char *begin, char *end) : begin(begin), end(end)
+    {
+        this->setg(begin, begin, end);
+    }
+
+    virtual pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode /*which = std::ios_base::in*/) override
+    {
+        if(dir == std::ios_base::cur)
+            gbump(off);
+        else if(dir == std::ios_base::end)
+            setg(begin, end+off, end);
+        else if(dir == std::ios_base::beg)
+            setg(begin, begin+off, end);
+
+        return gptr() - eback();
+    }
+
+    virtual pos_type seekpos(std::streampos pos, std::ios_base::openmode mode) override
+    {
+        return seekoff(pos - pos_type(off_type(0)), std::ios_base::beg, mode);
+    }
+
+    char *begin, *end;
+};
+
 static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
 {
     int result=0;
@@ -637,6 +733,75 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Could not determine image size (%s)", gp_result_as_string(result));
     }
 
+    if(strstr(gphoto->manufacturer, "Canon"))
+    {
+        // Try to pull the camera temperature out of the EXIF data
+        const char *imgData;
+        unsigned long imgSize;
+        result = gp_file_get_data_and_size(gphoto->camerafile, &imgData, &imgSize);
+        if (result == GP_OK)
+        {
+            membuf sbuf((char *)imgData, (char *)imgData + imgSize);
+            std::istream is(&sbuf);
+            auto tiff = TIFFStreamOpen(fn->name, &is);
+            if (tiff)
+            {
+                toff_t exifoffset;
+                if (TIFFGetField (tiff, TIFFTAG_EXIFIFD, &exifoffset) && TIFFReadEXIFDirectory (tiff, exifoffset))
+                {
+                    uint32_t count;
+                    uint8_t* data;
+                    int ret = TIFFGetField(tiff, EXIFTAG_MAKERNOTE, &count, &data);
+                    if(ret != 0)
+                    {
+                        // Got the MakerNote EXIF data, now parse it out.  It's been reverse-engineered and documented at
+                        // https://sno.phy.queensu.ca/~phil/exiftool/TagNames/Canon.html
+                        struct IFDEntry
+                        {
+                            uint16_t	tag;
+                            uint16_t	type;
+                            uint32_t	count;
+                            uint32_t	offset;
+                        };
+
+                        // The TIFF library took care of handling byte-ordering for us until now.  But now that we're parsing
+                        // binary data directly, we need to remember to swap bytes when necessary.
+                        uint16_t numEntries = *(uint16_t*)data;
+                        if (TIFFIsByteSwapped(tiff)) TIFFSwabShort(&numEntries);
+                        IFDEntry* entries = (IFDEntry*) (data + sizeof(uint16_t));
+                        for (int i = 0; i < numEntries; i++)
+                        {
+                            IFDEntry* entry = &entries[i];
+                            uint16_t tag = entry->tag;
+                            if (TIFFIsByteSwapped(tiff)) TIFFSwabShort(&tag);
+                            if (tag == 4)
+                            {
+                                // Found the ShotInfo tag. Extract the CameraTemperature field
+                                uint32_t offset = entry->offset;
+                                if (TIFFIsByteSwapped(tiff)) TIFFSwabLong(&offset);
+                                uint16_t* shotInfo = (uint16_t*)(imgData + offset);
+                                uint16_t temperature = shotInfo[12];
+                                if (TIFFIsByteSwapped(tiff)) TIFFSwabShort(&temperature);
+
+                                // The temperature is offset by 0x80, so correct that
+                                gphoto->last_sensor_temp = (int)(temperature - 0x80);
+
+                                break;
+                            }
+                        }
+                    }
+                }
+                TIFFClose(tiff);
+            }
+            if (fd >= 0)
+            {
+                // The gphoto documentation says I don't need to do this,
+                // but reading the source of gp_file_get_data_and_size says otherwise. :(
+                free((void *)imgData);
+                imgData = nullptr;
+            }
+        }
+    }
     // For some reason Canon 20D fails when deleting here
     // so this hack is a workaround until a permement fix is found
     // JM 2017-05-17
@@ -666,6 +831,16 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
     }
 
     return GP_OK;
+}
+
+bool gphoto_supports_temperature(gphoto_driver *gphoto)
+{
+    return gphoto->supports_temperature;
+}
+
+int gphoto_get_last_sensor_temperature(gphoto_driver *gphoto)
+{
+    return gphoto->last_sensor_temp;
 }
 
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
@@ -870,8 +1045,13 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     // NOT using bulb mode so let's find an exposure time that would closely match the requested exposure time
     int idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec);
 
-    gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
+    if (idx >= 0)
+    {
+        gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
+    }
+    else
+        DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Could not find optimal exposure value from camera.");
 
     // Lock the mirror if required.
     if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock * 1000))
@@ -1258,6 +1438,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto->max_exposure           = 3600;
     gphoto->min_exposure           = 0.001;
     gphoto->dsusb                  = nullptr;
+    gphoto->last_sensor_temp       = -273; // 0 degrees Kelvin
 
     result = gp_camera_get_config(gphoto->camera, &gphoto->config, gphoto->context);
     if (result < GP_OK)
@@ -1282,13 +1463,15 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
         (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed")) ||
         (gphoto->exposure_widget = find_widget(gphoto, "eos-shutterspeed")))
     {
-        gphoto->exposure =
-            parse_shutterspeed(gphoto, gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
+        gphoto->exposure = parse_shutterspeed(gphoto, gphoto->exposure_widget);
     }
     else if ((gphoto->exposure_widget = find_widget(gphoto, "capturetarget")))
     {
-        const char *choices[2] = { "1/1", "bulb" };
-        gphoto->exposure       = parse_shutterspeed(gphoto, (char **)choices, 2);
+        gphoto_widget tempWidget;
+        const char *choices[2] = { "1/1", "bulb" };        
+        tempWidget.choice_cnt = 2;
+        tempWidget.choices = const_cast<char **>(choices);
+        gphoto->exposure       = parse_shutterspeed(gphoto, &tempWidget);
     }
     else
     {
@@ -1304,6 +1487,9 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
         show_widget(gphoto->exposure_widget, "\t\t");
 
     gphoto->format_widget   = find_widget(gphoto, "imageformat");
+    // JM 2018-05-03: Nikon defines it as 'imagequality'
+    if (gphoto->format_widget == nullptr)
+        gphoto->format_widget = find_widget(gphoto, "imagequality");
     gphoto->format          = -1;
     gphoto->manufacturer    = nullptr;
     gphoto->model           = nullptr;
@@ -1385,6 +1571,9 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     // Make sure manufacturer is set to something useful
     if (gphoto->manufacturer == nullptr)
         gphoto->manufacturer = gphoto->model;
+
+    if (strstr(gphoto->manufacturer, "Canon"))
+        gphoto->supports_temperature = true;
 
     // Check for user
     if (shutter_release_port)

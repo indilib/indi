@@ -795,28 +795,28 @@ bool ScopeSim::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     return true;
 }
 
-IPState ScopeSim::GuideNorth(float ms)
+IPState ScopeSim::GuideNorth(uint32_t ms)
 {
     guiderNSTarget[GUIDE_NORTH] = ms;
     guiderNSTarget[GUIDE_SOUTH] = 0;
     return IPS_BUSY;
 }
 
-IPState ScopeSim::GuideSouth(float ms)
+IPState ScopeSim::GuideSouth(uint32_t ms)
 {
     guiderNSTarget[GUIDE_SOUTH] = ms;
     guiderNSTarget[GUIDE_NORTH] = 0;
     return IPS_BUSY;
 }
 
-IPState ScopeSim::GuideEast(float ms)
+IPState ScopeSim::GuideEast(uint32_t ms)
 {
     guiderEWTarget[GUIDE_EAST] = ms;
     guiderEWTarget[GUIDE_WEST] = 0;
     return IPS_BUSY;
 }
 
-IPState ScopeSim::GuideWest(float ms)
+IPState ScopeSim::GuideWest(uint32_t ms)
 {
     guiderEWTarget[GUIDE_WEST] = ms;
     guiderEWTarget[GUIDE_EAST] = 0;

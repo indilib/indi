@@ -41,7 +41,7 @@ else (DC1394_INCLUDE_DIR AND DC1394_LIBRARIES)
     endif (NOT DC1394_FIND_QUIETLY)
   else (DC1394_FOUND)
     if (DC1394_FIND_REQUIRED)
-      message(FATAL_ERROR "DC1394 not found. Please install libdc1395")
+      message(FATAL_ERROR "DC1394 not found. Please install libdc1394 development package.")
     endif (DC1394_FIND_REQUIRED)
   endif (DC1394_FOUND)
 

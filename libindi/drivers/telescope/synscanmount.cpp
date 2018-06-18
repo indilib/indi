@@ -1116,56 +1116,80 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
 
 bool SynscanMount::Sync(double ra, double dec)
 {
+    /*
+     * Frank Liu, R&D Engineer for Skywatcher, says to only issue a Sync
+     * command, and not to use the Position Reset command, when syncing. I
+     * removed the position reset code for EQ mounts, but left it in for
+     * Alt/Az mounts, since it seems to be working, at least for the person
+     * (@kecsap) who put it in there in the first place. :)
+     *
+     * The code prior to kecsap's recent fix would always send a position
+     * reset command, but it would send Alt/Az coordinates, even to an EQ
+     * mount. This would really screw up EQ mount alignment.
+     *
+     * The reason a lone Sync command appeared to not work before, is because
+     * it will only accept a Sync command if the offset is relatively small,
+     * within 6-7 degrees or so. So you must already have done an alignment
+     * through the handset (a 1-star alignment would suffice), and only use
+     * the Sync command to "touch-up" the alignment. You can't take a scope,
+     * power it on, point it to a random place in the sky, do a plate-solve,
+     * and sync. That won't work.
+     */
+
     bool IsTrackingBeforeSync = (TrackState == SCOPE_TRACKING);
 
     // Abort any motion before syncing
     Abort();
 
     LOGF_INFO("Sync %g %g -> %g %g", CurrentRA, CurrentDEC, ra, dec);
-
     char str[20];
     int numread, bytesWritten, bytesRead;
-    ln_hrz_posn TargetAltAz { 0, 0 };
 
-    TargetAltAz = GetAltAzPosition(ra, dec);
-    if (isDebug())
+    // Alt/Az sync mode
+    if (MountCode >= 128)
     {
-        LOGF_INFO("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
-               TargetAltAz.az, TargetAltAz.alt);
-    } else {
-        LOGF_DEBUG("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
-               TargetAltAz.az, TargetAltAz.alt);
+        ln_hrz_posn TargetAltAz { 0, 0 };
+
+        TargetAltAz = GetAltAzPosition(ra, dec);
+        if (isDebug())
+        {
+            LOGF_INFO("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
+                      TargetAltAz.az, TargetAltAz.alt);
+        } else {
+            LOGF_DEBUG("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
+                       TargetAltAz.az, TargetAltAz.alt);
+        }
+        // Assemble the Reset Position command for Az axis
+        int Az = (int)(TargetAltAz.az*16777216 / 360);
+
+        str[0] = 'P';
+        str[1] = 4;
+        str[2] = 16;
+        str[3] = 4;
+        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Az / 65536);
+        Az -= (Az / 65536)*65536;
+        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Az / 256);
+        Az -= (Az / 256)*256;
+        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Az;
+        str[7] = 0;
+        tty_write(PortFD, str, 8, &bytesWritten);
+        numread = tty_read(PortFD, str, 1, 3, &bytesRead);
+        // Assemble the Reset Position command for Alt axis
+        int Alt = (int)(TargetAltAz.alt*16777216 / 360);
+
+        str[0] = 'P';
+        str[1] = 4;
+        str[2] = 17;
+        str[3] = 4;
+        *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Alt / 65536);
+        Alt -= (Alt / 65536)*65536;
+        *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Alt / 256);
+        Alt -= (Alt / 256)*256;
+        *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Alt;
+        str[7] = 0;
+        tty_write(PortFD, str, 8, &bytesWritten);
+        numread = tty_read(PortFD, str, 1, 2, &bytesRead);
     }
-    // Assemble the Reset Position command for Az axis
-    int Az = (int)(TargetAltAz.az*16777216 / 360);
-
-    str[0] = 'P';
-    str[1] = 4;
-    str[2] = 16;
-    str[3] = 4;
-    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Az / 65536);
-    Az -= (Az / 65536)*65536;
-    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Az / 256);
-    Az -= (Az / 256)*256;
-    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Az;
-    str[7] = 0;
-    tty_write(PortFD, str, 8, &bytesWritten);
-    numread = tty_read(PortFD, str, 1, 3, &bytesRead);
-    // Assemble the Reset Position command for Alt axis
-    int Alt = (int)(TargetAltAz.alt*16777216 / 360);
-
-    str[0] = 'P';
-    str[1] = 4;
-    str[2] = 17;
-    str[3] = 4;
-    *reinterpret_cast<unsigned char*>(&str[4]) = (unsigned char)(Alt / 65536);
-    Alt -= (Alt / 65536)*65536;
-    *reinterpret_cast<unsigned char*>(&str[5]) = (unsigned char)(Alt / 256);
-    Alt -= (Alt / 256)*256;
-    *reinterpret_cast<unsigned char*>(&str[6]) = (unsigned char)Alt;
-    str[7] = 0;
-    tty_write(PortFD, str, 8, &bytesWritten);
-    numread = tty_read(PortFD, str, 1, 2, &bytesRead);
 
     // Pass the sync command to the handset
     int n1 = ra * 0x1000000 / 24;

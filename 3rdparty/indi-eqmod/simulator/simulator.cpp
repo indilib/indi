@@ -158,7 +158,7 @@ bool EQModSimulator::ISNewNumber(const char *dev, const char *name, double value
 
         nvp->s = IPS_OK;
         IUUpdateNumber(nvp, values, names, n);
-        IDSetNumber(nvp, NULL);
+        IDSetNumber(nvp, nullptr);
         return true;
     }
     return false;
@@ -182,7 +182,7 @@ bool EQModSimulator::ISNewSwitch(const char *dev, const char *name, ISState *sta
 
         svp->s = IPS_OK;
         IUUpdateSwitch(svp, states, names, n);
-        IDSetSwitch(svp, NULL);
+        IDSetSwitch(svp, nullptr);
         return true;
     }
     return false;
@@ -208,7 +208,7 @@ bool EQModSimulator::ISNewText(const char *dev, const char *name, char *texts[],
 
             tvp->s = IPS_OK;
             IUUpdateText(tvp, texts, names, n);
-            IDSetText(tvp, NULL);
+            IDSetText(tvp, nullptr);
             return true;
         }
     }

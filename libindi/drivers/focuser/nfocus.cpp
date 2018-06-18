@@ -315,7 +315,7 @@ int NFocus::updateNFTemperature(double *value)
     if (sscanf(rf_cmd, "%6f", &temp) == -888)
         return -1;
 
-    *value = (double)temp / 10.;
+    *value = static_cast<double>(temp);
 
     return 0;
 }
