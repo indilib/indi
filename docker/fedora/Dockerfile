@@ -8,7 +8,7 @@ RUN dnf -y install \
         libftdi-devel libdc1394-22-dev libgphoto2-devel gpsd-devel gsl-devel libjpeg-turbo-devel \
         libnova-devel openal-soft-devel LibRaw-devel libusb-devel rtl-sdr-devel \
         fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
-        python-devel swig gcc-c++ clang vim
+        libdc1394-devel python-devel swig gcc-c++ clang vim
 
 # Install googletest
 WORKDIR /home
