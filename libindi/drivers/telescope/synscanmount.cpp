@@ -472,7 +472,7 @@ bool SynscanMount::ReadScopeStatus()
             {
                 StopCount = 0;
             }
-            strncpy(LastParkRead, str, sizeof(str));
+            strncpy(LastParkRead, str, 20);
         }
     }
 
