@@ -269,7 +269,7 @@ bool FilterIFW::ReadTTY(char *resp, char *simulation, int timeout)
 
     response[nbytes_read - 2] = '\0'; //Remove control char from string (\n\r)
     LOGF_DEBUG("RES (%s)", response);
-    strncpy(resp, response, sizeof(response));
+    strncpy(resp, response, OPTEC_MAXLEN_RESP + 1);
     return true;
 }
 
