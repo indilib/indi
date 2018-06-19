@@ -74,9 +74,10 @@ bool InMemoryDatabase::LoadDatabase(const char *DeviceName)
         return false;
     }
 
-    if (nullptr == (FileRoot = readXMLFile(fp, Parser, Errmsg)))
+    char whynot[MAXRBUF];
+    if (nullptr == (FileRoot = readXMLFile(fp, Parser, whynot)))
     {
-        snprintf(Errmsg, MAXRBUF, "Unable to parse database XML: %s", Errmsg);
+        snprintf(Errmsg, MAXRBUF, "Unable to parse database XML: %s", whynot);
         return false;
     }
 
