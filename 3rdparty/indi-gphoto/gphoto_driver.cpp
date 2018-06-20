@@ -36,6 +36,10 @@
 #include <tiffio.h>
 #include <tiffio.hxx>
 
+#define EOS_CUSTOMFUNCEX                "customfuncex"
+#define EOS_MIRROR_LOCKUP_ENABLE        "20,1,3,14,1,60f,1,1"
+#define EOS_MIRROR_LOCKUP_DISABLE       "20,1,3,14,1,60f,1,0"
+
 static GPPortInfoList *portinfolist   = nullptr;
 static CameraAbilitiesList *abilities = nullptr;
 
@@ -65,6 +69,7 @@ struct _gphoto_driver
     gphoto_widget *autoexposuremode_widget;
     gphoto_widget *capturetarget_widget;
     gphoto_widget *viewfinder_widget;
+    gphoto_widget *customfuncex_widget;
 
     char bulb_port[256];
     int bulb_fd;
@@ -782,16 +787,20 @@ int gphoto_get_last_sensor_temperature(gphoto_driver *gphoto)
 
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
 {
-    // If already set to BULB, set eosremoterelease to 2, then 4, then sleep
-    //if (gphoto->autoexposuremode_widget && gphoto->autoexposuremode_widget->value.index == 4)
     if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name, "eosremoterelease"))
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "eosremoterelease Mirror Lock for %g secs", msec / 1000.0);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,
+		     "eosremoterelease Mirror Lock for %g secs", msec / 1000.0);
 
+	gphoto_set_widget_text(gphoto, gphoto->customfuncex_widget,
+			       EOS_MIRROR_LOCKUP_ENABLE);
         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, EOS_PRESS_FULL);
         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, EOS_RELEASE_FULL);
 
         usleep(msec * 1000);
+
+	gphoto_set_widget_text(gphoto, gphoto->customfuncex_widget,
+			       EOS_MIRROR_LOCKUP_DISABLE);
 
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "End of mirror lock timer");
 
@@ -1485,6 +1494,13 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
                      (gphoto->viewfinder_widget->value.toggle == 0) ? "Off" : "On");
     }
 
+    // Check customfuncex widget to enable/disable mirror lockup.
+    if ((gphoto->customfuncex_widget = find_widget(gphoto, EOS_CUSTOMFUNCEX)) != nullptr)
+    {
+	DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "CustomFuncex Widget: %s",
+		     gphoto->customfuncex_widget->name);
+    }
+
     // Find Manufacturer
     if ((widget = find_widget(gphoto, "manufacturer")) != nullptr)
     {
@@ -1581,6 +1597,8 @@ int gphoto_close(gphoto_driver *gphoto)
         widget_free(gphoto->autoexposuremode_widget);
     if (gphoto->viewfinder_widget)
         widget_free(gphoto->viewfinder_widget);
+    if (gphoto->customfuncex_widget)
+	widget_free(gphoto->customfuncex_widget);
 
     while (gphoto->widgets)
     {
