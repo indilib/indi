@@ -13,6 +13,7 @@ brew install \
 	fakeroot \
 	gsl \
 	libftdi \
+	libdc1394 \
 	libgphoto2 \
 	libusb \
 	gpsd \
@@ -21,6 +22,7 @@ brew install \
 	libnova  \
 	librtlsdr  \
 	libfftw3
+
 			
 brew cask install \
 	sbig-universal-driver

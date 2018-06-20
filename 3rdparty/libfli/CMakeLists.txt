@@ -19,6 +19,9 @@ find_package(USB1 REQUIRED)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 INCLUDE_DIRECTORIES(unix)
+IF(APPLE)
+include_directories(/usr/local/include)
+ENDIF(APPLE)
 
 set(fli_LIB_SRCS
    libfli.c   

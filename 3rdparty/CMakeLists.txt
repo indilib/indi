@@ -65,7 +65,9 @@ option(WITH_FLI "Install FLI Driver" On)
 option(WITH_SBIG "Install SBIG Driver" On)
 option(WITH_INOVAPLX "Install i.Nova PLx Driver" On)
 option(WITH_APOGEE "Install Apogee Driver" On)
+option(WITH_FFMV "Install Point Grey FireFly MV Driver" On)
 option(WITH_QHY "Install QHY Driver" On)
+option(WITH_SSAG "Install Star Shoot Driver" On)
 option(WITH_GPHOTO "Install GPhoto Driver" On)
 option(WITH_QSI "Install QSI Driver" On)
 option(WITH_DUINO "Install Ariduino Driver" On)
@@ -87,13 +89,7 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_INOVAPLX Off)
     set(WITH_GIGE Off)
     set(WITH_FXLOAD Off)
-    set(WITH_RTLSDR Off)
-    set(WITH_RADIOSIM Off)
 ENDIF ()
-# Dsi contains invalid C++ codes what does not compile with Clang
-# IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-#    SET(WITH_DSI Off)
-# ENDIF ()
 # Disable apogee and qhy with gcc 4.8 and earlier versions
 IF (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
     SET(WITH_APOGEE Off)
@@ -195,6 +191,11 @@ SET(LIBRARIES_FOUND FALSE)
 endif (APOGEE_FOUND)
 endif(WITH_APOGEE)
 
+## Point Grey FireFly MV
+if (WITH_FFMV)
+add_subdirectory(indi-ffmv)
+endif (WITH_FFMV)
+
 ## Moravian
 if (WITH_MI)
 add_subdirectory(indi-mi)
@@ -237,6 +238,11 @@ add_subdirectory(libqhy)
 SET(LIBRARIES_FOUND FALSE)
 endif (QHY_FOUND)
 endif (WITH_QHY)
+
+## Star Shoot Auto Guider
+if (WITH_SSAG)
+add_subdirectory(indi-ssag)
+endif (WITH_SSAG)
 
 ## GPSD
 if (WITH_GPSD)

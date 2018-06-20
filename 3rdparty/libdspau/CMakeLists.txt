@@ -14,7 +14,9 @@ SET(PACKAGE_VERSION "1.0.0")
 ADD_DEFINITIONS(-Wall -O2)
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
-
+IF(APPLE)
+include_directories(/usr/local/include)
+ENDIF(APPLE)
 set(dspau_LIB_SRCS
    libdspau-fft.c
    libdspau-filters.c

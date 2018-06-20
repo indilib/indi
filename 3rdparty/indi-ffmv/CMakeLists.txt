@@ -6,7 +6,9 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
+IF(NOT APPLE)
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
+ENDIF(NOT APPLE)
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -39,5 +41,8 @@ target_link_libraries(indi_ffmv_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${DC1
 install(TARGETS indi_ffmv_ccd RUNTIME DESTINATION bin )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_ffmv.xml DESTINATION ${INDI_DATA_DIR})
+
+IF(NOT APPLE)
 install(FILES 99-fireflymv.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+ENDIF(NOT APPLE)
 
