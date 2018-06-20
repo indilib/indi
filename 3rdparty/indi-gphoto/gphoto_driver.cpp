@@ -799,9 +799,6 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
 
         usleep(msec * 1000);
 
-	gphoto_set_widget_text(gphoto, gphoto->customfuncex_widget,
-			       EOS_MIRROR_LOCKUP_DISABLE);
-
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "End of mirror lock timer");
 
         return 0;
@@ -925,6 +922,12 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
             if (gphoto_mirrorlock(gphoto, mirror_lock * 1000))
                 return -1;
         }
+	else if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name,
+						"eosremoterelease"))
+	{
+	    gphoto_set_widget_text(gphoto, gphoto->customfuncex_widget,
+				   EOS_MIRROR_LOCKUP_DISABLE);
+	}
 
         // If bulb port is specified, let's open it
         if (gphoto->dsusb)
