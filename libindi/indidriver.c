@@ -1235,13 +1235,14 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
     if (fp == NULL)
         return -1;
 
-    fproot = readXMLFile(fp, lp, errmsg);
+    char whynot[MAXRBUF];
+    fproot = readXMLFile(fp, lp, whynot);
 
     delLilXML(lp);
 
     if (fproot == NULL)
     {
-        snprintf(errmsg, MAXRBUF, "Unable to parse config XML: %s", errmsg);
+        snprintf(errmsg, MAXRBUF, "Unable to parse config XML: %s", whynot);
         fclose(fp);
         return -1;
     }
