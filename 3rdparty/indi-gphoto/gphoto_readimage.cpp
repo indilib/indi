@@ -183,7 +183,9 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
             uint16_t *ppm16 = (uint16_t *)ppm;
             if (htons(0x55aa) != 0x55aa)
             {
-                swab(ppm, ppm, width * bpp);
+                uint8_t *ppmtemp = ppm;
+                swab(ppm, ppmtemp, width * bpp);
+                ppm = ppmtemp;
             }
             if (naxis == 3)
             {
