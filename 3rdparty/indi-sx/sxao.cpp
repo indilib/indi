@@ -289,7 +289,7 @@ bool SXAO::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 IPState SXAO::GuideNorth(uint32_t ms)
 {
     char buf[8];
-    sprintf(buf, "MN%08d", (int)(ms / 10));
+    sprintf(buf, "MN%05d", (uint16_t)(ms / 10));
     int rc = aoCommand(buf, buf, 1);
     return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
@@ -297,7 +297,7 @@ IPState SXAO::GuideNorth(uint32_t ms)
 IPState SXAO::GuideSouth(uint32_t ms)
 {
     char buf[8];
-    sprintf(buf, "MS%08d", (int)(ms / 10));
+    sprintf(buf, "MS%05d", (uint16_t)(ms / 10));
     int rc = aoCommand(buf, buf, 1);
     return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
@@ -305,7 +305,7 @@ IPState SXAO::GuideSouth(uint32_t ms)
 IPState SXAO::GuideEast(uint32_t ms)
 {
     char buf[8];
-    sprintf(buf, "MT%08d", (int)(ms / 10));
+    sprintf(buf, "MT%05d", (uint16_t)(ms / 10));
     int rc = aoCommand(buf, buf, 1);
     return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
@@ -313,7 +313,7 @@ IPState SXAO::GuideEast(uint32_t ms)
 IPState SXAO::GuideWest(uint32_t ms)
 {
     char buf[8];
-    sprintf(buf, "MW%08d", (int)(ms / 10));
+    sprintf(buf, "MW%05d", (uint16_t)(ms / 10));
     int rc = aoCommand(buf, buf, 1);
     return (rc == TTY_OK ? IPS_OK : IPS_ALERT);
 }
