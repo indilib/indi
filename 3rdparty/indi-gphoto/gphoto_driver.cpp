@@ -19,15 +19,6 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
-
-#include "gphoto_driver.h"
-
-#include "dsusbdriver.h"
-
-#include <indilogger.h>
-
-#include <gphoto2/gphoto2-version.h>
-
 #include <fcntl.h>
 #include <pthread.h>
 #include <string.h>
@@ -35,6 +26,14 @@
 #include <sys/ioctl.h> /* ioctl()*/
 #include <tiffio.h>
 #include <tiffio.hxx>
+
+#include <config.h>
+#include <indilogger.h>
+#include <gphoto2/gphoto2-version.h>
+#include <libraw/libraw.h>
+
+#include "gphoto_driver.h"
+#include "dsusbdriver.h"
 
 #define EOS_CUSTOMFUNCEX                "customfuncex"
 #define EOS_MIRROR_LOCKUP_ENABLE        "20,1,3,14,1,60f,1,1"
@@ -92,7 +91,7 @@ struct _gphoto_driver
     int exposure_presets_count;
 
     bool supports_temperature;
-    int last_sensor_temp;
+    float last_sensor_temp;
 
     DSUSBDriver *dsusb;
 
@@ -675,6 +674,33 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Could not determine image size (%s)", gp_result_as_string(result));
     }
 
+#if defined(LIBRAW_CAMERA_TEMPERATURE) && defined(LIBRAW_SENSOR_TEMPERATURE)
+    // Extract temperature(s) from gphoto image via libraw
+    const char *imgData;
+    unsigned long imgSize;
+    int rc;
+    result = gp_file_get_data_and_size(gphoto->camerafile, &imgData, &imgSize);
+    if (result == GP_OK) {
+	LibRaw lib_raw;
+	rc = lib_raw.open_buffer((void *)imgData, imgSize);
+	if (rc != LIBRAW_SUCCESS) {
+	    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,
+			 "Cannot decode (%s)", libraw_strerror(rc));
+	} else {
+	    if (lib_raw.imgdata.other.SensorTemperature > -273.15f)
+		gphoto->last_sensor_temp = lib_raw.imgdata.other.SensorTemperature;
+	    else if (lib_raw.imgdata.other.CameraTemperature > -273.15f)
+		gphoto->last_sensor_temp = lib_raw.imgdata.other.CameraTemperature;
+	}
+	lib_raw.recycle();
+	if (fd >= 0) {
+	    // The gphoto documentation says I don't need to do this,
+	    // but reading the source of gp_file_get_data_and_size says otherwise. :(
+	    free((void *)imgData);
+	    imgData = nullptr;
+	}
+    }
+#else
     if(strstr(gphoto->manufacturer, "Canon"))
     {
         // Try to pull the camera temperature out of the EXIF data
@@ -744,6 +770,7 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
             }
         }
     }
+#endif
     // For some reason Canon 20D fails when deleting here
     // so this hack is a workaround until a permement fix is found
     // JM 2017-05-17
@@ -780,7 +807,7 @@ bool gphoto_supports_temperature(gphoto_driver *gphoto)
     return gphoto->supports_temperature;
 }
 
-int gphoto_get_last_sensor_temperature(gphoto_driver *gphoto)
+float gphoto_get_last_sensor_temperature(gphoto_driver *gphoto)
 {
     return gphoto->last_sensor_temp;
 }
@@ -1382,7 +1409,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto->max_exposure           = 3600;
     gphoto->min_exposure           = 0.001;
     gphoto->dsusb                  = nullptr;
-    gphoto->last_sensor_temp       = -273; // 0 degrees Kelvin
+    gphoto->last_sensor_temp       = -273.0; // 0 degrees Kelvin
 
     result = gp_camera_get_config(gphoto->camera, &gphoto->config, gphoto->context);
     if (result < GP_OK)
