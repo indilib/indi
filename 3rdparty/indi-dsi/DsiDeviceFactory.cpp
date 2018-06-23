@@ -25,7 +25,7 @@ DSI::Device *DSI::DeviceFactory::getInstance(const char *devname)
     {
         tmp = new DSI::Device(devname);
     }
-    catch (dsi_exception e)
+    catch (dsi_exception& e)
     {
         std::cerr << e.what();
         return nullptr;
