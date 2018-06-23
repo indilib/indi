@@ -16,8 +16,6 @@ find_package(ZLIB REQUIRED)
 set (QSI_VERSION_MAJOR 0)
 set (QSI_VERSION_MINOR 8)
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-catch-value")
-
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_qsi.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_qsi.xml )
 
