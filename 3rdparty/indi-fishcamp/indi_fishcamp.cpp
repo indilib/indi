@@ -558,7 +558,7 @@ void FishCampCCD::TimerHit()
                     //  We have to wait till the camera is ready to download
                     bool ready = false;
                     int slv;
-                    slv = abs(100000 * timeleft); //0.05s (50000 us) is checked every 5000 us or so
+                    slv = fabs(100000 * timeleft); //0.05s (50000 us) is checked every 5000 us or so
                     while (!sim && !ready)
                     {
                         state = fcUsb_cmd_getState(cameraNum);
