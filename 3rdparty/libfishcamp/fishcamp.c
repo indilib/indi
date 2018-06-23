@@ -3076,8 +3076,14 @@ int fcUsb_cmd_setIntegrationTime(int camNum, UInt32 theTime)
         return 0;
 
 	// store the time away so we can decide if we want to read the black columns
-	gCurrentIntegrationTime[camNum - 1] = theTime;
+    gCurrentIntegrationTime[camNum - 1] = theTime;
 
+    //This is a nice idea, but there are 2 problems with it.
+    //First, with the Starfish, for some reason the images fail to download when full frame images are requested.
+    //I believe this is due to the fact that it is requesting images that are larger than it can do.
+    //Second, if the region of interest is smaller than full frame, the images will download properly, but
+    //then the black column positions will make no sense because the region of interest is not adjacent to black columns then.
+    /**
 	// special handling for the starfish guide camera
 	if (gCamerasFound[camNum - 1].camFinalProduct == starfish_mono_rev2_final_deviceID)
 		{
@@ -3086,9 +3092,9 @@ int fcUsb_cmd_setIntegrationTime(int camNum, UInt32 theTime)
 		fcUsb_cmd_setReadMode(camNum, gDataXfrReadMode[camNum - 1], gDataFormat[camNum - 1]);
 		// resend the ROI params.  the fcUsb_cmd_setReadMode routine will have set the gReadBlack variable
 		// so the next routine will trick the camera into using a wider ROI.
-		fcUsb_cmd_setRoi(camNum, gRoi_left[camNum - 1], gRoi_top[camNum - 1], gRoi_right[camNum - 1], gRoi_bottom[camNum - 1]);
+        fcUsb_cmd_setRoi(camNum, gRoi_left[camNum - 1], gRoi_top[camNum - 1], gRoi_right[camNum - 1], gRoi_bottom[camNum - 1]);
 		}
-
+    **/
 
 	myParameters.header = 'fc';
 	myParameters.command = fcSETINTTIME;
@@ -3514,8 +3520,8 @@ int fcUsb_cmd_setRoi(int camNum, UInt16 left, UInt16 top, UInt16 right, UInt16 b
 	myParameters.bottom = bottom;
 
 	// if we need to read the black cols, increase the ROI width appropriately
-	if (gReadBlack[camNum - 1])
-		myParameters.right = right + 16;
+    if (gReadBlack[camNum - 1])
+        myParameters.right = right + 16;
 
 	myParameters.cksum = fcUsb_GetUsbCmdCksum(&myParameters.header);
 
@@ -3940,7 +3946,7 @@ int fcUsb_cmd_getRawFrame(int camNum, UInt16 numRows, UInt16 numCols, UInt16 *fr
             Starfish_Log( buffer );
             if (gReadBlack[camNum - 1] && numBytesRead != 0)
 				{
-				fcImage_doFullFrameRowLevelNormalization(gFrameBuffer, (numCols + 16), numRows);
+                fcImage_doFullFrameRowLevelNormalization(gFrameBuffer, (numCols + 16), numRows);
 				fcImage_StripBlackCols(camNum, frameBuffer);		
 				}
 			}	// if Starfish
@@ -4103,7 +4109,7 @@ int	fcUsb_cmd_setReadMode(int camNum, int DataXfrReadMode, int DataFormat)
 		{
 		// the following two parameters are now managed automatically
 		if (gCurrentIntegrationTime[camNum - 1] <= 2000)
-            ReadBlack = false;
+            ReadBlack = false;  //Note: The readblack function for the Fishcamp Starfish is disabled because it doesn't currently seem to work properly.  See the note above.
 		else
 			ReadBlack = false;
 
@@ -4120,7 +4126,7 @@ int	fcUsb_cmd_setReadMode(int camNum, int DataXfrReadMode, int DataFormat)
 		myParameters.length = sizeof(myParameters);
 
 		if (ReadBlack)
-			myParameters.ReadBlack = -1;
+            myParameters.ReadBlack = -1;
 		else
 			myParameters.ReadBlack = 0;
 
@@ -4128,7 +4134,7 @@ int	fcUsb_cmd_setReadMode(int camNum, int DataXfrReadMode, int DataFormat)
 		myParameters.DataFormat = DataFormat;
 
 		if (DoOffsetCorrection)
-			myParameters.AutoOffsetCorrection = -1;
+            myParameters.AutoOffsetCorrection = -1;
 		else
 			myParameters.AutoOffsetCorrection = 0;
 

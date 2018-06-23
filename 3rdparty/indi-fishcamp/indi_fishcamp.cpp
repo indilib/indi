@@ -60,7 +60,7 @@ void ISInit()
         fcUsb_init();
 
         IDLog("About to call set logging\n");
-        fcUsb_setLogging(true);
+        fcUsb_setLogging(false);
 
         IDLog("About to call find Cameras\n");
         cameraCount = -1;
@@ -116,6 +116,21 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
             if (dev != nullptr)
                 break;
         }
+    }
+    //This turns the LibFishcamp fcusb logging on and off along with the INDI Fishcamp file logging.
+   if (!strcmp(name, "LOG_OUTPUT"))
+    {
+        if(INDI::Logger::ConfigurationS[1].s == ISS_ON)
+        {
+            fcUsb_setLogging(true);
+            IDLog("Setting Starfish Driver File Log On\n");
+        }
+        else
+        {
+            fcUsb_setLogging(false);
+            IDLog("Setting Starfish Driver File Log Off\n");
+        }
+
     }
 }
 
@@ -369,8 +384,6 @@ bool FishCampCCD::Disconnect()
 
 bool FishCampCCD::StartExposure(float duration)
 {
-
-    IDLog("Hi there\n");
     PrimaryCCD.setExposureDuration(duration);
     ExposureRequest = duration;
 
@@ -379,7 +392,7 @@ bool FishCampCCD::StartExposure(float duration)
     LOGF_DEBUG("Exposure Time (s) is: %g", duration);
 
     // setup the exposure time in ms.
-    rc = fcUsb_cmd_setIntegrationTime(cameraNum, (UInt32)(duration*1000));
+    rc = fcUsb_cmd_setIntegrationTime(cameraNum, (UInt32)(duration * 1000.0));
 
     LOGF_DEBUG("fcUsb_cmd_setIntegrationTime returns %d", rc);
 
@@ -513,7 +526,6 @@ int FishCampCCD::grabImage()
 
 void FishCampCCD::TimerHit()
 {
-    //IDLog("poll: %d\n",POLLMS);
     int timerHitID = -1, state = -1, rc = -1;
     float timeleft;
     double ccdTemp;
@@ -542,7 +554,6 @@ void FishCampCCD::TimerHit()
                 }
                 else
                 {
-                    IDLog("timeleft: %f\n",timeleft);
                     //  it's real close now, so spin on it
                     //  We have to wait till the camera is ready to download
                     bool ready = false;
