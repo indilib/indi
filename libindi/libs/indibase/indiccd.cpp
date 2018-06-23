@@ -1952,6 +1952,12 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             dePtr++;
         }
 
+	if (!std::isnan(Latitude) && !std::isnan(Longitude)) {
+	    fits_update_key_s(fptr, TDOUBLE, "SITELAT", &Latitude,
+			      "Latitude of the imaging site in degrees", &status);
+	    fits_update_key_s(fptr, TDOUBLE, "SITELONG", &Longitude,
+			      "Longitude of the imaging site in degrees", &status);
+	}
         if (!std::isnan(Airmass))
             fits_update_key_s(fptr, TDOUBLE, "AIRMASS", &Airmass, "Airmass", &status);
 
