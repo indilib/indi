@@ -783,7 +783,7 @@ FILE *openSrecFile(UInt16 vendor, UInt16 rawProduct)
 			if (fileRevNumber != -1)
 				{
 				char fileName[MAXRBUF];
-    			snprintf(fileName, MAXRBUF, "%s/Guider_mono_rev16d_intel.srec", driverSupportPath);
+                snprintf(fileName, MAXRBUF, "%s/Guider_mono_rev16_intel.srec", driverSupportPath);
 
 				sprintf(buffer, "File to open is \"%s\"\n", fileName);
                 Starfish_Log( buffer );
@@ -3329,7 +3329,7 @@ UInt16 fcUsb_cmd_getState(int camNum)
 //	printf("fcUsb_cmd_getState:\n");
 //	printf("     dataValue  - 0x%02x\n", myRegInfo.dataValue);
 
-    //usleep(10000);
+    usleep(10000);
 
 
 	return myRegInfo.dataValue;
@@ -3935,7 +3935,7 @@ int fcUsb_cmd_getRawFrame(int camNum, UInt16 numRows, UInt16 numCols, UInt16 *fr
             if (gReadBlack[camNum - 1])
                 {
                 maxBytes = numRows * (numCols + 16) * 2;	// 2 bytes / pixel
-                numBytesRead = RcvUSB(camNum, (unsigned char*)frameBuffer, maxBytes);
+                numBytesRead = RcvUSB(camNum, (unsigned char*)gFrameBuffer, maxBytes);
                 }
             else
                 {
