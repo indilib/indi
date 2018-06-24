@@ -2208,7 +2208,7 @@ class SI_ConvertA
 {
     bool m_bStoreIsUtf8;
 protected:
-    SI_ConvertA() { }
+    SI_ConvertA() {m_bStoreIsUtf8 = 0; }
 public:
     SI_ConvertA(bool a_bStoreIsUtf8) : m_bStoreIsUtf8(a_bStoreIsUtf8) { }
 
@@ -2330,7 +2330,7 @@ template<class SI_CHAR>
 class SI_ConvertW {
     bool m_bStoreIsUtf8;
 protected:
-    SI_ConvertW() { }
+    SI_ConvertW() {m_bStoreIsUtf8 = 0; }
 public:
     SI_ConvertW(bool a_bStoreIsUtf8) : m_bStoreIsUtf8(a_bStoreIsUtf8) { }
 

@@ -26,11 +26,14 @@ public:
 		CP_None,
 		CP_All,
 		CP_USB,
-		CP_TCP
+		CP_TCP,
+		CP_CyUSB
 	}ConnProto;
 public:
 	CameraID(void);
-	CameraID(std::string Serial, std::string SerialToOpen, std::string Desc, int vid, int pid);
+	// USB Connection FTDI or Cypress
+	CameraID(std::string Serial, std::string SerialToOpen, std::string Desc, int vid, int pid, ConnProto_t proto);
+	// Sockets based TCP/IP connection
 	CameraID(std::string Serial, in_addr IPv4Addr);
 	~CameraID(void);
 	CameraID(const CameraID & cid);

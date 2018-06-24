@@ -28,7 +28,7 @@ REVISION HISTORY
 				cam.put_UseStructuredExceptions(true);
                 cam.put_Connected(true);
             }
-            catch (std::runtime_error err)
+            catch (std::runtime_error &err)
             {
 				std::cout << "Cannot connect to camera." << std::endl;
                 exit(1);
@@ -64,7 +64,7 @@ REVISION HISTORY
 				delete [] pixels;
 				std::cout << "Short wait image complete." << std::endl;
             }
-            catch (std::runtime_error err)
+            catch (std::runtime_error &err)
             {
                 // Timeout comes here
 				std::cout << "Short wait timeout." << std::endl;
@@ -91,7 +91,7 @@ REVISION HISTORY
                 cam.TerminatePendingTrigger();
 				std::cout << "Long wait pending conceled." << std::endl;
             }
-            catch (std::runtime_error err)
+            catch (std::runtime_error &err)
             {
 				std::cout << "Long wait cancel exception." << err.what() << std::endl;
 				exit(1);
@@ -122,7 +122,7 @@ REVISION HISTORY
 				delete [] pixels;
 				std::cout << "Long wait image complete." << std::endl;
             }
-            catch (std::runtime_error err)
+            catch (std::runtime_error &err)
             {
 				std::cout << "Long wait exception." << err.what() << std::endl;
 				exit(1);

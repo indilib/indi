@@ -8,12 +8,6 @@ On
     </defSwitch>
 </defSwitchVector>
 
-<defTextVector device="Arduino Servo" name="DEVICE_PORT" label="SERIAL" group="Main Control" state="Idle" perm="rw" timeout="0">
-    <defText name="PORT" label="Port">
-/dev/ttyACM0
-    </defText>
-</defTextVector>
-
 <defNumberVector device="Arduino Servo" name="SERVO3" label="SERVO3" group="Main Control" state="Idle" perm="rw" timeout="0">
     <defNumber name="Servo3" label="Servo3" format="%4.0f" min="0" max="255" step="1">
     <indiduino pin="3" type="servo"/>
@@ -21,13 +15,10 @@ On
     </defNumber>
 </defNumberVector>
 
-<defSwitchVector device="Arduino Servo" name="SERVOSWITCH3" label="SERVOSWITCH3" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
-    <defSwitch name="UNLOCK" label="Unlock">
-    <indiduino pin="3" type="servo" onangle="150" offangle="10" />
+<defSwitchVector device="Arduino Servo" name="SERVOSWITCH3" label="SERVOSWITCH3" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60">
+    <defSwitch name="SERVOSWITCH3" label="SERVOSWITCH3">
+    <indiduino pin="3" type="servo" onangle="150" offangle="10" button="BUTTON_1"/>
 Off
-    </defSwitch>
-    <defSwitch name="LOCK" label="Lock">
-On
     </defSwitch>
 </defSwitchVector>
 
@@ -38,13 +29,10 @@ On
     </defNumber>
 </defNumberVector>
 
-<defSwitchVector device="Arduino Servo" name="SERVOSWITCH5" label="SERVOSWITCH5" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
-    <defSwitch name="UNLOCK" label="Unlock">
-    <indiduino pin="5" type="servo" onangle="150" offangle="10" />
+<defSwitchVector device="Arduino Servo" name="SERVOSWITCH5" label="SERVOSWITCH5" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60">
+    <defSwitch name="SERVOSWITCH5" label="SERVOSWITCH5">
+    <indiduino pin="5" type="servo" onangle="150" offangle="10" button="BUTTON_2"/>
 Off
-    </defSwitch>
-    <defSwitch name="LOCK" label="Lock">
-On
     </defSwitch>
 </defSwitchVector>
 
@@ -55,13 +43,10 @@ On
     </defNumber>
 </defNumberVector>
 
-<defSwitchVector device="Arduino Servo" name="SERVOSWITCH6" label="SERVOSWITCH6" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
-    <defSwitch name="UNLOCK" label="Unlock">
-    <indiduino pin="6" type="servo" onangle="150" offangle="10" />
+<defSwitchVector device="Arduino Servo" name="SERVOSWITCH6" label="SERVOSWITCH6" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60">
+    <defSwitch name="SERVOSWITCH6" label="SERVOSWITCH6">
+    <indiduino pin="6" type="servo" onangle="150" offangle="10" button="BUTTON_3"/>
 Off
-    </defSwitch>
-    <defSwitch name="LOCK" label="Lock">
-On
     </defSwitch>
 </defSwitchVector>
 
@@ -72,13 +57,10 @@ On
     </defNumber>
 </defNumberVector>
 
-<defSwitchVector device="Arduino Servo" name="SERVOSWITCH9" label="SERVOSWITCH9" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
-    <defSwitch name="UNLOCK" label="Unlock">
-    <indiduino pin="9" type="servo" onangle="150" offangle="10" />
+<defSwitchVector device="Arduino Servo" name="SERVOSWITCH9" label="SERVOSWITCH9" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60">
+    <defSwitch name="SERVOSWITCH9" label="SERVOSWITCH9">
+    <indiduino pin="9" type="servo" onangle="150" offangle="10" button="BUTTON_4"/>
 Off
-    </defSwitch>
-    <defSwitch name="LOCK" label="Lock">
-On
     </defSwitch>
 </defSwitchVector>
 
@@ -89,13 +71,10 @@ On
     </defNumber>
 </defNumberVector>
 
-<defSwitchVector device="Arduino Servo" name="SERVOSWITCH10" label="SERVOSWITCH10" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
-    <defSwitch name="UNLOCK" label="Unlock">
-    <indiduino pin="10" type="servo" onangle="150" offangle="10" />
+<defSwitchVector device="Arduino Servo" name="SERVOSWITCH10" label="SERVOSWITCH10" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60">
+    <defSwitch name="SERVOSWITCH10" label="SERVOSWITCH10">
+    <indiduino pin="10" type="servo" onangle="150" offangle="10" button="BUTTON_5"/>
 Off
-    </defSwitch>
-    <defSwitch name="LOCK" label="Lock">
-On
     </defSwitch>
 </defSwitchVector>
 
@@ -106,13 +85,10 @@ On
     </defNumber>
 </defNumberVector>
 
-<defSwitchVector device="Arduino Servo" name="SERVOSWITCH11" label="SERVOSWITCH11" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
-    <defSwitch name="UNLOCK" label="Unlock">
-    <indiduino pin="11" type="servo" onangle="150" offangle="10" />
+<defSwitchVector device="Arduino Servo" name="SERVOSWITCH11" label="SERVOSWITCH11" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60">
+    <defSwitch name="SERVOSWITCH11" label="SERVOSWITCH11">
+    <indiduino pin="11" type="servo" onangle="150" offangle="10" button="BUTTON_6"/>
 Off
-    </defSwitch>
-    <defSwitch name="LOCK" label="Lock">
-On
     </defSwitch>
 </defSwitchVector>
 </INDIDriver> 

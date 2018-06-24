@@ -45,7 +45,7 @@ Alta::Alta() : ApogeeCam(CamModel::ALTAU),
                 m_fileName( __FILE__ )
 { 
      //alloc and set the camera constants
-    m_CameraConsts = std::tr1::shared_ptr<PlatformData>( new AltaData() );
+    m_CameraConsts = std::shared_ptr<PlatformData>( new AltaData() );
 
     m_serialPortOpenStatus[SERIAL_PORT_A] = false;
     m_serialPortOpenStatus[SERIAL_PORT_B] = false;
@@ -120,12 +120,12 @@ void Alta::OpenConnection( const std::string & ioType,
     CfgCamFromId( m_Id );
 
     //set up the camera mode fsm
-    m_CamMode = std::tr1::shared_ptr<ModeFsm>( new AltaModeFsm(m_CamIo,
+    m_CamMode = std::shared_ptr<ModeFsm>( new AltaModeFsm(m_CamIo,
         m_CamCfgData, m_FirmwareVersion) );
 
   
     //create the adc and pattern file handler object
-    m_CcdAcqSettings = std::tr1::shared_ptr<CcdAcqParams>( 
+    m_CcdAcqSettings = std::shared_ptr<CcdAcqParams>(
         new AltaCcdAcqParams(m_CamCfgData, m_CamIo, m_CameraConsts) );
 
     m_IsConnected = true;
@@ -158,7 +158,7 @@ void Alta::CreateCamIo(const std::string & ioType,
     //create the camera interface
     const CamModel::InterfaceType type = InterfaceHelper::DetermineInterfaceType( ioType );
 
-    m_CamIo = std::tr1::shared_ptr<CameraIo>( new AltaIo( type, DeviceAddr ) );
+    m_CamIo = std::shared_ptr<CameraIo>( new AltaIo( type, DeviceAddr ) );
 
     if( !m_CamIo )
     {
@@ -211,7 +211,7 @@ std::string Alta::GetMacAddress( )
     apgHelper::DebugMsg( "Alta::GetMacAddress" );
 #endif
 
-    return std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->GetMacAddress();
+    return std::dynamic_pointer_cast<AltaIo>(m_CamIo)->GetMacAddress();
 }
 
 //////////////////////////// 
@@ -821,7 +821,7 @@ void Alta::SetCcdAdc12BitGain( const uint16_t gain )
     apgHelper::DebugMsg( "Alta::SetCcdAdc12BitGain -> gain =%d", gain );
 #endif
 
-    std::tr1::dynamic_pointer_cast<AltaCcdAcqParams>(m_CcdAcqSettings)->Set12BitGain( gain );
+    std::dynamic_pointer_cast<AltaCcdAcqParams>(m_CcdAcqSettings)->Set12BitGain( gain );
 }
 
 //////////////////////////// 
@@ -832,7 +832,7 @@ void Alta::SetCcdAdc12BitOffset( const uint16_t offset )
     apgHelper::DebugMsg( "Alta::SetCcdAdc12BitOffset -> offset =%d", offset );
 #endif
 
-    std::tr1::dynamic_pointer_cast<AltaCcdAcqParams>(m_CcdAcqSettings)->Set12BitOffset( offset );
+    std::dynamic_pointer_cast<AltaCcdAcqParams>(m_CcdAcqSettings)->Set12BitOffset( offset );
 }
 
 //////////////////////////// 
@@ -843,7 +843,7 @@ uint16_t Alta::GetCcdAdc12BitGain()
     apgHelper::DebugMsg( "Alta::GetCcdAdc12BitGain" );
 #endif
 
-    return std::tr1::dynamic_pointer_cast<AltaCcdAcqParams>(m_CcdAcqSettings)->Get12BitGain();
+    return std::dynamic_pointer_cast<AltaCcdAcqParams>(m_CcdAcqSettings)->Get12BitGain();
 }
 
 //////////////////////////// 
@@ -854,7 +854,7 @@ uint16_t Alta::GetCcdAdc12BitOffset()
     apgHelper::DebugMsg( "Alta::GetCcdAdc12BitOffset" );
 #endif
 
-    return std::tr1::dynamic_pointer_cast<AltaCcdAcqParams>(m_CcdAcqSettings)->Get12BitOffset();
+    return std::dynamic_pointer_cast<AltaCcdAcqParams>(m_CcdAcqSettings)->Get12BitOffset();
 }
 
 //////////////////////////// 
@@ -865,7 +865,7 @@ double Alta::GetCcdAdc16BitGain()
     apgHelper::DebugMsg( "Alta::GetCcdAdc16BitGain" );
 #endif
 
-    return std::tr1::dynamic_pointer_cast<AltaCcdAcqParams>(m_CcdAcqSettings)->Get16bitGain();
+    return std::dynamic_pointer_cast<AltaCcdAcqParams>(m_CcdAcqSettings)->Get16bitGain();
 }
 
 //////////////////////////// 
@@ -993,11 +993,11 @@ void Alta::OpenSerial( const uint16_t PortId )
     }
 
     //init the serial port
-    std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialBaudRate( 
+    std::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialBaudRate(
             PortId , DEFAULT_SERIAL_PORT_BAUD );
-    std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialFlowControl( 
+    std::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialFlowControl(
             PortId, DEFAULT_SERIAL_PORT_CF );
-    std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialParity( 
+    std::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialParity(
             PortId, DEFAULT_SERIAL_PORT_PARITY );
 
     m_serialPortOpenStatus[PortId] = true;
@@ -1030,7 +1030,7 @@ void Alta::SetSerialBaudRate( const uint16_t PortId , const uint32_t BaudRate )
                 __LINE__, Apg::ErrorType_InvalidUsage );
     }
 
-    std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialBaudRate( 
+    std::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialBaudRate(
         PortId , BaudRate );
 }
 
@@ -1046,7 +1046,7 @@ uint32_t Alta::GetSerialBaudRate( const uint16_t PortId  )
                 __LINE__, Apg::ErrorType_InvalidUsage );
     }
 
-    return std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->GetSerialBaudRate( PortId );
+    return std::dynamic_pointer_cast<AltaIo>(m_CamIo)->GetSerialBaudRate( PortId );
 }
 
 //////////////////////////// 
@@ -1061,7 +1061,7 @@ Apg::SerialFC Alta::GetSerialFlowControl( const uint16_t PortId )
                 __LINE__, Apg::ErrorType_InvalidUsage );
     }
 
-    return std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->GetSerialFlowControl( PortId );
+    return std::dynamic_pointer_cast<AltaIo>(m_CamIo)->GetSerialFlowControl( PortId );
 }
 
 //////////////////////////// 
@@ -1077,7 +1077,7 @@ void Alta::SetSerialFlowControl( const uint16_t PortId,
                 __LINE__, Apg::ErrorType_InvalidUsage );
     }
 
-    std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialFlowControl( 
+    std::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialFlowControl(
         PortId, FlowControl );
 }
 
@@ -1093,7 +1093,7 @@ Apg::SerialParity Alta::GetSerialParity( const uint16_t PortId )
                 __LINE__, Apg::ErrorType_InvalidUsage );
     }
 
-    return std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->GetSerialParity( PortId );
+    return std::dynamic_pointer_cast<AltaIo>(m_CamIo)->GetSerialParity( PortId );
 }
      
 //////////////////////////// 
@@ -1108,7 +1108,7 @@ void Alta::SetSerialParity( const uint16_t PortId, const Apg::SerialParity Parit
                 __LINE__, Apg::ErrorType_InvalidUsage );
     }
 
-    std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialParity( 
+    std::dynamic_pointer_cast<AltaIo>(m_CamIo)->SetSerialParity(
         PortId, Parity );
 }
      
@@ -1126,7 +1126,7 @@ std::string Alta::ReadSerial( const uint16_t PortId )
 
     std::string buffer;
 
-    std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->ReadSerial( 
+    std::dynamic_pointer_cast<AltaIo>(m_CamIo)->ReadSerial(
         PortId, buffer );
 
     return buffer;
@@ -1144,7 +1144,7 @@ void Alta::WriteSerial( const uint16_t PortId, const std::string & buffer )
                 __LINE__, Apg::ErrorType_InvalidUsage );
     }
 
-    std::tr1::dynamic_pointer_cast<AltaIo>(m_CamIo)->WriteSerial( 
+    std::dynamic_pointer_cast<AltaIo>(m_CamIo)->WriteSerial(
         PortId, buffer );
 }
 

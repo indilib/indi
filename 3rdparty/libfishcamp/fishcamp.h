@@ -178,6 +178,7 @@ typedef enum {
 	
 	} fc_property;
 
+void Starfish_Log (char *logString);
 
 #ifdef __cplusplus
 extern "C" {  // only need to export C interface if used by C++ source code

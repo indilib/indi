@@ -24,8 +24,8 @@ namespace
 
 //////////////////////////// 
 // CTOR 
-AltaModeFsm::AltaModeFsm( std::tr1::shared_ptr<CameraIo> & io,
-             std::tr1::shared_ptr<CApnCamData> & camData,
+AltaModeFsm::AltaModeFsm( std::shared_ptr<CameraIo> & io,
+             std::shared_ptr<CApnCamData> & camData,
              uint16_t rev):
             ModeFsm(io, camData, rev),
             m_fileName(__FILE__)

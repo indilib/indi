@@ -36,21 +36,6 @@ const int LONG_WRITE_TIMEOUT = 20000;
 const int MINIMUM_READ_TIMEOUT = 1000;
 const int MINIMUM_WRITE_TIMEOUT = 1000;
 
-const int MAX_PIXELS_READ_PER_BLOCK = 510 * 128 / 2;
-// Maximum number of pixels (not bytes) to read per block
-// Limited by ftdi constraints. 62 bytes of real data per packet, 510 for ft2232H
-// Max is 65536 BYTES total
-
-// FTDI buffering size, Zero means leave as default
-// Transfer size in bytes.
-const int USB_IN_TRANSFER_SIZE = 64 * 1024; // Max allowed by fdti
-const int USB_OUT_TRANSFER_SIZE = 64 * 1024;
-const int LATENCY_TIMER_MS = 16;
-
-const int USB_SERIAL_LENGTH = 32; // Length of character array to hold device's USB serial number
-const int USB_DESCRIPTION_LENGTH = 32;
-const int USB_MAX_DEVICES = 128;
-
 const int PKT_COMMAND = 0;        // Offset to packet command byte
 const int PKT_LENGTH = 1;         // Offset to packet length byte
 const int PKT_HEAD_LENGTH = 2;    // Number of bytes for the packet header
@@ -79,33 +64,33 @@ typedef struct QSI_CCDSpecs_t
 // ...
 typedef struct QSI_DeviceDetails_t
 {
-	bool    HasCamera;
-	bool    HasShutter;
-	bool    HasFilter;
-	bool    HasRelays;
-	bool    HasTempReg;
-	int     ArrayColumns;
-	int     ArrayRows;
-	double  XAspect;
-	double  YAspect;
-	int     MaxHBinning;
-	int     MaxVBinning;
-	bool    AsymBin;
-	bool    TwoTimesBinning;
-	USHORT  NumRowsPerBlock;    // Not currently used; calculated in "QSI_PlugIn::TransferImage" function, see "iPixelsPerRead"
-	bool    ControlEachBlock;   // Not currently used; handled by "Show D/L Progress" in Advanced Dialog
-	int     NumFilters;
-	char    cModelNumber[33];
-	char    cModelName[33];
-	char    cSerialNumber[33];
-	bool    HasFilterTrim;
-	bool	HasCMD_GetTemperatureEx;
-	bool	HasCMD_StartExposureEx;
-	bool	HasCMD_SetFilterTrim;
-	bool	HasCMD_HSRExposure;	
-	bool	HasCMD_PVIMode;
-	bool	HasCMD_LockCamera;
-	bool	HasCMD_BasicHWTrigger;
+	bool    HasCamera = 0;
+	bool    HasShutter = 0;
+	bool    HasFilter = 0;
+	bool    HasRelays = 0;
+	bool    HasTempReg = 0;
+	int     ArrayColumns = 0;
+	int     ArrayRows = 0;
+	double  XAspect = 0;
+	double  YAspect = 0;
+	int     MaxHBinning = 0;
+	int     MaxVBinning = 0;
+	bool    AsymBin = 0;
+	bool    TwoTimesBinning = 0;
+	USHORT  NumRowsPerBlock = 0;    // Not currently used; calculated in "QSI_PlugIn::TransferImage" function, see "iPixelsPerRead"
+	bool    ControlEachBlock = 0;   // Not currently used; handled by "Show D/L Progress" in Advanced Dialog
+	int     NumFilters = 0;
+	char    cModelNumber[33] = "";
+	char    cModelName[33] = "";
+	char    cSerialNumber[33] = "";
+	bool    HasFilterTrim = 0;
+	bool	HasCMD_GetTemperatureEx = 0;
+	bool	HasCMD_StartExposureEx = 0;
+	bool	HasCMD_SetFilterTrim = 0;
+	bool	HasCMD_HSRExposure = 0;
+	bool	HasCMD_PVIMode = 0;
+	bool	HasCMD_LockCamera = 0;
+	bool	HasCMD_BasicHWTrigger = 0;
 	// From Feature bytes
 	std::string ModelBaseNumber;	// "683" or "RS8.3"
 	std::string ModelNumber;		// "683ws" or "RS8.3ws" for user display
@@ -121,76 +106,76 @@ typedef struct QSI_DeviceDetails_t
 // ...
 typedef struct QSI_ExposureSettings_t
 {
-  UINT Duration;
-  BYTE DurationUSec;
-  int ColumnOffset;
-  int RowOffset;
-  int ColumnsToRead;
-  int RowsToRead;
-  int BinFactorX;
-  int BinFactorY;
-  bool OpenShutter;
-  bool FastReadout;
-  bool HoldShutterOpen;
-  bool UseExtTrigger;
-  bool StrobeShutterOutput;
-  int ExpRepeatCount;
-  bool ProbeForImplemented;
+  UINT Duration = 0;
+  BYTE DurationUSec = 0;
+  int ColumnOffset = 0;
+  int RowOffset = 0;
+  int ColumnsToRead = 0;
+  int RowsToRead = 0;
+  int BinFactorX = 0;
+  int BinFactorY = 0;
+  bool OpenShutter = 0;
+  bool FastReadout = 0;
+  bool HoldShutterOpen = 0;
+  bool UseExtTrigger = 0;
+  bool StrobeShutterOutput = 0;
+  int ExpRepeatCount = 0;
+  bool ProbeForImplemented = 0;
 } QSI_ExposureSettings;
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // ...
 typedef struct QSI_AdvEnabledOptions_t
 {
-  bool LEDIndicatorOn;
-  bool SoundOn;
-  bool FanMode;
-  bool CameraGain;
-  bool ShutterPriority;
-  bool AntiBlooming;
-  bool PreExposureFlush;
-  bool ShowDLProgress;
-  bool Optimizations;
+  bool LEDIndicatorOn = 0;
+  bool SoundOn = 0;
+  bool FanMode = 0;
+  bool CameraGain = 0;
+  bool ShutterPriority = 0;
+  bool AntiBlooming = 0;
+  bool PreExposureFlush = 0;
+  bool ShowDLProgress = 0;
+  bool Optimizations = 0;
 } QSI_AdvEnabledOptions;
 //////////////////////////////////////////////////////////////////////////////////////////
 // ...
 typedef struct QSI_FilterDesc_t
 {
-	char	Name[32];
-	long	FocusOffset;
+	char	Name[32] = "";
+	long	FocusOffset = 0;
 } QSI_FilterDesc;
 //////////////////////////////////////////////////////////////////////////////////////////
 // ...
 typedef struct QSI_AdvSettings_t
 {
-  bool LEDIndicatorOn;
-  bool SoundOn;
-  bool ShowDLProgress;
-  bool OptimizeReadoutSpeed;
-  int FanModeIndex;
-  int CameraGainIndex;
-  int ShutterPriorityIndex;
-  int AntiBloomingIndex;
-  int PreExposureFlushIndex;
-  bool FilterTrimEnabled;
+  bool LEDIndicatorOn = 0;
+  bool SoundOn = 0;
+  bool ShowDLProgress = 0;
+  bool OptimizeReadoutSpeed = 0;
+  int FanModeIndex = 0;
+  int CameraGainIndex = 0;
+  int ShutterPriorityIndex = 0;
+  int AntiBloomingIndex = 0;
+  int PreExposureFlushIndex = 0;
+  bool FilterTrimEnabled = 0;
   FilterWheel fwWheel;
 } QSI_AdvSettings;
 
 typedef struct QSI_AutoZeroData_t
 {
-	bool zeroEnable;
-	USHORT zeroLevel;
-	USHORT pixelCount;
+	bool zeroEnable = 0;
+	USHORT zeroLevel = 0;
+	USHORT pixelCount = 0;
 } QSI_AutoZeroData;
 
 typedef struct QSI_IOTimeouts_t
 {
-	int ShortRead;
-	int ShortWrite;
-	int StandardRead;
-	int StandardWrite;
-	int ExtendedRead;
-	int ExtendedWrite;
+	int ShortRead = 0;
+	int ShortWrite = 0;
+	int StandardRead = 0;
+	int StandardWrite = 0;
+	int ExtendedRead = 0;
+	int ExtendedWrite = 0;
 } QSI_IOTimeouts;
 
 typedef enum QSICameraState_t
@@ -256,8 +241,11 @@ enum QSI_ReturnStates
 	ERR_CAM_Filter			= 5,
 	ERR_CAM_Shutter			= 6,
 
-	ERR_USB_Load = 50,
-	ERR_USB_LoadFunction = 51,
+	ERR_USB_Load 			= 50,
+	ERR_USB_LoadFunction 	= 51,
+	ERR_USB_OpenFailed		= 100,
+	ERR_USB_WriteFailed		= 101,
+	ERR_USB_ReadFailed		= 102,
 
 	// Packet Interface
 	ERR_PKT_OpenFailed        =  200,    // Open device failed
@@ -284,6 +272,7 @@ enum QSI_ReturnStates
 	ERR_PKT_SetLatencyFailed  = 2400,
 	ERR_PKT_ResetDeviceFailed = 2500,
 	ERR_PKT_SetUSBParmsFailed = 2600,
+	ERR_PKT_NoConnection	  = 2700,
 
 	// Device Interface
 	ERR_IFC_InitCamera        =  10000,  // 

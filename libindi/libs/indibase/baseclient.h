@@ -16,24 +16,21 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef INDIBASECLIENT_H
-#define INDIBASECLIENT_H
-
-#include <vector>
-#include <map>
-#include <string>
-
-#include <pthread.h>
+#pragma once
 
 #include "indiapi.h"
-#include "indidevapi.h"
 #include "indibase.h"
 
+#include <string>
+#include <vector>
+
+#include <thread>
+
+#ifdef _WINDOWS
+#include <WinSock2.h>
+#endif
+
 #define MAXRBUF 2048
-
-using namespace std;
-
-
 
 /**
  * \class INDI::BaseClient
@@ -44,19 +41,19 @@ using namespace std;
    a set of INDI::BaseDevice devices, and read and write properties seamlessly. Event driven programming is possible due to
    notifications upon reception of new devices or properties.
 
-   \attention All notifications functions defined in INDI::BaseMediator must be implemented in the client class even if
+   Upon connecting to an INDI server, it creates a dedicated thread to handle all incoming traffic. The thread is terminated
+   when disconnectServer() is called or when a communication error occurs.
+
+   \attention All notifications functions defined in INDI::BaseMediator <b>must</b> be implemented in the client class even if
    they are not used because these are pure virtual functions.
 
-   \see <a href=http://indilib.org/index.php?title=Learn_how_to_write_INDI_clients>INDI Client Tutorial</a> for more details.
+   \see <a href="http://indilib.org/develop/tutorials/107-client-development-tutorial.html">INDI Client Tutorial</a> for more details.
    \author Jasem Mutlaq
 
  */
 class INDI::BaseClient : public INDI::BaseMediator
 {
-public:
-    enum { INDI_DEVICE_NOT_FOUND=-1, INDI_PROPERTY_INVALID=-2, INDI_PROPERTY_DUPLICATED = -3, INDI_DISPATCH_ERROR=-4 };
-    //typedef boost::shared_ptr<INDI::BaseDevice> devicePtr;
-
+  public:
     BaseClient();
     virtual ~BaseClient();
 
@@ -64,7 +61,7 @@ public:
         \param hostname INDI server host name or IP address.
         \param port INDI server port.
     */
-    void setServer(const char * hostname, unsigned int port);
+    void setServer(const char *hostname, unsigned int port);
 
     /** \brief Add a device to the watch list.
 
@@ -73,8 +70,7 @@ public:
         INDI::BaseDevice object to handle them. If no devices are watched, then all devices owned by INDI server
         will be created and handled.
     */
-    void watchDevice(const char * deviceName);
-
+    void watchDevice(const char *deviceName);
 
     /** \brief Connect to INDI server.
 
@@ -90,6 +86,8 @@ public:
     */
     bool disconnectServer();
 
+    bool isServerConnected() const;
+
     /** \brief Connect to INDI driver
         \param deviceName Name of the device to connect to.
     */
@@ -103,11 +101,28 @@ public:
     /** \param deviceName Name of device to search for in the list of devices owned by INDI server,
          \returns If \e deviceName exists, it returns an instance of the device. Otherwise, it returns NULL.
     */
-    INDI::BaseDevice * getDevice(const char * deviceName);
+    INDI::BaseDevice *getDevice(const char *deviceName);
 
     /** \returns Returns a vector of all devices created in the client.
     */
-    const vector<INDI::BaseDevice *> & getDevices() const { return cDevices; }
+    const std::vector<INDI::BaseDevice *> &getDevices() const { return cDevices; }
+
+    /**
+     * @brief getDevices Returns list of devices that belong to a particular @ref INDI::BaseDevice::DRIVER_INTERFACE "DRIVER_INTERFACE" class.
+     *
+     * For example, to get a list of guide cameras:
+     @code{.cpp}
+      std::vector<INDI::BaseDevice *> guideCameras;
+      getDevices(guideCameras, CCD_INTERFACE | GUIDE_INTERFACE);
+      for (INDI::BaseDevice *device : guideCameras)
+             cout << "Guide Camera Name: " << device->getDeviceName();
+     @endcode
+     * @param deviceList Supply device list to be filled by the function.
+     * @param driverInterface ORed DRIVER_INTERFACE values to select the desired class of devices.
+     * @return True if one or more devices are found for the supplied driverInterface, false if no matching devices found.
+
+     */
+    bool getDevices(std::vector<INDI::BaseDevice *> &deviceList, uint16_t driverInterface);
 
     /** \brief Set Binary Large Object policy mode
 
@@ -121,36 +136,45 @@ public:
       If \e dev and \e prop are supplied, then the BLOB handling policy is set for this particular device and property.
       if \e prop is NULL, then the BLOB policy applies to the whole device.
 
-
       \param blobH BLOB handling policy
       \param dev name of device, required.
       \param prop name of property, optional.
     */
     void setBLOBMode(BLOBHandling blobH, const char *dev, const char *prop = NULL);
 
-    // Update
-    static void * listenHelper(void *context);
+    /**
+     * @brief getBLOBMode Get Binary Large Object policy mode IF set previously by setBLOBMode
+     * @param dev name of device.
+     * @param prop property name, can be NULL to return overall device policy if it exists.
+     * @return BLOB Policy, if not found, it always returns B_ALSO
+     */
+    BLOBHandling getBLOBMode(const char *dev, const char *prop = NULL);
 
-    const char * getHost() { return cServer.c_str();}
+    // Update
+    static void *listenHelper(void *context);
+
+    const char *getHost() { return cServer.c_str(); }
     int getPort() { return cPort; }
 
     /** \brief Send new Text command to server */
-    void sendNewText (ITextVectorProperty *pp);
+    void sendNewText(ITextVectorProperty *pp);
     /** \brief Send new Text command to server */
-    void sendNewText (const char * deviceName, const char * propertyName, const char* elementName, const char *text);
+    void sendNewText(const char *deviceName, const char *propertyName, const char *elementName, const char *text);
     /** \brief Send new Number command to server */
-    void sendNewNumber (INumberVectorProperty *pp);
+    void sendNewNumber(INumberVectorProperty *pp);
     /** \brief Send new Number command to server */
-    void sendNewNumber (const char * deviceName, const char *propertyName, const char* elementName, double value);
+    void sendNewNumber(const char *deviceName, const char *propertyName, const char *elementName, double value);
     /** \brief Send new Switch command to server */
-    void sendNewSwitch (ISwitchVectorProperty *pp);
+    void sendNewSwitch(ISwitchVectorProperty *pp);
     /** \brief Send new Switch command to server */
-    void sendNewSwitch (const char * deviceName, const char *propertyName, const char *elementName);
+    void sendNewSwitch(const char *deviceName, const char *propertyName, const char *elementName);
 
     /** \brief Send opening tag for BLOB command to server */
-    void startBlob( const char *devName, const char *propName, const char *timestamp);
-    /** \brief Send ONE blob content to server */
-    void sendOneBlob( const char *blobName, unsigned int blobSize, const char *blobFormat, void * blobBuffer);
+    void startBlob(const char *devName, const char *propName, const char *timestamp);
+    /** \brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
+    void sendOneBlob(IBLOB *bp);
+    /** \brief Send ONE blob content to server. The BLOB data in raw binary format and will be converted to base64 and sent to server */
+    void sendOneBlob(const char *blobName, unsigned int blobSize, const char *blobFormat, void *blobBuffer);
     /** \brief Send closing tag for BLOB command to server */
     void finishBlob();
 
@@ -172,31 +196,48 @@ public:
      * @param seconds seconds
      * @param microseconds microseconds
      */
-    void setConnectionTimeout(uint32_t seconds, uint32_t microseconds) { timeout_sec = seconds; timeout_us = microseconds;}
+    void setConnectionTimeout(uint32_t seconds, uint32_t microseconds)
+    {
+        timeout_sec = seconds;
+        timeout_us  = microseconds;
+    }
 
-protected:
-
+  protected:
     /** \brief Dispatch command received from INDI server to respective devices handled by the client */
-    int dispatchCommand(XMLEle *root, char* errmsg);
+    int dispatchCommand(XMLEle *root, char *errmsg);
 
     /** \brief Remove device */
-    int deleteDevice( const char * devName, char * errmsg );
+    int deleteDevice(const char *devName, char *errmsg);
 
     /** \brief Delete property command */
-    int delPropertyCmd (XMLEle *root, char * errmsg);
+    int delPropertyCmd(XMLEle *root, char *errmsg);
 
     /** \brief Find and return a particular device */
-    INDI::BaseDevice * findDev( const char * devName, char * errmsg);
+    INDI::BaseDevice *findDev(const char *devName, char *errmsg);
     /** \brief Add a new device */
-    INDI::BaseDevice * addDevice (XMLEle *dep, char * errmsg);
+    INDI::BaseDevice *addDevice(XMLEle *dep, char *errmsg);
     /** \brief Find a device, and if it doesn't exist, create it if create is set to 1 */
-    INDI::BaseDevice * findDev (XMLEle *root, int create, char * errmsg);
+    INDI::BaseDevice *findDev(XMLEle *root, int create, char *errmsg);
 
     /**  Process messages */
-    int messageCmd (XMLEle *root, char * errmsg);
+    int messageCmd(XMLEle *root, char *errmsg);
 
+    /**
+     * @brief newUniversalMessage Universal messages are sent from INDI server without a specific device. It is addressed to the client overall.
+     * @param message content of message.
+     * @note The default implementation simply logs the message to stderr. Override to handle the message.
+     */
+    virtual void newUniversalMessage(std::string message);
 
-private:
+  private:
+    typedef struct
+    {
+        std::string device;
+        std::string property;
+        BLOBHandling blobMode;
+    } BLOBMode;
+
+    BLOBMode *findBLOBMode(const std::string& device, const std::string& property);
 
     /** \brief Connect/Disconnect to INDI driver
         \param status If true, the client will attempt to turn on CONNECTION property within the driver (i.e. turn on the device).
@@ -205,30 +246,37 @@ private:
     */
     void setDriverConnection(bool status, const char *deviceName);
 
+    /**
+     * @brief clear Clear devices and blob modes
+     */
+    void clear();
+
+    std::thread *listen_thread=nullptr;
+
+#ifdef _WINDOWS
+    SOCKET sockfd;
+#else
+    int sockfd;
+    int m_receiveFd;
+    int m_sendFd;
+#endif
+
     // Listen to INDI server and process incoming messages
     void listenINDI();
 
-    // Thread for listenINDI()
-    pthread_t listen_thread;
+    void sendString(const char *fmt, ...);
 
-    vector<INDI::BaseDevice *> cDevices;
-    vector<string> cDeviceNames;
+    std::vector<INDI::BaseDevice *> cDevices;
+    std::vector<std::string> cDeviceNames;
+    std::vector<BLOBMode *> blobModes;
 
-    string cServer;
+    std::string cServer;
     unsigned int cPort;
     bool sConnected;
     bool verbose;
 
     // Parse & FILE buffers for IO
-    int sockfd;
-    LilXML *lillp;			/* XML parser context */
-    FILE *svrwfp;			/* FILE * to talk to server */
 
-    int m_receiveFd;
-    int m_sendFd;
-
+    LilXML *lillp; /* XML parser context */
     uint32_t timeout_sec, timeout_us;
-
 };
-
-#endif // INDIBASECLIENT_H

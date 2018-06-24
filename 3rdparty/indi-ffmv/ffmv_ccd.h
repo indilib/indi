@@ -27,12 +27,12 @@ using namespace std;
 
 class FFMVCCD : public INDI::CCD
 {
-public:
+  public:
     FFMVCCD();
 
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-protected:
+  protected:
     // General device functions
     bool Connect();
     bool Disconnect();
@@ -45,17 +45,16 @@ protected:
     bool AbortExposure();
     void TimerHit();
 
-private:
+  private:
     // Utility functions
     float CalcTimeLeft();
-    void  setupParams();
-    void  grabImage();
+    void setupParams();
+    void grabImage();
     dc1394error_t writeMicronReg(unsigned int offset, unsigned int val);
     dc1394error_t readMicronReg(unsigned int offset, unsigned int *val);
 
     dc1394error_t setGainVref(ISState iss);
     dc1394error_t setDigitalGain(ISState state);
-
 
     // Are we exposing?
     bool InExposure;
@@ -64,22 +63,16 @@ private:
     struct timeval ExpStart;
 
     float ExposureRequest;
-    float TemperatureRequest;
-    int   timerID;
     float max_exposure;
     float last_exposure_length;
     int sub_count;
 
     ISwitch GainS[2];
     ISwitchVectorProperty GainSP;
-    // We declare the CCD temperature property
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
 
     dc1394_t *dc1394;
     dc1394camera_t *dcam;
 
-    float last_duration;
 };
 
 #endif // FFMVCCD_H

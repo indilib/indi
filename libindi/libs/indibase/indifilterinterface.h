@@ -18,13 +18,14 @@
 
 */
 
-#ifndef INDIFILTERINTERFACE_H
-#define INDIFILTERINTERFACE_H
+#pragma once
 
+#include <string>
+#include <vector>
 #include "indibase.h"
 
 /**
- * \class INDI::FilterInterface
+ * \class FilterInterface
    \brief Provides interface to implement Filter Wheel functionality.
 
    A filter wheel can be an independent device, or an embedded filter wheel within another device (e.g. CCD camera). Child class must implement all the
@@ -38,74 +39,96 @@
    \note Filter position starts from 1 and \e not 0
 \author Gerry Rozema, Jasem Mutlaq
 */
-class INDI::FilterInterface
+namespace INDI
 {
 
-public:
-
+class FilterInterface
+{
+  public:
     /** \brief Return current filter position */
     virtual int QueryFilter() = 0;
 
-    /** \brief Select a new filter position
-        \return True if operation is successful, false otherwise */
+    /**
+     * \brief Select a new filter position
+     * \return True if operation is successful, false otherwise
+     */
     virtual bool SelectFilter(int position) = 0;
 
-    /** \brief Set filter names as defined by the client for each filter position.
-         The desired filter names are stored in FilterNameTP property. Filter names should be saved in hardware if possible.
-         \return True if successful, false if supported or failed operation
-    */
-    virtual bool SetFilterNames() = 0;
+    /**
+     * \brief Set filter names as defined by the client for each filter position.
+     * The desired filter names are stored in FilterNameTP property. Filter names should be
+     * saved in hardware if possible. The default implementation saves them in the configuration file.
+     * \return True if successful, false if supported or failed operation
+     */
+    virtual bool SetFilterNames();
 
-    /** \brief Obtains a list of filter names from the hardware and initilizes the FilterNameTP property. The function should check for the number of filters
-      available in the filter wheel and build the FilterNameTP property accordingly.
-      \param groupName group name for FilterNameTP property to be created.
-      \return True if successful, false if unsupported or failed operation
-      \see QSI CCD implementation of the FilterInterface. QSI CCD is available as a 3rd party INDI driver.
-    */
-    virtual bool GetFilterNames(const char* groupName) = 0;
+    /**
+     * \brief Obtains a list of filter names from the hardware and initializes the FilterNameTP
+     * property. The function should check for the number of filters available in the filter
+     * wheel and build the FilterNameTP property accordingly. The default implementation loads the filter names from
+     * configuration file.
+     * \return True if successful, false if unsupported or failed operation     
+     */
+    virtual bool GetFilterNames();
 
-    /** \brief The child class calls this function when the hardware successfully finished selecting a new filter wheel position
-        \param newpos New position of the filter wheel
-    */
+    /**
+     * \brief The child class calls this function when the hardware successfully finished
+     * selecting a new filter wheel position
+     * \param newpos New position of the filter wheel
+     */
     void SelectFilterDone(int newpos);
 
-
-protected:
-
-    FilterInterface();
+  protected:
+    /**
+     * @brief FilterInterface Initiailize Filter Interface
+     * @param defaultDevice default device that owns the interface
+     */
+    explicit FilterInterface(DefaultDevice *defaultDevice);
     ~FilterInterface();
 
-    /** \brief Initilize filter wheel properties. It is recommended to call this function within initProperties() of your primary device
-        \param deviceName Name of the primary device
-        \param groupName Group or tab name to be used to define filter wheel properties.
-    */
-    void initFilterProperties(const char *deviceName, const char* groupName);
+    /**
+     * \brief Initilize filter wheel properties. It is recommended to call this function within
+     * initProperties() of your primary device
+     * \param groupName Group or tab name to be used to define filter wheel properties.
+     */
+    void initProperties(const char *groupName);
 
-    /** \brief Process client request to change filter position. Call this function in the filter wheel
-         implementation class ISNewNumber function.
-        \param deviceName Name of the primary device
-        \param values values from ISNewNumber().
-        \param names names from ISNewNumber();
-    */
-    void processFilterSlot(const char *deviceName, double values[], char *names[]);
+    /**
+     * @brief updateProperties Defines or Delete proprties based on default device connection status
+     * @return True if all is OK, false otherwise.
+     */
+    bool updateProperties();
 
-    /** \brief Process client request to change filter name(s). Call this function in the filter wheel
-         implementation class ISNewText() function.
-        \param deviceName Name of the primary device
-        \param texts values from ISNewText().
-        \param names names from ISNewText();
-        \param n n from ISNewtext();
-    */
-    void processFilterName(const char *deviceName, char *texts[], char *names[], int n);
+    /** \brief Process number properties */
+    bool processNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-    INumberVectorProperty FilterSlotNP;   //  A number vector for filter slot
+    /** \brief Process text properties */
+    bool processText(const char *dev, const char *name, char *texts[], char *names[], int n);
+
+    /**
+     * @brief generateSampleFilters Generate sample 8-filter wheel and fill it sample filters
+     */
+    void generateSampleFilters();
+
+    /**
+     * @brief saveConfigItems save Filter Names in config file
+     * @param fp pointer to config file
+     * @return Always return true
+     */
+    bool saveConfigItems(FILE *fp);
+
+    //  A number vector for filter slot
+    INumberVectorProperty FilterSlotNP;
     INumber FilterSlotN[1];
 
-    ITextVectorProperty *FilterNameTP; //  A text vector that stores out physical port name
+     //  A text vector that stores out physical port name
+    ITextVectorProperty *FilterNameTP { nullptr };
     IText *FilterNameT;
 
     int CurrentFilter;
     int TargetFilter;
-};
+    bool loadingFromConfig = false;
 
-#endif // INDIFILTERINTERFACE_H
+    DefaultDevice *m_defaultDevice { nullptr };
+};
+}

@@ -6,23 +6,23 @@
 /// This file provides the common functionality for the built in
 /// and SVD math plugins
 
-#ifndef INDI_ALIGNMENTSUBSYSTEM_BASICMATHPLUGIN_H
-#define INDI_ALIGNMENTSUBSYSTEM_BASICMATHPLUGIN_H
+#pragma once
 
 #include "AlignmentSubsystemForMathPlugins.h"
 #include "ConvexHull.h"
 
 #include <gsl/gsl_matrix.h>
 
-namespace INDI {
-namespace AlignmentSubsystem {
-
+namespace INDI
+{
+namespace AlignmentSubsystem
+{
 /// \class BasicMathPlugin
 /// \brief This class implements the common functionality for the built in
 /// and SVD math plugins
 class BasicMathPlugin : public AlignmentSubsystemForMathPlugins
 {
-public:
+  public:
     /// \brief Default constructor
     BasicMathPlugin();
 
@@ -30,17 +30,18 @@ public:
     virtual ~BasicMathPlugin();
 
     /// \brief Override for the base class virtual function
-    virtual bool Initialise(InMemoryDatabase* pInMemoryDatabase);
+    virtual bool Initialise(InMemoryDatabase *pInMemoryDatabase);
 
     /// \brief Override for the base class virtual function
-    virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination, double JulianOffset,
-                                                    TelescopeDirectionVector& ApparentTelescopeDirectionVector);
+    virtual bool TransformCelestialToTelescope(const double RightAscension, const double Declination,
+                                               double JulianOffset,
+                                               TelescopeDirectionVector &ApparentTelescopeDirectionVector);
 
     /// \brief Override for the base class virtual function
-    virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector& ApparentTelescopeDirectionVector, double& RightAscension, double& Declination);
+    virtual bool TransformTelescopeToCelestial(const TelescopeDirectionVector &ApparentTelescopeDirectionVector,
+                                               double &RightAscension, double &Declination);
 
-protected:
-
+  protected:
     /// \brief Calculate tranformation matrices from the supplied vectors
     /// \param[in] Alpha1 Pointer to the first coordinate in the alpha reference frame
     /// \param[in] Alpha2 Pointer to the second coordinate in the alpha reference frame
@@ -50,9 +51,11 @@ protected:
     /// \param[in] Beta3 Pointer to the third coordinate in the beta reference frame
     /// \param[in] pAlphaToBeta Pointer to a matrix to receive the Alpha to Beta transformation matrix
     /// \param[in] pBetaToAlpha Pointer to a matrix to receive the Beta to Alpha transformation matrix
-    virtual void CalculateTransformMatrices(const TelescopeDirectionVector& Alpha1, const TelescopeDirectionVector& Alpha2, const TelescopeDirectionVector& Alpha3,
-                            const TelescopeDirectionVector& Beta1, const TelescopeDirectionVector& Beta2, const TelescopeDirectionVector& Beta3,
-                            gsl_matrix *pAlphaToBeta, gsl_matrix *pBetaToAlpha) = 0;
+    virtual void
+    CalculateTransformMatrices(const TelescopeDirectionVector &Alpha1, const TelescopeDirectionVector &Alpha2,
+                               const TelescopeDirectionVector &Alpha3, const TelescopeDirectionVector &Beta1,
+                               const TelescopeDirectionVector &Beta2, const TelescopeDirectionVector &Beta3,
+                               gsl_matrix *pAlphaToBeta, gsl_matrix *pBetaToAlpha) = 0;
 
     /// \brief Print out a 3 vector to debug
     /// \param[in] Label A label to identify the vector
@@ -88,9 +91,8 @@ protected:
     /// \param[in] TriangleVertex3 The third vertex of the triangle
     /// \note The order of the vertices determine whether the triangle is facing away from or towards the origin.
     /// Intersection with triangles facing the origin will be ignored.
-    bool RayTriangleIntersection(TelescopeDirectionVector& Ray, TelescopeDirectionVector& TriangleVertex1,
-                                                                TelescopeDirectionVector& TriangleVertex2,
-                                                                TelescopeDirectionVector& TriangleVertex3);
+    bool RayTriangleIntersection(TelescopeDirectionVector &Ray, TelescopeDirectionVector &TriangleVertex1,
+                                 TelescopeDirectionVector &TriangleVertex2, TelescopeDirectionVector &TriangleVertex3);
 
     // Transformation matrixes for 1, 2 and 2 sync points case
     gsl_matrix *pActualToApparentTransform;
@@ -101,10 +103,7 @@ protected:
     ConvexHull ApparentConvexHull;
     // Actual direction cosines for the 4+ case
     std::vector<TelescopeDirectionVector> ActualDirectionCosines;
-
 };
 
 } // namespace AlignmentSubsystem
 } // namespace INDI
-
-#endif // INDI_ALIGNMENTSUBSYSTEM_BASICMATHPLUGIN_H

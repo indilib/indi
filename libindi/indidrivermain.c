@@ -30,85 +30,85 @@
  * This requires liblilxml.
  */
 
+#include "base64.h"
+#include "eventloop.h"
+#include "indicom.h"
+#include "indidevapi.h"
+#include "indidriver.h"
+#include "lilxml.h"
+
+#include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
-#include <errno.h>
 #include <time.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "lilxml.h"
-#include "base64.h"
-#include "eventloop.h"
-#include "indidevapi.h"
-#include "indicom.h"
-#include "indidriver.h"
-
 #define MAXRBUF 2048
 
-ROSC *roCheck;
-int nroCheck;			/* # of elements in roCheck */
+ROSC *propCache;
+int nPropCache; /* # of elements in roCheck */
 
-int verbose;			/* chatty */
-char *me;				/* a.out name */
-LilXML *clixml;			/* XML parser context */
+int verbose;    /* chatty */
+char *me;       /* a.out name */
+LilXML *clixml; /* XML parser context */
 
-static void  usage(void);
+static void usage(void);
 
-int
-main (int ac, char *av[])
+int main(int ac, char *av[])
 {
 #ifndef _WIN32
-        setgid( getgid() );
-        setuid( getuid() );
+    int ret = setgid(getgid());
 
-	if (geteuid() != getuid())
-            exit(255);
+    ret = setuid(getuid());
+
+    if (geteuid() != getuid())
+        exit(255);
 #endif
 
-	/* save handy pointer to our base name */
-	for (me = av[0]; av[0][0]; av[0]++)
-	    if (av[0][0] == '/')
-		me = &av[0][1];
+    /* save handy pointer to our base name */
+    for (me = av[0]; av[0][0]; av[0]++)
+        if (av[0][0] == '/')
+            me = &av[0][1];
 
-	/* crack args */
-	while (--ac && (*++av)[0] == '-')
-	    while (*++(*av))
-		switch (*(*av)) {
-		case 'v':	/* verbose */
-		    verbose++;
-		    break;
-		default:
-		    usage();
-		}
+    /* crack args */
+    while (--ac && (*++av)[0] == '-')
+        while (*++(*av))
+            switch (*(*av))
+            {
+                case 'v': /* verbose */
+                    verbose++;
+                    break;
+                default:
+                    usage();
+            }
 
-	/* ac remaining args starting at av[0] */
-	if (ac > 0)
-	    usage();
+    /* ac remaining args starting at av[0] */
+    if (ac > 0)
+        usage();
 
-	/* init */
-	clixml =  newLilXML();
-	addCallback (0, clientMsgCB, NULL);
+    /* init */
+    clixml = newLilXML();
+    addCallback(0, clientMsgCB, NULL);
 
-	/* service client */
-	eventLoop();
+    /* service client */
+    eventLoop();
 
-	/* eh?? */
-	fprintf (stderr, "%s: inf loop ended\n", me);
-	return (1);
+    /* eh?? */
+    fprintf(stderr, "%s: inf loop ended\n", me);
+    return (1);
 }
 
 /* print usage message and exit (1) */
-static void  usage(void)
+static void usage(void)
 {
-            fprintf (stderr, "Usage: %s [options]\n", me);
-            fprintf (stderr, "Purpose: INDI Device driver framework.\n");
-            fprintf (stderr, "Options:\n");
-            fprintf (stderr, " -v    : more verbose to stderr\n");
+    fprintf(stderr, "Usage: %s [options]\n", me);
+    fprintf(stderr, "Purpose: INDI Device driver framework.\n");
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, " -v    : more verbose to stderr\n");
 
-            exit (1);
+    exit(1);
 }
-

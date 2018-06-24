@@ -63,12 +63,6 @@ On
     </defSwitch>
 </defSwitchVector>
 
-<defTextVector device="Arduino MeteoStation" name="DEVICE_PORT" label="SERIAL" group="Connection" state="Idle" perm="rw" timeout="60">
-    <defText name="PORT" label="Port">
-/dev/ttyACM0
-    </defText>
-</defTextVector>
-
 <defSwitchVector device="Arduino MeteoStation" name="BACK_LIGHT" label="BACK_LIGHT" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
     <defSwitch name="ON" label="OPEN">
 Off

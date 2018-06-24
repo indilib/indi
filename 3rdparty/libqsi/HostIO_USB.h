@@ -6,23 +6,16 @@
  */
 #pragma once
 //
-// Select the approriate ftdi library.  Default is libftdi-0.1.
-// use "./configure --enable-ftd2xx" to switch to libftd2xx.
-// and "./configure --enable-libftdi" for the open source stack.
-// "./condifure" with no options defaults to libftdi
+// Select the approriate ftdi library. 
+// use "./configure --with-ftd=ftd2xx" to switch to libftd2xx.
+// and "./configure --with-ftd=ftdi" for the open source stack.
 //
-#if defined(USELIBFTDIZERO)
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
 	#include <ftdi.h>
 	#define FT_PURGE_TX 1
 	#define FT_PURGE_RX 2
-#elif defined(USELIBFTDIONE)
-
 #elif defined (USELIBFTD2XX)
-  #ifdef OSX_EMBEDED_MODE
-    #include "ftd2xx.h"
-  #else
-    #include <ftd2xx.h>
-  #endif
+	#include <ftd2xx.h>
 #else
 
 #endif
@@ -32,6 +25,16 @@
 #include "QSILog.h"
 #include "QSI_Global.h"
 #include "VidPid.h"
+
+// FTDI buffering size, Zero means leave as default
+// Transfer size in bytes.
+const int USB_IN_TRANSFER_SIZE = 64 * 1024; // Max allowed by fdti
+const int USB_OUT_TRANSFER_SIZE = 64 * 1024;
+const int LATENCY_TIMER_MS = 16;
+
+const int USB_SERIAL_LENGTH = 32; // Length of character array to hold device's USB serial number
+const int USB_DESCRIPTION_LENGTH = 32;
+const int USB_MAX_DEVICES = 128;
 
 class HostIO_USB : public IHostIO
 {
@@ -52,15 +55,12 @@ public:
 	virtual int SetStandardReadTimeout ( int ulTimeout);
 	virtual int SetStandardWriteTimeout( int ulTimeout);
 	virtual int SetIOTimeout (IOTimeout ioTimeout);
+	virtual int MaxBytesPerReadBlock();
+	virtual int WritePacket(UCHAR * pBuff, int iBuffLen, int * iBytesWritten);
+	virtual int ReadPacket(UCHAR * pBuff, int iBuffLen, int * iBytesRead);
+	virtual IOType GetTransferType();
 	// USB Specific calls
 	int SetLatencyTimer(UCHAR);
-#ifdef WIN32
-#ifdef USELIBFTD2XX
-	int QSI_FT_EE_Program(  int DeviceIndex, int VID, int PID, LPTSTR SerialNumber, LPTSTR ManufacturerID, 
-							LPTSTR Manufacturer, LPTSTR Description, bool  BusPowered, int MaxPower, bool RemoteWakeup);
-	int Open(int iDevice, FT_HANDLE ftHandle);	
-#endif
-#endif
 
 protected:
 	int				SetUSBParameters(DWORD, DWORD);
@@ -74,12 +74,10 @@ private:
 	int 			m_iLoadStatus;      //
 	std::vector<VidPid> 	m_vidpids;	// Table of Vendor and Product IDs to try
 	
-#if defined(USELIBFTDIZERO)
-	int my_ftdi_read_data(struct ftdi_context *ftdi, unsigned char *buf, int size);		
+#if defined(USELIBFTDIZERO) || defined(USELIBFTDIONE)
+	int my_ftdi_read_data(struct ftdi_context *ftdi, unsigned char *buf, int size);
 	ftdi_context m_ftdi;
 	bool m_ftdiIsOpen;
-#elif defined(USELIBFTDIONE)
-
 #elif defined(USELIBFTD2XX)
 	FT_HANDLE 				m_DeviceHandle; // Holds handle to usb device when connected
 #endif

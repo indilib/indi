@@ -3,19 +3,15 @@
  * Copyright (c) 2015, Ben Gilsrud <bgilsrud@gmail.com>
  */
 
-#ifdef HAVE_CONFIG_H
-#  include "config.h"
-#endif
-
 #include "DsiColor.h"
-#include "DsiDevice.h"
+
+#include <indidevapi.h>
 
 using namespace DSI;
 
-void
-DsiColor::initImager(const char *devname)
+void DsiColor::initImager(const char *devname)
 {
-
+    INDI_UNUSED(devname);
     command(DeviceCommand::SET_ROW_COUNT_EVEN, read_height_even);
     command(DeviceCommand::SET_ROW_COUNT_ODD, read_height_odd);
 
@@ -32,9 +28,10 @@ DsiColor::initImager(const char *devname)
      * do anything about.  Although MaximDL uses 4 exposures of 1000 ticks
      * (100 ms) each, this shorter exposure works just fine.
      */
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 1; i++)
+    {
         unsigned char *foo = getImage(1);
-	delete [] foo;
+        delete[] foo;
     }
 }
 
@@ -63,19 +60,18 @@ DsiColor::DsiColor(const char *devname) : Device(devname)
     read_height_odd  = 252;
     read_height      = read_height_even + read_height_odd;
 
-    read_bpp         = 2;
+    read_bpp = 2;
 
     image_width    = 508;
     image_height   = 488;
-    image_offset_x =  23;
-    image_offset_y =  13;
+    image_offset_x = 23;
+    image_offset_y = 13;
     pixel_size_x   = 9.6;
     pixel_size_y   = 7.5;
 
-    exposure_time  =  10;
+    exposure_time = 10;
 
     initImager();
-
 }
 
 DsiColor::~DsiColor()

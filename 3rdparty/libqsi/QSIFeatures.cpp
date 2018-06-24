@@ -7,6 +7,7 @@
 
 QSIFeatures::QSIFeatures(void)
 {
+	m_iFeaturesReturned = 0;
 	for (int i = 0; i < IMAXFEATURES; i++)
 	{
 		m_Features[i] = 0;

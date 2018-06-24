@@ -310,14 +310,12 @@ private:
 	QSI_AdvEnabledOptions	m_AdvEnabledOptions;
 
 	unsigned short * 			m_pusBuffer;			// Buffer for readout
-	int 						m_iNumPixelsRead;		// Number of pixels read since last read
 	int 						m_iError;				// Stores any errors and used to detect previous errors
-	int 						m_Max_Pixels_Per_Block;
+
 	std::string 				m_USBSerialNumber;
 	char						m_HWVersion[9];
 	char						m_FWVersion[9];
 	bool 						m_bIsMainCamera;
-	bool 						m_bDownloading;			// Flag saying whether or not the camera is downloading an image
 	bool 						m_bIsConnected;
 	static QSICriticalSection	csQSI;					// critical section
 	timeval 					m_stStartExposure;		// Log the start of each exposure

@@ -25,16 +25,16 @@
  The full GNU General Public License is included in this distribution in the
  file called LICENSE.
  */
-#ifndef SXWHEEL_H
-#define SXWHEEL_H
+
+#pragma once
 
 #include <indifilterwheel.h>
 
 #include <hidapi.h>
 
-class SXWHEEL: public INDI::FilterWheel {
+class SXWHEEL : public INDI::FilterWheel
+{
   private:
-
     hid_device *handle;
     int SendWheelMessage(int a, int b);
 
@@ -42,23 +42,13 @@ class SXWHEEL: public INDI::FilterWheel {
     SXWHEEL();
     ~SXWHEEL();
 
-    void debugTriggered(bool enable);
-    void simulationTriggered(bool enable);
-
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();
 
     bool initProperties();
 
-    void ISGetProperties(const char *dev);
-
     int QueryFilter();
     bool SelectFilter(int);
     void TimerHit();
-    virtual bool SetFilterNames() { return true; }
-    bool GetFilterNames(const char *);
-
 };
-
-#endif // SXWHEEL_H

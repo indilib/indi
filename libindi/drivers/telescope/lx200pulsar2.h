@@ -1,7 +1,7 @@
 /*
     Pulsar 2 INDI driver
 
-    Copyright (C) 2015 Jasem Mutlaq
+    Copyright (C) 2016, 2017 Jasem Mutlaq and Camiel Severijns
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -18,57 +18,65 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LX200PULSAR2_H
-#define LX200PULSAR2_H
+#pragma once
 
 #include "lx200generic.h"
 
 class LX200Pulsar2 : public LX200Generic
 {
-public:
-
+  public:
     LX200Pulsar2();
-    ~LX200Pulsar2() {}
+    virtual ~LX200Pulsar2() {}
 
-    bool updateProperties();
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool Connect();
-    
-    bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+    virtual const char *getDefaultName();
+    virtual bool Connect();
+    virtual bool Handshake();
+    virtual bool ReadScopeStatus();
+    virtual void ISGetProperties(const char *dev);
+    virtual bool initProperties();
+    virtual bool updateProperties();
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
-protected:
-    
-    const char *getDefaultName();
+  protected:
+    virtual bool SetSlewRate(int index);
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+    virtual bool Abort();
 
-    bool Goto(double,double);
-    void getBasicData();
-    bool checkConnection();
-    bool isSlewComplete();
-    bool Park();
-    bool UnPark();
-    bool updateTime(ln_date * utc, double utc_offset);
-    
-//    ITextVectorProperty AltHomeTP;
-//    IText   AltHomeT[1];
-    
-//    ITextVectorProperty AzHomeTP;
-//    IText   AzHomeT[1];
+    virtual IPState GuideNorth(uint32_t ms);
+    virtual IPState GuideSouth(uint32_t ms);
+    virtual IPState GuideEast(uint32_t ms);
+    virtual IPState GuideWest(uint32_t ms);
 
-    ISwitchVectorProperty PierSideSP;
-    ISwitch   PierSideS[2];
+    virtual bool updateTime(ln_date *utc, double utc_offset);
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
 
-private:
-    
-    void cleanedOutput(char *);
-    int currentPierSide;
-    
-    bool isHomeSet();
-    bool isParked();
-    bool isParking();
-//    int setAltAzHome(int portfd, char * text, const char * name);
-//    int setPierSide(int fd, char * pierSide);
+    virtual bool Goto(double, double);
+    virtual bool Park();
+    virtual bool Sync(double ra, double dec);
+    virtual bool UnPark();
 
+    virtual bool isSlewComplete();
+    virtual bool checkConnection();
+
+    virtual void getBasicData();
+
+    // Periodic error correction on or off
+    ISwitchVectorProperty PeriodicErrorCorrectionSP;
+    ISwitch PeriodicErrorCorrectionS[2];
+    // Pole crossing on or off
+    ISwitchVectorProperty PoleCrossingSP;
+    ISwitch PoleCrossingS[2];
+    // Refraction correction on or off
+    ISwitchVectorProperty RefractionCorrectionSP;
+    ISwitch RefractionCorrectionS[2];
+
+  private:
+    void sendScopeLocation();
+    void sendScopeTime();
+
+    bool isSlewing();
+
+    bool just_started_slewing;
 };
-
-#endif

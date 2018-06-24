@@ -9,9 +9,6 @@
 
 #cmakedefine WITH_ALIGN
 #cmakedefine WITH_ALIGN_GEEHALEL
-#cmakedefine WITH_SIMULATOR
-#cmakedefine WITH_LOGGER 
-#cmakedefine WITH_NOFMANY
 #cmakedefine STOP_WHEN_MOTION_CHANGED
 #cmakedefine WITH_SCOPE_LIMITS
 

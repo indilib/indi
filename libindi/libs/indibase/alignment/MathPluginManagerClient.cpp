@@ -5,7 +5,6 @@
 #include <cstring>
 #include <sstream>
 
-
 using namespace INDI::AlignmentSubsystem;
 
 MathPluginManagerClient::MathPluginManagerClient() : DeviceName("skywatcherAPIMount")
@@ -20,7 +19,7 @@ MathPluginManagerClient::~MathPluginManagerClient()
 
 // Public methods
 
-void MathPluginManagerClient::Initialise(int argc, char* argv[])
+void MathPluginManagerClient::Initialise(int argc, char *argv[])
 {
     std::string HostName("localhost");
     int Port = 7624;
@@ -43,7 +42,7 @@ void MathPluginManagerClient::Initialise(int argc, char* argv[])
 
     connectServer();
 
-    setBLOBMode(B_ALSO, DeviceName.c_str(), NULL);
+    setBLOBMode(B_ALSO, DeviceName.c_str(), nullptr);
 }
 
 void MathPluginManagerClient::Test()
@@ -55,7 +54,8 @@ void MathPluginManagerClient::Test()
     if (EnumerateMathPlugins(AvailableMathPlugins))
     {
         cout << "Success - List of plugins follows\n";
-        for (MathPluginsList::const_iterator iTr = AvailableMathPlugins.begin(); iTr != AvailableMathPlugins.end(); iTr++)
+        for (MathPluginsList::const_iterator iTr = AvailableMathPlugins.begin(); iTr != AvailableMathPlugins.end();
+             iTr++)
             cout << *iTr << '\n';
     }
     else

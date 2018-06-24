@@ -37,6 +37,7 @@ namespace
                                                         
     const double APN_SHUTTER_CLOSE_DIFF_ASPEN          = 0.00000533;
                                                         
+    const double APN_STROBE_TIMER_RESOLUTION_ASPEN          = 0.00001067;	
     const double APN_STROBE_POSITION_MIN_ASPEN                   = 0.00000533;
     const double APN_STROBE_POSITION_MAX_ASPEN                  = 0.3493;
     const double APN_STROBE_POSITION_DEFAULT_ASPEN         = 0.001;
@@ -95,6 +96,7 @@ AspenData::AspenData() : PlatformData(
                                     APN_TDI_RATE_DEFAULT_ASPEN,         
                                     APN_VOLTAGE_RESOLUTION_ASPEN,
                                     APN_SHUTTER_CLOSE_DIFF_ASPEN,       
+                                    APN_STROBE_TIMER_RESOLUTION_ASPEN,
                                     APN_STROBE_POSITION_MIN_ASPEN,
                                     APN_STROBE_POSITION_MAX_ASPEN,      
                                     APN_STROBE_POSITION_DEFAULT_ASPEN,

@@ -16,8 +16,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#ifndef XAGYLWHEEL_H
-#define XAGYLWHEEL_H
+#pragma once
 
 #include "indibase/indifilterwheel.h"
 
@@ -35,36 +34,41 @@ typedef struct
 } SimData;
 
 class XAGYLWheel : public INDI::FilterWheel
-{    
-public:
-    typedef enum { INFO_PRODUCT_NAME, INFO_FIRMWARE_VERSION, INFO_FILTER_POSITION, INFO_SERIAL_NUMBER, INFO_MAX_SPEED, INFO_JITTER, INFO_OFFSET, INFO_THRESHOLD, INFO_MAX_SLOTS, INFO_PULSE_WIDTH} GET_COMMAND;
-    typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION} SET_COMMAND;
+{
+  public:
+    typedef enum {
+        INFO_PRODUCT_NAME,
+        INFO_FIRMWARE_VERSION,
+        INFO_FILTER_POSITION,
+        INFO_SERIAL_NUMBER,
+        INFO_MAX_SPEED,
+        INFO_JITTER,
+        INFO_OFFSET,
+        INFO_THRESHOLD,
+        INFO_MAX_SLOTS,
+        INFO_PULSE_WIDTH
+    } GET_COMMAND;
+    typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION } SET_COMMAND;
 
     XAGYLWheel();
     virtual ~XAGYLWheel();
 
-    virtual bool initProperties();
-    virtual void ISGetProperties (const char *dev);
-    virtual bool updateProperties();
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
 
-    virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-protected:
-    const char *getDefaultName();
+  protected:
+    const char *getDefaultName() override;
 
-    bool Connect();
-    bool Disconnect();
-    void TimerHit();
+    bool Handshake() override;
+    void TimerHit() override;
 
-    bool SelectFilter(int);
-    virtual bool SetFilterNames() { return true; }
-    virtual bool GetFilterNames(const char* groupName);
+    bool SelectFilter(int) override;
+    bool saveConfigItems(FILE *fp) override;
 
-    virtual bool saveConfigItems(FILE *fp);
-
-private:
+  private:
     bool getCommand(GET_COMMAND cmd, char *result);
     bool setCommand(SET_COMMAND cmd, int value);
 
@@ -77,7 +81,7 @@ private:
     bool getFilterPosition();
     bool getMaximumSpeed();
     bool getJitter();
-    bool getThreshold();    
+    bool getThreshold();
     bool getMaxFilterSlots();
     bool getPulseWidth();
 
@@ -88,30 +92,22 @@ private:
     // Reset
     bool reset(int value);
 
-    // Device physical port
-    ITextVectorProperty PortTP;
-    IText PortT[1];
-
     // Firmware info
     ITextVectorProperty FirmwareInfoTP;
     IText FirmwareInfoT[3];
 
     // Settings
     INumberVectorProperty SettingsNP;
-    INumber SettingsN[4];        
+    INumber SettingsN[4];
 
     // Filter Offset
     INumberVectorProperty OffsetNP;
-    INumber *OffsetN;
+    INumber *OffsetN { nullptr };
 
     // Reset
     ISwitchVectorProperty ResetSP;
     ISwitch ResetS[4];
 
-    int PortFD;
-    bool sim;
     SimData simData;
-    uint8_t firmwareVersion;
+    uint8_t firmwareVersion { 0 };
 };
-
-#endif

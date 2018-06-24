@@ -21,8 +21,7 @@
 
 */
 
-#ifndef FLI_CCD_H
-#define FLI_CCD_H
+#pragma once
 
 #include <libfli.h>
 #include <indiccd.h>
@@ -32,35 +31,36 @@ using namespace std;
 
 class FLICCD : public INDI::CCD
 {
-public:
-
+  public:
     FLICCD();
-    virtual ~FLICCD();
+    ~FLICCD();
 
-    const char *getDefaultName();
+    const char *getDefaultName() override;
 
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
+    bool initProperties() override;
+    void ISGetProperties(const char *dev) override;
+    bool updateProperties() override;
 
-    bool Connect();
-    bool Disconnect();
+    bool Connect() override;
+    bool Disconnect() override;
 
-    bool StartExposure(float duration);
-    bool AbortExposure();
+    bool StartExposure(float duration) override;
+    bool AbortExposure() override;
 
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    protected:
+  protected:
+    virtual void TimerHit() override;
+    virtual int SetTemperature(double temperature) override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int binx, int biny) override;
+    virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType) override;
 
-    void TimerHit();
-    virtual int  SetTemperature(double temperature);
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-    virtual bool UpdateCCDBin(int binx, int biny);
-    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+    virtual void debugTriggered(bool enable) override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
-    private:
-
+  private:
     // Find FLI CCD
     bool findFLICCD(flidomain_t domain);
 
@@ -75,32 +75,39 @@ public:
 
     typedef struct
     {
-      flidomain_t domain;
-      char *dname;
-      char *name;
-      char model[32];
-      long HWRevision;
-      long FWRevision;
-      double x_pixel_size;
-      double y_pixel_size;
-      long Array_Area[4];
-      long Visible_Area[4];
-      int width, height;
-      double temperature;
+        flidomain_t domain;
+        char *dname;
+        char *name;
+        char model[32]={0};
+        long HWRevision;
+        long FWRevision;
+        double x_pixel_size;
+        double y_pixel_size;
+        long Array_Area[4];
+        long Visible_Area[4];
+        int width, height;
+        double temperature;
     } cam_t;
-
 
     ISwitch PortS[4];
     ISwitchVectorProperty PortSP;
 
-    IText CamInfoT[3];
+    IText CamInfoT[3] {};
     ITextVectorProperty CamInfoTP;
 
     INumber CoolerN[1];
     INumberVectorProperty CoolerNP;
 
-    double minDuration;
-    int timerID;
+    INumber FlushN[1];
+    INumberVectorProperty FlushNP;
+
+    ISwitch BackgroundFlushS[2];
+    ISwitchVectorProperty BackgroundFlushSP;
+
+    ISwitch *CameraModeS = nullptr;
+    ISwitchVectorProperty CameraModeSP;
+
+    int timerID=0;
 
     // Exposure timing
     struct timeval ExpStart;
@@ -110,10 +117,5 @@ public:
     cam_t FLICam;
 
     // Simulation mode
-    bool sim;
-
-
-
+    bool sim=false;
 };
-
-#endif // FLI_CCD_H

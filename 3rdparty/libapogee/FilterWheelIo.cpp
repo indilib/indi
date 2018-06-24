@@ -19,7 +19,7 @@
 #ifdef WIN_OS
    #include "GenTwoWinUSB.h" 
 #else
-    #include "GenOneLinuxUSB.h"
+    #include "linux/GenOneLinuxUSB.h"
 #endif
 
 #include <cstring>  //for memset
@@ -1294,9 +1294,9 @@ FilterWheelIo::FilterWheelIo( const std::string & DeviceAddr ) : m_fileName( __F
 { 
     const uint16_t deviceNum = help::Str2uShort( DeviceAddr );
     #ifdef WIN_OS
-        m_Usb =  std::tr1::shared_ptr<IUsb>(new GenTwoWinUSB( deviceNum ) );
+        m_Usb =  std::shared_ptr<IUsb>(new GenTwoWinUSB( deviceNum ) );
 #else
-        m_Usb =  std::tr1::shared_ptr<IUsb>(new GenOneLinuxUSB( deviceNum ) );
+        m_Usb =  std::shared_ptr<IUsb>(new GenOneLinuxUSB( deviceNum ) );
 #endif
 
 } 

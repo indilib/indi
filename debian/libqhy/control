@@ -8,6 +8,8 @@ Standards-Version: 3.9.1
 Package: libqhy
 Architecture: i386 amd64 armhf arm64
 Depends: ${shlibs:Depends}, ${misc:Depends}, fxload
+conflicts: firmware-ccd
+replaces: firmware-ccd
 Description: libqhy provide libraries to access and control QHY CCDs and Filter Wheels.
 
 

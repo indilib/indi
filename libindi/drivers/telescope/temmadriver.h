@@ -1,6 +1,8 @@
 /*******************************************************************************
   Copyright(c) 2016 Gerry Rozema. All rights reserved.
 
+  Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
+
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
  License version 2 as published by the Free Software Foundation.
@@ -17,94 +19,91 @@
 
 *******************************************************************************/
 
-#ifndef TEMMAMOUNT_H
-#define TEMMAMOUNT_H
+#pragma once
 
-#include "indibase/indiguiderinterface.h"
-#include "indibase/inditelescope.h"
-#include "indicontroller.h"
-#include "indibase/alignment/AlignmentSubsystemForDrivers.h"
+#include "indiguiderinterface.h"
+#include "inditelescope.h"
+#include "alignment/AlignmentSubsystemForDrivers.h"
 
-
-#define TEMMA_SLEW_RATES 4
-
-class TemmaMount : public INDI::Telescope, public INDI::GuiderInterface, public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers
+class TemmaMount : public INDI::Telescope,
+                   public INDI::GuiderInterface
+                   /*,public INDI::AlignmentSubsystem::AlignmentSubsystemForDrivers*/
 {
-    private:
-	double currentRA;
-	double currentDEC;
-	int TemmaRead(char *buf,int size);
-	bool GetTemmaVersion();
-	bool GetTemmaMotorStatus();
-	bool SetTemmaMotorStatus(bool);
-	bool SetTemmaLst();
-	int GetTemmaLst();
-	bool SetTemmaLattitude(double);
-	double GetTemmaLattitude();
+  public:
+    TemmaMount();
+    virtual ~TemmaMount() = default;
 
-	bool TemmaSync(double,double);
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual const char *getDefaultName() override;
 
-	ln_equ_posn TelescopeToSky(double ra,double dec);
-	ln_equ_posn SkyToTelescope(double ra,double dec);
+    virtual bool Handshake() override;
+    virtual bool ReadScopeStatus() override;
 
-	bool MotorStatus;
-	bool GotoInProgress;
-	bool ParkInProgress;
-	bool TemmaInitialized;
-	double Longitude;
-	double Lattitude;
-	int SlewRate;
-	bool SlewActive;
-	unsigned char Slewbits;
-	//bool TemmaConnect(const char *port);
-    INumber GuideRateN[2];
-    INumberVectorProperty GuideRateNP;
+    virtual bool Goto(double ra, double dec) override;
+    virtual bool Sync(double ra, double dec) override;
+    virtual bool Park() override;
+    virtual bool UnPark() override;
+    virtual bool Abort() override;
+    //virtual bool SetSlewRate(int index) override;
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-    public:
-		TemmaMount();
-        virtual ~TemmaMount();
+    virtual bool SetCurrentPark() override;
+    virtual bool SetDefaultPark() override;
 
-        //  overrides of base class virtual functions
-	//  we need to override the connect function because temma wants even parity
-	//  and the default function sets no parity on the serial port
-	bool Connect(const char *port, uint32_t baud);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                           char *formats[], char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
-	//bool initProperties();
-	virtual void ISGetProperties (const char *dev);
-	virtual bool updateProperties();
-	virtual const char *getDefaultName();
+    //  methods added for guider interface
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
-	virtual bool initProperties();
-	virtual bool ReadScopeStatus();
-	virtual bool Connect();
-	bool Goto(double,double);
-	bool Park();
-	bool UnPark();
-	bool Abort();        
-	bool SetSlewRate(int);
-	bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
-	bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
-	//bool ReadTime();
-	//bool ReadLocation();
-	bool updateLocation(double latitude, double longitude, double elevation);        
-	bool updateTime(ln_date *utc, double utc_offset);
-	void SetCurrentPark();
-	void SetDefaultPark();
-
-	//  methods added for alignment subsystem
-	virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-	virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
-	virtual bool ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n);
-	virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
-	bool Sync(double ra, double dec);
-	//  methods added for guider interface
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
-	//  Initial implementation doesn't need this one
+    //  Initial implementation doesn't need this one
     //virtual void GuideComplete(INDI_EQ_AXIS axis);
 
-};
+private:
+    //int TemmaRead(char *buf, int size);
 
-#endif // TEMMAMOUNT_H
+    void mountSim();
+
+    bool GetVersion();
+    bool GetCoords();
+
+    // Send command to mount, and optionally read a response. CR LF is appended to the command.
+    // Pass nullptr to response to skip reading the respone.
+    // Response size must be 64 bytes (TEMMA_BUFFER). CR LF is removed from response.
+    bool SendCommand(const char *cmd, char *response = nullptr);
+
+    bool GetMotorStatus();
+    bool SetMotorStatus(bool enable);
+
+    // LST & Latitude functions
+    bool SetLST();
+    bool GetLST(double &lst);
+    bool SetLattitude(double lat);
+    bool GetLattitude(double &lat);
+
+    //ln_equ_posn TelescopeToSky(double ra, double dec);
+    //ln_equ_posn SkyToTelescope(double ra, double dec);
+
+    //bool TemmaConnect(const char *port);
+
+    double currentRA=0, currentDEC=0, targetRA=0, targetDEC=0, alignedRA=0, alignedDEC=0;
+
+    bool MotorStatus { false };    
+    bool TemmaInitialized { false };
+    double Longitude { 0 };
+    double Latitude { 0 };
+    int SlewRate { 1 };
+    bool SlewActive { false };
+    unsigned char Slewbits { 0 };
+    //INumber GuideRateN[2];
+    //INumberVectorProperty GuideRateNP;
+};

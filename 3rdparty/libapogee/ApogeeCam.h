@@ -18,12 +18,7 @@
 #include <vector>
 #include <stdint.h>
 
-
-#ifdef WIN_OS
 #include <memory>
-#else
-#include <tr1/memory>
-#endif
 
 #include "CameraStatusRegs.h" 
 #include "CameraInfo.h" 
@@ -1102,6 +1097,10 @@ class DLL_EXPORT ApogeeCam
          */
         std::string GetSerialNumber();
 
+
+        CamInfo::StrDb ReadStrDatabase();
+        void WriteStrDatabase(CamInfo::StrDb &info);
+
         // ****** PURE VIRTUAL INTERFACE ********
 
         /*! 
@@ -1228,6 +1227,11 @@ class DLL_EXPORT ApogeeCam
          * \exception std::runtime_error
          */
         virtual double GetTempHeatsink() = 0;
+
+        void UpdateAlta(const std::string FilenameCamCon, const std::string FilenameBufCon, const std::string FilenameFx2, const std::string FilenameGpifCamCon, const std::string FilenameGpifBufCon, const std::string FilenameGpifFifo);
+        void UpdateAscentOrAltaF(const std::string FilenameFpga, const std::string FilenameFx2, const std::string FilenameDescriptor);
+        void UpdateAspen(const std::string FilenameFpga, const std::string FilenameFx2, const std::string FilenameDescriptor, const std::string FilenameWebPage, const std::string FilenameWebServer, const std::string FilenameWebCfg);
+
         
     protected:
         ApogeeCam(CamModel::PlatformType platform) ;
@@ -1285,20 +1289,22 @@ class DLL_EXPORT ApogeeCam
 //this code removes vc++ compiler warning C4251
 //from http://www.unknownroad.com/rtfm/VisualStudio/warningC4251.html
 #ifdef WIN_OS
-        template class DLL_EXPORT std::tr1::shared_ptr<CameraIo>;
-        template class DLL_EXPORT std::tr1::shared_ptr<PlatformData>;
-        template class DLL_EXPORT std::tr1::shared_ptr<CApnCamData>;
-        template class DLL_EXPORT std::tr1::shared_ptr<ModeFsm>;
-        template class DLL_EXPORT std::tr1::shared_ptr<CcdAcqParams>;
-        template class DLL_EXPORT std::tr1::shared_ptr<ApgTimer>;
+#if _MSC_VER < 1600
+        template class DLL_EXPORT std::shared_ptr<CameraIo>;
+        template class DLL_EXPORT std::shared_ptr<PlatformData>;
+        template class DLL_EXPORT std::shared_ptr<CApnCamData>;
+        template class DLL_EXPORT std::shared_ptr<ModeFsm>;
+        template class DLL_EXPORT std::shared_ptr<CcdAcqParams>;
+        template class DLL_EXPORT std::shared_ptr<ApgTimer>;
+#endif
 #endif
 
-        std::tr1::shared_ptr<CameraIo> m_CamIo;
-        std::tr1::shared_ptr<PlatformData> m_CameraConsts;
-        std::tr1::shared_ptr<CApnCamData> m_CamCfgData;
-        std::tr1::shared_ptr<ModeFsm> m_CamMode;
-        std::tr1::shared_ptr<CcdAcqParams> m_CcdAcqSettings;
-        std::tr1::shared_ptr<ApgTimer> m_ExposureTimer;
+        std::shared_ptr<CameraIo> m_CamIo;
+        std::shared_ptr<PlatformData> m_CameraConsts;
+        std::shared_ptr<CApnCamData> m_CamCfgData;
+        std::shared_ptr<ModeFsm> m_CamMode;
+        std::shared_ptr<CcdAcqParams> m_CcdAcqSettings;
+        std::shared_ptr<ApgTimer> m_ExposureTimer;
 
         CamModel::PlatformType m_PlatformType;
         const std::string m_fileName;

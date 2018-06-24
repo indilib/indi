@@ -19,9 +19,9 @@
 class AltaCcdAcqParams : public CcdAcqParams 
 { 
     public: 
-        AltaCcdAcqParams(std::tr1::shared_ptr<CApnCamData> & camData,
-                           std::tr1::shared_ptr<CameraIo> & camIo,  
-                           std::tr1::shared_ptr<PlatformData> & platformData);
+        AltaCcdAcqParams(std::shared_ptr<CApnCamData> & camData,
+                           std::shared_ptr<CameraIo> & camIo,  
+                           std::shared_ptr<PlatformData> & platformData);
 
         virtual ~AltaCcdAcqParams(); 
 

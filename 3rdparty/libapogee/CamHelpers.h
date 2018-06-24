@@ -28,6 +28,7 @@ namespace CameraRegs
     const uint16_t CMD_A_FLUSH_BIT			                = 0x0010;
     const uint16_t CMD_A_TRIGGER_EXPOSE_BIT	= 0x0020;
     const uint16_t CMD_A_KINETICS_BIT			            = 0x0040;
+    const uint16_t CMD_A_PIPELINE_BIT			            = 0x0080;
 
     const uint16_t CMD_B						                            = 1;
     const uint16_t CMD_B_RESET_BIT				                = 0x0002;

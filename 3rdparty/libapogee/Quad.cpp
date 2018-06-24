@@ -29,7 +29,7 @@ Quad::Quad( ) :   CamGen2Base( CamModel::QUAD ),
                             m_DoPixelReorder( true )
 {   
     //alloc and set the camera constants
-    m_CameraConsts = std::tr1::shared_ptr<PlatformData>( new AscentData() );
+    m_CameraConsts = std::shared_ptr<PlatformData>( new AscentData() );
 }
 
 
@@ -94,11 +94,11 @@ void Quad::OpenConnection( const std::string & ioType,
     UpdateCfgWithStrDbInfo();
 
     //set the camera mode fsm
-    m_CamMode = std::tr1::shared_ptr<ModeFsm>( new CamGen2ModeFsm(m_CamIo,
+    m_CamMode = std::shared_ptr<ModeFsm>( new CamGen2ModeFsm(m_CamIo,
         m_CamCfgData, m_FirmwareVersion) );
 
     //create the adc and pattern file handler object
-    m_CcdAcqSettings = std::tr1::shared_ptr<CcdAcqParams>( 
+    m_CcdAcqSettings = std::shared_ptr<CcdAcqParams>( 
         new CamGen2CcdAcqParams(m_CamCfgData,m_CamIo,m_CameraConsts) );
 
     m_IsConnected = true;
@@ -121,7 +121,7 @@ void Quad::CloseConnection()
 //      UPDATE     CFG        WITH       STR    DB       INFO
 void Quad::UpdateCfgWithStrDbInfo()
 {
-    CamInfo::StrDb infoStruct = std::tr1::dynamic_pointer_cast<AscentBasedIo>(
+    CamInfo::StrDb infoStruct = std::dynamic_pointer_cast<AscentBasedIo>(
         m_CamIo)->ReadStrDatabase();
 
     if( 0 != infoStruct.Ad1Gain.compare("Not Set") )
@@ -167,7 +167,7 @@ void Quad::CreateCamIo(const std::string & ioType,
         
     CamModel::InterfaceType type = InterfaceHelper::DetermineInterfaceType( ioType );
 
-    m_CamIo = std::tr1::shared_ptr<CameraIo>( new AscentBasedIo( type,DeviceAddr ) );
+    m_CamIo = std::shared_ptr<CameraIo>( new AscentBasedIo( type,DeviceAddr ) );
    
 
     if( !m_CamIo )

@@ -41,6 +41,7 @@ namespace
     const double APN_STROBE_POSITION_MAX_ASCENT                  = 0.3493;
     const double APN_STROBE_POSITION_DEFAULT_ASCENT         = 0.001;
                                                         
+    const double APN_STROBE_TIMER_RESOLUTION_ASCENT          = 0.00001067;	
     const double APN_STROBE_PERIOD_MIN_ASCENT                = 0.000000026;
     const double APN_STROBE_PERIOD_MAX_ASCENT              = 0.00136;
     const double APN_STROBE_PERIOD_DEFAULT_ASCENT     = 0.001;
@@ -95,6 +96,7 @@ AscentData::AscentData() : PlatformData(
                                     APN_TDI_RATE_DEFAULT_ASCENT,         
                                     APN_VOLTAGE_RESOLUTION_ASCENT,
                                     APN_SHUTTER_CLOSE_DIFF_ASCENT,       
+                                    APN_STROBE_TIMER_RESOLUTION_ASCENT,
                                     APN_STROBE_POSITION_MIN_ASCENT,
                                     APN_STROBE_POSITION_MAX_ASCENT,      
                                     APN_STROBE_POSITION_DEFAULT_ASCENT,

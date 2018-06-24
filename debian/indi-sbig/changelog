@@ -1,3 +1,15 @@
+indi-sbig (1.9) bionic; urgency=medium
+
+  * New release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 20 May 2018 09:30:00 +0300
+
+indi-sbig (1.8) bionic; urgency=medium
+
+  * New release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 22 Jan 2018 08:45:00 +0300
+
 indi-sbig (1.7) wily; urgency=medium
 
   * New upstream release

@@ -37,6 +37,7 @@ namespace
 
     const double APN_SHUTTER_CLOSE_DIFF_ALTA        = 0.00001024;
 
+    const double APN_STROBE_TIMER_RESOLUTION_ALTA  = APN_TIMER_RESOLUTION_ALTA;
     const double APN_STROBE_POSITION_MIN_ALTA       = 0.00000331;
     const double APN_STROBE_POSITION_MAX_ALTA       = 0.1677;
     const double APN_STROBE_POSITION_DEFAULT_ALTA   = 0.001;
@@ -97,6 +98,7 @@ AltaData::AltaData() : PlatformData(
                                     APN_TDI_RATE_DEFAULT_ALTA,         
                                     APN_VOLTAGE_RESOLUTION_ALTA,
                                     APN_SHUTTER_CLOSE_DIFF_ALTA,       
+                                    APN_STROBE_TIMER_RESOLUTION_ALTA,
                                     APN_STROBE_POSITION_MIN_ALTA,
                                     APN_STROBE_POSITION_MAX_ALTA,      
                                     APN_STROBE_POSITION_DEFAULT_ALTA,

@@ -14,11 +14,7 @@
 
 #include "DefDllExport.h"
 
-#ifdef WIN_OS
 #include <memory>
-#else
-#include <tr1/memory>
-#endif
 
 class ITimer;
 
@@ -38,10 +34,12 @@ class DLL_EXPORT ApgTimer
 //this code removes vc++ compiler warning C4251
 //from http://www.unknownroad.com/rtfm/VisualStudio/warningC4251.html
 #ifdef WIN_OS
-        template class DLL_EXPORT std::tr1::shared_ptr<ITimer>;
+#if _MSC_VER < 1600
+        template class DLL_EXPORT std::shared_ptr<ITimer>;
+#endif
 #endif
 
-        std::tr1::shared_ptr<ITimer> m_timer;
+        std::shared_ptr<ITimer> m_timer;
 }; 
 
 #endif

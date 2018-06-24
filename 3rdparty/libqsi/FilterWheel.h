@@ -31,5 +31,5 @@ public:
 	void AddFilter(Filter filter);
 	std::vector<Filter> Filters;
 	std::string Name;
-	int m_iNumFilters;
+	int m_iNumFilters = 0;
 };
