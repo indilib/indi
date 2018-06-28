@@ -134,5 +134,6 @@ EXPORTC uint32_t STDCALL QHYCCDLibusbBulkTransfer(qhyccd_handle *pDevHandle, uin
 EXPORTC uint32_t STDCALL GetQHYCCDSDKVersion(uint32_t *year,uint32_t *month,uint32_t *day,uint32_t *subday);
 EXPORTC void STDCALL print_cydev(const char *pTitle);
 EXPORTC const char* STDCALL GetTimeStamp();
+EXPORTC void STDCALL GetQHYCCDControlIdString(CONTROL_ID controlId, char *pStr);
 
 #endif // __QHYCCD_H__

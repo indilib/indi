@@ -39,6 +39,9 @@ bool BeginAsyQCamLive(qhyccd_handle *pDevHandle);
 void StopAsyQCamLive(qhyccd_handle *pDevHandle);
 uint32_t ReadAsyQCamLiveFrame(qhyccd_handle *pDevHandle, uint8_t *pBuffer, int32_t *pFrameFlag);
 uint32_t ReadAsyQCamLiveFrame(qhyccd_handle *pDevHandle, uint8_t *pBuffer, int32_t *pFrameFlag, UnlockImageQueue *pImageQueue);
+uint32_t ClearEndpoint(qhyccd_handle *pDevHandle);
+uint32_t ProcessAllPendingTransfers(qhyccd_handle *pDevHandle);
+uint32_t CancelAllPendingTransfers(qhyccd_handle *pDevHandle);
 void asyImageDataCallBack(struct libusb_transfer *transfer);
 
 // other functions
@@ -50,11 +53,17 @@ void StartLiveExposure(qhyccd_handle *pDevHandle);
 void StopCapturing(qhyccd_handle *pDevHandle);
 uint32_t IsExposing();
 uint32_t ReadAsySingleFrame(uint8_t *pBuffer, uint32_t size, int *pFrameFlag);
-void SetFlagRawExit(int idx, bool val);
-bool IsFlagRawExit(int idx);
+
+void SetThreadExitFlag(int idx, bool val);
+bool IsThreadExitFlag(int idx);
+
+void IncrementEventCount(int idx);
+void DecrementEventCount(int idx);
+void ClearEventCount(int idx);
 int GetEventCount(int idx);
-int IncrementEventCount(int idx);
-int DecrementEventCount(int idx);
+
+void SetFirstExposureFlag(int idx, bool value);
+bool IsFirstExpousureFlag(int idx);
 
 #endif // WIN32
 
