@@ -240,7 +240,7 @@ bool FLICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         }
 
         // Camera Modes
-        if (!strcmp(name, CameraModeSP.name))
+        if (!strcmp(name, CameraModeSP.name) && CameraModeS != nullptr)
         {
             int currentIndex = IUFindOnSwitchIndex(&CameraModeSP);
             LIBFLIAPI errCode = 0;
@@ -943,6 +943,9 @@ bool FLICCD::saveConfigItems(FILE *fp)
 
     IUSaveConfigNumber(fp, &FlushNP);
     IUSaveConfigSwitch(fp, &BackgroundFlushSP);
+
+    if (CameraModeS)
+        IUSaveConfigSwitch(fp, &CameraModeSP);
 
     return true;
 }
