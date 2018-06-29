@@ -35,28 +35,28 @@ class FishCampCCD : public INDI::CCD
     FishCampCCD(int CamNum);
     virtual ~FishCampCCD();
 
-    const char *getDefaultName();
+    const char *getDefaultName() override;
 
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
+    bool initProperties() override;
+    void ISGetProperties(const char *dev) override;
+    bool updateProperties() override;
 
-    bool Connect();
-    bool Disconnect();
+    bool Connect() override;
+    bool Disconnect() override;
 
-    bool StartExposure(float duration);
-    bool AbortExposure();
+    bool StartExposure(float duration) override;
+    bool AbortExposure() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
   protected:
-    void TimerHit();
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-    virtual bool UpdateCCDBin(int binx, int biny);
-    virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType);
-    virtual int SetTemperature(double temperature);
+    void TimerHit() override;
+    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+    virtual bool UpdateCCDBin(int binx, int biny) override;
+    virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType) override;
+    virtual int SetTemperature(double temperature) override;
 
-    virtual void simulationTriggered(bool enable);
+    virtual void simulationTriggered(bool enable) override;
 
     // Guide Port
     virtual IPState GuideNorth(uint32_t ms) override;
