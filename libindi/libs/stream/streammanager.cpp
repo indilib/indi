@@ -1038,8 +1038,7 @@ bool StreamManager::uploadStream(const uint8_t *buffer, uint32_t nbytes)
         for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
             memcpy(destBuffer + i * desStride, srcBuffer + sourceStride * i, desStride);
 
-        //encoder->setSize(StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
-        nbytes = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value;
+        nbytes = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * components;
 
         if (encoder->upload(imageB, downscaleBuffer, nbytes, currentCCD->PrimaryCCD.isCompressed()))
         {

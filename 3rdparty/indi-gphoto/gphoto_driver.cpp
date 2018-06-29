@@ -879,6 +879,9 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     if (gphoto->format >= 0)
         gphoto_set_widget_num(gphoto, gphoto->format_widget, gphoto->format);
 
+    // Find optimal exposure index in case we need to use it. If -1, we always use blob made if available
+    int optimalExposureIndex = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec);
+
 // Set Capture Target
 // JM: 2017-05-21: Disabled now since user can explicity set capture target via the driver interface
 #if 0
@@ -893,13 +896,13 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     }
 #endif
 
-    // If exposure more than 5 seconds OR if camera already set in bulb mode, try doing a BULB exposure
-    //if (exptime_msec > 5000 || (gphoto->autoexposuremode_widget != nullptr && gphoto->autoexposuremode_widget->value.index == 4))
-
     // If exposure time is more than 1 second AND we have BULB widget OR we have bulb in exposure widget then do bulb
     // JM 2017-05-29: Also added if gphoto->exposure == nullptr in case where exposure_widget exists but has 0 members
     // In that case, we always capture using either shutter release or bulb widget regardless of time
-    if ((gphoto->exposure == nullptr || exptime_usec > 1e6) && ((gphoto->bulb_port[0]) || (gphoto->bulb_widget != nullptr)))
+    // JM 2018-06-29: Add check for optimalExposureIndex, but if exposure_widget has only ONE member (blob)
+    // then we cannot set custom short exposure (e.g. 1/4000) so it must be set here even for short exposures.
+    if ((gphoto->exposure == nullptr || exptime_usec > 1e6 || optimalExposureIndex == -1) &&
+        ((gphoto->bulb_port[0]) || (gphoto->bulb_widget != nullptr)))
     {
         //Bulb mode is supported
 
@@ -1016,13 +1019,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         return 0;
     }
 
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Using camera predefined exposure ranges.");
-
-    // NOT using bulb mode so let's find an exposure time that would closely match the requested exposure time
-    int idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec);
-
-    gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
+    gphoto_set_widget_num(gphoto, gphoto->exposure_widget, optimalExposureIndex);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[optimalExposureIndex]);
 
     // Lock the mirror if required.
     if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock * 1000))
