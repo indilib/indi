@@ -581,9 +581,8 @@ void FishCampCCD::TimerHit()
         else
         {
             LOGF_DEBUG("Image not yet ready. With time left %ld\n", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
         }
-
-        PrimaryCCD.setExposureLeft(timeleft);
     }
 
     switch (TemperatureNP.s)
