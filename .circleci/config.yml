@@ -123,16 +123,16 @@ workflows:
       - build_artful
       - build_stretch
       - build_fedora
-      - build_clang4
+#      - build_clang4
       - build_bionic:
           requires:
             - build_artful
       - build_buster:
           requires:
             - build_stretch
-      - build_clang5:
-          requires:
-            - build_clang4
+#      - build_clang5:
+#          requires:
+#            - build_clang4
       - build_centos:
           requires:
             - build_fedora
