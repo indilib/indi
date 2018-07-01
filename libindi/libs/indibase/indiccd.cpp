@@ -255,14 +255,21 @@ const char *CCDChip::getExposureStartTime()
 {
     static char ts[32];
 
-    char iso8601[32];
-    struct tm *tp;
-    time_t t = (time_t)startExposureTime.tv_sec;
-    int u    = startExposureTime.tv_usec / 1000.0;
+    char iso8601[32] = {0};
+    struct tm *tp = nullptr;
 
+    // Get exposure startup timestamp
+    time_t t = static_cast<time_t>(startExposureTime.tv_sec);
+
+    // Get UTC timestamp
     tp = gmtime(&t);
+
+    // Format it in ISO8601 format
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
-    snprintf(ts, 32, "%s.%03d", iso8601, u);
+
+    // Add millisecond and Z for Zulu/UTC time.
+    snprintf(ts, 32, "%s.%03dZ", iso8601, static_cast<int>(startExposureTime.tv_usec / 1000.0));
+
     return (ts);
 }
 
