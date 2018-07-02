@@ -249,7 +249,6 @@ bool indi_webcam::ConnectToSource(std::string device,std::string source, int fra
 {
     char stringFrameRate[16];
     snprintf(stringFrameRate,16,"%u",framerate);
-    int i;
     if(isConnected())
     {
         avcodec_close(pCodecCtx);
@@ -274,7 +273,7 @@ bool indi_webcam::ConnectToSource(std::string device,std::string source, int fra
     
     //This will attempt to find a video stream in the input.
     videoStream=-1;
-    for(i=0; i<pFormatCtx->nb_streams; i++)
+    for(unsigned int i=0; i<pFormatCtx->nb_streams; i++)
       if(pFormatCtx->streams[i]->codecpar->codec_type==AVMEDIA_TYPE_VIDEO)
             videoStream=i;
     if(videoStream==-1) {
@@ -757,9 +756,7 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
 }
 
 bool indi_webcam::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    IText *tp;
-  
+{ 
     /* ignore if not ours */
     if (dev && strcmp (getDeviceName(), dev))
       return true;
@@ -1145,8 +1142,6 @@ void indi_webcam::run_capture()
   PrimaryCCD.setFrame(0, 0, w, h);
   PrimaryCCD.setBPP(8);
   PrimaryCCD.setNAxis(3);
-
-  uint8_t *buffer = (uint8_t *)malloc(numBytes);
 
   while (is_capturing && is_streaming) {
 
