@@ -104,12 +104,12 @@ void logDevices(void *ptr, int level, const char *fmt, va_list vargs)
             free(lineBuffer);
             return;
         }
-        if(strstr(lineBuffer, "AVFoundation video devices:") != NULL)
+        if(strstr(lineBuffer, "AVFoundation video devices:") != nullptr)
         {
             free(lineBuffer);
             return;
         }
-        if(strstr(lineBuffer, "AVFoundation audio devices:") != NULL)
+        if(strstr(lineBuffer, "AVFoundation audio devices:") != nullptr)
         {
             allDevicesFound = true;
             free(lineBuffer);
@@ -162,7 +162,7 @@ void indi_webcam::findAVFoundationVideoSources()
     av_log_set_callback(logDevices);
 
     //This set of commands should open the avfoundation device to list its sources
-    AVDictionary* options = NULL;
+    AVDictionary* options = nullptr;
     av_dict_set(&options,"list_devices","true",0);
     AVInputFormat *iformat = av_find_input_format("avfoundation");
     avformat_open_input(&pFormatCtx,"",iformat,&options);
@@ -182,14 +182,14 @@ indi_webcam::indi_webcam()
 {
   setVersion(WEBCAM_VERSION_MAJOR, WEBCAM_VERSION_MINOR);
 
-  pFormatCtx = NULL;
-  pCodecCtx = NULL;
-  pCodec = NULL;
-  optionsDict=NULL;
-  pFrame = NULL; 
-  pFrameOUT = NULL;
-  sws_ctx = NULL;
-  buffer = NULL;
+  pFormatCtx = nullptr;
+  pCodecCtx = nullptr;
+  pCodec = nullptr;
+  optionsDict=nullptr;
+  pFrame = nullptr;
+  pFrameOUT = nullptr;
+  sws_ctx = nullptr;
+  buffer = nullptr;
 
   //This registers all devices
   avdevice_register_all();
@@ -214,7 +214,7 @@ indi_webcam::indi_webcam()
   outputFormat = "8 bit RGB";
 
   //Creating the format context.
-  pFormatCtx = NULL;
+  pFormatCtx = nullptr;
   pFormatCtx = avformat_alloc_context();
 }
 
@@ -255,7 +255,7 @@ bool indi_webcam::ConnectToSource(std::string device,std::string source, int fra
         avformat_close_input(&pFormatCtx);
     }
 
-    AVDictionary* options = NULL;
+    AVDictionary* options = nullptr;
     av_dict_set(&options,"framerate",stringFrameRate,0);
     av_dict_set(&options, "video_size", videosize.c_str(), 0);
     av_dict_set(&options, "timeout", "2", 0); //Note this timeout doesn't seem to always work
@@ -288,7 +288,7 @@ bool indi_webcam::ConnectToSource(std::string device,std::string source, int fra
     avcodec_parameters_to_context(pCodecCtx, pFormatCtx->streams[videoStream]->codecpar);
 
     //If an appropriate codec was not found, abort the connection
-    if(pCodec==NULL)
+    if(pCodec==nullptr)
     {
       DEBUG(INDI::Logger::DBG_SESSION,"Unsupported codec.");
       return false;      
@@ -479,12 +479,12 @@ bool indi_webcam::initProperties()
 //This refreshes the input device list
 bool indi_webcam::refreshInputDevices()
 {
-    AVInputFormat * d=NULL;
+    AVInputFormat * d=nullptr;
     int i =0;
     int numDevices = getNumOfInputDevices();
     CaptureDevices = new ISwitch[numDevices];
     while ((d = av_input_video_device_next(d))) {
-        if(strcmp(d->name, videoDevice.c_str()))
+        if(!strcmp(d->name, videoDevice.c_str()))
             IUFillSwitch(&CaptureDevices[i], d->name, d->name, ISS_ON);
         else
             IUFillSwitch(&CaptureDevices[i], d->name, d->name, ISS_OFF);
@@ -502,7 +502,7 @@ bool indi_webcam::refreshInputDevices()
 int indi_webcam::getNumOfInputDevices()
 {
     int i = 0;
-    AVInputFormat * d=NULL;
+    AVInputFormat * d=nullptr;
     while ((d = av_input_video_device_next(d)))
     {
         i++;
@@ -541,9 +541,9 @@ bool indi_webcam::refreshInputSources()
     else
     {
         int nbdev=0;
-        struct AVDeviceInfoList *devlist = NULL;
+        struct AVDeviceInfoList *devlist = nullptr;
         AVInputFormat *iformat = av_find_input_format(videoDevice.c_str());
-        nbdev=avdevice_list_input_sources(iformat, NULL, NULL, &devlist);
+        nbdev=avdevice_list_input_sources(iformat, nullptr, nullptr, &devlist);
 
         //For this case the source list function is not implemented, we have to just list them by number
         if ((nbdev < 0 ) || (devlist->nb_devices==0)) {
@@ -779,7 +779,7 @@ bool indi_webcam::ISNewText (const char *dev, const char *name, char *texts[], c
                 IUSaveText(videoSourceText, texts[1]);
                 IUSaveText(frameRateText, texts[2]);
                 IUSaveText(videoSizeText, texts[3]);
-                IDSetText (&InputDeviceTP, NULL);
+                IDSetText (&InputDeviceTP, nullptr);
                 return true;
             }
       }
@@ -1206,7 +1206,7 @@ int indi_webcam::setupStreaming()
     pFrame=av_frame_alloc();
     // Allocate an AVFrame structure
     pFrameOUT=av_frame_alloc();
-    if(pFrameOUT==NULL)
+    if(pFrameOUT==nullptr)
       return -1;
 
     // Assign appropriate parts of buffer to image planes in pFrameRGB
@@ -1218,7 +1218,7 @@ int indi_webcam::setupStreaming()
     // initialize SWS context for software scaling
     sws_ctx = sws_getContext( pCodecCtx->width, pCodecCtx->height,
                  pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height,
-                 out_pix_fmt, SWS_BILINEAR, NULL, NULL, NULL
+                 out_pix_fmt, SWS_BILINEAR, nullptr, nullptr, nullptr
                  );
 
     PrimaryCCD.setFrameBufferSize(numBytes);
