@@ -199,12 +199,14 @@ indi_webcam::indi_webcam()
   //setting default values
 #ifdef __linux__
   videoDevice = "video4linux2,v4l2";
+  videoSource = "/dev/video0";
 #elif __APPLE__
   videoDevice = "avfoundation";
+  videoSource = "0";
 #else
   videoDevice = ""
+  videoSource = "";
 #endif
-  videoSource = "0";
   frameRate = 30;
   videoSize = "640x480";
   webcamStacking = false;
