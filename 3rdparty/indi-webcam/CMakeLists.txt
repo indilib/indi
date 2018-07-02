@@ -58,5 +58,5 @@ target_link_libraries(indi_webcam_ccd  ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES
 
 install(TARGETS indi_webcam_ccd RUNTIME DESTINATION bin )
 
-install( FILES  indi_webam.xml DESTINATION ${INDI_DATA_DIR})
+install( FILES  indi_webcam.xml DESTINATION ${INDI_DATA_DIR})
 
