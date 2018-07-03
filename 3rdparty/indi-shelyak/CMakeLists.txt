@@ -1,8 +1,4 @@
-
-
-
-
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 3.0)
 project(indi_shelyak CXX C)
 
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
