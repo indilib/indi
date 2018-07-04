@@ -1153,6 +1153,7 @@ void ioptronHC8406::sendScopeTime()
         IDLog("Telescope ISO date and time: %s\n", cdate);
         IUSaveText(&TimeT[0], cdate);
         IUSaveText(&TimeT[1], "3");
+        TimeTP.s = IPS_OK;
         IDSetText(&TimeTP, nullptr);
         return;
     }
@@ -1211,6 +1212,7 @@ void ioptronHC8406::sendScopeTime()
     LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
 
     // Let's send everything to the client
+    TimeTP.s = IPS_OK;
     IDSetText(&TimeTP, nullptr);
 }
 

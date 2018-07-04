@@ -77,8 +77,6 @@ void ISSnoopDevice(XMLEle *root)
 /* Constructor */
 IEQPro::IEQPro()
 {
-    set_ieqpro_device(getDeviceName());
-
     scopeInfo.gpsStatus    = GPS_OFF;
     scopeInfo.systemStatus = ST_STOPPED;
     scopeInfo.trackRate    = TR_SIDEREAL;
@@ -103,11 +101,11 @@ bool IEQPro::initProperties()
     INDI::Telescope::initProperties();
 
     /* Firmware */
-    IUFillText(&FirmwareT[FW_MODEL], "Model", "", 0);
-    IUFillText(&FirmwareT[FW_BOARD], "Board", "", 0);
-    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "", 0);
-    IUFillText(&FirmwareT[FW_RA], "RA", "", 0);
-    IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
+    IUFillText(&FirmwareT[FW_MODEL], "Model", "", nullptr);
+    IUFillText(&FirmwareT[FW_BOARD], "Board", "", nullptr);
+    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "", nullptr);
+    IUFillText(&FirmwareT[FW_RA], "RA", "", nullptr);
+    IUFillText(&FirmwareT[FW_DEC], "DEC", "", nullptr);
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
@@ -165,6 +163,8 @@ bool IEQPro::initProperties()
     SetParkDataType(PARK_RA_DEC);
 
     addAuxControls();
+
+    set_ieqpro_device(getDeviceName());
 
     double longitude=0, latitude=90;
     // Get value from config file if it exists.
@@ -250,6 +250,7 @@ void IEQPro::getStartupData()
 
         LOGF_INFO("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
+        TimeTP.s = IPS_OK;
         IDSetText(&TimeTP, nullptr);
     }
 

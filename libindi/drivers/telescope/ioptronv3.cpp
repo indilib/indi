@@ -295,6 +295,7 @@ void IOptronV3::getStartupData()
         IUSaveText(&TimeT[0], ts);
         LOGF_INFO("Mount UTC Offset: %s", offset);
 
+        TimeTP.s = IPS_OK;
         IDSetText(&TimeTP, nullptr);
 
         LOGF_INFO("Mount Daylight Savings: %s", dayLightSavings ? "ON" : "OFF");
