@@ -1299,6 +1299,8 @@ int indi_webcam::getStreamFrame()
 void indi_webcam::flush_frame_buffer() {
 
     int packetReceiveTime = -1;
+    //If the packet takes longer than a millisecond to receive, then it is probably not in the buffer.
+    //So at that point we want to stop dumping the buffer.
     while(packetReceiveTime < 1000)
     {
         struct timeval then;
