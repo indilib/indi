@@ -25,6 +25,7 @@ sudo apt-get -q -y install \
  librtlsdr-dev \
  libfftw3-dev \
  libavcodec-dev \
+ libavdevice-dev \
  libavformat-dev \
  libavutil-dev \
  wget
