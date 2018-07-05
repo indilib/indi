@@ -27,6 +27,7 @@ sudo apt-get -q -y install \
  libavcodec-dev \
  libavdevice-dev \
  libavformat-dev \
+ libswscale-dev \
  libavutil-dev \
  wget
 
