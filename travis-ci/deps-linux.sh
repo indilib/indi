@@ -24,6 +24,9 @@ sudo apt-get -q -y install \
  libusb-1.0-0-dev \
  librtlsdr-dev \
  libfftw3-dev \
+ libavcodec-dev \
+ libavformat-dev \
+ libavutil-dev \
  wget
 
 # Install libftdi for MGen driver

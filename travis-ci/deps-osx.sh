@@ -21,7 +21,8 @@ brew install \
 	libcfitsio \
 	libnova  \
 	librtlsdr  \
-	libfftw3
+	libfftw3 \
+	ffmpeg
 
 			
 brew cask install \
