@@ -1522,6 +1522,7 @@ void LX200Pulsar2::sendScopeTime()
         IDLog("Telescope UTC Time: %s\n", TimeT[0].text);
     }
     // Let's send everything to the client
+    TimeTP.s = IPS_OK;
     IDSetText(&TimeTP, nullptr);
 }
 

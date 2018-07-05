@@ -69,20 +69,16 @@
 /**
  * usb vendor request command
  */
-#define QHYCCD_REQUEST_READ  0xC0
+#define QHYCCD_REQUEST_READ  (0xC0)
 
 /**
  * usb vendor request command
  */
-#define QHYCCD_REQUEST_WRITE 0x40
+#define QHYCCD_REQUEST_WRITE (0x40)
 
 #define MACHANICALSHUTTER_OPEN  0
 #define MACHANICALSHUTTER_CLOSE 1
 #define MACHANICALSHUTTER_FREE  2
-
-#define TRANSFER_COUNT (16)
-#define TRANSFER_SIZE (76800)
-#define LIBUSB_ASYNC_BULK_TRANSFER_TIMEOUT (3600000)
 
 /**
  * @brief CCDREG struct define

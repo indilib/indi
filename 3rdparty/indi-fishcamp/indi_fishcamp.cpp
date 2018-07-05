@@ -251,7 +251,7 @@ bool FishCampCCD::initProperties()
     nbuf += 512;                                                                  //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_COOLER);
+    SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_ST4_PORT);
 
     delete[] strBuf;
 
@@ -581,9 +581,8 @@ void FishCampCCD::TimerHit()
         else
         {
             LOGF_DEBUG("Image not yet ready. With time left %ld\n", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
         }
-
-        PrimaryCCD.setExposureLeft(timeleft);
     }
 
     switch (TemperatureNP.s)
