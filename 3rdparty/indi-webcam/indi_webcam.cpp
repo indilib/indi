@@ -910,6 +910,9 @@ int indi_webcam::grabImage()
     if(setupStreaming()!=0)
         return -1;
 
+    //This will ensure that we get the current frame, not some old frame still in the buffer
+    flush_frame_buffer();
+
     if(getStreamFrame()==0)
     {
         if(PrimaryCCD.getNAxis()==3)
@@ -1130,18 +1133,42 @@ void indi_webcam::RunCaptureThread(indi_webcam *webcam)
 //Note that it ONLY supports RGB24 aka INDI_RGB format.
 void indi_webcam::run_capture()
 {
-    out_pix_fmt=AV_PIX_FMT_RGB24;
+
+    //This sets up the output format for the exposures
+    if(outputFormat == "16 bit RGB")
+    {
+        LOG_INFO("Note, RGB 16 bit not supported in video stream using 8 Bit RGB instead.");
+        out_pix_fmt=AV_PIX_FMT_RGB24;
+        PrimaryCCD.setBPP(8);
+        PrimaryCCD.setNAxis(3);
+        Streamer->setPixelFormat(INDI_RGB);
+    }
+    else if(outputFormat == "8 bit RGB")
+    {
+        out_pix_fmt=AV_PIX_FMT_RGB24;
+        PrimaryCCD.setBPP(8);
+        PrimaryCCD.setNAxis(3);
+        Streamer->setPixelFormat(INDI_RGB);
+    }
+    else if(outputFormat == "16 bit Grayscale")
+    {
+        LOG_INFO("Note, 16 bit Grayscale not supported in video stream using 8 Bit Grayscale instead.");
+        out_pix_fmt=AV_PIX_FMT_GRAY8;
+        PrimaryCCD.setBPP(8);
+        PrimaryCCD.setNAxis(2);
+        Streamer->setPixelFormat(INDI_MONO);
+    }
+    else
+        return;
 
   if(setupStreaming()!=0)
       return;
 
-  Streamer->setPixelFormat(INDI_RGB);
+
   int w = pCodecCtx->width;
   int h = pCodecCtx->height;
   Streamer->setSize(w, h);
   PrimaryCCD.setFrame(0, 0, w, h);
-  PrimaryCCD.setBPP(8);
-  PrimaryCCD.setNAxis(3);
 
   while (is_capturing && is_streaming) {
 
@@ -1265,6 +1292,31 @@ int indi_webcam::getStreamFrame()
 
     }
     return -1;
+}
+
+//This will clear out the frame buffer of any unread frames.
+//That way we are sure to get the latest frames when exposing
+void indi_webcam::flush_frame_buffer() {
+
+    int packetReceiveTime = -1;
+    while(packetReceiveTime < 1000)
+    {
+        struct timeval then;
+        gettimeofday(&then, nullptr);
+
+        AVPacket packet;
+
+        if (av_read_frame(pFormatCtx, &packet)<0)
+        {
+            av_packet_unref(&packet);
+            return;
+        }
+        struct timeval now;
+        gettimeofday(&now, nullptr);
+        packetReceiveTime = now.tv_usec - then.tv_usec;
+        av_packet_unref(&packet);
+    }
+
 }
 
 //This frees up the resources used for streaming/exposing

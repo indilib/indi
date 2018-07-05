@@ -147,6 +147,7 @@ private:
     int setupStreaming();
     void freeMemory();
     int getStreamFrame();
+    void flush_frame_buffer();
 
     //Related to streaming
     std::thread capture_thread;
