@@ -12,7 +12,8 @@ RUN yum -y install \
         libftdi-devel libdc1394-devel devlibgphoto2-devel gpsd-devel gsl-devel libjpeg-turbo-devel \
         libnova-devel openal-soft-devel LibRaw-devel libusb-devel rtl-sdr-devel \
         fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
-        libdc1394-devel python-devel swig gcc-c++ clang vim
+        libdc1394-devel python-devel swig gcc-c++ clang vim \
+        libavcodec-devel libavdevice-devel libavformat-devel libavutil-devel
         
 RUN ln -s /usr/bin/cmake3 /usr/bin/cmake
 RUN ln -s /usr/bin/ctest3 /usr/bin/ctest
