@@ -1871,7 +1871,8 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     if (targetChip->getFrameType() == CCDChip::DARK_FRAME)
         fits_update_key_dbl(fptr, "DARKTIME", targetChip->getExposureDuration(), 6, "Total Dark Exposure Time (s)", &status);
 
-    if (HasCooler())
+    // If the camera has a cooler OR if the temperature permission was explicitly set to Read-Only, then record the temperature
+    if (HasCooler() || TemperatureNP.p == IP_RO)
         fits_update_key_dbl(fptr, "CCD-TEMP", TemperatureN[0].value, 2, "CCD Temperature (Celsius)", &status);
 
     fits_update_key_dbl(fptr, "PIXSIZE1", targetChip->getPixelSizeX(), 6, "Pixel Size 1 (microns)", &status);
