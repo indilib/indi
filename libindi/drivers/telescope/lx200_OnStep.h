@@ -172,6 +172,12 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty FrequencyAdjustSP;
     ISwitch FrequencyAdjustS[3];
 
+    ISwitchVectorProperty AutoFlipSP;
+    ISwitch AutoFlipS[2];
+    
+    ISwitchVectorProperty HomePauseSP;
+    ISwitch HomePauseS[3];    
+    
     ISwitchVectorProperty SetHomeSP;
     ISwitch SetHomeS[2];
 

@@ -120,6 +120,15 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&TrackCompS[2], "3", "Off", ISS_OFF);
     IUFillSwitchVector(&TrackCompSP, TrackCompS, 3, getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
+    IUFillSwitch(&AutoFlipS[0], "1", "AutoFlip: OFF", ISS_OFF);
+    IUFillSwitch(&AutoFlipS[1], "2", "AutoFlip: ON", ISS_OFF);
+    IUFillSwitchVector(&AutoFlipSP, AutoFlipS, 2, getDeviceName(), "AutoFlip", "Meridian Auto Flip", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
+    IUFillSwitch(&HomePauseS[0], "1", "HomePause: OFF", ISS_OFF);
+    IUFillSwitch(&HomePauseS[1], "2", "HomePause: ON", ISS_OFF);
+    IUFillSwitch(&HomePauseS[2], "2", "HomePause: Continue", ISS_OFF);
+    IUFillSwitchVector(&HomePauseSP, HomePauseS, 3, getDeviceName(), "HomePause", "Meridian Auto Flip", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
     IUFillSwitch(&FrequencyAdjustS[0], "1", "Freqency -", ISS_OFF);
     IUFillSwitch(&FrequencyAdjustS[1], "2", "Freqency +", ISS_OFF);
     IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidreal Frequency", ISS_OFF);
@@ -242,6 +251,8 @@ bool LX200_OnStep::updateProperties()
         defineNumber(&MaxSlewRateNP);
         defineSwitch(&TrackCompSP);
         defineNumber(&BacklashNP);
+	defineSwitch(&AutoFlipSP);
+	defineSwitch(&HomePauseSP);
 	defineSwitch(&FrequencyAdjustSP);
 
         // Site Management
@@ -322,6 +333,8 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(TrackCompSP.name);
         deleteProperty(BacklashNP.name);
+	deleteProperty(AutoFlipSP.name);
+	deleteProperty(HomePauseSP.name);
 	deleteProperty(FrequencyAdjustSP.name);
 	
 
@@ -640,13 +653,15 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         if (!strcmp(name, TrackCompSP.name))      // Tested
         {
             IUUpdateSwitch(&TrackCompSP, states, names, n);
-            TrackCompSP.s = IPS_OK;
+            TrackCompSP.s = IPS_BUSY;
 
             if (TrackCompS[0].s == ISS_ON)
             {
                 if (!sendOnStepCommand(":To#"))
                 {
                     IDSetSwitch(&TrackCompSP, "Full Compensated Tracking On");
+		    TrackCompSP.s = IPS_OK;
+		    IDSetSwitch(&TrackCompSP, nullptr);
                     return true;
                 }
             }
@@ -655,6 +670,8 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 if (!sendOnStepCommand(":Tr#"))
                 {
                     IDSetSwitch(&TrackCompSP, "Refraction Tracking On");
+		    TrackCompSP.s = IPS_OK;
+		    IDSetSwitch(&TrackCompSP, nullptr);
                     return true;
                 }
             }
@@ -663,6 +680,8 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
                 if (!sendOnStepCommand(":Tn#"))
                 {
                     IDSetSwitch(&TrackCompSP, "Refraction Tracking Disabled");
+		    TrackCompSP.s = IPS_OK;
+		    IDSetSwitch(&TrackCompSP, nullptr);
                     return true;
                 }
             }
@@ -671,7 +690,72 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&TrackCompSP, nullptr);
             return true;
         }
+        if (!strcmp(name, AutoFlipSP.name))
+	{
+		IUUpdateSwitch(&AutoFlipSP, states, names, n);
+		AutoFlipSP.s = IPS_BUSY;
+		
+		if (AutoFlipS[0].s == ISS_ON)
+		{
+			if (sendOnStepCommand(":SX50#"))
+			{
+				AutoFlipSP.s = IPS_OK;
+				IDSetSwitch(&AutoFlipSP, "Auto Meridan Flip OFF");
+				return true;
+			} 
+		}
+		if (AutoFlipS[1].s == ISS_ON)
+		{
+			if (sendOnStepCommand(":SX51#"))
+			{
+				AutoFlipSP.s = IPS_OK;
+				IDSetSwitch(&AutoFlipSP, "Auto Meridan Flip ON");
+				return true;
+			}
+		}
+		IUResetSwitch(&AutoFlipSP);
+		AutoFlipSP.s = IPS_IDLE;
+		IDSetSwitch(&AutoFlipSP, nullptr);
+		return true;
+	}
         
+        if (!strcmp(name, HomePauseSP.name))
+	{
+		IUUpdateSwitch(&HomePauseSP, states, names, n);
+		HomePauseSP.s = IPS_BUSY;
+		
+		if (HomePauseS[0].s == ISS_ON)
+		{
+			if (sendOnStepCommand(":SX80#"))
+			{
+				HomePauseSP.s = IPS_OK;
+				IDSetSwitch(&HomePauseSP, "Home Pause OFF");
+				return true;
+			} 
+		}
+		if (HomePauseS[1].s == ISS_ON)
+		{
+			if (sendOnStepCommand(":SX81#"))
+			{
+				HomePauseSP.s = IPS_OK;
+				IDSetSwitch(&HomePauseSP, "Home Pause ON");
+				return true;
+			}
+		}
+		if (HomePauseS[2].s == ISS_ON)
+		{
+			if (sendOnStepCommand(":SX91#"))
+			{
+				HomePauseSP.s = IPS_OK;
+				IDSetSwitch(&HomePauseSP, "Home Pause: Continue");
+				return true;
+			}
+		}
+		IUResetSwitch(&HomePauseSP);
+		HomePauseSP.s = IPS_IDLE;
+		IDSetSwitch(&HomePauseSP, nullptr);
+		return true;
+	}        
         
         if (!strcmp(name, FrequencyAdjustSP.name))      // 
 		
