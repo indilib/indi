@@ -180,6 +180,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     
     ISwitchVectorProperty SetHomeSP;
     ISwitch SetHomeS[2];
+    
+    ISwitchVectorProperty OSPECStatusSP;
+    ISwitch OSPECStatusS[5];
+    ISwitchVectorProperty OSPECIndexSP;
+    ISwitch OSPECIndexS[2];
 
     char OSStat[20];
     char OldOSStat[20];

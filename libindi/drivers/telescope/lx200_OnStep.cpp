@@ -27,6 +27,7 @@
 #define LIBRARY_TAB  "Library"
 #define FIRMWARE_TAB "Firmware data"
 #define STATUS_TAB "ONStep Status"
+#define PEC_TAB "PEC"
 
 #define ONSTEP_TIMEOUT  3
 #define RB_MAX_LEN 64
@@ -207,6 +208,20 @@ bool LX200_OnStep::initProperties()
     IUFillNumber(&ObjectNoN[0], "ObjectN", "Number", "%+03f", 1.0, 1000.0, 1.0, 0);
     IUFillNumberVector(&ObjectNoNP, ObjectNoN, 1, getDeviceName(), "Object Number", "", LIBRARY_TAB, IP_RW, 0, IPS_IDLE);
 
+    
+    //PEC Tab
+    IUFillSwitch(&OSPECStatusS[0], "OFF", "", ISS_ON);
+    IUFillSwitch(&OSPECStatusS[1], "Playing", "0.01", ISS_OFF);
+    IUFillSwitch(&OSPECStatusS[2], "Will Play", "0.1", ISS_OFF);
+    IUFillSwitch(&OSPECStatusS[3], "Recording", "1", ISS_OFF);
+    IUFillSwitch(&OSPECStatusS[4], "Will Record", "1", ISS_OFF);
+    IUFillSwitchVector(&OSPECStatusSP, OSPECStatusS, 5, getDeviceName(), "PEC Status", "PEC Status", PEC_TAB, IP_RO, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    IUFillSwitch(&OSPECIndexS[0], "Detected", "1", ISS_ON);
+    IUFillSwitch(&OSPECIndexS[1], "Not Detected", "0", ISS_OFF);
+    IUFillSwitchVector(&OSPECIndexSP, OSPECIndexS, 5, getDeviceName(), "PEC Index Detect", "PEC Index", PEC_TAB, IP_RO, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    
     // ============== STATUS_TAB
     IUFillText(&OnstepStat[0], ":GU# return", "", "");
     IUFillText(&OnstepStat[1], "Tracking", "", "");
@@ -1598,3 +1613,63 @@ void LX200_OnStep::OSUpdateFocuser()
 		IDSetNumber(&OSFocus2TargNP, nullptr);
 	}
 }
+
+//PEC Support
+//Should probably be added to inditelescope or another interface, because the PEC that's there... is very limited. 
+
+//#define OSPEC
+#ifdef OSPEC
+
+IPState LX200_OnStep::StartPECRecord () {
+	//  :$QZ/  Ready Record PEC
+	//         Returns: nothing
+	char cmd[8];
+	strcpy(cmd, ":$QZ/");
+	return sendOnStepCommandBlind(cmd);
+}
+
+IPState LX200_OnStep::ClearPECBuffer () {
+	//  :$QZZ  Clear the PEC data buffer
+	//         Return: Nothing
+	char cmd[8];
+	strcpy(cmd, ":$QZZ#");
+	sendOnStepCommandBlind(cmd);
+	return IPS_BUSY;
+	
+}
+
+
+IPState LX200_OnStep::PECStatus () {
+	//  :$QZ?  Get PEC status
+	//         Returns: S#
+	// Returns status (pecSense) In the form: Status is one of "IpPrR" (I)gnore, get ready to (p)lay, (P)laying, get ready to (r)ecord, (R)ecording.  Or an optional (.) to indicate an index detect. 
+	char value[10];
+	getCommandString(PortFD, value, ":$QZ?");
+	if (value[0] == 'I') {  //Ignore
+		PECStatus.s = ;
+		PECRecording.s = IPS_IDLE;
+		IDSetNumber(&FocusRelPosNP, nullptr);
+	} else if (value[0] == 'R') { //Active Recording
+		 PECPlaying.s = IPS_IDLE;
+		 PECRecording.s = IPS_BUSY;
+		IDSetNumber(&FocusRelPosNP, nullptr);
+	} else if (value[0] == 'r') { //Waiting for index before recording
+		PECPlaying.s = IPS_IDLE;
+		PECRecording.s = IPS_OK;
+		IDSetNumber(&FocusRelPosNP, nullptr);
+	} else if (value[0] == 'P') { //Active Playing
+		PECPlaying.s = IPS_OK;
+		PECRecording.s = IPS_IDLE;
+		IDSetNumber(&FocusRelPosNP, nullptr);
+	} else if (value[0] == 'p') { //Waiting for index before playing
+		PECPlaying.s = IPS_BUSY;
+		PECRecording.s = IPS_IDLE;
+		IDSetNumber(&FocusRelPosNP, nullptr);
+	} else { //INVALID REPLY
+		PECPlaying.s = IPS_ALERT;
+		PECRecording.s = IPS_ALERT;
+		IDSetNumber(&FocusRelPosNP, nullptr);
+	}
+	
+}
+#endif
