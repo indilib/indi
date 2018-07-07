@@ -100,6 +100,8 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     
     //PECInterface 
     //axis 0=RA, 1=DEC, others? 
+    IPState StopPECPlayback (int axis);
+    IPState StartPECPlayback (int axis);
     IPState ClearPECBuffer (int axis);
     IPState StartPECRecord (int axis);
     IPState SavePECBuffer (int axis);

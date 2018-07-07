@@ -1019,16 +1019,29 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		if (OSPECReadS[0].s == ISS_ON)
 		{
 			ReadPECBuffer(0);
-			OSPECReadS[0].s == ISS_OFF;
+			OSPECReadS[0].s = ISS_OFF;
 		}
 		if (OSPECReadS[1].s == ISS_ON)
 		{
 			WritePECBuffer(0);
-			OSPECReadS[1].s == ISS_OFF;
+			OSPECReadS[1].s = ISS_OFF;
 		}
 		IDSetSwitch(&OSPECReadSP, nullptr);
 	} 
-        
+	if (!strcmp(name, PECStateSP.name))
+	{
+		if (PECStateS[0].s == ISS_ON)
+		{
+			StopPECPlayback(0);
+			//PECStateS[0].s == ISS_OFF;
+		}
+		if (PECStateS[1].s == ISS_ON)
+		{
+			StartPECPlayback(0);
+			//PECStateS[1].s == ISS_OFF;
+		}
+		IDSetSwitch(&PECStateSP, nullptr);
+	} 
         if (strstr(name, "FOCUS"))
 	{
 		return FI::processSwitch(dev, name, states, names, n);
@@ -1677,9 +1690,32 @@ void LX200_OnStep::OSUpdateFocuser()
 //Should probably be added to inditelescope or another interface, because the PEC that's there... is very limited. 
 
 
+IPState LX200_OnStep::StartPECPlayback (int axis) {
+	//  :$QZ+  Enable RA PEC compensation 
+	//         Returns: nothing
+	INDI_UNUSED(axis); //We only have RA on OnStep
+	char cmd[8];
+	LOG_INFO("Sending Command to Start PEC Playback");
+	strcpy(cmd, ":$QZ+#");
+	sendOnStepCommandBlind(cmd);
+	return IPS_BUSY;
+}
+
+IPState LX200_OnStep::StopPECPlayback (int axis) {
+	//  :$QZ-  Disable RA PEC Compensation
+	//         Returns: nothing
+	INDI_UNUSED(axis); //We only have RA on OnStep
+	char cmd[8];
+	LOG_INFO("Sending Command to Stop PEC Playback");
+	strcpy(cmd, ":$QZ-#");
+	sendOnStepCommandBlind(cmd);
+	return IPS_BUSY;
+}
+
 IPState LX200_OnStep::StartPECRecord (int axis) {
 	//  :$QZ/  Ready Record PEC
 	//         Returns: nothing
+	INDI_UNUSED(axis); //We only have RA on OnStep
 	char cmd[8];
 	LOG_INFO("Sending Command to Start PEC record");
 	strcpy(cmd, ":$QZ/#");
@@ -1690,6 +1726,7 @@ IPState LX200_OnStep::StartPECRecord (int axis) {
 IPState LX200_OnStep::ClearPECBuffer (int axis) {
 	//  :$QZZ  Clear the PEC data buffer
 	//         Return: Nothing
+	INDI_UNUSED(axis); //We only have RA on OnStep
 	char cmd[8];
 	LOG_INFO("Sending Command to Clear PEC record");
 	strcpy(cmd, ":$QZZ#");
@@ -1701,6 +1738,7 @@ IPState LX200_OnStep::ClearPECBuffer (int axis) {
 IPState LX200_OnStep::SavePECBuffer (int axis) {
 	//  :$QZ!  Write PEC data to EEPROM
 	//         Returns: nothing
+	INDI_UNUSED(axis); //We only have RA on OnStep
 	char cmd[8];
 	LOG_INFO("Sending Command to Save PEC to EEPROM");
 	strcpy(cmd, ":$QZ!#");
@@ -1711,7 +1749,8 @@ IPState LX200_OnStep::SavePECBuffer (int axis) {
 
 
 IPState LX200_OnStep::PECStatus (int axis) {
-	LOG_INFO("Getting PEC Status");
+	INDI_UNUSED(axis); //We only have RA on OnStep
+//	LOG_INFO("Getting PEC Status");
 	//  :$QZ?  Get PEC status
 	//         Returns: S#
 	// Returns status (pecSense) In the form: Status is one of "IpPrR" (I)gnore, get ready to (p)lay, (P)laying, get ready to (r)ecord, (R)ecording.  Or an optional (.) to indicate an index detect. 
@@ -1724,7 +1763,7 @@ IPState LX200_OnStep::PECStatus (int axis) {
 	char value[8] ="  ";
 	OSPECStatusSP.s = IPS_BUSY;
 	getCommandString(PortFD, value, ":$QZ?#");
-	LOGF_INFO("Response %s", value);
+//	LOGF_INFO("Response %s", value);
 // 	LOGF_INFO("Response %d", value[0]);
 // 	LOGF_INFO("Response %d", value[1]);
 	if (value[0] == 'I') {  //Ignore
@@ -1752,22 +1791,25 @@ IPState LX200_OnStep::PECStatus (int axis) {
 		OSPECRecordSP.s = IPS_ALERT;
 	}
 	if (value[1] == '.') {
-		OSPECIndexSP = IPS_OK;
-		OSPECIndexSP[1].s = ISS_ON;
+		OSPECIndexSP.s = IPS_OK;
+		OSPECIndexS[1].s = ISS_ON;
 	}
 	IDSetSwitch(&OSPECStatusSP, nullptr);
 	IDSetSwitch(&OSPECRecordSP, nullptr);
 	IDSetSwitch(&OSPECIndexSP, nullptr);
+	return IPS_OK;
 }
 
 
 IPState LX200_OnStep::ReadPECBuffer (int axis) {
+	INDI_UNUSED(axis); //We only have RA on OnStep
 	LOG_ERROR("PEC Reading NOT Implemented");
 	return IPS_OK;
 }
 
 
 IPState LX200_OnStep::WritePECBuffer (int axis) {
+	INDI_UNUSED(axis); //We only have RA on OnStep
 	LOG_ERROR("PEC Writing NOT Implemented");
 	return IPS_OK;
 }
