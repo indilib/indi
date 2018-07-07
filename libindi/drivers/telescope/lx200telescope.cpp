@@ -1280,7 +1280,7 @@ bool LX200Telescope::sendScopeTime()
     }
 
     // To ISO 8601 format in LOCAL TIME!
-    char datetime[64];
+    char datetime[64]={0};
     snprintf(datetime, 64, "%sT%s", cdate, ctime);
 
     // Now that date+time are combined, let's get tm representation of it.
@@ -1307,6 +1307,7 @@ bool LX200Telescope::sendScopeTime()
     LOGF_DEBUG("Mount controller UTC Offset: %s", TimeT[1].text);
 
     // Let's send everything to the client
+    TimeTP.s = IPS_OK;
     IDSetText(&TimeTP, nullptr);
 
     return true;
