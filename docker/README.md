@@ -1,5 +1,12 @@
 Docker images for build environment
 ===================
+* Ubuntu Artful ![Docker Build Status](https://img.shields.io/docker/build/jochym/indi-artful.svg)
+* Ubuntu Bionic ![Docker Build Status](https://img.shields.io/docker/build/jochym/indi-bionic.svg)
+* Debian Stretch ![Docker Build Status](https://img.shields.io/docker/build/jochym/indi-stretch.svg)
+* Debian Buster ![Docker Build Status](https://img.shields.io/docker/build/jochym/indi-buster.svg)
+* Fedora ![Docker Build Status](https://img.shields.io/docker/build/jochym/indi-fedora.svg)
+* CentOS ![Docker Build Status](https://img.shields.io/docker/build/jochym/indi-centos.svg)
+* OpenSuse ![Docker Build Status](https://img.shields.io/docker/build/jochym/indi-opensuse.svg)
 
 This directory contains Dockerfiles for building environments on various linux distributions
 
