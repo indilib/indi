@@ -183,6 +183,9 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     ISwitch livePreviewS[2];
     ISwitchVectorProperty livePreviewSP;
 
+    ISwitch streamSubframeS[2];
+    ISwitchVectorProperty streamSubframeSP;
+
     ISwitch *mExposurePresetS = nullptr;
     ISwitchVectorProperty mExposurePresetSP;
 

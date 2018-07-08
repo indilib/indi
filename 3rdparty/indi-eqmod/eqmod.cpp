@@ -2184,6 +2184,9 @@ IPState EQMod::GuideNorth(uint32_t ms)
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
     LOGF_DEBUG("Timed guide North %d ms at rate %g", ms, rateshift);
+
+    IPState pulseState = IPS_BUSY;
+
     if (DEInverted)
         rateshift = -rateshift;
     try
@@ -2206,6 +2209,9 @@ IPState EQMod::GuideNorth(uint32_t ms)
         }
         else
         {
+            // We should be done once the synchronous guide is complete
+            pulseState = IPS_IDLE;
+
             struct timespec starttime, endtime;
             clock_gettime(CLOCK_MONOTONIC, &starttime);
             mount->StartDETracking(GetDETrackRate() + rateshift);
@@ -2248,7 +2254,7 @@ IPState EQMod::GuideNorth(uint32_t ms)
         return IPS_ALERT;
     }
 
-    return IPS_BUSY;
+    return pulseState;
 }
 
 IPState EQMod::GuideSouth(uint32_t ms)
@@ -2261,6 +2267,9 @@ IPState EQMod::GuideSouth(uint32_t ms)
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
     LOGF_DEBUG("Timed guide South %d ms at rate %g", (int)(ms), rateshift);
+
+    IPState pulseState = IPS_BUSY;
+
     if (DEInverted)
         rateshift = -rateshift;
     try
@@ -2283,6 +2292,9 @@ IPState EQMod::GuideSouth(uint32_t ms)
         }
         else
         {
+            // We should be done once the synchronous guide is complete
+            pulseState = IPS_IDLE;
+
             struct timespec starttime, endtime;
             clock_gettime(CLOCK_MONOTONIC, &starttime);
             mount->StartDETracking(GetDETrackRate() - rateshift);
@@ -2324,7 +2336,7 @@ IPState EQMod::GuideSouth(uint32_t ms)
         e.DefaultHandleException(this);
         return IPS_ALERT;
     }
-    return IPS_BUSY;
+    return pulseState;
 }
 
 IPState EQMod::GuideEast(uint32_t ms)
@@ -2337,6 +2349,9 @@ IPState EQMod::GuideEast(uint32_t ms)
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
     LOGF_DEBUG("Timed guide East %d ms at rate %g", ms, rateshift);
+
+    IPState pulseState = IPS_BUSY;
+
     if (RAInverted)
         rateshift = -rateshift;
     try
@@ -2359,6 +2374,9 @@ IPState EQMod::GuideEast(uint32_t ms)
         }
         else
         {
+            // We should be done once the synchronous guide is complete
+            pulseState = IPS_IDLE;
+
             struct timespec starttime, endtime;
             clock_gettime(CLOCK_MONOTONIC, &starttime);
             mount->StartRATracking(GetRATrackRate() - rateshift);
@@ -2401,7 +2419,7 @@ IPState EQMod::GuideEast(uint32_t ms)
         return IPS_ALERT;
     }
 
-    return IPS_BUSY;
+    return pulseState;
 }
 
 IPState EQMod::GuideWest(uint32_t ms)
@@ -2414,6 +2432,9 @@ IPState EQMod::GuideWest(uint32_t ms)
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
     LOGF_DEBUG("Timed guide West %d ms at rate %g", ms, rateshift);
+
+    IPState pulseState = IPS_BUSY;
+
     if (RAInverted)
         rateshift = -rateshift;
     try
@@ -2436,6 +2457,9 @@ IPState EQMod::GuideWest(uint32_t ms)
         }
         else
         {
+            // We should be done once the synchronous guide is complete
+            pulseState = IPS_IDLE;
+
             struct timespec starttime, endtime;
             clock_gettime(CLOCK_MONOTONIC, &starttime);
             mount->StartRATracking(GetRATrackRate() + rateshift);
@@ -2478,7 +2502,7 @@ IPState EQMod::GuideWest(uint32_t ms)
         return IPS_ALERT;
     }
 
-    return IPS_BUSY;
+    return pulseState;
 }
 
 bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)

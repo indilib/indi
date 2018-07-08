@@ -50,26 +50,36 @@
 #define EXPOSING 1
 #define DOWNLOADING 2
 
-#define QHYCCD_USBTYPE_NONE    0xFF
-#define QHYCCD_USBTYPE_CYUSB   0x00
-#define QHYCCD_USBTYPE_WINUSB  0x01
+#define QHYCCD_USBTYPE_NONE    (0xFF)
+#define QHYCCD_USBTYPE_CYUSB   (0x00)
+#define QHYCCD_USBTYPE_WINUSB  (0x01)
 
-#define LIBUSB_PACKET_LENGTH  4096
-#define LIBUSB_WR_TIMEOUT  5000
-#define LIBUSB_RD_TIMEOUT  0 
-#define USB_ENDPOINT  0x81
-#define CAM_16_BITS  16
+#define LIBUSB_PACKET_LENGTH  (4096)
+#define LIBUSB_WR_TIMEOUT  (5000)
+
+#define LIBUSB_CONTROL_TRANSFER_RD_TIMEOUT (5000)
+#define LIBUSB_CONTROL_TRANSFER_WR_TIMEOUT (1000)
+
+#define LIBUSB_BULK_TRANSFER_RD_TIMEOUT  (5000) 
+#define LIBUSB_BULK_TRANSFER_WR_TIMEOUT  (1000) 
+
+#define LIBUSB_ASYNC_BULK_TRANSFER_TIMEOUT (3600000)
+
+#define EVENT_TIMEOUT_SEC (5)
+#define EVENT_TIMEOUT_USEC (0);
+
+#define USB_ENDPOINT  (0x81)
+#define CAM_16_BITS  (16)
 
 #ifdef WIN32
-typedef void* qhyccd_device;
+
+typedef void *qhyccd_device;
 typedef CCyUSBDevice qhyccd_handle;
+
 #else // Linux & Mac
+
 typedef struct libusb_device qhyccd_device;
 typedef struct libusb_device_handle qhyccd_handle;
-
-//#define TRANSFER_COUNT (16)
-//#define TRANSFER_SIZE (76800)
-//#define LIBUSB_ASYNC_BULK_TRANSFER_TIMEOUT (3600000)
 
 #endif // WIN32
 

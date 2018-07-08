@@ -326,6 +326,7 @@ bool CelestronGPS::updateProperties()
 
                 LOGF_INFO("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
+                TimeTP.s = IPS_OK;
                 IDSetText(&TimeTP, nullptr);
             }
         }
