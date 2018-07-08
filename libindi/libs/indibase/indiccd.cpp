@@ -1824,44 +1824,27 @@ bool CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
 void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
     int status = 0;
-    //char frame_s[32];
     char dev_name[32];
     char exp_start[32];    
-    float pixSize1, pixSize2;
-    //unsigned int xbin, ybin;
+    double pixSize1, pixSize2;
 
-    AutoCNumeric locale;
-
-    //xbin = targetChip->getBinX();
-    //ybin = targetChip->getBinY();
-
-    //char fitsString[MAXINDIDEVICE];
-
-    // CCD
-    //strncpy(fitsString, getDeviceName(), MAXINDIDEVICE);
-    //fits_update_key_s(fptr, TSTRING, "INSTRUME", fitsString, "CCD Name", &status);
+    AutoCNumeric locale;    
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
 
     // Telescope
     if (strlen(ActiveDeviceT[0].text) > 0)
     {
-        //strncpy(fitsString, ActiveDeviceT[0].text, MAXINDIDEVICE);
-        //fits_update_key_s(fptr, TSTRING, "TELESCOP", fitsString, "Telescope name", &status);
         fits_update_key_str(fptr, "TELESCOP", ActiveDeviceT[0].text, "Telescope name", &status);
     }
 
     // Observer
-    //strncpy(fitsString, FITSHeaderT[FITS_OBSERVER].text, MAXINDIDEVICE);
-    //fits_update_key_s(fptr, TSTRING, "OBSERVER", fitsString, "Observer name", &status);
     fits_update_key_str(fptr, "OBSERVER", FITSHeaderT[FITS_OBSERVER].text, "Observer name", &status);
 
     // Object
-    //strncpy(fitsString, FITSHeaderT[FITS_OBJECT].text, MAXINDIDEVICE);
-    //fits_update_key_s(fptr, TSTRING, "OBJECT", fitsString, "Object name", &status);
     fits_update_key_str(fptr, "OBJECT", FITSHeaderT[FITS_OBJECT].text, "Object name", &status);
 
-    pixSize1 = targetChip->getPixelSizeX();
-    pixSize2 = targetChip->getPixelSizeY();
+    pixSize1 = static_cast<double>(targetChip->getPixelSizeX());
+    pixSize2 = static_cast<double>(targetChip->getPixelSizeY());
 
     strncpy(dev_name, getDeviceName(), 32);
     strncpy(exp_start, targetChip->getExposureStartTime(), 32);
@@ -1883,27 +1866,21 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     switch (targetChip->getFrameType())
     {
         case CCDChip::LIGHT_FRAME:
-            //strcpy(frame_s, "Light");
             fits_update_key_str(fptr, "FRAME", "Light", "Frame Type", &status);
             break;
         case CCDChip::BIAS_FRAME:
-            //strcpy(frame_s, "Bias");
             fits_update_key_str(fptr, "FRAME", "Bias", "Frame Type", &status);
             break;
         case CCDChip::FLAT_FRAME:
-            //strcpy(frame_s, "Flat Field");
             fits_update_key_str(fptr, "FRAME", "Flat", "Frame Type", &status);
             break;
         case CCDChip::DARK_FRAME:
-            //strcpy(frame_s, "Dark");
             fits_update_key_str(fptr, "FRAME", "Dark", "Frame Type", &status);
             break;
     }
 
-    if (CurrentFilterSlot != -1 && CurrentFilterSlot <= (int)FilterNames.size())
+    if (CurrentFilterSlot != -1 && CurrentFilterSlot <= static_cast<int>(FilterNames.size()))
     {
-        //char filter[32];
-        //strncpy(filter, FilterNames.at(CurrentFilterSlot - 1).c_str(), 32);
         fits_update_key_str(fptr, "FILTER", FilterNames.at(CurrentFilterSlot - 1).c_str(), "Filter", &status);
     }
 
@@ -1920,35 +1897,29 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 
     if (HasBayer() && targetChip->getNAxis() == 2)
     {
-        //unsigned int bayer_offset_x = atoi(BayerT[0].text);
-        //unsigned int bayer_offset_y = atoi(BayerT[1].text);
-
-        //fits_update_key_s(fptr, TUINT, "XBAYROFF", &bayer_offset_x, "X offset of Bayer array", &status);
-        //fits_update_key_s(fptr, TUINT, "YBAYROFF", &bayer_offset_y, "Y offset of Bayer array", &status);
-        //fits_update_key_s(fptr, TSTRING, "BAYERPAT", BayerT[2].text, "Bayer color pattern", &status);
         fits_update_key_lng(fptr, "XBAYROFF", atoi(BayerT[0].text), "X offset of Bayer array", &status);
         fits_update_key_lng(fptr, "YBAYROFF", atoi(BayerT[1].text), "Y offset of Bayer array", &status);
         fits_update_key_str(fptr, "BAYERPAT", BayerT[2].text, "Bayer color pattern", &status);
     }
 
     if (TelescopeTypeS[TELESCOPE_PRIMARY].s == ISS_ON && primaryFocalLength != -1)
-        //fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &primaryFocalLength, "Focal Length (mm)", &status);
         fits_update_key_dbl(fptr, "FOCALLEN", primaryFocalLength, 2, "Focal Length (mm)", &status);
     else if (TelescopeTypeS[TELESCOPE_GUIDE].s == ISS_ON && guiderFocalLength != -1)
-        //fits_update_key_s(fptr, TDOUBLE, "FOCALLEN", &guiderFocalLength, "Focal Length (mm)", &status);
         fits_update_key_dbl(fptr, "FOCALLEN", guiderFocalLength, 2, "Focal Length (mm)", &status);
 
     if (!std::isnan(MPSAS))
     {
-        //fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
         fits_update_key_dbl(fptr, "MPSAS", MPSAS, 6, "Sky Quality (mag per arcsec^2)", &status);
     }
 
     if (!std::isnan(RotatorAngle))
     {
-        //fits_update_key_s(fptr, TDOUBLE, "ROTATANG", &MPSAS, "Rotator angle in degrees", &status);
         fits_update_key_dbl(fptr, "ROTATANG", RotatorAngle, 3, "Rotator angle in degrees", &status);
-    }    
+    }
+
+    // SCALE assuming square-pixels
+    double pixScale = pixSize1 / primaryFocalLength * 206.3 * targetChip->getBinX();
+    fits_update_key_dbl(fptr, "SCALE", pixScale, 6, "arcsecs per pixel", &status);
 
     if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(J2000RA) && !std::isnan(J2000DE))
     {        
@@ -1980,11 +1951,11 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             //fits_update_key_s(fptr, TDOUBLE, "AIRMASS", &Airmass, "Airmass", &status);
             fits_update_key_dbl(fptr, "AIRMASS", Airmass, 6, "Airmass", &status);
 
-        fits_update_key_str(fptr, "OBJCTRA", ra_str, "Object J2000 RA Sexigesimal", &status);
-        fits_update_key_str(fptr, "OBJCTDEC", de_str, "Object J2000 DEC Sexigesimal", &status);
+        fits_update_key_str(fptr, "OBJCTRA", ra_str, "Object J2000 RA in Hours", &status);
+        fits_update_key_str(fptr, "OBJCTDEC", de_str, "Object J2000 DEC in Degrees", &status);
 
-        fits_update_key_dbl(fptr, "RA", J2000RA, 6, "Object J2000 RA", &status);
-        fits_update_key_dbl(fptr, "DEC", J2000DE, 6, "Object J2000 DEC", &status);
+        fits_update_key_dbl(fptr, "RA", J2000RA*15, 6, "Object J2000 RA in Degrees", &status);
+        fits_update_key_dbl(fptr, "DEC", J2000DE, 6, "Object J2000 DEC in Degrees", &status);
 
         //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
         fits_update_key_lng(fptr, "EQUINOX", 2000, "Equinox", &status);
