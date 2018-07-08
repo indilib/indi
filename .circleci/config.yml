@@ -39,7 +39,7 @@ jobs:
 
   build_bionic:
     docker:
-      - image: jochym/indi-debian:bionic
+      - image: jochym/indi-docker:bionic
     steps:
       - checkout
       - run:
