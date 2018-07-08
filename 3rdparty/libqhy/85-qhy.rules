@@ -1,23 +1,7 @@
 # Udev rules for QHY CCD cameras
-# QHY2,  QHY5, QHY6, QHY8, QHY10
-#
-# ---- Initial Release ----
-# Clive Rogers.  2 May 2009
-#
-# Add rules for QHY2, QHY5, QHY6, QHY8
-#
-# ---- Update 1 ----
-# YANG Xudong 21 Oct 2010
-#
-# Add rules for QHY10 and modified for libqhyccd
-#
-# ---- Update 2 ----
-# Fixed rules for the already initialized devices
-# and make them user accessibe,
-#
 
-# Camera inserted.
-# Vendorid & Prodid: QHY VOTI
+# Increase USBFS memory
+ACTION=="add", ATTR{idVendor}=="16c0", RUN+="/bin/sh -c '/bin/echo 256 >/sys/module/usbcore/parameters/usbfs_memory_mb'"
 
 ACTION!="add", GOTO="qhy_vidpid_end"
 SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", GOTO="qhy_vidpid_test"
