@@ -27,6 +27,7 @@
 #define LIBRARY_TAB  "Library"
 #define FIRMWARE_TAB "Firmware data"
 #define STATUS_TAB "ONStep Status"
+#define PEC_TAB "PEC"
 
 #define ONSTEP_TIMEOUT  3
 #define RB_MAX_LEN 64
@@ -207,6 +208,29 @@ bool LX200_OnStep::initProperties()
     IUFillNumber(&ObjectNoN[0], "ObjectN", "Number", "%+03f", 1.0, 1000.0, 1.0, 0);
     IUFillNumberVector(&ObjectNoNP, ObjectNoN, 1, getDeviceName(), "Object Number", "", LIBRARY_TAB, IP_RW, 0, IPS_IDLE);
 
+    
+    //PEC Tab
+    IUFillSwitch(&OSPECStatusS[0], "OFF", "OFF", ISS_OFF);
+    IUFillSwitch(&OSPECStatusS[1], "Playing", "Playing", ISS_OFF);
+    IUFillSwitch(&OSPECStatusS[2], "Recording", "Recording", ISS_OFF);
+    IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
+    IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
+    IUFillSwitchVector(&OSPECStatusSP, OSPECStatusS, 5, getDeviceName(), "PEC Status", "PEC Status", PEC_TAB, IP_RO, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    IUFillSwitch(&OSPECIndexS[0], "Not Detected", "Not Detected", ISS_ON);    IUFillSwitch(&OSPECIndexS[1], "Detected", "Detected", ISS_OFF);
+    IUFillSwitchVector(&OSPECIndexSP, OSPECIndexS, 2, getDeviceName(), "PEC Index Detect", "PEC Index", PEC_TAB, IP_RO, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    IUFillSwitch(&OSPECRecordS[0], "Clear", "Clear", ISS_OFF);
+    IUFillSwitch(&OSPECRecordS[1], "Record", "Record", ISS_OFF);
+    IUFillSwitch(&OSPECRecordS[2], "Write to EEPROM", "Write to EEPROM", ISS_OFF);
+    IUFillSwitchVector(&OSPECRecordSP, OSPECRecordS, 3, getDeviceName(), "PEC Operations", "PEC Recording", PEC_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    IUFillSwitch(&OSPECReadS[0], "Read", "Read PEC to FILE****", ISS_OFF);
+    IUFillSwitch(&OSPECReadS[1], "Write", "Write PEC from FILE***", ISS_OFF);
+//    IUFillSwitch(&OSPECReadS[2], "Write to EEPROM", "Write to EEPROM", ISS_OFF);
+    IUFillSwitchVector(&OSPECReadSP, OSPECReadS, 2, getDeviceName(), "PEC File", "PEC File", PEC_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
+    
     // ============== STATUS_TAB
     IUFillText(&OnstepStat[0], ":GU# return", "", "");
     IUFillText(&OnstepStat[1], "Tracking", "", "");
@@ -289,6 +313,12 @@ bool LX200_OnStep::updateProperties()
         defineSwitch(&DeepSkyCatalogSP);
         defineNumber(&ObjectNoNP);
 
+	//PEC
+	defineSwitch(&OSPECStatusSP);
+	defineSwitch(&OSPECIndexSP);
+	defineSwitch(&OSPECRecordSP);
+	defineSwitch(&OSPECReadSP);
+	
         // OnStep Status
         defineText(&OnstepStatTP);
 
@@ -362,6 +392,12 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(DeepSkyCatalogSP.name);
         deleteProperty(ObjectNoNP.name);
 
+	//PEC
+	deleteProperty(OSPECStatusSP.name);
+	deleteProperty(OSPECIndexSP.name);
+	deleteProperty(OSPECRecordSP.name);
+	deleteProperty(OSPECReadSP.name);
+	
         // OnStep Status
         deleteProperty(OnstepStatTP.name);
     }
@@ -956,6 +992,56 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             Goto(targetRA, targetDEC);
              return true;
         }
+        if (!strcmp(name, OSPECRecordSP.name))
+	{
+		IUUpdateSwitch(&OSPECRecordSP, states, names, n);
+		OSPECRecordSP.s = IPS_OK;
+		
+		if (OSPECRecordS[0].s == ISS_ON)
+		{
+			ClearPECBuffer(0);
+			OSPECRecordS[0].s = ISS_OFF;
+		}
+		if (OSPECRecordS[1].s == ISS_ON)
+		{
+			StartPECRecord(0);
+			OSPECRecordS[1].s = ISS_OFF;
+		}
+		if (OSPECRecordS[2].s == ISS_ON)
+		{
+			SavePECBuffer(0);
+			OSPECRecordS[2].s = ISS_OFF;
+		}
+		IDSetSwitch(&OSPECRecordSP, nullptr);
+	}
+	if (!strcmp(name, OSPECReadSP.name))
+	{
+		if (OSPECReadS[0].s == ISS_ON)
+		{
+			ReadPECBuffer(0);
+			OSPECReadS[0].s = ISS_OFF;
+		}
+		if (OSPECReadS[1].s == ISS_ON)
+		{
+			WritePECBuffer(0);
+			OSPECReadS[1].s = ISS_OFF;
+		}
+		IDSetSwitch(&OSPECReadSP, nullptr);
+	} 
+	if (!strcmp(name, PECStateSP.name))
+	{
+		if (PECStateS[0].s == ISS_ON)
+		{
+			StopPECPlayback(0);
+			//PECStateS[0].s == ISS_OFF;
+		}
+		if (PECStateS[1].s == ISS_ON)
+		{
+			StartPECPlayback(0);
+			//PECStateS[1].s == ISS_OFF;
+		}
+		IDSetSwitch(&PECStateSP, nullptr);
+	} 
         if (strstr(name, "FOCUS"))
 	{
 		return FI::processSwitch(dev, name, states, names, n);
@@ -1276,6 +1362,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
         if(!GetAlignStatus()) LOG_WARN("Fail Align Command");
     }
     OSUpdateFocuser();  // Update Focuser Position
+    PECStatus(0);
     return true;
 }
 
@@ -1554,7 +1641,7 @@ void LX200_OnStep::OSUpdateFocuser()
 		getCommandString(PortFD, value, ":FG#");
 		FocusAbsPosN[0].value =  atoi(value);
 		current = FocusAbsPosN[0].value;
-		LOGF_DEBUG("Current focurser: %d, %d", atoi(value), FocusAbsPosN[0].value);
+		LOGF_DEBUG("Current focuser: %d, %d", atoi(value), FocusAbsPosN[0].value);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
 		//  :FT#  get status
 		//         Returns: M# (for moving) or S# (for stopped)
@@ -1597,4 +1684,132 @@ void LX200_OnStep::OSUpdateFocuser()
 		OSFocus2TargNP.np[0].value = atoi(value);
 		IDSetNumber(&OSFocus2TargNP, nullptr);
 	}
+}
+
+//PEC Support
+//Should probably be added to inditelescope or another interface, because the PEC that's there... is very limited. 
+
+
+IPState LX200_OnStep::StartPECPlayback (int axis) {
+	//  :$QZ+  Enable RA PEC compensation 
+	//         Returns: nothing
+	INDI_UNUSED(axis); //We only have RA on OnStep
+	char cmd[8];
+	LOG_INFO("Sending Command to Start PEC Playback");
+	strcpy(cmd, ":$QZ+#");
+	sendOnStepCommandBlind(cmd);
+	return IPS_BUSY;
+}
+
+IPState LX200_OnStep::StopPECPlayback (int axis) {
+	//  :$QZ-  Disable RA PEC Compensation
+	//         Returns: nothing
+	INDI_UNUSED(axis); //We only have RA on OnStep
+	char cmd[8];
+	LOG_INFO("Sending Command to Stop PEC Playback");
+	strcpy(cmd, ":$QZ-#");
+	sendOnStepCommandBlind(cmd);
+	return IPS_BUSY;
+}
+
+IPState LX200_OnStep::StartPECRecord (int axis) {
+	//  :$QZ/  Ready Record PEC
+	//         Returns: nothing
+	INDI_UNUSED(axis); //We only have RA on OnStep
+	char cmd[8];
+	LOG_INFO("Sending Command to Start PEC record");
+	strcpy(cmd, ":$QZ/#");
+	sendOnStepCommandBlind(cmd);
+	return IPS_BUSY;
+}
+
+IPState LX200_OnStep::ClearPECBuffer (int axis) {
+	//  :$QZZ  Clear the PEC data buffer
+	//         Return: Nothing
+	INDI_UNUSED(axis); //We only have RA on OnStep
+	char cmd[8];
+	LOG_INFO("Sending Command to Clear PEC record");
+	strcpy(cmd, ":$QZZ#");
+	sendOnStepCommandBlind(cmd);
+	return IPS_BUSY;
+	
+}
+
+IPState LX200_OnStep::SavePECBuffer (int axis) {
+	//  :$QZ!  Write PEC data to EEPROM
+	//         Returns: nothing
+	INDI_UNUSED(axis); //We only have RA on OnStep
+	char cmd[8];
+	LOG_INFO("Sending Command to Save PEC to EEPROM");
+	strcpy(cmd, ":$QZ!#");
+	sendOnStepCommandBlind(cmd);
+	return IPS_BUSY;
+	
+}
+
+
+IPState LX200_OnStep::PECStatus (int axis) {
+	INDI_UNUSED(axis); //We only have RA on OnStep
+//	LOG_INFO("Getting PEC Status");
+	//  :$QZ?  Get PEC status
+	//         Returns: S#
+	// Returns status (pecSense) In the form: Status is one of "IpPrR" (I)gnore, get ready to (p)lay, (P)laying, get ready to (r)ecord, (R)ecording.  Or an optional (.) to indicate an index detect. 
+// 	IUFillSwitch(&OSPECStatusS[0], "OFF", "OFF", ISS_ON);
+// 	IUFillSwitch(&OSPECStatusS[1], "Playing", "Playing", ISS_OFF);
+// 	IUFillSwitch(&OSPECStatusS[2], "Recording", "Recording", ISS_OFF);
+// 	IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
+// 	IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
+	//ReticS[0].s=ISS_OFF;
+	char value[8] ="  ";
+	OSPECStatusSP.s = IPS_BUSY;
+	getCommandString(PortFD, value, ":$QZ?#");
+//	LOGF_INFO("Response %s", value);
+// 	LOGF_INFO("Response %d", value[0]);
+// 	LOGF_INFO("Response %d", value[1]);
+	if (value[0] == 'I') {  //Ignore
+		OSPECStatusSP.s = IPS_OK;
+		OSPECStatusS[0].s = ISS_ON ;
+		OSPECRecordSP.s = IPS_IDLE;
+	} else if (value[0] == 'R') { //Active Recording
+		OSPECStatusSP.s = IPS_OK;
+		OSPECStatusS[2].s = ISS_ON ;
+		OSPECRecordSP.s = IPS_BUSY;
+	} else if (value[0] == 'r') { //Waiting for index before recording
+		OSPECStatusSP.s = IPS_OK;
+		OSPECStatusS[1].s = ISS_ON ;
+		OSPECRecordSP.s = IPS_BUSY;
+	} else if (value[0] == 'P') { //Active Playing
+		OSPECStatusSP.s = IPS_BUSY;
+		OSPECStatusS[4].s = ISS_ON ;
+		OSPECRecordSP.s = IPS_IDLE;
+	} else if (value[0] == 'p') { //Waiting for index before playing
+		OSPECStatusSP.s = IPS_BUSY;
+		OSPECStatusS[4].s = ISS_ON ;
+		OSPECRecordSP.s = IPS_IDLE;
+	} else { //INVALID REPLY
+		OSPECStatusSP.s = IPS_ALERT;
+		OSPECRecordSP.s = IPS_ALERT;
+	}
+	if (value[1] == '.') {
+		OSPECIndexSP.s = IPS_OK;
+		OSPECIndexS[1].s = ISS_ON;
+	}
+	IDSetSwitch(&OSPECStatusSP, nullptr);
+	IDSetSwitch(&OSPECRecordSP, nullptr);
+	IDSetSwitch(&OSPECIndexSP, nullptr);
+	return IPS_OK;
+}
+
+
+IPState LX200_OnStep::ReadPECBuffer (int axis) {
+	INDI_UNUSED(axis); //We only have RA on OnStep
+	LOG_ERROR("PEC Reading NOT Implemented");
+	return IPS_OK;
+}
+
+
+IPState LX200_OnStep::WritePECBuffer (int axis) {
+	INDI_UNUSED(axis); //We only have RA on OnStep
+	LOG_ERROR("PEC Writing NOT Implemented");
+	return IPS_OK;
 }

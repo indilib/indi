@@ -97,6 +97,23 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
 
     
     //End FocuserInterface
+    
+    //PECInterface 
+    //axis 0=RA, 1=DEC, others? 
+    IPState StopPECPlayback (int axis);
+    IPState StartPECPlayback (int axis);
+    IPState ClearPECBuffer (int axis);
+    IPState StartPECRecord (int axis);
+    IPState SavePECBuffer (int axis);
+    IPState PECStatus (int axis);
+    IPState ReadPECBuffer (int axis);
+    IPState WritePECBuffer (int axis);
+    bool ISPECRecorded (int axis);
+    
+
+    //End PECInterface
+    
+    
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
@@ -180,7 +197,17 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     
     ISwitchVectorProperty SetHomeSP;
     ISwitch SetHomeS[2];
-
+    
+    ISwitchVectorProperty OSPECStatusSP;
+    ISwitch OSPECStatusS[5];
+    ISwitchVectorProperty OSPECIndexSP;
+    ISwitch OSPECIndexS[2];
+    ISwitchVectorProperty OSPECRecordSP;
+    ISwitch OSPECRecordS[3];
+    ISwitchVectorProperty OSPECReadSP;
+    ISwitch OSPECReadS[2];
+    
+    
     char OSStat[20];
     char OldOSStat[20];
 
