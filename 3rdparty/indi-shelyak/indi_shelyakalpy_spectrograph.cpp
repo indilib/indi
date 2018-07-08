@@ -268,6 +268,22 @@ int rc, nbytes_written;
 if (parameter==0x33){ //special for dark : have to put both lamps on
     char cmd[6] = {0x31,0x31,0x0a,0x32,0x31,0x0a};//"11\n21\n" 
     if(command==0x31){
+    //remise à zéro des lampes
+    char c[3] = {parameter,command,0x0a};
+
+    if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+
+      {
+        char errmsg[MAXRBUF];
+        tty_error_msg(rc, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+        return false;
+      } else {
+          DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+
+      }
+      sleep(2); // wait for the calibration unit to actually flip the switch
+      
 
     if ((rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
 
