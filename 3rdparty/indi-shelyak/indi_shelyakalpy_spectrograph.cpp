@@ -166,13 +166,15 @@ bool ShelyakAlpy::Connect()
     return false;
   }
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+  
+  //DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+  
   return true;
 }
 
 bool ShelyakAlpy::Disconnect()
 { 
-  //TODO : set defalt state.
-  //set off lamps  
+  //set default state at disconnection: set off lamps  
   int rc, nbytes_written;
   char reset[3] = {'0','0',0x0a};
   //clean alpy configuration. Reset all.
@@ -243,20 +245,22 @@ bool ShelyakAlpy::ISNewText (const char *dev, const char *name, char *texts[], c
 bool ShelyakAlpy::calibrationUnitCommand(char command, char parameter)
 {
 int rc, nbytes_written;
-
-char reset[3] = {'0','0',0x0a};
-//clean alpy configuration. Reset all.
-if ((rc = tty_write(PortFD, reset, 3, &nbytes_written)) != TTY_OK)
-
-  {
-    char errmsg[MAXRBUF];
-    tty_error_msg(rc, errmsg, MAXRBUF);
-    DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
-    return false;
-  } else {
-      DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", reset);
-
-  }
+//DEBUGF(INDI::Logger::DBG_SESSION, "commande: %s.", command);
+//DEBUGF(INDI::Logger::DBG_SESSION, "parameter: %s.", parameter);
+// char reset[3] = {'0','0',0x0a};
+// //clean alpy configuration. Reset all.
+// if ((rc = tty_write(PortFD, reset, 3, &nbytes_written)) != TTY_OK)
+// 
+// 
+//   {
+//     char errmsg[MAXRBUF];
+//     tty_error_msg(rc, errmsg, MAXRBUF);
+//     DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+//     return false;
+//   } else {
+//       DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", reset);
+// 
+//   }
   sleep(1); // wait for the calibration unit to actually flip the switch
 
 
@@ -279,7 +283,21 @@ if (parameter==0x33){ //special for dark : have to put both lamps on
       sleep(1); // wait for the calibration unit to actually flip the switch
       return true;
     } else {
-        return true;
+        
+        char reset[3] = {'0','0',0x0a};
+        if ((rc = tty_write(PortFD, reset, 3, &nbytes_written)) != TTY_OK)
+
+        {
+        char errmsg[MAXRBUF];
+        tty_error_msg(rc, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+        return false;
+        } else {
+          DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", reset);
+
+        } 
+      sleep(1); // wait for the calibration unit to actually flip the switch
+      return true;
     }
 
 
@@ -300,9 +318,6 @@ if (parameter==0x33){ //special for dark : have to put both lamps on
       sleep(1); // wait for the calibration unit to actually flip the switch
       return true;
 }
-
-  
-
 
 
 }
