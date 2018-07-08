@@ -190,11 +190,12 @@ indi_webcam::indi_webcam()
   pFrameOUT = nullptr;
   sws_ctx = nullptr;
   buffer = nullptr;
-
+  
+  // These are deprecated and cause errors on more regorous compilers (fedora)
   //This registers all devices
-  avdevice_register_all();
+  //avdevice_register_all();
   //This registers all codecs
-  avcodec_register_all();
+  //avcodec_register_all();
 
   //setting default values
 #ifdef __linux__
