@@ -110,6 +110,7 @@ bool ShelyakAlpy::initProperties()
   IUFillSwitch(&LampS[1], "ARNE", "ArNe", ISS_OFF);
   IUFillSwitch(&LampS[2], "TUNGSTEN", "Tungsten", ISS_OFF);
   IUFillSwitchVector(&LampSP, LampS, 3, getDeviceName(), "CALIB_LAMPS", "Calibration lamps", CALIBRATION_UNIT_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+   
 
   //--------------------------------------------------------------------------------
   // Options
@@ -169,7 +170,25 @@ bool ShelyakAlpy::Connect()
 }
 
 bool ShelyakAlpy::Disconnect()
-{
+{ 
+  //TODO : set defalt state.
+  //set off lamps  
+  int rc, nbytes_written;
+  char reset[3] = {'0','0',0x0a};
+  //clean alpy configuration. Reset all.
+  if ((rc = tty_write(PortFD, reset, 3, &nbytes_written)) != TTY_OK)
+
+  {
+    char errmsg[MAXRBUF];
+    tty_error_msg(rc, errmsg, MAXRBUF);
+    DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+    return false;
+  } else {
+      DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", reset);
+
+  }
+  sleep(1); // wait for the calibration unit to actually flip the switch  
+    
   tty_disconnect(PortFD);
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is offline.", getDeviceName());
   return true;
