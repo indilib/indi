@@ -26,7 +26,7 @@
 //On serial connection
 //11\n : calib lamp on
 //21\n : flat lamp on
-//if 11 ans 21 : dark on
+//if 11 and 21 : dark on
 //(and the opposite, 10, 20)
 //00\n : shut off all
 
@@ -76,8 +76,10 @@ private:
   INumberVectorProperty SettingsNP;
   INumber SettingsN[2];
 
+  std::string lastLampOn;
+  
   bool calibrationUnitCommand(char command, char parameter);
-
+  bool resetLamps();
 };
 
 #endif // SHELYAKALPY_SPECTROGRAPH_H
