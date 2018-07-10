@@ -123,7 +123,7 @@ workflows:
       - build_artful
       - build_stretch
       - build_fedora
-      - build_opensuse:
+      - build_opensuse
       - build_bionic:
           requires:
             - build_artful
