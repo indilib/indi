@@ -905,13 +905,10 @@ bool LX200Telescope::SetSlewRate(int index)
 
     if (!isSimulation() && setSlewMode(PortFD, index) < 0)
     {
-        SlewRateSP.s = IPS_ALERT;
-        IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+        LOG_ERROR("Error setting slew mode.");
         return false;
     }
 
-    SlewRateSP.s = IPS_OK;
-    IDSetSwitch(&SlewRateSP, nullptr);
     return true;
 }
 
@@ -920,7 +917,7 @@ bool LX200Telescope::updateSlewRate(int index)
     if (IUFindOnSwitchIndex(&SlewRateSP) == index)
         return true;
 
-    if (!isSimulation() && setSlewMode(PortFD, index) < 0)
+    if (!isSimulation() && setSlewMode(PortFD, 3 - index) < 0)
     {
         SlewRateSP.s = IPS_ALERT;
         IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
@@ -1373,7 +1370,7 @@ IPState LX200Telescope::GuideNorth(uint32_t ms)
     }
     else
     {
-        updateSlewRate(LX200_SLEW_GUIDE);
+        updateSlewRate(SLEW_GUIDE);
 
         ISState states[] = { ISS_ON, ISS_OFF };
         const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
@@ -1406,7 +1403,7 @@ IPState LX200Telescope::GuideSouth(uint32_t ms)
     }
     else
     {
-        updateSlewRate(LX200_SLEW_GUIDE);
+        updateSlewRate(SLEW_GUIDE);
 
         ISState states[] = { ISS_OFF, ISS_ON };
         const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
@@ -1439,7 +1436,7 @@ IPState LX200Telescope::GuideEast(uint32_t ms)
     }
     else
     {
-        updateSlewRate(LX200_SLEW_GUIDE);
+        updateSlewRate(SLEW_GUIDE);
 
         ISState states[] = { ISS_OFF, ISS_ON };
         const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
@@ -1472,7 +1469,7 @@ IPState LX200Telescope::GuideWest(uint32_t ms)
     }
     else
     {
-        updateSlewRate(LX200_SLEW_GUIDE);
+        updateSlewRate(SLEW_GUIDE);
 
         ISState states[] = { ISS_ON, ISS_OFF };
         const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
