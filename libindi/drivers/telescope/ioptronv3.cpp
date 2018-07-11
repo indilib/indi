@@ -159,7 +159,7 @@ bool IOptronV3::initProperties()
 
     /* How fast do we guide compared to sidereal rate */
     IUFillNumber(&GuideRateN[0], "RA_GUIDE_RATE", "x Sidereal", "%g", 0.01, 0.9, 0.1, 0.5);
-    IUFillNumber(&GuideRateN[1], "DE_GUIDE_RATE", "x Sidereal", "%g", 0.01, 0.99, 0.1, 0.5);
+    IUFillNumber(&GuideRateN[1], "DE_GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.99, 0.1, 0.5);
     IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 

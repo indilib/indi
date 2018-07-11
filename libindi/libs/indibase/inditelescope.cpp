@@ -1684,7 +1684,7 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
     {
         free(SlewRateS);
         SlewRateS = (ISwitch *)malloc(sizeof(ISwitch) * nSlewRate);
-        int step  = nSlewRate / 4;
+        //int step  = nSlewRate / 4;
         for (int i = 0; i < nSlewRate; i++)
         {
             char name[4];
@@ -1692,10 +1692,19 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
             IUFillSwitch(SlewRateS + i, name, name, ISS_OFF);
         }
 
-        strncpy((SlewRateS + (step * 0))->name, "SLEW_GUIDE", MAXINDINAME);
-        strncpy((SlewRateS + (step * 1))->name, "SLEW_CENTERING", MAXINDINAME);
-        strncpy((SlewRateS + (step * 2))->name, "SLEW_FIND", MAXINDINAME);
-        strncpy((SlewRateS + (nSlewRate - 1))->name, "SLEW_MAX", MAXINDINAME);
+//        strncpy((SlewRateS + (step * 0))->name, "SLEW_GUIDE", MAXINDINAME);
+//        strncpy((SlewRateS + (step * 1))->name, "SLEW_CENTERING", MAXINDINAME);
+//        strncpy((SlewRateS + (step * 2))->name, "SLEW_FIND", MAXINDINAME);
+//        strncpy((SlewRateS + (nSlewRate - 1))->name, "SLEW_MAX", MAXINDINAME);
+
+        // If number of slew rate is EXACTLY 4, then let's use common labels
+        if (nSlewRate == 4)
+        {
+            strncpy((SlewRateS + (0))->label, "Guide", MAXINDILABEL);
+            strncpy((SlewRateS + (1))->label, "Centering", MAXINDILABEL);
+            strncpy((SlewRateS + (2))->label, "Find", MAXINDILABEL);
+            strncpy((SlewRateS + (3))->label, "Max", MAXINDILABEL);
+        }
 
         // By Default we set current Slew Rate to 0.5 of max
         (SlewRateS + (nSlewRate / 2))->s = ISS_ON;
