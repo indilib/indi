@@ -891,7 +891,12 @@ IPState LX200AstroPhysicsExperimental::GuideNorth(uint32_t ms)
     }
     else
     {
-        updateSlewRate(LX200_SLEW_GUIDE);
+        if (rememberSlewRate == -1)
+            rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
+        updateSlewRate(SLEW_GUIDE);
+
+        // Set to dummy value to that MoveNS does not reset slew rate to rememberSlewRate
+        GuideNSTID = 1;
 
         ISState states[] = { ISS_ON, ISS_OFF };
         const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
@@ -924,7 +929,13 @@ IPState LX200AstroPhysicsExperimental::GuideSouth(uint32_t ms)
     }
     else
     {
-        updateSlewRate(LX200_SLEW_GUIDE);
+        if (rememberSlewRate == -1)
+            rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
+
+        updateSlewRate(SLEW_GUIDE);
+
+        // Set to dummy value to that MoveNS does not reset slew rate to rememberSlewRate
+        GuideNSTID = 1;
 
         ISState states[] = { ISS_OFF, ISS_ON };
         const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
@@ -957,7 +968,13 @@ IPState LX200AstroPhysicsExperimental::GuideEast(uint32_t ms)
     }
     else
     {
-        updateSlewRate(LX200_SLEW_GUIDE);
+        if (rememberSlewRate == -1)
+            rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
+
+        updateSlewRate(SLEW_GUIDE);
+
+        // Set to dummy value to that MoveWE does not reset slew rate to rememberSlewRate
+        GuideWETID = 1;
 
         ISState states[] = { ISS_OFF, ISS_ON };
         const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
@@ -990,7 +1007,13 @@ IPState LX200AstroPhysicsExperimental::GuideWest(uint32_t ms)
     }
     else
     {
-        updateSlewRate(LX200_SLEW_GUIDE);
+        if (rememberSlewRate == -1)
+            rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
+
+        updateSlewRate(SLEW_GUIDE);
+
+        // Set to dummy value to that MoveWE does not reset slew rate to rememberSlewRate
+        GuideWETID = 1;
 
         ISState states[] = { ISS_ON, ISS_OFF };
         const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
@@ -1211,14 +1234,11 @@ void LX200AstroPhysicsExperimental::debugTriggered(bool enable)
 bool LX200AstroPhysicsExperimental::SetSlewRate(int index)
 {
     if (!isSimulation() && selectAPMoveToRate(PortFD, index) < 0)
-    {
-        SlewRateSP.s = IPS_ALERT;
-        IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+    {        
+        LOG_ERROR("Error setting slew mode.");
         return false;
     }
 
-    SlewRateSP.s = IPS_OK;
-    IDSetSwitch(&SlewRateSP, nullptr);
     return true;
 }
 
@@ -1552,9 +1572,16 @@ bool LX200AstroPhysicsExperimental::getUTFOffset(double *offset)
 
 bool LX200AstroPhysicsExperimental::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-
-    // restore movement rate to that used by N/S/E/W buttons and not guide rate!
-    selectAPMoveToRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP));
+    // If we are not guiding and we need to restore slew rate, then let's restore it.
+    if (command == MOTION_START && GuideNSTID == 0 && rememberSlewRate >= 0)
+    {
+        ISState states[] = { ISS_OFF, ISS_OFF, ISS_OFF, ISS_OFF };
+        states[rememberSlewRate] = ISS_ON;
+        const char *names[] = { SlewRateS[0].name, SlewRateS[1].name,
+                                SlewRateS[2].name, SlewRateS[3].name };
+        ISNewSwitch(SlewRateSP.device, SlewRateSP.name, states, const_cast<char **>(names), 4);
+        rememberSlewRate = -1;
+    }
 
     bool rc = LX200Generic::MoveNS(dir, command);
 
@@ -1566,9 +1593,16 @@ bool LX200AstroPhysicsExperimental::MoveNS(INDI_DIR_NS dir, TelescopeMotionComma
 
 bool LX200AstroPhysicsExperimental::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
-
-    // restore movement rate to that used by N/S/E/W buttons and not guide rate since move command uses last requested rate!
-    selectAPMoveToRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP));
+    // If we are not guiding and we need to restore slew rate, then let's restore it.
+    if (command == MOTION_START && GuideWETID == 0 && rememberSlewRate >= 0)
+    {
+        ISState states[] = { ISS_OFF, ISS_OFF, ISS_OFF, ISS_OFF };
+        states[rememberSlewRate] = ISS_ON;
+        const char *names[] = { SlewRateS[0].name, SlewRateS[1].name,
+                                SlewRateS[2].name, SlewRateS[3].name };
+        ISNewSwitch(SlewRateSP.device, SlewRateSP.name, states, const_cast<char **>(names), 4);
+        rememberSlewRate = -1;
+    }
 
     bool rc = LX200Generic::MoveWE(dir, command);
 
