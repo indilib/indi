@@ -138,7 +138,7 @@ LX200StarGo::LX200StarGo()
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION| TELESCOPE_HAS_PIER_SIDE, 4);
+                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PIER_SIDE, 4);
 }
 
 /**************************************************************************************
