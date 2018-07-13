@@ -28,6 +28,7 @@
 #define FIRMWARE_TAB "Firmware data"
 #define STATUS_TAB "ONStep Status"
 #define PEC_TAB "PEC"
+#define ALIGN_TAB "Align"
 
 #define ONSTEP_TIMEOUT  3
 #define RB_MAX_LEN 64
@@ -229,7 +230,18 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSPECReadS[1], "Write", "Write PEC from FILE***", ISS_OFF);
 //    IUFillSwitch(&OSPECReadS[2], "Write to EEPROM", "Write to EEPROM", ISS_OFF);
     IUFillSwitchVector(&OSPECReadSP, OSPECReadS, 2, getDeviceName(), "PEC File", "PEC File", PEC_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    // ============== New ALIGN_TAB 
+    // Only supports Alpha versions currently (July 2018)
+    IUFillSwitch(&OSNAlignS[0], "0", "Start Align", ISS_OFF);
+    IUFillSwitch(&OSNAlignS[1], "1", "Issue Align", ISS_OFF);
+    IUFillSwitch(&OSNAlignS[2], "3", "Finished Align", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 3, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
+    IUFillText(&OSNAlignT[0], "0", "Align Status:", "Align not started");
+    IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
+    IUFillText(&OSNAlignT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
+    IUFillText(&OSNAlignT[3], "3", "After 1 or 2", "Press 'Start Align'");
+    IUFillTextVector(&OSNAlignTP, OSNAlignT, 4, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
     
     // ============== STATUS_TAB
     IUFillText(&OnstepStat[0], ":GU# return", "", "");
@@ -319,6 +331,10 @@ bool LX200_OnStep::updateProperties()
 	defineSwitch(&OSPECRecordSP);
 	defineSwitch(&OSPECReadSP);
 	
+	//New Align
+	defineSwitch(&OSNAlignSP);
+	defineText(&OSNAlignTP);
+	
         // OnStep Status
         defineText(&OnstepStatTP);
 
@@ -397,6 +413,10 @@ bool LX200_OnStep::updateProperties()
 	deleteProperty(OSPECIndexSP.name);
 	deleteProperty(OSPECRecordSP.name);
 	deleteProperty(OSPECReadSP.name);
+	
+	//New Align
+	deleteProperty(OSNAlignSP.name);
+	deleteProperty(OSNAlignTP.name);
 	
         // OnStep Status
         deleteProperty(OnstepStatTP.name);
@@ -1042,6 +1062,36 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		}
 		IDSetSwitch(&PECStateSP, nullptr);
 	} 
+	// Align Buttons
+	if (!strcmp(name, OSNAlignSP.name))      // 
+	{
+		if (IUUpdateSwitch(&OSNAlignSP, states, names, n) < 0)
+			return false;
+		
+		index = IUFindOnSwitchIndex(&OSNAlignSP);
+		//NewGeometricAlignment    
+		//End NewGeometricAlignment 
+		OSNAlignSP.s = IPS_BUSY;
+		if (index == 0)
+		{
+			OSNAlignS[0].s = ISS_OFF;
+			AlignStartGeometric();
+		}
+		if (index == 1)
+		{
+			OSNAlignS[1].s = ISS_OFF;
+			OSNAlignSP.s = AlignAddStar();
+		}
+		if (index == 2)
+		{
+			OSNAlignS[2].s = ISS_OFF;
+			OSNAlignSP.s = AlignDone();
+		}
+		IDSetSwitch(&OSNAlignSP, nullptr);
+	}
+	
+	
+	
         if (strstr(name, "FOCUS"))
 	{
 		return FI::processSwitch(dev, name, states, names, n);
@@ -1812,4 +1862,52 @@ IPState LX200_OnStep::WritePECBuffer (int axis) {
 	INDI_UNUSED(axis); //We only have RA on OnStep
 	LOG_ERROR("PEC Writing NOT Implemented");
 	return IPS_OK;
+}
+
+// New, Multistar alignment goes here: 
+
+IPState LX200_OnStep::AlignStartGeometric (){
+	//See here https://groups.io/g/onstep/message/3624
+	char cmd[8];
+
+	LOG_INFO("Sending Command to Start Alignment");
+	IUSaveText(&OSNAlignT[0],"Align STARTED");
+	IUSaveText(&OSNAlignT[1],"GOTO a star, center it");
+	IUSaveText(&OSNAlignT[2],"GOTO a star, Solve and Sync");
+	IUSaveText(&OSNAlignT[3],"Press 'Issue Align'");
+	IDSetText(&OSNAlignTP, "==>Align Started");
+	strcpy(cmd, ":A6#");
+	sendOnStepCommandBlind(cmd);
+	return IPS_BUSY;
+}
+
+
+IPState LX200_OnStep::AlignAddStar (){
+	//See here https://groups.io/g/onstep/message/3624
+	char cmd[8];
+	LOG_INFO("Sending Command to Record Star");
+	strcpy(cmd, ":A+#");
+	if(sendOnStepCommandBlind(cmd)) {
+		return IPS_BUSY;
+	}
+	return IPS_ALERT;
+}
+
+IPState LX200_OnStep::AlignDone (){
+	//See here https://groups.io/g/onstep/message/3624
+	char cmd[8];
+	LOG_INFO("Sending Command to Finish Alignment and write");
+	strcpy(cmd, ":AW#");
+	IUSaveText(&OSNAlignT[0],"Align FINISHED");
+	IUSaveText(&OSNAlignT[1],"");
+	IUSaveText(&OSNAlignT[2],"");
+	IUSaveText(&OSNAlignT[3],"");
+	IDSetText(&OSNAlignTP, "Align Finished");
+	if (sendOnStepCommandBlind(cmd)){
+		return IPS_OK;
+	}
+	IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
+	IDSetText(&OSNAlignTP, "Align FAILED");
+	return IPS_ALERT;
+	
 }

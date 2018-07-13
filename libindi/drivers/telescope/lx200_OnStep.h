@@ -109,9 +109,14 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     IPState ReadPECBuffer (int axis);
     IPState WritePECBuffer (int axis);
     bool ISPECRecorded (int axis);
-    
-
     //End PECInterface
+    
+    
+    //NewGeometricAlignment    
+    IPState AlignStartGeometric();
+    IPState AlignAddStar();
+    IPState AlignDone();
+    //End NewGeometricAlignment 
     
     
 
@@ -207,6 +212,10 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty OSPECReadSP;
     ISwitch OSPECReadS[2];
     
+    ISwitchVectorProperty OSNAlignSP;
+    ISwitch OSNAlignS[4];
+    IText OSNAlignT[5] {};
+    ITextVectorProperty OSNAlignTP;
     
     char OSStat[20];
     char OldOSStat[20];
