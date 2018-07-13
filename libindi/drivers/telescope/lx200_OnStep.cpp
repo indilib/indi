@@ -1080,7 +1080,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		if (index == 1)
 		{
 			OSNAlignS[1].s = ISS_OFF;
-			AlignAddStar();
+			OSNAlignSP.s = AlignAddStar();
 		}
 		if (index == 2)
 		{
