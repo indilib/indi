@@ -1,6 +1,5 @@
 /*
-   INDI Developers Manual
-   Tutorial #3
+   Based on INDI Developers Manual Tutorial #3
 
    "Simple CCD Driver"
 
@@ -11,11 +10,12 @@
 
 */
 
-/** \file simpleccd.h
-    \brief Construct a basic INDI CCD device that simulates exposure & temperature settings. It also generates a random pattern and uploads it as a FITS file.
-    \author Jasem Mutlaq
+/** \file nightscape.h
+    \brief Construct a basic INDI CCD device that supports exposure & temperature settings. 
+    It also gcollects an image and uploads it as a FITS file.
+    \author Dirk Niggemann
 
-    \example simpleccd.h
+    \example nightscape.h
     A simple CCD device that can capture images and control temperature. It returns a FITS image to the client. To build drivers for complex CCDs, please
     refer to the INDI Generic CCD driver template in INDI SVN (under 3rdparty).
 */

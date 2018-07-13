@@ -1,10 +1,7 @@
 /*
-   INDI Developers Manual
-   Tutorial #3
+   Based on INDI Developers Manual Tutorial #3
 
-   "Simple CCD Driver"
-
-   We develop a simple CCD driver.
+   "Nighscape 8300 CCD Driver"
 
    Refer to README, which contains instruction on how to build this driver, and use it
    with an INDI-compatible client.
@@ -12,8 +9,8 @@
 */
 
 /** \file NightscapeCCD.cpp
-    \brief Construct a basic INDI CCD device that simulates exposure & temperature settings. It also generates a random pattern and uploads it as a FITS file.
-    \author Jasem Mutlaq
+    \brief Construct a basic INDI CCD device  It also generates an image  and uploads it as a FITS file.
+    \author Dirk Niggemann
 
     \example NightscapeCCD.cpp
     A simple CCD device that can capture images and control temperature. It returns a FITS image to the client. To build drivers for complex CCDs, please
