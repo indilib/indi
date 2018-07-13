@@ -110,6 +110,7 @@ bool ShelyakAlpy::initProperties()
   IUFillSwitch(&LampS[1], "ARNE", "ArNe", ISS_OFF);
   IUFillSwitch(&LampS[2], "TUNGSTEN", "Tungsten", ISS_OFF);
   IUFillSwitchVector(&LampSP, LampS, 3, getDeviceName(), "CALIB_LAMPS", "Calibration lamps", CALIBRATION_UNIT_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+   
 
   //--------------------------------------------------------------------------------
   // Options
@@ -165,17 +166,26 @@ bool ShelyakAlpy::Connect()
     return false;
   }
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+  resetLamps();
+  
+  lastLampOn = "None";
+  
   return true;
 }
 
 bool ShelyakAlpy::Disconnect()
-{
+{ 
+  //set default state at disconnection: set off lamps  
+  resetLamps();
+  sleep(1); // wait for the calibration unit to actually flip the switch  
+    
   tty_disconnect(PortFD);
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is offline.", getDeviceName());
   return true;
 }
 
 /* Handle a request to change a switch. */
+
 bool ShelyakAlpy::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
   if (!strcmp(dev, getDeviceName())) // check if the message is for our device
@@ -186,7 +196,9 @@ bool ShelyakAlpy::ISNewSwitch(const char *dev, const char *name, ISState *states
       for (int i=0; i<n; i++)
       {
         ISwitch *s = IUFindSwitch(&LampSP, names[i]);
+
         if (states[i] != s->s) { // check if state has changed
+          
           bool rc = calibrationUnitCommand(COMMANDS[states[i]],PARAMETERS[names[i]]);
           if (!rc) LampSP.s = IPS_ALERT;
         }
@@ -200,6 +212,7 @@ bool ShelyakAlpy::ISNewSwitch(const char *dev, const char *name, ISState *states
 
   return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n); // send it to the parent classes
 }
+
 
 /* Handle a request to change text. */
 bool ShelyakAlpy::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -218,54 +231,12 @@ bool ShelyakAlpy::ISNewText (const char *dev, const char *name, char *texts[], c
   return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-/* Construct a command and send it to the spectrograph. It doesn't return
- * anything so we have to sleep until we know it has flipped the switch.
- */
-bool ShelyakAlpy::calibrationUnitCommand(char command, char parameter)
+/* Construct a reset command*/
+bool ShelyakAlpy::resetLamps()
 {
-int rc, nbytes_written;
-
-char reset[3] = {'0','0',0x0a};
-//clean alpy configuration. Reset all.
-if ((rc = tty_write(PortFD, reset, 3, &nbytes_written)) != TTY_OK)
-
-  {
-    char errmsg[MAXRBUF];
-    tty_error_msg(rc, errmsg, MAXRBUF);
-    DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
-    return false;
-  } else {
-      DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", reset);
-
-  }
-  sleep(1); // wait for the calibration unit to actually flip the switch
-
-
-
-if (parameter==0x33){ //special for dark : have to put both lamps on
-    char cmd[6] = {0x31,0x31,0x0a,0x32,0x31,0x0a};//"11\n21\n" 
-    if(command==0x31){
-
-    if ((rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
-
-      {
-        char errmsg[MAXRBUF];
-        tty_error_msg(rc, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
-        return false;
-      } else {
-          DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", cmd);
-
-      }
-      sleep(1); // wait for the calibration unit to actually flip the switch
-      return true;
-    } else {
-        return true;
-    }
-
-
-} else {
-    char c[3] = {parameter,command,0x0a};
+    sleep(0.5); // wait for the calibration unit to actually flip the switch
+    int rc, nbytes_written;
+    char c[3] = {'0','0',0x0a};
 
     if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
 
@@ -279,11 +250,80 @@ if (parameter==0x33){ //special for dark : have to put both lamps on
 
       }
       sleep(1); // wait for the calibration unit to actually flip the switch
+      
       return true;
 }
 
-  
 
 
+
+/* Construct a command and send it to the spectrograph. It doesn't return
+ * anything so we have to sleep until we know it has flipped the switch.
+ */
+bool ShelyakAlpy::calibrationUnitCommand(char command, char parameter)
+{
+int rc, nbytes_written;
+
+if (parameter==0x33){ //special for dark : have to put both lamps on
+    char cmd[6] = {0x31,0x31,0x0a,0x32,0x31,0x0a};//"11\n21\n" 
+    if(command==0x31){
+        DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", "on allume dark");
+        lastLampOn = "Dark";
+        char c[3] = {parameter,command,0x0a};
+
+        if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+
+        {
+            char errmsg[MAXRBUF];
+            tty_error_msg(rc, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+            return false;
+        } else {
+            DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+
+        }
+        sleep(1); // wait for the calibration unit to actually flip the switch
+        
+
+        if ((rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
+
+        {
+            char errmsg[MAXRBUF];
+            tty_error_msg(rc, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+            return false;
+        } else {
+            DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", cmd);
+
+        }
+        sleep(1); // wait for the calibration unit to actually flip the switch
+        return true;
+    } else {
+        DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", "on éteient dark");
+        resetLamps();
+        lastLampOn = "None";
+      return true;
+    }
+
+
+} else { //other lamps 
+    char c[3] = {parameter,command,0x0a};
+    
+    if (lastLampOn.compare("None")==0){  //doesn't work should change state only when 
+        if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+
+        {
+            char errmsg[MAXRBUF];
+            tty_error_msg(rc, errmsg, MAXRBUF);
+            DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+            return false;
+        } else {
+            DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+
+        }
+        sleep(1); // wait for the calibration unit to actually flip the switch
+        return true;
+    } else {return true;}
+    }
 
 }

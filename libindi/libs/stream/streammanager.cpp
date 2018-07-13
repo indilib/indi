@@ -111,7 +111,8 @@ bool StreamManager::initProperties()
 
     /* Record Frames */
     /* File */
-    IUFillText(&RecordFileT[0], "RECORD_FILE_DIR", "Dir.", "/tmp/indi__D_");
+    std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/indi__D_");
+    IUFillText(&RecordFileT[0], "RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
     IUFillText(&RecordFileT[1], "RECORD_FILE_NAME", "Name", "indi_record__T_");
     IUFillTextVector(&RecordFileTP, RecordFileT, NARRAY(RecordFileT), getDeviceName(), "RECORD_FILE", "Record File",
                      STREAM_TAB, IP_RW, 0, IPS_IDLE);

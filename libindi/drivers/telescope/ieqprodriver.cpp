@@ -910,7 +910,7 @@ bool set_ieqpro_guide_rate(int fd, double rate)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    int num = rate * 100;
+    int num = rate * 1000;
     snprintf(cmd, 16, ":RG%03d#", num);
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);

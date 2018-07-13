@@ -147,4 +147,6 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     bool motionCommanded=false;
     bool mountInitialized=false;
     bool mountParked=false;
+
+    int rememberSlewRate = { -1 };
 };
