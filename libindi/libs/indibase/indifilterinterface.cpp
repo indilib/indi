@@ -216,10 +216,15 @@ bool FilterInterface::GetFilterNames()
     if (FilterNameT == nullptr)
     {
         generateSampleFilters();
+
+        // JM 2018-07-09: Set loadingFromConfig to true here before calling loadConfig
+        // since if loadConfig is successful, ISNewText could be executed _before_ we have a chance
+        // to set loadFromConfig below
+        loadingFromConfig = true;
+
         // If property is found, let's define it once loaded to the client and delete
         // the generate sample filters above
-        if (m_defaultDevice->loadConfig(true, "FILTER_NAME"))
-            loadingFromConfig = true;
+        loadingFromConfig = m_defaultDevice->loadConfig(true, "FILTER_NAME");
     }
 
     return true;
