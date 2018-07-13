@@ -1887,8 +1887,10 @@ IPState LX200_OnStep::AlignAddStar (){
 	char cmd[8];
 	LOG_INFO("Sending Command to Record Star");
 	strcpy(cmd, ":A+#");
-	sendOnStepCommandBlind(cmd);
-	return IPS_BUSY;
+	if(sendOnStepCommandBlind(cmd)) {
+		return IPS_BUSY;
+	}
+	return IPS_ALERT;
 }
 
 IPState LX200_OnStep::AlignDone (){
