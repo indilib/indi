@@ -20,11 +20,11 @@
 #
 
 # required ffmpeg library versions, Requiring at least FFMPEG 3.2.11, Hypatia
-set(_avcodec_ver ">=57.64.101")
-set(_avdevice_ver ">=57.1.100")
-set(_avformat_ver ">=57.56.100")
-set(_avutil_ver ">=55.34.100")
-set(_swscale_ver ">=4.2.100")
+set(_avcodec_ver ">=57.64.101" REQUIRED)
+set(_avdevice_ver ">=57.1.100" REQUIRED)
+set(_avformat_ver ">=57.56.100" REQUIRED)
+set(_avutil_ver ">=55.34.100" REQUIRED)
+set(_swscale_ver ">=4.2.100" REQUIRED)
 
  set(FFMPEG_PKGS libavcodec${_avcodec_ver}
                  libavdevice${_avdevice_ver}
