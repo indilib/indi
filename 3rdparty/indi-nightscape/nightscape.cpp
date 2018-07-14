@@ -18,7 +18,13 @@
 */
 
 #define _GNU_SOURCE  // for secure_getenv()
-#define _DARWIN_C_SOURCE
+
+#ifdef _DARWIN_C_SOURCE
+#define ___secure_getenv getenv
+#else
+#define ___secure_getenv secure_getenv
+#endif
+
 #include "nightscape.h"
 
 #include <memory>
@@ -34,9 +40,6 @@
 std::unique_ptr<NightscapeCCD> nightscapeCCD(new NightscapeCCD());
 
 
-#define ___secure_getenv getenv
-//#define ___secure_getenv secure_getenv
- 
 static int drop_root_privileges(void) {  // returns 0 on success and -1 on failure
     gid_t gid;
     uid_t uid;
@@ -146,16 +149,21 @@ void ISSnoopDevice(XMLEle *root)
 ***************************************************************************************/
 bool NightscapeCCD::Connect()
 {
-    if (useD2xx == 1) { cn = new NsChannelFTD(camnum);
-    	}
-    else if (useD2xx == 0)
+#ifdef HAVE_D2XX   
+  	if (useD2xx == 1) { cn = new NsChannelFTD(camnum);
+   	}
+    else 
+ #endif 
+   	if (useD2xx == 0)
     	{
     		cn = new NsChannelU(camnum);
     	}
+#ifdef HAVE_SERIAL
     else 
     	{
     		cn = new NsChannelSER(camnum);
     	}
+#endif
 	  if (cn->open() < 0) {
 	  	IDMessage(getDeviceName(), "open failed!");
 	  	delete cn;
@@ -258,11 +266,34 @@ bool NightscapeCCD::initProperties()
     defineNumber(&CamNumNP);
     
     IUFillSwitch(&D2xxS[0], "USEFTDI", "libftdi", useD2xx == 0 ? ISS_ON: ISS_OFF);
+#ifdef HAVE_D2XX
     IUFillSwitch(&D2xxS[1], "USED2XX", "libd2xx", useD2xx== 1 ? ISS_ON: ISS_OFF);
+#ifdef HAVE_SERIAL
     IUFillSwitch(&D2xxS[2], "USESERIAL", "Serial", useD2xx == 2? ISS_ON: ISS_OFF);
+#endif
+#else
+#ifdef HAVE_SERIAL
+    IUFillSwitch(&D2xxS[1], "USESERIAL", "Serial", useD2xx == 2? ISS_ON: ISS_OFF);
+#endif
+#endif
 
+#ifdef HAVE_D2XX
+#ifdef HAVE_SERIAL
     IUFillSwitchVector(&D2xxSP, D2xxS, 3, getDeviceName(), "CCD_LIBRARY", "USB Library", 
     	MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
+#else 
+ 		IUFillSwitchVector(&D2xxSP, D2xxS, 2, getDeviceName(), "CCD_LIBRARY", "USB Library", 
+    	MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
+#endif
+#else 
+#ifdef HAVE_SERIAL
+    IUFillSwitchVector(&D2xxSP, D2xxS, 2, getDeviceName(), "CCD_LIBRARY", "USB Library", 
+    	MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
+#else 
+    IUFillSwitchVector(&D2xxSP, D2xxS, 1, getDeviceName(), "CCD_LIBRARY", "USB Library", 
+    	MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
+#endif
+#endif
     defineSwitch(&D2xxSP);
     
     // We set the CCD capabilities
@@ -525,7 +556,7 @@ void NightscapeCCD::grabImage()
     uint8_t *image = PrimaryCCD.getFrameBuffer();
 		uint8_t * downbuf = dn->getBuf();
 		size_t downsz = dn->getBufImageSize();
-		IDLog("image size %d buf %p\n", downsz, downbuf);
+		IDLog("image size %ld buf %p\n", downsz, downbuf);
     // Get width and height
     //int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
     //int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
@@ -593,8 +624,14 @@ bool NightscapeCCD::ISNewSwitch (const char *dev, const char *name, ISState *sta
             return true;
 				}
 				IUUpdateSwitch(&D2xxSP, states, names, n);
+#ifdef HAVE_D2XX
         useD2xx = IUFindOnSwitchIndex(&D2xxSP);
         DEBUGF(INDI::Logger::DBG_SESSION, "Library is now %s", D2xxS[useD2xx].label);
+#else 
+  			useD2xx = IUFindOnSwitchIndex(&D2xxSP);
+        DEBUGF(INDI::Logger::DBG_SESSION, "Library is now %s", D2xxS[useD2xx].label);
+  			if(useD2xx == 1) useD2xx = 2;
+#endif
         D2xxSP.s = IPS_OK;
         IDSetSwitch(&D2xxSP, NULL);
 		  	return true;				
