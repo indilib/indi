@@ -143,12 +143,16 @@ int main(int argc, char **argv)
     }
     
    	NsChannel * cn;
+#ifdef HAVE_D2XX
    	if (ftd) {
 	   cn = new NsChannelFTD(camnum);
 	  } else {
 	  	cn = new NsChannelU(camnum);
-
 	  } 
+#else 
+		ftd = 0;
+	  cn = new NsChannelU(camnum);
+#endif
 		 if (cn->open() < 0) exit (-1);
 
 		 Nsmsg * m = new Nsmsg(cn);
