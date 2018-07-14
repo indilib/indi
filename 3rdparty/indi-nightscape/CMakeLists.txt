@@ -8,11 +8,27 @@ include(GNUInstallDirs)
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(Threads REQUIRED)
-FIND_PACKAGE(D2XX REQUIRED)
+FIND_PACKAGE(D2XX)
+FIND_PACKAGE(USB1 REQUIRED)
 FIND_PACKAGE(FTDI1 REQUIRED)
+
+IF (D2XX_FOUND)
+set(HAVE_D2XX 1)
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_D2XX")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_D2XX")
+
+ENDIF()
+
+IF (APPLE)
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_DARWIN_C_SOURCE")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_DARWIN_C_SOURCE")
+ENDIF()
+
 
 set(INDI_NIGHTSCAPE_VERSION_MAJOR 0)
 set(INDI_NIGHTSCAPE_VERSION_MINOR 1)
+
+#set (HAVE_SERIAL 1)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_nightscape.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_nightscape.xml )
 
@@ -33,11 +49,25 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-error")
 SET(indinightscape_CORE
         ${CMAKE_CURRENT_SOURCE_DIR}/nschannel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/nschannel-u.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/nschannel-ftd.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/nschannel-ser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/nsmsg.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/nsdownload.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/nsstatus.cpp)
+
+IF(HAVE_D2XX) 
+	SET(indinightscape_CORE
+	     ${indinightscape_CORE}
+       ${CMAKE_CURRENT_SOURCE_DIR}/nschannel-ftd.cpp)
+ENDIF()
+
+IF(HAVE_SERIAL)
+	SET(indinightscape_CORE
+	     ${indinightscape_CORE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/nschannel-ser.cpp)
+  
+	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_SERIAL")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVEs_SERIAL")
+
+ENDIF()
 
 SET(indinightscape_SRCS
         ${indinightscape_CORE}

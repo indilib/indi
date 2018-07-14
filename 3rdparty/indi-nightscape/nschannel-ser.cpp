@@ -146,7 +146,7 @@ int NsChannelSER::scan(void) {
 
 int NsChannelSER::readCommand(unsigned char *buf, size_t size) {
 	int rc;
-	unsigned nbytes = 0;
+	//unsigned nbytes = 0;
 	rc = ::read(ftdic, buf, size);		
   if (rc < 0) {
    DO_ERR( "unable to read command: %d (%s)\n", rc,strerror(errno) );
@@ -159,7 +159,7 @@ int NsChannelSER::readCommand(unsigned char *buf, size_t size) {
 
 int NsChannelSER::writeCommand(const unsigned char *buf, size_t size) {
 	int rc;
-  unsigned nbytes = 0;
+  //unsigned nbytes = 0;
   rc=::write(ftdic, (void *)buf, size);
 
   if (rc < 0) {
@@ -173,7 +173,7 @@ int NsChannelSER::writeCommand(const unsigned char *buf, size_t size) {
 
 int NsChannelSER::readData(unsigned char *buf, size_t size) {
 	int rc2;
-	unsigned nbytes= 0;
+	//unsigned nbytes= 0;
 	rc2 = ::read(ftdid, buf, size);		
   if (rc2 < 0) {
    DO_ERR( "unable to read data: %d (%s)\n", rc2, strerror(errno));
