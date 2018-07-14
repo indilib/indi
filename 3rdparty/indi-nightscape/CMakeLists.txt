@@ -65,7 +65,7 @@ IF(HAVE_SERIAL)
         ${CMAKE_CURRENT_SOURCE_DIR}/nschannel-ser.cpp)
   
 	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_SERIAL")
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVEs_SERIAL")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_SERIAL")
 
 ENDIF()
 
@@ -82,9 +82,15 @@ add_executable(indi_nightscape_ccd ${indinightscape_SRCS})
 
 add_executable(nstest ${nstest_SRCS})
 
-target_link_libraries(indi_nightscape_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${D2XX_LIBRARIES} ${FTDI1_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+IF(HAVE_D2XX)
+	target_link_libraries(indi_nightscape_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${D2XX_LIBRARIES} ${FTDI1_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
-target_link_libraries(nstest ${D2XX_LIBRARIES} ${FTDI1_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(nstest ${D2XX_LIBRARIES} ${FTDI1_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+ELSE()
+	target_link_libraries(indi_nightscape_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${FTDI1_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
+	target_link_libraries(nstest ${FTDI1_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+ENDIF()
 
 install(TARGETS indi_nightscape_ccd RUNTIME DESTINATION bin )
 
