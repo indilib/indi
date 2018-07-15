@@ -451,7 +451,7 @@ void NsDownload::trun()
 {
 
 	int maxxfer;
-  int zeroes;
+  int zeroes = 0;
 	//struct ftdi_context * ftdid = cn->getDataChannel();
 	maxxfer = cn->getMaxXfer();
 
