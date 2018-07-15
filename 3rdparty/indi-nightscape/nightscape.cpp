@@ -624,7 +624,7 @@ bool NightscapeCCD::ISNewSwitch (const char *dev, const char *name, ISState *sta
             IUUpdateSwitch(&D2xxSP, states, names, n);
 #ifdef HAVE_D2XX
             useD2xx = IUFindOnSwitchIndex(&D2xxSP);
-            LOG_INFO( "Library is now %s", D2xxS[useD2xx].label);
+            LOGF_INFO( "Library is now %s", D2xxS[useD2xx].label);
 #else 
             useD2xx = IUFindOnSwitchIndex(&D2xxSP);
             LOGF_INFO( "Library is now %s", D2xxS[useD2xx].label);
