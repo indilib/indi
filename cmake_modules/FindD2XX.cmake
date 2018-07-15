@@ -16,7 +16,7 @@ if (D2XX_INCLUDE_DIR AND D2XX_LIBRARIES)
 
   # in cache already
   set(D2XX_FOUND TRUE)
-  message(STATUS "Found libfd2xx: ${D2XXX_LIBRARIES}")
+  message(STATUS "Found libfd2xx: ${D2XX_LIBRARIES}")
 
 else (D2XX_INCLUDE_DIR AND D2XX_LIBRARIES)
 
