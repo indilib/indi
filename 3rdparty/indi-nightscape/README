@@ -6,7 +6,7 @@ This package provides the INDI driver for the Celestron Nightscape 8300 line of 
 Requirements
 ============
 
-+ libindi0 >= v0.8 (http://indi.sf.net)
++ libindi0 >= v1.7 (http://indi.sf.net)
 
 	You need to install both libindi0 and libindi-dev to build this package.
 	
