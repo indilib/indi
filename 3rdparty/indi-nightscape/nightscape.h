@@ -108,7 +108,11 @@ class NightscapeCCD : public INDI::CCD
 
     bool cooler { true };
     float setTemp;
+#ifdef HAVE_D2XX
     int useD2xx { 1 };
+#else
+    int useD2xx { 0 };
+#endif
     bool bayer { true };
     bool dark { false };
     int ntemps {0};
