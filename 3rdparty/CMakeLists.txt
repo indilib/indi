@@ -87,6 +87,7 @@ option(WITH_RADIOSIM "Install RadioSim Receiver" On)
 option(WITH_GPSNMEA "Install GPS NMEA Driver" On)
 option(WITH_ARMADILLO "Install Armadillo & Platypus Driver" On)
 option(WITH_FXLOAD "Install FX3 compatible fxload tool" Off)
+option(WITH_NIGHTSCAPE "Install Nightscape 8300 Driver" On)
 
 
 find_package(FFmpeg)
@@ -306,6 +307,10 @@ endif()
 if (WITH_WEBCAM)
 add_subdirectory(indi-webcam)
 endif()
+
+if (WITH_NIGHTSCAPE)
+add_subdirectory(indi-nightscape)
+endif(WITH_NIGHTSCAPE)
 
 # Check if libraries are found. If not, we must build them, install them, THEN run CMake again to build and instal the drivers. If all the libraraies are installed, then we build and install the drivers only now.
 if (LIBRARIES_FOUND)
