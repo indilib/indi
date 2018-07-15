@@ -28,9 +28,12 @@
 #include "nsdownload.h"
 #include "nsstatus.h"
 #include "nschannel-u.h"
+#ifdef HAVE_D2XX
 #include "nschannel-ftd.h"
+#endif
+#ifdef HAVE_SERIAL
 #include "nschannel-ser.h"
-
+#endif
 
 class NightscapeCCD : public INDI::CCD
 {

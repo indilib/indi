@@ -17,7 +17,6 @@
     refer to the INDI Generic CCD driver template in INDI SVN (under 3rdparty).
 */
 
-#define _GNU_SOURCE  // for secure_getenv()
 
 #ifdef _DARWIN_C_SOURCE
 #define ___secure_getenv getenv
@@ -286,7 +285,7 @@ bool NightscapeCCD::initProperties()
     	MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 #endif
 #else 
-#ifdef HAVE_SERIAL
+#ifdef HAVE_SERIAL/
     IUFillSwitchVector(&D2xxSP, D2xxS, 2, getDeviceName(), "CCD_LIBRARY", "USB Library", 
     	MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 #else 
