@@ -67,7 +67,19 @@ class NightscapeCCD : public INDI::CCD
 		INumber CamNumN[1];
     INumberVectorProperty CamNumNP;
 
+#ifdef HAVE_D2XX
+#ifdef HAVE_SERIAL
  		ISwitch  D2xxS [3];
+#else
+		ISwitch  D2xxS [2];
+#endif
+#else 
+#ifdef HAVE_SERIAL
+		ISwitch  D2xxS [2];
+#else
+		ISwitch  D2xxS [1];
+#endif
+#endif
 	  ISwitchVectorProperty D2xxSP;
 	   
   private:
