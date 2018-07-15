@@ -92,8 +92,10 @@ option(WITH_FXLOAD "Install FX3 compatible fxload tool" Off)
 find_package(FFmpeg)
 
 if (FFMPEG_FOUND)
+    message(STATUS "Since FFMPEG was found, INDI Webcam Driver can be built")
     option(WITH_WEBCAM "Install INDI Webcam Driver based on FFMPEG" On)
 ELSE(FFMPEG_FOUND)
+    message(STATUS "Since an up to date FFMPEG was not found, INDI Webcam Driver will not be built")
     option(WITH_WEBCAM "Install INDI Webcam Driver based on FFMPEG" Off)
 ENDIF(FFMPEG_FOUND)
 
