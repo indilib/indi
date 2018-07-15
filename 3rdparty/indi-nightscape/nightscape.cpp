@@ -1,7 +1,7 @@
 /*
    Based on INDI Developers Manual Tutorial #3
 
-   "Nighscape 8300 CCD Driver"
+   "Nightscape 8300 CCD Driver"
 
    Refer to README, which contains instruction on how to build this driver, and use it
    with an INDI-compatible client.

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <driversList>
 <devGroup group="CCDs">
-        <device label="Nighscape 8300 CCD" mdpd="true">
-		<driver name="Nightscape CCD">indi_nighscape_ccd</driver>
+        <device label="Nightscape 8300 CCD" mdpd="true">
+		<driver name="Nightscape CCD">indi_nightscape_ccd</driver>
                 <version>@INDI_NIGHTSCAPE_VERSION_MAJOR@.@INDI_NIGHTSCAPE_VERSION_MINOR@</version>
 	</device>
 </devGroup>
