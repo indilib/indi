@@ -285,7 +285,7 @@ bool NightscapeCCD::initProperties()
     	MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 #endif
 #else 
-#ifdef HAVE_SERIAL/
+#ifdef HAVE_SERIAL
     IUFillSwitchVector(&D2xxSP, D2xxS, 2, getDeviceName(), "CCD_LIBRARY", "USB Library", 
     	MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 #else 
