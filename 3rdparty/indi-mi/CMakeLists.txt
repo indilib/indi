@@ -54,8 +54,12 @@ set(indi_miccd_SRCS
    )
 
 add_executable(indi_mi_ccd ${indi_miccd_SRCS})
+if (APPLE)
+    target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${MILIB} ${USB1_LIBRARIES})
+else (APPLE)
+    target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${MILIB} ${USB1_LIBRARIES} rt)
+endif(APPLE)
 
-target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${MILIB} ${USB1_LIBRARIES} rt)
 
 if(THREADS_HAVE_PTHREAD_ARG)
   target_compile_options(indi_mi_ccd "-pthread")
