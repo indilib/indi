@@ -285,8 +285,8 @@ bool NightscapeCCD::initProperties()
 #endif
 #else 
 #ifdef HAVE_SERIAL
-    IUFillSwitchVector(&D2xxSP, D2xxS, 2, getDeviceName(), "CCD_LIBRARY", "USB Library",
-                       MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&D2xxSP, D2xxS, 2, getDeviceName(), "CCD_LIBRARY", "USB Library", 
+    	MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 #else 
     IUFillSwitchVector(&D2xxSP, D2xxS, 1, getDeviceName(), "CCD_LIBRARY", "USB Library",
                        MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
@@ -624,7 +624,7 @@ bool NightscapeCCD::ISNewSwitch (const char *dev, const char *name, ISState *sta
             IUUpdateSwitch(&D2xxSP, states, names, n);
 #ifdef HAVE_D2XX
             useD2xx = IUFindOnSwitchIndex(&D2xxSP);
-            LOG_INFO( "Library is now %s", D2xxS[useD2xx].label);
+            LOGF_INFO( "Library is now %s", D2xxS[useD2xx].label);
 #else 
             useD2xx = IUFindOnSwitchIndex(&D2xxSP);
             LOGF_INFO( "Library is now %s", D2xxS[useD2xx].label);

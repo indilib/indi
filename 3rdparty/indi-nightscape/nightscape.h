@@ -67,7 +67,19 @@ class NightscapeCCD : public INDI::CCD
 		INumber CamNumN[1];
     INumberVectorProperty CamNumNP;
 
+#ifdef HAVE_D2XX
+#ifdef HAVE_SERIAL
  		ISwitch  D2xxS [3];
+#else
+		ISwitch  D2xxS [2];
+#endif
+#else 
+#ifdef HAVE_SERIAL
+		ISwitch  D2xxS [2];
+#else
+		ISwitch  D2xxS [1];
+#endif
+#endif
 	  ISwitchVectorProperty D2xxSP;
 	   
   private:
@@ -96,7 +108,11 @@ class NightscapeCCD : public INDI::CCD
 
     bool cooler { true };
     float setTemp;
+#ifdef HAVE_D2XX
     int useD2xx { 1 };
+#else
+    int useD2xx { 0 };
+#endif
     bool bayer { true };
     bool dark { false };
     int ntemps {0};
