@@ -23,7 +23,9 @@
 #include "nsdownload.h"
 #include "nsdebug.h"
 #include "nschannel-u.h"
+#ifdef HAVE_D2XX
 #include "nschannel-ftd.h"
+#endif
 #include <stdarg.h>
 
 static volatile int interrupted = 0;
