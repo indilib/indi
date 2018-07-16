@@ -116,6 +116,20 @@ bool IEQPro::initProperties()
     AddTrackMode("TRACK_KING", "King");
     AddTrackMode("TRACK_CUSTOM", "Custom");
 
+    // Slew Rates
+    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
+    strncpy(SlewRateS[1].label, "2x", MAXINDILABEL);
+    strncpy(SlewRateS[2].label, "8x", MAXINDILABEL);
+    strncpy(SlewRateS[3].label, "16x", MAXINDILABEL);
+    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
+    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
+    strncpy(SlewRateS[6].label, "256x", MAXINDILABEL);
+    strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
+    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
+    IUResetSwitch(&SlewRateSP);
+    // 64x is the default
+    SlewRateS[4].s = ISS_ON;
+
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
     TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
     TrackRateN[AXIS_RA].max = TRACKRATE_SIDEREAL + 0.01;
