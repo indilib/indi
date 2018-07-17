@@ -200,6 +200,7 @@ indi_webcam::indi_webcam()
   //This registers all codecs
   avcodec_register_all();
 
+  //This call is required for the IP Camera functionality to work
   avformat_network_init();
 
   //setting default values
@@ -272,18 +273,19 @@ bool indi_webcam::ConnectToSource(std::string device, std::string source, int fr
     }
 
     AVDictionary* options = nullptr;
-    av_dict_set(&options,"framerate",stringFrameRate,0);
-    av_dict_set(&options, "video_size", videosize.c_str(), 0);
     av_dict_set(&options, "timeout", "1000000", 0); //Timeout for open_input and for read_frame.  VERY important.
     AVInputFormat *iformat = nullptr;
     if(device != "IP Camera")
     {
+        //These items are not used by an IP Camera
+        av_dict_set(&options,"framerate",stringFrameRate,0);
+        av_dict_set(&options, "video_size", videosize.c_str(), 0);
         iformat = av_find_input_format(device.c_str());
     }
     DEBUG(INDI::Logger::DBG_SESSION,"Attempting to connect");
 
     //This opens the input to get it ready for streaming.
-    //Warning:  It is possible for this command to hang if the camera is there and does not respond.
+    //Warning:  It is possible for the avformat_open_input command to hang if the camera is there and does not respond.
     //I have not yet solved this problem.  It does not happen often.
     int connect = -1;
     if(device == "IP Camera")
@@ -502,12 +504,12 @@ bool indi_webcam::initProperties()
     // Must init parent properties first!
     INDI::CCD::initProperties();
 
-
+    refreshInputDevices();
 
     //PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.033, 1, .1, true);
 
     IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Sources", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, "INDI Webcam", "INPUT_SCAN", "Refresh", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&RefreshSP, RefreshS, 1, "INDI Webcam", "INPUT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     defineSwitch(&RefreshSP);
 
@@ -515,16 +517,13 @@ bool indi_webcam::initProperties()
     IUFillText(&InputDeviceT[1], "CAPTURE_SOURCE_TEXT", "Capture Source", videoSource.c_str());
     IUFillText(&InputDeviceT[2], "CAPTURE_FRAME_RATE", "Frame Rate", "30");
     IUFillText(&InputDeviceT[3], "CAPTURE_VIDEO_SIZE", "Video Size", videoSize.c_str());
-    IUFillTextVector(&InputDeviceTP, InputDeviceT, NARRAY(InputDeviceT), getDeviceName(), "INPUT_OPTIONS", "Input Options", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(&InputDeviceTP, InputDeviceT, NARRAY(InputDeviceT), getDeviceName(), "INPUT_OPTIONS", "Input Options", CONNECTION_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillText(&HTTPInputOptions[0], "CAPTURE_IP_ADDRESS", "IP Address", IPAddress.c_str());
     IUFillText(&HTTPInputOptions[1], "CAPTURE_PORT_NUMBER", "Port", port.c_str());
     IUFillText(&HTTPInputOptions[2], "CAPTURE_USERNAME", "User Name", username.c_str());
     IUFillText(&HTTPInputOptions[3], "CAPTURE_PASSWORD", "Password", password.c_str());
-    IUFillTextVector(&HTTPInputOptionsP, HTTPInputOptions, 4, "INDI Webcam", "HTTP_INPUT_OPTIONS", "IP Camera", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-
-    refreshInputDevices();
-    refreshInputSources();
+    IUFillTextVector(&HTTPInputOptionsP, HTTPInputOptions, 4, "INDI Webcam", "HTTP_INPUT_OPTIONS", "IP Camera", CONNECTION_TAB, IP_RW, 0, IPS_IDLE);
 
     FrameRates = new ISwitch[7];
     IUFillSwitch(&FrameRates[0], "30", "30 fps", ISS_ON);
@@ -536,8 +535,7 @@ bool indi_webcam::initProperties()
      IUFillSwitch(&FrameRates[6], "1", "1 fps", ISS_OFF);
 
     IUFillSwitchVector(&FrameRateSelection, FrameRates, 7, "INDI Webcam", "CAPTURE_FRAME_RATE", "Frame Rate",
-                       MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    defineSwitch(&FrameRateSelection);
+                       CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     VideoSizes = new ISwitch[7];
     IUFillSwitch(&VideoSizes[0], "320x240", "320x240", ISS_OFF);
@@ -549,8 +547,9 @@ bool indi_webcam::initProperties()
     IUFillSwitch(&VideoSizes[6], "1600x1200", "1600x1200", ISS_OFF);
 
     IUFillSwitchVector(&VideoSizeSelection, VideoSizes, 7, "INDI Webcam", "CAPTURE_VIDEO_SIZE", "Video Size",
-                       MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    defineSwitch(&VideoSizeSelection);
+                       CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    refreshInputSources();
 
     RapidStacking = new ISwitch[3];
     IUFillSwitch(&RapidStacking[0], "Integration", "Integration", ISS_OFF);
@@ -596,7 +595,7 @@ bool indi_webcam::refreshInputDevices()
     }
     IUFillSwitch(&CaptureDevices[numDevices], "IP Camera", "IP Camera", ISS_OFF);
     IUFillSwitchVector(&CaptureDeviceSelection, CaptureDevices, numDevices + 1, "INDI Webcam", "CAPTURE_DEVICE", "Capture Devices",
-                       MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+                       CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     defineSwitch(&CaptureDeviceSelection);
 
     return true;
@@ -626,19 +625,6 @@ bool indi_webcam::refreshInputSources()
         delete[] CaptureSources;
         CaptureSources = nullptr;
         deleteProperty(CaptureSourceSelection.name);
-    }
-
-    //This controls whether the Input Options controls or the IP Camera Options controls are visible
-
-    if (videoDevice == "IP Camera")
-    {
-        defineText(&HTTPInputOptionsP);
-        deleteProperty(InputDeviceTP.name);
-    }
-    else
-    {
-        defineText(&InputDeviceTP);
-        deleteProperty(HTTPInputOptionsP.name);
     }
 
     int sourceNum = 0;
@@ -698,8 +684,30 @@ bool indi_webcam::refreshInputSources()
     }
 
     IUFillSwitchVector(&CaptureSourceSelection, CaptureSources, sourceNum, "INDI Webcam", "CAPTURE_SOURCE", "Capture Sources",
-                       MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-    defineSwitch(&CaptureSourceSelection);
+                       CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+
+    //This controls whether the Input Options controls or the IP Camera Options controls are visible
+
+    if (videoDevice == "IP Camera")
+    {
+        defineText(&HTTPInputOptionsP);
+
+        deleteProperty(CaptureSourceSelection.name);
+        deleteProperty(VideoSizeSelection.name);
+        deleteProperty(FrameRateSelection.name);
+        deleteProperty(InputDeviceTP.name);
+    }
+    else
+    {
+        defineText(&InputDeviceTP);
+        defineSwitch(&CaptureSourceSelection);
+        defineSwitch(&VideoSizeSelection);
+        defineSwitch(&FrameRateSelection);
+
+        deleteProperty(HTTPInputOptionsP.name);
+    }
+
     return true;
 }
 
