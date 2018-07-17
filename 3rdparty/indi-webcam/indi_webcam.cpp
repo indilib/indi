@@ -148,7 +148,8 @@ void indi_webcam::findAVFoundationVideoSources()
         //Then it should be the first time and good to go.
         if(listOfSources.size()!=0)
         {
-            ConnectToSource("avfoundation", "default", frameRate, videoSize, nullptr);
+            DEBUG(INDI::Logger::DBG_SESSION, "Briefly connecting to avfoundation to update the source list");
+            ConnectToSource("avfoundation", "default", frameRate, videoSize, "Not using IP Camera");
             avcodec_close(pCodecCtx);
             avformat_close_input(&pFormatCtx);
         }
@@ -275,7 +276,7 @@ bool indi_webcam::ConnectToSource(std::string device, std::string source, int fr
     av_dict_set(&options, "video_size", videosize.c_str(), 0);
     av_dict_set(&options, "timeout", "1000000", 0); //Timeout for open_input and for read_frame.  VERY important.
     AVInputFormat *iformat = nullptr;
-    if(videoDevice != "IP Camera")
+    if(device != "IP Camera")
     {
         iformat = av_find_input_format(device.c_str());
     }
@@ -285,7 +286,7 @@ bool indi_webcam::ConnectToSource(std::string device, std::string source, int fr
     //Warning:  It is possible for this command to hang if the camera is there and does not respond.
     //I have not yet solved this problem.  It does not happen often.
     int connect = -1;
-    if(videoDevice == "IP Camera")
+    if(device == "IP Camera")
     {
         connect = avformat_open_input(&pFormatCtx, htmlSource.c_str() , nullptr , &options );
     }
@@ -510,19 +511,10 @@ bool indi_webcam::initProperties()
 
     defineSwitch(&RefreshSP);
 
-#ifdef __linux__
-    IUFillText(&InputDeviceT[0], "CAPTURE_DEVICE_TEXT", "Capture Device", "video4linux2,v4l2");
-    IUFillText(&InputDeviceT[1], "CAPTURE_SOURCE_TEXT", "Capture Source", "/dev/video0");
-#elif __APPLE__
-    IUFillText(&InputDeviceT[0], "CAPTURE_DEVICE_TEXT", "Capture Device", "avfoundation");
-    IUFillText(&InputDeviceT[1], "CAPTURE_SOURCE_TEXT", "Capture Source", "0");
-#else
-    IUFillText(&InputDeviceT[0], "CAPTURE_DEVICE_TEXT", "Capture Device", "");
-    IUFillText(&InputDeviceT[1], "CAPTURE_SOURCE_TEXT", "Capture Source", "0");
-#endif
-
+    IUFillText(&InputDeviceT[0], "CAPTURE_DEVICE_TEXT", "Capture Device", videoDevice.c_str());
+    IUFillText(&InputDeviceT[1], "CAPTURE_SOURCE_TEXT", "Capture Source", videoSource.c_str());
     IUFillText(&InputDeviceT[2], "CAPTURE_FRAME_RATE", "Frame Rate", "30");
-    IUFillText(&InputDeviceT[3], "CAPTURE_VIDEO_SIZE", "Video Size", "640x480");
+    IUFillText(&InputDeviceT[3], "CAPTURE_VIDEO_SIZE", "Video Size", videoSize.c_str());
     IUFillTextVector(&InputDeviceTP, InputDeviceT, NARRAY(InputDeviceT), getDeviceName(), "INPUT_OPTIONS", "Input Options", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillText(&HTTPInputOptions[0], "CAPTURE_IP_ADDRESS", "IP Address", IPAddress.c_str());
@@ -530,7 +522,6 @@ bool indi_webcam::initProperties()
     IUFillText(&HTTPInputOptions[2], "CAPTURE_USERNAME", "User Name", username.c_str());
     IUFillText(&HTTPInputOptions[3], "CAPTURE_PASSWORD", "Password", password.c_str());
     IUFillTextVector(&HTTPInputOptionsP, HTTPInputOptions, 4, "INDI Webcam", "HTTP_INPUT_OPTIONS", "IP Camera", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-
 
     refreshInputDevices();
     refreshInputSources();
@@ -637,8 +628,18 @@ bool indi_webcam::refreshInputSources()
         deleteProperty(CaptureSourceSelection.name);
     }
 
-    if (videoDevice != "IP Camera")
+    //This controls whether the Input Options controls or the IP Camera Options controls are visible
+
+    if (videoDevice == "IP Camera")
+    {
+        defineText(&HTTPInputOptionsP);
+        deleteProperty(InputDeviceTP.name);
+    }
+    else
+    {
+        defineText(&InputDeviceTP);
         deleteProperty(HTTPInputOptionsP.name);
+    }
 
     int sourceNum = 0;
     if(videoDevice == "avfoundation")
@@ -658,7 +659,7 @@ bool indi_webcam::refreshInputSources()
     }
     else if(videoDevice == "IP Camera")
     {
-        defineText(&HTTPInputOptionsP);
+        //No Source Buttons for IP Camera
     }
     else
     {
@@ -707,8 +708,6 @@ void indi_webcam::ISGetProperties(const char *dev)
 {
     //DEBUGF(INDI::Logger::DBG_SESSION, "isGetProperties connected=%s",(isConnected()?"True":"False"));
     INDI::CCD::ISGetProperties(dev);
-
-    defineText(&InputDeviceTP);
 }
 
 /********************************************************************************************
@@ -740,6 +739,11 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
     if (dev && strcmp (getDeviceName(), dev))
       return true;
 
+    IText *videoDeviceText = &InputDeviceT[0];
+    IText *videoSourceText = &InputDeviceT[1];
+    IText *frameRateText = &InputDeviceT[2];
+    IText *videoSizeText = &InputDeviceT[3];
+
     ISwitchVectorProperty *svp = getSwitch(name);
     std::string htmlSourceString = "http://" + username + ":" + password + "@" + IPAddress + ":" + port;
     if (!strcmp(svp->name, CaptureDeviceSelection.name))
@@ -758,7 +762,7 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
                 if(Disconnect())
                     setConnected(false, IPS_IDLE);
             }
-            IUSaveText(&InputDeviceT[0], sp->name);
+            IUSaveText(videoDeviceText, sp->name);
             IDSetText(&InputDeviceTP, nullptr);
             CaptureDeviceSelection.s = IPS_OK;
             IDSetSwitch(&CaptureDeviceSelection, nullptr);
@@ -776,7 +780,7 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
             DEBUGF(INDI::Logger::DBG_SESSION, "Setting source to: %s", sp->name);
             if(ChangeSource(videoDevice, sp->name, frameRate, videoSize))
             {
-                IUSaveText(&InputDeviceT[1], sp->name);
+                IUSaveText(videoSourceText, sp->name);
                 IDSetText(&InputDeviceTP, nullptr);
                 CaptureSourceSelection.s = IPS_OK;
                 IDSetSwitch(&CaptureSourceSelection, nullptr);
@@ -794,7 +798,7 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
             DEBUGF(INDI::Logger::DBG_SESSION, "Setting frame rate to: %u frames per second", atoi(sp->name));
             if(ChangeSource(videoDevice, videoSource, atoi(sp->name), videoSize))
             {
-                IUSaveText(&InputDeviceT[2], sp->name);
+                IUSaveText(frameRateText, sp->name);
                 IDSetText(&InputDeviceTP, nullptr);
                 FrameRateSelection.s = IPS_OK;
                 IDSetSwitch(&FrameRateSelection, nullptr);
@@ -812,7 +816,7 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
             DEBUGF(INDI::Logger::DBG_SESSION, "Setting video size to: %s", sp->name);
             if(ChangeSource(videoDevice, videoSource, frameRate, sp->name))
             {
-                IUSaveText(&InputDeviceT[3], sp->name);
+                IUSaveText(videoSizeText, sp->name);
                 IDSetText(&InputDeviceTP, nullptr);
                 VideoSizeSelection.s = IPS_OK;
                 IDSetSwitch(&VideoSizeSelection, nullptr);
