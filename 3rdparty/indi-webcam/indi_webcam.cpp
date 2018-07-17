@@ -513,11 +513,11 @@ bool indi_webcam::initProperties()
 
     defineSwitch(&RefreshSP);
 
-    IUFillText(&InputDeviceT[0], "CAPTURE_DEVICE_TEXT", "Capture Device", videoDevice.c_str());
-    IUFillText(&InputDeviceT[1], "CAPTURE_SOURCE_TEXT", "Capture Source", videoSource.c_str());
-    IUFillText(&InputDeviceT[2], "CAPTURE_FRAME_RATE", "Frame Rate", "30");
-    IUFillText(&InputDeviceT[3], "CAPTURE_VIDEO_SIZE", "Video Size", videoSize.c_str());
-    IUFillTextVector(&InputDeviceTP, InputDeviceT, NARRAY(InputDeviceT), getDeviceName(), "INPUT_OPTIONS", "Input Options", CONNECTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillText(&InputOptionsT[0], "CAPTURE_DEVICE_TEXT", "Capture Device", videoDevice.c_str());
+    IUFillText(&InputOptionsT[1], "CAPTURE_SOURCE_TEXT", "Capture Source", videoSource.c_str());
+    IUFillText(&InputOptionsT[2], "CAPTURE_FRAME_RATE", "Frame Rate", "30");
+    IUFillText(&InputOptionsT[3], "CAPTURE_VIDEO_SIZE", "Video Size", videoSize.c_str());
+    IUFillTextVector(&InputOptionsTP, InputOptionsT, NARRAY(InputOptionsT), getDeviceName(), "INPUT_OPTIONS", "Input Options", CONNECTION_TAB, IP_RW, 0, IPS_IDLE);
 
     IUFillText(&HTTPInputOptions[0], "CAPTURE_IP_ADDRESS", "IP Address", IPAddress.c_str());
     IUFillText(&HTTPInputOptions[1], "CAPTURE_PORT_NUMBER", "Port", port.c_str());
@@ -696,11 +696,11 @@ bool indi_webcam::refreshInputSources()
         deleteProperty(CaptureSourceSelection.name);
         deleteProperty(VideoSizeSelection.name);
         deleteProperty(FrameRateSelection.name);
-        deleteProperty(InputDeviceTP.name);
+        deleteProperty(InputOptionsTP.name);
     }
     else
     {
-        defineText(&InputDeviceTP);
+        defineText(&InputOptionsTP);
         defineSwitch(&CaptureSourceSelection);
         defineSwitch(&VideoSizeSelection);
         defineSwitch(&FrameRateSelection);
@@ -747,10 +747,10 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
     if (dev && strcmp (getDeviceName(), dev))
       return true;
 
-    IText *videoDeviceText = &InputDeviceT[0];
-    IText *videoSourceText = &InputDeviceT[1];
-    IText *frameRateText = &InputDeviceT[2];
-    IText *videoSizeText = &InputDeviceT[3];
+    IText *videoDeviceText = &InputOptionsT[0];
+    IText *videoSourceText = &InputOptionsT[1];
+    IText *frameRateText = &InputOptionsT[2];
+    IText *videoSizeText = &InputOptionsT[3];
 
     ISwitchVectorProperty *svp = getSwitch(name);
     std::string htmlSourceString = "http://" + username + ":" + password + "@" + IPAddress + ":" + port;
@@ -771,7 +771,7 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
                     setConnected(false, IPS_IDLE);
             }
             IUSaveText(videoDeviceText, sp->name);
-            IDSetText(&InputDeviceTP, nullptr);
+            IDSetText(&InputOptionsTP, nullptr);
             CaptureDeviceSelection.s = IPS_OK;
             IDSetSwitch(&CaptureDeviceSelection, nullptr);
             refreshInputSources();
@@ -789,7 +789,7 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
             if(ChangeSource(videoDevice, sp->name, frameRate, videoSize))
             {
                 IUSaveText(videoSourceText, sp->name);
-                IDSetText(&InputDeviceTP, nullptr);
+                IDSetText(&InputOptionsTP, nullptr);
                 CaptureSourceSelection.s = IPS_OK;
                 IDSetSwitch(&CaptureSourceSelection, nullptr);
                 return true;
@@ -807,7 +807,7 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
             if(ChangeSource(videoDevice, videoSource, atoi(sp->name), videoSize))
             {
                 IUSaveText(frameRateText, sp->name);
-                IDSetText(&InputDeviceTP, nullptr);
+                IDSetText(&InputOptionsTP, nullptr);
                 FrameRateSelection.s = IPS_OK;
                 IDSetSwitch(&FrameRateSelection, nullptr);
                 return true;
@@ -825,7 +825,7 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
             if(ChangeSource(videoDevice, videoSource, frameRate, sp->name))
             {
                 IUSaveText(videoSizeText, sp->name);
-                IDSetText(&InputDeviceTP, nullptr);
+                IDSetText(&InputOptionsTP, nullptr);
                 VideoSizeSelection.s = IPS_OK;
                 IDSetSwitch(&VideoSizeSelection, nullptr);
                 return true;
@@ -896,14 +896,14 @@ bool indi_webcam::ISNewText (const char *dev, const char *name, char *texts[], c
     if (dev && strcmp (getDeviceName(), dev))
       return true;
     
-    if (!strcmp(name, InputDeviceTP.name) )
+    if (!strcmp(name, InputOptionsTP.name) )
       {
-            InputDeviceTP.s = IPS_OK;
+            InputOptionsTP.s = IPS_OK;
 
-            IText *videoDeviceText = IUFindText( &InputDeviceTP, names[0] );
-            IText *videoSourceText = IUFindText( &InputDeviceTP, names[1] );
-            IText *frameRateText = IUFindText( &InputDeviceTP, names[2] );
-            IText *videoSizeText = IUFindText( &InputDeviceTP, names[3] );
+            IText *videoDeviceText = IUFindText( &InputOptionsTP, names[0] );
+            IText *videoSourceText = IUFindText( &InputOptionsTP, names[1] );
+            IText *frameRateText = IUFindText( &InputOptionsTP, names[2] );
+            IText *videoSizeText = IUFindText( &InputOptionsTP, names[3] );
 
             if (!videoDeviceText || !videoSourceText || !frameRateText || !videoSizeText)
                 return false;
@@ -915,7 +915,7 @@ bool indi_webcam::ISNewText (const char *dev, const char *name, char *texts[], c
                 IUSaveText(videoSourceText, texts[1]);
                 IUSaveText(frameRateText, texts[2]);
                 IUSaveText(videoSizeText, texts[3]);
-                IDSetText (&InputDeviceTP, nullptr);
+                IDSetText (&InputOptionsTP, nullptr);
                 return true;
             }
       }
@@ -1526,7 +1526,9 @@ void indi_webcam::freeMemory()
 bool indi_webcam::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
-    //Need to add some things here
+   // IUSaveConfigSwitch(fp, &CaptureDeviceSelection);
+   // IUSaveConfigText(fp, &HTTPInputOptionsP);
+   // IUSaveConfigText(fp, &InputOptionsTP);
     //Do NOT add the connection option switches.  If you do, it will repeatedly connect and disconnect as it loads the saved options.
 
     return true;

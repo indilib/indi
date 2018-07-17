@@ -135,8 +135,8 @@ private:
     std::string password;
 
     //Related to Options in the Control Panel
-    IText InputDeviceT[4];
-    ITextVectorProperty InputDeviceTP;
+    IText InputOptionsT[4];
+    ITextVectorProperty InputOptionsTP;
     IText HTTPInputOptions[4];
     ITextVectorProperty HTTPInputOptionsP;
     ISwitch *CaptureDevices = nullptr;
