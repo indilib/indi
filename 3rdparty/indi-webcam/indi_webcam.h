@@ -95,8 +95,10 @@ private:
     bool convertINDI_RGBtoFITS_RGB(uint8_t *originalImage, uint8_t *convertedImage);
 
     //These are related to how we change sources
-    bool ConnectToSource(std::string device, std::string source, int framerate, std::string videosize);
+    bool ConnectToSource(std::string device, std::string source, int framerate, std::string videosize, std::string htmlSource);
     bool ChangeSource(std::string newDevice, std::string newSource, int newFramerate, std::string newVideosize);
+    bool ChangeHTMLSource(std::string newIPAddress, std::string newPort, std::string newUserName, std::string newPassword);
+    bool reconnectSource();
 
     //These are related to updating the device list
     void findAVFoundationVideoSources();
@@ -126,9 +128,17 @@ private:
     int frameRate;
     std::string videoSize;
     std::string outputFormat;
+    //These are our online device capture settings
+    std::string IPAddress;
+    std::string port;
+    std::string username;
+    std::string password;
 
     //Related to Options in the Control Panel
     IText InputDeviceT[4];
+    ITextVectorProperty InputDeviceTP;
+    IText HTTPInputOptions[4];
+    ITextVectorProperty HTTPInputOptionsP;
     ISwitch *CaptureDevices = nullptr;
     ISwitchVectorProperty CaptureDeviceSelection;
     ISwitch *CaptureSources = nullptr;
@@ -137,7 +147,6 @@ private:
     ISwitchVectorProperty FrameRateSelection;
     ISwitch *VideoSizes = nullptr;
     ISwitchVectorProperty VideoSizeSelection;
-    ITextVectorProperty InputDeviceTP;
     ISwitch *RapidStacking = nullptr;
     ISwitchVectorProperty RapidStackingSelection;
     ISwitch *OutputFormats = nullptr;
@@ -147,7 +156,7 @@ private:
     int setupStreaming();
     void freeMemory();
     int getStreamFrame();
-    void flush_frame_buffer();
+    bool flush_frame_buffer();
 
     //Related to streaming
     std::thread capture_thread;

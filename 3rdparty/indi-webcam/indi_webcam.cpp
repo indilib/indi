@@ -148,7 +148,7 @@ void indi_webcam::findAVFoundationVideoSources()
         //Then it should be the first time and good to go.
         if(listOfSources.size()!=0)
         {
-            ConnectToSource("avfoundation", "default", frameRate, videoSize);
+            ConnectToSource("avfoundation", "default", frameRate, videoSize, nullptr);
             avcodec_close(pCodecCtx);
             avformat_close_input(&pFormatCtx);
         }
@@ -170,8 +170,9 @@ void indi_webcam::findAVFoundationVideoSources()
     checkingDevices = false;
 
     //Need to hook back up the source if it should be connected
+    std::string htmlSourceString = "http://" + username + ":" + password + "@" + IPAddress + ":" + port;
     if(isConnected())
-        ConnectToSource(videoDevice, videoSource, frameRate, videoSize);
+        ConnectToSource(videoDevice, videoSource, frameRate, videoSize, htmlSourceString);
 
     //Hook back up streaming if it should be running
     if(was_streaming)
@@ -192,10 +193,13 @@ indi_webcam::indi_webcam()
   buffer = nullptr;
   
   // These calls are depreciated, but are required for some older FFMPEG distributions on Linux
+  av_register_all();
   //This registers all devices
   avdevice_register_all();
   //This registers all codecs
   avcodec_register_all();
+
+  avformat_network_init();
 
   //setting default values
 #ifdef __linux__
@@ -213,6 +217,11 @@ indi_webcam::indi_webcam()
   webcamStacking = false;
   averaging = false;
   outputFormat = "8 bit RGB";
+
+  IPAddress = "xxx.xxx.x.xxx";
+  port = "xxxx";
+  username = "iphone";
+  password = "password";
 
   //Creating the format context.
   pFormatCtx = nullptr;
@@ -239,14 +248,19 @@ bool indi_webcam::Connect()
       connect->s=IPS_BUSY;
       IDSetSwitch(connect,"Connecting to source: %s, on device: %s", videoSource.c_str(), videoDevice.c_str());
     }
-    DEBUGF(INDI::Logger::DBG_SESSION, "Trying to connect to: %s, on device: %s with %s at %u frames per second", videoSource.c_str(), videoDevice.c_str(), videoSize.c_str(), frameRate);
-    rc=ConnectToSource(videoDevice, videoSource, frameRate, videoSize);
+    std::string htmlSourceString = "http://" + username + ":" + password + "@" + IPAddress + ":" + port;
+    if(videoDevice =="IP Camera")
+        DEBUGF(INDI::Logger::DBG_SESSION, "Trying to connect to IP Camera at: %s", htmlSourceString.c_str());
+    else
+        DEBUGF(INDI::Logger::DBG_SESSION, "Trying to connect to: %s, on device: %s with %s at %u frames per second", videoSource.c_str(), videoDevice.c_str(), videoSize.c_str(), frameRate);
+
+    rc=ConnectToSource(videoDevice, videoSource, frameRate, videoSize, htmlSourceString);
 
     return rc;
 }
 
 //This is the code that we use for FFMpeg to set up an input, connect to it, and set up the correct codecs.
-bool indi_webcam::ConnectToSource(std::string device,std::string source, int framerate, std::string videosize)
+bool indi_webcam::ConnectToSource(std::string device, std::string source, int framerate, std::string videosize, std::string htmlSource)
 {
     char stringFrameRate[16];
     snprintf(stringFrameRate,16,"%u",framerate);
@@ -259,19 +273,38 @@ bool indi_webcam::ConnectToSource(std::string device,std::string source, int fra
     AVDictionary* options = nullptr;
     av_dict_set(&options,"framerate",stringFrameRate,0);
     av_dict_set(&options, "video_size", videosize.c_str(), 0);
-    av_dict_set(&options, "timeout", "2", 0); //Note this timeout doesn't seem to always work
-    AVInputFormat *iformat = av_find_input_format(device.c_str());
+    av_dict_set(&options, "timeout", "1000000", 0); //Timeout for open_input and for read_frame.  VERY important.
+    AVInputFormat *iformat = nullptr;
+    if(videoDevice != "IP Camera")
+    {
+        iformat = av_find_input_format(device.c_str());
+    }
     DEBUG(INDI::Logger::DBG_SESSION,"Attempting to connect");
 
     //This opens the input to get it ready for streaming.
     //Warning:  It is possible for this command to hang if the camera is there and does not respond.
     //I have not yet solved this problem.  It does not happen often.
-    if (avformat_open_input(&pFormatCtx, source.c_str() , iformat , &options )!=0)
+    int connect = -1;
+    if(videoDevice == "IP Camera")
     {
-      DEBUG(INDI::Logger::DBG_SESSION,"Failed to open source. Check your settings.");
+        connect = avformat_open_input(&pFormatCtx, htmlSource.c_str() , nullptr , &options );
+    }
+    else
+    {
+        connect = avformat_open_input(&pFormatCtx, source.c_str() , iformat , &options );
+    }
+    if (connect!=0)
+    {
+      DEBUGF(INDI::Logger::DBG_SESSION,"Failed to open source. Check your settings: %s", av_err2str(connect));
       return false;
     }
     
+    //pFormatCtx->max_analyze_duration = 10000000;
+
+    if (avformat_find_stream_info(pFormatCtx,NULL) < 0){
+        return false;
+    }
+
     //This will attempt to find a video stream in the input.
     videoStream=-1;
     for(unsigned int i=0; i<pFormatCtx->nb_streams; i++)
@@ -309,11 +342,28 @@ bool indi_webcam::ConnectToSource(std::string device,std::string source, int fra
     
 }
 
+//This should be run if the source was somehow disconnected to try to reconnect it.
+//It will make 10 attempts.
+//It returns true if it was successful.
+bool indi_webcam::reconnectSource()
+{
+    int attempt = 0;
+    while(attempt < 10)
+    {
+        std::string htmlSourceString = "http://" + username + ":" + password + "@" + IPAddress + ":" + port;
+        if(ConnectToSource(videoDevice, videoSource, frameRate, videoSize, htmlSourceString))
+            return true;
+    }
+    //All 10 attempts resulted in failure.
+    return false;
+}
+
 //This is the method that should be called to change the streaming device, source, framerate, or video size
 //If it was already connected, it will attempt a connection with the new settings and if it is not successful, it will revert to the old ones.
 //It should be safe to use while streaming or between image captures because it will pause them and return them to normal afterwards.
 bool indi_webcam::ChangeSource(std::string newDevice, std::string newSource, int newFramerate, std::string newVideosize)
 {
+    std::string htmlSourceString = "http://" + username + ":" + password + "@" + IPAddress + ":" + port;
     //This will pause the streaming while it attempts the new connection settings.
     bool was_streaming = false;
     if(is_streaming)
@@ -327,7 +377,7 @@ bool indi_webcam::ChangeSource(std::string newDevice, std::string newSource, int
     //This is the case if the source is not currently connected yet.
     if(isConnected() == false)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Not connected now, accepting settings.  It will be tested on conneciton");
+        DEBUG(INDI::Logger::DBG_SESSION, "Not connected now, accepting settings.  It will be tested on connection");
         videoDevice = newDevice;
         videoSource = newSource;
         frameRate = newFramerate;
@@ -336,11 +386,11 @@ bool indi_webcam::ChangeSource(std::string newDevice, std::string newSource, int
     }
 
     //This is an attempt to connect, if it is already connected.  If it is not successful, it goes back to the old settings.
-    if(ConnectToSource(newDevice, newSource, newFramerate, newVideosize) == false)
+    if(ConnectToSource(newDevice, newSource, newFramerate, newVideosize, htmlSourceString) == false)
     {
         DEBUG(INDI::Logger::DBG_SESSION, "Connection was NOT successful");
         DEBUGF(INDI::Logger::DBG_SESSION, "Changing back to: %s, on device: %s with %s at %u frames per second", videoSource.c_str(), videoDevice.c_str(), videoSize.c_str(), frameRate);
-        ConnectToSource(videoDevice, videoSource, frameRate, videoSize);
+        ConnectToSource(videoDevice, videoSource, frameRate, videoSize, htmlSourceString);
         DEBUG(INDI::Logger::DBG_SESSION, "Connection Successful");
         if(was_streaming)
             StartStreaming();
@@ -353,6 +403,61 @@ bool indi_webcam::ChangeSource(std::string newDevice, std::string newSource, int
     videoSource = newSource;
     frameRate = newFramerate;
     videoSize = newVideosize;
+
+    //If it was streaming, we need to reinitialize that.
+    if(was_streaming)
+        StartStreaming();
+    return true;
+}
+
+//This is the method that should be called to change the streaming device, source, framerate, or video size
+//If it was already connected, it will attempt a connection with the new settings and if it is not successful, it will revert to the old ones.
+//It should be safe to use while streaming or between image captures because it will pause them and return them to normal afterwards.
+bool indi_webcam::ChangeHTMLSource(std::string newIPAddress, std::string newPort, std::string newUserName, std::string newPassword)
+{
+    std::string oldHTMLSourceString = "http://" + username + ":" + password + "@" + IPAddress + ":" + port;
+    std::string newHTMLSourceString = "http://" + newUserName + ":" + newPassword + "@" + newIPAddress + ":" + newPort;
+
+    //This will pause the streaming while it attempts the new connection settings.
+    bool was_streaming = false;
+    if(is_streaming)
+    {
+        was_streaming = true;
+        StopStreaming();
+    }
+
+    DEBUGF(INDI::Logger::DBG_SESSION, "New Connection Settings: IP Camera at: %s", newHTMLSourceString.c_str());
+
+    //This is the case if the source is not currently connected yet.
+    if(isConnected() == false)
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Not connected now, accepting settings.  It will be tested on connection");
+        IPAddress = newIPAddress;
+        port = newPort;
+        username = newUserName;
+        password = newPassword;
+        return true;
+    }
+
+    //This is an attempt to connect, if it is already connected.  If it is not successful, it goes back to the old settings.
+    if(ConnectToSource(videoDevice, videoSource, frameRate, videoSize, newHTMLSourceString) == false)
+    {
+
+        DEBUG(INDI::Logger::DBG_SESSION, "Connection was NOT successful");
+        DEBUGF(INDI::Logger::DBG_SESSION, "Changing back to IP Camera at: %s", oldHTMLSourceString.c_str());
+        ConnectToSource(videoDevice, videoSource, frameRate, videoSize, oldHTMLSourceString);
+        DEBUG(INDI::Logger::DBG_SESSION, "Connection Successful");
+        if(was_streaming)
+            StartStreaming();
+        return false;
+    }
+
+    //This is what happens if the connection was successful, it saves the settings and continues.
+    DEBUG(INDI::Logger::DBG_SESSION, "Connection Successful, saving settings.");
+    IPAddress = newIPAddress;
+    port = newPort;
+    username = newUserName;
+    password = newPassword;
 
     //If it was streaming, we need to reinitialize that.
     if(was_streaming)
@@ -420,6 +525,13 @@ bool indi_webcam::initProperties()
     IUFillText(&InputDeviceT[3], "CAPTURE_VIDEO_SIZE", "Video Size", "640x480");
     IUFillTextVector(&InputDeviceTP, InputDeviceT, NARRAY(InputDeviceT), getDeviceName(), "INPUT_OPTIONS", "Input Options", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
+    IUFillText(&HTTPInputOptions[0], "CAPTURE_IP_ADDRESS", "IP Address", IPAddress.c_str());
+    IUFillText(&HTTPInputOptions[1], "CAPTURE_PORT_NUMBER", "Port", port.c_str());
+    IUFillText(&HTTPInputOptions[2], "CAPTURE_USERNAME", "User Name", username.c_str());
+    IUFillText(&HTTPInputOptions[3], "CAPTURE_PASSWORD", "Password", password.c_str());
+    IUFillTextVector(&HTTPInputOptionsP, HTTPInputOptions, 4, "INDI Webcam", "HTTP_INPUT_OPTIONS", "IP Camera", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
+
     refreshInputDevices();
     refreshInputSources();
 
@@ -483,7 +595,7 @@ bool indi_webcam::refreshInputDevices()
     AVInputFormat * d=nullptr;
     int i =0;
     int numDevices = getNumOfInputDevices();
-    CaptureDevices = new ISwitch[numDevices];
+    CaptureDevices = new ISwitch[numDevices + 1];
     while ((d = av_input_video_device_next(d))) {
         if(!strcmp(d->name, videoDevice.c_str()))
             IUFillSwitch(&CaptureDevices[i], d->name, d->name, ISS_ON);
@@ -491,7 +603,8 @@ bool indi_webcam::refreshInputDevices()
             IUFillSwitch(&CaptureDevices[i], d->name, d->name, ISS_OFF);
         i++;
     }
-    IUFillSwitchVector(&CaptureDeviceSelection, CaptureDevices, numDevices, "INDI Webcam", "CAPTURE_DEVICE", "Capture Devices",
+    IUFillSwitch(&CaptureDevices[numDevices], "IP Camera", "IP Camera", ISS_OFF);
+    IUFillSwitchVector(&CaptureDeviceSelection, CaptureDevices, numDevices + 1, "INDI Webcam", "CAPTURE_DEVICE", "Capture Devices",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     defineSwitch(&CaptureDeviceSelection);
 
@@ -518,10 +631,14 @@ int indi_webcam::getNumOfInputDevices()
 bool indi_webcam::refreshInputSources()
 {
     if (CaptureSources)
+    {
+        delete[] CaptureSources;
+        CaptureSources = nullptr;
         deleteProperty(CaptureSourceSelection.name);
+    }
 
-    delete[] CaptureSources;
-    CaptureSources = nullptr;
+    if (videoDevice != "IP Camera")
+        deleteProperty(HTTPInputOptionsP.name);
 
     int sourceNum = 0;
     if(videoDevice == "avfoundation")
@@ -538,6 +655,10 @@ bool indi_webcam::refreshInputSources()
             else
                 IUFillSwitch(&CaptureSources[x], num, listOfSources.at(x).c_str(), ISS_OFF);
         }
+    }
+    else if(videoDevice == "IP Camera")
+    {
+        defineText(&HTTPInputOptionsP);
     }
     else
     {
@@ -588,7 +709,6 @@ void indi_webcam::ISGetProperties(const char *dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineText(&InputDeviceTP);
-
 }
 
 /********************************************************************************************
@@ -621,6 +741,7 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
       return true;
 
     ISwitchVectorProperty *svp = getSwitch(name);
+    std::string htmlSourceString = "http://" + username + ":" + password + "@" + IPAddress + ":" + port;
     if (!strcmp(svp->name, CaptureDeviceSelection.name))
     {
         IUUpdateSwitch(&CaptureDeviceSelection, states, names, n);
@@ -630,17 +751,18 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
             DEBUGF(INDI::Logger::DBG_SESSION, "Setting device to: %s, Refreshing Sources", sp->name);
 
             videoDevice = sp->name;
+            if(isConnected())
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Disconnecting now.");
+                DEBUG(INDI::Logger::DBG_SESSION, "Please select a new source to connect to and then Press Connect.");
+                if(Disconnect())
+                    setConnected(false, IPS_IDLE);
+            }
             IUSaveText(&InputDeviceT[0], sp->name);
             IDSetText(&InputDeviceTP, nullptr);
             CaptureDeviceSelection.s = IPS_OK;
             IDSetSwitch(&CaptureDeviceSelection, nullptr);
             refreshInputSources();
-            if(isConnected())
-            {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Disconnecting now.", sp->name);
-                DEBUG(INDI::Logger::DBG_SESSION, "Please select a new source to connect to.");
-                Disconnect();
-            }
             return true;
         }
         return false;
@@ -773,6 +895,7 @@ bool indi_webcam::ISNewText (const char *dev, const char *name, char *texts[], c
 
             if (!videoDeviceText || !videoSourceText || !frameRateText || !videoSizeText)
                 return false;
+            std::string htmlSourceString = "http://" + username + ":" + password + "@" + IPAddress + ":" + port;
 
             if(ChangeSource(texts[0], texts[1], atoi(texts[2]), texts[3]))
             {
@@ -781,6 +904,29 @@ bool indi_webcam::ISNewText (const char *dev, const char *name, char *texts[], c
                 IUSaveText(frameRateText, texts[2]);
                 IUSaveText(videoSizeText, texts[3]);
                 IDSetText (&InputDeviceTP, nullptr);
+                return true;
+            }
+      }
+
+    if (!strcmp(name, HTTPInputOptionsP.name) )
+      {
+            HTTPInputOptionsP.s = IPS_OK;
+
+            IText *IPAddressText = IUFindText( &HTTPInputOptionsP, names[0] );
+            IText *portText = IUFindText( &HTTPInputOptionsP, names[1] );
+            IText *usernameText = IUFindText( &HTTPInputOptionsP, names[2] );
+            IText *passwordText = IUFindText( &HTTPInputOptionsP, names[3] );
+
+            if (!IPAddressText || !portText || !usernameText || !passwordText)
+                return false;
+
+            if(ChangeHTMLSource(texts[0],texts[1],texts[2],texts[3]))
+            {
+                IUSaveText(IPAddressText, texts[0]);
+                IUSaveText(portText, texts[1]);
+                IUSaveText(usernameText, texts[2]);
+                IUSaveText(passwordText, texts[3]);
+                IDSetText (&HTTPInputOptionsP, nullptr);
                 return true;
             }
       }
@@ -922,6 +1068,12 @@ int indi_webcam::grabImage()
             memcpy(PrimaryCCD.getFrameBuffer(), pFrameOUT->data[0], numBytes);
         if(webcamStacking)
             addToStack();
+    }
+    else
+    {
+
+        freeMemory();
+        return -1;
     }
 
     freeMemory();
@@ -1260,10 +1412,20 @@ int indi_webcam::setupStreaming()
 int indi_webcam::getStreamFrame()
 {
     AVPacket packet;
-    if (av_read_frame(pFormatCtx, &packet)<0) { // stream stopped
-        DEBUG(INDI::Logger::DBG_SESSION, "Device has been disconnected.");
-        av_packet_unref(&packet);
-        return -1;
+    int ret = av_read_frame(pFormatCtx, &packet);
+    if(ret < 0) // Negative return value means stream stopped
+    {
+        DEBUG(INDI::Logger::DBG_SESSION, "Device was disconnected, attempting to reconnect.");
+        if(reconnectSource())
+        {
+            DEBUG(INDI::Logger::DBG_SESSION, "Device successfully reconnected.");
+        }
+        else
+        {
+            DEBUG(INDI::Logger::DBG_SESSION, "Device did not reconnect after 10 tries.");
+            av_packet_unref(&packet);
+            return -1;
+        }
     }
     if(packet.stream_index==videoStream) {
         int ret;
@@ -1297,28 +1459,41 @@ int indi_webcam::getStreamFrame()
 
 //This will clear out the frame buffer of any unread frames.
 //That way we are sure to get the latest frames when exposing
-void indi_webcam::flush_frame_buffer() {
+bool indi_webcam::flush_frame_buffer() {
 
     int packetReceiveTime = -1;
-    //If the packet takes longer than a millisecond to receive, then it is probably not in the buffer.
+    //If the packet takes longer than a 10 milliseconds to receive, then it is probably not in the buffer.
     //So at that point we want to stop dumping the buffer.
-    while(packetReceiveTime < 1000)
+    while(packetReceiveTime < 10000)
     {
         struct timeval then;
         gettimeofday(&then, nullptr);
 
-        AVPacket packet;
+        AVPacket packet;    
 
-        if (av_read_frame(pFormatCtx, &packet)<0)
+        int ret = av_read_frame(pFormatCtx, &packet);
+        if(ret < 0) // No success means stream stopped
         {
-            av_packet_unref(&packet);
-            return;
+            DEBUG(INDI::Logger::DBG_SESSION, "Device was disconnected, attempting to reconnect.");
+            if(reconnectSource())
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Device successfully reconnected.");
+                av_packet_unref(&packet);
+                return 0;  //Buffer cleared since it encountered the disconnection
+            }
+            else
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Device did not reconnect after 10 tries.");
+                av_packet_unref(&packet);
+                return -1;  //Buffer cleared but encountered connection error.
+            }
         }
         struct timeval now;
         gettimeofday(&now, nullptr);
         packetReceiveTime = now.tv_usec - then.tv_usec;
         av_packet_unref(&packet);
     }
+    return 0;  //Buffer Cleared
 
 }
 
