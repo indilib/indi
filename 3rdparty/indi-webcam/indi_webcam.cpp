@@ -635,8 +635,8 @@ bool indi_webcam::refreshInputSources()
         CaptureSources = new ISwitch[sourceNum];
         for(int x = 0; x<sourceNum; x++)
         {
-            char num[2];
-            snprintf(num,2,"%u",x);
+            char num[16];
+            snprintf(num,16,"%u",x);
             if(x == 0)
                 IUFillSwitch(&CaptureSources[x], num, listOfSources.at(x).c_str(), ISS_ON);
             else
@@ -662,8 +662,8 @@ bool indi_webcam::refreshInputSources()
             IUFillSwitch(&CaptureSources[0], "0", "0", ISS_ON);
             for(int x = 1; x<sourceNum; x++)
             {
-                char num[2];
-                snprintf(num,2,"%u",x);
+                char num[16];
+                snprintf(num,16,"%u",x);
                 IUFillSwitch(&CaptureSources[x], num, num, ISS_OFF);
             }
         }
