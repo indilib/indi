@@ -10,11 +10,11 @@ Build-Depends: debhelper (>= 5),
                libindi-dev,
                zlib1g-dev,
                libnova-dev,
-               libavcodec-dev (>= 57.64.101),
-               libavdevice-dev (>= 57.1.100),
-               libavformat-dev (>= 57.56.100),
-               libavutil-dev (>= 55.34.100),
-               libswscale-dev (>= 4.2.100)
+               libavcodec-dev,
+               libavdevice-dev,
+               libavformat-dev,
+               libavutil-dev,
+               libswscale-dev
 Standards-Version: 3.9.1
 
 Package: indi-webcam
