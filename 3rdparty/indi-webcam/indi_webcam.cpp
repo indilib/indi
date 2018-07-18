@@ -921,26 +921,6 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
         return true;
     }
 
-    //This switches the logging level to be Debug if the "Driver Debug" setting is on
-    //And switches the logging level to be INFO if the "Driver Debug" setting is off
-   if (!strcmp(name, "LOGGING_LEVEL"))
-    {
-       //Note that this is backwards because it is the old setting before it is handled in the Logger
-        if(INDI::Logger::LoggingLevelSP.sp[3].s != ISS_ON)
-        {
-            av_log_set_level(AV_LOG_DEBUG);
-            DEBUG(INDI::Logger::DBG_SESSION, "Setting FFMPEG Logging to Verbose\n");
-        }
-        else
-        {
-            av_log_set_level(AV_LOG_INFO);
-            DEBUG(INDI::Logger::DBG_SESSION, "Setting FFMPEG Logging to Info\n");
-        }
-
-    }
-
-
-
     return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
 }
 
@@ -1340,6 +1320,20 @@ bool indi_webcam::UpdateCCDFrame(int x, int y, int w, int h)
 
     PrimaryCCD.setFrame(x, y, w, h);
     return true;
+}
+
+void indi_webcam::debugTriggered(bool enabled)
+{
+    if(enabled)
+    {
+        av_log_set_level(AV_LOG_DEBUG);
+        DEBUG(INDI::Logger::DBG_SESSION, "Setting FFMPEG Logging to Verbose\n");
+    }
+    else
+    {
+        av_log_set_level(AV_LOG_INFO);
+        DEBUG(INDI::Logger::DBG_SESSION, "Setting FFMPEG Logging to Info\n");
+    }
 }
 
 //These next several methods handle streaming starting and stopping.

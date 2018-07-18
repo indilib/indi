@@ -68,6 +68,8 @@ protected:
     bool initProperties() override;
     bool updateProperties() override;
 
+    void debugTriggered(bool enabled);
+
 
 
     //Related to exposures
