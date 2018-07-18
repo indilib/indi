@@ -101,18 +101,21 @@ void logDevices(void *ptr, int level, const char *fmt, va_list vargs)
     {
         if(allDevicesFound)
         {
-            free(lineBuffer);
+            if(lineBuffer)
+                free(lineBuffer);
             return;
         }
         if(strstr(lineBuffer, "AVFoundation video devices:") != nullptr)
         {
-            free(lineBuffer);
+            if(lineBuffer)
+                free(lineBuffer);
             return;
         }
         if(strstr(lineBuffer, "AVFoundation audio devices:") != nullptr)
         {
             allDevicesFound = true;
-            free(lineBuffer);
+            if(lineBuffer)
+                free(lineBuffer);
             return;
         }
         std::string device = lineBuffer+45;
@@ -122,7 +125,8 @@ void logDevices(void *ptr, int level, const char *fmt, va_list vargs)
         if(av_log_get_level() >= level)
             fprintf(stderr, "%s", lineBuffer);
     }
-    free(lineBuffer);
+    if(lineBuffer)
+        free(lineBuffer);
 }
 
 //This method finds AVFoundation Devices.  Please see description above.
@@ -237,7 +241,8 @@ indi_webcam::indi_webcam()
 
 indi_webcam::~indi_webcam()
 {
-    free(pFormatCtx);
+    if(pFormatCtx)
+        free(pFormatCtx);
 }
 
 
@@ -1060,9 +1065,14 @@ bool indi_webcam::StartExposure(float duration)
     gettimeofday(&ExpStart, nullptr);
     timerID = SetTimer(POLLMS);
     InExposure = true;
+    //Set up the stream, if there is an error, return
+    if(!setupStreaming())
+        return -1;
      //This will ensure that we get the current frame, not some old frame still in the buffer
-    flush_frame_buffer();
-    return 0;
+    if(flush_frame_buffer())
+        return 0;
+    else
+        return -1;
 }
 
 bool indi_webcam::AbortExposure()
@@ -1111,7 +1121,16 @@ void indi_webcam::TimerHit()
 
             //This will ensure that we get the current frame, not some old frame still in the buffer
             if(!webcamStacking)
-                flush_frame_buffer();
+            {
+                if(!flush_frame_buffer())
+                {
+                    PrimaryCCD.setExposureLeft(0);
+                    InExposure = false;
+                    freeMemory();
+                    //State that there was an error?
+                    return;
+                }
+            }
             grabImage(); //Note that this both starts and ends the exposure
             if(webcamStacking)
                 copyFinalStackToPrimaryFrameBuffer();
@@ -1119,6 +1138,7 @@ void indi_webcam::TimerHit()
             InExposure = false;
             LOG_INFO("Download complete.");
             finishExposure();
+            freeMemory();
         }
         else
         {
@@ -1137,13 +1157,9 @@ void indi_webcam::TimerHit()
 //If the image is an RGB, it converts it to Fits RGB
 //If rapid stacking is happening, it adds the image to the stack.
 
-int indi_webcam::grabImage()
+bool indi_webcam::grabImage()
 {
-    //Set up the stream, if there is an error, return
-    if(setupStreaming()!=0)
-        return -1;
-
-    if(getStreamFrame()==0)
+    if(getStreamFrame())
     {
         if(PrimaryCCD.getNAxis()==3)
             convertINDI_RGBtoFITS_RGB(pFrameOUT->data[0], PrimaryCCD.getFrameBuffer());
@@ -1154,13 +1170,11 @@ int indi_webcam::grabImage()
     }
     else
     {
-
         freeMemory();
-        return -1;
+        return false;
     }
 
-    freeMemory();
-    return 0;
+    return true;
 }
 
 //This adds each image to the running stack
@@ -1314,7 +1328,8 @@ void indi_webcam::finishExposure()
         // Restore old pointer and release memory
         PrimaryCCD.setFrameBuffer(memptr);
         PrimaryCCD.setFrameBufferSize(numBytes, false);
-        free(subframeBuf);
+        if(subframeBuf)
+            free(subframeBuf);
     }
     else
         ExposureComplete(&PrimaryCCD);
@@ -1397,9 +1412,8 @@ void indi_webcam::run_capture()
     else
         return;
 
-  if(setupStreaming()!=0)
+  if(!setupStreaming())
       return;
-
 
   int w = pCodecCtx->width;
   int h = pCodecCtx->height;
@@ -1407,11 +1421,12 @@ void indi_webcam::run_capture()
   PrimaryCCD.setFrame(0, 0, w, h);
 
   //This will clear the frame button before streaming is started so that the frames are all current.
-  flush_frame_buffer();
+  if(!flush_frame_buffer())
+      return;
 
   while (is_capturing && is_streaming) {
 
-    if(getStreamFrame()==0)
+    if(getStreamFrame())
         Streamer->newFrame(pFrameOUT->data[0], numBytes);
     else
     {
@@ -1463,20 +1478,24 @@ bool indi_webcam::convertINDI_RGBtoFITS_RGB(uint8_t *originalImage, uint8_t *con
 
 //This sets up the webcam to get images
 //It is used for both the streaming and exposing algorithms
-int indi_webcam::setupStreaming()
+bool indi_webcam::setupStreaming()
 {
     // Determine required buffer size and allocate buffer for pframeRGB
     numBytes = av_image_get_buffer_size(out_pix_fmt, pCodecCtx->width, pCodecCtx->height, 1);
 
     // Allocate video frame
     pFrame=av_frame_alloc();
+    if(pFrame==nullptr)
+      return false;
     // Allocate an AVFrame structure
     pFrameOUT=av_frame_alloc();
     if(pFrameOUT==nullptr)
-      return -1;
+      return false;
 
     // Assign appropriate parts of buffer to image planes in pFrameRGB
     buffer = (uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
+    if(buffer==nullptr)
+      return false;
 
     av_image_fill_arrays (pFrameOUT->data, pFrameOUT->linesize, buffer, out_pix_fmt,
               pCodecCtx->width, pCodecCtx->height, 1);
@@ -1486,40 +1505,60 @@ int indi_webcam::setupStreaming()
                  pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height,
                  out_pix_fmt, SWS_BILINEAR, nullptr, nullptr, nullptr
                  );
+    if(sws_ctx==nullptr)
+      return false;
 
     PrimaryCCD.setFrameBufferSize(numBytes);
     PrimaryCCD.setResolution(pCodecCtx->width, pCodecCtx->height);
 
-    return 0;
+    return true;
 }
 
 //This gets one image from the camera.
 //It is used for both the streaming and exposing algorithms
-int indi_webcam::getStreamFrame()
+bool indi_webcam::getStreamFrame()
 {
     AVPacket packet;
-    int ret = av_read_frame(pFormatCtx, &packet);
-    if(ret < 0) // Negative return value means stream stopped
+    //If at first you don't succees to get a frame, try again.
+    int ret = -1;
+    while(ret < 0)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Device was disconnected, attempting to reconnect.");
-        if(reconnectSource())
+        ret = av_read_frame(pFormatCtx, &packet);
+        char errbuff[200];
+        av_make_error_string(errbuff, 200, ret);
+        if(ret < 0) // Negative return value means stream stopped
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Device successfully reconnected.");
-        }
-        else
-        {
-            DEBUG(INDI::Logger::DBG_SESSION, "Device did not reconnect after 10 tries.");
-            av_packet_unref(&packet);
-            return -1;
+            DEBUGF(INDI::Logger::DBG_SESSION, "FFMPEG Error:%s, attempting to reconnect.", errbuff);
+            if(reconnectSource())
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Device successfully reconnected.");
+                freeMemory();
+                //Try to set up streaming again, if there is an error, return
+                if(!setupStreaming())
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Error on Stream Setup.");
+                    return false;
+                }
+                //Flush it one more time because of the disconnect.
+                flush_frame_buffer();
+            }
+            else
+            {
+                DEBUG(INDI::Logger::DBG_SESSION, "Device did not reconnect after 10 tries.");
+                av_packet_unref(&packet);
+                return false;
+            }
         }
     }
     if(packet.stream_index==videoStream) {
         int ret;
         ret = avcodec_send_packet(pCodecCtx, &packet);
+        char errbuff[200];
+        av_make_error_string(errbuff, 200, ret);
         if (ret < 0) {
-            DEBUG(INDI::Logger::DBG_SESSION, "Error sending a packet for decoding");
+            DEBUGF(INDI::Logger::DBG_SESSION, "Error sending a packet for decoding:%s",errbuff);
             av_packet_unref(&packet);
-            return -1;
+            return false;
         }
         while (ret >= 0) {
             ret = avcodec_receive_frame(pCodecCtx, pFrame);
@@ -1528,7 +1567,7 @@ int indi_webcam::getStreamFrame()
             else if (ret < 0) {
                 DEBUG(INDI::Logger::DBG_SESSION, "Error during decoding");
                 av_packet_unref(&packet);
-                return -1;
+                return false;
             }
             // We have a frame at that point
             // Convert the image from its native format to our output format
@@ -1536,11 +1575,11 @@ int indi_webcam::getStreamFrame()
                 pFrame->linesize, 0, pCodecCtx->height,
                 pFrameOUT->data, pFrameOUT->linesize);
            av_packet_unref(&packet);
-           return 0;
+           return true;
         }
 
     }
-    return -1;
+    return false;
 }
 
 //This will clear out the frame buffer of any unread frames.
@@ -1562,20 +1601,33 @@ bool indi_webcam::flush_frame_buffer() {
         AVPacket packet;    
 
         int ret = av_read_frame(pFormatCtx, &packet);
+        char errbuff[200];
+        av_make_error_string(errbuff, 200, ret);
         if(ret < 0) // Return value less than 0 means stream stopped
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Device was disconnected, attempting to reconnect.");
+            DEBUGF(INDI::Logger::DBG_SESSION, "FFMPEG Error:%s, attempting to reconnect.", errbuff);
             if(reconnectSource())
             {
                 DEBUG(INDI::Logger::DBG_SESSION, "Device successfully reconnected.");
                 av_packet_unref(&packet);
-                return 0;  //Buffer cleared since it encountered the disconnection
+                freeMemory();
+                //Set up the stream, if there is an error, return
+                if(!setupStreaming())
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Error on Stream Setup.");
+                    freeMemory();
+                    return false;
+                }
+                //Need to flush the buffer again because of the reconnection.
+                if(flush_frame_buffer())
+                    return true;
+                return false;
             }
             else
             {
                 DEBUG(INDI::Logger::DBG_SESSION, "Device did not reconnect after 10 tries.");
                 av_packet_unref(&packet);
-                return -1;  //Buffer cleared but encountered connection error.
+                return false;  //Buffer cleared but encountered connection error.
             }
         }
         struct timeval now;
@@ -1584,7 +1636,7 @@ bool indi_webcam::flush_frame_buffer() {
         av_packet_unref(&packet);
     }
     DEBUGF(INDI::Logger::DBG_SESSION, "Buffer Cleared of %u stale frames.", num);
-    return 0;  //Buffer Cleared
+    return true;  //Buffer Cleared
 
 }
 
@@ -1592,14 +1644,25 @@ bool indi_webcam::flush_frame_buffer() {
 void indi_webcam::freeMemory()
 {
     // Free the sws_context
-    sws_freeContext(sws_ctx);
+    if(sws_ctx)
+        sws_freeContext(sws_ctx);
+    sws_ctx = nullptr;
+
+    // Free the Buffer
+    if(buffer)
+        av_free(buffer);
+    buffer = nullptr;
 
     // Free the RGB image
-    av_free(buffer);
-    av_free(pFrameOUT);
+    if(pFrameOUT)
+        av_free(pFrameOUT);
+    pFrameOUT = nullptr;
 
     // Free the input frame
-    av_free(pFrame);
+    if(pFrame)
+        av_free(pFrame);
+    pFrame = nullptr;
+
 }
 
 bool indi_webcam::saveConfigItems(FILE *fp)
