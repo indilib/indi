@@ -248,8 +248,6 @@ bool indi_webcam::Connect()
 {
     bool rc=false;
 
-    if(isConnected()) return true;
-
     ISwitchVectorProperty *connect=getSwitch("CONNECTION");
     if (connect) {
       connect->s=IPS_BUSY;
@@ -303,7 +301,10 @@ bool indi_webcam::ConnectToSource(std::string device, std::string source, int fr
     }
     if (connect!=0)
     {
-      DEBUGF(INDI::Logger::DBG_SESSION,"Failed to open source. Check your settings: %s", av_err2str(connect));
+      char errbuff[200];
+      av_make_error_string(errbuff, 200, connect);
+      DEBUGF(INDI::Logger::DBG_SESSION,"Failed to open source. Check your settings: %s", errbuff);
+
       return false;
     }
     
@@ -781,21 +782,25 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
         ISwitch *sp = IUFindOnSwitch(&CaptureDeviceSelection);
         if (sp)
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Setting device to: %s, Refreshing Sources", sp->name);
-
-            videoDevice = sp->name;
-            if(isConnected())
+            //If the videodevice is the same no need to disconnect and update sources
+            if(videoDevice != sp->name)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Disconnecting now.");
-                DEBUG(INDI::Logger::DBG_SESSION, "Please select a new source to connect to and then Press Connect.");
-                if(Disconnect())
-                    setConnected(false, IPS_IDLE);
+                DEBUGF(INDI::Logger::DBG_SESSION, "Setting device to: %s, Refreshing Sources", sp->name);
+
+                videoDevice = sp->name;
+                if(isConnected())
+                {
+                    DEBUG(INDI::Logger::DBG_SESSION, "Disconnecting now.");
+                    DEBUG(INDI::Logger::DBG_SESSION, "Please select a new source to connect to and then Press Connect.");
+                    if(Disconnect())
+                        setConnected(false, IPS_IDLE);
+                }
+                IUSaveText(videoDeviceText, sp->name);
+                refreshInputSources();
             }
-            IUSaveText(videoDeviceText, sp->name);
             IDSetText(&InputOptionsTP, nullptr);
             CaptureDeviceSelection.s = IPS_OK;
             IDSetSwitch(&CaptureDeviceSelection, nullptr);
-            refreshInputSources();
             return true;
         }
         return false;
@@ -807,7 +812,8 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
         if (sp)
         {
             DEBUGF(INDI::Logger::DBG_SESSION, "Setting source to: %s", sp->name);
-            if(ChangeSource(videoDevice, sp->name, frameRate, videoSize))
+            //If they are the same, just set it, if not check if the source can be changed
+            if(videoSource == sp->name || ChangeSource(videoDevice, sp->name, frameRate, videoSize))
             {
                 IUSaveText(videoSourceText, sp->name);
                 IDSetText(&InputOptionsTP, nullptr);
@@ -825,7 +831,8 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
         if (sp)
         {
             DEBUGF(INDI::Logger::DBG_SESSION, "Setting frame rate to: %u frames per second", atoi(sp->name));
-            if(ChangeSource(videoDevice, videoSource, atoi(sp->name), videoSize))
+            //If they are the same, just set it, if not check if the frameRate can be changed
+            if(frameRate == atoi(sp->name) || ChangeSource(videoDevice, videoSource, atoi(sp->name), videoSize))
             {
                 IUSaveText(frameRateText, sp->name);
                 IDSetText(&InputOptionsTP, nullptr);
@@ -843,7 +850,8 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
         if (sp)
         {
             DEBUGF(INDI::Logger::DBG_SESSION, "Setting video size to: %s", sp->name);
-            if(ChangeSource(videoDevice, videoSource, frameRate, sp->name))
+            //If they are the same, just set it, if not check if the video Size can be changed
+            if(videoSize ==sp->name || ChangeSource(videoDevice, videoSource, frameRate, sp->name))
             {
                 IUSaveText(videoSizeText, sp->name);
                 IDSetText(&InputOptionsTP, nullptr);
