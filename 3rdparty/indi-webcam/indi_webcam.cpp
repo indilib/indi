@@ -260,6 +260,8 @@ bool indi_webcam::Connect()
         DEBUGF(INDI::Logger::DBG_SESSION, "Trying to connect to: %s, on device: %s with %s at %u frames per second", videoSource.c_str(), videoDevice.c_str(), videoSize.c_str(), frameRate);
 
     rc=ConnectToSource(videoDevice, videoSource, frameRate, videoSize, htmlSourceString);
+    if(rc)
+       DEBUG(INDI::Logger::DBG_SESSION, "Connection Successful");
 
     return rc;
 }
