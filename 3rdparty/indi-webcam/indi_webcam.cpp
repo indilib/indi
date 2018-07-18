@@ -227,6 +227,9 @@ indi_webcam::indi_webcam()
   username = "iphone";
   password = "password";
 
+  ffmpegTimeout = "1000000";
+  bufferTimeout = "10000";
+
   //Creating the format context.
   pFormatCtx = nullptr;
   pFormatCtx = avformat_alloc_context();
@@ -275,7 +278,7 @@ bool indi_webcam::ConnectToSource(std::string device, std::string source, int fr
     }
 
     AVDictionary* options = nullptr;
-    av_dict_set(&options, "timeout", "1000000", 0); //Timeout for open_input and for read_frame.  VERY important.
+    av_dict_set(&options, "timeout", ffmpegTimeout.c_str(), 0); //Timeout for open_input and for read_frame.  VERY important.
     AVInputFormat *iformat = nullptr;
     if(device != "IP Camera")
     {
@@ -675,6 +678,12 @@ void indi_webcam::ISGetProperties(const char *dev)
 {
     INDI::CCD::ISGetProperties(dev);
 
+    IUFillText(&TimeoutOptionsT[0], "FFMPEG_TIMEOUT_TEXT", "FFMPEG", ffmpegTimeout.c_str());
+    IUFillText(&TimeoutOptionsT[1], "BUFFER_TIMEOUT_TEXT", "Buffer", bufferTimeout.c_str());
+    IUFillTextVector(&TimeoutOptionsTP, TimeoutOptionsT, NARRAY(TimeoutOptionsT), getDeviceName(), "TIMEOUT_OPTIONS", "Timeouts (us)", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    defineText(&TimeoutOptionsTP);
+
     IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Sources", ISS_OFF);
     IUFillSwitchVector(&RefreshSP, RefreshS, 1, "INDI Webcam", "INPUT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -722,6 +731,8 @@ void indi_webcam::ISGetProperties(const char *dev)
     loadConfig(true, "CAPTURE_DEVICE");
     loadConfig(true, "INPUT_OPTIONS");
     loadConfig(true, "HTTP_INPUT_OPTIONS");
+    loadConfig(true, "FFMPEG_TIMEOUT_TEXT");
+    loadConfig(true, "BUFFER_TIMEOUT_TEXT");
 
     //Setting the log level
     av_log_set_level(AV_LOG_INFO);
@@ -971,6 +982,25 @@ bool indi_webcam::ISNewText (const char *dev, const char *name, char *texts[], c
             }
       }
 
+    if (!strcmp(name, TimeoutOptionsTP.name) )
+      {
+            TimeoutOptionsTP.s = IPS_OK;
+
+            IText *ffmpegTimeoutText = IUFindText( &TimeoutOptionsTP, names[0] );
+            IText *bufferTimeoutText = IUFindText( &TimeoutOptionsTP, names[1] );
+
+            if (!ffmpegTimeoutText || !bufferTimeoutText)
+                return false;
+
+            IUSaveText(ffmpegTimeoutText, texts[0]);
+            IUSaveText(bufferTimeoutText, texts[1]);
+            IDSetText (&TimeoutOptionsTP, nullptr);
+
+            ffmpegTimeout = texts[0];
+            bufferTimeout = texts[1];
+            return true;
+      }
+
     return INDI::CCD::ISNewText(dev,name,texts,names,n);
 }
 
@@ -1020,6 +1050,8 @@ bool indi_webcam::StartExposure(float duration)
     gettimeofday(&ExpStart, nullptr);
     timerID = SetTimer(POLLMS);
     InExposure = true;
+     //This will ensure that we get the current frame, not some old frame still in the buffer
+    flush_frame_buffer();
     return 0;
 }
 
@@ -1066,6 +1098,10 @@ void indi_webcam::TimerHit()
 
         if (timeleft < (1/frameRate)) //The time left in the "exposure" is less than the time it takes to make an actual exposure, so get it now.
         {
+
+            //This will ensure that we get the current frame, not some old frame still in the buffer
+            if(!webcamStacking)
+                flush_frame_buffer();
             grabImage(); //Note that this both starts and ends the exposure
             if(webcamStacking)
                 copyFinalStackToPrimaryFrameBuffer();
@@ -1096,9 +1132,6 @@ int indi_webcam::grabImage()
     //Set up the stream, if there is an error, return
     if(setupStreaming()!=0)
         return -1;
-
-    //This will ensure that we get the current frame, not some old frame still in the buffer
-    flush_frame_buffer();
 
     if(getStreamFrame()==0)
     {
@@ -1505,17 +1538,21 @@ int indi_webcam::getStreamFrame()
 bool indi_webcam::flush_frame_buffer() {
 
     int packetReceiveTime = -1;
-    //If the packet takes longer than a 10 milliseconds to receive, then it is probably not in the buffer.
+    //If the packet takes longer than this to receive, then it is probably not in the buffer.
     //So at that point we want to stop dumping the buffer.
-    while(packetReceiveTime < 10000)
+    int timeout = atoi(bufferTimeout.c_str());
+
+    int num = 0;
+    while(packetReceiveTime < timeout)
     {
+        num++;
         struct timeval then;
         gettimeofday(&then, nullptr);
 
         AVPacket packet;    
 
         int ret = av_read_frame(pFormatCtx, &packet);
-        if(ret < 0) // No success means stream stopped
+        if(ret < 0) // Return value less than 0 means stream stopped
         {
             DEBUG(INDI::Logger::DBG_SESSION, "Device was disconnected, attempting to reconnect.");
             if(reconnectSource())
@@ -1536,6 +1573,7 @@ bool indi_webcam::flush_frame_buffer() {
         packetReceiveTime = now.tv_usec - then.tv_usec;
         av_packet_unref(&packet);
     }
+    DEBUGF(INDI::Logger::DBG_SESSION, "Buffer Cleared of %u stale frames.", num);
     return 0;  //Buffer Cleared
 
 }
@@ -1562,6 +1600,7 @@ bool indi_webcam::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &OutputFormatSelection);
     IUSaveConfigText(fp, &HTTPInputOptionsP);
     IUSaveConfigText(fp, &InputOptionsTP);
+    IUSaveConfigText(fp, &TimeoutOptionsTP);
 
 
     return true;

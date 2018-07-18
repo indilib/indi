@@ -120,7 +120,6 @@ private:
     float getImageDataFloatValue(int x, int y);
     float getRGBImageDataFloatValue(int x, int y, int channel);
 
-
     //These are our device capture settings
     bool use16Bit = true;
     std::string videoDevice;
@@ -133,6 +132,11 @@ private:
     std::string port;
     std::string username;
     std::string password;
+
+    //The timeout for avformat commands like av_open_input and av_read_frame
+    std::string ffmpegTimeout;
+    //The timeout for how long of a wait time constitutes a buffered frame vs a new frame
+    std::string bufferTimeout;
 
     //Related to Options in the Control Panel
     IText InputOptionsT[4];
@@ -151,6 +155,9 @@ private:
     ISwitchVectorProperty RapidStackingSelection;
     ISwitch *OutputFormats = nullptr;
     ISwitchVectorProperty OutputFormatSelection;
+    IText TimeoutOptionsT[2];
+    ITextVectorProperty TimeoutOptionsTP;
+
 
     //Webcam setup, release, and frame capture
     int setupStreaming();
