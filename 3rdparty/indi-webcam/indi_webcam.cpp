@@ -505,8 +505,6 @@ bool indi_webcam::initProperties()
     // Must init parent properties first!
     INDI::CCD::initProperties();
 
-    //PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.033, 1, .1, true);
-
     RapidStacking = new ISwitch[3];
     IUFillSwitch(&RapidStacking[0], "Integration", "Integration", ISS_OFF);
     IUFillSwitch(&RapidStacking[1], "Average", "Average", ISS_OFF);
@@ -1044,7 +1042,7 @@ void indi_webcam::TimerHit()
 
         timeleft = CalcTimeLeft();
 
-        if (timeleft < (1/frameRate))
+        if (timeleft < (1/frameRate)) //The time left in the "exposure" is less than the time it takes to make an actual exposure, so get it now.
         {
             grabImage(); //Note that this both starts and ends the exposure
             if(webcamStacking)
@@ -1061,7 +1059,7 @@ void indi_webcam::TimerHit()
                 grabImage();  //This will take another frame which will get added to the average.
         }
         if(webcamStacking)
-            SetTimer(10);
+            SetTimer(10);//The time should be as short as possible to get as many frames as possible in the set.
     }
 
     SetTimer(POLLMS);
@@ -1342,6 +1340,9 @@ void indi_webcam::run_capture()
   int h = pCodecCtx->height;
   Streamer->setSize(w, h);
   PrimaryCCD.setFrame(0, 0, w, h);
+
+  //This will clear the frame button before streaming is started so that the frames are all current.
+  flush_frame_buffer();
 
   while (is_capturing && is_streaming) {
 
