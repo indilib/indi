@@ -149,7 +149,8 @@ void indi_webcam::findAVFoundationVideoSources()
         if(listOfSources.size()!=0)
         {
             DEBUG(INDI::Logger::DBG_SESSION, "Briefly connecting to avfoundation to update the source list");
-            ConnectToSource("avfoundation", "default", frameRate, videoSize, "Not using IP Camera");
+            if(ConnectToSource("avfoundation", "default", frameRate, videoSize, "Not using IP Camera"))
+                DEBUG(INDI::Logger::DBG_SESSION, "Source List Updated");
             avcodec_close(pCodecCtx);
             avformat_close_input(&pFormatCtx);
         }
@@ -504,52 +505,7 @@ bool indi_webcam::initProperties()
     // Must init parent properties first!
     INDI::CCD::initProperties();
 
-    refreshInputDevices();
-
     //PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.033, 1, .1, true);
-
-    IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Sources", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, "INDI Webcam", "INPUT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-
-    defineSwitch(&RefreshSP);
-
-    IUFillText(&InputOptionsT[0], "CAPTURE_DEVICE_TEXT", "Capture Device", videoDevice.c_str());
-    IUFillText(&InputOptionsT[1], "CAPTURE_SOURCE_TEXT", "Capture Source", videoSource.c_str());
-    IUFillText(&InputOptionsT[2], "CAPTURE_FRAME_RATE", "Frame Rate", "30");
-    IUFillText(&InputOptionsT[3], "CAPTURE_VIDEO_SIZE", "Video Size", videoSize.c_str());
-    IUFillTextVector(&InputOptionsTP, InputOptionsT, NARRAY(InputOptionsT), getDeviceName(), "INPUT_OPTIONS", "Input Options", CONNECTION_TAB, IP_RW, 0, IPS_IDLE);
-
-    IUFillText(&HTTPInputOptions[0], "CAPTURE_IP_ADDRESS", "IP Address", IPAddress.c_str());
-    IUFillText(&HTTPInputOptions[1], "CAPTURE_PORT_NUMBER", "Port", port.c_str());
-    IUFillText(&HTTPInputOptions[2], "CAPTURE_USERNAME", "User Name", username.c_str());
-    IUFillText(&HTTPInputOptions[3], "CAPTURE_PASSWORD", "Password", password.c_str());
-    IUFillTextVector(&HTTPInputOptionsP, HTTPInputOptions, 4, "INDI Webcam", "HTTP_INPUT_OPTIONS", "IP Camera", CONNECTION_TAB, IP_RW, 0, IPS_IDLE);
-
-    FrameRates = new ISwitch[7];
-    IUFillSwitch(&FrameRates[0], "30", "30 fps", ISS_ON);
-    IUFillSwitch(&FrameRates[1], "25", "25 fps", ISS_OFF);
-    IUFillSwitch(&FrameRates[2], "20", "20 fps", ISS_OFF);
-    IUFillSwitch(&FrameRates[3], "15", "15 fps", ISS_OFF);
-    IUFillSwitch(&FrameRates[4], "10", "10 fps", ISS_OFF);
-    IUFillSwitch(&FrameRates[5], "5", "5 fps", ISS_OFF);
-     IUFillSwitch(&FrameRates[6], "1", "1 fps", ISS_OFF);
-
-    IUFillSwitchVector(&FrameRateSelection, FrameRates, 7, "INDI Webcam", "CAPTURE_FRAME_RATE", "Frame Rate",
-                       CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-
-    VideoSizes = new ISwitch[7];
-    IUFillSwitch(&VideoSizes[0], "320x240", "320x240", ISS_OFF);
-    IUFillSwitch(&VideoSizes[1], "640x480", "640x480", ISS_ON);
-    IUFillSwitch(&VideoSizes[2], "800x600", "800x600", ISS_OFF);
-    IUFillSwitch(&VideoSizes[3], "1024x768", "1024x768", ISS_OFF);
-    IUFillSwitch(&VideoSizes[4], "1280x720", "1280x720", ISS_OFF);
-    IUFillSwitch(&VideoSizes[5], "1280x1024", "1280x1024", ISS_OFF);
-    IUFillSwitch(&VideoSizes[6], "1600x1200", "1600x1200", ISS_OFF);
-
-    IUFillSwitchVector(&VideoSizeSelection, VideoSizes, 7, "INDI Webcam", "CAPTURE_VIDEO_SIZE", "Video Size",
-                       CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-
-    refreshInputSources();
 
     RapidStacking = new ISwitch[3];
     IUFillSwitch(&RapidStacking[0], "Integration", "Integration", ISS_OFF);
@@ -568,6 +524,10 @@ bool indi_webcam::initProperties()
     IUFillSwitchVector(&OutputFormatSelection, OutputFormats, 3, "INDI Webcam", "OUTPUT_FORMAT_OPTION", "Output Format",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     defineSwitch(&OutputFormatSelection);
+
+    loadConfig(true, "RAPID_STACKING_OPTION");
+    loadConfig(true, "OUTPUT_FORMAT_OPTION");
+
 
     /* Add debug controls so we may debug driver if necessary */
     addDebugControl();
@@ -714,8 +674,56 @@ bool indi_webcam::refreshInputSources()
 
 void indi_webcam::ISGetProperties(const char *dev)
 {
-    //DEBUGF(INDI::Logger::DBG_SESSION, "isGetProperties connected=%s",(isConnected()?"True":"False"));
     INDI::CCD::ISGetProperties(dev);
+
+    IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Sources", ISS_OFF);
+    IUFillSwitchVector(&RefreshSP, RefreshS, 1, "INDI Webcam", "INPUT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    defineSwitch(&RefreshSP);
+
+    IUFillText(&InputOptionsT[0], "CAPTURE_DEVICE_TEXT", "Capture Device", videoDevice.c_str());
+    IUFillText(&InputOptionsT[1], "CAPTURE_SOURCE_TEXT", "Capture Source", videoSource.c_str());
+    IUFillText(&InputOptionsT[2], "CAPTURE_FRAME_RATE", "Frame Rate", "30");
+    IUFillText(&InputOptionsT[3], "CAPTURE_VIDEO_SIZE", "Video Size", videoSize.c_str());
+    IUFillTextVector(&InputOptionsTP, InputOptionsT, NARRAY(InputOptionsT), getDeviceName(), "INPUT_OPTIONS", "Input Options", CONNECTION_TAB, IP_RW, 0, IPS_IDLE);
+
+    IUFillText(&HTTPInputOptions[0], "CAPTURE_IP_ADDRESS", "IP Address", IPAddress.c_str());
+    IUFillText(&HTTPInputOptions[1], "CAPTURE_PORT_NUMBER", "Port", port.c_str());
+    IUFillText(&HTTPInputOptions[2], "CAPTURE_USERNAME", "User Name", username.c_str());
+    IUFillText(&HTTPInputOptions[3], "CAPTURE_PASSWORD", "Password", password.c_str());
+    IUFillTextVector(&HTTPInputOptionsP, HTTPInputOptions, 4, "INDI Webcam", "HTTP_INPUT_OPTIONS", "IP Camera", CONNECTION_TAB, IP_RW, 0, IPS_IDLE);
+
+    FrameRates = new ISwitch[7];
+    IUFillSwitch(&FrameRates[0], "30", "30 fps", ISS_ON);
+    IUFillSwitch(&FrameRates[1], "25", "25 fps", ISS_OFF);
+    IUFillSwitch(&FrameRates[2], "20", "20 fps", ISS_OFF);
+    IUFillSwitch(&FrameRates[3], "15", "15 fps", ISS_OFF);
+    IUFillSwitch(&FrameRates[4], "10", "10 fps", ISS_OFF);
+    IUFillSwitch(&FrameRates[5], "5", "5 fps", ISS_OFF);
+     IUFillSwitch(&FrameRates[6], "1", "1 fps", ISS_OFF);
+
+    IUFillSwitchVector(&FrameRateSelection, FrameRates, 7, "INDI Webcam", "CAPTURE_FRAME_RATE", "Frame Rate",
+                       CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    VideoSizes = new ISwitch[7];
+    IUFillSwitch(&VideoSizes[0], "320x240", "320x240", ISS_OFF);
+    IUFillSwitch(&VideoSizes[1], "640x480", "640x480", ISS_ON);
+    IUFillSwitch(&VideoSizes[2], "800x600", "800x600", ISS_OFF);
+    IUFillSwitch(&VideoSizes[3], "1024x768", "1024x768", ISS_OFF);
+    IUFillSwitch(&VideoSizes[4], "1280x720", "1280x720", ISS_OFF);
+    IUFillSwitch(&VideoSizes[5], "1280x1024", "1280x1024", ISS_OFF);
+    IUFillSwitch(&VideoSizes[6], "1600x1200", "1600x1200", ISS_OFF);
+
+    IUFillSwitchVector(&VideoSizeSelection, VideoSizes, 7, "INDI Webcam", "CAPTURE_VIDEO_SIZE", "Video Size",
+                       CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    refreshInputDevices();
+    refreshInputSources();
+
+    loadConfig(true, "CAPTURE_DEVICE");
+    loadConfig(true, "INPUT_OPTIONS");
+    loadConfig(true, "HTTP_INPUT_OPTIONS");
+
 }
 
 /********************************************************************************************
@@ -1526,10 +1534,12 @@ void indi_webcam::freeMemory()
 bool indi_webcam::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
-   // IUSaveConfigSwitch(fp, &CaptureDeviceSelection);
-   // IUSaveConfigText(fp, &HTTPInputOptionsP);
-   // IUSaveConfigText(fp, &InputOptionsTP);
-    //Do NOT add the connection option switches.  If you do, it will repeatedly connect and disconnect as it loads the saved options.
+    IUSaveConfigSwitch(fp, &CaptureDeviceSelection);
+    IUSaveConfigSwitch(fp, &RapidStackingSelection);
+    IUSaveConfigSwitch(fp, &OutputFormatSelection);
+    IUSaveConfigText(fp, &HTTPInputOptionsP);
+    IUSaveConfigText(fp, &InputOptionsTP);
+
 
     return true;
 }
