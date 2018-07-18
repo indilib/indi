@@ -119,7 +119,8 @@ void logDevices(void *ptr, int level, const char *fmt, va_list vargs)
         listOfSources.push_back(device);
     } else
     {
-        fprintf(stderr, "%s", lineBuffer);
+        if(av_log_get_level() >= level)
+            fprintf(stderr, "%s", lineBuffer);
     }
     free(lineBuffer);
 }
@@ -722,6 +723,9 @@ void indi_webcam::ISGetProperties(const char *dev)
     loadConfig(true, "INPUT_OPTIONS");
     loadConfig(true, "HTTP_INPUT_OPTIONS");
 
+    //Setting the log level
+    av_log_set_level(AV_LOG_INFO);
+
 }
 
 /********************************************************************************************
@@ -891,7 +895,25 @@ bool indi_webcam::ISNewSwitch (const char *dev, const char *name, ISState *state
         return true;
     }
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Setting switch %s", name);
+    //This switches the logging level to be Debug if the "Driver Debug" setting is on
+    //And switches the logging level to be INFO if the "Driver Debug" setting is off
+   if (!strcmp(name, "LOGGING_LEVEL"))
+    {
+       //Note that this is backwards because it is the old setting before it is handled in the Logger
+        if(INDI::Logger::LoggingLevelSP.sp[3].s != ISS_ON)
+        {
+            av_log_set_level(AV_LOG_DEBUG);
+            DEBUG(INDI::Logger::DBG_SESSION, "Setting FFMPEG Logging to Verbose\n");
+        }
+        else
+        {
+            av_log_set_level(AV_LOG_INFO);
+            DEBUG(INDI::Logger::DBG_SESSION, "Setting FFMPEG Logging to Info\n");
+        }
+
+    }
+
+
 
     return INDI::CCD::ISNewSwitch(dev,name,states,names,n);
 }
