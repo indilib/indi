@@ -51,15 +51,19 @@ bool LX200ZEQ25::initProperties()
 
     SetParkDataType(PARK_AZ_ALT);
 
-    strcpy(SlewRateS[0].label, "1x");
-    strcpy(SlewRateS[1].label, "2x");
-    strcpy(SlewRateS[2].label, "8x");
-    strcpy(SlewRateS[3].label, "16x");
-    strcpy(SlewRateS[4].label, "64x");
-    strcpy(SlewRateS[5].label, "128x");
-    strcpy(SlewRateS[6].label, "256x");
-    strcpy(SlewRateS[7].label, "512x");
-    strcpy(SlewRateS[8].label, "MAX");
+    // Slew Rates
+    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
+    strncpy(SlewRateS[1].label, "2x", MAXINDILABEL);
+    strncpy(SlewRateS[2].label, "8x", MAXINDILABEL);
+    strncpy(SlewRateS[3].label, "16x", MAXINDILABEL);
+    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
+    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
+    strncpy(SlewRateS[6].label, "256x", MAXINDILABEL);
+    strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
+    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
+    IUResetSwitch(&SlewRateSP);
+    // 64x is the default
+    SlewRateS[4].s = ISS_ON;
 
     IUFillSwitch(&HomeS[0], "Home", "", ISS_OFF);
     IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "Home", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
