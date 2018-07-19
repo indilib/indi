@@ -121,7 +121,7 @@ Integra::Integra() : RotatorInterface(this)
 
     // Focuser
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    setConnection(CONNECTION_SERIAL);
+    setSupportedConnections(CONNECTION_SERIAL);
 }
 
 bool Integra::initProperties()
