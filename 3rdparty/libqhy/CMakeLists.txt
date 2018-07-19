@@ -62,7 +62,7 @@ install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"libqh
 
 ENDIF (APPLE)
 
-install(FILES qhyccd.h qhybase.h debugview.h cmosdll.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h unlockimagequeue.h cyusb.h DESTINATION include/libqhy)
+install(FILES qhyccd.h qhybase.h qhydevice.h debugview.h cmosdll.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h unlockimagequeue.h cyusb.h DESTINATION include/libqhy)
 
 install(
    CODE "
