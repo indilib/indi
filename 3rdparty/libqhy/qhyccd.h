@@ -29,7 +29,7 @@
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
 #include "stdint.h"
-#include "cyusb.h"
+#include "qhydevice.h"
 
 #ifdef WIN32
 #include "cyapi.h"
