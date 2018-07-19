@@ -819,8 +819,13 @@ int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,
 		     "eosremoterelease Mirror Lock for %g secs", msec / 1000.0);
 
+	// 2018-07-19: Disabling customfuncex since it seems to be causing problems for some
+	// Canon model as reported in INDI forums. Follow up in PR #620
+	#if 0
 	gphoto_set_widget_text(gphoto, gphoto->customfuncex_widget,
 			       EOS_MIRROR_LOCKUP_ENABLE);
+	#endif 
+	    
         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, EOS_PRESS_FULL);
         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, EOS_RELEASE_FULL);
 
@@ -955,8 +960,10 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
 	else if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name,
 						"eosremoterelease"))
 	{
+	    #if 0		
 	    gphoto_set_widget_text(gphoto, gphoto->customfuncex_widget,
 				   EOS_MIRROR_LOCKUP_DISABLE);
+	    #endif
 	}
 
         // If bulb port is specified, let's open it
