@@ -5,6 +5,7 @@ Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 5),
                cdbs,
                cmake,
+               pkg-config,
                libusb-1.0-0-dev,
                libcfitsio3-dev|libcfitsio-dev,
                libindi-dev,

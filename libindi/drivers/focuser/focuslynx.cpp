@@ -106,7 +106,7 @@ FocusLynxF1::FocusLynxF1(const char *target)
     setFocusTarget(target);
 
     // Both communication available, Serial and network (tcp/ip)
-    setConnection(CONNECTION_SERIAL | CONNECTION_TCP);
+    setSupportedConnections(CONNECTION_SERIAL | CONNECTION_TCP);
 
     // explain in connect() function Only set on the F1 constructor, not on the F2 one
     PortFD = -1;
@@ -800,7 +800,7 @@ FocusLynxF2::FocusLynxF2(const char *target)
     setFocusTarget(target);
 
     // The second focuser has no direct communication with the hub
-    setConnection(CONNECTION_NONE);
+    setSupportedConnections(CONNECTION_NONE);
 
     DBG_FOCUS = INDI::Logger::getInstance().addDebugLevel("Focus F2 Verbose", "FOCUS F2");
 }

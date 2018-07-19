@@ -74,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 HitecAstroDCFocuser::HitecAstroDCFocuser() : _handle(nullptr)
 {
     FI::SetCapability(FOCUSER_CAN_REL_MOVE); // | FOCUSER_HAS_VARIABLE_SPEED);
-    setConnection(CONNECTION_NONE);
+    setSupportedConnections(CONNECTION_NONE);
 }
 
 HitecAstroDCFocuser::~HitecAstroDCFocuser()
