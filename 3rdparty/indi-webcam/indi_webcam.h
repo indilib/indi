@@ -68,6 +68,8 @@ protected:
     bool initProperties() override;
     bool updateProperties() override;
 
+    void debugTriggered(bool enabled) override;
+
 
 
     //Related to exposures
@@ -77,7 +79,7 @@ protected:
     void TimerHit() override;
     float CalcTimeLeft();
     int timerID;
-    int grabImage();
+    bool grabImage();
 
     bool UpdateCCDFrame(int x, int y, int w, int h) override;
 
@@ -160,9 +162,9 @@ private:
 
 
     //Webcam setup, release, and frame capture
-    int setupStreaming();
+    bool setupStreaming();
     void freeMemory();
-    int getStreamFrame();
+    bool getStreamFrame();
     bool flush_frame_buffer();
 
     //Related to streaming
