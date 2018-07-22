@@ -65,8 +65,8 @@ const unsigned int SPECTROMETER_OFFSET = 0x050;
 /* 90 Khz Rest Correction */
 const double SPECTROMETER_REST_CORRECTION = 0.090;
 
-const char *contFMT = ".ascii_cont";
-const char *specFMT = ".ascii_spec";
+static const char *contFMT = ".ascii_cont";
+static const char *specFMT = ".ascii_spec";
 
 // We declare an auto pointer to spectrometer.
 std::unique_ptr<SpectraCyber> spectracyber(new SpectraCyber());
@@ -126,15 +126,7 @@ SpectraCyber::SpectraCyber()
     // Optional: Add aux controls for configuration, debug & simulation
     addAuxControls();
 
-    setVersion(SPECTRACYBER_VERSION_MAJOR, SPECTRACYBER_VERSION_MINOR);
-}
-
-/****************************************************************
-**
-**
-*****************************************************************/
-SpectraCyber::~SpectraCyber()
-{
+    setVersion(SPECTRACYBER_VERSION_MAJOR, SPECTRACYBER_VERSION_MINOR);        
 }
 
 /****************************************************************
@@ -175,8 +167,7 @@ bool SpectraCyber::ISSnoopDevice(XMLEle *root)
 {
     if (IUSnoopNumber(root, &EquatorialCoordsRNP) != 0)
     {
-        if (isDebug())
-            IDLog("Error processing snooped EQUATORIAL_EOD_COORD_REQUEST value! No RA/DEC information available.\n");
+        LOG_WARN("Error processing snooped EQUATORIAL_EOD_COORD_REQUEST value! No RA/DEC information available.");
 
         return true;
     }
@@ -192,29 +183,28 @@ bool SpectraCyber::ISSnoopDevice(XMLEle *root)
 *****************************************************************/
 bool SpectraCyber::initProperties()
 {
-    IDLog("init Properties in spectracyber\n");
 
     INDI::DefaultDevice::initProperties();
 
     FreqNP = getNumber("Freq (Mhz)");
     if (FreqNP == nullptr)
-        IDMessage(getDeviceName(), "Error: Frequency property is missing. Spectrometer cannot be operated.");
+        LOG_ERROR("Error: Frequency property is missing. Spectrometer cannot be operated.");
 
     ScanNP = getNumber("Scan Parameters");
     if (ScanNP == nullptr)
-        IDMessage(getDeviceName(), "Error: Scan parameters property is missing. Spectrometer cannot be operated.");
+        LOG_ERROR("Error: Scan parameters property is missing. Spectrometer cannot be operated.");
 
     ChannelSP = getSwitch("Channels");
     if (ChannelSP == nullptr)
-        IDMessage(getDeviceName(), "Error: Channel property is missing. Spectrometer cannot be operated.");
+        LOG_ERROR("Error: Channel property is missing. Spectrometer cannot be operated.");
 
     ScanSP = getSwitch("Scan");
     if (ScanSP == nullptr)
-        IDMessage(getDeviceName(), "Error: Channel property is missing. Spectrometer cannot be operated.");
+        LOG_ERROR("Error: Channel property is missing. Spectrometer cannot be operated.");
 
     DataStreamBP = getBLOB("Data");
     if (DataStreamBP == nullptr)
-        IDMessage(getDeviceName(), "Error: BLOB data property is missing. Spectrometer cannot be operated.");
+        LOG_ERROR("Error: BLOB data property is missing. Spectrometer cannot be operated.");
 
     if (DataStreamBP)
         DataStreamBP->bp[0].blob = (char *)malloc(MAXBLEN * sizeof(char));
@@ -226,6 +216,9 @@ bool SpectraCyber::initProperties()
     IUFillNumberVector(&EquatorialCoordsRNP, EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), "", "EQUATORIAL_EOD_COORD",
                        "Equatorial AutoSet", "", IP_RW, 0, IPS_IDLE);
     /**************************************************************************/
+
+    setDriverInterface(SPECTROGRAPH_INTERFACE);
+
     return true;
 }
 
@@ -253,8 +246,7 @@ bool SpectraCyber::Connect()
 
     if (tty_connect(tProp->tp[0].text, 2400, 8, 0, 1, &fd) != TTY_OK)
     {
-        LOGF_ERROR(
-               "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.",
+        LOGF_ERROR("Error connecting to port %s. Make sure you have BOTH read and write permission to the port.",
                tProp->tp[0].text);
         return false;
     }
@@ -283,7 +275,7 @@ bool SpectraCyber::init_spectrometer()
     // Enable speed mode
     if (isSimulation())
     {
-        IDMessage(getDeviceName(), "%s Spectrometer: Simulating spectrometer init.", type_name.c_str());
+        LOGF_INFO("%s Spectrometer: Simulating spectrometer init.", type_name.c_str());
         return true;
     }
 
@@ -321,7 +313,7 @@ bool SpectraCyber::ISNewNumber(const char *dev, const char *name, double values[
     if (isConnected() == false)
     {
         resetProperties();
-        IDMessage(getDeviceName(), "Spectrometer is offline. Connect before issiuing any commands.");
+        LOG_ERROR("Spectrometer is offline. Connect before issiuing any commands.");
         return false;
     }
 
@@ -441,7 +433,7 @@ bool SpectraCyber::ISNewText(const char *dev, const char *name, char *texts[], c
 
             strncpy(EquatorialCoordsRNP.device, tProp->tp[0].text, MAXINDIDEVICE);
 
-            IDMessage(getDeviceName(), "Active telescope updated to %s. Please save configuration.", telescopeID->text);
+            LOGF_INFO("Active telescope updated to %s. Please save configuration.", telescopeID->text);
 
             IDSnoopDevice(telescopeID->text, "EQUATORIAL_EOD_COORD");
         }
@@ -475,7 +467,7 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
     if (isConnected() == false)
     {
         resetProperties();
-        IDMessage(getDeviceName(), "Spectrometer is offline. Connect before issiuing any commands.");
+        LOG_ERROR("Spectrometer is offline. Connect before issiuing any commands.");
         return false;
     }
 
