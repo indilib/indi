@@ -67,7 +67,6 @@ class SpectraCyber : public INDI::DefaultDevice
     };
 
     SpectraCyber();
-    ~SpectraCyber();
 
     // Standard INDI interface functions
     virtual void ISGetProperties(const char *dev) override;
