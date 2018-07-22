@@ -3673,6 +3673,8 @@ bool EQMod::saveConfigItems(FILE *fp)
         IUSaveConfigNumber(fp, PulseLimitsNP);
     if (SlewSpeedsNP)
         IUSaveConfigNumber(fp, SlewSpeedsNP);
+    if (ReverseDECSP)
+        IUSaveConfigSwitch(fp, ReverseDECSP);
 
 #ifdef WITH_ALIGN_GEEHALEL
     if (align)
