@@ -522,7 +522,7 @@ bool indi_webcam::initProperties()
     IUFillSwitch(&RapidStacking[1], "Average", "Average", ISS_OFF);
     IUFillSwitch(&RapidStacking[2], "Off", "Off", ISS_ON);
 
-    IUFillSwitchVector(&RapidStackingSelection, RapidStacking, 3, "INDI Webcam", "RAPID_STACKING_OPTION", "Rapid Stacking",
+    IUFillSwitchVector(&RapidStackingSelection, RapidStacking, 3, getDeviceName(), "RAPID_STACKING_OPTION", "Rapid Stacking",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     defineSwitch(&RapidStackingSelection);
 
@@ -531,7 +531,7 @@ bool indi_webcam::initProperties()
     IUFillSwitch(&OutputFormats[1], "16 bit RGB", "16 bit RGB", ISS_OFF);
     IUFillSwitch(&OutputFormats[2], "8 bit RGB", "8 bit RGB", ISS_ON);
 
-    IUFillSwitchVector(&OutputFormatSelection, OutputFormats, 3, "INDI Webcam", "OUTPUT_FORMAT_OPTION", "Output Format",
+    IUFillSwitchVector(&OutputFormatSelection, OutputFormats, 3, getDeviceName(), "OUTPUT_FORMAT_OPTION", "Output Format",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     defineSwitch(&OutputFormatSelection);
 
@@ -564,7 +564,7 @@ bool indi_webcam::refreshInputDevices()
         i++;
     }
     IUFillSwitch(&CaptureDevices[numDevices], "IP Camera", "IP Camera", ISS_OFF);
-    IUFillSwitchVector(&CaptureDeviceSelection, CaptureDevices, numDevices + 1, "INDI Webcam", "CAPTURE_DEVICE", "Capture Devices",
+    IUFillSwitchVector(&CaptureDeviceSelection, CaptureDevices, numDevices + 1, getDeviceName(), "CAPTURE_DEVICE", "Capture Devices",
                        CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
     defineSwitch(&CaptureDeviceSelection);
 
@@ -653,7 +653,7 @@ bool indi_webcam::refreshInputSources()
         }    
     }
 
-    IUFillSwitchVector(&CaptureSourceSelection, CaptureSources, sourceNum, "INDI Webcam", "CAPTURE_SOURCE", "Capture Sources",
+    IUFillSwitchVector(&CaptureSourceSelection, CaptureSources, sourceNum, getDeviceName(), "CAPTURE_SOURCE", "Capture Sources",
                        CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
 
@@ -693,7 +693,7 @@ void indi_webcam::ISGetProperties(const char *dev)
     defineText(&TimeoutOptionsTP);
 
     IUFillSwitch(&RefreshS[0], "Scan Ports", "Scan Sources", ISS_OFF);
-    IUFillSwitchVector(&RefreshSP, RefreshS, 1, "INDI Webcam", "INPUT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), "INPUT_SCAN", "Refresh", CONNECTION_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     defineSwitch(&RefreshSP);
 
@@ -707,7 +707,7 @@ void indi_webcam::ISGetProperties(const char *dev)
     IUFillText(&HTTPInputOptions[1], "CAPTURE_PORT_NUMBER", "Port", port.c_str());
     IUFillText(&HTTPInputOptions[2], "CAPTURE_USERNAME", "User Name", username.c_str());
     IUFillText(&HTTPInputOptions[3], "CAPTURE_PASSWORD", "Password", password.c_str());
-    IUFillTextVector(&HTTPInputOptionsP, HTTPInputOptions, 4, "INDI Webcam", "HTTP_INPUT_OPTIONS", "IP Camera", CONNECTION_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillTextVector(&HTTPInputOptionsP, HTTPInputOptions, 4, getDeviceName(), "HTTP_INPUT_OPTIONS", "IP Camera", CONNECTION_TAB, IP_RW, 0, IPS_IDLE);
 
     FrameRates = new ISwitch[7];
     IUFillSwitch(&FrameRates[0], "30", "30 fps", ISS_ON);
@@ -718,7 +718,7 @@ void indi_webcam::ISGetProperties(const char *dev)
     IUFillSwitch(&FrameRates[5], "5", "5 fps", ISS_OFF);
      IUFillSwitch(&FrameRates[6], "1", "1 fps", ISS_OFF);
 
-    IUFillSwitchVector(&FrameRateSelection, FrameRates, 7, "INDI Webcam", "CAPTURE_FRAME_RATE", "Frame Rate",
+    IUFillSwitchVector(&FrameRateSelection, FrameRates, 7, getDeviceName(), "CAPTURE_FRAME_RATE", "Frame Rate",
                        CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     VideoSizes = new ISwitch[7];
@@ -730,7 +730,7 @@ void indi_webcam::ISGetProperties(const char *dev)
     IUFillSwitch(&VideoSizes[5], "1280x1024", "1280x1024", ISS_OFF);
     IUFillSwitch(&VideoSizes[6], "1600x1200", "1600x1200", ISS_OFF);
 
-    IUFillSwitchVector(&VideoSizeSelection, VideoSizes, 7, "INDI Webcam", "CAPTURE_VIDEO_SIZE", "Video Size",
+    IUFillSwitchVector(&VideoSizeSelection, VideoSizes, 7, getDeviceName(), "CAPTURE_VIDEO_SIZE", "Video Size",
                        CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     refreshInputDevices();
