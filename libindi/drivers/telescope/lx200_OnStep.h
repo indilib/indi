@@ -24,7 +24,11 @@
     ===========================================
     Version 1.4: Tuning
     - James Lan implementation of High Precision Tracking
-    - Todo Focuser absolute seting and initiliszation
+    - James lan Focuser Code
+    - James lan PEC
+    - James Lan Alignment
+    - Azwing set all com variable legth to RB_MAX_LEN otherwise crash due to overflow
+
     Version 1.3: Complete rework of interface and functionalities
     - Telescope Status using :GU#
     - Parking Management

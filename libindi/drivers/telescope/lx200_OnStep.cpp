@@ -1143,7 +1143,7 @@ void LX200_OnStep::getBasicData()
 //======================== Parking =======================
 bool LX200_OnStep::SetCurrentPark()      // Tested
 {
-    char response[32];
+    char response[RB_MAX_LEN];  //azwing RB_MAX_LEN
 
     if(!getCommandString(PortFD, response, ":hQ#"))
         {
@@ -1167,7 +1167,8 @@ bool LX200_OnStep::SetDefaultPark()      // Tested
 
 bool LX200_OnStep::UnPark()      // Tested
 {
-    char response[32];
+    char response[RB_MAX_LEN];  //azwing RB_MAX_LEN
+
 
     if (!isSimulation())
     {
@@ -1222,8 +1223,8 @@ bool LX200_OnStep::Park()      // Tested
 // Periodically Polls OnStep Parameter from controller
 bool LX200_OnStep::ReadScopeStatus()      // Tested
 {
-    char OSbacklashDEC[5];
-    char OSbacklashRA[5];
+    char OSbacklashDEC[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char OSbacklashRA[RB_MAX_LEN];  //azwing RB_MAX_LEN
     Errors Lasterror = ERR_NONE;
 
     if (isSimulation()) //if Simulation is selected
@@ -1419,7 +1420,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
 
 bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled by inditelescope       Tested
 {
-    char response[32];
+    char response[RB_MAX_LEN];  //azwing RB_MAX_LEN
 
     if (enabled)
     {
@@ -1530,7 +1531,7 @@ int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standa
 {
     LOGF_INFO("<%s>", __FUNCTION__);
 
-    char read_buffer[RB_MAX_LEN]={0};
+    char read_buffer[RB_MAX_LEN]={0};  //azwing RB_MAX_LEN
 
     snprintf(read_buffer, sizeof(read_buffer), ":So%02d#", max);
 
@@ -1683,7 +1684,7 @@ bool LX200_OnStep::AbortFocuser () {
 
 void LX200_OnStep::OSUpdateFocuser()
 {
-	char value[10];
+    char value[RB_MAX_LEN];  //azwing RB_MAX_LEN
 	int current = 0;
 	if (OSFocuser1) {
 	// Alternate option:
@@ -1724,7 +1725,7 @@ void LX200_OnStep::OSUpdateFocuser()
 		FocusAbsPosN[0].min =  atoi(value);
 		IUUpdateMinMax(&FocusAbsPosNP);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
-		FI::updateProperties();
+        FI::updateProperties();
 	} 
 	
 
@@ -1734,7 +1735,7 @@ void LX200_OnStep::OSUpdateFocuser()
 		OSFocus2TargNP.np[0].value = atoi(value);
 		IDSetNumber(&OSFocus2TargNP, nullptr);
 	}
-}
+ }
 
 //PEC Support
 //Should probably be added to inditelescope or another interface, because the PEC that's there... is very limited. 
@@ -1810,7 +1811,7 @@ IPState LX200_OnStep::PECStatus (int axis) {
 // 	IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
 // 	IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
 	//ReticS[0].s=ISS_OFF;
-	char value[8] ="  ";
+    char value[RB_MAX_LEN] ="  ";  //azwing RB_MAX_LEN
 	OSPECStatusSP.s = IPS_BUSY;
 	getCommandString(PortFD, value, ":$QZ?#");
 //	LOGF_INFO("Response %s", value);
