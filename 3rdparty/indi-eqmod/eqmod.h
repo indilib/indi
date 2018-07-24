@@ -174,6 +174,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
                           enum Hemisphere h);
     void EncoderTarget(GotoParams *g);
     void SetSouthernHemisphere(bool southern);
+    void UpdateDEInverted();
     double GetRATrackRate();
     double GetDETrackRate();
     double GetDefaultRATrackRate();
