@@ -32,7 +32,7 @@
 
 //
 #include <map>
-
+#include <indiapi.h>
 #include "defaultdevice.h"
 
 std::map<ISState, char> COMMANDS = {
@@ -78,8 +78,10 @@ private:
 
   std::string lastLampOn;
   
+  
   bool calibrationUnitCommand(char command, char parameter);
   bool resetLamps();
+  bool pollingLamps();
 };
 
 #endif // SHELYAKALPY_SPECTROGRAPH_H

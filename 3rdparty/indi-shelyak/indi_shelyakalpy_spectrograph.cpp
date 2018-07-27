@@ -124,8 +124,8 @@ bool ShelyakAlpy::initProperties()
   // Spectrograph Settings
   //--------------------------------------------------------------------------------
 
-  IUFillNumber(&SettingsN[0], "SLOT WIDTH", "Slot width [µm]", "%.0f", 1, 100, 0, 20);
-  IUFillNumber(&SettingsN[1], "OBJ_FOCAL", "Obj Focal [mm]", "%.0f", 1, 700, 0, 85);
+  IUFillNumber(&SettingsN[0], "SLOT WIDTH", "Slot width [µm]", "%.0f", 1, 100, 0, 23);
+  IUFillNumber(&SettingsN[1], "OBJ_FOCAL", "Obj Focal [mm]", "%.0f", 1, 1260, 0, 200);
   IUFillNumberVector(&SettingsNP, SettingsN, 2, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph settings", SPECTROGRAPH_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
   return true;
@@ -166,17 +166,116 @@ bool ShelyakAlpy::Connect()
     return false;
   }
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
-  resetLamps();
-  
-  lastLampOn = "None";
+  sleep(0.5); 
+  //read the serial to flush welcome message of SPOX.
+    char line[80];
+
+    int bytes_read=0;
+    int tty_rc = tty_nread_section(PortFD, line, 80, 0x0A, 3, &bytes_read);
+    if (tty_rc < 0)
+    {
+        LOGF_ERROR("Error getting device readings: %s", strerror(errno));
+        
+    }
+    line[bytes_read] = '\n';
+    DEBUGF(INDI::Logger::DBG_SESSION, "bytes read :  %i", bytes_read);
+
+  // Actually nothing is done with theses informations. But code is here.
+  pollingLamps();
   
   return true;
 }
 
+bool ShelyakAlpy::pollingLamps()
+{//send polling message
+    lastLampOn = "None";
+
+    sleep(0.1); 
+    int rc, nbytes_written;
+    char c[3] = {'1','?',0x0a};
+
+    if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+
+      {
+        char errmsg[MAXRBUF];
+        tty_error_msg(rc, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+        return false;
+      } else {
+          DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+
+      }
+      sleep(0.1);                                    
+      
+//read message send in response by spectrometer
+    char lineCalib[80];
+
+    int bytes_read=0;
+    int tty_rc = tty_nread_section(PortFD, lineCalib, 80, 0x0a, 3, &bytes_read);
+    if (tty_rc < 0)
+    {
+        LOGF_ERROR("Error getting device readings: %s", strerror(errno));
+        return false;
+    }
+    lineCalib[bytes_read] = '\n';
+  
+
+  DEBUGF(INDI::Logger::DBG_SESSION,"State of Calib lamp: #%s#", lineCalib );
+     
+     
+    sleep(0.1); 
+    int rc2, nbytes_written2;
+    char c2[3] = {'2','?',0x0a};
+
+    if ((rc2 = tty_write(PortFD, c2, 3, &nbytes_written2)) != TTY_OK)
+      {
+        char errmsg[MAXRBUF];
+        tty_error_msg(rc, errmsg, MAXRBUF);
+        DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+        return false;
+      } else {
+          DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c2);
+
+      }
+      sleep(0.1);                   
+      
+//read message send in response by spectrometer
+    char lineFlat[80];
+
+    int bytes_read2=0;
+    int tty_rc2 = tty_nread_section(PortFD, lineFlat, 80, 0x0a, 3, &bytes_read2);
+    if (tty_rc < 0)
+    {
+        LOGF_ERROR("Error getting device readings: %s", strerror(errno));
+        return false;
+    }
+    lineFlat[bytes_read] = '\n';
+  
+
+  DEBUGF(INDI::Logger::DBG_SESSION,"State of Flat lamp: #%s#", lineFlat );
+    
+     if (strcmp(lineCalib,"11")==13)  {
+         lastLampOn = "CALIB";
+     }
+     
+     if (strcmp(lineFlat,"21")==13) {
+         lastLampOn = "FLAT";
+     }
+    
+     if ((strcmp(lineCalib,"11")==13)&&(strcmp(lineFlat,"21")== 13)) {
+         lastLampOn = "DARK";
+     }
+    
+  DEBUGF(INDI::Logger::DBG_SESSION,"Spectrometer has %s state", lastLampOn.c_str());   
+     
+   return true;
+    
+}
+
+
 bool ShelyakAlpy::Disconnect()
 { 
-  //set default state at disconnection: set off lamps  
-  resetLamps();
+  
   sleep(1); // wait for the calibration unit to actually flip the switch  
     
   tty_disconnect(PortFD);
@@ -269,6 +368,7 @@ if (parameter==0x33){ //special for dark : have to put both lamps on
     if(command==0x31){
         DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", "on allume dark");
         lastLampOn = "Dark";
+        
         char c[3] = {parameter,command,0x0a};
 
         if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
@@ -306,24 +406,24 @@ if (parameter==0x33){ //special for dark : have to put both lamps on
     }
 
 
-} else { //other lamps 
-    char c[3] = {parameter,command,0x0a};
-    
-    if (lastLampOn.compare("None")==0){  //doesn't work should change state only when 
-        if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+    } else { //other lamps 
+        char c[3] = {parameter,command,0x0a};
+        
+        if (lastLampOn.compare("None")==0){  //doesn't work should change state only when 
+            if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
 
-        {
-            char errmsg[MAXRBUF];
-            tty_error_msg(rc, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
-            return false;
-        } else {
-            DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+            {
+                char errmsg[MAXRBUF];
+                tty_error_msg(rc, errmsg, MAXRBUF);
+                DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+                return false;
+            } else {
+                DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
 
-        }
-        sleep(1); // wait for the calibration unit to actually flip the switch
-        return true;
-    } else {return true;}
+            }
+            sleep(1); // wait for the calibration unit to actually flip the switch
+            return true;
+        } else {return true;}
     }
 
 }
