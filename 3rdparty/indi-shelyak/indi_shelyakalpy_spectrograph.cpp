@@ -171,12 +171,8 @@ bool ShelyakAlpy::Connect()
     char line[80];
 
     int bytes_read=0;
-    int tty_rc = tty_nread_section(PortFD, line, 80, 0x0A, 3, &bytes_read);
-    if (tty_rc < 0)
-    {
-        LOGF_ERROR("Error getting device readings: %s", strerror(errno));
-        
-    }
+    int tty_rc = tty_nread_section(PortFD, line, 80, 0x0a, 3, &bytes_read);
+    
     line[bytes_read] = '\n';
     DEBUGF(INDI::Logger::DBG_SESSION, "bytes read :  %i", bytes_read);
 
