@@ -152,7 +152,7 @@ void ISInit()
                                 snprintf(name, MAXINDIDEVICE, "%s %s", prefix, model + strlen(camInfos[j].model) + 1);
                             else
                                 snprintf(name, MAXINDIDEVICE, "%s %s %d", prefix, model + strlen(camInfos[j].model) + 1,
-                                         std::count(cameraNames.begin(), cameraNames.end(), camInfos[j].model));
+                                         static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), camInfos[j].model)));
                             cameras[cameraCount] = new GPhotoCCD(model, port);
                             cameras[cameraCount]->setDeviceName(name);
                             cameraCount++;
