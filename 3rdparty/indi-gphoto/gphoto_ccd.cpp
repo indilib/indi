@@ -26,6 +26,7 @@
 #include "gphoto_driver.h"
 #include "gphoto_readimage.h"
 
+#include <algorithm>
 #include <stream/streammanager.h>
 
 #include <math.h>
@@ -121,6 +122,8 @@ void ISInit()
             int cameraIndex = 0;
             cameraCount=0;
 
+            std::vector<std::string> cameraNames;
+
             while (availableCameras > 0)
             {
                 gp_list_get_name(list, cameraIndex, &model);
@@ -129,6 +132,8 @@ void ISInit()
                 cameraIndex++;
                 availableCameras--;
 
+                // If we're not using the Generic INDI GPhoto drievr
+                // then let's search for multiple cameras
                 if (strcmp(me, "indi_gphoto_ccd"))
                 {
                     char prefix[MAXINDINAME];
@@ -140,11 +145,20 @@ void ISInit()
                         if (strstr(model, camInfos[j].model))
                         {
                             strncpy(prefix, camInfos[j].driver, MAXINDINAME);
-                            snprintf(name, MAXINDIDEVICE, "%s %s", prefix, model + strlen(camInfos[j].model) + 1);
+
+                            // If if the model was already registered for a prior camera in case we are using
+                            // two identical models
+                            if (std::find(cameraNames.begin(), cameraNames.end(), camInfos[j].model) != cameraNames.end())
+                                snprintf(name, MAXINDIDEVICE, "%s %s", prefix, model + strlen(camInfos[j].model) + 1);
+                            else
+                                snprintf(name, MAXINDIDEVICE, "%s %s %d", prefix, model + strlen(camInfos[j].model) + 1,
+                                         static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), camInfos[j].model)));
                             cameras[cameraCount] = new GPhotoCCD(model, port);
                             cameras[cameraCount]->setDeviceName(name);
                             cameraCount++;
                             modelFound = true;
+                            // Store camera model in list to check for duplicates
+                            cameraNames.push_back(camInfos[j].model);
                             break;
                         }
                     }
