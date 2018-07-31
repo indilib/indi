@@ -849,13 +849,23 @@ bool V4L2_Driver::setShutter(double duration)
 
 bool V4L2_Driver::setManualExposure(double duration)
 {
+    /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
+    /* With DMx 21AU04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
+     * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set
+     * exposure unconditionally */
+    /*if (duration * 10000 != AbsExposureN->value)*/
+
+    // INT control for manual exposure duration is an integer in 1/10000 seconds
+    long ticks = lround(duration * 10000.0f);
+
+    /* First check the presence of an absolute exposure control */
     if (nullptr == AbsExposureN)
     {
         /* We don't have an absolute exposure control but we can stack gray frames until the exposure elapses */
         if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
         {
             LOGF_WARN("Absolute exposure duration control is undefined, stacking up to %.3f seconds using %.16s.",
-                      duration, StackModeS[stackMode].name);
+                    duration, StackModeS[stackMode].name);
             return true;
         }
         /* We don't have an absolute exposure control and stacking is not configured, bail out */
@@ -866,6 +876,29 @@ bool V4L2_Driver::setManualExposure(double duration)
             return false;
         }
     }
+    /* Then if we have an exposure control, check the requested exposure duration */
+    else if (AbsExposureN->max < ticks)
+    {
+        /* We can't expose as long as requested but we can stack gray frames until the exposure elapses */
+        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        {
+            LOGF_WARN("Requested manual exposure is out of device bounds [%.3f,%.3f], stacking up to %.3f seconds using %.16s.",
+                    (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f,
+                    duration, StackModeS[stackMode].name);
+            ticks = AbsExposureN->max;
+        }
+        /* We can't expose as long as requested and stacking is not configured, bail out */
+        else
+        {
+            LOGF_ERROR("Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f], and stacking is not ready.",
+                    duration, (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f);
+            LOGF_ERROR("Configure grayscale and stacking in order to stack streamed frames up to %.3f seconds.", duration);
+            return false;
+        }
+    }
+    /* Lower-than-minimal exposure duration is left managed below */
+
+    /* At this point we do have an absolute exposure control and a valid exposure duration, so start exposing. */
 
     /* Manual mode should be set before changing Exposure (Auto), if possible.
      * In some cases there might be no control available, so don't fail and try to continue.
@@ -899,20 +932,12 @@ bool V4L2_Driver::setManualExposure(double duration)
     }
     else
     {
-        LOGF_ERROR("Failed switching to manual exposure, control is unavailable", "");
+        LOGF_WARN("Failed switching to manual exposure, control is unavailable", "");
         /* Don't fail, let the driver try to set the absolute duration, we'll see what happens */
         /* return false; */
     }
 
-    /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
-    /* With DMx 21AU04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
-     * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set
-     * exposure unconditionally */
-    /*if (duration * 10000 != AbsExposureN->value)*/
-
-    // INT control for manual exposure duration is an integer in 1/10000 seconds
-    long const ticks = lround(duration * 10000.0f);
-
+    /* Configure absolute exposure */
     if (AbsExposureN->min <= ticks && ticks <= AbsExposureN->max)
     {
         double const restoredValue = AbsExposureN->value;
@@ -937,7 +962,7 @@ bool V4L2_Driver::setManualExposure(double duration)
     }
     else
     {
-        LOGF_WARN("Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f].",
+        LOGF_ERROR("Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f].",
                duration, (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f);
         return false;
     }
@@ -1245,6 +1270,7 @@ void V4L2_Driver::newFrame()
 
         struct timeval const current_exposure = getElapsedExposure();
 
+        /* FIXME: stacking does not account for transfer time, so we'll miss the last frames probably */
         if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON) &&
             (timercmp(&current_exposure, &exposure_duration, <)))
             return; // go on stacking
