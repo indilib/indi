@@ -544,7 +544,6 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
                 return TTY_OK;
             }
         }
-
     }
     else
     {
@@ -598,26 +597,39 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
     if (tty_debug)
         IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
 
-    for (;;)
+    // For Gemini
+    if (ttyGeminiUdpFormat)
     {
-        if ((err = tty_timeout(fd, timeout)))
-            return err;
+        tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+    }
+    else
+    {
+        for (;;)
+        {
+            if ((err = tty_timeout(fd, timeout)))
+                return err;
 
-        read_char = (uint8_t*)(buf + *nbytes_read);
-        bytesRead = read(fd, read_char, 1);
+            read_char = (uint8_t*)(buf + *nbytes_read);
+            bytesRead = read(fd, read_char, 1);
 
-        if (bytesRead < 0)
-            return TTY_READ_ERROR;
+            if (bytesRead < 0)
+                return TTY_READ_ERROR;
 
-        if (tty_debug)
-            IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
+            if (tty_debug)
+                IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
-        (*nbytes_read)++;
+            if (!(ttyClrTrailingLF && *read_char == 0X0A && *nbytes_read == 0))
+                (*nbytes_read)++;
+            else {
+                if (tty_debug)
+                    IDLog("%s: Cleared LF char left in buf\n", __FUNCTION__);
+            }
 
-        if (*read_char == stop_char)
-            return TTY_OK;
-        else if (*nbytes_read >= nsize)
-            return TTY_OVERFLOW;
+            if (*read_char == stop_char)
+                return TTY_OK;
+            else if (*nbytes_read >= nsize)
+                return TTY_OVERFLOW;
+        }
     }
 
     return TTY_TIME_OUT;
