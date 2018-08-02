@@ -906,7 +906,7 @@ void LX200_OnStep::getBasicData()
 //======================== Parking =======================
 bool LX200_OnStep::SetCurrentPark()      // Tested
 {
-    char response[32];
+    char response[RB_MAX_LEN];
 
     if(!getCommandString(PortFD, response, ":hQ#"))
         {
@@ -930,7 +930,7 @@ bool LX200_OnStep::SetDefaultPark()      // Tested
 
 bool LX200_OnStep::UnPark()      // Tested
 {
-    char response[32];
+    char response[RB_MAX_LEN];
 
     if (!isSimulation())
     {
@@ -985,8 +985,8 @@ bool LX200_OnStep::Park()      // Tested
 // Periodically Polls OnStep Parameter from controller
 bool LX200_OnStep::ReadScopeStatus()      // Tested
 {
-    char OSbacklashDEC[5];
-    char OSbacklashRA[5];
+    char OSbacklashDEC[RB_MAX_LEN];
+    char OSbacklashRA[RB_MAX_LEN];
     Errors Lasterror = ERR_NONE;
 
     if (isSimulation()) //if Simulation is selected
@@ -1181,7 +1181,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
 
 bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled by inditelescope       Tested
 {
-    char response[32];
+    char response[RB_MAX_LEN];
 
     if (enabled)
     {
@@ -1230,7 +1230,7 @@ bool LX200_OnStep::sendOnStepCommandBlind(const char *cmd)
 
 bool LX200_OnStep::sendOnStepCommand(const char *cmd)      // Tested
 {
-    char response[1];
+    char response[RB_MAX_LEN];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
 
@@ -1304,7 +1304,7 @@ int LX200_OnStep::setSiteLongitude(int fd, double Long)
 {
     //DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
-    char read_buffer[32];
+    char read_buffer[RB_MAX_LEN];
 
     getSexComponents(Long, &d, &m, &s);
 
@@ -1315,7 +1315,7 @@ int LX200_OnStep::setSiteLongitude(int fd, double Long)
 
 bool LX200_OnStep::GetAlignStatus()
 {
-    char msg[40];
+    char msg[RB_MAX_LEN];
     int mx_stars, act_star, nb_stars;
 
     if(getCommandString(PortFD, OSAlignStat, ":A?#"))
@@ -1372,7 +1372,7 @@ bool LX200_OnStep::kdedialog(const char * commande)
 
 void LX200_OnStep::OSUpdateFocuser()
 {
-    char value[10];
+    char value[RB_MAX_LEN];
     if(OSFocuser1)
     {
         getCommandString(PortFD, value, ":FG#");
