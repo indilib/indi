@@ -30,6 +30,8 @@
 #include <termios.h>
 #include <unistd.h>
 
+#define RB_MAX_LEN    64
+
 const int LX200SS2000PC::ShortTimeOut = 2;  // In seconds.
 const int LX200SS2000PC::LongTimeOut  = 10; // In seconds.
 
@@ -163,7 +165,7 @@ bool LX200SS2000PC::isSlewComplete()
 
 bool LX200SS2000PC::getCalendarDate(int &year, int &month, int &day)
 {
-    char date[16];
+    char date[RB_MAX_LEN];
     bool result = (getCommandString(PortFD, date, ":GC#") == 0);
     LOGF_DEBUG("LX200SS2000PC::getCalendarDate():: Date string from telescope: %s", date);
     if (result)
@@ -194,7 +196,7 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
            year, ss_month, ss_day, ss_year);
     if (send_to_skysensor)
     {
-        char buffer[64];
+        char buffer[RB_MAX_LEN];
         int nbytes_written = 0;
 
         snprintf(buffer, sizeof(buffer), ":SC %02d/%02d/%02d#", month, day, (year % 100));
@@ -202,18 +204,18 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
         if (result)
         {
             int nbytes_read = 0;
-            result          = (tty_read(PortFD, buffer, 1, ShortTimeOut, &nbytes_read) == TTY_OK && nbytes_read == 1 &&
+            result          = (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', ShortTimeOut, &nbytes_read) == TTY_OK && nbytes_read == 1 &&
                       buffer[0] == '1');
             if (result)
             {
-                if (tty_read_section(PortFD, buffer, '#', ShortTimeOut, &nbytes_read) != TTY_OK ||
+                if (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', ShortTimeOut, &nbytes_read) != TTY_OK ||
                     strncmp(buffer, "Updating        planetary data#", 24) != 0)
                 {
                     LOGF_ERROR(
                            "LX200SS2000PC::setCalenderDate(): Received unexpected first line '%s'.", buffer);
                     result = false;
                 }
-                else if (tty_read_section(PortFD, buffer, '#', LongTimeOut, &nbytes_read) != TTY_OK &&
+                else if (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', LongTimeOut, &nbytes_read) != TTY_OK &&
                          strncmp(buffer, "                              #", 24) != 0)
                 {
                     LOGF_ERROR(
@@ -233,7 +235,7 @@ bool LX200SS2000PC::setUTCOffset(double offset)
     const bool send_to_skysensor = (getUTCOffset(PortFD, &ss_timezone) != 0 || offset != ss_timezone);
     if (send_to_skysensor)
     {
-        char temp_string[12];
+        char temp_string[RB_MAX_LEN];
         snprintf(temp_string, sizeof(temp_string), ":SG %+03d#", static_cast<int>(offset));
         result = (setStandardProcedure(PortFD, temp_string) == 0);
     }
@@ -261,7 +263,7 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
         return false;
     }
 
-    char slat[32], slong[32];
+    char slat[RB_MAX_LEN], slong[RB_MAX_LEN];
     fs_sexa(slat, latitude, 3, 3600);
     fs_sexa(slong, longitude, 4, 3600);
 
@@ -277,7 +279,7 @@ int LX200SS2000PC::setSiteLatitude(int fd, double Lat)
 {
     int d, m, s;
     char sign;
-    char temp_string[32];
+    char temp_string[RB_MAX_LEN];
 
     if (Lat > 0)
         sign = '+';
@@ -297,7 +299,7 @@ int LX200SS2000PC::setSiteLatitude(int fd, double Lat)
 int LX200SS2000PC::setSiteLongitude(int fd, double Long)
 {
     int d, m, s;
-    char temp_string[32];
+    char temp_string[RB_MAX_LEN];
 
     getSexComponents(Long, &d, &m, &s);
 
