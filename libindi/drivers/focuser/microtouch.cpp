@@ -195,14 +195,7 @@ const char *Microtouch::getDefaultName()
 
 bool Microtouch::Ack()
 {
-    signed short int pos = WriteCmdGetShortInt(CMD_GET_POSITION);
-    if (pos > -1)
-    {
-        FocusAbsPosN[0].value = pos;
-        return true;
-    }
-    else
-        return false;
+    return updatePosition();
 }
 
 bool Microtouch::updateTemperature()
@@ -234,15 +227,15 @@ bool Microtouch::updateTemperature()
 
 bool Microtouch::updatePosition()
 {
-    int pos = (int)WriteCmdGetShortInt(CMD_GET_POSITION);
+    char read[3] = {0};
 
-    if (pos >= 0)
+    if (WriteCmdGetResponse(CMD_GET_POSITION, read, 3))
     {
-        FocusAbsPosN[0].value = (double)pos;
+        FocusAbsPosN[0].value = static_cast<double>(static_cast<uint8_t>(read[2]) << 8 | static_cast<uint8_t>(read[1]));
         return true;
     }
-    else
-        return false;
+
+    return false;
 }
 
 bool Microtouch::updateSpeed()
@@ -781,16 +774,6 @@ bool Microtouch::WriteCmdSetByte(char cmd, char val)
         return false;
     }
     return true;
-}
-
-signed short int Microtouch::WriteCmdGetShortInt(char cmd)
-{
-    char read[3];
-
-    if (WriteCmdGetResponse(cmd, read, 3))
-        return ((unsigned char)read[2] << 8 | (unsigned char)read[1]);
-    else
-        return -1;
 }
 
 bool Microtouch::WriteCmdSetShortInt(char cmd, short int val)
