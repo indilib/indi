@@ -1071,7 +1071,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         }
 
         // We set bulb setting for exposure widget if it is defined by the camera
-        if (gphoto->exposure && gphoto->bulb_exposure_index != -1)
+        if (gphoto->exposure && gphoto->exposure_widget->type != GP_WIDGET_TEXT && gphoto->bulb_exposure_index != -1)
         {
             // If it's not already set to the bulb exposure index
             if (gphoto->bulb_exposure_index != (uint8_t)gphoto->exposure_widget->value.index)
