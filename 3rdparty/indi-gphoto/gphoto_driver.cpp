@@ -652,6 +652,7 @@ static void *stop_bulb(void *arg)
     return nullptr;
 }
 
+#if 0
 static void reset_settings(gphoto_driver *gphoto)
 {
     if (gphoto->iso >= 0)
@@ -663,6 +664,7 @@ static void reset_settings(gphoto_driver *gphoto)
     if (gphoto->exposure_widget)
         gphoto_set_widget_num(gphoto, gphoto->exposure_widget, gphoto->exposure_widget->value.index);
 }
+#endif
 
 int find_bulb_exposure(gphoto_driver *gphoto, gphoto_widget *widget)
 {
