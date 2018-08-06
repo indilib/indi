@@ -26,6 +26,7 @@
 #include <sys/ioctl.h> /* ioctl()*/
 #include <tiffio.h>
 #include <tiffio.hxx>
+#include <cstdlib>
 
 #include <config.h>
 #include <indilogger.h>
