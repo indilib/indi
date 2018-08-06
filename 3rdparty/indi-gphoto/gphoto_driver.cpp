@@ -678,35 +678,44 @@ int find_bulb_exposure(gphoto_driver *gphoto, gphoto_widget *widget)
     return -1;
 }
 
-int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t exptime_usec)
+int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t exptime_usec, bool exact)
 {
-    int i;
     double exptime = exptime_usec / 1e6;
-    int best_idx   = 0;
-    double delta;
+    int best_idx   = -1;
+    double delta = 0;
     double best_match = 99999;
 
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Finding optimal exposure setting for %g seconds in %s (count=%d)...",
                  exptime, widget->name, widget->choice_cnt);
 
-    for (i = 0; i < widget->choice_cnt; i++)
+    for (int i = 0; i < widget->choice_cnt; i++)
     {
         //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Exposure[%d] = %g", i, gphoto->exposure[i]);
         if (gphoto->exposure[i] <= 0)
             continue;
+
         delta = exptime - gphoto->exposure[i];
-        if (delta < 0)
-            delta = -delta;
-        // printf("%d: Comparing %f <> %f (delta: %f)", i, exptime, gphoto->exposure[i], delta);
-        if (delta < best_match)
+        if (exact)
         {
-            best_match = delta;
-            best_idx   = i;
+             if (delta == 0.0)
+                return i;
+        }
+        else
+        {
+            if (delta < 0)
+                delta = -delta;
+            // printf("%d: Comparing %f <> %f (delta: %f)", i, exptime, gphoto->exposure[i], delta);
+            if (delta < best_match)
+            {
+                best_match = delta;
+                best_idx   = i;
+            }
         }
     }
 
-    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Best match: %g seconds Index: %d", gphoto->exposure[best_idx],
-                 best_idx);
+    if (best_idx >= 0)
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Best match: %g seconds Index: %d", gphoto->exposure[best_idx], best_idx);
+
     return best_idx;
 }
 
@@ -1012,8 +1021,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     if (gphoto->format >= 0)
         gphoto_set_widget_num(gphoto, gphoto->format_widget, gphoto->format);
 
-    // Find optimal exposure index in case we need to use it. If -1, we always use blob made if available
-    int optimalExposureIndex = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec);
+    // Find EXACT optimal exposure index in case we need to use it. If -1, we always use blob made if available
+    int optimalExposureIndex = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec, true);
 
     // Set Capture Target
     // JM: 2017-05-21: Disabled now since user can explicity set capture target via the driver interface
@@ -1157,6 +1166,9 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     // If we're using fallback exposure_widget, then it's TEXT, not RADIO
     // libgphoto2 does not provide radio list for some cameras
     // See https://github.com/gphoto/libgphoto2/issues/276
+    if (optimalExposureIndex == -1)
+        optimalExposureIndex = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec, false);
+
     if (optimalExposureIndex == -1)
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_ERROR, "Failed to set non-bulb exposure time.");
