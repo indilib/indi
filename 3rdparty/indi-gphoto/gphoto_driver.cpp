@@ -1251,7 +1251,8 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
         result          = download_image(gphoto, &gphoto->camerapath, fd);
         gphoto->command = 0;
         //Set exposure back to original value
-        reset_settings(gphoto);
+        // JM 2018-08-06: Why do we really need to reset values here?
+        //reset_settings(gphoto);
         pthread_mutex_unlock(&gphoto->mutex);
         return result;
     }
@@ -1287,7 +1288,9 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
             fn     = (CameraFilePath *)data;
             result = download_image(gphoto, fn, fd);
             //Set exposure back to original value
-            reset_settings(gphoto);
+
+            // JM 2018-08-06: Why do we really need to reset values here?
+            //reset_settings(gphoto);
 
             pthread_mutex_unlock(&gphoto->mutex);
             return result;
