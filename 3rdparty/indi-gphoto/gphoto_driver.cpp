@@ -697,7 +697,8 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t
         delta = exptime - gphoto->exposure[i];
         if (exact)
         {
-             if (delta == 0.0)
+             // Close "enough" to be exact
+             if (std::abs(delta) < 0.001)
                 return i;
         }
         else
