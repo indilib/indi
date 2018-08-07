@@ -35,6 +35,7 @@
 
 #include "gphoto_driver.h"
 #include "dsusbdriver.h"
+#include <cmath>
 
 #define EOS_CUSTOMFUNCEX                "customfuncex"
 #define EOS_MIRROR_LOCKUP_ENABLE        "20,1,3,14,1,60f,1,1"
