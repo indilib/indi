@@ -26,7 +26,7 @@
 #include <float.h>
 #include <fftw3.h>
 #include <sys/types.h>
-#include <time.h>
+#include <sys/time.h>
 #include <assert.h>
 #include <pthread.h>
 
