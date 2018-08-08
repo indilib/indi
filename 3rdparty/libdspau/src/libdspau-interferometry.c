@@ -93,7 +93,7 @@ dspau_t* dspau_interferometry_uv_coords(dspau_stream_p stream, dspau_t lambda_m,
     dspau_t freq = (LightSpeed / lambda_m);
     tao /= freq;
     tao *= 1000000000.0;
-    dspau_t current_time = stream->starttimeutc->tv_sec * 1000000000.0 + stream->starttimeutc->tv_nsec;
+    dspau_t current_time = stream->starttimeutc.tv_sec * 1000000000.0 + stream->starttimeutc.tv_nsec;
     for(int i = 0; i < stream->len; i++) {
         current_time = i * tao;
         struct timespec utcthen = dspau_astro_nsectotimespec(current_time);

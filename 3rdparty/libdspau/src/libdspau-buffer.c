@@ -59,7 +59,7 @@ dspau_t* dspau_buffer_normalize(dspau_t* in, int len, dspau_t min, dspau_t max)
 
 dspau_t* dspau_buffer_sub(dspau_t* in1, int len1, dspau_t* in2, int len2)
 {
-    int len = min(len1, len2);
+    int len = Min(len1, len2);
 	int k;
 	for(k = 0; k < len; k++) {
         in1[k] = in1[k] - in2[k];
@@ -69,7 +69,7 @@ dspau_t* dspau_buffer_sub(dspau_t* in1, int len1, dspau_t* in2, int len2)
 
 dspau_t* dspau_buffer_sum(dspau_t* in1, int len1, dspau_t* in2, int len2)
 {
-    int len = min(len1, len2);
+    int len = Min(len1, len2);
 	int k;
 	for(k = 0; k < len; k++) {
         in1[k] = in1[k] + in2[k];
@@ -79,7 +79,7 @@ dspau_t* dspau_buffer_sum(dspau_t* in1, int len1, dspau_t* in2, int len2)
 
 dspau_t* dspau_buffer_div(dspau_t* in1, int len1, dspau_t* in2, int len2)
 {
-    int len = min(len1, len2);
+    int len = Min(len1, len2);
 	int k;
 	for(k = 0; k < len; k++) {
         in1[k] = in1[k] / in2[k];
@@ -89,7 +89,7 @@ dspau_t* dspau_buffer_div(dspau_t* in1, int len1, dspau_t* in2, int len2)
 
 dspau_t* dspau_buffer_mul(dspau_t* in1, int len1, dspau_t* in2, int len2)
 {
-    int len = min(len1, len2);
+    int len = Min(len1, len2);
 	int k;
 	for(k = 0; k < len; k++) {
         in1[k] = in1[k] * in2[k];
@@ -208,7 +208,7 @@ dspau_t* dspau_buffer_histogram(dspau_t* in, int len, int size)
 dspau_t* dspau_buffer_deviate(dspau_t* in1, int len1, dspau_t* in2, int len2, dspau_t mindeviation, dspau_t maxdeviation)
 {
     dspau_t *out = calloc(len1, sizeof(dspau_t));
-    int len = min(len1, len2);
+    int len = Min(len1, len2);
     in2 = dspau_buffer_stretch(in2, len, mindeviation, maxdeviation);
     in2 = dspau_buffer_val_sum(in2, len);
     for(int k = 1; k < len; k++) {

@@ -22,10 +22,10 @@
 dspau_star dspau_align_findstar(dspau_t* in, dspau_rectangle tmpRect, int intensity, int width, int height)
 {
     dspau_star ret;
-    int left = max(0, min(tmpRect.x, tmpRect.x + tmpRect.width));
-    int top = max(0, min(tmpRect.y, tmpRect.y + tmpRect.height));
-    int right = min(tmpRect.width, max(tmpRect.x, tmpRect.x + tmpRect.width));
-    int bottom = min(tmpRect.height, max(tmpRect.y, tmpRect.y + tmpRect.height));
+    int left = Max(0, Min(tmpRect.x, tmpRect.x + tmpRect.width));
+    int top = Max(0, Min(tmpRect.y, tmpRect.y + tmpRect.height));
+    int right = Min(tmpRect.width, Max(tmpRect.x, tmpRect.x + tmpRect.width));
+    int bottom = Min(tmpRect.height, Max(tmpRect.y, tmpRect.y + tmpRect.height));
     int len = (right - left) * (bottom - top);
     dspau_t* tmpBuf = (dspau_t*)calloc(sizeof(dspau_t), len);
     if (len <= 0)
@@ -106,7 +106,7 @@ dspau_star dspau_align_findstar(dspau_t* in, dspau_rectangle tmpRect, int intens
             .x = tmpRect.x + (right - left) / 2 + left,
             .y = tmpRect.y + (bottom - top) / 2 + top,
         },
-        .radius = min(right - left, bottom - top) / 2,
+        .radius = Min(right - left, bottom - top) / 2,
     };
     return ret;
 lost:

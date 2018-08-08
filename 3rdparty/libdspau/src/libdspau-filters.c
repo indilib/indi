@@ -143,10 +143,10 @@ dspau_t* dspau_filter_deviate(dspau_stream_p stream, dspau_stream_p deviation, d
 {
     dspau_t min, max;
     dspau_stats_minmidmax(stream->in, stream->len, &min, &max);
-    int dims = min(stream->dims, deviation->dims);
-    int len = min(stream->len, deviation->len);
+    int dims = Min(stream->dims, deviation->dims);
+    int len = Min(stream->len, deviation->len);
     for(int dim = 0; dim < dims; dim++) {
-        int size = len / min(stream->sizes[dim], deviation->sizes[dim]);
+        int size = len / Min(stream->sizes[dim], deviation->sizes[dim]);
         dspau_t * tmp = calloc(size, sizeof(dspau_t));
         for(int x = 0; x < len; x += size) {
             tmp = dspau_buffer_deviate(stream->in + x, size, deviation->in + x, size, mindeviation, maxdeviation);

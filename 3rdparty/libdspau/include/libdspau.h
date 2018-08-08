@@ -34,15 +34,15 @@
 #define DSPAU_BASE_TYPE double
 #endif
 
-#ifndef min
-#define min(a,b) \
+#ifndef Min
+#define Min(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 #endif
 
-#ifndef max
-#define max(a,b) \
+#ifndef Max
+#define Max(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
@@ -170,7 +170,7 @@ typedef struct {
     void *children;
     int child_count;
     dspau_t latlon[3];
-    struct timespec *starttimeutc;
+    struct timespec starttimeutc;
     pthread_t thread;
     void *(*func) (void *);
 } dspau_stream, *dspau_stream_p;
@@ -524,8 +524,6 @@ DLL_EXPORT dspau_t* dspau_buffer_median(dspau_t* in, int len, int size, int medi
 */
 DLL_EXPORT dspau_t* dspau_buffer_histogram(dspau_t* in, int len, int size);
 
-
-///TODO: Documentation on the following functions
 DLL_EXPORT dspau_t* dspau_buffer_zerofill(dspau_t* out, int len);
 
 DLL_EXPORT dspau_t* dspau_buffer_val_sum(dspau_t* in, int len);

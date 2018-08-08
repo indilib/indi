@@ -12,7 +12,7 @@ find_package(TIFF REQUIRED)
 find_package(FFTW3 REQUIRED)
 find_package(Threads REQUIRED)
 
-add_definitions(-Wall -O2)
+add_definitions(-Wall -O2 -std=gnu99)
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
