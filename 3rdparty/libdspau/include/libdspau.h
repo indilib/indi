@@ -26,7 +26,7 @@
 #include <float.h>
 #include <fftw3.h>
 #include <sys/types.h>
-#include <sys/time.h>
+#include <time.h>
 #include <assert.h>
 #include <pthread.h>
 
@@ -170,7 +170,7 @@ typedef struct {
     void *children;
     int child_count;
     dspau_t latlon[3];
-    struct timespec starttimeutc;
+    struct timespec *starttimeutc;
     pthread_t thread;
     void *(*func) (void *);
 } dspau_stream, *dspau_stream_p;
