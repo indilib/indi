@@ -70,9 +70,9 @@ extern "C" {
 #endif
 
 /* opaque handle types */
-typedef struct _xml_att XMLAtt;
-typedef struct _xml_ele XMLEle;
-typedef struct _LilXML LilXML;
+typedef struct xml_att_ XMLAtt;
+typedef struct xml_ele_ XMLEle;
+typedef struct LilXML_ LilXML;
 
 /**
  * \defgroup lilxmlFunctions XML Functions: Functions to parse, process, and search XML.
