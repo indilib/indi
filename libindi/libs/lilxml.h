@@ -91,9 +91,10 @@ extern LilXML *newLilXML();
 */
 extern void delLilXML(LilXML *lp);
 
-/** \brief Delete an XML element.
-    \return a pointer to the XML Element to be deleted.
-*/
+/**
+ * @brief delXMLEle Delete XML element.
+ * @param e Pointer to XML element to delete. If nullptr, no action is taken.
+ */
 extern void delXMLEle(XMLEle *e);
 
 /** \brief Process an XML chunk.
