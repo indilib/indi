@@ -374,33 +374,34 @@ void RTLSDR::grabData()
 	int len = SAMPLE_RATE * PrimaryDetector.getCaptureDuration();
 	len -= (len % SUBFRAME_SIZE) - SUBFRAME_SIZE;
 	if(len != PrimaryDetector.getContinuumBufferSize()) {
-		PrimaryDetector.setContinuumBufferSize(1); 
+        PrimaryDetector.setContinuumBufferSize(len);
 		continuum = PrimaryDetector.getContinuumBuffer();
 	}
 	to_read = len;
 	b_read = 0;
 	unsigned char *data8 = (unsigned char *)malloc(len * sizeof(unsigned char));
-	double *data48 = (double *)malloc(len * sizeof(double));
-	double *flat48 = (double *)malloc(len * sizeof(double));
-	spectrum = (double *)realloc(spectrum, len * sizeof(double));
+    dspau_stream_p stream = dspau_stream_new();
+    dspau_stream_add_dim(stream, len);
+    spectrum = (double *)realloc(spectrum, 256 * sizeof(double));
 	rtlsdr_reset_buffer(rtl_dev);
 	while(to_read > 0 && b_read < len) {
 		rtlsdr_read_sync(rtl_dev, data8 + b_read, to_read, &n_read);
 		b_read += n_read;
 		to_read = SUBFRAME_SIZE + ((len - b_read) % SUBFRAME_SIZE);
-	}
-	dspau_u8todouble(data8, data48, len);
-	dspau_squarelawfilter(data48, flat48, len);
-	continuum[0] = (unsigned char)dspau_mean(flat48, len);
+    }
+    dspau_convert_from(data8, stream->in, unsigned char, len);
+    stream->out = dspau_filter_squarelaw(stream);
+    dspau_convert_to(stream->out, data8, unsigned char, len);
+    memcpy(continuum, data8, len);
 
         //Create the spectrum
-	dspau_spectrum(data48, spectrum, 1, &len, magnitude_rooted);
+    spectrum = dspau_fft_spectrum(stream, magnitude_root, 256);
 	if(len != PrimaryDetector.getSpectrumBufferSize()) {
 		PrimaryDetector.setSpectrumBufferSize(len, false);
 		PrimaryDetector.setSpectrumBuffer(spectrum);
 	}
-	free(data8);
-	free(data48);
+    free(data8);
+    dspau_stream_free(stream);
 
 	LOG_INFO("Download complete.");
 

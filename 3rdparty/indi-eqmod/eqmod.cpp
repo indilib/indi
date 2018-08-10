@@ -210,8 +210,7 @@ EQMod::EQMod()
 EQMod::~EQMod()
 {
     //dtor
-    if (mount)
-        delete mount;
+    delete mount;
     mount = nullptr;
 }
 
