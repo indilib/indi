@@ -276,8 +276,7 @@ bool RTLSDR::StartCapture(float duration)
 	CaptureRequest = duration;
 
 	// Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
-	PrimaryDetector.setCaptureDuration(duration);
-	PrimaryDetector.setSampleRate(1.0 / duration);
+    PrimaryDetector.setCaptureDuration(duration);
 	gettimeofday(&CapStart, nullptr);
 
 	InCapture = true;
@@ -291,8 +290,7 @@ bool RTLSDR::StartCapture(float duration)
 ***************************************************************************************/
 bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps)
 {
-    	INDI_UNUSED(bps);
-    	INDI_UNUSED(sr);
+        INDI_UNUSED(bps);
 	int r = 0;
 
     r = rtlsdr_set_center_freq(rtl_dev, (uint32_t)freq);
