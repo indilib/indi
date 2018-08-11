@@ -28,6 +28,9 @@
 #include <memory>
 #include <cstring>
 #include <unistd.h>
+#ifndef _WIN32
+#include <termios.h>
+#endif
 
 // We declare an auto pointer to LX200StarGo
 std::unique_ptr<LX200StarGo> telescope;
@@ -106,6 +109,12 @@ void ISSnoopDevice(XMLEle *root)
 LX200StarGo::LX200StarGo()
 {
     setVersion(0, 5);
+    
+    DBG_SCOPE = INDI::Logger::DBG_DEBUG;
+ //   DBG_COMM         = INDI::Logger::getInstance().addDebugLevel("Serial Port", "COMM");
+ //   DBG_MOUNT        = INDI::Logger::getInstance().addDebugLevel("Verbose Mount", "MOUNT");
+
+
     /* missing capabilities
      * TELESCOPE_HAS_TIME:
      *    missing commands
@@ -155,10 +164,15 @@ const char *LX200StarGo::getDefaultName()
 ***************************************************************************************/
 bool LX200StarGo::Handshake()
 {
-    if (getLX200RA(PortFD, &currentRA) != 0)
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if(!sendQuery(":GR#", response))
     {
         LOG_ERROR("Error communication with telescope.");
         return false;
+    }
+    if (f_scansexa(response, &currentRA))
+    {
+        LOGF_ERROR("%s: Unable to parse RA response %s", getDeviceName(), response);
     }
 
     return true;
@@ -244,9 +258,11 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
     return LX200Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool LX200StarGo::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
+bool LX200StarGo::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) 
+{
 
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0) {
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0) 
+    {
 
         // sync home position
         if (!strcmp(name, GuidingSpeedNP.name)) {
@@ -343,12 +359,14 @@ bool LX200StarGo::updateProperties()
         defineSwitch(&MeridianFlipEnabledSP);
         defineSwitch(&MeridianFlipForcedSP);
 
-        if (queryFirmwareInfo(firmwareInfo)) {
+        if (queryFirmwareInfo(firmwareInfo)) 
+        {
             MountFirmwareInfoT[0].text = firmwareInfo;
             defineText(&MountInfoTP);
         }
         bool isParked, isSynched;
-        if (queryParkSync(&isParked, &isSynched)) {
+        if (queryParkSync(&isParked, &isSynched)) 
+        {
             SetParked(isParked);
             if (isSynched) {
                 SyncHomeS[0].s = ISS_ON;
@@ -357,16 +375,20 @@ bool LX200StarGo::updateProperties()
             }
         }
         bool isEnabled;
-        if (queryGetST4Status(&isEnabled)) {
+        if (queryGetST4Status(&isEnabled)) 
+        {
             ST4StatusS[0].s = isEnabled ? ISS_OFF : ISS_ON;
             ST4StatusS[1].s = isEnabled ? ISS_ON : ISS_OFF;
             ST4StatusSP.s = IPS_OK;
-        } else {
+        } 
+        else 
+        {
             ST4StatusSP.s = IPS_ALERT;
         }
         IDSetSwitch(&ST4StatusSP, nullptr);
 
-        if (queryGetMeridianFlipEnabledStatus(&isEnabled)) {
+        if (queryGetMeridianFlipEnabledStatus(&isEnabled)) 
+        {
             MeridianFlipEnabledS[0].s = isEnabled ? ISS_ON  : ISS_OFF;
             MeridianFlipEnabledS[1].s = isEnabled ? ISS_OFF : ISS_ON;
             MeridianFlipEnabledSP.s = IPS_OK;
@@ -376,7 +398,8 @@ bool LX200StarGo::updateProperties()
         IDSetSwitch(&MeridianFlipEnabledSP, nullptr);
 
         int raSpeed, decSpeed;
-        if (queryGetGuidingSpeeds(&raSpeed, &decSpeed)) {
+        if (queryGetGuidingSpeeds(&raSpeed, &decSpeed)) 
+        {
             GuidingSpeedP[0].value = static_cast<double>(raSpeed) / 100.0;
             GuidingSpeedP[1].value = static_cast<double>(decSpeed) / 100.0;
             GuidingSpeedNP.s = IPS_OK;
@@ -443,22 +466,33 @@ bool LX200StarGo::ReadScopeStatus()
 
     // update meridian flip status
     bool isEnabled;
-    if (queryGetMeridianFlipForcedStatus(&isEnabled)) {
+    if (queryGetMeridianFlipForcedStatus(&isEnabled)) 
+    {
         MeridianFlipForcedS[0].s = isEnabled ? ISS_OFF : ISS_ON;
         MeridianFlipForcedS[1].s = isEnabled ? ISS_ON : ISS_OFF;
         MeridianFlipForcedSP.s = IPS_OK;
-    } else {
+    } 
+    else 
+    {
         MeridianFlipForcedSP.s = IPS_ALERT;
     }
     IDSetSwitch(&MeridianFlipForcedSP, nullptr);
 
     UpdateMotionStatus();
-
-    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    int ret = sendQuery(":GR#", response);
+    if (f_scansexa(response, &currentRA))
     {
+        LOGF_ERROR("%s: Unable to parse response %s.%d", getDeviceName(), response, ret);
         EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
-        return false;
+        IDSetNumber(&EqNP, "Error reading RA.");
+    }
+    ret = sendQuery(":GD#", response);
+    if (f_scansexa(response, &currentDEC))
+    {
+        LOGF_ERROR("%s: Unable to parse response %s.", getDeviceName(), response);
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error reading DEC.");
     }
 
     NewRaDec(currentRA, currentDEC);
@@ -469,9 +503,11 @@ bool LX200StarGo::ReadScopeStatus()
 **
 ***************************************************************************************/
 
-bool LX200StarGo::isIdle() {
-    int motorsState, speedState, nrTrackingSpeed;
-    queryMountMotionState(&motorsState, &speedState, &nrTrackingSpeed);
+bool LX200StarGo::isIdle() 
+{
+//    int motorsState, speedState, nrTrackingSpeed;
+//    queryMountMotionState(&motorsState, &speedState, &nrTrackingSpeed);
+    queryMountMotionState();
 
     return (speedState == 0);
 }
@@ -487,18 +523,21 @@ bool LX200StarGo::isSlewComplete()
 ***************************************************************************************/
 
 
-bool LX200StarGo::UpdateMotionStatus() {
+bool LX200StarGo::UpdateMotionStatus() 
+{
 
-    int motorsState, speedState, nrTrackingSpeed = -1;
+//    int motorsState, speedState, nrTrackingSpeed = -1;
     bool result;
 
-    result = queryMountMotionState(&motorsState, &speedState, &nrTrackingSpeed);
+//    result = queryMountMotionState(&motorsState, &speedState, &nrTrackingSpeed);
+    result = queryMountMotionState();
     if (result) UpdateMotionStatus(motorsState, speedState, nrTrackingSpeed);
 
     return result;
 }
 
-void LX200StarGo::UpdateMotionStatus(int motorsState, int speedState, int nrTrackingSpeed) {
+void LX200StarGo::UpdateMotionStatus(int motorsState, int speedState, int nrTrackingSpeed) 
+{
 
     // m = 0 both motors are OFF (no power)
     // m = 1 RA motor OFF DEC motor ON
@@ -624,7 +663,7 @@ void LX200StarGo::UpdateMotionStatus(int motorsState, int speedState, int nrTrac
 bool LX200StarGo::syncHomePosition()
 {
     char input[12], cmd[12];
-    int result = TTY_OK;
+//    int result = TTY_OK;
     if (!getLST_String(input)) {
         LOG_WARN("Synching home position failed.");
         SyncHomeSP.s = IPS_ALERT;
@@ -632,10 +671,9 @@ bool LX200StarGo::syncHomePosition()
     }
 
     sprintf(cmd, ":X31%s#", input);
-
-    result = setStandardProcedure(PortFD, cmd);
-
-    if (result == TTY_OK)
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    
+    if (sendQuery(cmd, response))
     {
         LOGF_INFO("%s: Synching home position succeeded.", getDeviceName());
         SyncHomeSP.s = IPS_OK;
@@ -643,21 +681,27 @@ bool LX200StarGo::syncHomePosition()
     {
         LOG_WARN("Synching home position failed.");
         SyncHomeSP.s = IPS_ALERT;
+        return false;
     }
     IDSetSwitch(&SyncHomeSP, nullptr);
-    return (result == TTY_OK);
+    return true; //(result == TTY_OK);
+
 }
 
 /**************************************************************************************
 * @author CanisUrsa
 ***************************************************************************************/
 
-bool LX200StarGo::slewToHome(ISState* states, char* names[], int n) {
+bool LX200StarGo::slewToHome(ISState* states, char* names[], int n) 
+{
     IUUpdateSwitch(&MountGotoHomeSP, states, names, n);
-    if (querySendMountGotoHome()) {
+    if (querySendMountGotoHome()) 
+    {
         MountGotoHomeSP.s = IPS_BUSY;
         TrackState = SCOPE_SLEWING;
-    } else {
+    } 
+    else 
+    {
         MountGotoHomeSP.s = IPS_ALERT;
     }
     MountGotoHomeS[0].s = ISS_OFF;
@@ -668,7 +712,8 @@ bool LX200StarGo::slewToHome(ISState* states, char* names[], int n) {
 }
 
 
-bool LX200StarGo::setParkPosition(ISState* states, char* names[], int n) {
+bool LX200StarGo::setParkPosition(ISState* states, char* names[], int n) 
+{
     IUUpdateSwitch(&MountSetParkSP, states, names, n);
     MountSetParkSP.s = querySendMountSetPark() ? IPS_OK : IPS_ALERT;
     MountSetParkS[0].s = ISS_OFF;
@@ -684,11 +729,11 @@ void LX200StarGo::getBasicData()
 {
     if (!isSimulation())
     {
-        checkLX200Format(PortFD);
+//        checkLX200Format(PortFD);
+        checkLX200Format();
 
         if (genericCapability & LX200_HAS_ALIGNMENT_TYPE)
             getAlignment();
-
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
         {
@@ -697,7 +742,6 @@ void LX200StarGo::getBasicData()
             else
                 IDSetNumber(&TrackingFreqNP, nullptr);
         }
-
     }
 
     if (sendLocationOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_LOCATION))
@@ -709,25 +753,20 @@ void LX200StarGo::getBasicData()
 /**************************************************************************************
 * @author CanisUrsa
 ***************************************************************************************/
-bool LX200StarGo::querySendMountGotoHome() {
+bool LX200StarGo::querySendMountGotoHome() 
+{
     // Command  - :X361#
     // Response - pA#
     //            :Z1303#
     //            p0#
     //            :Z1003#
     //            p0#
-    flush();
-    if (!transmit(":X361#")) {
+    char response[AVALON_COMMAND_BUFFER_LENGTH] = {0};
+    if (!sendQuery(":X361#", response)) {
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send mount goto home command.", getDeviceName());
         return false;
     }
-    char response[AVALON_COMMAND_BUFFER_LENGTH] = {0};
-    int bytesReceived = 0;
-    if (!receive(response, &bytesReceived)) {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to receive mount goto home response.", getDeviceName());
-        return false;
-    }
-    if (strcmp(response, "pA#") != 0) {
+    if (strcmp(response, "pA") != 0) {
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: Invalid mount sync goto response '%s'.", getDeviceName(), response);
         return false;
     }
@@ -745,12 +784,12 @@ bool LX200StarGo::sendScopeLocation()
     }
 
     double siteLat = 0.0, siteLong = 0.0;
-    if (getSiteLatitude(&siteLat) != TTY_OK)
+    if (!getSiteLatitude(&siteLat))
     {
         LOG_WARN("Failed to get site latitude from device.");
         return false;
     }
-    if (getSiteLongitude(&siteLong) != TTY_OK)
+    if (!getSiteLongitude(&siteLong))
     {
         LOG_WARN("Failed to get site longitude from device.");
         return false;
@@ -804,8 +843,19 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
  * StarGo returns the location in arc seconds precision.
  */
 
-int LX200StarGo::getSiteLatitude(double *siteLat) {
-    return getCommandSexa(PortFD, siteLat, ":Gt#");
+bool LX200StarGo::getSiteLatitude(double *siteLat) 
+{
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (!sendQuery(":Gt#", response)) {
+        LOGF_ERROR("%s: Failed to send query get Site Latitude command.", getDeviceName());
+        return false;
+    }
+    if (f_scansexa(response, siteLat))
+    {
+        LOGF_ERROR("%s: Unable to parse get Site Latitude response.", getDeviceName());
+        return false;
+    }
+    return true;
 }
 
 /*
@@ -813,8 +863,19 @@ int LX200StarGo::getSiteLatitude(double *siteLat) {
  * StarGo returns the location in arc seconds precision.
  */
 
-int LX200StarGo::getSiteLongitude(double *siteLong) {
-    return getCommandSexa(PortFD, siteLong, ":Gg#");
+bool LX200StarGo::getSiteLongitude(double *siteLong) 
+{
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (!sendQuery(":Gg#", response)) {
+        LOGF_ERROR("%s: Failed to send query get Site Longitude command.", getDeviceName());
+        return false;
+    }
+    if (f_scansexa(response, siteLong))
+    {
+        LOGF_ERROR("%s: Unable to parse get Site Longitude response.", getDeviceName());
+        return false;
+    }
+    return true;
 }
 
 
@@ -822,23 +883,24 @@ int LX200StarGo::getSiteLongitude(double *siteLong) {
 **
 ***************************************************************************************/
 
-bool LX200StarGo::Park() {
+bool LX200StarGo::Park() 
+{
     // in: :X362#
     // out: "pB#"
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    if (sendQuery(":X362#", response) && strcmp(response, "pB#") == 0) {
+    if (sendQuery(":X362#", response) && strcmp(response, "pB") == 0) 
+    {
         LOGF_INFO("%s: Parking scope...", getDeviceName());
-
         // update state
         TrackState = SCOPE_PARKING;
         return true;
-    } else {
+    } 
+    else 
+    {
         LOGF_ERROR("%s: Parking failed.", getDeviceName());
         return false;
     }
-
-
 }
 
 /**
@@ -847,7 +909,8 @@ bool LX200StarGo::Park() {
  * @param isparked true iff the scope has been parked
  * @return
  */
-void LX200StarGo::SetParked(bool isparked) {
+void LX200StarGo::SetParked(bool isparked) 
+{
     INDI::Telescope::SetParked(isparked);
 
     TrackState = isparked ? SCOPE_PARKED : SCOPE_TRACKING;
@@ -860,7 +923,8 @@ void LX200StarGo::SetParked(bool isparked) {
     IDSetLight(&MountParkingStatusLP, nullptr);
 }
 
-bool LX200StarGo::UnPark() {
+bool LX200StarGo::UnPark() 
+{
     // in: :X370#
     // out: "p0#"
 
@@ -884,7 +948,8 @@ bool LX200StarGo::UnPark() {
 
     // and now execute unparking
     response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    if (sendQuery(":X370#", response) && strcmp(response, "p0#") == 0) {
+    if (sendQuery(":X370#", response) && strcmp(response, "p0") == 0) 
+    {
         LOGF_INFO("%s: Scope Unparked.", getDeviceName());
         TrackState = SCOPE_TRACKING;
         SetParked(false);
@@ -893,11 +958,12 @@ bool LX200StarGo::UnPark() {
         IDSetLight(&MountParkingStatusLP, nullptr);
 
         return true;
-    } else {
+    } 
+    else 
+    {
         LOGF_ERROR("%s: Unpark failed.", getDeviceName());
         return false;
     }
-
 }
 
 /**
@@ -905,13 +971,14 @@ bool LX200StarGo::UnPark() {
  * @return LST value for the current scope locateion
  */
 
-bool LX200StarGo::getLST_String(char* input) {
+bool LX200StarGo::getLST_String(char* input) 
+{
     double siteLong;
 
     // step one: determine site longitude
-    if (getSiteLongitude(&siteLong) != TTY_OK)
+    if (!getSiteLongitude(&siteLong))
     {
-        LOG_WARN("Failed to get site latitude from device.");
+        LOG_WARN("getLST Failed to get site Longitude from device.");
         return false;
     }
 
@@ -925,7 +992,6 @@ bool LX200StarGo::getLST_String(char* input) {
 
     sprintf(input, "%02d%02d%02d", h, m, s);
     return true;
-
 }
 
 
@@ -952,35 +1018,59 @@ bool LX200StarGo::saveConfigItems(FILE *fp)
  * @param response answer
  * @return true if the command succeeded, false otherwise
  */
-bool LX200StarGo::sendQuery(const char* cmd, char* response) {
+bool LX200StarGo::sendQuery(const char* cmd, char* response, bool wait) 
+{
+    LOGF_INFO("%s: Sendquery %s", getDeviceName(), cmd);
+    motorsState = speedState = nrTrackingSpeed = 0;
+    response[0] = '\0';
+    char lresponse[AVALON_RESPONSE_BUFFER_LENGTH];
+    int lbytes=0;
+    lresponse [0] = '\0';
+    while (receive(lresponse, &lbytes, false)) 
+    {
+        LOGF_INFO("%s: Found unflushed response %s", getDeviceName(), lresponse);
+        lbytes=0;
+        if(sscanf(response, ":Z1%01d%01d%01d", &motorsState, &speedState, &nrTrackingSpeed)==3)
+        {
+            LOGF_INFO("%s: Mount motion state response", getDeviceName());            
+        } 
+        lresponse [0] = '\0';
+    }
     flush();
-    if(!transmit(cmd)) {
+    if(!transmit(cmd)) 
+    {
         LOGF_ERROR("%s: query <%s> failed.", getDeviceName(), cmd);
         return false;
     }
-    int bytesReceived = 0;
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive response to <%s>.", getDeviceName(), cmd);
-        return false;
+    lresponse[0] = '\0';
+    bool lwait = wait;
+    while (receive(lresponse, &lbytes, lwait)) 
+    {
+        LOGF_INFO("%s: Found response %s", getDeviceName(), lresponse);
+        lbytes=0;
+        if(sscanf(response, ":Z1%01d%01d%01d", &motorsState, &speedState, &nrTrackingSpeed)==3)
+        {
+            LOGF_INFO("%s: Mount motion state response", getDeviceName());            
+        } 
+        lwait = false;
     }
+    flush();
+    strcpy(response, lresponse);
     return true;
 }
 
-bool LX200StarGo::querySendMountSetPark() {
+bool LX200StarGo::querySendMountSetPark() 
+{
     // Command  - :X352#
     // Response - 0#
-    flush();
-    if (!transmit(":X352#")) {
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (!sendQuery(":X352#", response)) 
+    {
         LOGF_ERROR("%s: Failed to send mount set park position command.", getDeviceName());
         return false;
     }
-    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    int bytesReceived = 0;
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive mount set park position response.", getDeviceName());
-        return false;
-    }
-    if (response[0] != '0') {
+    if (response[0] != '0') 
+    {
         LOGF_ERROR("%s: Invalid mount set park position response '%s'.", getDeviceName(), response);
         return false;
     }
@@ -1007,7 +1097,8 @@ bool LX200StarGo::querySetSiteLongitude(double longitude)
 
     LOGF_DEBUG("%s: Sending set site longitude request '%s'", getDeviceName(), command);
 
-    bool result = setStandardProcedureAvalon(command, 500);
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    bool result = sendQuery(command, response);
 
     return (result);
 }
@@ -1029,7 +1120,8 @@ bool LX200StarGo::querySetSiteLatitude(double Lat)
 
     LOGF_DEBUG("%s: Sending set site latitude request '%s'", getDeviceName(), command);
 
-    return (setStandardProcedureAvalon(command, 500));
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    return (sendQuery(command, response));
 }
 
 /**
@@ -1049,21 +1141,13 @@ bool LX200StarGo::queryIsSlewComplete()
     //    x (y) = 4 motor x (y) moving at low speed to refine
     //    x (y) = 5 motor x (y) movig at high speed to target
 
-    flush();
-    if (!transmit(":X34#")) {
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (!sendQuery(":X34#", response)) {
         LOGF_ERROR("%s: Failed to send query slewing state command.", getDeviceName());
         return false;
     }
-    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    int bytesReceived = 0;
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive query slewing state response.", getDeviceName());
-        return false;
-    }
-    flush();
-
     int x, y;
-    int returnCode = sscanf(response, "m%01d%01d#", &x, &y);
+    int returnCode = sscanf(response, "m%01d%01d", &x, &y);
     if (returnCode <= 0) {
        LOGF_ERROR("%s: Failed to parse query slewing state response '%s'.", getDeviceName(), response);
        return false;
@@ -1074,8 +1158,6 @@ bool LX200StarGo::queryIsSlewComplete()
     return (x < 2 && y < 2);
 }
 
-
-
 /**
  * @brief Query the motion state of the mount.
  * @param motorsState - tracking status of RA and DEC motor
@@ -1084,24 +1166,17 @@ bool LX200StarGo::queryIsSlewComplete()
  * @param nrTrackingSpeed
  * @return true if the command succeeded, false otherwise
  */
-bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed) {
+//bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed) 
+bool LX200StarGo::queryMountMotionState() 
+{
     // Command  - :X3C#
-
-    flush();
-    if (!transmit(":X3C#")) {
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (!sendQuery(":X3C#", response)) {
         LOGF_ERROR("%s: Failed to send query mount motion state command.", getDeviceName());
         return false;
     }
-    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    int bytesReceived = 0;
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive query mount motion state response.", getDeviceName());
-        return false;
-    }
-    flush();
-    return parseMotionState(response, motorsState, speedState, nrTrackingSpeed);
+    return true; //parseMotionState(response, motorsState, speedState, nrTrackingSpeed);
 }
-
 
 /**
  * @brief Parse the motion state response string :Z1mmssnn#
@@ -1111,12 +1186,15 @@ bool LX200StarGo::queryMountMotionState(int* motorsState, int* speedState, int* 
  * @param nrTrackingSpeed tracking speed
  * @return true iff parsing succeeded
  */
-bool LX200StarGo::parseMotionState (char* response, int* motorsState, int* speedState, int* nrTrackingSpeed) {
+/*
+bool LX200StarGo::parseMotionState (char* response, int* motorsState, int* speedState, int* nrTrackingSpeed) 
+{
     int tempMotorsState = 0;
     int tempSpeedState = 0;
     int tempNrTrackingSpeed = 0;
     int returnCode = sscanf(response, ":Z1%01d%01d%01d", &tempMotorsState, &tempSpeedState, &tempNrTrackingSpeed);
-    if (returnCode <= 0) {
+    if (returnCode <= 0) 
+    {
        LOGF_ERROR("%s: Failed to parse query mount motion state response '%s'.", getDeviceName(), response);
        return false;
     }
@@ -1125,32 +1203,28 @@ bool LX200StarGo::parseMotionState (char* response, int* motorsState, int* speed
     (*nrTrackingSpeed) = tempNrTrackingSpeed;
     return true;
 }
-
+*/
 /**
  * @brief Check whether the mount is synched or parked.
  * @param enable if true, tracking is enabled
  * @return true if the command succeeded, false otherwise
  */
-bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched) {
+bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched) 
+{
     // Command   - :X38#
     // Answer unparked         - p0
     // Answer at home position - p1
     // Answer parked           - p2
 
-    int bytesReceived = 0;
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-
-    flush();
-    if (!transmit(":X38#")) {
+    if (!sendQuery(":X38#", response)) 
+    {
         LOGF_ERROR("%s: Failed to send get parking status request.", getDeviceName());
         return false;
     }
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive get parking status response.", getDeviceName());
-        return false;
-    }
     int answer = 0;
-    if (! sscanf(response, "p%01d", &answer)) {
+    if (! sscanf(response, "p%01d", &answer)) 
+    {
         LOGF_ERROR("%s: Unexpected parking status response '%s'.", getDeviceName(), response);
         return false;
     }
@@ -1163,12 +1237,14 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched) {
     return true;
 }
 
-bool LX200StarGo::querySetTracking (bool enable) {
+bool LX200StarGo::querySetTracking (bool enable) 
+{
     // Command tracking on  - :X122#
     //         tracking off - :X120#
 
-    flush();
-    if (! transmit(enable ? ":X122#" : ":X120#")) {
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (! sendQuery(enable ? ":X122#" : ":X120#", response)) 
+    {
         LOGF_ERROR("%s: Failed to send query for %s tracking.", getDeviceName(), enable ? "enable" : "disable");
         return false;
     }
@@ -1180,25 +1256,22 @@ bool LX200StarGo::querySetTracking (bool enable) {
  * @param isEnabled - true iff the ST4 port is enabled
  * @return
  */
-bool LX200StarGo::queryGetST4Status (bool *isEnabled) {
+bool LX200StarGo::queryGetST4Status (bool *isEnabled) 
+{
     // Command query ST4 status  - :TTGFh#
     //         response enabled  - vh1
     //                  disabled - vh0
 
-    int bytesReceived = 0;
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
 
-    flush();
-    if (!transmit(":TTGFh#")) {
+    if (!sendQuery(":TTGFh#", response)) 
+    {
         LOGF_ERROR("%s: Failed to send query ST4 status request.", getDeviceName());
         return false;
     }
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive query ST4 status response.", getDeviceName());
-        return false;
-    }
     int answer = 0;
-    if (! sscanf(response, "vh%01d", &answer)) {
+    if (! sscanf(response, "vh%01d", &answer)) 
+    {
         LOGF_ERROR("%s: Unexpected ST4 status response '%s'.", getDeviceName(), response);
         return false;
     }
@@ -1213,25 +1286,21 @@ bool LX200StarGo::queryGetST4Status (bool *isEnabled) {
  * @param decSpeed percenage for DEC axis
  * @return
  */
-bool LX200StarGo::queryGetGuidingSpeeds (int *raSpeed, int *decSpeed) {
+bool LX200StarGo::queryGetGuidingSpeeds (int *raSpeed, int *decSpeed) 
+{
     // Command query guiding speeds  - :X22#
     //         response              - rrbdd#
     //         rr RA speed percentage, dd DEC speed percentage
 
-    int bytesReceived = 0;
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
 
-    flush();
-    if (!transmit(":X22#")) {
+    if (!sendQuery(":X22#", response)) 
+    {
         LOGF_ERROR("%s: Failed to send query guiding speeds request.", getDeviceName());
         return false;
     }
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive query guiding speeds response.", getDeviceName());
-        return false;
-    }
-
-    if (! sscanf(response, "%02db%2d", raSpeed, decSpeed)) {
+    if (! sscanf(response, "%02db%2d", raSpeed, decSpeed)) 
+    {
         LOGF_ERROR("%s: Unexpected guiding speed response '%s'.", getDeviceName(), response);
         return false;
     }
@@ -1246,31 +1315,35 @@ bool LX200StarGo::queryGetGuidingSpeeds (int *raSpeed, int *decSpeed) {
  * @param decSpeed percenage for DEC axis
  * @return
  */
-bool LX200StarGo::setGuidingSpeeds (int raSpeed, int decSpeed) {
+bool LX200StarGo::setGuidingSpeeds (int raSpeed, int decSpeed) 
+{
     // in RA guiding speed  -  :X20rr#
     // in DEC guiding speed - :X21dd#
 
     char cmd[AVALON_COMMAND_BUFFER_LENGTH];
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
 
     sprintf(cmd, ":X20%2d#", raSpeed);
-
-    flush();
-    if (transmit(cmd)) {
+    if (sendQuery(cmd, response)) 
+    {
         LOGF_INFO("Setting RA speed to %2d%%.", raSpeed);
-    } else {
+    } 
+    else 
+    {
         LOGF_ERROR("Setting RA speed to %2d %% FAILED", raSpeed);
         return false;
     }
 
     sprintf(cmd, ":X21%2d#", decSpeed);
-
-    if (transmit(cmd)) {
+    if (sendQuery(cmd, response)) 
+    {
         LOGF_INFO("Setting DEC speed to %2d%%.", decSpeed);
-    } else {
+    } 
+    else 
+    {
         LOGF_ERROR("Setting DEC speed to %2d%% FAILED", decSpeed);
         return false;
     }
-
     return true;
 }
 
@@ -1280,19 +1353,21 @@ bool LX200StarGo::setGuidingSpeeds (int raSpeed, int decSpeed) {
  * @return
  */
 
-bool LX200StarGo::setST4Enabled(bool enabled) {
+bool LX200StarGo::setST4Enabled(bool enabled) 
+{
 
     const char *cmd = enabled ? ":TTSFh#" : ":TTRFh#";
-
-    flush();
-    if (setStandardProcedureAvalon(cmd, 0)) {
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (sendQuery(cmd, response)) 
+    {
         LOG_INFO(enabled ? "ST4 port enabled." : "ST4 port disabled.");
         return true;
-    } else {
+    } 
+    else 
+    {
         LOG_ERROR("Setting ST4 port FAILED");
         return false;
     }
-
 }
 
 /**
@@ -1300,25 +1375,20 @@ bool LX200StarGo::setST4Enabled(bool enabled) {
  * @param isEnabled - true iff flip is enabled
  * @return true iff check succeeded
  */
-bool LX200StarGo::queryGetMeridianFlipEnabledStatus (bool *isEnabled) {
+bool LX200StarGo::queryGetMeridianFlipEnabledStatus (bool *isEnabled) 
+{
     // Command query meridian flip enabled status  - :TTGFs#
     //                           response enabled  - vs0
     //                                    disabled - vs1
-
-    int bytesReceived = 0;
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-
-    flush();
-    if (!transmit(":TTGFs#")) {
+    if (!sendQuery(":TTGFs#", response)) 
+    {
         LOGF_ERROR("%s: Failed to send query meridian flip enabled status request.", getDeviceName());
         return false;
     }
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive query meridian flip enabled status response.", getDeviceName());
-        return false;
-    }
     int answer = 0;
-    if (! sscanf(response, "vs%01d", &answer)) {
+    if (! sscanf(response, "vs%01d", &answer)) 
+    {
         LOGF_ERROR("%s: Unexpected meridian flip enabled status response '%s'.", getDeviceName(), response);
         return false;
     }
@@ -1332,21 +1402,26 @@ bool LX200StarGo::queryGetMeridianFlipEnabledStatus (bool *isEnabled) {
  * @param enabled - setting enabled iff true
  * @return
  */
-bool LX200StarGo::setMeridianFlipEnabled(bool enabled) {
+bool LX200StarGo::setMeridianFlipEnabled(bool enabled) 
+{
 
     const char *cmd = enabled ? ":TTRFs#" : ":TTSFs#";
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    bool success = sendQuery(cmd, response);
 
-    flush();
-    bool success = setStandardProcedureAvalon(cmd, 0);
-
-    if (success){
-        if (enabled) LOG_INFO(enabled ? "Meridian flip enabled." : "Meridian flip disabled.");
-        else LOG_WARN("Meridian flip disabled. BE CAREFUL, THIS MAY CAUSE DAMAGE TO YOUR MOUNT!");
+    if (success)
+    {
+        if (enabled) 
+            LOG_INFO(enabled ? "Meridian flip enabled." : "Meridian flip disabled.");
+        else 
+            LOG_WARN("Meridian flip disabled. BE CAREFUL, THIS MAY CAUSE DAMAGE TO YOUR MOUNT!");
 
         MeridianFlipEnabledS[0].s = enabled ? ISS_ON  : ISS_OFF;
         MeridianFlipEnabledS[1].s = enabled ? ISS_OFF : ISS_ON;
         MeridianFlipEnabledSP.s = IPS_OK;
-    } else {
+    } 
+    else 
+    {
         LOG_ERROR("Setting Meridian flip FAILED");
         MeridianFlipEnabledSP.s = IPS_ALERT;
     }
@@ -1361,25 +1436,21 @@ bool LX200StarGo::setMeridianFlipEnabled(bool enabled) {
  * @param isEnabled - true iff forcing flip is enabled
  * @return true iff check succeeded
  */
-bool LX200StarGo::queryGetMeridianFlipForcedStatus (bool *isEnabled) {
+bool LX200StarGo::queryGetMeridianFlipForcedStatus (bool *isEnabled) 
+{
     // Command query meridian flip enabled status  - :TTGFd#
     //                           response enabled  - vd1
     //                                    disabled - vd0
 
-    int bytesReceived = 0;
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-
-    flush();
-    if (!transmit(":TTGFd#")) {
+    if (!sendQuery(":TTGFd#", response)) 
+    {
         LOGF_ERROR("%s: Failed to send query meridian flip forced status request.", getDeviceName());
         return false;
     }
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive query meridian flip forced status response.", getDeviceName());
-        return false;
-    }
     int answer = 0;
-    if (! sscanf(response, "vd%01d", &answer)) {
+    if (! sscanf(response, "vd%01d", &answer)) 
+    {
         LOGF_ERROR("%s: Unexpected meridian flip forced status response '%s'.", getDeviceName(), response);
         return false;
     }
@@ -1393,21 +1464,23 @@ bool LX200StarGo::queryGetMeridianFlipForcedStatus (bool *isEnabled) {
  * @param enabled - setting enabled iff true
  * @return
  */
-bool LX200StarGo::setMeridianFlipForced(bool enabled) {
-
+bool LX200StarGo::setMeridianFlipForced(bool enabled) 
+{
     const char *cmd = enabled ? ":TTSFd#" : ":TTRFd#";
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    bool success = sendQuery(cmd, response);
 
-    flush();
-    bool success = setStandardProcedureAvalon(cmd, 0);
-
-    if (success){
+    if (success)
+    {
         if (enabled) LOG_WARN("Meridian flip forced. BE CAREFUL, THIS MAY CAUSE DAMAGE TO YOUR MOUNT!");
         else LOG_INFO("Meridian flip automatic.");
 
         MeridianFlipForcedS[0].s = enabled ? ISS_OFF : ISS_ON;
         MeridianFlipForcedS[1].s = enabled ? ISS_ON : ISS_OFF;
         MeridianFlipForcedSP.s = IPS_OK;
-    } else {
+    } 
+    else 
+    {
         LOG_ERROR("Forcing Meridian flip FAILED");
         MeridianFlipForcedSP.s = IPS_ALERT;
     }
@@ -1420,43 +1493,39 @@ bool LX200StarGo::setMeridianFlipForced(bool enabled) {
  * @brief Retrieve pier side of the mount and sync it back to the client
  * @return true iff synching succeeds
  */
-bool LX200StarGo::syncSideOfPier() {
+bool LX200StarGo::syncSideOfPier() 
+{
     // Command query side of pier - :X39#
     //         side unknown       - PX#
     //         east pointing west - PE#
     //         west pointing east - PW#
 
-    int bytesReceived = 0;
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-
-
-    if (!transmit(":X39#")) {
+    if (!sendQuery(":X39#", response))
+    {
         LOGF_ERROR("%s: Failed to send query pier side.", getDeviceName());
         return false;
     }
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive query pier side.", getDeviceName());
-        return false;
-    }
-
     char answer;
 
-    if (! sscanf(response, "P%c#", &answer)) {
+    if (! sscanf(response, "P%c", &answer)) 
+    {
         LOGF_ERROR("%s: Unexpected query pier side response '%s'.", getDeviceName(), response);
         return false;
     }
 
-    switch (answer) {
+    switch (answer) 
+    {
     case 'X':
         LOGF_DEBUG("%s: Detected pier side unknown.", getDeviceName());
         setPierSide(INDI::Telescope::PIER_UNKNOWN);
         break;
-    case 'E':
+    case 'W':
         // seems to be vice versa
         LOGF_DEBUG("%s: Detected pier side west.", getDeviceName());
         setPierSide(INDI::Telescope::PIER_WEST);
         break;
-    case 'W':
+    case 'E':
         LOGF_DEBUG("%s: Detected pier side east.", getDeviceName());
         setPierSide(INDI::Telescope::PIER_EAST);
         break;
@@ -1465,7 +1534,6 @@ bool LX200StarGo::syncSideOfPier() {
     }
 
     return true;
-
 }
 
 /**
@@ -1473,50 +1541,37 @@ bool LX200StarGo::syncSideOfPier() {
  * @param firmwareInfo - firmware description
  * @return
  */
-bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo) {
+bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo) 
+{
 
-    int bytesReceived = 0;
     std::string infoStr;
     char manufacturer[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
 
     // step 1: retrieve manufacturer
-    flush();
-    if (!transmit(":GVP#")) {
+    if (!sendQuery(":GVP#", manufacturer))
+    {
         LOGF_ERROR("%s: Failed to send get manufacturer request.", getDeviceName());
         return false;
     }
-    if (!receive(manufacturer, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive get manufacturer response.", getDeviceName());
-        return false;
-    }
-    // Replace # with \0
-    infoStr.assign(manufacturer, bytesReceived - 1);
-    flush();
+    infoStr.assign(manufacturer); //, bytesReceived);
 
     // step 2: retrieve firmware version
     char firmwareVersion[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    if (!transmit(":GVN#")) {
+    if (!sendQuery(":GVN#", firmwareVersion)) 
+    {
         LOGF_ERROR("%s: Failed to send get firmware version request.", getDeviceName());
         return false;
     }
-    if (!receive(firmwareVersion, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive get firmware version response.", getDeviceName());
-        return false;
-    }
-    infoStr.append(" - ").append(firmwareVersion, bytesReceived -1);
-    flush();
+    infoStr.append(" - ").append(firmwareVersion); //, bytesReceived -1);
 
     // step 3: retrieve firmware date
     char firmwareDate[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    if (!transmit(":GVD#")) {
+    if (!sendQuery(":GVD#", firmwareDate)) 
+    {
         LOGF_ERROR("%s: Failed to send get firmware date request.", getDeviceName());
         return false;
     }
-    if (!receive(firmwareDate, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive get firmware date response.", getDeviceName());
-        return false;
-    }
-    infoStr.append(" - ").append(firmwareDate, 1, bytesReceived - 2);
+    infoStr.append(" - ").append(firmwareDate); //, 1, bytesReceived);
 
     strcpy(firmwareInfo, infoStr.c_str());
 
@@ -1535,15 +1590,24 @@ bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo) {
  * @author CanisUrsa
  * @return true if communication succeeded, false otherwise
  */
-bool LX200StarGo::receive(char* buffer, int* bytes) {
-    int returnCode = tty_read_section(PortFD, buffer, '#', AVALON_TIMEOUT, bytes);
-    if (returnCode != TTY_OK) {
+bool LX200StarGo::receive(char* buffer, int* bytes, bool wait) 
+{
+    int timeout = wait? AVALON_TIMEOUT: 0;
+    int returnCode = tty_read_section(PortFD, buffer, '#', timeout, bytes);
+    if (returnCode != TTY_OK) 
+    {
         char errorString[MAXRBUF];
         tty_error_msg(returnCode, errorString, MAXRBUF);
+        if(returnCode==TTY_TIME_OUT && !wait) return false;
         LOGF_WARN("Failed to receive full response: %s. (Return code: %d)", errorString, returnCode);
         return false;
     }
-    LOGF_DEBUG("LX200 answer: '%s'", buffer);
+    if(buffer[*bytes-1]=='#')
+        buffer[*bytes - 1] = '\0'; // remove #
+    else
+        buffer[*bytes] = '\0';
+    LOGF_DEBUG("LX200 answer: (%d) '%s'", *bytes, buffer);
+
     return true;
 }
 
@@ -1551,14 +1615,19 @@ bool LX200StarGo::receive(char* buffer, int* bytes) {
  * @brief Flush the communication port.
  * @author CanisUrsa
  */
-void LX200StarGo::flush() {
+void LX200StarGo::flush() 
+{
+//    LOGF_INFO("%s: TCIOFLUSH=%d.", getDeviceName(), TCIOFLUSH);
     tcflush(PortFD, TCIOFLUSH);
 }
 
-bool LX200StarGo::transmit(const char* buffer) {
+bool LX200StarGo::transmit(const char* buffer) 
+{
     int bytesWritten = 0;
+    flush();
     int returnCode = tty_write_string(PortFD, buffer, &bytesWritten);
-    if (returnCode != TTY_OK) {
+    if (returnCode != TTY_OK) 
+    {
         char errorString[MAXRBUF];
         tty_error_msg(returnCode, errorString, MAXRBUF);
         LOGF_WARN("%s: Failed to transmit %s. Wrote %d bytes and got error %s.", getDeviceName(), buffer, bytesWritten, errorString);
@@ -1574,30 +1643,353 @@ bool LX200StarGo::transmit(const char* buffer) {
  * @param wait time in ms the command should wait before reading the result
  * @return true iff the command succeeded
  */
-bool LX200StarGo::setStandardProcedureAvalon(const char* command, int wait) {
-    int bytesReceived = 0;
+/*
+   bool LX200StarGo::setStandardProcedureAvalon(const char* command, int wait) {
+//    int bytesReceived = 0;
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    bool ret;
 
+    LOGF_INFO("%s: Standard Procedure wait=%d", getDeviceName(), wait);
+    ret= sendQuery(command, response);
+    if(!ret)
+    {
+        flush();
+        return false;
+    }
     flush();
-    if (!transmit(command)) {
-        LOGF_ERROR("%s: Failed to send request.", getDeviceName());
-        return false;
-    }
-
-    if (wait > 0) usleep(wait*1000);
-
-    if (!receive(response, &bytesReceived)) {
-        LOGF_ERROR("%s: Failed to receive get response.", getDeviceName());
-        return false;
-    }
-
-
-    if (bytesReceived != 2 || response[0] != '0') {
+    if (response[0] != '0') {
+//    if (bytesReceived != 2 || response[0] != '0') {
         LOGF_ERROR("%s: Unexpected response '%s'", getDeviceName(), response);
         return false;
     }
-
     return true;
+}
+*/
 
+bool LX200StarGo::SetTrackMode(uint8_t mode)
+{
+    if (isSimulation())
+        return true;
+   
+    LOGF_INFO("%s: Set Track Mode %d", getDeviceName(), mode);
+    char cmd[AVALON_COMMAND_BUFFER_LENGTH];
+    char response[AVALON_RESPONSE_BUFFER_LENGTH];
+
+    switch (mode)
+    {
+        case LX200_TRACK_SIDEREAL:
+            strcpy(cmd, ":TQ#");
+            break;
+        case LX200_TRACK_SOLAR:
+            strcpy(cmd, ":TS#");
+            break;
+        case LX200_TRACK_LUNAR:
+            strcpy(cmd, ":TL#");
+            break;
+        case LX200_TRACK_MANUAL:
+            strcpy(cmd, ":TM#");
+            break;
+        default:
+            return false;
+            break;
+    }
+    if ( !sendQuery(cmd, response))
+        return false;
+
+    flush();
+// Only update tracking frequency if it is defined and not deleted by child classes
+//    if (rc &&  (genericCapability & LX200_HAS_TRACKING_FREQ))
+    if (genericCapability & LX200_HAS_TRACKING_FREQ)
+    {
+        LOGF_INFO("%s: Get Tracking Freq", getDeviceName());
+        getTrackFreq(PortFD, &TrackFreqN[0].value);
+        IDSetNumber(&TrackingFreqNP, nullptr);
+    }
+    return true;
+}
+bool LX200StarGo::checkLX200Format()
+{
+    char response[AVALON_RESPONSE_BUFFER_LENGTH];
+
+    controller_format = LX200_LONG_FORMAT;
+    LOGF_INFO("%s: checkLX200Format", getDeviceName());
+
+    if (!sendQuery(":GR#", response)) 
+    {
+        LOGF_ERROR("%s: Failed to get RA for format check", getDeviceName());
+        return false;
+    }
+    /* If it's short format, try to toggle to high precision format */
+    if (response[5] == '.')
+    {
+        LOGF_INFO("%s: Detected low precision format, "
+            "attempting to switch to high precision.", getDeviceName());
+        if (!sendQuery(":U#", response)) 
+        {
+            LOGF_ERROR("%s: Failed to switch precision", getDeviceName());
+            return false;
+        }
+        if (!sendQuery(":GR#", response)) 
+        {
+            LOGF_ERROR("%s: Failed to get high precision RA", getDeviceName());
+            return false;
+        }
+    }
+    if (response[5] == '.')
+    {
+        controller_format = LX200_SHORT_FORMAT;
+        LOGF_INFO("%s: Coordinate format is low precision.", getDeviceName());
+        return 0;
+    
+    }
+    else if (response[8] == '.')
+    {
+        controller_format = LX200_LONGER_FORMAT;
+        LOGF_INFO("%s: Coordinate format is ultra high precision.", getDeviceName());
+        return 0;
+    }
+    else
+    {
+        controller_format = LX200_LONG_FORMAT;
+        LOGF_INFO("%s: Coordinate format is high precision.", getDeviceName());
+        return 0;
+    }
+    return 0;
 }
 
+bool LX200StarGo::SetSlewRate(int index)
+{
+    // Convert index to Meade format
+    index = 3 - index;
+
+    if (!isSimulation() && !setSlewMode(index))
+    {
+        SlewRateSP.s = IPS_ALERT;
+        IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+        return false;
+    }
+
+    SlewRateSP.s = IPS_OK;
+    IDSetSwitch(&SlewRateSP, nullptr);
+    return true;
+}
+bool LX200StarGo::setSlewMode(int slewMode)
+{
+    char cmd[AVALON_COMMAND_BUFFER_LENGTH];
+    char response[AVALON_RESPONSE_BUFFER_LENGTH];
+
+    switch (slewMode)
+    {
+        case LX200_SLEW_MAX:
+            strcpy(cmd, ":RS#");
+            break;
+        case LX200_SLEW_FIND:
+            strcpy(cmd, ":RM#");
+            break;
+        case LX200_SLEW_CENTER:
+            strcpy(cmd, ":RC#");
+            break;
+        case LX200_SLEW_GUIDE:
+            strcpy(cmd, ":RG#");
+            break;
+        default:
+            return false;
+            break;
+    }
+    if (!sendQuery(cmd, response))
+    {
+        return false;
+    }
+    return true;
+}
+IPState LX200StarGo::GuideNorth(uint32_t ms)
+{
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    {
+        LOG_ERROR("Cannot guide while moving.");
+        return IPS_ALERT;
+    }
+
+    // If already moving (no pulse command), then stop movement
+    if (MovementNSSP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementNSSP);
+
+        MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+    }
+
+    if (GuideNSTID)
+    {
+        IERmTimer(GuideNSTID);
+        GuideNSTID = 0;
+    }
+
+    if (usePulseCommand)
+    {
+        SendPulseCmd(LX200_NORTH, ms);
+    }
+    else
+    {
+        if (!setSlewMode(LX200_SLEW_GUIDE))
+        {
+            SlewRateSP.s = IPS_ALERT;
+            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            return IPS_ALERT;
+        }
+
+        MovementNSS[DIRECTION_NORTH].s = ISS_ON;
+        MoveNS(DIRECTION_NORTH, MOTION_START);
+    }
+
+    // Set slew to guiding
+    IUResetSwitch(&SlewRateSP);
+    SlewRateS[SLEW_GUIDE].s = ISS_ON;
+    IDSetSwitch(&SlewRateSP, nullptr);
+    guide_direction_ns = LX200_NORTH;
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperNS, this);
+    return IPS_BUSY;
+}
+
+IPState LX200StarGo::GuideSouth(uint32_t ms)
+{
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    {
+        LOG_ERROR("Cannot guide while moving.");
+        return IPS_ALERT;
+    }
+
+    // If already moving (no pulse command), then stop movement
+    if (MovementNSSP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementNSSP);
+
+        MoveNS(dir == 0 ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
+    }
+
+    if (GuideNSTID)
+    {
+        IERmTimer(GuideNSTID);
+        GuideNSTID = 0;
+    }
+
+    if (usePulseCommand)
+    {
+        SendPulseCmd(LX200_SOUTH, ms);
+    }
+    else
+    {
+        if (!setSlewMode(LX200_SLEW_GUIDE))
+        {
+            SlewRateSP.s = IPS_ALERT;
+            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            return IPS_ALERT;
+        }
+
+        MovementNSS[DIRECTION_SOUTH].s = ISS_ON;
+        MoveNS(DIRECTION_SOUTH, MOTION_START);
+    }
+
+    // Set slew to guiding
+    IUResetSwitch(&SlewRateSP);
+    SlewRateS[SLEW_GUIDE].s = ISS_ON;
+    IDSetSwitch(&SlewRateSP, nullptr);
+    guide_direction_ns = LX200_SOUTH;
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperNS, this);
+    return IPS_BUSY;
+}
+
+IPState LX200StarGo::GuideEast(uint32_t ms)
+{
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    {
+        LOG_ERROR("Cannot guide while moving.");
+        return IPS_ALERT;
+    }
+
+    // If already moving (no pulse command), then stop movement
+    if (MovementWESP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementWESP);
+
+        MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+    }
+
+    if (GuideWETID)
+    {
+        IERmTimer(GuideWETID);
+        GuideWETID = 0;
+    }
+
+    if (usePulseCommand)
+    {
+        SendPulseCmd(LX200_EAST, ms);
+    }
+    else
+    {
+        if (!setSlewMode(LX200_SLEW_GUIDE))
+        {
+            SlewRateSP.s = IPS_ALERT;
+            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            return IPS_ALERT;
+        }
+
+        MovementWES[DIRECTION_EAST].s = ISS_ON;
+        MoveWE(DIRECTION_EAST, MOTION_START);
+    }
+
+    // Set slew to guiding
+    IUResetSwitch(&SlewRateSP);
+    SlewRateS[SLEW_GUIDE].s = ISS_ON;
+    IDSetSwitch(&SlewRateSP, nullptr);
+    guide_direction_we = LX200_EAST;
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperWE, this);
+    return IPS_BUSY;
+}
+
+IPState LX200StarGo::GuideWest(uint32_t ms)
+{
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    {
+        LOG_ERROR("Cannot guide while moving.");
+        return IPS_ALERT;
+    }
+
+    // If already moving (no pulse command), then stop movement
+    if (MovementWESP.s == IPS_BUSY)
+    {
+        int dir = IUFindOnSwitchIndex(&MovementWESP);
+
+        MoveWE(dir == 0 ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
+    }
+
+    if (GuideWETID)
+    {
+        IERmTimer(GuideWETID);
+        GuideWETID = 0;
+    }
+
+    if (usePulseCommand)
+    {
+        SendPulseCmd(LX200_WEST, ms);
+    }
+    else
+    {
+        if (!setSlewMode(LX200_SLEW_GUIDE))
+        {
+            SlewRateSP.s = IPS_ALERT;
+            IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+            return IPS_ALERT;
+        }
+
+        MovementWES[DIRECTION_WEST].s = ISS_ON;
+        MoveWE(DIRECTION_WEST, MOTION_START);
+    }
+
+    // Set slew to guiding
+    IUResetSwitch(&SlewRateSP);
+    SlewRateS[SLEW_GUIDE].s = ISS_ON;
+    IDSetSwitch(&SlewRateSP, nullptr);
+    guide_direction_we = LX200_WEST;
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperWE, this);
+    return IPS_BUSY;
+}

@@ -36,10 +36,11 @@ public:
     virtual bool initProperties() override;
 
     // helper functions
-    virtual bool receive(char* buffer, int* bytes);
+    virtual bool receive(char* buffer, int* bytes, bool wait=true);
     virtual void flush();
     virtual bool transmit(const char* buffer);
-    virtual bool setStandardProcedureAvalon(const char *command, int wait);
+//    virtual bool setStandardProcedureAvalon(const char *command, int wait);
+    virtual bool SetTrackMode(uint8_t mode) override;
 
 protected:
 
@@ -73,6 +74,8 @@ protected:
     ISwitch MeridianFlipEnabledS[2];
     ISwitchVectorProperty MeridianFlipForcedSP;
     ISwitch MeridianFlipForcedS[2];
+    
+    int controller_format;
 
     // override LX200Generic
     virtual void getBasicData() override;
@@ -94,21 +97,22 @@ protected:
     // scope status
     virtual bool UpdateMotionStatus();
     virtual void UpdateMotionStatus(int motorsState, int speedState, int nrTrackingSpeed);
-    bool parseMotionState(char *response, int *motorsState, int *speedState, int *nrTrackingSpeed);
+//    bool parseMotionState(char *response, int *motorsState, int *speedState, int *nrTrackingSpeed);
     bool isIdle();
     TelescopeSlewRate CurrentSlewRate;
 
     // location
     virtual bool sendScopeLocation();
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-    virtual int getSiteLatitude(double *siteLat);
-    virtual int getSiteLongitude(double *siteLong);
+    virtual bool getSiteLatitude(double *siteLat);
+    virtual bool getSiteLongitude(double *siteLong);
     virtual bool getLST_String(char* input);
 
 
     // queries to the scope interface
-    virtual bool sendQuery(const char* cmd, char* response);
-    virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
+    virtual bool sendQuery(const char* cmd, char* response, bool wait=true);
+//    virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
+    virtual bool queryMountMotionState();
     virtual bool queryFirmwareInfo(char *version);
     virtual bool querySetSiteLatitude(double Lat);
     virtual bool querySetSiteLongitude(double Long);
@@ -130,6 +134,17 @@ protected:
     virtual bool setMeridianFlipForced(bool enabled);
 
     virtual bool syncSideOfPier();
+    bool checkLX200Format();
+    // Guide Commands
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
+    virtual bool SetSlewRate(int index) override;
+    bool setSlewMode(int slewMode);
+    int motorsState;
+    int speedState;
+    int nrTrackingSpeed;
 
 };
 
