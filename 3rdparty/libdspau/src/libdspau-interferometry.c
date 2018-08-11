@@ -77,20 +77,20 @@ dspau_t* dspau_interferometry_calc_baselines(dspau_stream_p stream) {
     dspau_t* ret = calloc(sizeof(dspau_t) * 3, num_baselines);
     for(int x = 0; x < stream->child_count; x++) {
         for(int y = x; y < stream->child_count; y++) {
-            *ret++ = sqrt(pow(children[x]->latlon[0], 2) + pow(children[y]->latlon[0], 2));
-            *ret++ = sqrt(pow(children[x]->latlon[1], 2) + pow(children[y]->latlon[1], 2));
-            *ret++ = sqrt(pow(children[x]->latlon[2], 2) + pow(children[y]->latlon[2], 2));
+            *ret++ = sqrt(pow(children[x]->location[0], 2) + pow(children[y]->location[0], 2));
+            *ret++ = sqrt(pow(children[x]->location[1], 2) + pow(children[y]->location[1], 2));
+            *ret++ = sqrt(pow(children[x]->location[2], 2) + pow(children[y]->location[2], 2));
         }
     }
     return ret;
 }
 
-dspau_t* dspau_interferometry_uv_coords(dspau_stream_p stream, dspau_t lambda_m, dspau_t samplerate, dspau_t RA, dspau_t DEC) {
+dspau_t* dspau_interferometry_uv_coords(dspau_stream_p stream) {
     dspau_t* uv = (dspau_t*)calloc(sizeof(dspau_t), (int)pow(stream->len, 2));
     int num_baselines = ((1 + stream->child_count) * stream->child_count) / 2;
     dspau_t *baselines = dspau_interferometry_calc_baselines(stream);
-    dspau_t tao = (1.0 / samplerate);
-    dspau_t freq = (LightSpeed / lambda_m);
+    dspau_t tao = (1.0 / stream->samplerate);
+    dspau_t freq = (LightSpeed / stream->lambda);
     tao /= freq;
     tao *= 1000000000.0;
     dspau_t current_time = stream->starttimeutc.tv_sec * 1000000000.0 + stream->starttimeutc.tv_nsec;
@@ -99,11 +99,11 @@ dspau_t* dspau_interferometry_uv_coords(dspau_stream_p stream, dspau_t lambda_m,
         struct timespec utcthen = dspau_astro_nsectotimespec(current_time);
         dspau_t j2000offset = dspau_astro_secs_since_J2000(utcthen);
         dspau_t lst = dspau_astro_lst(j2000offset, 0);
-        dspau_t HA = dspau_astro_ra2ha(RA, lst);
+        dspau_t HA = dspau_astro_ra2ha(stream->target[0], lst);
         for(int l = 0; l < num_baselines; l++) {
-            dspau_t* uvcoords = dspau_interferometry_uv_location(HA * i / stream->len, DEC, baselines + l * 3);
+            dspau_t* uvcoords = dspau_interferometry_uv_location(HA * i / stream->len, stream->target[1], baselines + l * 3);
             for(int d = 0; d < 2; d++) {
-                uvcoords[d] /= lambda_m;
+                uvcoords[d] /= stream->lambda;
             }
             uv[(int)(uvcoords[0] + uvcoords[1] * stream->len)] = i;
         }

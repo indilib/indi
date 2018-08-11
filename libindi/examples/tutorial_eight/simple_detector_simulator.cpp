@@ -305,7 +305,7 @@ void SimpleDetector::grabFrame()
     PrimaryDetector.setSpectrumBufferSize(len);
  
    // Let's get a pointer to the frame buffer
-    double *spectrum = PrimaryDetector.getSpectrumBuffer();
+    uint8_t *spectrum = PrimaryDetector.getSpectrumBuffer();
 
     // Fill buffer with random pattern
     for (int i = 0; i < len; i++)

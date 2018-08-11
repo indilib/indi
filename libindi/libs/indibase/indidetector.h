@@ -49,6 +49,7 @@ class DetectorDevice
     typedef enum {
         DETECTOR_BLOB_CONTINUUM,
         DETECTOR_BLOB_SPECTRUM,
+        DETECTOR_BLOB_TDEV,
     } DETECTOR_BLOB_INDEX;
 
     /**
@@ -62,6 +63,12 @@ class DetectorDevice
      * @return allocated continuum buffer size to hold the Detector capture stream.
      */
     inline int getContinuumBufferSize() { return ContinuumBufferSize; }
+
+    /**
+     * @brief getTimeDeviationBufferSize Get allocated time deviation buffer size to hold the Detector time correction stream.
+     * @return allocated time correction buffer size to hold the Detector time correction stream.
+     */
+    inline int getTimeDeviationBufferSize() { return TimeDeviationBufferSize; }
 
     /**
      * @brief getSpectrumBufferSize Get allocated spectrum buffer size to hold the Detector spectrum.
@@ -106,10 +113,16 @@ class DetectorDevice
     inline uint8_t *getContinuumBuffer() { return ContinuumBuffer; }
 
     /**
+     * @brief getTimeDeviationBuffer Get raw buffer of the time correction stream of the Detector device.
+     * @return raw time correction buffer of the Detector device.
+     */
+    inline uint8_t *getTimeDeviationBuffer() { return TimeDeviationBuffer; }
+
+    /**
      * @brief getSpectrumBuffer Get raw buffer of the spectrum of the Detector device.
      * @return raw continuum buffer of the Detector device.
      */
-    inline double *getSpectrumBuffer() { return SpectrumBuffer; }
+    inline uint8_t *getSpectrumBuffer() { return SpectrumBuffer; }
 
     /**
      * @brief setContinuumBuffer Set raw frame buffer pointer.
@@ -122,6 +135,16 @@ class DetectorDevice
     void setContinuumBuffer(uint8_t *buffer) { ContinuumBuffer = buffer; }
 
     /**
+     * @brief setTimeDeviationBuffer Set raw frame buffer pointer.
+     * @param buffer pointer to time correction buffer
+     * /note Detector Device allocates the frame buffer internally once SetTimeDeviationBufferSize is called
+     * with allocMem set to true which is the default behavior. If you allocated the memory
+     * yourself (i.e. allocMem is false), then you must call this function to set the pointer
+     * to the raw frame buffer.
+     */
+    void setTimeDeviationBuffer(uint8_t *buffer) { TimeDeviationBuffer = buffer; }
+
+    /**
      * @brief setSpectrumBuffer Set raw frame buffer pointer.
      * @param buffer pointer to spectrum buffer
      * /note Detector Device allocates the frame buffer internally once SetSpectrumBufferSize is called
@@ -129,7 +152,7 @@ class DetectorDevice
      * yourself (i.e. allocMem is false), then you must call this function to set the pointer
      * to the raw frame buffer.
      */
-    void setSpectrumBuffer(double *buffer) { SpectrumBuffer = buffer; }
+    void setSpectrumBuffer(uint8_t *buffer) { SpectrumBuffer = buffer; }
 
     /**
      * @brief Return Detector Info Property
@@ -158,6 +181,16 @@ class DetectorDevice
      * @param allocMem if True, it will allocate memory of nbut size bytes.
      */
     void setContinuumBufferSize(int nbuf, bool allocMem = true);
+
+    /**
+     * @brief setTimeDeviationBufferSize Set desired time deviation buffer size. The function will allocate memory
+     * accordingly. The frame size depends on the desired capture time, sampling frequency, and
+     * sample depth of the Detector device (bps). You must set the frame size any time any of
+     * the prior parameters gets updated.
+     * @param nbuf size of buffer in bytes.
+     * @param allocMem if True, it will allocate memory of nbut size bytes.
+     */
+    void setTimeDeviationBufferSize(int nbuf, bool allocMem = true);
 
     /**
      * @brief setSpectrumBufferSize Set desired spectrum buffer size. The function will allocate memory
@@ -242,7 +275,9 @@ class DetectorDevice
     double Frequency;
     uint8_t *ContinuumBuffer;
     int ContinuumBufferSize;
-    double *SpectrumBuffer;
+    uint8_t *TimeDeviationBuffer;
+    int TimeDeviationBufferSize;
+    uint8_t *SpectrumBuffer;
     int SpectrumBufferSize;
     double captureDuration;
     timeval startCaptureTime;
@@ -257,7 +292,7 @@ class DetectorDevice
     ISwitchVectorProperty AbortCaptureSP;
     ISwitch AbortCaptureS[1];
 
-    IBLOB FitsB[2];
+    IBLOB FitsB[3];
     IBLOBVectorProperty FitsBP;
 
     friend class INDI::Detector;
@@ -295,6 +330,7 @@ class Detector : public DefaultDevice
         DETECTOR_HAS_COOLER     = 1 << 2, /*!< Does the Detector have a cooler and temperature control?  */
         DETECTOR_HAS_CONTINUUM  = 1 << 3,  /*!< Does the Detector support live streaming?  */
         DETECTOR_HAS_SPECTRUM   = 1 << 4,  /*!< Does the Detector support spectrum analysis?  */
+        DETECTOR_HAS_TDEV       = 1 << 5,  /*!< Does the Detector support time deviation correction?  */
     } DetectorCapability;
 
     virtual bool initProperties();
@@ -341,6 +377,11 @@ class Detector : public DefaultDevice
      * @return  True if the Detector supports live streaming. False otherwise.
      */
     bool HasSpectrum() { return capability & DETECTOR_HAS_SPECTRUM; }
+
+    /**
+     * @return  True if the Detector supports live streaming. False otherwise.
+     */
+    bool HasTimeDeviation() { return capability & DETECTOR_HAS_TDEV; }
 
     /**
      * @brief Set Detector temperature
@@ -402,7 +443,7 @@ class Detector : public DefaultDevice
      * \brief Add FITS keywords to a fits file
      * \param fptr pointer to a valid FITS file.
      * \param targetDevice The target device to extract the keywords from.
-     * \param blobIndex The blob index of this FITS (0: continuum, 1: spectrum).
+     * \param blobIndex The blob index of this FITS (0: continuum, 1: spectrum, 2: timedev).
      * \note In additional to the standard FITS keywords, this function write the following
      * keywords the FITS file:
      * <ul>
