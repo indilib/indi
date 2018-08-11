@@ -297,7 +297,7 @@ bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps)
     if(r != 0) {
         return false;
     }
-    r = rtlsdr_set_sample_rate(rtl_dev, (uint32_t)1000000);
+    r = rtlsdr_set_sample_rate(rtl_dev, (uint32_t)sr);
     if(r != 0) {
         return false;
     }
