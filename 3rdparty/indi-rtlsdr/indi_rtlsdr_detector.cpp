@@ -26,6 +26,7 @@
 #define MAX_TRIES 20
 #define MAX_DEVICES 4
 #define SUBFRAME_SIZE 256
+#define SPECTRUM_SIZE 256
 
 static int iNumofConnectedDetectors;
 static RTLSDR *receivers[MAX_DEVICES];
@@ -383,8 +384,8 @@ void RTLSDR::grabData()
         PrimaryDetector.setContinuumBufferSize(len);
 		continuum = PrimaryDetector.getContinuumBuffer();
 	}
-    if(256 != PrimaryDetector.getSpectrumBufferSize()) {
-        PrimaryDetector.setSpectrumBufferSize(256);
+    if(SPECTRUM_SIZE != PrimaryDetector.getSpectrumBufferSize()) {
+        PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE);
         spectrum = PrimaryDetector.getSpectrumBuffer();
     }
 	to_read = len;
@@ -405,7 +406,7 @@ void RTLSDR::grabData()
     dspau_convert_to(stream->out, continuum, unsigned char, len);
 
     //Create the spectrum
-    stream->out = dspau_fft_spectrum(stream, magnitude_root, 256);
+    stream->out = dspau_fft_spectrum(stream, magnitude_root, SPECTRUM_SIZE);
     dspau_convert_to(stream->out, continuum, unsigned char, len);
 
     //Destroy the dspau stream
