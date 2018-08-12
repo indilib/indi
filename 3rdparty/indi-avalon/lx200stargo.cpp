@@ -1052,13 +1052,16 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response, bool wait)
     bool lwait = wait;
     while (receive(lresponse, &lbytes, lwait)) 
     {
-        LOGF_DEBUG("%s: Found response %s", getDeviceName(), lresponse);
+        LOGF_DEBUG("%s: Found response %s %s", getDeviceName(), wait?"WAIT":"NOWAIT", lresponse);
         lbytes=0;
         if(ParseMotionState(lresponse))
         {
             LOGF_DEBUG("%s: Motion state response parsed", getDeviceName());            
-        } 
-        lwait = false;
+        }
+        else // Don't change wait requirement 
+        {
+            lwait = false;
+        }
     }
     flush();
     strcpy(response, lresponse);
@@ -1250,39 +1253,13 @@ bool LX200StarGo::queryMountMotionState()
 {
     // Command  - :X3C#
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    if (!sendQuery(":X3C#", response)) {
+    if (!sendQuery(":X3C#", response, false)) {
         LOGF_ERROR("%s: Failed to send query mount motion state command.", getDeviceName());
         return false;
     }
     return true; 
 }
 
-/**
- * @brief Parse the motion state response string :Z1mmssnn#
- * @param response string to be parsed
- * @param motorsState state of the motors
- * @param speedState tracking on / off
- * @param nrTrackingSpeed tracking speed
- * @return true iff parsing succeeded
- */
-/*
-bool LX200StarGo::parseMotionState (char* response, int* motorsState, int* speedState, int* nrTrackingSpeed) 
-{
-    int tempMotorsState = 0;
-    int tempSpeedState = 0;
-    int tempNrTrackingSpeed = 0;
-    int returnCode = sscanf(response, ":Z1%01d%01d%01d", &tempMotorsState, &tempSpeedState, &tempNrTrackingSpeed);
-    if (returnCode <= 0) 
-    {
-       LOGF_ERROR("%s: Failed to parse query mount motion state response '%s'.", getDeviceName(), response);
-       return false;
-    }
-    (*motorsState) = tempMotorsState;
-    (*speedState) = tempSpeedState;
-    (*nrTrackingSpeed) = tempNrTrackingSpeed;
-    return true;
-}
-*/
 /**
  * @brief Check whether the mount is synched or parked.
  * @param enable if true, tracking is enabled
