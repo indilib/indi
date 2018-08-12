@@ -25,6 +25,26 @@ extern const char *RA_DEC_TAB;
 class LX200StarGo : public LX200Telescope
 {
 public:
+    enum TrackMode
+    {
+        TRACK_SIDEREAL=0, //=Telescope::TelescopeTrackMode::TRACK_SIDEREAL,
+        TRACK_SOLAR=1, //=Telescope::TelescopeTrackMode::TRACK_SOLAR,
+        TRACK_LUNAR=2, //=Telescope::TelescopeTrackMode::TRACK_LUNAR,
+        TRACK_NONE=3
+    };
+    enum MotorsState
+    {
+        MOTORS_OFF=0,
+        MOTORS_DEC_ONLY=1,
+        MOTORS_RA_ONLY=2,
+        MOTORS_ON=3
+    };
+    TrackMode CurrentTrackMode;
+    MotorsState CurrentMotorsState;
+//    SlewIndex CurrentSlewIndex;
+    TelescopeSlewRate CurrentSlewRate;
+//    TelescopeTrackMode CurrentTrackMode;
+    
     LX200StarGo();
     virtual ~LX200StarGo() = default;
 
@@ -34,6 +54,7 @@ public:
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool updateProperties() override;
     virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev)override;
 
     // helper functions
     virtual bool receive(char* buffer, int* bytes, bool wait=true);
@@ -95,11 +116,11 @@ protected:
     virtual bool setGuidingSpeeds(int raSpeed, int decSpeed);
 
     // scope status
+    virtual bool ParseMotionState(char* state);
     virtual bool UpdateMotionStatus();
-    virtual void UpdateMotionStatus(int motorsState, int speedState, int nrTrackingSpeed);
+//    virtual void UpdateMotionStatus(int motorsState, int speedState, int nrTrackingSpeed);
 //    bool parseMotionState(char *response, int *motorsState, int *speedState, int *nrTrackingSpeed);
     bool isIdle();
-    TelescopeSlewRate CurrentSlewRate;
 
     // location
     virtual bool sendScopeLocation();
@@ -141,11 +162,14 @@ protected:
     virtual IPState GuideEast(uint32_t ms) override;
     virtual IPState GuideWest(uint32_t ms) override;
     virtual bool SetSlewRate(int index) override;
+    virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
+    virtual bool SetTrackEnabled(bool enabled) override;
+    virtual bool SetTrackRate(double raRate, double deRate) override;
+
     bool setSlewMode(int slewMode);
-    int motorsState;
-    int speedState;
-    int nrTrackingSpeed;
+//    int motorsState;
+//    int speedState;
+//    int nrTrackingSpeed;
 
 };
-
 #endif // AVALON_STARGO_H
