@@ -997,13 +997,22 @@ bool LX200StarGo::getLST_String(char* input)
         LOGF_WARN("%s getLST Failed to get site Longitude from device.", getDeviceName());
         return false;
     }
+    char response[AVALON_RESPONSE_BUFFER_LENGTH];
+    int h=0, m=0, s=0;
+    if(sendQuery(":GS#", response))
+    {
+        LOGF_DEBUG("%s got LST from device %s", getDeviceName(), response);
+        sscanf(response, "%02d:%02d:%02d", &h, &m, &s);
+        sprintf(input, "%02d%02d%02d", h, m, s);
+        return true;        
+    }
 
+    LOGF_WARN("%s getLST Failed to get LST from device.", getDeviceName());
     // determine local sidereal time
     double lst = get_local_sidereal_time(siteLong);
     LOGF_DEBUG("%s Current local sidereal time = %.8f", lst, getDeviceName());
 
     // translate into hh:mm:ss
-    int h=0, m=0, s=0;
     getSexComponents(lst, &h, &m, &s);
 
     sprintf(input, "%02d%02d%02d", h, m, s);
