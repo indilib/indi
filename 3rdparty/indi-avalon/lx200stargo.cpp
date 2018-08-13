@@ -675,7 +675,8 @@ bool LX200StarGo::UpdateMotionStatus()
 
 bool LX200StarGo::syncHomePosition()
 {
-    char input[12], cmd[12];
+    char input[AVALON_RESPONSE_BUFFER_LENGTH];
+    char cmd[AVALON_COMMAND_BUFFER_LENGTH];
     if (!getLST_String(input)) 
     {
         LOGF_WARN("%s Synching home get LST failed.", getDeviceName());
@@ -943,7 +944,8 @@ bool LX200StarGo::UnPark()
     // out: "p0#"
 
     // set LST to avoid errors
-    char input[12], cmd[12];
+    char input[AVALON_RESPONSE_BUFFER_LENGTH]; 
+    char cmd[AVALON_COMMAND_BUFFER_LENGTH];
     if (!getLST_String(input))
     {
         LOGF_WARN("%s Obtaining LST before unparking failed.", getDeviceName());
@@ -951,7 +953,7 @@ bool LX200StarGo::UnPark()
     }
     sprintf(cmd, ":X32%s#", input);
 
-    char response[AVALON_COMMAND_BUFFER_LENGTH] = {0};
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     bool result = sendQuery(cmd, response);
 
     if (!result || response[0] != '0')
@@ -961,7 +963,7 @@ bool LX200StarGo::UnPark()
     }
 
     // and now execute unparking
-    response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    response[0] = '\0';
     if (sendQuery(":X370#", response) && strcmp(response, "p0") == 0) 
     {
         LOG_INFO("Scope Unparked.");
