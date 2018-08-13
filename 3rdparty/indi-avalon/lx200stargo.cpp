@@ -46,12 +46,12 @@ void ISInit()
         return;
 
     isInit = 1;
-    if (telescope.get() == 0) {
+    if (telescope.get() == 0) 
+    {
         LX200StarGo* myScope = new LX200StarGo();
         telescope.reset(myScope);
         focuser.reset(new LX200StarGoFocuser(myScope, "AUX1 Focuser"));
     }
-
 }
 
 void ISGetProperties(const char *dev)
@@ -170,6 +170,7 @@ bool LX200StarGo::Handshake()
     if (f_scansexa(response, &currentRA))
     {
         LOGF_ERROR("%s: Unable to parse RA response %s", getDeviceName(), response);
+        return false;
     }
 
     return true;
@@ -460,20 +461,24 @@ bool LX200StarGo::ReadScopeStatus()
     if (TrackState == SCOPE_SLEWING)
     {
         // Check if LX200 is done slewing
-        if (isSlewComplete()) {
-            if (isIdle()) {
+        if (isSlewComplete()) 
+        {
+            if (isIdle()) 
+            {
                 TrackState = SCOPE_IDLE;
                 LOG_INFO("Slew is complete. Tracking is off." );
-            }  else {
+            }  
+            else 
+            {
                 TrackState = SCOPE_TRACKING;
                 LOG_INFO("Slew is complete. Tracking...");
             }
 
-            if (MountGotoHomeSP.s == IPS_BUSY) {
+            if (MountGotoHomeSP.s == IPS_BUSY) 
+            {
                 MountGotoHomeSP.s = IPS_OK;
                 IDSetSwitch(&MountGotoHomeSP, nullptr);
             }
-
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -769,11 +774,13 @@ bool LX200StarGo::querySendMountGotoHome()
     //            :Z1003#
     //            p0#
     char response[AVALON_COMMAND_BUFFER_LENGTH] = {0};
-    if (!sendQuery(":X361#", response)) {
+    if (!sendQuery(":X361#", response)) 
+    {
         LOGF_ERROR("%s: Failed to send mount goto home command.", getDeviceName());
         return false;
     }
-    if (strcmp(response, "pA") != 0) {
+    if (strcmp(response, "pA") != 0) 
+    {
         LOGF_ERROR("%s: Invalid mount sync goto response '%s'.", getDeviceName(), response);
         return false;
     }
@@ -872,7 +879,8 @@ bool LX200StarGo::getSiteLatitude(double *siteLat)
 bool LX200StarGo::getSiteLongitude(double *siteLong) 
 {
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    if (!sendQuery(":Gg#", response)) {
+    if (!sendQuery(":Gg#", response)) 
+    {
         LOGF_ERROR("%s: Failed to send query get Site Longitude command.", getDeviceName());
         return false;
     }
@@ -1224,13 +1232,15 @@ bool LX200StarGo::queryIsSlewComplete()
     //    x (y) = 5 motor x (y) movig at high speed to target
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    if (!sendQuery(":X34#", response)) {
+    if (!sendQuery(":X34#", response)) 
+    {
         LOGF_ERROR("%s: Failed to send query slewing state command.", getDeviceName());
         return false;
     }
     int x, y;
     int returnCode = sscanf(response, "m%01d%01d", &x, &y);
-    if (returnCode <= 0) {
+    if (returnCode <= 0) 
+    {
        LOGF_ERROR("%s: Failed to parse query slewing state response '%s'.", getDeviceName(), response);
        return false;
     }
@@ -1253,7 +1263,8 @@ bool LX200StarGo::queryMountMotionState()
 {
     // Command  - :X3C#
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    if (!sendQuery(":X3C#", response, false)) {
+    if (!sendQuery(":X3C#", response, false)) 
+    {
         LOGF_ERROR("%s: Failed to send query mount motion state command.", getDeviceName());
         return false;
     }
@@ -1285,7 +1296,8 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched)
         return false;
     }
 
-    switch (answer) {
+    switch (answer) 
+    {
     case 0: (*isParked) = false; (*isSynched) = false; break;
     case 1: (*isParked) = false; (*isSynched) = true; break;
     case 2: (*isParked) = true; (*isSynched) = true; break;
