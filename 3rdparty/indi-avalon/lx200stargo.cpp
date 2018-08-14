@@ -31,6 +31,10 @@
 #ifndef _WIN32
 #include <termios.h>
 #endif
+//#if defined(HAVE_LIBNOVA)
+#include <libnova/julian_day.h>
+#include <libnova/sidereal_time.h>
+//#endif // HAVE_LIBNOVA
 
 // We declare an auto pointer to LX200StarGo
 std::unique_ptr<LX200StarGo> telescope;
@@ -997,6 +1001,12 @@ bool LX200StarGo::getLST_String(char* input)
         LOGF_WARN("%s getLST Failed to get site Longitude from device.", getDeviceName());
         return false;
     }
+
+    double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - siteLong) / 15.0;
+    double lst =  range24(SD);
+    int h=0, m=0, s=0;
+
+/*
     char response[AVALON_RESPONSE_BUFFER_LENGTH];
     int h=0, m=0, s=0;
     if(sendQuery(":GS#", response))
@@ -1011,7 +1021,7 @@ bool LX200StarGo::getLST_String(char* input)
     // determine local sidereal time
     double lst = get_local_sidereal_time(siteLong);
     LOGF_DEBUG("%s Current local sidereal time = %.8f", lst, getDeviceName());
-
+*/
     // translate into hh:mm:ss
     getSexComponents(lst, &h, &m, &s);
 
