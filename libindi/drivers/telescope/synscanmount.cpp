@@ -31,8 +31,10 @@
 
 #define SYNSCAN_SLEW_RATES 9
 
+constexpr uint16_t SynscanMount::SLEW_RATE[];
+
 // We declare an auto pointer to Synscan.
-std::unique_ptr<SynscanMount> synscan(new SynscanMount());
+static std::unique_ptr<SynscanMount> synscan(new SynscanMount());
 
 void ISGetProperties(const char *dev)
 {
@@ -75,7 +77,7 @@ void ISSnoopDevice(XMLEle *root)
 SynscanMount::SynscanMount()
 {
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                               TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
                            SYNSCAN_SLEW_RATES);
     SetParkDataType(PARK_RA_DEC_ENCODER);
     strncpy(LastParkRead, "", 1);
@@ -109,9 +111,19 @@ bool SynscanMount::initProperties()
                            SYNSCAN_SLEW_RATES);
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
-    //  probably want to debug this
-    addDebugControl();
-    addConfigurationControl();
+    // Slew Rates
+    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
+    strncpy(SlewRateS[1].label, "2x", MAXINDILABEL);
+    strncpy(SlewRateS[2].label, "8x", MAXINDILABEL);
+    strncpy(SlewRateS[3].label, "16x", MAXINDILABEL);
+    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
+    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
+    strncpy(SlewRateS[6].label, "256x", MAXINDILABEL);
+    strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
+    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
+    IUResetSwitch(&SlewRateSP);
+    // Max is the default
+    SlewRateS[8].s = ISS_ON;
 
     // Set up property variables
     IUFillText(&BasicMountInfo[(int)MountInfoItems::FwVersion], "FW_VERSION", "Firmware version", "-");
@@ -119,25 +131,27 @@ bool SynscanMount::initProperties()
     IUFillText(&BasicMountInfo[(int)MountInfoItems::AlignmentStatus], "ALIGNMENT_STATUS", "Alignment status", "-");
     IUFillText(&BasicMountInfo[(int)MountInfoItems::GotoStatus], "GOTO_STATUS", "Goto status", "-");
     IUFillText(&BasicMountInfo[(int)MountInfoItems::MountPointingStatus], "MOUNT_POINTING_STATUS",
-               "Mount pointing status", "-");
+            "Mount pointing status", "-");
     IUFillText(&BasicMountInfo[(int)MountInfoItems::TrackingMode], "TRACKING_MODE", "Tracking mode", "-");
     IUFillTextVector(&BasicMountInfoV, BasicMountInfo, 6, getDeviceName(), "BASIC_MOUNT_INFO",
                      "Mount information", MountInfoPage.c_str(), IP_RO, 60, IPS_IDLE);
 
+    addAuxControls();
+
     return Ret;
 }
 
-void SynscanMount::ISGetProperties(const char *dev)
-{
-    /* First we let our parent populate */
-    INDI::Telescope::ISGetProperties(dev);
+//void SynscanMount::ISGetProperties(const char *dev)
+//{
+//    /* First we let our parent populate */
+//    INDI::Telescope::ISGetProperties(dev);
 
-    /*if (isConnected())
-    {
-        UpdateMountInformation(false);
-        defineText(&BasicMountInfoV);
-    }*/
-}
+//    /*if (isConnected())
+//    {
+//        UpdateMountInformation(false);
+//        defineText(&BasicMountInfoV);
+//    }*/
+//}
 
 bool SynscanMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
@@ -162,7 +176,7 @@ bool SynscanMount::ISNewText(const char *dev, const char *name, char *texts[], c
 
 bool SynscanMount::updateProperties()
 {
-    INDI::Telescope::updateProperties();    
+    INDI::Telescope::updateProperties();
 
     if (isConnected())
     {
@@ -193,13 +207,14 @@ int SynscanMount::HexStrToInteger(const std::string &res)
 bool SynscanMount::AnalyzeHandset()
 {
     bool rc = true;
-    uint32_t caps = 0;
+    //uint32_t caps = 0;
     int tmp = 0;
     int bytesWritten = 0;
     int bytesRead, numread;
     char res[MAX_SYN_BUF]={0};
 
-    caps = GetTelescopeCapability();
+    // JM 2018-08-15 Why are we reading caps here? Looks like it serves no purpose
+    //caps = GetTelescopeCapability();
 
     rc = ReadLocation();
     if (rc)
@@ -208,65 +223,68 @@ bool SynscanMount::AnalyzeHandset()
         ReadTime();
     }
 
-    bytesRead = 0;
-    memset(res, 0, 20);
-    tty_write(PortFD, "J", 1, &bytesWritten);
-    tty_read(PortFD, res, 2, 2, &bytesRead);
-
-    // Read the handset version
-    bytesRead = 0;
-    memset(res, 0, 20);
-    tty_write(PortFD, "V", 1, &bytesWritten);
-    tty_read(PortFD, res, 7, 2, &bytesRead);
-    if (bytesRead == 3)
+    if (isSimulation() == false)
     {
-        int tmp1 { 0 }, tmp2 { 0 };
+        bytesRead = 0;
+        memset(res, 0, 20);
+        tty_write(PortFD, "J", 1, &bytesWritten);
+        tty_read(PortFD, res, 2, 2, &bytesRead);
 
-        tmp  = res[0];
-        tmp1 = res[1];
-        tmp2 = res[2];
-        FirmwareVersion = tmp2;
-        FirmwareVersion /= 100;
-        FirmwareVersion += tmp1;
-        FirmwareVersion /= 100;
-        FirmwareVersion += tmp;
-    } else {
-        FirmwareVersion = (double)HexStrToInteger(std::string(&res[0], 2));
-        FirmwareVersion += (double)HexStrToInteger(std::string(&res[2], 2)) / 100;
-        FirmwareVersion += (double)HexStrToInteger(std::string(&res[4], 2)) / 10000;
-    }
-    LOGF_INFO("Firmware version: %lf", FirmwareVersion);
-    if (FirmwareVersion < 3.38 || (FirmwareVersion >= 4.0 && FirmwareVersion < 4.38))
-    {
-        IDMessage(nullptr, "Update Synscan firmware to V3.38/V4.38 or above");
-        LOG_INFO("Too old firmware version!");
-    } else {
-        NewFirmware = true;
-    }
-    HandsetFwVersion = std::to_string(FirmwareVersion);
+        // Read the handset version
+        bytesRead = 0;
+        memset(res, 0, 20);
+        tty_write(PortFD, "V", 1, &bytesWritten);
+        tty_read(PortFD, res, 7, 2, &bytesRead);
+        if (bytesRead == 3)
+        {
+            int tmp1 { 0 }, tmp2 { 0 };
 
-    memset(res, 0, MAX_SYN_BUF);
-    tty_write(PortFD, "m", 1, &bytesWritten);
-    tty_read(PortFD, res, 2, 2, &bytesRead);
-    if (bytesRead == 2)
-    {
-        // This workaround is needed because the firmware 3.39 sends these bytes swapped.
-        if (res[1] == '#')
-            MountCode = (int)*reinterpret_cast<unsigned char*>(&res[0]);
-        else
-            MountCode = (int)*reinterpret_cast<unsigned char*>(&res[1]);
+            tmp  = res[0];
+            tmp1 = res[1];
+            tmp2 = res[2];
+            FirmwareVersion = tmp2;
+            FirmwareVersion /= 100;
+            FirmwareVersion += tmp1;
+            FirmwareVersion /= 100;
+            FirmwareVersion += tmp;
+        } else {
+            FirmwareVersion = (double)HexStrToInteger(std::string(&res[0], 2));
+            FirmwareVersion += (double)HexStrToInteger(std::string(&res[2], 2)) / 100;
+            FirmwareVersion += (double)HexStrToInteger(std::string(&res[4], 2)) / 10000;
+        }
+        LOGF_INFO("Firmware version: %lf", FirmwareVersion);
+        if (FirmwareVersion < 3.38 || (FirmwareVersion >= 4.0 && FirmwareVersion < 4.38))
+        {
+            IDMessage(nullptr, "Update Synscan firmware to V3.38/V4.38 or above");
+            LOG_INFO("Too old firmware version!");
+        } else {
+            NewFirmware = true;
+        }
+        HandsetFwVersion = std::to_string(FirmwareVersion);
+
+        memset(res, 0, MAX_SYN_BUF);
+        tty_write(PortFD, "m", 1, &bytesWritten);
+        tty_read(PortFD, res, 2, 2, &bytesRead);
+        if (bytesRead == 2)
+        {
+            // This workaround is needed because the firmware 3.39 sends these bytes swapped.
+            if (res[1] == '#')
+                MountCode = (int)*reinterpret_cast<unsigned char*>(&res[0]);
+            else
+                MountCode = (int)*reinterpret_cast<unsigned char*>(&res[1]);
+        }
+
+        // Check the tracking status
+        memset(res, 0, MAX_SYN_BUF);
+        tty_write(PortFD, "t", 1, &bytesWritten);
+        numread = tty_read(PortFD, res, 2, 2, &bytesRead);
+        if (res[1] == '#' && (int)res[0] != 0)
+        {
+            TrackState = SCOPE_TRACKING;
+        }
     }
 
-    // Check the tracking status
-    memset(res, 0, MAX_SYN_BUF);
-    tty_write(PortFD, "t", 1, &bytesWritten);
-    numread = tty_read(PortFD, res, 2, 2, &bytesRead);
-    if (res[1] == '#' && (int)res[0] != 0)
-    {
-        TrackState = SCOPE_TRACKING;
-    }
-
-    SetTelescopeCapability(caps, SYNSCAN_SLEW_RATES);
+    //SetTelescopeCapability(caps, SYNSCAN_SLEW_RATES);
 
     if (InitPark())
     {
@@ -285,6 +303,12 @@ bool SynscanMount::AnalyzeHandset()
 
 bool SynscanMount::ReadScopeStatus()
 {
+    if (isSimulation())
+    {
+        MountSim();
+        return true;
+    }
+
     char res[MAX_SYN_BUF]={0};
     int bytesWritten, bytesRead;
     int numread;
@@ -299,7 +323,7 @@ bool SynscanMount::ReadScopeStatus()
         // Usually, Abort() recovers the communication
         RecoverTrials++;
         Abort();
-//        HasFailed = true;
+        //        HasFailed = true;
         return false;
     }
     RecoverTrials = 0;
@@ -313,7 +337,7 @@ bool SynscanMount::ReadScopeStatus()
 
         if(HasFailed) {
             int v1,v2;
-    	//fprintf(stderr,"Calling passthru command to get motor firmware versions\n");
+        //fprintf(stderr,"Calling passthru command to get motor firmware versions\n");
             v1=PassthruCommand(0xfe,0x11,1,0,2);
             v2=PassthruCommand(0xfe,0x10,1,0,2);
             fprintf(stderr,"Motor firmware versions %d %d\n",v1,v2);
@@ -321,10 +345,10 @@ bool SynscanMount::ReadScopeStatus()
                 IDMessage(getDeviceName(),"Cannot proceed");
                 IDMessage(getDeviceName(),"Handset is responding, but Motors are Not Responding");
                 return false;
-    	}
+        }
             //  if we get here, both motors are responding again
             //  so the problem is solved
-    	HasFailed=false;
+        HasFailed=false;
         }
     */
 
@@ -347,7 +371,7 @@ bool SynscanMount::ReadScopeStatus()
     // Query mount information
     memset(res, 0, MAX_SYN_BUF);
     LOG_DEBUG("CMD <J>");
-    tty_write(PortFD, "J", 1, &bytesWritten);    
+    tty_write(PortFD, "J", 1, &bytesWritten);
     numread = tty_read(PortFD, res, 2, 2, &bytesRead);
     LOGF_DEBUG("RES <%s>", res);
     if (res[1] == '#')
@@ -531,24 +555,24 @@ bool SynscanMount::ReadScopeStatus()
             {
                 NewRate = 9;
             } else
-            if (std::abs(DiffAlt) > 1.2)
-            {
-                NewRate = 7;
-            } else
-            if (std::abs(DiffAlt) > 0.5)
-            {
-                NewRate = 5;
-            } else
-            if (std::abs(DiffAlt) > 0.2)
-            {
-                NewRate = 4;
-            } else
-            if (std::abs(DiffAlt) > 0.025)
-            {
-                NewRate = 3;
-            }
+                if (std::abs(DiffAlt) > 1.2)
+                {
+                    NewRate = 7;
+                } else
+                    if (std::abs(DiffAlt) > 0.5)
+                    {
+                        NewRate = 5;
+                    } else
+                        if (std::abs(DiffAlt) > 0.2)
+                        {
+                            NewRate = 4;
+                        } else
+                            if (std::abs(DiffAlt) > 0.025)
+                            {
+                                NewRate = 3;
+                            }
             LOGF_DEBUG("Slewing Alt axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
-                   CurrentAltAz.alt, SlewTargetAlt, CurrentAltAz.alt-SlewTargetAlt, CustomNSSlewRate);
+                       CurrentAltAz.alt, SlewTargetAlt, CurrentAltAz.alt-SlewTargetAlt, CustomNSSlewRate);
             if (NewRate != CustomNSSlewRate)
             {
                 if (DiffAlt < 0)
@@ -561,18 +585,18 @@ bool SynscanMount::ReadScopeStatus()
                 }
             }
         } else
-        if (SlewTargetAlt != -1 && std::abs(DiffAlt) < 0.01)
-        {
-            MoveNS(DIRECTION_NORTH, MOTION_STOP);
-            SlewTargetAlt = -1;
-            LOG_DEBUG("Slewing on Alt axis finished");
-        }
+            if (SlewTargetAlt != -1 && std::abs(DiffAlt) < 0.01)
+            {
+                MoveNS(DIRECTION_NORTH, MOTION_STOP);
+                SlewTargetAlt = -1;
+                LOG_DEBUG("Slewing on Alt axis finished");
+            }
         DiffAz = CurrentAltAz.az-SlewTargetAz;
         if (DiffAz < -180)
             DiffAz = (DiffAz+360)*2;
         else
-        if (DiffAz > 180)
-            DiffAz = (DiffAz-360)*2;
+            if (DiffAz > 180)
+                DiffAz = (DiffAz-360)*2;
         if (SlewTargetAz != -1 && std::abs(DiffAz) > 0.01)
         {
             int NewRate = 2;
@@ -581,24 +605,24 @@ bool SynscanMount::ReadScopeStatus()
             {
                 NewRate = 9;
             } else
-            if (std::abs(DiffAz) > 1.2)
-            {
-                NewRate = 7;
-            } else
-            if (std::abs(DiffAz) > 0.5)
-            {
-                NewRate = 5;
-            } else
-            if (std::abs(DiffAz) > 0.2)
-            {
-                NewRate = 4;
-            } else
-            if (std::abs(DiffAz) > 0.025)
-            {
-                NewRate = 3;
-            }
+                if (std::abs(DiffAz) > 1.2)
+                {
+                    NewRate = 7;
+                } else
+                    if (std::abs(DiffAz) > 0.5)
+                    {
+                        NewRate = 5;
+                    } else
+                        if (std::abs(DiffAz) > 0.2)
+                        {
+                            NewRate = 4;
+                        } else
+                            if (std::abs(DiffAz) > 0.025)
+                            {
+                                NewRate = 3;
+                            }
             LOGF_DEBUG("Slewing Az axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
-                   CurrentAltAz.az, SlewTargetAz, CurrentAltAz.az-SlewTargetAz, CustomWESlewRate);
+                       CurrentAltAz.az, SlewTargetAz, CurrentAltAz.az-SlewTargetAz, CustomWESlewRate);
             if (NewRate != CustomWESlewRate)
             {
                 if (DiffAz > 0)
@@ -611,12 +635,12 @@ bool SynscanMount::ReadScopeStatus()
                 }
             }
         } else
-        if (SlewTargetAz != -1 && std::abs(DiffAz) < 0.01)
-        {
-            MoveWE(DIRECTION_WEST, MOTION_STOP);
-            SlewTargetAz = -1;
-            LOG_DEBUG("Slewing on Az axis finished");
-        }
+            if (SlewTargetAz != -1 && std::abs(DiffAz) < 0.01)
+            {
+                MoveWE(DIRECTION_WEST, MOTION_STOP);
+                SlewTargetAz = -1;
+                LOG_DEBUG("Slewing on Az axis finished");
+            }
         if (SlewTargetAz == -1 && SlewTargetAlt == -1)
         {
             StartTrackMode();
@@ -632,6 +656,10 @@ bool SynscanMount::StartTrackMode()
 
     TrackState = SCOPE_TRACKING;
     LOG_INFO("Tracking started");
+
+    if (isSimulation())
+        return true;
+
     // Start tracking
     res[0] = 'T';
     // Check the mount type to choose tracking mode
@@ -659,20 +687,24 @@ bool SynscanMount::Goto(double ra, double dec)
     int bytesWritten, bytesRead;
     ln_hrz_posn TargetAltAz { 0, 0 };
 
-    LOG_DEBUG("CMD <Ka>");
-    tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
-    tty_read(PortFD, res, 2, 2, &bytesRead);   //  Read 2 bytes of response
-    LOGF_DEBUG("RES <%s>", res);
-    if (res[1] != '#')
+    if (isSimulation() == false)
     {
-        LOG_WARN("Wrong answer from the mount");
-        //  this is not a correct echo
-        //  so we are not talking to a mount properly
-        return false;
+        LOG_DEBUG("CMD <Ka>");
+        tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
+        tty_read(PortFD, res, 2, 2, &bytesRead);   //  Read 2 bytes of response
+        LOGF_DEBUG("RES <%s>", res);
+        if (res[1] != '#')
+        {
+            LOG_WARN("Wrong answer from the mount");
+            //  this is not a correct echo
+            //  so we are not talking to a mount properly
+            return false;
+        }
     }
+
     TrackState = SCOPE_SLEWING;
     // EQ mount has a different Goto mode
-    if (MountCode < 128)
+    if (MountCode < 128 && isSimulation() == false)
     {
         int n1 = ra * 0x1000000 / 24;
         int n2 = dec * 0x1000000 / 360;
@@ -681,6 +713,7 @@ bool SynscanMount::Goto(double ra, double dec)
         n1 = n1 << 8;
         n2 = n2 << 8;
         sprintf((char*)res, "r%08X,%08X", n1, n2);
+
         tty_write(PortFD, res, 18, &bytesWritten);
         memset(&res[18], 0, 1);
         LOGF_DEBUG("Goto - ra: %g de: %g", ra, dec);
@@ -690,8 +723,10 @@ bool SynscanMount::Goto(double ra, double dec)
             LOG_DEBUG("Timeout waiting for scope to complete goto.");
             return false;
         }
+
         return true;
     }
+
     TargetAltAz = GetAltAzPosition(ra, dec);
     LOGF_DEBUG("Goto - ra: %g de: %g (az: %g alt: %g)", ra, dec, TargetAltAz.az, TargetAltAz.alt);
     char RAStr[MAX_SYN_BUF]={0}, DEStr[MAX_SYN_BUF]={0}, AZStr[MAX_SYN_BUF]={0}, ATStr[MAX_SYN_BUF]={0};
@@ -705,6 +740,9 @@ bool SynscanMount::Goto(double ra, double dec)
     SlewTargetAz = TargetAltAz.az;
     SlewTargetAlt = TargetAltAz.alt;
 
+    TargetRA = ra;
+    TargetDEC = dec;
+
     return true;
 }
 
@@ -713,34 +751,37 @@ bool SynscanMount::Park()
     char res[MAX_SYN_BUF]={0};
     int numread, bytesWritten, bytesRead;
 
-    strncpy(LastParkRead, "", 1);
-    memset(res, 0, 3);
-    tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
-    tty_read(PortFD, res, 2, 2, &bytesRead);   //  Read 2 bytes of response
-    if (res[1] != '#')
+    if (isSimulation() == false)
     {
-        //  this is not a correct echo
-        //  so we are not talking to a mount properly
-        return false;
-    }
-    //  Now we stop tracking
-    res[0] = 'T';
-    res[1] = 0;
-    tty_write(PortFD, res, 2, &bytesWritten);
-    numread = tty_read(PortFD, res, 1, 60, &bytesRead);
-    if (bytesRead != 1 || res[0] != '#')
-    {
-        LOG_DEBUG("Timeout waiting for scope to stop tracking.");
-        return false;
-    }
+        strncpy(LastParkRead, "", 1);
+        memset(res, 0, 3);
+        tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
+        tty_read(PortFD, res, 2, 2, &bytesRead);   //  Read 2 bytes of response
+        if (res[1] != '#')
+        {
+            //  this is not a correct echo
+            //  so we are not talking to a mount properly
+            return false;
+        }
+        //  Now we stop tracking
+        res[0] = 'T';
+        res[1] = 0;
+        tty_write(PortFD, res, 2, &bytesWritten);
+        numread = tty_read(PortFD, res, 1, 60, &bytesRead);
+        if (bytesRead != 1 || res[0] != '#')
+        {
+            LOG_DEBUG("Timeout waiting for scope to stop tracking.");
+            return false;
+        }
 
-    //sprintf((char *)res,"b%08X,%08X",0x0,0x40000000);
-    tty_write(PortFD, "b00000000,40000000", 18, &bytesWritten);
-    numread = tty_read(PortFD, res, 1, 60, &bytesRead);
-    if (bytesRead != 1 || res[0] != '#')
-    {
-        LOG_DEBUG("Timeout waiting for scope to respond to park.");
-        return false;
+        //sprintf((char *)res,"b%08X,%08X",0x0,0x40000000);
+        tty_write(PortFD, "b00000000,40000000", 18, &bytesWritten);
+        numread = tty_read(PortFD, res, 1, 60, &bytesRead);
+        if (bytesRead != 1 || res[0] != '#')
+        {
+            LOG_DEBUG("Timeout waiting for scope to respond to park.");
+            return false;
+        }
     }
 
     TrackState = SCOPE_PARKING;
@@ -785,6 +826,10 @@ bool SynscanMount::Abort()
 
     LOG_DEBUG("Abort any motions");
     TrackState = SCOPE_IDLE;
+
+    if (isSimulation())
+        return true;
+
     SlewTargetAlt = -1;
     SlewTargetAz = -1;
     CustomNSSlewRate = -1;
@@ -812,6 +857,9 @@ bool SynscanMount::Abort()
 
 bool SynscanMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
+    if (isSimulation())
+        return true;
+
     if (command != MOTION_START)
     {
         PassthruCommand(37, 17, 2, 0, 0);
@@ -836,6 +884,9 @@ bool SynscanMount::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 
 bool SynscanMount::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
+    if (isSimulation())
+        return true;
+
     if (command != MOTION_START)
     {
         PassthruCommand(37, 16, 2, 0, 0);
@@ -913,6 +964,18 @@ int SynscanMount::PassthruCommand(int cmd, int target, int msgsize, int data, in
 
 bool SynscanMount::ReadTime()
 {
+    if (isSimulation())
+    {
+        char timeString[MAXINDINAME] = {0};
+        time_t now = time (nullptr);
+        strftime(timeString, MAXINDINAME, "%T", gmtime(&now));
+        IUSaveText(&TimeT[0], "3");
+        IUSaveText(&TimeT[1], timeString);
+        TimeTP.s = IPS_OK;
+        IDSetText(&TimeTP, nullptr);
+        return true;
+    }
+
     char res[MAX_SYN_BUF]={0};
     int bytesWritten = 0, bytesRead = 0;
 
@@ -938,7 +1001,7 @@ bool SynscanMount::ReadTime()
             offset -= 256;
         localTime.gmtoff = offset;
         daylightflag =
-            res[7]; //  this is the daylight savings flag in the hand controller, needed if we did not set the time
+                res[7]; //  this is the daylight savings flag in the hand controller, needed if we did not set the time
         localTime.years += 2000;
         localTime.gmtoff *= 3600;
         //  now convert to utc
@@ -967,6 +1030,15 @@ bool SynscanMount::ReadTime()
 
 bool SynscanMount::ReadLocation()
 {
+    if (isSimulation())
+    {
+        LocationN[LOCATION_LATITUDE].value  = 29.5;
+        LocationN[LOCATION_LONGITUDE].value = 48;
+        IDSetNumber(&LocationNP, nullptr);
+        ReadLatLong = false;
+        return true;
+    }
+
     char res[MAX_SYN_BUF]={0};
     int bytesWritten = 0, bytesRead = 0;
 
@@ -1035,6 +1107,9 @@ bool SynscanMount::ReadLocation()
 
 bool SynscanMount::updateTime(ln_date *utc, double utc_offset)
 {
+    if (isSimulation())
+        return true;
+
     char res[MAX_SYN_BUF]={0};
     int bytesWritten = 0, bytesRead = 0;
 
@@ -1089,6 +1164,16 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
     LocationN[LOCATION_LONGITUDE].value = longitude;
     IDSetNumber(&LocationNP, nullptr);
 
+    if (isSimulation())
+    {
+        if (CurrentDEC == 0)
+        {
+            CurrentDEC = latitude > 0 ? 90 : -90;
+            CurrentRA = get_local_sidereal_time(longitude);
+        }
+        return true;
+    }
+
     if (!CanSetLocation)
     {
         return true;
@@ -1107,7 +1192,7 @@ bool SynscanMount::updateLocation(double latitude, double longitude, double elev
         p1.lat = latitude;
         ln_lnlat_to_hlnlat(&p1, &p2);
         LOGF_INFO("Update location - latitude %d:%d:%1.2f longitude %d:%d:%1.2f\n",
-               p2.lat.degrees, p2.lat.minutes, p2.lat.seconds, p2.lng.degrees, p2.lng.minutes, p2.lng.seconds);
+                  p2.lat.degrees, p2.lat.minutes, p2.lat.seconds, p2.lng.degrees, p2.lng.minutes, p2.lng.seconds);
 
         res[0] = 'W';
         res[1] = p2.lat.degrees;
@@ -1176,20 +1261,20 @@ bool SynscanMount::Sync(double ra, double dec)
     char res[MAX_SYN_BUF]={0};
     int numread, bytesWritten, bytesRead;
 
+    if (isSimulation())
+    {
+        CurrentRA = ra;
+        CurrentDEC = dec;
+        return true;
+    }
+
     // Alt/Az sync mode
     if (MountCode >= 128)
     {
         ln_hrz_posn TargetAltAz { 0, 0 };
 
         TargetAltAz = GetAltAzPosition(ra, dec);
-        if (isDebug())
-        {
-            LOGF_INFO("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
-                      TargetAltAz.az, TargetAltAz.alt);
-        } else {
-            LOGF_DEBUG("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec,
-                       TargetAltAz.az, TargetAltAz.alt);
-        }
+        LOGF_DEBUG("Sync - ra: %g de: %g to az: %g alt: %g", ra, dec, TargetAltAz.az, TargetAltAz.alt);
         // Assemble the Reset Position command for Az axis
         int Az = (int)(TargetAltAz.az*16777216 / 360);
 
@@ -1238,6 +1323,8 @@ bool SynscanMount::Sync(double ra, double dec)
         LOG_DEBUG("Timeout waiting for scope to complete syncing.");
         return false;
     }
+
+
     // Start tracking again
     if (IsTrackingBeforeSync)
         StartTrackMode();
@@ -1304,4 +1391,87 @@ void SynscanMount::UpdateMountInformation(bool inform_client)
     }
     if (BasicMountInfoHasChanged && inform_client)
         IDSetText(&BasicMountInfoV, nullptr);
+}
+
+void SynscanMount::MountSim()
+{
+    static struct timeval ltv;
+    struct timeval tv;
+    double dt, da, dx;
+    int nlocked;
+
+    /* update elapsed time since last poll, don't presume exactly POLLMS */
+    gettimeofday(&tv, nullptr);
+
+    if (ltv.tv_sec == 0 && ltv.tv_usec == 0)
+        ltv = tv;
+
+    dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
+    ltv = tv;
+    double currentSlewRate = SLEW_RATE[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL/3600.0;
+    da  = currentSlewRate * dt;
+
+    /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
+    switch (TrackState)
+    {
+    case SCOPE_IDLE:
+        CurrentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
+        CurrentRA = range24(CurrentRA);
+        break;
+
+    case SCOPE_TRACKING:
+        break;
+
+    case SCOPE_SLEWING:
+    case SCOPE_PARKING:
+        /* slewing - nail it when both within one pulse @ SLEWRATE */
+        nlocked = 0;
+
+        dx = TargetRA - CurrentRA;
+
+        // Take shortest path
+        if (fabs(dx) > 12)
+            dx *= -1;
+
+        if (fabs(dx) <= da)
+        {
+            CurrentRA = TargetRA;
+            nlocked++;
+        }
+        else if (dx > 0)
+            CurrentRA += da / 15.;
+        else
+            CurrentRA -= da / 15.;
+
+        if (CurrentRA < 0)
+            CurrentRA += 24;
+        else if (CurrentRA > 24)
+            CurrentRA -= 24;
+
+        dx = TargetDEC - CurrentDEC;
+        if (fabs(dx) <= da)
+        {
+            CurrentDEC = TargetDEC;
+            nlocked++;
+        }
+        else if (dx > 0)
+            CurrentDEC += da;
+        else
+            CurrentDEC -= da;
+
+        if (nlocked == 2)
+        {
+            if (TrackState == SCOPE_SLEWING)
+                TrackState = SCOPE_TRACKING;
+            else
+                TrackState = SCOPE_PARKED;
+        }
+
+        break;
+
+    default:
+        break;
+    }
+
+    NewRaDec(CurrentRA, CurrentDEC);
 }
