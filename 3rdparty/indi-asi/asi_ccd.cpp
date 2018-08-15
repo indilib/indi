@@ -1576,10 +1576,19 @@ void ASICCD::createControls(int piNumberOfControls)
                 "Adding above control as writable control number %d",
                 nWritableControls);
 
-            IUFillNumber(control_np, oneControlCap->Name, oneControlCap->Name,
-                "%g", oneControlCap->MinValue, oneControlCap->MaxValue,
-                (oneControlCap->MaxValue - oneControlCap->MinValue) / 10.0,
-                pValue);
+            // JM 2018-07-04: If Max-Min == 1 then it's boolean value
+            // So no need to set a custom step value.
+            double step=1;
+            if (oneControlCap->MaxValue - oneControlCap->MinValue > 1)
+                step = (oneControlCap->MaxValue - oneControlCap->MinValue) / 10.0;
+            IUFillNumber(control_np,
+                         oneControlCap->Name,
+                         oneControlCap->Name,
+                        "%g",
+                         oneControlCap->MinValue,
+                         oneControlCap->MaxValue,
+                         step,
+                        pValue);
             control_np->aux0 = (void *)&oneControlCap->ControlType;
             control_np->aux1 = (void *)&oneControlCap->IsAutoSupported;
             control_np++;

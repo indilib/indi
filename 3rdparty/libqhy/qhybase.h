@@ -1019,6 +1019,14 @@ public:
     qhyccd_handle *GetHandle();
     void SetHandle(qhyccd_handle *pHandle);
     
+    inline void SetMaxImageReadTrials(int value) {
+    	m_max_image_read_trials = value;
+    }
+    
+    inline int GetMaxImageReadTrials() {
+    	return m_max_image_read_trials;
+    }
+    
     uint32_t camx; //!< current camera width
     uint32_t camy; //!< current camera height
     uint32_t camxbin; //!< current camera width bin
@@ -1090,6 +1098,10 @@ public:
     double imgcontrast;
     double imggamma;
     double camampv;
+	double defaultgain;
+	double defaultoffset;
+	double outputdataactualbits;
+	double outputdataalignment;
     double camviewmode;
 
     uint8_t isbadframe;
@@ -1160,7 +1172,8 @@ protected:
     bool m_exposureThreadRunFlag;
     qhyccd_handle *m_pHandle;    
     uint32_t m_totalDataLength;
-    
+    int m_max_image_read_trials;
+
 private:
 #ifdef WIN32
     

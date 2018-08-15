@@ -136,6 +136,9 @@ public:
     bool sendScopeTime();
     bool sendScopeLocation();
 
+    // Update slew rate if different than current
+    bool updateSlewRate(int index);
+
     // Simulate Mount in simulation mode
     void mountSim();
 

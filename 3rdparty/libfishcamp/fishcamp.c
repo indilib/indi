@@ -102,6 +102,9 @@ int				gCameraImageFilter[kNumCamsSupported];	// type of image filter for post p
 
 UInt16			gBlackPedestal[kNumCamsSupported];
 
+//Location for Drivers
+char driverSupportPath[MAXRBUF];
+
 // send data via the designated camera's bulk out endpoint
 // valid camNum is 1 -> fcUsb_GetNumCameras()
 //
@@ -110,16 +113,33 @@ int SendUSB(int camNum, unsigned char* data, int length)
 	int retVal, transferred;
 	struct libusb_device_handle *dev;
 
-	retVal = 0;
+    char		buffer[200];
+
+    retVal = -1;
 
 	dev = gCamerasFound[camNum - 1].dev;
 	if (dev != NULL)
 		retVal = libusb_bulk_transfer(dev, FC_STARFISH_BULK_OUT_ENDPOINT, data, length, &transferred, 10000);
+    else
+    {
+        sprintf(buffer,"Error on Sending Libusb Bulk Transfer: no camera handle\n");
+        Starfish_Log( buffer );
+        return 0;
+    }
 
-	if (retVal == 0)
+    if (retVal == 0)
+    {
+        sprintf(buffer, "Sent - %d bytes\n", transferred);
+        Starfish_Log( buffer );
 		return transferred;
-	else
-		return -1;
+    }
+    else
+    {
+        sprintf(buffer, "Error on Sending Libusb Bulk Transfer: %s\n", libusb_error_name(retVal));
+        Starfish_Log( buffer );
+        return 0;
+    }
+
 }
 
 // receive data via the designated camera's bulk in endpoint
@@ -130,22 +150,32 @@ int RcvUSB(int camNum, unsigned char* data, int maxBytes)
 	int retVal, transferred;
 	struct libusb_device_handle *dev;
 
-	retVal = 0;
+    char		buffer[200];
+
+    retVal = -1;
 
 	dev = gCamerasFound[camNum - 1].dev;
 	if (dev != NULL)
-		retVal = libusb_bulk_transfer(dev, FC_STARFISH_BULK_IN_ENDPOINT, data, maxBytes, &transferred, 10000);
+        retVal = libusb_bulk_transfer(dev, FC_STARFISH_BULK_IN_ENDPOINT, data, maxBytes, &transferred, 10000);
+    else
+    {
+        sprintf(buffer,"Error on Receiving Libusb Bulk Transfer: no camera handle\n");
+        Starfish_Log( buffer );
+        return 0;
+    }
 
 	if (retVal == 0)
-		{
-//		printf("RcvUSB - %d bytes\n", transferred);
+    {
+        sprintf(buffer, "RcvUSB - %d bytes\n", transferred);
+        Starfish_Log( buffer );
 		return transferred;
-		}
+    }
 	else
-		{
-//		printf("RcvUSB - ERROR\n");
-		return -1;
-		}
+    {
+        sprintf(buffer, "Error on Receiving Libusb Bulk Transfer: %s\n", libusb_error_name(retVal));
+        Starfish_Log( buffer );
+        return 0;
+    }
 }
 
 // routine to check to see if we have a starfish log file on disk
@@ -290,7 +320,7 @@ void Starfish_Log (char *logString)
 			// get operating system-style date and time. 
             fc_timestamp(theLogFile);
 
-			sprintf( buffer, "- %s", logString ); 
+            sprintf( buffer, "- %s", logString );
 
 			numWritten = fputs( buffer, theLogFile );
 			fclose( theLogFile );
@@ -415,19 +445,19 @@ void printOutDiscoveredCamerasDB (void)
 	for (i = 0; i < kNumCamsSupported; i++)
 		{
 		sprintf( buffer, "Camera DB for discovered camera # - %d\n", i ); 
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 
 		sprintf( buffer, "     gCamerasFound[%d].camVendor       - %04x\n", i, gCamerasFound[i].camVendor);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 
 		sprintf( buffer, "     gCamerasFound[%d].camRawProduct   - %04x\n", i, gCamerasFound[i].camRawProduct);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 
 		sprintf( buffer, "     gCamerasFound[%d].camFinalProduct - %04x\n", i, gCamerasFound[i].camFinalProduct);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 
 		sprintf( buffer, "     gCamerasFound[%d].camRelease      - %04x\n", i, gCamerasFound[i].camRelease);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 		}
 	
 }
@@ -447,14 +477,16 @@ void AnchorWrite(struct libusb_device_handle *dev_handle, UInt16 anchorAddress, 
 		5000 /*timeout*/
 	);
 	if (retval < 0)
-		Starfish_Log("Error in control transfer.\n");
+        Starfish_Log("Error in control transfer.\n");
 	
 }
 
 FILE *openFile(UInt16 vendor, UInt16 product)
 {
-    char name[]="/lib/firmware/gdr_usb.hex";
-    char name2[]="/lib/firmware/pro_usb.hex";
+    char name[MAXRBUF];
+    char name2[MAXRBUF];
+    snprintf(name, MAXRBUF, "%s/gdr_usb.hex", driverSupportPath);
+    snprintf(name2, MAXRBUF, "%s/pro_usb.hex", driverSupportPath);
 	char path[256];
 	FILE *hexFile;
  	char buffer[200];
@@ -464,14 +496,14 @@ FILE *openFile(UInt16 vendor, UInt16 product)
 	if (product == 0x0008)
 		{
 		sprintf(buffer, "File to open is \"%s\"\n", name2);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 
 		hexFile = fopen(name2, "r");
 		}
 	else
 		{
 		sprintf(buffer, "File to open is \"%s\"\n", name);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 
 		hexFile = fopen(name, "r");
 		}
@@ -517,14 +549,14 @@ int hexRead(INTEL_HEX_RECORD *record, FILE *hexFile, UInt16 vendor, UInt16 produ
     if(c != ':')
     {
         sprintf(buffer, "Line does not start with colon (%d)\n", c);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
         return(-1);
     }
     n = fscanf(hexFile, "%2lX%4lX%2lX", &record->Length, &record->Address, &record->Type);
     if(n != 3)
     {
         sprintf(buffer, "Could not read line preamble %d\n", c);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
         return(-1);
     }
     
@@ -532,7 +564,7 @@ int hexRead(INTEL_HEX_RECORD *record, FILE *hexFile, UInt16 vendor, UInt16 produ
     if(len > MAX_INTEL_HEX_RECORD_LENGTH)
     {
         sprintf(buffer, "length is more than can fit %d, %d\n", len, MAX_INTEL_HEX_RECORD_LENGTH);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
         return(-1);
    }
     for(i = 0; i<len; i++)
@@ -544,7 +576,7 @@ int hexRead(INTEL_HEX_RECORD *record, FILE *hexFile, UInt16 vendor, UInt16 produ
             {
                 sprintf(buffer, "Line finished at wrong time %d, %ld\n", i, record->Length);
 
-				Starfish_Log( buffer );
+                Starfish_Log( buffer );
                 return(-1);
             }
         }
@@ -555,7 +587,7 @@ int hexRead(INTEL_HEX_RECORD *record, FILE *hexFile, UInt16 vendor, UInt16 produ
     if(n != 1)
     {
         sprintf(buffer, "Check not found\n");
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
         return(-1);
     }
 	
@@ -654,30 +686,30 @@ int GetLatestSrecFileRevNumber(void)
 	FILE		*srecFile;
  	char		buffer[200];
 
-	Starfish_Log("GetLatestSrecFileRevNumber\n");
+    Starfish_Log("GetLatestSrecFileRevNumber\n");
 
 	returnNumber = 16;		// rev 16 is the latest version released
 	done = false;
 	while (!done)
 		{
 		// generate the next file name to look for
-        sprintf(fileName, "/lib/firmware/Guider_mono_rev%02d_intel.srec", returnNumber);
-
+		char fileName[MAXRBUF];
+    	snprintf(fileName, MAXRBUF, "%s/Guider_mono_rev%02d_intel.srec", driverSupportPath, returnNumber);
 		sprintf(buffer, "  Looking for file - \"%s\"\n", fileName);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 
 		// try to open the file
 		srecFile = fopen(fileName, "r");
 		if (srecFile == NULL)
 			{
 				// file didn't exist so we must be done looking
-			Starfish_Log("  Done looking\n");
+            Starfish_Log("  Done looking\n");
 			done = true;
 			}
 		else
 			{
 			// file was there so keep looking
-			Starfish_Log("  Found SREC file\n");
+            Starfish_Log("  Found SREC file\n");
 
 			fclose(srecFile);
 			returnNumber++;
@@ -688,14 +720,15 @@ int GetLatestSrecFileRevNumber(void)
 
 	if (returnNumber == 15)
 		{
-		Starfish_Log("  Could not find an SREC file\n");
+        Starfish_Log("  Could not find an SREC file\n");
 		returnNumber = -1;
 		}
 	else
 		{
-        sprintf(fileName, "/lib/firmware/Guider_mono_rev%02d_intel.srec", returnNumber);
+		char fileName[MAXRBUF];
+    	snprintf(fileName, MAXRBUF, "%s/Guider_mono_rev%02d_intel.srec", driverSupportPath, returnNumber);
 		sprintf(buffer, "  Most recent SREC file is - \"%s\"\n", fileName);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 		}
 
 	return( returnNumber );
@@ -709,9 +742,12 @@ int GetLatestSrecFileRevNumber(void)
 //
 FILE *openSrecFile(UInt16 vendor, UInt16 rawProduct)
 {
-    char name[]="/lib/firmware/Guider_mono_rev16_intel.srec";
-    char name1[]="/lib/firmware/ibis_rev1_intel.srec";			// ibis 1300
-    char name2[]="/lib/firmware/StarfishPRO4M_rev1_intel.srec";	// StarfishPRO4M
+	char name[MAXRBUF];
+	char name1[MAXRBUF];
+	char name2[MAXRBUF];
+    snprintf(name, MAXRBUF, "%s/Guider_mono_rev16_intel.srec", driverSupportPath);
+	snprintf(name1, MAXRBUF, "%s/ibis_rev1_intel.srec", driverSupportPath); // ibis 1300
+	snprintf(name2, MAXRBUF, "%s/StarfishPRO4M_rev1_intel.srec", driverSupportPath); // StarfishPRO4M
  	char buffer[200];
 	int	 fileRevNumber;
  	char fileName[200];
@@ -723,7 +759,7 @@ FILE *openSrecFile(UInt16 vendor, UInt16 rawProduct)
 	if (rawProduct == starfish_ibis13_raw_deviceID)
 		{
 		sprintf(buffer, "File to open is \"%s\"\n", name1);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 
 		srecFile = fopen(name1, "r");
 		}
@@ -733,7 +769,7 @@ FILE *openSrecFile(UInt16 vendor, UInt16 rawProduct)
 		if (rawProduct == starfish_pro4m_raw_deviceID)
 			{
 			sprintf(buffer, "File to open is \"%s\"\n", name2);
-			Starfish_Log( buffer );
+            Starfish_Log( buffer );
 
 			srecFile = fopen(name2, "r");
 			}
@@ -746,17 +782,18 @@ FILE *openSrecFile(UInt16 vendor, UInt16 rawProduct)
 
 			if (fileRevNumber != -1)
 				{
-                sprintf(fileName, "/lib/firmware/Guider_mono_rev%02d_intel.srec", fileRevNumber);
+				char fileName[MAXRBUF];
+                snprintf(fileName, MAXRBUF, "%s/Guider_mono_rev16_intel.srec", driverSupportPath);
 
 				sprintf(buffer, "File to open is \"%s\"\n", fileName);
-				Starfish_Log( buffer );
+                Starfish_Log( buffer );
 
 				srecFile = fopen(fileName, "r");
 				}
 			else
 				{
 				srecFile = NULL;
-				Starfish_Log("  Could not open the file\n");
+                Starfish_Log("  Could not open the file\n");
 				}
 			}
 		}
@@ -793,7 +830,7 @@ void DownloadtToMicroBlaze(int camNum)
 	int				index, retVal, msgSize, transferred;
     UInt16 			vendor, rawProduct, finalProduct, release;
 	struct libusb_device_handle *USBdev;
-
+    char		buffer[200];
 
     Starfish_Log("DownloadtToMicroBlaze routine\n");
 
@@ -809,23 +846,40 @@ void DownloadtToMicroBlaze(int camNum)
 	mySrecFile = openSrecFile(vendor, rawProduct);
 
 	if (mySrecFile != NULL)
-		{
+    {
+        sprintf(buffer, "SrecFile Opened and writing\n");
+        Starfish_Log( buffer );
 		done = false;
 		while (!done)
-			{
+        {
 			lineReadResult = srecRead((UInt8*)&srecBuffer[0], mySrecFile);
-//			printf("%s", &srecBuffer[0]);
 			if (lineReadResult == 0)
 				done = true;
 			else
 				{			
-				msgSize = strlen(srecBuffer);
-			 	retVal = libusb_bulk_transfer(USBdev, FC_STARFISH_BULK_OUT_ENDPOINT, (unsigned char *)&srecBuffer[0], msgSize, &transferred, 10000);
+                    msgSize = strlen(srecBuffer);
+                    retVal = libusb_bulk_transfer(USBdev, FC_STARFISH_BULK_OUT_ENDPOINT, (unsigned char *)&srecBuffer[0], msgSize, &transferred, 10000);
+                    if(retVal !=0 )
+                    {
+                        sprintf(buffer, "Error on Libusb Bulk Transfer: %s\n", libusb_error_name(retVal));
+                        Starfish_Log( buffer );
+                    }
+                    else
+                    {
+                        //For some reason, without this it fails to send all the lines to the camera.
+                        usleep(100);
+                    }
 				}
-			}
-
+        }
+        sprintf(buffer, "Closing Srecfile\n");
+        Starfish_Log( buffer );
 		fclose(mySrecFile);
-		}
+    }
+    else
+    {
+        sprintf(buffer, "Error opening SrecFile!\n");
+        Starfish_Log( buffer );
+    }
 
 }
 
@@ -1504,7 +1558,7 @@ void fcImage_PRO_calcColOffsets(UInt16 *frameBufferPtr, int imageWidth, int imag
 
 	
 //	printf("fcImage_PRO_calcColOffsets\n");
-	Starfish_Log("fcImage_PRO_calcColOffsets\n");
+    Starfish_Log("fcImage_PRO_calcColOffsets\n");
 	
 	// clear out any old results
 	for (col = 0; col < 4096; col++)
@@ -1570,7 +1624,7 @@ void fcImage_PRO_calcColOffsets(UInt16 *frameBufferPtr, int imageWidth, int imag
 	
 	
 //	printf("fcImage_PRO_doFullFrameColLevelNormalization\n");
-	Starfish_Log("fcImage_PRO_doFullFrameColLevelNormalization\n");
+    Starfish_Log("fcImage_PRO_doFullFrameColLevelNormalization\n");
 
 	// calculate the average of all the black pixels in the vertical overscan area
 //	fcImage_PRO_calcColOffsets(frameBufferPtr, imageWidth, imageHeight);
@@ -1621,7 +1675,7 @@ void fcImage_PRO_calibrateProCamera(int camNum, UInt16 *frameBufferPtr, int imag
 	int		i;
 	bool	savedWantNorm;
 	
-	Starfish_Log("fcImage_PRO_calibrateProCamera\n");
+    Starfish_Log("fcImage_PRO_calibrateProCamera\n");
 
     if (gDoSimulation)
         return;
@@ -1955,12 +2009,23 @@ void fcUsb_init(void)
 	int			i;
 	size_t		size;
     UInt16		rows, cols;
+    
+    //On OS X, Prefer embedded App location if it exists
+	#ifdef __APPLE__
+		if (getenv("INDIPREFIX") != NULL)
+			snprintf(driverSupportPath, MAXRBUF, "%s/Contents/Resources", getenv("INDIPREFIX"));
+		else
+			strncpy(driverSupportPath, "/usr/local/lib/indi", MAXRBUF);
+		strncat(driverSupportPath, "/DriverSupport/fishcamp", MAXRBUF);
+	#else
+		snprintf(driverSupportPath, MAXRBUF, "/lib/firmware");
+	#endif
 
 
 	gDoLogging = true;	// default to do logging
     gDoSimulation = false;
 
-	Starfish_Log("fcUsb_init routine\n");
+    Starfish_Log("fcUsb_init routine\n");
 
     libusb_init(&gCtx);
 
@@ -2008,7 +2073,7 @@ void fcUsb_init(void)
 		gProWantColNormalization = true;
 
 		gFWInitialized			= true;
-		Starfish_Log("fcCamFw initialized\n");
+        Starfish_Log("fcCamFw initialized\n");
 		}
 }
 
@@ -2231,6 +2296,8 @@ void fcUsb_close(void)
 
 
 // will return the actual number of cameras found. 
+// This routine will call fcUsb_OpenCameraDriver and fcUsb_CloseCameraDriver routines to do its job on any RAW cameras found.
+// It will return negative one if a raw camera is found and needs to be run again.
 //
 //int fcUsb_FindCameras(struct libusb_context *ctx)
 int fcUsb_FindCameras(void)
@@ -2253,7 +2320,7 @@ int fcUsb_FindCameras(void)
 	int			kr;
  	char		buffer[200];
 
-	Starfish_Log("fcUsb_FindCameras routine\n");
+    Starfish_Log("fcUsb_FindCameras routine\n");
 
 	gNumCamerasDiscovered   = 0;	
 	gFindCamState			= fcFindCam_looking4supported;
@@ -2278,23 +2345,23 @@ int fcUsb_FindCameras(void)
 	if ((cnt = libusb_get_device_list(gCtx, &devs_list)) < 0) 
 		{
 		sprintf(buffer, "  libusb_get_device_list failed with 0x%x error code\n", cnt);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
  		return (EXIT_FAILURE);
  		}
  
 	if (cnt == 0) 
 		{
  		sprintf( buffer, "  No device match or lack of permissions.\n");
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
  		return (EXIT_SUCCESS);
 	 	}
 
  	sprintf( buffer, "There are %i devices\n", cnt);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	for (i = 0 ; i < cnt ; i++) 
 		{
 		sprintf( buffer, "|-- device number = %i\n", i);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 		device = devs_list[i];
 		err = libusb_get_device_descriptor(device, &descriptor);
 
@@ -2303,11 +2370,11 @@ int fcUsb_FindCameras(void)
 		release = descriptor.bcdDevice;
 
 		sprintf(buffer, "|---- vendor  = %08x\n", vendor);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 		sprintf(buffer, "|---- product = %08x\n", product);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 		sprintf(buffer, "|---- release = %08x\n", release);
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 
 		if ((vendor == fishcamp_USB_VendorID) && (product == starfish_mono_rev2_raw_deviceID))
 			{
@@ -2324,7 +2391,16 @@ int fcUsb_FindCameras(void)
 				gCamerasFound[index].dev             = 0;
 
 				sprintf(buffer, "|---- RawDeviceAdded - added RAW camera to DB index at index = %d\n", index);
-				Starfish_Log( buffer );
+                Starfish_Log( buffer );
+
+                //This is to initialize the Raw cameras that haven't been seen before.  Find Cameras must be run again afterwards.
+                int rc = fcUsb_OpenCamera(i + 1);
+                sprintf(buffer, "fcUsb_OpenCamera to intialize it: opening cam #%d, returns %d\n", i + 1, rc);
+                Starfish_Log( buffer );
+                rc = fcUsb_CloseCamera(i + 1);
+                sprintf(buffer, "fcUsb_CloseCamera to intialize it: opening cam #%d, returns %d\n", i + 1, rc);
+                Starfish_Log( buffer );
+                return -1;
 				}
 
 			}
@@ -2353,10 +2429,10 @@ int fcUsb_FindCameras(void)
 					gCamerasFound[index].dev             = 0;
 				
 					sprintf(buffer, "|---- NewDeviceAdded - added FINAL camera to DB at index = %d\n", index);
-					Starfish_Log( buffer );
+                    Starfish_Log( buffer );
 					}
 				else
-					Starfish_Log("|---- NewDeviceAdded -  FINAL camera already in DB\n");
+                    Starfish_Log("|---- NewDeviceAdded -  FINAL camera already in DB\n");
 				}
 			else
 				{
@@ -2370,9 +2446,9 @@ int fcUsb_FindCameras(void)
 				gCamerasFound[index].dev             = 0;
 
 				sprintf( buffer, "|---- NewDeviceAdded - updating RAW camera at DB index = %d\n", index);
-				Starfish_Log( buffer );
+                Starfish_Log( buffer );
 				}
-			}
+            }
 
 
 		retValue = libusb_get_active_config_descriptor(devs_list[i], &cdesc);
@@ -2380,21 +2456,21 @@ int fcUsb_FindCameras(void)
 		if (retValue == LIBUSB_SUCCESS) 
 			{
 			sprintf( buffer, "|---- bLength : 0x%.2x\n", cdesc->bLength);
-			Starfish_Log( buffer );
+            Starfish_Log( buffer );
 			sprintf( buffer, "|---- bDescriptorType : 0x%.2x\n", cdesc->bDescriptorType);
-			Starfish_Log( buffer );
+            Starfish_Log( buffer );
 			sprintf( buffer, "|---- wTotalLength : 0x%.2x\n", cdesc->wTotalLength);
-			Starfish_Log( buffer );
+            Starfish_Log( buffer );
 			sprintf( buffer, "|---- bNumInterfaces : 0x%.2x\n", cdesc->bNumInterfaces);
-			Starfish_Log( buffer );
+            Starfish_Log( buffer );
 			sprintf( buffer, "|---- bConfigurationValue : 0x%.2x\n", cdesc->bConfigurationValue);
-			Starfish_Log( buffer );
+            Starfish_Log( buffer );
 			sprintf( buffer, "|---- iConfiguration : 0x%.2x\n", cdesc->iConfiguration);
-			Starfish_Log( buffer );
+            Starfish_Log( buffer );
 			sprintf( buffer, "|---- bmAttributes : 0x%.2x\n", cdesc->bmAttributes);
-			Starfish_Log( buffer );
+            Starfish_Log( buffer );
 			sprintf( buffer, "|---- MaxPower : 0x%.2x\n", cdesc->MaxPower);
-			Starfish_Log( buffer );
+            Starfish_Log( buffer );
 						
 //			for (j = 0 ; j < cdesc->bNumInterfaces ; j++) 
 //				{
@@ -2430,8 +2506,9 @@ int fcUsb_FindCameras(void)
  			} 	// if (retValue == LIBUSB_SUCCESS)
 		else 
 			{
- 			sprintf( buffer, "libusb_get_active_config_descriptor failed\n");
-			Starfish_Log( buffer );
+            sprintf( buffer, "libusb_get_active_config_descriptor failed: %s\n" ,libusb_error_name(retValue));
+
+            Starfish_Log( buffer );
 			return (EXIT_FAILURE);
  			}
 
@@ -2483,7 +2560,7 @@ int fcUsb_OpenCamera(int camNum)
     int			tries;
 	int 		retval;
 
-	Starfish_Log("fcUsb_OpenCamera routine\n");
+    Starfish_Log("fcUsb_OpenCamera routine\n");
 	
     if (gDoSimulation)
     {
@@ -2513,7 +2590,7 @@ int fcUsb_OpenCamera(int camNum)
 				gCamerasFound[camNum - 1].dev = usb_handle;
 			    if (usb_handle == NULL)
 					{
-			    	Starfish_Log("Unable to open the raw USB device\n");
+                    Starfish_Log("Unable to open the raw USB device\n");
                     return -1;
 				    }
 
@@ -2528,7 +2605,7 @@ int fcUsb_OpenCamera(int camNum)
 			    if (0 != kr)
 					{
 					sprintf(buffer, "unable to download to device: %08x\n", kr);
-					Starfish_Log( buffer );
+                    Starfish_Log( buffer );
                     libusb_close(usb_handle);
                     return -1;
 			        }
@@ -2560,25 +2637,25 @@ int fcUsb_OpenCamera(int camNum)
 				gCamerasFound[camNum - 1].dev = usb_handle;
 			    if (usb_handle == NULL)	
 					{
-			    	Starfish_Log("Unable to open the final USB device\n");
+                    Starfish_Log("Unable to open the final USB device\n");
 				    }
 				else
 					{
 					retval = libusb_claim_interface(usb_handle, 0);
 					if (retval < 0)
-						Starfish_Log("Couldn't claim interface 0\n");
+                        Starfish_Log("Couldn't claim interface 0\n");
 
 					// one last thing....
 					// need to load the MicroBlaze executable program before doing any camera stuff.
 
 					if (gCamerasFound[camNum - 1].camRawProduct != 0)	// if the camera was discovered in the RAW state.  we will know this cause it will be non-zero
 						{
-						Starfish_Log("Calling - DownloadtToMicroBlaze \n");
+                        Starfish_Log("Calling - DownloadtToMicroBlaze \n");
 						DownloadtToMicroBlaze(camNum);
 						}
 					else
 						{
-						Starfish_Log("didn't need to call - DownloadtToMicroBlaze \n");
+                        Starfish_Log("didn't need to call - DownloadtToMicroBlaze \n");
 						}
 
 //				    download_srec(usb_handle, argv[1], FC_STARFISH_BULK_OUT_ENDPOINT);
@@ -2587,25 +2664,25 @@ int fcUsb_OpenCamera(int camNum)
 			else
 				{
 				// we have a FINAL starfish camera being opened
-				Starfish_Log("we have a FINAL starfish camera being opened.\n");
+                Starfish_Log("we have a FINAL starfish camera being opened.\n");
 
 				usb_handle = libusb_open_device_with_vid_pid(gCtx, vendor, product);
 				
 				gCamerasFound[camNum - 1].dev = usb_handle;
 			    if (usb_handle == NULL)	
 					{
-			    	Starfish_Log("Unable to open the final USB device\n");
+                    Starfish_Log("Unable to open the final USB device\n");
 				    }
 				else
 					{
 					retval = libusb_claim_interface(usb_handle, 0);
 					if (retval < 0)
-						Starfish_Log("Couldn't claim interface 0\n");
+                        Starfish_Log("Couldn't claim interface 0\n");
 
 					if (gCamerasFound[camNum - 1].camFinalProduct == starfish_mono_rev2_final_deviceID)	// is this a Starfish?
 						{
 						sprintf(buffer, "Found Starfish - SN%04d\n", gCamerasFound[camNum - 1].camRelease);
-						Starfish_Log( buffer );
+                        Starfish_Log( buffer );
 						fcUsb_setStarfishDefaultRegs(camNum);
 						}
 					}
@@ -2696,7 +2773,7 @@ int fcUsb_cmd_nop(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;
 
-	Starfish_Log("fcUsb_cmd_nop\n");
+    Starfish_Log("fcUsb_cmd_nop\n");
 
     if (gDoSimulation)
         return 0;
@@ -2725,7 +2802,7 @@ int fcUsb_cmd_rst(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;
 
-	Starfish_Log("fcUsb_cmd_rst\n");
+    Starfish_Log("fcUsb_cmd_rst\n");
 
     if (gDoSimulation)
         return 0;
@@ -2759,7 +2836,7 @@ int	fcUsb_cmd_getinfo(int camNum, fc_camInfo *camInfo)
 	char		buffer[200];
 	int			maxBytes;
 	
-	Starfish_Log("fcUsb_cmd_getinfo\n");
+    Starfish_Log("fcUsb_cmd_getinfo\n");
 
     if (gDoSimulation)
     {
@@ -2829,27 +2906,27 @@ int	fcUsb_cmd_getinfo(int camNum, fc_camInfo *camInfo)
     camInfo->pixelHeight = 52;
 
 	// print out the information returned
-	Starfish_Log("fcUsb_cmd_getinfo:\n");
+    Starfish_Log("fcUsb_cmd_getinfo:\n");
 	sprintf(buffer, "     boardVersion  - 0x%02x\n", camInfo->boardVersion);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	sprintf(buffer, "     boardRevision - 0x%02x\n", camInfo->boardRevision);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	sprintf(buffer, "     fpgaVersion   - 0x%02x\n", camInfo->fpgaVersion);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	sprintf(buffer, "     fpgaRevision  - 0x%02x\n", camInfo->fpgaRevision);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	sprintf(buffer, "     width         - 0x%02x\n", camInfo->width);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	sprintf(buffer, "     height        - 0x%02x\n", camInfo->height);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	sprintf(buffer, "     pixelWidth    - 0x%02x\n", camInfo->pixelWidth);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	sprintf(buffer, "     pixelHeight   - 0x%02x\n", camInfo->pixelHeight);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	sprintf(buffer, "     camSerialStr  - %s\n",     camInfo->camSerialStr);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	sprintf(buffer, "     camNameStr    - %s\n",     camInfo->camNameStr);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 	
 	
 	return 0;
@@ -2883,7 +2960,7 @@ int fcUsb_cmd_setRegister(int camNum, UInt16 regAddress, UInt16 dataValue)
 //	printf("     address - 0x%04x\n", regAddress);
 //	printf("     data    - 0x%04x\n", dataValue);
 
-	Starfish_Log("fcUsb_cmd_setRegister\n");
+    Starfish_Log("fcUsb_cmd_setRegister\n");
 
     if (gDoSimulation)
         return 0;
@@ -2896,8 +2973,8 @@ int fcUsb_cmd_setRegister(int camNum, UInt16 regAddress, UInt16 dataValue)
 	myParameters.cksum = fcUsb_GetUsbCmdCksum(&myParameters.header);
 
 	msgSize = sizeof(myParameters);
-	SendUSB(camNum, (unsigned char*)&myParameters, (int)msgSize);
-	
+    SendUSB(camNum, (unsigned char*)&myParameters, (int)msgSize);
+
 	// get the ACK to the command
 	maxBytes = 512;
 	numBytesRead = RcvUSB(camNum, (unsigned char*)&gBuffer, maxBytes);
@@ -2919,7 +2996,7 @@ UInt16 fcUsb_cmd_getRegister(int camNum, UInt16 regAddress)
 	int				maxBytes;
 
 	
-	Starfish_Log("fcUsb_cmd_getRegister\n");
+    Starfish_Log("fcUsb_cmd_getRegister\n");
 
     if (gDoSimulation)
         return 0;
@@ -2953,7 +3030,7 @@ UInt16 fcUsb_cmd_getRegister(int camNum, UInt16 regAddress)
 	SendUSB(camNum, (unsigned char*)&myParameters, (int)msgSize);
 	
 //	sprintf(buffer, "     msgSize                       - 0x%08x\n", msgSize);
-//	Starfish_Log( buffer );   
+//	Starfish_Log( buffer );
 
 	// get the ACK to the command
 	maxBytes = 512;
@@ -2993,25 +3070,31 @@ int fcUsb_cmd_setIntegrationTime(int camNum, UInt32 theTime)
     UInt16				aWord;
 	int					maxBytes;
 
-	Starfish_Log("fcUsb_cmd_setIntegrationTime\n");
+    Starfish_Log("fcUsb_cmd_setIntegrationTime\n");
 
     if (gDoSimulation)
         return 0;
 
 	// store the time away so we can decide if we want to read the black columns
-	gCurrentIntegrationTime[camNum - 1] = theTime;
+    gCurrentIntegrationTime[camNum - 1] = theTime;
 
+    //This is a nice idea, but there are 2 problems with it.
+    //First, with the Starfish, for some reason the images fail to download when full frame images are requested.
+    //I believe this is due to the fact that it is requesting images that are larger than it can do.
+    //Second, if the region of interest is smaller than full frame, the images will download properly, but
+    //then the black column positions will make no sense because the region of interest is not adjacent to black columns then.
+    /**
 	// special handling for the starfish guide camera
 	if (gCamerasFound[camNum - 1].camFinalProduct == starfish_mono_rev2_final_deviceID)
 		{
 		// tell the camera the new setting of the read black cols mode bit.  We will read the
-		// black cols anytime the integratiion time is less than 2 seconds.
+        // black cols anytime the integration time is less than 2 seconds.
 		fcUsb_cmd_setReadMode(camNum, gDataXfrReadMode[camNum - 1], gDataFormat[camNum - 1]);
 		// resend the ROI params.  the fcUsb_cmd_setReadMode routine will have set the gReadBlack variable
 		// so the next routine will trick the camera into using a wider ROI.
-		fcUsb_cmd_setRoi(camNum, gRoi_left[camNum - 1], gRoi_top[camNum - 1], gRoi_right[camNum - 1], gRoi_bottom[camNum - 1]);
+        fcUsb_cmd_setRoi(camNum, gRoi_left[camNum - 1], gRoi_top[camNum - 1], gRoi_right[camNum - 1], gRoi_bottom[camNum - 1]);
 		}
-
+    **/
 
 	myParameters.header = 'fc';
 	myParameters.command = fcSETINTTIME;
@@ -3045,7 +3128,7 @@ int fcUsb_cmd_setGuiderIntegrationTime(int camNum, UInt32 theTime)
 	int					maxBytes;
 
 
-	Starfish_Log("fcUsb_cmd_setGuiderIntegrationTime\n");
+    Starfish_Log("fcUsb_cmd_setGuiderIntegrationTime\n");
 
     if (gDoSimulation)
         return 0;
@@ -3089,7 +3172,7 @@ int fcUsb_cmd_startExposure(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;
 
-	Starfish_Log("fcUsb_cmd_startExposure\n");
+    Starfish_Log("fcUsb_cmd_startExposure\n");
 
     if (gDoSimulation)
         return 0;
@@ -3119,7 +3202,7 @@ int fcUsb_cmd_startGuiderExposure(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;
 	
-	Starfish_Log("fcUsb_cmd_startGuiderExposure\n");
+    Starfish_Log("fcUsb_cmd_startGuiderExposure\n");
 
     if (gDoSimulation)
         return 0;
@@ -3152,7 +3235,7 @@ int fcUsb_cmd_abortExposure(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;
 
-	Starfish_Log("fcUsb_cmd_abortExposure\n");
+    Starfish_Log("fcUsb_cmd_abortExposure\n");
 
     if (gDoSimulation)
         return 0;
@@ -3184,7 +3267,7 @@ int fcUsb_cmd_abortGuiderExposure(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;
 
-	Starfish_Log("fcUsb_cmd_abortGuiderExposure\n");
+    Starfish_Log("fcUsb_cmd_abortGuiderExposure\n");
 
     if (gDoSimulation)
         return 0;
@@ -3246,7 +3329,7 @@ UInt16 fcUsb_cmd_getState(int camNum)
 //	printf("fcUsb_cmd_getState:\n");
 //	printf("     dataValue  - 0x%02x\n", myRegInfo.dataValue);
 
-	usleep(10000);
+    usleep(10000);
 
 
 	return myRegInfo.dataValue;
@@ -3272,7 +3355,7 @@ UInt16 fcUsb_cmd_getGuiderState(int camNum)
 
 	
 //	printf("fcUsb_cmd_getGuiderState:\n");
-	Starfish_Log("fcUsb_cmd_getGuiderState\n");
+    Starfish_Log("fcUsb_cmd_getGuiderState\n");
 
     if (gDoSimulation)
         return 0;
@@ -3323,7 +3406,7 @@ int fcUsb_cmd_setFrameGrabberTestPattern(int camNum, UInt16 state)
 	int					maxBytes;
 
 	
-	Starfish_Log("fcUsb_cmd_setFrameGrabberTestPattern\n");
+    Starfish_Log("fcUsb_cmd_setFrameGrabberTestPattern\n");
 
     if (gDoSimulation)
         return 0;
@@ -3361,7 +3444,7 @@ int fcUsb_cmd_rdScanLine(int camNum, UInt16 lineNum, UInt16 Xmin, UInt16 Xmax, U
 	int					maxBytes;
 
 
-	Starfish_Log("fcUsb_cmd_rdScanLine\n");
+    Starfish_Log("fcUsb_cmd_rdScanLine\n");
 
 	// send the command to the camera
 	myParameters.header = 'fc';
@@ -3417,7 +3500,7 @@ int fcUsb_cmd_setRoi(int camNum, UInt16 left, UInt16 top, UInt16 right, UInt16 b
     UInt16			regVal;
 	int				maxBytes;
 
-	Starfish_Log("fcUsb_cmd_setRoi\n");
+    Starfish_Log("fcUsb_cmd_setRoi\n");
 
 	// store user requested number away
 	gRoi_left[camNum - 1]   = left;
@@ -3437,8 +3520,8 @@ int fcUsb_cmd_setRoi(int camNum, UInt16 left, UInt16 top, UInt16 right, UInt16 b
 	myParameters.bottom = bottom;
 
 	// if we need to read the black cols, increase the ROI width appropriately
-	if (gReadBlack[camNum - 1])
-		myParameters.right = right + 16;
+    if (gReadBlack[camNum - 1])
+        myParameters.right = right + 16;
 
 	myParameters.cksum = fcUsb_GetUsbCmdCksum(&myParameters.header);
 
@@ -3485,7 +3568,7 @@ int	fcUsb_cmd_setBin(int camNum, UInt16 binMode)
     UInt16			regVal;
 	int				maxBytes;
 	
-	Starfish_Log("fcUsb_cmd_setBin\n");
+    Starfish_Log("fcUsb_cmd_setBin\n");
 
     if (gDoSimulation)
         return 0;
@@ -3521,7 +3604,7 @@ int	fcUsb_cmd_setRelay(int camNum, int whichRelay)
     UInt16					regVal;
 	int						maxBytes;
 	
-	Starfish_Log("fcUsb_cmd_setRelay\n");
+    Starfish_Log("fcUsb_cmd_setRelay\n");
 
     if (gDoSimulation)
         return 0;
@@ -3552,7 +3635,7 @@ int	fcUsb_cmd_clearRelay(int camNum, int whichRelay)
     UInt16					regVal;
 	int						maxBytes;	
 
-	Starfish_Log("fcUsb_cmd_clearRelay\n");
+    Starfish_Log("fcUsb_cmd_clearRelay\n");
 
     if (gDoSimulation)
         return 0;
@@ -3585,7 +3668,7 @@ int	fcUsb_cmd_pulseRelay(int camNum, int whichRelay, int onMs, int offMs, bool r
     UInt16				regVal;
 	int					maxBytes;	
 	
-	Starfish_Log("fcUsb_cmd_pulseRelay\n");
+    Starfish_Log("fcUsb_cmd_pulseRelay\n");
 
     if (gDoSimulation)
         return 0;
@@ -3625,7 +3708,7 @@ int fcUsb_cmd_setTemperature(int camNum, SInt16 theTemp)
     if (gDoSimulation)
         return 0;
 
-	Starfish_Log("fcUsb_cmd_setTemperature\n");
+    Starfish_Log("fcUsb_cmd_setTemperature\n");
 
 	myParameters.header = 'fc';
 	myParameters.command = fcSETTEMP;
@@ -3656,7 +3739,7 @@ SInt16 fcUsb_cmd_getTemperature(int camNum)
 	char		buffer[200];
 	int			maxBytes;	
 	
-	Starfish_Log("fcUsb_cmd_getTemperature\n");
+    Starfish_Log("fcUsb_cmd_getTemperature\n");
 
     if (gDoSimulation)
         return 25;
@@ -3680,7 +3763,7 @@ SInt16 fcUsb_cmd_getTemperature(int camNum)
 	theCurTemperature = (float)myTemperatureInfo.tempValue;
 	theCurTemperature = theCurTemperature / 100.0;
 	sprintf(buffer, "     Got temperature - %2.1f degrees C\n", theCurTemperature);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 
 	return myTemperatureInfo.tempValue;
 }
@@ -3696,7 +3779,7 @@ UInt16 fcUsb_cmd_getTECPowerLevel(int camNum)
     UInt16		theCurPower;
 	int			maxBytes;	
 	
-	Starfish_Log("fcUsb_cmd_getTECPowerLevel\n");
+    Starfish_Log("fcUsb_cmd_getTECPowerLevel\n");
 
     if (gDoSimulation)
         return 50;
@@ -3719,7 +3802,7 @@ UInt16 fcUsb_cmd_getTECPowerLevel(int camNum)
 	// put the current power in the log file
 	theCurPower = myTemperatureInfo.TECPwrValue;
 	sprintf(buffer, "     Got power level - %d percent\n", theCurPower);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 
 
 	return myTemperatureInfo.TECPwrValue;
@@ -3734,7 +3817,7 @@ bool fcUsb_cmd_getTECInPowerOK(int camNum)
 	fc_tempInfo	myTemperatureInfo;
 	int			maxBytes;
 		
-	Starfish_Log("fcUsb_cmd_getTECInPowerOK\n");
+    Starfish_Log("fcUsb_cmd_getTECInPowerOK\n");
 
     if (gDoSimulation)
         return true;
@@ -3769,7 +3852,7 @@ int fcUsb_cmd_turnOffCooler(int camNum)
     UInt32		numBytesRead;
 	int			maxBytes;	
 
-	Starfish_Log("fcUsb_cmd_turnOffCooler\n");
+    Starfish_Log("fcUsb_cmd_turnOffCooler\n");
 
     if (gDoSimulation)
         return 0;
@@ -3794,7 +3877,7 @@ int fcUsb_cmd_turnOffCooler(int camNum)
 int fcUsb_cmd_getRawFrame(int camNum, UInt16 numRows, UInt16 numCols, UInt16 *frameBuffer)
 {
     UInt32		msgSize;
-    UInt32		numBytesRead;
+    UInt32		numBytesRead = 0;
 	fc_no_param	myParameters;
     UInt16		dataOdd;
     UInt16		dataEven;
@@ -3806,7 +3889,7 @@ int fcUsb_cmd_getRawFrame(int camNum, UInt16 numRows, UInt16 numCols, UInt16 *fr
 	char		buffer[200];
 	
 
-	Starfish_Log("fcUsb_cmd_getRawFrame\n");
+    Starfish_Log("fcUsb_cmd_getRawFrame\n");
 
     if (gDoSimulation)
         return 0;
@@ -3818,6 +3901,7 @@ int fcUsb_cmd_getRawFrame(int camNum, UInt16 numRows, UInt16 numCols, UInt16 *fr
 	myParameters.cksum = fcUsb_GetUsbCmdCksum(&myParameters.header);
 
 	msgSize = sizeof(myParameters);
+
 	SendUSB(camNum, (unsigned char*)&myParameters, (int)msgSize);
 	
 	// get the response to the command
@@ -3828,7 +3912,7 @@ int fcUsb_cmd_getRawFrame(int camNum, UInt16 numRows, UInt16 numCols, UInt16 *fr
 		numBytesRead = RcvUSB(camNum, (unsigned char*)&frameBuffer, maxBytes);
 
         sprintf( buffer, "   read - %ld bytes\n", numBytesRead );
-		Starfish_Log( buffer );
+        Starfish_Log( buffer );
 
 
 		if (gProWantColNormalization)
@@ -3846,31 +3930,28 @@ int fcUsb_cmd_getRawFrame(int camNum, UInt16 numRows, UInt16 numCols, UInt16 *fr
 			}
 		else
 			{
-			// if we are doing black level compensation, then we read into our internal buffer
-			// then strip out the balck cols after we are done with them
-			if (gReadBlack[camNum - 1])
+            // if we are doing black level compensation, then we read into our internal buffer
+            // then strip out the balck cols after we are done with them
+            if (gReadBlack[camNum - 1])
+                {
+                maxBytes = numRows * (numCols + 16) * 2;	// 2 bytes / pixel
+                numBytesRead = RcvUSB(camNum, (unsigned char*)gFrameBuffer, maxBytes);
+                }
+            else
+                {
+                maxBytes = numRows * numCols * 2;	// 2 bytes / pixel
+                numBytesRead = RcvUSB(camNum, (unsigned char*)frameBuffer, maxBytes);
+                }
+            sprintf( buffer, "   fcUsb_cmd_getRawFrame - numBytesRead - %i\n", (unsigned int)numBytesRead);
+            Starfish_Log( buffer );
+            if (gReadBlack[camNum - 1] && numBytesRead != 0)
 				{
-				maxBytes = numRows * (numCols + 16) * 2;	// 2 bytes / pixel
-				numBytesRead = RcvUSB(camNum, (unsigned char*)gFrameBuffer, maxBytes);
-
-				}
-			else
-				{
-				maxBytes = numRows * numCols * 2;	// 2 bytes / pixel
-				numBytesRead = RcvUSB(camNum, (unsigned char*)frameBuffer, maxBytes);
-				}
-
-			sprintf( buffer, "   fcUsb_cmd_getRawFrame - numBytesRead - 0x%08x\n", (unsigned int)numBytesRead);
-			Starfish_Log( buffer );
-
-			if (gReadBlack[camNum - 1])
-				{
-				fcImage_doFullFrameRowLevelNormalization(gFrameBuffer, (numCols + 16), numRows);
+                fcImage_doFullFrameRowLevelNormalization(gFrameBuffer, (numCols + 16), numRows);
 				fcImage_StripBlackCols(camNum, frameBuffer);		
 				}
 			}	// if Starfish
-		}
 
+		}
 
 	if (gCameraImageFilter[camNum - 1] == fc_filter_3x3)
 		{
@@ -3890,8 +3971,6 @@ int fcUsb_cmd_getRawFrame(int camNum, UInt16 numRows, UInt16 numCols, UInt16 *fr
 		fcImage_do_hotPixel_kernel(numRows, numCols, frameBuffer);
 		}
 
-
-
 	return (numBytesRead);
 }
 
@@ -3909,7 +3988,7 @@ int fcUsb_cmd_setCameraGain(int camNum, UInt16 theGain)
     UInt32				numBytesRead;
 	int					maxBytes;	
 	
-	Starfish_Log("fcUsb_cmd_setCameraGain\n");
+    Starfish_Log("fcUsb_cmd_setCameraGain\n");
 
     if (gDoSimulation)
         return 0;
@@ -3950,7 +4029,7 @@ int fcUsb_cmd_setCameraOffset(int camNum, UInt16 theOffset)
     UInt32				numBytesRead;
 	int					maxBytes;	
 	
-	Starfish_Log("fcUsb_cmd_setCameraOffset\n");
+    Starfish_Log("fcUsb_cmd_setCameraOffset\n");
 
     if (gDoSimulation)
         return 0;
@@ -3993,7 +4072,7 @@ int	fcUsb_cmd_setReadMode(int camNum, int DataXfrReadMode, int DataFormat)
 	bool					ReadBlack;
 	int						maxBytes;		
 
-	Starfish_Log("fcUsb_cmd_setReadMode\n");
+    Starfish_Log("fcUsb_cmd_setReadMode\n");
 
     if (gDoSimulation)
         return 0;
@@ -4030,7 +4109,7 @@ int	fcUsb_cmd_setReadMode(int camNum, int DataXfrReadMode, int DataFormat)
 		{
 		// the following two parameters are now managed automatically
 		if (gCurrentIntegrationTime[camNum - 1] <= 2000)
-			ReadBlack = true;
+            ReadBlack = false;  //Note: The readblack function for the Fishcamp Starfish is disabled because it doesn't currently seem to work properly.  See the note above.
 		else
 			ReadBlack = false;
 
@@ -4047,7 +4126,7 @@ int	fcUsb_cmd_setReadMode(int camNum, int DataXfrReadMode, int DataFormat)
 		myParameters.length = sizeof(myParameters);
 
 		if (ReadBlack)
-			myParameters.ReadBlack = -1;
+            myParameters.ReadBlack = -1;
 		else
 			myParameters.ReadBlack = 0;
 
@@ -4055,7 +4134,7 @@ int	fcUsb_cmd_setReadMode(int camNum, int DataXfrReadMode, int DataFormat)
 		myParameters.DataFormat = DataFormat;
 
 		if (DoOffsetCorrection)
-			myParameters.AutoOffsetCorrection = -1;
+            myParameters.AutoOffsetCorrection = -1;
 		else
 			myParameters.AutoOffsetCorrection = 0;
 
@@ -4080,7 +4159,7 @@ void fcUsb_setStarfishDefaultRegs(int camNum)
 {
     UInt16		regValue;
 
-	Starfish_Log("fcUsb_setStarfishDefaultRegs\n");
+    Starfish_Log("fcUsb_setStarfishDefaultRegs\n");
 
     if (gDoSimulation)
         return;
@@ -4130,7 +4209,7 @@ UInt16 fcUsb_cmd_getBlackPedestal(int camNum)
     UInt16					retValue;
 	int						maxBytes;	
 	
-	Starfish_Log("fcUsb_cmd_getBlackPedestal\n");
+    Starfish_Log("fcUsb_cmd_getBlackPedestal\n");
 
     if (gDoSimulation)
         return 0;
@@ -4153,7 +4232,7 @@ UInt16 fcUsb_cmd_getBlackPedestal(int camNum)
 
 	// put the current power in the log file
 	sprintf(buffer, "     Got pedestal - 0x%04x\n", retValue);
-	Starfish_Log( buffer );
+    Starfish_Log( buffer );
 
 
 	return retValue;
@@ -4201,7 +4280,7 @@ UInt16 fcUsb_cmd_getBlackPedestal(int camNum)
 //	printf("     propertyType  - 0x%04x\n", propertyType);
 //	printf("     propertyValue - 0x%04x\n", propertyValue);
 
-	Starfish_Log("fcUsb_cmd_setCameraProperty\n");
+    Starfish_Log("fcUsb_cmd_setCameraProperty\n");
 
     if (gDoSimulation)
         return;

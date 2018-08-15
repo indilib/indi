@@ -32,10 +32,10 @@
 
 #define IEQPRO_TIMEOUT 5 /* FD timeout in seconds */
 
-bool ieqpro_debug                 = false;
-bool ieqpro_simulation            = false;
-char ieqpro_device[MAXINDIDEVICE] = "iEQ";
-IEQInfo simInfo;
+static bool ieqpro_debug                 = false;
+static bool ieqpro_simulation            = false;
+static char ieqpro_device[MAXINDIDEVICE] = "iEQ";
+static IEQInfo simInfo;
 
 struct
 {
@@ -910,7 +910,7 @@ bool set_ieqpro_guide_rate(int fd, double rate)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    int num = rate * 100;
+    int num = rate * 1000;
     snprintf(cmd, 16, ":RG%03d#", num);
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
@@ -2025,7 +2025,7 @@ bool get_ieqpro_utc_date_time(int fd, double *utc_hours, int *yy, int *mm, int *
     // Where x is either 0 or 1 denoting daying savings
     if (ieqpro_simulation)
     {
-        strncpy(response, "+1800150331173000#", 32);
+        strncpy(response, "+1800150321173000#", 32);
         nbytes_read = strlen(response);
     }
     else

@@ -77,8 +77,6 @@ void ISSnoopDevice(XMLEle *root)
 /* Constructor */
 IEQPro::IEQPro()
 {
-    set_ieqpro_device(getDeviceName());
-
     scopeInfo.gpsStatus    = GPS_OFF;
     scopeInfo.systemStatus = ST_STOPPED;
     scopeInfo.trackRate    = TR_SIDEREAL;
@@ -103,11 +101,11 @@ bool IEQPro::initProperties()
     INDI::Telescope::initProperties();
 
     /* Firmware */
-    IUFillText(&FirmwareT[FW_MODEL], "Model", "", 0);
-    IUFillText(&FirmwareT[FW_BOARD], "Board", "", 0);
-    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "", 0);
-    IUFillText(&FirmwareT[FW_RA], "RA", "", 0);
-    IUFillText(&FirmwareT[FW_DEC], "DEC", "", 0);
+    IUFillText(&FirmwareT[FW_MODEL], "Model", "", nullptr);
+    IUFillText(&FirmwareT[FW_BOARD], "Board", "", nullptr);
+    IUFillText(&FirmwareT[FW_CONTROLLER], "Controller", "", nullptr);
+    IUFillText(&FirmwareT[FW_RA], "RA", "", nullptr);
+    IUFillText(&FirmwareT[FW_DEC], "DEC", "", nullptr);
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
@@ -117,6 +115,20 @@ bool IEQPro::initProperties()
     AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_KING", "King");
     AddTrackMode("TRACK_CUSTOM", "Custom");
+
+    // Slew Rates
+    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
+    strncpy(SlewRateS[1].label, "2x", MAXINDILABEL);
+    strncpy(SlewRateS[2].label, "8x", MAXINDILABEL);
+    strncpy(SlewRateS[3].label, "16x", MAXINDILABEL);
+    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
+    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
+    strncpy(SlewRateS[6].label, "256x", MAXINDILABEL);
+    strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
+    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
+    IUResetSwitch(&SlewRateSP);
+    // 64x is the default
+    SlewRateS[4].s = ISS_ON;
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
     TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
@@ -165,6 +177,8 @@ bool IEQPro::initProperties()
     SetParkDataType(PARK_RA_DEC);
 
     addAuxControls();
+
+    set_ieqpro_device(getDeviceName());
 
     double longitude=0, latitude=90;
     // Get value from config file if it exists.
@@ -250,6 +264,7 @@ void IEQPro::getStartupData()
 
         LOGF_INFO("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
+        TimeTP.s = IPS_OK;
         IDSetText(&TimeTP, nullptr);
     }
 

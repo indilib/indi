@@ -13,6 +13,7 @@ sudo apt-get -q -y install \
  libboost-regex-dev \
  libcfitsio3-dev \
  libftdi-dev \
+ libdc1394-22-dev \
  libgphoto2-dev \
  libgps-dev \
  libgsl0-dev \
@@ -24,6 +25,16 @@ sudo apt-get -q -y install \
  librtlsdr-dev \
  libfftw3-dev \
  wget
+ 
+ #To get the up to date FFMpeg Libraries
+ sudo add-apt-repository -y ppa:jonathonf/ffmpeg-3
+ sudo apt-get -qq update
+ sudo apt-get -q -y install \
+ libavcodec-dev \
+ libavdevice-dev \
+ libavformat-dev \
+ libswscale-dev \
+ libavutil-dev \
 
 # Install libftdi for MGen driver
 CURDIR="$(pwd)"

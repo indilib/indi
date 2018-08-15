@@ -1,3 +1,9 @@
+indi-asi (0.9) bionic; urgency=low
+
+  * Added ZWO USB2ST4 support.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 24 Jul 2018 09:00:00 +0300
+
 indi-asi (0.8) bionic; urgency=low
 
   * Updated SDK.

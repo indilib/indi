@@ -41,6 +41,8 @@ void FilterInterface::initProperties(const char *groupName)
     IUFillNumber(&FilterSlotN[0], "FILTER_SLOT_VALUE", "Filter", "%3.0f", 1.0, 12.0, 1.0, 1.0);
     IUFillNumberVector(&FilterSlotNP, FilterSlotN, 1, m_defaultDevice->getDeviceName(), "FILTER_SLOT", "Filter Slot", groupName, IP_RW, 60,
                        IPS_IDLE);
+
+    loadFilterNames();
 }
 
 bool FilterInterface::updateProperties()
@@ -216,10 +218,15 @@ bool FilterInterface::GetFilterNames()
     if (FilterNameT == nullptr)
     {
         generateSampleFilters();
-        // If property is found, let's define it once loaded to the client and delete
-        // the generate sample filters above
-        if (m_defaultDevice->loadConfig(true, "FILTER_NAME"))
-            loadingFromConfig = true;
+
+//        // JM 2018-07-09: Set loadingFromConfig to true here before calling loadConfig
+//        // since if loadConfig is successful, ISNewText could be executed _before_ we have a chance
+//        // to set loadFromConfig below
+//        loadingFromConfig = true;
+
+//        // If property is found, let's define it once loaded to the client and delete
+//        // the generate sample filters above
+//        loadingFromConfig = m_defaultDevice->loadConfig(true, "FILTER_NAME");
     }
 
     return true;
@@ -228,5 +235,79 @@ bool FilterInterface::GetFilterNames()
 bool FilterInterface::SetFilterNames()
 {
     return m_defaultDevice->saveConfig(true, "FILTER_NAME");
+}
+
+bool FilterInterface::loadFilterNames()
+{
+    if (FilterNameT != nullptr)
+        return true;
+
+    char *rname, *rdev;
+    XMLEle *root = nullptr, *fproot = nullptr;
+    char filterName[MAXINDINAME] = {0};
+    char errmsg[MAXRBUF];
+    LilXML *lp = newLilXML();
+    int nelem=0;
+
+    FILE *fp = IUGetConfigFP(nullptr, m_defaultDevice->getDefaultName(), "r", errmsg);
+
+    if (fp == nullptr)
+    {
+        delLilXML(lp);
+        return false;
+    }
+
+    fproot = readXMLFile(fp, lp, errmsg);
+
+    if (fproot == nullptr)
+    {
+        delLilXML(lp);
+        fclose(fp);
+        return false;
+    }
+
+    for (root = nextXMLEle(fproot, 1); root != nullptr; root = nextXMLEle(fproot, 0))
+    {
+        /* pull out device and name */
+        if (crackDN(root, &rdev, &rname, errmsg) < 0)
+        {
+            fclose(fp);
+            delXMLEle(fproot);
+            delLilXML(lp);
+            return false;
+        }
+
+        // It doesn't belong to our device??
+        if (strcmp(m_defaultDevice->getDeviceName(), rdev))
+            continue;
+
+        if (!strcmp("FILTER_NAME", rname))
+        {
+            nelem = nXMLEle(root);
+            FilterNameT = new IText[nelem];
+            memset(FilterNameT, 0, sizeof(IText) * nelem);
+
+            XMLEle *oneText = nullptr;
+            uint8_t counter=0;
+
+            for (oneText = nextXMLEle(root, 1); oneText != nullptr; oneText = nextXMLEle(root, 0))
+            {
+                const char *filter = pcdataXMLEle(oneText);
+                snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", counter + 1);
+                IUFillText(&FilterNameT[counter], filterName, filter, filter);
+                counter++;
+            }
+
+            break;
+        }
+    }
+
+    IUFillTextVector(FilterNameTP, FilterNameT, nelem, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+
+    fclose(fp);
+    delXMLEle(fproot);
+    delLilXML(lp);
+
+    return true;
 }
 }

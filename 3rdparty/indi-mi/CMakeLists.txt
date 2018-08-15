@@ -7,7 +7,6 @@ include(GNUInstallDirs)
 
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
-find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
@@ -21,7 +20,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_miccd.xml.cmake ${CMAKE_CURRENT_
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${INDI_INCLUDE_DIR})
-include_directories(${CFITSIO_INCLUDE_DIR})
 
 #if (CMAKE_SYSTEM_PROCESSOR MATCHES "armv6l")
 #    set(MILIB ${CMAKE_CURRENT_SOURCE_DIR}/libgxccdarmv6.bin)
@@ -36,7 +34,9 @@ include_directories(${CFITSIO_INCLUDE_DIR})
 #endif ()
 
 # N.B. Launchpad fails with armv6 version. Testing armv7
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "armv+")
+if (APPLE)
+    set(MILIB ${CMAKE_CURRENT_SOURCE_DIR}/libgxccdmac.bin)
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "armv+")
     set(MILIB ${CMAKE_CURRENT_SOURCE_DIR}/libgxccdarmv7.bin)
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
     set(MILIB ${CMAKE_CURRENT_SOURCE_DIR}/libgxccdarmv8.bin)
@@ -54,9 +54,12 @@ set(indi_miccd_SRCS
    )
 
 add_executable(indi_mi_ccd ${indi_miccd_SRCS})
+if (APPLE)
+    target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${MILIB} ${USB1_LIBRARIES})
+else (APPLE)
+    target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${MILIB} ${USB1_LIBRARIES} rt)
+endif(APPLE)
 
-target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES}
-                      ${MILIB} ${USB1_LIBRARIES} rt)
 
 if(THREADS_HAVE_PTHREAD_ARG)
   target_compile_options(indi_mi_ccd "-pthread")

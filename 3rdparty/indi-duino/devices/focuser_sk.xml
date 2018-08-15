@@ -9,24 +9,17 @@ On
     </defSwitch>
 </defSwitchVector>
 
-<defTextVector device="Arduino Focuser" name="DEVICE_PORT" label="SERIAL" group="Main Control" state="Idle" perm="rw" timeout="0">
-    <defText name="PORT" label="Port">
-/dev/ttyACM0
-    </defText>
-</defTextVector>
-
-
 <defNumberVector device="Arduino Focuser" name="TARGET_POSITION" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="rw">
-<defNumber name="TARGET_POSITION_VALUE" label="TARGET" format="%4.0f" min="-8000" max="8000" step="100">
-    <indiduino pin="5" type="output" mul="1" add="8000" upbutton="BUTTON_3" downbutton="BUTTON_4" buttonincvalue="100"/>
-0
+<defNumber name="TARGET_POSITION_VALUE" label="TARGET" format="%4.0f" min="0" max="16000" step="100">
+    <indiduino pin="5" type="output" upbutton="BUTTON_3" downbutton="BUTTON_4" buttonincvalue="100"/>
+8000
 </defNumber>
 </defNumberVector>
 
 <defNumberVector device="Arduino Focuser" name="ACTUAL_POSITION" label="POSITION" group="Main Control" state="Idle"  timeout="0" perm="ro">
-<defNumber name="ACTUAL_POSITION_VALUE" label="ACTUAL" format="%4.0f" min="-8000" max="8000"  >
-    <indiduino pin="14" type="input" mul="1" add="-8000"/>
-0
+<defNumber name="ACTUAL_POSITION_VALUE" label="ACTUAL" format="%4.0f" min="0" max="16000"  >
+    <indiduino pin="14" type="input"/>
+8000
 </defNumber>
 </defNumberVector>
 
@@ -49,8 +42,8 @@ On
 
 
 
-<defSwitchVector device="Arduino Focuser" name="BACKSLASH" label="BACKSLASH" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
-    <defSwitch name="BACKSLASH_FLAG" label="ON">
+<defSwitchVector device="Arduino Focuser" name="BACKLASH" label="BACKLASH" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60">
+    <defSwitch name="BACKLASH_FLAG" label="ON">
     <indiduino pin="9"/>
 Off
     </defSwitch>
@@ -71,7 +64,7 @@ On
 </defNumberVector>
 
 
-<defNumberVector device="Arduino Focuser" name="BACKSLASH_STEPS" label="BACKSLASH" group="Config" state="Idle" perm="rw" timeout="0">
+<defNumberVector device="Arduino Focuser" name="BACKLASH_STEPS" label="BACKLASH" group="Config" state="Idle" perm="rw" timeout="0">
 <defNumber name="AOUTPUT_11" label="STEPS" format="%4.0f" min="0" max="1000" step="1">
     <indiduino pin="11" type="output"/>
 40

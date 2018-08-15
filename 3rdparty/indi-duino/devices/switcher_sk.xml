@@ -9,12 +9,6 @@ On
     </defSwitch>
 </defSwitchVector>
 
-<defTextVector device="Arduino SWITCHER" name="DEVICE_PORT" label="SERIAL PORT" group="Main Control" state="Idle" perm="rw" timeout="0">
-    <defText name="PORT" label="Port">
-/dev/ttyACM0
-    </defText>
-</defTextVector>
-
 <defSwitchVector device="Arduino SWITCHER" name="ANYACTIVE" label="ANY ACTIVE" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="1">
     <defSwitch name="SOCKET01" label="SOCKET 1">
     <indiduino pin="2"/>

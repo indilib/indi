@@ -28,12 +28,11 @@
 
 #define MAX_ID_PAIRS    (100)
 #define MAX_DEVICE_TYPES (100)
-// we can open up to 16 QHYCCD cameras now
-// but this depends on available memory
+// we can open up to MAX_OPEN_DEVICES QHYCCD cameras
 #define MAX_OPEN_DEVICES (8) 
 #define ID_STR_LEN (0x20)
 
-#define TRANSFER_COUNT (16)
+#define TRANSFER_COUNT (32)
 #define TRANSFER_SIZE (76800)
 
 #define DATA_CACHE_WIDTH (7400)
@@ -61,17 +60,20 @@ class QhyDevice {
     	QHYBASE *qcam;
     
     	// added stuff for libusb async functions
-    	struct libusb_transfer *p_libusb_transfer_array[TRANSFER_COUNT];
+    	struct libusb_transfer *libusb_transfer_array[TRANSFER_COUNT];
 
     	UnlockImageQueue *p_image_queue;
     	uint32_t image_queue_len;
     
-    	bool raw_exit;
     	int event_count;
+    	bool thread_exit_flag;
+    	bool first_exposure_flag;
 
-    	pthread_t raw_handle;
-    	std::mutex raw_exit_mutex; 
     	std::mutex event_count_mutex; 
+    	std::mutex thread_exit_flag_mutex; 
+    	std::mutex first_exposure_flag_mutex; 
+
+    	pthread_t thread_id;
 
     	uint8_t sig[16];
     	uint8_t sigcrc[16];
@@ -88,7 +90,7 @@ class QhyDevice {
     	uint32_t raw_frame_width;
     	uint32_t raw_frame_height;
     	uint32_t raw_frame_bpp;
-        uint32_t received_raw_data_len;
+        int32_t received_raw_data_len;
         
 	public:
         QhyDevice();

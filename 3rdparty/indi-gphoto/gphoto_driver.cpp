@@ -19,15 +19,6 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
-
-#include "gphoto_driver.h"
-
-#include "dsusbdriver.h"
-
-#include <indilogger.h>
-
-#include <gphoto2/gphoto2-version.h>
-
 #include <fcntl.h>
 #include <pthread.h>
 #include <string.h>
@@ -36,69 +27,20 @@
 #include <tiffio.h>
 #include <tiffio.hxx>
 
+#include <config.h>
+#include <indilogger.h>
+#include <gphoto2/gphoto2-version.h>
+#include <libraw/libraw.h>
+
+#include "gphoto_driver.h"
+#include "dsusbdriver.h"
+
+#define EOS_CUSTOMFUNCEX                "customfuncex"
+#define EOS_MIRROR_LOCKUP_ENABLE        "20,1,3,14,1,60f,1,1"
+#define EOS_MIRROR_LOCKUP_DISABLE       "20,1,3,14,1,60f,1,0"
+
 static GPPortInfoList *portinfolist   = nullptr;
 static CameraAbilitiesList *abilities = nullptr;
-
-static const char *fallbackShutterSpeeds[] =
-{
-    "1/8000",
-    "1/6400",
-    "1/5000",
-    "1/4000",
-    "1/3200",
-    "1/2500",
-    "1/2000",
-    "1/1600",
-    "1/1250",
-    "1/1000",
-    "1/800",
-    "1/640",
-    "1/500",
-    "1/400",
-    "1/320",
-    "1/250",
-    "1/200",
-    "1/160",
-    "1/125",
-    "1/100",
-    "1/80",
-    "1/60",
-    "1/50",
-    "1/40",
-    "1/30",
-    "1/25",
-    "1/20",
-    "1/15",
-    "1/13",
-    "1/10",
-    "1/8",
-    "1/6",
-    "1/5",
-    "1/4",
-    "1/3",
-    "0.4",
-    "0.5",
-    "0.6",
-    "0.8",
-    "1",
-    "1.3",
-    "1.6",
-    "2",
-    "2.5",
-    "3.2",
-    "4",
-    "5",
-    "6",
-    "8",
-    "10",
-    "13",
-    "15",
-    "20",
-    "25",
-    "30",
-    "BULB"
-};
-
 
 struct _gphoto_widget_list
 {
@@ -126,6 +68,7 @@ struct _gphoto_driver
     gphoto_widget *autoexposuremode_widget;
     gphoto_widget *capturetarget_widget;
     gphoto_widget *viewfinder_widget;
+    gphoto_widget *customfuncex_widget;
 
     char bulb_port[256];
     int bulb_fd;
@@ -148,7 +91,7 @@ struct _gphoto_driver
     int exposure_presets_count;
 
     bool supports_temperature;
-    int last_sensor_temp;
+    float last_sensor_temp;
 
     DSUSBDriver *dsusb;
 
@@ -428,7 +371,7 @@ static void widget_free(gphoto_widget *widget)
     free(widget);
 }
 
-static double *parse_shutterspeed(gphoto_driver *gphoto, gphoto_widget *widget)
+static double *parse_shutterspeed(gphoto_driver *gphoto, char **choices, int count)
 {
     double *exposure, val;
     int i, num, denom;
@@ -436,39 +379,37 @@ static double *parse_shutterspeed(gphoto_driver *gphoto, gphoto_widget *widget)
     double min_exposure         = 1e6;
     gphoto->bulb_exposure_index = -1;
 
-    if (widget->choice_cnt <= 0)
+    if (count <= 0)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d). Using fallback speeds...",
-                     widget->choice_cnt);
-
-        widget->choices = const_cast<char **>(fallbackShutterSpeeds);
-        widget->choice_cnt = 56;
+        DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING, "Shutter speed widget does not have any valid data (count=%d)",
+                     count);
+        return nullptr;
     }
 
-    if (widget->choice_cnt > 4)
+    if (count > 4)
     {
-        gphoto->exposure_presets       = widget->choices;
-        gphoto->exposure_presets_count = widget->choice_cnt;
+        gphoto->exposure_presets       = choices;
+        gphoto->exposure_presets_count = count;
     }
 
-    exposure = (double *)calloc(sizeof(double), widget->choice_cnt);
+    exposure = (double *)calloc(sizeof(double), count);
 
-    for (i = 0; i < widget->choice_cnt; i++)
+    for (i = 0; i < count; i++)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, widget->choices[i]);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Parsing shutter speed #%d: %s", i, choices[i]);
 
-        if ((strncasecmp(widget->choices[i], "bulb", 4) == 0) || (strcmp(widget->choices[i], "65535/65535") == 0))
+        if ((strncasecmp(choices[i], "bulb", 4) == 0) || (strcmp(choices[i], "65535/65535") == 0))
         {
             exposure[i] = -1;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]= BULB", i);
             gphoto->bulb_exposure_index = i;
         }
-        else if (sscanf(widget->choices[i], "%d/%d", &num, &denom) == 2)
+        else if (sscanf(choices[i], "%d/%d", &num, &denom) == 2)
         {
             exposure[i] = 1.0 * num / (double)denom;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
         }
-        else if ((val = strtod(widget->choices[i], nullptr)))
+        else if ((val = strtod(choices[i], nullptr)))
         {
             exposure[i] = val;
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "exposure[%d]=%g seconds", i, exposure[i]);
@@ -733,6 +674,33 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Could not determine image size (%s)", gp_result_as_string(result));
     }
 
+#if defined(LIBRAW_CAMERA_TEMPERATURE) && defined(LIBRAW_SENSOR_TEMPERATURE)
+    // Extract temperature(s) from gphoto image via libraw
+    const char *imgData;
+    unsigned long imgSize;
+    int rc;
+    result = gp_file_get_data_and_size(gphoto->camerafile, &imgData, &imgSize);
+    if (result == GP_OK) {
+	LibRaw lib_raw;
+	rc = lib_raw.open_buffer((void *)imgData, imgSize);
+	if (rc != LIBRAW_SUCCESS) {
+	    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,
+			 "Cannot decode (%s)", libraw_strerror(rc));
+	} else {
+	    if (lib_raw.imgdata.other.SensorTemperature > -273.15f)
+		gphoto->last_sensor_temp = lib_raw.imgdata.other.SensorTemperature;
+	    else if (lib_raw.imgdata.other.CameraTemperature > -273.15f)
+		gphoto->last_sensor_temp = lib_raw.imgdata.other.CameraTemperature;
+	}
+	lib_raw.recycle();
+	if (fd >= 0) {
+	    // The gphoto documentation says I don't need to do this,
+	    // but reading the source of gp_file_get_data_and_size says otherwise. :(
+	    free((void *)imgData);
+	    imgData = nullptr;
+	}
+    }
+#else
     if(strstr(gphoto->manufacturer, "Canon"))
     {
         // Try to pull the camera temperature out of the EXIF data
@@ -793,8 +761,16 @@ static int download_image(gphoto_driver *gphoto, CameraFilePath *fn, int fd)
                 }
                 TIFFClose(tiff);
             }
+            if (fd >= 0)
+            {
+                // The gphoto documentation says I don't need to do this,
+                // but reading the source of gp_file_get_data_and_size says otherwise. :(
+                free((void *)imgData);
+                imgData = nullptr;
+            }
         }
     }
+#endif
     // For some reason Canon 20D fails when deleting here
     // so this hack is a workaround until a permement fix is found
     // JM 2017-05-17
@@ -831,19 +807,25 @@ bool gphoto_supports_temperature(gphoto_driver *gphoto)
     return gphoto->supports_temperature;
 }
 
-int gphoto_get_last_sensor_temperature(gphoto_driver *gphoto)
+float gphoto_get_last_sensor_temperature(gphoto_driver *gphoto)
 {
     return gphoto->last_sensor_temp;
 }
 
 int gphoto_mirrorlock(gphoto_driver *gphoto, int msec)
 {
-    // If already set to BULB, set eosremoterelease to 2, then 4, then sleep
-    //if (gphoto->autoexposuremode_widget && gphoto->autoexposuremode_widget->value.index == 4)
     if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name, "eosremoterelease"))
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "eosremoterelease Mirror Lock for %g secs", msec / 1000.0);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,
+		     "eosremoterelease Mirror Lock for %g secs", msec / 1000.0);
 
+	// 2018-07-19: Disabling customfuncex since it seems to be causing problems for some
+	// Canon model as reported in INDI forums. Follow up in PR #620
+	#if 0
+	gphoto_set_widget_text(gphoto, gphoto->customfuncex_widget,
+			       EOS_MIRROR_LOCKUP_ENABLE);
+	#endif 
+	    
         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, EOS_PRESS_FULL);
         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, EOS_RELEASE_FULL);
 
@@ -902,6 +884,9 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     if (gphoto->format >= 0)
         gphoto_set_widget_num(gphoto, gphoto->format_widget, gphoto->format);
 
+    // Find optimal exposure index in case we need to use it. If -1, we always use blob made if available
+    int optimalExposureIndex = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec);
+
 // Set Capture Target
 // JM: 2017-05-21: Disabled now since user can explicity set capture target via the driver interface
 #if 0
@@ -916,13 +901,13 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     }
 #endif
 
-    // If exposure more than 5 seconds OR if camera already set in bulb mode, try doing a BULB exposure
-    //if (exptime_msec > 5000 || (gphoto->autoexposuremode_widget != nullptr && gphoto->autoexposuremode_widget->value.index == 4))
-
     // If exposure time is more than 1 second AND we have BULB widget OR we have bulb in exposure widget then do bulb
     // JM 2017-05-29: Also added if gphoto->exposure == nullptr in case where exposure_widget exists but has 0 members
     // In that case, we always capture using either shutter release or bulb widget regardless of time
-    if ((gphoto->exposure == nullptr || exptime_usec > 1e6) && ((gphoto->bulb_port[0]) || (gphoto->bulb_widget != nullptr)))
+    // JM 2018-06-29: Add check for optimalExposureIndex, but if exposure_widget has only ONE member (blob)
+    // then we cannot set custom short exposure (e.g. 1/4000) so it must be set here even for short exposures.
+    if ((gphoto->exposure == nullptr || exptime_usec > 1e6 || optimalExposureIndex == -1) &&
+        ((gphoto->bulb_port[0]) || (gphoto->bulb_widget != nullptr)))
     {
         //Bulb mode is supported
 
@@ -972,6 +957,14 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
             if (gphoto_mirrorlock(gphoto, mirror_lock * 1000))
                 return -1;
         }
+	else if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name,
+						"eosremoterelease"))
+	{
+	    #if 0		
+	    gphoto_set_widget_text(gphoto, gphoto->customfuncex_widget,
+				   EOS_MIRROR_LOCKUP_DISABLE);
+	    #endif
+	}
 
         // If bulb port is specified, let's open it
         if (gphoto->dsusb)
@@ -1033,18 +1026,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         return 0;
     }
 
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Using camera predefined exposure ranges.");
-
-    // NOT using bulb mode so let's find an exposure time that would closely match the requested exposure time
-    int idx = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec);
-
-    if (idx >= 0)
-    {
-        gphoto_set_widget_num(gphoto, gphoto->exposure_widget, idx);
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[idx]);
-    }
-    else
-        DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Could not find optimal exposure value from camera.");
+    gphoto_set_widget_num(gphoto, gphoto->exposure_widget, optimalExposureIndex);
+    DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[optimalExposureIndex]);
 
     // Lock the mirror if required.
     if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock * 1000))
@@ -1431,7 +1414,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto->max_exposure           = 3600;
     gphoto->min_exposure           = 0.001;
     gphoto->dsusb                  = nullptr;
-    gphoto->last_sensor_temp       = -273; // 0 degrees Kelvin
+    gphoto->last_sensor_temp       = -273.0; // 0 degrees Kelvin
 
     result = gp_camera_get_config(gphoto->camera, &gphoto->config, gphoto->context);
     if (result < GP_OK)
@@ -1456,15 +1439,13 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
         (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed")) ||
         (gphoto->exposure_widget = find_widget(gphoto, "eos-shutterspeed")))
     {
-        gphoto->exposure = parse_shutterspeed(gphoto, gphoto->exposure_widget);
+        gphoto->exposure =
+            parse_shutterspeed(gphoto, gphoto->exposure_widget->choices, gphoto->exposure_widget->choice_cnt);
     }
     else if ((gphoto->exposure_widget = find_widget(gphoto, "capturetarget")))
     {
-        gphoto_widget tempWidget;
-        const char *choices[2] = { "1/1", "bulb" };        
-        tempWidget.choice_cnt = 2;
-        tempWidget.choices = const_cast<char **>(choices);
-        gphoto->exposure       = parse_shutterspeed(gphoto, &tempWidget);
+        const char *choices[2] = { "1/1", "bulb" };
+        gphoto->exposure       = parse_shutterspeed(gphoto, (char **)choices, 2);
     }
     else
     {
@@ -1546,6 +1527,13 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "ViewFinder Widget: %s", gphoto->viewfinder_widget->name);
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Current ViewFinder Value: %s",
                      (gphoto->viewfinder_widget->value.toggle == 0) ? "Off" : "On");
+    }
+
+    // Check customfuncex widget to enable/disable mirror lockup.
+    if ((gphoto->customfuncex_widget = find_widget(gphoto, EOS_CUSTOMFUNCEX)) != nullptr)
+    {
+	DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "CustomFuncex Widget: %s",
+		     gphoto->customfuncex_widget->name);
     }
 
     // Find Manufacturer
@@ -1644,6 +1632,8 @@ int gphoto_close(gphoto_driver *gphoto)
         widget_free(gphoto->autoexposuremode_widget);
     if (gphoto->viewfinder_widget)
         widget_free(gphoto->viewfinder_widget);
+    if (gphoto->customfuncex_widget)
+	widget_free(gphoto->customfuncex_widget);
 
     while (gphoto->widgets)
     {

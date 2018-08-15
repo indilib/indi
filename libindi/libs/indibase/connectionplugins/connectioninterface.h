@@ -51,6 +51,19 @@ class Interface
 {
   public:
     /**
+     * \struct Type
+     * \brief Holds the connection type
+     */
+    typedef enum
+    {
+        CONNECTION_NONE   = 1 << 0, /** Do not use any connection plugin */
+        CONNECTION_SERIAL = 1 << 1, /** For regular serial and bluetooth connections */
+        CONNECTION_TCP    = 1 << 2,  /** For Wired and WiFI connections */
+        CONNECTION_USB    = 1 << 3,  /** For USB-based connections */
+        CONNECTION_CUSTOM = 1 << 15, /** Custom connection */
+    } Type;
+
+    /**
      * @brief Connect Connect to device via the implemented communication medium. Do not perform any handshakes.
      * @return True if successful, false otherwise.
      */
@@ -84,6 +97,12 @@ class Interface
      */
     virtual std::string label() = 0;
 
+    /**
+     * @brief type Return connection type
+     * @return connection type
+     */
+    virtual Type type() { return m_Type; }
+
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
@@ -98,11 +117,12 @@ class Interface
     void registerHandshake(std::function<bool()> callback);
 
   protected:
-    Interface(INDI::DefaultDevice *dev);
+    Interface(INDI::DefaultDevice *dev, Type type = CONNECTION_NONE);
     virtual ~Interface();
 
     const char *getDeviceName();
     std::function<bool()> Handshake;
-    INDI::DefaultDevice *device = NULL;
+    INDI::DefaultDevice *m_Device {  nullptr };
+    Type m_Type { CONNECTION_NONE };
 };
 }

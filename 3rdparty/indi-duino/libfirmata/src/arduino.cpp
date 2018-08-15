@@ -21,7 +21,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#include <linux/serial.h>
+
 
 Arduino::Arduino()
 {

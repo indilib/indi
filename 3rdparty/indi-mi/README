@@ -10,10 +10,6 @@ Requirements
 
 	You need to install both indi and indi-devel to build this package.
 
-+ cfitsio
-
-	cfitsio-devel is required to compile support for FITS.
-
 + libusb-1
 
 	libusb-1 is required.
