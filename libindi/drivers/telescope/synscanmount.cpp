@@ -32,7 +32,7 @@
 #define SYNSCAN_SLEW_RATES 9
 
 // We declare an auto pointer to Synscan.
-std::unique_ptr<SynscanMount> synscan(new SynscanMount());
+static std::unique_ptr<SynscanMount> synscan(new SynscanMount());
 
 void ISGetProperties(const char *dev)
 {
@@ -109,9 +109,19 @@ bool SynscanMount::initProperties()
                            SYNSCAN_SLEW_RATES);
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
-    //  probably want to debug this
-    addDebugControl();
-    addConfigurationControl();
+    // Slew Rates
+    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
+    strncpy(SlewRateS[1].label, "2x", MAXINDILABEL);
+    strncpy(SlewRateS[2].label, "8x", MAXINDILABEL);
+    strncpy(SlewRateS[3].label, "16x", MAXINDILABEL);
+    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
+    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
+    strncpy(SlewRateS[6].label, "256x", MAXINDILABEL);
+    strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
+    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
+    IUResetSwitch(&SlewRateSP);
+    // 64x is the default
+    SlewRateS[4].s = ISS_ON;
 
     // Set up property variables
     IUFillText(&BasicMountInfo[(int)MountInfoItems::FwVersion], "FW_VERSION", "Firmware version", "-");
@@ -124,20 +134,22 @@ bool SynscanMount::initProperties()
     IUFillTextVector(&BasicMountInfoV, BasicMountInfo, 6, getDeviceName(), "BASIC_MOUNT_INFO",
                      "Mount information", MountInfoPage.c_str(), IP_RO, 60, IPS_IDLE);
 
+    addDebugControl();
+
     return Ret;
 }
 
-void SynscanMount::ISGetProperties(const char *dev)
-{
-    /* First we let our parent populate */
-    INDI::Telescope::ISGetProperties(dev);
+//void SynscanMount::ISGetProperties(const char *dev)
+//{
+//    /* First we let our parent populate */
+//    INDI::Telescope::ISGetProperties(dev);
 
-    /*if (isConnected())
-    {
-        UpdateMountInformation(false);
-        defineText(&BasicMountInfoV);
-    }*/
-}
+//    /*if (isConnected())
+//    {
+//        UpdateMountInformation(false);
+//        defineText(&BasicMountInfoV);
+//    }*/
+//}
 
 bool SynscanMount::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {

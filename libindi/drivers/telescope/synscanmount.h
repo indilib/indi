@@ -24,11 +24,11 @@ class SynscanMount : public INDI::Telescope
 {
   public:
     SynscanMount();
-    virtual ~SynscanMount() = default;
+    //virtual ~SynscanMount() = default;
 
     //  overrides of base class virtual functions
     //bool initProperties();
-    virtual void ISGetProperties(const char *dev) override;
+    //virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
     virtual const char *getDefaultName() override;
 
