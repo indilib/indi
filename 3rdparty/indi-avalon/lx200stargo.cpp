@@ -1126,6 +1126,11 @@ bool LX200StarGo::parseMotionState (char* response, int* motorsState, int* speed
     return true;
 }
 
+/**
+ * @brief Check whether the mount is synched or parked.
+ * @param enable if true, tracking is enabled
+ * @return true if the command succeeded, false otherwise
+ */
 bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched) {
     // Command   - :X38#
     // Answer unparked         - p0
@@ -1158,12 +1163,6 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched) {
     return true;
 }
 
-
-/**
- * @brief Check whether the mount is synched or parked.
- * @param enable if true, tracking is enabled
- * @return true if the command succeeded, false otherwise
- */
 bool LX200StarGo::querySetTracking (bool enable) {
     // Command tracking on  - :X122#
     //         tracking off - :X120#
