@@ -113,13 +113,13 @@ bool SynscanMount::initProperties()
 
     // Slew Rates
     strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
-    strncpy(SlewRateS[1].label, "2x", MAXINDILABEL);
-    strncpy(SlewRateS[2].label, "8x", MAXINDILABEL);
-    strncpy(SlewRateS[3].label, "16x", MAXINDILABEL);
+    strncpy(SlewRateS[1].label, "8x", MAXINDILABEL);
+    strncpy(SlewRateS[2].label, "16x", MAXINDILABEL);
+    strncpy(SlewRateS[3].label, "32x", MAXINDILABEL);
     strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
     strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
-    strncpy(SlewRateS[6].label, "256x", MAXINDILABEL);
-    strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
+    strncpy(SlewRateS[6].label, "400x", MAXINDILABEL);
+    strncpy(SlewRateS[7].label, "600x", MAXINDILABEL);
     strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
     IUResetSwitch(&SlewRateSP);
     // Max is the default
