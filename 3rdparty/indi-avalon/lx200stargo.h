@@ -4,7 +4,7 @@
 #pragma once
 
 #include "lx200telescope.h"
-#include "lx200driver.h"
+//#include "lx200driver.h"
 #include "indicom.h"
 #include "indilogger.h"
 #include "termios.h"
@@ -18,6 +18,27 @@
 #define AVALON_TIMEOUT                                  5
 #define AVALON_COMMAND_BUFFER_LENGTH                    32
 #define AVALON_RESPONSE_BUFFER_LENGTH                   32
+enum TDirection
+{
+    LX200_NORTH,
+    LX200_WEST,
+    LX200_EAST,
+    LX200_SOUTH,
+    LX200_ALL
+};
+enum TSlew
+{
+    LX200_SLEW_MAX,
+    LX200_SLEW_FIND,
+    LX200_SLEW_CENTER,
+    LX200_SLEW_GUIDE
+};
+enum TFormat
+{
+    LX200_SHORT_FORMAT,
+    LX200_LONG_FORMAT,
+    LX200_LONGER_FORMAT
+};
 
 // StarGo specific tabs
 extern const char *RA_DEC_TAB;
@@ -106,6 +127,7 @@ protected:
     virtual bool UnPark() override;
     virtual bool saveConfigItems(FILE *fp) override;
     virtual bool isSlewComplete() override;
+    virtual bool Goto(double ra, double dec) override;
 
     // StarGo stuff
     virtual bool syncHomePosition();
@@ -125,9 +147,11 @@ protected:
     // location
     virtual bool sendScopeLocation();
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+//    virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool getSiteLatitude(double *siteLat);
     virtual bool getSiteLongitude(double *siteLong);
     virtual bool getLST_String(char* input);
+    bool getTrackFrequency(double *value);
 
 
     // queries to the scope interface
@@ -165,6 +189,21 @@ protected:
     virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
     virtual bool SetTrackEnabled(bool enabled) override;
     virtual bool SetTrackRate(double raRate, double deRate) override;
+    // NSWE Motion Commands
+    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+    virtual bool Sync(double ra, double dec) override;
+    bool setObjectCoords(double ra, double dec);
+    virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
+    virtual bool setLocalTime24(uint8_t hour, uint8_t minute, uint8_t second) override;
+    virtual bool setUTCOffset(double offset) override;
+    virtual bool getLocalTime(char *timeString) override;
+    virtual bool getLocalDate(char *dateString) override;
+    virtual bool getUTFOffset(double *offset) override;
+    
+    // Abort ALL motion
+    virtual bool Abort() override;
+    int MoveTo(int direction);
 
     bool setSlewMode(int slewMode);
 //    int motorsState;
