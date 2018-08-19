@@ -69,7 +69,9 @@ DetectorDevice::DetectorDevice()
 {
     ContinuumBuffer     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
     ContinuumBufferSize = 0;
-    SpectrumBuffer     = (double *)malloc(sizeof(double)); // Seed for realloc
+    TimeDeviationBuffer     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
+    TimeDeviationBufferSize = 0;
+    SpectrumBuffer     = (uint8_t *)malloc(sizeof(double)); // Seed for realloc
     SpectrumBufferSize = 0;
 
     BPS         = 8;
@@ -83,10 +85,13 @@ DetectorDevice::~DetectorDevice()
 {
     free(ContinuumBuffer);
     ContinuumBufferSize = 0;
-    ContinuumBuffer     = nullptr;
+    ContinuumBuffer = nullptr;
+    free(TimeDeviationBuffer);
+    TimeDeviationBufferSize = 0;
+    TimeDeviationBuffer = nullptr;
     free(SpectrumBuffer);
     SpectrumBufferSize = 0;
-    SpectrumBuffer     = nullptr;
+    SpectrumBuffer = nullptr;
 }
 
 void DetectorDevice::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
@@ -152,6 +157,19 @@ void DetectorDevice::setContinuumBufferSize(int nbuf, bool allocMem)
     ContinuumBuffer = (uint8_t *)realloc(ContinuumBuffer, nbuf * sizeof(uint8_t));
 }
 
+void DetectorDevice::setTimeDeviationBufferSize(int nbuf, bool allocMem)
+{
+    if (nbuf == TimeDeviationBufferSize)
+        return;
+
+    TimeDeviationBufferSize = nbuf;
+
+    if (allocMem == false)
+        return;
+
+    TimeDeviationBuffer = (uint8_t *)realloc(TimeDeviationBuffer, nbuf * sizeof(uint8_t));
+}
+
 void DetectorDevice::setSpectrumBufferSize(int nbuf, bool allocMem)
 {
     if (nbuf == SpectrumBufferSize)
@@ -162,7 +180,7 @@ void DetectorDevice::setSpectrumBufferSize(int nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    SpectrumBuffer = (double *)realloc(SpectrumBuffer, nbuf * sizeof(double));
+    SpectrumBuffer = (uint8_t *)realloc(SpectrumBuffer, nbuf * sizeof(double));
 }
 
 void DetectorDevice::setCaptureLeft(double duration)
@@ -830,7 +848,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
                 fitsfile *fptr = nullptr;
 
                 naxes[0] = targetDevice->getContinuumBufferSize() * 8 / targetDevice->getBPS();
-		naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
+        naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
                 naxes[1] = 1;
 
                 switch (targetDevice->getBPS())
@@ -918,6 +936,90 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
                        saveCapture, DetectorDevice::DETECTOR_BLOB_CONTINUUM);
             }
         }
+        if(HasTimeDeviation())
+        {
+            if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
+            {
+                void *memptr;
+                size_t memsize;
+                int img_type  = 0;
+                int byte_type = 0;
+                int status    = 0;
+                long naxis    = 2;
+                long naxes[naxis];
+                int nelements = 0;
+                std::string bit_depth;
+                char error_status[MAXRBUF];
+
+                fitsfile *fptr = nullptr;
+
+                naxes[0] = targetDevice->getTimeDeviationBufferSize();
+        naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
+                naxes[1] = 1;
+
+                byte_type = TBYTE;
+                img_type  = BYTE_IMG;
+                bit_depth = "8 bits per sample";
+
+                nelements = naxes[0] * naxes[1];
+                if (naxis == 3)
+                {
+                    nelements *= 3;
+                    naxes[2] = 3;
+                }
+
+                //  Now we have to send fits format data to the client
+                memsize = 5760;
+                memptr  = malloc(memsize);
+                if (!memptr)
+                {
+                    DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
+                }
+
+                fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
+
+                if (status)
+                {
+                    fits_report_error(stderr, status); /* print out any error messages */
+                    fits_get_errstatus(status, error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    return false;
+                }
+
+                fits_create_img(fptr, img_type, naxis, naxes, &status);
+
+                if (status)
+                {
+                    fits_report_error(stderr, status); /* print out any error messages */
+                    fits_get_errstatus(status, error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    return false;
+                }
+
+                addFITSKeywords(fptr, targetDevice, DetectorDevice::DETECTOR_BLOB_TDEV);
+
+                fits_write_img(fptr, byte_type, 1, nelements, targetDevice->getTimeDeviationBuffer(), &status);
+
+                if (status)
+                {
+                    fits_report_error(stderr, status); /* print out any error messages */
+                    fits_get_errstatus(status, error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    return false;
+                }
+
+                fits_close_file(fptr, &status);
+
+                uploadFile(targetDevice, memptr, memsize, sendCapture, saveCapture, DetectorDevice::DETECTOR_BLOB_TDEV);
+
+                free(memptr);
+            }
+            else
+            {
+                uploadFile(targetDevice, targetDevice->getTimeDeviationBuffer(), targetDevice->getTimeDeviationBufferSize(), sendCapture,
+                       saveCapture, DetectorDevice::DETECTOR_BLOB_TDEV);
+            }
+        }
         if(HasSpectrum())
         {
             if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
@@ -992,7 +1094,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
             }
             else
             {
-                uploadFile(targetDevice, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize() * sizeof(double), sendCapture,
+                uploadFile(targetDevice, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize(), sendCapture,
                        saveCapture, DetectorDevice::DETECTOR_BLOB_SPECTRUM);
             }
         }

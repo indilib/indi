@@ -63,7 +63,7 @@ class RTLSDR : public INDI::Detector
 
 	float CaptureRequest;
 	uint8_t* continuum;
-	double *spectrum;
+    uint8_t *spectrum;
 
 	uint32_t detectorIndex = { 0 };
 };
