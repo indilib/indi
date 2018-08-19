@@ -34,8 +34,7 @@ Build-Depends: cmake,
                libraw-dev,
                libgsl-dev,
                phonon4qt5-backend-vlc,
-               qt5keychain-dev,
-               xplanet
+               qt5keychain-dev
 Standards-Version: 3.9.3
 Homepage: http://edu.kde.org/
 
@@ -45,7 +44,7 @@ Section: science
 conflicts: kstars
 replaces: kstars
 recommends: oxygen-icon-theme
-Depends: ${shlibs:Depends}, ${misc:Depends}, kstars-bleeding-data (>= ${source:Version}), kstars-bleeding-dbg (= ${binary:Version}), kded5, kinit, libindi1, indi-bin, breeze-icon-theme, qml-module-qtquick-controls, xplanet-images
+Depends: ${shlibs:Depends}, ${misc:Depends}, kstars-bleeding-data (>= ${source:Version}), kstars-bleeding-dbg (= ${binary:Version}), kded5, kinit, libindi1, indi-bin, breeze-icon-theme, qml-module-qtquick-controls
 Description: desktop planetarium for KDE
  KStars is a desktop planetarium for KDE, depicting an accurate graphical
  simulation of the night sky, from any location on Earth, at any date and time.
