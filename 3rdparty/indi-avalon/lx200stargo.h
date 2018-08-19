@@ -91,7 +91,7 @@ protected:
     ISwitch SyncHomeS[1];
 
     // firmware info
-    ITextVectorProperty MountInfoTP;
+    ITextVectorProperty MountFirmwareInfoTP;
     IText MountFirmwareInfoT[1];
 
     // goto home
@@ -126,7 +126,7 @@ protected:
     virtual void SetParked(bool isparked);
     virtual bool UnPark() override;
     virtual bool saveConfigItems(FILE *fp) override;
-    virtual bool isSlewComplete() override;
+//    virtual bool isSlewComplete() override;
     virtual bool Goto(double ra, double dec) override;
 
     // StarGo stuff
@@ -139,10 +139,10 @@ protected:
 
     // scope status
     virtual bool ParseMotionState(char* state);
-    virtual bool UpdateMotionStatus();
+//    virtual bool UpdateMotionStatus();
 //    virtual void UpdateMotionStatus(int motorsState, int speedState, int nrTrackingSpeed);
 //    bool parseMotionState(char *response, int *motorsState, int *speedState, int *nrTrackingSpeed);
-    bool isIdle();
+//    bool isIdle();
 
     // location
     virtual bool sendScopeLocation();
@@ -157,13 +157,13 @@ protected:
     // queries to the scope interface
     virtual bool sendQuery(const char* cmd, char* response, bool wait=true);
 //    virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
-    virtual bool queryMountMotionState();
+//    virtual bool queryMountMotionState();
     virtual bool queryFirmwareInfo(char *version);
     virtual bool querySetSiteLatitude(double Lat);
     virtual bool querySetSiteLongitude(double Long);
     virtual bool querySetTracking(bool enable);
     virtual bool queryParkSync(bool *isParked, bool *isSynched);
-    virtual bool queryIsSlewComplete();
+//    virtual bool queryIsSlewComplete();
     virtual bool querySendMountGotoHome();
     virtual bool querySendMountSetPark();
 
