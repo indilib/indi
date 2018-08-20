@@ -566,7 +566,7 @@ bool LX200StarGo::ReadScopeStatus()
     LOGF_DEBUG("RA/DEC = (%lf, %lf)", r, d);
     currentRA = r;
     currentDEC = d;
-    SetParked(isParked());
+    SetParked(TrackState==SCOPE_PARKED);
     NewRaDec(currentRA, currentDEC);
     
 /*    // update meridian flip status
@@ -1010,7 +1010,7 @@ bool LX200StarGo::setLocalSiderealTime(double longitude)
     char response[AVALON_RESPONSE_BUFFER_LENGTH];
     char cmd[AVALON_COMMAND_BUFFER_LENGTH];
     sprintf(cmd, ":X32%02d%02d%02d#", h, m, s);
-    if(!sendQuery(cmd, response, false))
+    if(!sendQuery(cmd, response))
     {
         LOG_ERROR("Failed to set LST");
         return false;
