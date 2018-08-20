@@ -254,15 +254,27 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetSwitch(&ST4StatusSP, nullptr);
             return result;
         }
-        else if (!strcmp(name, MeridianFlipEnabledSP.name))
+        else if (!strcmp(name, MeridianFlipModeSP.name))
         {
-            return setMeridianFlipEnabled(states[0] == ISS_ON);
+            int preIndex = IUFindOnSwitchIndex(&MeridianFlipModeSP);
+            IUUpdateSwitch(&MeridianFlipModeSP, states, names, n);
+            int nowIndex = IUFindOnSwitchIndex(&MeridianFlipModeSP);
+            if (SetMeridianFlipMode(nowIndex) == false)
+            {
+                IUResetSwitch(&MeridianFlipModeSP);
+                MeridianFlipModeS[preIndex].s = ISS_ON;
+                MeridianFlipModeSP.s          = IPS_ALERT;
+            }
+            else
+                MeridianFlipModeSP.s = IPS_OK;
+            IDSetSwitch(&MeridianFlipModeSP, nullptr);
+            return true;
         }
-        else if (!strcmp(name, MeridianFlipForcedSP.name))
+/*        else if (!strcmp(name, MeridianFlipForcedSP.name))
         {
             return setMeridianFlipForced(states[0] == ISS_OFF);
         }
-
+*/
     }
 
     //  Nobody has claimed this, so pass it to the parent
@@ -348,18 +360,19 @@ bool LX200StarGo::initProperties()
     IUFillSwitchVector(&ST4StatusSP, ST4StatusS, 2, getDeviceName(), "ST4", "ST4", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // meridian flip
-    IUFillSwitch(&MeridianFlipEnabledS[0], "MERIDIAN_FLIP_ENABLED", "enabled", ISS_OFF);
-    IUFillSwitch(&MeridianFlipEnabledS[1], "MERIDIAN_FLIP_DISABLED", "disabled", ISS_OFF);
-    IUFillSwitchVector(&MeridianFlipEnabledSP, MeridianFlipEnabledS, 2, getDeviceName(), "ENABLE_MERIDIAN_FLIP", "Meridian Flip", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitch(&MeridianFlipModeS[0], "MERIDIAN_FLIP_AUTO", "auto", ISS_OFF);
+    IUFillSwitch(&MeridianFlipModeS[1], "MERIDIAN_FLIP_DISABLED", "disabled", ISS_OFF);
+    IUFillSwitch(&MeridianFlipModeS[2], "MERIDIAN_FLIP_FORCED", "forced", ISS_OFF);
+    IUFillSwitchVector(&MeridianFlipModeSP, MeridianFlipModeS, 3, getDeviceName(), "MERIDIAN_FLIP_MODE", "Meridian Flip", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-
+/*
     IUFillSwitch(&MeridianFlipForcedS[0], "MERIDIAN_FLIP_AUTOMATIC", "automatic", ISS_OFF);
     IUFillSwitch(&MeridianFlipForcedS[1], "MERIDIAN_FLIP_FORCED", "forced", ISS_OFF);
     IUFillSwitchVector(&MeridianFlipForcedSP, MeridianFlipForcedS, 2, getDeviceName(), "FORCE_MERIDIAN_FLIP", "Flip Mode", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // overwrite the custom tracking mode button
     IUFillSwitch(&TrackModeS[3], "TRACK_NONE", "None", ISS_OFF);
-
+*/
     focuser->initProperties("AUX1 Focuser");
 
     return true;
@@ -381,74 +394,21 @@ bool LX200StarGo::updateProperties()
         defineSwitch(&MountSetParkSP);
         defineNumber(&GuidingSpeedNP);
         defineSwitch(&ST4StatusSP);
-        defineSwitch(&MeridianFlipEnabledSP);
-        defineSwitch(&MeridianFlipForcedSP);
-
-//        if (queryFirmwareInfo(firmwareInfo))
-//        {
-//            MountFirmwareInfoT[0].text = firmwareInfo;
+        defineSwitch(&MeridianFlipModeSP);
+//        defineSwitch(&MeridianFlipForcedSP);
         defineText(&MountFirmwareInfoTP);
-//        }
-/*        bool isParked, isSynched;
-        if (queryParkSync(&isParked, &isSynched))
-        {
-            SetParked(isParked);
-            if (isSynched)
-            {
-                SyncHomeS[0].s = ISS_ON;
-                SyncHomeSP.s = IPS_OK;
-                IDSetSwitch(&SyncHomeSP, nullptr);
-            }
-        }*/
-/*        bool isEnabled;
-        if (queryGetST4Status(&isEnabled))
-        {
-            ST4StatusS[0].s = isEnabled ? ISS_OFF : ISS_ON;
-            ST4StatusS[1].s = isEnabled ? ISS_ON : ISS_OFF;
-            ST4StatusSP.s = IPS_OK;
-        }
-        else
-        {
-            ST4StatusSP.s = IPS_ALERT;
-        }
-        IDSetSwitch(&ST4StatusSP, nullptr);
-*/
-/*        if (queryGetMeridianFlipEnabledStatus(&isEnabled))
-        {
-            MeridianFlipEnabledS[0].s = isEnabled ? ISS_ON  : ISS_OFF;
-            MeridianFlipEnabledS[1].s = isEnabled ? ISS_OFF : ISS_ON;
-            MeridianFlipEnabledSP.s = IPS_OK;
-        }
-        else
-        {
-            MeridianFlipEnabledSP.s = IPS_ALERT;
-        }
-        IDSetSwitch(&MeridianFlipEnabledSP, nullptr);
-*/
-/*        int raSpeed, decSpeed;
-        if (queryGetGuidingSpeeds(&raSpeed, &decSpeed))
-        {
-            GuidingSpeedP[0].value = static_cast<double>(raSpeed) / 100.0;
-            GuidingSpeedP[1].value = static_cast<double>(decSpeed) / 100.0;
-            GuidingSpeedNP.s = IPS_OK;
-        }
-        else
-        {
-            GuidingSpeedNP.s = IPS_ALERT;
-        }
-        IDSetNumber(&GuidingSpeedNP, nullptr);*/
     }
     else
     {
         deleteProperty(MountParkingStatusLP.name);
+        deleteProperty(SyncHomeSP.name);
         deleteProperty(MountGotoHomeSP.name);
         deleteProperty(MountSetParkSP.name);
-        deleteProperty(SyncHomeSP.name);
-        deleteProperty(MountFirmwareInfoTP.name);
         deleteProperty(GuidingSpeedNP.name);
         deleteProperty(ST4StatusSP.name);
-        deleteProperty(MeridianFlipEnabledSP.name);
-        deleteProperty(MeridianFlipForcedSP.name);
+        deleteProperty(MeridianFlipModeSP.name);
+//        deleteProperty(MeridianFlipForcedSP.name);
+        deleteProperty(MountFirmwareInfoTP.name);
     }
 
     focuser->updateProperties();
@@ -851,11 +811,19 @@ void LX200StarGo::getBasicData()
         }
         IDSetSwitch(&ST4StatusSP, nullptr);
 
-        if (queryGetMeridianFlipEnabledStatus(&isEnabled))
+/*        if (queryGetMeridianFlipEnabledStatus(&isEnabled))
         {
             MeridianFlipEnabledS[0].s = isEnabled ? ISS_ON  : ISS_OFF;
             MeridianFlipEnabledS[1].s = isEnabled ? ISS_OFF : ISS_ON;
             MeridianFlipEnabledSP.s = IPS_OK;
+        }*/
+        int index;
+        if (GetMeridianFlipMode(&index))
+        {
+                IUResetSwitch(&MeridianFlipModeSP);
+                MeridianFlipModeS[index].s = ISS_ON;
+                MeridianFlipModeSP.s   = IPS_OK;
+                IDSetSwitch(&MeridianFlipModeSP, nullptr);
         }
         else
         {
@@ -1209,8 +1177,7 @@ bool LX200StarGo::saveConfigItems(FILE *fp)
  */
 bool LX200StarGo::sendQuery(const char* cmd, char* response, bool wait)
 {
-    LOG_DEBUG(__FUNCTION__);
-    LOGF_DEBUG("Sendquery %s %s", cmd, wait?"WAIT":"NOWAIT");
+    LOGF_DEBUG("%s %s %s", __FUNCTION__, cmd, wait?"WAIT":"NOWAIT");
 //    motorsState = speedState = nrTrackingSpeed = 0;
     response[0] = '\0';
     char lresponse[AVALON_RESPONSE_BUFFER_LENGTH];
@@ -1236,7 +1203,7 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response, bool wait)
     bool lwait = wait;
     while (receive(lresponse, &lbytes, lwait))
     {
-        LOGF_DEBUG("Found response %s %s", wait?"WAIT":"NOWAIT", lresponse);
+        LOGF_DEBUG("Found response %s %s", lwait?"WAIT":"NOWAIT", lresponse);
         lbytes=0;
         if(ParseMotionState(lresponse))
         {
@@ -2044,6 +2011,71 @@ bool LX200StarGo::setSlewMode(int slewMode)
     }
     return true;
 }
+bool LX200StarGo::SetMeridianFlipMode(int index)
+{
+    LOG_DEBUG(__FUNCTION__);
+
+    if (isSimulation())
+    {
+        MeridianFlipModeSP.s = IPS_OK;
+        IDSetSwitch(&MeridianFlipModeSP, nullptr);
+        return true;
+    }
+// 0: Auto mode: Enabled and not Forced
+// 1: Disabled mode: Disabled and not Forced 
+// 2: Forced mode: Enabled and Forced
+    if( index > 2)
+    {
+        LOGF_ERROR("Invalid Meridian Flip Mode %d", index);
+        return false;
+    }
+    const char* enablecmd = index==1 ? ":TTRFs#" : ":TTSFs#";
+    const char* forcecmd  = index==2 ? ":TTSFd#" : ":TTRFd#";
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if(!sendQuery(enablecmd, response) || !sendQuery(forcecmd, response))
+    {
+        LOGF_ERROR("Cannot set Meridian Flip Mode %d", index);
+        return false;        
+    }
+    return true;
+}
+bool LX200StarGo::GetMeridianFlipMode(int* index)
+{
+    LOG_DEBUG(__FUNCTION__);
+
+// 0: Auto mode: Enabled and not Forced
+// 1: Disabled mode: Disabled and not Forced 
+// 2: Forced mode: Enabled and Forced
+    const char* enablecmd = ":TTGFs#";
+    const char* forcecmd  = ":TTGFd#";
+    char enableresp[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    char forceresp[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if(!sendQuery(enablecmd, enableresp) || !sendQuery(forcecmd, forceresp))
+    {
+        LOGF_ERROR("Cannot get Meridian Flip Mode %s %s", enableresp, forceresp);
+        return false;        
+    }
+    int enable = 0;
+    if (! sscanf(enableresp, "vs%01d", &enable))
+    {
+        LOGF_ERROR("Invalid meridian flip enabled response '%s", enableresp);
+        return false;
+    }
+    int force = 0;
+    if (! sscanf(forceresp, "vd%01d", &force))
+    {
+        LOGF_ERROR("Invalid meridian flip forced response '%s", forceresp);
+        return false;
+    }
+    if( enable == 0)
+        *index = 1; // disabled
+    else if( force == 0)
+        *index = 0; // auto
+    else
+        *index = 2; // forced
+    return true;
+}
+
 IPState LX200StarGo::GuideNorth(uint32_t ms)
 {
     LOG_DEBUG(__FUNCTION__);

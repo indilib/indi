@@ -112,6 +112,9 @@ protected:
     ISwitch ST4StatusS[2];
 
     // meridian flip
+    ISwitchVectorProperty MeridianFlipModeSP;
+    ISwitch MeridianFlipModeS[3];
+    
     ISwitchVectorProperty MeridianFlipEnabledSP;
     ISwitch MeridianFlipEnabledS[2];
     ISwitchVectorProperty MeridianFlipForcedSP;
@@ -187,6 +190,8 @@ protected:
     virtual IPState GuideEast(uint32_t ms) override;
     virtual IPState GuideWest(uint32_t ms) override;
     virtual bool SetSlewRate(int index) override;
+    virtual bool SetMeridianFlipMode(int index);
+    virtual bool GetMeridianFlipMode(int *index);
     virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
     virtual bool SetTrackEnabled(bool enabled) override;
     virtual bool SetTrackRate(double raRate, double deRate) override;
