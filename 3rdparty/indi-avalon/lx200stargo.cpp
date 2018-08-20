@@ -210,7 +210,7 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
                 return false;
             int trackMode = IUFindOnSwitchIndex(&TrackModeSP);
 
-            bool result;
+            bool result = true;
             if (trackMode != TRACK_NONE) result = SetTrackMode(trackMode);
 
             switch (trackMode) {
@@ -225,7 +225,7 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
                 break;
             case TRACK_NONE:
                 LOG_INFO("Tracking stopped.");
-                result = querySetTracking(false);
+//                result = querySetTracking(false);
                 break;
             }
             TrackModeSP.s = result ? IPS_OK : IPS_ALERT;
@@ -1456,7 +1456,7 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched)
     return true;
 }
 
-bool LX200StarGo::querySetTracking (bool enable)
+/*bool LX200StarGo::querySetTracking (bool enable)
 {
     LOG_DEBUG(__FUNCTION__);
     // Command tracking on  - :X122#
@@ -1470,7 +1470,7 @@ bool LX200StarGo::querySetTracking (bool enable)
     }
     return true;
 }
-
+*/
 /**
  * @brief Check if the ST4 port is enabled
  * @param isEnabled - true iff the ST4 port is enabled
@@ -1598,6 +1598,7 @@ bool LX200StarGo::setST4Enabled(bool enabled)
  * @param isEnabled - true iff flip is enabled
  * @return true iff check succeeded
  */
+/*
 bool LX200StarGo::queryGetMeridianFlipEnabledStatus (bool *isEnabled)
 {
     LOG_DEBUG(__FUNCTION__);
@@ -1620,12 +1621,13 @@ bool LX200StarGo::queryGetMeridianFlipEnabledStatus (bool *isEnabled)
     *isEnabled = (answer == 0);
     return true;
 }
-
+*/
 /**
  * @brief Enabling and disabling meridian flip
  * @param enabled - setting enabled iff true
  * @return
  */
+/*
 bool LX200StarGo::setMeridianFlipEnabled(bool enabled)
 {
     LOG_DEBUG(__FUNCTION__);
@@ -1654,12 +1656,13 @@ bool LX200StarGo::setMeridianFlipEnabled(bool enabled)
     IDSetSwitch(&MeridianFlipEnabledSP, nullptr);
     return success;
 }
-
+*/
 /**
  * @brief Determine whether the forcing meridian flip is enabled
  * @param isEnabled - true iff forcing flip is enabled
  * @return true iff check succeeded
  */
+/*
 bool LX200StarGo::queryGetMeridianFlipForcedStatus (bool *isEnabled)
 {
     LOG_DEBUG(__FUNCTION__);
@@ -1683,12 +1686,13 @@ bool LX200StarGo::queryGetMeridianFlipForcedStatus (bool *isEnabled)
     *isEnabled = (answer == 1);
     return true;
 }
-
+*/
 /**
  * @brief Enabling and disabling forced meridian flip
  * @param enabled - setting enabled iff true
  * @return
  */
+/*
 bool LX200StarGo::setMeridianFlipForced(bool enabled)
 {
     LOG_DEBUG(__FUNCTION__);
@@ -1714,7 +1718,7 @@ bool LX200StarGo::setMeridianFlipForced(bool enabled)
     IDSetSwitch(&MeridianFlipForcedSP, nullptr);
     return success;
 }
-
+*/
 /**
  * @brief Retrieve pier side of the mount and sync it back to the client
  * @return true iff synching succeeds
@@ -2274,8 +2278,7 @@ IPState LX200StarGo::GuideWest(uint32_t ms)
 
 int LX200StarGo::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 {
-    LOG_DEBUG(__FUNCTION__);
-    LOGF_DEBUG("SendPulseCmd dir=%d dur=%d ms", direction, duration_msec );
+    LOGF_DEBUG("%s dir=%d dur=%d ms", __FUNCTION__, direction, duration_msec );
     char cmd[AVALON_COMMAND_BUFFER_LENGTH];
     char response[AVALON_RESPONSE_BUFFER_LENGTH];
     switch (direction)
@@ -2304,9 +2307,18 @@ int LX200StarGo::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 
 bool LX200StarGo::SetTrackEnabled(bool enabled)
 {
-    LOG_DEBUG(__FUNCTION__);
-    LOGF_INFO("Tracking being %s", enabled?"enabled":"disabled");
-    return querySetTracking(enabled);
+    LOGF_INFO("%s Tracking being %s", __FUNCTION__, enabled?"enabled":"disabled");
+//    return querySetTracking(enabled);
+    // Command tracking on  - :X122#
+    //         tracking off - :X120#
+
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (! sendQuery(enabled ? ":X122#" : ":X120#", response, false))
+    {
+        LOGF_ERROR("Failed to %s tracking", enabled ? "enable" : "disable");
+        return false;
+    }
+    return true;
 }
 bool LX200StarGo::SetTrackRate(double raRate, double deRate)
 {

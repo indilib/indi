@@ -165,7 +165,7 @@ protected:
     virtual bool queryFirmwareInfo(char *version);
     virtual bool querySetSiteLatitude(double Lat);
     virtual bool querySetSiteLongitude(double Long);
-    virtual bool querySetTracking(bool enable);
+//    virtual bool querySetTracking(bool enable);
     virtual bool queryParkSync(bool *isParked, bool *isSynched);
 //    virtual bool queryIsSlewComplete();
     virtual bool querySendMountGotoHome();
@@ -177,10 +177,10 @@ protected:
     virtual bool setST4Enabled(bool enabled);
 
     // meridian flip
-    virtual bool queryGetMeridianFlipEnabledStatus(bool *isEnabled);
-    virtual bool queryGetMeridianFlipForcedStatus(bool *isEnabled);
-    virtual bool setMeridianFlipEnabled(bool enabled);
-    virtual bool setMeridianFlipForced(bool enabled);
+//    virtual bool queryGetMeridianFlipEnabledStatus(bool *isEnabled);
+//    virtual bool queryGetMeridianFlipForcedStatus(bool *isEnabled);
+//    virtual bool setMeridianFlipEnabled(bool enabled);
+//    virtual bool setMeridianFlipForced(bool enabled);
 
     virtual bool syncSideOfPier();
     bool checkLX200Format();
@@ -212,9 +212,6 @@ protected:
     int MoveTo(int direction);
 
     bool setSlewMode(int slewMode);
-//    int motorsState;
-//    int speedState;
-//    int nrTrackingSpeed;
 
 };
 #endif // AVALON_STARGO_H
