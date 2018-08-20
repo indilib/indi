@@ -935,6 +935,11 @@ bool LX200StarGo::sendScopeLocation()
     LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
+    if(!setLocalSiderealTime(siteLong))
+    {
+        LOG_ERROR("Error setting local sidereal time");
+        return false; 
+    }
 
     return true;
 }
@@ -954,13 +959,13 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
     LOGF_DEBUG("Setting site longitude '%lf'", longitude);
     if (!isSimulation() && ! querySetSiteLongitude(longitude))
     {
-        LOGF_ERROR("%s Error setting site longitude coordinates", getDeviceName());
+        LOGF_ERROR("Error setting site longitude %lf", longitude);
         return false;
     }
 
     if (!isSimulation() && ! querySetSiteLatitude(latitude))
     {
-        LOGF_ERROR("%s Error setting site latitude coordinates", getDeviceName());
+        LOGF_ERROR("Error setting site latitude %lf", latitude);
         return false;
     }
 
@@ -969,7 +974,17 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
     fs_sexa(L, longitude, 4, 3600);
 
     LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
- /*
+    if(!setLocalSiderealTime(longitude))
+    {
+        LOG_ERROR("Error setting local sidereal time");
+        return false; 
+    }
+    return true;
+}
+
+bool LX200StarGo::setLocalSiderealTime(double longitude)
+{
+/*
     double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - siteLong) / 15.0;
     double lst =  range24(SD);
     int h=0, m=0, s=0;
@@ -1088,27 +1103,23 @@ bool LX200StarGo::UnPark()
     // in: :X370#
     // out: "p0#"
 
+    double siteLong;
+
+    // step one: determine site longitude
+    if (!getSiteLongitude(&siteLong))
+    {
+        LOG_WARN("Failed to get site Longitude from device.");
+        return false;
+    }
     // set LST to avoid errors
-    char input[AVALON_RESPONSE_BUFFER_LENGTH];
-    char cmd[AVALON_COMMAND_BUFFER_LENGTH];
-    if (!getLST_String(input))
+    if (!setLocalSiderealTime(siteLong))
     {
-        LOGF_WARN("Obtaining LST before unparking failed.%s", input);
+        LOGF_ERROR("Failed to set LST before unparking %lf", siteLong);
         return false;
     }
-    sprintf(cmd, ":X32%s#", input);
-
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    bool result = sendQuery(cmd, response);
-
-    if (!result || response[0] != '0')
-    {
-        LOGF_WARN("Setting LST before unparking failed.%s", response);
-        return false;
-    }
 
     // and now execute unparking
-    response[0] = '\0';
     if (sendQuery(":X370#", response) && strcmp(response, "p0") == 0)
     {
         LOG_INFO("Scope Unparked.");
@@ -2399,7 +2410,7 @@ bool LX200StarGo::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     char cmd[AVALON_COMMAND_BUFFER_LENGTH];
     char response[AVALON_RESPONSE_BUFFER_LENGTH];
 
-    sprintf(cmd, ":%s%s#", command==MOTION_START?"M":"Q", dir == DIRECTION_WEST?"n":"s");
+    sprintf(cmd, ":%s%s#", command==MOTION_START?"M":"Q", dir == DIRECTION_WEST?"w":"e");
 
     if (!isSimulation() && !sendQuery(cmd, response, false))
     {
