@@ -65,9 +65,9 @@
                 <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
                 <version>2.0</version>
 	</device>
-        <device label="Avalon">
-                <driver name="LX200 Basic">indi_lx200basic</driver>
-                <version>2.0</version>
+        <device label="Avalon StarGo">
+                <driver name="LX200 StarGo">indi_lx200stargo</driver>
+                <version>0.5</version>
         </device>
         <device label="Paramount">
                 <driver name="Paramount">indi_paramount_telescope</driver>
@@ -90,7 +90,7 @@
 		<version>1.0</version>
 	</device>
         <device label="Temma Takahashi">
-                <driver name="Temma">indi_temma_telescope</driver>
+                <driver name="Temma">indi_temma</driver>
                 <version>0.2</version>
         </device>
         <device label="Argo Navis">

@@ -523,6 +523,7 @@ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
 
+
 ########### Celestron GPS ############
 SET(celestrongps_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/celestrondriver.cpp

@@ -43,7 +43,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx200zeq25.h"
 #include "lx200gotonova.h"
 #include "ioptronHC8406.h"
-
 #include <cmath>
 #include <memory>
 #include <cstring>
@@ -258,4 +257,3 @@ LX200Generic::LX200Generic()
 
     LOG_DEBUG("Initializing from Generic LX200 device...");
 }
-
