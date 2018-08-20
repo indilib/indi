@@ -389,7 +389,7 @@ bool LX200StarGo::updateProperties()
 //            MountFirmwareInfoT[0].text = firmwareInfo;
         defineText(&MountFirmwareInfoTP);
 //        }
-        bool isParked, isSynched;
+/*        bool isParked, isSynched;
         if (queryParkSync(&isParked, &isSynched))
         {
             SetParked(isParked);
@@ -399,8 +399,8 @@ bool LX200StarGo::updateProperties()
                 SyncHomeSP.s = IPS_OK;
                 IDSetSwitch(&SyncHomeSP, nullptr);
             }
-        }
-        bool isEnabled;
+        }*/
+/*        bool isEnabled;
         if (queryGetST4Status(&isEnabled))
         {
             ST4StatusS[0].s = isEnabled ? ISS_OFF : ISS_ON;
@@ -412,8 +412,8 @@ bool LX200StarGo::updateProperties()
             ST4StatusSP.s = IPS_ALERT;
         }
         IDSetSwitch(&ST4StatusSP, nullptr);
-
-        if (queryGetMeridianFlipEnabledStatus(&isEnabled))
+*/
+/*        if (queryGetMeridianFlipEnabledStatus(&isEnabled))
         {
             MeridianFlipEnabledS[0].s = isEnabled ? ISS_ON  : ISS_OFF;
             MeridianFlipEnabledS[1].s = isEnabled ? ISS_OFF : ISS_ON;
@@ -424,8 +424,8 @@ bool LX200StarGo::updateProperties()
             MeridianFlipEnabledSP.s = IPS_ALERT;
         }
         IDSetSwitch(&MeridianFlipEnabledSP, nullptr);
-
-        int raSpeed, decSpeed;
+*/
+/*        int raSpeed, decSpeed;
         if (queryGetGuidingSpeeds(&raSpeed, &decSpeed))
         {
             GuidingSpeedP[0].value = static_cast<double>(raSpeed) / 100.0;
@@ -436,7 +436,7 @@ bool LX200StarGo::updateProperties()
         {
             GuidingSpeedNP.s = IPS_ALERT;
         }
-        IDSetNumber(&GuidingSpeedNP, nullptr);
+        IDSetNumber(&GuidingSpeedNP, nullptr);*/
     }
     else
     {
@@ -1094,10 +1094,10 @@ bool LX200StarGo::Park()
  */
 void LX200StarGo::SetParked(bool isparked)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s %s", __FUNCTION__, isparked?"PARKED":"UNPARKED");
     INDI::Telescope::SetParked(isparked);
 
-    TrackState = isparked ? SCOPE_PARKED : SCOPE_TRACKING;
+//    TrackState = isparked ? SCOPE_PARKED : SCOPE_TRACKING;
     ParkS[0].s = isparked ? ISS_ON : ISS_OFF;
     ParkS[1].s = isparked ? ISS_OFF : ISS_ON;
     ParkSP.s   = IPS_OK;
