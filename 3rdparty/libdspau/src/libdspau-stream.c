@@ -146,6 +146,12 @@ void dspau_stream_free(dspau_stream_p stream)
     }
 }
 
+int dspau_stream_byte_size(dspau_stream_p stream)
+{
+    int size = sizeof(*stream);
+    return size;
+}
+
 dspau_stream_p dspau_stream_position(dspau_stream_p stream) {
     int dim = 0;
     int y = 0;

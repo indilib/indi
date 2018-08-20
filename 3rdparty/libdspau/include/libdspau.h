@@ -169,7 +169,10 @@ typedef struct {
     void *parent;
     void *children;
     int child_count;
-    dspau_t latlon[3];
+    dspau_t location[3];
+    dspau_t target[3];
+    dspau_t lambda;
+    dspau_t samplerate;
     struct timespec starttimeutc;
     pthread_t thread;
     void *(*func) (void *);
@@ -552,7 +555,7 @@ DLL_EXPORT dspau_t* dspau_interferometry_uv_location(dspau_t HA, dspau_t DEC, ds
 
 DLL_EXPORT dspau_t* dspau_interferometry_calc_baselines(dspau_stream_p stream);
 
-DLL_EXPORT dspau_t* dspau_interferometry_uv_coords(dspau_stream_p stream, dspau_t lambda_m, dspau_t samplerate, dspau_t RA, dspau_t DEC);
+DLL_EXPORT dspau_t* dspau_interferometry_uv_coords(dspau_stream_p stream);
 
 DLL_EXPORT dspau_t *dspau_stream_set_input_buffer_len(dspau_stream_p stream, int len);
 
@@ -577,6 +580,8 @@ DLL_EXPORT dspau_stream_p dspau_stream_copy(dspau_stream_p stream);
 DLL_EXPORT void dspau_stream_add_dim(dspau_stream_p stream, int size);
 
 DLL_EXPORT void dspau_stream_free(dspau_stream_p stream);
+
+DLL_EXPORT int dspau_stream_byte_size(dspau_stream_p stream);
 
 DLL_EXPORT dspau_stream_p dspau_stream_position(dspau_stream_p stream);
 
