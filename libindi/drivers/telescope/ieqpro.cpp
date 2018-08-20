@@ -276,6 +276,8 @@ void IEQPro::getStartupData()
         if (longitude < 0)
             longitude += 360;
 
+        LOGF_INFO("Mount Longitude %g Latitude %g", longitude, latitude);
+
         LocationN[LOCATION_LATITUDE].value  = latitude;
         LocationN[LOCATION_LONGITUDE].value = longitude;
         LocationNP.s                        = IPS_OK;
