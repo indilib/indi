@@ -15,7 +15,7 @@
 
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 #define RB_MAX_LEN    64
-#define AVALON_TIMEOUT                                  5
+#define AVALON_TIMEOUT                                  2
 #define AVALON_COMMAND_BUFFER_LENGTH                    32
 #define AVALON_RESPONSE_BUFFER_LENGTH                   32
 enum TDirection

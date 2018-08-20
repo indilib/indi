@@ -81,7 +81,7 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    ISInit();
+   ISInit();
     telescope->ISNewNumber(dev, name, values, names, n);
     focuser->ISNewNumber(dev, name, values, names, n);
 }
@@ -144,7 +144,7 @@ LX200StarGo::LX200StarGo()
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_CONTROL_TRACK | 
-                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_PIER_SIDE, 4);
+                           TELESCOPE_HAS_PIER_SIDE, 4);
 }
 
 /**************************************************************************************
@@ -296,6 +296,16 @@ bool LX200StarGo::ISNewNumber(const char *dev, const char *name, double values[]
             return result;
         }
     }
+         if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
+        {
+ //           int latindex       = IUFindIndex("LAT", names, n);
+            int longindex      = IUFindIndex("LONG", names, n);
+ //           int elevationindex = IUFindIndex("ELEV", names, n);
+//            double targetLat  = values[latindex];
+            double targetLong = values[longindex];
+//            double targetElev = values[elevationindex];
+            LOGF_DEBUG("long %lf index %d",targetLong,longindex );
+         }
         //  Nobody has claimed this, so pass it to the parent
     return LX200Telescope::ISNewNumber(dev, name, values, names, n);
 }
@@ -495,7 +505,7 @@ bool LX200StarGo::ReadScopeStatus()
         TrackState = SCOPE_PARKED;
     else if(x==0 && y==0)
         TrackState = SCOPE_IDLE;
-    else if(strcmp(response, "p2")==0)
+    else if(strcmp(response, "pB")==0)
         TrackState = SCOPE_PARKING;
     else if(x==5 || y==5)
         TrackState = SCOPE_SLEWING;
