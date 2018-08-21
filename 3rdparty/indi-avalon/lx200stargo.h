@@ -149,6 +149,7 @@ protected:
 
     // location
     virtual bool sendScopeLocation();
+    double LocalSiderealTime(double longitude);
     bool setLocalSiderealTime(double longitude);
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 //    virtual bool updateTime(ln_date *utc, double utc_offset) override;
