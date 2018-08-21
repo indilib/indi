@@ -525,7 +525,7 @@ bool LX200StarGo::syncHomePosition()
     }
     else
     {
-        LOGF_WARN("%s Synching home position failed.", getDeviceName());
+        LOG_WARN("Synching home position failed.");
         SyncHomeSP.s = IPS_ALERT;
         return false;
     }
@@ -682,12 +682,12 @@ bool LX200StarGo::querySendMountGotoHome()
     char response[AVALON_COMMAND_BUFFER_LENGTH] = {0};
     if (!sendQuery(":X361#", response))
     {
-        LOGF_ERROR("%s: Failed to send mount goto home command.", getDeviceName());
+        LOG_ERROR("Failed to send mount goto home command.");
         return false;
     }
     if (strcmp(response, "pA") != 0)
     {
-        LOGF_ERROR("%s: Invalid mount sync goto response '%s'.", getDeviceName(), response);
+        LOGF_ERROR("Invalid mount sync goto response '%s'.", response);
         return false;
     }
     return true;
@@ -707,18 +707,18 @@ bool LX200StarGo::sendScopeLocation()
     double siteLat = 0.0, siteLong = 0.0;
     if (!getSiteLatitude(&siteLat))
     {
-        LOGF_WARN("%s Failed to get site latitude from device.", getDeviceName());
+        LOG_WARN("Failed to get site latitude from device.");
         return false;
     }
     if (!getSiteLongitude(&siteLong))
     {
-        LOGF_WARN("%s Failed to get site longitude from device.", getDeviceName());
+        LOG_WARN("Failed to get site longitude from device.");
         return false;
     }
     LocationNP.np[LOCATION_LATITUDE].value = siteLat;
     LocationNP.np[LOCATION_LONGITUDE].value = siteLong;
 
-    LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
+    LOGF_DEBUG("Mount Controller Latitude: %lg Longitude: %lg", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
     if(!setLocalSiderealTime(siteLong))
@@ -770,15 +770,15 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
 
 double LX200StarGo::LocalSiderealTime(double longitude)
 {
-//    double lst = get_local_sidereal_time(longitude);
-    double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude) / 15.0;
-    double lst =  range24(SD);   
+    double lst = get_local_sidereal_time(longitude);
+//    double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude) / 15.0;
+//    double lst =  range24(SD);   
     return lst;
 }
 bool LX200StarGo::setLocalSiderealTime(double longitude)
 {
     double lst = LocalSiderealTime(longitude);
-    LOGF_DEBUG("Current local sidereal time = %.8f", lst);
+    LOGF_DEBUG("Current local sidereal time = %lf", lst);
     int h=0, m=0, s=0;
     getSexComponents(lst, &h, &m, &s);
 
@@ -803,12 +803,12 @@ bool LX200StarGo::getSiteLatitude(double *siteLat)
     LOG_DEBUG(__FUNCTION__);
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!sendQuery(":Gt#", response)) {
-        LOGF_ERROR("%s: Failed to send query get Site Latitude command.", getDeviceName());
+        LOG_ERROR("Failed to send query get Site Latitude command.");
         return false;
     }
     if (f_scansexa(response, siteLat))
     {
-        LOGF_ERROR("%s: Unable to parse get Site Latitude response.", getDeviceName());
+        LOGF_ERROR("Unable to parse get Site Latitude response %s", response);
         return false;
     }
     return true;
@@ -825,12 +825,12 @@ bool LX200StarGo::getSiteLongitude(double *siteLong)
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!sendQuery(":Gg#", response))
     {
-        LOGF_ERROR("%s: Failed to send query get Site Longitude command.", getDeviceName());
+        LOG_ERROR("Failed to send query get Site Longitude command.");
         return false;
     }
     if (f_scansexa(response, siteLong))
     {
-        LOGF_ERROR("%s: Unable to parse get Site Longitude response.", getDeviceName());
+        LOG_ERROR("Unable to parse get Site Longitude response.");
         return false;
     }
     return true;
@@ -942,7 +942,7 @@ bool LX200StarGo::getLST_String(char* input)
     // determine local sidereal time
     double lst = LocalSiderealTime(siteLong);
     int h=0, m=0, s=0;
-    LOGF_DEBUG("%s Current local sidereal time = %.8f", lst, getDeviceName());
+    LOGF_DEBUG("Current local sidereal time = %.8lf", lst);
     // translate into hh:mm:ss
     getSexComponents(lst, &h, &m, &s);
 
@@ -1100,12 +1100,12 @@ bool LX200StarGo::querySendMountSetPark()
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!sendQuery(":X352#", response))
     {
-        LOGF_ERROR("%s: Failed to send mount set park position command.", getDeviceName());
+        LOG_ERROR("Failed to send mount set park position command.");
         return false;
     }
     if (response[0] != '0')
     {
-        LOGF_ERROR("%s: Invalid mount set park position response '%s'.", getDeviceName(), response);
+        LOGF_ERROR("Invalid mount set park position response '%s'.", response);
         return false;
     }
     return true;
@@ -1176,13 +1176,13 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched)
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!sendQuery(":X38#", response))
     {
-        LOGF_ERROR("%s: Failed to send get parking status request.", getDeviceName());
+        LOG_ERROR("Failed to send get parking status request.");
         return false;
     }
     int answer = 0;
     if (! sscanf(response, "p%01d", &answer))
     {
-        LOGF_ERROR("%s: Unexpected parking status response '%s'.", getDeviceName(), response);
+        LOGF_ERROR("Unexpected parking status response '%s'.", response);
         return false;
     }
 
@@ -1211,13 +1211,13 @@ bool LX200StarGo::queryGetST4Status (bool *isEnabled)
 
     if (!sendQuery(":TTGFh#", response))
     {
-        LOGF_ERROR("%s: Failed to send query ST4 status request.", getDeviceName());
+        LOG_ERROR("Failed to send query ST4 status request.");
         return false;
     }
     int answer = 0;
     if (! sscanf(response, "vh%01d", &answer))
     {
-        LOGF_ERROR("%s: Unexpected ST4 status response '%s'.", getDeviceName(), response);
+        LOGF_ERROR("Unexpected ST4 status response '%s'.", response);
         return false;
     }
 
@@ -1242,12 +1242,12 @@ bool LX200StarGo::queryGetGuidingSpeeds (int *raSpeed, int *decSpeed)
 
     if (!sendQuery(":X22#", response))
     {
-        LOGF_ERROR("%s: Failed to send query guiding speeds request.", getDeviceName());
+        LOG_ERROR("Failed to send query guiding speeds request.");
         return false;
     }
     if (! sscanf(response, "%02db%2d", raSpeed, decSpeed))
     {
-        LOGF_ERROR("%s: Unexpected guiding speed response '%s'.", getDeviceName(), response);
+        LOGF_ERROR("Unexpected guiding speed response '%s'.", response);
         return false;
     }
 
@@ -1276,7 +1276,7 @@ bool LX200StarGo::setGuidingSpeeds (int raSpeed, int decSpeed)
     }
     else
     {
-        LOGF_ERROR("%s Setting RA speed to %2d %% FAILED", getDeviceName(), raSpeed);
+        LOGF_ERROR("Setting RA speed to %2d %% FAILED", raSpeed);
         return false;
     }
 
@@ -1287,7 +1287,7 @@ bool LX200StarGo::setGuidingSpeeds (int raSpeed, int decSpeed)
     }
     else
     {
-        LOGF_ERROR("%s Setting DEC speed to %2d%% FAILED", getDeviceName(), decSpeed);
+        LOGF_ERROR("Setting DEC speed to %2d%% FAILED", decSpeed);
         return false;
     }
     return true;
@@ -1312,7 +1312,7 @@ bool LX200StarGo::setST4Enabled(bool enabled)
     }
     else
     {
-        LOGF_ERROR("%s Setting ST4 port FAILED", getDeviceName());
+        LOG_ERROR("Setting ST4 port FAILED");
         return false;
     }
 }
@@ -1332,30 +1332,30 @@ bool LX200StarGo::syncSideOfPier()
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!sendQuery(":X39#", response))
     {
-        LOGF_ERROR("%s: Failed to send query pier side.", getDeviceName());
+        LOG_ERROR("Failed to send query pier side.");
         return false;
     }
     char answer;
 
     if (! sscanf(response, "P%c", &answer))
     {
-        LOGF_ERROR("%s: Unexpected query pier side response '%s'.", getDeviceName(), response);
+        LOGF_ERROR("Unexpected query pier side response '%s'.", response);
         return false;
     }
 
     switch (answer)
     {
     case 'X':
-        LOGF_DEBUG("%s: Detected pier side unknown.", getDeviceName());
+        LOG_DEBUG("Detected pier side unknown.");
         setPierSide(INDI::Telescope::PIER_UNKNOWN);
         break;
     case 'W':
         // seems to be vice versa
-        LOGF_DEBUG("%s: Detected pier side west.", getDeviceName());
+        LOG_DEBUG("Detected pier side west.");
         setPierSide(INDI::Telescope::PIER_WEST);
         break;
     case 'E':
-        LOGF_DEBUG("%s: Detected pier side east.", getDeviceName());
+        LOG_DEBUG("Detected pier side east.");
         setPierSide(INDI::Telescope::PIER_EAST);
         break;
     default:
@@ -1379,7 +1379,7 @@ bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo)
     // step 1: retrieve manufacturer
     if (!sendQuery(":GVP#", manufacturer))
     {
-        LOGF_ERROR("%s: Failed to send get manufacturer request.", getDeviceName());
+        LOG_ERROR("Failed to send get manufacturer request.");
         return false;
     }
     infoStr.assign(manufacturer); //, bytesReceived);
@@ -1388,7 +1388,7 @@ bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo)
     char firmwareVersion[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!sendQuery(":GVN#", firmwareVersion))
     {
-        LOGF_ERROR("%s: Failed to send get firmware version request.", getDeviceName());
+        LOG_ERROR("Failed to send get firmware version request.");
         return false;
     }
     infoStr.append(" - ").append(firmwareVersion); //, bytesReceived -1);
@@ -1397,7 +1397,7 @@ bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo)
     char firmwareDate[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!sendQuery(":GVD#", firmwareDate))
     {
-        LOGF_ERROR("%s: Failed to send get firmware date request.", getDeviceName());
+        LOG_ERROR("Failed to send get firmware date request.");
         return false;
     }
     infoStr.append(" - ").append(firmwareDate); //, 1, bytesReceived);
@@ -1436,7 +1436,6 @@ bool LX200StarGo::receive(char* buffer, int* bytes, bool wait)
         buffer[*bytes - 1] = '\0'; // remove #
     else
         buffer[*bytes] = '\0';
-//    LOGF_DEBUG("%s Receive response: (%d bytes) '%s'", getDeviceName(), *bytes, buffer);
 
     return true;
 }
@@ -1464,17 +1463,15 @@ bool LX200StarGo::transmit(const char* buffer)
         LOGF_WARN("Failed to transmit %s. Wrote %d bytes and got error %s.", buffer, bytesWritten, errorString);
         return false;
     }
- //   LOGF_DEBUG("%s Sending Command '%s'", getDeviceName(), buffer);
     return true;
 }
 
 bool LX200StarGo::SetTrackMode(uint8_t mode)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s: Set Track Mode %d", __FUNCTION__, mode);
     if (isSimulation())
         return true;
 
-    LOGF_DEBUG("%s: Set Track Mode %d", getDeviceName(), mode);
     char cmd[AVALON_COMMAND_BUFFER_LENGTH];
     char response[AVALON_RESPONSE_BUFFER_LENGTH];
     char s_mode[10]={0};
@@ -1508,7 +1505,7 @@ bool LX200StarGo::SetTrackMode(uint8_t mode)
 // Only update tracking frequency if it is defined and not deleted by child classes
     if (genericCapability & LX200_HAS_TRACKING_FREQ)
     {
-        LOGF_DEBUG("%s: Get Tracking Freq", getDeviceName());
+        LOGF_DEBUG("%s: Get Tracking Freq", __FUNCTION__);
         getTrackFrequency(&TrackFreqN[0].value);
         IDSetNumber(&TrackingFreqNP, nullptr);
     }
@@ -1521,11 +1518,10 @@ bool LX200StarGo::checkLX200Format()
 
     controller_format = LX200_LONG_FORMAT;
 //    ::controller_format = LX200_LONG_FORMAT;
-    LOGF_DEBUG("%s: checkLX200Format", getDeviceName());
 
     if (!sendQuery(":GR#", response))
     {
-        LOGF_ERROR("%s: Failed to get RA for format check", getDeviceName());
+        LOG_ERROR("Failed to get RA for format check");
         return false;
     }
     /* If it's short format, try to toggle to high precision format */
@@ -1535,12 +1531,12 @@ bool LX200StarGo::checkLX200Format()
             "attempting to switch to high precision.");
         if (!sendQuery(":U#", response, false))
         {
-            LOGF_ERROR("%s: Failed to switch precision", getDeviceName());
+            LOG_ERROR("Failed to switch precision");
             return false;
         }
         if (!sendQuery(":GR#", response))
         {
-            LOGF_ERROR("%s: Failed to get high precision RA", getDeviceName());
+            LOG_ERROR("Failed to get high precision RA");
             return false;
         }
     }
@@ -1683,7 +1679,7 @@ IPState LX200StarGo::GuideNorth(uint32_t ms)
     LOG_DEBUG(__FUNCTION__);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        LOGF_ERROR("%s Cannot guide while moving.", getDeviceName());
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
@@ -1732,7 +1728,7 @@ IPState LX200StarGo::GuideSouth(uint32_t ms)
     LOG_DEBUG(__FUNCTION__);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        LOGF_ERROR("%s Cannot guide while moving.", getDeviceName());
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
@@ -1781,7 +1777,7 @@ IPState LX200StarGo::GuideEast(uint32_t ms)
     LOG_DEBUG(__FUNCTION__);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        LOGF_ERROR("%s Cannot guide while moving.", getDeviceName());
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
@@ -1830,7 +1826,7 @@ IPState LX200StarGo::GuideWest(uint32_t ms)
     LOG_DEBUG(__FUNCTION__);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        LOGF_ERROR("%s Cannot guide while moving.", getDeviceName());
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
 
