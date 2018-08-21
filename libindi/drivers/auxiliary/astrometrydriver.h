@@ -95,9 +95,10 @@ class AstrometryDriver : public INDI::DefaultDevice
     // Enable/Disable solver
     ISwitch SolverS[2];
     ISwitchVectorProperty SolverSP;
+    enum { SOLVER_ENABLE, SOLVER_DISABLE};
 
     // Solver Settings
-    IText SolverSettingsT[2];
+    IText SolverSettingsT[2] {};
     ITextVectorProperty SolverSettingsTP;
 
     // Solver Results
@@ -105,7 +106,7 @@ class AstrometryDriver : public INDI::DefaultDevice
     INumberVectorProperty SolverResultNP;
 
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1];
+    IText ActiveDeviceT[1] {};
 
     IBLOBVectorProperty SolverDataBP;
     IBLOB SolverDataB[1];

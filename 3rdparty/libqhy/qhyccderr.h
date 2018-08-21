@@ -164,6 +164,6 @@
 /**
  * Set cam white balance blue failed */
 #define QHYCCD_ERROR           -25
-#endif
+#endif // #if 0
 
 #endif

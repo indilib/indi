@@ -3,7 +3,7 @@ version: 2
 jobs:
   build_stretch:
     docker:
-      - image: jochym/indi-stretch
+      - image: jochym/indi-docker:stretch
     steps:
       - checkout
       - run:
@@ -15,7 +15,7 @@ jobs:
 
   build_buster:
     docker:
-      - image: jochym/indi-buster
+      - image: jochym/indi-docker:buster
     steps:
       - checkout
       - run:
@@ -27,7 +27,7 @@ jobs:
 
   build_artful:
     docker:
-      - image: jochym/indi-artful
+      - image: jochym/indi-docker:artful
     steps:
       - checkout
       - run:
@@ -39,7 +39,7 @@ jobs:
 
   build_bionic:
     docker:
-      - image: jochym/indi-bionic
+      - image: jochym/indi-docker:bionic
     steps:
       - checkout
       - run:
@@ -51,7 +51,7 @@ jobs:
 
   build_clang4:
     docker:
-      - image: jochym/indi-artful
+      - image: jochym/indi-docker:artful
         environment:
           CC: clang
           CXX: clang++
@@ -66,7 +66,7 @@ jobs:
 
   build_clang5:
     docker:
-      - image: jochym/indi-bionic
+      - image: jochym/indi-docker:bionic
         environment:
           CC: clang
           CXX: clang++
@@ -81,7 +81,7 @@ jobs:
 
   build_fedora:
     docker:
-      - image: jochym/indi-fedora
+      - image: jochym/indi-docker:fedora
     steps:
       - checkout
       - run:
@@ -93,7 +93,7 @@ jobs:
 
   build_centos:
     docker:
-      - image: jochym/indi-centos
+      - image: jochym/indi-docker:centos
     steps:
       - checkout
       - run:
@@ -105,7 +105,19 @@ jobs:
 
   build_opensuse:
     docker:
-      - image: jochym/indi-opensuse
+      - image: jochym/indi-docker:opensuse
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_arch:
+    docker:
+      - image: jochym/indi-docker:arch
     steps:
       - checkout
       - run:
@@ -123,19 +135,18 @@ workflows:
       - build_artful
       - build_stretch
       - build_fedora
-      - build_clang4
+      - build_opensuse
+      - build_arch
       - build_bionic:
           requires:
             - build_artful
       - build_buster:
           requires:
             - build_stretch
-      - build_clang5:
-          requires:
-            - build_clang4
       - build_centos:
           requires:
             - build_fedora
-      - build_opensuse:
-          requires:
-            - build_fedora
+#      - build_clang4
+#      - build_clang5:
+#          requires:
+#            - build_clang4

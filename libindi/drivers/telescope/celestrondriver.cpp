@@ -363,7 +363,7 @@ bool CelestronDriver::get_dev_firmware(int dev, char *version, int size)
 {
     set_sim_response("\x01\x09#");
 
-    int rlen = send_passthrough(dev, 0xfe, NULL, 0, response, 2);
+    int rlen = send_passthrough(dev, 0xfe, nullptr, 0, response, 2);
 
     if (rlen == 3)
         snprintf(version, size, "%d.%02d", response[0], response[1]);
@@ -395,7 +395,7 @@ int CelestronDriver::send_pulse(CELESTRON_DIRECTION dir, signed char rate, unsig
     payload[1] = duration_csec;
 
     set_sim_response("#");
-    return send_passthrough(dev, 0x26, payload, 2, response, 1);
+    return send_passthrough(dev, 0x26, payload, 2, response, 0);
 }
 
 /*****************************************************************
@@ -409,7 +409,7 @@ int CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir, bool &pulse_state
     int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
     char payload[2] = {0, 0};
 
-    set_sim_response("#");
+    set_sim_response("\x00#");
     if (!send_passthrough(dev, 0x27, payload, 2, response, 1))
         return false;
 
@@ -425,7 +425,7 @@ bool CelestronDriver::start_motion(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE 
     payload[0] = rate + 1;
 
     set_sim_response("#");
-    return send_passthrough(dev, cmd_id, payload, 1, response, 1);
+    return send_passthrough(dev, cmd_id, payload, 1, response, 0);
 }
 
 bool CelestronDriver::stop_motion(CELESTRON_DIRECTION dir)
@@ -434,7 +434,7 @@ bool CelestronDriver::stop_motion(CELESTRON_DIRECTION dir)
     char payload[] = { 0 };
 
     set_sim_response("#");
-    return send_passthrough(dev, 0x24, payload, 1, response, 1);
+    return send_passthrough(dev, 0x24, payload, 1, response, 0);
 }
 
 bool CelestronDriver::abort()

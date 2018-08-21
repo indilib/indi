@@ -43,10 +43,10 @@ class SXAO : public INDI::DefaultDevice, INDI::GuiderInterface
     bool initProperties();
     bool updateProperties();
 
-    IPState GuideNorth(float ms);
-    IPState GuideSouth(float ms);
-    IPState GuideEast(float ms);
-    IPState GuideWest(float ms);
+    IPState GuideNorth(uint32_t ms);
+    IPState GuideSouth(uint32_t ms);
+    IPState GuideEast(uint32_t ms);
+    IPState GuideWest(uint32_t ms);
 
     bool AONorth(int steps);
     bool AOSouth(int steps);
@@ -73,7 +73,7 @@ private:
   ISwitch Center[2];
   ISwitchVectorProperty CenterP;
 
-  IText FWT[1];
+  IText FWT[1] {};
   ITextVectorProperty FWTP;
 
   ILight AtLimitL[4];

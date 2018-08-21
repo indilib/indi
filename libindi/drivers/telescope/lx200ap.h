@@ -66,7 +66,7 @@ class LX200AstroPhysics : public LX200Generic
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual bool SetSlewRate(int index) override;
 
-    virtual int  SendPulseCmd(int direction, int duration_msec) override;
+    virtual int  SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
 
     virtual bool getUTFOffset(double *offset) override;
 
@@ -101,10 +101,10 @@ class LX200AstroPhysics : public LX200Generic
     ISwitch APGuideSpeedS[3];
     ISwitchVectorProperty APGuideSpeedSP;
 
-    IText VersionT[1];
+    IText VersionT[1] {};
     ITextVectorProperty VersionInfo;
 
-    IText DeclinationAxisT[1];
+    IText DeclinationAxisT[1] {};
     ITextVectorProperty DeclinationAxisTP;
 
     INumber SlewAccuracyN[2];

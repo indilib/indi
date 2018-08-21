@@ -82,8 +82,8 @@ bool Skywatcher::Handshake()
 
     unsigned long tmpMCVersion = 0;
 
-    dispatch_command(InquireMotorBoardVersion, Axis1, NULL);
-    read_eqmod();
+    dispatch_command(InquireMotorBoardVersion, Axis1, nullptr);
+    //read_eqmod();
     tmpMCVersion = Revu24str2long(response + 1);
     MCVersion    = ((tmpMCVersion & 0xFF) << 16) | ((tmpMCVersion & 0xFF00)) | ((tmpMCVersion & 0xFF0000) >> 16);
     MountCode    = MCVersion & 0xFF;
@@ -92,7 +92,7 @@ bool Skywatcher::Handshake()
     {
         throw EQModError(EQModError::ErrDisconnect,
                          "Mount not supported: mount code 0x%x (0x80=GT, 0x81=MF, 0x82=114GT, 0x90=DOB)", MountCode);
-        return false;
+        //return false;
     }
 
     return true;
@@ -107,8 +107,8 @@ bool Skywatcher::Disconnect()
     // Deactivate motor (for geehalel mount only)
     /*
   if (MountCode == 0xF0) {
-    dispatch_command(Deactivate, Axis1, NULL);
-    read_eqmod();
+    dispatch_command(Deactivate, Axis1, nullptr);
+    //read_eqmod();
   }
   */
     return true;
@@ -117,10 +117,10 @@ bool Skywatcher::Disconnect()
 unsigned long Skywatcher::GetRAEncoder()
 {
     // Axis Position
-    dispatch_command(GetAxisPosition, Axis1, NULL);
-    read_eqmod();
+    dispatch_command(GetAxisPosition, Axis1, nullptr);
+    //read_eqmod();
     RAStep = Revu24str2long(response + 1);
-    gettimeofday(&lastreadmotorposition[Axis1], NULL);
+    gettimeofday(&lastreadmotorposition[Axis1], nullptr);
     DEBUGF(DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, RAStep);
     return RAStep;
 }
@@ -128,11 +128,11 @@ unsigned long Skywatcher::GetRAEncoder()
 unsigned long Skywatcher::GetDEEncoder()
 {
     // Axis Position
-    dispatch_command(GetAxisPosition, Axis2, NULL);
-    read_eqmod();
+    dispatch_command(GetAxisPosition, Axis2, nullptr);
+    //read_eqmod();
 
     DEStep = Revu24str2long(response + 1);
-    gettimeofday(&lastreadmotorposition[Axis2], NULL);
+    gettimeofday(&lastreadmotorposition[Axis2], nullptr);
     DEBUGF(DBG_SCOPE_STATUS, "%s() = %ld", __FUNCTION__, DEStep);
     return DEStep;
 }
@@ -252,20 +252,20 @@ void Skywatcher::Init()
     if (!RAInitialized && !DEInitialized)
     {
         //Read initial stepper values
-        dispatch_command(GetAxisPosition, Axis1, NULL);
-        read_eqmod();
+        dispatch_command(GetAxisPosition, Axis1, nullptr);
+        //read_eqmod();
         RAStepInit = Revu24str2long(response + 1);
-        dispatch_command(GetAxisPosition, Axis2, NULL);
-        read_eqmod();
+        dispatch_command(GetAxisPosition, Axis2, nullptr);
+        //read_eqmod();
         DEStepInit = Revu24str2long(response + 1);
         LOGF_DEBUG("%s() : Motors not initialized -- read Init steps RAInit=%ld DEInit = %ld",
                __FUNCTION__, RAStepInit, DEStepInit);
         // Energize motors
         LOGF_DEBUG("%s() : Powering motors", __FUNCTION__);
-        dispatch_command(Initialize, Axis1, NULL);
-        read_eqmod();
-        dispatch_command(Initialize, Axis2, NULL);
-        read_eqmod();
+        dispatch_command(Initialize, Axis1, nullptr);
+        //read_eqmod();
+        dispatch_command(Initialize, Axis2, nullptr);
+        //read_eqmod();
         RAStepHome = RAStepInit;
         DEStepHome = DEStepInit + (DESteps360 / 4);
     }
@@ -330,11 +330,11 @@ void Skywatcher::Init()
         cmdarg[6] = '\0';
         long2Revu24str(telescope->GetAxis1Park(), cmdarg);
         dispatch_command(SetAxisPositionCmd, Axis1, cmdarg);
-        read_eqmod();
+        //read_eqmod();
         cmdarg[6] = '\0';
         long2Revu24str(telescope->GetAxis2Park(), cmdarg);
         dispatch_command(SetAxisPositionCmd, Axis2, cmdarg);
-        read_eqmod();
+        //read_eqmod();
         //}
     }
     else
@@ -353,7 +353,7 @@ void Skywatcher::Init()
             cmdarg[6] = '\0';
             long2Revu24str(DEStepHome, cmdarg);
             dispatch_command(SetAxisPositionCmd, Axis2, cmdarg);
-            read_eqmod();
+            //read_eqmod();
             //LOGF_WARN("%s() : Mount is supposed to point North/South Celestial Pole", __FUNCTION__);
             //TODO mark mount as unparked?
         }
@@ -369,8 +369,8 @@ void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP)
     /*
   unsigned long tmpMCVersion = 0;
 
-  dispatch_command(InquireMotorBoardVersion, Axis1, NULL);
-  read_eqmod();
+  dispatch_command(InquireMotorBoardVersion, Axis1, nullptr);
+  //read_eqmod();
   tmpMCVersion=Revu24str2long(response+1);
   MCVersion = ((tmpMCVersion & 0xFF) << 16) | ((tmpMCVersion & 0xFF00)) | ((tmpMCVersion & 0xFF0000) >> 16);
   MountCode=MCVersion & 0xFF;
@@ -430,7 +430,7 @@ void Skywatcher::InquireBoardVersion(ITextVectorProperty *boardTP)
     boardinfo[1][4] = '\0';
     // should test this is ok
     IUUpdateText(boardTP, boardinfo, (char **)boardinfopropnames, nprop);
-    IDSetText(boardTP, NULL);
+    IDSetText(boardTP, nullptr);
     LOGF_DEBUG("%s(): MountCode = %d, MCVersion = %lx, setting minperiods Axis1=%d Axis2=%d",
            __FUNCTION__, MountCode, MCVersion, minperiods[Axis1], minperiods[Axis2]);
     /* Check supported mounts here */
@@ -516,14 +516,14 @@ void Skywatcher::InquireRAEncoderInfo(INumberVectorProperty *encoderNP)
     double steppersvalues[3];
     const char *steppersnames[] = { "RASteps360", "RAStepsWorm", "RAHighspeedRatio" };
     // Steps per 360 degrees
-    dispatch_command(InquireGridPerRevolution, Axis1, NULL);
-    read_eqmod();
+    dispatch_command(InquireGridPerRevolution, Axis1, nullptr);
+    //read_eqmod();
     RASteps360        = Revu24str2long(response + 1);
     steppersvalues[0] = (double)RASteps360;
 
     // Steps per Worm
-    dispatch_command(InquireTimerInterruptFreq, Axis1, NULL);
-    read_eqmod();
+    dispatch_command(InquireTimerInterruptFreq, Axis1, nullptr);
+    //read_eqmod();
     RAStepsWorm = Revu24str2long(response + 1);
     // There is a bug in the earlier version firmware(Before 2.00) of motor controller MC001.
     // Overwrite the GearRatio reported by the MC for 80GT mount and 114GT mount.
@@ -542,15 +542,15 @@ void Skywatcher::InquireRAEncoderInfo(INumberVectorProperty *encoderNP)
     steppersvalues[1] = (double)RAStepsWorm;
 
     // Highspeed Ratio
-    dispatch_command(InquireHighSpeedRatio, Axis1, NULL);
-    read_eqmod();
+    dispatch_command(InquireHighSpeedRatio, Axis1, nullptr);
+    //read_eqmod();
     //RAHighspeedRatio=Revu24str2long(response+1);
     RAHighspeedRatio = Highstr2long(response + 1);
 
     steppersvalues[2] = (double)RAHighspeedRatio;
     // should test this is ok
     IUUpdateNumber(encoderNP, steppersvalues, (char **)steppersnames, 3);
-    IDSetNumber(encoderNP, NULL);
+    IDSetNumber(encoderNP, nullptr);
 
     backlashperiod[Axis1] =
         (long)(((SKYWATCHER_STELLAR_DAY * (double)RAStepsWorm) / (double)RASteps360) / SKYWATCHER_BACKLASH_SPEED_RA);
@@ -561,14 +561,14 @@ void Skywatcher::InquireDEEncoderInfo(INumberVectorProperty *encoderNP)
     double steppersvalues[3];
     const char *steppersnames[] = { "DESteps360", "DEStepsWorm", "DEHighspeedRatio" };
     // Steps per 360 degrees
-    dispatch_command(InquireGridPerRevolution, Axis2, NULL);
-    read_eqmod();
+    dispatch_command(InquireGridPerRevolution, Axis2, nullptr);
+    //read_eqmod();
     DESteps360        = Revu24str2long(response + 1);
     steppersvalues[0] = (double)DESteps360;
 
     // Steps per Worm
-    dispatch_command(InquireTimerInterruptFreq, Axis2, NULL);
-    read_eqmod();
+    dispatch_command(InquireTimerInterruptFreq, Axis2, nullptr);
+    //read_eqmod();
     DEStepsWorm = Revu24str2long(response + 1);
     // There is a bug in the earlier version firmware(Before 2.00) of motor controller MC001.
     // Overwrite the GearRatio reported by the MC for 80GT mount and 114GT mount.
@@ -588,14 +588,14 @@ void Skywatcher::InquireDEEncoderInfo(INumberVectorProperty *encoderNP)
     steppersvalues[1] = (double)DEStepsWorm;
 
     // Highspeed Ratio
-    dispatch_command(InquireHighSpeedRatio, Axis2, NULL);
-    read_eqmod();
+    dispatch_command(InquireHighSpeedRatio, Axis2, nullptr);
+    //read_eqmod();
     //DEHighspeedRatio=Revu24str2long(response+1);
     DEHighspeedRatio  = Highstr2long(response + 1);
     steppersvalues[2] = (double)DEHighspeedRatio;
     // should test this is ok
     IUUpdateNumber(encoderNP, steppersvalues, (char **)steppersnames, 3);
-    IDSetNumber(encoderNP, NULL);
+    IDSetNumber(encoderNP, nullptr);
     backlashperiod[Axis2] =
         (long)(((SKYWATCHER_STELLAR_DAY * (double)DEStepsWorm) / (double)DESteps360) / SKYWATCHER_BACKLASH_SPEED_DE);
 }
@@ -616,8 +616,8 @@ bool Skywatcher::IsDERunning()
 
 void Skywatcher::ReadMotorStatus(SkywatcherAxis axis)
 {
-    dispatch_command(GetAxisStatus, axis, NULL);
-    read_eqmod();
+    dispatch_command(GetAxisStatus, axis, nullptr);
+    //read_eqmod();
     switch (axis)
     {
         case Axis1:
@@ -653,7 +653,7 @@ void Skywatcher::ReadMotorStatus(SkywatcherAxis axis)
                 DEStatus.speedmode = LOWSPEED;
         default:;
     }
-    gettimeofday(&lastreadmotorstatus[axis], NULL);
+    gettimeofday(&lastreadmotorstatus[axis], nullptr);
 }
 
 void Skywatcher::SlewRA(double rate)
@@ -1047,7 +1047,7 @@ void Skywatcher::SetSpeed(SkywatcherAxis axis, unsigned long period)
     else
         DEPeriod = period;
     dispatch_command(SetStepPeriod, axis, cmd);
-    read_eqmod();
+    //read_eqmod();
 }
 
 void Skywatcher::SetTarget(SkywatcherAxis axis, unsigned long increment)
@@ -1057,7 +1057,7 @@ void Skywatcher::SetTarget(SkywatcherAxis axis, unsigned long increment)
     long2Revu24str(increment, cmd);
     //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetGotoTargetIncrement, axis, cmd);
-    read_eqmod();
+    //read_eqmod();
     Target[axis] = increment;
 }
 
@@ -1068,7 +1068,7 @@ void Skywatcher::SetTargetBreaks(SkywatcherAxis axis, unsigned long increment)
     long2Revu24str(increment, cmd);
     //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetBreakPointIncrement, axis, cmd);
-    read_eqmod();
+    //read_eqmod();
     TargetBreaks[axis] = increment;
 }
 
@@ -1079,7 +1079,7 @@ void Skywatcher::SetAbsTarget(SkywatcherAxis axis, unsigned long target)
     long2Revu24str(target, cmd);
     //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetGotoTarget, axis, cmd);
-    read_eqmod();
+    //read_eqmod();
     Target[axis] = target;
 }
 
@@ -1090,7 +1090,7 @@ void Skywatcher::SetAbsTargetBreaks(SkywatcherAxis axis, unsigned long breakstep
     long2Revu24str(breakstep, cmd);
     //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetBreakStep, axis, cmd);
-    read_eqmod();
+    //read_eqmod();
     TargetBreaks[axis] = breakstep;
 }
 
@@ -1101,7 +1101,7 @@ void Skywatcher::SetFeature(SkywatcherAxis axis, unsigned long command)
     long2Revu24str(command, cmd);
     //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetFeatureCmd, axis, cmd);
-    read_eqmod();
+    //read_eqmod();
 }
 
 void Skywatcher::GetFeature(SkywatcherAxis axis, unsigned long command)
@@ -1111,7 +1111,7 @@ void Skywatcher::GetFeature(SkywatcherAxis axis, unsigned long command)
     long2Revu24str(command, cmd);
     //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(GetFeatureCmd, axis, cmd);
-    read_eqmod();
+    //read_eqmod();
 }
 
 void Skywatcher::GetIndexer(SkywatcherAxis axis)
@@ -1167,8 +1167,8 @@ void Skywatcher::TurnDEEncoder(bool on)
 
 unsigned long Skywatcher::ReadEncoder(SkywatcherAxis axis)
 {
-    dispatch_command(InquireAuxEncoder, axis, NULL);
-    read_eqmod();
+    dispatch_command(InquireAuxEncoder, axis, nullptr);
+    //read_eqmod();
     return Revu24str2long(response + 1);
 }
 
@@ -1200,7 +1200,7 @@ void Skywatcher::SetST4GuideRate(SkywatcherAxis axis, unsigned char r)
     cmd[1] = '\0';
     //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetST4GuideRateCmd, axis, cmd);
-    read_eqmod();
+    //read_eqmod();
 }
 
 void Skywatcher::TurnPPECTraining(SkywatcherAxis axis, bool on)
@@ -1266,7 +1266,7 @@ void Skywatcher::SetAxisPosition(SkywatcherAxis axis, unsigned long step)
     long2Revu24str(step, cmd);
     //IDLog("Setting target for axis %c  to %d\n", AxisCmd[axis], increment);
     dispatch_command(SetAxisPositionCmd, axis, cmd);
-    read_eqmod();
+    //read_eqmod();
 }
 
 void Skywatcher::SetRAAxisPosition(unsigned long step)
@@ -1299,27 +1299,27 @@ void Skywatcher::StartMotor(SkywatcherAxis axis)
             LOGF_INFO("Performing backlash compensation for axis %c, microsteps = %d", AxisCmd[axis],
                    backlash);
             // Axis Position
-            dispatch_command(GetAxisPosition, axis, NULL);
-            read_eqmod();
+            dispatch_command(GetAxisPosition, axis, nullptr);
+            //read_eqmod();
             currentsteps = Revu24str2long(response + 1);
             // Backlash Speed
             long2Revu24str(backlashperiod[axis], cmd);
             dispatch_command(SetStepPeriod, axis, cmd);
-            read_eqmod();
+            //read_eqmod();
             // Backlash motion mode
             dispatch_command(SetMotionMode, axis, motioncmd);
-            read_eqmod();
+            //read_eqmod();
             // Target for backlash
             long2Revu24str(backlash, cmd);
             dispatch_command(SetGotoTargetIncrement, axis, cmd);
-            read_eqmod();
+            //read_eqmod();
             // Target breaks for backlash (no break steps)
             long2Revu24str(backlash / 10, cmd);
             dispatch_command(SetBreakPointIncrement, axis, cmd);
-            read_eqmod();
+            //read_eqmod();
             // Start Backlash
-            dispatch_command(StartMotion, axis, NULL);
-            read_eqmod();
+            dispatch_command(StartMotion, axis, nullptr);
+            //read_eqmod();
             // Wait end of backlash
             if (axis == Axis1)
                 motorrunning = &RARunning;
@@ -1330,17 +1330,17 @@ void Skywatcher::StartMotor(SkywatcherAxis axis)
             ReadMotorStatus(axis);
             while (*motorrunning)
             {
-                nanosleep(&wait, NULL);
+                nanosleep(&wait, nullptr);
                 ReadMotorStatus(axis);
             }
             // Restore microsteps
             long2Revu24str(currentsteps, cmd);
             dispatch_command(SetAxisPositionCmd, axis, cmd);
-            read_eqmod();
+            //read_eqmod();
             // Restore Speed
             long2Revu24str((axis == Axis1 ? RAPeriod : DEPeriod), cmd);
             dispatch_command(SetStepPeriod, axis, cmd);
-            read_eqmod();
+            //read_eqmod();
             // Restore motion mode
             switch (NewStatus[axis].slewmode)
             {
@@ -1361,19 +1361,19 @@ void Skywatcher::StartMotor(SkywatcherAxis axis)
                     break;
             }
             dispatch_command(SetMotionMode, axis, motioncmd);
-            read_eqmod();
+            //read_eqmod();
             // Restore Target
             long2Revu24str(Target[axis], cmd);
             dispatch_command(SetGotoTargetIncrement, axis, cmd);
-            read_eqmod();
+            //read_eqmod();
             // Restore Target breaks
             long2Revu24str(TargetBreaks[axis], cmd);
             dispatch_command(SetBreakPointIncrement, axis, cmd);
-            read_eqmod();
+            //read_eqmod();
         }
     }
-    dispatch_command(StartMotion, axis, NULL);
-    read_eqmod();
+    dispatch_command(StartMotion, axis, nullptr);
+    //read_eqmod();
 }
 
 void Skywatcher::StopRA()
@@ -1430,7 +1430,7 @@ void Skywatcher::SetMotion(SkywatcherAxis axis, SkywatcherAxisStatus newstatus)
 #ifdef STOP_WHEN_MOTION_CHANGED
   StopWaitMotor(axis);
   dispatch_command(SetMotionMode, axis, motioncmd);
-  read_eqmod();
+  //read_eqmod();
 #else
   */
     if ((newstatus.direction != currentstatus->direction) || (newstatus.speedmode != currentstatus->speedmode) ||
@@ -1438,7 +1438,7 @@ void Skywatcher::SetMotion(SkywatcherAxis axis, SkywatcherAxisStatus newstatus)
     {
         StopWaitMotor(axis);
         dispatch_command(SetMotionMode, axis, motioncmd);
-        read_eqmod();
+        //read_eqmod();
     }
     //#endif
     NewStatus[axis] = newstatus;
@@ -1464,7 +1464,7 @@ void Skywatcher::ResetMotions()
     else
         motioncmd[1] = '1';
     dispatch_command(SetMotionMode, Axis1, motioncmd);
-    read_eqmod();
+    //read_eqmod();
     NewStatus[Axis1] = newstatus;
 
     CheckMotorStatus(Axis2);
@@ -1474,7 +1474,7 @@ void Skywatcher::ResetMotions()
     else
         motioncmd[1] = '1';
     dispatch_command(SetMotionMode, Axis2, motioncmd);
-    read_eqmod();
+    //read_eqmod();
     NewStatus[Axis2] = newstatus;
 }
 
@@ -1486,8 +1486,8 @@ void Skywatcher::StopMotor(SkywatcherAxis axis)
     if (axis == Axis2 && DERunning)
         LastRunningStatus[Axis2] = DEStatus;
     DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, AxisCmd[axis]);
-    dispatch_command(NotInstantAxisStop, axis, NULL);
-    read_eqmod();
+    dispatch_command(NotInstantAxisStop, axis, nullptr);
+    //read_eqmod();
 }
 
 void Skywatcher::InstantStopMotor(SkywatcherAxis axis)
@@ -1498,8 +1498,8 @@ void Skywatcher::InstantStopMotor(SkywatcherAxis axis)
     if (axis == Axis2 && DERunning)
         LastRunningStatus[Axis2] = DEStatus;
     DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, AxisCmd[axis]);
-    dispatch_command(InstantAxisStop, axis, NULL);
-    read_eqmod();
+    dispatch_command(InstantAxisStop, axis, nullptr);
+    //read_eqmod();
 }
 
 void Skywatcher::StopWaitMotor(SkywatcherAxis axis)
@@ -1512,8 +1512,8 @@ void Skywatcher::StopWaitMotor(SkywatcherAxis axis)
     if (axis == Axis2 && DERunning)
         LastRunningStatus[Axis2] = DEStatus;
     DEBUGF(DBG_MOUNT, "%s() : Axis = %c", __FUNCTION__, AxisCmd[axis]);
-    dispatch_command(NotInstantAxisStop, axis, NULL);
-    read_eqmod();
+    dispatch_command(NotInstantAxisStop, axis, nullptr);
+    //read_eqmod();
     if (axis == Axis1)
         motorrunning = &RARunning;
     else
@@ -1523,7 +1523,7 @@ void Skywatcher::StopWaitMotor(SkywatcherAxis axis)
     ReadMotorStatus(axis);
     while (*motorrunning)
     {
-        nanosleep(&wait, NULL);
+        nanosleep(&wait, nullptr);
         ReadMotorStatus(axis);
     }
 }
@@ -1534,7 +1534,7 @@ void Skywatcher::CheckMotorStatus(SkywatcherAxis axis)
 {
     struct timeval now;
     DEBUGF(DBG_SCOPE_STATUS, "%s() : Axis = %c", __FUNCTION__, AxisCmd[axis]);
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
     if (((now.tv_sec - lastreadmotorstatus[axis].tv_sec) + ((now.tv_usec - lastreadmotorstatus[axis].tv_usec) / 1e6)) >
         SKYWATCHER_MAXREFRESH)
         ReadMotorStatus(axis);
@@ -1552,38 +1552,56 @@ double Skywatcher::get_max_rate()
 
 bool Skywatcher::dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, char *command_arg)
 {
-    int err_code = 0, nbytes_written = 0;
-
-    // Clear string
-    command[0] = '\0';
-
-    if (command_arg == NULL)
-        snprintf(command, SKYWATCHER_MAX_CMD, "%c%c%c%c", SkywatcherLeadingChar, cmd, AxisCmd[axis], SkywatcherTrailingChar);
-    else
-        snprintf(command, SKYWATCHER_MAX_CMD, "%c%c%c%s%c", SkywatcherLeadingChar, cmd, AxisCmd[axis], command_arg,
-                 SkywatcherTrailingChar);
-    if (!isSimulation())
+    for (uint8_t i=0; i < EQMOD_MAX_RETRY; i++)
     {
-        tcflush(PortFD, TCIOFLUSH);
+        int err_code = 0, nbytes_written = 0;
 
-        if ((err_code = tty_write_string(PortFD, command, &nbytes_written) != TTY_OK))
+        // Clear string
+        command[0] = '\0';
+
+        if (command_arg == nullptr)
+            snprintf(command, SKYWATCHER_MAX_CMD, "%c%c%c%c", SkywatcherLeadingChar, cmd, AxisCmd[axis], SkywatcherTrailingChar);
+        else
+            snprintf(command, SKYWATCHER_MAX_CMD, "%c%c%c%s%c", SkywatcherLeadingChar, cmd, AxisCmd[axis], command_arg,
+                     SkywatcherTrailingChar);
+        if (!isSimulation())
         {
-            char ttyerrormsg[ERROR_MSG_LENGTH];
-            tty_error_msg(err_code, ttyerrormsg, ERROR_MSG_LENGTH);
-            throw EQModError(EQModError::ErrDisconnect, "tty write failed, check connection: %s", ttyerrormsg);
-            return false;
+            tcflush(PortFD, TCIOFLUSH);
+
+            if ((err_code = tty_write_string(PortFD, command, &nbytes_written) != TTY_OK))
+            {
+                char ttyerrormsg[ERROR_MSG_LENGTH];
+                tty_error_msg(err_code, ttyerrormsg, ERROR_MSG_LENGTH);
+                throw EQModError(EQModError::ErrDisconnect, "tty write failed, check connection: %s", ttyerrormsg);
+                //return false;
+            }
         }
-    }
-    else
-    {
-        telescope->simulator->receive_cmd(command, &nbytes_written);
+        else
+        {
+            telescope->simulator->receive_cmd(command, &nbytes_written);
+        }
+
+        //if (INDI::Logger::debugSerial(cmd)) {
+        command[nbytes_written - 1] = '\0'; //hmmm, remove \r, the  SkywatcherTrailingChar
+        DEBUGF(DBG_COMM, "dispatch_command: \"%s\", %d bytes written", command, nbytes_written);
+        debugnextread = true;
+
+        try
+        {
+            if (read_eqmod())
+                return true;
+        }
+        catch (EQModError)
+        {
+            // By this time, we just rethrow the error
+            // JM 2018-05-07 immediately rethrow if GET_FEATURES_CMD
+            if (i == EQMOD_MAX_RETRY-1 || cmd == GetFeatureCmd)
+                throw;
+        }
+
+        DEBUG(DBG_COMM, "read error, will retry again...");
     }
 
-    //if (INDI::Logger::debugSerial(cmd)) {
-    command[nbytes_written - 1] = '\0'; //hmmm, remove \r, the  SkywatcherTrailingChar
-    DEBUGF(DBG_COMM, "dispatch_command: \"%s\", %d bytes written", command, nbytes_written);
-    debugnextread = true;
-    //}
     return true;
 }
 
@@ -1597,12 +1615,13 @@ bool Skywatcher::read_eqmod()
     {
         //Have to onsider cases when we read ! (error) or 0x01 (buffer overflow)
         // Read until encountring a CR
-        if ((err_code = tty_read_section(PortFD, response, 0x0D, 15, &nbytes_read)) != TTY_OK)
+        //if ((err_code = tty_read_section(PortFD, response, 0x0D, 15, &nbytes_read)) != TTY_OK)
+        if ((err_code = tty_read_section(PortFD, response, 0x0D, EQMOD_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             char ttyerrormsg[ERROR_MSG_LENGTH];
             tty_error_msg(err_code, ttyerrormsg, ERROR_MSG_LENGTH);
             throw EQModError(EQModError::ErrDisconnect, "tty read failed, check connection: %s", ttyerrormsg);
-            return false;
+            //return false;
         }
     }
     else

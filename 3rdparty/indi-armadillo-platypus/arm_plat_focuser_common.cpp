@@ -814,7 +814,7 @@ bool ArmPlat::slpSendRxInt( char *command, int *rcode )
         return false;
     }
     LOGF_DEBUG("Rx [%s]", res);
-    //if ( ( strstr( command, "getpos" ) == NULL ) && ( strstr( command, "temps" ) == NULL ) ) 
+    //if ( ( strstr( command, "getpos" ) == nullptr ) && ( strstr( command, "temps" ) == nullptr ) ) 
     	//IDLog( "Rx: <%s>\n", res );
     return getIntResultCode( command, res, rcode );
 }
@@ -828,7 +828,7 @@ bool ArmPlat::getIntResultCode( char *sent, char *rxed, int *rcode )
     		LOGF_DEBUG("ERROR retrieving answer: Tx[%s] Rx[%s]", sent, rxed );
 		return false;
 	}
-	cp = std::strtok( NULL, ":" );
+	cp = std::strtok( nullptr, ":" );
 	*rcode = atoi( cp );
 	return true;
 }

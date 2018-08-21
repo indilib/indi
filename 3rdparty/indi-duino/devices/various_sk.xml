@@ -9,12 +9,6 @@ On
     </defSwitch>
 </defSwitchVector>
 
-<defTextVector device="Arduino Demo" name="DEVICE_PORT" label="SERIAL" group="Main Control" state="Idle" perm="rw" timeout="0">
-    <defText name="PORT" label="Port">
-/dev/ttyACM0
-    </defText>
-</defTextVector>
-
 <defSwitchVector device="Arduino Demo" name="DOME_DOOR" label="DOME DOOR" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
     <defSwitch name="DOME_DOOR" label="OPEN">
 Off

@@ -121,7 +121,7 @@ Integra::Integra() : RotatorInterface(this)
 
     // Focuser
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    setConnection(CONNECTION_SERIAL);
+    setSupportedConnections(CONNECTION_SERIAL);
 }
 
 bool Integra::initProperties()
@@ -828,7 +828,7 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
     char errstr[MAXRBUF];
 
     cleanPrint(cmd, cmdnocrlf);
-    LOGF_INFO("CMD %s (%s)", name, cmdnocrlf);
+    LOGF_DEBUG("CMD %s (%s)", name, cmdnocrlf);
 
     tcflush(PortFD, TCIOFLUSH);
     if ( (rc = tty_write(PortFD, cmd, (int)strlen(cmd), &nbytes_written)) != TTY_OK)
@@ -845,7 +845,7 @@ bool Integra::genericIntegraCommand(const char *name, const char *cmd, const cha
         return false;
     }
 
-    LOGF_INFO("RES %s (%s)", name, res);
+    LOGF_DEBUG("RES %s (%s)", name, res);
 
     // check begin of result string
     if (expectStart != nullptr)

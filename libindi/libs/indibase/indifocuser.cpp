@@ -343,7 +343,7 @@ bool Focuser::callHandshake()
     return Handshake();
 }
 
-void Focuser::setConnection(const uint8_t &value)
+void Focuser::setSupportedConnections(const uint8_t &value)
 {
     uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
 

@@ -61,10 +61,16 @@ Dome::Dome()
 
     parkDataType = PARK_NONE;
     Parkdatafile = "~/.indi/ParkData.xml";
+    ParkdataXmlRoot = nullptr;
 }
 
 Dome::~Dome()
 {
+    delXMLEle(ParkdataXmlRoot);
+
+    delete controller;
+    delete serialConnection;
+    delete tcpConnection;
 }
 
 bool Dome::initProperties()

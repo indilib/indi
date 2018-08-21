@@ -25,10 +25,10 @@ DSI::Device *DSI::DeviceFactory::getInstance(const char *devname)
     {
         tmp = new DSI::Device(devname);
     }
-    catch (dsi_exception e)
+    catch (dsi_exception& e)
     {
         std::cerr << e.what();
-        return NULL;
+        return nullptr;
     }
 
     std::cerr << "Found Camera " << tmp->getCameraName() << std::endl << "Found CCD " << tmp->getCcdChipName() << std::endl;

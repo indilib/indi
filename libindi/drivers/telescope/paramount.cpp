@@ -993,7 +993,7 @@ bool Paramount::sendTheSkyOKCommand(const char *command, const char *errorMessag
     return true;
 }
 
-IPState Paramount::GuideNorth(float ms)
+IPState Paramount::GuideNorth(uint32_t ms)
 {
     // Movement in arcseconds
     double dDec = GuideRateN[DEC_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
@@ -1007,7 +1007,7 @@ IPState Paramount::GuideNorth(float ms)
     return IPS_OK;
 }
 
-IPState Paramount::GuideSouth(float ms)
+IPState Paramount::GuideSouth(uint32_t ms)
 {
     // Movement in arcseconds
     double dDec = GuideRateN[DEC_AXIS].value * TRACKRATE_SIDEREAL * ms / -1000.0;
@@ -1020,7 +1020,7 @@ IPState Paramount::GuideSouth(float ms)
     return IPS_OK;
 }
 
-IPState Paramount::GuideEast(float ms)
+IPState Paramount::GuideEast(uint32_t ms)
 {
     // Movement in arcseconds
     double dRA = GuideRateN[RA_AXIS].value * TRACKRATE_SIDEREAL * ms / 1000.0;
@@ -1033,7 +1033,7 @@ IPState Paramount::GuideEast(float ms)
     return IPS_OK;
 }
 
-IPState Paramount::GuideWest(float ms)
+IPState Paramount::GuideWest(uint32_t ms)
 {
     // Movement in arcseconds
     double dRA = GuideRateN[RA_AXIS].value * TRACKRATE_SIDEREAL * ms / -1000.0;

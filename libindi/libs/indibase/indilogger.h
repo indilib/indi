@@ -188,6 +188,7 @@ class Logger
   public:
     enum VerbosityLevel
     {
+        DBG_IGNORE  = 0x0,
         DBG_ERROR   = 0x1,
         DBG_WARNING = 0x2,
         DBG_SESSION = 0x4,

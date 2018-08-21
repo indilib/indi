@@ -43,7 +43,7 @@ CloudWatcherController::CloudWatcherController(char *serialP)
     verbose         = false;
     serialportFD    = -1;
     serialPort      = serialP;
-    firmwareVersion = NULL;
+    firmwareVersion = nullptr;
 
     zenerConstant        = 3.0;
     ambPullUpResistance  = 9.9;
@@ -62,7 +62,7 @@ CloudWatcherController::CloudWatcherController(char *serialP, bool verbos)
     verbose         = verbos;
     serialportFD    = -1;
     serialPort      = serialP;
-    firmwareVersion = NULL;
+    firmwareVersion = nullptr;
 
     zenerConstant        = 3.0;
     ambPullUpResistance  = 9.9;
@@ -78,7 +78,7 @@ CloudWatcherController::CloudWatcherController(char *serialP, bool verbos)
 
 CloudWatcherController::~CloudWatcherController()
 {
-    if (firmwareVersion != NULL)
+    if (firmwareVersion != nullptr)
     {
         delete[] firmwareVersion;
     }
@@ -158,7 +158,7 @@ bool CloudWatcherController::getAllData(CloudWatcherData *cwd)
     totalReadings++;
 
     timeval begin;
-    gettimeofday(&begin, NULL);
+    gettimeofday(&begin, nullptr);
 
     for (int i = 0; i < NUMBER_OF_READS; i++)
     {
@@ -199,7 +199,7 @@ bool CloudWatcherController::getAllData(CloudWatcherData *cwd)
     }
 
     timeval end;
-    gettimeofday(&end, NULL);
+    gettimeofday(&end, nullptr);
 
     float rc = float(end.tv_sec - begin.tv_sec) + float(end.tv_usec - begin.tv_usec) / 1000000.0;
 
@@ -400,7 +400,7 @@ bool CloudWatcherController::getFirmwareVersion(char *version)
 
 bool CloudWatcherController::getFirmwareVersion()
 {
-    if (firmwareVersion == NULL)
+    if (firmwareVersion == nullptr)
     {
         firmwareVersion = new char[5];
 

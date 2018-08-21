@@ -248,7 +248,7 @@ bool LX200AstroPhysicsGTOCP2::initMount()
 
     char versionString[128];
     if (isSimulation())
-        strncpy(versionString, "VCP4-P01-01", 128);
+        strncpy(versionString, "E", 128);
     else
         getAPVersionNumber(PortFD, versionString);
 
@@ -500,7 +500,7 @@ bool LX200AstroPhysicsGTOCP2::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation())
@@ -536,7 +536,7 @@ bool LX200AstroPhysicsGTOCP2::Goto(double r, double d)
 }
 
 
-int LX200AstroPhysicsGTOCP2::SendPulseCmd(int direction, int duration_msec)
+int LX200AstroPhysicsGTOCP2::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 {
     if (firmwareVersion == MCV_E)
         handleGTOCP2MotionBug();

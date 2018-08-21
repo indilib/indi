@@ -122,11 +122,11 @@ bool WunderGround::initProperties()
     IUFillTextVector(&wunderAPIKeyTP, wunderAPIKeyT, 1, getDeviceName(), "WUNDER_API_KEY", "Wunder", OPTIONS_TAB, IP_RW,
                      60, IPS_IDLE);
 
-    addParameter("WEATHER_FORECAST", "Weather", 0, 0, 0, 1);
-    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, -20, 40);
-    addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 0, 40);
-    addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 0, 50);
-    addParameter("WEATHER_RAIN_HOUR", "Precip (mm)", 0, 0, 0, 0);
+    addParameter("WEATHER_FORECAST", "Weather", 0, 0, 15);
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);
+    addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 15);
+    addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 15);
+    addParameter("WEATHER_RAIN_HOUR", "Precip (mm)", 0, 0, 15);
 
     setCriticalParameter("WEATHER_FORECAST");
     setCriticalParameter("WEATHER_TEMPERATURE");

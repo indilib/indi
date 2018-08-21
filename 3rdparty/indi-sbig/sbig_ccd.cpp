@@ -37,6 +37,11 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#ifdef __APPLE__
+#include <sys/stat.h>
+#include "ezusb.h"
+#endif
+
 #define TEMPERATURE_POLL_MS 5000 /* Temperature Polling time (ms) */
 #define MAX_RESOLUTION      4096 /* Maximum resolutoin for secondary chip */
 #define MAX_DEVICES         20   /* Max device cameraCount */
@@ -77,10 +82,10 @@ void ISGetProperties(const char *dev)
     for (int i = 0; i < cameraCount; i++)
     {
         SBIGCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISGetProperties(dev);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -92,10 +97,10 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     for (int i = 0; i < cameraCount; i++)
     {
         SBIGCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewSwitch(dev, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -107,10 +112,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     for (int i = 0; i < cameraCount; i++)
     {
         SBIGCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewText(dev, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -122,10 +127,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     for (int i = 0; i < cameraCount; i++)
     {
         SBIGCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewNumber(dev, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -156,8 +161,105 @@ void ISSnoopDevice(XMLEle *root)
 
 //==========================================================================
 
+void SBIGCCD::loadFirmwareOnOSXifNeeded()
+{
+// Upload firmware in case of MacOS
+    #ifdef __APPLE__
+    
+    //SBIG Universal Driver Check
+    const std::string name = "/System/Library/Extensions/SBIGUSBEDriver.kext";
+    struct stat buffer;   
+  	if (stat (name.c_str(), &buffer) == 0)
+  	{
+  		LOG_DEBUG("SBIG Universal Driver Detected");
+  	}
+  	else
+  	{
+  	    LOGF_WARN("Failed to Detect SBIG Universal Driver, please install this before running the INDI SBIG driver!", __FUNCTION__);
+  	}
+    
+    int rc = 0;
+    int i = 0;
+    int cnt = 0;
+    
+    libusb_device **list = nullptr;
+    struct libusb_device_descriptor desc;
+    std::string bus_name, device_name;
+    
+    if ((rc = libusb_init(nullptr)))
+    {
+        LOGF_WARN("Failed to start libusb", __FUNCTION__, libusb_error_name(rc));
+    }
+    
+    //libusb_set_debug(nullptr, verbose);  maybe?
+    
+    cnt = libusb_get_device_list(nullptr, &list);
+    if(cnt < 0)
+    	 LOGF_WARN("Failed to get device list", __FUNCTION__, libusb_error_name(rc));
+    handle = nullptr;
+    for (i = 0; i < cnt; ++i)
+    {
+        if (!libusb_get_device_descriptor(list[i], &desc))
+        {
+        	int sbigCameraTypeFound = 0;
+        	// SBIG ST-7/8/9/10/2K cameras
+        	if ((desc.idVendor == 0x0d97) && (desc.idProduct == 0x0001))
+            	sbigCameraTypeFound = 1;
+            //Need the code here to detect ST-4K Camera, since it has the same Vendor and Product ID as above
+            // SBIG ST-L cameras
+            if ((desc.idVendor == 0x0d97) && (desc.idProduct == 0x0002))
+            	sbigCameraTypeFound = 3;
+            // SBIG ST-402/1603/3200/8300 cameras
+            if ((desc.idVendor == 0x0d97) && (desc.idProduct == 0x0003))
+            	sbigCameraTypeFound = 4;
+            
+            if(sbigCameraTypeFound !=0)
+            {
+                libusb_open(list[i], &handle);
+                if (handle)
+                {
+                    libusb_kernel_driver_active(handle, 0);
+                    libusb_claim_interface(handle, 0);
+                    char driverSupportPath[MAXRBUF];
+                    //On OS X, Prefer embedded App location if it exists
+                    if (getenv("INDIPREFIX") != nullptr)
+                    	snprintf(driverSupportPath, MAXRBUF, "%s/Contents/Resources", getenv("INDIPREFIX"));
+                    else
+                    	strncpy(driverSupportPath, "/usr/local/lib/indi", MAXRBUF);
+                    int status=0;
+                    if(sbigCameraTypeFound == 1) // SBIG ST-7/8/9/10/2K cameras
+                    {
+                    	strncat(driverSupportPath, "/DriverSupport/sbig/sbigucam.hex", MAXRBUF);
+                    	status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX1, IMG_TYPE_HEX, 0);
+                    }
+                    //Note that we NEED to add the code here to load sbigpcam.hex to ST-4K
+                    
+                    if(sbigCameraTypeFound == 3) // SBIG ST-L cameras
+                    {
+                    	strncat(driverSupportPath, "/DriverSupport/sbig/sbiglcam.hex", MAXRBUF);
+                    	status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX1, IMG_TYPE_HEX, 0);
+                    }
+                    if(sbigCameraTypeFound == 4) // SBIG ST-402/1603/3200/8300 cameras
+                    {
+                    	strncat(driverSupportPath, "/DriverSupport/sbig/sbigfcam.hex", MAXRBUF);
+                    	status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX2, IMG_TYPE_HEX, 0);
+                    }
+                    if (status == 0 )
+                        LOGF_DEBUG("Failed to load firmware", __FUNCTION__);
+                    libusb_close(handle);
+                }
+            }
+        }
+     }
+    libusb_free_device_list(list, 0);
+    list=nullptr;
+    #endif
+}
+
 int SBIGCCD::OpenDriver()
 {
+	loadFirmwareOnOSXifNeeded();
+
     GetDriverHandleResults gdhr;
     SetDriverHandleParams sdhp;
     int res = ::SBIGUnivDrvCommand(CC_OPEN_DRIVER, 0, 0);
@@ -289,7 +391,7 @@ SBIGCCD::SBIGCCD() : FilterInterface(this)
 #endif
     hasGuideHead   = false;
     hasFilterWheel = false;
-    setVersion(1, 8);
+    setVersion(SBIG_VERSION_MAJOR, SBIG_VERSION_MINOR);
 }
 
 //==========================================================================
@@ -497,7 +599,7 @@ bool SBIGCCD::updateProperties()
         {
             loadConfig(true, "CFW_TYPE");
             ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
-            if (p != NULL && FilterConnectionS[0].s == ISS_OFF)
+            if (p != nullptr && FilterConnectionS[0].s == ISS_OFF)
             {
                 LOG_DEBUG("Filter type is already selected and filter is not connected. Will "
                                                "attempt to connect to filter now...");
@@ -523,7 +625,7 @@ bool SBIGCCD::updateProperties()
             deleteProperty(FilterConnectionSP.name);
             deleteProperty(FilterTypeSP.name);
             deleteProperty(FilterProdcutTP.name);
-            if (FilterNameT != NULL)
+            if (FilterNameT != nullptr)
             {
                 deleteProperty(FilterNameTP->name);
             }
@@ -544,12 +646,12 @@ bool SBIGCCD::ISNewText(const char *dev, const char *name, char *texts[], char *
             {
                 LOGF_ERROR("Invalid ip address %s.", texts[0]);
                 IpTP.s = IPS_ALERT;
-                IDSetText(&IpTP, NULL);
+                IDSetText(&IpTP, nullptr);
                 return false;
             }
             IpTP.s = IPS_OK;
             IUUpdateText(&IpTP, texts, names, n);
-            IDSetText(&IpTP, NULL);
+            IDSetText(&IpTP, nullptr);
             return true;
         }
         if (strcmp(name, FilterNameTP->name) == 0)
@@ -577,7 +679,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 deleteProperty(IpTP.name);
             }
             PortSP.s = IPS_OK;
-            IDSetSwitch(&PortSP, NULL);
+            IDSetSwitch(&PortSP, nullptr);
             return true;
         }
         if (strcmp(name, FanStateSP.name) == 0)
@@ -602,7 +704,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             IUResetSwitch(&FilterTypeSP);
             IUUpdateSwitch(&FilterTypeSP, states, names, n);
             FilterTypeSP.s = IPS_OK;
-            IDSetSwitch(&FilterTypeSP, NULL);
+            IDSetSwitch(&FilterTypeSP, nullptr);
             return true;
         }
         if (strcmp(name, CoolerSP.name) == 0)
@@ -626,7 +728,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             if (FilterConnectionS[0].s == ISS_ON)
             {
                 ISwitch *p = IUFindOnSwitch(&FilterTypeSP);
-                if (p == NULL)
+                if (p == nullptr)
                 {
                     FilterConnectionSP.s = IPS_ALERT;
                     IUResetSwitch(&FilterConnectionSP);
@@ -661,6 +763,8 @@ bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], ch
 
 bool SBIGCCD::Connect()
 {
+	loadFirmwareOnOSXifNeeded();
+
     if (isConnected())
         return true;
     sim              = isSimulation();
@@ -693,7 +797,7 @@ bool SBIGCCD::Connect()
             }
             SetCCDCapability(cap);
 #ifdef ASYNC_READOUT
-            pthread_create(&primary_thread, NULL, &grabCCDHelper, this);
+            pthread_create(&primary_thread, nullptr, &grabCCDHelper, this);
 #endif
             return true;
         }
@@ -796,7 +900,7 @@ bool SBIGCCD::setupParams()
 
     int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8 + 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
-    if (PrimaryCCD.getFrameBuffer() == NULL)
+    if (PrimaryCCD.getFrameBuffer() == nullptr)
     {
         LOG_ERROR("Failed to allocate memory for primary camera buffer");
         return false;
@@ -807,7 +911,7 @@ bool SBIGCCD::setupParams()
     {
         nbuf = GuideCCD.getXRes() * GuideCCD.getYRes() * GuideCCD.getBPP() / 8 + 512;
         GuideCCD.setFrameBufferSize(nbuf);
-        if (GuideCCD.getFrameBuffer() == NULL)
+        if (GuideCCD.getFrameBuffer() == nullptr)
         {
             LOG_ERROR("Failed to allocate memory for guide head buffer");
             return false;
@@ -822,9 +926,9 @@ bool SBIGCCD::setupParams()
         QueryTemperatureStatus(regulationEnabled, temp, setPoint, power);
         CoolerS[0].s = regulationEnabled ? ISS_ON : ISS_OFF;
         CoolerS[1].s = regulationEnabled ? ISS_OFF : ISS_ON;
-        IDSetSwitch(&CoolerSP, NULL);
+        IDSetSwitch(&CoolerSP, nullptr);
         CoolerN[0].value = power * 100;
-        IDSetNumber(&CoolerNP, NULL);
+        IDSetNumber(&CoolerNP, nullptr);
         TemperatureN[0].min = MIN_CCD_TEMP;
         TemperatureN[0].max = MAX_CCD_TEMP;
         IUUpdateMinMax(&TemperatureNP);
@@ -833,7 +937,7 @@ bool SBIGCCD::setupParams()
     IUSaveText(&ProductInfoT[0], GetCameraName());
     IUSaveText(&ProductInfoT[1], GetCameraID());
     ProductInfoTP.s = IPS_OK;
-    IDSetText(&ProductInfoTP, NULL);
+    IDSetText(&ProductInfoTP, nullptr);
     return true;
 }
 
@@ -851,7 +955,7 @@ int SBIGCCD::SetTemperature(double temperature)
             CoolerS[0].s = ISS_ON;
             CoolerS[1].s = ISS_OFF;
             CoolerSP.s   = IPS_BUSY;
-            IDSetSwitch(&CoolerSP, NULL);
+            IDSetSwitch(&CoolerSP, nullptr);
         }
         return 0;
     }
@@ -958,7 +1062,7 @@ bool SBIGCCD::StartExposure(float duration)
         return false;
     }
     ExposureRequest = duration;
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
     InExposure = true;
     return true;
 }
@@ -973,7 +1077,7 @@ bool SBIGCCD::StartGuideExposure(float duration)
         return false;
     }
     GuideExposureRequest = duration;
-    gettimeofday(&GuideExpStart, NULL);
+    gettimeofday(&GuideExpStart, nullptr);
     InGuideExposure = true;
     return true;
 }
@@ -1149,41 +1253,41 @@ bool SBIGCCD::UpdateGuiderBin(int binx, int biny)
     return updateFrameProperties(&GuideCCD);
 }
 
-IPState SBIGCCD::GuideNorth(float duration)
+IPState SBIGCCD::GuideNorth(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tYMinus                                      = dur;
     ActivateRelay(&rp);
     return IPS_OK;
 }
 
-IPState SBIGCCD::GuideSouth(float duration)
+IPState SBIGCCD::GuideSouth(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tYPlus                                       = dur;
     ActivateRelay(&rp);
     return IPS_OK;
 }
 
-IPState SBIGCCD::GuideEast(float duration)
+IPState SBIGCCD::GuideEast(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tXPlus                                       = dur;
     ActivateRelay(&rp);
     return IPS_OK;
 }
 
-IPState SBIGCCD::GuideWest(float duration)
+IPState SBIGCCD::GuideWest(uint32_t ms)
 {
     ActivateRelayParams rp;
     rp.tXMinus = rp.tXPlus = rp.tYMinus = rp.tYPlus = 0;
-    unsigned short dur                              = duration / 10.0;
+    unsigned short dur                              = ms / 10.0;
     rp.tXMinus                                      = dur;
     ActivateRelay(&rp);
     return IPS_OK;
@@ -1194,7 +1298,7 @@ float SBIGCCD::CalcTimeLeft(timeval start, float req)
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
     timesince =
         (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
     timesince = timesince / 1000;
@@ -1211,7 +1315,7 @@ void *SBIGCCD::grabCCDHelper(void *context)
 void *SBIGCCD::grabCCD()
 {
     LOG_DEBUG("grabCCD thread started...");
-    INDI::CCDChip *targetChip = NULL;
+    INDI::CCDChip *targetChip = nullptr;
     pthread_mutex_lock(&condMutex);
     while (true)
     {
@@ -1295,7 +1399,7 @@ bool SBIGCCD::saveConfigItems(FILE *fp)
 void SBIGCCD::TimerHit()
 {
     long timeleft       = 1e6;
-    INDI::CCDChip *targetChip = NULL;
+    INDI::CCDChip *targetChip = nullptr;
     if (isConnected() == false)
     {
         return;
@@ -1972,7 +2076,7 @@ int SBIGCCD::SBIGUnivDrvCommand(PAR_COMMAND command, void *params, void *results
         // Handle is valid so install it in the driver.
         sdhp.handle = GetDriverHandle();
         res         = ::SBIGUnivDrvCommand(CC_SET_DRIVER_HANDLE, &sdhp, 0);
-#if !defined(OSX_EMBEDED_MODE)
+#ifndef __APPLE__
         if (res == CE_FAKE_DRIVER)
         {
             // The user is using the dummy driver. Tell him to download the real driver
@@ -2165,7 +2269,7 @@ bool SBIGCCD::SelectFilter(int position)
     else
     {
         FilterSlotNP.s = IPS_ALERT;
-        IDSetNumber(&FilterSlotNP, NULL);
+        IDSetNumber(&FilterSlotNP, nullptr);
         LOG_INFO("Failed to reach position");
         return false;
     }
@@ -2220,7 +2324,7 @@ void SBIGCCD::updateTemperature()
             CoolerNP.s = IPS_BUSY;
         }
         CoolerN[0].value = power;
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
         IDSetNumber(&CoolerNP, 0);
     }
     else
@@ -2236,7 +2340,7 @@ void SBIGCCD::updateTemperature()
             LOGF_ERROR("Erro reading temperature. %s", GetErrorString(res));
             TemperatureNP.s = IPS_ALERT;
         }
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
     }
     IEAddTimer(TEMPERATURE_POLL_MS, SBIGCCD::updateTemperatureHelper, this);
 }
@@ -2370,7 +2474,7 @@ int SBIGCCD::CFWConnect()
         LOG_ERROR("You must establish connection to CCD before connecting to filter wheel.");
         FilterConnectionSP.s   = IPS_IDLE;
         FilterConnectionS[1].s = ISS_ON;
-        IDSetSwitch(&FilterConnectionSP, NULL);
+        IDSetSwitch(&FilterConnectionSP, nullptr);
         return CE_OS_ERROR;
     }
 
@@ -2475,7 +2579,7 @@ int SBIGCCD::CFWConnect()
                FilterSlotN[0].value);
 
         defineNumber(&FilterSlotNP);
-        if (FilterNameT == NULL)
+        if (FilterNameT == nullptr)
             GetFilterNames();
         if (FilterNameT)
             defineText(FilterNameTP);
@@ -2486,7 +2590,7 @@ int SBIGCCD::CFWConnect()
         FilterConnectionSP.s = IPS_OK;
         LOG_INFO("CFW connected.");
         FilterConnectionS[0].s = ISS_ON;
-        IDSetSwitch(&FilterConnectionSP, NULL);
+        IDSetSwitch(&FilterConnectionSP, nullptr);
     }
     else
     {
@@ -2495,7 +2599,7 @@ int SBIGCCD::CFWConnect()
         IUResetSwitch(&FilterConnectionSP);
         FilterConnectionSP.sp[1].s = ISS_ON;
         LOG_ERROR("Failed to connect CFW");
-        IDSetSwitch(&FilterConnectionSP, NULL);
+        IDSetSwitch(&FilterConnectionSP, nullptr);
     }
     return res;
 }

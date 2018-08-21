@@ -60,10 +60,17 @@ void ISInit()
         fcUsb_init();
 
         IDLog("About to call set logging\n");
-        fcUsb_setLogging(true);
+        fcUsb_setLogging(false);
 
         IDLog("About to call find Cameras\n");
+        cameraCount = -1;
         cameraCount = fcUsb_FindCameras();
+
+        if(cameraCount == -1)
+        {
+            IDLog("Calling FindCameras again because at least 1 RAW camera was found\n");
+            cameraCount = fcUsb_FindCameras();
+        }
 
         IDLog("Found %d fishcamp cameras.\n", cameraCount);
 
@@ -88,10 +95,10 @@ void ISGetProperties(const char *dev)
     for (int i = 0; i < cameraCount; i++)
     {
         FishCampCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISGetProperties(dev);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -103,12 +110,27 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     for (int i = 0; i < cameraCount; i++)
     {
         FishCampCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewSwitch(dev, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
+    }
+    //This turns the LibFishcamp fcusb logging on and off along with the INDI Fishcamp file logging.
+   if (!strcmp(name, "LOG_OUTPUT"))
+    {
+        if(INDI::Logger::ConfigurationS[1].s == ISS_ON)
+        {
+            fcUsb_setLogging(true);
+            IDLog("Setting Starfish Driver File Log On\n");
+        }
+        else
+        {
+            fcUsb_setLogging(false);
+            IDLog("Setting Starfish Driver File Log Off\n");
+        }
+
     }
 }
 
@@ -118,10 +140,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     for (int i = 0; i < cameraCount; i++)
     {
         FishCampCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewText(dev, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -133,10 +155,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     for (int i = 0; i < cameraCount; i++)
     {
         FishCampCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewNumber(dev, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -229,7 +251,7 @@ bool FishCampCCD::initProperties()
     nbuf += 512;                                                                  //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_COOLER);
+    SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_ST4_PORT);
 
     delete[] strBuf;
 
@@ -277,7 +299,7 @@ bool FishCampCCD::ISNewNumber(const char *dev, const char *name, double values[]
             IUUpdateNumber(&GainNP, values, names, n);
             setGain(GainN[0].value);
             GainNP.s = IPS_OK;
-            IDSetNumber(&GainNP, NULL);
+            IDSetNumber(&GainNP, nullptr);
             return true;
         }
     }
@@ -308,7 +330,7 @@ int FishCampCCD::SetTemperature(double temperature)
         CoolerNP.s = IPS_IDLE;
 
     TemperatureNP.s = IPS_BUSY;
-    IDSetNumber(&TemperatureNP, NULL);
+    IDSetNumber(&TemperatureNP, nullptr);
 
     LOGF_INFO("Setting CCD temperature to %+06.2f C", temperature);
 
@@ -370,7 +392,7 @@ bool FishCampCCD::StartExposure(float duration)
     LOGF_DEBUG("Exposure Time (s) is: %g", duration);
 
     // setup the exposure time in ms.
-    rc = fcUsb_cmd_setIntegrationTime(cameraNum, duration);
+    rc = fcUsb_cmd_setIntegrationTime(cameraNum, (UInt32)(duration * 1000.0));
 
     LOGF_DEBUG("fcUsb_cmd_setIntegrationTime returns %d", rc);
 
@@ -378,7 +400,7 @@ bool FishCampCCD::StartExposure(float duration)
 
     LOGF_DEBUG("fcUsb_cmd_startExposure returns %d", rc);
 
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
 
     LOGF_INFO("Taking a %g seconds frame...", ExposureRequest);
 
@@ -436,7 +458,7 @@ bool FishCampCCD::UpdateCCDFrame(int x, int y, int w, int h)
     LOGF_DEBUG("The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, bin_width,
            bin_height);
 
-    rc = fcUsb_cmd_setRoi(cameraNum, x_1, y_1, w - 1, h - 1);
+    rc = fcUsb_cmd_setRoi(cameraNum, x_1, y_1,  x_1 + w - 1, y_1 + h - 1);
 
     LOGF_DEBUG("fcUsb_cmd_setRoi returns %d", rc);
 
@@ -469,7 +491,7 @@ float FishCampCCD::CalcTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
                 (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
@@ -485,21 +507,30 @@ int FishCampCCD::grabImage()
     uint8_t *image = PrimaryCCD.getFrameBuffer();
 
     UInt16 *frameBuffer = (UInt16 *)image;
-    fcUsb_cmd_getRawFrame(cameraNum, PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), frameBuffer);
-    LOG_INFO("Download complete.");
 
-    ExposureComplete(&PrimaryCCD);
+    int numBytes = fcUsb_cmd_getRawFrame(cameraNum, PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), frameBuffer);
+    if(numBytes != 0)
+    {
+        LOG_INFO("Download complete.");
+        ExposureComplete(&PrimaryCCD);
+        return 0;
+    }
+    else
+    {
+        LOG_INFO("Download error. Please check the log for details.");
+        ExposureComplete(&PrimaryCCD);  //This should be an error. It is not complete, it messed up!
+        return -1;
+    }
 
-    return 0;
 }
 
 void FishCampCCD::TimerHit()
 {
     int timerHitID = -1, state = -1, rc = -1;
-    long timeleft;
+    float timeleft;
     double ccdTemp;
 
-    if (isConnected() == false)
+    if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
     if (InExposure)
@@ -524,15 +555,17 @@ void FishCampCCD::TimerHit()
                 else
                 {
                     //  it's real close now, so spin on it
-                    while (!sim && timeleft > 0)
+                    //  We have to wait till the camera is ready to download
+                    bool ready = false;
+                    int slv;
+                    slv = fabs(100000 * timeleft); //0.05s (50000 us) is checked every 5000 us or so
+                    while (!sim && !ready)
                     {
                         state = fcUsb_cmd_getState(cameraNum);
                         if (state == 0)
-                            timeleft = 0;
-
-                        int slv;
-                        slv = 100000 * timeleft;
-                        usleep(slv);
+                            ready = true;
+                        else
+                            usleep(slv);
                     }
 
                     /* We're done exposing */
@@ -548,9 +581,8 @@ void FishCampCCD::TimerHit()
         else
         {
             LOGF_DEBUG("Image not yet ready. With time left %ld\n", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
         }
-
-        PrimaryCCD.setExposureLeft(timeleft);
     }
 
     switch (TemperatureNP.s)
@@ -568,7 +600,7 @@ void FishCampCCD::TimerHit()
             if (fabs(TemperatureN[0].value - ccdTemp) >= TEMP_THRESHOLD)
             {
                 TemperatureN[0].value = ccdTemp;
-                IDSetNumber(&TemperatureNP, NULL);
+                IDSetNumber(&TemperatureNP, nullptr);
             }
 
             break;
@@ -591,7 +623,7 @@ void FishCampCCD::TimerHit()
             if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
                 TemperatureNP.s = IPS_OK;
 
-            IDSetNumber(&TemperatureNP, NULL);
+            IDSetNumber(&TemperatureNP, nullptr);
             break;
 
         case IPS_ALERT:
@@ -602,7 +634,7 @@ void FishCampCCD::TimerHit()
     {
         case IPS_OK:
             CoolerN[0].value = fcUsb_cmd_getTECPowerLevel(cameraNum);
-            IDSetNumber(&CoolerNP, NULL);
+            IDSetNumber(&CoolerNP, nullptr);
             LOGF_DEBUG("Cooler power level %g %", CoolerN[0].value);
             break;
 
@@ -615,56 +647,56 @@ void FishCampCCD::TimerHit()
     return;
 }
 
-IPState FishCampCCD::GuideNorth(float duration)
+IPState FishCampCCD::GuideNorth(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYNORTH, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYNORTH, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYNORTH returns %d", rc);
 
     return IPS_OK;
 }
 
-IPState FishCampCCD::GuideSouth(float duration)
+IPState FishCampCCD::GuideSouth(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYSOUTH, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYSOUTH, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYSOUTH returns %d", rc);
 
     return IPS_OK;
 }
 
-IPState FishCampCCD::GuideEast(float duration)
+IPState FishCampCCD::GuideEast(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYEAST, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYEAST, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYEAST returns %d", rc);
 
     return IPS_OK;
 }
 
-IPState FishCampCCD::GuideWest(float duration)
+IPState FishCampCCD::GuideWest(uint32_t ms)
 {
     if (sim)
         return IPS_OK;
 
     int rc = 0;
 
-    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYWEST, duration, 0, false);
+    rc = fcUsb_cmd_pulseRelay(cameraNum, fcRELAYWEST, ms, 0, false);
 
     LOGF_DEBUG("fcUsb_cmd_pulseRelay fcRELAYWEST returns %d", rc);
 

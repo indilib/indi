@@ -365,9 +365,9 @@ std::string apgHelper::GetCfgDir()
     // need to switch this to SHGetKnownFolderPath when we drop windows XP support
     // or the function is removed from shell32.dll, which ever happens first....
     TCHAR szPath[MAX_PATH];
-    if( FAILED( SHGetFolderPath(  NULL, 
+    if( FAILED( SHGetFolderPath(  nullptr, 
                         CSIDL_COMMON_APPDATA,
-                        NULL, 
+                        nullptr, 
                         0,
                         szPath ) ) )
     {
@@ -397,7 +397,7 @@ std::string apgHelper::GetCfgDir()
     //On OS X, Prefer embedded App location if it exists
 #if defined(__APPLE__)
 	std::string driverSupportPath;
-	if (getenv("INDIPREFIX") != NULL)
+	if (getenv("INDIPREFIX") != nullptr)
 		driverSupportPath = std::string(getenv("INDIPREFIX")).append("/Contents/Resources");
 	else
 		driverSupportPath = "/usr/local/lib/indi";

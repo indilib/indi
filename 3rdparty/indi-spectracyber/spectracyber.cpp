@@ -65,8 +65,8 @@ const unsigned int SPECTROMETER_OFFSET = 0x050;
 /* 90 Khz Rest Correction */
 const double SPECTROMETER_REST_CORRECTION = 0.090;
 
-const char *contFMT = ".ascii_cont";
-const char *specFMT = ".ascii_spec";
+static const char *contFMT = ".ascii_cont";
+static const char *specFMT = ".ascii_spec";
 
 // We declare an auto pointer to spectrometer.
 std::unique_ptr<SpectraCyber> spectracyber(new SpectraCyber());
@@ -117,24 +117,16 @@ SpectraCyber::SpectraCyber()
     // Command pre-limeter
     command[0] = '!';
 
-    telescopeID = NULL;
+    telescopeID = nullptr;
 
-    srand(time(NULL));
+    srand(time(nullptr));
 
     buildSkeleton("indi_spectracyber_sk.xml");
 
     // Optional: Add aux controls for configuration, debug & simulation
     addAuxControls();
 
-    setVersion(SPECTRACYBER_VERSION_MAJOR, SPECTRACYBER_VERSION_MINOR);
-}
-
-/****************************************************************
-**
-**
-*****************************************************************/
-SpectraCyber::~SpectraCyber()
-{
+    setVersion(SPECTRACYBER_VERSION_MAJOR, SPECTRACYBER_VERSION_MINOR);        
 }
 
 /****************************************************************
@@ -175,8 +167,7 @@ bool SpectraCyber::ISSnoopDevice(XMLEle *root)
 {
     if (IUSnoopNumber(root, &EquatorialCoordsRNP) != 0)
     {
-        if (isDebug())
-            IDLog("Error processing snooped EQUATORIAL_EOD_COORD_REQUEST value! No RA/DEC information available.\n");
+        LOG_WARN("Error processing snooped EQUATORIAL_EOD_COORD_REQUEST value! No RA/DEC information available.");
 
         return true;
     }
@@ -192,29 +183,28 @@ bool SpectraCyber::ISSnoopDevice(XMLEle *root)
 *****************************************************************/
 bool SpectraCyber::initProperties()
 {
-    IDLog("init Properties in spectracyber\n");
 
     INDI::DefaultDevice::initProperties();
 
     FreqNP = getNumber("Freq (Mhz)");
-    if (FreqNP == NULL)
-        IDMessage(getDeviceName(), "Error: Frequency property is missing. Spectrometer cannot be operated.");
+    if (FreqNP == nullptr)
+        LOG_ERROR("Error: Frequency property is missing. Spectrometer cannot be operated.");
 
     ScanNP = getNumber("Scan Parameters");
-    if (ScanNP == NULL)
-        IDMessage(getDeviceName(), "Error: Scan parameters property is missing. Spectrometer cannot be operated.");
+    if (ScanNP == nullptr)
+        LOG_ERROR("Error: Scan parameters property is missing. Spectrometer cannot be operated.");
 
     ChannelSP = getSwitch("Channels");
-    if (ChannelSP == NULL)
-        IDMessage(getDeviceName(), "Error: Channel property is missing. Spectrometer cannot be operated.");
+    if (ChannelSP == nullptr)
+        LOG_ERROR("Error: Channel property is missing. Spectrometer cannot be operated.");
 
     ScanSP = getSwitch("Scan");
-    if (ScanSP == NULL)
-        IDMessage(getDeviceName(), "Error: Channel property is missing. Spectrometer cannot be operated.");
+    if (ScanSP == nullptr)
+        LOG_ERROR("Error: Channel property is missing. Spectrometer cannot be operated.");
 
     DataStreamBP = getBLOB("Data");
-    if (DataStreamBP == NULL)
-        IDMessage(getDeviceName(), "Error: BLOB data property is missing. Spectrometer cannot be operated.");
+    if (DataStreamBP == nullptr)
+        LOG_ERROR("Error: BLOB data property is missing. Spectrometer cannot be operated.");
 
     if (DataStreamBP)
         DataStreamBP->bp[0].blob = (char *)malloc(MAXBLEN * sizeof(char));
@@ -226,6 +216,9 @@ bool SpectraCyber::initProperties()
     IUFillNumberVector(&EquatorialCoordsRNP, EquatorialCoordsRN, NARRAY(EquatorialCoordsRN), "", "EQUATORIAL_EOD_COORD",
                        "Equatorial AutoSet", "", IP_RW, 0, IPS_IDLE);
     /**************************************************************************/
+
+    setDriverInterface(SPECTROGRAPH_INTERFACE);
+
     return true;
 }
 
@@ -240,7 +233,7 @@ bool SpectraCyber::Connect()
     if (isConnected())
         return true;
 
-    if (tProp == NULL)
+    if (tProp == nullptr)
         return false;
 
     if (isSimulation())
@@ -253,8 +246,7 @@ bool SpectraCyber::Connect()
 
     if (tty_connect(tProp->tp[0].text, 2400, 8, 0, 1, &fd) != TTY_OK)
     {
-        LOGF_ERROR(
-               "Error connecting to port %s. Make sure you have BOTH read and write permission to the port.",
+        LOGF_ERROR("Error connecting to port %s. Make sure you have BOTH read and write permission to the port.",
                tProp->tp[0].text);
         return false;
     }
@@ -283,7 +275,7 @@ bool SpectraCyber::init_spectrometer()
     // Enable speed mode
     if (isSimulation())
     {
-        IDMessage(getDeviceName(), "%s Spectrometer: Simulating spectrometer init.", type_name.c_str());
+        LOGF_INFO("%s Spectrometer: Simulating spectrometer init.", type_name.c_str());
         return true;
     }
 
@@ -315,13 +307,13 @@ bool SpectraCyber::ISNewNumber(const char *dev, const char *name, double values[
 
     INumberVectorProperty *nProp = getNumber(name);
 
-    if (nProp == NULL)
+    if (nProp == nullptr)
         return false;
 
     if (isConnected() == false)
     {
         resetProperties();
-        IDMessage(getDeviceName(), "Spectrometer is offline. Connect before issiuing any commands.");
+        LOG_ERROR("Spectrometer is offline. Connect before issiuing any commands.");
         return false;
     }
 
@@ -342,7 +334,7 @@ bool SpectraCyber::ISNewNumber(const char *dev, const char *name, double values[
         }
 
         nProp->s = IPS_OK;
-        IDSetNumber(nProp, NULL);
+        IDSetNumber(nProp, nullptr);
 
         return true;
     }
@@ -382,7 +374,7 @@ bool SpectraCyber::ISNewNumber(const char *dev, const char *name, double values[
 
         // No Change, return
         nProp->s = IPS_OK;
-        IDSetNumber(nProp, NULL);
+        IDSetNumber(nProp, nullptr);
         return true;
     }
 
@@ -397,7 +389,7 @@ bool SpectraCyber::ISNewNumber(const char *dev, const char *name, double values[
             return false;
 
         nProp->s = IPS_OK;
-        IDSetNumber(nProp, NULL);
+        IDSetNumber(nProp, nullptr);
         return true;
     }
     return true;
@@ -414,7 +406,7 @@ bool SpectraCyber::ISNewText(const char *dev, const char *name, char *texts[], c
 
     ITextVectorProperty *tProp = getText(name);
 
-    if (tProp == NULL)
+    if (tProp == nullptr)
         return false;
 
     // Device Port Text
@@ -441,13 +433,13 @@ bool SpectraCyber::ISNewText(const char *dev, const char *name, char *texts[], c
 
             strncpy(EquatorialCoordsRNP.device, tProp->tp[0].text, MAXINDIDEVICE);
 
-            IDMessage(getDeviceName(), "Active telescope updated to %s. Please save configuration.", telescopeID->text);
+            LOGF_INFO("Active telescope updated to %s. Please save configuration.", telescopeID->text);
 
             IDSnoopDevice(telescopeID->text, "EQUATORIAL_EOD_COORD");
         }
 
         tProp->s = IPS_OK;
-        IDSetText(tProp, NULL);
+        IDSetText(tProp, nullptr);
         return true;
     }
 
@@ -469,13 +461,13 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
 
     ISwitchVectorProperty *sProp = getSwitch(name);
 
-    if (sProp == NULL)
+    if (sProp == nullptr)
         return false;
 
     if (isConnected() == false)
     {
         resetProperties();
-        IDMessage(getDeviceName(), "Spectrometer is offline. Connect before issiuing any commands.");
+        LOG_ERROR("Spectrometer is offline. Connect before issiuing any commands.");
         return false;
     }
 
@@ -496,14 +488,14 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
                 FreqNP->s       = IPS_IDLE;
                 DataStreamBP->s = IPS_IDLE;
 
-                IDSetNumber(FreqNP, NULL);
-                IDSetBLOB(DataStreamBP, NULL);
+                IDSetNumber(FreqNP, nullptr);
+                IDSetBLOB(DataStreamBP, nullptr);
                 IDSetSwitch(sProp, "Scan stopped.");
                 return false;
             }
 
             sProp->s = IPS_OK;
-            IDSetSwitch(sProp, NULL);
+            IDSetSwitch(sProp, nullptr);
             return true;
         }
 
@@ -518,7 +510,7 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
             sample_rate = ScanNP->np[2].value * 5;
             FreqNP->np[0].value = start_freq;
             FreqNP->s           = IPS_BUSY;
-            IDSetNumber(FreqNP, NULL);
+            IDSetNumber(FreqNP, nullptr);
             IDSetSwitch(sProp, "Starting spectral scan from %g MHz to %g MHz in steps of %g KHz...", start_freq,
                         target_freq, sample_rate);
         }
@@ -546,7 +538,7 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
         }
 
         sProp->s = IPS_OK;
-        IDSetSwitch(sProp, NULL);
+        IDSetSwitch(sProp, nullptr);
 
         return true;
     }
@@ -569,7 +561,7 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
         }
 
         sProp->s = IPS_OK;
-        IDSetSwitch(sProp, NULL);
+        IDSetSwitch(sProp, nullptr);
 
         return true;
     }
@@ -592,7 +584,7 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
         }
 
         sProp->s = IPS_OK;
-        IDSetSwitch(sProp, NULL);
+        IDSetSwitch(sProp, nullptr);
 
         return true;
     }
@@ -615,7 +607,7 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
         }
 
         sProp->s = IPS_OK;
-        IDSetSwitch(sProp, NULL);
+        IDSetSwitch(sProp, nullptr);
 
         return true;
     }
@@ -638,7 +630,7 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
         }
 
         sProp->s = IPS_OK;
-        IDSetSwitch(sProp, NULL);
+        IDSetSwitch(sProp, nullptr);
 
         return true;
     }
@@ -660,7 +652,7 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(sProp, "Scan aborted due to change of channel selection.");
         }
         else
-            IDSetSwitch(sProp, NULL);
+            IDSetSwitch(sProp, nullptr);
 
         return true;
     }
@@ -671,7 +663,7 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
         if (reset() == true)
         {
             sProp->s = IPS_OK;
-            IDSetSwitch(sProp, NULL);
+            IDSetSwitch(sProp, nullptr);
         }
         else
         {
@@ -691,8 +683,8 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
     int err_code = 0, nbytes_written = 0, final_value = 0;
     // Maximum of 3 hex digits in addition to null terminator
     char hex[5];
-    INumberVectorProperty *nProp = NULL;
-    ISwitchVectorProperty *sProp = NULL;
+    INumberVectorProperty *nProp = nullptr;
+    ISwitchVectorProperty *sProp = nullptr;
 
     tcflush(fd, TCIOFLUSH);
 
@@ -701,7 +693,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
         // Intermediate Frequency Gain
         case IF_GAIN:
             nProp = getNumber("70 Mhz IF");
-            if (nProp == NULL)
+            if (nProp == nullptr)
                 return false;
             command[1] = 'A';
             command[2] = '0';
@@ -716,7 +708,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
         // Continuum Gain
         case CONT_GAIN:
             sProp = getSwitch("Continuum Gain");
-            if (sProp == NULL)
+            if (sProp == nullptr)
                 return false;
             command[1]  = 'G';
             command[2]  = '0';
@@ -729,7 +721,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
         // Continuum Integration
         case CONT_TIME:
             sProp = getSwitch("Continuum Integration (s)");
-            if (sProp == NULL)
+            if (sProp == nullptr)
                 return false;
             command[1]  = 'I';
             command[2]  = '0';
@@ -742,7 +734,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
         // Spectral Gain
         case SPEC_GAIN:
             sProp = getSwitch("Spectral Gain");
-            if (sProp == NULL)
+            if (sProp == nullptr)
                 return false;
             command[1]  = 'K';
             command[2]  = '0';
@@ -756,7 +748,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
         // Spectral Integration
         case SPEC_TIME:
             sProp = getSwitch("Spectral Integration (s)");
-            if (sProp == NULL)
+            if (sProp == nullptr)
                 return false;
             command[1]  = 'L';
             command[2]  = '0';
@@ -769,7 +761,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
         // Continuum DC Offset
         case CONT_OFFSET:
             nProp = getNumber("DC Offset");
-            if (nProp == NULL)
+            if (nProp == nullptr)
                 return false;
             command[1]  = 'O';
             final_value = (int)nProp->np[CONTINUUM_CHANNEL].value / 0.001;
@@ -782,7 +774,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
         // Spectral DC Offset
         case SPEC_OFFSET:
             nProp = getNumber("DC Offset");
-            if (nProp == NULL)
+            if (nProp == nullptr)
                 return false;
             command[1]  = 'J';
             final_value = (int)nProp->np[SPECTRAL_CHANNEL].value / 0.001;
@@ -827,7 +819,7 @@ bool SpectraCyber::dispatch_command(SpectrometerCommand command_type)
         // Bandwidth
         case BANDWIDTH:
             sProp = getSwitch("Bandwidth (Khz)");
-            if (sProp == NULL)
+            if (sProp == nullptr)
                 return false;
             command[1]  = 'B';
             command[2]  = '0';
@@ -897,7 +889,7 @@ bool SpectraCyber::update_freq(double nFreq)
     if (ScanSP->s != IPS_BUSY)
         FreqNP->s = IPS_OK;
 
-    IDSetNumber(FreqNP, NULL);
+    IDSetNumber(FreqNP, nullptr);
 
     // Delay 0.5s for INT
     usleep(500000);
@@ -963,7 +955,7 @@ void SpectraCyber::TimerHit()
                 ScanSP->s = IPS_OK;
                 FreqNP->s = IPS_OK;
 
-                IDSetNumber(FreqNP, NULL);
+                IDSetNumber(FreqNP, nullptr);
                 IDSetSwitch(ScanSP, "Scan complete.");
                 SetTimer(POLLMS);
                 return;
@@ -989,7 +981,7 @@ void SpectraCyber::TimerHit()
             if (ScanSP->s != IPS_BUSY)
             {
                 DataStreamBP->s = IPS_IDLE;
-                IDSetBLOB(DataStreamBP, NULL);
+                IDSetBLOB(DataStreamBP, nullptr);
                 break;
             }
 
@@ -1000,7 +992,7 @@ void SpectraCyber::TimerHit()
                 if (ScanSP->s == IPS_BUSY)
                     abort_scan();
 
-                IDSetBLOB(DataStreamBP, NULL);
+                IDSetBLOB(DataStreamBP, nullptr);
             }
 
             JD = ln_get_julian_from_sys();
@@ -1024,7 +1016,7 @@ void SpectraCyber::TimerHit()
 
             //IDLog("\nSTRLEN: %d -- BLOB:'%s'\n", strlen(bLine), (char *) DataStreamBP->bp[0].blob);
 
-            IDSetBLOB(DataStreamBP, NULL);
+            IDSetBLOB(DataStreamBP, nullptr);
 
             break;
 
@@ -1043,7 +1035,7 @@ void SpectraCyber::abort_scan()
     IUResetSwitch(ScanSP);
     ScanSP->sp[1].s = ISS_ON;
 
-    IDSetNumber(FreqNP, NULL);
+    IDSetNumber(FreqNP, nullptr);
     IDSetSwitch(ScanSP, "Scan aborted due to errors.");
 }
 

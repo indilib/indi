@@ -73,7 +73,7 @@ class SkySafari : public INDI::DefaultDevice
 
     // Settings
     ITextVectorProperty SettingsTP;
-    IText SettingsT[3];
+    IText SettingsT[3] {};
     enum
     {
         INDISERVER_HOST,
@@ -83,7 +83,7 @@ class SkySafari : public INDI::DefaultDevice
 
     // Active Devices
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1];
+    IText ActiveDeviceT[1] {};
     enum
     {
         ACTIVE_TELESCOPE

@@ -383,7 +383,7 @@ bool get_pmc8_tracking_rate_axis(int fd, PMC8_AXIS axis, int &rate)
     strcpy(num_str, "0X");
     strncat(num_str, response+5, 6);
 
-    rate = (int)strtol(num_str, NULL, 0);
+    rate = (int)strtol(num_str, nullptr, 0);
 
     return true;
 }
@@ -443,7 +443,7 @@ bool get_pmc8_direction_axis(int fd, PMC8_AXIS axis, int &dir)
 
     strncat(num_str, response+5, 2);
 
-    dir = (int)strtol(num_str, NULL, 0);
+    dir = (int)strtol(num_str, nullptr, 0);
 
     return true;
 }
@@ -1179,7 +1179,7 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us)
 //                                                       new_ra_rate, new_ra_dir, new_dec_rate, new_dec_dir);
 
     // measure time when we start pulse
-    gettimeofday(&tp, NULL);
+    gettimeofday(&tp, nullptr);
     pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
 
     // we will either send an RA pulse or DEC pulse but not both
@@ -1187,7 +1187,7 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us)
     if ((new_ra_rate != cur_ra_rate) || (new_ra_dir != cur_ra_dir))
     {
         // measure time when we start pulse
-//        gettimeofday(&tp, NULL);
+//        gettimeofday(&tp, nullptr);
 //        pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
 
         // the commands to set rate and direction take 10-20 msec to return due to they wait for the response from the mount
@@ -1206,7 +1206,7 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us)
     {
 
         // measure time when we start pulse
-//        gettimeofday(&tp, NULL);
+//        gettimeofday(&tp, nullptr);
 //        pulse_start_us = tp.tv_sec*1000000+tp.tv_usec;
 
         // the commands to set rate and direction take 10-20 msec to return due to they wait for the response from the mount
@@ -1237,7 +1237,7 @@ bool start_pmc8_guide(int fd, PMC8_DIRECTION gdir, int ms, long &timetaken_us)
     pstate->new_dec_dir  = new_dec_dir;
 
     // see how long we've waited
-    gettimeofday(&tp, NULL);
+    gettimeofday(&tp, nullptr);
     pulse_sofar_us = (tp.tv_sec*1000000+tp.tv_usec) - pulse_start_us;
 
     timetaken_us = pulse_sofar_us;
@@ -1300,7 +1300,7 @@ bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
 //        if (new_ra_rate != cur_ra_rate)
 //            set_pmc8_axis_motor_rate(fd, PMC8_AXIS_RA, cur_ra_rate, true);
         // FIXME - for now restore sidereal tracking
-        gettimeofday(&tp, NULL);
+        gettimeofday(&tp, nullptr);
         pulse_end_us = tp.tv_sec*1000000+tp.tv_usec;
 
         if (pstate->new_ra_rate != pstate->cur_ra_rate)
@@ -1316,7 +1316,7 @@ bool stop_pmc8_guide(int fd, PMC8_DIRECTION gdir)
         (pstate->new_dec_dir  != pstate->cur_dec_dir))
     {
         // not sure if best to flip dir or rate first!
-        gettimeofday(&tp, NULL);
+        gettimeofday(&tp, nullptr);
         pulse_end_us = tp.tv_sec*1000000+tp.tv_usec;
 
         if (pstate->new_dec_rate != pstate->cur_dec_rate)
@@ -1648,7 +1648,7 @@ bool get_pmc8_position_axis(int fd, PMC8_AXIS axis, int &point)
     strncat(num_str, response+5, 6);
 
     //point = atoi(num_str);
-    point = (int)strtol(num_str, NULL, 0);
+    point = (int)strtol(num_str, nullptr, 0);
 
 //    DEBUGFDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "get pos num_str = %s atoi() returns %d", num_str, point);
 

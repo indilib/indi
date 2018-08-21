@@ -51,15 +51,19 @@ bool LX200ZEQ25::initProperties()
 
     SetParkDataType(PARK_AZ_ALT);
 
-    strcpy(SlewRateS[0].label, "1x");
-    strcpy(SlewRateS[1].label, "2x");
-    strcpy(SlewRateS[2].label, "8x");
-    strcpy(SlewRateS[3].label, "16x");
-    strcpy(SlewRateS[4].label, "64x");
-    strcpy(SlewRateS[5].label, "128x");
-    strcpy(SlewRateS[6].label, "256x");
-    strcpy(SlewRateS[7].label, "512x");
-    strcpy(SlewRateS[8].label, "MAX");
+    // Slew Rates
+    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
+    strncpy(SlewRateS[1].label, "2x", MAXINDILABEL);
+    strncpy(SlewRateS[2].label, "8x", MAXINDILABEL);
+    strncpy(SlewRateS[3].label, "16x", MAXINDILABEL);
+    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
+    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
+    strncpy(SlewRateS[6].label, "256x", MAXINDILABEL);
+    strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
+    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
+    IUResetSwitch(&SlewRateSP);
+    // 64x is the default
+    SlewRateS[4].s = ISS_ON;
 
     IUFillSwitch(&HomeS[0], "Home", "", ISS_OFF);
     IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "Home", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
@@ -118,7 +122,7 @@ bool LX200ZEQ25::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             LOGF_ERROR("%s", errmsg);
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
             continue;
         }
 
@@ -126,7 +130,7 @@ bool LX200ZEQ25::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             LOGF_ERROR("%s", errmsg);
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
             continue;
         }
 
@@ -139,7 +143,7 @@ bool LX200ZEQ25::checkConnection()
                 return true;
         }
 
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     return false;
@@ -222,9 +226,9 @@ bool LX200ZEQ25::isZEQ25Home()
     error_type = tty_read(PortFD, bool_return, 1, 5, &nbytes_read);
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ZEQ25
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
     tcflush(PortFD, TCIFLUSH);
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     if (nbytes_read < 1)
         return false;
@@ -425,7 +429,7 @@ bool LX200ZEQ25::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation())
@@ -712,9 +716,9 @@ int LX200ZEQ25::setZEQ25StandardProcedure(int fd, const char *data)
     error_type = tty_read(fd, bool_return, 1, 5, &nbytes_read);
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure on ZEQ25
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
     tcflush(fd, TCIFLUSH);
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     if (nbytes_read < 1)
         return error_type;
@@ -1317,7 +1321,7 @@ int LX200ZEQ25::setZEQ25GuideRate(double rate)
     return -1;
 }
 
-int LX200ZEQ25::SendPulseCmd(int direction, int duration_msec)
+int LX200ZEQ25::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 {
     int nbytes_write = 0;
     char cmd[20];

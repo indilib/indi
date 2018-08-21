@@ -33,7 +33,7 @@ class FLICCD : public INDI::CCD
 {
   public:
     FLICCD();
-    ~FLICCD() = default;
+    ~FLICCD();
 
     const char *getDefaultName() override;
 
@@ -92,7 +92,7 @@ class FLICCD : public INDI::CCD
     ISwitch PortS[4];
     ISwitchVectorProperty PortSP;
 
-    IText CamInfoT[3];
+    IText CamInfoT[3] {};
     ITextVectorProperty CamInfoTP;
 
     INumber CoolerN[1];
@@ -103,6 +103,9 @@ class FLICCD : public INDI::CCD
 
     ISwitch BackgroundFlushS[2];
     ISwitchVectorProperty BackgroundFlushSP;
+
+    ISwitch *CameraModeS = nullptr;
+    ISwitchVectorProperty CameraModeSP;
 
     int timerID=0;
 

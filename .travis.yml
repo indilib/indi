@@ -15,18 +15,6 @@ matrix:
     # Default config (on trusty gcc4)
     - os: linux
 
-    # For completness - gcc5 build
-    - os: linux
-      addons:
-        apt:
-          packages:
-            - g++-5
-          sources: &sources
-            - ubuntu-toolchain-r-test
-      env:
-        - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
-
-
 branches:
   only:
     - master
@@ -38,7 +26,6 @@ branches:
     - feature/travisosx
 
 before_install:
-    - eval "${MATRIX_EVAL}"
     - echo Install dependencies
     - travis-ci/deps-${TRAVIS_OS_NAME}.sh
 

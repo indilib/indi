@@ -30,7 +30,7 @@ class ASICCD : public INDI::CCD
 {
   public:
     explicit ASICCD(ASI_CAMERA_INFO *camInfo);
-    ~ASICCD() = default;
+    ~ASICCD() override = default;
 
     virtual const char *getDefaultName() override;
 
@@ -57,10 +57,10 @@ class ASICCD : public INDI::CCD
     virtual bool UpdateCCDBin(int binx, int biny) override;
 
     // Guide Port
-    virtual IPState GuideNorth(float ms) override;
-    virtual IPState GuideSouth(float ms) override;
-    virtual IPState GuideEast(float ms) override;
-    virtual IPState GuideWest(float ms) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     // ASI specific keywords
     virtual void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;
@@ -137,6 +137,12 @@ class ASICCD : public INDI::CCD
     ISwitchVectorProperty VideoFormatSP;
     uint8_t rememberVideoFormat = { 0 };
     ASI_IMG_TYPE currentVideoFormat;
+
+    INumber ADCDepthN;
+    INumberVectorProperty ADCDepthNP;
+
+    IText SDKVersionS[1] = {};
+    ITextVectorProperty SDKVersionSP;
 
     struct timeval ExpStart;
     float ExposureRequest;

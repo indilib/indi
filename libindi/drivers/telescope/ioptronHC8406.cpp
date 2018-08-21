@@ -110,7 +110,7 @@ socat  -v  PTY,link=/tmp/serial,wait-slave,raw /dev/ttyUSB0,raw
 
 ioptronHC8406::ioptronHC8406()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_PULSE_GUIDING);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
                       TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION |
@@ -148,14 +148,6 @@ bool ioptronHC8406::initProperties()
     IUFillSwitchVector(&CenterRateSP, CenterRateS, 4, getDeviceName(),
           "CENTER_RATE", "Center Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
 
-    // Slew Rate  //NOT WORK!!
-    IUFillSwitch(&SlewRateS[0], "600x", "", ISS_OFF);
-    IUFillSwitch(&SlewRateS[1], "900x", "", ISS_OFF);
-    IUFillSwitch(&SlewRateS[2], "1200x", "", ISS_ON);
-
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 3, getDeviceName(),
-          "SLEW_RATE", "Slew Speed", MOTION_TAB, IP_RW, ISR_1OFMANY, 0,IPS_IDLE);
-
     TrackModeSP.nsp = 3;
 
     return true;
@@ -170,7 +162,6 @@ bool ioptronHC8406::updateProperties()
         defineSwitch(&SyncCMRSP);
         defineSwitch(&GuideRateSP);
         defineSwitch(&CenterRateSP);
-        //defineSwitch(&SlewRateSP); //NOT WORK!!
         defineSwitch(&CursorMoveSpeedSP);
         ioptronHC8406Init();
     }
@@ -179,7 +170,6 @@ bool ioptronHC8406::updateProperties()
         deleteProperty(SyncCMRSP.name);
         deleteProperty(GuideRateSP.name);
         deleteProperty(CenterRateSP.name);
-        //deleteProperty(SlewRateSP.name); //NOT WORK!!
         deleteProperty(CursorMoveSpeedSP.name);
     }
 
@@ -213,7 +203,7 @@ bool ioptronHC8406::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             LOGF_ERROR("%s", errmsg);
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
             continue;
         }
 
@@ -221,7 +211,7 @@ bool ioptronHC8406::checkConnection()
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
             LOGF_ERROR("%s", errmsg);
-            nanosleep(&timeout, NULL);
+            nanosleep(&timeout, nullptr);
             continue;
         }
 
@@ -234,7 +224,7 @@ bool ioptronHC8406::checkConnection()
                 return true;
         }
 
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     return false;
@@ -318,23 +308,23 @@ bool ioptronHC8406::ISNewSwitch(const char *dev, const char *name, ISState *stat
             return true;
         }
 
-        // Slew Rate
-        if (!strcmp(SlewRateSP.name, name))
-        {
-            int currentSwitch = IUFindOnSwitchIndex(&SlewRateSP);
-            IUUpdateSwitch(&SlewRateSP, states, names, n);
-            if (setioptronHC8406SlewRate(IUFindOnSwitchIndex(&SlewRateSP)) == TTY_OK)
-                SlewRateSP.s = IPS_OK;
-            else
-            {
-                IUResetSwitch(&SlewRateSP);
-                SlewRateS[currentSwitch].s = ISS_ON;
-                SlewRateSP.s = IPS_ALERT;
-            }
+//        // Slew Rate
+//        if (!strcmp(SlewRateSP.name, name))
+//        {
+//            int currentSwitch = IUFindOnSwitchIndex(&SlewRateSP);
+//            IUUpdateSwitch(&SlewRateSP, states, names, n);
+//            if (setioptronHC8406SlewRate(IUFindOnSwitchIndex(&SlewRateSP)) == TTY_OK)
+//                SlewRateSP.s = IPS_OK;
+//            else
+//            {
+//                IUResetSwitch(&SlewRateSP);
+//                SlewRateS[currentSwitch].s = ISS_ON;
+//                SlewRateSP.s = IPS_ALERT;
+//            }
 
-            IDSetSwitch(&SlewRateSP, nullptr);
-            return true;
-        }
+//            IDSetSwitch(&SlewRateSP, nullptr);
+//            return true;
+//        }
 
     }
 
@@ -410,7 +400,7 @@ bool ioptronHC8406::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     // If parking/parked, let's unpark it first.
@@ -519,7 +509,7 @@ int ioptronHC8406::ioptronHC8406SyncCMR(char *matchedObject)
     LOGF_DEBUG("RES <%s>", matchedObject);
 
     /* Sleep 10ms before flushing. This solves some issues with LX200 compatible devices. */
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -744,9 +734,9 @@ int ioptronHC8406::setioptronHC8406StandardProcedure(int fd, const char *data)
 
     // JM: Hack from Jon in the INDI forums to fix longitude/latitude settings failure
 
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
     tcflush(fd, TCIFLUSH);
-    nanosleep(&timeout, NULL);
+    nanosleep(&timeout, nullptr);
 
 
 
@@ -877,7 +867,7 @@ bool ioptronHC8406::ReadScopeStatus()
         // Check if LX200 is done slewing
         if (isSlewComplete())
         {
-            nanosleep(&timeout, NULL); //Wait until :MS# finish
+            nanosleep(&timeout, nullptr); //Wait until :MS# finish
             if (IUFindSwitch(&CoordSP, "SYNC")->s == ISS_ON || IUFindSwitch(&CoordSP, "SLEW")->s == ISS_ON)  {
                 TrackState = SCOPE_IDLE;
                 LOG_WARN("Slew is complete. IDLE");
@@ -1163,6 +1153,7 @@ void ioptronHC8406::sendScopeTime()
         IDLog("Telescope ISO date and time: %s\n", cdate);
         IUSaveText(&TimeT[0], cdate);
         IUSaveText(&TimeT[1], "3");
+        TimeTP.s = IPS_OK;
         IDSetText(&TimeTP, nullptr);
         return;
     }
@@ -1221,38 +1212,40 @@ void ioptronHC8406::sendScopeTime()
     LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
 
     // Let's send everything to the client
+    TimeTP.s = IPS_OK;
     IDSetText(&TimeTP, nullptr);
 }
 
-int ioptronHC8406::SendPulseCmd(int direction, int Tduration_msec)
+int ioptronHC8406::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 {
-    LOGF_DEBUG("<%s>", __FUNCTION__);
     const timespec timeout = {1, 0L};
     int rc = 0,  nbytes_written = 0;
     char cmd[20];
-    int duration_msec,Rduration;
-    if (Tduration_msec >=1000) {
-        duration_msec=999;              //limited to 999
-        Rduration=Tduration_msec-duration_msec; //pending ms
-    } else {
-        duration_msec=Tduration_msec;
-        Rduration=0;
-            LOGF_DEBUG("Pulse %d <999 Sent only one",Tduration_msec);
+    uint32_t duration_left=0, duration_now=duration_msec;
+    if (duration_msec > 999)
+    {
+        duration_now=999;              //limited to 999
+        duration_left=duration_msec-duration_now; //pending ms
+    }
+    else
+    {
+        duration_left=0;
+        LOGF_DEBUG("Pulse %d <999 Sent only one",duration_msec);
     }
 
     switch (direction)
     {
         case LX200_NORTH:
-            sprintf(cmd, ":Mn%03d#", duration_msec);
+            sprintf(cmd, ":Mn%03d#", duration_now);
             break;
         case LX200_SOUTH:
-            sprintf(cmd, ":Ms%03d#", duration_msec);
+            sprintf(cmd, ":Ms%03d#", duration_now);
             break;
         case LX200_EAST:
-            sprintf(cmd, ":Me%03d#", duration_msec);
+            sprintf(cmd, ":Me%03d#", duration_now);
             break;
         case LX200_WEST:
-            sprintf(cmd, ":Mw%03d#", duration_msec);
+            sprintf(cmd, ":Mw%03d#", duration_now);
             break;
         default:
             return 1;
@@ -1268,10 +1261,11 @@ int ioptronHC8406::SendPulseCmd(int direction, int Tduration_msec)
     }
     tcflush(PortFD, TCIFLUSH);
 
-    if (Rduration!=0) {
-        LOGF_DEBUG("pulse guide. Pulse >999. ms left:%d",Rduration);
-        nanosleep(&timeout, NULL);   //wait until the previous one has fineshed
-        return SendPulseCmd(direction,Rduration);
+    if (duration_left!=0)
+    {
+        LOGF_DEBUG("pulse guide. Pulse >999. ms left:%d",duration_left);
+        nanosleep(&timeout, nullptr);   //wait until the previous one has fineshed
+        return SendPulseCmd(direction,duration_left);
     }
     return 0;
 }

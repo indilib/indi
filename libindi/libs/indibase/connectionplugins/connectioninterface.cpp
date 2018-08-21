@@ -24,7 +24,7 @@ namespace Connection
 {
 const char *CONNECTION_TAB = "Connection";
 
-Interface::Interface(INDI::DefaultDevice *dev) : device(dev)
+Interface::Interface(INDI::DefaultDevice *dev, Type type) : m_Device(dev), m_Type(type)
 {
     // Default handshake
     registerHandshake([]() { return true; });
@@ -36,7 +36,7 @@ Interface::~Interface()
 
 const char *Interface::getDeviceName()
 {
-    return device->getDeviceName();
+    return m_Device->getDeviceName();
 }
 
 bool Interface::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)

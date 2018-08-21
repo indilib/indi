@@ -128,7 +128,7 @@ class SteelDrive : public INDI::Focuser
     INumber SyncN[1];
     INumberVectorProperty SyncNP;
 
-    IText VersionT[2];
+    IText VersionT[2] {};
     ITextVectorProperty VersionTP;
 
     FocusCustomSetting fSettings[5];

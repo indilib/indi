@@ -32,7 +32,7 @@ const uint8_t COMM_INIT = 0xA5;
 const uint8_t COMM_FILL = 0x20;
 
 // We declare an auto pointer to TruTech.
-std::unique_ptr<TruTech> tru_wheel(new TruTech());
+static std::unique_ptr<TruTech> tru_wheel(new TruTech());
 
 void ISPoll(void *p);
 
@@ -80,7 +80,7 @@ TruTech::TruTech()
 
 const char *TruTech::getDefaultName()
 {
-    return (const char *)"TruTech Wheel";
+    return static_cast<const char *>("TruTech Wheel");
 }
 
 bool TruTech::initProperties()
@@ -91,12 +91,24 @@ bool TruTech::initProperties()
     IUFillSwitchVector(&HomeSP, HomeS, 1, getDeviceName(), "HOME", "Home", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60,
                        IPS_IDLE);
 
+    IUFillNumber(&MaxFilterN[0], "Count", "Count", "%.f", 1, 16, 1, 5);
+    IUFillNumberVector(&MaxFilterNP, MaxFilterN, 1, getDeviceName(), "MAX_FILTER", "Filters", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
+
     CurrentFilter      = 1;
     FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 5;
+    FilterSlotN[0].max = MaxFilterN[0].value;
 
     addAuxControls();
+
     return true;
+}
+
+void TruTech::ISGetProperties(const char *dev)
+{
+    INDI::FilterWheel::ISGetProperties(dev);
+
+    defineNumber(&MaxFilterNP);
+    loadConfig(true, "MAX_FILTER");
 }
 
 bool TruTech::updateProperties()
@@ -109,6 +121,30 @@ bool TruTech::updateProperties()
         deleteProperty(HomeSP.name);
 
     return true;
+}
+
+bool TruTech::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(name, MaxFilterNP.name))
+        {
+            IUUpdateNumber(&MaxFilterNP, values, names, n);
+            MaxFilterNP.s = IPS_OK;
+            saveConfig(true, "MAX_FILTER");
+            IDSetNumber(&MaxFilterNP, nullptr);
+            FilterSlotN[0].max = MaxFilterN[0].value;
+            if (isConnected())
+                LOG_INFO("Max number of filters updated. You must reconnect for this change to take effect.");
+            else
+                LOGF_INFO("Max number of filters updated to %.f", MaxFilterN[0].value);
+
+            return true;
+        }
+
+    }
+
+    return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
 }
 
 bool TruTech::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)

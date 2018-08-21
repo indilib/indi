@@ -62,7 +62,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
   public:
     explicit GPhotoCCD();
     explicit GPhotoCCD(const char *model, const char *port);
-    virtual ~GPhotoCCD();
+    virtual ~GPhotoCCD() override;
 
     const char *getDefaultName() override;
 
@@ -126,8 +126,7 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     char port[MAXINDINAME];
 
     struct timeval ExpStart;
-    float ExposureRequest;
-    bool sim;
+    double ExposureRequest;
 
     gphoto_driver *gphotodrv;
     std::map<std::string, cam_opt *> CamOptions;
@@ -138,13 +137,14 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     char *on_off[2];
     int timerID;
     bool frameInitialized;
+    bool isTemperatureSupported { false };
 
-    int liveVideoWidth = {-1};
-    int liveVideoHeight= {-1};
+    int liveVideoWidth  {-1};
+    int liveVideoHeight {-1};
 
     ISwitch mConnectS[2];
     ISwitchVectorProperty mConnectSP;
-    IText mPortT[1];
+    IText mPortT[1] {};
     ITextVectorProperty PortTP;
 
     INumber mMirrorLockN[1];
@@ -153,9 +153,9 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     INumber mExposureN[1];
     INumberVectorProperty mExposureNP;
 
-    ISwitch *mIsoS = NULL;
+    ISwitch *mIsoS = nullptr;
     ISwitchVectorProperty mIsoSP;
-    ISwitch *mFormatS = NULL;
+    ISwitch *mFormatS = nullptr;
     ISwitchVectorProperty mFormatSP;
 
     ISwitch transferFormatS[2];
@@ -183,13 +183,16 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     ISwitch livePreviewS[2];
     ISwitchVectorProperty livePreviewSP;
 
-    ISwitch *mExposurePresetS = NULL;
+    ISwitch streamSubframeS[2];
+    ISwitchVectorProperty streamSubframeSP;
+
+    ISwitch *mExposurePresetS = nullptr;
     ISwitchVectorProperty mExposurePresetSP;
 
-    IBLOBVectorProperty *imageBP = NULL;
-    IBLOB *imageB                = NULL;
+    IBLOBVectorProperty *imageBP = nullptr;
+    IBLOB *imageB                = nullptr;
 
-    Camera *camera = NULL;
+    Camera *camera = nullptr;
 
     friend void ::ISSnoopDevice(XMLEle *root);
     friend void ::ISGetProperties(const char *dev);

@@ -226,7 +226,7 @@ void Imager::initiateDownload()
         LOGF_DEBUG("Group %d, image %d, download initiated", group, image);
         DownloadNP.s = IPS_BUSY;
         IDSetNumber(&DownloadNP, "Download initiated");
-        strncpy(FitsB[0].format, format, sizeof(format));
+        strncpy(FitsB[0].format, format, MAXINDIBLOBFMT);
         FitsB[0].blob    = data;
         FitsB[0].bloblen = FitsB[0].size = size;
         FitsBP.s                         = IPS_OK;

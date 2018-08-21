@@ -33,7 +33,6 @@
 #include <unistd.h>
 #include <termios.h>
 
-#define FIRMWARE_TAB "Firmware data"
 #define MOUNT_TAB    "Mount"
 
 /* Constructor */
@@ -111,8 +110,8 @@ bool LX200AstroPhysics::initProperties()
     IUFillSwitchVector(&APGuideSpeedSP, APGuideSpeedS, 3, getDeviceName(), "Guide Rate", "", GUIDE_TAB, IP_RW, ISR_1OFMANY,
                        0, IPS_IDLE);
 
-    IUFillText(&VersionT[0], "Number", "", 0);
-    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillText(&VersionT[0], "Number", "", nullptr);
+    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware Info", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillText(&DeclinationAxisT[0], "RELHA", "rel. to HA", "undefined");
     IUFillTextVector(&DeclinationAxisTP, DeclinationAxisT, 1, getDeviceName(), "DECLINATIONAXIS", "Declination axis",
@@ -628,7 +627,7 @@ bool LX200AstroPhysics::Goto(double r, double d)
         }
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation())
@@ -660,7 +659,7 @@ bool LX200AstroPhysics::Goto(double r, double d)
 }
 
 
-int LX200AstroPhysics::SendPulseCmd(int direction, int duration_msec)
+int LX200AstroPhysics::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 {
     return APSendPulseCmd(PortFD, direction, duration_msec);
 }
@@ -668,12 +667,6 @@ int LX200AstroPhysics::SendPulseCmd(int direction, int duration_msec)
 
 bool LX200AstroPhysics::Handshake()
 {
-    if (isSimulation())
-    {
-        LOG_INFO("Simulated Astrophysics is online. Retrieving basic data...");
-        return true;
-    }
-
     return setBasicDataPart0();
 }
 

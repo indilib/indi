@@ -9,12 +9,6 @@ On
     </defSwitch>
 </defSwitchVector>
 
-<defTextVector device="Arduino Cosmos" name="DEVICE_PORT" label="SERIAL" group="Main Control" state="Idle" perm="rw" timeout="0">
-    <defText name="PORT" label="Port">
-/dev/ttyUSB0
-    </defText>
-</defTextVector>
-
 <defSwitchVector device="Arduino Cosmos" name="BACK_LIGHT" label="BACK_LIGHT" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="1">
     <defSwitch name="ON" label="OPEN">
 Off

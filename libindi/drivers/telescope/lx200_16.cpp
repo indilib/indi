@@ -245,7 +245,7 @@ bool LX200_16::handleAltAzSlew()
         abortSlew(PortFD);
 
         // sleep for 100 mseconds
-        nanosleep(&timeout, NULL);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation() && slewToAltAz(PortFD))

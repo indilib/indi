@@ -858,6 +858,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
         bvp->s = state;
         bvp->p = perm;
+        bvp->timeout = timeout;
 
         /* pull out each name/value pair */
         for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)

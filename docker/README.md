@@ -1,5 +1,6 @@
 Docker images for build environment
 ===================
+![Docker Build Status](https://img.shields.io/docker/build/jochym/indi-docker.svg?label=Docker+images)
 
 This directory contains Dockerfiles for building environments on various linux distributions
 

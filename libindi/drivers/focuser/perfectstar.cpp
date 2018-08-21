@@ -74,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 PerfectStar::PerfectStar()
 {
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    setConnection(CONNECTION_NONE);
+    setSupportedConnections(CONNECTION_NONE);
 }
 
 bool PerfectStar::Connect()

@@ -11,7 +11,6 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake_modules/")
 include(GNUInstallDirs)
 include(FeatureSummary)
-
 if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
   set(ANDROID ON)
   add_definitions(-DANDROID)
@@ -46,7 +45,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 7)
-set(CMAKE_INDI_VERSION_RELEASE 0)
+set(CMAKE_INDI_VERSION_RELEASE 4)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -193,6 +192,9 @@ if (INDI_BUILD_QT5_CLIENT)
 set(QT_ANDROID "" CACHE path "Qt Android path")
 # 1. Dependencies
 if (ANDROID)
+    set(Qt5Core_DIR "${QT_ANDROID}/lib/cmake/Qt5Core")
+    include(${QT_ANDROID}/lib/cmake/Qt5/Qt5Config.cmake)
+    include(${QT_ANDROID}/lib/cmake/Qt5Core/Qt5CoreConfig.cmake)
     include(${QT_ANDROID}/lib/cmake/Qt5Network/Qt5NetworkConfig.cmake)
     if (NOT CFITSIO_DIR)
         message(FATAL_ERROR CFITSIO_DIR must be set)
@@ -201,7 +203,7 @@ if (ANDROID)
         set(CFITSIO_LIBRARIES ${CFITSIO_DIR}/libcfitsio.a)
     endif ()
 else ()
-    find_package(Qt5Network)
+    find_package(Qt5Network REQUIRED)
     find_package(ZLIB REQUIRED)
     find_package(CFITSIO REQUIRED)
 endif ()
@@ -233,7 +235,7 @@ add_library(indiclientqt STATIC ${indiclientqt_C_SRC} ${indiclientqt_CXX_SRC})
 if (NOT CYGWIN AND NOT WIN32)
 set_target_properties(indiclientqt PROPERTIES COMPILE_FLAGS "-fPIC")
 endif(NOT CYGWIN AND NOT WIN32)
-qt5_use_modules(indiclientqt Network)
+target_link_libraries(indiclientqt Qt5::Network)
 if (WIN32 OR ANDROID)
 install(TARGETS indiclientqt ARCHIVE DESTINATION lib)
 else(WIN32 OR ANDROID)
@@ -312,7 +314,10 @@ ENDIF(OGGTHEORA_FOUND)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/mjpegencoder.cpp
         ${theorarecorder_CXX_SRC}
         )
-    SET(libstream_C_SRC ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.c)
+    SET(libstream_C_SRC
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_c2.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_misc.c)
     IF (UNITY_BUILD)
         ENABLE_UNITY_BUILD(libstream libstream_C_SRC 10 c)
         ENABLE_UNITY_BUILD(libstream libstream_CXX_SRC 10 cpp)
@@ -320,9 +325,7 @@ ENDIF(OGGTHEORA_FOUND)
 
     IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
         SET(libwebcam_C_SRC
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_c2.c
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_misc.c)
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.c)
         SET(libwebcam_CXX_SRC
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_base.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.cpp
@@ -367,7 +370,9 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp
+    #${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/ttybase.cpp
+    )
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC 10 c)
@@ -409,7 +414,7 @@ add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstr
 set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriver ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
@@ -1083,6 +1088,18 @@ add_executable(indi_star2000 ${STAR2000_SRC})
 target_link_libraries(indi_star2000 indidriver)
 install(TARGETS indi_star2000 RUNTIME DESTINATION bin)
 
+########### Arduino ST4 Driver ###############
+
+SET(arduinost4_SRC ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/arduino_st4.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(arduinost4 arduinost4_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_arduinost4 ${arduinost4_SRC})
+target_link_libraries(indi_arduinost4 indidriver)
+install(TARGETS indi_arduinost4 RUNTIME DESTINATION bin)
+
 ########### GPUSB Driver ###############
 
 SET(gpusb_SRC
@@ -1138,6 +1155,15 @@ install(TARGETS indi_usbdewpoint RUNTIME DESTINATION bin)
 ########## WEATHER GROUP ############
 #####################################
 
+########### Weather Simulator ###############
+
+SET(weathersimulator_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weathersimulator.cpp)
+
+add_executable(indi_simulator_weather ${weathersimulator_SRC})
+target_link_libraries(indi_simulator_weather indidriver)
+install(TARGETS indi_simulator_weather RUNTIME DESTINATION bin )
+
 ########### Weather Meta Driver ###############
 
 SET(weathermeta_SRC
@@ -1146,6 +1172,15 @@ SET(weathermeta_SRC
 add_executable(indi_meta_weather ${weathermeta_SRC})
 target_link_libraries(indi_meta_weather indidriver)
 install(TARGETS indi_meta_weather RUNTIME DESTINATION bin )
+
+########### Weather File Watcher ###############
+
+SET(weatherwatcher_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weatherwatcher.cpp)
+
+add_executable(indi_watcher_weather ${weatherwatcher_SRC})
+target_link_libraries(indi_watcher_weather indidriver ${CURL_LIBRARIES})
+install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin )
 
 ########### MBox Driver ###############
 
@@ -1271,7 +1306,7 @@ SET(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
 
 add_executable(indi_hid_test ${indi_hid_SRC})
 
-target_link_libraries(indi_hid_test ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
+target_link_libraries(indi_hid_test ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
 
 install(TARGETS indi_hid_test RUNTIME DESTINATION bin )
 
@@ -1295,6 +1330,8 @@ if (UNIX)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/streammanager.h
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/jpegutils.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/ccvt_types.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream COMPONENT Devel)
     INSTALL(FILES
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/encoder/encodermanager.h
@@ -1308,12 +1345,9 @@ if (UNIX)
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream/recorder/serrecorder.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/stream/recorder COMPONENT Devel)
     if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    INSTALL(FILES
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
+    INSTALL(FILES            
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_decode.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/ccvt_types.h
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_decode/v4l2_builtin_decoder.h            
             ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam/v4l2_colorspace.h
             DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
     ENDIF()
