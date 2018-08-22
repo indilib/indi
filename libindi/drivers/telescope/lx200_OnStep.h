@@ -41,6 +41,8 @@
 #define OnStepalign3(fd)   write(fd, "#:A3#", 5)
 #define OnStepalignOK(fd)   write(fd, "#:A+#", 5)
 
+#define RB_MAX_LEN 64
+
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
 
 class LX200_OnStep : public LX200Generic
@@ -153,17 +155,18 @@ class LX200_OnStep : public LX200Generic
     ISwitchVectorProperty SetHomeSP;
     ISwitch SetHomeS[2];
 
-    char OSStat[20];
-    char OldOSStat[20];
+    //  Changed all variable len to RB_MAX_LEN to preven overwrite due to oveflow
+    char OSStat[RB_MAX_LEN];
+    char OldOSStat[RB_MAX_LEN];
 
-    char OSAlignStat[10];
-    char oldOSAlignStat[10];
+    char OSAlignStat[RB_MAX_LEN];
+    char oldOSAlignStat[RB_MAX_LEN];
     bool OSAlignProcess=false;
     bool OSAlignFlag=false;
     bool OSAlignOn=false;
 
-    char OSPier[2];
-    char OldOSPier[2];
+    char OSPier[RB_MAX_LEN];
+    char OldOSPier[RB_MAX_LEN];
 
   private:
     int currentCatalog;
