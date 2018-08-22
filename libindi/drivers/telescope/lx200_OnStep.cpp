@@ -31,8 +31,6 @@
 #define ALIGN_TAB "Align"
 
 #define ONSTEP_TIMEOUT  3
-#define RB_MAX_LEN 64
-
 
 
 
@@ -81,7 +79,6 @@ bool LX200_OnStep::initProperties()
     FocusAbsPosN[0].max   = 60000.;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 10;
-    
     
     
     // ============== MAIN_CONTROL_TAB

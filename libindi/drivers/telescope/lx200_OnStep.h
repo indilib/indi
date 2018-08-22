@@ -59,6 +59,7 @@
 #define OnStepalign3(fd)   write(fd, "#:A3#", 5)
 #define OnStepalignOK(fd)   write(fd, "#:A+#", 5)
 #define OnStep
+#define RB_MAX_LEN 64
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
 
@@ -220,18 +221,18 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitch OSNAlignS[4];
     IText OSNAlignT[5] {};
     ITextVectorProperty OSNAlignTP;
-    
-    char OSStat[20];
-    char OldOSStat[20];
 
-    char OSAlignStat[10];
-    char oldOSAlignStat[10];
+    char OSStat[RB_MAX_LEN];
+    char OldOSStat[RB_MAX_LEN];
+
+    char OSAlignStat[RB_MAX_LEN];
+    char oldOSAlignStat[RB_MAX_LEN];
     bool OSAlignProcess=false;
     bool OSAlignFlag=false;
     bool OSAlignOn=false;
 
-    char OSPier[2];
-    char OldOSPier[2];
+    char OSPier[RB_MAX_LEN];
+    char OldOSPier[RB_MAX_LEN];
 
   private:
     int currentCatalog;
