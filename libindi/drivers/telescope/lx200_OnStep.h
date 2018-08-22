@@ -28,6 +28,7 @@
     - James lan PEC
     - James Lan Alignment
     - Azwing set all com variable legth to RB_MAX_LEN otherwise crash due to overflow
+    - Azwing set local variable size to RB_MAX_LEN otherwise erased by overflow preventing Align and other stuf to work
 
     Version 1.3: Complete rework of interface and functionalities
     - Telescope Status using :GU#
