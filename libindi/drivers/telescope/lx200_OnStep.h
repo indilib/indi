@@ -21,25 +21,6 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-    ===========================================
-    Version 1.4: Tuning
-    - James Lan implementation of High Precision Tracking
-    - James lan Focuser Code
-    - James lan PEC
-    - James Lan Alignment
-    - Azwing set all com variable legth to RB_MAX_LEN otherwise crash due to overflow
-    - Azwing set local variable size to RB_MAX_LEN otherwise erased by overflow preventing Align and other stuf to work
-    - Testing branch
-
-    Version 1.3: Complete rework of interface and functionalities
-    - Telescope Status using :GU#
-    - Parking Management
-    - Star Alignment
-    - Tracking Frequency
-    - Focuser rework
-
-    Version 1.2: Initial issue
-
 */
 
 #pragma once
@@ -47,7 +28,6 @@
 #include "lx200generic.h"
 #include "lx200driver.h"
 #include "indicom.h"
-#include "indifocuserinterface.h"
 
 #include <cstring>
 #include <unistd.h>
@@ -60,13 +40,12 @@
 #define OnStepalign2(fd)   write(fd, "#:A2#", 5)
 #define OnStepalign3(fd)   write(fd, "#:A3#", 5)
 #define OnStepalignOK(fd)   write(fd, "#:A+#", 5)
-#define OnStep
+
 #define RB_MAX_LEN 64
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
 
-
-class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
+class LX200_OnStep : public LX200Generic
 {
   public:
     LX200_OnStep();
@@ -92,40 +71,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual int setSiteLongitude(int fd, double Long);
     virtual bool GetAlignStatus();
     virtual bool kdedialog(const char * commande);
-    
-    
-    
-    //FocuserInterface
-    
-    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
-    IPState MoveAbsFocuser (uint32_t targetTicks) override;
-    IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
-    bool AbortFocuser () override;
 
-    
-    //End FocuserInterface
-    
-    //PECInterface 
-    //axis 0=RA, 1=DEC, others? 
-    IPState StopPECPlayback (int axis);
-    IPState StartPECPlayback (int axis);
-    IPState ClearPECBuffer (int axis);
-    IPState StartPECRecord (int axis);
-    IPState SavePECBuffer (int axis);
-    IPState PECStatus (int axis);
-    IPState ReadPECBuffer (int axis);
-    IPState WritePECBuffer (int axis);
-    bool ISPECRecorded (int axis);
-    //End PECInterface
-    
-    
-    //NewGeometricAlignment    
-    IPState AlignStartGeometric();
-    IPState AlignAddStar();
-    IPState AlignDone();
-    //End NewGeometricAlignment 
-    
-    
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
@@ -165,9 +111,17 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
 
     // Focuser controls
     // Focuser 1
+    //ISwitchVectorProperty OSFocus1SelSP;
+    //ISwitch OSFocus1SelS[2];
     bool OSFocuser1=false;
-    ISwitchVectorProperty OSFocus1InitializeSP;
-    ISwitch OSFocus1InitializeS[4];
+    ISwitchVectorProperty OSFocus1RateSP;
+    ISwitch OSFocus1RateS[4];
+
+    ISwitchVectorProperty OSFocus1MotionSP;
+    ISwitch OSFocus1MotionS[3];
+
+    INumberVectorProperty OSFocus1TargNP;
+    INumber OSFocus1TargN[1];
 
     // Focuser 2
     //ISwitchVectorProperty OSFocus2SelSP;
@@ -197,33 +151,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
 
     ISwitchVectorProperty TrackCompSP;
     ISwitch TrackCompS[3];
-    
-    ISwitchVectorProperty FrequencyAdjustSP;
-    ISwitch FrequencyAdjustS[3];
 
-    ISwitchVectorProperty AutoFlipSP;
-    ISwitch AutoFlipS[2];
-    
-    ISwitchVectorProperty HomePauseSP;
-    ISwitch HomePauseS[3];    
-    
     ISwitchVectorProperty SetHomeSP;
     ISwitch SetHomeS[2];
-    
-    ISwitchVectorProperty OSPECStatusSP;
-    ISwitch OSPECStatusS[5];
-    ISwitchVectorProperty OSPECIndexSP;
-    ISwitch OSPECIndexS[2];
-    ISwitchVectorProperty OSPECRecordSP;
-    ISwitch OSPECRecordS[3];
-    ISwitchVectorProperty OSPECReadSP;
-    ISwitch OSPECReadS[2];
-    
-    ISwitchVectorProperty OSNAlignSP;
-    ISwitch OSNAlignS[4];
-    IText OSNAlignT[5] {};
-    ITextVectorProperty OSNAlignTP;
 
+    //  Changed all variable len to RB_MAX_LEN to preven overwrite due to oveflow
     char OSStat[RB_MAX_LEN];
     char OldOSStat[RB_MAX_LEN];
 
