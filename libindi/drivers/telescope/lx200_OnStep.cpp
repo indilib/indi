@@ -29,7 +29,6 @@
 #define STATUS_TAB "ONStep Status"
 
 #define ONSTEP_TIMEOUT  3
-#define RB_MAX_LEN 64
 
 LX200_OnStep::LX200_OnStep() : LX200Generic()
 {
