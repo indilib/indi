@@ -726,13 +726,28 @@ bool EQMod::Handshake()
     return true;
 }
 
+void EQMod::abnormalDisconnectCallback(void *userpointer)
+{
+    EQMod *p = static_cast<EQMod *>(userpointer);
+    if (p->Connect())
+    {
+        p->setConnected(true, IPS_OK);
+        p->updateProperties();
+    }
+}
+
 void EQMod::abnormalDisconnect()
 {
-    if (Disconnect())
-    {
-        setConnected(false, IPS_IDLE);
-        updateProperties();
-    }
+    // Ignore disconnect errors
+    Disconnect();
+
+    // Set Disconnected
+    setConnected(false, IPS_IDLE);
+    // Update properties
+    updateProperties();
+
+    // Reconnect in 2 seconds
+    IEAddTimer(2000, (IE_TCF *)abnormalDisconnectCallback, this);
 }
 
 bool EQMod::Disconnect()
