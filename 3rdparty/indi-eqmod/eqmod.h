@@ -247,6 +247,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
     // Called when there is an unrecoverable tty error
     void abnormalDisconnect();
+    static void abnormalDisconnectCallback(void *userpointer);
 
     // Tracking
     bool SetTrackMode(uint8_t mode);
