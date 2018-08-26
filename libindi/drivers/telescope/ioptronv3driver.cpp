@@ -500,7 +500,7 @@ bool Driver::slewNormal()
     simData.simInfo.rememberSystemStatus = simData.simInfo.systemStatus;
     simData.simInfo.systemStatus = ST_SLEWING;
 
-    return sendCommand(":#MS1");
+    return sendCommand(":MS1#");
 }
 
 bool Driver::slewCWUp()
@@ -508,7 +508,7 @@ bool Driver::slewCWUp()
     simData.simInfo.rememberSystemStatus = simData.simInfo.systemStatus;
     simData.simInfo.systemStatus = ST_SLEWING;
 
-    return sendCommand(":#MS2");
+    return sendCommand(":MS2#");
 }
 
 bool Driver::sync()
