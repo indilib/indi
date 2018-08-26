@@ -103,7 +103,7 @@ bool Driver::sendCommand(const char *command, int count, char *response, uint8_t
     if (response)
         strncpy(response, res, IOP_BUFFER);
 
-    if (count == -1 || (count == 1 && res[0] == '1'))
+    if (count == -1 || (count == 1 && res[0] == '1') || count == nbytes_read)
         return true;
 
     return false;
