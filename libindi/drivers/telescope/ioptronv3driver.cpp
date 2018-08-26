@@ -113,7 +113,7 @@ bool Driver::checkConnection(int fd)
 {
     char res[IOP_BUFFER]={0};
 
-    DEBUGDEVICE(m_DeviceName, INDI::Logger::DBG_DEBUG, "Initializing IOptron using :V# CMD...");
+    DEBUGDEVICE(m_DeviceName, INDI::Logger::DBG_DEBUG, "Initializing IOptron using :MountInfo# CMD...");
 
     // Set FD for use
     PortFD = fd;
@@ -123,13 +123,13 @@ bool Driver::checkConnection(int fd)
 
     for (int i = 0; i < 2; i++)
     {
-        if (sendCommand(":V#", -1, res, 3) == false)
+        if (sendCommand(":MountInfo#", 4, res, 3) == false)
         {
             usleep(50000);
             continue;
         }
 
-        return (!strcmp(res, "V1.00"));
+        return true;
     }
 
     return false;
