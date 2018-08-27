@@ -78,7 +78,8 @@ public:
     virtual void ISGetProperties(const char *dev)override;
 
     // helper functions
-    virtual bool receive(char* buffer, int* bytes, bool wait=true);
+    virtual bool receive(char* buffer, int* bytes, int wait=AVALON_TIMEOUT);
+    virtual bool receive(char* buffer, int* bytes, char end, int wait=AVALON_TIMEOUT);
     virtual void flush();
     virtual bool transmit(const char* buffer);
 //    virtual bool setStandardProcedureAvalon(const char *command, int wait);
@@ -159,8 +160,10 @@ protected:
     bool getTrackFrequency(double *value);
 
 
-    // queries to the scope interface
-    virtual bool sendQuery(const char* cmd, char* response, bool wait=true);
+    // queries to the scope interface. Wait for specified end character
+    virtual bool sendQuery(const char* cmd, char* response, char end, int wait=AVALON_TIMEOUT);
+    // Wait for default "#' character
+    virtual bool sendQuery(const char* cmd, char* response, int wait=AVALON_TIMEOUT);
 //    virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
 //    virtual bool queryMountMotionState();
     virtual bool queryFirmwareInfo(char *version);
@@ -215,4 +218,13 @@ protected:
     bool setSlewMode(int slewMode);
 
 };
+inline bool LX200StarGo::sendQuery(const char* cmd, char* response, int wait)
+{
+    return sendQuery(cmd, response, '#', wait);
+}
+inline bool LX200StarGo::receive(char* buffer, int* bytes, int wait)
+{
+    return receive(buffer, bytes, '#', wait);
+}
+
 #endif // AVALON_STARGO_H
