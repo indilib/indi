@@ -535,7 +535,10 @@ bool LX200StarGo::ReadScopeStatus()
     LOGF_DEBUG("RA/DEC = (%lf, %lf)", r, d);
     currentRA = r;
     currentDEC = d;
-    SetParked(TrackState==SCOPE_PARKED);
+    // Workaround to SetParked in parent class changing TrackState to IDLE 
+    // when not parked and causing TrackStateS to keep toggling OFF
+    if(TrackState==SCOPE_PARKED || TrackState==SCOPE_IDLE)
+        SetParked(TrackState==SCOPE_PARKED);
     NewRaDec(currentRA, currentDEC);
     
     return syncSideOfPier();
