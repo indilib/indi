@@ -134,13 +134,13 @@ LX200StarGo::LX200StarGo()
      *
      * LX200_HAS_TRACKING_FREQ
      *     missing commands
-     *        :GT# (Get tracking rate)
+     *        :GT# (Get tracking rate) - doesn't work with StarGo
      *
      * untested, hence disabled:
      * LX200_HAS_FOCUS
      */
 
-    setLX200Capability(LX200_HAS_PULSE_GUIDING | LX200_HAS_TRACKING_FREQ);
+    setLX200Capability(LX200_HAS_PULSE_GUIDING );
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_CONTROL_TRACK | 
@@ -185,7 +185,7 @@ bool LX200StarGo::Handshake()
     time_t now = time (nullptr);
     strftime(cmddate, 32, ":X50%d%m%y#", localtime(&now));
 
-    const char* cmds[13][2]={ 
+    const char* cmds[12][2]={ 
         ":TTSFG#", "0",
         ":X3E1#", nullptr,
         ":TTHS1#", nullptr,
@@ -195,7 +195,8 @@ bool LX200StarGo::Handshake()
         ":TTSFS#", "0",
         ":X474#", nullptr,
         ":TTSFR#", "0",
-        cmdsync, "0",  // ":X31hhmmss#" Also returns a00# and X31nnn
+// cmdsync causes the mount to unpark so dont do it here
+//        cmdsync, "0",  // ":X31hhmmss#" Also returns a00# and X31nnn
         ":X351#", "0",
         cmdlst, "0",  // ":X32hhmmss#"
         ":TTRFd#", "0" };
@@ -265,7 +266,7 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
                 LOG_INFO("Lunar tracking rate selected");
                 break;
             case TRACK_NONE:
-                LOG_INFO("Tracking stopped.");
+                LOG_INFO("Not available.");
 //                result = querySetTracking(false);
                 break;
             }
@@ -1050,13 +1051,13 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response, char end, int wait)
         {
             LOGF_DEBUG("Motion state response parsed %s", lresponse);
         }
-        else // Don't change wait requirement
+        else // Don't change wait requirement but get the response
         {
+            strcpy(response, lresponse);
             lwait = 0;
         }
     }
     flush();
-    strcpy(response, lresponse);
     return true;
 }
 
