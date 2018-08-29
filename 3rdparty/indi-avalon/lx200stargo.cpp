@@ -503,16 +503,17 @@ bool LX200StarGo::ReadScopeStatus()
 // m*5 => SLEWING
 // m1* => TRACKING
 // m*1 => TRACKING
+    INDI::Telescope::TelescopeStatus newTrackState = TrackState;
     if(strcmp(response, "p2")==0)
-        TrackState = SCOPE_PARKED;
+        newTrackState = SCOPE_PARKED;
     else if(x==0 && y==0)
-        TrackState = SCOPE_IDLE;
+        newTrackState = SCOPE_IDLE;
     else if(strcmp(response, "pB")==0)
-        TrackState = SCOPE_PARKING;
+        newTrackState = SCOPE_PARKING;
     else if(x==5 || y==5)
-        TrackState = SCOPE_SLEWING;
+        newTrackState = SCOPE_SLEWING;
     else
-        TrackState = SCOPE_TRACKING;  // or GUIDING
+        newTrackState = SCOPE_TRACKING;  // or GUIDING
 
 // Use X590 for RA DEC
     if(!sendQuery(":X590#", response))
@@ -537,8 +538,9 @@ bool LX200StarGo::ReadScopeStatus()
     currentDEC = d;
     // Workaround to SetParked in parent class changing TrackState to IDLE 
     // when not parked and causing TrackStateS to keep toggling OFF
-    if(TrackState==SCOPE_PARKED || TrackState==SCOPE_IDLE)
+    if(newTrackState != TrackState)
         SetParked(TrackState==SCOPE_PARKED);
+    TrackState = newTrackState;
     NewRaDec(currentRA, currentDEC);
     
     return syncSideOfPier();
@@ -1977,7 +1979,7 @@ bool LX200StarGo::SetTrackRate(double raRate, double deRate)
 }
 void LX200StarGo::ISGetProperties(const char *dev)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s %s", __FUNCTION__, dev);
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
