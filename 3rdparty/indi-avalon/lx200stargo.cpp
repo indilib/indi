@@ -538,7 +538,7 @@ bool LX200StarGo::ReadScopeStatus()
     currentDEC = d;
     // Workaround to SetParked in parent class changing TrackState to IDLE 
     // when not parked and causing TrackStateS to keep toggling OFF
-    if(newTrackState != TrackState)
+//    if(newTrackState != TrackState)
         SetParked(TrackState==SCOPE_PARKED);
     TrackState = newTrackState;
     NewRaDec(currentRA, currentDEC);
@@ -917,7 +917,7 @@ bool LX200StarGo::Park()
 void LX200StarGo::SetParked(bool isparked)
 {
     LOGF_DEBUG("%s %s", __FUNCTION__, isparked?"PARKED":"UNPARKED");
-    INDI::Telescope::SetParked(isparked);
+//    INDI::Telescope::SetParked(isparked);
 
 //    TrackState = isparked ? SCOPE_PARKED : SCOPE_TRACKING;
     ParkS[0].s = isparked ? ISS_ON : ISS_OFF;
