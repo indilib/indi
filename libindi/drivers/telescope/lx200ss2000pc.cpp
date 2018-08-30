@@ -41,8 +41,12 @@ LX200SS2000PC::LX200SS2000PC(void) : LX200Generic()
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
-    SetTelescopeCapability(
-        TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);    
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC |
+                           TELESCOPE_CAN_GOTO |
+                           TELESCOPE_CAN_ABORT |
+                           TELESCOPE_HAS_TIME |
+                           TELESCOPE_CAN_PARK |
+                           TELESCOPE_HAS_LOCATION, 4);
 }
 
 bool LX200SS2000PC::initProperties()
@@ -53,6 +57,8 @@ bool LX200SS2000PC::initProperties()
     IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
     IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    SetParkDataType(PARK_AZ_ALT);
 
     return true;
 }
@@ -307,3 +313,221 @@ int LX200SS2000PC::setSiteLongitude(int fd, double Long)
 
     return setStandardProcedure(fd, temp_string);
 }
+
+bool LX200SS2000PC::Park()
+{
+    double parkAz  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAz, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    if (isSimulation())
+    {
+        ln_lnlat_posn observer;
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+
+        horizontalPos.az = parkAz + 180;
+        if (horizontalPos.az > 360)
+            horizontalPos.az -= 360;
+        horizontalPos.alt = parkAlt;
+
+        ln_equ_posn equatorialPos;
+
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
+    }
+    else
+    {
+        if (setObjAz(PortFD, parkAz) < 0 || setObjAlt(PortFD, parkAlt) < 0)
+        {
+            LOG_ERROR("Error setting Az/Alt.");
+            return false;
+        }
+
+        int err = 0;
+
+        /* Slew reads the '0', that is not the end of the slew */
+        if ((err = Slew(PortFD)))
+        {
+            LOGF_ERROR("Error Slewing to Az %s - Alt %s", AzStr, AltStr);
+            slewError(err);
+            return false;
+        }
+    }
+
+    EqNP.s     = IPS_BUSY;
+    TrackState = SCOPE_PARKING;
+    LOG_INFO("Parking is in progress...");
+
+    return true;
+}
+
+bool LX200SS2000PC::UnPark()
+{
+    // First we unpark astrophysics
+    if (isSimulation() == false)
+    {
+        if (setAlignmentMode(PortFD, LX200_ALIGN_POLAR) < 0)
+        {
+            LOG_ERROR("UnParking Failed.");
+            return false;
+        }
+    }
+
+    // Then we sync with to our last stored position
+    double parkAz  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAz, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    LOGF_DEBUG("Syncing to parked coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    if (isSimulation())
+    {
+        ln_lnlat_posn observer;
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+
+        horizontalPos.az = parkAz + 180;
+        if (horizontalPos.az > 360)
+            horizontalPos.az -= 360;
+        horizontalPos.alt = parkAlt;
+
+        ln_equ_posn equatorialPos;
+
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        currentRA = equatorialPos.ra / 15.0;
+        currentDEC= equatorialPos.dec;
+    }
+    else
+    {
+        if (setObjAz(PortFD, parkAz) < 0 || (setObjAlt(PortFD, parkAlt)) < 0)
+        {
+            LOG_ERROR("Error setting Az/Alt.");
+            return false;
+        }
+
+        char syncString[256];
+        if (::Sync(PortFD, syncString) < 0)
+        {
+            LOG_WARN("Sync failed.");
+            return false;
+        }
+    }
+
+    SetParked(false);
+    return true;
+}
+
+bool LX200SS2000PC::SetCurrentPark()
+{
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_equ_posn equatorialPos;
+    equatorialPos.ra  = currentRA * 15;
+    equatorialPos.dec = currentDEC;
+    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+
+    double parkAZ = horizontalPos.az - 180;
+    if (parkAZ < 0)
+        parkAZ += 360;
+    double parkAlt = horizontalPos.alt;
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+
+    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    SetAxis1Park(parkAZ);
+    SetAxis2Park(parkAlt);
+
+    return true;
+}
+
+bool LX200SS2000PC::SetDefaultPark()
+{
+    // Az = 0 for North hemisphere
+    SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
+
+    // Alt = Latitude
+    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+
+    return true;
+}
+
+bool LX200SS2000PC::ReadScopeStatus()
+{
+    if (!isConnected())
+        return false;
+
+    if (isSimulation())
+    {
+        mountSim();
+        return true;
+    }
+
+    //if (check_lx200_connection(PortFD))
+    //return false;
+
+    if (TrackState == SCOPE_SLEWING)
+    {
+        // Check if LX200 is done slewing
+        if (isSlewComplete())
+        {
+            // Set slew mode to "Centering"
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_CENTERING].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, nullptr);
+
+            TrackState = SCOPE_TRACKING;
+            LOG_INFO("Slew is complete. Tracking...");
+        }
+    }
+    else if (TrackState == SCOPE_PARKING)
+    {
+        if (isSlewComplete())
+        {
+            SetParked(true);
+
+            setAlignmentMode(PortFD, LX200_ALIGN_LAND);
+        }
+    }
+
+    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        return false;
+    }
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
+}
+
+
