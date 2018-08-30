@@ -225,7 +225,7 @@ bool LX200StarGo::Handshake()
 ***************************************************************************************/
 bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s %s", __FUNCTION__, name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
@@ -325,7 +325,7 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
 
 bool LX200StarGo::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s %s", __FUNCTION__, name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
@@ -350,17 +350,8 @@ bool LX200StarGo::ISNewNumber(const char *dev, const char *name, double values[]
             return result;
         }
     }
-         if (strcmp(name, "GEOGRAPHIC_COORD") == 0)
-        {
-//            int latindex       = IUFindIndex("LAT", names, n);
-            int longindex      = IUFindIndex("LONG", names, n);
-//            int elevationindex = IUFindIndex("ELEV", names, n);
-//            double targetLat  = values[latindex];
-            double targetLong = values[longindex];
-//            double targetElev = values[elevationindex];
-            LOGF_DEBUG("long %lf index %d",targetLong,longindex );
-         }
-        //  Nobody has claimed this, so pass it to the parent
+ 
+    //  Nobody has claimed this, so pass it to the parent
     return LX200Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -485,7 +476,7 @@ bool LX200StarGo::ReadScopeStatus()
        LOGF_ERROR("Failed to parse motor state response '%s'.", response);
        return false;
     }
-    LOGF_DEBUG("Motor state = (%d, %d)", x, y);
+//    LOGF_DEBUG("Motor state = (%d, %d)", x, y);
     if(!sendQuery(":X38#", response))
     {
         LOG_ERROR("Failed to get park state");
@@ -533,7 +524,7 @@ bool LX200StarGo::ReadScopeStatus()
     }
     r /= 1.0e6;
     d /= 1.0e5;
-    LOGF_DEBUG("RA/DEC = (%lf, %lf)", r, d);
+//    LOGF_DEBUG("RA/DEC = (%lf, %lf)", r, d);
     currentRA = r;
     currentDEC = d;
     // Workaround to SetParked in parent class changing TrackState to IDLE 
@@ -783,13 +774,13 @@ bool LX200StarGo::sendScopeLocation()
 
 bool LX200StarGo::updateLocation(double latitude, double longitude, double elevation)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s Lat:%.3lf Lon:%.3lf",__FUNCTION__, latitude, longitude);
     INDI_UNUSED(elevation);
 
     if (isSimulation())
         return true;
 
-    LOGF_DEBUG("Setting site longitude '%lf'", longitude);
+//    LOGF_DEBUG("Setting site longitude '%lf'", longitude);
     if (!isSimulation() && ! querySetSiteLongitude(longitude))
     {
         LOGF_ERROR("Error setting site longitude %lf", longitude);
@@ -806,7 +797,7 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
-    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
+//    LOGF_INFO("Site location updated to Lat %.32s - Long %.32s", l, L);
     if(!setLocalSiderealTime(longitude))
     {
         LOG_ERROR("Error setting local sidereal time");
@@ -903,7 +894,7 @@ bool LX200StarGo::Park()
     }
     else
     {
-        LOGF_ERROR("Parking failed. Resposne %s", response);
+        LOGF_ERROR("Parking failed. Response %s", response);
         return false;
     }
 }
@@ -1032,11 +1023,10 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response, char end, int wait)
     lresponse [0] = '\0';
     while (receive(lresponse, &lbytes, '#', 0))
     {
-        LOGF_DEBUG("Found unflushed response %s", lresponse);
         lbytes=0;
         if(ParseMotionState(lresponse))
         {
-            LOGF_DEBUG("Motion state response parsed %s", lresponse);
+//            LOGF_DEBUG("Motion state response parsed %s", lresponse);
         }
         lresponse [0] = '\0';
     }
@@ -1050,11 +1040,11 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response, char end, int wait)
     int lwait = wait;
     while (receive(lresponse, &lbytes, end, lwait))
     {
-        LOGF_DEBUG("Found response after %ds %s", lwait, lresponse);
+//        LOGF_DEBUG("Found response after %ds %s", lwait, lresponse);
         lbytes=0;
         if(ParseMotionState(lresponse))
         {
-            LOGF_DEBUG("Motion state response parsed %s", lresponse);
+ //           LOGF_DEBUG("Motion state response parsed %s", lresponse);
         }
         else // Don't change wait requirement but get the response
         {
@@ -1068,7 +1058,7 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response, char end, int wait)
 
 bool LX200StarGo::ParseMotionState(char* state)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s %s", __FUNCTION__, state);
     int lmotor, lmode, lslew;
     if(sscanf(state, ":Z1%01d%01d%01d", &lmotor, &lmode, &lslew)==3)
     {
@@ -1723,7 +1713,7 @@ bool LX200StarGo::GetMeridianFlipMode(int* index)
 
 IPState LX200StarGo::GuideNorth(uint32_t ms)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s %dms %d",__FUNCTION__, ms, usePulseCommand);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
@@ -1772,7 +1762,7 @@ IPState LX200StarGo::GuideNorth(uint32_t ms)
 
 IPState LX200StarGo::GuideSouth(uint32_t ms)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s %dms %d",__FUNCTION__, ms, usePulseCommand);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
@@ -1821,7 +1811,7 @@ IPState LX200StarGo::GuideSouth(uint32_t ms)
 
 IPState LX200StarGo::GuideEast(uint32_t ms)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s %dms %d",__FUNCTION__, ms, usePulseCommand);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
@@ -1870,7 +1860,7 @@ IPState LX200StarGo::GuideEast(uint32_t ms)
 
 IPState LX200StarGo::GuideWest(uint32_t ms)
 {
-    LOG_DEBUG(__FUNCTION__);
+    LOGF_DEBUG("%s %dms %d",__FUNCTION__, ms, usePulseCommand);
     if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
