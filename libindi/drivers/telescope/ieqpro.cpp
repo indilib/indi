@@ -283,6 +283,8 @@ void IEQPro::getStartupData()
         LocationNP.s                        = IPS_OK;
 
         IDSetNumber(&LocationNP, nullptr);
+
+        saveConfig(true, "GEOGRAPHIC_COORD");
     }
 
     double DEC = (latitude > 0) ? 90 : -90;

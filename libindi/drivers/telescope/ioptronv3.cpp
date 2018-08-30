@@ -323,6 +323,8 @@ void IOptronV3::getStartupData()
         fs_sexa(L, LocationN[LOCATION_LONGITUDE].value, 4, 3600);
 
         LOGF_INFO("Mount Location: Lat %.32s - Long %.32s", l, L);
+
+        saveConfig(true, "GEOGRAPHIC_COORD");
     }
 
     double DEC = (scopeInfo.latitude > 0) ? 90 : -90;

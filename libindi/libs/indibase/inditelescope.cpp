@@ -1613,7 +1613,7 @@ bool Telescope::processLocationInfo(double latitude, double longitude, double el
         IDSetNumber(&LocationNP, nullptr);
     } else if (latitude == 0 && longitude == 0)
     {
-        LOG_DEBUG("Silenty ignoring invalid latitude and longitude.");
+        LOG_DEBUG("Silently ignoring invalid latitude and longitude.");
         LocationNP.s = IPS_IDLE;
         IDSetNumber(&LocationNP, nullptr);
         return false;

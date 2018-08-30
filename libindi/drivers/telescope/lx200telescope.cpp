@@ -1346,6 +1346,8 @@ bool LX200Telescope::sendScopeLocation()
 
     IDSetNumber(&LocationNP, nullptr);
 
+    saveConfig(true, "GEOGRAPHIC_COORD");
+
     return true;
 }
 
