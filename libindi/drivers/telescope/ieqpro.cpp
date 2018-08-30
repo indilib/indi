@@ -35,7 +35,7 @@
 #define MOUNTINFO_TAB "Mount Info"
 
 // We declare an auto pointer to IEQPro.
-std::unique_ptr<IEQPro> scope(new IEQPro());
+static std::unique_ptr<IEQPro> scope(new IEQPro());
 
 void ISGetProperties(const char *dev)
 {
@@ -93,7 +93,7 @@ IEQPro::IEQPro()
 
 const char *IEQPro::getDefaultName()
 {
-    return (const char *)"iEQ";
+    return "iEQ";
 }
 
 bool IEQPro::initProperties()
@@ -348,7 +348,7 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         {
             IUUpdateSwitch(&HomeSP, states, names, n);
 
-            IEQ_HOME_OPERATION operation = (IEQ_HOME_OPERATION)IUFindOnSwitchIndex(&HomeSP);
+            IEQ_HOME_OPERATION operation = static_cast<IEQ_HOME_OPERATION>(IUFindOnSwitchIndex(&HomeSP));
 
             IUResetSwitch(&HomeSP);
 
@@ -375,8 +375,6 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 LOG_INFO("Searching for home position...");
                 return true;
 
-                break;
-
             case IEQ_SET_HOME:
                 if (set_ieqpro_current_home(PortFD) == false)
                 {
@@ -390,8 +388,6 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 LOG_INFO("Home position set to current coordinates.");
                 return true;
 
-                break;
-
             case IEQ_GOTO_HOME:
                 if (goto_ieqpro_home(PortFD) == false)
                 {
@@ -404,8 +400,6 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 IDSetSwitch(&HomeSP, nullptr);
                 LOG_INFO("Slewing to home position...");
                 return true;
-
-                break;
             }
 
             return true;
@@ -678,7 +672,7 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
 
     if (set_ieqpro_latitude(PortFD, latitude) == false)
     {
-        LOG_ERROR("Failed to set longitude.");
+        LOG_ERROR("Failed to set latitude.");
         return false;
     }
 
