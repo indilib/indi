@@ -26,7 +26,7 @@
 #define MAX_TRIES 20
 #define MAX_DEVICES 4
 #define SUBFRAME_SIZE 256
-#define SAMPLE_RATE 10000
+#define SPECTRUM_SIZE 256
 
 static int iNumofConnectedDetectors;
 static RTLSDR *receivers[MAX_DEVICES];
@@ -169,7 +169,7 @@ RTLSDR::RTLSDR(uint32_t index)
     snprintf(name, MAXINDIDEVICE, "%s %d", getDefaultName(), index);
     setDeviceName(name);
 	continuum = (uint8_t*)malloc(sizeof(uint8_t));
-	spectrum = (double *)malloc(sizeof(double));
+    spectrum = (uint8_t *)malloc(sizeof(uint8_t));
 }
 
 /**************************************************************************************
@@ -277,8 +277,7 @@ bool RTLSDR::StartCapture(float duration)
 	CaptureRequest = duration;
 
 	// Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
-	PrimaryDetector.setCaptureDuration(duration);
-	PrimaryDetector.setSampleRate(1.0 / duration);
+    PrimaryDetector.setCaptureDuration(duration);
 	gettimeofday(&CapStart, nullptr);
 
 	InCapture = true;
@@ -292,18 +291,26 @@ bool RTLSDR::StartCapture(float duration)
 ***************************************************************************************/
 bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps)
 {
-    	INDI_UNUSED(bps);
-    	INDI_UNUSED(sr);
+        INDI_UNUSED(bps);
 	int r = 0;
 
-	r = rtlsdr_set_center_freq(rtl_dev, (uint32_t)freq);
-	if(r != 0)
-		return false;
-	if(rtlsdr_get_center_freq(rtl_dev) != freq)
+    r = rtlsdr_set_center_freq(rtl_dev, (uint32_t)freq);
+    if(r != 0) {
+        return false;
+    }
+    r = rtlsdr_set_sample_rate(rtl_dev, (uint32_t)sr);
+    if(r != 0) {
+        return false;
+    }
+    if(rtlsdr_get_center_freq(rtl_dev) != freq) {
 		PrimaryDetector.setFrequency(rtlsdr_get_center_freq(rtl_dev));
-	r = rtlsdr_set_sample_rate(rtl_dev, 1000000);
-	if(r != 0)
+    }
+    if(rtlsdr_get_sample_rate(rtl_dev) != sr) {
+        PrimaryDetector.setSampleRate(rtlsdr_get_sample_rate(rtl_dev));
+    }
+    if(r != 0) {
 		return false;
+    }
 
 	return true;
 }
@@ -371,36 +378,39 @@ void RTLSDR::TimerHit()
 void RTLSDR::grabData()
 {
 	int n_read, to_read, b_read;
-	int len = SAMPLE_RATE * PrimaryDetector.getCaptureDuration();
+    int len = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration();
 	len -= (len % SUBFRAME_SIZE) - SUBFRAME_SIZE;
 	if(len != PrimaryDetector.getContinuumBufferSize()) {
-		PrimaryDetector.setContinuumBufferSize(1); 
+        PrimaryDetector.setContinuumBufferSize(len);
 		continuum = PrimaryDetector.getContinuumBuffer();
 	}
+    if(SPECTRUM_SIZE != PrimaryDetector.getSpectrumBufferSize()) {
+        PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE);
+        spectrum = PrimaryDetector.getSpectrumBuffer();
+    }
 	to_read = len;
-	b_read = 0;
-	unsigned char *data8 = (unsigned char *)malloc(len * sizeof(unsigned char));
-	double *data48 = (double *)malloc(len * sizeof(double));
-	double *flat48 = (double *)malloc(len * sizeof(double));
-	spectrum = (double *)realloc(spectrum, len * sizeof(double));
+    b_read = 0;
 	rtlsdr_reset_buffer(rtl_dev);
 	while(to_read > 0 && b_read < len) {
-		rtlsdr_read_sync(rtl_dev, data8 + b_read, to_read, &n_read);
+        rtlsdr_read_sync(rtl_dev, continuum + b_read, to_read, &n_read);
 		b_read += n_read;
 		to_read = SUBFRAME_SIZE + ((len - b_read) % SUBFRAME_SIZE);
-	}
-	dspau_u8todouble(data8, data48, len);
-	dspau_squarelawfilter(data48, flat48, len);
-	continuum[0] = (unsigned char)dspau_mean(flat48, len);
+    }
+    //Create the dspau stream
+    dspau_stream_p stream = dspau_stream_new();
+    dspau_stream_add_dim(stream, len);
+    dspau_convert_from(continuum, stream->in, unsigned char, len);
 
-        //Create the spectrum
-	dspau_spectrum(data48, spectrum, 1, &len, magnitude_rooted);
-	if(len != PrimaryDetector.getSpectrumBufferSize()) {
-		PrimaryDetector.setSpectrumBufferSize(len, false);
-		PrimaryDetector.setSpectrumBuffer(spectrum);
-	}
-	free(data8);
-	free(data48);
+    //Create the continuum
+    stream->out = dspau_filter_squarelaw(stream);
+    dspau_convert_to(stream->out, continuum, unsigned char, len);
+
+    //Create the spectrum
+    stream->out = dspau_fft_spectrum(stream, magnitude_root, SPECTRUM_SIZE);
+    dspau_convert_to(stream->out, continuum, unsigned char, len);
+
+    //Destroy the dspau stream
+    dspau_stream_free(stream);
 
 	LOG_INFO("Download complete.");
 

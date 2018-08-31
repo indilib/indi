@@ -25,6 +25,7 @@ find_package(Threads REQUIRED)
 find_package(FFmpeg REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_webcam.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_webcam.xml)
 set(INDI_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/indi")
 
 if (NOT CFITSIO_FOUND OR CFITSIO_VERSION_MAJOR LESS 3)
@@ -54,5 +55,5 @@ target_link_libraries(indi_webcam_ccd  ${INDI_LIBRARIES} ${INDI_DRIVER_LIBRARIES
 
 install(TARGETS indi_webcam_ccd RUNTIME DESTINATION bin )
 
-install( FILES  indi_webcam.xml DESTINATION ${INDI_DATA_DIR})
+install( FILES  ${CMAKE_CURRENT_BINARY_DIR}/indi_webcam.xml DESTINATION ${INDI_DATA_DIR})
 

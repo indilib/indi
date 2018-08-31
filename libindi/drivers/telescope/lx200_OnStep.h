@@ -33,6 +33,8 @@
 #include <unistd.h>
 #include <termios.h>
 
+#define RB_MAX_LEN 64
+
 #define setParkOnStep(fd)  write(fd, "#:hQ#", 5)
 #define ReticPlus(fd)      write(fd, "#:B+#", 5)
 #define ReticMoins(fd)     write(fd, "#:B-#", 5)
@@ -153,17 +155,18 @@ class LX200_OnStep : public LX200Generic
     ISwitchVectorProperty SetHomeSP;
     ISwitch SetHomeS[2];
 
-    char OSStat[20];
-    char OldOSStat[20];
+    char OSStat[RB_MAX_LEN];
+    char OldOSStat[RB_MAX_LEN];
 
-    char OSAlignStat[10];
-    char oldOSAlignStat[10];
+    char OSAlignStat[RB_MAX_LEN];
+    char oldOSAlignStat[RB_MAX_LEN];
+
+    char OSPier[RB_MAX_LEN];
+    char OldOSPier[RB_MAX_LEN];
+
     bool OSAlignProcess=false;
     bool OSAlignFlag=false;
     bool OSAlignOn=false;
-
-    char OSPier[2];
-    char OldOSPier[2];
 
   private:
     int currentCatalog;

@@ -11,7 +11,6 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake_modules/")
 include(GNUInstallDirs)
 include(FeatureSummary)
-
 if(ANDROID OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Android")
   set(ANDROID ON)
   add_definitions(-DANDROID)
@@ -371,7 +370,9 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indistandardproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectiontcp.cpp
+    #${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/ttybase.cpp
+    )
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC 10 c)
@@ -413,7 +414,7 @@ add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstr
 set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriver ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
@@ -1305,7 +1306,7 @@ SET(indi_hid_SRC ${indi_hid_SRC} ${hidapi_SRCS})
 
 add_executable(indi_hid_test ${indi_hid_SRC})
 
-target_link_libraries(indi_hid_test ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
+target_link_libraries(indi_hid_test ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${LIBS})
 
 install(TARGETS indi_hid_test RUNTIME DESTINATION bin )
 

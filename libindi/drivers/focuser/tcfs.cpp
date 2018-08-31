@@ -33,7 +33,7 @@
 #define currentPosition FocusAbsPosN[0].value
 
 // We declare an auto pointer to TCFS.
-std::unique_ptr<TCFS> tcfs(new TCFS());
+static std::unique_ptr<TCFS> tcfs(new TCFS());
 
 void ISPoll(void *p);
 
@@ -184,6 +184,10 @@ bool TCFS::Handshake()
         {
             tcflush(PortFD, TCIOFLUSH);
             LOG_INFO("Successfully connected to TCF-S Focuser in Manual Mode.");
+
+            // Enable temperature readout
+            FocusTemperatureNP->s = IPS_OK;
+
             return true;
         }
     }

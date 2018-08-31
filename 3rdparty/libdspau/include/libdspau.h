@@ -19,22 +19,118 @@
 #ifndef _DSPAU_H
 #define _DSPAU_H
 
-#ifndef min(a,b)
-#define min(a,b) \
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <float.h>
+#include <fftw3.h>
+#include <sys/types.h>
+#include <time.h>
+#include <assert.h>
+#include <pthread.h>
+
+#ifndef DSPAU_BASE_TYPE
+#define DSPAU_BASE_TYPE double
+#endif
+
+#ifndef Min
+#define Min(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a < _b ? _a : _b; })
 #endif
 
-#ifndef max(a,b)
-#define max(a,b) \
+#ifndef Max
+#define Max(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
 #endif
 
-#ifndef M_PI
-#    define M_PI 3.14159265358979323846
+#ifndef dspau_convert
+#define dspau_convert(in, out, in_type, out_type, len) \
+    ({ \
+        int k; \
+        for(k = 0; k < len; k++) { \
+            ((out_type)out)[k] = ((in_type)in)[k]; \
+        } \
+    })
+#endif
+
+#ifndef dspau_convert_from
+#define dspau_convert_from(in, out, type, len) \
+    ({ \
+        dspau_convert(in, out, type*, dspau_t*, len); \
+    })
+#endif
+
+#ifndef dspau_convert_to
+#define dspau_convert_to(in, out, type, len) \
+    ({ \
+        dspau_convert(in, out, dspau_t*, type*, len); \
+    })
+#endif
+
+#define sin2cos(s) cos(asin(s))
+#define cos2sin(c) sin(acos(c))
+
+#ifndef PI
+#define PI 3.14159265358979323846
+#endif
+#ifndef ONE_SECOND
+#define ONE_SECOND 10000000
+#endif
+#ifndef ONE_MILLISECOND
+#define ONE_MILLISECOND 10000
+#endif
+#ifndef ONE_MICROSECOND
+#define ONE_MICROSECOND 10
+#endif
+#ifndef SOLAR_DAY
+#define SOLAR_DAY 864000000000
+#endif
+#ifndef SIDEREAL_DAY
+#define SIDEREAL_DAY 861640916000
+#endif
+#ifndef J2000
+#define J2000 630823248000000000
+#endif
+#ifndef HeartRadiusEquatorial
+#define HeartRadiusEquatorial 6378137.0
+#endif
+#ifndef HeartRadiusPolar
+#define HeartRadiusPolar 6356752.0
+#endif
+#ifndef HeartRadiusMean
+#define HeartRadiusMean 6372797.0
+#endif
+#ifndef LightSpeed
+#define LightSpeed 299792458.0
+#endif
+#ifndef GammaJ2000
+#define GammaJ2000 1.753357767
+#endif
+#ifndef Euler
+#define Euler 2.71828182845904523536028747135266249775724709369995
+#endif
+#ifndef ROOT2
+#define ROOT2 1.41421356237309504880168872420969807856967187537694
+#endif
+#ifndef Airy
+#define Airy 1.21966
+#endif
+#ifndef CIRCLE_DEG
+#define CIRCLE_DEG 360
+#endif
+#ifndef CIRCLE_AM
+#define CIRCLE_AM (CIRCLE_DEG * 60)
+#endif
+#ifndef CIRCLE_AS
+#define CIRCLE_AS (CIRCLE_AM * 60)
+#endif
+#ifndef RAD_AS
+#define RAD_AS (CIRCLE_AS/(PI*2))
 #endif
 
 #ifdef  __cplusplus
@@ -49,14 +145,64 @@ extern "C" {
 enum dspau_conversiontype {
 	magnitude = 0,
 	magnitude_dbv = 1,
-	magnitude_rooted = 2,
-	magnitude_squared = 3,
+    magnitude_root = 2,
+    magnitude_square = 3,
 	phase_degrees = 4,
 	phase_radians = 5,
 };
 
 /**
-* @brief Create a spectrum from a double array of values
+* @brief Delegate function
+*/
+
+typedef DSPAU_BASE_TYPE dspau_t;
+
+typedef struct {
+    int len;
+    int dims;
+    int *sizes;
+    int *pos;
+    int index;
+    dspau_t* in;
+    dspau_t* out;
+    void *arg;
+    void *parent;
+    void *children;
+    int child_count;
+    dspau_t location[3];
+    dspau_t target[3];
+    dspau_t lambda;
+    dspau_t samplerate;
+    struct timespec starttimeutc;
+    pthread_t thread;
+    void *(*func) (void *);
+} dspau_stream, *dspau_stream_p;
+
+typedef struct {
+    dspau_stream_p items;
+    int index;
+    int count;
+} dspau_stream_array, *dspau_stream_p_array;
+
+typedef struct {
+    int x;
+    int y;
+} dspau_point;
+
+typedef struct {
+    int x;
+    int y;
+    int width;
+    int height;
+} dspau_rectangle;
+
+typedef struct {
+    dspau_point center;
+    int radius;
+} dspau_star;
+
+/**
+* @brief Create a spectrum from a dspau_t array of values
 * @param in the input stream. (input)
 * @param out the output stream. (output)
 * @param dims the number of dimensions of the input stream (input).
@@ -67,7 +213,9 @@ enum dspau_conversiontype {
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_spectrum(double* in, double* out, int dims, int *sizes, int conversion);
+DLL_EXPORT dspau_t* dspau_fft_spectrum(dspau_stream_p stream, int conversion, int size);
+
+DLL_EXPORT dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion);
 
 /**
 * @brief A square law filter
@@ -79,7 +227,7 @@ DLL_EXPORT int dspau_spectrum(double* in, double* out, int dims, int *sizes, int
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_squarelawfilter(double* in, double* out, int len);
+DLL_EXPORT dspau_t* dspau_filter_squarelaw(dspau_stream_p stream);
 
 /**
 * @brief A low pass filter
@@ -94,7 +242,7 @@ DLL_EXPORT int dspau_squarelawfilter(double* in, double* out, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_lowpassfilter(double* in, double* out, int len, double samplingfrequency, double frequency, double q);
+DLL_EXPORT dspau_t* dspau_filter_lowpass(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t frequency, dspau_t q);
 
 /**
 * @brief A high pass filter
@@ -109,7 +257,7 @@ DLL_EXPORT int dspau_lowpassfilter(double* in, double* out, int len, double samp
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_highpassfilter(double* in, double* out, int len, double samplingfrequency, double frequency, double q);
+DLL_EXPORT dspau_t* dspau_filter_highpass(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t frequency, dspau_t q);
 
 /**
 * @brief A band pass filter
@@ -124,7 +272,7 @@ DLL_EXPORT int dspau_highpassfilter(double* in, double* out, int len, double sam
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_bandpassfilter(double* in, double* out, int len, double samplingfrequency, double frequency, double q);
+DLL_EXPORT dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t frequency, dspau_t q);
 
 /**
 * @brief A band reject filter
@@ -139,20 +287,7 @@ DLL_EXPORT int dspau_bandpassfilter(double* in, double* out, int len, double sam
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_bandrejectfilter(double* in, double* out, int len, double samplingfrequency, double frequency, double q);
-
-/**
-* @brief An auto-correlator
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream (input/output).
-* @param skip skip n values at beginning (resulting len will be reduced).
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_autocorrelate(double* in, double* out, int *len);
+DLL_EXPORT dspau_t* dspau_filter_bandreject(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t frequency, dspau_t q);
 
 /**
 * @brief A cross-correlator
@@ -168,21 +303,23 @@ DLL_EXPORT int dspau_autocorrelate(double* in, double* out, int *len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-double dspau_crosscorrelate(double* in1, double* in2, double* out, int len1, int len2, int *len);
+DLL_EXPORT dspau_t* dspau_interferometry_crosscorrelate(dspau_stream_p stream);
 
 /**
-* @brief A band-pass auto-correlator (Warning: high memory usage!)
-* @param in the input stream. (input)
+* @brief A cross-correlator
+* @param in1 the first input stream. (input)
+* @param in2 the second input stream. (input)
 * @param out the output stream. (output)
-* @param len the length of the input stream. (input/output)
-* @param skip skip n values at beginning (resulting len will be reduced).
-* @param Q the slope of the band-pass filters.
+* @param len1 the length of the first input stream. (input)
+* @param len2 the length of the second input stream. (input)
+* @param len the length of the output stream. (output)
+* @return the resulting correlation degree.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_bandpasscorrelate(double* in, double* out, int *len, int skip, double Q);
+DLL_EXPORT void dspau_stream_add_child(dspau_stream_p stream, dspau_stream_p child);
 
 /**
 * @brief Gets minimum, mid, and maximum values of the input stream
@@ -193,7 +330,7 @@ DLL_EXPORT int dspau_bandpasscorrelate(double* in, double* out, int *len, int sk
 * @return the mid value (max - min) / 2 + min.
 * Return mid if success.
 */
-double dspau_minmidmax(double* in, int len, double *min, double *max);
+DLL_EXPORT dspau_t dspau_stats_minmidmax(dspau_t* in, int len, dspau_t* min, dspau_t* max);
 
 /**
 * @brief A mean calculator
@@ -202,7 +339,18 @@ double dspau_minmidmax(double* in, int len, double *min, double *max);
 * @return the mean value of the stream.
 * Return mean if success.
 */
-double dspau_mean(double* in, int len);
+DLL_EXPORT dspau_t dspau_stats_mean(dspau_t* in, int len);
+
+/**
+* @brief Counts value occurrences into stream
+* @param in the input stream. (input)
+* @param len the length of the input stream.
+* @param val the value to count.
+* @param prec the decimal precision.
+* @return the mean value of the stream.
+* Return mean if success.
+*/
+DLL_EXPORT int dspau_stats_val_count(dspau_t* in, int len, dspau_t val, dspau_t prec);
 
 /**
 * @brief Subtract mean from stream
@@ -214,7 +362,7 @@ double dspau_mean(double* in, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_removemean(double* in, double* out, int len);
+DLL_EXPORT dspau_t* dspau_buffer_removemean(dspau_t* in, int len);
 
 /**
 * @brief Stretch minimum and maximum values of the input stream
@@ -228,7 +376,7 @@ DLL_EXPORT int dspau_removemean(double* in, double* out, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_stretch(double* in, double* out, int len, double min, double max);
+DLL_EXPORT dspau_t* dspau_buffer_stretch(dspau_t* in, int len, dspau_t min, dspau_t max);
 
 /**
 * @brief Normalize the input stream to the minimum and maximum values
@@ -244,7 +392,7 @@ DLL_EXPORT int dspau_stretch(double* in, double* out, int len, double min, doubl
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_normalize(double* in, double* out, int len, double min, double max);
+DLL_EXPORT dspau_t* dspau_buffer_normalize(dspau_t* in, int len, dspau_t min, dspau_t max);
 
 /**
 * @brief Subtract elements of one stream from another's
@@ -257,7 +405,7 @@ DLL_EXPORT int dspau_normalize(double* in, double* out, int len, double min, dou
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_sub(double* in1, double* in2, double* out, int len);
+DLL_EXPORT dspau_t* dspau_buffer_sub(dspau_t* in1, int len1, dspau_t* in2, int len2);
 
 /**
 * @brief Sum elements of one stream to another's
@@ -270,7 +418,7 @@ DLL_EXPORT int dspau_sub(double* in1, double* in2, double* out, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_sum(double* in1, double* in2, double* out, int len);
+DLL_EXPORT dspau_t* dspau_buffer_sum(dspau_t* in1, int len1, dspau_t* in2, int len2);
 
 /**
 * @brief Divide elements of one stream to another's
@@ -283,7 +431,7 @@ DLL_EXPORT int dspau_sum(double* in1, double* in2, double* out, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_div(double* in1, double* in2, double* out, int len);
+DLL_EXPORT dspau_t* dspau_buffer_div(dspau_t* in1, int len1, dspau_t* in2, int len2);
 
 /**
 * @brief Multiply elements of one stream to another's
@@ -296,8 +444,11 @@ DLL_EXPORT int dspau_div(double* in1, double* in2, double* out, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_mul(double* in1, double* in2, double* out, int len);
+DLL_EXPORT dspau_t* dspau_buffer_mul(dspau_t* in1, int len1, dspau_t* in2, int len2);
 
+DLL_EXPORT dspau_t* dspau_buffer_pow(dspau_t* in, int len, dspau_t val);
+
+DLL_EXPORT dspau_t* dspau_buffer_root(dspau_t* in, int len, dspau_t val);
 /**
 * @brief Subtract a value from elements of the input stream
 * @param in the Numerators input stream. (input)
@@ -309,7 +460,8 @@ DLL_EXPORT int dspau_mul(double* in1, double* in2, double* out, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_sub1(double* in, double* out, int len, double val);
+DLL_EXPORT dspau_t* dspau_buffer_sub1(dspau_t* in, int len, dspau_t val);
+DLL_EXPORT dspau_t* dspau_buffer_1sub(dspau_t* in, int len, dspau_t val);
 
 /**
 * @brief Sum elements of the input stream to a value
@@ -322,7 +474,7 @@ DLL_EXPORT int dspau_sub1(double* in, double* out, int len, double val);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_sum1(double* in, double* out, int len, double val);
+DLL_EXPORT dspau_t* dspau_buffer_sum1(dspau_t* in, int len, dspau_t val);
 
 /**
 * @brief Divide elements of the input stream to a value
@@ -335,7 +487,8 @@ DLL_EXPORT int dspau_sum1(double* in, double* out, int len, double val);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_div1(double* in, double* out, int len, double val);
+DLL_EXPORT dspau_t* dspau_buffer_div1(dspau_t* in, int len, dspau_t val);
+DLL_EXPORT dspau_t* dspau_buffer_1div(dspau_t* in, int len, dspau_t val);
 
 /**
 * @brief Multiply elements of the input stream to a value
@@ -348,7 +501,7 @@ DLL_EXPORT int dspau_div1(double* in, double* out, int len, double val);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_mul1(double* in, double* out, int len, double val);
+DLL_EXPORT dspau_t* dspau_buffer_mul1(dspau_t* in, int len, dspau_t val);
 
 /**
 * @brief Median elements of the inut stream
@@ -357,204 +510,88 @@ DLL_EXPORT int dspau_mul1(double* in, double* out, int len, double val);
 * @param len the length of the input stream.
 * @param size the length of the median.
 * @param median the location of the median value.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_median(double* in, double* out, int len, int size, int median);
+DLL_EXPORT dspau_t* dspau_buffer_median(dspau_t* in, int len, int size, int median);
 
 /**
-* @brief Convert an 8bit unsigned array into a double array
+* @brief Histogram of the inut stream
 * @param in the input stream. (input)
 * @param out the output stream. (output)
 * @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_u8todouble(unsigned char* in, double* out, int len);
+* @param size the length of the median.
 
-/**
-* @brief Convert a 16bit unsigned array into a double array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT int dspau_u16todouble(unsigned short int* in, double* out, int len);
+DLL_EXPORT dspau_t* dspau_buffer_histogram(dspau_t* in, int len, int size);
 
-/**
-* @brief Convert a 32bit unsigned array into a double array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_u32todouble(unsigned int* in, double* out, int len);
+DLL_EXPORT dspau_t* dspau_buffer_zerofill(dspau_t* out, int len);
 
-/**
-* @brief Convert a 64bit unsigned array into a double array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_u64todouble(unsigned long int* in, double* out, int len);
+DLL_EXPORT dspau_t* dspau_buffer_val_sum(dspau_t* in, int len);
 
-/**
-* @brief Convert an 8bit signed array into a double array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_s8todouble(signed char* in, double* out, int len);
+DLL_EXPORT dspau_t* dspau_buffer_convolute(dspau_t* in1, int len1, dspau_t* in2, int len2);
 
-/**
-* @brief Convert a 16bit signed array into a double array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_s16todouble(signed short int* in, double* out, int len);
+DLL_EXPORT dspau_t* dspau_buffer_deviate(dspau_t* in1, int len1, dspau_t* in2, int len2, dspau_t mindeviation, dspau_t maxdeviation);
 
-/**
-* @brief Convert a 32bit signed array into a double array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_s32todouble(signed int* in, double* out, int len);
+DLL_EXPORT dspau_t dspau_astro_secs_since_J2000(struct timespec tp);
 
-/**
-* @brief Convert a 64bit signed array into a double array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_s64todouble(signed long int* in, double* out, int len);
+DLL_EXPORT struct timespec dspau_astro_nsectotimespec(dspau_t nsecs);
 
-/**
-* @brief Convert a double array into a 8bit unsigned array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_doubletou8(double* in, unsigned char* out, int len);
+DLL_EXPORT dspau_t dspau_astro_secs_since_J2000(struct timespec tp);
 
-/**
-* @brief Convert a double array into a 16bit unsigned array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_doubletou16(double* in, unsigned short int* out, int len);
+DLL_EXPORT dspau_t dspau_astro_lst(dspau_t secs_since_J2000, dspau_t Long);
 
-/**
-* @brief Convert a double array into a 32bit unsigned array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_doubletou32(double* in, unsigned int* out, int len);
+DLL_EXPORT dspau_t dspau_astro_ra2ha(dspau_t Ra, dspau_t Lst);
 
-/**
-* @brief Convert a double array into a 64bit unsigned array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_doubletou64(double* in, unsigned long int* out, int len);
+DLL_EXPORT void dspau_astro_hadec2altaz(dspau_t Ha, dspau_t Dec, dspau_t Lat, dspau_t* Alt, dspau_t *Az);
 
-/**
-* @brief Convert a double array into an 8bit signed array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_doubletos8(double* in, signed char* out, int len);
+DLL_EXPORT dspau_t dspau_astro_elevation(dspau_t Lat, dspau_t El);
 
-/**
-* @brief Convert a double array into a 16bit signed array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_doubletos16(double* in, signed short int* out, int len);
+DLL_EXPORT dspau_t* dspau_interferometry_autocorrelate(dspau_stream_p stream);
 
-/**
-* @brief Convert a double array into a 32bit signed array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_doubletos32(double* in, signed int* out, int len);
+DLL_EXPORT dspau_t* dspau_interferometry_uv_location(dspau_t HA, dspau_t DEC, dspau_t* baseline3);
 
-/**
-* @brief Convert a double array into a 64bit signed array
-* @param in the input stream. (input)
-* @param out the output stream. (output)
-* @param len the length of the input stream.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
-DLL_EXPORT int dspau_doubletos64(double* in, signed long int* out, int len);
+DLL_EXPORT dspau_t* dspau_interferometry_calc_baselines(dspau_stream_p stream);
+
+DLL_EXPORT dspau_t* dspau_interferometry_uv_coords(dspau_stream_p stream);
+
+DLL_EXPORT dspau_t *dspau_stream_set_input_buffer_len(dspau_stream_p stream, int len);
+
+DLL_EXPORT dspau_t *dspau_stream_set_output_buffer_len(dspau_stream_p stream, int len);
+
+DLL_EXPORT dspau_t *dspau_stream_set_input_buffer(dspau_stream_p stream, void *buffer, int len);
+
+DLL_EXPORT dspau_t *dspau_stream_set_output_buffer(dspau_stream_p stream, void *buffer, int len);
+
+DLL_EXPORT dspau_t *dspau_stream_get_input_buffer(dspau_stream_p stream);
+
+DLL_EXPORT dspau_t *dspau_stream_get_output_buffer(dspau_stream_p stream);
+
+DLL_EXPORT void dspau_stream_free_input_buffer(dspau_stream_p stream);
+
+DLL_EXPORT void dspau_stream_free_output_buffer(dspau_stream_p stream);
+
+DLL_EXPORT dspau_stream_p dspau_stream_new();
+
+DLL_EXPORT dspau_stream_p dspau_stream_copy(dspau_stream_p stream);
+
+DLL_EXPORT void dspau_stream_add_dim(dspau_stream_p stream, int size);
+
+DLL_EXPORT void dspau_stream_free(dspau_stream_p stream);
+
+DLL_EXPORT int dspau_stream_byte_size(dspau_stream_p stream);
+
+DLL_EXPORT dspau_stream_p dspau_stream_position(dspau_stream_p stream);
+
+DLL_EXPORT void *dspau_stream_exec(dspau_stream_p stream);
+
+DLL_EXPORT void dspau_stream_swap_buffers(dspau_stream_p stream);
+
+DLL_EXPORT dspau_t dspau_astro_field_rotation_rate(dspau_t Alt, dspau_t Az, dspau_t Lat);
+
+DLL_EXPORT dspau_t dspau_astro_field_rotation(dspau_t HA, dspau_t rate);
 
 #ifdef  __cplusplus
 }

@@ -174,6 +174,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
                           enum Hemisphere h);
     void EncoderTarget(GotoParams *g);
     void SetSouthernHemisphere(bool southern);
+    void UpdateDEInverted();
     double GetRATrackRate();
     double GetDETrackRate();
     double GetDefaultRATrackRate();
@@ -246,6 +247,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
     // Called when there is an unrecoverable tty error
     void abnormalDisconnect();
+    static void abnormalDisconnectCallback(void *userpointer);
 
     // Tracking
     bool SetTrackMode(uint8_t mode);

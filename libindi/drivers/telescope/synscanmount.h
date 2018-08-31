@@ -24,11 +24,11 @@ class SynscanMount : public INDI::Telescope
 {
   public:
     SynscanMount();
-    virtual ~SynscanMount() = default;
+    //virtual ~SynscanMount() = default;
 
     //  overrides of base class virtual functions
     //bool initProperties();
-    virtual void ISGetProperties(const char *dev) override;
+    //virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
     virtual const char *getDefaultName() override;
 
@@ -64,6 +64,7 @@ class SynscanMount : public INDI::Telescope
     int HexStrToInteger(const std::string &str);
     bool AnalyzeHandset();
     void UpdateMountInformation(bool inform_client);
+    void MountSim();
 
     double FirmwareVersion { 0 };
     char LastParkRead[20];
@@ -76,6 +77,8 @@ class SynscanMount : public INDI::Telescope
     double SlewTargetAz { -1 };
     double CurrentRA { 0 };
     double CurrentDEC { 0 };
+    double TargetRA {0};
+    double TargetDEC {0};
     bool CanSetLocation { false };
     bool ReadLatLong { false };
     int RecoverTrials { 0 };
@@ -101,5 +104,6 @@ class SynscanMount : public INDI::Telescope
     std::string TrackingStatus;
     std::string TrackingMode;
 
+    static constexpr uint16_t SLEW_RATE[] = {1, 2, 8, 16, 64, 128, 256, 512, 1024};
     static const uint8_t MAX_SYN_BUF = 64;
 };

@@ -2,6 +2,7 @@
     Losmandy Gemini INDI driver
 
     Copyright (C) 2017 Jasem Mutlaq
+    Copyright (C) 2018 Eric Vickery
 
     Difference from LX200 Generic:
 

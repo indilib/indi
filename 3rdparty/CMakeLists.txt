@@ -65,7 +65,7 @@ option(WITH_MAXDOME "Install MaxDomeII Driver" On)
 option(WITH_NEXDOME "Install NexDome Driver" On)
 option(WITH_SPECTRACYBER "Install Spectracyber Driver" On)
 option(WITH_CLOUDWATCHER "Install AAG Cloud Watcher Driver" On)
-option(WITH_MI "Install Moravian Driver" Off)
+option(WITH_MI "Install Moravian Driver" On)
 option(WITH_FLI "Install FLI Driver" On)
 option(WITH_SBIG "Install SBIG Driver" On)
 option(WITH_INOVAPLX "Install i.Nova PLx Driver" On)
@@ -106,10 +106,11 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_GIGE Off)
     set(WITH_FXLOAD Off)
 ENDIF ()
-# Disable apogee and qhy with gcc 4.8 and earlier versions
+# Disable apogee, qhy and mi with gcc 4.8 and earlier versions
 IF (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
     SET(WITH_APOGEE Off)
     SET(WITH_QHY Off)
+    SET(WITH_MI Off)
 ENDIF ()
 
 ## EQMod

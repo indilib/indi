@@ -16,35 +16,5 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <float.h>
 #include "libdspau.h"
-
-double dspau_minmidmax(double* in, int len, double *min, double *max)
-{
-	int i;
-	double mn = DBL_MAX;
-	double mx = DBL_MIN;
-	for(i = 0; i < len; i++) {
-		mn = (in[i] < mn ? in[i] : mn);
-		mx = (in[i] > mx ? in[i] : mx);
-	}
-	*min = mn;
-	*max = mx;
-	return (double)((mx - mn) / 2.0 + mn);
-}
-
-double dspau_mean(double* in, int len)
-{
-	int i;
-	double mean = 0.0;
-	double l = (double)len;
-	for(i = 0; i < len; i++) {
-		mean += in[i];
-	}
-	mean /=  l;
-	return mean;
-}
 
