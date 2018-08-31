@@ -1092,6 +1092,9 @@ bool SynscanMount::ReadLocation()
             LocationN[LOCATION_LATITUDE].value  = lat;
             LocationN[LOCATION_LONGITUDE].value = lon;
             IDSetNumber(&LocationNP, nullptr);
+
+            saveConfig(true, "GEOGRAPHIC_COORD");
+
             //  We dont need to keep reading this one on every cycle
             //  only need to read it when it's been changed
             ReadLatLong = false;
