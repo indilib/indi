@@ -114,14 +114,14 @@ bool TCFS::initProperties()
     }
 
     // Mode parameters
-    IUFillNumber(&FocusSlopeA[0], "FOCUS_SLOPE_A", "Slope A", "%d", -999, 999, 10, 0);
-    IUFillNumber(&FocusSlopeB[0], "FOCUS_SLOPE_B", "Slope B", "%d", -999, 999, 10, 0);
-    IUFillNumber(&FocusDelayA[0], "FOCUS_DELAY_A", "Delay A", "%.2f", 0.0, 9.99, 1.0, 0.0);
-    IUFillNumber(&FocusDelayB[0], "FOCUS_DELAY_B", "Delay B", "%.2f", 0.0, 9.99, 1.0, 0.0);
-    IUFillNumberVector(&FocusSlopeANP, FocusSlopeAN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
-    IUFillNumberVector(&FocusSlopeBNP, FocusSlopeBN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
-    IUFillNumberVector(&FocusDelayANP, FocusDelayAN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
-    IUFillNumberVector(&FocusDelayBNP, FocusDelayBN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&FocusSlopeAN[0], "FOCUS_SLOPE_A", "Slope A", "%d", -999, 999, 10, 0);
+    IUFillNumber(&FocusSlopeBN[0], "FOCUS_SLOPE_B", "Slope B", "%d", -999, 999, 10, 0);
+    IUFillNumber(&FocusDelayAN[0], "FOCUS_DELAY_A", "Delay A", "%.2f", 0.0, 9.99, 1.0, 0.0);
+    IUFillNumber(&FocusDelayBN[0], "FOCUS_DELAY_B", "Delay B", "%.2f", 0.0, 9.99, 1.0, 0.0);
+    IUFillNumberVector(FocusSlopeANP, FocusSlopeAN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(FocusSlopeBNP, FocusSlopeBN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(FocusDelayANP, FocusDelayAN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(FocusDelayBNP, FocusDelayBN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
 
     setDynamicPropertiesBehavior(false, false);
 
@@ -248,53 +248,84 @@ bool TCFS::ISNewNumber(const char *dev, const char *name, double values[], char 
     {
         char response[TCFS_MAX_CMD] = { 0 };
 
-
-        FREAD,  // Focuser Read Slope Command
-        FL,     // Focuser Focuser Load Slope Command
-        FQUIET, // Focuser Quiet Command
-        FD,     // Focuser Delay Command
-        FSSIGN, // Focuser Slope Sign Command
-        FZSIGN, // Focuser Load Slope Sign Command
-
-
-
-        if (!strcmp(name, FocusSlopeANP.name))
+        if (!strcmp(name, FocusSlopeANP->name))
         {
-            IUUpdateNumber(&FocusSlopeANP, values, names, n);
-            FocusSlopeANP.s = IPS_OK;
-            IDSetNumber(&FocusSlopeANP, nullptr);
+            IUUpdateNumber(FocusSlopeANP, values, names, n);
 
-            dispatch_command(FL, MODE_A);
+            dispatch_command(FLSLOP, FocusSlopeAN[0].value, MODE_A);
+            if (read_tcfs(response) == false)
+            {
+                FocusSlopeANP->s = IPS_ALERT;
+                IDSetNumber(FocusSlopeANP, "Error reading TCF-S reply.");
+                return true;
+            }
+            dispatch_command(FLSIGN, FocusSlopeAN[0].value, MODE_A);
+            if (read_tcfs(response) == false)
+            {
+                FocusSlopeANP->s = IPS_ALERT;
+                IDSetNumber(FocusSlopeANP, "Error reading TCF-S reply.");
+                return true;
+            }
+            //saveConfig();
+            FocusSlopeANP->s = IPS_OK;
+            IDSetNumber(FocusSlopeANP, nullptr);
+
+            return true;
+        }
+        if (!strcmp(name, FocusSlopeBNP->name))
+        {
+            IUUpdateNumber(FocusSlopeBNP, values, names, n);
+
+            dispatch_command(FLSLOP, FocusSlopeBN[0].value, MODE_B);
+            if (read_tcfs(response) == false)
+            {
+                FocusSlopeBNP->s = IPS_ALERT;
+                IDSetNumber(FocusSlopeBNP, "Error reading TCF-S reply.");
+                return true;
+            }
+            dispatch_command(FLSIGN, FocusSlopeBN[0].value, MODE_B);
+            if (read_tcfs(response) == false)
+            {
+                FocusSlopeBNP->s = IPS_ALERT;
+                IDSetNumber(FocusSlopeBNP, "Error reading TCF-S reply.");
+                return true;
+            }
+            FocusSlopeBNP->s = IPS_OK;
+            IDSetNumber(FocusSlopeBNP, nullptr);
             //saveConfig();
 
             return true;
         }
-        if (!strcmp(name, FocusSlopeBNP.name))
+        if (!strcmp(name, FocusDelayANP->name))
         {
-            IUUpdateNumber(&FocusSlopeBNP, values, names, n);
-            FocusSlopeBNP.s = IPS_OK;
-            IDSetNumber(&FocusSlopeBNP, nullptr);
+            IUUpdateNumber(FocusDelayANP, values, names, n);
 
+            dispatch_command(FDELAY, FocusDelayAN[0].value*100, MODE_A);
+            if (read_tcfs(response) == false)
+            {
+                FocusDelayANP->s = IPS_ALERT;
+                IDSetNumber(FocusDelayANP, "Error reading TCF-S reply.");
+                return true;
+            }
             //saveConfig();
+            FocusDelayANP->s = IPS_OK;
+            IDSetNumber(FocusDelayANP, nullptr);
 
             return true;
         }
-        if (!strcmp(name, FocusDelayANP.name))
+        if (!strcmp(name, FocusDelayBNP->name))
         {
-            IUUpdateNumber(&FocusDelayANP, values, names, n);
-            FocusDelayANP.s = IPS_OK;
-            IDSetNumber(&FocusDelayANP, nullptr);
+            IUUpdateNumber(FocusDelayBNP, values, names, n);
 
-            //saveConfig();
-
-            return true;
-        }
-        if (!strcmp(name, FocusDelayBNP.name))
-        {
-            IUUpdateNumber(&FocusDelayBNP, values, names, n);
-            FocusDelayBNP.s = IPS_OK;
-            IDSetNumber(&FocusDelayBNP, nullptr);
-
+            dispatch_command(FDELAY, FocusDelayBN[0].value*100, MODE_B);
+            if (read_tcfs(response) == false)
+            {
+                FocusDelayBNP->s = IPS_ALERT;
+                IDSetNumber(FocusDelayBNP, "Error reading TCF-S reply.");
+                return true;
+            }
+            FocusDelayBNP->s = IPS_OK;
+            IDSetNumber(FocusDelayBNP, nullptr);
             //saveConfig();
 
             return true;
@@ -647,7 +678,7 @@ IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return IPS_BUSY;
 }
 
-bool TCFS::dispatch_command(TCFSCommand command_type, unsigned int val, TCFSMode m)
+bool TCFS::dispatch_command(TCFSCommand command_type, int val, TCFSMode m)
 {
     int err_code = 0, nbytes_written = 0;
     char tcfs_error[TCFS_ERROR_BUFFER];
@@ -718,6 +749,26 @@ bool TCFS::dispatch_command(TCFSCommand command_type, unsigned int val, TCFSMode
         // Focuser Quiet Command
         case FQUIET:
             snprintf(command, TCFS_MAX_CMD, "FQUIT%01d", val);
+            break;
+        // Focuser Load Slope Command
+        case FLSLOP:
+            snprintf(command, TCFS_MAX_CMD, "FL%c%03d", m==MODE_A?'A':'B', abs(val));
+            break;
+        // Focuser Load Delay Command
+        case FDELAY:
+            snprintf(command, TCFS_MAX_CMD, "FD%c%03d", m==MODE_A?'A':'B', val);
+            break;
+        // Focuser Load Sign Command
+        case FLSIGN:
+            snprintf(command, TCFS_MAX_CMD, "FZ%cxx%01d", m==MODE_A?'A':'B', val>=0?0:1);
+            break;
+        // Focuser Read Slope Command
+        case FRSLOP:
+            snprintf(command, TCFS_MAX_CMD, "FREAD%c", m==MODE_A?'A':'B');
+            break;
+        // Focuser Read Sign Command
+        case FRSIGN:
+            snprintf(command, TCFS_MAX_CMD, "FTxxx%c", m==MODE_A?'A':'B');
             break;
     }
 

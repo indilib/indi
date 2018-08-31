@@ -46,12 +46,12 @@ class TCFS : public INDI::Focuser
         FWAKUP, // Focuser Wake Up
         FHOME,  // Focuser Home Command
         
-        FREAD,  // Focuser Read Slope Command
-        FL,     // Focuser Focuser Load Slope Command
+        FRSLOP,  // Focuser Read Slope Command
+        FLSLOP, // Focuser Load Slope Command
         FQUIET, // Focuser Quiet Command
-        FD,     // Focuser Delay Command
-        FSSIGN, // Focuser Slope Sign Command
-        FZSIGN, // Focuser Load Slope Sign Command
+        FDELAY, // Focuser Load Delay Command
+        FRSIGN, // Focuser Read Slope Sign Command
+        FLSIGN, // Focuser Load Slope Sign Command
     };
 
     enum TCFSMode
@@ -79,7 +79,7 @@ class TCFS : public INDI::Focuser
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
   protected:
     virtual IPState MoveAbsFocuser(uint32_t targetTicks);
@@ -88,12 +88,12 @@ class TCFS : public INDI::Focuser
 
   private:
     bool read_tcfs(char *response, bool silent = false);
-    bool dispatch_command(TCFSCommand command_type, unsigned int val=0, TCFSMode m=NONE);
+    bool dispatch_command(TCFSCommand command_type, int val=0, TCFSMode m=NONE);
 
-    INumber FocusSlopeAN;
-    INumber FocusSlopeBN;
-    INumber FocusDelayAN;
-    INumber FocusDelayBN;
+    INumber FocusSlopeAN[1];
+    INumber FocusSlopeBN[1];
+    INumber FocusDelayAN[1];
+    INumber FocusDelayBN[1];
 
     ISwitchVectorProperty *FocusPowerSP { nullptr };
     ISwitchVectorProperty *FocusModeSP { nullptr };
