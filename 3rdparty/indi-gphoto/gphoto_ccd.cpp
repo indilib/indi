@@ -148,11 +148,11 @@ void ISInit()
 
                             // If if the model was already registered for a prior camera in case we are using
                             // two identical models
-                            if (std::find(cameraNames.begin(), cameraNames.end(), camInfos[j].model) != cameraNames.end())
+                            if (std::find(cameraNames.begin(), cameraNames.end(), camInfos[j].model) == cameraNames.end())
                                 snprintf(name, MAXINDIDEVICE, "%s %s", prefix, model + strlen(camInfos[j].model) + 1);
                             else
                                 snprintf(name, MAXINDIDEVICE, "%s %s %d", prefix, model + strlen(camInfos[j].model) + 1,
-                                         static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), camInfos[j].model)));
+                                         static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), camInfos[j].model))+1);
                             cameras[cameraCount] = new GPhotoCCD(model, port);
                             cameras[cameraCount]->setDeviceName(name);
                             cameraCount++;
