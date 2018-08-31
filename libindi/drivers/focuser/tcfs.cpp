@@ -113,6 +113,16 @@ bool TCFS::initProperties()
         LOG_DEBUG("TCF-S detected. Updating maximum position value to 7000.");
     }
 
+    // Mode parameters
+    IUFillNumber(&FocusSlopeA[0], "FOCUS_SLOPE_A", "Slope A", "%d", -999, 999, 10, 0);
+    IUFillNumber(&FocusSlopeB[0], "FOCUS_SLOPE_B", "Slope B", "%d", -999, 999, 10, 0);
+    IUFillNumber(&FocusDelayA[0], "FOCUS_DELAY_A", "Delay A", "%.2f", 0.0, 9.99, 1.0, 0.0);
+    IUFillNumber(&FocusDelayB[0], "FOCUS_DELAY_B", "Delay B", "%.2f", 0.0, 9.99, 1.0, 0.0);
+    IUFillNumberVector(&FocusSlopeANP, FocusSlopeAN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&FocusSlopeBNP, FocusSlopeBN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&FocusDelayANP, FocusDelayAN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&FocusDelayBNP, FocusDelayBN, 1, getDeviceName(), "Slope A", "", "Slope A", IP_RW, 0, IPS_IDLE);
+
     setDynamicPropertiesBehavior(false, false);
 
     buildSkeleton("indi_tcfs_sk.xml");
@@ -121,6 +131,11 @@ bool TCFS::initProperties()
     FocusPowerSP       = getSwitch("FOCUS_POWER");
     FocusModeSP        = getSwitch("FOCUS_MODE");
     FocusGotoSP        = getSwitch("FOCUS_GOTO");
+    FocusQuietSP       = getSwitch("FOCUS_QUIET");
+    FocusSlopeANP      = getNumber("FOCUS_SLOPE_A");
+    FocusSlopeBNP      = getNumber("FOCUS_SLOPE_B");;
+    FocusDelayANP      = getNumber("FOCUS_DELAY_A");
+    FocusDelayBNP      = getNumber("FOCUS_DELAY_B");
 
     // Default to 19200
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -146,6 +161,11 @@ bool TCFS::updateProperties()
         defineNumber(FocusTemperatureNP);
         defineSwitch(FocusPowerSP);
         defineSwitch(FocusModeSP);
+        defineSwitch(FocusQuietSP);
+        defineNumber(FocusSlopeANP);
+        defineNumber(FocusSlopeBNP);;
+        defineNumber(FocusDelayANP);
+        defineNumber(FocusDelayBNP);
     }
     else
     {
@@ -153,6 +173,11 @@ bool TCFS::updateProperties()
         deleteProperty(FocusTemperatureNP->name);
         deleteProperty(FocusPowerSP->name);
         deleteProperty(FocusModeSP->name);
+        deleteProperty(FocusQuietSP->name);
+        deleteProperty(FocusSlopeANP->name);
+        deleteProperty(FocusSlopeBNP->name);;
+        deleteProperty(FocusDelayANP->name);
+        deleteProperty(FocusDelayBNP->name);
     }
 
     return true;
@@ -210,6 +235,73 @@ bool TCFS::Disconnect()
     dispatch_command(FFMODE);
 
     return INDI::Focuser::Disconnect();
+}
+
+/****************************************************************
+**
+**
+*****************************************************************/
+bool TCFS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    //  first check if it's for our device
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        char response[TCFS_MAX_CMD] = { 0 };
+
+
+        FREAD,  // Focuser Read Slope Command
+        FL,     // Focuser Focuser Load Slope Command
+        FQUIET, // Focuser Quiet Command
+        FD,     // Focuser Delay Command
+        FSSIGN, // Focuser Slope Sign Command
+        FZSIGN, // Focuser Load Slope Sign Command
+
+
+
+        if (!strcmp(name, FocusSlopeANP.name))
+        {
+            IUUpdateNumber(&FocusSlopeANP, values, names, n);
+            FocusSlopeANP.s = IPS_OK;
+            IDSetNumber(&FocusSlopeANP, nullptr);
+
+            dispatch_command(FL, MODE_A);
+            //saveConfig();
+
+            return true;
+        }
+        if (!strcmp(name, FocusSlopeBNP.name))
+        {
+            IUUpdateNumber(&FocusSlopeBNP, values, names, n);
+            FocusSlopeBNP.s = IPS_OK;
+            IDSetNumber(&FocusSlopeBNP, nullptr);
+
+            //saveConfig();
+
+            return true;
+        }
+        if (!strcmp(name, FocusDelayANP.name))
+        {
+            IUUpdateNumber(&FocusDelayANP, values, names, n);
+            FocusDelayANP.s = IPS_OK;
+            IDSetNumber(&FocusDelayANP, nullptr);
+
+            //saveConfig();
+
+            return true;
+        }
+        if (!strcmp(name, FocusDelayBNP.name))
+        {
+            IUUpdateNumber(&FocusDelayBNP, values, names, n);
+            FocusDelayBNP.s = IPS_OK;
+            IDSetNumber(&FocusDelayBNP, nullptr);
+
+            //saveConfig();
+
+            return true;
+        }
+    }
+
+    return Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
 /****************************************************************
@@ -430,6 +522,82 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             IDSetSwitch(FocusGotoSP, nullptr);
             return true;
         }
+        // handle quiet mode on/off
+        if (!strcmp(FocusQuietSP->name, name))
+        {
+            IUUpdateSwitch(FocusQuietSP, states, names, n);
+
+
+            bool quiet = false;
+
+            ISwitch *sp = IUFindOnSwitch(FocusQuietSP);
+
+            // Quiet
+            if (!strcmp(sp->name, "FOCUS_QUIET"))
+            {
+                dispatch_command(FQUIET, 1);
+                quiet = true;
+            }
+            // Chatty
+            else
+                dispatch_command(FQUIET, 0);
+
+            if (read_tcfs(response) == false)
+            {
+                IUResetSwitch(FocusQuietSP);
+                FocusQuietSP->s = IPS_ALERT;
+                IDSetSwitch(FocusQuietSP, "Error reading TCF-S reply.");
+                return true;
+            }
+
+
+            if (quiet)
+            {
+                if (isSimulation())
+                    strncpy(response, "DONE", TCFS_MAX_CMD);
+
+                if (strcmp(response, "DONE") == 0)
+                {
+                    FocusQuietSP->s = IPS_OK;
+                    IDSetSwitch(FocusQuietSP, "Focuser is set into quiet mode.");
+                    if (FocusTemperatureNP)
+                    {
+                        FocusTemperatureNP->s = IPS_IDLE;
+                        IDSetNumber(FocusTemperatureNP, nullptr);
+                    }
+                    return true;
+                }
+                else
+                {
+                    FocusQuietSP->s = IPS_ALERT;
+                    IDSetSwitch(FocusQuietSP, "Focuser quiet mode operation failed. Response: %s.", response);
+                    return true;
+                }
+            }
+            else
+            {
+                if (isSimulation())
+                    strncpy(response, "DONE", TCFS_MAX_CMD);
+                    
+                if (strcmp(response, "DONE") == 0)
+                {
+                    FocusQuietSP->s = IPS_OK;
+                    IDSetSwitch(FocusQuietSP, "Focuser is chatty.");
+                    if (FocusTemperatureNP)
+                    {
+                        FocusTemperatureNP->s = IPS_OK;
+                        IDSetNumber(FocusTemperatureNP, nullptr);
+                    }
+                    return true;
+                }
+                else
+                {
+                    FocusQuietSP->s = IPS_ALERT;
+                    IDSetSwitch(FocusQuietSP, "Focuser chatty operation failed. Response: %s", response);
+                    return true;
+                }
+            }
+        }
     }
 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
@@ -479,7 +647,7 @@ IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return IPS_BUSY;
 }
 
-bool TCFS::dispatch_command(TCFSCommand command_type)
+bool TCFS::dispatch_command(TCFSCommand command_type, unsigned int val, TCFSMode m)
 {
     int err_code = 0, nbytes_written = 0;
     char tcfs_error[TCFS_ERROR_BUFFER];
@@ -501,7 +669,7 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
             strncpy(command, "FAMODE", TCFS_MAX_CMD);
             break;
 
-        // Focuser Auto-A Mode
+        // Focuser Auto-B Mode
         case FBMODE:
             strncpy(command, "FBMODE", TCFS_MAX_CMD);
             break;
@@ -546,6 +714,10 @@ bool TCFS::dispatch_command(TCFSCommand command_type)
         // Focuser Home Command
         case FHOME:
             strncpy(command, "FHOME", TCFS_MAX_CMD);
+            break;
+        // Focuser Quiet Command
+        case FQUIET:
+            snprintf(command, TCFS_MAX_CMD, "FQUIT%01d", val);
             break;
     }
 
