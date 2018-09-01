@@ -114,7 +114,7 @@ bool TCFS::initProperties()
         FocusRelPosN[0].value                       = 0;
         LOG_DEBUG("TCF-S detected. Updating maximum position value to 7000.");
     }
-    setDynamicPropertiesBehavior(false, false);
+//    setDynamicPropertiesBehavior(false, false);
 
 //    buildSkeleton("indi_tcfs_sk.xml");
 
@@ -524,6 +524,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
                     IDSetSwitch(&FocusModeSP, "Error switching to Auto Mode A. No reply from TCF-S. Try again.");
                     return true;
                 }
+                LOG_INFO("Entered Auto Mode A");
                 currentMode = MODE_A;
             }
             else
@@ -537,6 +538,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
                     IDSetSwitch(&FocusModeSP, "Error switching to Auto Mode B. No reply from TCF-S. Try again.");
                     return true;
                 }
+                LOG_INFO("Entered Auto Mode B");
                 currentMode = MODE_B;
             }
 
@@ -836,8 +838,7 @@ void TCFS::TimerHit()
 
     if(!isSimulation() && currentMode != MANUAL)
     {
-        ISwitch *sp = IUFindOnSwitch(&FocusTelemetrySP);
-        if (!strcmp(sp->name, "FOCUS_TELEMETRY_OFF"))
+        if (FocusTelemetrySP.sp[1].s == ISS_ON)
         {
             LOGF_DEBUG("%s %s",__FUNCTION__, "Telemetry is off");
             SetTimer(POLLMS);
