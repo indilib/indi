@@ -46,7 +46,7 @@ class TCFS : public INDI::Focuser
         FWAKUP, // Focuser Wake Up
         FHOME,  // Focuser Home Command
         
-        FRSLOP,  // Focuser Read Slope Command
+        FRSLOP, // Focuser Read Slope Command
         FLSLOP, // Focuser Load Slope Command
         FQUIET, // Focuser Quiet Command
         FDELAY, // Focuser Load Delay Command
@@ -85,25 +85,31 @@ class TCFS : public INDI::Focuser
     virtual IPState MoveAbsFocuser(uint32_t targetTicks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual void TimerHit();
+    void GetFocusParams();
 
   private:
     bool read_tcfs(char *response, bool silent = false);
     bool dispatch_command(TCFSCommand command_type, int val=0, TCFSMode m=NONE);
 
-    INumber FocusSlopeAN[1];
-    INumber FocusSlopeBN[1];
-    INumber FocusDelayAN[1];
-    INumber FocusDelayBN[1];
+    INumber FocusModeAN[2];
+    INumberVectorProperty FocusModeANP;
+    INumber FocusModeBN[2];
+    INumberVectorProperty FocusModeBNP;
+    ISwitch FocusTelemetryS[2];
+    ISwitchVectorProperty FocusTelemetrySP;
+    ISwitch FocusModeS[3];
+    ISwitchVectorProperty FocusModeSP;
+    ISwitch FocusPowerS[2];
+    ISwitchVectorProperty FocusPowerSP;
+    ISwitch FocusGotoS[4];
+    ISwitchVectorProperty FocusGotoSP;
+    INumber FocusTemperatureN[1];
+    INumberVectorProperty FocusTemperatureNP;
 
-    ISwitchVectorProperty *FocusPowerSP { nullptr };
-    ISwitchVectorProperty *FocusModeSP { nullptr };
-    ISwitchVectorProperty *FocusGotoSP { nullptr };
-    ISwitchVectorProperty *FocusQuietSP { nullptr };
-    INumberVectorProperty *FocusTemperatureNP { nullptr };
-    INumberVectorProperty *FocusSlopeANP { nullptr };
-    INumberVectorProperty *FocusSlopeBNP { nullptr };
-    INumberVectorProperty *FocusDelayANP { nullptr };
-    INumberVectorProperty *FocusDelayBNP { nullptr };
+//    ISwitchVectorProperty *FocusPowerSP { nullptr };
+//    ISwitchVectorProperty *FocusModeSP { nullptr };
+//    ISwitchVectorProperty *FocusGotoSP { nullptr };
+//    INumberVectorProperty *FocusTemperatureNP { nullptr };
 
     unsigned int simulated_position { 3000 };
     float simulated_temperature { 25.4 };
