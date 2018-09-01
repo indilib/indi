@@ -56,7 +56,7 @@ class TCFS : public INDI::Focuser
 
     enum TCFSMode
     {
-    	NONE,
+    	MANUAL,
         MODE_A,
         MODE_B
     };
@@ -86,10 +86,11 @@ class TCFS : public INDI::Focuser
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual void TimerHit();
     void GetFocusParams();
+    bool SetManualMode();
 
   private:
     bool read_tcfs(char *response, bool silent = false);
-    bool dispatch_command(TCFSCommand command_type, int val=0, TCFSMode m=NONE);
+    bool dispatch_command(TCFSCommand command_type, int val=0, TCFSMode m=MANUAL);
 
     INumber FocusModeAN[2];
     INumberVectorProperty FocusModeANP;
@@ -113,6 +114,7 @@ class TCFS : public INDI::Focuser
 
     unsigned int simulated_position { 3000 };
     float simulated_temperature { 25.4 };
+    TCFSMode currentMode;
 
     unsigned int targetTicks { 0 };
     unsigned int targetPosition { 0 };

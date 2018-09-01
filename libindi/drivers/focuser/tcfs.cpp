@@ -80,6 +80,7 @@ void ISSnoopDevice(XMLEle *root)
 *****************************************************************/
 TCFS::TCFS()
 {
+    currentMode = MANUAL;
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
@@ -89,7 +90,7 @@ TCFS::TCFS()
 *****************************************************************/
 bool TCFS::initProperties()
 {
-LOGF_DEBUG("%s %s",__FUNCTION__, me);
+//LOGF_DEBUG("%s %s",__FUNCTION__, me);
     INDI::Focuser::initProperties();
 
     // Set upper limit for TCF-S3 focuser
@@ -167,7 +168,7 @@ LOGF_DEBUG("%s %s",__FUNCTION__, me);
 *****************************************************************/
 bool TCFS::updateProperties()
 {
-LOGF_DEBUG("%s %s",__FUNCTION__, me);
+//LOGF_DEBUG("%s %s",__FUNCTION__, me);
     INDI::Focuser::updateProperties();
 
     if (isConnected())
@@ -259,18 +260,11 @@ LOGF_DEBUG("%s %s",__FUNCTION__, me);
         currentPosition = simulated_position;
         return true;
     }
-
     char response[TCFS_MAX_CMD] = { 0 };
-
-    dispatch_command(FWAKUP);
-    read_tcfs(response);
-
-    for(int retry=0; retry<5; retry++)
+    if(SetManualMode())
     {
-        dispatch_command(FMMODE);
-        read_tcfs(response);
-        if (strcmp(response, "!") == 0)
-        {
+            dispatch_command(FWAKUP);
+            read_tcfs(response);        
             tcflush(PortFD, TCIOFLUSH);
             LOG_INFO("Successfully connected to TCF-S Focuser in Manual Mode.");
 
@@ -278,12 +272,30 @@ LOGF_DEBUG("%s %s",__FUNCTION__, me);
             FocusTemperatureNP.s = IPS_OK;
 
             return true;
-        }
     }
     tcflush(PortFD, TCIOFLUSH);
-
     LOG_ERROR("Failed connection to TCF-S Focuser.");
-
+    return false;
+}
+/****************************************************************
+**
+**
+*****************************************************************/
+bool TCFS::SetManualMode()
+{
+    char response[TCFS_MAX_CMD] = { 0 };
+    for(int retry=0; retry<5; retry++)
+    {
+        dispatch_command(FMMODE);
+        read_tcfs(response);
+        if (strcmp(response, "!") == 0)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+            currentMode = MANUAL;
+            return true;
+        }
+    }
+    tcflush(PortFD, TCIOFLUSH); 
     return false;
 }
 
@@ -307,7 +319,7 @@ bool TCFS::Disconnect()
 *****************************************************************/
 bool TCFS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-LOGF_DEBUG("%s %s",__FUNCTION__, me);
+//LOGF_DEBUG("%s %s",__FUNCTION__, me);
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -387,7 +399,7 @@ LOGF_DEBUG("%s %s",__FUNCTION__, me);
 *****************************************************************/
 bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-LOGF_DEBUG("%s %s",__FUNCTION__, me);
+//LOGF_DEBUG("%s %s",__FUNCTION__, me);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         char response[TCFS_MAX_CMD] = { 0 };
@@ -493,9 +505,7 @@ LOGF_DEBUG("%s %s",__FUNCTION__, me);
 
             if (!strcmp(sp->name, "Manual"))
             {
-                dispatch_command(FMMODE);
-                read_tcfs(response);
-                if (!isSimulation() && strcmp(response, "!") != 0)
+                if (!isSimulation() && !SetManualMode())
                 {
                     IUResetSwitch(&FocusModeSP);
                     FocusModeSP.s = IPS_ALERT;
@@ -514,6 +524,7 @@ LOGF_DEBUG("%s %s",__FUNCTION__, me);
                     IDSetSwitch(&FocusModeSP, "Error switching to Auto Mode A. No reply from TCF-S. Try again.");
                     return true;
                 }
+                currentMode = MODE_A;
             }
             else
             {
@@ -526,6 +537,7 @@ LOGF_DEBUG("%s %s",__FUNCTION__, me);
                     IDSetSwitch(&FocusModeSP, "Error switching to Auto Mode B. No reply from TCF-S. Try again.");
                     return true;
                 }
+                currentMode = MODE_B;
             }
 
             IDSetSwitch(&FocusModeSP, nullptr);
@@ -818,10 +830,50 @@ void TCFS::TimerHit()
         SetTimer(POLLMS);
         return;
     }
-
     int f_position      = 0;
     float f_temperature = 0;
     char response[TCFS_MAX_CMD] = { 0 };
+
+    if(!isSimulation() && currentMode != MANUAL)
+    {
+        ISwitch *sp = IUFindOnSwitch(&FocusTelemetrySP);
+        if (!strcmp(sp->name, "FOCUS_TELEMETRY_OFF"))
+        {
+            LOGF_DEBUG("%s %s",__FUNCTION__, "Telemetry is off");
+            SetTimer(POLLMS);
+            return;            
+        }
+        for(int i=0; i<2; i++)
+        {
+            if (read_tcfs(response) == false)
+            {
+                SetTimer(POLLMS);
+                return;
+            }
+            LOGF_DEBUG("%s Received %s",__FUNCTION__, response);
+            if(sscanf(response, "P=%d", &f_position) == 1)
+            {
+                currentPosition = f_position;
+                if (lastPosition != currentPosition)
+                {
+                    lastPosition = currentPosition;
+                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                }
+            }
+            else if(sscanf(response, "T=%f", &f_temperature)==1)
+            {
+                FocusTemperatureNP.np[0].value = f_temperature;
+
+                if (lastTemperature != FocusTemperatureNP.np[0].value)
+                {
+                    lastTemperature = FocusTemperatureNP.np[0].value;
+                    IDSetNumber(&FocusTemperatureNP, nullptr);
+                }
+            }
+        }
+        SetTimer(POLLMS);
+        return;
+    }
 
     if (FocusGotoSP.s == IPS_BUSY)
     {
@@ -961,7 +1013,7 @@ bool TCFS::read_tcfs(char *response, bool silent)
     }
 
     // Read until encountring a CR
-    if ((err_code = tty_read_section(PortFD, response, 0x0D, 5, &nbytes_read)) != TTY_OK)
+    if ((err_code = tty_read_section(PortFD, response, 0x0D, 2, &nbytes_read)) != TTY_OK)
     {
         if (!silent)
         {
