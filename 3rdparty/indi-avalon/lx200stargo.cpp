@@ -161,7 +161,6 @@ const char *LX200StarGo::getDefaultName()
 ***************************************************************************************/
 bool LX200StarGo::Handshake()
 {
-    LOG_DEBUG(__FUNCTION__);
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if(!sendQuery(":GW#", response))
     {
@@ -225,7 +224,6 @@ bool LX200StarGo::Handshake()
 ***************************************************************************************/
 bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    LOGF_DEBUG("%s %s", __FUNCTION__, name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
@@ -325,7 +323,6 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
 
 bool LX200StarGo::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    LOGF_DEBUG("%s %s", __FUNCTION__, name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
 
@@ -362,7 +359,6 @@ bool LX200StarGo::ISNewNumber(const char *dev, const char *name, double values[]
 ***************************************************************************************/
 bool LX200StarGo::initProperties()
 {
-    LOG_DEBUG(__FUNCTION__);
     /* Make sure to init parent properties first */
     if (!LX200Telescope::initProperties()) return false;
 
@@ -416,8 +412,6 @@ bool LX200StarGo::initProperties()
 ***************************************************************************************/
 bool LX200StarGo::updateProperties()
 {
-    LOG_DEBUG(__FUNCTION__);
-
     if (! LX200Telescope::updateProperties()) return false;
     if (isConnected())
     {
@@ -454,7 +448,6 @@ bool LX200StarGo::updateProperties()
 ***************************************************************************************/
 bool LX200StarGo::ReadScopeStatus()
 {
-    LOG_DEBUG(__FUNCTION__);
     if (!isConnected())
         return false;
 
@@ -527,10 +520,8 @@ bool LX200StarGo::ReadScopeStatus()
 //    LOGF_DEBUG("RA/DEC = (%lf, %lf)", r, d);
     currentRA = r;
     currentDEC = d;
-    // Workaround to SetParked in parent class changing TrackState to IDLE 
-    // when not parked and causing TrackStateS to keep toggling OFF
-//    if(newTrackState != TrackState)
-        SetParked(TrackState==SCOPE_PARKED);
+
+    SetParked(TrackState==SCOPE_PARKED);
     TrackState = newTrackState;
     NewRaDec(currentRA, currentDEC);
     
@@ -909,8 +900,6 @@ void LX200StarGo::SetParked(bool isparked)
 {
     LOGF_DEBUG("%s %s", __FUNCTION__, isparked?"PARKED":"UNPARKED");
 //    INDI::Telescope::SetParked(isparked);
-
-//    TrackState = isparked ? SCOPE_PARKED : SCOPE_TRACKING;
     ParkS[0].s = isparked ? ISS_ON : ISS_OFF;
     ParkS[1].s = isparked ? ISS_OFF : ISS_ON;
     ParkSP.s   = IPS_OK;
@@ -1969,7 +1958,6 @@ bool LX200StarGo::SetTrackRate(double raRate, double deRate)
 }
 void LX200StarGo::ISGetProperties(const char *dev)
 {
-    LOGF_DEBUG("%s %s", __FUNCTION__, dev);
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
