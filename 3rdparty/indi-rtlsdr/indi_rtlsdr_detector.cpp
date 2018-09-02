@@ -39,11 +39,10 @@ static void cleanup()
     }
 }
 
-static void *callback(unsigned char* buf, unsigned int len, void *ctx)
+static void callback(unsigned char* buf, unsigned int len, void *ctx)
 {
     RTLSDR *receiver = (RTLSDR*)ctx;
     receiver->grabData(buf, len);
-    return NULL;
 }
 
 void ISInit()
@@ -297,7 +296,7 @@ bool RTLSDR::StartCapture(float duration)
         PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE);
     }
     rtlsdr_reset_buffer(rtl_dev);
-    rtlsdr_read_async(rtl_dev, (rtlsdr_read_async_cb_t)callback, this, to_read / SUBFRAME_SIZE, SUBFRAME_SIZE);
+    rtlsdr_read_async(rtl_dev, &callback, this, to_read / SUBFRAME_SIZE, SUBFRAME_SIZE);
 	gettimeofday(&CapStart, nullptr);
 
 	InCapture = true;
