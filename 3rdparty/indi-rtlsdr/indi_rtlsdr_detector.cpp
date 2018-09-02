@@ -310,6 +310,7 @@ bool RTLSDR::StartCapture(float duration)
 ***************************************************************************************/
 bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
+    INDI_UNUSED(bw);
     INDI_UNUSED(bps);
 	int r = 0;
 
@@ -317,7 +318,7 @@ bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps, float bw, flo
     r |= rtlsdr_set_direct_sampling(rtl_dev, 1);
     r |= rtlsdr_set_tuner_gain_mode(rtl_dev, 1);
     r |= rtlsdr_set_tuner_gain(rtl_dev, (int)gain);
-    r |= rtlsdr_set_tuner_bandwidth(rtl_dev, (uint32_t)bw);
+    //r |= rtlsdr_set_tuner_bandwidth(rtl_dev, (uint32_t)bw);
     r |= rtlsdr_set_center_freq(rtl_dev, (uint32_t)freq);
     r |= rtlsdr_set_sample_rate(rtl_dev, (uint32_t)sr);
 
