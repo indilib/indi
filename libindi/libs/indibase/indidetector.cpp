@@ -119,9 +119,27 @@ void DetectorDevice::setMinMaxStep(const char *property, const char *element, do
 
 void DetectorDevice::setSampleRate(float sr)
 {
-    samplerate = sr;
+    Samplerate = sr;
 
     DetectorSettingsN[DetectorDevice::DETECTOR_SAMPLERATE].value = sr;
+
+    IDSetNumber(&DetectorSettingsNP, nullptr);
+}
+
+void DetectorDevice::setBandwidth(float bw)
+{
+    Bandwidth = bw;
+
+    DetectorSettingsN[DetectorDevice::DETECTOR_BANDWIDTH].value = bw;
+
+    IDSetNumber(&DetectorSettingsNP, nullptr);
+}
+
+void DetectorDevice::setGain(float gain)
+{
+    Gain = gain;
+
+    DetectorSettingsN[DetectorDevice::DETECTOR_GAIN].value = gain;
 
     IDSetNumber(&DetectorSettingsNP, nullptr);
 }
@@ -292,8 +310,10 @@ bool Detector::initProperties()
     // PrimaryDetector Info
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_SAMPLERATE], "DETECTOR_SAMPLERATE", "Sample rate (SPS)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.0e+6);
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_FREQUENCY], "DETECTOR_FREQUENCY", "Center frequency (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
+    IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_BANDWIDTH], "DETECTOR_BANDWIDTH", "Bandwidth (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
+    IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_GAIN], "DETECTOR_GAIN", "Gain", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_BITSPERSAMPLE], "DETECTOR_BITSPERSAMPLE", "Bits per sample", "%3.0f", 1, 64, 1, 8);
-    IUFillNumberVector(&PrimaryDetector.DetectorSettingsNP, PrimaryDetector.DetectorSettingsN, 3, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", CAPTURE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&PrimaryDetector.DetectorSettingsNP, PrimaryDetector.DetectorSettingsN, 5, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", CAPTURE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // PrimaryDetector Device Continuum Blob
     IUFillBLOB(&PrimaryDetector.FitsB[0], "CONTINUUM", "Continuum", "");
@@ -594,8 +614,10 @@ bool Detector::ISNewNumber(const char *dev, const char *name, double values[], c
             IUUpdateNumber(&PrimaryDetector.DetectorSettingsNP, values, names, n);
             PrimaryDetector.DetectorSettingsNP.s = IPS_OK;
             SetDetectorParams(PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_SAMPLERATE].value,
-                         PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_FREQUENCY].value,
-                         PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_BITSPERSAMPLE].value);
+                    PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_FREQUENCY].value,
+                    PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_BITSPERSAMPLE].value,
+                    PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_BANDWIDTH].value,
+                    PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_GAIN].value);
             IDSetNumber(&PrimaryDetector.DetectorSettingsNP, nullptr);
             return true;
         }
@@ -683,11 +705,13 @@ bool Detector::StartCapture(float duration)
     return false;
 }
 
-bool Detector::CaptureParamsUpdated(float sr, float freq, float bps)
+bool Detector::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
     INDI_UNUSED(sr);
     INDI_UNUSED(freq);
+    INDI_UNUSED(bw);
     INDI_UNUSED(bps);
+    INDI_UNUSED(gain);
     DEBUGF(Logger::DBG_WARNING, "Detector::CaptureParamsUpdated %15.0f %15.0f %15.0f -  Should never get here", sr, freq, bps);
     return false;
 }
@@ -1203,12 +1227,14 @@ bool Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsData, si
     return true;
 }
 
-void Detector::SetDetectorParams(float samplerate, float freq, float bps)
+void Detector::SetDetectorParams(float samplerate, float freq, float bps, float bw, float gain)
 {
     PrimaryDetector.setSampleRate(samplerate);
     PrimaryDetector.setFrequency(freq);
+    PrimaryDetector.setBandwidth(bw);
     PrimaryDetector.setBPS(bps);
-    CaptureParamsUpdated(samplerate, freq, bps);
+    PrimaryDetector.setGain(gain);
+    CaptureParamsUpdated(samplerate, freq, bps, bw, gain);
 }
 
 bool Detector::saveConfigItems(FILE *fp)

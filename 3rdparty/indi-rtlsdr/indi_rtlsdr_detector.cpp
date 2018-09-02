@@ -230,6 +230,7 @@ bool RTLSDR::initProperties()
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1, 1, 0, false);
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 8, 8, 1, false);
+    PrimaryDetector.setCaptureExtension(".fits");
 
 	// Add Debug, Simulator, and Configuration controls
 	addAuxControls();
@@ -289,11 +290,23 @@ bool RTLSDR::StartCapture(float duration)
 /**************************************************************************************
 ** Client is updating capture settings
 ***************************************************************************************/
-bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps)
+bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
-        INDI_UNUSED(bps);
+    INDI_UNUSED(bps);
 	int r = 0;
 
+    rtlsdr_set_agc_mode(rtl_dev, 0);
+    rtlsdr_set_direct_sampling(rtl_dev, 1);
+    rtlsdr_set_tuner_gain_mode(rtl_dev, 1);
+
+    r = rtlsdr_set_tuner_gain(rtl_dev, gain);
+    if(r != 0) {
+        return false;
+    }
+    r = rtlsdr_set_tuner_bandwidth(rtl_dev, bw);
+    if(r != 0) {
+        return false;
+    }
     r = rtlsdr_set_center_freq(rtl_dev, (uint32_t)freq);
     if(r != 0) {
         return false;
@@ -302,8 +315,14 @@ bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps)
     if(r != 0) {
         return false;
     }
+    if(rtlsdr_get_tuner_gain(rtl_dev) != freq) {
+        PrimaryDetector.setGain(rtlsdr_get_tuner_gain(rtl_dev));
+    }
+    if(rtlsdr_get_tuner_bandwidth(rtl_dev) != freq) {
+        PrimaryDetector.setBandwidth(rtlsdr_get_tuner_bandwidth(rtl_dev));
+    }
     if(rtlsdr_get_center_freq(rtl_dev) != freq) {
-		PrimaryDetector.setFrequency(rtlsdr_get_center_freq(rtl_dev));
+        PrimaryDetector.setFrequency(rtlsdr_get_center_freq(rtl_dev));
     }
     if(rtlsdr_get_sample_rate(rtl_dev) != sr) {
         PrimaryDetector.setSampleRate(rtlsdr_get_sample_rate(rtl_dev));
@@ -407,7 +426,7 @@ void RTLSDR::grabData()
 
     //Create the spectrum
     stream->out = dspau_fft_spectrum(stream, magnitude_root, SPECTRUM_SIZE);
-    dspau_convert_to(stream->out, continuum, unsigned char, len);
+    dspau_convert_to(stream->out, spectrum, unsigned char, SPECTRUM_SIZE);
 
     //Destroy the dspau stream
     dspau_stream_free(stream);
