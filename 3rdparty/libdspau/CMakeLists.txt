@@ -1,7 +1,7 @@
 project(libdspau C)
 cmake_minimum_required(VERSION 2.4.7)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error -std=c99")
@@ -15,6 +15,13 @@ find_package(Threads REQUIRED)
 add_definitions(-Wall -O2 -std=gnu99)
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+if (APPLE)
+    ##This one is needed for homebrew
+include_directories( "/usr/local/include")
+    ## This one is needed for Craft
+include_directories("${CMAKE_INSTALL_PREFIX}/include")
+endif(APPLE)
 
 set(dspau_lib_srcs
    ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-align.c

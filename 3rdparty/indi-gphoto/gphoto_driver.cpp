@@ -1786,8 +1786,8 @@ int gphoto_close(gphoto_driver *gphoto)
 
     if (gphoto->exposure)
         free(gphoto->exposure);
-    if (gphoto->exposure_widget)
-        widget_free(gphoto->exposure_widget);
+    if (gphoto->exposure_widget && gphoto->exposure_widget->type == GP_WIDGET_RADIO)
+            widget_free(gphoto->exposure_widget);
     if (gphoto->format_widget)
         widget_free(gphoto->format_widget);
     if (gphoto->iso_widget)

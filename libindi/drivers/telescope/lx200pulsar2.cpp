@@ -1457,26 +1457,21 @@ void LX200Pulsar2::sendScopeLocation()
     if (isSimulation() || Pulsar2Commands::getSiteLatitude(PortFD, &dd, &mm))
     {
         LocationNP.np[0].value = (dd < 0 ? -1 : 1) * (abs(dd) + mm / 60.0);
-        if (isDebug())
-        {
-            IDLog("Pulsar latitude: %d:%d\n", dd, mm);
-            IDLog("INDI Latitude: %g\n", LocationNP.np[0].value);
-        }
+        LOGF_DEBUG("Pulsar latitude: %d:%d", dd, mm);
     }
     else
     {
         IDMessage(getDeviceName(), "Failed to get site latitude from Pulsar controller.");
         LocationNP.s = IPS_ALERT;
     }
-    dd = 48, mm = 0;
+    dd = 48;
+    mm = 0;
     if (isSimulation() || Pulsar2Commands::getSiteLongitude(PortFD, &dd, &mm))
     {
         LocationNP.np[1].value = (dd > 0 ? 360.0 - (dd + mm / 60.0) : -(dd - mm / 60.0));
-        if (isDebug())
-        {
-            IDLog("Pulsar longitude: %d:%d\n", dd, mm);
-            IDLog("INDI Longitude: %g\n", LocationNP.np[1].value);
-        }
+        LOGF_DEBUG("Pulsar longitude: %d:%d", dd, mm);
+
+        saveConfig(true, "GEOGRAPHIC_COORD");
     }
     else
     {

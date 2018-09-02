@@ -45,8 +45,22 @@ class TCFS : public INDI::Focuser
         FSLEEP, // Focuser Sleep
         FWAKUP, // Focuser Wake Up
         FHOME,  // Focuser Home Command
+        
+        FRSLOP, // Focuser Read Slope Command
+        FLSLOP, // Focuser Load Slope Command
+        FQUIET, // Focuser Quiet Command
+        FDELAY, // Focuser Load Delay Command
+        FRSIGN, // Focuser Read Slope Sign Command
+        FLSIGN, // Focuser Load Slope Sign Command
     };
 
+    enum TCFSMode
+    {
+    	MANUAL,
+        MODE_A,
+        MODE_B
+    };
+    
     enum TCFSError
     {
         NO_ERROR,
@@ -65,23 +79,42 @@ class TCFS : public INDI::Focuser
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
   protected:
     virtual IPState MoveAbsFocuser(uint32_t targetTicks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
     virtual void TimerHit();
+    void GetFocusParams();
+    bool SetManualMode();
 
   private:
     bool read_tcfs(char *response, bool silent = false);
-    bool dispatch_command(TCFSCommand command_type);
+    bool dispatch_command(TCFSCommand command_type, int val=0, TCFSMode m=MANUAL);
 
-    ISwitchVectorProperty *FocusPowerSP { nullptr };
-    ISwitchVectorProperty *FocusModeSP { nullptr };
-    ISwitchVectorProperty *FocusGotoSP { nullptr };
-    INumberVectorProperty *FocusTemperatureNP { nullptr };
+    INumber FocusModeAN[2];
+    INumberVectorProperty FocusModeANP;
+    INumber FocusModeBN[2];
+    INumberVectorProperty FocusModeBNP;
+    ISwitch FocusTelemetryS[2];
+    ISwitchVectorProperty FocusTelemetrySP;
+    ISwitch FocusModeS[3];
+    ISwitchVectorProperty FocusModeSP;
+    ISwitch FocusPowerS[2];
+    ISwitchVectorProperty FocusPowerSP;
+    ISwitch FocusGotoS[4];
+    ISwitchVectorProperty FocusGotoSP;
+    INumber FocusTemperatureN[1];
+    INumberVectorProperty FocusTemperatureNP;
+
+//    ISwitchVectorProperty *FocusPowerSP { nullptr };
+//    ISwitchVectorProperty *FocusModeSP { nullptr };
+//    ISwitchVectorProperty *FocusGotoSP { nullptr };
+//    INumberVectorProperty *FocusTemperatureNP { nullptr };
 
     unsigned int simulated_position { 3000 };
     float simulated_temperature { 25.4 };
+    TCFSMode currentMode;
 
     unsigned int targetTicks { 0 };
     unsigned int targetPosition { 0 };

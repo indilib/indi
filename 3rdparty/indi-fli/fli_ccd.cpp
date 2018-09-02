@@ -88,8 +88,7 @@ FLICCD::FLICCD()
 
 FLICCD::~FLICCD()
 {
-    if (CameraModeS)
-        delete [] CameraModeS;
+    delete [] CameraModeS;
 }
 
 const char *FLICCD::getDefaultName()
