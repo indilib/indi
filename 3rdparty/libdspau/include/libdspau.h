@@ -96,14 +96,14 @@
 #ifndef J2000
 #define J2000 630823248000000000
 #endif
-#ifndef HeartRadiusEquatorial
-#define HeartRadiusEquatorial 6378137.0
+#ifndef EarthRadiusEquatorial
+#define EarthRadiusEquatorial 6378137.0
 #endif
-#ifndef HeartRadiusPolar
-#define HeartRadiusPolar 6356752.0
+#ifndef EarthRadiusPolar
+#define EarthRadiusPolar 6356752.0
 #endif
-#ifndef HeartRadiusMean
-#define HeartRadiusMean 6372797.0
+#ifndef EarthRadiusMean
+#define EarthRadiusMean 6372797.0
 #endif
 #ifndef LightSpeed
 #define LightSpeed 299792458.0
@@ -142,14 +142,14 @@ extern "C" {
 #else
 #define DLL_EXPORT extern 
 #endif
-enum dspau_conversiontype {
-	magnitude = 0,
-	magnitude_dbv = 1,
+typedef enum {
+    magnitude = 0,
+    magnitude_dbv = 1,
     magnitude_root = 2,
     magnitude_square = 3,
-	phase_degrees = 4,
-	phase_radians = 5,
-};
+    phase_degrees = 4,
+    phase_radians = 5,
+} dspau_conversiontype;
 
 /**
 * @brief Delegate function
@@ -160,8 +160,8 @@ typedef DSPAU_BASE_TYPE dspau_t;
 typedef struct {
     int len;
     int dims;
-    int *sizes;
-    int *pos;
+    int* sizes;
+    int* pos;
     int index;
     dspau_t* in;
     dspau_t* out;
@@ -169,8 +169,8 @@ typedef struct {
     void *parent;
     void *children;
     int child_count;
-    dspau_t location[3];
-    dspau_t target[3];
+    dspau_t* location;
+    dspau_t* target;
     dspau_t lambda;
     dspau_t samplerate;
     struct timespec starttimeutc;
@@ -538,8 +538,6 @@ DLL_EXPORT dspau_t* dspau_buffer_deviate(dspau_t* in1, int len1, dspau_t* in2, i
 DLL_EXPORT dspau_t dspau_astro_secs_since_J2000(struct timespec tp);
 
 DLL_EXPORT struct timespec dspau_astro_nsectotimespec(dspau_t nsecs);
-
-DLL_EXPORT dspau_t dspau_astro_secs_since_J2000(struct timespec tp);
 
 DLL_EXPORT dspau_t dspau_astro_lst(dspau_t secs_since_J2000, dspau_t Long);
 
