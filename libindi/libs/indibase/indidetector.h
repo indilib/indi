@@ -315,7 +315,7 @@ class DetectorDevice
     INumber FramedCaptureN[1];
 
     INumberVectorProperty DetectorSettingsNP;
-    INumber DetectorSettingsN[4];
+    INumber DetectorSettingsN[5];
 
     ISwitchVectorProperty AbortCaptureSP;
     ISwitch AbortCaptureS[1];
