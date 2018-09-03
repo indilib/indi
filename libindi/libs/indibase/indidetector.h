@@ -315,12 +315,12 @@ class DetectorDevice
     INumber FramedCaptureN[1];
 
     INumberVectorProperty DetectorSettingsNP;
-    INumber DetectorSettingsN[6];
+    INumber DetectorSettingsN[5];
 
     ISwitchVectorProperty AbortCaptureSP;
     ISwitch AbortCaptureS[1];
 
-    IBLOB FitsB[4];
+    IBLOB FitsB[3];
     IBLOBVectorProperty FitsBP;
 
     friend class INDI::Detector;
@@ -491,6 +491,7 @@ class Detector : public DefaultDevice
      */
     virtual void addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, int blobIndex);
 
+    int sendFITS(DetectorDevice *targetDevice, int type);
     /** A function to just remove GCC warnings about deprecated conversion */
     void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
 
