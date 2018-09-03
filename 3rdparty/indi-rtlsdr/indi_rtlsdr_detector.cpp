@@ -18,14 +18,22 @@
 */
 
 #include "indi_rtlsdr_detector.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <indilogger.h>
 #include <libdspau.h>
 #include <memory>
 
+#define min(a,b) \
+  ({ __typeof__ (a) _a = (a); \
+      __typeof__ (b) _b = (b); \
+    _a < _b ? _a : _b; })
 #define MAX_TRIES 20
 #define MAX_DEVICES 4
-#define SUBFRAME_SIZE 512
+#define SUBFRAME_SIZE (16384)
+#define MIN_FRAME_SIZE (512)
+#define MAX_FRAME_SIZE (SUBFRAME_SIZE * 16)
 #define SPECTRUM_SIZE 256
 
 static int iNumofConnectedDetectors;
@@ -39,7 +47,7 @@ static void cleanup()
     }
 }
 
-static void callback(unsigned char* buf, unsigned int len, void *ctx)
+static void callback(unsigned char *buf, uint32_t len, void *ctx)
 {
     RTLSDR *receiver = (RTLSDR*)ctx;
     receiver->grabData(buf, len);
@@ -232,11 +240,11 @@ bool RTLSDR::initProperties()
 	uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
 	SetDetectorCapability(cap);
 
-	PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.1, 10, 1, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.001, 10, 1, false);
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1, 1, 0, false);
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 8, 8, 1, false);
-    PrimaryDetector.setCaptureExtension(".fits");
+    PrimaryDetector.setCaptureExtension("fits");
 
 	// Add Debug, Simulator, and Configuration controls
 	addAuxControls();
@@ -273,7 +281,7 @@ bool RTLSDR::updateProperties()
 void RTLSDR::setupParams()
 {
 	// Our Detector is an 8 bit Detector, 100MHz frequency 1MHz bandwidth.
-    SetDetectorParams(10000000.0, 100000000.0, 8, 10000.0, 100.0);
+    SetDetectorParams(2000000.0, 100000000.0, 8, 10000.0, 100.0);
 }
 
 /**************************************************************************************
@@ -287,22 +295,20 @@ bool RTLSDR::StartCapture(float duration)
     PrimaryDetector.setCaptureDuration(duration);
     b_read = 0;
     to_read = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration();
-    to_read -= (to_read % SUBFRAME_SIZE) - SUBFRAME_SIZE;
-    to_read += SUBFRAME_SIZE;
-    if(to_read != PrimaryDetector.getContinuumBufferSize()) {
-        PrimaryDetector.setContinuumBufferSize(to_read);
-    }
-    if(SPECTRUM_SIZE != PrimaryDetector.getSpectrumBufferSize()) {
-        PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE);
-    }
-    rtlsdr_reset_buffer(rtl_dev);
-    rtlsdr_read_async(rtl_dev, &callback, this, to_read / SUBFRAME_SIZE, SUBFRAME_SIZE);
-	gettimeofday(&CapStart, nullptr);
 
-	InCapture = true;
+    PrimaryDetector.setContinuumBufferSize(to_read);
+    PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE);
+
+    if(to_read > 0) {
+        rtlsdr_reset_buffer(rtl_dev);
+        gettimeofday(&CapStart, nullptr);
+        InCapture = true;
+        rtlsdr_read_async(rtl_dev, callback, this, 1, min(MAX_FRAME_SIZE, to_read));
+        return true;
+    }
 
 	// We're done
-	return true;
+    return false;
 }
 
 /**************************************************************************************
@@ -315,25 +321,12 @@ bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps, float bw, flo
 	int r = 0;
 
     r |= rtlsdr_set_agc_mode(rtl_dev, 0);
-    r |= rtlsdr_set_direct_sampling(rtl_dev, 1);
     r |= rtlsdr_set_tuner_gain_mode(rtl_dev, 1);
-    r |= rtlsdr_set_tuner_gain(rtl_dev, (int)gain);
+
+    r |= rtlsdr_set_tuner_gain(rtl_dev, (int)(gain * 10));
     //r |= rtlsdr_set_tuner_bandwidth(rtl_dev, (uint32_t)bw);
     r |= rtlsdr_set_center_freq(rtl_dev, (uint32_t)freq);
     r |= rtlsdr_set_sample_rate(rtl_dev, (uint32_t)sr);
-
-    if(rtlsdr_get_tuner_gain(rtl_dev) != gain) {
-        PrimaryDetector.setGain(rtlsdr_get_tuner_gain(rtl_dev));
-        r |= 1;
-    }
-    if(rtlsdr_get_center_freq(rtl_dev) != freq) {
-        PrimaryDetector.setFrequency(rtlsdr_get_center_freq(rtl_dev));
-        r |= 1;
-    }
-    if(rtlsdr_get_sample_rate(rtl_dev) != sr) {
-        PrimaryDetector.setSampleRate(rtlsdr_get_sample_rate(rtl_dev));
-        r |= 1;
-    }
 
     if(r != 0) {
 		return false;
@@ -403,24 +396,25 @@ void RTLSDR::TimerHit()
 void RTLSDR::grabData(unsigned char *buf, int n_read)
 {
     if(InCapture) {
+        n_read = min(to_read, n_read);
         continuum = PrimaryDetector.getContinuumBuffer();
         spectrum = PrimaryDetector.getSpectrumBuffer();
-        while(to_read > 0 && to_read > n_read) {
+        if(to_read > 0) {
             memcpy(continuum + b_read, buf, n_read);
             b_read += n_read;
+            to_read -= n_read;
         }
-        to_read -= n_read;
 
-        // Let INDI::Detector know we're done filling the data buffers
-        if(to_read < 0 || n_read == 0) {
+        LOG_INFO("Downloading...");
+
+        if(to_read <= 0) {
+            InCapture = false;
+            rtlsdr_cancel_async(rtl_dev);
+
             //Create the dspau stream
             dspau_stream_p stream = dspau_stream_new();
             dspau_stream_add_dim(stream, b_read);
             dspau_convert_from(continuum, stream->in, unsigned char, b_read);
-
-            //Create the continuum
-            stream->out = dspau_filter_squarelaw(stream);
-            dspau_convert_to(stream->out, continuum, unsigned char, b_read);
 
             //Create the spectrum
             stream->out = dspau_fft_spectrum(stream, magnitude_root, SPECTRUM_SIZE);
@@ -429,8 +423,6 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
             //Destroy the dspau stream
             dspau_stream_free(stream);
 
-            rtlsdr_cancel_async(rtl_dev);
-            InCapture = false;
             LOG_INFO("Download complete.");
             CaptureComplete(&PrimaryDetector);
         }

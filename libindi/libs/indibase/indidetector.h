@@ -315,12 +315,12 @@ class DetectorDevice
     INumber FramedCaptureN[1];
 
     INumberVectorProperty DetectorSettingsNP;
-    INumber DetectorSettingsN[4];
+    INumber DetectorSettingsN[6];
 
     ISwitchVectorProperty AbortCaptureSP;
     ISwitch AbortCaptureS[1];
 
-    IBLOB FitsB[3];
+    IBLOB FitsB[4];
     IBLOBVectorProperty FitsBP;
 
     friend class INDI::Detector;
