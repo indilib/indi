@@ -872,7 +872,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
                 fitsfile *fptr = nullptr;
 
                 naxes[0] = targetDevice->getContinuumBufferSize() * 8 / targetDevice->getBPS();
-        naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
+                naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
                 naxes[1] = 1;
 
                 switch (targetDevice->getBPS())
@@ -956,7 +956,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
             }
             else
             {
-                uploadFile(targetDevice, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize(), sendCapture,
+                uploadFile(targetDevice, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize() * 8 / targetDevice->getBPS(), sendCapture,
                        saveCapture, DetectorDevice::DETECTOR_BLOB_CONTINUUM);
             }
         }
@@ -978,7 +978,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
                 fitsfile *fptr = nullptr;
 
                 naxes[0] = targetDevice->getTimeDeviationBufferSize();
-        naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
+                naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
                 naxes[1] = 1;
 
                 byte_type = TBYTE;
@@ -1061,12 +1061,34 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
 
                 fitsfile *fptr = nullptr;
 
-                naxes[0] = targetDevice->getSpectrumBufferSize() / sizeof(double);
+                naxes[0] = targetDevice->getSpectrumBufferSize() * 8 / targetDevice->getBPS();
                 naxes[1] = 1;
 
-                byte_type = TDOUBLE;
-                img_type  = DOUBLE_IMG;
-                bit_depth = "64 bits per sample";
+                switch (targetDevice->getBPS())
+                {
+                case 8:
+                    byte_type = TBYTE;
+                    img_type  = BYTE_IMG;
+                    bit_depth = "8 bits per sample";
+                    break;
+
+                case 16:
+                    byte_type = TUSHORT;
+                    img_type  = USHORT_IMG;
+                    bit_depth = "16 bits per sample";
+                    break;
+
+                case 32:
+                    byte_type = TULONG;
+                    img_type  = ULONG_IMG;
+                    bit_depth = "32 bits per sample";
+                    break;
+
+                default:
+                    DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", targetDevice->getBPS());
+                    return false;
+                    break;
+                }
 
                 nelements = naxes[0] * naxes[1];
 
@@ -1118,7 +1140,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
             }
             else
             {
-                uploadFile(targetDevice, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize(), sendCapture,
+                uploadFile(targetDevice, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize() * 8 / targetDevice->getBPS(), sendCapture,
                        saveCapture, DetectorDevice::DETECTOR_BLOB_SPECTRUM);
             }
         }
