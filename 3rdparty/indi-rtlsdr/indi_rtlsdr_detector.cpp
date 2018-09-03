@@ -175,15 +175,12 @@ void ISSnoopDevice(XMLEle *root)
 
 RTLSDR::RTLSDR(uint32_t index)
 {
-	InCapture = false;
-
+    InCapture = false;
     detectorIndex = index;
 
     char name[MAXINDIDEVICE];
     snprintf(name, MAXINDIDEVICE, "%s %d", getDefaultName(), index);
     setDeviceName(name);
-	continuum = (uint8_t*)malloc(sizeof(uint8_t));
-    spectrum = (uint8_t *)malloc(sizeof(uint8_t));
 }
 
 /**************************************************************************************

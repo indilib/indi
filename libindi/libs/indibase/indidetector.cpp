@@ -71,7 +71,7 @@ DetectorDevice::DetectorDevice()
     ContinuumBufferSize = 0;
     TimeDeviationBuffer     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
     TimeDeviationBufferSize = 0;
-    SpectrumBuffer     = (uint8_t *)malloc(sizeof(double)); // Seed for realloc
+    SpectrumBuffer     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
     SpectrumBufferSize = 0;
 
     BPS         = 8;
@@ -316,9 +316,9 @@ bool Detector::initProperties()
     IUFillNumberVector(&PrimaryDetector.DetectorSettingsNP, PrimaryDetector.DetectorSettingsN, 5, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", CAPTURE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // PrimaryDetector Device Continuum Blob
-    IUFillBLOB(&PrimaryDetector.FitsB[0], "CONTINUUM", "Continuum", "");
-    IUFillBLOB(&PrimaryDetector.FitsB[1], "SPECTRUM", "Spectrum", "");
-    IUFillBLOB(&PrimaryDetector.FitsB[2], "TDEV", "TimeDeviation", "");
+    IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_CONTINUUM], "CONTINUUM", "Continuum", "");
+    IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_SPECTRUM], "SPECTRUM", "Spectrum", "");
+    IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_TDEV], "TDEV", "Time Deviation", "");
     IUFillBLOBVector(&PrimaryDetector.FitsBP, PrimaryDetector.FitsB, 3, getDeviceName(), "DETECTOR", "Capture Data", CAPTURE_INFO_TAB,
                      IP_RO, 60, IPS_IDLE);
 
