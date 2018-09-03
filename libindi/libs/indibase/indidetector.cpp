@@ -318,7 +318,8 @@ bool Detector::initProperties()
     // PrimaryDetector Device Continuum Blob
     IUFillBLOB(&PrimaryDetector.FitsB[0], "CONTINUUM", "Continuum", "");
     IUFillBLOB(&PrimaryDetector.FitsB[1], "SPECTRUM", "Spectrum", "");
-    IUFillBLOBVector(&PrimaryDetector.FitsBP, PrimaryDetector.FitsB, 2, getDeviceName(), "DETECTOR", "Capture Data", CAPTURE_INFO_TAB,
+    IUFillBLOB(&PrimaryDetector.FitsB[2], "TDEV", "TimeDeviation", "");
+    IUFillBLOBVector(&PrimaryDetector.FitsBP, PrimaryDetector.FitsB, 3, getDeviceName(), "DETECTOR", "Capture Data", CAPTURE_INFO_TAB,
                      IP_RO, 60, IPS_IDLE);
 
     /**********************************************/
@@ -1091,6 +1092,11 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
                 }
 
                 nelements = naxes[0] * naxes[1];
+                if (naxis == 3)
+                {
+                    nelements *= 3;
+                    naxes[2] = 3;
+                }
 
                 //  Now we have to send fits format data to the client
                 memsize = 5760;
@@ -1146,7 +1152,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
         }
 
         if (sendCapture)
-	    IDSetBLOB(&targetDevice->FitsBP, nullptr);
+        IDSetBLOB(&targetDevice->FitsBP, nullptr);
 
         DEBUG(Logger::DBG_DEBUG, "Upload complete");
     }
