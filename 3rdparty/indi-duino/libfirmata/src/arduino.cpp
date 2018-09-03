@@ -168,7 +168,6 @@ int Arduino::openPort(const char *_serialPort, int _baud)
     cfsetispeed(&term, baud);
     cfsetospeed(&term, baud);
     term.c_cflag |= (CLOCAL | CREAD | CS8);
-    term.c_iflag |= ICRNL;
 
     if (tcsetattr(fd, TCSAFLUSH, &term) < 0)
     {
