@@ -549,10 +549,8 @@ bool indiduino::Connect()
 {
     //This way it tries to connect using the Serial connection method with autosearch capability.
     this->serialConnection->Connect();
-    //Once done, the connection needs to be available for Firmata.
-    this->serialConnection->Disconnect();
 
-    sf = new Firmata(this->serialConnection->port(), this->serialConnection->baud());
+    sf = new Firmata(serialConnection->getPortFD());
     if (sf->portOpen)
     {
         IDLog("ARDUINO BOARD CONNECTED.\n");
@@ -563,6 +561,7 @@ bool indiduino::Connect()
             IDLog("FAIL TO MAP ARDUINO PINS. CHECK SKELETON FILE SINTAX\n");
             IDSetSwitch(getSwitch("CONNECTION"), "FAIL TO MAP ARDUINO PINS. CHECK SKELETON FILE SINTAX\n");
             delete sf;
+            this->serialConnection->Disconnect();
             return false;
         }
         else
@@ -576,14 +575,15 @@ bool indiduino::Connect()
         IDLog("ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
         IDSetSwitch(getSwitch("CONNECTION"), "ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
         delete sf;
+        this->serialConnection->Disconnect();
         return false;
     }
 }
 
 bool indiduino::Disconnect()
 {
-    sf->closePort();
     delete sf;
+    this->serialConnection->Disconnect();
     IDLog("ARDUINO BOARD DISCONNECTED.\n");
     IDSetSwitch(getSwitch("CONNECTION"), "DISCONNECTED\n");
     return true;

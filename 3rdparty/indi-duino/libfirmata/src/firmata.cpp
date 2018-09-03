@@ -32,6 +32,11 @@ Firmata::Firmata(const char *_serialPort, uint32_t baud)
     init(_serialPort, baud);
 }
 
+Firmata::Firmata(int fd)
+{
+    init(fd);
+}
+
 Firmata::~Firmata()
 {
     delete arduino;
@@ -234,7 +239,24 @@ int Firmata::init(const char *_serialPort, uint32_t baud)
             fprintf(stderr, "sf->openPort(%s) failed: exiting\n", _serialPort);
         return 1;
     }
+    return _init();
+}
 
+int Firmata::init(int fd)
+{
+    arduino  = new Arduino();
+    portOpen = 0;
+    if (arduino->openPort(fd) != 0)
+    {
+        if (debug)
+            fprintf(stderr, "sf->openPort(fd) failed: exiting\n");
+        return 1;
+    }
+    return _init();
+}
+
+int Firmata::_init()
+{
     askFirmwareVersion();
     usleep(1000);
     while (true)

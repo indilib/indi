@@ -204,8 +204,17 @@ int Arduino::openPort(const char *_serialPort, int _baud)
     return (0);
 }
 
+int Arduino::openPort(int _fd)
+{
+    strncpy(serialPort, "indi", sizeof(serialPort) - 1);
+    fd = _fd;
+    return 0;
+}
+
 int Arduino::closePort()
 {
+    if (strcmp(serialPort, "indi") == 0) return 0; // do not close port that we did not open
+
     int rv = 0;
     rv |= flushPort();
     if (fd < 0)
