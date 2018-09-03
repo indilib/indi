@@ -80,7 +80,7 @@ dspau_t dspau_astro_elevation(dspau_t Lat, dspau_t El)
 {
     Lat *= PI / 180.0;
     Lat = sin(Lat);
-    El += Lat * (HeartRadiusPolar - HeartRadiusEquatorial);
+    El += Lat * (EarthRadiusPolar - EarthRadiusEquatorial);
     return El;
 }
 
