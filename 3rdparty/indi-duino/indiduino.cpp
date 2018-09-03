@@ -274,7 +274,12 @@ bool indiduino::Handshake()
         return true;
     }
 
-    PortFD = serialConnection->getPortFD();
+    sf = new Firmata(serialConnection->getPortFD());
+    if (!sf->portOpen) {
+        delete sf;
+        sf = NULL;
+        return false;
+    }
 
     return true;
 }
@@ -550,9 +555,16 @@ bool indiduino::Connect()
     //This way it tries to connect using the Serial connection method with autosearch capability.
     this->serialConnection->Connect();
 
-    sf = new Firmata(serialConnection->getPortFD());
-    if (sf->portOpen)
+    if (sf)
     {
+        if (sf->initState() != 0)
+        {
+            IDLog("FAIL TO GET ARDUINO STATE\n");
+            IDSetSwitch(getSwitch("CONNECTION"), "FAIL TO GET ARDUINO STATE\n");
+            delete sf;
+            this->serialConnection->Disconnect();
+            return false;
+        }
         IDLog("ARDUINO BOARD CONNECTED.\n");
         IDLog("FIRMATA VERSION:%s\n", sf->firmata_name);
         IDSetSwitch(getSwitch("CONNECTION"), "CONNECTED.FIRMATA VERSION:%s\n", sf->firmata_name);
@@ -570,14 +582,7 @@ bool indiduino::Connect()
             return true;
         }
     }
-    else
-    {
-        IDLog("ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
-        IDSetSwitch(getSwitch("CONNECTION"), "ARDUINO BOARD FAIL TO CONNECT. CHECK PORT NAME\n");
-        delete sf;
-        this->serialConnection->Disconnect();
-        return false;
-    }
+    return false;
 }
 
 bool indiduino::Disconnect()

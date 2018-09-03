@@ -108,6 +108,7 @@ class Firmata
     int flushPort();
     //int getSysExData();
     int sendStringData(char *data);
+    int initState();
     pin_t pin_info[128];
     void print_state();
     char firmata_name[140];
@@ -136,6 +137,6 @@ class Firmata
     int digitalPortValue[ARDUINO_DIG_PORTS]; /// bitpacked digital pin state
     int init(const char *_serialPort, uint32_t baud);
     int init(int fd);
-    int _init();
+    int handshake();
     int sendValueAsTwo7bitBytes(int value);
 };

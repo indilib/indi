@@ -239,7 +239,7 @@ int Firmata::init(const char *_serialPort, uint32_t baud)
             fprintf(stderr, "sf->openPort(%s) failed: exiting\n", _serialPort);
         return 1;
     }
-    return _init();
+    return handshake();
 }
 
 int Firmata::init(int fd)
@@ -252,25 +252,28 @@ int Firmata::init(int fd)
             fprintf(stderr, "sf->openPort(fd) failed: exiting\n");
         return 1;
     }
-    return _init();
+    return handshake();
 }
 
-int Firmata::_init()
+int Firmata::handshake()
 {
-    askFirmwareVersion();
-    usleep(1000);
-    while (true)
+    firmata_name[0] = 0;
+
+    for (int i = 0; i < 500; i++) // 5s
     {
-        OnIdle();
-        if (strlen(firmata_name) > 0)
-        {
-            if (debug)
-                printf("FIRMATA ARDUINO BOARD:%s\n", firmata_name);
-            fflush(stdout);
-            portOpen = 1;
-            break;
-        }
+        if (i % 20 == 0) askFirmwareVersion(); // try again every 0.2s
+        OnIdle(); // wait 10ms
+        if (strlen(firmata_name) > 0) break;
     }
+
+    if (strlen(firmata_name) == 0) return 1;
+
+    portOpen = 1;
+    return 0;
+}
+
+int Firmata::initState()
+{
     askCapabilities();
     usleep(1000);
     OnIdle();
