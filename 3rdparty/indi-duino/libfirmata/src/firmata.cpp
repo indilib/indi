@@ -13,6 +13,7 @@
 
 #include <firmata.h>
 #include <string.h>
+#include <stdlib.h>
 
 int debug = 0;
 
@@ -280,6 +281,9 @@ int Firmata::handshake()
     }
 
     if (strlen(firmata_name) == 0) return 1;
+
+    char *requested_name = getenv("INDIDUINO_CHECK_FIRMWARE");
+    if (requested_name && strcmp(firmata_name, requested_name) != 0) return 1;
 
     portOpen = 1;
     return 0;
