@@ -287,6 +287,8 @@ int Firmata::handshake()
 
 int Firmata::initState()
 {
+    string_buffer[0] = 0;
+
     for (int i = 0; i < ARDUINO_DIG_PORTS; i++)
         digitalPortValue[i] = 0;
 

@@ -261,20 +261,21 @@ void indiduino::TimerHit()
         }
 
         //TEXT
-        //if (type == INDI_TEXT) {
-        //  ITextVectorProperty *tvp = getText(name);
+        if (type == INDI_TEXT)
+        {
+            ITextVectorProperty *tvp = getText(name);
 
-        //for (int i=0;i<tvp->ntp;i++) {
-        //    	IText *eqp = &tvp->tp[i];
-        //  		if (!eqp)
-        //    	    return;
+            for (int i=0;i<tvp->ntp;i++) {
+                IText *eqp = &tvp->tp[i];
+                if (!eqp)
+                    return;
 
-        //if (eqp->aux0 == nullptr) continue;
-        //			strcpy(eqp->text,(char*)eqp->aux0);
-        //IDLog("%s.%s TEXT: %s \n",tvp->name,eqp->name,eqp->text);
-        //	IDSetText(tvp, nullptr);
-        //	}
-        //	}
+                if (eqp->aux0 == nullptr) continue;
+                strcpy(eqp->text,(char*)eqp->aux0);
+                IDLog("%s.%s TEXT: %s \n",tvp->name,eqp->name,eqp->text);
+                IDSetText(tvp, nullptr);
+            }
+        }
     }
 
     SetTimer(POLLMS);
