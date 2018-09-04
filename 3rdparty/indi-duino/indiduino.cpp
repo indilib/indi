@@ -168,6 +168,60 @@ void indiduino::TimerHit()
             IDSetLight(lvp, nullptr);
         }
 
+        //read back DIGITAL OUTPUT values as reported by the board (FIRMATA_PIN_STATE_RESPONSE)
+        if (type == INDI_SWITCH)
+        {
+            int n_on = 0;
+            ISwitchVectorProperty *svp = getSwitch(name);
+            for (int i = 0; i < svp->nsp; i++)
+            {
+                ISwitch *sqp = &svp->sp[i];
+                if (!sqp)
+                    return;
+
+                IO *pin_config = (IO *)sqp->aux;
+                if (pin_config == nullptr)
+                    continue;
+                if (pin_config->IOType == DO)
+                {
+                    int pin = pin_config->pin;
+                    if (sf->pin_info[pin].mode == FIRMATA_MODE_OUTPUT)
+                    {
+                        if (sf->pin_info[pin].value == 1)
+                        {
+                            sqp->s = ISS_ON;
+                            n_on++;
+                        }
+                        else
+                        {
+                            sqp->s = ISS_OFF;
+                        }
+                    }
+                }
+            }
+            if (svp->r == ISR_1OFMANY) // make sure that 1 switch is on
+            {
+                for (int i = 0; i < svp->nsp; i++)
+                {
+                    ISwitch *sqp = &svp->sp[i];
+
+                    if ((IO *)sqp->aux != nullptr)
+                       continue;
+                    if (n_on > 0)
+                    {
+                        sqp->s = ISS_OFF;
+                    }
+                    else
+                    {
+                        sqp->s = ISS_ON;
+                        n_on++;
+                    }
+                }
+            }
+
+            IDSetSwitch(svp, nullptr);
+        }
+
         //ANALOG
         if (type == INDI_NUMBER)
         {
@@ -189,6 +243,16 @@ void indiduino::TimerHit()
                     if (sf->pin_info[pin].mode == FIRMATA_MODE_ANALOG)
                     {
                         eqp->value = pin_config->MulScale * (double)(sf->pin_info[pin].value) + pin_config->AddScale;
+                        //IDLog("%f\n",eqp->value);
+                        IDSetNumber(nvp, nullptr);
+                    }
+                }
+                if (pin_config->IOType == AO) // read back ANALOG OUTPUT values as reported by the board (FIRMATA_PIN_STATE_RESPONSE)
+                {
+                    int pin = pin_config->pin;
+                    if (sf->pin_info[pin].mode == FIRMATA_MODE_PWM)
+                    {
+                        eqp->value = ((double)(sf->pin_info[pin].value) - pin_config->AddScale) / pin_config->MulScale;
                         //IDLog("%f\n",eqp->value);
                         IDSetNumber(nvp, nullptr);
                     }
