@@ -691,9 +691,9 @@ void LX200StarGo::getBasicData()
     if (sendTimeOnStartup && (GetTelescopeCapability() & TELESCOPE_HAS_TIME))
         sendScopeTime();
 //FIXME collect othr fixed data here like Manufacturer, version etc...
-    
-    
-    
+    if (genericCapability & LX200_HAS_PULSE_GUIDING)
+        usePulseCommand = true;   
+   
 }
 
 /**************************************************************************************
@@ -1703,7 +1703,7 @@ bool LX200StarGo::GetMeridianFlipMode(int* index)
 IPState LX200StarGo::GuideNorth(uint32_t ms)
 {
     LOGF_DEBUG("%s %dms %d",__FUNCTION__, ms, usePulseCommand);
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1752,7 +1752,7 @@ IPState LX200StarGo::GuideNorth(uint32_t ms)
 IPState LX200StarGo::GuideSouth(uint32_t ms)
 {
     LOGF_DEBUG("%s %dms %d",__FUNCTION__, ms, usePulseCommand);
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1801,7 +1801,7 @@ IPState LX200StarGo::GuideSouth(uint32_t ms)
 IPState LX200StarGo::GuideEast(uint32_t ms)
 {
     LOGF_DEBUG("%s %dms %d",__FUNCTION__, ms, usePulseCommand);
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
@@ -1850,7 +1850,7 @@ IPState LX200StarGo::GuideEast(uint32_t ms)
 IPState LX200StarGo::GuideWest(uint32_t ms)
 {
     LOGF_DEBUG("%s %dms %d",__FUNCTION__, ms, usePulseCommand);
-    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
         LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
