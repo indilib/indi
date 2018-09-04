@@ -108,6 +108,7 @@ class Firmata
     int flushPort();
     //int getSysExData();
     int sendStringData(char *data);
+    int askPinStateWaitForReply(int pin);
     int initState();
     pin_t pin_info[128];
     void print_state();
@@ -122,6 +123,8 @@ class Firmata
     uint8_t parse_buf[4096];
     void Parse(const uint8_t *buf, int len);
     void DoMessage(void);
+    int have_analog_mapping;
+    int have_capabilities;
 
   protected:
     Arduino *arduino;
@@ -134,9 +137,10 @@ class Firmata
 
     vector<unsigned char> sysExBuf;
     char firmwareVersion[FIRMATA_FIRMWARE_VERSION_SIZE];
-    int digitalPortValue[ARDUINO_DIG_PORTS]; /// bitpacked digital pin state
+    uint8_t digitalPortValue[ARDUINO_DIG_PORTS]; /// bitpacked digital pin state
     int init(const char *_serialPort, uint32_t baud);
     int init(int fd);
     int handshake();
     int sendValueAsTwo7bitBytes(int value);
+    int updateDigitalPort(unsigned char pin, unsigned char mode); // mode can be ARDUINO_HIGH or ARDUINO_LOW
 };

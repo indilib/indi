@@ -42,27 +42,12 @@ Firmata::~Firmata()
     delete arduino;
 }
 
-int Firmata::writeDigitalPin(unsigned char pin, unsigned char mode)
+int Firmata::updateDigitalPort(unsigned char pin, unsigned char mode)
 {
-    int rv = 0;
-    int bit;
-    int port;
-    if (pin < 8 && pin > 1)
-    {
-        port = 0;
-        bit  = pin;
-    }
-    else if (pin > 7 && pin < 14)
-    {
-        port = 1;
-        bit  = pin - 8;
-    }
-    else if (pin > 15 && pin < 22)
-    {
-        port = 2;
-        bit  = pin - 16;
-    }
-    else
+    int bit = pin % 8;
+    int port = pin / 8;
+
+    if (port >= ARDUINO_DIG_PORTS)
     {
         return (-2);
     }
@@ -79,6 +64,18 @@ int Firmata::writeDigitalPin(unsigned char pin, unsigned char mode)
         perror("Firmata::writeDigitalPin():invalid mode:");
         return (-1);
     }
+    return port;
+}
+
+int Firmata::writeDigitalPin(unsigned char pin, unsigned char mode)
+{
+    int rv = 0;
+    int port;
+
+    port = updateDigitalPort(pin, mode);
+
+    if (port < 0) return port;
+
     rv |= arduino->sendUchar(FIRMATA_DIGITAL_MESSAGE + port);
     rv |= sendValueAsTwo7bitBytes(digitalPortValue[port]); //ARDUINO_HIGH OR ARDUINO_LOW
     return (rv);
@@ -88,7 +85,7 @@ int Firmata::writeDigitalPin(unsigned char pin, unsigned char mode)
 // therefore you need two data bytes to send 8-bits (a char).
 int Firmata::sendValueAsTwo7bitBytes(int value)
 {
-    int rv;
+    int rv = 0;
     rv |= arduino->sendUchar(value & 127);      // LSB
     rv |= arduino->sendUchar(value >> 7 & 127); // MSB
     return rv;
@@ -112,7 +109,7 @@ int Firmata::setPinMode(unsigned char pin, unsigned char mode)
     rv |= arduino->sendUchar(pin);
     rv |= arduino->sendUchar(mode);
     usleep(1000);
-    askPinState(pin);
+    rv |= askPinStateWaitForReply(pin);
     return (rv);
 }
 
@@ -229,6 +226,22 @@ int Firmata::sendStringData(char *data)
     return (rv);
 }
 
+int Firmata::askPinStateWaitForReply(int pin)
+{
+    OnIdle();
+    pin_info[pin].mode = 0xff;
+    for (int i = 0; i < 100; i++) { // 1s
+        if (i % 10 == 0) askPinState(pin); // try again every 0.1 second
+        OnIdle(); // 10ms
+        if (pin_info[pin].mode != 0xff) break;
+    }
+    if (pin_info[pin].mode == 0xff) {
+        pin_info[pin].mode = FIRMATA_MODE_INPUT;
+        return -1;
+    }
+    return 0;
+}
+
 int Firmata::init(const char *_serialPort, uint32_t baud)
 {
     arduino  = new Arduino();
@@ -274,16 +287,27 @@ int Firmata::handshake()
 
 int Firmata::initState()
 {
-    askCapabilities();
-    usleep(1000);
-    OnIdle();
-    mapAnalogChannels();
-    usleep(1000);
-    OnIdle();
-    for (int pin = 0; pin < 20; pin++)
-    {
-        askPinState(pin);
+    for (int i = 0; i < ARDUINO_DIG_PORTS; i++)
+        digitalPortValue[i] = 0;
+
+    for (int i = 0; i < 100; i++) {
+        if (i % 20 == 0) askCapabilities(); // try again every 0.2s
+        OnIdle(); // 10ms
+        if (have_capabilities) break;
     }
+
+    for (int i = 0; i < 100; i++) {
+        if (i % 20 == 0) mapAnalogChannels(); // try again every 0.2s
+        OnIdle(); // 10ms
+        if (have_analog_mapping) break;
+    }
+
+    for (int pin = 0; pin < 128; pin++)
+    {
+        if (pin_info[pin].supported_modes == 0) continue;
+        askPinStateWaitForReply(pin);
+    }
+
     return 0;
 }
 
@@ -403,7 +427,7 @@ void Firmata::DoMessage(void)
             {
                 pin_info[pin].supported_modes = 0;
             }
-            for (i = 2, n = 0, pin = 0; i < parse_count; i++)
+            for (i = 2, n = 0, pin = 0; i < parse_count - 1; i++)
             {
                 if (parse_buf[i] == 127)
                 {
@@ -420,6 +444,7 @@ void Firmata::DoMessage(void)
                 }
                 n = n ^ 1;
             }
+            have_capabilities = 1;
         }
         else if (parse_buf[1] == FIRMATA_ANALOG_MAPPING_RESPONSE)
         {
@@ -429,6 +454,11 @@ void Firmata::DoMessage(void)
                 pin_info[pin].analog_channel = parse_buf[i];
                 pin++;
             }
+            for (; pin < 128; pin++)
+            {
+                pin_info[pin].analog_channel = 127;
+            }
+            have_analog_mapping = 1;
             return;
         }
         else if (parse_buf[1] == FIRMATA_PIN_STATE_RESPONSE && parse_count >= 6)
@@ -442,6 +472,8 @@ void Firmata::DoMessage(void)
                 pin_info[pin].value |= (parse_buf[6] << 14);
             if (debug)
                 printf("PIN:%u. Mode:%u. Value:%llu\n", pin, pin_info[pin].mode, static_cast<unsigned long long>(pin_info[pin].value));
+            if (pin_info[pin].mode == FIRMATA_MODE_OUTPUT)
+                updateDigitalPort(pin, pin_info[pin].value ? ARDUINO_HIGH : ARDUINO_LOW);
         }
         else if (parse_buf[1] == FIRMATA_STRING_DATA)
         {
@@ -485,7 +517,7 @@ void Firmata::DoMessage(void)
             if ((parse_count - 3) > 8)
                 printf("I2C_REPLY max precision uint64_bit (8 bytes)");
             int slaveAddress = (parse_buf[2] & 0x7F);
-            slaveAddress     = (slaveAddress << 7) || (parse_buf[3] & 0x7F);
+            slaveAddress     = (slaveAddress << 7) | (parse_buf[3] & 0x7F);
             long i2c_val     = (parse_buf[4] & 0x7F);
             for (int i = 4; i < parse_count - 1; i++)
             {
@@ -530,4 +562,5 @@ int Firmata::OnIdle()
     {
         return r;
     }
+    return 0;
 }
