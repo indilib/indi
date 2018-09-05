@@ -51,7 +51,7 @@ static void complex2magsqrt(fftw_complex* in, dspau_t* out, int len)
 {
 	int i;
 	for(i = 0; i < len; i++) {
-		out [i] = sqrt (complex_mag(in [i]));
+        out [i] = sqrt (complex_mag(in [i]));
 	}
 }
 
@@ -87,39 +87,40 @@ static void complex2phirad(fftw_complex* in, dspau_t* out, int len)
 
 dspau_t* dspau_fft_spectrum(dspau_stream_p stream, int conversion, int size)
 {
-    stream->out = dspau_fft_dft(stream, -1, conversion);
-    return dspau_buffer_histogram(stream->out, stream->len, size);
+    dspau_t* out = dspau_fft_dft(stream, -1, conversion);
+    return dspau_buffer_histogram(out, stream->len, size);
 }
 
 dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion)
 {
+    dspau_t* out = (dspau_t*)calloc(sizeof(dspau_t), stream->len);
     fftw_plan p;
     fftw_complex *fft_in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * stream->len);
     fftw_complex *fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * stream->len);
     for(int i = 0; i < stream->len; i++) {
         fft_in[i][0] = stream->in[i];
-        fft_in[i][1] = stream->in[i];
+        fft_in[i][1] = 0;
 	}
     p = fftw_plan_dft(stream->dims, stream->sizes, fft_in, fft_out, sign, FFTW_ESTIMATE);
     fftw_execute(p);
 	switch (conversion) {
 	case magnitude:
-        complex2mag(fft_out, stream->out, stream->len);
+        complex2mag(fft_out, out, stream->len);
 		break;
 	case magnitude_dbv:
-        complex2magdbv(fft_out, stream->out, stream->len);
+        complex2magdbv(fft_out, out, stream->len);
 		break;
     case magnitude_root:
-        complex2magsqrt(fft_out, stream->out, stream->len);
+        complex2magsqrt(fft_out, out, stream->len);
 		break;
     case magnitude_square:
-        complex2magpow(fft_out, stream->out, stream->len);
+        complex2magpow(fft_out, out, stream->len);
 		break;
 	case phase_degrees:
-        complex2phideg(fft_out, stream->out, stream->len);
+        complex2phideg(fft_out, out, stream->len);
 		break;
 	case phase_radians:
-        complex2phirad(fft_out, stream->out, stream->len);
+        complex2phirad(fft_out, out, stream->len);
 		break;
     default:
 		break;
@@ -127,6 +128,6 @@ dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion)
 	fftw_destroy_plan(p);
 	fftw_free(fft_in);
     fftw_free(fft_out);
-    return stream->out;
+    return out;
 }
 
