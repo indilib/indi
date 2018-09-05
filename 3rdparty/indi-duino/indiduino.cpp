@@ -278,6 +278,19 @@ void indiduino::TimerHit()
         }
     }
 
+    time_t sec_since_reply = sf->secondsSinceVersionReply();
+    if (sec_since_reply > 30)
+    {
+        IDLog("No reply from the device for 30 sec, disconnecting\n");
+        setConnected(false, IPS_ALERT);
+        Disconnect();
+        return;
+    }
+    if (sec_since_reply > 10)
+    {
+        sf->askFirmwareVersion();
+    }
+
     SetTimer(POLLMS);
 }
 

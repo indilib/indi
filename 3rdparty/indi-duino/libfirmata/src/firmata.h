@@ -110,6 +110,7 @@ class Firmata
     int sendStringData(char *data);
     int askPinStateWaitForReply(int pin);
     int initState();
+    time_t secondsSinceVersionReply();
     pin_t pin_info[128];
     void print_state();
     char firmata_name[140];
@@ -125,6 +126,7 @@ class Firmata
     void DoMessage(void);
     int have_analog_mapping;
     int have_capabilities;
+    time_t version_reply_time;
 
   protected:
     Arduino *arduino;

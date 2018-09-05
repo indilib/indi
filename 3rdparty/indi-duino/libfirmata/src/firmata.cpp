@@ -423,7 +423,14 @@ void Firmata::DoMessage(void)
             name[len++] = '.';
             name[len++] = parse_buf[3] + '0';
             name[len++] = 0;
-            strcpy(firmata_name, name);
+            if (strlen(firmata_name) == 0) {
+                strcpy(firmata_name, name);
+                time(&version_reply_time);
+            }
+            else
+                if (strcmp(firmata_name, name) == 0) // use repeated firmware reports to check connection, the string is expected to stay unchanged
+                    time(&version_reply_time);       // record the time of last correct reply
+
             //if (debug) printf("FIRMWARE:%s\n",firmata_name);
         }
         else if (parse_buf[1] == FIRMATA_CAPABILITY_RESPONSE)
@@ -569,4 +576,11 @@ int Firmata::OnIdle()
         return r;
     }
     return 0;
+}
+
+time_t Firmata::secondsSinceVersionReply()
+{
+    time_t now;
+    time(&now);
+    return now - version_reply_time;
 }
