@@ -37,15 +37,16 @@ dspau_t* dspau_buffer_removemean(dspau_t* in, int len)
 
 dspau_t* dspau_buffer_stretch(dspau_t* in, int len, dspau_t min, dspau_t max)
 {
+    dspau_t *out = calloc(len, sizeof(dspau_t));
     int k;
     dspau_t mn, mx;
     dspau_stats_minmidmax(in, len, &mn, &mx);
 	for(k = 0; k < len; k++) {
-        in[k] = in[k] - mn;
-        in[k] = in[k] * ((max - min) / (mx - mn + 1));
-        in[k] += min;
+        out[k] = in[k] - mn;
+        out[k] = out[k] * ((max - min) / (mx - mn + 1));
+        out[k] += min;
     }
-    return in;
+    return out;
 }
 
 dspau_t* dspau_buffer_normalize(dspau_t* in, int len, dspau_t min, dspau_t max)
@@ -197,12 +198,10 @@ dspau_t* dspau_buffer_histogram(dspau_t* in, int len, int size)
 {
     dspau_t *out = calloc(size, sizeof(dspau_t));
     int k;
-    dspau_t *tmp = dspau_buffer_stretch(in, len, 0, size);
     for(k = 0; k < size; k++) {
-        out[k] = dspau_stats_val_count(tmp, len, k, 0);
+        out[k] = dspau_stats_val_count(in, len, k, 0);
     }
-    free (tmp);
-    return out;
+    return dspau_buffer_stretch(out, size, 0, size);
 }
 
 dspau_t* dspau_buffer_deviate(dspau_t* in1, int len1, dspau_t* in2, int len2, dspau_t mindeviation, dspau_t maxdeviation)

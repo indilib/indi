@@ -22,7 +22,19 @@
 struct timespec dspau_astro_nsectotimespec(dspau_t nsecs)
 {
     struct timespec ret;
-    ret.tv_sec = nsecs / 1000000000.0;
+    struct tm j2000_tm;
+    time_t j2000;
+    j2000_tm.tm_sec = 0;
+    j2000_tm.tm_min = 0;
+    j2000_tm.tm_hour = 12;
+    j2000_tm.tm_mday = 1;
+    j2000_tm.tm_mon = 0;
+    j2000_tm.tm_year = 100;
+    j2000_tm.tm_wday = 6;
+    j2000_tm.tm_yday = 0;
+    j2000_tm.tm_isdst = 0;
+    j2000 = mktime(&j2000_tm);
+    ret.tv_sec = nsecs / 1000000000.0 + j2000;
     ret.tv_nsec = ((long)nsecs) % 1000000000;
     return ret;
 }
