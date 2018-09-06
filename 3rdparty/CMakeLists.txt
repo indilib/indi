@@ -283,34 +283,34 @@ if (WITH_MGEN)
 add_subdirectory(indi-mgen)
 endif (WITH_MGEN)
 
-## RTL-SDR
-if (WITH_RTLSDR)
+## DETECTORS
+
+if (WITH_RTLSDR OR WITH_LIMESDR)
 find_package(DSPAU)
 if (DSPAU_FOUND)
-add_subdirectory(indi-rtlsdr)
-else (DSPAU_FOUND)
-add_subdirectory(libdspau)
-SET(LIBRARIES_FOUND FALSE)
-endif (DSPAU_FOUND)
-endif (WITH_RTLSDR)
 
+## RTL-SDR
+if (WITH_RTLSDR)
+add_subdirectory(indi-rtlsdr)
+endif (WITH_RTLSDR)
 
 ## LIME-SDR
 if (WITH_LIMESDR)
-find_package(DSPAU)
 find_package(LIMESUITE)
-if (DSPAU_FOUND)
 if (LIMESUITE_FOUND)
 add_subdirectory(indi-limesdr)
 else (LIMESUITE_FOUND)
 add_subdirectory(libLimeSuite)
 SET(LIBRARIES_FOUND FALSE)
 endif (LIMESUITE_FOUND)
+endif (WITH_LIMESDR)
+
 else (DSPAU_FOUND)
 add_subdirectory(libdspau)
 SET(LIBRARIES_FOUND FALSE)
 endif (DSPAU_FOUND)
-endif (WITH_LIMESDR)
+
+endif (WITH_RTLSDR OR WITH_LIMESDR)
 
 # RadioSim
 if (WITH_RADIOSIM)
@@ -370,17 +370,15 @@ if (WITH_FISHCAMP AND NOT FISHCAMP_FOUND)
 message(STATUS "libfishcamp was not found and will now be built. Please install libfishcamp first before running cmake again to install indi-fishcamp.")
 endif (WITH_FISHCAMP AND NOT FISHCAMP_FOUND)
 
-if (WITH_LIMESDR AND NOT DSPAU_FOUND)
-message(STATUS "libdspau was not found and will now be built. Please install libdspau first before running cmake again to install indi-rtlsdr.")
-endif (WITH_LIMESDR AND NOT DSPAU_FOUND)
+if (WITH_LIMESDR OR WITH_RTLSDR)
+if (NOT DSPAU_FOUND)
+message(STATUS "libdspau was not found and will now be built. Please install libdspau first before running cmake again to install indi-rtlsdr and indi-limesdr.")
+endif (NOT DSPAU_FOUND)
+endif (WITH_LIMESDR OR WITH_RTLSDR)
 
 if (WITH_LIMESDR AND NOT LIMESUITE_FOUND)
 message(STATUS "libLimeSuite was not found and will now be built. Please install libLimeSuite first before running cmake again to install indi-limesdr.")
 endif (WITH_LIMESDR AND NOT LIMESUITE_FOUND)
-
-if (WITH_RTLSDR AND NOT DSPAU_FOUND)
-message(STATUS "libdspau was not found and will now be built. Please install libdspau first before running cmake again to install indi-rtlsdr.")
-endif (WITH_RTLSDR AND NOT DSPAU_FOUND)
 
 message(STATUS "####################################################################################################################################")
 endif (LIBRARIES_FOUND)
