@@ -119,25 +119,18 @@ class Firmata
     bool portOpen;
 
   private:
-    int parse_count;
-    int parse_command_len;
+    int parse_count { 0 };
+    int parse_command_len { 0 };
     uint8_t parse_buf[4096];
     void Parse(const uint8_t *buf, int len);
     void DoMessage(void);
-    int have_analog_mapping;
-    int have_capabilities;
-    time_t version_reply_time;
+    int have_analog_mapping { 0 };
+    int have_capabilities { 0 };
+    time_t version_reply_time { 0 };
 
   protected:
     Arduino *arduino;
 
-    int waitForData;
-    int executeMultiByteCommand;
-    int multiByteChannel;
-    unsigned char serialInBuf[FIRMATA_MAX_DATA_BYTES];
-    unsigned char serialOutBuf[FIRMATA_MAX_DATA_BYTES];
-
-    vector<unsigned char> sysExBuf;
     char firmwareVersion[FIRMATA_FIRMWARE_VERSION_SIZE];
     uint8_t digitalPortValue[ARDUINO_DIG_PORTS]; /// bitpacked digital pin state
     int init(const char *_serialPort, uint32_t baud);

@@ -215,11 +215,9 @@ int Firmata::sendStringData(char *data)
 {
     //TODO Testting
     int rv = 0;
-    int i;
-    char c;
     rv |= arduino->sendUchar(FIRMATA_START_SYSEX);
     rv |= arduino->sendUchar(FIRMATA_STRING_DATA);
-    for (int i = 0; i < strlen(data); i++)
+    for (unsigned int i = 0; i < strlen(data); i++)
     {
         rv |= sendValueAsTwo7bitBytes(data[i]);
     }
