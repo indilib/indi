@@ -175,15 +175,12 @@ void ISSnoopDevice(XMLEle *root)
 
 RTLSDR::RTLSDR(uint32_t index)
 {
-	InCapture = false;
-
+    InCapture = false;
     detectorIndex = index;
 
     char name[MAXINDIDEVICE];
     snprintf(name, MAXINDIDEVICE, "%s %d", getDefaultName(), index);
     setDeviceName(name);
-	continuum = (uint8_t*)malloc(sizeof(uint8_t));
-    spectrum = (uint8_t *)malloc(sizeof(uint8_t));
 }
 
 /**************************************************************************************
@@ -243,7 +240,7 @@ bool RTLSDR::initProperties()
     PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.001, 10, 1, false);
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1, 1, 0, false);
-	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 8, 8, 1, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 8, 8, 1, false);
     PrimaryDetector.setCaptureExtension("fits");
 
 	// Add Debug, Simulator, and Configuration controls
@@ -318,6 +315,8 @@ bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps, float bw, flo
 {
     INDI_UNUSED(bw);
     INDI_UNUSED(bps);
+    PrimaryDetector.setBandwidth(0);
+    PrimaryDetector.setBPS(8);
 	int r = 0;
 
     r |= rtlsdr_set_agc_mode(rtl_dev, 0);
@@ -329,7 +328,7 @@ bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps, float bw, flo
     r |= rtlsdr_set_sample_rate(rtl_dev, (uint32_t)sr);
 
     if(r != 0) {
-		return false;
+        LOG_INFO("Error(s) setting parameters.");
     }
 
     return true;
