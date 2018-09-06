@@ -6,7 +6,7 @@
 SRC=../../3rdparty/
 
 if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
-    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau"
+    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau libLimeSuite"
 else 
     LIBS="libapogee libqsi"
 fi
