@@ -237,9 +237,11 @@ bool RTLSDR::initProperties()
 	uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
 	SetDetectorCapability(cap);
 
-    PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.001, 10, 1, false);
-	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
-	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1, 1, 0, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.001, 86164.092, 0.001, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1.0e+6, 2.0e+6, 1, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_GAIN", 0.0, 25.0, 0.1, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BANDWIDTH", 0, 0, 0, false);
     PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 8, 8, 1, false);
     PrimaryDetector.setCaptureExtension("fits");
 
@@ -278,7 +280,7 @@ bool RTLSDR::updateProperties()
 void RTLSDR::setupParams()
 {
 	// Our Detector is an 8 bit Detector, 100MHz frequency 1MHz bandwidth.
-    SetDetectorParams(2000000.0, 100000000.0, 8, 10000.0, 100.0);
+    SetDetectorParams(2000000.0, 100000000.0, 8, 0.0, 25.0);
 }
 
 /**************************************************************************************
@@ -301,6 +303,7 @@ bool RTLSDR::StartCapture(float duration)
         gettimeofday(&CapStart, nullptr);
         InCapture = true;
         rtlsdr_read_async(rtl_dev, callback, this, 1, min(MAX_FRAME_SIZE, to_read));
+        LOG_INFO("Capture started...");
         return true;
     }
 
@@ -339,8 +342,11 @@ bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps, float bw, flo
 ***************************************************************************************/
 bool RTLSDR::AbortCapture()
 {
-	InCapture = false;
-	return true;
+    if(InCapture) {
+        InCapture = false;
+        rtlsdr_cancel_async(rtl_dev);
+    }
+    return true;
 }
 
 /**************************************************************************************
@@ -404,9 +410,8 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
             to_read -= n_read;
         }
 
-        LOG_INFO("Downloading...");
-
         if(to_read <= 0) {
+            LOG_INFO("Downloading...");
             InCapture = false;
             rtlsdr_cancel_async(rtl_dev);
 
@@ -416,7 +421,7 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
             dspau_convert_from(continuum, stream->in, unsigned char, b_read);
 
             //Create the spectrum
-            stream->out = dspau_fft_spectrum(stream, magnitude_root, SPECTRUM_SIZE);
+            stream->out = dspau_fft_spectrum(stream, magnitude_dbv, SPECTRUM_SIZE);
             dspau_convert_to(stream->out, spectrum, unsigned char, SPECTRUM_SIZE);
 
             //Destroy the dspau stream
