@@ -606,6 +606,10 @@ static void *stop_bulb(void *arg)
             {
                 //shut off bulb mode
                 DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing shutter");
+                if (gphoto->dsusb)
+                {
+                    gphoto->dsusb->closeShutter();
+                }
                 if (gphoto->bulb_widget)
                 {
                     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using widget:%s", gphoto->bulb_widget->name);
@@ -618,10 +622,6 @@ static void *stop_bulb(void *arg)
                     {
                         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
                     }
-                }
-                else if (gphoto->dsusb)
-                {
-                    gphoto->dsusb->closeShutter();
                 }
                 else
                 {
@@ -1195,7 +1195,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         return -1;
 
     // If bulb port is specified, a serial shutter control is required to start the exposure. Treat this as a bulb exposure.
-    if (gphoto->bulb_port[0])
+    if (gphoto->bulb_port[0] && !gphoto->dsusb)
     {
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Opening remote serial shutter port: %s ...", gphoto->bulb_port);
         gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);

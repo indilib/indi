@@ -90,23 +90,22 @@ dspau_t* dspau_interferometry_uv_coords(dspau_stream_p stream) {
     int num_baselines = ((1 + stream->child_count) * stream->child_count) / 2;
     dspau_t *baselines = dspau_interferometry_calc_baselines(stream);
     dspau_t tao = (1.0 / stream->samplerate);
-    dspau_t freq = (LightSpeed / stream->lambda);
-    tao /= freq;
     tao *= 1000000000.0;
-    dspau_t current_time = stream->starttimeutc.tv_sec * 1000000000.0 + stream->starttimeutc.tv_nsec;
-    for(int i = 0; i < stream->len; i++) {
-        current_time = i * tao;
-        struct timespec utcthen = dspau_astro_nsectotimespec(current_time);
-        dspau_t j2000offset = dspau_astro_secs_since_J2000(utcthen);
-        dspau_t lst = dspau_astro_lst(j2000offset, 0);
+    dspau_t start_time = dspau_astro_secs_since_J2000(stream->starttimeutc);
+    start_time *= 1000000000.0;
+    dspau_t current_time = start_time;
+    dspau_t end_time = start_time + tao * stream->len;
+    for(current_time = start_time; current_time < end_time; current_time+=tao) {
+        dspau_t lst = dspau_astro_lst(current_time, 0);
         dspau_t HA = dspau_astro_ra2ha(stream->target[0], lst);
         for(int l = 0; l < num_baselines; l++) {
-            dspau_t* uvcoords = dspau_interferometry_uv_location(HA * i / stream->len, stream->target[1], baselines + l * 3);
+            dspau_t* uvcoords = dspau_interferometry_uv_location(HA, stream->target[1], (dspau_t*)(baselines + l * 3 * sizeof(dspau_t)));
             for(int d = 0; d < 2; d++) {
                 uvcoords[d] /= stream->lambda;
             }
-            uv[(int)(uvcoords[0] + uvcoords[1] * stream->len)] = i;
+            uv[(int)(uvcoords[0] + uvcoords[1] * stream->len)] = 0;
         }
+        current_time += tao;
     }
     return uv;
 }

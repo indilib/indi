@@ -44,5 +44,5 @@ set_target_properties(dspau PROPERTIES VERSION 1.0.1 SOVERSION 1)
 target_link_libraries(dspau ${M_LIB} ${CMAKE_THREAD_LIBS_INIT} ${FFTW3_LIBRARIES})
 
 #add an install target here
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/libdspau.h DESTINATION include)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/libdspau.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(TARGETS dspau LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

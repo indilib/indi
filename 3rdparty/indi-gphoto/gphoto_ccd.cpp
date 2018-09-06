@@ -148,11 +148,11 @@ void ISInit()
 
                             // If if the model was already registered for a prior camera in case we are using
                             // two identical models
-                            if (std::find(cameraNames.begin(), cameraNames.end(), camInfos[j].model) != cameraNames.end())
+                            if (std::find(cameraNames.begin(), cameraNames.end(), camInfos[j].model) == cameraNames.end())
                                 snprintf(name, MAXINDIDEVICE, "%s %s", prefix, model + strlen(camInfos[j].model) + 1);
                             else
                                 snprintf(name, MAXINDIDEVICE, "%s %s %d", prefix, model + strlen(camInfos[j].model) + 1,
-                                         static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), camInfos[j].model)));
+                                         static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), camInfos[j].model))+1);
                             cameras[cameraCount] = new GPhotoCCD(model, port);
                             cameras[cameraCount]->setDeviceName(name);
                             cameraCount++;
@@ -1229,8 +1229,26 @@ void GPhotoCCD::TimerHit()
 
                 if (isTemperatureSupported)
                 {
-                    TemperatureN[0].value = (double)gphoto_get_last_sensor_temperature(gphotodrv);
-                    IDSetNumber(&TemperatureNP, nullptr);
+                    double cameraTemperature = static_cast<double>(gphoto_get_last_sensor_temperature(gphotodrv));
+                    if (cameraTemperature != TemperatureN[0].value)
+                    {
+                        // Check if we are getting bogus temperature values and set property to alert
+                        // unless it is already set
+                        if (cameraTemperature < MINUMUM_CAMERA_TEMPERATURE)
+                        {
+                            if (TemperatureNP.s != IPS_ALERT)
+                            {
+                                TemperatureNP.s = IPS_ALERT;
+                                IDSetNumber(&TemperatureNP, nullptr);
+                            }
+                        }
+                        else
+                        {
+                            TemperatureNP.s = IPS_OK;
+                            TemperatureN[0].value = cameraTemperature;
+                            IDSetNumber(&TemperatureNP, nullptr);
+                        }
+                    }
                 }
             }
         }

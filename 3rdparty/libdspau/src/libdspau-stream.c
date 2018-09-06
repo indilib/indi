@@ -30,19 +30,9 @@ dspau_t* dspau_stream_set_input_buffer_len(dspau_stream_p stream, int len)
     if(stream->in!=NULL) {
         stream->in = (dspau_t*)realloc(stream->in, sizeof(dspau_t) * len);
     } else {
-        stream->in = (dspau_t*)calloc(sizeof(dspau_t), len);
+        stream->in = (dspau_t*)malloc(sizeof(dspau_t) * len);
     }
     return stream->in;
-}
-
-dspau_t* dspau_stream_set_output_buffer_len(dspau_stream_p stream, int len)
-{
-    if(stream->out!=NULL) {
-        stream->out = (dspau_t*)realloc(stream->out, sizeof(dspau_t) * len);
-    } else {
-        stream->out = (dspau_t*)calloc(sizeof(dspau_t), len);
-    }
-    return stream->out;
 }
 
 dspau_t* dspau_stream_set_input_buffer(dspau_stream_p stream, void *buffer, int len)
@@ -86,27 +76,36 @@ void dspau_stream_free_output_buffer(dspau_stream_p stream)
 dspau_stream_p dspau_stream_new()
 {
     dspau_stream_p stream = (dspau_stream_p)calloc(sizeof(dspau_stream), 1);
-    stream->out = (dspau_t*)calloc(sizeof(dspau_t), 1);
-    stream->in = (dspau_t*)calloc(sizeof(dspau_t), 1);
-    stream->sizes = (int*)calloc(sizeof(int), 1);
-    stream->pos = (int*)calloc(sizeof(int), 1);
-    stream->children = (dspau_stream_p*)calloc(sizeof(dspau_stream), 1);
+    stream->out = (dspau_t*)malloc(sizeof(dspau_t) * 1);
+    stream->in = (dspau_t*)malloc(sizeof(dspau_t) * 1);
+    stream->location = (dspau_t*)malloc(sizeof(dspau_t) * 3);
+    stream->target = (dspau_t*)malloc(sizeof(dspau_t) * 3);
+    stream->sizes = (int*)malloc(sizeof(int) * 1);
+    stream->pos = (int*)malloc(sizeof(int) * 1);
+    stream->children = (dspau_stream_p*)malloc(sizeof(dspau_stream));
     stream->child_count = 0;
     stream->parent = NULL;
     stream->dims = 0;
     stream->len = 1;
     stream->index = 0;
+    stream->lambda = 0;
+    stream->samplerate = 0;
     return stream;
 }
 
 dspau_stream_p dspau_stream_copy(dspau_stream_p stream)
 {
     dspau_stream_p dest = dspau_stream_new();
-    for(int dim = 0; dim < stream->dims; dim++) {
-        dspau_stream_add_dim(dest, stream->sizes[dim]);
-    }
-    memcpy(dest->in, stream->in, stream->len * sizeof(dspau_t));
-    memcpy(dest->out, stream->out, stream->len * sizeof(dspau_t));
+    for(int i = 0; i < stream->dims; i++)
+       dspau_stream_add_dim(dest, stream->sizes[i]);
+    dest->lambda = stream->lambda;
+    dest->samplerate = stream->samplerate;
+    dest->starttimeutc.tv_nsec = stream->starttimeutc.tv_nsec;
+    dest->starttimeutc.tv_sec = stream->starttimeutc.tv_sec;
+    memcpy(dest->location, stream->location, sizeof(dspau_t) * 3);
+    memcpy(dest->target, stream->target, sizeof(dspau_t) * 3);
+    memcpy(dest->in, stream->in, sizeof(dspau_t) * stream->len);
+    memcpy(dest->out, stream->out, sizeof(dspau_t) * stream->len);
     return dest;
 }
 
@@ -117,8 +116,8 @@ void dspau_stream_add_dim(dspau_stream_p stream, int size)
     stream->sizes = (int*)realloc(stream->sizes, sizeof(int) * (stream->dims + 1));
     stream->pos = (int*)realloc(stream->pos, sizeof(int) * (stream->dims + 1));
     stream->len *= size;
-    dspau_stream_set_output_buffer_len(stream, stream->len);
-    dspau_stream_set_input_buffer_len(stream, stream->len);
+    stream->in = (dspau_t*)realloc(stream->in, sizeof(dspau_t) * stream->len);
+    stream->out = (dspau_t*)realloc(stream->out, sizeof(dspau_t) * stream->len);
 }
 
 void dspau_stream_add_child(dspau_stream_p stream, dspau_stream_p child)
@@ -132,18 +131,7 @@ void dspau_stream_add_child(dspau_stream_p stream, dspau_stream_p child)
 
 void dspau_stream_free(dspau_stream_p stream)
 {
-    if(stream->in != NULL) {
-        free(stream->sizes);
-        stream->sizes = NULL;
-    }
-    if(stream->in != NULL) {
-        free(stream->pos);
-        stream->pos = NULL;
-    }
-    if(stream != NULL) {
-        free(stream);
-        stream = NULL;
-    }
+    stream = NULL;
 }
 
 int dspau_stream_byte_size(dspau_stream_p stream)

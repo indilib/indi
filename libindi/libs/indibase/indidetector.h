@@ -44,6 +44,8 @@ class DetectorDevice
         DETECTOR_SAMPLERATE,
         DETECTOR_FREQUENCY,
         DETECTOR_BITSPERSAMPLE,
+        DETECTOR_GAIN,
+        DETECTOR_BANDWIDTH,
     } DETECTOR_INFO_INDEX;
 
     typedef enum {
@@ -83,13 +85,25 @@ class DetectorDevice
     inline double getCaptureLeft() { return FramedCaptureN[0].value; }
 
     /**
-     * @brief getSampleRate Get requested SampleRate for the Detector device in Hz.
-     * @return requested SampleRate for the Detector device in Hz.
+     * @brief getSampleRate Get requested sample rate for the Detector device in Hz.
+     * @return requested sample rate for the Detector device in Hz.
      */
-    inline double getSampleRate() { return samplerate; }
+    inline double getSampleRate() { return Samplerate; }
 
     /**
-     * @brief getSamplingFrequency Get requested Capture frequency for the Detector device in Hz.
+     * @brief getBandwidth Get requested capture bandwidth for the Detector device in Hz.
+     * @return requested capture bandwidth for the Detector device in Hz.
+     */
+    inline double getBandwidth() { return Bandwidth; }
+
+    /**
+     * @brief getGain Get requested capture gain for the Detector device.
+     * @return requested capture gain for the Detector device.
+     */
+    inline double getGain() { return Gain; }
+
+    /**
+     * @brief getFrequency Get requested capture frequency for the Detector device in Hz.
      * @return requested Capture frequency for the Detector device in Hz.
      */
     inline double getFrequency() { return Frequency; }
@@ -208,8 +222,20 @@ class DetectorDevice
     void setSampleRate(float sr);
 
     /**
+     * @brief setBandwidth Set bandwidth of Detector device.
+     * @param bandwidth The detector bandwidth
+     */
+    void setBandwidth(float bandwidth);
+
+    /**
+     * @brief setGain Set gain of Detector device.
+     * @param gain The requested gain
+     */
+    void setGain(float gain);
+
+    /**
      * @brief setFrequency Set the frequency observed.
-     * @param capfreq Capture frequency
+     * @param freq capture frequency
      */
     void setFrequency(float freq);
 
@@ -271,8 +297,10 @@ class DetectorDevice
     int NAxis;
     /// Bytes per Sample
     int BPS;
-    double samplerate;
+    double Samplerate;
     double Frequency;
+    double Bandwidth;
+    double Gain;
     uint8_t *ContinuumBuffer;
     int ContinuumBufferSize;
     uint8_t *TimeDeviationBuffer;
@@ -287,12 +315,12 @@ class DetectorDevice
     INumber FramedCaptureN[1];
 
     INumberVectorProperty DetectorSettingsNP;
-    INumber DetectorSettingsN[4];
+    INumber DetectorSettingsN[6];
 
     ISwitchVectorProperty AbortCaptureSP;
     ISwitch AbortCaptureS[1];
 
-    IBLOB FitsB[3];
+    IBLOB FitsB[4];
     IBLOBVectorProperty FitsBP;
 
     friend class INDI::Detector;
@@ -410,10 +438,12 @@ class Detector : public DefaultDevice
      * \param cfreq Capture frequency of the detector (Hz, observed frequency).
      * \param sfreq Sampling frequency of the detector (Hz, electronic speed of the detector).
      * \param bps Bit resolution of a single sample.
+     * \param bw Bandwidth (Hz).
+     * \param gain Gain of the detector.
      * \return true if OK and Capture will take some time to complete, false on error.
      * \note This function is not implemented in Detector, it must be implemented in the child class
      */
-    virtual bool CaptureParamsUpdated(float sr, float freq, float bps);
+    virtual bool CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain);
 
     /**
      * \brief Uploads target Device exposed buffer as FITS to the client. Dervied classes should class
@@ -436,8 +466,10 @@ class Detector : public DefaultDevice
      * \param samplerate Detector samplerate (in Hz)
      * \param freq Center frequency of the detector (Hz, observed frequency).
      * \param bps Bit resolution of a single sample.
+     * \param bw Detector bandwidth (in Hz).
+     * \param gain Detector gain.
      */
-    virtual void SetDetectorParams(float samplerate, float freq, float bps);
+    virtual void SetDetectorParams(float samplerate, float freq, float bps, float bw, float gain);
 
     /**
      * \brief Add FITS keywords to a fits file
