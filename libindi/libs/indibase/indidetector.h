@@ -491,7 +491,7 @@ class Detector : public DefaultDevice
      */
     virtual void addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, int blobIndex);
 
-    int sendFITS(DetectorDevice *targetDevice, int type);
+    void* sendFITS(DetectorDevice *targetDevice, int type);
     /** A function to just remove GCC warnings about deprecated conversion */
     void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
 

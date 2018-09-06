@@ -849,7 +849,7 @@ void Detector::fits_update_key_s(fitsfile *fptr, int type, std::string name, voi
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
 }
 
-int Detector::sendFITS(DetectorDevice *targetDevice, int type) {
+void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
     bool sendCapture = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveCapture = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
     fitsfile *fptr = nullptr;
@@ -891,7 +891,7 @@ int Detector::sendFITS(DetectorDevice *targetDevice, int type) {
 
         default:
             DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", targetDevice->getBPS());
-            return false;
+            return NULL;
             break;
         }
     }
@@ -909,7 +909,7 @@ int Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         buf = targetDevice->getSpectrumBuffer();
         break;
     default:
-        return false;
+        return NULL;
         break;
     }
     naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
@@ -934,7 +934,9 @@ int Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        return false;
+        if(memptr != NULL)
+            free(memptr);
+        return NULL;
     }
 
     fits_create_img(fptr, img_type, naxis, naxes, &status);
@@ -944,7 +946,9 @@ int Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        return false;
+        if(memptr != NULL)
+            free(memptr);
+        return NULL;
     }
 
     addFITSKeywords(fptr, targetDevice, type);
@@ -956,15 +960,16 @@ int Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        return false;
+        if(memptr != NULL)
+            free(memptr);
+        return NULL;
     }
 
     fits_close_file(fptr, &status);
 
     uploadFile(targetDevice, memptr, memsize, sendCapture, saveCapture, type);
 
-    free(memptr);
-    return 0;
+    return memptr;
 }
 
 bool Detector::CaptureComplete(DetectorDevice *targetDevice)
@@ -975,11 +980,14 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
 
     if (sendCapture || saveCapture)
     {
+        void* continuum = NULL;
+        void* spectrum = NULL;
+        void* tdev = NULL;
         if(HasSpectrum())
         {
             if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
             {
-                sendFITS(targetDevice, DetectorDevice::DETECTOR_BLOB_SPECTRUM);
+                spectrum = sendFITS(targetDevice, DetectorDevice::DETECTOR_BLOB_SPECTRUM);
             }
             else
             {
@@ -991,7 +999,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
         {
             if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
             {
-                sendFITS(targetDevice, DetectorDevice::DETECTOR_BLOB_CONTINUUM);
+                continuum = sendFITS(targetDevice, DetectorDevice::DETECTOR_BLOB_CONTINUUM);
             }
             else
             {
@@ -1003,7 +1011,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
         {
             if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
             {
-                sendFITS(targetDevice, DetectorDevice::DETECTOR_BLOB_TDEV);
+                tdev = sendFITS(targetDevice, DetectorDevice::DETECTOR_BLOB_TDEV);
             }
             else
             {
@@ -1014,6 +1022,12 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
 
         if (sendCapture)
             IDSetBLOB(&targetDevice->FitsBP, nullptr);
+        if(spectrum != NULL)
+            free(spectrum);
+        if(continuum != NULL)
+            free(continuum);
+        if(tdev != NULL)
+            free(tdev);
 
         DEBUG(Logger::DBG_DEBUG, "Upload complete");
     }
@@ -1109,8 +1123,6 @@ bool Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsData, si
 
     targetDevice->FitsB[blobIndex].size = totalBytes;
     targetDevice->FitsBP.s   = IPS_OK;
-
-    IDSetBLOB(&targetDevice->FitsBP, nullptr);
 
     DEBUG(Logger::DBG_DEBUG, "Upload complete");
 
