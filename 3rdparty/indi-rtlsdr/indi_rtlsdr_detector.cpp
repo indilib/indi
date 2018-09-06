@@ -241,7 +241,7 @@ bool RTLSDR::initProperties()
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 2.4e+7, 2.0e+9, 1, false);
 	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1, 1, 0, false);
     PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 8, 8, 1, false);
-    PrimaryDetector.setCaptureExtension("raw");
+    PrimaryDetector.setCaptureExtension("fits");
 
 	// Add Debug, Simulator, and Configuration controls
 	addAuxControls();
