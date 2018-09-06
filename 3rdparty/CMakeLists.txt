@@ -286,29 +286,33 @@ endif (WITH_MGEN)
 ## DETECTORS
 
 if (WITH_RTLSDR OR WITH_LIMESDR)
+
 find_package(DSPAU)
-if (DSPAU_FOUND)
+find_package(LIMESUITE)
 
 ## RTL-SDR
 if (WITH_RTLSDR)
+if (DSPAU_FOUND)
 add_subdirectory(indi-rtlsdr)
+endif (DSPAU_FOUND)
 endif (WITH_RTLSDR)
 
 ## LIME-SDR
 if (WITH_LIMESDR)
-find_package(LIMESUITE)
-if (LIMESUITE_FOUND)
+if (LIMESUITE_FOUND AND DSPAU_FOUND)
 add_subdirectory(indi-limesdr)
-else (LIMESUITE_FOUND)
-add_subdirectory(libLimeSuite)
-SET(LIBRARIES_FOUND FALSE)
-endif (LIMESUITE_FOUND)
+endif (LIMESUITE_FOUND AND DSPAU_FOUND)
 endif (WITH_LIMESDR)
 
-else (DSPAU_FOUND)
+if (NOT LIMESUITE_FOUND)
+add_subdirectory(libLimeSuite)
+SET(LIBRARIES_FOUND FALSE)
+endif (NOT LIMESUITE_FOUND)
+
+if (NOT DSPAU_FOUND)
 add_subdirectory(libdspau)
 SET(LIBRARIES_FOUND FALSE)
-endif (DSPAU_FOUND)
+endif (NOT DSPAU_FOUND)
 
 endif (WITH_RTLSDR OR WITH_LIMESDR)
 
