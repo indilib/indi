@@ -891,7 +891,7 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
 
         default:
             DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", targetDevice->getBPS());
-            return false;
+            return NULL;
             break;
         }
     }
@@ -909,7 +909,7 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         buf = targetDevice->getSpectrumBuffer();
         break;
     default:
-        return false;
+        return NULL;
         break;
     }
     naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
@@ -934,7 +934,7 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        return false;
+        return NULL;
     }
 
     fits_create_img(fptr, img_type, naxis, naxes, &status);
@@ -944,7 +944,7 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        return false;
+        return NULL;
     }
 
     addFITSKeywords(fptr, targetDevice, type);
@@ -956,7 +956,7 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        return false;
+        return NULL;
     }
 
     fits_close_file(fptr, &status);
