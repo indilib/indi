@@ -980,9 +980,9 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
 
     if (sendCapture || saveCapture)
     {
-        void* continuum;
-        void* spectrum;
-        void* tdev;
+        void* continuum = NULL;
+        void* spectrum = NULL;
+        void* tdev = NULL;
         if(HasSpectrum())
         {
             if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
