@@ -934,6 +934,8 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+        if(memptr != NULL)
+            free(memptr);
         return NULL;
     }
 
@@ -944,6 +946,8 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+        if(memptr != NULL)
+            free(memptr);
         return NULL;
     }
 
@@ -956,6 +960,8 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+        if(memptr != NULL)
+            free(memptr);
         return NULL;
     }
 
