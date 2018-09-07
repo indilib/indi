@@ -289,7 +289,6 @@ endif (WITH_MGEN)
 if (WITH_RTLSDR OR WITH_LIMESDR)
 
 find_package(DSPAU)
-find_package(LIMESUITE)
 
 ## RTL-SDR
 if (WITH_RTLSDR)
@@ -299,9 +298,11 @@ endif (DSPAU_FOUND)
 endif (WITH_RTLSDR)
 
 ## LIME-SDR
+if (WITH_LIMESDR)
 if (DSPAU_FOUND)
 add_subdirectory(indi-limesdr)
 endif (DSPAU_FOUND)
+endif (WITH_LIMESDR)
 
 if (NOT DSPAU_FOUND)
 add_subdirectory(libdspau)
