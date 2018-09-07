@@ -35,6 +35,7 @@
 #define MAX_DEVICES             4    /* Max device cameraCount */
 
 #define CONTROL_TAB "Controls"
+#define LEVEL_TAB "Levels"
 
 static int iConnectedCamerasCount;
 static ToupcamInstV2 pToupCameraInfo[TOUPCAM_MAX];
@@ -47,19 +48,19 @@ static void cleanup()
     for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         delete cameras[i];
-    }    
+    }
 }
 
 void TOUPCAM_ISInit()
 {
     static bool isInit = false;
     if (!isInit)
-    {        
+    {
         iConnectedCamerasCount = Toupcam_EnumV2(pToupCameraInfo);
         if (iConnectedCamerasCount <= 0)
             IDLog("No ToupCam detected. Power on?");
         else
-        {            
+        {
             for (int i = 0; i < iConnectedCamerasCount; i++)
             {
                 cameras[i] = new TOUPCAM(&pToupCameraInfo[i]);
@@ -184,26 +185,57 @@ bool TOUPCAM::initProperties()
 {
     INDI::CCD::initProperties();
 
+    ///////////////////////////////////////////////////////////////////////////////////
+    /// Cooler Control
+    ///////////////////////////////////////////////////////////////////////////////////
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
+    ///////////////////////////////////////////////////////////////////////////////////
+    /// Cooler Value
+    ///////////////////////////////////////////////////////////////////////////////////
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB,
                        IP_RO, 60, IPS_IDLE);
 
+    ///////////////////////////////////////////////////////////////////////////////////
+    /// Controls
+    ///////////////////////////////////////////////////////////////////////////////////
     IUFillNumber(&ControlN[TC_CONTRAST], "TC_CONTRAST", "Contrast", "%.f", -100.0, 100, 10, 0);
     IUFillNumber(&ControlN[TC_HUE], "TC_HUE", "Hue", "%.f", -180.0, 180, 10, 0);
     IUFillNumber(&ControlN[TC_SATURATION], "TC_SATURATION", "Saturation", "%.f", 0, 255, 10, 128);
     IUFillNumber(&ControlN[TC_BRIGHTNESS], "TC_BRIGHTNESS", "Brightness", "%.f", -64, 64, 8, 0);
     IUFillNumber(&ControlN[TC_GAMMA], "TC_GAMMA", "Gamma", "%.f", 20, 180, 10, 100);
-    IUFillNumber(&ControlN[TC_LEVEL_RANGE], "TC_LEVEL_RANGE", "Level Range", "%.f", 0, 255, 10, 0);
-    IUFillNumber(&ControlN[TC_BLACK_LEVEL], "TC_BLACK_LEVEL", "Black Level", "%.f", 0, 65536, 0, 0);
-    IUFillNumberVector(&ControlNP, nullptr, 6, getDeviceName(), "CCD_CONTROLS", "Controls", CONTROL_TAB, IP_RW, 60,
+    IUFillNumberVector(&ControlNP, ControlN, 5, getDeviceName(), "CCD_CONTROLS", "Controls", CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
 
 
+    ///////////////////////////////////////////////////////////////////////////////////
+    // Black Level
+    ///////////////////////////////////////////////////////////////////////////////////
+    IUFillNumber(&BlackBalanceN[TC_BLACK_R], "TC_BLACK_R", "Red", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&BlackBalanceN[TC_BLACK_G], "TC_BLACK_G", "Green", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&BlackBalanceN[TC_BLACK_B], "TC_BLACK_B", "Blue", "%.f", 0, 255, 10, 0);
+    IUFillNumberVector(&BlackBalanceNP, BlackBalanceN, 3, getDeviceName(), "CCD_BLACK_LEVEL", "Black Level", LEVEL_TAB, IP_RW, 60, IPS_IDLE);
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    // R/G/B/Y levels
+    ///////////////////////////////////////////////////////////////////////////////////
+    IUFillNumber(&LevelRangeN[TC_LO_R], "TC_LO_R", "Low Red", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&LevelRangeN[TC_HI_R], "TC_HI_R", "High Red", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&LevelRangeN[TC_LO_G], "TC_LO_G", "Low Green", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&LevelRangeN[TC_HI_G], "TC_HI_G", "High Green", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&LevelRangeN[TC_LO_B], "TC_LO_B", "Low Blue", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&LevelRangeN[TC_HI_B], "TC_HI_B", "High Blue", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&LevelRangeN[TC_LO_Y], "TC_LO_Y", "Low Gray", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&LevelRangeN[TC_HI_Y], "TC_HI_Y", "High Gray", "%.f", 0, 255, 10, 0);
+    IUFillNumberVector(&LevelRangeNP, LevelRangeN, 8, getDeviceName(), "CCD_LEVEL_RANGE", "Level Range", LEVEL_TAB, IP_RW, 60, IPS_IDLE);
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    // Auto Controls
+    ///////////////////////////////////////////////////////////////////////////////////
     IUFillSwitch(&AutoControlS[TC_AUTO_EXPOSURE], "TC_AUTO_EXPOSURE", "Exposure", ISS_OFF);
     IUFillSwitch(&AutoControlS[TC_AUTO_LEVEL], "TC_AUTO_LEVEL", "Level", ISS_OFF);
     IUFillSwitch(&AutoControlS[TC_AUTO_TINT], "TC_AUTO_TINT", "WB Tint", ISS_OFF);
@@ -212,6 +244,32 @@ bool TOUPCAM::initProperties()
                        ISR_NOFMANY, 0, IPS_IDLE);
 
 
+    ///////////////////////////////////////////////////////////////////////////////////
+    // White Balance - Temp/Tint
+    ///////////////////////////////////////////////////////////////////////////////////
+    IUFillNumber(&WBTempTintN[TC_WB_TEMP], "TC_WB_TEMP", "Temp", "%.f", 2000, 15000, 1000, 6503);
+    IUFillNumber(&WBTempTintN[TC_WB_TINT], "TC_WB_TINT", "Tint", "%.f", 200, 2500, 100, 1000);
+    IUFillNumberVector(&WBTempTintNP, WBTempTintN, 8, getDeviceName(), "TC_WB_TT", "White Balance #1", LEVEL_TAB, IP_RW, 60, IPS_IDLE);
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    // White Balance - RGB
+    ///////////////////////////////////////////////////////////////////////////////////
+    IUFillNumber(&WBRGBN[TC_WB_R], "TC_WB_R", "Red", "%.f", -127, 127, 10, 0);
+    IUFillNumber(&WBRGBN[TC_WB_G], "TC_WB_G", "Green", "%.f", -127, 127, 10, 0);
+    IUFillNumber(&WBRGBN[TC_WB_B], "TC_WB_B", "Blue", "%.f", -127, 127, 10, 0);
+    IUFillNumberVector(&WBRGBNP, WBRGBN, 8, getDeviceName(), "TC_WB_RGB", "White Balance #2", LEVEL_TAB, IP_RW, 60, IPS_IDLE);
+
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    /// White Balance - Auto
+    ///////////////////////////////////////////////////////////////////////////////////
+    IUFillSwitch(&WBAutoS[TC_AUTO_WB_TT], "TC_AUTO_WB_TT", "Temp/Tint", ISS_OFF);
+    IUFillSwitch(&WBAutoS[TC_AUTO_WB_RGB], "TC_AUTO_WB_RGB", "RGB", ISS_ON);
+    IUFillSwitchVector(&WBAutoSP, nullptr, 3, getDeviceName(), "TC_AUTO_WB", "Auto Balance", LEVEL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    /// Video Format
+    ///////////////////////////////////////////////////////////////////////////////////
     IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO], "TC_VIDEO_MONO", "Mono", ISS_OFF);
     IUFillSwitch(&VideoFormatS[TC_VIDEO_COLOR], "TC_VIDEO_COLOR", "Color", ISS_ON);
     IUFillSwitch(&VideoFormatS[TC_VIDEO_RAW], "TC_VIDEO_RAW", "Raw", ISS_OFF);
@@ -221,15 +279,8 @@ bool TOUPCAM::initProperties()
     IUFillSwitchVector(&ResolutionSP, nullptr, 0, getDeviceName(), "CCD_RESOLUTION", "Resolution", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
-    IUSaveText(&BayerT[2], getBayerString());
-
-//    IUFillNumber(&ADCDepthN, "BITS", "Bits", "%2.0f", 0, 32, 1, 0);
-//    ADCDepthN.value = m_camInfo->BitDepth;
-//    IUFillNumberVector(&ADCDepthNP, &ADCDepthN, 1, getDeviceName(), "ADC_DEPTH", "ADC Depth", IMAGE_INFO_TAB, IP_RO, 60,
-//                       IPS_IDLE);
-
     IUFillText(&SDKVersionS[0], "VERSION", "Version", Toupcam_Version());
-    IUFillTextVector(&SDKVersionSP, SDKVersionS, 1, getDeviceName(), "SDK", "SDK", INFO_TAB, IP_RO, 60, IPS_IDLE);    
+    IUFillTextVector(&SDKVersionSP, SDKVersionS, 1, getDeviceName(), "SDK", "SDK", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0, 3600, 1, false);
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, 2, 1, false);
@@ -257,7 +308,7 @@ bool TOUPCAM::updateProperties()
             loadConfig(true, "CCD_COOLER");
         }
         // Even if there is no cooler, we define temperature property as READ ONLY
-        else
+        else if (m_Instance->model->flag & TOUPCAM_FLAG_GETTEMPERATURE)
         {
             TemperatureNP.p = IP_RO;
             defineNumber(&TemperatureNP);
@@ -266,6 +317,12 @@ bool TOUPCAM::updateProperties()
         defineNumber(&ControlNP);
         defineSwitch(&AutoControlSP);
         defineSwitch(&VideoFormatSP);
+        defineSwitch(&ResolutionSP);
+
+        // Levels
+        defineNumber(&LevelRangeNP);
+        defineNumber(&BlackBalanceNP);
+
         defineText(&SDKVersionSP);
     }
     else
@@ -281,7 +338,12 @@ bool TOUPCAM::updateProperties()
         deleteProperty(ControlNP.name);
         deleteProperty(AutoControlSP.name);
         deleteProperty(VideoFormatSP.name);
-        deleteProperty(SDKVersionSP.name);        
+        deleteProperty(ResolutionSP.name);
+
+        deleteProperty(LevelRangeNP.name);
+        deleteProperty(BlackBalanceNP.name);
+
+        deleteProperty(SDKVersionSP.name);
     }
 
     return true;
@@ -303,6 +365,10 @@ bool TOUPCAM::Connect()
     uint32_t cap = 0;
 
     cap |= CCD_CAN_ABORT;
+
+    // If raw format is support then we have bayer
+    if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
+        cap |= CCD_HAS_BAYER;
 
     if (m_Instance->model->flag & TOUPCAM_FLAG_BINSKIP_SUPPORTED)
         cap |= CCD_CAN_BIN;
@@ -378,9 +444,9 @@ void TOUPCAM::setupParams()
     /* bitdepth supported */
     if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
     {
-       /* enable bitdepth */
-       Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
-       bitsPerPixel = 16;
+        /* enable bitdepth */
+        Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
+        bitsPerPixel = 16;
     }
 
     // Get how many resolutions available for the camera
@@ -390,10 +456,10 @@ void TOUPCAM::setupParams()
     // Get each resolution width x height
     for (uint8_t i=0; i < ResolutionSP.nsp; i++)
     {
-      Toupcam_get_Resolution(m_CameraHandle, i, &w[i], &h[i]);
-      char label[MAXINDILABEL] = {0};
-      snprintf(label, MAXINDILABEL, "%d x %d", w[i], h[i]);
-      IUFillSwitch(&ResolutionS[i], label, label, ISS_OFF);
+        Toupcam_get_Resolution(m_CameraHandle, i, &w[i], &h[i]);
+        char label[MAXINDILABEL] = {0};
+        snprintf(label, MAXINDILABEL, "%d x %d", w[i], h[i]);
+        IUFillSwitch(&ResolutionS[i], label, label, ISS_OFF);
     }
 
     // Get active resolution index
@@ -403,21 +469,14 @@ void TOUPCAM::setupParams()
 
     SetCCDParams(w[currentResolutionIndex], h[currentResolutionIndex], bitsPerPixel, m_Instance->model->xpixsz, m_Instance->model->ypixsz);
 
-
-    // Get Resolution
-    // Get Bit Depth
-    // Get Video Mode
-    // Get Mono/Color
-    // Get Pixel Size
-    // Get Temperature
-    // Get Cooler
-
     // Allocate memory
     PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8);
 
     // Set Streamer pixel format
     Streamer->setPixelFormat(INDI_MONO, bitsPerPixel);
     Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+
+    IUSaveText(&BayerT[2], getBayerString());
 }
 
 bool TOUPCAM::allocateFrameBuffer()
@@ -428,14 +487,16 @@ bool TOUPCAM::allocateFrameBuffer()
 
 bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-#if 0
-    int errCode = 0;
 
     if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
+
+        //////////////////////////////////////////////////////////////////////
+        /// Controls (Contrast, Brightness, Hue...etc)
+        //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, ControlNP.name))
         {
-            double oldValues[ControlNP.nnp];
+            double oldValues[5];
             for (int i = 0; i < ControlNP.nnp; i++)
                 oldValues[i] = ControlN[i].value;
 
@@ -446,42 +507,35 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
                 return true;
             }
 
-            for (int i = 0; i < ControlNP.nnp; i++)
+            for (uint8_t i = 0; i < ControlNP.nnp; i++)
             {
-                ASI_BOOL nAuto         = *((ASI_BOOL *)ControlN[i].aux1);
-                ASI_CONTROL_TYPE nType = *((ASI_CONTROL_TYPE *)ControlN[i].aux0);
-
                 if (ControlN[i].value == oldValues[i])
                     continue;
 
-                LOGF_DEBUG("ISNewNumber->set ctrl %d: %.2f", nType, ControlN[i].value);
-                if ((errCode = ASISetControlValue(m_camInfo->CameraID, nType, (long)ControlN[i].value, ASI_FALSE)) !=
-                    0)
+                int value = static_cast<int>(ControlN[i].value);
+                switch (i)
                 {
-                    LOGF_ERROR("ASISetControlValue (%s=%g) error (%d)", ControlN[i].name,
-                           ControlN[i].value, errCode);
-                    ControlNP.s = IPS_ALERT;
-                    for (int i = 0; i < ControlNP.nnp; i++)
-                        ControlN[i].value = oldValues[i];
-                    IDSetNumber(&ControlNP, nullptr);
-                    return false;
-                }
+                case TC_CONTRAST:
+                    Toupcam_put_Contrast(m_CameraHandle, value);
+                    break;
 
-                // If it was set to nAuto value to turn it off
-                if (nAuto)
-                {
-                    for (int j = 0; j < ControlSP.nsp; j++)
-                    {
-                        ASI_CONTROL_TYPE swType = *((ASI_CONTROL_TYPE *)ControlS[j].aux);
+                case TC_HUE:
+                    Toupcam_put_Hue(m_CameraHandle, value);
+                    break;
 
-                        if (swType == nType)
-                        {
-                            ControlS[j].s = ISS_OFF;
-                            break;
-                        }
-                    }
+                case TC_SATURATION:
+                    Toupcam_put_Saturation(m_CameraHandle, value);
+                    break;
 
-                    IDSetSwitch(&ControlSP, nullptr);
+                case TC_BRIGHTNESS:
+                    Toupcam_put_Brightness(m_CameraHandle, value);
+                    break;
+
+                case TC_GAMMA:
+                    Toupcam_put_Gamma(m_CameraHandle, value);
+                    break;
+                default:
+                    break;
                 }
             }
 
@@ -489,8 +543,74 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
             IDSetNumber(&ControlNP, nullptr);
             return true;
         }
+
+        //////////////////////////////////////////////////////////////////////
+        /// Level Ranges
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, LevelRangeNP.name))
+        {
+            IUUpdateNumber(&LevelRangeNP, values, names, n);
+            uint16_t lo[4] =
+            {
+                static_cast<uint16_t>(LevelRangeN[TC_LO_R].value),
+                static_cast<uint16_t>(LevelRangeN[TC_LO_G].value),
+                static_cast<uint16_t>(LevelRangeN[TC_LO_B].value),
+                static_cast<uint16_t>(LevelRangeN[TC_LO_Y].value),
+            };
+
+            uint16_t hi[4] =
+            {
+                static_cast<uint16_t>(LevelRangeN[TC_HI_R].value),
+                static_cast<uint16_t>(LevelRangeN[TC_HI_G].value),
+                static_cast<uint16_t>(LevelRangeN[TC_HI_B].value),
+                static_cast<uint16_t>(LevelRangeN[TC_HI_Y].value),
+            };
+
+            HRESULT rc = 0;
+
+            if ( (rc = Toupcam_put_LevelRange(m_CameraHandle, lo, hi)) < 0)
+            {
+                LevelRangeNP.s = IPS_ALERT;
+                LOGF_ERROR("Failed to set level range. Error %d", rc);
+
+            }
+            else
+                LevelRangeNP.s = IPS_OK;
+
+            IDSetNumber(&LevelRangeNP, nullptr);
+            return true;
+
+        }
+
+        //////////////////////////////////////////////////////////////////////
+        /// Black Balance
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, BlackBalanceNP.name))
+        {
+            IUUpdateNumber(&BlackBalanceNP, values, names, n);
+            uint16_t aSub[3] =
+            {
+                static_cast<uint16_t>(BlackBalanceN[TC_BLACK_R].value),
+                static_cast<uint16_t>(BlackBalanceN[TC_BLACK_G].value),
+                static_cast<uint16_t>(BlackBalanceN[TC_BLACK_B].value),
+            };
+
+            HRESULT rc = 0;
+
+            if ( (rc = Toupcam_put_BlackBalance(m_CameraHandle, aSub)) < 0)
+            {
+                BlackBalanceNP.s = IPS_ALERT;
+                LOGF_ERROR("Failed to set Black Balance. Error %d", rc);
+
+            }
+            else
+                BlackBalanceNP.s = IPS_OK;
+
+            IDSetNumber(&BlackBalanceNP, nullptr);
+            return true;
+        }
     }
-#endif
+
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -522,12 +642,12 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                     if (swType == nType)
                     {
                         LOGF_DEBUG("ISNewSwitch->SetControlValue %d %.2f", nType,
-                               ControlN[j].value);
+                                   ControlN[j].value);
                         if ((errCode = ASISetControlValue(m_camInfo->CameraID, nType, ControlN[j].value, swAuto)) !=
-                            0)
+                                0)
                         {
                             LOGF_ERROR("ASISetControlValue (%s=%g) error (%d)", ControlN[j].name,
-                                   ControlN[j].value, errCode);
+                                       ControlN[j].value, errCode);
                             ControlNP.s = IPS_ALERT;
                             ControlSP.s = IPS_ALERT;
                             IDSetNumber(&ControlNP, nullptr);
@@ -565,7 +685,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         }
 
         if (!strcmp(name, VideoFormatSP.name))
-        {            
+        {
             if (Streamer->isBusy())
             {
                 VideoFormatSP.s = IPS_ALERT;
@@ -611,14 +731,14 @@ bool TOUPCAM::setVideoFormat(uint8_t index)
 
     switch (type)
     {
-        case ASI_IMG_RAW16:
-            PrimaryCCD.setBPP(16);
-            LOG_WARN("Warning: 16bit RAW is not supported on all hardware platforms.");
-            break;
+    case ASI_IMG_RAW16:
+        PrimaryCCD.setBPP(16);
+        LOG_WARN("Warning: 16bit RAW is not supported on all hardware platforms.");
+        break;
 
-        default:
-            PrimaryCCD.setBPP(8);
-            break;
+    default:
+        PrimaryCCD.setBPP(8);
+        break;
     }
 
     UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
@@ -642,7 +762,7 @@ bool TOUPCAM::StartStreaming()
     pthread_mutex_lock(&condMutex);
     threadRequest = StateStream;
     pthread_cond_signal(&cv);
-    pthread_mutex_unlock(&condMutex);    
+    pthread_mutex_unlock(&condMutex);
 #endif
     return true;
 }
@@ -733,12 +853,12 @@ bool TOUPCAM::StartExposure(float duration)
     ASI_BOOL isDark = ASI_FALSE;
     if (PrimaryCCD.getFrameType() == INDI::CCDChip::DARK_FRAME)
     {
-      isDark = ASI_TRUE;
+        isDark = ASI_TRUE;
     }
     for (int i = 0; i < 3; i++)
     {
         if ((errCode = ASIStartExposure(m_camInfo->CameraID, isDark)) !=
-            0)
+                0)
         {
             LOGF_ERROR("ASIStartExposure error (%d)", errCode);
             // Wait 100ms before trying again
@@ -817,12 +937,12 @@ bool TOUPCAM::UpdateCCDFrame(int x, int y, int w, int h)
     }
 
     LOGF_DEBUG("UpdateCCDFrame ASISetROIFormat (%dx%d,  bin %d, type %d)", bin_width, bin_height,
-           PrimaryCCD.getBinX(), getImageType());
+               PrimaryCCD.getBinX(), getImageType());
     if ((errCode = ASISetROIFormat(m_camInfo->CameraID, bin_width, bin_height, PrimaryCCD.getBinX(), getImageType())) !=
-        0)
+            0)
     {
         LOGF_ERROR("ASISetROIFormat (%dx%d @ %d) error (%d)", bin_width, bin_height,
-               PrimaryCCD.getBinX(), errCode);
+                   PrimaryCCD.getBinX(), errCode);
         return false;
     }
 
@@ -830,7 +950,7 @@ bool TOUPCAM::UpdateCCDFrame(int x, int y, int w, int h)
     {
         LOGF_ERROR("ASISetStartPos (%d,%d) error (%d)", x_1, y_1, errCode);
         return false;
-    }    
+    }
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
@@ -884,7 +1004,7 @@ int TOUPCAM::grabImage()
         if (buffer == nullptr)
         {
             LOGF_ERROR("CCD ID: %d malloc failed (RGB 24)",
-                m_camInfo->CameraID);
+                       m_camInfo->CameraID);
             return -1;
         }
     }
@@ -892,7 +1012,7 @@ int TOUPCAM::grabImage()
     if ((errCode = ASIGetDataAfterExp(m_camInfo->CameraID, buffer, size)) != 0)
     {
         LOGF_ERROR("ASIGetDataAfterExp (%dx%d #%d channels) error (%d)", width, height, nChannels,
-               errCode);
+                   errCode);
         if (type == ASI_IMG_RGB24)
             free(buffer);
         return -1;
@@ -951,11 +1071,11 @@ void TOUPCAM::TimerHit()
     double currentTemperature = TemperatureN[0].value;
 
     int errCode = ASIGetControlValue(m_camInfo->CameraID,
-        ASI_TEMPERATURE, &ASIControlValue, &ASIControlAuto);
+                                     ASI_TEMPERATURE, &ASIControlValue, &ASIControlAuto);
     if (errCode != 0)
     {
         LOGF_ERROR(
-            "ASIGetControlValue ASI_TEMPERATURE error (%d)", errCode);
+                    "ASIGetControlValue ASI_TEMPERATURE error (%d)", errCode);
         TemperatureNP.s = IPS_ALERT;
     }
     else
@@ -965,37 +1085,37 @@ void TOUPCAM::TimerHit()
 
     switch (TemperatureNP.s)
     {
-        case IPS_IDLE:
-        case IPS_OK:
-            if (fabs(currentTemperature - TemperatureN[0].value)
+    case IPS_IDLE:
+    case IPS_OK:
+        if (fabs(currentTemperature - TemperatureN[0].value)
                 > TEMP_THRESHOLD / 10.0)
-            {
-                IDSetNumber(&TemperatureNP, nullptr);
-            }
-            break;
-
-        case IPS_ALERT:
-            break;
-
-        case IPS_BUSY:
-            // If we're within threshold, let's make it BUSY ---> OK
-            if (fabs(TemperatureRequest - TemperatureN[0].value)
-                <= TEMP_THRESHOLD)
-            {
-                TemperatureNP.s = IPS_OK;
-            }
+        {
             IDSetNumber(&TemperatureNP, nullptr);
-            break;
+        }
+        break;
+
+    case IPS_ALERT:
+        break;
+
+    case IPS_BUSY:
+        // If we're within threshold, let's make it BUSY ---> OK
+        if (fabs(TemperatureRequest - TemperatureN[0].value)
+                <= TEMP_THRESHOLD)
+        {
+            TemperatureNP.s = IPS_OK;
+        }
+        IDSetNumber(&TemperatureNP, nullptr);
+        break;
     }
 
     if (HasCooler())
     {
         errCode = ASIGetControlValue(m_camInfo->CameraID,
-            ASI_COOLER_POWER_PERC, &ASIControlValue, &ASIControlAuto);
+                                     ASI_COOLER_POWER_PERC, &ASIControlValue, &ASIControlAuto);
         if (errCode != 0)
         {
             LOGF_ERROR(
-                "ASIGetControlValue ASI_COOLER_POWER_PERC error (%d)", errCode);
+                        "ASIGetControlValue ASI_COOLER_POWER_PERC error (%d)", errCode);
             CoolerNP.s = IPS_ALERT;
         }
         else
@@ -1050,10 +1170,10 @@ void TOUPCAM::stopTimerNS()
 #if 0
     if (NStimerID != -1)
     {
-      ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
-      GuideComplete(AXIS_DE);
-      IERmTimer(NStimerID);
-      NStimerID = -1;
+        ASIPulseGuideOff(m_camInfo->CameraID, NSDir);
+        GuideComplete(AXIS_DE);
+        IERmTimer(NStimerID);
+        NStimerID = -1;
     }
 #endif
 }
@@ -1066,7 +1186,7 @@ IPState TOUPCAM::guidePulseNS(float ms, eGUIDEDIRECTION dir, const char *dirName
     NSDirName = dirName;
 
     LOGF_DEBUG("Starting %s guide for %f ms",
-      NSDirName, ms);
+               NSDirName, ms);
 
     /*
      * If the pulse is for a ms or longer then schedule a timer callback
@@ -1148,10 +1268,10 @@ void TOUPCAM::stopTimerWE()
 #if 0
     if (WEtimerID != -1)
     {
-      ASIPulseGuideOff(m_camInfo->CameraID, WEDir);
-      GuideComplete(AXIS_RA);
-      IERmTimer(WEtimerID);
-      WEtimerID = -1;
+        ASIPulseGuideOff(m_camInfo->CameraID, WEDir);
+        GuideComplete(AXIS_RA);
+        IERmTimer(WEtimerID);
+        WEtimerID = -1;
     }
 #endif
 }
@@ -1164,7 +1284,7 @@ IPState TOUPCAM::guidePulseWE(float ms, eGUIDEDIRECTION dir, const char *dirName
     WEDirName = dirName;
 
     LOGF_DEBUG("Starting %s guide for %f ms",
-      WEDirName, ms);
+               WEDirName, ms);
 
     /*
      * If the pulse is for a ms or longer then schedule a timer callback
@@ -1231,7 +1351,7 @@ void TOUPCAM::createControls(int piNumberOfControls)
     if (pControlCaps == nullptr)
     {
         LOGF_ERROR("CCD ID: %d malloc failed (controls)",
-            m_camInfo->CameraID);
+                   m_camInfo->CameraID);
         return;
     }
     (void)memset(pControlCaps, 0, size);
@@ -1248,7 +1368,7 @@ void TOUPCAM::createControls(int piNumberOfControls)
     if (control_number == nullptr)
     {
         LOGF_ERROR(
-            "CCD ID: %d malloc failed (control number)", m_camInfo->CameraID);
+                    "CCD ID: %d malloc failed (control number)", m_camInfo->CameraID);
         free(pControlCaps);
         pControlCaps = nullptr;
         return;
@@ -1267,7 +1387,7 @@ void TOUPCAM::createControls(int piNumberOfControls)
     if (auto_switch == nullptr)
     {
         LOGF_ERROR(
-            "CCD ID: %d malloc failed (control auto)", m_camInfo->CameraID);
+                    "CCD ID: %d malloc failed (control auto)", m_camInfo->CameraID);
         free(control_number);
         free(pControlCaps);
         pControlCaps = nullptr;
@@ -1285,13 +1405,13 @@ void TOUPCAM::createControls(int piNumberOfControls)
         }
 
         LOGF_DEBUG("Control #%d: name (%s), Descp (%s), Min (%ld), Max (%ld), Default Value (%ld), IsAutoSupported (%s), "
-               "isWritale (%s) ",
-               i, oneControlCap->Name, oneControlCap->Description, oneControlCap->MinValue, oneControlCap->MaxValue,
-               oneControlCap->DefaultValue, oneControlCap->IsAutoSupported ? "True" : "False",
-               oneControlCap->IsWritable ? "True" : "False");
+                   "isWritale (%s) ",
+                   i, oneControlCap->Name, oneControlCap->Description, oneControlCap->MinValue, oneControlCap->MaxValue,
+                   oneControlCap->DefaultValue, oneControlCap->IsAutoSupported ? "True" : "False",
+                   oneControlCap->IsWritable ? "True" : "False");
 
         if (oneControlCap->IsWritable == ASI_FALSE || oneControlCap->ControlType == ASI_TARGET_TEMP ||
-            oneControlCap->ControlType == ASI_COOLER_ON)
+                oneControlCap->ControlType == ASI_COOLER_ON)
             continue;
 
         // Update Min/Max exposure as supported by the camera
@@ -1300,7 +1420,7 @@ void TOUPCAM::createControls(int piNumberOfControls)
             double minExp = (double)oneControlCap->MinValue / 1000000.0;
             double maxExp = (double)oneControlCap->MaxValue / 1000000.0;
             PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE",
-                minExp, maxExp, 1);
+                                     minExp, maxExp, 1);
             continue;
         }
 
@@ -1337,8 +1457,8 @@ void TOUPCAM::createControls(int piNumberOfControls)
             nWritableControls++;
 
             LOGF_DEBUG(
-                "Adding above control as writable control number %d",
-                nWritableControls);
+                        "Adding above control as writable control number %d",
+                        nWritableControls);
 
             // JM 2018-07-04: If Max-Min == 1 then it's boolean value
             // So no need to set a custom step value.
@@ -1348,11 +1468,11 @@ void TOUPCAM::createControls(int piNumberOfControls)
             IUFillNumber(control_np,
                          oneControlCap->Name,
                          oneControlCap->Name,
-                        "%g",
+                         "%g",
                          oneControlCap->MinValue,
                          oneControlCap->MaxValue,
                          step,
-                        pValue);
+                         pValue);
             control_np->aux0 = (void *)&oneControlCap->ControlType;
             control_np->aux1 = (void *)&oneControlCap->IsAutoSupported;
             control_np++;
@@ -1367,7 +1487,7 @@ void TOUPCAM::createControls(int piNumberOfControls)
             char autoName[MAXINDINAME];
             snprintf(autoName, MAXINDINAME, "AUTO_%s", oneControlCap->Name);
             IUFillSwitch(auto_sp, autoName, oneControlCap->Name,
-                isAuto == ASI_TRUE ? ISS_ON : ISS_OFF);
+                         isAuto == ASI_TRUE ? ISS_ON : ISS_OFF);
             auto_sp->aux = (void *)&oneControlCap->ControlType;
             auto_sp++;
         }
@@ -1405,15 +1525,15 @@ const char *TOUPCAM::getBayerString()
 #if 0
     switch (m_camInfo->BayerPattern)
     {
-        case ASI_BAYER_BG:
-            return "BGGR";
-        case ASI_BAYER_GR:
-            return "GRBG";
-        case ASI_BAYER_GB:
-            return "GBRG";
-        case ASI_BAYER_RG:
-        default:
-            return "RGGB";
+    case ASI_BAYER_BG:
+        return "BGGR";
+    case ASI_BAYER_GR:
+        return "GRBG";
+    case ASI_BAYER_GB:
+        return "GBRG";
+    case ASI_BAYER_RG:
+    default:
+        return "RGGB";
     }
 #endif
     return "RGGB";
@@ -1583,7 +1703,7 @@ void TOUPCAM::streamVideo()
         int waitMS           = (int)(ExposureRequest * 2000.0) + 500;
 
         ret = ASIGetVideoData(m_camInfo->CameraID, targetFrame, totalBytes,
-            waitMS);
+                              waitMS);
         if (ret != 0)
         {
             if (ret != ASI_ERROR_TIMEOUT)
@@ -1593,7 +1713,7 @@ void TOUPCAM::streamVideo()
                 if (threadRequest == StateStream)
                 {
                     LOGF_ERROR(
-                        "Error reading video data (%d)", ret);
+                                "Error reading video data (%d)", ret);
                     threadRequest = StateIdle;
                 }
                 break;
@@ -1659,7 +1779,7 @@ void TOUPCAM::getExposure()
                 InExposure = false;
                 PrimaryCCD.setExposureLeft(0.0);
                 DEBUG(INDI::Logger::DBG_SESSION,
-                    "Exposure done, downloading image...");
+                      "Exposure done, downloading image...");
                 pthread_mutex_lock(&condMutex);
                 exposureSetRequest(StateIdle);
                 pthread_mutex_unlock(&condMutex);
@@ -1687,7 +1807,7 @@ void TOUPCAM::getExposure()
                     if (threadRequest == StateExposure)
                     {
                         LOGF_ERROR(
-                            "Exposure failed after %d attempts.", expRetry);
+                                    "Exposure failed after %d attempts.", expRetry);
                     }
                     ASIStopExposure(m_camInfo->CameraID);
                     PrimaryCCD.setExposureFailed();
@@ -1701,13 +1821,13 @@ void TOUPCAM::getExposure()
         else
         {
             LOGF_DEBUG("ASIGetExpStatus error (%d)",
-                errCode);
+                       errCode);
             if (++statRetry >= 10)
             {
                 if (threadRequest == StateExposure)
                 {
                     LOGF_ERROR(
-                        "Exposure status timed out (%d)", errCode);
+                                "Exposure status timed out (%d)", errCode);
                 }
                 PrimaryCCD.setExposureFailed();
                 InExposure = false;
@@ -1803,7 +1923,7 @@ float TOUPCAM::calcTimeLeft(float duration, timeval *start_time)
 
     gettimeofday(&now, nullptr);
     timesince = ((double)now.tv_sec + (double)now.tv_usec / 1000000.0) -
-        ((double)start_time->tv_sec + (double)start_time->tv_usec / 1000000.0);
+            ((double)start_time->tv_sec + (double)start_time->tv_usec / 1000000.0);
     if (duration > timesince)
     {
         timeleft = duration - timesince;

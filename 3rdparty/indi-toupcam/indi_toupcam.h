@@ -380,7 +380,7 @@ private:
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
 
-    INumber ControlN[6];
+    INumber ControlN[5];
     INumberVectorProperty ControlNP;
     enum
     {
@@ -389,8 +389,6 @@ private:
         TC_SATURATION,
         TC_BRIGHTNESS,
         TC_GAMMA,
-        TC_LEVEL_RANGE,
-        TC_BLACK_LEVEL,
     };
 
     ISwitch AutoControlS[4];
@@ -403,6 +401,59 @@ private:
         TC_AUTO_LEVEL,
     };
 
+    INumber BlackBalanceN[3];
+    INumberVectorProperty BlackBalanceNP;
+    enum
+    {
+      TC_BLACK_R,
+      TC_BLACK_G,
+      TC_BLACK_B,
+    };
+
+    // R/G/B/Gray low/high levels
+    INumber LevelRangeN[8];
+    INumberVectorProperty LevelRangeNP;
+    enum
+    {
+        TC_LO_R,
+        TC_HI_R,
+        TC_LO_G,
+        TC_HI_G,
+        TC_LO_B,
+        TC_HI_B,
+        TC_LO_Y,
+        TC_HI_Y,
+    };
+
+    // Temp/Tint White Balance
+    INumber WBTempTintN[2];
+    INumberVectorProperty WBTempTintNP;
+    enum
+    {
+        TC_WB_TEMP,
+        TC_WB_TINT,
+    };
+
+    // RGB White Balance
+    INumber WBRGBN[3];
+    INumberVectorProperty WBRGBNP;
+    enum
+    {
+      TC_WB_R,
+      TC_WB_G,
+      TC_WB_B,
+    };
+
+    // Auto Balance
+    ISwitch WBAutoS[2];
+    ISwitchVectorProperty WBAutoSP;
+    enum
+    {
+      TC_AUTO_WB_TT,
+      TC_AUTO_WB_RGB
+    };
+
+    // Video Format
     ISwitch VideoFormatS[3];
     ISwitchVectorProperty VideoFormatSP;
     enum
