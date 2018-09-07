@@ -1,4 +1,4 @@
-/*
+﻿/*
     indi_LMS_detector - a software defined radio driver for INDI
     Copyright (C) 2017  Ilia Platone
 
@@ -189,7 +189,8 @@ bool LIMESDR::Connect()
         LOGF_ERROR("Failed to open limesdr device index %d.", detectorIndex);
 		return false;
 	}
-
+    LMS_Init(lime_dev);
+    LMS_EnableChannel(lime_dev, LMS_CH_RX, 0, true);
     LOG_INFO("LIME-SDR Detector connected successfully!");
 	// Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
@@ -233,13 +234,21 @@ bool LIMESDR::initProperties()
 	SetDetectorCapability(cap);
 
     PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.001, 86164.092, 0.001, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 2.4e+7, 2.0e+10, 1, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1.0e+4, 2.0e+7, 1, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_GAIN", 0.0, 78.0, 1, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BANDWIDTH", 1.0e+4, 1.0e+9, 1, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 16, 16, 0, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 400.0e+6, 3.8e+9, 1, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 2.0e+6, 28.0e+6, 1, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_GAIN", 0.0, 1.0, 0.01, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BANDWIDTH", 400.0e+6, 3.8e+9, 1, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", -32, -32, 0, false);
     PrimaryDetector.setCaptureExtension("fits");
-
+    /*
+    // PrimaryDetector Device Continuum Blob
+    IUFillBLOB(&TFitsB[0], "TRMT", "Transmit1", "");
+    IUFillBLOB(&TFitsB[1], "TRMT", "Transmit2", "");
+    IUFillBLOB(&TFitsB[2], "TRMT", "Transmit3", "");
+    IUFillBLOB(&TFitsB[3], "TRMT", "Transmit4", "");
+    IUFillBLOB(&TFitsB[4], "TRMT", "Transmit5", "");
+    IUFillBLOBVector(&TFitsBP, TFitsB, 5, getDeviceName(), "LIME_TRMT", "Transmit Data", CAPTURE_INFO_TAB, IP_WO, 60, IPS_IDLE);
+*/
 	// Add Debug, Simulator, and Configuration controls
 	addAuxControls();
 
@@ -261,10 +270,13 @@ bool LIMESDR::updateProperties()
 	{
 		// Let's get parameters now from Detector
 		setupParams();
+        //defineBLOB(&TFitsBP);
 
 		// Start the timer
 		SetTimer(POLLMS);
-	}
+    } else {
+        //deleteProperty(TFitsBP.name);
+    }
 
 	return true;
 }
@@ -275,7 +287,7 @@ bool LIMESDR::updateProperties()
 void LIMESDR::setupParams()
 {
 	// Our Detector is an 8 bit Detector, 100MHz frequency 1MHz bandwidth.
-    SetDetectorParams(2000000.0, 100000000.0, 8, 0.0, 25.0);
+    SetDetectorParams(400.0e+6, 28.0e+6, -32, 10.0e+6, 1.0);
 }
 
 /**************************************************************************************
@@ -319,10 +331,11 @@ bool LIMESDR::CaptureParamsUpdated(float sr, float freq, float bps, float bw, fl
     INDI_UNUSED(bps);
     PrimaryDetector.setBPS(-32);
     int r = 0;
-    r |= LMS_SetGaindB 	(lime_dev, LMS_CH_RX, 0, gain);
-    r |= LMS_SetLPFBW(lime_dev, LMS_CH_RX, 0, bw);
+    r |= LMS_SetAntenna 	(lime_dev, LMS_CH_RX, 0, 0);
+    r |= LMS_SetNormalizedGain(lime_dev, LMS_CH_RX, 0, gain);
     r |= LMS_SetLOFrequency(lime_dev, LMS_CH_RX, 0, freq);
     r |= LMS_SetSampleRate(lime_dev, sr, 0);
+    r |= LMS_Calibrate (lime_dev, LMS_CH_RX, 0, bw, 0);
 
     if(r != 0) {
         LOG_INFO("Error(s) setting parameters.");

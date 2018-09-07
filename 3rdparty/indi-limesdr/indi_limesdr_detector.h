@@ -67,4 +67,7 @@ class LIMESDR : public INDI::Detector
     uint8_t *spectrum;
 
 	uint32_t detectorIndex = { 0 };
+
+    IBLOB TFitsB[5];
+    IBLOBVectorProperty TFitsBP;
 };
