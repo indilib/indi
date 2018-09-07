@@ -6,7 +6,7 @@
 SRC=../../3rdparty/
 FLAGS="-DCMAKE_INSTALL_PREFIX=/usr/local -DFIX_WARNINGS=ON -DCMAKE_BUILD_TYPE=$1"
 
-LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau libLimeSuite"
+LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau"
 
 if [ .${CIRCLE_BRANCH%_*} == '.drv' -a `lsb_release -si` == 'Ubuntu' ] ; then
     DRV=lib"${CIRCLE_BRANCH#drv_}"

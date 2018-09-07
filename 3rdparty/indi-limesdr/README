@@ -20,7 +20,10 @@ Requirtments
 	
 + libLimeSuite
 
-	libLimeSuite is required.
+	libLimeSuite is required:
+	in Ubuntu/Debian:
+	sudo apt-get update
+	sudo apt-get install liblimesuite-dev
 	
 Installation
 ============

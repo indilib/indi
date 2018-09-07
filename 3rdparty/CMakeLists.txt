@@ -43,10 +43,9 @@ IF (UNIX OR APPLE)
             STRING(FIND ${SOURCE_FILE} fxload DIR7_FOUND)
             STRING(FIND ${SOURCE_FILE} libinovasdk DIR8_FOUND)
             STRING(FIND ${SOURCE_FILE} libdspau DIR9_FOUND)
-            STRING(FIND ${SOURCE_FILE} libLimeSuite DIR10_FOUND)
             IF (NOT ${DIR1_FOUND} EQUAL -1 OR NOT ${DIR2_FOUND} EQUAL -1 OR NOT ${DIR3_FOUND} EQUAL -1 OR NOT ${DIR4_FOUND} EQUAL -1 OR
                 NOT ${DIR5_FOUND} EQUAL -1 OR NOT ${DIR6_FOUND} EQUAL -1 OR NOT ${DIR7_FOUND} EQUAL -1 OR NOT ${DIR8_FOUND} EQUAL -1 OR
-                NOT ${DIR9_FOUND} EQUAL -1 OR NOT ${DIR10_FOUND} EQUAL -1 )
+                NOT ${DIR9_FOUND} EQUAL -1)
                 LIST(REMOVE_ITEM ALL_SOURCE_FILES ${SOURCE_FILE})
             ENDIF ()
         ENDFOREACH ()
@@ -300,16 +299,9 @@ endif (DSPAU_FOUND)
 endif (WITH_RTLSDR)
 
 ## LIME-SDR
-if (WITH_LIMESDR)
-if (LIMESUITE_FOUND AND DSPAU_FOUND)
+if (DSPAU_FOUND)
 add_subdirectory(indi-limesdr)
-endif (LIMESUITE_FOUND AND DSPAU_FOUND)
-endif (WITH_LIMESDR)
-
-if (NOT LIMESUITE_FOUND)
-add_subdirectory(libLimeSuite)
-SET(LIBRARIES_FOUND FALSE)
-endif (NOT LIMESUITE_FOUND)
+endif (DSPAU_FOUND)
 
 if (NOT DSPAU_FOUND)
 add_subdirectory(libdspau)
@@ -381,10 +373,6 @@ if (NOT DSPAU_FOUND)
 message(STATUS "libdspau was not found and will now be built. Please install libdspau first before running cmake again to install indi-rtlsdr and indi-limesdr.")
 endif (NOT DSPAU_FOUND)
 endif (WITH_LIMESDR OR WITH_RTLSDR)
-
-if (WITH_LIMESDR AND NOT LIMESUITE_FOUND)
-message(STATUS "libLimeSuite was not found and will now be built. Please install libLimeSuite first before running cmake again to install indi-limesdr.")
-endif (WITH_LIMESDR AND NOT LIMESUITE_FOUND)
 
 message(STATUS "####################################################################################################################################")
 endif (LIBRARIES_FOUND)

@@ -24,8 +24,9 @@ sudo apt-get -q -y install \
  libusb-1.0-0-dev \
  librtlsdr-dev \
  libfftw3-dev \
+ liblimesuite-dev \
  wget
- 
+
  #To get the up to date FFMpeg Libraries
  sudo add-apt-repository -y ppa:jonathonf/ffmpeg-3
  sudo apt-get -qq update
