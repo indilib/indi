@@ -290,14 +290,14 @@ bool LIMESDR::StartCapture(float duration)
     b_read = 0;
     to_read = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration();
 
-    PrimaryDetector.setContinuumBufferSize(to_read * 2);
-    PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE);
+    PrimaryDetector.setContinuumBufferSize(to_read * sizeof(float));
+    PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE * sizeof(float));
 
     if(to_read > 0) {
         lime_stream.channel = 0;
         lime_stream.isTx = false;
         lime_stream.fifoSize = to_read;
-        lime_stream.dataFmt = lms_stream_t::LMS_FMT_I16;
+        lime_stream.dataFmt = lms_stream_t::LMS_FMT_F32;
         lime_stream.throughputVsLatency = 0.5;
         LMS_SetupStream(lime_dev, &lime_stream);
         LMS_StartStream(&lime_stream);
@@ -317,7 +317,7 @@ bool LIMESDR::StartCapture(float duration)
 bool LIMESDR::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
     INDI_UNUSED(bps);
-    PrimaryDetector.setBPS(16);
+    PrimaryDetector.setBPS(-32);
     int r = 0;
     r |= LMS_SetGaindB 	(lime_dev, LMS_CH_RX, 0, gain);
     r |= LMS_SetLPFBW(lime_dev, LMS_CH_RX, 0, bw);
@@ -420,16 +420,16 @@ void LIMESDR::grabData(int n_read)
         //Create the dspau stream
         dspau_stream_p stream = dspau_stream_new();
         dspau_stream_add_dim(stream, n_read);
-        dspau_convert_from(continuum, stream->in, unsigned short, n_read);
+        dspau_convert_from(continuum, stream->in, float, n_read);
 
         //Create the spectrum
         stream->out = dspau_fft_spectrum(stream, magnitude_dbv, SPECTRUM_SIZE);
-        dspau_convert_to(stream->out, spectrum, unsigned char, SPECTRUM_SIZE);
+        dspau_convert_to(stream->out, spectrum, float, SPECTRUM_SIZE);
 
         //Destroy the dspau stream
         dspau_stream_free(stream);
 
         LOG_INFO("Download complete.");
         CaptureComplete(&PrimaryDetector);
-}
+    }
 }

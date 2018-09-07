@@ -884,9 +884,27 @@ int Detector::sendFITS(DetectorDevice *targetDevice, int type) {
             break;
 
         case 32:
-            byte_type = TULONG;
-            img_type  = ULONG_IMG;
+            byte_type = TLONG;
+            img_type  = LONG_IMG;
             bit_depth = "32 bits per sample";
+            break;
+
+        case 64:
+            byte_type = TLONGLONG;
+            img_type  = LONGLONG_IMG;
+            bit_depth = "64 bits float per sample";
+            break;
+
+        case -32:
+            byte_type = TFLOAT;
+            img_type  = FLOAT_IMG;
+            bit_depth = "32 bits float per sample";
+            break;
+
+        case -64:
+            byte_type = TDOUBLE;
+            img_type  = DOUBLE_IMG;
+            bit_depth = "64 bits float per sample";
             break;
 
         default:
@@ -901,11 +919,11 @@ int Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         buf = targetDevice->getTimeDeviationBuffer();
         break;
     case DetectorDevice::DETECTOR_BLOB_CONTINUUM:
-        naxes[0] = targetDevice->getContinuumBufferSize() * 8 / targetDevice->getBPS();
+        naxes[0] = targetDevice->getContinuumBufferSize() * 8 / abs(targetDevice->getBPS());
         buf = targetDevice->getContinuumBuffer();
         break;
     case DetectorDevice::DETECTOR_BLOB_SPECTRUM:
-        naxes[0] = targetDevice->getSpectrumBufferSize() * 8 / targetDevice->getBPS();
+        naxes[0] = targetDevice->getSpectrumBufferSize() * 8 / abs(targetDevice->getBPS());
         buf = targetDevice->getSpectrumBuffer();
         break;
     default:
@@ -983,7 +1001,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
             }
             else
             {
-                uploadFile(targetDevice, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize() * 8 / targetDevice->getBPS(), sendCapture,
+                uploadFile(targetDevice, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize() * 8 / abs(targetDevice->getBPS()), sendCapture,
                        saveCapture, DetectorDevice::DETECTOR_BLOB_SPECTRUM);
             }
         }
@@ -995,7 +1013,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
             }
             else
             {
-                uploadFile(targetDevice, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize() * 8 / targetDevice->getBPS(), sendCapture,
+                uploadFile(targetDevice, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize() * 8 / abs(targetDevice->getBPS()), sendCapture,
                        saveCapture, DetectorDevice::DETECTOR_BLOB_CONTINUUM);
             }
         }
@@ -1182,39 +1200,73 @@ void Detector::getMinMax(double *min, double *max, uint8_t *buf, int len, int bp
         }
         break;
 
-        case 32:
-        {
-            unsigned int *captureBuffer = (unsigned int *)buf;
-            lmin = lmax = captureBuffer[0];
+    case 32:
+    {
+        unsigned int *captureBuffer = (unsigned int *)buf;
+        lmin = lmax = captureBuffer[0];
 
-            for (i = 0; i < captureHeight; i++)
-                for (j = 0; j < captureWidth; j++)
-                {
-                    ind = (i * captureWidth) + j;
-                    if (captureBuffer[ind] < lmin)
-                        lmin = captureBuffer[ind];
-                    else if (captureBuffer[ind] > lmax)
-                        lmax = captureBuffer[ind];
-                }
-        }
-        break;
+        for (i = 0; i < captureHeight; i++)
+            for (j = 0; j < captureWidth; j++)
+            {
+                ind = (i * captureWidth) + j;
+                if (captureBuffer[ind] < lmin)
+                    lmin = captureBuffer[ind];
+                else if (captureBuffer[ind] > lmax)
+                    lmax = captureBuffer[ind];
+            }
+    }
+    break;
 
-        case 64:
-        {
-            double *captureBuffer = (double *)buf;
-            lmin = lmax = captureBuffer[0];
+    case 64:
+    {
+        unsigned long *captureBuffer = (unsigned long *)buf;
+        lmin = lmax = captureBuffer[0];
 
-            for (i = 0; i < captureHeight; i++)
-                for (j = 0; j < captureWidth; j++)
-                {
-                    ind = (i * captureWidth) + j;
-                    if (captureBuffer[ind] < lmin)
-                        lmin = captureBuffer[ind];
-                    else if (captureBuffer[ind] > lmax)
-                        lmax = captureBuffer[ind];
-                }
-        }
-        break;
+        for (i = 0; i < captureHeight; i++)
+            for (j = 0; j < captureWidth; j++)
+            {
+                ind = (i * captureWidth) + j;
+                if (captureBuffer[ind] < lmin)
+                    lmin = captureBuffer[ind];
+                else if (captureBuffer[ind] > lmax)
+                    lmax = captureBuffer[ind];
+            }
+    }
+    break;
+
+    case -32:
+    {
+        float *captureBuffer = (float *)buf;
+        lmin = lmax = captureBuffer[0];
+
+        for (i = 0; i < captureHeight; i++)
+            for (j = 0; j < captureWidth; j++)
+            {
+                ind = (i * captureWidth) + j;
+                if (captureBuffer[ind] < lmin)
+                    lmin = captureBuffer[ind];
+                else if (captureBuffer[ind] > lmax)
+                    lmax = captureBuffer[ind];
+            }
+    }
+    break;
+
+    case -64:
+    {
+        double *captureBuffer = (double *)buf;
+        lmin = lmax = captureBuffer[0];
+
+        for (i = 0; i < captureHeight; i++)
+            for (j = 0; j < captureWidth; j++)
+            {
+                ind = (i * captureWidth) + j;
+                if (captureBuffer[ind] < lmin)
+                    lmin = captureBuffer[ind];
+                else if (captureBuffer[ind] > lmax)
+                    lmax = captureBuffer[ind];
+            }
+    }
+    break;
     }
     *min = lmin;
     *max = lmax;
