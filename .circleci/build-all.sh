@@ -19,6 +19,8 @@ else
     do
        if [ .${CIRCLE_BRANCH%/*} == .$i ]; then
         build_all
+       elif [[ ${CIRCLE_BRANCH%/*} =~ [a-zA-Z][a-zA-Z]*-patch-[0-9][0-9]* ]]; then
+        build_all
        fi
     done
 fi

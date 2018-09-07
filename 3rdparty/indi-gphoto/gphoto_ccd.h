@@ -183,6 +183,9 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     ISwitch livePreviewS[2];
     ISwitchVectorProperty livePreviewSP;
 
+    ISwitch streamSubframeS[2];
+    ISwitchVectorProperty streamSubframeSP;
+
     ISwitch *mExposurePresetS = nullptr;
     ISwitchVectorProperty mExposurePresetSP;
 
@@ -190,6 +193,8 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     IBLOB *imageB                = nullptr;
 
     Camera *camera = nullptr;
+
+    static constexpr double MINUMUM_CAMERA_TEMPERATURE = -60.0;
 
     friend void ::ISSnoopDevice(XMLEle *root);
     friend void ::ISGetProperties(const char *dev);

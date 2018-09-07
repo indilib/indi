@@ -69,12 +69,12 @@ class Focuser : public DefaultDevice, public FocuserInterface
          * any connection interfaces
          * @param value ORed combination of FocuserConnection values.
          */
-    void setConnection(const uint8_t &value);
+    void setSupportedConnections(const uint8_t &value);
 
     /**
          * @return Get current Focuser connection mode
          */
-    uint8_t getConnection() const { return focuserConnection;}
+    uint8_t getSupportedConnections() const { return focuserConnection;}
 
     static void buttonHelper(const char *button_n, ISState state, void *context);
 

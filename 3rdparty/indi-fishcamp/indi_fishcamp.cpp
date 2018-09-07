@@ -60,10 +60,17 @@ void ISInit()
         fcUsb_init();
 
         IDLog("About to call set logging\n");
-        fcUsb_setLogging(true);
+        fcUsb_setLogging(false);
 
         IDLog("About to call find Cameras\n");
+        cameraCount = -1;
         cameraCount = fcUsb_FindCameras();
+
+        if(cameraCount == -1)
+        {
+            IDLog("Calling FindCameras again because at least 1 RAW camera was found\n");
+            cameraCount = fcUsb_FindCameras();
+        }
 
         IDLog("Found %d fishcamp cameras.\n", cameraCount);
 
@@ -109,6 +116,21 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
             if (dev != nullptr)
                 break;
         }
+    }
+    //This turns the LibFishcamp fcusb logging on and off along with the INDI Fishcamp file logging.
+   if (!strcmp(name, "LOG_OUTPUT"))
+    {
+        if(INDI::Logger::ConfigurationS[1].s == ISS_ON)
+        {
+            fcUsb_setLogging(true);
+            IDLog("Setting Starfish Driver File Log On\n");
+        }
+        else
+        {
+            fcUsb_setLogging(false);
+            IDLog("Setting Starfish Driver File Log Off\n");
+        }
+
     }
 }
 
@@ -229,7 +251,7 @@ bool FishCampCCD::initProperties()
     nbuf += 512;                                                                  //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_COOLER);
+    SetCCDCapability(CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_ST4_PORT);
 
     delete[] strBuf;
 
@@ -370,7 +392,7 @@ bool FishCampCCD::StartExposure(float duration)
     LOGF_DEBUG("Exposure Time (s) is: %g", duration);
 
     // setup the exposure time in ms.
-    rc = fcUsb_cmd_setIntegrationTime(cameraNum, duration);
+    rc = fcUsb_cmd_setIntegrationTime(cameraNum, (UInt32)(duration * 1000.0));
 
     LOGF_DEBUG("fcUsb_cmd_setIntegrationTime returns %d", rc);
 
@@ -436,7 +458,7 @@ bool FishCampCCD::UpdateCCDFrame(int x, int y, int w, int h)
     LOGF_DEBUG("The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, bin_width,
            bin_height);
 
-    rc = fcUsb_cmd_setRoi(cameraNum, x_1, y_1, w - 1, h - 1);
+    rc = fcUsb_cmd_setRoi(cameraNum, x_1, y_1,  x_1 + w - 1, y_1 + h - 1);
 
     LOGF_DEBUG("fcUsb_cmd_setRoi returns %d", rc);
 
@@ -485,21 +507,30 @@ int FishCampCCD::grabImage()
     uint8_t *image = PrimaryCCD.getFrameBuffer();
 
     UInt16 *frameBuffer = (UInt16 *)image;
-    fcUsb_cmd_getRawFrame(cameraNum, PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), frameBuffer);
-    LOG_INFO("Download complete.");
 
-    ExposureComplete(&PrimaryCCD);
+    int numBytes = fcUsb_cmd_getRawFrame(cameraNum, PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), frameBuffer);
+    if(numBytes != 0)
+    {
+        LOG_INFO("Download complete.");
+        ExposureComplete(&PrimaryCCD);
+        return 0;
+    }
+    else
+    {
+        LOG_INFO("Download error. Please check the log for details.");
+        ExposureComplete(&PrimaryCCD);  //This should be an error. It is not complete, it messed up!
+        return -1;
+    }
 
-    return 0;
 }
 
 void FishCampCCD::TimerHit()
 {
     int timerHitID = -1, state = -1, rc = -1;
-    long timeleft;
+    float timeleft;
     double ccdTemp;
 
-    if (isConnected() == false)
+    if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
     if (InExposure)
@@ -524,15 +555,17 @@ void FishCampCCD::TimerHit()
                 else
                 {
                     //  it's real close now, so spin on it
-                    while (!sim && timeleft > 0)
+                    //  We have to wait till the camera is ready to download
+                    bool ready = false;
+                    int slv;
+                    slv = fabs(100000 * timeleft); //0.05s (50000 us) is checked every 5000 us or so
+                    while (!sim && !ready)
                     {
                         state = fcUsb_cmd_getState(cameraNum);
                         if (state == 0)
-                            timeleft = 0;
-
-                        int slv;
-                        slv = 100000 * timeleft;
-                        usleep(slv);
+                            ready = true;
+                        else
+                            usleep(slv);
                     }
 
                     /* We're done exposing */
@@ -548,9 +581,8 @@ void FishCampCCD::TimerHit()
         else
         {
             LOGF_DEBUG("Image not yet ready. With time left %ld\n", timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
         }
-
-        PrimaryCCD.setExposureLeft(timeleft);
     }
 
     switch (TemperatureNP.s)
