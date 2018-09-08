@@ -364,6 +364,21 @@ private:
     const char *getBayerString();
 
     //#############################################################################
+    // Callbacks
+    //#############################################################################
+    static void TempTintCB(const int nTemp, const int nTint, void* pCtx);
+    void TempTintChanged(const int nTemp, const int nTint);
+
+    static void WhiteBalanceCB(const int aGain[3], void* pCtx);
+    void WhiteBalanceChanged(const int aGain[3]);
+
+    static void BlackBalanceCB(const unsigned short aSub[3], void* pCtx);
+    void BlackBalanceChanged(const unsigned short aSub[3]);
+
+    static void AutoExposureCB(void* pCtx);
+    void AutoExposureChanged();
+
+    //#############################################################################
     // Camera Handle & Instance
     //#############################################################################
     HToupCam m_CameraHandle { nullptr };
@@ -391,14 +406,14 @@ private:
         TC_GAMMA,
     };
 
-    ISwitch AutoControlS[4];
+    ISwitch AutoControlS[5];
     ISwitchVectorProperty AutoControlSP;
     enum
     {
         TC_AUTO_EXPOSURE,
         TC_AUTO_TINT,
         TC_AUTO_WB,
-        TC_AUTO_LEVEL,
+        TC_AUTO_BB,
     };
 
     INumber BlackBalanceN[3];

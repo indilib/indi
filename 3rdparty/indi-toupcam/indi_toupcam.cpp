@@ -237,9 +237,9 @@ bool TOUPCAM::initProperties()
     // Auto Controls
     ///////////////////////////////////////////////////////////////////////////////////
     IUFillSwitch(&AutoControlS[TC_AUTO_EXPOSURE], "TC_AUTO_EXPOSURE", "Exposure", ISS_OFF);
-    IUFillSwitch(&AutoControlS[TC_AUTO_LEVEL], "TC_AUTO_LEVEL", "Level", ISS_OFF);
-    IUFillSwitch(&AutoControlS[TC_AUTO_TINT], "TC_AUTO_TINT", "WB Tint", ISS_OFF);
-    IUFillSwitch(&AutoControlS[TC_AUTO_WB], "TC_AUTO_WB", "WB RGB", ISS_OFF);
+    IUFillSwitch(&AutoControlS[TC_AUTO_TINT], "TC_AUTO_TINT", "White Balance Tint", ISS_OFF);
+    IUFillSwitch(&AutoControlS[TC_AUTO_WB], "TC_AUTO_WB", "White Balance RGB", ISS_OFF);
+    IUFillSwitch(&AutoControlS[TC_AUTO_BB], "TC_AUTO_BB", "Black Balance", ISS_OFF);
     IUFillSwitchVector(&AutoControlSP, AutoControlS, 4, getDeviceName(), "CCD_AUTO_CONTROL", "Auto", CONTROL_TAB, IP_RW,
                        ISR_NOFMANY, 0, IPS_IDLE);
 
@@ -627,7 +627,7 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
             HRESULT rc = 0;
 
             if ( (rc = Toupcam_put_TempTint(m_CameraHandle, static_cast<int>(WBTempTintN[TC_WB_TEMP].value),
-                                                            static_cast<int>(WBTempTintN[TC_WB_TINT].value))) < 0)
+                                            static_cast<int>(WBTempTintN[TC_WB_TINT].value))) < 0)
             {
                 WBTempTintNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set White Balance Tempeture & Tint. Error %d", rc);
@@ -677,7 +677,9 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 {
     if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
-        /* Cooler */
+        //////////////////////////////////////////////////////////////////////
+        /// Cooler Control
+        //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, CoolerSP.name))
         {
             if (IUUpdateSwitch(&CoolerSP, states, names, n) < 0)
@@ -695,6 +697,9 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             return true;
         }
 
+        //////////////////////////////////////////////////////////////////////
+        /// Video Format
+        //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, VideoFormatSP.name))
         {
             if (Streamer->isBusy())
@@ -726,6 +731,54 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
             return setVideoFormat(targetIndex);
         }
+
+        //////////////////////////////////////////////////////////////////////
+        /// Auto Controls
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, AutoControlSP.name))
+        {
+            int previousSwitch = IUFindOnSwitchIndex(&AutoControlSP);
+
+            if (IUUpdateSwitch(&AutoControlSP, states, names, n) < 0)
+            {
+                AutoControlSP.s = IPS_ALERT;
+                IDSetSwitch(&AutoControlSP, nullptr);
+                return true;
+            }
+
+            HRESULT rc = 0;
+            switch (IUFindOnSwitchIndex(&AutoControlSP))
+            {
+            case TC_AUTO_EXPOSURE:
+               rc = Toupcam_put_AutoExpoEnable(m_CameraHandle, (AutoControlS[TC_AUTO_EXPOSURE].s == ISS_ON) ? TRUE : FALSE);
+                break;
+            case TC_AUTO_TINT:
+                rc = Toupcam_AwbOnePush(m_CameraHandle, &TOUPCAM::TempTintCB, this);
+                break;
+            case TC_AUTO_WB:
+                rc = Toupcam_AwbInit(m_CameraHandle, &TOUPCAM::WhiteBalanceCB, this);
+                break;
+            case TC_AUTO_BB:
+                rc = Toupcam_AbbOnePush(m_CameraHandle, &TOUPCAM::BlackBalanceCB, this);
+                break;
+            default:
+                rc = -1;
+            }
+
+            if (rc < 0)
+            {
+                IUResetSwitch(&AutoControlSP);
+                AutoControlS[previousSwitch].s = ISS_ON;
+                AutoControlSP.s = IPS_ALERT;
+            }
+            else
+                AutoControlSP.s = IPS_OK;
+
+            IDSetSwitch(&AutoControlSP, nullptr);
+
+        }
+
+        return true;
     }
 
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
@@ -1925,6 +1978,7 @@ bool TOUPCAM::saveConfigItems(FILE *fp)
     return true;
 }
 
+// TODO use timers from GPhoto better
 float TOUPCAM::calcTimeLeft(float duration, timeval *start_time)
 {
     double timesince;
@@ -1943,4 +1997,52 @@ float TOUPCAM::calcTimeLeft(float duration, timeval *start_time)
         timeleft = 0.0;
     }
     return (float)timeleft;
+}
+
+void TOUPCAM::TempTintCB(const int nTemp, const int nTint, void* pCtx)
+{
+    static_cast<TOUPCAM*>(pCtx)->TempTintChanged(nTemp, nTint);
+}
+
+void TOUPCAM::TempTintChanged(const int nTemp, const int nTint)
+{
+    WBTempTintN[TC_WB_TEMP].value = nTemp;
+    WBTempTintN[TC_WB_TINT].value = nTint;
+    WBTempTintNP.s = IPS_OK;
+    IDSetNumber(&WBTempTintNP, nullptr);
+}
+
+void TOUPCAM::WhiteBalanceCB(const int aGain[3], void* pCtx)
+{
+    static_cast<TOUPCAM*>(pCtx)->WhiteBalanceChanged(aGain);
+}
+void TOUPCAM::WhiteBalanceChanged(const int aGain[3])
+{
+    WBRGBN[TC_WB_R].value = aGain[TC_WB_R];
+    WBRGBN[TC_WB_G].value = aGain[TC_WB_G];
+    WBRGBN[TC_WB_B].value = aGain[TC_WB_B];
+    WBRGBNP.s = IPS_OK;
+    IDSetNumber(&WBRGBNP, nullptr);
+}
+
+void TOUPCAM::BlackBalanceCB(const unsigned short aSub[3], void* pCtx)
+{
+    static_cast<TOUPCAM*>(pCtx)->BlackBalanceChanged(aSub);
+}
+void TOUPCAM::BlackBalanceChanged(const unsigned short aSub[3])
+{
+    BlackBalanceN[TC_BLACK_R].value = aSub[TC_BLACK_R];
+    BlackBalanceN[TC_BLACK_G].value = aSub[TC_BLACK_G];
+    BlackBalanceN[TC_BLACK_B].value = aSub[TC_BLACK_B];
+    BlackBalanceNP.s = IPS_OK;
+    IDSetNumber(&BlackBalanceNP, nullptr);
+}
+
+void TOUPCAM::AutoExposureCB(void* pCtx)
+{
+    static_cast<TOUPCAM*>(pCtx)->AutoExposureChanged();
+}
+void TOUPCAM::AutoExposureChanged()
+{
+    // TODO
 }
