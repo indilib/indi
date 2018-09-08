@@ -46,6 +46,8 @@ class DetectorDevice
         DETECTOR_BITSPERSAMPLE,
         DETECTOR_GAIN,
         DETECTOR_BANDWIDTH,
+        DETECTOR_CHANNEL,
+        DETECTOR_ANTENNA,
     } DETECTOR_INFO_INDEX;
 
     typedef enum {
@@ -353,12 +355,12 @@ class Detector : public DefaultDevice
 
     enum
     {
-        DETECTOR_CAN_ABORT      = 1 << 0, /*!< Can the Detector Capture be aborted?  */
-        DETECTOR_HAS_SHUTTER    = 1 << 1, /*!< Does the Detector have a mechanical shutter?  */
-        DETECTOR_HAS_COOLER     = 1 << 2, /*!< Does the Detector have a cooler and temperature control?  */
-        DETECTOR_HAS_CONTINUUM  = 1 << 3,  /*!< Does the Detector support live streaming?  */
-        DETECTOR_HAS_SPECTRUM   = 1 << 4,  /*!< Does the Detector support spectrum analysis?  */
-        DETECTOR_HAS_TDEV       = 1 << 5,  /*!< Does the Detector support time deviation correction?  */
+        DETECTOR_CAN_ABORT                  = 1 << 0,  /*!< Can the Detector Capture be aborted?  */
+        DETECTOR_HAS_SHUTTER                = 1 << 1,  /*!< Does the Detector have a mechanical shutter?  */
+        DETECTOR_HAS_COOLER                 = 1 << 2,  /*!< Does the Detector have a cooler and temperature control?  */
+        DETECTOR_HAS_CONTINUUM              = 1 << 3,  /*!< Does the Detector support live streaming?  */
+        DETECTOR_HAS_SPECTRUM               = 1 << 4,  /*!< Does the Detector support spectrum analysis?  */
+        DETECTOR_HAS_TDEV                   = 1 << 5,  /*!< Does the Detector support time deviation correction?  */
     } DetectorCapability;
 
     virtual bool initProperties();
@@ -489,9 +491,9 @@ class Detector : public DefaultDevice
      * To add additional information, override this function in the child class and ensure to call
      * Detector::addFITSKeywords.
      */
-    virtual void addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, int blobIndex);
+    virtual void addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uint8_t* buf, int len);
 
-    void* sendFITS(DetectorDevice *targetDevice, int type);
+    void* sendFITS(DetectorDevice *targetDevice, int bIndex,  uint8_t* buf, int len);
     /** A function to just remove GCC warnings about deprecated conversion */
     void fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation, int *status);
 

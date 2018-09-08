@@ -303,24 +303,37 @@ bool Detector::initProperties()
                        "Capture", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // PrimaryDetector Abort
-    IUFillSwitch(&PrimaryDetector.AbortCaptureS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&PrimaryDetector.AbortCaptureSP, PrimaryDetector.AbortCaptureS, 1, getDeviceName(), "DETECTOR_ABORT_CAPTURE",
-                       "Capture Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-
+    if(CanAbort()) {
+        IUFillSwitch(&PrimaryDetector.AbortCaptureS[0], "ABORT", "Abort", ISS_OFF);
+        IUFillSwitchVector(&PrimaryDetector.AbortCaptureSP, PrimaryDetector.AbortCaptureS, 1, getDeviceName(), "DETECTOR_ABORT_CAPTURE",
+                           "Capture Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    }
     // PrimaryDetector Info
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_SAMPLERATE], "DETECTOR_SAMPLERATE", "Sample rate (SPS)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.0e+6);
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_FREQUENCY], "DETECTOR_FREQUENCY", "Center frequency (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
+    IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_BITSPERSAMPLE], "DETECTOR_BITSPERSAMPLE", "Bits per sample", "%3.0f", 1, 64, 1, 8);
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_BANDWIDTH], "DETECTOR_BANDWIDTH", "Bandwidth (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_GAIN], "DETECTOR_GAIN", "Gain", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
-    IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_BITSPERSAMPLE], "DETECTOR_BITSPERSAMPLE", "Bits per sample", "%3.0f", 1, 64, 1, 8);
     IUFillNumberVector(&PrimaryDetector.DetectorSettingsNP, PrimaryDetector.DetectorSettingsN, 5, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", CAPTURE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // PrimaryDetector Device Continuum Blob
-    IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_CONTINUUM], "CONTINUUM", "Continuum", "");
-    IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_SPECTRUM], "SPECTRUM", "Spectrum", "");
-    IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_TDEV], "TDEV", "Time Deviation", "");
-    IUFillBLOBVector(&PrimaryDetector.FitsBP, PrimaryDetector.FitsB, 3, getDeviceName(), "DETECTOR", "Capture Data", CAPTURE_INFO_TAB,
+    int ctr = 0;
+    if(HasContinuum()) {
+        IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_CONTINUUM], "CONTINUUM", "Continuum", "");
+        ctr ++;
+    }
+    if(HasSpectrum()) {
+        IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_SPECTRUM], "SPECTRUM", "Spectrum", "");
+        ctr ++;
+    }
+    if(HasTimeDeviation()) {
+        IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_TDEV], "TDEV", "Time Deviation", "");
+        ctr ++;
+    }
+    if(ctr > 0) {
+        IUFillBLOBVector(&PrimaryDetector.FitsBP, PrimaryDetector.FitsB, ctr, getDeviceName(), "DETECTOR", "Capture Data", CAPTURE_INFO_TAB,
                      IP_RO, 60, IPS_IDLE);
+    }
 
     /**********************************************/
     /************** Upload Settings ***************/
@@ -613,11 +626,7 @@ bool Detector::ISNewNumber(const char *dev, const char *name, double values[], c
         if (!strcmp(name, PrimaryDetector.DetectorSettingsNP.name))
         {
             PrimaryDetector.DetectorSettingsNP.s = IPS_OK;
-            SetDetectorParams(values[DetectorDevice::DETECTOR_SAMPLERATE],
-                    values[DetectorDevice::DETECTOR_FREQUENCY],
-                    values[DetectorDevice::DETECTOR_BITSPERSAMPLE],
-                    values[DetectorDevice::DETECTOR_BANDWIDTH],
-                    values[DetectorDevice::DETECTOR_GAIN]);
+            SetDetectorParams(values[DetectorDevice::DETECTOR_SAMPLERATE], values[DetectorDevice::DETECTOR_FREQUENCY], values[DetectorDevice::DETECTOR_BITSPERSAMPLE], values[DetectorDevice::DETECTOR_BANDWIDTH], values[DetectorDevice::DETECTOR_GAIN]);
             return true;
         }
     }
@@ -721,9 +730,10 @@ bool Detector::AbortCapture()
     return false;
 }
 
-void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, int blobIndex)
+void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uint8_t* buf, int len)
 {
-    INDI_UNUSED(blobIndex);
+    INDI_UNUSED(buf);
+    INDI_UNUSED(len);
     int status = 0;
     char dev_name[32];
     char exp_start[32];
@@ -770,18 +780,7 @@ void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, int
     if (targetDevice->getNAxis() == 2)
     {
         double min_val, max_val;
-        if(blobIndex == DetectorDevice::DETECTOR_BLOB_CONTINUUM)
-        {
-            getMinMax(&min_val, &max_val, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize(), targetDevice->getBPS());
-        }
-        if(blobIndex == DetectorDevice::DETECTOR_BLOB_SPECTRUM)
-        {
-            getMinMax(&min_val, &max_val, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize(), targetDevice->getBPS());
-        }
-        if(blobIndex == DetectorDevice::DETECTOR_BLOB_TDEV)
-        {
-            getMinMax(&min_val, &max_val, targetDevice->getSpectrumBuffer(), targetDevice->getTimeDeviationBufferSize(), 8);
-        }
+        getMinMax(&min_val, &max_val, buf, len, targetDevice->getBPS());
 
         fits_update_key_s(fptr, TDOUBLE, "DATAMIN", &min_val, "Minimum value", &status);
         fits_update_key_s(fptr, TDOUBLE, "DATAMAX", &max_val, "Maximum value", &status);
@@ -849,12 +848,11 @@ void Detector::fits_update_key_s(fitsfile *fptr, int type, std::string name, voi
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
 }
 
-void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
+void* Detector::sendFITS(DetectorDevice *targetDevice, int type, uint8_t *buf, int len) {
     bool sendCapture = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveCapture = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
     fitsfile *fptr = nullptr;
     void *memptr;
-    uint8_t *buf;
     size_t memsize;
     int img_type  = 0;
     int byte_type = 0;
@@ -864,72 +862,50 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
     int nelements = 0;
     std::string bit_depth;
     char error_status[MAXRBUF];
-    if(type == DetectorDevice::DETECTOR_BLOB_TDEV) {
+    switch (targetDevice->getBPS())
+    {
+    case 8:
         byte_type = TBYTE;
         img_type  = BYTE_IMG;
         bit_depth = "8 bits per sample";
-    } else {
-        switch (targetDevice->getBPS())
-        {
-        case 8:
-            byte_type = TBYTE;
-            img_type  = BYTE_IMG;
-            bit_depth = "8 bits per sample";
-            break;
-
-        case 16:
-            byte_type = TUSHORT;
-            img_type  = USHORT_IMG;
-            bit_depth = "16 bits per sample";
-            break;
-
-        case 32:
-            byte_type = TLONG;
-            img_type  = LONG_IMG;
-            bit_depth = "32 bits per sample";
-            break;
-
-        case 64:
-            byte_type = TLONGLONG;
-            img_type  = LONGLONG_IMG;
-            bit_depth = "64 bits float per sample";
-            break;
-
-        case -32:
-            byte_type = TFLOAT;
-            img_type  = FLOAT_IMG;
-            bit_depth = "32 bits float per sample";
-            break;
-
-        case -64:
-            byte_type = TDOUBLE;
-            img_type  = DOUBLE_IMG;
-            bit_depth = "64 bits float per sample";
-            break;
-
-        default:
-            DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", targetDevice->getBPS());
-            return NULL;
-            break;
-        }
-    }
-    switch(type) {
-    case DetectorDevice::DETECTOR_BLOB_TDEV:
-        naxes[0] = targetDevice->getTimeDeviationBufferSize();
-        buf = targetDevice->getTimeDeviationBuffer();
         break;
-    case DetectorDevice::DETECTOR_BLOB_CONTINUUM:
-        naxes[0] = targetDevice->getContinuumBufferSize() * 8 / abs(targetDevice->getBPS());
-        buf = targetDevice->getContinuumBuffer();
+
+    case 16:
+        byte_type = TUSHORT;
+        img_type  = USHORT_IMG;
+        bit_depth = "16 bits per sample";
         break;
-    case DetectorDevice::DETECTOR_BLOB_SPECTRUM:
-        naxes[0] = targetDevice->getSpectrumBufferSize() * 8 / abs(targetDevice->getBPS());
-        buf = targetDevice->getSpectrumBuffer();
+
+    case 32:
+        byte_type = TLONG;
+        img_type  = LONG_IMG;
+        bit_depth = "32 bits per sample";
         break;
+
+    case 64:
+        byte_type = TLONGLONG;
+        img_type  = LONGLONG_IMG;
+        bit_depth = "64 bits float per sample";
+        break;
+
+    case -32:
+        byte_type = TFLOAT;
+        img_type  = FLOAT_IMG;
+        bit_depth = "32 bits float per sample";
+        break;
+
+    case -64:
+        byte_type = TDOUBLE;
+        img_type  = DOUBLE_IMG;
+        bit_depth = "64 bits float per sample";
+        break;
+
     default:
+        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", targetDevice->getBPS());
         return NULL;
         break;
     }
+    naxes[0] = len;
     naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
     naxes[1] = 1;
     nelements = naxes[0];
@@ -969,7 +945,7 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type) {
         return NULL;
     }
 
-    addFITSKeywords(fptr, targetDevice, type);
+    addFITSKeywords(fptr, targetDevice, buf, len);
 
     fits_write_img(fptr, byte_type, 1, nelements, buf, &status);
 
@@ -1001,41 +977,45 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
         void* continuum = NULL;
         void* spectrum = NULL;
         void* tdev = NULL;
+        int idx = 0;
+        if(HasContinuum())
+        {
+            if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
+            {
+                continuum = sendFITS(targetDevice, idx, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize() * 8 / abs(targetDevice->getBPS()));
+            }
+            else
+            {
+                uploadFile(targetDevice, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize(), sendCapture,
+                       saveCapture, idx);
+            }
+            idx++;
+        }
         if(HasSpectrum())
         {
             if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
             {
-                spectrum = sendFITS(targetDevice, DetectorDevice::DETECTOR_BLOB_SPECTRUM);
+                spectrum = sendFITS(targetDevice, idx, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize() * 8 / abs(targetDevice->getBPS()));
             }
             else
             {
                 uploadFile(targetDevice, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize() * 8 / abs(targetDevice->getBPS()), sendCapture,
                        saveCapture, DetectorDevice::DETECTOR_BLOB_SPECTRUM);
             }
-        }
-        if(HasContinuum())
-        {
-            if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
-            {
-                continuum = sendFITS(targetDevice, DetectorDevice::DETECTOR_BLOB_CONTINUUM);
-            }
-            else
-            {
-                uploadFile(targetDevice, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize() * 8 / abs(targetDevice->getBPS()), sendCapture,
-                       saveCapture, DetectorDevice::DETECTOR_BLOB_CONTINUUM);
-            }
+            idx++;
         }
         if(HasTimeDeviation())
         {
             if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
             {
-                tdev = sendFITS(targetDevice, DetectorDevice::DETECTOR_BLOB_TDEV);
+                tdev = sendFITS(targetDevice, idx, targetDevice->getTimeDeviationBuffer(), targetDevice->getTimeDeviationBufferSize() * 8 / abs(targetDevice->getBPS()));
             }
             else
             {
                 uploadFile(targetDevice, targetDevice->getTimeDeviationBuffer(), targetDevice->getTimeDeviationBufferSize(), sendCapture,
                        saveCapture, DetectorDevice::DETECTOR_BLOB_TDEV);
             }
+            idx++;
         }
 
         if (sendCapture)
@@ -1173,7 +1153,7 @@ void Detector::getMinMax(double *min, double *max, uint8_t *buf, int len, int bp
 {
     int ind         = 0, i, j;
     int captureHeight = 1;
-    int captureWidth  = abs(len * 8 / bpp);
+    int captureWidth  = len;
     double lmin = 0, lmax = 0;
 
     switch (bpp)
