@@ -323,6 +323,11 @@ bool TOUPCAM::updateProperties()
         defineNumber(&LevelRangeNP);
         defineNumber(&BlackBalanceNP);
 
+        // Balance
+        defineNumber(&WBTempTintNP);
+        defineNumber(&WBRGBNP);
+        defineSwitch(&WBAutoSP);
+
         defineText(&SDKVersionSP);
     }
     else
@@ -342,6 +347,10 @@ bool TOUPCAM::updateProperties()
 
         deleteProperty(LevelRangeNP.name);
         deleteProperty(BlackBalanceNP.name);
+
+        deleteProperty(WBTempTintNP.name);
+        deleteProperty(WBRGBNP.name);
+        deleteProperty(WBAutoSP.name);
 
         deleteProperty(SDKVersionSP.name);
     }
@@ -490,7 +499,6 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
 
     if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
-
         //////////////////////////////////////////////////////////////////////
         /// Controls (Contrast, Brightness, Hue...etc)
         //////////////////////////////////////////////////////////////////////
@@ -609,6 +617,57 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
             IDSetNumber(&BlackBalanceNP, nullptr);
             return true;
         }
+
+        //////////////////////////////////////////////////////////////////////
+        /// Temp/Tint White Balance
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, WBTempTintNP.name))
+        {
+            IUUpdateNumber(&WBTempTintNP, values, names, n);
+            HRESULT rc = 0;
+
+            if ( (rc = Toupcam_put_TempTint(m_CameraHandle, static_cast<int>(WBTempTintN[TC_WB_TEMP].value),
+                                                            static_cast<int>(WBTempTintN[TC_WB_TINT].value))) < 0)
+            {
+                WBTempTintNP.s = IPS_ALERT;
+                LOGF_ERROR("Failed to set White Balance Tempeture & Tint. Error %d", rc);
+
+            }
+            else
+                WBTempTintNP.s = IPS_OK;
+
+            IDSetNumber(&WBTempTintNP, nullptr);
+            return true;
+        }
+
+        //////////////////////////////////////////////////////////////////////
+        /// RGB White Balance
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, WBRGBNP.name))
+        {
+            IUUpdateNumber(&WBRGBNP, values, names, n);
+            HRESULT rc = 0;
+
+            int aSub[3] =
+            {
+                static_cast<int>(WBRGBN[TC_WB_R].value),
+                static_cast<int>(WBRGBN[TC_WB_G].value),
+                static_cast<int>(WBRGBN[TC_WB_B].value),
+            };
+
+            if ( (rc = Toupcam_put_WhiteBalanceGain(m_CameraHandle, aSub)) < 0)
+            {
+                WBRGBNP.s = IPS_ALERT;
+                LOGF_ERROR("Failed to set White Balance gain. Error %d", rc);
+
+            }
+            else
+                WBRGBNP.s = IPS_OK;
+
+            IDSetNumber(&WBRGBNP, nullptr);
+            return true;
+        }
+
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
@@ -616,56 +675,8 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
 
 bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-#if 0
-    int errCode = 0;
-
     if (dev != nullptr && !strcmp(dev, getDeviceName()))
     {
-        if (!strcmp(name, ControlSP.name))
-        {
-            if (IUUpdateSwitch(&ControlSP, states, names, n) < 0)
-            {
-                ControlSP.s = IPS_ALERT;
-                IDSetSwitch(&ControlSP, nullptr);
-                return true;
-            }
-
-            for (int i = 0; i < ControlSP.nsp; i++)
-            {
-                ASI_CONTROL_TYPE swType = *((ASI_CONTROL_TYPE *)ControlS[i].aux);
-                ASI_BOOL swAuto         = (ControlS[i].s == ISS_ON) ? ASI_TRUE : ASI_FALSE;
-
-                for (int j = 0; j < ControlNP.nnp; j++)
-                {
-                    ASI_CONTROL_TYPE nType = *((ASI_CONTROL_TYPE *)ControlN[j].aux0);
-
-                    if (swType == nType)
-                    {
-                        LOGF_DEBUG("ISNewSwitch->SetControlValue %d %.2f", nType,
-                                   ControlN[j].value);
-                        if ((errCode = ASISetControlValue(m_camInfo->CameraID, nType, ControlN[j].value, swAuto)) !=
-                                0)
-                        {
-                            LOGF_ERROR("ASISetControlValue (%s=%g) error (%d)", ControlN[j].name,
-                                       ControlN[j].value, errCode);
-                            ControlNP.s = IPS_ALERT;
-                            ControlSP.s = IPS_ALERT;
-                            IDSetNumber(&ControlNP, nullptr);
-                            IDSetSwitch(&ControlSP, nullptr);
-                            return false;
-                        }
-
-                        *((ASI_BOOL *)ControlN[j].aux1) = swAuto;
-                        break;
-                    }
-                }
-            }
-
-            ControlSP.s = IPS_OK;
-            IDSetSwitch(&ControlSP, nullptr);
-            return true;
-        }
-
         /* Cooler */
         if (!strcmp(name, CoolerSP.name))
         {
@@ -716,7 +727,6 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             return setVideoFormat(targetIndex);
         }
     }
-#endif
 
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
