@@ -207,8 +207,8 @@ bool LIMESDR::Disconnect()
 {
 	InCapture = false;
     LMS_Close(lime_dev);
-	free(continuum);
-	free(spectrum);
+    PrimaryDetector.setContinuumBufferSize(1);
+    PrimaryDetector.setSpectrumBufferSize(1);
 	LOG_INFO("LIME-SDR Detector disconnected successfully!");
 	return true;
 }
@@ -226,12 +226,12 @@ const char *LIMESDR::getDefaultName()
 ***************************************************************************************/
 bool LIMESDR::initProperties()
 {
+    // We set the Detector capabilities
+    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
+    SetDetectorCapability(cap);
+
 	// Must init parent properties first!
 	INDI::Detector::initProperties();
-
-	// We set the Detector capabilities
-	uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
-	SetDetectorCapability(cap);
 
     PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.001, 86164.092, 0.001, false);
     PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 400.0e+6, 3.8e+9, 1, false);

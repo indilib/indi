@@ -35,6 +35,8 @@ class RTLSDR : public INDI::Detector
     RTLSDR(uint32_t index);
 
     void grabData(unsigned char *buf, int n);
+    rtlsdr_dev_t *rtl_dev = { nullptr };
+    int to_read;
 
   protected:
 	// General device functions
@@ -52,7 +54,6 @@ class RTLSDR : public INDI::Detector
 
 
   private:
-	rtlsdr_dev_t *rtl_dev = { nullptr };
 	// Utility functions
 	float CalcTimeLeft();
     void setupParams();
@@ -60,8 +61,7 @@ class RTLSDR : public INDI::Detector
 	// Are we exposing?
 	bool InCapture;
 	// Struct to keep timing
-	struct timeval CapStart;
-    int to_read;
+    struct timeval CapStart;
     int b_read;
 	float CaptureRequest;
 	uint8_t* continuum;
