@@ -282,7 +282,6 @@ bool TOUPCAM::initProperties()
     IUFillText(&SDKVersionS[0], "VERSION", "Version", Toupcam_Version());
     IUFillTextVector(&SDKVersionSP, SDKVersionS, 1, getDeviceName(), "SDK", "SDK", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
-    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0, 3600, 1, false);
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, 2, 1, false);
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, 2, 1, false);
 
@@ -377,24 +376,46 @@ bool TOUPCAM::Connect()
 
     // If raw format is support then we have bayer
     if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
+    {
+        LOG_DEBUG("RAW format supported. Bayer enabled.");
         cap |= CCD_HAS_BAYER;
+    }
 
     if (m_Instance->model->flag & TOUPCAM_FLAG_BINSKIP_SUPPORTED)
+    {
+        LOG_DEBUG("Bin-Skip supported.");
         cap |= CCD_CAN_BIN;
+    }
 
     // Hardware ROI really needed? Check later
     if (m_Instance->model->flag & TOUPCAM_FLAG_ROI_HARDWARE)
+    {
+        LOG_DEBUG("Hardware ROI supported.");
         cap |= CCD_CAN_SUBFRAME;
+    }
 
     if (m_Instance->model->flag & TOUPCAM_FLAG_TEC_ONOFF)
+    {
+        LOG_DEBUG("TEC control enabled.");
         cap |= CCD_HAS_COOLER;
+    }
 
     if (m_Instance->model->flag & TOUPCAM_FLAG_ST4)
+    {
+        LOG_DEBUG("ST4 guiding enabled.");
         cap |= CCD_HAS_ST4_PORT;
+    }
 
     cap |= CCD_HAS_STREAMING;
 
     SetCCDCapability(cap);
+
+    // Start callback
+    if (Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this) < 0)
+    {
+        Toupcam_Close(m_CameraHandle);
+        return false;
+    }
 
     /*
      * Create the imaging thread and wait for it to start
@@ -449,14 +470,22 @@ bool TOUPCAM::Disconnect()
 
 void TOUPCAM::setupParams()
 {
+    uint32_t min=0,max=0,current=0;
+    Toupcam_get_ExpTimeRange(m_CameraHandle, &min, &max, &current);
+    LOGF_DEBUG("Exposure Time Range (us): Min %d Max %d Default %d", min, max, current);
+
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1000000.0, max/1000000.0, 0, false);
+
     uint8_t bitsPerPixel = 8;
-    /* bitdepth supported */
+    // bitdepth supported
     if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
     {
-        /* enable bitdepth */
+        // enable bitdepth
         Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
         bitsPerPixel = 16;
     }
+
+    LOGF_DEBUG("Bits Per Pixel: %d", bitsPerPixel);
 
     // Get how many resolutions available for the camera
     ResolutionSP.nsp = Toupcam_get_ResolutionNumber(m_CameraHandle);
@@ -468,6 +497,7 @@ void TOUPCAM::setupParams()
         Toupcam_get_Resolution(m_CameraHandle, i, &w[i], &h[i]);
         char label[MAXINDILABEL] = {0};
         snprintf(label, MAXINDILABEL, "%d x %d", w[i], h[i]);
+        LOGF_DEBUG("Resolution #%d: %s", i+i, label);
         IUFillSwitch(&ResolutionS[i], label, label, ISS_OFF);
     }
 
@@ -482,6 +512,7 @@ void TOUPCAM::setupParams()
     PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8);
 
     // Set Streamer pixel format
+    // FIXME
     Streamer->setPixelFormat(INDI_MONO, bitsPerPixel);
     Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
@@ -750,7 +781,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             switch (IUFindOnSwitchIndex(&AutoControlSP))
             {
             case TC_AUTO_EXPOSURE:
-               rc = Toupcam_put_AutoExpoEnable(m_CameraHandle, (AutoControlS[TC_AUTO_EXPOSURE].s == ISS_ON) ? TRUE : FALSE);
+                rc = Toupcam_put_AutoExpoEnable(m_CameraHandle, (AutoControlS[TC_AUTO_EXPOSURE].s == ISS_ON) ? TRUE : FALSE);
                 break;
             case TC_AUTO_TINT:
                 rc = Toupcam_AwbOnePush(m_CameraHandle, &TOUPCAM::TempTintCB, this);
@@ -901,45 +932,21 @@ bool TOUPCAM::activateCooler(bool enable)
 }
 
 bool TOUPCAM::StartExposure(float duration)
-{
-#if 0
-    int errCode = 0;
-
-    PrimaryCCD.setExposureDuration(duration);
+{    
+    PrimaryCCD.setExposureDuration(static_cast<double>(duration));
     ExposureRequest = duration;
 
-    LOGF_DEBUG("StartExposure->setexp : %.3fs", duration);
-    long uSecs = (long)(duration * 1000000.0);
-    ASISetControlValue(m_camInfo->CameraID, ASI_EXPOSURE, uSecs, ASI_FALSE);
+    LOGF_DEBUG("Start exposure: %.3fs", static_cast<double>(duration));
+    uint32_t uSecs = static_cast<uint32_t>(duration * 1000000.0f);
 
-    // Try exposure for 3 times
-    ASI_BOOL isDark = ASI_FALSE;
-    if (PrimaryCCD.getFrameType() == INDI::CCDChip::DARK_FRAME)
-    {
-        isDark = ASI_TRUE;
-    }
-    for (int i = 0; i < 3; i++)
-    {
-        if ((errCode = ASIStartExposure(m_camInfo->CameraID, isDark)) !=
-                0)
-        {
-            LOGF_ERROR("ASIStartExposure error (%d)", errCode);
-            // Wait 100ms before trying again
-            usleep(100000);
-            continue;
-        }
-        break;
-    }
+    Toupcam_put_ExpoTime(m_CameraHandle, uSecs);
 
-    if (errCode != 0)
-    {
-        LOG_WARN("ASI firmware might require an update to *compatible mode. Check http://www.indilib.org/devices/ccds/zwo-optics-asi-cameras.html for details.");
+    if (Toupcam_Snap(m_CameraHandle, IUFindOnSwitchIndex(&ResolutionSP)) < 0)
         return false;
-    }
 
     gettimeofday(&ExpStart, nullptr);
     if (ExposureRequest > VERBOSE_EXPOSURE)
-        LOGF_INFO("Taking a %g seconds frame...", ExposureRequest);
+        LOGF_INFO("Taking a %g seconds frame...", static_cast<double>(ExposureRequest));
 
     InExposure = true;
     pthread_mutex_lock(&condMutex);
@@ -947,8 +954,6 @@ bool TOUPCAM::StartExposure(float duration)
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&condMutex);
 
-    //updateControls();
-#endif
     return true;
 }
 
@@ -1038,13 +1043,17 @@ bool TOUPCAM::UpdateCCDBin(int binx, int biny)
 {
     INDI_UNUSED(biny);
 
+    if (binx > 2)
+    {
+        LOG_ERROR("Only 1x1 and 2x2 modes supported.");
+        return false;
+    }
+
     PrimaryCCD.setBin(binx, binx);
 
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
-/* Downloads the image from the CCD.
- N.B. No processing is done on the image */
 int TOUPCAM::grabImage()
 {
 #if 0
@@ -1125,7 +1134,7 @@ int TOUPCAM::grabImage()
     return 0;
 }
 
-/* The generic timer call back is used for temperature monitoring */
+// The generic timer call back is used for temperature monitoring
 void TOUPCAM::TimerHit()
 {
 #if 0
@@ -1198,7 +1207,7 @@ void TOUPCAM::TimerHit()
 /* Helper function for NS timer call back */
 void TOUPCAM::TimerHelperNS(void *context)
 {
-    ((TOUPCAM *)context)->TimerNS();
+    static_cast<TOUPCAM *>(context)->TimerNS();
 }
 
 /* The timer call back for NS guiding */
@@ -1392,197 +1401,6 @@ IPState TOUPCAM::GuideWest(uint32_t ms)
     return guidePulseWE(ms, TOUPCAM_WEST, "West");
 }
 
-void TOUPCAM::createControls(int piNumberOfControls)
-{
-#if 0
-    int errCode = 0;
-
-    INumber *control_number;
-    INumber *control_np;
-    int nWritableControls   = 0;
-
-    ISwitch *auto_switch;
-    ISwitch *auto_sp;
-    int nAutoSwitches    = 0;
-    size_t size;
-
-    if (pControlCaps != nullptr)
-        free(pControlCaps);
-
-    size = sizeof(ASI_CONTROL_CAPS) * piNumberOfControls;
-    pControlCaps = (ASI_CONTROL_CAPS *)malloc(size);
-    if (pControlCaps == nullptr)
-    {
-        LOGF_ERROR("CCD ID: %d malloc failed (controls)",
-                   m_camInfo->CameraID);
-        return;
-    }
-    (void)memset(pControlCaps, 0, size);
-    ASI_CONTROL_CAPS *oneControlCap = pControlCaps;
-
-    if (ControlNP.nnp != 0)
-    {
-        free(ControlNP.np);
-        ControlNP.nnp = 0;
-    }
-
-    size = sizeof(INumber) * piNumberOfControls;
-    control_number = (INumber *)malloc(size);
-    if (control_number == nullptr)
-    {
-        LOGF_ERROR(
-                    "CCD ID: %d malloc failed (control number)", m_camInfo->CameraID);
-        free(pControlCaps);
-        pControlCaps = nullptr;
-        return;
-    }
-    (void)memset(control_number, 0, size);
-    control_np = control_number;
-
-    if (ControlSP.nsp != 0)
-    {
-        free(ControlSP.sp);
-        ControlSP.nsp = 0;
-    }
-
-    size = sizeof(ISwitch) * piNumberOfControls;
-    auto_switch = (ISwitch *)malloc(size);
-    if (auto_switch == nullptr)
-    {
-        LOGF_ERROR(
-                    "CCD ID: %d malloc failed (control auto)", m_camInfo->CameraID);
-        free(control_number);
-        free(pControlCaps);
-        pControlCaps = nullptr;
-        return;
-    }
-    (void)memset(auto_switch, 0, size);
-    auto_sp = auto_switch;
-
-    for (int i = 0; i < piNumberOfControls; i++)
-    {
-        if ((errCode = ASIGetControlCaps(m_camInfo->CameraID, i, oneControlCap)) != 0)
-        {
-            LOGF_ERROR("ASIGetControlCaps error (%d)", errCode);
-            return;
-        }
-
-        LOGF_DEBUG("Control #%d: name (%s), Descp (%s), Min (%ld), Max (%ld), Default Value (%ld), IsAutoSupported (%s), "
-                   "isWritale (%s) ",
-                   i, oneControlCap->Name, oneControlCap->Description, oneControlCap->MinValue, oneControlCap->MaxValue,
-                   oneControlCap->DefaultValue, oneControlCap->IsAutoSupported ? "True" : "False",
-                   oneControlCap->IsWritable ? "True" : "False");
-
-        if (oneControlCap->IsWritable == ASI_FALSE || oneControlCap->ControlType == ASI_TARGET_TEMP ||
-                oneControlCap->ControlType == ASI_COOLER_ON)
-            continue;
-
-        // Update Min/Max exposure as supported by the camera
-        if (oneControlCap->ControlType == ASI_EXPOSURE)
-        {
-            double minExp = (double)oneControlCap->MinValue / 1000000.0;
-            double maxExp = (double)oneControlCap->MaxValue / 1000000.0;
-            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE",
-                                     minExp, maxExp, 1);
-            continue;
-        }
-
-        long pValue     = 0;
-        ASI_BOOL isAuto = ASI_FALSE;
-
-#ifdef LOW_USB_BANDWIDTH
-        if (oneControlCap->ControlType == ASI_BANDWIDTHOVERLOAD)
-        {
-            LOGF_DEBUG("createControls->set USB %d", oneControlCap->MinValue);
-            ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, oneControlCap->MinValue, ASI_FALSE);
-        }
-#else
-        if (oneControlCap->ControlType == ASI_BANDWIDTHOVERLOAD)
-        {
-            if (m_camInfo->IsUSB3Camera && !m_camInfo->IsUSB3Host)
-            {
-                LOGF_DEBUG("createControls->set USB %d", 0.8 * oneControlCap->MaxValue);
-                ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, 0.8 * oneControlCap->MaxValue,
-                                   ASI_FALSE);
-            }
-            else
-            {
-                LOGF_DEBUG("createControls->set USB %d", oneControlCap->MinValue);
-                ASISetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, oneControlCap->MinValue, ASI_FALSE);
-            }
-        }
-#endif
-
-        ASIGetControlValue(m_camInfo->CameraID, oneControlCap->ControlType, &pValue, &isAuto);
-
-        if (oneControlCap->IsWritable)
-        {
-            nWritableControls++;
-
-            LOGF_DEBUG(
-                        "Adding above control as writable control number %d",
-                        nWritableControls);
-
-            // JM 2018-07-04: If Max-Min == 1 then it's boolean value
-            // So no need to set a custom step value.
-            double step=1;
-            if (oneControlCap->MaxValue - oneControlCap->MinValue > 1)
-                step = (oneControlCap->MaxValue - oneControlCap->MinValue) / 10.0;
-            IUFillNumber(control_np,
-                         oneControlCap->Name,
-                         oneControlCap->Name,
-                         "%g",
-                         oneControlCap->MinValue,
-                         oneControlCap->MaxValue,
-                         step,
-                         pValue);
-            control_np->aux0 = (void *)&oneControlCap->ControlType;
-            control_np->aux1 = (void *)&oneControlCap->IsAutoSupported;
-            control_np++;
-        }
-
-        if (oneControlCap->IsAutoSupported)
-        {
-            nAutoSwitches++;
-
-            LOGF_DEBUG("Adding above control as auto control number %d", nAutoSwitches);
-
-            char autoName[MAXINDINAME];
-            snprintf(autoName, MAXINDINAME, "AUTO_%s", oneControlCap->Name);
-            IUFillSwitch(auto_sp, autoName, oneControlCap->Name,
-                         isAuto == ASI_TRUE ? ISS_ON : ISS_OFF);
-            auto_sp->aux = (void *)&oneControlCap->ControlType;
-            auto_sp++;
-        }
-
-        oneControlCap++;
-    }
-
-    /*
-     * Resize the buffers to free up unused space -- there is no need to
-     * check for realloc() failures because we are reducing the size
-     */
-    if (nWritableControls != piNumberOfControls)
-    {
-        size = sizeof(INumber) * nWritableControls;
-        control_number = (INumber *)realloc(control_number, size);
-    }
-    if (nAutoSwitches != piNumberOfControls)
-    {
-        size = sizeof(ISwitch) * nAutoSwitches;
-        auto_switch = (ISwitch *)realloc(auto_switch, size);
-    }
-
-    ControlNP.nnp = nWritableControls;
-    ControlNP.np  = control_number;
-    ControlN      = control_number;
-
-    ControlSP.nsp = nAutoSwitches;
-    ControlSP.sp  = auto_switch;
-    ControlS      = auto_switch;
-#endif
-}
-
 const char *TOUPCAM::getBayerString()
 {
 #if 0
@@ -1619,35 +1437,9 @@ TOUPCAM::ePIXELFORMAT TOUPCAM::getImageType()
     return PIXELFORMAT_RAW8;
 }
 
-void TOUPCAM::updateControls()
-{
-#if 0
-    long pValue     = 0;
-    ASI_BOOL isAuto = ASI_FALSE;
-
-    for (int i = 0; i < ControlNP.nnp; i++)
-    {
-        ASI_CONTROL_TYPE nType = *((ASI_CONTROL_TYPE *)ControlN[i].aux0);
-
-        ASIGetControlValue(m_camInfo->CameraID, nType, &pValue, &isAuto);
-
-        ControlN[i].value = pValue;
-
-        for (int j = 0; j < ControlSP.nsp; j++)
-        {
-            ASI_CONTROL_TYPE sType = *((ASI_CONTROL_TYPE *)ControlS[j].aux);
-
-            if (sType == nType)
-            {
-                ControlS[j].s = (isAuto == ASI_TRUE) ? ISS_ON : ISS_OFF;
-                break;
-            }
-        }
-    }
-
+void TOUPCAM::refreshControls()
+{   
     IDSetNumber(&ControlNP, nullptr);
-    IDSetSwitch(&ControlSP, nullptr);
-#endif
 }
 
 void TOUPCAM::updateRecorderFormat()
@@ -1720,11 +1512,11 @@ void *TOUPCAM::imagingThreadEntry()
         threadState = threadRequest;
         if (threadRequest == StateExposure)
         {
-            getExposure();
+            getSnapImage();
         }
         else if (threadRequest == StateStream)
         {
-            streamVideo();
+            getVideoImage();
         }
         else if (threadRequest == StateRestartExposure)
         {
@@ -1751,7 +1543,7 @@ void *TOUPCAM::imagingThreadEntry()
     return nullptr;
 }
 
-void TOUPCAM::streamVideo()
+void TOUPCAM::getVideoImage()
 {
 #if 0
     int ret;
@@ -1811,127 +1603,6 @@ void TOUPCAM::streamVideo()
                 usleep(10);
             }
         }
-
-        pthread_mutex_lock(&condMutex);
-    }
-#endif
-}
-
-void TOUPCAM::getExposure()
-{
-#if 0
-    float timeLeft;
-    int expRetry = 0;
-    int statRetry = 0;
-    int uSecs = 1000000;
-    ASI_EXPOSURE_STATUS status = ASI_EXP_IDLE;
-    int errCode;
-
-    pthread_mutex_unlock(&condMutex);
-    usleep(10000);
-    pthread_mutex_lock(&condMutex);
-
-    while (threadRequest == StateExposure)
-    {
-        pthread_mutex_unlock(&condMutex);
-        errCode = ASIGetExpStatus(m_camInfo->CameraID, &status);
-        if (errCode == 0)
-        {
-            if (status == ASI_EXP_SUCCESS)
-            {
-                InExposure = false;
-                PrimaryCCD.setExposureLeft(0.0);
-                DEBUG(INDI::Logger::DBG_SESSION,
-                      "Exposure done, downloading image...");
-                pthread_mutex_lock(&condMutex);
-                exposureSetRequest(StateIdle);
-                pthread_mutex_unlock(&condMutex);
-                grabImage();
-                pthread_mutex_lock(&condMutex);
-                break;
-            }
-            else if (status == ASI_EXP_FAILED)
-            {
-                if (++expRetry < MAX_EXP_RETRIES)
-                {
-                    if (threadRequest == StateExposure)
-                    {
-                        LOG_DEBUG("ASIGetExpStatus failed. Restarting exposure...");
-                    }
-                    InExposure = false;
-                    ASIStopExposure(m_camInfo->CameraID);
-                    usleep(100000);
-                    pthread_mutex_lock(&condMutex);
-                    exposureSetRequest(StateRestartExposure);
-                    break;
-                }
-                else
-                {
-                    if (threadRequest == StateExposure)
-                    {
-                        LOGF_ERROR(
-                                    "Exposure failed after %d attempts.", expRetry);
-                    }
-                    ASIStopExposure(m_camInfo->CameraID);
-                    PrimaryCCD.setExposureFailed();
-                    usleep(100000);
-                    pthread_mutex_lock(&condMutex);
-                    exposureSetRequest(StateIdle);
-                    break;
-                }
-            }
-        }
-        else
-        {
-            LOGF_DEBUG("ASIGetExpStatus error (%d)",
-                       errCode);
-            if (++statRetry >= 10)
-            {
-                if (threadRequest == StateExposure)
-                {
-                    LOGF_ERROR(
-                                "Exposure status timed out (%d)", errCode);
-                }
-                PrimaryCCD.setExposureFailed();
-                InExposure = false;
-                pthread_mutex_lock(&condMutex);
-                exposureSetRequest(StateIdle);
-                break;
-            }
-        }
-
-        /*
-         * Check the status every second until the time left is
-         * about one second, after which decrease the poll interval
-         */
-        timeLeft = calcTimeLeft(ExposureRequest, &ExpStart);
-        if (timeLeft > 1.1)
-        {
-            /*
-             * For expsoures with more than a second left try
-             * to keep the displayed "exposure left" value at
-             * a full second boundary, which keeps the
-             * count down neat
-             */
-            float fraction = timeLeft - (float)((int)timeLeft);
-            if (fraction >= 0.005)
-            {
-                uSecs = (int)(fraction * 1000000.0);
-            }
-            else
-            {
-                uSecs = 1000000;
-            }
-        }
-        else
-        {
-            uSecs = 10000;
-        }
-        if (timeLeft >= 0.0049)
-        {
-            PrimaryCCD.setExposureLeft(timeLeft);
-        }
-        usleep(uSecs);
 
         pthread_mutex_lock(&condMutex);
     }
@@ -2045,4 +1716,49 @@ void TOUPCAM::AutoExposureCB(void* pCtx)
 void TOUPCAM::AutoExposureChanged()
 {
     // TODO
+}
+
+void TOUPCAM::eventCB(unsigned event, void* pCtx)
+{
+    static_cast<TOUPCAM*>(pCtx)->eventPullCallBack(event);
+}
+
+void TOUPCAM::eventPullCallBack(unsigned event)
+{
+    switch (event)
+    {
+    case TOUPCAM_EVENT_EXPOSURE:
+        break;
+    case TOUPCAM_EVENT_TEMPTINT:
+        break;
+    case TOUPCAM_EVENT_IMAGE:
+        break;
+    case TOUPCAM_EVENT_STILLIMAGE:
+        break;
+    case TOUPCAM_EVENT_WBGAIN:
+        break;
+    case TOUPCAM_EVENT_TRIGGERFAIL:
+        break;
+    case TOUPCAM_EVENT_BLACK:
+        break;
+    case TOUPCAM_EVENT_FFC:
+        break;
+    case TOUPCAM_EVENT_DFC:
+        break;
+    case TOUPCAM_EVENT_ERROR:
+        break;
+    case TOUPCAM_EVENT_DISCONNECTED:
+        break;
+    case TOUPCAM_EVENT_TIMEOUT:
+        break;
+    case TOUPCAM_EVENT_FACTORY:
+        break;
+    default:
+        break;
+    }
+}
+
+void TOUPCAM::getSnapImage()
+{
+
 }
