@@ -39,6 +39,8 @@
 /* Our indiduino auto pointer */
 std::unique_ptr<indiduino> indiduino_prt(new indiduino());
 
+const char *indiduino_id = "indiduino";
+
 /**************************************************************************************
 ** Send client definitions of all properties.
 ***************************************************************************************/
@@ -136,6 +138,9 @@ void indiduino::TimerHit()
         if (type == INDI_LIGHT)
         {
             ILightVectorProperty *lvp = getLight(name);
+            if (lvp->aux != (void *)indiduino_id)
+                continue;
+
             for (int i = 0; i < lvp->nlp; i++)
             {
                 ILight *lqp = &lvp->lp[i];
@@ -173,6 +178,10 @@ void indiduino::TimerHit()
         {
             int n_on = 0;
             ISwitchVectorProperty *svp = getSwitch(name);
+
+            if (svp->aux != (void *)indiduino_id)
+                continue;
+
             for (int i = 0; i < svp->nsp; i++)
             {
                 ISwitch *sqp = &svp->sp[i];
@@ -227,6 +236,9 @@ void indiduino::TimerHit()
         {
             INumberVectorProperty *nvp = getNumber(name);
 
+            if (nvp->aux != (void *)indiduino_id)
+                continue;
+
             for (int i = 0; i < nvp->nnp; i++)
             {
                 INumber *eqp = &nvp->np[i];
@@ -264,6 +276,8 @@ void indiduino::TimerHit()
         if (type == INDI_TEXT)
         {
             ITextVectorProperty *tvp = getText(name);
+            if (tvp->aux != (void *)indiduino_id)
+                continue;
 
             for (int i=0;i<tvp->ntp;i++) {
                 IText *eqp = &tvp->tp[i];
@@ -747,6 +761,7 @@ bool indiduino::setPinModesFromSKEL()
                         LOG_ERROR("Malforme <indiduino> XML");
                         return false;
                     }
+                    svp->aux                      = (void *)indiduino_id;
                     sqp->aux                      = (void *)&iopin[numiopin];
                     iopin[numiopin].defVectorName = svp->name;
                     iopin[numiopin].defName       = sqp->name;
@@ -794,6 +809,7 @@ bool indiduino::setPinModesFromSKEL()
                         LOG_ERROR("Malforme <indiduino> XML");
                         return false;
                     }
+                    tvp->aux                      = (void *)indiduino_id;
                     tqp->aux0                     = (void *)&sf->string_buffer;
                     iopin[numiopin].defVectorName = tvp->name;
                     iopin[numiopin].defName       = tqp->name;
@@ -826,6 +842,7 @@ bool indiduino::setPinModesFromSKEL()
                         LOG_ERROR("Malforme <indiduino> XML");
                         return false;
                     }
+                    lvp->aux                      = (void *)indiduino_id;
                     lqp->aux                      = (void *)&iopin[numiopin];
                     iopin[numiopin].defVectorName = lvp->name;
                     iopin[numiopin].defName       = lqp->name;
@@ -861,6 +878,7 @@ bool indiduino::setPinModesFromSKEL()
                         LOG_ERROR("Malforme <indiduino> XML");
                         return false;
                     }
+                    nvp->aux                      = (void *)indiduino_id;
                     eqp->aux0                     = (void *)&iopin[numiopin];
                     iopin[numiopin].defVectorName = nvp->name;
                     iopin[numiopin].defName       = eqp->name;
