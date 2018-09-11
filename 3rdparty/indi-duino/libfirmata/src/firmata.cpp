@@ -15,7 +15,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-int debug = 0;
+void (*firmata_debug_cb)(const char *file, int line, const char *msg, ...) = NULL;
+
+#define LOG_DEBUG(msg) {if (firmata_debug_cb) firmata_debug_cb(__FILE__, __LINE__, msg);}
+#define LOGF_DEBUG(msg, ...) {if (firmata_debug_cb) firmata_debug_cb(__FILE__, __LINE__, msg, __VA_ARGS__);}
 
 Firmata::Firmata()
 {
@@ -62,7 +65,7 @@ int Firmata::updateDigitalPort(unsigned char pin, unsigned char mode)
 
     else
     {
-        perror("Firmata::writeDigitalPin():invalid mode:");
+        LOGF_DEBUG("Firmata::writeDigitalPin():invalid mode: %d", mode);
         return (-1);
     }
     return port;
@@ -79,6 +82,7 @@ int Firmata::writeDigitalPin(unsigned char pin, unsigned char mode)
 
     rv |= arduino->sendUchar(FIRMATA_DIGITAL_MESSAGE + port);
     rv |= sendValueAsTwo7bitBytes(digitalPortValue[port]); //ARDUINO_HIGH OR ARDUINO_LOW
+    LOGF_DEBUG("Sending DIGITAL_MESSAGE pin:%d, mode:%d, port:%d, port_val:%02X", pin, mode, port, digitalPortValue[port]);
     return (rv);
 }
 
@@ -100,6 +104,7 @@ int Firmata::setSamplingInterval(int16_t value)
     rv |= arduino->sendUchar((unsigned char)(value % 128));
     rv |= arduino->sendUchar((unsigned char)(value >> 7));
     rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+    LOGF_DEBUG("Sending SAMPLING_INTERVAL value:%d", value);
     return (rv);
 }
 
@@ -109,6 +114,7 @@ int Firmata::setPinMode(unsigned char pin, unsigned char mode)
     rv |= arduino->sendUchar(FIRMATA_SET_PIN_MODE);
     rv |= arduino->sendUchar(pin);
     rv |= arduino->sendUchar(mode);
+    LOGF_DEBUG("Sending SET_PIN_MODE pin:%d, mode:%d", pin, mode);
     usleep(1000);
     rv |= askPinStateWaitForReply(pin);
     return (rv);
@@ -120,6 +126,7 @@ int Firmata::setPwmPin(unsigned char pin, int16_t value)
     rv |= arduino->sendUchar(FIRMATA_ANALOG_MESSAGE + pin);
     rv |= arduino->sendUchar((unsigned char)(value % 128));
     rv |= arduino->sendUchar((unsigned char)(value >> 7));
+    LOGF_DEBUG("Sending ANALOG_MESSAGE pin:%d, value:%d", pin, value);
     return (rv);
 }
 int Firmata::mapAnalogChannels()
@@ -128,6 +135,7 @@ int Firmata::mapAnalogChannels()
     rv |= arduino->sendUchar(FIRMATA_START_SYSEX);
     rv |= arduino->sendUchar(FIRMATA_ANALOG_MAPPING_QUERY); // read firmata name & version
     rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+    LOG_DEBUG("Sending ANALOG_MAPPING_QUERY");
     return (rv);
 }
 
@@ -137,6 +145,7 @@ int Firmata::askFirmwareVersion()
     rv |= arduino->sendUchar(FIRMATA_START_SYSEX);
     rv |= arduino->sendUchar(FIRMATA_REPORT_FIRMWARE); // read firmata name & version
     rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+    LOG_DEBUG("Sending REPORT_FIRMWARE");
     return (rv);
 }
 
@@ -146,6 +155,7 @@ int Firmata::askCapabilities()
     rv |= arduino->sendUchar(FIRMATA_START_SYSEX);
     rv |= arduino->sendUchar(FIRMATA_CAPABILITY_QUERY);
     rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+    LOG_DEBUG("Sending CAPABILITY_QUERY");
     return (rv);
 }
 
@@ -156,6 +166,7 @@ int Firmata::askPinState(int pin)
     rv |= arduino->sendUchar(FIRMATA_PIN_STATE_QUERY);
     rv |= arduino->sendUchar(pin);
     rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+    LOGF_DEBUG("Sending PIN_STATE_QUERY pin:%d", pin);
     rv |= usleep(1000);
     rv |= OnIdle();
     return (rv);
@@ -168,6 +179,7 @@ int Firmata::reportDigitalPorts(int enable)
     {
         rv |= arduino->sendUchar(FIRMATA_REPORT_DIGITAL | i); // report analog
         rv |= arduino->sendUchar(enable);
+        LOGF_DEBUG("Sending REPORT_DIGITAL pin:%d, enable:%d", i, enable);
     }
     return (rv);
 }
@@ -179,6 +191,7 @@ int Firmata::reportAnalogPorts(int enable)
     {
         rv |= arduino->sendUchar(FIRMATA_REPORT_ANALOG | i); // report analog
         rv |= arduino->sendUchar(enable);
+        LOGF_DEBUG("Sending REPORT_ANALOG pin:%d, enable:%d", i, enable);
     }
     return (rv);
 }
@@ -187,6 +200,7 @@ int Firmata::systemReset()
 {
     int rv = 0;
     rv |= arduino->sendUchar(FIRMATA_SYSTEM_RESET);
+    LOG_DEBUG("Sending SYSTEM_RESET");
     return (rv);
 }
 
@@ -194,7 +208,7 @@ int Firmata::closePort()
 {
     if (arduino->closePort() < 0)
     {
-        perror("Firmata::closePort():arduino->closePort():");
+        LOGF_DEBUG("Firmata::closePort():arduino->closePort():%s", strerror(errno));
         portOpen = 0;
         return (-1);
     }
@@ -205,7 +219,7 @@ int Firmata::flushPort()
 {
     if (arduino->flushPort() < 0)
     {
-        perror("Firmata::flushPort():arduino->flushPort():");
+        LOGF_DEBUG("Firmata::flushPort():arduino->flushPort():%s", strerror(errno));
         return (-1);
     }
     return (0);
@@ -222,6 +236,7 @@ int Firmata::sendStringData(char *data)
         rv |= sendValueAsTwo7bitBytes(data[i]);
     }
     rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+    LOGF_DEBUG("Sending STRING_DATA: %s", data);
     return (rv);
 }
 
@@ -247,8 +262,7 @@ int Firmata::init(const char *_serialPort, uint32_t baud)
     portOpen = 0;
     if (arduino->openPort(_serialPort, baud) != 0)
     {
-        if (debug)
-            fprintf(stderr, "sf->openPort(%s) failed: exiting\n", _serialPort);
+        LOGF_DEBUG("sf->openPort(%s) failed: exiting", _serialPort);
         return 1;
     }
     return handshake();
@@ -260,8 +274,7 @@ int Firmata::init(int fd)
     portOpen = 0;
     if (arduino->openPort(fd) != 0)
     {
-        if (debug)
-            fprintf(stderr, "sf->openPort(fd) failed: exiting\n");
+        LOGF_DEBUG("sf->openPort(%d) failed: exiting", fd);
         return 1;
     }
     return handshake();
@@ -281,8 +294,10 @@ int Firmata::handshake()
     if (strlen(firmata_name) == 0) return 1;
 
     char *requested_name = getenv("INDIDUINO_CHECK_FIRMWARE");
-    if (requested_name && strcmp(firmata_name, requested_name) != 0) return 1;
-
+    if (requested_name && strcmp(firmata_name, requested_name) != 0) {
+        LOGF_DEBUG("reported firmware '%s' does not match requested '%s'", firmata_name, requested_name);
+        return 1;
+    }
     portOpen = 1;
     return 0;
 }
@@ -364,7 +379,7 @@ void Firmata::DoMessage(void)
 {
     uint8_t cmd = (parse_buf[0] & 0xF0);
 
-    //if (debug) printf("message, %d bytes, %02X\n", parse_count, parse_buf[0]);
+    LOGF_DEBUG("Firmata message, %d bytes, %02X", parse_count, parse_buf[0]);
 
     if (cmd == FIRMATA_ANALOG_MESSAGE && parse_count == 3)
     {
@@ -375,8 +390,7 @@ void Firmata::DoMessage(void)
             if (pin_info[pin].analog_channel == analog_ch)
             {
                 pin_info[pin].value = analog_val;
-                if (debug)
-                    printf("pin %d is A%d = %d\n", pin, analog_ch, analog_val);
+                LOGF_DEBUG("ANALOG_MESSAGE: pin %d is A%d = %d", pin, analog_ch, analog_val);
                 return;
             }
         }
@@ -387,8 +401,7 @@ void Firmata::DoMessage(void)
         int port_num = (parse_buf[0] & 0x0F);
         int port_val = parse_buf[1] | (parse_buf[2] << 7);
         int pin      = port_num * 8;
-        if (debug)
-            printf("port_num = %d, port_val = %d\n", port_num, port_val);
+        LOGF_DEBUG("DIGITAL_MESSAGE: port_num = %d, port_val = %d", port_num, port_val);
         for (int mask = 1; mask & 0xFF; mask <<= 1, pin++)
         {
             if (pin_info[pin].mode == FIRMATA_MODE_INPUT)
@@ -396,8 +409,7 @@ void Firmata::DoMessage(void)
                 uint32_t val = (port_val & mask) ? 1 : 0;
                 if (pin_info[pin].value != val)
                 {
-                    if (debug)
-                        printf("pin %d is %d\n", pin, val);
+                    LOGF_DEBUG("pin %d is %d", pin, val);
                     pin_info[pin].value = val;
                 }
             }
@@ -408,6 +420,7 @@ void Firmata::DoMessage(void)
     if (parse_buf[0] == FIRMATA_START_SYSEX && parse_buf[parse_count - 1] == FIRMATA_END_SYSEX)
     {
         // Sysex message
+        LOGF_DEBUG("Firmata Sysex message, %02X", parse_buf[1]);
         if (parse_buf[1] == FIRMATA_REPORT_FIRMWARE)
         {
             char name[140];
@@ -421,6 +434,7 @@ void Firmata::DoMessage(void)
             name[len++] = '.';
             name[len++] = parse_buf[3] + '0';
             name[len++] = 0;
+            LOGF_DEBUG("FIRMWARE:%s", name);
             if (strlen(firmata_name) == 0) {
                 strcpy(firmata_name, name);
                 time(&version_reply_time);
@@ -429,7 +443,6 @@ void Firmata::DoMessage(void)
                 if (strcmp(firmata_name, name) == 0) // use repeated firmware reports to check connection, the string is expected to stay unchanged
                     time(&version_reply_time);       // record the time of last correct reply
 
-            //if (debug) printf("FIRMWARE:%s\n",firmata_name);
         }
         else if (parse_buf[1] == FIRMATA_CAPABILITY_RESPONSE)
         {
@@ -450,8 +463,7 @@ void Firmata::DoMessage(void)
                 {
                     // first byte is supported mode
                     pin_info[pin].supported_modes |= (1 << parse_buf[i]);
-                    if (debug)
-                        printf("PIN:%u modes:%04x\n", pin, (short)pin_info[pin].supported_modes);
+                    LOGF_DEBUG("CAPABILITY_RESPONSE: pin:%u modes:%04x", pin, (short)pin_info[pin].supported_modes);
                 }
                 n = n ^ 1;
             }
@@ -463,6 +475,7 @@ void Firmata::DoMessage(void)
             for (int i = 2; i < parse_count - 1; i++)
             {
                 pin_info[pin].analog_channel = parse_buf[i];
+                LOGF_DEBUG("ANALOG_MAPPING: pin %d is A%d", pin, pin_info[pin].analog_channel);
                 pin++;
             }
             for (; pin < 128; pin++)
@@ -481,8 +494,7 @@ void Firmata::DoMessage(void)
                 pin_info[pin].value |= (parse_buf[5] << 7);
             if (parse_count > 7)
                 pin_info[pin].value |= (parse_buf[6] << 14);
-            if (debug)
-                printf("PIN:%u. Mode:%u. Value:%llu\n", pin, pin_info[pin].mode, static_cast<unsigned long long>(pin_info[pin].value));
+            LOGF_DEBUG("PIN_STATE_RESPONSE: pin:%u. Mode:%u. Value:%llu", pin, pin_info[pin].mode, static_cast<unsigned long long>(pin_info[pin].value));
             if (pin_info[pin].mode == FIRMATA_MODE_OUTPUT)
                 updateDigitalPort(pin, pin_info[pin].value ? ARDUINO_HIGH : ARDUINO_LOW);
         }
@@ -490,8 +502,7 @@ void Firmata::DoMessage(void)
         {
             if ((parse_count - 3) >= MAX_STRING_DATA_LEN)
             {
-                if (debug)
-                    printf("FIRMATA_STRING_DATA TOO LARGE.%u Parsing up to max %u\n", (parse_count - 3),
+                LOGF_DEBUG("FIRMATA_STRING_DATA TOO LARGE.%u Parsing up to max %u", (parse_count - 3),
                            MAX_STRING_DATA_LEN);
                 parse_count = FIRMATA_STRING_DATA + 3;
             }
@@ -503,12 +514,13 @@ void Firmata::DoMessage(void)
             }
             name[len++] = 0;
             strcpy(string_buffer, name);
+            LOGF_DEBUG("STRING_DATA: %s", name);
         }
         else if (parse_buf[1] == FIRMATA_EXTENDED_ANALOG)
         {
             //TODO Testting
             if ((parse_count - 3) > 8)
-                printf("Extended analog max precision uint64_bit");
+                LOG_DEBUG("Extended analog max precision uint64_bit");
             int pin = (parse_buf[2] & 0x7F); //UP to 128 analogs
             if (pin_info[pin].mode == FIRMATA_MODE_INPUT)
             {
@@ -518,15 +530,14 @@ void Firmata::DoMessage(void)
                     analog_val = (analog_val << 7) | (parse_buf[i] & 0x7F);
                 }
                 pin_info[pin].value = analog_val;
-                if (debug)
-                    printf("Extended analog: pin %d = %d\n", pin, analog_val);
+                LOGF_DEBUG("Extended analog: pin %d = %d", pin, analog_val);
             }
         }
         else if (parse_buf[1] == FIRMATA_I2C_REPLY)
         {
             //TODO Testting
             if ((parse_count - 3) > 8)
-                printf("I2C_REPLY max precision uint64_bit (8 bytes)");
+                LOG_DEBUG("I2C_REPLY max precision uint64_bit (8 bytes)");
             int slaveAddress = (parse_buf[2] & 0x7F);
             slaveAddress     = (slaveAddress << 7) | (parse_buf[3] & 0x7F);
             long i2c_val     = (parse_buf[4] & 0x7F);
@@ -534,8 +545,7 @@ void Firmata::DoMessage(void)
             {
                 i2c_val = (i2c_val << 7) | (parse_buf[i] & 0x7F);
             }
-            if (debug)
-                printf("I2C_REPLY value: SlaveAddres %u = %ld\n", slaveAddress, i2c_val);
+            LOGF_DEBUG("I2C_REPLY value: SlaveAddres %u = %ld", slaveAddress, i2c_val);
         }
         return;
     }
@@ -546,7 +556,7 @@ int Firmata::OnIdle()
     uint8_t buf[1024];
     int r = 1;
 
-    //if (debug) printf("Idle event\n");
+    //if (debug) LOGF_DEBUG("Idle event");
     if (r > 0)
     {
         r = arduino->readPort(buf, sizeof(buf));
@@ -557,6 +567,7 @@ int Firmata::OnIdle()
         }
         if (r > 0)
         {
+/*
             for (int i = 0; i < r; i++)
             {
                 if (debug)
@@ -564,7 +575,7 @@ int Firmata::OnIdle()
             }
             if (debug)
                 printf("\n");
-
+*/
             Parse(buf, r);
             return 0;
         }

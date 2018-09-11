@@ -76,6 +76,8 @@
 
 using namespace std;
 
+extern void (*firmata_debug_cb)(const char *file, int line, const char *msg, ...);
+
 typedef struct
 {
     uint8_t mode;

@@ -94,11 +94,29 @@ void ISSnoopDevice(XMLEle *root)
 }
 
 /**************************************************************************************
+** Initialize firmata debug
+***************************************************************************************/
+
+void firmata_debug(const char *file, int line, const char *message, ...)
+{
+    va_list ap;
+    char msg[257];
+    msg[256] = '\0';
+    va_start(ap, message);
+    vsnprintf(msg, 257, message, ap);
+    va_end(ap);
+
+    INDI::Logger::getInstance().print(indiduino_prt->getDeviceName(), INDI::Logger::DBG_DEBUG, file, line, msg);
+}
+
+
+/**************************************************************************************
 **
 ***************************************************************************************/
 indiduino::indiduino()
 {
     LOG_DEBUG("Indiduino driver start...");
+    firmata_debug_cb = firmata_debug;
     setVersion(DUINO_VERSION_MAJOR, DUINO_VERSION_MINOR);
     controller = new INDI::Controller(this);
     controller->setJoystickCallback(joystickHelper);
@@ -356,6 +374,7 @@ bool indiduino::initProperties()
     serialConnection->setDefaultPort("/dev/ttyACM0");
     registerConnection(serialConnection);
 
+    addDebugControl();
     return true;
 }
 
