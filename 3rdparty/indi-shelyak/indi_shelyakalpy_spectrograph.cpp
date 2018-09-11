@@ -128,6 +128,8 @@ bool ShelyakAlpy::initProperties()
   IUFillNumber(&SettingsN[1], "OBJ_FOCAL", "Obj Focal [mm]", "%.0f", 1, 700, 0, 85);
   IUFillNumberVector(&SettingsNP, SettingsN, 2, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph settings", SPECTROGRAPH_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
+  setDriverInterface(SPECTROGRAPH_INTERFACE);
+
   return true;
 }
 

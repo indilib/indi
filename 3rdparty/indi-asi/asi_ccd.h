@@ -30,7 +30,7 @@ class ASICCD : public INDI::CCD
 {
   public:
     explicit ASICCD(ASI_CAMERA_INFO *camInfo);
-    ~ASICCD() = default;
+    ~ASICCD() override = default;
 
     virtual const char *getDefaultName() override;
 

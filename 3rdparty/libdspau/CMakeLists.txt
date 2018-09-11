@@ -1,40 +1,48 @@
-PROJECT(libdspau C CXX)
+project(libdspau C)
 cmake_minimum_required(VERSION 2.4.7)
 
-LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error -std=c99")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error -std=c99")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+set(PACKAGE_VERSION "1.0.0")
 
-FIND_PACKAGE(FFTW3 REQUIRED)
+find_package(TIFF REQUIRED)
+find_package(FFTW3 REQUIRED)
+find_package(Threads REQUIRED)
 
-SET(PACKAGE_VERSION "1.0.0")
+add_definitions(-Wall -O2 -std=gnu99)
 
-ADD_DEFINITIONS(-Wall -O2)
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
-IF(APPLE)
-include_directories(/usr/local/include)
-ENDIF(APPLE)
-set(dspau_LIB_SRCS
-   libdspau-fft.c
-   libdspau-filters.c
-   libdspau-correlations.c
-   libdspau-stats.c
-   libdspau-buffer.c
-   libdspau-convert.c
+if (APPLE)
+    ##This one is needed for homebrew
+include_directories( "/usr/local/include")
+    ## This one is needed for Craft
+include_directories("${CMAKE_INSTALL_PREFIX}/include")
+endif(APPLE)
+
+set(dspau_lib_srcs
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-align.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-astro.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-buffer.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-convert.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-interferometry.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-fft.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-filters.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-stats.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-stream.c
 )
 
-#build a shared library
-ADD_LIBRARY(dspau SHARED ${dspau_LIB_SRCS})
+#build the shared library
+add_library(dspau SHARED ${dspau_lib_srcs})
 
-set_target_properties(dspau PROPERTIES VERSION 1.0.0 SOVERSION 1)
+set_target_properties(dspau PROPERTIES VERSION 1.0.1 SOVERSION 1)
 
 #need to link to some other libraries ? just add them here
-TARGET_LINK_LIBRARIES(dspau ${FFTW3_LIBRARIES} ${M_LIB})
+target_link_libraries(dspau ${M_LIB} ${CMAKE_THREAD_LIBS_INIT} ${FFTW3_LIBRARIES})
 
 #add an install target here
-INSTALL(FILES libdspau.h DESTINATION include)
-
-INSTALL(TARGETS dspau LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/libdspau.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS dspau LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

@@ -115,6 +115,18 @@ jobs:
           name: Run tests
           command: .circleci/run-tests.sh
 
+  build_arch:
+    docker:
+      - image: jochym/indi-docker:arch
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
 
 workflows:
   version: 2
@@ -124,6 +136,7 @@ workflows:
       - build_stretch
       - build_fedora
       - build_opensuse
+      - build_arch
       - build_bionic:
           requires:
             - build_artful

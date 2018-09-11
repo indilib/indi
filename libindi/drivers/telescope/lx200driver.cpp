@@ -161,7 +161,7 @@ int check_lx200_connection(int in_fd)
 {
     const struct timespec timeout = {0, 50000000L};
     int i       = 0;
-    char ack[1] = { (char)0x06 };
+    char ack[1] = { 0x06 };
     char MountAlign[64];
     int nbytes_read = 0;
 
@@ -195,7 +195,7 @@ char ACK(int fd)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
 
-    char ack[1] = { (char)0x06 };
+    char ack[1] = { 0x06 };
     char MountAlign[2];
     int nbytes_write = 0, nbytes_read = 0, error_type;
 
@@ -229,7 +229,7 @@ int getCommandSexa(int fd, double *value, const char *cmd)
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, read_buffer,RB_MAX_LEN,  '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
     if (error_type != TTY_OK)
         return error_type;
@@ -264,7 +264,7 @@ int getCommandInt(int fd, int *value, const char *cmd)
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, read_buffer,RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
     if (error_type != TTY_OK)
         return error_type;
@@ -279,7 +279,7 @@ int getCommandInt(int fd, int *value, const char *cmd)
         if (sscanf(read_buffer, "%f", &temp_number) != 1)
             return -1;
 
-        *value = (int)temp_number;
+        *value = static_cast<int>(temp_number);
     }
     /* Int */
     else if (sscanf(read_buffer, "%d", value) != 1)
@@ -301,7 +301,7 @@ int getCommandString(int fd, char *data, const char *cmd)
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, data, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, data, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
 
     if (error_type != TTY_OK)
@@ -329,7 +329,7 @@ int isSlewComplete(int fd)
     if ((error_type = tty_write_string(fd, cmd, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, data, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, data, 8, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIOFLUSH);
 
     if (error_type != TTY_OK)
@@ -384,7 +384,6 @@ int getTimeFormat(int fd, int *format)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
-    char formatString[6] = {0};
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     int tMode;
@@ -394,7 +393,7 @@ int getTimeFormat(int fd, int *format)
     if ((error_type = tty_write_string(fd, ":Gc#", &nbytes_write)) != TTY_OK)
         return error_type;
 
-    if ((error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read)) != TTY_OK)
         return error_type;
 
     tcflush(fd, TCIFLUSH);
@@ -408,11 +407,9 @@ int getTimeFormat(int fd, int *format)
 
     // The Losmandy Gemini puts () around it's time format
     if (strstr(read_buffer, "("))
-        strcpy(formatString, "(%d)");
+        nbytes_read = sscanf(read_buffer, "(%d)", &tMode);
     else
-        strcpy(formatString, "%d");
-
-    nbytes_read = sscanf(read_buffer, formatString, &tMode);
+        nbytes_read = sscanf(read_buffer, "%d", &tMode);
 
     if (nbytes_read < 1)
         return -1;
@@ -455,7 +452,7 @@ int getSiteName(int fd, char *siteName, int siteNum)
             return -1;
     }
 
-    error_type = tty_read_section(fd, siteName, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, siteName, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
@@ -492,7 +489,7 @@ int getSiteLatitude(int fd, int *dd, int *mm)
     if ((error_type = tty_write_string(fd, ":Gt#", &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
 
     tcflush(fd, TCIFLUSH);
 
@@ -526,7 +523,7 @@ int getSiteLongitude(int fd, int *ddd, int *mm)
     if ((error_type = tty_write_string(fd, ":Gg#", &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
 
     tcflush(fd, TCIFLUSH);
 
@@ -561,7 +558,7 @@ int getTrackFreq(int fd, double *value)
     if ((error_type = tty_write_string(fd, ":GT#", &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
@@ -577,7 +574,7 @@ int getTrackFreq(int fd, double *value)
         return -1;
     }
 
-    *value = (double)Freq;
+    *value = static_cast<double>(Freq);
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%g]", *value);
 
@@ -596,7 +593,7 @@ int getHomeSearchStatus(int fd, int *status)
     if ((error_type = tty_write_string(fd, ":h?#", &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
     tcflush(fd, TCIFLUSH);
 
     if (nbytes_read < 1)
@@ -631,7 +628,7 @@ int getOTATemp(int fd, double *value)
     if ((error_type = tty_write_string(fd, ":fT#", &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
 
     if (nbytes_read < 1)
         return error_type;
@@ -646,7 +643,7 @@ int getOTATemp(int fd, double *value)
         return -1;
     }
 
-    *value = (double)temp;
+    *value = static_cast<double>(temp);
 
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "VAL [%g]", *value);
 
@@ -774,8 +771,7 @@ int setObjectRA(int fd, double ra)
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", controller_format);
-            return -1;
-            break;
+            return -1;            
     }
 
     return (setStandardProcedure(fd, read_buffer));
@@ -817,8 +813,7 @@ int setObjectDEC(int fd, double dec)
             break;
         default:
             DEBUGFDEVICE(lx200Name, DBG_SCOPE, "Unknown controller_format <%d>", controller_format);
-            return -1;
-            break;
+            return -1;            
     }
 
     return (setStandardProcedure(fd, read_buffer));
@@ -865,8 +860,8 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     const struct timespec timeout = {0, 10000000L};
-    char read_buffer[64];
-    char dummy_buffer[64];
+    char read_buffer[RB_MAX_LEN];
+    char dummy_buffer[RB_MAX_LEN];
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     yy = yy % 100;
@@ -880,10 +875,10 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
     if ((error_type = tty_write_string(fd, read_buffer, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
     // Read the next section whih has 24 blanks and then a #
     // Can't just use the tcflush to clear the stream because it doesn't seem to work correctly on sockets
-    tty_read_section(fd, dummy_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    tty_nread_section(fd, dummy_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
 
     tcflush(fd, TCIFLUSH);
 
@@ -912,7 +907,7 @@ int setUTCOffset(int fd, double hours)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     char read_buffer[RB_MAX_LEN]={0};
 
-    snprintf(read_buffer, sizeof(read_buffer), ":SG %+03d#", (int)hours);
+    snprintf(read_buffer, sizeof(read_buffer), ":SG %+03d#", static_cast<int>(hours));
 
     return (setStandardProcedure(fd, read_buffer));
 }
@@ -922,7 +917,7 @@ int setSiteLongitude(int fd, double Long)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
-    char read_buffer[32];
+    char read_buffer[RB_MAX_LEN]={0};
 
     getSexComponents(Long, &d, &m, &s);
 
@@ -935,7 +930,7 @@ int setSiteLatitude(int fd, double Lat)
 {
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     int d, m, s;
-    char read_buffer[32];
+    char read_buffer[RB_MAX_LEN]={0};
 
     getSexComponents(Lat, &d, &m, &s);
 
@@ -1266,8 +1261,7 @@ int HaltMovement(int fd, int direction)
                 return error_type;
             break;
         default:
-            return -1;
-            break;
+            return -1;            
     }
 
     tcflush(fd, TCIFLUSH);
@@ -1299,7 +1293,7 @@ int Sync(int fd, char *matchedObject)
     if ((error_type = tty_write_string(fd, ":CM#", &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, matchedObject, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, matchedObject, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
 
     if (nbytes_read < 1)
         return error_type;
@@ -1344,8 +1338,7 @@ int selectSite(int fd, int siteNum)
                 return error_type;
             break;
         default:
-            return -1;
-            break;
+            return -1;            
     }
 
     tcflush(fd, TCIFLUSH);
@@ -1423,7 +1416,7 @@ int checkLX200Format(int fd)
     if ((error_type = tty_write_string(fd, ":GR#", &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
 
     if (nbytes_read < 1)
     {
@@ -1462,7 +1455,7 @@ int checkLX200Format(int fd)
     if ((error_type = tty_write_string(fd, ":GR#", &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);
+    error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
 
     if (nbytes_read < 1)
     {
@@ -1520,7 +1513,6 @@ int selectTrackingMode(int fd, int trackMode)
             break;
         default:
             return -1;
-            break;
     }
 
     tcflush(fd, TCIFLUSH);

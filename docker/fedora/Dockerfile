@@ -8,7 +8,8 @@ RUN dnf -y install \
         libftdi-devel libgphoto2-devel gpsd-devel gsl-devel libjpeg-turbo-devel \
         libnova-devel openal-soft-devel LibRaw-devel libusb-devel rtl-sdr-devel \
         fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
-        libdc1394-devel python-devel swig gcc-c++ clang vim
+        libdc1394-devel python-devel swig gcc-c++ clang vim \
+        libavcodec-devel libavdevice-devel libavformat-devel libavutil-devel
 
 # Install FFMpeg-devel (for webcam driver, through rpmfusion)
 RUN dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \

@@ -138,6 +138,8 @@ bool ShelyakEshel::initProperties()
     IUFillNumberVector(&SettingsNP, SettingsN, 5, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph settings",
                        SPECTROGRAPH_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
+    setDriverInterface(SPECTROGRAPH_INTERFACE);
+
     return true;
 }
 

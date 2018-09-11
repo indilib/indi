@@ -4,9 +4,9 @@
     Tommy (teleskopaustria@gmail.com) and Zoltan (mgen@freemail.hu).
 
     Teleskop & Mikroskop Zentrum (www.teleskop.austria.com)
-    A-1050 WIEN, Schönbrunner Strasse 96
+    A-1050 WIEN, SchÃ¶nbrunner Strasse 96
     +43 699 1197 0808 (Shop in Wien und Rechnungsanschrift)
-    A-4020 LINZ, Gärtnerstrasse 16
+    A-4020 LINZ, GÃ¤rtnerstrasse 16
     +43 699 1901 2165 (Shop in Linz)
 
     Lacerta GmbH
@@ -198,7 +198,7 @@ void ISSnoopDevice(XMLEle *root)
     INDI_UNUSED(root);
 }
 
-MGenAutoguider::MGenAutoguider(): device(NULL)
+MGenAutoguider::MGenAutoguider(): device(nullptr)
 {
     SetCCDParams(128, 64, 8, 5.0f, 5.0f);
     PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8, true);
@@ -209,8 +209,7 @@ MGenAutoguider::~MGenAutoguider()
     Disconnect();
     setConnected(false, IPS_ALERT);
     updateProperties();
-    if (device)
-        delete device;
+    delete device;
 }
 
 bool MGenAutoguider::initProperties()

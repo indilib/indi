@@ -646,7 +646,7 @@ bool LX200Telescope::updateLocation(double latitude, double longitude, double el
         return false;
     }
 
-    char l[32]={0}, L[32]={0};
+    char l[MAXINDINAME]={0}, L[MAXINDINAME]={0};
     fs_sexa(l, latitude, 3, 3600);
     fs_sexa(L, longitude, 4, 3600);
 
@@ -1218,7 +1218,7 @@ bool LX200Telescope::getLocalTime(char *timeString)
     if (isSimulation())
     {
         time_t now = time (nullptr);
-        strftime(timeString, 32, "%T", localtime(&now));
+        strftime(timeString, MAXINDINAME, "%T", localtime(&now));
     }
     else
     {
@@ -1226,7 +1226,7 @@ bool LX200Telescope::getLocalTime(char *timeString)
         int h, m, s;
         getLocalTime24(PortFD, &ctime);
         getSexComponents(ctime, &h, &m, &s);
-        snprintf(timeString, 32, "%02d:%02d:%02d", h, m, s);
+        snprintf(timeString, MAXINDINAME, "%02d:%02d:%02d", h, m, s);
     }
 
     return true;
@@ -1237,7 +1237,7 @@ bool LX200Telescope::getLocalDate(char *dateString)
     if (isSimulation())
     {
         time_t now = time (nullptr);
-        strftime(dateString, 32, "%F", localtime(&now));
+        strftime(dateString, MAXINDINAME, "%F", localtime(&now));
     }
     else
     {
@@ -1264,8 +1264,8 @@ bool LX200Telescope::getUTFOffset(double *offset)
 
 bool LX200Telescope::sendScopeTime()
 {
-    char cdate[32]={0};
-    char ctime[32]={0};
+    char cdate[MAXINDINAME]={0};
+    char ctime[MAXINDINAME]={0};
     struct tm ltm;
     struct tm utm;
     time_t time_epoch;
@@ -1296,8 +1296,8 @@ bool LX200Telescope::sendScopeTime()
     }
 
     // To ISO 8601 format in LOCAL TIME!
-    char datetime[64]={0};
-    snprintf(datetime, 64, "%sT%s", cdate, ctime);
+    char datetime[MAXINDINAME]={0};
+    snprintf(datetime, MAXINDINAME, "%sT%s", cdate, ctime);
 
     // Now that date+time are combined, let's get tm representation of it.
     if (strptime(datetime, "%FT%T", &ltm) == nullptr)
@@ -1316,7 +1316,7 @@ bool LX200Telescope::sendScopeTime()
     localtime_r(&time_epoch, &utm);
 
     // Format it into the final UTC ISO 8601
-    strftime(cdate, 32, "%Y-%m-%dT%H:%M:%S", &utm);
+    strftime(cdate, MAXINDINAME, "%Y-%m-%dT%H:%M:%S", &utm);
     IUSaveText(&TimeT[0], cdate);
 
     LOGF_DEBUG("Mount controller UTC Time: %s", TimeT[0].text);
@@ -1373,6 +1373,8 @@ bool LX200Telescope::sendScopeLocation()
     LOGF_DEBUG("Mount Controller Latitude: %g Longitude: %g", LocationN[LOCATION_LATITUDE].value, LocationN[LOCATION_LONGITUDE].value);
 
     IDSetNumber(&LocationNP, nullptr);
+
+    saveConfig(true, "GEOGRAPHIC_COORD");
 
     return true;
 }

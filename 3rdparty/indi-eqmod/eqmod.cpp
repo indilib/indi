@@ -210,8 +210,7 @@ EQMod::EQMod()
 EQMod::~EQMod()
 {
     //dtor
-    if (mount)
-        delete mount;
+    delete mount;
     mount = nullptr;
 }
 
@@ -727,13 +726,28 @@ bool EQMod::Handshake()
     return true;
 }
 
+void EQMod::abnormalDisconnectCallback(void *userpointer)
+{
+    EQMod *p = static_cast<EQMod *>(userpointer);
+    if (p->Connect())
+    {
+        p->setConnected(true, IPS_OK);
+        p->updateProperties();
+    }
+}
+
 void EQMod::abnormalDisconnect()
 {
-    if (Disconnect())
-    {
-        setConnected(false, IPS_IDLE);
-        updateProperties();
-    }
+    // Ignore disconnect errors
+    Disconnect();
+
+    // Set Disconnected
+    setConnected(false, IPS_IDLE);
+    // Update properties
+    updateProperties();
+
+    // Reconnect in 2 seconds
+    IEAddTimer(2000, (IE_TCF *)abnormalDisconnectCallback, this);
 }
 
 bool EQMod::Disconnect()
@@ -1559,7 +1573,7 @@ void EQMod::SetSouthernHemisphere(bool southern)
     else
         Hemisphere = NORTH;
     RAInverted = (Hemisphere == SOUTH);
-    DEInverted = ((Hemisphere == SOUTH) ^ (getPierSide() == PIER_WEST));
+    UpdateDEInverted();
     if (Hemisphere == NORTH)
     {
         hemispherevalues[0] = ISS_ON;
@@ -1574,6 +1588,14 @@ void EQMod::SetSouthernHemisphere(bool southern)
     }
     HemisphereSP->s = IPS_IDLE;
     IDSetSwitch(HemisphereSP, nullptr);
+}
+
+void EQMod::UpdateDEInverted()
+{
+    bool prev = DEInverted;
+    DEInverted = (Hemisphere == SOUTH) ^ (ReverseDECSP->sp[0].s == ISS_ON);
+    if (DEInverted != prev)
+        LOGF_DEBUG("Set DEInverted %s", DEInverted ? "true" : "false");
 }
 
 void EQMod::EncoderTarget(GotoParams *g)
@@ -2183,7 +2205,7 @@ IPState EQMod::GuideNorth(uint32_t ms)
 
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
-    LOGF_DEBUG("Timed guide North %d ms at rate %g", ms, rateshift);
+    LOGF_DEBUG("Timed guide North %d ms at rate %g %s", ms, rateshift, DEInverted ? "(Inverted)" : "");
 
     IPState pulseState = IPS_BUSY;
 
@@ -2266,7 +2288,7 @@ IPState EQMod::GuideSouth(uint32_t ms)
 
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_NS")->value;
-    LOGF_DEBUG("Timed guide South %d ms at rate %g", (int)(ms), rateshift);
+    LOGF_DEBUG("Timed guide South %d ms at rate %g %s", ms, rateshift, DEInverted ? "(Inverted)" : "");
 
     IPState pulseState = IPS_BUSY;
 
@@ -2348,7 +2370,7 @@ IPState EQMod::GuideEast(uint32_t ms)
 
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
-    LOGF_DEBUG("Timed guide East %d ms at rate %g", ms, rateshift);
+    LOGF_DEBUG("Timed guide East %d ms at rate %g %s", ms, rateshift, RAInverted ? "(Inverted)" : "");
 
     IPState pulseState = IPS_BUSY;
 
@@ -2431,7 +2453,7 @@ IPState EQMod::GuideWest(uint32_t ms)
 
     double rateshift = 0.0;
     rateshift        = TRACKRATE_SIDEREAL * IUFindNumber(GuideRateNP, "GUIDE_RATE_WE")->value;
-    LOGF_DEBUG("Timed guide West %d ms at rate %g", ms, rateshift);
+    LOGF_DEBUG("Timed guide West %d ms at rate %g %s", ms, rateshift, RAInverted ? "(Inverted)" : "");
 
     IPState pulseState = IPS_BUSY;
 
@@ -2800,7 +2822,7 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
 
             ReverseDECSP->s = IPS_OK;
 
-            DEInverted = (ReverseDECSP->sp[0].s == ISS_ON) ? true : false;
+            UpdateDEInverted();
 
             LOG_INFO("Inverting Declination Axis.");
 
@@ -3673,6 +3695,8 @@ bool EQMod::saveConfigItems(FILE *fp)
         IUSaveConfigNumber(fp, PulseLimitsNP);
     if (SlewSpeedsNP)
         IUSaveConfigNumber(fp, SlewSpeedsNP);
+    if (ReverseDECSP)
+        IUSaveConfigSwitch(fp, ReverseDECSP);
 
 #ifdef WITH_ALIGN_GEEHALEL
     if (align)

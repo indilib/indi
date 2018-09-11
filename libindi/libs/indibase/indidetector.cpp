@@ -69,7 +69,9 @@ DetectorDevice::DetectorDevice()
 {
     ContinuumBuffer     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
     ContinuumBufferSize = 0;
-    SpectrumBuffer     = (double *)malloc(sizeof(double)); // Seed for realloc
+    TimeDeviationBuffer     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
+    TimeDeviationBufferSize = 0;
+    SpectrumBuffer     = (uint8_t *)malloc(sizeof(double)); // Seed for realloc
     SpectrumBufferSize = 0;
 
     BPS         = 8;
@@ -83,10 +85,13 @@ DetectorDevice::~DetectorDevice()
 {
     free(ContinuumBuffer);
     ContinuumBufferSize = 0;
-    ContinuumBuffer     = nullptr;
+    ContinuumBuffer = nullptr;
+    free(TimeDeviationBuffer);
+    TimeDeviationBufferSize = 0;
+    TimeDeviationBuffer = nullptr;
     free(SpectrumBuffer);
     SpectrumBufferSize = 0;
-    SpectrumBuffer     = nullptr;
+    SpectrumBuffer = nullptr;
 }
 
 void DetectorDevice::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
@@ -114,9 +119,27 @@ void DetectorDevice::setMinMaxStep(const char *property, const char *element, do
 
 void DetectorDevice::setSampleRate(float sr)
 {
-    samplerate = sr;
+    Samplerate = sr;
 
     DetectorSettingsN[DetectorDevice::DETECTOR_SAMPLERATE].value = sr;
+
+    IDSetNumber(&DetectorSettingsNP, nullptr);
+}
+
+void DetectorDevice::setBandwidth(float bw)
+{
+    Bandwidth = bw;
+
+    DetectorSettingsN[DetectorDevice::DETECTOR_BANDWIDTH].value = bw;
+
+    IDSetNumber(&DetectorSettingsNP, nullptr);
+}
+
+void DetectorDevice::setGain(float gain)
+{
+    Gain = gain;
+
+    DetectorSettingsN[DetectorDevice::DETECTOR_GAIN].value = gain;
 
     IDSetNumber(&DetectorSettingsNP, nullptr);
 }
@@ -152,6 +175,19 @@ void DetectorDevice::setContinuumBufferSize(int nbuf, bool allocMem)
     ContinuumBuffer = (uint8_t *)realloc(ContinuumBuffer, nbuf * sizeof(uint8_t));
 }
 
+void DetectorDevice::setTimeDeviationBufferSize(int nbuf, bool allocMem)
+{
+    if (nbuf == TimeDeviationBufferSize)
+        return;
+
+    TimeDeviationBufferSize = nbuf;
+
+    if (allocMem == false)
+        return;
+
+    TimeDeviationBuffer = (uint8_t *)realloc(TimeDeviationBuffer, nbuf * sizeof(uint8_t));
+}
+
 void DetectorDevice::setSpectrumBufferSize(int nbuf, bool allocMem)
 {
     if (nbuf == SpectrumBufferSize)
@@ -162,7 +198,7 @@ void DetectorDevice::setSpectrumBufferSize(int nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    SpectrumBuffer = (double *)realloc(SpectrumBuffer, nbuf * sizeof(double));
+    SpectrumBuffer = (uint8_t *)realloc(SpectrumBuffer, nbuf * sizeof(double));
 }
 
 void DetectorDevice::setCaptureLeft(double duration)
@@ -274,13 +310,16 @@ bool Detector::initProperties()
     // PrimaryDetector Info
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_SAMPLERATE], "DETECTOR_SAMPLERATE", "Sample rate (SPS)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.0e+6);
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_FREQUENCY], "DETECTOR_FREQUENCY", "Center frequency (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
+    IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_BANDWIDTH], "DETECTOR_BANDWIDTH", "Bandwidth (Hz)", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
+    IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_GAIN], "DETECTOR_GAIN", "Gain", "%16.2f", 0.01, 1.0e+15, 0.01, 1.42e+9);
     IUFillNumber(&PrimaryDetector.DetectorSettingsN[DetectorDevice::DETECTOR_BITSPERSAMPLE], "DETECTOR_BITSPERSAMPLE", "Bits per sample", "%3.0f", 1, 64, 1, 8);
-    IUFillNumberVector(&PrimaryDetector.DetectorSettingsNP, PrimaryDetector.DetectorSettingsN, 3, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", CAPTURE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumberVector(&PrimaryDetector.DetectorSettingsNP, PrimaryDetector.DetectorSettingsN, 5, getDeviceName(), "DETECTOR_SETTINGS", "Detector Settings", CAPTURE_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
     // PrimaryDetector Device Continuum Blob
     IUFillBLOB(&PrimaryDetector.FitsB[0], "CONTINUUM", "Continuum", "");
     IUFillBLOB(&PrimaryDetector.FitsB[1], "SPECTRUM", "Spectrum", "");
-    IUFillBLOBVector(&PrimaryDetector.FitsBP, PrimaryDetector.FitsB, 2, getDeviceName(), "DETECTOR", "Capture Data", CAPTURE_INFO_TAB,
+    IUFillBLOB(&PrimaryDetector.FitsB[2], "TDEV", "TimeDeviation", "");
+    IUFillBLOBVector(&PrimaryDetector.FitsBP, PrimaryDetector.FitsB, 3, getDeviceName(), "DETECTOR", "Capture Data", CAPTURE_INFO_TAB,
                      IP_RO, 60, IPS_IDLE);
 
     /**********************************************/
@@ -576,8 +615,10 @@ bool Detector::ISNewNumber(const char *dev, const char *name, double values[], c
             IUUpdateNumber(&PrimaryDetector.DetectorSettingsNP, values, names, n);
             PrimaryDetector.DetectorSettingsNP.s = IPS_OK;
             SetDetectorParams(PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_SAMPLERATE].value,
-                         PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_FREQUENCY].value,
-                         PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_BITSPERSAMPLE].value);
+                    PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_FREQUENCY].value,
+                    PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_BITSPERSAMPLE].value,
+                    PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_BANDWIDTH].value,
+                    PrimaryDetector.DetectorSettingsNP.np[DetectorDevice::DETECTOR_GAIN].value);
             IDSetNumber(&PrimaryDetector.DetectorSettingsNP, nullptr);
             return true;
         }
@@ -665,11 +706,13 @@ bool Detector::StartCapture(float duration)
     return false;
 }
 
-bool Detector::CaptureParamsUpdated(float sr, float freq, float bps)
+bool Detector::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
     INDI_UNUSED(sr);
     INDI_UNUSED(freq);
+    INDI_UNUSED(bw);
     INDI_UNUSED(bps);
+    INDI_UNUSED(gain);
     DEBUGF(Logger::DBG_WARNING, "Detector::CaptureParamsUpdated %15.0f %15.0f %15.0f -  Should never get here", sr, freq, bps);
     return false;
 }
@@ -830,7 +873,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
                 fitsfile *fptr = nullptr;
 
                 naxes[0] = targetDevice->getContinuumBufferSize() * 8 / targetDevice->getBPS();
-		naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
+                naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
                 naxes[1] = 1;
 
                 switch (targetDevice->getBPS())
@@ -914,8 +957,92 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
             }
             else
             {
-                uploadFile(targetDevice, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize(), sendCapture,
+                uploadFile(targetDevice, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize() * 8 / targetDevice->getBPS(), sendCapture,
                        saveCapture, DetectorDevice::DETECTOR_BLOB_CONTINUUM);
+            }
+        }
+        if(HasTimeDeviation())
+        {
+            if (!strcmp(targetDevice->getCaptureExtension(), "fits"))
+            {
+                void *memptr;
+                size_t memsize;
+                int img_type  = 0;
+                int byte_type = 0;
+                int status    = 0;
+                long naxis    = 2;
+                long naxes[naxis];
+                int nelements = 0;
+                std::string bit_depth;
+                char error_status[MAXRBUF];
+
+                fitsfile *fptr = nullptr;
+
+                naxes[0] = targetDevice->getTimeDeviationBufferSize();
+                naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
+                naxes[1] = 1;
+
+                byte_type = TBYTE;
+                img_type  = BYTE_IMG;
+                bit_depth = "8 bits per sample";
+
+                nelements = naxes[0] * naxes[1];
+                if (naxis == 3)
+                {
+                    nelements *= 3;
+                    naxes[2] = 3;
+                }
+
+                //  Now we have to send fits format data to the client
+                memsize = 5760;
+                memptr  = malloc(memsize);
+                if (!memptr)
+                {
+                    DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
+                }
+
+                fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
+
+                if (status)
+                {
+                    fits_report_error(stderr, status); /* print out any error messages */
+                    fits_get_errstatus(status, error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    return false;
+                }
+
+                fits_create_img(fptr, img_type, naxis, naxes, &status);
+
+                if (status)
+                {
+                    fits_report_error(stderr, status); /* print out any error messages */
+                    fits_get_errstatus(status, error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    return false;
+                }
+
+                addFITSKeywords(fptr, targetDevice, DetectorDevice::DETECTOR_BLOB_TDEV);
+
+                fits_write_img(fptr, byte_type, 1, nelements, targetDevice->getTimeDeviationBuffer(), &status);
+
+                if (status)
+                {
+                    fits_report_error(stderr, status); /* print out any error messages */
+                    fits_get_errstatus(status, error_status);
+                    DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                    return false;
+                }
+
+                fits_close_file(fptr, &status);
+
+                uploadFile(targetDevice, memptr, memsize, sendCapture, saveCapture, DetectorDevice::DETECTOR_BLOB_TDEV);
+
+                free(memptr);
+            }
+            else
+            {
+                uploadFile(targetDevice, targetDevice->getTimeDeviationBuffer(), targetDevice->getTimeDeviationBufferSize(), sendCapture,
+                       saveCapture, DetectorDevice::DETECTOR_BLOB_TDEV);
             }
         }
         if(HasSpectrum())
@@ -935,14 +1062,41 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
 
                 fitsfile *fptr = nullptr;
 
-                naxes[0] = targetDevice->getSpectrumBufferSize() / sizeof(double);
+                naxes[0] = targetDevice->getSpectrumBufferSize() * 8 / targetDevice->getBPS();
                 naxes[1] = 1;
 
-                byte_type = TDOUBLE;
-                img_type  = DOUBLE_IMG;
-                bit_depth = "64 bits per sample";
+                switch (targetDevice->getBPS())
+                {
+                case 8:
+                    byte_type = TBYTE;
+                    img_type  = BYTE_IMG;
+                    bit_depth = "8 bits per sample";
+                    break;
+
+                case 16:
+                    byte_type = TUSHORT;
+                    img_type  = USHORT_IMG;
+                    bit_depth = "16 bits per sample";
+                    break;
+
+                case 32:
+                    byte_type = TULONG;
+                    img_type  = ULONG_IMG;
+                    bit_depth = "32 bits per sample";
+                    break;
+
+                default:
+                    DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", targetDevice->getBPS());
+                    return false;
+                    break;
+                }
 
                 nelements = naxes[0] * naxes[1];
+                if (naxis == 3)
+                {
+                    nelements *= 3;
+                    naxes[2] = 3;
+                }
 
                 //  Now we have to send fits format data to the client
                 memsize = 5760;
@@ -992,13 +1146,13 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
             }
             else
             {
-                uploadFile(targetDevice, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize() * sizeof(double), sendCapture,
+                uploadFile(targetDevice, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize() * 8 / targetDevice->getBPS(), sendCapture,
                        saveCapture, DetectorDevice::DETECTOR_BLOB_SPECTRUM);
             }
         }
 
         if (sendCapture)
-	    IDSetBLOB(&targetDevice->FitsBP, nullptr);
+        IDSetBLOB(&targetDevice->FitsBP, nullptr);
 
         DEBUG(Logger::DBG_DEBUG, "Upload complete");
     }
@@ -1101,12 +1255,14 @@ bool Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsData, si
     return true;
 }
 
-void Detector::SetDetectorParams(float samplerate, float freq, float bps)
+void Detector::SetDetectorParams(float samplerate, float freq, float bps, float bw, float gain)
 {
     PrimaryDetector.setSampleRate(samplerate);
     PrimaryDetector.setFrequency(freq);
+    PrimaryDetector.setBandwidth(bw);
     PrimaryDetector.setBPS(bps);
-    CaptureParamsUpdated(samplerate, freq, bps);
+    PrimaryDetector.setGain(gain);
+    CaptureParamsUpdated(samplerate, freq, bps, bw, gain);
 }
 
 bool Detector::saveConfigItems(FILE *fp)

@@ -1390,8 +1390,12 @@ void QHYCCD::updateTemperature()
         ControlQHYCCDTemp(camhandle, TemperatureRequest);
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CCD Temp: %g CCD RAW Cooling Power: %g, CCD Cooling percentage: %g", ccdtemp,
-           coolpower, coolpower / 255.0 * 100);
+    // No need to spam to log
+    if (fabs(ccdtemp - TemperatureN[0].value) > 0.001 || fabs(CoolerN[0].value - (coolpower / 255.0 * 100)) > 0.001)
+    {
+        DEBUGF(INDI::Logger::DBG_DEBUG, "CCD Temp: %g CCD RAW Cooling Power: %g, CCD Cooling percentage: %g", ccdtemp,
+               coolpower, coolpower / 255.0 * 100);
+    }
 
     TemperatureN[0].value = ccdtemp;
     CoolerN[0].value      = coolpower / 255.0 * 100;

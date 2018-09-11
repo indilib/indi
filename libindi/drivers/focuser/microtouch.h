@@ -81,8 +81,7 @@ class Microtouch : public INDI::Focuser
     bool WriteCmd(char cmd);
     bool WriteCmdGetResponse(char cmd, char *readbuffer, char numbytes);
     char WriteCmdGetByte(char cmd);
-    bool WriteCmdSetByte(char cmd, char val);
-    signed short int WriteCmdGetShortInt(char cmd);
+    bool WriteCmdSetByte(char cmd, char val);    
     bool WriteCmdSetShortInt(char cmd, short int val);
     int WriteCmdGetInt(char cmd);
     bool WriteCmdSetInt(char cmd, int val);

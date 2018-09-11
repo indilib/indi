@@ -24,7 +24,12 @@
     ===========================================
     Version 1.4: Tuning
     - James Lan implementation of High Precision Tracking
-    - Todo Focuser absolute seting and initiliszation
+    - James lan Focuser Code
+    - James lan PEC
+    - James Lan Alignment
+    - Azwing set all com variable legth to RB_MAX_LEN otherwise crash due to overflow
+    - Azwing set local variable size to RB_MAX_LEN otherwise erased by overflow preventing Align and other stuf to work
+
     Version 1.3: Complete rework of interface and functionalities
     - Telescope Status using :GU#
     - Parking Management
@@ -47,6 +52,8 @@
 #include <unistd.h>
 #include <termios.h>
 
+#define RB_MAX_LEN 64
+
 #define setParkOnStep(fd)  write(fd, "#:hQ#", 5)
 #define ReticPlus(fd)      write(fd, "#:B+#", 5)
 #define ReticMoins(fd)     write(fd, "#:B-#", 5)
@@ -55,6 +62,7 @@
 #define OnStepalign3(fd)   write(fd, "#:A3#", 5)
 #define OnStepalignOK(fd)   write(fd, "#:A+#", 5)
 #define OnStep
+#define RB_MAX_LEN 64
 
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC};
 
@@ -207,6 +215,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     
     ISwitchVectorProperty SetHomeSP;
     ISwitch SetHomeS[2];
+
     
     ISwitchVectorProperty OSPECStatusSP;
     ISwitch OSPECStatusS[5];
@@ -227,17 +236,17 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty OSOutput2SP;
     ISwitch OSOutput2S[2];
     
-    char OSStat[20];
-    char OldOSStat[20];
+    char OSStat[RB_MAX_LEN];
+    char OldOSStat[RB_MAX_LEN];
 
-    char OSAlignStat[10];
-    char oldOSAlignStat[10];
+    char OSAlignStat[RB_MAX_LEN];
+    char oldOSAlignStat[RB_MAX_LEN];
     bool OSAlignProcess=false;
     bool OSAlignFlag=false;
     bool OSAlignOn=false;
 
-    char OSPier[2];
-    char OldOSPier[2];
+    char OSPier[RB_MAX_LEN];
+    char OldOSPier[RB_MAX_LEN];
 
   private:
     int currentCatalog;

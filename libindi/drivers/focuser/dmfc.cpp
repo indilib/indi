@@ -34,7 +34,7 @@
 #define FOCUS_SETTINGS_TAB "Settings"
 #define TEMPERATURE_THRESHOLD 0.1
 
-std::unique_ptr<DMFC> dmfc(new DMFC());
+static std::unique_ptr<DMFC> dmfc(new DMFC());
 
 void ISGetProperties(const char *dev)
 {
@@ -246,7 +246,7 @@ bool DMFC::ack()
 
     tcflush(PortFD, TCIOFLUSH);
 
-    return (!strcmp(res, "OK_DMFCN"));
+    return (strstr(res, "OK_") != nullptr);
 }
 
 bool DMFC::sync(uint32_t newPosition)
@@ -451,7 +451,7 @@ bool DMFC::updateFocusParams()
     char *token = std::strtok(res, ":");
 
     // #1 Status
-    if (token == nullptr || strcmp(token, "OK_DMFCN"))
+    if (token == nullptr || strstr(token, "OK_") == nullptr)
     {
         LOG_ERROR("Invalid status response.");
         return false;

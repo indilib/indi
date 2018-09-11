@@ -105,7 +105,7 @@ bool V4L2_Driver::initProperties()
     IUFillSwitchVector(&StackModeSP, StackModeS, NARRAY(StackModeS), getDeviceName(), "Stack", "", MAIN_CONTROL_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    stackMode = 0;
+    stackMode = STACK_NONE;
 
     /* Inputs */
     IUFillSwitchVector(&InputsSP, nullptr, 0, getDeviceName(), "V4L2_INPUT", "Inputs", CAPTURE_FORMAT, IP_RW,
@@ -187,9 +187,10 @@ void V4L2_Driver::ISGetProperties(const char *dev)
         else if (FrameRateNP.np != nullptr)
             defineNumber(&FrameRateNP);
 
+        defineSwitch(&StackModeSP);
+
 #ifdef WITH_V4L2_EXPERIMENTS
         defineSwitch(&ImageDepthSP);
-        defineSwitch(&StackModeSP);
         defineSwitch(&ColorProcessingSP);
         defineText(&CaptureColorSpaceTP);
 #endif
@@ -227,9 +228,10 @@ bool V4L2_Driver::updateProperties()
         else if (FrameRateNP.np != nullptr)
             defineNumber(&FrameRateNP);
 
+        defineSwitch(&StackModeSP);
+
 #ifdef WITH_V4L2_EXPERIMENTS
         defineSwitch(&ImageDepthSP);
-        defineSwitch(&StackModeSP);
         defineSwitch(&ColorProcessingSP);
         defineText(&CaptureColorSpaceTP);
 #endif
@@ -273,9 +275,10 @@ bool V4L2_Driver::updateProperties()
         Options    = nullptr;
         v4loptions = 0;
 
+        deleteProperty(StackModeSP.name);
+
 #ifdef WITH_V4L2_EXPERIMENTS
         deleteProperty(ImageDepthSP.name);
-        deleteProperty(StackModeSP.name);
         deleteProperty(ColorProcessingSP.name);
         deleteProperty(CaptureColorSpaceTP.name);
 #endif
@@ -846,13 +849,56 @@ bool V4L2_Driver::setShutter(double duration)
 
 bool V4L2_Driver::setManualExposure(double duration)
 {
+    /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
+    /* With DMx 21AU04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
+     * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set
+     * exposure unconditionally */
+    /*if (duration * 10000 != AbsExposureN->value)*/
+
+    // INT control for manual exposure duration is an integer in 1/10000 seconds
+    long ticks = lround(duration * 10000.0f);
+
+    /* First check the presence of an absolute exposure control */
     if (nullptr == AbsExposureN)
     {
-        LOGF_ERROR("Failed exposing, the absolute exposure duration control is undefined", "");
-        return false;
+        /* We don't have an absolute exposure control but we can stack gray frames until the exposure elapses */
+        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        {
+            LOGF_WARN("Absolute exposure duration control is undefined, stacking up to %.3f seconds using %.16s.",
+                    duration, StackModeS[stackMode].name);
+            return true;
+        }
+        /* We don't have an absolute exposure control and stacking is not configured, bail out */
+        else
+        {
+            LOGF_ERROR("Failed exposing, the absolute exposure duration control is undefined, and stacking is not ready.", "");
+            LOGF_ERROR("Configure grayscale and stacking in order to stack streamed frames up to %.3f seconds.", duration);
+            return false;
+        }
     }
+    /* Then if we have an exposure control, check the requested exposure duration */
+    else if (AbsExposureN->max < ticks)
+    {
+        /* We can't expose as long as requested but we can stack gray frames until the exposure elapses */
+        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        {
+            LOGF_WARN("Requested manual exposure is out of device bounds [%.3f,%.3f], stacking up to %.3f seconds using %.16s.",
+                    (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f,
+                    duration, StackModeS[stackMode].name);
+            ticks = AbsExposureN->max;
+        }
+        /* We can't expose as long as requested and stacking is not configured, bail out */
+        else
+        {
+            LOGF_ERROR("Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f], and stacking is not ready.",
+                    duration, (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f);
+            LOGF_ERROR("Configure grayscale and stacking in order to stack streamed frames up to %.3f seconds.", duration);
+            return false;
+        }
+    }
+    /* Lower-than-minimal exposure duration is left managed below */
 
-    char errmsg[MAXRBUF];
+    /* At this point we do have an absolute exposure control and a valid exposure duration, so start exposing. */
 
     /* Manual mode should be set before changing Exposure (Auto), if possible.
      * In some cases there might be no control available, so don't fail and try to continue.
@@ -868,6 +914,7 @@ bool V4L2_Driver::setManualExposure(double duration)
             unsigned int const ctrlindex = ManualExposureSP->sp[0].aux ? *(unsigned int *)(ManualExposureSP->sp[0].aux) : 0;
             unsigned int const ctrl_id = (*((unsigned int *)ManualExposureSP->aux));
 
+            char errmsg[MAXRBUF];
             if (v4l_base->setOPTControl(ctrl_id, ctrlindex, errmsg) < 0)
             {
                 ManualExposureSP->sp[0].s = ISS_OFF;
@@ -885,20 +932,12 @@ bool V4L2_Driver::setManualExposure(double duration)
     }
     else
     {
-        LOGF_ERROR("Failed switching to manual exposure, control is unavailable", "");
+        LOGF_WARN("Failed switching to manual exposure, control is unavailable", "");
         /* Don't fail, let the driver try to set the absolute duration, we'll see what happens */
         /* return false; */
     }
 
-    /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
-    /* With DMx 21AU04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
-     * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set
-     * exposure unconditionally */
-    /*if (duration * 10000 != AbsExposureN->value)*/
-
-    // INT control for manual exposure duration is an integer in 1/10000 seconds
-    long const ticks = lround(duration * 10000.0f);
-
+    /* Configure absolute exposure */
     if (AbsExposureN->min <= ticks && ticks <= AbsExposureN->max)
     {
         double const restoredValue = AbsExposureN->value;
@@ -909,6 +948,7 @@ bool V4L2_Driver::setManualExposure(double duration)
 
         unsigned int const ctrl_id = *((unsigned int *)AbsExposureN->aux0);
 
+        char errmsg[MAXRBUF];
         if (v4l_base->setINTControl(ctrl_id, AbsExposureN->value, errmsg) < 0)
         {
             ImageAdjustNP.s     = IPS_ALERT;
@@ -922,7 +962,7 @@ bool V4L2_Driver::setManualExposure(double duration)
     }
     else
     {
-        LOGF_WARN("Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f].",
+        LOGF_ERROR("Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f].",
                duration, (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f);
         return false;
     }
@@ -1103,29 +1143,33 @@ void V4L2_Driver::newFrame(void *p)
     ((V4L2_Driver *)(p))->newFrame();
 }
 
+/** @internal Stack normalized luminance pixels coming from the camera in an accumulator frame.
+ */
 void V4L2_Driver::stackFrame()
 {
+    /* FIXME: use unsigned floats, or double */
+    size_t const size      = v4l_base->getWidth() * v4l_base->getHeight();
+    float const *src       = v4l_base->getLinearY();
+    float const *const end = v4l_base->getLinearY() + size;
+    float *dest            = V4LFrame->stackedFrame;
+
     if (!V4LFrame->stackedFrame)
     {
-        float *src = nullptr, *dest = nullptr;
-
-        V4LFrame->stackedFrame = (float *)malloc(sizeof(float) * v4l_base->getWidth() * v4l_base->getHeight());
-        src                    = v4l_base->getLinearY();
-        dest                   = V4LFrame->stackedFrame;
-        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-            *dest++ = *src++;
+        /* FIXME: allocate and reset the accumulator frame prior to this function, because memory owner is unclear, and we need more speed while accumulating */
+        V4LFrame->stackedFrame = (float *)malloc(sizeof(float) * size);
+        memcpy(V4LFrame->stackedFrame, src, sizeof(float) * size);
         subframeCount = 1;
     }
     else
     {
-        float *src = nullptr, *dest = nullptr;
-
-        src  = v4l_base->getLinearY();
-        dest = V4LFrame->stackedFrame;
-        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
+        /* Clamp to max float value */
+        float const frameMax = std::numeric_limits<float>::max();
+        while (src < end) if (frameMax - *dest < *src)
         {
-            *dest++ += *src++;
+            *dest++ = frameMax;
+            src++;
         }
+        else *dest++ += *src++;
         subframeCount += 1;
     }
 }
@@ -1226,6 +1270,7 @@ void V4L2_Driver::newFrame()
 
         struct timeval const current_exposure = getElapsedExposure();
 
+        /* FIXME: stacking does not account for transfer time, so we'll miss the last frames probably */
         if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON) &&
             (timercmp(&current_exposure, &exposure_duration, <)))
             return; // go on stacking
@@ -1249,6 +1294,7 @@ void V4L2_Driver::newFrame()
             {
                 float *src = V4LFrame->stackedFrame;
 
+                /* If we have a dark frame configured, substract it from the stack */
                 if ((stackMode != STACK_TAKE_DARK) && (V4LFrame->darkFrame != nullptr))
                 {
                     float *dark = V4LFrame->darkFrame;
@@ -1264,6 +1310,7 @@ void V4L2_Driver::newFrame()
                     }
                     src = V4LFrame->stackedFrame;
                 }
+
                 //IDLog("Copying stack frame from %p to %p.\n", src, dest);
                 if (stackMode == STACK_MEAN)
                 {
@@ -1273,7 +1320,7 @@ void V4L2_Driver::newFrame()
                         unsigned char *dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
 
                         for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-                            *dest++ = (unsigned char)((*src++ * 255) / subframeCount);
+                            *dest++ = (unsigned char)((*src++ * 255.0f) / subframeCount);
                     }
                     else
                     {
@@ -1281,7 +1328,7 @@ void V4L2_Driver::newFrame()
                         unsigned short *dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
 
                         for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-                            *dest++ = (unsigned short)((*src++ * 65535) / subframeCount);
+                            *dest++ = (unsigned short)((*src++ * 65535.0f) / subframeCount);
                     }
 
                     free(V4LFrame->stackedFrame);
@@ -1289,13 +1336,17 @@ void V4L2_Driver::newFrame()
                 }
                 else if (stackMode == STACK_ADDITIVE)
                 {
+                    /* Clamp additive stacking to frame dynamic range - that is, do not consider normalized source greater than 1.0f */
                     if (ImageDepthS[0].s == ISS_ON)
                     {
                         // depth 8 bits
                         unsigned char *dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
 
                         for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-                            *dest++ = (unsigned char)((*src++ * 255));
+                        {
+                            *dest++ = *src < 1.0f ? (unsigned char)((*src * 255)) : 255;
+                            src++;
+                        }
                     }
                     else
                     {
@@ -1303,7 +1354,10 @@ void V4L2_Driver::newFrame()
                         unsigned short *dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
 
                         for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-                            *dest++ = (unsigned short)((*src++ * 65535));
+                        {
+                            *dest++ = *src < 1.0f ? (unsigned short)((*src * 65535)) : 65535;
+                            src++;
+                        }
                     }
 
                     free(V4LFrame->stackedFrame);
@@ -1541,7 +1595,8 @@ void V4L2_Driver::updateV4L2Controls()
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
         {
             if (strcmp(ImageAdjustNP.np[i].label, "Exposure (Absolute)") == 0 ||
-                strcmp(ImageAdjustNP.np[i].label, "Exposure Time, Absolute") == 0)
+                strcmp(ImageAdjustNP.np[i].label, "Exposure Time, Absolute") == 0 ||
+                strcmp(ImageAdjustNP.np[i].label, "Exposure") == 0)
             {
                 AbsExposureN = ImageAdjustNP.np + i;
                 LOGF_DEBUG("- %s (used for absolute exposure duration)", ImageAdjustNP.np[i].label);
