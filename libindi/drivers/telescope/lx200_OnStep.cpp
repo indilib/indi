@@ -29,6 +29,7 @@
 #define STATUS_TAB "ONStep Status"
 #define PEC_TAB "PEC"
 #define ALIGN_TAB "Align"
+#define OUTPUT_TAB "Outputs"
 
 #define ONSTEP_TIMEOUT  3
 #define RB_MAX_LEN 64
@@ -243,6 +244,16 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OSNAlignT[3], "3", "After 1 or 2", "Press 'Start Align'");
     IUFillTextVector(&OSNAlignTP, OSNAlignT, 4, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
     
+    // =============== OUTPUT_TAB
+    // =============== 
+    IUFillSwitch(&OSOutput1S[0], "0", "OFF", ISS_ON);
+    IUFillSwitch(&OSOutput1S[1], "1", "ON", ISS_OFF);
+    IUFillSwitchVector(&OSOutput1SP, OSOutput1S, 2, getDeviceName(), "Output 1", "Output 1", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
+    
+    IUFillSwitch(&OSOutput2S[0], "0", "OFF", ISS_ON);
+    IUFillSwitch(&OSOutput2S[1], "1", "ON", ISS_OFF);
+    IUFillSwitchVector(&OSOutput2SP, OSOutput2S, 2, getDeviceName(), "Output 2", "Output 2", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
+    
     // ============== STATUS_TAB
     IUFillText(&OnstepStat[0], ":GU# return", "", "");
     IUFillText(&OnstepStat[1], "Tracking", "", "");
@@ -335,6 +346,10 @@ bool LX200_OnStep::updateProperties()
 	defineSwitch(&OSNAlignSP);
 	defineText(&OSNAlignTP);
 	
+	//Outputs
+	defineSwitch(&OSOutput1SP);
+	defineSwitch(&OSOutput2SP);
+	
         // OnStep Status
         defineText(&OnstepStatTP);
 
@@ -417,6 +432,10 @@ bool LX200_OnStep::updateProperties()
 	//New Align
 	deleteProperty(OSNAlignSP.name);
 	deleteProperty(OSNAlignTP.name);
+	
+	//Outputs
+	deleteProperty(OSOutput1SP.name);
+	deleteProperty(OSOutput2SP.name);
 	
         // OnStep Status
         deleteProperty(OnstepStatTP.name);
@@ -1054,8 +1073,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		{
 			StopPECPlayback(0);
 			//PECStateS[0].s == ISS_OFF;
-		}
-		if (PECStateS[1].s == ISS_ON)
+		} else if (PECStateS[1].s == ISS_ON)
 		{
 			StartPECPlayback(0);
 			//PECStateS[1].s == ISS_OFF;
@@ -1090,6 +1108,32 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		IDSetSwitch(&OSNAlignSP, nullptr);
 	}
 	
+	if (!strcmp(name, OSOutput1SP.name))      // 
+	{
+		if (OSOutput1S[0].s == ISS_ON)
+		{
+			OSDisableOutput(1);
+			//PECStateS[0].s == ISS_OFF;
+		} else if (OSOutput1S[1].s == ISS_ON)
+		{
+			OSEnableOutput(1);
+			//PECStateS[1].s == ISS_OFF;
+		}
+		IDSetSwitch(&PECStateSP, nullptr);
+	}
+	if (!strcmp(name, OSOutput2SP.name))      // 
+	{
+		if (OSOutput2S[0].s == ISS_ON)
+		{
+			OSDisableOutput(2);
+			//PECStateS[0].s == ISS_OFF;
+		} else if (OSOutput2S[1].s == ISS_ON)
+		{
+			OSEnableOutput(2);
+			//PECStateS[1].s == ISS_OFF;
+		}
+		IDSetSwitch(&PECStateSP, nullptr);
+	}
 	
 	
         if (strstr(name, "FOCUS"))
@@ -1691,8 +1735,8 @@ void LX200_OnStep::OSUpdateFocuser()
 		getCommandString(PortFD, value, ":FG#");
 		FocusAbsPosN[0].value =  atoi(value);
 		current = FocusAbsPosN[0].value;
-		LOGF_DEBUG("Current focuser: %d, %d", atoi(value), FocusAbsPosN[0].value);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
+		LOGF_DEBUG("Current focuser: %d, %d", atoi(value), FocusAbsPosN[0].value);
 		//  :FT#  get status
 		//         Returns: M# (for moving) or S# (for stopped)
 		getCommandString(PortFD, value, ":FT#");
@@ -1909,5 +1953,46 @@ IPState LX200_OnStep::AlignDone (){
 	IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
 	IDSetText(&OSNAlignTP, "Align FAILED");
 	return IPS_ALERT;
+	
+}
+
+IPState LX200_OnStep::OSEnableOutput(int output) {
+	//  :SXnn,VVVVVV...#   Set OnStep value
+	//          Return: 0 on failure
+	//                  1 on success
+	//	if (parameter[0]=='G') { // Gn: General purpose output
+	// :SXGn,value 
+	// value, 0 = low, other = high
+	LOG_INFO("Not implemented yet");
+	return IPS_OK;
+}
+
+
+IPState LX200_OnStep::OSDisableOutput(int output) {
+	LOG_INFO("Not implemented yet");
+	OSGetOutputState(output);
+	return IPS_OK;
+}
+
+bool LX200_OnStep::OSGetOutputState(int output) {
+	//  :GXnn#   Get OnStep value
+	//         Returns: value
+	// nn = G0-GF (HEX!)
+	//
+	char value[64] ="  ";
+	char command[64]=":$GXGm#";
+	LOGF_INFO("Output: %s", char(output));
+	LOGF_INFO("Command: %s", command);
+	command[5]=char(output);
+	LOGF_INFO("Command: %s", command);
+	getCommandString(PortFD, value, command);
+	if (value[0] == 0) {
+		OSOutput1S[0].s = ISS_ON;
+		OSOutput1S[1].s = ISS_OFF;
+	} else {
+		OSOutput1S[0].s = ISS_OFF;
+		OSOutput1S[1].s = ISS_ON;
+	}
+	IDSetSwitch(&OSOutput1SP, nullptr);
 	
 }

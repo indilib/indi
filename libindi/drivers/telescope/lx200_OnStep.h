@@ -119,6 +119,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     //End NewGeometricAlignment 
     
     
+    //Outputs
+    IPState OSEnableOutput(int output);
+    IPState OSDisableOutput(int output);
+    bool OSGetOutputState(int output);
+    
 
     bool sendOnStepCommand(const char *cmd);
     bool sendOnStepCommandBlind(const char *cmd);
@@ -216,6 +221,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitch OSNAlignS[4];
     IText OSNAlignT[5] {};
     ITextVectorProperty OSNAlignTP;
+    
+    ISwitchVectorProperty OSOutput1SP;
+    ISwitch OSOutput1S[2];
+    ISwitchVectorProperty OSOutput2SP;
+    ISwitch OSOutput2S[2];
     
     char OSStat[20];
     char OldOSStat[20];
