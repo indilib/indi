@@ -496,7 +496,7 @@ bool indiduino::ISNewNumber(const char *dev, const char *name, double values[], 
             IUUpdateNumber(nvp, values, names, n);
             LOGF_DEBUG("Setting output %s.%s on pin %u to %f", nvp->name, eqp->name, pin, eqp->value);
             sf->setPwmPin(pin, (int)(pin_config->MulScale * eqp->value + pin_config->AddScale));
-            IDSetNumber(nvp, "%s.%s change to %f\n", nvp->name, eqp->name, eqp->value);
+            IDSetNumber(nvp, "%s.%s change to %f", nvp->name, eqp->name, eqp->value);
             nvp->s = IPS_IDLE;
             change = true;
         }
@@ -564,13 +564,13 @@ bool indiduino::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 LOGF_DEBUG("Switching ON %s.%s on pin %u", svp->name, sqp->name, pin);
                 sf->writeDigitalPin(pin, ARDUINO_HIGH);
-                IDSetSwitch(svp, "%s.%s ON\n", svp->name, sqp->name);
+                IDSetSwitch(svp, "%s.%s ON", svp->name, sqp->name);
             }
             else
             {
                 LOGF_DEBUG("Switching OFF %s.%s on pin %u", svp->name, sqp->name, pin);
                 sf->writeDigitalPin(pin, ARDUINO_LOW);
-                IDSetSwitch(svp, "%s.%s OFF\n", svp->name, sqp->name);
+                IDSetSwitch(svp, "%s.%s OFF", svp->name, sqp->name);
             }
         }
         else if (pin_config->IOType == SERVO)
@@ -581,13 +581,13 @@ bool indiduino::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             {
                 LOGF_DEBUG("Switching ON %s.%s on pin %u", svp->name, sqp->name, pin);
                 sf->setPwmPin(pin, (int)pin_config->OnAngle);
-                IDSetSwitch(svp, "%s.%s ON\n", svp->name, sqp->name);
+                IDSetSwitch(svp, "%s.%s ON", svp->name, sqp->name);
             }
             else
             {
                 LOGF_DEBUG("Switching OFF %s.%s on pin %u", svp->name, sqp->name, pin);
                 sf->setPwmPin(pin, (int)pin_config->OffAngle);
-                IDSetSwitch(svp, "%s.%s OFF\n", svp->name, sqp->name);
+                IDSetSwitch(svp, "%s.%s OFF", svp->name, sqp->name);
             }
         }
     }
@@ -660,11 +660,11 @@ bool indiduino::Connect()
         }
         LOG_INFO("Arduino board connected.");
         LOGF_INFO("FIRMATA version:%s", sf->firmata_name);
-        IDSetSwitch(getSwitch("CONNECTION"), "CONNECTED. FIRMATA version:%s\n", sf->firmata_name);
+        IDSetSwitch(getSwitch("CONNECTION"), "CONNECTED. FIRMATA version:%s", sf->firmata_name);
         if (!setPinModesFromSKEL())
         {
             LOG_ERROR("Failed to map Arduino pins, check skeleton file syntax.");
-            IDSetSwitch(getSwitch("CONNECTION"), "Failed to map Arduino pins, check skeleton file syntax.\n");
+            IDSetSwitch(getSwitch("CONNECTION"), "Failed to map Arduino pins, check skeleton file syntax.");
             delete sf;
             this->serialConnection->Disconnect();
             return false;
@@ -683,7 +683,7 @@ bool indiduino::Disconnect()
     delete sf;
     this->serialConnection->Disconnect();
     LOG_INFO("Arduino board disconnected.");
-    IDSetSwitch(getSwitch("CONNECTION"), "DISCONNECTED\n");
+    IDSetSwitch(getSwitch("CONNECTION"), "DISCONNECTED");
     return true;
 }
 
