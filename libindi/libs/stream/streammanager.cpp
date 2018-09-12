@@ -30,7 +30,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 
-const char *STREAM_TAB = "Streaming";
+static const char *STREAM_TAB = "Streaming";
 
 namespace INDI
 {
