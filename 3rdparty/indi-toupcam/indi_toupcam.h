@@ -472,16 +472,19 @@ private:
     };
 
     // Video Format
-    ISwitch VideoFormatS[3];
+    ISwitch VideoFormatS[4];
     ISwitchVectorProperty VideoFormatSP;
     enum
     {
-        TC_VIDEO_MONO,
-        TC_VIDEO_COLOR,
+        TC_VIDEO_MONO_8,
+        TC_VIDEO_MONO_16,
+        TC_VIDEO_RGB,
         TC_VIDEO_RAW,
     };
-    uint8_t rememberVideoFormat = { 0 };
-    ePIXELFORMAT currentVideoFormat;    
+
+    uint8_t currentVideoFormat = TC_VIDEO_RGB;
+    uint8_t rememberVideoFormat = TC_VIDEO_RGB;
+    ePIXELFORMAT cameraPixelFormat;
 
     IText SDKVersionS[1] = {};
     ITextVectorProperty SDKVersionSP;

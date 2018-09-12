@@ -270,10 +270,11 @@ bool TOUPCAM::initProperties()
     ///////////////////////////////////////////////////////////////////////////////////
     /// Video Format
     ///////////////////////////////////////////////////////////////////////////////////
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO], "TC_VIDEO_MONO", "Mono", ISS_OFF);
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_COLOR], "TC_VIDEO_COLOR", "Color", ISS_ON);
+    IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_8], "TC_VIDEO_MONO_8", "Mono 8", ISS_OFF);
+    IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
+    IUFillSwitch(&VideoFormatS[TC_VIDEO_RGB], "TC_VIDEO_RGB", "RGB", ISS_ON);
     IUFillSwitch(&VideoFormatS[TC_VIDEO_RAW], "TC_VIDEO_RAW", "Raw", ISS_OFF);
-    IUFillSwitchVector(&VideoFormatSP, nullptr, 3, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&VideoFormatSP, nullptr, 4, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillSwitchVector(&ResolutionSP, nullptr, 0, getDeviceName(), "CCD_RESOLUTION", "Resolution", CONTROL_TAB, IP_RW,
@@ -408,7 +409,7 @@ bool TOUPCAM::Connect()
 
     cap |= CCD_HAS_STREAMING;
 
-    SetCCDCapability(cap);
+    SetCCDCapability(cap);    
 
     // Start callback
     if (Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this) < 0)
@@ -509,11 +510,9 @@ void TOUPCAM::setupParams()
     SetCCDParams(w[currentResolutionIndex], h[currentResolutionIndex], bitsPerPixel, m_Instance->model->xpixsz, m_Instance->model->ypixsz);
 
     // Allocate memory
-    PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8);
-
-    // Set Streamer pixel format
-    // FIXME
-    Streamer->setPixelFormat(INDI_MONO, bitsPerPixel);
+    // 3 RGB channels
+    PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3);
+    Streamer->setPixelFormat(INDI_RGB, bitsPerPixel);
     Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
     IUSaveText(&BayerT[2], getBayerString());
@@ -521,7 +520,34 @@ void TOUPCAM::setupParams()
 
 bool TOUPCAM::allocateFrameBuffer()
 {
+    // Allocate memory
+    // 3 RGB channels
+    switch (currentVideoFormat)
+    {
+    case TC_VIDEO_MONO_8:
+        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes());
+        Streamer->setPixelFormat(INDI_MONO, 8);
+        break;
 
+    case TC_VIDEO_MONO_16:
+        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 2);
+        Streamer->setPixelFormat(INDI_MONO, 16);
+        break;
+
+    case TC_VIDEO_RGB:
+        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3);
+        Streamer->setPixelFormat(INDI_RGB, 8);
+        break;
+
+    case TC_VIDEO_RAW:
+        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 2);
+        // FIXME get actual pixel format
+        Streamer->setPixelFormat(INDI_BAYER_BGGR, 8);
+        break;
+
+    }
+
+    Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
     return true;
 }
 
@@ -1725,6 +1751,8 @@ void TOUPCAM::eventCB(unsigned event, void* pCtx)
 
 void TOUPCAM::eventPullCallBack(unsigned event)
 {
+    LOGF_DEBUG("Event %#04X", event);
+
     switch (event)
     {
     case TOUPCAM_EVENT_EXPOSURE:
@@ -1732,8 +1760,42 @@ void TOUPCAM::eventPullCallBack(unsigned event)
     case TOUPCAM_EVENT_TEMPTINT:
         break;
     case TOUPCAM_EVENT_IMAGE:
+    {
+        ToupcamFrameInfoV2 info;
+        memset(&info, 0, sizeof(ToupcamFrameInfoV2));
+        HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), 24, &info);
+        if (rc < 0)
+        {
+            LOGF_ERROR("Failed to pull image, Error Code = %08x", rc);
+            PrimaryCCD.setExposureFailed();
+        }
+        else
+        {
+            PrimaryCCD.setExposureLeft(0);
+            InExposure  = false;
+            ExposureComplete(&PrimaryCCD);
+            LOGF_DEBUG("Image captured. Width: %d Height: %d flag: %d", info.width, info.height, info.flag);
+        }
+    }
         break;
     case TOUPCAM_EVENT_STILLIMAGE:
+    {
+        ToupcamFrameInfoV2 info;
+        memset(&info, 0, sizeof(ToupcamFrameInfoV2));
+        HRESULT rc = Toupcam_PullStillImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), 24, &info);
+        if (rc < 0)
+        {
+            LOGF_ERROR("Failed to pull image, Error Code = %08x", rc);
+            PrimaryCCD.setExposureFailed();
+        }
+        else
+        {
+            PrimaryCCD.setExposureLeft(0);
+            InExposure  = false;
+            ExposureComplete(&PrimaryCCD);
+            LOGF_DEBUG("Image captured. Width: %d Height: %d flag: %d", info.width, info.height, info.flag);
+        }
+    }
         break;
     case TOUPCAM_EVENT_WBGAIN:
         break;
