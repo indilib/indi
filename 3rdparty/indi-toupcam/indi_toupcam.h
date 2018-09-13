@@ -278,10 +278,10 @@ private:
     //#############################################################################
     // Capture
     //#############################################################################
-    static void *imagingHelper(void *context);
-    void *imagingThreadEntry();
-    void getSnapImage();
-    void exposureSetRequest(ImageState request);
+//    static void *imagingHelper(void *context);
+//    void *imagingThreadEntry();
+//    void getSnapImage();
+//    void exposureSetRequest(ImageState request);
     int grabImage();
 
     bool allocateFrameBuffer();
@@ -291,11 +291,11 @@ private:
     //#############################################################################
     // Threading
     //#############################################################################
-    ImageState threadRequest;
-    ImageState threadState;
-    pthread_t imagingThread;
-    pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-    pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+//    ImageState threadRequest;
+//    ImageState threadState;
+//    pthread_t imagingThread;
+//    pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+//    pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
     //#############################################################################
     // Video Format & Streaming

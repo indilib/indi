@@ -477,13 +477,13 @@ bool TOUPCAM::Disconnect()
     //RemoveTimer(genTimerID);
     //genTimerID = -1;
 
-    pthread_mutex_lock(&condMutex);
-    tState = threadState;
-    threadRequest = StateTerminate;
-    pthread_cond_signal(&cv);
-    pthread_mutex_unlock(&condMutex);
-    pthread_join(imagingThread, nullptr);
-    tState = StateNone;
+//    pthread_mutex_lock(&condMutex);
+//    tState = threadState;
+//    threadRequest = StateTerminate;
+//    pthread_cond_signal(&cv);
+//    pthread_mutex_unlock(&condMutex);
+//    pthread_join(imagingThread, nullptr);
+//    tState = StateNone;
 
     Toupcam_Close(m_CameraHandle);
 
@@ -996,17 +996,18 @@ bool TOUPCAM::StartExposure(float duration)
     if (ExposureRequest > VERBOSE_EXPOSURE)
         LOGF_INFO("Taking a %g seconds frame...", static_cast<double>(ExposureRequest));
 
-    InExposure = true;
-    pthread_mutex_lock(&condMutex);
-    threadRequest = StateExposure;
-    pthread_cond_signal(&cv);
-    pthread_mutex_unlock(&condMutex);
+      InExposure = true;
+//    pthread_mutex_lock(&condMutex);
+//    threadRequest = StateExposure;
+//    pthread_cond_signal(&cv);
+//    pthread_mutex_unlock(&condMutex);
 
     return true;
 }
 
 bool TOUPCAM::AbortExposure()
 {
+    InExposure = false;
 #if 0
     LOG_DEBUG("AbortExposure");
     pthread_mutex_lock(&condMutex);
@@ -1535,6 +1536,7 @@ void TOUPCAM::updateRecorderFormat()
 #endif
 }
 
+#if 0
 void *TOUPCAM::imagingHelper(void *context)
 {
     return static_cast<TOUPCAM *>(context)->imagingThreadEntry();
@@ -1665,6 +1667,7 @@ void TOUPCAM::exposureSetRequest(ImageState request)
         threadRequest = request;
     }
 }
+#endif
 
 void TOUPCAM::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
@@ -1843,9 +1846,4 @@ void TOUPCAM::eventPullCallBack(unsigned event)
     default:
         break;
     }
-}
-
-void TOUPCAM::getSnapImage()
-{
-
 }
