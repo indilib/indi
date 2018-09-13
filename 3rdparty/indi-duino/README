@@ -58,4 +58,7 @@ ADVANCE DEVICES
 Using custom Firmware is posible to map signal not to real hardware but a logical variables. Using this 
 is posible to achive elaborate behaviours tripping arduino functions. See stepper example code.
 
+It is possible to request particular firmware version by setting environment variable
+INDIDUINO_CHECK_FIRMWARE, for example:
 
+INDIDUINO_CHECK_FIRMWARE=StandardFirmata.ino-2.5
