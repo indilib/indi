@@ -42,6 +42,9 @@ static ToupcamInstV2 pToupCameraInfo[TOUPCAM_MAX];
 static TOUPCAM *cameras[TOUPCAM_MAX];
 
 //#define USE_SIMULATION
+#ifdef USE_SIMULATION
+static ToupcamModelV2 model;
+#endif
 
 static void cleanup()
 {
@@ -56,6 +59,19 @@ void TOUPCAM_ISInit()
     static bool isInit = false;
     if (!isInit)
     {
+#ifdef USE_SIMULATION
+        iConnectedCamerasCount=1;
+        strncpy(pToupCameraInfo[0].displayname, "Simulation", 64);
+        model.flag = TOUPCAM_FLAG_RAW16 | TOUPCAM_FLAG_BINSKIP_SUPPORTED | TOUPCAM_FLAG_ROI_HARDWARE | TOUPCAM_FLAG_TEC_ONOFF | TOUPCAM_FLAG_ST4;
+        model.name = pToupCameraInfo[0].displayname;
+        model.xpixsz = model.ypixsz  = 5.4;
+        model.res[0].width = 1280;
+        model.res[0].height = 1024;
+        model.res[1].width = 640;
+        model.res[1].height = 480;
+        pToupCameraInfo[0].model = &model;
+        cameras[0] = new TOUPCAM(&pToupCameraInfo[0]);
+#else
         iConnectedCamerasCount = Toupcam_EnumV2(pToupCameraInfo);
         if (iConnectedCamerasCount <= 0)
             IDLog("No ToupCam detected. Power on?");
@@ -66,6 +82,7 @@ void TOUPCAM_ISInit()
                 cameras[i] = new TOUPCAM(&pToupCameraInfo[i]);
             }
         }
+#endif
 
         atexit(cleanup);
         isInit = true;
@@ -280,7 +297,11 @@ bool TOUPCAM::initProperties()
     IUFillSwitchVector(&ResolutionSP, nullptr, 0, getDeviceName(), "CCD_RESOLUTION", "Resolution", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
+#ifdef USE_SIMULATION
+    IUFillText(&SDKVersionS[0], "VERSION", "Version", "Simulation");
+#else
     IUFillText(&SDKVersionS[0], "VERSION", "Version", Toupcam_Version());
+#endif
     IUFillTextVector(&SDKVersionSP, SDKVersionS, 1, getDeviceName(), "SDK", "SDK", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, 2, 1, false);
@@ -422,6 +443,7 @@ bool TOUPCAM::Connect()
      * Create the imaging thread and wait for it to start
      * N.B. Do we really need this with ToupCam?
      */
+#if 0
     threadRequest = StateIdle;
     threadState = StateNone;
     int stat = pthread_create(&imagingThread, nullptr, &imagingHelper, this);
@@ -436,6 +458,7 @@ bool TOUPCAM::Connect()
         pthread_cond_wait(&cv, &condMutex);
     }
     pthread_mutex_unlock(&condMutex);
+#endif
 
     // Success!
     LOGF_INFO("%s is online. Retrieving basic data.", getDeviceName());
