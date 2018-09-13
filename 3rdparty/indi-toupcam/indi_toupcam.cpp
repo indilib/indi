@@ -41,7 +41,7 @@ static int iConnectedCamerasCount;
 static ToupcamInstV2 pToupCameraInfo[TOUPCAM_MAX];
 static TOUPCAM *cameras[TOUPCAM_MAX];
 
-#define USE_SIMULATION
+//#define USE_SIMULATION
 #ifdef USE_SIMULATION
 static ToupcamModelV2 model;
 #endif
