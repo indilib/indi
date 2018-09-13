@@ -980,17 +980,27 @@ bool TOUPCAM::activateCooler(bool enable)
 }
 
 bool TOUPCAM::StartExposure(float duration)
-{    
+{
+    HRESULT rc = 0;
     PrimaryCCD.setExposureDuration(static_cast<double>(duration));
     ExposureRequest = duration;
 
-    LOGF_DEBUG("Start exposure: %.3fs", static_cast<double>(duration));
     uint32_t uSecs = static_cast<uint32_t>(duration * 1000000.0f);
 
-    Toupcam_put_ExpoTime(m_CameraHandle, uSecs);
 
-    if (Toupcam_Snap(m_CameraHandle, IUFindOnSwitchIndex(&ResolutionSP)) < 0)
+    LOGF_DEBUG("Starting exposure: %d us @ %s", uSecs, IUFindOnSwitch(&ResolutionSP)->label);
+
+    if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
+    {
+        LOGF_ERROR("Failed to set exposure time. Error: %d", rc);
         return false;
+    }
+
+    if ( (rc = Toupcam_Snap(m_CameraHandle, IUFindOnSwitchIndex(&ResolutionSP))) < 0)
+    {
+        LOGF_ERROR("Failed to take a snap. Error: %d", rc);
+        return false;
+    }
 
     gettimeofday(&ExpStart, nullptr);
     if (ExposureRequest > VERBOSE_EXPOSURE)
