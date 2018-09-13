@@ -1,10 +1,3 @@
-# Copy this file to /etc/udev/rules.d
-
-# Once done, unplug and re-plug your device. This is all that is
-# necessary to see the new permissions. Udev does not have to be restarted.
-
-# If you think permissions of 0666 are too loose, then see:
-# http://reactivated.net/writing_udev_rules.html for more information on finer
-# grained permission setting.
-
-SUBSYSTEM=="usb", ATTRS{idVendor}=="0547", MODE="0666"
+ACTION=="add", ATTR{idVendor}=="0547", RUN+="/bin/sh -c '/bin/echo 256 >/sys/module/usbcore/parameters/usbfs_memory_mb'"
+# All ToupCam devices
+SUBSYSTEMS=="usb", ATTR{idVendor}=="0547", MODE="0666"

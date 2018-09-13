@@ -280,7 +280,7 @@ private:
     //#############################################################################
     static void *imagingHelper(void *context);
     void *imagingThreadEntry();
-    void getExposure();
+    void getSnapImage();
     void exposureSetRequest(ImageState request);
     int grabImage();
 
@@ -300,7 +300,7 @@ private:
     //#############################################################################
     // Video Format & Streaming
     //#############################################################################
-    void streamVideo();
+    void getVideoImage();
     // Return user selected image type
     ePIXELFORMAT getImageType();
     // Update SER recorder video format
@@ -347,7 +347,7 @@ private:
     // Create number and switch controls for camera by querying the API
     void createControls(int piNumberOfControls);
     // Update control values from camera
-    void updateControls();
+    void refreshControls();
 
     //#############################################################################
     // Resolution
@@ -366,6 +366,9 @@ private:
     //#############################################################################
     // Callbacks
     //#############################################################################
+    static void eventCB(unsigned event, void* pCtx);
+    void eventPullCallBack(unsigned event);
+
     static void TempTintCB(const int nTemp, const int nTint, void* pCtx);
     void TempTintChanged(const int nTemp, const int nTint);
 
@@ -469,16 +472,19 @@ private:
     };
 
     // Video Format
-    ISwitch VideoFormatS[3];
+    ISwitch VideoFormatS[4];
     ISwitchVectorProperty VideoFormatSP;
     enum
     {
-        TC_VIDEO_MONO,
-        TC_VIDEO_COLOR,
+        TC_VIDEO_MONO_8,
+        TC_VIDEO_MONO_16,
+        TC_VIDEO_RGB,
         TC_VIDEO_RAW,
     };
-    uint8_t rememberVideoFormat = { 0 };
-    ePIXELFORMAT currentVideoFormat;    
+
+    uint8_t currentVideoFormat = TC_VIDEO_RGB;
+    uint8_t rememberVideoFormat = TC_VIDEO_RGB;
+    ePIXELFORMAT cameraPixelFormat;
 
     IText SDKVersionS[1] = {};
     ITextVectorProperty SDKVersionSP;
