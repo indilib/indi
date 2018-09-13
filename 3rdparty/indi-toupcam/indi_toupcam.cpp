@@ -430,7 +430,10 @@ bool TOUPCAM::Connect()
 
     cap |= CCD_HAS_STREAMING;
 
-    SetCCDCapability(cap);    
+    SetCCDCapability(cap);
+
+    LOGF_DEBUG("maxSpeed: %d preview: %d still: %d maxFanSpeed %d", m_Instance->model->maxspeed, m_Instance->model->preview,
+                                                                    m_Instance->model->still, m_Instance->model->maxfanspeed);
 
     // Start callback
     if (Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this) < 0)
@@ -468,7 +471,7 @@ bool TOUPCAM::Connect()
 
 bool TOUPCAM::Disconnect()
 {
-    ImageState  tState;
+    //ImageState  tState;
     LOGF_DEBUG("Closing %s...", getDeviceName());
 
     stopTimerNS();
