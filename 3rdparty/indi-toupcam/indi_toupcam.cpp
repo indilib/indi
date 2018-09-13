@@ -1783,6 +1783,8 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         break;
     case TOUPCAM_EVENT_IMAGE:
     {
+        // This should only be for videos
+#if 0
         ToupcamFrameInfoV2 info;
         memset(&info, 0, sizeof(ToupcamFrameInfoV2));
         HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), 24, &info);
@@ -1798,6 +1800,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
             ExposureComplete(&PrimaryCCD);
             LOGF_DEBUG("Image captured. Width: %d Height: %d flag: %d", info.width, info.height, info.flag);
         }
+#endif
     }
         break;
     case TOUPCAM_EVENT_STILLIMAGE:
