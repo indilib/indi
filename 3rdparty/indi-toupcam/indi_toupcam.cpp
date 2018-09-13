@@ -381,12 +381,12 @@ bool TOUPCAM::updateProperties()
 
 bool TOUPCAM::Connect()
 {
-    LOGF_DEBUG("Attempting to open %s...", name);
+    LOGF_DEBUG("Attempting to open %s with ID %s", name, m_Instance->id);
 
     if (isSimulation() == false)
         m_CameraHandle = Toupcam_Open(m_Instance->id);
 
-    if (m_CameraHandle)
+    if (m_CameraHandle == nullptr)
     {
         LOG_ERROR("Error connecting to the camera");
         return false;
