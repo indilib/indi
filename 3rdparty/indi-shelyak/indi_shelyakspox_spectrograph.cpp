@@ -121,20 +121,7 @@ bool ShelyakSpox::initProperties()
   IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
   IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-<<<<<<< HEAD:3rdparty/indi-shelyak/indi_shelyakspox_spectrograph.cpp
-  
-=======
-  //--------------------------------------------------------------------------------
-  // Spectrograph Settings
-  //--------------------------------------------------------------------------------
 
-  IUFillNumber(&SettingsN[0], "SLOT WIDTH", "Slot width [µm]", "%.0f", 1, 100, 0, 20);
-  IUFillNumber(&SettingsN[1], "OBJ_FOCAL", "Obj Focal [mm]", "%.0f", 1, 700, 0, 85);
-  IUFillNumberVector(&SettingsNP, SettingsN, 2, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph settings", SPECTROGRAPH_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
-
-  setDriverInterface(SPECTROGRAPH_INTERFACE);
-
->>>>>>> 288cc0f0a1c1c0a04748a5b64a24b7769e168dd9:3rdparty/indi-shelyak/indi_shelyakalpy_spectrograph.cpp
   return true;
 }
 
