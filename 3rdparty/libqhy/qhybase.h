@@ -1098,6 +1098,10 @@ public:
     double imgcontrast;
     double imggamma;
     double camampv;
+	double defaultgain;
+	double defaultoffset;
+	double outputdataactualbits;
+	double outputdataalignment;
     double camviewmode;
 
     uint8_t isbadframe;

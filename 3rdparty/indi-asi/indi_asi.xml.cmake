@@ -12,5 +12,10 @@
                 <version>@ASI_VERSION_MAJOR@.@ASI_VERSION_MINOR@</version>
         </device>
 </devGroup>
+<devGroup group="Auxiliary">
+        <device label="ASI ST4">
+                <driver name="ASI ST4">indi_asi_st4</driver>
+                <version>@ASI_VERSION_MAJOR@.@ASI_VERSION_MINOR@</version>
+        </device>
+</devGroup>
 </driversList>
-

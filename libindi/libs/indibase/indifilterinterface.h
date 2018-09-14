@@ -91,7 +91,7 @@ class FilterInterface
      * initProperties() of your primary device
      * \param groupName Group or tab name to be used to define filter wheel properties.
      */
-    void initProperties(const char *groupName);
+    void initProperties(const char *groupName);    
 
     /**
      * @brief updateProperties Defines or Delete proprties based on default device connection status
@@ -130,5 +130,13 @@ class FilterInterface
     bool loadingFromConfig = false;
 
     DefaultDevice *m_defaultDevice { nullptr };
+
+private:
+    /**
+     * @brief loadFilterNames Load filter names from config
+     * @return true if successful, false otherwise.
+     * @note This is only called in initProperties() of FilterInterface
+     */
+    bool loadFilterNames();
 };
 }

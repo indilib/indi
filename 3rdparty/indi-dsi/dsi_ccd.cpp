@@ -152,14 +152,11 @@ bool DSICCD::Connect()
 *******************************************************************************/
 bool DSICCD::Disconnect()
 {
-    if (dsi)
-    {
-        delete dsi;
-        dsi = nullptr;
-    }
+   delete dsi;
+   dsi = nullptr;
 
-    LOG_INFO("Successfully disconnected!");
-    return true;
+   LOG_INFO("Successfully disconnected!");
+   return true;
 }
 
 /*******************************************************************************

@@ -1,4 +1,30 @@
-From 1.7.2 to 1.7.3
+From 1.7.2 to 1.7.4
+
+      + New Celestron Nightscape 8300 CCD driver.
+      + New INDI FFMPEG-based Webcam driver.
+      + New ZWO USB2ST4 driver.
+      + New Arduino ST4 driver.
+      + New Weather Watcher driver.
+      + Optec IFW to support TCP/IP.
+      + Added color support for OGV recorder.
+      + Pulse Command now turned on by default.      
+      + Support for Park Positions 1/2/3/4 in Astrophsyics driver. Fixed pulse guiding.
+      + Add DSLR temperature reporting.
+      + Add support for GRBG pixel layout (8-bit) used by things such as NexImage 5.
+      + Improved Pulse Guiding in EQMod.
+      + Fixed EQMod DEC Inversion which caused issues with PHD2.
+      + Fixex checksum error in maxdomeii. Implement dome motion buttons.
+      + Fixed tracking issue in EQMod when using a joystick.
+      + Fixex pier side reporting for 10Micron mounts.
+      + Fixed protocol issue with ethernet connection to AP GTOCP4.
+      + Fixed Celestron Pulse guiding.
+      + Fixed occasional filter loading issues.
+      + Add additional FITS Keyword SITELAT and SITELONG.
+      + Add custom max filter count to trutech.
+      + Add Zulu postfix to UTC time in FITS header.
+      + Increase usbfs_memory to 256 for all USB cameras as it helps under ARM architecture.
+      + SBIG, SSAG, Moravian, Radio, Fishcamp & FLI driver support under MacOS.      
+      + Updated QHY SDK to 2.0.10.
 
 
 From 1.7.0 to 1.7.2

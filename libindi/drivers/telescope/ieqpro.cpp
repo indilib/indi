@@ -35,7 +35,7 @@
 #define MOUNTINFO_TAB "Mount Info"
 
 // We declare an auto pointer to IEQPro.
-std::unique_ptr<IEQPro> scope(new IEQPro());
+static std::unique_ptr<IEQPro> scope(new IEQPro());
 
 void ISGetProperties(const char *dev)
 {
@@ -93,7 +93,7 @@ IEQPro::IEQPro()
 
 const char *IEQPro::getDefaultName()
 {
-    return (const char *)"iEQ";
+    return "iEQ";
 }
 
 bool IEQPro::initProperties()
@@ -115,6 +115,20 @@ bool IEQPro::initProperties()
     AddTrackMode("TRACK_LUNAR", "Lunar");
     AddTrackMode("TRACK_KING", "King");
     AddTrackMode("TRACK_CUSTOM", "Custom");
+
+    // Slew Rates
+    strncpy(SlewRateS[0].label, "1x", MAXINDILABEL);
+    strncpy(SlewRateS[1].label, "2x", MAXINDILABEL);
+    strncpy(SlewRateS[2].label, "8x", MAXINDILABEL);
+    strncpy(SlewRateS[3].label, "16x", MAXINDILABEL);
+    strncpy(SlewRateS[4].label, "64x", MAXINDILABEL);
+    strncpy(SlewRateS[5].label, "128x", MAXINDILABEL);
+    strncpy(SlewRateS[6].label, "256x", MAXINDILABEL);
+    strncpy(SlewRateS[7].label, "512x", MAXINDILABEL);
+    strncpy(SlewRateS[8].label, "MAX", MAXINDILABEL);
+    IUResetSwitch(&SlewRateSP);
+    // 64x is the default
+    SlewRateS[4].s = ISS_ON;
 
     // Set TrackRate limits within +/- 0.0100 of Sidereal rate
     TrackRateN[AXIS_RA].min = TRACKRATE_SIDEREAL - 0.01;
@@ -262,11 +276,15 @@ void IEQPro::getStartupData()
         if (longitude < 0)
             longitude += 360;
 
+        LOGF_INFO("Mount Longitude %g Latitude %g", longitude, latitude);
+
         LocationN[LOCATION_LATITUDE].value  = latitude;
         LocationN[LOCATION_LONGITUDE].value = longitude;
         LocationNP.s                        = IPS_OK;
 
         IDSetNumber(&LocationNP, nullptr);
+
+        saveConfig(true, "GEOGRAPHIC_COORD");
     }
 
     double DEC = (latitude > 0) ? 90 : -90;
@@ -332,7 +350,7 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         {
             IUUpdateSwitch(&HomeSP, states, names, n);
 
-            IEQ_HOME_OPERATION operation = (IEQ_HOME_OPERATION)IUFindOnSwitchIndex(&HomeSP);
+            IEQ_HOME_OPERATION operation = static_cast<IEQ_HOME_OPERATION>(IUFindOnSwitchIndex(&HomeSP));
 
             IUResetSwitch(&HomeSP);
 
@@ -359,8 +377,6 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 LOG_INFO("Searching for home position...");
                 return true;
 
-                break;
-
             case IEQ_SET_HOME:
                 if (set_ieqpro_current_home(PortFD) == false)
                 {
@@ -374,8 +390,6 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 LOG_INFO("Home position set to current coordinates.");
                 return true;
 
-                break;
-
             case IEQ_GOTO_HOME:
                 if (goto_ieqpro_home(PortFD) == false)
                 {
@@ -388,8 +402,6 @@ bool IEQPro::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 IDSetSwitch(&HomeSP, nullptr);
                 LOG_INFO("Slewing to home position...");
                 return true;
-
-                break;
             }
 
             return true;
@@ -662,7 +674,7 @@ bool IEQPro::updateLocation(double latitude, double longitude, double elevation)
 
     if (set_ieqpro_latitude(PortFD, latitude) == false)
     {
-        LOG_ERROR("Failed to set longitude.");
+        LOG_ERROR("Failed to set latitude.");
         return false;
     }
 

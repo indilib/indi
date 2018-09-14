@@ -194,6 +194,8 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
 
     Camera *camera = nullptr;
 
+    static constexpr double MINUMUM_CAMERA_TEMPERATURE = -60.0;
+
     friend void ::ISSnoopDevice(XMLEle *root);
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

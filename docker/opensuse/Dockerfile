@@ -8,8 +8,8 @@ RUN zypper --non-interactive install lsb-release \
         libftdi1-devel libdc1394-devel libgphoto2-devel gsl-devel libjpeg-devel libtiff-devel \
         libnova-devel openal-soft-devel libraw-devel libusb-devel \
         fftw-devel zlib-devel libconfuse-devel python3-devel doxygen \
-        libdc1394-devel libavdevice-devel libavcodec-devel \
-        python-devel vim rtl-sdr-devel vim
+        libdc1394-devel python-devel vim rtl-sdr-devel vim \
+        libavcodec-devel libavdevice-devel libavformat-devel libavutil-devel
 
 RUN zypper -n install gpsd python-gpsd python-curses gpsd-devel
 #RUN zypper -n download gpsd-devel libgps23
