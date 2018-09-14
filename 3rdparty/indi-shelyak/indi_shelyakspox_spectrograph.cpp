@@ -107,9 +107,9 @@ bool ShelyakSpox::initProperties()
 
   // setup the lamp switches
   
-  IUFillSwitch(&LampS[0], "CALIBRATION", "CALIBRATION", ISS_OFF);
+  IUFillSwitch(&LampS[2], "CALIBRATION", "CALIBRATION", ISS_OFF);
   IUFillSwitch(&LampS[1], "FLAT", "FLAT", ISS_OFF);
-  IUFillSwitch(&LampS[2], "DARK", "DARK", ISS_OFF);
+  IUFillSwitch(&LampS[0], "DARK", "DARK", ISS_OFF);
   IUFillSwitchVector(&LampSP, LampS, 3, getDeviceName(), "CALIBRATION", "Calibration lamps", CALIBRATION_UNIT_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
    
 
@@ -290,10 +290,9 @@ bool ShelyakSpox::ISNewSwitch(const char *dev, const char *name, ISState *states
         ISwitch *s = IUFindSwitch(&LampSP, names[i]);
 
         if (states[i] != s->s) { // check if state has changed
-            
-            
           bool rc = calibrationUnitCommand(COMMANDS[states[i]],PARAMETERS[names[i]]);
           if (!rc) LampSP.s = IPS_ALERT;
+            
         }
       }
       IUUpdateSwitch(&LampSP, states, names, n); // update lamps
@@ -361,7 +360,7 @@ int rc, nbytes_written;
 if (parameter==0x33){ //special for dark : have to put both lamps on
     char cmd[6] = {0x31,0x31,0x0a,0x32,0x31,0x0a};//"11\n21\n" 
 
-    if(command==0x31){
+    if(command==0x31){// dark is on
         DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", "dark is on");
         lastLampOn = "Dark";
         
@@ -398,27 +397,36 @@ if (parameter==0x33){ //special for dark : have to put both lamps on
         DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", "dark is off");
         resetLamps();
         
-      return true;
+    return true;
     }
-
+    
 
 }
+
 //other lamps 
         char c[3] = {parameter,command,0x0a};
-                
         
-        if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+        if (strcmp(lastLampOn,"Dark")!=0){ //if dark is set before, lamps are not shut off as is still done.
+        
+            if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
 
-        {
-            char errmsg[MAXRBUF];
-            tty_error_msg(rc, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
-            return false;
-        } else {
-            DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+            {
+                char errmsg[MAXRBUF];
+                tty_error_msg(rc, errmsg, MAXRBUF);
+                DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+                return false;
+            } else {
+                DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
 
+            }
+            sleep(0.5); // wait for the calibration unit to actually flip the switch
+            
+            
+            if(command!=0x31){//on lamp is on
+
+                DEBUGF(INDI::Logger::DBG_SESSION, "last lamp is: %s.", lastLampOn);
+            }
+            
         }
-        sleep(0.5); // wait for the calibration unit to actually flip the switch
-        lastLampOn = "None";
         return true;
 }

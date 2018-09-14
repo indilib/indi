@@ -76,7 +76,7 @@ private:
   INumberVectorProperty SettingsNP;
   INumber SettingsN[2];
 
-  std::string lastLampOn;
+  const char* lastLampOn;
   
   
   bool calibrationUnitCommand(char command, char parameter);
