@@ -358,6 +358,9 @@ private:
     //#############################################################################
     // Callbacks
     //#############################################################################
+    static void sendImageCB(void* pCtx);
+    void sendImageCallBack();
+
     static void eventCB(unsigned event, void* pCtx);
     void eventPullCallBack(unsigned event);
 

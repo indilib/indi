@@ -1181,6 +1181,12 @@ bool TOUPCAM::StartExposure(float duration)
         LOGF_INFO("Taking a %g seconds frame...", static_cast<double>(ExposureRequest));
 
       InExposure = true;
+
+      int timeMS = uSecs/1000 - 50;
+      if (timeMS < 0)
+          timeMS += 50;
+      if (static_cast<uint32_t>(timeMS) < POLLMS)
+           IEAddTimer(timeMS, &TOUPCAM::sendImageCB, this);
 //    pthread_mutex_lock(&condMutex);
 //    threadRequest = StateExposure;
 //    pthread_cond_signal(&cv);
@@ -1296,12 +1302,16 @@ void TOUPCAM::TimerHit()
         gettimeofday(&curtime, nullptr);
         timersub(&ExposureEnd, &curtime, &diff);
         double timeleft = diff.tv_sec + diff.tv_usec / 1e6;
-        if (timeleft < 0)
+        uint32_t msecs = timeleft * 1000.0;
+        if (timeleft <= 0)
         {
             timeleft = 0;
             InExposure = false;
             m_SendImage = true;
         }
+        // If time left is less than our polling then let's send image before next poll event
+        else if (msecs < POLLMS)
+            IEAddTimer(msecs, &TOUPCAM::sendImageCB, this);
 
         PrimaryCCD.setExposureLeft(timeleft);
     }
@@ -1785,6 +1795,17 @@ void TOUPCAM::AutoExposureCB(void* pCtx)
 void TOUPCAM::AutoExposureChanged()
 {
     // TODO
+}
+
+void TOUPCAM::sendImageCB(void* pCtx)
+{
+    static_cast<TOUPCAM*>(pCtx)->sendImageCallBack();
+}
+
+void TOUPCAM::sendImageCallBack()
+{
+    InExposure = false;
+    m_SendImage = true;
 }
 
 void TOUPCAM::eventCB(unsigned event, void* pCtx)
