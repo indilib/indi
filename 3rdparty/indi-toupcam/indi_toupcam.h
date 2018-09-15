@@ -282,9 +282,9 @@ private:
 //    void *imagingThreadEntry();
 //    void getSnapImage();
 //    void exposureSetRequest(ImageState request);
-    int grabImage();
+    //int grabImage();
 
-    bool allocateFrameBuffer();
+    void allocateFrameBuffer();
     struct timeval ExposureEnd;
     float ExposureRequest;
 
@@ -301,12 +301,6 @@ private:
     // Video Format & Streaming
     //#############################################################################
     void getVideoImage();
-    // Return user selected image type
-    ePIXELFORMAT getImageType();
-    // Update SER recorder video format
-    void updateRecorderFormat();
-    // Set Video Format
-    bool setVideoFormat(uint8_t index);
 
     //#############################################################################
     // Guiding
@@ -390,11 +384,13 @@ private:
     //#############################################################################
     // Properties
     //#############################################################################
-    INumber CoolerN[1];
-    INumberVectorProperty CoolerNP;
-
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
+    enum
+    {
+        TC_COOLER_ON,
+        TC_COOLER_OFF,
+    };
 
     INumber ControlN[6];
     INumberVectorProperty ControlNP;
@@ -488,6 +484,7 @@ private:
 
     bool m_SendImage { false };
     bool m_RAWFormatSupport { false };
+    bool m_RAWHighDepthSupport { false };
 
     uint8_t m_BitsPerPixel { 8 };
     uint8_t m_RawBitsPerPixel { 8 };
