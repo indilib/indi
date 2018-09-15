@@ -421,10 +421,11 @@ bool TOUPCAM::Connect()
     cap |= CCD_CAN_ABORT;
 
     // If raw format is support then we have bayer
-    if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
+    if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW8 | TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
     {
         LOG_DEBUG("RAW format supported. Bayer enabled.");
         cap |= CCD_HAS_BAYER;
+        m_RAWFormatSupport = true;
     }
 
     if (m_Instance->model->flag & TOUPCAM_FLAG_BINSKIP_SUPPORTED)
@@ -538,7 +539,11 @@ void TOUPCAM::setupParams()
     {
         VideoFormatS[TC_VIDEO_RGB].s = ISS_ON;
         m_Channels = 3;
-        currentVideoFormat = INDI_RGB;
+        m_CameraPixelFormat = INDI_RGB;
+
+        // Disable Bayer until we switch to raw mode
+        if (m_RAWFormatSupport)
+            SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
     }
     // RAW Mode
     else
@@ -614,10 +619,7 @@ void TOUPCAM::setupParams()
     ControlN[TC_GAMMA].value = nVal;
 
     // Allocate memory
-    // 3 RGB channels
-    PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3);
-    Streamer->setPixelFormat(INDI_RGB, m_BitsPerPixel);
-    Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
+    allocateFrameBuffer();
 
     SetTimer(POLLMS);
 }
@@ -625,7 +627,6 @@ void TOUPCAM::setupParams()
 bool TOUPCAM::allocateFrameBuffer()
 {
     // Allocate memory
-    // 3 RGB channels
     switch (currentVideoFormat)
     {
     case TC_VIDEO_MONO_8:
@@ -639,14 +640,14 @@ bool TOUPCAM::allocateFrameBuffer()
         break;
 
     case TC_VIDEO_RGB:
+        // RGB24 or RGB888
         PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3);
         Streamer->setPixelFormat(INDI_RGB, 8);
         break;
 
     case TC_VIDEO_RAW:
-        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 2);
-        // FIXME get actual pixel format
-        Streamer->setPixelFormat(INDI_BAYER_BGGR, 8);
+        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * m_BitsPerPixel/8);
+        Streamer->setPixelFormat(m_CameraPixelFormat, m_BitsPerPixel);
         break;
 
     }
@@ -1587,19 +1588,19 @@ const char *TOUPCAM::getBayerString()
     switch (nFourCC)
     {
     case FMT_GBRG:
-        currentVideoFormat = INDI_BAYER_GBRG;
+        m_CameraPixelFormat = INDI_BAYER_GBRG;
         return "GBRG";
     case FMT_RGGB:
-        currentVideoFormat = INDI_BAYER_RGGB;
+        m_CameraPixelFormat = INDI_BAYER_RGGB;
         return "RGGB";
     case FMT_BGGR:
-        currentVideoFormat = INDI_BAYER_BGGR;
+        m_CameraPixelFormat = INDI_BAYER_BGGR;
         return "BGGR";
     case FMT_GRBG:
-        currentVideoFormat = INDI_BAYER_GRBG;
+        m_CameraPixelFormat = INDI_BAYER_GRBG;
         return "GRBG";
     default:
-        currentVideoFormat = INDI_BAYER_RGGB;
+        m_CameraPixelFormat = INDI_BAYER_RGGB;
         return "RGGB";
     }
 }
@@ -1916,10 +1917,9 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         }
         else
         {
-            LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
-
             if (m_SendImage)
             {
+                LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
                 ExposureComplete(&PrimaryCCD);
                 m_SendImage = false;
             }

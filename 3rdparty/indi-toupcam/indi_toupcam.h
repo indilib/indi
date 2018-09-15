@@ -483,8 +483,11 @@ private:
 
     uint8_t currentVideoFormat = TC_VIDEO_RGB;
     uint8_t rememberVideoFormat = TC_VIDEO_RGB;
-    ePIXELFORMAT cameraPixelFormat;
+
+    INDI_PIXEL_FORMAT m_CameraPixelFormat = INDI_RGB;
+
     bool m_SendImage { false };
+    bool m_RAWFormatSupport { false };
 
     uint8_t m_BitsPerPixel { 8 };
     uint8_t m_RawBitsPerPixel { 8 };
