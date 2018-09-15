@@ -448,6 +448,12 @@ bool TOUPCAM::Connect()
     LOGF_DEBUG("maxSpeed: %d preview: %d still: %d maxFanSpeed %d", m_Instance->model->maxspeed, m_Instance->model->preview,
                                                                     m_Instance->model->still, m_Instance->model->maxfanspeed);
 
+    // Get min/max exposures
+    uint32_t min=0,max=0,current=0;
+    Toupcam_get_ExpTimeRange(m_CameraHandle, &min, &max, &current);
+    LOGF_DEBUG("Exposure Time Range (us): Min %d Max %d Default %d", min, max, current);
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1000000.0, max/1000000.0, 0, false);
+
     // Start callback
     if (Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this) < 0)
     {
@@ -511,11 +517,6 @@ bool TOUPCAM::Disconnect()
 void TOUPCAM::setupParams()
 {
     HRESULT rc = 0;
-    uint32_t min=0,max=0,current=0;
-    Toupcam_get_ExpTimeRange(m_CameraHandle, &min, &max, &current);
-    LOGF_DEBUG("Exposure Time Range (us): Min %d Max %d Default %d", min, max, current);
-
-    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1000000.0, max/1000000.0, 0, false);
 
     m_BitsPerPixel = 8;
     int nVal=0;
