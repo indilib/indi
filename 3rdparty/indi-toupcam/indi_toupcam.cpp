@@ -220,12 +220,13 @@ bool TOUPCAM::initProperties()
     ///////////////////////////////////////////////////////////////////////////////////
     /// Controls
     ///////////////////////////////////////////////////////////////////////////////////
+    IUFillNumber(&ControlN[TC_GAIN], "TC_GAIN", "Gain", "%.f", 0, 400, 10, 0);
     IUFillNumber(&ControlN[TC_CONTRAST], "TC_CONTRAST", "Contrast", "%.f", -100.0, 100, 10, 0);
     IUFillNumber(&ControlN[TC_HUE], "TC_HUE", "Hue", "%.f", -180.0, 180, 10, 0);
     IUFillNumber(&ControlN[TC_SATURATION], "TC_SATURATION", "Saturation", "%.f", 0, 255, 10, 128);
     IUFillNumber(&ControlN[TC_BRIGHTNESS], "TC_BRIGHTNESS", "Brightness", "%.f", -64, 64, 8, 0);
     IUFillNumber(&ControlN[TC_GAMMA], "TC_GAMMA", "Gamma", "%.f", 20, 180, 10, 100);
-    IUFillNumberVector(&ControlNP, ControlN, 5, getDeviceName(), "CCD_CONTROLS", "Controls", CONTROL_TAB, IP_RW, 60,
+    IUFillNumberVector(&ControlNP, ControlN, 6, getDeviceName(), "CCD_CONTROLS", "Controls", CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
 
 
@@ -535,6 +536,36 @@ void TOUPCAM::setupParams()
 
     SetCCDParams(w[currentResolutionIndex], h[currentResolutionIndex], bitsPerPixel, m_Instance->model->xpixsz, m_Instance->model->ypixsz);
 
+    // Get CCD Controls values
+    uint16_t nMin=0, nMax=0, nDef=0;
+    int nVal=0;
+
+    // Gain
+    Toupcam_get_ExpoAGainRange(m_CameraHandle, &nMin, &nMax, &nDef);
+    ControlN[TC_GAIN].min = nMin;
+    ControlN[TC_GAIN].max = nMax;
+    ControlN[TC_GAIN].value = nDef;
+
+    // Contrast
+    Toupcam_get_Contrast(m_CameraHandle, &nVal);
+    ControlN[TC_CONTRAST].value = nVal;
+
+    // Hue
+    Toupcam_get_Hue(m_CameraHandle, &nVal);
+    ControlN[TC_HUE].value = nVal;
+
+    // Saturation
+    Toupcam_get_Saturation(m_CameraHandle, &nVal);
+    ControlN[TC_SATURATION].value = nVal;
+
+    // Brightness
+    Toupcam_get_Brightness(m_CameraHandle, &nVal);
+    ControlN[TC_BRIGHTNESS].value = nVal;
+
+    // Gamma
+    Toupcam_get_Gamma(m_CameraHandle, &nVal);
+    ControlN[TC_GAMMA].value = nVal;
+
     // Allocate memory
     // 3 RGB channels
     PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3);
@@ -542,6 +573,8 @@ void TOUPCAM::setupParams()
     Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
     IUSaveText(&BayerT[2], getBayerString());
+
+    SetTimer(POLLMS);
 }
 
 bool TOUPCAM::allocateFrameBuffer()
@@ -587,7 +620,7 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
         //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, ControlNP.name))
         {
-            double oldValues[5];
+            double oldValues[6];
             for (int i = 0; i < ControlNP.nnp; i++)
                 oldValues[i] = ControlN[i].value;
 
@@ -606,6 +639,10 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
                 int value = static_cast<int>(ControlN[i].value);
                 switch (i)
                 {
+                case TC_GAIN:
+                    Toupcam_put_ExpoAGain(m_CameraHandle, value);
+                    break;
+
                 case TC_CONTRAST:
                     Toupcam_put_Contrast(m_CameraHandle, value);
                     break;
@@ -990,7 +1027,6 @@ bool TOUPCAM::StartExposure(float duration)
 
     uint32_t uSecs = static_cast<uint32_t>(duration * 1000000.0f);
 
-
     LOGF_DEBUG("Starting exposure: %d us @ %s", uSecs, IUFindOnSwitch(&ResolutionSP)->label);
 
     if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
@@ -999,13 +1035,24 @@ bool TOUPCAM::StartExposure(float duration)
         return false;
     }
 
-    if ( (rc = Toupcam_Snap(m_CameraHandle, IUFindOnSwitchIndex(&ResolutionSP))) < 0)
+    // If we have still support?
+    /*
+    if (m_Instance->model->still > 0)
     {
-        LOGF_ERROR("Failed to take a snap. Error: %d", rc);
-        return false;
+        if ( (rc = Toupcam_Snap(m_CameraHandle, IUFindOnSwitchIndex(&ResolutionSP))) < 0)
+        {
+            LOGF_ERROR("Failed to take a snap. Error: %d", rc);
+            return false;
+        }
     }
+    */
 
-    gettimeofday(&ExpStart, nullptr);
+    struct timeval exposure_time, current_time;
+    gettimeofday(&current_time, nullptr);
+    exposure_time.tv_sec = uSecs / 1000000;
+    exposure_time.tv_usec= uSecs % 1000000;
+    timeradd(&current_time, &exposure_time, &ExposureEnd);
+
     if (ExposureRequest > VERBOSE_EXPOSURE)
         LOGF_INFO("Taking a %g seconds frame...", static_cast<double>(ExposureRequest));
 
@@ -1199,6 +1246,24 @@ int TOUPCAM::grabImage()
 // The generic timer call back is used for temperature monitoring
 void TOUPCAM::TimerHit()
 {
+    if (InExposure)
+    {
+        struct timeval curtime, diff;
+        gettimeofday(&curtime, nullptr);
+        timersub(&ExposureEnd, &curtime, &diff);
+        double timeleft = diff.tv_sec + diff.tv_usec / 1e6;
+        if (timeleft < 0)
+        {
+            timeleft = 0;
+            InExposure = false;
+        }
+
+        PrimaryCCD.setExposureLeft(timeleft);
+    }
+
+
+    SetTimer(POLLMS);
+
 #if 0
     long ASIControlValue = 0;
     ASI_BOOL ASIControlAuto = ASI_FALSE;
@@ -1713,27 +1778,6 @@ bool TOUPCAM::saveConfigItems(FILE *fp)
     return true;
 }
 
-// TODO use timers from GPhoto better
-float TOUPCAM::calcTimeLeft(float duration, timeval *start_time)
-{
-    double timesince;
-    double timeleft;
-    struct timeval now;
-
-    gettimeofday(&now, nullptr);
-    timesince = ((double)now.tv_sec + (double)now.tv_usec / 1000000.0) -
-            ((double)start_time->tv_sec + (double)start_time->tv_usec / 1000000.0);
-    if (duration > timesince)
-    {
-        timeleft = duration - timesince;
-    }
-    else
-    {
-        timeleft = 0.0;
-    }
-    return (float)timeleft;
-}
-
 void TOUPCAM::TempTintCB(const int nTemp, const int nTint, void* pCtx)
 {
     static_cast<TOUPCAM*>(pCtx)->TempTintChanged(nTemp, nTint);
@@ -1799,8 +1843,6 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         break;
     case TOUPCAM_EVENT_IMAGE:
     {
-        // This should only be for videos
-#if 0
         ToupcamFrameInfoV2 info;
         memset(&info, 0, sizeof(ToupcamFrameInfoV2));
         HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), 24, &info);
@@ -1811,12 +1853,12 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         }
         else
         {
-            PrimaryCCD.setExposureLeft(0);
-            InExposure  = false;
-            ExposureComplete(&PrimaryCCD);
-            LOGF_DEBUG("Image captured. Width: %d Height: %d flag: %d", info.width, info.height, info.flag);
+//            PrimaryCCD.setExposureLeft(0);
+//            InExposure  = false;
+//            ExposureComplete(&PrimaryCCD);
+            LOGF_INFO("Image captured. Width: %d Height: %d flag: %d", info.width, info.height, info.flag);
         }
-#endif
+
     }
         break;
     case TOUPCAM_EVENT_STILLIMAGE:

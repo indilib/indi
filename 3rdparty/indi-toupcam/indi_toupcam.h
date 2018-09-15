@@ -285,7 +285,7 @@ private:
     int grabImage();
 
     bool allocateFrameBuffer();
-    struct timeval ExpStart;
+    struct timeval ExposureEnd;
     float ExposureRequest;
 
     //#############################################################################
@@ -357,9 +357,7 @@ private:
 
     //#############################################################################
     // Misc.
-    //#############################################################################
-    // Calculate time left in seconds after start_time
-    float calcTimeLeft(float duration, timeval *start_time);
+    //#############################################################################    
     // Get the current Bayer string used
     const char *getBayerString();
 
@@ -398,10 +396,11 @@ private:
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
 
-    INumber ControlN[5];
+    INumber ControlN[6];
     INumberVectorProperty ControlNP;
     enum
     {
+        TC_GAIN,
         TC_CONTRAST,
         TC_HUE,
         TC_SATURATION,
