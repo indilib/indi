@@ -1306,41 +1306,44 @@ void TOUPCAM::TimerHit()
         PrimaryCCD.setExposureLeft(timeleft);
     }
 
-    double currentTemperature = TemperatureN[0].value;
-    int16_t nTemperature=0;
-    HRESULT rc = Toupcam_get_Temperature(m_CameraHandle, &nTemperature);
-    if (rc < 0)
+    if (m_Instance->model->flag & TOUPCAM_FLAG_GETTEMPERATURE)
     {
-        LOGF_ERROR("Toupcam_get_Temperature error (%d)", rc);
-        TemperatureNP.s = IPS_ALERT;
-    }
-    else
-    {
-        TemperatureN[0].value = static_cast<double>(nTemperature / 10.0);
-    }
-
-    switch (TemperatureNP.s)
-    {
-    case IPS_IDLE:
-    case IPS_OK:
-        if (fabs(currentTemperature - TemperatureN[0].value) > TEMP_THRESHOLD / 10.0)
+        double currentTemperature = TemperatureN[0].value;
+        int16_t nTemperature=0;
+        HRESULT rc = Toupcam_get_Temperature(m_CameraHandle, &nTemperature);
+        if (rc < 0)
         {
+            LOGF_ERROR("Toupcam_get_Temperature error (%d)", rc);
+            TemperatureNP.s = IPS_ALERT;
+        }
+        else
+        {
+            TemperatureN[0].value = static_cast<double>(nTemperature / 10.0);
+        }
+
+        switch (TemperatureNP.s)
+        {
+        case IPS_IDLE:
+        case IPS_OK:
+            if (fabs(currentTemperature - TemperatureN[0].value) > TEMP_THRESHOLD / 10.0)
+            {
+                IDSetNumber(&TemperatureNP, nullptr);
+            }
+            break;
+
+        case IPS_ALERT:
+            break;
+
+        case IPS_BUSY:
+            // If we're within threshold, let's make it BUSY ---> OK
+            if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
+            {
+                TemperatureNP.s = IPS_OK;
+            }
             IDSetNumber(&TemperatureNP, nullptr);
+            break;
         }
-        break;
-
-    case IPS_ALERT:
-        break;
-
-    case IPS_BUSY:
-        // If we're within threshold, let's make it BUSY ---> OK
-        if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
-        {
-            TemperatureNP.s = IPS_OK;
-        }
-        IDSetNumber(&TemperatureNP, nullptr);
-        break;
-    }   
+    }
 
     SetTimer(POLLMS);
 
