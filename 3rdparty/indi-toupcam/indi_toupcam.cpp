@@ -37,6 +37,24 @@
 #define CONTROL_TAB "Controls"
 #define LEVEL_TAB "Levels"
 
+#ifndef MAKEFOURCC
+    #define MAKEFOURCC(ch0, ch1, ch2, ch3) \
+                (static_cast<uint32_t>(static_cast<uint8_t>(ch0)) \
+                | (static_cast<uint32_t>(static_cast<uint8_t>(ch1)) << 8) \
+                | (static_cast<uint32_t>(static_cast<uint8_t>(ch2)) << 16) \
+                | (static_cast<uint32_t>(static_cast<uint8_t>(ch3)) << 24))
+#endif /* defined(MAKEFOURCC) */
+
+#define FMT_GBRG    MAKEFOURCC('G', 'B', 'R', 'G')
+#define FMT_RGGB    MAKEFOURCC('R', 'G', 'G', 'B')
+#define FMT_BGGR    MAKEFOURCC('B', 'G', 'G', 'R')
+#define FMT_GRBG    MAKEFOURCC('G', 'R', 'B', 'G')
+#define FMT_YYYY    MAKEFOURCC('Y', 'Y', 'Y', 'Y')
+#define FMT_YUV411  MAKEFOURCC('Y', '4', '1', '1')
+#define FMT_YUV422  MAKEFOURCC('V', 'U', 'Y', 'Y')
+#define FMT_YUV444  MAKEFOURCC('Y', '4', '4', '4')
+#define FMT_RGB888  MAKEFOURCC('R', 'G', 'B', '8')
+
 static int iConnectedCamerasCount;
 static ToupcamInstV2 pToupCameraInfo[TOUPCAM_MAX];
 static TOUPCAM *cameras[TOUPCAM_MAX];
@@ -282,15 +300,20 @@ bool TOUPCAM::initProperties()
     /// White Balance - Auto
     ///////////////////////////////////////////////////////////////////////////////////
     IUFillSwitch(&WBAutoS[TC_AUTO_WB_TT], "TC_AUTO_WB_TT", "Temp/Tint", ISS_OFF);
-    IUFillSwitch(&WBAutoS[TC_AUTO_WB_RGB], "TC_AUTO_WB_RGB", "RGB", ISS_ON);
+    IUFillSwitch(&WBAutoS[TC_AUTO_WB_RGB], "TC_AUTO_WB_RGB", "RGB", ISS_OFF);
     IUFillSwitchVector(&WBAutoSP, WBAutoS, 2, getDeviceName(), "TC_AUTO_WB", "Auto Balance", LEVEL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     ///////////////////////////////////////////////////////////////////////////////////
     /// Video Format
     ///////////////////////////////////////////////////////////////////////////////////
+
+    /// RGB Mode but 8 bits grayscale
     IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_8], "TC_VIDEO_MONO_8", "Mono 8", ISS_OFF);
+    /// RGB Mode but 16 bits grayscale
     IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_RGB], "TC_VIDEO_RGB", "RGB", ISS_ON);
+    /// RGB Mode with RGB24 color
+    IUFillSwitch(&VideoFormatS[TC_VIDEO_RGB], "TC_VIDEO_RGB", "RGB", ISS_OFF);
+    /// Raw mode (8 to 16 bit)
     IUFillSwitch(&VideoFormatS[TC_VIDEO_RAW], "TC_VIDEO_RAW", "Raw", ISS_OFF);
     IUFillSwitchVector(&VideoFormatSP, VideoFormatS, 4, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
@@ -305,8 +328,8 @@ bool TOUPCAM::initProperties()
 #endif
     IUFillTextVector(&SDKVersionSP, SDKVersionS, 1, getDeviceName(), "SDK", "SDK", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
-    PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, 2, 1, false);
-    PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, 2, 1, false);
+    PrimaryCCD.setMinMaxStep("CCD_BINNING", "HOR_BIN", 1, 4, 1, false);
+    PrimaryCCD.setMinMaxStep("CCD_BINNING", "VER_BIN", 1, 4, 1, false);
 
     addAuxControls();
 
@@ -504,16 +527,41 @@ void TOUPCAM::setupParams()
 
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1000000.0, max/1000000.0, 0, false);
 
-    uint8_t bitsPerPixel = 8;
+    m_BitsPerPixel = 8;
+    int nVal=0;
     // bitdepth supported
-    if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
+    // Get RAW/RGB Mode
+    IUResetSwitch(&VideoFormatSP);
+    Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, &nVal);
+    // RGB Mode
+    if (nVal == 0)
     {
-        // enable bitdepth
-        Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
-        bitsPerPixel = 16;
+        VideoFormatS[TC_VIDEO_RGB].s = ISS_ON;
+        m_Channels = 3;
+        currentVideoFormat = INDI_RGB;
+    }
+    // RAW Mode
+    else
+    {
+        VideoFormatS[TC_VIDEO_RAW].s = ISS_ON;
+        m_Channels = 1;
+
+        // Check if the RAW mode supports > 8 bits
+        if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
+        {
+            // enable bitdepth
+            Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
+            m_BitsPerPixel = 16;
+            LOG_DEBUG("RAW Bit Depth: 16");
+        }
+
+        // Get RAW Format
+        IUSaveText(&BayerT[2], getBayerString());
     }
 
-    LOGF_DEBUG("Bits Per Pixel: %d", bitsPerPixel);
+    PrimaryCCD.setNAxis(m_Channels == 1 ? 2 : 3);
+
+    LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_RGB].s == ISS_ON ? "RGB" : "RAW");
 
     // Get how many resolutions available for the camera
     ResolutionSP.nsp = Toupcam_get_ResolutionNumber(m_CameraHandle);
@@ -534,11 +582,10 @@ void TOUPCAM::setupParams()
     Toupcam_get_eSize(m_CameraHandle, &currentResolutionIndex);
     ResolutionS[currentResolutionIndex].s = ISS_ON;
 
-    SetCCDParams(w[currentResolutionIndex], h[currentResolutionIndex], bitsPerPixel, m_Instance->model->xpixsz, m_Instance->model->ypixsz);
+    SetCCDParams(w[currentResolutionIndex], h[currentResolutionIndex], m_BitsPerPixel, m_Instance->model->xpixsz, m_Instance->model->ypixsz);
 
     // Get CCD Controls values
     uint16_t nMin=0, nMax=0, nDef=0;
-    int nVal=0;
 
     // Gain
     Toupcam_get_ExpoAGainRange(m_CameraHandle, &nMin, &nMax, &nDef);
@@ -569,10 +616,8 @@ void TOUPCAM::setupParams()
     // Allocate memory
     // 3 RGB channels
     PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3);
-    Streamer->setPixelFormat(INDI_RGB, bitsPerPixel);
+    Streamer->setPixelFormat(INDI_RGB, m_BitsPerPixel);
     Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
-
-    IUSaveText(&BayerT[2], getBayerString());
 
     SetTimer(POLLMS);
 }
@@ -1531,21 +1576,32 @@ IPState TOUPCAM::GuideWest(uint32_t ms)
 
 const char *TOUPCAM::getBayerString()
 {
-#if 0
-    switch (m_camInfo->BayerPattern)
+    uint32_t nFourCC = 0, nBitDepth=0;
+    Toupcam_get_RawFormat(m_CameraHandle, &nFourCC, &nBitDepth);
+
+    LOGF_DEBUG("Raw format FourCC %ld bitDepth %d", nFourCC, nBitDepth);
+
+    // 8, 10, 12, 14, or 16
+    m_RawBitsPerPixel = nBitDepth;
+
+    switch (nFourCC)
     {
-    case ASI_BAYER_BG:
-        return "BGGR";
-    case ASI_BAYER_GR:
-        return "GRBG";
-    case ASI_BAYER_GB:
+    case FMT_GBRG:
+        currentVideoFormat = INDI_BAYER_GBRG;
         return "GBRG";
-    case ASI_BAYER_RG:
+    case FMT_RGGB:
+        currentVideoFormat = INDI_BAYER_RGGB;
+        return "RGGB";
+    case FMT_BGGR:
+        currentVideoFormat = INDI_BAYER_BGGR;
+        return "BGGR";
+    case FMT_GRBG:
+        currentVideoFormat = INDI_BAYER_GRBG;
+        return "GRBG";
     default:
+        currentVideoFormat = INDI_BAYER_RGGB;
         return "RGGB";
     }
-#endif
-    return "RGGB";
 }
 
 TOUPCAM::ePIXELFORMAT TOUPCAM::getImageType()
@@ -1752,7 +1808,7 @@ void TOUPCAM::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
-    INumber *gainNP = IUFindNumber(&ControlNP, "Gain");
+    INumber *gainNP = IUFindNumber(&ControlNP, "TC_GAIN");
 
     if (gainNP)
     {
@@ -1846,7 +1902,13 @@ void TOUPCAM::eventPullCallBack(unsigned event)
     {
         ToupcamFrameInfoV2 info;
         memset(&info, 0, sizeof(ToupcamFrameInfoV2));
-        HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), 24, &info);
+
+        //PrimaryCCD.setFrameBufferSize(subFrameSize, false);
+        //PrimaryCCD.setResolution(w, h);
+        //PrimaryCCD.setNAxis(m_Channels == 1 ? 2 : 3);
+        //PrimaryCCD.setBPP(m_BitsPerPixel);
+
+        HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), m_BitsPerPixel * m_Channels, &info);
         if (rc < 0)
         {
             LOGF_ERROR("Failed to pull image, Error Code = %08x", rc);

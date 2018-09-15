@@ -486,6 +486,10 @@ private:
     ePIXELFORMAT cameraPixelFormat;
     bool m_SendImage { false };
 
+    uint8_t m_BitsPerPixel { 8 };
+    uint8_t m_RawBitsPerPixel { 8 };
+    uint8_t m_Channels { 1 };
+
     IText SDKVersionS[1] = {};
     ITextVectorProperty SDKVersionSP;
 
