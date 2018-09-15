@@ -1834,24 +1834,53 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         //PrimaryCCD.setNAxis(m_Channels == 1 ? 2 : 3);
         //PrimaryCCD.setBPP(m_BitsPerPixel);
 
-        HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), m_BitsPerPixel * m_Channels, &info);
         if (Streamer->isStreaming())
         {
+            HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), m_BitsPerPixel * m_Channels, &info);
             if (rc >= 0)
                 Streamer->newFrame(PrimaryCCD.getFrameBuffer(), PrimaryCCD.getFrameBufferSize());
         }
         else
         {
+            uint8_t *buffer = PrimaryCCD.getFrameBuffer();
+
+            if (m_SendImage && currentVideoFormat == INDI_RGB)
+                buffer = static_cast<uint8_t*>(malloc(PrimaryCCD.getXRes()*PrimaryCCD.getYRes()*3));
+
+            HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, buffer, m_BitsPerPixel * m_Channels, &info);
             if (rc < 0)
             {
                 LOGF_ERROR("Failed to pull image, Error Code = %08x", rc);
                 PrimaryCCD.setExposureFailed();
+                if (m_SendImage && currentVideoFormat == INDI_RGB)
+                    free(buffer);
             }
             else
             {
                 if (m_SendImage)
                 {
                     LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
+                    if (currentVideoFormat == INDI_RGB)
+                    {
+                        uint8_t *image  = PrimaryCCD.getFrameBuffer();
+                        uint32_t width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
+                        uint32_t height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
+
+                        uint8_t *subR = image;
+                        uint8_t *subG = image + width * height;
+                        uint8_t *subB = image + width * height * 2;
+                        int size      = width * height * 3 - 3;
+
+                        for (int i = 0; i <= size; i += 3)
+                        {
+                            *subB++ = buffer[i];
+                            *subG++ = buffer[i + 1];
+                            *subR++ = buffer[i + 2];
+                        }
+
+                        free(buffer);
+                    }
+
                     ExposureComplete(&PrimaryCCD);
                     m_SendImage = false;
                 }
