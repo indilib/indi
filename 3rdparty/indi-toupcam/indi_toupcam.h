@@ -484,6 +484,7 @@ private:
     uint8_t currentVideoFormat = TC_VIDEO_RGB;
     uint8_t rememberVideoFormat = TC_VIDEO_RGB;
     ePIXELFORMAT cameraPixelFormat;
+    bool m_SendImage { false };
 
     IText SDKVersionS[1] = {};
     ITextVectorProperty SDKVersionSP;

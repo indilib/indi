@@ -1256,6 +1256,7 @@ void TOUPCAM::TimerHit()
         {
             timeleft = 0;
             InExposure = false;
+            m_SendImage = true;
         }
 
         PrimaryCCD.setExposureLeft(timeleft);
@@ -1853,10 +1854,13 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         }
         else
         {
-//            PrimaryCCD.setExposureLeft(0);
-//            InExposure  = false;
-//            ExposureComplete(&PrimaryCCD);
-            LOGF_INFO("Image captured. Width: %d Height: %d flag: %d", info.width, info.height, info.flag);
+            LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
+
+            if (m_SendImage)
+            {
+                ExposureComplete(&PrimaryCCD);
+                m_SendImage = false;
+            }
         }
 
     }
@@ -1876,7 +1880,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
             PrimaryCCD.setExposureLeft(0);
             InExposure  = false;
             ExposureComplete(&PrimaryCCD);
-            LOGF_DEBUG("Image captured. Width: %d Height: %d flag: %d", info.width, info.height, info.flag);
+            LOGF_DEBUG("Image captured. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
         }
     }
         break;
