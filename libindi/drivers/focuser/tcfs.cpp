@@ -135,10 +135,10 @@ bool TCFS::initProperties()
     IUFillSwitch(&FocusGotoS[3], "FOCUS_HOME", "Home", ISS_OFF);
     IUFillSwitchVector(&FocusGotoSP, FocusGotoS, 4, getDeviceName(), "FOCUS_GOTO", "Go to", "Main Control", IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
-    
+
     IUFillNumber(&FocusTemperatureN[0], "FOCUS_TEMPERATURE_VALUE", "Temperature (c)", "%.3f", -50.0, 80, 0, 0);
     IUFillNumberVector(&FocusTemperatureNP, FocusTemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Probe", "Operation", IP_RO, 0, IPS_IDLE);
-    
+
     IUFillSwitch(&FocusTelemetryS[0], "FOCUS_TELEMETRY_ON", "Enable", ISS_ON);
     IUFillSwitch(&FocusTelemetryS[1], "FOCUS_TELEMETRY_OFF", "Disable", ISS_OFF);
     IUFillSwitchVector(&FocusTelemetrySP, FocusTelemetryS, 2, getDeviceName(), "FOCUS_TELEMETRY", "Telemetry", "Operation", IP_RW,
@@ -146,11 +146,18 @@ bool TCFS::initProperties()
 
     // Mode parameters
     IUFillNumber(&FocusModeAN[0], "FOCUS_SLOPE_A", "Slope A", "%.0f", -999, 999, 10, 0);
-    IUFillNumber(&FocusModeAN[1], "FOCUS_DELAY_A", "Delay A", "%.2f", 0.00, 9.99, 1.0, 0);
-    IUFillNumberVector(&FocusModeANP, FocusModeAN, 2, getDeviceName(), "FOCUS_MODE_A", "Mode A", "Presets", IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&FocusModeAN[1], "FOCUS_INTERCEPT_A", "Intercept A", "%.0f", 0, FocusAbsPosN[0].max, 10, 0);
+    IUFillNumber(&FocusModeAN[2], "FOCUS_DELAY_A", "Delay A", "%.2f", 0.00, 9.99, 1.0, 0);
+    IUFillNumberVector(&FocusModeANP, FocusModeAN, 3, getDeviceName(), "FOCUS_MODE_A", "Mode A", "Presets", IP_RW, 0, IPS_IDLE);
     IUFillNumber(&FocusModeBN[0], "FOCUS_SLOPE_B", "Slope B", "%.0f", -999, 999, 10, 0);
-    IUFillNumber(&FocusModeBN[1], "FOCUS_DELAY_B", "Delay B", "%.2f", 0.00, 9.99, 1.0, 0);
-    IUFillNumberVector(&FocusModeBNP, FocusModeBN, 2, getDeviceName(), "FOCUS_MODE_B", "Mode B", "Presets", IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&FocusModeBN[1], "FOCUS_INTERCEPT_B", "Intercept B", "%.0f", 0, FocusAbsPosN[0].max, 10, 0);
+    IUFillNumber(&FocusModeBN[2], "FOCUS_DELAY_B", "Delay B", "%.2f", 0.00, 9.99, 1.0, 0);
+    IUFillNumberVector(&FocusModeBNP, FocusModeBN, 3, getDeviceName(), "FOCUS_MODE_B", "Mode B", "Presets", IP_RW, 0, IPS_IDLE);
+
+    IUFillSwitch(&FocusStartModeS[0], "FOCUS_START_ON", "Enable", ISS_OFF);
+    IUFillSwitch(&FocusStartModeS[1], "FOCUS_START_OFF", "Disable", ISS_ON);
+    IUFillSwitchVector(&FocusStartModeSP, FocusStartModeS, 2, getDeviceName(), "FOCUS_START_MODE", "Startup Mode", "Presets", IP_RW,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     // Default to 19200
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
@@ -178,6 +185,7 @@ bool TCFS::updateProperties()
         defineSwitch(&FocusPowerSP);
         defineSwitch(&FocusModeSP);
         defineSwitch(&FocusTelemetrySP);
+        defineSwitch(&FocusStartModeSP);
         defineNumber(&FocusModeANP);
         defineNumber(&FocusModeBNP);;
         GetFocusParams();
@@ -189,22 +197,45 @@ bool TCFS::updateProperties()
         deleteProperty(FocusPowerSP.name);
         deleteProperty(FocusModeSP.name);
         deleteProperty(FocusTelemetrySP.name);
+        deleteProperty(FocusStartModeSP.name);
         deleteProperty(FocusModeANP.name);
         deleteProperty(FocusModeBNP.name);;
     }
 
     return true;
 }
+
+/****************************************************************
+**
+**
+*****************************************************************/
+bool TCFS::saveConfigItems(FILE *fp)
+{
+     INDI::Focuser::saveConfigItems(fp);
+
+        IUSaveConfigNumber(fp, &FocusModeANP);
+        IUSaveConfigNumber(fp, &FocusModeBNP);
+        IUSaveConfigSwitch(fp, &FocusStartModeSP);
+
+// Add more properties to config file here
+//        IUSaveConfigSwitch(fp, &SwitchSP);
+//        IUSaveConfigNumber(fp, &NumberNP);
+//        IUSaveConfigText(fp, &TextTP);
+
+    return true;
+}
+
 /****************************************************************
 **
 **
 *****************************************************************/
 void TCFS::GetFocusParams()
 {
+LOGF_DEBUG("A slope=%.0f", FocusModeANP.np[0].value);//, FocusModeAN[0].value);
+/*
     char response[TCFS_MAX_CMD] = { 0 };
     int slope;
     int is_negative;
-
     dispatch_command(FRSLOP, 0, MODE_A);
     read_tcfs(response);
     if(sscanf(response, "A=%04d", &slope)<=0)
@@ -214,7 +245,7 @@ void TCFS::GetFocusParams()
     }
     response[0] = '\0';
     dispatch_command(FRSIGN, 0, MODE_A);
-    read_tcfs(response);    
+    read_tcfs(response);
     if(sscanf(response, "A=%01d", &is_negative)<=0)
     {
         LOGF_WARN("Failed to read slope sign A from response: %s", response);
@@ -223,7 +254,7 @@ void TCFS::GetFocusParams()
 
     FocusModeANP.np[0].value = slope * (is_negative==1?-1:1);
     IDSetNumber(&FocusModeANP, nullptr);
-        
+
     response[0] = '\0';
     dispatch_command(FRSLOP, 0, MODE_B);
     read_tcfs(response);
@@ -241,10 +272,10 @@ void TCFS::GetFocusParams()
         LOGF_WARN("Failed to read slope sign B from response: %s", response);
         return;
     }
-    
+
     FocusModeBNP.np[0].value = slope * (is_negative==1?-1:1);
     IDSetNumber(&FocusModeBNP, nullptr);
-    
+*/
 }
 
 /****************************************************************
@@ -261,17 +292,22 @@ LOGF_DEBUG("%s %s",__FUNCTION__, me);
         return true;
     }
     char response[TCFS_MAX_CMD] = { 0 };
+    dispatch_command(FWAKUP);
+    read_tcfs(response);
+    if (strcmp(response, "WAKE") == 0)
+    {
+        LOG_INFO("TCF-S Focuser is awake");
+        tcflush(PortFD, TCIOFLUSH);
+    }
+
     if(SetManualMode())
     {
-            dispatch_command(FWAKUP);
-            read_tcfs(response);        
-            tcflush(PortFD, TCIOFLUSH);
-            LOG_INFO("Successfully connected to TCF-S Focuser in Manual Mode.");
+        LOG_INFO("Successfully connected to TCF-S Focuser in Manual Mode.");
 
-            // Enable temperature readout
-            FocusTemperatureNP.s = IPS_OK;
+        // Enable temperature readout
+        FocusTemperatureNP.s = IPS_OK;
 
-            return true;
+        return true;
     }
     tcflush(PortFD, TCIOFLUSH);
     LOG_ERROR("Failed connection to TCF-S Focuser.");
@@ -295,7 +331,7 @@ bool TCFS::SetManualMode()
             return true;
         }
     }
-    tcflush(PortFD, TCIOFLUSH); 
+    tcflush(PortFD, TCIOFLUSH);
     return false;
 }
 
@@ -319,11 +355,14 @@ bool TCFS::Disconnect()
 *****************************************************************/
 bool TCFS::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-//LOGF_DEBUG("%s %s",__FUNCTION__, me);
+//LOGF_DEBUG("%s %s %s %s",__FUNCTION__, me, dev, name);
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         char response[TCFS_MAX_CMD] = { 0 };
+// In Auto mode only FMMODE can be accepted
+// In Sleep mode only FWAKUP can be accepted
+// While focuser is moving don't allow actions other than FMMODE        
 
         if (!strcmp(name, FocusModeANP.name))
         {
@@ -344,7 +383,7 @@ bool TCFS::ISNewNumber(const char *dev, const char *name, double values[], char 
                 return true;
             }
             //saveConfig();
-            dispatch_command(FDELAY, FocusModeAN[1].value*100, MODE_A);
+            dispatch_command(FDELAY, FocusModeAN[2].value*100, MODE_A);
             if (read_tcfs(response) == false)
             {
                 FocusModeANP.s = IPS_ALERT;
@@ -375,7 +414,7 @@ bool TCFS::ISNewNumber(const char *dev, const char *name, double values[], char 
                 IDSetNumber(&FocusModeBNP, "Error reading TCF-S reply.");
                 return true;
             }
-            dispatch_command(FDELAY, FocusModeBN[1].value*100, MODE_B);
+            dispatch_command(FDELAY, FocusModeBN[2].value*100, MODE_B);
             if (read_tcfs(response) == false)
             {
                 FocusModeBNP.s = IPS_ALERT;
@@ -399,11 +438,26 @@ bool TCFS::ISNewNumber(const char *dev, const char *name, double values[], char 
 *****************************************************************/
 bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-//LOGF_DEBUG("%s %s",__FUNCTION__, me);
+LOGF_DEBUG("%s %s %s %s",__FUNCTION__, me, dev, name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         char response[TCFS_MAX_CMD] = { 0 };
-
+// In Auto mode only FMMODE can be accepted
+// In Sleep mode only FWAKUP can be accepted
+// While focuser is moving don't allow actions other than FMMODE        
+        if (!strcmp(FocusMotionSP.name, name))
+        {
+            if (FocusModeSP.sp[0].s != ISS_ON)
+            {
+                LOG_WARN("The focuser can only be moved in Manual mode.");
+                return true;
+            }
+        }
+        if (FocusRelPosNP.s == IPS_BUSY)
+        {
+            LOG_WARN("The focuser is in motion. Wait until it has stopped");
+            return true;                
+        }
         if (!strcmp(FocusPowerSP.name, name))
         {
             IUUpdateSwitch(&FocusPowerSP, states, names, n);
@@ -515,34 +569,51 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             }
             else if (!strcmp(sp->name, "Auto A"))
             {
-                dispatch_command(FAMODE);
-                read_tcfs(response);
-                if (!isSimulation() && strcmp(response, "A") != 0)
+                if(FocusStartModeSP.sp[0].s == ISS_ON)
                 {
-                    IUResetSwitch(&FocusModeSP);
-                    FocusModeSP.s = IPS_ALERT;
-                    IDSetSwitch(&FocusModeSP, "Error switching to Auto Mode A. No reply from TCF-S. Try again.");
-                    return true;
+                    uint32_t startPos = -FocusTemperatureN[0].value * FocusModeAN[0].value
+                            + FocusModeAN[1].value;
+                    LOGF_DEBUG("Autocomp T=%.1f; m=%f; i=%f; to=%d;",
+                            FocusTemperatureN[0].value,
+                            FocusModeAN[0].value,
+                            FocusModeAN[1].value,
+                            startPos);
+                    MoveAbsFocuser(startPos);
                 }
-                LOG_INFO("Entered Auto Mode A");
-                currentMode = MODE_A;
             }
             else
             {
-                dispatch_command(FBMODE);
-                read_tcfs(response);
-                if (!isSimulation() && strcmp(response, "B") != 0)
+                if(FocusStartModeSP.sp[0].s == ISS_ON)
                 {
-                    IUResetSwitch(&FocusModeSP);
-                    FocusModeSP.s = IPS_ALERT;
-                    IDSetSwitch(&FocusModeSP, "Error switching to Auto Mode B. No reply from TCF-S. Try again.");
-                    return true;
+                    uint32_t startPos = -FocusTemperatureN[0].value * FocusModeBN[0].value
+                            + FocusModeBN[1].value;
+                    MoveAbsFocuser(startPos);
                 }
-                LOG_INFO("Entered Auto Mode B");
-                currentMode = MODE_B;
             }
 
             IDSetSwitch(&FocusModeSP, nullptr);
+            return true;
+        }
+        // Do not process any other command if focuser is in auto mode
+        if (isConnected() && FocusModeSP.sp[0].s != ISS_ON)
+        {
+            ISwitchVectorProperty *svp = getSwitch(name);
+            if (svp)
+            {
+                svp->s = IPS_IDLE;
+                LOG_WARN("Focuser is in auto mode. Change to manual in order to issue commands.");
+                IDSetSwitch(svp, nullptr);
+            }
+            return true;
+        }
+
+        if (!strcmp(FocusStartModeSP.name, name))
+        {
+            IUUpdateSwitch(&FocusStartModeSP, states, names, n);
+            FocusStartModeSP.s = IPS_OK;
+//            ISwitch *sp = IUFindOnSwitch(&FocusStartModeSP);
+            IDSetSwitch(&FocusStartModeSP, nullptr);
+            LOGF_DEBUG("Start Mode %d",FocusStartModeSP.sp[0].s );
             return true;
         }
 
@@ -648,7 +719,7 @@ bool TCFS::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             if (strcmp(response, "DONE") == 0)
             {
                 FocusTelemetrySP.s = IPS_OK;
-                IDSetSwitch(&FocusTelemetrySP, 
+                IDSetSwitch(&FocusTelemetrySP,
                         quiet ? "Focuser Telemetry is off." : "Focuser Telemetry is on.");
 //                if (FocusTemperatureNP)
                 {
@@ -680,11 +751,11 @@ IPState TCFS::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    if (FocusModeSP.sp[0].s != ISS_ON)
-    {
-        LOG_WARN("The focuser can only be moved in Manual mode.");
-        return IPS_ALERT;
-    }
+//    if (FocusModeSP.sp[0].s != ISS_ON)
+//    {
+//        LOG_WARN("The focuser can only be moved in Manual mode.");
+//        return IPS_ALERT;
+//    }
 
     targetTicks    = ticks;
     targetPosition = currentPosition;
@@ -804,6 +875,9 @@ bool TCFS::dispatch_command(TCFSCommand command_type, int val, TCFSMode m)
         case FRSIGN:
             snprintf(command, TCFS_MAX_CMD, "Ftxxx%c", m==MODE_A?'A':'B');
             break;
+        case FFWVER:
+            snprintf(command, TCFS_MAX_CMD, "FVxxxx");
+            break;
     }
 
     LOGF_DEBUG("CMD <%s>", command);
@@ -832,9 +906,47 @@ void TCFS::TimerHit()
         SetTimer(POLLMS);
         return;
     }
+
+    char response[TCFS_MAX_CMD] = { 0 };
+// If focuser is moving wait until "*" is received
+// Then set moving indicator to OK
+    if (FocusRelPosNP.s == IPS_BUSY)
+    {
+        if (read_tcfs(response, true) == false)
+        {
+            SetTimer(POLLMS);
+            return;
+        }
+        if(strcmp(response, "*") == 0)
+        {
+            FocusAbsPosNP.s = IPS_OK;
+            FocusRelPosNP.s = IPS_OK;
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            IDSetNumber(&FocusRelPosNP, nullptr);
+            if(FocusModeSP.sp[1].s == ISS_ON || FocusModeSP.sp[2].s == ISS_ON)
+            {
+                const char* mode = (FocusModeSP.sp[1].s == ISS_ON)?"A":"B";
+                dispatch_command(
+                        (FocusModeSP.sp[1].s == ISS_ON)?FAMODE:FBMODE);
+                read_tcfs(response);
+                if (!isSimulation() && strcmp(response, mode) != 0)
+                {
+                    IUResetSwitch(&FocusModeSP);
+                    FocusModeSP.s = IPS_ALERT;
+                    IDSetSwitch(&FocusModeSP, "Error switching to Auto Mode %s. No reply from TCF-S. Try again.", mode);
+                    SetTimer(POLLMS);
+                    return;
+                }
+                LOGF_INFO("Entered Auto Mode %s", mode);
+                currentMode = (FocusModeSP.sp[1].s == ISS_ON)?MODE_A:MODE_B;
+            }
+            SetTimer(POLLMS);
+            return;
+        }
+    }
+
     int f_position      = 0;
     float f_temperature = 0;
-    char response[TCFS_MAX_CMD] = { 0 };
 
     if(!isSimulation() && currentMode != MANUAL)
     {
@@ -842,11 +954,11 @@ void TCFS::TimerHit()
         {
             LOGF_DEBUG("%s %s",__FUNCTION__, "Telemetry is off");
             SetTimer(POLLMS);
-            return;            
+            return;
         }
         for(int i=0; i<2; i++)
         {
-            if (read_tcfs(response) == false)
+            if (read_tcfs(response, true) == false)
             {
                 SetTimer(POLLMS);
                 return;
