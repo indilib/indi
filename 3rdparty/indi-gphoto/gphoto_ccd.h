@@ -189,6 +189,14 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
     ISwitch *mExposurePresetS = nullptr;
     ISwitchVectorProperty mExposurePresetSP;
 
+    ISwitch forceBULBS[2];
+    ISwitchVectorProperty forceBULBSP;
+    enum
+    {
+        FORCE_BULB_ON,
+        FORCE_BULB_OFF
+    };
+
     IBLOBVectorProperty *imageBP = nullptr;
     IBLOB *imageB                = nullptr;
 
