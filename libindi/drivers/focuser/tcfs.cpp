@@ -756,10 +756,18 @@ IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 //        LOG_WARN("The focuser can only be moved in Manual mode.");
 //        return IPS_ALERT;
 //    }
-
+// The TCFS does not allow any commands othern than FMMODE whilst it is
+// in auto mode. But this then prevents auto setting of filter offsets during
+// an imaging sequence. So switch to manual mode, apply the offset then return 
+// to auto mode.
     targetTicks    = ticks;
     targetPosition = currentPosition;
-
+    
+    TCFSMode prevMode = currentMode;
+    if(currentMode != MANUAL)
+    {
+        SetManualMode();
+    }
     // Inward
     if (dir == FOCUS_INWARD)
     {
@@ -779,6 +787,19 @@ IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     IDSetNumber(&FocusRelPosNP, nullptr);
 
     simulated_position = targetPosition;
+    if(prevMode != MANUAL)
+    {
+        IUResetSwitch(&FocusModeSP);
+        if (prevMode == MODE_A)
+        {
+            FocusModeSP.sp[1].s = ISS_ON;
+        }
+        else
+        {
+            FocusModeSP.sp[2].s = ISS_ON;
+        }
+        IDSetSwitch(&FocusModeSP, nullptr);
+    }
 
     return IPS_BUSY;
 }
