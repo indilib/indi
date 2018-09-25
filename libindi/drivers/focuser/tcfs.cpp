@@ -1002,6 +1002,7 @@ void TCFS::TimerHit()
                 FocusModeSP.s = IPS_OK;
                 LOGF_INFO("Entered Auto Mode %s", mode);
                 currentMode = (FocusModeSP.sp[1].s == ISS_ON)?MODE_A:MODE_B;
+                IDSetSwitch(&FocusModeSP, nullptr);
             }
             SetTimer(POLLMS);
             return;
