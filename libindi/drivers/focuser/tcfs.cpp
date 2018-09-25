@@ -833,6 +833,7 @@ IPState TCFS::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
         {
             FocusModeSP.sp[2].s = ISS_ON;
         }
+        FocusModeSP.s = IPS_BUSY;
         IDSetSwitch(&FocusModeSP, nullptr);
     }
 
@@ -974,7 +975,7 @@ void TCFS::TimerHit()
             SetTimer(POLLMS);
             return;
         }
-        LOGF_DEBUG("%s READY", __FUNCTION__ );
+        LOGF_DEBUG("%s READY %s", __FUNCTION__, response );
         if(strcmp(response, "*") == 0)
         {
             FocusAbsPosNP.s = IPS_OK;
