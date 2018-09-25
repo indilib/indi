@@ -512,6 +512,7 @@ bool GPhotoCCD::updateProperties()
         }
 
         defineSwitch(&streamSubframeSP);
+        defineSwitch(&forceBULBSP);
 
         //timerID = SetTimer(POLLMS);
     }
@@ -542,9 +543,9 @@ bool GPhotoCCD::updateProperties()
         deleteProperty(SDCardImageSP.name);
 
         deleteProperty(streamSubframeSP.name);
+        deleteProperty(forceBULBSP.name);
 
         HideExtendedOptions();
-        //rmTimer(timerID);
     }
 
     return true;

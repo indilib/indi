@@ -727,6 +727,9 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t
 
     if (best_idx >= 0)
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Best match: %g seconds Index: %d", gphoto->exposureList[best_idx], best_idx);
+    else
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "No optimal predefined exposure found.");
+
 
     return best_idx;
 }
