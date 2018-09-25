@@ -566,28 +566,63 @@ LOGF_DEBUG("%s %s %s %s",__FUNCTION__, me, dev, name);
                     IDSetSwitch(&FocusModeSP, "Error switching to manual mode. No reply from TCF-S. Try again.");
                     return true;
                 }
+                LOG_INFO("Entered Manual Mode");
+                currentMode = MANUAL;                                    
             }
             else if (!strcmp(sp->name, "Auto A"))
             {
                 if(FocusStartModeSP.sp[0].s == ISS_ON)
                 {
+                    FocusModeSP.s = IPS_BUSY;
                     uint32_t startPos = -FocusTemperatureN[0].value * FocusModeAN[0].value
                             + FocusModeAN[1].value;
-                    LOGF_DEBUG("Autocomp T=%.1f; m=%f; i=%f; to=%d;",
+                    LOGF_DEBUG("Autocomp A T=%.1f; m=%f; i=%f; p0=%d;",
                             FocusTemperatureN[0].value,
                             FocusModeAN[0].value,
                             FocusModeAN[1].value,
                             startPos);
                     MoveAbsFocuser(startPos);
                 }
+                else
+                {
+                    dispatch_command(FAMODE);
+                    read_tcfs(response);
+                    if (!isSimulation() && strcmp(response, "A") != 0)
+                    {
+                        IUResetSwitch(&FocusModeSP);
+                        FocusModeSP.s = IPS_ALERT;
+                        IDSetSwitch(&FocusModeSP, "Error switching to Auto Mode A, No reply from TCF-S. Try again.");
+                    }
+                    LOG_INFO("Entered Auto Mode A");
+                    currentMode = MODE_A;                    
+                }
             }
             else
             {
                 if(FocusStartModeSP.sp[0].s == ISS_ON)
                 {
+                    FocusModeSP.s = IPS_BUSY;
                     uint32_t startPos = -FocusTemperatureN[0].value * FocusModeBN[0].value
                             + FocusModeBN[1].value;
+                    LOGF_DEBUG("Autocomp B T=%.1f; m=%f; i=%f; p0=%d;",
+                            FocusTemperatureN[0].value,
+                            FocusModeBN[0].value,
+                            FocusModeBN[1].value,
+                            startPos);
                     MoveAbsFocuser(startPos);
+                }
+                else
+                {
+                    dispatch_command(FBMODE);
+                    read_tcfs(response);
+                    if (!isSimulation() && strcmp(response, "B") != 0)
+                    {
+                        IUResetSwitch(&FocusModeSP);
+                        FocusModeSP.s = IPS_ALERT;
+                        IDSetSwitch(&FocusModeSP, "Error switching to Auto Mode B, No reply from TCF-S. Try again.");
+                    }
+                    LOG_INFO("Entered Auto Mode B");
+                    currentMode = MODE_B;                    
                 }
             }
 
@@ -933,18 +968,24 @@ void TCFS::TimerHit()
 // Then set moving indicator to OK
     if (FocusRelPosNP.s == IPS_BUSY)
     {
+        LOGF_DEBUG("%s MOVING", __FUNCTION__);
         if (read_tcfs(response, true) == false)
         {
             SetTimer(POLLMS);
             return;
         }
+        LOGF_DEBUG("%s READY", __FUNCTION__ );
         if(strcmp(response, "*") == 0)
         {
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, nullptr);
             IDSetNumber(&FocusRelPosNP, nullptr);
-            if(FocusModeSP.sp[1].s == ISS_ON || FocusModeSP.sp[2].s == ISS_ON)
+            
+// If the focuser has stopped moving and auto mode is requested then 
+// it is ok to set it now    
+            if(FocusModeSP.s == IPS_BUSY &&  // Had to move before going Auto
+               (FocusModeSP.sp[1].s == ISS_ON || FocusModeSP.sp[2].s == ISS_ON))
             {
                 const char* mode = (FocusModeSP.sp[1].s == ISS_ON)?"A":"B";
                 dispatch_command(
@@ -958,6 +999,7 @@ void TCFS::TimerHit()
                     SetTimer(POLLMS);
                     return;
                 }
+                FocusModeSP.s = IPS_OK;
                 LOGF_INFO("Entered Auto Mode %s", mode);
                 currentMode = (FocusModeSP.sp[1].s == ISS_ON)?MODE_A:MODE_B;
             }
