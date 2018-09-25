@@ -1296,7 +1296,7 @@ bool LX200StarGo::setGuidingSpeeds (int raSpeed, int decSpeed)
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
 
     sprintf(cmd, ":X20%2d#", raSpeed);
-    if (sendQuery(cmd, response))
+    if (sendQuery(cmd, response, 0)) // No response from mount
     {
         LOGF_INFO("Setting RA speed to %2d%%.", raSpeed);
     }
@@ -1305,9 +1305,12 @@ bool LX200StarGo::setGuidingSpeeds (int raSpeed, int decSpeed)
         LOGF_ERROR("Setting RA speed to %2d %% FAILED", raSpeed);
         return false;
     }
+    const struct timespec timeout = {0, 100000000L};
+    // sleep for 100 mseconds
+    nanosleep(&timeout, nullptr);
 
     sprintf(cmd, ":X21%2d#", decSpeed);
-    if (sendQuery(cmd, response))
+    if (sendQuery(cmd, response, 0))  // No response from mount
     {
         LOGF_INFO("Setting DEC speed to %2d%%.", decSpeed);
     }
