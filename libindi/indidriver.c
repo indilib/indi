@@ -125,7 +125,7 @@ void IDDelete(const char *dev, const char *name, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        printf("%s'\n", entityXML(message));
         va_end(ap);
     }
     printf("/>\n");
@@ -939,22 +939,18 @@ int dispatch(XMLEle *root, char msg[])
                 case INDI_NUMBER:
                     IDSetNumber((INumberVectorProperty *)(prop->ptr), NULL);
                     return 0;
-                    break;
 
                 case INDI_SWITCH:
                     IDSetSwitch((ISwitchVectorProperty *)(prop->ptr), NULL);
                     return 0;
-                    break;
 
                 case INDI_TEXT:
                     IDSetText((ITextVectorProperty *)(prop->ptr), NULL);
                     return 0;
-                    break;
 
                 case INDI_BLOB:
                     IDSetBLOB((IBLOBVectorProperty *)(prop->ptr), NULL);
-                    return 0;
-                    break;
+                    return 0;                    
                 default:
                     return 0;
             }
@@ -1897,10 +1893,8 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
         printf("  message='");
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
+        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);        
+        printf("%s'\n", entityXML(message));
         va_end(ap);
     }
     printf(">\n");
@@ -1909,7 +1903,7 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
     {
         IText *tp = &tvp->tp[i];
         printf("  <oneText name='%s'>\n", tp->name);
-        printf("      %s\n", tp->text ? tp->text : "");
+        printf("      %s\n", tp->text ? entityXML(tp->text) : "");
         printf("  </oneText>\n");
     }
 
@@ -1942,9 +1936,7 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
+        printf("%s'\n", entityXML(message));
         va_end(ap);
     }
     printf(">\n");
@@ -1985,10 +1977,8 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
         printf("  message='");
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
+        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);        
+        printf("%s'\n", entityXML(message));
         va_end(ap);
     }
     printf(">\n");
@@ -2027,10 +2017,8 @@ void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
         va_start(ap, fmt);
         char message[MAXINDIMESSAGE];
         printf("  message='");
-        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
+        vsnprintf(message, MAXINDIMESSAGE, fmt, ap);        
+        printf("%s'\n", entityXML(message));
         va_end(ap);
     }
     printf(">\n");
