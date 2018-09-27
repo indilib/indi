@@ -287,11 +287,12 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
         return false;
     info->DEFirmware = DEVersion;
 
-    LOGF_DEBUG("Firmware Info HC Ver %s model %s HW Ver %s, %s mount",
+    LOGF_DEBUG("Firmware Info HC Ver %s model %s %s %s mount, HW Ver %s",
                info->Version.c_str(),
                info->Model.c_str(),
-               info->RAFirmware.c_str(),
-               info->isGem ? "GEM" : "Fork");
+               info->controllerVariant == ISSTARSENSE ? "StarSense" : "NexStar",
+               info->isGem ? "GEM" : "Fork",
+               info->RAFirmware.c_str());
 
     return true;
 }

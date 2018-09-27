@@ -208,7 +208,8 @@ bool CelestronGPS::updateProperties()
             IUSaveText(&FirmwareT[FW_RA], fwInfo.RAFirmware.c_str());
             IUSaveText(&FirmwareT[FW_DEC], fwInfo.DEFirmware.c_str());
 
-            usePreciseCoords = (fwInfo.controllerVersion > 2.2);
+            //usePreciseCoords = (fwInfo.controllerVersion > 2.2);
+            usePreciseCoords = (checkMinVersion(2.2, "usePreciseCoords"));
         }
         else
         {
@@ -238,12 +239,13 @@ bool CelestronGPS::updateProperties()
             cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
 
 
-        if (fwInfo.controllerVersion >= 2.3)
+        // StarSense supports track mode
+        if (checkMinVersion(2.3, "track mode"))
             cap |= TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
         else
             LOG_WARN("Mount firmware does not support track mode.");
 
-        if (fwInfo.isGem  && fwInfo.controllerVersion >= 4.15)
+        if (fwInfo.isGem  && checkMinVersion(4.15, "Pier Side"))
             cap |= TELESCOPE_HAS_PIER_SIDE;
         else
             LOG_WARN("Mount firmware does not support getting pier side.");
@@ -316,7 +318,8 @@ bool CelestronGPS::updateProperties()
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
         // Therefore disabling query until it is fixed.
         // 2017-07-06: Looks like CGE Pro also does not support this
-        if (fwInfo.controllerVersion >= 2.3 && fwInfo.Model != "AVX" && fwInfo.Model != "CGE Pro")
+        //if (fwInfo.controllerVersion >= 2.3 && fwInfo.Model != "AVX" && fwInfo.Model != "CGE Pro")
+        if (checkMinVersion(2.3, "read time"))
         {
             double utc_offset;
             int yy, dd, mm, hh, minute, ss;
@@ -332,6 +335,7 @@ bool CelestronGPS::updateProperties()
                 IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
 
                 LOGF_INFO("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
+                LOGF_DEBUG("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
                 TimeTP.s = IPS_OK;
                 IDSetText(&TimeTP, nullptr);
