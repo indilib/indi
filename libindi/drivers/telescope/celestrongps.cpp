@@ -82,11 +82,13 @@ void ISSnoopDevice(XMLEle *root)
 
 CelestronGPS::CelestronGPS()
 {
-    setVersion(3, 1);
+    setVersion(3, 2);
+
 
     fwInfo.Version           = "Invalid";
     fwInfo.controllerVersion = 0;
     fwInfo.controllerVariant = ISNEXSTAR;
+    fwInfo.isGem = false;
 
     INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -240,6 +242,11 @@ bool CelestronGPS::updateProperties()
             cap |= TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
         else
             LOG_WARN("Mount firmware does not support track mode.");
+
+        if (fwInfo.isGem  && fwInfo.controllerVersion >= 4.15)
+            cap |= TELESCOPE_HAS_PIER_SIDE;
+        else
+            LOG_WARN("Mount firmware does not support getting pier side.");
 
         SetTelescopeCapability(cap, 9);
 
@@ -455,7 +462,13 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
 
 bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    CELESTRON_DIRECTION move = (dir == DIRECTION_NORTH) ? CELESTRON_N : CELESTRON_S;
+    CELESTRON_DIRECTION move;
+
+    if (currentPierSide == PIER_WEST)
+        move = (dir == DIRECTION_NORTH) ? CELESTRON_N : CELESTRON_S;
+    else
+        move = (dir == DIRECTION_NORTH) ? CELESTRON_S : CELESTRON_N;
+
     CELESTRON_SLEW_RATE rate = (CELESTRON_SLEW_RATE)IUFindOnSwitchIndex(&SlewRateSP);
 
     switch (command)
@@ -576,6 +589,43 @@ bool CelestronGPS::ReadScopeStatus()
 
     //IDSetNumber(&HorizontalCoordsNP, nullptr);
     NewRaDec(currentRA, currentDEC);
+
+    char sop;
+    INDI::Telescope::TelescopePierSide pierSide = PIER_UNKNOWN;
+    char psc = 'U';
+    if (driver.get_pier_side(&sop))
+    {
+        // manage version and hemisphere nonsense
+        // HC versions less than 5.24 reverse the side of pier if the mount
+        // is in the Southern hemisphere.  StarSense doesn't
+        if (LocationN[LOCATION_LATITUDE].value < 0)
+        {
+            if (fwInfo.controllerVersion <= 5.24 && fwInfo.controllerVariant != ISSTARSENSE)
+            {
+                // swap the char reported
+                if (sop == 'E')
+                    sop = 'W';
+                else if (sop == 'W')
+                    sop = 'E';
+            }
+        }
+        // The Celestron and INDI pointing states are opposite
+        if (sop == 'W')
+        {
+            pierSide = PIER_EAST;
+            psc = 'E';
+        }
+        else if (sop == 'E')
+        {
+            pierSide = PIER_WEST;
+            psc = 'W';
+        }
+    }
+
+    LOGF_DEBUG("latitude %g, sop %c, PierSide %c",
+               LocationN[LOCATION_LATITUDE].value,
+               sop, psc);
+    setPierSide(pierSide);
 
     return true;
 }
@@ -1456,6 +1506,7 @@ void CelestronGPS::checkAlignment()
 {
     ReadScopeStatus();
 
-    if (currentRA == 12.0 && currentDEC == 0.0)
+    //if (currentRA == 12.0 && currentDEC == 0.0)
+    if (!driver.check_aligned())
         LOG_WARN("Mount is NOT aligned. You must align the mount first before you can use it. Disconnect, align the mount, and reconnect again.");
 }
