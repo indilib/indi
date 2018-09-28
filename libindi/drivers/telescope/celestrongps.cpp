@@ -215,18 +215,23 @@ bool CelestronGPS::updateProperties()
         }
 
         // Since issues have been observed with Starsense, enabe parking only with Nexstar controller
+//        if (fwInfo.controllerVariant == ISSTARSENSE)
+//        {
+//            if (fwInfo.controllerVersion >= MINSTSENSVER)
+//                LOG_INFO("Starsense controller detected.");
+//            else
+//                LOGF_WARN("Starsense controller detected, but firmware is too old. "
+//                        "Current version is %4.2f, but minimum required version is %4.2f. "
+//                        "Please update your Starsense firmware.",
+//                        fwInfo.controllerVersion, MINSTSENSVER);
+//        }
+//        else
+//            cap |= TELESCOPE_CAN_PARK;
 
-        if (fwInfo.controllerVariant == ISSTARSENSE)
-        {
-            if (fwInfo.controllerVersion >= MINSTSENSVER)
-                LOG_INFO("Starsense controller detected.");
-            else
-                LOGF_WARN("Starsense controller detected, but firmware is too old. "
-                        "Current version is %4.2f, but minimum required version is %4.2f. "
-                        "Please update your Starsense firmware.",
-                        fwInfo.controllerVersion, MINSTSENSVER);
-        }
-        else
+        // JM 2018-09-28: According to user reports in this thread:
+        // http://www.indilib.org/forum/mounts/2208-celestron-avx-mount-and-starsense.html
+        // Parking is also supported fine with StarSense
+        if (checkMinVersion(2.3, "park"))
             cap |= TELESCOPE_CAN_PARK;
 
         if (checkMinVersion(4.1, "sync"))
@@ -236,7 +241,7 @@ bool CelestronGPS::updateProperties()
             cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
 
 
-        if (checkMinVersion(2.3, "supporting track control"))
+        if (checkMinVersion(2.3, "track control"))
             cap |= TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
         else
             LOG_WARN("Mount firmware does not support track mode.");
@@ -269,7 +274,7 @@ bool CelestronGPS::updateProperties()
         defineNumber(&GuideWENP);
 
         // Track Mode (t) is only supported for 2.3+
-        if (checkMinVersion(2.3, "supporting track mode"))
+        if (checkMinVersion(2.3, "track mode"))
         {
             CELESTRON_TRACK_MODE mode;
             if (isSimulation())
@@ -309,7 +314,7 @@ bool CelestronGPS::updateProperties()
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
         // JM 2018-09-27: User (suramara) reports that it works with AVX mount with Star Sense firmware version 1.19
         //if (fwInfo.controllerVersion >= 2.3 && fwInfo.Model != "AVX" && fwInfo.Model != "CGE Pro")
-        if (checkMinVersion(2.3, "supporting date and time setting"))
+        if (checkMinVersion(2.3, "date and time setting"))
         {
             double utc_offset;
             int yy, dd, mm, hh, minute, ss;
