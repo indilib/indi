@@ -19,7 +19,7 @@ extern void IDMessage(const char *dev, const char *fmt, ...);
 }
 #endif
 
-#define DBG(...) IDMessage("SSAG CCD", __VA_ARGS__)
+#define DBG(...) IDMessage("Orion Starshoot", __VA_ARGS__)
 
 extern libusb_context *ctx;
 

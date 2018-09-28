@@ -100,7 +100,5 @@ class indiduino : public INDI::DefaultDevice
     Firmata *sf;
     INDI::Controller *controller;
 
-    int PortFD { -1 };
-
     Connection::Serial *serialConnection { nullptr };
 };

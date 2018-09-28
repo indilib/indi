@@ -225,7 +225,7 @@ bool RadioSim::updateProperties()
 void RadioSim::setupParams()
 {
 	// Our Detector is an 8 bit Detector, 100MHz frequency 1MHz bandwidth.
-	SetDetectorParams(1, 1.42e+9, 8);
+	SetDetectorParams(1, 1.42e+9, 8, 1.0e+6, 1);
 }
 
 /**************************************************************************************
@@ -298,11 +298,13 @@ bool RadioSim::StartCapture(float duration)
 /**************************************************************************************
 ** Client is updating capture settings
 ***************************************************************************************/
-bool RadioSim::CaptureParamsUpdated(float sr, float freq, float bps)
+bool RadioSim::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
     	INDI_UNUSED(bps);
     	INDI_UNUSED(freq);
     	INDI_UNUSED(sr);
+    	INDI_UNUSED(bw);
+    	INDI_UNUSED(gain);
 
 	return true;
 }

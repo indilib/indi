@@ -141,11 +141,13 @@ bool SimpleDetector::updateProperties()
 /**************************************************************************************
 ** Client is updating capture settings
 ***************************************************************************************/
-bool SimpleDetector::CaptureParamsUpdated(float sr, float freq, float bps)
+bool SimpleDetector::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
     	INDI_UNUSED(bps);
-    	INDI_UNUSED(freq);
-    	INDI_UNUSED(sr);
+        INDI_UNUSED(freq);
+        INDI_UNUSED(sr);
+        INDI_UNUSED(bw);
+        INDI_UNUSED(gain);
 	return true;
 }
 
@@ -155,7 +157,7 @@ bool SimpleDetector::CaptureParamsUpdated(float sr, float freq, float bps)
 void SimpleDetector::setupParams()
 {
     // Our Detector is an 8 bit Detector, 100MHz frequency 1MHz samplerate.
-    SetDetectorParams(1000000.0, 100000000.0, 8);
+    SetDetectorParams(1000000.0, 100000000.0, 8, 10000.0, 1.0);
 }
 
 /**************************************************************************************
