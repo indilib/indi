@@ -22,25 +22,33 @@
  file called LICENSE.
  */
 
+/*!
+ * @file qhybase.h
+ * @brief QHYCCD QHYBASE class define
+ */
+
 #include "qhycam.h"
 #include "qhyccdcamdef.h"
 #include "qhyccderr.h"
-#include "log4z.h"
 #include "cmosdll.h"
 #include "stdint.h"
 #include "debugview.h"
 
-#ifdef WIN32
-#include "opencv2/opencv.hpp"
-#else // Linux & Mac
+
+#ifdef LINUX
 #include <pthread.h>
 #include <string.h>
-#endif // WIN32
+#endif
+
+#ifdef WIN32
+   #include "opencv2/opencv.hpp"
+
+#endif
+
 
 #ifndef __QHYBASEDEF_H__
 #define __QHYBASEDEF_H__
 
-using namespace zsummer::log4z;
 
 #define Min2(a, b) ((a) < (b) ? (a) : (b))
 #define Max2(a, b) ((a) > (b) ? (a) : (b))
@@ -50,35 +58,140 @@ using namespace zsummer::log4z;
 /**
  * the QHYBASE class description
  */
-class QHYBASE : public QHYCAM {
-public:
-    QHYBASE();
-    virtual ~QHYBASE();
+class QHYBASE : public QHYCAM
+  {
+  public:
 
-    virtual void InitCmos(qhyccd_handle *h) {
+    QHYBASE()
+    {
+      streammode = 0;
+      currentPWM = 0;
+      flag_timer_2 = true;
+      flag_timer = true;
+      camx = 0;
+      camy = 0;
+      camxbin = 1;
+      camybin = 1;
+      cambits = 16;
+      camchannels = 1;
+      usbtraffic = 30;
+      usbspeed = 0;
+      camtime = 0;
+      camgain = 0;
+      camoffset = 130;
+      camred2green = 0;
+      camblue2green = 0;
+      camgreen = 0;
+      rawarray = NULL;
+      roiarray = NULL;
+      roixstart = 0;
+      roiystart = 0;
+      roixsize = 0;
+      roiysize = 0;
+      overScanStartX = 0;
+      overScanStartY = 0;
+      overScanSizeX = 0;
+      overScanSizeY = 0;
+      onlyStartX = 0;
+      onlyStartY = 0;
+      onlySizeX = 0;
+      onlySizeY = 0;
+      ccdchipw = 0;
+      ccdchiph = 0;
+      ccdimagew = 0;
+      ccdimageh = 0;
+      ccdpixelw = 0;
+      ccdpixelh = 0;
+
+      targetTEMP = 0;
+      currentTEMP = 0;
+      currentPWM = 0;
+      nowVoltage = 0;
+      flagtempauto = false;
+
+      NowError = 0;
+      PrevError = 0;
+      LastError = 0;
+      Proportion = 0;
+      Integral = 0;
+      Derivative = 0;
+      flagquit = false;
+      readprogress = 0;
+      streammode = 0;
+      isReadoutData = 0;
+      isReadoutTemp = 0;
+      isOverscanRemoved = false;
+
+      frameflag = 0;
+
+      debayeronoff = false;
+      debayerformat = 0;
+
+      chipoutputbits = 8;
+
+      initdone = 0;
+      connected = 0;
+      resolutionmode = 0;
+
+      isbadframe = 0;
+      badframenum = 0;
+      isexposureupdate = 0;
+      isgainupdate = 0;
+      iscolorgainupdate = 0;
+      isoffsetupdate = 0;
+      isdepthupdate = 0;
+      isspeedupdate = 0;
+      isresolutionupdate = 0;
+      isusbtrafficupdate = 0;
+      is_superspeed = 0;
+
+      gpson = 0;
+
+      is_3a_autoexposure_on = 0;
+      is_3a_autowhitebalance_on = 0;
+      is_3a_autofocus_on = 0;
+      autowhitebalanceloops = 0;
+
+      imgbrightness = 0.0;
+      imgcontrast = 0.0;
+      imggamma = 1.0;
+
+      camampv = 0.0;
+
+      camddr = 0;
+
+      camLPMode = 0;
+
+      camviewmode = 0.0;
+
+      vcamonoff = false;
+
+      filterpos = '0';
+
+      isFX3 = false;
+
+      islive = 0;
+
+      screenstretchb = 0;
+      screenstretchw = 65535;
+      darkgen_on=0;
+      qhy5iiGuidePortOnOff = 0;
+      delRowRoise = false;
+
+      memset(&ccdreg, 0, sizeof (ccdreg));
+
+      //testparam = 0;
+      //campartnum = DEVICETYPE_UNKNOW;
+    }
+
+    virtual ~QHYBASE()
+    {}
+    ;
+
+    virtual void InitCmos(qhyccd_handle *h)
+    {
+      OutputDebugPrintf("Not implemented");
     };
-    
-    virtual uint32_t BeginSingleExposure(qhyccd_handle *h);
-    virtual uint32_t CancelExposing(qhyccd_handle *handle);
-    virtual uint32_t CancelExposingAndReadout(qhyccd_handle *h);
-    virtual uint32_t BeginLiveExposure(qhyccd_handle *h);
-    virtual uint32_t StopLiveExposure(qhyccd_handle *h);    
-    virtual uint32_t GetSingleFrame(qhyccd_handle *h, uint32_t *pW, uint32_t *pH, uint32_t * pBpp, uint32_t *pChannels, uint8_t *ImgData);
-    virtual uint32_t GetLiveFrame(qhyccd_handle *h, uint32_t *pW, uint32_t *pH, uint32_t * pBpp, uint32_t *pChannels, uint8_t *ImgData);
-    
-    virtual void SetFlagQuit(bool val);
-    virtual bool IsFlagQuit();
-    
-    virtual void SetExposureThreadRunFlag(bool val);
-    virtual bool IsExposureThreadRunning();
-    
-    virtual void SetDdrnum(uint32_t val);
-    virtual uint32_t GetDdrnum();
-    
-    virtual void SetTotalDataLength(uint32_t val);
-    virtual void TotalDataLengthAdd(uint32_t val);
-    virtual uint32_t GetTotalDataLength();
-    
     /**
      @fn virtual uint32_t ConnectCamera(qhyccd_device *d,qhyccd_handle **h)
      @brief connect camera,get the control handle
@@ -129,8 +242,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipOffset(qhyccd_handle *h, double offset) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipOffset(qhyccd_handle *h, double offset)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -142,8 +257,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipExposeTime(qhyccd_handle *h, double i) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipExposeTime(qhyccd_handle *h, double i)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -155,8 +272,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipGain(qhyccd_handle *h, double gain) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipGain(qhyccd_handle *h, double gain)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -168,8 +287,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipWBRed(qhyccd_handle *h, double red) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipWBRed(qhyccd_handle *h, double red)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -181,8 +302,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipWBGreen(qhyccd_handle *h, double green) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipWBGreen(qhyccd_handle *h, double green)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -194,8 +317,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipWBBlue(qhyccd_handle *h, double blue) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipWBBlue(qhyccd_handle *h, double blue)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -205,8 +330,9 @@ public:
      success return red gain value \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual double GetChipWBRed() {
-        return camred2green;
+    virtual double GetChipWBRed()
+    {
+      return camred2green;
     }
 
     /**
@@ -216,8 +342,9 @@ public:
      success return blue gain value \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual double GetChipWBBlue() {
-        return camblue2green;
+    virtual double GetChipWBBlue()
+    {
+      return camblue2green;
     }
 
     /**
@@ -227,8 +354,9 @@ public:
      success return green gain value \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual double GetChipWBGreen() {
-        return camgreen;
+    virtual double GetChipWBGreen()
+    {
+      return camgreen;
     }
 
     /**
@@ -292,8 +420,9 @@ public:
      success return the current camera image channels \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual double GetChipChannels() {
-        return 1;
+    virtual double GetChipChannels()
+    {
+      return 1;
     }
 
     /**
@@ -303,8 +432,9 @@ public:
      success return the current chip temprature \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual double GetChipCoolTemp(qhyccd_handle *h) {
-        return m_CurrentTemp;
+    virtual double GetChipCoolTemp(qhyccd_handle *h)
+    {
+      return currentTEMP;
     }
 
     /**
@@ -314,19 +444,21 @@ public:
      success return the current cool temprature \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual double GetChipCoolPWM() {
-        return m_CurrentPwm;
+    virtual double GetChipCoolPWM()
+    {
+      return currentPWM;
     }
 
     /**
-     @fn virtual double GetChipCoolTargetTemp()
+     @fn virtual double GetChipCoolTarpgetTemp()
      @brief get the current ccd/cmos target temperature
      @return
      success return the current cool target temprature \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual double GetChipCoolTargetTemp() {
-        return m_TargetTemp;
+    virtual double GetChipCoolTarpgetTemp()
+    {
+      return targetTEMP;
     }
 
     /**
@@ -340,8 +472,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t GetControlMinMaxStepValue(CONTROL_ID controlId, double *min, double *max, double *step) {
-        return QHYCCD_ERROR;
+    virtual uint32_t GetControlMinMaxStepValue(CONTROL_ID controlId, double *min, double *max, double *step)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -353,11 +487,13 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t CorrectWH(uint32_t *w, uint32_t *h) {
-        return QHYCCD_ERROR;
+    virtual uint32_t CorrectWH(uint32_t *w, uint32_t *h)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    /** 
+    /**
      @fn virtual uint32_t SetChipResolution(qhyccd_handle *handle,uint32_t x,uint32_t y,uint32_t xsize,uint32_t ysize)
      @brief set camera ouput resolution
      @param handle camera control handle
@@ -369,9 +505,82 @@ public:
      on success,return QHYCCD_SUCCESS\n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipResolution(qhyccd_handle *handle, uint32_t x, uint32_t y, uint32_t xsize, uint32_t ysize) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipResolution(qhyccd_handle *handle, uint32_t x, uint32_t y, uint32_t xsize, uint32_t ysize)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
+
+    /**
+     @fn virtual uint32_t BeginSingleExposure(qhyccd_handle *h)
+     @brief begin single exposure
+     @param h camera control handle
+     @return
+     success return QHYCCD_SUCCESS \n
+     another QHYCCD_ERROR code on other failures
+     */
+    virtual uint32_t BeginSingleExposure(qhyccd_handle *h);
+
+    /**
+     @fn virtual uint32_t CancelExposing(qhyccd_handle *handle)
+     @param handle camera control handle
+     @return
+     on success,return QHYCCD_SUCCESS \n
+     another QHYCCD_ERROR code on other failures
+     */
+    virtual uint32_t CancelExposing(qhyccd_handle *handle);
+
+    /**
+     @fn virtual uint32_t CancelExposingAndReadout(qhyccd_handle *h)
+     @brief stop single exposure
+     @param h camera control handle
+     @return
+     success return QHYCCD_SUCCESS \n
+     another QHYCCD_ERROR code on other failures
+     */
+    virtual uint32_t CancelExposingAndReadout(qhyccd_handle *h);
+
+#if 0
+
+    /**
+     @fn virtual uint32_t GetSingleFrame(qhyccd_handle *h,uint32_t *pW,uint32_t *pH,uint32_t * pBpp,uint32_t *pChannels,uint8_t *ImgData)
+     @brief get single frame image data
+     @param h camera control handle
+     @param pW real width
+     @param pH real height
+     @param pBpp real depth bits
+     @param pChannels real channels
+     @param ImgData image data buffer
+     @return
+     success return QHYCCD_SUCCESS \n
+     another QHYCCD_ERROR code on other failures
+     */
+    virtual uint32_t GetSingleFrame(qhyccd_handle *h, uint32_t *pW, uint32_t *pH, uint32_t * pBpp, uint32_t *pChannels, uint8_t *ImgData)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
+    }
+#endif
+
+    /**
+     @fn virtual uint32_t BeginLiveExposure(qhyccd_handle *h)
+     @brief begin live exposure
+     @param h camera control handle
+     @return
+     success return QHYCCD_SUCCESS \n
+     another QHYCCD_ERROR code on other failures
+     */
+    virtual uint32_t BeginLiveExposure(qhyccd_handle *h);
+
+    /**
+     @fn virtual uint32_t StopLiveExposure(qhyccd_handle *h)
+     @brief stop live exposure
+     @param h camera control handle
+     @return
+     success return QHYCCD_SUCCESS \n
+     another QHYCCD_ERROR code on other failures
+     */
+    virtual uint32_t StopLiveExposure(qhyccd_handle *h);
 
     /**
      @fn virtual uint32_t SetChipUSBTraffic(qhyccd_handle *h,uint32_t i)
@@ -382,8 +591,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipUSBTraffic(qhyccd_handle *h, uint32_t i) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipUSBTraffic(qhyccd_handle *h, uint32_t i)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -395,8 +606,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t DeChipRowNoise(qhyccd_handle *h, uint32_t value) {
-        return QHYCCD_ERROR;
+    virtual uint32_t DeChipRowNoise(qhyccd_handle *h, uint32_t value)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -415,8 +628,10 @@ public:
      support return true \n
      not support return false
      */
-    virtual bool IsSupportHighSpeed() {
-        return false;
+    virtual bool IsSupportHighSpeed()
+    {
+      OutputDebugPrintf("Not implemented");
+      return false;
     }
 
     /**
@@ -427,8 +642,10 @@ public:
      HAVE return QHYCCD_SUCCESS \n
      NOT HAVE return QHYCCD_ERROR_NOTSUPPORT
      */
-    virtual uint32_t IsChipHasFunction(CONTROL_ID id) {
-        return QHYCCD_ERROR;
+    virtual uint32_t IsChipHasFunction(CONTROL_ID id)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -440,8 +657,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipCoolPWM(qhyccd_handle *h, double PWM) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipCoolPWM(qhyccd_handle *h, double PWM)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -453,8 +672,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t AutoTempControl(qhyccd_handle *h, double ttemp) {
-        return QHYCCD_ERROR;
+    virtual uint32_t AutoTempControl(qhyccd_handle *h, double ttemp)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -466,8 +687,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipSpeed(qhyccd_handle *h, uint32_t i) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipSpeed(qhyccd_handle *h, uint32_t i)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -479,8 +702,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipBitsMode(qhyccd_handle *h, uint32_t bits) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetChipBitsMode(qhyccd_handle *h, uint32_t bits)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /**
@@ -492,8 +717,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetChipChannels(qhyccd_handle *h, uint32_t channels) {
-        return QHYCCD_SUCCESS;
+    virtual uint32_t SetChipChannels(qhyccd_handle *h, uint32_t channels)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_SUCCESS;
     }
 
     /**
@@ -516,7 +743,9 @@ public:
      @param y image height
      @param PixShift this is a way to fix the bad pixel data by the usb transfer
      */
-    virtual void ConvertDataBIN11(uint8_t *Data, uint32_t x, uint32_t y, uint16_t PixShift) {
+    virtual void ConvertDataBIN11(uint8_t *Data, uint32_t x, uint32_t y, uint16_t PixShift)
+    {
+      OutputDebugPrintf("Not implemented");
     }
 
     /**
@@ -527,7 +756,9 @@ public:
      @param y image height
      @param PixShift this is a way to fix the bad pixel data by the usb transfer
      */
-    virtual void ConvertDataBIN22(uint8_t *Data, uint32_t x, uint32_t y, uint16_t TopSkipPix) {
+    virtual void ConvertDataBIN22(uint8_t *Data, uint32_t x, uint32_t y, uint16_t TopSkipPix)
+    {
+      OutputDebugPrintf("Not implemented");
     }
 
     /**
@@ -538,7 +769,9 @@ public:
      @param y image height
      @param PixShift this is a way to fix the bad pixel data by the usb transfer
      */
-    virtual void ConvertDataBIN33(uint8_t *Data, uint32_t x, uint32_t y, uint16_t TopSkipPix) {
+    virtual void ConvertDataBIN33(uint8_t *Data, uint32_t x, uint32_t y, uint16_t TopSkipPix)
+    {
+      OutputDebugPrintf("Not implemented");
     }
 
     /**
@@ -549,7 +782,9 @@ public:
      @param y image height
      @param PixShift this is a way to fix the bad pixel data by the usb transfer
      */
-    virtual void ConvertDataBIN44(uint8_t *Data, uint32_t x, uint32_t y, uint16_t TopSkipPix) {
+    virtual void ConvertDataBIN44(uint8_t *Data, uint32_t x, uint32_t y, uint16_t TopSkipPix)
+    {
+      OutputDebugPrintf("Not implemented");
     }
 
     /**
@@ -562,8 +797,10 @@ public:
      success return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t Send2GuiderPort(qhyccd_handle *h, uint32_t Direction, uint16_t PulseTime) {
-        return QHYCCD_ERROR;
+    virtual uint32_t Send2GuiderPort(qhyccd_handle *h, uint32_t Direction, uint16_t PulseTime)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /** @fn virtual uint32_t SetFocusSetting(qhyccd_handle *h,uint32_t focusCenterX, uint32_t focusCenterY)
@@ -575,8 +812,10 @@ public:
       on success,return QHYCCD_SUCCESS \n
       another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetFocusSetting(qhyccd_handle *h, uint32_t focusCenterX, uint32_t focusCenterY) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetFocusSetting(qhyccd_handle *h, uint32_t focusCenterX, uint32_t focusCenterY)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /** @fn virtual uint32_t ExposureRemaining(qhyccd_handle *h)
@@ -586,11 +825,13 @@ public:
       100 or less 100,it means exposoure is over \n
       another is remaining time
      */
-    virtual uint32_t ExposureRemaining(qhyccd_handle *h) {
-        return 100;
+    virtual uint32_t ExposureRemaining(qhyccd_handle *h)
+    {
+      OutputDebugPrintf("Not implemented");
+      return 100;
     }
 
-    /** 
+    /**
      @fn uint32_t SetStreamMode(qhyccd_handle *handle,uint8_t mode)
      @brief Set the camera's mode to chose the way reading data from camera
      @param handle camera control handle
@@ -612,8 +853,10 @@ public:
 
       another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetInterCamSerialParam(qhyccd_handle *h, uint32_t opt) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetInterCamSerialParam(qhyccd_handle *h, uint32_t opt)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /** @fn virtual uint32_t InterCamSerialTX(qhyccd_handle *h,char *buf,uint32_t length)
@@ -626,8 +869,10 @@ public:
 
         another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t InterCamSerialTX(qhyccd_handle *h, char *buf, uint32_t length) {
-        return QHYCCD_ERROR;
+    virtual uint32_t InterCamSerialTX(qhyccd_handle *h, char *buf, uint32_t length)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /** @fn virtual uint32_t InterCamSerialRX(qhyccd_handle *h,char *buf)
@@ -639,8 +884,10 @@ public:
 
         another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t InterCamSerialRX(qhyccd_handle *h, char *buf) {
-        return QHYCCD_ERROR;
+    virtual uint32_t InterCamSerialRX(qhyccd_handle *h, char *buf)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /** @fn virtual uint32_t Send2OledFast(qhyccd_handle *h,char *buffer)
@@ -651,8 +898,10 @@ public:
        on success,return QHYCCD_SUCCESS \n
        another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t Send2OledFast(qhyccd_handle *h, uint8_t *buffer) {
-        return QHYCCD_ERROR;
+    virtual uint32_t Send2OledFast(qhyccd_handle *h, uint8_t *buffer)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /** @fn virtual uint32_t InterCamOledOnOff(qhyccd_handle *handle,uint8_t onoff)
@@ -665,8 +914,10 @@ public:
       on success,return QHYCCD_SUCCESS \n
       another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t InterCamOledOnOff(qhyccd_handle *handle, uint8_t onoff) {
-        return QHYCCD_ERROR;
+    virtual uint32_t InterCamOledOnOff(qhyccd_handle *handle, uint8_t onoff)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /** @fn virtual uint32_t SetInterCamOledBrightness(qhyccd_handle *handle,uint8_t brightness)
@@ -677,12 +928,16 @@ public:
       on success,return QHYCCD_SUCCESS \n
       another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SetInterCamOledBrightness(qhyccd_handle *handle, uint8_t brightness) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetInterCamOledBrightness(qhyccd_handle *handle, uint8_t brightness)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    virtual uint32_t SendFourLine2InterCamOled(qhyccd_handle *handle, char *messagetemp, char *messageinfo, char *messagetime, char *messagemode) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SendFourLine2InterCamOled(qhyccd_handle *handle, char *messagetemp, char *messageinfo, char *messagetime, char *messagemode)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /** @fn virtual uint32_t SendTwoLine2InterCamOled(qhyccd_handle *handle,char *messageTop,char *messageBottom)
@@ -694,8 +949,10 @@ public:
       on success,return QHYCCD_SUCCESS \n
       another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SendTwoLine2InterCamOled(qhyccd_handle *handle, char *messageTop, char *messageBottom) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SendTwoLine2InterCamOled(qhyccd_handle *handle, char *messageTop, char *messageBottom)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /** @fn virtual uint32_t SendOneLine2InterCamOled(qhyccd_handle *handle,char *messageTop)
@@ -706,8 +963,10 @@ public:
       on success,return QHYCCD_SUCCESS \n
       another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SendOneLine2InterCamOled(qhyccd_handle *handle, char *messageTop) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SendOneLine2InterCamOled(qhyccd_handle *handle, char *messageTop)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     /** @fn virtual uint32_t GetCameraStatus(qhyccd_handle *h,uint8_t *buf)
@@ -718,11 +977,13 @@ public:
         on success,return the camera statu \n
         another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t GetCameraStatus(qhyccd_handle *h, uint8_t *buf) {
-        return QHYCCD_ERROR;
+    virtual uint32_t GetCameraStatus(qhyccd_handle *h, uint8_t *buf)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    /** 
+    /**
      @fn virtual uint32_t SendOrder2CFW(qhyccd_handle *handle,char *order,uint32_t length)
      @brief control color filter wheel 
      @param handle camera control handle
@@ -732,11 +993,13 @@ public:
      on success,return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t SendOrder2CFW(qhyccd_handle *handle, char *order, uint32_t length) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SendOrder2CFW(qhyccd_handle *handle, char *order, uint32_t length)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    /** 
+    /**
      @fn virtual uint32_t GetCFWStatus(qhyccd_handle *handle,char *status)
      @brief get the color filter wheel status
      @param handle camera control handle
@@ -745,34 +1008,41 @@ public:
      on success,return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t GetCFWStatus(qhyccd_handle *handle, char *status) {
-        return QHYCCD_ERROR;
+    virtual uint32_t GetCFWStatus(qhyccd_handle *handle, char *status)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    /** 
+    /**
     @fn virtual uint32_t GetCFWSlotsNum()
     @brief get the hole number of color filter wheel
     @return
     on success,return QHYCCD_SUCCESS \n
     another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t GetCFWSlotsNum(qhyccd_handle *handle) {
-        return 9;
+    virtual uint32_t GetCFWSlotsNum(qhyccd_handle *handle)
+    {
+      //OutputDebugPrintf("Not implemented");
+      //return QHYCCD_ERROR;
+      return 9;
     }
 
-    /** 
-     @fn virtual uint32_t IsCFWPlugged(qhyccd_handle *handle)
-     @brief if CFW plugged in to the port or not.
-     @param handle camera control handle
-     @return
-     on success,return QHYCCD_SUCCESS \n
-     another QHYCCD_ERROR code on other failures
+    /**
+    @fn virtual uint32_t IsCFWPlugged(qhyccd_handle *handle)
+    @brief if CFW plugged in to the port or not.
+    @param handle camera control handle
+    @return
+    on success,return QHYCCD_SUCCESS \n
+    another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t IsCFWPlugged(qhyccd_handle *handle) {
-        return QHYCCD_ERROR;
+    virtual uint32_t IsCFWPlugged(qhyccd_handle *handle)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    /** 
+    /**
      @fn virtual uint32_t ControlShutter(qhyccd_handle *handle,uint8_t status)
      @brief control camera's shutter
      @param handle camera control handle
@@ -781,11 +1051,13 @@ public:
      on success,return QHYCCD_SUCCESS \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t ControlShutter(qhyccd_handle *handle, uint8_t status) {
-        return QHYCCD_ERROR;
+    virtual uint32_t ControlShutter(qhyccd_handle *handle, uint8_t status)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    /** 
+    /**
      @fn virtual uint32_t GetShutterStatus(qhyccd_handle *handle)
      @brief get the camera's shutter status 
      @param handle camera control handle
@@ -793,45 +1065,62 @@ public:
      on success,return status \n
      another QHYCCD_ERROR code on other failures
      */
-    virtual uint32_t GetShutterStatus(qhyccd_handle *handle) {
-        return QHYCCD_ERROR;
+    virtual uint32_t GetShutterStatus(qhyccd_handle *handle)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    virtual uint32_t GetHumidity(qhyccd_handle *handle, double *hd) {
-        return QHYCCD_ERROR;
+    virtual uint32_t GetHumidity(qhyccd_handle *handle, double *hd)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    virtual uint32_t SetTrigerFunction(qhyccd_handle *handle, bool value) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetTrigerFunction(qhyccd_handle *handle, bool value)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
     //---------just for debugging-------------
 
-    virtual uint32_t I2C_Write(qhyccd_handle *handle, uint8_t req, uint16_t value, uint16_t index, uint8_t* data, uint16_t length) {
-        return QHYCCD_ERROR;
+    virtual uint32_t I2C_Write(qhyccd_handle *handle, uint8_t req, uint16_t value, uint16_t index, uint8_t* data, uint16_t length)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    virtual uint32_t I2C_Read(qhyccd_handle *handle, uint8_t req, uint16_t value, uint16_t index, uint8_t* data, uint16_t length) {
-        return QHYCCD_ERROR;
+    virtual uint32_t I2C_Read(qhyccd_handle *handle, uint8_t req, uint16_t value, uint16_t index, uint8_t* data, uint16_t length)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
     //----------------------------------------
 
-    virtual uint32_t SetFineTone(qhyccd_handle *h, uint8_t setshporshd, uint8_t shdloc, uint8_t shploc, uint8_t shwidth) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetFineTone(qhyccd_handle *h, uint8_t setshporshd, uint8_t shdloc, uint8_t shploc, uint8_t shwidth)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    virtual uint32_t ReservedFunction(uint32_t width, uint32_t height, uint32_t bpp, uint32_t channels, uint8_t *ImgData) {
-        return QHYCCD_SUCCESS;
+    virtual uint32_t ReservedFunction(uint32_t width, uint32_t height, uint32_t bpp, uint32_t channels, uint8_t *ImgData)
+    {
+      return QHYCCD_SUCCESS;
     }
 
-    virtual uint32_t IsExposing() {
-        return QHYCCD_SUCCESS;
+    virtual uint32_t IsExposing(qhyccd_handle *h)
+    {
+      return QHYCCD_SUCCESS;
     }
 
-    virtual void UpdateParameters(qhyccd_handle *h) {
+    virtual void UpdateParameters(qhyccd_handle *h)
+    {
+
+      //OutputDebugPrintf("QHYCCD | qhybase.h | UpdateParameters | START");
 
     }
-    /** 
+    /**
       @fn virtual uint32_t GetFWVersion(qhyccd_handle *h,uint8_t *buf)
       @brief Get the QHYCCD's firmware version
       @param h camera control handle
@@ -842,14 +1131,18 @@ public:
      */
     virtual uint32_t GetFWVersion(qhyccd_handle *h, uint8_t *buf);
 
-    virtual uint32_t SetGuideModeOnOff(qhyccd_handle *h, double mode) {
-        return QHYCCD_ERROR;
+    virtual uint32_t SetGuideModeOnOff(qhyccd_handle *h, double mode)
+    {
+      OutputDebugPrintf("Not implemented");
+      return QHYCCD_ERROR;
     }
 
-    virtual uint32_t GeDDRBufferThreshold() {
-        return 0;
+    virtual uint32_t GeDDRBufferThreshold()
+    {
+      return 0;
     }
-public:
+    virtual uint32_t SetDarkGenerateOnOff(qhyccd_handle *h, double mode);
+  public:
 
     /**
      @fn void ControlCamTemp(qhyccd_handle *h,double MAXPWM)
@@ -859,7 +1152,7 @@ public:
      */
     void ControlCamTemp(qhyccd_handle *h, double MAXPWM);
 
-    /** 
+    /**
      @fn void Bit16To8_Stretch(uint8_t *InputData16,uint8_t \ *OutputData8,uint32_t imageX,uint32_t imageY,uint16_t B,uint16_t W)
      @brief turn 16bits data into 8bits
      @param InputData16 for 16bits data memory
@@ -946,7 +1239,7 @@ public:
      */
     uint32_t GetChipInfo(double *chipw, double *chiph, uint32_t *imagew, uint32_t *imageh, double *pixelw, double *pixelh, uint32_t *bpp);
 
-    /** 
+    /**
       @fn double GetReadingProgress(qhyccd_handle *handle)
       @brief get reading data from camera progress
       @param handle camera control handle
@@ -955,95 +1248,142 @@ public:
     virtual double GetReadingProgress(qhyccd_handle *handle);
 
     uint32_t SetGPSOn(qhyccd_handle *handle, uint8_t mode);
-    
-    uint32_t GetGPSSOnOff() {
-        return gpson;
+
+    uint32_t GetGPSSOnOff()
+    {
+      return gpson;
     }
 
-    static void QSleep(uint32_t mstime) {
+    uint32_t QSleep(uint32_t mstime)
+    {
 #ifdef WIN32
-        Sleep(mstime);
+      Sleep(mstime);
 #else
-        usleep(mstime * 1000);
+
+      usleep(mstime * 1000);
 #endif
+
+      return QHYCCD_SUCCESS;
     }
 
+    /**
+     */
     uint32_t SetPIDParas(qhyccd_handle *handle, double p, double i, double d);
+
     uint32_t PixelsDataSoftBin(uint8_t *srcdata, uint8_t *bindata, uint32_t width, uint32_t height, uint32_t depth, uint32_t camxbin, uint32_t camybin);
+
     uint32_t SetDebayerOnOff(bool onoff);
+
     uint32_t RoiTwoChannels2OneImage(uint32_t imgX, uint32_t imgY, uint32_t depth, uint32_t uselessStartX, uint32_t uselessStartY, uint32_t uselessSizeX, uint32_t uselessSizeY, uint8_t *data);
+
+    virtual uint32_t GetLiveFrame(qhyccd_handle *h, uint32_t *pW, uint32_t *pH, uint32_t * pBpp, uint32_t *pChannels, uint8_t *ImgData);
+
+    virtual uint32_t GetSingleFrame(qhyccd_handle *h, uint32_t *pW, uint32_t *pH, uint32_t * pBpp, uint32_t *pChannels, uint8_t *ImgData);
+
     uint32_t VendRequestWrite(qhyccd_handle *h, uint8_t req, uint16_t value, uint16_t index, uint32_t length, uint8_t *data);
+
     uint32_t VendRequestRead(qhyccd_handle *h, uint8_t req, uint16_t value, uint16_t index, uint32_t length, uint8_t *data);
+
+    void QHYCCDDemosaic(void* dataIn, uint32_t w, uint32_t h, uint32_t bpp, void* dataOut, uint8_t mode);
+
     uint32_t QHYCCDImageROI(void* src, uint32_t chipoutputsizex, uint32_t chipoutputsizey, uint32_t cambits, void* dist, uint32_t roixstart, uint32_t roiystart, uint32_t roixsize, uint32_t roiysize);
+
     uint32_t QHYCCDFlip(void* src, uint32_t xsize, uint32_t ysize, uint32_t cambits, int channels, void* dist, int flip_mode);
+
     uint32_t QHYCCDFlip(void* src, uint32_t xsize, uint32_t ysize, uint32_t cambits, int channels, int flip_mode);
+
     uint32_t SetAutoWhiteBalance(qhyccd_handle *h, double value);
+
     uint32_t SetAutoExposure(qhyccd_handle *h, double value);
+
     uint32_t SetAutoFocus(qhyccd_handle *h, double value);
+
     uint32_t SetBrightness(qhyccd_handle *h, double value);
+
     uint32_t SetContrast(qhyccd_handle *h, double value);
+
     uint32_t SetGamma(qhyccd_handle *h, double value);
+
     uint32_t SetAMPV(qhyccd_handle *h, double value);
-    uint32_t SetLPMode(qhyccd_handle *h, double value);
-    uint32_t SetCamViewMode(qhyccd_handle *h, double value);
-    uint32_t SetVcamOnoff(qhyccd_handle *h, double mode);
-    uint32_t SetScreenStretchB(qhyccd_handle *h, double value);
-    uint32_t SetScreenStretchW(qhyccd_handle *h, double value);
 
     virtual uint32_t SetDDR(qhyccd_handle *h, double value);
 
-    double GetBrightness();
-    double GetContrast();
-    double GetGamma();
-    double GetAMPV();
-    double GetDDR();
-    double GetLPMode();
-    double GetCamViewModeStatus();
-    double GetVcamOnoff();
-    double GetScreenStretchB();
-    double GetScreenStretchW();
-    double Getqhy5iiGuidePortOnoff();
+    uint32_t SetLPMode(qhyccd_handle *h, double value);
 
-    void QHYCCDDemosaic(void* dataIn, uint32_t w, uint32_t h, uint32_t bpp, void* dataOut, uint8_t mode);
+    uint32_t SetCamViewMode(qhyccd_handle *h, double value);
+
+    uint32_t SetVcamOnoff(qhyccd_handle *h, double mode);
+
+    uint32_t SetScreenStretchB(qhyccd_handle *h, double value);
+
+    uint32_t SetScreenStretchW(qhyccd_handle *h, double value);
+
+
+    double GetBrightness();
+
+    double GetContrast();
+
+    double GetGamma();
+
+    double GetAMPV();
+
+    double GetDDR();
+
+    double GetLPMode();
+
+    double GetCamViewModeStatus();
+
+    double GetVcamOnoff();
+
+    double GetScreenStretchB();
+
+    double GetScreenStretchW();
+
+    double GetDefaultGain();
+
+    double GetDefaultOffset();
+
+    double GetOutputDataActualBits();
+
+    double GetOutputDataAlignment();
     void BuildlLut_Contrast_Brightness_Gamma(uint32_t bpp, double brightness_percent, double contrast_percent, double fPrecompensation);
+
     void ImgProcess_Contrast_Brightness_Gamma(uint8_t *array, uint32_t width, uint32_t height, uint32_t bpp);
 
     uint32_t GetTempAndPwm(qhyccd_handle *h, double &temp, double &pwm);
+
     uint32_t QHYImgResize(void *src, uint32_t bpp, uint32_t ch, uint32_t src_width, uint32_t src_height, void *dst, uint32_t dst_width, uint32_t dst_height);
+
     uint32_t QHYBadLineProc(void *src, uint32_t imgw, uint32_t imgh, uint32_t bpp, uint32_t startx, uint32_t starty, uint32_t linew, uint32_t endy, bool method);
+
+    double Getqhy5iiGuidePortOnoff();
+
     uint32_t GeDDRBufferCap(qhyccd_handle *h);
+
     uint32_t QHYConvertToSoftBIN22(void *src, uint32_t bpp, uint32_t src_width, uint32_t src_height, void *dst);
     uint32_t QHYConvertToSoftBIN33(void *src, uint32_t bpp, uint32_t src_width, uint32_t src_height, void *dst);
     uint32_t QHYConvertToSoftBIN44(void *src, uint32_t bpp, uint32_t src_width, uint32_t src_height, void *dst);
-    
-    qhyccd_handle *GetHandle();
-    void SetHandle(qhyccd_handle *pHandle);
-    
-    inline void SetMaxImageReadTrials(int value) {
-    	m_max_image_read_trials = value;
-    }
-    
-    inline int GetMaxImageReadTrials() {
-    	return m_max_image_read_trials;
-    }
-    
+
+
+    // void OutputDebugPrintf(const char * strOutputString,...);
+
+
+    uint8_t camtype;
+
     uint32_t camx; //!< current camera width
     uint32_t camy; //!< current camera height
     uint32_t camxbin; //!< current camera width bin
     uint32_t camybin; //!< current camera height bin
     uint32_t cambits; //!< current camera bits mode
     uint32_t camchannels; //!< current camera channels
-    
     uint32_t usbtraffic; //!< current usbtraffic
     uint32_t usbspeed; //!< current usb speed mode
-    
     double camtime; //!< current cam expose time
     double camgain; //!< current cam gain
     double camoffset; //!< current cam offset
     double camred2green; //!< current white blance red value
     double camblue2green; //!< current white blance blue value
-    double camgreen; //!< current white blance green 
-    
+    double camgreen; //!< current white blance green value
     uint8_t *rawarray; //!< raw buffer pointer for usb transfer
     uint8_t *roiarray; //!< roi image buffer
 
@@ -1057,22 +1397,18 @@ public:
     uint32_t unbinningxsize;
     uint32_t unbinningysize;
 
-    // overscan area
     uint32_t overScanStartX; //!< overscan area x position
     uint32_t overScanStartY; //!< overscan area y position
     uint32_t overScanSizeX; //!< overscan area x size
     uint32_t overScanSizeY; //!< overscan area y size
-    
-    // effective area
     uint32_t onlyStartX; //!< effective area x position
     uint32_t onlyStartY; //!< effective area y position
     uint32_t onlySizeX; //!< effective area x size
     uint32_t onlySizeY; //!< effective area y size
 
-    // chip info
     double ccdchipw; //!< ccd chip width
     double ccdchiph; //!< ccd chip height
-    uint32_t ccdimagew; //!< ccd image width 
+    uint32_t ccdimagew; //!< ccd image width
     uint32_t ccdimageh; //!< ccd image height
     double ccdpixelw; //!< ccd pixel width
     double ccdpixelh; //!< ccd pixel height
@@ -1081,30 +1417,28 @@ public:
     uint32_t lastcamxbin, lastcamybin;
     uint32_t chipoutputx, chipoutputy, chipoutputsizex, chipoutputsizey, chipoutputbits;
 
-    double m_TargetTemp; //!< target ccd/cmos temprature
-    double m_CurrentTemp; //!< current ccd/cmos tempratue
-    double m_CurrentPwm; //!< current cool power
-    
+    double targetTEMP; //!< target ccd/cmos temprature
+    double currentTEMP; //!< current ccd/cmos tempratue
+    double currentPWM; //!< current cool power
     double nowVoltage; //!< reserved
+    bool flag_timer; //!< timer flag
+    bool flag_timer_2; //!< timer flag 2
+    bool flagtempauto; //!< temperature to read flag
+
     double NowError; //!< the step k difference
     double PrevError; //!< the step k - 2 difference
     double LastError; //!< the step k - 1 difference
     double Proportion; //!< scale factor value
     double Integral; //!< integralcoefficients
     double Derivative; //!< differential coefficient
+
+    bool flagquit; //!< the global var for quit signal
+
     double readprogress; //!< get the reading data from camera progress status
-    double humidityvalue;
-    double imgbrightness;
-    double imgcontrast;
-    double imggamma;
-    double camampv;
-	double defaultgain;
-	double defaultoffset;
-	double outputdataactualbits;
-	double outputdataalignment;
-    double camviewmode;
 
     uint8_t isbadframe;
+    uint8_t badframenum;
+
     uint8_t isexposureupdate;
     uint8_t isgainupdate;
     uint8_t iscolorgainupdate;
@@ -1113,77 +1447,75 @@ public:
     uint8_t isspeedupdate;
     uint8_t isresolutionupdate;
     uint8_t isusbtrafficupdate;
+
+    uint8_t streammode; //!< the way to reading data from camera
+
+    int8_t filterpos;
+
+    bool isReadoutData; //!< sign whether it is reading out the image data
+
+    int32_t frameflag;
+
+    double humidityvalue;
+
+    bool debayeronoff;
+    uint32_t debayerformat;
+
+    uint32_t initdone;
+    uint32_t connected;
+    uint32_t resolutionmode;
+    uint32_t darkgen_on;
+    uint32_t uselessstartx;
+    uint32_t uselessstarty;
+    uint32_t uselesssizex;
+    uint32_t uselesssizey;
+
     uint8_t is_superspeed;
-    uint8_t isReadoutTemp;
-    uint8_t islive;
-    uint8_t camtype;
-    uint8_t streammode; 
-    uint8_t badframenum;
+    uint8_t gpson;
     uint8_t gpsarray[5000 * 11 * 2];
+
     uint8_t is_3a_autoexposure_on;
     uint8_t is_3a_autowhitebalance_on;
     uint8_t is_3a_autofocus_on;
     uint8_t autoexposure_messuremethod;
     uint8_t autoexposure_controlmode;
     uint8_t autowhitebalanceloops;
+
+    double imgbrightness;
+    double imgcontrast;
+    double imggamma;
+    double camampv;
+    double defaultgain;
+    double defaultoffset;
+    double outputdataactualbits;
+    double outputdataalignment;
+    uint16_t camddr;
     uint8_t camLPMode; // 1: high light performance or 0: low light performance
-    uint8_t singlestatus;
-    uint8_t gpson;
-    uint8_t qhy5iiGuidePortOnOff;
-    
-    bool isReadoutData; //!< sign whether it is reading out the image data
-    bool flag_timer; //!< timer flag
-    bool flag_timer_2; //!< timer flag 2
-    bool flagtempauto; //!< temperature to read flag
-    bool debayeronoff;
+    double camviewmode;
+    bool vcamonoff;
+    int32_t imgprocesslut[65536];
+
     bool isOverscanRemoved; //!< sign whether removed the overscan area for image.
     bool isFocusmode; //!< hold the camera work mode, false: capture mode, true: focus mdoe
-    bool vcamonoff;
-    bool isFX3;
-    bool delRowRoise;
 
-    uint32_t ddrnum;
-    uint32_t debayerformat;
-    uint32_t initdone;
-    uint32_t connected;
-    uint32_t resolutionmode;
-    uint32_t uselessstartx;
-    uint32_t uselessstarty;
-    uint32_t uselesssizex;
-    uint32_t uselesssizey;
-	uint32_t retrynum;
-
-    int32_t imgprocesslut[65536];
-    int32_t frameflag;
-    
-    uint16_t camddr;
+    uint8_t isReadoutTemp;
+    uint8_t islive;
+    uint8_t singlestatus;
     uint16_t screenstretchb, screenstretchw;
 
-    int8_t filterpos;
+    bool isFX3;
+
+    uint8_t qhy5iiGuidePortOnOff;
+    bool delRowRoise;
+    uint32_t ddrnum;
 
 #ifdef WIN32
+
     HANDLE reseth;
 #else
 
 #endif
 
-protected:
-    bool m_flagQuit; 
-    bool m_exposureThreadRunFlag;
-    qhyccd_handle *m_pHandle;    
-    uint32_t m_totalDataLength;
-    int m_max_image_read_trials;
-
-private:
-#ifdef WIN32
-    
-#else
-    pthread_mutex_t m_flagQuitMutex;
-    pthread_mutex_t m_ddrNumMutex;
-    pthread_mutex_t m_exposureThreadRunFlagMutex;
-    pthread_mutex_t m_totalDataLengthMutex;
-#endif
-    
-};
+  };
 
 #endif

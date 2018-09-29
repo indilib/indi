@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include <qhycam.h>
 #include <qhyccd.h>
 
 #include <indiccd.h>
