@@ -613,7 +613,7 @@ void LX200StarGo::getBasicData()
 
         if (genericCapability & LX200_HAS_TRACKING_FREQ)
         {
-            if (getTrackFrequency(&TrackFreqN[0].value) < 0)
+            if (! getTrackFrequency(&TrackFreqN[0].value))
                 LOG_ERROR("Failed to get tracking frequency from device.");
             else
                 IDSetNumber(&TrackingFreqNP, nullptr);
@@ -2018,7 +2018,7 @@ bool LX200StarGo::Goto(double ra, double dec)
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
     {
-        if (!isSimulation() && !Abort() < 0)
+        if (!isSimulation() && !Abort())
         {
             AbortSP.s = IPS_ALERT;
             IDSetSwitch(&AbortSP, "Abort slew failed.");
