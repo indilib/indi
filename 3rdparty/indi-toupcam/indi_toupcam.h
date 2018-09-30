@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <map>
+
 #include "toupcam.h"
 #include "indi_toupcam.h"
 
@@ -80,6 +82,21 @@ private:
         StateTerminate,
         StateTerminated
     } ImageState;
+
+    enum {
+        S_OK            = 0x00000000,
+        S_FALSE         = 0x00000001,
+        E_FAIL          = 0x80004005,
+        E_INVALIDARG    = 0x80070057,
+        E_NOTIMPL       = 0x80004001,
+        E_NOINTERFACE   = 0x80004002,
+        E_POINTER       = 0x80004003,
+        E_UNEXPECTED    = 0x8000FFFF,
+        E_OUTOFMEMORY   = 0x8007000E,
+        E_WRONG_THREAD  = 0x8001010E,
+    };
+    static std::map<int, std::string> errorCodes;
+
 
     enum eFLAG
     {
