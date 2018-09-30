@@ -982,10 +982,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 LOG_ERROR("Cannot change format while streaming/recording.");
                 IDSetSwitch(&VideoFormatSP, nullptr);
                 return true;
-            }
-
-            // We need to stop camera first
-            Toupcam_Stop(m_CameraHandle);
+            }            
 
             const char *targetFormat = IUFindOnSwitchName(states, names, n);
             int targetIndex=-1;
@@ -1014,15 +1011,15 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 return true;
             }
 
-            // Set updated video format            
-            int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, targetIndex == TC_VIDEO_RAW ? 1 : 0);
-            if (rc < 0)
+            // Check if raw format is supported.
+            if (targetIndex == TC_VIDEO_RAW && m_RAWFormatSupport == false)
             {
-                LOGF_ERROR("Failed to set video mode: %d", rc);
                 VideoFormatSP.s = IPS_ALERT;
+                LOG_ERROR("RAW format is not supported.");
                 IDSetSwitch(&VideoFormatSP, nullptr);
                 return true;
             }
+
             // If video mode is RGB subtype, we need it to specifically set it.
             if (targetIndex != TC_VIDEO_RAW)
             {
@@ -1033,10 +1030,94 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                     IDSetSwitch(&VideoFormatSP, nullptr);
                     return true;
                 }
+            }
 
+            // We need to stop camera first
+            Toupcam_Stop(m_CameraHandle);
+
+            // Set updated video format RGB vs. RAW
+            int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, targetIndex == TC_VIDEO_RAW ? 1 : 0);
+            if (rc < 0)
+            {
+                LOGF_ERROR("Failed to set video mode: %d", rc);
+                VideoFormatSP.s = IPS_ALERT;
+                IDSetSwitch(&VideoFormatSP, nullptr);
+
+                // Restart Capture
+                Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+
+                return true;
+            }
+
+            // If RGB, we need to set specific sub-type
+            if (targetIndex != TC_VIDEO_RAW)
+            {
+                // RGB 24
+                // N.B. Mode 1 (RGB48) and Mode 2 (RGB32) are not supported in our driver.
+                int mode = 0;
+                // Mode 3 is 8-bit
+                if (targetIndex == TC_VIDEO_MONO_8)
+                    mode = 3;
+                // Mode 4 is 16-bit
+                else if (targetIndex == TC_VIDEO_MONO_16)
+                    mode = 4;
+
+                int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, mode);
+                if (rc < 0)
+                {
+                    LOGF_ERROR("Failed to set RGB mode: %d", rc);
+                    VideoFormatSP.s = IPS_ALERT;
+                    IDSetSwitch(&VideoFormatSP, nullptr);
+
+                    // Restart Capture
+                    Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+
+                    return true;
+                }
             }
 
             currentVideoFormat = targetIndex;
+            switch (currentVideoFormat)
+            {
+            case TC_VIDEO_MONO_8:
+            {
+                m_Channels = 1;
+                m_BitsPerPixel = 8;
+                // Disable Bayer if supported.
+                if (m_RAWFormatSupport)
+                    SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+            }
+                break;
+
+            case TC_VIDEO_MONO_16:
+            {
+                m_Channels = 1;
+                m_BitsPerPixel = 16;
+                // Disable Bayer if supported.
+                if (m_RAWFormatSupport)
+                    SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+            }
+                break;
+
+            case TC_VIDEO_RGB:
+            {
+                m_Channels = 3;
+                m_BitsPerPixel = 8;
+                // Disable Bayer if supported.
+                if (m_RAWFormatSupport)
+                    SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+            }
+                break;
+
+            case TC_VIDEO_RAW:
+            {
+                m_Channels = 1;
+                SetCCDCapability(GetCCDCapability() & CCD_HAS_BAYER);
+                IUSaveText(&BayerT[1], getBayerString());
+                m_BitsPerPixel = m_RawBitsPerPixel;
+            }
+                break;
+            }
 
             // Allocate memory
             allocateFrameBuffer();
@@ -1863,7 +1944,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         {
             uint8_t *buffer = PrimaryCCD.getFrameBuffer();
 
-            if (m_SendImage && currentVideoFormat == INDI_RGB)
+            if (m_SendImage && currentVideoFormat == TC_VIDEO_RGB)
                 buffer = static_cast<uint8_t*>(malloc(PrimaryCCD.getXRes()*PrimaryCCD.getYRes()*3));
 
             HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, buffer, m_BitsPerPixel * m_Channels, &info);
@@ -1871,7 +1952,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
             {
                 LOGF_ERROR("Failed to pull image, Error Code = %08x", rc);
                 PrimaryCCD.setExposureFailed();
-                if (m_SendImage && currentVideoFormat == INDI_RGB)
+                if (m_SendImage && currentVideoFormat == TC_VIDEO_RGB)
                     free(buffer);
             }
             else
@@ -1879,7 +1960,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
                 if (m_SendImage)
                 {
                     LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
-                    if (currentVideoFormat == INDI_RGB)
+                    if (currentVideoFormat == TC_VIDEO_RGB)
                     {
                         uint8_t *image  = PrimaryCCD.getFrameBuffer();
                         uint32_t width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
