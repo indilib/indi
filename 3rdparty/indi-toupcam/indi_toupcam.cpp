@@ -548,10 +548,12 @@ void TOUPCAM::setupParams()
     // Get RAW/RGB Mode
     IUResetSwitch(&VideoFormatSP);
     rc = Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, &nVal);
+    LOGF_DEBUG("TOUPCAM_OPTION_RAW. rc: %d Value: %d", rc, nVal);
     // RGB Mode
     if (nVal == 0)
     {
         rc = Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, &nVal);
+        LOGF_DEBUG("TOUPCAM_OPTION_RGB. rc: %d Value: %d", rc, nVal);
         // 0 = RGB24, 1 = RGB48, 2 = RGB32
         // We only support RGB24 in the driver
         if (nVal <= 2)
@@ -673,8 +675,11 @@ void TOUPCAM::setupParams()
     ControlN[TC_GAMMA].value = nVal;
 
     // Set Bin more for better quality over skip
-    LOG_DEBUG("Selecting BIN mode over SKIP...");
-    rc = Toupcam_put_Mode(m_CameraHandle, 0);
+    if (m_Instance->model->flag & TOUPCAM_FLAG_BINSKIP_SUPPORTED)
+    {
+        LOG_DEBUG("Selecting BIN mode over SKIP...");
+        rc = Toupcam_put_Mode(m_CameraHandle, 0);
+    }
 
     // Get White Balance RGB Gain
     int aGain[3] = {0};
@@ -997,6 +1002,14 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             {
                 VideoFormatSP.s = IPS_ALERT;
                 LOGF_ERROR("Unable to locate format %s.", targetFormat);
+                IDSetSwitch(&VideoFormatSP, nullptr);
+                return true;
+            }
+
+            if (m_MaxBitDepth == 8 && targetIndex == TC_VIDEO_MONO_16)
+            {
+                VideoFormatSP.s = IPS_ALERT;
+                LOG_ERROR("Only 8-bit format is supported.");
                 IDSetSwitch(&VideoFormatSP, nullptr);
                 return true;
             }
