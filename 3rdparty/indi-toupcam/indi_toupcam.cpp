@@ -1144,6 +1144,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 m_Channels = 1;
                 SetCCDCapability(GetCCDCapability() & CCD_HAS_BAYER);
                 IUSaveText(&BayerT[2], getBayerString());
+                IDSetText(&BayerTP, nullptr);
                 m_BitsPerPixel = m_RawBitsPerPixel;
             }
                 break;
