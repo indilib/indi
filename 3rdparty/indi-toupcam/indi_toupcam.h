@@ -37,6 +37,7 @@ public:
     virtual const char *getDefaultName() override;
 
     virtual bool initProperties() override;
+    virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
 
     virtual bool Connect() override;
@@ -422,7 +423,7 @@ private:
         TC_GAMMA,
     };
 
-    ISwitch AutoControlS[5];
+    ISwitch AutoControlS[4];
     ISwitchVectorProperty AutoControlSP;
     enum
     {
@@ -475,7 +476,7 @@ private:
       TC_WB_B,
     };
 
-    // Auto Balance
+    // Auto Balance Mode
     ISwitch WBAutoS[2];
     ISwitchVectorProperty WBAutoSP;
     enum

@@ -321,9 +321,9 @@ bool TOUPCAM::initProperties()
     ///////////////////////////////////////////////////////////////////////////////////
     /// White Balance - Auto
     ///////////////////////////////////////////////////////////////////////////////////
-    IUFillSwitch(&WBAutoS[TC_AUTO_WB_TT], "TC_AUTO_WB_TT", "Temp/Tint", ISS_OFF);
+    IUFillSwitch(&WBAutoS[TC_AUTO_WB_TT], "TC_AUTO_WB_TT", "Temp/Tint", ISS_ON);
     IUFillSwitch(&WBAutoS[TC_AUTO_WB_RGB], "TC_AUTO_WB_RGB", "RGB", ISS_OFF);
-    IUFillSwitchVector(&WBAutoSP, WBAutoS, 2, getDeviceName(), "TC_AUTO_WB", "Auto Balance", LEVEL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&WBAutoSP, WBAutoS, 2, getDeviceName(), "TC_AUTO_WB", "Default WB Mode", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     ///////////////////////////////////////////////////////////////////////////////////
     /// Video Format
@@ -362,6 +362,13 @@ bool TOUPCAM::initProperties()
     return true;
 }
 
+void TOUPCAM::ISGetProperties(const char *dev)
+{
+    INDI::CCD::ISGetProperties(dev);
+
+    defineSwitch(&WBAutoSP);
+}
+
 bool TOUPCAM::updateProperties()
 {
     INDI::CCD::updateProperties();
@@ -394,8 +401,7 @@ bool TOUPCAM::updateProperties()
 
         // Balance
         defineNumber(&WBTempTintNP);
-        defineNumber(&WBRGBNP);
-        defineSwitch(&WBAutoSP);
+        defineNumber(&WBRGBNP);               
 
         // Firmware
         defineText(&FirmwareTP);
@@ -416,8 +422,7 @@ bool TOUPCAM::updateProperties()
         deleteProperty(BlackBalanceNP.name);
 
         deleteProperty(WBTempTintNP.name);
-        deleteProperty(WBRGBNP.name);
-        deleteProperty(WBAutoSP.name);
+        deleteProperty(WBRGBNP.name);        
 
         deleteProperty(FirmwareTP.name);
     }
@@ -430,7 +435,14 @@ bool TOUPCAM::Connect()
     LOGF_DEBUG("Attempting to open %s with ID %s", name, m_Instance->id);
 
     if (isSimulation() == false)
-        m_CameraHandle = Toupcam_Open(m_Instance->id);
+    {
+        std::string fullID = m_Instance->id;
+        // For RGB White Balance Mode, we need to add @ at the beginning as per docs.
+        if (WBAutoS[TC_AUTO_WB_RGB].s == ISS_ON)
+            fullID = "@" + fullID;
+
+        m_CameraHandle = Toupcam_Open(fullID.c_str());
+    }
 
     if (m_CameraHandle == nullptr)
     {
@@ -1094,7 +1106,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, mode);
                 if (rc < 0)
                 {
-                    LOGF_ERROR("Failed to set RGB mode: %s", errorCodes[rc].c_str());
+                    LOGF_ERROR("Failed to set RGB mode %d: %s", targetIndex, errorCodes[rc].c_str());
                     VideoFormatSP.s = IPS_ALERT;
                     IDSetSwitch(&VideoFormatSP, nullptr);
 
@@ -1870,6 +1882,7 @@ bool TOUPCAM::saveConfigItems(FILE *fp)
 {
     INDI::CCD::saveConfigItems(fp);
 
+    IUSaveConfigSwitch(fp, &WBAutoSP);
     if (HasCooler())
         IUSaveConfigSwitch(fp, &CoolerSP);
     IUSaveConfigNumber(fp, &ControlNP);
