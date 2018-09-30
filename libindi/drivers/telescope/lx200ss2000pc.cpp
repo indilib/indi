@@ -30,6 +30,8 @@
 #include <termios.h>
 #include <unistd.h>
 
+#define RB_MAX_LEN    64
+
 const int LX200SS2000PC::ShortTimeOut = 2;  // In seconds.
 const int LX200SS2000PC::LongTimeOut  = 10; // In seconds.
 
@@ -39,8 +41,12 @@ LX200SS2000PC::LX200SS2000PC(void) : LX200Generic()
 
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
-    SetTelescopeCapability(
-        TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);    
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC |
+                           TELESCOPE_CAN_GOTO |
+                           TELESCOPE_CAN_ABORT |
+                           TELESCOPE_HAS_TIME |
+                           TELESCOPE_CAN_PARK |
+                           TELESCOPE_HAS_LOCATION, 4);
 }
 
 bool LX200SS2000PC::initProperties()
@@ -51,6 +57,8 @@ bool LX200SS2000PC::initProperties()
     IUFillNumber(&SlewAccuracyN[1], "SlewDEC", "Dec (arcmin)", "%10.6m", 0., 60., 1., 3.0);
     IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
+    SetParkDataType(PARK_AZ_ALT);
 
     return true;
 }
@@ -163,7 +171,7 @@ bool LX200SS2000PC::isSlewComplete()
 
 bool LX200SS2000PC::getCalendarDate(int &year, int &month, int &day)
 {
-    char date[16];
+    char date[RB_MAX_LEN];
     bool result = (getCommandString(PortFD, date, ":GC#") == 0);
     LOGF_DEBUG("LX200SS2000PC::getCalendarDate():: Date string from telescope: %s", date);
     if (result)
@@ -194,7 +202,7 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
            year, ss_month, ss_day, ss_year);
     if (send_to_skysensor)
     {
-        char buffer[64];
+        char buffer[RB_MAX_LEN];
         int nbytes_written = 0;
 
         snprintf(buffer, sizeof(buffer), ":SC %02d/%02d/%02d#", month, day, (year % 100));
@@ -202,18 +210,18 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
         if (result)
         {
             int nbytes_read = 0;
-            result          = (tty_read(PortFD, buffer, 1, ShortTimeOut, &nbytes_read) == TTY_OK && nbytes_read == 1 &&
+            result          = (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', ShortTimeOut, &nbytes_read) == TTY_OK && nbytes_read == 1 &&
                       buffer[0] == '1');
             if (result)
             {
-                if (tty_read_section(PortFD, buffer, '#', ShortTimeOut, &nbytes_read) != TTY_OK ||
+                if (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', ShortTimeOut, &nbytes_read) != TTY_OK ||
                     strncmp(buffer, "Updating        planetary data#", 24) != 0)
                 {
                     LOGF_ERROR(
                            "LX200SS2000PC::setCalenderDate(): Received unexpected first line '%s'.", buffer);
                     result = false;
                 }
-                else if (tty_read_section(PortFD, buffer, '#', LongTimeOut, &nbytes_read) != TTY_OK &&
+                else if (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', LongTimeOut, &nbytes_read) != TTY_OK &&
                          strncmp(buffer, "                              #", 24) != 0)
                 {
                     LOGF_ERROR(
@@ -233,7 +241,7 @@ bool LX200SS2000PC::setUTCOffset(double offset)
     const bool send_to_skysensor = (getUTCOffset(PortFD, &ss_timezone) != 0 || offset != ss_timezone);
     if (send_to_skysensor)
     {
-        char temp_string[12];
+        char temp_string[RB_MAX_LEN];
         snprintf(temp_string, sizeof(temp_string), ":SG %+03d#", static_cast<int>(offset));
         result = (setStandardProcedure(PortFD, temp_string) == 0);
     }
@@ -261,7 +269,7 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
         return false;
     }
 
-    char slat[32], slong[32];
+    char slat[RB_MAX_LEN], slong[RB_MAX_LEN];
     fs_sexa(slat, latitude, 3, 3600);
     fs_sexa(slong, longitude, 4, 3600);
 
@@ -277,7 +285,7 @@ int LX200SS2000PC::setSiteLatitude(int fd, double Lat)
 {
     int d, m, s;
     char sign;
-    char temp_string[32];
+    char temp_string[RB_MAX_LEN];
 
     if (Lat > 0)
         sign = '+';
@@ -297,7 +305,7 @@ int LX200SS2000PC::setSiteLatitude(int fd, double Lat)
 int LX200SS2000PC::setSiteLongitude(int fd, double Long)
 {
     int d, m, s;
-    char temp_string[32];
+    char temp_string[RB_MAX_LEN];
 
     getSexComponents(Long, &d, &m, &s);
 
@@ -305,3 +313,221 @@ int LX200SS2000PC::setSiteLongitude(int fd, double Long)
 
     return setStandardProcedure(fd, temp_string);
 }
+
+bool LX200SS2000PC::Park()
+{
+    double parkAz  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAz, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    if (isSimulation())
+    {
+        ln_lnlat_posn observer;
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+
+        horizontalPos.az = parkAz + 180;
+        if (horizontalPos.az > 360)
+            horizontalPos.az -= 360;
+        horizontalPos.alt = parkAlt;
+
+        ln_equ_posn equatorialPos;
+
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
+    }
+    else
+    {
+        if (setObjAz(PortFD, parkAz) < 0 || setObjAlt(PortFD, parkAlt) < 0)
+        {
+            LOG_ERROR("Error setting Az/Alt.");
+            return false;
+        }
+
+        int err = 0;
+
+        /* Slew reads the '0', that is not the end of the slew */
+        if ((err = Slew(PortFD)))
+        {
+            LOGF_ERROR("Error Slewing to Az %s - Alt %s", AzStr, AltStr);
+            slewError(err);
+            return false;
+        }
+    }
+
+    EqNP.s     = IPS_BUSY;
+    TrackState = SCOPE_PARKING;
+    LOG_INFO("Parking is in progress...");
+
+    return true;
+}
+
+bool LX200SS2000PC::UnPark()
+{
+    // First we unpark astrophysics
+    if (isSimulation() == false)
+    {
+        if (setAlignmentMode(PortFD, LX200_ALIGN_POLAR) < 0)
+        {
+            LOG_ERROR("UnParking Failed.");
+            return false;
+        }
+    }
+
+    // Then we sync with to our last stored position
+    double parkAz  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAz, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    LOGF_DEBUG("Syncing to parked coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    if (isSimulation())
+    {
+        ln_lnlat_posn observer;
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+
+        horizontalPos.az = parkAz + 180;
+        if (horizontalPos.az > 360)
+            horizontalPos.az -= 360;
+        horizontalPos.alt = parkAlt;
+
+        ln_equ_posn equatorialPos;
+
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        currentRA = equatorialPos.ra / 15.0;
+        currentDEC= equatorialPos.dec;
+    }
+    else
+    {
+        if (setObjAz(PortFD, parkAz) < 0 || (setObjAlt(PortFD, parkAlt)) < 0)
+        {
+            LOG_ERROR("Error setting Az/Alt.");
+            return false;
+        }
+
+        char syncString[256];
+        if (::Sync(PortFD, syncString) < 0)
+        {
+            LOG_WARN("Sync failed.");
+            return false;
+        }
+    }
+
+    SetParked(false);
+    return true;
+}
+
+bool LX200SS2000PC::SetCurrentPark()
+{
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_equ_posn equatorialPos;
+    equatorialPos.ra  = currentRA * 15;
+    equatorialPos.dec = currentDEC;
+    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+
+    double parkAZ = horizontalPos.az - 180;
+    if (parkAZ < 0)
+        parkAZ += 360;
+    double parkAlt = horizontalPos.alt;
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+
+    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    SetAxis1Park(parkAZ);
+    SetAxis2Park(parkAlt);
+
+    return true;
+}
+
+bool LX200SS2000PC::SetDefaultPark()
+{
+    // Az = 0 for North hemisphere
+    SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
+
+    // Alt = Latitude
+    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+
+    return true;
+}
+
+bool LX200SS2000PC::ReadScopeStatus()
+{
+    if (!isConnected())
+        return false;
+
+    if (isSimulation())
+    {
+        mountSim();
+        return true;
+    }
+
+    //if (check_lx200_connection(PortFD))
+    //return false;
+
+    if (TrackState == SCOPE_SLEWING)
+    {
+        // Check if LX200 is done slewing
+        if (isSlewComplete())
+        {
+            // Set slew mode to "Centering"
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_CENTERING].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, nullptr);
+
+            TrackState = SCOPE_TRACKING;
+            LOG_INFO("Slew is complete. Tracking...");
+        }
+    }
+    else if (TrackState == SCOPE_PARKING)
+    {
+        if (isSlewComplete())
+        {
+            SetParked(true);
+
+            setAlignmentMode(PortFD, LX200_ALIGN_LAND);
+        }
+    }
+
+    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        return false;
+    }
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
+}
+
+

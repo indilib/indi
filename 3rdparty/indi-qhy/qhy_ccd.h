@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include <qhycam.h>
 #include <qhyccd.h>
 
 #include <indiccd.h>
@@ -138,7 +139,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     bool sim;
 
     // Temperature tracking
-    float TemperatureRequest;
+    double TemperatureRequest {0};
     int temperatureID;
     bool coolerEnabled;//, useSoftBin;
 

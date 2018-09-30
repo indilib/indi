@@ -66,8 +66,7 @@ Dome::Dome()
 
 Dome::~Dome()
 {
-    if (ParkdataXmlRoot)
-        delXMLEle(ParkdataXmlRoot);
+    delXMLEle(ParkdataXmlRoot);
 
     delete controller;
     delete serialConnection;

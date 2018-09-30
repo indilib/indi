@@ -45,7 +45,7 @@ Version with experimental pulse guide support. GC 04.12.2015
 
 #define MOUNTINFO_TAB "Mount Info"
 
-std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
+static std::unique_ptr<CelestronGPS> telescope(new CelestronGPS());
 
 void ISGetProperties(const char *dev)
 {
@@ -82,11 +82,13 @@ void ISSnoopDevice(XMLEle *root)
 
 CelestronGPS::CelestronGPS()
 {
-    setVersion(3, 1);
+    setVersion(3, 2);
+
 
     fwInfo.Version           = "Invalid";
     fwInfo.controllerVersion = 0;
     fwInfo.controllerVariant = ISNEXSTAR;
+    fwInfo.isGem = false;
 
     INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
@@ -114,7 +116,7 @@ bool CelestronGPS::checkMinVersion(float minVersion, const char *feature)
 
 const char *CelestronGPS::getDefaultName()
 {
-    return ((const char *)"Celestron GPS");
+    return static_cast<const char *>("Celestron GPS");
 }
 
 bool CelestronGPS::initProperties()
@@ -206,7 +208,8 @@ bool CelestronGPS::updateProperties()
             IUSaveText(&FirmwareT[FW_RA], fwInfo.RAFirmware.c_str());
             IUSaveText(&FirmwareT[FW_DEC], fwInfo.DEFirmware.c_str());
 
-            usePreciseCoords = (fwInfo.controllerVersion > 2.2);
+            //usePreciseCoords = (fwInfo.controllerVersion > 2.2);
+            usePreciseCoords = (checkMinVersion(2.2, "usePreciseCoords"));
         }
         else
         {
@@ -215,18 +218,23 @@ bool CelestronGPS::updateProperties()
         }
 
         // Since issues have been observed with Starsense, enabe parking only with Nexstar controller
+//        if (fwInfo.controllerVariant == ISSTARSENSE)
+//        {
+//            if (fwInfo.controllerVersion >= MINSTSENSVER)
+//                LOG_INFO("Starsense controller detected.");
+//            else
+//                LOGF_WARN("Starsense controller detected, but firmware is too old. "
+//                        "Current version is %4.2f, but minimum required version is %4.2f. "
+//                        "Please update your Starsense firmware.",
+//                        fwInfo.controllerVersion, MINSTSENSVER);
+//        }
+//        else
+//            cap |= TELESCOPE_CAN_PARK;
 
-        if (fwInfo.controllerVariant == ISSTARSENSE)
-        {
-            if (fwInfo.controllerVersion >= MINSTSENSVER)
-                LOG_INFO("Starsense controller detected.");
-            else
-                LOGF_WARN("Starsense controller detected, but firmware is too old. "
-                        "Current version is %4.2f, but minimum required version is %4.2f. "
-                        "Please update your Starsense firmware.",
-                        fwInfo.controllerVersion, MINSTSENSVER);
-        }
-        else
+        // JM 2018-09-28: According to user reports in this thread:
+        // http://www.indilib.org/forum/mounts/2208-celestron-avx-mount-and-starsense.html
+        // Parking is also supported fine with StarSense
+        if (checkMinVersion(2.3, "park"))
             cap |= TELESCOPE_CAN_PARK;
 
         if (checkMinVersion(4.1, "sync"))
@@ -235,11 +243,16 @@ bool CelestronGPS::updateProperties()
         if (checkMinVersion(2.3, "updating time and location settings"))
             cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
 
-
-        if (fwInfo.controllerVersion >= 2.3)
+        // StarSense supports track mode
+        if (checkMinVersion(2.3, "track control"))
             cap |= TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
         else
             LOG_WARN("Mount firmware does not support track mode.");
+
+        if (fwInfo.isGem  && checkMinVersion(4.15, "Pier Side"))
+            cap |= TELESCOPE_HAS_PIER_SIDE;
+        else
+            LOG_WARN("Mount firmware does not support getting pier side.");
 
         SetTelescopeCapability(cap, 9);
 
@@ -269,7 +282,7 @@ bool CelestronGPS::updateProperties()
         defineNumber(&GuideWENP);
 
         // Track Mode (t) is only supported for 2.3+
-        if (fwInfo.controllerVersion >= 2.3)
+        if (checkMinVersion(2.3, "track mode"))
         {
             CELESTRON_TRACK_MODE mode;
             if (isSimulation())
@@ -307,9 +320,9 @@ bool CelestronGPS::updateProperties()
         }
 
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
-        // Therefore disabling query until it is fixed.
-        // 2017-07-06: Looks like CGE Pro also does not support this
-        if (fwInfo.controllerVersion >= 2.3 && fwInfo.Model != "AVX" && fwInfo.Model != "CGE Pro")
+        // JM 2018-09-27: User (suramara) reports that it works with AVX mount with Star Sense firmware version 1.19
+        //if (fwInfo.controllerVersion >= 2.3 && fwInfo.Model != "AVX" && fwInfo.Model != "CGE Pro")
+        if (checkMinVersion(2.3, "date and time setting"))
         {
             double utc_offset;
             int yy, dd, mm, hh, minute, ss;
@@ -325,6 +338,7 @@ bool CelestronGPS::updateProperties()
                 IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
 
                 LOGF_INFO("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
+                LOGF_DEBUG("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
                 TimeTP.s = IPS_OK;
                 IDSetText(&TimeTP, nullptr);
@@ -455,8 +469,14 @@ bool CelestronGPS::GotoAzAlt(double az, double alt)
 
 bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 {
-    CELESTRON_DIRECTION move = (dir == DIRECTION_NORTH) ? CELESTRON_N : CELESTRON_S;
-    CELESTRON_SLEW_RATE rate = (CELESTRON_SLEW_RATE)IUFindOnSwitchIndex(&SlewRateSP);
+    CELESTRON_DIRECTION move;
+
+    if (currentPierSide == PIER_WEST)
+        move = (dir == DIRECTION_NORTH) ? CELESTRON_N : CELESTRON_S;
+    else
+        move = (dir == DIRECTION_NORTH) ? CELESTRON_S : CELESTRON_N;
+
+    CELESTRON_SLEW_RATE rate = static_cast<CELESTRON_SLEW_RATE>(IUFindOnSwitchIndex(&SlewRateSP));
 
     switch (command)
     {
@@ -487,7 +507,7 @@ bool CelestronGPS::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
 bool CelestronGPS::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 {
     CELESTRON_DIRECTION move = (dir == DIRECTION_WEST) ? CELESTRON_W : CELESTRON_E;
-    CELESTRON_SLEW_RATE rate = (CELESTRON_SLEW_RATE)IUFindOnSwitchIndex(&SlewRateSP);
+    CELESTRON_SLEW_RATE rate = static_cast<CELESTRON_SLEW_RATE>(IUFindOnSwitchIndex(&SlewRateSP));
 
     switch (command)
     {
@@ -576,6 +596,43 @@ bool CelestronGPS::ReadScopeStatus()
 
     //IDSetNumber(&HorizontalCoordsNP, nullptr);
     NewRaDec(currentRA, currentDEC);
+
+    char sop;
+    INDI::Telescope::TelescopePierSide pierSide = PIER_UNKNOWN;
+    char psc = 'U';
+    if (driver.get_pier_side(&sop))
+    {
+        // manage version and hemisphere nonsense
+        // HC versions less than 5.24 reverse the side of pier if the mount
+        // is in the Southern hemisphere.  StarSense doesn't
+        if (LocationN[LOCATION_LATITUDE].value < 0)
+        {
+            if (fwInfo.controllerVersion <= 5.24 && fwInfo.controllerVariant != ISSTARSENSE)
+            {
+                // swap the char reported
+                if (sop == 'E')
+                    sop = 'W';
+                else if (sop == 'W')
+                    sop = 'E';
+            }
+        }
+        // The Celestron and INDI pointing states are opposite
+        if (sop == 'W')
+        {
+            pierSide = PIER_EAST;
+            psc = 'E';
+        }
+        else if (sop == 'E')
+        {
+            pierSide = PIER_WEST;
+            psc = 'W';
+        }
+    }
+
+    LOGF_DEBUG("latitude %g, sop %c, PierSide %c",
+               LocationN[LOCATION_LATITUDE].value,
+               sop, psc);
+    setPierSide(pierSide);
 
     return true;
 }
@@ -1333,19 +1390,19 @@ IPState CelestronGPS::GuideWest(uint32_t ms)
 //GUIDE The timer helper functions.
 void CelestronGPS::guideTimeoutHelperN(void *p)
 {
-    ((CelestronGPS *)p)->guideTimeout(CELESTRON_N);
+    static_cast<CelestronGPS *>(p)->guideTimeout(CELESTRON_N);
 }
 void CelestronGPS::guideTimeoutHelperS(void *p)
 {
-    ((CelestronGPS *)p)->guideTimeout(CELESTRON_S);
+    static_cast<CelestronGPS *>(p)->guideTimeout(CELESTRON_S);
 }
 void CelestronGPS::guideTimeoutHelperW(void *p)
 {
-    ((CelestronGPS *)p)->guideTimeout(CELESTRON_W);
+    static_cast<CelestronGPS *>(p)->guideTimeout(CELESTRON_W);
 }
 void CelestronGPS::guideTimeoutHelperE(void *p)
 {
-    ((CelestronGPS *)p)->guideTimeout(CELESTRON_E);
+    static_cast<CelestronGPS *>(p)->guideTimeout(CELESTRON_E);
 }
 
 //GUIDE The timer function
@@ -1456,6 +1513,7 @@ void CelestronGPS::checkAlignment()
 {
     ReadScopeStatus();
 
-    if (currentRA == 12.0 && currentDEC == 0.0)
+    //if (currentRA == 12.0 && currentDEC == 0.0)
+    if (!driver.check_aligned())
         LOG_WARN("Mount is NOT aligned. You must align the mount first before you can use it. Disconnect, align the mount, and reconnect again.");
 }

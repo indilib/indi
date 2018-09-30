@@ -10,6 +10,7 @@ set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for u
 find_package(INDI REQUIRED)
 find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
+find_package(CFITSIO REQUIRED)
 
 set(INDI_MI_VERSION_MAJOR 1)
 set(INDI_MI_VERSION_MINOR 5)
@@ -20,6 +21,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_miccd.xml.cmake ${CMAKE_CURRENT_
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${INDI_INCLUDE_DIR})
+include_directories( ${CFITSIO_INCLUDE_DIR})
 
 #if (CMAKE_SYSTEM_PROCESSOR MATCHES "armv6l")
 #    set(MILIB ${CMAKE_CURRENT_SOURCE_DIR}/libgxccdarmv6.bin)
@@ -55,9 +57,9 @@ set(indi_miccd_SRCS
 
 add_executable(indi_mi_ccd ${indi_miccd_SRCS})
 if (APPLE)
-    target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${MILIB} ${USB1_LIBRARIES})
+    target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${MILIB} ${USB1_LIBRARIES})
 else (APPLE)
-    target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${MILIB} ${USB1_LIBRARIES} rt)
+    target_link_libraries(indi_mi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${MILIB} ${USB1_LIBRARIES} rt)
 endif(APPLE)
 
 
@@ -77,4 +79,6 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_mi_ccd_symlink.cmake
 set_target_properties(indi_mi_ccd PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_mi_ccd_symlink.cmake)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_miccd.xml DESTINATION ${INDI_DATA_DIR})
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/99-miccd.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+endif()

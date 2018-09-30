@@ -26,6 +26,7 @@
 #include "gphoto_driver.h"
 #include "gphoto_readimage.h"
 
+#include <algorithm>
 #include <stream/streammanager.h>
 
 #include <math.h>
@@ -121,6 +122,8 @@ void ISInit()
             int cameraIndex = 0;
             cameraCount=0;
 
+            std::vector<std::string> cameraNames;
+
             while (availableCameras > 0)
             {
                 gp_list_get_name(list, cameraIndex, &model);
@@ -129,6 +132,8 @@ void ISInit()
                 cameraIndex++;
                 availableCameras--;
 
+                // If we're not using the Generic INDI GPhoto drievr
+                // then let's search for multiple cameras
                 if (strcmp(me, "indi_gphoto_ccd"))
                 {
                     char prefix[MAXINDINAME];
@@ -140,11 +145,20 @@ void ISInit()
                         if (strstr(model, camInfos[j].model))
                         {
                             strncpy(prefix, camInfos[j].driver, MAXINDINAME);
-                            snprintf(name, MAXINDIDEVICE, "%s %s", prefix, model + strlen(camInfos[j].model) + 1);
+
+                            // If if the model was already registered for a prior camera in case we are using
+                            // two identical models
+                            if (std::find(cameraNames.begin(), cameraNames.end(), camInfos[j].model) == cameraNames.end())
+                                snprintf(name, MAXINDIDEVICE, "%s %s", prefix, model + strlen(camInfos[j].model) + 1);
+                            else
+                                snprintf(name, MAXINDIDEVICE, "%s %s %d", prefix, model + strlen(camInfos[j].model) + 1,
+                                         static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), camInfos[j].model))+1);
                             cameras[cameraCount] = new GPhotoCCD(model, port);
                             cameras[cameraCount]->setDeviceName(name);
                             cameraCount++;
                             modelFound = true;
+                            // Store camera model in list to check for duplicates
+                            cameraNames.push_back(camInfos[j].model);
                             break;
                         }
                     }
@@ -378,6 +392,11 @@ bool GPhotoCCD::initProperties()
     IUFillSwitchVector(&SDCardImageSP, SDCardImageS, 2, getDeviceName(), "CCD_SD_CARD_ACTION", "SD Image",
                        IMAGE_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillSwitch(&forceBULBS[FORCE_BULB_ON], "On", "On", ISS_ON);
+    IUFillSwitch(&forceBULBS[FORCE_BULB_OFF], "Off", "Off", ISS_OFF);
+    IUFillSwitchVector(&forceBULBSP, forceBULBS, 2, getDeviceName(), "CCD_FORCE_BLOB", "Force BULB",
+                       OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
 
     // Most cameras have this by default, so let's set it as default.
@@ -493,6 +512,7 @@ bool GPhotoCCD::updateProperties()
         }
 
         defineSwitch(&streamSubframeSP);
+        defineSwitch(&forceBULBSP);
 
         //timerID = SetTimer(POLLMS);
     }
@@ -523,9 +543,9 @@ bool GPhotoCCD::updateProperties()
         deleteProperty(SDCardImageSP.name);
 
         deleteProperty(streamSubframeSP.name);
+        deleteProperty(forceBULBSP.name);
 
         HideExtendedOptions();
-        //rmTimer(timerID);
     }
 
     return true;
@@ -590,6 +610,31 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     break;
                 }
             }
+        }
+
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        // Force BULB
+        // This force driver to _always_ capture in bulb mode and never use predefined exposures unless the exposures are less
+        // than a second.
+        ///////////////////////////////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, forceBULBSP.name))
+        {
+            if (IUUpdateSwitch(&forceBULBSP, states, names, n) < 0)
+                return false;
+
+            forceBULBSP.s = IPS_OK;
+            if (forceBULBS[FORCE_BULB_ON].s == ISS_ON)
+            {
+                gphoto_force_bulb(gphotodrv, true);
+                LOG_INFO("Force BULB is enabled. All expsures shall be captured in BULB mode except for subsecond captures.");
+            }
+            else
+            {
+                gphoto_force_bulb(gphotodrv, false);
+                LOG_INFO("Force BULB is disabled. Exposures shall utilize camera predefined exposures time first before attempting BULB.");
+            }
+
+            return true;
         }
 
         if (!strcmp(name, streamSubframeSP.name))
@@ -1215,8 +1260,26 @@ void GPhotoCCD::TimerHit()
 
                 if (isTemperatureSupported)
                 {
-                    TemperatureN[0].value = (double)gphoto_get_last_sensor_temperature(gphotodrv);
-                    IDSetNumber(&TemperatureNP, nullptr);
+                    double cameraTemperature = static_cast<double>(gphoto_get_last_sensor_temperature(gphotodrv));
+                    if (cameraTemperature != TemperatureN[0].value)
+                    {
+                        // Check if we are getting bogus temperature values and set property to alert
+                        // unless it is already set
+                        if (cameraTemperature < MINUMUM_CAMERA_TEMPERATURE)
+                        {
+                            if (TemperatureNP.s != IPS_ALERT)
+                            {
+                                TemperatureNP.s = IPS_ALERT;
+                                IDSetNumber(&TemperatureNP, nullptr);
+                            }
+                        }
+                        else
+                        {
+                            TemperatureNP.s = IPS_OK;
+                            TemperatureN[0].value = cameraTemperature;
+                            IDSetNumber(&TemperatureNP, nullptr);
+                        }
+                    }
                 }
             }
         }
@@ -1930,6 +1993,9 @@ bool GPhotoCCD::saveConfigItems(FILE *fp)
 
     // Subframe Stream
     IUSaveConfigSwitch(fp, &streamSubframeSP);
+
+    // Force BULB Mode
+    IUSaveConfigSwitch(fp, &forceBULBSP);
 
     return true;
 }

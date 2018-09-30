@@ -2,11 +2,15 @@
     Losmandy Gemini INDI driver
 
     Copyright (C) 2017 Jasem Mutlaq
+    Copyright (C) 2018 Eric Vickery
 
     Difference from LX200 Generic:
 
     1. Added Side of Pier
     2. Reimplemented isSlewComplete to use :Gv# since it is more reliable
+    3. Support networked connections.
+    4. Side of pier
+    5. Variable GOTO/SLEW/MOVE speeds.
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -52,7 +56,7 @@ LX200Gemini::LX200Gemini()
 
 const char *LX200Gemini::getDefaultName()
 {
-    return (const char *)"Losmandy Gemini";
+    return static_cast<const char *>("Losmandy Gemini");
 }
 
 bool LX200Gemini::Connect()
@@ -94,23 +98,23 @@ bool LX200Gemini::initProperties()
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&ManualSlewingSpeedN[0], "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", "%g", 20, 2000., 10., 800);
-    IUFillNumberVector(&ManualSlewingSpeedNP, ManualSlewingSpeedN, 1, getDeviceName(), "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&ManualSlewingSpeedNP, ManualSlewingSpeedN, 1, getDeviceName(), "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", MOTION_TAB, IP_RW,
                        0, IPS_IDLE);
 
     IUFillNumber(&GotoSlewingSpeedN[0], "GOTO_SLEWING_SPEED", "Goto Slewing Speed", "%g", 20, 2000., 10., 800);
-    IUFillNumberVector(&GotoSlewingSpeedNP, GotoSlewingSpeedN, 1, getDeviceName(), "GOTO_SLEWING_SPEED", "Goto Slewing Speed", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&GotoSlewingSpeedNP, GotoSlewingSpeedN, 1, getDeviceName(), "GOTO_SLEWING_SPEED", "Goto Slewing Speed", MOTION_TAB, IP_RW,
                        0, IPS_IDLE);
 
     IUFillNumber(&MoveSpeedN[0], "MOVE_SPEED", "Move Speed", "%g", 20, 2000., 10., 10);
-    IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", MOTION_TAB, IP_RW,
                        0, IPS_IDLE);
 
     IUFillNumber(&GuidingSpeedN[0], "GUIDING_SPEED", "Guiding Speed", "%g", 0.2, 0.8, 0.1, 0.5);
-    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED", "Guiding Slewing Speed", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED", "Guiding Slewing Speed", GUIDE_TAB, IP_RW,
                        0, IPS_IDLE);
 
     IUFillNumber(&CenteringSpeedN[0], "CENTERING_SPEED", "Centering Speed", "%g", 20, 2000., 10., 10);
-    IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED", "Centering Slewing Speed", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED", "Centering Slewing Speed", MOTION_TAB, IP_RW,
                        0, IPS_IDLE);
 
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
@@ -214,7 +218,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
 
         if (!strcmp(name, ManualSlewingSpeedNP.name))
         {
-            LOGF_DEBUG("Trying to set manual slewing speed of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set manual slewing speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(MANUAL_SLEWING_SPEED_ID, valueString))
             {
@@ -231,7 +235,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         }
         if (!strcmp(name, GotoSlewingSpeedNP.name))
         {
-            LOGF_DEBUG("Trying to set goto slewing speed of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set goto slewing speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(GOTO_SLEWING_SPEED_ID, valueString))
             {
@@ -248,7 +252,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         }
         if (!strcmp(name, MoveSpeedNP.name))
         {
-            LOGF_DEBUG("Trying to set move speed of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set move speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(MOVE_SPEED_ID, valueString))
             {
@@ -265,7 +269,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         }
         if (!strcmp(name, GuidingSpeedNP.name))
         {
-            LOGF_DEBUG("Trying to set guiding speed of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set guiding speed of: %f", values[0]);
 
             // Special formatting for guiding speed
             snprintf(valueString, 16, "%1.1f", values[0]);
@@ -285,7 +289,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         }
         if (!strcmp(name, CenteringSpeedNP.name))
         {
-            LOGF_DEBUG("Trying to set centering speed of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set centering speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(CENTERING_SPEED_ID, valueString))
             {
