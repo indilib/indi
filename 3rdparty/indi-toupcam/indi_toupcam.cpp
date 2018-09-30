@@ -451,10 +451,9 @@ bool TOUPCAM::Connect()
     }
 
     if (m_Instance->model->flag & TOUPCAM_FLAG_BINSKIP_SUPPORTED)
-    {
         LOG_DEBUG("Bin-Skip supported.");
-        cap |= CCD_CAN_BIN;
-    }
+
+    cap |= CCD_CAN_BIN;
 
     // Hardware ROI really needed? Check later
     if (m_Instance->model->flag & TOUPCAM_FLAG_ROI_HARDWARE)
@@ -1142,7 +1141,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             case TC_VIDEO_RAW:
             {
                 m_Channels = 1;
-                SetCCDCapability(GetCCDCapability() & CCD_HAS_BAYER);
+                SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
                 IUSaveText(&BayerT[2], getBayerString());
                 IDSetText(&BayerTP, nullptr);
                 m_BitsPerPixel = m_RawBitsPerPixel;
@@ -1469,19 +1468,17 @@ bool TOUPCAM::UpdateCCDFrame(int x, int y, int w, int h)
 
 bool TOUPCAM::UpdateCCDBin(int binx, int biny)
 {
-    INDI_UNUSED(biny);
-
-    if (binx > 4)
-    {
-        LOG_ERROR("Only 1x1, 2x2, 3x3, and 4x4 modes are supported.");
-        return false;
-    }
+//    if (binx > 4)
+//    {
+//        LOG_ERROR("Only 1x1, 2x2, 3x3, and 4x4 modes are supported.");
+//        return false;
+//    }
 
     // TODO add option to select between additive vs. average binning
     HRESULT rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BINNING, binx);
     if (rc < 0)
     {
-        LOGF_ERROR("Failed to set binning: %s", errorCodes[rc].c_str());
+        LOGF_ERROR("Binning %dx%d is not support. %s", binx, biny, errorCodes[rc].c_str());
         return false;
     }
     PrimaryCCD.setBin(binx, binx);
@@ -1693,7 +1690,7 @@ const char *TOUPCAM::getBayerString()
     uint32_t nFourCC = 0, nBitDepth=0;
     Toupcam_get_RawFormat(m_CameraHandle, &nFourCC, &nBitDepth);
 
-    LOGF_DEBUG("Raw format FourCC %ld bitDepth %d", nFourCC, nBitDepth);
+    LOGF_DEBUG("Raw format FourCC %#8X bitDepth %d", nFourCC, nBitDepth);
 
     // 8, 10, 12, 14, or 16
     m_RawBitsPerPixel = nBitDepth;
