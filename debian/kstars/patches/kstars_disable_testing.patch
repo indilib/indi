@@ -1,5 +1,5 @@
-diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 8efd767d4..ca02bafc0 100644
+Index: b/CMakeLists.txt
+===================================================================
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -411,10 +411,10 @@ add_subdirectory(kstars)
