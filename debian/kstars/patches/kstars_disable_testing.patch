@@ -1,0 +1,19 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8efd767d4..ca02bafc0 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -411,10 +411,10 @@ add_subdirectory(kstars)
+ add_subdirectory(datahandlers)
+ 
+ IF (NOT ANDROID)
+-    IF (BUILD_TESTING)
+-    enable_testing(true)
+-    add_subdirectory(Tests)
+-    ENDIF()
++#    IF (BUILD_TESTING)
++#    enable_testing(true)
++#    add_subdirectory(Tests)
++#    ENDIF()
+     # Make it possible to use the po files fetched by the fetch-translations step
+     ki18n_install("${CMAKE_CURRENT_BINARY_DIR}/po")
+ ENDIF ()

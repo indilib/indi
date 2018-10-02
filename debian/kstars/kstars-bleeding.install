@@ -1,4 +1,4 @@
 usr/bin/kstars
 usr/lib
-usr/share/applications
-usr/share/knotifications5
+usr/share/*/org.kde.kstars.appdata.xml
+usr/share/applications/org.kde.kstars.desktop
