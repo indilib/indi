@@ -38,8 +38,9 @@
 
 /**************************** USB_Dewpoint Constants **************************/
 
-// Responses also include "\n"
+// Responses also include "\n\r"
 #define UDP_DONE_RESPONSE "DONE"
+#define UDP_RES_LEN 80 // With some margin, maximum feasible seems to be around 70
 
 // Status response is like:
 // ##22.37/22.62/23.35/50.77/12.55/0/0/0/0/0/0/2/2/0/0/4**
@@ -90,7 +91,11 @@ class USBDewpoint : public INDI::DefaultDevice
     virtual void TimerHit() override;
 
   private:
+    bool sendCommand(const char *cmd, char *response);
+
     bool Handshake();
+    bool Ack();
+    bool Resync();
 
     bool reset();
     bool readSettings();
