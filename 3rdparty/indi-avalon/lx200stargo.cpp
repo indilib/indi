@@ -456,6 +456,17 @@ bool LX200StarGo::ReadScopeStatus()
         mountSim();
         return true;
     }
+    // Command  - :X34#
+    // the StarGo replies mxy# where x is the RA / AZ motor status and y
+    // the DEC / ALT motor status meaning:
+    //    x (y) = 0 motor x (y) stopped or unpowered
+    //             (use :X3C# if you want  distinguish if stopped or unpowered)
+    //    x (y) = 1 motor x (y) returned in tracking mode
+    //    x (y) = 2 motor x (y) acelerating
+    //    x (y) = 3 motor x (y) decelerating
+    //    x (y) = 4 motor x (y) moving at low speed to refine
+    //    x (y) = 5 motor x (y) movig at high speed to target
+
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if(!sendQuery(":X34#", response))
     {
@@ -469,7 +480,14 @@ bool LX200StarGo::ReadScopeStatus()
        LOGF_ERROR("Failed to parse motor state response '%s'.", response);
        return false;
     }
-//    LOGF_DEBUG("Motor state = (%d, %d)", x, y);
+    LOGF_DEBUG("Motor state = (%d, %d)", x, y);
+
+    // Command   - :X38#
+    // Answer unparked         - p0
+    // Answer at home position - p1
+    // Answer parked           - p2
+    // Answer parking          - pB
+
     if(!sendQuery(":X38#", response))
     {
         LOG_ERROR("Failed to get park state");
@@ -480,13 +498,7 @@ bool LX200StarGo::ReadScopeStatus()
        LOGF_ERROR("Failed to parse motor state response '%s'.", response);
        return false;
     }
-// p2 => PARKED
-// m00 => IDLE
-// pB => PARKING
-// m5* => SLEWING
-// m*5 => SLEWING
-// m1* => TRACKING
-// m*1 => TRACKING
+
     INDI::Telescope::TelescopeStatus newTrackState = TrackState;
     if(strcmp(response, "p2")==0)
         newTrackState = SCOPE_PARKED;
@@ -494,12 +506,12 @@ bool LX200StarGo::ReadScopeStatus()
         newTrackState = SCOPE_IDLE;
     else if(strcmp(response, "pB")==0)
         newTrackState = SCOPE_PARKING;
-    else if(x==5 || y==5)
+    else if(x>1 && y>1)
         newTrackState = SCOPE_SLEWING;
     else
         newTrackState = SCOPE_TRACKING;  // or GUIDING
 
-// Use X590 for RA DEC
+    // Use X590 for RA DEC
     if(!sendQuery(":X590#", response))
     {
         LOGF_ERROR("Unable to get RA and DEC %s", response);
@@ -521,7 +533,7 @@ bool LX200StarGo::ReadScopeStatus()
     currentRA = r;
     currentDEC = d;
 
-    SetParked(TrackState==SCOPE_PARKED);
+    SetParked(newTrackState==SCOPE_PARKED);
     TrackState = newTrackState;
     NewRaDec(currentRA, currentDEC);
     
