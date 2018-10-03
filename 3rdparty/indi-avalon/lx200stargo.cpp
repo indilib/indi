@@ -533,7 +533,9 @@ bool LX200StarGo::ReadScopeStatus()
     currentRA = r;
     currentDEC = d;
 
-    SetParked(newTrackState==SCOPE_PARKED);
+    if (TrackState != newTrackState)
+        SetParked(newTrackState==SCOPE_PARKED);
+
     TrackState = newTrackState;
     NewRaDec(currentRA, currentDEC);
     
@@ -891,7 +893,7 @@ bool LX200StarGo::Park()
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (sendQuery(":X362#", response) && strcmp(response, "pB") == 0)
     {
-        LOG_INFO("Parking scope...");
+        LOG_INFO("Parking mount...");
         TrackState = SCOPE_PARKING;
         return true;
     }
@@ -911,11 +913,7 @@ bool LX200StarGo::Park()
 void LX200StarGo::SetParked(bool isparked)
 {
     LOGF_DEBUG("%s %s", __FUNCTION__, isparked?"PARKED":"UNPARKED");
-//    INDI::Telescope::SetParked(isparked);
-    ParkS[0].s = isparked ? ISS_ON : ISS_OFF;
-    ParkS[1].s = isparked ? ISS_OFF : ISS_ON;
-    ParkSP.s   = IPS_OK;
-    IDSetSwitch(&ParkSP, nullptr);
+    INDI::Telescope::SetParked(isparked);
     MountParkingStatusL[0].s = isparked ? IPS_OK : IPS_IDLE;
     MountParkingStatusL[1].s = isparked ? IPS_IDLE : IPS_OK;
     IDSetLight(&MountParkingStatusLP, nullptr);
@@ -946,7 +944,7 @@ bool LX200StarGo::UnPark()
     // and now execute unparking
     if (sendQuery(":X370#", response) && strcmp(response, "p0") == 0)
     {
-        LOG_INFO("Scope Unparked.");
+        LOG_INFO("Unparking mount...");
 /*        TrackState = SCOPE_TRACKING;
         SetParked(false);
         MountParkingStatusL[1].s = IPS_OK;
