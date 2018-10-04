@@ -40,6 +40,8 @@
 #include <unistd.h>
 #include <indicom.h>
 
+#include <connectionplugins/connectiontcp.h>
+
 #ifdef WITH_ALIGN
 #include <alignment/DriverCommon.h> // For DBG_ALIGNMENT
 using namespace INDI::AlignmentSubsystem;
@@ -52,7 +54,7 @@ using namespace INDI::AlignmentSubsystem;
 #define DEVICE_NAME "EQMod Mount"
 
 // We declare an auto pointer to EQMod.
-std::unique_ptr<EQMod> eqmod(new EQMod());
+static std::unique_ptr<EQMod> eqmod(new EQMod());
 
 #define GOTO_RATE      2        /* slew rate, degrees/s */
 #define SLEW_RATE      0.5      /* slew rate, degrees/s */
@@ -708,6 +710,11 @@ bool EQMod::Handshake()
 {
     try
     {
+        if (!getActiveConnection()->name().compare("CONNECTION_TCP") && tcpConnection->connectionType() == Connection::TCP::TYPE_UDP)
+        {
+            tty_set_skywatcher_udp_format(1);
+        }
+
         mount->setPortFD(PortFD);
         mount->Handshake();
         // Mount initialisation is in updateProperties as it sets directly Indi properties which should be defined

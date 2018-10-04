@@ -26,7 +26,6 @@ class SynscanDriver : public INDI::Telescope
   public:
     SynscanDriver();
 
-    virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
     virtual const char *getDefaultName() override;
     virtual bool initProperties() override;
@@ -58,6 +57,7 @@ class SynscanDriver : public INDI::Telescope
 
   protected:
     virtual bool AnalyzeMount();
+    virtual void initParking();
     bool StartTrackMode();
     bool ReadTime();
     bool ReadLocation();

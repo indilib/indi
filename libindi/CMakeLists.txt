@@ -570,16 +570,6 @@ target_link_libraries(indi_synscan_telescope indidriver AlignmentDriver)
 
 install(TARGETS indi_synscan_telescope RUNTIME DESTINATION bin)
 
-########### AZ-GTI ###############
-SET(azgti_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscandriver.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/azgti.cpp)
-
-add_executable(indi_azgti_telescope ${azgti_SRC})
-target_link_libraries(indi_azgti_telescope indidriver AlignmentDriver)
-
-install(TARGETS indi_azgti_telescope RUNTIME DESTINATION bin)
-
 ########### Sky Commander ###############
 SET(skycommander_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/skycommander.cpp)
