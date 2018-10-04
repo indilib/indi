@@ -93,7 +93,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual int setSiteLongitude(int fd, double Long);
     virtual bool GetAlignStatus();
     virtual bool kdedialog(const char * commande);
-    
+    virtual bool SetTrackRate(double raRate, double deRate) override;
     
     
     //FocuserInterface

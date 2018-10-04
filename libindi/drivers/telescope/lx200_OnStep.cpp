@@ -1994,3 +1994,21 @@ bool LX200_OnStep::OSGetOutputState(int output) {
 	IDSetSwitch(&OSOutput1SP, nullptr);
 	
 }
+
+bool LX200_OnStep::SetTrackRate(double raRate, double deRate) {
+	char read_buffer[32];
+	snprintf(read_buffer, sizeof(read_buffer), ":RA%04f#", raRate);
+	LOGF_INFO("Setting: RA Rate to %04f", raRate);
+	if (!sendOnStepCommand(read_buffer))
+	{
+		return false;
+	}
+	snprintf(read_buffer, sizeof(read_buffer), ":RE%04f#", deRate);
+	LOGF_INFO("Setting: DE Rate to %04f", deRate);
+	if (!sendOnStepCommand(read_buffer))
+	{
+		return false;
+	}
+	LOG_INFO("RA and DE Rates succesfully set");
+	return true;
+}
