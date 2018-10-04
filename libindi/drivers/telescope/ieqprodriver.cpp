@@ -966,7 +966,7 @@ bool get_ieqpro_guide_rate(int fd, double *rate)
 
     if (ieqpro_simulation)
     {
-        snprintf(response, 8, "%3d#", (int)(simData.guide_rate * 100));
+        snprintf(response, 8, "%3d#", (int)(simData.guide_rate * 1000));
         nbytes_read = strlen(response);
     }
     else
@@ -997,7 +997,7 @@ bool get_ieqpro_guide_rate(int fd, double *rate)
 
         if (sscanf(response, "%d", &rate_num) > 0)
         {
-            *rate = rate_num / 100.0;
+            *rate = rate_num / 1000.0;
             tcflush(fd, TCIFLUSH);
             return true;
         }

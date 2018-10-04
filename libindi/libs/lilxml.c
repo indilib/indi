@@ -1064,8 +1064,12 @@ static int oneXMLchar(LilXML *lp, int c, char ynot[])
                 else
                 {
                     appendString(&lp->ce->pcdata, lp->entity.s);
-                    lp->ce->pcdata_hasent = 1;
+                    //lp->ce->pcdata_hasent = 1;
                 }
+                // JM 2018-09-26: Even if decoded, we always set
+                // pcdata_hasent to 1 since we need to encode it again
+                // before sending it over to clients and drivers.
+                lp->ce->pcdata_hasent = 1;
                 freeString(&lp->entity);
                 lp->cs = INCON;
             }

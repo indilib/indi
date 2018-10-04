@@ -31,11 +31,6 @@
 #undef LOG_WARN
 #undef LOG_ERROR
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <log4z.h>
-#pragma GCC diagnostic pop
-
 #include <algorithm>
 #include <math.h>
 
@@ -267,7 +262,7 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
 
 const char *QHYCCD::getDefaultName()
 {
-    return ((char *)"QHY CCD");
+    return static_cast<const char *>("QHY CCD");
 }
 
 bool QHYCCD::initProperties()
@@ -279,8 +274,8 @@ bool QHYCCD::initProperties()
     FilterSlotN[0].max = 9;
 
     // CCD Cooler Switch
-    IUFillSwitch(&CoolerS[0], "COOLER_ON", "On", ISS_OFF);
-    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "Off", ISS_ON);
+    IUFillSwitch(&CoolerS[0], "COOLER_ON", "On", ISS_ON);
+    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "Off", ISS_OFF);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -801,8 +796,7 @@ int QHYCCD::SetTemperature(double temperature)
     // Enable cooler
     setCooler(true);
 
-    // this muse be call every second to control
-    //ControlQHYCCDTemp(camhandle,TemperatureRequest);
+    ControlQHYCCDTemp(camhandle,TemperatureRequest);
 
     return 0;
 }
@@ -1387,7 +1381,7 @@ void QHYCCD::updateTemperature()
     {
         ccdtemp   = GetQHYCCDParam(camhandle, CONTROL_CURTEMP);
         coolpower = GetQHYCCDParam(camhandle, CONTROL_CURPWM);
-        ControlQHYCCDTemp(camhandle, TemperatureRequest);
+        //ControlQHYCCDTemp(camhandle, TemperatureRequest);
     }
 
     // No need to spam to log
@@ -1537,13 +1531,13 @@ void *QHYCCD::streamVideo()
     }
 
     pthread_mutex_unlock(&condMutex);
-    return 0;
+    return nullptr;
 }
 
 void QHYCCD::debugTriggered(bool enable)
 {
     if (enable)
-        SetQHYCCDLogLevel(LOG_LEVEL_DEBUG);
+        SetQHYCCDLogLevel(1);
     else
-        SetQHYCCDLogLevel(LOG_LEVEL_ERROR);
+        SetQHYCCDLogLevel(0);
 }
