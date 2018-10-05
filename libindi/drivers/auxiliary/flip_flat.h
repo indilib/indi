@@ -65,6 +65,7 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
     virtual bool EnableLightBox(bool enable);
 
   private:
+    bool sendCommand(const char *command, char *response);
     bool getStartupData();
     bool ping();
     bool getStatus();
@@ -75,20 +76,20 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
 
     // Status
     ITextVectorProperty StatusTP;
-    IText StatusT[3] {};
+    IText StatusT[3]{};
 
     // Firmware version
     ITextVectorProperty FirmwareTP;
-    IText FirmwareT[1] {};
+    IText FirmwareT[1]{};
 
-    int PortFD { -1 };
-    int productID { 0 };
-    bool isFlipFlat { false };
-    uint8_t simulationWorkCounter { 0 };
-    uint8_t prevCoverStatus { 0xFF };
-    uint8_t prevLightStatus { 0xFF };
-    uint8_t prevMotorStatus { 0xFF };
-    uint8_t prevBrightness { 0xFF };
+    int PortFD{ -1 };
+    int productID{ 0 };
+    bool isFlipFlat{ false };
+    uint8_t simulationWorkCounter{ 0 };
+    uint8_t prevCoverStatus{ 0xFF };
+    uint8_t prevLightStatus{ 0xFF };
+    uint8_t prevMotorStatus{ 0xFF };
+    uint8_t prevBrightness{ 0xFF };
 
-    Connection::Serial *serialConnection { nullptr };
+    Connection::Serial *serialConnection{ nullptr };
 };
