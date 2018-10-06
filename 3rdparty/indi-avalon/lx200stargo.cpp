@@ -506,7 +506,7 @@ bool LX200StarGo::ReadScopeStatus()
         newTrackState = SCOPE_IDLE;
     else if(strcmp(response, "pB")==0)
         newTrackState = SCOPE_PARKING;
-    else if(x>1 && y>1)
+    else if(x>1 || y>1)
         newTrackState = SCOPE_SLEWING;
     else
         newTrackState = SCOPE_TRACKING;  // or GUIDING
