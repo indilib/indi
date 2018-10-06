@@ -465,7 +465,7 @@ bool LX200StarGo::ReadScopeStatus()
     //    x (y) = 2 motor x (y) acelerating
     //    x (y) = 3 motor x (y) decelerating
     //    x (y) = 4 motor x (y) moving at low speed to refine
-    //    x (y) = 5 motor x (y) movig at high speed to target
+    //    x (y) = 5 motor x (y) moving at high speed to target
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if(!sendQuery(":X34#", response))
@@ -500,16 +500,29 @@ bool LX200StarGo::ReadScopeStatus()
     }
 
     INDI::Telescope::TelescopeStatus newTrackState = TrackState;
+
     if(strcmp(response, "p2")==0)
+    {
         newTrackState = SCOPE_PARKED;
-    else if(x==0 && y==0)
-        newTrackState = SCOPE_IDLE;
+        if (TrackState != newTrackState)
+            SetParked(newTrackState==SCOPE_PARKED);
+    }
     else if(strcmp(response, "pB")==0)
         newTrackState = SCOPE_PARKING;
+    else if(x==0 && y==0)
+    {
+        newTrackState = SCOPE_IDLE;
+        if (TrackState != newTrackState)
+            LOG_INFO("Slew is complete. Tracking is off." );
+    }
     else if(x>1 || y>1)
         newTrackState = SCOPE_SLEWING;
     else
+    {
         newTrackState = SCOPE_TRACKING;  // or GUIDING
+        if (TrackState != newTrackState)
+            LOG_INFO("Slew completed. Tracking...");
+    }
 
     // Use X590 for RA DEC
     if(!sendQuery(":X590#", response))
@@ -532,9 +545,6 @@ bool LX200StarGo::ReadScopeStatus()
 //    LOGF_DEBUG("RA/DEC = (%lf, %lf)", r, d);
     currentRA = r;
     currentDEC = d;
-
-    if (TrackState != newTrackState)
-        SetParked(newTrackState==SCOPE_PARKED);
 
     TrackState = newTrackState;
     NewRaDec(currentRA, currentDEC);
@@ -1940,7 +1950,7 @@ int LX200StarGo::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 
 bool LX200StarGo::SetTrackEnabled(bool enabled)
 {
-    LOGF_INFO("%s Tracking being %s", __FUNCTION__, enabled?"enabled":"disabled");
+    LOGF_INFO("Tracking %s.", enabled?"enabled":"disabled");
 //    return querySetTracking(enabled);
     // Command tracking on  - :X122#
     //         tracking off - :X120#
