@@ -1573,6 +1573,7 @@ void TOUPCAM::TimerHelperNS(void *context)
 /* The timer call back for NS guiding */
 void TOUPCAM::TimerNS()
 {
+    LOG_DEBUG("Guide NS pulse complete");
     NStimerID = -1;
     GuideComplete(AXIS_DE);
 }
@@ -1582,6 +1583,7 @@ void TOUPCAM::stopTimerNS()
 {
     if (NStimerID != -1)
     {
+        LOG_DEBUG("Guide NS pulse complete");
         GuideComplete(AXIS_DE);
         IERmTimer(NStimerID);
         NStimerID = -1;
@@ -1611,11 +1613,11 @@ IPState TOUPCAM::guidePulseNS(uint32_t ms, eGUIDEDIRECTION dir, const char *dirN
         return IPS_OK;
     }
 
-    struct timeval duration, current_time;
-    gettimeofday(&current_time, nullptr);
-    duration.tv_sec = uSecs / 1000000;
-    duration.tv_usec= uSecs % 1000000;
-    timeradd(&current_time, &duration, &NSPulseEnd);
+//    struct timeval duration, current_time;
+//    gettimeofday(&current_time, nullptr);
+//    duration.tv_sec = uSecs / 1000000;
+//    duration.tv_usec= uSecs % 1000000;
+//    timeradd(&current_time, &duration, &NSPulseEnd);
 
     NStimerID = IEAddTimer(ms, TOUPCAM::TimerHelperNS, this);
     return IPS_BUSY;
@@ -1640,6 +1642,7 @@ void TOUPCAM::TimerHelperWE(void *context)
 /* The timer call back for WE guiding */
 void TOUPCAM::TimerWE()
 {
+    LOG_DEBUG("Guide WE pulse complete");
     WEtimerID = -1;
     GuideComplete(AXIS_RA);
 }
@@ -1648,6 +1651,7 @@ void TOUPCAM::stopTimerWE()
 {
     if (WEtimerID != -1)
     {
+        LOG_DEBUG("Guide WE pulse complete");
         GuideComplete(AXIS_RA);
         IERmTimer(WEtimerID);
         WEtimerID = -1;
@@ -1677,11 +1681,11 @@ IPState TOUPCAM::guidePulseWE(uint32_t ms, eGUIDEDIRECTION dir, const char *dirN
         return IPS_OK;
     }
 
-    struct timeval duration, current_time;
-    gettimeofday(&current_time, nullptr);
-    duration.tv_sec = uSecs / 1000000;
-    duration.tv_usec= uSecs % 1000000;
-    timeradd(&current_time, &duration, &WEPulseEnd);
+//    struct timeval duration, current_time;
+//    gettimeofday(&current_time, nullptr);
+//    duration.tv_sec = uSecs / 1000000;
+//    duration.tv_usec= uSecs % 1000000;
+//    timeradd(&current_time, &duration, &WEPulseEnd);
 
     WEtimerID = IEAddTimer(ms, TOUPCAM::TimerHelperWE, this);
     return IPS_BUSY;
