@@ -74,7 +74,7 @@ QHYCFW::QHYCFW()
 
 const char *QHYCFW::getDefaultName()
 {
-    return static_cast<const char *>("QHYCFW");
+    return static_cast<const char *>("QHY CFW");
 }
 
 bool QHYCFW::initProperties()
