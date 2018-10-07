@@ -456,70 +456,52 @@ bool LX200StarGo::ReadScopeStatus()
         mountSim();
         return true;
     }
-    // Command  - :X34#
-    // the StarGo replies mxy# where x is the RA / AZ motor status and y
-    // the DEC / ALT motor status meaning:
-    //    x (y) = 0 motor x (y) stopped or unpowered
-    //             (use :X3C# if you want  distinguish if stopped or unpowered)
-    //    x (y) = 1 motor x (y) returned in tracking mode
-    //    x (y) = 2 motor x (y) acelerating
-    //    x (y) = 3 motor x (y) decelerating
-    //    x (y) = 4 motor x (y) moving at low speed to refine
-    //    x (y) = 5 motor x (y) moving at high speed to target
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    if(!sendQuery(":X34#", response))
-    {
-        LOG_ERROR("Failed to get motor state");
-        return false;
-    }
     int x, y;
-    int returnCode = sscanf(response, "m%01d%01d", &x, &y);
-    if (returnCode < 2)
+
+    if (! queryMotorStatus(&x, &y))
     {
-       LOGF_ERROR("Failed to parse motor state response '%s'.", response);
+       LOG_ERROR("Cannot determine scope status, failed to parse motor state.");
        return false;
     }
     LOGF_DEBUG("Motor state = (%d, %d)", x, y);
 
-    // Command   - :X38#
-    // Answer unparked         - p0
-    // Answer at home position - p1
-    // Answer parked           - p2
-    // Answer parking          - pB
-
-    if(!sendQuery(":X38#", response))
+    bool parked = false, synched = false;
+    if (! queryParkSync(&parked, &synched))
     {
-        LOG_ERROR("Failed to get park state");
-        return false;
-    }
-    if(strlen(response) != 2 || response[0] != 'p')
-    {
-       LOGF_ERROR("Failed to parse motor state response '%s'.", response);
+       LOG_ERROR("Cannot determine scope status, failed to determine park/sync state.");
        return false;
     }
+    LOGF_DEBUG("Mount state: parked = %s, synched =%d", parked?"true":"false", synched?"true":"false");
 
     INDI::Telescope::TelescopeStatus newTrackState = TrackState;
 
-    if(strcmp(response, "p2")==0)
+    // handle parking / unparking
+    if(parked)
     {
         newTrackState = SCOPE_PARKED;
         if (TrackState != newTrackState)
-            SetParked(newTrackState==SCOPE_PARKED);
+            SetParked(true);
     }
-    else if(strcmp(response, "pB")==0)
-        newTrackState = SCOPE_PARKING;
-    else if(x==0 && y==0)
+    else
     {
-        newTrackState = SCOPE_IDLE;
-        if (TrackState != newTrackState)
-            LOG_INFO("Slew is complete. Tracking is off." );
-    }
-    else if(x==1 && y==0)
-    {
-        newTrackState = SCOPE_TRACKING;  // or GUIDING
-        if (TrackState == SCOPE_SLEWING)
-            LOG_INFO("Slew completed. Tracking...");
+        if (TrackState == SCOPE_PARKED)
+            SetParked(false);
+
+        // handle tracking state
+        if(x==0 && y==0)
+        {
+            newTrackState = SCOPE_IDLE;
+            if (TrackState != newTrackState)
+                LOGF_INFO("%sTracking is off.", TrackState == SCOPE_PARKING ? "Scope parked. ": "");
+        }
+        else if(x==1 && y==0)
+        {
+            newTrackState = SCOPE_TRACKING;  // or GUIDING
+            if (TrackState != newTrackState)
+                LOGF_INFO("%sTracking...", TrackState == SCOPE_SLEWING ? "Slewing completed. ": "");
+        }
     }
 
     // Use X590 for RA DEC
@@ -529,7 +511,7 @@ bool LX200StarGo::ReadScopeStatus()
         return false;
     }
     double r, d;
-    returnCode = sscanf(response, "RD%08lf%08lf", &r, &d);
+    int returnCode = sscanf(response, "RD%08lf%08lf", &r, &d);
     if (returnCode < 2)
     {
        LOGF_ERROR("Failed to parse RA and Dec response '%s'.", response);
@@ -1204,6 +1186,38 @@ bool LX200StarGo::querySetSiteLatitude(double Lat)
     return (sendQuery(command, response));
 }
 
+bool LX200StarGo::queryMotorStatus(int *xSpeed, int *ySpeed)
+{
+    // Command  - :X34#
+    // the StarGo replies mxy# where x is the RA / AZ motor status and y
+    // the DEC / ALT motor status meaning:
+    //    x (y) = 0 motor x (y) stopped or unpowered
+    //             (use :X3C# if you want  distinguish if stopped or unpowered)
+    //    x (y) = 1 motor x (y) returned in tracking mode
+    //    x (y) = 2 motor x (y) acelerating
+    //    x (y) = 3 motor x (y) decelerating
+    //    x (y) = 4 motor x (y) moving at low speed to refine
+    //    x (y) = 5 motor x (y) moving at high speed to target
+
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if(!sendQuery(":X34#", response))
+    {
+        LOG_ERROR("Failed to get motor state");
+        return false;
+    }
+    int x, y;
+    int returnCode = sscanf(response, "m%01d%01d", &x, &y);
+    if (returnCode < 2)
+    {
+       LOGF_ERROR("Failed to parse motor state response '%s'.", response);
+       return false;
+    }
+    *xSpeed = x;
+    *ySpeed = y;
+    LOGF_DEBUG("Motor state = (%d, %d)", *xSpeed, *ySpeed);
+    return true;
+}
+
 /**
  * @brief Check whether the mount is synched or parked.
  * @param enable if true, tracking is enabled
@@ -1216,6 +1230,7 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched)
     // Answer unparked         - p0
     // Answer at home position - p1
     // Answer parked           - p2
+    // Answer ??               - pA
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!sendQuery(":X38#", response))
@@ -1223,18 +1238,24 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched)
         LOG_ERROR("Failed to send get parking status request.");
         return false;
     }
-    int answer = 0;
-    if (! sscanf(response, "p%01d", &answer))
-    {
-        LOGF_ERROR("Unexpected parking status response '%s'.", response);
-        return false;
-    }
 
-    switch (answer)
+    LOGF_DEBUG("%s: response: %s", __FUNCTION__, response);
+
+    if (strcmp(response, "p0") == 0)
     {
-    case 0: (*isParked) = false; (*isSynched) = false; break;
-    case 1: (*isParked) = false; (*isSynched) = true; break;
-    case 2: (*isParked) = true; (*isSynched) = true; break;
+        (*isParked) = false; (*isSynched) = false;
+    }
+    else if (strcmp(response, "p1") == 0)
+    {
+        (*isParked) = false; (*isSynched) = true;
+    }
+    else if (strcmp(response, "p2") == 0)
+    {
+        (*isParked) = true; (*isSynched) = true;
+    }
+    else
+    {
+        LOGF_DEBUG("%s: unexpected response: %s", __FUNCTION__, response);
     }
     return true;
 }
