@@ -751,7 +751,7 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
                 if (mmpp == &MinMaxPositionN[0])
                 {
                     new_min = (values[i]);
-                    nset += static_cast<int>(new_min >= 1 && new_min <= 65000);
+                    nset += static_cast<int>(new_min >= 0 && new_min <= 65000);
                 }
                 else if (mmpp == &MinMaxPositionN[1])
                 {
