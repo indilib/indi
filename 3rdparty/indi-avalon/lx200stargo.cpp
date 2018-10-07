@@ -515,12 +515,10 @@ bool LX200StarGo::ReadScopeStatus()
         if (TrackState != newTrackState)
             LOG_INFO("Slew is complete. Tracking is off." );
     }
-    else if(x>1 || y>1)
-        newTrackState = SCOPE_SLEWING;
-    else
+    else if(x==1 && y==0)
     {
         newTrackState = SCOPE_TRACKING;  // or GUIDING
-        if (TrackState != newTrackState)
+        if (TrackState == SCOPE_SLEWING)
             LOG_INFO("Slew completed. Tracking...");
     }
 
