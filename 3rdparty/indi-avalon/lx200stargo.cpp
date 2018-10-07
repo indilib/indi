@@ -1071,7 +1071,7 @@ bool LX200StarGo::queryIsSlewComplete()
 
     LOGF_DEBUG("%s: slewing state motors = (%d, %d)", getDeviceName(), x, y);
 
-    return (x < 2 && y < 2);
+    return (x < 2 && y < 1);
 }
 
 
