@@ -113,7 +113,7 @@ void ISSnoopDevice(XMLEle *root)
 LX200StarGo::LX200StarGo()
 {
     LOG_DEBUG(__FUNCTION__);
-    setVersion(0, 5);
+    setVersion(0, 6);
 
     DBG_SCOPE = INDI::Logger::DBG_DEBUG;
 
@@ -460,7 +460,7 @@ bool LX200StarGo::ReadScopeStatus()
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     int x, y;
 
-    if (! queryMotorStatus(&x, &y))
+    if (! getMotorStatus(&x, &y))
     {
        LOG_ERROR("Cannot determine scope status, failed to parse motor state.");
        return false;
@@ -468,7 +468,7 @@ bool LX200StarGo::ReadScopeStatus()
     LOGF_DEBUG("Motor state = (%d, %d)", x, y);
 
     bool parked = false, synched = false;
-    if (! queryParkSync(&parked, &synched))
+    if (! getParkHomeStatus(&parked, &synched))
     {
        LOG_ERROR("Cannot determine scope status, failed to determine park/sync state.");
        return false;
@@ -574,7 +574,7 @@ bool LX200StarGo::slewToHome(ISState* states, char* names[], int n)
 {
     LOG_DEBUG(__FUNCTION__);
     IUUpdateSwitch(&MountGotoHomeSP, states, names, n);
-    if (querySendMountGotoHome())
+    if (setMountGotoHome())
     {
         MountGotoHomeSP.s = IPS_BUSY;
         TrackState = SCOPE_SLEWING;
@@ -595,7 +595,7 @@ bool LX200StarGo::setParkPosition(ISState* states, char* names[], int n)
 {
     LOG_DEBUG(__FUNCTION__);
     IUUpdateSwitch(&MountSetParkSP, states, names, n);
-    MountSetParkSP.s = querySendMountSetPark() ? IPS_OK : IPS_ALERT;
+    MountSetParkSP.s = setMountParkPosition() ? IPS_OK : IPS_ALERT;
     MountSetParkS[0].s = ISS_OFF;
     IDSetSwitch(&MountSetParkSP, nullptr);
     return true;
@@ -623,13 +623,13 @@ void LX200StarGo::getBasicData()
                 IDSetNumber(&TrackingFreqNP, nullptr);
         }
         MountFirmwareInfoT[0].text = new char[64];
-        if (!queryFirmwareInfo(MountFirmwareInfoT[0].text))
+        if (!getFirmwareInfo(MountFirmwareInfoT[0].text))
             LOG_ERROR("Failed to get firmware from device.");
         else
             IDSetText(&MountFirmwareInfoTP, nullptr);
 
         bool isParked, isSynched;
-        if (queryParkSync(&isParked, &isSynched))
+        if (getParkHomeStatus(&isParked, &isSynched))
         {
             SetParked(isParked);
             if (isSynched)
@@ -640,7 +640,7 @@ void LX200StarGo::getBasicData()
             }
         }
         bool isEnabled;
-        if (queryGetST4Status(&isEnabled))
+        if (getST4Status(&isEnabled))
         {
             ST4StatusS[0].s = isEnabled ? ISS_OFF : ISS_ON;
             ST4StatusS[1].s = isEnabled ? ISS_ON : ISS_OFF;
@@ -673,7 +673,7 @@ void LX200StarGo::getBasicData()
         IDSetSwitch(&MeridianFlipEnabledSP, nullptr);
 
         int raSpeed, decSpeed;
-        if (queryGetGuidingSpeeds(&raSpeed, &decSpeed))
+        if (getGuidingSpeeds(&raSpeed, &decSpeed))
         {
             GuidingSpeedP[0].value = static_cast<double>(raSpeed) / 100.0;
             GuidingSpeedP[1].value = static_cast<double>(decSpeed) / 100.0;
@@ -703,7 +703,7 @@ void LX200StarGo::getBasicData()
 /**************************************************************************************
 * @author CanisUrsa
 ***************************************************************************************/
-bool LX200StarGo::querySendMountGotoHome()
+bool LX200StarGo::setMountGotoHome()
 {
     LOG_DEBUG(__FUNCTION__);
     // Command  - :X361#
@@ -776,13 +776,13 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
         return true;
 
 //    LOGF_DEBUG("Setting site longitude '%lf'", longitude);
-    if (!isSimulation() && ! querySetSiteLongitude(longitude))
+    if (!isSimulation() && ! setSiteLongitude(longitude))
     {
         LOGF_ERROR("Error setting site longitude %lf", longitude);
         return false;
     }
 
-    if (!isSimulation() && ! querySetSiteLatitude(latitude))
+    if (!isSimulation() && ! setSiteLatitude(latitude))
     {
         LOGF_ERROR("Error setting site latitude %lf", latitude);
         return false;
@@ -1118,7 +1118,7 @@ bool LX200StarGo::ParseMotionState(char* state)
         return false;
     }
 }
-bool LX200StarGo::querySendMountSetPark()
+bool LX200StarGo::setMountParkPosition()
 {
     LOG_DEBUG(__FUNCTION__);
     // Command  - :X352#
@@ -1141,7 +1141,7 @@ bool LX200StarGo::querySendMountSetPark()
  * Determine the site longitude. In contrast to a standard LX200 implementation,
  * StarGo returns the location in arc seconds precision.
  */
-bool LX200StarGo::querySetSiteLongitude(double longitude)
+bool LX200StarGo::setSiteLongitude(double longitude)
 {
     LOG_DEBUG(__FUNCTION__);
     int d, m, s;
@@ -1170,7 +1170,7 @@ bool LX200StarGo::querySetSiteLongitude(double longitude)
  * @param latitude value
  * @return true iff the command succeeded
  */
-bool LX200StarGo::querySetSiteLatitude(double Lat)
+bool LX200StarGo::setSiteLatitude(double Lat)
 {
     LOG_DEBUG(__FUNCTION__);
     int d, m, s;
@@ -1186,7 +1186,7 @@ bool LX200StarGo::querySetSiteLatitude(double Lat)
     return (sendQuery(command, response));
 }
 
-bool LX200StarGo::queryMotorStatus(int *xSpeed, int *ySpeed)
+bool LX200StarGo::getMotorStatus(int *xSpeed, int *ySpeed)
 {
     // Command  - :X34#
     // the StarGo replies mxy# where x is the RA / AZ motor status and y
@@ -1223,14 +1223,16 @@ bool LX200StarGo::queryMotorStatus(int *xSpeed, int *ySpeed)
  * @param enable if true, tracking is enabled
  * @return true if the command succeeded, false otherwise
  */
-bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched)
+bool LX200StarGo::getParkHomeStatus (bool* isParked, bool* isHome)
 {
     LOG_DEBUG(__FUNCTION__);
     // Command   - :X38#
-    // Answer unparked         - p0
-    // Answer at home position - p1
-    // Answer parked           - p2
-    // Answer ??               - pA
+    // Answers:
+    // p0 - unparked
+    // p1 - at home position
+    // p2 - parked
+    // pA - slewing home
+    // pB - slewing to park position
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if (!sendQuery(":X38#", response))
@@ -1243,15 +1245,15 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched)
 
     if (strcmp(response, "p0") == 0)
     {
-        (*isParked) = false; (*isSynched) = false;
+        (*isParked) = false; (*isHome) = false;
     }
     else if (strcmp(response, "p1") == 0)
     {
-        (*isParked) = false; (*isSynched) = true;
+        (*isParked) = false; (*isHome) = true;
     }
     else if (strcmp(response, "p2") == 0)
     {
-        (*isParked) = true; (*isSynched) = true;
+        (*isParked) = true; (*isHome) = true;
     }
     else
     {
@@ -1265,7 +1267,7 @@ bool LX200StarGo::queryParkSync (bool* isParked, bool* isSynched)
  * @param isEnabled - true iff the ST4 port is enabled
  * @return
  */
-bool LX200StarGo::queryGetST4Status (bool *isEnabled)
+bool LX200StarGo::getST4Status (bool *isEnabled)
 {
      LOG_DEBUG(__FUNCTION__);
     // Command query ST4 status  - :TTGFh#
@@ -1296,7 +1298,7 @@ bool LX200StarGo::queryGetST4Status (bool *isEnabled)
  * @param decSpeed percenage for DEC axis
  * @return
  */
-bool LX200StarGo::queryGetGuidingSpeeds (int *raSpeed, int *decSpeed)
+bool LX200StarGo::getGuidingSpeeds (int *raSpeed, int *decSpeed)
 {
     LOG_DEBUG(__FUNCTION__);
     // Command query guiding speeds  - :X22#
@@ -1438,7 +1440,7 @@ bool LX200StarGo::syncSideOfPier()
  * @param firmwareInfo - firmware description
  * @return
  */
-bool LX200StarGo::queryFirmwareInfo (char* firmwareInfo)
+bool LX200StarGo::getFirmwareInfo (char* firmwareInfo)
 {
     LOG_DEBUG(__FUNCTION__);
     std::string infoStr;

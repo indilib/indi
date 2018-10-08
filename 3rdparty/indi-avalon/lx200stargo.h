@@ -166,19 +166,19 @@ protected:
     virtual bool sendQuery(const char* cmd, char* response, int wait=AVALON_TIMEOUT);
 //    virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
 //    virtual bool queryMountMotionState();
-    virtual bool queryFirmwareInfo(char *version);
-    virtual bool querySetSiteLatitude(double Lat);
-    virtual bool querySetSiteLongitude(double Long);
+    virtual bool getFirmwareInfo(char *version);
+    virtual bool setSiteLatitude(double Lat);
+    virtual bool setSiteLongitude(double Long);
 //    virtual bool querySetTracking(bool enable);
-    virtual bool queryMotorStatus(int *xSpeed, int *ySpeed);
-    virtual bool queryParkSync(bool *isParked, bool *isSynched);
+    virtual bool getMotorStatus(int *xSpeed, int *ySpeed);
+    virtual bool getParkHomeStatus(bool *isParked, bool *isSynched);
 //    virtual bool queryIsSlewComplete();
-    virtual bool querySendMountGotoHome();
-    virtual bool querySendMountSetPark();
+    virtual bool setMountGotoHome();
+    virtual bool setMountParkPosition();
 
     // guiding
-    virtual bool queryGetST4Status(bool *isEnabled);
-    virtual bool queryGetGuidingSpeeds(int *raSpeed, int *decSpeed);
+    virtual bool getST4Status(bool *isEnabled);
+    virtual bool getGuidingSpeeds(int *raSpeed, int *decSpeed);
     virtual bool setST4Enabled(bool enabled);
 
     // meridian flip
