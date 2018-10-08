@@ -852,8 +852,11 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
             }
 
             LOGF_DEBUG("Focuser sycned to %g ticks", new_apos);
-            SyncN[0].value = new_apos;
-            SyncNP.s       = IPS_OK;
+            SyncN[0].value        = new_apos;
+            FocusAbsPosN[0].value = new_apos;
+            currentPosition       = new_apos;
+
+            SyncNP.s        = IPS_OK;
             IDSetNumber(&SyncNP, nullptr);
             IDSetNumber(&FocusAbsPosNP, nullptr);
             return true;
