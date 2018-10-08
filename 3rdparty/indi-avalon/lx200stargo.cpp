@@ -467,18 +467,18 @@ bool LX200StarGo::ReadScopeStatus()
     }
     LOGF_DEBUG("Motor state = (%d, %d)", x, y);
 
-    bool parked = false, synched = false;
-    if (! getParkHomeStatus(&parked, &synched))
+    char parkHomeStatus[1] = {0};
+    if (! getParkHomeStatus(parkHomeStatus))
     {
        LOG_ERROR("Cannot determine scope status, failed to determine park/sync state.");
        return false;
     }
-    LOGF_DEBUG("Mount state: parked = %s, synched =%d", parked?"true":"false", synched?"true":"false");
+    LOGF_DEBUG("Mount state = %s", parkHomeStatus);
 
     INDI::Telescope::TelescopeStatus newTrackState = TrackState;
 
     // handle parking / unparking
-    if(parked)
+    if(strcmp(parkHomeStatus, "2") == 0)
     {
         newTrackState = SCOPE_PARKED;
         if (TrackState != newTrackState)
@@ -628,11 +628,11 @@ void LX200StarGo::getBasicData()
         else
             IDSetText(&MountFirmwareInfoTP, nullptr);
 
-        bool isParked, isSynched;
-        if (getParkHomeStatus(&isParked, &isSynched))
+        char parkHomeStatus[1] = {0};
+        if (getParkHomeStatus(parkHomeStatus))
         {
-            SetParked(isParked);
-            if (isSynched)
+            SetParked(strcmp(parkHomeStatus, "2") == 0);
+            if (strcmp(parkHomeStatus, "1") == 0)
             {
                 SyncHomeS[0].s = ISS_ON;
                 SyncHomeSP.s = IPS_OK;
@@ -1220,10 +1220,11 @@ bool LX200StarGo::getMotorStatus(int *xSpeed, int *ySpeed)
 
 /**
  * @brief Check whether the mount is synched or parked.
- * @param enable if true, tracking is enabled
+ * @param status 0=unparked, 1=at home position, 2=parked
+ *               A=slewing home, B=slewing to park position
  * @return true if the command succeeded, false otherwise
  */
-bool LX200StarGo::getParkHomeStatus (bool* isParked, bool* isHome)
+bool LX200StarGo::getParkHomeStatus (char* status)
 {
     LOG_DEBUG(__FUNCTION__);
     // Command   - :X38#
@@ -1243,22 +1244,12 @@ bool LX200StarGo::getParkHomeStatus (bool* isParked, bool* isHome)
 
     LOGF_DEBUG("%s: response: %s", __FUNCTION__, response);
 
-    if (strcmp(response, "p0") == 0)
+    if (! sscanf(response, "p%s[012AB]", status))
     {
-        (*isParked) = false; (*isHome) = false;
+        LOGF_ERROR("Unexpected park home status response '%s'.", response);
+        return false;
     }
-    else if (strcmp(response, "p1") == 0)
-    {
-        (*isParked) = false; (*isHome) = true;
-    }
-    else if (strcmp(response, "p2") == 0)
-    {
-        (*isParked) = true; (*isHome) = true;
-    }
-    else
-    {
-        LOGF_DEBUG("%s: unexpected response: %s", __FUNCTION__, response);
-    }
+
     return true;
 }
 

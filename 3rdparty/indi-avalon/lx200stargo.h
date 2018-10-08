@@ -171,7 +171,7 @@ protected:
     virtual bool setSiteLongitude(double Long);
 //    virtual bool querySetTracking(bool enable);
     virtual bool getMotorStatus(int *xSpeed, int *ySpeed);
-    virtual bool getParkHomeStatus(bool *isParked, bool *isSynched);
+    virtual bool getParkHomeStatus (char* status);
 //    virtual bool queryIsSlewComplete();
     virtual bool setMountGotoHome();
     virtual bool setMountParkPosition();
