@@ -32,6 +32,7 @@ class QHYCFW2 : public INDI::FilterWheel
     const char *getDefaultName() override;
     bool initProperties() override;
 
+    bool Handshake() override { return true; }
     bool SelectFilter(int) override;
 
   private:
