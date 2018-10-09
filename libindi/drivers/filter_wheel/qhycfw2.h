@@ -22,15 +22,19 @@
 
 #include "indifilterwheel.h"
 
-class QHYCFW : public INDI::FilterWheel
+class QHYCFW2 : public INDI::FilterWheel
 {
   public:
-    QHYCFW();
+    QHYCFW2();
+    virtual void ISGetProperties(const char *dev) override;
 
-  protected:
+  protected:    
     const char *getDefaultName() override;
     bool initProperties() override;
 
-    bool Handshake() override;
     bool SelectFilter(int) override;
+
+  private:
+    INumber MaxFilterN[1];
+    INumberVectorProperty MaxFilterNP;
 };

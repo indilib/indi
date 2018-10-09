@@ -18,7 +18,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include "qhycfw.h"
+#include "qhycfw2.h"
 
 #include "indicom.h"
 
@@ -26,7 +26,7 @@
 #include <memory>
 
 // We declare an auto pointer to QHYCFW.
-static std::unique_ptr<QHYCFW> qhycfw(new QHYCFW());
+static std::unique_ptr<QHYCFW2> qhycfw(new QHYCFW2());
 
 void ISPoll(void *p);
 
@@ -67,123 +67,42 @@ void ISSnoopDevice(XMLEle *root)
     qhycfw->ISSnoopDevice(root);
 }
 
-QHYCFW::QHYCFW()
+QHYCFW2::QHYCFW2()
 {
     setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 }
 
-const char *QHYCFW::getDefaultName()
+const char *QHYCFW2::getDefaultName()
 {
-    return static_cast<const char *>("QHY CFW");
+    return static_cast<const char *>("QHYCFW2");
 }
 
-bool QHYCFW::initProperties()
+void QHYCFW2::ISGetProperties(const char *dev)
+{
+    INDI::FilterWheel::ISGetProperties(dev);
+
+    defineNumber(&MaxFilterNP);
+    loadConfig(true, "MAX_FILTER");
+}
+
+bool QHYCFW2::initProperties()
 {
     INDI::FilterWheel::initProperties();
 
+    IUFillNumber(&MaxFilterN[0], "Count", "Count", "%.f", 1, 16, 1, 5);
+    IUFillNumberVector(&MaxFilterNP, MaxFilterN, 1, getDeviceName(), "MAX_FILTER", "Filters", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
     CurrentFilter      = 1;
     FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 4;
+    FilterSlotN[0].max = MaxFilterN[0].value;
 
     addAuxControls();
 
     return true;
 }
 
-bool QHYCFW::Handshake()
-{    
-    int rc=-1, nbytes_written=0, nbytes_read=0;
-    char res[32]={0};
 
-    if (isSimulation())
-        return true;
-
-    LOG_DEBUG("CMD <VRS>");
-
-    if ( (rc = tty_write_string(PortFD, "VRS", &nbytes_written)) != TTY_OK)
-    {
-        char error_message[ERRMSG_SIZE];
-        tty_error_msg(rc, error_message, ERRMSG_SIZE);
-
-        LOGF_ERROR("Hankshake failed: %s. Firmware must be higher than 201409", error_message);
-        return false;
-    }
-
-    if ( (rc = tty_read(PortFD, res, 8, 3, &nbytes_read)) != TTY_OK)
-    {
-        char error_message[ERRMSG_SIZE];
-        tty_error_msg(rc, error_message, ERRMSG_SIZE);
-
-        LOGF_ERROR("Hankshake failed: %s. Firmware must be higher than 201409", error_message);
-        return false;
-    }
-
-    LOGF_DEBUG("RES <%s>", res);
-
-    LOGF_INFO("Detected firmware version %s", res);
-
-    // Now get maximum positions
-    LOG_DEBUG("CMD <MXP>");
-
-    if ( (rc = tty_write_string(PortFD, "MXP", &nbytes_written)) != TTY_OK)
-    {
-        char error_message[ERRMSG_SIZE];
-        tty_error_msg(rc, error_message, ERRMSG_SIZE);
-
-        LOGF_ERROR("Querying maximum position failed: %s.", error_message);
-        return false;
-    }
-
-    memset(res, 0, 32);
-
-    if ( (rc = tty_read(PortFD, res, 1, 3, &nbytes_read)) != TTY_OK)
-    {
-        char error_message[ERRMSG_SIZE];
-        tty_error_msg(rc, error_message, ERRMSG_SIZE);
-
-        LOGF_ERROR("Reading maximum position failed: %s.", error_message);
-        return false;
-    }
-
-    LOGF_DEBUG("RES <%s>", res);
-
-    if (res[0] == 'F')
-        FilterSlotN[0].max = 16;
-    else
-        FilterSlotN[0].max = atoi(res) + 1;
-
-    // Now get current position
-    LOG_DEBUG("CMD <NOW>");
-
-    if ( (rc = tty_write_string(PortFD, "NOW", &nbytes_written)) != TTY_OK)
-    {
-        char error_message[ERRMSG_SIZE];
-        tty_error_msg(rc, error_message, ERRMSG_SIZE);
-
-        LOGF_ERROR("Querying current position failed: %s.", error_message);
-        return false;
-    }
-
-    memset(res, 0, 32);
-
-    if ( (rc = tty_read(PortFD, res, 1, 3, &nbytes_read)) != TTY_OK)
-    {
-        char error_message[ERRMSG_SIZE];
-        tty_error_msg(rc, error_message, ERRMSG_SIZE);
-
-        LOGF_ERROR("Reading current position failed: %s.", error_message);
-        return false;
-    }
-
-    LOGF_DEBUG("RES <%s>", res);
-
-    CurrentFilter = atoi(res)+1;
-    FilterSlotN[0].value = CurrentFilter;
-
-    return true;
-}
-
-bool QHYCFW::SelectFilter(int f)
+bool QHYCFW2::SelectFilter(int f)
 {
     TargetFilter = f;
     char cmd[8] = {0}, res[8]={0};

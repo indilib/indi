@@ -303,8 +303,12 @@
             <driver name="TruTech Wheel">indi_trutech_wheel</driver>
             <version>0.1</version>
         </device>
-        <device label="QHY CFW">
-            <driver name="QHY CFW">indi_qhy_wheel</driver>
+        <device label="QHYCFW2">
+            <driver name="QHYCFW2">indi_qhycfw2_wheel</driver>
+            <version>0.1</version>
+        </device>
+        <device label="QHYCFW3">
+            <driver name="QHYCFW3">indi_qhycfw3_wheel</driver>
             <version>0.1</version>
         </device>
 </devGroup>
