@@ -27,6 +27,7 @@ class QHYCFW2 : public INDI::FilterWheel
   public:
     QHYCFW2();
     virtual void ISGetProperties(const char *dev) override;
+    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
   protected:    
     const char *getDefaultName() override;

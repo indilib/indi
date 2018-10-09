@@ -146,3 +146,27 @@ bool QHYCFW2::SelectFilter(int f)
 
     return false;
 }
+
+bool QHYCFW2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(name, MaxFilterNP.name))
+        {
+            IUUpdateNumber(&MaxFilterNP, values, names, n);
+            MaxFilterNP.s = IPS_OK;
+            saveConfig(true, "MAX_FILTER");
+            IDSetNumber(&MaxFilterNP, nullptr);
+            FilterSlotN[0].max = MaxFilterN[0].value;
+            if (isConnected())
+                LOG_INFO("Max number of filters updated. You must reconnect for this change to take effect.");
+            else
+                LOGF_INFO("Max number of filters updated to %.f", MaxFilterN[0].value);
+
+            return true;
+        }
+
+    }
+
+    return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
+}
