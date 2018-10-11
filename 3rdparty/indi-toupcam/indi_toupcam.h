@@ -312,7 +312,6 @@ private:
     void allocateFrameBuffer();
     struct timeval ExposureEnd;
     double ExposureRequest;
-    double VideoExposureRequest;
 
     //#############################################################################
     // Threading

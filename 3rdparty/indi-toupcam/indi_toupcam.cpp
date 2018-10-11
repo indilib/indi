@@ -1331,12 +1331,12 @@ bool TOUPCAM::StartStreaming()
     Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0);
     m_CurrentTriggerMode = TRIGGER_VIDEO;
 
-    if (VideoExposureRequest != (1.0 / Streamer->getTargetFPS()))
+    if (ExposureRequest != (1.0 / Streamer->getTargetFPS()))
     {
-        VideoExposureRequest = 1.0 / Streamer->getTargetFPS();
+        ExposureRequest = 1.0 / Streamer->getTargetFPS();
         int rc=0;
 
-        uint32_t uSecs = static_cast<uint32_t>(VideoExposureRequest * 1000000.0f);
+        uint32_t uSecs = static_cast<uint32_t>(ExposureRequest * 1000000.0f);
         if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
         {
             LOGF_ERROR("Failed to set video exposure time. Error: %s", errorCodes[rc].c_str());
