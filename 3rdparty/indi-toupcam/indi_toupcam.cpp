@@ -1331,6 +1331,19 @@ bool TOUPCAM::StartStreaming()
     Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0);
     m_CurrentTriggerMode = TRIGGER_VIDEO;
 
+    if (VideoExposureRequest != (1.0 / Streamer->getTargetFPS()))
+    {
+        VideoExposureRequest = 1.0 / Streamer->getTargetFPS();
+        int rc=0;
+
+        uint32_t uSecs = static_cast<uint32_t>(VideoExposureRequest * 1000000.0f);
+        if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
+        {
+            LOGF_ERROR("Failed to set video exposure time. Error: %s", errorCodes[rc].c_str());
+            return false;
+        }
+    }
+
     // Restart capture
     Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
 
@@ -1465,6 +1478,7 @@ bool TOUPCAM::StartExposure(float duration)
 
 bool TOUPCAM::AbortExposure()
 {
+    Toupcam_Trigger(m_CameraHandle, 0);
     InExposure = false;
 #if 0
     LOG_DEBUG("AbortExposure");
