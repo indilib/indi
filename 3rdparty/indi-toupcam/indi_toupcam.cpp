@@ -1389,17 +1389,22 @@ bool TOUPCAM::activateCooler(bool enable)
 bool TOUPCAM::StartExposure(float duration)
 {
     HRESULT rc = 0;
-    PrimaryCCD.setExposureDuration(static_cast<double>(duration));
-    ExposureRequest = duration;
+    PrimaryCCD.setExposureDuration(static_cast<double>(duration));    
 
     uint32_t uSecs = static_cast<uint32_t>(duration * 1000000.0f);
 
     LOGF_DEBUG("Starting exposure: %d us @ %s", uSecs, IUFindOnSwitch(&ResolutionSP)->label);
 
-    if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
+    // Only update exposure when necessary
+    if (ExposureRequest != duration)
     {
-        LOGF_ERROR("Failed to set exposure time. Error: %s", errorCodes[rc].c_str());
-        return false;
+        ExposureRequest = duration;
+
+        if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
+        {
+            LOGF_ERROR("Failed to set exposure time. Error: %s", errorCodes[rc].c_str());
+            return false;
+        }
     }
 
     // If we have still support?
