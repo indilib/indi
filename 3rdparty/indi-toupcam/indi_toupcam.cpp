@@ -323,7 +323,7 @@ bool TOUPCAM::initProperties()
     ///////////////////////////////////////////////////////////////////////////////////
     IUFillSwitch(&WBAutoS[TC_AUTO_WB_TT], "TC_AUTO_WB_TT", "Temp/Tint", ISS_ON);
     IUFillSwitch(&WBAutoS[TC_AUTO_WB_RGB], "TC_AUTO_WB_RGB", "RGB", ISS_OFF);
-    IUFillSwitchVector(&WBAutoSP, WBAutoS, 2, getDeviceName(), "TC_AUTO_WB", "Default WB Mode", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+    IUFillSwitchVector(&WBAutoSP, WBAutoS, 2, getDeviceName(), "TC_AUTO_WB", "Default WB Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     ///////////////////////////////////////////////////////////////////////////////////
     /// Video Format
@@ -578,10 +578,9 @@ void TOUPCAM::setupParams()
     snprintf(firmwareBuffer, 32, "%d", pRevision);
     IUSaveText(&FirmwareT[TC_FIRMWARE_REV], firmwareBuffer);
 
-
     // Max supported bit depth
     m_MaxBitDepth = Toupcam_get_MaxBitDepth(m_CameraHandle);
-    LOGF_DEBUG("Max bit depth: %d", m_MaxBitDepth);
+    LOGF_DEBUG("Max bit depth: %d", m_MaxBitDepth);        
 
     m_BitsPerPixel = 8;
     int nVal=0;
@@ -680,6 +679,22 @@ void TOUPCAM::setupParams()
 
     SetCCDParams(w[currentResolutionIndex], h[currentResolutionIndex], m_BitsPerPixel, m_Instance->model->xpixsz, m_Instance->model->ypixsz);
 
+    m_CanSnap = m_Instance->model->still > 0;
+    LOGF_DEBUG("Camera snap support: %s", m_CanSnap ? "True" : "False");
+
+    // Trigger Mode
+    rc = Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, &nVal);
+    LOGF_DEBUG("Trigger mode: %d", nVal);
+    m_CurrentTriggerMode = static_cast<eTriggerMode>(nVal);
+
+    // Set trigger mode to software
+    if (m_CurrentTriggerMode != TRIGGER_SOFTWARE)
+    {
+        LOG_DEBUG("Setting trigger mode to software...");
+        Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1);
+        m_CurrentTriggerMode = TRIGGER_SOFTWARE;
+    }
+
     // Get CCD Controls values
     uint16_t nMin=0, nMax=0, nDef=0;
 
@@ -770,7 +785,7 @@ void TOUPCAM::allocateFrameBuffer()
     LOG_DEBUG("Allocating Frame Buffer...");
 
     // Allocate memory
-    switch (currentVideoFormat)
+    switch (m_CurrentVideoFormat)
     {
     case TC_VIDEO_MONO_8:
         PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes());
@@ -1117,8 +1132,8 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 }
             }
 
-            currentVideoFormat = targetIndex;
-            switch (currentVideoFormat)
+            m_CurrentVideoFormat = targetIndex;
+            switch (m_CurrentVideoFormat)
             {
             case TC_VIDEO_MONO_8:
             {
@@ -1309,11 +1324,17 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
 bool TOUPCAM::StartStreaming()
 {
+    // Trigger video mode
+    Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0);
+    m_CurrentTriggerMode = TRIGGER_VIDEO;
     return true;
 }
 
 bool TOUPCAM::StopStreaming()
 {
+    // Go back to software or single trigger mode
+    Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1);
+    m_CurrentTriggerMode = TRIGGER_SOFTWARE;
     return true;
 }
 
@@ -1402,13 +1423,20 @@ bool TOUPCAM::StartExposure(float duration)
     if (ExposureRequest > VERBOSE_EXPOSURE)
         LOGF_INFO("Taking a %g seconds frame...", static_cast<double>(ExposureRequest));
 
-      InExposure = true;
+      InExposure = true;      
+
+      if ( (rc = Toupcam_Trigger(m_CameraHandle, 1) < 0) )
+      {
+          LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
+          return false;
+      }
 
       int timeMS = uSecs/1000 - 50;
       if (timeMS < 0)
           timeMS += 50;
       if (static_cast<uint32_t>(timeMS) < POLLMS)
            IEAddTimer(timeMS, &TOUPCAM::sendImageCB, this);
+
 //    pthread_mutex_lock(&condMutex);
 //    threadRequest = StateExposure;
 //    pthread_cond_signal(&cv);
@@ -1989,7 +2017,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         {
             uint8_t *buffer = PrimaryCCD.getFrameBuffer();
 
-            if (m_SendImage && currentVideoFormat == TC_VIDEO_RGB)
+            if (m_SendImage && m_CurrentVideoFormat == TC_VIDEO_RGB)
                 buffer = static_cast<uint8_t*>(malloc(PrimaryCCD.getXRes()*PrimaryCCD.getYRes()*3));
 
             HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, buffer, m_BitsPerPixel * m_Channels, &info);
@@ -1997,7 +2025,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
             {
                 LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
                 PrimaryCCD.setExposureFailed();
-                if (m_SendImage && currentVideoFormat == TC_VIDEO_RGB)
+                if (m_SendImage && m_CurrentVideoFormat == TC_VIDEO_RGB)
                     free(buffer);
             }
             else
@@ -2005,7 +2033,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
                 if (m_SendImage)
                 {
                     LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
-                    if (currentVideoFormat == TC_VIDEO_RGB)
+                    if (m_CurrentVideoFormat == TC_VIDEO_RGB)
                     {
                         uint8_t *image  = PrimaryCCD.getFrameBuffer();
                         uint32_t width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);

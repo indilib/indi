@@ -257,6 +257,13 @@ private:
         PIXELFORMAT_UYVY       = 0x0b
     };
 
+    enum eTriggerMode
+    {
+        TRIGGER_VIDEO,
+        TRIGGER_SOFTWARE,
+        TRIGGER_EXTERNAL,
+    };
+
     struct Resolution
     {
         uint width;
@@ -508,12 +515,12 @@ private:
         TC_FIRMWARE_REV
     };
 
-    uint8_t currentVideoFormat = TC_VIDEO_RGB;
-    uint8_t rememberVideoFormat = TC_VIDEO_RGB;
-
+    uint8_t m_CurrentVideoFormat = TC_VIDEO_RGB;
     INDI_PIXEL_FORMAT m_CameraPixelFormat = INDI_RGB;
+    eTriggerMode m_CurrentTriggerMode = TRIGGER_VIDEO;
 
     bool m_SendImage { false };
+    bool m_CanSnap { false };
     bool m_RAWFormatSupport { false };
     bool m_RAWHighDepthSupport { false };
 
