@@ -1325,16 +1325,26 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 bool TOUPCAM::StartStreaming()
 {    
     // We need to stop camera first
-    Toupcam_Stop(m_CameraHandle);
+    LOG_DEBUG("Stopping camera...");
+    int rc=0;
+    if ( (rc = Toupcam_Stop(m_CameraHandle) < 0))
+    {
+        LOGF_ERROR("Failed to set stop camera. Error: %s", errorCodes[rc].c_str());
+        return false;
+    }
 
     // Trigger video mode
-    Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0);
+    if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0)) < 0)
+    {
+        LOGF_ERROR("Failed to set video trigger. Error: %s", errorCodes[rc].c_str());
+        return false;
+    }
+
     m_CurrentTriggerMode = TRIGGER_VIDEO;
 
     if (ExposureRequest != (1.0 / Streamer->getTargetFPS()))
     {
         ExposureRequest = 1.0 / Streamer->getTargetFPS();
-        int rc=0;
 
         uint32_t uSecs = static_cast<uint32_t>(ExposureRequest * 1000000.0f);
         if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
@@ -1345,7 +1355,11 @@ bool TOUPCAM::StartStreaming()
     }
 
     // Restart capture
-    Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+    if ( (rc = Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this)) < 0)
+    {
+        LOGF_ERROR("Failed to start pull mode with callback. Error: %s", errorCodes[rc].c_str());
+        return false;
+    }
 
     return true;
 }
