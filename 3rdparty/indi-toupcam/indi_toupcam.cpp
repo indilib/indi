@@ -1323,18 +1323,31 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 }
 
 bool TOUPCAM::StartStreaming()
-{
+{    
+    // We need to stop camera first
+    Toupcam_Stop(m_CameraHandle);
+
     // Trigger video mode
     Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0);
     m_CurrentTriggerMode = TRIGGER_VIDEO;
+
+    // Restart capture
+    Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+
     return true;
 }
 
 bool TOUPCAM::StopStreaming()
 {
+    // We need to stop camera first
+    Toupcam_Stop(m_CameraHandle);
+
     // Go back to software or single trigger mode
     Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1);
     m_CurrentTriggerMode = TRIGGER_SOFTWARE;
+
+    // Restart capture
+    Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
     return true;
 }
 
@@ -2037,7 +2050,6 @@ void TOUPCAM::eventPullCallBack(unsigned event)
             {
                 if (m_SendImage)
                 {
-                    LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
                     if (m_CurrentVideoFormat == TC_VIDEO_RGB)
                     {
                         uint8_t *image  = PrimaryCCD.getFrameBuffer();
@@ -2060,6 +2072,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
                         free(buffer);
                     }
 
+                    LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
                     ExposureComplete(&PrimaryCCD);
                     m_SendImage = false;
                 }
