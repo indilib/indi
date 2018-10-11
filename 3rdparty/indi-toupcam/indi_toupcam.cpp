@@ -505,6 +505,7 @@ bool TOUPCAM::Connect()
         Toupcam_Close(m_CameraHandle);
         return false;
     }
+    LOG_DEBUG("Starting event callback in pull mode.");
 
     /*
      * Create the imaging thread and wait for it to start
@@ -1089,7 +1090,12 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             }
 
             // We need to stop camera first
-            Toupcam_Stop(m_CameraHandle);
+            if (m_CallbackActive)
+            {
+                LOG_DEBUG("Stopping camera...");
+                Toupcam_Stop(m_CameraHandle);
+                m_CallbackActive = false;
+            }
 
             // Set updated video format RGB vs. RAW
             int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, targetIndex == TC_VIDEO_RAW ? 1 : 0);
@@ -1099,8 +1105,10 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 VideoFormatSP.s = IPS_ALERT;
                 IDSetSwitch(&VideoFormatSP, nullptr);
 
-                // Restart Capture
+                // Restart Capture                
                 Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+                LOG_DEBUG("Restarting event callback.");
+                m_CallbackActive = true;
 
                 return true;
             }
@@ -1127,6 +1135,8 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
                     // Restart Capture
                     Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+                    m_CallbackActive = true;
+                    LOG_DEBUG("Restarting event callback.");
 
                     return true;
                 }
@@ -1185,6 +1195,8 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
             // Restart Capture
             Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+            m_CallbackActive = true;
+            LOG_DEBUG("Restarting event callback.");
 
             return true;
         }
@@ -1263,7 +1275,12 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             IUUpdateSwitch(&ResolutionSP, states, names, n);
 
             // Stop capture
-            Toupcam_Stop(m_CameraHandle);
+            if (m_CallbackActive)
+            {
+                LOG_DEBUG("Stopping camera.");
+                Toupcam_Stop(m_CameraHandle);
+                m_CallbackActive = false;
+            }
 
             int targetIndex = IUFindOnSwitchIndex(&ResolutionSP);
 
@@ -1287,6 +1304,8 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
             // Restart capture
             Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+            LOG_DEBUG("Restarting event callback.");
+            m_CallbackActive = true;
             return true;
         }
 
@@ -1333,6 +1352,8 @@ bool TOUPCAM::StartStreaming()
         return false;
     }
 
+    m_CallbackActive = false;
+
     // Trigger video mode
     if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0)) < 0)
     {
@@ -1361,13 +1382,20 @@ bool TOUPCAM::StartStreaming()
         return false;
     }
 
+    LOG_DEBUG("Restarting event callback.");
+    m_CallbackActive = true;
+
     return true;
 }
 
 bool TOUPCAM::StopStreaming()
 {
     // We need to stop camera first
-    Toupcam_Stop(m_CameraHandle);
+    if (m_CallbackActive)
+    {
+        Toupcam_Stop(m_CameraHandle);
+        m_CallbackActive = false;
+    }
 
     // Go back to software or single trigger mode
     Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1);
@@ -1375,6 +1403,10 @@ bool TOUPCAM::StopStreaming()
 
     // Restart capture
     Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+    LOG_DEBUG("Restarting event callback.");
+
+    m_CallbackActive = true;
+
     return true;
 }
 
