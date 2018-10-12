@@ -902,6 +902,15 @@ add_executable(indi_simulator_wheel ${filtersimulator_SRC})
 target_link_libraries(indi_simulator_wheel indidriver)
 install(TARGETS indi_simulator_wheel RUNTIME DESTINATION bin)
 
+########### Manual Filter ##############
+SET(manualfilter_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/manual_filter.cpp)
+
+add_executable(indi_manual_wheel ${manualfilter_SRC})
+target_link_libraries(indi_manual_wheel indidriver)
+install(TARGETS indi_manual_wheel RUNTIME DESTINATION bin)
+
+
 ########## Optec Wheel IFW ############
 SET(optecwheel_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/ifwoptec.cpp)
