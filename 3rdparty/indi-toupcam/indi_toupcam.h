@@ -522,8 +522,7 @@ private:
     bool m_SendImage { false };
     bool m_CanSnap { false };
     bool m_RAWFormatSupport { false };
-    bool m_RAWHighDepthSupport { false };
-    bool m_CallbackActive { false };
+    bool m_RAWHighDepthSupport { false };    
 
     uint8_t m_BitsPerPixel { 8 };
     uint8_t m_RawBitsPerPixel { 8 };

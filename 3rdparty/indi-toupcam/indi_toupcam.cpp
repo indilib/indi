@@ -1090,12 +1090,8 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             }
 
             // We need to stop camera first
-            if (m_CallbackActive)
-            {
-                LOG_DEBUG("Stopping camera...");
-                Toupcam_Stop(m_CameraHandle);
-                m_CallbackActive = false;
-            }
+            LOG_DEBUG("Stopping camera to change video mode.");
+            Toupcam_Stop(m_CameraHandle);
 
             // Set updated video format RGB vs. RAW
             int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, targetIndex == TC_VIDEO_RAW ? 1 : 0);
@@ -1107,8 +1103,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
                 // Restart Capture                
                 Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
-                LOG_DEBUG("Restarting event callback.");
-                m_CallbackActive = true;
+                LOG_DEBUG("Restarting event callback after changing video mode failed.");
 
                 return true;
             }
@@ -1135,8 +1130,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
                     // Restart Capture
                     Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
-                    m_CallbackActive = true;
-                    LOG_DEBUG("Restarting event callback.");
+                    LOG_DEBUG("Restarting event callback after video mode change failed.");
 
                     return true;
                 }
@@ -1195,8 +1189,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
             // Restart Capture
             Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
-            m_CallbackActive = true;
-            LOG_DEBUG("Restarting event callback.");
+            LOG_DEBUG("Restarting event callback after video mode change.");
 
             return true;
         }
@@ -1275,12 +1268,8 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             IUUpdateSwitch(&ResolutionSP, states, names, n);
 
             // Stop capture
-            if (m_CallbackActive)
-            {
-                LOG_DEBUG("Stopping camera.");
-                Toupcam_Stop(m_CameraHandle);
-                m_CallbackActive = false;
-            }
+            LOG_DEBUG("Stopping camera to change resolution.");
+            Toupcam_Stop(m_CameraHandle);
 
             int targetIndex = IUFindOnSwitchIndex(&ResolutionSP);
 
@@ -1304,8 +1293,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
             // Restart capture
             Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
-            LOG_DEBUG("Restarting event callback.");
-            m_CallbackActive = true;
+            LOG_DEBUG("Restarting event callback after changing resolution.");
             return true;
         }
 
@@ -1342,17 +1330,8 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 }
 
 bool TOUPCAM::StartStreaming()
-{    
-    // We need to stop camera first
-    LOG_DEBUG("Stopping camera...");
+{
     int rc=0;
-    if ( (rc = Toupcam_Stop(m_CameraHandle) < 0))
-    {
-        LOGF_ERROR("Failed to set stop camera. Error: %s", errorCodes[rc].c_str());
-        return false;
-    }
-
-    m_CallbackActive = false;
 
     // Trigger video mode
     if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0)) < 0)
@@ -1375,38 +1354,14 @@ bool TOUPCAM::StartStreaming()
         }
     }
 
-    // Restart capture
-    if ( (rc = Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this)) < 0)
-    {
-        LOGF_ERROR("Failed to start pull mode with callback. Error: %s", errorCodes[rc].c_str());
-        return false;
-    }
-
-    LOG_DEBUG("Restarting event callback.");
-    m_CallbackActive = true;
-
     return true;
 }
 
 bool TOUPCAM::StopStreaming()
-{
-    // We need to stop camera first
-    if (m_CallbackActive)
-    {
-        Toupcam_Stop(m_CameraHandle);
-        m_CallbackActive = false;
-    }
-
+{    
     // Go back to software or single trigger mode
     Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1);
     m_CurrentTriggerMode = TRIGGER_SOFTWARE;
-
-    // Restart capture
-    Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
-    LOG_DEBUG("Restarting event callback.");
-
-    m_CallbackActive = true;
-
     return true;
 }
 
