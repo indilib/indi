@@ -1951,7 +1951,9 @@ bool TOUPCAM::saveConfigItems(FILE *fp)
     if (HasCooler())
         IUSaveConfigSwitch(fp, &CoolerSP);
     IUSaveConfigNumber(fp, &ControlNP);
-    IUSaveConfigSwitch(fp, &VideoFormatSP);
+
+    // FIXME this is causing deadlock for some reason!
+    //IUSaveConfigSwitch(fp, &VideoFormatSP);
 
     return true;
 }
