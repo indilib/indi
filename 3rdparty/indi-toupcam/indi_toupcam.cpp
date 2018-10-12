@@ -83,7 +83,7 @@ static ToupcamModelV2 model;
 std::map<int, std::string> TOUPCAM::errorCodes =
 {
     {0x00000000, "Operation successful"},
-    {0x00000001, "Operation successful"},
+    {0x00000001, "Operation failed"},
     {0x80004005, "Unspecified failure"},
     {0x80070057, "One or more arguments are not valid"},
     {0x80004001, "Not supported or not implemented"},
@@ -689,12 +689,14 @@ void TOUPCAM::setupParams()
     m_CurrentTriggerMode = static_cast<eTriggerMode>(nVal);
 
     // Set trigger mode to software
-    if (m_CurrentTriggerMode != TRIGGER_SOFTWARE)
-    {
-        LOG_DEBUG("Setting trigger mode to software...");
-        Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1);
-        m_CurrentTriggerMode = TRIGGER_SOFTWARE;
-    }
+    // FIXME Setting trigger to software and then back to video causes a deadlock for some reason
+    // Waiting for info from Toupcam
+//    if (m_CurrentTriggerMode != TRIGGER_SOFTWARE)
+//    {
+//        LOG_DEBUG("Setting trigger mode to software...");
+//        Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1);
+//        m_CurrentTriggerMode = TRIGGER_SOFTWARE;
+//    }
 
     // Get CCD Controls values
     uint16_t nMin=0, nMax=0, nDef=0;
@@ -1334,11 +1336,13 @@ bool TOUPCAM::StartStreaming()
     int rc=0;
 
     // Trigger video mode
-    if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0)) < 0)
-    {
-        LOGF_ERROR("Failed to set video trigger. Error: %s", errorCodes[rc].c_str());
-        return false;
-    }
+    // FIXME Setting trigger to software and then back to video causes a deadlock for some reason
+    // Waiting for info from Toupcam
+//    if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0)) < 0)
+//    {
+//        LOGF_ERROR("Failed to set video trigger. Error: %s", errorCodes[rc].c_str());
+//        return false;
+//    }
 
     m_CurrentTriggerMode = TRIGGER_VIDEO;
 
@@ -1360,7 +1364,9 @@ bool TOUPCAM::StartStreaming()
 bool TOUPCAM::StopStreaming()
 {    
     // Go back to software or single trigger mode
-    Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1);
+    // FIXME Setting trigger to software and then back to video causes a deadlock for some reason
+    // Waiting for info from Toupcam
+    //Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1);
     m_CurrentTriggerMode = TRIGGER_SOFTWARE;
     return true;
 }
@@ -1457,11 +1463,13 @@ bool TOUPCAM::StartExposure(float duration)
 
       InExposure = true;      
 
-      if ( (rc = Toupcam_Trigger(m_CameraHandle, 1) < 0) )
-      {
-          LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
-          return false;
-      }
+      // FIXME Setting trigger to software and then back to video causes a deadlock for some reason
+      // Waiting for info from Toupcam
+//      if ( (rc = Toupcam_Trigger(m_CameraHandle, 1) < 0) )
+//      {
+//          LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
+//          return false;
+//      }
 
       int timeMS = uSecs/1000 - 50;
       if (timeMS < 0)
