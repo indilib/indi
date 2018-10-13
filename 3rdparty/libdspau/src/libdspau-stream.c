@@ -76,13 +76,13 @@ void dspau_stream_free_output_buffer(dspau_stream_p stream)
 dspau_stream_p dspau_stream_new()
 {
     dspau_stream_p stream = (dspau_stream_p)calloc(sizeof(dspau_stream), 1);
-    stream->out = (dspau_t*)malloc(sizeof(dspau_t) * 1);
-    stream->in = (dspau_t*)malloc(sizeof(dspau_t) * 1);
-    stream->location = (dspau_t*)malloc(sizeof(dspau_t) * 3);
-    stream->target = (dspau_t*)malloc(sizeof(dspau_t) * 3);
-    stream->sizes = (int*)malloc(sizeof(int) * 1);
-    stream->pos = (int*)malloc(sizeof(int) * 1);
-    stream->children = (dspau_stream_p*)malloc(sizeof(dspau_stream));
+    stream->out = (dspau_t*)calloc(sizeof(dspau_t), 1);
+    stream->in = (dspau_t*)calloc(sizeof(dspau_t), 1);
+    stream->location = (dspau_t*)calloc(sizeof(dspau_t), 3);
+    stream->target = (dspau_t*)calloc(sizeof(dspau_t), 3);
+    stream->sizes = (int*)calloc(sizeof(int), 1);
+    stream->pos = (int*)calloc(sizeof(int), 1);
+    stream->children = (dspau_stream_p*)calloc(sizeof(dspau_stream), 1);
     stream->child_count = 0;
     stream->parent = NULL;
     stream->dims = 0;

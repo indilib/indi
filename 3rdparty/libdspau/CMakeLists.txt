@@ -33,6 +33,7 @@ set(dspau_lib_srcs
    ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-filters.c
    ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-stats.c
    ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-stream.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-time.c
 )
 
 #build the shared library

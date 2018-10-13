@@ -20,9 +20,9 @@
 
 dspau_t* dspau_buffer_zerofill(dspau_t* out, int len)
 {
-    dspau_t *in = calloc(len, sizeof(dspau_t));
-    memcpy(out, in, len * sizeof(dspau_t));
-    free(in);
+    for(int i = 0; i < len; i++) {
+        out[i] = 0;
+    }
     return out;
 }
 
@@ -41,9 +41,12 @@ dspau_t* dspau_buffer_stretch(dspau_t* in, int len, dspau_t min, dspau_t max)
     int k;
     dspau_t mn, mx;
     dspau_stats_minmidmax(in, len, &mn, &mx);
+    dspau_t oratio = (max - min);
+    dspau_t iratio = (mx - mn) + mx;
+    if(iratio == 0) iratio = 1.0;
 	for(k = 0; k < len; k++) {
         out[k] = in[k] - mn;
-        out[k] = out[k] * ((max - min) / (mx - mn + 1));
+        out[k] = out[k] * (oratio / iratio);
         out[k] += min;
     }
     return out;
