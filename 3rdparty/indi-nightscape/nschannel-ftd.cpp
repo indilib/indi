@@ -169,21 +169,21 @@ int NsChannelFTD::scan(void) {
 		thedev = -1;
 		rc = FT_SetVIDPID(vid, pid);
     if (rc != FT_OK) {
-         DO_ERR("unable to set vip/pid: %d(%s)\n", rc, status_string(rc));
+         DO_ERR("unable to set vip/pid: %d(%s)\n", (int)rc, status_string(rc));
         return (-1);
     }
-		rc = FT_CreateDeviceInfoList(&ndevs);
+        rc = FT_CreateDeviceInfoList((unsigned long*)&ndevs);
     if (rc != FT_OK) {
-        DO_ERR("unable to get device info: %d(%s)\n", rc, status_string(rc));
+        DO_ERR("unable to get device info: %d(%s)\n", (int)rc, status_string(rc));
         return (-1);
     }
     DO_INFO("Found %d devices\n", ndevs);
     FT_DEVICE_LIST_INFO_NODE * dev = NULL;
     if (ndevs > 0) {
     	dev = (FT_DEVICE_LIST_INFO_NODE *)malloc (sizeof(FT_DEVICE_LIST_INFO_NODE) *ndevs);
-    	rc = FT_GetDeviceInfoList (dev, &ndevs);
+        rc = FT_GetDeviceInfoList (dev, (unsigned long*)&ndevs);
     	if (rc != FT_OK) {
-        	DO_ERR("unable to get device info list: %d(%s)\n", rc, status_string(rc));
+            DO_ERR("unable to get device info list: %d(%s)\n", (int)rc, status_string(rc));
         	return(-1);
     	}
     	for (unsigned c = 0; c < ndevs; c++) {
@@ -215,7 +215,7 @@ int NsChannelFTD::scan(void) {
 int NsChannelFTD::readCommand(unsigned char *buf, size_t size) {
 	FT_STATUS rc;
 	unsigned nbytes = 0;
-	rc = FT_Read(ftdic, buf, size, &nbytes);		
+    rc = FT_Read(ftdic, buf, size, (unsigned long*)&nbytes);
   if (rc != FT_OK) {
    DO_ERR( "unable to read command: %d (%s)\n", rc,status_string(rc) );
   	return -1;
@@ -228,10 +228,10 @@ int NsChannelFTD::readCommand(unsigned char *buf, size_t size) {
 int NsChannelFTD::writeCommand(const unsigned char *buf, size_t size) {
 	FT_STATUS rc;
   unsigned nbytes = 0;
-  rc=FT_Write(ftdic, (void *)buf, size, &nbytes);
+  rc=FT_Write(ftdic, (void *)buf, size, (unsigned long*)&nbytes);
 
   if (rc != FT_OK) {
-   DO_ERR( "unable to write command: %d (%s)\n", rc, status_string(rc));
+   DO_ERR( "unable to write command: %d (%s)\n", (int)rc, status_string(rc));
   	return -1;
   } else {
   	return nbytes;	
@@ -242,9 +242,9 @@ int NsChannelFTD::writeCommand(const unsigned char *buf, size_t size) {
 int NsChannelFTD::readData(unsigned char *buf, size_t size) {
 	FT_STATUS rc2;
 	unsigned nbytes= 0;
-	rc2 = FT_Read(ftdid, buf, size, &nbytes);		
+    rc2 = FT_Read(ftdid, buf, size, (unsigned long*)&nbytes);
   if (rc2 != FT_OK) {
-   DO_ERR( "unable to read data: %d (%s)\n", rc2, status_string(rc2));
+   DO_ERR( "unable to read data: %d (%s)\n", (int)rc2, status_string(rc2));
   	return -1;
   } else {
   	return nbytes;	
@@ -255,7 +255,7 @@ int NsChannelFTD::purgeData(void) {
 	FT_STATUS rc2;
 	rc2= FT_Purge(ftdid, FT_PURGE_RX | FT_PURGE_TX);
   if (rc2  != FT_OK) {
-      DO_ERR( "unable to purge: %d (%s)\n", rc2, status_string(rc2));
+      DO_ERR( "unable to purge: %d (%s)\n", (int)rc2, status_string(rc2));
 			return (-1);
   }
 	return 0;
@@ -265,7 +265,7 @@ int NsChannelFTD::setDataRts(void) {
 	FT_STATUS rc2;
  	rc2=FT_SetRts (ftdid);
 	if (rc2  != FT_OK) {
-    DO_ERR("unable to set rts on data channel: %d (%s)\n", rc2, status_string(rc2));
+    DO_ERR("unable to set rts on data channel: %d (%s)\n", (int)rc2, status_string(rc2));
 		return (-1);
 	}
 	return 0;
