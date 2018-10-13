@@ -55,6 +55,7 @@ typedef struct
     std::string DEFirmware;
     float controllerVersion;
     char controllerVariant;
+    bool isGem;
 } FirmwareInfo;
 
 
@@ -98,7 +99,7 @@ class CelestronDriver
         void set_sim_slew_rate(CELESTRON_SLEW_RATE val) { sim_data.slewRate = val; }
         void set_sim_track_mode(CELESTRON_TRACK_MODE val) { sim_data.trackMode = val; }
         void set_sim_gps_status(CELESTRON_GPS_STATUS val) { sim_data.gpsStatus = val; }
-        void set_sim_slewing(bool isSlewing) { sim_data.isSlewing = isSlewing; };
+        void set_sim_slewing(bool isSlewing) { sim_data.isSlewing = isSlewing; }
         void set_sim_ra(double ra) { sim_data.ra = ra; }
         void set_sim_dec(double dec) { sim_data.dec = dec; }
         void set_sim_az(double az) { sim_data.az = az; }
@@ -113,7 +114,7 @@ class CelestronDriver
         bool get_firmware(FirmwareInfo *info);
         bool get_version(char *version, int size);
         bool get_variant(char *variant);
-        bool get_model(char *model, int size);
+        bool get_model(char *model, int size, bool *isGem);
         bool get_dev_firmware(int dev, char *version, int size);
         bool get_radec(double *ra, double *dec, bool precise);
         bool get_azalt(double *az, double *alt, bool precise);
@@ -144,6 +145,12 @@ class CelestronDriver
         // Pulse Guide (experimental)
         int send_pulse(CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
         int get_pulse_status(CELESTRON_DIRECTION direction, bool &pulse_state);
+
+        // Pointing state, pier side, returns 'E' or 'W'
+        bool get_pier_side(char * sop);
+
+        // check if the mount is aligned using the mount J command
+        bool check_aligned();
 
     protected:
         void set_sim_response(const char *fmt, ...);

@@ -31,7 +31,7 @@
 
 #define MOONLITE_TIMEOUT 3
 
-std::unique_ptr<MoonLite> moonLite(new MoonLite());
+static std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
 void ISGetProperties(const char *dev)
 {
@@ -900,4 +900,13 @@ float MoonLite::CalcTimeLeft(timeval start, float req)
     timesince = timesince / 1000;
     timeleft  = req - timesince;
     return timeleft;
+}
+
+bool MoonLite::saveConfigItems(FILE *fp)
+{
+    Focuser::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &StepModeSP);
+
+    return true;
 }

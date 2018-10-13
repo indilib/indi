@@ -136,9 +136,10 @@ struct _gphoto_driver
     int bulb_fd;
 
     int exposure_cnt;
-    double *exposure;
+    double *exposureList;
     int bulb_exposure_index;
     double max_exposure, min_exposure;
+    bool force_bulb;
 
     int iso;
     int format;
@@ -673,7 +674,7 @@ int find_bulb_exposure(gphoto_driver *gphoto, gphoto_widget *widget)
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Looking for bulb exposure in %s exposure widget..", widget->name);
     for (int i = 0; i < widget->choice_cnt; i++)
     {
-        if (gphoto->exposure[i] == -1)
+        if (gphoto->exposureList[i] == -1)
         {
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "bulb exposure found! index: %d", i);
             return i;
@@ -689,16 +690,22 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t
     double delta = 0;
     double best_match = 99999;
 
+    if (widget == nullptr)
+    {
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Cannot find optimal exposure setting due to missing exposure widget.");
+        return -1;
+    }
+
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Finding optimal exposure setting for %g seconds in %s (count=%d)...",
                  exptime, widget->name, widget->choice_cnt);
 
     for (int i = 0; i < widget->choice_cnt; i++)
     {
         //DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG,"Exposure[%d] = %g", i, gphoto->exposure[i]);
-        if (gphoto->exposure[i] <= 0)
+        if (gphoto->exposureList[i] <= 0)
             continue;
 
-        delta = exptime - gphoto->exposure[i];
+        delta = exptime - gphoto->exposureList[i];
         if (exact)
         {
              // Close "enough" to be exact
@@ -719,7 +726,10 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t
     }
 
     if (best_idx >= 0)
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Best match: %g seconds Index: %d", gphoto->exposure[best_idx], best_idx);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Best match: %g seconds Index: %d", gphoto->exposureList[best_idx], best_idx);
+    else
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "No optimal predefined exposure found.");
+
 
     return best_idx;
 }
@@ -1027,7 +1037,11 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         gphoto_set_widget_num(gphoto, gphoto->format_widget, gphoto->format);
 
     // Find EXACT optimal exposure index in case we need to use it. If -1, we always use blob made if available
-    int optimalExposureIndex = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec, true);
+    int optimalExposureIndex = -1;
+
+    // JM 2018-09-23: In case force bulb is off, then we search for optimal exposure index
+    if (gphoto->force_bulb == false)
+        optimalExposureIndex = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec, true);
 
     // Set Capture Target
     // JM: 2017-05-21: Disabled now since user can explicity set capture target via the driver interface
@@ -1048,7 +1062,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     // In that case, we always capture using either shutter release or bulb widget regardless of time
     // JM 2018-06-29: Add check for optimalExposureIndex, but if exposure_widget has only ONE member (blob)
     // then we cannot set custom short exposure (e.g. 1/4000) so it must be set here even for short exposures.
-    if ((gphoto->exposure == nullptr || exptime_usec > 1e6 || optimalExposureIndex == -1) &&
+    if ((gphoto->exposureList == nullptr || exptime_usec > 1e6 || optimalExposureIndex == -1) &&
             ((gphoto->bulb_port[0]) || (gphoto->bulb_widget != nullptr)))
     {
         //Bulb mode is supported
@@ -1076,7 +1090,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         }
 
         // We set bulb setting for exposure widget if it is defined by the camera
-        if (gphoto->exposure && gphoto->exposure_widget->type != GP_WIDGET_TEXT && gphoto->bulb_exposure_index != -1)
+        if (gphoto->exposureList && gphoto->exposure_widget->type != GP_WIDGET_TEXT && gphoto->bulb_exposure_index != -1)
         {
             // If it's not already set to the bulb exposure index
             if (gphoto->bulb_exposure_index != (uint8_t)gphoto->exposure_widget->value.index)
@@ -1179,15 +1193,15 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         DEBUGDEVICE(device, INDI::Logger::DBG_ERROR, "Failed to set non-bulb exposure time.");
         return -1;
     }
-    else if (gphoto->exposure_widget->type == GP_WIDGET_TEXT)
+    else if (gphoto->exposure_widget && gphoto->exposure_widget->type == GP_WIDGET_TEXT)
     {
         gphoto_set_widget_text(gphoto, gphoto->exposure_widget, fallbackShutterSpeeds[optimalExposureIndex]);
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %s seconds", fallbackShutterSpeeds[optimalExposureIndex]);
     }
-    else
+    else if (gphoto->exposure_widget)
     {
         gphoto_set_widget_num(gphoto, gphoto->exposure_widget, optimalExposureIndex);
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposure[optimalExposureIndex]);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using predefined exposure time: %g seconds", gphoto->exposureList[optimalExposureIndex]);
     }
 
     // Lock the mirror if required.
@@ -1578,6 +1592,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto->max_exposure           = 3600;
     gphoto->min_exposure           = 0.001;
     gphoto->dsusb                  = nullptr;
+    gphoto->force_bulb             = true;
     gphoto->last_sensor_temp       = -273.0; // 0 degrees Kelvin
 
     result = gp_camera_get_config(gphoto->camera, &gphoto->config, gphoto->context);
@@ -1603,7 +1618,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
             (gphoto->exposure_widget = find_widget(gphoto, "shutterspeed")) ||
             (gphoto->exposure_widget = find_widget(gphoto, "eos-shutterspeed")))
     {
-        gphoto->exposure = parse_shutterspeed(gphoto, gphoto->exposure_widget);
+        gphoto->exposureList = parse_shutterspeed(gphoto, gphoto->exposure_widget);
     }
     else if ((gphoto->exposure_widget = find_widget(gphoto, "capturetarget")))
     {
@@ -1611,7 +1626,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
         const char *choices[2] = { "1/1", "bulb" };
         tempWidget.choice_cnt = 2;
         tempWidget.choices = const_cast<char **>(choices);
-        gphoto->exposure       = parse_shutterspeed(gphoto, &tempWidget);
+        gphoto->exposureList       = parse_shutterspeed(gphoto, &tempWidget);
     }
     else
     {
@@ -1620,11 +1635,12 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     }
 
     if (gphoto->exposure_widget != nullptr)
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure Widget: %s", gphoto->exposure_widget->name);
-
-    int ret = gphoto_read_widget(gphoto->exposure_widget);
-    if (ret == GP_OK)
-        show_widget(gphoto->exposure_widget, "\t\t");
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure Widget: %s", gphoto->exposure_widget->name);    
+        int ret = gphoto_read_widget(gphoto->exposure_widget);
+        if (ret == GP_OK)
+            show_widget(gphoto->exposure_widget, "\t\t");
+    }
 
     gphoto->format_widget   = find_widget(gphoto, "imageformat");
     // JM 2018-05-03: Nikon defines it as 'imagequality'
@@ -1784,8 +1800,8 @@ int gphoto_close(gphoto_driver *gphoto)
         pthread_join(gphoto->thread, nullptr);
     }
 
-    if (gphoto->exposure)
-        free(gphoto->exposure);
+    if (gphoto->exposureList)
+        free(gphoto->exposureList);
     if (gphoto->exposure_widget && gphoto->exposure_widget->type == GP_WIDGET_RADIO)
             widget_free(gphoto->exposure_widget);
     if (gphoto->format_widget)
@@ -2266,6 +2282,11 @@ int gphoto_delete_sdcard_image(gphoto_driver *gphoto, bool delete_sdcard_image)
     gphoto->delete_sdcard_image = delete_sdcard_image;
 
     return GP_OK;
+}
+
+void gphoto_force_bulb(gphoto_driver *gphoto, bool enabled)
+{
+    gphoto->force_bulb = enabled;
 }
 
 #ifdef GPHOTO_TEST
