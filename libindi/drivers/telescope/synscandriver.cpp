@@ -106,18 +106,7 @@ bool SynscanDriver::initProperties()
 
     addAuxControls();
 
-    setDriverInterface(TELESCOPE_INTERFACE);
-
     return true;
-}
-
-void SynscanDriver::ISGetProperties(const char *dev)
-{
-    /* First we let our parent populate */
-    INDI::Telescope::ISGetProperties(dev);
-
-//    defineSwitch(&UseWiFiSP);
-//    loadConfig(true, "WIFI_SELECT");
 }
 
 bool SynscanDriver::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -327,8 +316,15 @@ bool SynscanDriver::AnalyzeMount()
         }
     }
 
-    //SetTelescopeCapability(caps, SYNSCAN_SLEW_RATES);
+    initParking();
 
+    LOG_DEBUG("Analyzing mount complete.");
+
+    return true;
+}
+
+void SynscanDriver::initParking()
+{
     LOG_DEBUG("Initializing parking...");
     if (InitPark())
     {
@@ -342,10 +338,6 @@ bool SynscanDriver::AnalyzeMount()
         SetAxis1ParkDefault(0);
         SetAxis2ParkDefault(90);
     }
-
-    LOG_DEBUG("Analyzing mount complete.");
-
-    return true;
 }
 
 bool SynscanDriver::ReadScopeStatus()

@@ -34,7 +34,7 @@
 #define SUBFRAME_SIZE (16384)
 #define MIN_FRAME_SIZE (512)
 #define MAX_FRAME_SIZE (SUBFRAME_SIZE * 16)
-#define SPECTRUM_SIZE 65535
+#define SPECTRUM_SIZE (1 << PrimaryDetector.getBPS())
 
 static int iNumofConnectedDetectors;
 static LIMESDR *receivers[MAX_DEVICES];

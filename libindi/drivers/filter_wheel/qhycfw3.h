@@ -1,5 +1,7 @@
 /*******************************************************************************
-  Copyright(c) 2018 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2017 Jasem Mutlaq. All rights reserved.
+
+  Tru Technology Filter Wheel
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -18,22 +20,17 @@
 
 #pragma once
 
-#include "synscandriver.h"
+#include "indifilterwheel.h"
 
-class AZGTI : public SynscanDriver
+class QHYCFW3 : public INDI::FilterWheel
 {
   public:
-    AZGTI();
-
-    virtual const char *getDefaultName() override;
-    virtual bool initProperties() override;
-
-    virtual bool Park() override;
-    virtual bool UnPark() override;
-
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
+    QHYCFW3();
 
   protected:
-    virtual bool AnalyzeMount() override;
+    const char *getDefaultName() override;
+    bool initProperties() override;
+
+    bool Handshake() override;
+    bool SelectFilter(int) override;
 };
