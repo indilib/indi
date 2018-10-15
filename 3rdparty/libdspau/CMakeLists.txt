@@ -6,7 +6,7 @@ include(GNUInstallDirs)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error -std=c99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
-set(PACKAGE_VERSION "1.0.0")
+set(PACKAGE_VERSION "2.0.0")
 
 find_package(TIFF REQUIRED)
 find_package(FFTW3 REQUIRED)
