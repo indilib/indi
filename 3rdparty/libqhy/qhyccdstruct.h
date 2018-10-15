@@ -27,6 +27,11 @@
  * @brief QHYCCD SDK struct define
  */
 
+#ifdef __linux__
+#define  LINUX
+#endif
+
+
 #ifdef WIN32
 #define QHYCCD_OPENCV_SUPPORT
 #endif
@@ -40,19 +45,19 @@
 #define __QHYCCDSTRUCTDEF_H__
 
 #ifdef WIN32
- #ifndef EXPORTFUNC
- #define EXPORTFUNC extern "C" __declspec(dllexport)
- #endif
- #ifndef STDCALL
- #define STDCALL __stdcall
- #endif
- #ifndef EXPORTC
- #define EXPORTC extern "C"
- #endif
+#ifndef EXPORTFUNC
+#define EXPORTFUNC extern "C" __declspec(dllexport)
+#endif
+#ifndef STDCALL
+#define STDCALL __stdcall
+#endif
+#ifndef EXPORTC
+#define EXPORTC extern "C"
+#endif
 #else
- #define EXPORTFUNC extern "C"
- #define STDCALL
- #define EXPORTC extern "C"
+#define EXPORTFUNC extern "C"
+#define STDCALL
+#define EXPORTC extern "C"
 #endif
 
 #include "stdint.h"
@@ -77,52 +82,52 @@
  * List the ccd registers param
  */
 typedef struct ccdreg
-  {
-    uint8_t Gain;                //!< ccd gain
-    uint8_t Offset;              //!< ccd offset
-    uint32_t Exptime;             //!< expose time
-    uint8_t HBIN;                //!< width bin
-    uint8_t VBIN;                //!< height bin
-    uint16_t LineSize;           //!< almost match image width
-    uint16_t VerticalSize;       //!< almost match image height
-    uint16_t SKIP_TOP;           //!< Reserved
-    uint16_t SKIP_BOTTOM;        //!< Reserved
-    uint16_t LiveVideo_BeginLine;//!< Reserved
-    uint16_t AnitInterlace;      //!< Reserved
-    uint8_t MultiFieldBIN;       //!< Reserved
-    uint8_t AMPVOLTAGE;          //!< Reserved
-    uint8_t DownloadSpeed;       //!< transfer speed
-    uint8_t TgateMode;           //!< Reserved
-    uint8_t ShortExposure;       //!< Reserved
-    uint8_t VSUB;                //!< Reserved
-    uint8_t CLAMP;               //!< Reserved
-    uint8_t TransferBIT;         //!< Reserved
-    uint8_t TopSkipNull;         //!< Reserved
-    uint16_t TopSkipPix;         //!< Reserved
-    uint8_t MechanicalShutterMode;//!< Reserved
-    uint8_t DownloadCloseTEC;    //!< Reserved
-    uint8_t SDRAM_MAXSIZE;       //!< Reserved
-    uint16_t ClockADJ;           //!< Reserved
-    uint8_t Trig;                //!< Reserved
-    uint8_t MotorHeating;        //!< Reserved
-    uint8_t WindowHeater;        //!< Reserved
-    uint8_t ADCSEL;              //!< Reserved
-  }
+{
+  uint8_t Gain;                //!< ccd gain
+  uint8_t Offset;              //!< ccd offset
+  uint32_t Exptime;             //!< expose time
+  uint8_t HBIN;                //!< width bin
+  uint8_t VBIN;                //!< height bin
+  uint16_t LineSize;           //!< almost match image width
+  uint16_t VerticalSize;       //!< almost match image height
+  uint16_t SKIP_TOP;           //!< Reserved
+  uint16_t SKIP_BOTTOM;        //!< Reserved
+  uint16_t LiveVideo_BeginLine;//!< Reserved
+  uint16_t AnitInterlace;      //!< Reserved
+  uint8_t MultiFieldBIN;       //!< Reserved
+  uint8_t AMPVOLTAGE;          //!< Reserved
+  uint8_t DownloadSpeed;       //!< transfer speed
+  uint8_t TgateMode;           //!< Reserved
+  uint8_t ShortExposure;       //!< Reserved
+  uint8_t VSUB;                //!< Reserved
+  uint8_t CLAMP;               //!< Reserved
+  uint8_t TransferBIT;         //!< Reserved
+  uint8_t TopSkipNull;         //!< Reserved
+  uint16_t TopSkipPix;         //!< Reserved
+  uint8_t MechanicalShutterMode;//!< Reserved
+  uint8_t DownloadCloseTEC;    //!< Reserved
+  uint8_t SDRAM_MAXSIZE;       //!< Reserved
+  uint16_t ClockADJ;           //!< Reserved
+  uint8_t Trig;                //!< Reserved
+  uint8_t MotorHeating;        //!< Reserved
+  uint8_t WindowHeater;        //!< Reserved
+  uint8_t ADCSEL;              //!< Reserved
+}
 CCDREG;
 
 struct BIOREG
-  {
-    uint16_t LineSize;
-    uint16_t PatchNumber;
-    uint8_t  AMPVOLTAGE;
-    uint8_t  ShortExposure;
-    uint8_t  SDRAM_MAXSIZE;
-    uint8_t  DownloadSpeed;
-    uint8_t  TransferBIT;
-    uint8_t  BIOCCD_Mode;
-    uint8_t  BIOCCD_Video;
-    uint8_t  SDRAM_Bypass;
-  };
+{
+  uint16_t LineSize;
+  uint16_t PatchNumber;
+  uint8_t  AMPVOLTAGE;
+  uint8_t  ShortExposure;
+  uint8_t  SDRAM_MAXSIZE;
+  uint8_t  DownloadSpeed;
+  uint8_t  TransferBIT;
+  uint8_t  BIOCCD_Mode;
+  uint8_t  BIOCCD_Video;
+  uint8_t  SDRAM_Bypass;
+};
 
 /**
  * @brief CONTROL_ID enum define
