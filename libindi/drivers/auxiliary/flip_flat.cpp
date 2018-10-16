@@ -651,6 +651,8 @@ bool FlipFlat::sendCommand(const char *command, char *response)
 
         if ((rc = tty_nread_section(PortFD, response, FLAT_RES, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
             usleep(50000);
+        else
+            break;
     }
 
     if (i==3)
