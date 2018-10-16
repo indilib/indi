@@ -31,6 +31,7 @@
 #include <cstring>
 #include <memory>
 #include <termios.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
 
 // We declare an auto pointer to FlipFlat.
@@ -256,8 +257,10 @@ bool FlipFlat::ping()
 
     for (i = 0; i < 3; i++)
     {
-        if (!sendCommand(">P000", response))
-            continue;
+        if (sendCommand(">P000", response))
+            break;
+        else
+            usleep(100000);
     }
 
     if (i == 3)
