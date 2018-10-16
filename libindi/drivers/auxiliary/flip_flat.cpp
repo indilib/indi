@@ -253,20 +253,9 @@ bool FlipFlat::saveConfigItems(FILE *fp)
 bool FlipFlat::ping()
 {
     char response[FLAT_RES]={0};
-    int i = 0;
 
-    for (i = 0; i < 3; i++)
-    {
-        if (sendCommand(">P000", response))
-            break;
-        else
-            usleep(100000);
-    }
-
-    if (i == 3)
-    {
+    if (!sendCommand(">P000", response))
         return false;
-    }
 
     char productString[3] = { 0 };
     snprintf(productString, 3, "%s", response + 2);
@@ -643,6 +632,7 @@ bool FlipFlat::sendCommand(const char *command, char *response)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF]={0};
+    int i=0;
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -651,17 +641,22 @@ bool FlipFlat::sendCommand(const char *command, char *response)
     char buffer[FLAT_CMD + 1]={0}; // space for terminating null
     snprintf(buffer, FLAT_CMD + 1, "%s\n", command);
 
-    if ((rc = tty_write(PortFD, buffer, FLAT_CMD, &nbytes_written)) != TTY_OK)
+    for (i=0; i < 3; i++)
+    {
+        if ((rc = tty_write(PortFD, buffer, FLAT_CMD, &nbytes_written)) != TTY_OK)
+        {
+            usleep(50000);
+            continue;
+        }
+
+        if ((rc = tty_nread_section(PortFD, response, FLAT_RES, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
+            usleep(50000);
+    }
+
+    if (i==3)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("%s error: %s.", command, errstr);
-        return false;
-    }
-
-    if ((rc = tty_nread_section(PortFD, response, FLAT_RES, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
         return false;
     }
 
