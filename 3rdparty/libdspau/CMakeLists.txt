@@ -39,7 +39,7 @@ set(dspau_lib_srcs
 #build the shared library
 add_library(dspau SHARED ${dspau_lib_srcs})
 
-set_target_properties(dspau PROPERTIES VERSION 1.0.1 SOVERSION 1)
+set_target_properties(dspau PROPERTIES VERSION ${PACKAGE_VERSION} SOVERSION 2)
 
 #need to link to some other libraries ? just add them here
 target_link_libraries(dspau ${M_LIB} ${CMAKE_THREAD_LIBS_INIT} ${FFTW3_LIBRARIES})
