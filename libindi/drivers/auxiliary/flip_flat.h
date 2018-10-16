@@ -50,6 +50,9 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
     virtual bool ISSnoopDevice(XMLEle *root);
 
+    static void parkTimeoutHelper(void *context);
+    static void unparkTimeoutHelper(void *context);
+
   protected:
     const char *getDefaultName();
 
@@ -71,6 +74,11 @@ class FlipFlat : public INDI::DefaultDevice, public INDI::LightBoxInterface, pub
     bool getStatus();
     bool getFirmwareVersion();
     bool getBrightness();
+
+    void parkTimeout();
+    int parkTimeoutID { -1 };
+    void unparkTimeout();
+    int unparkTimeoutID { -1 };
 
     bool Handshake();
 
