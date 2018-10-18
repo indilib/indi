@@ -439,7 +439,8 @@ bool SynscanDriver::ReadScopeStatus()
     {
         PointingStatus = res[0];
 
-        setPierSide(res[0] == 'E' ? PIER_EAST : PIER_WEST);
+        // INDI and mount pier sides are opposite to each other
+        setPierSide(res[0] == 'W' ? PIER_EAST : PIER_WEST);
     }
     memset(res, 0, MAX_SYN_BUF);
     LOG_DEBUG("CMD <t>");
