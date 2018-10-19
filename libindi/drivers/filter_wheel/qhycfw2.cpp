@@ -1,0 +1,172 @@
+/*******************************************************************************
+  Copyright(c) 2018 Jasem Mutlaq. All rights reserved.
+
+  QHYCFW2/3 Filter Wheel Driver
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Library General Public
+ License version 2 as published by the Free Software Foundation.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Library General Public License for more details.
+
+ You should have received a copy of the GNU Library General Public License
+ along with this library; see the file COPYING.LIB.  If not, write to
+ the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ Boston, MA 02110-1301, USA.
+*******************************************************************************/
+
+#include "qhycfw2.h"
+
+#include "indicom.h"
+
+#include <cstring>
+#include <memory>
+
+// We declare an auto pointer to QHYCFW.
+static std::unique_ptr<QHYCFW2> qhycfw(new QHYCFW2());
+
+void ISPoll(void *p);
+
+void ISGetProperties(const char *dev)
+{
+    qhycfw->ISGetProperties(dev);
+}
+
+void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    qhycfw->ISNewSwitch(dev, name, states, names, n);
+}
+
+void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    qhycfw->ISNewText(dev, name, texts, names, n);
+}
+
+void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    qhycfw->ISNewNumber(dev, name, values, names, n);
+}
+
+void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
+               char *names[], int n)
+{
+    INDI_UNUSED(dev);
+    INDI_UNUSED(name);
+    INDI_UNUSED(sizes);
+    INDI_UNUSED(blobsizes);
+    INDI_UNUSED(blobs);
+    INDI_UNUSED(formats);
+    INDI_UNUSED(names);
+    INDI_UNUSED(n);
+}
+void ISSnoopDevice(XMLEle *root)
+{
+    qhycfw->ISSnoopDevice(root);
+}
+
+QHYCFW2::QHYCFW2()
+{
+    setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
+}
+
+const char *QHYCFW2::getDefaultName()
+{
+    return static_cast<const char *>("QHYCFW2");
+}
+
+void QHYCFW2::ISGetProperties(const char *dev)
+{
+    INDI::FilterWheel::ISGetProperties(dev);
+
+    defineNumber(&MaxFilterNP);
+    loadConfig(true, "MAX_FILTER");
+}
+
+bool QHYCFW2::initProperties()
+{
+    INDI::FilterWheel::initProperties();
+
+    IUFillNumber(&MaxFilterN[0], "Count", "Count", "%.f", 1, 16, 1, 5);
+    IUFillNumberVector(&MaxFilterNP, MaxFilterN, 1, getDeviceName(), "MAX_FILTER", "Filters", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
+
+    CurrentFilter      = 1;
+    FilterSlotN[0].min = 1;
+    FilterSlotN[0].max = MaxFilterN[0].value;
+
+    addAuxControls();
+
+    return true;
+}
+
+
+bool QHYCFW2::SelectFilter(int f)
+{
+    TargetFilter = f;
+    char cmd[8] = {0}, res[8]={0};
+    int rc = -1, nbytes_written=0, nbytes_read=0;
+
+    LOGF_DEBUG("CMD <%d>", TargetFilter-1);
+
+    snprintf(cmd, 2, "%d", TargetFilter-1);
+
+    if (isSimulation())
+        snprintf(res, 8, "%d", TargetFilter-1);
+    else
+    {
+        if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+        {
+            char error_message[ERRMSG_SIZE];
+            tty_error_msg(rc, error_message, ERRMSG_SIZE);
+
+            LOGF_ERROR("Sending command select filter failed: %s", error_message);
+            return false;
+        }
+
+        if ((rc = tty_read(PortFD, res, 1, 30, &nbytes_read)) != TTY_OK)
+        {
+            char error_message[ERRMSG_SIZE];
+            tty_error_msg(rc, error_message, ERRMSG_SIZE);
+
+            LOGF_ERROR("Reading select filter response failed: %s", error_message);
+            return false;
+        }
+
+        LOGF_DEBUG("RES <%s>", res);
+    }
+
+    if (atoi(res)+1 == TargetFilter)
+    {
+        CurrentFilter = TargetFilter;
+        SelectFilterDone(CurrentFilter);
+        return true;
+    }
+
+    return false;
+}
+
+bool QHYCFW2::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (!strcmp(name, MaxFilterNP.name))
+        {
+            IUUpdateNumber(&MaxFilterNP, values, names, n);
+            MaxFilterNP.s = IPS_OK;
+            saveConfig(true, "MAX_FILTER");
+            IDSetNumber(&MaxFilterNP, nullptr);
+            FilterSlotN[0].max = MaxFilterN[0].value;
+            if (isConnected())
+                LOG_INFO("Max number of filters updated. You must reconnect for this change to take effect.");
+            else
+                LOGF_INFO("Max number of filters updated to %.f", MaxFilterN[0].value);
+
+            return true;
+        }
+
+    }
+
+    return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
+}

@@ -28,12 +28,6 @@ include_directories( ${USB1_INCLUDE_DIRS})
 include(CMakeCommon)
 
 ########### QHY CCD ###########
-
-# We need to add this definition otherwise QHY SDK would fail
-if (NOT APPLE)
-add_definitions(-DLINUX)
-endif()
-
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 

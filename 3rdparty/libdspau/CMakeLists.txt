@@ -6,7 +6,7 @@ include(GNUInstallDirs)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error -std=c99")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
-set(PACKAGE_VERSION "1.0.0")
+set(PACKAGE_VERSION "2.0.0")
 
 find_package(TIFF REQUIRED)
 find_package(FFTW3 REQUIRED)
@@ -33,12 +33,13 @@ set(dspau_lib_srcs
    ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-filters.c
    ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-stats.c
    ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-stream.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-time.c
 )
 
 #build the shared library
 add_library(dspau SHARED ${dspau_lib_srcs})
 
-set_target_properties(dspau PROPERTIES VERSION 1.0.1 SOVERSION 1)
+set_target_properties(dspau PROPERTIES VERSION ${PACKAGE_VERSION} SOVERSION 2)
 
 #need to link to some other libraries ? just add them here
 target_link_libraries(dspau ${M_LIB} ${CMAKE_THREAD_LIBS_INIT} ${FFTW3_LIBRARIES})
