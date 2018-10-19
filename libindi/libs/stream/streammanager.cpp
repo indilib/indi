@@ -894,7 +894,7 @@ bool StreamManager::setStream(bool enable)
             else
                 LOGF_INFO("Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
 #endif
-            LOGF_INFO("Starting the video stream with target exposure %.f s (FPS %.f)", StreamExposureN[0].value, 1/StreamExposureN[0].value);
+            LOGF_INFO("Starting the video stream with target exposure %.4f s (FPS %.f)", StreamExposureN[0].value, 1/StreamExposureN[0].value);
 
             streamframeCount = 0;
 

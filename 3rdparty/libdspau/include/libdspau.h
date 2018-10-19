@@ -48,6 +48,23 @@
      _a > _b ? _a : _b; })
 #endif
 
+#ifndef dspau_buffer_reverse
+#define dspau_buffer_reverse(buf, type, len) \
+    ({ \
+        type* a = (type*)buf; \
+        int i = len - 1; \
+        int j = 0; \
+        while(i > j) \
+        { \
+          int temp = a[i]; \
+          a[i] = a[j]; \
+          a[j] = temp; \
+          i--; \
+          j++; \
+        } \
+    })
+#endif
+
 #ifndef dspau_convert
 #define dspau_convert(in, out, in_type, out_type, len) \
     ({ \
@@ -75,26 +92,28 @@
 #define sin2cos(s) cos(asin(s))
 #define cos2sin(c) sin(acos(c))
 
+#define DSPAU_VERSION "2.0.0"
+
 #ifndef PI
 #define PI 3.14159265358979323846
 #endif
 #ifndef ONE_SECOND
-#define ONE_SECOND 10000000
+#define ONE_SECOND 100000000
 #endif
 #ifndef ONE_MILLISECOND
-#define ONE_MILLISECOND 10000
+#define ONE_MILLISECOND 100000
 #endif
 #ifndef ONE_MICROSECOND
-#define ONE_MICROSECOND 10
+#define ONE_MICROSECOND 100
 #endif
 #ifndef SOLAR_DAY
-#define SOLAR_DAY 864000000000
+#define SOLAR_DAY 86400.0000000
 #endif
 #ifndef SIDEREAL_DAY
-#define SIDEREAL_DAY 861640916000
+#define SIDEREAL_DAY 86164.0916000
 #endif
 #ifndef J2000
-#define J2000 630823248000000000
+#define J2000 63082324800.0000000
 #endif
 #ifndef EarthRadiusEquatorial
 #define EarthRadiusEquatorial 6378137.0
@@ -201,6 +220,8 @@ typedef struct {
     int radius;
 } dspau_star;
 
+inline static char* dspau_version_string() { return DSPAU_VERSION; }
+
 /**
 * @brief Create a spectrum from a dspau_t array of values
 * @param in the input stream. (input)
@@ -214,6 +235,8 @@ typedef struct {
 * Return -1 if any error occurs.
 */
 DLL_EXPORT dspau_t* dspau_fft_spectrum(dspau_stream_p stream, int conversion, int size);
+
+DLL_EXPORT dspau_t* dspau_fft_shift(dspau_t* in, int dims, int* sizes);
 
 DLL_EXPORT dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion);
 
@@ -272,7 +295,7 @@ DLL_EXPORT dspau_t* dspau_filter_highpass(dspau_stream_p stream, dspau_t samplin
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t frequency, dspau_t q);
+DLL_EXPORT dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t LowFrequency, dspau_t HighFrequency, dspau_t q);
 
 /**
 * @brief A band reject filter
@@ -287,7 +310,7 @@ DLL_EXPORT dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t samplin
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_filter_bandreject(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t frequency, dspau_t q);
+DLL_EXPORT dspau_t* dspau_filter_bandreject(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t LowFrequency, dspau_t HighFrequency, dspau_t q);
 
 /**
 * @brief A cross-correlator
@@ -535,11 +558,15 @@ DLL_EXPORT dspau_t* dspau_buffer_convolute(dspau_t* in1, int len1, dspau_t* in2,
 
 DLL_EXPORT dspau_t* dspau_buffer_deviate(dspau_t* in1, int len1, dspau_t* in2, int len2, dspau_t mindeviation, dspau_t maxdeviation);
 
-DLL_EXPORT dspau_t dspau_astro_secs_since_J2000(struct timespec tp);
+DLL_EXPORT struct timespec dspau_time_mktimespec(int year, int month, int dom, int hour, int minute, int second, long nanosecond);
 
-DLL_EXPORT struct timespec dspau_astro_nsectotimespec(dspau_t nsecs);
+DLL_EXPORT dspau_t dspau_time_timespec_to_J2000time(struct timespec tp);
 
-DLL_EXPORT dspau_t dspau_astro_lst(dspau_t secs_since_J2000, dspau_t Long);
+DLL_EXPORT dspau_t dspau_time_J2000time_to_lst(dspau_t secs_since_J2000, dspau_t Long);
+
+DLL_EXPORT struct timespec dspau_time_J2000time_to_timespec(dspau_t secs);
+
+DLL_EXPORT struct timespec dspau_time_YmdHMSn_to_timespec(int Y, int m, int d, int H, int M, int S, long n);
 
 DLL_EXPORT dspau_t dspau_astro_ra2ha(dspau_t Ra, dspau_t Lst);
 

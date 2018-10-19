@@ -51,7 +51,7 @@ EXPORTC const char* STDCALL GetTimeStamp();
 
 /** \fn uint32_t InitQHYCCDResource()
       \brief initialize QHYCCD SDK resource
-      \return 
+      \return
 	  on success,return QHYCCD_SUCCESS \n
 	  QHYCCD_ERROR_INITRESOURCE if the initialize failed \n
 	  another QHYCCD_ERROR code on other failures
@@ -60,7 +60,7 @@ EXPORTC uint32_t STDCALL InitQHYCCDResource(void);
 
 /** \fn uint32_t ReleaseQHYCCDResource()
       \brief release QHYCCD SDK resource
-      \return 
+      \return
 	  on success,return QHYCCD_SUCCESS \n
 	  QHYCCD_ERROR_RELEASERESOURCE if the release failed \n
 	  another QHYCCD_ERROR code on other failures
@@ -203,7 +203,7 @@ EXPORTC uint32_t STDCALL SetQHYCCDResolution(qhyccd_handle *handle,uint32_t x,ui
 /** \fn uint32_t GetQHYCCDMemLength(qhyccd_handle *handle)
       \brief get the minimum memory space for image data to save(byte)
       \param handle camera control handle
-      \return 
+      \return
 	  on success,return the total memory space for image data(byte) \n
 	  another QHYCCD_ERROR code on other failures
   */
@@ -329,10 +329,10 @@ EXPORTC uint32_t STDCALL ControlQHYCCDTemp(qhyccd_handle *handle,double targette
 	  \param direction direction \n
            0: EAST RA+   \n
            3: WEST RA-   \n
-           1: NORTH DEC+ \n 
+           1: NORTH DEC+ \n
            2: SOUTH DEC- \n
 	  \param duration duration of the direction
-	  \return 
+	  \return
 	  on success,return QHYCCD_SUCCESS \n
 	  another QHYCCD_ERROR code on other failures
   */
@@ -340,7 +340,7 @@ EXPORTC uint32_t STDCALL ControlQHYCCDGuide(qhyccd_handle *handle,uint32_t direc
 
 /**
  @fn uint32_t SendOrder2QHYCCDCFW(qhyccd_handle *handle,char *order,uint32_t length)
-    @brief control color filter wheel port 
+    @brief control color filter wheel port
     @param handle camera control handle
  @param order order send to color filter wheel
  @param length the order string length
@@ -352,7 +352,7 @@ EXPORTC uint32_t STDCALL SendOrder2QHYCCDCFW(qhyccd_handle *handle,char *order,u
 
 /**
  @fn 	uint32_t GetQHYCCDCFWStatus(qhyccd_handle *handle,char *status)
-    @brief control color filter wheel port 
+    @brief control color filter wheel port
     @param handle camera control handle
  @param status the color filter wheel position status
  @return
@@ -363,7 +363,7 @@ EXPORTC	uint32_t STDCALL GetQHYCCDCFWStatus(qhyccd_handle *handle,char *status);
 
 /**
  @fn 	uint32_t IsQHYCCDCFWPlugged(qhyccd_handle *handle)
-    @brief control color filter wheel port 
+    @brief control color filter wheel port
     @param handle camera control handle
  @return
  on success,return QHYCCD_SUCCESS \n
@@ -599,7 +599,7 @@ EXPORTC uint32_t STDCALL GetQHYCCDCameraStatus(qhyccd_handle *h,uint8_t *buf);
 
 /**
  @fn uint32_t GetQHYCCDShutterStatus(qhyccd_handle *handle)
- @brief get the camera's shutter status 
+ @brief get the camera's shutter status
  @param handle camera control handle
  @return
  on success,return status \n
@@ -630,12 +630,12 @@ EXPORTC uint32_t STDCALL ControlQHYCCDShutter(qhyccd_handle *handle,uint8_t stat
 
 /**
   @fn uint32_t GetQHYCCDHumidity(qhyccd_handle *handle,double *hd)
-  @brief query cavity's humidity 
+  @brief query cavity's humidity
   @param handle control handle
   @param hd the humidity value
   @return
   on success,return QHYCCD_SUCCESS \n
-  another QHYCCD_ERROR code on other failures 
+  another QHYCCD_ERROR code on other failures
 */
 EXPORTC uint32_t STDCALL GetQHYCCDHumidity(qhyccd_handle *handle,double *hd);
 

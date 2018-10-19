@@ -91,12 +91,12 @@ dspau_t* dspau_interferometry_uv_coords(dspau_stream_p stream) {
     dspau_t *baselines = dspau_interferometry_calc_baselines(stream);
     dspau_t tao = (1.0 / stream->samplerate);
     tao *= 1000000000.0;
-    dspau_t start_time = dspau_astro_secs_since_J2000(stream->starttimeutc);
+    dspau_t start_time = dspau_time_timespec_to_J2000time(stream->starttimeutc);
     start_time *= 1000000000.0;
     dspau_t current_time = start_time;
     dspau_t end_time = start_time + tao * stream->len;
     for(current_time = start_time; current_time < end_time; current_time+=tao) {
-        dspau_t lst = dspau_astro_lst(current_time, 0);
+        dspau_t lst = dspau_time_J2000time_to_lst(current_time, 0);
         dspau_t HA = dspau_astro_ra2ha(stream->target[0], lst);
         for(int l = 0; l < num_baselines; l++) {
             dspau_t* uvcoords = dspau_interferometry_uv_location(HA, stream->target[1], (dspau_t*)(baselines + l * 3 * sizeof(dspau_t)));
