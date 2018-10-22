@@ -30,6 +30,7 @@
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
 #include "stdint.h"
+#include <functional>
 
 #ifdef WIN32
 #include "cyapi.h"
@@ -46,6 +47,7 @@ typedef struct libusb_device_handle qhyccd_handle;
 
 
 EXPORTC void STDCALL SetQHYCCDLogLevel(uint8_t logLevel);
+EXPORTC void STDCALL SetQHYCCDLogFunction(std::function<void(const std::string &message)> logFunction);
 
 EXPORTC const char* STDCALL GetTimeStamp();
 

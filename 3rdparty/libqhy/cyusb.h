@@ -39,7 +39,7 @@
 /*
  This is the maximum number of qhyccd cams.
  */
-#define MAXDEVICES (10)
+#define MAXDEVICES (18)
 
 #define MAX_DEVICES_ID (100)
 
@@ -115,8 +115,8 @@ struct cydev
   uint32_t CurrentFrameSize;
   uint32_t CurrentFrame ;
 
-  uint8_t Buffer[N_USB_PACKET_SIZE * Overlaps];
-  uint8_t Imgbuffer[BufferEntries * BufferSize * 2];
+  uint8_t *Buffer;
+  uint8_t *Imgbuffer;
   uint32_t CAMBYTE;
   uint32_t CAMWIDTH;
   uint32_t FrameSize;
@@ -169,7 +169,7 @@ struct cydev
   int32_t rawFrameWidth;
   int32_t rawFrameHeight;
   int32_t rawFrameBpp;
-  uint8_t rawDataCache[7400 * 5000 * 4];
+  uint8_t *rawDataCache;
 #endif
 
   uint32_t imagequeuelength;

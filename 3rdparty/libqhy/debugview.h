@@ -2,7 +2,7 @@
 #define __DEBUGVIEW_H__
 
 #include "chatty.h"
-
+#include <functional>
 
 #define QHYCCD_MSGL_FATAL 	1  		// will exit/abort
 #define QHYCCD_MSGL_ERR 	2    		// continues
@@ -17,5 +17,7 @@
 #define QHYCCD_MSGL_DISABLE 	11
 
 void OutputDebugPrintf(int level,const char * strOutputString,...);
+void SetDebugLogFunction(std::function<void(const std::string &message)> logFunction);
+void CloseLogFile();
 
 #endif
