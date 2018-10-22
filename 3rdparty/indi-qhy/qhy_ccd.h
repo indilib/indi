@@ -27,6 +27,7 @@
 #include <indiccd.h>
 #include <indifilterinterface.h>
 
+#include <functional>
 #include <pthread.h>
 
 #define DEVICE struct usb_device *
@@ -35,7 +36,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 {
   public:
     QHYCCD(const char *name);
-    virtual ~QHYCCD() = default;
+    virtual ~QHYCCD() override = default;
 
     virtual const char *getDefaultName() override;
 
@@ -159,6 +160,9 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     bool terminateThread;
     pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
     pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+
+    void logQHYMessages(const std::string &message);
+    std::function<void(const std::string &)> m_QHYLogCallback;
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

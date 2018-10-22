@@ -21,15 +21,8 @@
  */
 
 #include "qhy_ccd.h"
-
 #include "config.h"
 #include <stream/streammanager.h>
-
-// Avoid duplicated definitions (macros previously defined in indibase)
-#undef LOG_DEBUG
-#undef LOG_INFO
-#undef LOG_WARN
-#undef LOG_ERROR
 
 #include <algorithm>
 #include <math.h>
@@ -256,6 +249,8 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
     setDeviceName(this->name);
 
     setVersion(INDI_QHY_VERSION_MAJOR, INDI_QHY_VERSION_MINOR);
+
+    m_QHYLogCallback = [this](const std::string &message) { logQHYMessages(message); };
 
     sim = false;
 }
@@ -723,7 +718,7 @@ bool QHYCCD::Connect()
 
 bool QHYCCD::Disconnect()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
+    LOG_INFO("CCD is offline.");
 
     pthread_mutex_lock(&condMutex);
     streamPredicate = 0;
@@ -923,7 +918,7 @@ bool QHYCCD::AbortExposure()
     {
         //AbortPrimaryFrame = true;
         InExposure = false;
-        DEBUG(INDI::Logger::DBG_SESSION, "Exposure aborted.");
+        LOG_INFO("Exposure aborted.");
         return true;
     }
     else
@@ -1089,7 +1084,7 @@ int QHYCCD::grabImage()
 
     DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
     if (ExposureRequest > POLLMS * 5)
-        DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+        LOG_INFO("Download complete.");
 
     ExposureComplete(&PrimaryCCD);
 
@@ -1126,7 +1121,7 @@ void QHYCCD::TimerHit()
                     DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
                     // Don't spam the session log unless it is a long exposure > 5 seconds
                     if (ExposureRequest > POLLMS * 5)
-                        DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+                        LOG_INFO("Exposure done, downloading image...");
 
                     PrimaryCCD.setExposureLeft(0);
                     InExposure = false;
@@ -1326,7 +1321,7 @@ void QHYCCD::setCooler(bool enable)
 
         CoolerNP.s = IPS_BUSY;
         IDSetNumber(&CoolerNP, nullptr);
-        DEBUG(INDI::Logger::DBG_SESSION, "Cooler on.");
+        LOG_INFO("Cooler on.");
 
         coolerEnabled = true;
     }
@@ -1347,7 +1342,7 @@ void QHYCCD::setCooler(bool enable)
 
         TemperatureNP.s = IPS_IDLE;
         IDSetNumber(&TemperatureNP, nullptr);
-        DEBUG(INDI::Logger::DBG_SESSION, "Cooler off.");
+        LOG_INFO("Cooler off.");
     }
 }
 
@@ -1491,7 +1486,7 @@ bool QHYCCD::StartStreaming()
 
 bool QHYCCD::StopStreaming()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Streaming disabled.");
+    LOG_INFO("Streaming disabled.");
 
     pthread_mutex_lock(&condMutex);
     streamPredicate = 0;
@@ -1505,7 +1500,7 @@ bool QHYCCD::StopStreaming()
 
 void *QHYCCD::streamVideoHelper(void *context)
 {
-    return ((QHYCCD *)context)->streamVideo();
+    return static_cast<QHYCCD *>(context)->streamVideo();
 }
 
 void *QHYCCD::streamVideo()
@@ -1534,10 +1529,16 @@ void *QHYCCD::streamVideo()
     return nullptr;
 }
 
+void QHYCCD::logQHYMessages(const std::string &message)
+{
+    LOGF_DEBUG("%s", message.c_str());
+}
+
 void QHYCCD::debugTriggered(bool enable)
 {
+    SetQHYCCDLogFunction(m_QHYLogCallback);
     if (enable)
-        SetQHYCCDLogLevel(1);
+        SetQHYCCDLogLevel(5);
     else
-        SetQHYCCDLogLevel(0);
+        SetQHYCCDLogLevel(3);
 }
