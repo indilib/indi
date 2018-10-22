@@ -864,7 +864,7 @@ bool FocusLynxF2::Connect()
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION,
+    LOG_INFO(
           "Error retreiving data from FocusLynx, please ensure FocusLynx controller is powered and the port is correct.");
     return false;
 }
