@@ -45,7 +45,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 7)
-set(CMAKE_INDI_VERSION_RELEASE 4)
+set(CMAKE_INDI_VERSION_RELEASE 5)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -562,6 +562,7 @@ install(TARGETS indi_paramount_telescope RUNTIME DESTINATION bin)
 
 ########### Syncscan ###############
 SET(synscan_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscandriver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscanmount.cpp)
 
 add_executable(indi_synscan_telescope ${synscan_SRC})
@@ -901,6 +902,15 @@ add_executable(indi_simulator_wheel ${filtersimulator_SRC})
 target_link_libraries(indi_simulator_wheel indidriver)
 install(TARGETS indi_simulator_wheel RUNTIME DESTINATION bin)
 
+########### Manual Filter ##############
+SET(manualfilter_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/manual_filter.cpp)
+
+add_executable(indi_manual_wheel ${manualfilter_SRC})
+target_link_libraries(indi_manual_wheel indidriver)
+install(TARGETS indi_manual_wheel RUNTIME DESTINATION bin)
+
+
 ########## Optec Wheel IFW ############
 SET(optecwheel_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/ifwoptec.cpp)
@@ -924,6 +934,22 @@ SET(trutechwheel_SRC
 add_executable(indi_trutech_wheel ${trutechwheel_SRC})
 target_link_libraries(indi_trutech_wheel indidriver)
 install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin)
+
+########## QHYCFW Wheel 2 ############
+SET(qhycfw2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/qhycfw2.cpp)
+
+add_executable(indi_qhycfw2_wheel ${qhycfw2_SRC})
+target_link_libraries(indi_qhycfw2_wheel indidriver)
+install(TARGETS indi_qhycfw2_wheel RUNTIME DESTINATION bin)
+
+########## QHYCFW Wheel 3 ############
+SET(qhycfw3_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/qhycfw3.cpp)
+
+add_executable(indi_qhycfw3_wheel ${qhycfw3_SRC})
+target_link_libraries(indi_qhycfw3_wheel indidriver)
+install(TARGETS indi_qhycfw3_wheel RUNTIME DESTINATION bin)
 
 #################################################################################
 

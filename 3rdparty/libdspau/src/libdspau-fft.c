@@ -87,8 +87,29 @@ static void complex2phirad(fftw_complex* in, dspau_t* out, int len)
 
 dspau_t* dspau_fft_spectrum(dspau_stream_p stream, int conversion, int size)
 {
+    dspau_t* ret;
     dspau_t* out = dspau_fft_dft(stream, -1, conversion);
-    return dspau_buffer_histogram(out, stream->len, size);
+    ret = dspau_buffer_histogram(out, stream->len, size);
+    return ret;
+}
+
+dspau_t* dspau_fft_shift(dspau_t* in, int dims, int* sizes)
+{
+    if(dims == 0)
+        return NULL;
+    int total = 1;
+    for(int dim = 0; dim < dims; dim++)
+        total *= sizes[dim];
+    dspau_t* o = (dspau_t*)calloc(sizeof(dspau_t), total);
+    int len = 1;
+    for(int dim = 0; dim < dims; dim++) {
+        len *= sizes[dim];
+        for(int y = 0; y < total; y += len) {
+            memcpy(&o[y], &in[y + len / 2], sizeof(dspau_t) * len / 2);
+            memcpy(&o[y + len / 2], &in[y], sizeof(dspau_t) * len / 2);
+        }
+    }
+    return o;
 }
 
 dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion)
@@ -100,9 +121,11 @@ dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion)
     for(int i = 0; i < stream->len; i++) {
         fft_in[i][0] = stream->in[i];
         fft_in[i][1] = 0;
-	}
+    }
+    dspau_buffer_reverse(stream->sizes, int, stream->dims);
     p = fftw_plan_dft(stream->dims, stream->sizes, fft_in, fft_out, sign, FFTW_ESTIMATE);
     fftw_execute(p);
+    dspau_buffer_reverse(stream->sizes, int, stream->dims);
 	switch (conversion) {
 	case magnitude:
         complex2mag(fft_out, out, stream->len);
@@ -128,6 +151,8 @@ dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion)
 	fftw_destroy_plan(p);
 	fftw_free(fft_in);
     fftw_free(fft_out);
-    return out;
+    dspau_t* o = dspau_fft_shift(out, stream->dims, stream->sizes);
+    free(out);
+    return o;
 }
 

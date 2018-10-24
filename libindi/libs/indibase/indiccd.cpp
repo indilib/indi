@@ -267,8 +267,8 @@ const char *CCDChip::getExposureStartTime()
     // Format it in ISO8601 format
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
 
-    // Add millisecond and Z for Zulu/UTC time.
-    snprintf(ts, 32, "%s.%03dZ", iso8601, static_cast<int>(startExposureTime.tv_usec / 1000.0));
+    // Add millisecond
+    snprintf(ts, 32, "%s.%03d", iso8601, static_cast<int>(startExposureTime.tv_usec / 1000.0));
 
     return (ts);
 }

@@ -29,11 +29,11 @@
 #include <cmath>
 #include <unistd.h>
 
-pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
 // We declare an auto pointer to ccdsim.
-std::unique_ptr<CCDSim> ccdsim(new CCDSim());
+static std::unique_ptr<CCDSim> ccdsim(new CCDSim());
 
 void ISPoll(void *p);
 
@@ -131,6 +131,8 @@ bool CCDSim::SetupParms()
 
 bool CCDSim::Connect()
 {
+    streamPredicate = 0;
+    terminateThread = false;
     pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
     SetTimer(POLLMS);
     return true;
@@ -149,7 +151,7 @@ bool CCDSim::Disconnect()
 
 const char *CCDSim::getDefaultName()
 {
-    return (const char *)"CCD Simulator";
+    return static_cast<const char *>("CCD Simulator");
 }
 
 bool CCDSim::initProperties()

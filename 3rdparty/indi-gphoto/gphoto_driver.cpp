@@ -139,6 +139,7 @@ struct _gphoto_driver
     double *exposureList;
     int bulb_exposure_index;
     double max_exposure, min_exposure;
+    bool force_bulb;
 
     int iso;
     int format;
@@ -726,6 +727,9 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t
 
     if (best_idx >= 0)
         DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Best match: %g seconds Index: %d", gphoto->exposureList[best_idx], best_idx);
+    else
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "No optimal predefined exposure found.");
+
 
     return best_idx;
 }
@@ -1033,7 +1037,11 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         gphoto_set_widget_num(gphoto, gphoto->format_widget, gphoto->format);
 
     // Find EXACT optimal exposure index in case we need to use it. If -1, we always use blob made if available
-    int optimalExposureIndex = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec, true);
+    int optimalExposureIndex = -1;
+
+    // JM 2018-09-23: In case force bulb is off, then we search for optimal exposure index
+    if (gphoto->force_bulb == false)
+        optimalExposureIndex = find_exposure_setting(gphoto, gphoto->exposure_widget, exptime_usec, true);
 
     // Set Capture Target
     // JM: 2017-05-21: Disabled now since user can explicity set capture target via the driver interface
@@ -1584,6 +1592,7 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
     gphoto->max_exposure           = 3600;
     gphoto->min_exposure           = 0.001;
     gphoto->dsusb                  = nullptr;
+    gphoto->force_bulb             = true;
     gphoto->last_sensor_temp       = -273.0; // 0 degrees Kelvin
 
     result = gp_camera_get_config(gphoto->camera, &gphoto->config, gphoto->context);
@@ -2273,6 +2282,11 @@ int gphoto_delete_sdcard_image(gphoto_driver *gphoto, bool delete_sdcard_image)
     gphoto->delete_sdcard_image = delete_sdcard_image;
 
     return GP_OK;
+}
+
+void gphoto_force_bulb(gphoto_driver *gphoto, bool enabled)
+{
+    gphoto->force_bulb = enabled;
 }
 
 #ifdef GPHOTO_TEST

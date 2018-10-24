@@ -77,15 +77,17 @@ class SnapCap : public INDI::DefaultDevice, public INDI::LightBoxInterface, publ
 
     bool Handshake();
 
+    bool sendCommand(const char *command, char *response);
+
     IPState Abort();
 
     // Status
     ITextVectorProperty StatusTP;
-    IText StatusT[3] {};
+    IText StatusT[3]{};
 
     // Firmware version
     ITextVectorProperty FirmwareTP;
-    IText FirmwareT[1] {};
+    IText FirmwareT[1]{};
 
     // Abort
     ISwitch AbortS[1];

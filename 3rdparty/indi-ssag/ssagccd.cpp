@@ -34,12 +34,13 @@
 #include <stdint.h>
 #include <math.h>
 
+#include <config.h>
 #include "ssagccd.h"
 
 #define WIDTH  1280
 #define HEIGHT 1024
 
-std::unique_ptr<SSAGCCD> camera(new SSAGCCD());
+static std::unique_ptr<SSAGCCD> camera(new SSAGCCD());
 
 void ISGetProperties(const char *dev)
 {
@@ -82,6 +83,8 @@ void ISSnoopDevice(XMLEle *root)
 SSAGCCD::SSAGCCD()
 {
     ssag = new OpenSSAG::SSAG();
+
+    setVersion(INDI_SSAG_VERSION_MAJOR, INDI_SSAG_VERSION_MINOR);
 }
 
 const char *SSAGCCD::getDefaultName()
@@ -124,7 +127,7 @@ bool SSAGCCD::Connect()
         return true;
     if (!ssag->Connect())
     {
-        IDMessage(getDeviceName(), "Failed to connect to SSAG");
+        LOG_ERROR("Failed to connect to SSAG");
         return false;
     }
     return true;

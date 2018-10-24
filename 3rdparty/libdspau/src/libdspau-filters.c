@@ -49,94 +49,50 @@ dspau_t* dspau_filter_squarelaw(dspau_stream_p stream)
 
 dspau_t* dspau_filter_lowpass(dspau_stream_p stream, dspau_t SamplingFrequency, dspau_t Frequency, dspau_t Q)
 {
-    dspau_t* in = stream->in;
-    dspau_t* out = stream->out;
-    int len = stream->len;
-	int i;
-    dspau_t RC = 1.0 / (Frequency * 2.0 * PI);
-    dspau_t dt = 1.0 / (SamplingFrequency * 2.0 * PI);
-    dspau_t alpha = dt / (RC + dt) / Q;
-	out [0] = in [0];
-	for(i = 1; i < len; ++i) { 
-		out [i] = (out [i - 1] + (alpha * (in [i] - out [i - 1])));
-	}
-    return out;
+    dspau_t wa = 0.0;
+    dspau_t wc = (Frequency * PI / SamplingFrequency) * 2.0;
+    for(int i = 0; i < stream->len; i++) {
+        wa = pow(sin((dspau_t)i * wc), Q);
+        stream->out[i] = stream->in[i] * wa;
+    }
+    return stream->out;
 }
 
 dspau_t* dspau_filter_highpass(dspau_stream_p stream, dspau_t SamplingFrequency, dspau_t Frequency, dspau_t Q)
 {
-    dspau_t* in = stream->in;
-    dspau_t* out = stream->out;
-    int len = stream->len;
-	int i;
-    dspau_t RC = 1.0 / (Frequency * 2.0 * PI);
-    dspau_t dt = 1.0 / (SamplingFrequency * 2.0 * PI);
-    dspau_t alpha = dt / (RC + dt) / Q;
-	out [0] = in [0];
-	for(i = 1; i < len; ++i) { 
-		out [i] = (in[i] - (out [i - 1] + (alpha * (in [i] - out [i - 1]))));
-	}
-    return out;
+    dspau_t wa = 0.0;
+    dspau_t wc = (Frequency * PI / SamplingFrequency) * 2.0;
+    for(int i = 0; i < stream->len; i++) {
+        wa = pow(sin((dspau_t)i * wc), Q);
+        stream->out[i] = stream->in[i] -(stream->in[i] * wa);
+    }
+    return stream->out;
 }
 
-dspau_t dspau_filter_single(dspau_t yin, Coefficient *coefficient) {
-    dspau_t yout = 0.0;
-	coefficient->x0 = coefficient->x1; 
-	coefficient->x1 = coefficient->x2; 
-	coefficient->x2 = yin;
-
-	coefficient->y0 = coefficient->y1; 
-	coefficient->y1 = coefficient->y2; 
-	coefficient->y2 = coefficient->d0 * coefficient->x2 - coefficient->d1 * coefficient->x1 + coefficient->d0 * coefficient->x0 + coefficient->d1 * coefficient->y1 - coefficient->d2 * coefficient->y0;
-
-	yout = coefficient->y2;
-	return yout;
+dspau_t* dspau_filter_bandreject(dspau_stream_p stream, dspau_t SamplingFrequency, dspau_t LowFrequency, dspau_t HighFrequency, dspau_t Q) {
+    dspau_t wal = 0.0;
+    dspau_t wah = 0.0;
+    dspau_t wcl = (LowFrequency * PI / SamplingFrequency) * 2.0;
+    dspau_t wch = (HighFrequency * PI / SamplingFrequency) * 2.0;
+    for(int i = 0; i < stream->len; i++) {
+        wal = pow(sin((dspau_t)i * wcl), Q);
+        wah = pow(sin((dspau_t)i * wch), Q);
+        stream->out[i] = (stream->in[i] -(stream->in[i] * wah)) * wal;
+    }
+    return stream->out;
 }
 
-dspau_t* dspau_filter_bandreject(dspau_stream_p stream, dspau_t SamplingFrequency, dspau_t Frequency, dspau_t Q) {
-    dspau_t* in = stream->in;
-    dspau_t* out = stream->out;
-    int len = stream->len;
-	int x;
-    dspau_t wo = 2.0 * PI * Frequency / SamplingFrequency;
-
-    Coefficient coefficient;
-	coefficient.e = 1 / (1 + tan (wo / (Q * 2)));
-	coefficient.p = cos (wo);
-	coefficient.d0 = coefficient.e;
-	coefficient.d1 = 2 * coefficient.e * coefficient.p;
-	coefficient.d2 = (2 * coefficient.e - 1);
-	for(x = 0; x < len; x ++) {
-        out [x] = dspau_filter_single (in [x], &coefficient);
-	}
-    return out;
-}
-
-dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t SamplingFrequency, dspau_t Frequency, dspau_t Q) {
-    dspau_t* in = stream->in;
-    dspau_t* out = stream->out;
-    int len = stream->len;
-	int x;
-    dspau_t wo = 2.0 * PI * Frequency / SamplingFrequency;
-
-    dspau_t mn, mx;
-    dspau_stats_minmidmax(in, len, &mn, &mx);
-    Coefficient coefficient;
-	coefficient.e = 1 / (1 + tan (wo / (Q * 2)));
-	coefficient.p = cos (wo);
-	coefficient.d0 = coefficient.e;
-	coefficient.d1 = 2 * coefficient.e * coefficient.p;
-	coefficient.d2 = (2 * coefficient.e - 1);
-	for(x = 0; x < len; x ++) {
-		out [x] -= mn;
-		out [x] *= 2.0 / (mx - mn);
-		out [x] -= 1.0;
-        out [x] = in [x] - dspau_filter_single (in [x], &coefficient);
-		out [x] += 1.0;
-		out [x] *= (mx - mn) / 2.0;
-		out [x] += mn;
-	}
-    return out;
+dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t SamplingFrequency, dspau_t LowFrequency, dspau_t HighFrequency, dspau_t Q) {
+    dspau_t wal = 0.0;
+    dspau_t wah = 0.0;
+    dspau_t wcl = (LowFrequency * PI / SamplingFrequency) * 2.0;
+    dspau_t wch = (HighFrequency * PI / SamplingFrequency) * 2.0;
+    for(int i = 0; i < stream->len; i++) {
+        wal = pow(sin((dspau_t)i * wcl), Q);
+        wah = pow(sin((dspau_t)i * wch), Q);
+        stream->out[i] = (stream->in[i] -(stream->in[i] * wal)) * wah;
+    }
+    return stream->out;
 }
 
 dspau_t* dspau_filter_deviate(dspau_stream_p stream, dspau_stream_p deviation, dspau_t mindeviation, dspau_t maxdeviation)

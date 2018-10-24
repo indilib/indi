@@ -31,7 +31,7 @@
 
 #define MOONLITE_TIMEOUT 3
 
-std::unique_ptr<MoonLite> moonLite(new MoonLite());
+static std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
 void ISGetProperties(const char *dev)
 {
@@ -172,7 +172,7 @@ bool MoonLite::Handshake()
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION,
+    LOG_INFO(
           "Error retreiving data from MoonLite, please ensure MoonLite controller is powered and the port is correct.");
     return false;
 }
@@ -900,4 +900,13 @@ float MoonLite::CalcTimeLeft(timeval start, float req)
     timesince = timesince / 1000;
     timeleft  = req - timesince;
     return timeleft;
+}
+
+bool MoonLite::saveConfigItems(FILE *fp)
+{
+    Focuser::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &StepModeSP);
+
+    return true;
 }

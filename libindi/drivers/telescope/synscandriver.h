@@ -1,5 +1,6 @@
 /*******************************************************************************
   Copyright(c) 2010 Gerry Rozema. All rights reserved.
+  Copyright(c) 2018 Jasem Mutlaq. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -20,22 +21,19 @@
 
 #include "inditelescope.h"
 
-class SynscanMount : public INDI::Telescope
+class SynscanDriver : public INDI::Telescope
 {
   public:
-    SynscanMount();
-    //virtual ~SynscanMount() = default;
+    SynscanDriver();
 
-    //  overrides of base class virtual functions
-    //bool initProperties();
-    //virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
     virtual const char *getDefaultName() override;
+    virtual bool initProperties() override;
 
     virtual bool Connect() override;
-    virtual bool initProperties() override;
+
     virtual bool ReadScopeStatus() override;
-    bool StartTrackMode();
+
     virtual bool Goto(double, double) override;
     virtual bool Park() override;
     virtual bool UnPark() override;
@@ -43,8 +41,7 @@ class SynscanMount : public INDI::Telescope
     virtual bool SetSlewRate(int index) override;
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
-    bool ReadTime();
-    bool ReadLocation();
+
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool SetCurrentPark() override;
@@ -58,21 +55,16 @@ class SynscanMount : public INDI::Telescope
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
     virtual bool Sync(double ra, double dec) override;
 
-  private:
-    int PassthruCommand(int cmd, int target, int msgsize, int data, int numReturn);
+  protected:
+    virtual bool AnalyzeMount();
+    virtual void initParking();
+    bool StartTrackMode();
+    bool ReadTime();
+    bool ReadLocation();
+
     ln_hrz_posn GetAltAzPosition(double ra, double dec);
     int HexStrToInteger(const std::string &str);
-    bool AnalyzeHandset();
-    void UpdateMountInformation(bool inform_client);
-    void MountSim();
 
-    double FirmwareVersion { 0 };
-    char LastParkRead[20];
-    int NumPark { 0 };
-    int StopCount { 0 };
-    int SlewRate { 5 };
-    int CustomNSSlewRate { -1 };
-    int CustomWESlewRate { -1 };
     double SlewTargetAlt { -1 };
     double SlewTargetAz { -1 };
     double CurrentRA { 0 };
@@ -81,29 +73,52 @@ class SynscanMount : public INDI::Telescope
     double TargetDEC {0};
     bool CanSetLocation { false };
     bool ReadLatLong { false };
-    int RecoverTrials { 0 };
-//    bool HasFailed { true };
-    bool NewFirmware { false };
-    const std::string MountInfoPage { "Mount Information" };
-    enum class MountInfoItems
-    {
-        FwVersion,
-        MountCode,
-        AlignmentStatus,
-        GotoStatus,
-        MountPointingStatus,
-        TrackingMode
-    };
-    IText BasicMountInfo[6];
-    ITextVectorProperty BasicMountInfoV;
-    std::string HandsetFwVersion;
     int MountCode { 0 };
+    int SlewRate { 5 };
+    bool NewFirmware { false };
+    double FirmwareVersion { 0 };
+
+    std::string HandsetFwVersion;
     std::string AlignmentStatus;
     std::string GotoStatus;
-    std::string MountPointingStatus;
+    std::string PointingStatus;
     std::string TrackingStatus;
     std::string TrackingMode;
 
+private:
+    int PassthruCommand(int cmd, int target, int msgsize, int data, int numReturn);
+    void UpdateMountInformation(bool inform_client);
+    void MountSim();
+
+    char LastParkRead[20];
+    int NumPark { 0 };
+    int StopCount { 0 };    
+    int CustomNSSlewRate { -1 };
+    int CustomWESlewRate { -1 };    
+    int RecoverTrials { 0 };   
+
+    IText BasicMountInfoT[6] = {};
+    ITextVectorProperty BasicMountInfoTP;
+    enum MountInfo
+    {
+        MI_FW_VERSION,
+        MI_MOUNT_CODE,
+        MI_ALIGN_STATUS,
+        MI_GOTO_STATUS,
+        MI_POINT_STATUS,
+        MI_TRACK_MODE
+    };
+
+//    ISwitch UseWiFiS[2];
+//    ISwitchVectorProperty UseWiFiSP;
+//    enum UseWiFiMembers
+//    {
+//        WIFI_ENABLED,
+//        WIFI_DISABLED,
+//    };
+
+
     static constexpr uint16_t SLEW_RATE[] = {1, 2, 8, 16, 64, 128, 256, 512, 1024};
+    static constexpr const char * MountInfoPage = "Mount Information";
     static const uint8_t MAX_SYN_BUF = 64;
 };

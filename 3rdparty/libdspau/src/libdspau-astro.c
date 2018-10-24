@@ -19,54 +19,6 @@
 #include "libdspau.h"
 #define ratio (max - min) / (mx - mn + 1)
 
-struct timespec dspau_astro_nsectotimespec(dspau_t nsecs)
-{
-    struct timespec ret;
-    struct tm j2000_tm;
-    time_t j2000;
-    j2000_tm.tm_sec = 0;
-    j2000_tm.tm_min = 0;
-    j2000_tm.tm_hour = 12;
-    j2000_tm.tm_mday = 1;
-    j2000_tm.tm_mon = 0;
-    j2000_tm.tm_year = 100;
-    j2000_tm.tm_wday = 6;
-    j2000_tm.tm_yday = 0;
-    j2000_tm.tm_isdst = 0;
-    j2000 = mktime(&j2000_tm);
-    ret.tv_sec = nsecs / 1000000000.0 + j2000;
-    ret.tv_nsec = ((long)nsecs) % 1000000000;
-    return ret;
-}
-
-dspau_t dspau_astro_secs_since_J2000(struct timespec tp)
-{
-    struct tm j2000_tm;
-    time_t j2000;
-    j2000_tm.tm_sec = 0;
-    j2000_tm.tm_min = 0;
-    j2000_tm.tm_hour = 12;
-    j2000_tm.tm_mday = 1;
-    j2000_tm.tm_mon = 0;
-    j2000_tm.tm_year = 100;
-    j2000_tm.tm_wday = 6;
-    j2000_tm.tm_yday = 0;
-    j2000_tm.tm_isdst = 0;
-    j2000 = mktime(&j2000_tm);
-    return ((dspau_t)(tp.tv_sec - j2000) + (dspau_t)tp.tv_nsec / 1000000000.0);
-}
-
-dspau_t dspau_astro_lst(dspau_t secs_since_J2000, dspau_t Long)
-{
-    dspau_t Lst = GammaJ2000 + 24.0 * secs_since_J2000 / SIDEREAL_DAY;
-    Lst *= 360.0 / 24.0;
-    while (Lst < 0)
-        Lst += 360.0;
-    while (Lst >= 360.0)
-        Lst -= 360.0;
-    return Lst + Long;
-}
-
 dspau_t dspau_astro_ra2ha(dspau_t Ra, dspau_t Lst)
 {
     return Lst - (Ra * 360.0 / 24.0);
