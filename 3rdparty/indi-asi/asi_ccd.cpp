@@ -727,12 +727,12 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             for (int i = 0; i < ControlSP.nsp; i++)
             {
-                ASI_CONTROL_TYPE swType = *(static_cast<ASI_CONTROL_TYPE *>(ControlS[i].aux);
+                ASI_CONTROL_TYPE swType = *(static_cast<ASI_CONTROL_TYPE *>(ControlS[i].aux));
                 ASI_BOOL swAuto         = (ControlS[i].s == ISS_ON) ? ASI_TRUE : ASI_FALSE;
 
                 for (int j = 0; j < ControlNP.nnp; j++)
                 {
-                    ASI_CONTROL_TYPE nType = *(static_cast<ASI_CONTROL_TYPE *>(ControlN[j].aux0);
+                    ASI_CONTROL_TYPE nType = *(static_cast<ASI_CONTROL_TYPE *>(ControlN[j].aux0));
 
                     if (swType == nType)
                     {
@@ -1645,7 +1645,7 @@ const char *ASICCD::getBayerString()
             return "GRBG";
         case ASI_BAYER_GB:
             return "GBRG";
-        case ASI_BAYER_RG:
+        default:
             return "RGGB";
     }
 }
@@ -1954,7 +1954,7 @@ void ASICCD::getExposure()
             float fraction = timeLeft - (float)((int)timeLeft);
             if (fraction >= 0.005)
             {
-                uSecs = (int)(fraction * 1000000.0);
+                uSecs = (fraction * 1000000.0f);
             }
             else
             {
