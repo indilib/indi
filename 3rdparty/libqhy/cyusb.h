@@ -16,13 +16,13 @@
  \********************************************************************************/
 
 
-#ifdef WIN32
+#ifdef __win32__
 #include "Context.h"
 #include "QUsb.h"
 #endif
 
 
-#ifdef LINUX
+#ifdef __linux__
 #include <libusb-1.0/libusb.h>
 #include "qhyccd.h"
 #endif
@@ -50,7 +50,7 @@
 #define ID_STR_LEN (0x20)
 
 
-#ifdef LINUX
+#ifdef __linux__
 #define OVERLAPS   32
 #define TRANSSIZE  (76800)
 #else
@@ -81,7 +81,7 @@ struct COUNTEXPTIME
 struct cydev
 {
   qhyccd_device *dev; //!< Camera deivce
-#ifdef WIN32
+#ifdef __win32__
 
   void *handle; //!< Camera control handle
 #else
@@ -94,7 +94,7 @@ struct cydev
   uint8_t is_open; //!< When device is opened, val = 1
   char id[64]; //!< The camera's id
   QHYBASE *qcam; //!< Camera class pointer
-#ifdef WIN32
+#ifdef __win32__
   /* mark VirutalCam status */
   bool is_virtualwdm_working;
   CRITICAL_SECTION cs;
@@ -142,7 +142,7 @@ struct cydev
   IVCamSDK* m_pVCam;
 #endif
 
-#ifdef LINUX
+#ifdef __linux__
 
   uint32_t CAMExposing;
   int32_t GoodFrames ;

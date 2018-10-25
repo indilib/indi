@@ -29,25 +29,27 @@
 #include "qhyccderr.h"
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
-#include "stdint.h"
+#include <stdint.h>
 #include <functional>
 
-#ifdef WIN32
+#ifdef __win32__
 #include "cyapi.h"
 #endif
 
 #ifndef __QHYCCD_H__
 #define __QHYCCD_H__
 
-#if defined (WIN32)
+#if defined (__win32__)
 typedef CCyUSBDevice qhyccd_handle;
-#elif defined (LINUX)
+#elif defined (__linux__)
 typedef struct libusb_device_handle qhyccd_handle;
 #endif
 
 
 EXPORTC void STDCALL SetQHYCCDLogLevel(uint8_t logLevel);
 EXPORTC void STDCALL SetQHYCCDLogFunction(std::function<void(const std::string &message)> logFunction);
+EXPORTC void STDCALL EnableQHYCCDMessage(bool enable);
+EXPORTC void STDCALL EnableQHYCCDLogFile(bool enable);
 
 EXPORTC const char* STDCALL GetTimeStamp();
 

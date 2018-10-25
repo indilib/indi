@@ -22,29 +22,19 @@
  file called LICENSE.
  */
 
+#pragma once
+
 /*!
  * @file qhyccdstruct.h
  * @brief QHYCCD SDK struct define
  */
 
-#ifdef __linux__
-#define  LINUX
-#endif
-
-
-#ifdef WIN32
+#ifdef __win32__
 #define QHYCCD_OPENCV_SUPPORT
-#endif
-
-
-#ifdef WIN32
 #include <windows.h>
 #endif
 
-#ifndef __QHYCCDSTRUCTDEF_H__
-#define __QHYCCDSTRUCTDEF_H__
-
-#ifdef WIN32
+#ifdef __win32__
 #ifndef EXPORTFUNC
 #define EXPORTFUNC extern "C" __declspec(dllexport)
 #endif
@@ -60,7 +50,7 @@
 #define EXPORTC extern "C"
 #endif
 
-#include "stdint.h"
+#include <stdint.h>
 
 /**
  * usb vendor request command
@@ -216,4 +206,3 @@ enum CodecID
   H261_CODEC
 };
 
-#endif

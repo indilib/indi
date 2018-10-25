@@ -18,6 +18,5 @@
 
 void OutputDebugPrintf(int level,const char * strOutputString,...);
 void SetDebugLogFunction(std::function<void(const std::string &message)> logFunction);
-void CloseLogFile();
 
 #endif
