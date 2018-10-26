@@ -47,3 +47,11 @@ target_link_libraries(dspau ${M_LIB} ${CMAKE_THREAD_LIBS_INIT} ${FFTW3_LIBRARIES
 #add an install target here
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/libdspau.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(TARGETS dspau LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+SET( links ${CMAKE_INSTALL_PREFIX}/libdspau.so)
+SET( links_target ${CMAKE_INSTALL_PREFIX}/libdspau.so.${PACKAGE_VERSION})
+ADD_CUSTOM_COMMAND( OUTPUT ${links}
+                     COMMAND ln -s ${links_target} ${links}
+                     DEPENDS install ${links_target}
+                     COMMENT "")
+
+ADD_CUSTOM_TARGET( install_links DEPENDS ${links} )

@@ -66,7 +66,7 @@ bool SynscanDriver::initProperties()
     INDI::Telescope::initProperties();
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
                            SYNSCAN_SLEW_RATES);
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
@@ -438,6 +438,9 @@ bool SynscanDriver::ReadScopeStatus()
     if (res[1] == '#')
     {
         PointingStatus = res[0];
+
+        // INDI and mount pier sides are opposite to each other
+        setPierSide(res[0] == 'W' ? PIER_EAST : PIER_WEST);
     }
     memset(res, 0, MAX_SYN_BUF);
     LOG_DEBUG("CMD <t>");

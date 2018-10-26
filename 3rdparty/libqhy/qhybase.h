@@ -31,16 +31,16 @@
 #include "qhyccdcamdef.h"
 #include "qhyccderr.h"
 #include "cmosdll.h"
-#include "stdint.h"
+#include <stdint.h>
 #include "debugview.h"
 
 
-#ifdef LINUX
+#ifdef __linux__
 #include <pthread.h>
 #include <string.h>
 #endif
 
-#ifdef WIN32
+#ifdef __win32__
 #include "opencv2/opencv.hpp"
 
 #endif
@@ -1256,7 +1256,7 @@ public:
 
   uint32_t QSleep(uint32_t mstime)
   {
-#ifdef WIN32
+#ifdef __win32__
     Sleep(mstime);
 #else
 
@@ -1509,7 +1509,7 @@ public:
   bool delRowRoise;
   uint32_t ddrnum;
 
-#ifdef WIN32
+#ifdef __win32__
 
   HANDLE reseth;
 #else
