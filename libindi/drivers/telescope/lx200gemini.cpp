@@ -418,6 +418,9 @@ bool LX200Gemini::ReadScopeStatus()
     if (isSimulation())
         return LX200Generic::ReadScopeStatus();
 
+    if (m_isSleeping)
+        return true;
+
     // JM 2018-10-23: After after MOUNT_STATE_UPDATE_FREQ to reduce unnecessary traffic
     if (mountStateCounter++ == MOUNT_STATE_UPDATE_FREQ)
     {
@@ -561,6 +564,7 @@ bool LX200Gemini::sleepMount()
 
     tcflush(PortFD, TCIOFLUSH);
 
+    m_isSleeping = true;
     LOG_INFO("Mount is sleeping...");
     return true;
 }
@@ -586,6 +590,7 @@ bool LX200Gemini::wakeupMount()
 
     tcflush(PortFD, TCIOFLUSH);
 
+    m_isSleeping = false;
     LOG_INFO("Mount is awake...");
     return true;
 }

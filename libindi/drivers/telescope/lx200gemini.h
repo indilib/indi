@@ -140,6 +140,8 @@ class LX200Gemini : public LX200Generic
 
     ParkingState priorParkingState = PARK_IN_PROGRESS;
 
+    bool m_isSleeping { false };
+
     const uint8_t MOUNT_STATE_UPDATE_FREQ = 5;
     uint8_t mountStateCounter = 0;
 
