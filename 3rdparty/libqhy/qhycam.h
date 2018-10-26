@@ -30,7 +30,7 @@
 #include <math.h>
 #include "qhyccdstruct.h"
 
-#ifdef WIN32
+#ifdef __win32__
 #include "CyAPI.h"
 #include <process.h>
 
@@ -42,7 +42,7 @@
 
 #endif
 
-#include "stdint.h"
+#include <stdint.h>
 
 #ifndef __QHYCAMDEF_H__
 #define __QHYCAMDEF_H__
@@ -62,22 +62,51 @@
 /**
  * typedef the libusb_deivce qhyccd_device
  */
-#ifdef LINUX
+#ifdef __linux__
 typedef struct libusb_device qhyccd_device;
 #endif
-#ifdef WIN32
+#ifdef __win32__
 typedef void* qhyccd_device;
 #endif
 
 /**
  * typedef the libusb_deivce_handle qhyccd_handle
  */
-#ifdef LINUX
+#ifdef __linux__
 typedef struct libusb_device_handle qhyccd_handle;
 #endif
-#ifdef WIN32
+#ifdef __win32__
 typedef CCyUSBDevice qhyccd_handle;
 #endif
+
+//QinXiaoXu  START  20181019
+typedef struct lowlevelstatus
+{
+  uint8_t speed;               //!< ccd gain
+  uint32_t restExpTime;              //!< ccd offset
+  uint32_t ExpTime;             //!< expose time
+  uint8_t FwVersionYear;                //!< width bin
+  uint8_t FwVersionMonth;                //!< height bin
+  uint8_t FwVersionDay;           //!< almost match image width
+  uint8_t TempType;       //!< almost match image height
+  uint16_t CurrentTempADU;           //!< Reserved
+  uint16_t TargetTempADU;        //!< Reserved
+  uint8_t CurrentPWM;//!< Reserved
+  uint8_t TempControlMode;      //!< Reserved
+  uint32_t DataInDDR;       //!< Reserved
+  double CurrentTempC;          //!< Reserved
+  double TargetTempC;       //!< transfer speed
+  uint16_t ImageX;           //!< Reserved
+  uint16_t ImageY;       //!< Reserved
+  uint8_t ImageBitDepth;                //!< Reserved
+  uint8_t USBSpeed;               //!< Reserved
+  uint8_t cfwbuffer[8];         //!< Reserved
+  uint8_t cameraSubModel;         //!< Reserved
+  uint8_t cameraColorType;         //!< Reserved
+  uint8_t cameraSeriesNumber[16];//!< Reserved
+}
+LowLevelStatus;
+//QinXiaoXu  END 20181019
 
 /**
  * @brief QHYCAM class define
@@ -97,7 +126,7 @@ public:
     usbintrep = 0x81;
     intepflag = 0;
     usbtype = QHYCCD_USBTYPE_CYUSB;
-#ifdef WIN32
+#ifdef __win32__
 
     InitializeCriticalSection(&csep); //��ʼ���ٽ���
 #else
@@ -109,7 +138,7 @@ public:
 
   virtual ~QHYCAM()
   {
-#ifdef WIN32
+#ifdef __win32__
     DeleteCriticalSection(&csep);
 #else
 
@@ -551,6 +580,22 @@ public:
   static void asyImageDataCallBack(struct libusb_transfer *transfer);
 
 
+  //QinXiaoXu  START  20181019
+  uint32_t LowLevelA0(qhyccd_handle *h,uint8_t mode, uint16_t xbin, uint16_t ybin );
+  uint32_t LowLevelA1( qhyccd_handle *h,uint8_t speed );
+  uint32_t LowLevelA2( qhyccd_handle *h,uint8_t resmode, uint16_t roixsize, uint16_t  roixstart, uint16_t roiysize,uint16_t roiystart );
+  uint32_t LowLevelA3( qhyccd_handle *h,uint32_t exptime );
+  uint32_t LowLevelA4( qhyccd_handle *h,uint16_t againR,uint16_t dgainR, uint16_t againG,uint16_t dgainG,uint16_t againB,uint16_t dgainB );
+  uint32_t LowLevelA5(qhyccd_handle *h,uint8_t usbtraffic);
+  uint32_t LowLevelA6( qhyccd_handle *h,uint8_t command );
+  uint32_t LowLevelA7( qhyccd_handle *h,uint8_t data);
+  uint32_t LowLevelA8( qhyccd_handle *h,uint16_t offset1R,uint16_t offset1G,uint16_t offset1B,uint16_t offset2R,uint16_t offset2G,uint16_t offset2B );
+  uint32_t LowLevelA9(qhyccd_handle *h, uint8_t command,uint32_t value);
+  uint32_t LowLevelAD(qhyccd_handle *h);
+  uint32_t LowLevelGetStatus(qhyccd_handle *h,LowLevelStatus s);
+  uint32_t LowLevelGetDebugData(qhyccd_handle *h,LowLevelStatus s);
+  //QinXiaoXu  END  20181019
+
   uint32_t camstatus; //!< the camera current status
 
   CCDREG ccdreg; //!< ccd registers params
@@ -578,7 +623,7 @@ public:
 
   uint8_t vrreadstatus;
 
-#ifdef WIN32
+#ifdef __win32__
 
   CRITICAL_SECTION csep;
 #else

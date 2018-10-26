@@ -21,8 +21,8 @@
   file called LICENSE.
 *******************************************************************************/
 
-#ifndef SHELYAKALPY_SPECTROGRAPH_H
-#define SHELYAKALPY_SPECTROGRAPH_H
+#ifndef SHELYAKSPOX_SPECTROGRAPH_H
+#define SHELYAKSPOX_SPECTROGRAPH_H
 //On serial connection
 //11\n : calib lamp on
 //21\n : flat lamp on
@@ -32,21 +32,21 @@
 
 //
 #include <map>
-
+#include <indiapi.h>
 #include "defaultdevice.h"
 
 std::map<ISState, char> COMMANDS = {
   {ISS_ON, 0x31}, {ISS_OFF, 0x30}    //"1" and "0"
 };
 std::map<std::string, char> PARAMETERS = {
-  {"DARK", 0x33}, {"ARNE", 0x31}, {"TUNGSTEN", 0x32} //"1", "2", "3"
+  {"CALIBRATION", 0x31}, {"FLAT", 0x32}, {"DARK", 0x33} //"1", "2", "3"
 };
 
-class ShelyakAlpy : public INDI::DefaultDevice
+class ShelyakSpox : public INDI::DefaultDevice
 {
 public:
-  ShelyakAlpy();
-  ~ShelyakAlpy();
+  ShelyakSpox();
+  ~ShelyakSpox();
 
   void ISGetProperties (const char *dev);
   bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
@@ -76,10 +76,12 @@ private:
   INumberVectorProperty SettingsNP;
   INumber SettingsN[2];
 
-  std::string lastLampOn;
+  const char* lastLampOn;
+  
   
   bool calibrationUnitCommand(char command, char parameter);
   bool resetLamps();
+  //bool pollingLamps();
 };
 
-#endif // SHELYAKALPY_SPECTROGRAPH_H
+#endif // SHELYAKSPOX_SPECTROGRAPH_H
