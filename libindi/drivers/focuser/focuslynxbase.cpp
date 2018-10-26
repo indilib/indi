@@ -234,9 +234,6 @@ bool FocusLynxBase::updateProperties()
     if (isConnected())
     {
         defineText(&HFocusNameTP);
-        // If focuser is relative, we define SYNC command.
- //       if (isAbsolute == false)
-   //         defineNumber(&SyncNP);
 
         defineNumber(&TemperatureNP);
         defineNumber(&TemperatureCoeffNP);
@@ -268,9 +265,6 @@ bool FocusLynxBase::updateProperties()
     }
     else
     {
-//        if (isAbsolute == false)
-  //          deleteProperty(SyncNP.name);
-
         deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureCoeffNP.name);
         deleteProperty(TemperatureCompensateModeSP.name);
@@ -301,7 +295,6 @@ bool FocusLynxBase::Handshake()
     if (ack())
     {
         LOG_INFO("FocusLynx is online. Getting focus parameters...");
-        SetTimer(POLLMS);
         return true;
     }
 
@@ -1581,7 +1574,6 @@ bool FocusLynxBase::getFocusStatus()
 
             // Display the response to be sure to have read the complet TTY Buffer.
             LOGF_DEBUG("RES (%s)", response);
-
             if (strcmp(response, "END"))
                 return false;
         }
@@ -1590,7 +1582,6 @@ bool FocusLynxBase::getFocusStatus()
 
         return true;
     }
-
     return false;
 }
 
@@ -2347,6 +2338,8 @@ bool FocusLynxBase::sync(uint32_t position)
     if (isSimulation())
     {
         simPosition = position;
+        strncpy(response, "SET", 16);
+        nbytes_read = strlen(response) + 1;
     }
     else
     {
@@ -2888,9 +2881,11 @@ bool FocusLynxBase::loadConfig(bool silent, const char *property)
     {
         // Need to know the user choice for this option not store in HUB
         result = INDI::DefaultDevice::loadConfig(silent, "SYNC MANDATORY");
+        result = INDI::DefaultDevice::loadConfig(silent, "Presets") && result;
         if (isSimulation())
         {
-            // Only laod for simulation, otherwise got from the HUB
+            // Only load for simulation, otherwise got from the HUB
+            result = (INDI::DefaultDevice::loadConfig(silent, "MODEL") && result);
             result = (INDI::DefaultDevice::loadConfig(silent, "T. Compensation") && result);
             result = (INDI::DefaultDevice::loadConfig(silent, "T. Compensation @Start") && result);
             result = (INDI::DefaultDevice::loadConfig(silent, "Reverse") && result);
@@ -3000,9 +2995,6 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
 * ***********************************************************************************/
 bool FocusLynxBase::SyncMandatory(bool enable)
 {
-    if (enable)
-        isSynced = false;
-    else
-        isSynced = true;
+    isSynced = enable;
     return true;
 }

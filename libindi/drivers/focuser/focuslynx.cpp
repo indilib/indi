@@ -154,7 +154,7 @@ bool FocusLynxF1::initProperties()
     tcpConnection->setDefaultPort(9760);
     // To avoid confusion has Debug levels only visible on F2 remove it from F1
     // Simultation option and Debug option present only on F2
-    deleteProperty("DEBUG");
+    // deleteProperty("DEBUG");
     return true;
 }
 
@@ -178,16 +178,18 @@ bool FocusLynxF1::Connect()
 {
     configurationComplete = false;
     if (isSimulation())
+    {
         /* PortFD value used to give the /dev/ttyUSBx or TCP descriptor
          * if -1 = no physical port selected or simulation mode
          * if 0 = no descriptor created, F1 not connected (error)
          * other value = descriptor number
          */
         PortFD = -1;
+        SetTimer(POLLMS);
+    }
     else
         if (!INDI::Focuser::Connect())
             return false;
-
     return Handshake();
 }
 
@@ -775,11 +777,22 @@ void FocusLynxF1::simulationTriggered(bool enable)
 /************************************************************************************
  *
 * ***********************************************************************************/
+void FocusLynxF1::debugTriggered(bool enable)
+{
+    INDI::Focuser::debugTriggered(enable);
+    // Set the Debug mode on F2 as selected by the user in EKOS
+    lynxDriveF2->setDebug(enable);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
 void FocusLynxF1::setDebug(bool enable)
 {
     // Call by F2 to set the Debug option
-    INDI::DefaultDevice::setDebug(enable);
+//    INDI::DefaultDevice::setDebug(enable);
 }
+
 /************************************************************************************
 *
 *               Second Focuser (F2)
@@ -811,8 +824,8 @@ bool FocusLynxF2::initProperties()
     FocusLynxBase::initProperties();
     // Remove from F2 to avoid confusion, already present on F1
     deleteProperty("DRIVER_INFO");
-    deleteProperty("POLLING_PERIOD");
     deleteProperty("SIMULATION");
+    // deleteProperty("POLLING_PERIOD");
     return true;
 }
 
@@ -851,7 +864,7 @@ bool FocusLynxF2::Connect()
     if (ack())
     {
         LOG_INFO("FocusLynx is online. Getting focus parameters...");
-        //setDeviceType(modelIndex);
+        // as DefaultDevice::Connect() is not involved, initiate the timer.
         SetTimer(POLLMS);
         return true;
     }
@@ -906,5 +919,14 @@ void FocusLynxF2::debugTriggered(bool enable)
 {
     INDI::Focuser::debugTriggered(enable);
     // Set the Debug mode on F1 as selected by the user
-    lynxDriveF1->setDebug(enable);
+    //lynxDriveF1->setDebug(enable);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+void FocusLynxF2::setDebug(bool enable)
+{
+    // Call by F1 to set the Debug option via EKOS
+    INDI::DefaultDevice::setDebug(enable);
 }
