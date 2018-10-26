@@ -2995,6 +2995,6 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
 * ***********************************************************************************/
 bool FocusLynxBase::SyncMandatory(bool enable)
 {
-    isSynced = enable;
+    isSynced = !enable;
     return true;
 }
