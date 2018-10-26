@@ -40,12 +40,14 @@
 #define LYNXFOCUS_TEMPERATURE_FREQ     20      /* Update every 20 POLLMS cycles. For POLLMS 500ms = 10 seconds freq */
 #define LYNXFOCUS_POSITION_THRESHOLD    5      /* Only send position updates to client if the diff exceeds 5 steps */
 
+#define FOCUS_SETTINGS_TAB "Settings"
+#define FOCUS_STATUS_TAB   "Status"
+#define HUB_SETTINGS_TAB "Device"
 #define FOCUS_SETTINGS_TAB  "Settings"
 #define FOCUS_STATUS_TAB    "Status"
-#define HUB_SETTINGS_TAB    "Device"
 
 #define VERSION                 1
-#define SUBVERSION              3
+#define SUBVERSION              4
 
 class FocusLynxBase : public INDI::Focuser
 {
@@ -86,6 +88,7 @@ class FocusLynxBase : public INDI::Focuser
     virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
     virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool loadConfig(bool silent, const char *property) override;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -100,6 +103,8 @@ class FocusLynxBase : public INDI::Focuser
 
     void setFocusTarget(const char *target);
     const char *getFocusTarget();
+    bool checkIfAbsoluteFocuser();
+    bool SyncMandatory(bool enable);
     virtual void debugTriggered(bool enable) override;
 
     // Device
@@ -234,6 +239,10 @@ class FocusLynxBase : public INDI::Focuser
     // Focus name configure in the HUB
     IText HFocusNameT[1] {};
     ITextVectorProperty HFocusNameTP;
+
+    // Request mandatory action of sync from user
+    ISwitch SyncMandatoryS[2];
+    ISwitchVectorProperty SyncMandatorySP;
 
     bool isAbsolute;
     bool isSynced;
