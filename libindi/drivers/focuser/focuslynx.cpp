@@ -791,6 +791,7 @@ void FocusLynxF1::setDebug(bool enable)
 {
     // Call by F2 to set the Debug option
 //    INDI::DefaultDevice::setDebug(enable);
+    INDI_UNUSED(enable);
 }
 
 /************************************************************************************
