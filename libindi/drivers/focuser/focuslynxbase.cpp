@@ -2332,7 +2332,7 @@ bool FocusLynxBase::sync(uint32_t position)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sSCCP%06d>", getFocusTarget(), int(MaxTravelN[0].value - position));
+    snprintf(cmd, 32, "<%sSCCP%06d>", getFocusTarget(), position);
     LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
