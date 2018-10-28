@@ -27,6 +27,7 @@
 #include <indiccd.h>
 #include <indifilterinterface.h>
 
+#include <functional>
 #include <pthread.h>
 
 #define DEVICE struct usb_device *
@@ -35,7 +36,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 {
   public:
     QHYCCD(const char *name);
-    virtual ~QHYCCD() = default;
+    virtual ~QHYCCD() override = default;
 
     virtual const char *getDefaultName() override;
 
@@ -56,12 +57,9 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    static void *streamVideoHelper(void *context);
-    void *streamVideo();
-
   protected:
     // Misc.
-    virtual void TimerHit() override;
+    //virtual void TimerHit() override;
     virtual bool saveConfigItems(FILE *fp) override;
 
     // CCD
@@ -101,8 +99,27 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     INumberVectorProperty USBTrafficNP;
 
   private:
+    typedef enum ImageState
+    {
+        StateNone = 0,
+        StateIdle,
+        StateStream,
+        StateExposure,
+        StateRestartExposure,
+        StateAbort,
+        StateTerminate,
+        StateTerminated
+    } ImageState;
+
+    /* Imaging functions */
+    static void *imagingHelper(void *context);
+    void *imagingThreadEntry();
+    void streamVideo();
+    void getExposure();
+    void exposureSetRequest(ImageState request);
+
     // Get time until next image is due
-    float calcTimeLeft();
+    double calcTimeLeft();
     // Get image buffer from camera
     int grabImage();
     // Setup basic CCD parameters on connection
@@ -136,29 +153,34 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 
     qhyccd_handle *camhandle;
     INDI::CCDChip::CCD_FRAME imageFrameType;
-    bool sim;
+    bool sim { false };
 
     // Temperature tracking
     double TemperatureRequest {0};
     int temperatureID;
-    bool coolerEnabled;//, useSoftBin;
+    bool coolerEnabled;
 
     // Exposure progress
-    float ExposureRequest;
-    float LastExposureRequest;
+    double ExposureRequest;
+    // Last exposure request in microseconds
+    uint32_t LastExposureRequestuS;
     struct timeval ExpStart;
     int timerID;
 
     // Gain
-    float GainRequest;
-    float LastGainRequest;
+    double GainRequest;
+    double LastGainRequest;
 
     // Threading
-    int streamPredicate=0;
-    pthread_t primary_thread;
-    bool terminateThread;
+    // Imaging thread
+    ImageState threadRequest;
+    ImageState threadState;
+    pthread_t imagingThread;
     pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
     pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+
+    void logQHYMessages(const std::string &message);
+    std::function<void(const std::string &)> m_QHYLogCallback;
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

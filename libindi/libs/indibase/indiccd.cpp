@@ -1862,6 +1862,11 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_update_key_dbl(fptr, "PIXSIZE2", targetChip->getPixelSizeY(), 6, "Pixel Size 2 (microns)", &status);
     fits_update_key_lng(fptr, "XBINNING", targetChip->getBinX(), "Binning factor in width", &status);
     fits_update_key_lng(fptr, "YBINNING", targetChip->getBinY(), "Binning factor in height", &status);
+    // XPIXSZ and YPIXSZ are logical sizes including the binning factor
+    double xpixsz = pixSize1 * targetChip->getBinX();
+    double ypixsz = pixSize2 * targetChip->getBinY();
+    fits_update_key_dbl(fptr, "XPIXSZ", xpixsz, 6, "X binned pixel size in microns", &status);
+    fits_update_key_dbl(fptr, "YPIXSZ", ypixsz, 6, "Y binned pixel size in microns", &status);
 
     switch (targetChip->getFrameType())
     {

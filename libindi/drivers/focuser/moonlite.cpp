@@ -172,7 +172,7 @@ bool MoonLite::Handshake()
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION,
+    LOG_INFO(
           "Error retreiving data from MoonLite, please ensure MoonLite controller is powered and the port is correct.");
     return false;
 }

@@ -29,17 +29,17 @@
 #include <memory>
 
 #include "indicom.h"
-#include "indi_shelyakalpy_spectrograph.h"
+#include "indi_shelyakspox_spectrograph.h"
 #include "config.h"
 
-const char *SPECTROGRAPH_SETTINGS_TAB = "Spectrograph Settings";
-const char *CALIBRATION_UNIT_TAB      = "Calibration Unit";
+//const char *SPECTROGRAPH_SETTINGS_TAB = "Spectrograph Settings";
+const char *CALIBRATION_UNIT_TAB      = "Calibration Module";
 
-std::unique_ptr<ShelyakAlpy> shelyakAlpy(new ShelyakAlpy()); // create std:unique_ptr (smart pointer) to  our spectrograph object
+std::unique_ptr<ShelyakSpox> shelyakSpox(new ShelyakSpox()); // create std:unique_ptr (smart pointer) to  our spectrograph object
 
 void ISGetProperties(const char *dev)
 {
-  shelyakAlpy->ISGetProperties(dev);
+  shelyakSpox->ISGetProperties(dev);
 }
 
 /* The next 4 functions are executed when the indiserver requests a change of
@@ -47,15 +47,15 @@ void ISGetProperties(const char *dev)
  */
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-  shelyakAlpy->ISNewSwitch(dev, name, states, names, num);
+  shelyakSpox->ISNewSwitch(dev, name, states, names, num);
 }
 void ISNewText( const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-  shelyakAlpy->ISNewText(dev, name, texts, names, num);
+  shelyakSpox->ISNewText(dev, name, texts, names, num);
 }
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-  shelyakAlpy->ISNewNumber(dev, name, values, names, num);
+  shelyakSpox->ISNewNumber(dev, name, values, names, num);
 }
 void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
 {
@@ -74,29 +74,29 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
  */
 void ISSnoopDevice (XMLEle *root)
 {
-  shelyakAlpy->ISSnoopDevice(root);
+  shelyakSpox->ISSnoopDevice(root);
 }
 
-ShelyakAlpy::ShelyakAlpy()
+ShelyakSpox::ShelyakSpox()
 {
   PortFD = -1;
 
-  setVersion(SHELYAK_ALPY_VERSION_MAJOR, SHELYAK_ALPY_VERSION_MINOR);
+  setVersion(SHELYAK_SPOX_VERSION_MAJOR, SHELYAK_SPOX_VERSION_MINOR);
 }
 
-ShelyakAlpy::~ShelyakAlpy()
+ShelyakSpox::~ShelyakSpox()
 {
 
 }
 
 /* Returns the name of the device. */
-const char *ShelyakAlpy::getDefaultName()
+const char *ShelyakSpox::getDefaultName()
 {
-  return (char *)"Shelyak Alpy";
+  return (char *)"Shelyak Spox";
 }
 
 /* Initialize and setup all properties on startup. */
-bool ShelyakAlpy::initProperties()
+bool ShelyakSpox::initProperties()
 {
   INDI::DefaultDevice::initProperties();
 
@@ -106,10 +106,11 @@ bool ShelyakAlpy::initProperties()
 
 
   // setup the lamp switches
+  
+  IUFillSwitch(&LampS[2], "CALIBRATION", "CALIBRATION", ISS_OFF);
+  IUFillSwitch(&LampS[1], "FLAT", "FLAT", ISS_OFF);
   IUFillSwitch(&LampS[0], "DARK", "DARK", ISS_OFF);
-  IUFillSwitch(&LampS[1], "ARNE", "ArNe", ISS_OFF);
-  IUFillSwitch(&LampS[2], "TUNGSTEN", "Tungsten", ISS_OFF);
-  IUFillSwitchVector(&LampSP, LampS, 3, getDeviceName(), "CALIB_LAMPS", "Calibration lamps", CALIBRATION_UNIT_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+  IUFillSwitchVector(&LampSP, LampS, 3, getDeviceName(), "CALIBRATION", "Calibration lamps", CALIBRATION_UNIT_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
    
 
   //--------------------------------------------------------------------------------
@@ -120,20 +121,11 @@ bool ShelyakAlpy::initProperties()
   IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
   IUFillTextVector(&PortTP, PortT, 1, getDeviceName(), "DEVICE_PORT", "Ports", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-  //--------------------------------------------------------------------------------
-  // Spectrograph Settings
-  //--------------------------------------------------------------------------------
-
-  IUFillNumber(&SettingsN[0], "SLOT WIDTH", "Slot width [µm]", "%.0f", 1, 100, 0, 20);
-  IUFillNumber(&SettingsN[1], "OBJ_FOCAL", "Obj Focal [mm]", "%.0f", 1, 700, 0, 85);
-  IUFillNumberVector(&SettingsNP, SettingsN, 2, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph settings", SPECTROGRAPH_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
-
-  setDriverInterface(SPECTROGRAPH_INTERFACE);
 
   return true;
 }
 
-void ShelyakAlpy::ISGetProperties(const char *dev)
+void ShelyakSpox::ISGetProperties(const char *dev)
 {
   INDI::DefaultDevice::ISGetProperties(dev);
   defineText(&PortTP);
@@ -141,7 +133,7 @@ void ShelyakAlpy::ISGetProperties(const char *dev)
   loadConfig(true, PortTP.name);
 }
 
-bool ShelyakAlpy::updateProperties()
+bool ShelyakSpox::updateProperties()
 {
   INDI::DefaultDevice::updateProperties();
   if (isConnected())
@@ -157,7 +149,7 @@ bool ShelyakAlpy::updateProperties()
   return true;
 }
 
-bool ShelyakAlpy::Connect()
+bool ShelyakSpox::Connect()
 {
   int rc;
   char errMsg[MAXRBUF];
@@ -168,17 +160,114 @@ bool ShelyakAlpy::Connect()
     return false;
   }
   DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
-  resetLamps();
+  sleep(0.5); 
+  //read the serial to flush welcome message of SPOX.
+    char line[80];
+
+    int bytes_read=0;
+    int tty_rc = tty_nread_section(PortFD, line, 80, 0x0a, 3, &bytes_read);
+    
+    line[bytes_read] = '\n';
+    DEBUGF(INDI::Logger::DBG_SESSION, "bytes read :  %i", bytes_read);
+
+  // Actually nothing is done with theses informations. But code is here.
+  //pollingLamps();
   
-  lastLampOn = "None";
+    resetLamps();
   
   return true;
 }
 
-bool ShelyakAlpy::Disconnect()
+// bool ShelyakSpox::pollingLamps()
+// {//send polling message
+//     lastLampOn = "None";
+// 
+//     sleep(0.1); 
+//     int rc, nbytes_written;
+//     char c[3] = {'1','?',0x0a};
+// 
+//     if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+// 
+//       {
+//         char errmsg[MAXRBUF];
+//         tty_error_msg(rc, errmsg, MAXRBUF);
+//         DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+//         return false;
+//       } else {
+//           DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+// 
+//       }
+//       sleep(0.1);                                    
+//       
+// //read message send in response by spectrometer
+//     char lineCalib[80];
+// 
+//     int bytes_read=0;
+//     int tty_rc = tty_nread_section(PortFD, lineCalib, 80, 0x0a, 3, &bytes_read);
+//     if (tty_rc < 0)
+//     {
+//         LOGF_ERROR("Error getting device readings: %s", strerror(errno));
+//         return false;
+//     }
+//     lineCalib[bytes_read] = '\n';
+//   
+// 
+//   DEBUGF(INDI::Logger::DBG_SESSION,"State of Calib lamp: #%s#", lineCalib );
+//      
+//      
+//     sleep(0.1); 
+//     int rc2, nbytes_written2;
+//     char c2[3] = {'2','?',0x0a};
+// 
+//     if ((rc2 = tty_write(PortFD, c2, 3, &nbytes_written2)) != TTY_OK)
+//       {
+//         char errmsg[MAXRBUF];
+//         tty_error_msg(rc, errmsg, MAXRBUF);
+//         DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+//         return false;
+//       } else {
+//           DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c2);
+// 
+//       }
+//       sleep(0.1);                   
+//       
+// //read message send in response by spectrometer
+//     char lineFlat[80];
+// 
+//     int bytes_read2=0;
+//     int tty_rc2 = tty_nread_section(PortFD, lineFlat, 80, 0x0a, 3, &bytes_read2);
+//     if (tty_rc < 0)
+//     {
+//         LOGF_ERROR("Error getting device readings: %s", strerror(errno));
+//         return false;
+//     }
+//     lineFlat[bytes_read] = '\n';
+//   
+// 
+//   DEBUGF(INDI::Logger::DBG_SESSION,"State of Flat lamp: #%s#", lineFlat );
+//     
+//      if (strcmp(lineCalib,"11")==13)  {
+//          lastLampOn = "CALIB";
+//      }
+//      
+//      if (strcmp(lineFlat,"21")==13) {
+//          lastLampOn = "FLAT";
+//      }
+//     
+//      if ((strcmp(lineCalib,"11")==13)&&(strcmp(lineFlat,"21")== 13)) {
+//          lastLampOn = "DARK";
+//      }
+//     
+//   DEBUGF(INDI::Logger::DBG_SESSION,"Spectrometer has %s state", lastLampOn.c_str());   
+//      
+//    return true;
+//     
+// }
+
+
+bool ShelyakSpox::Disconnect()
 { 
-  //set default state at disconnection: set off lamps  
-  resetLamps();
+  
   sleep(1); // wait for the calibration unit to actually flip the switch  
     
   tty_disconnect(PortFD);
@@ -188,21 +277,22 @@ bool ShelyakAlpy::Disconnect()
 
 /* Handle a request to change a switch. */
 
-bool ShelyakAlpy::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool ShelyakSpox::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
   if (!strcmp(dev, getDeviceName())) // check if the message is for our device
   {
     if (!strcmp(LampSP.name, name)) // check if its lamp request
     {
+        
       LampSP.s = IPS_OK; // set state to ok (change later if something goes wrong)
       for (int i=0; i<n; i++)
       {
         ISwitch *s = IUFindSwitch(&LampSP, names[i]);
 
         if (states[i] != s->s) { // check if state has changed
-          
           bool rc = calibrationUnitCommand(COMMANDS[states[i]],PARAMETERS[names[i]]);
           if (!rc) LampSP.s = IPS_ALERT;
+            
         }
       }
       IUUpdateSwitch(&LampSP, states, names, n); // update lamps
@@ -217,7 +307,7 @@ bool ShelyakAlpy::ISNewSwitch(const char *dev, const char *name, ISState *states
 
 
 /* Handle a request to change text. */
-bool ShelyakAlpy::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
+bool ShelyakSpox::ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n)
 {
   if(!strcmp(dev, getDeviceName())) // check if the message is for our device
   {
@@ -234,9 +324,9 @@ bool ShelyakAlpy::ISNewText (const char *dev, const char *name, char *texts[], c
 }
 
 /* Construct a reset command*/
-bool ShelyakAlpy::resetLamps()
+bool ShelyakSpox::resetLamps()
 {
-    sleep(0.5); // wait for the calibration unit to actually flip the switch
+     // wait for the calibration unit to actually flip the switch
     int rc, nbytes_written;
     char c[3] = {'0','0',0x0a};
 
@@ -248,11 +338,12 @@ bool ShelyakAlpy::resetLamps()
         DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
         return false;
       } else {
-          DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+          DEBUGF(INDI::Logger::DBG_SESSION, "RESET : sent on serial: %s.", c);
 
       }
       sleep(1); // wait for the calibration unit to actually flip the switch
-      
+      lastLampOn = "None";
+      sleep(0.5);
       return true;
 }
 
@@ -262,15 +353,17 @@ bool ShelyakAlpy::resetLamps()
 /* Construct a command and send it to the spectrograph. It doesn't return
  * anything so we have to sleep until we know it has flipped the switch.
  */
-bool ShelyakAlpy::calibrationUnitCommand(char command, char parameter)
+bool ShelyakSpox::calibrationUnitCommand(char command, char parameter)
 {
 int rc, nbytes_written;
-
+    
 if (parameter==0x33){ //special for dark : have to put both lamps on
     char cmd[6] = {0x31,0x31,0x0a,0x32,0x31,0x0a};//"11\n21\n" 
-    if(command==0x31){
-        DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", "on allume dark");
+
+    if(command==0x31){// dark is on
+        DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", "dark is on");
         lastLampOn = "Dark";
+        
         char c[3] = {parameter,command,0x0a};
 
         if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
@@ -301,31 +394,39 @@ if (parameter==0x33){ //special for dark : have to put both lamps on
         sleep(1); // wait for the calibration unit to actually flip the switch
         return true;
     } else {
-        DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", "on éteient dark");
+        DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", "dark is off");
         resetLamps();
-        lastLampOn = "None";
-      return true;
+        
+    return true;
     }
-
-
-} else { //other lamps 
-    char c[3] = {parameter,command,0x0a};
     
-    if (lastLampOn.compare("None")==0){  //doesn't work should change state only when 
-        if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
 
-        {
-            char errmsg[MAXRBUF];
-            tty_error_msg(rc, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
-            return false;
-        } else {
-            DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+}
 
+//other lamps 
+        char c[3] = {parameter,command,0x0a};
+        
+        if (strcmp(lastLampOn,"Dark")!=0){ //if dark is set before, lamps are not shut off as is still done.
+        
+            if ((rc = tty_write(PortFD, c, 3, &nbytes_written)) != TTY_OK)
+
+            {
+                char errmsg[MAXRBUF];
+                tty_error_msg(rc, errmsg, MAXRBUF);
+                DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+                return false;
+            } else {
+                DEBUGF(INDI::Logger::DBG_SESSION, "sent on serial: %s.", c);
+
+            }
+            sleep(0.5); // wait for the calibration unit to actually flip the switch
+            
+            
+            if(command!=0x31){//on lamp is on
+
+                DEBUGF(INDI::Logger::DBG_SESSION, "last lamp is: %s.", lastLampOn);
+            }
+            
         }
-        sleep(1); // wait for the calibration unit to actually flip the switch
         return true;
-    } else {return true;}
-    }
-
 }

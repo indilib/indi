@@ -98,7 +98,7 @@ bool LX200ZEQ25::updateProperties()
 
 const char *LX200ZEQ25::getDefaultName()
 {
-    return (const char *)"ZEQ25";
+    return static_cast<const char *>("ZEQ25");
 }
 
 bool LX200ZEQ25::checkConnection()
@@ -588,7 +588,7 @@ bool LX200ZEQ25::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    LOGF_DEBUG("New JD is %f", (float)JD);
+    LOGF_DEBUG("New JD is %.2f", JD);
 
     // Set Local Time
     if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
@@ -597,7 +597,7 @@ bool LX200ZEQ25::updateTime(ln_date *utc, double utc_offset)
         return false;
     }
 
-    if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
+    if (setZEQ25Date(ltm.days, ltm.months, ltm.years) < 0)
     {
         LOG_ERROR("Error setting local date.");
         return false;
@@ -699,6 +699,13 @@ int LX200ZEQ25::setZEQ25UTCOffset(double hours)
     snprintf(temp_string, sizeof(temp_string), ":SG %c%02d:%02d#", sign, abs(h), m);
 
     return (setZEQ25StandardProcedure(PortFD, temp_string));
+}
+
+int LX200ZEQ25::setZEQ25Date(int days, int months, int years)
+{
+    char command[16]={0};
+    snprintf(command, sizeof(command), ":SC %02d/%02d/%02d#", months, days, years % 100);
+    return (setZEQ25StandardProcedure(PortFD, command));
 }
 
 int LX200ZEQ25::setZEQ25StandardProcedure(int fd, const char *data)
@@ -1224,7 +1231,7 @@ int LX200ZEQ25::getZEQ25GuideRate(double *rate)
 
     if (isSimulation())
     {
-        snprintf(response, 8, "%3d#", (int)(GuideRateN[0].value * 100));
+        snprintf(response, 8, "%3d#", static_cast<int>(GuideRateN[0].value * 100));
         nbytes_read = strlen(response);
     }
     else

@@ -126,7 +126,7 @@ bool Vantage::initProperties()
     addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);
     addParameter("WEATHER_BAROMETER", "Barometer (mbar)", 20, 32.5, 15);
     addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 15);
-    addParameter("WEAHTER_WIND_DIRECTION", "Wind Direction", 0, 360, 15);
+    addParameter("WEATHER_WIND_DIRECTION", "Wind Direction", 0, 360, 15);
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
     addParameter("WEATHER_RAIN_RATE", "Rain (mm/h)", 0, 0, 15);
     addParameter("WEATHER_SOLAR_RADIATION", "Solar Radiation (w/m^2)", 0, 10000, 15);
@@ -266,6 +266,13 @@ IPState Vantage::updateWeather()
 
     LOGF_DEBUG("Raw Temperature (%d) [%#4X %#4X]", temperatureValue, loopData[9], loopData[10]);
 
+    // Inside Humidity 
+    uint8_t humidityValue = loopData[11];
+
+    setParameterValue("WEATHER_HUMIDITY", humidityValue );
+    
+    LOGF_DEBUG("Raw Inside Humidity (%d) [%#X4]", humidityValue, loopData[11]);
+
     // Barometer
     uint16_t barometerValue = loopData[8] << 8 | loopData[7];
 
@@ -276,7 +283,7 @@ IPState Vantage::updateWeather()
     // Wind Speed
     uint8_t windValue = loopData[14];
 
-    LOGF_DEBUG("Raw Wind Speed (%d) [%#X4]", windValue, loopData[14]);
+    LOGF_DEBUG("Raw Wind Speed (%d) [%#4X]", windValue, loopData[14]);
 
     setParameterValue("WEATHER_WIND_SPEED", windValue / 0.62137);
 

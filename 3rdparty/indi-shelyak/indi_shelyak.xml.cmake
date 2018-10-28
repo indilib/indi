@@ -5,9 +5,9 @@
     <driver name="Shelyak eShel">indi_shelyakeshel_spectrograph</driver>
     <version>@SHELYAK_ESHEL_VERSION_MAJOR@.@SHELYAK_ESHEL_VERSION_MINOR@</version>
   </device>
-  <device label="Shelyak Alpy">
-    <driver name="Shelyak Alpy">indi_shelyakalpy_spectrograph</driver>
-    <version>@SHELYAK_ALPY_VERSION_MAJOR@.@SHELYAK_ALPY_VERSION_MINOR@</version>
+  <device label="Shelyak SPOX">
+    <driver name="Shelyak SPOX">indi_shelyakspox_spectrograph</driver>
+    <version>@SHELYAK_SPOX_VERSION_MAJOR@.@SHELYAK_SPOX_VERSION_MINOR@</version>
   </device>
 </devGroup>
 </driversList>

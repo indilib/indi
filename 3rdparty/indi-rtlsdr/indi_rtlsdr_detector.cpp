@@ -34,7 +34,6 @@
 #define SUBFRAME_SIZE (16384)
 #define MIN_FRAME_SIZE (512)
 #define MAX_FRAME_SIZE (SUBFRAME_SIZE * 16)
-#define SPECTRUM_SIZE (1 << PrimaryDetector.getBPS())
 
 static int iNumofConnectedDetectors;
 static RTLSDR *receivers[MAX_DEVICES];
@@ -219,7 +218,6 @@ bool RTLSDR::Disconnect()
 	InCapture = false;
     rtlsdr_close(rtl_dev);
     PrimaryDetector.setContinuumBufferSize(1);
-    PrimaryDetector.setSpectrumBufferSize(1);
 	LOG_INFO("RTL-SDR Detector disconnected successfully!");
 	return true;
 }
@@ -238,7 +236,7 @@ const char *RTLSDR::getDefaultName()
 bool RTLSDR::initProperties()
 {
     // We set the Detector capabilities
-    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
+    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM;
     SetDetectorCapability(cap);
 
 	// Must init parent properties first!
@@ -303,7 +301,6 @@ bool RTLSDR::StartCapture(float duration)
     to_read = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration() * sizeof(unsigned short);
 
     PrimaryDetector.setContinuumBufferSize(to_read);
-    PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE);
 
     if(to_read > 0) {
         LOG_INFO("Capture started...");
@@ -403,15 +400,11 @@ void RTLSDR::TimerHit()
 	return;
 }
 
-/**************************************************************************************
-** Create the spectrum
-***************************************************************************************/
 void RTLSDR::grabData(unsigned char *buf, int n_read)
 {
     if(InCapture) {
         n_read = min(to_read, n_read);
         continuum = PrimaryDetector.getContinuumBuffer();
-        spectrum = PrimaryDetector.getSpectrumBuffer();
         if(n_read > 0) {
             memcpy(continuum + b_read, buf, n_read);
             b_read += n_read;
@@ -422,18 +415,6 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
             LOG_INFO("Downloading...");
             InCapture = false;
             rtlsdr_cancel_async(rtl_dev);
-
-            //Create the dspau stream
-            dspau_stream_p stream = dspau_stream_new();
-            dspau_stream_add_dim(stream, b_read / 2);
-            dspau_convert_from(continuum, stream->in, unsigned short, b_read / 2);
-
-            //Create the spectrum
-            stream->out = dspau_fft_spectrum(stream, magnitude_dbv, SPECTRUM_SIZE);
-            dspau_convert_to(stream->out, spectrum, unsigned short, SPECTRUM_SIZE);
-
-            //Destroy the dspau stream
-            dspau_stream_free(stream);
 
             LOG_INFO("Download complete.");
             CaptureComplete(&PrimaryDetector);

@@ -12,8 +12,8 @@ find_package(ZLIB REQUIRED)
 find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
 
-set(INDI_QHY_VERSION_MAJOR 1)
-set(INDI_QHY_VERSION_MINOR 9)
+set(INDI_QHY_VERSION_MAJOR 2)
+set(INDI_QHY_VERSION_MINOR 1)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_qhy.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_qhy.xml )
@@ -28,12 +28,6 @@ include_directories( ${USB1_INCLUDE_DIRS})
 include(CMakeCommon)
 
 ########### QHY CCD ###########
-
-# We need to add this definition otherwise QHY SDK would fail
-if (NOT APPLE)
-add_definitions(-DLINUX)
-endif()
-
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 

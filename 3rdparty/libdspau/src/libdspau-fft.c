@@ -123,7 +123,7 @@ dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion)
         fft_in[i][1] = 0;
     }
     dspau_buffer_reverse(stream->sizes, int, stream->dims);
-    p = fftw_plan_dft(stream->dims, stream->sizes, fft_in, fft_out, sign, FFTW_MEASURE);
+    p = fftw_plan_dft(stream->dims, stream->sizes, fft_in, fft_out, sign, FFTW_ESTIMATE);
     fftw_execute(p);
     dspau_buffer_reverse(stream->sizes, int, stream->dims);
 	switch (conversion) {

@@ -143,7 +143,7 @@ bool SestoSenso::Handshake()
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION,
+    LOG_INFO(
           "Error retreiving data from SestoSenso, please ensure SestoSenso controller is powered and the port is correct.");
     return false;
 }
