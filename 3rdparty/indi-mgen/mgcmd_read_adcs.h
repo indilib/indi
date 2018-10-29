@@ -78,7 +78,7 @@ class MGCMD_READ_ADCS : MGC
     }
 
   public:
-    MGCMD_READ_ADCS() : MGC(IOBuffer{ opCode() }, IOBuffer(1 + 5 * 2)){};
+    MGCMD_READ_ADCS() : MGC(IOBuffer{ opCode() }, IOBuffer(1 + 5 * 2)){}
 };
 
 #endif /* _3RDPARTY_INDI_MGEN_MGCMD_READ_ADCS_H_ */

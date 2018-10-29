@@ -185,7 +185,7 @@ class MGenAutoguider : public INDI::CCD
         struct buttons
         {
             ISwitch switches[6];                 /*!< Button switches for ESC, SET, UP, LEFT, RIGHT and DOWN. */
-            ISwitchVectorProperty properties[2]; /*!< Button INDI properties, {ESC,SET} and {UP,LEFT,RIGHT,DOWN}. */
+            ISwitchVectorProperty properties[4]; /*!< Button INDI properties, {ESC,SET}, {UP}, {LEFT,RIGHT} and {DOWN}. */
         } buttons;
         ui(): timer(0), is_enabled(false), timestamp({ .tv_sec = 0, .tv_nsec = 0 }) {}
     } ui;
