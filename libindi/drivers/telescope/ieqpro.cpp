@@ -164,8 +164,9 @@ bool IEQPro::initProperties()
                        IPS_IDLE);
 
     /* How fast do we guide compared to sidereal rate */
-    IUFillNumber(&GuideRateN[0], "GUIDE_RATE", "x Sidereal", "%g", 0.1, 0.9, 0.1, 0.5);
-    IUFillNumberVector(&GuideRateNP, GuideRateN, 1, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
+    IUFillNumber(&GuideRateN[RA_AXIS], "RA_GUIDE_RATE", "x Sidereal", "%.2f", 0.01, 0.9, 0.1, 0.5);
+    IUFillNumber(&GuideRateN[DEC_AXIS], "DE_GUIDE_RATE", "x Sidereal", "%.2f", 0.1, 0.99, 0.1, 0.5);
+    IUFillNumberVector(&GuideRateNP, GuideRateN, 2, getDeviceName(), "GUIDE_RATE", "Guiding Rate", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
     TrackState = SCOPE_IDLE;
@@ -242,10 +243,11 @@ void IEQPro::getStartupData()
     }
 
     LOG_DEBUG("Getting guiding rate...");
-    double guideRate = 0;
-    if (get_ieqpro_guide_rate(PortFD, &guideRate))
+    double raGuideRate = 0, deGuideRate= 0;
+    if (get_ieqpro_guide_rate(PortFD, &raGuideRate, &deGuideRate))
     {
-        GuideRateN[0].value = guideRate;
+        GuideRateN[RA_AXIS].value = raGuideRate;
+        GuideRateN[DEC_AXIS].value = deGuideRate;
         IDSetNumber(&GuideRateNP, nullptr);
     }    
 
@@ -322,7 +324,7 @@ bool IEQPro::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             IUUpdateNumber(&GuideRateNP, values, names, n);
 
-            if (set_ieqpro_guide_rate(PortFD, GuideRateN[0].value))
+            if (set_ieqpro_guide_rate(PortFD, GuideRateN[RA_AXIS].value, GuideRateN[DEC_AXIS].value))
                 GuideRateNP.s = IPS_OK;
             else
                 GuideRateNP.s = IPS_ALERT;
@@ -767,31 +769,31 @@ bool IEQPro::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
 
 IPState IEQPro::GuideNorth(uint32_t ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_N, (int)ms);
+    bool rc = start_ieqpro_guide(PortFD, IEQ_N, ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 IPState IEQPro::GuideSouth(uint32_t ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_S, (int)ms);
+    bool rc = start_ieqpro_guide(PortFD, IEQ_S, ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 IPState IEQPro::GuideEast(uint32_t ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_E, (int)ms);
+    bool rc = start_ieqpro_guide(PortFD, IEQ_E, ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 IPState IEQPro::GuideWest(uint32_t ms)
 {
-    bool rc = start_ieqpro_guide(PortFD, IEQ_W, (int)ms);
+    bool rc = start_ieqpro_guide(PortFD, IEQ_W, ms);
     return (rc ? IPS_OK : IPS_ALERT);
 }
 
 bool IEQPro::SetSlewRate(int index)
 {
-    IEQ_SLEW_RATE rate = (IEQ_SLEW_RATE)index;
+    IEQ_SLEW_RATE rate = static_cast<IEQ_SLEW_RATE>(index);
     return set_ieqpro_slew_rate(PortFD, rate);
 }
 
