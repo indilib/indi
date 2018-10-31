@@ -861,7 +861,7 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
     DEBUGFDEVICE(lx200Name, DBG_SCOPE, "<%s>", __FUNCTION__);
     const struct timespec timeout = {0, 10000000L};
     char read_buffer[RB_MAX_LEN];
-    char dummy_buffer[RB_MAX_LEN];
+ //   char dummy_buffer[64];//zy2018
     int error_type;
     int nbytes_write = 0, nbytes_read = 0;
     yy = yy % 100;
@@ -875,10 +875,11 @@ int setCalenderDate(int fd, int dd, int mm, int yy)
     if ((error_type = tty_write_string(fd, read_buffer, &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_nread_section(fd, read_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
+ //   error_type = tty_read_section(fd, read_buffer, '#', LX200_TIMEOUT, &nbytes_read);//zy2018
     // Read the next section whih has 24 blanks and then a #
     // Can't just use the tcflush to clear the stream because it doesn't seem to work correctly on sockets
-    tty_nread_section(fd, dummy_buffer, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
+//    tty_read_section(fd, dummy_buffer, '#', LX200_TIMEOUT, &nbytes_read);//zy2018
+	 error_type = tty_read(fd, read_buffer, 1, 3, &nbytes_read);//zy2018
 
     tcflush(fd, TCIFLUSH);
 
@@ -1283,7 +1284,8 @@ int Sync(int fd, char *matchedObject)
     if ((error_type = tty_write_string(fd, ":CM#", &nbytes_write)) != TTY_OK)
         return error_type;
 
-    error_type = tty_nread_section(fd, matchedObject, RB_MAX_LEN, '#', LX200_TIMEOUT, &nbytes_read);
+ //   error_type = tty_read_section(fd, matchedObject, '#', LX200_TIMEOUT, &nbytes_read);//zy2018
+ 	error_type = tty_read(fd,  matchedObject, 1, LX200_TIMEOUT, &nbytes_read);
 
     if (nbytes_read < 1)
         return error_type;

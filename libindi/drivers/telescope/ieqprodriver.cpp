@@ -910,8 +910,8 @@ bool set_ieqpro_guide_rate(int fd, double rate)
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    int num = rate * 1000;
-    snprintf(cmd, 16, ":RG%03d#", num);
+    int num = rate * 100;//zy2018 set RA and Dec with the same value
+    snprintf(cmd, 16, ":RG%02d%02d#", num, num);//zy2018
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
@@ -997,7 +997,7 @@ bool get_ieqpro_guide_rate(int fd, double *rate)
 
         if (sscanf(response, "%d", &rate_num) > 0)
         {
-            *rate = rate_num / 1000.0;
+            *rate = (rate_num%100 + rate_num / 100)/2/100.0;//zy2018 
             tcflush(fd, TCIFLUSH);
             return true;
         }

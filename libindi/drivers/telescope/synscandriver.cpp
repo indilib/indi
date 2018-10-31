@@ -579,6 +579,9 @@ bool SynscanDriver::ReadScopeStatus()
     sscanf(res, "%lx,%lx#", &n1, &n2);
     ra  = (double)n1 / 0x100000000 * 24.0;
     dec = (double)n2 / 0x100000000 * 360.0;
+
+	if(dec > 90.1)//zy2018
+		dec -= 360.0; 
     CurrentRA  = ra;
     CurrentDEC = dec;
 
@@ -753,6 +756,8 @@ bool SynscanDriver::Goto(double ra, double dec)
     if (MountCode < 128 && isSimulation() == false)
     {
         int n1 = ra * 0x1000000 / 24;
+		if(dec < 0)//zy2018
+			dec += 360.0;
         int n2 = dec * 0x1000000 / 360;
         int numread;
 
@@ -1408,6 +1413,9 @@ bool SynscanDriver::Sync(double ra, double dec)
 
     // Pass the sync command to the handset
     int n1 = ra * 0x1000000 / 24;
+
+ 	if(dec < 0)//zy2018
+		dec += 360.0;
     int n2 = dec * 0x1000000 / 360;
 
     n1 = n1 << 8;
