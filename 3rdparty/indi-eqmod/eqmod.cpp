@@ -1908,35 +1908,38 @@ bool EQMod::Goto(double r, double d)
     }
 #endif
 #ifdef WITH_ALIGN
-    TelescopeDirectionVector TDV;
-    aligned = true;
-    if ((GetAlignmentDatabase().size() < 2) || (!TransformCelestialToTelescope(r, d, 0.0, TDV)))
+    if (AlignMethodSP.sp[1].s == ISS_ON)
     {
-        //if (!TransformCelestialToTelescope(r, d, 0.0, TDV)) {
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "Failed TransformCelestialToTelescope:  RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget,
-               gotoparams.detarget);
-        if (syncdata.lst != 0.0)
+        TelescopeDirectionVector TDV;
+        aligned = true;
+        if ((GetAlignmentDatabase().size() < 2) || (!TransformCelestialToTelescope(r, d, 0.0, TDV)))
         {
-            gotoparams.ratarget -= syncdata.deltaRA;
-            gotoparams.detarget -= syncdata.deltaDEC;
+            //if (!TransformCelestialToTelescope(r, d, 0.0, TDV)) {
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                   "Failed TransformCelestialToTelescope:  RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget,
+                   gotoparams.detarget);
+            if (syncdata.lst != 0.0)
+            {
+                gotoparams.ratarget -= syncdata.deltaRA;
+                gotoparams.detarget -= syncdata.deltaDEC;
+            }
         }
-    }
-    else
-    {
-        struct ln_equ_posn RaDec;
-        LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf",
-               r, d, TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
-        RaDec.ra = (RaDec.ra * 24.0) / 360.0;
-        RaDec.ra = range24(lst - RaDec.ra);
+        else
+        {
+            struct ln_equ_posn RaDec;
+            LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                   "TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf",
+                   r, d, TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
+            RaDec.ra = (RaDec.ra * 24.0) / 360.0;
+            RaDec.ra = range24(lst - RaDec.ra);
 
-        gotoparams.ratarget = RaDec.ra;
-        gotoparams.detarget = RaDec.dec;
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "TransformCelestialToTelescope: RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget,
-               gotoparams.detarget);
+            gotoparams.ratarget = RaDec.ra;
+            gotoparams.detarget = RaDec.dec;
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                   "TransformCelestialToTelescope: RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget,
+                   gotoparams.detarget);
+        }
     }
 #endif
 
