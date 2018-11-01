@@ -1117,7 +1117,7 @@ bool EQMod::ReadScopeStatus()
 
         if (TrackState == SCOPE_AUTOHOMING)
         {
-            unsigned long indexRA = 0, indexDE = 0;
+            uint32_t indexRA = 0, indexDE = 0;
 
             LOGF_DEBUG("Autohoming status: %d", AutohomeState);
             switch (AutohomeState)
@@ -1137,8 +1137,8 @@ bool EQMod::ReadScopeStatus()
                           "AutoHome phase 2: reading home position indexes for extra moves");
                     mount->GetRAIndexer();
                     mount->GetDEIndexer();
-                    unsigned long raindex = mount->GetlastreadRAIndexer();
-                    unsigned long deindex = mount->GetlastreadDEIndexer();
+                    uint32_t raindex = mount->GetlastreadRAIndexer();
+                    uint32_t deindex = mount->GetlastreadDEIndexer();
                     DEBUGF(INDI::Logger::DBG_SESSION,
                            "AutoHome phase 2: read home position indexes: RA=0x%x DE=0x%x", raindex, deindex);
                     if (raindex == 0 || raindex == 0xFFFFFF)
@@ -1198,7 +1198,7 @@ bool EQMod::ReadScopeStatus()
                     LOG_INFO("AutoHome phase 3: resetting home position indexes");
                     if (ah_bIndexChanged_RA)
                     {
-                        unsigned long raindex = mount->GetlastreadRAIndexer();
+                        uint32_t raindex = mount->GetlastreadRAIndexer();
                         mount->ResetRAIndexer();
                         mount->GetRAIndexer();
                         DEBUGF(INDI::Logger::DBG_SESSION,
@@ -1207,7 +1207,7 @@ bool EQMod::ReadScopeStatus()
                     }
                     if (ah_bIndexChanged_DE)
                     {
-                        unsigned long deindex = mount->GetlastreadDEIndexer();
+                        uint32_t deindex = mount->GetlastreadDEIndexer();
                         mount->ResetDEIndexer();
                         mount->GetDEIndexer();
                         DEBUGF(INDI::Logger::DBG_SESSION,
@@ -1436,7 +1436,7 @@ bool EQMod::ReadScopeStatus()
     return true;
 }
 
-void EQMod::EncodersToRADec(unsigned long rastep, unsigned long destep, double lst, double *ra, double *de, double *ha)
+void EQMod::EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha)
 {
     double RACurrent = 0.0, DECurrent = 0.0, HACurrent = 0.0;
     HACurrent = EncoderToHours(rastep, zeroRAEncoder, totalRAEncoder, Hemisphere);
@@ -1473,7 +1473,7 @@ void EQMod::EncodersToRADec(unsigned long rastep, unsigned long destep, double l
         *ha = HACurrent;
 }
 
-double EQMod::EncoderToHours(unsigned long step, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderToHours(uint32_t step, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
 {
     double result = 0.0;
     if (step > initstep)
@@ -1493,7 +1493,7 @@ double EQMod::EncoderToHours(unsigned long step, unsigned long initstep, unsigne
     return result;
 }
 
-double EQMod::EncoderToDegrees(unsigned long step, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderToDegrees(uint32_t step, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
 {
     double result = 0.0;
     if (step > initstep)
@@ -1515,7 +1515,7 @@ double EQMod::EncoderToDegrees(unsigned long step, unsigned long initstep, unsig
     return result;
 }
 
-double EQMod::EncoderFromHour(double hour, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderFromHour(double hour, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
 {
     double shifthour = 0.0;
     shifthour        = range24(hour - 6);
@@ -1530,8 +1530,8 @@ double EQMod::EncoderFromHour(double hour, unsigned long initstep, unsigned long
         return (initstep - (((24.0 - shifthour) / 24.0) * totalstep));
 }
 
-double EQMod::EncoderFromRA(double ratarget, double detarget, double lst, unsigned long initstep,
-                            unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderFromRA(double ratarget, double detarget, double lst, uint32_t initstep,
+                            uint32_t totalstep, enum Hemisphere h)
 {
     double ha = 0.0;
     ha        = ratarget - lst;
@@ -1548,7 +1548,7 @@ double EQMod::EncoderFromRA(double ratarget, double detarget, double lst, unsign
     return EncoderFromHour(ha, initstep, totalstep, h);
 }
 
-double EQMod::EncoderFromDegree(double degree, TelescopePierSide p, unsigned long initstep, unsigned long totalstep,
+double EQMod::EncoderFromDegree(double degree, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
                                 enum Hemisphere h)
 {
     double target = 0.0;
@@ -1560,7 +1560,7 @@ double EQMod::EncoderFromDegree(double degree, TelescopePierSide p, unsigned lon
     else
         return (initstep + ((target / 360.0) * totalstep));
 }
-double EQMod::EncoderFromDec(double detarget, TelescopePierSide p, unsigned long initstep, unsigned long totalstep,
+double EQMod::EncoderFromDec(double detarget, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
                              enum Hemisphere h)
 {
     double target = 0.0;
@@ -1612,7 +1612,7 @@ void EQMod::EncoderTarget(GotoParams *g)
     double juliandate;
     double lst;
     TelescopePierSide targetpier;
-    unsigned long targetraencoder = 0, targetdecencoder = 0;
+    uint32_t targetraencoder = 0, targetdecencoder = 0;
     bool outsidelimits = false;
     r                  = g->ratarget;
     d                  = g->detarget;
@@ -2615,8 +2615,8 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
             IUUpdateNumber(BacklashNP, values, names, n);
             BacklashNP->s = IPS_OK;
             IDSetNumber(BacklashNP, nullptr);
-            mount->SetBacklashRA((unsigned long)(IUFindNumber(BacklashNP, "BACKLASHRA")->value));
-            mount->SetBacklashDE((unsigned long)(IUFindNumber(BacklashNP, "BACKLASHDE")->value));
+            mount->SetBacklashRA((uint32_t)(IUFindNumber(BacklashNP, "BACKLASHRA")->value));
+            mount->SetBacklashDE((uint32_t)(IUFindNumber(BacklashNP, "BACKLASHDE")->value));
             LOGF_INFO("Setting Backlash compensation - RA=%.0f microsteps DE=%.0f microsteps",
                    IUFindNumber(BacklashNP, "BACKLASHRA")->value, IUFindNumber(BacklashNP, "BACKLASHDE")->value);
             return true;
