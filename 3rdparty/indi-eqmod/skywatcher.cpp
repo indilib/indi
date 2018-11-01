@@ -324,6 +324,8 @@ void Skywatcher::Init()
 
         telescope->SetAxis2Park(DEStepHome);
         telescope->SetAxis2ParkDefault(DEStepHome);
+
+        LOGF_WARN("Loading parking data failed. Setting parking axis1: %d axis2: %d", RAStepHome, DEStepHome);
     }
     else
     {
@@ -342,7 +344,7 @@ void Skywatcher::Init()
         //} else {
         char cmdarg[7];
         LOGF_DEBUG("%s() : Mount in Park position -- setting encoders RA=%ld DE = %ld",
-               __FUNCTION__, (long)telescope->GetAxis1Park(), (long)telescope->GetAxis2Park());
+               __FUNCTION__, static_cast<int32_t>(telescope->GetAxis1Park()), static_cast<int32_t>(telescope->GetAxis2Park()));
         cmdarg[6] = '\0';
         long2Revu24str(telescope->GetAxis1Park(), cmdarg);
         dispatch_command(SetAxisPositionCmd, Axis1, cmdarg);
@@ -760,14 +762,14 @@ void Skywatcher::SlewDE(double rate)
         StartMotor(Axis2);
 }
 
-void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
+void Skywatcher::SlewTo(int32_t deltaraencoder, int32_t deltadeencoder)
 {
     SkywatcherAxisStatus newstatus;
     bool useHighSpeed        = false;
     uint32_t lowperiod = 18, lowspeedmargin = 20000, breaks = 400;
     /* highperiod = RA 450X DE (+5) 200x, low period 32x */
 
-    LOGF_DEBUG("%s() : deltaRA = %ld deltaDE = %ld", __FUNCTION__, deltaraencoder, deltadeencoder);
+    LOGF_DEBUG("%s() : deltaRA = %d deltaDE = %d", __FUNCTION__, deltaraencoder, deltadeencoder);
 
     newstatus.slewmode = GOTO;
     if (deltaraencoder >= 0)
@@ -776,7 +778,7 @@ void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
         newstatus.direction = BACKWARD;
     if (deltaraencoder < 0)
         deltaraencoder = -deltaraencoder;
-    if (deltaraencoder > (long)lowspeedmargin)
+    if (deltaraencoder > static_cast<int32_t>(lowspeedmargin))
         useHighSpeed = true;
     else
         useHighSpeed = false;
@@ -806,7 +808,7 @@ void Skywatcher::SlewTo(long deltaraencoder, long deltadeencoder)
         newstatus.direction = BACKWARD;
     if (deltadeencoder < 0)
         deltadeencoder = -deltadeencoder;
-    if (deltadeencoder > (long)lowspeedmargin)
+    if (deltadeencoder > static_cast<int32_t>(lowspeedmargin))
         useHighSpeed = true;
     else
         useHighSpeed = false;
@@ -835,15 +837,15 @@ void Skywatcher::AbsSlewTo(uint32_t raencoder, uint32_t deencoder, bool raup, bo
 {
     SkywatcherAxisStatus newstatus;
     bool useHighSpeed = false;
-    long deltaraencoder, deltadeencoder;
+    int32_t deltaraencoder, deltadeencoder;
     uint32_t lowperiod = 18, lowspeedmargin = 20000, breaks = 400;
     /* highperiod = RA 450X DE (+5) 200x, low period 32x */
 
     LOGF_DEBUG("%s() : absRA = %ld raup = %c absDE = %ld deup = %c", __FUNCTION__, raencoder,
            (raup ? '1' : '0'), deencoder, (deup ? '1' : '0'));
 
-    deltaraencoder = raencoder - RAStep;
-    deltadeencoder = deencoder - DEStep;
+    deltaraencoder = static_cast<int32_t>(raencoder - RAStep);
+    deltadeencoder = static_cast<int32_t>(deencoder - DEStep);
 
     newstatus.slewmode = GOTO;
     if (raup)
@@ -852,7 +854,7 @@ void Skywatcher::AbsSlewTo(uint32_t raencoder, uint32_t deencoder, bool raup, bo
         newstatus.direction = BACKWARD;
     if (deltaraencoder < 0)
         deltaraencoder = -deltaraencoder;
-    if (deltaraencoder > (long)lowspeedmargin)
+    if (deltaraencoder > static_cast<int32_t>(lowspeedmargin))
         useHighSpeed = true;
     else
         useHighSpeed = false;
@@ -883,7 +885,7 @@ void Skywatcher::AbsSlewTo(uint32_t raencoder, uint32_t deencoder, bool raup, bo
         newstatus.direction = BACKWARD;
     if (deltadeencoder < 0)
         deltadeencoder = -deltadeencoder;
-    if (deltadeencoder > (long)lowspeedmargin)
+    if (deltadeencoder > static_cast<int32_t>(lowspeedmargin))
         useHighSpeed = true;
     else
         useHighSpeed = false;

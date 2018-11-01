@@ -870,32 +870,36 @@ bool EQMod::ReadScopeStatus()
         //   else
 #endif
 #ifdef WITH_ALIGN
-        const char *maligns[3] = { "ZENITH", "NORTH", "SOUTH" };
-        struct ln_equ_posn RaDec;
-        // Use HA/Dec as  telescope coordinate system
-        RaDec.ra                     = ((lst - currentRA) * 360.0) / 24.0;
-        RaDec.dec                    = currentDEC;
-        TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "Status: Mnt. Algnt. %s Date %lf encoders RA=%ld DE=%ld Telescope RA %lf DEC %lf",
-               maligns[GetApproximateMountAlignment()], juliandate, currentRAEncoder, currentDEEncoder, currentRA,
-                currentDEC);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
-               RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
-        aligned = true;
-        if ((GetAlignmentDatabase().size() < 2) || (!TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC)))
+        // Only use INDI Alignment Subsystem if it is active.
+        if (AlignMethodSP.sp[1].s == ISS_ON)
         {
-            //if (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC)) {
-            aligned = false;
+            const char *maligns[3] = { "ZENITH", "NORTH", "SOUTH" };
+            struct ln_equ_posn RaDec;
+            // Use HA/Dec as  telescope coordinate system
+            RaDec.ra                     = ((lst - currentRA) * 360.0) / 24.0;
+            RaDec.dec                    = currentDEC;
+            TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
             DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-                   "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA,
-                   currentDEC, alignedRA, alignedDEC);
-        }
-        else
-        {
-            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-                   "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC,
-                   alignedRA, alignedDEC);
+                   "Status: Mnt. Algnt. %s Date %lf encoders RA=%ld DE=%ld Telescope RA %lf DEC %lf",
+                   maligns[GetApproximateMountAlignment()], juliandate, currentRAEncoder, currentDEEncoder, currentRA,
+                    currentDEC);
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
+                   RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
+            aligned = true;
+            if ((GetAlignmentDatabase().size() < 2) || (!TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC)))
+            {
+                //if (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC)) {
+                aligned = false;
+                DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                       "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA,
+                       currentDEC, alignedRA, alignedDEC);
+            }
+            else
+            {
+                DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                       "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC,
+                       alignedRA, alignedDEC);
+            }
         }
 #endif
         if (!aligned && (syncdata.lst != 0.0))
@@ -986,10 +990,10 @@ bool EQMod::ReadScopeStatus()
                     // Start iterative slewing
                     DEBUGF(INDI::Logger::DBG_SESSION,
                            "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld",
-                           gotoparams.iterative_count, gotoparams.ratargetencoder - gotoparams.racurrentencoder,
-                           gotoparams.detargetencoder - gotoparams.decurrentencoder);
-                    mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder,
-                                  gotoparams.detargetencoder - gotoparams.decurrentencoder);
+                           gotoparams.iterative_count, static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
+                           static_cast<int>(gotoparams.detargetencoder - gotoparams.decurrentencoder));
+                    mount->SlewTo(static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
+                                  static_cast<int>(gotoparams.detargetencoder - gotoparams.decurrentencoder));
                 }
                 else
                 {
@@ -1478,12 +1482,12 @@ double EQMod::EncoderToHours(uint32_t step, uint32_t initstep, uint32_t totalste
     double result = 0.0;
     if (step > initstep)
     {
-        result = ((double)(step - initstep) / totalstep) * 24.0;
+        result = (static_cast<double>(step - initstep) / totalstep) * 24.0;
         result = 24.0 - result;
     }
     else
     {
-        result = ((double)(initstep - step) / totalstep) * 24.0;
+        result = (static_cast<double>(initstep - step) / totalstep) * 24.0;
     }
 
     if (h == NORTH)
@@ -1498,11 +1502,11 @@ double EQMod::EncoderToDegrees(uint32_t step, uint32_t initstep, uint32_t totals
     double result = 0.0;
     if (step > initstep)
     {
-        result = ((double)(step - initstep) / totalstep) * 360.0;
+        result = (static_cast<double>(step - initstep) / totalstep) * 360.0;
     }
     else
     {
-        result = ((double)(initstep - step) / totalstep) * 360.0;
+        result = (static_cast<double>(initstep - step) / totalstep) * 360.0;
         result = 360.0 - result;
     }
     //IDLog("EncodersToDegrees: step=%6X initstep=%6x result=%f hemisphere %s \n", step, initstep, result, (h==NORTH?"North":"South"));
@@ -1980,10 +1984,10 @@ bool EQMod::Goto(double r, double d)
         mount->StopDE();
         // Start slewing
         LOGF_INFO("Slewing mount: RA increment = %ld, DE increment = %ld",
-               gotoparams.ratargetencoder - gotoparams.racurrentencoder,
-               gotoparams.detargetencoder - gotoparams.decurrentencoder);
-        mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder,
-                      gotoparams.detargetencoder - gotoparams.decurrentencoder);
+               static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
+               static_cast<int>(gotoparams.detargetencoder - gotoparams.decurrentencoder));
+        mount->SlewTo(static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
+                      static_cast<int>(gotoparams.detargetencoder - gotoparams.decurrentencoder));
     }
     catch (EQModError e)
     {
@@ -2034,8 +2038,8 @@ bool EQMod::Park()
             parkDEEncoder    = GetAxis2Park();
             // Start slewing
             LOGF_INFO("Parking mount: RA increment = %ld, DE increment = %ld",
-                   parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
-            mount->SlewTo(parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
+                   static_cast<int32_t>(parkRAEncoder - currentRAEncoder), static_cast<int32_t>(parkDEEncoder - currentDEEncoder));
+            mount->SlewTo(static_cast<int32_t>(parkRAEncoder - currentRAEncoder), static_cast<int32_t>(parkDEEncoder - currentDEEncoder));
         }
         catch (EQModError e)
         {
@@ -2046,7 +2050,7 @@ bool EQMod::Park()
         TrackState = SCOPE_PARKING;
         ParkSP.s   = IPS_BUSY;
         IDSetSwitch(&ParkSP, nullptr);
-        LOG_INFO("Telescope park in progress...");
+        LOG_INFO("Mount park in progress...");
 
         return true;
     }
@@ -2122,8 +2126,8 @@ bool EQMod::Sync(double ra, double dec)
 
     tmpsyncdata.deltaRA         = tmpsyncdata.targetRA - tmpsyncdata.telescopeRA;
     tmpsyncdata.deltaDEC        = tmpsyncdata.targetDEC - tmpsyncdata.telescopeDEC;
-    tmpsyncdata.deltaRAEncoder  = tmpsyncdata.targetRAEncoder - tmpsyncdata.telescopeRAEncoder;
-    tmpsyncdata.deltaDECEncoder = tmpsyncdata.targetDECEncoder - tmpsyncdata.telescopeDECEncoder;
+    tmpsyncdata.deltaRAEncoder  = static_cast<int>(tmpsyncdata.targetRAEncoder - tmpsyncdata.telescopeRAEncoder);
+    tmpsyncdata.deltaDECEncoder = static_cast<int>(tmpsyncdata.targetDECEncoder - tmpsyncdata.telescopeDECEncoder);
 #ifdef WITH_ALIGN_GEEHALEL
     if (align && !isStandardSync())
     {

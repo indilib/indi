@@ -85,7 +85,7 @@ class Skywatcher
     void StopDE();
     void SetRARate(double rate);
     void SetDERate(double rate);
-    void SlewTo(long deltaraencoder, long deltadeencoder);
+    void SlewTo(int32_t deltaraencoder, int32_t deltadeencoder);
     void AbsSlewTo(uint32_t raencoder, uint32_t deencoder, bool raup, bool deup);
     void StartRATracking(double trackspeed);
     void StartDETracking(double trackspeed);
