@@ -989,7 +989,7 @@ bool EQMod::ReadScopeStatus()
                     EncoderTarget(&gotoparams);
                     // Start iterative slewing
                     DEBUGF(INDI::Logger::DBG_SESSION,
-                           "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld",
+                           "Iterative goto (%d): slew mount to RA increment = %d, DE increment = %d",
                            gotoparams.iterative_count, static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
                            static_cast<int>(gotoparams.detargetencoder - gotoparams.decurrentencoder));
                     mount->SlewTo(static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
@@ -1986,7 +1986,7 @@ bool EQMod::Goto(double r, double d)
         mount->StopRA();
         mount->StopDE();
         // Start slewing
-        LOGF_INFO("Slewing mount: RA increment = %ld, DE increment = %ld",
+        LOGF_INFO("Slewing mount: RA increment = %d, DE increment = %d",
                static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
                static_cast<int>(gotoparams.detargetencoder - gotoparams.decurrentencoder));
         mount->SlewTo(static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
@@ -2040,7 +2040,7 @@ bool EQMod::Park()
             parkRAEncoder    = GetAxis1Park();
             parkDEEncoder    = GetAxis2Park();
             // Start slewing
-            LOGF_INFO("Parking mount: RA increment = %ld, DE increment = %ld",
+            LOGF_INFO("Parking mount: RA increment = %d, DE increment = %d",
                    static_cast<int32_t>(parkRAEncoder - currentRAEncoder), static_cast<int32_t>(parkDEEncoder - currentDEEncoder));
             mount->SlewTo(static_cast<int32_t>(parkRAEncoder - currentRAEncoder), static_cast<int32_t>(parkDEEncoder - currentDEEncoder));
         }
@@ -3677,7 +3677,7 @@ bool EQMod::SetCurrentPark()
     parkDEEncoder = currentDEEncoder;
     SetAxis1Park(parkRAEncoder);
     SetAxis2Park(parkDEEncoder);
-    LOGF_INFO("Setting Park Position to current- RA Encoder=%ld DE Encoder=%ld", parkRAEncoder,
+    LOGF_INFO("Setting Park Position to current RA Encoder=%ld DE Encoder=%ld", parkRAEncoder,
            parkDEEncoder);
 
     return true;
@@ -3689,7 +3689,7 @@ bool EQMod::SetDefaultPark()
     parkDEEncoder = GetAxis2ParkDefault();
     SetAxis1Park(parkRAEncoder);
     SetAxis2Park(parkDEEncoder);
-    LOGF_INFO("Setting Park Position to default- RA Encoder=%ld DE Encoder=%ld", parkRAEncoder,
+    LOGF_INFO("Setting Park Position to default RA Encoder=%ld DE Encoder=%ld", parkRAEncoder,
            parkDEEncoder);
 
     return true;
