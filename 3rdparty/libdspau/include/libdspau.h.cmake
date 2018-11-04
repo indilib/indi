@@ -92,7 +92,7 @@
 #define sin2cos(s) cos(asin(s))
 #define cos2sin(c) sin(acos(c))
 
-#define DSPAU_VERSION "2.0.0"
+#define DSPAU_VERSION "@DSPAU_VERSION_STRING@"
 
 #ifndef PI
 #define PI 3.14159265358979323846
@@ -220,7 +220,7 @@ typedef struct {
     int radius;
 } dspau_star;
 
-inline static char* dspau_version_string() { return DSPAU_VERSION; }
+inline static const char* dspau_version_string() { return DSPAU_VERSION; }
 
 /**
 * @brief Create a spectrum from a dspau_t array of values

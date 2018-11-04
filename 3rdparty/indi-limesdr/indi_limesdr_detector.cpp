@@ -34,6 +34,7 @@
 #define SUBFRAME_SIZE (16384)
 #define MIN_FRAME_SIZE (512)
 #define MAX_FRAME_SIZE (SUBFRAME_SIZE * 16)
+#define SPECTRUM_SIZE (256)
 
 static int iNumofConnectedDetectors;
 static LIMESDR *receivers[MAX_DEVICES];
@@ -207,6 +208,7 @@ bool LIMESDR::Disconnect()
 	InCapture = false;
     LMS_Close(lime_dev);
     PrimaryDetector.setContinuumBufferSize(1);
+    PrimaryDetector.setSpectrumBufferSize(1);
 	LOG_INFO("LIME-SDR Detector disconnected successfully!");
 	return true;
 }
@@ -225,7 +227,7 @@ const char *LIMESDR::getDefaultName()
 bool LIMESDR::initProperties()
 {
     // We set the Detector capabilities
-    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM;
+    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
     SetDetectorCapability(cap);
 
 	// Must init parent properties first!
@@ -301,6 +303,7 @@ bool LIMESDR::StartCapture(float duration)
     to_read = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration();
 
     PrimaryDetector.setContinuumBufferSize(to_read * sizeof(float));
+    PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE * sizeof(float));
 
     if(to_read > 0) {
         lime_stream.channel = 0;
@@ -413,15 +416,32 @@ void LIMESDR::TimerHit()
 	return;
 }
 
+/**************************************************************************************
+** Create the spectrum
+***************************************************************************************/
 void LIMESDR::grabData(int n_read)
 {
     if(InCapture) {
         continuum = PrimaryDetector.getContinuumBuffer();
+        spectrum = PrimaryDetector.getSpectrumBuffer();
         LOG_INFO("Downloading...");
         LMS_RecvStream(&lime_stream, continuum, n_read, NULL, 1000);
         LMS_StopStream(&lime_stream);
         LMS_DestroyStream(lime_dev, &lime_stream);
         InCapture = false;
+
+        //Create the dspau stream
+        dspau_stream_p stream = dspau_stream_new();
+        dspau_stream_add_dim(stream, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
+        //Create the spectrum
+        dspau_convert_from(continuum, stream->in, unsigned short, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
+        stream->in = dspau_buffer_div1(stream->in, stream->len, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
+        dspau_t *out = dspau_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
+        out = dspau_buffer_mul1(out, SPECTRUM_SIZE, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
+        dspau_convert_to(out, spectrum, unsigned short, SPECTRUM_SIZE);
+        //Destroy the dspau stream
+        dspau_stream_free(stream);
+        free(out);
 
         LOG_INFO("Download complete.");
         CaptureComplete(&PrimaryDetector);
