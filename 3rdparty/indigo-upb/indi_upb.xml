@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<driversList>
+ <devGroup group="Telescopes">
+ </devGroup>
+ <devGroup group="CCDs">
+ </devGroup>
+ <devGroup group="Focusers">
+ </devGroup>
+ <devGroup group="Filter Wheels">
+ </devGroup>
+ <devGroup group="Domes">
+ </devGroup>
+ <devGroup group="Auxiliary">
+  <device label="Ultimate Powerbox">
+   <driver name="Ultimate Powerbox">indigo_aux_upb</driver>
+   <version>0.2</version>
+  </device>
+ </devGroup>
+</driversList>
