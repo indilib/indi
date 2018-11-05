@@ -49,6 +49,15 @@ set(CMAKE_INDI_VERSION_RELEASE 5)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
+execute_process(
+    COMMAND git describe --tags
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_TAG
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+add_definitions(-DGIT_TAG_STRING=\"${GIT_TAG}\")
+
 ########################################  Paths  ###################################################
 
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
@@ -83,7 +92,7 @@ OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum val
 ###################################################################################################
 IF (INDI_FAST_BLOB)
 # Append ENCLEN attribute to outgoing BLOB elements to enable fast parsing by clients
-add_definitions(-DWITH_ENCLEN)
+add_definitions(-DWITH_ENCLE)
 ENDIF(INDI_FAST_BLOB)
 
 ###################################################################################################
