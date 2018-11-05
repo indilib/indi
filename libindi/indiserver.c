@@ -44,6 +44,8 @@
  * Clients that get more than maxqsiz bytes behind are shut down.
  */
 
+#define _GNU_SOURCE // needed for siginfo_t and sigaction
+
 #include "config.h"
 
 #include "fq.h"
