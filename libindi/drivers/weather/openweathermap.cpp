@@ -266,7 +266,7 @@ IPState OpenWeatherMap::updateWeather()
                         }
                         else if (id >= 700 && id < 800)
                         {
-                            // Must and so on
+                            // Mist and so on
                             setParameterValue("WEATHER_FORECAST", 1);
                         }
                         else if (id == 800)
