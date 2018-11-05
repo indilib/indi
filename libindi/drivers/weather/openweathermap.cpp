@@ -119,7 +119,7 @@ bool OpenWeatherMap::initProperties()
     INDI::Weather::initProperties();
 
     IUFillText(&owmAPIKeyT[0], "API_KEY", "API Key", nullptr);
-    IUFillTextVector(&owmAPIKeyTP, owmAPIKeyT, 1, getDeviceName(), "OWM_API_KEY", "Wunder", OPTIONS_TAB, IP_RW, 60,
+    IUFillTextVector(&owmAPIKeyTP, owmAPIKeyT, 1, getDeviceName(), "OWM_API_KEY", "OpenWeatherMap", OPTIONS_TAB, IP_RW, 60,
                      IPS_IDLE);
 
     addParameter("WEATHER_FORECAST", "Weather", 0, 0, 15);
