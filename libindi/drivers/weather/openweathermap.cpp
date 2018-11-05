@@ -368,63 +368,6 @@ IPState OpenWeatherMap::updateWeather()
                 }
             }
         }
-
-#if 0
-        for (observationIterator = begin(it->value); observationIterator != end(it->value); ++observationIterator)
-            {
-                if (!strcmp(observationIterator->key, "weather"))
-                {
-                    char *value = observationIterator->value.toString();
-
-                    if (!strcmp(value, "Clear"))
-                        setParameterValue("WEATHER_FORECAST", 0);
-                    else if (!strcmp(value, "Unknown") || !strcmp(value, "Scattered Clouds") ||
-                             !strcmp(value, "Partly Cloudy") || !strcmp(value, "Overcast") ||
-                             !strcmp(value, "Patches of Fog") || !strcmp(value, "Partial Fog") ||
-                             !strcmp(value, "Light Haze"))
-                        setParameterValue("WEATHER_FORECAST", 1);
-                    else
-                        setParameterValue("WEATHER_FORECAST", 2);
-
-                    LOGF_INFO("Weather condition: %s", value);
-                }
-                else if (!strcmp(observationIterator->key, "temp_c"))
-                {
-                    if (observationIterator->value.isDouble())
-                        setParameterValue("WEATHER_TEMPERATURE", observationIterator->value.toNumber());
-                    else
-                        setParameterValue("WEATHER_TEMPERATURE", atof(observationIterator->value.toString()));
-                }
-                else if (!strcmp(observationIterator->key, "wind_kph"))
-                {
-                    if (observationIterator->value.isDouble())
-                        setParameterValue("WEATHER_WIND_SPEED", observationIterator->value.toNumber());
-                    else
-                        setParameterValue("WEATHER_WIND_SPEED", atof(observationIterator->value.toString()));
-                }
-                else if (!strcmp(observationIterator->key, "wind_gust_kph"))
-                {
-                    if (observationIterator->value.isDouble())
-                        setParameterValue("WEATHER_WIND_GUST", observationIterator->value.toNumber());
-                    else
-                        setParameterValue("WEATHER_WIND_GUST", atof(observationIterator->value.toString()));
-                }
-                else if (!strcmp(observationIterator->key, "precip_1hr_metric"))
-                {
-                    char *value = observationIterator->value.toString();
-                    double mm   = -1;
-                    if (!strcmp(value, "--"))
-                        setParameterValue("WEATHER_RAIN_HOUR", 0);
-                    else
-                    {
-                        mm = atof(value);
-                        if (mm >= 0)
-                            setParameterValue("WEATHER_RAIN_HOUR", mm);
-                    }
-                }
-            }
-        }
-#endif
     }
 
     return IPS_OK;
