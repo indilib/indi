@@ -1244,6 +1244,20 @@ add_executable(indi_wunderground_weather ${WunderGround_SRC})
 target_link_libraries(indi_wunderground_weather indidriver ${CURL_LIBRARIES})
 install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin)
 
+########### OpenWeatherMap Driver ###############
+
+SET(OpenWeatherMap_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/openweathermap.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(OpenWeatherMap OpenWeatherMap_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_openweathermap_weather ${OpenWeatherMap_SRC})
+target_link_libraries(indi_openweathermap_weather indidriver ${CURL_LIBRARIES})
+install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
+
 #####################################
 ############ INDI TOOLS #############
 #####################################
