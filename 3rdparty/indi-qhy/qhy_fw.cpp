@@ -107,7 +107,7 @@ static int upload(libusb_device_handle *handle, const char *hex)
     if (getenv("INDIPREFIX") != nullptr)
         sprintf(path, "%s/Contents/Resources/DriverSupport/qhy/firmware/%s", getenv("INDIPREFIX"), hex);
     else
-        sprintf(path, "/usr/local/lib/indi/DriverSupport/qhy/firmware/%s", getenv("INDIPREFIX"), hex);
+        sprintf(path, "/usr/local/lib/indi/DriverSupport/qhy/firmware/%s", hex);
 #else
     sprintf(path, "/usr/local/firmware/%s", hex);
 #endif
