@@ -29,26 +29,34 @@
 #include "qhyccderr.h"
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
-#include <stdint.h>
+#include "stdint.h"
+#include "config.h"
 #include <functional>
 
-#ifdef __win32__
+#ifdef _WIN32
 #include "cyapi.h"
 #endif
 
 #ifndef __QHYCCD_H__
 #define __QHYCCD_H__
 
-#if defined (__win32__)
+#if defined (_WIN32)
 typedef CCyUSBDevice qhyccd_handle;
-#elif defined (__linux__)
+#endif
+#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
 typedef struct libusb_device_handle qhyccd_handle;
 #endif
 
 
 EXPORTC void STDCALL SetQHYCCDLogLevel(uint8_t logLevel);
+
+#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+
 EXPORTC void STDCALL SetQHYCCDLogFunction(std::function<void(const std::string &message)> logFunction);
-EXPORTC void STDCALL EnableQHYCCDMessage(bool enable);
+
+#endif
+
+EXPORTC void STDCALL EnableQHYCCDMessage(bool enable); 
 EXPORTC void STDCALL EnableQHYCCDLogFile(bool enable);
 
 EXPORTC const char* STDCALL GetTimeStamp();
@@ -416,6 +424,18 @@ EXPORTC void  STDCALL HistInfo192x130(qhyccd_handle *h,uint32_t x,uint32_t y,uin
     @param path path to HEX file
   */
 EXPORTC uint32_t STDCALL OSXInitQHYCCDFirmware(char *path);
+
+/**
+    @fn uint32_t OSXInitQHYCCDFirmware(char *path)
+    @brief download the firmware to camera.(this api just need call in OSX system)
+    @param path path to HEX file
+  */
+EXPORTC uint32_t STDCALL OSXInitQHYCCDFirmwareArray();
+
+
+
+EXPORTC uint32_t STDCALL OSXInitQHYCCDAndroidFirmwareArray(int idVendor,int idProduct,
+    qhyccd_handle *h);
 
 
 

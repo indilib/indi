@@ -29,8 +29,8 @@
 
 #include <math.h>
 #include "qhyccdstruct.h"
-
-#ifdef __win32__
+#include "config.h"
+#ifdef _WIN32
 #include "CyAPI.h"
 #include <process.h>
 
@@ -42,7 +42,7 @@
 
 #endif
 
-#include <stdint.h>
+#include "stdint.h"
 
 #ifndef __QHYCAMDEF_H__
 #define __QHYCAMDEF_H__
@@ -62,23 +62,24 @@
 /**
  * typedef the libusb_deivce qhyccd_device
  */
-#ifdef __linux__
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
 typedef struct libusb_device qhyccd_device;
 #endif
-#ifdef __win32__
+#ifdef _WIN32
 typedef void* qhyccd_device;
 #endif
 
 /**
  * typedef the libusb_deivce_handle qhyccd_handle
  */
-#ifdef __linux__
+#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
 typedef struct libusb_device_handle qhyccd_handle;
 #endif
-#ifdef __win32__
+#ifdef _WIN32
 typedef CCyUSBDevice qhyccd_handle;
 #endif
 
+#if 1
 //QinXiaoXu  START  20181019
 typedef struct lowlevelstatus
 {
@@ -107,6 +108,7 @@ typedef struct lowlevelstatus
 }
 LowLevelStatus;
 //QinXiaoXu  END 20181019
+#endif
 
 /**
  * @brief QHYCAM class define
@@ -126,7 +128,7 @@ public:
     usbintrep = 0x81;
     intepflag = 0;
     usbtype = QHYCCD_USBTYPE_CYUSB;
-#ifdef __win32__
+#ifdef _WIN32
 
     InitializeCriticalSection(&csep); //��ʼ���ٽ���
 #else
@@ -138,7 +140,7 @@ public:
 
   virtual ~QHYCAM()
   {
-#ifdef __win32__
+#ifdef _WIN32
     DeleteCriticalSection(&csep);
 #else
 
@@ -623,7 +625,7 @@ public:
 
   uint8_t vrreadstatus;
 
-#ifdef __win32__
+#ifdef _WIN32
 
   CRITICAL_SECTION csep;
 #else
