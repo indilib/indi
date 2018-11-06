@@ -26,6 +26,7 @@
 
 #include <stream/streammanager.h>
 
+#include <algorithm>
 #include <math.h>
 #include <unistd.h>
 
@@ -39,7 +40,7 @@
 
 //#define USE_SIMULATION
 
-static int iConnectedCamerasCount;
+static int iAvailableCamerasCount;
 static ASI_CAMERA_INFO *pASICameraInfo;
 static ASICCD *cameras[MAX_DEVICES];
 
@@ -48,7 +49,7 @@ static ASICCD *cameras[MAX_DEVICES];
 
 static void cleanup()
 {
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         delete cameras[i];
     }
@@ -66,7 +67,8 @@ void ASI_CCD_ISInit()
     if (!isInit)
     {
         pASICameraInfo       = nullptr;
-        iConnectedCamerasCount = 0;
+        iAvailableCamerasCount = 0;
+        std::vector<std::string> cameraNames;
 
 #ifdef USE_SIMULATION
         iConnectedCamerasCount = 2;
@@ -76,28 +78,37 @@ void ASI_CCD_ISInit()
         cameras[0] = new ASICCD(ppASICameraInfo[0]);
         cameras[1] = new ASICCD(ppASICameraInfo[1]);
 #else
-        iConnectedCamerasCount = ASIGetNumOfConnectedCameras();
-        if (iConnectedCamerasCount > MAX_DEVICES)
-            iConnectedCamerasCount = MAX_DEVICES;
-        if (iConnectedCamerasCount <= 0)
+        iAvailableCamerasCount = ASIGetNumOfConnectedCameras();
+        if (iAvailableCamerasCount > MAX_DEVICES)
+            iAvailableCamerasCount = MAX_DEVICES;
+        if (iAvailableCamerasCount <= 0)
             //Try sending IDMessage as well?
             IDLog("No ASI Cameras detected. Power on?");
         else
         {
-            size_t size = sizeof(ASI_CAMERA_INFO) * iConnectedCamerasCount;
+            size_t size = sizeof(ASI_CAMERA_INFO) * iAvailableCamerasCount;
             pASICameraInfo = (ASI_CAMERA_INFO *)malloc(size);
             if (pASICameraInfo == nullptr)
             {
-                iConnectedCamerasCount = 0;
+                iAvailableCamerasCount = 0;
                 IDLog("malloc failed (init)");
                 return;
             }
             (void)memset(pASICameraInfo, 0, size);
             ASI_CAMERA_INFO *cameraP = pASICameraInfo;
-            for (int i = 0; i < iConnectedCamerasCount; i++)
+            for (int i = 0; i < iAvailableCamerasCount; i++)
             {
                 ASIGetCameraProperty(cameraP, i);
-                cameras[i] = new ASICCD(cameraP);
+                std::string cameraName;
+
+                if (std::find(cameraNames.begin(), cameraNames.end(), cameraP->Name) == cameraNames.end())
+                    cameraName = "ZWO CCD " + std::string(cameraP->Name + 4);
+                else
+                    cameraName = "ZWO CCD " + std::string(cameraP->Name + 4) + " " +
+                            std::to_string(static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), cameraP->Name))+1);
+
+                cameras[i] = new ASICCD(cameraP, cameraName);
+                cameraNames.push_back(cameraP->Name);
                 cameraP++;
             }
         }
@@ -112,13 +123,13 @@ void ISGetProperties(const char *dev)
 {
     ASI_CCD_ISInit();
 
-    if (iConnectedCamerasCount == 0)
+    if (iAvailableCamerasCount == 0)
     {
         IDMessage(nullptr, "No ASI cameras detected. Power on?");
         return;
     }
 
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         if (dev == nullptr || !strcmp(dev, camera->name))
@@ -133,7 +144,7 @@ void ISGetProperties(const char *dev)
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     ASI_CCD_ISInit();
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         if (dev == nullptr || !strcmp(dev, camera->name))
@@ -148,7 +159,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     ASI_CCD_ISInit();
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         if (dev == nullptr || !strcmp(dev, camera->name))
@@ -163,7 +174,7 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     ASI_CCD_ISInit();
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         if (dev == nullptr || !strcmp(dev, camera->name))
@@ -192,14 +203,14 @@ void ISSnoopDevice(XMLEle *root)
 {
     ASI_CCD_ISInit();
 
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         camera->ISSnoopDevice(root);
     }
 }
 
-ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
+ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo, std::string cameraName)
 {
     setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
     ControlN     = nullptr;
@@ -212,7 +223,8 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
     NSDir = ASI_GUIDE_NORTH;
     WEDir = ASI_GUIDE_WEST;
 
-    snprintf(this->name, MAXINDIDEVICE, "ZWO CCD %s", m_camInfo->Name + 4);
+    //snprintf(this->name, MAXINDIDEVICE, "ZWO CCD %s", m_camInfo->Name + 4);
+    strncpy(this->name, cameraName.c_str(), MAXINDIDEVICE);
     setDeviceName(this->name);
 }
 
