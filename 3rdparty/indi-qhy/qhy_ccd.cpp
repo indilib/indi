@@ -124,6 +124,8 @@ void ISInit()
     strncat(driverSupportPath, "/DriverSupport/qhy", 128);
     IDLog("QHY firmware path: %s\n", driverSupportPath);
 	OSXInitQHYCCDFirmware(driverSupportPath);
+    // Wait a bit before calling GetDeviceIDs on MacOS
+    usleep(2000000);
 #endif
 
     std::vector<std::string> devices = GetDevicesIDs();
