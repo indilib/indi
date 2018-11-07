@@ -97,7 +97,7 @@ OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum val
 ###################################################################################################
 IF (INDI_FAST_BLOB)
 # Append ENCLEN attribute to outgoing BLOB elements to enable fast parsing by clients
-add_definitions(-DWITH_ENCLE)
+add_definitions(-DWITH_ENCLEN)
 ENDIF(INDI_FAST_BLOB)
 
 ###################################################################################################
