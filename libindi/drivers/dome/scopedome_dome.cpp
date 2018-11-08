@@ -211,7 +211,8 @@ bool ScopeDome::initProperties()
 
     IUFillNumber(&FirmwareVersionsN[0], "MAIN", "Main part", "%2.2f", 0.0, 99.0, 1.0, 0.0);
     IUFillNumber(&FirmwareVersionsN[1], "ROTARY", "Rotary part", "%2.1f", 0.0, 99.0, 1.0, 0.0);
-    IUFillNumberVector(&FirmwareVersionsNP, FirmwareVersionsN, 2, getDeviceName(), "FIRMWARE_VERSION", "Firmware versions", INFO_TAB, IP_RO, 60, IPS_IDLE);
+    IUFillNumberVector(&FirmwareVersionsNP, FirmwareVersionsN, 2, getDeviceName(), "FIRMWARE_VERSION",
+                       "Firmware versions", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
     SetParkDataType(PARK_AZ);
 
@@ -228,6 +229,12 @@ bool ScopeDome::initProperties()
 bool ScopeDome::SetupParms()
 {
     targetAz = 0;
+
+    readU32(GetImpPerTurn, stepsPerTurn);
+    LOGF_INFO("Steps per turn read as %d", stepsPerTurn);
+
+    readS32(GetHomeSensorPosition, homePosition);
+    LOGF_INFO("Home position read as %d", homePosition);
 
     if (UpdatePosition())
         IDSetNumber(&DomeAbsPosNP, nullptr);
@@ -252,11 +259,14 @@ bool ScopeDome::SetupParms()
         SetAxis1ParkDefault(0);
     }
 
-    uint16_t fwVersion = readU16(GetVersionFirmware);
+    uint16_t fwVersion;
+    readU16(GetVersionFirmware, fwVersion);
     FirmwareVersionsN[0].value = fwVersion / 100.0;
-    uint8_t fwVersionRotary = readU8(GetVersionFirmwareRotary);
-    FirmwareVersionsN[1].value = (fwVersionRotary+9) / 10.0;
-    FirmwareVersionsNP.s = IPS_OK;
+
+    uint8_t fwVersionRotary;
+    readU8(GetVersionFirmwareRotary, fwVersionRotary);
+    FirmwareVersionsN[1].value = (fwVersionRotary + 9) / 10.0;
+    FirmwareVersionsNP.s       = IPS_OK;
     IDSetNumber(&FirmwareVersionsNP, nullptr);
     return true;
 }
@@ -424,7 +434,11 @@ bool ScopeDome::Ack()
 bool ScopeDome::UpdateShutterStatus()
 {
     int rc = readBuffer(GetAllDigitalExt, 5, digitalSensorState);
-
+    if (rc != 0)
+    {
+        LOGF_ERROR("Error reading input state: %d", rc);
+        return false;
+    }
     // LOGF_INFO("digitalext %x %x %x %x %x", digitalSensorState[0],
     // digitalSensorState[1], digitalSensorState[2], digitalSensorState[3],
     // digitalSensorState[4]);
@@ -487,22 +501,13 @@ bool ScopeDome::UpdateShutterStatus()
 * ***********************************************************************************/
 bool ScopeDome::UpdatePosition()
 {
-    if (stepsPerTurn == -1)
-    {
-        stepsPerTurn = readU32(GetImpPerTurn);
-        LOGF_INFO("Steps per turn read as %d", stepsPerTurn);
-
-        homePosition = readS32(GetHomeSensorPosition);
-        LOGF_INFO("Home position read as %d", homePosition);
-    }
-
     //    int counter = readS32(GetCounterExt);
-    int16_t counter2 = readS16(GetCounter);
+    readS16(GetCounter, rotationCounter);
 
     //    LOGF_INFO("Counters are %d - %d", counter, counter2);
 
     // We assume counter value 0 is at home sensor position
-    double az = ((double)counter2 * -360.0 / stepsPerTurn) + DomeHomePositionN[0].value;
+    double az = ((double)rotationCounter * -360.0 / stepsPerTurn) + DomeHomePositionN[0].value;
     az        = fmod(az, 360.0);
     if (az < 0.0)
     {
@@ -517,16 +522,22 @@ bool ScopeDome::UpdatePosition()
 * ***********************************************************************************/
 bool ScopeDome::UpdateSensorStatus()
 {
-    EnvironmentSensorsN[0].value  = readU8(GetLinkStrength);
-    EnvironmentSensorsN[1].value  = readFloat(GetAnalog1);
-    EnvironmentSensorsN[2].value  = readFloat(GetAnalog2);
-    EnvironmentSensorsN[3].value  = readFloat(GetMainAnalog1);
-    EnvironmentSensorsN[4].value  = readFloat(GetMainAnalog2);
-    EnvironmentSensorsN[5].value  = readFloat(GetTempIn);
-    EnvironmentSensorsN[6].value  = readFloat(GetTempOut);
-    EnvironmentSensorsN[7].value  = readFloat(GetTempHum);
-    EnvironmentSensorsN[8].value  = readFloat(GetHum);
-    EnvironmentSensorsN[9].value  = readFloat(GetPressure);
+    readU8(GetLinkStrength, linkStrength);
+    readFloat(GetAnalog1, sensors[0]);
+    readFloat(GetAnalog2, sensors[1]);
+    readFloat(GetMainAnalog1, sensors[2]);
+    readFloat(GetMainAnalog2, sensors[3]);
+    readFloat(GetTempIn, sensors[4]);
+    readFloat(GetTempOut, sensors[5]);
+    readFloat(GetTempHum, sensors[6]);
+    readFloat(GetHum, sensors[7]);
+    readFloat(GetPressure, sensors[8]);
+
+    EnvironmentSensorsN[0].value = linkStrength;
+    for (int i = 0; i < 9; ++i)
+    {
+        EnvironmentSensorsN[i + 1].value = sensors[i];
+    }
     EnvironmentSensorsN[10].value = getDewPoint(EnvironmentSensorsN[8].value, EnvironmentSensorsN[7].value);
     EnvironmentSensorsNP.s        = IPS_OK;
 
@@ -563,7 +574,7 @@ void ScopeDome::TimerHit()
     if (!isConnected())
         return; //  No need to reset timer if we are not connected anymore
 
-    currentStatus = readU16(GetStatus);
+    readU16(GetStatus, currentStatus);
     // LOGF_INFO("Status: %x", currentStatus);
     UpdatePosition();
 
@@ -593,7 +604,7 @@ void ScopeDome::TimerHit()
     {
         if ((currentStatus & 2) == 0)
         {
-            int currentRotation = readS32(GetCounterExt);
+            readS32(GetCounterExt, currentRotation);
             LOGF_INFO("Current rotation is %d", currentRotation);
             if (abs(currentRotation) < 100)
             {
@@ -631,7 +642,7 @@ void ScopeDome::TimerHit()
             {
                 azDiff += 360;
             }
-            if (fabs(azDiff) < DomeParamN[0].value)
+            if (fabs(azDiff) <= DomeParamN[0].value)
             {
                 DomeAbsPosN[0].value = targetAz;
                 LOG_INFO("Dome reached requested azimuth angle.");
@@ -705,13 +716,14 @@ IPState ScopeDome::MoveAbs(double az)
 
     LOGF_DEBUG("azDiff rel = %f", azDiff);
 
+    int rc = 0;
     if (azDiff < 0)
     {
         uint16_t steps = (uint16_t)(-azDiff * stepsPerTurn / 360.0);
         LOGF_DEBUG("CCW (%d)", steps);
         steps = compensateInertia(steps);
         LOGF_DEBUG("CCW inertia (%d)", steps);
-        int rc = writeU16(CCWRotation, steps);
+        rc = writeU16(CCWRotation, steps);
     }
     else
     {
@@ -719,7 +731,11 @@ IPState ScopeDome::MoveAbs(double az)
         LOGF_DEBUG("CW (%d)", steps);
         steps = compensateInertia(steps);
         LOGF_DEBUG("CW inertia (%d)", steps);
-        int rc = writeU16(CWRotation, steps);
+        rc = writeU16(CWRotation, steps);
+    }
+    if (rc != 0)
+    {
+        LOGF_ERROR("Error moving dome: %d", rc);
     }
     return IPS_BUSY;
 }
@@ -846,7 +862,7 @@ bool ScopeDome::SetDefaultPark()
 /************************************************************************************
  *
 * ***********************************************************************************/
-float ScopeDome::readFloat(ScopeDomeCommand cmd)
+bool ScopeDome::readFloat(ScopeDomeCommand cmd, float &dst)
 {
     float value;
     ScopeDomeCommand c;
@@ -858,10 +874,15 @@ float ScopeDome::readFloat(ScopeDomeCommand cmd)
         rc |= interface->readBuf(c, 4, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readFloat: %d %f", cmd, value);
-    return value;
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
 }
 
-uint8_t ScopeDome::readU8(ScopeDomeCommand cmd)
+bool ScopeDome::readU8(ScopeDomeCommand cmd, uint8_t &dst)
 {
     uint8_t value;
     ScopeDomeCommand c;
@@ -873,10 +894,15 @@ uint8_t ScopeDome::readU8(ScopeDomeCommand cmd)
         rc |= interface->readBuf(c, 1, &value);
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readU8: %d %x", cmd, value);
-    return value;
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
 }
 
-int8_t ScopeDome::readS8(ScopeDomeCommand cmd)
+bool ScopeDome::readS8(ScopeDomeCommand cmd, int8_t &dst)
 {
     int8_t value;
     ScopeDomeCommand c;
@@ -888,10 +914,15 @@ int8_t ScopeDome::readS8(ScopeDomeCommand cmd)
         rc |= interface->readBuf(c, 1, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readS8: %d %x", cmd, value);
-    return value;
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
 }
 
-uint16_t ScopeDome::readU16(ScopeDomeCommand cmd)
+bool ScopeDome::readU16(ScopeDomeCommand cmd, uint16_t &dst)
 {
     uint16_t value;
     ScopeDomeCommand c;
@@ -903,10 +934,15 @@ uint16_t ScopeDome::readU16(ScopeDomeCommand cmd)
         rc |= interface->readBuf(c, 2, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readU16: %d %x", cmd, value);
-    return value;
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
 }
 
-int16_t ScopeDome::readS16(ScopeDomeCommand cmd)
+bool ScopeDome::readS16(ScopeDomeCommand cmd, int16_t &dst)
 {
     int16_t value;
     ScopeDomeCommand c;
@@ -918,10 +954,15 @@ int16_t ScopeDome::readS16(ScopeDomeCommand cmd)
         rc |= interface->readBuf(c, 2, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readS16: %d %x", cmd, value);
-    return value;
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
 }
 
-uint32_t ScopeDome::readU32(ScopeDomeCommand cmd)
+bool ScopeDome::readU32(ScopeDomeCommand cmd, uint32_t &dst)
 {
     uint32_t value;
     ScopeDomeCommand c;
@@ -933,10 +974,15 @@ uint32_t ScopeDome::readU32(ScopeDomeCommand cmd)
         rc |= interface->readBuf(c, 4, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readU32: %d %x", cmd, value);
-    return value;
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
 }
 
-int32_t ScopeDome::readS32(ScopeDomeCommand cmd)
+bool ScopeDome::readS32(ScopeDomeCommand cmd, int32_t &dst)
 {
     int32_t value;
     ScopeDomeCommand c;
@@ -948,7 +994,12 @@ int32_t ScopeDome::readS32(ScopeDomeCommand cmd)
         rc |= interface->readBuf(c, 4, (uint8_t *)&value);
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readU32: %d %x", cmd, value);
-    return value;
+    if (rc == 0)
+    {
+        dst = value;
+        return true;
+    }
+    return false;
 }
 
 int ScopeDome::readBuffer(ScopeDomeCommand cmd, int len, uint8_t *cbuf)
@@ -1125,8 +1176,8 @@ uint16_t ScopeDome::compensateInertia(uint16_t steps)
     // Check difference from largest table entry and assume we have
     // similar inertia also after that
     int lastEntry = inertiaTable.size() - 1;
-    int inertia = inertiaTable[lastEntry] - lastEntry;
-    int movement = (int)steps - inertia;
+    int inertia   = inertiaTable[lastEntry] - lastEntry;
+    int movement  = (int)steps - inertia;
     LOGF_INFO("inertia %d -> %d", steps, movement);
     if (movement <= 0)
         return 0;

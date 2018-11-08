@@ -37,7 +37,8 @@
  * Interface to either a real ScopeDome card or simulator
  */
 
-typedef enum {
+typedef enum
+{
     ACK_c = 1,
     FunctionNotSupported,
     MotionConflict,
@@ -219,7 +220,8 @@ typedef enum {
     IsFullSystemCalReq
 } ScopeDomeCommand;
 
-typedef enum {
+typedef enum
+{
     NO_ERROR                       = 0,
     FT_INVALID_HANDLE              = 1,
     FT_DEVICE_NOT_FOUND            = 2,
@@ -254,7 +256,8 @@ typedef enum {
     CARD_REOPEN,
 } ScopeDomeError;
 
-typedef enum {
+typedef enum
+{
     OUT_CCW            = 0,
     OUT_CW             = 1,
     OUT_OPEN1          = 2,
@@ -299,11 +302,11 @@ class ScopeDomeCard
     /** Destructor. */
     virtual ~ScopeDomeCard() = default;
 
-    virtual bool detect() = 0;
+    virtual bool detect()                                                      = 0;
     virtual int writeBuf(ScopeDomeCommand Command, uint8_t len, uint8_t *buff) = 0;
-    virtual int write(ScopeDomeCommand cmd) = 0;
-    virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff) = 0;
-    virtual int read(ScopeDomeCommand &cmd) = 0;
+    virtual int write(ScopeDomeCommand cmd)                                    = 0;
+    virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)     = 0;
+    virtual int read(ScopeDomeCommand &cmd)                                    = 0;
     const char *getDeviceName() { return (const char *)"ScopeDome Dome"; };
 
   protected:
@@ -381,7 +384,14 @@ class ScopeDomeSim : public ScopeDomeCard
 class ScopeDome : public INDI::Dome
 {
   public:
-    typedef enum { DOME_UNKNOWN, DOME_CALIBRATING, DOME_READY, DOME_HOMING, DOME_DEROTATING } DomeStatus;
+    typedef enum
+    {
+        DOME_UNKNOWN,
+        DOME_CALIBRATING,
+        DOME_READY,
+        DOME_HOMING,
+        DOME_DEROTATING
+    } DomeStatus;
 
     ScopeDome();
     virtual ~ScopeDome() = default;
@@ -460,20 +470,24 @@ class ScopeDome : public INDI::Dome
   private:
     uint8_t digitalSensorState[5];
     uint16_t currentStatus;
+    int32_t currentRotation;
+    int16_t rotationCounter;
 
-    int stepsPerTurn;
+    uint8_t linkStrength;
+    float sensors[9];
+    uint32_t stepsPerTurn;
     int homePosition;
 
     std::unique_ptr<ScopeDomeCard> interface;
 
     // I/O helper functions
-    float readFloat(ScopeDomeCommand cmd);
-    uint8_t readU8(ScopeDomeCommand cmd);
-    int8_t readS8(ScopeDomeCommand cmd);
-    uint16_t readU16(ScopeDomeCommand cmd);
-    int16_t readS16(ScopeDomeCommand cmd);
-    uint32_t readU32(ScopeDomeCommand cmd);
-    int32_t readS32(ScopeDomeCommand cmd);
+    bool readFloat(ScopeDomeCommand cmd, float &dst);
+    bool readU8(ScopeDomeCommand cmd, uint8_t &dst);
+    bool readS8(ScopeDomeCommand cmd, int8_t &dst);
+    bool readU16(ScopeDomeCommand cmd, uint16_t &dst);
+    bool readS16(ScopeDomeCommand cmd, int16_t &dst);
+    bool readU32(ScopeDomeCommand cmd, uint32_t &dst);
+    bool readS32(ScopeDomeCommand cmd, int32_t &dst);
     int readBuffer(ScopeDomeCommand cmd, int len, uint8_t *cbuf);
 
     int writeCmd(ScopeDomeCommand cmd);
