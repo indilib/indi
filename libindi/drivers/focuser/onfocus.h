@@ -51,7 +51,7 @@ private:
     bool isMoving();
     bool Ack();
 
-    bool MoveFocuser(uint32_t position);
+    bool MoveMyFocuser(uint32_t position);
     bool setMaxPos(uint32_t maxPos);
 
     INumber MaxPosN[1];

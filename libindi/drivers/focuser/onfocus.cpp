@@ -100,9 +100,9 @@ bool OnFocus::initProperties()
     FocusRelPosN[0].step = 10.;
 
     FocusAbsPosN[0].min = 0.;
-    FocusAbsPosN[0].max = 0.;
+    FocusAbsPosN[0].max = 10000000.;
     FocusAbsPosN[0].value = 0.;
-    FocusAbsPosN[0].step = 0.;
+    FocusAbsPosN[0].step = 500.;
 
     addDebugControl();
 
@@ -304,7 +304,7 @@ bool OnFocus::isMoving()
 
 }
 
-bool OnFocus::MoveFocuser(uint32_t position)
+bool OnFocus::MoveMyFocuser(uint32_t position)
 {
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
@@ -411,7 +411,7 @@ IPState OnFocus::MoveAbsFocuser(uint32_t targetTicks)
 
     bool rc = false;
 
-    rc = MoveFocuser(targetPos);
+    rc = MoveMyFocuser(targetPos);
 
     if (rc == false)
         return IPS_ALERT;
@@ -431,7 +431,7 @@ IPState OnFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     else
         newPosition = uint32_t(FocusAbsPosN[0].value) + ticks;
 
-    rc = MoveFocuser(newPosition);
+    rc = MoveMyFocuser(newPosition);
 
     if (rc == false)
         return IPS_ALERT;
