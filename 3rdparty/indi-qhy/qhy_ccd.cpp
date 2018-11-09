@@ -1307,6 +1307,9 @@ void QHYCCD::setCooler(bool enable)
         CoolerSP.s   = IPS_OK;
         IDSetSwitch(&CoolerSP, nullptr);
 
+        if (sim == false)
+            SetQHYCCDParam(camhandle, CONTROL_MANULPWM, 255);
+
         CoolerNP.s = IPS_BUSY;
         IDSetNumber(&CoolerNP, nullptr);
         LOG_INFO("Cooler on.");
