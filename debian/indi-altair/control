@@ -17,7 +17,7 @@ Package: indi-altair-dbg
 Priority: extra
 Section: debug
 Architecture: any
-Depends: indi-asi (= ${binary:Version}), ${misc:Depends}
+Depends: indi-altair (= ${binary:Version}), ${misc:Depends}
 Description: INDI Driver for Altair Astro cameras
  Driver for Altair Astro cameras.
  .

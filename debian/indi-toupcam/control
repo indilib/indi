@@ -17,7 +17,7 @@ Package: indi-toupcam-dbg
 Priority: extra
 Section: debug
 Architecture: any
-Depends: indi-asi (= ${binary:Version}), ${misc:Depends}
+Depends: indi-toupcam (= ${binary:Version}), ${misc:Depends}
 Description: INDI Driver for Toupcam cameras
  Driver for Toupcam cameras.
  .
