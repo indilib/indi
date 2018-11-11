@@ -13,11 +13,11 @@ Description: INDI Driver for Altair Astro cameras
  .
  This driver is compatible with any INDI client such as KStars or Xephem.
 
-Package: indi-altair-dbg
+Package: indi-altaircam-dbg
 Priority: extra
 Section: debug
 Architecture: any
-Depends: indi-altair (= ${binary:Version}), ${misc:Depends}
+Depends: indi-altaircam (= ${binary:Version}), ${misc:Depends}
 Description: INDI Driver for Altair Astro cameras
  Driver for Altair Astro cameras.
  .
