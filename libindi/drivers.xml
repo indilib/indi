@@ -207,6 +207,10 @@
                 <driver name="MoonLite">indi_moonlite_focus</driver>
                 <version>1.0</version>
         </device>
+        <device label="OnFocus">
+                <driver name="OnFocus">indi_onfocus_focus</driver>
+                <version>1.0</version>
+        </device>
         <device label="NightCrawler">
                 <driver name="NightCrawler">indi_nightcrawler_focus</driver>
                 <version>1.0</version>

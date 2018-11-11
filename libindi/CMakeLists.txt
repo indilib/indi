@@ -727,6 +727,15 @@ add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
 
+################ OnFocus Focuser ################
+
+SET(onfocus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/onfocus.cpp)
+
+add_executable(indi_onfocus_focus ${onfocus_SRC})
+target_link_libraries(indi_onfocus_focus indidriver)
+install(TARGETS indi_onfocus_focus RUNTIME DESTINATION bin)
+
 
 ################ Sesto Senso Focuser ################
 SET(sesto_SRC
