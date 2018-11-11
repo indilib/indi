@@ -23,7 +23,7 @@
 
 #include <map>
 
-#include "toupcam.h"
+#include <toupcam.h>
 
 #include <indiccd.h>
 

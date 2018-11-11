@@ -23,7 +23,7 @@
 
 #include <map>
 
-#include "altaircam.h"
+#include <altaircam.h>
 
 #include <indiccd.h>
 
