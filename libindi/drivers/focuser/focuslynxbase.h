@@ -45,7 +45,7 @@
 #define HUB_SETTINGS_TAB "Device"
 
 #define VERSION                 1
-#define SUBVERSION              41
+#define SUBVERSION              42
 
 class FocusLynxBase : public INDI::Focuser
 {
@@ -156,6 +156,7 @@ class FocusLynxBase : public INDI::Focuser
     bool setTemperatureCompensation(bool enable);
     bool setTemperatureCompensationMode(char mode);
     bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
+    bool setTemperatureInceptions(char mode, int32_t inter);
     bool setTemperatureCompensationOnStart(bool enable);
 
     // Backlash
@@ -195,13 +196,13 @@ class FocusLynxBase : public INDI::Focuser
     ISwitch TemperatureCompensateOnStartS[2];
     ISwitchVectorProperty TemperatureCompensateOnStartSP;
 
-    // Temperature Coefficient
-    INumber TemperatureCoeffN[5];
-    INumberVectorProperty TemperatureCoeffNP;
-
     // Temperature Coefficient Mode
     ISwitch TemperatureCompensateModeS[5];
     ISwitchVectorProperty TemperatureCompensateModeSP;
+
+    // Temperature coefficient and Intercept for selected mode
+    INumber TemperatureParamN[2];
+    INumberVectorProperty TemperatureParamNP;
 
     // Enable/Disable backlash
     ISwitch BacklashCompensationS[2];
