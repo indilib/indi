@@ -49,7 +49,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    // Only call the corrected Focuser to execute evaluate the newText
+    // Only call the corrected Focuser to execute evaluate the new Text
     if (!strcmp(dev, lynxDriveF1->getDeviceName()))
         lynxDriveF1->ISNewText(dev, name, texts, names, n);
     else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
@@ -142,7 +142,7 @@ bool FocusLynxF1::initProperties()
     IUFillText(&WifiT[0], "Installed", "", "");
     IUFillText(&WifiT[1], "Connected", "", "");
     IUFillText(&WifiT[2], "Firmware", "", "");
-    IUFillText(&WifiT[3], "FV OK", "", "");
+    IUFillText(&WifiT[3], "Firm. Version OK", "", "");
     IUFillText(&WifiT[4], "SSID", "", "");
     IUFillText(&WifiT[5], "Ip address", "", "");
     IUFillText(&WifiT[6], "Security mode", "", "");
