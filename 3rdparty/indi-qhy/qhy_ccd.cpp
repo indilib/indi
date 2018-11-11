@@ -808,7 +808,7 @@ int QHYCCD::SetTemperature(double temperature)
     TemperatureRequest = temperature;
 
     // Enable cooler
-    setCooler(true);
+    //setCooler(true);
 
     ControlQHYCCDTemp(camhandle,TemperatureRequest);
 
@@ -1308,7 +1308,11 @@ void QHYCCD::setCooler(bool enable)
         IDSetSwitch(&CoolerSP, nullptr);
 
         if (sim == false)
-            SetQHYCCDParam(camhandle, CONTROL_MANULPWM, 255);
+        {
+            //SetQHYCCDParam(camhandle, CONTROL_MANULPWM, 255);
+            // Decrease temperature to "turn on" cooler
+            SetQHYCCDParam(camhandle, CONTROL_COOLER, TemperatureN[0].value-0.1);
+        }
 
         CoolerNP.s = IPS_BUSY;
         IDSetNumber(&CoolerNP, nullptr);
