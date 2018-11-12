@@ -1485,7 +1485,7 @@ bool V4L2_Driver::Connect()
         lx->setCamerafd(v4l_base->fd);
 
         if (!(strcmp((const char *)v4l_base->cap.driver, "pwc")))
-            DEBUG(INDI::Logger::DBG_SESSION,
+            LOG_INFO(
                   "To use LED Long exposure mode with recent kernels, see https://code.google.com/p/pwc-lxled/");
     }
 

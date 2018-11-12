@@ -29,7 +29,7 @@
 class ASICCD : public INDI::CCD
 {
   public:
-    explicit ASICCD(ASI_CAMERA_INFO *camInfo);
+    explicit ASICCD(ASI_CAMERA_INFO *camInfo, std::string cameraName);
     ~ASICCD() override = default;
 
     virtual const char *getDefaultName() override;
@@ -145,8 +145,8 @@ class ASICCD : public INDI::CCD
     ITextVectorProperty SDKVersionSP;
 
     struct timeval ExpStart;
-    float ExposureRequest;
-    float TemperatureRequest;
+    double ExposureRequest;
+    double TemperatureRequest;
 
     ASI_CAMERA_INFO *m_camInfo;
     ASI_CONTROL_CAPS *pControlCaps;

@@ -198,7 +198,7 @@ bool DMFC::Handshake()
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION,
+    LOG_INFO(
           "Error retreiving data from DMFC, please ensure DMFC controller is powered and the port is correct.");
     return false;
 }

@@ -110,7 +110,7 @@ bool HitecAstroDCFocuser::Connect()
 
     if (_handle != nullptr)
     {
-        DEBUG(INDI::Logger::DBG_SESSION,
+        LOG_INFO(
               "Experimental driver. Report issues to https://github.com/A-j-K/hitecastrodcfocuser/issues");
         SetTimer(POLLMS);
         return true;

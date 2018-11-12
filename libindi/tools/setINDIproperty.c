@@ -1,6 +1,8 @@
 /* connect to an INDI server and set one or more device.property.element.
  */
 
+#define _GNU_SOURCE // needed for fdopen
+
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "lilxml.h"
@@ -223,7 +225,7 @@ int main(int ac, char *av[])
 static void usage()
 {
     fprintf(stderr, "Purpose: set one or more writable INDI properties\n");
-    fprintf(stderr, "%s\n", "$Revision: 1.6 $");
+    fprintf(stderr, "%s\n", GIT_TAG_STRING);
     fprintf(stderr, "Usage: %s [options] {[type] spec} ...\n", me);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -d f  : use file descriptor f already open to server\n");
@@ -629,7 +631,3 @@ static void sendSpecs(FILE *wfp)
     for (i = 0; i < nsets; i++)
         sendNew(wfp, sets[i].dp, &sets[i]);
 }
-
-/* For RCS Only -- Do Not Edit */
-static char *rcsid[2] = { (char *)rcsid,
-                          "@(#) $RCSfile: setINDI.c,v $ $Date: 2010/11/07 07:13:59 $ $Revision: 1.6 $ $Name:  $" };

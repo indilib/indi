@@ -25,7 +25,7 @@
 /*! \file qhyccderr.h
       \brief QHYCCD SDK error define
   */
-
+#include "config.h"
 #ifndef __QHYCCDERR_H__
 #define __QHYCCDERR_H__
 
@@ -164,6 +164,6 @@
 /**
  * Set cam white balance blue failed */
 #define QHYCCD_ERROR           -25
-#endif // #if 0
+#endif
 
 #endif

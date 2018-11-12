@@ -40,12 +40,12 @@
 #define LYNXFOCUS_TEMPERATURE_FREQ     20      /* Update every 20 POLLMS cycles. For POLLMS 500ms = 10 seconds freq */
 #define LYNXFOCUS_POSITION_THRESHOLD    5      /* Only send position updates to client if the diff exceeds 5 steps */
 
-#define FOCUS_SETTINGS_TAB  "Settings"
-#define FOCUS_STATUS_TAB    "Status"
-#define HUB_SETTINGS_TAB    "Device"
+#define FOCUS_SETTINGS_TAB "Settings"
+#define FOCUS_STATUS_TAB   "Status"
+#define HUB_SETTINGS_TAB "Device"
 
 #define VERSION                 1
-#define SUBVERSION              3
+#define SUBVERSION              42
 
 class FocusLynxBase : public INDI::Focuser
 {
@@ -86,6 +86,7 @@ class FocusLynxBase : public INDI::Focuser
     virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
     virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool loadConfig(bool silent, const char *property) override;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -100,6 +101,8 @@ class FocusLynxBase : public INDI::Focuser
 
     void setFocusTarget(const char *target);
     const char *getFocusTarget();
+    bool checkIfAbsoluteFocuser();
+    bool SyncMandatory(bool enable);
     virtual void debugTriggered(bool enable) override;
 
     // Device
@@ -128,7 +131,6 @@ class FocusLynxBase : public INDI::Focuser
   private:  
     uint32_t simPosition;
     uint32_t targetPosition;
-    uint32_t maxControllerTicks;
 
     ISState simStatus[8];
     bool simCompensationOn;
@@ -142,16 +144,19 @@ class FocusLynxBase : public INDI::Focuser
     // Get functions
     bool getFocusConfig();
     bool getFocusStatus();
+    bool getFocusTemp();
 
     // Set functions
 
     // Position
-    bool setFocusPosition(u_int16_t position);
+    bool setMaxTravel(u_int16_t travel);
+    bool setStepSize(u_int16_t stepsize);
 
     // Temperature
     bool setTemperatureCompensation(bool enable);
     bool setTemperatureCompensationMode(char mode);
     bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
+    bool setTemperatureInceptions(char mode, int32_t inter);
     bool setTemperatureCompensationOnStart(bool enable);
 
     // Backlash
@@ -191,13 +196,13 @@ class FocusLynxBase : public INDI::Focuser
     ISwitch TemperatureCompensateOnStartS[2];
     ISwitchVectorProperty TemperatureCompensateOnStartSP;
 
-    // Temperature Coefficient
-    INumber TemperatureCoeffN[5];
-    INumberVectorProperty TemperatureCoeffNP;
-
     // Temperature Coefficient Mode
     ISwitch TemperatureCompensateModeS[5];
     ISwitchVectorProperty TemperatureCompensateModeSP;
+
+    // Temperature coefficient and Intercept for selected mode
+    INumber TemperatureParamN[2];
+    INumberVectorProperty TemperatureParamNP;
 
     // Enable/Disable backlash
     ISwitch BacklashCompensationS[2];
@@ -231,9 +236,17 @@ class FocusLynxBase : public INDI::Focuser
     INumber MaxTravelN[1];
     INumberVectorProperty MaxTravelNP;
 
+    // Focuser Step Size
+    INumber StepSizeN[1];
+    INumberVectorProperty StepSizeNP;
+
     // Focus name configure in the HUB
     IText HFocusNameT[1] {};
     ITextVectorProperty HFocusNameTP;
+
+    // Request mandatory action of sync from user
+    ISwitch SyncMandatoryS[2];
+    ISwitchVectorProperty SyncMandatorySP;
 
     bool isAbsolute;
     bool isSynced;

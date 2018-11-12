@@ -11,7 +11,7 @@ fi
 pushd googletest
 mkdir build
 cd build
-cmake .. -DCMAKE_CXX_FLAGS="-fPIC"
+cmake .. -DCMAKE_CXX_FLAGS="-fPIC -std=c++11"
 sudo make install
 popd
 rm -rf googletest

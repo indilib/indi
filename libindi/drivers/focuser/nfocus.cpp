@@ -751,7 +751,7 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
                 if (mmpp == &MinMaxPositionN[0])
                 {
                     new_min = (values[i]);
-                    nset += static_cast<int>(new_min >= 1 && new_min <= 65000);
+                    nset += static_cast<int>(new_min >= 0 && new_min <= 65000);
                 }
                 else if (mmpp == &MinMaxPositionN[1])
                 {
@@ -852,8 +852,11 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
             }
 
             LOGF_DEBUG("Focuser sycned to %g ticks", new_apos);
-            SyncN[0].value = new_apos;
-            SyncNP.s       = IPS_OK;
+            SyncN[0].value        = new_apos;
+            FocusAbsPosN[0].value = new_apos;
+            currentPosition       = new_apos;
+
+            SyncNP.s        = IPS_OK;
             IDSetNumber(&SyncNP, nullptr);
             IDSetNumber(&FocusAbsPosNP, nullptr);
             return true;

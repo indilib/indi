@@ -20,6 +20,8 @@
   file called LICENSE.
 *******************************************************************************/
 
+#define _GNU_SOURCE // for usleep
+
 #include "STAR2kdriver.h"
 
 #ifndef _WIN32

@@ -7,8 +7,7 @@
  *
  */
 
-#ifndef __OPEN_SSAG_H__
-#define __OPEN_SSAG_H__
+#pragma once
 
 /* Orion Telescopes SSAG VID/PID */
 #define SSAG_VENDOR_ID  0x1856
@@ -151,4 +150,3 @@ class Loader
 }
 #endif // __cplusplus
 
-#endif /* __OPEN_SSAG_H__ */
