@@ -49,6 +49,20 @@ set(CMAKE_INDI_VERSION_RELEASE 5)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
+execute_process(
+    COMMAND git describe --tags
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_TAG
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE GIT_TAG_RESULT
+)
+
+if (NOT ${GIT_TAG_RESULT} EQUAL 0)
+    set(GIT_TAG "${CMAKE_INDI_VERSION_STRING}-tgz")
+endif()
+
+add_definitions(-DGIT_TAG_STRING=\"${GIT_TAG}\")
+
 ########################################  Paths  ###################################################
 
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
@@ -713,6 +727,15 @@ add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
 
+################ OnFocus Focuser ################
+
+SET(onfocus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/onfocus.cpp)
+
+add_executable(indi_onfocus_focus ${onfocus_SRC})
+target_link_libraries(indi_onfocus_focus indidriver)
+install(TARGETS indi_onfocus_focus RUNTIME DESTINATION bin)
+
 
 ################ Sesto Senso Focuser ################
 SET(sesto_SRC
@@ -1243,6 +1266,20 @@ ENDIF ()
 add_executable(indi_wunderground_weather ${WunderGround_SRC})
 target_link_libraries(indi_wunderground_weather indidriver ${CURL_LIBRARIES})
 install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin)
+
+########### OpenWeatherMap Driver ###############
+
+SET(OpenWeatherMap_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/openweathermap.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(OpenWeatherMap OpenWeatherMap_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_openweathermap_weather ${OpenWeatherMap_SRC})
+target_link_libraries(indi_openweathermap_weather indidriver ${CURL_LIBRARIES})
+install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
 
 #####################################
 ############ INDI TOOLS #############

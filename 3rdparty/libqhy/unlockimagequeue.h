@@ -21,6 +21,7 @@
  The full GNU General Public License is included in this distribution in the
  file called LICENSE.
  */
+ #include "config.h"
 #ifndef _UNLOCK_QUEUE_H
 #define _UNLOCK_QUEUE_H
 

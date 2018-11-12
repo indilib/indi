@@ -43,11 +43,9 @@
 #define FOCUS_SETTINGS_TAB "Settings"
 #define FOCUS_STATUS_TAB   "Status"
 #define HUB_SETTINGS_TAB "Device"
-#define FOCUS_SETTINGS_TAB  "Settings"
-#define FOCUS_STATUS_TAB    "Status"
 
 #define VERSION                 1
-#define SUBVERSION              4
+#define SUBVERSION              42
 
 class FocusLynxBase : public INDI::Focuser
 {
@@ -133,7 +131,6 @@ class FocusLynxBase : public INDI::Focuser
   private:  
     uint32_t simPosition;
     uint32_t targetPosition;
-    uint32_t maxControllerTicks;
 
     ISState simStatus[8];
     bool simCompensationOn;
@@ -147,16 +144,19 @@ class FocusLynxBase : public INDI::Focuser
     // Get functions
     bool getFocusConfig();
     bool getFocusStatus();
+    bool getFocusTemp();
 
     // Set functions
 
     // Position
-    bool setFocusPosition(u_int16_t position);
+    bool setMaxTravel(u_int16_t travel);
+    bool setStepSize(u_int16_t stepsize);
 
     // Temperature
     bool setTemperatureCompensation(bool enable);
     bool setTemperatureCompensationMode(char mode);
     bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
+    bool setTemperatureInceptions(char mode, int32_t inter);
     bool setTemperatureCompensationOnStart(bool enable);
 
     // Backlash
@@ -196,13 +196,13 @@ class FocusLynxBase : public INDI::Focuser
     ISwitch TemperatureCompensateOnStartS[2];
     ISwitchVectorProperty TemperatureCompensateOnStartSP;
 
-    // Temperature Coefficient
-    INumber TemperatureCoeffN[5];
-    INumberVectorProperty TemperatureCoeffNP;
-
     // Temperature Coefficient Mode
     ISwitch TemperatureCompensateModeS[5];
     ISwitchVectorProperty TemperatureCompensateModeSP;
+
+    // Temperature coefficient and Intercept for selected mode
+    INumber TemperatureParamN[2];
+    INumberVectorProperty TemperatureParamNP;
 
     // Enable/Disable backlash
     ISwitch BacklashCompensationS[2];
@@ -235,6 +235,10 @@ class FocusLynxBase : public INDI::Focuser
     // Max Travel for relative focusers
     INumber MaxTravelN[1];
     INumberVectorProperty MaxTravelNP;
+
+    // Focuser Step Size
+    INumber StepSizeN[1];
+    INumberVectorProperty StepSizeNP;
 
     // Focus name configure in the HUB
     IText HFocusNameT[1] {};

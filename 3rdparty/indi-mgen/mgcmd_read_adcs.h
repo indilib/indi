@@ -4,9 +4,9 @@
     Tommy (teleskopaustria@gmail.com) and Zoltan (mgen@freemail.hu).
 
     Teleskop & Mikroskop Zentrum (www.teleskop.austria.com)
-    A-1050 WIEN, Schönbrunner Strasse 96
+    A-1050 WIEN, SchÃ¶nbrunner Strasse 96
     +43 699 1197 0808 (Shop in Wien und Rechnungsanschrift)
-    A-4020 LINZ, Gärtnerstrasse 16
+    A-4020 LINZ, GÃ¤rtnerstrasse 16
     +43 699 1901 2165 (Shop in Linz)
 
     Lacerta GmbH
@@ -78,7 +78,7 @@ class MGCMD_READ_ADCS : MGC
     }
 
   public:
-    MGCMD_READ_ADCS() : MGC(IOBuffer{ opCode() }, IOBuffer(1 + 5 * 2)){};
+    MGCMD_READ_ADCS() : MGC(IOBuffer{ opCode() }, IOBuffer(1 + 5 * 2)){}
 };
 
 #endif /* _3RDPARTY_INDI_MGEN_MGCMD_READ_ADCS_H_ */

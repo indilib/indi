@@ -7,8 +7,9 @@
 
 
 #include "qhyccdstruct.h"
-#ifdef __win32__
-#include <stdint.h>
+#include "config.h"
+#ifdef _WIN32
+#include "stdint.h"
 #include "CyAPI.h"
 #include <process.h>
 #else
@@ -16,7 +17,7 @@
 #endif
 
 
-#ifdef __win32__
+#ifdef _WIN32
 void SetTransferSize(qhyccd_handle *h,int length);
 void InitAsyTransfer(CCyUSBDevice *Camera,int framesize);
 void StartSingleExposure(CCyUSBDevice *Camera);

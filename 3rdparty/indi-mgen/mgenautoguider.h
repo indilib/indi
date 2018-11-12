@@ -4,9 +4,9 @@
     Tommy (teleskopaustria@gmail.com) and Zoltan (mgen@freemail.hu).
 
     Teleskop & Mikroskop Zentrum (www.teleskop.austria.com)
-    A-1050 WIEN, Schönbrunner Strasse 96
+    A-1050 WIEN, SchÃ¶nbrunner Strasse 96
     +43 699 1197 0808 (Shop in Wien und Rechnungsanschrift)
-    A-4020 LINZ, Gärtnerstrasse 16
+    A-4020 LINZ, GÃ¤rtnerstrasse 16
     +43 699 1901 2165 (Shop in Linz)
 
     Lacerta GmbH
@@ -185,7 +185,7 @@ class MGenAutoguider : public INDI::CCD
         struct buttons
         {
             ISwitch switches[6];                 /*!< Button switches for ESC, SET, UP, LEFT, RIGHT and DOWN. */
-            ISwitchVectorProperty properties[2]; /*!< Button INDI properties, {ESC,SET} and {UP,LEFT,RIGHT,DOWN}. */
+            ISwitchVectorProperty properties[4]; /*!< Button INDI properties, {ESC,SET}, {UP}, {LEFT,RIGHT} and {DOWN}. */
         } buttons;
         ui(): timer(0), is_enabled(false), timestamp({ .tv_sec = 0, .tv_nsec = 0 }) {}
     } ui;

@@ -1,5 +1,5 @@
 /*
- INDI ToupCam Driver
+ INDI Altair Driver
 
  Copyright (C) 2018 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
@@ -23,8 +23,7 @@
 
 #include <map>
 
-#include "toupcam.h"
-#include "indi_toupcam.h"
+#include <toupcam.h>
 
 #include <indiccd.h>
 
@@ -37,7 +36,6 @@ public:
     virtual const char *getDefaultName() override;
 
     virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
 
     virtual bool Connect() override;
@@ -144,8 +142,8 @@ private:
         EVENT_EXPOSURE             = 0x0001, /* exposure time changed */
         EVENT_TEMPTINT             = 0x0002, /* white balance changed, Temp/Tint mode */
         EVENT_CHROME               = 0x0003, /* reversed, do not use it */
-        EVENT_IMAGE                = 0x0004, /* live image arrived, use Toupcam_PullImage to get this image */
-        EVENT_STILLIMAGE           = 0x0005, /* snap (still) frame arrived, use Toupcam_PullStillImage to get this frame */
+        EVENT_IMAGE                = 0x0004, /* live image arrived, use Altaircam_PullImage to get this image */
+        EVENT_STILLIMAGE           = 0x0005, /* snap (still) frame arrived, use Altaircam_PullStillImage to get this frame */
         EVENT_WBGAIN               = 0x0006, /* white balance changed, RGB Gain mode */
         EVENT_TRIGGERFAIL          = 0x0007, /* trigger failed */
         EVENT_BLACK                = 0x0008, /* black balance changed */
@@ -281,7 +279,7 @@ private:
         uint ioctrol;
         float xpixsz;
         float ypixsz;
-        Resolution res[TOUPCAM_MAX];
+        ToupcamResolution res[TOUPCAM_MAX];
     };
 
     struct InstanceV2
@@ -374,7 +372,7 @@ private:
 
     //#############################################################################
     // Misc.
-    //#############################################################################    
+    //#############################################################################
     // Get the current Bayer string used
     const char *getBayerString();
 
@@ -418,7 +416,7 @@ private:
         TC_COOLER_OFF,
     };
 
-    INumber ControlN[6];
+    INumber ControlN[7];
     INumberVectorProperty ControlNP;
     enum
     {
@@ -428,6 +426,7 @@ private:
         TC_SATURATION,
         TC_BRIGHTNESS,
         TC_GAMMA,
+        TC_SPEED,
     };
 
     ISwitch AutoControlS[4];
@@ -522,12 +521,12 @@ private:
     bool m_SendImage { false };
     bool m_CanSnap { false };
     bool m_RAWFormatSupport { false };
-    bool m_RAWHighDepthSupport { false };    
+    bool m_RAWHighDepthSupport { false };
 
     uint8_t m_BitsPerPixel { 8 };
     uint8_t m_RawBitsPerPixel { 8 };
     uint8_t m_MaxBitDepth { 8 };
-    uint8_t m_Channels { 1 };    
+    uint8_t m_Channels { 1 };
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

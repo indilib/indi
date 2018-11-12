@@ -31,18 +31,17 @@
 #include "qhyccdcamdef.h"
 #include "qhyccderr.h"
 #include "cmosdll.h"
-#include <stdint.h>
+#include "stdint.h"
 #include "debugview.h"
+#include "config.h"
 
-
-#ifdef __linux__
+#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
 #include <pthread.h>
 #include <string.h>
 #endif
 
-#ifdef __win32__
+#ifdef _WIN32
 #include "opencv2/opencv.hpp"
-
 #endif
 
 
@@ -103,7 +102,7 @@ public:
     ccdpixelw = 0;
     ccdpixelh = 0;
 
-    targetTEMP = 0;
+    targetTEMP = 1e6;
     currentTEMP = 0;
     currentPWM = 0;
     nowVoltage = 0;
@@ -1256,7 +1255,7 @@ public:
 
   uint32_t QSleep(uint32_t mstime)
   {
-#ifdef __win32__
+#ifdef _WIN32
     Sleep(mstime);
 #else
 
@@ -1509,7 +1508,7 @@ public:
   bool delRowRoise;
   uint32_t ddrnum;
 
-#ifdef __win32__
+#ifdef _WIN32
 
   HANDLE reseth;
 #else

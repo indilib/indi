@@ -448,6 +448,7 @@ bool LX200Gemini::ReadScopeStatus()
         {
             SetParked(true);
             sleepMount();
+            return true;
         }
     }
 

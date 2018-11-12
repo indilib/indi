@@ -124,6 +124,8 @@ void ISInit()
     strncat(driverSupportPath, "/DriverSupport/qhy", 128);
     IDLog("QHY firmware path: %s\n", driverSupportPath);
 	OSXInitQHYCCDFirmware(driverSupportPath);
+    // Wait a bit before calling GetDeviceIDs on MacOS
+    usleep(2000000);
 #endif
 
     std::vector<std::string> devices = GetDevicesIDs();
@@ -806,7 +808,7 @@ int QHYCCD::SetTemperature(double temperature)
     TemperatureRequest = temperature;
 
     // Enable cooler
-    setCooler(true);
+    //setCooler(true);
 
     ControlQHYCCDTemp(camhandle,TemperatureRequest);
 
@@ -1304,6 +1306,13 @@ void QHYCCD::setCooler(bool enable)
         CoolerS[1].s = ISS_OFF;
         CoolerSP.s   = IPS_OK;
         IDSetSwitch(&CoolerSP, nullptr);
+
+        if (sim == false)
+        {
+            //SetQHYCCDParam(camhandle, CONTROL_MANULPWM, 255);
+            // Decrease temperature to "turn on" cooler
+            SetQHYCCDParam(camhandle, CONTROL_COOLER, TemperatureN[0].value-0.1);
+        }
 
         CoolerNP.s = IPS_BUSY;
         IDSetNumber(&CoolerNP, nullptr);

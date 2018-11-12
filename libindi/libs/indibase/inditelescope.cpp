@@ -545,7 +545,7 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
                         IsLocked = false;
                 }
                 if (prevState != IsLocked && (DomeClosedLockT[1].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON))
-                    DEBUGF(Logger::DBG_SESSION, "Dome status changed. Lock is set to: %s",
+                    LOGF_INFO("Dome status changed. Lock is set to: %s",
                            IsLocked ? "locked" : "unlock");
             }
             return true;
@@ -557,7 +557,7 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
 
 void Telescope::triggerSnoop(const char *driverName, const char *snoopedProp)
 {
-    DEBUGF(Logger::DBG_DEBUG, "Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
+    LOGF_DEBUG("Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
     IDSnoopDevice(driverName, snoopedProp);
 }
 
@@ -1799,14 +1799,14 @@ bool Telescope::InitPark()
     loadres = LoadParkData();
     if (loadres)
     {
-        DEBUGF(Logger::DBG_SESSION, "InitPark: No Park data in file %s: %s", ParkDataFileName.c_str(), loadres);
+        LOGF_INFO("InitPark: No Park data in file %s: %s", ParkDataFileName.c_str(), loadres);
         SetParked(false);
         return false;
     }
 
     SetParked(isParked());
 
-    DEBUGF(Logger::DBG_DEBUG, "InitPark Axis1 %g Axis2 %g", Axis1ParkPosition, Axis2ParkPosition);
+    LOGF_DEBUG("InitPark Axis1 %.2f Axis2 %.2f", Axis1ParkPosition, Axis2ParkPosition);
     ParkPositionN[AXIS_RA].value = Axis1ParkPosition;
     ParkPositionN[AXIS_DE].value = Axis2ParkPosition;
     IDSetNumber(&ParkPositionNP, nullptr);
@@ -1930,7 +1930,7 @@ bool Telescope::WriteParkData()
     if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
         wordfree(&wexp);
-        DEBUGF(Logger::DBG_SESSION, "WriteParkData: can not write file %s: Badly formed filename.",
+        LOGF_INFO("WriteParkData: can not write file %s: Badly formed filename.",
                ParkDataFileName.c_str());
         return false;
     }
@@ -1938,7 +1938,7 @@ bool Telescope::WriteParkData()
     if (!(fp = fopen(wexp.we_wordv[0], "w")))
     {
         wordfree(&wexp);
-        DEBUGF(Logger::DBG_SESSION, "WriteParkData: can not write file %s: %s", ParkDataFileName.c_str(),
+        LOGF_INFO("WriteParkData: can not write file %s: %s", ParkDataFileName.c_str(),
                strerror(errno));
         return false;
     }
@@ -1994,6 +1994,7 @@ double Telescope::GetAxis2ParkDefault() const
 
 void Telescope::SetAxis1Park(double value)
 {
+    LOGF_DEBUG("Setting Park Axis1 to %.2f", value);
     Axis1ParkPosition            = value;
     ParkPositionN[AXIS_RA].value = value;
     IDSetNumber(&ParkPositionNP, nullptr);
@@ -2001,11 +2002,13 @@ void Telescope::SetAxis1Park(double value)
 
 void Telescope::SetAxis1ParkDefault(double value)
 {
+    LOGF_DEBUG("Setting Default Park Axis1 to %.2f", value);
     Axis1DefaultParkPosition = value;
 }
 
 void Telescope::SetAxis2Park(double value)
 {
+    LOGF_DEBUG("Setting Park Axis2 to %.2f", value);
     Axis2ParkPosition            = value;
     ParkPositionN[AXIS_DE].value = value;
     IDSetNumber(&ParkPositionNP, nullptr);
@@ -2013,6 +2016,7 @@ void Telescope::SetAxis2Park(double value)
 
 void Telescope::SetAxis2ParkDefault(double value)
 {
+    LOGF_DEBUG("Setting Default Park Axis2 to %.2f", value);
     Axis2DefaultParkPosition = value;
 }
 
@@ -2279,7 +2283,7 @@ bool Telescope::LoadScopeConfig()
 {
     if (!CheckFile(ScopeConfigFileName, false))
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't open XML file (%s) for read", ScopeConfigFileName.c_str());
+        LOGF_INFO("Can't open XML file (%s) for read", ScopeConfigFileName.c_str());
         return false;
     }
     LilXML *XmlHandle      = newLilXML();
@@ -2295,12 +2299,12 @@ bool Telescope::LoadScopeConfig()
     XmlHandle = nullptr;
     if (!RootXmlNode)
     {
-        DEBUGF(Logger::DBG_SESSION, "Failed to parse XML file (%s): %s", ScopeConfigFileName.c_str(), ErrMsg);
+        LOGF_INFO("Failed to parse XML file (%s): %s", ScopeConfigFileName.c_str(), ErrMsg);
         return false;
     }
     if (std::string(tagXMLEle(RootXmlNode)) != ScopeConfigRootXmlNode)
     {
-        DEBUGF(Logger::DBG_SESSION, "Not a scope config XML file (%s)", ScopeConfigFileName.c_str());
+        LOGF_INFO("Not a scope config XML file (%s)", ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
     }
@@ -2323,7 +2327,7 @@ bool Telescope::LoadScopeConfig()
     }
     if (!DeviceFound)
     {
-        DEBUGF(Logger::DBG_SESSION, "No a scope config found for %s in the XML file (%s)", getDeviceName(),
+        LOGF_INFO("No a scope config found for %s in the XML file (%s)", getDeviceName(),
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2348,7 +2352,7 @@ bool Telescope::LoadScopeConfig()
     XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigScopeFocXmlNode.c_str());
     if (!XmlNode || sscanf(pcdataXMLEle(XmlNode), "%lf", &ScopeFoc) != 1)
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't read the telescope focal length from the XML file (%s)",
+        LOGF_INFO("Can't read the telescope focal length from the XML file (%s)",
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2356,7 +2360,7 @@ bool Telescope::LoadScopeConfig()
     XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigScopeApXmlNode.c_str());
     if (!XmlNode || sscanf(pcdataXMLEle(XmlNode), "%lf", &ScopeAp) != 1)
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't read the telescope aperture from the XML file (%s)",
+        LOGF_INFO("Can't read the telescope aperture from the XML file (%s)",
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2364,7 +2368,7 @@ bool Telescope::LoadScopeConfig()
     XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigGScopeFocXmlNode.c_str());
     if (!XmlNode || sscanf(pcdataXMLEle(XmlNode), "%lf", &GScopeFoc) != 1)
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't read the guide scope focal length from the XML file (%s)",
+        LOGF_INFO("Can't read the guide scope focal length from the XML file (%s)",
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2372,7 +2376,7 @@ bool Telescope::LoadScopeConfig()
     XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigGScopeApXmlNode.c_str());
     if (!XmlNode || sscanf(pcdataXMLEle(XmlNode), "%lf", &GScopeAp) != 1)
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't read the guide scope aperture from the XML file (%s)",
+        LOGF_INFO("Can't read the guide scope aperture from the XML file (%s)",
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2380,7 +2384,7 @@ bool Telescope::LoadScopeConfig()
     XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigLabelApXmlNode.c_str());
     if (!XmlNode)
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't read the telescope config name from the XML file (%s)",
+        LOGF_INFO("Can't read the telescope config name from the XML file (%s)",
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2505,7 +2509,7 @@ bool Telescope::UpdateScopeConfig()
     // Save the values to the actual XML file
     if (!CheckFile(ScopeConfigFileName, true))
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't open XML file (%s) for write", ScopeConfigFileName.c_str());
+        LOGF_INFO("Can't open XML file (%s) for write", ScopeConfigFileName.c_str());
         return false;
     }
     // Open the existing XML file for write
