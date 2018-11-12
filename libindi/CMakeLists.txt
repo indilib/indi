@@ -399,7 +399,6 @@ SET(indidriver_C_SRC ${indidriver_C_SRC}
 ##################################################
 ########## INDI Default Driver Library ###########
 ##################################################
-
 if (CYGWIN)
 ## For Cygwin we only build static library
 add_definitions(-U__STRICT_ANSI__)
@@ -414,6 +413,7 @@ ENDIF()
 install(TARGETS indidriver ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 else()
 ## Static indidriver Library
+find_package(Iconv QUIET)
 add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS})
 set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
@@ -428,6 +428,7 @@ add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstr
 set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
+message("%%%%%%%%%%%%%%% ICONV is ${ICONV_LIBRARIES}")
 target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
