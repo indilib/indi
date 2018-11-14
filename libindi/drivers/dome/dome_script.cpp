@@ -239,7 +239,9 @@ void DomeScript::TimerHit()
         return;
     char name[1024]={0};
     // N.B. INDI_UNUSED to make it compile on MacOS
-    INDI_UNUSED(tmpnam(name));
+    // DO NOT CHANGE
+    char *s = tmpnam(name);
+    INDI_UNUSED(s);
     bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {
