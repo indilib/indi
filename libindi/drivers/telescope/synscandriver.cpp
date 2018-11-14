@@ -23,6 +23,7 @@
 #include "indicom.h"
 
 #include <libnova/transform.h>
+#include <libnova/precession.h>
 // libnova specifies round() on old systems and it collides with the new gcc 5.x/6.x headers
 #define HAVE_ROUND
 #include <libnova/utility.h>
@@ -576,14 +577,22 @@ bool SynscanDriver::ReadScopeStatus()
         return false;
     }
 
-    sscanf(res, "%lx,%lx#", &n1, &n2);
-    ra  = (double)n1 / 0x100000000 * 24.0;
-    dec = (double)n2 / 0x100000000 * 360.0;
-    CurrentRA  = ra;
-    CurrentDEC = dec;
+    sscanf(res, "%lx,%lx#", &n1, &n2);       
+    ra  = static_cast<double>(n1) / 0x100000000 * 24.0;
+    dec = static_cast<double>(n2) / 0x100000000 * 360.0;
+
+    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+    J2000Pos.ra  = ra * 15.0;
+    J2000Pos.dec = dec;
+
+    // Synscan reports J2000 coordinates so we need to convert from J2000 to JNow
+    ln_get_equ_prec2(&epochPos, JD2000, ln_get_julian_from_sys(), &epochPos);
+
+    CurrentRA  = epochPos.ra/15.0;
+    CurrentDEC = epochPos.dec;
 
     //  Now feed the rest of the system with corrected data
-    NewRaDec(ra, dec);
+    NewRaDec(CurrentRA, CurrentDEC);
 
     if (TrackState == SCOPE_SLEWING && MountCode >= 128 && (SlewTargetAz != -1 || SlewTargetAlt != -1))
     {
@@ -701,7 +710,7 @@ bool SynscanDriver::StartTrackMode()
     int numread, bytesWritten, bytesRead;
 
     TrackState = SCOPE_TRACKING;
-    LOG_INFO("Tracking started");
+    LOG_INFO("Tracking started.");
 
     if (isSimulation())
         return true;
@@ -752,17 +761,28 @@ bool SynscanDriver::Goto(double ra, double dec)
     // EQ mount has a different Goto mode
     if (MountCode < 128 && isSimulation() == false)
     {
-        int n1 = ra * 0x1000000 / 24;
-        int n2 = dec * 0x1000000 / 360;
+        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+
+        epochPos.ra  = ra * 15.0;
+        epochPos.dec = dec;
+
+        // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
+        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+
+        // Mount deals in J2000 coords.
+        int n1 = J2000Pos.ra/15.0 * 0x1000000 / 24;
+        int n2 = J2000Pos.dec * 0x1000000 / 360;
         int numread;
+
+        LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra/15.0, J2000Pos.dec);
 
         n1 = n1 << 8;
         n2 = n2 << 8;
-        sprintf((char*)res, "r%08X,%08X", n1, n2);
-
+        LOGF_DEBUG("CMD <%s>", res);
+        snprintf(res, MAX_SYN_BUF, "r%08X,%08X", n1, n2);
         tty_write(PortFD, res, 18, &bytesWritten);
         memset(&res[18], 0, 1);
-        LOGF_DEBUG("Goto - ra: %g de: %g", ra, dec);
+
         numread = tty_read(PortFD, res, 1, 60, &bytesRead);
         if (bytesRead != 1 || res[0] != '#')
         {
@@ -774,7 +794,7 @@ bool SynscanDriver::Goto(double ra, double dec)
     }
 
     TargetAltAz = GetAltAzPosition(ra, dec);
-    LOGF_DEBUG("Goto - ra: %g de: %g (az: %g alt: %g)", ra, dec, TargetAltAz.az, TargetAltAz.alt);
+    LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g (az: %g alt: %g)", ra, dec, TargetAltAz.az, TargetAltAz.alt);
     char RAStr[MAX_SYN_BUF]={0}, DEStr[MAX_SYN_BUF]={0}, AZStr[MAX_SYN_BUF]={0}, ATStr[MAX_SYN_BUF]={0};
     fs_sexa(RAStr, ra, 2, 3600);
     fs_sexa(DEStr, dec, 2, 3600);
@@ -1353,7 +1373,7 @@ bool SynscanDriver::Sync(double ra, double dec)
     // Abort any motion before syncing
     Abort();
 
-    LOGF_INFO("Sync %g %g -> %g %g", CurrentRA, CurrentDEC, ra, dec);
+    LOGF_INFO("Sync JNow %g %g -> %g %g", CurrentRA, CurrentDEC, ra, dec);
     char res[MAX_SYN_BUF]={0};
     int numread, bytesWritten, bytesRead;
 
@@ -1406,13 +1426,21 @@ bool SynscanDriver::Sync(double ra, double dec)
         LOGF_DEBUG("CMD <%c>", res[0]);
     }
 
+    ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+
+    epochPos.ra  = ra * 15.0;
+    epochPos.dec = dec;
+
+    // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
+    ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+
     // Pass the sync command to the handset
-    int n1 = ra * 0x1000000 / 24;
-    int n2 = dec * 0x1000000 / 360;
+    int n1 = J2000Pos.ra/15.0 * 0x1000000 / 24;
+    int n2 = J2000Pos.dec * 0x1000000 / 360;
 
     n1 = n1 << 8;
     n2 = n2 << 8;
-    sprintf((char*)res, "s%08X,%08X", n1, n2);
+    snprintf(res, MAX_SYN_BUF, "s%08X,%08X", n1, n2);
     memset(&res[18], 0, 1);
 
     LOGF_DEBUG("CMD <%s>", res);

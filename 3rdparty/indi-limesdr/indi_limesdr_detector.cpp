@@ -34,7 +34,7 @@
 #define SUBFRAME_SIZE (16384)
 #define MIN_FRAME_SIZE (512)
 #define MAX_FRAME_SIZE (SUBFRAME_SIZE * 16)
-#define SPECTRUM_SIZE (1 << PrimaryDetector.getBPS())
+#define SPECTRUM_SIZE (256)
 
 static int iNumofConnectedDetectors;
 static LIMESDR *receivers[MAX_DEVICES];
@@ -432,15 +432,16 @@ void LIMESDR::grabData(int n_read)
 
         //Create the dspau stream
         dspau_stream_p stream = dspau_stream_new();
-        dspau_stream_add_dim(stream, n_read);
-        dspau_convert_from(continuum, stream->in, float, n_read);
-
+        dspau_stream_add_dim(stream, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
         //Create the spectrum
-        stream->out = dspau_fft_spectrum(stream, magnitude_dbv, SPECTRUM_SIZE);
-        dspau_convert_to(stream->out, spectrum, float, SPECTRUM_SIZE);
-
+        dspau_convert_from(continuum, stream->in, unsigned short, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
+        stream->in = dspau_buffer_div1(stream->in, stream->len, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
+        dspau_t *out = dspau_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
+        out = dspau_buffer_mul1(out, SPECTRUM_SIZE, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
+        dspau_convert_to(out, spectrum, unsigned short, SPECTRUM_SIZE);
         //Destroy the dspau stream
         dspau_stream_free(stream);
+        free(out);
 
         LOG_INFO("Download complete.");
         CaptureComplete(&PrimaryDetector);

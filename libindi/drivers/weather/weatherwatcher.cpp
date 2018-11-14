@@ -276,7 +276,7 @@ bool WeatherWatcher::readWatchFile()
         if (res == CURLE_OK)
         {
             weatherMap = createMap(readBuffer);
-            return true;
+            rc = true;
         }
         curl_easy_cleanup(curl);
     }

@@ -26,25 +26,19 @@
  * @file qhyccdstruct.h
  * @brief QHYCCD SDK struct define
  */
-
-#ifdef __linux__
-#define  LINUX
-#endif
+ #include "config.h"
 
 
-#ifdef WIN32
-#define QHYCCD_OPENCV_SUPPORT
-#endif
 
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #endif
 
 #ifndef __QHYCCDSTRUCTDEF_H__
 #define __QHYCCDSTRUCTDEF_H__
 
-#ifdef WIN32
+#ifdef _WIN32
 #ifndef EXPORTFUNC
 #define EXPORTFUNC extern "C" __declspec(dllexport)
 #endif
@@ -128,6 +122,40 @@ struct BIOREG
   uint8_t  BIOCCD_Video;
   uint8_t  SDRAM_Bypass;
 };
+
+
+
+
+#if 0
+//lowlevelstatus is used for QHYCCD LowLevelProtocol to readout the camera status from 0XD2 command.
+//see QHYCCD Low Level Protocol White Paper.
+typedef struct lowlevelstatus
+{
+  uint8_t speed;               //!< ccd gain
+  uint32_t restExpTime;              //!< ccd offset
+  uint32_t ExpTime;             //!< expose time
+  uint8_t FwVersionYear;                //!< width bin
+  uint8_t FwVersionMonth;                //!< height bin
+  uint8_t FwVersionDay;           //!< almost match image width
+  uint8_t TempType;       //!< almost match image height
+  uint16_t CurrentTempADU;           //!< Reserved
+  uint16_t TargetTempADU;        //!< Reserved
+  uint8_t CurrentPWM;//!< Reserved
+  uint8_t TempControlMode;      //!< Reserved
+  uint32_t DataInDDR;       //!< Reserved
+  double CurrentTempC;          //!< Reserved
+  double TargetTempC;       //!< transfer speed
+  uint16_t ImageX;           //!< Reserved
+  uint16_t ImageY;       //!< Reserved
+  uint8_t ImageBitDepth;                //!< Reserved
+  uint8_t USBSpeed;               //!< Reserved
+  uint8_t cfwbuffer[8];         //!< Reserved
+  uint8_t cameraSubModel;         //!< Reserved
+  uint8_t cameraColorType;         //!< Reserved
+  uint8_t cameraSeriesNumber[16];//!< Reserved
+}
+LowLevelStatus;
+#endif
 
 /**
  * @brief CONTROL_ID enum define

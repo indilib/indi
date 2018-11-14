@@ -1,6 +1,6 @@
 #ifndef __CYUSB_H
 #define __CYUSB_H
-
+#include "config.h"
 /*********************************************************************************\
  * This is the main header file for the cyusb suite for Linux/Mac, called cyusb.h *
  *                                                                                *
@@ -16,13 +16,13 @@
  \********************************************************************************/
 
 
-#ifdef WIN32
+#ifdef _WIN32
 #include "Context.h"
 #include "QUsb.h"
 #endif
 
 
-#ifdef LINUX
+#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
 #include <libusb-1.0/libusb.h>
 #include "qhyccd.h"
 #endif
@@ -39,7 +39,7 @@
 /*
  This is the maximum number of qhyccd cams.
  */
-#define MAXDEVICES (10)
+#define MAXDEVICES (18)
 
 #define MAX_DEVICES_ID (100)
 
@@ -50,7 +50,7 @@
 #define ID_STR_LEN (0x20)
 
 
-#ifdef LINUX
+#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
 #define OVERLAPS   32
 #define TRANSSIZE  (76800)
 #else
@@ -81,7 +81,7 @@ struct COUNTEXPTIME
 struct cydev
 {
   qhyccd_device *dev; //!< Camera deivce
-#ifdef WIN32
+#ifdef _WIN32
 
   void *handle; //!< Camera control handle
 #else
@@ -94,7 +94,7 @@ struct cydev
   uint8_t is_open; //!< When device is opened, val = 1
   char id[64]; //!< The camera's id
   QHYBASE *qcam; //!< Camera class pointer
-#ifdef WIN32
+#ifdef _WIN32
   /* mark VirutalCam status */
   bool is_virtualwdm_working;
   CRITICAL_SECTION cs;
@@ -115,8 +115,8 @@ struct cydev
   uint32_t CurrentFrameSize;
   uint32_t CurrentFrame ;
 
-  uint8_t Buffer[N_USB_PACKET_SIZE * Overlaps];
-  uint8_t Imgbuffer[BufferEntries * BufferSize * 2];
+  uint8_t *Buffer;
+  uint8_t *Imgbuffer;
   uint32_t CAMBYTE;
   uint32_t CAMWIDTH;
   uint32_t FrameSize;
@@ -142,7 +142,7 @@ struct cydev
   IVCamSDK* m_pVCam;
 #endif
 
-#ifdef LINUX
+#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
 
   uint32_t CAMExposing;
   int32_t GoodFrames ;
@@ -169,7 +169,7 @@ struct cydev
   int32_t rawFrameWidth;
   int32_t rawFrameHeight;
   int32_t rawFrameBpp;
-  uint8_t rawDataCache[7400 * 5000 * 4];
+  uint8_t *rawDataCache;
 #endif
 
   uint32_t imagequeuelength;
@@ -197,7 +197,7 @@ static uint16_t camvid[MAX_DEVICES_ID] =
     0x1618, 0x1618, 0x04b4, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618,
     0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x04b4, 0x1618,
     0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618,
-    0x1618
+    0x1618, 0x1618
   };
 
 /* Global struct for camera'io product id */
@@ -210,7 +210,7 @@ static uint16_t campid[MAX_DEVICES_ID] =
     0x0186, 0x6953, 0x8614, 0x1601, 0x1633, 0x4201, 0x0225, 0xC175, 0x0291,
     0xC179, 0xC225, 0xC291, 0xC164, 0xC166, 0xC368, 0xC184, 0x8614, 0xF368,
     0xA815, 0x5301, 0x1633, 0xC248, 0xC168, 0xC129, 0x9001 ,0x4041, 0xC295,
-    0x2021
+    0x2021, 0xC551
   };
 
 /* Global struct for camera'firmware product id */
@@ -223,9 +223,8 @@ static uint16_t fpid[MAX_DEVICES_ID] =
     0x0185, 0x6952, 0x8613, 0x1600, 0x1632, 0xC400, 0x0224, 0xC174, 0x0290,
     0xC178, 0xC224, 0xC290, 0xC163, 0xC165, 0xC367, 0xC183, 0x8613, 0xF367,
     0xA814, 0x5300, 0x1632, 0xC247, 0xC167, 0xC128, 0x9000, 0x4040, 0xC294,
-    0x2020
+    0x2020, 0xC551
   };
-
 
 /****************************************************************************************
   Prototype    : void cyusb_download_fx2(cyusb_handle *h, char *filename,

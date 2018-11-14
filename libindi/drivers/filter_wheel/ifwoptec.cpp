@@ -378,7 +378,7 @@ bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char
                 FilterNameTP->s = IPS_ALERT;
                 IDSetText(FilterNameTP, nullptr);
                 LOG_INFO("WARNING *****************************************************");
-                DEBUG(INDI::Logger::DBG_SESSION,
+                LOG_INFO(
                       "One of the filter name is not valid. It should not have more than 8 chars");
                 LOG_INFO("Valid chars are A to Z, 0 to 9 = . # / - percent or space");
                 LOG_INFO("WARNING *****************************************************");

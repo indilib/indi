@@ -12,6 +12,11 @@
     4. Side of pier
     5. Variable GOTO/SLEW/MOVE speeds.
 
+    v1.4:
+
+    + Added MOUNT_STATE_UPDATE_FREQ to reduce number of calls to updateMountState to reduce traffic
+    + All TCIFLUSH --> TCIOFLUSH to make sure both pipes are flushed since we received logs with mismatched traffic.
+
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
     License as published by the Free Software Foundation; either
@@ -45,7 +50,7 @@
 
 LX200Gemini::LX200Gemini()
 {
-    setVersion(1, 3);
+    setVersion(1, 4);
 
     setLX200Capability(LX200_HAS_SITES | LX200_HAS_FOCUS | LX200_HAS_PULSE_GUIDING);
 
@@ -384,7 +389,7 @@ bool LX200Gemini::checkConnection()
     }
     else if (response[0] == 'G')
     {
-        updateMovementState();
+        updateMountState();
         LOG_DEBUG("Startup complete with equatorial mount selected.");
     }
     else if (response[0] == 'A')
@@ -413,7 +418,15 @@ bool LX200Gemini::ReadScopeStatus()
     if (isSimulation())
         return LX200Generic::ReadScopeStatus();
 
-    updateMovementState();
+    if (m_isSleeping)
+        return true;
+
+    // JM 2018-10-23: After after MOUNT_STATE_UPDATE_FREQ to reduce unnecessary traffic
+    if (mountStateCounter++ == MOUNT_STATE_UPDATE_FREQ)
+    {
+        updateMountState();
+        mountStateCounter=0;
+    }
 
     if (TrackState == SCOPE_SLEWING)
     {
@@ -435,13 +448,13 @@ bool LX200Gemini::ReadScopeStatus()
         {
             SetParked(true);
             sleepMount();
+            return true;
         }
     }
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        LOG_ERROR("Error reading RA/DEC.");
         return false;
     }
 
@@ -462,7 +475,7 @@ void LX200Gemini::syncSideOfPier()
 
     LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -482,7 +495,7 @@ void LX200Gemini::syncSideOfPier()
 
     response[nbytes_read - 1] = '\0';
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     LOGF_DEBUG("RES: <%s>", response);
 
@@ -505,7 +518,7 @@ bool LX200Gemini::Park()
 
     LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -515,7 +528,7 @@ bool LX200Gemini::Park()
         return false;
     }
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     ParkSP.s   = IPS_BUSY;
     TrackState = SCOPE_PARKING;
@@ -540,7 +553,7 @@ bool LX200Gemini::sleepMount()
 
     LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -550,8 +563,9 @@ bool LX200Gemini::sleepMount()
         return false;
     }
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
+    m_isSleeping = true;
     LOG_INFO("Mount is sleeping...");
     return true;
 }
@@ -565,7 +579,7 @@ bool LX200Gemini::wakeupMount()
 
     LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -575,8 +589,9 @@ bool LX200Gemini::wakeupMount()
         return false;
     }
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
+    m_isSleeping = false;
     LOG_INFO("Mount is awake...");
     return true;
 }
@@ -587,25 +602,20 @@ void LX200Gemini::setTrackState(INDI::Telescope::TelescopeStatus state)
         TrackState = state;
 }
 
+void LX200Gemini::updateMountState()
+{
+    updateParkingState();
+    updateMovementState();
+}
+
 void LX200Gemini::updateMovementState()
 {
-    LX200Gemini::ParkingState parkingState = getParkingState();
-
-    if (parkingState != priorParkingState)
-    {
-        if (parkingState == PARKED)
-            SetParked(true);
-        else if (parkingState == NOT_PARKED)
-            SetParked(false);
-    }
-    priorParkingState = parkingState;
-
     LX200Gemini::MovementState movementState = getMovementState();
 
     switch (movementState)
     {
         case NO_MOVEMENT:
-            if (parkingState == PARKED)
+            if (priorParkingState == PARKED)
                 setTrackState(SCOPE_PARKED);
             else
                 setTrackState(SCOPE_IDLE);
@@ -627,6 +637,20 @@ void LX200Gemini::updateMovementState()
     }
 }
 
+void LX200Gemini::updateParkingState()
+{
+    LX200Gemini::ParkingState parkingState = getParkingState();
+
+    if (parkingState != priorParkingState)
+    {
+        if (parkingState == PARKED)
+            SetParked(true);
+        else if (parkingState == NOT_PARKED)
+            SetParked(false);
+    }
+    priorParkingState = parkingState;
+}
+
 LX200Gemini::MovementState LX200Gemini::getMovementState()
 {
     const char *cmd = ":Gv#";
@@ -635,7 +659,7 @@ LX200Gemini::MovementState LX200Gemini::getMovementState()
 
     LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -655,7 +679,7 @@ LX200Gemini::MovementState LX200Gemini::getMovementState()
 
     response[1] = '\0';
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     LOGF_DEBUG("RES: <%s>", response);
 
@@ -692,7 +716,7 @@ LX200Gemini::ParkingState LX200Gemini::getParkingState()
 
     LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
@@ -712,7 +736,7 @@ LX200Gemini::ParkingState LX200Gemini::getParkingState()
 
     response[1] = '\0';
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     LOGF_DEBUG("RES: <%s>", response);
 

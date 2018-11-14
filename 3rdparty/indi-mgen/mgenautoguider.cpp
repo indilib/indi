@@ -134,6 +134,35 @@ bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *sta
                 else ui.buttons.properties[1].s = IPS_ALERT;
                 IDSetSwitch(&ui.buttons.properties[1], NULL);
             }
+            if (!strcmp(name, "MGEN_UI_BUTTONS3"))
+            {
+                IUUpdateSwitch(&ui.buttons.properties[2], states, names, n);
+                ISwitch *const key_switch = IUFindOnSwitch(&ui.buttons.properties[2]);
+                if (key_switch)
+                {
+                    MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
+                    MGIO_INSERT_BUTTON(button).ask(*device);
+                    key_switch->s              = ISS_OFF;
+                    ui.buttons.properties[2].s = IPS_OK;
+                }
+                else ui.buttons.properties[2].s = IPS_ALERT;
+                IDSetSwitch(&ui.buttons.properties[2], NULL);
+            }
+            if (!strcmp(name, "MGEN_UI_BUTTONS4"))
+            {
+                IUUpdateSwitch(&ui.buttons.properties[3], states, names, n);
+                ISwitch *const key_switch = IUFindOnSwitch(&ui.buttons.properties[3]);
+                if (key_switch)
+                {
+                    MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
+                    MGIO_INSERT_BUTTON(button).ask(*device);
+                    key_switch->s              = ISS_OFF;
+                    ui.buttons.properties[3].s = IPS_OK;
+                }
+                else ui.buttons.properties[3].s = IPS_ALERT;
+                IDSetSwitch(&ui.buttons.properties[3], NULL);
+            }
+
         }
     }
 
@@ -263,11 +292,17 @@ bool MGenAutoguider::initProperties()
         IUFillSwitch(&ui.buttons.switches[5], "MGEN_UI_BUTTON_DOWN", "DOWN", ISS_OFF);
         ui.buttons.switches[5].aux = (void *)&MGIO_Buttons[5];
         /* ESC SET
-         * UP LEFT RIGHT DOWN
+         * UP
+         * LEFT RIGHT
+         * DOWN
          */
         IUFillSwitchVector(&ui.buttons.properties[0], &ui.buttons.switches[0], 2, getDeviceName(), "MGEN_UI_BUTTONS1",
                            "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-        IUFillSwitchVector(&ui.buttons.properties[1], &ui.buttons.switches[2], 4, getDeviceName(), "MGEN_UI_BUTTONS2",
+        IUFillSwitchVector(&ui.buttons.properties[1], &ui.buttons.switches[2], 1, getDeviceName(), "MGEN_UI_BUTTONS2",
+                           "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+        IUFillSwitchVector(&ui.buttons.properties[2], &ui.buttons.switches[3], 2, getDeviceName(), "MGEN_UI_BUTTONS3",
+                           "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+        IUFillSwitchVector(&ui.buttons.properties[3], &ui.buttons.switches[5], 1, getDeviceName(), "MGEN_UI_BUTTONS4",
                            "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     }
 
@@ -287,6 +322,8 @@ bool MGenAutoguider::updateProperties()
         defineNumber(&ui.framerate.property);
         defineSwitch(&ui.buttons.properties[0]);
         defineSwitch(&ui.buttons.properties[1]);
+        defineSwitch(&ui.buttons.properties[2]);
+        defineSwitch(&ui.buttons.properties[3]);
     }
     else
     {
@@ -297,6 +334,8 @@ bool MGenAutoguider::updateProperties()
         deleteProperty(ui.framerate.property.name);
         deleteProperty(ui.buttons.properties[0].name);
         deleteProperty(ui.buttons.properties[1].name);
+        deleteProperty(ui.buttons.properties[2].name);
+        deleteProperty(ui.buttons.properties[3].name);
     }
 
     return true;
