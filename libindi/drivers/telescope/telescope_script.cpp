@@ -43,7 +43,7 @@ typedef enum
     SCRIPT_COUNT
 } scripts;
 
-std::unique_ptr<ScopeScript> scope_script(new ScopeScript());
+static std::unique_ptr<ScopeScript> scope_script(new ScopeScript());
 
 void ISGetProperties(const char *dev)
 {
