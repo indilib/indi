@@ -586,7 +586,7 @@ bool SynscanDriver::ReadScopeStatus()
     J2000Pos.dec = dec;
 
     // Synscan reports J2000 coordinates so we need to convert from J2000 to JNow
-    ln_get_equ_prec2(&epochPos, JD2000, ln_get_julian_from_sys(), &epochPos);
+    ln_get_equ_prec2(&J2000Pos, JD2000, ln_get_julian_from_sys(), &epochPos);
 
     CurrentRA  = epochPos.ra/15.0;
     CurrentDEC = epochPos.dec;
