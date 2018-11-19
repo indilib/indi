@@ -591,6 +591,9 @@ bool SynscanDriver::ReadScopeStatus()
     CurrentRA  = epochPos.ra/15.0;
     CurrentDEC = epochPos.dec;
 
+    CurrentRA = range24(CurrentRA);
+    CurrentDEC = rangeDec(CurrentDEC);
+
     //  Now feed the rest of the system with corrected data
     NewRaDec(CurrentRA, CurrentDEC);
 
