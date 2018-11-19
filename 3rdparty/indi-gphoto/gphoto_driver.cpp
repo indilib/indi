@@ -710,8 +710,12 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t
         if (exact)
         {
              // Close "enough" to be exact
-             if (std::abs(delta) < 0.001)
-                return i;
+             if (std::fabs(delta) < 0.001)
+             {
+                 best_match = delta;
+                 best_idx   = i;
+                 break;
+             }
         }
         else
         {
@@ -727,7 +731,7 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t
     }
 
     if (best_idx >= 0)
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Best match: %g seconds Index: %d", gphoto->exposureList[best_idx], best_idx);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Closest match: %g seconds Index: %d", gphoto->exposureList[best_idx], best_idx);
     else
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "No optimal predefined exposure found.");
 
