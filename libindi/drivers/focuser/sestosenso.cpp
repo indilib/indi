@@ -1,6 +1,6 @@
 /*
     SestoSenso Focuser
-    Copyright (C) 2013 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2018 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,7 @@
 
 #define SESTOSENSO_TIMEOUT 3
 
-std::unique_ptr<SestoSenso> sesto(new SestoSenso());
+static std::unique_ptr<SestoSenso> sesto(new SestoSenso());
 
 void ISGetProperties(const char *dev)
 {
@@ -93,6 +93,11 @@ bool SestoSenso::initProperties()
     IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 60000., 0., 0.);
     IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
+    // Limits
+    IUFillNumber(&LimitsN[SS_MIN_LIMIT], "FOCUS_MIN_STEP", "Min", "%.f", 0, 10000., 0., 0.);
+    IUFillNumber(&LimitsN[SS_MAX_LIMIT], "FOCUS_MAX_STEP", "Max", "%.f", 10000,  2097152., 0., 200000.);
+    IUFillNumberVector(&LimitsNP, LimitsN, 2, getDeviceName(), "FOCUS_LIMITS", "Limits", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
     FocusRelPosN[0].max   = 50000.;
@@ -109,6 +114,14 @@ bool SestoSenso::initProperties()
     setDefaultPollingPeriod(500);
 
     return true;
+}
+
+void SestoSenso::ISGetProperties(const char *dev)
+{
+    INDI::Focuser::ISGetProperties(dev);
+
+    defineNumber(&LimitsNP);
+    loadConfig(true, LimitsNP.name);
 }
 
 bool SestoSenso::updateProperties()
@@ -146,6 +159,18 @@ bool SestoSenso::Handshake()
     LOG_INFO(
           "Error retreiving data from SestoSenso, please ensure SestoSenso controller is powered and the port is correct.");
     return false;
+}
+
+bool SestoSenso::Disconnect()
+{
+    // Save current position to memory.
+    if (isSimulation() == false)
+    {
+        int nbytes_written=0;
+        tty_write(PortFD, "#PC!", 4, &nbytes_written);
+    }
+
+    return INDI::Focuser::Disconnect();
 }
 
 const char *SestoSenso::getDefaultName()
@@ -368,11 +393,114 @@ bool SestoSenso::sync(uint32_t newPosition)
     return isCommandOK("SP");
 }
 
+bool SestoSenso::setMaxLimit(uint32_t limit)
+{
+    int nbytes_written = 0, rc = -1;
+    char errstr[MAXRBUF];
+    char cmd[16]={0};
+
+    snprintf(cmd, 16, "#SM;%07d!", limit);
+
+    LOGF_DEBUG("CMD <%s>", cmd);
+
+    if (isSimulation())
+    {
+        FocusAbsPosN[0].max = limit;
+    }
+    else
+    {
+        tcflush(PortFD, TCIOFLUSH);
+
+        // Sync
+        if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
+            return false;
+        }
+    }
+
+    return isCommandOK("SM");
+}
+
+bool SestoSenso::setMinLimit(uint32_t limit)
+{
+    int nbytes_written = 0, rc = -1;
+    char errstr[MAXRBUF];
+    char cmd[16]={0};
+
+    snprintf(cmd, 16, "#Sm;%07d!", limit);
+
+    LOGF_DEBUG("CMD <%s>", cmd);
+
+    if (isSimulation())
+    {
+        FocusAbsPosN[0].min = limit;
+    }
+    else
+    {
+        tcflush(PortFD, TCIOFLUSH);
+
+        // Sync
+        if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
+            return false;
+        }
+    }
+
+    return isCommandOK("Sm");
+}
+
 bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, SyncNP.name) == 0)
+
+        // Set Focus Limits
+        if (!strcmp(name, LimitsNP.name))
+        {
+            // If connected, we ignore
+            if (isConnected())
+            {
+                LimitsNP.s = IPS_OK;
+                IDSetNumber(&LimitsNP, nullptr);
+                return true;
+            }
+
+            IUUpdateNumber(&LimitsNP, values, names, n);
+
+            if (setMinLimit(static_cast<uint32_t>(LimitsN[SS_MIN_LIMIT].value)) &&
+                setMaxLimit(static_cast<uint32_t>(LimitsN[SS_MAX_LIMIT].value)))
+                LimitsNP.s = IPS_OK;
+            else
+            {
+                LimitsNP.s = IPS_ALERT;
+                IDSetNumber(&LimitsNP, nullptr);
+                LOG_ERROR("Error setting focuser limits.");
+                return true;
+            }
+
+            FocusAbsPosN[0].min   = LimitsN[SS_MIN_LIMIT].value;
+            FocusAbsPosN[0].max   = LimitsN[SS_MAX_LIMIT].value;
+            FocusAbsPosN[0].value = 0;
+            FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+
+            FocusRelPosN[0].min   = 0.;
+            FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
+            FocusRelPosN[0].value = 0;
+            FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+
+            saveConfig(true, LimitsNP.name);
+
+            LOG_INFO("Focuser limits are updated.");
+
+            return true;
+        }
+
+        // Sync current position
+        else if (!strcmp(name, SyncNP.name))
         {
             IUUpdateNumber(&SyncNP, values, names, n);
             if (sync(SyncN[0].value))

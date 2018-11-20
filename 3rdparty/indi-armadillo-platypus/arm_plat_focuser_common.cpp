@@ -725,6 +725,8 @@ void ArmPlat::TimerHit()
             {
                 FocusAbsPosNP.s = IPS_OK;
                 FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
                 LOG_INFO("Focuser reached requested position.");
             }
         }

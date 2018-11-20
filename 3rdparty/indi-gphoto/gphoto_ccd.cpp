@@ -306,7 +306,7 @@ GPhotoCCD::~GPhotoCCD()
 
 const char *GPhotoCCD::getDefaultName()
 {
-    return (const char *)"GPhoto CCD";
+    return "GPhoto CCD";
 }
 
 bool GPhotoCCD::initProperties()
