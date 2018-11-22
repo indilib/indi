@@ -929,17 +929,26 @@ bool QHYCCD::AbortExposure()
     }
     pthread_mutex_unlock(&condMutex);
 
-    int rc = CancelQHYCCDExposingAndReadout(camhandle);
-    if (rc == QHYCCD_SUCCESS)
+    if (std::string(camid) != "QHY5-M-")
+    {
+        int rc = CancelQHYCCDExposingAndReadout(camhandle);
+        if (rc == QHYCCD_SUCCESS)
+        {
+            InExposure = false;
+            LOG_INFO("Exposure aborted.");
+            return true;
+        }
+        else
+            LOGF_ERROR("Abort exposure failed (%d)", rc);
+
+        return false;
+    }
+    else
     {
         InExposure = false;
         LOG_INFO("Exposure aborted.");
         return true;
     }
-    else
-        LOGF_ERROR("Abort exposure failed (%d)", rc);
-
-    return false;
 }
 
 bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
