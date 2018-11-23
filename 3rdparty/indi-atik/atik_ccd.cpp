@@ -53,7 +53,6 @@ void ATIK_CCD_ISInit()
     static bool isInit = false;
     if (!isInit)
     {
-        ArtemisAllowDebugToConsole(true);
         iAvailableCamerasCount = 0;
         std::vector<std::string> cameraNames;
 
