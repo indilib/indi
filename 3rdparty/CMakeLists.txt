@@ -89,6 +89,9 @@ option(WITH_GPSNMEA "Install GPS NMEA Driver" On)
 option(WITH_ARMADILLO "Install Armadillo & Platypus Driver" On)
 option(WITH_FXLOAD "Install FX3 compatible fxload tool" Off)
 option(WITH_NIGHTSCAPE "Install Nightscape 8300 Driver" On)
+option(WITH_ATIK "Install Atik Driver" On)
+option(WITH_TOUPCAM "Install Toupcam Driver" On)
+option(WITH_ALTAIRCAM "Install Altair Driver" On)
 
 
 find_package(FFmpeg)
@@ -177,6 +180,39 @@ add_subdirectory(libsbig)
 SET(LIBRARIES_FOUND FALSE)
 endif (SBIG_FOUND)
 endif (WITH_SBIG)
+
+## ATIK
+if (WITH_ATIK)
+find_package(ATIK)
+if (ATIK_FOUND)
+add_subdirectory(indi-atik)
+else (ATIK_FOUND)
+add_subdirectory(libatik)
+SET(LIBRARIES_FOUND FALSE)
+endif (ATIK_FOUND)
+endif (WITH_ATIK)
+
+## TOUPCAM
+if (WITH_TOUPCAM)
+find_package(TOUPCAM)
+if (TOUPCAM_FOUND)
+add_subdirectory(indi-toupcam)
+else (TOUPCAM_FOUND)
+add_subdirectory(libtoupcam)
+SET(LIBRARIES_FOUND FALSE)
+endif (TOUPCAM_FOUND)
+endif (WITH_TOUPCAM)
+
+## ALTAIR
+if (WITH_ALTAIR)
+find_package(ALTAIR)
+if (ALTAIR_FOUND)
+add_subdirectory(indi-toupcam)
+else (ALTAIR_FOUND)
+add_subdirectory(libtoupcam)
+SET(LIBRARIES_FOUND FALSE)
+endif (ALTAIR_FOUND)
+endif (WITH_ALTAIR)
 
 ## INOVA
 if (WITH_INOVAPLX)
@@ -353,6 +389,18 @@ endif (WITH_QHY AND NOT QHY_FOUND)
 if (WITH_SBIG AND NOT SBIG_FOUND)
 message(STATUS "libsbigudrv was not found and will now be built. Please install libsbigudrv first before running cmake again to install indi-sbig.")
 endif (WITH_SBIG AND NOT SBIG_FOUND)
+
+if (WITH_ATIK AND NOT ATIK_FOUND)
+message(STATUS "libatik was not found and will now be built. Please install libatik first before running cmake again to install indi-atik.")
+endif (WITH_ATIK AND NOT ATIK_FOUND)
+
+if (WITH_TOUPCAM AND NOT TOUPCAM_FOUND)
+message(STATUS "libtoupcam was not found and will now be built. Please install libtoupcam first before running cmake again to install indi-toupcam.")
+endif (WITH_TOUPCAM AND NOT TOUPCAM_FOUND)
+
+if (WITH_ALTAIR AND NOT ALTAIR_FOUND)
+message(STATUS "libaltair was not found and will now be built. Please install libaltair first before running cmake again to install indi-altair.")
+endif (WITH_ALTAIR AND NOT ALTAIR_FOUND)
 
 if (WITH_INOVAPLX AND NOT INOVASDK_FOUND)
 message(STATUS "libinovasdk was not found and will now be built. Please install libinovasdk first before running cmake again to install indi-inovaplx.")
