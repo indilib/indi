@@ -27,6 +27,8 @@
 
 #include <indiccd.h>
 
+typedef unsigned long   ulong;            /* Short for unsigned long */
+
 class TOUPCAM : public INDI::CCD
 {
 public:

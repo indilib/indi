@@ -27,6 +27,8 @@
 
 #include <indiccd.h>
 
+typedef unsigned long   ulong;            /* Short for unsigned long */
+
 class ALTAIRCAM : public INDI::CCD
 {
 public:
