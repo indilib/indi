@@ -103,8 +103,6 @@ ENDIF(FFMPEG_FOUND)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(WITH_RTLSDR Off)
-    set(WITH_LIMESDR Off)
     set(WITH_INOVAPLX Off)
     set(WITH_GIGE Off)
     set(WITH_FXLOAD Off)
