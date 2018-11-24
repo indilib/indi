@@ -1066,16 +1066,21 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 	} 
 	if (!strcmp(name, PECStateSP.name))
 	{
-		if (PECStateS[0].s == ISS_ON)
+		index = IUFindOnSwitchIndex(&PECStateSP);
+		if (index == 0)
 		{
 			StopPECPlayback(0);
-			//PECStateS[0].s == ISS_OFF;
-		} else if (PECStateS[1].s == ISS_ON)
+			PECStateS[0].s == ISS_ON;
+			PECStateS[1].s == ISS_OFF;
+			IDSetSwitch(&PECStateSP, nullptr);
+		} else if (index == 1)
 		{
 			StartPECPlayback(0);
-			//PECStateS[1].s == ISS_OFF;
+			PECStateS[0].s == ISS_OFF;
+			PECStateS[1].s == ISS_ON;
+			IDSetSwitch(&PECStateSP, nullptr);
 		}
-		IDSetSwitch(&PECStateSP, nullptr);
+		
 	} 
 	// Align Buttons
 	if (!strcmp(name, OSNAlignSP.name))      // 
@@ -1638,7 +1643,9 @@ bool LX200_OnStep::GetAlignStatus()
     {
         OSAlignFlag=false;
         OSAlignProcess=false;
-        if(kdedialog("kdialog 'OnStep Align' --title 'OnStep Align' --msgbox 'Align Star reached, apply corections and confirm with Align'")) return true;
+		LOG_INFO("Align Star Reached, sync then press align.");
+#        if(kdedialog("kdialog 'OnStep Align' --title 'OnStep Align' --msgbox 'Align Star reached, apply corections and confirm with Align'")) return true;
+		return true;
     }
 
 return true;
@@ -1852,12 +1859,17 @@ IPState LX200_OnStep::PECStatus (int axis) {
 // 	IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
 // 	IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
 	//ReticS[0].s=ISS_OFF;
-    char value[RB_MAX_LEN] ="  ";  //azwing RB_MAX_LEN
+	char value[RB_MAX_LEN] ="  ";  //azwing RB_MAX_LEN
 	OSPECStatusSP.s = IPS_BUSY;
 	getCommandString(PortFD, value, ":$QZ?#");
 //	LOGF_INFO("Response %s", value);
 // 	LOGF_INFO("Response %d", value[0]);
 // 	LOGF_INFO("Response %d", value[1]);
+	OSPECStatusS[0].s = ISS_OFF ;
+	OSPECStatusS[1].s = ISS_OFF ;
+	OSPECStatusS[2].s = ISS_OFF ;
+	OSPECStatusS[3].s = ISS_OFF ;
+	OSPECStatusS[4].s = ISS_OFF ;
 	if (value[0] == 'I') {  //Ignore
 		OSPECStatusSP.s = IPS_OK;
 		OSPECStatusS[0].s = ISS_ON ;
@@ -1876,7 +1888,7 @@ IPState LX200_OnStep::PECStatus (int axis) {
 		OSPECRecordSP.s = IPS_IDLE;
 	} else if (value[0] == 'p') { //Waiting for index before playing
 		OSPECStatusSP.s = IPS_BUSY;
-		OSPECStatusS[4].s = ISS_ON ;
+		OSPECStatusS[3].s = ISS_ON ;
 		OSPECRecordSP.s = IPS_IDLE;
 	} else { //INVALID REPLY
 		OSPECStatusSP.s = IPS_ALERT;
@@ -1884,7 +1896,11 @@ IPState LX200_OnStep::PECStatus (int axis) {
 	}
 	if (value[1] == '.') {
 		OSPECIndexSP.s = IPS_OK;
+		OSPECIndexS[0].s = ISS_OFF;
 		OSPECIndexS[1].s = ISS_ON;
+	} else {
+		OSPECIndexS[1].s = ISS_OFF;
+		OSPECIndexS[0].s = ISS_ON;
 	}
 	IDSetSwitch(&OSPECStatusSP, nullptr);
 	IDSetSwitch(&OSPECRecordSP, nullptr);
