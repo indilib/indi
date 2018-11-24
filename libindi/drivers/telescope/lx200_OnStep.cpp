@@ -1070,14 +1070,14 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		if (index == 0)
 		{
 			StopPECPlayback(0);
-			PECStateS[0].s == ISS_ON;
-			PECStateS[1].s == ISS_OFF;
+			PECStateS[0].s = ISS_ON;
+			PECStateS[1].s = ISS_OFF;
 			IDSetSwitch(&PECStateSP, nullptr);
 		} else if (index == 1)
 		{
 			StartPECPlayback(0);
-			PECStateS[0].s == ISS_OFF;
-			PECStateS[1].s == ISS_ON;
+			PECStateS[0].s = ISS_OFF;
+			PECStateS[1].s = ISS_ON;
 			IDSetSwitch(&PECStateSP, nullptr);
 		}
 		
@@ -1643,9 +1643,9 @@ bool LX200_OnStep::GetAlignStatus()
     {
         OSAlignFlag=false;
         OSAlignProcess=false;
-		LOG_INFO("Align Star Reached, sync then press align.");
-#        if(kdedialog("kdialog 'OnStep Align' --title 'OnStep Align' --msgbox 'Align Star reached, apply corections and confirm with Align'")) return true;
-		return true;
+	LOG_INFO("Align Star Reached, sync then press align.");
+//       if(kdedialog("kdialog 'OnStep Align' --title 'OnStep Align' --msgbox 'Align Star reached, apply corections and confirm with Align'")) return true;
+	return true;
     }
 
 return true;
