@@ -1092,6 +1092,15 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-flipflat.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 ENDIF ()
 
+########### Pegasus Ultimate Power Box Driver ###############
+
+SET(pegasus_upb_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/pegasus_upb.cpp)
+
+add_executable(indi_pegasus_upb ${pegasus_upb_SRC})
+target_link_libraries(indi_pegasus_upb indidriver)
+install(TARGETS indi_pegasus_upb RUNTIME DESTINATION bin)
+
 ########### SnapCap Driver ###############
 
 SET(snapcap_SRC
