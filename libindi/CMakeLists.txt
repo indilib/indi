@@ -368,6 +368,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweatherinterface.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiusbdevice.cpp
@@ -1466,6 +1467,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiweatherinterface.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuser.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indirotator.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.h
