@@ -73,6 +73,23 @@ bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *n
             IUUpdateText(&PortTP, texts, names, n);
             PortTP.s = IPS_OK;
             IDSetText(&PortTP, nullptr);
+
+            bool isSystemPort = false;
+            for (int i=0; i < SystemPortSP.nsp; i++)
+            {
+                if (!strcmp(PortT[0].text, SystemPortS[i].label))
+                {
+                    isSystemPort = true;
+                    break;
+                }
+            }
+            if (isSystemPort == false)
+            {
+                LOGF_DEBUG("Auo search is disabled because %s is not a system port.", PortT[0].text);
+                AutoSearchS[0].s = ISS_OFF;
+                IDSetSwitch(&AutoSearchSP, nullptr);
+
+            }
             return true;
         }
     }
