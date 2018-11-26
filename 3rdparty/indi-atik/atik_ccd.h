@@ -130,7 +130,7 @@ class ATIKCCD : public INDI::CCD, public INDI::FilterInterface
      * @param enable True to turn on (not supported). Off to warm up
      * @return True if successful.
      */
-    bool activateCooler(bool enable);    
+    bool activateCooler(bool enable);
 
     // Cooler power
     INumber CoolerN[1];
@@ -182,6 +182,7 @@ class ATIKCCD : public INDI::CCD, public INDI::FilterInterface
     pthread_t imagingThread;
     pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
     pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_t accessMutex = PTHREAD_MUTEX_INITIALIZER;
 
     // Pulse Guiding
     int WEtimerID;
