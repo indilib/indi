@@ -35,7 +35,7 @@ namespace INDI
 {
 
 Weather::Weather() : WI(this)
-{    
+{
 }
 
 Weather::~Weather()
@@ -53,7 +53,7 @@ bool Weather::initProperties()
     IUFillNumber(&LocationN[LOCATION_LONGITUDE], "LONG", "Lon (dd:mm:ss)", "%010.6m", 0, 360, 0, 0.0);
     IUFillNumber(&LocationN[LOCATION_ELEVATION], "ELEV", "Elevation (m)", "%g", -200, 10000, 0, 0);
     IUFillNumberVector(&LocationNP, LocationN, 3, getDeviceName(), "GEOGRAPHIC_COORD", "Location", SITE_TAB, IP_RW, 60,
-                       IPS_OK);    
+                       IPS_OK);
 
     // Active Devices
     IUFillText(&ActiveDeviceT[0], "ACTIVE_GPS", "GPS", "GPS Simulator");
@@ -180,9 +180,12 @@ bool Weather::ISNewNumber(const char *dev, const char *name, double values[], ch
 
                 updateTimerID = SetTimer(UpdatePeriodN[0].value * 1000);
             }
-
             return true;
-        }        
+        }
+
+        // Pass to weather interface
+        if (processNumber(dev, name, values, names, n))
+            return true;
     }
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
