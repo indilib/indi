@@ -326,6 +326,9 @@ void Skywatcher::Init()
         telescope->SetAxis2ParkDefault(DEStepHome);
 
         LOGF_WARN("Loading parking data failed. Setting parking axis1: %d axis2: %d", RAStepHome, DEStepHome);
+
+        // JM 2018-11-26: Save current position as parked position
+        telescope->saveInitialParkPosition();
     }
     else
     {
