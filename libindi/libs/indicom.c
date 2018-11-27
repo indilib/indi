@@ -235,6 +235,19 @@ void getSexComponents(double value, int *d, int *m, int *s)
     *m = (int32_t)((fabs(value) - *d) * 60.0);
     *s = (int32_t)rint(((fabs(value) - *d) * 60.0 - *m) * 60.0);
 
+    // Special case if seconds are >= 59.5 so it will be rounded by rint above
+    // to 60
+    if (*s == 60)
+    {
+        *s  = 0;
+        *m += 1;
+    }
+    if (*m == 60)
+    {
+        *m  = 0;
+        *d += 1;
+    }
+
     if (value < 0)
         *d *= -1;
 }
@@ -524,7 +537,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     uint8_t *read_char = 0;
 
     if (tty_debug)
-        IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);    
+        IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
 
     if (ttyGeminiUdpFormat)
     {

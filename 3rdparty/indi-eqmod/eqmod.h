@@ -245,6 +245,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     bool SetDefaultPark();
     bool Sync(double ra, double dec);
 
+    // Call first time EQMod is run
+    void saveInitialParkPosition();
+
     // Called when there is an unrecoverable tty error
     void abnormalDisconnect();
     static void abnormalDisconnectCallback(void *userpointer);
