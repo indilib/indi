@@ -29,6 +29,7 @@
 #define STATUS_TAB "ONStep Status"
 #define PEC_TAB "PEC"
 #define ALIGN_TAB "Align"
+#define OUTPUT_TAB "Outputs"
 
 #define ONSTEP_TIMEOUT  3
 
@@ -239,6 +240,17 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OSNAlignT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[3], "3", "After 1 or 2", "Press 'Start Align'");
     IUFillTextVector(&OSNAlignTP, OSNAlignT, 4, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
+#ifdef ONSTEP_NOTDONE
+    // =============== OUTPUT_TAB
+    // =============== 
+    IUFillSwitch(&OSOutput1S[0], "0", "OFF", ISS_ON);
+    IUFillSwitch(&OSOutput1S[1], "1", "ON", ISS_OFF);
+    IUFillSwitchVector(&OSOutput1SP, OSOutput1S, 2, getDeviceName(), "Output 1", "Output 1", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
+    
+    IUFillSwitch(&OSOutput2S[0], "0", "OFF", ISS_ON);
+    IUFillSwitch(&OSOutput2S[1], "1", "ON", ISS_OFF);
+    IUFillSwitchVector(&OSOutput2SP, OSOutput2S, 2, getDeviceName(), "Output 2", "Output 2", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
+#endif
     
     // ============== STATUS_TAB
     IUFillText(&OnstepStat[0], ":GU# return", "", "");
@@ -331,7 +343,11 @@ bool LX200_OnStep::updateProperties()
 	//New Align
 	defineSwitch(&OSNAlignSP);
 	defineText(&OSNAlignTP);
-	
+#ifdef ONSTEP_NOTDONE
+	//Outputs
+	defineSwitch(&OSOutput1SP);
+	defineSwitch(&OSOutput2SP);
+#endif
         // OnStep Status
         defineText(&OnstepStatTP);
 
@@ -414,7 +430,12 @@ bool LX200_OnStep::updateProperties()
 	//New Align
 	deleteProperty(OSNAlignSP.name);
 	deleteProperty(OSNAlignTP.name);
-	
+#ifdef ONSTEP_NOTDONE	
+	//Outputs
+	deleteProperty(OSOutput1SP.name);
+	deleteProperty(OSOutput2SP.name);
+#endif
+
         // OnStep Status
         deleteProperty(OnstepStatTP.name);
     }
@@ -1047,17 +1068,21 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 	} 
 	if (!strcmp(name, PECStateSP.name))
 	{
-		if (PECStateS[0].s == ISS_ON)
+		index = IUFindOnSwitchIndex(&PECStateSP);
+		if (index == 0)
 		{
 			StopPECPlayback(0);
-			//PECStateS[0].s == ISS_OFF;
-		}
-		if (PECStateS[1].s == ISS_ON)
+			PECStateS[0].s = ISS_ON;
+			PECStateS[1].s = ISS_OFF;
+			IDSetSwitch(&PECStateSP, nullptr);
+		} else if (index == 1)
 		{
 			StartPECPlayback(0);
-			//PECStateS[1].s == ISS_OFF;
+			PECStateS[0].s = ISS_OFF;
+			PECStateS[1].s = ISS_ON;
+			IDSetSwitch(&PECStateSP, nullptr);
 		}
-		IDSetSwitch(&PECStateSP, nullptr);
+		
 	} 
 	// Align Buttons
 	if (!strcmp(name, OSNAlignSP.name))      // 
@@ -1086,7 +1111,34 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		}
 		IDSetSwitch(&OSNAlignSP, nullptr);
 	}
-	
+#ifdef ONSTEP_NOTDONE	
+	if (!strcmp(name, OSOutput1SP.name))      // 
+	{
+		if (OSOutput1S[0].s == ISS_ON)
+		{
+			OSDisableOutput(1);
+			//PECStateS[0].s == ISS_OFF;
+		} else if (OSOutput1S[1].s == ISS_ON)
+		{
+			OSEnableOutput(1);
+			//PECStateS[1].s == ISS_OFF;
+		}
+		IDSetSwitch(&OSOutput1SP, nullptr);
+	}
+	if (!strcmp(name, OSOutput2SP.name))      // 
+	{
+		if (OSOutput2S[0].s == ISS_ON)
+		{
+			OSDisableOutput(2);
+			//PECStateS[0].s == ISS_OFF;
+		} else if (OSOutput2S[1].s == ISS_ON)
+		{
+			OSEnableOutput(2);
+			//PECStateS[1].s == ISS_OFF;
+		}
+		IDSetSwitch(&OSOutput2SP, nullptr);
+	}
+#endif
 	
 	
         if (strstr(name, "FOCUS"))
@@ -1594,7 +1646,9 @@ bool LX200_OnStep::GetAlignStatus()
     {
         OSAlignFlag=false;
         OSAlignProcess=false;
-        if(kdedialog("kdialog 'OnStep Align' --title 'OnStep Align' --msgbox 'Align Star reached, apply corections and confirm with Align'")) return true;
+	LOG_INFO("Align Star Reached, sync then press align.");
+//       if(kdedialog("kdialog 'OnStep Align' --title 'OnStep Align' --msgbox 'Align Star reached, apply corections and confirm with Align'")) return true;
+	return true;
     }
 
 return true;
@@ -1689,8 +1743,8 @@ void LX200_OnStep::OSUpdateFocuser()
 		getCommandString(PortFD, value, ":FG#");
 		FocusAbsPosN[0].value =  atoi(value);
 		current = FocusAbsPosN[0].value;
-		LOGF_DEBUG("Current focuser: %d, %d", atoi(value), FocusAbsPosN[0].value);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
+		LOGF_DEBUG("Current focuser: %d, %d", atoi(value), FocusAbsPosN[0].value);
 		//  :FT#  get status
 		//         Returns: M# (for moving) or S# (for stopped)
 		getCommandString(PortFD, value, ":FT#");
@@ -1808,12 +1862,17 @@ IPState LX200_OnStep::PECStatus (int axis) {
 // 	IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
 // 	IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
 	//ReticS[0].s=ISS_OFF;
-    char value[RB_MAX_LEN] ="  ";  //azwing RB_MAX_LEN
+	char value[RB_MAX_LEN] ="  ";  //azwing RB_MAX_LEN
 	OSPECStatusSP.s = IPS_BUSY;
 	getCommandString(PortFD, value, ":$QZ?#");
 //	LOGF_INFO("Response %s", value);
 // 	LOGF_INFO("Response %d", value[0]);
 // 	LOGF_INFO("Response %d", value[1]);
+	OSPECStatusS[0].s = ISS_OFF ;
+	OSPECStatusS[1].s = ISS_OFF ;
+	OSPECStatusS[2].s = ISS_OFF ;
+	OSPECStatusS[3].s = ISS_OFF ;
+	OSPECStatusS[4].s = ISS_OFF ;
 	if (value[0] == 'I') {  //Ignore
 		OSPECStatusSP.s = IPS_OK;
 		OSPECStatusS[0].s = ISS_ON ;
@@ -1824,15 +1883,15 @@ IPState LX200_OnStep::PECStatus (int axis) {
 		OSPECRecordSP.s = IPS_BUSY;
 	} else if (value[0] == 'r') { //Waiting for index before recording
 		OSPECStatusSP.s = IPS_OK;
-		OSPECStatusS[1].s = ISS_ON ;
+		OSPECStatusS[4].s = ISS_ON ;
 		OSPECRecordSP.s = IPS_BUSY;
 	} else if (value[0] == 'P') { //Active Playing
 		OSPECStatusSP.s = IPS_BUSY;
-		OSPECStatusS[4].s = ISS_ON ;
+		OSPECStatusS[1].s = ISS_ON ;
 		OSPECRecordSP.s = IPS_IDLE;
 	} else if (value[0] == 'p') { //Waiting for index before playing
 		OSPECStatusSP.s = IPS_BUSY;
-		OSPECStatusS[4].s = ISS_ON ;
+		OSPECStatusS[3].s = ISS_ON ;
 		OSPECRecordSP.s = IPS_IDLE;
 	} else { //INVALID REPLY
 		OSPECStatusSP.s = IPS_ALERT;
@@ -1840,7 +1899,11 @@ IPState LX200_OnStep::PECStatus (int axis) {
 	}
 	if (value[1] == '.') {
 		OSPECIndexSP.s = IPS_OK;
+		OSPECIndexS[0].s = ISS_OFF;
 		OSPECIndexS[1].s = ISS_ON;
+	} else {
+		OSPECIndexS[1].s = ISS_OFF;
+		OSPECIndexS[0].s = ISS_ON;
 	}
 	IDSetSwitch(&OSPECStatusSP, nullptr);
 	IDSetSwitch(&OSPECRecordSP, nullptr);
@@ -1908,4 +1971,63 @@ IPState LX200_OnStep::AlignDone (){
 	IDSetText(&OSNAlignTP, "Align FAILED");
 	return IPS_ALERT;
 	
+}
+
+IPState LX200_OnStep::OSEnableOutput(int output) {
+	//  :SXnn,VVVVVV...#   Set OnStep value
+	//          Return: 0 on failure
+	//                  1 on success
+	//	if (parameter[0]=='G') { // Gn: General purpose output
+	// :SXGn,value 
+	// value, 0 = low, other = high
+	LOG_INFO("Not implemented yet");
+	return IPS_OK;
+}
+
+
+IPState LX200_OnStep::OSDisableOutput(int output) {
+	LOG_INFO("Not implemented yet");
+	OSGetOutputState(output);
+	return IPS_OK;
+}
+
+bool LX200_OnStep::OSGetOutputState(int output) {
+	//  :GXnn#   Get OnStep value
+	//         Returns: value
+	// nn = G0-GF (HEX!)
+	//
+	char value[64] ="  ";
+	char command[64]=":$GXGm#";
+	LOGF_INFO("Output: %s", char(output));
+	LOGF_INFO("Command: %s", command);
+	command[5]=char(output);
+	LOGF_INFO("Command: %s", command);
+	getCommandString(PortFD, value, command);
+	if (value[0] == 0) {
+		OSOutput1S[0].s = ISS_ON;
+		OSOutput1S[1].s = ISS_OFF;
+	} else {
+		OSOutput1S[0].s = ISS_OFF;
+		OSOutput1S[1].s = ISS_ON;
+	}
+	IDSetSwitch(&OSOutput1SP, nullptr);
+	
+}
+
+bool LX200_OnStep::SetTrackRate(double raRate, double deRate) {
+	char read_buffer[32];
+	snprintf(read_buffer, sizeof(read_buffer), ":RA%04f#", raRate);
+	LOGF_INFO("Setting: RA Rate to %04f", raRate);
+	if (!sendOnStepCommand(read_buffer))
+	{
+		return false;
+	}
+	snprintf(read_buffer, sizeof(read_buffer), ":RE%04f#", deRate);
+	LOGF_INFO("Setting: DE Rate to %04f", deRate);
+	if (!sendOnStepCommand(read_buffer))
+	{
+		return false;
+	}
+	LOG_INFO("RA and DE Rates succesfully set");
+	return true;
 }
