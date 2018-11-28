@@ -53,7 +53,6 @@ void ATIK_CCD_ISInit()
     static bool isInit = false;
     if (!isInit)
     {
-        ArtemisAllowDebugToConsole(true);
         iAvailableCamerasCount = 0;
         std::vector<std::string> cameraNames;
 
@@ -363,8 +362,8 @@ bool ATIKCCD::setupParams()
 
     uint32_t cap = 0;
 
-    // All Atik cameras can abort
-    cap |= CCD_CAN_ABORT;
+    // All Atik cameras can abort and subframe
+    cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME;
 
     // Can we bin?
     if (binX > 1)
@@ -372,10 +371,6 @@ bool ATIKCCD::setupParams()
         cap |= CCD_CAN_BIN;
         LOG_DEBUG("Camera can bin.");
     }
-
-    // Can we subframe?
-    if (m_CameraFlags & ARTEMIS_PROPERTIES_CAMERAFLAGS_SUBSAMPLE)
-        cap |= CCD_CAN_SUBFRAME;
 
     // Do we have color or mono camera?
     ARTEMISCOLOURTYPE colorType;
@@ -621,7 +616,7 @@ int ATIKCCD::SetTemperature(double temperature)
 {
     // If there difference, for example, is less than 0.1 degrees, let's immediately return OK.
     if (fabs(temperature - TemperatureN[0].value) < TEMP_THRESHOLD)
-        return 1;    
+        return 1;
 
     // setpoint is int 1/100 of a degree C.
     int setpoint = static_cast<int>(temperature * 100);
@@ -750,7 +745,7 @@ bool ATIKCCD::AbortExposure()
 /// Updates CCD sub frame
 /////////////////////////////////////////////////////////
 bool ATIKCCD::UpdateCCDFrame(int x, int y, int w, int h)
-{    
+{
     int rc = ArtemisSubframe(hCam, x, y, w, h);
     if (rc != ARTEMIS_OK)
     {
@@ -770,7 +765,7 @@ bool ATIKCCD::UpdateCCDFrame(int x, int y, int w, int h)
 /// Update CCD bin mode
 /////////////////////////////////////////////////////////
 bool ATIKCCD::UpdateCCDBin(int binx, int biny)
-{    
+{
     int rc = ArtemisBin(hCam, binx, biny);
 
     if (rc != ARTEMIS_OK)
@@ -785,7 +780,7 @@ bool ATIKCCD::UpdateCCDBin(int binx, int biny)
 /// Download from CCD
 /////////////////////////////////////////////////////////
 bool ATIKCCD::grabImage()
-{    
+{
     //uint8_t *image = PrimaryCCD.getFrameBuffer();
     int x,y,w,h,binx,biny;
 
@@ -813,12 +808,14 @@ bool ATIKCCD::grabImage()
 /// Cooler & Filter Wheel monitoring
 /////////////////////////////////////////////////////////
 void ATIKCCD::TimerHit()
-{    
+{
     double currentTemperature = TemperatureN[0].value;
 
     int flags, level, minlvl, maxlvl, setpoint;
 
+    pthread_mutex_lock(&accessMutex);
     int rc = ArtemisCoolingInfo(hCam, &flags, &level, &minlvl, &maxlvl, &setpoint);
+    pthread_mutex_unlock(&accessMutex);
 
     if (rc != ARTEMIS_OK)
     {
@@ -830,7 +827,9 @@ void ATIKCCD::TimerHit()
     LOGF_DEBUG("Cooling: flags (%d) level (%d), minlvl (%d), maxlvl (%d), setpoint (%d)", flags, level, minlvl, maxlvl, setpoint);
 
     int temperature=0;
+    pthread_mutex_lock(&accessMutex);
     rc = ArtemisTemperatureSensorInfo(hCam, 1, &temperature);
+    pthread_mutex_unlock(&accessMutex);
     TemperatureN[0].value = temperature / 100.0;
 
     switch (TemperatureNP.s)
@@ -876,7 +875,9 @@ void ATIKCCD::TimerHit()
     if (FilterSlotNP.s == IPS_BUSY)
     {
         int numFilters, moving, currentPos, targetPos;
+        pthread_mutex_lock(&accessMutex);
         int rc = ArtemisFilterWheelInfo(hCam, &numFilters, &moving, &currentPos, &targetPos);
+        pthread_mutex_unlock(&accessMutex);
 
         if (rc != ARTEMIS_OK)
         {
@@ -1074,6 +1075,7 @@ void ATIKCCD::checkExposureProgress()
     while (threadRequest == StateExposure)
     {
         pthread_mutex_unlock(&condMutex);
+        pthread_mutex_lock(&accessMutex);
         if (ArtemisImageReady(hCam))
         {
                 InExposure = false;
@@ -1085,10 +1087,12 @@ void ATIKCCD::checkExposureProgress()
                 pthread_mutex_unlock(&condMutex);
                 grabImage();
                 pthread_mutex_lock(&condMutex);
+                pthread_mutex_unlock(&accessMutex);
                 break;
         }
 
         int state = ArtemisCameraState(hCam);
+        pthread_mutex_unlock(&accessMutex);
         if (state == -1)
         {
             if (++expRetry < MAX_EXP_RETRIES)
@@ -1098,7 +1102,9 @@ void ATIKCCD::checkExposureProgress()
                     LOG_DEBUG("ASIGetExpStatus failed. Restarting exposure...");
                 }
                 InExposure = false;
+                pthread_mutex_lock(&accessMutex);
                 ArtemisStopExposure(hCam);
+                pthread_mutex_unlock(&accessMutex);
                 usleep(100000);
                 pthread_mutex_lock(&condMutex);
                 exposureSetRequest(StateRestartExposure);
@@ -1110,7 +1116,9 @@ void ATIKCCD::checkExposureProgress()
                 {
                     LOGF_ERROR("Exposure failed after %d attempts.", expRetry);
                 }
+                pthread_mutex_lock(&accessMutex);
                 ArtemisStopExposure(hCam);
+                pthread_mutex_unlock(&accessMutex);
                 PrimaryCCD.setExposureFailed();
                 usleep(100000);
                 pthread_mutex_lock(&condMutex);
@@ -1119,7 +1127,9 @@ void ATIKCCD::checkExposureProgress()
             }
         }
 
+        pthread_mutex_lock(&accessMutex);
         float timeLeft = ArtemisExposureTimeRemaining(hCam);
+        pthread_mutex_unlock(&accessMutex);
         if (timeLeft > 1.1)
         {
             float fraction = timeLeft - static_cast<float>(static_cast<int>(timeLeft));
