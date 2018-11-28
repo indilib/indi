@@ -93,7 +93,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual int setSiteLongitude(int fd, double Long);
     virtual bool GetAlignStatus();
     virtual bool kdedialog(const char * commande);
-    
+    virtual bool SetTrackRate(double raRate, double deRate) override;
     
     
     //FocuserInterface
@@ -126,6 +126,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     IPState AlignDone();
     //End NewGeometricAlignment 
     
+    
+    //Outputs
+    IPState OSEnableOutput(int output);
+    IPState OSDisableOutput(int output);
+    bool OSGetOutputState(int output);
     
 
     bool sendOnStepCommand(const char *cmd);
@@ -225,7 +230,12 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitch OSNAlignS[4];
     IText OSNAlignT[5] {};
     ITextVectorProperty OSNAlignTP;
-
+    
+    ISwitchVectorProperty OSOutput1SP;
+    ISwitch OSOutput1S[2];
+    ISwitchVectorProperty OSOutput2SP;
+    ISwitch OSOutput2S[2];
+    
     char OSStat[RB_MAX_LEN];
     char OldOSStat[RB_MAX_LEN];
 
