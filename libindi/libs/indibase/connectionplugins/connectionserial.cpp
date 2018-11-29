@@ -74,21 +74,24 @@ bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *n
             PortTP.s = IPS_OK;
             IDSetText(&PortTP, nullptr);
 
-            bool isSystemPort = false;
-            for (int i=0; i < SystemPortSP.nsp; i++)
+            if (SystemPortS)
             {
-                if (!strcmp(PortT[0].text, SystemPortS[i].label))
+                bool isSystemPort = false;
+                for (int i=0; i < SystemPortSP.nsp; i++)
                 {
-                    isSystemPort = true;
-                    break;
+                    if (!strcmp(PortT[0].text, SystemPortS[i].label))
+                    {
+                        isSystemPort = true;
+                        break;
+                    }
                 }
-            }
-            if (isSystemPort == false)
-            {
-                LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortT[0].text);
-                AutoSearchS[0].s = ISS_OFF;
-                IDSetSwitch(&AutoSearchSP, nullptr);
-
+                if (isSystemPort == false)
+                {
+                    LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortT[0].text);
+                    AutoSearchS[0].s = ISS_OFF;
+                    AutoSearchS[1].s = ISS_ON;
+                    IDSetSwitch(&AutoSearchSP, nullptr);
+                }
             }
             return true;
         }
