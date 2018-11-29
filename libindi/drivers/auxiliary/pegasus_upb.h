@@ -49,8 +49,17 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     const char *getDefaultName() override;
     virtual bool Disconnect() override;
 
+    // Focuser Overrides
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual bool AbortFocuser() override;
+    virtual bool ReverseFocuser(bool enabled) override;
+    virtual bool SyncFocuser(uint32_t ticks) override;
+
+
   private:    
     bool Handshake();
+    bool setPowerEnabled(uint8_t port, bool enabled);
 
     /**
      * @brief sendCommand Send command to unit.
@@ -64,10 +73,110 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
 
     Connection::Serial *serialConnection { nullptr };
 
+    ////////////////////////////////////////////////////////////////////////////////////
+    /// Power Group
+    ////////////////////////////////////////////////////////////////////////////////////
+
+    // Cycle all power on/off
+    ISwitch PowerCycleAllS[2];
+    ISwitchVectorProperty PowerCycleAllSP;
+    enum
+    {
+        POWER_CYCLE_OFF,
+        POWER_CYCLE_ON,
+    };
+
+    // Turn on/off power
+    ISwitch PowerControlS[4];
+    ISwitchVectorProperty PowerControlSP;
+
+    // Rename the power controls above
+    IText PowerControlsLabelsT[4] = {};
+    ITextVectorProperty PowerControlsLabelsTP;
+
+    // Current Draw
+    INumber PowerCurrentN[4];
+    INumberVectorProperty PowerCurrentNP;
+
+    // Select which power is ON on bootup
+    ISwitch PowerOnBootS[4];
+    ISwitchVectorProperty PowerOnBootSP;
+
+    // Overcurrent status
+    ILight OverCurrentL[4];
+    ILightVectorProperty OverCurrentLP;
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    /// Dew Group
+    ////////////////////////////////////////////////////////////////////////////////////
+
+    // Auto Dew
+    ISwitch AutoDewS[2];
+    ISwitchVectorProperty AutoDewSP;
+    enum
+    {
+        AUTO_DEW_ENABLED,
+        AUTO_DEW_DISABLED,
+    };
+
+    // Dew PWM
+    INumber DewPWMN[2];
+    INumberVectorProperty DewPWMNP;
+    enum
+    {
+        DEW_PWM_A,
+        DEW_PWM_B,
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    /// Status
+    ////////////////////////////////////////////////////////////////////////////////////
+
+    // Overall power values
+    INumber PowerReadingsN[3];
+    INumberVectorProperty PowerReadingsNP;
+    enum
+    {
+        READING_VOLTAGE,
+        READING_CURRENT,
+        READING_POWER,
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    /// USB
+    ////////////////////////////////////////////////////////////////////////////////////
+
+    // Turn on/off usb ports 1-5
+    ISwitch USBControlS[5];
+    ISwitchVectorProperty USBControlSP;
+
+    // USB Port Status (1-6)
+    ILight USBStatusL[6];
+    ILightVectorProperty USBStatusLP;
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    /// USB
+    ////////////////////////////////////////////////////////////////////////////////////
+
+    // Focuser backlash
+    INumber BacklashN[1];
+    INumberVectorProperty BacklashNP;
+
+    // Focuser invert
+    ISwitch InvertMotorS[2];
+    ISwitchVectorProperty InvertMotorSP;
+    enum
+    {
+        INVERT_MOTOR_ENABLED,
+        INVERT_MOTOR_DISABLED,
+    };
+
+
+
     static constexpr const uint8_t PEGASUS_TIMEOUT {3};
-    static constexpr const char *DEW_GROUP {"Dew"};
-    static constexpr const char *ENVIRONMENT_GROUP {"Environment"};
-    static constexpr const char *STATUS_GROUP {"Status"};
-    static constexpr const char *POWER_GROUP {"Power"};
-    static constexpr const char *FOCUSER_GROUP {"Focuser"};
+    static constexpr const char *DEW_TAB {"Dew"};
+    static constexpr const char *USB_TAB {"USB"};
+    static constexpr const char *ENVIRONMENT_TAB {"Environment"};
+    static constexpr const char *POWER_TAB {"Power"};
+    static constexpr const char *FOCUSER_TAB {"Focuser"};
 };
