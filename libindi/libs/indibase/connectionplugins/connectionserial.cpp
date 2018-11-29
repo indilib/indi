@@ -85,7 +85,7 @@ bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *n
             }
             if (isSystemPort == false)
             {
-                LOGF_DEBUG("Auo search is disabled because %s is not a system port.", PortT[0].text);
+                LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortT[0].text);
                 AutoSearchS[0].s = ISS_OFF;
                 IDSetSwitch(&AutoSearchSP, nullptr);
 
