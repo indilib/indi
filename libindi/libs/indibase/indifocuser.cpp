@@ -244,7 +244,7 @@ void Focuser::processButton(const char *button_n, ISState state)
     {
         if (AbortFocuser())
         {
-            AbortSP.s = IPS_OK;
+            FocusAbortSP.s = IPS_OK;
             DEBUG(Logger::DBG_SESSION, "Focuser aborted.");
             if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
             {
@@ -259,11 +259,11 @@ void Focuser::processButton(const char *button_n, ISState state)
         }
         else
         {
-            AbortSP.s = IPS_ALERT;
+            FocusAbortSP.s = IPS_ALERT;
             DEBUG(Logger::DBG_ERROR, "Aborting focuser failed.");
         }
 
-        IDSetSwitch(&AbortSP, nullptr);
+        IDSetSwitch(&FocusAbortSP, nullptr);
     }
     // Focus In
     else if (!strcmp(button_n, "Focus In"))
