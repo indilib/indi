@@ -217,8 +217,12 @@ bool Focuser::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &PresetNP);
+    if (CanAbsMove())
+        IUSaveConfigNumber(fp, &FocusMaxPosNP);
+    if (CanReverse())
+        IUSaveConfigSwitch(fp, &FocusReverseSP);
 
+    IUSaveConfigNumber(fp, &PresetNP);
     controller->saveConfigItems(fp);
 
     return true;

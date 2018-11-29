@@ -175,21 +175,28 @@ bool FocuserInterface::processNumber(const char *dev, const char *name, double v
     // Update Maximum Position allowed
     if (!strcmp(name, FocusMaxPosNP.name))
     {
-        IUUpdateNumber(&FocusMaxPosNP, values, names, n);
+        uint32_t maxTravel = rint(values[0]);
+        if (SetFocuserMaxTravel(maxTravel))
+        {
+            IUUpdateNumber(&FocusMaxPosNP, values, names, n);
 
-        FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].value;
-        FocusAbsPosN[0].step = FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
-        FocusAbsPosN[0].min = FocusSyncN[0].min = 0;
+            FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].value;
+            FocusAbsPosN[0].step = FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
+            FocusAbsPosN[0].min = FocusSyncN[0].min = 0;
 
-        FocusRelPosN[0].max  = FocusMaxPosN[0].value / 2;
-        FocusRelPosN[0].step = FocusMaxPosN[0].value / 100.0;
-        FocusRelPosN[0].min  = 0;
+            FocusRelPosN[0].max  = FocusMaxPosN[0].value / 2;
+            FocusRelPosN[0].step = FocusMaxPosN[0].value / 100.0;
+            FocusRelPosN[0].min  = 0;
 
-        IUUpdateMinMax(&FocusAbsPosNP);
-        IUUpdateMinMax(&FocusRelPosNP);
-        IUUpdateMinMax(&FocusSyncNP);
+            IUUpdateMinMax(&FocusAbsPosNP);
+            IUUpdateMinMax(&FocusRelPosNP);
+            IUUpdateMinMax(&FocusSyncNP);
 
-        FocusMaxPosNP.s = IPS_OK;
+            FocusMaxPosNP.s = IPS_OK;
+        }
+        else
+            FocusMaxPosNP.s = IPS_ALERT;
+
         IDSetNumber(&FocusMaxPosNP, nullptr);
         return true;
     }
@@ -462,6 +469,12 @@ bool FocuserInterface::SetFocuserSpeed(int speed)
     //  must override this
     DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Focuser does not support variable speed.");
     return false;
+}
+
+bool FocuserInterface::SetFocuserMaxTravel(uint32_t ticks)
+{
+    INDI_UNUSED(ticks);
+    return true;
 }
 
 }
