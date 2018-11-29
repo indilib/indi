@@ -27,9 +27,12 @@ Modifications
 ..
 ..
 0.11  psjshep 17-Mar-2017 - changed PortT[0].text to serialConnection->port()
+
+1.1 JM 29-11-2018: Misc fixes and improvements.
  */
+
 #define LAKESIDE_VERSION_MAJOR 1
-#define LAKESIDE_VERSION_MINOR 0
+#define LAKESIDE_VERSION_MINOR 1
 
 #include "lakeside.h"
 #include <config.h>
@@ -53,7 +56,7 @@ Modifications
 //  or nothing in the buffer during GetLakesideStatus()
 #define LAKESIDE_TIMEOUT_RETRIES   2
 
-std::unique_ptr<Lakeside> lakeside(new Lakeside());
+static std::unique_ptr<Lakeside> lakeside(new Lakeside());
 
 void ISGetProperties(const char *dev)
 {
@@ -96,10 +99,7 @@ Lakeside::Lakeside()
 {
     setVersion(LAKESIDE_VERSION_MAJOR, LAKESIDE_VERSION_MINOR);
 
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_ABORT );
-
-    lastPos = 0;
-    lastTemperature = 0;
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT );
 }
 
 // Initialise
@@ -127,54 +127,54 @@ bool Lakeside::initProperties()
 
     // Backlash 0-255
     IUFillNumber(&BacklashN[0], "BACKLASH", "(0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Maximum Travel - read only
     IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "No. Steps", "%.f", 1, 65536, 0, 10000);
-    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAXTRAVEL", "Max travel(Via Ctrlr)", OPTIONS_TAB, IP_RO, 0, IPS_IDLE );
+    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAXTRAVEL", "Max travel(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE );
 
     // Step Size - read only
     IUFillNumber(&StepSizeN[0], "STEPSIZE", "No. Steps", "%.f", 1, 65536, 0, 1);
-    IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEPSIZE", "Step Size(Via Ctrlr)", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEPSIZE", "Step Size(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
 
     // Active Temperature Slope - select 1 or 2
     IUFillSwitch(&ActiveTemperatureSlopeS[0], "Slope 1", "", ISS_ON);
     IUFillSwitch(&ActiveTemperatureSlopeS[1], "Slope 2", "", ISS_OFF);
-    IUFillSwitchVector(&ActiveTemperatureSlopeSP, ActiveTemperatureSlopeS, 2, getDeviceName(), "Active Slope", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ActiveTemperatureSlopeSP, ActiveTemperatureSlopeS, 2, getDeviceName(), "Active Slope", "Active Slope", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slope 1 : Directions
     IUFillSwitch(&Slope1DirS[0], "0", "", ISS_ON);
     IUFillSwitch(&Slope1DirS[1], "1", "", ISS_OFF);
-    IUFillSwitchVector(&Slope1DirSP, Slope1DirS, 2, getDeviceName(), "Slope 1 Direction", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&Slope1DirSP, Slope1DirS, 2, getDeviceName(), "Slope 1 Direction", "Slope 1 Direction", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slope 1 : Slope Increments (counts per degree, 0.1 step increments
     IUFillNumber(&Slope1IncN[0], "SLOPE1INC", "No. Steps (0-655356", "%.f", 0, 65536, 0, 0);
-    IUFillNumberVector(&Slope1IncNP, Slope1IncN, 1, getDeviceName(), "SLOPE1INC","Slope1 Increments", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope1IncNP, Slope1IncN, 1, getDeviceName(), "SLOPE1INC","Slope1 Increments", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // slope 1 : Deadband - value between 0 and 255
     IUFillNumber(&Slope1DeadbandN[0], "SLOPE1DEADBAND", "(0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&Slope1DeadbandNP, Slope1DeadbandN, 1, getDeviceName(), "SLOPE1DEADBAND", "Slope 1 Deadband", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope1DeadbandNP, Slope1DeadbandN, 1, getDeviceName(), "SLOPE1DEADBAND", "Slope 1 Deadband", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Slope 1 : Time Period (Minutes, 0.1 step increments
     IUFillNumber(&Slope1PeriodN[0], "SLOPE1PERIOD", "Minutes (0-99)", "%.f", 0, 99, 0, 0);
-    IUFillNumberVector(&Slope1PeriodNP, Slope1PeriodN, 1, getDeviceName(), "SLOPE1PERIOD", "Slope 1 Period", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope1PeriodNP, Slope1PeriodN, 1, getDeviceName(), "SLOPE1PERIOD", "Slope 1 Period", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Slope 2 : Direction
     IUFillSwitch(&Slope2DirS[0], "0", "", ISS_ON);
     IUFillSwitch(&Slope2DirS[1], "1", "", ISS_OFF);
-    IUFillSwitchVector(&Slope2DirSP, Slope2DirS, 2, getDeviceName(), "Slope 2 Direction", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&Slope2DirSP, Slope2DirS, 2, getDeviceName(), "Slope 2 Direction", "", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // slope 2 : Slope Increments (counts per degree, 0.1 step increments
     IUFillNumber(&Slope2IncN[0], "SLOPE2INC", "No. Steps (0-65536)", "%.f", 0, 65536, 0, 0);
-    IUFillNumberVector(&Slope2IncNP, Slope2IncN, 1, getDeviceName(), "SLOPE2INC", "Slope 2 Increments", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope2IncNP, Slope2IncN, 1, getDeviceName(), "SLOPE2INC", "Slope 2 Increments", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // slope 2 : Deadband - value between 0 and 255
     IUFillNumber(&Slope2DeadbandN[0], "SLOPE2DEADBAND", "Steps (0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&Slope2DeadbandNP, Slope2DeadbandN, 1, getDeviceName(), "SLOPE2DEADBAND", "Slope 2 Deadband", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope2DeadbandNP, Slope2DeadbandN, 1, getDeviceName(), "SLOPE2DEADBAND", "Slope 2 Deadband", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
-    // slope 2 : Time Period (Minutes, 0.1 step increments
+    // slope 2 : Time Period (Minutes, 0.1 step increments)
     IUFillNumber(&Slope2PeriodN[0], "SLOPE2PERIOD", "Minutes (0-99)", "%.f", 0, 99, 0, 0);
-    IUFillNumberVector(&Slope2PeriodNP, Slope2PeriodN, 1, getDeviceName(), "SLOPE2PERIOD", "Slope 2 Period", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope2PeriodNP, Slope2PeriodN, 1, getDeviceName(), "SLOPE2PERIOD", "Slope 2 Period", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     FocusAbsPosN[0].min = 0.;
 
@@ -309,15 +309,13 @@ bool Lakeside::SendCmd(const char* in_cmd)
     int nbytes_written=0, rc=-1;
     char errstr[MAXRBUF];
 
+    LOGF_DEBUG("CMD <%s>", in_cmd);
+
     if ( (rc = tty_write_string(PortFD, in_cmd, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("SendCmd: Write for command (%s) failed - %s", in_cmd,errstr);
         return false;
-    }
-    else
-    {
-        LOGF_DEBUG("SendCmd: Successfully sent (%s)", in_cmd);
     }
 
     return true;
@@ -346,14 +344,11 @@ bool Lakeside::ReadBuffer(char* response)
         strncpy(response,"ERROR", LAKESIDE_LEN);
         return false;
     }
-    else
-    {
-        LOGF_DEBUG("ReadBuffer: Received (%s)", resp);
-    }
+
+    LOGF_DEBUG("RES <%s>", resp);
 
     strncpy(response,resp, LAKESIDE_LEN);
     return true;
-
 }
 
 //
@@ -2181,23 +2176,7 @@ void Lakeside::GetFocusParams ()
 
 IPState Lakeside::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double newPosition = 0;
-    bool rc            = false;
-
-    if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
-    else
-        newPosition = FocusAbsPosN[0].value + ticks;
-
-    rc = gotoPosition((uint32_t)newPosition);
-
-    if (!rc)
-        return IPS_ALERT;
-
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
-
-    return IPS_BUSY;
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
 }
 
 //
@@ -2208,20 +2187,9 @@ IPState Lakeside::MoveAbsFocuser(uint32_t targetTicks)
     targetPos = targetTicks;
     bool rc = false;
 
-    rc = gotoPosition((uint32_t)targetPos);
+    rc = gotoPosition(targetPos);
 
-    // if MoveFocuser succeed, then move send successfully
-    if (rc == true)
-    {
-        FocusAbsPosNP.s = IPS_BUSY;
-        //LOG_DEBUG("MoveAbsFocuser: returning IPS_BUSY");
-        return IPS_BUSY;
-    }
-    else
-    {
-        LOG_DEBUG("MoveAbsFocuser: move failed");
-        return FocusAbsPosNP.s;
-    }
+    return (rc ? IPS_BUSY : IPS_ALERT);
 }
 
 //
@@ -2248,7 +2216,7 @@ void Lakeside::TimerHit()
         if ( IsMoving )
         {
             // GetLakesideStatus() shows position as it is moving
-            LOG_DEBUG("TimerHit: Focuser still moving");
+            LOG_DEBUG("Focuser is in motion...");
         }
         else
         {
@@ -2269,7 +2237,7 @@ void Lakeside::TimerHit()
     {
         // Get a temperature
         rc=updateTemperature();
-        if (rc)
+        if (rc && fabs(lastTemperature - TemperatureN[0].value) > TEMPERATURE_THRESHOLD)
         {
             IDSetNumber(&TemperatureNP, nullptr);
             lastTemperature = TemperatureN[0].value;
@@ -2277,10 +2245,10 @@ void Lakeside::TimerHit()
     }
 
     // IPS_ALERT - any alert situation generated
-    if ( FocusAbsPosNP.s == IPS_ALERT )
-    {
-        LOG_DEBUG("TimerHit: Focuser state = IPS_ALERT");
-    }
+//    if ( FocusAbsPosNP.s == IPS_ALERT )
+//    {
+//        LOG_DEBUG("TimerHit: Focuser state = IPS_ALERT");
+//    }
 
     SetTimer(POLLMS);
 
