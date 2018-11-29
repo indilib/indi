@@ -48,9 +48,8 @@ protected:
     virtual void TimerHit();
 
 private:
-
-    double targetPos, lastPos, lastTemperature;
-    uint32_t currentSpeed;
+    double lastTemperature { 1e6 };
+    uint32_t currentSpeed, targetPos;
 
     struct timeval focusMoveStart;
     float focusMoveRequest;
@@ -148,5 +147,8 @@ private:
 
     INumber Slope2PeriodN[1];
     INumberVectorProperty Slope2PeriodNP;
+
+    static constexpr const char *SETTINGS_TAB { "Settings" };
+    static constexpr const double TEMPERATURE_THRESHOLD { 0.05 };
 
 };
