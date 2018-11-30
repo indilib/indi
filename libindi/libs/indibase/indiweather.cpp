@@ -259,7 +259,7 @@ void Weather::TimerHit()
         // Ok
         case IPS_OK:
 
-            updateWeatherState();
+            syncCriticalParameters();
             ParametersNP.s = state;
             IDSetNumber(&ParametersNP, nullptr);
 
