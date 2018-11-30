@@ -61,8 +61,8 @@ void FocuserInterface::initProperties(const char *groupName)
     IUFillNumberVector(&FocusSyncNP, FocusSyncN, 1, m_defaultDevice->getDeviceName(), "FOCUS_SYNC", "Sync",
                        groupName, IP_RW, 60, IPS_OK);
 
-    // Maximum Travel (200,000 default)
-    IUFillNumber(&FocusMaxPosN[0], "FOCUS_MAX_VALUE", "Steps", "%.f", 1e3, 1e6, 1e4, 2e5);
+    // Maximum Travel
+    IUFillNumber(&FocusMaxPosN[0], "FOCUS_MAX_VALUE", "Steps", "%.f", 1e3, 1e6, 1e4, 1e5);
     IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, m_defaultDevice->getDeviceName(), "FOCUS_MAX", "Max. Position",
                        groupName, IP_RW, 60, IPS_OK);
 
