@@ -31,21 +31,22 @@ class Lakeside : public INDI::Focuser
 {
 public:
     Lakeside();
-    ~Lakeside() = default;
+    ~Lakeside() override = default;
 
-    const char * getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);    
+    const char * getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
 protected:
 
-    virtual bool Handshake();
-    virtual IPState MoveAbsFocuser(uint32_t ticks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
+    virtual bool Handshake() override;
+    virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual bool AbortFocuser() override;
+    virtual void TimerHit() override;
+    virtual bool ReverseFocuser(bool enabled) override;
 
 private:
     double lastTemperature { 1e6 };
@@ -79,7 +80,7 @@ private:
     char DecodeBuffer(char* in_response);
     bool SendCmd(const char *in_cmd);
     bool ReadBuffer(char* response);
-  
+
     bool gotoPosition(uint32_t position);
 
     bool setCalibration();
@@ -88,7 +89,7 @@ private:
     bool setBacklash(int backlash );
     bool setStepSize(int stepsize );
     bool setMaxTravel(int);
-    bool setMoveDirection(int direction);
+    //bool setMoveDirection(int direction);
 
     bool setActiveTemperatureSlope(uint32_t active_slope);
     bool setSlope1Inc(uint32_t slope1_inc);
@@ -106,8 +107,8 @@ private:
     INumber TemperatureKN[1];
     INumberVectorProperty TemperatureKNP;
 
-    ISwitch MoveDirectionS[2];
-    ISwitchVectorProperty MoveDirectionSP;
+//    ISwitch MoveDirectionS[2];
+//    ISwitchVectorProperty MoveDirectionSP;
 
     INumber StepSizeN[1];
     INumberVectorProperty StepSizeNP;
