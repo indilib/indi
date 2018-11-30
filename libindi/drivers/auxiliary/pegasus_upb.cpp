@@ -85,7 +85,32 @@ bool PegasusUPB::initProperties()
 
     setDriverInterface(AUX_INTERFACE | FOCUSER_INTERFACE | WEATHER_INTERFACE);
 
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE |
+                      FOCUSER_CAN_REL_MOVE |
+                      FOCUSER_CAN_REVERSE  |
+                      FOCUSER_CAN_SYNC     |
+                      FOCUSER_CAN_ABORT);
+
     addAuxControls();
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// Main Control Panel
+    ////////////////////////////////////////////////////////////////////////////
+    // Cycle all power on/off
+    IUFillSwitch(&PowerCycleAllS[POWER_CYCLE_ON], "POWER_CYCLE_ON", "All On", ISS_OFF);
+    IUFillSwitch(&PowerCycleAllS[POWER_CYCLE_OFF], "POWER_CYCLE_OFF", "All Off", ISS_OFF);
+    IUFillSwitchVector(&PowerCycleAllSP, PowerCycleAllS, 2, getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// Power Group
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Turn on/off power
+    IUFillSwitch(&PowerControlS[0], "POWER_CONTROL_1", "Port 1", ISS_OFF);
+    IUFillSwitch(&PowerControlS[1], "POWER_CONTROL_2", "Port 2", ISS_OFF);
+    IUFillSwitch(&PowerControlS[2], "POWER_CONTROL_2", "Port 3", ISS_OFF);
+    IUFillSwitch(&PowerControlS[3], "POWER_CONTROL_2", "Port 4", ISS_OFF);
+    IUFillSwitchVector(&PowerControlSP, PowerControlS, 4, getDeviceName(), "POWER_CONTROL", "Power Control", POWER_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     serialConnection = new Connection::Serial(this);
     serialConnection->registerHandshake([&]() { return Handshake(); });
@@ -100,11 +125,23 @@ bool PegasusUPB::updateProperties()
 
     if (isConnected())
     {
+        // Main Control
+        defineSwitch(&PowerCycleAllSP);
+
+        // Power
+        defineSwitch(&PowerControlSP);
+
         FI::updateProperties();
         WI::updateProperties();
     }
     else
     {
+        // Main Control
+        deleteProperty(PowerCycleAllSP.name);
+
+        // Power
+        deleteProperty(PowerControlSP.name);
+
         FI::updateProperties();
         WI::updateProperties();
     }
@@ -118,10 +155,16 @@ const char *PegasusUPB::getDefaultName()
 }
 
 bool PegasusUPB::Handshake()
-{    
+{
     PortFD = serialConnection->getPortFD();
 
-    return true;
+    char res[MAXINDILABEL] = {0};
+
+    bool rc = sendCommand("P#", res);
+    if (!rc)
+        return false;
+
+    return (!strcmp(res, "UPB_OK"));
 }
 
 bool PegasusUPB::Disconnect()
@@ -135,6 +178,52 @@ bool PegasusUPB::ISNewSwitch(const char *dev, const char *name, ISState *states,
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
+        // Cycle all power on or off
+        if (!strcmp(name, PowerCycleAllSP.name))
+        {
+            IUUpdateSwitch(&PowerCycleAllSP, states, names, n);
+
+            PowerCycleAllSP.s = IPS_ALERT;
+            char cmd[MAXINDIDEVICE]={0},res[MAXINDINAME]={0};
+            snprintf(cmd, MAXINDINAME, "PZ:%d", IUFindOnSwitchIndex(&PowerCycleAllSP));
+            if (sendCommand(cmd, res))
+            {
+                PowerCycleAllSP.s = !strcmp(cmd, res) ? IPS_OK : IPS_ALERT;
+            }
+
+            IUResetSwitch(&PowerCycleAllSP);
+            IDSetSwitch(&PowerCycleAllSP, nullptr);
+            return true;
+        }
+
+        // Control Power per port
+        if (!strcmp(name, PowerControlSP.name))
+        {
+            bool failed=false;
+            for (int i=0; i < n; i++)
+            {
+                if (!strcmp(names[i], PowerControlS[i].name) && states[i] != PowerControlS[i].s)
+                {
+                    if (setPowerEnabled(i, states[i] == ISS_ON) == false)
+                    {
+                        failed = true;
+                        break;
+                    }
+                }
+            }
+
+            if (failed)
+               PowerControlSP.s = IPS_ALERT;
+            else
+            {
+                PowerControlSP.s = IPS_OK;
+                IUUpdateSwitch(&PowerControlSP, states, names, n);
+            }
+
+            IDSetSwitch(&PowerControlSP, nullptr);
+            return true;
+        }
+
         if (strstr(name, "FOCUS"))
             return FI::processSwitch(dev, name, states, names, n);
     }
@@ -158,10 +247,12 @@ bool PegasusUPB::ISNewNumber(const char *dev, const char *name, double values[],
 bool PegasusUPB::sendCommand(const char *cmd, char *res)
 {
     int nbytes_read=0, nbytes_written=0, tty_rc = 0;
+    char command[MAXINDINAME]={0};
     LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
-    if ( (tty_rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+    snprintf(command, MAXINDINAME, "%s\n", cmd);
+    if ( (tty_rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
     {
         char errorMessage[MAXRBUF];
         tty_error_msg(tty_rc, errorMessage, MAXRBUF);
@@ -181,4 +272,68 @@ bool PegasusUPB::sendCommand(const char *cmd, char *res)
     LOGF_DEBUG("RES <%s>", res);
 
     return true;
+}
+
+IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
+{
+    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
+    snprintf(cmd, MAXINDINAME, "SM:%d", targetTicks);
+    if (sendCommand(cmd, res))
+    {
+        return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
+    }
+
+    return IPS_ALERT;
+}
+
+IPState PegasusUPB::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+{
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
+}
+
+bool PegasusUPB::AbortFocuser()
+{
+    char res[MAXINDINAME]={0};
+    if (sendCommand("SH", res))
+    {
+        return (!strcmp(res, "H:1"));
+    }
+
+    return false;
+}
+
+bool PegasusUPB::ReverseFocuser(bool enabled)
+{
+    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
+    snprintf(cmd, MAXINDINAME, "SR:%d", enabled ? 1 : 0);
+    if (sendCommand(cmd, res))
+    {
+        return (!strcmp(res, cmd));
+    }
+
+    return false;
+}
+
+bool PegasusUPB::SyncFocuser(uint32_t ticks)
+{
+    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
+    snprintf(cmd, MAXINDINAME, "SC:%d", ticks);
+    if (sendCommand(cmd, res))
+    {
+        return (!strcmp(res, cmd));
+    }
+
+    return false;
+}
+
+bool PegasusUPB::setPowerEnabled(uint8_t port, bool enabled)
+{
+    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
+    snprintf(cmd, MAXINDINAME, "P%d:%d", port, enabled ? 1 : 0);
+    if (sendCommand(cmd, res))
+    {
+        return (!strcmp(res, cmd));
+    }
+
+    return false;
 }
