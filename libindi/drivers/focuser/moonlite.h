@@ -45,10 +45,11 @@ protected:
     virtual bool AbortFocuser() override;
     virtual void TimerHit() override;
     virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool SyncFocuser(uint32_t ticks) override;
 
   private:
     void GetFocusParams();
-    bool sync(uint16_t offset);
+    //bool sync(uint16_t offset);
     bool updateStepMode();
     bool updateTemperature();
     bool updatePosition();
@@ -78,8 +79,8 @@ protected:
     ISwitch StepModeS[2];
     ISwitchVectorProperty StepModeSP;
 
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+//    INumber MaxTravelN[1];
+//    INumberVectorProperty MaxTravelNP;
 
     INumber TemperatureSettingN[2];
     INumberVectorProperty TemperatureSettingNP;
@@ -87,6 +88,6 @@ protected:
     ISwitch TemperatureCompensateS[2];
     ISwitchVectorProperty TemperatureCompensateSP;
 
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
+//    INumber SyncN[1];
+//    INumberVectorProperty SyncNP;
 };
