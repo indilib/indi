@@ -63,7 +63,7 @@ void FocuserInterface::initProperties(const char *groupName)
 
     // Maximum Travel (200,000 default)
     IUFillNumber(&FocusMaxPosN[0], "FOCUS_MAX_VALUE", "Steps", "%.f", 1e3, 1e6, 1e4, 2e5);
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, m_defaultDevice->getDeviceName(), "FOCUS_MAX", "Maximum Position",
+    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, m_defaultDevice->getDeviceName(), "FOCUS_MAX", "Max. Position",
                        groupName, IP_RW, 60, IPS_OK);
 
     // Abort
@@ -74,7 +74,7 @@ void FocuserInterface::initProperties(const char *groupName)
     // Revese
     IUFillSwitch(&FocusReverseS[0], "ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&FocusReverseS[1], "DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 1, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION", "Reverse Motion", groupName, IP_RW,
+    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION", "Reverse Motion", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 }
 
