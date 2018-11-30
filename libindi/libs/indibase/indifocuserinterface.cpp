@@ -477,4 +477,14 @@ bool FocuserInterface::SetFocuserMaxTravel(uint32_t ticks)
     return true;
 }
 
+bool FocuserInterface::saveConfigItems(FILE *fp)
+{
+    if (CanAbsMove())
+        IUSaveConfigNumber(fp, &FocusMaxPosNP);
+    if (CanReverse())
+        IUSaveConfigSwitch(fp, &FocusReverseSP);
+
+    return true;
+}
+
 }

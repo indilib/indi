@@ -202,6 +202,13 @@ class FocuserInterface
      */
     virtual bool AbortFocuser();
 
+    /**
+     * @brief saveConfigItems save focuser properties defined in the interface in config file
+     * @param fp pointer to config file
+     * @return Always return true
+     */
+    bool saveConfigItems(FILE *fp);
+
     // Focuser Speed (if variable speeds are supported)
     INumberVectorProperty FocusSpeedNP;
     INumber FocusSpeedN[1];
@@ -222,7 +229,7 @@ class FocuserInterface
 
     // Relative Focuser position to be commanded
     INumberVectorProperty FocusRelPosNP;
-    INumber FocusRelPosN[1];  
+    INumber FocusRelPosN[1];
 
     // Absolute Focuser positoin is 0 to this maximum limit. By Default, it is set to 200,000.
     INumberVectorProperty FocusMaxPosNP;
