@@ -138,9 +138,9 @@ bool FocusLynxBase::initProperties()
                        FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Max Travel relative focusers
-    IUFillNumber(&MaxTravelN[0], "Ticks", "", "%.f", 0, 100000, 0., 0.);
-    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAX TRAVEL", "Max Travel", FOCUS_SETTINGS_TAB, IP_RW, 0,
-                       IPS_IDLE);
+//    IUFillNumber(&MaxTravelN[0], "Ticks", "", "%.f", 0, 100000, 0., 0.);
+//    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAX TRAVEL", "Max Travel", FOCUS_SETTINGS_TAB, IP_RW, 0,
+//                       IPS_IDLE);
 
     // Focuser Step Size
     IUFillNumber(&StepSizeN[0], "10000*microns/step", "", "%.f", 0, 65535, 0., 0);
@@ -229,6 +229,12 @@ void FocusLynxBase::ISGetProperties(const char *dev)
 * ***********************************************************************************/
 bool FocusLynxBase::updateProperties()
 {
+    // For absolute focusers the vector is set to RO, as we get value from the HUB
+    if (isAbsolute == false)
+        FocusMaxPosNP.p = IP_RW;
+    else
+        FocusMaxPosNP.p = IP_RO;
+
     INDI::Focuser::updateProperties();
 
     if (isConnected())
@@ -244,12 +250,7 @@ bool FocusLynxBase::updateProperties()
         defineSwitch(&BacklashCompensationSP);
         defineNumber(&BacklashNP);
 
-        // For absolute focusers the vector is set to RO, as we get value from the HUB
-        if (isAbsolute == false)
-            MaxTravelNP.p = IP_RW;
-        else
-            MaxTravelNP.p = IP_RO;
-        defineNumber(&MaxTravelNP);
+        //defineNumber(&MaxTravelNP);
 
         defineNumber(&StepSizeNP);
 
@@ -276,7 +277,7 @@ bool FocusLynxBase::updateProperties()
         deleteProperty(BacklashCompensationSP.name);
         deleteProperty(BacklashNP.name);
 
-        deleteProperty(MaxTravelNP.name);
+        //deleteProperty(MaxTravelNP.name);
         deleteProperty(StepSizeNP.name);
 
         deleteProperty(ResetSP.name);
@@ -600,28 +601,28 @@ bool FocusLynxBase::ISNewNumber(const char *dev, const char *name, double values
         }
 
         // Max Travel if relative focusers
-        if (strcmp(MaxTravelNP.name, name) == 0)
-        {
-            IUUpdateNumber(&MaxTravelNP, values, names, n);
+//        if (strcmp(MaxTravelNP.name, name) == 0)
+//        {
+//            IUUpdateNumber(&MaxTravelNP, values, names, n);
 
-            if (setMaxTravel(MaxTravelN[0].value) == false)
-                MaxTravelNP.s = IPS_ALERT;
-            else
-            {
-                MaxTravelNP.s = IPS_OK;
-                FocusAbsPosN[0].max = SyncN[0].max = MaxTravelN[0].value;
-                FocusAbsPosN[0].step = SyncN[0].step = (MaxTravelN[0].value / 50.0);
+//            if (setMaxTravel(MaxTravelN[0].value) == false)
+//                MaxTravelNP.s = IPS_ALERT;
+//            else
+//            {
+//                MaxTravelNP.s = IPS_OK;
+//                FocusAbsPosN[0].max = SyncN[0].max = MaxTravelN[0].value;
+//                FocusAbsPosN[0].step = SyncN[0].step = (MaxTravelN[0].value / 50.0);
 
-                IUUpdateMinMax(&FocusAbsPosNP);
-                IUUpdateMinMax(&SyncNP);
+//                IUUpdateMinMax(&FocusAbsPosNP);
+//                IUUpdateMinMax(&SyncNP);
 
-                IDSetNumber(&MaxTravelNP, nullptr);
+//                IDSetNumber(&MaxTravelNP, nullptr);
 
-                LOGF_INFO("Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min,
-                       FocusAbsPosN[0].max);
-            }
-            return true;
-        }
+//                LOGF_INFO("Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min,
+//                       FocusAbsPosN[0].max);
+//            }
+//            return true;
+//        }
 
         // Set LED intensity to the HUB itself via function setLedLevel()
         if (!strcmp(LedNP.name, name))
@@ -818,9 +819,9 @@ bool FocusLynxBase::getFocusConfig()
         IUUpdateMinMax(&FocusRelPosNP);
         IUUpdateMinMax(&SyncNP);
 
-        MaxTravelNP.s = IPS_OK;
-        MaxTravelN[0].value = maxPos;
-        IDSetNumber(&MaxTravelNP, nullptr);
+        FocusMaxPosNP.s = IPS_OK;
+        FocusMaxPosN[0].value = maxPos;
+        IDSetNumber(&FocusMaxPosNP, nullptr);
 
     }
     else
@@ -2123,7 +2124,7 @@ bool FocusLynxBase::home()
         strncpy(response, "H", 16);
         nbytes_read              = strlen(response) + 1;
         targetPosition           = 0;
-        FocusAbsPosN[0].value = MaxTravelN[0].value;
+        //FocusAbsPosN[0].value = MaxTravelN[0].value;
         FocusAbsPosNP.s = IPS_OK;
         IDSetNumber(&FocusAbsPosNP, nullptr);
         simStatus[STATUS_HOMING] = ISS_ON;
@@ -2779,7 +2780,8 @@ bool FocusLynxBase::sync(uint32_t position)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool FocusLynxBase::setMaxTravel(u_int16_t travel)
+//bool FocusLynxBase::setMaxTravel(u_int16_t travel)
+bool FocusLynxBase::SetFocuserMaxTravel(uint32_t ticks)
 {
     char cmd[32];
     int errcode = 0;
@@ -2790,7 +2792,7 @@ bool FocusLynxBase::setMaxTravel(u_int16_t travel)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sSETMAX%06d>", getFocusTarget(), travel);
+    snprintf(cmd, 32, "<%sSETMAX%06d>", getFocusTarget(), ticks);
     LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
@@ -2828,8 +2830,8 @@ bool FocusLynxBase::setMaxTravel(u_int16_t travel)
 
         if (!strcmp(response, "SET"))
         {
-            return true;
             getFocusConfig();
+            return true;
         }
         else
             return false;
@@ -2890,8 +2892,8 @@ bool FocusLynxBase::setStepSize(u_int16_t stepsize)
 
         if (!strcmp(response, "SET"))
         {
-            return true;
             getFocusConfig();
+            return true;
         }
         else
             return false;
@@ -2952,8 +2954,8 @@ bool FocusLynxBase::resetFactory()
 
         if (!strcmp(response, "SET"))
         {
-            return true;
             getFocusConfig();
+            return true;
         }
         else
             return false;
@@ -3384,7 +3386,7 @@ bool FocusLynxBase::saveConfigItems(FILE *fp)
     IUSaveConfigNumber(fp, &StepSizeNP);
     if (isAbsolute == false)
     {
-        IUSaveConfigNumber(fp, &MaxTravelNP);
+        //IUSaveConfigNumber(fp, &MaxTravelNP);
         IUSaveConfigSwitch(fp, &SyncMandatorySP);
     }
     return true;
