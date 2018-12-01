@@ -124,9 +124,13 @@ bool RoboFocus::initProperties()
     IUFillNumberVector(&MinMaxPositionNP, MinMaxPositionN, 2, getDeviceName(), "FOCUS_MINMAXPOSITION", "Extrema",
                        SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
-//    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 64000., 0., 10000.);
-//    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", SETTINGS_TAB,
-//                       IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 64000., 0., 10000.);
+    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", SETTINGS_TAB,
+                       IP_RW, 0, IPS_IDLE);
+
+    // Cannot change maximum position
+    FocusMaxPosNP.p = IP_RO;
+    FocusMaxPosN[0].value = 64000;
 
     /* Set Robofocus position register to this position */
 //    IUFillNumber(&SetRegisterPositionN[0], "SETPOS", "Position", "%6.0f", 0, 64000., 0., 0.);
@@ -168,7 +172,7 @@ bool RoboFocus::updateProperties()
         defineSwitch(&PowerSwitchesSP);
         defineNumber(&SettingsNP);
         defineNumber(&MinMaxPositionNP);
-//        defineNumber(&MaxTravelNP);
+        defineNumber(&MaxTravelNP);
 //        defineNumber(&SetRegisterPositionNP);
         defineNumber(&SetBacklashNP);
 //        defineNumber(&FocusRelPosNP);
@@ -184,7 +188,7 @@ bool RoboFocus::updateProperties()
         deleteProperty(SettingsNP.name);
         deleteProperty(PowerSwitchesSP.name);
         deleteProperty(MinMaxPositionNP.name);
-//        deleteProperty(MaxTravelNP.name);
+        deleteProperty(MaxTravelNP.name);
 //        deleteProperty(SetRegisterPositionNP.name);
         deleteProperty(SetBacklashNP.name);
 //        deleteProperty(FocusRelPosNP.name);
@@ -767,18 +771,22 @@ int RoboFocus::updateRFPowerSwitches(int s, int new_sn, int *cur_s1LL, int *cur_
     return 0;
 }
 
-bool RoboFocus::SetFocuserMaxTravel(uint32_t ticks)
+int RoboFocus::updateRFMaxPosition(double *value)
 {
+    LOG_DEBUG("Query max position...");
+
     float temp;
     char rf_cmd[32];
     char vl_tmp[6];
-    int ret_read_tmp;
+    int robofocus_rc;
     char waste[1];
 
     if (isSimulation())
-        return true;
+    {
+        return 0;
+    }
 
-    if (ticks == MAXTRAVEL_READOUT)
+    if (*value == MAXTRAVEL_READOUT)
     {
         strncpy(rf_cmd, "FL000000", 9);
     }
@@ -788,25 +796,25 @@ bool RoboFocus::SetFocuserMaxTravel(uint32_t ticks)
         rf_cmd[1] = 'L';
         rf_cmd[2] = '0';
 
-        if (ticks > 9999)
+        if (*value > 9999)
         {
-            snprintf(vl_tmp, 6, "%5d", ticks);
+            sprintf(vl_tmp, "%5d", (int)*value);
         }
-        else if (ticks > 999)
+        else if (*value > 999)
         {
-            snprintf(vl_tmp, 6, "0%4d", ticks);
+            sprintf(vl_tmp, "0%4d", (int)*value);
         }
-        else if (ticks > 99)
+        else if (*value > 99)
         {
-            snprintf(vl_tmp, 6, "00%3d", ticks);
+            sprintf(vl_tmp, "00%3d", (int)*value);
         }
-        else if (ticks > 9)
+        else if (*value > 9)
         {
-            snprintf(vl_tmp, 6, "000%2d", ticks);
+            sprintf(vl_tmp, "000%2d", (int)*value);
         }
         else
         {
-            snprintf(vl_tmp, 6, "0000%1d", ticks);
+            sprintf(vl_tmp, "0000%1d", (int)*value);
         }
         rf_cmd[3] = vl_tmp[0];
         rf_cmd[4] = vl_tmp[1];
@@ -816,83 +824,21 @@ bool RoboFocus::SetFocuserMaxTravel(uint32_t ticks)
         rf_cmd[8] = 0;
     }
 
-    if ((ret_read_tmp = SendCommand(rf_cmd)) < 0)
-        return false;
+    if ((robofocus_rc = SendCommand(rf_cmd)) < 0)
+        return robofocus_rc;
+
+    if ((robofocus_rc = ReadResponse(rf_cmd)) < 0)
+        return robofocus_rc;
 
     if (sscanf(rf_cmd, "FL%1c%5f", waste, &temp) < 1)
-        return false;
+        return -1;
 
-    return true;
+    *value = (double)temp;
+
+    LOGF_DEBUG("Max position: %g", *value);
+
+    return 0;
 }
-
-//int RoboFocus::updateRFMaxPosition(double *value)
-//{
-//    LOG_DEBUG("Query max position...");
-
-//    float temp;
-//    char rf_cmd[32];
-//    char vl_tmp[6];
-//    int robofocus_rc;
-//    char waste[1];
-
-//    if (isSimulation())
-//    {
-//        return 0;
-//    }
-
-//    if (*value == MAXTRAVEL_READOUT)
-//    {
-//        strncpy(rf_cmd, "FL000000", 9);
-//    }
-//    else
-//    {
-//        rf_cmd[0] = 'F';
-//        rf_cmd[1] = 'L';
-//        rf_cmd[2] = '0';
-
-//        if (*value > 9999)
-//        {
-//            sprintf(vl_tmp, "%5d", (int)*value);
-//        }
-//        else if (*value > 999)
-//        {
-//            sprintf(vl_tmp, "0%4d", (int)*value);
-//        }
-//        else if (*value > 99)
-//        {
-//            sprintf(vl_tmp, "00%3d", (int)*value);
-//        }
-//        else if (*value > 9)
-//        {
-//            sprintf(vl_tmp, "000%2d", (int)*value);
-//        }
-//        else
-//        {
-//            sprintf(vl_tmp, "0000%1d", (int)*value);
-//        }
-//        rf_cmd[3] = vl_tmp[0];
-//        rf_cmd[4] = vl_tmp[1];
-//        rf_cmd[5] = vl_tmp[2];
-//        rf_cmd[6] = vl_tmp[3];
-//        rf_cmd[7] = vl_tmp[4];
-//        rf_cmd[8] = 0;
-//    }
-
-//    if ((robofocus_rc = SendCommand(rf_cmd)) < 0)
-//        return robofocus_rc;
-
-//    if ((robofocus_rc = ReadResponse(rf_cmd)) < 0)
-//        return robofocus_rc;
-
-//    if (sscanf(rf_cmd, "FL%1c%5f", waste, &temp) < 1)
-//        return -1;
-
-//    *value = (double)temp;
-
-//    LOGF_DEBUG("Max position: %g", *value);
-
-//    return 0;
-//}
 
 //int RoboFocus::updateRFSetPosition(const double *value)
 //{
@@ -1240,50 +1186,50 @@ bool RoboFocus::ISNewNumber(const char *dev, const char *name, double values[], 
             }
         }
 
-//        if (strcmp(name, MaxTravelNP.name) == 0)
-//        {
-//            double new_maxt = 0;
-//            int ret         = -1;
+        if (strcmp(name, MaxTravelNP.name) == 0)
+        {
+            double new_maxt = 0;
+            int ret         = -1;
 
-//            for (nset = i = 0; i < n; i++)
-//            {
-//                /* Find numbers with the passed names in the MinMaxPositionNP property */
-//                INumber *mmpp = IUFindNumber(&MaxTravelNP, names[i]);
+            for (nset = i = 0; i < n; i++)
+            {
+                /* Find numbers with the passed names in the MinMaxPositionNP property */
+                INumber *mmpp = IUFindNumber(&MaxTravelNP, names[i]);
 
-//                /* If the number found is  (MaxTravelN[0]) then process it */
-//                if (mmpp == &MaxTravelN[0])
-//                {
-//                    new_maxt = (values[i]);
-//                    nset += static_cast<int>(new_maxt >= 1 && new_maxt <= 64000);
-//                }
-//            }
-//            /* Did we process the one number? */
-//            if (nset == 1)
-//            {
-//                IDSetNumber(&MinMaxPositionNP, nullptr);
+                /* If the number found is  (MaxTravelN[0]) then process it */
+                if (mmpp == &MaxTravelN[0])
+                {
+                    new_maxt = (values[i]);
+                    nset += static_cast<int>(new_maxt >= 1 && new_maxt <= 64000);
+                }
+            }
+            /* Did we process the one number? */
+            if (nset == 1)
+            {
+                IDSetNumber(&MinMaxPositionNP, nullptr);
 
-//                if ((ret = updateRFMaxPosition(&new_maxt)) < 0)
-//                {
-//                    MaxTravelNP.s = IPS_IDLE;
-//                    IDSetNumber(&MaxTravelNP, "Changing to new maximum travel failed");
-//                    return false;
-//                }
+                if ((ret = updateRFMaxPosition(&new_maxt)) < 0)
+                {
+                    MaxTravelNP.s = IPS_IDLE;
+                    IDSetNumber(&MaxTravelNP, "Changing to new maximum travel failed");
+                    return false;
+                }
 
-//                currentMaxTravel = new_maxt;
-//                MaxTravelNP.s    = IPS_OK;
-//                IDSetNumber(&MaxTravelNP, "Maximum travel is now  %3.0f", currentMaxTravel);
-//                return true;
-//            }
-//            else
-//            {
-//                /* Set property state to idle */
+                currentMaxTravel = new_maxt;
+                MaxTravelNP.s    = IPS_OK;
+                IDSetNumber(&MaxTravelNP, "Maximum travel is now  %3.0f", currentMaxTravel);
+                return true;
+            }
+            else
+            {
+                /* Set property state to idle */
 
-//                MaxTravelNP.s = IPS_IDLE;
-//                IDSetNumber(&MaxTravelNP, "Maximum travel absent or bogus.");
+                MaxTravelNP.s = IPS_IDLE;
+                IDSetNumber(&MaxTravelNP, "Maximum travel absent or bogus.");
 
-//                return false;
-//            }
-//        }
+                return false;
+            }
+        }
 
 //        if (strcmp(name, SetRegisterPositionNP.name) == 0)
 //        {

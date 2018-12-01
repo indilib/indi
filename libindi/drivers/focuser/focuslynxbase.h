@@ -114,7 +114,7 @@ class FocusLynxBase : public INDI::Focuser
     bool isResponseOK();
 
   protected:
-    virtual bool SetFocuserMaxTravel(uint32_t ticks) override;
+    virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
 
     // Move from private to public to validate
     bool configurationComplete;

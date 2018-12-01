@@ -188,13 +188,13 @@ class FocuserInterface
     virtual bool SyncFocuser(uint32_t ticks);
 
     /**
-     * @brief SetFocuserMaxTravel Set Focuser Maximum travel limit in the hardware.
+     * @brief SetFocuserMaxPosition Set Focuser Maximum position limit in the hardware.
      * @param ticks maximum steps permitted
      * @return True if successful, false otherwise.
-     * @note If setting maximum travel limit in the hardware is not available or not supported, do not override this function as the default
+     * @note If setting maximum position limit in the hardware is not available or not supported, do not override this function as the default
      * implementation will always return true.
      */
-    virtual bool SetFocuserMaxTravel(uint32_t ticks);
+    virtual bool SetFocuserMaxPosition(uint32_t ticks);
 
     /**
      * @brief AbortFocuser all focus motion

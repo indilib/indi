@@ -2781,7 +2781,7 @@ bool FocusLynxBase::sync(uint32_t position)
  *
 * ***********************************************************************************/
 //bool FocusLynxBase::setMaxTravel(u_int16_t travel)
-bool FocusLynxBase::SetFocuserMaxTravel(uint32_t ticks)
+bool FocusLynxBase::SetFocuserMaxPosition(uint32_t ticks)
 {
     char cmd[32];
     int errcode = 0;

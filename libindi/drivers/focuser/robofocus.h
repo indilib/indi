@@ -43,7 +43,6 @@ class RoboFocus : public INDI::Focuser
     virtual void TimerHit() override;
     virtual bool saveConfigItems(FILE *fp) override;
     virtual bool SyncFocuser(uint32_t ticks) override;
-    virtual bool SetFocuserMaxTravel(uint32_t ticks) override;
 
   private:
     unsigned char CheckSum(char *rf_cmd);
@@ -61,7 +60,7 @@ class RoboFocus : public INDI::Focuser
     int updateRFPositionRelativeOutward(double value);
     int updateRFPositionAbsolute(double value);
     int updateRFPowerSwitches(int s, int new_sn, int *cur_s1LL, int *cur_s2LR, int *cur_s3RL, int *cur_s4RR);
-    //int updateRFMaxPosition(double *value);
+    int updateRFMaxPosition(double *value);
     int updateRFSetPosition(const double *value);
 
     int ReadUntilComplete(char *buf, int timeout);
@@ -83,8 +82,8 @@ class RoboFocus : public INDI::Focuser
     INumber MinMaxPositionN[2];
     INumberVectorProperty MinMaxPositionNP;
 
-//    INumber MaxTravelN[1];
-//    INumberVectorProperty MaxTravelNP;
+    INumber MaxTravelN[1];
+    INumberVectorProperty MaxTravelNP;
 
     INumber SetRegisterPositionN[1];
     INumberVectorProperty SetRegisterPositionNP;

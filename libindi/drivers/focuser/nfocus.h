@@ -44,7 +44,6 @@ class NFocus : public INDI::Focuser
   protected:
     bool saveConfigItems(FILE *fp) override;
     bool SyncFocuser(uint32_t ticks) override;
-    bool SetFocuserMaxTravel(uint32_t ticks) override;
 
   private:
     unsigned char CalculateSum(char *rf_cmd);
@@ -60,7 +59,7 @@ class NFocus : public INDI::Focuser
     int moveNFOutward(const double *value);
     int getNFAbsolutePosition(double *value);
     int setNFAbsolutePosition(const double *value);
-    //int setNFMaxPosition(double *value);
+    int setNFMaxPosition(double *value);
     //int syncNF(const double *value);
 
     INumber TemperatureN[1];
@@ -72,8 +71,8 @@ class NFocus : public INDI::Focuser
     INumber MinMaxPositionN[2];
     INumberVectorProperty MinMaxPositionNP;
 
-//    INumber MaxTravelN[1];
-//    INumberVectorProperty MaxTravelNP;
+    INumber MaxTravelN[1];
+    INumberVectorProperty MaxTravelNP;
 
 //    INumber SyncN[1];
 //    INumberVectorProperty SyncNP;
