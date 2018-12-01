@@ -30,23 +30,24 @@ class PerfectStar : public INDI::Focuser
     typedef enum { PS_NOOP, PS_IN, PS_OUT, PS_GOTO, PS_SETPOS, PS_LOCKED, PS_HALT = 0xFF } PS_STATUS;
 
     PerfectStar();
-    virtual ~PerfectStar() = default;
+    virtual ~PerfectStar() override = default;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool saveConfigItems(FILE *fp);
+    const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    //virtual bool saveConfigItems(FILE *fp) override;
 
-    bool Connect();
-    bool Disconnect();
+    virtual bool Connect() override;
+    virtual bool Disconnect() override;
 
-    void TimerHit();
+    virtual void TimerHit() override;
 
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool AbortFocuser();
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual bool AbortFocuser() override;
+    virtual bool SyncFocuser(uint32_t ticks) override;
 
   private:
     bool setPosition(uint32_t ticks);
@@ -55,7 +56,7 @@ class PerfectStar : public INDI::Focuser
     bool setStatus(PS_STATUS targetStatus);
     bool getStatus(PS_STATUS *currentStatus);
 
-    bool sync(uint32_t ticks);
+    //bool sync(uint32_t ticks);
 
     hid_device *handle { nullptr };
     PS_STATUS status { PS_NOOP };
@@ -64,10 +65,10 @@ class PerfectStar : public INDI::Focuser
     uint32_t targetPosition { 0 };
 
     // Max position in ticks
-    INumber MaxPositionN[1];
-    INumberVectorProperty MaxPositionNP;
+//    INumber MaxPositionN[1];
+//    INumberVectorProperty MaxPositionNP;
 
-    // Sync to a particular position
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
+//    // Sync to a particular position
+//    INumber SyncN[1];
+//    INumberVectorProperty SyncNP;
 };

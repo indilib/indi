@@ -99,7 +99,7 @@ Lakeside::Lakeside()
 {
     setVersion(LAKESIDE_VERSION_MAJOR, LAKESIDE_VERSION_MINOR);
 
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT );
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_REVERSE);
 }
 
 // Initialise
@@ -108,9 +108,9 @@ bool Lakeside::initProperties()
     INDI::Focuser::initProperties();
 
     // Current Direction
-    IUFillSwitch(&MoveDirectionS[0], "Normal", "", ISS_ON);
-    IUFillSwitch(&MoveDirectionS[1], "Reverse", "", ISS_OFF);
-    IUFillSwitchVector(&MoveDirectionSP, MoveDirectionS, 2, getDeviceName(), "","Move Direction", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+//    IUFillSwitch(&MoveDirectionS[0], "Normal", "", ISS_ON);
+//    IUFillSwitch(&MoveDirectionS[1], "Reverse", "", ISS_OFF);
+//    IUFillSwitchVector(&MoveDirectionSP, MoveDirectionS, 2, getDeviceName(), "","Move Direction", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Focuser temperature (degrees C) - read only
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%3.2f", -50, 70., 0., 0.);
@@ -130,8 +130,9 @@ bool Lakeside::initProperties()
     IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Maximum Travel - read only
-    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "No. Steps", "%.f", 1, 65536, 0, 10000);
-    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAXTRAVEL", "Max travel(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE );
+//    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "No. Steps", "%.f", 1, 65536, 0, 10000);
+//    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAXTRAVEL", "Max travel(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE );
+    FocusMaxPosNP.p = IP_RO;
 
     // Step Size - read only
     IUFillNumber(&StepSizeN[0], "STEPSIZE", "No. Steps", "%.f", 1, 65536, 0, 1);
@@ -196,11 +197,11 @@ bool Lakeside::updateProperties()
     if (isConnected())
     {
         defineNumber(&BacklashNP);
-        defineNumber(&MaxTravelNP);
+        //defineNumber(&MaxTravelNP);
         defineNumber(&StepSizeNP);
         defineNumber(&TemperatureNP);
         defineNumber(&TemperatureKNP);
-        defineSwitch(&MoveDirectionSP);
+        //defineSwitch(&MoveDirectionSP);
         defineSwitch(&TemperatureTrackingSP);
         defineSwitch(&ActiveTemperatureSlopeSP);
         defineSwitch(&Slope1DirSP);
@@ -219,9 +220,9 @@ bool Lakeside::updateProperties()
     else
     {
         deleteProperty(BacklashNP.name);
-        deleteProperty(MaxTravelNP.name);
+        //deleteProperty(MaxTravelNP.name);
         deleteProperty(StepSizeNP.name);
-        deleteProperty(MoveDirectionSP.name);
+        //deleteProperty(MoveDirectionSP.name);
         deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureKNP.name);
         deleteProperty(TemperatureTrackingSP.name);
@@ -242,7 +243,7 @@ bool Lakeside::updateProperties()
 
 #if 0
 // connect to focuser port
-// 
+//
 //        9600 baud
 //        8 bits
 //        0 parity
@@ -355,7 +356,7 @@ bool Lakeside::ReadBuffer(char* response)
 // check for OK# from Lakeside - i.e. it is responding
 //
 bool Lakeside::LakesideOnline()
-{  
+{
     char resp[LAKESIDE_LEN] = {0};
     const char *cmd="??#";
 
@@ -408,7 +409,7 @@ bool Lakeside::updateMoveDirection()
         return false;
     }
 
-    IUResetSwitch(&MoveDirectionSP);
+    //IUResetSwitch(&MoveDirectionSP);
 
     // direction is in form Dnnnnn#
     // where nnnnn is 0 for normal or 1 for reversed
@@ -416,13 +417,13 @@ bool Lakeside::updateMoveDirection()
 
     if ( temp == 0)
     {
-        MoveDirectionS[0].s = ISS_ON;
+        FocusReverseS[1].s = ISS_ON;
         LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
     }
     else
         if ( temp == 1)
         {
-            MoveDirectionS[1].s = ISS_ON;
+            FocusReverseS[0].s = ISS_ON;
             LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
         }
         else
@@ -877,7 +878,7 @@ bool Lakeside::updateSlope2Deadband()
     return true;
 }
 
-// get Slope 1 time period 
+// get Slope 1 time period
 bool Lakeside::updateSlope1Period()
 {
     int rc=-1, temp=-1;
@@ -912,7 +913,7 @@ bool Lakeside::updateSlope1Period()
     return true;
 }
 
-// get Slope 2 time period 
+// get Slope 2 time period
 bool Lakeside::updateSlope2Period()
 {
     int rc=-1, temp=-1;
@@ -970,7 +971,7 @@ bool Lakeside::updateMaxTravel()
 
     if ( temp > 0)
     {
-        MaxTravelN[0].value = temp;
+        FocusMaxPosN[0].value = temp;
         LOGF_DEBUG("updateMaxTravel: MaxTravel is (%d)", temp);
     }
     else
@@ -1039,9 +1040,9 @@ bool Lakeside::gotoPosition(uint32_t position)
     calc_steps = FocusAbsPosN[0].value - position;
 
     // MaxTravelN[0].value is set by "calibrate" via the control box, & read at connect
-    if ( position > MaxTravelN[0].value )
+    if ( position > FocusMaxPosN[0].value )
     {
-        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min, MaxTravelN[0].value);
+        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min, FocusMaxPosN[0].value);
         FocusAbsPosNP.s = IPS_ALERT;
         return false;
     }
@@ -1088,7 +1089,7 @@ bool Lakeside::gotoPosition(uint32_t position)
 // Set backlash compensation
 //
 bool Lakeside::setBacklash(int backlash )
-{    
+{
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
 
@@ -1125,7 +1126,7 @@ bool Lakeside::setBacklash(int backlash )
 //        Here for example
 //
 bool Lakeside::setStepSize(int stepsize )
-{    
+{
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
 
@@ -1172,23 +1173,26 @@ bool Lakeside::setMaxTravel(int /*maxtravel*/ )
 // In case motor connection is on reverse side of the focus shaft
 // NOTE : This just reverses the voltage sent to the motor
 //        & does NOT reverse the CI / CO commands
-bool Lakeside::setMoveDirection(int direction)
+//bool Lakeside::setMoveDirection(int direction)
+bool Lakeside::ReverseFocuser(bool enabled)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if (direction == 0)
-        strncpy(cmd, "CRD0#", LAKESIDE_LEN);
-    else
-        if (direction == 1)
-            strncpy(cmd, "CRD1#", LAKESIDE_LEN);
-        else
-        {
-            LOGF_ERROR("setMoveDirection: Unknown direction (%d)", direction);
-            return false;
-        }
+    strncpy(cmd, enabled ? "CRD1#" : "CRD0#", LAKESIDE_LEN);
+
+//    if (direction == 0)
+//        strncpy(cmd, "CRD0#", LAKESIDE_LEN);
+//    else
+//        if (direction == 1)
+//            strncpy(cmd, "CRD1#", LAKESIDE_LEN);
+//        else
+//        {
+//            LOGF_ERROR("setMoveDirection: Unknown direction (%d)", direction);
+//            return false;
+//        }
 
     if (!SendCmd(cmd))
     {
@@ -1203,7 +1207,7 @@ bool Lakeside::setMoveDirection(int direction)
     if (!strncmp(resp,"OK#",3))
     {
         LOGF_DEBUG("setMoveDirection: Completed cmd (%s). Result - %s", cmd, resp);
-        if (direction == 0)
+        if (!enabled)
             LOG_INFO("Move Direction : Normal");
         else
             LOG_INFO("Move Direction : Reversed");
@@ -1590,33 +1594,33 @@ bool Lakeside::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     if(strcmp(dev,getDeviceName())==0)
     {
         // Move Direction
-        if (!strcmp(MoveDirectionSP.name, name))
-        {
-            bool rc=false;
-            int current_mode = IUFindOnSwitchIndex(&MoveDirectionSP);
-            IUUpdateSwitch(&MoveDirectionSP, states, names, n);
-            int target_mode = IUFindOnSwitchIndex(&MoveDirectionSP);
-            if (current_mode == target_mode)
-            {
-                MoveDirectionSP.s = IPS_OK;
-                IDSetSwitch(&MoveDirectionSP, nullptr);
-            }
-            // switch will be either 0 for normal or 1 for reverse
-            rc = setMoveDirection(target_mode);
+//        if (!strcmp(MoveDirectionSP.name, name))
+//        {
+//            bool rc=false;
+//            int current_mode = IUFindOnSwitchIndex(&MoveDirectionSP);
+//            IUUpdateSwitch(&MoveDirectionSP, states, names, n);
+//            int target_mode = IUFindOnSwitchIndex(&MoveDirectionSP);
+//            if (current_mode == target_mode)
+//            {
+//                MoveDirectionSP.s = IPS_OK;
+//                IDSetSwitch(&MoveDirectionSP, nullptr);
+//            }
+//            // switch will be either 0 for normal or 1 for reverse
+//            rc = setMoveDirection(target_mode);
 
-            if (rc == false)
-            {
-                IUResetSwitch(&MoveDirectionSP);
-                MoveDirectionS[current_mode].s = ISS_ON;
-                MoveDirectionSP.s = IPS_ALERT;
-                IDSetSwitch(&MoveDirectionSP, nullptr);
-                return false;
-            }
+//            if (rc == false)
+//            {
+//                IUResetSwitch(&MoveDirectionSP);
+//                MoveDirectionS[current_mode].s = ISS_ON;
+//                MoveDirectionSP.s = IPS_ALERT;
+//                IDSetSwitch(&MoveDirectionSP, nullptr);
+//                return false;
+//            }
 
-            MoveDirectionSP.s = IPS_OK;
-            IDSetSwitch(&MoveDirectionSP, nullptr);
-            return true;
-        }
+//            MoveDirectionSP.s = IPS_OK;
+//            IDSetSwitch(&MoveDirectionSP, nullptr);
+//            return true;
+//        }
 
         // Temperature Tracking
         if (!strcmp(TemperatureTrackingSP.name, name))
@@ -1756,14 +1760,14 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
 
     if(strcmp(dev,getDeviceName())==0)
     {
-        // max travel - read only
-        if (!strcmp (name, MaxTravelNP.name))
-        {
-            IUUpdateNumber(&MaxTravelNP, values, names, n);
-            MaxTravelNP.s = IPS_OK;
-            IDSetNumber(&MaxTravelNP, nullptr);
-            return true;
-        }
+//        // max travel - read only
+//        if (!strcmp (name, MaxTravelNP.name))
+//        {
+//            IUUpdateNumber(&MaxTravelNP, values, names, n);
+//            MaxTravelNP.s = IPS_OK;
+//            IDSetNumber(&MaxTravelNP, nullptr);
+//            return true;
+//        }
 
         // Backlash compensation
         if (!strcmp (name, BacklashNP.name))
@@ -2138,15 +2142,15 @@ void Lakeside::GetFocusParams ()
 
     if (updateBacklash())
         IDSetNumber(&BacklashNP, nullptr);
-    
+
     if (updateMaxTravel())
-        IDSetNumber(&MaxTravelNP, nullptr);
-    
+        IDSetNumber(&FocusMaxPosNP, nullptr);
+
     if (updateStepSize())
         IDSetNumber(&StepSizeNP, nullptr);
 
     if (updateMoveDirection())
-        IDSetSwitch(&MoveDirectionSP, nullptr);
+        IDSetSwitch(&FocusReverseSP, nullptr);
 
     if (updateSlope1Inc())
         IDSetNumber(&Slope1IncNP, nullptr);
@@ -2367,7 +2371,7 @@ bool Lakeside::GetLakesideStatus()
     // return false as focuser is not known to be moving
     return false;
 
-}  
+}
 
 //
 // send abort command

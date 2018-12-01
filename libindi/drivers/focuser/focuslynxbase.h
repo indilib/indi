@@ -114,6 +114,8 @@ class FocusLynxBase : public INDI::Focuser
     bool isResponseOK();
 
   protected:
+    virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+
     // Move from private to public to validate
     bool configurationComplete;
 
@@ -128,7 +130,7 @@ class FocusLynxBase : public INDI::Focuser
     // Store version of the firmware from the HUB
     char version[16];
 
-  private:  
+  private:
     uint32_t simPosition;
     uint32_t targetPosition;
 
@@ -149,7 +151,7 @@ class FocusLynxBase : public INDI::Focuser
     // Set functions
 
     // Position
-    bool setMaxTravel(u_int16_t travel);
+    //bool setMaxTravel(u_int16_t travel);
     bool setStepSize(u_int16_t stepsize);
 
     // Temperature
@@ -233,8 +235,8 @@ class FocusLynxBase : public INDI::Focuser
     INumberVectorProperty SyncNP;
 
     // Max Travel for relative focusers
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+//    INumber MaxTravelN[1];
+//    INumberVectorProperty MaxTravelNP;
 
     // Focuser Step Size
     INumber StepSizeN[1];

@@ -1,7 +1,7 @@
 /*
     Driver type: SBIG CCD Camera INDI Driver
 
-    Copyright (C) 2013-2014 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
+    Copyright (C) 2013-2018 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
     Copyright (C) 2005-2006 Jan Soldan (jsoldan AT asu DOT cas DOT cz)
 
     Acknowledgement:
@@ -38,13 +38,9 @@
 #endif
 
 
-
-
 #include <string>
 
-
 typedef unsigned long   ulong;            /* Short for unsigned long */
-
 
 //#define ASYNC_READOUT
 
@@ -148,10 +144,10 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
 
   protected:
   #ifdef __APPLE__
-  	libusb_device *dev;
+    libusb_device *dev;
     libusb_device_handle *handle;
   #endif
-  
+
     virtual void TimerHit() override;
     virtual int SetTemperature(double temperature) override;
     virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
@@ -214,6 +210,10 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
 
     INumber CoolerN[1];
     INumberVectorProperty CoolerNP;
+
+    // Options
+    ISwitch IgnoreErrorsS[1];
+    ISwitchVectorProperty IgnoreErrorsSP;
 
     // CFW GROUP:
     IText FilterProdcutT[2] {};

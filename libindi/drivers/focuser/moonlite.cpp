@@ -74,7 +74,8 @@ void ISSnoopDevice(XMLEle *root)
 MoonLite::MoonLite()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED |
+                      FOCUSER_CAN_SYNC);
 }
 
 bool MoonLite::initProperties()
@@ -97,9 +98,9 @@ bool MoonLite::initProperties()
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Maximum Travel
-    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 60000., 0., 10000.);
-    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB,
-                       IP_RW, 0, IPS_IDLE);
+//    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 60000., 0., 10000.);
+//    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB,
+//                       IP_RW, 0, IPS_IDLE);
 
     // Temperature Settings
     IUFillNumber(&TemperatureSettingN[0], "Calibration", "", "%6.2f", -20, 20, 0.5, 0);
@@ -114,8 +115,8 @@ bool MoonLite::initProperties()
                        "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Sync
-    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 60000., 0., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+//    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 60000., 0., 0.);
+//    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min   = 0.;
@@ -141,11 +142,11 @@ bool MoonLite::updateProperties()
     if (isConnected())
     {
         defineNumber(&TemperatureNP);
-        defineNumber(&MaxTravelNP);
+        //defineNumber(&MaxTravelNP);
         defineSwitch(&StepModeSP);
         defineNumber(&TemperatureSettingNP);
         defineSwitch(&TemperatureCompensateSP);
-        defineNumber(&SyncNP);
+        //defineNumber(&SyncNP);
 
         GetFocusParams();
 
@@ -154,11 +155,11 @@ bool MoonLite::updateProperties()
     else
     {
         deleteProperty(TemperatureNP.name);
-        deleteProperty(MaxTravelNP.name);
+        //deleteProperty(MaxTravelNP.name);
         deleteProperty(StepModeSP.name);
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
-        deleteProperty(SyncNP.name);
+        //deleteProperty(SyncNP.name);
     }
 
     return true;
@@ -483,13 +484,14 @@ bool MoonLite::setTemperatureCoefficient(double coefficient)
     return true;
 }
 
-bool MoonLite::sync(uint16_t offset)
+//bool MoonLite::sync(uint16_t offset)
+bool MoonLite::SyncFocuser(uint32_t ticks)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[9]={0};
 
-    snprintf(cmd, 9, ":SP%04X#", offset);
+    snprintf(cmd, 9, ":SP%04X#", ticks);
 
     // Set Position
     if ((rc = tty_write(PortFD, cmd, 8, &nbytes_written)) != TTY_OK)
@@ -677,24 +679,24 @@ bool MoonLite::ISNewNumber(const char *dev, const char *name, double values[], c
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, SyncNP.name) == 0)
-        {
-            IUUpdateNumber(&SyncNP, values, names, n);
-            if (sync(SyncN[0].value))
-                SyncNP.s = IPS_OK;
-            else
-                SyncNP.s = IPS_ALERT;
-            IDSetNumber(&SyncNP, nullptr);
-            return true;
-        }
+//        if (strcmp(name, SyncNP.name) == 0)
+//        {
+//            IUUpdateNumber(&SyncNP, values, names, n);
+//            if (sync(SyncN[0].value))
+//                SyncNP.s = IPS_OK;
+//            else
+//                SyncNP.s = IPS_ALERT;
+//            IDSetNumber(&SyncNP, nullptr);
+//            return true;
+//        }
 
-        if (strcmp(name, MaxTravelNP.name) == 0)
-        {
-            IUUpdateNumber(&MaxTravelNP, values, names, n);
-            MaxTravelNP.s = IPS_OK;
-            IDSetNumber(&MaxTravelNP, nullptr);
-            return true;
-        }
+//        if (strcmp(name, MaxTravelNP.name) == 0)
+//        {
+//            IUUpdateNumber(&MaxTravelNP, values, names, n);
+//            MaxTravelNP.s = IPS_OK;
+//            IDSetNumber(&MaxTravelNP, nullptr);
+//            return true;
+//        }
 
         if (strcmp(name, TemperatureSettingNP.name) == 0)
         {
@@ -764,7 +766,7 @@ IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
     else
-        MoveFocuser(FocusAbsPosN[0].value + MaxTravelN[0].value - 1);
+        MoveFocuser(FocusAbsPosN[0].value + FocusMaxPosN[0].value - 1);
 
     if (duration <= POLLMS)
     {

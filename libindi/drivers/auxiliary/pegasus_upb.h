@@ -44,10 +44,15 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
   protected:
     const char *getDefaultName() override;
     virtual bool Disconnect() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+
+    // Event loop
+    virtual void TimerHit() override;
 
     // Focuser Overrides
     virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
@@ -56,10 +61,39 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     virtual bool ReverseFocuser(bool enabled) override;
     virtual bool SyncFocuser(uint32_t ticks) override;
 
+    // Weather Overrides
+    virtual IPState updateWeather() override { return IPS_OK; }
 
-  private:    
+
+  private:
     bool Handshake();
+
+    // Get Data
+    bool sendFirmware();
+    bool getSensorData();
+    bool getPowerData();
+    bool getStepperData();
+    std::vector<std::string> split(const std::string& input, const std::string& regex);
+
+    // Device Control
+    bool reboot();
+
+    // Power
     bool setPowerEnabled(uint8_t port, bool enabled);
+    bool setPowerLEDEnabled(bool enabled);
+    bool setPowerOnBoot();
+
+    // Dew
+    bool setAutoDewEnabled(bool enabled);
+    bool setDewPWM(uint8_t id, uint8_t value);
+
+    // USB
+    bool setUSBHubEnabled(bool enabled);
+
+    // Focuser
+    bool setFocuserBacklash(uint16_t value);
+    bool setFocuserMaxSpeed(uint16_t maxSpeed);
+    bool setFocuserBacklashEnabled(bool enabled);
 
     /**
      * @brief sendCommand Send command to unit.
@@ -72,6 +106,33 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     int PortFD { -1 };
 
     Connection::Serial *serialConnection { nullptr };
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    /// Main Control
+    ////////////////////////////////////////////////////////////////////////////////////
+    /// Reboot Device
+    ISwitch RebootS[1];
+    ISwitchVectorProperty RebootSP;
+
+    // Power Sensors
+    INumber PowerSensorsN[3];
+    INumberVectorProperty PowerSensorsNP;
+    enum
+    {
+        SENSOR_VOLTAGE,
+        SENSOR_CURRENT,
+        SENSOR_POWER,
+    };
+
+    // Power Consumption
+    INumber PowerConsumptionN[3];
+    INumberVectorProperty PowerConsumptionNP;
+    enum
+    {
+        CONSUMPTION_AVG_AMPS,
+        CONSUMPTION_AMP_HOURS,
+        CONSUMPTION_WATT_HOURS,
+    };
 
     ////////////////////////////////////////////////////////////////////////////////////
     /// Power Group
@@ -106,6 +167,15 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     ILight OverCurrentL[4];
     ILightVectorProperty OverCurrentLP;
 
+    // Power LED
+    ISwitch PowerLEDS[2];
+    ISwitchVectorProperty PowerLEDSP;
+    enum
+    {
+        POWER_LED_ON,
+        POWER_LED_OFF,
+    };
+
     ////////////////////////////////////////////////////////////////////////////////////
     /// Dew Group
     ////////////////////////////////////////////////////////////////////////////////////
@@ -128,26 +198,16 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
         DEW_PWM_B,
     };
 
-    ////////////////////////////////////////////////////////////////////////////////////
-    /// Status
-    ////////////////////////////////////////////////////////////////////////////////////
-
-    // Overall power values
-    INumber PowerReadingsN[3];
-    INumberVectorProperty PowerReadingsNP;
-    enum
-    {
-        READING_VOLTAGE,
-        READING_CURRENT,
-        READING_POWER,
-    };
+    // Current Draw
+    INumber DewCurrentDrawN[2];
+    INumberVectorProperty DewCurrentDrawNP;
 
     ////////////////////////////////////////////////////////////////////////////////////
     /// USB
     ////////////////////////////////////////////////////////////////////////////////////
 
     // Turn on/off usb ports 1-5
-    ISwitch USBControlS[5];
+    ISwitch USBControlS[2];
     ISwitchVectorProperty USBControlSP;
 
     // USB Port Status (1-6)
@@ -155,28 +215,37 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     ILightVectorProperty USBStatusLP;
 
     ////////////////////////////////////////////////////////////////////////////////////
-    /// USB
+    /// Focuser
     ////////////////////////////////////////////////////////////////////////////////////
 
-    // Focuser backlash
-    INumber BacklashN[1];
-    INumberVectorProperty BacklashNP;
-
-    // Focuser invert
-    ISwitch InvertMotorS[2];
-    ISwitchVectorProperty InvertMotorSP;
+    // Focuser backlash value and speed
+    INumber SettingsN[2];
+    INumberVectorProperty FocuserSettingsNP;
     enum
     {
-        INVERT_MOTOR_ENABLED,
-        INVERT_MOTOR_DISABLED,
+        SETTING_BACKLASH,
+        SETTING_MAX_SPEED,
     };
 
+    // Focuser backlash enable/disable
+    ISwitch FocuserBacklashS[2];
+    ISwitchVectorProperty FocuserBacklashSP;
+    enum
+    {
+        BACKLASH_ENABLED,
+        BACKLASH_DISABLED,
+    };
 
+    // Temperature
+    INumber FocuserTemperatureN[1];
+    INumberVectorProperty FocuserTemperatureNP;
+
+    std::vector<std::string> lastSensorData, lastPowerData, lastStepperData;
+    bool focusMotorRunning { false };
 
     static constexpr const uint8_t PEGASUS_TIMEOUT {3};
     static constexpr const char *DEW_TAB {"Dew"};
     static constexpr const char *USB_TAB {"USB"};
     static constexpr const char *ENVIRONMENT_TAB {"Environment"};
     static constexpr const char *POWER_TAB {"Power"};
-    static constexpr const char *FOCUSER_TAB {"Focuser"};
 };

@@ -188,19 +188,26 @@ class FocuserInterface
     virtual bool SyncFocuser(uint32_t ticks);
 
     /**
-     * @brief SetFocuserMaxTravel Set Focuser Maximum travel limit in the hardware.
+     * @brief SetFocuserMaxPosition Set Focuser Maximum position limit in the hardware.
      * @param ticks maximum steps permitted
      * @return True if successful, false otherwise.
-     * @note If setting maximum travel limit in the hardware is not available or not supported, do not override this function as the default
+     * @note If setting maximum position limit in the hardware is not available or not supported, do not override this function as the default
      * implementation will always return true.
      */
-    virtual bool SetFocuserMaxTravel(uint32_t ticks);
+    virtual bool SetFocuserMaxPosition(uint32_t ticks);
 
     /**
      * @brief AbortFocuser all focus motion
      * @return True if abort is successful, false otherwise.
      */
     virtual bool AbortFocuser();
+
+    /**
+     * @brief saveConfigItems save focuser properties defined in the interface in config file
+     * @param fp pointer to config file
+     * @return Always return true
+     */
+    bool saveConfigItems(FILE *fp);
 
     // Focuser Speed (if variable speeds are supported)
     INumberVectorProperty FocusSpeedNP;
@@ -222,7 +229,7 @@ class FocuserInterface
 
     // Relative Focuser position to be commanded
     INumberVectorProperty FocusRelPosNP;
-    INumber FocusRelPosN[1];  
+    INumber FocusRelPosN[1];
 
     // Absolute Focuser positoin is 0 to this maximum limit. By Default, it is set to 200,000.
     INumberVectorProperty FocusMaxPosNP;

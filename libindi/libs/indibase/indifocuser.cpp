@@ -100,7 +100,7 @@ bool Focuser::updateProperties()
     FI::updateProperties();
 
     if (isConnected())
-    {        
+    {
         if (CanAbsMove())
         {
             defineNumber(&PresetNP);
@@ -217,10 +217,7 @@ bool Focuser::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    if (CanAbsMove())
-        IUSaveConfigNumber(fp, &FocusMaxPosNP);
-    if (CanReverse())
-        IUSaveConfigSwitch(fp, &FocusReverseSP);
+    FI::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &PresetNP);
     controller->saveConfigItems(fp);

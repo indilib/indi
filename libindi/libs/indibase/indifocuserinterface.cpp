@@ -61,9 +61,9 @@ void FocuserInterface::initProperties(const char *groupName)
     IUFillNumberVector(&FocusSyncNP, FocusSyncN, 1, m_defaultDevice->getDeviceName(), "FOCUS_SYNC", "Sync",
                        groupName, IP_RW, 60, IPS_OK);
 
-    // Maximum Travel (200,000 default)
-    IUFillNumber(&FocusMaxPosN[0], "FOCUS_MAX_VALUE", "Steps", "%.f", 1e3, 1e6, 1e4, 2e5);
-    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, m_defaultDevice->getDeviceName(), "FOCUS_MAX", "Maximum Position",
+    // Maximum Position
+    IUFillNumber(&FocusMaxPosN[0], "FOCUS_MAX_VALUE", "Steps", "%.f", 1e3, 1e6, 1e4, 1e5);
+    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, m_defaultDevice->getDeviceName(), "FOCUS_MAX", "Max. Position",
                        groupName, IP_RW, 60, IPS_OK);
 
     // Abort
@@ -74,7 +74,7 @@ void FocuserInterface::initProperties(const char *groupName)
     // Revese
     IUFillSwitch(&FocusReverseS[0], "ENABLED", "Enabled", ISS_OFF);
     IUFillSwitch(&FocusReverseS[1], "DISABLED", "Disabled", ISS_ON);
-    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 1, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION", "Reverse Motion", groupName, IP_RW,
+    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION", "Reverse Motion", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 }
 
@@ -176,7 +176,7 @@ bool FocuserInterface::processNumber(const char *dev, const char *name, double v
     if (!strcmp(name, FocusMaxPosNP.name))
     {
         uint32_t maxTravel = rint(values[0]);
-        if (SetFocuserMaxTravel(maxTravel))
+        if (SetFocuserMaxPosition(maxTravel))
         {
             IUUpdateNumber(&FocusMaxPosNP, values, names, n);
 
@@ -471,9 +471,19 @@ bool FocuserInterface::SetFocuserSpeed(int speed)
     return false;
 }
 
-bool FocuserInterface::SetFocuserMaxTravel(uint32_t ticks)
+bool FocuserInterface::SetFocuserMaxPosition(uint32_t ticks)
 {
     INDI_UNUSED(ticks);
+    return true;
+}
+
+bool FocuserInterface::saveConfigItems(FILE *fp)
+{
+    if (CanAbsMove())
+        IUSaveConfigNumber(fp, &FocusMaxPosNP);
+    if (CanReverse())
+        IUSaveConfigSwitch(fp, &FocusReverseSP);
+
     return true;
 }
 

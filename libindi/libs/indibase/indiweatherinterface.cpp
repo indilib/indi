@@ -108,7 +108,7 @@ bool WeatherInterface::processNumber(const char *dev, const char *name, double v
             ParametersN[i].max               = ParametersRangeNP[i].np[1].value;
             *(static_cast<double *>(ParametersN[i].aux0)) = ParametersRangeNP[i].np[2].value;
 
-            updateWeatherState();
+            syncCriticalParameters();
 
             ParametersRangeNP[i].s = IPS_OK;
             IDSetNumber(&ParametersRangeNP[i], nullptr);
@@ -186,7 +186,7 @@ bool WeatherInterface::setCriticalParameter(std::string param)
     return false;
 }
 
-void WeatherInterface::updateWeatherState()
+void WeatherInterface::syncCriticalParameters()
 {
     if (critialParametersL == nullptr)
         return;
