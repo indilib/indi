@@ -251,6 +251,17 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
     IUFillText(&OSNAlignT[7], "7", "# of Align Stars:", "Not Updated");
     IUFillTextVector(&OSNAlignTP, OSNAlignT, 8, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
+    
+    IUFillText(&OSNAlignErrT[0], "0", "EQ Polar Error Alt:", "Available once Aligned");
+    IUFillText(&OSNAlignErrT[1], "1", "EQ Polar Error Az:", "Available once Aligned");
+//     IUFillText(&OSNAlignErrT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
+//     IUFillText(&OSNAlignErrT[3], "3", "After 1 or 2", "Press 'Start Align'");
+//     IUFillText(&OSNAlignErrT[4], "4", "Current Status:", "Not Updated");
+//     IUFillText(&OSNAlignErrT[5], "5", "Max Stars:", "Not Updated");
+//     IUFillText(&OSNAlignErrT[6], "6", "Current Star:", "Not Updated");
+//     IUFillText(&OSNAlignErrT[7], "7", "# of Align Stars:", "Not Updated");
+    IUFillTextVector(&OSNAlignErrTP, OSNAlignErrT, 2, getDeviceName(), "ErrAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);    
+    
 #ifdef ONSTEP_NOTDONE
     // =============== OUTPUT_TAB
     // =============== 
@@ -355,6 +366,7 @@ bool LX200_OnStep::updateProperties()
 	defineSwitch(&OSNAlignStarsSP);
 	defineSwitch(&OSNAlignSP);
 	defineText(&OSNAlignTP);
+	defineText(&OSNAlignErrTP);
 #ifdef ONSTEP_NOTDONE
 	//Outputs
 	defineSwitch(&OSOutput1SP);
@@ -443,6 +455,7 @@ bool LX200_OnStep::updateProperties()
 	deleteProperty(OSNAlignStarsSP.name);
 	deleteProperty(OSNAlignSP.name);
 	deleteProperty(OSNAlignTP.name);
+	deleteProperty(OSNAlignErrTP.name);
 #ifdef ONSTEP_NOTDONE	
 	//Outputs
 	deleteProperty(OSOutput1SP.name);
@@ -1521,7 +1534,11 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
         if(!GetAlignStatus()) LOG_WARN("Fail Align Command");
     }
     //Align tab, so it doesn't conflict
+    //May want to reduce frequency of updates 
     if (!UpdateAlignStatus()) LOG_WARN("Fail Align Command");
+    UpdateAlignErr();
+    //
+    
     OSUpdateFocuser();  // Update Focuser Position
     PECStatus(0);
     return true;
@@ -1999,8 +2016,21 @@ IPState LX200_OnStep::AlignStartGeometric (int stars){
 	IUSaveText(&OSNAlignT[3],"Press 'Issue Align'");
 	IDSetText(&OSNAlignTP, "==>Align Started");
 	//strcpy(cmd, ":A6#");
+	char read_buffer[RB_MAX_LEN];
+	if(getCommandString(PortFD, read_buffer, ":A?#"))
+	{
+		LOGF_INFO("Getting Max Star: response Error, response = %s>", read_buffer);
+		return IPS_ALERT;
+	}
+	//Check max_stars
+	int max_stars = read_buffer[0] - '0';
+	if (stars > max_stars) {
+		LOG_INFO("Tried to start Align with too many stars.");
+		LOGF_INFO("Starting Align with %d stars", max_stars);
+		stars = max_stars;
+	}
 	snprintf(cmd, sizeof(cmd), ":A%.1d#", stars);
-	LOGF_INFO("Started Align with %s", cmd);
+	LOGF_INFO("Started Align with %s, max possible: %d", cmd, max_stars);
 	sendOnStepCommandBlind(cmd);
 	return IPS_BUSY;
 }
@@ -2054,10 +2084,10 @@ bool LX200_OnStep::UpdateAlignStatus ()
 	IUSaveText(&OSNAlignT[7],stars);
 	
 	
-	if (align_stars > max_stars) {
+/*	if (align_stars > max_stars) {
 		LOGF_ERROR("Failed Sanity check, can't have more stars than max: :A?# gives: %s", read_buffer);
 		return false;
-	}
+	}*/
 	
 	if (current_star <= align_stars)
 	{
@@ -2068,52 +2098,70 @@ bool LX200_OnStep::UpdateAlignStatus ()
 	{
 		snprintf(msg, sizeof(msg), "Manual Align: Completed");
 		IUSaveText(&OSNAlignT[4],msg);
+		UpdateAlignErr();
 	}
 	IDSetText(&OSNAlignTP, "Align Updated");
-	//char msg[40];
-	//int mx_stars, act_star, nb_stars;
-/*	
-	if(strcmp(OSAlignStat, oldOSAlignStat) != 0)    //no change
+	
+
+	
+	return true;
+}
+
+bool LX200_OnStep::UpdateAlignErr()
+{
+	//  :GXnn#   Get OnStep value
+	//         Returns: value
+	
+	// 00 ax1Cor
+	// 01 ax2Cor
+	// 02 altCor
+	// 03 azmCor
+	// 04 doCor
+	// 05 pdCor
+	// 06 ffCor
+	// 07 dfCor
+	// 08 tfCor
+	// 09 Number of stars, reset to first star
+	// 0A Star  #n HA
+	// 0B Star  #n Dec
+	// 0C Mount #n HA
+	// 0D Mount #n Dec
+	// 0E Mount PierSide (and increment n)
+
+	
+	
+	char read_buffer[RB_MAX_LEN];
+	char msg[40];
+	char polar_error[40];
+	// 	IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
+	// 	IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
+	// 	IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
+	// 	IUFillText(&OSNAlignT[7], "7", "# of Align Stars:", "Not Updated");
+	
+	//	LOG_INFO("Gettng Align Error Status");
+	if(getCommandString(PortFD, read_buffer, ":GX02#"))
 	{
-		strcpy(oldOSAlignStat, OSAlignStat);
-		mx_stars = OSAlignStat[0] - '0';
-		act_star = OSAlignStat[1] - '0';
-		nb_stars = OSAlignStat[2] - '0';
-		
-		//LOGF_INFO("Response = %s>", OSAlignStat);
-		if (nb_stars !=0)
-		{
-			if (act_star <= nb_stars)
-			{
-				snprintf(msg, sizeof(msg), "%s Manual Align: Star %d/%d", OSAlignStat, act_star, nb_stars );
-				IUSaveText(&OSAlignT[0],msg);
-				OSAlignProcess=true;
-			}
-			if (act_star > nb_stars)
-			{
-				snprintf(msg, sizeof(msg), "Manual Align: Completed");
-				OSAlignOn=false;
-				IUSaveText(&OSAlignT[0],msg);
-			}
-		}
-		else
-		{
-			snprintf(msg, sizeof(msg), "Manual Align: Idle");
-			OSAlignProcess=false;
-			IUSaveText(&OSAlignT[0],msg);
-		}
-		IDSetText(&OSAlignTP, "Alignment Star reached, apply corrections and validate");
+		LOGF_INFO("Align Error Status response Error, response = %s>", read_buffer);
+		return false;
 	}
-	if (OSAlignProcess && TrackState==SCOPE_SLEWING) OSAlignFlag=true;
-	if (OSAlignFlag && TrackState==SCOPE_TRACKING)
+// 	LOGF_INFO("Getting Align Error Status: %s", read_buffer);
+	
+	long altCor = strtold(read_buffer, NULL); 
+	if(getCommandString(PortFD, read_buffer, ":GX03#"))
 	{
-		OSAlignFlag=false;
-		OSAlignProcess=false;
-		LOG_INFO("Align Star Reached, sync then press align.");
-		//       if(kdedialog("kdialog 'OnStep Align' --title 'OnStep Align' --msgbox 'Align Star reached, apply corections and confirm with Align'")) return true;
-		return true;
+		LOGF_INFO("Align Error Status response Error, response = %s>", read_buffer);
+		return false;
 	}
-	*/
+// 	LOGF_INFO("Getting Align Error Status: %s", read_buffer);
+	
+	long azmCor = strtold(read_buffer, NULL); 
+	snprintf(polar_error, sizeof(polar_error), "%ld", azmCor);
+	IUSaveText(&OSNAlignErrT[0],polar_error);
+	snprintf(polar_error, sizeof(polar_error), "%ld", altCor);
+	IUSaveText(&OSNAlignErrT[1],polar_error);
+	IDSetText(&OSNAlignErrTP, "Align Error Updated");
+	
+	
 	return true;
 }
 
@@ -2153,11 +2201,51 @@ IPState LX200_OnStep::OSDisableOutput(int output) {
 	OSGetOutputState(output);
 	return IPS_OK;
 }
+/*
+bool LX200_OnStep::OSGetValue(char selection[2]) {
+	//  :GXnn#   Get OnStep value
+	//         Returns: value
+	//
+	// 00 ax1Cor
+	// 01 ax2Cor
+	// 02 altCor  //EQ Altitude Correction
+	// 03 azmCor  //EQ Azimuth Correction
+	// 04 doCor
+	// 05 pdCor
+	// 06 ffCor
+	// 07 dfCor
+	// 08 tfCor
+	// 09 Number of stars, reset to first star
+	// 0A Star  #n HA
+	// 0B Star  #n Dec
+	// 0C Mount #n HA
+	// 0D Mount #n Dec
+	// 0E Mount PierSide (and increment n)
+	// G0-GF (HEX!) = Onstep output status
+
+	//
+	char value[64] ="  ";
+	char command[64]=":$GXGm#";
+	LOGF_INFO("Output: %s", char(output));
+	LOGF_INFO("Command: %s", command);
+	command[5]=char(output);
+	LOGF_INFO("Command: %s", command);
+	getCommandString(PortFD, value, command);
+	if (value[0] == 0) {
+		OSOutput1S[0].s = ISS_ON;
+		OSOutput1S[1].s = ISS_OFF;
+	} else {
+		OSOutput1S[0].s = ISS_OFF;
+		OSOutput1S[1].s = ISS_ON;
+	}
+	IDSetSwitch(&OSOutput1SP, nullptr);
+	
+}*/
 
 bool LX200_OnStep::OSGetOutputState(int output) {
 	//  :GXnn#   Get OnStep value
 	//         Returns: value
-	// nn = G0-GF (HEX!)
+	// nn= G0-GF (HEX!) - Output status
 	//
 	char value[64] ="  ";
 	char command[64]=":$GXGm#";

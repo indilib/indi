@@ -125,6 +125,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     IPState AlignAddStar();
     IPState AlignDone();
     virtual bool UpdateAlignStatus();
+    virtual bool UpdateAlignErr();
     //End NewGeometricAlignment 
     
     
@@ -233,6 +234,8 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitch OSNAlignS[4];
     IText OSNAlignT[8] {};
     ITextVectorProperty OSNAlignTP;
+    IText OSNAlignErrT[4] {};
+    ITextVectorProperty OSNAlignErrTP;    
     char OSNAlignStat[RB_MAX_LEN]; 
     
     ISwitchVectorProperty OSOutput1SP;
