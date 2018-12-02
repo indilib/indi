@@ -123,7 +123,7 @@ class WeatherInterface
     /**
      * @brief updateWeatherState Send update weather state to client
      */
-    void updateWeatherState();
+    void syncCriticalParameters();
 
     // Parameters
     INumber *ParametersN {nullptr};

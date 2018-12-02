@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.7)
 PROJECT(indi_sbig CXX C)
 
-set (SBIG_VERSION_MAJOR 1)
-set (SBIG_VERSION_MINOR 9)
+set (SBIG_VERSION_MAJOR 2)
+set (SBIG_VERSION_MINOR 0)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
@@ -30,11 +30,11 @@ include(CMakeCommon)
 if (CFITSIO_FOUND)
 
 set(sbigccd_SRCS
-	${CMAKE_CURRENT_SOURCE_DIR}/sbig_ccd.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/sbig_ccd.cpp
 )
 
 if (APPLE)
-    set(sbigccd_SRCS 
+    set(sbigccd_SRCS
         ${sbigccd_SRCS}
         ${CMAKE_CURRENT_SOURCE_DIR}/ezusb.c)
 endif()

@@ -62,9 +62,9 @@
 #define currentSetBacklash      SetBacklashN[0].value
 #define currentMinPosition      MinMaxPositionN[0].value
 #define currentMaxPosition      MinMaxPositionN[1].value
-#define currentMaxTravel        MaxTravelN[0].value
+#define currentMaxTravel        FocusMaxPosN[0].value
 
-std::unique_ptr<NFocus> nFocus(new NFocus());
+static std::unique_ptr<NFocus> nFocus(new NFocus());
 
 void ISGetProperties(const char *dev)
 {
@@ -106,7 +106,7 @@ void ISSnoopDevice(XMLEle *root)
 
 NFocus::NFocus()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC);
 }
 
 bool NFocus::initProperties()
@@ -148,9 +148,13 @@ bool NFocus::initProperties()
     IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB,
                        IP_RW, 0, IPS_IDLE);
 
-    /* Set Nfocus position register to this position */
-    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%.f", 0, 64000., 0., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    // Cannot change maximum position
+    FocusMaxPosNP.p = IP_RO;
+    FocusMaxPosN[0].value = 64000;
+
+//    /* Set Nfocus position register to this position */
+//    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%.f", 0, 64000., 0., 0.);
+//    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min   = 0;
@@ -179,7 +183,7 @@ bool NFocus::updateProperties()
         defineNumber(&InOutScalarNP);
         defineNumber(&MinMaxPositionNP);
         defineNumber(&MaxTravelNP);
-        defineNumber(&SyncNP);
+//        defineNumber(&SyncNP);
 
         if (GetFocusParams())
             LOG_INFO("NFocus is ready.");
@@ -191,7 +195,7 @@ bool NFocus::updateProperties()
         deleteProperty(InOutScalarNP.name);
         deleteProperty(MinMaxPositionNP.name);
         deleteProperty(MaxTravelNP.name);
-        deleteProperty(SyncNP.name);
+//        deleteProperty(SyncNP.name);
     }
 
     return true;
@@ -573,7 +577,56 @@ int NFocus::setNFMaxPosition(double *value)
     return 0;
 }
 
-int NFocus::syncNF(const double *value)
+//int NFocus::syncNF(const double *value)
+//{
+//    char rf_cmd[32];
+//    char vl_tmp[6];
+//    int ret_read_tmp;
+
+//    if (isSimulation())
+//    {
+//        currentPosition = *value;
+//        return 0;
+//    }
+
+//    rf_cmd[0] = 'F';
+//    rf_cmd[1] = 'S';
+//    rf_cmd[2] = '0';
+
+//    if (*value > 9999)
+//    {
+//        snprintf(vl_tmp, 6, "%5d", (int)*value);
+//    }
+//    else if (*value > 999)
+//    {
+//        snprintf(vl_tmp, 6, "0%4d", (int)*value);
+//    }
+//    else if (*value > 99)
+//    {
+//        snprintf(vl_tmp, 6, "00%3d", (int)*value);
+//    }
+//    else if (*value > 9)
+//    {
+//        snprintf(vl_tmp, 6, "000%2d", (int)*value);
+//    }
+//    else
+//    {
+//        snprintf(vl_tmp, 6, "0000%1d", (int)*value);
+//    }
+//    rf_cmd[3] = vl_tmp[0];
+//    rf_cmd[4] = vl_tmp[1];
+//    rf_cmd[5] = vl_tmp[2];
+//    rf_cmd[6] = vl_tmp[3];
+//    rf_cmd[7] = vl_tmp[4];
+//    rf_cmd[8] = 0;
+
+//    if ((ret_read_tmp = SendCommand(rf_cmd)) < 0)
+//        return ret_read_tmp;
+
+//    return 0;
+//}
+
+bool NFocus::SyncFocuser(uint32_t ticks)
 {
     char rf_cmd[32];
     char vl_tmp[6];
@@ -581,33 +634,33 @@ int NFocus::syncNF(const double *value)
 
     if (isSimulation())
     {
-        currentPosition = *value;
-        return 0;
+        currentPosition = ticks;
+        return true;
     }
 
     rf_cmd[0] = 'F';
     rf_cmd[1] = 'S';
     rf_cmd[2] = '0';
 
-    if (*value > 9999)
+    if (ticks > 9999)
     {
-        snprintf(vl_tmp, 6, "%5d", (int)*value);
+        snprintf(vl_tmp, 6, "%5d", ticks);
     }
-    else if (*value > 999)
+    else if (ticks > 999)
     {
-        snprintf(vl_tmp, 6, "0%4d", (int)*value);
+        snprintf(vl_tmp, 6, "0%4d", ticks);
     }
-    else if (*value > 99)
+    else if (ticks > 99)
     {
-        snprintf(vl_tmp, 6, "00%3d", (int)*value);
+        snprintf(vl_tmp, 6, "00%3d", ticks);
     }
-    else if (*value > 9)
+    else if (ticks > 9)
     {
-        snprintf(vl_tmp, 6, "000%2d", (int)*value);
+        snprintf(vl_tmp, 6, "000%2d", ticks);
     }
     else
     {
-        snprintf(vl_tmp, 6, "0000%1d", (int)*value);
+        snprintf(vl_tmp, 6, "0000%1d", ticks);
     }
     rf_cmd[3] = vl_tmp[0];
     rf_cmd[4] = vl_tmp[1];
@@ -617,9 +670,9 @@ int NFocus::syncNF(const double *value)
     rf_cmd[8] = 0;
 
     if ((ret_read_tmp = SendCommand(rf_cmd)) < 0)
-        return ret_read_tmp;
+        return false;
 
-    return 0;
+    return true;
 }
 
 bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -833,34 +886,34 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
         }
 
         // Sync
-        if (strcmp(name, SyncNP.name) == 0)
-        {
-            double new_apos = values[0];
-            int rc          = 0;
-            if ((new_apos < currentMinPosition) || (new_apos > currentMaxPosition))
-            {
-                SyncNP.s = IPS_ALERT;
-                IDSetNumber(&SyncNP, "Value out of limits  %5.0f", new_apos);
-                return false;
-            }
+//        if (strcmp(name, SyncNP.name) == 0)
+//        {
+//            double new_apos = values[0];
+//            int rc          = 0;
+//            if ((new_apos < currentMinPosition) || (new_apos > currentMaxPosition))
+//            {
+//                SyncNP.s = IPS_ALERT;
+//                IDSetNumber(&SyncNP, "Value out of limits  %5.0f", new_apos);
+//                return false;
+//            }
 
-            if ((rc = syncNF(&new_apos)) < 0)
-            {
-                SyncNP.s = IPS_ALERT;
-                IDSetNumber(&SyncNP, "Read out of the set position to %3d failed.", rc);
-                return false;
-            }
+//            if ((rc = syncNF(&new_apos)) < 0)
+//            {
+//                SyncNP.s = IPS_ALERT;
+//                IDSetNumber(&SyncNP, "Read out of the set position to %3d failed.", rc);
+//                return false;
+//            }
 
-            LOGF_DEBUG("Focuser sycned to %g ticks", new_apos);
-            SyncN[0].value        = new_apos;
-            FocusAbsPosN[0].value = new_apos;
-            currentPosition       = new_apos;
+//            LOGF_DEBUG("Focuser sycned to %g ticks", new_apos);
+//            SyncN[0].value        = new_apos;
+//            FocusAbsPosN[0].value = new_apos;
+//            currentPosition       = new_apos;
 
-            SyncNP.s        = IPS_OK;
-            IDSetNumber(&SyncNP, nullptr);
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            return true;
-        }
+//            SyncNP.s        = IPS_OK;
+//            IDSetNumber(&SyncNP, nullptr);
+//            IDSetNumber(&FocusAbsPosNP, nullptr);
+//            return true;
+//        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -909,15 +962,15 @@ bool NFocus::GetFocusParams()
     SettingsNP.s = IPS_OK;
     IDSetNumber(&SettingsNP, nullptr);
 
-    currentMaxTravel = MAXTRAVEL_READOUT;
-    if ((ret = setNFMaxPosition(&currentMaxTravel)) < 0)
-    {
-        MaxTravelNP.s = IPS_ALERT;
-        IDSetNumber(&MaxTravelNP, "Unknown error while reading  Nfocus maximum travel");
-        return false;
-    }
-    MaxTravelNP.s = IPS_OK;
-    IDSetNumber(&MaxTravelNP, nullptr);
+//    currentMaxTravel = MAXTRAVEL_READOUT;
+//    if ((ret = setNFMaxPosition(&currentMaxTravel)) < 0)
+//    {
+//        MaxTravelNP.s = IPS_ALERT;
+//        IDSetNumber(&MaxTravelNP, "Unknown error while reading  Nfocus maximum travel");
+//        return false;
+//    }
+//    MaxTravelNP.s = IPS_OK;
+//    IDSetNumber(&MaxTravelNP, nullptr);
 
     return true;
 }

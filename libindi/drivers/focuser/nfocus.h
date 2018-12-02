@@ -2,7 +2,7 @@
     NFocus
     Copyright (C) 2006 Markus Wildi (markus.wildi@datacomm.ch)
                   2011 Jasem Mutlaq (mutlaqja@ikarustech.com)
-		  2013 Felix Krämer (rigelsys@felix-kraemer.de)
+          2013 Felix Krämer (rigelsys@felix-kraemer.de)
 
     Thanks to Rigel Systems, especially Gene Nolan and Leon Palmer,
     for their support in writing this driver.
@@ -31,18 +31,19 @@ class NFocus : public INDI::Focuser
 {
   public:
     NFocus();
-    virtual ~NFocus() = default;
+    virtual ~NFocus() override = default;
 
-    virtual bool Handshake();
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+    virtual bool Handshake() override;
+    const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
 
   protected:
-    bool saveConfigItems(FILE *fp);
+    bool saveConfigItems(FILE *fp) override;
+    bool SyncFocuser(uint32_t ticks) override;
 
   private:
     unsigned char CalculateSum(char *rf_cmd);
@@ -59,7 +60,7 @@ class NFocus : public INDI::Focuser
     int getNFAbsolutePosition(double *value);
     int setNFAbsolutePosition(const double *value);
     int setNFMaxPosition(double *value);
-    int syncNF(const double *value);
+    //int syncNF(const double *value);
 
     INumber TemperatureN[1];
     INumberVectorProperty TemperatureNP;
@@ -73,8 +74,8 @@ class NFocus : public INDI::Focuser
     INumber MaxTravelN[1];
     INumberVectorProperty MaxTravelNP;
 
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
+//    INumber SyncN[1];
+//    INumberVectorProperty SyncNP;
 
     INumber InOutScalarN[1];
     INumberVectorProperty InOutScalarNP;

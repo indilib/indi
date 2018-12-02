@@ -1,8 +1,8 @@
 /*
     Driver type: SBIG CCD Camera INDI Driver
 
+    Copyright (C) 2013-2018 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
     Copyright (C) 2017 Peter Polakovic (peter DOT polakovic AT cloudmakers DOT eu)
-    Copyright (C) 2013-2016 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
     Copyright (C) 2005-2006 Jan Soldan (jsoldan AT asu DOT cas DOT cz)
 
     Acknowledgement:
@@ -25,6 +25,7 @@
     2016-01-07: Added ETH connection (by Simon Holmbo)
     2016-01-07: Changed Device port from text to switch (JM)
     2017-06-22: Bugfixes and code cleanup (PP)
+    2018-12-01: Added switch to ignore shutter errors which can affect some cameras (JM)
 
  */
 
@@ -165,54 +166,54 @@ void SBIGCCD::loadFirmwareOnOSXifNeeded()
 {
 // Upload firmware in case of MacOS
     #ifdef __APPLE__
-    
+
     //SBIG Universal Driver Check
     const std::string name = "/System/Library/Extensions/SBIGUSBEDriver.kext";
-    struct stat buffer;   
-  	if (stat (name.c_str(), &buffer) == 0)
-  	{
-  		LOG_DEBUG("SBIG Universal Driver Detected");
-  	}
-  	else
-  	{
-  	    LOGF_WARN("Failed to Detect SBIG Universal Driver, please install this before running the INDI SBIG driver!", __FUNCTION__);
-  	}
-    
+    struct stat buffer;
+    if (stat (name.c_str(), &buffer) == 0)
+    {
+        LOG_DEBUG("SBIG Universal Driver Detected");
+    }
+    else
+    {
+        LOGF_WARN("Failed to Detect SBIG Universal Driver, please install this before running the INDI SBIG driver!", __FUNCTION__);
+    }
+
     int rc = 0;
     int i = 0;
     int cnt = 0;
-    
+
     libusb_device **list = nullptr;
     struct libusb_device_descriptor desc;
     std::string bus_name, device_name;
-    
+
     if ((rc = libusb_init(nullptr)))
     {
         LOGF_WARN("Failed to start libusb", __FUNCTION__, libusb_error_name(rc));
     }
-    
+
     //libusb_set_debug(nullptr, verbose);  maybe?
-    
+
     cnt = libusb_get_device_list(nullptr, &list);
     if(cnt < 0)
-    	 LOGF_WARN("Failed to get device list", __FUNCTION__, libusb_error_name(rc));
+         LOGF_WARN("Failed to get device list", __FUNCTION__, libusb_error_name(rc));
     handle = nullptr;
     for (i = 0; i < cnt; ++i)
     {
         if (!libusb_get_device_descriptor(list[i], &desc))
         {
-        	int sbigCameraTypeFound = 0;
-        	// SBIG ST-7/8/9/10/2K cameras
-        	if ((desc.idVendor == 0x0d97) && (desc.idProduct == 0x0001))
-            	sbigCameraTypeFound = 1;
+            int sbigCameraTypeFound = 0;
+            // SBIG ST-7/8/9/10/2K cameras
+            if ((desc.idVendor == 0x0d97) && (desc.idProduct == 0x0001))
+                sbigCameraTypeFound = 1;
             //Need the code here to detect ST-4K Camera, since it has the same Vendor and Product ID as above
             // SBIG ST-L cameras
             if ((desc.idVendor == 0x0d97) && (desc.idProduct == 0x0002))
-            	sbigCameraTypeFound = 3;
+                sbigCameraTypeFound = 3;
             // SBIG ST-402/1603/3200/8300 cameras
             if ((desc.idVendor == 0x0d97) && (desc.idProduct == 0x0003))
-            	sbigCameraTypeFound = 4;
-            
+                sbigCameraTypeFound = 4;
+
             if(sbigCameraTypeFound !=0)
             {
                 libusb_open(list[i], &handle);
@@ -223,26 +224,26 @@ void SBIGCCD::loadFirmwareOnOSXifNeeded()
                     char driverSupportPath[MAXRBUF];
                     //On OS X, Prefer embedded App location if it exists
                     if (getenv("INDIPREFIX") != nullptr)
-                    	snprintf(driverSupportPath, MAXRBUF, "%s/Contents/Resources", getenv("INDIPREFIX"));
+                        snprintf(driverSupportPath, MAXRBUF, "%s/Contents/Resources", getenv("INDIPREFIX"));
                     else
-                    	strncpy(driverSupportPath, "/usr/local/lib/indi", MAXRBUF);
+                        strncpy(driverSupportPath, "/usr/local/lib/indi", MAXRBUF);
                     int status=0;
                     if(sbigCameraTypeFound == 1) // SBIG ST-7/8/9/10/2K cameras
                     {
-                    	strncat(driverSupportPath, "/DriverSupport/sbig/sbigucam.hex", MAXRBUF);
-                    	status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX1, IMG_TYPE_HEX, 0);
+                        strncat(driverSupportPath, "/DriverSupport/sbig/sbigucam.hex", MAXRBUF);
+                        status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX1, IMG_TYPE_HEX, 0);
                     }
                     //Note that we NEED to add the code here to load sbigpcam.hex to ST-4K
-                    
+
                     if(sbigCameraTypeFound == 3) // SBIG ST-L cameras
                     {
-                    	strncat(driverSupportPath, "/DriverSupport/sbig/sbiglcam.hex", MAXRBUF);
-                    	status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX1, IMG_TYPE_HEX, 0);
+                        strncat(driverSupportPath, "/DriverSupport/sbig/sbiglcam.hex", MAXRBUF);
+                        status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX1, IMG_TYPE_HEX, 0);
                     }
                     if(sbigCameraTypeFound == 4) // SBIG ST-402/1603/3200/8300 cameras
                     {
-                    	strncat(driverSupportPath, "/DriverSupport/sbig/sbigfcam.hex", MAXRBUF);
-                    	status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX2, IMG_TYPE_HEX, 0);
+                        strncat(driverSupportPath, "/DriverSupport/sbig/sbigfcam.hex", MAXRBUF);
+                        status = ezusb_load_ram(handle, driverSupportPath, FX_TYPE_FX2, IMG_TYPE_HEX, 0);
                     }
                     if (status == 0 )
                         LOGF_DEBUG("Failed to load firmware", __FUNCTION__);
@@ -258,7 +259,7 @@ void SBIGCCD::loadFirmwareOnOSXifNeeded()
 
 int SBIGCCD::OpenDriver()
 {
-	loadFirmwareOnOSXifNeeded();
+    loadFirmwareOnOSXifNeeded();
 
     GetDriverHandleResults gdhr;
     SetDriverHandleParams sdhp;
@@ -417,7 +418,7 @@ SBIGCCD::~SBIGCCD()
 
 const char *SBIGCCD::getDefaultName()
 {
-    return (const char *)"SBIG CCD";
+    return "SBIG CCD";
 }
 
 bool SBIGCCD::initProperties()
@@ -480,6 +481,11 @@ bool SBIGCCD::initProperties()
     IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "[%]", "%.1f", 0, 0, 0, 0);
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooler %", MAIN_CONTROL_TAB, IP_RO,
                        0, IPS_IDLE);
+
+    // Ignore errors
+    IUFillSwitch(&IgnoreErrorsS[0], "SHUTTER_ERRORS", "Shutter Errors", ISS_OFF);
+    IUFillSwitchVector(&IgnoreErrorsSP, IgnoreErrorsS, 1, getDeviceName(), "CCD_IgnoreErrors", "IgnoreErrors", OPTIONS_TAB, IP_RW,
+                       ISR_NOFMANY, 0, IPS_OK);
 
     // CFW PRODUCT
     IUFillText(&FilterProdcutT[0], "NAME", "Name", "");
@@ -589,6 +595,7 @@ bool SBIGCCD::updateProperties()
             defineSwitch(&CoolerSP);
             defineNumber(&CoolerNP);
         }
+        defineSwitch(&IgnoreErrorsSP);
         if (hasFilterWheel)
         {
             defineSwitch(&FilterConnectionSP);
@@ -620,6 +627,7 @@ bool SBIGCCD::updateProperties()
             deleteProperty(CoolerSP.name);
             deleteProperty(CoolerNP.name);
         }
+        deleteProperty(IgnoreErrorsSP.name);
         if (hasFilterWheel)
         {
             deleteProperty(FilterConnectionSP.name);
@@ -707,6 +715,8 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             IDSetSwitch(&FilterTypeSP, nullptr);
             return true;
         }
+
+        // Cooler control
         if (strcmp(name, CoolerSP.name) == 0)
         {
             IUUpdateSwitch(&CoolerSP, states, names, n);
@@ -721,6 +731,18 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             IDSetSwitch(&CoolerSP, "Failed to control cooler");
             return false;
         }
+
+        // Ignore errors
+        if (!strcmp(name, IgnoreErrorsSP.name))
+        {
+            IUUpdateSwitch(&IgnoreErrorsSP, states, names, n);
+            IgnoreErrorsSP.s = IPS_OK;
+            IDSetSwitch(&IgnoreErrorsSP, nullptr);
+            saveConfig(true);
+            return true;
+        }
+
+        // Filter connection
         if (strcmp(name, FilterConnectionSP.name) == 0) // CFW CONNECTION
         {
             IUUpdateSwitch(&FilterConnectionSP, states, names, n);
@@ -763,7 +785,7 @@ bool SBIGCCD::ISNewNumber(const char *dev, const char *name, double values[], ch
 
 bool SBIGCCD::Connect()
 {
-	loadFirmwareOnOSXifNeeded();
+    loadFirmwareOnOSXifNeeded();
 
     if (isConnected())
         return true;
@@ -1384,6 +1406,7 @@ bool SBIGCCD::saveConfigItems(FILE *fp)
     INDI::CCD::saveConfigItems(fp);
     IUSaveConfigSwitch(fp, &PortSP);
     IUSaveConfigText(fp, &IpTP);
+    IUSaveConfigSwitch(fp, &IgnoreErrorsSP);
 
     if (FilterNameT)
         INDI::FilterInterface::saveConfigItems(fp);
@@ -1487,10 +1510,14 @@ int SBIGCCD::StartExposure(StartExposureParams2 *sep)
     {
         return CE_NO_ERROR;
     }
-    int res = SBIGUnivDrvCommand(CC_START_EXPOSURE2, sep, 0);
+    int res = SBIGUnivDrvCommand(CC_START_EXPOSURE2, sep, nullptr);
     if (res != CE_NO_ERROR)
     {
-        LOGF_ERROR("%s: CC_START_EXPOSURE2 -> (%s)", __FUNCTION__, GetErrorString(res));
+        // If we need to ignore shutter errors, let's do so.
+        if (res == CE_SHUTTER_ERROR && IgnoreErrorsS[0].s == ISS_ON)
+            res = CE_NO_ERROR;
+        else
+            LOGF_ERROR("%s: CC_START_EXPOSURE2 -> (%s)", __FUNCTION__, GetErrorString(res));
     }
     return res;
 }
