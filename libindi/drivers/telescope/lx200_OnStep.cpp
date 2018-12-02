@@ -229,17 +229,39 @@ bool LX200_OnStep::initProperties()
 //    IUFillSwitch(&OSPECReadS[2], "Write to EEPROM", "Write to EEPROM", ISS_OFF);
     IUFillSwitchVector(&OSPECReadSP, OSPECReadS, 2, getDeviceName(), "PEC File", "PEC File", PEC_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     // ============== New ALIGN_TAB 
-    // Only supports Alpha versions currently (July 2018)
+    // Only supports Alpha versions currently (July 2018) Now Beta (Dec 2018)
+    IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[2], "3", "3 Stars", ISS_ON);
+    IUFillSwitch(&OSNAlignStarsS[3], "6", "6 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[4], "9", "9 Stars", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 5, getDeviceName(), "AlignStars", "Align using some stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
     IUFillSwitch(&OSNAlignS[0], "0", "Start Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[1], "1", "Issue Align", ISS_OFF);
-    IUFillSwitch(&OSNAlignS[2], "3", "Finished Align", ISS_OFF);
+    IUFillSwitch(&OSNAlignS[2], "3", "Write Align", ISS_OFF);
     IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 3, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
-    IUFillText(&OSNAlignT[0], "0", "Align Status:", "Align not started");
+    IUFillText(&OSNAlignT[0], "0", "Align Process Status:", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[3], "3", "After 1 or 2", "Press 'Start Align'");
-    IUFillTextVector(&OSNAlignTP, OSNAlignT, 4, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
+    IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
+    IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
+    IUFillText(&OSNAlignT[7], "7", "# of Align Stars:", "Not Updated");
+    IUFillTextVector(&OSNAlignTP, OSNAlignT, 8, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
+    
+    IUFillText(&OSNAlignErrT[0], "0", "EQ Polar Error Alt:", "Available once Aligned");
+    IUFillText(&OSNAlignErrT[1], "1", "EQ Polar Error Az:", "Available once Aligned");
+//     IUFillText(&OSNAlignErrT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
+//     IUFillText(&OSNAlignErrT[3], "3", "After 1 or 2", "Press 'Start Align'");
+//     IUFillText(&OSNAlignErrT[4], "4", "Current Status:", "Not Updated");
+//     IUFillText(&OSNAlignErrT[5], "5", "Max Stars:", "Not Updated");
+//     IUFillText(&OSNAlignErrT[6], "6", "Current Star:", "Not Updated");
+//     IUFillText(&OSNAlignErrT[7], "7", "# of Align Stars:", "Not Updated");
+    IUFillTextVector(&OSNAlignErrTP, OSNAlignErrT, 2, getDeviceName(), "ErrAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);    
+    
 #ifdef ONSTEP_NOTDONE
     // =============== OUTPUT_TAB
     // =============== 
@@ -341,8 +363,10 @@ bool LX200_OnStep::updateProperties()
 	defineSwitch(&OSPECReadSP);
 	
 	//New Align
+	defineSwitch(&OSNAlignStarsSP);
 	defineSwitch(&OSNAlignSP);
 	defineText(&OSNAlignTP);
+	defineText(&OSNAlignErrTP);
 #ifdef ONSTEP_NOTDONE
 	//Outputs
 	defineSwitch(&OSOutput1SP);
@@ -428,8 +452,10 @@ bool LX200_OnStep::updateProperties()
 	deleteProperty(OSPECReadSP.name);
 	
 	//New Align
+	deleteProperty(OSNAlignStarsSP.name);
 	deleteProperty(OSNAlignSP.name);
 	deleteProperty(OSNAlignTP.name);
+	deleteProperty(OSNAlignErrTP.name);
 #ifdef ONSTEP_NOTDONE	
 	//Outputs
 	deleteProperty(OSOutput1SP.name);
@@ -1085,6 +1111,38 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		
 	} 
 	// Align Buttons
+	if (!strcmp(name, OSNAlignStarsSP.name))
+	{
+		IUResetSwitch(&OSNAlignStarsSP);
+		IUUpdateSwitch(&OSNAlignStarsSP, states, names, n);
+		index = IUFindOnSwitchIndex(&OSNAlignStarsSP);
+		
+// 		if (index == LX200_MESSIER_C)
+// 		{
+// 			currentCatalog     = index;
+// 			DeepSkyCatalogSP.s = IPS_OK;
+// 			IDSetSwitch(&DeepSkyCatalogSP, nullptr);
+// 		}
+// 		else
+// 			currentCatalog = LX200_DEEPSKY_C;
+// 		
+// 		if (selectSubCatalog(PortFD, currentCatalog, index))
+// 		{
+// 			currentSubCatalog  = index;
+// 			DeepSkyCatalogSP.s = IPS_OK;
+// 			IDSetSwitch(&DeepSkyCatalogSP, nullptr);
+// 		}
+// 		else
+// 		{
+// 			DeepSkyCatalogSP.s = IPS_IDLE;
+// 			IDSetSwitch(&DeepSkyCatalogSP, "Catalog unavailable");
+// 			return false;
+// 		}
+// 		
+		return true;
+	}
+	
+	
 	if (!strcmp(name, OSNAlignSP.name))      // 
 	{
 		if (IUUpdateSwitch(&OSNAlignSP, states, names, n) < 0)
@@ -1095,9 +1153,22 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		//End NewGeometricAlignment 
 		OSNAlignSP.s = IPS_BUSY;
 		if (index == 0)
-		{
-			OSNAlignS[0].s = ISS_OFF;
-			AlignStartGeometric();
+		{    
+			
+			/*IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
+			IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);
+			IUFillSwitch(&OSNAlignStarsS[2], "3", "3 Stars", ISS_ON);
+			IUFillSwitch(&OSNAlignStarsS[3], "6", "6 Stars", ISS_OFF);
+			IUFillSwitch(&OSNAlignStarsS[4], "9", "9 Stars", ISS_OFF);*/
+			int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
+			if ((index_stars <= 4) && (index_stars >= 0)) {
+				int stars = index_stars+1;
+				if (stars == 5) stars = 9;
+				if (stars == 4) stars = 6;
+				OSNAlignS[0].s = ISS_OFF;
+				LOGF_INFO("Align index: %d, stars: %d", index_stars, stars); 
+				AlignStartGeometric(stars);
+			}
 		}
 		if (index == 1)
 		{
@@ -1110,6 +1181,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 			OSNAlignSP.s = AlignDone();
 		}
 		IDSetSwitch(&OSNAlignSP, nullptr);
+		UpdateAlignStatus();
 	}
 #ifdef ONSTEP_NOTDONE	
 	if (!strcmp(name, OSOutput1SP.name))      // 
@@ -1461,6 +1533,12 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     {
         if(!GetAlignStatus()) LOG_WARN("Fail Align Command");
     }
+    //Align tab, so it doesn't conflict
+    //May want to reduce frequency of updates 
+    if (!UpdateAlignStatus()) LOG_WARN("Fail Align Command");
+    UpdateAlignErr();
+    //
+    
     OSUpdateFocuser();  // Update Focuser Position
     PECStatus(0);
     return true;
@@ -1927,7 +2005,7 @@ IPState LX200_OnStep::WritePECBuffer (int axis) {
 
 // New, Multistar alignment goes here: 
 
-IPState LX200_OnStep::AlignStartGeometric (){
+IPState LX200_OnStep::AlignStartGeometric (int stars){
 	//See here https://groups.io/g/onstep/message/3624
 	char cmd[8];
 
@@ -1937,7 +2015,22 @@ IPState LX200_OnStep::AlignStartGeometric (){
 	IUSaveText(&OSNAlignT[2],"GOTO a star, Solve and Sync");
 	IUSaveText(&OSNAlignT[3],"Press 'Issue Align'");
 	IDSetText(&OSNAlignTP, "==>Align Started");
-	strcpy(cmd, ":A6#");
+	//strcpy(cmd, ":A6#");
+	char read_buffer[RB_MAX_LEN];
+	if(getCommandString(PortFD, read_buffer, ":A?#"))
+	{
+		LOGF_INFO("Getting Max Star: response Error, response = %s>", read_buffer);
+		return IPS_ALERT;
+	}
+	//Check max_stars
+	int max_stars = read_buffer[0] - '0';
+	if (stars > max_stars) {
+		LOG_INFO("Tried to start Align with too many stars.");
+		LOGF_INFO("Starting Align with %d stars", max_stars);
+		stars = max_stars;
+	}
+	snprintf(cmd, sizeof(cmd), ":A%.1d#", stars);
+	LOGF_INFO("Started Align with %s, max possible: %d", cmd, max_stars);
 	sendOnStepCommandBlind(cmd);
 	return IPS_BUSY;
 }
@@ -1952,6 +2045,124 @@ IPState LX200_OnStep::AlignAddStar (){
 		return IPS_BUSY;
 	}
 	return IPS_ALERT;
+}
+
+bool LX200_OnStep::UpdateAlignStatus ()
+// Started off the same as bool LX200_OnStep::GetAlignStatus() {
+// Copied here to avoid any conflicts if azwing updates his befre I'm done.
+{
+	//  :A?#  Align status
+	//         Returns: mno#
+	//         where m is the maximum number of alignment stars
+	//               n is the current alignment star (0 otherwise)
+	//               o is the last required alignment star when an alignment is in progress (0 otherwise)
+	
+	char read_buffer[RB_MAX_LEN];
+	char msg[40];
+	char stars[5];
+// 	IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
+// 	IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
+// 	IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
+// 	IUFillText(&OSNAlignT[7], "7", "# of Align Stars:", "Not Updated");
+	
+	int max_stars, current_star, align_stars;
+//	LOG_INFO("Gettng Align Status");
+	if(getCommandString(PortFD, read_buffer, ":A?#"))
+	{
+		LOGF_INFO("Align Status response Error, response = %s>", read_buffer);
+		return false;
+	}
+// 	LOGF_INFO("Gettng Align Status: %s", read_buffer);
+	max_stars = read_buffer[0] - '0';
+	current_star = read_buffer[1] - '0';
+	align_stars = read_buffer[2] - '0';
+	snprintf(stars, sizeof(stars), "%d", max_stars);
+	IUSaveText(&OSNAlignT[5],stars);
+	snprintf(stars, sizeof(stars), "%d", current_star);
+	IUSaveText(&OSNAlignT[6],stars);
+	snprintf(stars, sizeof(stars), "%d", align_stars);
+	IUSaveText(&OSNAlignT[7],stars);
+	
+	
+/*	if (align_stars > max_stars) {
+		LOGF_ERROR("Failed Sanity check, can't have more stars than max: :A?# gives: %s", read_buffer);
+		return false;
+	}*/
+	
+	if (current_star <= align_stars)
+	{
+		snprintf(msg, sizeof(msg), "%s Manual Align: Star %d/%d", read_buffer, current_star, align_stars );
+		IUSaveText(&OSNAlignT[4],msg);
+	}
+	if (current_star > align_stars)
+	{
+		snprintf(msg, sizeof(msg), "Manual Align: Completed");
+		IUSaveText(&OSNAlignT[4],msg);
+		UpdateAlignErr();
+	}
+	IDSetText(&OSNAlignTP, "Align Updated");
+	
+
+	
+	return true;
+}
+
+bool LX200_OnStep::UpdateAlignErr()
+{
+	//  :GXnn#   Get OnStep value
+	//         Returns: value
+	
+	// 00 ax1Cor
+	// 01 ax2Cor
+	// 02 altCor
+	// 03 azmCor
+	// 04 doCor
+	// 05 pdCor
+	// 06 ffCor
+	// 07 dfCor
+	// 08 tfCor
+	// 09 Number of stars, reset to first star
+	// 0A Star  #n HA
+	// 0B Star  #n Dec
+	// 0C Mount #n HA
+	// 0D Mount #n Dec
+	// 0E Mount PierSide (and increment n)
+
+	
+	
+	char read_buffer[RB_MAX_LEN];
+	char msg[40];
+	char polar_error[40];
+	// 	IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
+	// 	IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
+	// 	IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
+	// 	IUFillText(&OSNAlignT[7], "7", "# of Align Stars:", "Not Updated");
+	
+	//	LOG_INFO("Gettng Align Error Status");
+	if(getCommandString(PortFD, read_buffer, ":GX02#"))
+	{
+		LOGF_INFO("Align Error Status response Error, response = %s>", read_buffer);
+		return false;
+	}
+// 	LOGF_INFO("Getting Align Error Status: %s", read_buffer);
+	
+	long altCor = strtold(read_buffer, NULL); 
+	if(getCommandString(PortFD, read_buffer, ":GX03#"))
+	{
+		LOGF_INFO("Align Error Status response Error, response = %s>", read_buffer);
+		return false;
+	}
+// 	LOGF_INFO("Getting Align Error Status: %s", read_buffer);
+	
+	long azmCor = strtold(read_buffer, NULL); 
+	snprintf(polar_error, sizeof(polar_error), "%ld", azmCor);
+	IUSaveText(&OSNAlignErrT[0],polar_error);
+	snprintf(polar_error, sizeof(polar_error), "%ld", altCor);
+	IUSaveText(&OSNAlignErrT[1],polar_error);
+	IDSetText(&OSNAlignErrTP, "Align Error Updated");
+	
+	
+	return true;
 }
 
 IPState LX200_OnStep::AlignDone (){
@@ -1990,11 +2201,51 @@ IPState LX200_OnStep::OSDisableOutput(int output) {
 	OSGetOutputState(output);
 	return IPS_OK;
 }
+/*
+bool LX200_OnStep::OSGetValue(char selection[2]) {
+	//  :GXnn#   Get OnStep value
+	//         Returns: value
+	//
+	// 00 ax1Cor
+	// 01 ax2Cor
+	// 02 altCor  //EQ Altitude Correction
+	// 03 azmCor  //EQ Azimuth Correction
+	// 04 doCor
+	// 05 pdCor
+	// 06 ffCor
+	// 07 dfCor
+	// 08 tfCor
+	// 09 Number of stars, reset to first star
+	// 0A Star  #n HA
+	// 0B Star  #n Dec
+	// 0C Mount #n HA
+	// 0D Mount #n Dec
+	// 0E Mount PierSide (and increment n)
+	// G0-GF (HEX!) = Onstep output status
+
+	//
+	char value[64] ="  ";
+	char command[64]=":$GXGm#";
+	LOGF_INFO("Output: %s", char(output));
+	LOGF_INFO("Command: %s", command);
+	command[5]=char(output);
+	LOGF_INFO("Command: %s", command);
+	getCommandString(PortFD, value, command);
+	if (value[0] == 0) {
+		OSOutput1S[0].s = ISS_ON;
+		OSOutput1S[1].s = ISS_OFF;
+	} else {
+		OSOutput1S[0].s = ISS_OFF;
+		OSOutput1S[1].s = ISS_ON;
+	}
+	IDSetSwitch(&OSOutput1SP, nullptr);
+	
+}*/
 
 bool LX200_OnStep::OSGetOutputState(int output) {
 	//  :GXnn#   Get OnStep value
 	//         Returns: value
-	// nn = G0-GF (HEX!)
+	// nn= G0-GF (HEX!) - Output status
 	//
 	char value[64] ="  ";
 	char command[64]=":$GXGm#";
