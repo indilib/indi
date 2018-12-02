@@ -229,17 +229,28 @@ bool LX200_OnStep::initProperties()
 //    IUFillSwitch(&OSPECReadS[2], "Write to EEPROM", "Write to EEPROM", ISS_OFF);
     IUFillSwitchVector(&OSPECReadSP, OSPECReadS, 2, getDeviceName(), "PEC File", "PEC File", PEC_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     // ============== New ALIGN_TAB 
-    // Only supports Alpha versions currently (July 2018)
+    // Only supports Alpha versions currently (July 2018) Now Beta (Dec 2018)
+    IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[2], "3", "3 Stars", ISS_ON);
+    IUFillSwitch(&OSNAlignStarsS[3], "6", "6 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[4], "9", "9 Stars", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 5, getDeviceName(), "AlignStars", "Align using some stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    
     IUFillSwitch(&OSNAlignS[0], "0", "Start Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[1], "1", "Issue Align", ISS_OFF);
-    IUFillSwitch(&OSNAlignS[2], "3", "Finished Align", ISS_OFF);
+    IUFillSwitch(&OSNAlignS[2], "3", "Write Align", ISS_OFF);
     IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 3, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
-    IUFillText(&OSNAlignT[0], "0", "Align Status:", "Align not started");
+    IUFillText(&OSNAlignT[0], "0", "Align Process Status:", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[3], "3", "After 1 or 2", "Press 'Start Align'");
-    IUFillTextVector(&OSNAlignTP, OSNAlignT, 4, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
+    IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
+    IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
+    IUFillText(&OSNAlignT[7], "7", "# of Align Stars:", "Not Updated");
+    IUFillTextVector(&OSNAlignTP, OSNAlignT, 8, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
 #ifdef ONSTEP_NOTDONE
     // =============== OUTPUT_TAB
     // =============== 
@@ -341,6 +352,7 @@ bool LX200_OnStep::updateProperties()
 	defineSwitch(&OSPECReadSP);
 	
 	//New Align
+	defineSwitch(&OSNAlignStarsSP);
 	defineSwitch(&OSNAlignSP);
 	defineText(&OSNAlignTP);
 #ifdef ONSTEP_NOTDONE
@@ -428,6 +440,7 @@ bool LX200_OnStep::updateProperties()
 	deleteProperty(OSPECReadSP.name);
 	
 	//New Align
+	deleteProperty(OSNAlignStarsSP.name);
 	deleteProperty(OSNAlignSP.name);
 	deleteProperty(OSNAlignTP.name);
 #ifdef ONSTEP_NOTDONE	
@@ -1085,6 +1098,38 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		
 	} 
 	// Align Buttons
+	if (!strcmp(name, OSNAlignStarsSP.name))
+	{
+		IUResetSwitch(&OSNAlignStarsSP);
+		IUUpdateSwitch(&OSNAlignStarsSP, states, names, n);
+		index = IUFindOnSwitchIndex(&OSNAlignStarsSP);
+		
+// 		if (index == LX200_MESSIER_C)
+// 		{
+// 			currentCatalog     = index;
+// 			DeepSkyCatalogSP.s = IPS_OK;
+// 			IDSetSwitch(&DeepSkyCatalogSP, nullptr);
+// 		}
+// 		else
+// 			currentCatalog = LX200_DEEPSKY_C;
+// 		
+// 		if (selectSubCatalog(PortFD, currentCatalog, index))
+// 		{
+// 			currentSubCatalog  = index;
+// 			DeepSkyCatalogSP.s = IPS_OK;
+// 			IDSetSwitch(&DeepSkyCatalogSP, nullptr);
+// 		}
+// 		else
+// 		{
+// 			DeepSkyCatalogSP.s = IPS_IDLE;
+// 			IDSetSwitch(&DeepSkyCatalogSP, "Catalog unavailable");
+// 			return false;
+// 		}
+// 		
+		return true;
+	}
+	
+	
 	if (!strcmp(name, OSNAlignSP.name))      // 
 	{
 		if (IUUpdateSwitch(&OSNAlignSP, states, names, n) < 0)
@@ -1095,9 +1140,22 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		//End NewGeometricAlignment 
 		OSNAlignSP.s = IPS_BUSY;
 		if (index == 0)
-		{
-			OSNAlignS[0].s = ISS_OFF;
-			AlignStartGeometric();
+		{    
+			
+			/*IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
+			IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);
+			IUFillSwitch(&OSNAlignStarsS[2], "3", "3 Stars", ISS_ON);
+			IUFillSwitch(&OSNAlignStarsS[3], "6", "6 Stars", ISS_OFF);
+			IUFillSwitch(&OSNAlignStarsS[4], "9", "9 Stars", ISS_OFF);*/
+			int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
+			if ((index_stars <= 4) && (index_stars >= 0)) {
+				int stars = index_stars+1;
+				if (stars == 5) stars = 9;
+				if (stars == 4) stars = 6;
+				OSNAlignS[0].s = ISS_OFF;
+				LOGF_INFO("Align index: %d, stars: %d", index_stars, stars); 
+				AlignStartGeometric(stars);
+			}
 		}
 		if (index == 1)
 		{
@@ -1110,6 +1168,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 			OSNAlignSP.s = AlignDone();
 		}
 		IDSetSwitch(&OSNAlignSP, nullptr);
+		UpdateAlignStatus();
 	}
 #ifdef ONSTEP_NOTDONE	
 	if (!strcmp(name, OSOutput1SP.name))      // 
@@ -1461,6 +1520,8 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     {
         if(!GetAlignStatus()) LOG_WARN("Fail Align Command");
     }
+    //Align tab, so it doesn't conflict
+    if (!UpdateAlignStatus()) LOG_WARN("Fail Align Command");
     OSUpdateFocuser();  // Update Focuser Position
     PECStatus(0);
     return true;
@@ -1927,7 +1988,7 @@ IPState LX200_OnStep::WritePECBuffer (int axis) {
 
 // New, Multistar alignment goes here: 
 
-IPState LX200_OnStep::AlignStartGeometric (){
+IPState LX200_OnStep::AlignStartGeometric (int stars){
 	//See here https://groups.io/g/onstep/message/3624
 	char cmd[8];
 
@@ -1937,7 +1998,9 @@ IPState LX200_OnStep::AlignStartGeometric (){
 	IUSaveText(&OSNAlignT[2],"GOTO a star, Solve and Sync");
 	IUSaveText(&OSNAlignT[3],"Press 'Issue Align'");
 	IDSetText(&OSNAlignTP, "==>Align Started");
-	strcpy(cmd, ":A6#");
+	//strcpy(cmd, ":A6#");
+	snprintf(cmd, sizeof(cmd), ":A%.1d#", stars);
+	LOGF_INFO("Started Align with %s", cmd);
 	sendOnStepCommandBlind(cmd);
 	return IPS_BUSY;
 }
@@ -1952,6 +2015,106 @@ IPState LX200_OnStep::AlignAddStar (){
 		return IPS_BUSY;
 	}
 	return IPS_ALERT;
+}
+
+bool LX200_OnStep::UpdateAlignStatus ()
+// Started off the same as bool LX200_OnStep::GetAlignStatus() {
+// Copied here to avoid any conflicts if azwing updates his befre I'm done.
+{
+	//  :A?#  Align status
+	//         Returns: mno#
+	//         where m is the maximum number of alignment stars
+	//               n is the current alignment star (0 otherwise)
+	//               o is the last required alignment star when an alignment is in progress (0 otherwise)
+	
+	char read_buffer[RB_MAX_LEN];
+	char msg[40];
+	char stars[5];
+// 	IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
+// 	IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
+// 	IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
+// 	IUFillText(&OSNAlignT[7], "7", "# of Align Stars:", "Not Updated");
+	
+	int max_stars, current_star, align_stars;
+//	LOG_INFO("Gettng Align Status");
+	if(getCommandString(PortFD, read_buffer, ":A?#"))
+	{
+		LOGF_INFO("Align Status response Error, response = %s>", read_buffer);
+		return false;
+	}
+// 	LOGF_INFO("Gettng Align Status: %s", read_buffer);
+	max_stars = read_buffer[0] - '0';
+	current_star = read_buffer[1] - '0';
+	align_stars = read_buffer[2] - '0';
+	snprintf(stars, sizeof(stars), "%d", max_stars);
+	IUSaveText(&OSNAlignT[5],stars);
+	snprintf(stars, sizeof(stars), "%d", current_star);
+	IUSaveText(&OSNAlignT[6],stars);
+	snprintf(stars, sizeof(stars), "%d", align_stars);
+	IUSaveText(&OSNAlignT[7],stars);
+	
+	
+	if (align_stars > max_stars) {
+		LOGF_ERROR("Failed Sanity check, can't have more stars than max: :A?# gives: %s", read_buffer);
+		return false;
+	}
+	
+	if (current_star <= align_stars)
+	{
+		snprintf(msg, sizeof(msg), "%s Manual Align: Star %d/%d", read_buffer, current_star, align_stars );
+		IUSaveText(&OSNAlignT[4],msg);
+	}
+	if (current_star > align_stars)
+	{
+		snprintf(msg, sizeof(msg), "Manual Align: Completed");
+		IUSaveText(&OSNAlignT[4],msg);
+	}
+	IDSetText(&OSNAlignTP, "Align Updated");
+	//char msg[40];
+	//int mx_stars, act_star, nb_stars;
+/*	
+	if(strcmp(OSAlignStat, oldOSAlignStat) != 0)    //no change
+	{
+		strcpy(oldOSAlignStat, OSAlignStat);
+		mx_stars = OSAlignStat[0] - '0';
+		act_star = OSAlignStat[1] - '0';
+		nb_stars = OSAlignStat[2] - '0';
+		
+		//LOGF_INFO("Response = %s>", OSAlignStat);
+		if (nb_stars !=0)
+		{
+			if (act_star <= nb_stars)
+			{
+				snprintf(msg, sizeof(msg), "%s Manual Align: Star %d/%d", OSAlignStat, act_star, nb_stars );
+				IUSaveText(&OSAlignT[0],msg);
+				OSAlignProcess=true;
+			}
+			if (act_star > nb_stars)
+			{
+				snprintf(msg, sizeof(msg), "Manual Align: Completed");
+				OSAlignOn=false;
+				IUSaveText(&OSAlignT[0],msg);
+			}
+		}
+		else
+		{
+			snprintf(msg, sizeof(msg), "Manual Align: Idle");
+			OSAlignProcess=false;
+			IUSaveText(&OSAlignT[0],msg);
+		}
+		IDSetText(&OSAlignTP, "Alignment Star reached, apply corrections and validate");
+	}
+	if (OSAlignProcess && TrackState==SCOPE_SLEWING) OSAlignFlag=true;
+	if (OSAlignFlag && TrackState==SCOPE_TRACKING)
+	{
+		OSAlignFlag=false;
+		OSAlignProcess=false;
+		LOG_INFO("Align Star Reached, sync then press align.");
+		//       if(kdedialog("kdialog 'OnStep Align' --title 'OnStep Align' --msgbox 'Align Star reached, apply corections and confirm with Align'")) return true;
+		return true;
+	}
+	*/
+	return true;
 }
 
 IPState LX200_OnStep::AlignDone (){
