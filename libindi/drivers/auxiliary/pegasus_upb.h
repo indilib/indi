@@ -48,7 +48,6 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
 
   protected:
     const char *getDefaultName() override;
-    virtual bool Disconnect() override;
     virtual bool saveConfigItems(FILE *fp) override;
 
     // Event loop
@@ -219,7 +218,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     ////////////////////////////////////////////////////////////////////////////////////
 
     // Focuser backlash value and speed
-    INumber SettingsN[2];
+    INumber FocuserSettingsN[2];
     INumberVectorProperty FocuserSettingsNP;
     enum
     {
@@ -244,6 +243,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     bool focusMotorRunning { false };
 
     static constexpr const uint8_t PEGASUS_TIMEOUT {3};
+    static constexpr const uint8_t PEGASUS_LEN {128};
     static constexpr const char *DEW_TAB {"Dew"};
     static constexpr const char *USB_TAB {"USB"};
     static constexpr const char *ENVIRONMENT_TAB {"Environment"};
