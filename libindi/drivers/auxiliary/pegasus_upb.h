@@ -219,7 +219,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     ////////////////////////////////////////////////////////////////////////////////////
 
     // Focuser backlash value and speed
-    INumber SettingsN[2];
+    INumber FocuserSettingsN[2];
     INumberVectorProperty FocuserSettingsNP;
     enum
     {

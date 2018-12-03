@@ -134,24 +134,24 @@ bool PegasusUPB::initProperties()
     IUFillText(&PowerControlsLabelsT[3], "POWER_LABEL_4", "Port 4", "Port 4");
     IUFillTextVector(&PowerControlsLabelsTP, PowerControlsLabelsT, 4, getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels", POWER_TAB, IP_WO, 60, IPS_IDLE);
 
-    char portLabel[PEGASUS_LEN];
+    char portLabel[MAXINDILABEL];
     int portRC=-1;
 
     // Turn on/off power and power boot up
-    memset(portLabel, 0, PEGASUS_LEN);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[0].name, portLabel, PEGASUS_LEN);
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[0].name, portLabel, MAXINDILABEL);
     IUFillSwitch(&PowerControlS[0], "POWER_CONTROL_1", portRC == -1 ? "Port 1" : portLabel, ISS_OFF);
 
-    memset(portLabel, 0, PEGASUS_LEN);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[1].name, portLabel, PEGASUS_LEN);
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[1].name, portLabel, MAXINDILABEL);
     IUFillSwitch(&PowerControlS[1], "POWER_CONTROL_2", portRC == -1 ? "Port 2" : portLabel, ISS_OFF);
 
-    memset(portLabel, 0, PEGASUS_LEN);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[2].name, portLabel, PEGASUS_LEN);
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[2].name, portLabel, MAXINDILABEL);
     IUFillSwitch(&PowerControlS[2], "POWER_CONTROL_3", portRC == -1 ? "Port 3" : portLabel, ISS_OFF);
 
-    memset(portLabel, 0, PEGASUS_LEN);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[3].name, portLabel, PEGASUS_LEN);
+    memset(portLabel, 0, MAXINDILABEL);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[3].name, portLabel, MAXINDILABEL);
     IUFillSwitch(&PowerControlS[3], "POWER_CONTROL_4", portRC == -1 ? "Port 4" : portLabel, ISS_OFF);
 
     IUFillSwitchVector(&PowerControlSP, PowerControlS, 4, getDeviceName(), "POWER_CONTROL", "Power Control", POWER_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
@@ -225,9 +225,9 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Settings
-    IUFillNumber(&SettingsN[SETTING_BACKLASH], "SETTING_BACKLASH", "Backlash", "%.f", 0, 999, 100, 0);
-    IUFillNumber(&SettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed", "%.f", 0, 999, 100, 0);
-    IUFillNumberVector(&FocuserSettingsNP, SettingsN, 2, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumber(&FocuserSettingsN[SETTING_BACKLASH], "SETTING_BACKLASH", "Backlash", "%.f", 0, 999, 100, 0);
+    IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed", "%.f", 0, 999, 100, 0);
+    IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 2, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Backlash
     IUFillSwitch(&FocuserBacklashS[BACKLASH_ENABLED], "BACKLASH_ENABLED", "Enabled", ISS_ON);
@@ -339,7 +339,7 @@ bool PegasusUPB::Handshake()
 {
     PortFD = serialConnection->getPortFD();
 
-    char res[MAXINDILABEL] = {0};
+    char res[PEGASUS_LEN] = {0};
 
     bool rc = sendCommand("P#", res);
     if (!rc)
@@ -365,7 +365,7 @@ bool PegasusUPB::ISNewSwitch(const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&PowerCycleAllSP, states, names, n);
 
             PowerCycleAllSP.s = IPS_ALERT;
-            char cmd[MAXINDIDEVICE]={0},res[PEGASUS_LEN]={0};
+            char cmd[PEGASUS_LEN]={0},res[PEGASUS_LEN]={0};
             snprintf(cmd, PEGASUS_LEN, "PZ:%d", IUFindOnSwitchIndex(&PowerCycleAllSP));
             if (sendCommand(cmd, res))
             {
@@ -533,6 +533,25 @@ bool PegasusUPB::ISNewNumber(const char *dev, const char *name, double values[],
             return true;
         }
 
+        // Focuser Settings
+        if (!strcmp(name, FocuserSettingsNP.name))
+        {
+            bool rc1=true, rc2=true;
+            for (int i=0; i < n; i++)
+            {
+                if (!strcmp(names[i], FocuserSettingsN[SETTING_BACKLASH].name) && values[i] != FocuserSettingsN[SETTING_BACKLASH].value)
+                    rc1 = setFocuserBacklash(values[i]);
+                else if (!strcmp(names[i], FocuserSettingsN[SETTING_MAX_SPEED].name) && values[i] != FocuserSettingsN[SETTING_MAX_SPEED].value)
+                    rc1 = setFocuserMaxSpeed(values[i]);
+            }
+
+            FocuserSettingsNP.s = (rc1 && rc2) ? IPS_OK : IPS_ALERT;
+            if (FocuserSettingsNP.s == IPS_OK)
+                IUUpdateNumber(&FocuserSettingsNP, values, names, n);
+            IDSetNumber(&FocuserSettingsNP, nullptr);
+            return true;
+        }
+
         if (strstr(name, "FOCUS_"))
             return FI::processNumber(dev, name, values, names, n);
 
@@ -604,7 +623,7 @@ IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
     snprintf(cmd, PEGASUS_LEN, "SM:%d", targetTicks);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
+        return (!strcmp(res, cmd+1) ? IPS_BUSY : IPS_ALERT);
     }
 
     return IPS_ALERT;
@@ -960,16 +979,20 @@ bool PegasusUPB::getStepperData()
         uint16_t backlash = std::stoi(result[3]);
         if (backlash == 0)
         {
+            FocuserSettingsN[SETTING_BACKLASH].value = backlash;
             FocuserBacklashS[BACKLASH_ENABLED].s = ISS_OFF;
             FocuserBacklashS[BACKLASH_DISABLED].s = ISS_ON;
             if (result[3] != lastStepperData[3])
+            {
                 IDSetSwitch(&FocuserBacklashSP, nullptr);
+                IDSetNumber(&FocuserSettingsNP, nullptr);
+            }
         }
         else
         {
             FocuserBacklashS[BACKLASH_ENABLED].s = ISS_ON;
             FocuserBacklashS[BACKLASH_DISABLED].s = ISS_OFF;
-            SettingsN[SETTING_BACKLASH].value = backlash;
+            FocuserSettingsN[SETTING_BACKLASH].value = backlash;
             if (result[3] != lastStepperData[3])
             {
                 IDSetSwitch(&FocuserBacklashSP, nullptr);
