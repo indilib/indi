@@ -542,7 +542,7 @@ bool PegasusUPB::ISNewNumber(const char *dev, const char *name, double values[],
                 if (!strcmp(names[i], FocuserSettingsN[SETTING_BACKLASH].name) && values[i] != FocuserSettingsN[SETTING_BACKLASH].value)
                     rc1 = setFocuserBacklash(values[i]);
                 else if (!strcmp(names[i], FocuserSettingsN[SETTING_MAX_SPEED].name) && values[i] != FocuserSettingsN[SETTING_MAX_SPEED].value)
-                    rc1 = setFocuserMaxSpeed(values[i]);
+                    rc2 = setFocuserMaxSpeed(values[i]);
             }
 
             FocuserSettingsNP.s = (rc1 && rc2) ? IPS_OK : IPS_ALERT;
