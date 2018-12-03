@@ -623,7 +623,7 @@ IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
     snprintf(cmd, PEGASUS_LEN, "SM:%d", targetTicks);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, cmd+1) ? IPS_BUSY : IPS_ALERT);
+        return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
     }
 
     return IPS_ALERT;
