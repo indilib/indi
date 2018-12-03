@@ -35,8 +35,6 @@
 // We declare an auto pointer to PegasusUPB.
 static std::unique_ptr<PegasusUPB> upb(new PegasusUPB());
 
-#define FLAT_TIMEOUT 3
-
 void ISGetProperties(const char *dev)
 {
     upb->ISGetProperties(dev);
@@ -136,24 +134,24 @@ bool PegasusUPB::initProperties()
     IUFillText(&PowerControlsLabelsT[3], "POWER_LABEL_4", "Port 4", "Port 4");
     IUFillTextVector(&PowerControlsLabelsTP, PowerControlsLabelsT, 4, getDeviceName(), "POWER_CONTROL_LABEL", "Power Labels", POWER_TAB, IP_WO, 60, IPS_IDLE);
 
-    char portLabel[MAXINDINAME];
+    char portLabel[PEGASUS_LEN];
     int portRC=-1;
 
     // Turn on/off power and power boot up
-    memset(portLabel, 0, MAXINDINAME);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[0].name, portLabel, MAXINDINAME);
+    memset(portLabel, 0, PEGASUS_LEN);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[0].name, portLabel, PEGASUS_LEN);
     IUFillSwitch(&PowerControlS[0], "POWER_CONTROL_1", portRC == -1 ? "Port 1" : portLabel, ISS_OFF);
 
-    memset(portLabel, 0, MAXINDINAME);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[1].name, portLabel, MAXINDINAME);
+    memset(portLabel, 0, PEGASUS_LEN);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[1].name, portLabel, PEGASUS_LEN);
     IUFillSwitch(&PowerControlS[1], "POWER_CONTROL_2", portRC == -1 ? "Port 2" : portLabel, ISS_OFF);
 
-    memset(portLabel, 0, MAXINDINAME);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[2].name, portLabel, MAXINDINAME);
+    memset(portLabel, 0, PEGASUS_LEN);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[2].name, portLabel, PEGASUS_LEN);
     IUFillSwitch(&PowerControlS[2], "POWER_CONTROL_3", portRC == -1 ? "Port 3" : portLabel, ISS_OFF);
 
-    memset(portLabel, 0, MAXINDINAME);
-    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[3].name, portLabel, MAXINDINAME);
+    memset(portLabel, 0, PEGASUS_LEN);
+    portRC = IUGetConfigText(getDeviceName(), PowerControlsLabelsTP.name, PowerControlsLabelsT[3].name, portLabel, PEGASUS_LEN);
     IUFillSwitch(&PowerControlS[3], "POWER_CONTROL_4", portRC == -1 ? "Port 4" : portLabel, ISS_OFF);
 
     IUFillSwitchVector(&PowerControlSP, PowerControlS, 4, getDeviceName(), "POWER_CONTROL", "Power Control", POWER_TAB, IP_RW, ISR_NOFMANY, 60, IPS_IDLE);
@@ -367,8 +365,8 @@ bool PegasusUPB::ISNewSwitch(const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&PowerCycleAllSP, states, names, n);
 
             PowerCycleAllSP.s = IPS_ALERT;
-            char cmd[MAXINDIDEVICE]={0},res[MAXINDINAME]={0};
-            snprintf(cmd, MAXINDINAME, "PZ:%d", IUFindOnSwitchIndex(&PowerCycleAllSP));
+            char cmd[MAXINDIDEVICE]={0},res[PEGASUS_LEN]={0};
+            snprintf(cmd, PEGASUS_LEN, "PZ:%d", IUFindOnSwitchIndex(&PowerCycleAllSP));
             if (sendCommand(cmd, res))
             {
                 PowerCycleAllSP.s = !strcmp(cmd, res) ? IPS_OK : IPS_ALERT;
@@ -566,11 +564,11 @@ bool PegasusUPB::ISNewText(const char *dev, const char *name, char *texts[], cha
 bool PegasusUPB::sendCommand(const char *cmd, char *res)
 {
     int nbytes_read=0, nbytes_written=0, tty_rc = 0;
-    char command[MAXINDINAME]={0};
+    char command[PEGASUS_LEN]={0};
     LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
-    snprintf(command, MAXINDINAME, "%s\n", cmd);
+    snprintf(command, PEGASUS_LEN, "%s\n", cmd);
     if ( (tty_rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
     {
         char errorMessage[MAXRBUF];
@@ -585,7 +583,7 @@ bool PegasusUPB::sendCommand(const char *cmd, char *res)
         return true;
     }
 
-    if ( (tty_rc = tty_nread_section(PortFD, res, MAXINDINAME, 0xD, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, 0xD, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         char errorMessage[MAXRBUF];
         tty_error_msg(tty_rc, errorMessage, MAXRBUF);
@@ -602,8 +600,8 @@ bool PegasusUPB::sendCommand(const char *cmd, char *res)
 
 IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
-    snprintf(cmd, MAXINDINAME, "SM:%d", targetTicks);
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "SM:%d", targetTicks);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
@@ -619,7 +617,7 @@ IPState PegasusUPB::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 bool PegasusUPB::AbortFocuser()
 {
-    char res[MAXINDINAME]={0};
+    char res[PEGASUS_LEN]={0};
     if (sendCommand("SH", res))
     {
         return (!strcmp(res, "SH"));
@@ -630,8 +628,8 @@ bool PegasusUPB::AbortFocuser()
 
 bool PegasusUPB::ReverseFocuser(bool enabled)
 {
-    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
-    snprintf(cmd, MAXINDINAME, "SR:%d", enabled ? 1 : 0);
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "SR:%d", enabled ? 1 : 0);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, cmd));
@@ -642,8 +640,8 @@ bool PegasusUPB::ReverseFocuser(bool enabled)
 
 bool PegasusUPB::SyncFocuser(uint32_t ticks)
 {
-    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
-    snprintf(cmd, MAXINDINAME, "SC:%d", ticks);
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "SC:%d", ticks);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, cmd));
@@ -654,8 +652,8 @@ bool PegasusUPB::SyncFocuser(uint32_t ticks)
 
 bool PegasusUPB::setFocuserBacklash(uint16_t value)
 {
-    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
-    snprintf(cmd, MAXINDINAME, "SB:%d", value);
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "SB:%d", value);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, cmd));
@@ -666,8 +664,8 @@ bool PegasusUPB::setFocuserBacklash(uint16_t value)
 
 bool PegasusUPB::setFocuserMaxSpeed(uint16_t maxSpeed)
 {
-    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
-    snprintf(cmd, MAXINDINAME, "SS:%d", maxSpeed);
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "SS:%d", maxSpeed);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, cmd));
@@ -679,15 +677,15 @@ bool PegasusUPB::setFocuserMaxSpeed(uint16_t maxSpeed)
 
 bool PegasusUPB::setFocuserBacklashEnabled(bool enabled)
 {
-    char cmd[MAXINDINAME]={0};
-    snprintf(cmd, MAXINDINAME, "SB:%d", enabled ? 1 : 0);
+    char cmd[PEGASUS_LEN]={0};
+    snprintf(cmd, PEGASUS_LEN, "SB:%d", enabled ? 1 : 0);
     return sendCommand(cmd, nullptr);
 }
 
 bool PegasusUPB::setPowerEnabled(uint8_t port, bool enabled)
 {
-    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
-    snprintf(cmd, MAXINDINAME, "P%d:%d", port, enabled ? 1 : 0);
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "P%d:%d", port, enabled ? 1 : 0);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, cmd));
@@ -698,8 +696,8 @@ bool PegasusUPB::setPowerEnabled(uint8_t port, bool enabled)
 
 bool PegasusUPB::setPowerLEDEnabled(bool enabled)
 {
-    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
-    snprintf(cmd, MAXINDINAME, "PL:%d", enabled ? 1 : 0);
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "PL:%d", enabled ? 1 : 0);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, cmd));
@@ -710,8 +708,8 @@ bool PegasusUPB::setPowerLEDEnabled(bool enabled)
 
 bool PegasusUPB::setAutoDewEnabled(bool enabled)
 {
-    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
-    snprintf(cmd, MAXINDINAME, "PD:%d", enabled ? 1 : 0);
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "PD:%d", enabled ? 1 : 0);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, cmd));
@@ -722,8 +720,8 @@ bool PegasusUPB::setAutoDewEnabled(bool enabled)
 
 bool PegasusUPB::setPowerOnBoot()
 {
-    char cmd[MAXINDINAME]={0}, res[MAXINDINAME] = {0};
-    snprintf(cmd, MAXINDINAME, "PE:%d%d%d%d", PowerOnBootS[0].s == ISS_ON ? 1 : 0,
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    snprintf(cmd, PEGASUS_LEN, "PE:%d%d%d%d", PowerOnBootS[0].s == ISS_ON ? 1 : 0,
                                               PowerOnBootS[1].s == ISS_ON ? 1 : 0,
                                               PowerOnBootS[2].s == ISS_ON ? 1 : 0,
                                               PowerOnBootS[3].s == ISS_ON ? 1 : 0);
@@ -737,8 +735,8 @@ bool PegasusUPB::setPowerOnBoot()
 
 bool PegasusUPB::setDewPWM(uint8_t id, uint8_t value)
 {
-    char cmd[MAXINDINAME]={0}, res[MAXINDINAME]={0};
-    snprintf(cmd, MAXINDINAME, "P%d:%03d", id, value);
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN]={0};
+    snprintf(cmd, PEGASUS_LEN, "P%d:%03d", id, value);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, cmd));
@@ -749,9 +747,9 @@ bool PegasusUPB::setDewPWM(uint8_t id, uint8_t value)
 
 bool PegasusUPB::setUSBHubEnabled(bool enabled)
 {
-    char cmd[MAXINDINAME]={0}, expected[MAXINDINAME]={0}, res[MAXINDINAME]={0};
-    snprintf(cmd, MAXINDINAME, "PU:%d", enabled ? 1 : 0);
-    snprintf(expected, MAXINDINAME, "PU:%d", enabled ? 0 : 1);
+    char cmd[PEGASUS_LEN]={0}, expected[PEGASUS_LEN]={0}, res[PEGASUS_LEN]={0};
+    snprintf(cmd, PEGASUS_LEN, "PU:%d", enabled ? 1 : 0);
+    snprintf(expected, PEGASUS_LEN, "PU:%d", enabled ? 0 : 1);
     if (sendCommand(cmd, res))
     {
         return (!strcmp(res, expected));
@@ -787,7 +785,7 @@ void PegasusUPB::TimerHit()
 
 bool PegasusUPB::sendFirmware()
 {
-    char res[MAXINDINAME]={0};
+    char res[PEGASUS_LEN]={0};
     if (sendCommand("PV", res))
     {
         LOGF_INFO("Detected firmware %s", res);
@@ -799,7 +797,7 @@ bool PegasusUPB::sendFirmware()
 
 bool PegasusUPB::getSensorData()
 {
-    char res[MAXINDINAME]={0};
+    char res[PEGASUS_LEN]={0};
     if (sendCommand("PA", res))
     {
         std::vector<std::string> result = split(res, ":");
@@ -900,7 +898,7 @@ bool PegasusUPB::getSensorData()
 
 bool PegasusUPB::getPowerData()
 {
-    char res[MAXINDINAME]={0};
+    char res[PEGASUS_LEN]={0};
     if (sendCommand("PC", res))
     {
         std::vector<std::string> result = split(res, ":");
@@ -928,7 +926,7 @@ bool PegasusUPB::getPowerData()
 
 bool PegasusUPB::getStepperData()
 {
-    char res[MAXINDINAME]={0};
+    char res[PEGASUS_LEN]={0};
     if (sendCommand("SA", res))
     {
         std::vector<std::string> result = split(res, ":");

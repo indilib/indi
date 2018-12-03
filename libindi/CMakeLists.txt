@@ -1043,7 +1043,9 @@ ENDIF ()
 #####################################
 ############ AUX GROUP ##############
 #####################################
-
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-indi_auxiliarey.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+ENDIF ()
 ########### SkySafari Middleware ##############
 IF (INDI_BUILD_CLIENT)
     SET(skysafari_SRC
@@ -1087,10 +1089,6 @@ SET(flipflat_SRC
 add_executable(indi_flipflat ${flipflat_SRC})
 target_link_libraries(indi_flipflat indidriver)
 install(TARGETS indi_flipflat RUNTIME DESTINATION bin)
-
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-flipflat.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 
 ########### Pegasus Ultimate Power Box Driver ###############
 
@@ -1172,10 +1170,6 @@ ENDIF ()
 add_executable(indi_gpusb ${gpusb_SRC})
 target_link_libraries(indi_gpusb indidriver)
 install(TARGETS indi_gpusb RUNTIME DESTINATION bin)
-
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/99-gpusb.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-ENDIF ()
 
 ########### Joystick Driver ###############
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")

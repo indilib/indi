@@ -244,6 +244,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     bool focusMotorRunning { false };
 
     static constexpr const uint8_t PEGASUS_TIMEOUT {3};
+    static constexpr const uint8_t PEGASUS_LEN {128};
     static constexpr const char *DEW_TAB {"Dew"};
     static constexpr const char *USB_TAB {"USB"};
     static constexpr const char *ENVIRONMENT_TAB {"Environment"};
