@@ -48,7 +48,6 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
 
   protected:
     const char *getDefaultName() override;
-    virtual bool Disconnect() override;
     virtual bool saveConfigItems(FILE *fp) override;
 
     // Event loop

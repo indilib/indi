@@ -348,13 +348,6 @@ bool PegasusUPB::Handshake()
     return (!strcmp(res, "UPB_OK"));
 }
 
-bool PegasusUPB::Disconnect()
-{
-    //sendCommand("DISCONNECT#");
-
-    return INDI::DefaultDevice::Disconnect();
-}
-
 bool PegasusUPB::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev && !strcmp(dev, getDeviceName()))
@@ -795,6 +788,9 @@ bool PegasusUPB::saveConfigItems(FILE *fp)
 
 void PegasusUPB::TimerHit()
 {
+    if (!isConnected())
+        return;
+
     getSensorData();
     getPowerData();
     getStepperData();
