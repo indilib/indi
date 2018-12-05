@@ -564,6 +564,17 @@ void TOUPCAM::setupParams()
 
     m_BitsPerPixel = 8;
     int nVal=0;
+
+    // Check if the RAW mode supports > 8 bits
+    if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
+    {
+        // enable bitdepth
+        Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
+        m_BitsPerPixel = 16;
+        m_RAWHighDepthSupport = true;
+        LOG_DEBUG("RAW Bit Depth: 16");
+    }
+
     // bitdepth supported
     // Get RAW/RGB Mode
     IUResetSwitch(&VideoFormatSP);
@@ -619,16 +630,6 @@ void TOUPCAM::setupParams()
         VideoFormatS[TC_VIDEO_RAW].s = ISS_ON;
         m_Channels = 1;
         LOG_INFO("Video Mode RAW detected.");
-
-        // Check if the RAW mode supports > 8 bits
-        if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
-        {
-            // enable bitdepth
-            Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
-            m_BitsPerPixel = 16;
-            m_RAWHighDepthSupport = true;
-            LOG_DEBUG("RAW Bit Depth: 16");
-        }
 
         // Get RAW Format
         IUSaveText(&BayerT[2], getBayerString());
@@ -1174,6 +1175,8 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             }
                 break;
             }
+
+            m_BitsPerPixel = (m_BitsPerPixel > 8) ? 16 : 8;
 
             // Allocate memory
             allocateFrameBuffer();

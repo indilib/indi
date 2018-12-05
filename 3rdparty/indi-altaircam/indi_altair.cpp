@@ -255,7 +255,7 @@ bool ALTAIRCAM::initProperties()
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
-                       ISR_1OFMANY, 0, IPS_IDLE);    
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     ///////////////////////////////////////////////////////////////////////////////////
     /// Controls
@@ -373,7 +373,7 @@ bool ALTAIRCAM::updateProperties()
         setupParams();
 
         if (HasCooler())
-        {            
+        {
             defineSwitch(&CoolerSP);
             loadConfig(true, "CCD_COOLER");
         }
@@ -396,7 +396,7 @@ bool ALTAIRCAM::updateProperties()
 
         // Balance
         defineNumber(&WBTempTintNP);
-        defineNumber(&WBRGBNP);               
+        defineNumber(&WBRGBNP);
 
         // Firmware
         defineText(&FirmwareTP);
@@ -418,7 +418,7 @@ bool ALTAIRCAM::updateProperties()
         deleteProperty(BlackBalanceNP.name);
 
         deleteProperty(WBTempTintNP.name);
-        deleteProperty(WBRGBNP.name);        
+        deleteProperty(WBRGBNP.name);
 
         deleteProperty(FirmwareTP.name);
     }
@@ -579,15 +579,27 @@ void ALTAIRCAM::setupParams()
 
     // Max supported bit depth
     m_MaxBitDepth = Altaircam_get_MaxBitDepth(m_CameraHandle);
-    LOGF_DEBUG("Max bit depth: %d", m_MaxBitDepth);        
+    LOGF_DEBUG("Max bit depth: %d", m_MaxBitDepth);
 
     m_BitsPerPixel = 8;
     int nVal=0;
+
+    // Check if the RAW mode supports > 8 bits
+    if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
+    {
+        // enable bitdepth
+        Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
+        m_BitsPerPixel = 16;
+        m_RAWHighDepthSupport = true;
+        LOG_DEBUG("RAW Bit Depth: 16");
+    }
+
     // bitdepth supported
     // Get RAW/RGB Mode
     IUResetSwitch(&VideoFormatSP);
     rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, &nVal);
     LOGF_DEBUG("ALTAIRCAM_OPTION_RAW. rc: %d Value: %d", rc, nVal);
+
     // RGB Mode
     if (nVal == 0)
     {
@@ -638,16 +650,6 @@ void ALTAIRCAM::setupParams()
         VideoFormatS[TC_VIDEO_RAW].s = ISS_ON;
         m_Channels = 1;
         LOG_INFO("Video Mode RAW detected.");
-
-        // Check if the RAW mode supports > 8 bits
-        if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
-        {
-            // enable bitdepth
-            Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
-            m_BitsPerPixel = 16;
-            m_RAWHighDepthSupport = true;
-            LOG_DEBUG("RAW Bit Depth: 16");
-        }
 
         // Get RAW Format
         IUSaveText(&BayerT[2], getBayerString());
@@ -770,7 +772,7 @@ void ALTAIRCAM::setupParams()
         LevelRangeN[TC_HI_R].value = aHigh[0];
         LevelRangeN[TC_HI_G].value = aHigh[1];
         LevelRangeN[TC_HI_B].value = aHigh[2];
-        LevelRangeN[TC_HI_Y].value = aHigh[3];               
+        LevelRangeN[TC_HI_Y].value = aHigh[3];
     }
 
     // Get Black Balance
@@ -1053,7 +1055,7 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 LOG_ERROR("Cannot change format while streaming/recording.");
                 IDSetSwitch(&VideoFormatSP, nullptr);
                 return true;
-            }            
+            }
 
             const char *targetFormat = IUFindOnSwitchName(states, names, n);
             int targetIndex=-1;
@@ -1115,7 +1117,7 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 VideoFormatSP.s = IPS_ALERT;
                 IDSetSwitch(&VideoFormatSP, nullptr);
 
-                // Restart Capture                
+                // Restart Capture
                 Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
                 LOG_DEBUG("Restarting event callback after changing video mode failed.");
 
@@ -1194,6 +1196,8 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 break;
             }
 
+            m_BitsPerPixel = (m_BitsPerPixel > 8) ? 16 : 8;
+
             // Allocate memory
             allocateFrameBuffer();
 
@@ -1249,7 +1253,7 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IUResetSwitch(&AutoControlSP);
 
             if (rc < 0)
-            {                
+            {
                 AutoControlS[previousSwitch].s = ISS_ON;
                 AutoControlSP.s = IPS_ALERT;
                 LOGF_INFO("%s failed (%d).", autoOperation.c_str(), rc);
@@ -1446,7 +1450,7 @@ bool ALTAIRCAM::activateCooler(bool enable)
 bool ALTAIRCAM::StartExposure(float duration)
 {
     HRESULT rc = 0;
-    PrimaryCCD.setExposureDuration(static_cast<double>(duration));    
+    PrimaryCCD.setExposureDuration(static_cast<double>(duration));
 
     uint32_t uSecs = static_cast<uint32_t>(duration * 1000000.0f);
 
@@ -1539,7 +1543,7 @@ bool ALTAIRCAM::AbortExposure()
 }
 
 bool ALTAIRCAM::UpdateCCDFrame(int x, int y, int w, int h)
-{    
+{
     // Make sure all are even
     x -= (x % 2);
     y -= (y % 2);
@@ -1703,7 +1707,7 @@ void ALTAIRCAM::stopTimerNS()
 }
 
 IPState ALTAIRCAM::guidePulseNS(uint32_t ms, eGUIDEDIRECTION dir, const char *dirName)
-{        
+{
     stopTimerNS();
     NSDir = dir;
     NSDirName = dirName;
@@ -1844,7 +1848,7 @@ const char *ALTAIRCAM::getBayerString()
 }
 
 void ALTAIRCAM::refreshControls()
-{   
+{
     IDSetNumber(&ControlNP, nullptr);
 }
 
@@ -2065,7 +2069,7 @@ void ALTAIRCAM::sendImageCB(void* pCtx)
 void ALTAIRCAM::sendImageCallBack()
 {
     InExposure = false;
-    m_SendImage = true;    
+    m_SendImage = true;
 }
 
 void ALTAIRCAM::eventCB(unsigned event, void* pCtx)
@@ -2117,7 +2121,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
             else
             {
                 if (m_SendImage)
-                {                    
+                {
                     if (m_CurrentVideoFormat == TC_VIDEO_RGB)
                     {
                         uint8_t *image  = PrimaryCCD.getFrameBuffer();
