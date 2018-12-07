@@ -44,6 +44,8 @@ class ATIKCCD : public INDI::CCD, public INDI::FilterInterface
     virtual bool StartExposure(float duration) override;
     virtual bool AbortExposure() override;
 
+    static void debugCallbackHelper(void *context, const char *message);
+
   protected:
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -68,6 +70,9 @@ class ATIKCCD : public INDI::CCD, public INDI::FilterInterface
     // Filter wheel
     virtual bool SelectFilter(int) override;
     virtual int QueryFilter() override;
+
+    // Debug
+    virtual void debugTriggered(bool enable) override;
 
   private:
     typedef enum ImageState
@@ -104,6 +109,9 @@ class ATIKCCD : public INDI::CCD, public INDI::FilterInterface
     // Image Threading
     static void *imagingHelper(void *context);
     void *imagingThreadEntry();
+
+    // Debug
+    void debugCallback(const char *message);
 
     // Exposure Progress
     void checkExposureProgress();
