@@ -503,14 +503,18 @@ private:
     };
 
     // Video Format
-    ISwitch VideoFormatS[4];
+    ISwitch VideoFormatS[2];
     ISwitchVectorProperty VideoFormatSP;
     enum
     {
+        TC_VIDEO_COLOR_RGB,
+        TC_VIDEO_COLOR_RAW,
+    };
+    enum
+    {
+
         TC_VIDEO_MONO_8,
         TC_VIDEO_MONO_16,
-        TC_VIDEO_RGB,
-        TC_VIDEO_RAW,
     };
 
     // Firmware Info
@@ -525,7 +529,7 @@ private:
         TC_FIRMWARE_REV
     };
 
-    uint8_t m_CurrentVideoFormat = TC_VIDEO_RGB;
+    uint8_t m_CurrentVideoFormat = TC_VIDEO_COLOR_RGB;
     INDI_PIXEL_FORMAT m_CameraPixelFormat = INDI_RGB;
     eTriggerMode m_CurrentTriggerMode = TRIGGER_VIDEO;
 
@@ -533,6 +537,7 @@ private:
     bool m_CanSnap { false };
     bool m_RAWFormatSupport { false };
     bool m_RAWHighDepthSupport { false };
+    bool m_MonoCamera { false };
 
     uint8_t m_BitsPerPixel { 8 };
     uint8_t m_RawBitsPerPixel { 8 };
