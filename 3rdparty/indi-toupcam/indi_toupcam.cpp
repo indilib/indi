@@ -1150,6 +1150,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 }
 
                 m_BitsPerPixel = (currentIndex == TC_VIDEO_MONO_8) ? 8 : 16;
+                Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, m_BitsPerPixel);
             }
             // Color
             else
@@ -2004,7 +2005,7 @@ void TOUPCAM::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
-    INumber *gainNP = IUFindNumber(&ControlNP, "TC_GAIN");
+    INumber *gainNP = IUFindNumber(&ControlNP, ControlN[TC_GAIN].name);
 
     if (gainNP)
     {
