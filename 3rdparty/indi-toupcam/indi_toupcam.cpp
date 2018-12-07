@@ -317,18 +317,21 @@ bool TOUPCAM::initProperties()
     ///////////////////////////////////////////////////////////////////////////////////
     /// Video Format
     ///////////////////////////////////////////////////////////////////////////////////
-
     /// RGB Mode but 8 bits grayscale
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_8], "TC_VIDEO_MONO_8", "Mono 8", ISS_OFF);
+    //IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_8], "TC_VIDEO_MONO_8", "Mono 8", ISS_OFF);
     /// RGB Mode but 16 bits grayscale
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
+    //IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
     /// RGB Mode with RGB24 color
     IUFillSwitch(&VideoFormatS[TC_VIDEO_COLOR_RGB], "TC_VIDEO_COLOR_RGB", "RGB", ISS_OFF);
     /// Raw mode (8 to 16 bit)
     IUFillSwitch(&VideoFormatS[TC_VIDEO_COLOR_RAW], "TC_VIDEO_COLOR_RAW", "Raw", ISS_OFF);
-    IUFillSwitchVector(&VideoFormatSP, VideoFormatS, 4, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&VideoFormatSP, VideoFormatS, 2, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    /// Resolution
+    ///////////////////////////////////////////////////////////////////////////////////
     IUFillSwitchVector(&ResolutionSP, ResolutionS, 0, getDeviceName(), "CCD_RESOLUTION", "Resolution", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
