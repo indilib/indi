@@ -507,10 +507,10 @@ private:
     ISwitchVectorProperty VideoFormatSP;
     enum
     {
-        TC_VIDEO_MONO_8,
-        TC_VIDEO_MONO_16,
         TC_VIDEO_RGB,
         TC_VIDEO_RAW,
+        TC_VIDEO_MONO_8,
+        TC_VIDEO_MONO_16,
     };
 
     // Firmware Info

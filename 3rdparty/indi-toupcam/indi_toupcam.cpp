@@ -556,6 +556,8 @@ void TOUPCAM::setupParams()
 {
     HRESULT rc = 0;
 
+    Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_NOFRAME_TIMEOUT, 1);
+
     // Get Firmware Info
     char firmwareBuffer[32] = {0};
     uint16_t pRevision=0;
@@ -578,8 +580,15 @@ void TOUPCAM::setupParams()
     m_BitsPerPixel = 8;
     int nVal=0;
 
+    VideoFormatSP.nsp = 2;
     // Check if the RAW mode supports > 8 bits
-    if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
+    if (m_Instance->model->flag & TOUPCAM_FLAG_MONO)
+    {
+        VideoFormatSP.nsp = 4;
+        LOG_DEBUG("Mono camera detected.");
+    }
+    // Check if the RAW mode supports > 8 bits
+    else if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
     {
         // enable bitdepth
         Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
@@ -2220,6 +2229,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         break;
     case TOUPCAM_EVENT_TIMEOUT:
         LOG_DEBUG("Camera timed out.");
+        PrimaryCCD.setExposureFailed();
         break;
     case TOUPCAM_EVENT_FACTORY:
         break;
