@@ -1209,12 +1209,15 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 // RGB 24
                 // N.B. Mode 1 (RGB48) and Mode 2 (RGB32) are not supported in our driver.
                 int mode = 0;
-                // Mode 3 is 8-bit
-                if (targetIndex == TC_VIDEO_MONO_8)
-                    mode = 3;
-                // Mode 4 is 16-bit
-                else if (targetIndex == TC_VIDEO_MONO_16)
-                    mode = 4;
+                if (m_MonoCamera)
+                {
+                    // Mode 3 is 8-bit
+                    if (targetIndex == TC_VIDEO_MONO_8)
+                        mode = 3;
+                    // Mode 4 is 16-bit
+                    else if (targetIndex == TC_VIDEO_MONO_16)
+                        mode = 4;
+                }
 
                 int rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, mode);
                 if (rc < 0)
