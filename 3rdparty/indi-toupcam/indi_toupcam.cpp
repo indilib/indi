@@ -241,7 +241,7 @@ bool TOUPCAM::initProperties()
     ///////////////////////////////////////////////////////////////////////////////////
     /// Controls
     ///////////////////////////////////////////////////////////////////////////////////
-    IUFillNumber(&ControlN[TC_GAIN], "Gain", "Gain", "%.f", 0, 400, 10, 0);
+    IUFillNumber(&ControlN[TC_GAIN], "Gain", "Gain", "%.f", 0, 400, 50, 0);
     IUFillNumber(&ControlN[TC_CONTRAST], "Contrast", "Contrast", "%.f", -100.0, 100, 10, 0);
     IUFillNumber(&ControlN[TC_HUE], "Hue", "Hue", "%.f", -180.0, 180, 10, 0);
     IUFillNumber(&ControlN[TC_SATURATION], "Saturation", "Saturation", "%.f", 0, 255, 10, 128);
@@ -688,6 +688,7 @@ void TOUPCAM::setupParams()
     LOGF_DEBUG("Exposure Auto Gain Control. Min: %d Max: %d Default: %d", nMin, nMax, nDef);
     ControlN[TC_GAIN].min = nMin;
     ControlN[TC_GAIN].max = nMax;
+    ControlN[TC_GAIN].step = (nMax-nMin)/20.0;
     ControlN[TC_GAIN].value = nDef;
 
     // Contrast
@@ -1480,6 +1481,12 @@ bool TOUPCAM::StartExposure(float duration)
           m_CurrentTriggerMode = TRIGGER_SOFTWARE;
       }
 
+      int timeMS = uSecs/1000 - 50;
+      if (timeMS < 0)
+        sendImageCallBack();
+      else if (static_cast<uint32_t>(timeMS) < POLLMS)
+           IEAddTimer(timeMS, &TOUPCAM::sendImageCB, this);
+
       // FIXME Setting trigger to software and then back to video causes a deadlock for some reason
       // Waiting for info from Toupcam
       if ( (rc = Toupcam_Trigger(m_CameraHandle, 1) < 0) )
@@ -1487,12 +1494,6 @@ bool TOUPCAM::StartExposure(float duration)
           LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
           return false;
       }
-
-      int timeMS = uSecs/1000 - 50;
-      if (timeMS < 0)
-          timeMS += 50;
-      if (static_cast<uint32_t>(timeMS) < POLLMS)
-           IEAddTimer(timeMS, &TOUPCAM::sendImageCB, this);
 
 //    pthread_mutex_lock(&condMutex);
 //    threadRequest = StateExposure;
