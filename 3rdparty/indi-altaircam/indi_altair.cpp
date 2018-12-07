@@ -575,6 +575,8 @@ void ALTAIRCAM::setupParams()
 {
     HRESULT rc = 0;
 
+    Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_NOFRAME_TIMEOUT, 1);
+
     // Get Firmware Info
     char firmwareBuffer[32] = {0};
     uint16_t pRevision=0;
@@ -2240,6 +2242,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
         break;
     case ALTAIRCAM_EVENT_TIMEOUT:
         LOG_DEBUG("Camera timed out.");
+        PrimaryCCD.setExposureFailed();
         break;
     case ALTAIRCAM_EVENT_FACTORY:
         break;
