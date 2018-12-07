@@ -2157,9 +2157,11 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
         //PrimaryCCD.setNAxis(m_Channels == 1 ? 2 : 3);
         //PrimaryCCD.setBPP(m_BitsPerPixel);
 
+        int captureBits = m_BitsPerPixel == 8 ? 8 : m_MaxBitDepth;
+
         if (Streamer->isStreaming())
         {
-            HRESULT rc = Altaircam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), m_BitsPerPixel * m_Channels, &info);
+            HRESULT rc = Altaircam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), captureBits * m_Channels, &info);
             if (rc >= 0)
                 Streamer->newFrame(PrimaryCCD.getFrameBuffer(), PrimaryCCD.getFrameBufferSize());
         }
@@ -2170,7 +2172,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
             if (m_MonoCamera == false && m_SendImage && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                 buffer = static_cast<uint8_t*>(malloc(PrimaryCCD.getXRes()*PrimaryCCD.getYRes()*3));
 
-            HRESULT rc = Altaircam_PullImageV2(m_CameraHandle, buffer, m_BitsPerPixel * m_Channels, &info);
+            HRESULT rc = Altaircam_PullImageV2(m_CameraHandle, buffer, captureBits * m_Channels, &info);
             if (rc < 0)
             {
                 LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
