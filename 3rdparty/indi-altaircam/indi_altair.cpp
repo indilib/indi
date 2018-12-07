@@ -708,6 +708,7 @@ void ALTAIRCAM::setupParams()
     LOGF_DEBUG("Exposure Auto Gain Control. Min: %d Max: %d Default: %d", nMin, nMax, nDef);
     ControlN[TC_GAIN].min = nMin;
     ControlN[TC_GAIN].max = nMax;
+    ControlN[TC_GAIN].step = (nMax-nMin)/20.0;
     ControlN[TC_GAIN].value = nDef;
 
     // Contrast
@@ -1500,6 +1501,12 @@ bool ALTAIRCAM::StartExposure(float duration)
           m_CurrentTriggerMode = TRIGGER_SOFTWARE;
       }
 
+      int timeMS = uSecs/1000 - 50;
+      if (timeMS < 0)
+        sendImageCallBack();
+      else if (static_cast<uint32_t>(timeMS) < POLLMS)
+           IEAddTimer(timeMS, &ALTAIRCAM::sendImageCB, this);
+
       // FIXME Setting trigger to software and then back to video causes a deadlock for some reason
       // Waiting for info from Altaircam
       if ( (rc = Altaircam_Trigger(m_CameraHandle, 1) < 0) )
@@ -1507,12 +1514,6 @@ bool ALTAIRCAM::StartExposure(float duration)
           LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
           return false;
       }
-
-      int timeMS = uSecs/1000 - 50;
-      if (timeMS < 0)
-          timeMS += 50;
-      if (static_cast<uint32_t>(timeMS) < POLLMS)
-           IEAddTimer(timeMS, &ALTAIRCAM::sendImageCB, this);
 
 //    pthread_mutex_lock(&condMutex);
 //    threadRequest = StateExposure;
