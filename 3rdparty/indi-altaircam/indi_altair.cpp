@@ -1132,98 +1132,37 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 return true;
             }
 
-            const char *targetFormat = IUFindOnSwitchName(states, names, n);
-            int targetIndex=-1;
-            for (int i=0; i < VideoFormatSP.nsp; i++)
+            int prevIndex = IUFindOnSwitchIndex(&VideoFormatSP);
+            IUUpdateSwitch(&VideoFormatSP, states, names, n);
+            int currentIndex = IUFindOnSwitchIndex(&VideoFormatSP);
+
+            m_Channels = 1;
+            m_BitsPerPixel = 8;
+
+            // Mono
+            if (m_MonoCamera)
             {
-                if (!strcmp(targetFormat, VideoFormatS[i].name))
+                if (m_MaxBitDepth == 8 && currentIndex == TC_VIDEO_MONO_16)
                 {
-                    targetIndex=i;
-                    break;
-                }
-            }
-
-            if (targetIndex == -1)
-            {
-                VideoFormatSP.s = IPS_ALERT;
-                LOGF_ERROR("Unable to locate format %s.", targetFormat);
-                IDSetSwitch(&VideoFormatSP, nullptr);
-                return true;
-            }
-
-            if (m_MaxBitDepth == 8 && targetIndex == TC_VIDEO_MONO_16)
-            {
-                VideoFormatSP.s = IPS_ALERT;
-                LOG_ERROR("Only 8-bit format is supported.");
-                IDSetSwitch(&VideoFormatSP, nullptr);
-                return true;
-            }
-
-            // Check if raw format is supported.
-            if (targetIndex == TC_VIDEO_COLOR_RAW && m_RAWFormatSupport == false)
-            {
-                VideoFormatSP.s = IPS_ALERT;
-                LOG_ERROR("RAW format is not supported.");
-                IDSetSwitch(&VideoFormatSP, nullptr);
-                return true;
-            }
-
-            // If video mode is RGB subtype, we need it to specifically set it.
-            if (targetIndex != TC_VIDEO_COLOR_RAW)
-            {
-                if (targetIndex == TC_VIDEO_COLOR_RGB && m_MonoCamera)
-                {
-                    LOG_ERROR("Cannot set RGB mode with monochromatic sensor. Only grayscale mode is available");
                     VideoFormatSP.s = IPS_ALERT;
+                    LOG_ERROR("Only 8-bit format is supported.");
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
                     IDSetSwitch(&VideoFormatSP, nullptr);
                     return true;
                 }
-            }
 
-            // We need to stop camera first
-            LOG_DEBUG("Stopping camera to change video mode.");
-            Altaircam_Stop(m_CameraHandle);
+                // We need to stop camera first
+                LOG_DEBUG("Stopping camera to change video mode.");
+                Altaircam_Stop(m_CameraHandle);
 
-            // Set updated video format RGB vs. RAW
-            if (m_MonoCamera == false)
-            {
-                rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, targetIndex == TC_VIDEO_COLOR_RAW ? 1 : 0);
+                int rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, currentIndex+3);
                 if (rc < 0)
                 {
-                    LOGF_ERROR("Failed to set video mode: %s", errorCodes[rc].c_str());
+                    LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
                     VideoFormatSP.s = IPS_ALERT;
-                    IDSetSwitch(&VideoFormatSP, nullptr);
-
-                    // Restart Capture
-                    Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
-                    LOG_DEBUG("Restarting event callback after changing video mode failed.");
-
-                    return true;
-                }
-            }
-
-
-            // If RGB, we need to set specific sub-type
-            if (m_MonoCamera || targetIndex != TC_VIDEO_COLOR_RAW)
-            {
-                // RGB 24
-                // N.B. Mode 1 (RGB48) and Mode 2 (RGB32) are not supported in our driver.
-                int mode = 0;
-                if (m_MonoCamera)
-                {
-                    // Mode 3 is 8-bit
-                    if (targetIndex == TC_VIDEO_MONO_8)
-                        mode = 3;
-                    // Mode 4 is 16-bit
-                    else if (targetIndex == TC_VIDEO_MONO_16)
-                        mode = 4;
-                }
-
-                int rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, mode);
-                if (rc < 0)
-                {
-                    LOGF_ERROR("Failed to set RGB mode %d: %s", targetIndex, errorCodes[rc].c_str());
-                    VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
                     IDSetSwitch(&VideoFormatSP, nullptr);
 
                     // Restart Capture
@@ -1232,34 +1171,44 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                     return true;
                 }
+
+                m_BitsPerPixel = (currentIndex == TC_VIDEO_MONO_8) ? 8 : 16;
             }
-
-            m_CurrentVideoFormat = targetIndex;
-
-            if (m_MonoCamera)
-            {
-                switch (m_CurrentVideoFormat)
-                {
-                case TC_VIDEO_MONO_8:
-                {
-                    m_Channels = 1;
-                    m_BitsPerPixel = 8;
-                }
-                    break;
-
-                case TC_VIDEO_MONO_16:
-                {
-                    m_Channels = 1;
-                    m_BitsPerPixel = 16;
-                }
-                    break;
-                }
-            }
+            // Color
             else
             {
-                switch (m_CurrentVideoFormat)
+                // Check if raw format is supported.
+                if (currentIndex == TC_VIDEO_COLOR_RAW && m_RAWFormatSupport == false)
                 {
-                case TC_VIDEO_COLOR_RGB:
+                    VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
+                    LOG_ERROR("RAW format is not supported.");
+                    IDSetSwitch(&VideoFormatSP, nullptr);
+                    return true;
+                }
+
+                // We need to stop camera first
+                LOG_DEBUG("Stopping camera to change video mode.");
+                Altaircam_Stop(m_CameraHandle);
+
+                rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, currentIndex);
+                if (rc < 0)
+                {
+                    LOGF_ERROR("Failed to set video mode: %s", errorCodes[rc].c_str());
+                    VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
+                    IDSetSwitch(&VideoFormatSP, nullptr);
+
+                    // Restart Capture
+                    Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
+                    LOG_DEBUG("Restarting event callback after changing video mode failed.");
+
+                    return true;
+                }
+
+                if (currentIndex == TC_VIDEO_COLOR_RGB)
                 {
                     m_Channels = 3;
                     m_BitsPerPixel = 8;
@@ -1267,26 +1216,41 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     if (m_RAWFormatSupport)
                         SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
                 }
-                    break;
-
-                case TC_VIDEO_COLOR_RAW:
+                else
                 {
-                    m_Channels = 1;
                     SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
                     IUSaveText(&BayerT[2], getBayerString());
                     IDSetText(&BayerTP, nullptr);
                     m_BitsPerPixel = m_RawBitsPerPixel;
                 }
-                    break;
-                }
+
+//                if (currentIndex == TC_VIDEO_COLOR_RGB)
+//                {
+//                    int rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, 0);
+//                    if (rc < 0)
+//                    {
+//                        LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
+//                        VideoFormatSP.s = IPS_ALERT;
+//                        IUResetSwitch(&VideoFormatSP);
+//                        VideoFormatS[prevIndex].s = ISS_ON;
+//                        IDSetSwitch(&VideoFormatSP, nullptr);
+
+//                        // Restart Capture
+//                        Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
+//                        LOG_DEBUG("Restarting event callback after video mode change failed.");
+
+//                        return true;
+//                    }
+//                }
+
             }
 
+            m_CurrentVideoFormat = currentIndex;
             m_BitsPerPixel = (m_BitsPerPixel > 8) ? 16 : 8;
 
             // Allocate memory
             allocateFrameBuffer();
 
-            IUUpdateSwitch(&VideoFormatSP, states, names, n);
             VideoFormatSP.s = IPS_OK;
             IDSetSwitch(&VideoFormatSP, nullptr);
 
