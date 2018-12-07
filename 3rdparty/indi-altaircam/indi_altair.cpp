@@ -1185,22 +1185,26 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             Altaircam_Stop(m_CameraHandle);
 
             // Set updated video format RGB vs. RAW
-            rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, targetIndex == TC_VIDEO_COLOR_RAW ? 1 : 0);
-            if (rc < 0)
+            if (m_MonoCamera == false)
             {
-                LOGF_ERROR("Failed to set video mode: %s", errorCodes[rc].c_str());
-                VideoFormatSP.s = IPS_ALERT;
-                IDSetSwitch(&VideoFormatSP, nullptr);
+                rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, targetIndex == TC_VIDEO_COLOR_RAW ? 1 : 0);
+                if (rc < 0)
+                {
+                    LOGF_ERROR("Failed to set video mode: %s", errorCodes[rc].c_str());
+                    VideoFormatSP.s = IPS_ALERT;
+                    IDSetSwitch(&VideoFormatSP, nullptr);
 
-                // Restart Capture
-                Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
-                LOG_DEBUG("Restarting event callback after changing video mode failed.");
+                    // Restart Capture
+                    Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
+                    LOG_DEBUG("Restarting event callback after changing video mode failed.");
 
-                return true;
+                    return true;
+                }
             }
 
+
             // If RGB, we need to set specific sub-type
-            if (targetIndex != TC_VIDEO_COLOR_RAW)
+            if (m_MonoCamera || targetIndex != TC_VIDEO_COLOR_RAW)
             {
                 // RGB 24
                 // N.B. Mode 1 (RGB48) and Mode 2 (RGB32) are not supported in our driver.
@@ -1250,7 +1254,6 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             }
             else
             {
-
                 switch (m_CurrentVideoFormat)
                 {
                 case TC_VIDEO_COLOR_RGB:
