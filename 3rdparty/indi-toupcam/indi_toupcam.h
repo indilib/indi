@@ -144,8 +144,8 @@ private:
         EVENT_EXPOSURE             = 0x0001, /* exposure time changed */
         EVENT_TEMPTINT             = 0x0002, /* white balance changed, Temp/Tint mode */
         EVENT_CHROME               = 0x0003, /* reversed, do not use it */
-        EVENT_IMAGE                = 0x0004, /* live image arrived, use Altaircam_PullImage to get this image */
-        EVENT_STILLIMAGE           = 0x0005, /* snap (still) frame arrived, use Altaircam_PullStillImage to get this frame */
+        EVENT_IMAGE                = 0x0004, /* live image arrived, use Toupcam_PullImage to get this image */
+        EVENT_STILLIMAGE           = 0x0005, /* snap (still) frame arrived, use Toupcam_PullStillImage to get this frame */
         EVENT_WBGAIN               = 0x0006, /* white balance changed, RGB Gain mode */
         EVENT_TRIGGERFAIL          = 0x0007, /* trigger failed */
         EVENT_BLACK                = 0x0008, /* black balance changed */
@@ -503,12 +503,16 @@ private:
     };
 
     // Video Format
-    ISwitch VideoFormatS[4];
+    ISwitch VideoFormatS[2];
     ISwitchVectorProperty VideoFormatSP;
     enum
     {
-        TC_VIDEO_RGB,
-        TC_VIDEO_RAW,
+        TC_VIDEO_COLOR_RGB,
+        TC_VIDEO_COLOR_RAW,
+    };
+    enum
+    {
+
         TC_VIDEO_MONO_8,
         TC_VIDEO_MONO_16,
     };
@@ -525,7 +529,7 @@ private:
         TC_FIRMWARE_REV
     };
 
-    uint8_t m_CurrentVideoFormat = TC_VIDEO_RGB;
+    uint8_t m_CurrentVideoFormat = TC_VIDEO_COLOR_RGB;
     INDI_PIXEL_FORMAT m_CameraPixelFormat = INDI_RGB;
     eTriggerMode m_CurrentTriggerMode = TRIGGER_VIDEO;
 
@@ -533,6 +537,7 @@ private:
     bool m_CanSnap { false };
     bool m_RAWFormatSupport { false };
     bool m_RAWHighDepthSupport { false };
+    bool m_MonoCamera { false };
 
     uint8_t m_BitsPerPixel { 8 };
     uint8_t m_RawBitsPerPixel { 8 };
