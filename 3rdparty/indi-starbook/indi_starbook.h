@@ -5,3 +5,15 @@
 #pragma once
 
 #include <inditelescope.h>
+
+class Starbook : public INDI::DefaultDevice
+{
+public:
+    Starbook();
+
+protected:
+    bool Connect();
+    bool Disconnect();
+    const char *getDefaultName();
+
+};
