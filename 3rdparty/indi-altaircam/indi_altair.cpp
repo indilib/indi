@@ -1172,9 +1172,23 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     return true;
                 }
 
-                m_BitsPerPixel = (currentIndex == TC_VIDEO_MONO_8) ? 8 : 16;
+                rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, currentIndex);
+                if (rc < 0)
+                {
+                    LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
+                    VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
+                    IDSetSwitch(&VideoFormatSP, nullptr);
 
-                Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, m_BitsPerPixel == 8 ? 0 : 1);
+                    // Restart Capture
+                    Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
+                    LOG_DEBUG("Restarting event callback after video mode change failed.");
+
+                    return true;
+                }
+
+                m_BitsPerPixel = (currentIndex == TC_VIDEO_MONO_8) ? 8 : 16;
             }
             // Color
             else

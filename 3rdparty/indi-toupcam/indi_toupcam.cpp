@@ -1149,8 +1149,24 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                     return true;
                 }
 
+
+                rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, currentIndex);
+                if (rc < 0)
+                {
+                    LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
+                    VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
+                    IDSetSwitch(&VideoFormatSP, nullptr);
+
+                    // Restart Capture
+                    Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+                    LOG_DEBUG("Restarting event callback after video mode change failed.");
+
+                    return true;
+                }
+
                 m_BitsPerPixel = (currentIndex == TC_VIDEO_MONO_8) ? 8 : 16;
-                Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, m_BitsPerPixel == 8 ? 0 : 1);
             }
             // Color
             else
