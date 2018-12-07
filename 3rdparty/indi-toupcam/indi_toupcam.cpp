@@ -308,6 +308,13 @@ bool TOUPCAM::initProperties()
     IUFillSwitchVector(&WBAutoSP, WBAutoS, 2, getDeviceName(), "TC_AUTO_WB", "Default WB Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     ///////////////////////////////////////////////////////////////////////////////////
+    /// Fan Control
+    ///////////////////////////////////////////////////////////////////////////////////
+    IUFillSwitch(&FanControlS[TC_FAN_ON], "TC_FAN_ON", "On", ISS_ON);
+    IUFillSwitch(&FanControlS[TC_FAN_OFF], "TC_FAN_OFF", "Off", ISS_OFF);
+    IUFillSwitchVector(&FanControlSP, FanControlS, 2, getDeviceName(), "TC_FAN_CONTROL", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    ///////////////////////////////////////////////////////////////////////////////////
     /// Video Format
     ///////////////////////////////////////////////////////////////////////////////////
 
@@ -365,6 +372,9 @@ bool TOUPCAM::updateProperties()
             defineNumber(&TemperatureNP);
         }
 
+        if (m_Instance->model->flag & TOUPCAM_FLAG_FAN)
+            defineSwitch(&FanControlSP);
+
         defineSwitch(&WBAutoSP);
         defineNumber(&ControlNP);
         defineSwitch(&AutoControlSP);
@@ -388,6 +398,9 @@ bool TOUPCAM::updateProperties()
             deleteProperty(CoolerSP.name);
         else
             deleteProperty(TemperatureNP.name);
+
+        if (m_Instance->model->flag & TOUPCAM_FLAG_FAN)
+            deleteProperty(FanControlSP.name);
 
         deleteProperty(WBAutoSP.name);
         deleteProperty(ControlNP.name);
@@ -651,6 +664,18 @@ void TOUPCAM::setupParams()
         snprintf(label, MAXINDILABEL, "%d x %d", w[i], h[i]);
         LOGF_DEBUG("Resolution #%d: %s", i+1, label);
         IUFillSwitch(&ResolutionS[i], label, label, ISS_OFF);
+    }
+
+    // Fan Control
+    if (m_Instance->model->flag & TOUPCAM_FLAG_FAN)
+    {
+        int fan = 0;
+        Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_FAN, &fan);
+        LOGF_DEBUG("Fan is %s", fan == 0 ? "Off" : "On");
+        IUResetSwitch(&FanControlSP);
+        FanControlS[TC_FAN_ON].s = fan == 0 ? ISS_OFF : ISS_ON;
+        FanControlS[TC_FAN_OFF].s = fan == 0 ? ISS_ON : ISS_OFF;
+        FanControlSP.s = (fan == 0) ? IPS_IDLE : IPS_BUSY;
     }
 
     // Get active resolution index
@@ -1020,6 +1045,30 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             else
                 activateCooler(false);
 
+            return true;
+        }
+
+        //////////////////////////////////////////////////////////////////////
+        /// Fan Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, FanControlSP.name))
+        {
+            int prevIndex = IUFindOnSwitchIndex(&FanControlSP);
+            IUUpdateSwitch(&FanControlSP, states, names, n);
+            HRESULT rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_FAN, FanControlS[0].s == ISS_ON ? 1 : 0 );
+            if (rc < 0)
+            {
+                LOGF_ERROR("Failed to turn the fan %s. Error (%s)", FanControlS[0].s == ISS_ON ? "on" : "off", errorCodes[rc].c_str());
+                FanControlSP.s = IPS_ALERT;
+                IUResetSwitch(&FanControlSP);
+                FanControlS[prevIndex].s = ISS_ON;
+            }
+            else
+            {
+                FanControlSP.s = (FanControlS[0].s == ISS_ON) ? IPS_BUSY : IPS_IDLE;
+            }
+
+            IDSetSwitch(&FanControlSP, nullptr);
             return true;
         }
 

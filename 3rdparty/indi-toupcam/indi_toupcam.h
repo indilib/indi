@@ -493,6 +493,15 @@ private:
       TC_AUTO_WB_RGB
     };
 
+    // Fan control
+    ISwitch FanControlS[2];
+    ISwitchVectorProperty FanControlSP;
+    enum
+    {
+        TC_FAN_ON,
+        TC_FAN_OFF,
+    };
+
     // Video Format
     ISwitch VideoFormatS[4];
     ISwitchVectorProperty VideoFormatSP;
