@@ -1692,28 +1692,22 @@ void ALTAIRCAM::TimerHit()
         gettimeofday(&curtime, nullptr);
         timersub(&ExposureEnd, &curtime, &diff);
         double timeleft = diff.tv_sec + diff.tv_usec / 1e6;
-        uint32_t msecs = timeleft * 1000.0;
+        uint32_t msecs = 0;
         if (timeleft <= 0)
-        {
-            timeleft = 0;
-            InExposure = false;
-            m_SendImage = true;
-
-            //            int rc = 0;
-            //            if (m_CurrentTriggerMode == TRIGGER_SOFTWARE)
-            //            {
-            //                if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 0)) < 0)
-            //                {
-            //                    LOGF_ERROR("Failed to set video trigger mode. %s", errorCodes[rc].c_str());
-            //                }
-            //                m_CurrentTriggerMode = TRIGGER_VIDEO;
-            //            }
-        }
+            msecs = 0;
+        else
+            msecs = timeleft * 1000.0;
+        // If within 50ms, let's set it done
+        if (msecs <= 50)
+            sendImageCallBack();
         // If time left is less than our polling then let's send image before next poll event
-        else if (msecs < POLLMS)
-            IEAddTimer(msecs, &ALTAIRCAM::sendImageCB, this);
+        else
+        {
+            if (msecs < POLLMS)
+                IEAddTimer(msecs-50, &ALTAIRCAM::sendImageCB, this);
 
-        PrimaryCCD.setExposureLeft(timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
+        }
     }
 
     if (m_Instance->model->flag & ALTAIRCAM_FLAG_GETTEMPERATURE)
@@ -2147,6 +2141,7 @@ void ALTAIRCAM::sendImageCB(void* pCtx)
 
 void ALTAIRCAM::sendImageCallBack()
 {
+    PrimaryCCD.setExposureLeft(0);
     InExposure = false;
     m_SendImage = true;
 }
