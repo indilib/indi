@@ -1150,7 +1150,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 }
 
                 m_BitsPerPixel = (currentIndex == TC_VIDEO_MONO_8) ? 8 : 16;
-                Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, m_BitsPerPixel);
+                Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, m_BitsPerPixel == 8 ? 0 : 1);
             }
             // Color
             else

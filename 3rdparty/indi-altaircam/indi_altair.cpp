@@ -1174,7 +1174,7 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                 m_BitsPerPixel = (currentIndex == TC_VIDEO_MONO_8) ? 8 : 16;
 
-                Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, m_BitsPerPixel);
+                Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, m_BitsPerPixel == 8 ? 0 : 1);
             }
             // Color
             else
