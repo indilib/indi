@@ -614,12 +614,12 @@ void ALTAIRCAM::setupParams()
         IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
         LOG_DEBUG("Mono camera detected.");
 
-        // Force RAW mode
-        rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, 1);
-        if (rc < 0)
-        {
-            LOGF_WARN("Failed to set raw mode: %s", errorCodes[rc].c_str());
-        }
+//        // Force RAW mode
+//        rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, 1);
+//        if (rc < 0)
+//        {
+//            LOGF_WARN("Failed to set raw mode: %s", errorCodes[rc].c_str());
+//        }
     }
     // Check if the RAW mode supports > 8 bits
     else if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
@@ -645,7 +645,7 @@ void ALTAIRCAM::setupParams()
     if (m_MonoCamera)
     {
         // 8 bit
-        if (rgbMode == 3)
+        if (rgbMode <= 3)
         {
             VideoFormatS[TC_VIDEO_MONO_8].s = ISS_ON;
             m_Channels = 1;
@@ -662,8 +662,6 @@ void ALTAIRCAM::setupParams()
             m_BitsPerPixel = 16;
             LOG_INFO("Video Mode 16-bit mono detected.");
         }
-        else
-            LOGF_WARN("Invalid mode for mono camera: %d", rgbMode);
     }
     // Color camera
     else
