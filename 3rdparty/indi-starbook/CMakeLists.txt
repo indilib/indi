@@ -25,7 +25,7 @@ include_directories(${CURL_INCLUDE_DIR})
 include(CMakeCommon)
 
 ############# STARBOOK ###############
-set(indi_starbook_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/indi_starbook.cpp)
+set(indi_starbook_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/indi_starbook.cpp ${CMAKE_CURRENT_SOURCE_DIR}/starbook_device.cpp ${CMAKE_CURRENT_SOURCE_DIR}/starbook_device.h)
 
 add_executable(indi_starbook_telescope ${indi_starbook_SRCS})
 

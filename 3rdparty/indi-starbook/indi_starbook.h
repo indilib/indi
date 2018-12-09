@@ -5,12 +5,17 @@
 #pragma once
 
 #include <inditelescope.h>
+#include <bits/unique_ptr.h>
 #include <curl/curl.h>
+#include "starbook_device.h"
 
 class Starbook : public INDI::Telescope
 {
 public:
     Starbook();
+
+private:
+    std::unique_ptr<StarbookDevice> device;
 
 protected:
 
@@ -32,7 +37,4 @@ protected:
 
     bool ReadScopeStatus() override;
 
-    std::string build_goto_params(double ra, double dec) const;
-
-    CURLcode SendCommand(std::string &read_buffer, const std::string &url_str) const;
 };
