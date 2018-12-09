@@ -374,7 +374,7 @@ private:
 
     //#############################################################################
     // Misc.
-    //#############################################################################    
+    //#############################################################################
     // Get the current Bayer string used
     const char *getBayerString();
 
@@ -493,15 +493,28 @@ private:
       TC_AUTO_WB_RGB
     };
 
+    // Fan control
+    ISwitch FanControlS[2];
+    ISwitchVectorProperty FanControlSP;
+    enum
+    {
+        TC_FAN_ON,
+        TC_FAN_OFF,
+    };
+
     // Video Format
-    ISwitch VideoFormatS[4];
+    ISwitch VideoFormatS[2];
     ISwitchVectorProperty VideoFormatSP;
     enum
     {
+        TC_VIDEO_COLOR_RGB,
+        TC_VIDEO_COLOR_RAW,
+    };
+    enum
+    {
+
         TC_VIDEO_MONO_8,
         TC_VIDEO_MONO_16,
-        TC_VIDEO_RGB,
-        TC_VIDEO_RAW,
     };
 
     // Firmware Info
@@ -516,19 +529,20 @@ private:
         TC_FIRMWARE_REV
     };
 
-    uint8_t m_CurrentVideoFormat = TC_VIDEO_RGB;
+    uint8_t m_CurrentVideoFormat = TC_VIDEO_COLOR_RGB;
     INDI_PIXEL_FORMAT m_CameraPixelFormat = INDI_RGB;
     eTriggerMode m_CurrentTriggerMode = TRIGGER_VIDEO;
 
     bool m_SendImage { false };
     bool m_CanSnap { false };
     bool m_RAWFormatSupport { false };
-    bool m_RAWHighDepthSupport { false };    
+    bool m_RAWHighDepthSupport { false };
+    bool m_MonoCamera { false };
 
     uint8_t m_BitsPerPixel { 8 };
     uint8_t m_RawBitsPerPixel { 8 };
     uint8_t m_MaxBitDepth { 8 };
-    uint8_t m_Channels { 1 };    
+    uint8_t m_Channels { 1 };
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

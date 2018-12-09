@@ -241,7 +241,7 @@ bool TOUPCAM::initProperties()
     ///////////////////////////////////////////////////////////////////////////////////
     /// Controls
     ///////////////////////////////////////////////////////////////////////////////////
-    IUFillNumber(&ControlN[TC_GAIN], "Gain", "Gain", "%.f", 0, 400, 10, 0);
+    IUFillNumber(&ControlN[TC_GAIN], "Gain", "Gain", "%.f", 0, 400, 50, 0);
     IUFillNumber(&ControlN[TC_CONTRAST], "Contrast", "Contrast", "%.f", -100.0, 100, 10, 0);
     IUFillNumber(&ControlN[TC_HUE], "Hue", "Hue", "%.f", -180.0, 180, 10, 0);
     IUFillNumber(&ControlN[TC_SATURATION], "Saturation", "Saturation", "%.f", 0, 255, 10, 128);
@@ -308,20 +308,30 @@ bool TOUPCAM::initProperties()
     IUFillSwitchVector(&WBAutoSP, WBAutoS, 2, getDeviceName(), "TC_AUTO_WB", "Default WB Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     ///////////////////////////////////////////////////////////////////////////////////
+    /// Fan Control
+    ///////////////////////////////////////////////////////////////////////////////////
+    IUFillSwitch(&FanControlS[TC_FAN_ON], "TC_FAN_ON", "On", ISS_ON);
+    IUFillSwitch(&FanControlS[TC_FAN_OFF], "TC_FAN_OFF", "Off", ISS_OFF);
+    IUFillSwitchVector(&FanControlSP, FanControlS, 2, getDeviceName(), "TC_FAN_CONTROL", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    ///////////////////////////////////////////////////////////////////////////////////
     /// Video Format
     ///////////////////////////////////////////////////////////////////////////////////
-
     /// RGB Mode but 8 bits grayscale
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_8], "TC_VIDEO_MONO_8", "Mono 8", ISS_OFF);
+    //IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_8], "TC_VIDEO_MONO_8", "Mono 8", ISS_OFF);
     /// RGB Mode but 16 bits grayscale
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
+    //IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
     /// RGB Mode with RGB24 color
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_RGB], "TC_VIDEO_RGB", "RGB", ISS_OFF);
+    IUFillSwitch(&VideoFormatS[TC_VIDEO_COLOR_RGB], "TC_VIDEO_COLOR_RGB", "RGB", ISS_OFF);
     /// Raw mode (8 to 16 bit)
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_RAW], "TC_VIDEO_RAW", "Raw", ISS_OFF);
-    IUFillSwitchVector(&VideoFormatSP, VideoFormatS, 4, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
+    IUFillSwitch(&VideoFormatS[TC_VIDEO_COLOR_RAW], "TC_VIDEO_COLOR_RAW", "Raw", ISS_OFF);
+    IUFillSwitchVector(&VideoFormatSP, VideoFormatS, 2, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
+
+    ///////////////////////////////////////////////////////////////////////////////////
+    /// Resolution
+    ///////////////////////////////////////////////////////////////////////////////////
     IUFillSwitchVector(&ResolutionSP, ResolutionS, 0, getDeviceName(), "CCD_RESOLUTION", "Resolution", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
@@ -365,6 +375,9 @@ bool TOUPCAM::updateProperties()
             defineNumber(&TemperatureNP);
         }
 
+        if (m_Instance->model->flag & TOUPCAM_FLAG_FAN)
+            defineSwitch(&FanControlSP);
+
         defineSwitch(&WBAutoSP);
         defineNumber(&ControlNP);
         defineSwitch(&AutoControlSP);
@@ -388,6 +401,9 @@ bool TOUPCAM::updateProperties()
             deleteProperty(CoolerSP.name);
         else
             deleteProperty(TemperatureNP.name);
+
+        if (m_Instance->model->flag & TOUPCAM_FLAG_FAN)
+            deleteProperty(FanControlSP.name);
 
         deleteProperty(WBAutoSP.name);
         deleteProperty(ControlNP.name);
@@ -543,6 +559,8 @@ void TOUPCAM::setupParams()
 {
     HRESULT rc = 0;
 
+    Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_NOFRAME_TIMEOUT, 1);
+
     // Get Firmware Info
     char firmwareBuffer[32] = {0};
     uint16_t pRevision=0;
@@ -564,34 +582,47 @@ void TOUPCAM::setupParams()
 
     m_BitsPerPixel = 8;
     int nVal=0;
+
+    // Check if mono only camera
+    if (m_MonoCamera)
+    {
+        IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_8], "TC_VIDEO_MONO_8", "Mono 8", ISS_OFF);
+        /// RGB Mode but 16 bits grayscale
+        IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
+        LOG_DEBUG("Mono camera detected.");
+
+//        // Force RAW mode
+//        rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, 1);
+//        if (rc < 0)
+//        {
+//            LOGF_WARN("Failed to set raw mode: %s", errorCodes[rc].c_str());
+//        }
+    }
+    // Check if the RAW mode supports > 8 bits
+    else if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
+    {
+        // enable bitdepth
+        Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
+        m_BitsPerPixel = 16;
+        m_RAWHighDepthSupport = true;
+        LOG_DEBUG("RAW Bit Depth: 16");
+    }
+
     // bitdepth supported
     // Get RAW/RGB Mode
+    int cameraDataMode=0;
     IUResetSwitch(&VideoFormatSP);
-    rc = Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, &nVal);
-    LOGF_DEBUG("TOUPCAM_OPTION_RAW. rc: %d Value: %d", rc, nVal);
-    // RGB Mode
-    if (nVal == 0)
-    {
-        rc = Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, &nVal);
-        LOGF_DEBUG("TOUPCAM_OPTION_RGB. rc: %d Value: %d", rc, nVal);
-        // 0 = RGB24, 1 = RGB48, 2 = RGB32
-        // We only support RGB24 in the driver
-        if (nVal <= 2)
-        {
-            if (nVal != 0)
-            {
-                LOGF_DEBUG("RGB Mode %s is not supported. Setting mode to RGB24", nVal == 1 ? "RGB48" : "RGB32");
-                Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, 0);
-            }
+    rc = Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, &cameraDataMode);
+    LOGF_DEBUG("TOUPCAM_OPTION_RAW. rc: %d Value: %d", rc, cameraDataMode);
 
-            LOG_INFO("Video Mode RGB detected.");
-            VideoFormatS[TC_VIDEO_RGB].s = ISS_ON;
-            m_Channels = 3;
-            m_CameraPixelFormat = INDI_RGB;
-            m_BitsPerPixel = 8;
-        }
-        // 8 bits gray
-        else if (nVal == 3)
+    int rgbMode = 0;
+    rc = Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, &rgbMode);
+    LOGF_DEBUG("TOUPCAM_OPTION_RGB. rc: %d Value: %d", rc, rgbMode);
+
+    if (m_MonoCamera)
+    {
+        // 8 bit
+        if (rgbMode <= 3)
         {
             VideoFormatS[TC_VIDEO_MONO_8].s = ISS_ON;
             m_Channels = 1;
@@ -600,7 +631,7 @@ void TOUPCAM::setupParams()
             LOG_INFO("Video Mode 8-bit mono detected.");
         }
         // 16 bits gray
-        else if (nVal == 4)
+        else if (rgbMode == 4)
         {
             VideoFormatS[TC_VIDEO_MONO_16].s = ISS_ON;
             m_Channels = 1;
@@ -608,35 +639,44 @@ void TOUPCAM::setupParams()
             m_BitsPerPixel = 16;
             LOG_INFO("Video Mode 16-bit mono detected.");
         }
-
-        // Disable Bayer until we switch to raw mode
-        if (m_RAWFormatSupport)
-            SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
     }
-    // RAW Mode
+    // Color camera
     else
     {
-        VideoFormatS[TC_VIDEO_RAW].s = ISS_ON;
-        m_Channels = 1;
-        LOG_INFO("Video Mode RAW detected.");
-
-        // Check if the RAW mode supports > 8 bits
-        if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
+        if (cameraDataMode == TC_VIDEO_COLOR_RAW)
         {
-            // enable bitdepth
-            Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
-            m_BitsPerPixel = 16;
-            m_RAWHighDepthSupport = true;
-            LOG_DEBUG("RAW Bit Depth: 16");
-        }
+            VideoFormatS[TC_VIDEO_COLOR_RAW].s = ISS_ON;
+            m_Channels = 1;
+            LOG_INFO("Video Mode RAW detected.");
 
-        // Get RAW Format
-        IUSaveText(&BayerT[2], getBayerString());
+            // Get RAW Format
+            IUSaveText(&BayerT[2], getBayerString());
+        }
+        else
+        {
+            // 0 = RGB24, 1 = RGB48, 2 = RGB32
+            // We only support RGB24 in the driver
+            if (rgbMode != 0)
+            {
+                LOGF_DEBUG("RGB Mode %s is not supported. Setting mode to RGB24", rgbMode == 1 ? "RGB48" : "RGB32");
+                Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, 0);
+            }
+
+            LOG_INFO("Video Mode RGB detected.");
+            VideoFormatS[TC_VIDEO_COLOR_RGB].s = ISS_ON;
+            m_Channels = 3;
+            m_CameraPixelFormat = INDI_RGB;
+            m_BitsPerPixel = 8;
+
+            // Disable Bayer until we switch to raw mode
+            if (m_RAWFormatSupport)
+                SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+        }
     }
 
     PrimaryCCD.setNAxis(m_Channels == 1 ? 2 : 3);
 
-    LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_RGB].s == ISS_ON ? "RGB" : "RAW");
+    LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_COLOR_RGB].s == ISS_ON ? "RGB" : "RAW");
 
     // Get how many resolutions available for the camera
     ResolutionSP.nsp = Toupcam_get_ResolutionNumber(m_CameraHandle);
@@ -650,6 +690,18 @@ void TOUPCAM::setupParams()
         snprintf(label, MAXINDILABEL, "%d x %d", w[i], h[i]);
         LOGF_DEBUG("Resolution #%d: %s", i+1, label);
         IUFillSwitch(&ResolutionS[i], label, label, ISS_OFF);
+    }
+
+    // Fan Control
+    if (m_Instance->model->flag & TOUPCAM_FLAG_FAN)
+    {
+        int fan = 0;
+        Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_FAN, &fan);
+        LOGF_DEBUG("Fan is %s", fan == 0 ? "Off" : "On");
+        IUResetSwitch(&FanControlSP);
+        FanControlS[TC_FAN_ON].s = fan == 0 ? ISS_OFF : ISS_ON;
+        FanControlS[TC_FAN_OFF].s = fan == 0 ? ISS_ON : ISS_OFF;
+        FanControlSP.s = (fan == 0) ? IPS_IDLE : IPS_BUSY;
     }
 
     // Get active resolution index
@@ -687,6 +739,7 @@ void TOUPCAM::setupParams()
     LOGF_DEBUG("Exposure Auto Gain Control. Min: %d Max: %d Default: %d", nMin, nMax, nDef);
     ControlN[TC_GAIN].min = nMin;
     ControlN[TC_GAIN].max = nMax;
+    ControlN[TC_GAIN].step = (nMax-nMin)/20.0;
     ControlN[TC_GAIN].value = nDef;
 
     // Contrast
@@ -775,37 +828,45 @@ void TOUPCAM::allocateFrameBuffer()
     LOG_DEBUG("Allocating Frame Buffer...");
 
     // Allocate memory
-    switch (m_CurrentVideoFormat)
+    if (m_MonoCamera)
     {
-    case TC_VIDEO_MONO_8:
-        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes());
-        PrimaryCCD.setBPP(8);
-        PrimaryCCD.setNAxis(2);
-        Streamer->setPixelFormat(INDI_MONO, 8);
-        break;
+        switch (m_CurrentVideoFormat)
+        {
+        case TC_VIDEO_MONO_8:
+            PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes());
+            PrimaryCCD.setBPP(8);
+            PrimaryCCD.setNAxis(2);
+            Streamer->setPixelFormat(INDI_MONO, 8);
+            break;
 
-    case TC_VIDEO_MONO_16:
-        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 2);
-        PrimaryCCD.setBPP(8);
-        PrimaryCCD.setNAxis(2);
-        Streamer->setPixelFormat(INDI_MONO, 16);
-        break;
+        case TC_VIDEO_MONO_16:
+            PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 2);
+            PrimaryCCD.setBPP(16);
+            PrimaryCCD.setNAxis(2);
+            Streamer->setPixelFormat(INDI_MONO, 16);
+            break;
+        }
+    }
+    else
+    {
+        switch (m_CurrentVideoFormat)
+        {
+        case TC_VIDEO_COLOR_RGB:
+            // RGB24 or RGB888
+            PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3);
+            PrimaryCCD.setBPP(8);
+            PrimaryCCD.setNAxis(3);
+            Streamer->setPixelFormat(INDI_RGB, 8);
+            break;
 
-    case TC_VIDEO_RGB:
-        // RGB24 or RGB888
-        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3);
-        PrimaryCCD.setBPP(8);
-        PrimaryCCD.setNAxis(3);
-        Streamer->setPixelFormat(INDI_RGB, 8);
-        break;
+        case TC_VIDEO_COLOR_RAW:
+            PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * m_BitsPerPixel/8);
+            PrimaryCCD.setBPP(m_BitsPerPixel);
+            PrimaryCCD.setNAxis(2);
+            Streamer->setPixelFormat(m_CameraPixelFormat, m_BitsPerPixel);
+            break;
 
-    case TC_VIDEO_RAW:
-        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * m_BitsPerPixel/8);
-        PrimaryCCD.setBPP(m_BitsPerPixel);
-        PrimaryCCD.setNAxis(2);
-        Streamer->setPixelFormat(m_CameraPixelFormat, m_BitsPerPixel);
-        break;
-
+        }
     }
 
     Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
@@ -1022,6 +1083,30 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         }
 
         //////////////////////////////////////////////////////////////////////
+        /// Fan Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, FanControlSP.name))
+        {
+            int prevIndex = IUFindOnSwitchIndex(&FanControlSP);
+            IUUpdateSwitch(&FanControlSP, states, names, n);
+            HRESULT rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_FAN, FanControlS[0].s == ISS_ON ? 1 : 0 );
+            if (rc < 0)
+            {
+                LOGF_ERROR("Failed to turn the fan %s. Error (%s)", FanControlS[0].s == ISS_ON ? "on" : "off", errorCodes[rc].c_str());
+                FanControlSP.s = IPS_ALERT;
+                IUResetSwitch(&FanControlSP);
+                FanControlS[prevIndex].s = ISS_ON;
+            }
+            else
+            {
+                FanControlSP.s = (FanControlS[0].s == ISS_ON) ? IPS_BUSY : IPS_IDLE;
+            }
+
+            IDSetSwitch(&FanControlSP, nullptr);
+            return true;
+        }
+
+        //////////////////////////////////////////////////////////////////////
         /// Video Format
         //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, VideoFormatSP.name))
@@ -1036,91 +1121,37 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 return true;
             }
 
-            const char *targetFormat = IUFindOnSwitchName(states, names, n);
-            int targetIndex=-1;
-            for (int i=0; i < VideoFormatSP.nsp; i++)
+            int prevIndex = IUFindOnSwitchIndex(&VideoFormatSP);
+            IUUpdateSwitch(&VideoFormatSP, states, names, n);
+            int currentIndex = IUFindOnSwitchIndex(&VideoFormatSP);
+
+            m_Channels = 1;
+            m_BitsPerPixel = 8;
+
+            // Mono
+            if (m_MonoCamera)
             {
-                if (!strcmp(targetFormat, VideoFormatS[i].name))
+                if (m_MaxBitDepth == 8 && currentIndex == TC_VIDEO_MONO_16)
                 {
-                    targetIndex=i;
-                    break;
-                }
-            }
-
-            if (targetIndex == -1)
-            {
-                VideoFormatSP.s = IPS_ALERT;
-                LOGF_ERROR("Unable to locate format %s.", targetFormat);
-                IDSetSwitch(&VideoFormatSP, nullptr);
-                return true;
-            }
-
-            if (m_MaxBitDepth == 8 && targetIndex == TC_VIDEO_MONO_16)
-            {
-                VideoFormatSP.s = IPS_ALERT;
-                LOG_ERROR("Only 8-bit format is supported.");
-                IDSetSwitch(&VideoFormatSP, nullptr);
-                return true;
-            }
-
-            // Check if raw format is supported.
-            if (targetIndex == TC_VIDEO_RAW && m_RAWFormatSupport == false)
-            {
-                VideoFormatSP.s = IPS_ALERT;
-                LOG_ERROR("RAW format is not supported.");
-                IDSetSwitch(&VideoFormatSP, nullptr);
-                return true;
-            }
-
-            // If video mode is RGB subtype, we need it to specifically set it.
-            if (targetIndex != TC_VIDEO_RAW)
-            {
-                if (targetIndex == TC_VIDEO_RGB && m_Instance->model->flag & TOUPCAM_FLAG_MONO)
-                {
-                    LOG_ERROR("Cannot set RGB mode with monochromatic sensor. Only grayscale mode is available");
                     VideoFormatSP.s = IPS_ALERT;
+                    LOG_ERROR("Only 8-bit format is supported.");
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
                     IDSetSwitch(&VideoFormatSP, nullptr);
                     return true;
                 }
-            }
 
-            // We need to stop camera first
-            LOG_DEBUG("Stopping camera to change video mode.");
-            Toupcam_Stop(m_CameraHandle);
+                // We need to stop camera first
+                LOG_DEBUG("Stopping camera to change video mode.");
+                Toupcam_Stop(m_CameraHandle);
 
-            // Set updated video format RGB vs. RAW
-            rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, targetIndex == TC_VIDEO_RAW ? 1 : 0);
-            if (rc < 0)
-            {
-                LOGF_ERROR("Failed to set video mode: %s", errorCodes[rc].c_str());
-                VideoFormatSP.s = IPS_ALERT;
-                IDSetSwitch(&VideoFormatSP, nullptr);
-
-                // Restart Capture
-                Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
-                LOG_DEBUG("Restarting event callback after changing video mode failed.");
-
-                return true;
-            }
-
-            // If RGB, we need to set specific sub-type
-            if (targetIndex != TC_VIDEO_RAW)
-            {
-                // RGB 24
-                // N.B. Mode 1 (RGB48) and Mode 2 (RGB32) are not supported in our driver.
-                int mode = 0;
-                // Mode 3 is 8-bit
-                if (targetIndex == TC_VIDEO_MONO_8)
-                    mode = 3;
-                // Mode 4 is 16-bit
-                else if (targetIndex == TC_VIDEO_MONO_16)
-                    mode = 4;
-
-                int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, mode);
+                int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, currentIndex+3);
                 if (rc < 0)
                 {
-                    LOGF_ERROR("Failed to set RGB mode %d: %s", targetIndex, errorCodes[rc].c_str());
+                    LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
                     VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
                     IDSetSwitch(&VideoFormatSP, nullptr);
 
                     // Restart Capture
@@ -1129,56 +1160,103 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
                     return true;
                 }
+
+
+                rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, currentIndex);
+                if (rc < 0)
+                {
+                    LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
+                    VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
+                    IDSetSwitch(&VideoFormatSP, nullptr);
+
+                    // Restart Capture
+                    Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+                    LOG_DEBUG("Restarting event callback after video mode change failed.");
+
+                    return true;
+                }
+
+                m_BitsPerPixel = (currentIndex == TC_VIDEO_MONO_8) ? 8 : 16;
+            }
+            // Color
+            else
+            {
+                // Check if raw format is supported.
+                if (currentIndex == TC_VIDEO_COLOR_RAW && m_RAWFormatSupport == false)
+                {
+                    VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
+                    LOG_ERROR("RAW format is not supported.");
+                    IDSetSwitch(&VideoFormatSP, nullptr);
+                    return true;
+                }
+
+                // We need to stop camera first
+                LOG_DEBUG("Stopping camera to change video mode.");
+                Toupcam_Stop(m_CameraHandle);
+
+                rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, currentIndex);
+                if (rc < 0)
+                {
+                    LOGF_ERROR("Failed to set video mode: %s", errorCodes[rc].c_str());
+                    VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
+                    IDSetSwitch(&VideoFormatSP, nullptr);
+
+                    // Restart Capture
+                    Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+                    LOG_DEBUG("Restarting event callback after changing video mode failed.");
+
+                    return true;
+                }
+
+                if (currentIndex == TC_VIDEO_COLOR_RGB)
+                {
+                    m_Channels = 3;
+                    m_BitsPerPixel = 8;
+                    // Disable Bayer if supported.
+                    if (m_RAWFormatSupport)
+                        SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+                }
+                else
+                {
+                    SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
+                    IUSaveText(&BayerT[2], getBayerString());
+                    IDSetText(&BayerTP, nullptr);
+                    m_BitsPerPixel = m_RawBitsPerPixel;
+                }
+
+//                if (currentIndex == TC_VIDEO_COLOR_RGB)
+//                {
+//                    int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, 0);
+//                    if (rc < 0)
+//                    {
+//                        LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
+//                        VideoFormatSP.s = IPS_ALERT;
+//                        IUResetSwitch(&VideoFormatSP);
+//                        VideoFormatS[prevIndex].s = ISS_ON;
+//                        IDSetSwitch(&VideoFormatSP, nullptr);
+
+//                        // Restart Capture
+//                        Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this);
+//                        LOG_DEBUG("Restarting event callback after video mode change failed.");
+
+//                        return true;
+//                    }
+//                }
+
             }
 
-            m_CurrentVideoFormat = targetIndex;
-            switch (m_CurrentVideoFormat)
-            {
-            case TC_VIDEO_MONO_8:
-            {
-                m_Channels = 1;
-                m_BitsPerPixel = 8;
-                // Disable Bayer if supported.
-                if (m_RAWFormatSupport)
-                    SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
-            }
-                break;
-
-            case TC_VIDEO_MONO_16:
-            {
-                m_Channels = 1;
-                m_BitsPerPixel = 16;
-                // Disable Bayer if supported.
-                if (m_RAWFormatSupport)
-                    SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
-            }
-                break;
-
-            case TC_VIDEO_RGB:
-            {
-                m_Channels = 3;
-                m_BitsPerPixel = 8;
-                // Disable Bayer if supported.
-                if (m_RAWFormatSupport)
-                    SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
-            }
-                break;
-
-            case TC_VIDEO_RAW:
-            {
-                m_Channels = 1;
-                SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
-                IUSaveText(&BayerT[2], getBayerString());
-                IDSetText(&BayerTP, nullptr);
-                m_BitsPerPixel = m_RawBitsPerPixel;
-            }
-                break;
-            }
+            m_CurrentVideoFormat = currentIndex;
+            m_BitsPerPixel = (m_BitsPerPixel > 8) ? 16 : 8;
 
             // Allocate memory
             allocateFrameBuffer();
 
-            IUUpdateSwitch(&VideoFormatSP, states, names, n);
             VideoFormatSP.s = IPS_OK;
             IDSetSwitch(&VideoFormatSP, nullptr);
 
@@ -1477,6 +1555,12 @@ bool TOUPCAM::StartExposure(float duration)
           m_CurrentTriggerMode = TRIGGER_SOFTWARE;
       }
 
+      int timeMS = uSecs/1000 - 50;
+      if (timeMS < 0)
+        sendImageCallBack();
+      else if (static_cast<uint32_t>(timeMS) < POLLMS)
+           IEAddTimer(timeMS, &TOUPCAM::sendImageCB, this);
+
       // FIXME Setting trigger to software and then back to video causes a deadlock for some reason
       // Waiting for info from Toupcam
       if ( (rc = Toupcam_Trigger(m_CameraHandle, 1) < 0) )
@@ -1484,12 +1568,6 @@ bool TOUPCAM::StartExposure(float duration)
           LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
           return false;
       }
-
-      int timeMS = uSecs/1000 - 50;
-      if (timeMS < 0)
-          timeMS += 50;
-      if (static_cast<uint32_t>(timeMS) < POLLMS)
-           IEAddTimer(timeMS, &TOUPCAM::sendImageCB, this);
 
 //    pthread_mutex_lock(&condMutex);
 //    threadRequest = StateExposure;
@@ -1593,19 +1671,8 @@ void TOUPCAM::TimerHit()
         uint32_t msecs = timeleft * 1000.0;
         if (timeleft <= 0)
         {
-            timeleft = 0;
-            InExposure = false;
-            m_SendImage = true;
-
-//            int rc = 0;
-//            if (m_CurrentTriggerMode == TRIGGER_SOFTWARE)
-//            {
-//                if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0)) < 0)
-//                {
-//                    LOGF_ERROR("Failed to set video trigger mode. %s", errorCodes[rc].c_str());
-//                }
-//                m_CurrentTriggerMode = TRIGGER_VIDEO;
-//            }
+            sendImageCallBack();
+            return;
         }
         // If time left is less than our polling then let's send image before next poll event
         else if (msecs < POLLMS)
@@ -1966,7 +2033,7 @@ void TOUPCAM::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
-    INumber *gainNP = IUFindNumber(&ControlNP, "TC_GAIN");
+    INumber *gainNP = IUFindNumber(&ControlNP, ControlN[TC_GAIN].name);
 
     if (gainNP)
     {
@@ -2045,6 +2112,7 @@ void TOUPCAM::sendImageCB(void* pCtx)
 
 void TOUPCAM::sendImageCallBack()
 {
+    PrimaryCCD.setExposureLeft(0);
     InExposure = false;
     m_SendImage = true;
 }
@@ -2074,9 +2142,11 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         //PrimaryCCD.setNAxis(m_Channels == 1 ? 2 : 3);
         //PrimaryCCD.setBPP(m_BitsPerPixel);
 
+        int captureBits = m_BitsPerPixel == 8 ? 8 : m_MaxBitDepth;
+
         if (Streamer->isStreaming())
         {
-            HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), m_BitsPerPixel * m_Channels, &info);
+            HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), captureBits * m_Channels, &info);
             if (rc >= 0)
                 Streamer->newFrame(PrimaryCCD.getFrameBuffer(), PrimaryCCD.getFrameBufferSize());
         }
@@ -2084,22 +2154,22 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         {
             uint8_t *buffer = PrimaryCCD.getFrameBuffer();
 
-            if (m_SendImage && m_CurrentVideoFormat == TC_VIDEO_RGB)
+            if (m_MonoCamera == false && m_SendImage && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                 buffer = static_cast<uint8_t*>(malloc(PrimaryCCD.getXRes()*PrimaryCCD.getYRes()*3));
 
-            HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, buffer, m_BitsPerPixel * m_Channels, &info);
+            HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, buffer, captureBits * m_Channels, &info);
             if (rc < 0)
             {
                 LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
                 PrimaryCCD.setExposureFailed();
-                if (m_SendImage && m_CurrentVideoFormat == TC_VIDEO_RGB)
+                if (m_SendImage && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                     free(buffer);
             }
             else
             {
                 if (m_SendImage)
                 {
-                    if (m_CurrentVideoFormat == TC_VIDEO_RGB)
+                    if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                     {
                         uint8_t *image  = PrimaryCCD.getFrameBuffer();
                         uint32_t width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
@@ -2167,6 +2237,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         break;
     case TOUPCAM_EVENT_TIMEOUT:
         LOG_DEBUG("Camera timed out.");
+        PrimaryCCD.setExposureFailed();
         break;
     case TOUPCAM_EVENT_FACTORY:
         break;

@@ -1196,7 +1196,7 @@ bool ATIKCCD::saveConfigItems(FILE *fp)
     }
 
     if (m_isHorizon && IUFindOnSwitchIndex(&ControlPresetsSP) == PRESET_CUSTOM)
-        IUSaveConfigNumber(fp, &ControlNP);    
+        IUSaveConfigNumber(fp, &ControlNP);
 
     return true;
 }
@@ -1221,3 +1221,20 @@ int ATIKCCD::QueryFilter()
     return currentPos+1;
 }
 
+void ATIKCCD::debugTriggered(bool enable)
+{
+    if (enable)
+        ArtemisSetDebugCallbackContext(this, &ATIKCCD::debugCallbackHelper);
+    else
+        ArtemisSetDebugCallbackContext(nullptr, nullptr);
+}
+
+void ATIKCCD::debugCallbackHelper(void *context, const char *message)
+{
+    static_cast<ATIKCCD*>(context)->debugCallback(message);
+}
+
+void ATIKCCD::debugCallback(const char *message)
+{
+    LOGF_DEBUG("%s", message);
+}
