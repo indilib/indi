@@ -3,7 +3,7 @@
   <devgroup group="Telescopes">
     <device label="Starbook">
       <driver name="Starbook">indi_starbook_telescope</driver>
-      <version>@STARBOOK_VERSION_MAJOR@.@STARBOOK_VERSION_MINOR@</version>
+<version>@STARBOOK_DRIVER_VERSION_MAJOR@.@STARBOOK_DRIVER_VERSION_MINOR@</version>
     </device>
   </devgroup>
 </driverslist>
