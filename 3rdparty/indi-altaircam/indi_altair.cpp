@@ -565,26 +565,10 @@ bool ALTAIRCAM::Connect()
 
 bool ALTAIRCAM::Disconnect()
 {
-    //ImageState  tState;
-    //LOGF_DEBUG("Closing %s...", getDeviceName());
-
     stopTimerNS();
     stopTimerWE();
 
-    //RemoveTimer(genTimerID);
-    //genTimerID = -1;
-
-    //    pthread_mutex_lock(&condMutex);
-    //    tState = threadState;
-    //    threadRequest = StateTerminate;
-    //    pthread_cond_signal(&cv);
-    //    pthread_mutex_unlock(&condMutex);
-    //    pthread_join(imagingThread, nullptr);
-    //    tState = StateNone;
-
     Altaircam_Close(m_CameraHandle);
-
-    LOGF_INFO("%s is offline.", getDeviceName());
 
     return true;
 }
@@ -749,7 +733,7 @@ void ALTAIRCAM::setupParams()
     LOGF_DEBUG("Camera snap support: %s", m_CanSnap ? "True" : "False");
 
     // Trigger Mode
-    rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, &nVal);
+    rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, &nVal);
     LOGF_DEBUG("Trigger mode: %d", nVal);
     m_CurrentTriggerMode = static_cast<eTriggerMode>(nVal);
 
@@ -1194,6 +1178,8 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                     return true;
                 }
+                else
+                    LOGF_DEBUG("Set ALTAIRCAM_OPTION_RGB --> %d", currentIndex+3);
 
                 rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, currentIndex);
                 if (rc < 0)
@@ -1210,6 +1196,8 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                     return true;
                 }
+                else
+                    LOGF_DEBUG("Set ALTAIRCAM_OPTION_BITDEPTH --> %d", currentIndex);
 
                 m_BitsPerPixel = (currentIndex == TC_VIDEO_MONO_8) ? 8 : 16;
             }
@@ -1246,6 +1234,8 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                     return true;
                 }
+                else
+                    LOGF_DEBUG("Set ALTAIRCAM_OPTION_RAW --> %d", currentIndex);
 
                 if (currentIndex == TC_VIDEO_COLOR_RGB)
                 {
@@ -1286,6 +1276,8 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             m_CurrentVideoFormat = currentIndex;
             m_BitsPerPixel = (m_BitsPerPixel > 8) ? 16 : 8;
+
+            LOGF_DEBUG("Video Format: %d m_BitsPerPixel: %d", currentIndex, m_BitsPerPixel);
 
             // Allocate memory
             allocateFrameBuffer();
@@ -1695,6 +1687,9 @@ bool ALTAIRCAM::UpdateCCDBin(int binx, int biny)
 // The generic timer call back is used for temperature monitoring
 void ALTAIRCAM::TimerHit()
 {
+    if (isConnected() == false)
+        return;
+
     if (InExposure)
     {
         struct timeval curtime, diff;
