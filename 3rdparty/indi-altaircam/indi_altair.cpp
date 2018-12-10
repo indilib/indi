@@ -395,7 +395,9 @@ bool ALTAIRCAM::updateProperties()
         if (m_Instance->model->flag & ALTAIRCAM_FLAG_FAN)
             defineSwitch(&FanControlSP);
 
-        defineSwitch(&WBAutoSP);
+        if (m_MonoCamera == false)
+            defineSwitch(&WBAutoSP);
+
         defineNumber(&ControlNP);
         defineSwitch(&AutoControlSP);
         defineSwitch(&VideoFormatSP);
@@ -406,8 +408,11 @@ bool ALTAIRCAM::updateProperties()
         defineNumber(&BlackBalanceNP);
 
         // Balance
-        defineNumber(&WBTempTintNP);
-        defineNumber(&WBRGBNP);
+        if (m_MonoCamera == false)
+        {
+            defineNumber(&WBTempTintNP);
+            defineNumber(&WBRGBNP);
+        }
 
         // Firmware
         defineText(&FirmwareTP);
@@ -422,7 +427,9 @@ bool ALTAIRCAM::updateProperties()
         if (m_Instance->model->flag & ALTAIRCAM_FLAG_FAN)
             deleteProperty(FanControlSP.name);
 
-        deleteProperty(WBAutoSP.name);
+        if (m_MonoCamera == false)
+            deleteProperty(WBAutoSP.name);
+
         deleteProperty(ControlNP.name);
         deleteProperty(AutoControlSP.name);
         deleteProperty(VideoFormatSP.name);
@@ -431,8 +438,12 @@ bool ALTAIRCAM::updateProperties()
         deleteProperty(LevelRangeNP.name);
         deleteProperty(BlackBalanceNP.name);
 
-        deleteProperty(WBTempTintNP.name);
-        deleteProperty(WBRGBNP.name);
+        if (m_MonoCamera == false)
+        {
+            deleteProperty(WBTempTintNP.name);
+            deleteProperty(WBRGBNP.name);
+        }
+
 
         deleteProperty(FirmwareTP.name);
     }
@@ -512,7 +523,7 @@ bool ALTAIRCAM::Connect()
     // Get min/max exposures
     uint32_t min=0,max=0,current=0;
     Altaircam_get_ExpTimeRange(m_CameraHandle, &min, &max, &current);
-    LOGF_DEBUG("Exposure Time Range (us): Min %d Max %d Default %d", min, max, current);
+    LOGF_DEBUG("Exposure Time Range (us): Min %u Max %u Default %u", min, max, current);
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1000000.0, max/1000000.0, 0, false);
 
     int rc = 0;
@@ -555,7 +566,7 @@ bool ALTAIRCAM::Connect()
 bool ALTAIRCAM::Disconnect()
 {
     //ImageState  tState;
-    LOGF_DEBUG("Closing %s...", getDeviceName());
+    //LOGF_DEBUG("Closing %s...", getDeviceName());
 
     stopTimerNS();
     stopTimerWE();
@@ -573,7 +584,7 @@ bool ALTAIRCAM::Disconnect()
 
     Altaircam_Close(m_CameraHandle);
 
-    LOGF_INFO("% is offline.", getDeviceName());
+    LOGF_INFO("%s is offline.", getDeviceName());
 
     return true;
 }
@@ -616,30 +627,11 @@ void ALTAIRCAM::setupParams()
 
         Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, 1);
         Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
-    }
-    // Check if the RAW mode supports > 8 bits
-    else if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
-    {
-        // enable bitdepth
-        Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
-        m_BitsPerPixel = 16;
-        m_RAWHighDepthSupport = true;
-        LOG_DEBUG("RAW Bit Depth: 16");
-    }
 
-    // bitdepth supported
-    // Get RAW/RGB Mode
-    int cameraDataMode=0;
-    IUResetSwitch(&VideoFormatSP);
-    rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, &cameraDataMode);
-    LOGF_DEBUG("ALTAIRCAM_OPTION_RAW. rc: %d Value: %d", rc, cameraDataMode);
+        int rgbMode = 0;
+        rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, &rgbMode);
+        LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %d Value: %d", rc, rgbMode);
 
-    int rgbMode = 0;
-    rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, &rgbMode);
-    LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %d Value: %d", rc, rgbMode);
-
-    if (m_MonoCamera)
-    {
         // 8 bit
         if (rgbMode <= 3)
         {
@@ -658,10 +650,28 @@ void ALTAIRCAM::setupParams()
             m_BitsPerPixel = 16;
             LOG_INFO("Video Mode 16-bit mono detected.");
         }
+
+        LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_MONO_8].s == ISS_ON ? "Mono 8-bit" : "Mono 16-bit");
     }
-    // Color camera
+    // Color Camera
     else
     {
+        if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
+        {
+            // enable bitdepth
+            Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
+            m_BitsPerPixel = 16;
+            m_RAWHighDepthSupport = true;
+            LOG_DEBUG("RAW Bit Depth: 16");
+        }
+
+        // Get RAW/RGB Mode
+        int cameraDataMode=0;
+        IUResetSwitch(&VideoFormatSP);
+        rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, &cameraDataMode);
+        LOGF_DEBUG("ALTAIRCAM_OPTION_RAW. rc: %d Value: %d", rc, cameraDataMode);
+
+        // Color RAW
         if (cameraDataMode == TC_VIDEO_COLOR_RAW)
         {
             VideoFormatS[TC_VIDEO_COLOR_RAW].s = ISS_ON;
@@ -671,8 +681,13 @@ void ALTAIRCAM::setupParams()
             // Get RAW Format
             IUSaveText(&BayerT[2], getBayerString());
         }
+        // Color RGB
         else
         {
+            int rgbMode = 0;
+            rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, &rgbMode);
+            LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %d Value: %d", rc, rgbMode);
+
             // 0 = RGB24, 1 = RGB48, 2 = RGB32
             // We only support RGB24 in the driver
             if (rgbMode != 0)
@@ -691,11 +706,11 @@ void ALTAIRCAM::setupParams()
             if (m_RAWFormatSupport)
                 SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
         }
+
+        LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_COLOR_RGB].s == ISS_ON ? "RGB" : "RAW");
     }
 
     PrimaryCCD.setNAxis(m_Channels == 1 ? 2 : 3);
-
-    LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_COLOR_RGB].s == ISS_ON ? "RGB" : "RAW");
 
     // Get how many resolutions available for the camera
     ResolutionSP.nsp = Altaircam_get_ResolutionNumber(m_CameraHandle);
@@ -755,7 +770,7 @@ void ALTAIRCAM::setupParams()
 
     // Gain
     rc = Altaircam_get_ExpoAGainRange(m_CameraHandle, &nMin, &nMax, &nDef);
-    LOGF_DEBUG("Exposure Auto Gain Control. Min: %d Max: %d Default: %d", nMin, nMax, nDef);
+    LOGF_DEBUG("Exposure Auto Gain Control. Min: %u Max: %u Default: %u", nMin, nMax, nDef);
     ControlN[TC_GAIN].min = nMin;
     ControlN[TC_GAIN].max = nMax;
     ControlN[TC_GAIN].step = (nMax-nMin)/20.0;
@@ -763,7 +778,7 @@ void ALTAIRCAM::setupParams()
 
     // Contrast
     Altaircam_get_Contrast(m_CameraHandle, &nVal);
-    LOGF_DEBUG("Contrast Control. Min: %d Max: %d Default: %d", nMin, nMax, nDef);
+    LOGF_DEBUG("Contrast Control. Min: %u Max: %u Default: %u", nMin, nMax, nDef);
     ControlN[TC_CONTRAST].value = nVal;
 
     // Hue
