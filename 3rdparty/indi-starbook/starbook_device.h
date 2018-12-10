@@ -32,6 +32,8 @@ public:
 
     bool GetStatus(StarbookStatus &status);
 
+    const std::string GetIpAddr();
+
 private:
     CURL *handle_;
 

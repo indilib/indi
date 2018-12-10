@@ -14,6 +14,11 @@ class Starbook : public INDI::Telescope
 public:
     Starbook();
 
+//    bool initProperties() override;
+//    void ISGetProperties(const char *dev) override;
+//    bool updateProperties();
+    bool ReadScopeStatus() override;
+
 private:
     std::unique_ptr<StarbookDevice> device;
 
@@ -27,14 +32,12 @@ protected:
 
     bool Goto(double ra, double dec) override;
 
+    bool Sync(double ra, double dec) override;
+
     bool Abort() override;
 
     bool Park() override;
 
     bool UnPark() override;
-//    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-//    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
-
-    bool ReadScopeStatus() override;
 
 };

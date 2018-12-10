@@ -45,7 +45,7 @@ StarbookDevice::~StarbookDevice() {
 static std::string read_buffer;
 
 bool StarbookDevice::SendCommand(const std::string &cmd, const std::string &params_str) {
-
+//    return true;
     CURLcode res;
     // TODO(not7cd): should I build url's like and call setopt every time?
     std::string cmd_url = "http://" + ip_addr_ + "/" + cmd + params_str;
@@ -113,5 +113,9 @@ bool StarbookDevice::GetStatus(StarbookStatus &status) {
         return ParseStatus(status);
     }
     return false;
+}
+
+const std::string StarbookDevice::GetIpAddr() {
+    return ip_addr_;
 }
 
