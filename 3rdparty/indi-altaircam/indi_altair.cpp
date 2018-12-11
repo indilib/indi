@@ -2195,7 +2195,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
             {
                 LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
                 PrimaryCCD.setExposureFailed();
-                if (m_SendImage && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
+                if (m_MonoCamera == false && m_SendImage && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                     free(buffer);
             }
             else
