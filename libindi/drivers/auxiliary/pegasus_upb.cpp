@@ -617,35 +617,36 @@ bool PegasusUPB::sendCommand(const char *cmd, char *res)
     char command[PEGASUS_LEN]={0};
     LOGF_DEBUG("CMD <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
-    snprintf(command, PEGASUS_LEN, "%s\n", cmd);
-    if ( (tty_rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
-    {
-        char errorMessage[MAXRBUF];
-        tty_error_msg(tty_rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s", errorMessage);
-        return false;
-    }
-
-    if (!res)
+    for (int i=0; i < 2; i++)
     {
         tcflush(PortFD, TCIOFLUSH);
+        snprintf(command, PEGASUS_LEN, "%s\n", cmd);
+        if ( (tty_rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
+            continue;
+
+        if (!res)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+            return true;
+        }
+
+        if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, stopChar, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK || nbytes_read == 1)
+            continue;
+
+        tcflush(PortFD, TCIOFLUSH);
+        res[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES <%s>", res);
         return true;
     }
 
-    if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, stopChar, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if (tty_rc != TTY_OK)
     {
         char errorMessage[MAXRBUF];
         tty_error_msg(tty_rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s", errorMessage);
-        return false;
+        LOGF_ERROR("Serial error: %s", errorMessage);
     }
 
-    tcflush(PortFD, TCIOFLUSH);
-    res[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES <%s>", res);
-
-    return true;
+    return false;
 }
 
 IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
