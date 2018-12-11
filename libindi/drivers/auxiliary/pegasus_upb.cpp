@@ -226,7 +226,7 @@ bool PegasusUPB::initProperties()
 
     // Settings
     IUFillNumber(&FocuserSettingsN[SETTING_BACKLASH], "SETTING_BACKLASH", "Backlash", "%.f", 0, 999, 100, 0);
-    IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed", "%.f", 0, 999, 100, 0);
+    IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.2f", 0, 100, 10, 0);
     IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 2, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Backlash
@@ -262,6 +262,9 @@ bool PegasusUPB::updateProperties()
 
     if (isConnected())
     {
+        // Setup Parameters
+        setupParams();
+
         // Main Control
         defineSwitch(&PowerCycleAllSP);
         defineNumber(&PowerSensorsNP);
@@ -546,9 +549,9 @@ bool PegasusUPB::ISNewNumber(const char *dev, const char *name, double values[],
             for (int i=0; i < n; i++)
             {
                 if (!strcmp(names[i], DewPWMN[DEW_PWM_A].name))
-                    rc1 = setDewPWM(5, static_cast<uint8_t>(values[i]*255.0));
+                    rc1 = setDewPWM(5, static_cast<uint8_t>(values[i]/100.0*255.0));
                 else if (!strcmp(names[i], DewPWMN[DEW_PWM_B].name))
-                    rc2 = setDewPWM(6, static_cast<uint8_t>(values[i]*255.0));
+                    rc2 = setDewPWM(6, static_cast<uint8_t>(values[i]/100.0*255.0));
             }
 
             DewPWMNP.s = (rc1 && rc2) ? IPS_OK : IPS_ALERT;
@@ -567,7 +570,7 @@ bool PegasusUPB::ISNewNumber(const char *dev, const char *name, double values[],
                 if (!strcmp(names[i], FocuserSettingsN[SETTING_BACKLASH].name) && values[i] != FocuserSettingsN[SETTING_BACKLASH].value)
                     rc1 = setFocuserBacklash(values[i]);
                 else if (!strcmp(names[i], FocuserSettingsN[SETTING_MAX_SPEED].name) && values[i] != FocuserSettingsN[SETTING_MAX_SPEED].value)
-                    rc2 = setFocuserMaxSpeed(values[i]);
+                    rc2 = setFocuserMaxSpeed(values[i]/100.0 * 999.0);
             }
 
             FocuserSettingsNP.s = (rc1 && rc2) ? IPS_OK : IPS_ALERT;
@@ -644,11 +647,12 @@ bool PegasusUPB::sendCommand(const char *cmd, char *res)
 
 IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN]={0}, expected[PEGASUS_LEN]={0};
     snprintf(cmd, PEGASUS_LEN, "SM:%d", targetTicks);
+    snprintf(expected, PEGASUS_LEN, "M:%d", targetTicks);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
+        return (!strcmp(res, expected) ? IPS_BUSY : IPS_ALERT);
     }
 
     return IPS_ALERT;
@@ -696,27 +700,16 @@ bool PegasusUPB::SyncFocuser(uint32_t ticks)
 
 bool PegasusUPB::setFocuserBacklash(uint16_t value)
 {
-    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN]={0};
     snprintf(cmd, PEGASUS_LEN, "SB:%d", value);
-    if (sendCommand(cmd, res))
-    {
-        return (!strcmp(res, cmd));
-    }
-
-    return false;
+    return sendCommand(cmd, nullptr);
 }
 
 bool PegasusUPB::setFocuserMaxSpeed(uint16_t maxSpeed)
 {
-    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN]={0};
     snprintf(cmd, PEGASUS_LEN, "SS:%d", maxSpeed);
-    if (sendCommand(cmd, res))
-    {
-        return (!strcmp(res, cmd));
-    }
-
-    return false;
-
+    return sendCommand(cmd, nullptr);
 }
 
 bool PegasusUPB::setFocuserBacklashEnabled(bool enabled)
@@ -902,8 +895,8 @@ bool PegasusUPB::getSensorData()
         }
 
         // Dew PWM
-        DewPWMN[0].value = std::stod(result[9]);
-        DewPWMN[1].value = std::stod(result[10]);
+        DewPWMN[0].value = std::stod(result[9])/255.0 * 100.0;
+        DewPWMN[1].value = std::stod(result[10])/255.0 * 100.0;
         if (lastSensorData[9] != result[9] || lastSensorData[10] != result[10])
             IDSetNumber(&DewPWMNP, nullptr);
 
@@ -1050,5 +1043,17 @@ std::vector<std::string> PegasusUPB::split(const std::string& input, const std::
         first{input.begin(), input.end(), re, -1},
         last;
     return {first, last};
+}
+
+bool PegasusUPB::setupParams()
+{
+    // Get Max Focuser Speed
+    char res[PEGASUS_LEN]={0};
+    if (sendCommand("SS\n", res))
+    {
+        FocuserSettingsN[SETTING_MAX_SPEED].value = std::stod(res)/999.0 * 100;
+    }
+
+    return false;
 }
 

@@ -68,6 +68,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     bool Handshake();
 
     // Get Data
+    bool setupParams();
     bool sendFirmware();
     bool getSensorData();
     bool getPowerData();
