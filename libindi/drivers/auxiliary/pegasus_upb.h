@@ -104,6 +104,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     bool sendCommand(const char *cmd, char *res);
 
     int PortFD { -1 };
+    bool setupComplete { false };
 
     Connection::Serial *serialConnection { nullptr };
 

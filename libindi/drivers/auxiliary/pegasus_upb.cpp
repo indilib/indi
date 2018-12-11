@@ -295,6 +295,8 @@ bool PegasusUPB::updateProperties()
         defineNumber(&FocuserTemperatureNP);
 
         WI::updateProperties();
+
+        setupComplete = true;
     }
     else
     {
@@ -328,6 +330,8 @@ bool PegasusUPB::updateProperties()
         deleteProperty(FocuserTemperatureNP.name);
 
         WI::updateProperties();
+
+        setupComplete = false;
     }
 
     return true;
@@ -381,6 +385,8 @@ bool PegasusUPB::Handshake()
     tcflush(PortFD, TCIOFLUSH);
     response[nbytes_read - 1] = '\0';
     LOGF_DEBUG("RES <%s>", response);
+
+    setupComplete = false;
 
     return (!strcmp(response, "UPB_OK"));
 }
@@ -813,8 +819,11 @@ bool PegasusUPB::saveConfigItems(FILE *fp)
 
 void PegasusUPB::TimerHit()
 {
-    if (!isConnected())
+    if (!isConnected() || setupComplete == false)
+    {
+        SetTimer(POLLMS);
         return;
+    }
 
     if (getSensorData())
     {
