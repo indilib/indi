@@ -337,15 +337,47 @@ const char *PegasusUPB::getDefaultName()
 
 bool PegasusUPB::Handshake()
 {
+    int tty_rc=0, nbytes_written=0, nbytes_read=0;
+    char command[PEGASUS_LEN]={0}, response[PEGASUS_LEN]={0};
+
     PortFD = serialConnection->getPortFD();
 
-    char res[PEGASUS_LEN] = {0};
+    LOG_DEBUG("CMD <P#>");
 
-    bool rc = sendCommand("P#", res);
-    if (!rc)
+    tcflush(PortFD, TCIOFLUSH);
+    strncpy(command, "P#\n", PEGASUS_LEN);
+    if ( (tty_rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
+    {
+        char errorMessage[MAXRBUF];
+        tty_error_msg(tty_rc, errorMessage, MAXRBUF);
+        LOGF_ERROR("Serial write error: %s", errorMessage);
         return false;
+    }
 
-    return (!strcmp(res, "UPB_OK"));
+    // Try first with stopChar as the stop character
+    if ( (tty_rc = tty_nread_section(PortFD, response, PEGASUS_LEN, stopChar, 1, &nbytes_read)) != TTY_OK)
+    {
+        // Try 0xA as the stop character
+        if (tty_rc == TTY_OVERFLOW)
+        {
+            stopChar = 0xA;
+            tty_rc = tty_nread_section(PortFD, response, PEGASUS_LEN, stopChar, 1, &nbytes_read);
+        }
+
+        if (tty_rc != TTY_OK)
+        {
+            char errorMessage[MAXRBUF];
+            tty_error_msg(tty_rc, errorMessage, MAXRBUF);
+            LOGF_ERROR("Serial read error: %s", errorMessage);
+            return false;
+        }
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+    response[nbytes_read - 1] = '\0';
+    LOGF_DEBUG("RES <%s>", response);
+
+    return (!strcmp(response, "UPB_OK"));
 }
 
 bool PegasusUPB::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -595,7 +627,7 @@ bool PegasusUPB::sendCommand(const char *cmd, char *res)
         return true;
     }
 
-    if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, 0xD, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, stopChar, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         char errorMessage[MAXRBUF];
         tty_error_msg(tty_rc, errorMessage, MAXRBUF);

@@ -241,6 +241,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
 
     std::vector<std::string> lastSensorData, lastPowerData, lastStepperData;
     bool focusMotorRunning { false };
+    char stopChar { 0xD };
 
     static constexpr const uint8_t PEGASUS_TIMEOUT {3};
     static constexpr const uint8_t PEGASUS_LEN {128};
