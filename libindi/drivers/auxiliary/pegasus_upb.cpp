@@ -193,8 +193,8 @@ bool PegasusUPB::initProperties()
     IUFillSwitchVector(&AutoDewSP, AutoDewS, 2, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Dew PWM
-    IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", "Dew A", "%.f", 0, 255, 10, 0);
-    IUFillNumber(&DewPWMN[DEW_PWM_B], "DEW_B", "Dew B", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", "Dew A (%)", "%.2f", 0, 100, 10, 0);
+    IUFillNumber(&DewPWMN[DEW_PWM_B], "DEW_B", "Dew B (%)", "%.2f", 0, 100, 10, 0);
     IUFillNumberVector(&DewPWMNP, DewPWMN, 2, getDeviceName(), "DEW_PWM", "Dew PWM", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     // Dew current draw
@@ -241,7 +241,7 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
     ////////////////////////////////////////////////////////////////////////////
-    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15);
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
     addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15);
     setCriticalParameter("WEATHER_TEMPERATURE");
@@ -546,9 +546,9 @@ bool PegasusUPB::ISNewNumber(const char *dev, const char *name, double values[],
             for (int i=0; i < n; i++)
             {
                 if (!strcmp(names[i], DewPWMN[DEW_PWM_A].name))
-                    rc1 = setDewPWM(5, static_cast<uint8_t>(values[i]));
+                    rc1 = setDewPWM(5, static_cast<uint8_t>(values[i]*255.0));
                 else if (!strcmp(names[i], DewPWMN[DEW_PWM_B].name))
-                    rc1 = setDewPWM(6, static_cast<uint8_t>(values[i]));
+                    rc2 = setDewPWM(6, static_cast<uint8_t>(values[i]*255.0));
             }
 
             DewPWMNP.s = (rc1 && rc2) ? IPS_OK : IPS_ALERT;
@@ -779,11 +779,12 @@ bool PegasusUPB::setPowerOnBoot()
 
 bool PegasusUPB::setDewPWM(uint8_t id, uint8_t value)
 {
-    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN]={0};
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN]={0}, expected[PEGASUS_LEN]={0};
     snprintf(cmd, PEGASUS_LEN, "P%d:%03d", id, value);
+    snprintf(expected, PEGASUS_LEN, "P%d:%d", id, value);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, cmd));
+        return (!strcmp(res, expected));
     }
 
     return false;
