@@ -690,14 +690,9 @@ bool PegasusUPB::ReverseFocuser(bool enabled)
 
 bool PegasusUPB::SyncFocuser(uint32_t ticks)
 {
-    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN]={0};
     snprintf(cmd, PEGASUS_LEN, "SC:%d", ticks);
-    if (sendCommand(cmd, res))
-    {
-        return (!strcmp(res, cmd));
-    }
-
-    return false;
+    return sendCommand(cmd, nullptr);
 }
 
 bool PegasusUPB::setFocuserBacklash(uint16_t value)
