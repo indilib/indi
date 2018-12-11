@@ -363,6 +363,8 @@ bool PegasusUPB::Handshake()
         // Try 0xA as the stop character
         if (tty_rc == TTY_OVERFLOW || tty_rc == TTY_TIME_OUT)
         {
+            tcflush(PortFD, TCIOFLUSH);
+            tty_write_string(PortFD, command, &nbytes_written);
             stopChar = 0xA;
             tty_rc = tty_nread_section(PortFD, response, PEGASUS_LEN, stopChar, 1, &nbytes_read);
         }
