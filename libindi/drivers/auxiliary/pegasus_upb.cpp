@@ -358,7 +358,7 @@ bool PegasusUPB::Handshake()
     if ( (tty_rc = tty_nread_section(PortFD, response, PEGASUS_LEN, stopChar, 1, &nbytes_read)) != TTY_OK)
     {
         // Try 0xA as the stop character
-        if (tty_rc == TTY_OVERFLOW)
+        if (tty_rc == TTY_OVERFLOW || tty_rc == TTY_TIME_OUT)
         {
             stopChar = 0xA;
             tty_rc = tty_nread_section(PortFD, response, PEGASUS_LEN, stopChar, 1, &nbytes_read);
