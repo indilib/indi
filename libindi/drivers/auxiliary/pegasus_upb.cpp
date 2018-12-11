@@ -450,6 +450,7 @@ bool PegasusUPB::ISNewSwitch(const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&PowerOnBootSP, states, names, n);
             PowerOnBootSP.s = setPowerOnBoot() ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&PowerOnBootSP, nullptr);
+            saveConfig(true, PowerOnBootSP.name);
             return true;
         }
 
@@ -889,6 +890,7 @@ bool PegasusUPB::getSensorData()
         USBStatusL[4].s = (USBControlS[0].s == ISS_ON) ? IPS_OK : IPS_IDLE;
         if (lastSensorData[8] != result[8])
         {
+            USBControlSP.s = (IUFindOnSwitchIndex(&USBControlSP) == 0) ? IPS_OK : IPS_IDLE;
             IDSetSwitch(&USBControlSP, nullptr);
             IDSetLight(&USBStatusLP, nullptr);
         }
