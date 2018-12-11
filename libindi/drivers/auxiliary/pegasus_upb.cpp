@@ -819,9 +819,11 @@ void PegasusUPB::TimerHit()
     if (!isConnected())
         return;
 
-    getSensorData();
-    getPowerData();
-    getStepperData();
+    if (getSensorData())
+    {
+        getPowerData();
+        getStepperData();
+    }
 
     SetTimer(POLLMS);
 }
@@ -846,7 +848,7 @@ bool PegasusUPB::getSensorData()
         std::vector<std::string> result = split(res, ":");
         if (result.size() != 19)
         {
-           LOG_ERROR("Received wrong number of detailed sensor data.");
+           LOG_WARN("Received wrong number of detailed sensor data. Retrying...");
            return false;
         }
 
@@ -947,7 +949,7 @@ bool PegasusUPB::getPowerData()
         std::vector<std::string> result = split(res, ":");
         if (result.size() != 3)
         {
-           LOG_ERROR("Received wrong number of power sensor data.");
+           LOG_WARN("Received wrong number of power sensor data. Retrying...");
            return false;
         }
 
@@ -975,7 +977,7 @@ bool PegasusUPB::getStepperData()
         std::vector<std::string> result = split(res, ":");
         if (result.size() != 4)
         {
-           LOG_ERROR("Received wrong number of stepper sensor data.");
+           LOG_WARN("Received wrong number of stepper sensor data. Retrying...");
            return false;
         }
 
