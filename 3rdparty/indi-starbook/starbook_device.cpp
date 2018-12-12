@@ -9,6 +9,8 @@
 #include <libnova/utility.h>
 #include <sstream>
 
+#include <indilogger.h>
+
 
 uint32_t size2uint32(size_t i) {
     if (i > UINT32_MAX) {
@@ -37,8 +39,73 @@ StarbookDevice::StarbookDevice(const std::string &ip_addr) {
     }
 }
 
+static int closecb(void *clientp, curl_socket_t item) {
+    (void) clientp;
+    printf("libcurl wants to close %d now\n", (int) item);
+//    INDI::Logger::getInstance().print("Starbook mount driver", INDI::Logger::DBG_WARNING, __FILE__, __LINE__, "closing");
+    return 0;
+}
+
+static curl_socket_t opensocket(void *clientp,
+                                curlsocktype purpose,
+                                struct curl_sockaddr *address) {
+    curl_socket_t sockfd;
+    (void) purpose;
+    (void) address;
+    sockfd = *(curl_socket_t *) clientp;
+    printf("libcurl wants to open socket now\n");
+    /* the actual externally set socket is passed in via the OPENSOCKETDATA
+       option */
+    return sockfd;
+}
+
+static int sockopt_callback(void *clientp, curl_socket_t curlfd,
+                            curlsocktype purpose) {
+    (void) clientp;
+    (void) curlfd;
+    (void) purpose;
+    /* This return code was added in libcurl 7.21.5 */
+    return CURL_SOCKOPT_ALREADY_CONNECTED;
+}
+
+StarbookDevice::StarbookDevice(int sockfd) {
+    sockfd_ = (curl_socket_t) sockfd;
+    ip_addr_ = "localhost:5000";
+
+    curl_global_init(CURL_GLOBAL_ALL);
+    handle_ = curl_easy_init();
+    if (handle_ == nullptr) {
+        // TODO: Logging
+        DEBUG(INDI::Logger::DBG_WARNING, "Failed to create CURL connection\n");
+        exit(EXIT_FAILURE);
+    }
+    DEBUG(INDI::Logger::DBG_WARNING, "Created CURL connection\n");
+
+
+    /* no progress meter please */
+    curl_easy_setopt(handle_, CURLOPT_NOPROGRESS, 1L);
+    curl_easy_setopt(handle_, CURLOPT_TIMEOUT, 2L);
+
+    /* send all data to this function  */
+//    curl_easy_setopt(handle_, CURLOPT_WRITEFUNCTION, write_data);
+
+    /* call this function to get a socket */
+    curl_easy_setopt(handle_, CURLOPT_OPENSOCKETFUNCTION, opensocket);
+    curl_easy_setopt(handle_, CURLOPT_OPENSOCKETDATA, &sockfd_);
+
+    /* call this function to close sockets */
+    curl_easy_setopt(handle_, CURLOPT_CLOSESOCKETFUNCTION, closecb);
+    curl_easy_setopt(handle_, CURLOPT_CLOSESOCKETDATA, &sockfd_);
+
+    /* call this function to set options for the socket */
+    curl_easy_setopt(handle_, CURLOPT_SOCKOPTFUNCTION, sockopt_callback);
+
+    curl_easy_setopt(handle_, CURLOPT_VERBOSE, 1);
+}
+
 StarbookDevice::~StarbookDevice() {
     curl_easy_cleanup(handle_);
+    curl_global_cleanup();
 }
 
 
@@ -57,7 +124,11 @@ bool StarbookDevice::SendCommand(const std::string &cmd, const std::string &para
 
     // TODO: ParseBuffer
     // TODO(not7cd): unknown if Starbook accepts something other than GET request
+    DEBUG(INDI::Logger::DBG_WARNING, "Sending request\n");
     res = curl_easy_perform(handle_);
+    if (res) {
+        DEBUGF(INDI::Logger::DBG_WARNING, "RES: %s\n", read_buffer.c_str());
+    }
     return res == CURLE_OK;
 }
 
@@ -101,11 +172,11 @@ bool StarbookDevice::GoToRaDec(double ra, double dec) {
 
 bool ParseStatus(StarbookStatus &status) {
     std::string response = GetCommandResponse();
-    status.ra = 0;
+    status.ra = 10;
     status.dec = 0;
     status.goto_ = 0;
     status.state = "INIT";
-    return false;
+    return true;
 }
 
 bool StarbookDevice::GetStatus(StarbookStatus &status) {
@@ -117,5 +188,9 @@ bool StarbookDevice::GetStatus(StarbookStatus &status) {
 
 const std::string StarbookDevice::GetIpAddr() {
     return ip_addr_;
+}
+
+const char *StarbookDevice::getDeviceName() {
+    return "Starbook mount controller";
 }
 

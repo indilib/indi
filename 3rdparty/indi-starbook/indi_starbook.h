@@ -14,19 +14,24 @@ class Starbook : public INDI::Telescope
 public:
     Starbook();
 
-//    bool initProperties() override;
-//    void ISGetProperties(const char *dev) override;
-//    bool updateProperties();
+    bool initProperties() override;
+
     bool ReadScopeStatus() override;
 
 private:
     std::unique_ptr<StarbookDevice> device;
+
+    bool SendCommand(std::string command);
+
+    uint32_t POLLMS = 10;
 
 protected:
 
     bool Connect() override;
 
     bool Disconnect() override;
+
+    bool Handshake() override;
 
     const char *getDefaultName() override;
 

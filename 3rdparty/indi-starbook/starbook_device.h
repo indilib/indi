@@ -20,6 +20,8 @@ public:
 
     explicit StarbookDevice(const std::string &ip_addr);
 
+    explicit StarbookDevice(int sockfd);
+
     ~StarbookDevice();
 
     bool GoToRaDec(double ra, double dec);
@@ -34,8 +36,12 @@ public:
 
     const std::string GetIpAddr();
 
+    const char *getDeviceName();
+
 private:
     CURL *handle_;
+
+    curl_socket_t sockfd_;
 
     std::string ip_addr_;
 
