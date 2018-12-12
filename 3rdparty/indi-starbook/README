@@ -1,5 +1,5 @@
 Starbook INDI Driver
-================
+====================
 
 This package provides the INDI driver for the Vixen Starbook telescope controllers. This driver aims for compatibility
 with first generation Starbook.
@@ -8,4 +8,14 @@ Starbook 10 is not supported by this driver.
 Requirements
 ------------
 
-TBD
++ INDI >= v1.7 (http://www.indilib.org)
+
+	You need to install both indi and indi-devel to build this package.
+
++ cURL >= v7.58.0 (https://curl.haxx.se/)
+
+    You need to install curl
+
++ libnova
+
+	You need to install both libnova and libnova-devel to build this package.
