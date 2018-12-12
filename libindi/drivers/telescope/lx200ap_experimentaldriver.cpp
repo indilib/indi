@@ -42,10 +42,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <termios.h>
 #endif
 
-#define LX200_TIMEOUT 5 /* FD timeout in seconds */
+// Timeout in seconds
+#define LX200_TIMEOUT 5
 
-char lx200ap_exp_name[MAXINDIDEVICE];
-unsigned int AP_EXP_DBG_SCOPE;
+static char lx200ap_exp_name[MAXINDIDEVICE];
+static uint32_t AP_EXP_DBG_SCOPE;
 
 void set_lx200ap_exp_name(const char *deviceName, unsigned int debug_level)
 {
@@ -58,8 +59,8 @@ void set_lx200ap_exp_name(const char *deviceName, unsigned int debug_level)
 
 int setAPMeridianDelay(int fd, double mdelay)
 {
-    char cmd[32];
-    char hourstr[16];
+    char cmd[32]={0};
+    char hourstr[16]={0};
     int nbytes_write = 0;
 
     DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "<%s>", __FUNCTION__);
@@ -98,7 +99,7 @@ int getAPMeridianDelay(int fd, double *mdelay)
     int error_type;
     int nbytes_write = 0;
     int nbytes_read  = 0;
-    char temp_string[16];
+    char temp_string[16]={0};
 
     DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "<%s>", __FUNCTION__);
 
