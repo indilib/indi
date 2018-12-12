@@ -9,6 +9,8 @@
 #include <connectionplugins/connectiontcp.h>
 #include <memory>
 #include <cstring>
+#include <libnova.h>
+#include <iomanip>
 
 #define POLLMS 10
 
@@ -55,120 +57,14 @@ Starbook::Starbook() {
     setVersion(STARBOOK_DRIVER_VERSION_MAJOR, STARBOOK_DRIVER_VERSION_MINOR);
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT,
                            1);
+
     setTelescopeConnection(CONNECTION_TCP);
+    curl_global_init(CURL_GLOBAL_ALL);
+    handle = curl_easy_init();
 }
 
-bool Starbook::Connect() {
-    bool res = Telescope::Connect();
-    IDMessage(getDeviceName(), "Starbook connected successfully!");
-
-    // HACK: Is created during handshake ...
-//    if (getActiveConnection() == tcpConnection) {
-//        device = std::unique_ptr<StarbookDevice>(new StarbookDevice(tcpConnection->getPortFD()));
-//
-//        LOG_INFO("Created new device!");
-//    } else {
-//        LOG_ERROR("Didn't create device!");
-//    }
-
-    return res;
-}
-
-bool Starbook::Disconnect() {
-    IDMessage(getDeviceName(), "Starbook disconnected successfully!");
-    return true;
-}
-
-const char *Starbook::getDefaultName() {
-    return "Starbook mount controller";
-}
-
-bool Starbook::ReadScopeStatus() {
-    StarbookStatus status = {0, 0, 0, "SCOPE"};
-    LOG_INFO("Status! Sending GETSTATUS command");
-    DEBUG(INDI::Logger::DBG_WARNING, isConnected() ? "connected" : "disconnected");
-    bool res = device->GetStatus(status);
-//    bool res = SendCommand("GETSTATUS");
-    if (res) {
-        NewRaDec(status.ra, status.dec);
-        LOG_INFO("Send status");
-        return true;
-    }
-    return false;
-}
-
-bool Starbook::Goto(double ra, double dec) {
-    LOG_INFO("Goto! Sending GOTORADEC command");
-    bool res = device->GoToRaDec(ra, dec);
-    NewRaDec(ra, dec);
-    return res;
-}
-
-
-bool Starbook::Abort() {
-    LOG_INFO("Aborting! Sending STOP command");
-    bool res = device->Stop();
-    return res;
-}
-
-bool Starbook::Park() {
-    LOG_INFO("Parking! Sending HOME command");
-//    bool res = device->Home();
-    return SendCommand("HOME");
-}
-
-bool Starbook::UnPark() {
-    LOG_INFO("Un-parking! not sending anything");
-    // knock starbook to SCOPE mode from STOP
-//    bool res = device->GoToRaDec((double) 0, (double) 0);
-    return true;
-}
-
-bool Starbook::Sync(double ra, double dec) {
-    return Goto(ra, dec);
-}
-
-
-bool Starbook::SendCommand(std::string cmd) {
-    DEBUG(INDI::Logger::DBG_WARNING, isConnected() ? "connected" : "disconnected");
-    if (isConnected()) {
-        DEBUG(INDI::Logger::DBG_WARNING, tcpConnection->host());
-    }
-    int rc = 0, nbytes_written = 0, nbytes_read = 0;
-    char pCMD[MAXRBUF] = {0}, pRES[MAXRBUF] = {0};
-    std::ostringstream request;
-
-    // I'm bad human being and I shouldn't do it by hand
-    request << "GET" << " " << cmd;
-
-    request << " " << "HTTP/1.1" << "\r\n" << "\r\n";
-
-    strncpy(pCMD,
-            "GET /STATUS HTTP/1.1\r\n",
-            MAXRBUF);
-
-    DEBUGF(INDI::Logger::DBG_WARNING, "CMD: %s", pCMD);
-
-    LOGF_INFO("socc %i", PortFD);
-    if ((rc = tty_write_string(PortFD, pCMD, &nbytes_written)) != TTY_OK) {
-//        strncpy(pCMD,
-//            "/* Java Script */"
-//            "var Out;"
-//            "sky6RASCOMTele.ConnectAndDoNotUnpark();"
-//            "Out = sky6RASCOMTele.IsConnected;",
-//            MAXRBUF);
-        LOG_ERROR(pCMD);
-        return false;
-    }
-
-    // Should we read until we encounter string terminator? or what?
-    if (static_cast<int>(rc == tty_read_section(PortFD, pRES, '\0', 2, &nbytes_read)) != TTY_OK) {
-        LOG_ERROR("Error reading from Starbook TCP server.");
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_WARNING, "RES: %s", pRES);
-    return true;
+Starbook::~Starbook() {
+    curl_global_cleanup();
 }
 
 bool Starbook::initProperties() {
@@ -184,13 +80,157 @@ bool Starbook::initProperties() {
     return true;
 }
 
+bool Starbook::Connect() {
+    return Telescope::Connect();
+}
+
+bool Starbook::Disconnect() {
+    curl_easy_cleanup(handle);
+    return Telescope::Disconnect();
+}
+
+const char *Starbook::getDefaultName() {
+    return "Starbook mount controller";
+}
+
+
+bool Starbook::ReadScopeStatus() {
+    StarbookStatus status = {0, 0, 0, "SCOPE"};
+    LOG_INFO("Status! Sending GETSTATUS command");
+    bool res = SendCommand("GETSTATUS");
+    if (res) {
+        NewRaDec(status.ra, status.dec);
+        return true;
+    }
+    return false;
+}
+
+bool Starbook::Goto(double ra, double dec) {
+    LOG_INFO("Goto! Sending GOTORADEC command");
+
+    ln_equ_posn target_d = {ra, dec};
+    lnh_equ_posn target = {{0, 0, 0},
+                           {0, 0, 0, 0}};
+    ln_equ_to_hequ(&target_d, &target);
+
+    std::ostringstream params;
+
+    // strict params_str creation
+    params << std::fixed << std::setprecision(0);
+    params << "?RA=";
+    params << target.ra.hours << "+" << target.ra.minutes << "." << target.ra.seconds;
+
+    params << "&DEC=";
+    if (target.dec.neg != 0) params << "-";
+    params << target.dec.degrees << "+" << target.dec.minutes;
+    // TODO: check if starbook accepts seconds in param
+// params << "." << target.dec.seconds;
+
+
+    bool res = SendCommand("GOTORADEC" + params.str());
+    return res;
+}
+
+bool Starbook::Abort() {
+    LOG_INFO("Aborting! Sending STOP command");
+    bool res = SendCommand("STOP");
+    return res;
+}
+
+bool Starbook::Sync(double ra, double dec) {
+    return Goto(ra, dec);
+}
+
+
+bool Starbook::Park() {
+    // TODO Park
+    LOG_INFO("Parking! Sending HOME command");
+    return SendCommand("HOME");
+}
+
+bool Starbook::UnPark() {
+    // TODO UnPark
+    LOG_INFO("Un-parking! not sending anything");
+    return true;
+}
+
+
+static std::string readBuffer;
+
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
+    INDI_UNUSED(userp);
+    size_t real_size = size * nmemb;
+    readBuffer.append((char *) contents, real_size);
+    return real_size;
+}
+
+static curl_socket_t opensocket(void *clientp,
+                                curlsocktype purpose,
+                                struct curl_sockaddr *address) {
+    INDI_UNUSED(purpose);
+    INDI_UNUSED(address);
+    curl_socket_t sockfd;
+    sockfd = *(curl_socket_t *) clientp;
+    /* the actual externally set socket is passed in via the OPENSOCKETDATA
+       option */
+    return sockfd;
+}
+
+static int closesocket(void *clientp, curl_socket_t item) {
+    INDI_UNUSED(clientp);
+    printf("libcurl wants to close %d now\n", (int) item);
+    return 0;
+}
+
+static int sockopt_callback(void *clientp, curl_socket_t curlfd,
+                            curlsocktype purpose) {
+    INDI_UNUSED(clientp);
+    INDI_UNUSED(curlfd);
+    INDI_UNUSED(purpose);
+    return CURL_SOCKOPT_ALREADY_CONNECTED;
+}
+
+
+bool Starbook::SendCommand(std::string cmd) {
+
+    int rc = 0;
+
+    readBuffer.clear();
+    curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
+    curl_easy_setopt(handle, CURLOPT_TIMEOUT, 2L);
+
+    /* send all data to this function  */
+    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(handle, CURLOPT_WRITEDATA, &readBuffer);
+
+    /* call this function to get a socket */
+    // TODO: I was unable to reuse tcpConnection->PortFD
+//    curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocket);
+//    curl_easy_setopt(handle, CURLOPT_OPENSOCKETDATA, &PortFD);
+//
+//    /* call this function to close sockets */
+//    curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocket);
+//    curl_easy_setopt(handle, CURLOPT_CLOSESOCKETDATA, &PortFD);
+//
+//    /* call this function to set options for the socket */
+//    curl_easy_setopt(handle, CURLOPT_SOCKOPTFUNCTION, sockopt_callback);
+
+    curl_easy_setopt(handle, CURLOPT_VERBOSE, 1);
+
+    // TODO: https://github.com/indilib/indi/pull/779
+    // HACK: Just use CURL, and use tcpConnection as input
+    std::string cmd_url = "http://" + std::string(tcpConnection->host()) + ":" + "5000" + "/" + cmd;
+    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd_url.c_str());
+    curl_easy_setopt(handle, CURLOPT_URL, cmd_url.c_str());
+
+    rc = curl_easy_perform(handle);
+
+    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", readBuffer.c_str());
+
+    return rc == CURLE_OK;
+}
+
 bool Starbook::Handshake() {
     DEBUG(INDI::Logger::DBG_WARNING, ("Handshake"));
-    // Somehow handshake is send during connection creation. When device wrapper doesn't exist. There is need to change it's behaviour
-    if (device == nullptr) {
-        device = std::unique_ptr<StarbookDevice>(new StarbookDevice(tcpConnection->getPortFD()));
-        LOG_ERROR("Created new device!");
-    } else {
-    }
     return Telescope::Handshake();
 }

@@ -14,6 +14,8 @@ class Starbook : public INDI::Telescope
 public:
     Starbook();
 
+    ~Starbook();
+
     bool initProperties() override;
 
     bool ReadScopeStatus() override;
@@ -24,6 +26,8 @@ private:
     bool SendCommand(std::string command);
 
     uint32_t POLLMS = 10;
+
+    CURL *handle;
 
 protected:
 
