@@ -24,6 +24,7 @@
 #include <inditelescope.h>
 #include <bits/unique_ptr.h>
 #include <curl/curl.h>
+#include "starbook_types.h"
 
 class Starbook : public INDI::Telescope
 {

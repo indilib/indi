@@ -153,18 +153,7 @@ bool Starbook::Goto(double ra, double dec) {
     ln_equ_to_hequ(&target_d, &target);
 
     std::ostringstream params;
-
-    // strict params_str creation
-    params << std::fixed << std::setprecision(0);
-    params << "?RA=";
-    params << target.ra.hours << "+" << target.ra.minutes << "." << target.ra.seconds;
-
-    params << "&DEC=";
-    if (target.dec.neg != 0) params << "-";
-    params << target.dec.degrees << "+" << target.dec.minutes;
-    // TODO: check if starbook accepts seconds in param
-// params << "." << target.dec.seconds;
-
+    params << StarbookEqu(ra, dec);
 
     bool res = SendCommand("GOTORADEC" + params.str());
     return res;
