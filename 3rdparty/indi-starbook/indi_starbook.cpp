@@ -26,13 +26,11 @@
 #include <connectionplugins/connectiontcp.h>
 #include <memory>
 #include <cstring>
-#include <libnova.h>
-#include <iomanip>
+#include <regex>
 
-#define POLLMS 10
-
-// TODO: decide if this macro is worth it
 #define STARBOOK_DEFAULT_IP   "localhost:5000"
+
+static std::string readBuffer;
 
 std::unique_ptr<Starbook> starbook(new Starbook());
 
@@ -64,10 +62,10 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
     INDI_UNUSED(n);
 }
 
+
 void ISSnoopDevice(XMLEle *root) {
     INDI_UNUSED(root);
 }
-
 
 Starbook::Starbook() {
     LOG_INFO("Staring driver");
@@ -106,14 +104,39 @@ bool Starbook::Disconnect() {
     return Telescope::Disconnect();
 }
 
+
 const char *Starbook::getDefaultName() {
     return "Starbook mount controller";
 }
 
-
 bool Starbook::ReadScopeStatus() {
     LOG_INFO("Status! Sending GETSTATUS command");
     bool res = SendCommand("GETSTATUS");
+
+    // Not safe I think
+    std::string response = readBuffer;
+    std::regex txt_regex("<!--(.*)-->", std::regex_constants::ECMAScript);
+    std::smatch color_match;
+    std::regex_search(response, color_match, txt_regex);
+    response = color_match[1].str();
+
+    LOG_INFO(response.c_str());
+
+    std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
+    std::smatch sm;
+    while (regex_search(response, sm, param_re)) {
+        LOG_INFO(sm.str().c_str());
+        std::string key = sm[1].str();
+
+        if (key == "RA") {
+            LOG_INFO(sm[2].str().c_str());
+        } else if (key == "DEC") {
+            LOG_INFO(sm[2].str().c_str());
+        }
+
+        response = sm.suffix();
+    }
+
     if (res) {
         NewRaDec(0, 0);
         return true;
@@ -153,10 +176,10 @@ bool Starbook::Abort() {
     return res;
 }
 
+
 bool Starbook::Sync(double ra, double dec) {
     return Goto(ra, dec);
 }
-
 
 bool Starbook::Park() {
     // TODO Park
@@ -164,14 +187,12 @@ bool Starbook::Park() {
     return SendCommand("HOME");
 }
 
+
 bool Starbook::UnPark() {
     // TODO UnPark
     LOG_INFO("Un-parking! not sending anything");
     return true;
 }
-
-
-static std::string readBuffer;
 
 static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
     INDI_UNUSED(userp);
