@@ -143,8 +143,9 @@ bool Starbook::ReadScopeStatus() {
             } else if (value == "INIT") {
                 state = StarbookState::SB_SCOPE;
             } else {
-                LOGF_ERROR("unknown state %s", value.c_str());
+                LOGF_ERROR("Unknown state %s", value.c_str());
             }
+            LOGF_DEBUG("Parsed STATE %i", state);
         }
 
         response = sm.suffix();
@@ -160,8 +161,14 @@ bool Starbook::ReadScopeStatus() {
 bool Starbook::Goto(double ra, double dec) {
     LOG_INFO("Goto! Sending GOTORADEC command");
 
+//    ln_equ_posn target_d = {ra * 15.0, dec};
+//    lnh_equ_posn equ_posn = {{0, 0, 0},
+//                {0, 0, 0, 0}};
+//    ln_equ_to_hequ(&target_d, &equ_posn);
     std::ostringstream params;
-    params << StarbookEqu(ra, dec);
+    params << "?" << StarbookEqu(ra, dec);
+
+    LOG_ERROR(params.str().c_str());
 
     bool res = SendCommand("GOTORADEC" + params.str());
     return res;
