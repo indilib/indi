@@ -117,24 +117,48 @@ bool Starbook::ReadScopeStatus() {
 
     // Not safe I think
     std::string response = readBuffer;
-    std::regex txt_regex("<!--(.*)-->", std::regex_constants::ECMAScript);
-    std::smatch color_match;
-    std::regex_search(response, color_match, txt_regex);
-    response = color_match[1].str();
+    std::regex response_comment_re("<!--(.*)-->", std::regex_constants::ECMAScript);
+    std::smatch comment_match;
+    if (!std::regex_search(response, comment_match, response_comment_re)) {
+        return false;
+    }
+
+    response = comment_match[1].str();
 
     LOG_INFO(response.c_str());
 
     std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
+    std::regex ra_re(R"((\d+)\+(\d+)\.(\d+))");
+    std::regex dec_re(R"((-?)(\d+)\+(\d+))");
     std::smatch sm;
+    std::smatch equ_m;
+
+    lnh_equ_posn equ_posn = {{0, 0, 0},
+                             {0, 0, 0, 0}};
+
     while (regex_search(response, sm, param_re)) {
-        LOG_INFO(sm.str().c_str());
+//        LOG_INFO(sm.str().c_str());
         std::string key = sm[1].str();
         std::string value = sm[2].str();
 
         if (key == "RA") {
-            LOG_INFO(value.c_str());
+            if (std::regex_search(value, equ_m, ra_re)) {
+                equ_posn.ra.hours = (unsigned short) std::stoi(equ_m[1].str());
+                equ_posn.ra.minutes = (unsigned short) std::stoi(equ_m[2].str());
+                equ_posn.ra.seconds = (double) std::stoi(equ_m[3].str());
+                LOGF_DEBUG("Parsed RA %i:%i:%d", equ_posn.ra.hours, equ_posn.ra.minutes, equ_posn.ra.seconds);
+            } else {
+                LOGF_ERROR("Can't parse %s", value.c_str());
+            }
         } else if (key == "DEC") {
-            LOG_INFO(value.c_str());
+            if (std::regex_search(value, equ_m, dec_re)) {
+                equ_posn.dec.neg = equ_m[1].str().empty() ? (ushort) 0 : (ushort) 1;
+                equ_posn.dec.degrees = (unsigned short) std::stoi(equ_m[2].str());
+                equ_posn.dec.minutes = (unsigned short) std::stoi(equ_m[3].str());
+                LOGF_DEBUG("Parsed DEC -%i %i:%i", equ_posn.dec.neg, equ_posn.dec.degrees, equ_posn.dec.minutes);
+            } else {
+                LOGF_ERROR("Can't parse %s", value.c_str());
+            }
         } else if (key == "STATE") {
             if (value == "SCOPE") {
                 state = StarbookState::SB_SCOPE;
@@ -152,7 +176,10 @@ bool Starbook::ReadScopeStatus() {
     }
 
     if (res) {
-        NewRaDec(0, 0);
+        ln_equ_posn d_equ_posn = {0, 0};
+        ln_hequ_to_equ(&equ_posn, &d_equ_posn);
+        LOGF_DEBUG("Parsed RADEC %d, %d", d_equ_posn.ra / 15, d_equ_posn.dec);
+        NewRaDec(d_equ_posn.ra / 15, d_equ_posn.dec);
         return true;
     }
     return false;
