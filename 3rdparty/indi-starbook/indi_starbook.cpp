@@ -92,6 +92,8 @@ bool Starbook::initProperties() {
 
     addDebugControl();
 
+    state = SB_INIT;
+
     return true;
 }
 
@@ -127,11 +129,22 @@ bool Starbook::ReadScopeStatus() {
     while (regex_search(response, sm, param_re)) {
         LOG_INFO(sm.str().c_str());
         std::string key = sm[1].str();
+        std::string value = sm[2].str();
 
         if (key == "RA") {
-            LOG_INFO(sm[2].str().c_str());
+            LOG_INFO(value.c_str());
         } else if (key == "DEC") {
-            LOG_INFO(sm[2].str().c_str());
+            LOG_INFO(value.c_str());
+        } else if (key == "STATE") {
+            if (value == "SCOPE") {
+                state = StarbookState::SB_SCOPE;
+            } else if (value == "GUIDE") {
+                state = StarbookState::SB_SCOPE;
+            } else if (value == "INIT") {
+                state = StarbookState::SB_SCOPE;
+            } else {
+                LOGF_ERROR("unknown state %s", value.c_str());
+            }
         }
 
         response = sm.suffix();
@@ -146,11 +159,6 @@ bool Starbook::ReadScopeStatus() {
 
 bool Starbook::Goto(double ra, double dec) {
     LOG_INFO("Goto! Sending GOTORADEC command");
-
-    ln_equ_posn target_d = {ra, dec};
-    lnh_equ_posn target = {{0, 0, 0},
-                           {0, 0, 0, 0}};
-    ln_equ_to_hequ(&target_d, &target);
 
     std::ostringstream params;
     params << StarbookEqu(ra, dec);

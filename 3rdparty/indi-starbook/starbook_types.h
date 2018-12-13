@@ -8,6 +8,12 @@
 #include <iostream>
 #include <iomanip>
 
+enum StarbookState {
+    SB_INIT, /* Initial state after start */
+    SB_GUIDE, /* ??? */
+    SB_SCOPE, /* ??? */
+};
+
 
 class StarbookEqu {
 public:

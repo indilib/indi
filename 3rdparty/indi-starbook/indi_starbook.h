@@ -22,7 +22,6 @@
 #pragma once
 
 #include <inditelescope.h>
-#include <bits/unique_ptr.h>
 #include <curl/curl.h>
 #include "starbook_types.h"
 
@@ -41,7 +40,7 @@ private:
 
     bool SendCommand(std::string command);
 
-    uint32_t POLLMS = 10;
+    StarbookState state;
 
     CURL *handle;
 
@@ -66,3 +65,4 @@ protected:
     bool UnPark() override;
 
 };
+
