@@ -811,7 +811,6 @@ bool PegasusUPB::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &AutoDewSP);
     IUSaveConfigNumber(fp, &FocuserSettingsNP);
     IUSaveConfigSwitch(fp, &FocuserBacklashSP);
-    IUSaveConfigSwitch(fp, &USBControlSP);
     IUSaveConfigText(fp, &PowerControlsLabelsTP);
 
     return true;
