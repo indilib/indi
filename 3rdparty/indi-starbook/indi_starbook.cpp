@@ -187,7 +187,14 @@ bool Starbook::Abort() {
 
 
 bool Starbook::Sync(double ra, double dec) {
-    return Goto(ra, dec);
+    ra = ra * 15; // CONVERSION
+    std::ostringstream params;
+    params << "?" << starbook::Equ{ra, dec};
+
+    LOGF_INFO("Sync! %s", params.str().c_str());
+
+    bool res = SendCommand("ALIGN" + params.str());
+    return res;
 }
 
 bool Starbook::Park() {
