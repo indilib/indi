@@ -30,22 +30,22 @@
 
 static std::string readBuffer;
 
-std::unique_ptr<Starbook> starbook(new Starbook());
+std::unique_ptr<Starbook> starbook_driver(new Starbook());
 
 void ISGetProperties(const char *dev) {
-    starbook->ISGetProperties(dev);
+    starbook_driver->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) {
-    starbook->ISNewSwitch(dev, name, states, names, n);
+    starbook_driver->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) {
-    starbook->ISNewText(dev, name, texts, names, n);
+    starbook_driver->ISNewText(dev, name, texts, names, n);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
-    starbook->ISNewNumber(dev, name, values, names, n);
+    starbook_driver->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -126,10 +126,7 @@ bool Starbook::ReadScopeStatus() {
     LOG_INFO(response.c_str());
 
     std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
-    std::regex ra_re(R"((\d+)\+(\d+)\.(\d+))");
-    std::regex dec_re(R"((-?)(\d+)\+(\d+))");
     std::smatch sm;
-    std::smatch equ_m;
 
     lnh_equ_posn equ_posn = {{0, 0, 0},
                              {0, 0, 0, 0}};
@@ -140,30 +137,18 @@ bool Starbook::ReadScopeStatus() {
         std::string value = sm[2].str();
 
         if (key == "RA") {
-            if (std::regex_search(value, equ_m, ra_re)) {
-                equ_posn.ra.hours = (unsigned short) std::stoi(equ_m[1].str());
-                equ_posn.ra.minutes = (unsigned short) std::stoi(equ_m[2].str());
-                equ_posn.ra.seconds = (double) std::stoi(equ_m[3].str());
-                LOGF_DEBUG("Parsed RA %i:%i:%d", equ_posn.ra.hours, equ_posn.ra.minutes, equ_posn.ra.seconds);
-            } else {
-                LOGF_ERROR("Can't parse %s", value.c_str());
-            }
+            starbook::HMS ra(value);
+            equ_posn.ra = ra;
         } else if (key == "DEC") {
-            if (std::regex_search(value, equ_m, dec_re)) {
-                equ_posn.dec.neg = equ_m[1].str().empty() ? (ushort) 0 : (ushort) 1;
-                equ_posn.dec.degrees = (unsigned short) std::stoi(equ_m[2].str());
-                equ_posn.dec.minutes = (unsigned short) std::stoi(equ_m[3].str());
-                LOGF_DEBUG("Parsed DEC -%i %i:%i", equ_posn.dec.neg, equ_posn.dec.degrees, equ_posn.dec.minutes);
-            } else {
-                LOGF_ERROR("Can't parse %s", value.c_str());
-            }
+            starbook::DMS dec(value);
+            equ_posn.dec = dec;
         } else if (key == "STATE") {
             if (value == "SCOPE") {
                 state = StarbookState::SB_SCOPE;
             } else if (value == "GUIDE") {
-                state = StarbookState::SB_SCOPE;
+                state = StarbookState::SB_GUIDE;
             } else if (value == "INIT") {
-                state = StarbookState::SB_SCOPE;
+                state = StarbookState::SB_INIT;
             } else {
                 LOGF_ERROR("Unknown state %s", value.c_str());
             }
@@ -177,15 +162,16 @@ bool Starbook::ReadScopeStatus() {
         ln_equ_posn d_equ_posn = {0, 0};
         ln_hequ_to_equ(&equ_posn, &d_equ_posn);
         LOGF_DEBUG("Parsed RADEC %d, %d", d_equ_posn.ra / 15, d_equ_posn.dec);
-        NewRaDec(d_equ_posn.ra / 15, d_equ_posn.dec);
+        NewRaDec(d_equ_posn.ra / 15, d_equ_posn.dec); // CONVERSION
         return true;
     }
     return false;
 }
 
 bool Starbook::Goto(double ra, double dec) {
+    ra = ra * 15; // CONVERSION
     std::ostringstream params;
-    params << "?" << StarbookEqu(ra, dec);
+    params << "?" << starbook::Equ{ra, dec};
 
     LOGF_INFO("GoTo! %s", params.str().c_str());
 
@@ -224,34 +210,6 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return real_size;
 }
 
-// TODO: make use of tcpConnection or create own Connection Interface
-//static curl_socket_t opensocket(void *clientp,
-//                                curlsocktype purpose,
-//                                struct curl_sockaddr *address) {
-//    INDI_UNUSED(purpose);
-//    INDI_UNUSED(address);
-//    curl_socket_t sockfd;
-//    sockfd = *(curl_socket_t *) clientp;
-//    /* the actual externally set socket is passed in via the OPENSOCKETDATA
-//       option */
-//    return sockfd;
-//}
-//
-//static int closesocket(void *clientp, curl_socket_t item) {
-//    INDI_UNUSED(clientp);
-//    printf("libcurl wants to close %d now\n", (int) item);
-//    return 0;
-//}
-//
-//static int sockopt_callback(void *clientp, curl_socket_t curlfd,
-//                            curlsocktype purpose) {
-//    INDI_UNUSED(clientp);
-//    INDI_UNUSED(curlfd);
-//    INDI_UNUSED(purpose);
-//    return CURL_SOCKOPT_ALREADY_CONNECTED;
-//}
-
-
 bool Starbook::SendCommand(std::string cmd) {
 
     int rc = 0;
@@ -264,18 +222,6 @@ bool Starbook::SendCommand(std::string cmd) {
     /* send all data to this function  */
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, &readBuffer);
-
-    /* call this function to get a socket */
-    // TODO: I was unable to reuse tcpConnection->PortFD
-//    curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocket);
-//    curl_easy_setopt(handle, CURLOPT_OPENSOCKETDATA, &PortFD);
-//
-//    /* call this function to close sockets */
-//    curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocket);
-//    curl_easy_setopt(handle, CURLOPT_CLOSESOCKETDATA, &PortFD);
-//
-//    /* call this function to set options for the socket */
-//    curl_easy_setopt(handle, CURLOPT_SOCKOPTFUNCTION, sockopt_callback);
 
     curl_easy_setopt(handle, CURLOPT_VERBOSE, 1);
 
