@@ -2143,21 +2143,41 @@ void ALTAIRCAM::sendImageCB(void* pCtx)
     static_cast<ALTAIRCAM*>(pCtx)->sendImageCallBack();
 }
 
-void ALTAIRCAM::sendImageCallBack()
-{
-    PrimaryCCD.setExposureLeft(0);
-    InExposure = false;
-    m_SendImage = true;
-}
-
 void ALTAIRCAM::eventCB(unsigned event, void* pCtx)
 {
     static_cast<ALTAIRCAM*>(pCtx)->eventPullCallBack(event);
 }
 
+void ALTAIRCAM::sendImageCallBack()
+{
+    PrimaryCCD.setExposureLeft(0);
+    InExposure = false;
+    m_SendImage = true;
+    m_lastEventID = -1;
+
+    RemoveTimer(m_TimeoutTimerID);
+    m_TimeoutTimerID = IEAddTimer(100, &ALTAIRCAM::checkTimeoutHelper, this);
+}
+
+void ALTAIRCAM::checkTimeoutHelper(void *context)
+{
+    static_cast<ALTAIRCAM*>(context)->checkCameraCallback();
+}
+
+void ALTAIRCAM::checkCameraCallback()
+{
+    if (m_lastEventID != 4)
+    {
+        LOG_DEBUG("Exposure timeout, restarting...");
+        StartExposure(PrimaryCCD.getExposureDuration());
+    }
+}
+
 void ALTAIRCAM::eventPullCallBack(unsigned event)
 {
     LOGF_DEBUG("Event %#04X", event);
+
+    m_lastEventID = event;
 
     switch (event)
     {
