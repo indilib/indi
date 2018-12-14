@@ -28,8 +28,6 @@
 #include <cstring>
 #include <regex>
 
-#define STARBOOK_DEFAULT_IP   "localhost:5000"
-
 static std::string readBuffer;
 
 std::unique_ptr<Starbook> starbook(new Starbook());
@@ -75,7 +73,7 @@ Starbook::Starbook() {
 
     setTelescopeConnection(CONNECTION_TCP);
     curl_global_init(CURL_GLOBAL_ALL);
-    handle = curl_easy_init();
+
 }
 
 Starbook::~Starbook() {
@@ -98,6 +96,7 @@ bool Starbook::initProperties() {
 }
 
 bool Starbook::Connect() {
+    handle = curl_easy_init();
     return Telescope::Connect();
 }
 
@@ -106,13 +105,12 @@ bool Starbook::Disconnect() {
     return Telescope::Disconnect();
 }
 
-
 const char *Starbook::getDefaultName() {
     return "Starbook mount controller";
 }
 
 bool Starbook::ReadScopeStatus() {
-    LOG_INFO("Status! Sending GETSTATUS command");
+    LOG_DEBUG("Status! Sending GETSTATUS command");
     bool res = SendCommand("GETSTATUS");
 
     // Not safe I think
@@ -186,23 +184,17 @@ bool Starbook::ReadScopeStatus() {
 }
 
 bool Starbook::Goto(double ra, double dec) {
-    LOG_INFO("Goto! Sending GOTORADEC command");
-
-//    ln_equ_posn target_d = {ra * 15.0, dec};
-//    lnh_equ_posn equ_posn = {{0, 0, 0},
-//                {0, 0, 0, 0}};
-//    ln_equ_to_hequ(&target_d, &equ_posn);
     std::ostringstream params;
     params << "?" << StarbookEqu(ra, dec);
 
-    LOG_ERROR(params.str().c_str());
+    LOGF_INFO("GoTo! %s", params.str().c_str());
 
     bool res = SendCommand("GOTORADEC" + params.str());
     return res;
 }
 
 bool Starbook::Abort() {
-    LOG_INFO("Aborting! Sending STOP command");
+    LOG_INFO("Aborting!");
     bool res = SendCommand("STOP");
     return res;
 }
@@ -214,14 +206,14 @@ bool Starbook::Sync(double ra, double dec) {
 
 bool Starbook::Park() {
     // TODO Park
-    LOG_INFO("Parking! Sending HOME command");
+    LOG_WARN("HOME command is unstable");
     return SendCommand("HOME");
 }
 
 
 bool Starbook::UnPark() {
     // TODO UnPark
-    LOG_INFO("Un-parking! not sending anything");
+    LOG_WARN("Always unparked");
     return true;
 }
 
@@ -232,31 +224,32 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *use
     return real_size;
 }
 
-static curl_socket_t opensocket(void *clientp,
-                                curlsocktype purpose,
-                                struct curl_sockaddr *address) {
-    INDI_UNUSED(purpose);
-    INDI_UNUSED(address);
-    curl_socket_t sockfd;
-    sockfd = *(curl_socket_t *) clientp;
-    /* the actual externally set socket is passed in via the OPENSOCKETDATA
-       option */
-    return sockfd;
-}
-
-static int closesocket(void *clientp, curl_socket_t item) {
-    INDI_UNUSED(clientp);
-    printf("libcurl wants to close %d now\n", (int) item);
-    return 0;
-}
-
-static int sockopt_callback(void *clientp, curl_socket_t curlfd,
-                            curlsocktype purpose) {
-    INDI_UNUSED(clientp);
-    INDI_UNUSED(curlfd);
-    INDI_UNUSED(purpose);
-    return CURL_SOCKOPT_ALREADY_CONNECTED;
-}
+// TODO: make use of tcpConnection or create own Connection Interface
+//static curl_socket_t opensocket(void *clientp,
+//                                curlsocktype purpose,
+//                                struct curl_sockaddr *address) {
+//    INDI_UNUSED(purpose);
+//    INDI_UNUSED(address);
+//    curl_socket_t sockfd;
+//    sockfd = *(curl_socket_t *) clientp;
+//    /* the actual externally set socket is passed in via the OPENSOCKETDATA
+//       option */
+//    return sockfd;
+//}
+//
+//static int closesocket(void *clientp, curl_socket_t item) {
+//    INDI_UNUSED(clientp);
+//    printf("libcurl wants to close %d now\n", (int) item);
+//    return 0;
+//}
+//
+//static int sockopt_callback(void *clientp, curl_socket_t curlfd,
+//                            curlsocktype purpose) {
+//    INDI_UNUSED(clientp);
+//    INDI_UNUSED(curlfd);
+//    INDI_UNUSED(purpose);
+//    return CURL_SOCKOPT_ALREADY_CONNECTED;
+//}
 
 
 bool Starbook::SendCommand(std::string cmd) {
@@ -299,6 +292,6 @@ bool Starbook::SendCommand(std::string cmd) {
 }
 
 bool Starbook::Handshake() {
-    DEBUG(INDI::Logger::DBG_WARNING, ("Handshake"));
+    LOG_DEBUG("Handshake");
     return Telescope::Handshake();
 }

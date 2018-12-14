@@ -3,7 +3,7 @@ Starbook INDI Driver
 
 This package provides the INDI driver for the Vixen Starbook telescope controllers. This driver aims for compatibility
 with first generation Starbook.
-Starbook 10 is not supported by this driver.
+Starbook 10 is not tested with this driver.
 
 Requirements
 ------------
@@ -19,3 +19,19 @@ Requirements
 + libnova
 
 	You need to install both libnova and libnova-devel to build this package.
+
+Usage
+-----
+
+Starbook is easy to hang up. You won't get smooth operation by design.
+Driver was written with this in mind so it will put few limitations on user.
+Starbook is a state machine, that means it will allow different functions in specified states.
+During INIT state it won't react to GOTORADEC commands and will wait for
+user to manually enter SCOPE state or by START command.
+
+In later version I expect to implement abstract state machine,
+to keep Starbook state and allowed transitions.
+
+Internal HTTP server is very fragile, so any wrong request might break it.
+Expect frequent restarts of Starbook.
+
