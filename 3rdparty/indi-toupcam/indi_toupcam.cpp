@@ -2115,6 +2115,24 @@ void TOUPCAM::sendImageCallBack()
     PrimaryCCD.setExposureLeft(0);
     InExposure = false;
     m_SendImage = true;
+    m_lastEventID = -1;
+
+    RemoveTimer(m_TimeoutTimerID);
+    m_TimeoutTimerID = IEAddTimer(100, &TOUPCAM::checkTimeoutHelper, this);
+}
+
+void TOUPCAM::checkTimeoutHelper(void *context)
+{
+    static_cast<TOUPCAM*>(context)->checkCameraCallback();
+}
+
+void TOUPCAM::checkCameraCallback()
+{
+    if (m_lastEventID != 4)
+    {
+        LOG_DEBUG("Exposure timeout, restarting...");
+        StartExposure(PrimaryCCD.getExposureDuration());
+    }
 }
 
 void TOUPCAM::eventCB(unsigned event, void* pCtx)
@@ -2125,6 +2143,8 @@ void TOUPCAM::eventCB(unsigned event, void* pCtx)
 void TOUPCAM::eventPullCallBack(unsigned event)
 {
     LOGF_DEBUG("Event %#04X", event);
+
+    m_lastEventID = event;
 
     switch (event)
     {

@@ -309,6 +309,11 @@ private:
 //    void exposureSetRequest(ImageState request);
     //int grabImage();
 
+    static void checkTimeoutHelper(void *context);
+    void checkCameraCallback();
+    int m_TimeoutTimerID { -1 };
+    int m_lastEventID { -1 };
+
     void allocateFrameBuffer();
     struct timeval ExposureEnd;
     double ExposureRequest;
