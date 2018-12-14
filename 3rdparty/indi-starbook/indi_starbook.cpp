@@ -266,6 +266,7 @@ bool Starbook::SendCommand(std::string cmd) {
     readBuffer.clear();
     curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
     curl_easy_setopt(handle, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(handle, CURLOPT_USERAGENT, "curl/7.58.0");
 
     /* send all data to this function  */
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -287,13 +288,12 @@ bool Starbook::SendCommand(std::string cmd) {
 
     // TODO: https://github.com/indilib/indi/pull/779
     // HACK: Just use CURL, and use tcpConnection as input
-    std::string cmd_url = "http://" + std::string(tcpConnection->host()) + ":" + "5000" + "/" + cmd;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: %s", cmd_url.c_str());
-    curl_easy_setopt(handle, CURLOPT_URL, cmd_url.c_str());
+    std::ostringstream cmd_url;
+    cmd_url << "http://" << tcpConnection->host() << "/" << cmd;
+
+    curl_easy_setopt(handle, CURLOPT_URL, cmd_url.str().c_str());
 
     rc = curl_easy_perform(handle);
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: %s", readBuffer.c_str());
 
     return rc == CURLE_OK;
 }
