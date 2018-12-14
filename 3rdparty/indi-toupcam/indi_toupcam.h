@@ -1,5 +1,5 @@
 /*
- INDI Altair Driver
+ INDI Toup Driver
 
  Copyright (C) 2018 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
@@ -303,12 +303,6 @@ private:
     //#############################################################################
     // Capture
     //#############################################################################
-//    static void *imagingHelper(void *context);
-//    void *imagingThreadEntry();
-//    void getSnapImage();
-//    void exposureSetRequest(ImageState request);
-    //int grabImage();
-
     static void checkTimeoutHelper(void *context);
     void checkCameraCallback();
     int m_TimeoutTimerID { -1 };
@@ -317,15 +311,6 @@ private:
     void allocateFrameBuffer();
     struct timeval ExposureEnd;
     double ExposureRequest;
-
-    //#############################################################################
-    // Threading
-    //#############################################################################
-//    ImageState threadRequest;
-//    ImageState threadState;
-//    pthread_t imagingThread;
-//    pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-//    pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
     //#############################################################################
     // Video Format & Streaming
