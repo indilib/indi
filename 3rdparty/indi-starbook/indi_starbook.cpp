@@ -179,15 +179,25 @@ bool Starbook::Goto(double ra, double dec) {
     return res;
 }
 
-bool Starbook::Abort() {
-    LOG_INFO("Aborting!");
-    bool res = SendCommand("STOP");
+bool Starbook::Sync(double ra, double dec) {
+    ra = ra * 15; // CONVERSION
+
+    // TODO: check if distance to new ra, dec > 10 degrees
+
+    std::ostringstream params;
+    params << "?" << starbook::Equ{ra, dec};
+
+    LOGF_INFO("Sync! %s", params.str().c_str());
+
+    bool res = SendCommand("ALIGN" + params.str());
     return res;
 }
 
 
-bool Starbook::Sync(double ra, double dec) {
-    return Goto(ra, dec);
+bool Starbook::Abort() {
+    LOG_INFO("Aborting!");
+    bool res = SendCommand("STOP");
+    return res;
 }
 
 bool Starbook::Park() {
