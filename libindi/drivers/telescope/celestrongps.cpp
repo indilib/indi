@@ -597,6 +597,9 @@ bool CelestronGPS::ReadScopeStatus()
     //IDSetNumber(&HorizontalCoordsNP, nullptr);
     NewRaDec(currentRA, currentDEC);
 
+    if (!HasPierSide())
+        return true;
+
     char sop;
     INDI::Telescope::TelescopePierSide pierSide = PIER_UNKNOWN;
     char psc = 'U';

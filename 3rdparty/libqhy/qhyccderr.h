@@ -25,7 +25,7 @@
 /*! \file qhyccderr.h
       \brief QHYCCD SDK error define
   */
-
+#include "config.h"
 #ifndef __QHYCCDERR_H__
 #define __QHYCCDERR_H__
 

@@ -44,7 +44,7 @@ typedef enum
     SCRIPT_COUNT
 } scripts;
 
-std::unique_ptr<DomeScript> scope_script(new DomeScript());
+static std::unique_ptr<DomeScript> scope_script(new DomeScript());
 
 void ISGetProperties(const char *dev)
 {
@@ -237,9 +237,8 @@ void DomeScript::TimerHit()
 {
     if (!isConnected())
         return;
-    char name[1024];
-    char *s = tmpnam(name);
-    INDI_UNUSED(s);
+    char name[1024]={0};
+    tmpnam(name);
     bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {

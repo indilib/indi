@@ -26,6 +26,7 @@
 
 #include <stream/streammanager.h>
 
+#include <algorithm>
 #include <math.h>
 #include <unistd.h>
 
@@ -39,7 +40,7 @@
 
 //#define USE_SIMULATION
 
-static int iConnectedCamerasCount;
+static int iAvailableCamerasCount;
 static ASI_CAMERA_INFO *pASICameraInfo;
 static ASICCD *cameras[MAX_DEVICES];
 
@@ -48,7 +49,7 @@ static ASICCD *cameras[MAX_DEVICES];
 
 static void cleanup()
 {
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         delete cameras[i];
     }
@@ -66,7 +67,8 @@ void ASI_CCD_ISInit()
     if (!isInit)
     {
         pASICameraInfo       = nullptr;
-        iConnectedCamerasCount = 0;
+        iAvailableCamerasCount = 0;
+        std::vector<std::string> cameraNames;
 
 #ifdef USE_SIMULATION
         iConnectedCamerasCount = 2;
@@ -76,28 +78,37 @@ void ASI_CCD_ISInit()
         cameras[0] = new ASICCD(ppASICameraInfo[0]);
         cameras[1] = new ASICCD(ppASICameraInfo[1]);
 #else
-        iConnectedCamerasCount = ASIGetNumOfConnectedCameras();
-        if (iConnectedCamerasCount > MAX_DEVICES)
-            iConnectedCamerasCount = MAX_DEVICES;
-        if (iConnectedCamerasCount <= 0)
+        iAvailableCamerasCount = ASIGetNumOfConnectedCameras();
+        if (iAvailableCamerasCount > MAX_DEVICES)
+            iAvailableCamerasCount = MAX_DEVICES;
+        if (iAvailableCamerasCount <= 0)
             //Try sending IDMessage as well?
             IDLog("No ASI Cameras detected. Power on?");
         else
         {
-            size_t size = sizeof(ASI_CAMERA_INFO) * iConnectedCamerasCount;
+            size_t size = sizeof(ASI_CAMERA_INFO) * iAvailableCamerasCount;
             pASICameraInfo = (ASI_CAMERA_INFO *)malloc(size);
             if (pASICameraInfo == nullptr)
             {
-                iConnectedCamerasCount = 0;
+                iAvailableCamerasCount = 0;
                 IDLog("malloc failed (init)");
                 return;
             }
             (void)memset(pASICameraInfo, 0, size);
             ASI_CAMERA_INFO *cameraP = pASICameraInfo;
-            for (int i = 0; i < iConnectedCamerasCount; i++)
+            for (int i = 0; i < iAvailableCamerasCount; i++)
             {
                 ASIGetCameraProperty(cameraP, i);
-                cameras[i] = new ASICCD(cameraP);
+                std::string cameraName;
+
+                if (std::find(cameraNames.begin(), cameraNames.end(), cameraP->Name) == cameraNames.end())
+                    cameraName = "ZWO CCD " + std::string(cameraP->Name + 4);
+                else
+                    cameraName = "ZWO CCD " + std::string(cameraP->Name + 4) + " " +
+                            std::to_string(static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), cameraP->Name))+1);
+
+                cameras[i] = new ASICCD(cameraP, cameraName);
+                cameraNames.push_back(cameraP->Name);
                 cameraP++;
             }
         }
@@ -112,13 +123,13 @@ void ISGetProperties(const char *dev)
 {
     ASI_CCD_ISInit();
 
-    if (iConnectedCamerasCount == 0)
+    if (iAvailableCamerasCount == 0)
     {
         IDMessage(nullptr, "No ASI cameras detected. Power on?");
         return;
     }
 
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         if (dev == nullptr || !strcmp(dev, camera->name))
@@ -133,7 +144,7 @@ void ISGetProperties(const char *dev)
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
     ASI_CCD_ISInit();
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         if (dev == nullptr || !strcmp(dev, camera->name))
@@ -148,7 +159,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
     ASI_CCD_ISInit();
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         if (dev == nullptr || !strcmp(dev, camera->name))
@@ -163,7 +174,7 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     ASI_CCD_ISInit();
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         if (dev == nullptr || !strcmp(dev, camera->name))
@@ -192,14 +203,14 @@ void ISSnoopDevice(XMLEle *root)
 {
     ASI_CCD_ISInit();
 
-    for (int i = 0; i < iConnectedCamerasCount; i++)
+    for (int i = 0; i < iAvailableCamerasCount; i++)
     {
         ASICCD *camera = cameras[i];
         camera->ISSnoopDevice(root);
     }
 }
 
-ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
+ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo, std::string cameraName)
 {
     setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
     ControlN     = nullptr;
@@ -212,7 +223,8 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo)
     NSDir = ASI_GUIDE_NORTH;
     WEDir = ASI_GUIDE_WEST;
 
-    snprintf(this->name, MAXINDIDEVICE, "ZWO CCD %s", m_camInfo->Name + 4);
+    //snprintf(this->name, MAXINDIDEVICE, "ZWO CCD %s", m_camInfo->Name + 4);
+    strncpy(this->name, cameraName.c_str(), MAXINDIDEVICE);
     setDeviceName(this->name);
 }
 
@@ -447,7 +459,7 @@ bool ASICCD::Disconnect()
         ASICloseCamera(m_camInfo->CameraID);
     }
 
-    LOG_INFO("CCD is offline.");
+    LOG_INFO("Camera is offline.");
 
     return true;
 }
@@ -524,6 +536,7 @@ void ASICCD::setupParams()
     {
         case ASI_IMG_RAW16:
             bit_depth = 16;
+            break;
 
         default:
             break;
@@ -548,8 +561,7 @@ void ASICCD::setupParams()
     VideoFormatS = (ISwitch *)malloc(size);
     if (VideoFormatS == nullptr)
     {
-        LOGF_ERROR("CCD ID: %d malloc failed (setup)",
-            m_camInfo->CameraID);
+        LOGF_ERROR("Camera ID: %d malloc failed (setup)",  m_camInfo->CameraID);
         VideoFormatSP.nsp = 0;
         return;
     }
@@ -590,7 +602,7 @@ void ASICCD::setupParams()
 
         if (unknown == false)
         {
-            oneVF->aux = (void *)&m_camInfo->SupportedVideoFormat[i];
+            oneVF->aux = &m_camInfo->SupportedVideoFormat[i];
             oneVF++;
         }
         unknown = false;
@@ -627,9 +639,9 @@ void ASICCD::setupParams()
     if ((errCode = ASIGetControlValue(m_camInfo->CameraID, ASI_TEMPERATURE, &pValue, &isAuto)) != ASI_SUCCESS)
         LOGF_DEBUG("ASIGetControlValue temperature error (%d)", errCode);
 
-    TemperatureN[0].value = (double)pValue / 10.0;
+    TemperatureN[0].value = pValue / 10.0;
 
-    LOGF_INFO("The CCD Temperature is %f", TemperatureN[0].value);
+    LOGF_INFO("The CCD Temperature is %.3f", TemperatureN[0].value);
     IDSetNumber(&TemperatureNP, nullptr);
     //}
 
@@ -651,9 +663,9 @@ bool ASICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
     {
         if (!strcmp(name, ControlNP.name))
         {
-            double oldValues[ControlNP.nnp];
+            std::vector<double> oldValues;
             for (int i = 0; i < ControlNP.nnp; i++)
-                oldValues[i] = ControlN[i].value;
+                oldValues.push_back(ControlN[i].value);
 
             if (IUUpdateNumber(&ControlNP, values, names, n) < 0)
             {
@@ -664,14 +676,14 @@ bool ASICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 
             for (int i = 0; i < ControlNP.nnp; i++)
             {
-                ASI_BOOL nAuto         = *((ASI_BOOL *)ControlN[i].aux1);
-                ASI_CONTROL_TYPE nType = *((ASI_CONTROL_TYPE *)ControlN[i].aux0);
+                ASI_BOOL nAuto         = *(static_cast<ASI_BOOL *>(ControlN[i].aux1));
+                ASI_CONTROL_TYPE nType = *(static_cast<ASI_CONTROL_TYPE *>(ControlN[i].aux0));
 
                 if (ControlN[i].value == oldValues[i])
                     continue;
 
                 LOGF_DEBUG("ISNewNumber->set ctrl %d: %.2f", nType, ControlN[i].value);
-                if ((errCode = ASISetControlValue(m_camInfo->CameraID, nType, (long)ControlN[i].value, ASI_FALSE)) !=
+                if ((errCode = ASISetControlValue(m_camInfo->CameraID, nType, static_cast<long>(ControlN[i].value), ASI_FALSE)) !=
                     ASI_SUCCESS)
                 {
                     LOGF_ERROR("ASISetControlValue (%s=%g) error (%d)", ControlN[i].name,
@@ -688,7 +700,7 @@ bool ASICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                 {
                     for (int j = 0; j < ControlSP.nsp; j++)
                     {
-                        ASI_CONTROL_TYPE swType = *((ASI_CONTROL_TYPE *)ControlS[j].aux);
+                        ASI_CONTROL_TYPE swType = *(static_cast<ASI_CONTROL_TYPE *>(ControlS[j].aux));
 
                         if (swType == nType)
                         {
@@ -727,12 +739,12 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             for (int i = 0; i < ControlSP.nsp; i++)
             {
-                ASI_CONTROL_TYPE swType = *((ASI_CONTROL_TYPE *)ControlS[i].aux);
+                ASI_CONTROL_TYPE swType = *(static_cast<ASI_CONTROL_TYPE *>(ControlS[i].aux));
                 ASI_BOOL swAuto         = (ControlS[i].s == ISS_ON) ? ASI_TRUE : ASI_FALSE;
 
                 for (int j = 0; j < ControlNP.nnp; j++)
                 {
-                    ASI_CONTROL_TYPE nType = *((ASI_CONTROL_TYPE *)ControlN[j].aux0);
+                    ASI_CONTROL_TYPE nType = *(static_cast<ASI_CONTROL_TYPE *>(ControlN[j].aux0));
 
                     if (swType == nType)
                     {
@@ -750,7 +762,7 @@ bool ASICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                             return false;
                         }
 
-                        *((ASI_BOOL *)ControlN[j].aux1) = swAuto;
+                        *(static_cast<ASI_BOOL *>(ControlN[j].aux1)) = swAuto;
                         break;
                     }
                 }
@@ -875,7 +887,7 @@ bool ASICCD::StartStreaming()
 #endif
 
     ExposureRequest = 1.0 / Streamer->getTargetFPS();
-    long uSecs = (long)(ExposureRequest * 950000.0);
+    long uSecs = static_cast<long>(ExposureRequest * 950000.0);
     ASISetControlValue(m_camInfo->CameraID, ASI_EXPOSURE, uSecs, ASI_FALSE);
     ASIStartVideoCapture(m_camInfo->CameraID);
     pthread_mutex_lock(&condMutex);
@@ -918,9 +930,9 @@ int ASICCD::SetTemperature(double temperature)
 
     long tVal;
     if (temperature > 0.5)
-        tVal = (long)(temperature + 0.49);
+        tVal = static_cast<long>(temperature + 0.49);
     else if (temperature  < 0.5)
-        tVal = (long)(temperature - 0.49);
+        tVal = static_cast<long>(temperature - 0.49);
     else
         tVal = 0;
     if (ASISetControlValue(m_camInfo->CameraID, ASI_TARGET_TEMP, tVal, ASI_TRUE) != ASI_SUCCESS)
@@ -1005,7 +1017,7 @@ bool ASICCD::StartExposure(float duration)
 
 bool ASICCD::AbortExposure()
 {
-    LOG_DEBUG("AbortExposure");
+    LOG_DEBUG("Aborting camera exposure...");
     pthread_mutex_lock(&condMutex);
     threadRequest = StateAbort;
     pthread_cond_signal(&cv);
@@ -1262,7 +1274,7 @@ void ASICCD::TimerHit()
 /* Helper function for NS timer call back */
 void ASICCD::TimerHelperNS(void *context)
 {
-    ((ASICCD *)context)->TimerNS();
+    static_cast<ASICCD *>(context)->TimerNS();
 }
 
 /* The timer call back for NS guiding */
@@ -1356,7 +1368,7 @@ IPState ASICCD::GuideSouth(uint32_t ms)
 /* Helper function for WE timer call back */
 void ASICCD::TimerHelperWE(void *context)
 {
-    ((ASICCD *)context)->TimerWE();
+    static_cast<ASICCD *>(context)->TimerWE();
 }
 
 /* The timer call back for WE guiding */
@@ -1645,7 +1657,6 @@ const char *ASICCD::getBayerString()
             return "GRBG";
         case ASI_BAYER_GB:
             return "GBRG";
-        case ASI_BAYER_RG:
         default:
             return "RGGB";
     }
@@ -1659,7 +1670,7 @@ ASI_IMG_TYPE ASICCD::getImageType()
     {
         ISwitch *sp = IUFindOnSwitch(&VideoFormatSP);
         if (sp)
-            type = *((ASI_IMG_TYPE *)sp->aux);
+            type = *(static_cast<ASI_IMG_TYPE *>(sp->aux));
     }
 
     return type;
@@ -1672,7 +1683,7 @@ void ASICCD::updateControls()
 
     for (int i = 0; i < ControlNP.nnp; i++)
     {
-        ASI_CONTROL_TYPE nType = *((ASI_CONTROL_TYPE *)ControlN[i].aux0);
+        ASI_CONTROL_TYPE nType = *(static_cast<ASI_CONTROL_TYPE *>(ControlN[i].aux0));
 
         ASIGetControlValue(m_camInfo->CameraID, nType, &pValue, &isAuto);
 
@@ -1680,7 +1691,7 @@ void ASICCD::updateControls()
 
         for (int j = 0; j < ControlSP.nsp; j++)
         {
-            ASI_CONTROL_TYPE sType = *((ASI_CONTROL_TYPE *)ControlS[j].aux);
+            ASI_CONTROL_TYPE sType = *(static_cast<ASI_CONTROL_TYPE *>(ControlS[j].aux));
 
             if (sType == nType)
             {
@@ -1739,7 +1750,7 @@ void ASICCD::updateRecorderFormat()
 
 void *ASICCD::imagingHelper(void *context)
 {
-    return ((ASICCD *)context)->imagingThreadEntry();
+    return static_cast<ASICCD *>(context)->imagingThreadEntry();
 }
 
 /*
@@ -1955,7 +1966,7 @@ void ASICCD::getExposure()
             float fraction = timeLeft - (float)((int)timeLeft);
             if (fraction >= 0.005)
             {
-                uSecs = (int)(fraction * 1000000.0);
+                uSecs = (fraction * 1000000.0f);
             }
             else
             {

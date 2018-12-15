@@ -138,9 +138,9 @@ bool unpark_ieqpro(int fd);
 /**************************************************************************
  Guide
 **************************************************************************/
-bool set_ieqpro_guide_rate(int fd, double rate);
-bool get_ieqpro_guide_rate(int fd, double *rate);
-bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms);
+bool set_ieqpro_guide_rate(int fd, double raRate, double deRate);
+bool get_ieqpro_guide_rate(int fd, double *raRate, double *deRate);
+bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, uint32_t ms);
 
 /**************************************************************************
  Time & Location

@@ -1,5 +1,5 @@
 /*
- INDI ToupCam Driver
+ INDI Altair Driver
 
  Copyright (C) 2018 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
@@ -21,8 +21,9 @@
 
 #pragma once
 
-#include "toupcam.h"
-#include "indi_toupcam.h"
+#include <map>
+
+#include <toupcam.h>
 
 #include <indiccd.h>
 
@@ -81,6 +82,21 @@ private:
         StateTerminated
     } ImageState;
 
+    enum {
+        S_OK            = 0x00000000,
+        S_FALSE         = 0x00000001,
+        E_FAIL          = 0x80004005,
+        E_INVALIDARG    = 0x80070057,
+        E_NOTIMPL       = 0x80004001,
+        E_NOINTERFACE   = 0x80004002,
+        E_POINTER       = 0x80004003,
+        E_UNEXPECTED    = 0x8000FFFF,
+        E_OUTOFMEMORY   = 0x8007000E,
+        E_WRONG_THREAD  = 0x8001010E,
+    };
+    static std::map<int, std::string> errorCodes;
+
+
     enum eFLAG
     {
         FLAG_CMOS                = 0x00000001,   /* cmos sensor */
@@ -126,8 +142,8 @@ private:
         EVENT_EXPOSURE             = 0x0001, /* exposure time changed */
         EVENT_TEMPTINT             = 0x0002, /* white balance changed, Temp/Tint mode */
         EVENT_CHROME               = 0x0003, /* reversed, do not use it */
-        EVENT_IMAGE                = 0x0004, /* live image arrived, use Toupcam_PullImage to get this image */
-        EVENT_STILLIMAGE           = 0x0005, /* snap (still) frame arrived, use Toupcam_PullStillImage to get this frame */
+        EVENT_IMAGE                = 0x0004, /* live image arrived, use Altaircam_PullImage to get this image */
+        EVENT_STILLIMAGE           = 0x0005, /* snap (still) frame arrived, use Altaircam_PullStillImage to get this frame */
         EVENT_WBGAIN               = 0x0006, /* white balance changed, RGB Gain mode */
         EVENT_TRIGGERFAIL          = 0x0007, /* trigger failed */
         EVENT_BLACK                = 0x0008, /* black balance changed */
@@ -239,6 +255,13 @@ private:
         PIXELFORMAT_UYVY       = 0x0b
     };
 
+    enum eTriggerMode
+    {
+        TRIGGER_VIDEO,
+        TRIGGER_SOFTWARE,
+        TRIGGER_EXTERNAL,
+    };
+
     struct Resolution
     {
         uint width;
@@ -256,7 +279,7 @@ private:
         uint ioctrol;
         float xpixsz;
         float ypixsz;
-        Resolution res[TOUPCAM_MAX];
+        ToupcamResolution res[TOUPCAM_MAX];
     };
 
     struct InstanceV2
@@ -286,7 +309,7 @@ private:
 
     void allocateFrameBuffer();
     struct timeval ExposureEnd;
-    float ExposureRequest;
+    double ExposureRequest;
 
     //#############################################################################
     // Threading
@@ -349,7 +372,7 @@ private:
 
     //#############################################################################
     // Misc.
-    //#############################################################################    
+    //#############################################################################
     // Get the current Bayer string used
     const char *getBayerString();
 
@@ -393,7 +416,7 @@ private:
         TC_COOLER_OFF,
     };
 
-    INumber ControlN[6];
+    INumber ControlN[7];
     INumberVectorProperty ControlNP;
     enum
     {
@@ -403,9 +426,10 @@ private:
         TC_SATURATION,
         TC_BRIGHTNESS,
         TC_GAMMA,
+        TC_SPEED,
     };
 
-    ISwitch AutoControlS[5];
+    ISwitch AutoControlS[4];
     ISwitchVectorProperty AutoControlSP;
     enum
     {
@@ -458,7 +482,7 @@ private:
       TC_WB_B,
     };
 
-    // Auto Balance
+    // Auto Balance Mode
     ISwitch WBAutoS[2];
     ISwitchVectorProperty WBAutoSP;
     enum
@@ -490,19 +514,19 @@ private:
         TC_FIRMWARE_REV
     };
 
-    uint8_t currentVideoFormat = TC_VIDEO_RGB;
-    uint8_t rememberVideoFormat = TC_VIDEO_RGB;
-
+    uint8_t m_CurrentVideoFormat = TC_VIDEO_RGB;
     INDI_PIXEL_FORMAT m_CameraPixelFormat = INDI_RGB;
+    eTriggerMode m_CurrentTriggerMode = TRIGGER_VIDEO;
 
     bool m_SendImage { false };
+    bool m_CanSnap { false };
     bool m_RAWFormatSupport { false };
     bool m_RAWHighDepthSupport { false };
 
     uint8_t m_BitsPerPixel { 8 };
     uint8_t m_RawBitsPerPixel { 8 };
     uint8_t m_MaxBitDepth { 8 };
-    uint8_t m_Channels { 1 };    
+    uint8_t m_Channels { 1 };
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

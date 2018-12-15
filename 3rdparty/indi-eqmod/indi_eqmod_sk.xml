@@ -197,10 +197,10 @@ Off
 </defSwitchVector>
 <defNumberVector device="EQMod Mount" name="BACKLASH" label="Backlash" group="Options" state="Idle" perm="rw">
 <defNumber name="BACKLASHRA" label="RA Backlash (microsteps)" format="%.0f" min="10.0" max="16777215.0" step="1.0">
-1.0
+10.0
 </defNumber>
 <defNumber name="BACKLASHDE" label="DE Backlash (microsteps)" format="%.0f" min="10.0" max="16777215.0" step="1.0">
-1.0
+10.0
 </defNumber>
 </defNumberVector>
 <defSwitchVector device="EQMod Mount" name="USEBACKLASH" label="Use Backlash" group="Options" state="Idle" perm="rw" rule="AnyOfMany">

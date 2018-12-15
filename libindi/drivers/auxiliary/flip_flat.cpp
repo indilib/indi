@@ -31,13 +31,14 @@
 #include <cstring>
 #include <memory>
 #include <termios.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
 
 // We declare an auto pointer to FlipFlat.
-std::unique_ptr<FlipFlat> flipflat(new FlipFlat());
+static std::unique_ptr<FlipFlat> flipflat(new FlipFlat());
 
-#define FLAT_CMD     6
-#define FLAT_RES     8
+#define FLAT_CMD 6
+#define FLAT_RES 8
 #define FLAT_TIMEOUT 3
 
 void ISGetProperties(const char *dev)
@@ -158,15 +159,14 @@ bool FlipFlat::updateProperties()
 
 const char *FlipFlat::getDefaultName()
 {
-    return (const char *)"Flip Flat";
+    return static_cast<const char *>("Flip Flat");
 }
 
 bool FlipFlat::Handshake()
 {
     if (isSimulation())
     {
-        LOGF_INFO("Connected successfuly to simulated %s. Retrieving startup data...",
-               getDeviceName());
+        LOGF_INFO("Connected successfuly to simulated %s. Retrieving startup data...", getDeviceName());
 
         SetTimer(POLLMS);
 
@@ -252,47 +252,15 @@ bool FlipFlat::saveConfigItems(FILE *fp)
 
 bool FlipFlat::ping()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[FLAT_CMD];
-    char response[FLAT_RES];
-    int i = 0;
+    char response[FLAT_RES]={0};
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    strncpy(command, ">P000", FLAT_CMD);
-
-    LOGF_DEBUG("CMD (%s)", command);
-
-    command[FLAT_CMD - 1] = 0xA;
-
-    for (i = 0; i < 3; i++)
-    {
-        if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
-            continue;
-
-        if ((rc = tty_read_section(PortFD, response, 0xA, 1, &nbytes_read)) != TTY_OK)
-            continue;
-        else
-            break;
-    }
-
-    if (i == 3)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
+    if (!sendCommand(">P000", response))
         return false;
-    }
-
-    response[nbytes_read - 1] = '\0';
-
-    LOGF_DEBUG("RES (%s)", response);
 
     char productString[3] = { 0 };
     snprintf(productString, 3, "%s", response + 2);
 
-    rc = sscanf(productString, "%d", &productID);
-
+    int rc = sscanf(productString, "%d", &productID);
     if (rc <= 0)
     {
         LOGF_ERROR("Unable to parse input (%s)", response);
@@ -313,7 +281,7 @@ bool FlipFlat::ping()
 bool FlipFlat::getStartupData()
 {
     bool rc1 = getFirmwareVersion();
-    bool rc2 = getStatus();    
+    bool rc2 = getStatus();
     bool rc3 = getBrightness();
 
     return (rc1 && rc2 && rc3);
@@ -327,36 +295,9 @@ IPState FlipFlat::ParkCap()
         return IPS_BUSY;
     }
 
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[FLAT_CMD];
     char response[FLAT_RES];
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    strncpy(command, ">C000", FLAT_CMD);
-
-    LOGF_DEBUG("CMD (%s)", command);
-
-    command[FLAT_CMD - 1] = 0xA;
-
-    if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
+    if (!sendCommand(">C000", response))
         return IPS_ALERT;
-    }
-
-    if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
-        return IPS_ALERT;
-    }
-
-    response[nbytes_read - 1] = '\0';
-
-    LOGF_DEBUG("RES (%s)", response);
 
     char expectedResponse[FLAT_RES];
     snprintf(expectedResponse, FLAT_RES, "*C%02d000", productID);
@@ -365,6 +306,9 @@ IPState FlipFlat::ParkCap()
     {
         // Set cover status to random value outside of range to force it to refresh
         prevCoverStatus = 10;
+
+        IERmTimer(parkTimeoutID);
+        parkTimeoutID = IEAddTimer(30000, parkTimeoutHelper, this);
         return IPS_BUSY;
     }
     else
@@ -379,36 +323,9 @@ IPState FlipFlat::UnParkCap()
         return IPS_BUSY;
     }
 
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[FLAT_CMD];
     char response[FLAT_RES];
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    strncpy(command, ">O000", FLAT_CMD);
-
-    LOGF_DEBUG("CMD (%s)", command);
-
-    command[FLAT_CMD - 1] = 0xA;
-
-    if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
+    if (!sendCommand(">O000", response))
         return IPS_ALERT;
-    }
-
-    if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
-        return IPS_ALERT;
-    }
-
-    response[nbytes_read - 1] = '\0';
-
-    LOGF_DEBUG("RES (%s)", response);
 
     char expectedResponse[FLAT_RES];
     snprintf(expectedResponse, FLAT_RES, "*O%02d000", productID);
@@ -417,6 +334,10 @@ IPState FlipFlat::UnParkCap()
     {
         // Set cover status to random value outside of range to force it to refresh
         prevCoverStatus = 10;
+
+        IERmTimer(unparkTimeoutID);
+        unparkTimeoutID = IEAddTimer(30000, unparkTimeoutHelper, this);
+
         return IPS_BUSY;
     }
     else
@@ -425,8 +346,6 @@ IPState FlipFlat::UnParkCap()
 
 bool FlipFlat::EnableLightBox(bool enable)
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
     char command[FLAT_CMD];
     char response[FLAT_RES];
 
@@ -439,34 +358,13 @@ bool FlipFlat::EnableLightBox(bool enable)
     if (isSimulation())
         return true;
 
-    tcflush(PortFD, TCIOFLUSH);
-
     if (enable)
         strncpy(command, ">L000", FLAT_CMD);
     else
         strncpy(command, ">D000", FLAT_CMD);
 
-    LOGF_DEBUG("CMD (%s)", command);
-
-    command[FLAT_CMD - 1] = 0xA;
-
-    if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
+    if (!sendCommand(command, response))
         return false;
-    }
-
-    if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
-        return false;
-    }
-
-    response[nbytes_read - 1] = '\0';
-
-    LOGF_DEBUG("RES (%s)", response);
 
     char expectedResponse[FLAT_RES];
     if (enable)
@@ -482,9 +380,6 @@ bool FlipFlat::EnableLightBox(bool enable)
 
 bool FlipFlat::getStatus()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[FLAT_CMD];
     char response[FLAT_RES];
 
     if (isSimulation())
@@ -515,31 +410,8 @@ bool FlipFlat::getStatus()
     }
     else
     {
-        tcflush(PortFD, TCIOFLUSH);
-
-        strncpy(command, ">S000", FLAT_CMD);
-
-        LOGF_DEBUG("CMD (%s)", command);
-
-        command[FLAT_CMD - 1] = 0xA;
-
-        if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", command, errstr);
+        if (!sendCommand(">S000", response))
             return false;
-        }
-
-        if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s: %s.", command, errstr);
-            return false;
-        }
-
-        response[nbytes_read - 1] = '\0';
-
-        LOGF_DEBUG("RES (%s)", response);
     }
 
     char motorStatus = *(response + 4) - '0';
@@ -653,38 +525,11 @@ bool FlipFlat::getFirmwareVersion()
         return true;
     }
 
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[FLAT_CMD];
-    char response[FLAT_RES];
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    strncpy(command, ">V000", FLAT_CMD);
-
-    LOGF_DEBUG("CMD (%s)", command);
-
-    command[FLAT_CMD - 1] = 0xA;
-
-    if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
+    char response[FLAT_RES]={0};
+    if (!sendCommand(">V000", response))
         return false;
-    }
 
-    if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
-        return false;
-    }
-
-    response[nbytes_read - 1] = '\0';
-
-    LOGF_DEBUG("RES (%s)", response);
-
-    char versionString[4]={0};
+    char versionString[4] = { 0 };
     snprintf(versionString, 4, "%s", response + 4);
     IUSaveText(&FirmwareT[0], versionString);
     IDSetText(&FirmwareTP, nullptr);
@@ -718,42 +563,15 @@ bool FlipFlat::getBrightness()
         return true;
     }
 
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[FLAT_CMD];
-    char response[FLAT_RES];
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    strncpy(command, ">J000", FLAT_CMD);
-
-    LOGF_DEBUG("CMD (%s)", command);
-
-    command[FLAT_CMD - 1] = 0xA;
-
-    if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
+    char response[FLAT_RES]={0};
+    if (!sendCommand(">J000", response))
         return false;
-    }
 
-    if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
-        return false;
-    }
-
-    response[nbytes_read - 1] = '\0';
-
-    LOGF_DEBUG("RES (%s)", response);
-
-    char brightnessString[4]={0};
+    char brightnessString[4] = { 0 };
     snprintf(brightnessString, 4, "%s", response + 4);
 
     int brightnessValue = 0;
-    rc                  = sscanf(brightnessString, "%d", &brightnessValue);
+    int rc              = sscanf(brightnessString, "%d", &brightnessValue);
 
     if (rc <= 0)
     {
@@ -780,42 +598,19 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
         return true;
     }
 
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char command[FLAT_CMD];
-    char response[FLAT_RES];
-
-    tcflush(PortFD, TCIOFLUSH);
+    char command[FLAT_CMD]={0};
+    char response[FLAT_RES]={0};
 
     snprintf(command, FLAT_CMD, ">B%03d", value);
 
-    LOGF_DEBUG("CMD (%s)", command);
-
-    command[FLAT_CMD - 1] = 0xA;
-
-    if ((rc = tty_write(PortFD, command, FLAT_CMD, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s error: %s.", command, errstr);
+    if (!sendCommand(command, response))
         return false;
-    }
 
-    if ((rc = tty_read_section(PortFD, response, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
-        return false;
-    }
-
-    response[nbytes_read - 1] = '\0';
-
-    LOGF_DEBUG("RES (%s)", response);
-
-    char brightnessString[4]={0};
+    char brightnessString[4] = { 0 };
     snprintf(brightnessString, 4, "%s", response + 4);
 
     int brightnessValue = 0;
-    rc                  = sscanf(brightnessString, "%d", &brightnessValue);
+    int rc              = sscanf(brightnessString, "%d", &brightnessValue);
 
     if (rc <= 0)
     {
@@ -831,4 +626,72 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
     }
 
     return true;
+}
+
+bool FlipFlat::sendCommand(const char *command, char *response)
+{
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF]={0};
+    int i=0;
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    LOGF_DEBUG("CMD <%s>", command);
+
+    char buffer[FLAT_CMD + 1]={0}; // space for terminating null
+    snprintf(buffer, FLAT_CMD + 1, "%s\n", command);
+
+    for (i=0; i < 3; i++)
+    {
+        if ((rc = tty_write(PortFD, buffer, FLAT_CMD, &nbytes_written)) != TTY_OK)
+        {
+            usleep(50000);
+            continue;
+        }
+
+        if ((rc = tty_nread_section(PortFD, response, FLAT_RES, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
+            usleep(50000);
+        else
+            break;
+    }
+
+    if (i==3)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("%s error: %s.", command, errstr);
+        return false;
+    }
+
+    response[nbytes_read - 1] = 0; // strip \n
+
+    LOGF_DEBUG("RES <%s>", response);
+    return true;
+}
+
+void FlipFlat::parkTimeoutHelper(void *context)
+{
+    static_cast<FlipFlat*>(context)->parkTimeout();
+}
+
+void FlipFlat::unparkTimeoutHelper(void *context)
+{
+    static_cast<FlipFlat*>(context)->unparkTimeout();
+}
+
+void FlipFlat::parkTimeout()
+{
+    if (ParkCapSP.s == IPS_BUSY)
+    {
+        LOG_WARN("Parking cap timed out. Retrying...");
+        ParkCap();
+    }
+}
+
+void FlipFlat::unparkTimeout()
+{
+    if (ParkCapSP.s == IPS_BUSY)
+    {
+        LOG_WARN("UnParking cap timed out. Retrying...");
+        UnParkCap();
+    }
 }

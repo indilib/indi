@@ -267,8 +267,8 @@ const char *CCDChip::getExposureStartTime()
     // Format it in ISO8601 format
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
 
-    // Add millisecond and Z for Zulu/UTC time.
-    snprintf(ts, 32, "%s.%03dZ", iso8601, static_cast<int>(startExposureTime.tv_usec / 1000.0));
+    // Add millisecond
+    snprintf(ts, 32, "%s.%03d", iso8601, static_cast<int>(startExposureTime.tv_usec / 1000.0));
 
     return (ts);
 }
@@ -1862,6 +1862,11 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_update_key_dbl(fptr, "PIXSIZE2", targetChip->getPixelSizeY(), 6, "Pixel Size 2 (microns)", &status);
     fits_update_key_lng(fptr, "XBINNING", targetChip->getBinX(), "Binning factor in width", &status);
     fits_update_key_lng(fptr, "YBINNING", targetChip->getBinY(), "Binning factor in height", &status);
+    // XPIXSZ and YPIXSZ are logical sizes including the binning factor
+    double xpixsz = pixSize1 * targetChip->getBinX();
+    double ypixsz = pixSize2 * targetChip->getBinY();
+    fits_update_key_dbl(fptr, "XPIXSZ", xpixsz, 6, "X binned pixel size in microns", &status);
+    fits_update_key_dbl(fptr, "YPIXSZ", ypixsz, 6, "Y binned pixel size in microns", &status);
 
     switch (targetChip->getFrameType())
     {

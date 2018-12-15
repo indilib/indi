@@ -877,12 +877,7 @@ bool SBIGCCD::setupParams()
         if (getCCDSizeInfo(useExternalTrackingCCD ? CCD_EXT_TRACKING : CCD_TRACKING, binning, wCcd, hCcd, wPixel,
                            hPixel) != CE_NO_ERROR)
         {
-            LOG_ERROR("Failed to get guide head size info");
-            return false;
-        }
-        if (useExternalTrackingCCD && (wCcd <= 0 || hCcd <= 0 || wCcd > MAX_RESOLUTION || hCcd > MAX_RESOLUTION))
-        {
-            LOG_ERROR("Invalid external tracking camera dimensions, trying regular tracking");
+            LOG_DEBUG("Invalid external tracking camera results, trying regular tracking");
             if (getCCDSizeInfo(CCD_TRACKING, binning, wCcd, hCcd, wPixel, hPixel) != CE_NO_ERROR)
             {
                 LOG_ERROR("Failed to get external tracking camera size info");
@@ -890,6 +885,7 @@ bool SBIGCCD::setupParams()
             }
             useExternalTrackingCCD = false;
         }
+
         x_pixel_size = wPixel;
         y_pixel_size = hPixel;
         x_1 = y_1 = 0;
@@ -1786,6 +1782,9 @@ int SBIGCCD::getCCDSizeInfo(int ccd, int binning, int &frmW, int &frmH, double &
     }
     gcp.request = ccd;
     int res     = SBIGUnivDrvCommand(CC_GET_CCD_INFO, &gcp, &gcr);
+    // If there is no name, then it is invalid
+    if (!gcr.name[0])
+        return CE_DEVICE_NOT_IMPLEMENTED;
     if (res == CE_NO_ERROR)
     {
         frmW = gcr.readoutInfo[binning].width;
