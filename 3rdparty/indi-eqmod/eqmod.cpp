@@ -607,6 +607,12 @@ bool EQMod::updateProperties()
                 }
             }
 
+            LOG_DEBUG("Init backlash.");
+            mount->SetBacklashUseRA((IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s == ISS_ON ? true : false));
+            mount->SetBacklashUseDE((IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s == ISS_ON ? true : false));
+            mount->SetBacklashRA((uint32_t)(IUFindNumber(BacklashNP, "BACKLASHRA")->value));
+            mount->SetBacklashDE((uint32_t)(IUFindNumber(BacklashNP, "BACKLASHDE")->value));
+
             mount->Init();
 
             zeroRAEncoder  = mount->GetRAEncoderZero();
