@@ -103,6 +103,18 @@ jobs:
           name: Run tests
           command: .circleci/run-tests.sh
 
+  build_trusty:
+    docker:
+      - image: jochym/indi-docker:trusty
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
   build_opensuse:
     docker:
       - image: jochym/indi-docker:opensuse
@@ -146,6 +158,10 @@ workflows:
       - build_centos:
           requires:
             - build_fedora
+      - build_trusty:
+          requires:
+            - build_artful
+
 #      - build_clang4
 #      - build_clang5:
 #          requires:
