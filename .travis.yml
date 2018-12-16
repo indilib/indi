@@ -3,7 +3,7 @@ compiler:
 
 language: cpp
 sudo: required
-dist: trusty
+dist: xenial
 osx_image: xcode8.3
 
 matrix:
@@ -11,8 +11,7 @@ matrix:
     - os: osx
       env:
         - BUILD_INSTALL_GTEST=YES
-
-    # Default config (on trusty gcc4)
+    
     - os: linux
 
 branches:

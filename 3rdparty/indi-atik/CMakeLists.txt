@@ -13,7 +13,7 @@ find_package(Threads REQUIRED)
 find_package(ATIK REQUIRED)
 
 set(ATIK_VERSION_MAJOR 2)
-set(ATIK_VERSION_MINOR 0)
+set(ATIK_VERSION_MINOR 1)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_atik.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_atik.xml)

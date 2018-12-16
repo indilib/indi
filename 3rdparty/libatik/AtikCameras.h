@@ -163,6 +163,7 @@ extern "C" {
 	bool ArtemisIsLocalConnection();
 	void ArtemisAllowDebugToConsole(bool value);
     void ArtemisSetDebugCallback(void(*callback)(const char *message));
+	void ArtemisSetDebugCallbackContext(void * context, void(*callback)(void *context, const char *message));
 	void ArtemisSetFirmwareDir(const char * firmwareDir);
     void ArtemisShutdown(); 
 
@@ -307,6 +308,7 @@ extern "C" {
 	// ------------------- Temperature -----------------------------------
 	int ArtemisTemperatureSensorInfo(ArtemisHandle hCam, int sensor, int* temperature);
 	int ArtemisSetCooling(			 ArtemisHandle hCam, int setpoint);
+	int ArtemisSetCoolingPower(	     ArtemisHandle hCam, int power);
 	int ArtemisCoolingInfo(			 ArtemisHandle hCam, int* flags, int* level, int* minlvl, int* maxlvl, int* setpoint);
 	int ArtemisCoolerWarmUp(		 ArtemisHandle hCam);
 	int ArtemisGetWindowHeaterPower( ArtemisHandle hCam, int* windowHeaterPower);
