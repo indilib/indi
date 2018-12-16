@@ -459,7 +459,7 @@ bool ALTAIRCAM::Connect()
     {
         std::string fullID = m_Instance->id;
         // For RGB White Balance Mode, we need to add @ at the beginning as per docs.
-        if (WBAutoS[TC_AUTO_WB_RGB].s == ISS_ON)
+        if (m_MonoCamera == false && WBAutoS[TC_AUTO_WB_RGB].s == ISS_ON)
             fullID = "@" + fullID;
 
         m_CameraHandle = Altaircam_Open(fullID.c_str());
@@ -526,37 +526,6 @@ bool ALTAIRCAM::Connect()
     LOGF_DEBUG("Exposure Time Range (us): Min %u Max %u Default %u", min, max, current);
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1000000.0, max/1000000.0, 0, false);
 
-    int rc = 0;
-    // Start callback
-    if ( (rc = Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this)) < 0)
-    {
-        LOGF_ERROR("Failed to start camera pull mode. %s", errorCodes[rc].c_str());
-        Altaircam_Close(m_CameraHandle);
-        return false;
-    }
-    LOG_DEBUG("Starting event callback in pull mode.");
-
-    /*
-     * Create the imaging thread and wait for it to start
-     * N.B. Do we really need this with ToupCam?
-     */
-#if 0
-    threadRequest = StateIdle;
-    threadState = StateNone;
-    int stat = pthread_create(&imagingThread, nullptr, &imagingHelper, this);
-    if (stat != 0)
-    {
-        LOGF_ERROR("Error creating imaging thread (%d)", stat);
-        return false;
-    }
-    pthread_mutex_lock(&condMutex);
-    while (threadState == StateNone)
-    {
-        pthread_cond_wait(&cv, &condMutex);
-    }
-    pthread_mutex_unlock(&condMutex);
-#endif
-
     // Success!
     LOGF_INFO("%s is online. Retrieving basic data.", getDeviceName());
 
@@ -609,12 +578,14 @@ void ALTAIRCAM::setupParams()
         IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
         LOG_DEBUG("Mono camera detected.");
 
-        Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, 1);
-        Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
+        rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, 1);
+        LOGF_DEBUG("ALTAIRCAM_OPTION_RAW 1. rc: %s", errorCodes[rc].c_str());
+//        rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
+//        LOGF_DEBUG("ALTAIRCAM_OPTION_BITDEPTH 1. rc: %s", errorCodes[rc].c_str());
 
         int rgbMode = 0;
         rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, &rgbMode);
-        LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %d Value: %d", rc, rgbMode);
+        LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %s Value: %d", errorCodes[rc].c_str(), rgbMode);
 
         // 8 bit
         if (rgbMode <= 3)
@@ -653,7 +624,7 @@ void ALTAIRCAM::setupParams()
         int cameraDataMode=0;
         IUResetSwitch(&VideoFormatSP);
         rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, &cameraDataMode);
-        LOGF_DEBUG("ALTAIRCAM_OPTION_RAW. rc: %d Value: %d", rc, cameraDataMode);
+        LOGF_DEBUG("ALTAIRCAM_OPTION_RAW. rc: %s Value: %d", errorCodes[rc].c_str(), cameraDataMode);
 
         // Color RAW
         if (cameraDataMode == TC_VIDEO_COLOR_RAW)
@@ -670,7 +641,7 @@ void ALTAIRCAM::setupParams()
         {
             int rgbMode = 0;
             rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, &rgbMode);
-            LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %d Value: %d", rc, rgbMode);
+            LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %s Value: %d", errorCodes[rc].c_str(), rgbMode);
 
             // 0 = RGB24, 1 = RGB48, 2 = RGB32
             // We only support RGB24 in the driver
@@ -839,6 +810,17 @@ void ALTAIRCAM::setupParams()
     allocateFrameBuffer();
 
     SetTimer(POLLMS);
+
+    // Start callback
+    if ( (rc = Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this)) < 0)
+    {
+        LOGF_ERROR("Failed to start camera pull mode. %s", errorCodes[rc].c_str());
+        Disconnect();
+        updateProperties();
+        return;
+    }
+
+    LOG_DEBUG("Starting event callback in pull mode.");
 }
 
 void ALTAIRCAM::allocateFrameBuffer()
@@ -1163,26 +1145,26 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 LOG_DEBUG("Stopping camera to change video mode.");
                 Altaircam_Stop(m_CameraHandle);
 
-                int rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, currentIndex+3);
-                if (rc < 0)
-                {
-                    LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
-                    VideoFormatSP.s = IPS_ALERT;
-                    IUResetSwitch(&VideoFormatSP);
-                    VideoFormatS[prevIndex].s = ISS_ON;
-                    IDSetSwitch(&VideoFormatSP, nullptr);
+//                int rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, currentIndex+3);
+//                if (rc < 0)
+//                {
+//                    LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
+//                    VideoFormatSP.s = IPS_ALERT;
+//                    IUResetSwitch(&VideoFormatSP);
+//                    VideoFormatS[prevIndex].s = ISS_ON;
+//                    IDSetSwitch(&VideoFormatSP, nullptr);
 
-                    // Restart Capture
-                    Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
-                    LOG_DEBUG("Restarting event callback after video mode change failed.");
+//                    // Restart Capture
+//                    Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
+//                    LOG_DEBUG("Restarting event callback after video mode change failed.");
 
-                    return true;
-                }
-                else
-                    LOGF_DEBUG("Set ALTAIRCAM_OPTION_RGB --> %d", currentIndex+3);
+//                    return true;
+//                }
+//                else
+//                    LOGF_DEBUG("Set ALTAIRCAM_OPTION_RGB --> %d", currentIndex+3);
 
                 rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, currentIndex);
-                if (rc < 0)
+                if (rc != 0)
                 {
                     LOGF_ERROR("Failed to set high bit depth mode %s", errorCodes[rc].c_str());
                     VideoFormatSP.s = IPS_ALERT;
@@ -1581,23 +1563,17 @@ bool ALTAIRCAM::StartExposure(float duration)
     }
 
     int timeMS = uSecs/1000 - 50;
-    if (timeMS < 0)
+    if (timeMS <= 0)
         sendImageCallBack();
     else if (static_cast<uint32_t>(timeMS) < POLLMS)
         IEAddTimer(timeMS, &ALTAIRCAM::sendImageCB, this);
 
-    // FIXME Setting trigger to software and then back to video causes a deadlock for some reason
-    // Waiting for info from Altaircam
+    // Trigger an exposure
     if ( (rc = Altaircam_Trigger(m_CameraHandle, 1) < 0) )
     {
         LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
         return false;
     }
-
-    //    pthread_mutex_lock(&condMutex);
-    //    threadRequest = StateExposure;
-    //    pthread_cond_signal(&cv);
-    //    pthread_mutex_unlock(&condMutex);
 
     return true;
 }
@@ -1606,19 +1582,7 @@ bool ALTAIRCAM::AbortExposure()
 {
     Altaircam_Trigger(m_CameraHandle, 0);
     InExposure = false;
-#if 0
-    LOG_DEBUG("AbortExposure");
-    pthread_mutex_lock(&condMutex);
-    threadRequest = StateAbort;
-    pthread_cond_signal(&cv);
-    while (threadState == StateExposure)
-    {
-        pthread_cond_wait(&cv, &condMutex);
-    }
-    pthread_mutex_unlock(&condMutex);
-    ASIStopExposure(m_camInfo->CameraID);
-    InExposure = false;
-#endif
+    m_TimeoutRetries = 0;
     return true;
 }
 
@@ -2083,9 +2047,8 @@ bool ALTAIRCAM::saveConfigItems(FILE *fp)
         IUSaveConfigSwitch(fp, &CoolerSP);
     IUSaveConfigNumber(fp, &ControlNP);
 
-    IUSaveConfigSwitch(fp, &WBAutoSP);
-    // FIXME this is causing deadlock for some reason!
-    //IUSaveConfigSwitch(fp, &VideoFormatSP);
+    if (m_MonoCamera == false)
+        IUSaveConfigSwitch(fp, &WBAutoSP);
 
     return true;
 }
@@ -2152,11 +2115,10 @@ void ALTAIRCAM::sendImageCallBack()
 {
     PrimaryCCD.setExposureLeft(0);
     InExposure = false;
-    m_SendImage = true;
     m_lastEventID = -1;
 
     RemoveTimer(m_TimeoutTimerID);
-    m_TimeoutTimerID = IEAddTimer(100, &ALTAIRCAM::checkTimeoutHelper, this);
+    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &ALTAIRCAM::checkTimeoutHelper, this);
 }
 
 void ALTAIRCAM::checkTimeoutHelper(void *context)
@@ -2169,7 +2131,17 @@ void ALTAIRCAM::checkCameraCallback()
     if (m_lastEventID != 4)
     {
         LOG_DEBUG("Exposure timeout, restarting...");
-        StartExposure(PrimaryCCD.getExposureDuration());
+        if (m_TimeoutRetries++ >= MAX_RETRIES)
+        {
+            PrimaryCCD.setExposureFailed();
+            m_TimeoutRetries=0;
+            LOG_ERROR("Exposure timeout.");
+        }
+        else
+            StartExposure(PrimaryCCD.getExposureDuration());
+    }
+    else {
+        m_TimeoutRetries = 0;
     }
 }
 
@@ -2187,6 +2159,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
         break;
     case ALTAIRCAM_EVENT_IMAGE:
     {
+        m_TimeoutRetries=0;
         AltaircamFrameInfoV2 info;
         memset(&info, 0, sizeof(AltaircamFrameInfoV2));
 
@@ -2207,7 +2180,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
         {
             uint8_t *buffer = PrimaryCCD.getFrameBuffer();
 
-            if (m_MonoCamera == false && m_SendImage && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
+            if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                 buffer = static_cast<uint8_t*>(malloc(PrimaryCCD.getXRes()*PrimaryCCD.getYRes()*3));
 
             HRESULT rc = Altaircam_PullImageV2(m_CameraHandle, buffer, captureBits * m_Channels, &info);
@@ -2215,39 +2188,35 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
             {
                 LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
                 PrimaryCCD.setExposureFailed();
-                if (m_MonoCamera == false && m_SendImage && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
+                if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                     free(buffer);
             }
             else
             {
-                if (m_SendImage)
+                if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                 {
-                    if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
+                    uint8_t *image  = PrimaryCCD.getFrameBuffer();
+                    uint32_t width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
+                    uint32_t height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
+
+                    uint8_t *subR = image;
+                    uint8_t *subG = image + width * height;
+                    uint8_t *subB = image + width * height * 2;
+                    int size      = width * height * 3 - 3;
+
+                    // RGB to three sepearate R-frame, G-frame, and B-frame for color FITS
+                    for (int i = 0; i <= size; i += 3)
                     {
-                        uint8_t *image  = PrimaryCCD.getFrameBuffer();
-                        uint32_t width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
-                        uint32_t height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
-
-                        uint8_t *subR = image;
-                        uint8_t *subG = image + width * height;
-                        uint8_t *subB = image + width * height * 2;
-                        int size      = width * height * 3 - 3;
-
-                        // RGB to three sepearate R-frame, G-frame, and B-frame for color FITS
-                        for (int i = 0; i <= size; i += 3)
-                        {
-                            *subR++ = buffer[i];
-                            *subG++ = buffer[i + 1];
-                            *subB++ = buffer[i + 2];
-                        }
-
-                        free(buffer);
+                        *subR++ = buffer[i];
+                        *subG++ = buffer[i + 1];
+                        *subB++ = buffer[i + 2];
                     }
 
-                    LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
-                    ExposureComplete(&PrimaryCCD);
-                    m_SendImage = false;
+                    free(buffer);
                 }
+
+                LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
+                ExposureComplete(&PrimaryCCD);
             }
         }
     }
