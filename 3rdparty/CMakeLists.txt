@@ -59,6 +59,7 @@ ENDIF ()
 
 # Define standard set of drivers to build (default linux target)
 option(WITH_EQMOD "Install EQMod Driver" On)
+option(WITH_STARBOOK "Install Starbook Driver" On)
 option(WITH_NSE "Install Nexstar Evo Driver" On)
 option(WITH_SX "Install StarLight Xpress Driver" On)
 option(WITH_MAXDOME "Install MaxDomeII Driver" On)
@@ -121,6 +122,11 @@ ENDIF ()
 if (WITH_EQMOD)
 add_subdirectory(indi-eqmod)
 endif(WITH_EQMOD)
+
+## Starbook
+if (WITH_STARBOOK)
+add_subdirectory(indi-starbook)
+endif(WITH_STARBOOK)
 
 ## Stalight Xpress
 if (WITH_SX)

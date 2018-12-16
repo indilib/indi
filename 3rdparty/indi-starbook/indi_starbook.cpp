@@ -30,26 +30,31 @@
 
 static std::string readBuffer;
 
-std::unique_ptr<Starbook> starbook_driver(new Starbook());
+static std::unique_ptr<Starbook> starbook_driver(new Starbook());
 
-void ISGetProperties(const char *dev) {
+void ISGetProperties(const char* dev)
+{
     starbook_driver->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) {
+void ISNewSwitch(const char* dev, const char* name, ISState* states, char* names[], int n)
+{
     starbook_driver->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) {
+void ISNewText(const char* dev, const char* name, char* texts[], char* names[], int n)
+{
     starbook_driver->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) {
+void ISNewNumber(const char* dev, const char* name, double values[], char* names[], int n)
+{
     starbook_driver->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n) {
+void ISNewBLOB(const char* dev, const char* name, int sizes[], int blobsizes[], char* blobs[],
+    char* formats[], char* names[], int n)
+{
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
     INDI_UNUSED(sizes);
@@ -60,30 +65,32 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
     INDI_UNUSED(n);
 }
 
-
-void ISSnoopDevice(XMLEle *root) {
+void ISSnoopDevice(XMLEle* root)
+{
     INDI_UNUSED(root);
 }
 
-Starbook::Starbook() {
-    LOG_INFO("Staring driver");
+Starbook::Starbook()
+{
     setVersion(STARBOOK_DRIVER_VERSION_MAJOR, STARBOOK_DRIVER_VERSION_MINOR);
-    SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT,
-                           1);
+    SetTelescopeCapability(
+        TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT, 1);
 
     setTelescopeConnection(CONNECTION_TCP);
     curl_global_init(CURL_GLOBAL_ALL);
-
 }
 
-Starbook::~Starbook() {
+Starbook::~Starbook()
+{
     curl_global_cleanup();
 }
 
-bool Starbook::initProperties() {
+bool Starbook::initProperties()
+{
     Telescope::initProperties();
 
-    if (getTelescopeConnection() & CONNECTION_TCP) {
+    if (getTelescopeConnection() & CONNECTION_TCP)
+    {
         tcpConnection->setDefaultHost("127.0.0.1");
         tcpConnection->setDefaultPort(5000);
     }
@@ -95,21 +102,25 @@ bool Starbook::initProperties() {
     return true;
 }
 
-bool Starbook::Connect() {
+bool Starbook::Connect()
+{
     handle = curl_easy_init();
     return Telescope::Connect();
 }
 
-bool Starbook::Disconnect() {
+bool Starbook::Disconnect()
+{
     curl_easy_cleanup(handle);
     return Telescope::Disconnect();
 }
 
-const char *Starbook::getDefaultName() {
+const char* Starbook::getDefaultName()
+{
     return "Starbook mount controller";
 }
 
-bool Starbook::ReadScopeStatus() {
+bool Starbook::ReadScopeStatus()
+{
     LOG_DEBUG("Status! Sending GETSTATUS command");
     bool res = SendCommand("GETSTATUS");
 
@@ -117,7 +128,8 @@ bool Starbook::ReadScopeStatus() {
     std::string response = readBuffer;
     std::regex response_comment_re("<!--(.*)-->", std::regex_constants::ECMAScript);
     std::smatch comment_match;
-    if (!std::regex_search(response, comment_match, response_comment_re)) {
+    if (!std::regex_search(response, comment_match, response_comment_re))
+    {
         return false;
     }
 
@@ -125,31 +137,43 @@ bool Starbook::ReadScopeStatus() {
 
     LOG_INFO(response.c_str());
 
-    std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
+    std::regex param_re(R "((\w+)=(\-?[\w\+\.]+))");
     std::smatch sm;
 
-    lnh_equ_posn equ_posn = {{0, 0, 0},
-                             {0, 0, 0, 0}};
+    lnh_equ_posn equ_posn = { { 0, 0, 0 }, { 0, 0, 0, 0 } };
 
-    while (regex_search(response, sm, param_re)) {
-//        LOG_INFO(sm.str().c_str());
+    while (regex_search(response, sm, param_re))
+    {
+        //        LOG_INFO(sm.str().c_str());
         std::string key = sm[1].str();
         std::string value = sm[2].str();
 
-        if (key == "RA") {
+        if (key == "RA")
+        {
             starbook::HMS ra(value);
             equ_posn.ra = ra;
-        } else if (key == "DEC") {
+        }
+        else if (key == "DEC")
+        {
             starbook::DMS dec(value);
             equ_posn.dec = dec;
-        } else if (key == "STATE") {
-            if (value == "SCOPE") {
+        }
+        else if (key == "STATE")
+        {
+            if (value == "SCOPE")
+            {
                 state = StarbookState::SB_SCOPE;
-            } else if (value == "GUIDE") {
+            }
+            else if (value == "GUIDE")
+            {
                 state = StarbookState::SB_GUIDE;
-            } else if (value == "INIT") {
+            }
+            else if (value == "INIT")
+            {
                 state = StarbookState::SB_INIT;
-            } else {
+            }
+            else
+            {
                 LOGF_ERROR("Unknown state %s", value.c_str());
             }
             LOGF_DEBUG("Parsed STATE %i", state);
@@ -158,8 +182,9 @@ bool Starbook::ReadScopeStatus() {
         response = sm.suffix();
     }
 
-    if (res) {
-        ln_equ_posn d_equ_posn = {0, 0};
+    if (res)
+    {
+        ln_equ_posn d_equ_posn = { 0, 0 };
         ln_hequ_to_equ(&equ_posn, &d_equ_posn);
         LOGF_DEBUG("Parsed RADEC %d, %d", d_equ_posn.ra / 15, d_equ_posn.dec);
         NewRaDec(d_equ_posn.ra / 15, d_equ_posn.dec); // CONVERSION
@@ -168,10 +193,11 @@ bool Starbook::ReadScopeStatus() {
     return false;
 }
 
-bool Starbook::Goto(double ra, double dec) {
+bool Starbook::Goto(double ra, double dec)
+{
     ra = ra * 15; // CONVERSION
     std::ostringstream params;
-    params << "?" << starbook::Equ{ra, dec};
+    params << "?" << starbook::Equ{ ra, dec };
 
     LOGF_INFO("GoTo! %s", params.str().c_str());
 
@@ -179,13 +205,14 @@ bool Starbook::Goto(double ra, double dec) {
     return res;
 }
 
-bool Starbook::Sync(double ra, double dec) {
+bool Starbook::Sync(double ra, double dec)
+{
     ra = ra * 15; // CONVERSION
 
     // TODO: check if distance to new ra, dec > 10 degrees
 
     std::ostringstream params;
-    params << "?" << starbook::Equ{ra, dec};
+    params << "?" << starbook::Equ{ ra, dec };
 
     LOGF_INFO("Sync! %s", params.str().c_str());
 
@@ -193,35 +220,37 @@ bool Starbook::Sync(double ra, double dec) {
     return res;
 }
 
-
-bool Starbook::Abort() {
+bool Starbook::Abort()
+{
     LOG_INFO("Aborting!");
     bool res = SendCommand("STOP");
     return res;
 }
 
-bool Starbook::Park() {
+bool Starbook::Park()
+{
     // TODO Park
     LOG_WARN("HOME command is unstable");
     return SendCommand("HOME");
 }
 
-
-bool Starbook::UnPark() {
+bool Starbook::UnPark()
+{
     // TODO UnPark
     LOG_WARN("Always unparked");
     return true;
 }
 
-static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
+static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+{
     INDI_UNUSED(userp);
     size_t real_size = size * nmemb;
-    readBuffer.append((char *) contents, real_size);
+    readBuffer.append((char*)contents, real_size);
     return real_size;
 }
 
-bool Starbook::SendCommand(std::string cmd) {
-
+bool Starbook::SendCommand(std::string cmd)
+{
     int rc = 0;
 
     readBuffer.clear();
@@ -247,7 +276,8 @@ bool Starbook::SendCommand(std::string cmd) {
     return rc == CURLE_OK;
 }
 
-bool Starbook::Handshake() {
+bool Starbook::Handshake()
+{
     LOG_DEBUG("Handshake");
     return Telescope::Handshake();
 }
