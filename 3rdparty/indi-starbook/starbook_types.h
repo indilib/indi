@@ -29,7 +29,7 @@ namespace starbook {
     struct DMS : ln_dms {
         explicit DMS(std::string dms);
 
-        friend std::ostream &operator<<(std::ostream &os, const DMS &hms);
+        friend std::ostream &operator<<(std::ostream &os, const DMS &dms);
     };
 
     struct HMS : ln_hms {
@@ -43,6 +43,12 @@ namespace starbook {
 
         friend std::ostream &operator<<(std::ostream &os, const Equ &equ);
     };
+
+    std::ostream &operator<<(std::ostream &os, const DMS &dms);
+
+    std::ostream &operator<<(std::ostream &os, const HMS &hms);
+
+    std::ostream &operator<<(std::ostream &os, const Equ &equ);
 }
 
 enum StarbookState {
