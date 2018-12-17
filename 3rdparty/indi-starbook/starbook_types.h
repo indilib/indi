@@ -29,27 +29,27 @@ namespace starbook {
     struct DMS : ln_dms {
         explicit DMS(std::string dms);
 
-
+        friend std::ostream &operator<<(std::ostream &os, const DMS &dms);
     };
 
     struct HMS : ln_hms {
         explicit HMS(std::string hms);
 
-
+        friend std::ostream &operator<<(std::ostream &os, const HMS &hms);
     };
 
     struct Equ : lnh_equ_posn {
         Equ(double ra, double dec);
 
+        friend std::ostream &operator<<(std::ostream &os, const Equ &equ);
     };
+
+    std::ostream &operator<<(std::ostream &os, const DMS &dms);
+
+    std::ostream &operator<<(std::ostream &os, const HMS &hms);
+
+    std::ostream &operator<<(std::ostream &os, const Equ &equ);
 }
-
-std::ostream &operator<<(std::ostream &os, const starbook::DMS &hms);
-
-std::ostream &operator<<(std::ostream &os, const starbook::HMS &hms);
-
-std::ostream &operator<<(std::ostream &os, const starbook::Equ &equ);
-
 
 enum StarbookState {
     SB_INIT, /* Initial state after boot */
