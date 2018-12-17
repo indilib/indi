@@ -35,7 +35,7 @@ starbook::DMS::DMS(std::string dms) : ln_dms{0, 0, 0, 0} {
     }
 }
 
-std::ostream &starbook::operator<<(std::ostream &os, const starbook::DMS &dms) {
+std::ostream &operator<<(std::ostream &os, const starbook::DMS &dms) {
     if (dms.neg != 0) os << "-";
     os << std::fixed << std::setprecision(0) << std::setfill('0')
        << std::setw(3) << dms.degrees
@@ -57,7 +57,7 @@ starbook::HMS::HMS(std::string hms) : ln_hms{0, 0, 0} {
     }
 }
 
-std::ostream &starbook::operator<<(std::ostream &os, const starbook::HMS &hms) {
+std::ostream &operator<<(std::ostream &os, const starbook::HMS &hms) {
     os << std::fixed << std::setprecision(0) << std::setfill('0')
        << std::setw(2) << hms.hours
        << std::setw(0) << "+"
@@ -72,11 +72,11 @@ starbook::Equ::Equ(double ra, double dec) : lnh_equ_posn{{0, 0, 0},
     ln_equ_to_hequ(&target_d, this);
 }
 
-std::ostream &starbook::operator<<(std::ostream &os, const starbook::Equ &equ) {
+std::ostream &operator<<(std::ostream &os, const starbook::Equ &equ) {
     os << "RA=";
-    os << static_cast<const HMS &> (equ.ra);
+    os << static_cast<const starbook::HMS &> (equ.ra);
 
     os << "&DEC=";
-    os << static_cast<const DMS &> (equ.dec);
+    os << static_cast<const starbook::DMS &> (equ.dec);
     return os;
 }
