@@ -137,7 +137,7 @@ bool Starbook::ReadScopeStatus()
 
     LOG_INFO(response.c_str());
 
-    std::regex param_re(R "((\w+)=(\-?[\w\+\.]+))");
+    std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
     std::smatch sm;
 
     lnh_equ_posn equ_posn = { { 0, 0, 0 }, { 0, 0, 0, 0 } };
