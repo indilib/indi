@@ -1,7 +1,7 @@
 /*******************************************************************************
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2018 Jarno Paananen. All rights reserved.
 
  based on:
 
@@ -40,11 +40,10 @@
 #include <memory>
 #include <termios.h>
 #include <wordexp.h>
+#include <unistd.h>
 
 // We declare an auto pointer to ScopeDome.
 std::unique_ptr<ScopeDome> scopeDome(new ScopeDome());
-
-#define POLLMS 1000 /* Update frequency 1000 ms */
 
 void ISPoll(void *p);
 
@@ -871,7 +870,10 @@ bool ScopeDome::readFloat(ScopeDomeCommand cmd, float &dst)
     do
     {
         rc = interface->write(cmd);
-        rc |= interface->readBuf(c, 4, (uint8_t *)&value);
+        if (rc == 0)
+            rc = interface->readBuf(c, 4, (uint8_t *)&value);
+        else
+            reconnect();
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readFloat: %d %f", cmd, value);
     if (rc == 0)
@@ -891,7 +893,10 @@ bool ScopeDome::readU8(ScopeDomeCommand cmd, uint8_t &dst)
     do
     {
         rc = interface->write(cmd);
-        rc |= interface->readBuf(c, 1, &value);
+        if (rc == 0)
+            rc = interface->readBuf(c, 1, &value);
+        else
+            reconnect();
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readU8: %d %x", cmd, value);
     if (rc == 0)
@@ -911,7 +916,10 @@ bool ScopeDome::readS8(ScopeDomeCommand cmd, int8_t &dst)
     do
     {
         rc = interface->write(cmd);
-        rc |= interface->readBuf(c, 1, (uint8_t *)&value);
+        if (rc == 0)
+            rc = interface->readBuf(c, 1, (uint8_t *)&value);
+        else
+            reconnect();
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readS8: %d %x", cmd, value);
     if (rc == 0)
@@ -931,7 +939,10 @@ bool ScopeDome::readU16(ScopeDomeCommand cmd, uint16_t &dst)
     do
     {
         rc = interface->write(cmd);
-        rc |= interface->readBuf(c, 2, (uint8_t *)&value);
+        if (rc == 0)
+            rc = interface->readBuf(c, 2, (uint8_t *)&value);
+        else
+            reconnect();
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readU16: %d %x", cmd, value);
     if (rc == 0)
@@ -951,7 +962,10 @@ bool ScopeDome::readS16(ScopeDomeCommand cmd, int16_t &dst)
     do
     {
         rc = interface->write(cmd);
-        rc |= interface->readBuf(c, 2, (uint8_t *)&value);
+        if (rc == 0)
+            rc = interface->readBuf(c, 2, (uint8_t *)&value);
+        else
+            reconnect();
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readS16: %d %x", cmd, value);
     if (rc == 0)
@@ -971,7 +985,10 @@ bool ScopeDome::readU32(ScopeDomeCommand cmd, uint32_t &dst)
     do
     {
         rc = interface->write(cmd);
-        rc |= interface->readBuf(c, 4, (uint8_t *)&value);
+        if (rc == 0)
+            rc = interface->readBuf(c, 4, (uint8_t *)&value);
+        else
+            reconnect();
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readU32: %d %x", cmd, value);
     if (rc == 0)
@@ -991,7 +1008,10 @@ bool ScopeDome::readS32(ScopeDomeCommand cmd, int32_t &dst)
     do
     {
         rc = interface->write(cmd);
-        rc |= interface->readBuf(c, 4, (uint8_t *)&value);
+        if (rc == 0)
+            rc = interface->readBuf(c, 4, (uint8_t *)&value);
+        else
+            reconnect();
     } while (rc != 0 && --retryCount);
     //    LOGF_ERROR("readU32: %d %x", cmd, value);
     if (rc == 0)
@@ -1010,39 +1030,79 @@ int ScopeDome::readBuffer(ScopeDomeCommand cmd, int len, uint8_t *cbuf)
     do
     {
         rc = interface->write(cmd);
-        rc |= interface->readBuf(c, len, cbuf);
+        if (rc == 0)
+            rc = interface->readBuf(c, len, cbuf);
+        else
+            reconnect();
     } while (rc != 0 && --retryCount);
     return rc;
 }
 
 int ScopeDome::writeCmd(ScopeDomeCommand cmd)
 {
-    interface->write(cmd);
+    int rc = interface->write(cmd);
+    if (rc != 0)
+    {
+        reconnect();
+        return rc;
+    }
     return interface->read(cmd);
 }
 
 int ScopeDome::writeU8(ScopeDomeCommand cmd, uint8_t value)
 {
-    interface->writeBuf(cmd, 1, &value);
+    int rc = interface->writeBuf(cmd, 1, &value);
+    if (rc != 0)
+    {
+        reconnect();
+        return rc;
+    }
     return interface->read(cmd);
 }
 
 int ScopeDome::writeU16(ScopeDomeCommand cmd, uint16_t value)
 {
-    interface->writeBuf(cmd, 2, (uint8_t *)&value);
+    int rc = interface->writeBuf(cmd, 2, (uint8_t *)&value);
+    if (rc != 0)
+    {
+        reconnect();
+        return rc;
+    }
     return interface->read(cmd);
 }
 
 int ScopeDome::writeU32(ScopeDomeCommand cmd, uint32_t value)
 {
-    interface->writeBuf(cmd, 4, (uint8_t *)&value);
+    int rc = interface->writeBuf(cmd, 4, (uint8_t *)&value);
+    if (rc != 0)
+    {
+        reconnect();
+        return rc;
+    }
     return interface->read(cmd);
 }
 
 int ScopeDome::writeBuffer(ScopeDomeCommand cmd, int len, uint8_t *cbuf)
 {
-    interface->writeBuf(cmd, len, cbuf);
+    int rc = interface->writeBuf(cmd, len, cbuf);
+    if (rc != 0)
+    {
+        reconnect();
+        return rc;
+    }
     return interface->read(cmd);
+}
+
+void ScopeDome::reconnect()
+{
+    // Reconnect serial port after write error
+    LOG_INFO("Reconnecting serial port");
+    serialConnection->Disconnect();
+    usleep(1000000); // 1s
+    serialConnection->Connect();
+    PortFD = serialConnection->getPortFD();
+    interface->setPortFD(PortFD);
+    LOG_INFO("Reconnected");
 }
 
 ISState ScopeDome::getInputState(ScopeDomeDigitalIO channel)

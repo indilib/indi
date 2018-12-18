@@ -308,6 +308,7 @@ class ScopeDomeCard
     virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)     = 0;
     virtual int read(ScopeDomeCommand &cmd)                                    = 0;
     const char *getDeviceName() { return (const char *)"ScopeDome Dome"; };
+    virtual void setPortFD(int fd) = 0;
 
   protected:
     /** Default constructor. */
@@ -336,6 +337,7 @@ class ScopeDomeUSB21 : public ScopeDomeCard
     virtual int write(ScopeDomeCommand cmd) override;
     virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff) override;
     virtual int read(ScopeDomeCommand &cmd) override;
+    virtual void setPortFD(int fd) override { PortFD = fd; };
 
   private:
     uint8_t CRC(uint8_t crc, uint8_t data);
@@ -366,6 +368,7 @@ class ScopeDomeSim : public ScopeDomeCard
     virtual int write(ScopeDomeCommand cmd) override;
     virtual int readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff) override;
     virtual int read(ScopeDomeCommand &cmd) override;
+    virtual void setPortFD(int fd) override { (void)fd; };
 
   private:
     ScopeDomeCommand lastCmd;
@@ -479,6 +482,8 @@ class ScopeDome : public INDI::Dome
     int homePosition;
 
     std::unique_ptr<ScopeDomeCard> interface;
+
+    void reconnect();
 
     // I/O helper functions
     bool readFloat(ScopeDomeCommand cmd, float &dst);
