@@ -859,7 +859,7 @@ bool EQMod::ReadScopeStatus()
     {
         currentRAEncoder = mount->GetRAEncoder();
         currentDEEncoder = mount->GetDEEncoder();
-        DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
+        DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", static_cast<long>(currentRAEncoder), static_cast<long>(currentDEEncoder));
         EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
         alignedRA    = currentRA;
         alignedDEC   = currentDEC;
@@ -887,8 +887,9 @@ bool EQMod::ReadScopeStatus()
             TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
             DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
                    "Status: Mnt. Algnt. %s Date %lf encoders RA=%ld DE=%ld Telescope RA %lf DEC %lf",
-                   maligns[GetApproximateMountAlignment()], juliandate, currentRAEncoder, currentDEEncoder, currentRA,
-                    currentDEC);
+                   maligns[GetApproximateMountAlignment()], juliandate,
+                   static_cast<long>(currentRAEncoder), static_cast<long>(currentDEEncoder),
+                   currentRA, currentDEC);
             DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
                    RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
             aligned = true;
@@ -3689,8 +3690,8 @@ bool EQMod::SetCurrentPark()
     parkDEEncoder = currentDEEncoder;
     SetAxis1Park(parkRAEncoder);
     SetAxis2Park(parkDEEncoder);
-    LOGF_INFO("Setting Park Position to current RA Encoder=%ld DE Encoder=%ld", parkRAEncoder,
-           parkDEEncoder);
+    LOGF_INFO("Setting Park Position to current RA Encoder=%ld DE Encoder=%ld",
+           static_cast<long>(parkRAEncoder), static_cast<long>(parkDEEncoder));
 
     return true;
 }
@@ -3701,8 +3702,8 @@ bool EQMod::SetDefaultPark()
     parkDEEncoder = GetAxis2ParkDefault();
     SetAxis1Park(parkRAEncoder);
     SetAxis2Park(parkDEEncoder);
-    LOGF_INFO("Setting Park Position to default RA Encoder=%ld DE Encoder=%ld", parkRAEncoder,
-           parkDEEncoder);
+    LOGF_INFO("Setting Park Position to default RA Encoder=%ld DE Encoder=%ld",
+           static_cast<long>(parkRAEncoder), static_cast<long>(parkDEEncoder));
 
     return true;
 }
