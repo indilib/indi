@@ -97,7 +97,7 @@ bool Starbook::initProperties()
 
     addDebugControl();
 
-    state = SB_INIT;
+    state = starbook::INIT;
 
     return true;
 }
@@ -162,15 +162,15 @@ bool Starbook::ReadScopeStatus()
         {
             if (value == "SCOPE")
             {
-                state = StarbookState::SB_SCOPE;
+                state = starbook::SCOPE;
             }
             else if (value == "GUIDE")
             {
-                state = StarbookState::SB_GUIDE;
+                state = starbook::GUIDE;
             }
             else if (value == "INIT")
             {
-                state = StarbookState::SB_INIT;
+                state = starbook::INIT;
             }
             else
             {

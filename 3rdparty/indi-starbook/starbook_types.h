@@ -51,9 +51,12 @@ namespace starbook {
     std::ostream &operator<<(std::ostream &os, const Equ &equ);
 }
 
-enum StarbookState {
-    SB_INIT, /* Initial state after boot */
-    SB_GUIDE, /* ??? */
-    SB_SCOPE, /* After START command or user input */
-};
+    enum StarbookState {
+        INIT, /* Initial state after boot */
+        GUIDE, /* ??? */
+        SCOPE, /* After START command or user input */
+    };
+}
+
+
 

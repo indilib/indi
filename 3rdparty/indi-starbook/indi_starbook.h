@@ -40,7 +40,7 @@ private:
 
     bool SendCommand(std::string command);
 
-    StarbookState state;
+    starbook::StarbookState state;
 
     CURL *handle;
 
