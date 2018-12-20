@@ -26,19 +26,19 @@
  * @file qhyccdstruct.h
  * @brief QHYCCD SDK struct define
  */
- #include "config.h"
+#include "config.h"
 
 
 
 
-#ifdef _WIN32
+#if defined (_WIN32)
 #include <windows.h>
 #endif
 
 #ifndef __QHYCCDSTRUCTDEF_H__
 #define __QHYCCDSTRUCTDEF_H__
 
-#ifdef _WIN32
+#if defined (_WIN32)
 #ifndef EXPORTFUNC
 #define EXPORTFUNC extern "C" __declspec(dllexport)
 #endif
