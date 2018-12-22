@@ -41,7 +41,8 @@
 
 // Well, it is time I name something, even if simple, after Tommy, my loyal German Shephard companion.
 // By the time of writing this, he is almost 4 years old. Live long and prosper, my good boy!
-std::unique_ptr<NightCrawler> tommyGoodBoy(new NightCrawler());
+// 2018-12-12 JM: Updated this driver today. Tommy passed away a couple of months ago. May he rest in peace. I miss you.
+static std::unique_ptr<NightCrawler> tommyGoodBoy(new NightCrawler());
 
 void ISGetProperties(const char *dev)
 {
@@ -213,13 +214,13 @@ bool NightCrawler::updateProperties()
         // Rotator
         INDI::RotatorInterface::updateProperties();
         defineNumber(&RotatorAbsPosNP);
-        defineNumber(&RotatorStepDelayNP);        
+        defineNumber(&RotatorStepDelayNP);
 
         // Aux
         defineNumber(&GotoAuxNP);
         defineSwitch(&AbortAuxSP);
         defineNumber(&SyncAuxNP);
-        defineNumber(&AuxStepDelayNP);        
+        defineNumber(&AuxStepDelayNP);
     }
     else
     {
@@ -228,7 +229,7 @@ bool NightCrawler::updateProperties()
         deleteProperty(SensorNP.name);
         deleteProperty(TemperatureOffsetNP.name);
         deleteProperty(FocusStepDelayNP.name);
-        deleteProperty(LimitSwitchLP.name);        
+        deleteProperty(LimitSwitchLP.name);
         deleteProperty(EncoderSP.name);
         deleteProperty(BrightnessNP.name);
         deleteProperty(FindHomeSP.name);
@@ -436,7 +437,7 @@ bool NightCrawler::getPosition(MotorType type)
 }
 
 bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
-{   
+{
     if(strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, HomeSelectionSP.name) == 0)
@@ -526,7 +527,7 @@ bool NightCrawler::ISNewSwitch (const char * dev, const char * name, ISState * s
 }
 
 bool NightCrawler::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
-{    
+{
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, SyncFocusNP.name) == 0)
@@ -538,7 +539,7 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
 
             IDSetNumber(&SyncFocusNP, nullptr);
             return true;
-        }       
+        }
         else if (strcmp(name, SyncAuxNP.name) == 0)
         {
             bool rc = syncMotor(MOTOR_AUX, static_cast<uint32_t>(values[0]));
@@ -595,7 +596,7 @@ bool NightCrawler::ISNewNumber (const char * dev, const char * name, double valu
 
             IDSetNumber(&BrightnessNP, nullptr);
             return true;
-        }        
+        }
         else if (strcmp(name, GotoAuxNP.name) == 0)
         {
            bool rc = gotoMotor(MOTOR_AUX, static_cast<int32_t>(values[0]));

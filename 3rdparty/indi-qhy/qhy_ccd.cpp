@@ -254,6 +254,9 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
     EnableQHYCCDLogFile(false);
     EnableQHYCCDMessage(false);
 
+    // Set verbose level to Error/Fatal only by default
+    SetQHYCCDLogLevel(2);
+
     sim = false;
 }
 
@@ -1652,5 +1655,5 @@ void QHYCCD::debugTriggered(bool enable)
     if (enable)
         SetQHYCCDLogLevel(5);
     else
-        SetQHYCCDLogLevel(3);
+        SetQHYCCDLogLevel(2);
 }

@@ -303,24 +303,14 @@ private:
     //#############################################################################
     // Capture
     //#############################################################################
-//    static void *imagingHelper(void *context);
-//    void *imagingThreadEntry();
-//    void getSnapImage();
-//    void exposureSetRequest(ImageState request);
-    //int grabImage();
+    static void checkTimeoutHelper(void *context);
+    void checkCameraCallback();
+    int m_TimeoutTimerID { -1 };
+    int m_lastEventID { -1 };
 
     void allocateFrameBuffer();
     struct timeval ExposureEnd;
     double ExposureRequest;
-
-    //#############################################################################
-    // Threading
-    //#############################################################################
-//    ImageState threadRequest;
-//    ImageState threadState;
-//    pthread_t imagingThread;
-//    pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-//    pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
     //#############################################################################
     // Video Format & Streaming
@@ -533,7 +523,6 @@ private:
     INDI_PIXEL_FORMAT m_CameraPixelFormat = INDI_RGB;
     eTriggerMode m_CurrentTriggerMode = TRIGGER_VIDEO;
 
-    bool m_SendImage { false };
     bool m_CanSnap { false };
     bool m_RAWFormatSupport { false };
     bool m_RAWHighDepthSupport { false };
@@ -543,6 +532,7 @@ private:
     uint8_t m_RawBitsPerPixel { 8 };
     uint8_t m_MaxBitDepth { 8 };
     uint8_t m_Channels { 1 };
+    uint8_t m_TimeoutRetries { 0 };
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
@@ -550,4 +540,6 @@ private:
     friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
     friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                             char *formats[], char *names[], int n);
+
+    static const uint8_t MAX_RETRIES { 5 };
 };

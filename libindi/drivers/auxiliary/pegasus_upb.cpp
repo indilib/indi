@@ -193,8 +193,8 @@ bool PegasusUPB::initProperties()
     IUFillSwitchVector(&AutoDewSP, AutoDewS, 2, getDeviceName(), "AUTO_DEW", "Auto Dew", DEW_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Dew PWM
-    IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", "Dew A", "%.f", 0, 255, 10, 0);
-    IUFillNumber(&DewPWMN[DEW_PWM_B], "DEW_B", "Dew B", "%.f", 0, 255, 10, 0);
+    IUFillNumber(&DewPWMN[DEW_PWM_A], "DEW_A", "Dew A (%)", "%.2f", 0, 100, 10, 0);
+    IUFillNumber(&DewPWMN[DEW_PWM_B], "DEW_B", "Dew B (%)", "%.2f", 0, 100, 10, 0);
     IUFillNumberVector(&DewPWMNP, DewPWMN, 2, getDeviceName(), "DEW_PWM", "Dew PWM", DEW_TAB, IP_RW, 60, IPS_IDLE);
 
     // Dew current draw
@@ -225,13 +225,13 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
 
     // Settings
-    IUFillNumber(&FocuserSettingsN[SETTING_BACKLASH], "SETTING_BACKLASH", "Backlash", "%.f", 0, 999, 100, 0);
-    IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed", "%.f", 0, 999, 100, 0);
+    IUFillNumber(&FocuserSettingsN[SETTING_BACKLASH], "SETTING_BACKLASH", "Backlash (steps)", "%.f", 0, 999, 100, 0);
+    IUFillNumber(&FocuserSettingsN[SETTING_MAX_SPEED], "SETTING_MAX_SPEED", "Max Speed (%)", "%.2f", 0, 100, 10, 0);
     IUFillNumberVector(&FocuserSettingsNP, FocuserSettingsN, 2, getDeviceName(), "FOCUSER_SETTINGS", "Settings", FOCUS_TAB, IP_RW, 60, IPS_IDLE);
 
     // Backlash
-    IUFillSwitch(&FocuserBacklashS[BACKLASH_ENABLED], "BACKLASH_ENABLED", "Enabled", ISS_ON);
-    IUFillSwitch(&FocuserBacklashS[BACKLASH_DISABLED], "BACKLASH_DISABLED", "Disabled", ISS_OFF);
+    IUFillSwitch(&FocuserBacklashS[BACKLASH_ENABLED], "BACKLASH_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&FocuserBacklashS[BACKLASH_DISABLED], "BACKLASH_DISABLED", "Disabled", ISS_ON);
     IUFillSwitchVector(&FocuserBacklashSP, FocuserBacklashS, 2, getDeviceName(), "FOCUSER_BACKLASH", "Backlash", FOCUS_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     // Temperature
@@ -241,7 +241,7 @@ bool PegasusUPB::initProperties()
     ////////////////////////////////////////////////////////////////////////////
     /// Environment Group
     ////////////////////////////////////////////////////////////////////////////
-    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -15, 35, 15);
     addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
     addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15);
     setCriticalParameter("WEATHER_TEMPERATURE");
@@ -262,6 +262,9 @@ bool PegasusUPB::updateProperties()
 
     if (isConnected())
     {
+        // Setup Parameters
+        setupParams();
+
         // Main Control
         defineSwitch(&PowerCycleAllSP);
         defineNumber(&PowerSensorsNP);
@@ -292,6 +295,8 @@ bool PegasusUPB::updateProperties()
         defineNumber(&FocuserTemperatureNP);
 
         WI::updateProperties();
+
+        setupComplete = true;
     }
     else
     {
@@ -325,6 +330,8 @@ bool PegasusUPB::updateProperties()
         deleteProperty(FocuserTemperatureNP.name);
 
         WI::updateProperties();
+
+        setupComplete = false;
     }
 
     return true;
@@ -337,15 +344,51 @@ const char *PegasusUPB::getDefaultName()
 
 bool PegasusUPB::Handshake()
 {
+    int tty_rc=0, nbytes_written=0, nbytes_read=0;
+    char command[PEGASUS_LEN]={0}, response[PEGASUS_LEN]={0};
+
     PortFD = serialConnection->getPortFD();
 
-    char res[PEGASUS_LEN] = {0};
+    LOG_DEBUG("CMD <P#>");
 
-    bool rc = sendCommand("P#", res);
-    if (!rc)
+    tcflush(PortFD, TCIOFLUSH);
+    strncpy(command, "P#\n", PEGASUS_LEN);
+    if ( (tty_rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
+    {
+        char errorMessage[MAXRBUF];
+        tty_error_msg(tty_rc, errorMessage, MAXRBUF);
+        LOGF_ERROR("Serial write error: %s", errorMessage);
         return false;
+    }
 
-    return (!strcmp(res, "UPB_OK"));
+    // Try first with stopChar as the stop character
+    if ( (tty_rc = tty_nread_section(PortFD, response, PEGASUS_LEN, stopChar, 1, &nbytes_read)) != TTY_OK)
+    {
+        // Try 0xA as the stop character
+        if (tty_rc == TTY_OVERFLOW || tty_rc == TTY_TIME_OUT)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+            tty_write_string(PortFD, command, &nbytes_written);
+            stopChar = 0xA;
+            tty_rc = tty_nread_section(PortFD, response, PEGASUS_LEN, stopChar, 1, &nbytes_read);
+        }
+
+        if (tty_rc != TTY_OK)
+        {
+            char errorMessage[MAXRBUF];
+            tty_error_msg(tty_rc, errorMessage, MAXRBUF);
+            LOGF_ERROR("Serial read error: %s", errorMessage);
+            return false;
+        }
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+    response[nbytes_read - 1] = '\0';
+    LOGF_DEBUG("RES <%s>", response);
+
+    setupComplete = false;
+
+    return (!strcmp(response, "UPB_OK"));
 }
 
 bool PegasusUPB::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -413,6 +456,7 @@ bool PegasusUPB::ISNewSwitch(const char *dev, const char *name, ISState *states,
             IUUpdateSwitch(&PowerOnBootSP, states, names, n);
             PowerOnBootSP.s = setPowerOnBoot() ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&PowerOnBootSP, nullptr);
+            saveConfig(true, PowerOnBootSP.name);
             return true;
         }
 
@@ -514,9 +558,9 @@ bool PegasusUPB::ISNewNumber(const char *dev, const char *name, double values[],
             for (int i=0; i < n; i++)
             {
                 if (!strcmp(names[i], DewPWMN[DEW_PWM_A].name))
-                    rc1 = setDewPWM(5, static_cast<uint8_t>(values[i]));
+                    rc1 = setDewPWM(5, static_cast<uint8_t>(values[i]/100.0*255.0));
                 else if (!strcmp(names[i], DewPWMN[DEW_PWM_B].name))
-                    rc1 = setDewPWM(6, static_cast<uint8_t>(values[i]));
+                    rc2 = setDewPWM(6, static_cast<uint8_t>(values[i]/100.0*255.0));
             }
 
             DewPWMNP.s = (rc1 && rc2) ? IPS_OK : IPS_ALERT;
@@ -535,7 +579,7 @@ bool PegasusUPB::ISNewNumber(const char *dev, const char *name, double values[],
                 if (!strcmp(names[i], FocuserSettingsN[SETTING_BACKLASH].name) && values[i] != FocuserSettingsN[SETTING_BACKLASH].value)
                     rc1 = setFocuserBacklash(values[i]);
                 else if (!strcmp(names[i], FocuserSettingsN[SETTING_MAX_SPEED].name) && values[i] != FocuserSettingsN[SETTING_MAX_SPEED].value)
-                    rc2 = setFocuserMaxSpeed(values[i]);
+                    rc2 = setFocuserMaxSpeed(values[i]/100.0 * 999.0);
             }
 
             FocuserSettingsNP.s = (rc1 && rc2) ? IPS_OK : IPS_ALERT;
@@ -579,44 +623,46 @@ bool PegasusUPB::sendCommand(const char *cmd, char *res)
     char command[PEGASUS_LEN]={0};
     LOGF_DEBUG("CMD <%s>", cmd);
 
-    tcflush(PortFD, TCIOFLUSH);
-    snprintf(command, PEGASUS_LEN, "%s\n", cmd);
-    if ( (tty_rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
-    {
-        char errorMessage[MAXRBUF];
-        tty_error_msg(tty_rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s", errorMessage);
-        return false;
-    }
-
-    if (!res)
+    for (int i=0; i < 2; i++)
     {
         tcflush(PortFD, TCIOFLUSH);
+        snprintf(command, PEGASUS_LEN, "%s\n", cmd);
+        if ( (tty_rc = tty_write_string(PortFD, command, &nbytes_written)) != TTY_OK)
+            continue;
+
+        if (!res)
+        {
+            tcflush(PortFD, TCIOFLUSH);
+            return true;
+        }
+
+        if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, stopChar, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK || nbytes_read == 1)
+            continue;
+
+        tcflush(PortFD, TCIOFLUSH);
+        res[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES <%s>", res);
         return true;
     }
 
-    if ( (tty_rc = tty_nread_section(PortFD, res, PEGASUS_LEN, 0xD, PEGASUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if (tty_rc != TTY_OK)
     {
         char errorMessage[MAXRBUF];
         tty_error_msg(tty_rc, errorMessage, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s", errorMessage);
-        return false;
+        LOGF_ERROR("Serial error: %s", errorMessage);
     }
 
-    tcflush(PortFD, TCIOFLUSH);
-    res[nbytes_read - 1] = '\0';
-    LOGF_DEBUG("RES <%s>", res);
-
-    return true;
+    return false;
 }
 
 IPState PegasusUPB::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN]={0}, expected[PEGASUS_LEN]={0};
     snprintf(cmd, PEGASUS_LEN, "SM:%d", targetTicks);
+    snprintf(expected, PEGASUS_LEN, "M:%d", targetTicks);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, cmd) ? IPS_BUSY : IPS_ALERT);
+        return (!strcmp(res, expected) ? IPS_BUSY : IPS_ALERT);
     }
 
     return IPS_ALERT;
@@ -652,39 +698,23 @@ bool PegasusUPB::ReverseFocuser(bool enabled)
 
 bool PegasusUPB::SyncFocuser(uint32_t ticks)
 {
-    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN]={0};
     snprintf(cmd, PEGASUS_LEN, "SC:%d", ticks);
-    if (sendCommand(cmd, res))
-    {
-        return (!strcmp(res, cmd));
-    }
-
-    return false;
+    return sendCommand(cmd, nullptr);
 }
 
 bool PegasusUPB::setFocuserBacklash(uint16_t value)
 {
-    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN]={0};
     snprintf(cmd, PEGASUS_LEN, "SB:%d", value);
-    if (sendCommand(cmd, res))
-    {
-        return (!strcmp(res, cmd));
-    }
-
-    return false;
+    return sendCommand(cmd, nullptr);
 }
 
 bool PegasusUPB::setFocuserMaxSpeed(uint16_t maxSpeed)
 {
-    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN] = {0};
+    char cmd[PEGASUS_LEN]={0};
     snprintf(cmd, PEGASUS_LEN, "SS:%d", maxSpeed);
-    if (sendCommand(cmd, res))
-    {
-        return (!strcmp(res, cmd));
-    }
-
-    return false;
-
+    return sendCommand(cmd, nullptr);
 }
 
 bool PegasusUPB::setFocuserBacklashEnabled(bool enabled)
@@ -747,11 +777,12 @@ bool PegasusUPB::setPowerOnBoot()
 
 bool PegasusUPB::setDewPWM(uint8_t id, uint8_t value)
 {
-    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN]={0};
+    char cmd[PEGASUS_LEN]={0}, res[PEGASUS_LEN]={0}, expected[PEGASUS_LEN]={0};
     snprintf(cmd, PEGASUS_LEN, "P%d:%03d", id, value);
+    snprintf(expected, PEGASUS_LEN, "P%d:%d", id, value);
     if (sendCommand(cmd, res))
     {
-        return (!strcmp(res, cmd));
+        return (!strcmp(res, expected));
     }
 
     return false;
@@ -780,7 +811,6 @@ bool PegasusUPB::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &AutoDewSP);
     IUSaveConfigNumber(fp, &FocuserSettingsNP);
     IUSaveConfigSwitch(fp, &FocuserBacklashSP);
-    IUSaveConfigSwitch(fp, &USBControlSP);
     IUSaveConfigText(fp, &PowerControlsLabelsTP);
 
     return true;
@@ -788,12 +818,17 @@ bool PegasusUPB::saveConfigItems(FILE *fp)
 
 void PegasusUPB::TimerHit()
 {
-    if (!isConnected())
+    if (!isConnected() || setupComplete == false)
+    {
+        SetTimer(POLLMS);
         return;
+    }
 
-    getSensorData();
-    getPowerData();
-    getStepperData();
+    if (getSensorData())
+    {
+        getPowerData();
+        getStepperData();
+    }
 
     SetTimer(POLLMS);
 }
@@ -818,7 +853,7 @@ bool PegasusUPB::getSensorData()
         std::vector<std::string> result = split(res, ":");
         if (result.size() != 19)
         {
-           LOG_ERROR("Received wrong number of detailed sensor data.");
+           LOG_WARN("Received wrong number of detailed sensor data. Retrying...");
            return false;
         }
 
@@ -864,13 +899,14 @@ bool PegasusUPB::getSensorData()
         USBStatusL[4].s = (USBControlS[0].s == ISS_ON) ? IPS_OK : IPS_IDLE;
         if (lastSensorData[8] != result[8])
         {
+            USBControlSP.s = (IUFindOnSwitchIndex(&USBControlSP) == 0) ? IPS_OK : IPS_IDLE;
             IDSetSwitch(&USBControlSP, nullptr);
             IDSetLight(&USBStatusLP, nullptr);
         }
 
         // Dew PWM
-        DewPWMN[0].value = std::stod(result[9]);
-        DewPWMN[1].value = std::stod(result[10]);
+        DewPWMN[0].value = std::stod(result[9])/255.0 * 100.0;
+        DewPWMN[1].value = std::stod(result[10])/255.0 * 100.0;
         if (lastSensorData[9] != result[9] || lastSensorData[10] != result[10])
             IDSetNumber(&DewPWMNP, nullptr);
 
@@ -919,7 +955,7 @@ bool PegasusUPB::getPowerData()
         std::vector<std::string> result = split(res, ":");
         if (result.size() != 3)
         {
-           LOG_ERROR("Received wrong number of power sensor data.");
+           LOG_WARN("Received wrong number of power sensor data. Retrying...");
            return false;
         }
 
@@ -947,7 +983,7 @@ bool PegasusUPB::getStepperData()
         std::vector<std::string> result = split(res, ":");
         if (result.size() != 4)
         {
-           LOG_ERROR("Received wrong number of stepper sensor data.");
+           LOG_WARN("Received wrong number of stepper sensor data. Retrying...");
            return false;
         }
 
@@ -1017,5 +1053,17 @@ std::vector<std::string> PegasusUPB::split(const std::string& input, const std::
         first{input.begin(), input.end(), re, -1},
         last;
     return {first, last};
+}
+
+bool PegasusUPB::setupParams()
+{
+    // Get Max Focuser Speed
+    char res[PEGASUS_LEN]={0};
+    if (sendCommand("SS\n", res))
+    {
+        FocuserSettingsN[SETTING_MAX_SPEED].value = std::stod(res)/999.0 * 100;
+    }
+
+    return false;
 }
 

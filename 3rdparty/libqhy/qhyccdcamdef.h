@@ -522,6 +522,6 @@
  * Type define for UNKNOW */
 #define DEVICETYPE_UNKNOW       -1
 
-#define MAX_EXPOSURE_TIMES	3600
+#define MAX_EXPOSURE_TIMES	(1800) //s
 
 #endif

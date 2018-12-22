@@ -68,6 +68,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     bool Handshake();
 
     // Get Data
+    bool setupParams();
     bool sendFirmware();
     bool getSensorData();
     bool getPowerData();
@@ -103,6 +104,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
     bool sendCommand(const char *cmd, char *res);
 
     int PortFD { -1 };
+    bool setupComplete { false };
 
     Connection::Serial *serialConnection { nullptr };
 
@@ -241,6 +243,7 @@ class PegasusUPB : public INDI::DefaultDevice, public INDI::FocuserInterface, pu
 
     std::vector<std::string> lastSensorData, lastPowerData, lastStepperData;
     bool focusMotorRunning { false };
+    char stopChar { 0xD };
 
     static constexpr const uint8_t PEGASUS_TIMEOUT {3};
     static constexpr const uint8_t PEGASUS_LEN {128};

@@ -48,7 +48,20 @@ jobs:
       - run:
           name: Run tests
           command: .circleci/run-tests.sh
+ 
+  build_cosmic:
+    docker:
+      - image: jochym/indi-docker:cosmic
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
 
+ 
   build_clang4:
     docker:
       - image: jochym/indi-docker:artful
@@ -103,6 +116,18 @@ jobs:
           name: Run tests
           command: .circleci/run-tests.sh
 
+  build_trusty:
+    docker:
+      - image: jochym/indi-docker:trusty
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
   build_opensuse:
     docker:
       - image: jochym/indi-docker:opensuse
@@ -132,20 +157,27 @@ workflows:
   version: 2
   build_all:
     jobs:
-      - build_artful
+      - build_bionic
       - build_stretch
       - build_fedora
       - build_opensuse
       - build_arch
-      - build_bionic:
+      - build_artful:
           requires:
-            - build_artful
+            - build_bionic
+      - build_cosmic:
+          requires:
+            - build_bionic
       - build_buster:
           requires:
             - build_stretch
       - build_centos:
           requires:
             - build_fedora
+#      - build_trusty:
+#          requires:
+#            - build_bionic
+
 #      - build_clang4
 #      - build_clang5:
 #          requires:

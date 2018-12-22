@@ -35,12 +35,12 @@
 #include "debugview.h"
 #include "config.h"
 
-#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+#if (defined(__linux__ )&&!defined (__ANDROID__)) ||(defined (__APPLE__)&&defined( __MACH__)) ||(defined(__linux__ )&&defined (__ANDROID__))
 #include <pthread.h>
 #include <string.h>
 #endif
 
-#ifdef _WIN32
+#if defined (_WIN32)
 #include "opencv2/opencv.hpp"
 #endif
 
@@ -102,7 +102,7 @@ public:
     ccdpixelw = 0;
     ccdpixelh = 0;
 
-    targetTEMP = 1e6;
+    targetTEMP = 0;
     currentTEMP = 0;
     currentPWM = 0;
     nowVoltage = 0;
@@ -189,7 +189,7 @@ public:
 
   virtual void InitCmos(qhyccd_handle *h)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|InitCmos|Not implemented");
   };
   /**
    @fn virtual uint32_t ConnectCamera(qhyccd_device *d,qhyccd_handle **h)
@@ -243,7 +243,7 @@ public:
    */
   virtual uint32_t SetChipOffset(qhyccd_handle *h, double offset)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipOffset|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -258,7 +258,7 @@ public:
    */
   virtual uint32_t SetChipExposeTime(qhyccd_handle *h, double i)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipExposeTime|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -273,7 +273,7 @@ public:
    */
   virtual uint32_t SetChipGain(qhyccd_handle *h, double gain)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipGain|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -288,7 +288,7 @@ public:
    */
   virtual uint32_t SetChipWBRed(qhyccd_handle *h, double red)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipWBRed|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -303,7 +303,7 @@ public:
    */
   virtual uint32_t SetChipWBGreen(qhyccd_handle *h, double green)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipWBGreen|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -318,7 +318,7 @@ public:
    */
   virtual uint32_t SetChipWBBlue(qhyccd_handle *h, double blue)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipWBBlue|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -473,7 +473,7 @@ public:
    */
   virtual uint32_t GetControlMinMaxStepValue(CONTROL_ID controlId, double *min, double *max, double *step)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|GetControlMinMaxStepValue|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -488,7 +488,7 @@ public:
    */
   virtual uint32_t CorrectWH(uint32_t *w, uint32_t *h)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|CorrectWH|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -506,7 +506,7 @@ public:
    */
   virtual uint32_t SetChipResolution(qhyccd_handle *handle, uint32_t x, uint32_t y, uint32_t xsize, uint32_t ysize)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipResolution|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -556,7 +556,7 @@ public:
    */
   virtual uint32_t GetSingleFrame(qhyccd_handle *h, uint32_t *pW, uint32_t *pH, uint32_t * pBpp, uint32_t *pChannels, uint8_t *ImgData)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|GetSingleFrame|Not implemented");
     return QHYCCD_ERROR;
   }
 #endif
@@ -592,7 +592,7 @@ public:
    */
   virtual uint32_t SetChipUSBTraffic(qhyccd_handle *h, uint32_t i)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipUSBTraffic|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -607,7 +607,7 @@ public:
    */
   virtual uint32_t DeChipRowNoise(qhyccd_handle *h, uint32_t value)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|DeChipRowNoise|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -629,7 +629,7 @@ public:
    */
   virtual bool IsSupportHighSpeed()
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|IsSupportHighSpeed|Not implemented");
     return false;
   }
 
@@ -643,7 +643,7 @@ public:
    */
   virtual uint32_t IsChipHasFunction(CONTROL_ID id)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|IsChipHasFunction|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -658,7 +658,7 @@ public:
    */
   virtual uint32_t SetChipCoolPWM(qhyccd_handle *h, double PWM)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipCoolPWM|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -673,7 +673,7 @@ public:
    */
   virtual uint32_t AutoTempControl(qhyccd_handle *h, double ttemp)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|AutoTempControl|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -688,7 +688,7 @@ public:
    */
   virtual uint32_t SetChipSpeed(qhyccd_handle *h, uint32_t i)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipSpeed|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -703,7 +703,7 @@ public:
    */
   virtual uint32_t SetChipBitsMode(qhyccd_handle *h, uint32_t bits)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipBitsMode|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -718,7 +718,7 @@ public:
    */
   virtual uint32_t SetChipChannels(qhyccd_handle *h, uint32_t channels)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipChannels|Not implemented");
     return QHYCCD_SUCCESS;
   }
 
@@ -744,7 +744,7 @@ public:
    */
   virtual void ConvertDataBIN11(uint8_t *Data, uint32_t x, uint32_t y, uint16_t PixShift)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ConvertDataBIN11|Not implemented");
   }
 
   /**
@@ -757,7 +757,7 @@ public:
    */
   virtual void ConvertDataBIN22(uint8_t *Data, uint32_t x, uint32_t y, uint16_t TopSkipPix)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ConvertDataBIN22|Not implemented");
   }
 
   /**
@@ -770,7 +770,7 @@ public:
    */
   virtual void ConvertDataBIN33(uint8_t *Data, uint32_t x, uint32_t y, uint16_t TopSkipPix)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ConvertDataBIN33|Not implemented");
   }
 
   /**
@@ -783,7 +783,7 @@ public:
    */
   virtual void ConvertDataBIN44(uint8_t *Data, uint32_t x, uint32_t y, uint16_t TopSkipPix)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ConvertDataBIN44|Not implemented");
   }
 
   /**
@@ -798,7 +798,7 @@ public:
    */
   virtual uint32_t Send2GuiderPort(qhyccd_handle *h, uint32_t Direction, uint16_t PulseTime)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|Send2GuiderPort|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -813,7 +813,7 @@ public:
    */
   virtual uint32_t SetFocusSetting(qhyccd_handle *h, uint32_t focusCenterX, uint32_t focusCenterY)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetFocusSetting|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -826,7 +826,7 @@ public:
    */
   virtual uint32_t ExposureRemaining(qhyccd_handle *h)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ExposureRemaining|Not implemented");
     return 100;
   }
 
@@ -854,7 +854,7 @@ public:
    */
   virtual uint32_t SetInterCamSerialParam(qhyccd_handle *h, uint32_t opt)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetInterCamSerialParam|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -870,7 +870,7 @@ public:
    */
   virtual uint32_t InterCamSerialTX(qhyccd_handle *h, char *buf, uint32_t length)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|InterCamSerialTX|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -885,7 +885,7 @@ public:
    */
   virtual uint32_t InterCamSerialRX(qhyccd_handle *h, char *buf)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|InterCamSerialRX|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -899,7 +899,7 @@ public:
    */
   virtual uint32_t Send2OledFast(qhyccd_handle *h, uint8_t *buffer)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|Send2OledFast|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -915,7 +915,7 @@ public:
    */
   virtual uint32_t InterCamOledOnOff(qhyccd_handle *handle, uint8_t onoff)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|InterCamOledOnOff|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -929,13 +929,13 @@ public:
    */
   virtual uint32_t SetInterCamOledBrightness(qhyccd_handle *handle, uint8_t brightness)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetInterCamOledBrightness|Not implemented");
     return QHYCCD_ERROR;
   }
 
   virtual uint32_t SendFourLine2InterCamOled(qhyccd_handle *handle, char *messagetemp, char *messageinfo, char *messagetime, char *messagemode)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SendFourLine2InterCamOled|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -950,7 +950,7 @@ public:
    */
   virtual uint32_t SendTwoLine2InterCamOled(qhyccd_handle *handle, char *messageTop, char *messageBottom)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SendTwoLine2InterCamOled|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -964,7 +964,7 @@ public:
    */
   virtual uint32_t SendOneLine2InterCamOled(qhyccd_handle *handle, char *messageTop)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SendOneLine2InterCamOled|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -978,7 +978,7 @@ public:
    */
   virtual uint32_t GetCameraStatus(qhyccd_handle *h, uint8_t *buf)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|GetCameraStatus|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -994,7 +994,7 @@ public:
    */
   virtual uint32_t SendOrder2CFW(qhyccd_handle *handle, char *order, uint32_t length)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SendOrder2CFW|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -1009,7 +1009,7 @@ public:
    */
   virtual uint32_t GetCFWStatus(qhyccd_handle *handle, char *status)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|GetCFWStatus|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -1022,7 +1022,7 @@ public:
    */
   virtual uint32_t GetCFWSlotsNum(qhyccd_handle *handle)
   {
-    //OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    //OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|GetCFWSlotsNum|Not implemented");
     //return QHYCCD_ERROR;
     return 9;
   }
@@ -1037,7 +1037,7 @@ public:
    */
   virtual uint32_t IsCFWPlugged(qhyccd_handle *handle)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|IsCFWPlugged|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -1052,7 +1052,7 @@ public:
    */
   virtual uint32_t ControlShutter(qhyccd_handle *handle, uint8_t status)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ControlShutter|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -1066,19 +1066,19 @@ public:
    */
   virtual uint32_t GetShutterStatus(qhyccd_handle *handle)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|GetShutterStatus|Not implemented");
     return QHYCCD_ERROR;
   }
 
   virtual uint32_t GetHumidity(qhyccd_handle *handle, double *hd)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|GetHumidity|Not implemented");
     return QHYCCD_ERROR;
   }
 
   virtual uint32_t SetTrigerFunction(qhyccd_handle *handle, bool value)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetTrigerFunction|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -1086,20 +1086,20 @@ public:
 
   virtual uint32_t I2C_Write(qhyccd_handle *handle, uint8_t req, uint16_t value, uint16_t index, uint8_t* data, uint16_t length)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|I2C_Write|Not implemented");
     return QHYCCD_ERROR;
   }
 
   virtual uint32_t I2C_Read(qhyccd_handle *handle, uint8_t req, uint16_t value, uint16_t index, uint8_t* data, uint16_t length)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|I2C_Read|Not implemented");
     return QHYCCD_ERROR;
   }
   //----------------------------------------
 
   virtual uint32_t SetFineTone(qhyccd_handle *h, uint8_t setshporshd, uint8_t shdloc, uint8_t shploc, uint8_t shwidth)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetFineTone|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -1116,8 +1116,6 @@ public:
   virtual void UpdateParameters(qhyccd_handle *h)
   {
 
-    //OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD | qhybase.h | UpdateParameters | START");
-
   }
   /**
     @fn virtual uint32_t GetFWVersion(qhyccd_handle *h,uint8_t *buf)
@@ -1132,7 +1130,7 @@ public:
 
   virtual uint32_t SetGuideModeOnOff(qhyccd_handle *h, double mode)
   {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"Not implemented");
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetGuideModeOnOff|Not implemented");
     return QHYCCD_ERROR;
   }
 
@@ -1255,7 +1253,7 @@ public:
 
   uint32_t QSleep(uint32_t mstime)
   {
-#ifdef _WIN32
+#if defined (_WIN32)
     Sleep(mstime);
 #else
 
@@ -1364,7 +1362,6 @@ public:
   uint32_t QHYConvertToSoftBIN44(void *src, uint32_t bpp, uint32_t src_width, uint32_t src_height, void *dst);
 
 
-  // void OutputDebugPrintf(QHYCCD_MSGL_INFO,const char * strOutputString,...);
 
 
   uint8_t camtype;
@@ -1508,7 +1505,7 @@ public:
   bool delRowRoise;
   uint32_t ddrnum;
 
-#ifdef _WIN32
+#if defined (_WIN32)
 
   HANDLE reseth;
 #else
