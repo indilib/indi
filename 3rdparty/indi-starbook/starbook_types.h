@@ -23,7 +23,6 @@
 
 #include <libnova/utility.h>
 #include <iostream>
-#include <iomanip>
 
 namespace starbook {
     struct DMS : ln_dms {
@@ -64,6 +63,7 @@ namespace starbook {
         INIT, /* Initial state after boot */
         GUIDE, /* ??? */
         SCOPE, /* After START command or user input */
+        UNKNOWN,
     };
 
     enum ResponseCode {

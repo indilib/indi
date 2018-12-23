@@ -20,6 +20,7 @@
  */
 
 #include "starbook_types.h"
+#include <iomanip>
 #include <regex>
 #include <cmath>
 

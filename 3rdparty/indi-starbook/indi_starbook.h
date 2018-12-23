@@ -69,4 +69,6 @@ protected:
     bool UnPark() override;
 
     bool updateTime(ln_date *utc, double utc_offset) override;
+
+    starbook::StarbookState ParseState(const std::string &value);
 };

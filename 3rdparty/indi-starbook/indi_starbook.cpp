@@ -123,8 +123,11 @@ bool Starbook::ReadScopeStatus()
 {
     LOG_DEBUG("Status! Sending GETSTATUS command");
     std::string response = SendCommand("GETSTATUS");
+    if (response.empty()) {
+        return false;
+    }
 
-    LOG_INFO(response.c_str());
+    LOG_DEBUG(response.c_str());
 
     std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
     std::smatch sm;
@@ -133,7 +136,6 @@ bool Starbook::ReadScopeStatus()
 
     while (regex_search(response, sm, param_re))
     {
-        //        LOG_INFO(sm.str().c_str());
         std::string key = sm[1].str();
         std::string value = sm[2].str();
 
@@ -149,22 +151,7 @@ bool Starbook::ReadScopeStatus()
         }
         else if (key == "STATE")
         {
-            if (value == "SCOPE")
-            {
-                state = starbook::SCOPE;
-            }
-            else if (value == "GUIDE")
-            {
-                state = starbook::GUIDE;
-            }
-            else if (value == "INIT")
-            {
-                state = starbook::INIT;
-            }
-            else
-            {
-                LOGF_ERROR("Unknown state %s", value.c_str());
-            }
+            state = ParseState(value);
             LOGF_DEBUG("Parsed STATE %i", state);
         }
 
@@ -193,13 +180,11 @@ bool Starbook::Goto(double ra, double dec)
 bool Starbook::Sync(double ra, double dec)
 {
     ra = ra * 15; // CONVERSION
-
-    // TODO: check if distance to new ra, dec > 10 degrees
     std::ostringstream params;
     params << "?" << starbook::Equ{ ra, dec };
 
     LOGF_INFO("Sync! %s", params.str().c_str());
-
+    // TODO: check if distance to new ra, dec > 10 degrees
     return SendOkCommand("ALIGN" + params.str());
 }
 
@@ -232,7 +217,7 @@ bool Starbook::updateTime(ln_date *utc, double utc_offset) {
     LOGF_INFO("Time! %s", params.str().c_str());
 
     return SendOkCommand("SETTIME" + params.str());
- 
+
 }
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
@@ -285,7 +270,7 @@ bool Starbook::SendOkCommand(const std::string &cmd) {
     if (code == starbook::OK) {
         return true;
     }
-    LOG_ERROR(response.c_str());
+    LOGF_ERROR("%s failed: %s", cmd.c_str(), response.c_str());
     return false;
 }
 
@@ -298,7 +283,20 @@ starbook::ResponseCode Starbook::ParseCommandResponse(const std::string &respons
         return starbook::ERROR_ILLEGAL_STATE;
     else if (response == "ERROR:BELOW HORIZONE") /* it's not a typo */
         return starbook::ERROR_BELOW_HORIZON;
+
     return starbook::ERROR_UNKNOWN;
+}
+
+starbook::StarbookState Starbook::ParseState(const std::string &value) {
+    if (value == "SCOPE")
+        return starbook::SCOPE;
+    else if (value == "GUIDE")
+        return starbook::GUIDE;
+    else if (value == "INIT")
+        return starbook::INIT;
+
+    LOGF_ERROR("Unknown state %s", value.c_str());
+    return starbook::UNKNOWN;
 }
 
 bool Starbook::Handshake()
