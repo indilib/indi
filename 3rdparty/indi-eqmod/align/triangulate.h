@@ -48,5 +48,5 @@ class Triangulate
     std::map<HtmID, PointSet::Point> *pmap;
     std::vector<HtmID> vvertices;
     std::vector<Face *> vfaces;
-    bool isvalid;
+    bool isvalid {false};
 };

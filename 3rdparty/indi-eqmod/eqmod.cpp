@@ -494,6 +494,8 @@ bool EQMod::loadProperties()
 bool EQMod::updateProperties()
 {
     INumber *latitude;
+    INumber *longitude;
+    INumber *elevation;
 
     INDI::Telescope::updateProperties();
 
@@ -626,6 +628,13 @@ bool EQMod::updateProperties()
             parkDEEncoder = GetAxis2Park();
 
             latitude = IUFindNumber(&LocationNP, "LAT");
+            longitude = IUFindNumber(&LocationNP, "LONG");
+            elevation = IUFindNumber(&LocationNP, "ELEV");
+            if (latitude && longitude && elevation)
+                updateLocation(latitude->value, longitude->value, elevation->value);
+            else
+                updateLocation(0.0, 0.0, 0.0);
+
             if ((latitude) && (latitude->value < 0.0))
                 SetSouthernHemisphere(true);
             else
