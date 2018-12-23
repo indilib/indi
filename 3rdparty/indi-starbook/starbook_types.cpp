@@ -21,6 +21,7 @@
 
 #include "starbook_types.h"
 #include <regex>
+#include <cmath>
 
 using namespace std;
 
@@ -64,7 +65,7 @@ ostream &starbook::operator<<(ostream &os, const starbook::HMS &hms) {
        << setw(2) << hms.hours
        << setw(0) << "+"
        << setw(2) << hms.minutes
-       << setw(0) << "." << hms.seconds;
+       << setw(0) << "." << floor(hms.seconds);
     return os;
 }
 
@@ -80,5 +81,16 @@ ostream &starbook::operator<<(ostream &os, const starbook::Equ &equ) {
 
     os << "&DEC=";
     os << static_cast<const DMS &> (equ.dec);
+    return os;
+}
+
+ostream &starbook::operator<<(ostream &os, const starbook::UTC &utc) {
+    os << setfill('0') << std::fixed << setprecision(0)
+       << utc.years << "+"
+       << setw(2) << utc.months << "+"
+       << setw(2) << utc.days << "+"
+       << setw(2) << utc.hours << "+"
+       << setw(2) << utc.minutes << "+"
+       << setw(2) << floor(utc.seconds);
     return os;
 }

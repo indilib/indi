@@ -44,12 +44,21 @@ namespace starbook {
         friend std::ostream &operator<<(std::ostream &os, const Equ &equ);
     };
 
+    struct UTC : ln_date {
+        // I regret my life decisions
+        UTC(int years, int months, int days, int hours, int minutes, double seconds)
+                : ln_date{years, months, days, hours, minutes, seconds} {};
+
+        friend std::ostream &operator<<(std::ostream &os, const UTC &utc);
+    };
+
     std::ostream &operator<<(std::ostream &os, const DMS &dms);
 
     std::ostream &operator<<(std::ostream &os, const HMS &hms);
 
     std::ostream &operator<<(std::ostream &os, const Equ &equ);
-}
+
+    std::ostream &operator<<(std::ostream &os, const UTC &utc);
 
     enum StarbookState {
         INIT, /* Initial state after boot */
@@ -57,6 +66,3 @@ namespace starbook {
         SCOPE, /* After START command or user input */
     };
 }
-
-
-

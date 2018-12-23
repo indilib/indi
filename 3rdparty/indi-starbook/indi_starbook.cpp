@@ -74,7 +74,7 @@ Starbook::Starbook()
 {
     setVersion(STARBOOK_DRIVER_VERSION_MAJOR, STARBOOK_DRIVER_VERSION_MINOR);
     SetTelescopeCapability(
-        TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT, 1);
+            TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME, 1);
 
     setTelescopeConnection(CONNECTION_TCP);
     curl_global_init(CURL_GLOBAL_ALL);
@@ -210,7 +210,6 @@ bool Starbook::Sync(double ra, double dec)
     ra = ra * 15; // CONVERSION
 
     // TODO: check if distance to new ra, dec > 10 degrees
-
     std::ostringstream params;
     params << "?" << starbook::Equ{ ra, dec };
 
@@ -239,6 +238,18 @@ bool Starbook::UnPark()
     // TODO UnPark
     LOG_WARN("Always unparked");
     return true;
+}
+
+bool Starbook::updateTime(ln_date *utc, double utc_offset) {
+    INDI_UNUSED(utc_offset);
+
+    std::ostringstream params;
+    params << "?" << "TIME=" << *static_cast<starbook::UTC *>(utc);
+
+    LOGF_INFO("Time! %s", params.str().c_str());
+
+    bool res = SendCommand("SETTIME" + params.str());
+    return res;
 }
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)

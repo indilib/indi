@@ -30,7 +30,7 @@ class Starbook : public INDI::Telescope
 public:
     Starbook();
 
-    ~Starbook();
+    ~Starbook() override;
 
     bool initProperties() override;
 
@@ -64,5 +64,6 @@ protected:
 
     bool UnPark() override;
 
+    bool updateTime(ln_date *utc, double utc_offset) override;
 };
 

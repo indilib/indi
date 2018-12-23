@@ -47,10 +47,12 @@ if (INDI_BUILD_UNITTESTS)
 
     include_directories(${GTEST_INCLUDE_DIRS})
 
-    add_executable(test_starbook test_starbook.cpp ${indimaxdomeii_SRCS})
+    add_executable(test_starbook test_starbook.cpp ${indi_starbook_SRCS})
 
+
+    #   test shouldn't be so dependent on external libs, but here we are
     target_link_libraries(test_starbook
-            ${INDI_LIBRARIES} ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
+            ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${CURL_LIBRARIES} ${GTEST_BOTH_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT}
             )
 
     add_test(run-tests test_starbook)
