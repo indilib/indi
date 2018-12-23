@@ -154,10 +154,8 @@ bool Starbook::ReadScopeStatus()
             state = ParseState(value);
             LOGF_DEBUG("Parsed STATE %i", state);
         }
-
         response = sm.suffix();
     }
-
 
     ln_equ_posn d_equ_posn = {0, 0};
     ln_hequ_to_equ(&equ_posn, &d_equ_posn);
@@ -206,6 +204,28 @@ bool Starbook::UnPark()
     // TODO UnPark
     LOG_WARN("Always unparked");
     return true;
+}
+
+bool Starbook::MoveNS(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand command) {
+    std::ostringstream params;
+    params << "?NORTH="
+           << ((dir == DIRECTION_NORTH && command == MOTION_START) ? 1 : 0)
+           << "&SOUTH="
+           << ((dir == DIRECTION_SOUTH && command == MOTION_START) ? 1 : 0);
+
+    LOGF_INFO("Move! %s", params.str().c_str());
+    return SendOkCommand("MOVE" + params.str());
+}
+
+bool Starbook::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
+    std::ostringstream params;
+    params << "?WEST="
+           << ((dir == DIRECTION_WEST && command == MOTION_START) ? 1 : 0)
+           << "&EAST="
+           << ((dir == DIRECTION_EAST && command == MOTION_START) ? 1 : 0);
+
+    LOGF_INFO("Move! %s", params.str().c_str());
+    return SendOkCommand("MOVE" + params.str());
 }
 
 bool Starbook::updateTime(ln_date *utc, double utc_offset) {

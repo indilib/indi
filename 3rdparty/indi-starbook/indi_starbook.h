@@ -62,6 +62,10 @@ protected:
 
     bool Sync(double ra, double dec) override;
 
+    bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+
+    bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+
     bool Abort() override;
 
     bool Park() override;
