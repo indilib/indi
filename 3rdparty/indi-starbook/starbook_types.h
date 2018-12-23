@@ -65,4 +65,13 @@ namespace starbook {
         GUIDE, /* ??? */
         SCOPE, /* After START command or user input */
     };
+
+    enum ResponseCode {
+        OK,
+        ERROR_ILLEGAL_STATE, /* Starbook has wrong internal state to accept command */
+        ERROR_FORMAT, /* who knows... */
+        ERROR_BELOW_HORIZON, /* Starbook thinks that issued movement command will bring scope horizon */
+        ERROR_UNKNOWN, /* no specified reason */
+
+    };
 }

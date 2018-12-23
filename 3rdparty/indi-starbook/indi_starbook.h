@@ -38,7 +38,11 @@ public:
 
 private:
 
-    bool SendCommand(std::string command);
+    std::string SendCommand(std::string command);
+
+    bool SendOkCommand(const std::string &cmd);
+
+    starbook::ResponseCode ParseCommandResponse(const std::string &response);
 
     starbook::StarbookState state;
 
@@ -66,4 +70,3 @@ protected:
 
     bool updateTime(ln_date *utc, double utc_offset) override;
 };
-

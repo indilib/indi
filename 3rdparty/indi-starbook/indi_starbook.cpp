@@ -122,18 +122,7 @@ const char* Starbook::getDefaultName()
 bool Starbook::ReadScopeStatus()
 {
     LOG_DEBUG("Status! Sending GETSTATUS command");
-    bool res = SendCommand("GETSTATUS");
-
-    // Not safe I think
-    std::string response = readBuffer;
-    std::regex response_comment_re("<!--(.*)-->", std::regex_constants::ECMAScript);
-    std::smatch comment_match;
-    if (!std::regex_search(response, comment_match, response_comment_re))
-    {
-        return false;
-    }
-
-    response = comment_match[1].str();
+    std::string response = SendCommand("GETSTATUS");
 
     LOG_INFO(response.c_str());
 
@@ -182,15 +171,12 @@ bool Starbook::ReadScopeStatus()
         response = sm.suffix();
     }
 
-    if (res)
-    {
-        ln_equ_posn d_equ_posn = { 0, 0 };
-        ln_hequ_to_equ(&equ_posn, &d_equ_posn);
-        LOGF_DEBUG("Parsed RADEC %d, %d", d_equ_posn.ra / 15, d_equ_posn.dec);
-        NewRaDec(d_equ_posn.ra / 15, d_equ_posn.dec); // CONVERSION
-        return true;
-    }
-    return false;
+
+    ln_equ_posn d_equ_posn = {0, 0};
+    ln_hequ_to_equ(&equ_posn, &d_equ_posn);
+    LOGF_DEBUG("Parsed RADEC %d, %d", d_equ_posn.ra / 15, d_equ_posn.dec);
+    NewRaDec(d_equ_posn.ra / 15, d_equ_posn.dec); // CONVERSION
+    return true;
 }
 
 bool Starbook::Goto(double ra, double dec)
@@ -201,8 +187,7 @@ bool Starbook::Goto(double ra, double dec)
 
     LOGF_INFO("GoTo! %s", params.str().c_str());
 
-    bool res = SendCommand("GOTORADEC" + params.str());
-    return res;
+    return SendOkCommand("GOTORADEC" + params.str());
 }
 
 bool Starbook::Sync(double ra, double dec)
@@ -215,22 +200,20 @@ bool Starbook::Sync(double ra, double dec)
 
     LOGF_INFO("Sync! %s", params.str().c_str());
 
-    bool res = SendCommand("ALIGN" + params.str());
-    return res;
+    return SendOkCommand("ALIGN" + params.str());
 }
 
 bool Starbook::Abort()
 {
     LOG_INFO("Aborting!");
-    bool res = SendCommand("STOP");
-    return res;
+    return SendOkCommand("STOP");
 }
 
 bool Starbook::Park()
 {
     // TODO Park
     LOG_WARN("HOME command is unstable");
-    return SendCommand("HOME");
+    return SendOkCommand("HOME");
 }
 
 bool Starbook::UnPark()
@@ -248,8 +231,8 @@ bool Starbook::updateTime(ln_date *utc, double utc_offset) {
 
     LOGF_INFO("Time! %s", params.str().c_str());
 
-    bool res = SendCommand("SETTIME" + params.str());
-    return res;
+    return SendOkCommand("SETTIME" + params.str());
+ 
 }
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
@@ -260,31 +243,62 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
     return real_size;
 }
 
-bool Starbook::SendCommand(std::string cmd)
+std::string Starbook::SendCommand(std::string cmd)
 {
     int rc = 0;
 
     readBuffer.clear();
-    curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
     curl_easy_setopt(handle, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(handle, CURLOPT_VERBOSE, 1);
+    curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
     curl_easy_setopt(handle, CURLOPT_USERAGENT, "curl/7.58.0");
 
     /* send all data to this function  */
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, &readBuffer);
 
-    curl_easy_setopt(handle, CURLOPT_VERBOSE, 1);
-
     // TODO: https://github.com/indilib/indi/pull/779
     // HACK: Just use CURL, and use tcpConnection as input
     std::ostringstream cmd_url;
     cmd_url << "http://" << tcpConnection->host() << "/" << cmd;
-
     curl_easy_setopt(handle, CURLOPT_URL, cmd_url.str().c_str());
 
     rc = curl_easy_perform(handle);
 
-    return rc == CURLE_OK;
+    if (rc != CURLE_OK) {
+        return "";
+    }
+
+    // all responses are hidden in HTML comments ...
+    std::regex response_comment_re("<!--(.*)-->", std::regex_constants::ECMAScript);
+    std::smatch comment_match;
+    if (!std::regex_search(readBuffer, comment_match, response_comment_re)) {
+        return "";
+    }
+
+    return comment_match[1].str();
+}
+
+bool Starbook::SendOkCommand(const std::string &cmd) {
+    std::string response = SendCommand(cmd);
+    starbook::ResponseCode code = ParseCommandResponse(response);
+    if (code == starbook::OK) {
+        return true;
+    }
+    LOG_ERROR(response.c_str());
+    return false;
+}
+
+starbook::ResponseCode Starbook::ParseCommandResponse(const std::string &response) {
+    if (response == "OK")
+        return starbook::OK;
+    else if (response == "ERROR:FORMAT")
+        return starbook::ERROR_FORMAT;
+    else if (response == "ERROR:ILLEGAL STATE")
+        return starbook::ERROR_ILLEGAL_STATE;
+    else if (response == "ERROR:BELOW HORIZONE") /* it's not a typo */
+        return starbook::ERROR_BELOW_HORIZON;
+    return starbook::ERROR_UNKNOWN;
 }
 
 bool Starbook::Handshake()
