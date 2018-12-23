@@ -61,27 +61,27 @@
                 <driver name="Celestron GPS">indi_celestron_gps</driver>
                 <version>3.1</version>
         </device>
+        <device label="Celestron AVX" manufacturer="Celestron">
+                <driver name="Celestron GPS">indi_celestron_gps</driver>
+                <version>3.1</version>
+        </device>
         <device label="Astro-Electronic FS-2">
                 <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
                 <version>2.0</version>
         </device>
-        <device label="Avalon">
+        <device label="Avalon Legacy" manufacturer="Avalon">
                 <driver name="LX200 Basic">indi_lx200basic</driver>
                 <version>2.0</version>
         </device>
-        <device label="Paramount">
+        <device label="Paramount" manufacturer="Software Bisque">
                 <driver name="Paramount">indi_paramount_telescope</driver>
                 <version>0.1</version>
-        </device>
-        <device label="Orion Atlas">
-                <driver name="SynScan">indi_synscan_telescope</driver>
-                <version>1.0</version>
-        </device>
+        </device>        
         <device label="Sky Scan">
                 <driver name="SynScan">indi_synscan_telescope</driver>
                 <version>0.1</version>
         </device>
-        <device label="Losmandy Gemini">
+        <device label="Losmandy Gemini" manufacturer="Losmandy">
                 <driver name="Losmandy Gemini">indi_lx200gemini</driver>
                 <version>1.5</version>
         </device>
@@ -89,7 +89,7 @@
                 <driver name="LX200 Basic">indi_lx200basic</driver>
                 <version>1.0</version>
         </device>
-        <device label="Temma Takahashi">
+        <device label="Temma Takahashi" manufacturer="Takahashi">
                 <driver name="Temma">indi_temma_telescope</driver>
                 <version>0.3</version>
         </device>
@@ -157,7 +157,7 @@
                 <driver name="SkyCommander">indi_skycommander_telescope</driver>
                 <version>1.0</version>
         </device>
-        <device label="LX200 10micron">
+        <device label="LX200 10micron" manufacturer="10 Micron">
                 <driver name="LX200 10micron">indi_lx200_10micron</driver>
                 <version>1.0</version>
         </device>
@@ -181,7 +181,7 @@
                 <driver name="Digital Setting Circle">indi_dsc_telescope</driver>
                 <version>1.0</version>
         </device>
-        <device label="Explore Scientific PMC-Eight">
+        <device label="Explore Scientific PMC-Eight" manufacturer="Explore Scientific">
                 <driver name="PMC8">indi_pmc8_telescope</driver>
                 <version>0.1</version>
         </device>
