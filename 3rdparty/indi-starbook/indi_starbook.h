@@ -34,6 +34,8 @@ public:
 
     bool initProperties() override;
 
+    bool updateProperties() override;
+
     bool ReadScopeStatus() override;
 
 private:
@@ -46,9 +48,14 @@ private:
 
     starbook::StarbookState state;
 
+    starbook::StarbookState ParseState(const std::string &value);
+
     CURL *handle;
 
 protected:
+    IText VersionT[1]{};
+
+    ITextVectorProperty VersionInfo;
 
     bool Connect() override;
 
@@ -74,5 +81,5 @@ protected:
 
     bool updateTime(ln_date *utc, double utc_offset) override;
 
-    starbook::StarbookState ParseState(const std::string &value);
+    bool getFirmwareVersion();
 };

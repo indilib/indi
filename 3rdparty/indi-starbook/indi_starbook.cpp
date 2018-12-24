@@ -89,6 +89,11 @@ bool Starbook::initProperties()
 {
     Telescope::initProperties();
 
+    IUFillText(&VersionT[0], "Version", "Version", "");
+    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0,
+                     IPS_IDLE);
+
+
     if (getTelescopeConnection() & CONNECTION_TCP)
     {
         tcpConnection->setDefaultHost("127.0.0.1");
@@ -97,15 +102,29 @@ bool Starbook::initProperties()
 
     addDebugControl();
 
-    state = starbook::INIT;
+    state = starbook::UNKNOWN;
 
+    return true;
+}
+
+bool Starbook::updateProperties() {
+    Telescope::updateProperties();
+    if (isConnected()) {
+        defineText(&VersionInfo);
+    } else {
+        deleteProperty(VersionInfo.name);
+    }
     return true;
 }
 
 bool Starbook::Connect()
 {
     handle = curl_easy_init();
-    return Telescope::Connect();
+    bool rc = Telescope::Connect();
+    if (rc) {
+        getFirmwareVersion();
+    }
+    return rc;
 }
 
 bool Starbook::Disconnect()
@@ -232,12 +251,39 @@ bool Starbook::updateTime(ln_date *utc, double utc_offset) {
     INDI_UNUSED(utc_offset);
 
     std::ostringstream params;
-    params << "?" << "TIME=" << *static_cast<starbook::UTC *>(utc);
+    params << "?TIME=" << *static_cast<starbook::UTC *>(utc);
 
     LOGF_INFO("Time! %s", params.str().c_str());
 
     return SendOkCommand("SETTIME" + params.str());
 
+}
+
+bool Starbook::getFirmwareVersion() {
+    std::string response = SendCommand("VERSION");
+    if (response.empty()) {
+        LOG_ERROR("Can't get firmware version");
+        return false;
+    }
+
+    std::regex param_re(R"(version=((\d+\.\d+)\w+))");
+    std::smatch sm;
+    if (!regex_search(response, sm, param_re)) {
+        LOG_ERROR("Can't parse firmware version");
+        return false;
+    }
+
+    std::string version_full = sm[1].str();
+    float version = std::stof(sm[2]);
+
+    if (version < 2.7) {
+        LOGF_WARN("Version %s (< 2.7) not well supported", version_full.c_str());
+    }
+
+    IUSaveText(&VersionT[0], version_full.c_str());
+    IDSetText(&VersionInfo, nullptr);
+
+    return true;
 }
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
