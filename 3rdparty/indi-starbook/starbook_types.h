@@ -23,7 +23,6 @@
 
 #include <libnova/utility.h>
 #include <iostream>
-#include <iomanip>
 
 namespace starbook {
     struct DMS : ln_dms {
@@ -44,16 +43,34 @@ namespace starbook {
         friend std::ostream &operator<<(std::ostream &os, const Equ &equ);
     };
 
+    struct UTC : ln_date {
+        // I regret my life decisions
+        UTC(int years, int months, int days, int hours, int minutes, double seconds)
+                : ln_date{years, months, days, hours, minutes, seconds} {};
+
+        friend std::ostream &operator<<(std::ostream &os, const UTC &utc);
+    };
+
     std::ostream &operator<<(std::ostream &os, const DMS &dms);
 
     std::ostream &operator<<(std::ostream &os, const HMS &hms);
 
     std::ostream &operator<<(std::ostream &os, const Equ &equ);
+
+    std::ostream &operator<<(std::ostream &os, const UTC &utc);
+
+    enum StarbookState {
+        INIT, /* Initial state after boot */
+        GUIDE, /* ??? */
+        SCOPE, /* After START command or user input */
+        UNKNOWN,
+    };
+
+    enum ResponseCode {
+        OK,
+        ERROR_ILLEGAL_STATE, /* Starbook has wrong internal state to accept command */
+        ERROR_FORMAT, /* who knows... */
+        ERROR_BELOW_HORIZON, /* Starbook thinks that issued movement command will bring scope horizon */
+        ERROR_UNKNOWN, /* no specified reason */
+    };
 }
-
-enum StarbookState {
-    SB_INIT, /* Initial state after boot */
-    SB_GUIDE, /* ??? */
-    SB_SCOPE, /* After START command or user input */
-};
-
