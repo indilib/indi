@@ -63,6 +63,7 @@ namespace starbook {
         INIT, /* Initial state after boot */
         GUIDE, /* ??? */
         SCOPE, /* After START command or user input */
+        USER,
         UNKNOWN,
     };
 

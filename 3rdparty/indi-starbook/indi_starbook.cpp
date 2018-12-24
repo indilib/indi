@@ -152,6 +152,7 @@ bool Starbook::ReadScopeStatus()
     std::smatch sm;
 
     lnh_equ_posn equ_posn = { { 0, 0, 0 }, { 0, 0, 0, 0 } };
+    bool goto_status = false;
 
     while (regex_search(response, sm, param_re))
     {
@@ -172,8 +173,24 @@ bool Starbook::ReadScopeStatus()
         {
             state = ParseState(value);
             LOGF_DEBUG("Parsed STATE %i", state);
+        } else if (key == "GOTO") {
+            goto_status = value == "1";
         }
         response = sm.suffix();
+    }
+
+    switch (state) {
+        case INIT:
+        case USER:
+            TrackState = SCOPE_IDLE;
+            break;
+        case SCOPE:
+        case GUIDE:
+            TrackState = goto_status ? SCOPE_SLEWING : SCOPE_TRACKING;
+            break;
+        case UNKNOWN:
+            TrackState = SCOPE_IDLE;
+            break;
     }
 
     ln_equ_posn d_equ_posn = {0, 0};
@@ -358,6 +375,8 @@ starbook::StarbookState Starbook::ParseState(const std::string &value) {
         return starbook::SCOPE;
     else if (value == "GUIDE")
         return starbook::GUIDE;
+    else if (value == "USER")
+        return starbook::USER;
     else if (value == "INIT")
         return starbook::INIT;
 
