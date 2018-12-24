@@ -632,13 +632,13 @@ bool EQMod::updateProperties()
             elevation = IUFindNumber(&LocationNP, "ELEV");
             if (latitude && longitude && elevation)
                 updateLocation(latitude->value, longitude->value, elevation->value);
-            else
-                updateLocation(0.0, 0.0, 0.0);
+//            else
+//                updateLocation(0.0, 0.0, 0.0);
 
-            if ((latitude) && (latitude->value < 0.0))
-                SetSouthernHemisphere(true);
-            else
-                SetSouthernHemisphere(false);
+//            if ((latitude) && (latitude->value < 0.0))
+//                SetSouthernHemisphere(true);
+//            else
+//                SetSouthernHemisphere(false);
 
             sendTimeFromSystem();
         }
