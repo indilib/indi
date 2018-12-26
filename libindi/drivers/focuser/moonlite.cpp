@@ -120,12 +120,12 @@ bool MoonLite::initProperties()
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 30000.;
+    FocusRelPosN[0].max   = 50000.;
     FocusRelPosN[0].value = 0;
     FocusRelPosN[0].step  = 1000;
 
     FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 60000.;
+    FocusAbsPosN[0].max   = 100000.;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
 
