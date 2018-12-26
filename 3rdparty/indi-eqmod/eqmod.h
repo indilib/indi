@@ -161,14 +161,14 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
     double tpa_alt, tpa_az;
 
-    void EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha);
+    void EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha, TelescopePierSide *pierSide);
     double EncoderToHours(uint32_t destep, uint32_t initdestep, uint32_t totalrastep, enum Hemisphere h);
     double EncoderToDegrees(uint32_t destep, uint32_t initdestep, uint32_t totalrastep,
                             enum Hemisphere h);
     double EncoderFromHour(double hour, uint32_t initstep, uint32_t totalstep, enum Hemisphere h);
-    double EncoderFromRA(double ratarget, double detarget, double lst, uint32_t initstep, uint32_t totalstep,
+    double EncoderFromRA(double ratarget, TelescopePierSide p, double lst, uint32_t initstep, uint32_t totalstep,
                          enum Hemisphere h);
-    double EncoderFromDegree(double degree, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
+    double EncoderFromDegree(double degree, uint32_t initstep, uint32_t totalstep,
                              enum Hemisphere h);
     double EncoderFromDec(double detarget, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
                           enum Hemisphere h);

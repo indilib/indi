@@ -866,10 +866,13 @@ bool EQMod::ReadScopeStatus()
 
     try
     {
+        TelescopePierSide pierSide;
         currentRAEncoder = mount->GetRAEncoder();
         currentDEEncoder = mount->GetDEEncoder();
         DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", static_cast<long>(currentRAEncoder), static_cast<long>(currentDEEncoder));
-        EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
+        EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA, &pierSide);
+        setPierSide(pierSide);
+
         alignedRA    = currentRA;
         alignedDEC   = currentDEC;
         ghalignedRA  = currentRA;
@@ -1456,9 +1459,10 @@ bool EQMod::ReadScopeStatus()
     return true;
 }
 
-void EQMod::EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha)
+void EQMod::EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha, TelescopePierSide *pierSide)
 {
     double RACurrent = 0.0, DECurrent = 0.0, HACurrent = 0.0;
+    TelescopePierSide p;
     HACurrent = EncoderToHours(rastep, zeroRAEncoder, totalRAEncoder, Hemisphere);
     RACurrent = HACurrent + lst;
     DECurrent = EncoderToDegrees(destep, zeroDEEncoder, totalDEEncoder, Hemisphere);
@@ -1468,21 +1472,19 @@ void EQMod::EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double
         if ((DECurrent > 90.0) && (DECurrent <= 270.0))
         {
             RACurrent = RACurrent - 12.0;
-            //currentPierSide = EAST;
-            setPierSide(PIER_EAST);
+            p = PIER_EAST;
         }
         else
-            setPierSide(PIER_WEST);
-        //currentPierSide = WEST;
+            p = PIER_WEST;
     }
     else if ((DECurrent <= 90.0) || (DECurrent > 270.0))
     {
         RACurrent = RACurrent + 12.0;
         //currentPierSide = EAST;
-        setPierSide(PIER_EAST);
+        p = PIER_EAST;
     }
     else
-        setPierSide(PIER_WEST);
+        p = PIER_WEST;
     //currentPierSide = WEST;
     HACurrent = rangeHA(HACurrent);
     RACurrent = range24(RACurrent);
@@ -1491,6 +1493,8 @@ void EQMod::EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double
     *de       = DECurrent;
     if (ha)
         *ha = HACurrent;
+    if (pierSide)
+        *pierSide = p;
 }
 
 double EQMod::EncoderToHours(uint32_t step, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
@@ -1541,53 +1545,46 @@ double EQMod::EncoderFromHour(double hour, uint32_t initstep, uint32_t totalstep
     shifthour        = range24(hour - 6);
     if (h == NORTH)
         if (shifthour < 12.0)
-            return (initstep - ((shifthour / 24.0) * totalstep));
+            return round(initstep - ((shifthour / 24.0) * totalstep));
         else
-            return (initstep + (((24.0 - shifthour) / 24.0) * totalstep));
+            return round(initstep + (((24.0 - shifthour) / 24.0) * totalstep));
     else if (shifthour < 12.0)
-        return (initstep + ((shifthour / 24.0) * totalstep));
+        return round(initstep + ((shifthour / 24.0) * totalstep));
     else
-        return (initstep - (((24.0 - shifthour) / 24.0) * totalstep));
+        return round(initstep - (((24.0 - shifthour) / 24.0) * totalstep));
 }
 
-double EQMod::EncoderFromRA(double ratarget, double detarget, double lst, uint32_t initstep,
+double EQMod::EncoderFromRA(double ratarget, TelescopePierSide p, double lst, uint32_t initstep,
                             uint32_t totalstep, enum Hemisphere h)
 {
     double ha = 0.0;
     ha        = ratarget - lst;
 
-    // used only in simulation??
-    if (h == NORTH)
-        if ((detarget > 90.0) && (detarget <= 270.0))
-            ha = ha - 12.0;
-    if (h == SOUTH)
-        if ((detarget > 90.0) && (detarget <= 270.0))
-            ha = ha + 12.0;
+//    if ((h == NORTH && p == PIER_EAST) || (h == SOUTH && p == PIER_WEST))
+    if (p == PIER_EAST)
+       ha = ha + 12.0;
 
     ha = range24(ha);
     return EncoderFromHour(ha, initstep, totalstep, h);
 }
 
-double EQMod::EncoderFromDegree(double degree, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
-                                enum Hemisphere h)
+double EQMod::EncoderFromDegree(double degree, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
 {
     double target = 0.0;
-    target        = degree;
+    target        = range360(degree);
     if (h == SOUTH)
         target = 360.0 - target;
-    if ((target > 180.0) && (p == PIER_EAST))
-        return (initstep - (((360.0 - target) / 360.0) * totalstep));
-    else
-        return (initstep + ((target / 360.0) * totalstep));
+    if (target > 270.0)
+        target -= 360.0;
+    return round(initstep + ((target / 360.0) * totalstep));
 }
+
 double EQMod::EncoderFromDec(double detarget, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
                              enum Hemisphere h)
 {
-    double target = 0.0;
-    target        = detarget;
-    if (p == PIER_WEST)
-        target = 180.0 - target;
-    return EncoderFromDegree(target, p, initstep, totalstep, h);
+    if ((h == NORTH && p == PIER_EAST) || (h == SOUTH && p == PIER_WEST))
+        detarget = 180.0 - detarget;
+    return EncoderFromDegree(detarget, initstep, totalstep, h);
 }
 
 void EQMod::SetSouthernHemisphere(bool southern)
@@ -1628,7 +1625,7 @@ void EQMod::UpdateDEInverted()
 void EQMod::EncoderTarget(GotoParams *g)
 {
     double r, d;
-    double ha = 0.0, targetra = 0.0;
+    double ha = 0.0;
     double juliandate;
     double lst;
     TelescopePierSide targetpier;
@@ -1642,22 +1639,20 @@ void EQMod::EncoderTarget(GotoParams *g)
 
     ha = rangeHA(r - lst);
     if (ha < 0.0)
-    { // target EAST
+    { // target WEST
         if (g->forcecwup)
         {
             if (Hemisphere == NORTH)
-                targetpier = PIER_EAST;
-            else
                 targetpier = PIER_WEST;
-            targetra = r;
+            else
+                targetpier = PIER_EAST;
         }
         else
         {
             if (Hemisphere == NORTH)
-                targetpier = PIER_WEST;
-            else
                 targetpier = PIER_EAST;
-            targetra = range24(r - 12.0);
+            else
+                targetpier = PIER_WEST;
         }
     }
     else
@@ -1665,22 +1660,20 @@ void EQMod::EncoderTarget(GotoParams *g)
         if (g->forcecwup)
         {
             if (Hemisphere == NORTH)
-                targetpier = PIER_WEST;
-            else
                 targetpier = PIER_EAST;
-            targetra = range24(r - 12.0);
+            else
+                targetpier = PIER_WEST;
         }
         else
         {
             if (Hemisphere == NORTH)
-                targetpier = PIER_EAST;
-            else
                 targetpier = PIER_WEST;
-            targetra = r;
+            else
+                targetpier = PIER_EAST;
         }
     }
 
-    targetraencoder  = EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
+    targetraencoder  = EncoderFromRA(r, targetpier, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
     targetdecencoder = EncoderFromDec(d, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
 
     if ((g->forcecwup) && (g->checklimits))
@@ -1699,22 +1692,20 @@ void EQMod::EncoderTarget(GotoParams *g)
         {
             LOG_WARN("Goto: RA Limits prevent Counterweights-up slew.");
             if (ha < 0.0)
-            { // target EAST
+            { // target WEST
                 if (Hemisphere == NORTH)
-                    targetpier = PIER_WEST;
-                else
                     targetpier = PIER_EAST;
-                targetra = range24(r - 12.0);
+                else
+                    targetpier = PIER_WEST;
             }
             else
             {
                 if (Hemisphere == NORTH)
-                    targetpier = PIER_EAST;
-                else
                     targetpier = PIER_WEST;
-                targetra = r;
+                else
+                    targetpier = PIER_EAST;
             }
-            targetraencoder  = EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
+            targetraencoder  = EncoderFromRA(r, targetpier, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
             targetdecencoder = EncoderFromDec(d, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
         }
     }
@@ -2088,9 +2079,8 @@ bool EQMod::Sync(double ra, double dec)
     double juliandate;
     double lst;
     SyncData tmpsyncdata;
-    double ha, targetra;
+    double ha;
     TelescopePierSide targetpier;
-    double telescopeHA;
 
     // get current mount position asap
     tmpsyncdata.telescopeRAEncoder  = mount->GetRAEncoder();
@@ -2115,28 +2105,26 @@ bool EQMod::Sync(double ra, double dec)
 
     ha = rangeHA(ra - lst);
     if (ha < 0.0)
-    { // target EAST
+    { // target WEST
         if (Hemisphere == NORTH)
-            targetpier = PIER_WEST;
-        else
             targetpier = PIER_EAST;
-        targetra = range24(ra - 12.0);
+        else
+            targetpier = PIER_WEST;
     }
     else
     {
         if (Hemisphere == NORTH)
-            targetpier = PIER_EAST;
-        else
             targetpier = PIER_WEST;
-        targetra = ra;
+        else
+            targetpier = PIER_EAST;
     }
-    tmpsyncdata.targetRAEncoder  = EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
+    tmpsyncdata.targetRAEncoder  = EncoderFromRA(ra, targetpier, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
     tmpsyncdata.targetDECEncoder = EncoderFromDec(dec, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
 
     try
     {
         EncodersToRADec(tmpsyncdata.telescopeRAEncoder, tmpsyncdata.telescopeDECEncoder, lst, &tmpsyncdata.telescopeRA,
-                        &tmpsyncdata.telescopeDEC, &telescopeHA);
+                        &tmpsyncdata.telescopeDEC, nullptr, nullptr);
     }
     catch (EQModError e)
     {
