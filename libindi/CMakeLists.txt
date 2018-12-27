@@ -728,6 +728,15 @@ add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
 
+################ Moonlite DRO Dual Focuser ################
+
+SET(moonlitedro_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/moonlite_dro.cpp)
+
+add_executable(indi_moonlitedro_focus ${moonlitedro_SRC})
+target_link_libraries(indi_moonlitedro_focus indidriver)
+install(TARGETS indi_moonlitedro_focus RUNTIME DESTINATION bin)
+
 ################ OnFocus Focuser ################
 
 SET(onfocus_SRC
