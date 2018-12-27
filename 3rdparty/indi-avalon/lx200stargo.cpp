@@ -1423,7 +1423,7 @@ bool LX200StarGo::getFirmwareInfo (char* firmwareInfo)
         LOG_ERROR("Failed to send get manufacturer request.");
         return false;
     }
-    infoStr.assign(manufacturer); //, bytesReceived);
+    infoStr.assign(manufacturer);
 
     // step 2: retrieve firmware version
     char firmwareVersion[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
@@ -1432,7 +1432,7 @@ bool LX200StarGo::getFirmwareInfo (char* firmwareInfo)
         LOG_ERROR("Failed to send get firmware version request.");
         return false;
     }
-    infoStr.append(" - ").append(firmwareVersion); //, bytesReceived -1);
+    infoStr.append(" - ").append(firmwareVersion);
 
     // step 3: retrieve firmware date
     char firmwareDate[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
@@ -1441,7 +1441,8 @@ bool LX200StarGo::getFirmwareInfo (char* firmwareInfo)
         LOG_ERROR("Failed to send get firmware date request.");
         return false;
     }
-    infoStr.append(" - ").append(firmwareDate); //, 1, bytesReceived);
+    std::string dateStr = firmwareDate;
+    infoStr.append(" - ").append(dateStr, 1, dateStr.length()-1);
 
     strcpy(firmwareInfo, infoStr.c_str());
 
