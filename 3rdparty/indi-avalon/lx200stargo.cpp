@@ -172,19 +172,11 @@ bool LX200StarGo::Handshake()
         return false;
     }
 
-    char cmdsync[32];
-    char cmdlst[32];
     char cmddate[32];
-    char lst[32];
-    if(getLST_String(lst))
-    {
-        sprintf(cmdsync,":X31%s#", lst);
-        sprintf(cmdlst, ":X32%s#", lst);
-    }
     time_t now = time (nullptr);
     strftime(cmddate, 32, ":X50%d%m%y#", localtime(&now));
 
-    const char* cmds[12][2]={ 
+    const char* cmds[11][2]={
         ":TTSFG#", "0",
         ":X3E1#", nullptr,
         ":TTHS1#", nullptr,
@@ -194,14 +186,9 @@ bool LX200StarGo::Handshake()
         ":TTSFS#", "0",
         ":X474#", nullptr,
         ":TTSFR#", "0",
-// cmdsync causes the mount to unpark so dont do it here
-//        cmdsync, "0",  // ":X31hhmmss#" Also returns a00# and X31nnn
         ":X351#", "0",
-        cmdlst, "0",  // ":X32hhmmss#"
         ":TTRFd#", "0" };
-//    cmds[8]   = cmdsync;
-//    cmds[10] = cmdlst;
-    for( int i=0; i < 12; i++)
+    for( int i=0; i < 11; i++)
     {
     LOGF_DEBUG("cmd %d: %s (%s)", i, cmds[i][0], cmds[i][1]);
         if(!sendQuery(cmds[i][0], response, cmds[i][1]==nullptr?0:5))
