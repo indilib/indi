@@ -67,7 +67,7 @@
 	</device>
         <device label="Avalon StarGo">
                 <driver name="LX200 StarGo">indi_lx200stargo</driver>
-                <version>0.5</version>
+                <version>1.0</version>
         </device>
         <device label="Paramount">
                 <driver name="Paramount">indi_paramount_telescope</driver>

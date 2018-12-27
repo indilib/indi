@@ -113,7 +113,7 @@ void ISSnoopDevice(XMLEle *root)
 LX200StarGo::LX200StarGo()
 {
     LOG_DEBUG(__FUNCTION__);
-    setVersion(0, 6);
+    setVersion(1, 0);
 
     DBG_SCOPE = INDI::Logger::DBG_DEBUG;
 
