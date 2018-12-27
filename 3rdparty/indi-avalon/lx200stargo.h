@@ -4,7 +4,6 @@
 #pragma once
 
 #include "lx200telescope.h"
-//#include "lx200driver.h"
 #include "indicom.h"
 #include "indilogger.h"
 #include "termios.h"
@@ -62,9 +61,7 @@ public:
     };
     TrackMode CurrentTrackMode;
     MotorsState CurrentMotorsState;
-//    SlewIndex CurrentSlewIndex;
     TelescopeSlewRate CurrentSlewRate;
-//    TelescopeTrackMode CurrentTrackMode;
     
     LX200StarGo();
     virtual ~LX200StarGo() = default;
@@ -82,7 +79,6 @@ public:
     virtual bool receive(char* buffer, int* bytes, char end, int wait=AVALON_TIMEOUT);
     virtual void flush();
     virtual bool transmit(const char* buffer);
-//    virtual bool setStandardProcedureAvalon(const char *command, int wait);
     virtual bool SetTrackMode(uint8_t mode) override;
 
 protected:
@@ -130,7 +126,6 @@ protected:
     virtual void SetParked(bool isparked);
     virtual bool UnPark() override;
     virtual bool saveConfigItems(FILE *fp) override;
-//    virtual bool isSlewComplete() override;
     virtual bool Goto(double ra, double dec) override;
 
     // StarGo stuff
@@ -143,17 +138,12 @@ protected:
 
     // scope status
     virtual bool ParseMotionState(char* state);
-//    virtual bool UpdateMotionStatus();
-//    virtual void UpdateMotionStatus(int motorsState, int speedState, int nrTrackingSpeed);
-//    bool parseMotionState(char *response, int *motorsState, int *speedState, int *nrTrackingSpeed);
-//    bool isIdle();
 
     // location
     virtual bool sendScopeLocation();
     double LocalSiderealTime(double longitude);
     bool setLocalSiderealTime(double longitude);
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
-//    virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool getSiteLatitude(double *siteLat);
     virtual bool getSiteLongitude(double *siteLong);
     virtual bool getLST_String(char* input);
@@ -165,15 +155,12 @@ protected:
     virtual bool sendQuery(const char* cmd, char* response, char end, int wait=AVALON_TIMEOUT);
     // Wait for default "#' character
     virtual bool sendQuery(const char* cmd, char* response, int wait=AVALON_TIMEOUT);
-//    virtual bool queryMountMotionState(int* motorsState, int* speedState, int* nrTrackingSpeed);
-//    virtual bool queryMountMotionState();
     virtual bool getFirmwareInfo(char *version);
     virtual bool setSiteLatitude(double Lat);
     virtual bool setSiteLongitude(double Long);
     virtual bool getScopeAlignmentStatus(char *mountType, bool *isTracking, int *alignmentPoints);
     virtual bool getMotorStatus(int *xSpeed, int *ySpeed);
     virtual bool getParkHomeStatus (char* status);
-//    virtual bool queryIsSlewComplete();
     virtual bool setMountGotoHome();
     virtual bool setMountParkPosition();
 
@@ -183,10 +170,6 @@ protected:
     virtual bool setST4Enabled(bool enabled);
 
     // meridian flip
-//    virtual bool queryGetMeridianFlipEnabledStatus(bool *isEnabled);
-//    virtual bool queryGetMeridianFlipForcedStatus(bool *isEnabled);
-//    virtual bool setMeridianFlipEnabled(bool enabled);
-//    virtual bool setMeridianFlipForced(bool enabled);
 
     virtual bool syncSideOfPier();
     bool checkLX200Format();

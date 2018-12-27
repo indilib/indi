@@ -603,12 +603,6 @@ void LX200StarGo::getBasicData()
         }
         IDSetSwitch(&ST4StatusSP, nullptr);
 
-/*        if (queryGetMeridianFlipEnabledStatus(&isEnabled))
-        {
-            MeridianFlipEnabledS[0].s = isEnabled ? ISS_ON  : ISS_OFF;
-            MeridianFlipEnabledS[1].s = isEnabled ? ISS_OFF : ISS_ON;
-            MeridianFlipEnabledSP.s = IPS_OK;
-        }*/
         int index;
         if (GetMeridianFlipMode(&index))
         {
@@ -671,7 +665,7 @@ bool LX200StarGo::setMountGotoHome()
     }
     if (strcmp(response, "pA") != 0)
     {
-        LOGF_ERROR("Invalid mount sync goto response '%s'.", response);
+        LOGF_ERROR("Invalid send mount goto home response '%s'.", response);
         return false;
     }
     return true;
@@ -956,7 +950,6 @@ bool LX200StarGo::saveConfigItems(FILE *fp)
 bool LX200StarGo::sendQuery(const char* cmd, char* response, char end, int wait)
 {
     LOGF_DEBUG("%s %s End:%c Wait:%ds", __FUNCTION__, cmd, end, wait);
-//    motorsState = speedState = nrTrackingSpeed = 0;
     response[0] = '\0';
     char lresponse[AVALON_RESPONSE_BUFFER_LENGTH];
     int lbytes=0;
@@ -964,10 +957,7 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response, char end, int wait)
     while (receive(lresponse, &lbytes, '#', 0))
     {
         lbytes=0;
-        if(ParseMotionState(lresponse))
-        {
-//            LOGF_DEBUG("Motion state response parsed %s", lresponse);
-        }
+        ParseMotionState(lresponse);
         lresponse [0] = '\0';
     }
     flush();
@@ -982,12 +972,9 @@ bool LX200StarGo::sendQuery(const char* cmd, char* response, char end, int wait)
     {
 //        LOGF_DEBUG("Found response after %ds %s", lwait, lresponse);
         lbytes=0;
-        if(ParseMotionState(lresponse))
+        if(! ParseMotionState(lresponse))
         {
- //           LOGF_DEBUG("Motion state response parsed %s", lresponse);
-        }
-        else // Don't change wait requirement but get the response
-        {
+            // Don't change wait requirement but get the response
             strcpy(response, lresponse);
             lwait = 0;
         }
@@ -1003,10 +990,10 @@ bool LX200StarGo::ParseMotionState(char* state)
     if(sscanf(state, ":Z1%01d%01d%01d", &lmotor, &lmode, &lslew)==3)
     {
         LOGF_DEBUG("Motion state %s=>Motors: %d, Track: %d, SlewSpeed: %d", state, lmotor, lmode, lslew);
-    // m = 0 both motors are OFF (no power)
-    // m = 1 RA motor OFF DEC motor ON
-    // m = 2 RA motor ON DEC motor OFF
-    // m = 3 both motors are ON
+        // m = 0 both motors are OFF (no power)
+        // m = 1 RA motor OFF DEC motor ON
+        // m = 2 RA motor ON DEC motor OFF
+        // m = 3 both motors are ON
         switch(lmotor)
         {
             case 0:
