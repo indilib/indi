@@ -169,7 +169,7 @@ protected:
     virtual bool getFirmwareInfo(char *version);
     virtual bool setSiteLatitude(double Lat);
     virtual bool setSiteLongitude(double Long);
-//    virtual bool querySetTracking(bool enable);
+    virtual bool getScopeAlignmentStatus(char *mountType, bool *isTracking, int *alignmentPoints);
     virtual bool getMotorStatus(int *xSpeed, int *ySpeed);
     virtual bool getParkHomeStatus (char* status);
 //    virtual bool queryIsSlewComplete();

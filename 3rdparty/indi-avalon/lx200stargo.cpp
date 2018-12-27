@@ -144,7 +144,7 @@ LX200StarGo::LX200StarGo()
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_CONTROL_TRACK | 
-                           TELESCOPE_HAS_PIER_SIDE , 4);
+                           TELESCOPE_HAS_PIER_SIDE, 4);
 }
 
 /**************************************************************************************
@@ -162,16 +162,16 @@ const char *LX200StarGo::getDefaultName()
 bool LX200StarGo::Handshake()
 {
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
-    if(!sendQuery(":GW#", response))
+    char mountType;
+    bool isTracking;
+    int alignmentPoints;
+
+    if(!getScopeAlignmentStatus(&mountType, &isTracking, &alignmentPoints))
     {
         LOG_ERROR("Error communication with telescope.");
         return false;
     }
-    if (strcmp(response, "PT0"))
-    {
-        LOGF_ERROR("Unexpected response %s", response);
-        return false;
-    }
+
     char cmdsync[32];
     char cmdlst[32];
     char cmddate[32];
@@ -1184,6 +1184,35 @@ bool LX200StarGo::setSiteLatitude(double Lat)
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     return (sendQuery(command, response));
+}
+
+bool LX200StarGo::getScopeAlignmentStatus(char *mountType, bool *isTracking, int *alignmentPoints)
+{
+    // Standard LX200 query
+    // Returns: <mount><tracking><alignment># where:
+    // mount: A-AzEl mounted, P-Equatorially mounted, G-german mounted equatorial tracking: T-tracking, N-not tracking
+    // alignment: 0-needs alignment, 1-one star aligned, 2-two star aligned, 3-three star aligned.
+
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if(!sendQuery(":GW#", response))
+    {
+        LOG_ERROR("Error communication with telescope.");
+        return false;
+    }
+    
+    char mt, tracking;
+    int nr;
+    int returnCode = sscanf(response, "%c%c%01d", &mt, &tracking, &nr);
+    if (returnCode < 3)
+    {
+       LOGF_ERROR("Failed to parse scope alignment status response '%s'.", response);
+       return false;
+    }
+
+    *mountType = mt;
+    *isTracking = (tracking == 'T');
+    *alignmentPoints = nr;
+    return true;
 }
 
 bool LX200StarGo::getMotorStatus(int *xSpeed, int *ySpeed)
