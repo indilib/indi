@@ -161,7 +161,6 @@ const char *LX200StarGo::getDefaultName()
 ***************************************************************************************/
 bool LX200StarGo::Handshake()
 {
-    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     char mountType;
     bool isTracking;
     int alignmentPoints;
@@ -172,36 +171,6 @@ bool LX200StarGo::Handshake()
         return false;
     }
 
-    char cmddate[32];
-    time_t now = time (nullptr);
-    strftime(cmddate, 32, ":X50%d%m%y#", localtime(&now));
-
-    const char* cmds[11][2]={
-        ":TTSFG#", "0",
-        ":X3E1#", nullptr,
-        ":TTHS1#", nullptr,
-        cmddate, nullptr,
-        ":TTRFr#", "0",
-        ":X4B1#", nullptr,
-        ":TTSFS#", "0",
-        ":X474#", nullptr,
-        ":TTSFR#", "0",
-        ":X351#", "0",
-        ":TTRFd#", "0" };
-    for( int i=0; i < 11; i++)
-    {
-    LOGF_DEBUG("cmd %d: %s (%s)", i, cmds[i][0], cmds[i][1]);
-        if(!sendQuery(cmds[i][0], response, cmds[i][1]==nullptr?0:5))
-        {
-            LOGF_ERROR("Error sending command %s", cmds[i][0]);
-            continue;
-        }
-        if (cmds[i][1]!=nullptr && strcmp(response, cmds[i][1]) != 0)
-        {
-            LOGF_ERROR("Unexpected response %s", response);
-            continue;
-        } 
-    }
     return true;
 }
 
@@ -1682,6 +1651,9 @@ bool LX200StarGo::setSlewMode(int slewMode)
 }
 bool LX200StarGo::SetMeridianFlipMode(int index)
 {
+    // 0: Auto mode: Enabled and not Forced
+    // 1: Disabled mode: Disabled and not Forced
+    // 2: Forced mode: Enabled and Forced
     LOG_DEBUG(__FUNCTION__);
 
     if (isSimulation())
@@ -1690,15 +1662,12 @@ bool LX200StarGo::SetMeridianFlipMode(int index)
         IDSetSwitch(&MeridianFlipModeSP, nullptr);
         return true;
     }
-// 0: Auto mode: Enabled and not Forced
-// 1: Disabled mode: Disabled and not Forced 
-// 2: Forced mode: Enabled and Forced
     if( index > 2)
     {
         LOGF_ERROR("Invalid Meridian Flip Mode %d", index);
         return false;
     }
-    const char* enablecmd = index==1 ? ":TTRFs#" : ":TTSFs#";
+    const char* enablecmd = index==1 ? ":TTSFs#" : ":TTRFs#";
     const char* forcecmd  = index==2 ? ":TTSFd#" : ":TTRFd#";
     char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     if(!sendQuery(enablecmd, response) || !sendQuery(forcecmd, response))
@@ -1706,6 +1675,20 @@ bool LX200StarGo::SetMeridianFlipMode(int index)
         LOGF_ERROR("Cannot set Meridian Flip Mode %d", index);
         return false;        
     }
+
+    switch (index)
+    {
+    case 0:
+        LOG_INFO("Meridian flip enabled.");
+        break;
+    case 1:
+        LOG_WARN("Meridian flip DISABLED. BE CAREFUL, THIS MAY CAUSE DAMAGE TO YOUR MOUNT!");
+        break;
+    case 2:
+        LOG_WARN("Meridian flip FORCED. BE CAREFUL, THIS MAY CAUSE DAMAGE TO YOUR MOUNT!");
+        break;
+    }
+
     return true;
 }
 bool LX200StarGo::GetMeridianFlipMode(int* index)
@@ -1736,13 +1719,25 @@ bool LX200StarGo::GetMeridianFlipMode(int* index)
         LOGF_ERROR("Invalid meridian flip forced response '%s", forceresp);
         return false;
     }
-    if( enable == 0)
+
+    if( enable == 1)
+    {
         *index = 1; // disabled
+        LOG_WARN("Meridian flip DISABLED. BE CAREFUL, THIS MAY CAUSE DAMAGE TO YOUR MOUNT!");
+    }
     else if( force == 0)
+    {
         *index = 0; // auto
+        LOG_INFO("Meridian flip enabled.");
+    }
     else
+    {
         *index = 2; // forced
+        LOG_WARN("Meridian flip FORCED. BE CAREFUL, THIS MAY CAUSE DAMAGE TO YOUR MOUNT!");
+    }
+
     return true;
+
 }
 
 IPState LX200StarGo::GuideNorth(uint32_t ms)
