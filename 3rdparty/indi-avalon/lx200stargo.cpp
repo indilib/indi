@@ -251,8 +251,8 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
                 LOG_INFO("Lunar tracking rate selected");
                 break;
             case TRACK_NONE:
-                LOG_INFO("Not available.");
-//                result = querySetTracking(false);
+                LOG_INFO("Tracking stopped.");
+                result = SetTrackEnabled(false);
                 break;
             }
             TrackModeSP.s = result ? IPS_OK : IPS_ALERT;
@@ -260,12 +260,6 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetSwitch(&TrackModeSP, nullptr);
             return result;
         }
-/*        else if (!strcmp(name, TrackStateSP.name))
-        {
-            LOG_ERROR("Set Track State.");
-            return true;
-        }
- * */
         else if (!strcmp(name, ST4StatusSP.name))
         {
             bool enabled = (states[0] == ISS_OFF);
@@ -385,10 +379,10 @@ bool LX200StarGo::initProperties()
     IUFillSwitch(&MeridianFlipForcedS[0], "MERIDIAN_FLIP_AUTOMATIC", "automatic", ISS_OFF);
     IUFillSwitch(&MeridianFlipForcedS[1], "MERIDIAN_FLIP_FORCED", "forced", ISS_OFF);
     IUFillSwitchVector(&MeridianFlipForcedSP, MeridianFlipForcedS, 2, getDeviceName(), "FORCE_MERIDIAN_FLIP", "Flip Mode", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+*/
 
     // overwrite the custom tracking mode button
     IUFillSwitch(&TrackModeS[3], "TRACK_NONE", "None", ISS_OFF);
-*/
     focuser->initProperties("AUX1 Focuser");
 
     return true;
@@ -1577,7 +1571,7 @@ bool LX200StarGo::SetTrackMode(uint8_t mode)
     }
     if ( !sendQuery(cmd, response, 0))  // Dont wait for response - there is none
         return false;
-    LOGF_INFO("Tracking mode set to %s", s_mode );
+    LOGF_INFO("Tracking mode set to %s.", s_mode );
 
 // Only update tracking frequency if it is defined and not deleted by child classes
     if (genericCapability & LX200_HAS_TRACKING_FREQ)
@@ -1979,7 +1973,6 @@ int LX200StarGo::SendPulseCmd(int8_t direction, uint32_t duration_msec)
 bool LX200StarGo::SetTrackEnabled(bool enabled)
 {
     LOGF_INFO("Tracking %s.", enabled?"enabled":"disabled");
-//    return querySetTracking(enabled);
     // Command tracking on  - :X122#
     //         tracking off - :X120#
 
