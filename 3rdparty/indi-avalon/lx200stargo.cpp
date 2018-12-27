@@ -394,7 +394,6 @@ bool LX200StarGo::ReadScopeStatus()
         return true;
     }
 
-    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
     int x, y;
 
     if (! getMotorStatus(&x, &y))
@@ -447,25 +446,12 @@ bool LX200StarGo::ReadScopeStatus()
         }
     }
 
-    // Use X590 for RA DEC
-    if(!sendQuery(":X590#", response))
+    double r, d;
+    if(!getEqCoordinates(&r, &d))
     {
-        LOGF_ERROR("Unable to get RA and DEC %s", response);
+        LOG_ERROR("Retrieving equatorial coordinates failed.");
         return false;
     }
-    double r, d;
-    int returnCode = sscanf(response, "RD%08lf%08lf", &r, &d);
-    if (returnCode < 2)
-    {
-       LOGF_ERROR("Failed to parse RA and Dec response '%s'.", response);
-/*     EqNP.s = IPS_ALERT;
-       IDSetNumber(&EqNP, "Error reading RA.");
-*/
-       return false;
-    }
-    r /= 1.0e6;
-    d /= 1.0e5;
-//    LOGF_DEBUG("RA/DEC = (%lf, %lf)", r, d);
     currentRA = r;
     currentDEC = d;
 
@@ -507,6 +493,28 @@ bool LX200StarGo::syncHomePosition()
     }
     IDSetSwitch(&SyncHomeSP, nullptr);
     return true; 
+}
+
+bool LX200StarGo::getEqCoordinates (double *ra, double *dec)
+{
+    // Use X590 for RA DEC
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if(!sendQuery(":X590#", response))
+    {
+        LOGF_ERROR("Unable to get RA and DEC %s", response);
+        return false;
+    }
+    double r, d;
+    int returnCode = sscanf(response, "RD%08lf%08lf", &r, &d);
+    if (returnCode < 2)
+    {
+       LOGF_ERROR("Failed to parse RA and Dec response '%s'.", response);
+       return false;
+    }
+    *ra  = r / 1.0e6;
+    *dec = d / 1.0e5;
+
+    return true;
 }
 
 /**************************************************************************************

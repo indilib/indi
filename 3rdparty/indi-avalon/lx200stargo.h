@@ -158,6 +158,7 @@ protected:
     virtual bool getSiteLongitude(double *siteLong);
     virtual bool getLST_String(char* input);
     bool getTrackFrequency(double *value);
+    virtual bool getEqCoordinates(double *ra, double *dec);
 
 
     // queries to the scope interface. Wait for specified end character
