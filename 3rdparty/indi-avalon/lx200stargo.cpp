@@ -260,11 +260,6 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetSwitch(&MeridianFlipModeSP, nullptr);
             return true;
         }
-/*        else if (!strcmp(name, MeridianFlipForcedSP.name))
-        {
-            return setMeridianFlipForced(states[0] == ISS_OFF);
-        }
-*/
     }
 
     //  Nobody has claimed this, so pass it to the parent
@@ -344,12 +339,6 @@ bool LX200StarGo::initProperties()
     IUFillSwitch(&MeridianFlipModeS[2], "MERIDIAN_FLIP_FORCED", "forced", ISS_OFF);
     IUFillSwitchVector(&MeridianFlipModeSP, MeridianFlipModeS, 3, getDeviceName(), "MERIDIAN_FLIP_MODE", "Meridian Flip", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-/*
-    IUFillSwitch(&MeridianFlipForcedS[0], "MERIDIAN_FLIP_AUTOMATIC", "automatic", ISS_OFF);
-    IUFillSwitch(&MeridianFlipForcedS[1], "MERIDIAN_FLIP_FORCED", "forced", ISS_OFF);
-    IUFillSwitchVector(&MeridianFlipForcedSP, MeridianFlipForcedS, 2, getDeviceName(), "FORCE_MERIDIAN_FLIP", "Flip Mode", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
-*/
-
     // overwrite the custom tracking mode button
     IUFillSwitch(&TrackModeS[3], "TRACK_NONE", "None", ISS_OFF);
     focuser->initProperties("AUX1 Focuser");
@@ -372,7 +361,6 @@ bool LX200StarGo::updateProperties()
         defineNumber(&GuidingSpeedNP);
         defineSwitch(&ST4StatusSP);
         defineSwitch(&MeridianFlipModeSP);
-//        defineSwitch(&MeridianFlipForcedSP);
         defineText(&MountFirmwareInfoTP);
     }
     else
@@ -384,7 +372,6 @@ bool LX200StarGo::updateProperties()
         deleteProperty(GuidingSpeedNP.name);
         deleteProperty(ST4StatusSP.name);
         deleteProperty(MeridianFlipModeSP.name);
-//        deleteProperty(MeridianFlipForcedSP.name);
         deleteProperty(MountFirmwareInfoTP.name);
     }
 
@@ -445,6 +432,12 @@ bool LX200StarGo::ReadScopeStatus()
             newTrackState = SCOPE_IDLE;
             if (TrackState != newTrackState)
                 LOGF_INFO("%sTracking is off.", TrackState == SCOPE_PARKING ? "Scope parked. ": "");
+
+            if (MountGotoHomeSP.s == IPS_BUSY)
+            {
+                MountGotoHomeSP.s = IPS_OK;
+                IDSetSwitch(&MountGotoHomeSP, nullptr);
+            }
         }
         else if(x==1 && y==0)
         {
