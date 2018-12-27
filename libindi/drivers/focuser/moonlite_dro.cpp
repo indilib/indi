@@ -650,7 +650,7 @@ bool MoonLiteDRO::SyncFocuser(uint32_t ticks)
     return true;
 }
 
-bool MoonLiteDRO::MoveFocuser(unsigned int position)
+bool MoonLiteDRO::gotoAbsPosition(unsigned int position)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
@@ -685,11 +685,11 @@ bool MoonLiteDRO::MoveFocuser(unsigned int position)
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
-    // MoveFocuser to Position
+    // gotoAbsPosition to Position
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("MoveFocuser error: %s.", errstr);
+        LOGF_ERROR("gotoAbsPosition error: %s.", errstr);
         return false;
     }
 
@@ -907,7 +907,7 @@ IPState MoonLiteDRO::MoveAbsFocuser(uint32_t targetTicks)
 
     bool rc = false;
 
-    rc = MoveFocuser(targetPos);
+    rc = gotoAbsPosition(targetPos);
 
     if (!rc)
         return IPS_ALERT;
@@ -927,7 +927,7 @@ IPState MoonLiteDRO::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     else
         newPosition = FocusAbsPosN[0].value + ticks;
 
-    rc = MoveFocuser(newPosition);
+    rc = gotoAbsPosition(newPosition);
 
     if (!rc)
         return IPS_ALERT;

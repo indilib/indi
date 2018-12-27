@@ -58,7 +58,7 @@ protected:
     bool isMoving();
     bool Ack();
 
-    bool MoveFocuser(unsigned int position);
+    bool gotoAbsPosition(uint32_t position);
     bool setStepMode(FocusStepMode mode);
     bool setStepDelay(uint8_t delay);
     bool setTemperatureCalibration(double calibration);
