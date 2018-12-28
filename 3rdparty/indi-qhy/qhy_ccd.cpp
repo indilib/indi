@@ -21,15 +21,8 @@
  */
 
 #include "qhy_ccd.h"
-
 #include "config.h"
 #include <stream/streammanager.h>
-
-// Avoid duplicated definitions (macros previously defined in indibase)
-#undef LOG_DEBUG
-#undef LOG_INFO
-#undef LOG_WARN
-#undef LOG_ERROR
 
 #include <algorithm>
 #include <math.h>
@@ -123,19 +116,21 @@ void ISInit()
 
 //On OS X, Prefer embedded App location if it exists
 #if defined(__APPLE__)
-	char driverSupportPath[128];
+    char driverSupportPath[128];
         if (getenv("INDIPREFIX") != nullptr)
-		sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
+        sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
 	else
-		strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
-	strncat(driverSupportPath, "/DriverSupport/qhy", 128);
+        strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
+    strncat(driverSupportPath, "/DriverSupport/qhy", 128);
     IDLog("QHY firmware path: %s\n", driverSupportPath);
 	OSXInitQHYCCDFirmware(driverSupportPath);
+    // Wait a bit before calling GetDeviceIDs on MacOS
+    usleep(2000000);
 #endif
 
     std::vector<std::string> devices = GetDevicesIDs();
 
-    cameraCount = (int)devices.size();
+    cameraCount = static_cast<int>(devices.size());
     for (int i = 0; i < cameraCount; i++)
     {
         cameras[i] = new QHYCCD(devices[i].c_str());
@@ -240,10 +235,6 @@ void ISSnoopDevice(XMLEle *root)
 
 QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
 {
-    // Filter Limits, can we call QHY API to find filter maximum?
-    FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = 5;
-
     HasUSBTraffic = false;
     HasUSBSpeed   = false;
     HasGain       = false;
@@ -256,6 +247,12 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
     setDeviceName(this->name);
 
     setVersion(INDI_QHY_VERSION_MAJOR, INDI_QHY_VERSION_MINOR);
+
+    m_QHYLogCallback = [this](const std::string &message) { logQHYMessages(message); };
+
+    // We only want to log to the function above
+    EnableQHYCCDLogFile(false);
+    EnableQHYCCDMessage(false);
 
     sim = false;
 }
@@ -303,9 +300,6 @@ bool QHYCCD::initProperties()
     IUFillNumberVector(&USBTrafficNP, USBTrafficN, 1, getDeviceName(), "USB_TRAFFIC", "USB Traffic", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
 
-    // Set minimum exposure speed to 0.001 seconds
-    //PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", MINIMUM_CCD_EXPOSURE, 3600, 1, false);
-
     addAuxControls();
 
     setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
@@ -349,21 +343,6 @@ void QHYCCD::ISGetProperties(const char *dev)
 
 bool QHYCCD::updateProperties()
 {
-    double min=0, max=0, step=0;
-
-    // This must be executed BEFORE INDI::CCD::updateProperties()
-    // Since Primary CCD Exposure will be defined in there so we have to get its limits now
-    {
-        // Exposure limits in microseconds
-        int ret = GetQHYCCDParamMinMaxStep(camhandle, CONTROL_EXPOSURE, &min, &max, &step);
-        if (ret == QHYCCD_SUCCESS)
-            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1e6, max/1e6, step/1e6, false);
-        else
-            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
-
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Exposure. Min: %g Max: %g Step %g", min, max, step);
-    }
-
     // Define parent class properties
     INDI::CCD::updateProperties();
 
@@ -377,6 +356,7 @@ bool QHYCCD::updateProperties()
             temperatureID = IEAddTimer(POLLMS, QHYCCD::updateTemperatureHelper, this);
         }
 
+        double min=0,max=0,step=0;
         if (HasUSBSpeed)
         {
             if (sim)
@@ -398,7 +378,7 @@ bool QHYCCD::updateProperties()
 
                 SpeedN[0].value = GetQHYCCDParam(camhandle, CONTROL_SPEED);
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "USB Speed. Value: %g Min: %g Max: %g Step %g", SpeedN[0].value,
+                LOGF_INFO("USB Speed Settings: Value: %.f Min: %.f Max: .fg Step %.f", SpeedN[0].value,
                        SpeedN[0].min, SpeedN[0].max, SpeedN[0].step);
             }
 
@@ -425,7 +405,7 @@ bool QHYCCD::updateProperties()
                 }
                 GainN[0].value = GetQHYCCDParam(camhandle, CONTROL_GAIN);
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Gain. Value: %g Min: %g Max: %g Step %g", GainN[0].value, GainN[0].min,
+                LOGF_INFO("Gain Settings: Value: %.3f Min: %.3f Max: %.3f Step %.3f", GainN[0].value, GainN[0].min,
                        GainN[0].max, GainN[0].step);
             }
 
@@ -452,7 +432,7 @@ bool QHYCCD::updateProperties()
                 }
                 OffsetN[0].value = GetQHYCCDParam(camhandle, CONTROL_OFFSET);
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "Offset. Value: %g Min: %g Max: %g Step %g", OffsetN[0].value,
+                LOGF_INFO("Offset Settings: Value: %.3f Min: %.3f Max: %.3f Step %.3f", OffsetN[0].value,
                        OffsetN[0].min, OffsetN[0].max, OffsetN[0].step);
             }
 
@@ -485,7 +465,7 @@ bool QHYCCD::updateProperties()
                 }
                 USBTrafficN[0].value = GetQHYCCDParam(camhandle, CONTROL_USBTRAFFIC);
 
-                DEBUGF(INDI::Logger::DBG_DEBUG, "USB Traffic. Value: %g Min: %g Max: %g Step %g", USBTrafficN[0].value,
+                LOGF_INFO("USB Traffic Settings: Value: %.3f Min: %.3f Max: %.3f Step %.3f", USBTrafficN[0].value,
                        USBTrafficN[0].min, USBTrafficN[0].max, USBTrafficN[0].step);
             }
             defineNumber(&USBTrafficNP);
@@ -493,8 +473,6 @@ bool QHYCCD::updateProperties()
 
         // Let's get parameters now from CCD
         setupParams();
-
-        //timerID = SetTimer(POLLMS);
     }
     else
     {
@@ -564,14 +542,14 @@ bool QHYCCD::Connect()
     // The CCD device is not available anymore
     if (std::find(devices.begin(), devices.end(), std::string(camid)) == devices.end())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Camera %s is not connected", camid);
+        LOGF_ERROR("Error: Camera %s is not connected", camid);
         return false;
     }*/
     camhandle = OpenQHYCCD(camid);
 
     if (camhandle != nullptr)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Connected to %s.", camid);
+        LOGF_INFO("Connected to %s.", camid);
 
         cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING;
 
@@ -579,12 +557,12 @@ bool QHYCCD::Connect()
         ret = SetQHYCCDStreamMode(camhandle, 0);
         if (ret != QHYCCD_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Can not disable stream mode (%d)", ret);
+            LOGF_ERROR("Can not disable stream mode (%d)", ret);
         }
         ret = InitQHYCCD(camhandle);
         if (ret != QHYCCD_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: Init Camera failed (%d)", ret);
+            LOGF_ERROR("Init Camera failed (%d)", ret);
             return false;
         }
 
@@ -594,7 +572,7 @@ bool QHYCCD::Connect()
             cap |= CCD_HAS_SHUTTER;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Shutter Control: %s", cap & CCD_HAS_SHUTTER ? "True" : "False");
+        LOGF_DEBUG("Shutter Control: %s", cap & CCD_HAS_SHUTTER ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(camhandle, CONTROL_COOLER);
         if (ret == QHYCCD_SUCCESS)
@@ -602,7 +580,7 @@ bool QHYCCD::Connect()
             cap |= CCD_HAS_COOLER;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Cooler Control: %s", cap & CCD_HAS_COOLER ? "True" : "False");
+        LOGF_DEBUG("Cooler Control: %s", cap & CCD_HAS_COOLER ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(camhandle, CONTROL_ST4PORT);
         if (ret == QHYCCD_SUCCESS)
@@ -610,7 +588,7 @@ bool QHYCCD::Connect()
             cap |= CCD_HAS_ST4_PORT;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Guider Port Control: %s", cap & CCD_HAS_ST4_PORT ? "True" : "False");
+        LOGF_DEBUG("Guider Port Control: %s", cap & CCD_HAS_ST4_PORT ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(camhandle, CONTROL_SPEED);
         if (ret == QHYCCD_SUCCESS)
@@ -625,7 +603,7 @@ bool QHYCCD::Connect()
                 SetQHYCCDParam(camhandle, CONTROL_SPEED, 1);
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "USB Speed Control: %s", HasUSBSpeed ? "True" : "False");
+        LOGF_DEBUG("USB Speed Control: %s", HasUSBSpeed ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(camhandle, CONTROL_GAIN);
         if (ret == QHYCCD_SUCCESS)
@@ -633,7 +611,7 @@ bool QHYCCD::Connect()
             HasGain = true;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Gain Control: %s", HasGain ? "True" : "False");
+        LOGF_DEBUG("Gain Control: %s", HasGain ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(camhandle, CONTROL_OFFSET);
         if (ret == QHYCCD_SUCCESS)
@@ -641,7 +619,7 @@ bool QHYCCD::Connect()
             HasOffset = true;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Offset Control: %s", HasOffset ? "True" : "False");
+        LOGF_DEBUG("Offset Control: %s", HasOffset ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(camhandle, CONTROL_CFWPORT);
         if (ret == QHYCCD_SUCCESS)
@@ -649,7 +627,7 @@ bool QHYCCD::Connect()
             HasFilters = true;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Has Filters: %s", HasFilters ? "True" : "False");
+        LOGF_DEBUG("Has Filters: %s", HasFilters ? "True" : "False");
 
         // Using software binning
         cap |= CCD_CAN_BIN;
@@ -667,7 +645,7 @@ bool QHYCCD::Connect()
             camybin = 1;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Bin 1x1: %s", (ret == QHYCCD_SUCCESS) ? "True" : "False");
+        LOGF_DEBUG("Bin 1x1: %s", (ret == QHYCCD_SUCCESS) ? "True" : "False");
 
         ret &= IsQHYCCDControlAvailable(camhandle,CAM_BIN2X2MODE);
         ret &= IsQHYCCDControlAvailable(camhandle,CAM_BIN3X3MODE);
@@ -676,7 +654,7 @@ bool QHYCCD::Connect()
         // Only use software binning if NOT supported by hardware
         //useSoftBin = !(ret == QHYCCD_SUCCESS);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");
+        LOGF_DEBUG("Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(camhandle, CONTROL_USBTRAFFIC);
         if (ret == QHYCCD_SUCCESS)
@@ -688,7 +666,7 @@ bool QHYCCD::Connect()
                 SetQHYCCDParam(camhandle, CONTROL_USBTRAFFIC, 30);
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "USB Traffic Control: %s", HasUSBTraffic ? "True" : "False");
+        LOGF_DEBUG("USB Traffic Control: %s", HasUSBTraffic ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(camhandle, CAM_COLOR);
         //if(ret != QHYCCD_ERROR && ret != QHYCCD_ERROR_NOTSUPPORT)
@@ -703,39 +681,76 @@ bool QHYCCD::Connect()
             else
                 IUSaveText(&BayerT[2], "RGGB");
 
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Color CCD: %s", BayerT[2].text);
+            LOGF_DEBUG("Color camera: %s", BayerT[2].text);
 
             cap |= CCD_HAS_BAYER;
         }
 
+        double min=0, max=0, step=0;
+        // Exposure limits in microseconds
+        int ret = GetQHYCCDParamMinMaxStep(camhandle, CONTROL_EXPOSURE, &min, &max, &step);
+        if (ret == QHYCCD_SUCCESS)
+            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1e6, max/1e6, step/1e6, false);
+        else
+            PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
+
+        LOGF_INFO("Camera exposure limits: Min: %.6fs Max: %.3fs Step %.fs", min/1e6, max/1e6, step/1e6);
+
+
         SetCCDCapability(cap);
 
-        terminateThread = false;
+        /*
+         * Create the imaging thread and wait for it to start
+         */
+        threadRequest = StateIdle;
+        threadState = StateNone;
+        int stat = pthread_create(&imagingThread, nullptr, &imagingHelper, this);
+        if (stat != 0)
+        {
+            LOGF_ERROR("Error creating imaging thread (%d)",
+                stat);
+            return false;
+        }
+        pthread_mutex_lock(&condMutex);
+        while (threadState == StateNone)
+        {
+            pthread_cond_wait(&cv, &condMutex);
+        }
+        pthread_mutex_unlock(&condMutex);
 
-        pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
         return true;
     }
 
-    DEBUGF(INDI::Logger::DBG_ERROR, "Connecting to CCD failed (%s)", camid);
+    LOGF_ERROR("Connecting to camera failed (%s).", camid);
 
     return false;
 }
 
 bool QHYCCD::Disconnect()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
+    ImageState  tState;
+    LOGF_DEBUG("Closing %s...", name);
 
     pthread_mutex_lock(&condMutex);
-    streamPredicate = 0;
-    terminateThread = true;
+    tState = threadState;
+    threadRequest = StateTerminate;
     pthread_cond_signal(&cv);
     pthread_mutex_unlock(&condMutex);
-
-    if (sim == false)
+    pthread_join(imagingThread, nullptr);
+    tState = StateNone;
+    if (isSimulation() == false)
     {
+        if (tState == StateStream)
+        {
+            SetQHYCCDStreamMode(camhandle, 0x0);
+            StopQHYCCDLive(camhandle);
+        }
+        else if (tState == StateExposure)
+            CancelQHYCCDExposingAndReadout(camhandle);
         CloseQHYCCD(camhandle);
-        //ReleaseQHYCCDResource();
     }
+
+    LOG_INFO("Camera is offline.");
 
     return true;
 }
@@ -759,13 +774,12 @@ bool QHYCCD::setupParams()
         /* JM: We need GetQHYCCDErrorString(ret) to get the string description of the error, please implement this in the SDK */
         if (ret != QHYCCD_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: GetQHYCCDChipInfo() (%d)", ret);
+            LOGF_ERROR("Error: GetQHYCCDChipInfo() (%d)", ret);
             return false;
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG,
-               "GetQHYCCDChipInfo: chipW :%g chipH: %g imageW: %d imageH: %d pixelW: %g pixelH: %g bbp %d", chipw,
-               chiph, imagew, imageh, pixelw, pixelh, bpp);
+        LOGF_DEBUG("GetQHYCCDChipInfo: chipW :%g chipH: %g imageW: %d imageH: %d pixelW: %g pixelH: %g bbp %d", chipw,
+                    chiph, imagew, imageh, pixelw, pixelh, bpp);
 
         camroix      = 0;
         camroiy      = 0;
@@ -789,12 +803,12 @@ int QHYCCD::SetTemperature(double temperature)
     if (fabs(temperature - TemperatureN[0].value) < TEMP_THRESHOLD)
         return 1;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "SetTemperature %g", temperature);
+    LOGF_DEBUG("Requested temperature is %.3f, current temperature is %.3f", temperature, TemperatureN[0].value);
 
     TemperatureRequest = temperature;
 
     // Enable cooler
-    setCooler(true);
+    //setCooler(true);
 
     ControlQHYCCDTemp(camhandle,TemperatureRequest);
 
@@ -807,28 +821,12 @@ bool QHYCCD::StartExposure(float duration)
 
     if (Streamer->isBusy())
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot take exposure while streaming/recording is active.");
+        LOG_ERROR("Cannot take exposure while streaming/recording is active.");
         return false;
     }
-    //AbortPrimaryFrame = false;
-
-    /*
-    if (duration < MINIMUM_CCD_EXPOSURE)
-    {
-        DEBUGF(INDI::Logger::DBG_WARNING,
-               "Exposure shorter than minimum duration %g s requested. Setting exposure time to %g s.", duration,
-               MINIMUM_CCD_EXPOSURE);
-        duration = MINIMUM_CCD_EXPOSURE;
-    }*/
 
     imageFrameType = PrimaryCCD.getFrameType();
 
-    /*if (imageFrameType == CCDChip::BIAS_FRAME)
-    {
-        duration = MINIMUM_CCD_EXPOSURE;
-        DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g", duration);
-    }
-    else*/
     if (GetCCDCapability() & CCD_HAS_SHUTTER)
     {
         if (imageFrameType == INDI::CCDChip::DARK_FRAME || imageFrameType == INDI::CCDChip::BIAS_FRAME)
@@ -837,127 +835,121 @@ bool QHYCCD::StartExposure(float duration)
             ControlQHYCCDShutter(camhandle, MACHANICALSHUTTER_FREE);
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Current exposure time is %f us", duration * 1000 * 1000);
-    ExposureRequest = duration;
-    PrimaryCCD.setExposureDuration(duration);
+    long uSecs = duration * 1000 * 1000;
+    LOGF_DEBUG("Requested exposure time is %ld us", uSecs);
+    ExposureRequest = static_cast<double>(duration);
+    PrimaryCCD.setExposureDuration(ExposureRequest);
 
+    // Setting Exposure time, IF different from last exposure time.
     if (sim)
         ret = QHYCCD_SUCCESS;
     else
     {
-        if (LastExposureRequest != ExposureRequest)
+        if (LastExposureRequestuS != uSecs)
         {
-            ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, ExposureRequest * 1000 * 1000);
+            ret = SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, uSecs);
 
             if (ret != QHYCCD_SUCCESS)
             {
-                DEBUGF(INDI::Logger::DBG_ERROR, "Set expose time failed (%d).", ret);
+                LOGF_ERROR("Set expose time failed (%d).", ret);
                 return false;
             }
 
-            LastExposureRequest = ExposureRequest;
+            LastExposureRequestuS = uSecs;
         }
     }
 
+    // Set binning mode
     if (sim)
         ret = QHYCCD_SUCCESS;
     else
         ret = SetQHYCCDBinMode(camhandle, camxbin, camybin);
     if (ret != QHYCCD_SUCCESS)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD Bin mode failed (%d)", ret);
+        LOGF_INFO("Set QHYCCD Bin mode failed (%d)", ret);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDBinMode (%dx%d).", camxbin, camybin);
+    LOGF_DEBUG("SetQHYCCDBinMode (%dx%d).", camxbin, camybin);
 
+    // Set Region of Interest (ROI)
     if (sim)
         ret = QHYCCD_SUCCESS;
     else
         ret = SetQHYCCDResolution(camhandle, camroix, camroiy, camroiwidth, camroiheight);
     if (ret != QHYCCD_SUCCESS)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)", camroix, camroiy,
+        LOGF_INFO("Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)", camroix, camroiy,
                camroiwidth, camroiheight, ret);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,
+    LOGF_DEBUG("SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,
            camroiy, camroiwidth, camroiheight);
 
+    // Start to expose the frame
     if (sim)
         ret = QHYCCD_SUCCESS;
     else
         ret = ExpQHYCCDSingleFrame(camhandle);
     if (ret == QHYCCD_ERROR)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Begin QHYCCD expose failed (%d)", ret);
+        LOGF_INFO("Begin QHYCCD expose failed (%d)", ret);
         return false;
     }
 
     gettimeofday(&ExpStart, nullptr);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Taking a %g seconds frame...", ExposureRequest);
+    LOGF_DEBUG("Taking a %.5f seconds frame...", ExposureRequest);
 
     InExposure = true;
-
-    // if (ExposureRequest*1000 < POLLMS)
-    //     SetTimer(ExposureRequest*1000);
-    // else
-    SetTimer(POLLMS);
+    pthread_mutex_lock(&condMutex);
+    threadRequest = StateExposure;
+    pthread_cond_signal(&cv);
+    pthread_mutex_unlock(&condMutex);
 
     return true;
 }
 
 bool QHYCCD::AbortExposure()
 {
-    int ret;
-
     if (!InExposure || sim)
     {
         InExposure = false;
         return true;
     }
 
-    ret = CancelQHYCCDExposingAndReadout(camhandle);
-    if (ret == QHYCCD_SUCCESS)
+    LOG_DEBUG("Aborting camera exposure...");
+
+    pthread_mutex_lock(&condMutex);
+    threadRequest = StateAbort;
+    pthread_cond_signal(&cv);
+    while (threadState == StateExposure)
     {
-        //AbortPrimaryFrame = true;
+        pthread_cond_wait(&cv, &condMutex);
+    }
+    pthread_mutex_unlock(&condMutex);
+
+    int rc = CancelQHYCCDExposingAndReadout(camhandle);
+    if (rc == QHYCCD_SUCCESS)
+    {
         InExposure = false;
-        DEBUG(INDI::Logger::DBG_SESSION, "Exposure aborted.");
+        LOG_INFO("Exposure aborted.");
         return true;
     }
     else
-        DEBUGF(INDI::Logger::DBG_ERROR, "Abort exposure failed (%d)", ret);
+        LOGF_ERROR("Abort exposure failed (%d)", rc);
 
     return false;
 }
 
 bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-    /*
-  long x_1 = x / PrimaryCCD.getBinX();
-  long y_1 = y / PrimaryCCD.getBinY();
-
-  long x_2 = x_1 + (w / PrimaryCCD.getBinX());
-  long y_2 = y_1 + (h / PrimaryCCD.getBinY());
-
-  if (x_2 > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
-  {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid width requested %ld", x_2);
-      return false;
-  }
-  else if (y_2 > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
-  {
-      DEBUGF(INDI::Logger::DBG_ERROR, "Error: invalid height request %ld", y_2);
-      return false;
-  }*/
-
     camroix      = x / PrimaryCCD.getBinX();
     camroiy      = y / PrimaryCCD.getBinY();
     camroiwidth  = w / PrimaryCCD.getBinX();
     camroiheight = h / PrimaryCCD.getBinY();
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Final binned (%dx%d) image area is (%d, %d), (%d, %d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(),
+    LOGF_DEBUG("Final binned (%dx%d) image area is (%d, %d), (%d, %d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(),
            camroix, camroiy, camroiwidth, camroiheight);
 
     // Set UNBINNED coords
@@ -977,25 +969,16 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
 
     if (hor != ver)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid binning mode. Asymmetrical binning not supported.");
+        LOG_ERROR("Invalid binning mode. Asymmetrical binning not supported.");
         return false;
     }
 
     if (hor == 3)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid binning mode. Only 1x1, 2x2, and 4x4 binning modes supported.");
+        LOG_ERROR("Invalid binning mode. Only 1x1, 2x2, and 4x4 binning modes supported.");
         return false;
     }
 
-    /*if (hor > 1 && GetCCDCapability() & CCD_HAS_BAYER)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Binning not supported for color CCDs.");
-        return false;
-    }*/
-
-    /*if (useSoftBin)
-        ret = QHYCCD_SUCCESS;
-    else */
     if (hor == 1 && ver == 1)
     {
         ret = IsQHYCCDControlAvailable(camhandle, CAM_BIN1X1MODE);
@@ -1027,7 +1010,7 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
 
     if (ret != QHYCCD_SUCCESS)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%dx%d binning is not supported.", hor, ver);
+        LOGF_ERROR("%dx%d binning is not supported.", hor, ver);
         return false;
     }
 
@@ -1039,15 +1022,15 @@ bool QHYCCD::UpdateCCDBin(int hor, int ver)
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
-float QHYCCD::calcTimeLeft()
+double QHYCCD::calcTimeLeft()
 {
     double timesince;
     double timeleft;
     struct timeval now;
     gettimeofday(&now, nullptr);
 
-    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
-                (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
+    timesince = static_cast<double>(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+                static_cast<double>(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
     timesince = timesince / 1000;
 
     timeleft = ExposureRequest - timesince;
@@ -1059,9 +1042,9 @@ int QHYCCD::grabImage()
 {
     if (sim)
     {
-        unsigned char *image = (unsigned char *)PrimaryCCD.getFrameBuffer();
-        int width            = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
-        int height           = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
+        uint8_t *image = PrimaryCCD.getFrameBuffer();
+        int width      = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
+        int height     = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
         for (int i = 0; i < height; i++)
             for (int j = 0; j < width; j++)
@@ -1071,13 +1054,13 @@ int QHYCCD::grabImage()
     {
         uint32_t ret, w, h, bpp, channels;
 
-        DEBUG(INDI::Logger::DBG_DEBUG, "Blocking read call.");
+        LOG_DEBUG("GetQHYCCDSingleFrame Blocking read call.");
         ret = GetQHYCCDSingleFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer());
-        DEBUG(INDI::Logger::DBG_DEBUG, "Blocking read call finished.");
+        LOG_DEBUG("GetQHYCCDSingleFrame Blocking read call complete.");
 
         if (ret != QHYCCD_SUCCESS)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "GetQHYCCDSingleFrame error (%d)", ret);
+            LOGF_ERROR("GetQHYCCDSingleFrame error (%d)", ret);
             PrimaryCCD.setExposureFailed();
             return -1;
         }
@@ -1087,62 +1070,63 @@ int QHYCCD::grabImage()
     //if (useSoftBin)
     //    PrimaryCCD.binFrame();
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Download complete.");
     if (ExposureRequest > POLLMS * 5)
-        DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+        LOG_INFO("Download complete.");
+    else
+        LOG_DEBUG("Download complete.");
 
     ExposureComplete(&PrimaryCCD);
 
     return 0;
 }
 
-void QHYCCD::TimerHit()
-{
-    if (isConnected() == false)
-        return;
+//void QHYCCD::TimerHit()
+//{
+//    if (isConnected() == false)
+//        return;
 
-    if (InExposure)
-    {
-        long timeleft = calcTimeLeft();
+//    if (InExposure)
+//    {
+//        long timeleft = calcTimeLeft();
 
-        if (timeleft < 1.0)
-        {
-            if (timeleft > 0.25)
-            {
-                //  a quarter of a second or more
-                //  just set a tighter timer
-                SetTimer(250);
-            }
-            else
-            {
-                if (timeleft > 0.07)
-                {
-                    //  use an even tighter timer
-                    SetTimer(50);
-                }
-                else
-                {
-                    /* We're done exposing */
-                    DEBUG(INDI::Logger::DBG_DEBUG, "Exposure done, downloading image...");
-                    // Don't spam the session log unless it is a long exposure > 5 seconds
-                    if (ExposureRequest > POLLMS * 5)
-                        DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+//        if (timeleft < 1.0)
+//        {
+//            if (timeleft > 0.25)
+//            {
+//                //  a quarter of a second or more
+//                //  just set a tighter timer
+//                SetTimer(250);
+//            }
+//            else
+//            {
+//                if (timeleft > 0.07)
+//                {
+//                    //  use an even tighter timer
+//                    SetTimer(50);
+//                }
+//                else
+//                {
+//                    /* We're done exposing */
+//                    LOG_DEBUG("Exposure done, downloading image...");
+//                    // Don't spam the session log unless it is a long exposure > 5 seconds
+//                    if (ExposureRequest > POLLMS * 5)
+//                        LOG_INFO("Exposure done, downloading image...");
 
-                    PrimaryCCD.setExposureLeft(0);
-                    InExposure = false;
+//                    PrimaryCCD.setExposureLeft(0);
+//                    InExposure = false;
 
-                    // grab and save image
-                    grabImage();
-                }
-            }
-        }
-        else
-        {
-            PrimaryCCD.setExposureLeft(timeleft);
-            SetTimer(POLLMS);
-        }
-    }
-}
+//                    // grab and save image
+//                    grabImage();
+//                }
+//            }
+//        }
+//        else
+//        {
+//            PrimaryCCD.setExposureLeft(timeleft);
+//            SetTimer(POLLMS);
+//        }
+//    }
+//}
 
 IPState QHYCCD::GuideNorth(uint32_t ms)
 {
@@ -1171,7 +1155,7 @@ IPState QHYCCD::GuideWest(uint32_t ms)
 bool QHYCCD::SelectFilter(int position)
 {
     char targetpos = 0;
-    char currentpos[64];
+    char currentpos[64]={0};
     int checktimes = 0;
     int ret = 0;
 
@@ -1202,11 +1186,11 @@ bool QHYCCD::SelectFilter(int position)
 
         CurrentFilter = position;
         SelectFilterDone(position);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s: Filter changed to %d", camid, position);
+        LOGF_DEBUG("%s: Filter changed to %d", camid, position);
         return true;
     }
     else
-        DEBUGF(INDI::Logger::DBG_ERROR, "Changing filter failed (%d)", ret);
+        LOGF_ERROR("Changing filter failed (%d)", ret);
 
     return false;
 }
@@ -1266,12 +1250,12 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             IUUpdateNumber(&GainNP, values, names, n);
             GainRequest = GainN[0].value;
-            if (LastGainRequest != GainRequest)
+            if (fabs(LastGainRequest - GainRequest) > 0.001)
             {
                 SetQHYCCDParam(camhandle, CONTROL_GAIN, GainN[0].value);
                 LastGainRequest = GainRequest;
             }
-            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", GainNP.name, GainN[0].value);
+            LOGF_INFO("Current %s value %f", GainNP.name, GainN[0].value);
             GainNP.s = IPS_OK;
             IDSetNumber(&GainNP, nullptr);
             return true;
@@ -1281,7 +1265,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             IUUpdateNumber(&OffsetNP, values, names, n);
             SetQHYCCDParam(camhandle, CONTROL_OFFSET, OffsetN[0].value);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", OffsetNP.name, OffsetN[0].value);
+            LOGF_INFO("Current %s value %f", OffsetNP.name, OffsetN[0].value);
             OffsetNP.s = IPS_OK;
             IDSetNumber(&OffsetNP, nullptr);
             saveConfig(true, OffsetNP.name);
@@ -1292,7 +1276,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             IUUpdateNumber(&SpeedNP, values, names, n);
             SetQHYCCDParam(camhandle, CONTROL_SPEED, SpeedN[0].value);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", SpeedNP.name, SpeedN[0].value);
+            LOGF_INFO("Current %s value %f", SpeedNP.name, SpeedN[0].value);
             SpeedNP.s = IPS_OK;
             IDSetNumber(&SpeedNP, nullptr);
             saveConfig(true, SpeedNP.name);
@@ -1303,15 +1287,14 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             IUUpdateNumber(&USBTrafficNP, values, names, n);
             SetQHYCCDParam(camhandle, CONTROL_USBTRAFFIC, USBTrafficN[0].value);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Current %s value %f", USBTrafficNP.name, USBTrafficN[0].value);
+            LOGF_INFO("Current %s value %f", USBTrafficNP.name, USBTrafficN[0].value);
             USBTrafficNP.s = IPS_OK;
             IDSetNumber(&USBTrafficNP, nullptr);
             saveConfig(true, USBTrafficNP.name);
             return true;
         }
     }
-    //  if we didn't process it, continue up the chain, let somebody else
-    //  give it a shot
+
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -1324,9 +1307,16 @@ void QHYCCD::setCooler(bool enable)
         CoolerSP.s   = IPS_OK;
         IDSetSwitch(&CoolerSP, nullptr);
 
+        if (sim == false)
+        {
+            //SetQHYCCDParam(camhandle, CONTROL_MANULPWM, 255);
+            // Decrease temperature to "turn on" cooler
+            SetQHYCCDParam(camhandle, CONTROL_COOLER, TemperatureN[0].value-0.1);
+        }
+
         CoolerNP.s = IPS_BUSY;
         IDSetNumber(&CoolerNP, nullptr);
-        DEBUG(INDI::Logger::DBG_SESSION, "Cooler on.");
+        LOG_INFO("Cooler on.");
 
         coolerEnabled = true;
     }
@@ -1347,7 +1337,7 @@ void QHYCCD::setCooler(bool enable)
 
         TemperatureNP.s = IPS_IDLE;
         IDSetNumber(&TemperatureNP, nullptr);
-        DEBUG(INDI::Logger::DBG_SESSION, "Cooler off.");
+        LOG_INFO("Cooler off.");
     }
 }
 
@@ -1381,13 +1371,16 @@ void QHYCCD::updateTemperature()
     {
         ccdtemp   = GetQHYCCDParam(camhandle, CONTROL_CURTEMP);
         coolpower = GetQHYCCDParam(camhandle, CONTROL_CURPWM);
+
+        // In previous SDKs, we have to call this _every_ second to set the temperature
+        // but shouldn't be required for SDK v3 and above.
         //ControlQHYCCDTemp(camhandle, TemperatureRequest);
     }
 
     // No need to spam to log
     if (fabs(ccdtemp - TemperatureN[0].value) > 0.001 || fabs(CoolerN[0].value - (coolpower / 255.0 * 100)) > 0.001)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CCD Temp: %g CCD RAW Cooling Power: %g, CCD Cooling percentage: %g", ccdtemp,
+        LOGF_DEBUG("CCD Temp: %g CCD RAW Cooling Power: %g, CCD Cooling percentage: %g", ccdtemp,
                coolpower, coolpower / 255.0 * 100);
     }
 
@@ -1455,15 +1448,6 @@ bool QHYCCD::saveConfigItems(FILE *fp)
 
 bool QHYCCD::StartStreaming()
 {
-    /*if (PrimaryCCD.getBPP() != 8)
-    {
-        DEBUG(INDI::Logger::DBG_ERROR, "Streaming only supported for 8 bit images.");
-        return false;
-    }
-
-    DEBUGF(INDI::Logger::DBG_SESSION, "Starting streaming with a period of %g seconds.",
-           PrimaryCCD.getExposureDuration());*/
-
     ExposureRequest = 1.0 / Streamer->getTargetFPS();
 
     // N.B. There is no corresponding value for GBGR. It is odd that QHY selects this as the default as no one seems to process it
@@ -1478,66 +1462,186 @@ bool QHYCCD::StartStreaming()
 
     Streamer->setPixelFormat(qhyFormat, PrimaryCCD.getBPP());
 
-    SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, ExposureRequest * 1000 * 1000);
+    double uSecs = static_cast<long>(ExposureRequest * 950000.0);
+    SetQHYCCDParam(camhandle, CONTROL_EXPOSURE, uSecs);
     SetQHYCCDStreamMode(camhandle, 0x01);
     BeginQHYCCDLive(camhandle);
+
     pthread_mutex_lock(&condMutex);
-    streamPredicate = 1;
-    pthread_mutex_unlock(&condMutex);
+    threadRequest = StateStream;
     pthread_cond_signal(&cv);
+    pthread_mutex_unlock(&condMutex);
 
     return true;
 }
 
 bool QHYCCD::StopStreaming()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Streaming disabled.");
-
     pthread_mutex_lock(&condMutex);
-    streamPredicate = 0;
-    pthread_mutex_unlock(&condMutex);
+    threadRequest = StateAbort;
     pthread_cond_signal(&cv);
+    while (threadState == StateStream)
+    {
+        pthread_cond_wait(&cv, &condMutex);
+    }
+    pthread_mutex_unlock(&condMutex);
     SetQHYCCDStreamMode(camhandle, 0x0);
     StopQHYCCDLive(camhandle);
 
     return true;
 }
 
-void *QHYCCD::streamVideoHelper(void *context)
+void *QHYCCD::imagingHelper(void *context)
 {
-    return ((QHYCCD *)context)->streamVideo();
+    return static_cast<QHYCCD *>(context)->imagingThreadEntry();
 }
 
-void *QHYCCD::streamVideo()
+/*
+ * A dedicated thread is used for handling streaming video and image
+ * exposures because the operations take too much time to be done
+ * as part of a timer call-back: there is one timer for the entire
+ * process, which must handle events for all ASI cameras
+ */
+void *QHYCCD::imagingThreadEntry()
+{
+    pthread_mutex_lock(&condMutex);
+    threadState = StateIdle;
+    pthread_cond_signal(&cv);
+    while (true)
+    {
+        while (threadRequest == StateIdle)
+        {
+            pthread_cond_wait(&cv, &condMutex);
+        }
+        threadState = threadRequest;
+        if (threadRequest == StateExposure)
+        {
+            getExposure();
+        }
+        else if (threadRequest == StateStream)
+        {
+            streamVideo();
+        }
+        else if (threadRequest == StateRestartExposure)
+        {
+            threadRequest = StateIdle;
+            pthread_mutex_unlock(&condMutex);
+            StartExposure(ExposureRequest);
+            pthread_mutex_lock(&condMutex);
+        }
+        else if (threadRequest == StateTerminate)
+        {
+            break;
+        }
+        else
+        {
+            threadRequest = StateIdle;
+            pthread_cond_signal(&cv);
+        }
+        threadState = StateIdle;
+    }
+    threadState = StateTerminated;
+    pthread_cond_signal(&cv);
+    pthread_mutex_unlock(&condMutex);
+
+    return nullptr;
+}
+
+void QHYCCD::streamVideo()
 {
     uint32_t ret = 0, w, h, bpp, channels;
 
-    while (true)
+    while (threadRequest == StateStream)
     {
-        pthread_mutex_lock(&condMutex);
-
-        while (streamPredicate == 0)
-            pthread_cond_wait(&cv, &condMutex);
-
-        if (terminateThread)
-            break;
-
-        // release condMutex
         pthread_mutex_unlock(&condMutex);
 
-        if ((ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) ==
-            QHYCCD_SUCCESS)
+        if ((ret = GetQHYCCDLiveFrame(camhandle, &w, &h, &bpp, &channels, PrimaryCCD.getFrameBuffer())) == QHYCCD_SUCCESS)
             Streamer->newFrame(PrimaryCCD.getFrameBuffer(), PrimaryCCD.getFrameBufferSize());
-    }
 
+        pthread_mutex_lock(&condMutex);
+    }
+}
+
+void QHYCCD::getExposure()
+{
     pthread_mutex_unlock(&condMutex);
-    return nullptr;
+    usleep(10000);
+    pthread_mutex_lock(&condMutex);
+
+    while (threadRequest == StateExposure)
+    {
+        pthread_mutex_unlock(&condMutex);
+        /*
+         * Check the status every second until the time left is
+         * about one second, after which decrease the poll interval
+         */
+        double timeLeft = calcTimeLeft();
+        uint32_t uSecs=0;
+        if (timeLeft > 1.1)
+        {
+            /*
+             * For expsoures with more than a second left try
+             * to keep the displayed "exposure left" value at
+             * a full second boundary, which keeps the
+             * count down neat
+             */
+            double fraction = timeLeft - static_cast<int>(timeLeft);
+            if (fraction >= 0.005)
+            {
+                uSecs = static_cast<uint32_t>(fraction * 1000000.0);
+            }
+            else
+            {
+                uSecs = 1000000;
+            }
+        }
+        else
+        {
+            uSecs = 10000;
+        }
+
+        if (timeLeft >= 0.0049)
+        {
+            PrimaryCCD.setExposureLeft(timeLeft);
+        }
+        else
+        {
+            InExposure = false;
+            PrimaryCCD.setExposureLeft(0.0);
+            if (ExposureRequest*1000 > 5 * POLLMS)
+                DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+            pthread_mutex_lock(&condMutex);
+            exposureSetRequest(StateIdle);
+            pthread_mutex_unlock(&condMutex);
+            grabImage();
+            pthread_mutex_lock(&condMutex);
+            break;
+        }
+        usleep(uSecs);
+
+        pthread_mutex_lock(&condMutex);
+    }
+}
+
+/* Caller must hold the mutex */
+void QHYCCD::exposureSetRequest(ImageState request)
+{
+    if (threadRequest == StateExposure)
+    {
+        threadRequest = request;
+    }
+}
+
+void QHYCCD::logQHYMessages(const std::string &message)
+{
+    LOGF_DEBUG("%s", message.c_str());
 }
 
 void QHYCCD::debugTriggered(bool enable)
 {
+    SetQHYCCDLogFunction(m_QHYLogCallback);
     if (enable)
-        SetQHYCCDLogLevel(1);
+        SetQHYCCDLogLevel(5);
     else
-        SetQHYCCDLogLevel(0);
+        SetQHYCCDLogLevel(3);
 }

@@ -100,7 +100,7 @@ class MapPropertiesToInMemoryDatabase : public InMemoryDatabase
     /// \param[in] values value as passed by the client
     /// \param[in] names names as passed by the client
     /// \param[in] n number of values and names pair to process.
-    void ProcessNumberProperties(Telescope *pTelescope, const char *name, double values[], char *names[], int n);
+    void ProcessNumberProperties(Telescope *, const char *name, double values[], char *names[], int n);
 
     /// \brief Call this function from within the ISNewSwitch processing path. The function will
     /// handle any alignment database related properties.

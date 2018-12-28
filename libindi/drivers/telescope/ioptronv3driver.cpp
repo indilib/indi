@@ -22,7 +22,7 @@
 #include "indicom.h"
 
 #include <libnova/julian_day.h>
-#include <inttypes.h>
+#include <cinttypes>
 
 #include <cmath>
 #include <cstring>

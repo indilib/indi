@@ -49,6 +49,20 @@ set(CMAKE_INDI_VERSION_RELEASE 5)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
+execute_process(
+    COMMAND git describe --tags
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_TAG
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE GIT_TAG_RESULT
+)
+
+if (NOT ${GIT_TAG_RESULT} EQUAL 0)
+    set(GIT_TAG "${CMAKE_INDI_VERSION_STRING}-tgz")
+endif()
+
+add_definitions(-DGIT_TAG_STRING=\"${GIT_TAG}\")
+
 ########################################  Paths  ###################################################
 
 set(DATA_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/indi/")
@@ -563,6 +577,7 @@ install(TARGETS indi_paramount_telescope RUNTIME DESTINATION bin)
 
 ########### Syncscan ###############
 SET(synscan_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscandriver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscanmount.cpp)
 
 add_executable(indi_synscan_telescope ${synscan_SRC})
@@ -712,6 +727,15 @@ SET(moonlite_SRC
 add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
+
+################ OnFocus Focuser ################
+
+SET(onfocus_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/onfocus.cpp)
+
+add_executable(indi_onfocus_focus ${onfocus_SRC})
+target_link_libraries(indi_onfocus_focus indidriver)
+install(TARGETS indi_onfocus_focus RUNTIME DESTINATION bin)
 
 
 ################ Sesto Senso Focuser ################
@@ -902,6 +926,15 @@ add_executable(indi_simulator_wheel ${filtersimulator_SRC})
 target_link_libraries(indi_simulator_wheel indidriver)
 install(TARGETS indi_simulator_wheel RUNTIME DESTINATION bin)
 
+########### Manual Filter ##############
+SET(manualfilter_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/manual_filter.cpp)
+
+add_executable(indi_manual_wheel ${manualfilter_SRC})
+target_link_libraries(indi_manual_wheel indidriver)
+install(TARGETS indi_manual_wheel RUNTIME DESTINATION bin)
+
+
 ########## Optec Wheel IFW ############
 SET(optecwheel_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/ifwoptec.cpp)
@@ -925,6 +958,22 @@ SET(trutechwheel_SRC
 add_executable(indi_trutech_wheel ${trutechwheel_SRC})
 target_link_libraries(indi_trutech_wheel indidriver)
 install(TARGETS indi_trutech_wheel RUNTIME DESTINATION bin)
+
+########## QHYCFW Wheel 2 ############
+SET(qhycfw2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/qhycfw2.cpp)
+
+add_executable(indi_qhycfw2_wheel ${qhycfw2_SRC})
+target_link_libraries(indi_qhycfw2_wheel indidriver)
+install(TARGETS indi_qhycfw2_wheel RUNTIME DESTINATION bin)
+
+########## QHYCFW Wheel 3 ############
+SET(qhycfw3_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/filter_wheel/qhycfw3.cpp)
+
+add_executable(indi_qhycfw3_wheel ${qhycfw3_SRC})
+target_link_libraries(indi_qhycfw3_wheel indidriver)
+install(TARGETS indi_qhycfw3_wheel RUNTIME DESTINATION bin)
 
 #################################################################################
 
@@ -1218,6 +1267,20 @@ ENDIF ()
 add_executable(indi_wunderground_weather ${WunderGround_SRC})
 target_link_libraries(indi_wunderground_weather indidriver ${CURL_LIBRARIES})
 install(TARGETS indi_wunderground_weather RUNTIME DESTINATION bin)
+
+########### OpenWeatherMap Driver ###############
+
+SET(OpenWeatherMap_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/openweathermap.cpp)
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(OpenWeatherMap OpenWeatherMap_SRC 10 cpp)
+ENDIF ()
+
+add_executable(indi_openweathermap_weather ${OpenWeatherMap_SRC})
+target_link_libraries(indi_openweathermap_weather indidriver ${CURL_LIBRARIES})
+install(TARGETS indi_openweathermap_weather RUNTIME DESTINATION bin)
 
 #####################################
 ############ INDI TOOLS #############

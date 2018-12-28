@@ -98,10 +98,10 @@ void MapPropertiesToInMemoryDatabase::ProcessBlobProperties(Telescope *pTelescop
     }
 }
 
-void MapPropertiesToInMemoryDatabase::ProcessNumberProperties(Telescope *pTelescope, const char *name, double values[],
+void MapPropertiesToInMemoryDatabase::ProcessNumberProperties(Telescope *, const char *name, double values[],
                                                               char *names[], int n)
 {
-    DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessNumberProperties - name(%s)", name);
+    //DEBUGFDEVICE(pTelescope->getDeviceName(), INDI::Logger::DBG_DEBUG, "ProcessNumberProperties - name(%s)", name);
     if (strcmp(name, AlignmentPointSetEntryV.name) == 0)
     {
         AlignmentPointSetEntryV.s = IPS_OK;

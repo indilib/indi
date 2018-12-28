@@ -81,6 +81,7 @@
 
 int tty_debug = 0;
 int ttyGeminiUdpFormat = 0;
+int ttySkyWatcherUdpFormat = 0;
 int sequenceNumber = 1;
 int ttyClrTrailingLF = 0;
 
@@ -320,6 +321,11 @@ void tty_set_gemini_udp_format(int enabled)
     ttyGeminiUdpFormat = enabled;
 }
 
+void tty_set_skywatcher_udp_format(int enabled)
+{
+    ttySkyWatcherUdpFormat = enabled;
+}
+
 void tty_clr_trailing_read_lf(int enabled)
 {
     ttyClrTrailingLF = enabled;
@@ -518,7 +524,7 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
     uint8_t *read_char = 0;
 
     if (tty_debug)
-        IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
+        IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);    
 
     if (ttyGeminiUdpFormat)
     {
@@ -541,6 +547,22 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
             if (*(readBuffer+index) == stop_char)
             {
                 strncpy(buf, readBuffer+8, *nbytes_read);
+                return TTY_OK;
+            }
+        }
+    }
+    else if (ttySkyWatcherUdpFormat)
+    {
+        bytesRead = read(fd, readBuffer, 255);
+        if (bytesRead < 0)
+            return TTY_READ_ERROR;
+        for (int index = 0; index < bytesRead; index++)
+        {
+            (*nbytes_read)++;
+
+            if (*(readBuffer+index) == stop_char)
+            {
+                strncpy(buf, readBuffer, *nbytes_read);
                 return TTY_OK;
             }
         }

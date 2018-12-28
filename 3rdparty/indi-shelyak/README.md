@@ -4,7 +4,7 @@ This package provides INDI driver for Shelyak spectrographs.
 
 ##### Supported devices:
 * Shelyak eShel calibration unit
-* Shelyak alpy calibration unit
+* Shelyak SPOX calibration unit command
 
 
 
@@ -27,7 +27,7 @@ To run the eShel driver from the command line:
 
 To run the alpy driver from the command line:
 
-`$ indiserver indi_shelyakalpy_spectrograph`
+`$ indiserver indi_shelyakspox_spectrograph`
 
 
 You can then connect to the driver from any client, the default port is 7624.
