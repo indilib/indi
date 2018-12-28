@@ -3689,8 +3689,17 @@ bool EQMod::updateLocation(double latitude, double longitude, double elevation)
 
 void EQMod::saveInitialParkPosition()
 {
-    SetCurrentPark();
-    WriteParkData();
+    try
+    {
+        currentRAEncoder = mount->GetRAEncoder();
+        currentDEEncoder = mount->GetDEEncoder();
+        SetCurrentPark();
+        WriteParkData();
+    }
+    catch (EQModError e)
+    {
+        e.DefaultHandleException(this);
+    }
 }
 
 bool EQMod::SetCurrentPark()
