@@ -2795,6 +2795,8 @@ bool FocusLynxBase::SetFocuserMaxPosition(uint32_t ticks)
     snprintf(cmd, 32, "<%sSETMAX%06d>", getFocusTarget(), ticks);
     LOGF_DEBUG("CMD (%s)", cmd);
 
+    SyncPresets(ticks);
+
     if (isSimulation())
     {
         strncpy(response, "SET", 16);

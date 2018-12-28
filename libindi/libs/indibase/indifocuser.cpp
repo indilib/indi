@@ -356,4 +356,21 @@ void Focuser::setSupportedConnections(const uint8_t &value)
 
     focuserConnection = value;
 }
+
+bool Focuser::SetFocuserMaxPosition(uint32_t ticks)
+{
+    SyncPresets(ticks);
+    return true;
+}
+
+void Focuser::SyncPresets(uint32_t ticks)
+{
+    PresetN[0].max = ticks;
+    PresetN[0].step = PresetN[0].max/50.0;
+    PresetN[1].max = ticks;
+    PresetN[1].step = PresetN[0].max/50.0;
+    PresetN[2].max = ticks;
+    PresetN[2].step = PresetN[0].max/50.0;
+    IUUpdateMinMax(&PresetNP);
+}
 }
