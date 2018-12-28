@@ -89,6 +89,18 @@ class Focuser : public DefaultDevice, public FocuserInterface
     /** \brief perform handshake with device to check communication */
     virtual bool Handshake();
 
+    /**
+     * @brief SetFocuserMaxPosition Update focuser maximum position. It only updates the PresetNP property limits.
+     * @param ticks maximum ticks
+     * @return True
+     */
+    virtual bool SetFocuserMaxPosition(uint32_t ticks);
+
+    /**
+     * @brief syncPresets Updates the min/max/step range of the preset as per the maximum name of Absolute Focus Travel
+     */
+    virtual void SyncPresets(uint32_t ticks);
+
     INumber PresetN[3];
     INumberVectorProperty PresetNP;
     ISwitch PresetGotoS[3];
