@@ -98,10 +98,11 @@ bool Telescope::initProperties()
     IUFillNumberVector(&TargetNP, TargetN, 2, getDeviceName(), "TARGET_EOD_COORD", "Slew Target", MOTION_TAB, IP_RO, 60,
                        IPS_IDLE);
 
-    IUFillSwitch(&ParkOptionS[0], "PARK_CURRENT", "Current", ISS_OFF);
-    IUFillSwitch(&ParkOptionS[1], "PARK_DEFAULT", "Default", ISS_OFF);
-    IUFillSwitch(&ParkOptionS[2], "PARK_WRITE_DATA", "Write Data", ISS_OFF);
-    IUFillSwitchVector(&ParkOptionSP, ParkOptionS, 3, getDeviceName(), "TELESCOPE_PARK_OPTION", "Park Options",
+    IUFillSwitch(&ParkOptionS[PARK_CURRENT], "PARK_CURRENT", "Current", ISS_OFF);
+    IUFillSwitch(&ParkOptionS[PARK_DEFAULT], "PARK_DEFAULT", "Default", ISS_OFF);
+    IUFillSwitch(&ParkOptionS[PARK_WRITE_DATA], "PARK_WRITE_DATA", "Write Data", ISS_OFF);
+    IUFillSwitch(&ParkOptionS[PARK_PURGE_DATA], "PARK_PURGE_DATA", "Purge Data", ISS_OFF);
+    IUFillSwitchVector(&ParkOptionSP, ParkOptionS, 4, getDeviceName(), "TELESCOPE_PARK_OPTION", "Park Options",
                        SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillText(&TimeT[0], "UTC", "UTC Time", nullptr);
@@ -1330,8 +1331,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         if (!strcmp(name, ParkOptionSP.name))
         {
             IUUpdateSwitch(&ParkOptionSP, states, names, n);
-            ISwitch *sp = IUFindOnSwitch(&ParkOptionSP);
-            if (!sp)
+            int index = IUFindOnSwitchIndex(&ParkOptionSP);
+            if (index == -1)
                 return false;
 
             IUResetSwitch(&ParkOptionSP);
@@ -1347,21 +1348,28 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 return false;
             }
 
-            if (!strcmp(sp->name, "PARK_CURRENT"))
+            switch (index)
             {
+            case PARK_CURRENT:
                 rc = SetCurrentPark();
-            }
-            else if (!strcmp(sp->name, "PARK_DEFAULT"))
-            {
+                break;
+            case PARK_DEFAULT:
                 rc = SetDefaultPark();
-            }
-            else if (!strcmp(sp->name, "PARK_WRITE_DATA"))
-            {
+                break;
+            case PARK_WRITE_DATA:
                 rc = WriteParkData();
                 if (rc)
                     DEBUG(Logger::DBG_SESSION, "Saved Park Status/Position.");
                 else
                     DEBUG(Logger::DBG_WARNING, "Can not save Park Status/Position.");
+                break;
+            case PARK_PURGE_DATA:
+                rc = PurgeParkData();
+                if (rc)
+                    DEBUG(Logger::DBG_SESSION, "Park data purged.");
+                else
+                    DEBUG(Logger::DBG_WARNING, "Can not purge Park Status/Position.");
+                break;
             }
 
             ParkOptionSP.s = rc ? IPS_OK : IPS_ALERT;
@@ -1795,8 +1803,7 @@ bool Telescope::isParked()
 
 bool Telescope::InitPark()
 {
-    char *loadres;
-    loadres = LoadParkData();
+    const char *loadres = LoadParkData();
     if (loadres)
     {
         LOGF_INFO("InitPark: No Park data in file %s: %s", ParkDataFileName.c_str(), loadres);
@@ -1814,7 +1821,7 @@ bool Telescope::InitPark()
     return true;
 }
 
-char *Telescope::LoadParkData()
+const char *Telescope::LoadParkData()
 {
     wordexp_t wexp;
     FILE *fp;
@@ -1835,7 +1842,7 @@ char *Telescope::LoadParkData()
     if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
         wordfree(&wexp);
-        return (char *)("Badly formed filename.");
+        return "Badly formed filename.";
     }
 
     if (!(fp = fopen(wexp.we_wordv[0], "r")))
@@ -1857,7 +1864,7 @@ char *Telescope::LoadParkData()
         return errmsg;
 
     if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
-        return (char *)("Not a park data file");
+        return "Not a park data file";
 
     parkxml = nextXMLEle(ParkdataXmlRoot, 1);
 
@@ -1878,7 +1885,7 @@ char *Telescope::LoadParkData()
     }
 
     if (!devicefound)
-        return (char *)"No park data found for this device";
+        return "No park data found for this device";
 
     ParkdeviceXml        = parkxml;
     ParkstatusXml        = findXMLEle(parkxml, "parkstatus");
@@ -1889,7 +1896,7 @@ char *Telescope::LoadParkData()
 
     if (ParkstatusXml == nullptr || ParkpositionAxis1Xml == nullptr || ParkpositionAxis2Xml == nullptr)
     {
-        return (char *)("Park data invalid or missing.");
+        return "Park data invalid or missing.";
     }
 
     if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
@@ -1902,12 +1909,12 @@ char *Telescope::LoadParkData()
     rc     = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &axis1Pos);
     if (rc != 1)
     {
-        return (char *)("Unable to parse Park Position Axis 1.");
+        return "Unable to parse Park Position Axis 1.";
     }
     rc = sscanf(pcdataXMLEle(ParkpositionAxis2Xml), "%lf", &axis2Pos);
     if (rc != 1)
     {
-        return (char *)("Unable to parse Park Position Axis 2.");
+        return "Unable to parse Park Position Axis 2.";
     }
 
     if (std::isnan(axis1Pos) == false && std::isnan(axis2Pos) == false)
@@ -1917,7 +1924,91 @@ char *Telescope::LoadParkData()
         return nullptr;
     }
 
-    return (char *)("Failed to parse Park Position.");
+    return "Failed to parse Park Position.";
+}
+
+bool Telescope::PurgeParkData()
+{
+    wordexp_t wexp;
+    FILE *fp;
+    LilXML *lp;
+    static char errmsg[512];
+
+    XMLEle *parkxml;
+    XMLAtt *ap;
+    bool devicefound = false;
+
+    ParkDeviceName       = getDeviceName();
+
+    if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
+    {
+        wordfree(&wexp);
+        return false;
+    }
+
+    if (!(fp = fopen(wexp.we_wordv[0], "r")))
+    {
+        wordfree(&wexp);
+        LOGF_ERROR("Failed to purge park data: %s", strerror(errno));
+        return false;
+    }
+    wordfree(&wexp);
+
+    lp = newLilXML();
+
+    if (ParkdataXmlRoot)
+        delXMLEle(ParkdataXmlRoot);
+
+    ParkdataXmlRoot = readXMLFile(fp, lp, errmsg);
+
+    delLilXML(lp);
+    if (!ParkdataXmlRoot)
+        return false;
+
+    if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
+        return false;
+
+    parkxml = nextXMLEle(ParkdataXmlRoot, 1);
+
+    while (parkxml)
+    {
+        if (strcmp(tagXMLEle(parkxml), "device"))
+        {
+            parkxml = nextXMLEle(ParkdataXmlRoot, 0);
+            continue;
+        }
+        ap = findXMLAtt(parkxml, "name");
+        if (ap && (!strcmp(valuXMLAtt(ap), ParkDeviceName)))
+        {
+            devicefound = true;
+            break;
+        }
+        parkxml = nextXMLEle(ParkdataXmlRoot, 0);
+    }
+
+    if (!devicefound)
+        return false;
+
+    delXMLEle(parkxml);
+
+    ParkstatusXml        = nullptr;
+    ParkdeviceXml        = nullptr;
+    ParkpositionXml      = nullptr;
+    ParkpositionAxis1Xml = nullptr;
+    ParkpositionAxis2Xml = nullptr;
+
+    wordexp(ParkDataFileName.c_str(), &wexp, 0);
+    if (!(fp = fopen(wexp.we_wordv[0], "w")))
+    {
+        wordfree(&wexp);
+        LOGF_INFO("WriteParkData: can not write file %s: %s", ParkDataFileName.c_str(), strerror(errno));
+        return false;
+    }
+    prXMLEle(fp, ParkdataXmlRoot, 0);
+    fclose(fp);
+    wordfree(&wexp);
+
+    return true;
 }
 
 bool Telescope::WriteParkData()

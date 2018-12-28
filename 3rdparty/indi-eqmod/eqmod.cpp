@@ -494,6 +494,8 @@ bool EQMod::loadProperties()
 bool EQMod::updateProperties()
 {
     INumber *latitude;
+    INumber *longitude;
+    INumber *elevation;
 
     INDI::Telescope::updateProperties();
 
@@ -607,6 +609,12 @@ bool EQMod::updateProperties()
                 }
             }
 
+            LOG_DEBUG("Init backlash.");
+            mount->SetBacklashUseRA((IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s == ISS_ON ? true : false));
+            mount->SetBacklashUseDE((IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s == ISS_ON ? true : false));
+            mount->SetBacklashRA((uint32_t)(IUFindNumber(BacklashNP, "BACKLASHRA")->value));
+            mount->SetBacklashDE((uint32_t)(IUFindNumber(BacklashNP, "BACKLASHDE")->value));
+
             mount->Init();
 
             zeroRAEncoder  = mount->GetRAEncoderZero();
@@ -620,10 +628,17 @@ bool EQMod::updateProperties()
             parkDEEncoder = GetAxis2Park();
 
             latitude = IUFindNumber(&LocationNP, "LAT");
-            if ((latitude) && (latitude->value < 0.0))
-                SetSouthernHemisphere(true);
-            else
-                SetSouthernHemisphere(false);
+            longitude = IUFindNumber(&LocationNP, "LONG");
+            elevation = IUFindNumber(&LocationNP, "ELEV");
+            if (latitude && longitude && elevation)
+                updateLocation(latitude->value, longitude->value, elevation->value);
+//            else
+//                updateLocation(0.0, 0.0, 0.0);
+
+//            if ((latitude) && (latitude->value < 0.0))
+//                SetSouthernHemisphere(true);
+//            else
+//                SetSouthernHemisphere(false);
 
             sendTimeFromSystem();
         }
@@ -853,7 +868,7 @@ bool EQMod::ReadScopeStatus()
     {
         currentRAEncoder = mount->GetRAEncoder();
         currentDEEncoder = mount->GetDEEncoder();
-        DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
+        DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", static_cast<long>(currentRAEncoder), static_cast<long>(currentDEEncoder));
         EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
         alignedRA    = currentRA;
         alignedDEC   = currentDEC;
@@ -881,8 +896,9 @@ bool EQMod::ReadScopeStatus()
             TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
             DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
                    "Status: Mnt. Algnt. %s Date %lf encoders RA=%ld DE=%ld Telescope RA %lf DEC %lf",
-                   maligns[GetApproximateMountAlignment()], juliandate, currentRAEncoder, currentDEEncoder, currentRA,
-                    currentDEC);
+                   maligns[GetApproximateMountAlignment()], juliandate,
+                   static_cast<long>(currentRAEncoder), static_cast<long>(currentDEEncoder),
+                   currentRA, currentDEC);
             DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
                    RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
             aligned = true;
@@ -3683,8 +3699,8 @@ bool EQMod::SetCurrentPark()
     parkDEEncoder = currentDEEncoder;
     SetAxis1Park(parkRAEncoder);
     SetAxis2Park(parkDEEncoder);
-    LOGF_INFO("Setting Park Position to current RA Encoder=%ld DE Encoder=%ld", parkRAEncoder,
-           parkDEEncoder);
+    LOGF_INFO("Setting Park Position to current RA Encoder=%ld DE Encoder=%ld",
+           static_cast<long>(parkRAEncoder), static_cast<long>(parkDEEncoder));
 
     return true;
 }
@@ -3695,8 +3711,8 @@ bool EQMod::SetDefaultPark()
     parkDEEncoder = GetAxis2ParkDefault();
     SetAxis1Park(parkRAEncoder);
     SetAxis2Park(parkDEEncoder);
-    LOGF_INFO("Setting Park Position to default RA Encoder=%ld DE Encoder=%ld", parkRAEncoder,
-           parkDEEncoder);
+    LOGF_INFO("Setting Park Position to default RA Encoder=%ld DE Encoder=%ld",
+           static_cast<long>(parkRAEncoder), static_cast<long>(parkDEEncoder));
 
     return true;
 }

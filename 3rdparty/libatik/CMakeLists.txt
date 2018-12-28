@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 PROJECT(libatik C CXX)
 
-set(ATIK_VERSION "2.0.0")
+set(ATIK_VERSION "2.1.0")
 set(ATIK_SOVERSION "2")
 
 include(GNUInstallDirs)

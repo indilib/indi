@@ -33,7 +33,7 @@
 #include "config.h"
 #include <functional>
 
-#ifdef _WIN32
+#if defined (_WIN32)
 #include "cyapi.h"
 #endif
 
@@ -43,20 +43,20 @@
 #if defined (_WIN32)
 typedef CCyUSBDevice qhyccd_handle;
 #endif
-#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+#if (defined(__linux__ )&&!defined (__ANDROID__)) ||(defined (__APPLE__)&&defined( __MACH__)) ||(defined(__linux__ )&&defined (__ANDROID__))
 typedef struct libusb_device_handle qhyccd_handle;
 #endif
 
 
 EXPORTC void STDCALL SetQHYCCDLogLevel(uint8_t logLevel);
 
-#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+#if defined(__linux__ )&&!defined (__ANDROID__)
 
 EXPORTC void STDCALL SetQHYCCDLogFunction(std::function<void(const std::string &message)> logFunction);
 
 #endif
 
-EXPORTC void STDCALL EnableQHYCCDMessage(bool enable); 
+EXPORTC void STDCALL EnableQHYCCDMessage(bool enable);
 EXPORTC void STDCALL EnableQHYCCDLogFile(bool enable);
 
 EXPORTC const char* STDCALL GetTimeStamp();

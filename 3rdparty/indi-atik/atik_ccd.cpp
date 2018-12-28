@@ -682,6 +682,19 @@ bool ATIKCCD::StartExposure(float duration)
     PrimaryCCD.setExposureDuration(duration);
     ExposureRequest = duration;
 
+    // Camera needs to be in idle state to start exposure after previous abort
+    int maxWaitCount = 1000; // 1000 * 0.1s = 100s
+    while (ArtemisCameraState(hCam) != CAMERA_IDLE && --maxWaitCount > 0)
+    {
+        LOG_DEBUG("Waiting camera to be idle...");
+        usleep(100000);
+    }
+    if (maxWaitCount == 0)
+    {
+        LOG_ERROR("Camera not in idle state, can't start exposure");
+        return false;
+    }
+
     LOGF_DEBUG("Start Exposure : %.3fs", duration);
 
 //    if (m_CameraFlags & ARTEMIS_PROPERTIES_CAMERAFLAGS_HAS_SHUTTER)
@@ -1196,7 +1209,7 @@ bool ATIKCCD::saveConfigItems(FILE *fp)
     }
 
     if (m_isHorizon && IUFindOnSwitchIndex(&ControlPresetsSP) == PRESET_CUSTOM)
-        IUSaveConfigNumber(fp, &ControlNP);    
+        IUSaveConfigNumber(fp, &ControlNP);
 
     return true;
 }
@@ -1221,3 +1234,20 @@ int ATIKCCD::QueryFilter()
     return currentPos+1;
 }
 
+void ATIKCCD::debugTriggered(bool enable)
+{
+    if (enable)
+        ArtemisSetDebugCallbackContext(this, &ATIKCCD::debugCallbackHelper);
+    else
+        ArtemisSetDebugCallbackContext(nullptr, nullptr);
+}
+
+void ATIKCCD::debugCallbackHelper(void *context, const char *message)
+{
+    static_cast<ATIKCCD*>(context)->debugCallback(message);
+}
+
+void ATIKCCD::debugCallback(const char *message)
+{
+    LOGF_DEBUG("%s", message);
+}

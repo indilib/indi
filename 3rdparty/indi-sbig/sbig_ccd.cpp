@@ -484,7 +484,7 @@ bool SBIGCCD::initProperties()
 
     // Ignore errors
     IUFillSwitch(&IgnoreErrorsS[0], "SHUTTER_ERRORS", "Shutter Errors", ISS_OFF);
-    IUFillSwitchVector(&IgnoreErrorsSP, IgnoreErrorsS, 1, getDeviceName(), "CCD_IgnoreErrors", "IgnoreErrors", OPTIONS_TAB, IP_RW,
+    IUFillSwitchVector(&IgnoreErrorsSP, IgnoreErrorsS, 1, getDeviceName(), "CCD_IGNORE_ERRORS", "Ignore", OPTIONS_TAB, IP_RW,
                        ISR_NOFMANY, 0, IPS_OK);
 
     // CFW PRODUCT

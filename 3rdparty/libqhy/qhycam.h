@@ -30,7 +30,7 @@
 #include <math.h>
 #include "qhyccdstruct.h"
 #include "config.h"
-#ifdef _WIN32
+#if defined (_WIN32)
 #include "CyAPI.h"
 #include <process.h>
 
@@ -62,20 +62,20 @@
 /**
  * typedef the libusb_deivce qhyccd_device
  */
-#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+#if (defined(__linux__ )&&!defined (__ANDROID__)) ||(defined (__APPLE__)&&defined( __MACH__)) ||(defined(__linux__ )&&defined (__ANDROID__))
 typedef struct libusb_device qhyccd_device;
 #endif
-#ifdef _WIN32
+#if defined (_WIN32)
 typedef void* qhyccd_device;
 #endif
 
 /**
  * typedef the libusb_deivce_handle qhyccd_handle
  */
-#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+#if (defined(__linux__ )&&!defined (__ANDROID__)) ||(defined (__APPLE__)&&defined( __MACH__)) ||(defined(__linux__ )&&defined (__ANDROID__))
 typedef struct libusb_device_handle qhyccd_handle;
 #endif
-#ifdef _WIN32
+#if defined (_WIN32)
 typedef CCyUSBDevice qhyccd_handle;
 #endif
 
@@ -128,9 +128,10 @@ public:
     usbintrep = 0x81;
     intepflag = 0;
     usbtype = QHYCCD_USBTYPE_CYUSB;
-#ifdef _WIN32
 
-    InitializeCriticalSection(&csep); //��ʼ���ٽ���
+#if defined (_WIN32)
+
+    InitializeCriticalSection(&csep);
 #else
 
     pthread_mutex_init(&mutex, NULL);
@@ -140,7 +141,7 @@ public:
 
   virtual ~QHYCAM()
   {
-#ifdef _WIN32
+#if defined (_WIN32)
     DeleteCriticalSection(&csep);
 #else
 
@@ -575,7 +576,6 @@ public:
   void QHY5II_DeNoise(uint8_t *data, uint32_t x, uint32_t y, double curgain);
 
 
-  //void OutputDebugPrintf(QHYCCD_MSGL_INFO,const char * strOutputString,...);
 
   static void *pollHandleEvents(void *arg);
   static void findCompleteFrame(uint8_t *rawarray, uint32_t length);
@@ -625,7 +625,7 @@ public:
 
   uint8_t vrreadstatus;
 
-#ifdef _WIN32
+#if defined (_WIN32)
 
   CRITICAL_SECTION csep;
 #else

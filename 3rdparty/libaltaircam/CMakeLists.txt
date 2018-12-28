@@ -8,8 +8,8 @@ include(GNUInstallDirs)
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 
-# Using AltairCamera SDK Version: 20181103
-set(LIBALTAIRCAM_VERSION "1.0.0")
+# Using AltairCamera SDK Version: 32.13483.2018.1206
+set(LIBALTAIRCAM_VERSION "1.0.1")
 set(LIBALTAIRCAM_SOVERSION "1")
 
 IF(APPLE)

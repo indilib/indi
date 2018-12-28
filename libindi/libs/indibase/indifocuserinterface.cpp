@@ -99,6 +99,8 @@ bool FocuserInterface::updateProperties()
         }
         if (CanAbort())
             m_defaultDevice->defineSwitch(&FocusAbortSP);
+        if (CanSync())
+            m_defaultDevice->defineNumber(&FocusSyncNP);
         if (CanReverse())
             m_defaultDevice->defineSwitch(&FocusReverseSP);
     }
@@ -119,6 +121,8 @@ bool FocuserInterface::updateProperties()
         }
         if (CanAbort())
             m_defaultDevice->deleteProperty(FocusAbortSP.name);
+        if (CanSync())
+            m_defaultDevice->deleteProperty(FocusSyncNP.name);
         if (CanReverse())
             m_defaultDevice->deleteProperty(FocusReverseSP.name);
     }

@@ -298,8 +298,8 @@ class Skywatcher
     uint32_t DEStepInit; // Initial DE position in step
     uint32_t RAStepHome; // Home RA position in step
     uint32_t DEStepHome; // Home DE position in step
-    uint32_t RAPeriod;   // Current RA worm period
-    uint32_t DEPeriod;   // Current DE worm period
+    uint32_t RAPeriod {256};   // Current RA worm period
+    uint32_t DEPeriod {256};   // Current DE worm period
 
     uint32_t lastRAStep {0xFFFFFFFF};
     uint32_t lastDEStep {0xFFFFFFFF};
