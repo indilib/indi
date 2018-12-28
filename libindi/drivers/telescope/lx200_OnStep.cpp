@@ -69,7 +69,7 @@ bool LX200_OnStep::initProperties()
     LX200Generic::initProperties();
     FI::initProperties(FOCUS_TAB);
     SetParkDataType(PARK_RA_DEC);
-    
+
     //FocuserInterface
     //Initial, these will be updated later. 
     FocusRelPosN[0].min   = 0.;
@@ -309,7 +309,6 @@ bool LX200_OnStep::updateProperties()
         defineText(&OSAlignTP);
         defineNumber(&ElevationLimitNP);
         defineText(&ObjectInfoTP);
-
         // Connection
 
         // Options
@@ -1264,7 +1263,7 @@ void LX200_OnStep::getBasicData()
 //======================== Parking =======================
 bool LX200_OnStep::SetCurrentPark()      // Tested
 {
-    char response[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char response[RB_MAX_LEN];
 
     if(!getCommandString(PortFD, response, ":hQ#"))
         {
@@ -1288,7 +1287,7 @@ bool LX200_OnStep::SetDefaultPark()      // Tested
 
 bool LX200_OnStep::UnPark()      // Tested
 {
-    char response[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char response[RB_MAX_LEN];
 
 
     if (!isSimulation())
@@ -1344,8 +1343,8 @@ bool LX200_OnStep::Park()      // Tested
 // Periodically Polls OnStep Parameter from controller
 bool LX200_OnStep::ReadScopeStatus()      // Tested
 {
-    char OSbacklashDEC[RB_MAX_LEN];  //azwing RB_MAX_LEN
-    char OSbacklashRA[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char OSbacklashDEC[RB_MAX_LEN];
+    char OSbacklashRA[RB_MAX_LEN];
     Errors Lasterror = ERR_NONE;
 
     if (isSimulation()) //if Simulation is selected
@@ -1547,7 +1546,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
 
 bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled by inditelescope       Tested
 {
-    char response[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char response[RB_MAX_LEN];
 
     if (enabled)
     {
@@ -1658,7 +1657,7 @@ int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standa
 {
     LOGF_INFO("<%s>", __FUNCTION__);
 
-    char read_buffer[RB_MAX_LEN]={0};  //azwing RB_MAX_LEN
+    char read_buffer[RB_MAX_LEN]={0};
 
     snprintf(read_buffer, sizeof(read_buffer), ":So%02d#", max);
 
@@ -1813,7 +1812,7 @@ bool LX200_OnStep::AbortFocuser () {
 
 void LX200_OnStep::OSUpdateFocuser()
 {
-    char value[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char value[RB_MAX_LEN];
 	int current = 0;
 	if (OSFocuser1) {
 	// Alternate option:
@@ -1940,7 +1939,7 @@ IPState LX200_OnStep::PECStatus (int axis) {
 // 	IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
 // 	IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
 	//ReticS[0].s=ISS_OFF;
-	char value[RB_MAX_LEN] ="  ";  //azwing RB_MAX_LEN
+    char value[RB_MAX_LEN] ="  ";
 	OSPECStatusSP.s = IPS_BUSY;
 	getCommandString(PortFD, value, ":$QZ?#");
 //	LOGF_INFO("Response %s", value);
