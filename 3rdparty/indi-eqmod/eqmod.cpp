@@ -3689,17 +3689,10 @@ bool EQMod::updateLocation(double latitude, double longitude, double elevation)
 
 void EQMod::saveInitialParkPosition()
 {
-    try
-    {
-        currentRAEncoder = mount->GetRAEncoder();
-        currentDEEncoder = mount->GetDEEncoder();
-        SetCurrentPark();
-        WriteParkData();
-    }
-    catch (EQModError e)
-    {
-        e.DefaultHandleException(this);
-    }
+    // If there is no initial park data. We assume the default parking position
+    // Looking at celestial pole with weights down
+    SetDefaultPark();
+    WriteParkData();
 }
 
 bool EQMod::SetCurrentPark()
