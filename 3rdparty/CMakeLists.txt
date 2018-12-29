@@ -93,6 +93,7 @@ option(WITH_NIGHTSCAPE "Install Nightscape 8300 Driver" On)
 option(WITH_ATIK "Install Atik Driver" On)
 option(WITH_TOUPCAM "Install Toupcam Driver" On)
 option(WITH_ALTAIRCAM "Install Altair Driver" On)
+option(WITH_DREAMFOCUSER "Install DreamFocuser Driver" On)
 
 
 find_package(FFmpeg)
@@ -372,6 +373,10 @@ endif()
 if (WITH_NIGHTSCAPE)
 add_subdirectory(indi-nightscape)
 endif(WITH_NIGHTSCAPE)
+
+if (WITH_DREAMFOCUSER)
+add_subdirectory(indi-dreamfocuser)
+endif()
 
 # Check if libraries are found. If not, we must build them, install them, THEN run CMake again to build and instal the drivers. If all the libraraies are installed, then we build and install the drivers only now.
 if (LIBRARIES_FOUND)
