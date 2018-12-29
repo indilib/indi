@@ -624,7 +624,7 @@ static void *stop_bulb(void *arg)
                         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
                     }
                 }
-                else
+                if (gphoto->bulb_port[0] && (gphoto->bulb_fd >= 0))
                 {
                     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing remote serial shutter.");
                     ioctl(gphoto->bulb_fd, TIOCMBIC, &RTS_flag);
