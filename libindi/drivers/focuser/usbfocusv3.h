@@ -103,6 +103,8 @@ class USBFocusV3 : public INDI::Focuser
     bool sendCommand(const char *cmd, char *response);
     bool sendCommandSpecial(const char *cmd, char *response);
 
+    pthread_mutex_t cmdlock;
+
     void GetFocusParams();
     bool reset();
     bool updateStepMode();
