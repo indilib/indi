@@ -392,9 +392,9 @@ bool MoonLiteDRO::updateStepMode()
     char cmd[DRO_CMD]={0};
 
     if (m_ID == 1)
-        strncpy(cmd, ":#GH#", DRO_CMD);
+        strncpy(cmd, ":GH#", DRO_CMD);
     else
-        strncpy(cmd, ":#2GH#", DRO_CMD);
+        strncpy(cmd, ":2GH#", DRO_CMD);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -493,9 +493,9 @@ bool MoonLiteDRO::updatePosition()
     char cmd[DRO_CMD]={0};
 
     if (m_ID == 1)
-        strncpy(cmd, ":#GP#", DRO_CMD);
+        strncpy(cmd, ":GP#", DRO_CMD);
     else
-        strncpy(cmd, ":#2GP#", DRO_CMD);
+        strncpy(cmd, ":2GP#", DRO_CMD);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -542,9 +542,9 @@ bool MoonLiteDRO::isMoving()
     char cmd[DRO_CMD]={0};
 
     if (m_ID == 1)
-        strncpy(cmd, ":#GI#", DRO_CMD);
+        strncpy(cmd, ":GI#", DRO_CMD);
     else
-        strncpy(cmd, ":#2GI#", DRO_CMD);
+        strncpy(cmd, ":2GI#", DRO_CMD);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
