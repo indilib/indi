@@ -271,6 +271,10 @@
                 <driver name="PerfectStar">indi_perfectstar_focus</driver>
                 <version>0.1</version>
         </device>
+        <device label="Lacerta MFOC">
+                <driver name="Lacerta MFOC">indi_lacerta_mfoc_focus</driver>
+                <version>0.4</version>
+        </device>
 </devGroup>
 <devGroup group="CCDs">
         <device label="CCD Simulator" mdpd="true">
