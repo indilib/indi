@@ -16,13 +16,13 @@
  \********************************************************************************/
 
 
-#ifdef _WIN32
+#if defined (_WIN32)
 #include "Context.h"
 #include "QUsb.h"
 #endif
 
 
-#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+#if (defined(__linux__ )&&!defined (__ANDROID__)) ||(defined (__APPLE__)&&defined( __MACH__)) ||(defined(__linux__ )&&defined (__ANDROID__))
 #include <libusb-1.0/libusb.h>
 #include "qhyccd.h"
 #endif
@@ -50,7 +50,7 @@
 #define ID_STR_LEN (0x20)
 
 
-#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+#if (defined(__linux__ )&&!defined (__ANDROID__)) ||(defined (__APPLE__)&&defined( __MACH__)) ||(defined(__linux__ )&&defined (__ANDROID__))
 #define OVERLAPS   32
 #define TRANSSIZE  (76800)
 #else
@@ -81,7 +81,7 @@ struct COUNTEXPTIME
 struct cydev
 {
   qhyccd_device *dev; //!< Camera deivce
-#ifdef _WIN32
+#if defined (_WIN32)
 
   void *handle; //!< Camera control handle
 #else
@@ -94,7 +94,7 @@ struct cydev
   uint8_t is_open; //!< When device is opened, val = 1
   char id[64]; //!< The camera's id
   QHYBASE *qcam; //!< Camera class pointer
-#ifdef _WIN32
+#if defined (_WIN32)
   /* mark VirutalCam status */
   bool is_virtualwdm_working;
   CRITICAL_SECTION cs;
@@ -142,7 +142,7 @@ struct cydev
   IVCamSDK* m_pVCam;
 #endif
 
-#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+#if (defined(__linux__ )&&!defined (__ANDROID__)) ||(defined (__APPLE__)&&defined( __MACH__)) ||(defined(__linux__ )&&defined (__ANDROID__))
 
   uint32_t CAMExposing;
   int32_t GoodFrames ;

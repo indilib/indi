@@ -38,11 +38,11 @@
 #define LEVEL_TAB "Levels"
 
 #ifndef MAKEFOURCC
-    #define MAKEFOURCC(ch0, ch1, ch2, ch3) \
-                (static_cast<uint32_t>(static_cast<uint8_t>(ch0)) \
-                | (static_cast<uint32_t>(static_cast<uint8_t>(ch1)) << 8) \
-                | (static_cast<uint32_t>(static_cast<uint8_t>(ch2)) << 16) \
-                | (static_cast<uint32_t>(static_cast<uint8_t>(ch3)) << 24))
+#define MAKEFOURCC(ch0, ch1, ch2, ch3) \
+    (static_cast<uint32_t>(static_cast<uint8_t>(ch0)) \
+    | (static_cast<uint32_t>(static_cast<uint8_t>(ch1)) << 8) \
+    | (static_cast<uint32_t>(static_cast<uint8_t>(ch2)) << 16) \
+    | (static_cast<uint32_t>(static_cast<uint8_t>(ch3)) << 24))
 #endif /* defined(MAKEFOURCC) */
 
 #define FMT_GBRG    MAKEFOURCC('G', 'B', 'R', 'G')
@@ -255,7 +255,7 @@ bool ALTAIRCAM::initProperties()
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
-                       ISR_1OFMANY, 0, IPS_IDLE);    
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     ///////////////////////////////////////////////////////////////////////////////////
     /// Controls
@@ -327,23 +327,31 @@ bool ALTAIRCAM::initProperties()
     IUFillSwitchVector(&WBAutoSP, WBAutoS, 2, getDeviceName(), "TC_AUTO_WB", "Default WB Mode", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     ///////////////////////////////////////////////////////////////////////////////////
+    /// Fan Control
+    ///////////////////////////////////////////////////////////////////////////////////
+    IUFillSwitch(&FanControlS[TC_FAN_ON], "TC_FAN_ON", "On", ISS_ON);
+    IUFillSwitch(&FanControlS[TC_FAN_OFF], "TC_FAN_OFF", "Off", ISS_OFF);
+    IUFillSwitchVector(&FanControlSP, FanControlS, 2, getDeviceName(), "TC_FAN_CONTROL", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    ///////////////////////////////////////////////////////////////////////////////////
     /// Video Format
     ///////////////////////////////////////////////////////////////////////////////////
-
     /// RGB Mode but 8 bits grayscale
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_8], "TC_VIDEO_MONO_8", "Mono 8", ISS_OFF);
+    //IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_8], "TC_VIDEO_MONO_8", "Mono 8", ISS_OFF);
     /// RGB Mode but 16 bits grayscale
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
+    //IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
     /// RGB Mode with RGB24 color
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_RGB], "TC_VIDEO_RGB", "RGB", ISS_OFF);
+    IUFillSwitch(&VideoFormatS[TC_VIDEO_COLOR_RGB], "TC_VIDEO_COLOR_RGB", "RGB", ISS_OFF);
     /// Raw mode (8 to 16 bit)
-    IUFillSwitch(&VideoFormatS[TC_VIDEO_RAW], "TC_VIDEO_RAW", "Raw", ISS_OFF);
-    IUFillSwitchVector(&VideoFormatSP, VideoFormatS, 4, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
+    IUFillSwitch(&VideoFormatS[TC_VIDEO_COLOR_RAW], "TC_VIDEO_COLOR_RAW", "Raw", ISS_OFF);
+    IUFillSwitchVector(&VideoFormatSP, VideoFormatS, 2, getDeviceName(), "CCD_VIDEO_FORMAT", "Format", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
+    ///////////////////////////////////////////////////////////////////////////////////
+    /// Resolution
+    ///////////////////////////////////////////////////////////////////////////////////
     IUFillSwitchVector(&ResolutionSP, ResolutionS, 0, getDeviceName(), "CCD_RESOLUTION", "Resolution", CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
-
 
     ///////////////////////////////////////////////////////////////////////////////////
     /// Firmware
@@ -373,7 +381,7 @@ bool ALTAIRCAM::updateProperties()
         setupParams();
 
         if (HasCooler())
-        {            
+        {
             defineSwitch(&CoolerSP);
             loadConfig(true, "CCD_COOLER");
         }
@@ -384,7 +392,12 @@ bool ALTAIRCAM::updateProperties()
             defineNumber(&TemperatureNP);
         }
 
-        defineSwitch(&WBAutoSP);
+        if (m_Instance->model->flag & ALTAIRCAM_FLAG_FAN)
+            defineSwitch(&FanControlSP);
+
+        if (m_MonoCamera == false)
+            defineSwitch(&WBAutoSP);
+
         defineNumber(&ControlNP);
         defineSwitch(&AutoControlSP);
         defineSwitch(&VideoFormatSP);
@@ -395,8 +408,11 @@ bool ALTAIRCAM::updateProperties()
         defineNumber(&BlackBalanceNP);
 
         // Balance
-        defineNumber(&WBTempTintNP);
-        defineNumber(&WBRGBNP);               
+        if (m_MonoCamera == false)
+        {
+            defineNumber(&WBTempTintNP);
+            defineNumber(&WBRGBNP);
+        }
 
         // Firmware
         defineText(&FirmwareTP);
@@ -408,7 +424,12 @@ bool ALTAIRCAM::updateProperties()
         else
             deleteProperty(TemperatureNP.name);
 
-        deleteProperty(WBAutoSP.name);
+        if (m_Instance->model->flag & ALTAIRCAM_FLAG_FAN)
+            deleteProperty(FanControlSP.name);
+
+        if (m_MonoCamera == false)
+            deleteProperty(WBAutoSP.name);
+
         deleteProperty(ControlNP.name);
         deleteProperty(AutoControlSP.name);
         deleteProperty(VideoFormatSP.name);
@@ -417,8 +438,12 @@ bool ALTAIRCAM::updateProperties()
         deleteProperty(LevelRangeNP.name);
         deleteProperty(BlackBalanceNP.name);
 
-        deleteProperty(WBTempTintNP.name);
-        deleteProperty(WBRGBNP.name);        
+        if (m_MonoCamera == false)
+        {
+            deleteProperty(WBTempTintNP.name);
+            deleteProperty(WBRGBNP.name);
+        }
+
 
         deleteProperty(FirmwareTP.name);
     }
@@ -434,7 +459,7 @@ bool ALTAIRCAM::Connect()
     {
         std::string fullID = m_Instance->id;
         // For RGB White Balance Mode, we need to add @ at the beginning as per docs.
-        if (WBAutoS[TC_AUTO_WB_RGB].s == ISS_ON)
+        if (m_MonoCamera == false && WBAutoS[TC_AUTO_WB_RGB].s == ISS_ON)
             fullID = "@" + fullID;
 
         m_CameraHandle = Altaircam_Open(fullID.c_str());
@@ -450,8 +475,14 @@ bool ALTAIRCAM::Connect()
 
     cap |= CCD_CAN_ABORT;
 
+    m_MonoCamera = false;
     // If raw format is support then we have bayer
-    if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW8 | ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
+    if (m_Instance->model->flag & (ALTAIRCAM_FLAG_MONO))
+    {
+        m_MonoCamera = true;
+        m_RAWFormatSupport = false;
+    }
+    else if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW8 | ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
     {
         LOG_DEBUG("RAW format supported. Bayer enabled.");
         cap |= CCD_HAS_BAYER;
@@ -487,44 +518,13 @@ bool ALTAIRCAM::Connect()
     SetCCDCapability(cap);
 
     LOGF_DEBUG("maxSpeed: %d preview: %d still: %d maxFanSpeed %d", m_Instance->model->maxspeed, m_Instance->model->preview,
-                                                                    m_Instance->model->still, m_Instance->model->maxfanspeed);
+               m_Instance->model->still, m_Instance->model->maxfanspeed);
 
     // Get min/max exposures
     uint32_t min=0,max=0,current=0;
     Altaircam_get_ExpTimeRange(m_CameraHandle, &min, &max, &current);
-    LOGF_DEBUG("Exposure Time Range (us): Min %d Max %d Default %d", min, max, current);
+    LOGF_DEBUG("Exposure Time Range (us): Min %u Max %u Default %u", min, max, current);
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min/1000000.0, max/1000000.0, 0, false);
-
-    int rc = 0;
-    // Start callback
-    if ( (rc = Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this)) < 0)
-    {
-        LOGF_ERROR("Failed to start camera pull mode. %s", errorCodes[rc].c_str());
-        Altaircam_Close(m_CameraHandle);
-        return false;
-    }
-    LOG_DEBUG("Starting event callback in pull mode.");
-
-    /*
-     * Create the imaging thread and wait for it to start
-     * N.B. Do we really need this with ToupCam?
-     */
-#if 0
-    threadRequest = StateIdle;
-    threadState = StateNone;
-    int stat = pthread_create(&imagingThread, nullptr, &imagingHelper, this);
-    if (stat != 0)
-    {
-        LOGF_ERROR("Error creating imaging thread (%d)", stat);
-        return false;
-    }
-    pthread_mutex_lock(&condMutex);
-    while (threadState == StateNone)
-    {
-        pthread_cond_wait(&cv, &condMutex);
-    }
-    pthread_mutex_unlock(&condMutex);
-#endif
 
     // Success!
     LOGF_INFO("%s is online. Retrieving basic data.", getDeviceName());
@@ -534,26 +534,10 @@ bool ALTAIRCAM::Connect()
 
 bool ALTAIRCAM::Disconnect()
 {
-    //ImageState  tState;
-    LOGF_DEBUG("Closing %s...", getDeviceName());
-
     stopTimerNS();
     stopTimerWE();
 
-    //RemoveTimer(genTimerID);
-    //genTimerID = -1;
-
-//    pthread_mutex_lock(&condMutex);
-//    tState = threadState;
-//    threadRequest = StateTerminate;
-//    pthread_cond_signal(&cv);
-//    pthread_mutex_unlock(&condMutex);
-//    pthread_join(imagingThread, nullptr);
-//    tState = StateNone;
-
     Altaircam_Close(m_CameraHandle);
-
-    LOGF_INFO("% is offline.", getDeviceName());
 
     return true;
 }
@@ -561,6 +545,8 @@ bool ALTAIRCAM::Disconnect()
 void ALTAIRCAM::setupParams()
 {
     HRESULT rc = 0;
+
+    Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_NOFRAME_TIMEOUT, 1);
 
     // Get Firmware Info
     char firmwareBuffer[32] = {0};
@@ -579,38 +565,30 @@ void ALTAIRCAM::setupParams()
 
     // Max supported bit depth
     m_MaxBitDepth = Altaircam_get_MaxBitDepth(m_CameraHandle);
-    LOGF_DEBUG("Max bit depth: %d", m_MaxBitDepth);        
+    LOGF_DEBUG("Max bit depth: %d", m_MaxBitDepth);
 
     m_BitsPerPixel = 8;
     int nVal=0;
-    // bitdepth supported
-    // Get RAW/RGB Mode
-    IUResetSwitch(&VideoFormatSP);
-    rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, &nVal);
-    LOGF_DEBUG("ALTAIRCAM_OPTION_RAW. rc: %d Value: %d", rc, nVal);
-    // RGB Mode
-    if (nVal == 0)
-    {
-        rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, &nVal);
-        LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %d Value: %d", rc, nVal);
-        // 0 = RGB24, 1 = RGB48, 2 = RGB32
-        // We only support RGB24 in the driver
-        if (nVal <= 2)
-        {
-            if (nVal != 0)
-            {
-                LOGF_DEBUG("RGB Mode %s is not supported. Setting mode to RGB24", nVal == 1 ? "RGB48" : "RGB32");
-                Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, 0);
-            }
 
-            LOG_INFO("Video Mode RGB detected.");
-            VideoFormatS[TC_VIDEO_RGB].s = ISS_ON;
-            m_Channels = 3;
-            m_CameraPixelFormat = INDI_RGB;
-            m_BitsPerPixel = 8;
-        }
-        // 8 bits gray
-        else if (nVal == 3)
+    // Check if mono only camera
+    if (m_MonoCamera)
+    {
+        IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_8], "TC_VIDEO_MONO_8", "Mono 8", ISS_OFF);
+        /// RGB Mode but 16 bits grayscale
+        IUFillSwitch(&VideoFormatS[TC_VIDEO_MONO_16], "TC_VIDEO_MONO_16", "Mono 16", ISS_OFF);
+        LOG_DEBUG("Mono camera detected.");
+
+        rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, 1);
+        LOGF_DEBUG("ALTAIRCAM_OPTION_RAW 1. rc: %s", errorCodes[rc].c_str());
+//        rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
+//        LOGF_DEBUG("ALTAIRCAM_OPTION_BITDEPTH 1. rc: %s", errorCodes[rc].c_str());
+
+        int rgbMode = 0;
+        rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, &rgbMode);
+        LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %s Value: %d", errorCodes[rc].c_str(), rgbMode);
+
+        // 8 bit
+        if (rgbMode <= 3)
         {
             VideoFormatS[TC_VIDEO_MONO_8].s = ISS_ON;
             m_Channels = 1;
@@ -619,7 +597,7 @@ void ALTAIRCAM::setupParams()
             LOG_INFO("Video Mode 8-bit mono detected.");
         }
         // 16 bits gray
-        else if (nVal == 4)
+        else if (rgbMode == 4)
         {
             VideoFormatS[TC_VIDEO_MONO_16].s = ISS_ON;
             m_Channels = 1;
@@ -628,18 +606,11 @@ void ALTAIRCAM::setupParams()
             LOG_INFO("Video Mode 16-bit mono detected.");
         }
 
-        // Disable Bayer until we switch to raw mode
-        if (m_RAWFormatSupport)
-            SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+        LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_MONO_8].s == ISS_ON ? "Mono 8-bit" : "Mono 16-bit");
     }
-    // RAW Mode
+    // Color Camera
     else
     {
-        VideoFormatS[TC_VIDEO_RAW].s = ISS_ON;
-        m_Channels = 1;
-        LOG_INFO("Video Mode RAW detected.");
-
-        // Check if the RAW mode supports > 8 bits
         if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
         {
             // enable bitdepth
@@ -649,13 +620,52 @@ void ALTAIRCAM::setupParams()
             LOG_DEBUG("RAW Bit Depth: 16");
         }
 
-        // Get RAW Format
-        IUSaveText(&BayerT[2], getBayerString());
+        // Get RAW/RGB Mode
+        int cameraDataMode=0;
+        IUResetSwitch(&VideoFormatSP);
+        rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, &cameraDataMode);
+        LOGF_DEBUG("ALTAIRCAM_OPTION_RAW. rc: %s Value: %d", errorCodes[rc].c_str(), cameraDataMode);
+
+        // Color RAW
+        if (cameraDataMode == TC_VIDEO_COLOR_RAW)
+        {
+            VideoFormatS[TC_VIDEO_COLOR_RAW].s = ISS_ON;
+            m_Channels = 1;
+            LOG_INFO("Video Mode RAW detected.");
+
+            // Get RAW Format
+            IUSaveText(&BayerT[2], getBayerString());
+        }
+        // Color RGB
+        else
+        {
+            int rgbMode = 0;
+            rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, &rgbMode);
+            LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %s Value: %d", errorCodes[rc].c_str(), rgbMode);
+
+            // 0 = RGB24, 1 = RGB48, 2 = RGB32
+            // We only support RGB24 in the driver
+            if (rgbMode != 0)
+            {
+                LOGF_DEBUG("RGB Mode %s is not supported. Setting mode to RGB24", rgbMode == 1 ? "RGB48" : "RGB32");
+                Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, 0);
+            }
+
+            LOG_INFO("Video Mode RGB detected.");
+            VideoFormatS[TC_VIDEO_COLOR_RGB].s = ISS_ON;
+            m_Channels = 3;
+            m_CameraPixelFormat = INDI_RGB;
+            m_BitsPerPixel = 8;
+
+            // Disable Bayer until we switch to raw mode
+            if (m_RAWFormatSupport)
+                SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+        }
+
+        LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_COLOR_RGB].s == ISS_ON ? "RGB" : "RAW");
     }
 
     PrimaryCCD.setNAxis(m_Channels == 1 ? 2 : 3);
-
-    LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_RGB].s == ISS_ON ? "RGB" : "RAW");
 
     // Get how many resolutions available for the camera
     ResolutionSP.nsp = Altaircam_get_ResolutionNumber(m_CameraHandle);
@@ -671,6 +681,18 @@ void ALTAIRCAM::setupParams()
         IUFillSwitch(&ResolutionS[i], label, label, ISS_OFF);
     }
 
+    // Fan Control
+    if (m_Instance->model->flag & ALTAIRCAM_FLAG_FAN)
+    {
+        int fan = 0;
+        Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_FAN, &fan);
+        LOGF_DEBUG("Fan is %s", fan == 0 ? "Off" : "On");
+        IUResetSwitch(&FanControlSP);
+        FanControlS[TC_FAN_ON].s = fan == 0 ? ISS_OFF : ISS_ON;
+        FanControlS[TC_FAN_OFF].s = fan == 0 ? ISS_ON : ISS_OFF;
+        FanControlSP.s = (fan == 0) ? IPS_IDLE : IPS_BUSY;
+    }
+
     // Get active resolution index
     uint32_t currentResolutionIndex = 0;
     rc = Altaircam_get_eSize(m_CameraHandle, &currentResolutionIndex);
@@ -682,7 +704,7 @@ void ALTAIRCAM::setupParams()
     LOGF_DEBUG("Camera snap support: %s", m_CanSnap ? "True" : "False");
 
     // Trigger Mode
-    rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, &nVal);
+    rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, &nVal);
     LOGF_DEBUG("Trigger mode: %d", nVal);
     m_CurrentTriggerMode = static_cast<eTriggerMode>(nVal);
 
@@ -690,7 +712,7 @@ void ALTAIRCAM::setupParams()
     if (m_CurrentTriggerMode != TRIGGER_SOFTWARE)
     {
         LOG_DEBUG("Setting trigger mode to software...");
-        if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 1)) < 0)
+        if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 1)) != 0)
         {
             LOGF_ERROR("Failed to set software trigger mode. %s", errorCodes[rc].c_str());
         }
@@ -703,14 +725,15 @@ void ALTAIRCAM::setupParams()
 
     // Gain
     rc = Altaircam_get_ExpoAGainRange(m_CameraHandle, &nMin, &nMax, &nDef);
-    LOGF_DEBUG("Exposure Auto Gain Control. Min: %d Max: %d Default: %d", nMin, nMax, nDef);
+    LOGF_DEBUG("Exposure Auto Gain Control. Min: %u Max: %u Default: %u", nMin, nMax, nDef);
     ControlN[TC_GAIN].min = nMin;
     ControlN[TC_GAIN].max = nMax;
+    ControlN[TC_GAIN].step = (nMax-nMin)/20.0;
     ControlN[TC_GAIN].value = nDef;
 
     // Contrast
     Altaircam_get_Contrast(m_CameraHandle, &nVal);
-    LOGF_DEBUG("Contrast Control. Min: %d Max: %d Default: %d", nMin, nMax, nDef);
+    LOGF_DEBUG("Contrast Control. Min: %u Max: %u Default: %u", nMin, nMax, nDef);
     ControlN[TC_CONTRAST].value = nVal;
 
     // Hue
@@ -770,7 +793,7 @@ void ALTAIRCAM::setupParams()
         LevelRangeN[TC_HI_R].value = aHigh[0];
         LevelRangeN[TC_HI_G].value = aHigh[1];
         LevelRangeN[TC_HI_B].value = aHigh[2];
-        LevelRangeN[TC_HI_Y].value = aHigh[3];               
+        LevelRangeN[TC_HI_Y].value = aHigh[3];
     }
 
     // Get Black Balance
@@ -787,6 +810,17 @@ void ALTAIRCAM::setupParams()
     allocateFrameBuffer();
 
     SetTimer(POLLMS);
+
+    // Start callback
+    if ( (rc = Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this)) != 0)
+    {
+        LOGF_ERROR("Failed to start camera pull mode. %s", errorCodes[rc].c_str());
+        Disconnect();
+        updateProperties();
+        return;
+    }
+
+    LOG_DEBUG("Starting event callback in pull mode.");
 }
 
 void ALTAIRCAM::allocateFrameBuffer()
@@ -794,37 +828,45 @@ void ALTAIRCAM::allocateFrameBuffer()
     LOG_DEBUG("Allocating Frame Buffer...");
 
     // Allocate memory
-    switch (m_CurrentVideoFormat)
+    if (m_MonoCamera)
     {
-    case TC_VIDEO_MONO_8:
-        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes());
-        PrimaryCCD.setBPP(8);
-        PrimaryCCD.setNAxis(2);
-        Streamer->setPixelFormat(INDI_MONO, 8);
-        break;
+        switch (m_CurrentVideoFormat)
+        {
+        case TC_VIDEO_MONO_8:
+            PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes());
+            PrimaryCCD.setBPP(8);
+            PrimaryCCD.setNAxis(2);
+            Streamer->setPixelFormat(INDI_MONO, 8);
+            break;
 
-    case TC_VIDEO_MONO_16:
-        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 2);
-        PrimaryCCD.setBPP(8);
-        PrimaryCCD.setNAxis(2);
-        Streamer->setPixelFormat(INDI_MONO, 16);
-        break;
+        case TC_VIDEO_MONO_16:
+            PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 2);
+            PrimaryCCD.setBPP(16);
+            PrimaryCCD.setNAxis(2);
+            Streamer->setPixelFormat(INDI_MONO, 16);
+            break;
+        }
+    }
+    else
+    {
+        switch (m_CurrentVideoFormat)
+        {
+        case TC_VIDEO_COLOR_RGB:
+            // RGB24 or RGB888
+            PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3);
+            PrimaryCCD.setBPP(8);
+            PrimaryCCD.setNAxis(3);
+            Streamer->setPixelFormat(INDI_RGB, 8);
+            break;
 
-    case TC_VIDEO_RGB:
-        // RGB24 or RGB888
-        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * 3);
-        PrimaryCCD.setBPP(8);
-        PrimaryCCD.setNAxis(3);
-        Streamer->setPixelFormat(INDI_RGB, 8);
-        break;
+        case TC_VIDEO_COLOR_RAW:
+            PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * m_BitsPerPixel/8);
+            PrimaryCCD.setBPP(m_BitsPerPixel);
+            PrimaryCCD.setNAxis(2);
+            Streamer->setPixelFormat(m_CameraPixelFormat, m_BitsPerPixel);
+            break;
 
-    case TC_VIDEO_RAW:
-        PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * m_BitsPerPixel/8);
-        PrimaryCCD.setBPP(m_BitsPerPixel);
-        PrimaryCCD.setNAxis(2);
-        Streamer->setPixelFormat(m_CameraPixelFormat, m_BitsPerPixel);
-        break;
-
+        }
     }
 
     Streamer->setSize(PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
@@ -919,7 +961,7 @@ bool ALTAIRCAM::ISNewNumber(const char *dev, const char *name, double values[], 
 
             HRESULT rc = 0;
 
-            if ( (rc = Altaircam_put_LevelRange(m_CameraHandle, lo, hi)) < 0)
+            if ( (rc = Altaircam_put_LevelRange(m_CameraHandle, lo, hi)) != 0)
             {
                 LevelRangeNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set level range. %s", errorCodes[rc].c_str());
@@ -948,7 +990,7 @@ bool ALTAIRCAM::ISNewNumber(const char *dev, const char *name, double values[], 
 
             HRESULT rc = 0;
 
-            if ( (rc = Altaircam_put_BlackBalance(m_CameraHandle, aSub)) < 0)
+            if ( (rc = Altaircam_put_BlackBalance(m_CameraHandle, aSub)) != 0)
             {
                 BlackBalanceNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set Black Balance. %s", errorCodes[rc].c_str());
@@ -970,7 +1012,7 @@ bool ALTAIRCAM::ISNewNumber(const char *dev, const char *name, double values[], 
             HRESULT rc = 0;
 
             if ( (rc = Altaircam_put_TempTint(m_CameraHandle, static_cast<int>(WBTempTintN[TC_WB_TEMP].value),
-                                            static_cast<int>(WBTempTintN[TC_WB_TINT].value))) < 0)
+                                              static_cast<int>(WBTempTintN[TC_WB_TINT].value))) < 0)
             {
                 WBTempTintNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set White Balance Tempeture & Tint. %s", errorCodes[rc].c_str());
@@ -998,7 +1040,7 @@ bool ALTAIRCAM::ISNewNumber(const char *dev, const char *name, double values[], 
                 static_cast<int>(WBRGBN[TC_WB_B].value),
             };
 
-            if ( (rc = Altaircam_put_WhiteBalanceGain(m_CameraHandle, aSub)) < 0)
+            if ( (rc = Altaircam_put_WhiteBalanceGain(m_CameraHandle, aSub)) != 0)
             {
                 WBRGBNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set White Balance gain. %s", errorCodes[rc].c_str());
@@ -1041,6 +1083,30 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
 
         //////////////////////////////////////////////////////////////////////
+        /// Fan Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, FanControlSP.name))
+        {
+            int prevIndex = IUFindOnSwitchIndex(&FanControlSP);
+            IUUpdateSwitch(&FanControlSP, states, names, n);
+            HRESULT rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_FAN, FanControlS[0].s == ISS_ON ? 1 : 0 );
+            if (rc != 0)
+            {
+                LOGF_ERROR("Failed to turn the fan %s. Error (%s)", FanControlS[0].s == ISS_ON ? "on" : "off", errorCodes[rc].c_str());
+                FanControlSP.s = IPS_ALERT;
+                IUResetSwitch(&FanControlSP);
+                FanControlS[prevIndex].s = ISS_ON;
+            }
+            else
+            {
+                FanControlSP.s = (FanControlS[0].s == ISS_ON) ? IPS_BUSY : IPS_IDLE;
+            }
+
+            IDSetSwitch(&FanControlSP, nullptr);
+            return true;
+        }
+
+        //////////////////////////////////////////////////////////////////////
         /// Video Format
         //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, VideoFormatSP.name))
@@ -1053,93 +1119,57 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 LOG_ERROR("Cannot change format while streaming/recording.");
                 IDSetSwitch(&VideoFormatSP, nullptr);
                 return true;
-            }            
+            }
 
-            const char *targetFormat = IUFindOnSwitchName(states, names, n);
-            int targetIndex=-1;
-            for (int i=0; i < VideoFormatSP.nsp; i++)
+            int prevIndex = IUFindOnSwitchIndex(&VideoFormatSP);
+            IUUpdateSwitch(&VideoFormatSP, states, names, n);
+            int currentIndex = IUFindOnSwitchIndex(&VideoFormatSP);
+
+            m_Channels = 1;
+            m_BitsPerPixel = 8;
+
+            // Mono
+            if (m_MonoCamera)
             {
-                if (!strcmp(targetFormat, VideoFormatS[i].name))
+                if (m_MaxBitDepth == 8 && currentIndex == TC_VIDEO_MONO_16)
                 {
-                    targetIndex=i;
-                    break;
-                }
-            }
-
-            if (targetIndex == -1)
-            {
-                VideoFormatSP.s = IPS_ALERT;
-                LOGF_ERROR("Unable to locate format %s.", targetFormat);
-                IDSetSwitch(&VideoFormatSP, nullptr);
-                return true;
-            }
-
-            if (m_MaxBitDepth == 8 && targetIndex == TC_VIDEO_MONO_16)
-            {
-                VideoFormatSP.s = IPS_ALERT;
-                LOG_ERROR("Only 8-bit format is supported.");
-                IDSetSwitch(&VideoFormatSP, nullptr);
-                return true;
-            }
-
-            // Check if raw format is supported.
-            if (targetIndex == TC_VIDEO_RAW && m_RAWFormatSupport == false)
-            {
-                VideoFormatSP.s = IPS_ALERT;
-                LOG_ERROR("RAW format is not supported.");
-                IDSetSwitch(&VideoFormatSP, nullptr);
-                return true;
-            }
-
-            // If video mode is RGB subtype, we need it to specifically set it.
-            if (targetIndex != TC_VIDEO_RAW)
-            {
-                if (targetIndex == TC_VIDEO_RGB && m_Instance->model->flag & ALTAIRCAM_FLAG_MONO)
-                {
-                    LOG_ERROR("Cannot set RGB mode with monochromatic sensor. Only grayscale mode is available");
                     VideoFormatSP.s = IPS_ALERT;
+                    LOG_ERROR("Only 8-bit format is supported.");
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
                     IDSetSwitch(&VideoFormatSP, nullptr);
                     return true;
                 }
-            }
 
-            // We need to stop camera first
-            LOG_DEBUG("Stopping camera to change video mode.");
-            Altaircam_Stop(m_CameraHandle);
+                // We need to stop camera first
+                LOG_DEBUG("Stopping camera to change video mode.");
+                Altaircam_Stop(m_CameraHandle);
 
-            // Set updated video format RGB vs. RAW
-            rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, targetIndex == TC_VIDEO_RAW ? 1 : 0);
-            if (rc < 0)
-            {
-                LOGF_ERROR("Failed to set video mode: %s", errorCodes[rc].c_str());
-                VideoFormatSP.s = IPS_ALERT;
-                IDSetSwitch(&VideoFormatSP, nullptr);
+//                int rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, currentIndex+3);
+//                if (rc != 0)
+//                {
+//                    LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
+//                    VideoFormatSP.s = IPS_ALERT;
+//                    IUResetSwitch(&VideoFormatSP);
+//                    VideoFormatS[prevIndex].s = ISS_ON;
+//                    IDSetSwitch(&VideoFormatSP, nullptr);
 
-                // Restart Capture                
-                Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
-                LOG_DEBUG("Restarting event callback after changing video mode failed.");
+//                    // Restart Capture
+//                    Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
+//                    LOG_DEBUG("Restarting event callback after video mode change failed.");
 
-                return true;
-            }
+//                    return true;
+//                }
+//                else
+//                    LOGF_DEBUG("Set ALTAIRCAM_OPTION_RGB --> %d", currentIndex+3);
 
-            // If RGB, we need to set specific sub-type
-            if (targetIndex != TC_VIDEO_RAW)
-            {
-                // RGB 24
-                // N.B. Mode 1 (RGB48) and Mode 2 (RGB32) are not supported in our driver.
-                int mode = 0;
-                // Mode 3 is 8-bit
-                if (targetIndex == TC_VIDEO_MONO_8)
-                    mode = 3;
-                // Mode 4 is 16-bit
-                else if (targetIndex == TC_VIDEO_MONO_16)
-                    mode = 4;
-
-                int rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, mode);
-                if (rc < 0)
+                rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, currentIndex);
+                if (rc != 0)
                 {
-                    LOGF_ERROR("Failed to set RGB mode %d: %s", targetIndex, errorCodes[rc].c_str());
+                    LOGF_ERROR("Failed to set high bit depth mode %s", errorCodes[rc].c_str());
                     VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
                     IDSetSwitch(&VideoFormatSP, nullptr);
 
                     // Restart Capture
@@ -1148,56 +1178,92 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
                     return true;
                 }
+                else
+                    LOGF_DEBUG("Set ALTAIRCAM_OPTION_BITDEPTH --> %d", currentIndex);
+
+                m_BitsPerPixel = (currentIndex == TC_VIDEO_MONO_8) ? 8 : 16;
+            }
+            // Color
+            else
+            {
+                // Check if raw format is supported.
+                if (currentIndex == TC_VIDEO_COLOR_RAW && m_RAWFormatSupport == false)
+                {
+                    VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
+                    LOG_ERROR("RAW format is not supported.");
+                    IDSetSwitch(&VideoFormatSP, nullptr);
+                    return true;
+                }
+
+                // We need to stop camera first
+                LOG_DEBUG("Stopping camera to change video mode.");
+                Altaircam_Stop(m_CameraHandle);
+
+                rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, currentIndex);
+                if (rc != 0)
+                {
+                    LOGF_ERROR("Failed to set video mode: %s", errorCodes[rc].c_str());
+                    VideoFormatSP.s = IPS_ALERT;
+                    IUResetSwitch(&VideoFormatSP);
+                    VideoFormatS[prevIndex].s = ISS_ON;
+                    IDSetSwitch(&VideoFormatSP, nullptr);
+
+                    // Restart Capture
+                    Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
+                    LOG_DEBUG("Restarting event callback after changing video mode failed.");
+
+                    return true;
+                }
+                else
+                    LOGF_DEBUG("Set ALTAIRCAM_OPTION_RAW --> %d", currentIndex);
+
+                if (currentIndex == TC_VIDEO_COLOR_RGB)
+                {
+                    m_Channels = 3;
+                    m_BitsPerPixel = 8;
+                    // Disable Bayer if supported.
+                    if (m_RAWFormatSupport)
+                        SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
+                }
+                else
+                {
+                    SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
+                    IUSaveText(&BayerT[2], getBayerString());
+                    IDSetText(&BayerTP, nullptr);
+                    m_BitsPerPixel = m_RawBitsPerPixel;
+                }
+
+                //                if (currentIndex == TC_VIDEO_COLOR_RGB)
+                //                {
+                //                    int rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, 0);
+                //                    if (rc != 0)
+                //                    {
+                //                        LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
+                //                        VideoFormatSP.s = IPS_ALERT;
+                //                        IUResetSwitch(&VideoFormatSP);
+                //                        VideoFormatS[prevIndex].s = ISS_ON;
+                //                        IDSetSwitch(&VideoFormatSP, nullptr);
+
+                //                        // Restart Capture
+                //                        Altaircam_StartPullModeWithCallback(m_CameraHandle, &ALTAIRCAM::eventCB, this);
+                //                        LOG_DEBUG("Restarting event callback after video mode change failed.");
+
+                //                        return true;
+                //                    }
+                //                }
+
             }
 
-            m_CurrentVideoFormat = targetIndex;
-            switch (m_CurrentVideoFormat)
-            {
-            case TC_VIDEO_MONO_8:
-            {
-                m_Channels = 1;
-                m_BitsPerPixel = 8;
-                // Disable Bayer if supported.
-                if (m_RAWFormatSupport)
-                    SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
-            }
-                break;
+            m_CurrentVideoFormat = currentIndex;
+            m_BitsPerPixel = (m_BitsPerPixel > 8) ? 16 : 8;
 
-            case TC_VIDEO_MONO_16:
-            {
-                m_Channels = 1;
-                m_BitsPerPixel = 16;
-                // Disable Bayer if supported.
-                if (m_RAWFormatSupport)
-                    SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
-            }
-                break;
-
-            case TC_VIDEO_RGB:
-            {
-                m_Channels = 3;
-                m_BitsPerPixel = 8;
-                // Disable Bayer if supported.
-                if (m_RAWFormatSupport)
-                    SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
-            }
-                break;
-
-            case TC_VIDEO_RAW:
-            {
-                m_Channels = 1;
-                SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
-                IUSaveText(&BayerT[2], getBayerString());
-                IDSetText(&BayerTP, nullptr);
-                m_BitsPerPixel = m_RawBitsPerPixel;
-            }
-                break;
-            }
+            LOGF_DEBUG("Video Format: %d m_BitsPerPixel: %d", currentIndex, m_BitsPerPixel);
 
             // Allocate memory
             allocateFrameBuffer();
 
-            IUUpdateSwitch(&VideoFormatSP, states, names, n);
             VideoFormatSP.s = IPS_OK;
             IDSetSwitch(&VideoFormatSP, nullptr);
 
@@ -1248,11 +1314,11 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             IUResetSwitch(&AutoControlSP);
 
-            if (rc < 0)
-            {                
+            if (rc != 0)
+            {
                 AutoControlS[previousSwitch].s = ISS_ON;
                 AutoControlSP.s = IPS_ALERT;
-                LOGF_INFO("%s failed (%d).", autoOperation.c_str(), rc);
+                LOGF_ERROR("%s failed (%d).", autoOperation.c_str(), rc);
             }
             else
             {
@@ -1288,7 +1354,7 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             int targetIndex = IUFindOnSwitchIndex(&ResolutionSP);
 
             HRESULT rc = Altaircam_put_eSize(m_CameraHandle, targetIndex);
-            if (rc < 0)
+            if (rc != 0)
             {
                 ResolutionSP.s = IPS_ALERT;
                 IUResetSwitch(&ResolutionSP);
@@ -1347,25 +1413,25 @@ bool ALTAIRCAM::StartStreaming()
 {
     int rc=0;
 
-//    if ( (rc = Altaircam_put_RealTime(m_CameraHandle, true)) < 0)
-//    {
-//        LOGF_ERROR("Failed to set real time mode. Error: %s", errorCodes[rc].c_str());
-//        return false;
-//    }
+    //    if ( (rc = Altaircam_put_RealTime(m_CameraHandle, true)) != 0)
+    //    {
+    //        LOGF_ERROR("Failed to set real time mode. Error: %s", errorCodes[rc].c_str());
+    //        return false;
+    //    }
 
     if (ExposureRequest != (1.0 / Streamer->getTargetFPS()))
     {
         ExposureRequest = 1.0 / Streamer->getTargetFPS();
 
         uint32_t uSecs = static_cast<uint32_t>(ExposureRequest * 1000000.0f);
-        if ( (rc = Altaircam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
+        if ( (rc = Altaircam_put_ExpoTime(m_CameraHandle, uSecs)) != 0)
         {
             LOGF_ERROR("Failed to set video exposure time. Error: %s", errorCodes[rc].c_str());
             return false;
         }
     }
 
-    if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 0)) < 0)
+    if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 0)) != 0)
     {
         LOGF_ERROR("Failed to set video trigger mode. %s", errorCodes[rc].c_str());
         return false;
@@ -1379,13 +1445,13 @@ bool ALTAIRCAM::StopStreaming()
 {
     int rc=0;
 
-//    if ( (rc = Altaircam_put_RealTime(m_CameraHandle, false)) < 0)
-//    {
-//        LOGF_ERROR("Failed to disable real time mode. Error: %s", errorCodes[rc].c_str());
-//        return false;
-//    }
+    //    if ( (rc = Altaircam_put_RealTime(m_CameraHandle, false)) != 0)
+    //    {
+    //        LOGF_ERROR("Failed to disable real time mode. Error: %s", errorCodes[rc].c_str());
+    //        return false;
+    //    }
 
-    if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 1)) < 0)
+    if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 1)) != 0)
     {
         LOGF_ERROR("Failed to set video trigger mode. %s", errorCodes[rc].c_str());
         return false;
@@ -1410,7 +1476,7 @@ int ALTAIRCAM::SetTemperature(double temperature)
     int16_t nTemperature = static_cast<int16_t>(temperature * 10.0);
 
     HRESULT rc = Altaircam_put_Temperature(m_CameraHandle, nTemperature);
-    if (rc < 0)
+    if (rc != 0)
     {
         LOGF_ERROR("Failed to set temperature. %s", errorCodes[rc].c_str());
         return -1;
@@ -1426,7 +1492,7 @@ bool ALTAIRCAM::activateCooler(bool enable)
 {
     HRESULT rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TEC, enable ? 1 : 0);
     IUResetSwitch(&CoolerSP);
-    if (rc < 0)
+    if (rc != 0)
     {
         CoolerS[enable ? TC_COOLER_OFF : TC_COOLER_ON].s = ISS_ON;
         CoolerSP.s = IPS_ALERT;
@@ -1446,7 +1512,7 @@ bool ALTAIRCAM::activateCooler(bool enable)
 bool ALTAIRCAM::StartExposure(float duration)
 {
     HRESULT rc = 0;
-    PrimaryCCD.setExposureDuration(static_cast<double>(duration));    
+    PrimaryCCD.setExposureDuration(static_cast<double>(duration));
 
     uint32_t uSecs = static_cast<uint32_t>(duration * 1000000.0f);
 
@@ -1457,7 +1523,7 @@ bool ALTAIRCAM::StartExposure(float duration)
     {
         ExposureRequest = duration;
 
-        if ( (rc = Altaircam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
+        if ( (rc = Altaircam_put_ExpoTime(m_CameraHandle, uSecs)) != 0)
         {
             LOGF_ERROR("Failed to set exposure time. Error: %s", errorCodes[rc].c_str());
             return false;
@@ -1468,7 +1534,7 @@ bool ALTAIRCAM::StartExposure(float duration)
     /*
     if (m_Instance->model->still > 0)
     {
-        if ( (rc = Altaircam_Snap(m_CameraHandle, IUFindOnSwitchIndex(&ResolutionSP))) < 0)
+        if ( (rc = Altaircam_Snap(m_CameraHandle, IUFindOnSwitchIndex(&ResolutionSP))) != 0)
         {
             LOGF_ERROR("Failed to take a snap. Error: %d", rc);
             return false;
@@ -1485,35 +1551,29 @@ bool ALTAIRCAM::StartExposure(float duration)
     if (ExposureRequest > VERBOSE_EXPOSURE)
         LOGF_INFO("Taking a %g seconds frame...", static_cast<double>(ExposureRequest));
 
-      InExposure = true;
+    InExposure = true;
 
-      if (m_CurrentTriggerMode != TRIGGER_SOFTWARE)
-      {
-          if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 1)) < 0)
-          {
-              LOGF_ERROR("Failed to set software trigger mode. %s", errorCodes[rc].c_str());
-          }
-          m_CurrentTriggerMode = TRIGGER_SOFTWARE;
-      }
+    if (m_CurrentTriggerMode != TRIGGER_SOFTWARE)
+    {
+        if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 1)) != 0)
+        {
+            LOGF_ERROR("Failed to set software trigger mode. %s", errorCodes[rc].c_str());
+        }
+        m_CurrentTriggerMode = TRIGGER_SOFTWARE;
+    }
 
-      // FIXME Setting trigger to software and then back to video causes a deadlock for some reason
-      // Waiting for info from Altaircam
-      if ( (rc = Altaircam_Trigger(m_CameraHandle, 1) < 0) )
-      {
-          LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
-          return false;
-      }
+    int timeMS = uSecs/1000 - 50;
+    if (timeMS <= 0)
+        sendImageCallBack();
+    else if (static_cast<uint32_t>(timeMS) < POLLMS)
+        IEAddTimer(timeMS, &ALTAIRCAM::sendImageCB, this);
 
-      int timeMS = uSecs/1000 - 50;
-      if (timeMS < 0)
-          timeMS += 50;
-      if (static_cast<uint32_t>(timeMS) < POLLMS)
-           IEAddTimer(timeMS, &ALTAIRCAM::sendImageCB, this);
-
-//    pthread_mutex_lock(&condMutex);
-//    threadRequest = StateExposure;
-//    pthread_cond_signal(&cv);
-//    pthread_mutex_unlock(&condMutex);
+    // Trigger an exposure
+    if ( (rc = Altaircam_Trigger(m_CameraHandle, 1) != 0) )
+    {
+        LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
+        return false;
+    }
 
     return true;
 }
@@ -1522,24 +1582,12 @@ bool ALTAIRCAM::AbortExposure()
 {
     Altaircam_Trigger(m_CameraHandle, 0);
     InExposure = false;
-#if 0
-    LOG_DEBUG("AbortExposure");
-    pthread_mutex_lock(&condMutex);
-    threadRequest = StateAbort;
-    pthread_cond_signal(&cv);
-    while (threadState == StateExposure)
-    {
-        pthread_cond_wait(&cv, &condMutex);
-    }
-    pthread_mutex_unlock(&condMutex);
-    ASIStopExposure(m_camInfo->CameraID);
-    InExposure = false;
-#endif
+    m_TimeoutRetries = 0;
     return true;
 }
 
 bool ALTAIRCAM::UpdateCCDFrame(int x, int y, int w, int h)
-{    
+{
     // Make sure all are even
     x -= (x % 2);
     y -= (y % 2);
@@ -1560,7 +1608,7 @@ bool ALTAIRCAM::UpdateCCDFrame(int x, int y, int w, int h)
     LOGF_DEBUG("Altaircam ROI. X: %d Y: %d W: %d H: %d. Binning %dx%d ", x, y, w, h, PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
     HRESULT rc = Altaircam_put_Roi(m_CameraHandle, x, y, w, h);
-    if (rc < 0)
+    if (rc != 0)
     {
         LOGF_ERROR("Error setting camera ROI: %d", rc);
         return false;
@@ -1582,15 +1630,15 @@ bool ALTAIRCAM::UpdateCCDFrame(int x, int y, int w, int h)
 
 bool ALTAIRCAM::UpdateCCDBin(int binx, int biny)
 {
-//    if (binx > 4)
-//    {
-//        LOG_ERROR("Only 1x1, 2x2, 3x3, and 4x4 modes are supported.");
-//        return false;
-//    }
+    //    if (binx > 4)
+    //    {
+    //        LOG_ERROR("Only 1x1, 2x2, 3x3, and 4x4 modes are supported.");
+    //        return false;
+    //    }
 
     // TODO add option to select between additive vs. average binning
     HRESULT rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BINNING, binx);
-    if (rc < 0)
+    if (rc != 0)
     {
         LOGF_ERROR("Binning %dx%d is not support. %s", binx, biny, errorCodes[rc].c_str());
         return false;
@@ -1603,34 +1651,31 @@ bool ALTAIRCAM::UpdateCCDBin(int binx, int biny)
 // The generic timer call back is used for temperature monitoring
 void ALTAIRCAM::TimerHit()
 {
+    if (isConnected() == false)
+        return;
+
     if (InExposure)
     {
         struct timeval curtime, diff;
         gettimeofday(&curtime, nullptr);
         timersub(&ExposureEnd, &curtime, &diff);
         double timeleft = diff.tv_sec + diff.tv_usec / 1e6;
-        uint32_t msecs = timeleft * 1000.0;
+        uint32_t msecs = 0;
         if (timeleft <= 0)
-        {
-            timeleft = 0;
-            InExposure = false;
-            m_SendImage = true;
-
-//            int rc = 0;
-//            if (m_CurrentTriggerMode == TRIGGER_SOFTWARE)
-//            {
-//                if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 0)) < 0)
-//                {
-//                    LOGF_ERROR("Failed to set video trigger mode. %s", errorCodes[rc].c_str());
-//                }
-//                m_CurrentTriggerMode = TRIGGER_VIDEO;
-//            }
-        }
+            msecs = 0;
+        else
+            msecs = timeleft * 1000.0;
+        // If within 50ms, let's set it done
+        if (msecs <= 50)
+            sendImageCallBack();
         // If time left is less than our polling then let's send image before next poll event
-        else if (msecs < POLLMS)
-            IEAddTimer(msecs, &ALTAIRCAM::sendImageCB, this);
+        else
+        {
+            if (msecs < POLLMS)
+                IEAddTimer(msecs-50, &ALTAIRCAM::sendImageCB, this);
 
-        PrimaryCCD.setExposureLeft(timeleft);
+            PrimaryCCD.setExposureLeft(timeleft);
+        }
     }
 
     if (m_Instance->model->flag & ALTAIRCAM_FLAG_GETTEMPERATURE)
@@ -1638,7 +1683,7 @@ void ALTAIRCAM::TimerHit()
         double currentTemperature = TemperatureN[0].value;
         int16_t nTemperature=0;
         HRESULT rc = Altaircam_get_Temperature(m_CameraHandle, &nTemperature);
-        if (rc < 0)
+        if (rc != 0)
         {
             LOGF_ERROR("Altaircam_get_Temperature error. %s", errorCodes[rc].c_str());
             TemperatureNP.s = IPS_ALERT;
@@ -1703,7 +1748,7 @@ void ALTAIRCAM::stopTimerNS()
 }
 
 IPState ALTAIRCAM::guidePulseNS(uint32_t ms, eGUIDEDIRECTION dir, const char *dirName)
-{        
+{
     stopTimerNS();
     NSDir = dir;
     NSDirName = dirName;
@@ -1713,7 +1758,7 @@ IPState ALTAIRCAM::guidePulseNS(uint32_t ms, eGUIDEDIRECTION dir, const char *di
     // If pulse < 50ms, we wait. Otherwise, we schedule it.
     int uSecs = ms * 1000;
     HRESULT rc = Altaircam_ST4PlusGuide(m_CameraHandle, dir, ms);
-    if (rc < 0)
+    if (rc != 0)
     {
         LOGF_ERROR("%s pulse guiding failed: %s", dirName, errorCodes[rc].c_str());
         return IPS_ALERT;
@@ -1725,11 +1770,11 @@ IPState ALTAIRCAM::guidePulseNS(uint32_t ms, eGUIDEDIRECTION dir, const char *di
         return IPS_OK;
     }
 
-//    struct timeval duration, current_time;
-//    gettimeofday(&current_time, nullptr);
-//    duration.tv_sec = uSecs / 1000000;
-//    duration.tv_usec= uSecs % 1000000;
-//    timeradd(&current_time, &duration, &NSPulseEnd);
+    //    struct timeval duration, current_time;
+    //    gettimeofday(&current_time, nullptr);
+    //    duration.tv_sec = uSecs / 1000000;
+    //    duration.tv_usec= uSecs % 1000000;
+    //    timeradd(&current_time, &duration, &NSPulseEnd);
 
     NStimerID = IEAddTimer(ms, ALTAIRCAM::TimerHelperNS, this);
     return IPS_BUSY;
@@ -1781,7 +1826,7 @@ IPState ALTAIRCAM::guidePulseWE(uint32_t ms, eGUIDEDIRECTION dir, const char *di
     // If pulse < 50ms, we wait. Otherwise, we schedule it.
     int uSecs = ms * 1000;
     HRESULT rc = Altaircam_ST4PlusGuide(m_CameraHandle, dir, ms);
-    if (rc < 0)
+    if (rc != 0)
     {
         LOGF_ERROR("%s pulse guiding failed: %s", dirName, errorCodes[rc].c_str());
         return IPS_ALERT;
@@ -1793,11 +1838,11 @@ IPState ALTAIRCAM::guidePulseWE(uint32_t ms, eGUIDEDIRECTION dir, const char *di
         return IPS_OK;
     }
 
-//    struct timeval duration, current_time;
-//    gettimeofday(&current_time, nullptr);
-//    duration.tv_sec = uSecs / 1000000;
-//    duration.tv_usec= uSecs % 1000000;
-//    timeradd(&current_time, &duration, &WEPulseEnd);
+    //    struct timeval duration, current_time;
+    //    gettimeofday(&current_time, nullptr);
+    //    duration.tv_sec = uSecs / 1000000;
+    //    duration.tv_usec= uSecs % 1000000;
+    //    timeradd(&current_time, &duration, &WEPulseEnd);
 
     WEtimerID = IEAddTimer(ms, ALTAIRCAM::TimerHelperWE, this);
     return IPS_BUSY;
@@ -1844,7 +1889,7 @@ const char *ALTAIRCAM::getBayerString()
 }
 
 void ALTAIRCAM::refreshControls()
-{   
+{
     IDSetNumber(&ControlNP, nullptr);
 }
 
@@ -1985,7 +2030,7 @@ void ALTAIRCAM::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
     INDI::CCD::addFITSKeywords(fptr, targetChip);
 
-    INumber *gainNP = IUFindNumber(&ControlNP, "TC_GAIN");
+    INumber *gainNP = IUFindNumber(&ControlNP, ControlN[TC_GAIN].name);
 
     if (gainNP)
     {
@@ -2002,9 +2047,8 @@ bool ALTAIRCAM::saveConfigItems(FILE *fp)
         IUSaveConfigSwitch(fp, &CoolerSP);
     IUSaveConfigNumber(fp, &ControlNP);
 
-    IUSaveConfigSwitch(fp, &WBAutoSP);
-    // FIXME this is causing deadlock for some reason!
-    //IUSaveConfigSwitch(fp, &VideoFormatSP);
+    if (m_MonoCamera == false)
+        IUSaveConfigSwitch(fp, &WBAutoSP);
 
     return true;
 }
@@ -2062,20 +2106,50 @@ void ALTAIRCAM::sendImageCB(void* pCtx)
     static_cast<ALTAIRCAM*>(pCtx)->sendImageCallBack();
 }
 
-void ALTAIRCAM::sendImageCallBack()
-{
-    InExposure = false;
-    m_SendImage = true;    
-}
-
 void ALTAIRCAM::eventCB(unsigned event, void* pCtx)
 {
     static_cast<ALTAIRCAM*>(pCtx)->eventPullCallBack(event);
 }
 
+void ALTAIRCAM::sendImageCallBack()
+{
+    PrimaryCCD.setExposureLeft(0);
+    InExposure = false;
+    m_lastEventID = -1;
+
+    RemoveTimer(m_TimeoutTimerID);
+    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &ALTAIRCAM::checkTimeoutHelper, this);
+}
+
+void ALTAIRCAM::checkTimeoutHelper(void *context)
+{
+    static_cast<ALTAIRCAM*>(context)->checkCameraCallback();
+}
+
+void ALTAIRCAM::checkCameraCallback()
+{
+    if (m_lastEventID != 4)
+    {
+        LOG_DEBUG("Exposure timeout, restarting...");
+        if (m_TimeoutRetries++ >= MAX_RETRIES)
+        {
+            PrimaryCCD.setExposureFailed();
+            m_TimeoutRetries=0;
+            LOG_ERROR("Exposure timeout.");
+        }
+        else
+            StartExposure(PrimaryCCD.getExposureDuration());
+    }
+    else {
+        m_TimeoutRetries = 0;
+    }
+}
+
 void ALTAIRCAM::eventPullCallBack(unsigned event)
 {
     LOGF_DEBUG("Event %#04X", event);
+
+    m_lastEventID = event;
 
     switch (event)
     {
@@ -2085,6 +2159,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
         break;
     case ALTAIRCAM_EVENT_IMAGE:
     {
+        m_TimeoutRetries=0;
         AltaircamFrameInfoV2 info;
         memset(&info, 0, sizeof(AltaircamFrameInfoV2));
 
@@ -2093,9 +2168,11 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
         //PrimaryCCD.setNAxis(m_Channels == 1 ? 2 : 3);
         //PrimaryCCD.setBPP(m_BitsPerPixel);
 
+        int captureBits = m_BitsPerPixel == 8 ? 8 : m_MaxBitDepth;
+
         if (Streamer->isStreaming())
         {
-            HRESULT rc = Altaircam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), m_BitsPerPixel * m_Channels, &info);
+            HRESULT rc = Altaircam_PullImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), captureBits * m_Channels, &info);
             if (rc >= 0)
                 Streamer->newFrame(PrimaryCCD.getFrameBuffer(), PrimaryCCD.getFrameBufferSize());
         }
@@ -2103,47 +2180,43 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
         {
             uint8_t *buffer = PrimaryCCD.getFrameBuffer();
 
-            if (m_SendImage && m_CurrentVideoFormat == TC_VIDEO_RGB)
+            if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                 buffer = static_cast<uint8_t*>(malloc(PrimaryCCD.getXRes()*PrimaryCCD.getYRes()*3));
 
-            HRESULT rc = Altaircam_PullImageV2(m_CameraHandle, buffer, m_BitsPerPixel * m_Channels, &info);
-            if (rc < 0)
+            HRESULT rc = Altaircam_PullImageV2(m_CameraHandle, buffer, captureBits * m_Channels, &info);
+            if (rc != 0)
             {
                 LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
                 PrimaryCCD.setExposureFailed();
-                if (m_SendImage && m_CurrentVideoFormat == TC_VIDEO_RGB)
+                if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                     free(buffer);
             }
             else
             {
-                if (m_SendImage)
-                {                    
-                    if (m_CurrentVideoFormat == TC_VIDEO_RGB)
+                if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
+                {
+                    uint8_t *image  = PrimaryCCD.getFrameBuffer();
+                    uint32_t width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
+                    uint32_t height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
+
+                    uint8_t *subR = image;
+                    uint8_t *subG = image + width * height;
+                    uint8_t *subB = image + width * height * 2;
+                    int size      = width * height * 3 - 3;
+
+                    // RGB to three sepearate R-frame, G-frame, and B-frame for color FITS
+                    for (int i = 0; i <= size; i += 3)
                     {
-                        uint8_t *image  = PrimaryCCD.getFrameBuffer();
-                        uint32_t width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
-                        uint32_t height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
-
-                        uint8_t *subR = image;
-                        uint8_t *subG = image + width * height;
-                        uint8_t *subB = image + width * height * 2;
-                        int size      = width * height * 3 - 3;
-
-                        // RGB to three sepearate R-frame, G-frame, and B-frame for color FITS
-                        for (int i = 0; i <= size; i += 3)
-                        {
-                            *subR++ = buffer[i];
-                            *subG++ = buffer[i + 1];
-                            *subB++ = buffer[i + 2];
-                        }
-
-                        free(buffer);
+                        *subR++ = buffer[i];
+                        *subG++ = buffer[i + 1];
+                        *subB++ = buffer[i + 2];
                     }
 
-                    LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
-                    ExposureComplete(&PrimaryCCD);
-                    m_SendImage = false;
+                    free(buffer);
                 }
+
+                LOGF_DEBUG("Image received. Width: %d Height: %d flag: %d timestamp: %ld", info.width, info.height, info.flag, info.timestamp);
+                ExposureComplete(&PrimaryCCD);
             }
         }
     }
@@ -2153,7 +2226,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
         AltaircamFrameInfoV2 info;
         memset(&info, 0, sizeof(AltaircamFrameInfoV2));
         HRESULT rc = Altaircam_PullStillImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), 24, &info);
-        if (rc < 0)
+        if (rc != 0)
         {
             LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
             PrimaryCCD.setExposureFailed();
@@ -2186,6 +2259,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
         break;
     case ALTAIRCAM_EVENT_TIMEOUT:
         LOG_DEBUG("Camera timed out.");
+        PrimaryCCD.setExposureFailed();
         break;
     case ALTAIRCAM_EVENT_FACTORY:
         break;

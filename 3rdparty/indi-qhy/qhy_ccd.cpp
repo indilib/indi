@@ -254,6 +254,9 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
     EnableQHYCCDLogFile(false);
     EnableQHYCCDMessage(false);
 
+    // Set verbose level to Error/Fatal only by default
+    SetQHYCCDLogLevel(2);
+
     sim = false;
 }
 
@@ -929,17 +932,26 @@ bool QHYCCD::AbortExposure()
     }
     pthread_mutex_unlock(&condMutex);
 
-    int rc = CancelQHYCCDExposingAndReadout(camhandle);
-    if (rc == QHYCCD_SUCCESS)
+    if (std::string(camid) != "QHY5-M-")
+    {
+        int rc = CancelQHYCCDExposingAndReadout(camhandle);
+        if (rc == QHYCCD_SUCCESS)
+        {
+            InExposure = false;
+            LOG_INFO("Exposure aborted.");
+            return true;
+        }
+        else
+            LOGF_ERROR("Abort exposure failed (%d)", rc);
+
+        return false;
+    }
+    else
     {
         InExposure = false;
         LOG_INFO("Exposure aborted.");
         return true;
     }
-    else
-        LOGF_ERROR("Abort exposure failed (%d)", rc);
-
-    return false;
 }
 
 bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
@@ -1643,5 +1655,5 @@ void QHYCCD::debugTriggered(bool enable)
     if (enable)
         SetQHYCCDLogLevel(5);
     else
-        SetQHYCCDLogLevel(3);
+        SetQHYCCDLogLevel(2);
 }

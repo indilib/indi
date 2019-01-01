@@ -634,8 +634,15 @@ class Telescope : public DefaultDevice
     INumberVectorProperty ParkPositionNP;
 
     // Custom parking options
-    ISwitch ParkOptionS[3];
+    ISwitch ParkOptionS[4];
     ISwitchVectorProperty ParkOptionSP;
+    enum
+    {
+        PARK_CURRENT,
+        PARK_DEFAULT,
+        PARK_WRITE_DATA,
+        PARK_PURGE_DATA,
+    };
 
     // A switch for North/South motion
     ISwitch MovementNSS[2];
@@ -701,12 +708,13 @@ class Telescope : public DefaultDevice
     int last_we_motion, last_ns_motion;
 
     //Park
-    char *LoadParkData();
+    const char *LoadParkData();
     bool WriteParkData();
+    bool PurgeParkData();
 
     int PortFD                           = -1;
-    Connection::Serial *serialConnection = NULL;
-    Connection::TCP *tcpConnection       = NULL;
+    Connection::Serial *serialConnection = nullptr;
+    Connection::TCP *tcpConnection       = nullptr;
 
   // XML node names for scope config
   const std::string ScopeConfigRootXmlNode { "scopeconfig" };

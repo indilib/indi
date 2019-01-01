@@ -66,7 +66,9 @@ class FocuserInterface
         FOCUSER_CAN_ABS_MOVE       = 1 << 0, /*!< Can the focuser move by absolute position? */
         FOCUSER_CAN_REL_MOVE       = 1 << 1, /*!< Can the focuser move by relative position? */
         FOCUSER_CAN_ABORT          = 1 << 2, /*!< Is it possible to abort focuser motion? */
-        FOCUSER_HAS_VARIABLE_SPEED = 1 << 3  /*!< Can the focuser move in different configurable speeds? */
+        FOCUSER_CAN_REVERSE        = 1 << 3, /*!< Is it possible to reverse focuser motion? */
+        FOCUSER_CAN_SYNC           = 1 << 4, /*!< Can the focuser sync to a custom position */
+        FOCUSER_HAS_VARIABLE_SPEED = 1 << 5  /*!< Can the focuser move in different configurable speeds? */
     } FocuserCapability;
 
     /**
@@ -94,6 +96,16 @@ class FocuserInterface
      * @return True if the focuser motion can be aborted.
      */
     bool CanAbort() { return capability & FOCUSER_CAN_ABORT; }
+
+    /**
+     * @return True if the focuser motion can be reversed.
+     */
+    bool CanReverse() { return capability & FOCUSER_CAN_REVERSE; }
+
+    /**
+     * @return True if the focuser motion can be reversed.
+     */
+    bool CanSync() { return capability & FOCUSER_CAN_SYNC; }
 
     /**
      * @return True if the focuser has multiple speeds.
@@ -162,23 +174,78 @@ class FocuserInterface
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
 
     /**
+     * @brief ReverseFocuser Reverse focuser motion direction
+     * @param enabled If true, normal default focuser motion is reversed. If false, the direction is set to the default focuser motion.
+     * @return True if successful, false otherwise.
+     */
+    virtual bool ReverseFocuser(bool enabled);
+
+    /**
+     * @brief SyncFocuser Set current position to ticks without moving the focuser.
+     * @param ticks Desired new sync position.
+     * @return True if successful, false otherwise.
+     */
+    virtual bool SyncFocuser(uint32_t ticks);
+
+    /**
+     * @brief SetFocuserMaxPosition Set Focuser Maximum position limit in the hardware.
+     * @param ticks maximum steps permitted
+     * @return True if successful, false otherwise.
+     * @note If setting maximum position limit in the hardware is not available or not supported, do not override this function as the default
+     * implementation will always return true.
+     */
+    virtual bool SetFocuserMaxPosition(uint32_t ticks);
+
+    /**
      * @brief AbortFocuser all focus motion
      * @return True if abort is successful, false otherwise.
      */
     virtual bool AbortFocuser();
 
+    /**
+     * @brief saveConfigItems save focuser properties defined in the interface in config file
+     * @param fp pointer to config file
+     * @return Always return true
+     */
+    bool saveConfigItems(FILE *fp);
+
+    // Focuser Speed (if variable speeds are supported)
     INumberVectorProperty FocusSpeedNP;
     INumber FocusSpeedN[1];
-    ISwitchVectorProperty FocusMotionSP; //  A Switch in the client interface to park the scope
+
+    // Focuser Motion switch.
+    // For absolute focusers, this controls the directoin of FocusRelPos when updated.
+    // For DC speed based focusers, this moves the focuser continues in the CW/CCW directions until stopped.
+    ISwitchVectorProperty FocusMotionSP;
     ISwitch FocusMotionS[2];
+
+    // Timer for user with DC focusers to run focuser in specific direction for this duration
     INumberVectorProperty FocusTimerNP;
     INumber FocusTimerN[1];
+
+    // Absolute Focuser Position in steps
     INumberVectorProperty FocusAbsPosNP;
     INumber FocusAbsPosN[1];
+
+    // Relative Focuser position to be commanded
     INumberVectorProperty FocusRelPosNP;
     INumber FocusRelPosN[1];
-    ISwitchVectorProperty AbortSP;
-    ISwitch AbortS[1];
+
+    // Absolute Focuser positoin is 0 to this maximum limit. By Default, it is set to 200,000.
+    INumberVectorProperty FocusMaxPosNP;
+    INumber FocusMaxPosN[1];
+
+    // Sync
+    INumberVectorProperty FocusSyncNP;
+    INumber FocusSyncN[1];
+
+    // Abort Focuser
+    ISwitchVectorProperty FocusAbortSP;
+    ISwitch FocusAbortS[1];
+
+    // Reverse Focuser
+    ISwitchVectorProperty FocusReverseSP;
+    ISwitch FocusReverseS[2];
 
     uint32_t capability;
 

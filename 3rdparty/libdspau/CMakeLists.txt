@@ -23,6 +23,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/libdspau.h.cmake ${CMAKE_CURR
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 
+# This is for craft builds
+include_directories("${CMAKE_INSTALL_PREFIX}/include")
+
 set(dspau_lib_srcs
    ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-align.c
    ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-astro.c

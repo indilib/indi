@@ -1,0 +1,11 @@
+indi-atik (2.1) bionic; urgency=low
+
+  * Added debug logging.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Fri, 7 Dec 2018 09:00:00 +0300
+
+indi-atik (2.0) bionic; urgency=low
+
+  * Initial Release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Wed, 7 Nov 2018 09:00:00 +0300

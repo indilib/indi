@@ -1,3 +1,9 @@
+indi-sbig (2.0) bionic; urgency=medium
+
+  * Added option to ignore shutter errors.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 01 Dec 2018 13:30:00 +0300
+
 indi-sbig (1.9) bionic; urgency=medium
 
   * New release

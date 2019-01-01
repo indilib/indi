@@ -4,7 +4,7 @@
 #include "chatty.h"
 #include "config.h"
 
-#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+#if (defined(__linux__ )&&!defined (__ANDROID__))
 #include <functional>
 #endif
 
@@ -21,7 +21,7 @@
 #define QHYCCD_MSGL_DISABLE 	11
 
 void OutputDebugPrintf(int level,const char * strOutputString,...);
-#if defined(__linux__) ||(defined(__APPLE__) && defined(__MACH__)) || (defined(__linux__) && defined(__ANDROID__))
+#if defined(__linux__ )&&!defined (__ANDROID__)
 void SetDebugLogFunction(std::function<void(const std::string &message)> logFunction);
 #endif
 
