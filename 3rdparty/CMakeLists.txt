@@ -59,11 +59,12 @@ ENDIF ()
 
 # Define standard set of drivers to build (default linux target)
 option(WITH_EQMOD "Install EQMod Driver" On)
+option(WITH_STARBOOK "Install Starbook Driver" On)
 option(WITH_NSE "Install Nexstar Evo Driver" On)
 option(WITH_SX "Install StarLight Xpress Driver" On)
 option(WITH_MAXDOME "Install MaxDomeII Driver" On)
 option(WITH_NEXDOME "Install NexDome Driver" On)
-option(WITH_SPECTRACYBER "Install Spectracyber Driver" Off)
+option(WITH_SPECTRACYBER "Install Spectracyber Driver" On)
 option(WITH_CLOUDWATCHER "Install AAG Cloud Watcher Driver" On)
 option(WITH_MI "Install Moravian Driver" On)
 option(WITH_FLI "Install FLI Driver" On)
@@ -71,6 +72,7 @@ option(WITH_SBIG "Install SBIG Driver" On)
 option(WITH_INOVAPLX "Install i.Nova PLx Driver" On)
 option(WITH_APOGEE "Install Apogee Driver" On)
 option(WITH_FFMV "Install Point Grey FireFly MV Driver" On)
+option(WITH_QHY "Install QHY Driver" On)
 option(WITH_SSAG "Install Star Shoot Driver" On)
 option(WITH_GPHOTO "Install GPhoto Driver" On)
 option(WITH_QSI "Install QSI Driver" On)
@@ -87,8 +89,11 @@ option(WITH_RADIOSIM "Install RadioSim Receiver" On)
 option(WITH_GPSNMEA "Install GPS NMEA Driver" On)
 option(WITH_ARMADILLO "Install Armadillo & Platypus Driver" On)
 option(WITH_FXLOAD "Install FX3 compatible fxload tool" Off)
+option(WITH_NIGHTSCAPE "Install Nightscape 8300 Driver" On)
+option(WITH_ATIK "Install Atik Driver" On)
+option(WITH_TOUPCAM "Install Toupcam Driver" On)
+option(WITH_ALTAIRCAM "Install Altair Driver" On)
 option(WITH_AVALON "Install Avalon StarGO Driver" On)
-
 
 find_package(FFmpeg)
 
@@ -102,8 +107,6 @@ ENDIF(FFMPEG_FOUND)
 
 # Add/remove cases for OSX
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(WITH_RTLSDR Off)
-    set(WITH_LIMESDR Off)
     set(WITH_INOVAPLX Off)
     set(WITH_GIGE Off)
     set(WITH_FXLOAD Off)
@@ -119,6 +122,11 @@ ENDIF ()
 if (WITH_EQMOD)
 add_subdirectory(indi-eqmod)
 endif(WITH_EQMOD)
+
+## Starbook
+if (WITH_STARBOOK)
+add_subdirectory(indi-starbook)
+endif(WITH_STARBOOK)
 
 ## Stalight Xpress
 if (WITH_SX)
@@ -176,6 +184,39 @@ add_subdirectory(libsbig)
 SET(LIBRARIES_FOUND FALSE)
 endif (SBIG_FOUND)
 endif (WITH_SBIG)
+
+## ATIK
+if (WITH_ATIK)
+find_package(ATIK)
+if (ATIK_FOUND)
+add_subdirectory(indi-atik)
+else (ATIK_FOUND)
+add_subdirectory(libatik)
+SET(LIBRARIES_FOUND FALSE)
+endif (ATIK_FOUND)
+endif (WITH_ATIK)
+
+## TOUPCAM
+if (WITH_TOUPCAM)
+find_package(TOUPCAM)
+if (TOUPCAM_FOUND)
+add_subdirectory(indi-toupcam)
+else (TOUPCAM_FOUND)
+add_subdirectory(libtoupcam)
+SET(LIBRARIES_FOUND FALSE)
+endif (TOUPCAM_FOUND)
+endif (WITH_TOUPCAM)
+
+## ALTAIR
+if (WITH_ALTAIRCAM)
+find_package(ALTAIRCAM)
+if (ALTAIRCAM_FOUND)
+add_subdirectory(indi-altaircam)
+else (ALTAIRCAM_FOUND)
+add_subdirectory(libaltaircam)
+SET(LIBRARIES_FOUND FALSE)
+endif (ALTAIRCAM_FOUND)
+endif (WITH_ALTAIRCAM)
 
 ## INOVA
 if (WITH_INOVAPLX)
@@ -320,11 +361,6 @@ if (WITH_ARMADILLO)
 add_subdirectory(indi-armadillo-platypus)
 endif(WITH_ARMADILLO)
 
-# Avalon StarGO
-if (WITH_AVALON)
-add_subdirectory(indi-avalon)
-endif(WITH_AVALON)
-
 if (WITH_FXLOAD)
 add_subdirectory(fxload)
 endif()
@@ -336,6 +372,12 @@ endif()
 if (WITH_NIGHTSCAPE)
 add_subdirectory(indi-nightscape)
 endif(WITH_NIGHTSCAPE)
+
+# Avalon StarGO
+if (WITH_AVALON)
+add_subdirectory(indi-avalon)
+endif(WITH_AVALON)
+
 
 # Check if libraries are found. If not, we must build them, install them, THEN run CMake again to build and instal the drivers. If all the libraraies are installed, then we build and install the drivers only now.
 if (LIBRARIES_FOUND)
@@ -357,6 +399,18 @@ endif (WITH_QHY AND NOT QHY_FOUND)
 if (WITH_SBIG AND NOT SBIG_FOUND)
 message(STATUS "libsbigudrv was not found and will now be built. Please install libsbigudrv first before running cmake again to install indi-sbig.")
 endif (WITH_SBIG AND NOT SBIG_FOUND)
+
+if (WITH_ATIK AND NOT ATIK_FOUND)
+message(STATUS "libatik was not found and will now be built. Please install libatik first before running cmake again to install indi-atik.")
+endif (WITH_ATIK AND NOT ATIK_FOUND)
+
+if (WITH_TOUPCAM AND NOT TOUPCAM_FOUND)
+message(STATUS "libtoupcam was not found and will now be built. Please install libtoupcam first before running cmake again to install indi-toupcam.")
+endif (WITH_TOUPCAM AND NOT TOUPCAM_FOUND)
+
+if (WITH_ALTAIRCAM AND NOT ALTAIRCAM_FOUND)
+message(STATUS "libaltair was not found and will now be built. Please install libaltair first before running cmake again to install indi-altair.")
+endif (WITH_ALTAIRCAM AND NOT ALTAIRCAM_FOUND)
 
 if (WITH_INOVAPLX AND NOT INOVASDK_FOUND)
 message(STATUS "libinovasdk was not found and will now be built. Please install libinovasdk first before running cmake again to install indi-inovaplx.")
