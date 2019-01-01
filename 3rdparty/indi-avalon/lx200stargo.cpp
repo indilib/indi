@@ -762,7 +762,7 @@ bool LX200StarGo::setLocalSiderealTime(double longitude)
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH];
     char cmd[AVALON_COMMAND_BUFFER_LENGTH];
-    sprintf(cmd, ":X32%02hd%02hd%02hd#", h, m, s);
+    sprintf(cmd, ":X32%02hd%02hd%02hd#", (short) h, (short) m, (short) s);
     if(!sendQuery(cmd, response))
     {
         LOG_ERROR("Failed to set LST");
