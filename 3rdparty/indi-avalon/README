@@ -1,13 +1,8 @@
 Avalon StarGO Driver
-By Christopher Contaxis and Wolfgang Reissenberger (sterne-jaeger@t-online.de)
+By Christopher Contaxis, Wolfgang Reissenberger,
+   Ken Self and Tonino Tasselli
 
 Description
 INDI driver to control Avalon Instruments mounts with StarGO control.
 
-Compile Instructions
-  - git clone https://github.com/sterne-jaeger/indi/tree/stargo_work
-  - cd indi
-  - mkdir -p build/indi-avalon
-  - cd build/indi-avalon
-  - cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug ../../3rdparty/indi-avalon
-  - sudo make install
+For installation instructions please follow the instructions from INSTALL.

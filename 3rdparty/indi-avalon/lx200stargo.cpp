@@ -1,8 +1,8 @@
 /*
     Avalon StarGo driver
 
-    Copyright (C) 2018 Christopher Contaxis, Wolfgang Reissenberger,
-    Tonino Tasselli and Ken Self
+    Copyright (C) 2019 Christopher Contaxis, Wolfgang Reissenberger,
+    Ken Self and Tonino Tasselli
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
