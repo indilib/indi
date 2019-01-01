@@ -468,7 +468,7 @@ bool LX200StarGo::ReadScopeStatus()
 bool LX200StarGo::syncHomePosition()
 {
     LOG_DEBUG(__FUNCTION__);
-    char input[AVALON_RESPONSE_BUFFER_LENGTH];
+    char input[AVALON_RESPONSE_BUFFER_LENGTH-5];
     char cmd[AVALON_COMMAND_BUFFER_LENGTH];
     if (!getLST_String(input))
     {
@@ -762,7 +762,7 @@ bool LX200StarGo::setLocalSiderealTime(double longitude)
 
     char response[AVALON_RESPONSE_BUFFER_LENGTH];
     char cmd[AVALON_COMMAND_BUFFER_LENGTH];
-    sprintf(cmd, ":X32%02d%02d%02d#", h, m, s);
+    sprintf(cmd, ":X32%02hd%02hd%02hd#", h, m, s);
     if(!sendQuery(cmd, response))
     {
         LOG_ERROR("Failed to set LST");
