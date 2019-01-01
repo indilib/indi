@@ -61,7 +61,7 @@ void LX200StarGoFocuser::initProperties(const char *groupName)
     IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, getDeviceName(), "REL_FOCUS_POSITION", "Relative Position", deviceName, IP_RW, 60, IPS_OK);
 
     IUFillSwitch(&FocusAbortS[0], "FOCUS_ABORT", "Focus Abort", ISS_OFF);
-    IUFillSwitchVector(&FocusAbortSP, INDI::FocuserInterface::AbortS, 1, getDeviceName(), "FOCUS_ABORT_MOTION", "Abort Motion", deviceName, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitchVector(&FocusAbortSP, INDI::FocuserInterface::FocusAbortS, 1, getDeviceName(), "FOCUS_ABORT_MOTION", "Abort Motion", deviceName, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillNumber(&FocusSyncPosN[0], "FOCUS_SYNC_POSITION_VALUE", "Ticks", "%4.0f", 0.0, 100000.0, 1000.0, 0);
     IUFillNumberVector(&FocusSyncPosNP, FocusSyncPosN, 1, getDeviceName(), "FOCUS_SYNC_POSITION", "Sync", deviceName, IP_WO, 0, IPS_OK);
