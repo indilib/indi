@@ -69,6 +69,10 @@
                 <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
                 <version>2.0</version>
         </device>
+        <device label="Avalon StarGo" manufacturer="Avalon">
+                <driver name="LX200 StarGo">indi_lx200stargo</driver>
+                <version>1.0</version>
+        </device>
         <device label="Avalon Legacy" manufacturer="Avalon">
                 <driver name="LX200 Basic">indi_lx200basic</driver>
                 <version>2.0</version>
