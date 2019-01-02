@@ -670,7 +670,7 @@ bool ATIKCCD::activateCooler(bool enable)
         }
 
         CoolerS[1].s = ISS_ON;
-        CoolerSP.s = IPS_BUSY;
+        CoolerSP.s = IPS_IDLE;
     }
 
     IDSetSwitch(&CoolerSP, nullptr);
