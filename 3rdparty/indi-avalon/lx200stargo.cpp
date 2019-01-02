@@ -19,7 +19,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-
 #include "lx200stargo.h"
 
 #include "lx200stargofocuser.h"
@@ -31,14 +30,12 @@
 #ifndef _WIN32
 #include <termios.h>
 #endif
-//#if defined(HAVE_LIBNOVA)
 #include <libnova/julian_day.h>
 #include <libnova/sidereal_time.h>
-//#endif // HAVE_LIBNOVA
 
-// We declare an auto pointer to LX200StarGo
-std::unique_ptr<LX200StarGo> telescope;
-std::unique_ptr<LX200StarGoFocuser> focuser;
+// Unique pointers
+static std::unique_ptr<LX200StarGo> telescope;
+static std::unique_ptr<LX200StarGoFocuser> focuser;
 
 const char *RA_DEC_TAB = "RA / DEC";
 
@@ -50,7 +47,7 @@ void ISInit()
         return;
 
     isInit = 1;
-    if (telescope.get() == 0)
+    if (telescope.get() == nullptr)
     {
         LX200StarGo* myScope = new LX200StarGo();
         telescope.reset(myScope);
@@ -118,7 +115,7 @@ LX200StarGo::LX200StarGo()
     DBG_SCOPE = INDI::Logger::DBG_DEBUG;
 
     /* missing capabilities
-     * TELESCOPE_HAS_TIME: 
+     * TELESCOPE_HAS_TIME:
      *    missing commands - values can be set but not read
      *      :GG# (Get UTC offset time)
      *      :GL# (Get Local Time in 24 hour format)
@@ -143,7 +140,7 @@ LX200StarGo::LX200StarGo()
     setLX200Capability(LX200_HAS_PULSE_GUIDING );
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
-                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_CONTROL_TRACK | 
+                           TELESCOPE_HAS_TRACK_MODE | TELESCOPE_HAS_LOCATION | TELESCOPE_CAN_CONTROL_TRACK |
                            TELESCOPE_HAS_PIER_SIDE, 4);
 }
 
@@ -152,7 +149,7 @@ LX200StarGo::LX200StarGo()
 ***************************************************************************************/
 const char *LX200StarGo::getDefaultName()
 {
-    return (const char *)"Avalon StarGo";
+    return "Avalon StarGo";
 }
 
 
@@ -182,7 +179,6 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-
         // sync home position
         if (!strcmp(name, SyncHomeSP.name))
         {
@@ -292,7 +288,7 @@ bool LX200StarGo::ISNewNumber(const char *dev, const char *name, double values[]
             return result;
         }
     }
- 
+
     //  Nobody has claimed this, so pass it to the parent
     return LX200Telescope::ISNewNumber(dev, name, values, names, n);
 }
@@ -457,7 +453,7 @@ bool LX200StarGo::ReadScopeStatus()
 
     TrackState = newTrackState;
     NewRaDec(currentRA, currentDEC);
-    
+
     return syncSideOfPier();
 }
 
@@ -492,7 +488,7 @@ bool LX200StarGo::syncHomePosition()
         return false;
     }
     IDSetSwitch(&SyncHomeSP, nullptr);
-    return true; 
+    return true;
 }
 
 bool LX200StarGo::getEqCoordinates (double *ra, double *dec)
@@ -641,8 +637,8 @@ void LX200StarGo::getBasicData()
         sendScopeTime();
 //FIXME collect othr fixed data here like Manufacturer, version etc...
     if (genericCapability & LX200_HAS_PULSE_GUIDING)
-        usePulseCommand = true;   
-   
+        usePulseCommand = true;
+
 }
 
 /**************************************************************************************
@@ -702,7 +698,7 @@ bool LX200StarGo::sendScopeLocation()
     if(!setLocalSiderealTime(siteLong))
     {
         LOG_ERROR("Error setting local sidereal time");
-        return false; 
+        return false;
     }
 
     return true;
@@ -741,7 +737,7 @@ bool LX200StarGo::updateLocation(double latitude, double longitude, double eleva
     if(!setLocalSiderealTime(longitude))
     {
         LOG_ERROR("Error setting local sidereal time");
-        return false; 
+        return false;
     }
     return true;
 }
@@ -750,7 +746,7 @@ double LX200StarGo::LocalSiderealTime(double longitude)
 {
     double lst = get_local_sidereal_time(longitude);
 //    double SD = ln_get_apparent_sidereal_time(ln_get_julian_from_sys()) - (360.0 - longitude) / 15.0;
-//    double lst =  range24(SD);   
+//    double lst =  range24(SD);
     return lst;
 }
 bool LX200StarGo::setLocalSiderealTime(double longitude)
@@ -760,8 +756,8 @@ bool LX200StarGo::setLocalSiderealTime(double longitude)
     int h=0, m=0, s=0;
     getSexComponents(lst, &h, &m, &s);
 
-    char response[AVALON_RESPONSE_BUFFER_LENGTH];
-    char cmd[AVALON_COMMAND_BUFFER_LENGTH];
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    char cmd[AVALON_COMMAND_BUFFER_LENGTH] = {0};
     sprintf(cmd, ":X32%02hd%02hd%02hd#", (short) h, (short) m, (short) s);
     if(!sendQuery(cmd, response))
     {
@@ -1083,16 +1079,21 @@ bool LX200StarGo::setSiteLongitude(double longitude)
 {
     LOG_DEBUG(__FUNCTION__);
     int d, m, s;
-    char command[32];
+    char command[32]={0};
     if (longitude > 180) longitude = longitude - 360;
     if (longitude < -180) longitude = 360 + longitude;
 
     getSexComponents(longitude, &d, &m, &s);
 
-    const char* format = ":Sg+%03d*%02d:%02d#";
-    if (d < 0 || m < 0 || s < 0) format = ":Sg%04d*%02u:%02u#";
+//    const char* format = ":Sg+%03d*%02d:%02d#";
+//    if (d < 0 || m < 0 || s < 0) format = ":Sg%04d*%02u:%02u#";
 
-    snprintf(command, sizeof(command), format, d, m, s);
+//    snprintf(command, sizeof(command), format, d, m, s);
+
+    if (d < 0 || m < 0 || s < 0)
+        snprintf(command, sizeof(command), ":Sg%04d*%02u:%02u#", d, m, s);
+    else
+        snprintf(command, sizeof(command), ":Sg+%03d*%02d:%02d#", d, m, s);
 
     LOGF_DEBUG("Sending set site longitude request '%s'", command);
 
@@ -1137,7 +1138,7 @@ bool LX200StarGo::getScopeAlignmentStatus(char *mountType, bool *isTracking, int
         LOG_ERROR("Error communication with telescope.");
         return false;
     }
-    
+
     char mt, tracking;
     int nr;
     int returnCode = sscanf(response, "%c%c%01d", &mt, &tracking, &nr);
@@ -1525,7 +1526,6 @@ bool LX200StarGo::SetTrackMode(uint8_t mode)
             break;
         default:
             return false;
-            break;
     }
     if ( !sendQuery(cmd, response, 0))  // Dont wait for response - there is none
         return false;
@@ -1540,6 +1540,7 @@ bool LX200StarGo::SetTrackMode(uint8_t mode)
     }
     return true;
 }
+
 bool LX200StarGo::checkLX200Format()
 {
     LOG_DEBUG(__FUNCTION__);
@@ -1588,7 +1589,6 @@ bool LX200StarGo::checkLX200Format()
         LOG_INFO("Coordinate format is high precision.");
         return 0;
     }
-    return 0;
 }
 
 bool LX200StarGo::SetSlewRate(int index)
@@ -1630,7 +1630,6 @@ bool LX200StarGo::setSlewMode(int slewMode)
             break;
         default:
             return false;
-            break;
     }
     if (!sendQuery(cmd, response, 0)) // Don't wait for response - there isn't one
     {
@@ -1662,7 +1661,7 @@ bool LX200StarGo::SetMeridianFlipMode(int index)
     if(!sendQuery(enablecmd, response) || !sendQuery(forcecmd, response))
     {
         LOGF_ERROR("Cannot set Meridian Flip Mode %d", index);
-        return false;        
+        return false;
     }
 
     switch (index)
@@ -1685,7 +1684,7 @@ bool LX200StarGo::GetMeridianFlipMode(int* index)
     LOG_DEBUG(__FUNCTION__);
 
 // 0: Auto mode: Enabled and not Forced
-// 1: Disabled mode: Disabled and not Forced 
+// 1: Disabled mode: Disabled and not Forced
 // 2: Forced mode: Enabled and Forced
     const char* enablecmd = ":TTGFs#";
     const char* forcecmd  = ":TTGFd#";
@@ -1694,7 +1693,7 @@ bool LX200StarGo::GetMeridianFlipMode(int* index)
     if(!sendQuery(enablecmd, enableresp) || !sendQuery(forcecmd, forceresp))
     {
         LOGF_ERROR("Cannot get Meridian Flip Mode %s %s", enableresp, forceresp);
-        return false;        
+        return false;
     }
     int enable = 0;
     if (! sscanf(enableresp, "vs%01d", &enable))
@@ -1968,6 +1967,7 @@ bool LX200StarGo::SetTrackEnabled(bool enabled)
     }
     return true;
 }
+
 bool LX200StarGo::SetTrackRate(double raRate, double deRate)
 {
     LOG_DEBUG(__FUNCTION__);
@@ -1980,10 +1980,11 @@ bool LX200StarGo::SetTrackRate(double raRate, double deRate)
     if(!sendQuery(cmd, response, 0))
     {
         LOGF_ERROR("Failed to set tracking t %d", rate);
-        return false;        
+        return false;
     }
     return true;
 }
+
 void LX200StarGo::ISGetProperties(const char *dev)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
@@ -2029,6 +2030,7 @@ void LX200StarGo::ISGetProperties(const char *dev)
     }
     */
 }
+
 bool LX200StarGo::Goto(double ra, double dec)
 {
     LOG_DEBUG(__FUNCTION__);
@@ -2168,6 +2170,7 @@ bool LX200StarGo::Abort()
 
     return true;
 }
+
 bool LX200StarGo::Sync(double ra, double dec)
 {
     LOG_DEBUG(__FUNCTION__);
@@ -2225,11 +2228,12 @@ bool LX200StarGo::setObjectCoords(double ra, double dec)
 
     return true;
 }
+
 bool LX200StarGo::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 {
     LOG_DEBUG(__FUNCTION__);
-    char cmd[RB_MAX_LEN];
-    char response[RB_MAX_LEN];
+    char cmd[RB_MAX_LEN]={0};
+    char response[RB_MAX_LEN]={0};
 
     int yy = years % 100;
 
@@ -2248,7 +2252,7 @@ bool LX200StarGo::setLocalTime24(uint8_t hour, uint8_t minute, uint8_t second)
 {
     LOG_DEBUG(__FUNCTION__);
     char cmd[RB_MAX_LEN]={0};
-    char response[RB_MAX_LEN];
+    char response[RB_MAX_LEN]={0};
 
     snprintf(cmd, sizeof(cmd), ":SL %02d:%02d:%02d#", hour, minute, second);
 
@@ -2259,7 +2263,7 @@ bool LX200StarGo::setUTCOffset(double offset)
 {
     LOG_DEBUG(__FUNCTION__);
     char cmd[RB_MAX_LEN]={0};
-    char response[RB_MAX_LEN];
+    char response[RB_MAX_LEN]={0};
     int hours = offset * -1.0;
 
     snprintf(cmd, sizeof(cmd), ":SG %+03d#", hours);
@@ -2317,8 +2321,10 @@ bool LX200StarGo::getLocalDate(char *dateString)
         // StarGo format is MM/DD/YY
         vars_read = sscanf(response, "%d%*c%d%*c%d", &mm, &dd, &yy);
         if (vars_read < 3)
+        {
             LOGF_ERROR("Cant read date from mount %s", response);
             return false;
+        }
         /* We consider years 50 or more to be in the last century, anything less in the 21st century.*/
         if (yy > 50)
             strncpy(mell_prefix, "19", 3);
