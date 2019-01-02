@@ -54,7 +54,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 #endif
 {
   protected:
-  private:
+//  private:
     Skywatcher *mount;
 
     uint32_t currentRAEncoder, zeroRAEncoder, totalRAEncoder;
