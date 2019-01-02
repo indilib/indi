@@ -24,10 +24,10 @@
 
 #pragma once
 
-#include "lx200telescope.h"
-#include "indicom.h"
-#include "indilogger.h"
-#include "termios.h"
+#include <mounts/lx200telescope.h>
+#include <indicom.h>
+#include <indilogger.h>
+#include <termios.h>
 
 #include <cstring>
 #include <string>
@@ -38,6 +38,7 @@
 #define AVALON_TIMEOUT                                  2
 #define AVALON_COMMAND_BUFFER_LENGTH                    32
 #define AVALON_RESPONSE_BUFFER_LENGTH                   32
+
 enum TDirection
 {
     LX200_NORTH,
@@ -83,9 +84,8 @@ public:
     TrackMode CurrentTrackMode;
     MotorsState CurrentMotorsState;
     TelescopeSlewRate CurrentSlewRate;
-    
+
     LX200StarGo();
-    virtual ~LX200StarGo() = default;
 
     virtual const char *getDefaultName() override;
     virtual bool Handshake() override;
@@ -110,7 +110,7 @@ protected:
 
     // firmware info
     ITextVectorProperty MountFirmwareInfoTP;
-    IText MountFirmwareInfoT[1];
+    IText MountFirmwareInfoT[1] = {};
 
     // goto home
     ISwitchVectorProperty MountGotoHomeSP;
@@ -132,12 +132,12 @@ protected:
     // meridian flip
     ISwitchVectorProperty MeridianFlipModeSP;
     ISwitch MeridianFlipModeS[3];
-    
+
     ISwitchVectorProperty MeridianFlipEnabledSP;
     ISwitch MeridianFlipEnabledS[2];
     ISwitchVectorProperty MeridianFlipForcedSP;
     ISwitch MeridianFlipForcedS[2];
-    
+
     int controller_format;
 
     // override LX200Generic
@@ -216,7 +216,7 @@ protected:
     virtual bool getLocalTime(char *timeString) override;
     virtual bool getLocalDate(char *dateString) override;
     virtual bool getUTFOffset(double *offset) override;
-    
+
     // Abort ALL motion
     virtual bool Abort() override;
     int MoveTo(int direction);

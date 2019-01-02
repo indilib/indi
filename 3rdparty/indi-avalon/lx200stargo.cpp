@@ -33,6 +33,8 @@
 #include <libnova/julian_day.h>
 #include <libnova/sidereal_time.h>
 
+#include "config.h"
+
 // Unique pointers
 static std::unique_ptr<LX200StarGo> telescope;
 static std::unique_ptr<LX200StarGoFocuser> focuser;
@@ -110,7 +112,7 @@ void ISSnoopDevice(XMLEle *root)
 LX200StarGo::LX200StarGo()
 {
     LOG_DEBUG(__FUNCTION__);
-    setVersion(1, 0);
+    setVersion(AVALON_VERSION_MAJOR, AVALON_VERSION_MINOR);
 
     DBG_SCOPE = INDI::Logger::DBG_DEBUG;
 
