@@ -1508,6 +1508,14 @@ const char *Dome::LoadParkData()
 
 bool Dome::WriteParkData()
 {
+    // We need to refresh parking data in case other devices parking states were updated since we
+    // read the data the first time.
+    if (LoadParkData() != nullptr)
+    {
+        LOG_ERROR("Failed to refresh parking data.");
+        return false;
+    }
+
     wordexp_t wexp;
     FILE *fp;
     char pcdata[30];
