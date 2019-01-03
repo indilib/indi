@@ -1770,7 +1770,7 @@ void Telescope::SetParkDataType(TelescopeParkData type)
     }
 }
 
-void Telescope::SetParked(bool isparked)
+void Telescope::SyncParkStatus(bool isparked)
 {
     IsParked = isparked;
     IUResetSwitch(&ParkSP);
@@ -1791,6 +1791,11 @@ void Telescope::SetParked(bool isparked)
     }
 
     IDSetSwitch(&ParkSP, nullptr);
+}
+
+void Telescope::SetParked(bool isparked)
+{
+    SyncParkStatus(isparked);
 
     if (parkDataType != PARK_NONE)
         WriteParkData();
@@ -1807,11 +1812,11 @@ bool Telescope::InitPark()
     if (loadres)
     {
         LOGF_INFO("InitPark: No Park data in file %s: %s", ParkDataFileName.c_str(), loadres);
-        SetParked(false);
+        SyncParkStatus(false);
         return false;
     }
 
-    SetParked(isParked());
+    SyncParkStatus(isParked());
 
     LOGF_DEBUG("InitPark Axis1 %.2f Axis2 %.2f", Axis1ParkPosition, Axis2ParkPosition);
     ParkPositionN[AXIS_RA].value = Axis1ParkPosition;
@@ -1821,7 +1826,7 @@ bool Telescope::InitPark()
     return true;
 }
 
-const char *Telescope::LoadParkData()
+const char *Telescope::LoadParkXML()
 {
     wordexp_t wexp;
     FILE *fp;
@@ -1892,21 +1897,31 @@ const char *Telescope::LoadParkData()
     ParkpositionXml      = findXMLEle(parkxml, "parkposition");
     ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
     ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
-    IsParked             = false;
+
 
     if (ParkstatusXml == nullptr || ParkpositionAxis1Xml == nullptr || ParkpositionAxis2Xml == nullptr)
     {
         return "Park data invalid or missing.";
     }
 
+    return nullptr;
+}
+
+const char *Telescope::LoadParkData()
+{
+    IsParked = false;
+
+    const char *result = LoadParkXML();
+    if (result != nullptr)
+        return result;
+
     if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
         IsParked = true;
 
-    int rc = 0;
     double axis1Pos = std::numeric_limits<double>::quiet_NaN();
     double axis2Pos = std::numeric_limits<double>::quiet_NaN();
 
-    rc     = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &axis1Pos);
+    int rc = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &axis1Pos);
     if (rc != 1)
     {
         return "Unable to parse Park Position Axis 1.";
@@ -1929,6 +1944,11 @@ const char *Telescope::LoadParkData()
 
 bool Telescope::PurgeParkData()
 {
+    // We need to refresh parking data in case other devices parking states were updated since we
+    // read the data the first time.
+    if (LoadParkXML() != nullptr)
+        LOG_DEBUG("Failed to refresh parking data.");
+
     wordexp_t wexp;
     FILE *fp;
     LilXML *lp;
@@ -2015,11 +2035,8 @@ bool Telescope::WriteParkData()
 {
     // We need to refresh parking data in case other devices parking states were updated since we
     // read the data the first time.
-    if (LoadParkData() != nullptr)
-    {
-        LOG_ERROR("Failed to refresh parking data.");
-        return false;
-    }
+    if (LoadParkXML() != nullptr)
+        LOG_DEBUG("Failed to refresh parking data.");
 
     wordexp_t wexp;
     FILE *fp;

@@ -1358,7 +1358,7 @@ void Dome::SetParkDataType(Dome::DomeParkData type)
     }
 }
 
-void Dome::SetParked(bool isparked)
+void Dome::SyncParkStatus(bool isparked)
 {
     IsParked = isparked;
 
@@ -1374,7 +1374,11 @@ void Dome::SetParked(bool isparked)
         setDomeState(DOME_UNPARKED);
         DEBUG(Logger::DBG_SESSION, "Dome is unparked.");
     }
+}
 
+void Dome::SetParked(bool isparked)
+{
+    SyncParkStatus(isparked);
     WriteParkData();
 }
 
@@ -1389,12 +1393,14 @@ bool Dome::InitPark()
     if (loadres)
     {
         LOGF_INFO("InitPark: No Park data in file %s: %s", ParkDataFileName.c_str(), loadres);
-        SetParked(false);
+        SyncParkStatus(false);
         return false;
     }
 
     if (parkDataType != PARK_NONE)
     {
+        SyncParkStatus(isParked());
+
         LOGF_DEBUG("InitPark Axis1 %.2f", Axis1ParkPosition);
         ParkPositionN[AXIS_AZ].value = Axis1ParkPosition;
         IDSetNumber(&ParkPositionNP, nullptr);
@@ -1410,7 +1416,7 @@ bool Dome::InitPark()
     return true;
 }
 
-const char *Dome::LoadParkData()
+const char *Dome::LoadParkXML()
 {
     wordexp_t wexp;
     FILE *fp;
@@ -1479,12 +1485,22 @@ const char *Dome::LoadParkData()
     ParkstatusXml        = findXMLEle(parkxml, "parkstatus");
     ParkpositionXml      = findXMLEle(parkxml, "parkposition");
     ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
-    IsParked             = false;
 
     if (ParkstatusXml == nullptr || ParkpositionAxis1Xml == nullptr)
     {
         return "Park data invalid or missing.";
     }
+
+    return nullptr;
+}
+
+const char *Dome::LoadParkData()
+{
+    IsParked = false;
+
+    const char *result = LoadParkXML();
+    if (result != nullptr)
+        return result;
 
     if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
         IsParked = true;
@@ -1510,11 +1526,8 @@ bool Dome::WriteParkData()
 {
     // We need to refresh parking data in case other devices parking states were updated since we
     // read the data the first time.
-    if (LoadParkData() != nullptr)
-    {
-        LOG_ERROR("Failed to refresh parking data.");
-        return false;
-    }
+    if (LoadParkXML() != nullptr)
+        LOG_DEBUG("Failed to refresh parking data.");
 
     wordexp_t wexp;
     FILE *fp;

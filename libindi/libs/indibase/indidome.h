@@ -528,6 +528,16 @@ class Dome : public DefaultDevice
   private:
     void processButton(const char *button_n, ISState state);
     void triggerSnoop(const char *driverName, const char *propertyName);
+    /**
+     * @brief SyncParkStatus Update the state and switches for parking
+     * @param isparked True if parked, false otherwise.
+     */
+    void SyncParkStatus(bool isparked);
+    /**
+     * @brief LoadParkXML Read and process park XML data.
+     * @return error string if there is problem opening the file
+     */
+    const char *LoadParkXML();
 
     /**
      * @brief Validate a file name
