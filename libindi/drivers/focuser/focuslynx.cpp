@@ -29,8 +29,8 @@
 #define FOCUSNAMEF1 "FocusLynx F1"
 #define FOCUSNAMEF2 "FocusLynx F2"
 
-std::unique_ptr<FocusLynxF1> lynxDriveF1(new FocusLynxF1("F1"));
-std::unique_ptr<FocusLynxF2> lynxDriveF2(new FocusLynxF2("F2"));
+static std::unique_ptr<FocusLynxF1> lynxDriveF1(new FocusLynxF1("F1"));
+static std::unique_ptr<FocusLynxF2> lynxDriveF2(new FocusLynxF2("F2"));
 
 void ISGetProperties(const char *dev)
 {
