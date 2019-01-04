@@ -27,7 +27,7 @@ include(CMakeCommon)
 ############# STARBOOK ###############
 set(indi_starbook_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/indi_starbook.cpp ${CMAKE_CURRENT_SOURCE_DIR}/starbook_types.cpp)
 
-add_executable(indi_starbook_telescope ${indi_starbook_SRCS})
+add_executable(indi_starbook_telescope ${indi_starbook_SRCS} connectioncurl.cpp connectioncurl.h)
 
 target_link_libraries(indi_starbook_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${CURL_LIBRARIES})
 
@@ -47,7 +47,7 @@ if (INDI_BUILD_UNITTESTS)
 
     include_directories(${GTEST_INCLUDE_DIRS})
 
-    add_executable(test_starbook test_starbook.cpp ${indi_starbook_SRCS})
+    add_executable(test_starbook test_starbook.cpp ${indi_starbook_SRCS} connectioncurl.cpp connectioncurl.h)
 
 
     #   test shouldn't be so dependent on external libs, but here we are

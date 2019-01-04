@@ -23,7 +23,7 @@
 #include "config.h"
 
 #include <indicom.h>
-#include <connectionplugins/connectiontcp.h>
+//#include <connectionplugins/connectiontcp.h>
 #include <memory>
 #include <cstring>
 #include <regex>
@@ -76,14 +76,11 @@ Starbook::Starbook()
     SetTelescopeCapability(
             TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME, 1);
 
-    setTelescopeConnection(CONNECTION_TCP);
-    curl_global_init(CURL_GLOBAL_ALL);
+//    we are using custom connection
+    setTelescopeConnection(CONNECTION_NONE);
 }
 
-Starbook::~Starbook()
-{
-    curl_global_cleanup();
-}
+Starbook::~Starbook() = default;
 
 bool Starbook::initProperties()
 {
@@ -94,11 +91,12 @@ bool Starbook::initProperties()
                      IPS_IDLE);
 
 
-    if (getTelescopeConnection() & CONNECTION_TCP)
-    {
-        tcpConnection->setDefaultHost("127.0.0.1");
-        tcpConnection->setDefaultPort(5000);
-    }
+    curlConnection = new Connection::Curl(this);
+    curlConnection->registerHandshake([&]() { return callHandshake(); });
+    registerConnection(curlConnection);
+
+    curlConnection->setDefaultHost("192.168.0.102");
+    curlConnection->setDefaultPort(80);
 
     addDebugControl();
 
@@ -119,17 +117,14 @@ bool Starbook::updateProperties() {
 
 bool Starbook::Connect()
 {
-    handle = curl_easy_init();
     bool rc = Telescope::Connect();
-    if (rc) {
-        getFirmwareVersion();
-    }
+
+    getFirmwareVersion();
     return rc;
 }
 
 bool Starbook::Disconnect()
 {
-    curl_easy_cleanup(handle);
     return Telescope::Disconnect();
 }
 
@@ -180,15 +175,15 @@ bool Starbook::ReadScopeStatus()
     }
 
     switch (state) {
-        case INIT:
-        case USER:
+        case starbook::INIT:
+        case starbook::USER:
             TrackState = SCOPE_IDLE;
             break;
-        case SCOPE:
-        case GUIDE:
+        case starbook::SCOPE:
+        case starbook::GUIDE:
             TrackState = goto_status ? SCOPE_SLEWING : SCOPE_TRACKING;
             break;
-        case UNKNOWN:
+        case starbook::UNKNOWN:
             TrackState = SCOPE_IDLE;
             break;
     }
@@ -314,6 +309,7 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
 std::string Starbook::SendCommand(std::string cmd)
 {
     int rc = 0;
+    CURL *handle = curlConnection->getHandle();
 
     readBuffer.clear();
     curl_easy_setopt(handle, CURLOPT_TIMEOUT, 2L);
@@ -328,7 +324,10 @@ std::string Starbook::SendCommand(std::string cmd)
     // TODO: https://github.com/indilib/indi/pull/779
     // HACK: Just use CURL, and use tcpConnection as input
     std::ostringstream cmd_url;
-    cmd_url << "http://" << tcpConnection->host() << "/" << cmd;
+
+    cmd_url << "http://" << curlConnection->host() << ":" << curlConnection->port() << "/" << cmd;
+    LOGF_DEBUG("Send GET %s", cmd_url.str().c_str());
+
     curl_easy_setopt(handle, CURLOPT_URL, cmd_url.str().c_str());
 
     rc = curl_easy_perform(handle);

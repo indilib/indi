@@ -24,6 +24,7 @@
 #include <inditelescope.h>
 #include <curl/curl.h>
 #include "starbook_types.h"
+#include "connectioncurl.h"
 
 class Starbook : public INDI::Telescope
 {
@@ -50,7 +51,7 @@ private:
 
     starbook::StarbookState ParseState(const std::string &value);
 
-    CURL *handle;
+    Connection::Curl *curlConnection = nullptr;
 
 protected:
     IText VersionT[1]{};
