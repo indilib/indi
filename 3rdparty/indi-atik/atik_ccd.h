@@ -147,6 +147,11 @@ class ATIKCCD : public INDI::CCD, public INDI::FilterInterface
     // Cooler switch control
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
+    enum
+    {
+        COOLER_ON,
+        COOLER_OFF,
+    };
 
     // Gain & Offset Custom Properties
     INumber ControlN[2];
@@ -180,9 +185,9 @@ class ATIKCCD : public INDI::CCD, public INDI::FilterInterface
 
 
     struct timeval ExpStart;
-    double ExposureRequest;
-    double TemperatureRequest;
-    int genTimerID;
+    double ExposureRequest { 0 };
+    double TemperatureRequest { 1e6 };
+    int genTimerID {-1};
 
     // Imaging thread
     ImageState threadRequest;
