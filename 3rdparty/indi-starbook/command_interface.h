@@ -42,7 +42,9 @@ namespace starbook {
 
         ResponseCode Align(double ra, double dec);
 
-        ResponseCode Move();
+        ResponseCode Move(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand command);
+
+        ResponseCode Move(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command);
 
         ResponseCode Home() {
             return SendOkCommand("HOME");
@@ -68,7 +70,7 @@ namespace starbook {
 
         ResponseCode SetPlace();
 
-        ResponseCode SetTime();
+        ResponseCode SetTime(ln_date &utc);
 
     private:
 

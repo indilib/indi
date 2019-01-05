@@ -3,7 +3,8 @@
 //
 
 #include <regex>
-#include "indi_starbook.h"
+#include <inditelescope.h>
+#include "command_interface.h"
 
 
 namespace starbook {
@@ -156,5 +157,30 @@ namespace starbook {
             return OK;
         }
         return ERROR_UNKNOWN;
+    }
+
+    ResponseCode CommandInterface::SetTime(ln_date &utc) {
+        std::ostringstream cmd;
+        cmd << "SETTIME?TIME=" << static_cast<starbook::UTC &>(utc);
+        return SendOkCommand(cmd.str());
+    }
+
+    ResponseCode CommandInterface::Move(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand command) {
+        std::ostringstream cmd;
+        cmd << "MOVE?NORTH="
+            << (dir == DIRECTION_NORTH && command == INDI::Telescope::TelescopeMotionCommand::MOTION_START ? 1 : 0)
+            << "&SOUTH="
+            << (dir == DIRECTION_SOUTH && command == INDI::Telescope::TelescopeMotionCommand::MOTION_START ? 1 : 0);
+
+        return SendOkCommand(cmd.str());
+    }
+
+    ResponseCode CommandInterface::Move(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
+        std::ostringstream cmd;
+        cmd << "MOVE?WEST="
+            << (dir == DIRECTION_WEST && command == INDI::Telescope::TelescopeMotionCommand::MOTION_START ? 1 : 0)
+            << "&EAST="
+            << (dir == DIRECTION_EAST && command == INDI::Telescope::TelescopeMotionCommand::MOTION_START ? 1 : 0);
+        return SendOkCommand(cmd.str());
     }
 }

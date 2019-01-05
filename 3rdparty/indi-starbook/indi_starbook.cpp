@@ -161,34 +161,30 @@ bool Starbook::ReadScopeStatus()
 
 bool Starbook::Goto(double ra, double dec)
 {
-    starbook::ResponseCode rc;
     std::ostringstream params;
     ra = ra * 15; // CONVERSION
     params << "?" << starbook::Equ{ ra, dec };
 
 
-    rc = cmd_interface->GotoRaDec(ra, dec);
+    starbook::ResponseCode rc = cmd_interface->GotoRaDec(ra, dec);
     LogResponse("Goto", rc);
     return rc == starbook::OK;
 }
 
 bool Starbook::Sync(double ra, double dec)
 {
-    starbook::ResponseCode rc;
     std::ostringstream params;
     ra = ra * 15; // CONVERSION
     params << "?" << starbook::Equ{ ra, dec };
 
-
-    rc = cmd_interface->Align(ra, dec);
+    starbook::ResponseCode rc = cmd_interface->Align(ra, dec);
     LogResponse("Sync", rc);
     return rc == starbook::OK;
 }
 
 bool Starbook::Abort()
 {
-    starbook::ResponseCode rc;
-    rc = cmd_interface->Stop();
+    starbook::ResponseCode rc = cmd_interface->Stop();
     LogResponse("Abort", rc);
     return rc == starbook::OK;
 }
@@ -197,8 +193,7 @@ bool Starbook::Park()
 {
     // TODO Park
     LOG_WARN("HOME command is unstable");
-    starbook::ResponseCode rc;
-    rc = cmd_interface->Home();
+    starbook::ResponseCode rc = cmd_interface->Home();
     LogResponse("Park", rc);
     return rc == starbook::OK;
 }
@@ -211,41 +206,28 @@ bool Starbook::UnPark()
 }
 
 bool Starbook::MoveNS(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand command) {
-    std::ostringstream params;
-    params << "?NORTH="
-           << ((dir == DIRECTION_NORTH && command == MOTION_START) ? 1 : 0)
-           << "&SOUTH="
-           << ((dir == DIRECTION_SOUTH && command == MOTION_START) ? 1 : 0);
-
-    LOGF_INFO("Move! %s", params.str().c_str());
-    return cmd_interface->SendOkCommand("MOVE" + params.str());
+    starbook::ResponseCode rc = cmd_interface->Move(dir, command);
+    LogResponse("MoveNS", rc);
+    return rc == starbook::OK;
 }
 
 bool Starbook::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
-    std::ostringstream params;
-    params << "?WEST="
-           << ((dir == DIRECTION_WEST && command == MOTION_START) ? 1 : 0)
-           << "&EAST="
-           << ((dir == DIRECTION_EAST && command == MOTION_START) ? 1 : 0);
-
-    LOGF_INFO("Move! %s", params.str().c_str());
-    return cmd_interface->SendOkCommand("MOVE" + params.str());
+    starbook::ResponseCode rc = cmd_interface->Move(dir, command);
+    LogResponse("MoveWE", rc);
+    return rc == starbook::OK;
 }
 
 bool Starbook::updateTime(ln_date *utc, double utc_offset) {
     INDI_UNUSED(utc_offset);
 
-    std::ostringstream params;
-    params << "?TIME=" << *static_cast<starbook::UTC *>(utc);
-
-    LOGF_INFO("Time! %s", params.str().c_str());
-
-    return cmd_interface->SendOkCommand("SETTIME" + params.str());
+    starbook::ResponseCode rc = cmd_interface->SetTime(*utc);
+    LogResponse("updateTime", rc);
+    return rc == starbook::OK;
 
 }
 
 bool Starbook::getFirmwareVersion() {
-    starbook::VersionResponse res;
+    starbook::VersionResponse res = {};
     starbook::ResponseCode rc = cmd_interface->Version(res);
 
     if (rc != starbook::OK) {
