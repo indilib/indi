@@ -41,6 +41,8 @@ namespace Connection {
             return false;
         }
 
+        SetupHandle();
+
         LOG_DEBUG("Handle creation successful, attempting handshake...");
         bool rc = Handshake();
 
@@ -51,6 +53,13 @@ namespace Connection {
             LOG_DEBUG("Handshake failed.");
 
         return rc;
+    }
+
+    void Curl::SetupHandle() const {
+        curl_easy_setopt(handle, CURLOPT_TIMEOUT, HANDLE_TIMEOUT);
+        curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
+        // if debug
+        curl_easy_setopt(handle, CURLOPT_VERBOSE, 1);
     }
 
     bool Curl::Disconnect() {

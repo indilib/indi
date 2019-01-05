@@ -28,7 +28,7 @@
 #include <cstring>
 #include <regex>
 
-static std::string readBuffer;
+static std::string read_buffer;
 
 static std::unique_ptr<Starbook> starbook_driver(new Starbook());
 
@@ -302,7 +302,7 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
 {
     INDI_UNUSED(userp);
     size_t real_size = size * nmemb;
-    readBuffer.append((char*)contents, real_size);
+    read_buffer.append((char *) contents, real_size);
     return real_size;
 }
 
@@ -310,24 +310,17 @@ std::string Starbook::SendCommand(std::string cmd)
 {
     int rc = 0;
     CURL *handle = curlConnection->getHandle();
+    std::ostringstream cmd_url;
 
-    readBuffer.clear();
-    curl_easy_setopt(handle, CURLOPT_TIMEOUT, 2L);
-    curl_easy_setopt(handle, CURLOPT_VERBOSE, 1);
-    curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
+    cmd_url << "http://" << curlConnection->host() << ":" << curlConnection->port() << "/" << cmd;
+    LOGF_DEBUG("Send GET %s", cmd.c_str());
+
+    read_buffer.clear();
     curl_easy_setopt(handle, CURLOPT_USERAGENT, "curl/7.58.0");
 
     /* send all data to this function  */
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(handle, CURLOPT_WRITEDATA, &readBuffer);
-
-    // TODO: https://github.com/indilib/indi/pull/779
-    // HACK: Just use CURL, and use tcpConnection as input
-    std::ostringstream cmd_url;
-
-    cmd_url << "http://" << curlConnection->host() << ":" << curlConnection->port() << "/" << cmd;
-    LOGF_DEBUG("Send GET %s", cmd_url.str().c_str());
-
+    curl_easy_setopt(handle, CURLOPT_WRITEDATA, &read_buffer);
     curl_easy_setopt(handle, CURLOPT_URL, cmd_url.str().c_str());
 
     rc = curl_easy_perform(handle);
@@ -339,7 +332,7 @@ std::string Starbook::SendCommand(std::string cmd)
     // all responses are hidden in HTML comments ...
     std::regex response_comment_re("<!--(.*)-->", std::regex_constants::ECMAScript);
     std::smatch comment_match;
-    if (!std::regex_search(readBuffer, comment_match, response_comment_re)) {
+    if (!std::regex_search(read_buffer, comment_match, response_comment_re)) {
         return "";
     }
 
