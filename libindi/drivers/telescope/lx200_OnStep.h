@@ -29,6 +29,9 @@
     - James Lan Alignment
     - Azwing set all com variable legth to RB_MAX_LEN otherwise crash due to overflow
     - Azwing set local variable size to RB_MAX_LEN otherwise erased by overflow preventing Align and other stuf to work
+    - James Lan Align Tab implementation
+    - Removed Alignment in main tab
+    - minor typo fixes
 
     Version 1.3: Complete rework of interface and functionalities
     - Telescope Status using :GU#
@@ -91,8 +94,8 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     virtual bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
     virtual bool ReadScopeStatus() override;
     virtual int setSiteLongitude(int fd, double Long);
-    virtual bool GetAlignStatus();
-    virtual bool kdedialog(const char * commande);
+//azwing align    virtual bool GetAlignStatus();
+//azwing align    virtual bool kdedialog(const char * commande);
     virtual bool SetTrackRate(double raRate, double deRate) override;
     
     
@@ -198,10 +201,10 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitch ReticS[2];
 
     // Align Buttons
-    ISwitchVectorProperty OSAlignSP;
-    ISwitch OSAlignS[4];
-    IText OSAlignT[1] {};
-    ITextVectorProperty OSAlignTP;
+//azwing align    ISwitchVectorProperty OSAlignSP;
+//azwing align    ISwitch OSAlignS[4];
+//azwing align    IText OSAlignT[1] {};
+//azwing align    ITextVectorProperty OSAlignTP;
 
     ISwitchVectorProperty TrackCompSP;
     ISwitch TrackCompS[3];
@@ -246,11 +249,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     char OSStat[RB_MAX_LEN];
     char OldOSStat[RB_MAX_LEN];
 
-    char OSAlignStat[RB_MAX_LEN];
-    char oldOSAlignStat[RB_MAX_LEN];
-    bool OSAlignProcess=false;
-    bool OSAlignFlag=false;
-    bool OSAlignOn=false;
+//azwing align    char OSAlignStat[RB_MAX_LEN];
+//azwing align    char oldOSAlignStat[RB_MAX_LEN];
+//azwing align    bool OSAlignProcess=false;
+//azwing align    bool OSAlignFlag=false;
+//azwing align    bool OSAlignOn=false;
 
     char OSPier[RB_MAX_LEN];
     char OldOSPier[RB_MAX_LEN];

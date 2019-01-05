@@ -28,7 +28,7 @@
 #include <memory>
 
 // We declare an auto pointer to ScopeSim.
-std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
+static std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 
 #define GOTO_RATE      6.5      /* slew rate, degrees/s */
 #define SLEW_RATE      2.5      /* slew rate, degrees/s */
@@ -341,9 +341,9 @@ bool ScopeSim::ReadScopeStatus()
             case IPS_BUSY:
 
                 if (MovementWES[DIRECTION_WEST].s == ISS_ON)
-                    currentRA += da_ra / 15.;
-                else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
                     currentRA -= da_ra / 15.;
+                else if (MovementWES[DIRECTION_EAST].s == ISS_ON)
+                    currentRA += da_ra / 15.;
                 break;
 
             default:

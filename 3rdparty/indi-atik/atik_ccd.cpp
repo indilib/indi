@@ -210,8 +210,8 @@ bool ATIKCCD::initProperties()
     INDI::CCD::initProperties();
 
     // Cooler control
-    IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", ISS_OFF);
-    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", ISS_ON);
+    IUFillSwitch(&CoolerS[COOLER_ON], "COOLER_ON", "ON", ISS_OFF);
+    IUFillSwitch(&CoolerS[COOLER_OFF], "COOLER_OFF", "OFF", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_WO,
                        ISR_1OFMANY, 2, IPS_IDLE);
 
@@ -604,9 +604,33 @@ bool ATIKCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 return true;
             }
 
-            return activateCooler(CoolerS[0].s == ISS_ON);
-        }
+            bool enabled = (CoolerS[COOLER_ON].s == ISS_ON);
 
+            // If user turns on cooler, but the requested temperature is higher than current temperature
+            // then we set temperature to zero degrees. If that was still higher than current temperature
+            // we return an error
+            if (enabled && TemperatureRequest > TemperatureN[0].value)
+            {
+                TemperatureRequest = 0;
+                // If current temperature is still lower than zero, then we shouldn't risk
+                // setting temperature to any arbitrary value. Instead, we report an error and ask
+                // user to explicitly set the requested temperature.
+                if (TemperatureRequest > TemperatureN[0].value)
+                {
+                    CoolerS[COOLER_ON].s = ISS_OFF;
+                    CoolerS[COOLER_OFF].s = ISS_OFF;
+                    CoolerSP.s = IPS_ALERT;
+                    LOGF_WARN("Cannot manually activate cooler since current temperature is %.2f. To activate cooler, request a lower temperature.", TemperatureN[0].value);
+                    IDSetSwitch(&CoolerSP, nullptr);
+                    return true;
+                }
+
+                SetTemperature(0);
+                return true;
+            }
+
+            return activateCooler(enabled);
+        }
     }
 
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
@@ -644,33 +668,40 @@ bool ATIKCCD::activateCooler(bool enable)
     {
         if (TemperatureRequest < TemperatureN[0].value)
         {
-            CoolerS[0].s = ISS_ON;
+            if (CoolerSP.s != IPS_BUSY)
+                LOG_INFO("Camera cooler is on.");
+
+            CoolerS[COOLER_ON].s = ISS_ON;
+            CoolerS[COOLER_OFF].s = ISS_OFF;
             CoolerSP.s = IPS_BUSY;
         }
         else
         {
-            CoolerS[1].s = ISS_ON;
+            CoolerS[COOLER_ON].s = ISS_OFF;
+            CoolerS[COOLER_OFF].s = ISS_ON;
             CoolerSP.s = IPS_IDLE;
             LOG_WARN("Cooler cannot be activated manually. Set a lower temperature to activate it.");
             IDSetSwitch(&CoolerSP, nullptr);
             return false;
         }
-
     }
     else if (enable == false)
     {
         int rc = ArtemisCoolerWarmUp(hCam);
         if (rc != ARTEMIS_OK)
         {
-            CoolerS[1].s = ISS_ON;
+            CoolerS[COOLER_ON].s = ISS_ON;
+            CoolerS[COOLER_OFF].s = ISS_OFF;
             CoolerSP.s = IPS_ALERT;
             LOGF_ERROR("Failed to warm camera (%d).", rc);
             IDSetSwitch(&CoolerSP, nullptr);
             return false;
         }
 
-        CoolerS[1].s = ISS_ON;
-        CoolerSP.s = IPS_BUSY;
+        CoolerS[COOLER_ON].s = ISS_OFF;
+        CoolerS[COOLER_OFF].s = ISS_ON;
+        CoolerSP.s = IPS_IDLE;
+        LOG_INFO("Camera is warming up...");
     }
 
     IDSetSwitch(&CoolerSP, nullptr);
@@ -870,18 +901,33 @@ void ATIKCCD::TimerHit()
 
     if (HasCooler())
     {
-        CoolerN[0].value = static_cast<double>(level)/maxlvl * 100.0;
+        bool coolerChanged=false;
+        double coolerPower = static_cast<double>(level)/maxlvl * 100.0;
+        if (fabs(CoolerN[0].value-coolerPower) > 0.01)
+        {
+            CoolerN[0].value = coolerPower;
+            coolerChanged = true;
+        }
 
         // b5 0 = normal control 1=warming up
         // b6 0 = cooling off 1 = cooling on
-        if ( !(flags & 0x20) && // Normal Control?
-              (flags & 0x40))   // Cooling On?
+        if (!(flags & 0x20) && // Normal Control?
+             (flags & 0x40))   // Cooling On?
+        {
+            if (CoolerNP.s != IPS_BUSY)
+                coolerChanged = true;
             CoolerNP.s = IPS_BUSY;
+        }
         // Otherwise cooler is either warming up or not active
         else
+        {
+            if (CoolerNP.s != IPS_IDLE)
+                coolerChanged = true;
             CoolerNP.s = IPS_IDLE;
+        }
 
-        IDSetNumber(&CoolerNP, nullptr);
+        if (coolerChanged)
+            IDSetNumber(&CoolerNP, nullptr);
     }
 
     // If filter wheel is in motion

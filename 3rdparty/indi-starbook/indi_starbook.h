@@ -30,21 +30,32 @@ class Starbook : public INDI::Telescope
 public:
     Starbook();
 
-    ~Starbook();
+    ~Starbook() override;
 
     bool initProperties() override;
+
+    bool updateProperties() override;
 
     bool ReadScopeStatus() override;
 
 private:
 
-    bool SendCommand(std::string command);
+    std::string SendCommand(std::string command);
 
-    StarbookState state;
+    bool SendOkCommand(const std::string &cmd);
+
+    starbook::ResponseCode ParseCommandResponse(const std::string &response);
+
+    starbook::StarbookState state;
+
+    starbook::StarbookState ParseState(const std::string &value);
 
     CURL *handle;
 
 protected:
+    IText VersionT[1]{};
+
+    ITextVectorProperty VersionInfo;
 
     bool Connect() override;
 
@@ -58,11 +69,17 @@ protected:
 
     bool Sync(double ra, double dec) override;
 
+    bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+
+    bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+
     bool Abort() override;
 
     bool Park() override;
 
     bool UnPark() override;
 
-};
+    bool updateTime(ln_date *utc, double utc_offset) override;
 
+    bool getFirmwareVersion();
+};

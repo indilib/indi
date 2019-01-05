@@ -466,6 +466,30 @@ install(TARGETS indi_imager_agent RUNTIME DESTINATION bin)
 ########## TELESCOPE GROUP ##########
 #####################################
 
+########### LX200 Library ###########
+SET(lx200library_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200telescope.cpp
+    )
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(lx200library lx200library_SRCS 10 cpp)
+ENDIF ()
+
+add_library(indilx200 SHARED ${lx200library_SRCS})
+if (NOT CYGWIN AND NOT WIN32)
+set_target_properties(indilx200 PROPERTIES COMPILE_FLAGS "-fPIC")
+endif (NOT CYGWIN AND NOT WIN32)
+target_compile_definitions(indilx200 PRIVATE "-DHAVE_LIBNOVA")
+set_target_properties(indilx200 PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indilx200)
+
+install(TARGETS indilx200 LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200telescope.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.h
+    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/mounts COMPONENT Devel)
+#################################################################################
+
 ########### LX200 Basic #############
 SET(lx200basic_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
@@ -727,6 +751,15 @@ SET(moonlite_SRC
 add_executable(indi_moonlite_focus ${moonlite_SRC})
 target_link_libraries(indi_moonlite_focus indidriver)
 install(TARGETS indi_moonlite_focus RUNTIME DESTINATION bin)
+
+################ Moonlite DRO Dual Focuser ################
+
+SET(moonlitedro_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/moonlite_dro.cpp)
+
+add_executable(indi_moonlitedro_focus ${moonlitedro_SRC})
+target_link_libraries(indi_moonlitedro_focus indidriver)
+install(TARGETS indi_moonlitedro_focus RUNTIME DESTINATION bin)
 
 ################ OnFocus Focuser ################
 

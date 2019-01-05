@@ -69,7 +69,7 @@ bool LX200_OnStep::initProperties()
     LX200Generic::initProperties();
     FI::initProperties(FOCUS_TAB);
     SetParkDataType(PARK_RA_DEC);
-    
+
     //FocuserInterface
     //Initial, these will be updated later. 
     FocusRelPosN[0].min   = 0.;
@@ -87,14 +87,14 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
     IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
 
-    IUFillSwitch(&OSAlignS[0], "1", "1 Star", ISS_OFF);
-    IUFillSwitch(&OSAlignS[1], "2", "2 Stars", ISS_OFF);
-    IUFillSwitch(&OSAlignS[2], "3", "3 Stars", ISS_OFF);
-    IUFillSwitch(&OSAlignS[3], "4", "Align", ISS_OFF);
-    IUFillSwitchVector(&OSAlignSP, OSAlignS, 4, getDeviceName(), "AlignStar", "Align using n stars", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+//azwing align    IUFillSwitch(&OSAlignS[0], "1", "1 Star", ISS_OFF);
+//azwing align    IUFillSwitch(&OSAlignS[1], "2", "2 Stars", ISS_OFF);
+//azwing align    IUFillSwitch(&OSAlignS[2], "3", "3 Stars", ISS_OFF);
+//azwing align    IUFillSwitch(&OSAlignS[3], "4", "Align", ISS_OFF);
+//azwing align    IUFillSwitchVector(&OSAlignSP, OSAlignS, 4, getDeviceName(), "AlignStar", "Align using n stars", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillText(&OSAlignT[0], "OSStarAlign", "Align x Star(s)", "Manual Alignment Process Idle");
-    IUFillTextVector(&OSAlignTP, OSAlignT, 1, getDeviceName(), "Align Process", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+//azwing align    IUFillText(&OSAlignT[0], "OSStarAlign", "Align x Star(s)", "Manual Alignment Process Idle");
+//azwing align    IUFillTextVector(&OSAlignTP, OSAlignT, 1, getDeviceName(), "Align Process", "", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     IUFillNumber(&ElevationLimitN[0], "minAlt", "Elev Min", "%+03f", -90.0, 90.0, 1.0, -30.0);
     IUFillNumber(&ElevationLimitN[1], "maxAlt", "Elev Max", "%+03f", -90.0, 90.0, 1.0, 89.0);
@@ -136,7 +136,7 @@ bool LX200_OnStep::initProperties()
     
 
     // ============== SITE_MANAGEMENT_TAB
-    IUFillSwitch(&SetHomeS[0], "COLD_START", "Cold Start", ISS_OFF);
+    IUFillSwitch(&SetHomeS[0], "COLD_START", "Return Home", ISS_OFF);
     IUFillSwitch(&SetHomeS[1], "WARM_START", "Init Home", ISS_OFF);
     IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
 
@@ -307,11 +307,10 @@ bool LX200_OnStep::updateProperties()
         // keep sorted by TABs is easier
         // Main Control
         defineSwitch(&ReticSP);
-        defineSwitch(&OSAlignSP);
-        defineText(&OSAlignTP);
+//azwing align        defineSwitch(&OSAlignSP);
+//azwing align        defineText(&OSAlignTP);
         defineNumber(&ElevationLimitNP);
         defineText(&ObjectInfoTP);
-
         // Connection
 
         // Options
@@ -320,9 +319,9 @@ bool LX200_OnStep::updateProperties()
         defineNumber(&MaxSlewRateNP);
         defineSwitch(&TrackCompSP);
         defineNumber(&BacklashNP);
-	defineSwitch(&AutoFlipSP);
-	defineSwitch(&HomePauseSP);
-	defineSwitch(&FrequencyAdjustSP);
+        defineSwitch(&AutoFlipSP);
+        defineSwitch(&HomePauseSP);
+        defineSwitch(&FrequencyAdjustSP);
 
         // Site Management
         defineSwitch(&ParkOptionSP);
@@ -407,8 +406,8 @@ bool LX200_OnStep::updateProperties()
         // keep sorted by TABs is easier
         // Main Control
         deleteProperty(ReticSP.name);
-        deleteProperty(OSAlignSP.name);
-        deleteProperty(OSAlignTP.name);
+//azwing align        deleteProperty(OSAlignSP.name);
+//azwing align        deleteProperty(OSAlignTP.name);
         deleteProperty(ElevationLimitNP.name);
         // Connection
 
@@ -662,7 +661,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-
+/* azwing Align
         // Align Buttons
         if (!strcmp(name, OSAlignSP.name))      // Tested
         {
@@ -698,7 +697,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             OSAlignSP.s = IPS_OK;
             IDSetSwitch(&OSAlignSP, nullptr);
         }
-
+*/
         // Reticlue +/- Buttons
         if (!strcmp(name, ReticSP.name))      // Tested
         {
@@ -1270,7 +1269,7 @@ void LX200_OnStep::getBasicData()
 //======================== Parking =======================
 bool LX200_OnStep::SetCurrentPark()      // Tested
 {
-    char response[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char response[RB_MAX_LEN];
 
     if(!getCommandString(PortFD, response, ":hQ#"))
         {
@@ -1294,7 +1293,7 @@ bool LX200_OnStep::SetDefaultPark()      // Tested
 
 bool LX200_OnStep::UnPark()      // Tested
 {
-    char response[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char response[RB_MAX_LEN];
 
 
     if (!isSimulation())
@@ -1350,8 +1349,8 @@ bool LX200_OnStep::Park()      // Tested
 // Periodically Polls OnStep Parameter from controller
 bool LX200_OnStep::ReadScopeStatus()      // Tested
 {
-    char OSbacklashDEC[RB_MAX_LEN];  //azwing RB_MAX_LEN
-    char OSbacklashRA[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char OSbacklashDEC[RB_MAX_LEN];
+    char OSbacklashRA[RB_MAX_LEN];
     Errors Lasterror = ERR_NONE;
 
     if (isSimulation()) //if Simulation is selected
@@ -1538,10 +1537,10 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
 
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, "==> Update OnsTep Status");
-    if (OSAlignOn)  //don't Poll if no Aligning
-    {
-        if(!GetAlignStatus()) LOG_WARN("Fail Align Command");
-    }
+//azwing align    if (OSAlignOn)  //don't Poll if no Aligning
+//azwing align    {
+//azwing align        if(!GetAlignStatus()) LOG_WARN("Fail Align Command");
+//azwing align    }
     //Align tab, so it doesn't conflict
     //May want to reduce frequency of updates 
     if (!UpdateAlignStatus()) LOG_WARN("Fail Align Command");
@@ -1556,7 +1555,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
 
 bool LX200_OnStep::SetTrackEnabled(bool enabled) //track On/Off events handled by inditelescope       Tested
 {
-    char response[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char response[RB_MAX_LEN];
 
     if (enabled)
     {
@@ -1667,7 +1666,7 @@ int LX200_OnStep::setMaxElevationLimit(int fd, int max)   // According to standa
 {
     LOGF_INFO("<%s>", __FUNCTION__);
 
-    char read_buffer[RB_MAX_LEN]={0};  //azwing RB_MAX_LEN
+    char read_buffer[RB_MAX_LEN]={0};
 
     snprintf(read_buffer, sizeof(read_buffer), ":So%02d#", max);
 
@@ -1686,7 +1685,7 @@ int LX200_OnStep::setSiteLongitude(int fd, double Long)
 
     return (setStandardProcedure(fd, read_buffer));
 }
-
+/* azwing Align
 bool LX200_OnStep::GetAlignStatus()
 {
     char msg[40];
@@ -1745,7 +1744,7 @@ bool LX200_OnStep::kdedialog(const char * commande)
 {
     return system(commande);
 }
-
+*/
 /***** FOCUSER INTERFACE ******
 
 NOT USED: 
@@ -1822,7 +1821,7 @@ bool LX200_OnStep::AbortFocuser () {
 
 void LX200_OnStep::OSUpdateFocuser()
 {
-    char value[RB_MAX_LEN];  //azwing RB_MAX_LEN
+    char value[RB_MAX_LEN];
 	int current = 0;
 	if (OSFocuser1) {
 	// Alternate option:
@@ -1949,7 +1948,7 @@ IPState LX200_OnStep::PECStatus (int axis) {
 // 	IUFillSwitch(&OSPECStatusS[3], "Will Play", "Will Play", ISS_OFF);
 // 	IUFillSwitch(&OSPECStatusS[4], "Will Record", "Will Record", ISS_OFF);
 	//ReticS[0].s=ISS_OFF;
-	char value[RB_MAX_LEN] ="  ";  //azwing RB_MAX_LEN
+    char value[RB_MAX_LEN] ="  ";
 	OSPECStatusSP.s = IPS_BUSY;
 	getCommandString(PortFD, value, ":$QZ?#");
 //	LOGF_INFO("Response %s", value);

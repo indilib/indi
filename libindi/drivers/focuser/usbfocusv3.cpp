@@ -202,8 +202,7 @@ bool USBFocusV3::updateProperties()
 
         loadConfig(true);
 
-        LOG_INFO("USBFocusV3 paramaters updated, focuser ready for use.");
-        SetTimer(POLLMS);
+        LOG_INFO("USBFocusV3 parameters updated, focuser ready for use.");
     }
     else
     {
@@ -284,6 +283,8 @@ bool USBFocusV3::Resync()
 
 bool USBFocusV3::sendCommand(const char *cmd, char *resp)
 {
+    pthread_mutex_lock(&cmdlock);
+
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     LOGF_DEBUG("CMD: %s.", cmd);
@@ -292,7 +293,8 @@ bool USBFocusV3::sendCommand(const char *cmd, char *resp)
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Error writing command %s: %s.", cmd, errstr);
+        LOGF_WARN("Error writing command %s: %s.", cmd, errstr);
+        pthread_mutex_unlock(&cmdlock);
         return false;
     }
 
@@ -301,7 +303,8 @@ bool USBFocusV3::sendCommand(const char *cmd, char *resp)
         if ((rc = tty_nread_section(PortFD, resp, UFORESLEN, '\r', USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("Error reading response for command %s: %s.", cmd, errstr);
+            LOGF_WARN("Error reading response for command %s: %s.", cmd, errstr);
+            pthread_mutex_unlock(&cmdlock);
             return false;
         }
 
@@ -319,18 +322,29 @@ bool USBFocusV3::sendCommand(const char *cmd, char *resp)
 
         if (nbytes_read < 2)
         {
-            LOGF_ERROR("Invalid response for command %s: %s.", cmd, resp);
+            LOGF_WARN("Invalid response for command %s: %s.", cmd, resp);
+            pthread_mutex_unlock(&cmdlock);
             return false;
         }
-        resp[nbytes_read - 2] = '\0'; // Strip \n\r
+        // Be sure we receive the \n\r to not truncate the response
+        int rc  = sscanf(resp, "%s\n\r", resp);
+        if (rc <= 0)
+        {
+            LOGF_WARN("Invalid response for command  %s: missing cr+lf", cmd);
+            pthread_mutex_unlock(&cmdlock);
+            return false;
+        }
         LOGF_DEBUG("RES: %s.", resp);
     }
+    pthread_mutex_unlock(&cmdlock);
     return true;
 }
 
 // Special version to work around command FTAXXA, which replies without \n\r
 bool USBFocusV3::sendCommandSpecial(const char *cmd, char *resp)
 {
+    pthread_mutex_lock(&cmdlock);
+
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     LOGF_DEBUG("CMD: %s.", cmd);
@@ -339,7 +353,8 @@ bool USBFocusV3::sendCommandSpecial(const char *cmd, char *resp)
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Error writing command %s: %s.", cmd, errstr);
+        LOGF_WARN("Error writing command %s: %s.", cmd, errstr);
+        pthread_mutex_unlock(&cmdlock);
         return false;
     }
 
@@ -349,12 +364,14 @@ bool USBFocusV3::sendCommandSpecial(const char *cmd, char *resp)
         if ((rc = tty_read(PortFD, resp, 3, USBFOCUSV3_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("Error reading response for command %s: %s.", cmd, errstr);
+            LOGF_WARN("Error reading response for command %s: %s.", cmd, errstr);
+            pthread_mutex_unlock(&cmdlock);
             return false;
         }
         resp[nbytes_read] = '\0';
         LOGF_DEBUG("RES: %s.", resp);
     }
+    pthread_mutex_unlock(&cmdlock);
     return true;
 }
 
@@ -421,17 +438,32 @@ bool USBFocusV3::updateRotDir()
 bool USBFocusV3::updateTemperature()
 {
     char resp[UFORESLEN] = {};
-    if (!sendCommand(UFOCREADTEMP, resp))
-        return false;
+    int j = 0;
 
-    float temp;
-    int rc = sscanf(resp, "T=%f", &temp);
+    // retry up to 5 time to fix data desyncronization.
+    // see: https://bitbucket.org/usb-focus/ascom-driver/src/f0ec7d0faee605f9a3d9e2c4d599f9d537211201/USB_Focus/Driver.cs?at=master&fileviewer=file-view-default#Driver.cs-898
 
-    if (rc > 0)
+    while (j<=5)
     {
-        TemperatureN[0].value = temp;
+       if (sendCommand(UFOCREADTEMP, resp))
+       {
+
+          float temp;
+          int rc = sscanf(resp, "T=%f", &temp);
+
+          if (rc > 0)
+          {
+             TemperatureN[0].value = temp;
+             break;
+          }
+          else
+          {
+             LOGF_DEBUG("Unknown error: focuser temperature value (%s)", resp);
+          }
+      }
+      j++;
     }
-    else
+    if (j>5)
     {
         LOGF_ERROR("Unknown error: focuser temperature value (%s)", resp);
         return false;
@@ -449,17 +481,32 @@ bool USBFocusV3::updateFWversion()
 bool USBFocusV3::updatePosition()
 {
     char resp[UFORESLEN] = {};
-    if (!sendCommand(UFOCREADPOS, resp))
-        return false;
+    int j = 0;
 
-    int pos = -1;
-    int rc  = sscanf(resp, "P=%u", &pos);
+    // retry up to 5 time to fix data desyncronization.
+    // see: https://bitbucket.org/usb-focus/ascom-driver/src/f0ec7d0faee605f9a3d9e2c4d599f9d537211201/USB_Focus/Driver.cs?at=master&fileviewer=file-view-default#Driver.cs-746
 
-    if (rc > 0)
+    while (j<=5)
     {
-        FocusAbsPosN[0].value = pos;
+       if (sendCommand(UFOCREADPOS, resp))
+       {
+
+          int pos = -1;
+          int rc  = sscanf(resp, "P=%u", &pos);
+
+          if (rc > 0)
+          {
+              FocusAbsPosN[0].value = pos;
+              break;
+          }
+          else
+          {
+              LOGF_DEBUG("Unknown error: focuser position value (%s)", resp);
+          }
+       }
+       j++;
     }
-    else
+    if (j>5)
     {
         LOGF_ERROR("Unknown error: focuser position value (%s)", resp);
         return false;

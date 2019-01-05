@@ -364,7 +364,7 @@ class Dome : public DefaultDevice
     virtual bool SetDefaultPark();
 
     //Park
-    char *LoadParkData();
+    const char *LoadParkData();
     bool WriteParkData();
 
     /**
@@ -505,8 +505,8 @@ class Dome : public DefaultDevice
     // For Serial and TCP connections
     int PortFD = -1;
 
-    Connection::Serial *serialConnection = NULL;
-    Connection::TCP *tcpConnection       = NULL;
+    Connection::Serial *serialConnection = nullptr;
+    Connection::TCP *tcpConnection       = nullptr;
 
     // States
     DomeState domeState;
@@ -527,8 +527,24 @@ class Dome : public DefaultDevice
 
   private:
     void processButton(const char *button_n, ISState state);
-
     void triggerSnoop(const char *driverName, const char *propertyName);
+    /**
+     * @brief SyncParkStatus Update the state and switches for parking
+     * @param isparked True if parked, false otherwise.
+     */
+    void SyncParkStatus(bool isparked);
+    /**
+     * @brief LoadParkXML Read and process park XML data.
+     * @return error string if there is problem opening the file
+     */
+    const char *LoadParkXML();
+
+    /**
+     * @brief Validate a file name
+     * @param file_name File name
+     * @return True if the file name is valid otherwise false.
+     */
+    std::string GetHomeDirectory() const;
 
     Controller *controller = nullptr;
 
@@ -537,7 +553,7 @@ class Dome : public DefaultDevice
     bool IsLocked = true;
 
     const char *ParkDeviceName;
-    const char *Parkdatafile;
+    const std::string ParkDataFileName;
     XMLEle *ParkdataXmlRoot, *ParkdeviceXml, *ParkstatusXml, *ParkpositionXml, *ParkpositionAxis1Xml;
 
     double Axis1ParkPosition;
