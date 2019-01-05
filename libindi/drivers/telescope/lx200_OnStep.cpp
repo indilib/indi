@@ -233,9 +233,11 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);
     IUFillSwitch(&OSNAlignStarsS[2], "3", "3 Stars", ISS_ON);
-    IUFillSwitch(&OSNAlignStarsS[3], "6", "6 Stars", ISS_OFF);
-    IUFillSwitch(&OSNAlignStarsS[4], "9", "9 Stars", ISS_OFF);
-    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 5, getDeviceName(), "AlignStars", "Align using some stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitch(&OSNAlignStarsS[3], "4", "4 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[4], "5", "5 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[5], "6", "6 Stars", ISS_OFF);
+    IUFillSwitch(&OSNAlignStarsS[6], "9", "9 Stars", ISS_OFF);
+    IUFillSwitchVector(&OSNAlignStarsSP, OSNAlignStarsS, 7, getDeviceName(), "AlignStars", "Align using some stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
     IUFillSwitch(&OSNAlignS[0], "0", "Start Align", ISS_OFF);
     IUFillSwitch(&OSNAlignS[1], "1", "Issue Align", ISS_OFF);
@@ -1155,16 +1157,20 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		if (index == 0)
 		{    
 			
-			/*IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
-			IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);
+			/* From above. Could be added to have 7,8 star
+			IUFillSwitch(&OSNAlignStarsS[0], "1", "1 Star", ISS_OFF);
+			IUFillSwitch(&OSNAlignStarsS[1], "2", "2 Stars", ISS_OFF);*
 			IUFillSwitch(&OSNAlignStarsS[2], "3", "3 Stars", ISS_ON);
-			IUFillSwitch(&OSNAlignStarsS[3], "6", "6 Stars", ISS_OFF);
-			IUFillSwitch(&OSNAlignStarsS[4], "9", "9 Stars", ISS_OFF);*/
+			IUFillSwitch(&OSNAlignStarsS[3], "4", "4 Stars", ISS_OFF);
+			IUFillSwitch(&OSNAlignStarsS[4], "5", "5 Stars", ISS_OFF);
+			IUFillSwitch(&OSNAlignStarsS[5], "6", "6 Stars", ISS_OFF);
+			IUFillSwitch(&OSNAlignStarsS[6], "9", "9 Stars", ISS_OFF);*/
+			
 			int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
-			if ((index_stars <= 4) && (index_stars >= 0)) {
+			if ((index_stars <= 5) && (index_stars >= 0)) {
 				int stars = index_stars+1;
-				if (stars == 5) stars = 9;
-				if (stars == 4) stars = 6;
+				if (stars == 6) stars = 9;
+				//if (stars == 5) stars = 6;
 				OSNAlignS[0].s = ISS_OFF;
 				LOGF_INFO("Align index: %d, stars: %d", index_stars, stars); 
 				AlignStartGeometric(stars);
@@ -1370,7 +1376,10 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     strcpy(OldOSStat ,OSStat);
 
     IUSaveText(&OnstepStat[0],OSStat);
-    if (strstr(OSStat,"n") && strstr(OSStat,"N")) {IUSaveText(&OnstepStat[1],"Tracking Off"); }
+    if (strstr(OSStat,"n") && strstr(OSStat,"N")) { //No Slew and No tracking
+        IUSaveText(&OnstepStat[1],"Tracking Off"); 
+        TrackState=SCOPE_IDLE;
+    }
     if (strstr(OSStat,"n") && !strstr(OSStat,"N"))
     {
         IUSaveText(&OnstepStat[1],"Slewing");
@@ -2015,7 +2024,7 @@ IPState LX200_OnStep::AlignStartGeometric (int stars){
 	IUSaveText(&OSNAlignT[2],"GOTO a star, Solve and Sync");
 	IUSaveText(&OSNAlignT[3],"Press 'Issue Align'");
 	IDSetText(&OSNAlignTP, "==>Align Started");
-	//strcpy(cmd, ":A6#");
+	// Check for max number of stars and gracefully fall back to max, if more are requested.
 	char read_buffer[RB_MAX_LEN];
 	if(getCommandString(PortFD, read_buffer, ":A?#"))
 	{
@@ -2141,7 +2150,7 @@ bool LX200_OnStep::UpdateAlignErr()
 	//	LOG_INFO("Gettng Align Error Status");
 	if(getCommandString(PortFD, read_buffer, ":GX02#"))
 	{
-		LOGF_INFO("Align Error Status response Error, response = %s>", read_buffer);
+		LOGF_INFO("Polar Align Error Status response Error, response = %s>", read_buffer);
 		return false;
 	}
 // 	LOGF_INFO("Getting Align Error Status: %s", read_buffer);
@@ -2149,7 +2158,7 @@ bool LX200_OnStep::UpdateAlignErr()
 	long altCor = strtold(read_buffer, NULL); 
 	if(getCommandString(PortFD, read_buffer, ":GX03#"))
 	{
-		LOGF_INFO("Align Error Status response Error, response = %s>", read_buffer);
+		LOGF_INFO("Polar Align Error Status response Error, response = %s>", read_buffer);
 		return false;
 	}
 // 	LOGF_INFO("Getting Align Error Status: %s", read_buffer);
@@ -2159,7 +2168,7 @@ bool LX200_OnStep::UpdateAlignErr()
 	IUSaveText(&OSNAlignErrT[0],polar_error);
 	snprintf(polar_error, sizeof(polar_error), "%ld", altCor);
 	IUSaveText(&OSNAlignErrT[1],polar_error);
-	IDSetText(&OSNAlignErrTP, "Align Error Updated");
+	IDSetText(&OSNAlignErrTP, "Polar Align Error Updated");
 	
 	
 	return true;
