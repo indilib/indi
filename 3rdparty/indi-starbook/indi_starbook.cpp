@@ -24,11 +24,8 @@
 
 #include <indicom.h>
 //#include <connectionplugins/connectiontcp.h>
-#include <memory>
 #include <cstring>
 #include <regex>
-
-static std::string read_buffer;
 
 static std::unique_ptr<Starbook> starbook_driver(new Starbook());
 
@@ -98,6 +95,10 @@ bool Starbook::initProperties()
     curlConnection->setDefaultHost("192.168.0.102");
     curlConnection->setDefaultPort(80);
 
+    cmd_interface = std::unique_ptr<starbook::CommandInterface>(
+            new starbook::CommandInterface(curlConnection)
+    );
+
     addDebugControl();
 
     state = starbook::UNKNOWN;
@@ -136,7 +137,7 @@ const char* Starbook::getDefaultName()
 bool Starbook::ReadScopeStatus()
 {
     LOG_DEBUG("Status! Sending GETSTATUS command");
-    std::string response = SendCommand("GETSTATUS");
+    std::string response = cmd_interface->SendCommand("GETSTATUS");
     if (response.empty()) {
         return false;
     }
@@ -166,7 +167,7 @@ bool Starbook::ReadScopeStatus()
         }
         else if (key == "STATE")
         {
-            state = ParseState(value);
+            state = cmd_interface->ParseState(value);
             LOGF_DEBUG("Parsed STATE %i", state);
         } else if (key == "GOTO") {
             goto_status = value == "1";
@@ -197,37 +198,46 @@ bool Starbook::ReadScopeStatus()
 
 bool Starbook::Goto(double ra, double dec)
 {
-    ra = ra * 15; // CONVERSION
+    starbook::ResponseCode rc;
     std::ostringstream params;
+    ra = ra * 15; // CONVERSION
     params << "?" << starbook::Equ{ ra, dec };
 
-    LOGF_INFO("GoTo! %s", params.str().c_str());
 
-    return SendOkCommand("GOTORADEC" + params.str());
+    rc = cmd_interface->GotoRaDec(ra, dec);
+    LogResponse("Goto", rc);
+    return rc == starbook::OK;
 }
 
 bool Starbook::Sync(double ra, double dec)
 {
-    ra = ra * 15; // CONVERSION
+    starbook::ResponseCode rc;
     std::ostringstream params;
+    ra = ra * 15; // CONVERSION
     params << "?" << starbook::Equ{ ra, dec };
 
-    LOGF_INFO("Sync! %s", params.str().c_str());
-    // TODO: check if distance to new ra, dec > 10 degrees
-    return SendOkCommand("ALIGN" + params.str());
+
+    rc = cmd_interface->Align(ra, dec);
+    LogResponse("Sync", rc);
+    return rc == starbook::OK;
 }
 
 bool Starbook::Abort()
 {
-    LOG_INFO("Aborting!");
-    return SendOkCommand("STOP");
+    starbook::ResponseCode rc;
+    rc = cmd_interface->Stop();
+    LogResponse("Abort", rc);
+    return rc == starbook::OK;
 }
 
 bool Starbook::Park()
 {
     // TODO Park
     LOG_WARN("HOME command is unstable");
-    return SendOkCommand("HOME");
+    starbook::ResponseCode rc;
+    rc = cmd_interface->Home();
+    LogResponse("Park", rc);
+    return rc == starbook::OK;
 }
 
 bool Starbook::UnPark()
@@ -245,7 +255,7 @@ bool Starbook::MoveNS(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand c
            << ((dir == DIRECTION_SOUTH && command == MOTION_START) ? 1 : 0);
 
     LOGF_INFO("Move! %s", params.str().c_str());
-    return SendOkCommand("MOVE" + params.str());
+    return cmd_interface->SendOkCommand("MOVE" + params.str());
 }
 
 bool Starbook::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
@@ -256,7 +266,7 @@ bool Starbook::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand c
            << ((dir == DIRECTION_EAST && command == MOTION_START) ? 1 : 0);
 
     LOGF_INFO("Move! %s", params.str().c_str());
-    return SendOkCommand("MOVE" + params.str());
+    return cmd_interface->SendOkCommand("MOVE" + params.str());
 }
 
 bool Starbook::updateTime(ln_date *utc, double utc_offset) {
@@ -267,12 +277,12 @@ bool Starbook::updateTime(ln_date *utc, double utc_offset) {
 
     LOGF_INFO("Time! %s", params.str().c_str());
 
-    return SendOkCommand("SETTIME" + params.str());
+    return cmd_interface->SendOkCommand("SETTIME" + params.str());
 
 }
 
 bool Starbook::getFirmwareVersion() {
-    std::string response = SendCommand("VERSION");
+    std::string response = cmd_interface->SendCommand("VERSION");
     if (response.empty()) {
         LOG_ERROR("Can't get firmware version");
         return false;
@@ -298,86 +308,39 @@ bool Starbook::getFirmwareVersion() {
     return true;
 }
 
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
-{
-    INDI_UNUSED(userp);
-    size_t real_size = size * nmemb;
-    read_buffer.append((char *) contents, real_size);
-    return real_size;
-}
-
-std::string Starbook::SendCommand(std::string cmd)
-{
-    int rc = 0;
-    CURL *handle = curlConnection->getHandle();
-    std::ostringstream cmd_url;
-
-    cmd_url << "http://" << curlConnection->host() << ":" << curlConnection->port() << "/" << cmd;
-    LOGF_DEBUG("Send GET %s", cmd.c_str());
-
-    read_buffer.clear();
-    curl_easy_setopt(handle, CURLOPT_USERAGENT, "curl/7.58.0");
-
-    /* send all data to this function  */
-    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(handle, CURLOPT_WRITEDATA, &read_buffer);
-    curl_easy_setopt(handle, CURLOPT_URL, cmd_url.str().c_str());
-
-    rc = curl_easy_perform(handle);
-
-    if (rc != CURLE_OK) {
-        return "";
-    }
-
-    // all responses are hidden in HTML comments ...
-    std::regex response_comment_re("<!--(.*)-->", std::regex_constants::ECMAScript);
-    std::smatch comment_match;
-    if (!std::regex_search(read_buffer, comment_match, response_comment_re)) {
-        return "";
-    }
-
-    return comment_match[1].str();
-}
-
-bool Starbook::SendOkCommand(const std::string &cmd) {
-    std::string response = SendCommand(cmd);
-    starbook::ResponseCode code = ParseCommandResponse(response);
-    if (code == starbook::OK) {
-        return true;
-    }
-    LOGF_ERROR("%s failed: %s", cmd.c_str(), response.c_str());
-    return false;
-}
-
-starbook::ResponseCode Starbook::ParseCommandResponse(const std::string &response) {
-    if (response == "OK")
-        return starbook::OK;
-    else if (response == "ERROR:FORMAT")
-        return starbook::ERROR_FORMAT;
-    else if (response == "ERROR:ILLEGAL STATE")
-        return starbook::ERROR_ILLEGAL_STATE;
-    else if (response == "ERROR:BELOW HORIZONE") /* it's not a typo */
-        return starbook::ERROR_BELOW_HORIZON;
-
-    return starbook::ERROR_UNKNOWN;
-}
-
-starbook::StarbookState Starbook::ParseState(const std::string &value) {
-    if (value == "SCOPE")
-        return starbook::SCOPE;
-    else if (value == "GUIDE")
-        return starbook::GUIDE;
-    else if (value == "USER")
-        return starbook::USER;
-    else if (value == "INIT")
-        return starbook::INIT;
-
-    LOGF_ERROR("Unknown state %s", value.c_str());
-    return starbook::UNKNOWN;
-}
-
 bool Starbook::Handshake()
 {
     LOG_DEBUG("Handshake");
     return Telescope::Handshake();
+}
+
+void Starbook::LogResponse(const std::string &cmd, const starbook::ResponseCode &rc) {
+    std::stringstream msg;
+
+    msg << cmd << " [";
+    switch (rc) {
+        case starbook::OK:
+            msg << "OK";
+            break;
+        case starbook::ERROR_ILLEGAL_STATE:
+            msg << "ERROR_ILLEGAL_STATE";
+            break;
+        case starbook::ERROR_FORMAT:
+            msg << "ERROR_FORMAT";
+            break;
+        case starbook::ERROR_BELOW_HORIZON:
+            msg << "ERROR_BELOW_HORIZON";
+            break;
+        case starbook::ERROR_UNKNOWN:
+            msg << "ERROR_UNKNOWN";
+            break;
+    }
+    msg << "]";
+
+    if (rc != starbook::OK) {
+        msg << ": " << cmd_interface->last_cmd_url;
+        LOG_ERROR(msg.str().c_str());
+    } else {
+        LOG_INFO(msg.str().c_str());
+    }
 }
