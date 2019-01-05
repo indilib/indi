@@ -282,27 +282,23 @@ bool Starbook::updateTime(ln_date *utc, double utc_offset) {
 }
 
 bool Starbook::getFirmwareVersion() {
-    std::string response = cmd_interface->SendCommand("VERSION");
-    if (response.empty()) {
-        LOG_ERROR("Can't get firmware version");
+    starbook::VersionResponse res;
+    starbook::ResponseCode rc = cmd_interface->Version(res);
+
+    if (rc != starbook::OK) {
+        if (rc == starbook::ERROR_FORMAT) {
+            LOGF_ERROR("Version [ERROR]: Can't parse firmware version %s", cmd_interface->last_response.c_str());
+        } else {
+            LOG_ERROR("Version [ERROR]: Can't get firmware version");
+        }
         return false;
     }
-
-    std::regex param_re(R"(version=((\d+\.\d+)\w+))");
-    std::smatch sm;
-    if (!regex_search(response, sm, param_re)) {
-        LOG_ERROR("Can't parse firmware version");
-        return false;
+    if (res.major_minor < 2.7) {
+        LOGF_WARN("Version [OK]: %s (< 2.7) not well supported", res.full_str.c_str());
+    } else {
+        LOGF_INFO("Version [OK]: %s", res.full_str.c_str());
     }
-
-    std::string version_full = sm[1].str();
-    float version = std::stof(sm[2]);
-
-    if (version < 2.7) {
-        LOGF_WARN("Version %s (< 2.7) not well supported", version_full.c_str());
-    }
-
-    IUSaveText(&VersionT[0], version_full.c_str());
+    IUSaveText(&VersionT[0], res.full_str.c_str());
     IDSetText(&VersionInfo, nullptr);
 
     return true;

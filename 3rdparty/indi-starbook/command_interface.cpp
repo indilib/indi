@@ -5,6 +5,7 @@
 #include <regex>
 #include "indi_starbook.h"
 
+
 namespace starbook {
 
     CommandInterface::CommandInterface(Connection::Curl *new_connection) {
@@ -28,6 +29,7 @@ namespace starbook {
         cmd_url << "http://" << connection->host() << ":" << connection->port() << "/" << cmd;
         last_cmd_url = cmd_url.str();
 
+        last_response.clear();
         read_buffer.clear();
         curl_easy_setopt(handle, CURLOPT_USERAGENT, "curl/7.58.0");
 
@@ -49,15 +51,16 @@ namespace starbook {
             return "";
         }
 
+        last_response = comment_match[1].str();
         return comment_match[1].str();
     }
 
-    ResponseCode CommandInterface::SendOkCommand(const std::__cxx11::string &cmd) {
-        std::__cxx11::string response = CommandInterface::SendCommand(cmd);
+    ResponseCode CommandInterface::SendOkCommand(const std::string &cmd) {
+        std::string response = CommandInterface::SendCommand(cmd);
         return ParseCommandResponse(response);
     }
 
-    ResponseCode CommandInterface::ParseCommandResponse(const std::__cxx11::string &response) {
+    ResponseCode CommandInterface::ParseCommandResponse(const std::string &response) {
         if (response == "OK")
             return OK;
         else if (response == "ERROR:FORMAT")
@@ -70,7 +73,7 @@ namespace starbook {
         return ERROR_UNKNOWN;
     }
 
-    starbook::StarbookState starbook::CommandInterface::ParseState(const std::__cxx11::string &value) {
+    StarbookState CommandInterface::ParseState(const std::string &value) {
         if (value == "SCOPE")
             return SCOPE;
         else if (value == "GUIDE")
@@ -93,5 +96,25 @@ namespace starbook {
         std::ostringstream cmd;
         cmd << "ALIGN?" << starbook::Equ{ra, dec};
         return SendOkCommand(cmd.str());
+    }
+
+    ResponseCode CommandInterface::Version(VersionResponse &res) {
+        std::string response = SendCommand("VERSION");
+        if (response.empty()) {
+//            LOG_ERROR("Version [ERROR]: Can't get firmware version");
+            return ERROR_UNKNOWN;
+        }
+
+        std::regex param_re(R"(version=((\d+\.\d+)\w+))");
+        std::smatch sm;
+        if (!regex_search(response, sm, param_re)) {
+//            LOGF_ERROR("Version [ERROR]: Can't parse firmware version %s", response.c_str());
+            return ERROR_FORMAT;
+        }
+
+        res.full_str = sm[1].str();
+        res.major_minor = std::stof(sm[2]);
+
+        return OK;
     }
 }

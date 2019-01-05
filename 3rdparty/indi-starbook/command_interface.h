@@ -10,12 +10,19 @@
 
 namespace starbook {
 
+    typedef struct {
+        std::string full_str;
+        float major_minor;
+    } VersionResponse;
+
     class CommandInterface {
     public:
 
         explicit CommandInterface(Connection::Curl *connection);
 
         std::string last_cmd_url;
+
+        std::string last_response;
 
         std::string SendCommand(std::string command);
 
@@ -57,7 +64,7 @@ namespace starbook {
 
         ResponseCode GetXY();
 
-        ResponseCode Version();
+        ResponseCode Version(VersionResponse &res);
 
         ResponseCode SetSpeed();
 
