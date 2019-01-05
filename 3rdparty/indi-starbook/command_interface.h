@@ -11,6 +11,12 @@
 namespace starbook {
 
     typedef struct {
+        ln_equ_posn equ;
+        StarbookState state;
+        bool executing_goto;
+    } StatusResponse;
+
+    typedef struct {
         std::string full_str;
         float major_minor;
     } VersionResponse;
@@ -23,14 +29,6 @@ namespace starbook {
         std::string last_cmd_url;
 
         std::string last_response;
-
-        std::string SendCommand(std::string command);
-
-        ResponseCode SendOkCommand(const std::string &cmd);
-
-        ResponseCode ParseCommandResponse(const std::string &response);
-
-        StarbookState ParseState(const std::string &value);
 
         ResponseCode Start() {
             return SendOkCommand("START");
@@ -54,7 +52,7 @@ namespace starbook {
             return SendOkCommand("STOP");
         }
 
-        ResponseCode GetStatus();
+        ResponseCode GetStatus(StatusResponse &res);
 
         ResponseCode GetPlace();
 
@@ -73,6 +71,15 @@ namespace starbook {
         ResponseCode SetTime();
 
     private:
+
+        std::string SendCommand(std::string command);
+
+        ResponseCode SendOkCommand(const std::string &cmd);
+
+        ResponseCode ParseCommandResponse(const std::string &response);
+
+        StarbookState ParseState(const std::string &value);
+
         Connection::Curl *connection = nullptr;
 
     };

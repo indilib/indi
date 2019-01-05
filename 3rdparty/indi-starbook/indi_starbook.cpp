@@ -23,7 +23,6 @@
 #include "config.h"
 
 #include <indicom.h>
-//#include <connectionplugins/connectiontcp.h>
 #include <cstring>
 #include <regex>
 
@@ -137,44 +136,11 @@ const char* Starbook::getDefaultName()
 bool Starbook::ReadScopeStatus()
 {
     LOG_DEBUG("Status! Sending GETSTATUS command");
-    std::string response = cmd_interface->SendCommand("GETSTATUS");
-    if (response.empty()) {
-        return false;
-    }
+    starbook::StatusResponse res;
+    starbook::ResponseCode rc = cmd_interface->GetStatus(res);
+    if (rc != starbook::OK) return false;
 
-    LOG_DEBUG(response.c_str());
-
-    std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
-    std::smatch sm;
-
-    lnh_equ_posn equ_posn = { { 0, 0, 0 }, { 0, 0, 0, 0 } };
-    bool goto_status = false;
-
-    while (regex_search(response, sm, param_re))
-    {
-        std::string key = sm[1].str();
-        std::string value = sm[2].str();
-
-        if (key == "RA")
-        {
-            starbook::HMS ra(value);
-            equ_posn.ra = ra;
-        }
-        else if (key == "DEC")
-        {
-            starbook::DMS dec(value);
-            equ_posn.dec = dec;
-        }
-        else if (key == "STATE")
-        {
-            state = cmd_interface->ParseState(value);
-            LOGF_DEBUG("Parsed STATE %i", state);
-        } else if (key == "GOTO") {
-            goto_status = value == "1";
-        }
-        response = sm.suffix();
-    }
-
+    state = res.state;
     switch (state) {
         case starbook::INIT:
         case starbook::USER:
@@ -182,17 +148,14 @@ bool Starbook::ReadScopeStatus()
             break;
         case starbook::SCOPE:
         case starbook::GUIDE:
-            TrackState = goto_status ? SCOPE_SLEWING : SCOPE_TRACKING;
+            TrackState = res.executing_goto ? SCOPE_SLEWING : SCOPE_TRACKING;
             break;
         case starbook::UNKNOWN:
             TrackState = SCOPE_IDLE;
             break;
     }
 
-    ln_equ_posn d_equ_posn = {0, 0};
-    ln_hequ_to_equ(&equ_posn, &d_equ_posn);
-    LOGF_DEBUG("Parsed RADEC %d, %d", d_equ_posn.ra / 15, d_equ_posn.dec);
-    NewRaDec(d_equ_posn.ra / 15, d_equ_posn.dec); // CONVERSION
+    NewRaDec(res.equ.ra / 15, res.equ.dec); // CONVERSION
     return true;
 }
 

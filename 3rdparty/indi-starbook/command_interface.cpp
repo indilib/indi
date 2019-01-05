@@ -117,4 +117,44 @@ namespace starbook {
 
         return OK;
     }
+
+    ResponseCode CommandInterface::GetStatus(StatusResponse &res) {
+        std::string cmd_res = SendCommand("GETSTATUS");
+        if (cmd_res.empty()) {
+            return ERROR_UNKNOWN;
+        }
+
+        lnh_equ_posn equ_posn = {{0, 0, 0},
+                                 {0, 0, 0, 0}};
+        res.executing_goto = false;
+
+        std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
+        std::smatch sm;
+
+        while (regex_search(cmd_res, sm, param_re)) {
+            std::string key = sm[1].str();
+            std::string value = sm[2].str();
+
+            if (key == "RA") {
+                starbook::HMS ra(value);
+                equ_posn.ra = ra;
+            } else if (key == "DEC") {
+                starbook::DMS dec(value);
+                equ_posn.dec = dec;
+            } else if (key == "STATE") {
+                res.state = ParseState(value);
+            } else if (key == "GOTO") {
+                res.executing_goto = value == "1";
+            }
+            cmd_res = sm.suffix();
+        }
+
+        res.equ = {0, 0};
+        ln_hequ_to_equ(&equ_posn, &res.equ);
+
+        if (cmd_res.empty()) {
+            return OK;
+        }
+        return ERROR_UNKNOWN;
+    }
 }
