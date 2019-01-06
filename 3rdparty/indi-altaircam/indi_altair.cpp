@@ -580,31 +580,22 @@ void ALTAIRCAM::setupParams()
 
         rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, 1);
         LOGF_DEBUG("ALTAIRCAM_OPTION_RAW 1. rc: %s", errorCodes[rc].c_str());
-//        rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
-//        LOGF_DEBUG("ALTAIRCAM_OPTION_BITDEPTH 1. rc: %s", errorCodes[rc].c_str());
 
-        int rgbMode = 0;
-        rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, &rgbMode);
-        LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %s Value: %d", errorCodes[rc].c_str(), rgbMode);
-
-        // 8 bit
-        if (rgbMode <= 3)
+        if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
         {
-            VideoFormatS[TC_VIDEO_MONO_8].s = ISS_ON;
-            m_Channels = 1;
-            m_CameraPixelFormat = INDI_MONO;
-            m_BitsPerPixel = 8;
-            LOG_INFO("Video Mode 8-bit mono detected.");
-        }
-        // 16 bits gray
-        else if (rgbMode == 4)
-        {
-            VideoFormatS[TC_VIDEO_MONO_16].s = ISS_ON;
-            m_Channels = 1;
-            m_CameraPixelFormat = INDI_MONO;
+            // enable bitdepth
+            Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
             m_BitsPerPixel = 16;
-            LOG_INFO("Video Mode 16-bit mono detected.");
+            VideoFormatS[TC_VIDEO_MONO_16].s = ISS_ON;
         }
+        else
+        {
+            m_BitsPerPixel = 8;
+            VideoFormatS[TC_VIDEO_MONO_8].s = ISS_ON;
+        }
+
+        m_CameraPixelFormat = INDI_MONO;
+        m_Channels = 1;
 
         LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_MONO_8].s == ISS_ON ? "Mono 8-bit" : "Mono 16-bit");
     }
