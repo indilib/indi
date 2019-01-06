@@ -283,7 +283,7 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[5], "TimeSync", "", "");
     IUFillText(&OnstepStat[6], "Mount Type", "", "");
     IUFillText(&OnstepStat[7], "Error", "", "");
-    IUFillTextVector(&OnstepStatTP, OnstepStat, 8, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillTextVector(&OnstepStatTP, OnstepStat, 8, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
     return true;
 }
@@ -415,9 +415,9 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(TrackCompSP.name);
         deleteProperty(BacklashNP.name);
-	deleteProperty(AutoFlipSP.name);
-	deleteProperty(HomePauseSP.name);
-	deleteProperty(FrequencyAdjustSP.name);
+    deleteProperty(AutoFlipSP.name);
+    deleteProperty(HomePauseSP.name);
+    deleteProperty(FrequencyAdjustSP.name);
 	
 
         // Site Management
@@ -444,13 +444,13 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(DeepSkyCatalogSP.name);
         deleteProperty(ObjectNoNP.name);
 
-	//PEC
+    //PEC
 	deleteProperty(OSPECStatusSP.name);
-	deleteProperty(OSPECIndexSP.name);
-	deleteProperty(OSPECRecordSP.name);
-	deleteProperty(OSPECReadSP.name);
+    deleteProperty(OSPECIndexSP.name);
+    deleteProperty(OSPECRecordSP.name);
+    deleteProperty(OSPECReadSP.name);
 	
-	//New Align
+    //New Align
 	deleteProperty(OSNAlignStarsSP.name);
 	deleteProperty(OSNAlignSP.name);
 	deleteProperty(OSNAlignTP.name);
@@ -699,7 +699,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
         // Reticlue +/- Buttons
         if (!strcmp(name, ReticSP.name))      // Tested
         {
-            int ret = 0;
+            long ret = 0;   //azwing ret must be long
 
             IUUpdateSwitch(&ReticSP, states, names, n);
             ReticSP.s = IPS_OK;
@@ -1369,7 +1369,11 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     strcpy(OldOSStat ,OSStat);
 
     IUSaveText(&OnstepStat[0],OSStat);
-    if (strstr(OSStat,"n") && strstr(OSStat,"N")) {IUSaveText(&OnstepStat[1],"Tracking Off"); }
+    if (strstr(OSStat,"n") && strstr(OSStat,"N"))
+    {
+        IUSaveText(&OnstepStat[1],"Idle");
+        TrackState=SCOPE_IDLE;
+    }
     if (strstr(OSStat,"n") && !strstr(OSStat,"N"))
     {
         IUSaveText(&OnstepStat[1],"Slewing");
@@ -1398,7 +1402,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
          }
         if (strstr(OSStat,"F"))
         {
-            TrackState=SCOPE_IDLE;
+            //Azwing keep Status even if error TrackState=SCOPE_IDLE;
             SetParked(false);
             IUSaveText(&OnstepStat[3],"Parking Failed");
         }
@@ -1410,7 +1414,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
         }
         if (strstr(OSStat,"p"))
         {
-            TrackState=SCOPE_IDLE;
+            TrackState=SCOPE_TRACKING; //Azwing changed from Idle to Tracking
             SetParked(false);
             IUSaveText(&OnstepStat[3],"UnParked");
         }
@@ -1439,14 +1443,14 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
         {
             if (strstr(OSStat,"F"))
             {
-                TrackState=SCOPE_IDLE;
+                //Azwing keep Status even if error  TrackState=SCOPE_IDLE;
                 SetParked(false);
                 IUSaveText(&OnstepStat[3],"Parking Failed");
                 LOG_ERROR("OnStep Parking failed, need to re Init OnStep at home");
             }
             if (strstr(OSStat,"p"))
             {
-                //TrackState=SCOPE_IDLE;
+                TrackState=SCOPE_TRACKING; //azwing changed from Idle to Tracking
                 SetParked(false);
                 IUSaveText(&OnstepStat[3],"UnParked");
                 //LOG_INFO("OnStep Unparked...");
@@ -1527,7 +1531,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     IDSetNumber(&BacklashNP, nullptr);
 
     // Update OnStep Status TAB
-    IDSetText(&OnstepStatTP, "==> Update OnsTep Status");
+    IDSetText(&OnstepStatTP, nullptr); //Azwing just update, no message
 //azwing align    if (OSAlignOn)  //don't Poll if no Aligning
 //azwing align    {
 //azwing align        if(!GetAlignStatus()) LOG_WARN("Fail Align Command");
@@ -1536,7 +1540,6 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     //May want to reduce frequency of updates 
     if (!UpdateAlignStatus()) LOG_WARN("Fail Align Command");
     UpdateAlignErr();
-    //
     
     OSUpdateFocuser();  // Update Focuser Position
     PECStatus(0);
@@ -1813,7 +1816,7 @@ bool LX200_OnStep::AbortFocuser () {
 void LX200_OnStep::OSUpdateFocuser()
 {
     char value[RB_MAX_LEN];
-	int current = 0;
+    double current = 0; //Azwing muste be double
 	if (OSFocuser1) {
 	// Alternate option:
 	//if (!sendOnStepCommand(":FA#")) {
@@ -2130,7 +2133,7 @@ bool LX200_OnStep::UpdateAlignErr()
 	
 	
 	char read_buffer[RB_MAX_LEN];
-	char msg[40];
+//Azwing removed	char msg[40];
 	char polar_error[40];
 	// 	IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
 	// 	IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
@@ -2145,7 +2148,7 @@ bool LX200_OnStep::UpdateAlignErr()
 	}
 // 	LOGF_INFO("Getting Align Error Status: %s", read_buffer);
 	
-	long altCor = strtold(read_buffer, NULL); 
+    long double altCor = strtold(read_buffer, nullptr); //azwing replaced NULL by nullpt and changed to double
 	if(getCommandString(PortFD, read_buffer, ":GX03#"))
 	{
 		LOGF_INFO("Align Error Status response Error, response = %s>", read_buffer);
@@ -2153,10 +2156,10 @@ bool LX200_OnStep::UpdateAlignErr()
 	}
 // 	LOGF_INFO("Getting Align Error Status: %s", read_buffer);
 	
-	long azmCor = strtold(read_buffer, NULL); 
-	snprintf(polar_error, sizeof(polar_error), "%ld", azmCor);
+    long double azmCor = strtold(read_buffer, nullptr);   //azwing replaced NULL by nullptr and changed to double
+    snprintf(polar_error, sizeof(polar_error), "%Lf", azmCor);
 	IUSaveText(&OSNAlignErrT[0],polar_error);
-	snprintf(polar_error, sizeof(polar_error), "%ld", altCor);
+    snprintf(polar_error, sizeof(polar_error), "%Lf", altCor);
 	IUSaveText(&OSNAlignErrT[1],polar_error);
 	IDSetText(&OSNAlignErrTP, "Align Error Updated");
 	
@@ -2261,7 +2264,8 @@ bool LX200_OnStep::OSGetOutputState(int output) {
 		OSOutput1S[1].s = ISS_ON;
 	}
 	IDSetSwitch(&OSOutput1SP, nullptr);
-	
+    //azwing added return true to fix compiler warning
+    return true;
 }
 
 bool LX200_OnStep::SetTrackRate(double raRate, double deRate) {
