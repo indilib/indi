@@ -584,14 +584,17 @@ void ALTAIRCAM::setupParams()
         if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
         {
             // enable bitdepth
-            Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
+            rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
+            LOGF_DEBUG("ALTAIRCAM_OPTION_BITDEPTH 1. rc: %s", errorCodes[rc].c_str());
             m_BitsPerPixel = 16;
             VideoFormatS[TC_VIDEO_MONO_16].s = ISS_ON;
+            m_CurrentVideoFormat = TC_VIDEO_MONO_16;
         }
         else
         {
             m_BitsPerPixel = 8;
             VideoFormatS[TC_VIDEO_MONO_8].s = ISS_ON;
+            m_CurrentVideoFormat = TC_VIDEO_MONO_8;
         }
 
         m_CameraPixelFormat = INDI_MONO;
