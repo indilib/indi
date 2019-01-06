@@ -227,7 +227,7 @@ bool Starbook::updateTime(ln_date *utc, double utc_offset) {
 }
 
 bool Starbook::getFirmwareVersion() {
-    starbook::VersionResponse res = {};
+    starbook::VersionResponse res;
     starbook::ResponseCode rc = cmd_interface->Version(res);
 
     if (rc != starbook::OK) {

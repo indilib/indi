@@ -72,6 +72,10 @@ namespace starbook {
 
         ResponseCode SetTime(ln_date &utc);
 
+        ResponseCode SaveSetting() {
+            return SendOkCommand("SAVESETTING");
+        }
+
     private:
 
         std::string SendCommand(std::string command);
