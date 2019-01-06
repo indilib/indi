@@ -22,7 +22,7 @@ namespace starbook {
         return real_size;
     }
 
-    std::__cxx11::string CommandInterface::SendCommand(std::__cxx11::string cmd) {
+    std::string CommandInterface::SendCommand(std::string cmd) {
         int rc = 0;
         CURL *handle = connection->getHandle();
         std::ostringstream cmd_url;
@@ -181,6 +181,15 @@ namespace starbook {
             << (dir == DIRECTION_WEST && command == INDI::Telescope::TelescopeMotionCommand::MOTION_START ? 1 : 0)
             << "&EAST="
             << (dir == DIRECTION_EAST && command == INDI::Telescope::TelescopeMotionCommand::MOTION_START ? 1 : 0);
+        return SendOkCommand(cmd.str());
+    }
+
+    ResponseCode CommandInterface::SetSpeed(int speed) {
+        if (speed < 0 || speed > 7)
+            return ERROR_FORMAT;
+
+        std::ostringstream cmd;
+        cmd << "SETSPEED?speed=" << speed;
         return SendOkCommand(cmd.str());
     }
 }

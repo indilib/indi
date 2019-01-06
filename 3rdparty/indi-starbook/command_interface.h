@@ -66,7 +66,7 @@ namespace starbook {
 
         ResponseCode Version(VersionResponse &res);
 
-        ResponseCode SetSpeed();
+        ResponseCode SetSpeed(int speed);
 
         ResponseCode SetPlace();
 
