@@ -344,10 +344,10 @@ int read_libraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_
     *h            = RawProcessor.imgdata.rawdata.sizes.height;
     *bitsperpixel = 16;
     // cdesc contains counter-clock wise e.g. RGBG CFA pattern while we want it sequential as RGGB
-    bayer_pattern[0] = RawProcessor.imgdata.idata.cdesc[0];
-    bayer_pattern[1] = RawProcessor.imgdata.idata.cdesc[1];
-    bayer_pattern[2] = RawProcessor.imgdata.idata.cdesc[3];
-    bayer_pattern[3] = RawProcessor.imgdata.idata.cdesc[2];
+    bayer_pattern[0] = RawProcessor.imgdata.idata.cdesc[RawProcessor.COLOR(0, 0)];
+    bayer_pattern[1] = RawProcessor.imgdata.idata.cdesc[RawProcessor.COLOR(0, 1)];
+    bayer_pattern[2] = RawProcessor.imgdata.idata.cdesc[RawProcessor.COLOR(1, 0)];
+    bayer_pattern[3] = RawProcessor.imgdata.idata.cdesc[RawProcessor.COLOR(1, 1)];
     bayer_pattern[4] = '\0';
 
     int first_visible_pixel = RawProcessor.imgdata.rawdata.sizes.raw_width * RawProcessor.imgdata.sizes.top_margin +
