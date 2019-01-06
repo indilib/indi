@@ -2071,7 +2071,7 @@ IPState LX200_OnStep::AlignDone (){
 	return IPS_ALERT;
 	
 }
-
+#ifdef ONSTEP_NOTDONE
 IPState LX200_OnStep::OSEnableOutput(int output) {
 	//  :SXnn,VVVVVV...#   Set OnStep value
 	//          Return: 0 on failure
@@ -2082,7 +2082,7 @@ IPState LX200_OnStep::OSEnableOutput(int output) {
 	LOG_INFO("Not implemented yet");
 	return IPS_OK;
 }
-
+#endif
 
 IPState LX200_OnStep::OSDisableOutput(int output) {
 	LOG_INFO("Not implemented yet");
