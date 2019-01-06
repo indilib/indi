@@ -2111,8 +2111,8 @@ void ALTAIRCAM::sendImageCallBack()
     InExposure = false;
     m_lastEventID = -1;
 
-    RemoveTimer(m_TimeoutTimerID);
-    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &ALTAIRCAM::checkTimeoutHelper, this);
+//    RemoveTimer(m_TimeoutTimerID);
+//    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &ALTAIRCAM::checkTimeoutHelper, this);
 }
 
 void ALTAIRCAM::checkTimeoutHelper(void *context)
