@@ -8,7 +8,7 @@ build-*/
 *~
 
 nbproject/
-
+.directory
 CMakeCache.txt
 *_automoc.cpp
 *autogen/

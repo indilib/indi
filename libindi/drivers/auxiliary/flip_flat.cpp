@@ -31,10 +31,11 @@
 #include <cstring>
 #include <memory>
 #include <termios.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
 
 // We declare an auto pointer to FlipFlat.
-std::unique_ptr<FlipFlat> flipflat(new FlipFlat());
+static std::unique_ptr<FlipFlat> flipflat(new FlipFlat());
 
 #define FLAT_CMD 6
 #define FLAT_RES 8
@@ -158,7 +159,7 @@ bool FlipFlat::updateProperties()
 
 const char *FlipFlat::getDefaultName()
 {
-    return (const char *)"Flip Flat";
+    return static_cast<const char *>("Flip Flat");
 }
 
 bool FlipFlat::Handshake()
@@ -251,19 +252,10 @@ bool FlipFlat::saveConfigItems(FILE *fp)
 
 bool FlipFlat::ping()
 {
-    char response[FLAT_RES];
-    int i = 0;
+    char response[FLAT_RES]={0};
 
-    for (i = 0; i < 3; i++)
-    {
-        if (sendCommand(">P000", response))
-            continue;
-    }
-
-    if (i == 3)
-    {
+    if (!sendCommand(">P000", response))
         return false;
-    }
 
     char productString[3] = { 0 };
     snprintf(productString, 3, "%s", response + 2);
@@ -304,7 +296,7 @@ IPState FlipFlat::ParkCap()
     }
 
     char response[FLAT_RES];
-    if (sendCommand(">C000", response))
+    if (!sendCommand(">C000", response))
         return IPS_ALERT;
 
     char expectedResponse[FLAT_RES];
@@ -314,6 +306,9 @@ IPState FlipFlat::ParkCap()
     {
         // Set cover status to random value outside of range to force it to refresh
         prevCoverStatus = 10;
+
+        IERmTimer(parkTimeoutID);
+        parkTimeoutID = IEAddTimer(30000, parkTimeoutHelper, this);
         return IPS_BUSY;
     }
     else
@@ -329,7 +324,7 @@ IPState FlipFlat::UnParkCap()
     }
 
     char response[FLAT_RES];
-    if (sendCommand(">O000", response))
+    if (!sendCommand(">O000", response))
         return IPS_ALERT;
 
     char expectedResponse[FLAT_RES];
@@ -339,6 +334,10 @@ IPState FlipFlat::UnParkCap()
     {
         // Set cover status to random value outside of range to force it to refresh
         prevCoverStatus = 10;
+
+        IERmTimer(unparkTimeoutID);
+        unparkTimeoutID = IEAddTimer(30000, unparkTimeoutHelper, this);
+
         return IPS_BUSY;
     }
     else
@@ -364,7 +363,7 @@ bool FlipFlat::EnableLightBox(bool enable)
     else
         strncpy(command, ">D000", FLAT_CMD);
 
-    if (sendCommand(command, response))
+    if (!sendCommand(command, response))
         return false;
 
     char expectedResponse[FLAT_RES];
@@ -411,7 +410,7 @@ bool FlipFlat::getStatus()
     }
     else
     {
-        if (sendCommand(">S000", response))
+        if (!sendCommand(">S000", response))
             return false;
     }
 
@@ -526,8 +525,8 @@ bool FlipFlat::getFirmwareVersion()
         return true;
     }
 
-    char response[FLAT_RES];
-    if (sendCommand(">V000", response))
+    char response[FLAT_RES]={0};
+    if (!sendCommand(">V000", response))
         return false;
 
     char versionString[4] = { 0 };
@@ -564,8 +563,8 @@ bool FlipFlat::getBrightness()
         return true;
     }
 
-    char response[FLAT_RES];
-    if (sendCommand(">J000", response))
+    char response[FLAT_RES]={0};
+    if (!sendCommand(">J000", response))
         return false;
 
     char brightnessString[4] = { 0 };
@@ -599,12 +598,12 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
         return true;
     }
 
-    char command[FLAT_CMD];
-    char response[FLAT_RES];
+    char command[FLAT_CMD]={0};
+    char response[FLAT_RES]={0};
 
     snprintf(command, FLAT_CMD, ">B%03d", value);
 
-    if (sendCommand(command, response))
+    if (!sendCommand(command, response))
         return false;
 
     char brightnessString[4] = { 0 };
@@ -632,31 +631,67 @@ bool FlipFlat::SetLightBoxBrightness(uint16_t value)
 bool FlipFlat::sendCommand(const char *command, char *response)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
+    char errstr[MAXRBUF]={0};
+    int i=0;
 
     tcflush(PortFD, TCIOFLUSH);
 
-    LOGF_DEBUG("CMD (%s)", command);
+    LOGF_DEBUG("CMD <%s>", command);
 
-    char buffer[FLAT_CMD + 1]; // space for terminating null
+    char buffer[FLAT_CMD + 1]={0}; // space for terminating null
     snprintf(buffer, FLAT_CMD + 1, "%s\n", command);
 
-    if ((rc = tty_write(PortFD, buffer, FLAT_CMD, &nbytes_written)) != TTY_OK)
+    for (i=0; i < 3; i++)
+    {
+        if ((rc = tty_write(PortFD, buffer, FLAT_CMD, &nbytes_written)) != TTY_OK)
+        {
+            usleep(50000);
+            continue;
+        }
+
+        if ((rc = tty_nread_section(PortFD, response, FLAT_RES, 0xA, FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
+            usleep(50000);
+        else
+            break;
+    }
+
+    if (i==3)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("%s error: %s.", command, errstr);
         return false;
     }
 
-    if ((rc = tty_nread_section(PortFD, response, FLAT_RES, '\n', FLAT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("%s: %s.", command, errstr);
-        return false;
-    }
-
     response[nbytes_read - 1] = 0; // strip \n
 
-    LOGF_DEBUG("RES (%s)", response);
+    LOGF_DEBUG("RES <%s>", response);
     return true;
+}
+
+void FlipFlat::parkTimeoutHelper(void *context)
+{
+    static_cast<FlipFlat*>(context)->parkTimeout();
+}
+
+void FlipFlat::unparkTimeoutHelper(void *context)
+{
+    static_cast<FlipFlat*>(context)->unparkTimeout();
+}
+
+void FlipFlat::parkTimeout()
+{
+    if (ParkCapSP.s == IPS_BUSY)
+    {
+        LOG_WARN("Parking cap timed out. Retrying...");
+        ParkCap();
+    }
+}
+
+void FlipFlat::unparkTimeout()
+{
+    if (ParkCapSP.s == IPS_BUSY)
+    {
+        LOG_WARN("UnParking cap timed out. Retrying...");
+        UnParkCap();
+    }
 }

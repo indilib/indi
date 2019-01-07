@@ -56,6 +56,7 @@ static CamDriverInfo camInfos[] = { { "indi_gphoto_ccd", "GPhoto CCD", "GPhoto" 
                                     { "indi_nikon_ccd", "Nikon DSLR", "Nikon" },
                                     { "indi_pentax_ccd", "Pentax DSLR", "Pentax" },
                                     { "indi_sony_ccd", "Sony DSLR", "Sony" },
+                                    { "indi_fuji_ccd", "Fuji DSLR", "Fuji" },
                                     { nullptr, nullptr, nullptr } };
 
 /**********************************************************
@@ -306,7 +307,7 @@ GPhotoCCD::~GPhotoCCD()
 
 const char *GPhotoCCD::getDefaultName()
 {
-    return (const char *)"GPhoto CCD";
+    return "GPhoto CCD";
 }
 
 bool GPhotoCCD::initProperties()
@@ -627,15 +628,18 @@ bool GPhotoCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             forceBULBSP.s = IPS_OK;
             if (forceBULBS[FORCE_BULB_ON].s == ISS_ON)
             {
-                gphoto_force_bulb(gphotodrv, true);
+                if (isSimulation() == false)
+                    gphoto_force_bulb(gphotodrv, true);
                 LOG_INFO("Force BULB is enabled. All expsures shall be captured in BULB mode except for subsecond captures.");
             }
             else
             {
-                gphoto_force_bulb(gphotodrv, false);
+                if (isSimulation() == false)
+                    gphoto_force_bulb(gphotodrv, false);
                 LOG_INFO("Force BULB is disabled. Exposures shall utilize camera predefined exposures time first before attempting BULB.");
             }
 
+            IDSetSwitch(&forceBULBSP, nullptr);
             return true;
         }
 
@@ -963,12 +967,13 @@ bool GPhotoCCD::Connect()
         mFormatS = nullptr;
     }
 
+    const char *fmts[] = { "Custom" };
+
     if (isSimulation())
     {
         setidx             = 0;
         max_opts           = 1;
-        const char *fmts[] = { "Custom" };
-        options            = (char **)fmts;
+        options            = const_cast<char **>(fmts);
     }
     else
     {
@@ -1011,12 +1016,12 @@ bool GPhotoCCD::Connect()
     if (mIsoS)
         free(mIsoS);
 
+    const char *isos[] = { "100", "200", "400", "800" };
     if (isSimulation())
     {
-        setidx             = 0;
-        max_opts           = 4;
-        const char *isos[] = { "100", "200", "400", "800" };
-        options            = (char **)isos;
+        setidx   = 0;
+        max_opts = 4;
+        options  = const_cast<char **>(isos);
     }
     else
     {
@@ -1034,12 +1039,12 @@ bool GPhotoCCD::Connect()
         mExposurePresetS = nullptr;
     }
 
+    const char *exposureList[] = { "1/8", "1/4", "1/2", "bulb" };
     if (isSimulation())
     {
-        setidx                     = 0;
-        max_opts                   = 4;
-        const char *exposureList[] = { "1/8", "1/4", "1/2", "bulb" };
-        options                    = (char **)exposureList;
+        setidx   = 0;
+        max_opts = 4;
+        options  = const_cast<char **>(exposureList);
     }
     else
     {

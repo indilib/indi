@@ -4,10 +4,12 @@
 // that uses this DLL. This way any other project whose source files include this file see
 // CMOSDLL_API functions as being imported from a DLL, whereas this DLL sees symbols
 // defined with this macro as being exported.
-
+#ifndef __CMOSDLL_H__
+#define __CMOSDLL_H__
 
 #include "qhyccdstruct.h"
-#ifdef WIN32
+#include "config.h"
+#if defined (_WIN32)
 #include "stdint.h"
 #include "CyAPI.h"
 #include <process.h>
@@ -16,7 +18,7 @@
 #endif
 
 
-#ifdef WIN32
+#if defined (_WIN32)
 void SetTransferSize(qhyccd_handle *h,int length);
 void InitAsyTransfer(CCyUSBDevice *Camera,int framesize);
 void StartSingleExposure(CCyUSBDevice *Camera);
@@ -50,5 +52,5 @@ uint32_t ReadAsyQCamLiveFrame(qhyccd_handle *Camera,uint8_t *_buffer,int32_t *fr
 #endif
 
 
-
+#endif
 

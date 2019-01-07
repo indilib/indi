@@ -52,6 +52,7 @@ class FilterInterface;
 class RotatorInterface;
 class GuiderInterface;
 class FocuserInterface;
+class WeatherInterface;
 class DomeInterface;
 class DustCapInterface;
 class LightBoxInterface;

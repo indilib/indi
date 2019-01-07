@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 PROJECT(indi_gphoto C CXX)
 
 set(INDI_GPHOTO_VERSION_MAJOR 2)
-set(INDI_GPHOTO_VERSION_MINOR 5)
+set(INDI_GPHOTO_VERSION_MINOR 6)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
@@ -86,7 +86,8 @@ file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_gphoto_symlink.cmake
 "exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_gphoto_ccd \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_canon_ccd)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_gphoto_ccd \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_nikon_ccd)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_gphoto_ccd \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_pentax_ccd)\n
-exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_gphoto_ccd \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_sony_ccd)\n")
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_gphoto_ccd \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_sony_ccd)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_gphoto_ccd \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_fuji_ccd)\n")
 set_target_properties(indi_gphoto_ccd PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_gphoto_symlink.cmake)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_gphoto.xml DESTINATION ${INDI_DATA_DIR})

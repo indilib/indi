@@ -7,7 +7,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
-set(APOGEE_VERSION "3.1")
+set(APOGEE_VERSION "3.2")
 set(APOGEE_SOVERSION "3")
 
 IF(APPLE)
@@ -24,16 +24,13 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY
 find_package(USB1 REQUIRED)
 find_package(CURL REQUIRED)
 
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost REQUIRED COMPONENTS regex)
-
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/linux)
-include_directories( ${Boost_INCLUDE_DIRS})
 include_directories( ${CURL_INCLUDE_DIR})
+
+# This is for craft builds
+include_directories("${CMAKE_INSTALL_PREFIX}/include")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
@@ -50,7 +47,7 @@ add_library(apogee SHARED ${libapogee_SRCS})
 
 set_target_properties(apogee PROPERTIES VERSION ${APOGEE_VERSION} SOVERSION ${APOGEE_SOVERSION})
 
-target_link_libraries(apogee ${USB1_LIBRARIES} ${CURL_LIBRARY} ${Boost_LIBRARIES})
+target_link_libraries(apogee ${USB1_LIBRARIES} ${CURL_LIBRARY})
 
 install(TARGETS apogee LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

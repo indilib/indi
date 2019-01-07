@@ -29,7 +29,7 @@
 #define SETTINGS_TAB "Settings"
 
 // We declare an auto pointer to XAGYLWheel.
-std::unique_ptr<XAGYLWheel> xagylWheel(new XAGYLWheel());
+static std::unique_ptr<XAGYLWheel> xagylWheel(new XAGYLWheel());
 
 void ISPoll(void *p);
 
@@ -96,7 +96,7 @@ XAGYLWheel::~XAGYLWheel()
 
 const char *XAGYLWheel::getDefaultName()
 {
-    return (const char *)"XAGYL Wheel";
+    return "XAGYL Wheel";
 }
 
 bool XAGYLWheel::initProperties()
@@ -156,7 +156,7 @@ bool XAGYLWheel::updateProperties()
 
 bool XAGYLWheel::Handshake()
 {
-    char resp[XAGYL_MAXBUF];
+    char resp[XAGYL_MAXBUF]={0};
     bool rc = getCommand(INFO_FIRMWARE_VERSION, resp);
 
     if (rc)
@@ -368,7 +368,7 @@ bool XAGYLWheel::getCommand(GET_COMMAND cmd, char *result)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char command[XAGYL_MAXBUF];
+    char command[XAGYL_MAXBUF]={0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -449,7 +449,7 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char command[XAGYL_MAXBUF];
+    char command[XAGYL_MAXBUF]={0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -491,13 +491,12 @@ bool XAGYLWheel::setCommand(SET_COMMAND cmd, int value)
         case SET_POSITION:
             simData.position = value;
             return true;
-            break;
 
         default:
             break;
     }
 
-    char response[XAGYL_MAXBUF];
+    char response[XAGYL_MAXBUF]={0};
 
     if (isSimulation())
     {
@@ -599,7 +598,7 @@ bool XAGYLWheel::getStartupData()
 
 bool XAGYLWheel::getFirmwareInfo()
 {
-    char resp[XAGYL_MAXBUF];
+    char resp[XAGYL_MAXBUF]={0};
 
     bool rc1 = getCommand(INFO_PRODUCT_NAME, resp);
     if (rc1)
@@ -631,7 +630,7 @@ bool XAGYLWheel::getSettingInfo()
 
 bool XAGYLWheel::getFilterPosition()
 {
-    char resp[XAGYL_MAXBUF];
+    char resp[XAGYL_MAXBUF]={0};
 
     if (!getCommand(INFO_FILTER_POSITION, resp))
         return false;
@@ -649,7 +648,7 @@ bool XAGYLWheel::getFilterPosition()
 
 bool XAGYLWheel::getMaximumSpeed()
 {
-    char resp[XAGYL_MAXBUF];
+    char resp[XAGYL_MAXBUF]={0};
 
     if (!getCommand(INFO_MAX_SPEED, resp))
         return false;
@@ -667,7 +666,7 @@ bool XAGYLWheel::getMaximumSpeed()
 
 bool XAGYLWheel::getJitter()
 {
-    char resp[XAGYL_MAXBUF];
+    char resp[XAGYL_MAXBUF]={0};
 
     if (!getCommand(INFO_JITTER, resp))
         return false;
@@ -685,7 +684,7 @@ bool XAGYLWheel::getJitter()
 
 bool XAGYLWheel::getThreshold()
 {
-    char resp[XAGYL_MAXBUF];
+    char resp[XAGYL_MAXBUF]={0};
 
     if (!getCommand(INFO_THRESHOLD, resp))
         return false;
@@ -703,7 +702,7 @@ bool XAGYLWheel::getThreshold()
 
 bool XAGYLWheel::getPulseWidth()
 {
-    char resp[XAGYL_MAXBUF];
+    char resp[XAGYL_MAXBUF]={0};
 
     if (!getCommand(INFO_PULSE_WIDTH, resp))
         return false;
@@ -721,7 +720,7 @@ bool XAGYLWheel::getPulseWidth()
 
 bool XAGYLWheel::getMaxFilterSlots()
 {
-    char resp[XAGYL_MAXBUF];
+    char resp[XAGYL_MAXBUF]={0};
 
     if (!getCommand(INFO_MAX_SLOTS, resp))
         return false;
@@ -741,7 +740,7 @@ bool XAGYLWheel::reset(int value)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char command[XAGYL_MAXBUF];
+    char command[XAGYL_MAXBUF]={0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -768,8 +767,8 @@ bool XAGYLWheel::setOffset(int filter, int value)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char command[XAGYL_MAXBUF];
-    char resp[XAGYL_MAXBUF];
+    char command[XAGYL_MAXBUF]={0};
+    char resp[XAGYL_MAXBUF]={0};
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -814,8 +813,8 @@ bool XAGYLWheel::getOffset(int filter)
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char command[XAGYL_MAXBUF];
-    char resp[XAGYL_MAXBUF];
+    char command[XAGYL_MAXBUF]={0};
+    char resp[XAGYL_MAXBUF]={0};
 
     tcflush(PortFD, TCIOFLUSH);
 

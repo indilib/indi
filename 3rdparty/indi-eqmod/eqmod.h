@@ -38,8 +38,8 @@ typedef struct SyncData
     double targetRA, targetDEC;
     double telescopeRA, telescopeDEC;
     double deltaRA, deltaDEC;
-    unsigned long targetRAEncoder, targetDECEncoder;
-    unsigned long telescopeRAEncoder, telescopeDECEncoder;
+    uint32_t targetRAEncoder, targetDECEncoder;
+    uint32_t telescopeRAEncoder, telescopeDECEncoder;
     long deltaRAEncoder, deltaDECEncoder;
 } SyncData;
 #ifdef WITH_ALIGN
@@ -54,14 +54,14 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 #endif
 {
   protected:
-  private:
+//  private:
     Skywatcher *mount;
 
-    unsigned long currentRAEncoder, zeroRAEncoder, totalRAEncoder;
-    unsigned long currentDEEncoder, zeroDEEncoder, totalDEEncoder;
+    uint32_t currentRAEncoder, zeroRAEncoder, totalRAEncoder;
+    uint32_t currentDEEncoder, zeroDEEncoder, totalDEEncoder;
 
-    unsigned long homeRAEncoder, parkRAEncoder;
-    unsigned long homeDEEncoder, parkDEEncoder;
+    uint32_t homeRAEncoder, parkRAEncoder;
+    uint32_t homeDEEncoder, parkDEEncoder;
 
     double currentRA, currentHA;
     double currentDEC;
@@ -147,8 +147,8 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     typedef struct GotoParams
     {
         double ratarget, detarget, racurrent, decurrent;
-        unsigned long ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
-        unsigned long limiteast, limitwest;
+        uint32_t ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
+        uint32_t limiteast, limitwest;
         unsigned int iterative_count;
         bool forcecwup, checklimits, outsidelimits, completed;
     } GotoParams;
@@ -161,16 +161,16 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 
     double tpa_alt, tpa_az;
 
-    void EncodersToRADec(unsigned long rastep, unsigned long destep, double lst, double *ra, double *de, double *ha);
-    double EncoderToHours(unsigned long destep, unsigned long initdestep, unsigned long totalrastep, enum Hemisphere h);
-    double EncoderToDegrees(unsigned long destep, unsigned long initdestep, unsigned long totalrastep,
+    void EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha, TelescopePierSide *pierSide);
+    double EncoderToHours(uint32_t destep, uint32_t initdestep, uint32_t totalrastep, enum Hemisphere h);
+    double EncoderToDegrees(uint32_t destep, uint32_t initdestep, uint32_t totalrastep,
                             enum Hemisphere h);
-    double EncoderFromHour(double hour, unsigned long initstep, unsigned long totalstep, enum Hemisphere h);
-    double EncoderFromRA(double ratarget, double detarget, double lst, unsigned long initstep, unsigned long totalstep,
+    double EncoderFromHour(double hour, uint32_t initstep, uint32_t totalstep, enum Hemisphere h);
+    double EncoderFromRA(double ratarget, TelescopePierSide p, double lst, uint32_t initstep, uint32_t totalstep,
                          enum Hemisphere h);
-    double EncoderFromDegree(double degree, TelescopePierSide p, unsigned long initstep, unsigned long totalstep,
+    double EncoderFromDegree(double degree, uint32_t initstep, uint32_t totalstep,
                              enum Hemisphere h);
-    double EncoderFromDec(double detarget, TelescopePierSide p, unsigned long initstep, unsigned long totalstep,
+    double EncoderFromDec(double detarget, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
                           enum Hemisphere h);
     void EncoderTarget(GotoParams *g);
     void SetSouthernHemisphere(bool southern);
@@ -197,10 +197,10 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     // Autohoming for EQ8
     int ah_confirm_timeout;
     bool ah_bSlewingUp_RA, ah_bSlewingUp_DE;
-    unsigned long ah_iPosition_RA, ah_iPosition_DE;
+    uint32_t ah_iPosition_RA, ah_iPosition_DE;
     int ah_iChanges;
     bool ah_bIndexChanged_RA, ah_bIndexChanged_DE;
-    unsigned long ah_sHomeIndexPosition_RA, ah_sHomeIndexPosition_DE;
+    uint32_t ah_sHomeIndexPosition_RA, ah_sHomeIndexPosition_DE;
     int ah_waitRA, ah_waitDE;
 
     // save PPEC status when guiding
@@ -244,6 +244,9 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     bool SetCurrentPark();
     bool SetDefaultPark();
     bool Sync(double ra, double dec);
+
+    // Call first time EQMod is run
+    void saveInitialParkPosition();
 
     // Called when there is an unrecoverable tty error
     void abnormalDisconnect();

@@ -494,6 +494,8 @@ bool EQMod::loadProperties()
 bool EQMod::updateProperties()
 {
     INumber *latitude;
+    INumber *longitude;
+    INumber *elevation;
 
     INDI::Telescope::updateProperties();
 
@@ -607,6 +609,12 @@ bool EQMod::updateProperties()
                 }
             }
 
+            LOG_DEBUG("Init backlash.");
+            mount->SetBacklashUseRA((IUFindSwitch(UseBacklashSP, "USEBACKLASHRA")->s == ISS_ON ? true : false));
+            mount->SetBacklashUseDE((IUFindSwitch(UseBacklashSP, "USEBACKLASHDE")->s == ISS_ON ? true : false));
+            mount->SetBacklashRA((uint32_t)(IUFindNumber(BacklashNP, "BACKLASHRA")->value));
+            mount->SetBacklashDE((uint32_t)(IUFindNumber(BacklashNP, "BACKLASHDE")->value));
+
             mount->Init();
 
             zeroRAEncoder  = mount->GetRAEncoderZero();
@@ -620,10 +628,17 @@ bool EQMod::updateProperties()
             parkDEEncoder = GetAxis2Park();
 
             latitude = IUFindNumber(&LocationNP, "LAT");
-            if ((latitude) && (latitude->value < 0.0))
-                SetSouthernHemisphere(true);
-            else
-                SetSouthernHemisphere(false);
+            longitude = IUFindNumber(&LocationNP, "LONG");
+            elevation = IUFindNumber(&LocationNP, "ELEV");
+            if (latitude && longitude && elevation)
+                updateLocation(latitude->value, longitude->value, elevation->value);
+//            else
+//                updateLocation(0.0, 0.0, 0.0);
+
+//            if ((latitude) && (latitude->value < 0.0))
+//                SetSouthernHemisphere(true);
+//            else
+//                SetSouthernHemisphere(false);
 
             sendTimeFromSystem();
         }
@@ -851,10 +866,13 @@ bool EQMod::ReadScopeStatus()
 
     try
     {
+        TelescopePierSide pierSide;
         currentRAEncoder = mount->GetRAEncoder();
         currentDEEncoder = mount->GetDEEncoder();
-        DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", currentRAEncoder, currentDEEncoder);
-        EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
+        DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", static_cast<long>(currentRAEncoder), static_cast<long>(currentDEEncoder));
+        EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA, &pierSide);
+        setPierSide(pierSide);
+
         alignedRA    = currentRA;
         alignedDEC   = currentDEC;
         ghalignedRA  = currentRA;
@@ -870,32 +888,37 @@ bool EQMod::ReadScopeStatus()
         //   else
 #endif
 #ifdef WITH_ALIGN
-        const char *maligns[3] = { "ZENITH", "NORTH", "SOUTH" };
-        struct ln_equ_posn RaDec;
-        // Use HA/Dec as  telescope coordinate system
-        RaDec.ra                     = ((lst - currentRA) * 360.0) / 24.0;
-        RaDec.dec                    = currentDEC;
-        TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "Status: Mnt. Algnt. %s Date %lf encoders RA=%ld DE=%ld Telescope RA %lf DEC %lf",
-               maligns[GetApproximateMountAlignment()], juliandate, currentRAEncoder, currentDEEncoder, currentRA,
-                currentDEC);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
-               RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
-        aligned = true;
-        if ((GetAlignmentDatabase().size() < 2) || (!TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC)))
+        // Only use INDI Alignment Subsystem if it is active.
+        if (AlignMethodSP.sp[1].s == ISS_ON)
         {
-            //if (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC)) {
-            aligned = false;
+            const char *maligns[3] = { "ZENITH", "NORTH", "SOUTH" };
+            struct ln_equ_posn RaDec;
+            // Use HA/Dec as  telescope coordinate system
+            RaDec.ra                     = ((lst - currentRA) * 360.0) / 24.0;
+            RaDec.dec                    = currentDEC;
+            TelescopeDirectionVector TDV = TelescopeDirectionVectorFromLocalHourAngleDeclination(RaDec);
             DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-                   "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA,
-                   currentDEC, alignedRA, alignedDEC);
-        }
-        else
-        {
-            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-                   "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC,
-                   alignedRA, alignedDEC);
+                   "Status: Mnt. Algnt. %s Date %lf encoders RA=%ld DE=%ld Telescope RA %lf DEC %lf",
+                   maligns[GetApproximateMountAlignment()], juliandate,
+                   static_cast<long>(currentRAEncoder), static_cast<long>(currentDEEncoder),
+                   currentRA, currentDEC);
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT, " Direction RA(deg.)  %lf DEC %lf TDV(x %lf y %lf z %lf)",
+                   RaDec.ra, RaDec.dec, TDV.x, TDV.y, TDV.z);
+            aligned = true;
+            if ((GetAlignmentDatabase().size() < 2) || (!TransformTelescopeToCelestial(TDV, alignedRA, alignedDEC)))
+            {
+                //if (!TransformTelescopeToCelestial( TDV, alignedRA, alignedDEC)) {
+                aligned = false;
+                DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                       "Failed TransformTelescopeToCelestial: Scope RA=%g Scope DE=%f, Aligned RA=%f DE=%f", currentRA,
+                       currentDEC, alignedRA, alignedDEC);
+            }
+            else
+            {
+                DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                       "TransformTelescopeToCelestial: Scope RA=%f Scope DE=%f, Aligned RA=%f DE=%f", currentRA, currentDEC,
+                       alignedRA, alignedDEC);
+            }
         }
 #endif
         if (!aligned && (syncdata.lst != 0.0))
@@ -985,11 +1008,11 @@ bool EQMod::ReadScopeStatus()
                     EncoderTarget(&gotoparams);
                     // Start iterative slewing
                     DEBUGF(INDI::Logger::DBG_SESSION,
-                           "Iterative goto (%d): slew mount to RA increment = %ld, DE increment = %ld",
-                           gotoparams.iterative_count, gotoparams.ratargetencoder - gotoparams.racurrentencoder,
-                           gotoparams.detargetencoder - gotoparams.decurrentencoder);
-                    mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder,
-                                  gotoparams.detargetencoder - gotoparams.decurrentencoder);
+                           "Iterative goto (%d): slew mount to RA increment = %d, DE increment = %d",
+                           gotoparams.iterative_count, static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
+                           static_cast<int>(gotoparams.detargetencoder - gotoparams.decurrentencoder));
+                    mount->SlewTo(static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
+                                  static_cast<int>(gotoparams.detargetencoder - gotoparams.decurrentencoder));
                 }
                 else
                 {
@@ -1117,7 +1140,7 @@ bool EQMod::ReadScopeStatus()
 
         if (TrackState == SCOPE_AUTOHOMING)
         {
-            unsigned long indexRA = 0, indexDE = 0;
+            uint32_t indexRA = 0, indexDE = 0;
 
             LOGF_DEBUG("Autohoming status: %d", AutohomeState);
             switch (AutohomeState)
@@ -1137,8 +1160,8 @@ bool EQMod::ReadScopeStatus()
                           "AutoHome phase 2: reading home position indexes for extra moves");
                     mount->GetRAIndexer();
                     mount->GetDEIndexer();
-                    unsigned long raindex = mount->GetlastreadRAIndexer();
-                    unsigned long deindex = mount->GetlastreadDEIndexer();
+                    uint32_t raindex = mount->GetlastreadRAIndexer();
+                    uint32_t deindex = mount->GetlastreadDEIndexer();
                     DEBUGF(INDI::Logger::DBG_SESSION,
                            "AutoHome phase 2: read home position indexes: RA=0x%x DE=0x%x", raindex, deindex);
                     if (raindex == 0 || raindex == 0xFFFFFF)
@@ -1198,7 +1221,7 @@ bool EQMod::ReadScopeStatus()
                     LOG_INFO("AutoHome phase 3: resetting home position indexes");
                     if (ah_bIndexChanged_RA)
                     {
-                        unsigned long raindex = mount->GetlastreadRAIndexer();
+                        uint32_t raindex = mount->GetlastreadRAIndexer();
                         mount->ResetRAIndexer();
                         mount->GetRAIndexer();
                         DEBUGF(INDI::Logger::DBG_SESSION,
@@ -1207,7 +1230,7 @@ bool EQMod::ReadScopeStatus()
                     }
                     if (ah_bIndexChanged_DE)
                     {
-                        unsigned long deindex = mount->GetlastreadDEIndexer();
+                        uint32_t deindex = mount->GetlastreadDEIndexer();
                         mount->ResetDEIndexer();
                         mount->GetDEIndexer();
                         DEBUGF(INDI::Logger::DBG_SESSION,
@@ -1436,9 +1459,10 @@ bool EQMod::ReadScopeStatus()
     return true;
 }
 
-void EQMod::EncodersToRADec(unsigned long rastep, unsigned long destep, double lst, double *ra, double *de, double *ha)
+void EQMod::EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha, TelescopePierSide *pierSide)
 {
     double RACurrent = 0.0, DECurrent = 0.0, HACurrent = 0.0;
+    TelescopePierSide p;
     HACurrent = EncoderToHours(rastep, zeroRAEncoder, totalRAEncoder, Hemisphere);
     RACurrent = HACurrent + lst;
     DECurrent = EncoderToDegrees(destep, zeroDEEncoder, totalDEEncoder, Hemisphere);
@@ -1448,21 +1472,19 @@ void EQMod::EncodersToRADec(unsigned long rastep, unsigned long destep, double l
         if ((DECurrent > 90.0) && (DECurrent <= 270.0))
         {
             RACurrent = RACurrent - 12.0;
-            //currentPierSide = EAST;
-            setPierSide(PIER_EAST);
+            p = PIER_EAST;
         }
         else
-            setPierSide(PIER_WEST);
-        //currentPierSide = WEST;
+            p = PIER_WEST;
     }
     else if ((DECurrent <= 90.0) || (DECurrent > 270.0))
     {
         RACurrent = RACurrent + 12.0;
         //currentPierSide = EAST;
-        setPierSide(PIER_EAST);
+        p = PIER_EAST;
     }
     else
-        setPierSide(PIER_WEST);
+        p = PIER_WEST;
     //currentPierSide = WEST;
     HACurrent = rangeHA(HACurrent);
     RACurrent = range24(RACurrent);
@@ -1471,19 +1493,21 @@ void EQMod::EncodersToRADec(unsigned long rastep, unsigned long destep, double l
     *de       = DECurrent;
     if (ha)
         *ha = HACurrent;
+    if (pierSide)
+        *pierSide = p;
 }
 
-double EQMod::EncoderToHours(unsigned long step, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderToHours(uint32_t step, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
 {
     double result = 0.0;
     if (step > initstep)
     {
-        result = ((double)(step - initstep) / totalstep) * 24.0;
+        result = (static_cast<double>(step - initstep) / totalstep) * 24.0;
         result = 24.0 - result;
     }
     else
     {
-        result = ((double)(initstep - step) / totalstep) * 24.0;
+        result = (static_cast<double>(initstep - step) / totalstep) * 24.0;
     }
 
     if (h == NORTH)
@@ -1493,16 +1517,16 @@ double EQMod::EncoderToHours(unsigned long step, unsigned long initstep, unsigne
     return result;
 }
 
-double EQMod::EncoderToDegrees(unsigned long step, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderToDegrees(uint32_t step, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
 {
     double result = 0.0;
     if (step > initstep)
     {
-        result = ((double)(step - initstep) / totalstep) * 360.0;
+        result = (static_cast<double>(step - initstep) / totalstep) * 360.0;
     }
     else
     {
-        result = ((double)(initstep - step) / totalstep) * 360.0;
+        result = (static_cast<double>(initstep - step) / totalstep) * 360.0;
         result = 360.0 - result;
     }
     //IDLog("EncodersToDegrees: step=%6X initstep=%6x result=%f hemisphere %s \n", step, initstep, result, (h==NORTH?"North":"South"));
@@ -1515,59 +1539,52 @@ double EQMod::EncoderToDegrees(unsigned long step, unsigned long initstep, unsig
     return result;
 }
 
-double EQMod::EncoderFromHour(double hour, unsigned long initstep, unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderFromHour(double hour, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
 {
     double shifthour = 0.0;
     shifthour        = range24(hour - 6);
     if (h == NORTH)
         if (shifthour < 12.0)
-            return (initstep - ((shifthour / 24.0) * totalstep));
+            return round(initstep - ((shifthour / 24.0) * totalstep));
         else
-            return (initstep + (((24.0 - shifthour) / 24.0) * totalstep));
+            return round(initstep + (((24.0 - shifthour) / 24.0) * totalstep));
     else if (shifthour < 12.0)
-        return (initstep + ((shifthour / 24.0) * totalstep));
+        return round(initstep + ((shifthour / 24.0) * totalstep));
     else
-        return (initstep - (((24.0 - shifthour) / 24.0) * totalstep));
+        return round(initstep - (((24.0 - shifthour) / 24.0) * totalstep));
 }
 
-double EQMod::EncoderFromRA(double ratarget, double detarget, double lst, unsigned long initstep,
-                            unsigned long totalstep, enum Hemisphere h)
+double EQMod::EncoderFromRA(double ratarget, TelescopePierSide p, double lst, uint32_t initstep,
+                            uint32_t totalstep, enum Hemisphere h)
 {
     double ha = 0.0;
     ha        = ratarget - lst;
 
-    // used only in simulation??
-    if (h == NORTH)
-        if ((detarget > 90.0) && (detarget <= 270.0))
-            ha = ha - 12.0;
-    if (h == SOUTH)
-        if ((detarget > 90.0) && (detarget <= 270.0))
-            ha = ha + 12.0;
+//    if ((h == NORTH && p == PIER_EAST) || (h == SOUTH && p == PIER_WEST))
+    if (p == PIER_EAST)
+       ha = ha + 12.0;
 
     ha = range24(ha);
     return EncoderFromHour(ha, initstep, totalstep, h);
 }
 
-double EQMod::EncoderFromDegree(double degree, TelescopePierSide p, unsigned long initstep, unsigned long totalstep,
-                                enum Hemisphere h)
+double EQMod::EncoderFromDegree(double degree, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
 {
     double target = 0.0;
-    target        = degree;
+    target        = range360(degree);
     if (h == SOUTH)
         target = 360.0 - target;
-    if ((target > 180.0) && (p == PIER_EAST))
-        return (initstep - (((360.0 - target) / 360.0) * totalstep));
-    else
-        return (initstep + ((target / 360.0) * totalstep));
+    if (target > 270.0)
+        target -= 360.0;
+    return round(initstep + ((target / 360.0) * totalstep));
 }
-double EQMod::EncoderFromDec(double detarget, TelescopePierSide p, unsigned long initstep, unsigned long totalstep,
+
+double EQMod::EncoderFromDec(double detarget, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
                              enum Hemisphere h)
 {
-    double target = 0.0;
-    target        = detarget;
-    if (p == PIER_WEST)
-        target = 180.0 - target;
-    return EncoderFromDegree(target, p, initstep, totalstep, h);
+    if ((h == NORTH && p == PIER_EAST) || (h == SOUTH && p == PIER_WEST))
+        detarget = 180.0 - detarget;
+    return EncoderFromDegree(detarget, initstep, totalstep, h);
 }
 
 void EQMod::SetSouthernHemisphere(bool southern)
@@ -1608,11 +1625,11 @@ void EQMod::UpdateDEInverted()
 void EQMod::EncoderTarget(GotoParams *g)
 {
     double r, d;
-    double ha = 0.0, targetra = 0.0;
+    double ha = 0.0;
     double juliandate;
     double lst;
     TelescopePierSide targetpier;
-    unsigned long targetraencoder = 0, targetdecencoder = 0;
+    uint32_t targetraencoder = 0, targetdecencoder = 0;
     bool outsidelimits = false;
     r                  = g->ratarget;
     d                  = g->detarget;
@@ -1622,22 +1639,20 @@ void EQMod::EncoderTarget(GotoParams *g)
 
     ha = rangeHA(r - lst);
     if (ha < 0.0)
-    { // target EAST
+    { // target WEST
         if (g->forcecwup)
         {
             if (Hemisphere == NORTH)
-                targetpier = PIER_EAST;
-            else
                 targetpier = PIER_WEST;
-            targetra = r;
+            else
+                targetpier = PIER_EAST;
         }
         else
         {
             if (Hemisphere == NORTH)
-                targetpier = PIER_WEST;
-            else
                 targetpier = PIER_EAST;
-            targetra = range24(r - 12.0);
+            else
+                targetpier = PIER_WEST;
         }
     }
     else
@@ -1645,22 +1660,20 @@ void EQMod::EncoderTarget(GotoParams *g)
         if (g->forcecwup)
         {
             if (Hemisphere == NORTH)
-                targetpier = PIER_WEST;
-            else
                 targetpier = PIER_EAST;
-            targetra = range24(r - 12.0);
+            else
+                targetpier = PIER_WEST;
         }
         else
         {
             if (Hemisphere == NORTH)
-                targetpier = PIER_EAST;
-            else
                 targetpier = PIER_WEST;
-            targetra = r;
+            else
+                targetpier = PIER_EAST;
         }
     }
 
-    targetraencoder  = EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
+    targetraencoder  = EncoderFromRA(r, targetpier, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
     targetdecencoder = EncoderFromDec(d, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
 
     if ((g->forcecwup) && (g->checklimits))
@@ -1679,22 +1692,20 @@ void EQMod::EncoderTarget(GotoParams *g)
         {
             LOG_WARN("Goto: RA Limits prevent Counterweights-up slew.");
             if (ha < 0.0)
-            { // target EAST
+            { // target WEST
                 if (Hemisphere == NORTH)
-                    targetpier = PIER_WEST;
-                else
                     targetpier = PIER_EAST;
-                targetra = range24(r - 12.0);
+                else
+                    targetpier = PIER_WEST;
             }
             else
             {
                 if (Hemisphere == NORTH)
-                    targetpier = PIER_EAST;
-                else
                     targetpier = PIER_WEST;
-                targetra = r;
+                else
+                    targetpier = PIER_EAST;
             }
-            targetraencoder  = EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
+            targetraencoder  = EncoderFromRA(r, targetpier, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
             targetdecencoder = EncoderFromDec(d, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
         }
     }
@@ -1904,35 +1915,38 @@ bool EQMod::Goto(double r, double d)
     }
 #endif
 #ifdef WITH_ALIGN
-    TelescopeDirectionVector TDV;
-    aligned = true;
-    if ((GetAlignmentDatabase().size() < 2) || (!TransformCelestialToTelescope(r, d, 0.0, TDV)))
+    if (AlignMethodSP.sp[1].s == ISS_ON)
     {
-        //if (!TransformCelestialToTelescope(r, d, 0.0, TDV)) {
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "Failed TransformCelestialToTelescope:  RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget,
-               gotoparams.detarget);
-        if (syncdata.lst != 0.0)
+        TelescopeDirectionVector TDV;
+        aligned = true;
+        if ((GetAlignmentDatabase().size() < 2) || (!TransformCelestialToTelescope(r, d, 0.0, TDV)))
         {
-            gotoparams.ratarget -= syncdata.deltaRA;
-            gotoparams.detarget -= syncdata.deltaDEC;
+            //if (!TransformCelestialToTelescope(r, d, 0.0, TDV)) {
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                   "Failed TransformCelestialToTelescope:  RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget,
+                   gotoparams.detarget);
+            if (syncdata.lst != 0.0)
+            {
+                gotoparams.ratarget -= syncdata.deltaRA;
+                gotoparams.detarget -= syncdata.deltaDEC;
+            }
         }
-    }
-    else
-    {
-        struct ln_equ_posn RaDec;
-        LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf",
-               r, d, TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
-        RaDec.ra = (RaDec.ra * 24.0) / 360.0;
-        RaDec.ra = range24(lst - RaDec.ra);
+        else
+        {
+            struct ln_equ_posn RaDec;
+            LocalHourAngleDeclinationFromTelescopeDirectionVector(TDV, RaDec);
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                   "TransformCelestialToTelescope: RA=%lf DE=%lf, TDV (x :%lf, y: %lf, z: %lf), local hour RA %lf DEC %lf",
+                   r, d, TDV.x, TDV.y, TDV.z, RaDec.ra, RaDec.dec);
+            RaDec.ra = (RaDec.ra * 24.0) / 360.0;
+            RaDec.ra = range24(lst - RaDec.ra);
 
-        gotoparams.ratarget = RaDec.ra;
-        gotoparams.detarget = RaDec.dec;
-        DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
-               "TransformCelestialToTelescope: RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget,
-               gotoparams.detarget);
+            gotoparams.ratarget = RaDec.ra;
+            gotoparams.detarget = RaDec.dec;
+            DEBUGF(INDI::AlignmentSubsystem::DBG_ALIGNMENT,
+                   "TransformCelestialToTelescope: RA=%lf DE=%lf, Goto RA=%lf DE=%lf", r, d, gotoparams.ratarget,
+                   gotoparams.detarget);
+        }
     }
 #endif
 
@@ -1979,11 +1993,11 @@ bool EQMod::Goto(double r, double d)
         mount->StopRA();
         mount->StopDE();
         // Start slewing
-        LOGF_INFO("Slewing mount: RA increment = %ld, DE increment = %ld",
-               gotoparams.ratargetencoder - gotoparams.racurrentencoder,
-               gotoparams.detargetencoder - gotoparams.decurrentencoder);
-        mount->SlewTo(gotoparams.ratargetencoder - gotoparams.racurrentencoder,
-                      gotoparams.detargetencoder - gotoparams.decurrentencoder);
+        LOGF_INFO("Slewing mount: RA increment = %d, DE increment = %d",
+               static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
+               static_cast<int>(gotoparams.detargetencoder - gotoparams.decurrentencoder));
+        mount->SlewTo(static_cast<int>(gotoparams.ratargetencoder - gotoparams.racurrentencoder),
+                      static_cast<int>(gotoparams.detargetencoder - gotoparams.decurrentencoder));
     }
     catch (EQModError e)
     {
@@ -2033,9 +2047,9 @@ bool EQMod::Park()
             parkRAEncoder    = GetAxis1Park();
             parkDEEncoder    = GetAxis2Park();
             // Start slewing
-            LOGF_INFO("Parking mount: RA increment = %ld, DE increment = %ld",
-                   parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
-            mount->SlewTo(parkRAEncoder - currentRAEncoder, parkDEEncoder - currentDEEncoder);
+            LOGF_INFO("Parking mount: RA increment = %d, DE increment = %d",
+                   static_cast<int32_t>(parkRAEncoder - currentRAEncoder), static_cast<int32_t>(parkDEEncoder - currentDEEncoder));
+            mount->SlewTo(static_cast<int32_t>(parkRAEncoder - currentRAEncoder), static_cast<int32_t>(parkDEEncoder - currentDEEncoder));
         }
         catch (EQModError e)
         {
@@ -2046,7 +2060,7 @@ bool EQMod::Park()
         TrackState = SCOPE_PARKING;
         ParkSP.s   = IPS_BUSY;
         IDSetSwitch(&ParkSP, nullptr);
-        LOG_INFO("Telescope park in progress...");
+        LOG_INFO("Mount park in progress...");
 
         return true;
     }
@@ -2065,9 +2079,8 @@ bool EQMod::Sync(double ra, double dec)
     double juliandate;
     double lst;
     SyncData tmpsyncdata;
-    double ha, targetra;
+    double ha;
     TelescopePierSide targetpier;
-    double telescopeHA;
 
     // get current mount position asap
     tmpsyncdata.telescopeRAEncoder  = mount->GetRAEncoder();
@@ -2092,28 +2105,26 @@ bool EQMod::Sync(double ra, double dec)
 
     ha = rangeHA(ra - lst);
     if (ha < 0.0)
-    { // target EAST
+    { // target WEST
         if (Hemisphere == NORTH)
-            targetpier = PIER_WEST;
-        else
             targetpier = PIER_EAST;
-        targetra = range24(ra - 12.0);
+        else
+            targetpier = PIER_WEST;
     }
     else
     {
         if (Hemisphere == NORTH)
-            targetpier = PIER_EAST;
-        else
             targetpier = PIER_WEST;
-        targetra = ra;
+        else
+            targetpier = PIER_EAST;
     }
-    tmpsyncdata.targetRAEncoder  = EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
+    tmpsyncdata.targetRAEncoder  = EncoderFromRA(ra, targetpier, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
     tmpsyncdata.targetDECEncoder = EncoderFromDec(dec, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
 
     try
     {
         EncodersToRADec(tmpsyncdata.telescopeRAEncoder, tmpsyncdata.telescopeDECEncoder, lst, &tmpsyncdata.telescopeRA,
-                        &tmpsyncdata.telescopeDEC, &telescopeHA);
+                        &tmpsyncdata.telescopeDEC, nullptr, nullptr);
     }
     catch (EQModError e)
     {
@@ -2122,8 +2133,8 @@ bool EQMod::Sync(double ra, double dec)
 
     tmpsyncdata.deltaRA         = tmpsyncdata.targetRA - tmpsyncdata.telescopeRA;
     tmpsyncdata.deltaDEC        = tmpsyncdata.targetDEC - tmpsyncdata.telescopeDEC;
-    tmpsyncdata.deltaRAEncoder  = tmpsyncdata.targetRAEncoder - tmpsyncdata.telescopeRAEncoder;
-    tmpsyncdata.deltaDECEncoder = tmpsyncdata.targetDECEncoder - tmpsyncdata.telescopeDECEncoder;
+    tmpsyncdata.deltaRAEncoder  = static_cast<int>(tmpsyncdata.targetRAEncoder - tmpsyncdata.telescopeRAEncoder);
+    tmpsyncdata.deltaDECEncoder = static_cast<int>(tmpsyncdata.targetDECEncoder - tmpsyncdata.telescopeDECEncoder);
 #ifdef WITH_ALIGN_GEEHALEL
     if (align && !isStandardSync())
     {
@@ -2615,8 +2626,8 @@ bool EQMod::ISNewNumber(const char *dev, const char *name, double values[], char
             IUUpdateNumber(BacklashNP, values, names, n);
             BacklashNP->s = IPS_OK;
             IDSetNumber(BacklashNP, nullptr);
-            mount->SetBacklashRA((unsigned long)(IUFindNumber(BacklashNP, "BACKLASHRA")->value));
-            mount->SetBacklashDE((unsigned long)(IUFindNumber(BacklashNP, "BACKLASHDE")->value));
+            mount->SetBacklashRA((uint32_t)(IUFindNumber(BacklashNP, "BACKLASHRA")->value));
+            mount->SetBacklashDE((uint32_t)(IUFindNumber(BacklashNP, "BACKLASHDE")->value));
             LOGF_INFO("Setting Backlash compensation - RA=%.0f microsteps DE=%.0f microsteps",
                    IUFindNumber(BacklashNP, "BACKLASHRA")->value, IUFindNumber(BacklashNP, "BACKLASHDE")->value);
             return true;
@@ -3664,14 +3675,22 @@ bool EQMod::updateLocation(double latitude, double longitude, double elevation)
     return true;
 }
 
+void EQMod::saveInitialParkPosition()
+{
+    // If there is no initial park data. We assume the default parking position
+    // Looking at celestial pole with weights down
+    SetDefaultPark();
+    WriteParkData();
+}
+
 bool EQMod::SetCurrentPark()
 {
     parkRAEncoder = currentRAEncoder;
     parkDEEncoder = currentDEEncoder;
     SetAxis1Park(parkRAEncoder);
     SetAxis2Park(parkDEEncoder);
-    LOGF_INFO("Setting Park Position to current- RA Encoder=%ld DE Encoder=%ld", parkRAEncoder,
-           parkDEEncoder);
+    LOGF_INFO("Setting Park Position to current RA Encoder=%ld DE Encoder=%ld",
+           static_cast<long>(parkRAEncoder), static_cast<long>(parkDEEncoder));
 
     return true;
 }
@@ -3682,8 +3701,8 @@ bool EQMod::SetDefaultPark()
     parkDEEncoder = GetAxis2ParkDefault();
     SetAxis1Park(parkRAEncoder);
     SetAxis2Park(parkDEEncoder);
-    LOGF_INFO("Setting Park Position to default- RA Encoder=%ld DE Encoder=%ld", parkRAEncoder,
-           parkDEEncoder);
+    LOGF_INFO("Setting Park Position to default RA Encoder=%ld DE Encoder=%ld",
+           static_cast<long>(parkRAEncoder), static_cast<long>(parkDEEncoder));
 
     return true;
 }

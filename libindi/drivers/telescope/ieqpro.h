@@ -122,7 +122,7 @@ class IEQPro : public INDI::Telescope, public INDI::GuiderInterface
     ISwitchVectorProperty HomeSP;
 
     /* Guide Rate */
-    INumber GuideRateN[1];
+    INumber GuideRateN[2];
     INumberVectorProperty GuideRateNP;
 
     unsigned int DBG_SCOPE;

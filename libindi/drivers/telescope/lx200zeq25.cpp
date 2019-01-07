@@ -98,7 +98,7 @@ bool LX200ZEQ25::updateProperties()
 
 const char *LX200ZEQ25::getDefaultName()
 {
-    return (const char *)"ZEQ25";
+    return static_cast<const char *>("ZEQ25");
 }
 
 bool LX200ZEQ25::checkConnection()
@@ -392,6 +392,34 @@ void LX200ZEQ25::getBasicData()
     }
 }
 
+bool LX200ZEQ25::Sync(double ra, double dec)
+{
+    if (!isSimulation() && (setObjectRA(PortFD, ra) < 0 || (setObjectDEC(PortFD, dec)) < 0))
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error setting RA/DEC. Unable to Sync.");
+        return false;
+    }
+
+    if (!isSimulation() && setZEQ25StandardProcedure(PortFD, ":CM#") < 0)
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Synchronization failed.");
+        return false;
+    }
+
+    currentRA  = ra;
+    currentDEC = dec;
+
+    LOG_INFO("Synchronization successful.");
+
+    EqNP.s     = IPS_OK;
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
+}
+
 bool LX200ZEQ25::Goto(double r, double d)
 {
     const struct timespec timeout = {0, 100000000L};
@@ -588,7 +616,7 @@ bool LX200ZEQ25::updateTime(ln_date *utc, double utc_offset)
 
     JD = ln_get_julian_day(utc);
 
-    LOGF_DEBUG("New JD is %f", (float)JD);
+    LOGF_DEBUG("New JD is %.2f", JD);
 
     // Set Local Time
     if (setLocalTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds) < 0)
@@ -597,7 +625,7 @@ bool LX200ZEQ25::updateTime(ln_date *utc, double utc_offset)
         return false;
     }
 
-    if (setCalenderDate(PortFD, ltm.days, ltm.months, ltm.years) < 0)
+    if (setZEQ25Date(ltm.days, ltm.months, ltm.years) < 0)
     {
         LOG_ERROR("Error setting local date.");
         return false;
@@ -699,6 +727,13 @@ int LX200ZEQ25::setZEQ25UTCOffset(double hours)
     snprintf(temp_string, sizeof(temp_string), ":SG %c%02d:%02d#", sign, abs(h), m);
 
     return (setZEQ25StandardProcedure(PortFD, temp_string));
+}
+
+int LX200ZEQ25::setZEQ25Date(int days, int months, int years)
+{
+    char command[16]={0};
+    snprintf(command, sizeof(command), ":SC %02d/%02d/%02d#", months, days, years % 100);
+    return (setZEQ25StandardProcedure(PortFD, command));
 }
 
 int LX200ZEQ25::setZEQ25StandardProcedure(int fd, const char *data)
@@ -1224,7 +1259,7 @@ int LX200ZEQ25::getZEQ25GuideRate(double *rate)
 
     if (isSimulation())
     {
-        snprintf(response, 8, "%3d#", (int)(GuideRateN[0].value * 100));
+        snprintf(response, 8, "%3d#", static_cast<int>(GuideRateN[0].value * 100));
         nbytes_read = strlen(response);
     }
     else
@@ -1314,7 +1349,7 @@ int LX200ZEQ25::setZEQ25GuideRate(double rate)
         LOGF_DEBUG("RES (%s)", response);
 
         tcflush(PortFD, TCIFLUSH);
-        return true;
+        return TTY_OK;
     }
 
     LOGF_ERROR("Only received #%d bytes, expected 1.", nbytes_read);
@@ -1348,5 +1383,5 @@ int LX200ZEQ25::SendPulseCmd(int8_t direction, uint32_t duration_msec)
     tty_write_string(PortFD, cmd, &nbytes_write);
 
     tcflush(PortFD, TCIFLUSH);
-    return 0;
+    return TTY_OK;
 }

@@ -1128,7 +1128,7 @@ int V4L2_Base::check_device(char *errmsg)
     {
         struct v4l2_fmtdesc fmt_avail;
         fmt_avail.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        //DEBUG(INDI::Logger::DBG_SESSION,"Available Capture Image formats:");
+        //LOG_INFO("Available Capture Image formats:");
         DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Enumerating available Capture Image formats:");
         for (fmt_avail.index = 0; ioctl(fd, VIDIOC_ENUM_FMT, &fmt_avail) != -1; fmt_avail.index++)
         {

@@ -10,6 +10,8 @@
  * exit val==0
  */
 
+#define _GNU_SOURCE // needed for fdopen
+
 #include "indiapi.h"
 #include "indidevapi.h"
 #include "lilxml.h"

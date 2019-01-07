@@ -122,7 +122,7 @@ void V4L2_Builtin_Decoder::init()
 
 void V4L2_Builtin_Decoder::decode(unsigned char *frame, struct v4l2_buffer *buf)
 {
-    //DEBUG(INDI::Logger::DBG_SESSION,"Calling builtin decoder decode");
+    //LOG_INFO("Calling builtin decoder decode");
 //IDLog("Decoding buffer at %lx, len %d, bytesused %d, bytesperline %d, sequence %d, flag %x, field %x, use soft crop %c, do crop %c\n", frame, buf->length, buf->bytesused, fmt.fmt.pix.bytesperline, buf->sequence, buf->flags, buf->field, (useSoftCrop?'y':'n'), (doCrop?'y':'n'));
 
     switch (fmt.fmt.pix.pixelformat)

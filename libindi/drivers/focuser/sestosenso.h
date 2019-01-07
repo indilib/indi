@@ -26,27 +26,31 @@ class SestoSenso : public INDI::Focuser
 {
   public:
     SestoSenso();
-    virtual ~SestoSenso() = default;
+    virtual ~SestoSenso() override = default;
 
     typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
+    const char *getDefaultName() override;
+    virtual void ISGetProperties(const char *dev) override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
 protected:
-    virtual bool Handshake();
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
+    virtual bool Handshake() override;
+    virtual bool Disconnect() override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
 
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
+    virtual bool AbortFocuser() override;
+    virtual void TimerHit() override;
 
   private:
     bool Ack();
     void GetFocusParams();
+    bool setMinLimit(uint32_t limit);
+    bool setMaxLimit(uint32_t limit);
     bool isCommandOK(const char *cmd);
     bool isMotionComplete();
 
@@ -66,4 +70,12 @@ protected:
 
     INumber SyncN[1];
     INumberVectorProperty SyncNP;
+
+    INumber LimitsN[2];
+    INumberVectorProperty LimitsNP;
+    enum
+    {
+        SS_MIN_LIMIT,
+        SS_MAX_LIMIT
+    };
 };

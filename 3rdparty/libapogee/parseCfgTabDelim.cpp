@@ -17,14 +17,7 @@
 #include <algorithm>
 #include <bitset>
 
-#ifdef WIN_OS
 #include <regex>
-#define OS_REGEX std::
-#else
-#include <boost/regex.hpp>
-#define OS_REGEX boost
-#endif
-
 
 namespace
 {
@@ -57,13 +50,12 @@ namespace
     
     //      TOKEN       NEW        LINES
     std::vector<std::string> TokenNewLines( std::string const & str )
-    { 
-		#ifdef WIN_OS
-			return help::MakeTokens( str, "\n" );
-		#else
-			return help::MakeTokens( str, "\r\n" );
-		#endif
-
+    {
+        #ifdef WIN_OS
+               return help::MakeTokens( str, "\n" );
+        #else
+               return help::MakeTokens( str, "\r\n" );
+        #endif
     }
 
     // STR   2  BOOL
@@ -168,11 +160,11 @@ namespace
     //      GET      REGEX       MATCHES
     std::vector<std::string> GetRegExMatches(const std::string & pattern, std::string data)
     {
-        OS_REGEX::regex re(pattern);
-        OS_REGEX::sregex_iterator m1(data.begin(), data.end(), re);
-        OS_REGEX::sregex_iterator m2;
+        std::regex re(pattern);
+        std::sregex_iterator m1(data.begin(), data.end(), re);
+        std::sregex_iterator m2;
 
-        OS_REGEX::sregex_iterator iter;
+        std::sregex_iterator iter;
         std::vector<std::string> matchStrs;
         for(iter = m1; iter != m2; ++iter)
         {
@@ -186,9 +178,9 @@ namespace
     uint16_t GetMask(const std::string & str )
     {
         std::string pattern = ("\tMask.*?\\r?\\n");
-        OS_REGEX::regex re(pattern);
-        OS_REGEX::smatch theMatch;
-        bool result = OS_REGEX::regex_search(str, theMatch, re);
+        std::regex re(pattern);
+        std::smatch theMatch;
+        bool result = std::regex_search(str, theMatch, re);
 
         if( result )
         {
@@ -208,9 +200,9 @@ bool parseCfgTabDelim::IsPatternFile( const std::string & fileName )
 {
     std::string str = ReadFile( fileName );
     std::string pattern = ("Pattern Set");
-    OS_REGEX::regex re(pattern);
-    OS_REGEX::smatch theMatch;
-    return( OS_REGEX::regex_search(str, theMatch, re) );
+    std::regex re(pattern);
+    std::smatch theMatch;
+    return( std::regex_search(str, theMatch, re) );
 }
 //////////////////////////// 
 //      IS     VERTICAL    FILE
@@ -218,9 +210,9 @@ bool parseCfgTabDelim::IsVerticalFile( const std::string & fileName )
 {
     std::string str = ReadFile( fileName );
     std::string pattern = ("Vertical");
-    OS_REGEX::regex re( pattern );
-    OS_REGEX::smatch theMatch;
-    return( OS_REGEX::regex_search(str, theMatch, re) );
+    std::regex re( pattern );
+    std::smatch theMatch;
+    return( std::regex_search(str, theMatch, re) );
 }
 
 //////////////////////////// 
@@ -229,9 +221,9 @@ bool parseCfgTabDelim::IsCfgFile( const std::string & fileName )
 {
     std::string str = ReadFile( fileName );
     std::string pattern = ("Configuration Matrix");
-    OS_REGEX::regex re( pattern );
-    OS_REGEX::smatch theMatch;
-    return( OS_REGEX::regex_search(str, theMatch, re) );
+    std::regex re( pattern );
+    std::smatch theMatch;
+    return( std::regex_search(str, theMatch, re) );
 }
 
 

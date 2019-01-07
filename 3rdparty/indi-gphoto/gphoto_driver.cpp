@@ -605,14 +605,14 @@ static void *stop_bulb(void *arg)
 
             if (timeleft <= 0)
             {
-                //shut off bulb mode
-                DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing shutter");
                 if (gphoto->dsusb)
                 {
+                    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing DSUSB shutter.");
                     gphoto->dsusb->closeShutter();
                 }
                 if (gphoto->bulb_widget)
                 {
+                    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing internal shutter.");
                     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using widget:%s", gphoto->bulb_widget->name);
                     if (strcmp(gphoto->bulb_widget->name, "eosremoterelease") == 0)
                     {
@@ -624,8 +624,9 @@ static void *stop_bulb(void *arg)
                         gphoto_set_widget_num(gphoto, gphoto->bulb_widget, FALSE);
                     }
                 }
-                else
+                if (gphoto->bulb_port[0] && (gphoto->bulb_fd >= 0))
                 {
+                    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing remote serial shutter.");
                     ioctl(gphoto->bulb_fd, TIOCMBIC, &RTS_flag);
                     close(gphoto->bulb_fd);
                 }
@@ -709,8 +710,12 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t
         if (exact)
         {
              // Close "enough" to be exact
-             if (std::abs(delta) < 0.001)
-                return i;
+             if (std::fabs(delta) < 0.001)
+             {
+                 best_match = delta;
+                 best_idx   = i;
+                 break;
+             }
         }
         else
         {
@@ -726,7 +731,7 @@ int find_exposure_setting(gphoto_driver *gphoto, gphoto_widget *widget, uint32_t
     }
 
     if (best_idx >= 0)
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Best match: %g seconds Index: %d", gphoto->exposureList[best_idx], best_idx);
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Closest match: %g seconds Index: %d", gphoto->exposureList[best_idx], best_idx);
     else
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "No optimal predefined exposure found.");
 
@@ -1026,7 +1031,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Starting exposure (exptime: %g secs, mirror lock: %d)",
                  exptime_usec / 1e6, mirror_lock);
     pthread_mutex_lock(&gphoto->mutex);
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "  Mutex locked");
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Mutex locked");
 
     // Set ISO Settings
     if (gphoto->iso >= 0)
@@ -1057,35 +1062,28 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     }
 #endif
 
-    // If exposure time is more than 1 second AND we have BULB widget OR we have bulb in exposure widget then do bulb
-    // JM 2017-05-29: Also added if gphoto->exposure == nullptr in case where exposure_widget exists but has 0 members
-    // In that case, we always capture using either shutter release or bulb widget regardless of time
-    // JM 2018-06-29: Add check for optimalExposureIndex, but if exposure_widget has only ONE member (blob)
-    // then we cannot set custom short exposure (e.g. 1/4000) so it must be set here even for short exposures.
-    if ((gphoto->exposureList == nullptr || exptime_usec > 1e6 || optimalExposureIndex == -1) &&
-            ((gphoto->bulb_port[0]) || (gphoto->bulb_widget != nullptr)))
-    {
-        //Bulb mode is supported
+    // ###########################################################################################
+    // ################################### BULB Pathway ##########################################
+    // ###########################################################################################
+    // We take this route if any of the following conditions are met:
+    // 1. Predefined Expsoure List does not exist for the camera.
+    // 2. An external shutter port or DSUSB is active.
+    // 3. Exposure Time > 1 second or there is no optimal exposure and we have a bulb widget to trigger the custom time
+    if (gphoto->exposureList == nullptr ||
+       (gphoto->bulb_port[0] || gphoto->dsusb) ||
+       (gphoto->bulb_widget != nullptr && (exptime_usec > 1e6 || optimalExposureIndex == -1)))
 
+    {
         // Check if we are in BULB or MANUAL or other mode. Always set it to BULB if needed
         if (gphoto->bulb_widget && gphoto->autoexposuremode_widget)
         {
             // If it settings is not either MANAUL or BULB then warn the user.
             if (gphoto->autoexposuremode_widget->value.index < 3 || gphoto->autoexposuremode_widget->value.index > 4)
             {
-                DEBUGFDEVICE(
-                            device, INDI::Logger::DBG_WARNING,
+                DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING,
                             "Camera auto exposure mode is not set to either BULB or MANUAL modes (%s). Please set mode to BULB "
                             "for long exposures.",
-                            gphoto->autoexposuremode_widget->choices[(uint8_t)gphoto->autoexposuremode_widget->value.index]);
-                /*
-                ISState states = ISS_ON;
-                char *names = {"autoexposuremode4"};
-                ISNewSwitch(device, "autoexposuremode", &states, &names, 1);
-
-                // Update widget
-                gphoto_read_widget(gphoto->autoexposuremode_widget);
-                */
+                            gphoto->autoexposuremode_widget->choices[static_cast<uint8_t>(gphoto->autoexposuremode_widget->value.index)]);
             }
         }
 
@@ -1093,7 +1091,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         if (gphoto->exposureList && gphoto->exposure_widget->type != GP_WIDGET_TEXT && gphoto->bulb_exposure_index != -1)
         {
             // If it's not already set to the bulb exposure index
-            if (gphoto->bulb_exposure_index != (uint8_t)gphoto->exposure_widget->value.index)
+            if (gphoto->bulb_exposure_index != static_cast<uint8_t>(gphoto->exposure_widget->value.index))
             {
                 DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Setting exposure widget bulb index: %d",
                              gphoto->bulb_exposure_index);
@@ -1113,8 +1111,8 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
             if (gphoto_mirrorlock(gphoto, mirror_lock * 1000))
                 return -1;
         }
-        else if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name,
-                                                "eosremoterelease"))
+        // Disabled since it causes issues
+        else if (gphoto->bulb_widget && !strcmp(gphoto->bulb_widget->name, "eosremoterelease"))
         {
 #if 0
             gphoto_set_widget_text(gphoto, gphoto->customfuncex_widget,
@@ -1122,26 +1120,26 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
 #endif
         }
 
-        // If bulb port is specified, let's open it
+        // If DSUSB port is specified, let's open it
         if (gphoto->dsusb)
         {
             DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Using DSUSB to open shutter...");
             gphoto->dsusb->openShutter();
         }
+        // Otherwise open regular remote serial shutter port
         else if (gphoto->bulb_port[0])
         {
-            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Opening remote serial shutter port: %s ...",
-                         gphoto->bulb_port);
+            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Opening remote serial shutter port: %s ...", gphoto->bulb_port);
             gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
             if (gphoto->bulb_fd < 0)
             {
-                DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Failed to open serial port: %s", gphoto->bulb_port);
+                DEBUGFDEVICE(device, INDI::Logger::DBG_ERROR, "Failed to open serial port: %s", gphoto->bulb_port);
                 pthread_mutex_unlock(&gphoto->mutex);
                 return -1;
             }
             ioctl(gphoto->bulb_fd, TIOCMBIS, &RTS_flag);
         }
-        // if no bulb port (external shutter release) is specified, let's use the internal bulb widget
+        // Otherwise, let's fallback to the internal bulb widget
         else if (gphoto->bulb_widget)
         {
             DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Using internal bulb widget:%s", gphoto->bulb_widget->name);
@@ -1157,17 +1155,15 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
                 gphoto_set_widget_num(gphoto, gphoto->bulb_widget, TRUE);
             }
         }
+        // else we fail
+        else
+        {
+            DEBUGDEVICE(device, INDI::Logger::DBG_ERROR, "No external or internal bulb widgets found. Cannot capture.");
+            pthread_mutex_unlock(&gphoto->mutex);
+            return -1;
+        }
 
         // Preparing exposure
-
-#if 0
-        gettimeofday(&gphoto->bulb_end, nullptr);
-        //unsigned int usec = gphoto->bulb_end.tv_usec + exptime_msec % 1000 * 1000;
-        long usec = gphoto->bulb_end.tv_usec + exptime_usec;
-        //gphoto->bulb_end.tv_sec = gphoto->bulb_end.tv_sec + exptime_msec / 1000 + usec / 1000000;
-        gphoto->bulb_end.tv_sec  = gphoto->bulb_end.tv_sec + exptime_usec / 1e6;
-        gphoto->bulb_end.tv_usec = usec % 1000000;
-#endif
         struct timeval duration, current_time;
         gettimeofday(&current_time, nullptr);
         duration.tv_sec = exptime_usec / 1000000;
@@ -1178,9 +1174,13 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         gphoto->command = DSLR_CMD_BULB_CAPTURE;
         pthread_cond_signal(&gphoto->signal);
         pthread_mutex_unlock(&gphoto->mutex);
-        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure started");
+        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure started.");
         return 0;
     }
+
+    // ###########################################################################################
+    // ############################ Predefined Exposure Pathway ##################################
+    // ###########################################################################################
 
     // If we're using fallback exposure_widget, then it's TEXT, not RADIO
     // libgphoto2 does not provide radio list for some cameras
@@ -1191,6 +1191,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     if (optimalExposureIndex == -1)
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_ERROR, "Failed to set non-bulb exposure time.");
+        pthread_mutex_unlock(&gphoto->mutex);
         return -1;
     }
     else if (gphoto->exposure_widget && gphoto->exposure_widget->type == GP_WIDGET_TEXT)
@@ -1206,42 +1207,45 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
 
     // Lock the mirror if required.
     if (mirror_lock && gphoto_mirrorlock(gphoto, mirror_lock * 1000))
-        return -1;
-
-    // If bulb port is specified, a serial shutter control is required to start the exposure. Treat this as a bulb exposure.
-    if (gphoto->bulb_port[0] && !gphoto->dsusb)
     {
-        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Opening remote serial shutter port: %s ...", gphoto->bulb_port);
-        gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
-        if (gphoto->bulb_fd < 0)
-        {
-            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Failed to open serial port: %s", gphoto->bulb_port);
-            pthread_mutex_unlock(&gphoto->mutex);
-            return -1;
-        }
-
-        ioctl(gphoto->bulb_fd, TIOCMBIS, &RTS_flag);
-
-        // Preparing exposure: we let stop_bulb() close the serial port although this could be done here as well
-        // because the camera closes the shutter.
-
-        struct timeval duration, current_time;
-        gettimeofday(&current_time, nullptr);
-        duration.tv_sec = exptime_usec / 1000000;
-        duration.tv_usec= exptime_usec % 1000000;
-        timeradd(&current_time, &duration, &gphoto->bulb_end);
-
-        // Start actual exposure
-        gphoto->command = DSLR_CMD_BULB_CAPTURE;
-        pthread_cond_signal(&gphoto->signal);
         pthread_mutex_unlock(&gphoto->mutex);
-        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure started");
-        return 0;
+        return -1;
     }
+
+//    // If bulb port is specified, a serial shutter control is required to start the exposure. Treat this as a bulb exposure.
+//    if (gphoto->bulb_port[0] && !gphoto->dsusb)
+//    {
+//        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Opening remote serial shutter port: %s ...", gphoto->bulb_port);
+//        gphoto->bulb_fd = open(gphoto->bulb_port, O_RDWR, O_NONBLOCK);
+//        if (gphoto->bulb_fd < 0)
+//        {
+//            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "Failed to open serial port: %s", gphoto->bulb_port);
+//            pthread_mutex_unlock(&gphoto->mutex);
+//            return -1;
+//        }
+
+//        ioctl(gphoto->bulb_fd, TIOCMBIS, &RTS_flag);
+
+//        // Preparing exposure: we let stop_bulb() close the serial port although this could be done here as well
+//        // because the camera closes the shutter.
+
+//        struct timeval duration, current_time;
+//        gettimeofday(&current_time, nullptr);
+//        duration.tv_sec = exptime_usec / 1000000;
+//        duration.tv_usec= exptime_usec % 1000000;
+//        timeradd(&current_time, &duration, &gphoto->bulb_end);
+
+//        // Start actual exposure
+//        gphoto->command = DSLR_CMD_BULB_CAPTURE;
+//        pthread_cond_signal(&gphoto->signal);
+//        pthread_mutex_unlock(&gphoto->mutex);
+//        DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure started");
+//        return 0;
+//    }
     gphoto->command = DSLR_CMD_CAPTURE;
     pthread_cond_signal(&gphoto->signal);
     pthread_mutex_unlock(&gphoto->mutex);
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure started");
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure started.");
     return 0;
 }
 
@@ -1263,7 +1267,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
     if (!(gphoto->command & DSLR_CMD_DONE))
         pthread_cond_wait(&gphoto->signal, &gphoto->mutex);
 
-    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure complete");
+    DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Exposure complete.");
 
     if (gphoto->command & DSLR_CMD_CAPTURE)
     {
@@ -1286,7 +1290,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
         result = gp_camera_wait_for_event(gphoto->camera, 1000, &event, &data, gphoto->context);
         if (result != GP_OK)
         {
-            DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "WARNING: Could not wait for event.");
+            DEBUGDEVICE(device, INDI::Logger::DBG_WARNING, "Could not wait for event.");
             timeoutCounter++;
             if (timeoutCounter >= 10)
             {
@@ -1304,7 +1308,7 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
             break;
         case GP_EVENT_FILE_ADDED:
             DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "File added event completed.");
-            fn     = (CameraFilePath *)data;
+            fn     = static_cast<CameraFilePath *>(data);
             result = download_image(gphoto, fn, fd);
             //Set exposure back to original value
 
@@ -1313,7 +1317,6 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
 
             pthread_mutex_unlock(&gphoto->mutex);
             return result;
-            break;
         case GP_EVENT_UNKNOWN:
             //DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Unknown event.");
             break;
@@ -1334,8 +1337,8 @@ int gphoto_read_exposure_fd(gphoto_driver *gphoto, int fd)
         //usleep(500 * 1000);
         //pthread_mutex_lock(&gphoto->mutex);
     }
-    pthread_mutex_unlock(&gphoto->mutex);
-    return 0;
+    //pthread_mutex_unlock(&gphoto->mutex);
+    //return 0;
 }
 
 int gphoto_abort_exposure(gphoto_driver *gphoto)

@@ -30,10 +30,7 @@
 #ifndef __QHYCCDCAMDEF_H__
 #define __QHYCCDCAMDEF_H__
 
-#undef GIGAESUPPORT
-
-//#define QHYCCD_OPENCV_SUPPORT
-
+#include "config.h"
 
 /* IMG series */
 
@@ -360,6 +357,7 @@
 #define DEVICETYPE_QHY294        4054
 #define DEVICETYPE_QHY2020      4055
 #define DEVICETYPE_QHY4040      4056
+#define DEVICETYPE_QHY550        4057
 
 
 
@@ -523,5 +521,7 @@
 /**
  * Type define for UNKNOW */
 #define DEVICETYPE_UNKNOW       -1
+
+#define MAX_EXPOSURE_TIMES	(1800) //s
 
 #endif

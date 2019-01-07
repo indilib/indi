@@ -28,28 +28,30 @@ class ArmPlat : public INDI::Focuser
 {
   public:
     ArmPlat();
-    virtual ~ArmPlat() = default;
+    virtual ~ArmPlat() override = default;
 
-    virtual bool Handshake();
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool Handshake() override;
+    const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
 protected:
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
-    virtual bool saveConfigItems(FILE *fp);
+    virtual bool Connect() override;
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual bool AbortFocuser() override;
+    virtual void TimerHit() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool SyncFocuser(uint32_t ticks) override;
 
   private:
     bool slpSendRxInt( char *command, int *rcode );
     bool getIntResultCode( char *sent, char *rxed, int *rcode );
     bool getCurrentPos( uint32_t *curPos );
     bool getCurrentTemp( uint32_t *curTemp );
-    bool sync(uint32_t newPosition);
+    //bool sync(uint32_t newPosition);
     bool setMaxSpeed(uint16_t nspeed);
     bool setTempSensorInUse(uint16_t sensor);
     bool setWiring(uint16_t newwiring);
@@ -58,7 +60,6 @@ protected:
     bool setMotorType(uint16_t type);
     bool setPort(uint16_t newport );
     bool echo();
-    bool Connect();
 
     uint16_t backlash { 0 };
     uint16_t tempSensInUse { 0 };
@@ -105,7 +106,7 @@ protected:
     INumber BacklashN[1];
     INumberVectorProperty BacklashNP;
 
-    // Motor wiring 
+    // Motor wiring
     ISwitch WiringS[4];
     ISwitchVectorProperty WiringSP;
     enum { WIRING_LUNATICO_NORMAL, WIRING_LUNATICO_REVERSED, WIRING_RFMOONLITE_NORMAL, WIRING_RFMOONLITE_REVERSED };
@@ -115,9 +116,8 @@ protected:
     INumberVectorProperty MaxSpeedNP;
 
     // Sync motor pos
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
-
+//    INumber SyncN[1];
+//    INumberVectorProperty SyncNP;
 
     // Firmware Version
     IText FirmwareVersionT[1] {};

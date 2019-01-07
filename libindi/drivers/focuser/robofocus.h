@@ -27,21 +27,22 @@ class RoboFocus : public INDI::Focuser
 {
   public:
     RoboFocus();
-    virtual ~RoboFocus() = default;
+    virtual ~RoboFocus() override = default;
 
-    virtual bool Handshake();
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
   protected:
-    bool saveConfigItems(FILE *fp);
+    virtual bool Handshake() override;
+    const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual bool AbortFocuser() override;
+    virtual void TimerHit() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool SyncFocuser(uint32_t ticks) override;
 
   private:
     unsigned char CheckSum(char *rf_cmd);
