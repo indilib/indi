@@ -9,9 +9,7 @@
 
 namespace starbook {
 
-    CommandInterface::CommandInterface(Connection::Curl *new_connection) {
-        connection = new_connection;
-    }
+    CommandInterface::CommandInterface(Connection::Curl *new_connection) : connection(new_connection) {}
 
     static std::string read_buffer;
 
@@ -46,8 +44,8 @@ namespace starbook {
         }
 
         // all responses are hidden in HTML comments ...
-        std::__cxx11::regex response_comment_re("<!--(.*)-->", std::regex_constants::ECMAScript);
-        std::__cxx11::smatch comment_match;
+        std::regex response_comment_re("<!--(.*)-->", std::regex_constants::ECMAScript);
+        std::smatch comment_match;
         if (!regex_search(read_buffer, comment_match, response_comment_re)) {
             return "";
         }
