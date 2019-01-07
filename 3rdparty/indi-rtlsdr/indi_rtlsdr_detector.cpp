@@ -416,6 +416,19 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
             InCapture = false;
             rtlsdr_cancel_async(rtl_dev);
 
+            //Create the dspau stream
+            dspau_stream_p stream = dspau_stream_new();
+            dspau_stream_add_dim(stream, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
+            //Create the spectrum
+            dspau_convert(continuum, stream->in, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
+            stream->in = dspau_buffer_div1(stream->in, stream->len, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
+            dspau_t *out = dspau_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
+            out = dspau_buffer_mul1(out, SPECTRUM_SIZE, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
+            dspau_convert(out, spectrum, SPECTRUM_SIZE);
+            //Destroy the dspau stream
+            dspau_stream_free(stream);
+            free(out);
+
             LOG_INFO("Download complete.");
             CaptureComplete(&PrimaryDetector);
         }

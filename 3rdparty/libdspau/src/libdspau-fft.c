@@ -90,6 +90,7 @@ dspau_t* dspau_fft_spectrum(dspau_stream_p stream, int conversion, int size)
     dspau_t* ret;
     dspau_t* out = dspau_fft_dft(stream, -1, conversion);
     ret = dspau_buffer_histogram(out, stream->len, size);
+    free(out);
     return ret;
 }
 
@@ -114,36 +115,39 @@ dspau_t* dspau_fft_shift(dspau_t* in, int dims, int* sizes)
 
 dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion)
 {
-    dspau_t* out = (dspau_t*)calloc(sizeof(dspau_t), stream->len);
     fftw_plan p;
+    int len = stream->len;
+    dspau_stream_add_dim(stream, 1);
+    int* sizes = calloc(sizeof(int),stream->dims);
+    int dims = stream->dims;
+    dspau_buffer_reverse(sizes, stream->sizes, stream->dims);
+    dspau_t* out = (dspau_t*)calloc(sizeof(dspau_t), stream->len);
     fftw_complex *fft_in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * stream->len);
     fftw_complex *fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * stream->len);
-    for(int i = 0; i < stream->len; i++) {
+    for(int i = 0; i < len; i++) {
         fft_in[i][0] = stream->in[i];
         fft_in[i][1] = 0;
     }
-    dspau_buffer_reverse(stream->sizes, int, stream->dims);
-    p = fftw_plan_dft(stream->dims, stream->sizes, fft_in, fft_out, sign, FFTW_MEASURE);
+    p = fftw_plan_dft(dims, sizes, fft_in, fft_out, sign, FFTW_ESTIMATE);
     fftw_execute(p);
-    dspau_buffer_reverse(stream->sizes, int, stream->dims);
 	switch (conversion) {
 	case magnitude:
-        complex2mag(fft_out, out, stream->len);
+        complex2mag(fft_out, out, len);
 		break;
 	case magnitude_dbv:
-        complex2magdbv(fft_out, out, stream->len);
+        complex2magdbv(fft_out, out, len);
 		break;
     case magnitude_root:
-        complex2magsqrt(fft_out, out, stream->len);
+        complex2magsqrt(fft_out, out, len);
 		break;
     case magnitude_square:
-        complex2magpow(fft_out, out, stream->len);
+        complex2magpow(fft_out, out, len);
 		break;
 	case phase_degrees:
-        complex2phideg(fft_out, out, stream->len);
+        complex2phideg(fft_out, out, len);
 		break;
 	case phase_radians:
-        complex2phirad(fft_out, out, stream->len);
+        complex2phirad(fft_out, out, len);
 		break;
     default:
 		break;
@@ -151,8 +155,6 @@ dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion)
 	fftw_destroy_plan(p);
 	fftw_free(fft_in);
     fftw_free(fft_out);
-    dspau_t* o = dspau_fft_shift(out, stream->dims, stream->sizes);
-    free(out);
-    return o;
+    return out;
 }
 

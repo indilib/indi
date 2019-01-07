@@ -72,3 +72,17 @@ dspau_t dspau_astro_frtoas(dspau_t fr)
 {
     return RAD_AS * acos(fr);
 }
+
+dspau_t dspau_astro_as2parsec(dspau_t as)
+{
+    return as * Parsec;
+}
+
+dspau_t dspau_astro_parsecmag2absmag(dspau_t parsec, dspau_t deltamag, int lambda_index, dspau_t* ref_specrum, int ref_len, dspau_t* spectrum, int len)
+{
+    dspau_t* r_spectrum = dspau_buffer_stretch(ref_specrum, ref_len, 0, 1.0);
+    dspau_t ref = 1.0/r_spectrum[lambda_index];
+    dspau_t* t_spectrum = dspau_buffer_stretch(spectrum, ref_len, 0, ref);
+    deltamag *= dspau_buffer_compare(r_spectrum, ref_len, t_spectrum, len);
+    return deltamag * parsec;
+}
