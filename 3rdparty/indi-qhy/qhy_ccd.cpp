@@ -119,11 +119,11 @@ void ISInit()
     char driverSupportPath[128];
         if (getenv("INDIPREFIX") != nullptr)
         sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
-	else
+    else
         strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
     strncat(driverSupportPath, "/DriverSupport/qhy", 128);
     IDLog("QHY firmware path: %s\n", driverSupportPath);
-	OSXInitQHYCCDFirmware(driverSupportPath);
+    OSXInitQHYCCDFirmware(driverSupportPath);
     // Wait a bit before calling GetDeviceIDs on MacOS
     usleep(2000000);
 #endif
@@ -1216,13 +1216,42 @@ bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, CoolerSP.name) == 0)
+        // Cooler controler
+        if (!strcmp(name, CoolerSP.name))
         {
-            IUUpdateSwitch(&CoolerSP, states, names, n);
+            if (IUUpdateSwitch(&CoolerSP, states, names, n) < 0)
+            {
+                CoolerSP.s = IPS_ALERT;
+                IDSetSwitch(&CoolerSP, nullptr);
+                return true;
+            }
 
-            setCooler(CoolerS[0].s == ISS_ON);
+            bool enabled = (CoolerS[COOLER_ON].s == ISS_ON);
 
-            return true;
+            // If user turns on cooler, but the requested temperature is higher than current temperature
+            // then we set temperature to zero degrees. If that was still higher than current temperature
+            // we return an error
+            if (enabled && TemperatureRequest > TemperatureN[0].value)
+            {
+                TemperatureRequest = 0;
+                // If current temperature is still lower than zero, then we shouldn't risk
+                // setting temperature to any arbitrary value. Instead, we report an error and ask
+                // user to explicitly set the requested temperature.
+                if (TemperatureRequest > TemperatureN[0].value)
+                {
+                    CoolerS[COOLER_ON].s = ISS_OFF;
+                    CoolerS[COOLER_OFF].s = ISS_OFF;
+                    CoolerSP.s = IPS_ALERT;
+                    LOGF_WARN("Cannot manually activate cooler since current temperature is %.2f. To activate cooler, request a lower temperature.", TemperatureN[0].value);
+                    IDSetSwitch(&CoolerSP, nullptr);
+                    return true;
+                }
+
+                SetTemperature(0);
+                return true;
+            }
+
+            return activateCooler(enabled);
         }
     }
 
@@ -1310,47 +1339,51 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
-void QHYCCD::setCooler(bool enable)
+bool QHYCCD::activateCooler(bool enable)
 {
-    if (enable && coolerEnabled == false)
+    IUResetSwitch(&CoolerSP);
+    if (enable)
     {
-        CoolerS[0].s = ISS_ON;
-        CoolerS[1].s = ISS_OFF;
-        CoolerSP.s   = IPS_OK;
-        IDSetSwitch(&CoolerSP, nullptr);
-
-        if (sim == false)
+        if (TemperatureRequest < TemperatureN[0].value)
         {
-            //SetQHYCCDParam(camhandle, CONTROL_MANULPWM, 255);
-            // Decrease temperature to "turn on" cooler
-            SetQHYCCDParam(camhandle, CONTROL_COOLER, TemperatureN[0].value-0.1);
+            if (CoolerSP.s != IPS_BUSY)
+                LOG_INFO("Camera cooler is on.");
+
+            CoolerS[COOLER_ON].s = ISS_ON;
+            CoolerS[COOLER_OFF].s = ISS_OFF;
+            CoolerSP.s = IPS_BUSY;
+        }
+        else
+        {
+            CoolerS[COOLER_ON].s = ISS_OFF;
+            CoolerS[COOLER_OFF].s = ISS_ON;
+            CoolerSP.s = IPS_IDLE;
+            LOG_WARN("Cooler cannot be activated manually. Set a lower temperature to activate it.");
+            IDSetSwitch(&CoolerSP, nullptr);
+            return false;
+        }
+    }
+    else if (enable == false)
+    {
+        int rc = SetQHYCCDParam(camhandle, CONTROL_MANULPWM, 0);
+        if (rc != QHYCCD_SUCCESS)
+        {
+            CoolerS[COOLER_ON].s = ISS_ON;
+            CoolerS[COOLER_OFF].s = ISS_OFF;
+            CoolerSP.s = IPS_ALERT;
+            LOGF_ERROR("Failed to warm camera (%d).", rc);
+            IDSetSwitch(&CoolerSP, nullptr);
+            return false;
         }
 
-        CoolerNP.s = IPS_BUSY;
-        IDSetNumber(&CoolerNP, nullptr);
-        LOG_INFO("Cooler on.");
-
-        coolerEnabled = true;
+        CoolerS[COOLER_ON].s = ISS_OFF;
+        CoolerS[COOLER_OFF].s = ISS_ON;
+        CoolerSP.s = IPS_IDLE;
+        LOG_INFO("Camera is warming up...");
     }
-    else if (!enable && coolerEnabled == true)
-    {
-        coolerEnabled = false;
 
-        if (sim == false)
-            SetQHYCCDParam(camhandle, CONTROL_MANULPWM, 0);
-
-        CoolerSP.s   = IPS_IDLE;
-        CoolerS[0].s = ISS_OFF;
-        CoolerS[1].s = ISS_ON;
-        IDSetSwitch(&CoolerSP, nullptr);
-
-        CoolerNP.s = IPS_IDLE;
-        IDSetNumber(&CoolerNP, nullptr);
-
-        TemperatureNP.s = IPS_IDLE;
-        IDSetNumber(&TemperatureNP, nullptr);
-        LOG_INFO("Cooler off.");
-    }
+    IDSetSwitch(&CoolerSP, nullptr);
+    return true;
 }
 
 bool QHYCCD::isQHY5PIIC()
@@ -1399,22 +1432,22 @@ void QHYCCD::updateTemperature()
     TemperatureN[0].value = ccdtemp;
     CoolerN[0].value      = coolpower / 255.0 * 100;
 
-    if (coolpower > 0 && CoolerS[0].s == ISS_OFF)
-    {
-        CoolerNP.s   = IPS_BUSY;
-        CoolerSP.s   = IPS_OK;
-        CoolerS[0].s = ISS_ON;
-        CoolerS[1].s = ISS_OFF;
-        IDSetSwitch(&CoolerSP, nullptr);
-    }
-    else if (coolpower <= 0 && CoolerS[0].s == ISS_ON)
-    {
-        CoolerNP.s   = IPS_IDLE;
-        CoolerSP.s   = IPS_IDLE;
-        CoolerS[0].s = ISS_OFF;
-        CoolerS[1].s = ISS_ON;
-        IDSetSwitch(&CoolerSP, nullptr);
-    }
+//    if (coolpower > 0 && CoolerS[0].s == ISS_OFF)
+//    {
+//        CoolerNP.s   = IPS_BUSY;
+//        CoolerSP.s   = IPS_OK;
+//        CoolerS[0].s = ISS_ON;
+//        CoolerS[1].s = ISS_OFF;
+//        IDSetSwitch(&CoolerSP, nullptr);
+//    }
+//    else if (coolpower <= 0 && CoolerS[0].s == ISS_ON)
+//    {
+//        CoolerNP.s   = IPS_IDLE;
+//        CoolerSP.s   = IPS_IDLE;
+//        CoolerS[0].s = ISS_OFF;
+//        CoolerS[1].s = ISS_ON;
+//        IDSetSwitch(&CoolerSP, nullptr);
+//    }
 
     if (TemperatureNP.s == IPS_BUSY && fabs(TemperatureN[0].value - TemperatureRequest) <= TEMP_THRESHOLD)
     {
