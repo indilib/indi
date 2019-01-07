@@ -682,14 +682,14 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 if(!sendOnStepCommandBlind(":hC#"))
                     return false;
-                IDSetSwitch(&SetHomeSP, "Cold Start");
+                IDSetSwitch(&SetHomeSP, "Return Home");
                 SetHomeS[0].s = ISS_OFF;
             }
             else
             {
                 if(!sendOnStepCommandBlind(":hF#"))
                     return false;
-                IDSetSwitch(&SetHomeSP, "Home Init");
+                IDSetSwitch(&SetHomeSP, "At Home (Reset)");
                 SetHomeS[1].s = ISS_OFF;
             }
             IUResetSwitch(&ReticSP);
