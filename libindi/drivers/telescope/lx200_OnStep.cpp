@@ -1116,7 +1116,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 			IUFillSwitch(&OSNAlignStarsS[6], "9", "9 Stars", ISS_OFF);*/
 			
 			int index_stars = IUFindOnSwitchIndex(&OSNAlignStarsSP);
-			if ((index_stars <= 5) && (index_stars >= 0)) {
+			if ((index_stars <= 6) && (index_stars >= 0)) {
 				int stars = index_stars+1;
 				if (stars == 6) stars = 9;
 				//if (stars == 5) stars = 6;
