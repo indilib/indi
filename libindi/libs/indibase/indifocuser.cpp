@@ -100,7 +100,7 @@ bool Focuser::updateProperties()
     FI::updateProperties();
 
     if (isConnected())
-    {        
+    {
         if (CanAbsMove())
         {
             defineNumber(&PresetNP);
@@ -217,8 +217,9 @@ bool Focuser::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &PresetNP);
+    FI::saveConfigItems(fp);
 
+    IUSaveConfigNumber(fp, &PresetNP);
     controller->saveConfigItems(fp);
 
     return true;
@@ -244,7 +245,7 @@ void Focuser::processButton(const char *button_n, ISState state)
     {
         if (AbortFocuser())
         {
-            AbortSP.s = IPS_OK;
+            FocusAbortSP.s = IPS_OK;
             DEBUG(Logger::DBG_SESSION, "Focuser aborted.");
             if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
             {
@@ -259,11 +260,11 @@ void Focuser::processButton(const char *button_n, ISState state)
         }
         else
         {
-            AbortSP.s = IPS_ALERT;
+            FocusAbortSP.s = IPS_ALERT;
             DEBUG(Logger::DBG_ERROR, "Aborting focuser failed.");
         }
 
-        IDSetSwitch(&AbortSP, nullptr);
+        IDSetSwitch(&FocusAbortSP, nullptr);
     }
     // Focus In
     else if (!strcmp(button_n, "Focus In"))
@@ -343,7 +344,7 @@ bool Focuser::callHandshake()
     return Handshake();
 }
 
-void Focuser::setConnection(const uint8_t &value)
+void Focuser::setSupportedConnections(const uint8_t &value)
 {
     uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
 
@@ -354,5 +355,22 @@ void Focuser::setConnection(const uint8_t &value)
     }
 
     focuserConnection = value;
+}
+
+bool Focuser::SetFocuserMaxPosition(uint32_t ticks)
+{
+    SyncPresets(ticks);
+    return true;
+}
+
+void Focuser::SyncPresets(uint32_t ticks)
+{
+    PresetN[0].max = ticks;
+    PresetN[0].step = PresetN[0].max/50.0;
+    PresetN[1].max = ticks;
+    PresetN[1].step = PresetN[0].max/50.0;
+    PresetN[2].max = ticks;
+    PresetN[2].step = PresetN[0].max/50.0;
+    IUUpdateMinMax(&PresetNP);
 }
 }

@@ -28,7 +28,6 @@ class LX200AstroPhysicsExperimental : public LX200Generic
 {
   public:
     LX200AstroPhysicsExperimental();
-    ~LX200AstroPhysicsExperimental() {}
 
     typedef enum { MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_K_UNUSED,
                    MCV_L, MCV_M, MCV_N, MCV_O, MCV_P, MCV_Q, MCV_R, MCV_S,
@@ -147,4 +146,6 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     bool motionCommanded=false;
     bool mountInitialized=false;
     bool mountParked=false;
+
+    int rememberSlewRate = { -1 };
 };

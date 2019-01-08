@@ -74,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 
 USBDewpoint::USBDewpoint()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 }
 
 bool USBDewpoint::initProperties()
@@ -148,6 +148,8 @@ bool USBDewpoint::initProperties()
     addDebugControl();
     addConfigurationControl();
     setDefaultPollingPeriod(10000);
+    addPollPeriodControl();
+
     // No simulation control for now
 
     serialConnection = new Connection::Serial(this);
@@ -176,7 +178,7 @@ bool USBDewpoint::updateProperties()
         defineNumber(&FWversionNP);
 
         loadConfig(true);
-
+        readSettings();
         LOG_INFO("USB_Dewpoint paramaters updated, device ready for use.");
         SetTimer(POLLMS);
     }
@@ -198,36 +200,107 @@ bool USBDewpoint::updateProperties()
     return true;
 }
 
-bool USBDewpoint::Handshake()
+const char *USBDewpoint::getDefaultName()
 {
-    PortFD = serialConnection->getPortFD();
-    LOG_INFO("USB_Dewpoint is online. Getting device parameters...");
+    return "USB_Dewpoint";
+}
 
-    char cmd[] = UDP_IDENTIFY_CMD;
-
+bool USBDewpoint::sendCommand(const char *cmd, char *resp)
+{
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[64];
-
-    tcflush(PortFD, TCIOFLUSH);
-
     LOGF_DEBUG("CMD: %s.", cmd);
 
+    tcflush(PortFD, TCIOFLUSH);
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("HandShake error: %s.", errstr);
+        LOGF_ERROR("Error writing command %s: %s.", cmd, errstr);
         return false;
     }
 
-    if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if (resp)
     {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("HandShake error: %s.", errstr);
-        return false;
+        if ((rc = tty_nread_section(PortFD, resp, UDP_RES_LEN, '\r', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("Error reading response for command %s: %s.", cmd, errstr);
+            return false;
+        }
+
+        if (nbytes_read < 2)
+        {
+            LOGF_ERROR("Invalid response for command %s: %s.", cmd, resp);
+            return false;
+        }
+        resp[nbytes_read - 2] = '\0'; // Strip \n\r
+        LOGF_DEBUG("RES: %s.", resp);
     }
-    resp[nbytes_read] = 0;
-    LOGF_DEBUG("Resp: %s.", resp);
+    return true;
+}
+
+bool USBDewpoint::Resync()
+{
+    char cmd[]         = " "; // Illegal command to trigger error response
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+    char resp[UDP_RES_LEN] = {};
+
+    // Send up to 5 space characters and wait for error
+    // response ("ER=1") after which the communication
+    // is back in sync
+    tcflush(PortFD, TCIOFLUSH);
+
+    for (int resync = 0; resync < UDP_CMD_LEN; resync++)
+    {
+        LOGF_INFO("Retry %d...", resync + 1);
+
+        if ((rc = tty_write(PortFD, cmd, 1, &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(rc, errstr, MAXRBUF);
+            LOGF_ERROR("Error writing resync: %s.", errstr);
+            return false;
+        }
+
+        rc = tty_nread_section(PortFD, resp, UDP_RES_LEN, '\r', 3, &nbytes_read);
+        if (rc == TTY_OK && nbytes_read > 0)
+        {
+            // We got a response
+            return true;
+        }
+        // We didn't get response yet, retry
+    }
+    LOG_ERROR("No valid resync response.");
+    return false;
+}
+
+bool USBDewpoint::Handshake()
+{
+    PortFD = serialConnection->getPortFD();
+
+    int tries = 2;
+    do
+    {
+        if (Ack())
+        {
+            LOG_INFO("USB_Dewpoint is online. Getting device parameters...");
+            return true;
+        }
+        LOG_INFO("Error retreiving data from USB_Dewpoint, trying resync...");
+    } while (--tries > 0 && Resync());
+
+    LOG_INFO("Error retreiving data from USB_Dewpoint, please ensure controller "
+             "is powered and the port is correct.");
+    return false;
+}
+
+bool USBDewpoint::Ack()
+{
+    char resp[UDP_RES_LEN] = {};
+    tcflush(PortFD, TCIOFLUSH);
+
+    if (!sendCommand(UDP_IDENTIFY_CMD, resp))
+        return false;
 
     int firmware = -1;
 
@@ -235,6 +308,7 @@ bool USBDewpoint::Handshake()
 
     if (ok != 1)
     {
+        LOGF_ERROR("USB_Dewpoint not properly identified! Answer was: %s.", resp);
         return false;
     }
 
@@ -243,225 +317,64 @@ bool USBDewpoint::Handshake()
     return true;
 }
 
-const char *USBDewpoint::getDefaultName()
-{
-    return "USB_Dewpoint";
-}
-
 bool USBDewpoint::setOutput(unsigned int channel, unsigned int value)
 {
     char cmd[UDP_CMD_LEN + 1];
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[64];
+    char resp[UDP_RES_LEN];
 
-    sprintf(cmd, UDP_OUTPUT_CMD, channel, value);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("CMD: %s.", cmd);
-
-    if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setOutputs error: %s.", errstr);
-        return false;
-    }
-
-    if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setOutputs error: %s.", errstr);
-        return false;
-    }
-    resp[nbytes_read] = 0;
-    LOGF_DEBUG("Resp: %s.", resp);
-    return true;
+    snprintf(cmd, UDP_CMD_LEN + 1, UDP_OUTPUT_CMD, channel, value);
+    return sendCommand(cmd, resp);
 }
 
 bool USBDewpoint::setCalibrations(unsigned int ch1, unsigned int ch2, unsigned int ambient)
 {
     char cmd[UDP_CMD_LEN + 1];
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[64];
+    char resp[UDP_RES_LEN];
 
-    sprintf(cmd, UDP_CALIBRATION_CMD, ch1, ch2, ambient);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("CMD: %s.", cmd);
-
-    if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setCalibrations error: %s.", errstr);
-        return false;
-    }
-
-    if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setCalibrations error: %s.", errstr);
-        return false;
-    }
-    resp[nbytes_read] = 0;
-    LOGF_DEBUG("Resp: %s.", resp);
-    return true;
+    snprintf(cmd, UDP_CMD_LEN + 1, UDP_CALIBRATION_CMD, ch1, ch2, ambient);
+    return sendCommand(cmd, resp);
 }
 
 bool USBDewpoint::setThresholds(unsigned int ch1, unsigned int ch2)
 {
     char cmd[UDP_CMD_LEN + 1];
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[64];
+    char resp[UDP_RES_LEN];
 
-    sprintf(cmd, UDP_THRESHOLD_CMD, ch1, ch2);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("CMD: %s.", cmd);
-
-    if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setThresholds error: %s.", errstr);
-        return false;
-    }
-
-    if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setThresholds error: %s.", errstr);
-        return false;
-    }
-    resp[nbytes_read] = 0;
-    LOGF_DEBUG("Resp: %s.", resp);
-    return true;
+    snprintf(cmd, UDP_CMD_LEN + 1, UDP_THRESHOLD_CMD, ch1, ch2);
+    return sendCommand(cmd, resp);
 }
 
 bool USBDewpoint::setAggressivity(unsigned int aggressivity)
 {
     char cmd[UDP_CMD_LEN + 1];
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[64];
+    char resp[UDP_RES_LEN];
 
-    sprintf(cmd, UDP_AGGRESSIVITY_CMD, aggressivity);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("CMD: %s.", cmd);
-
-    if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setAggressivity error: %s.", errstr);
-        return false;
-    }
-
-    if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setAggressivity error: %s.", errstr);
-        return false;
-    }
-    resp[nbytes_read] = 0;
-    LOGF_DEBUG("Resp: %s.", resp);
-    return true;
+    snprintf(cmd, UDP_CMD_LEN + 1, UDP_AGGRESSIVITY_CMD, aggressivity);
+    return sendCommand(cmd, resp);
 }
 
 bool USBDewpoint::reset()
 {
-    char cmd[] = UDP_RESET_CMD;
-
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[64];
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("CMD: %s.", cmd);
-
-    if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("reset error: %s.", errstr);
-        return false;
-    }
-
-    if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("reset error: %s.", errstr);
-        return false;
-    }
-    resp[nbytes_read] = 0;
-    LOGF_DEBUG("Resp: %s.", resp);
-    return true;
+    char resp[UDP_RES_LEN];
+    return sendCommand(UDP_RESET_CMD, resp);
 }
 
 bool USBDewpoint::setAutoMode(bool enable)
 {
     char cmd[UDP_CMD_LEN + 1];
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[64];
+    char resp[UDP_RES_LEN];
 
-    sprintf(cmd, UDP_AUTO_CMD, enable ? 1 : 0);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("CMD: %s.", cmd);
-
-    if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setAutoMode error: %s.", errstr);
-        return false;
-    }
-
-    if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setAutoMode error: %s.", errstr);
-        return false;
-    }
-    resp[nbytes_read] = 0;
-    LOGF_DEBUG("Resp: %s.", resp);
-    return true;
+    snprintf(cmd, UDP_CMD_LEN + 1, UDP_AUTO_CMD, enable ? 1 : 0);
+    return sendCommand(cmd, resp);
 }
 
 bool USBDewpoint::setLinkMode(bool enable)
 {
     char cmd[UDP_CMD_LEN + 1];
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[64];
+    char resp[UDP_RES_LEN];
 
-    sprintf(cmd, UDP_LINK_CMD, enable ? 1 : 0);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("CMD: %s.", cmd);
-
-    if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setLinkMode error: %s.", errstr);
-        return false;
-    }
-
-    if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setLinkMode error: %s.", errstr);
-        return false;
-    }
-    resp[nbytes_read] = 0;
-    LOGF_DEBUG("Resp: %s.", resp);
-    return true;
+    snprintf(cmd, UDP_CMD_LEN + 1, UDP_LINK_CMD, enable ? 1 : 0);
+    return sendCommand(cmd, resp);
 }
 
 bool USBDewpoint::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -571,31 +484,10 @@ bool USBDewpoint::ISNewNumber(const char *dev, const char *name, double values[]
 
 bool USBDewpoint::readSettings()
 {
-    char cmd[] = UDP_STATUS_CMD;
+    char resp[UDP_RES_LEN];
 
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[64];
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    LOGF_DEBUG("CMD: %s.", cmd);
-
-    if ((rc = tty_write(PortFD, cmd, UDP_CMD_LEN, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("readSettings error: %s.", errstr);
+    if (!sendCommand(UDP_STATUS_CMD, resp))
         return false;
-    }
-
-    if ((rc = tty_read_section(PortFD, resp, '\n', USBDEWPOINT_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("readSettings error: %s.", errstr);
-        return false;
-    }
-    resp[63] = 0;
-    LOGF_DEBUG("Resp: %s.", resp);
 
     // Status response is like:
     // ##22.37/22.62/23.35/50.77/12.55/0/0/0/0/0/0/2/2/0/0/4**

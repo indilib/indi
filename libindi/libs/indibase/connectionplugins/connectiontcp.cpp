@@ -30,7 +30,7 @@ namespace Connection
 {
 extern const char *CONNECTION_TAB;
 
-TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
+TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_TCP)
 {
     // Address/Port
     IUFillText(&AddressT[0], "ADDRESS", "Address", "");
@@ -47,7 +47,7 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
 
 bool TCP::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (!strcmp(dev, device->getDeviceName()))
+    if (!strcmp(dev, m_Device->getDeviceName()))
     {
         // TCP Server settings
         if (!strcmp(name, AddressTP.name))
@@ -64,7 +64,7 @@ bool TCP::ISNewText(const char *dev, const char *name, char *texts[], char *name
 
 bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, device->getDeviceName()))
+    if (!strcmp(dev, m_Device->getDeviceName()))
     {
         if (!strcmp(name, TcpUdpSP.name))
         {
@@ -94,7 +94,7 @@ bool TCP::Connect()
 
     LOGF_INFO("Connecting to %s@%s ...", hostname, port);
 
-    if (device->isSimulation() == false)
+    if (m_Device->isSimulation() == false)
     {
         struct sockaddr_in serv_addr;
         struct hostent *hp = nullptr;
@@ -158,8 +158,8 @@ bool TCP::Connect()
     if (rc)
     {
         LOGF_INFO("%s is online.", getDeviceName());
-        device->saveConfig(true, "DEVICE_ADDRESS");
-        device->saveConfig(true, "CONNECTION_TYPE");
+        m_Device->saveConfig(true, "DEVICE_ADDRESS");
+        m_Device->saveConfig(true, "CONNECTION_TYPE");
     }
     else
         LOG_DEBUG("Handshake failed.");
@@ -180,16 +180,16 @@ bool TCP::Disconnect()
 
 void TCP::Activated()
 {
-    device->defineText(&AddressTP);
-    device->defineSwitch(&TcpUdpSP);
-    device->loadConfig(true, "DEVICE_ADDRESS");
-    device->loadConfig(true, "CONNECTION_TYPE");
+    m_Device->defineText(&AddressTP);
+    m_Device->defineSwitch(&TcpUdpSP);
+    m_Device->loadConfig(true, "DEVICE_ADDRESS");
+    m_Device->loadConfig(true, "CONNECTION_TYPE");
 }
 
 void TCP::Deactivated()
 {
-    device->deleteProperty(AddressTP.name);
-    device->deleteProperty(TcpUdpSP.name);
+    m_Device->deleteProperty(AddressTP.name);
+    m_Device->deleteProperty(TcpUdpSP.name);
 }
 
 bool TCP::saveConfigItems(FILE *fp)

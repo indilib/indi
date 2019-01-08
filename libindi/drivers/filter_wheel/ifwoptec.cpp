@@ -20,6 +20,7 @@
 
 #include "indicom.h"
 #include "indicontroller.h"
+//#include "connectionplugins/connectioninterface.h"
 #include "connectionplugins/connectionserial.h"
 
 #include <memory>
@@ -114,7 +115,8 @@ FilterIFW::FilterIFW()
     strncpy(filterSim, filterSim5, sizeof(filterSim)); // For simulation mode
 
     // Set communication to serail only and avoid driver crash at starting up
-    setFilterConnection(CONNECTION_SERIAL);
+   // setFilterConnection(CONNECTION_SERIAL);
+    setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 
     // We add an additional debug level so we can log verbose member function starting
     // DBG_TAG is used by macro DEBUGTAG() define in ifwoptec.h
@@ -166,9 +168,9 @@ bool FilterIFW::initProperties()
     IUFillText(&FirmwareT[0], "FIRMWARE", "Firmware", "Unknown");
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_ID", "IFW", FILTER_TAB, IP_RO, 60, IPS_IDLE);
 
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
     addAuxControls();
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
     return true;
 }
@@ -178,7 +180,8 @@ bool FilterIFW::initProperties()
 ************************************************************************************/
 bool FilterIFW::updateProperties()
 {
-    if (isConnected())
+   INDI::FilterWheel::updateProperties();
+	 if (isConnected())
     {
         defineSwitch(&HomeSP);
         defineText(&FirmwareTP);
@@ -255,7 +258,7 @@ bool FilterIFW::ReadTTY(char *resp, char *simulation, int timeout)
         if ((errcode = tty_read_section(PortFD, response, 0xd, timeout, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            LOGF_ERROR("%s() TTY error: %s", __FUNCTION__, "errmsg");
+            LOGF_ERROR("%s() TTY error: %s", __FUNCTION__, errmsg);
             return false;
         }
     }
@@ -269,7 +272,7 @@ bool FilterIFW::ReadTTY(char *resp, char *simulation, int timeout)
 
     response[nbytes_read - 2] = '\0'; //Remove control char from string (\n\r)
     LOGF_DEBUG("RES (%s)", response);
-    strncpy(resp, response, sizeof(response));
+    strncpy(resp, response, /* sizeof(response)*/ OPTEC_MAXLEN_RESP +1);
     return true;
 }
 
@@ -280,7 +283,6 @@ bool FilterIFW::Handshake()
 {
     char response[OPTEC_MAXLEN_RESP + 1];
     memset(response, 0, sizeof(response));
-
     if (!WriteTTY((char *)"WSMODE"))
     {
         LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
@@ -376,7 +378,7 @@ bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char
                 FilterNameTP->s = IPS_ALERT;
                 IDSetText(FilterNameTP, nullptr);
                 LOG_INFO("WARNING *****************************************************");
-                DEBUG(INDI::Logger::DBG_SESSION,
+                LOG_INFO(
                       "One of the filter name is not valid. It should not have more than 8 chars");
                 LOG_INFO("Valid chars are A to Z, 0 to 9 = . # / - percent or space");
                 LOG_INFO("WARNING *****************************************************");

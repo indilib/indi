@@ -121,8 +121,8 @@
 #define CHUNK_SIZE (4 * 1024 * 1024)
 //#warning "ARM mode, 4MB CHUNK_SIZE"
 #else
-#define CHUNK_SIZE (10*1024*1024)
-//#warning "Intel mode, 10MB CHUNK_SIZE"
+#define CHUNK_SIZE (16*1024*1024)
+//#warning "Intel mode, 16MB CHUNK_SIZE"
 #endif
 
 #if 1

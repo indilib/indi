@@ -125,7 +125,7 @@ void IDDelete(const char *dev, const char *name, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        printf("%s'\n", escapeXML(message, MAXINDIMESSAGE));
+        printf("%s'\n", entityXML(message));
         va_end(ap);
     }
     printf("/>\n");
@@ -939,22 +939,18 @@ int dispatch(XMLEle *root, char msg[])
                 case INDI_NUMBER:
                     IDSetNumber((INumberVectorProperty *)(prop->ptr), NULL);
                     return 0;
-                    break;
 
                 case INDI_SWITCH:
                     IDSetSwitch((ISwitchVectorProperty *)(prop->ptr), NULL);
                     return 0;
-                    break;
 
                 case INDI_TEXT:
                     IDSetText((ITextVectorProperty *)(prop->ptr), NULL);
                     return 0;
-                    break;
 
                 case INDI_BLOB:
                     IDSetBLOB((IBLOBVectorProperty *)(prop->ptr), NULL);
                     return 0;
-                    break;
                 default:
                     return 0;
             }
@@ -1235,13 +1231,14 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
     if (fp == NULL)
         return -1;
 
-    fproot = readXMLFile(fp, lp, errmsg);
+    char whynot[MAXRBUF];
+    fproot = readXMLFile(fp, lp, whynot);
 
     delLilXML(lp);
 
     if (fproot == NULL)
     {
-        snprintf(errmsg, MAXRBUF, "Unable to parse config XML: %s", errmsg);
+        snprintf(errmsg, MAXRBUF, "Unable to parse config XML: %s", whynot);
         fclose(fp);
         return -1;
     }
@@ -1271,7 +1268,7 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
         IDMessage(dev, "[INFO] Device configuration applied.");
 
     fclose(fp);
-    delXMLEle(fproot);    
+    delXMLEle(fproot);
 
     return (0);
 }
@@ -1375,10 +1372,68 @@ int IUGetConfigNumber(const char *dev, const char *property, const char *member,
     return (valueFound == 1 ? 0 : -1);
 }
 
+int IUGetConfigText(const char *dev, const char *property, const char *member, char *value, int len)
+{
+    char *rname, *rdev;
+    XMLEle *root = NULL, *fproot = NULL;
+    char errmsg[MAXRBUF];
+    LilXML *lp = newLilXML();
+    int valueFound=0;
+
+    FILE *fp = IUGetConfigFP(NULL, dev, "r", errmsg);
+
+    if (fp == NULL)
+        return -1;
+
+    fproot = readXMLFile(fp, lp, errmsg);
+
+    if (fproot == NULL)
+    {
+        fclose(fp);
+        return -1;
+    }
+
+    for (root = nextXMLEle(fproot, 1); root != NULL; root = nextXMLEle(fproot, 0))
+    {
+        /* pull out device and name */
+        if (crackDN(root, &rdev, &rname, errmsg) < 0)
+        {
+            fclose(fp);
+            delXMLEle(fproot);
+            return -1;
+        }
+
+        // It doesn't belong to our device??
+        if (strcmp(dev, rdev))
+            continue;
+
+        if ((property && !strcmp(property, rname)) || property == NULL)
+        {
+            XMLEle *oneText = NULL;
+            for (oneText = nextXMLEle(root, 1); oneText != NULL; oneText = nextXMLEle(root, 0))
+            {
+                if (!strcmp(member, findXMLAttValu(oneText, "name")))
+                {
+                    strncpy(value, pcdataXMLEle(oneText), len);
+                    valueFound = 1;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    fclose(fp);
+    delXMLEle(fproot);
+    delLilXML(lp);
+
+    return (valueFound == 1 ? 0 : -1);
+}
+
 /* send client a message for a specific device or at large if !dev */
 void IDMessage(const char *dev, const char *fmt, ...)
 {
-    pthread_mutex_lock(&stdout_mutex);    
+    pthread_mutex_lock(&stdout_mutex);
 
     xmlv1();
     printf("<message\n");
@@ -1897,9 +1952,7 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
+        printf("%s'\n", entityXML(message));
         va_end(ap);
     }
     printf(">\n");
@@ -1908,7 +1961,7 @@ void IDSetText(const ITextVectorProperty *tvp, const char *fmt, ...)
     {
         IText *tp = &tvp->tp[i];
         printf("  <oneText name='%s'>\n", tp->name);
-        printf("      %s\n", tp->text ? tp->text : "");
+        printf("      %s\n", tp->text ? entityXML(tp->text) : "");
         printf("  </oneText>\n");
     }
 
@@ -1941,9 +1994,7 @@ void IDSetNumber(const INumberVectorProperty *nvp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
+        printf("%s'\n", entityXML(message));
         va_end(ap);
     }
     printf(">\n");
@@ -1985,9 +2036,7 @@ void IDSetSwitch(const ISwitchVectorProperty *svp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
+        printf("%s'\n", entityXML(message));
         va_end(ap);
     }
     printf(">\n");
@@ -2027,9 +2076,7 @@ void IDSetLight(const ILightVectorProperty *lvp, const char *fmt, ...)
         char message[MAXINDIMESSAGE];
         printf("  message='");
         vsnprintf(message, MAXINDIMESSAGE, fmt, ap);
-        char *escapedMessage = escapeXML(message, MAXINDIMESSAGE);
-        printf("%s'\n", escapedMessage);
-        free(escapedMessage);
+        printf("%s'\n", entityXML(message));
         va_end(ap);
     }
     printf(">\n");

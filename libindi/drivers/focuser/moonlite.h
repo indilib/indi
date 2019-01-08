@@ -26,26 +26,30 @@ class MoonLite : public INDI::Focuser
 {
   public:
     MoonLite();
-    virtual ~MoonLite() = default;
+    virtual ~MoonLite() override = default;
 
     typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
 
-    virtual bool Handshake();
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool SetFocuserSpeed(int speed);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
+    const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+
+protected:
+    virtual bool Handshake() override;
+    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual bool SetFocuserSpeed(int speed) override;
+    virtual bool AbortFocuser() override;
+    virtual void TimerHit() override;
+    virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool SyncFocuser(uint32_t ticks) override;
 
   private:
     void GetFocusParams();
-    bool sync(uint16_t offset);
+    //bool sync(uint16_t offset);
     bool updateStepMode();
     bool updateTemperature();
     bool updatePosition();
@@ -75,8 +79,8 @@ class MoonLite : public INDI::Focuser
     ISwitch StepModeS[2];
     ISwitchVectorProperty StepModeSP;
 
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+//    INumber MaxTravelN[1];
+//    INumberVectorProperty MaxTravelNP;
 
     INumber TemperatureSettingN[2];
     INumberVectorProperty TemperatureSettingNP;
@@ -84,6 +88,6 @@ class MoonLite : public INDI::Focuser
     ISwitch TemperatureCompensateS[2];
     ISwitchVectorProperty TemperatureCompensateSP;
 
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
+//    INumber SyncN[1];
+//    INumberVectorProperty SyncNP;
 };

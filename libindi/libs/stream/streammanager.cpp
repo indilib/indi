@@ -30,7 +30,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 
-const char *STREAM_TAB = "Streaming";
+static const char *STREAM_TAB = "Streaming";
 
 namespace INDI
 {
@@ -111,7 +111,8 @@ bool StreamManager::initProperties()
 
     /* Record Frames */
     /* File */
-    IUFillText(&RecordFileT[0], "RECORD_FILE_DIR", "Dir.", "/tmp/indi__D_");
+    std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/indi__D_");
+    IUFillText(&RecordFileT[0], "RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
     IUFillText(&RecordFileT[1], "RECORD_FILE_NAME", "Name", "indi_record__T_");
     IUFillTextVector(&RecordFileTP, RecordFileT, NARRAY(RecordFileT), getDeviceName(), "RECORD_FILE", "Record File",
                      STREAM_TAB, IP_RW, 0, IPS_IDLE);
@@ -893,7 +894,7 @@ bool StreamManager::setStream(bool enable)
             else
                 LOGF_INFO("Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
 #endif
-            LOGF_INFO("Starting the video stream with target exposure %.f s (FPS %.f)", StreamExposureN[0].value, 1/StreamExposureN[0].value);
+            LOGF_INFO("Starting the video stream with target exposure %.4f s (FPS %.f)", StreamExposureN[0].value, 1/StreamExposureN[0].value);
 
             streamframeCount = 0;
 
@@ -1038,8 +1039,7 @@ bool StreamManager::uploadStream(const uint8_t *buffer, uint32_t nbytes)
         for (int i = 0; i < StreamFrameN[CCDChip::FRAME_H].value; i++)
             memcpy(destBuffer + i * desStride, srcBuffer + sourceStride * i, desStride);
 
-        //encoder->setSize(StreamFrameN[CCDChip::FRAME_W].value, StreamFrameN[CCDChip::FRAME_H].value);
-        nbytes = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value;
+        nbytes = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * components;
 
         if (encoder->upload(imageB, downscaleBuffer, nbytes, currentCCD->PrimaryCCD.isCompressed()))
         {

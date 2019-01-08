@@ -13,7 +13,7 @@ find_package(ZLIB REQUIRED)
 find_package(GSL REQUIRED)
 
 set(EQMOD_VERSION_MAJOR 0)
-set(EQMOD_VERSION_MINOR 5)
+set(EQMOD_VERSION_MINOR 6)
 
 if (CYGWIN)
 add_definitions(-U__STRICT_ANSI__)
@@ -90,3 +90,20 @@ endif(WITH_ALIGN_GEEHALEL)
 if(WITH_SCOPE_LIMITS)
   install( FILES  scope-limits/indi_eqmod_scope_limits_sk.xml DESTINATION ${INDI_DATA_DIR})
 endif(WITH_SCOPE_LIMITS)
+
+###################################################################################################
+#########################################  Tests  #################################################
+###################################################################################################
+
+find_package (GTest)
+find_package (GMock)
+IF (GTEST_FOUND)
+  IF (INDI_BUILD_UNITTESTS)
+    MESSAGE (STATUS  "Building unit tests")
+    ADD_SUBDIRECTORY(test)
+  ELSE (INDI_BUILD_UNITTESTS)
+    MESSAGE (STATUS  "Not building unit tests")
+  ENDIF (INDI_BUILD_UNITTESTS)
+ELSE()
+  MESSAGE (STATUS  "GTEST not found, not building unit tests")
+ENDIF (GTEST_FOUND)

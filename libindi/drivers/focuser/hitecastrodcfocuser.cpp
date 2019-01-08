@@ -74,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 HitecAstroDCFocuser::HitecAstroDCFocuser() : _handle(nullptr)
 {
     FI::SetCapability(FOCUSER_CAN_REL_MOVE); // | FOCUSER_HAS_VARIABLE_SPEED);
-    setConnection(CONNECTION_NONE);
+    setSupportedConnections(CONNECTION_NONE);
 }
 
 HitecAstroDCFocuser::~HitecAstroDCFocuser()
@@ -110,7 +110,7 @@ bool HitecAstroDCFocuser::Connect()
 
     if (_handle != nullptr)
     {
-        DEBUG(INDI::Logger::DBG_SESSION,
+        LOG_INFO(
               "Experimental driver. Report issues to https://github.com/A-j-K/hitecastrodcfocuser/issues");
         SetTimer(POLLMS);
         return true;

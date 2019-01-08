@@ -40,19 +40,18 @@
 #define LYNXFOCUS_TEMPERATURE_FREQ     20      /* Update every 20 POLLMS cycles. For POLLMS 500ms = 10 seconds freq */
 #define LYNXFOCUS_POSITION_THRESHOLD    5      /* Only send position updates to client if the diff exceeds 5 steps */
 
-#define FOCUS_SETTINGS_TAB  "Settings"
-#define FOCUS_STATUS_TAB    "Status"
-#define HUB_SETTINGS_TAB    "Device"
+#define FOCUS_SETTINGS_TAB "Settings"
+#define FOCUS_STATUS_TAB   "Status"
+#define HUB_SETTINGS_TAB "Device"
 
 #define VERSION                 1
-#define SUBVERSION              3
+#define SUBVERSION              42
 
 class FocusLynxBase : public INDI::Focuser
 {
   public:
     FocusLynxBase();
     FocusLynxBase(const char *target);
-    ~FocusLynxBase();
 
     enum
     {
@@ -86,6 +85,7 @@ class FocusLynxBase : public INDI::Focuser
     virtual void ISGetProperties(const char *dev) override;
     virtual bool updateProperties() override;
     virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool loadConfig(bool silent, const char *property) override;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -100,6 +100,8 @@ class FocusLynxBase : public INDI::Focuser
 
     void setFocusTarget(const char *target);
     const char *getFocusTarget();
+    bool checkIfAbsoluteFocuser();
+    bool SyncMandatory(bool enable);
     virtual void debugTriggered(bool enable) override;
 
     // Device
@@ -111,6 +113,10 @@ class FocusLynxBase : public INDI::Focuser
     bool isResponseOK();
 
   protected:
+    virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+    virtual bool ReverseFocuser(bool enabled) override;
+    virtual bool SyncFocuser(uint32_t ticks) override;
+
     // Move from private to public to validate
     bool configurationComplete;
 
@@ -125,10 +131,9 @@ class FocusLynxBase : public INDI::Focuser
     // Store version of the firmware from the HUB
     char version[16];
 
-  private:  
+  private:
     uint32_t simPosition;
     uint32_t targetPosition;
-    uint32_t maxControllerTicks;
 
     ISState simStatus[8];
     bool simCompensationOn;
@@ -142,30 +147,29 @@ class FocusLynxBase : public INDI::Focuser
     // Get functions
     bool getFocusConfig();
     bool getFocusStatus();
+    bool getFocusTemp();
 
     // Set functions
 
     // Position
-    bool setFocusPosition(u_int16_t position);
+    //bool setMaxTravel(u_int16_t travel);
+    bool setStepSize(u_int16_t stepsize);
 
     // Temperature
     bool setTemperatureCompensation(bool enable);
     bool setTemperatureCompensationMode(char mode);
     bool setTemperatureCompensationCoeff(char mode, int16_t coeff);
+    bool setTemperatureInceptions(char mode, int32_t inter);
     bool setTemperatureCompensationOnStart(bool enable);
 
     // Backlash
     bool setBacklashCompensation(bool enable);
     bool setBacklashCompensationSteps(uint16_t steps);
 
-    // Sync
-    bool sync(uint32_t position);
-
     // Motion functions
     bool stop();
     bool home();
     bool center();
-    bool reverse(bool enable);
 
     // Led level
     bool setLedLevel(int level);
@@ -191,13 +195,13 @@ class FocusLynxBase : public INDI::Focuser
     ISwitch TemperatureCompensateOnStartS[2];
     ISwitchVectorProperty TemperatureCompensateOnStartSP;
 
-    // Temperature Coefficient
-    INumber TemperatureCoeffN[5];
-    INumberVectorProperty TemperatureCoeffNP;
-
     // Temperature Coefficient Mode
     ISwitch TemperatureCompensateModeS[5];
     ISwitchVectorProperty TemperatureCompensateModeSP;
+
+    // Temperature coefficient and Intercept for selected mode
+    INumber TemperatureParamN[2];
+    INumberVectorProperty TemperatureParamNP;
 
     // Enable/Disable backlash
     ISwitch BacklashCompensationS[2];
@@ -212,8 +216,8 @@ class FocusLynxBase : public INDI::Focuser
     ISwitchVectorProperty ResetSP;
 
     // Reverse Direction
-    ISwitch ReverseS[2];
-    ISwitchVectorProperty ReverseSP;
+//    ISwitch ReverseS[2];
+//    ISwitchVectorProperty ReverseSP;
 
     // Go to home/center
     ISwitch GotoS[2];
@@ -228,14 +232,24 @@ class FocusLynxBase : public INDI::Focuser
     INumberVectorProperty SyncNP;
 
     // Max Travel for relative focusers
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+//    INumber MaxTravelN[1];
+//    INumberVectorProperty MaxTravelNP;
+
+    // Focuser Step Size
+    INumber StepSizeN[1];
+    INumberVectorProperty StepSizeNP;
 
     // Focus name configure in the HUB
     IText HFocusNameT[1] {};
     ITextVectorProperty HFocusNameTP;
 
+    // Request mandatory action of sync from user
+    ISwitch SyncMandatoryS[2];
+    ISwitchVectorProperty SyncMandatorySP;
+
     bool isAbsolute;
     bool isSynced;
     bool isHoming;
+
+    static const uint8_t LYNX_MAX { 64 };
 };

@@ -29,12 +29,8 @@
 #define FOCUSNAMEF1 "FocusLynx F1"
 #define FOCUSNAMEF2 "FocusLynx F2"
 
-#define FOCUSLYNX_TIMEOUT 2
-
-#define HUB_SETTINGS_TAB "Device"
-
-std::unique_ptr<FocusLynxF1> lynxDriveF1(new FocusLynxF1("F1"));
-std::unique_ptr<FocusLynxF2> lynxDriveF2(new FocusLynxF2("F2"));
+static std::unique_ptr<FocusLynxF1> lynxDriveF1(new FocusLynxF1("F1"));
+static std::unique_ptr<FocusLynxF2> lynxDriveF2(new FocusLynxF2("F2"));
 
 void ISGetProperties(const char *dev)
 {
@@ -53,7 +49,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    // Only call the corrected Focuser to execute evaluate the newText
+    // Only call the corrected Focuser to execute evaluate the new Text
     if (!strcmp(dev, lynxDriveF1->getDeviceName()))
         lynxDriveF1->ISNewText(dev, name, texts, names, n);
     else if (!strcmp(dev, lynxDriveF2->getDeviceName()))
@@ -106,12 +102,10 @@ FocusLynxF1::FocusLynxF1(const char *target)
     setFocusTarget(target);
 
     // Both communication available, Serial and network (tcp/ip)
-    setConnection(CONNECTION_SERIAL | CONNECTION_TCP);
+    setSupportedConnections(CONNECTION_SERIAL | CONNECTION_TCP);
 
     // explain in connect() function Only set on the F1 constructor, not on the F2 one
     PortFD = -1;
-
-    DBG_FOCUS = INDI::Logger::getInstance().addDebugLevel("Focus F1 Verbose", "FOCUS F1");
 }
 
 /************************************************************************************
@@ -148,7 +142,7 @@ bool FocusLynxF1::initProperties()
     IUFillText(&WifiT[0], "Installed", "", "");
     IUFillText(&WifiT[1], "Connected", "", "");
     IUFillText(&WifiT[2], "Firmware", "", "");
-    IUFillText(&WifiT[3], "FV OK", "", "");
+    IUFillText(&WifiT[3], "Firm. Version OK", "", "");
     IUFillText(&WifiT[4], "SSID", "", "");
     IUFillText(&WifiT[5], "Ip address", "", "");
     IUFillText(&WifiT[6], "Security mode", "", "");
@@ -160,8 +154,7 @@ bool FocusLynxF1::initProperties()
     tcpConnection->setDefaultPort(9760);
     // To avoid confusion has Debug levels only visible on F2 remove it from F1
     // Simultation option and Debug option present only on F2
-    deleteProperty("SIMULATION");
-    deleteProperty("DEBUG");
+    // deleteProperty("DEBUG");
     return true;
 }
 
@@ -185,16 +178,18 @@ bool FocusLynxF1::Connect()
 {
     configurationComplete = false;
     if (isSimulation())
+    {
         /* PortFD value used to give the /dev/ttyUSBx or TCP descriptor
          * if -1 = no physical port selected or simulation mode
          * if 0 = no descriptor created, F1 not connected (error)
          * other value = descriptor number
          */
         PortFD = -1;
+        SetTimer(POLLMS);
+    }
     else
         if (!INDI::Focuser::Connect())
             return false;
-
     return Handshake();
 }
 
@@ -317,7 +312,7 @@ bool FocusLynxF1::getHubConfig()
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ( (errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
@@ -772,10 +767,21 @@ bool FocusLynxF1::getHubConfig()
 /************************************************************************************
  *
 * ***********************************************************************************/
-void FocusLynxF1::setSimulation(bool enable)
+void FocusLynxF1::simulationTriggered(bool enable)
 {
-    // call by F2 to set the Simulation option
-    INDI::DefaultDevice::setSimulation(enable);
+    INDI::Focuser::simulationTriggered(enable);
+    // Set the simultation mode on F1 as selected by the user
+    lynxDriveF2->setSimulation(enable);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+void FocusLynxF1::debugTriggered(bool enable)
+{
+    INDI::Focuser::debugTriggered(enable);
+    // Set the Debug mode on F2 as selected by the user in EKOS
+    lynxDriveF2->setDebug(enable);
 }
 
 /************************************************************************************
@@ -784,8 +790,10 @@ void FocusLynxF1::setSimulation(bool enable)
 void FocusLynxF1::setDebug(bool enable)
 {
     // Call by F2 to set the Debug option
-    INDI::DefaultDevice::setDebug(enable);
+//    INDI::DefaultDevice::setDebug(enable);
+    INDI_UNUSED(enable);
 }
+
 /************************************************************************************
 *
 *               Second Focuser (F2)
@@ -800,9 +808,7 @@ FocusLynxF2::FocusLynxF2(const char *target)
     setFocusTarget(target);
 
     // The second focuser has no direct communication with the hub
-    setConnection(CONNECTION_NONE);
-
-    DBG_FOCUS = INDI::Logger::getInstance().addDebugLevel("Focus F2 Verbose", "FOCUS F2");
+    setSupportedConnections(CONNECTION_NONE);
 }
 /************************************************************************************
  *
@@ -819,6 +825,8 @@ bool FocusLynxF2::initProperties()
     FocusLynxBase::initProperties();
     // Remove from F2 to avoid confusion, already present on F1
     deleteProperty("DRIVER_INFO");
+    deleteProperty("SIMULATION");
+    // deleteProperty("POLLING_PERIOD");
     return true;
 }
 
@@ -854,18 +862,15 @@ bool FocusLynxF2::Connect()
     PortFD = lynxDriveF1->getPortFD(); //Get the socket descriptor open by focuser F1 connect()
     LOGF_INFO("F2 PortFD : %d", PortFD);
 
-    int modelIndex = IUFindOnSwitchIndex(&ModelSP);
-
     if (ack())
     {
         LOG_INFO("FocusLynx is online. Getting focus parameters...");
-        setDeviceType(modelIndex);
+        // as DefaultDevice::Connect() is not involved, initiate the timer.
         SetTimer(POLLMS);
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION,
-          "Error retreiving data from FocusLynx, please ensure FocusLynx controller is powered and the port is correct.");
+    LOG_INFO("Error retreiving data from FocusLynx, please ensure FocusLynx controller is powered and the port is correct.");
     return false;
 }
 
@@ -876,7 +881,7 @@ bool FocusLynxF2::Disconnect()
 {
     // If we disconnect F2, No socket to close, set local PortFD to -1
     PortFD = -1;
-    DEBUGF(INDI::Logger::DBG_SESSION,"%s is offline.", getDeviceName());
+    LOGF_INFO("%s is offline.", getDeviceName());
     LOGF_INFO("Value of F2 PortFD = %d", PortFD);
     return true;
 }
@@ -894,7 +899,7 @@ bool FocusLynxF2::RemoteDisconnect()
 
   // When called by F1, the PortFD should be -1; For debbug purpose
   PortFD = lynxDriveF1->getPortFD();
-  DEBUGF(INDI::Logger::DBG_SESSION,"Remote disconnection: %s is offline.", getDeviceName());
+  LOGF_INFO("Remote disconnection: %s is offline.", getDeviceName());
   LOGF_INFO("Value of F2 PortFD = %d", PortFD);
   return true;
 }
@@ -902,11 +907,10 @@ bool FocusLynxF2::RemoteDisconnect()
 /************************************************************************************
  *
 * ***********************************************************************************/
-void FocusLynxF2::simulationTriggered(bool enable)
+void FocusLynxF2::setSimulation(bool enable)
 {
-    INDI::Focuser::simulationTriggered(enable);
-    // Set the simultation mode on F1 as selected by the user
-    lynxDriveF1->setSimulation(enable);
+    // call by F2 to set the Simulation option
+    INDI::DefaultDevice::setSimulation(enable);
 }
 
 /************************************************************************************
@@ -916,5 +920,14 @@ void FocusLynxF2::debugTriggered(bool enable)
 {
     INDI::Focuser::debugTriggered(enable);
     // Set the Debug mode on F1 as selected by the user
-    lynxDriveF1->setDebug(enable);
+    //lynxDriveF1->setDebug(enable);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+void FocusLynxF2::setDebug(bool enable)
+{
+    // Call by F1 to set the Debug option via EKOS
+    INDI::DefaultDevice::setDebug(enable);
 }

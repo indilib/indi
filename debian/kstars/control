@@ -11,6 +11,7 @@ Build-Depends: cmake,
                qtdeclarative5-dev,
                qtmultimedia5-dev,
                qtpositioning5-dev,
+               libqt5websockets5-dev,
                libqt5svg5-dev,
                libqt5sql5-sqlite,
                kdoctools-dev,
@@ -32,7 +33,8 @@ Build-Depends: cmake,
                wcslib-dev,
                libraw-dev,
                libgsl-dev,
-               phonon4qt5-backend-vlc
+               phonon4qt5-backend-vlc,
+               qt5keychain-dev
 Standards-Version: 3.9.3
 Homepage: http://edu.kde.org/
 
@@ -41,7 +43,8 @@ Architecture: any
 Section: science
 conflicts: kstars
 replaces: kstars
-Depends: ${shlibs:Depends}, ${misc:Depends}, kstars-bleeding-data (>= ${source:Version}), kstars-bleeding-dbg (= ${binary:Version}), kded5, kinit, libindi1, indi-bin, breeze-icon-theme, oxygen-icon-theme, qml-module-qtquick-controls
+recommends: oxygen-icon-theme
+Depends: ${shlibs:Depends}, ${misc:Depends}, kstars-bleeding-data (>= ${source:Version}), kstars-bleeding-dbg (= ${binary:Version}), kded5, kinit, libindi1, indi-bin, breeze-icon-theme, qml-module-qtquick-controls
 Description: desktop planetarium for KDE
  KStars is a desktop planetarium for KDE, depicting an accurate graphical
  simulation of the night sky, from any location on Earth, at any date and time.

@@ -98,10 +98,11 @@ bool Telescope::initProperties()
     IUFillNumberVector(&TargetNP, TargetN, 2, getDeviceName(), "TARGET_EOD_COORD", "Slew Target", MOTION_TAB, IP_RO, 60,
                        IPS_IDLE);
 
-    IUFillSwitch(&ParkOptionS[0], "PARK_CURRENT", "Current", ISS_OFF);
-    IUFillSwitch(&ParkOptionS[1], "PARK_DEFAULT", "Default", ISS_OFF);
-    IUFillSwitch(&ParkOptionS[2], "PARK_WRITE_DATA", "Write Data", ISS_OFF);
-    IUFillSwitchVector(&ParkOptionSP, ParkOptionS, 3, getDeviceName(), "TELESCOPE_PARK_OPTION", "Park Options",
+    IUFillSwitch(&ParkOptionS[PARK_CURRENT], "PARK_CURRENT", "Current", ISS_OFF);
+    IUFillSwitch(&ParkOptionS[PARK_DEFAULT], "PARK_DEFAULT", "Default", ISS_OFF);
+    IUFillSwitch(&ParkOptionS[PARK_WRITE_DATA], "PARK_WRITE_DATA", "Write Data", ISS_OFF);
+    IUFillSwitch(&ParkOptionS[PARK_PURGE_DATA], "PARK_PURGE_DATA", "Purge Data", ISS_OFF);
+    IUFillSwitchVector(&ParkOptionSP, ParkOptionS, 4, getDeviceName(), "TELESCOPE_PARK_OPTION", "Park Options",
                        SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillText(&TimeT[0], "UTC", "UTC Time", nullptr);
@@ -545,7 +546,7 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
                         IsLocked = false;
                 }
                 if (prevState != IsLocked && (DomeClosedLockT[1].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON))
-                    DEBUGF(Logger::DBG_SESSION, "Dome status changed. Lock is set to: %s",
+                    LOGF_INFO("Dome status changed. Lock is set to: %s",
                            IsLocked ? "locked" : "unlock");
             }
             return true;
@@ -557,7 +558,7 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
 
 void Telescope::triggerSnoop(const char *driverName, const char *snoopedProp)
 {
-    DEBUGF(Logger::DBG_DEBUG, "Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
+    LOGF_DEBUG("Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
     IDSnoopDevice(driverName, snoopedProp);
 }
 
@@ -1330,8 +1331,8 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         if (!strcmp(name, ParkOptionSP.name))
         {
             IUUpdateSwitch(&ParkOptionSP, states, names, n);
-            ISwitch *sp = IUFindOnSwitch(&ParkOptionSP);
-            if (!sp)
+            int index = IUFindOnSwitchIndex(&ParkOptionSP);
+            if (index == -1)
                 return false;
 
             IUResetSwitch(&ParkOptionSP);
@@ -1347,21 +1348,28 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 return false;
             }
 
-            if (!strcmp(sp->name, "PARK_CURRENT"))
+            switch (index)
             {
+            case PARK_CURRENT:
                 rc = SetCurrentPark();
-            }
-            else if (!strcmp(sp->name, "PARK_DEFAULT"))
-            {
+                break;
+            case PARK_DEFAULT:
                 rc = SetDefaultPark();
-            }
-            else if (!strcmp(sp->name, "PARK_WRITE_DATA"))
-            {
+                break;
+            case PARK_WRITE_DATA:
                 rc = WriteParkData();
                 if (rc)
                     DEBUG(Logger::DBG_SESSION, "Saved Park Status/Position.");
                 else
                     DEBUG(Logger::DBG_WARNING, "Can not save Park Status/Position.");
+                break;
+            case PARK_PURGE_DATA:
+                rc = PurgeParkData();
+                if (rc)
+                    DEBUG(Logger::DBG_SESSION, "Park data purged.");
+                else
+                    DEBUG(Logger::DBG_WARNING, "Can not purge Park Status/Position.");
+                break;
             }
 
             ParkOptionSP.s = rc ? IPS_OK : IPS_ALERT;
@@ -1611,6 +1619,12 @@ bool Telescope::processLocationInfo(double latitude, double longitude, double el
     {
         LocationNP.s = IPS_OK;
         IDSetNumber(&LocationNP, nullptr);
+    } else if (latitude == 0 && longitude == 0)
+    {
+        LOG_DEBUG("Silently ignoring invalid latitude and longitude.");
+        LocationNP.s = IPS_IDLE;
+        IDSetNumber(&LocationNP, nullptr);
+        return false;
     }
 
     if (updateLocation(latitude, longitude, elevation))
@@ -1684,7 +1698,7 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
     {
         free(SlewRateS);
         SlewRateS = (ISwitch *)malloc(sizeof(ISwitch) * nSlewRate);
-        int step  = nSlewRate / 4;
+        //int step  = nSlewRate / 4;
         for (int i = 0; i < nSlewRate; i++)
         {
             char name[4];
@@ -1692,10 +1706,19 @@ void Telescope::SetTelescopeCapability(uint32_t cap, uint8_t slewRateCount)
             IUFillSwitch(SlewRateS + i, name, name, ISS_OFF);
         }
 
-        strncpy((SlewRateS + (step * 0))->name, "SLEW_GUIDE", MAXINDINAME);
-        strncpy((SlewRateS + (step * 1))->name, "SLEW_CENTERING", MAXINDINAME);
-        strncpy((SlewRateS + (step * 2))->name, "SLEW_FIND", MAXINDINAME);
-        strncpy((SlewRateS + (nSlewRate - 1))->name, "SLEW_MAX", MAXINDINAME);
+//        strncpy((SlewRateS + (step * 0))->name, "SLEW_GUIDE", MAXINDINAME);
+//        strncpy((SlewRateS + (step * 1))->name, "SLEW_CENTERING", MAXINDINAME);
+//        strncpy((SlewRateS + (step * 2))->name, "SLEW_FIND", MAXINDINAME);
+//        strncpy((SlewRateS + (nSlewRate - 1))->name, "SLEW_MAX", MAXINDINAME);
+
+        // If number of slew rate is EXACTLY 4, then let's use common labels
+        if (nSlewRate == 4)
+        {
+            strncpy((SlewRateS + (0))->label, "Guide", MAXINDILABEL);
+            strncpy((SlewRateS + (1))->label, "Centering", MAXINDILABEL);
+            strncpy((SlewRateS + (2))->label, "Find", MAXINDILABEL);
+            strncpy((SlewRateS + (3))->label, "Max", MAXINDILABEL);
+        }
 
         // By Default we set current Slew Rate to 0.5 of max
         (SlewRateS + (nSlewRate / 2))->s = ISS_ON;
@@ -1747,7 +1770,7 @@ void Telescope::SetParkDataType(TelescopeParkData type)
     }
 }
 
-void Telescope::SetParked(bool isparked)
+void Telescope::SyncParkStatus(bool isparked)
 {
     IsParked = isparked;
     IUResetSwitch(&ParkSP);
@@ -1768,6 +1791,11 @@ void Telescope::SetParked(bool isparked)
     }
 
     IDSetSwitch(&ParkSP, nullptr);
+}
+
+void Telescope::SetParked(bool isparked)
+{
+    SyncParkStatus(isparked);
 
     if (parkDataType != PARK_NONE)
         WriteParkData();
@@ -1780,18 +1808,17 @@ bool Telescope::isParked()
 
 bool Telescope::InitPark()
 {
-    char *loadres;
-    loadres = LoadParkData();
+    const char *loadres = LoadParkData();
     if (loadres)
     {
-        DEBUGF(Logger::DBG_SESSION, "InitPark: No Park data in file %s: %s", ParkDataFileName.c_str(), loadres);
-        SetParked(false);
+        LOGF_INFO("InitPark: No Park data in file %s: %s", ParkDataFileName.c_str(), loadres);
+        SyncParkStatus(false);
         return false;
     }
 
-    SetParked(isParked());
+    SyncParkStatus(isParked());
 
-    DEBUGF(Logger::DBG_DEBUG, "InitPark Axis1 %g Axis2 %g", Axis1ParkPosition, Axis2ParkPosition);
+    LOGF_DEBUG("InitPark Axis1 %.2f Axis2 %.2f", Axis1ParkPosition, Axis2ParkPosition);
     ParkPositionN[AXIS_RA].value = Axis1ParkPosition;
     ParkPositionN[AXIS_DE].value = Axis2ParkPosition;
     IDSetNumber(&ParkPositionNP, nullptr);
@@ -1799,7 +1826,7 @@ bool Telescope::InitPark()
     return true;
 }
 
-char *Telescope::LoadParkData()
+const char *Telescope::LoadParkXML()
 {
     wordexp_t wexp;
     FILE *fp;
@@ -1820,7 +1847,7 @@ char *Telescope::LoadParkData()
     if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
         wordfree(&wexp);
-        return (char *)("Badly formed filename.");
+        return "Badly formed filename.";
     }
 
     if (!(fp = fopen(wexp.we_wordv[0], "r")))
@@ -1842,7 +1869,7 @@ char *Telescope::LoadParkData()
         return errmsg;
 
     if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
-        return (char *)("Not a park data file");
+        return "Not a park data file";
 
     parkxml = nextXMLEle(ParkdataXmlRoot, 1);
 
@@ -1863,36 +1890,46 @@ char *Telescope::LoadParkData()
     }
 
     if (!devicefound)
-        return (char *)"No park data found for this device";
+        return "No park data found for this device";
 
     ParkdeviceXml        = parkxml;
     ParkstatusXml        = findXMLEle(parkxml, "parkstatus");
     ParkpositionXml      = findXMLEle(parkxml, "parkposition");
     ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
     ParkpositionAxis2Xml = findXMLEle(ParkpositionXml, "axis2position");
-    IsParked             = false;
+
 
     if (ParkstatusXml == nullptr || ParkpositionAxis1Xml == nullptr || ParkpositionAxis2Xml == nullptr)
     {
-        return (char *)("Park data invalid or missing.");
+        return "Park data invalid or missing.";
     }
+
+    return nullptr;
+}
+
+const char *Telescope::LoadParkData()
+{
+    IsParked = false;
+
+    const char *result = LoadParkXML();
+    if (result != nullptr)
+        return result;
 
     if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
         IsParked = true;
 
-    int rc = 0;
     double axis1Pos = std::numeric_limits<double>::quiet_NaN();
     double axis2Pos = std::numeric_limits<double>::quiet_NaN();
 
-    rc     = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &axis1Pos);
+    int rc = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &axis1Pos);
     if (rc != 1)
     {
-        return (char *)("Unable to parse Park Position Axis 1.");
+        return "Unable to parse Park Position Axis 1.";
     }
     rc = sscanf(pcdataXMLEle(ParkpositionAxis2Xml), "%lf", &axis2Pos);
     if (rc != 1)
     {
-        return (char *)("Unable to parse Park Position Axis 2.");
+        return "Unable to parse Park Position Axis 2.";
     }
 
     if (std::isnan(axis1Pos) == false && std::isnan(axis2Pos) == false)
@@ -1902,11 +1939,105 @@ char *Telescope::LoadParkData()
         return nullptr;
     }
 
-    return (char *)("Failed to parse Park Position.");
+    return "Failed to parse Park Position.";
+}
+
+bool Telescope::PurgeParkData()
+{
+    // We need to refresh parking data in case other devices parking states were updated since we
+    // read the data the first time.
+    if (LoadParkXML() != nullptr)
+        LOG_DEBUG("Failed to refresh parking data.");
+
+    wordexp_t wexp;
+    FILE *fp;
+    LilXML *lp;
+    static char errmsg[512];
+
+    XMLEle *parkxml;
+    XMLAtt *ap;
+    bool devicefound = false;
+
+    ParkDeviceName       = getDeviceName();
+
+    if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
+    {
+        wordfree(&wexp);
+        return false;
+    }
+
+    if (!(fp = fopen(wexp.we_wordv[0], "r")))
+    {
+        wordfree(&wexp);
+        LOGF_ERROR("Failed to purge park data: %s", strerror(errno));
+        return false;
+    }
+    wordfree(&wexp);
+
+    lp = newLilXML();
+
+    if (ParkdataXmlRoot)
+        delXMLEle(ParkdataXmlRoot);
+
+    ParkdataXmlRoot = readXMLFile(fp, lp, errmsg);
+
+    delLilXML(lp);
+    if (!ParkdataXmlRoot)
+        return false;
+
+    if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
+        return false;
+
+    parkxml = nextXMLEle(ParkdataXmlRoot, 1);
+
+    while (parkxml)
+    {
+        if (strcmp(tagXMLEle(parkxml), "device"))
+        {
+            parkxml = nextXMLEle(ParkdataXmlRoot, 0);
+            continue;
+        }
+        ap = findXMLAtt(parkxml, "name");
+        if (ap && (!strcmp(valuXMLAtt(ap), ParkDeviceName)))
+        {
+            devicefound = true;
+            break;
+        }
+        parkxml = nextXMLEle(ParkdataXmlRoot, 0);
+    }
+
+    if (!devicefound)
+        return false;
+
+    delXMLEle(parkxml);
+
+    ParkstatusXml        = nullptr;
+    ParkdeviceXml        = nullptr;
+    ParkpositionXml      = nullptr;
+    ParkpositionAxis1Xml = nullptr;
+    ParkpositionAxis2Xml = nullptr;
+
+    wordexp(ParkDataFileName.c_str(), &wexp, 0);
+    if (!(fp = fopen(wexp.we_wordv[0], "w")))
+    {
+        wordfree(&wexp);
+        LOGF_INFO("WriteParkData: can not write file %s: %s", ParkDataFileName.c_str(), strerror(errno));
+        return false;
+    }
+    prXMLEle(fp, ParkdataXmlRoot, 0);
+    fclose(fp);
+    wordfree(&wexp);
+
+    return true;
 }
 
 bool Telescope::WriteParkData()
 {
+    // We need to refresh parking data in case other devices parking states were updated since we
+    // read the data the first time.
+    if (LoadParkXML() != nullptr)
+        LOG_DEBUG("Failed to refresh parking data.");
+
     wordexp_t wexp;
     FILE *fp;
     char pcdata[30];
@@ -1915,7 +2046,7 @@ bool Telescope::WriteParkData()
     if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
         wordfree(&wexp);
-        DEBUGF(Logger::DBG_SESSION, "WriteParkData: can not write file %s: Badly formed filename.",
+        LOGF_INFO("WriteParkData: can not write file %s: Badly formed filename.",
                ParkDataFileName.c_str());
         return false;
     }
@@ -1923,7 +2054,7 @@ bool Telescope::WriteParkData()
     if (!(fp = fopen(wexp.we_wordv[0], "w")))
     {
         wordfree(&wexp);
-        DEBUGF(Logger::DBG_SESSION, "WriteParkData: can not write file %s: %s", ParkDataFileName.c_str(),
+        LOGF_INFO("WriteParkData: can not write file %s: %s", ParkDataFileName.c_str(),
                strerror(errno));
         return false;
     }
@@ -1979,6 +2110,7 @@ double Telescope::GetAxis2ParkDefault() const
 
 void Telescope::SetAxis1Park(double value)
 {
+    LOGF_DEBUG("Setting Park Axis1 to %.2f", value);
     Axis1ParkPosition            = value;
     ParkPositionN[AXIS_RA].value = value;
     IDSetNumber(&ParkPositionNP, nullptr);
@@ -1986,11 +2118,13 @@ void Telescope::SetAxis1Park(double value)
 
 void Telescope::SetAxis1ParkDefault(double value)
 {
+    LOGF_DEBUG("Setting Default Park Axis1 to %.2f", value);
     Axis1DefaultParkPosition = value;
 }
 
 void Telescope::SetAxis2Park(double value)
 {
+    LOGF_DEBUG("Setting Park Axis2 to %.2f", value);
     Axis2ParkPosition            = value;
     ParkPositionN[AXIS_DE].value = value;
     IDSetNumber(&ParkPositionNP, nullptr);
@@ -1998,6 +2132,7 @@ void Telescope::SetAxis2Park(double value)
 
 void Telescope::SetAxis2ParkDefault(double value)
 {
+    LOGF_DEBUG("Setting Default Park Axis2 to %.2f", value);
     Axis2DefaultParkPosition = value;
 }
 
@@ -2264,7 +2399,7 @@ bool Telescope::LoadScopeConfig()
 {
     if (!CheckFile(ScopeConfigFileName, false))
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't open XML file (%s) for read", ScopeConfigFileName.c_str());
+        LOGF_INFO("Can't open XML file (%s) for read", ScopeConfigFileName.c_str());
         return false;
     }
     LilXML *XmlHandle      = newLilXML();
@@ -2280,12 +2415,12 @@ bool Telescope::LoadScopeConfig()
     XmlHandle = nullptr;
     if (!RootXmlNode)
     {
-        DEBUGF(Logger::DBG_SESSION, "Failed to parse XML file (%s): %s", ScopeConfigFileName.c_str(), ErrMsg);
+        LOGF_INFO("Failed to parse XML file (%s): %s", ScopeConfigFileName.c_str(), ErrMsg);
         return false;
     }
     if (std::string(tagXMLEle(RootXmlNode)) != ScopeConfigRootXmlNode)
     {
-        DEBUGF(Logger::DBG_SESSION, "Not a scope config XML file (%s)", ScopeConfigFileName.c_str());
+        LOGF_INFO("Not a scope config XML file (%s)", ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
     }
@@ -2308,7 +2443,7 @@ bool Telescope::LoadScopeConfig()
     }
     if (!DeviceFound)
     {
-        DEBUGF(Logger::DBG_SESSION, "No a scope config found for %s in the XML file (%s)", getDeviceName(),
+        LOGF_INFO("No a scope config found for %s in the XML file (%s)", getDeviceName(),
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2333,7 +2468,7 @@ bool Telescope::LoadScopeConfig()
     XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigScopeFocXmlNode.c_str());
     if (!XmlNode || sscanf(pcdataXMLEle(XmlNode), "%lf", &ScopeFoc) != 1)
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't read the telescope focal length from the XML file (%s)",
+        LOGF_INFO("Can't read the telescope focal length from the XML file (%s)",
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2341,7 +2476,7 @@ bool Telescope::LoadScopeConfig()
     XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigScopeApXmlNode.c_str());
     if (!XmlNode || sscanf(pcdataXMLEle(XmlNode), "%lf", &ScopeAp) != 1)
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't read the telescope aperture from the XML file (%s)",
+        LOGF_INFO("Can't read the telescope aperture from the XML file (%s)",
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2349,7 +2484,7 @@ bool Telescope::LoadScopeConfig()
     XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigGScopeFocXmlNode.c_str());
     if (!XmlNode || sscanf(pcdataXMLEle(XmlNode), "%lf", &GScopeFoc) != 1)
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't read the guide scope focal length from the XML file (%s)",
+        LOGF_INFO("Can't read the guide scope focal length from the XML file (%s)",
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2357,7 +2492,7 @@ bool Telescope::LoadScopeConfig()
     XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigGScopeApXmlNode.c_str());
     if (!XmlNode || sscanf(pcdataXMLEle(XmlNode), "%lf", &GScopeAp) != 1)
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't read the guide scope aperture from the XML file (%s)",
+        LOGF_INFO("Can't read the guide scope aperture from the XML file (%s)",
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2365,7 +2500,7 @@ bool Telescope::LoadScopeConfig()
     XmlNode = findXMLEle(CurrentXmlNode, ScopeConfigLabelApXmlNode.c_str());
     if (!XmlNode)
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't read the telescope config name from the XML file (%s)",
+        LOGF_INFO("Can't read the telescope config name from the XML file (%s)",
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return false;
@@ -2490,7 +2625,7 @@ bool Telescope::UpdateScopeConfig()
     // Save the values to the actual XML file
     if (!CheckFile(ScopeConfigFileName, true))
     {
-        DEBUGF(Logger::DBG_SESSION, "Can't open XML file (%s) for write", ScopeConfigFileName.c_str());
+        LOGF_INFO("Can't open XML file (%s) for write", ScopeConfigFileName.c_str());
         return false;
     }
     // Open the existing XML file for write

@@ -112,4 +112,5 @@ const char *gphoto_get_manufacturer(gphoto_driver *gphoto);
 const char *gphoto_get_model(gphoto_driver *gphoto);
 int gphoto_delete_sdcard_image(gphoto_driver *gphoto, bool delete_sdcard_image);
 bool gphoto_supports_temperature(gphoto_driver *gphoto);
-int gphoto_get_last_sensor_temperature(gphoto_driver *gphoto);
+float gphoto_get_last_sensor_temperature(gphoto_driver *gphoto);
+void gphoto_force_bulb(gphoto_driver *gphoto, bool enabled);

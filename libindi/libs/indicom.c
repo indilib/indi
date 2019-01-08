@@ -81,6 +81,7 @@
 
 int tty_debug = 0;
 int ttyGeminiUdpFormat = 0;
+int ttySkyWatcherUdpFormat = 0;
 int sequenceNumber = 1;
 int ttyClrTrailingLF = 0;
 
@@ -234,6 +235,19 @@ void getSexComponents(double value, int *d, int *m, int *s)
     *m = (int32_t)((fabs(value) - *d) * 60.0);
     *s = (int32_t)rint(((fabs(value) - *d) * 60.0 - *m) * 60.0);
 
+    // Special case if seconds are >= 59.5 so it will be rounded by rint above
+    // to 60
+    if (*s == 60)
+    {
+        *s  = 0;
+        *m += 1;
+    }
+    if (*m == 60)
+    {
+        *m  = 0;
+        *d += 1;
+    }
+
     if (value < 0)
         *d *= -1;
 }
@@ -318,6 +332,11 @@ void tty_set_debug(int debug)
 void tty_set_gemini_udp_format(int enabled)
 {
     ttyGeminiUdpFormat = enabled;
+}
+
+void tty_set_skywatcher_udp_format(int enabled)
+{
+    ttySkyWatcherUdpFormat = enabled;
 }
 
 void tty_clr_trailing_read_lf(int enabled)
@@ -544,7 +563,22 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
                 return TTY_OK;
             }
         }
+    }
+    else if (ttySkyWatcherUdpFormat)
+    {
+        bytesRead = read(fd, readBuffer, 255);
+        if (bytesRead < 0)
+            return TTY_READ_ERROR;
+        for (int index = 0; index < bytesRead; index++)
+        {
+            (*nbytes_read)++;
 
+            if (*(readBuffer+index) == stop_char)
+            {
+                strncpy(buf, readBuffer, *nbytes_read);
+                return TTY_OK;
+            }
+        }
     }
     else
     {
@@ -589,6 +623,10 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
     if (fd == -1)
         return TTY_ERRNO;
 
+    // For Gemini
+    if (ttyGeminiUdpFormat)
+        return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+
     int bytesRead = 0;
     int err       = TTY_OK;
     *nbytes_read  = 0;
@@ -612,7 +650,12 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
         if (tty_debug)
             IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
-        (*nbytes_read)++;
+        if (!(ttyClrTrailingLF && *read_char == 0X0A && *nbytes_read == 0))
+            (*nbytes_read)++;
+        else {
+            if (tty_debug)
+                IDLog("%s: Cleared LF char left in buf\n", __FUNCTION__);
+        }
 
         if (*read_char == stop_char)
             return TTY_OK;

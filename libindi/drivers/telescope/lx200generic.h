@@ -28,5 +28,4 @@ class LX200Generic : public LX200Telescope
     LX200Generic();
     virtual ~LX200Generic() = default;
 
-
 };

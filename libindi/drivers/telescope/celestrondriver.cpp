@@ -242,6 +242,7 @@ bool CelestronDriver::check_connection()
 bool CelestronDriver::get_firmware(FirmwareInfo *info)
 {
     char version[8], model[16], RAVersion[8], DEVersion[8];
+    bool isGem;
 
     LOG_DEBUG("Getting controller version...");
     if (!get_version(version, 8))
@@ -258,12 +259,16 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
             (info->controllerVersion >= 2.2))
     {
         LOG_DEBUG("Getting controller model...");
-        if (!get_model(model, 16))
+        if (!get_model(model, 16, &isGem))
             return false;
         info->Model = model;
+        info->isGem = isGem;
     }
     else
+    {
         info->Model = "Unknown";
+        info->isGem = false;
+    }
 
     //LOG_DEBUG("Getting GPS firmware version...");
     // char GPSVersion[8];
@@ -281,6 +286,13 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
     if (!get_dev_firmware(CELESTRON_DEV_DEC, DEVersion, 8))
         return false;
     info->DEFirmware = DEVersion;
+
+    LOGF_DEBUG("Firmware Info HC Ver %s model %s %s %s mount, HW Ver %s",
+               info->Version.c_str(),
+               info->Model.c_str(),
+               info->controllerVariant == ISSTARSENSE ? "StarSense" : "NexStar",
+               info->isGem ? "GEM" : "Fork",
+               info->RAFirmware.c_str());
 
     return true;
 }
@@ -320,8 +332,9 @@ bool CelestronDriver::get_variant(char *variant)
     return true;
 }
 
-bool CelestronDriver::get_model(char *model, int size)
+bool CelestronDriver::get_model(char *model, int size, bool *isGem)
 {
+    // extended list of mounts
     std::map<int, std::string> models =
     {
         {1, "GPS Series"},
@@ -336,7 +349,18 @@ bool CelestronDriver::get_model(char *model, int size)
         {12, "6/8 SE"},
         {13, "CGE Pro"},
         {14, "CGEM DX"},
+        {15, "LCM"},
+        {16, "Sky Prodigy"},
+        {17, "CPC Deluxe"},
+        {18, "GT 16"},
+        {19, "StarSeeker"},
         {20, "AVX"},
+        {21, "Cosmos"},
+        {22, "Evolution"},
+        {23, "CGX"},
+        {24, "CGXL"},
+        {25, "Astrofi"},
+        {26, "SkyWatcher"},
     };
 
     set_sim_response("\x06#");  // Simulated response
@@ -356,6 +380,24 @@ bool CelestronDriver::get_model(char *model, int size)
         strncpy(model, "Unknown", size);
         LOGF_WARN("Unrecognized model (%d).", model);
     }
+
+    // use model# to detect the GEMs
+    // Only Gem mounts can report the pier side pointing state
+    switch(m)
+    {
+    case 5:     // CGE
+    case 6:     // AS-GT
+    case 13:    // CGE 2
+    case 14:    // EQ6
+    case 20:    // AVX
+    case 0x17:  // CGX
+    case 0x18:  // CGXL
+        *isGem = true;
+        break;
+    default:
+        *isGem = false;
+    }
+
     return true;
 }
 
@@ -395,7 +437,7 @@ int CelestronDriver::send_pulse(CELESTRON_DIRECTION dir, signed char rate, unsig
     payload[1] = duration_csec;
 
     set_sim_response("#");
-    return send_passthrough(dev, 0x26, payload, 2, response, 1);
+    return send_passthrough(dev, 0x26, payload, 2, response, 0);
 }
 
 /*****************************************************************
@@ -409,7 +451,7 @@ int CelestronDriver::get_pulse_status(CELESTRON_DIRECTION dir, bool &pulse_state
     int dev = (dir == CELESTRON_N || dir == CELESTRON_S) ? CELESTRON_DEV_DEC : CELESTRON_DEV_RA;
     char payload[2] = {0, 0};
 
-    set_sim_response("#");
+    set_sim_response("\x00#");
     if (!send_passthrough(dev, 0x27, payload, 2, response, 1))
         return false;
 
@@ -425,7 +467,7 @@ bool CelestronDriver::start_motion(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE 
     payload[0] = rate + 1;
 
     set_sim_response("#");
-    return send_passthrough(dev, cmd_id, payload, 1, response, 1);
+    return send_passthrough(dev, cmd_id, payload, 1, response, 0);
 }
 
 bool CelestronDriver::stop_motion(CELESTRON_DIRECTION dir)
@@ -434,7 +476,7 @@ bool CelestronDriver::stop_motion(CELESTRON_DIRECTION dir)
     char payload[] = { 0 };
 
     set_sim_response("#");
-    return send_passthrough(dev, 0x24, payload, 1, response, 1);
+    return send_passthrough(dev, 0x24, payload, 1, response, 0);
 }
 
 bool CelestronDriver::abort()
@@ -605,6 +647,7 @@ bool CelestronDriver::set_location(double longitude, double latitude)
     return send_command(cmd, 9, response, 1, false, true);
 }
 
+// there are newer time commands that have the utc offset in 15 minute increments
 bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset)
 {
     struct ln_zonedate local_date;
@@ -716,4 +759,26 @@ bool CelestronDriver::wakeup()
 {
     set_sim_response("#");
     return send_command("y#", 2, response, 1, true, true);
+}
+
+// Get pier side command, returns 'E' or 'W'
+bool CelestronDriver:: get_pier_side(char *side_of_pier)
+{
+    set_sim_response("W#");
+    if (!send_command("p", 1, response, 2, true, true))
+        return false;
+    *side_of_pier = response[0];
+
+    return true;
+}
+
+// check if the mount is aligned using the mount J command
+bool CelestronDriver::check_aligned()
+{
+    // returns 0x01 or 0x00
+    set_sim_response("\x01#");
+    if (!send_command("J", 1, response, 2, true, false))
+        return false;
+
+    return response[0] == 0x01;
 }

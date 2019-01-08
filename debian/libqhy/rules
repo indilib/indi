@@ -7,5 +7,5 @@ DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 DEB_PACKAGE_VERSION := $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ' | cut -f 1 -d '+')
 DEB_SRCDIR=libqhy
 DEB_DH_SHLIBDEPS_ARGS=-u--ignore-missing-info
-DEB_DH_LINK_ARGS := usr/lib/${DEB_HOST_MULTIARCH}/libqhyccd.so.${DEB_PACKAGE_VERSION} usr/lib/${DEB_HOST_MULTIARCH}/libqhyccd.so.1 \
-                    usr/lib/${DEB_HOST_MULTIARCH}/libqhyccd.so.1 usr/lib/${DEB_HOST_MULTIARCH}/libqhyccd.so
+DEB_DH_LINK_ARGS := usr/lib/${DEB_HOST_MULTIARCH}/libqhyccd.so.${DEB_PACKAGE_VERSION} usr/lib/${DEB_HOST_MULTIARCH}/libqhyccd.so.4 \
+                    usr/lib/${DEB_HOST_MULTIARCH}/libqhyccd.so.4 usr/lib/${DEB_HOST_MULTIARCH}/libqhyccd.so

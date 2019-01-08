@@ -29,7 +29,7 @@ namespace Connection
 {
 extern const char *CONNECTION_TAB;
 
-Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev)
+Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
 {
 #ifdef __APPLE__
     IUFillText(&PortT[0], "PORT", "Port", "/dev/cu.usbserial");
@@ -65,7 +65,7 @@ Serial::~Serial()
 
 bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (!strcmp(dev, device->getDeviceName()))
+    if (!strcmp(dev, m_Device->getDeviceName()))
     {
         // Serial Port
         if (!strcmp(name, PortTP.name))
@@ -73,6 +73,26 @@ bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *n
             IUUpdateText(&PortTP, texts, names, n);
             PortTP.s = IPS_OK;
             IDSetText(&PortTP, nullptr);
+
+            if (SystemPortS)
+            {
+                bool isSystemPort = false;
+                for (int i=0; i < SystemPortSP.nsp; i++)
+                {
+                    if (!strcmp(PortT[0].text, SystemPortS[i].label))
+                    {
+                        isSystemPort = true;
+                        break;
+                    }
+                }
+                if (isSystemPort == false)
+                {
+                    LOGF_DEBUG("Auto search is disabled because %s is not a system port.", PortT[0].text);
+                    AutoSearchS[0].s = ISS_OFF;
+                    AutoSearchS[1].s = ISS_ON;
+                    IDSetSwitch(&AutoSearchSP, nullptr);
+                }
+            }
             return true;
         }
     }
@@ -82,7 +102,7 @@ bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *n
 
 bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, device->getDeviceName()))
+    if (!strcmp(dev, m_Device->getDeviceName()))
     {
         if (!strcmp(name, BaudRateSP.name))
         {
@@ -178,8 +198,8 @@ bool Serial::processHandshake()
     if (rc)
     {
         LOGF_INFO("%s is online.", getDeviceName());
-        device->saveConfig(true, INDI::SP::DEVICE_PORT);
-        device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
+        m_Device->saveConfig(true, INDI::SP::DEVICE_PORT);
+        m_Device->saveConfig(true, INDI::SP::DEVICE_BAUD_RATE);
     }
     else
         LOG_DEBUG("Handshake failed.");
@@ -189,7 +209,7 @@ bool Serial::processHandshake()
 
 bool Serial::Connect(const char *port, uint32_t baud)
 {
-    if (device->isSimulation())
+    if (m_Device->isSimulation())
         return true;
 
     int connectrc = 0;
@@ -223,27 +243,27 @@ bool Serial::Disconnect()
 
 void Serial::Activated()
 {
-    device->defineText(&PortTP);
-    device->loadConfig(true, INDI::SP::DEVICE_PORT);
+    m_Device->defineText(&PortTP);
+    m_Device->loadConfig(true, INDI::SP::DEVICE_PORT);
 
-    device->defineSwitch(&BaudRateSP);
-    device->loadConfig(true, INDI::SP::DEVICE_BAUD_RATE);
+    m_Device->defineSwitch(&BaudRateSP);
+    m_Device->loadConfig(true, INDI::SP::DEVICE_BAUD_RATE);
 
-    device->defineSwitch(&AutoSearchSP);
-    device->loadConfig(true, INDI::SP::DEVICE_AUTO_SEARCH);
+    m_Device->defineSwitch(&AutoSearchSP);
+    m_Device->loadConfig(true, INDI::SP::DEVICE_AUTO_SEARCH);
 
-    device->defineSwitch(&RefreshSP);
+    m_Device->defineSwitch(&RefreshSP);
     Refresh(true);
 }
 
 void Serial::Deactivated()
 {
-    device->deleteProperty(PortTP.name);
-    device->deleteProperty(BaudRateSP.name);
-    device->deleteProperty(AutoSearchSP.name);
+    m_Device->deleteProperty(PortTP.name);
+    m_Device->deleteProperty(BaudRateSP.name);
+    m_Device->deleteProperty(AutoSearchSP.name);
 
-    device->deleteProperty(RefreshSP.name);
-    device->deleteProperty(SystemPortSP.name);
+    m_Device->deleteProperty(RefreshSP.name);
+    m_Device->deleteProperty(SystemPortSP.name);
     delete[] SystemPortS;
     SystemPortS = nullptr;
 }
@@ -295,7 +315,7 @@ int dev_file_select(const dirent *entry)
 bool Serial::Refresh(bool silent)
 {
     if (SystemPortS)
-        device->deleteProperty(SystemPortSP.name);
+        m_Device->deleteProperty(SystemPortSP.name);
 
     delete[] SystemPortS;
     SystemPortS = nullptr;
@@ -350,10 +370,10 @@ bool Serial::Refresh(bool silent)
         IUFillSwitch(sp++, m_Ports[i].c_str(), m_Ports[i].c_str(), ISS_OFF);
     }
 
-    IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, device->getDeviceName(), "SYSTEM_PORTS", "System Ports",
+    IUFillSwitchVector(&SystemPortSP, SystemPortS, pCount, m_Device->getDeviceName(), "SYSTEM_PORTS", "System Ports",
                        CONNECTION_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
-    device->defineSwitch(&SystemPortSP);
+    m_Device->defineSwitch(&SystemPortSP);
 
     return true;
 }

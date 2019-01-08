@@ -243,6 +243,8 @@ int setCalenderDate(int fd, int dd, int mm, int yy);
 int setUTCOffset(int fd, double hours);
 /* Set Track Freq */
 int setTrackFreq(int fd, double trackF);
+/* Replacement, for the above offering more precision, controlled by LX200_HAS_PRECISE_TRACKING_FREQ will work on OnStep (and AutoStar II) */
+int setPreciseTrackFreq(int fd, double trackF);
 /* Set current site longitude */
 int setSiteLongitude(int fd, double Long);
 /* Set current site latitude */

@@ -7,13 +7,14 @@ include(GNUInstallDirs)
 
 find_package(INDI REQUIRED)
 find_package(USB1 REQUIRED)
-#find_package(ZLIB REQUIRED)
-#find_package(Threads REQUIRED)
-#find_package(CFITSIO REQUIRED)
 
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_ssag.xml ${CMAKE_CURRENT_BINARY_DIR}/indi_ssag.xml )
+set(INDI_SSAG_VERSION_MAJOR 1)
+set(INDI_SSAG_VERSION_MINOR 0)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_ssag.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_ssag.xml )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
@@ -42,5 +43,6 @@ endif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 install(TARGETS indi_ssag_ccd RUNTIME DESTINATION bin )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_ssag.xml DESTINATION ${INDI_DATA_DIR})
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 install(FILES 95-ssag.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
-
+endif()

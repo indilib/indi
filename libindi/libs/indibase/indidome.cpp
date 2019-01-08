@@ -35,6 +35,9 @@
 #include <cmath>
 #include <cstring>
 #include <wordexp.h>
+#include <pwd.h>
+#include <unistd.h>
+#include <limits>
 
 #define DOME_SLAVING_TAB "Slaving"
 #define DOME_COORD_THRESHOLD \
@@ -43,7 +46,7 @@
 namespace INDI
 {
 
-Dome::Dome()
+Dome::Dome() : ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
 {
     controller = new Controller(this);
 
@@ -60,18 +63,29 @@ Dome::Dome()
     domeState    = DOME_IDLE;
 
     parkDataType = PARK_NONE;
-    Parkdatafile = "~/.indi/ParkData.xml";
     ParkdataXmlRoot = nullptr;
 }
 
 Dome::~Dome()
 {
-    if (ParkdataXmlRoot)
-        delXMLEle(ParkdataXmlRoot);
+    delXMLEle(ParkdataXmlRoot);
 
     delete controller;
     delete serialConnection;
     delete tcpConnection;
+}
+
+std::string Dome::GetHomeDirectory() const
+{
+    // Check first the HOME environmental variable
+    const char *HomeDir = getenv("HOME");
+
+    // ...otherwise get the home directory of the current user.
+    if (!HomeDir)
+    {
+        HomeDir = getpwuid(getuid())->pw_dir;
+    }
+    return (HomeDir ? std::string(HomeDir) : "");
 }
 
 bool Dome::initProperties()
@@ -473,7 +487,7 @@ bool Dome::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
                 return false;
             }
 
-            Dome::Move((DomeDirection)current_direction, MOTION_STOP);
+            Dome::Move(static_cast<DomeDirection>(current_direction), MOTION_STOP);
 
             return true;
         }
@@ -572,9 +586,9 @@ bool Dome::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
 
             if (AutoParkS[0].s == ISS_ON)
                 DEBUG(Logger::DBG_WARNING, "Warning: Auto park is enabled. If weather conditions are in the "
-                                                 "danger zone, the dome will be automatically parked. Only enable this "
-                                                 "option is parking the dome at any time will not cause damange to any "
-                                                 "equipment.");
+                                           "danger zone, the dome will be automatically parked. Only enable this "
+                                           "option is parking the dome at any time will not cause damange to any "
+                                           "equipment.");
             else
                 DEBUG(Logger::DBG_SESSION, "Auto park is disabled.");
 
@@ -592,8 +606,8 @@ bool Dome::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
                     DEBUG(Logger::DBG_SESSION, "Telescope parking policy set to: Ignore Telescope");
                 else if (!strcmp(names[0], TelescopeClosedLockT[1].name))
                     DEBUG(Logger::DBG_SESSION, "Warning: Telescope parking policy set to: Telescope locks. This "
-                                                     "disallows the dome from parking when telescope is unparked, and "
-                                                     "can lead to damage to hardware if it rains!");
+                                               "disallows the dome from parking when telescope is unparked, and "
+                                               "can lead to damage to hardware if it rains!");
             }
             IUUpdateSwitch(&TelescopeClosedLockTP, states, names, n);
             TelescopeClosedLockTP.s = IPS_OK;
@@ -708,7 +722,7 @@ bool Dome::ISSnoopDevice(XMLEle *root)
 
         // If the diff > 0.1 then the mount is in motion, so let's wait until it settles before moving the doom
         if (fabs(mountEquatorialCoords.ra - prev_ra) > DOME_COORD_THRESHOLD ||
-            fabs(mountEquatorialCoords.dec - prev_dec) > DOME_COORD_THRESHOLD)
+                fabs(mountEquatorialCoords.dec - prev_dec) > DOME_COORD_THRESHOLD)
         {
             prev_ra  = mountEquatorialCoords.ra;
             prev_dec = mountEquatorialCoords.dec;
@@ -912,76 +926,76 @@ void Dome::setDomeState(const Dome::DomeState &value)
 {
     switch (value)
     {
-        case DOME_IDLE:
-            if (DomeMotionSP.s == IPS_BUSY)
-            {
-                IUResetSwitch(&DomeMotionSP);
-                DomeMotionSP.s = IPS_IDLE;
-                IDSetSwitch(&DomeMotionSP, nullptr);
-            }
-            if (DomeAbsPosNP.s == IPS_BUSY)
-            {
-                DomeAbsPosNP.s = IPS_IDLE;
-                IDSetNumber(&DomeAbsPosNP, nullptr);
-            }
-            if (DomeRelPosNP.s == IPS_BUSY)
-            {
-                DomeRelPosNP.s = IPS_IDLE;
-                IDSetNumber(&DomeRelPosNP, nullptr);
-            }
-            break;
+    case DOME_IDLE:
+        if (DomeMotionSP.s == IPS_BUSY)
+        {
+            IUResetSwitch(&DomeMotionSP);
+            DomeMotionSP.s = IPS_IDLE;
+            IDSetSwitch(&DomeMotionSP, nullptr);
+        }
+        if (DomeAbsPosNP.s == IPS_BUSY)
+        {
+            DomeAbsPosNP.s = IPS_IDLE;
+            IDSetNumber(&DomeAbsPosNP, nullptr);
+        }
+        if (DomeRelPosNP.s == IPS_BUSY)
+        {
+            DomeRelPosNP.s = IPS_IDLE;
+            IDSetNumber(&DomeRelPosNP, nullptr);
+        }
+        break;
 
-        case DOME_SYNCED:
-            if (DomeMotionSP.s == IPS_BUSY)
-            {
-                IUResetSwitch(&DomeMotionSP);
-                DomeMotionSP.s = IPS_OK;
-                IDSetSwitch(&DomeMotionSP, nullptr);
-            }
-            if (DomeAbsPosNP.s == IPS_BUSY)
-            {
-                DomeAbsPosNP.s = IPS_OK;
-                IDSetNumber(&DomeAbsPosNP, nullptr);
-            }
-            if (DomeRelPosNP.s == IPS_BUSY)
-            {
-                DomeRelPosNP.s = IPS_OK;
-                IDSetNumber(&DomeRelPosNP, nullptr);
-            }
-            break;
+    case DOME_SYNCED:
+        if (DomeMotionSP.s == IPS_BUSY)
+        {
+            IUResetSwitch(&DomeMotionSP);
+            DomeMotionSP.s = IPS_OK;
+            IDSetSwitch(&DomeMotionSP, nullptr);
+        }
+        if (DomeAbsPosNP.s == IPS_BUSY)
+        {
+            DomeAbsPosNP.s = IPS_OK;
+            IDSetNumber(&DomeAbsPosNP, nullptr);
+        }
+        if (DomeRelPosNP.s == IPS_BUSY)
+        {
+            DomeRelPosNP.s = IPS_OK;
+            IDSetNumber(&DomeRelPosNP, nullptr);
+        }
+        break;
 
-        case DOME_PARKED:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s   = IPS_OK;
-            ParkS[0].s = ISS_ON;
-            IDSetSwitch(&ParkSP, nullptr);
-            IsParked = true;
-            break;
+    case DOME_PARKED:
+        IUResetSwitch(&ParkSP);
+        ParkSP.s   = IPS_OK;
+        ParkS[0].s = ISS_ON;
+        IDSetSwitch(&ParkSP, nullptr);
+        IsParked = true;
+        break;
 
-        case DOME_PARKING:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s   = IPS_BUSY;
-            ParkS[0].s = ISS_ON;
-            IDSetSwitch(&ParkSP, nullptr);
-            break;
+    case DOME_PARKING:
+        IUResetSwitch(&ParkSP);
+        ParkSP.s   = IPS_BUSY;
+        ParkS[0].s = ISS_ON;
+        IDSetSwitch(&ParkSP, nullptr);
+        break;
 
-        case DOME_UNPARKING:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s   = IPS_BUSY;
-            ParkS[1].s = ISS_ON;
-            IDSetSwitch(&ParkSP, nullptr);
-            break;
+    case DOME_UNPARKING:
+        IUResetSwitch(&ParkSP);
+        ParkSP.s   = IPS_BUSY;
+        ParkS[1].s = ISS_ON;
+        IDSetSwitch(&ParkSP, nullptr);
+        break;
 
-        case DOME_UNPARKED:
-            IUResetSwitch(&ParkSP);
-            ParkSP.s   = IPS_OK;
-            ParkS[1].s = ISS_ON;
-            IDSetSwitch(&ParkSP, nullptr);
-            IsParked = false;
-            break;
+    case DOME_UNPARKED:
+        IUResetSwitch(&ParkSP);
+        ParkSP.s   = IPS_OK;
+        ParkS[1].s = ISS_ON;
+        IDSetSwitch(&ParkSP, nullptr);
+        IsParked = false;
+        break;
 
-        case DOME_MOVING:
-            break;
+    case DOME_MOVING:
+        break;
     }
 
     domeState = value;
@@ -1040,7 +1054,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     }
     else
     {
-    	//  figure out the pier side without help from the mount
+        //  figure out the pier side without help from the mount
         if(hourAngle > 0) OTASide=-1;
         else OTASide=1;
         //  if we got here because we turned off the PIER_SIDE switches in a target goto
@@ -1104,9 +1118,9 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
         if ((fabs(DomeIntersect.x) > 0.00001) || (fabs(DomeIntersect.y) > 0.00001))
             Alt = 180 *
-                  atan(DomeIntersect.z /
-                       sqrt((DomeIntersect.x * DomeIntersect.x) + (DomeIntersect.y * DomeIntersect.y))) /
-                  M_PI;
+                    atan(DomeIntersect.z /
+                         sqrt((DomeIntersect.x * DomeIntersect.x) + (DomeIntersect.y * DomeIntersect.y))) /
+                    M_PI;
         else
             Alt = 90; // Dome Zenith
 
@@ -1116,7 +1130,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
         if (DomeMeasurementsN[DM_SHUTTER_WIDTH].value < (2 * RadiusAtAlt))
         {
             HalfApertureChordAngle = 180 * asin(DomeMeasurementsN[DM_SHUTTER_WIDTH].value / (2 * RadiusAtAlt)) /
-                                     M_PI; // Angle of a chord of half aperture length
+                    M_PI; // Angle of a chord of half aperture length
             minAz = Az - HalfApertureChordAngle;
             if (minAz < 0)
                 minAz = minAz + 360;
@@ -1237,7 +1251,7 @@ void Dome::UpdateMountCoords()
 
     // Control debug flooding
     if (fabs(mountHoriztonalCoords.az - prev_az) > DOME_COORD_THRESHOLD ||
-        fabs(mountHoriztonalCoords.alt - prev_alt) > DOME_COORD_THRESHOLD)
+            fabs(mountHoriztonalCoords.alt - prev_alt) > DOME_COORD_THRESHOLD)
     {
         prev_az  = mountHoriztonalCoords.az;
         prev_alt = mountHoriztonalCoords.alt;
@@ -1302,19 +1316,15 @@ const char *Dome::GetShutterStatusString(ShutterStatus status)
 {
     switch (status)
     {
-        case SHUTTER_OPENED:
-            return "Shutter is open.";
-            break;
-        case SHUTTER_CLOSED:
-            return "Shutter is closed.";
-            break;
-        case SHUTTER_MOVING:
-            return "Shutter is in motion.";
-            break;
-        case SHUTTER_UNKNOWN:
-        default:
-            return "Shutter status is unknown.";
-            break;
+    case SHUTTER_OPENED:
+        return "Shutter is open.";
+    case SHUTTER_CLOSED:
+        return "Shutter is closed.";
+    case SHUTTER_MOVING:
+        return "Shutter is in motion.";
+    case SHUTTER_UNKNOWN:
+    default:
+        return "Shutter status is unknown.";
     }
 }
 
@@ -1326,16 +1336,16 @@ void Dome::SetParkDataType(Dome::DomeParkData type)
     {
         switch (parkDataType)
         {
-            case PARK_AZ:
-                IUFillNumber(&ParkPositionN[AXIS_AZ], "PARK_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
-                break;
+        case PARK_AZ:
+            IUFillNumber(&ParkPositionN[AXIS_AZ], "PARK_AZ", "AZ D:M:S", "%10.6m", 0.0, 360.0, 0.0, 0);
+            break;
 
-            case PARK_AZ_ENCODER:
-                IUFillNumber(&ParkPositionN[AXIS_AZ], "PARK_AZ", "AZ Encoder", "%.0f", 0, 16777215, 1, 0);
-                break;
+        case PARK_AZ_ENCODER:
+            IUFillNumber(&ParkPositionN[AXIS_AZ], "PARK_AZ", "AZ Encoder", "%.0f", 0, 16777215, 1, 0);
+            break;
 
-            default:
-                break;
+        default:
+            break;
         }
 
         IUFillNumberVector(&ParkPositionNP, ParkPositionN, 1, getDeviceName(), "DOME_PARK_POSITION", "Park Position",
@@ -1348,7 +1358,7 @@ void Dome::SetParkDataType(Dome::DomeParkData type)
     }
 }
 
-void Dome::SetParked(bool isparked)
+void Dome::SyncParkStatus(bool isparked)
 {
     IsParked = isparked;
 
@@ -1364,7 +1374,11 @@ void Dome::SetParked(bool isparked)
         setDomeState(DOME_UNPARKED);
         DEBUG(Logger::DBG_SESSION, "Dome is unparked.");
     }
+}
 
+void Dome::SetParked(bool isparked)
+{
+    SyncParkStatus(isparked);
     WriteParkData();
 }
 
@@ -1375,17 +1389,19 @@ bool Dome::isParked()
 
 bool Dome::InitPark()
 {
-    char *loadres;
-    loadres = LoadParkData();
+    const char *loadres = LoadParkData();
     if (loadres)
     {
-        DEBUGF(Logger::DBG_SESSION, "InitPark: No Park data in file %s: %s", Parkdatafile, loadres);
-        SetParked(false);
+        LOGF_INFO("InitPark: No Park data in file %s: %s", ParkDataFileName.c_str(), loadres);
+        SyncParkStatus(false);
         return false;
     }
 
     if (parkDataType != PARK_NONE)
     {
+        SyncParkStatus(isParked());
+
+        LOGF_DEBUG("InitPark Axis1 %.2f", Axis1ParkPosition);
         ParkPositionN[AXIS_AZ].value = Axis1ParkPosition;
         IDSetNumber(&ParkPositionNP, nullptr);
 
@@ -1400,12 +1416,12 @@ bool Dome::InitPark()
     return true;
 }
 
-char *Dome::LoadParkData()
+const char *Dome::LoadParkXML()
 {
     wordexp_t wexp;
     FILE *fp;
     LilXML *lp;
-    static char errmsg[512]={0};
+    static char errmsg[512];
 
     XMLEle *parkxml;
     XMLAtt *ap;
@@ -1417,10 +1433,10 @@ char *Dome::LoadParkData()
     ParkpositionXml      = nullptr;
     ParkpositionAxis1Xml = nullptr;
 
-    if (wordexp(Parkdatafile, &wexp, 0))
+    if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
         wordfree(&wexp);
-        return (char *)("Badly formed filename.");
+        return "Badly formed filename.";
     }
 
     if (!(fp = fopen(wexp.we_wordv[0], "r")))
@@ -1442,7 +1458,7 @@ char *Dome::LoadParkData()
         return errmsg;
 
     if (!strcmp(tagXMLEle(nextXMLEle(ParkdataXmlRoot, 1)), "parkdata"))
-        return (char *)("Not a park data file");
+        return "Not a park data file";
 
     parkxml = nextXMLEle(ParkdataXmlRoot, 1);
 
@@ -1463,55 +1479,74 @@ char *Dome::LoadParkData()
     }
 
     if (!devicefound)
-        return (char *)"No park data found for this device";
+        return "No park data found for this device";
 
-    ParkdeviceXml = parkxml;
-    ParkstatusXml = findXMLEle(parkxml, "parkstatus");
+    ParkdeviceXml        = parkxml;
+    ParkstatusXml        = findXMLEle(parkxml, "parkstatus");
+    ParkpositionXml      = findXMLEle(parkxml, "parkposition");
+    ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
 
-    if (ParkstatusXml == nullptr)
+    if (ParkstatusXml == nullptr || ParkpositionAxis1Xml == nullptr)
     {
-        return (char *)("Park data invalid or missing.");
+        return "Park data invalid or missing.";
     }
-
-    if (parkDataType != PARK_NONE)
-    {
-        ParkpositionXml      = findXMLEle(parkxml, "parkposition");
-        ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
-
-        if (ParkpositionAxis1Xml == nullptr)
-        {
-            return (char *)("Park data invalid or missing.");
-        }
-    }
-
-    if (parkDataType != PARK_NONE)
-        sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &Axis1ParkPosition);
-
-    if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
-        SetParked(true);
-    else
-        SetParked(false);
 
     return nullptr;
 }
 
+const char *Dome::LoadParkData()
+{
+    IsParked = false;
+
+    const char *result = LoadParkXML();
+    if (result != nullptr)
+        return result;
+
+    if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
+        IsParked = true;
+
+    double axis1Pos = std::numeric_limits<double>::quiet_NaN();
+
+    int rc = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &axis1Pos);
+    if (rc != 1)
+    {
+        return "Unable to parse Park Position Axis 1.";
+    }
+
+    if (std::isnan(axis1Pos) == false)
+    {
+        Axis1ParkPosition = axis1Pos;
+        return nullptr;
+    }
+
+    return "Failed to parse Park Position.";
+}
+
 bool Dome::WriteParkData()
 {
+    // We need to refresh parking data in case other devices parking states were updated since we
+    // read the data the first time.
+    if (LoadParkXML() != nullptr)
+        LOG_DEBUG("Failed to refresh parking data.");
+
     wordexp_t wexp;
     FILE *fp;
-    char pcdata[30]={0};
+    char pcdata[30];
+    ParkDeviceName = getDeviceName();
 
-    if (wordexp(Parkdatafile, &wexp, 0))
+    if (wordexp(ParkDataFileName.c_str(), &wexp, 0))
     {
         wordfree(&wexp);
-        DEBUGF(Logger::DBG_SESSION, "WriteParkData: can not write file %s: Badly formed filename.", Parkdatafile);
+        LOGF_INFO("WriteParkData: can not write file %s: Badly formed filename.",
+               ParkDataFileName.c_str());
         return false;
     }
 
     if (!(fp = fopen(wexp.we_wordv[0], "w")))
     {
         wordfree(&wexp);
-        DEBUGF(Logger::DBG_SESSION, "WriteParkData: can not write file %s: %s", Parkdatafile, strerror(errno));
+        LOGF_INFO("WriteParkData: can not write file %s: %s", ParkDataFileName.c_str(),
+               strerror(errno));
         return false;
     }
 
@@ -1521,30 +1556,24 @@ bool Dome::WriteParkData()
     if (!ParkdeviceXml)
     {
         ParkdeviceXml = addXMLEle(ParkdataXmlRoot, "device");
-        addXMLAtt(ParkdeviceXml, "name", ParkDeviceName == nullptr ? getDeviceName() : ParkDeviceName);
+        addXMLAtt(ParkdeviceXml, "name", ParkDeviceName);
     }
 
     if (!ParkstatusXml)
         ParkstatusXml = addXMLEle(ParkdeviceXml, "parkstatus");
-
-    if (parkDataType != PARK_NONE)
-    {
-        if (!ParkpositionXml)
-            ParkpositionXml = addXMLEle(ParkdeviceXml, "parkposition");
-        if (!ParkpositionAxis1Xml)
-            ParkpositionAxis1Xml = addXMLEle(ParkpositionXml, "axis1position");
-    }
+    if (!ParkpositionXml)
+        ParkpositionXml = addXMLEle(ParkdeviceXml, "parkposition");
+    if (!ParkpositionAxis1Xml)
+        ParkpositionAxis1Xml = addXMLEle(ParkpositionXml, "axis1position");
 
     editXMLEle(ParkstatusXml, (IsParked ? "true" : "false"));
 
-    if (parkDataType != PARK_NONE)
-    {
-        snprintf(pcdata, sizeof(pcdata), "%f", Axis1ParkPosition);
-        editXMLEle(ParkpositionAxis1Xml, pcdata);
-    }
+    snprintf(pcdata, sizeof(pcdata), "%lf", Axis1ParkPosition);
+    editXMLEle(ParkpositionAxis1Xml, pcdata);
 
     prXMLEle(fp, ParkdataXmlRoot, 0);
     fclose(fp);
+    wordfree(&wexp);
 
     return true;
 }
@@ -1584,7 +1613,7 @@ IPState Dome::Move(DomeDirection dir, DomeMotionCommand operation)
     }
 
     if ((DomeMotionSP.s != IPS_BUSY && (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY)) ||
-        (domeState == DOME_PARKING))
+            (domeState == DOME_PARKING))
     {
         DEBUG(Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
         return IPS_ALERT;

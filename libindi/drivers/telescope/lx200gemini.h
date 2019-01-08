@@ -2,6 +2,7 @@
     Losmandy Gemini INDI driver
 
     Copyright (C) 2017 Jasem Mutlaq
+    Copyright (C) 2018 Eric Vickery
 
     Difference from LX200 Generic:
 
@@ -31,7 +32,7 @@ class LX200Gemini : public LX200Generic
 {
   public:
     LX200Gemini();
-    ~LX200Gemini() {}
+    ~LX200Gemini() override = default;
 
     virtual void ISGetProperties(const char *dev) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
@@ -131,9 +132,17 @@ class LX200Gemini : public LX200Generic
     const uint8_t GEMINI_TIMEOUT = 3;
 
     void setTrackState(INDI::Telescope::TelescopeStatus state);
+    void updateMountState();
+    void updateParkingState();
     void updateMovementState();
     MovementState getMovementState();
     ParkingState getParkingState();
 
     ParkingState priorParkingState = PARK_IN_PROGRESS;
+
+    bool m_isSleeping { false };
+
+    const uint8_t MOUNT_STATE_UPDATE_FREQ = 5;
+    uint8_t mountStateCounter = 0;
+
 };
