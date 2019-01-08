@@ -56,7 +56,7 @@
 #define FMT_RGB888  MAKEFOURCC('R', 'G', 'B', '8')
 
 static int iConnectedCamerasCount;
-static AltaircamInstV2 pToupCameraInfo[ALTAIRCAM_MAX];
+static AltaircamInstV2 pAltairCameraInfo[ALTAIRCAM_MAX];
 static ALTAIRCAM *cameras[ALTAIRCAM_MAX];
 
 //#define USE_SIMULATION
@@ -109,25 +109,25 @@ void ALTAIRCAM_ISInit()
     {
 #ifdef USE_SIMULATION
         iConnectedCamerasCount=1;
-        strncpy(pToupCameraInfo[0].displayname, "Simulation", 64);
+        strncpy(pAltairCameraInfo[0].displayname, "Simulation", 64);
         model.flag = ALTAIRCAM_FLAG_RAW16 | ALTAIRCAM_FLAG_BINSKIP_SUPPORTED | ALTAIRCAM_FLAG_ROI_HARDWARE | ALTAIRCAM_FLAG_TEC_ONOFF | ALTAIRCAM_FLAG_ST4;
-        model.name = pToupCameraInfo[0].displayname;
+        model.name = pAltairCameraInfo[0].displayname;
         model.xpixsz = model.ypixsz  = 5.4;
         model.res[0].width = 1280;
         model.res[0].height = 1024;
         model.res[1].width = 640;
         model.res[1].height = 480;
-        pToupCameraInfo[0].model = &model;
-        cameras[0] = new ALTAIR(&pToupCameraInfo[0]);
+        pAltairCameraInfo[0].model = &model;
+        cameras[0] = new ALTAIR(&pAltairCameraInfo[0]);
 #else
-        iConnectedCamerasCount = Altaircam_EnumV2(pToupCameraInfo);
+        iConnectedCamerasCount = Altaircam_EnumV2(pAltairCameraInfo);
         if (iConnectedCamerasCount <= 0)
-            IDLog("No ToupCam detected. Power on?");
+            IDLog("No Altair detected. Power on?");
         else
         {
             for (int i = 0; i < iConnectedCamerasCount; i++)
             {
-                cameras[i] = new ALTAIRCAM(&pToupCameraInfo[i]);
+                cameras[i] = new ALTAIRCAM(&pAltairCameraInfo[i]);
             }
         }
 #endif
@@ -143,7 +143,7 @@ void ISGetProperties(const char *dev)
 
     if (iConnectedCamerasCount == 0)
     {
-        IDMessage(nullptr, "No ToupCam detected. Power on?");
+        IDMessage(nullptr, "No Altair detected. Power on?");
         return;
     }
 
