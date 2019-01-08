@@ -1389,6 +1389,32 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
         IUSaveText(&OnstepStat[1],"Tracking");
         TrackState=SCOPE_TRACKING;
     }
+    /* Manually try to make sure the bug is resolved in OnStep Before changing inditelescope.cpp lines 638-650 to be called when RA isn't updated.
+    /* 
+    /* 
+    /* 
+     */
+    if (TrackState != SCOPE_TRACKING && CanControlTrack() && TrackStateS[TRACK_ON].s == ISS_ON)
+     { *
+     TrackStateSP.s = IPS_IDLE;
+     TrackStateS[TRACK_ON].s = ISS_OFF;
+     TrackStateS[TRACK_OFF].s = ISS_ON;
+     IDSetSwitch(&TrackStateSP, nullptr);
+    } else if (TrackState == SCOPE_TRACKING && CanControlTrack() && TrackStateS[TRACK_OFF].s == ISS_ON)
+    {
+    TrackStateSP.s = IPS_BUSY;
+    TrackStateS[TRACK_ON].s = ISS_ON;
+    TrackStateS[TRACK_OFF].s = ISS_OFF;
+    IDSetSwitch(&TrackStateSP, nullptr);
+    }
+    }
+    /*
+     * 
+     * 
+     * 
+     * 
+     * 
+     */
 
     // ============= Refractoring
     if (strstr(OSStat,"r")) {IUSaveText(&OnstepStat[2],"Refractoring On"); }
