@@ -56,6 +56,7 @@ static CamDriverInfo camInfos[] = { { "indi_gphoto_ccd", "GPhoto CCD", "GPhoto" 
                                     { "indi_nikon_ccd", "Nikon DSLR", "Nikon" },
                                     { "indi_pentax_ccd", "Pentax DSLR", "Pentax" },
                                     { "indi_sony_ccd", "Sony DSLR", "Sony" },
+                                    { "indi_fuji_ccd", "Fuji DSLR", "Fuji" },
                                     { nullptr, nullptr, nullptr } };
 
 /**********************************************************
