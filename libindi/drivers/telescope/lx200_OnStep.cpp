@@ -1341,12 +1341,12 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
         TrackState=SCOPE_TRACKING;
     }
     /* Manually try to make sure the bug is resolved in OnStep Before changing inditelescope.cpp lines 638-650 to be called when RA isn't updated.
-    /* 
-    /* 
-    /* 
+     * 
+     * 
+     * 
      */
     if (TrackState != SCOPE_TRACKING && CanControlTrack() && TrackStateS[TRACK_ON].s == ISS_ON)
-     { *
+     { 
      TrackStateSP.s = IPS_IDLE;
      TrackStateS[TRACK_ON].s = ISS_OFF;
      TrackStateS[TRACK_OFF].s = ISS_ON;
@@ -1358,7 +1358,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     TrackStateS[TRACK_OFF].s = ISS_OFF;
     IDSetSwitch(&TrackStateSP, nullptr);
     }
-    }
+    
     /*
      * 
      * 
