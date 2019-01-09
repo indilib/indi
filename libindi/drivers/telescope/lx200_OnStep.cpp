@@ -118,15 +118,15 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&HomePauseS[2], "2", "HomePause: Continue", ISS_OFF);
     IUFillSwitchVector(&HomePauseSP, HomePauseS, 3, getDeviceName(), "HomePause", "Meridian Auto Flip", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
-    IUFillSwitch(&FrequencyAdjustS[0], "1", "Freqency -", ISS_OFF);
-    IUFillSwitch(&FrequencyAdjustS[1], "2", "Freqency +", ISS_OFF);
-    IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidreal Frequency", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[0], "1", "Frequency -", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[1], "2", "Frequency +", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidereal Frequency", ISS_OFF);
     IUFillSwitchVector(&FrequencyAdjustSP, FrequencyAdjustS, 3, getDeviceName(), "FrequencyAdjust", "Frequency Adjust", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
 
     // ============== SITE_MANAGEMENT_TAB
-    IUFillSwitch(&SetHomeS[0], "COLD_START", "Return Home", ISS_OFF);
-    IUFillSwitch(&SetHomeS[1], "WARM_START", "Init Home", ISS_OFF);
+    IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return Home", ISS_OFF);
+    IUFillSwitch(&SetHomeS[1], "AT_HOME", "At Home (Reset)", ISS_OFF);
     IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
 
     // ============== GUIDE_TAB
@@ -680,14 +680,14 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 if(!sendOnStepCommandBlind(":hC#"))
                     return false;
-                IDSetSwitch(&SetHomeSP, "Cold Start");
+                IDSetSwitch(&SetHomeSP, "Return Home");
                 SetHomeS[0].s = ISS_OFF;
             }
             else
             {
                 if(!sendOnStepCommandBlind(":hF#"))
                     return false;
-                IDSetSwitch(&SetHomeSP, "Home Init");
+                IDSetSwitch(&SetHomeSP, "At Home (Reset)");
                 SetHomeS[1].s = ISS_OFF;
             }
             IUResetSwitch(&ReticSP);
