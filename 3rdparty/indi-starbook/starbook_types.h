@@ -63,9 +63,11 @@ namespace starbook {
         INIT, /* Initial state after boot */
         GUIDE, /* ??? */
         SCOPE, /* After START command or user input */
+        USER,
         UNKNOWN,
     };
 
+    /// @brief possible response codes returned by starbook
     enum ResponseCode {
         OK,
         ERROR_ILLEGAL_STATE, /* Starbook has wrong internal state to accept command */
