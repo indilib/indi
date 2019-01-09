@@ -236,7 +236,16 @@ bool V4L2_Driver::updateProperties()
         defineText(&CaptureColorSpaceTP);
 #endif
 
-        SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
+	if (!strcmp(v4l_base->getDeviceName(), "NexImage 5")) {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 2.2, 2.2);
+		LOG_INFO("Setting pixel size correctly for NexImage 5");
+	} else if (!strcmp(v4l_base->getDeviceName(), "UVC Camera (046d:0809)")) {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 3.3, 3.3);
+		LOG_INFO("Setting pixel size correctly for Logitech Webcam Pro 9000"); 
+	} else {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
+		LOG_INFO("Setting pixel size to default of 5.6");
+	}
         PrimaryCCD.setImageExtension("fits");
 
         //v4l_base->setRecorder(Streamer->getRecorder());
