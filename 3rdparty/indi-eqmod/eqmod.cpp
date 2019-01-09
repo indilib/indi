@@ -1643,17 +1643,11 @@ void EQMod::EncoderTarget(GotoParams *g)
         ha = rangeHA(r - lst);
         if (ha < 0.0)
         { // target WEST
-            if (Hemisphere == NORTH)
-                g->pier_side = PIER_EAST;
-            else
-                g->pier_side = PIER_WEST;
+            g->pier_side = PIER_EAST;
         }
         else
         {
-            if (Hemisphere == NORTH)
-                g->pier_side = PIER_WEST;
-            else
-                g->pier_side = PIER_EAST;
+            g->pier_side = PIER_WEST;
         }
     }
 
@@ -2089,17 +2083,11 @@ bool EQMod::Sync(double ra, double dec)
         ha = rangeHA(ra - lst);
         if (ha < 0.0)
         { // target WEST
-            if (Hemisphere == NORTH)
-                pier_side = PIER_EAST;
-            else
-                pier_side = PIER_WEST;
+            pier_side = PIER_EAST;
         }
         else
         {
-            if (Hemisphere == NORTH)
-                pier_side = PIER_WEST;
-            else
-                pier_side = PIER_EAST;
+            pier_side = PIER_WEST;
         }
     }
     else
