@@ -305,7 +305,7 @@ int LX200StarGoFocuser::getAbsoluteFocuserPositionFromRelative(int relativePosit
 }
 
 
-void LX200StarGoFocuser::focuserStatus() {
+void LX200StarGoFocuser::ReadFocuserStatus() {
     int absolutePosition = 0;
     if (sendQueryFocuserPosition(&absolutePosition)) {
         FocusAbsPosN[0].value = absolutePosition;

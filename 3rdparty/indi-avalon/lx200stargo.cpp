@@ -456,7 +456,16 @@ bool LX200StarGo::ReadScopeStatus()
     TrackState = newTrackState;
     NewRaDec(currentRA, currentDEC);
 
-    return syncSideOfPier();
+    if (! syncSideOfPier())
+    {
+       LOG_ERROR("Cannot determine scope status, failed to determine pier side.");
+       return false;
+    }
+
+    if (focuser.get() != nullptr)
+        return focuser.get()->ReadFocuserStatus();
+    else
+        return true;
 }
 
 /**************************************************************************************

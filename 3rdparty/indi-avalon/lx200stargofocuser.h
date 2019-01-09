@@ -48,7 +48,7 @@ public:
 protected:
 
     // Avalon specifics
-    void focuserStatus();
+    void ReadFocuserStatus();
     bool changeFocusSpeed(double values[], char* names[], int n);
     bool changeFocusMotion(ISState* states, char* names[], int n);
     bool changeFocusTimer(double values[], char* names[], int n);
