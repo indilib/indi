@@ -107,8 +107,53 @@ public:
 
         return true;
     }
+
+    bool TestHemisphereSymmetry() {
+
+        uint32_t destep = totalDEEncoder / 36;
+        // do not test at 90 degree edges because the result pier side is not stable because of float comparison
+        uint32_t demin = zeroDEEncoder - totalDEEncoder / 4 + 1;
+        uint32_t demax = zeroDEEncoder + totalDEEncoder * 3 / 4  - 1;
+
+        uint32_t rastep = totalRAEncoder / 36;
+        uint32_t ramin = zeroRAEncoder - totalRAEncoder / 2 + 1;
+        uint32_t ramax = zeroRAEncoder + totalRAEncoder / 2 - 1;
+
+
+        // test with lst = 0.0 and longitude = 0.0 so we can assume RA = HA
+        double lst = 0.0;
+
+        for (currentDEEncoder = demin; currentDEEncoder <= demax; currentDEEncoder += destep)
+        {
+            for (currentRAEncoder = ramin; currentRAEncoder <= ramax; currentRAEncoder += rastep)
+            {
+                updateLocation(50.0, 0.0, 0);
+                double RA_North, DEC_North, HA_North;
+                TelescopePierSide PierSide_North;
+                EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &RA_North, &DEC_North, &HA_North, &PierSide_North);
+
+                updateLocation(-50.0, 0.0, 0);
+                double RA_South, DEC_South, HA_South;
+                TelescopePierSide PierSide_South;
+                EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &RA_South, &DEC_South, &HA_South, &PierSide_South);
+
+                EXPECT_NEAR(RA_North, 24.0 - RA_South, 0.001);
+                EXPECT_NEAR(DEC_North, -DEC_South, 0.001);
+                EXPECT_NE(PierSide_North, PierSide_South);
+            }
+        }
+        return true;
+    }
+
+
 };
 
+
+TEST(EqmodTest, hemisphere_symmetry)
+{
+    TestEQMod eqmod;
+    eqmod.TestHemisphereSymmetry();
+}
 
 TEST(EqmodTest, encoders_north)
 {
