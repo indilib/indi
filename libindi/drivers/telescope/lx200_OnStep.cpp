@@ -274,6 +274,8 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[7], "Error", "", "");
     IUFillTextVector(&OnstepStatTP, OnstepStat, 8, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
 
+    setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
+
     return true;
 }
 
