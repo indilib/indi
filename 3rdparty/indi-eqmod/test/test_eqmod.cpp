@@ -79,10 +79,18 @@ public:
                 gotoparams.decurrentencoder = currentDEEncoder;
                 gotoparams.completed        = false;
                 gotoparams.checklimits      = true;
-                gotoparams.forcecwup        = false;
                 gotoparams.outsidelimits    = false;
-                gotoparams.limiteast        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
-                gotoparams.limitwest        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h
+                gotoparams.pier_side        = PIER_UNKNOWN; // Auto - keep counterweight down
+                if (Hemisphere == NORTH)
+                {
+                    gotoparams.limiteast        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
+                    gotoparams.limitwest        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h
+                }
+                else
+                {
+                    gotoparams.limiteast        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 13h
+                    gotoparams.limitwest        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 23h
+                }
 
                 juliandate = getJulianDate();
                 lst        = getLst(juliandate, getLongitude());
@@ -91,6 +99,9 @@ public:
                 EncodersToRADec(gotoparams.ratargetencoder, gotoparams.detargetencoder, lst, &currentRA, &currentDEC, &currentHA, nullptr);
                 EXPECT_NEAR(ra, currentRA, 0.001) << "ra=" << ra << " dec=" << de << std::endl;
                 EXPECT_NEAR(de, currentDEC, 0.001) << "ra=" << ra << " dec=" << de << std::endl;
+
+                // With counterweight down it can't go outside limits
+                EXPECT_FALSE(gotoparams.outsidelimits) << "limiteast=" << gotoparams.limiteast << " limitwest=" << gotoparams.limitwest << "  pier_side=" << gotoparams.pier_side << " ratargetencoder=" << gotoparams.ratargetencoder << std::endl ;
             }
         }
 
