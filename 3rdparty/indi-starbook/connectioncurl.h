@@ -65,7 +65,7 @@ namespace Connection {
         ITextVectorProperty AddressTP;
         IText AddressT[2]{};
 
-        const ulong HANDLE_TIMEOUT = 2;
+        const unsigned long HANDLE_TIMEOUT = 2;
 
         CURL *handle = nullptr;
 
