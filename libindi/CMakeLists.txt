@@ -466,7 +466,13 @@ install(TARGETS indi_imager_agent RUNTIME DESTINATION bin)
 ########## TELESCOPE GROUP ##########
 #####################################
 
-########### LX200 Library ###########
+####################################################################################################
+#
+# Component   : LX200 Library
+# Dependencies: pthreads
+# Supported OS: Linux, BSD, MacOS, Cygwin
+#
+#################################################################################################
 SET(lx200library_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200telescope.cpp

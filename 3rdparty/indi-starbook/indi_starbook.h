@@ -23,7 +23,10 @@
 
 #include <inditelescope.h>
 #include <curl/curl.h>
+#include <memory>
 #include "starbook_types.h"
+#include "connectioncurl.h"
+#include "command_interface.h"
 
 class Starbook : public INDI::Telescope
 {
@@ -39,18 +42,13 @@ public:
     bool ReadScopeStatus() override;
 
 private:
-
-    std::string SendCommand(std::string command);
-
-    bool SendOkCommand(const std::string &cmd);
-
-    starbook::ResponseCode ParseCommandResponse(const std::string &response);
+    std::unique_ptr<starbook::CommandInterface> cmd_interface;
 
     starbook::StarbookState state;
 
-    starbook::StarbookState ParseState(const std::string &value);
+    Connection::Curl *curlConnection = nullptr;
 
-    CURL *handle;
+    void LogResponse(const std::string &cmd, const starbook::ResponseCode &rc);
 
 protected:
     IText VersionT[1]{};

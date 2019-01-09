@@ -59,6 +59,7 @@
 # * align
 # * client
 # * clientqt5
+# * lx200
 #
 # By default, if you do not specify any components, driver and align components are searched.
 #
@@ -135,6 +136,7 @@ INDI_declare_component(driver  indidriver)
 INDI_declare_component(align   indiAlignmentDriver)
 INDI_declare_component(client  indiclient)
 INDI_declare_component(clientqt5 indiclientqt5)
+INDI_declare_component(lx200  indilx200)
 
 ########## Public ##########
 set(${INDI_PUBLIC_VAR_NS}_FOUND TRUE)
@@ -274,6 +276,7 @@ indidebug("SERVER_FOUND")
 indidebug("DRIVERS_FOUND")
 indidebug("CLIENT_FOUND")
 indidebug("QT5CLIENT_FOUND")
+indidebug("LX200_FOUND")
 
 # Linking
 indidebug("INCLUDE_DIR")

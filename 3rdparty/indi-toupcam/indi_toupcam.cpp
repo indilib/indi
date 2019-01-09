@@ -59,6 +59,12 @@ static int iConnectedCamerasCount;
 static ToupcamInstV2 pToupCameraInfo[TOUPCAM_MAX];
 static TOUPCAM *cameras[TOUPCAM_MAX];
 
+//#define USE_SIMULATION
+#ifdef USE_SIMULATION
+static altaircamModelV2 model;
+#endif
+
+
 /********************************************************************************/
 /* HRESULT                                                                      */
 /*    |----------------|---------------------------------------|------------|   */
@@ -96,11 +102,24 @@ static void cleanup()
     }
 }
 
-void TOUPCAM_ISInit()
+void Toupcam_ISInit()
 {
     static bool isInit = false;
     if (!isInit)
     {
+#ifdef USE_SIMULATION
+        iConnectedCamerasCount=1;
+        strncpy(pToupCameraInfo[0].displayname, "Simulation", 64);
+        model.flag = TOUPCAM_FLAG_RAW16 | TOUPCAM_FLAG_BINSKIP_SUPPORTED | TOUPCAM_FLAG_ROI_HARDWARE | TOUPCAM_FLAG_TEC_ONOFF | TOUPCAM_FLAG_ST4;
+        model.name = pToupCameraInfo[0].displayname;
+        model.xpixsz = model.ypixsz  = 5.4;
+        model.res[0].width = 1280;
+        model.res[0].height = 1024;
+        model.res[1].width = 640;
+        model.res[1].height = 480;
+        pToupCameraInfo[0].model = &model;
+        cameras[0] = new ALTAIR(&pToupCameraInfo[0]);
+#else
         iConnectedCamerasCount = Toupcam_EnumV2(pToupCameraInfo);
         if (iConnectedCamerasCount <= 0)
             IDLog("No ToupCam detected. Power on?");
@@ -111,6 +130,7 @@ void TOUPCAM_ISInit()
                 cameras[i] = new TOUPCAM(&pToupCameraInfo[i]);
             }
         }
+#endif
 
         atexit(cleanup);
         isInit = true;
@@ -119,7 +139,7 @@ void TOUPCAM_ISInit()
 
 void ISGetProperties(const char *dev)
 {
-    TOUPCAM_ISInit();
+    Toupcam_ISInit();
 
     if (iConnectedCamerasCount == 0)
     {
@@ -141,7 +161,7 @@ void ISGetProperties(const char *dev)
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-    TOUPCAM_ISInit();
+    Toupcam_ISInit();
     for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         TOUPCAM *camera = cameras[i];
@@ -156,7 +176,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-    TOUPCAM_ISInit();
+    Toupcam_ISInit();
     for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         TOUPCAM *camera = cameras[i];
@@ -171,7 +191,7 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-    TOUPCAM_ISInit();
+    Toupcam_ISInit();
     for (int i = 0; i < iConnectedCamerasCount; i++)
     {
         TOUPCAM *camera = cameras[i];
@@ -199,7 +219,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    TOUPCAM_ISInit();
+    Toupcam_ISInit();
 
     for (int i = 0; i < iConnectedCamerasCount; i++)
     {
@@ -213,8 +233,8 @@ TOUPCAM::TOUPCAM(const ToupcamInstV2 *instance) : m_Instance(instance)
     setVersion(TOUPCAM_VERSION_MAJOR, TOUPCAM_VERSION_MINOR);
 
     WEtimerID = NStimerID = -1;
-    NSDir = TOUPCAM_NORTH;
-    WEDir = TOUPCAM_WEST;
+    NSDir = Toupcam_NORTH;
+    WEDir = Toupcam_WEST;
 
     snprintf(this->name, MAXINDIDEVICE, "Toupcam %s", instance->displayname);
     setDeviceName(this->name);
@@ -560,31 +580,25 @@ void TOUPCAM::setupParams()
 
         rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, 1);
         LOGF_DEBUG("TOUPCAM_OPTION_RAW 1. rc: %s", errorCodes[rc].c_str());
-//        rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
-//        LOGF_DEBUG("TOUPCAM_OPTION_BITDEPTH 1. rc: %s", errorCodes[rc].c_str());
 
-        int rgbMode = 0;
-        rc = Toupcam_get_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, &rgbMode);
-        LOGF_DEBUG("TOUPCAM_OPTION_RGB. rc: %s Value: %d", errorCodes[rc].c_str(), rgbMode);
-
-        // 8 bit
-        if (rgbMode <= 3)
+        if (m_Instance->model->flag & (TOUPCAM_FLAG_RAW10 | TOUPCAM_FLAG_RAW12 | TOUPCAM_FLAG_RAW14 | TOUPCAM_FLAG_RAW16))
         {
-            VideoFormatS[TC_VIDEO_MONO_8].s = ISS_ON;
-            m_Channels = 1;
-            m_CameraPixelFormat = INDI_MONO;
-            m_BitsPerPixel = 8;
-            LOG_INFO("Video Mode 8-bit mono detected.");
-        }
-        // 16 bits gray
-        else if (rgbMode == 4)
-        {
-            VideoFormatS[TC_VIDEO_MONO_16].s = ISS_ON;
-            m_Channels = 1;
-            m_CameraPixelFormat = INDI_MONO;
+            // enable bitdepth
+            rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BITDEPTH, 1);
+            LOGF_DEBUG("TOUPCAM_OPTION_BITDEPTH 1. rc: %s", errorCodes[rc].c_str());
             m_BitsPerPixel = 16;
-            LOG_INFO("Video Mode 16-bit mono detected.");
+            VideoFormatS[TC_VIDEO_MONO_16].s = ISS_ON;
+            m_CurrentVideoFormat = TC_VIDEO_MONO_16;
         }
+        else
+        {
+            m_BitsPerPixel = 8;
+            VideoFormatS[TC_VIDEO_MONO_8].s = ISS_ON;
+            m_CurrentVideoFormat = TC_VIDEO_MONO_8;
+        }
+
+        m_CameraPixelFormat = INDI_MONO;
+        m_Channels = 1;
 
         LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_MONO_8].s == ISS_ON ? "Mono 8-bit" : "Mono 16-bit");
     }
@@ -692,7 +706,7 @@ void TOUPCAM::setupParams()
     if (m_CurrentTriggerMode != TRIGGER_SOFTWARE)
     {
         LOG_DEBUG("Setting trigger mode to software...");
-        if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1)) < 0)
+        if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1)) != 0)
         {
             LOGF_ERROR("Failed to set software trigger mode. %s", errorCodes[rc].c_str());
         }
@@ -792,7 +806,7 @@ void TOUPCAM::setupParams()
     SetTimer(POLLMS);
 
     // Start callback
-    if ( (rc = Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this)) < 0)
+    if ( (rc = Toupcam_StartPullModeWithCallback(m_CameraHandle, &TOUPCAM::eventCB, this)) != 0)
     {
         LOGF_ERROR("Failed to start camera pull mode. %s", errorCodes[rc].c_str());
         Disconnect();
@@ -941,7 +955,7 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
 
             HRESULT rc = 0;
 
-            if ( (rc = Toupcam_put_LevelRange(m_CameraHandle, lo, hi)) < 0)
+            if ( (rc = Toupcam_put_LevelRange(m_CameraHandle, lo, hi)) != 0)
             {
                 LevelRangeNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set level range. %s", errorCodes[rc].c_str());
@@ -970,7 +984,7 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
 
             HRESULT rc = 0;
 
-            if ( (rc = Toupcam_put_BlackBalance(m_CameraHandle, aSub)) < 0)
+            if ( (rc = Toupcam_put_BlackBalance(m_CameraHandle, aSub)) != 0)
             {
                 BlackBalanceNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set Black Balance. %s", errorCodes[rc].c_str());
@@ -1020,7 +1034,7 @@ bool TOUPCAM::ISNewNumber(const char *dev, const char *name, double values[], ch
                 static_cast<int>(WBRGBN[TC_WB_B].value),
             };
 
-            if ( (rc = Toupcam_put_WhiteBalanceGain(m_CameraHandle, aSub)) < 0)
+            if ( (rc = Toupcam_put_WhiteBalanceGain(m_CameraHandle, aSub)) != 0)
             {
                 WBRGBNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set White Balance gain. %s", errorCodes[rc].c_str());
@@ -1070,7 +1084,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             int prevIndex = IUFindOnSwitchIndex(&FanControlSP);
             IUUpdateSwitch(&FanControlSP, states, names, n);
             HRESULT rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_FAN, FanControlS[0].s == ISS_ON ? 1 : 0 );
-            if (rc < 0)
+            if (rc != 0)
             {
                 LOGF_ERROR("Failed to turn the fan %s. Error (%s)", FanControlS[0].s == ISS_ON ? "on" : "off", errorCodes[rc].c_str());
                 FanControlSP.s = IPS_ALERT;
@@ -1126,7 +1140,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 Toupcam_Stop(m_CameraHandle);
 
 //                int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, currentIndex+3);
-//                if (rc < 0)
+//                if (rc != 0)
 //                {
 //                    LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
 //                    VideoFormatSP.s = IPS_ALERT;
@@ -1182,7 +1196,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 Toupcam_Stop(m_CameraHandle);
 
                 rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RAW, currentIndex);
-                if (rc < 0)
+                if (rc != 0)
                 {
                     LOGF_ERROR("Failed to set video mode: %s", errorCodes[rc].c_str());
                     VideoFormatSP.s = IPS_ALERT;
@@ -1218,7 +1232,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 //                if (currentIndex == TC_VIDEO_COLOR_RGB)
                 //                {
                 //                    int rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_RGB, 0);
-                //                    if (rc < 0)
+                //                    if (rc != 0)
                 //                    {
                 //                        LOGF_ERROR("Failed to set RGB mode %d: %s", currentIndex+3, errorCodes[rc].c_str());
                 //                        VideoFormatSP.s = IPS_ALERT;
@@ -1294,7 +1308,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 
             IUResetSwitch(&AutoControlSP);
 
-            if (rc < 0)
+            if (rc != 0)
             {
                 AutoControlS[previousSwitch].s = ISS_ON;
                 AutoControlSP.s = IPS_ALERT;
@@ -1334,7 +1348,7 @@ bool TOUPCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             int targetIndex = IUFindOnSwitchIndex(&ResolutionSP);
 
             HRESULT rc = Toupcam_put_eSize(m_CameraHandle, targetIndex);
-            if (rc < 0)
+            if (rc != 0)
             {
                 ResolutionSP.s = IPS_ALERT;
                 IUResetSwitch(&ResolutionSP);
@@ -1393,7 +1407,7 @@ bool TOUPCAM::StartStreaming()
 {
     int rc=0;
 
-    //    if ( (rc = Toupcam_put_RealTime(m_CameraHandle, true)) < 0)
+    //    if ( (rc = Toupcam_put_RealTime(m_CameraHandle, true)) != 0)
     //    {
     //        LOGF_ERROR("Failed to set real time mode. Error: %s", errorCodes[rc].c_str());
     //        return false;
@@ -1404,14 +1418,14 @@ bool TOUPCAM::StartStreaming()
         ExposureRequest = 1.0 / Streamer->getTargetFPS();
 
         uint32_t uSecs = static_cast<uint32_t>(ExposureRequest * 1000000.0f);
-        if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
+        if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) != 0)
         {
             LOGF_ERROR("Failed to set video exposure time. Error: %s", errorCodes[rc].c_str());
             return false;
         }
     }
 
-    if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0)) < 0)
+    if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 0)) != 0)
     {
         LOGF_ERROR("Failed to set video trigger mode. %s", errorCodes[rc].c_str());
         return false;
@@ -1425,13 +1439,13 @@ bool TOUPCAM::StopStreaming()
 {
     int rc=0;
 
-    //    if ( (rc = Toupcam_put_RealTime(m_CameraHandle, false)) < 0)
+    //    if ( (rc = Toupcam_put_RealTime(m_CameraHandle, false)) != 0)
     //    {
     //        LOGF_ERROR("Failed to disable real time mode. Error: %s", errorCodes[rc].c_str());
     //        return false;
     //    }
 
-    if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1)) < 0)
+    if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1)) != 0)
     {
         LOGF_ERROR("Failed to set video trigger mode. %s", errorCodes[rc].c_str());
         return false;
@@ -1456,7 +1470,7 @@ int TOUPCAM::SetTemperature(double temperature)
     int16_t nTemperature = static_cast<int16_t>(temperature * 10.0);
 
     HRESULT rc = Toupcam_put_Temperature(m_CameraHandle, nTemperature);
-    if (rc < 0)
+    if (rc != 0)
     {
         LOGF_ERROR("Failed to set temperature. %s", errorCodes[rc].c_str());
         return -1;
@@ -1472,7 +1486,7 @@ bool TOUPCAM::activateCooler(bool enable)
 {
     HRESULT rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TEC, enable ? 1 : 0);
     IUResetSwitch(&CoolerSP);
-    if (rc < 0)
+    if (rc != 0)
     {
         CoolerS[enable ? TC_COOLER_OFF : TC_COOLER_ON].s = ISS_ON;
         CoolerSP.s = IPS_ALERT;
@@ -1503,7 +1517,7 @@ bool TOUPCAM::StartExposure(float duration)
     {
         ExposureRequest = duration;
 
-        if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
+        if ( (rc = Toupcam_put_ExpoTime(m_CameraHandle, uSecs)) != 0)
         {
             LOGF_ERROR("Failed to set exposure time. Error: %s", errorCodes[rc].c_str());
             return false;
@@ -1514,7 +1528,7 @@ bool TOUPCAM::StartExposure(float duration)
     /*
     if (m_Instance->model->still > 0)
     {
-        if ( (rc = Toupcam_Snap(m_CameraHandle, IUFindOnSwitchIndex(&ResolutionSP))) < 0)
+        if ( (rc = Toupcam_Snap(m_CameraHandle, IUFindOnSwitchIndex(&ResolutionSP))) != 0)
         {
             LOGF_ERROR("Failed to take a snap. Error: %d", rc);
             return false;
@@ -1535,7 +1549,7 @@ bool TOUPCAM::StartExposure(float duration)
 
     if (m_CurrentTriggerMode != TRIGGER_SOFTWARE)
     {
-        if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1)) < 0)
+        if ( (rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_TRIGGER, 1)) != 0)
         {
             LOGF_ERROR("Failed to set software trigger mode. %s", errorCodes[rc].c_str());
         }
@@ -1549,7 +1563,7 @@ bool TOUPCAM::StartExposure(float duration)
         IEAddTimer(timeMS, &TOUPCAM::sendImageCB, this);
 
     // Trigger an exposure
-    if ( (rc = Toupcam_Trigger(m_CameraHandle, 1) < 0) )
+    if ( (rc = Toupcam_Trigger(m_CameraHandle, 1) != 0) )
     {
         LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
         return false;
@@ -1585,10 +1599,10 @@ bool TOUPCAM::UpdateCCDFrame(int x, int y, int w, int h)
         return false;
     }
 
-    LOGF_DEBUG("Toupcam ROI. X: %d Y: %d W: %d H: %d. Binning %dx%d ", x, y, w, h, PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
+    LOGF_DEBUG("Altaircam ROI. X: %d Y: %d W: %d H: %d. Binning %dx%d ", x, y, w, h, PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
     HRESULT rc = Toupcam_put_Roi(m_CameraHandle, x, y, w, h);
-    if (rc < 0)
+    if (rc != 0)
     {
         LOGF_ERROR("Error setting camera ROI: %d", rc);
         return false;
@@ -1618,7 +1632,7 @@ bool TOUPCAM::UpdateCCDBin(int binx, int biny)
 
     // TODO add option to select between additive vs. average binning
     HRESULT rc = Toupcam_put_Option(m_CameraHandle, TOUPCAM_OPTION_BINNING, binx);
-    if (rc < 0)
+    if (rc != 0)
     {
         LOGF_ERROR("Binning %dx%d is not support. %s", binx, biny, errorCodes[rc].c_str());
         return false;
@@ -1663,7 +1677,7 @@ void TOUPCAM::TimerHit()
         double currentTemperature = TemperatureN[0].value;
         int16_t nTemperature=0;
         HRESULT rc = Toupcam_get_Temperature(m_CameraHandle, &nTemperature);
-        if (rc < 0)
+        if (rc != 0)
         {
             LOGF_ERROR("Toupcam_get_Temperature error. %s", errorCodes[rc].c_str());
             TemperatureNP.s = IPS_ALERT;
@@ -1738,7 +1752,7 @@ IPState TOUPCAM::guidePulseNS(uint32_t ms, eGUIDEDIRECTION dir, const char *dirN
     // If pulse < 50ms, we wait. Otherwise, we schedule it.
     int uSecs = ms * 1000;
     HRESULT rc = Toupcam_ST4PlusGuide(m_CameraHandle, dir, ms);
-    if (rc < 0)
+    if (rc != 0)
     {
         LOGF_ERROR("%s pulse guiding failed: %s", dirName, errorCodes[rc].c_str());
         return IPS_ALERT;
@@ -1762,12 +1776,12 @@ IPState TOUPCAM::guidePulseNS(uint32_t ms, eGUIDEDIRECTION dir, const char *dirN
 
 IPState TOUPCAM::GuideNorth(uint32_t ms)
 {
-    return guidePulseNS(ms, TOUPCAM_NORTH, "North");
+    return guidePulseNS(ms, Toupcam_NORTH, "North");
 }
 
 IPState TOUPCAM::GuideSouth(uint32_t ms)
 {
-    return guidePulseNS(ms, TOUPCAM_SOUTH, "South");
+    return guidePulseNS(ms, Toupcam_SOUTH, "South");
 }
 
 /* Helper function for WE timer call back */
@@ -1806,7 +1820,7 @@ IPState TOUPCAM::guidePulseWE(uint32_t ms, eGUIDEDIRECTION dir, const char *dirN
     // If pulse < 50ms, we wait. Otherwise, we schedule it.
     int uSecs = ms * 1000;
     HRESULT rc = Toupcam_ST4PlusGuide(m_CameraHandle, dir, ms);
-    if (rc < 0)
+    if (rc != 0)
     {
         LOGF_ERROR("%s pulse guiding failed: %s", dirName, errorCodes[rc].c_str());
         return IPS_ALERT;
@@ -1830,12 +1844,12 @@ IPState TOUPCAM::guidePulseWE(uint32_t ms, eGUIDEDIRECTION dir, const char *dirN
 
 IPState TOUPCAM::GuideEast(uint32_t ms)
 {
-    return guidePulseWE(ms, TOUPCAM_EAST, "East");
+    return guidePulseWE(ms, Toupcam_EAST, "East");
 }
 
 IPState TOUPCAM::GuideWest(uint32_t ms)
 {
-    return guidePulseWE(ms, TOUPCAM_WEST, "West");
+    return guidePulseWE(ms, Toupcam_WEST, "West");
 }
 
 const char *TOUPCAM::getBayerString()
@@ -2097,8 +2111,8 @@ void TOUPCAM::sendImageCallBack()
     InExposure = false;
     m_lastEventID = -1;
 
-    RemoveTimer(m_TimeoutTimerID);
-    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &TOUPCAM::checkTimeoutHelper, this);
+//    RemoveTimer(m_TimeoutTimerID);
+//    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &TOUPCAM::checkTimeoutHelper, this);
 }
 
 void TOUPCAM::checkTimeoutHelper(void *context)
@@ -2164,7 +2178,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
                 buffer = static_cast<uint8_t*>(malloc(PrimaryCCD.getXRes()*PrimaryCCD.getYRes()*3));
 
             HRESULT rc = Toupcam_PullImageV2(m_CameraHandle, buffer, captureBits * m_Channels, &info);
-            if (rc < 0)
+            if (rc != 0)
             {
                 LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
                 PrimaryCCD.setExposureFailed();
@@ -2206,7 +2220,7 @@ void TOUPCAM::eventPullCallBack(unsigned event)
         ToupcamFrameInfoV2 info;
         memset(&info, 0, sizeof(ToupcamFrameInfoV2));
         HRESULT rc = Toupcam_PullStillImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), 24, &info);
-        if (rc < 0)
+        if (rc != 0)
         {
             LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
             PrimaryCCD.setExposureFailed();

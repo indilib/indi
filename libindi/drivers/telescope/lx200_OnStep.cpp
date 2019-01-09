@@ -33,8 +33,6 @@
 
 #define ONSTEP_TIMEOUT  3
 
-
-
 LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 {
     currentCatalog    = LX200_STAR_C;
@@ -42,7 +40,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 
     setVersion(1, 4);
     
-    setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
+    setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
     
@@ -60,7 +58,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 
 const char *LX200_OnStep::getDefaultName()
 {
-    return (const char *)"LX200 OnStep";
+    return "LX200 OnStep";
 }
 
 bool LX200_OnStep::initProperties()
@@ -120,15 +118,15 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&HomePauseS[2], "2", "HomePause: Continue", ISS_OFF);
     IUFillSwitchVector(&HomePauseSP, HomePauseS, 3, getDeviceName(), "HomePause", "Meridian Auto Flip", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
-    IUFillSwitch(&FrequencyAdjustS[0], "1", "Freqency -", ISS_OFF);
-    IUFillSwitch(&FrequencyAdjustS[1], "2", "Freqency +", ISS_OFF);
-    IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidreal Frequency", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[0], "1", "Frequency -", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[1], "2", "Frequency +", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidereal Frequency", ISS_OFF);
     IUFillSwitchVector(&FrequencyAdjustSP, FrequencyAdjustS, 3, getDeviceName(), "FrequencyAdjust", "Frequency Adjust", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
 
     // ============== SITE_MANAGEMENT_TAB
-    IUFillSwitch(&SetHomeS[0], "COLD_START", "Return Home", ISS_OFF);
-    IUFillSwitch(&SetHomeS[1], "WARM_START", "Init Home", ISS_OFF);
+    IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return Home", ISS_OFF);
+    IUFillSwitch(&SetHomeS[1], "AT_HOME", "At Home (Reset)", ISS_OFF);
     IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
 
     // ============== GUIDE_TAB
@@ -275,6 +273,8 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[6], "Mount Type", "", "");
     IUFillText(&OnstepStat[7], "Error", "", "");
     IUFillTextVector(&OnstepStatTP, OnstepStat, 8, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
+
+    setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
 
     return true;
 }
@@ -682,14 +682,14 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             {
                 if(!sendOnStepCommandBlind(":hC#"))
                     return false;
-                IDSetSwitch(&SetHomeSP, "Cold Start");
+                IDSetSwitch(&SetHomeSP, "Return Home");
                 SetHomeS[0].s = ISS_OFF;
             }
             else
             {
                 if(!sendOnStepCommandBlind(":hF#"))
                     return false;
-                IDSetSwitch(&SetHomeSP, "Home Init");
+                IDSetSwitch(&SetHomeSP, "At Home (Reset)");
                 SetHomeS[1].s = ISS_OFF;
             }
             IUResetSwitch(&ReticSP);
