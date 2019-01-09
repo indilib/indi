@@ -155,7 +155,7 @@ bool QHYCFW2::ISNewNumber(const char *dev, const char *name, double values[], ch
         {
             IUUpdateNumber(&MaxFilterNP, values, names, n);
             MaxFilterNP.s = IPS_OK;
-            saveConfig(true, "MAX_FILTER");
+            saveConfig();
             IDSetNumber(&MaxFilterNP, nullptr);
             FilterSlotN[0].max = MaxFilterN[0].value;
             if (isConnected())
