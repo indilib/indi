@@ -236,7 +236,17 @@ bool V4L2_Driver::updateProperties()
         defineText(&CaptureColorSpaceTP);
 #endif
 
-        SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
+	if (!strcmp(v4l_base->getDeviceName(), "NexImage 5")) {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 2.2, 2.2);
+		LOG_INFO("Setting pixel size correctly for NexImage 5");
+	} else if (!strcmp(v4l_base->getDeviceName(), "UVC Camera (046d:0809)")) {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 3.3, 3.3);
+		LOG_INFO("Setting pixel size correctly for Logitech Webcam Pro 9000"); 
+	} else {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
+		LOG_INFO("Setting pixel size to default of 5.6");
+		LOGF_INFO("For future autodetection of pixel size, please report the following: Reported Name: '%s', Common Name (Eg: NexImage 10), Pixel Size to the following thread: https://www.indilib.org/forum/ccds-dslrs/4392-indi-pixel-size-detection.html#33485 ", v4l_base->getDeviceName());
+	}
         PrimaryCCD.setImageExtension("fits");
 
         //v4l_base->setRecorder(Streamer->getRecorder());
