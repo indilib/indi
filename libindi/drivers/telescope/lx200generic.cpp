@@ -48,10 +48,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <cstring>
 #include <unistd.h>
 
-
-
 // We declare an auto pointer to LX200Generic.
-std::unique_ptr<LX200Generic> telescope;
+static std::unique_ptr<LX200Generic> telescope;
 
 /* There is _one_ binary for all LX200 drivers, but each binary is renamed
 ** to its device name (i.e. lx200gps, lx200_16..etc). The main function will
@@ -78,116 +76,116 @@ void ISInit()
     {
         IDLog("initializing from LX200 classic device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200Classic());
     }
     if (strstr(me, "indi_lx200_OnStep"))
     {
         IDLog("initializing from LX200 OnStep device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200_OnStep());
     }
     else if (strstr(me, "indi_lx200gps"))
     {
         IDLog("initializing from LX200 GPS device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200GPS());
     }
     else if (strstr(me, "indi_lx200_16"))
     {
         IDLog("Initializing from LX200 16 device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200_16());
     }
     else if (strstr(me, "indi_lx200autostar"))
     {
         IDLog("initializing from Autostar device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200Autostar());
     }
     else if (strstr(me, "indi_lx200ap_experimental"))
     {
         IDLog("initializing from Astrophysics Experiemtal device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200AstroPhysicsExperimental());
     }
     else if (strstr(me, "indi_lx200ap_gtocp2"))
     {
         IDLog("initializing from Astrophysics GTOCP2 device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200AstroPhysicsGTOCP2());
     }
     else if (strstr(me, "indi_lx200ap"))
     {
         IDLog("initializing from Astrophysics device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200AstroPhysics());
     }
     else if (strstr(me, "indi_lx200gemini"))
     {
         IDLog("initializing from Losmandy Gemini device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200Gemini());
     }
     else if (strstr(me, "indi_lx200zeq25"))
     {
         IDLog("initializing from ZEQ25 device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200ZEQ25());
     }
     else if (strstr(me, "indi_lx200gotonova"))
     {
         IDLog("initializing from GotoNova device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200GotoNova());
     }
     else if (strstr(me, "indi_ioptronHC8406"))
     {
         IDLog("initializing from ioptron telescope Hand Controller HC8406 device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new ioptronHC8406());
     }
     else if (strstr(me, "indi_lx200pulsar2"))
     {
         IDLog("initializing from pulsar2 device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200Pulsar2());
     }
     else if (strstr(me, "indi_lx200ss2000pc"))
     {
         IDLog("initializing from skysensor2000pc device...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200SS2000PC());
     }
     else if (strstr(me, "indi_lx200fs2"))
     {
         IDLog("initializing from Astro-Electronic FS-2...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200FS2());
     }
     else if (strstr(me, "indi_lx200_10micron"))
     {
         IDLog("initializing for 10Micron mount...\n");
 
-        if (telescope.get() == 0)
+        if (telescope.get() == nullptr)
             telescope.reset(new LX200_10MICRON());
     }
     // be nice and give them a generic device
-    else if (telescope.get() == 0)
+    else if (telescope.get() == nullptr)
         telescope.reset(new LX200Generic());
 }
 
@@ -249,7 +247,7 @@ LX200Generic::LX200Generic()
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
 
     setLX200Capability(LX200_HAS_FOCUS | LX200_HAS_TRACKING_FREQ | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_SITES |
-    LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
+    LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                            TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_TRACK_MODE,

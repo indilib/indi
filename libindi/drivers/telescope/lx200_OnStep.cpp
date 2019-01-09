@@ -33,8 +33,6 @@
 
 #define ONSTEP_TIMEOUT  3
 
-
-
 LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 {
     currentCatalog    = LX200_STAR_C;
@@ -42,7 +40,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 
     setVersion(1, 4);
     
-    setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
+    setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
     
@@ -60,7 +58,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 
 const char *LX200_OnStep::getDefaultName()
 {
-    return (const char *)"LX200 OnStep";
+    return "LX200 OnStep";
 }
 
 bool LX200_OnStep::initProperties()
