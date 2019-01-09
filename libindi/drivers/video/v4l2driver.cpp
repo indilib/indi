@@ -245,6 +245,7 @@ bool V4L2_Driver::updateProperties()
 	} else {
 		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
 		LOG_INFO("Setting pixel size to default of 5.6");
+		LOGF_INFO("For future autodetection of pixel size, please report the following: Reported Name: '%s', Common Name (Eg: NexImage 10), Pixel Size", v4l_base->getDeviceName());
 	}
         PrimaryCCD.setImageExtension("fits");
 
