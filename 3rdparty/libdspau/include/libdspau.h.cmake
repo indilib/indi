@@ -49,16 +49,13 @@
 #endif
 
 #ifndef dspau_buffer_reverse
-#define dspau_buffer_reverse(buf, type, len) \
+#define dspau_buffer_reverse(a, b, len) \
     ({ \
-        type* a = (type*)buf; \
         int i = len - 1; \
         int j = 0; \
-        while(i > j) \
+        while(i >= 0) \
         { \
-          int temp = a[i]; \
-          a[i] = a[j]; \
-          a[j] = temp; \
+          a[i] = b[j]; \
           i--; \
           j++; \
         } \
@@ -66,26 +63,12 @@
 #endif
 
 #ifndef dspau_convert
-#define dspau_convert(in, out, in_type, out_type, len) \
+#define dspau_convert(in, out, len) \
     ({ \
         int k; \
         for(k = 0; k < len; k++) { \
-            ((out_type)out)[k] = ((in_type)in)[k]; \
+            ((__typeof__ (out[0])*)out)[k] = (__typeof__ (out[0]))((__typeof__ (in[0])*)in)[k]; \
         } \
-    })
-#endif
-
-#ifndef dspau_convert_from
-#define dspau_convert_from(in, out, type, len) \
-    ({ \
-        dspau_convert(in, out, type*, dspau_t*, len); \
-    })
-#endif
-
-#ifndef dspau_convert_to
-#define dspau_convert_to(in, out, type, len) \
-    ({ \
-        dspau_convert(in, out, dspau_t*, type*, len); \
     })
 #endif
 
@@ -151,7 +134,15 @@
 #ifndef RAD_AS
 #define RAD_AS (CIRCLE_AS/(PI*2))
 #endif
-
+#ifndef AstronomicalUnit
+#define AstronomicalUnit 1.495978707E+11
+#endif
+#ifndef Parsec
+#define Parsec (AstronomicalUnit*2.06264806247096E+5)
+#endif
+#ifndef LightYear
+#define LightYear (LightSpeed * SIDEREAL_DAY * 365)
+#endif
 #ifdef  __cplusplus
 
 extern "C" {
@@ -161,6 +152,9 @@ extern "C" {
 #else
 #define DLL_EXPORT extern 
 #endif
+
+typedef void *(*dspau_func_t) (void *);
+
 typedef enum {
     magnitude = 0,
     magnitude_dbv = 1,
@@ -176,7 +170,7 @@ typedef enum {
 
 typedef DSPAU_BASE_TYPE dspau_t;
 
-typedef struct {
+typedef struct dspau_stream_s {
     int len;
     int dims;
     int* sizes;
@@ -185,8 +179,8 @@ typedef struct {
     dspau_t* in;
     dspau_t* out;
     void *arg;
-    void *parent;
-    void *children;
+    struct dspau_stream_s* parent;
+    struct dspau_stream_s** children;
     int child_count;
     dspau_t* location;
     dspau_t* target;
@@ -194,7 +188,7 @@ typedef struct {
     dspau_t samplerate;
     struct timespec starttimeutc;
     pthread_t thread;
-    void *(*func) (void *);
+    dspau_func_t func;
 } dspau_stream, *dspau_stream_p;
 
 typedef struct {
@@ -209,11 +203,9 @@ typedef struct {
 } dspau_point;
 
 typedef struct {
-    int x;
-    int y;
-    int width;
-    int height;
-} dspau_rectangle;
+    int start;
+    int len;
+} dspau_region;
 
 typedef struct {
     dspau_point center;
@@ -295,7 +287,7 @@ DLL_EXPORT dspau_t* dspau_filter_highpass(dspau_stream_p stream, dspau_t samplin
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t LowFrequency, dspau_t HighFrequency, dspau_t q);
+DLL_EXPORT dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t LowFrequency, dspau_t HighFrequency);
 
 /**
 * @brief A band reject filter
@@ -310,38 +302,24 @@ DLL_EXPORT dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t samplin
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_filter_bandreject(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t LowFrequency, dspau_t HighFrequency, dspau_t q);
+DLL_EXPORT dspau_t* dspau_filter_bandreject(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t LowFrequency, dspau_t HighFrequency);
 
 /**
-* @brief A cross-correlator
+* @brief A cross-convolution processor
 * @param in1 the first input stream. (input)
 * @param in2 the second input stream. (input)
 * @param out the output stream. (output)
 * @param len1 the length of the first input stream. (input)
 * @param len2 the length of the second input stream. (input)
 * @param len the length of the output stream. (output)
-* @return the resulting correlation degree.
+* @return the resulting stream.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_interferometry_crosscorrelate(dspau_stream_p stream);
+DLL_EXPORT dspau_t* dspau_convolution_convolution(dspau_stream_p stream1, dspau_stream_p stream2);
 
-/**
-* @brief A cross-correlator
-* @param in1 the first input stream. (input)
-* @param in2 the second input stream. (input)
-* @param out the output stream. (output)
-* @param len1 the length of the first input stream. (input)
-* @param len2 the length of the second input stream. (input)
-* @param len the length of the output stream. (output)
-* @return the resulting correlation degree.
-* @return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-* Return 0 if success.
-* Return -1 if any error occurs.
-*/
 DLL_EXPORT void dspau_stream_add_child(dspau_stream_p stream, dspau_stream_p child);
 
 /**
@@ -373,7 +351,19 @@ DLL_EXPORT dspau_t dspau_stats_mean(dspau_t* in, int len);
 * @return the mean value of the stream.
 * Return mean if success.
 */
-DLL_EXPORT int dspau_stats_val_count(dspau_t* in, int len, dspau_t val, dspau_t prec);
+DLL_EXPORT int dspau_stats_val_count(dspau_t* in, int len, dspau_t val);
+
+/**
+* @brief Subtract mean from stream
+* @param in the input stream. (input)
+* @param out the output stream. (output)
+* @param len the length of the input stream.
+* @return the output stream if successfull elaboration. NULL if an
+* error is encountered.
+* Return 0 if success.
+* Return -1 if any error occurs.
+*/
+DLL_EXPORT dspau_t dspau_buffer_compare(dspau_t* in1, int len1, dspau_t* in2, int len2);
 
 /**
 * @brief Subtract mean from stream
@@ -574,13 +564,17 @@ DLL_EXPORT void dspau_astro_hadec2altaz(dspau_t Ha, dspau_t Dec, dspau_t Lat, ds
 
 DLL_EXPORT dspau_t dspau_astro_elevation(dspau_t Lat, dspau_t El);
 
-DLL_EXPORT dspau_t* dspau_interferometry_autocorrelate(dspau_stream_p stream);
+DLL_EXPORT dspau_t dspau_astro_ra2ha(dspau_t Ra, dspau_t Lst);
 
-DLL_EXPORT dspau_t* dspau_interferometry_uv_location(dspau_t HA, dspau_t DEC, dspau_t* baseline3);
+DLL_EXPORT void dspau_astro_hadec2altaz(dspau_t Ha, dspau_t Dec, dspau_t Lat, dspau_t* Alt, dspau_t *Az);
 
-DLL_EXPORT dspau_t* dspau_interferometry_calc_baselines(dspau_stream_p stream);
+DLL_EXPORT dspau_t dspau_astro_elevation(dspau_t Lat, dspau_t El);
 
-DLL_EXPORT dspau_t* dspau_interferometry_uv_coords(dspau_stream_p stream);
+DLL_EXPORT dspau_t dspau_astro_field_rotation_rate(dspau_t Alt, dspau_t Az, dspau_t Lat);
+
+DLL_EXPORT dspau_t dspau_astro_field_rotation(dspau_t HA, dspau_t rate);
+
+DLL_EXPORT dspau_t dspau_astro_parsecmag2absmag(dspau_t parsec, dspau_t deltamag, int lambda_index, dspau_t* ref_specrum, int ref_len, dspau_t* spectrum, int len);
 
 DLL_EXPORT dspau_t *dspau_stream_set_input_buffer_len(dspau_stream_p stream, int len);
 
@@ -608,15 +602,35 @@ DLL_EXPORT void dspau_stream_free(dspau_stream_p stream);
 
 DLL_EXPORT int dspau_stream_byte_size(dspau_stream_p stream);
 
-DLL_EXPORT dspau_stream_p dspau_stream_position(dspau_stream_p stream);
+DLL_EXPORT dspau_stream_p dspau_stream_set_position(dspau_stream_p stream);
+
+DLL_EXPORT dspau_stream_p dspau_stream_get_position(dspau_stream_p stream);
 
 DLL_EXPORT void *dspau_stream_exec(dspau_stream_p stream);
+
+DLL_EXPORT void *dspau_stream_exec_multidim(dspau_stream_p stream);
+
+DLL_EXPORT dspau_stream_p dspau_stream_crop(dspau_stream_p in, dspau_region* rect);
+
+DLL_EXPORT void dspau_stream_mul(dspau_stream_p in1, dspau_stream_p in2);
+
+DLL_EXPORT void dspau_stream_sum(dspau_stream_p in1, dspau_stream_p in2);
 
 DLL_EXPORT void dspau_stream_swap_buffers(dspau_stream_p stream);
 
 DLL_EXPORT dspau_t dspau_astro_field_rotation_rate(dspau_t Alt, dspau_t Az, dspau_t Lat);
 
 DLL_EXPORT dspau_t dspau_astro_field_rotation(dspau_t HA, dspau_t rate);
+
+DLL_EXPORT dspau_t* dspau_signals_sinewave(int len, dspau_t samplefreq, dspau_t freq, dspau_t max);
+
+DLL_EXPORT dspau_t* dspau_signals_sawteethwave(int len, dspau_t samplefreq, dspau_t freq, dspau_t max);
+
+DLL_EXPORT dspau_t* dspau_signals_triwave(int len, dspau_t samplefreq, dspau_t freq, dspau_t max);
+
+DLL_EXPORT dspau_t* dspau_modulation_frequency(dspau_t* in, int len, dspau_t samplefreq, dspau_t freq, dspau_t bandwidth);
+
+DLL_EXPORT dspau_t* dspau_modulation_amplitude(dspau_t* in, int len, dspau_t samplefreq, dspau_t freq);
 
 #ifdef  __cplusplus
 }

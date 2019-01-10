@@ -21,36 +21,55 @@
 dspau_t dspau_stats_minmidmax(dspau_t* in, int len, dspau_t* min, dspau_t* max)
 {
     int i;
-    dspau_t mn = DBL_MAX;
-    dspau_t mx = DBL_MIN;
+    *min = DBL_MAX;
+    *max = DBL_MIN;
     for(i = 0; i < len; i++) {
-        mn = (in[i] < mn ? in[i] : mn);
-        mx = (in[i] > mx ? in[i] : mx);
+        *min = Min(in[i], *min);
+        *max = Max(in[i], *max);
     }
-    *min = mn;
-    *max = mx;
-    return (dspau_t)((mx - mn) / 2.0 + mn);
+    return (dspau_t)((*max - *min) / 2.0 + *min);
 }
 
 dspau_t dspau_stats_mean(dspau_t* in, int len)
 {
-	int i;
+    int i;
     dspau_t mean = 0.0;
     dspau_t l = (dspau_t)len;
     for(i = 0; i < len; i++) {
         mean += in[i];
-	}
-	mean /=  l;
-	return mean;
+    }
+    mean /=  l;
+    return mean;
 }
 
-int dspau_stats_val_count(dspau_t* in, int len, dspau_t val, dspau_t prec)
+int dspau_stats_maximum_index(dspau_t* in, int len)
 {
     int i;
-    int count = 0;
-    int exp = pow(10, prec);
+    dspau_t min, max;
+    dspau_stats_minmidmax(in, len, &min, &max);
     for(i = 0; i < len; i++) {
-        if(floor(exp * in[i]) == floor(exp * val))
+        if(in[i] == max) break;
+    }
+    return i;
+}
+
+int dspau_stats_minimum_index(dspau_t* in, int len)
+{
+    int i;
+    dspau_t min, max;
+    dspau_stats_minmidmax(in, len, &min, &max);
+    for(i = 0; i < len; i++) {
+        if(in[i] == min) break;
+    }
+    return i;
+}
+
+int dspau_stats_val_count(dspau_t* in, int len, dspau_t val)
+{
+    int x;
+    int count = 0;
+    for(x = 0; x < len; x++) {
+        if(in[x] == val)
             count ++;
     }
     return count;

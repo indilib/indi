@@ -18,8 +18,8 @@
 
 #include "libdspau.h"
 #define ratio (max - min) / (mx - mn + 1)
-
-dspau_star dspau_align_findstar(dspau_t* in, dspau_rectangle tmpRect, int intensity, int width, int height)
+/*
+dspau_star dspau_align_findstar(dspau_t* in, dspau_region* tmpRect, int intensity, int width, int height)
 {
     dspau_star ret;
     int left = Max(0, Min(tmpRect.x, tmpRect.x + tmpRect.width));
@@ -119,3 +119,4 @@ lost:
     };
     return ret;
 }
+*/
