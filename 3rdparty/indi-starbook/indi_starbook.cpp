@@ -276,6 +276,30 @@ void Starbook::LogResponse(const std::string &cmd, const starbook::ResponseCode 
             msg << "ERROR_UNKNOWN";
             break;
     }
+
+    if (rc == starbook::ERROR_ILLEGAL_STATE) {
+        msg << " (";
+        switch (state) {
+
+            case starbook::INIT:
+                msg << "INIT";
+                break;
+            case starbook::GUIDE:
+                msg << "GUIDE";
+                break;
+            case starbook::SCOPE:
+                msg << "SCOPE";
+                break;
+            case starbook::USER:
+                msg << "USER";
+                break;
+            case starbook::UNKNOWN:
+                msg << "UNKNOWN";
+                break;
+        }
+        msg << ")";
+    }
+
     msg << "]";
 
     if (rc != starbook::OK) {
