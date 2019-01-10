@@ -44,7 +44,7 @@ public:
 private:
     std::unique_ptr<starbook::CommandInterface> cmd_interface;
 
-    starbook::StarbookState state;
+    starbook::StarbookState last_known_state;
 
     Connection::Curl *curlConnection = nullptr;
 

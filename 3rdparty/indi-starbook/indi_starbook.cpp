@@ -100,7 +100,7 @@ bool Starbook::initProperties()
 
     addDebugControl();
 
-    state = starbook::UNKNOWN;
+    last_known_state = starbook::UNKNOWN;
 
     return true;
 }
@@ -140,8 +140,8 @@ bool Starbook::ReadScopeStatus()
     starbook::ResponseCode rc = cmd_interface->GetStatus(res);
     if (rc != starbook::OK) return false;
 
-    state = res.state;
-    switch (state) {
+    last_known_state = res.state;
+    switch (last_known_state) {
         case starbook::INIT:
         case starbook::USER:
             TrackState = SCOPE_IDLE;
@@ -161,10 +161,7 @@ bool Starbook::ReadScopeStatus()
 
 bool Starbook::Goto(double ra, double dec)
 {
-    std::ostringstream params;
     ra = ra * 15; // CONVERSION
-    params << "?" << starbook::Equ{ ra, dec };
-
 
     starbook::ResponseCode rc = cmd_interface->GotoRaDec(ra, dec);
     LogResponse("Goto", rc);
@@ -173,9 +170,7 @@ bool Starbook::Goto(double ra, double dec)
 
 bool Starbook::Sync(double ra, double dec)
 {
-    std::ostringstream params;
     ra = ra * 15; // CONVERSION
-    params << "?" << starbook::Equ{ ra, dec };
 
     starbook::ResponseCode rc = cmd_interface->Align(ra, dec);
     LogResponse("Sync", rc);
@@ -279,7 +274,7 @@ void Starbook::LogResponse(const std::string &cmd, const starbook::ResponseCode 
 
     if (rc == starbook::ERROR_ILLEGAL_STATE) {
         msg << " (";
-        switch (state) {
+        switch (last_known_state) {
 
             case starbook::INIT:
                 msg << "INIT";
@@ -308,4 +303,5 @@ void Starbook::LogResponse(const std::string &cmd, const starbook::ResponseCode 
     } else {
         LOG_INFO(msg.str().c_str());
     }
+    LOGF_DEBUG("extracted response:", cmd_interface->last_response.c_str());
 }
