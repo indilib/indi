@@ -946,7 +946,7 @@ void ATIKCCD::TimerHit()
         {
             if (moving == 0 && currentPos == targetPos)
             {
-                SelectFilterDone(currentPos+1);
+                SelectFilterDone(currentPos);
             }
         }
 
