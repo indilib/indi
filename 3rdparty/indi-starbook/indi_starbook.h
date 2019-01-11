@@ -41,6 +41,8 @@ public:
 
     bool ReadScopeStatus() override;
 
+    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char **names, int n) override;
+
 private:
     std::unique_ptr<starbook::CommandInterface> cmd_interface;
 
@@ -54,6 +56,10 @@ protected:
     IText VersionT[1]{};
 
     ITextVectorProperty VersionInfo;
+
+    ISwitch StartS[1];
+
+    ISwitchVectorProperty StartSP;
 
     bool Connect() override;
 

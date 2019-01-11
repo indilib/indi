@@ -86,6 +86,10 @@ bool Starbook::initProperties()
     IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", INFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
+    IUFillSwitch(&StartS[0], "Initialize", "Initialize", ISS_OFF);
+    IUFillSwitchVector(&StartSP, StartS, 1, getDeviceName(), "Basic", "Basic control", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
 
     curlConnection = new Connection::Curl(this);
     curlConnection->registerHandshake([&]() { return callHandshake(); });
@@ -109,8 +113,10 @@ bool Starbook::updateProperties() {
     Telescope::updateProperties();
     if (isConnected()) {
         defineText(&VersionInfo);
+        defineSwitch(&StartSP);
     } else {
         deleteProperty(VersionInfo.name);
+        deleteProperty(StartSP.name);
     }
     return true;
 }
@@ -303,5 +309,25 @@ void Starbook::LogResponse(const std::string &cmd, const starbook::ResponseCode 
     } else {
         LOG_INFO(msg.str().c_str());
     }
-    LOGF_DEBUG("extracted response:", cmd_interface->last_response.c_str());
+//    LOGF_DEBUG("extracted response:", cmd_interface->last_response.c_str());
+}
+
+bool Starbook::ISNewSwitch(const char *dev, const char *name, ISState *states, char **names, int n) {
+
+    if (!strcmp(name, StartSP.name)) {
+        IUResetSwitch(&StartSP);
+
+        if (last_known_state == starbook::INIT) {
+            if (cmd_interface->Start()) {
+                StartSP.s = IPS_OK;
+            }
+        } else {
+            LOG_ERROR("Already initialized");
+            StartSP.s = IPS_ALERT;
+        }
+        IDSetSwitch(&StartSP, nullptr);
+        return true;
+    }
+
+    return Telescope::ISNewSwitch(dev, name, states, names, n);
 }
