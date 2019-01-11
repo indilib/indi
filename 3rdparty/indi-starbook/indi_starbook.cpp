@@ -83,7 +83,11 @@ bool Starbook::initProperties()
     Telescope::initProperties();
 
     IUFillText(&VersionT[0], "Version", "Version", "");
-    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", INFO_TAB, IP_RO, 0,
+    IUFillTextVector(&VersionTP, VersionT, 1, getDeviceName(), "Firmware", "Firmware", INFO_TAB, IP_RO, 0,
+                     IPS_IDLE);
+
+    IUFillText(&StateT[0], "State", "State", "");
+    IUFillTextVector(&VersionTP, StateT, 1, getDeviceName(), "Status", "Status", MAIN_CONTROL_TAB, IP_RO, 0,
                      IPS_IDLE);
 
     IUFillSwitch(&StartS[0], "Initialize", "Initialize", ISS_OFF);
@@ -112,10 +116,12 @@ bool Starbook::initProperties()
 bool Starbook::updateProperties() {
     Telescope::updateProperties();
     if (isConnected()) {
-        defineText(&VersionInfo);
+        defineText(&VersionTP);
+        defineText(&StateTP);
         defineSwitch(&StartSP);
     } else {
-        deleteProperty(VersionInfo.name);
+        deleteProperty(VersionTP.name);
+        deleteProperty(StateTP.name);
         deleteProperty(StartSP.name);
     }
     return true;
@@ -144,7 +150,10 @@ bool Starbook::ReadScopeStatus()
     LOG_DEBUG("Status! Sending GETSTATUS command");
     starbook::StatusResponse res;
     starbook::ResponseCode rc = cmd_interface->GetStatus(res);
-    if (rc != starbook::OK) return false;
+    if (rc != starbook::OK) {
+        StateTP.s = IPS_ALERT;
+        return false;
+    }
 
     last_known_state = res.state;
     switch (last_known_state) {
@@ -161,7 +170,31 @@ bool Starbook::ReadScopeStatus()
             break;
     }
 
+    switch (last_known_state) {
+        case starbook::INIT:
+            IUSaveText(&StateT[0], "INIT");
+            break;
+        case starbook::GUIDE:
+            IUSaveText(&StateT[0], "GUIDE");
+            break;
+        case starbook::SCOPE:
+            IUSaveText(&StateT[0], "SCOPE");
+            break;
+        case starbook::USER:
+            IUSaveText(&StateT[0], "USER");
+            break;
+        case starbook::UNKNOWN:
+            IUSaveText(&StateT[0], "UNKNOWN");
+            break;
+    }
+    IDSetText(&StateTP, nullptr);
+    StateTP.s = IPS_OK;
+
     NewRaDec(res.equ.ra / 15, res.equ.dec); // CONVERSION
+
+    LOG_DEBUG("STATUS");
+    LOG_INFO("STATUS");
+//    LOGF_DEBUG("REQ: %s RES: %s", cmd_interface->last_cmd_url.c_str(), cmd_interface->last_response.c_str());
     return true;
 }
 
@@ -245,7 +278,7 @@ bool Starbook::getFirmwareVersion() {
         LOGF_INFO("Version [OK]: %s", res.full_str.c_str());
     }
     IUSaveText(&VersionT[0], res.full_str.c_str());
-    IDSetText(&VersionInfo, nullptr);
+    IDSetText(&VersionTP, nullptr);
 
     return true;
 }

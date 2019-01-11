@@ -55,7 +55,11 @@ private:
 protected:
     IText VersionT[1]{};
 
-    ITextVectorProperty VersionInfo;
+    ITextVectorProperty VersionTP;
+
+    IText StateT[1]{};
+
+    ITextVectorProperty StateTP;
 
     ISwitch StartS[1];
 
