@@ -130,8 +130,9 @@ bool Starbook::updateProperties() {
 bool Starbook::Connect()
 {
     bool rc = Telescope::Connect();
-
-    getFirmwareVersion();
+    if (rc) {
+        getFirmwareVersion();
+    }
     return rc;
 }
 
