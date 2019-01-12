@@ -462,7 +462,7 @@ bool LX200StarGo::ReadScopeStatus()
        return false;
     }
 
-    if (focuser.get() != nullptr)
+    if (focuser.get() != nullptr && TrackState != SCOPE_SLEWING)
         return focuser.get()->ReadFocuserStatus();
     else
         return true;

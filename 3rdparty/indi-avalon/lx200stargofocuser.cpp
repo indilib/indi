@@ -305,12 +305,14 @@ int LX200StarGoFocuser::getAbsoluteFocuserPositionFromRelative(int relativePosit
 }
 
 
-void LX200StarGoFocuser::ReadFocuserStatus() {
+bool LX200StarGoFocuser::ReadFocuserStatus() {
     int absolutePosition = 0;
     if (sendQueryFocuserPosition(&absolutePosition)) {
         FocusAbsPosN[0].value = absolutePosition;
         IDSetNumber(&FocusAbsPosNP, nullptr);
     }
+    else
+        return false;
 
     if (isFocuserMoving() && atFocuserTargetPosition()) {
         FocusAbsPosNP.s = IPS_OK;
@@ -318,6 +320,8 @@ void LX200StarGoFocuser::ReadFocuserStatus() {
         FocusRelPosNP.s = IPS_OK;
         IDSetNumber(&FocusRelPosNP, nullptr);
     }
+
+    return true;
 }
 
 bool LX200StarGoFocuser::SetFocuserSpeed(int speed) {
