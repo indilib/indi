@@ -18,7 +18,7 @@
 
 #include "libdspau.h"
 
-dspau_t dspau_stats_minmidmax(dspau_t* in, int len, dspau_t* min, dspau_t* max)
+double dspau_stats_minmidmax(double* in, int len, double* min, double* max)
 {
     int i;
     *min = DBL_MAX;
@@ -27,14 +27,14 @@ dspau_t dspau_stats_minmidmax(dspau_t* in, int len, dspau_t* min, dspau_t* max)
         *min = Min(in[i], *min);
         *max = Max(in[i], *max);
     }
-    return (dspau_t)((*max - *min) / 2.0 + *min);
+    return (double)((*max - *min) / 2.0 + *min);
 }
 
-dspau_t dspau_stats_mean(dspau_t* in, int len)
+double dspau_stats_mean(double* in, int len)
 {
     int i;
-    dspau_t mean = 0.0;
-    dspau_t l = (dspau_t)len;
+    double mean = 0.0;
+    double l = (double)len;
     for(i = 0; i < len; i++) {
         mean += in[i];
     }
@@ -42,10 +42,10 @@ dspau_t dspau_stats_mean(dspau_t* in, int len)
     return mean;
 }
 
-int dspau_stats_maximum_index(dspau_t* in, int len)
+int dspau_stats_maximum_index(double* in, int len)
 {
     int i;
-    dspau_t min, max;
+    double min, max;
     dspau_stats_minmidmax(in, len, &min, &max);
     for(i = 0; i < len; i++) {
         if(in[i] == max) break;
@@ -53,10 +53,10 @@ int dspau_stats_maximum_index(dspau_t* in, int len)
     return i;
 }
 
-int dspau_stats_minimum_index(dspau_t* in, int len)
+int dspau_stats_minimum_index(double* in, int len)
 {
     int i;
-    dspau_t min, max;
+    double min, max;
     dspau_stats_minmidmax(in, len, &min, &max);
     for(i = 0; i < len; i++) {
         if(in[i] == min) break;
@@ -64,7 +64,7 @@ int dspau_stats_minimum_index(dspau_t* in, int len)
     return i;
 }
 
-int dspau_stats_val_count(dspau_t* in, int len, dspau_t val)
+int dspau_stats_val_count(double* in, int len, double val)
 {
     int x;
     int count = 0;

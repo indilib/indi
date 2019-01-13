@@ -18,7 +18,7 @@
 
 #include "libdspau.h"
 
-dspau_t* dspau_convolution_convolution(dspau_stream_p stream1, dspau_stream_p stream2) {
+double* dspau_convolution_convolution(dspau_stream_p stream1, dspau_stream_p stream2) {
     dspau_stream_p dst = dspau_stream_copy(stream1);
     dspau_stream_p src = dspau_stream_copy(stream2);
     for(src->index = 0; src->index < src->len; src->index++) {
@@ -27,9 +27,9 @@ dspau_t* dspau_convolution_convolution(dspau_stream_p stream1, dspau_stream_p st
         memcpy(dst->pos, src->pos, sizeof(int) * Min(src->dims, dst->dims));
         dspau_stream_set_position(dst);
         int len = dst->len - dst->index;
-        dspau_t* mul = dspau_buffer_mul1(dst->in, dst->len, src->in[src->index]);
-        dspau_t* sum = dspau_buffer_sum(dst->out, len, &mul[dst->index], len);
-        memcpy(dst->out, sum, sizeof(dspau_t) * len);
+        double* mul = dspau_buffer_mul1(dst->in, dst->len, src->in[src->index]);
+        double* sum = dspau_buffer_sum(dst->out, len, &mul[dst->index], len);
+        memcpy(dst->out, sum, sizeof(double) * len);
         free(sum);
         free(mul);
     }
