@@ -1066,7 +1066,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
     // ################################### BULB Pathway ##########################################
     // ###########################################################################################
     // We take this route if any of the following conditions are met:
-    // 1. Predefined Expsoure List does not exist for the camera.
+    // 1. Predefined Exposure List does not exist for the camera.
     // 2. An external shutter port or DSUSB is active.
     // 3. Exposure Time > 1 second or there is no optimal exposure and we have a bulb widget to trigger the custom time
     if (gphoto->exposureList == nullptr ||
@@ -1077,7 +1077,7 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
         // Check if we are in BULB or MANUAL or other mode. Always set it to BULB if needed
         if (gphoto->bulb_widget && gphoto->autoexposuremode_widget)
         {
-            // If it settings is not either MANAUL or BULB then warn the user.
+            // If it settings is not either MANUAL or BULB then warn the user.
             if (gphoto->autoexposuremode_widget->value.index < 3 || gphoto->autoexposuremode_widget->value.index > 4)
             {
                 DEBUGFDEVICE(device, INDI::Logger::DBG_WARNING,
@@ -1847,7 +1847,7 @@ gphoto_widget *gphoto_get_widget_info(gphoto_driver *gphoto, gphoto_widget_list 
         return nullptr;
     widget  = (*iter)->widget;
     int ret = gphoto_read_widget(widget);
-    // Read next iterator regrardless of return value.
+    // Read next iterator regardless of return value.
     *iter = (*iter)->next;
     if (ret == GP_OK)
     {

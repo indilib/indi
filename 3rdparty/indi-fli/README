@@ -3,7 +3,7 @@ FLI INDI Driver
 
 This package provides the FLI driver for Finger Lakes Instruments CCD and Focuser.
 
-Requirtments
+Requirements
 ============
 
 + INDI >= v0.6 (http://indi.sf.net)
