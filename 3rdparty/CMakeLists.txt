@@ -326,10 +326,17 @@ endif (WITH_MGEN)
 
 ## DETECTORS
 
-if (WITH_RTLSDR OR WITH_LIMESDR)
+if (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
 
 find_package(DSPAU)
 find_package(LIMESUITE)
+
+# RadioSim
+if (WITH_RADIOSIM)
+if (DSPAU_FOUND)
+add_subdirectory(indi-radiosim)
+endif (DSPAU_FOUND)
+endif (WITH_RADIOSIM)
 
 ## RTL-SDR
 if (WITH_RTLSDR)
@@ -343,6 +350,7 @@ if (WITH_LIMESDR)
 if (DSPAU_FOUND AND LIMESUITE_FOUND)
 add_subdirectory(indi-limesdr)
 endif (DSPAU_FOUND AND LIMESUITE_FOUND)
+
 endif (WITH_LIMESDR)
 
 if (NOT DSPAU_FOUND)
@@ -350,12 +358,7 @@ add_subdirectory(libdspau)
 SET(LIBRARIES_FOUND FALSE)
 endif (NOT DSPAU_FOUND)
 
-endif (WITH_RTLSDR OR WITH_LIMESDR)
-
-# RadioSim
-if (WITH_RADIOSIM)
-add_subdirectory(indi-radiosim)
-endif (WITH_RADIOSIM)
+endif (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
 
 if (WITH_ARMADILLO)
 add_subdirectory(indi-armadillo-platypus)
