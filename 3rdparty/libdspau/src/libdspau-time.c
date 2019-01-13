@@ -19,7 +19,7 @@
 #include "libdspau.h"
 #define ratio (max - min) / (mx - mn + 1)
 
-struct timespec doubleime_mktimespec(int year, int month, int dom, int hour, int minute, int second, long nanosecond)
+struct timespec dspau_time_mktimespec(int year, int month, int dom, int hour, int minute, int second, long nanosecond)
 {
     struct timespec ret;
     struct tm t_tm;
@@ -36,7 +36,7 @@ struct timespec doubleime_mktimespec(int year, int month, int dom, int hour, int
     return ret;
 }
 
-double doubleime_timespec_to_J2000time(struct timespec tp)
+double dspau_time_timespec_to_J2000time(struct timespec tp)
 {
     struct tm j2000_tm;
     time_t j2000;
@@ -53,7 +53,7 @@ double doubleime_timespec_to_J2000time(struct timespec tp)
     return ((double)(tp.tv_sec - j2000) + (double)tp.tv_nsec / 1000000000.0);
 }
 
-double doubleime_J2000time_to_lst(double secs_since_J2000, double Long)
+double dspau_time_J2000time_to_lst(double secs_since_J2000, double Long)
 {
     double Lst = GammaJ2000 + 24.0 * secs_since_J2000 / SIDEREAL_DAY;
     Lst *= 360.0 / 24.0;
@@ -64,7 +64,7 @@ double doubleime_J2000time_to_lst(double secs_since_J2000, double Long)
     return Lst + Long;
 }
 
-struct timespec doubleime_J2000time_to_timespec(double secs)
+struct timespec dspau_time_J2000time_to_timespec(double secs)
 {
     struct timespec ret;
     struct tm j2000_tm;
@@ -84,7 +84,7 @@ struct timespec doubleime_J2000time_to_timespec(double secs)
     return ret;
 }
 
-struct timespec doubleime_YmdHMSn_to_timespec(int Y, int m, int d, int H, int M, int S, long n)
+struct timespec dspau_time_YmdHMSn_to_timespec(int Y, int m, int d, int H, int M, int S, long n)
 {
     struct timespec ret;
     struct tm _tm;

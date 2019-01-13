@@ -542,15 +542,15 @@ DLL_EXPORT double* dspau_buffer_convolute(double* in1, int len1, double* in2, in
 
 DLL_EXPORT double* dspau_buffer_deviate(double* in1, int len1, double* in2, int len2, double mindeviation, double maxdeviation);
 
-DLL_EXPORT struct timespec doubleime_mktimespec(int year, int month, int dom, int hour, int minute, int second, long nanosecond);
+DLL_EXPORT struct timespec dspau_t_mktimespec(int year, int month, int dom, int hour, int minute, int second, long nanosecond);
 
-DLL_EXPORT double doubleime_timespec_to_J2000time(struct timespec tp);
+DLL_EXPORT double dspau_time_timespec_to_J2000time(struct timespec tp);
 
-DLL_EXPORT double doubleime_J2000time_to_lst(double secs_since_J2000, double Long);
+DLL_EXPORT double dspau_time_J2000time_to_lst(double secs_since_J2000, double Long);
 
-DLL_EXPORT struct timespec doubleime_J2000time_to_timespec(double secs);
+DLL_EXPORT struct timespec dspau_time_J2000time_to_timespec(double secs);
 
-DLL_EXPORT struct timespec doubleime_YmdHMSn_to_timespec(int Y, int m, int d, int H, int M, int S, long n);
+DLL_EXPORT struct timespec dspau_time_YmdHMSn_to_timespec(int Y, int m, int d, int H, int M, int S, long n);
 
 DLL_EXPORT double dspau_astro_ra2ha(double Ra, double Lst);
 
