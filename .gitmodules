@@ -1,3 +1,0 @@
-[submodule "3rdparty/libdspau"]
-	path = 3rdparty/libdspau
-	url = https://github.com/iliaplatone/dspau
