@@ -28,14 +28,9 @@
 #define MAX_TRIES 20
 #define MAX_DEVICES 4
 #define SPECTRUM_SIZE 512
-#define SUBFRAME_SIZE 256
 #define LIGHT_SPEED 299792458.0
-#define SAMPLE_RATE 1000000
-#define FREQUENCY 20000000000
-#define RAD_AS ((360 * 60 * 60) / M_PI)
-#define AIRY 1.21966
-#define AIRY_AS (AIRY * RAD_AS)
-#define RESOLUTION0 (AIRY_AS * LIGHT_SPEED / FREQUENCY)
+#define AIRY_AS (Airy * RAD_AS)
+#define RESOLUTION0 (AIRY_AS * LightSpeed / PrimaryDetector.getFrequency())
 #define DISH_SIZE_M 5.0
 #define MAX_DISH_SIZE_M 32.0
 #define RESOLUTION_AS(size) (RESOLUTION0 / size)
