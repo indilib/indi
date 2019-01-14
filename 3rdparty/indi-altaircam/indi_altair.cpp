@@ -1009,7 +1009,7 @@ bool ALTAIRCAM::ISNewNumber(const char *dev, const char *name, double values[], 
                                               static_cast<int>(WBTempTintN[TC_WB_TINT].value))) < 0)
             {
                 WBTempTintNP.s = IPS_ALERT;
-                LOGF_ERROR("Failed to set White Balance Tempeture & Tint. %s", errorCodes[rc].c_str());
+                LOGF_ERROR("Failed to set White Balance Temperature & Tint. %s", errorCodes[rc].c_str());
 
             }
             else

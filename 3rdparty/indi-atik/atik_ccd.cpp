@@ -946,7 +946,7 @@ void ATIKCCD::TimerHit()
         {
             if (moving == 0 && currentPos == targetPos)
             {
-                SelectFilterDone(currentPos+1);
+                SelectFilterDone(currentPos);
             }
         }
 
@@ -1257,12 +1257,15 @@ bool ATIKCCD::saveConfigItems(FILE *fp)
     if (m_isHorizon && IUFindOnSwitchIndex(&ControlPresetsSP) == PRESET_CUSTOM)
         IUSaveConfigNumber(fp, &ControlNP);
 
+    if (m_CameraFlags & ARTEMIS_PROPERTIES_CAMERAFLAGS_HAS_FILTERWHEEL)
+        INDI::FilterInterface::saveConfigItems(fp);
+
     return true;
 }
 
 bool ATIKCCD::SelectFilter(int targetFilter)
 {
-    int rc = ArtemisFilterWheelMove(hCam, targetFilter -1 );
+    int rc = ArtemisFilterWheelMove(hCam, targetFilter);
     return (rc == ARTEMIS_OK);
 }
 
@@ -1277,7 +1280,7 @@ int ATIKCCD::QueryFilter()
         return -1;
     }
 
-    return currentPos+1;
+    return currentPos;
 }
 
 void ATIKCCD::debugTriggered(bool enable)

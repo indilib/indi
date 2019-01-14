@@ -143,7 +143,7 @@ bool ShelyakSpox::updateProperties()
   }
   else
   {
-    // delete properties if we arent connected
+    // delete properties if we aren't connected
     deleteProperty(LampSP.name);
   }
   return true;

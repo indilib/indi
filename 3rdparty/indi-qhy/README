@@ -3,7 +3,7 @@ QHY CCD Driver
 
 This package provides QHY CCD/CMOS and Filter Wheels INDI driver.
 
-Requirtments
+Requirements
 ============
 
 + INDI >= v1.5.0 (http://www.indilib.org)

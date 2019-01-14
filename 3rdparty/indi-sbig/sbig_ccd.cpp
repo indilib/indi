@@ -44,7 +44,7 @@
 #endif
 
 #define TEMPERATURE_POLL_MS 5000 /* Temperature Polling time (ms) */
-#define MAX_RESOLUTION      4096 /* Maximum resolutoin for secondary chip */
+#define MAX_RESOLUTION      4096 /* Maximum resolution for secondary chip */
 #define MAX_DEVICES         20   /* Max device cameraCount */
 #define MAX_THREAD_RETRIES  3
 #define MAX_THREAD_WAIT     300000
@@ -1029,7 +1029,7 @@ int SBIGCCD::StartExposure(INDI::CCDChip *targetChip, double duration)
     sep.height       = height;
 
     LOGF_DEBUG(
-           "Exposure params for CCD (%d) openShutter(%d), exposureTime (%ld), binnig (%d), left (%d), top (%d), w(%d), "
+           "Exposure params for CCD (%d) openShutter(%d), exposureTime (%ld), binning (%d), left (%d), top (%d), w(%d), "
            "h(%d)",
            sep.ccd, sep.openShutter, sep.exposureTime, sep.readoutMode, sep.left, sep.top, sep.width, sep.height);
 
@@ -1209,7 +1209,7 @@ bool SBIGCCD::updateFrameProperties(INDI::CCDChip *targetChip)
         }
         return true;
     }
-    LOG_DEBUG("Failed to updat frame properties");
+    LOG_DEBUG("Failed to update frame properties");
     return false;
 }
 

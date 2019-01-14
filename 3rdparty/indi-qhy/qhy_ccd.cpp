@@ -1419,7 +1419,8 @@ void QHYCCD::updateTemperature()
 
         // In previous SDKs, we have to call this _every_ second to set the temperature
         // but shouldn't be required for SDK v3 and above.
-        //ControlQHYCCDTemp(camhandle, TemperatureRequest);
+        if (CoolerSP.s == IPS_BUSY)
+            ControlQHYCCDTemp(camhandle, TemperatureRequest);
     }
 
     // No need to spam to log
