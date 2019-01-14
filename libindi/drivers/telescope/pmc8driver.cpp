@@ -41,13 +41,16 @@
 
 #define PMC8_SIMUL_VERSION_RESP "ESGvES06B9T9"
 
-// FIXED - these should be read from the controller? Depends on mount type.
-//#ifdef MOUNT_G11
+// MOUNT_G11
 #define PMC8_G11_AXIS0_SCALE 4608000.0
 #define PMC8_G11_AXIS1_SCALE 4608000.0
-//#ifdef MOUNT_EXOS2
+// MOUNT_EXOS2
 #define PMC8_EXOS2_AXIS0_SCALE 4147200.0
 #define PMC8_EXOS2_AXIS1_SCALE 4147200.0
+// MOUNT_iEXOS100
+#define PMC8_iEXOS100_AXIS0_SCALE 4147200.0
+#define PMC8_iEXOS100_AXIS1_SCALE 4147200.0
+
 double PMC8_AXIS0_SCALE;
 double PMC8_AXIS1_SCALE;
 
@@ -131,11 +134,18 @@ void set_pmc8_myMount(int index)
 		PMC8_AXIS1_SCALE = PMC8_G11_AXIS1_SCALE;
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "LosMandy G11 Mount Selected");
 		break;
-	case 1: // EXOS2 and similar
-	default:
+	case 1: // EXOS2
 		PMC8_AXIS0_SCALE = PMC8_EXOS2_AXIS0_SCALE;
 		PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "EXOS2 Mount Selected");
+		break;
+	case 2: // iEXOS100
+		PMC8_AXIS0_SCALE = PMC8_iEXOS100_AXIS0_SCALE;
+		PMC8_AXIS1_SCALE = PMC8_iEXOS100_AXIS1_SCALE;
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "iEXOS100 Mount Selected");
+		break;
+	default:
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Need To Select a  Mount");
 		break;
 	}
 }

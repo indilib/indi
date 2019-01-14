@@ -110,11 +110,12 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
     IText FirmwareT[1] {};
     ITextVectorProperty FirmwareTP;
 
-    ISwitch MountTypeS[2];
+    ISwitch MountTypeS[3];
     ISwitchVectorProperty MountTypeSP;
    enum{
 	    MOUNT_G11,
-	    MOUNT_EXOS2
+	    MOUNT_EXOS2,
+	    MOUNT_iEXOS100
     };
 
     /* Tracking Mode */
