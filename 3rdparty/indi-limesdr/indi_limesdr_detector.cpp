@@ -436,7 +436,7 @@ void LIMESDR::grabData(int n_read)
         //Create the spectrum
         dspau_convert(continuum, stream->in, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
         stream->in = dspau_buffer_div1(stream->in, stream->len, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
-        dspau_t *out = dspau_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
+        double *out = dspau_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
         out = dspau_buffer_mul1(out, SPECTRUM_SIZE, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
         dspau_convert(out, spectrum, SPECTRUM_SIZE);
         //Destroy the dspau stream
