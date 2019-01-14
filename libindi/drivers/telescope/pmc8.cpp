@@ -19,6 +19,9 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
+/* Experimental Mount selector switch G11 vs EXOS2 by Thomas Olson
+ *
+ */
 
 #include "pmc8.h"
 
@@ -45,7 +48,7 @@ void ISGetProperties(const char *dev)
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-    scope->ISNewSwitch(dev, name, states, names, num);
+	scope->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
@@ -107,6 +110,13 @@ bool PMC8::initProperties()
 {
     INDI::Telescope::initProperties();
 
+    // Mount Type
+    IUFillSwitch(&MountTypeS[MOUNT_G11], "MOUNT_G11", "G11", ISS_OFF);
+    IUFillSwitch(&MountTypeS[MOUNT_EXOS2], "MOUNT_EXOS2", "EXOS2", ISS_ON);
+    IUFillSwitchVector(&MountTypeSP, MountTypeS, 2, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
+		 IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
     AddTrackMode("TRACK_SOLAR", "Solar");
@@ -148,15 +158,18 @@ bool PMC8::updateProperties()
 {
     INDI::Telescope::updateProperties();
 
+	defineSwitch(&MountTypeSP);
+
     if (isConnected())
     {
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
 
+	
         defineText(&FirmwareTP);
 
-        // do not support part position
+        // do not support park position
         deleteProperty(ParkPositionNP.name);
         deleteProperty(ParkOptionSP.name);
 
@@ -167,6 +180,7 @@ bool PMC8::updateProperties()
        deleteProperty(GuideNSNP.name);
        deleteProperty(GuideWENP.name);
        deleteProperty(GuideRateNP.name);
+       //deleteProperty(MountTypeSP.name); //I want mount type available before connect.
 
        deleteProperty(FirmwareTP.name);
     }
@@ -210,6 +224,7 @@ void PMC8::getStartupData()
     LOG_INFO("Please read the instructions at:");
     LOG_INFO("    http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/");
     LOG_INFO("before using this driver!");
+    LOG_INFO("NOTE: Must select G11 or EXOS2 mount!!!");
 
 #if 0
     // FIXEME - Need to handle southern hemisphere for DEC?
@@ -277,11 +292,26 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
 
 bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (strcmp(name, MountTypeSP.name) == 0)
+        {
+            IUUpdateSwitch(&MountTypeSP, states, names, n);
+	int currentMountIndex = IUFindOnSwitchIndex(&MountTypeSP);
+		LOG_INFO("Mount is");
+		LOG_INFO(MountTypeS[currentMountIndex].label);
+
+
+		set_pmc8_myMount(currentMountIndex);
+		MountTypeSP.s = IPS_OK;
+                IDSetSwitch(&MountTypeSP, nullptr);
+		defineSwitch(&MountTypeSP);
+            return true;
+        }
+
 
     }
-
+    
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -832,6 +862,7 @@ bool PMC8::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
+    IUSaveConfigSwitch(fp, &MountTypeSP);
     return true;
 }
 
@@ -984,7 +1015,7 @@ bool PMC8::SetTrackMode(uint8_t mode)
             pmc8_mode = PMC8_TRACK_LUNAR;
             break;
         case TRACK_SOLAR:
-            pmc8_mode = PMC8_TRACK_LUNAR;
+            pmc8_mode = PMC8_TRACK_SOLAR;
             break;
         case TRACK_CUSTOM:
             pmc8_mode = PMC8_TRACK_CUSTOM;
