@@ -23,17 +23,18 @@
 #include <unistd.h>
 #include <indilogger.h>
 #include <memory>
+#include <libdspau.h>
 
 #define MAX_TRIES 20
 #define MAX_DEVICES 4
+#define SPECTRUM_SIZE 512
 #define SUBFRAME_SIZE 256
+#define LIGHT_SPEED 299792458.0
 #define SAMPLE_RATE 1000000
 #define FREQUENCY 20000000000
-#define SIDEREAL_DAY 86164.090530833
 #define RAD_AS ((360 * 60 * 60) / M_PI)
 #define AIRY 1.21966
 #define AIRY_AS (AIRY * RAD_AS)
-#define LIGHT_SPEED 299792458.0
 #define RESOLUTION0 (AIRY_AS * LIGHT_SPEED / FREQUENCY)
 #define DISH_SIZE_M 5.0
 #define MAX_DISH_SIZE_M 32.0
@@ -128,6 +129,7 @@ Ra = 0;
 Dec = FOV_DEG / 2;
     setDeviceName(getDefaultName());
 	continuum = (uint8_t*)malloc(sizeof(uint8_t));
+	spectrum = (uint8_t*)malloc(sizeof(uint8_t));
 }
 
 /**************************************************************************************
@@ -173,7 +175,7 @@ bool RadioSim::initProperties()
 	INDI::Detector::initProperties();
 
 	// We set the Detector capabilities
-	uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM;
+	uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
 	SetDetectorCapability(cap);
 
 	IUFillNumber(&DetectorPropertiesN[0], "DETECTOR_SIZE", "Dish size (m)", "%4.0f", 5, MAX_DISH_SIZE_M, 1, 5.0);
@@ -183,11 +185,13 @@ bool RadioSim::initProperties()
 	IUFillNumber(&DetectorCoordsN[1], "DETECTOR_DEC", "Position (DEC)", "%2.3f", 0, FOV_DEG, 1, FOV_DEG/2);
 	IUFillNumberVector(&DetectorCoordsNP, DetectorCoordsN, 2, getDeviceName(), "DETECTOR_COORDS", "Coordinates", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
-	PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 0.3, 10, 1, false);
-	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", FREQUENCY, FREQUENCY, 0, false);
-	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 0, 1.0, 0, false);
-	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", 8, 8, 1, false);
-
+	PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 1.0e-6, 86164.092, 0.001, false);
+	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 50.0e+9, 1.0e+6, 20.0e+9, false);
+	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 100.0e+6, 1.0e+3, 1.0e+6, false);
+	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_GAIN", 0.0, 25.0, 10.0, false);
+	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BANDWIDTH", 100.0e+6, 1.0e+3, 10e+3, false);
+	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", -64, -64, -64, false);
+	PrimaryDetector.setCaptureExtension("fits");
 	// Add Debug, Simulator, and Configuration controls
 	addAuxControls();
 
@@ -286,7 +290,8 @@ bool RadioSim::StartCapture(float duration)
 
 	// Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
 	PrimaryDetector.setCaptureDuration(duration);
-	PrimaryDetector.setSampleRate(1.0 / duration);
+	PrimaryDetector.setContinuumBufferSize(duration * PrimaryDetector.getSampleRate() * abs(PrimaryDetector.getBPS()) / 8);
+	PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE * abs(PrimaryDetector.getBPS()) / 8);
 	gettimeofday(&CapStart, nullptr);
 
 	InCapture = true;
@@ -300,11 +305,11 @@ bool RadioSim::StartCapture(float duration)
 ***************************************************************************************/
 bool RadioSim::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
-    	INDI_UNUSED(bps);
-    	INDI_UNUSED(freq);
-    	INDI_UNUSED(sr);
-    	INDI_UNUSED(bw);
-    	INDI_UNUSED(gain);
+	PrimaryDetector.setBPS(bps);
+	PrimaryDetector.setFrequency(freq);
+	PrimaryDetector.setBandwidth(bw);
+	PrimaryDetector.setSampleRate(sr);
+	PrimaryDetector.setGain(gain);
 
 	return true;
 }
@@ -381,12 +386,33 @@ void RadioSim::grabData()
 	double val = 0;
 	int x = static_cast<int>(Ra * IMAGE_WIDTH / FOV_DEG);
 	int y = static_cast<int>(Dec * IMAGE_HEIGHT / FOV_DEG);
-	PrimaryDetector.setContinuumBufferSize(1);
-	continuum = PrimaryDetector.getContinuumBuffer();
 	for(to_read = 0; to_read < len && x + to_read < IMAGE_WIDTH; to_read++)
 		val += MagickImage[x + (y * IMAGE_WIDTH) + to_read];
-	continuum[0] = static_cast<unsigned char>(val / (to_read));
-	IDMessage (getDeviceName(), "value: %d", continuum[0]);
+	val /= to_read * (LightSpeed * Airy / PrimaryDetector.getFrequency());
+	val *= (pow(DishSize, 2) * PrimaryDetector.getGain());
+	len = PrimaryDetector.getContinuumBufferSize() * 8 / abs(PrimaryDetector.getBPS());
+	continuum = PrimaryDetector.getContinuumBuffer();
+	spectrum = PrimaryDetector.getSpectrumBuffer();
+
+	double *buf = dspau_signals_sinewave(len, PrimaryDetector.getSampleRate(), 1.0);
+	buf = dspau_buffer_stretch(buf, len, -val, val);
+	for(int i = 0; i < len; i++) {
+		buf[i] += ((double)(rand() % (int)val) / 2.0) - val / 4.0;
+	}
+	memcpy(continuum, buf, PrimaryDetector.getContinuumBufferSize());
+        free(buf);
+
+        //Create the dspau stream
+        dspau_stream_p stream = dspau_stream_new();
+        dspau_stream_add_dim(stream, len);
+        //Create the spectrum
+	dspau_stream_set_input_buffer(stream, buf, len);
+        double *out = dspau_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
+	buf = dspau_buffer_stretch(buf, len, 0, 1.0);
+	memcpy(spectrum, out, PrimaryDetector.getSpectrumBufferSize());
+        //Destroy the dspau stream
+        dspau_stream_free(stream);
+        free(out);
 
 	LOG_INFO("Download complete.");
 
