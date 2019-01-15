@@ -117,6 +117,8 @@ bool PMC8::initProperties()
     IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
 		 IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+// Have the MOUNT types available before connecting
+    defineSwitch(&MountTypeSP);
 
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
@@ -159,7 +161,6 @@ bool PMC8::updateProperties()
 {
     INDI::Telescope::updateProperties();
 
-	defineSwitch(&MountTypeSP);
 
     if (isConnected())
     {
@@ -181,7 +182,6 @@ bool PMC8::updateProperties()
        deleteProperty(GuideNSNP.name);
        deleteProperty(GuideWENP.name);
        deleteProperty(GuideRateNP.name);
-       //deleteProperty(MountTypeSP.name); //I want mount type available before connect.
 
        deleteProperty(FirmwareTP.name);
     }
