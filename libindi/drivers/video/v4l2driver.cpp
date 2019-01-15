@@ -35,12 +35,20 @@ typedef struct
     const char *commonName; // if null, use device name
     float pixelSizeX;
     float pixelSizeY; // if negative, use pixelSizeX also for Y
+    bool tested; //if False print please report message
 } PixelSizeInfo;
 
 static const PixelSizeInfo pixelSizeInfo[] = {
-    { "NexImage 5", nullptr, 2.2f, -1 },
-    { "UVC Camera (046d:0809)", "Logitech Webcam Pro 9000", 3.3f, -1 },
-    { "SVBONY SV105: SVBONY SV105", "SVBONY SV105", 3.0f, -1 },
+    { "NexImage 5", nullptr, 2.2f, -1 , true },
+    { "UVC Camera (046d:0809)", "Logitech Webcam Pro 9000", 3.3f, -1 , true },
+    { "SVBONY SV105: SVBONY SV105", "SVBONY SV105", 3.0f, -1 , true },
+    { "NexImage 10", nullptr, 1.67f, -1 , false },
+    { "NexImage Burst Color", nullptr, 3.75f, -1 , false },
+    { "NexImage Burst Mono", nullptr, 3.75f, -1 , false },
+    { "Skyris 132C", nullptr, 3.75f, -1 , false },
+    { "Skyris 132M", nullptr, 3.75f, -1 , false },
+    { "Skyris 236C", nullptr, 2.8f, -1 , false },
+    { "Skyris 236M", nullptr, 2.8f, -1 , false },
     { nullptr, nullptr, 5.6f, -1 } // sentinel and default pixel size, needs to be last
 };
 
@@ -273,6 +281,9 @@ bool V4L2_Driver::updateProperties()
         if (info->deviceName)
         {
             LOGF_INFO("Setting pixel size correctly for %s", commonName);
+	    if (!info->tested) {
+		    LOGF_INFO("Please report that the camera worked: Name: %s/%s Detected and working, to https://www.indilib.org/forum/ccds-dslrs/4392-indi-pixel-size-detection.html", v4l_base->getDeviceName(), commonName);
+	    }
         }
         else
         {
