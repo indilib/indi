@@ -1,6 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2010 Gerry Rozema. All rights reserved.
-  Copyright(c) 2018 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2019 Jasem Mutlaq. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -58,15 +57,13 @@ class SynscanDriver : public INDI::Telescope
         // Check if command is responding
         virtual bool echo();
 
-        double SlewTargetAlt { -1 };
-        double SlewTargetAz { -1 };
         double CurrentRA { 0 };
         double CurrentDEC { 0 };
         double TargetRA {0};
         double TargetDEC {0};
+
         int m_MountModel { 0 };
-        int SlewRate { 5 };
-        bool NewFirmware { false };
+        int m_TargetSlewRate { 5 };
         double FirmwareVersion { 0 };
 
 
@@ -87,20 +84,15 @@ class SynscanDriver : public INDI::Telescope
         ln_hrz_posn getAltAzPosition(double ra, double dec);
         int hexStrToInteger(const std::string &str);
 
-        char LastParkRead[64];
-        int NumPark { 0 };
-        int StopCount { 0 };
-        int CustomNSSlewRate { -1 };
-        int CustomWESlewRate { -1 };
-        int RecoverTrials { 0 };
+        // Is mount type Alt-Az?
+        bool m_isAltAz { false };
 
-        IText BasicMountInfoT[6] = {};
+        IText BasicMountInfoT[5] = {};
         ITextVectorProperty BasicMountInfoTP;
         enum MountInfo
         {
             MI_FW_VERSION,
             MI_MOUNT_MODEL,
-            MI_ALIGN_STATUS,
             MI_GOTO_STATUS,
             MI_POINT_STATUS,
             MI_TRACK_MODE

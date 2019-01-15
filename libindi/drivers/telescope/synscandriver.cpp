@@ -1,6 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2010 Gerry Rozema. All rights reserved.
-  Copyright(c) 2018 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2019 Jasem Mutlaq. All rights reserved.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -38,7 +37,6 @@ constexpr uint16_t SynscanDriver::SLEW_RATE[];
 
 SynscanDriver::SynscanDriver()
 {
-    strncpy(LastParkRead, "", 1);
 }
 
 const char * SynscanDriver::getDefaultName()
@@ -51,7 +49,7 @@ bool SynscanDriver::initProperties()
     INDI::Telescope::initProperties();
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_ABORT | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO |
-                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE,
+                           TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_CAN_CONTROL_TRACK,
                            NARRAY(SLEW_RATE));
     SetParkDataType(PARK_RA_DEC_ENCODER);
 
@@ -74,11 +72,10 @@ bool SynscanDriver::initProperties()
     //////////////////////////////////////////////////////////////////////////////////////////////////
     IUFillText(&BasicMountInfoT[MI_FW_VERSION], "MI_FW_VERSION", "Firmware", "-");
     IUFillText(&BasicMountInfoT[MI_MOUNT_MODEL], "MI_MOUNT_MODEL", "Model", "-");
-    IUFillText(&BasicMountInfoT[MI_ALIGN_STATUS], "MI_ALIGN_STATUS", "Alignment", "-");
     IUFillText(&BasicMountInfoT[MI_GOTO_STATUS], "MI_GOTO_STATUS", "Goto", "-");
     IUFillText(&BasicMountInfoT[MI_POINT_STATUS], "MI_POINT_STATUS", "Pointing", "-");
     IUFillText(&BasicMountInfoT[MI_TRACK_MODE], "MI_TRACK_MODE", "Tracking Mode", "-");
-    IUFillTextVector(&BasicMountInfoTP, BasicMountInfoT, 6, getDeviceName(), "BASIC_MOUNT_INFO",
+    IUFillTextVector(&BasicMountInfoTP, BasicMountInfoT, 5, getDeviceName(), "BASIC_MOUNT_INFO",
                      "Mount Information", MOUNT_TAB, IP_RO, 60, IPS_IDLE);
 
     addAuxControls();
@@ -171,19 +168,15 @@ bool SynscanDriver::readFirmware()
         FirmwareVersion += static_cast<double>(hexStrToInteger(std::string(&res[4], 2))) / 10000;
 
         LOGF_INFO("Firmware version: %lf", FirmwareVersion);
+        m_MountInfo[MI_FW_VERSION] = std::to_string(FirmwareVersion);
 
         if (FirmwareVersion < 3.38 || (FirmwareVersion >= 4.0 && FirmwareVersion < 4.38))
         {
             LOG_WARN("Firmware version is too old. Update Synscan firmware to v4.38+");
+            return false;
         }
         else
-        {
-            NewFirmware = true;
-        }
-
-        m_MountInfo[MI_FW_VERSION] = std::to_string(FirmwareVersion);
-
-        return true;
+            return true;
     }
     else
         LOG_WARN("Firmware version is too old. Update Synscan firmware to v4.38+");
@@ -225,58 +218,36 @@ bool SynscanDriver::readModel()
     else
         IUSaveText(&BasicMountInfoT[MI_MOUNT_MODEL], "Unknown model");
 
+    m_isAltAz = (m_MountModel == 5 || m_MountModel == 6 || (m_MountModel >= 128 && m_MountModel < 160));
+
     return true;
 }
 
 bool SynscanDriver::ReadScopeStatus()
 {
-#if 0
     if (isSimulation())
     {
         mountSim();
         return true;
     }
 
-    // Query mount information
-    memset(res, 0, SYN_RES);
-    LOG_DEBUG("CMD <J>");
-    tty_write(PortFD, "J", 1, &bytesWritten);
-    numread = tty_read(PortFD, res, 2, 2, &bytesRead);
-    LOGF_DEBUG("RES <%s>", res);
-    if (res[1] == '#')
-    {
-        m_MountInfo[MI_ALIGN_STATUS] = std::to_string(static_cast<int>(res[0]));
-    }
-    memset(res, 0, SYN_RES);
-    LOG_DEBUG("CMD <L>");
-    tty_write(PortFD, "L", 1, &bytesWritten);
-    numread = tty_read(PortFD, res, 2, 2, &bytesRead);
-    LOGF_DEBUG("RES <%s>", res);
-    if (res[1] == '#')
-    {
+    char res[SYN_RES] = {0};
+
+    // Goto in progress?
+    if (sendCommand("L", res))
         m_MountInfo[MI_GOTO_STATUS] = res[0];
-    }
-    memset(res, 0, SYN_RES);
-    LOG_DEBUG("CMD <p>");
-    tty_write(PortFD, "p", 1, &bytesWritten);
-    numread = tty_read(PortFD, res, 2, 2, &bytesRead);
-    LOGF_DEBUG("RES <%s>", res);
-    if (res[1] == '#')
+
+    // Pier side
+    if (sendCommand("p", res))
     {
         m_MountInfo[MI_POINT_STATUS] = res[0];
-
         // INDI and mount pier sides are opposite to each other
         setPierSide(res[0] == 'W' ? PIER_EAST : PIER_WEST);
     }
-    memset(res, 0, SYN_RES);
-    LOG_DEBUG("CMD <t>");
-    tty_write(PortFD, "t", 1, &bytesWritten);
-    numread = tty_read(PortFD, res, 2, 2, &bytesRead);
-    LOGF_DEBUG("RES <%s>", res);
-    if (res[1] == '#')
+
+    if (sendCommand("t", res))
     {
-        TrackingStatus = res[0];
-        switch(static_cast<int>(res[0]))
+        switch(res[0])
         {
             case 0:
                 m_MountInfo[MI_TRACK_MODE] = "Tracking off";
@@ -293,7 +264,7 @@ bool SynscanDriver::ReadScopeStatus()
         }
     }
 
-    sendMountStatus(true);
+    sendMountStatus();
 
     if (TrackState == SCOPE_SLEWING)
     {
@@ -305,9 +276,9 @@ bool SynscanDriver::ReadScopeStatus()
         {
             //  Nothing to do here
         }
-        else if (m_MountModel < 128)
+        else if (m_isAltAz == false)
         {
-            if (TrackingStatus[0] != 0)
+            if (res[0] != 0)
                 TrackState = SCOPE_TRACKING;
             else
                 TrackState = SCOPE_IDLE;
@@ -315,100 +286,22 @@ bool SynscanDriver::ReadScopeStatus()
     }
     if (TrackState == SCOPE_PARKING)
     {
-        if (FirmwareVersion == 4.103500)
-        {
-            //  With this firmware the correct way
-            //  is to check the slewing flat
-            memset(res, 0, 3);
-            LOG_DEBUG("CMD <L>");
-            tty_write(PortFD, "L", 1, &bytesWritten);
-            numread = tty_read(PortFD, res, 2, 3, &bytesRead);
-            LOGF_DEBUG("RES <%s>", res);
-            if (res[0] != 48)
-            {
-                //  Nothing to do here
-            }
-            else
-            {
-                if (NumPark++ < 2)
-                {
-                    Park();
-                }
-                else
-                {
-                    TrackState = SCOPE_PARKED;
-                    SetParked(true);
-                }
-            }
-        }
-        else
-        {
-            //  ok, lets try read where we are
-            //  and see if we have reached the park position
-            //  newer firmware versions dont read it back the same way
-            //  so we watch now to see if we get the same read twice in a row
-            //  to confirm that it has stopped moving
-            memset(res, 0, SYN_RES);
-            LOG_DEBUG("CMD <z>");
-            tty_write(PortFD, "z", 1, &bytesWritten);
-            numread = tty_read(PortFD, res, 18, 2, &bytesRead);
-            LOGF_DEBUG("RES <%s>", res);
-
-            //IDMessage(getDeviceName(),"Park Read %s %d",res,StopCount);
-
-            if (strncmp((char *)res, LastParkRead, 18) == 0)
-            {
-                //  We find that often after it stops from park
-                //  it's off the park position by a small amount
-                //  issuing another park command gets a small movement and then
-                if (++StopCount > 2)
-                {
-                    if (NumPark++ < 2)
-                    {
-                        StopCount = 0;
-                        //IDMessage(getDeviceName(),"Sending park again");
-                        Park();
-                    }
-                    else
-                    {
-                        TrackState = SCOPE_PARKED;
-                        //ParkSP.s=IPS_OK;
-                        //IDSetSwitch(&ParkSP,nullptr);
-                        //IDMessage(getDeviceName(),"Telescope is Parked.");
-                        SetParked(true);
-                    }
-                }
-                else
-                {
-                    //StopCount=0;
-                }
-            }
-            else
-            {
-                StopCount = 0;
-            }
-            strncpy(LastParkRead, res, 20);
-        }
+        // TODO
     }
 
+    // Get Precise RA/DE
     memset(res, 0, SYN_RES);
-    LOG_DEBUG("CMD <e>");
-    tty_write(PortFD, "e", 1, &bytesWritten);
-    numread = tty_read(PortFD, res, 18, 1, &bytesRead);
-    LOGF_DEBUG("RES <%s>", res);
-    if (bytesRead != 18)
-    {
-        LOG_DEBUG("Read current position failed");
+    if (!sendCommand("z", res))
         return false;
-    }
 
+    uint64_t n1, n2;
     sscanf(res, "%lx,%lx#", &n1, &n2);
-    ra  = static_cast<double>(n1) / 0x100000000 * 24.0;
-    dec = static_cast<double>(n2) / 0x100000000 * 360.0;
+    double ra  = static_cast<double>(n1) / 0x100000000 * 24.0;
+    double de  = static_cast<double>(n2) / 0x100000000 * 360.0;
 
     ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
     J2000Pos.ra  = range24(ra) * 15.0;
-    J2000Pos.dec = rangeDec(dec);
+    J2000Pos.dec = rangeDec(de);
 
     // Synscan reports J2000 coordinates so we need to convert from J2000 to JNow
     ln_get_equ_prec2(&J2000Pos, JD2000, ln_get_julian_from_sys(), &epochPos);
@@ -419,116 +312,6 @@ bool SynscanDriver::ReadScopeStatus()
     //  Now feed the rest of the system with corrected data
     NewRaDec(CurrentRA, CurrentDEC);
 
-    if (TrackState == SCOPE_SLEWING && m_MountModel >= 128 && (SlewTargetAz != -1 || SlewTargetAlt != -1))
-    {
-        ln_hrz_posn CurrentAltAz { 0, 0 };
-        double DiffAlt { 0 };
-        double DiffAz { 0 };
-
-        CurrentAltAz = getAltAzPosition(ra, dec);
-        DiffAlt = CurrentAltAz.alt-SlewTargetAlt;
-        if (SlewTargetAlt != -1 && std::abs(DiffAlt) > 0.01)
-        {
-            int NewRate = 2;
-
-            if (std::abs(DiffAlt) > 4)
-            {
-                NewRate = 9;
-            }
-            else if (std::abs(DiffAlt) > 1.2)
-            {
-                NewRate = 7;
-            }
-            else if (std::abs(DiffAlt) > 0.5)
-            {
-                NewRate = 5;
-            }
-            else if (std::abs(DiffAlt) > 0.2)
-            {
-                NewRate = 4;
-            }
-            else if (std::abs(DiffAlt) > 0.025)
-            {
-                NewRate = 3;
-            }
-            LOGF_DEBUG("Slewing Alt axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
-                       CurrentAltAz.alt, SlewTargetAlt, CurrentAltAz.alt-SlewTargetAlt, CustomNSSlewRate);
-            if (NewRate != CustomNSSlewRate)
-            {
-                if (DiffAlt < 0)
-                {
-                    CustomNSSlewRate = NewRate;
-                    MoveNS(DIRECTION_NORTH, MOTION_START);
-                }
-                else
-                {
-                    CustomNSSlewRate = NewRate;
-                    MoveNS(DIRECTION_SOUTH, MOTION_START);
-                }
-            }
-        }
-        else if (SlewTargetAlt != -1 && std::abs(DiffAlt) < 0.01)
-        {
-            MoveNS(DIRECTION_NORTH, MOTION_STOP);
-            SlewTargetAlt = -1;
-            LOG_DEBUG("Slewing on Alt axis finished");
-        }
-        DiffAz = CurrentAltAz.az-SlewTargetAz;
-        if (DiffAz < -180)
-            DiffAz = (DiffAz+360)*2;
-        else if (DiffAz > 180)
-            DiffAz = (DiffAz-360)*2;
-        if (SlewTargetAz != -1 && std::abs(DiffAz) > 0.01)
-        {
-            int NewRate = 2;
-
-            if (std::abs(DiffAz) > 4)
-            {
-                NewRate = 9;
-            }
-            else if (std::abs(DiffAz) > 1.2)
-            {
-                NewRate = 7;
-            }
-            else if (std::abs(DiffAz) > 0.5)
-            {
-                NewRate = 5;
-            }
-            else if (std::abs(DiffAz) > 0.2)
-            {
-                NewRate = 4;
-            }
-            else if (std::abs(DiffAz) > 0.025)
-            {
-                NewRate = 3;
-            }
-            LOGF_DEBUG("Slewing Az axis: %1.3f-%1.3f -> %1.3f (speed: %d)",
-                       CurrentAltAz.az, SlewTargetAz, CurrentAltAz.az-SlewTargetAz, CustomWESlewRate);
-            if (NewRate != CustomWESlewRate)
-            {
-                if (DiffAz > 0)
-                {
-                    CustomWESlewRate = NewRate;
-                    MoveWE(DIRECTION_WEST, MOTION_START);
-                }
-                else
-                {
-                    CustomWESlewRate = NewRate;
-                    MoveWE(DIRECTION_EAST, MOTION_START);
-                }
-            }
-        }
-        else if (SlewTargetAz != -1 && std::abs(DiffAz) < 0.01)
-        {
-            MoveWE(DIRECTION_WEST, MOTION_STOP);
-            SlewTargetAz = -1;
-            LOG_DEBUG("Slewing on Az axis finished");
-        }
-        if (SlewTargetAz == -1 && SlewTargetAlt == -1)
-        {
-            startTrackMode();
-        }
-    }
     return true;
 }
 
@@ -563,7 +346,6 @@ bool SynscanDriver::startTrackMode()
         LOG_DEBUG("Timeout waiting for scope to start tracking.");
         return false;
     }
-#endif
     return true;
 
 }
@@ -572,27 +354,11 @@ bool SynscanDriver::Goto(double ra, double dec)
 {
     char res[SYN_RES]= {0};
     int bytesWritten, bytesRead;
-    ln_hrz_posn TargetAltAz { 0, 0 };
-
-    if (isSimulation() == false)
-    {
-        LOG_DEBUG("CMD <Ka>");
-        tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
-        tty_read(PortFD, res, 2, 2, &bytesRead);   //  Read 2 bytes of response
-        LOGF_DEBUG("RES <%s>", res);
-        if (res[1] != '#')
-        {
-            LOG_WARN("Wrong answer from the mount");
-            //  this is not a correct echo
-            //  so we are not talking to a mount properly
-            return false;
-        }
-    }
 
     TrackState = SCOPE_SLEWING;
-    // EQ mount has a different Goto mode
-    if (m_MountModel < 128 && isSimulation() == false)
+    if (isSimulation() == false)
     {
+        // EQ mount has a different Goto mode
         ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
         epochPos.ra  = ra * 15.0;
@@ -625,19 +391,6 @@ bool SynscanDriver::Goto(double ra, double dec)
         return true;
     }
 
-    TargetAltAz = getAltAzPosition(ra, dec);
-    LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g (az: %g alt: %g)", ra, dec, TargetAltAz.az, TargetAltAz.alt);
-    char RAStr[SYN_RES]= {0}, DEStr[SYN_RES]= {0}, AZStr[SYN_RES]= {0}, ATStr[SYN_RES]= {0};
-    fs_sexa(RAStr, ra, 2, 3600);
-    fs_sexa(DEStr, dec, 2, 3600);
-    fs_sexa(AZStr, TargetAltAz.az, 2, 3600);
-    fs_sexa(ATStr, TargetAltAz.alt, 2, 3600);
-
-    LOGF_INFO("Goto RA: %s DE: %s AZ: %s ALT: %s", RAStr, DEStr, AZStr, ATStr);
-
-    SlewTargetAz = TargetAltAz.az;
-    SlewTargetAlt = TargetAltAz.alt;
-
     TargetRA = ra;
     TargetDEC = dec;
 
@@ -646,55 +399,11 @@ bool SynscanDriver::Goto(double ra, double dec)
 
 bool SynscanDriver::Park()
 {
-    char res[SYN_RES]= {0};
-    int numread, bytesWritten, bytesRead;
-
-    if (isSimulation() == false)
-    {
-        strncpy(LastParkRead, "", 1);
-        memset(res, 0, 3);
-        tty_write(PortFD, "Ka", 2, &bytesWritten); //  test for an echo
-        tty_read(PortFD, res, 2, 2, &bytesRead);   //  Read 2 bytes of response
-        if (res[1] != '#')
-        {
-            //  this is not a correct echo
-            //  so we are not talking to a mount properly
-            return false;
-        }
-        //  Now we stop tracking
-        res[0] = 'T';
-        res[1] = 0;
-        tty_write(PortFD, res, 2, &bytesWritten);
-        numread = tty_read(PortFD, res, 1, 60, &bytesRead);
-        if (bytesRead != 1 || res[0] != '#')
-        {
-            LOG_DEBUG("Timeout waiting for scope to stop tracking.");
-            return false;
-        }
-
-        //sprintf((char *)res,"b%08X,%08X",0x0,0x40000000);
-        tty_write(PortFD, "b00000000,40000000", 18, &bytesWritten);
-        numread = tty_read(PortFD, res, 1, 60, &bytesRead);
-        if (bytesRead != 1 || res[0] != '#')
-        {
-            LOG_DEBUG("Timeout waiting for scope to respond to park.");
-            return false;
-        }
-    }
-
-    TrackState = SCOPE_PARKING;
-    if (NumPark == 0)
-    {
-        LOG_INFO("Parking Mount...");
-    }
-    StopCount = 0;
-    return true;
 }
 
 bool SynscanDriver::UnPark()
 {
     SetParked(false);
-    NumPark = 0;
     return true;
 }
 
@@ -716,7 +425,7 @@ bool SynscanDriver::SetDefaultPark()
 
 bool SynscanDriver::Abort()
 {
-    if (TrackState == SCOPE_IDLE || RecoverTrials >= 3)
+    if (TrackState == SCOPE_IDLE)
         return true;
 
     char res[SYN_RES]= {0};
@@ -728,10 +437,6 @@ bool SynscanDriver::Abort()
     if (isSimulation())
         return true;
 
-    SlewTargetAlt = -1;
-    SlewTargetAz = -1;
-    CustomNSSlewRate = -1;
-    CustomWESlewRate = -1;
     // Stop tracking
     res[0] = 'T';
     res[1] = 0;
@@ -767,25 +472,6 @@ bool SynscanDriver::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
     if (isSimulation())
         return true;
 
-    if (command != MOTION_START)
-    {
-        passThruCommand(37, 17, 2, 0, 0);
-    }
-    else
-    {
-        int tt = (CustomNSSlewRate == -1 ? SlewRate : CustomNSSlewRate);
-
-        tt = tt << 16;
-        if (dir != DIRECTION_NORTH)
-        {
-            passThruCommand(37, 17, 2, tt, 0);
-        }
-        else
-        {
-            passThruCommand(36, 17, 2, tt, 0);
-        }
-    }
-
     return true;
 }
 
@@ -794,34 +480,16 @@ bool SynscanDriver::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
     if (isSimulation())
         return true;
 
-    if (command != MOTION_START)
-    {
-        passThruCommand(37, 16, 2, 0, 0);
-    }
-    else
-    {
-        int tt = (CustomWESlewRate == -1 ? SlewRate : CustomWESlewRate);
-
-        tt = tt << 16;
-        if (dir != DIRECTION_WEST)
-        {
-            passThruCommand(36, 16, 2, tt, 0);
-        }
-        else
-        {
-            passThruCommand(37, 16, 2, tt, 0);
-        }
-    }
-
     return true;
 }
 
 bool SynscanDriver::SetSlewRate(int s)
 {
-    SlewRate = s + 1;
+    m_TargetSlewRate = s + 1;
     return true;
 }
 
+#if 0
 bool SynscanDriver::passThruCommand(int cmd, int target, int msgsize, int data, int numReturn)
 {
     char test[20]= {0};
@@ -870,10 +538,11 @@ bool SynscanDriver::passThruCommand(int cmd, int target, int msgsize, int data, 
 
     return 0;
 }
+#endif
 
 bool SynscanDriver::sendTime()
 {
-    LOG_DEBUG("Reading time...");
+    LOG_DEBUG("Reading mount time...");
 
     if (isSimulation())
     {
@@ -948,6 +617,8 @@ bool SynscanDriver::sendTime()
 bool SynscanDriver::sendLocation()
 {
     char res[SYN_RES] = {0};
+
+    LOG_DEBUG("Reading mount location...");
 
     if (isSimulation())
     {
@@ -1235,11 +906,6 @@ void SynscanDriver::sendMountStatus()
 {
     bool BasicMountInfoHasChanged = false;
 
-    if (std::string(BasicMountInfoT[MI_ALIGN_STATUS].text) != m_MountInfo[MI_ALIGN_STATUS])
-    {
-        IUSaveText(&BasicMountInfoT[MI_ALIGN_STATUS], m_MountInfo[MI_ALIGN_STATUS].c_str());
-        BasicMountInfoHasChanged = true;
-    }
     if (std::string(BasicMountInfoT[MI_GOTO_STATUS].text) != m_MountInfo[MI_GOTO_STATUS])
     {
         IUSaveText(&BasicMountInfoT[MI_GOTO_STATUS], m_MountInfo[MI_GOTO_STATUS].c_str());
