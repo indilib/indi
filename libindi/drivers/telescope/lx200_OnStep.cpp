@@ -38,7 +38,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
     currentCatalog    = LX200_STAR_C;
     currentSubCatalog = 0;
 
-    setVersion(1, 4);
+    setVersion(1, 5);
     
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
@@ -83,7 +83,7 @@ bool LX200_OnStep::initProperties()
     // ============== MAIN_CONTROL_TAB
     IUFillSwitch(&ReticS[0], "PLUS", "Light", ISS_OFF);
     IUFillSwitch(&ReticS[1], "MOINS", "Dark", ISS_OFF);
-    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
+    IUFillSwitchVector(&ReticSP, ReticS, 2, getDeviceName(), "RETICULE_BRIGHTNESS", "Reticule +/-", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     IUFillNumber(&ElevationLimitN[0], "minAlt", "Elev Min", "%+03f", -90.0, 90.0, 1.0, -30.0);
     IUFillNumber(&ElevationLimitN[1], "maxAlt", "Elev Max", "%+03f", -90.0, 90.0, 1.0, 89.0);
@@ -95,9 +95,6 @@ bool LX200_OnStep::initProperties()
     // ============== CONNECTION_TAB
 
     // ============== OPTION_TAB
-    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
-    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
-    IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
 
     // ============== MOTION_CONTROL_TAB
 
@@ -108,6 +105,10 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&TrackCompS[1], "2", "Refraction", ISS_OFF);
     IUFillSwitch(&TrackCompS[2], "3", "Off", ISS_OFF);
     IUFillSwitchVector(&TrackCompSP, TrackCompS, 3, getDeviceName(), "Compensation", "Compensation Tracking", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&BacklashN[0], "Backlash DEC", "DE", "%g", 0, 999, 1, 15);
+    IUFillNumber(&BacklashN[1], "Backlash RA", "RA", "%g", 0, 999, 1, 15);
+    IUFillNumberVector(&BacklashNP, BacklashN, 2, getDeviceName(), "Backlash", "", MOTION_TAB, IP_RW, 0,IPS_IDLE);
     
     IUFillSwitch(&AutoFlipS[0], "1", "AutoFlip: OFF", ISS_OFF);
     IUFillSwitch(&AutoFlipS[1], "2", "AutoFlip: ON", ISS_OFF);
@@ -125,9 +126,9 @@ bool LX200_OnStep::initProperties()
     
 
     // ============== SITE_MANAGEMENT_TAB
-    IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return Home", ISS_OFF);
+    IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return  Home", ISS_OFF);
     IUFillSwitch(&SetHomeS[1], "AT_HOME", "At Home (Reset)", ISS_OFF);
-    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
+    IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // ============== GUIDE_TAB
 
@@ -166,37 +167,6 @@ bool LX200_OnStep::initProperties()
     IUFillText(&VersionT[3], "Name", "", "");
     IUFillTextVector(&VersionTP, VersionT, 4, getDeviceName(), "Firmware Info", "", FIRMWARE_TAB, IP_RO, 0, IPS_IDLE);
 
-    // ============== LIBRARY_TAB
-    IUFillSwitch(&StarCatalogS[0], "Star", "", ISS_ON);
-    IUFillSwitch(&StarCatalogS[1], "SAO", "", ISS_OFF);
-    IUFillSwitch(&StarCatalogS[2], "GCVS", "", ISS_OFF);
-    IUFillSwitchVector(&StarCatalogSP, StarCatalogS, 3, getDeviceName(), "Star Catalogs", "", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    IUFillSwitch(&DeepSkyCatalogS[0], "NGC", "", ISS_ON);
-    IUFillSwitch(&DeepSkyCatalogS[1], "IC", "", ISS_OFF);
-    IUFillSwitch(&DeepSkyCatalogS[2], "UGC", "", ISS_OFF);
-    IUFillSwitch(&DeepSkyCatalogS[3], "Caldwell", "", ISS_OFF);
-    IUFillSwitch(&DeepSkyCatalogS[4], "Arp", "", ISS_OFF);
-    IUFillSwitch(&DeepSkyCatalogS[5], "Abell", "", ISS_OFF);
-    IUFillSwitch(&DeepSkyCatalogS[6], "Messier", "", ISS_OFF);
-    IUFillSwitchVector(&DeepSkyCatalogSP, DeepSkyCatalogS, 7, getDeviceName(), "Deep Sky Catalogs", "", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    IUFillSwitch(&SolarS[0], "Select", "Select item", ISS_ON);
-    IUFillSwitch(&SolarS[1], "1", "Mercury", ISS_OFF);
-    IUFillSwitch(&SolarS[2], "2", "Venus", ISS_OFF);
-    IUFillSwitch(&SolarS[3], "3", "Moon", ISS_OFF);
-    IUFillSwitch(&SolarS[4], "4", "Mars", ISS_OFF);
-    IUFillSwitch(&SolarS[5], "5", "Jupiter", ISS_OFF);
-    IUFillSwitch(&SolarS[6], "6", "Saturn", ISS_OFF);
-    IUFillSwitch(&SolarS[7], "7", "Uranus", ISS_OFF);
-    IUFillSwitch(&SolarS[8], "8", "Neptune", ISS_OFF);
-    IUFillSwitch(&SolarS[9], "9", "Pluto", ISS_OFF);
-    IUFillSwitchVector(&SolarSP, SolarS, 10, getDeviceName(), "SOLAR_SYSTEM", "Solar System", LIBRARY_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    IUFillNumber(&ObjectNoN[0], "ObjectN", "Number", "%+03f", 1.0, 1000.0, 1.0, 0);
-    IUFillNumberVector(&ObjectNoNP, ObjectNoN, 1, getDeviceName(), "Object Number", "", LIBRARY_TAB, IP_RW, 0, IPS_IDLE);
-
-    
     //PEC Tab
     IUFillSwitch(&OSPECStatusS[0], "OFF", "OFF", ISS_OFF);
     IUFillSwitch(&OSPECStatusS[1], "Playing", "Playing", ISS_OFF);
@@ -234,7 +204,7 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OSNAlignT[0], "0", "Align Process Status:", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
-    IUFillText(&OSNAlignT[3], "3", "After 1 or 2", "Press 'Start Align'");
+    IUFillText(&OSNAlignT[3], "3", "Manual Action after 1", "Press 'Start Align'");
     IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
     IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
     IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
@@ -338,28 +308,22 @@ bool LX200_OnStep::updateProperties()
         // Firmware Data
         defineText(&VersionTP);
 
-        // Library
-        defineSwitch(&SolarSP);
-        defineSwitch(&StarCatalogSP);
-        defineSwitch(&DeepSkyCatalogSP);
-        defineNumber(&ObjectNoNP);
-
-	//PEC
-	defineSwitch(&OSPECStatusSP);
-	defineSwitch(&OSPECIndexSP);
-	defineSwitch(&OSPECRecordSP);
-	defineSwitch(&OSPECReadSP);
+        //PEC
+        defineSwitch(&OSPECStatusSP);
+        defineSwitch(&OSPECIndexSP);
+        defineSwitch(&OSPECRecordSP);
+        defineSwitch(&OSPECReadSP);
 	
-	//New Align
-	defineSwitch(&OSNAlignStarsSP);
-	defineSwitch(&OSNAlignSP);
-	defineText(&OSNAlignTP);
-	defineText(&OSNAlignErrTP);
-#ifdef ONSTEP_NOTDONE
-	//Outputs
-	defineSwitch(&OSOutput1SP);
-	defineSwitch(&OSOutput2SP);
-#endif
+        //New Align
+        defineSwitch(&OSNAlignStarsSP);
+        defineSwitch(&OSNAlignSP);
+        defineText(&OSNAlignTP);
+        defineText(&OSNAlignErrTP);
+    #ifdef ONSTEP_NOTDONE
+        //Outputs
+        defineSwitch(&OSOutput1SP);
+        defineSwitch(&OSOutput2SP);
+    #endif
         // OnStep Status
         defineText(&OnstepStatTP);
 
@@ -402,9 +366,9 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(MaxSlewRateNP.name);
         deleteProperty(TrackCompSP.name);
         deleteProperty(BacklashNP.name);
-    deleteProperty(AutoFlipSP.name);
-    deleteProperty(HomePauseSP.name);
-    deleteProperty(FrequencyAdjustSP.name);
+        deleteProperty(AutoFlipSP.name);
+        deleteProperty(HomePauseSP.name);
+        deleteProperty(FrequencyAdjustSP.name);
 	
 
         // Site Management
@@ -424,29 +388,24 @@ bool LX200_OnStep::updateProperties()
 
         // Firmware Data
         deleteProperty(VersionTP.name);
-        // Library
-        deleteProperty(ObjectInfoTP.name);
-        deleteProperty(SolarSP.name);
-        deleteProperty(StarCatalogSP.name);
-        deleteProperty(DeepSkyCatalogSP.name);
-        deleteProperty(ObjectNoNP.name);
 
-    //PEC
-	deleteProperty(OSPECStatusSP.name);
-    deleteProperty(OSPECIndexSP.name);
-    deleteProperty(OSPECRecordSP.name);
-    deleteProperty(OSPECReadSP.name);
+
+        //PEC
+        deleteProperty(OSPECStatusSP.name);
+        deleteProperty(OSPECIndexSP.name);
+        deleteProperty(OSPECRecordSP.name);
+        deleteProperty(OSPECReadSP.name);
 	
-    //New Align
-	deleteProperty(OSNAlignStarsSP.name);
-	deleteProperty(OSNAlignSP.name);
-	deleteProperty(OSNAlignTP.name);
-	deleteProperty(OSNAlignErrTP.name);
-#ifdef ONSTEP_NOTDONE	
-	//Outputs
-	deleteProperty(OSOutput1SP.name);
-	deleteProperty(OSOutput2SP.name);
-#endif
+        //New Align
+        deleteProperty(OSNAlignStarsSP.name);
+        deleteProperty(OSNAlignSP.name);
+        deleteProperty(OSNAlignTP.name);
+        deleteProperty(OSNAlignErrTP.name);
+    #ifdef ONSTEP_NOTDONE
+        //Outputs
+        deleteProperty(OSOutput1SP.name);
+        deleteProperty(OSOutput2SP.name);
+    #endif
 
         // OnStep Status
         deleteProperty(OnstepStatTP.name);
@@ -914,97 +873,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
             IDSetSwitch(&OSFocus2MotionSP, nullptr);
         }
 
-        // Star Catalog
-        if (!strcmp(name, StarCatalogSP.name))
-        {
-            IUResetSwitch(&StarCatalogSP);
-            IUUpdateSwitch(&StarCatalogSP, states, names, n);
-            index = IUFindOnSwitchIndex(&StarCatalogSP);
-
-            currentCatalog = LX200_STAR_C;
-
-            if (selectSubCatalog(PortFD, currentCatalog, index))
-            {
-                currentSubCatalog = index;
-                StarCatalogSP.s   = IPS_OK;
-                IDSetSwitch(&StarCatalogSP, nullptr);
-                return true;
-            }
-            else
-            {
-                StarCatalogSP.s = IPS_IDLE;
-                IDSetSwitch(&StarCatalogSP, "Catalog unavailable.");
-                return false;
-            }
-        }
-
-        // Deep sky catalog
-        if (!strcmp(name, DeepSkyCatalogSP.name))
-        {
-            IUResetSwitch(&DeepSkyCatalogSP);
-            IUUpdateSwitch(&DeepSkyCatalogSP, states, names, n);
-            index = IUFindOnSwitchIndex(&DeepSkyCatalogSP);
-
-            if (index == LX200_MESSIER_C)
-            {
-                currentCatalog     = index;
-                DeepSkyCatalogSP.s = IPS_OK;
-                IDSetSwitch(&DeepSkyCatalogSP, nullptr);
-            }
-            else
-                currentCatalog = LX200_DEEPSKY_C;
-
-            if (selectSubCatalog(PortFD, currentCatalog, index))
-            {
-                currentSubCatalog  = index;
-                DeepSkyCatalogSP.s = IPS_OK;
-                IDSetSwitch(&DeepSkyCatalogSP, nullptr);
-            }
-            else
-            {
-                DeepSkyCatalogSP.s = IPS_IDLE;
-                IDSetSwitch(&DeepSkyCatalogSP, "Catalog unavailable");
-                return false;
-            }
-
-            return true;
-        }
-
-        // Solar system
-        if (!strcmp(name, SolarSP.name))
-        {
-            if (IUUpdateSwitch(&SolarSP, states, names, n) < 0)
-                return false;
-
-            index = IUFindOnSwitchIndex(&SolarSP);
-
-            // We ignore the first option : "Select item"
-            if (index == 0)
-            {
-                SolarSP.s = IPS_IDLE;
-                IDSetSwitch(&SolarSP, nullptr);
-                return true;
-            }
-
-            selectSubCatalog(PortFD, LX200_STAR_C, LX200_STAR);
-            selectCatalogObject(PortFD, LX200_STAR_C, index + 900);
-
-            ObjectNoNP.s = IPS_OK;
-            SolarSP.s    = IPS_OK;
-
-            getObjectInfo(PortFD, ObjectInfoTP.tp[0].text);
-            IDSetNumber(&ObjectNoNP, "Object updated.");
-            IDSetSwitch(&SolarSP, nullptr);
-
-            if (currentCatalog == LX200_STAR_C || currentCatalog == LX200_DEEPSKY_C)
-                selectSubCatalog(PortFD, currentCatalog, currentSubCatalog);
-
-            getObjectRA(PortFD, &targetRA);
-            getObjectDEC(PortFD, &targetDEC);
-
-            Goto(targetRA, targetDEC);
-             return true;
-        }
+        // PEC
         if (!strcmp(name, OSPECRecordSP.name))
 	{
 		IUUpdateSwitch(&OSPECRecordSP, states, names, n);
@@ -1058,7 +927,8 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 			IDSetSwitch(&PECStateSP, nullptr);
 		}
 		
-	} 
+    }
+
 	// Align Buttons
 	if (!strcmp(name, OSNAlignStarsSP.name))
 	{
@@ -1066,32 +936,10 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		IUUpdateSwitch(&OSNAlignStarsSP, states, names, n);
 		index = IUFindOnSwitchIndex(&OSNAlignStarsSP);
 		
-// 		if (index == LX200_MESSIER_C)
-// 		{
-// 			currentCatalog     = index;
-// 			DeepSkyCatalogSP.s = IPS_OK;
-// 			IDSetSwitch(&DeepSkyCatalogSP, nullptr);
-// 		}
-// 		else
-// 			currentCatalog = LX200_DEEPSKY_C;
-// 		
-// 		if (selectSubCatalog(PortFD, currentCatalog, index))
-// 		{
-// 			currentSubCatalog  = index;
-// 			DeepSkyCatalogSP.s = IPS_OK;
-// 			IDSetSwitch(&DeepSkyCatalogSP, nullptr);
-// 		}
-// 		else
-// 		{
-// 			DeepSkyCatalogSP.s = IPS_IDLE;
-// 			IDSetSwitch(&DeepSkyCatalogSP, "Catalog unavailable");
-// 			return false;
-// 		}
-// 		
 		return true;
 	}
-	
-	
+
+    // Alignment
     if (!strcmp(name, OSNAlignSP.name))
 	{
 		if (IUUpdateSwitch(&OSNAlignSP, states, names, n) < 0)
@@ -1132,6 +980,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		IDSetSwitch(&OSNAlignSP, nullptr);
 		UpdateAlignStatus();
 	}
+
 #ifdef ONSTEP_NOTDONE	
 	if (!strcmp(name, OSOutput1SP.name))      // 
 	{
@@ -1161,7 +1010,7 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 	}
 #endif
 	
-	
+    // Focuser
         if (strstr(name, "FOCUS"))
 	{
 		return FI::processSwitch(dev, name, states, names, n);
@@ -1900,7 +1749,7 @@ IPState LX200_OnStep::AlignStartGeometric (int stars){
 	IUSaveText(&OSNAlignT[1],"GOTO a star, center it");
 	IUSaveText(&OSNAlignT[2],"GOTO a star, Solve and Sync");
 	IUSaveText(&OSNAlignT[3],"Press 'Issue Align'");
-	IDSetText(&OSNAlignTP, "==>Align Started");
+    IDSetText(&OSNAlignTP, nullptr);   //azwing "==>Align Started" > nullptr
 	//strcpy(cmd, ":A6#");
 	char read_buffer[RB_MAX_LEN];
 	if(getCommandString(PortFD, read_buffer, ":A?#"))
@@ -1986,7 +1835,7 @@ bool LX200_OnStep::UpdateAlignStatus ()
 		IUSaveText(&OSNAlignT[4],msg);
 		UpdateAlignErr();
 	}
-	IDSetText(&OSNAlignTP, "Align Updated");
+    IDSetText(&OSNAlignTP, nullptr);    //azwing "Align Updated" > nullptr
 	
 
 	
@@ -2053,21 +1902,21 @@ bool LX200_OnStep::UpdateAlignErr()
 	return true;
 }
 
-IPState LX200_OnStep::AlignDone (){
+IPState LX200_OnStep::AlignDone(){
 	//See here https://groups.io/g/onstep/message/3624
 	char cmd[8];
 	LOG_INFO("Sending Command to Finish Alignment and write");
 	strcpy(cmd, ":AW#");
-	IUSaveText(&OSNAlignT[0],"Align FINISHED");
-	IUSaveText(&OSNAlignT[1],"");
-	IUSaveText(&OSNAlignT[2],"");
-	IUSaveText(&OSNAlignT[3],"");
-	IDSetText(&OSNAlignTP, "Align Finished");
+    IUSaveText(&OSNAlignT[0],"Align FINISHED Written to EEprom");
+    IUSaveText(&OSNAlignT[1],"------");
+    IUSaveText(&OSNAlignT[2],"------");
+    IUSaveText(&OSNAlignT[3],"------");
+    IDSetText(&OSNAlignTP, nullptr);   //azwing "Align Finished" > nullptr
 	if (sendOnStepCommandBlind(cmd)){
 		return IPS_OK;
 	}
 	IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
-	IDSetText(&OSNAlignTP, "Align FAILED");
+    IDSetText(&OSNAlignTP, nullptr); //azwing "Align FAILED" > nullptr
 	return IPS_ALERT;
 	
 }
