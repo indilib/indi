@@ -235,13 +235,34 @@ bool V4L2_Driver::updateProperties()
         defineSwitch(&ColorProcessingSP);
         defineText(&CaptureColorSpaceTP);
 #endif
-
+	/* Tested */
 	if (!strcmp(v4l_base->getDeviceName(), "NexImage 5")) {
 		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 2.2, 2.2);
 		LOG_INFO("Setting pixel size correctly for NexImage 5");
 	} else if (!strcmp(v4l_base->getDeviceName(), "UVC Camera (046d:0809)")) {
 		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 3.3, 3.3);
 		LOG_INFO("Setting pixel size correctly for Logitech Webcam Pro 9000"); 
+		
+	/* Untested from: https://s3.amazonaws.com/celestron-site-marketing/Celestron+Cameras+Compare_2017.pdf */
+	} else if (!strcmp(v4l_base->getDeviceName(), "NexImage 10")) {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 2.2, 2.2);
+		LOG_INFO("Setting pixel size correctly for NexImage 10"); 
+	} else if (!strcmp(v4l_base->getDeviceName(), "NexImage Burst Color
+		")) {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 3.75, 3.75);
+		LOG_INFO("Setting pixel size correctly for NexImage Burst Color
+	"); 
+	} else if (!strcmp(v4l_base->getDeviceName(), "Skyris 132C")) {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 3.75, 3.75);
+		LOG_INFO("Setting pixel size correctly for Skyris 132C"); 
+	} else if (!strcmp(v4l_base->getDeviceName(), "Skyris 132M")) {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 3.75, 3.75);
+		LOG_INFO("Setting pixel size correctly for Skyris 132M"); 
+	} else if (!strcmp(v4l_base->getDeviceName(), "Skyris 236C")) {
+		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 2.8, 2.8);
+		LOG_INFO("Setting pixel size correctly for Skyris 236C"); 
+		
+	/* Defaults */
 	} else {
 		SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
 		LOG_INFO("Setting pixel size to default of 5.6");
