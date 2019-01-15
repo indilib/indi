@@ -40,6 +40,7 @@ typedef struct
 static const PixelSizeInfo pixelSizeInfo[] = {
     { "NexImage 5", nullptr, 2.2f, -1 },
     { "UVC Camera (046d:0809)", "Logitech Webcam Pro 9000", 3.3f, -1 },
+    { "SVBONY SV105: SVBONY SV105", "SVBONY SV105", 3.0f, -1 },
     { nullptr, nullptr, 5.6f, -1 } // sentinel and default pixel size, needs to be last
 };
 
