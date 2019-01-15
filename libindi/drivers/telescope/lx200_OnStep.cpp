@@ -204,7 +204,7 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OSNAlignT[0], "0", "Align Process Status:", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
-    IUFillText(&OSNAlignT[3], "3", "After 1 or 2", "Press 'Start Align'");
+    IUFillText(&OSNAlignT[3], "3", "Manual Action after 1", "Press 'Start Align'");
     IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
     IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
     IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
@@ -1749,7 +1749,7 @@ IPState LX200_OnStep::AlignStartGeometric (int stars){
 	IUSaveText(&OSNAlignT[1],"GOTO a star, center it");
 	IUSaveText(&OSNAlignT[2],"GOTO a star, Solve and Sync");
 	IUSaveText(&OSNAlignT[3],"Press 'Issue Align'");
-	IDSetText(&OSNAlignTP, "==>Align Started");
+    IDSetText(&OSNAlignTP, nullptr);   //azwing "==>Align Started" > nullptr
 	//strcpy(cmd, ":A6#");
 	char read_buffer[RB_MAX_LEN];
 	if(getCommandString(PortFD, read_buffer, ":A?#"))
@@ -1835,7 +1835,7 @@ bool LX200_OnStep::UpdateAlignStatus ()
 		IUSaveText(&OSNAlignT[4],msg);
 		UpdateAlignErr();
 	}
-	IDSetText(&OSNAlignTP, "Align Updated");
+    IDSetText(&OSNAlignTP, nullptr);    //azwing "Align Updated" > nullptr
 	
 
 	
@@ -1902,21 +1902,21 @@ bool LX200_OnStep::UpdateAlignErr()
 	return true;
 }
 
-IPState LX200_OnStep::AlignDone (){
+IPState LX200_OnStep::AlignDone(){
 	//See here https://groups.io/g/onstep/message/3624
 	char cmd[8];
 	LOG_INFO("Sending Command to Finish Alignment and write");
 	strcpy(cmd, ":AW#");
-	IUSaveText(&OSNAlignT[0],"Align FINISHED");
-	IUSaveText(&OSNAlignT[1],"");
-	IUSaveText(&OSNAlignT[2],"");
-	IUSaveText(&OSNAlignT[3],"");
-	IDSetText(&OSNAlignTP, "Align Finished");
+    IUSaveText(&OSNAlignT[0],"Align FINISHED Written to EEprom");
+    IUSaveText(&OSNAlignT[1],"------");
+    IUSaveText(&OSNAlignT[2],"------");
+    IUSaveText(&OSNAlignT[3],"------");
+    IDSetText(&OSNAlignTP, nullptr);   //azwing "Align Finished" > nullptr
 	if (sendOnStepCommandBlind(cmd)){
 		return IPS_OK;
 	}
 	IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
-	IDSetText(&OSNAlignTP, "Align FAILED");
+    IDSetText(&OSNAlignTP, nullptr); //azwing "Align FAILED" > nullptr
 	return IPS_ALERT;
 	
 }
