@@ -22,6 +22,11 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
     ===========================================
+    Version 1.6: Additional Functions
+    - 
+    -
+    -
+
     Version 1.5: Cleaning and Align Code Tuning
     - James Lan Align Code
     - Cleaning out debug messages
