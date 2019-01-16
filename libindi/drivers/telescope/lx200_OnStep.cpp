@@ -201,24 +201,24 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSNAlignS[2], "3", "Write Align", ISS_OFF);
     IUFillSwitchVector(&OSNAlignSP, OSNAlignS, 3, getDeviceName(), "NewAlignStar", "Align using up to 6 stars, Alpha only", ALIGN_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     
-    IUFillText(&OSNAlignT[0], "0", "Align Process Status:", "Align not started");
+    IUFillText(&OSNAlignT[0], "0", "Align Process Status", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[3], "3", "Manual Action after 1", "Press 'Start Align'");
-    IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
-    IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
-    IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
-    IUFillText(&OSNAlignT[7], "7", "# of Align Stars:", "Not Updated");
+    IUFillText(&OSNAlignT[4], "4", "Current Status", "Not Updated");
+    IUFillText(&OSNAlignT[5], "5", "Max Stars", "Not Updated");
+    IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
+    IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
     IUFillTextVector(&OSNAlignTP, OSNAlignT, 8, getDeviceName(), "NAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);
     
-    IUFillText(&OSNAlignErrT[0], "0", "EQ Polar Error Alt:", "Available once Aligned");
-    IUFillText(&OSNAlignErrT[1], "1", "EQ Polar Error Az:", "Available once Aligned");
+    IUFillText(&OSNAlignErrT[0], "0", "EQ Polar Error Alt", "Available once Aligned");
+    IUFillText(&OSNAlignErrT[1], "1", "EQ Polar Error Az", "Available once Aligned");
 //     IUFillText(&OSNAlignErrT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
 //     IUFillText(&OSNAlignErrT[3], "3", "After 1 or 2", "Press 'Start Align'");
-//     IUFillText(&OSNAlignErrT[4], "4", "Current Status:", "Not Updated");
-//     IUFillText(&OSNAlignErrT[5], "5", "Max Stars:", "Not Updated");
-//     IUFillText(&OSNAlignErrT[6], "6", "Current Star:", "Not Updated");
-//     IUFillText(&OSNAlignErrT[7], "7", "# of Align Stars:", "Not Updated");
+//     IUFillText(&OSNAlignErrT[4], "4", "Current Status", "Not Updated");
+//     IUFillText(&OSNAlignErrT[5], "5", "Max Stars", "Not Updated");
+//     IUFillText(&OSNAlignErrT[6], "6", "Current Star", "Not Updated");
+//     IUFillText(&OSNAlignErrT[7], "7", "# of Align Stars", "Not Updated");
     IUFillTextVector(&OSNAlignErrTP, OSNAlignErrT, 2, getDeviceName(), "ErrAlign Process", "", ALIGN_TAB, IP_RO, 0, IPS_IDLE);    
     
 #ifdef ONSTEP_NOTDONE
@@ -1795,10 +1795,10 @@ bool LX200_OnStep::UpdateAlignStatus ()
 	char read_buffer[RB_MAX_LEN];
 	char msg[40];
 	char stars[5];
-// 	IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
-// 	IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
-// 	IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
-// 	IUFillText(&OSNAlignT[7], "7", "# of Align Stars:", "Not Updated");
+// 	IUFillText(&OSNAlignT[4], "4", "Current Status", "Not Updated");
+// 	IUFillText(&OSNAlignT[5], "5", "Max Stars", "Not Updated");
+// 	IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
+// 	IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
 	
 	int max_stars, current_star, align_stars;
 //	LOG_INFO("Gettng Align Status");
@@ -1868,10 +1868,10 @@ bool LX200_OnStep::UpdateAlignErr()
 	char read_buffer[RB_MAX_LEN];
 //Azwing removed	char msg[40];
     char polar_error[40], sexabuf[20];
-	// 	IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
-	// 	IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
-	// 	IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
-	// 	IUFillText(&OSNAlignT[7], "7", "# of Align Stars:", "Not Updated");
+    // 	IUFillText(&OSNAlignT[4], "4", "Current Status", "Not Updated");
+    // 	IUFillText(&OSNAlignT[5], "5", "Max Stars", "Not Updated");
+    // 	IUFillText(&OSNAlignT[6], "6", "Current Star", "Not Updated");
+    // 	IUFillText(&OSNAlignT[7], "7", "# of Align Stars", "Not Updated");
 	
 	//	LOG_INFO("Gettng Align Error Status");
 	if(getCommandString(PortFD, read_buffer, ":GX02#"))
@@ -1892,11 +1892,11 @@ bool LX200_OnStep::UpdateAlignErr()
     long azmCor = strtold(read_buffer, nullptr);   //azwing replaced NULL by nullptr
     fs_sexa(sexabuf, (double)azmCor/3600, 4, 3600);
     snprintf(polar_error, sizeof(polar_error), "%ld' /%s", azmCor, sexabuf);    //azwing display raw + sexa value
-	IUSaveText(&OSNAlignErrT[0],polar_error);
+    IUSaveText(&OSNAlignErrT[1],polar_error);   //azwing switched Alt / Azm cor
     fs_sexa(sexabuf, (double)altCor/3600, 4, 3600);
     snprintf(polar_error, sizeof(polar_error), "%ld' /%s", altCor, sexabuf);    //azwing display raw + sexa value
-	IUSaveText(&OSNAlignErrT[1],polar_error);
-	IDSetText(&OSNAlignErrTP, "Align Error Updated");
+    IUSaveText(&OSNAlignErrT[0],polar_error);   //azwing switched Alt / Azm cor
+    IDSetText(&OSNAlignErrTP, nullptr);   //azwing Align Error Updated > nullptr
 	
 	
 	return true;
