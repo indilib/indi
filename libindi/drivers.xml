@@ -99,6 +99,10 @@
         </device>
         <device label="SynScan" manufacturer="SkyWatcher">
                 <driver name="SynScan">indi_synscan_telescope</driver>
+                <version>2.0</version>
+        </device>
+        <device label="SynScan Legacy" manufacturer="SkyWatcher">
+                <driver name="SynScan Legacy">indi_synscanlegacy_telescope</driver>
                 <version>1.0</version>
         </device>
         <device label="SkySensor2000PC">

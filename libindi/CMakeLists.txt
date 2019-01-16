@@ -615,6 +615,17 @@ target_link_libraries(indi_synscan_telescope indidriver AlignmentDriver)
 
 install(TARGETS indi_synscan_telescope RUNTIME DESTINATION bin)
 
+########### Syncscan Legacy ###############
+SET(synscanlegacy_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscandriverlegacy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscanmountlegacy.cpp)
+
+add_executable(indi_synscanlegacy_telescope ${synscanlegacy_SRC})
+target_link_libraries(indi_synscanlegacy_telescope indidriver AlignmentDriver)
+
+install(TARGETS indi_synscanlegacy_telescope RUNTIME DESTINATION bin)
+
+
 ########### Sky Commander ###############
 SET(skycommander_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/skycommander.cpp)
