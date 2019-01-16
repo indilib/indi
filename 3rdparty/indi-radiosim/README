@@ -3,7 +3,7 @@ RadioSim INDI Driver
 
 This package provides the INDI driver for a simulated Radio dish antenna.
 
-Requirtments
+Requirements
 ============
 
 + INDI >= v1.4 (http://www.indilib.org)

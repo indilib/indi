@@ -72,4 +72,5 @@ class RadioSim : public INDI::Detector
 
 	float CaptureRequest;
 	uint8_t* continuum;
+	uint8_t* spectrum;
 };
