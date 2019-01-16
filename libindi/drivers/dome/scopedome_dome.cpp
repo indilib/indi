@@ -644,21 +644,14 @@ void ScopeDome::TimerHit()
             if (fabs(azDiff) <= DomeParamN[0].value)
             {
                 DomeAbsPosN[0].value = targetAz;
+                DomeAbsPosNP.s       = IPS_OK;
                 LOG_INFO("Dome reached requested azimuth angle.");
 
                 if (getDomeState() == DOME_PARKING)
                 {
-                    if (ParkShutterS[0].s == ISS_ON)
+                    if (ParkShutterS[0].s == ISS_ON && getInputState(IN_CLOSED1) == ISS_OFF)
                     {
-                        if (shutterState == SHUTTER_OPENED)
-                        {
-                            ControlShutter(SHUTTER_CLOSE);
-                            DomeAbsPosNP.s = IPS_OK;
-                        }
-                        else if (shutterState == SHUTTER_CLOSED)
-                        {
-                            SetParked(true);
-                        }
+                        ControlShutter(SHUTTER_CLOSE);
                     }
                     else
                     {
@@ -722,6 +715,8 @@ IPState ScopeDome::MoveAbs(double az)
         LOGF_DEBUG("CCW (%d)", steps);
         steps = compensateInertia(steps);
         LOGF_DEBUG("CCW inertia (%d)", steps);
+        if (steps == 0)
+            return IPS_OK;
         rc = writeU16(CCWRotation, steps);
     }
     else
@@ -730,6 +725,8 @@ IPState ScopeDome::MoveAbs(double az)
         LOGF_DEBUG("CW (%d)", steps);
         steps = compensateInertia(steps);
         LOGF_DEBUG("CW inertia (%d)", steps);
+        if (steps == 0)
+            return IPS_OK;
         rc = writeU16(CWRotation, steps);
     }
     if (rc != 0)
