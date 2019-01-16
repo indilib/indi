@@ -1783,8 +1783,6 @@ IPState LX200_OnStep::AlignStartGeometric (int stars){
 	IUSaveText(&OSNAlignT[3],"Press 'Issue Align' if not solving");
 	IDSetText(&OSNAlignTP, "==>Align Started");
 	// Check for max number of stars and gracefully fall back to max, if more are requested.
-//    IDSetText(&OSNAlignTP, nullptr);   //azwing "==>Align Started" > nullptr
-
 	char read_buffer[RB_MAX_LEN];
 	if(getCommandString(PortFD, read_buffer, ":A?#"))
 	{
