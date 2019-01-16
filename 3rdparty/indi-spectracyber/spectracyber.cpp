@@ -114,7 +114,7 @@ void ISSnoopDevice(XMLEle *root)
 *****************************************************************/
 SpectraCyber::SpectraCyber()
 {
-    // Command pre-limeter
+    // Command pre-limiter
     command[0] = '!';
 
     telescopeID = nullptr;
@@ -313,7 +313,7 @@ bool SpectraCyber::ISNewNumber(const char *dev, const char *name, double values[
     if (isConnected() == false)
     {
         resetProperties();
-        LOG_ERROR("Spectrometer is offline. Connect before issiuing any commands.");
+        LOG_ERROR("Spectrometer is offline. Connect before issuing any commands.");
         return false;
     }
 
@@ -467,7 +467,7 @@ bool SpectraCyber::ISNewSwitch(const char *dev, const char *name, ISState *state
     if (isConnected() == false)
     {
         resetProperties();
-        LOG_ERROR("Spectrometer is offline. Connect before issiuing any commands.");
+        LOG_ERROR("Spectrometer is offline. Connect before issuing any commands.");
         return false;
     }
 

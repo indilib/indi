@@ -3,7 +3,7 @@ Apogee INDI Driver
 
 This package provides the INDI driver for Apgoee Alta (U & E) line of CCDs.
 
-Requirtments
+Requirements
 ============
 
 + libindi0 >= v0.8 (http://indi.sf.net)

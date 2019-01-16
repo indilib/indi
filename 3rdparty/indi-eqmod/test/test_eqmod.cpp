@@ -79,10 +79,18 @@ public:
                 gotoparams.decurrentencoder = currentDEEncoder;
                 gotoparams.completed        = false;
                 gotoparams.checklimits      = true;
-                gotoparams.forcecwup        = false;
                 gotoparams.outsidelimits    = false;
-                gotoparams.limiteast        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
-                gotoparams.limitwest        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h
+                gotoparams.pier_side        = PIER_UNKNOWN; // Auto - keep counterweight down
+                if (Hemisphere == NORTH)
+                {
+                    gotoparams.limiteast        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
+                    gotoparams.limitwest        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h
+                }
+                else
+                {
+                    gotoparams.limiteast        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 13h
+                    gotoparams.limitwest        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 23h
+                }
 
                 juliandate = getJulianDate();
                 lst        = getLst(juliandate, getLongitude());
@@ -91,13 +99,61 @@ public:
                 EncodersToRADec(gotoparams.ratargetencoder, gotoparams.detargetencoder, lst, &currentRA, &currentDEC, &currentHA, nullptr);
                 EXPECT_NEAR(ra, currentRA, 0.001) << "ra=" << ra << " dec=" << de << std::endl;
                 EXPECT_NEAR(de, currentDEC, 0.001) << "ra=" << ra << " dec=" << de << std::endl;
+
+                // With counterweight down it can't go outside limits
+                EXPECT_FALSE(gotoparams.outsidelimits) << "limiteast=" << gotoparams.limiteast << " limitwest=" << gotoparams.limitwest << "  pier_side=" << gotoparams.pier_side << " ratargetencoder=" << gotoparams.ratargetencoder << std::endl ;
             }
         }
 
         return true;
     }
+
+    bool TestHemisphereSymmetry() {
+
+        uint32_t destep = totalDEEncoder / 36;
+        // do not test at 90 degree edges because the result pier side is not stable because of float comparison
+        uint32_t demin = zeroDEEncoder - totalDEEncoder / 4 + 1;
+        uint32_t demax = zeroDEEncoder + totalDEEncoder * 3 / 4  - 1;
+
+        uint32_t rastep = totalRAEncoder / 36;
+        uint32_t ramin = zeroRAEncoder - totalRAEncoder / 2 + 1;
+        uint32_t ramax = zeroRAEncoder + totalRAEncoder / 2 - 1;
+
+
+        // test with lst = 0.0 and longitude = 0.0 so we can assume RA = HA
+        double lst = 0.0;
+
+        for (currentDEEncoder = demin; currentDEEncoder <= demax; currentDEEncoder += destep)
+        {
+            for (currentRAEncoder = ramin; currentRAEncoder <= ramax; currentRAEncoder += rastep)
+            {
+                updateLocation(50.0, 0.0, 0);
+                double RA_North, DEC_North, HA_North;
+                TelescopePierSide PierSide_North;
+                EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &RA_North, &DEC_North, &HA_North, &PierSide_North);
+
+                updateLocation(-50.0, 0.0, 0);
+                double RA_South, DEC_South, HA_South;
+                TelescopePierSide PierSide_South;
+                EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &RA_South, &DEC_South, &HA_South, &PierSide_South);
+
+                EXPECT_NEAR(RA_North, 24.0 - RA_South, 0.001);
+                EXPECT_NEAR(DEC_North, -DEC_South, 0.001);
+                EXPECT_NE(PierSide_North, PierSide_South);
+            }
+        }
+        return true;
+    }
+
+
 };
 
+
+TEST(EqmodTest, hemisphere_symmetry)
+{
+    TestEQMod eqmod;
+    eqmod.TestHemisphereSymmetry();
+}
 
 TEST(EqmodTest, encoders_north)
 {

@@ -36,7 +36,7 @@ struct timespec dspau_time_mktimespec(int year, int month, int dom, int hour, in
     return ret;
 }
 
-dspau_t dspau_time_timespec_to_J2000time(struct timespec tp)
+double dspau_time_timespec_to_J2000time(struct timespec tp)
 {
     struct tm j2000_tm;
     time_t j2000;
@@ -50,12 +50,12 @@ dspau_t dspau_time_timespec_to_J2000time(struct timespec tp)
     j2000_tm.tm_yday = 0;
     j2000_tm.tm_isdst = 0;
     j2000 = mktime(&j2000_tm);
-    return ((dspau_t)(tp.tv_sec - j2000) + (dspau_t)tp.tv_nsec / 1000000000.0);
+    return ((double)(tp.tv_sec - j2000) + (double)tp.tv_nsec / 1000000000.0);
 }
 
-dspau_t dspau_time_J2000time_to_lst(dspau_t secs_since_J2000, dspau_t Long)
+double dspau_time_J2000time_to_lst(double secs_since_J2000, double Long)
 {
-    dspau_t Lst = GammaJ2000 + 24.0 * secs_since_J2000 / SIDEREAL_DAY;
+    double Lst = GammaJ2000 + 24.0 * secs_since_J2000 / SIDEREAL_DAY;
     Lst *= 360.0 / 24.0;
     while (Lst < 0)
         Lst += 360.0;
@@ -64,7 +64,7 @@ dspau_t dspau_time_J2000time_to_lst(dspau_t secs_since_J2000, dspau_t Long)
     return Lst + Long;
 }
 
-struct timespec dspau_time_J2000time_to_timespec(dspau_t secs)
+struct timespec dspau_time_J2000time_to_timespec(double secs)
 {
     struct timespec ret;
     struct tm j2000_tm;

@@ -33,8 +33,6 @@
 
 #define ONSTEP_TIMEOUT  3
 
-
-
 LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 {
     currentCatalog    = LX200_STAR_C;
@@ -42,7 +40,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 
     setVersion(1, 5);
     
-    setLX200Capability(LX200_HAS_TRACKING_FREQ |LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
+    setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_SITES | LX200_HAS_ALIGNMENT_TYPE | LX200_HAS_PULSE_GUIDING | LX200_HAS_PRECISE_TRACKING_FREQ);
     
     SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_PEC | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_RATE, 4 );
     
@@ -60,7 +58,7 @@ LX200_OnStep::LX200_OnStep() : LX200Generic(), FI(this)
 
 const char *LX200_OnStep::getDefaultName()
 {
-    return (const char *)"LX200 OnStep";
+    return "LX200 OnStep";
 }
 
 bool LX200_OnStep::initProperties()
@@ -121,15 +119,15 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&HomePauseS[2], "2", "HomePause: Continue", ISS_OFF);
     IUFillSwitchVector(&HomePauseSP, HomePauseS, 3, getDeviceName(), "HomePause", "Meridian Auto Flip", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
-    IUFillSwitch(&FrequencyAdjustS[0], "1", "Freqency -", ISS_OFF);
-    IUFillSwitch(&FrequencyAdjustS[1], "2", "Freqency +", ISS_OFF);
-    IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidreal Frequency", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[0], "1", "Frequency -", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[1], "2", "Frequency +", ISS_OFF);
+    IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidereal Frequency", ISS_OFF);
     IUFillSwitchVector(&FrequencyAdjustSP, FrequencyAdjustS, 3, getDeviceName(), "FrequencyAdjust", "Frequency Adjust", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
 
     // ============== SITE_MANAGEMENT_TAB
-    IUFillSwitch(&SetHomeS[0], "COLD_START", "Return Home", ISS_OFF);
-    IUFillSwitch(&SetHomeS[1], "WARM_START", "At Home (Reset)", ISS_OFF);
+    IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return  Home", ISS_OFF);
+    IUFillSwitch(&SetHomeS[1], "AT_HOME", "At Home (Reset)", ISS_OFF);
     IUFillSwitchVector(&SetHomeSP, SetHomeS, 2, getDeviceName(), "HOME_INIT", "Homing", SITE_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // ============== GUIDE_TAB
@@ -208,7 +206,7 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OSNAlignT[0], "0", "Align Process Status:", "Align not started");
     IUFillText(&OSNAlignT[1], "1", "1. Manual Process", "Point towards the NCP");
     IUFillText(&OSNAlignT[2], "2", "2. Plate Solver Process", "Point towards the NCP");
-    IUFillText(&OSNAlignT[3], "3", "After 1 or 2", "Press 'Start Align'");
+    IUFillText(&OSNAlignT[3], "3", "Manual Action after 1", "Press 'Start Align'");
     IUFillText(&OSNAlignT[4], "4", "Current Status:", "Not Updated");
     IUFillText(&OSNAlignT[5], "5", "Max Stars:", "Not Updated");
     IUFillText(&OSNAlignT[6], "6", "Current Star:", "Not Updated");
@@ -247,6 +245,8 @@ bool LX200_OnStep::initProperties()
     IUFillText(&OnstepStat[6], "Mount Type", "", "");
     IUFillText(&OnstepStat[7], "Error", "", "");
     IUFillTextVector(&OnstepStatTP, OnstepStat, 8, getDeviceName(), "OnStep Status", "", STATUS_TAB, IP_RO, 0, IPS_OK);
+
+    setDriverInterface(getDriverInterface() | FOCUSER_INTERFACE);
 
     return true;
 }
@@ -1867,7 +1867,7 @@ bool LX200_OnStep::UpdateAlignStatus ()
 		IUSaveText(&OSNAlignT[4],msg);
 		UpdateAlignErr();
 	}
-	IDSetText(&OSNAlignTP, "Align Updated");
+    IDSetText(&OSNAlignTP, nullptr);    //azwing "Align Updated" > nullptr
 	
 
 	
@@ -1934,21 +1934,21 @@ bool LX200_OnStep::UpdateAlignErr()
 	return true;
 }
 
-IPState LX200_OnStep::AlignDone (){
+IPState LX200_OnStep::AlignDone(){
 	//See here https://groups.io/g/onstep/message/3624
 	char cmd[8];
 	LOG_INFO("Sending Command to Finish Alignment and write");
 	strcpy(cmd, ":AW#");
-	IUSaveText(&OSNAlignT[0],"Align FINISHED");
-	IUSaveText(&OSNAlignT[1],"");
-	IUSaveText(&OSNAlignT[2],"");
-	IUSaveText(&OSNAlignT[3],"");
-	IDSetText(&OSNAlignTP, "Align Finished");
+    IUSaveText(&OSNAlignT[0],"Align FINISHED Written to EEprom");
+    IUSaveText(&OSNAlignT[1],"------");
+    IUSaveText(&OSNAlignT[2],"------");
+    IUSaveText(&OSNAlignT[3],"------");
+    IDSetText(&OSNAlignTP, nullptr);   //azwing "Align Finished" > nullptr
 	if (sendOnStepCommandBlind(cmd)){
 		return IPS_OK;
 	}
 	IUSaveText(&OSNAlignT[0],"Align WRITE FAILED");
-	IDSetText(&OSNAlignTP, "Align FAILED");
+    IDSetText(&OSNAlignTP, nullptr); //azwing "Align FAILED" > nullptr
 	return IPS_ALERT;
 	
 }
