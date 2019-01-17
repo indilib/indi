@@ -73,6 +73,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
+
 void ISSnoopDevice(XMLEle *root)
 {
     scope->ISSnoopDevice(root);
@@ -83,7 +84,6 @@ PMC8::PMC8()
 {
     set_pmc8_device(getDeviceName());
 
-    //ctor
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC = 90;
 
@@ -117,8 +117,6 @@ bool PMC8::initProperties()
     IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
 		 IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-// Have the MOUNT types available before connecting
-    defineSwitch(&MountTypeSP);
 
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
@@ -160,7 +158,6 @@ bool PMC8::initProperties()
 bool PMC8::updateProperties()
 {
     INDI::Telescope::updateProperties();
-
 
     if (isConnected())
     {
@@ -220,12 +217,7 @@ void PMC8::getStartupData()
     // seems like best place to put a warning that will be seen in log window of EKOS/etc
     LOG_INFO("NOTICE!!!");
     LOG_INFO("The PMC-Eight driver is in BETA development currently.");
-    LOG_INFO("When using this driver please remember it is being tested so stay near your mount");
-    LOG_INFO("and be prepared to intervene if something unexpected occurs.");
-    LOG_INFO("Please read the instructions at:");
-    LOG_INFO("    http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/");
-    LOG_INFO("before using this driver!");
-    LOG_INFO("NOTE: Must select G11 or EXOS2 mount!!!");
+    LOG_INFO("Be prepared to intervene if something unexpected occurs.");
 
 #if 0
     // FIXEME - Need to handle southern hemisphere for DEC?
@@ -291,6 +283,12 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
+void PMC8::ISGetProperties(const char *dev)
+{
+	defineSwitch(&MountTypeSP);
+   	INDI::Telescope::ISGetProperties(dev);
+}
+
 bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -299,14 +297,12 @@ bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
         {
             IUUpdateSwitch(&MountTypeSP, states, names, n);
 	int currentMountIndex = IUFindOnSwitchIndex(&MountTypeSP);
-		LOG_INFO("Mount is");
-		LOG_INFO(MountTypeS[currentMountIndex].label);
-
+	LOGF_INFO("Selected mount is %s", MountTypeS[currentMountIndex].label);
 
 		set_pmc8_myMount(currentMountIndex);
 		MountTypeSP.s = IPS_OK;
                 IDSetSwitch(&MountTypeSP, nullptr);
-		defineSwitch(&MountTypeSP);
+//		defineSwitch(&MountTypeSP);
             return true;
         }
 

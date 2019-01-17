@@ -35,13 +35,17 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    
+    virtual void ISGetProperties(const char *dev) override;
 
   protected:
+
     virtual const char *getDefaultName() override;
 
     virtual bool Handshake() override;
 
     virtual bool initProperties() override;
+    
     virtual bool updateProperties() override;
 
     virtual bool ReadScopeStatus() override;
@@ -110,13 +114,10 @@ class PMC8 : public INDI::Telescope, public INDI::GuiderInterface
     IText FirmwareT[1] {};
     ITextVectorProperty FirmwareTP;
 
+    /* Mount Types */
     ISwitch MountTypeS[3];
     ISwitchVectorProperty MountTypeSP;
-   enum{
-	    MOUNT_G11,
-	    MOUNT_EXOS2,
-	    MOUNT_iEXOS100
-    };
+    enum { MOUNT_G11, MOUNT_EXOS2, MOUNT_iEXOS100 };
 
     /* Tracking Mode */
     //ISwitchVectorProperty TrackModeSP;

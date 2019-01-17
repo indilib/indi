@@ -54,8 +54,6 @@
 double PMC8_AXIS0_SCALE;
 double PMC8_AXIS1_SCALE;
 
-
-
 #define ARCSEC_IN_CIRCLE 1296000.0
 
 // FIXME - (just placeholders need better way to represent
@@ -132,17 +130,14 @@ void set_pmc8_myMount(int index)
 	case 0: // LosMandy G11
 		PMC8_AXIS0_SCALE = PMC8_G11_AXIS0_SCALE;
 		PMC8_AXIS1_SCALE = PMC8_G11_AXIS1_SCALE;
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "LosMandy G11 Mount Selected");
 		break;
 	case 1: // EXOS2
 		PMC8_AXIS0_SCALE = PMC8_EXOS2_AXIS0_SCALE;
 		PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "EXOS2 Mount Selected");
 		break;
 	case 2: // iEXOS100
 		PMC8_AXIS0_SCALE = PMC8_iEXOS100_AXIS0_SCALE;
 		PMC8_AXIS1_SCALE = PMC8_iEXOS100_AXIS1_SCALE;
-        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_WARNING, "iEXOS100 Mount Selected");
 		break;
 	default:
         DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Need To Select a  Mount");
