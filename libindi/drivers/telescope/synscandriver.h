@@ -119,7 +119,7 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
 
         double CurrentRA { 0 }, CurrentDE { 0 };
         double TargetRA {0}, TargetDE {0};
-        int m_MountModel { 0 };
+        uint8_t m_MountModel { 0 };
         int m_TargetSlewRate { 5 };
         uint8_t m_TrackingFlag { 0 };
         double m_FirmwareVersion { 0 };

@@ -142,15 +142,15 @@ bool SynscanDriver::updateProperties()
 
         if (InitPark())
         {
-            SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(0);
+            SetAxis1ParkDefault(359);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
         else
         {
-            SetAxis1Park(0);
-            SetAxis2Park(0);
-            SetAxis1ParkDefault(0);
-            SetAxis2ParkDefault(0);
+            SetAxis1Park(359);
+            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+            SetAxis1ParkDefault(359);
+            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
         }
     }
     else
@@ -169,7 +169,7 @@ bool SynscanDriver::updateProperties()
 void SynscanDriver::setupParams()
 {
     readFirmware();
-    readModel();
+    //readModel();
     readTracking();
 
     sendLocation();
@@ -208,6 +208,13 @@ bool SynscanDriver::Handshake()
         return false;
     }
 
+    readModel();
+
+    if (m_isAltAz)
+    {
+        SetTelescopeCapability(GetTelescopeCapability() & ~TELESCOPE_HAS_PIER_SIDE);
+    }
+
     return true;
 }
 
@@ -244,6 +251,14 @@ bool SynscanDriver::ISNewNumber(const char *dev, const char *name, double values
         // Horizonal Coords
         if (!strcmp(name, HorizontalCoordsNP.name))
         {
+            if (isParked())
+            {
+                LOG_WARN("Unpark mount before issuing GOTO commands.");
+                HorizontalCoordsNP.s = IPS_IDLE;
+                IDSetNumber(&HorizontalCoordsNP, nullptr);
+                return true;
+            }
+
             int nset = 0;
             double newAlt=0, newAz=0;
             for (int i = 0; i < n; i++)
@@ -366,7 +381,8 @@ bool SynscanDriver::readModel()
         {4, "EQ8 GOTO Series"},
         {5, "AZ-EQ6 GOTO Series"},
         {6, "AZ-EQ5 GOTO Series"},
-        {160, "AllView GOTO Series"}
+        {160, "AllView GOTO Series"},
+        {165, "AZ-GTi GOTO Series"}
     };
 
     // Read the handset version
@@ -388,7 +404,7 @@ bool SynscanDriver::readModel()
     else
         IUSaveText(&StatusT[MI_MOUNT_MODEL], "Unknown model");
 
-    m_isAltAz = (m_MountModel == 5 || m_MountModel == 6 || (m_MountModel >= 128 && m_MountModel < 160));
+    m_isAltAz = m_MountModel > 4;
 
     return true;
 }
@@ -408,7 +424,7 @@ bool SynscanDriver::ReadScopeStatus()
         m_MountInfo[MI_GOTO_STATUS] = res[0];
 
     // Pier side
-    if (sendCommand("p", res))
+    if (m_isAltAz == false && sendCommand("p", res))
     {
         m_MountInfo[MI_POINT_STATUS] = res[0];
         // INDI and mount pier sides are opposite to each other
@@ -493,7 +509,7 @@ bool SynscanDriver::SetTrackEnabled(bool enabled)
         return true;
 
     cmd[0] = 'T';
-    cmd[1] = enabled ? (m_isAltAz ? 1 : 2) : 0;
+    cmd[1] = enabled ? (IUFindOnSwitchIndex(&TrackModeSP) + 1) : 0;
     return sendCommand(cmd, res, 2);
 }
 
@@ -505,8 +521,7 @@ bool SynscanDriver::SetTrackMode(uint8_t mode)
         return true;
 
     cmd[0] = 'T';
-    // 0x31 is '1' in ASCII since we start from '1' for Alt/Az tracking
-    cmd[1] = 0x30 + mode;
+    cmd[1] = mode+1;
     return sendCommand(cmd, res);
 }
 
@@ -521,11 +536,28 @@ bool SynscanDriver::Goto(double ra, double dec)
         return true;
 
     // INDI is JNow. Synscan Controll uses J2000 Epoch
-
     ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
 
     epochPos.ra  = ra * 15.0;
     epochPos.dec = dec;
+
+    // For Alt/Az mounts, we must issue Goto Alt/Az
+    if (m_isAltAz)
+    {
+        struct ln_lnlat_posn lnobserver;
+        struct ln_hrz_posn lnaltaz;
+
+        lnobserver.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (lnobserver.lng > 180)
+            lnobserver.lng -= 360;
+        lnobserver.lat = LocationN[LOCATION_LATITUDE].value;
+        ln_get_hrz_from_equ(&epochPos, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+        /* libnova measures azimuth from south towards west */
+        double az = range360(lnaltaz.az + 180);
+        double al = lnaltaz.alt;
+
+        return GotoAzAlt(az, al);
+    }
 
     // Synscan accepts J2000 coordinates so we need to convert from JNow to J2000
     ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
@@ -555,6 +587,27 @@ bool SynscanDriver::GotoAzAlt(double az, double alt)
 
     if (isSimulation())
         return true;
+
+    if (m_isAltAz == false)
+    {
+        // For EQ Mount, we convert Parking Az/Alt to RA/DE and go to there.
+        struct ln_lnlat_posn observer;
+        ln_hrz_posn horizontalPos;
+        ln_equ_posn equatorialPos;
+
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (observer.lng > 180)
+            observer.lng -= 360;
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+
+        horizontalPos.az = az + 180;
+        if (horizontalPos.az > 360)
+            horizontalPos.az -= 360;
+        horizontalPos.alt = alt;
+
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+        return Goto(equatorialPos.ra/15.0, equatorialPos.dec);
+    }
 
     // Az/Alt to encoders
     uint64_t n1 = az  / 360 * 0x100000000;
@@ -633,8 +686,8 @@ bool SynscanDriver::SetDefaultPark()
 {
     // By default az to north, and alt to pole
     LOG_DEBUG("Setting Park Data to Default.");
-    SetAxis1Park(0);
-    SetAxis2Park(0);
+    SetAxis1Park(359);
+    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
 
     return true;
 }
@@ -964,7 +1017,7 @@ bool SynscanDriver::updateTime(ln_date * utc, double utc_offset)
     //  and no daylight savings adjustments, it's already included in the offset
     cmd[8] = 0;
 
-    LOGF_INFO("Setting mount date/time to %04d-%02d-%02d %d:%02d:%02d UTC Offset: %.2f",
+    LOGF_INFO("Setting mount date/time to %04d-%02d-%02d %d:%02d:%02d UTC Offset: %g",
               ltm.years, ltm.months, ltm.days, ltm.hours, ltm.minutes, ltm.seconds, utc_offset);
 
     if (isSimulation())
@@ -1044,7 +1097,7 @@ bool SynscanDriver::Sync(double ra, double dec)
     ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
 
     // Mount deals in J2000 coords.
-    uint64_t n1 = J2000Pos.ra  / 360  * 0x100000000;
+    uint64_t n1 = J2000Pos.ra  / 360 * 0x100000000;
     uint64_t n2 = J2000Pos.dec / 360 * 0x100000000;
 
     LOGF_DEBUG("Sync - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra/15.0, J2000Pos.dec);
