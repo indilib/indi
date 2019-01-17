@@ -267,7 +267,7 @@ bool Starbook::getFirmwareVersion() {
 
     if (rc != starbook::OK) {
         if (rc == starbook::ERROR_FORMAT) {
-            LOGF_ERROR("Version [ERROR]: Can't parse firmware version %s", cmd_interface->last_response.c_str());
+            LOGF_ERROR("Version [ERROR]: Can't parse firmware version %s", cmd_interface->getLastResponse().c_str());
         } else {
             LOG_ERROR("Version [ERROR]: Can't get firmware version");
         }
@@ -338,7 +338,7 @@ void Starbook::LogResponse(const std::string &cmd, const starbook::ResponseCode 
     msg << "]";
 
     if (rc != starbook::OK) {
-        msg << ": " << cmd_interface->last_cmd_url;
+        msg << ": " << cmd_interface->getLastResponse();
         LOG_ERROR(msg.str().c_str());
     } else {
         LOG_INFO(msg.str().c_str());

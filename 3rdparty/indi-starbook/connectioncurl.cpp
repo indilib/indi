@@ -76,7 +76,7 @@ namespace Connection {
         curl_easy_setopt(handle, CURLOPT_TIMEOUT, HANDLE_TIMEOUT);
         curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
         // if debug
-        curl_easy_setopt(handle, CURLOPT_VERBOSE, 1);
+//        curl_easy_setopt(handle, CURLOPT_VERBOSE, 0);
     }
 
     bool Curl::Disconnect() {

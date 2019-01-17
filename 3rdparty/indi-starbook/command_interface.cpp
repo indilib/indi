@@ -207,4 +207,12 @@ namespace starbook {
         cmd << "SETSPEED?speed=" << speed;
         return SendOkCommand(cmd.str());
     }
+
+    const std::string &CommandInterface::getLastCmdUrl() const {
+        return last_cmd_url;
+    }
+
+    const std::string &CommandInterface::getLastResponse() const {
+        return last_response;
+    }
 }
