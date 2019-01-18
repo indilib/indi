@@ -1468,10 +1468,11 @@ bool LX200AstroPhysicsExperimental::UnPark()
         }
     }
 
+    SetParked(false);
+
     // Enable tracking
     SetTrackEnabled(true);
-
-    SetParked(false);
+    TrackState = SCOPE_TRACKING;
 
     return true;
 }
