@@ -89,6 +89,7 @@ OPTION (INDI_BUILD_DRIVERS "Build INDI Drivers, Tools, and Examples" ON)
 OPTION (INDI_BUILD_CLIENT "Build INDI POSIX Client" ON)
 OPTION (INDI_BUILD_QT5_CLIENT "Build INDI Qt5 Client" OFF)
 OPTION (INDI_BUILD_UNITTESTS "Build INDI tests" OFF)
+OPTION (INDI_BUILD_WEBSOCKET "Build INDI with Websocket support" OFF)
 OPTION (INDI_FAST_BLOB "Build INDI with Fast BLOB support" ON)
 OPTION (INDI_CALCULATE_MINMAX "Calculate and store image minimum and maximum values in FITS header" OFF)
 
@@ -258,6 +259,27 @@ endif(WIN32 OR ANDROID)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/baseclientqt.h DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 endif (INDI_BUILD_QT5_CLIENT)
 
+####################################################################################################
+#
+# Component   : Websocket
+# Dependencies: libwebsocketpp, libboost, asio
+# Supported OS: Linux, BSD, MacOS, Cygwin
+#
+#################################################################################################
+if (INDI_BUILD_WEBSOCKET)
+    find_package(websocketpp REQUIRED)
+    find_package(Boost COMPONENTS system thread)
+    include_directories (${Boost_INCLUDE_DIRS})
+    SET(HAVE_WEBSOCKET 1)
+    SET(websocket_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/websocket/echo_handler.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/websocket/echo_server.cpp)
+
+    add_executable(indi_websocket ${websocket_SRCS})
+    target_link_libraries(indi_websocket ${Boost_LIBRARIES})
+    install(TARGETS indi_websocket RUNTIME DESTINATION bin)
+endif (INDI_BUILD_WEBSOCKET)
+
 #################################################################################################
 #
 # Component   : INDI Drivers, Tools, and Examples
@@ -364,6 +386,7 @@ SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
@@ -412,6 +435,9 @@ target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIB
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
+IF (HAVE_WEBSOCKET)
+target_link_libraries(indidriver ${Boost_LIBRARIES})
+ENDIF()
 install(TARGETS indidriver ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 else()
 ## Static indidriver Library
@@ -423,6 +449,9 @@ target_link_libraries(indidriverstatic ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMA
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
+IF (HAVE_WEBSOCKET)
+target_link_libraries(indidriverstatic ${Boost_LIBRARIES})
+ENDIF()
 install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 ## Dynamic indidriver Library
 add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS})
@@ -432,6 +461,9 @@ set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING}
 target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
+ENDIF()
+IF (HAVE_WEBSOCKET)
+target_link_libraries(indidriver ${Boost_LIBRARIES})
 ENDIF()
 #IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 #    target_link_libraries(indidriver -lpthread)
@@ -1517,6 +1549,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifocuserinterface.h
@@ -1540,6 +1573,10 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/hidapi.h
         DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
 
+    if (HAVE_WEBSOCKET)
+        install( FILES ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiwsserver.h
+            DESTINATION ${INCLUDE_INSTALL_DIR}/libindi COMPONENT Devel)
+    endif()
 install( FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectioninterface.h
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/connectionplugins/connectionserial.h

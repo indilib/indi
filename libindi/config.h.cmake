@@ -6,3 +6,6 @@
 
 /* Set when theora is detected */
 #cmakedefine HAVE_THEORA
+
+/* Set when websocket is enabled */
+#cmakedefine HAVE_WEBSOCKET
