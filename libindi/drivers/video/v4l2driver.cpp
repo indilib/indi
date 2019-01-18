@@ -49,7 +49,7 @@ static const PixelSizeInfo pixelSizeInfo[] = {
     { "Skyris 132M", nullptr, 3.75f, -1 , false },
     { "Skyris 236C", nullptr, 2.8f, -1 , false },
     { "Skyris 236M", nullptr, 2.8f, -1 , false },
-    { nullptr, nullptr, 5.6f, -1 } // sentinel and default pixel size, needs to be last
+    { nullptr, nullptr, 5.6f, -1 , false} // sentinel and default pixel size, needs to be last
 };
 
 V4L2_Driver::V4L2_Driver()
@@ -281,7 +281,7 @@ bool V4L2_Driver::updateProperties()
         if (info->deviceName)
         {
             LOGF_INFO("Setting pixel size correctly for %s", commonName);
-	    if (!info->tested) {
+	    if (info->tested==false) {
 		    LOGF_INFO("Please report that the camera worked: Name: %s/%s Detected and working, to https://www.indilib.org/forum/ccds-dslrs/4392-indi-pixel-size-detection.html", v4l_base->getDeviceName(), commonName);
 	    }
         }
