@@ -29,7 +29,10 @@
 #include "indiccdchip.h"
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
+
+#ifdef HAVE_WEBSOCKET
 #include "indiwsserver.h"
+#endif
 
 #include <fitsio.h>
 
@@ -90,7 +93,8 @@ class CCD : public DefaultDevice, GuiderInterface
         CCD_HAS_SHUTTER    = 1 << 5, /*!< Does the CCD have a mechanical shutter?  */
         CCD_HAS_COOLER     = 1 << 6, /*!< Does the CCD have a cooler and temperature control?  */
         CCD_HAS_BAYER      = 1 << 7, /*!< Does the CCD send color data in bayer format?  */
-        CCD_HAS_STREAMING  = 1 << 8  /*!< Does the CCD support live video streaming?  */
+        CCD_HAS_STREAMING  = 1 << 8, /*!< Does the CCD support live video streaming?  */
+        CCD_HAS_WEB_SOCKET = 1 << 9  /*!< Does the CCD support web socket transfers?  */
     } CCDCapability;
 
     typedef enum { UPLOAD_CLIENT, UPLOAD_LOCAL, UPLOAD_BOTH } CCD_UPLOAD_MODE;
@@ -161,6 +165,11 @@ class CCD : public DefaultDevice, GuiderInterface
      * @return  True if the CCD supports live video streaming. False otherwise.
      */
     bool HasStreaming() { return capability & CCD_HAS_STREAMING; }
+
+    /**
+     * @return  True if the CCD supports native Web Socket transfers. False otherwise.
+     */
+    bool HasWebSocket() { return capability & CCD_HAS_WEB_SOCKET; }
 
     /**
      * @brief Set CCD temperature
@@ -542,9 +551,11 @@ class CCD : public DefaultDevice, GuiderInterface
     int getFileIndex(const char *dir, const char *prefix, const char *ext);
 
     // Threading for Websocket
+#ifdef HAVE_WEBSOCKET
     std::thread wsThread;
     void wsThreadEntry();
     INDIWSServer wsServer;
+#endif
 
     friend class StreamManager;
 };

@@ -50,8 +50,6 @@
 #include <zlib.h>
 #include <sys/stat.h>
 
-#include "config.h"
-
 const char *IMAGE_SETTINGS_TAB = "Image Settings";
 const char *IMAGE_INFO_TAB     = "Image Info";
 const char *GUIDE_HEAD_TAB     = "Guider Head";
@@ -59,7 +57,9 @@ const char *GUIDE_CONTROL_TAB  = "Guider Control";
 const char *RAPIDGUIDE_TAB     = "Rapid Guide";
 const char *WCS_TAB            = "WCS";
 
+#ifdef HAVE_WEBSOCKET
 uint16_t INDIWSServer::m_global_port = 11623;
+#endif
 
 // Create dir recursively
 static int _ccd_mkdir(const char *dir, mode_t mode)
@@ -541,7 +541,8 @@ bool CCD::updateProperties()
         defineText(&UploadSettingsTP);
 
         #ifdef HAVE_WEBSOCKET
-        defineSwitch(&WebSocketSP);
+        if (HasWebSocket())
+            defineSwitch(&WebSocketSP);
         #endif
 
 #ifdef WITH_EXPOSURE_LOOPING
@@ -614,8 +615,11 @@ bool CCD::updateProperties()
         deleteProperty(UploadSettingsTP.name);
 
         #ifdef HAVE_WEBSOCKET
-        deleteProperty(WebSocketSP.name);
-        deleteProperty(WebSocketSettingsNP.name);
+        if (HasWebSocket())
+        {
+            deleteProperty(WebSocketSP.name);
+            deleteProperty(WebSocketSettingsNP.name);
+        }
         #endif
 #ifdef WITH_EXPOSURE_LOOPING
         deleteProperty(ExposureLoopSP.name);
@@ -1209,6 +1213,7 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
         }
 #endif
 
+        #ifdef HAVE_WEBSOCKET
         // Websocket Enable/Disable
         if (!strcmp(name, WebSocketSP.name))
         {
@@ -1232,6 +1237,8 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             IDSetSwitch(&WebSocketSP, nullptr);
             return true;
         }
+        #endif
+
         // WCS Enable/Disable
         if (!strcmp(name, WorldCoordSP.name))
         {
@@ -2587,14 +2594,28 @@ bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalByte
 
     if (sendImage)
     {
-        if (WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
+        #ifdef HAVE_WEBSOCKET
+        if (HasWebSocket() && WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
         {
+            auto start = std::chrono::high_resolution_clock::now();
+
             // Send format/size/..etc first later
             wsServer.send_text(std::string(targetChip->FitsB.format));
             wsServer.send_binary(targetChip->FitsB.blob, targetChip->FitsB.bloblen);
+
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> diff = end-start;
+            LOGF_DEBUG("Websocket transfer took %g seconds", diff.count());
         }
         else
+        #endif
+        {
+            auto start = std::chrono::high_resolution_clock::now();
             IDSetBLOB(&targetChip->FitsBP, nullptr);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> diff = end-start;
+            LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
+        }
     }
 
     if (compressedData)
@@ -2838,6 +2859,7 @@ bool CCD::StopStreaming()
     return false;
 }
 
+#ifdef HAVE_WEBSOCKET
 void CCD::wsThreadHelper(void *context)
 {
     static_cast<CCD*>(context)->wsThreadEntry();
@@ -2847,5 +2869,6 @@ void CCD::wsThreadEntry()
 {
     wsServer.run();
 }
+#endif
 
 }
