@@ -15,8 +15,12 @@
  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
-#include "indiccd.h"
+#include "indiccdchip.h"
+#include "indidevapi.h"
 #include "locale_compat.h"
+
+#include <cstring>
+#include <ctime>
 
 namespace INDI
 {
