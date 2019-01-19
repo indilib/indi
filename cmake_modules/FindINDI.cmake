@@ -15,6 +15,7 @@
 #
 # The following variables will be defined for your use:
 #   - INDI_FOUND             : were all of your specified components found (include dependencies)?
+#   - INDI_WEBSOCKET         : was INDI compiled with websocket support?
 #   - INDI_INCLUDE_DIR       : INDI include directory
 #   - INDI_DATA_DIR          : INDI include directory
 #   - INDI_LIBRARIES         : INDI libraries
@@ -77,7 +78,7 @@
 #
 #=============================================================================
 # Copyright (c) 2011-2013, julp
-# Copyright (c) 2017 Jasem Mutlaq
+# Copyright (c) 2017-2019 Jasem Mutlaq
 #
 # Distributed under the OSI-approved BSD License
 #
@@ -172,6 +173,21 @@ find_path(
     DOC "Include directory for INDI"
 )
 
+find_path(
+    WEBSOCKET_HEADER
+    indiwsserver.h
+    PATH_SUFFIXES libindi
+    ${PC_INDI_INCLUDE_DIR}
+    ${_obIncDir}
+    ${GNUWIN32_DIR}/include
+)
+
+if (WEBSOCKET_HEADER)
+    SET(INDI_WEBSOCKET TRUE)
+else()
+    SET(INDI_WEBSOCKET FALSE)
+endif()
+
 find_path(${INDI_PUBLIC_VAR_NS}_DATA_DIR
     drivers.xml
     PATH_SUFFIXES share/indi
@@ -262,6 +278,7 @@ endif(${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR)
 mark_as_advanced(
     ${INDI_PUBLIC_VAR_NS}_INCLUDE_DIR
     ${INDI_PUBLIC_VAR_NS}_LIBRARIES
+    INDI_WEBSOCKET
 )
 
 # IN (args)
