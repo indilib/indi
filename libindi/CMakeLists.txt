@@ -271,13 +271,6 @@ if (INDI_BUILD_WEBSOCKET)
     find_package(Boost COMPONENTS system thread)
     include_directories (${Boost_INCLUDE_DIRS})
     SET(HAVE_WEBSOCKET 1)
-    SET(websocket_SRCS
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/websocket/echo_handler.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/websocket/echo_server.cpp)
-
-    add_executable(indi_websocket ${websocket_SRCS})
-    target_link_libraries(indi_websocket ${Boost_LIBRARIES})
-    install(TARGETS indi_websocket RUNTIME DESTINATION bin)
 endif (INDI_BUILD_WEBSOCKET)
 
 #################################################################################################
