@@ -270,6 +270,7 @@ if (INDI_BUILD_WEBSOCKET)
     find_package(websocketpp REQUIRED)
     find_package(Boost COMPONENTS system thread)
     include_directories (${Boost_INCLUDE_DIRS})
+    add_definitions(-DHAVE_WEBSOCKET)
     SET(HAVE_WEBSOCKET 1)
 endif (INDI_BUILD_WEBSOCKET)
 
