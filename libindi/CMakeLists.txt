@@ -466,6 +466,36 @@ install(TARGETS indi_imager_agent RUNTIME DESTINATION bin)
 ########## TELESCOPE GROUP ##########
 #####################################
 
+####################################################################################################
+#
+# Component   : LX200 Library
+# Dependencies: pthreads
+# Supported OS: Linux, BSD, MacOS, Cygwin
+#
+#################################################################################################
+SET(lx200library_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200telescope.cpp
+    )
+
+IF (UNITY_BUILD)
+    ENABLE_UNITY_BUILD(lx200library lx200library_SRCS 10 cpp)
+ENDIF ()
+
+add_library(indilx200 SHARED ${lx200library_SRCS})
+if (NOT CYGWIN AND NOT WIN32)
+set_target_properties(indilx200 PROPERTIES COMPILE_FLAGS "-fPIC")
+endif (NOT CYGWIN AND NOT WIN32)
+target_compile_definitions(indilx200 PRIVATE "-DHAVE_LIBNOVA")
+set_target_properties(indilx200 PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indilx200)
+
+install(TARGETS indilx200 LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200telescope.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.h
+    DESTINATION ${INCLUDE_INSTALL_DIR}/libindi/mounts COMPONENT Devel)
+#################################################################################
+
 ########### LX200 Basic #############
 SET(lx200basic_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200driver.cpp
@@ -584,6 +614,17 @@ add_executable(indi_synscan_telescope ${synscan_SRC})
 target_link_libraries(indi_synscan_telescope indidriver AlignmentDriver)
 
 install(TARGETS indi_synscan_telescope RUNTIME DESTINATION bin)
+
+########### Syncscan Legacy ###############
+SET(synscanlegacy_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscandriverlegacy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/synscanmountlegacy.cpp)
+
+add_executable(indi_synscanlegacy_telescope ${synscanlegacy_SRC})
+target_link_libraries(indi_synscanlegacy_telescope indidriver AlignmentDriver)
+
+install(TARGETS indi_synscanlegacy_telescope RUNTIME DESTINATION bin)
+
 
 ########### Sky Commander ###############
 SET(skycommander_SRC

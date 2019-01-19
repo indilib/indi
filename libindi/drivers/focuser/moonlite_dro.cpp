@@ -114,20 +114,20 @@ bool MoonLiteDRO::initProperties()
                        SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Step Mode
-    IUFillSwitch(&StepModeS[0], "HALF_STEP", "Half Step", ISS_OFF);
-    IUFillSwitch(&StepModeS[1], "FULL_STEP", "Half Step", ISS_ON);
+    IUFillSwitch(&StepModeS[FOCUS_HALF_STEP], "HALF_STEP", "Half Step", ISS_OFF);
+    IUFillSwitch(&StepModeS[FOCUS_FULL_STEP], "FULL_STEP", "Full Step", ISS_ON);
     IUFillSwitchVector(&StepModeSP, StepModeS, 2, getDeviceName(), "FOCUS_STEP_MODE", "Step Mode", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Temperature Settings
-    IUFillNumber(&TemperatureSettingN[0], "Calibration", "", "%6.2f", -20, 20, 0.5, 0);
-    IUFillNumber(&TemperatureSettingN[1], "Coefficient", "", "%6.2f", -20, 20, 0.5, 0);
+    IUFillNumber(&TemperatureSettingN[0], "Calibration", "Calibration", "%6.2f", -20, 20, 0.5, 0);
+    IUFillNumber(&TemperatureSettingN[1], "Coefficient", "Coefficient", "%6.2f", -20, 20, 0.5, 0);
     IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "FOCUS_TEMPERATURE_SETTINGS", "T. Settings",
                        SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
-    IUFillSwitch(&TemperatureCompensateS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
+    IUFillSwitch(&TemperatureCompensateS[0], "Enable", "Enable", ISS_OFF);
+    IUFillSwitch(&TemperatureCompensateS[1], "Disable", "Disable", ISS_ON);
     IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "FOCUS_TEMPERATURE_COMPENSATION",
                        "T. Compensate", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -351,7 +351,7 @@ bool MoonLiteDRO::updateStepDelay()
         return false;
     }
 
-    if ((rc = tty_read(PortFD, resp, 3, MOONLITEDRO_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read_section(PortFD, resp, '#', MOONLITEDRO_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("updateStepDelay error: %s.", errstr);
@@ -362,7 +362,7 @@ bool MoonLiteDRO::updateStepDelay()
 
     LOGF_DEBUG("RES <%s>", resp);
 
-    rc = sscanf(resp, "%hX#", &speed);
+    rc = sscanf(resp, "%hX", &speed);
 
     if (rc > 0)
     {
@@ -392,9 +392,9 @@ bool MoonLiteDRO::updateStepMode()
     char cmd[DRO_CMD]={0};
 
     if (m_ID == 1)
-        strncpy(cmd, ":#GH#", DRO_CMD);
+        strncpy(cmd, ":GH#", DRO_CMD);
     else
-        strncpy(cmd, ":#2GH#", DRO_CMD);
+        strncpy(cmd, ":2GH#", DRO_CMD);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -407,7 +407,7 @@ bool MoonLiteDRO::updateStepMode()
         return false;
     }
 
-    if ((rc = tty_read(PortFD, resp, 3, MOONLITEDRO_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read_section(PortFD, resp, '#', MOONLITEDRO_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("updateStepMode error: %s.", errstr);
@@ -422,10 +422,10 @@ bool MoonLiteDRO::updateStepMode()
 
     IUResetSwitch(&StepModeSP);
 
-    if (strcmp(resp, "FF#") == 0)
-        StepModeS[0].s = ISS_ON;
-    else if (strcmp(resp, "00#") == 0)
-        StepModeS[1].s = ISS_ON;
+    if (strcmp(resp, "FF") == 0)
+        StepModeS[FOCUS_HALF_STEP].s = ISS_ON;
+    else if (strcmp(resp, "00") == 0)
+        StepModeS[FOCUS_FULL_STEP].s = ISS_ON;
     else
     {
         LOGF_ERROR("Unknown error: focuser step value (%s)", resp);
@@ -488,14 +488,14 @@ bool MoonLiteDRO::updatePosition()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[5]={0};
+    char resp[DRO_CMD]={0};
     int pos = -1;
     char cmd[DRO_CMD]={0};
 
     if (m_ID == 1)
-        strncpy(cmd, ":#GP#", DRO_CMD);
+        strncpy(cmd, ":GP#", DRO_CMD);
     else
-        strncpy(cmd, ":#2GP#", DRO_CMD);
+        strncpy(cmd, ":2GP#", DRO_CMD);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -508,7 +508,7 @@ bool MoonLiteDRO::updatePosition()
         return false;
     }
 
-    if ((rc = tty_read(PortFD, resp, 5, MOONLITEDRO_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read_section(PortFD, resp, '#', MOONLITEDRO_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("updatePostion error: %s.", errstr);
@@ -519,7 +519,7 @@ bool MoonLiteDRO::updatePosition()
 
     LOGF_DEBUG("RES <%s>", resp);
 
-    rc = sscanf(resp, "%X#", &pos);
+    rc = sscanf(resp, "%X", &pos);
 
     if (rc > 0)
     {
@@ -538,13 +538,13 @@ bool MoonLiteDRO::isMoving()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[4]={0};
+    char resp[DRO_CMD]={0};
     char cmd[DRO_CMD]={0};
 
     if (m_ID == 1)
-        strncpy(cmd, ":#GI#", DRO_CMD);
+        strncpy(cmd, ":GI#", DRO_CMD);
     else
-        strncpy(cmd, ":#2GI#", DRO_CMD);
+        strncpy(cmd, ":2GI#", DRO_CMD);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
@@ -557,7 +557,7 @@ bool MoonLiteDRO::isMoving()
         return false;
     }
 
-    if ((rc = tty_read(PortFD, resp, 3, MOONLITEDRO_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((rc = tty_read_section(PortFD, resp, '#', MOONLITEDRO_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("isMoving error: %s.", errstr);
@@ -570,9 +570,9 @@ bool MoonLiteDRO::isMoving()
 
     LOGF_DEBUG("RES <%s>", resp);
 
-    if (strcmp(resp, "01#") == 0)
+    if (strcmp(resp, "01") == 0)
         return true;
-    else if (strcmp(resp, "00#") == 0)
+    else if (strcmp(resp, "00") == 0)
         return false;
 
     LOGF_ERROR("Unknown error: isMoving value (%s)", resp);
@@ -583,7 +583,7 @@ bool MoonLiteDRO::setTemperatureCalibration(double calibration)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[7]={0};
+    char cmd[DRO_CMD]={0};
     int cal = calibration * 2;
 
     snprintf(cmd, 7, ":PO%02X#", cal);
@@ -606,7 +606,7 @@ bool MoonLiteDRO::setTemperatureCoefficient(double coefficient)
 {
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
-    char cmd[7]={0};
+    char cmd[DRO_CMD]={0};
 
     int coeff = coefficient * 2;
 
@@ -741,14 +741,17 @@ bool MoonLiteDRO::setStepDelay(uint8_t delay)
 
     hex_value <<= delay;
 
-    snprintf(cmd, DRO_CMD, ":SD%02X#", hex_value);
+    if (m_ID == 1)
+        snprintf(cmd, DRO_CMD, ":SD%02X#", hex_value);
+    else
+        snprintf(cmd, DRO_CMD, ":2SD%02X#", hex_value);
 
     LOGF_DEBUG("CMD <%s>", cmd);
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setSpeed error: %s.", errstr);
+        LOGF_ERROR("setStepelay error: %s.", errstr);
         return false;
     }
 
@@ -869,7 +872,7 @@ bool MoonLiteDRO::ISNewNumber(const char *dev, const char *name, double values[]
         // Step Delay
         if (strcmp(name, StepDelayNP.name) == 0)
         {
-            if (setStepDelay(values[0]))
+            if (setStepDelay(values[0]) == false)
             {
                 StepDelayNP.s = IPS_ALERT;
                 IDSetNumber(&StepDelayNP, nullptr);
@@ -1012,6 +1015,7 @@ bool MoonLiteDRO::saveConfigItems(FILE *fp)
     Focuser::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &StepModeSP);
+    IUSaveConfigNumber(fp, &StepDelayNP);
 
     return true;
 }

@@ -56,7 +56,7 @@
 #define FMT_RGB888  MAKEFOURCC('R', 'G', 'B', '8')
 
 static int iConnectedCamerasCount;
-static AltaircamInstV2 pToupCameraInfo[ALTAIRCAM_MAX];
+static AltaircamInstV2 pAltairCameraInfo[ALTAIRCAM_MAX];
 static ALTAIRCAM *cameras[ALTAIRCAM_MAX];
 
 //#define USE_SIMULATION
@@ -109,25 +109,25 @@ void ALTAIRCAM_ISInit()
     {
 #ifdef USE_SIMULATION
         iConnectedCamerasCount=1;
-        strncpy(pToupCameraInfo[0].displayname, "Simulation", 64);
+        strncpy(pAltairCameraInfo[0].displayname, "Simulation", 64);
         model.flag = ALTAIRCAM_FLAG_RAW16 | ALTAIRCAM_FLAG_BINSKIP_SUPPORTED | ALTAIRCAM_FLAG_ROI_HARDWARE | ALTAIRCAM_FLAG_TEC_ONOFF | ALTAIRCAM_FLAG_ST4;
-        model.name = pToupCameraInfo[0].displayname;
+        model.name = pAltairCameraInfo[0].displayname;
         model.xpixsz = model.ypixsz  = 5.4;
         model.res[0].width = 1280;
         model.res[0].height = 1024;
         model.res[1].width = 640;
         model.res[1].height = 480;
-        pToupCameraInfo[0].model = &model;
-        cameras[0] = new ALTAIR(&pToupCameraInfo[0]);
+        pAltairCameraInfo[0].model = &model;
+        cameras[0] = new ALTAIR(&pAltairCameraInfo[0]);
 #else
-        iConnectedCamerasCount = Altaircam_EnumV2(pToupCameraInfo);
+        iConnectedCamerasCount = Altaircam_EnumV2(pAltairCameraInfo);
         if (iConnectedCamerasCount <= 0)
-            IDLog("No ToupCam detected. Power on?");
+            IDLog("No Altair detected. Power on?");
         else
         {
             for (int i = 0; i < iConnectedCamerasCount; i++)
             {
-                cameras[i] = new ALTAIRCAM(&pToupCameraInfo[i]);
+                cameras[i] = new ALTAIRCAM(&pAltairCameraInfo[i]);
             }
         }
 #endif
@@ -143,7 +143,7 @@ void ISGetProperties(const char *dev)
 
     if (iConnectedCamerasCount == 0)
     {
-        IDMessage(nullptr, "No ToupCam detected. Power on?");
+        IDMessage(nullptr, "No Altair detected. Power on?");
         return;
     }
 
@@ -580,31 +580,25 @@ void ALTAIRCAM::setupParams()
 
         rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, 1);
         LOGF_DEBUG("ALTAIRCAM_OPTION_RAW 1. rc: %s", errorCodes[rc].c_str());
-//        rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
-//        LOGF_DEBUG("ALTAIRCAM_OPTION_BITDEPTH 1. rc: %s", errorCodes[rc].c_str());
 
-        int rgbMode = 0;
-        rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_RGB, &rgbMode);
-        LOGF_DEBUG("ALTAIRCAM_OPTION_RGB. rc: %s Value: %d", errorCodes[rc].c_str(), rgbMode);
-
-        // 8 bit
-        if (rgbMode <= 3)
+        if (m_Instance->model->flag & (ALTAIRCAM_FLAG_RAW10 | ALTAIRCAM_FLAG_RAW12 | ALTAIRCAM_FLAG_RAW14 | ALTAIRCAM_FLAG_RAW16))
         {
-            VideoFormatS[TC_VIDEO_MONO_8].s = ISS_ON;
-            m_Channels = 1;
-            m_CameraPixelFormat = INDI_MONO;
-            m_BitsPerPixel = 8;
-            LOG_INFO("Video Mode 8-bit mono detected.");
-        }
-        // 16 bits gray
-        else if (rgbMode == 4)
-        {
-            VideoFormatS[TC_VIDEO_MONO_16].s = ISS_ON;
-            m_Channels = 1;
-            m_CameraPixelFormat = INDI_MONO;
+            // enable bitdepth
+            rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, 1);
+            LOGF_DEBUG("ALTAIRCAM_OPTION_BITDEPTH 1. rc: %s", errorCodes[rc].c_str());
             m_BitsPerPixel = 16;
-            LOG_INFO("Video Mode 16-bit mono detected.");
+            VideoFormatS[TC_VIDEO_MONO_16].s = ISS_ON;
+            m_CurrentVideoFormat = TC_VIDEO_MONO_16;
         }
+        else
+        {
+            m_BitsPerPixel = 8;
+            VideoFormatS[TC_VIDEO_MONO_8].s = ISS_ON;
+            m_CurrentVideoFormat = TC_VIDEO_MONO_8;
+        }
+
+        m_CameraPixelFormat = INDI_MONO;
+        m_Channels = 1;
 
         LOGF_DEBUG("Bits Per Pixel: %d Video Mode: %s", m_BitsPerPixel, VideoFormatS[TC_VIDEO_MONO_8].s == ISS_ON ? "Mono 8-bit" : "Mono 16-bit");
     }
@@ -1015,7 +1009,7 @@ bool ALTAIRCAM::ISNewNumber(const char *dev, const char *name, double values[], 
                                               static_cast<int>(WBTempTintN[TC_WB_TINT].value))) < 0)
             {
                 WBTempTintNP.s = IPS_ALERT;
-                LOGF_ERROR("Failed to set White Balance Tempeture & Tint. %s", errorCodes[rc].c_str());
+                LOGF_ERROR("Failed to set White Balance Temperature & Tint. %s", errorCodes[rc].c_str());
 
             }
             else
@@ -2117,8 +2111,8 @@ void ALTAIRCAM::sendImageCallBack()
     InExposure = false;
     m_lastEventID = -1;
 
-    RemoveTimer(m_TimeoutTimerID);
-    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &ALTAIRCAM::checkTimeoutHelper, this);
+//    RemoveTimer(m_TimeoutTimerID);
+//    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &ALTAIRCAM::checkTimeoutHelper, this);
 }
 
 void ALTAIRCAM::checkTimeoutHelper(void *context)

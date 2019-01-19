@@ -1,0 +1,24 @@
+Version 0.5 - 2018-05-19
+	+ forcing meridian flip added
+        + enabling/disbling ST4 added
+	+ setting guiding speed added
+Version 0.4 - 2018-04-14
+	+ display of parking status
+	+ send LST before unpark
+	+ pier side display corrected
+	+ merged with INDI v 1.7.1
+Version 0.3 - 2018-04-12
+	+ showing pier side implemented
+	+ merged with INDI v 1.7.0
+Version 0.2 - 2018-03-30
+	+ Moved to 3rdparty
+	+ introduction of LX200Telescope as base class separated
+	+ Focuser handling transferred from CanisUrsa's implementation
+	  to LX200StarGoFocuser
+	+ parking, unparking and setting parking position added
+	+ slew home added
+	+ status handling improved
+
+Version 0.1 - 2018-03-20
+	+ Initial version, based on LX200Generic
+	

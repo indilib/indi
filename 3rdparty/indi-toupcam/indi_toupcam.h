@@ -234,11 +234,11 @@ private:
 
     enum eGUIDEDIRECTION
     {
-        TOUPCAM_NORTH,
-        TOUPCAM_SOUTH,
-        TOUPCAM_EAST,
-        TOUPCAM_WEST,
-        TOUPCAM_STOP,
+        Toupcam_NORTH,
+        Toupcam_SOUTH,
+        Toupcam_EAST,
+        Toupcam_WEST,
+        Toupcam_STOP,
     };
 
     enum ePIXELFORMAT

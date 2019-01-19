@@ -25,7 +25,7 @@
 #include <unistd.h>
 
 // We declare an auto pointer to domeSim.
-std::unique_ptr<DomeSim> domeSim(new DomeSim());
+static std::unique_ptr<DomeSim> domeSim(new DomeSim());
 
 #define DOME_SPEED    10.0 /* 10 degrees per second, constant */
 #define SHUTTER_TIMER 5.0  /* Shutter closes/open in 5 seconds */
@@ -124,7 +124,7 @@ bool DomeSim::SetupParms()
 
 const char *DomeSim::getDefaultName()
 {
-    return (const char *)"Dome Simulator";
+    return "Dome Simulator";
 }
 
 bool DomeSim::updateProperties()

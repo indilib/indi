@@ -38,6 +38,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 
+// maximum guide pulse request to send to controller
+#define MAX_LX200AP_PULSE_LEN 999
+
 char lx200ap_name[MAXINDIDEVICE];
 unsigned int AP_DBG_SCOPE;
 
@@ -749,7 +752,7 @@ int APSendPulseCmd(int fd, int direction, int duration_msec)
     char cmd[20];
 
     // GTOCP3 supports 3 digits for msec duration
-    if (duration_msec > 999)
+    if (duration_msec > MAX_LX200AP_PULSE_LEN)
     {
         DEBUGFDEVICE(lx200ap_name, INDI::Logger::DBG_DEBUG, "APSendPulseCmd requested %d msec limited to 999 msec!", duration_msec);
         duration_msec = 999;

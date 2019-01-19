@@ -94,7 +94,7 @@ option(WITH_ATIK "Install Atik Driver" On)
 option(WITH_TOUPCAM "Install Toupcam Driver" On)
 option(WITH_ALTAIRCAM "Install Altair Driver" On)
 option(WITH_DREAMFOCUSER "Install DreamFocuser Driver" On)
-
+option(WITH_AVALON "Install Avalon StarGO Driver" On)
 
 find_package(FFmpeg)
 
@@ -327,10 +327,17 @@ endif (WITH_MGEN)
 
 ## DETECTORS
 
-if (WITH_RTLSDR OR WITH_LIMESDR)
+if (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
 
 find_package(DSPAU)
 find_package(LIMESUITE)
+
+# RadioSim
+if (WITH_RADIOSIM)
+if (DSPAU_FOUND)
+add_subdirectory(indi-radiosim)
+endif (DSPAU_FOUND)
+endif (WITH_RADIOSIM)
 
 ## RTL-SDR
 if (WITH_RTLSDR)
@@ -344,6 +351,7 @@ if (WITH_LIMESDR)
 if (DSPAU_FOUND AND LIMESUITE_FOUND)
 add_subdirectory(indi-limesdr)
 endif (DSPAU_FOUND AND LIMESUITE_FOUND)
+
 endif (WITH_LIMESDR)
 
 if (NOT DSPAU_FOUND)
@@ -351,12 +359,7 @@ add_subdirectory(libdspau)
 SET(LIBRARIES_FOUND FALSE)
 endif (NOT DSPAU_FOUND)
 
-endif (WITH_RTLSDR OR WITH_LIMESDR)
-
-# RadioSim
-if (WITH_RADIOSIM)
-add_subdirectory(indi-radiosim)
-endif (WITH_RADIOSIM)
+endif (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
 
 if (WITH_ARMADILLO)
 add_subdirectory(indi-armadillo-platypus)
@@ -377,6 +380,12 @@ endif(WITH_NIGHTSCAPE)
 if (WITH_DREAMFOCUSER)
 add_subdirectory(indi-dreamfocuser)
 endif()
+
+# Avalon StarGO
+if (WITH_AVALON)
+add_subdirectory(indi-avalon)
+endif(WITH_AVALON)
+
 
 # Check if libraries are found. If not, we must build them, install them, THEN run CMake again to build and instal the drivers. If all the libraraies are installed, then we build and install the drivers only now.
 if (LIBRARIES_FOUND)

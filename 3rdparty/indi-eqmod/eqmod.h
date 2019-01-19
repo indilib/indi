@@ -54,7 +54,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
 #endif
 {
   protected:
-  private:
+//  private:
     Skywatcher *mount;
 
     uint32_t currentRAEncoder, zeroRAEncoder, totalRAEncoder;
@@ -112,7 +112,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     INumberVectorProperty *SyncPolarAlignNP    = NULL;
     ISwitchVectorProperty *SyncManageSP        = NULL;
     ISwitchVectorProperty *ReverseDECSP        = NULL;
-    ISwitchVectorProperty *EnforceCWUP         = NULL;
+    ISwitchVectorProperty *TargetPierSideSP    = NULL;
     INumberVectorProperty *BacklashNP          = NULL;
     ISwitchVectorProperty *UseBacklashSP       = NULL;
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
@@ -150,25 +150,26 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         uint32_t ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
         uint32_t limiteast, limitwest;
         unsigned int iterative_count;
-        bool forcecwup, checklimits, outsidelimits, completed;
+        bool checklimits, outsidelimits, completed;
+        TelescopePierSide pier_side;
     } GotoParams;
 
     Hemisphere Hemisphere;
     bool RAInverted, DEInverted;
-    bool ForceCwUp = false;
+    TelescopePierSide TargetPier = PIER_UNKNOWN;
     GotoParams gotoparams;
     SyncData syncdata, syncdata2;
 
     double tpa_alt, tpa_az;
 
-    void EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha);
+    void EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha, TelescopePierSide *pierSide);
     double EncoderToHours(uint32_t destep, uint32_t initdestep, uint32_t totalrastep, enum Hemisphere h);
     double EncoderToDegrees(uint32_t destep, uint32_t initdestep, uint32_t totalrastep,
                             enum Hemisphere h);
     double EncoderFromHour(double hour, uint32_t initstep, uint32_t totalstep, enum Hemisphere h);
-    double EncoderFromRA(double ratarget, double detarget, double lst, uint32_t initstep, uint32_t totalstep,
+    double EncoderFromRA(double ratarget, TelescopePierSide p, double lst, uint32_t initstep, uint32_t totalstep,
                          enum Hemisphere h);
-    double EncoderFromDegree(double degree, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
+    double EncoderFromDegree(double degree, uint32_t initstep, uint32_t totalstep,
                              enum Hemisphere h);
     double EncoderFromDec(double detarget, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
                           enum Hemisphere h);

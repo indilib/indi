@@ -18,8 +18,8 @@
 
 #include "libdspau.h"
 #define ratio (max - min) / (mx - mn + 1)
-
-dspau_star dspau_align_findstar(dspau_t* in, dspau_rectangle tmpRect, int intensity, int width, int height)
+/*
+dspau_star dspau_align_findstar(double* in, dspau_region* tmpRect, int intensity, int width, int height)
 {
     dspau_star ret;
     int left = Max(0, Min(tmpRect.x, tmpRect.x + tmpRect.width));
@@ -27,7 +27,7 @@ dspau_star dspau_align_findstar(dspau_t* in, dspau_rectangle tmpRect, int intens
     int right = Min(tmpRect.width, Max(tmpRect.x, tmpRect.x + tmpRect.width));
     int bottom = Min(tmpRect.height, Max(tmpRect.y, tmpRect.y + tmpRect.height));
     int len = (right - left) * (bottom - top);
-    dspau_t* tmpBuf = (dspau_t*)calloc(sizeof(dspau_t), len);
+    double* tmpBuf = (double*)calloc(sizeof(double), len);
     if (len <= 0)
         goto lost;
     int p = 0;
@@ -35,7 +35,7 @@ dspau_star dspau_align_findstar(dspau_t* in, dspau_rectangle tmpRect, int intens
     {
         for (int x = tmpRect.x; x < tmpRect.x + tmpRect.width && x < width; x++)
         {
-            tmpBuf[p++] = (dspau_t)(in[x + y * width]);
+            tmpBuf[p++] = (double)(in[x + y * width]);
         }
     }
     tmpBuf = dspau_buffer_stretch(tmpBuf, len, 0.0, 100.0);
@@ -119,3 +119,4 @@ lost:
     };
     return ret;
 }
+*/

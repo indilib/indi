@@ -749,8 +749,18 @@ class Telescope : public DefaultDevice
 private:
     bool processTimeInfo(const char *utc, const char *offset);
     bool processLocationInfo(double latitude, double longitude, double elevation);
-
     void triggerSnoop(const char *driverName, const char *propertyName);
+    /**
+     * @brief SyncParkStatus Update the state and switches for parking
+     * @param isparked True if parked, false otherwise.
+     */
+    void SyncParkStatus(bool isparked);
+
+    /**
+     * @brief LoadParkXML Read and process park XML data.
+     * @return error string if there is problem opening the file
+     */
+    const char *LoadParkXML();
 
     TelescopeParkData parkDataType;
     bool IsLocked;
