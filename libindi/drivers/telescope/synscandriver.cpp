@@ -178,7 +178,7 @@ void SynscanDriver::setupParams()
 
 int SynscanDriver::hexStrToInteger(const std::string &res)
 {
-    int result=0;
+    int result = 0;
 
     try
     {
@@ -194,7 +194,7 @@ int SynscanDriver::hexStrToInteger(const std::string &res)
 
 bool SynscanDriver::Handshake()
 {
-    char res[SYN_RES]= {0};
+    char res[SYN_RES] = {0};
     if (!echo())
         return false;
 
@@ -218,7 +218,7 @@ bool SynscanDriver::Handshake()
     return true;
 }
 
-bool SynscanDriver::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool SynscanDriver::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     if (dev && !strcmp(dev, getDeviceName()))
     {
@@ -260,10 +260,10 @@ bool SynscanDriver::ISNewNumber(const char *dev, const char *name, double values
             }
 
             int nset = 0;
-            double newAlt=0, newAz=0;
+            double newAlt = 0, newAz = 0;
             for (int i = 0; i < n; i++)
             {
-                INumber *horp = IUFindNumber(&HorizontalCoordsNP, names[i]);
+                INumber * horp = IUFindNumber(&HorizontalCoordsNP, names[i]);
                 if (horp == &HorizontalCoordsN[AXIS_AZ])
                 {
                     newAz = values[i];
@@ -297,14 +297,14 @@ bool SynscanDriver::ISNewNumber(const char *dev, const char *name, double values
 
 bool SynscanDriver::echo()
 {
-    char res[SYN_RES]= {0};
+    char res[SYN_RES] = {0};
     return sendCommand("Kx", res);
 }
 
 bool SynscanDriver::readFirmware()
 {
     // Read the handset version
-    char res[SYN_RES]= {0};
+    char res[SYN_RES] = {0};
     if (sendCommand("V", res))
     {
         m_FirmwareVersion = static_cast<double>(hexStrToInteger(std::string(&res[0], 2)));
@@ -333,17 +333,17 @@ bool SynscanDriver::readFirmware()
 bool SynscanDriver::readTracking()
 {
     // Read the handset version
-    char res[SYN_RES]= {0};
+    char res[SYN_RES] = {0};
     if (sendCommand("t", res))
     {
         // Are we tracking or not?
         m_TrackingFlag = res[0];
 
         // Track mode?
-        if ((m_TrackingFlag-1) != IUFindOnSwitchIndex(&TrackModeSP))
+        if ((m_TrackingFlag - 1) != IUFindOnSwitchIndex(&TrackModeSP))
         {
             IUResetSwitch(&TrackModeSP);
-            TrackModeS[m_TrackingFlag-1].s = ISS_ON;
+            TrackModeS[m_TrackingFlag - 1].s = ISS_ON;
             IDSetSwitch(&TrackModeSP, nullptr);
         }
 
@@ -386,7 +386,7 @@ bool SynscanDriver::readModel()
     };
 
     // Read the handset version
-    char res[SYN_RES]= {0};
+    char res[SYN_RES] = {0};
 
     if (!sendCommand("m", res))
         return false;
@@ -469,7 +469,7 @@ bool SynscanDriver::ReadScopeStatus()
     if (!sendCommand("e", res))
         return false;
 
-    uint64_t n1=0, n2=0;
+    uint64_t n1 = 0, n2 = 0;
     sscanf(res, "%lx,%lx#", &n1, &n2);
     double ra  = static_cast<double>(n1) / 0x100000000 * 360.0;
     double de  = static_cast<double>(n2) / 0x100000000 * 360.0;
@@ -481,8 +481,18 @@ bool SynscanDriver::ReadScopeStatus()
     // Synscan reports J2000 coordinates so we need to convert from J2000 to JNow
     ln_get_equ_prec2(&J2000Pos, JD2000, ln_get_julian_from_sys(), &epochPos);
 
-    CurrentRA = epochPos.ra/15.0;
+    CurrentRA = epochPos.ra / 15.0;
     CurrentDE = epochPos.dec;
+
+    char Axis1Coords[MAXINDINAME] = {0}, Axis2Coords[MAXINDINAME] = {0};
+    fs_sexa(Axis1Coords, J2000Pos.ra / 15.0, 2, 3600);
+    fs_sexa(Axis2Coords, J2000Pos.dec, 2, 3600);
+    LOGF_INFO("J2000 RA <%s> DE <%s>", Axis1Coords, Axis2Coords);
+    memset(Axis1Coords, 0, MAXINDINAME);
+    memset(Axis2Coords, 0, MAXINDINAME);
+    fs_sexa(Axis1Coords, CurrentRA, 2, 3600);
+    fs_sexa(Axis2Coords, CurrentDE, 2, 3600);
+    LOGF_INFO("JNOW RA <%s> DE <%s>", Axis1Coords, Axis2Coords);
 
     //  Now feed the rest of the system with corrected data
     NewRaDec(CurrentRA, CurrentDE);
@@ -499,6 +509,13 @@ bool SynscanDriver::ReadScopeStatus()
 
     HorizontalCoordsN[AXIS_AZ].value = az;
     HorizontalCoordsN[AXIS_ALT].value = al;
+
+    memset(Axis1Coords, 0, MAXINDINAME);
+    memset(Axis2Coords, 0, MAXINDINAME);
+    fs_sexa(Axis1Coords, az, 2, 3600);
+    fs_sexa(Axis2Coords, al, 2, 3600);
+    LOGF_INFO("AZ <%s> ALT <%s>", Axis1Coords, Axis2Coords);
+
     IDSetNumber(&HorizontalCoordsNP, nullptr);
 
     return true;
@@ -506,7 +523,7 @@ bool SynscanDriver::ReadScopeStatus()
 
 bool SynscanDriver::SetTrackEnabled(bool enabled)
 {
-    char cmd[SYN_RES]= {0}, res[SYN_RES]= {0};
+    char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
 
     if (isSimulation())
         return true;
@@ -518,19 +535,19 @@ bool SynscanDriver::SetTrackEnabled(bool enabled)
 
 bool SynscanDriver::SetTrackMode(uint8_t mode)
 {
-    char cmd[SYN_RES]= {0}, res[SYN_RES]= {0};
+    char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
 
     if (isSimulation())
         return true;
 
     cmd[0] = 'T';
-    cmd[1] = mode+1;
+    cmd[1] = mode + 1;
     return sendCommand(cmd, res);
 }
 
 bool SynscanDriver::Goto(double ra, double dec)
 {
-    char cmd[SYN_RES]= {0}, res[SYN_RES]= {0};
+    char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
 
     TargetRA = ra;
     TargetDE = dec;
@@ -569,7 +586,7 @@ bool SynscanDriver::Goto(double ra, double dec)
     uint64_t n1 = J2000Pos.ra / 360  * 0x100000000;
     uint64_t n2 = J2000Pos.dec / 360 * 0x100000000;
 
-    LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra/15.0, J2000Pos.dec);
+    LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra / 15.0, J2000Pos.dec);
 
 
     snprintf(cmd, SYN_RES, "r%08lX,%08lX", n1, n2);
@@ -586,7 +603,7 @@ bool SynscanDriver::Goto(double ra, double dec)
 
 bool SynscanDriver::GotoAzAlt(double az, double alt)
 {
-    char cmd[SYN_RES]= {0}, res[SYN_RES]= {0};
+    char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
 
     if (isSimulation())
         return true;
@@ -609,7 +626,7 @@ bool SynscanDriver::GotoAzAlt(double az, double alt)
         horizontalPos.alt = alt;
 
         ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
-        return Goto(equatorialPos.ra/15.0, equatorialPos.dec);
+        return Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
     }
 
     // Az/Alt to encoders
@@ -667,7 +684,7 @@ bool SynscanDriver::SetCurrentPark()
     if (!sendCommand("z", res))
         return false;
 
-    uint64_t n1=0, n2=0;
+    uint64_t n1 = 0, n2 = 0;
     sscanf(res, "%lx,%lx#", &n1, &n2);
     double az  = static_cast<double>(n1) / 0x100000000 * 360.0;
     double al  = static_cast<double>(n2) / 0x100000000 * 360.0;
@@ -817,7 +834,7 @@ bool SynscanDriver::SetSlewRate(int s)
 #if 0
 bool SynscanDriver::passThruCommand(int cmd, int target, int msgsize, int data, int numReturn)
 {
-    char test[20]= {0};
+    char test[20] = {0};
     int bytesRead, bytesWritten;
     char a, b, c;
     int tt = data;
@@ -881,7 +898,7 @@ bool SynscanDriver::sendTime()
         return true;
     }
 
-    char res[SYN_RES]= {0};
+    char res[SYN_RES] = {0};
     if (sendCommand("h", res))
     {
         ln_zonedate localTime;
@@ -984,7 +1001,7 @@ bool SynscanDriver::sendLocation()
 
     saveConfig(true, "GEOGRAPHIC_COORD");
 
-    char LongitudeStr[32]= {0}, LatitudeStr[32]= {0};
+    char LongitudeStr[32] = {0}, LatitudeStr[32] = {0};
     fs_sexa(LongitudeStr, lon, 2, 3600);
     fs_sexa(LatitudeStr, lat, 2, 3600);
     LOGF_INFO("Mount Longitude %s Latitude %s", LongitudeStr, LatitudeStr);
@@ -994,7 +1011,7 @@ bool SynscanDriver::sendLocation()
 
 bool SynscanDriver::updateTime(ln_date * utc, double utc_offset)
 {
-    char cmd[SYN_RES]= {0}, res[SYN_RES]= {0};
+    char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
 
     //  start by formatting a time for the hand controller
     //  we are going to set controller to local time
@@ -1014,7 +1031,7 @@ bool SynscanDriver::updateTime(ln_date * utc, double utc_offset)
     cmd[5] = ltm.days;
     cmd[6] = yr;
     //  offset from utc so hand controller is running in local time
-    cmd[7] = utc_offset > 0 ? static_cast<uint8_t>(utc_offset) : static_cast<uint8_t>(256+utc_offset);
+    cmd[7] = utc_offset > 0 ? static_cast<uint8_t>(utc_offset) : static_cast<uint8_t>(256 + utc_offset);
     //  and no daylight savings adjustments, it's already included in the offset
     cmd[8] = 0;
 
@@ -1031,7 +1048,7 @@ bool SynscanDriver::updateLocation(double latitude, double longitude, double ele
 {
     INDI_UNUSED(elevation);
 
-    char cmd[SYN_RES]= {0}, res[SYN_RES]= {0};
+    char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
     bool IsWest = false;
 
     ln_lnlat_posn p1 { 0, 0 };
@@ -1080,7 +1097,7 @@ bool SynscanDriver::updateLocation(double latitude, double longitude, double ele
 
 bool SynscanDriver::Sync(double ra, double dec)
 {
-    char cmd[SYN_RES]= {0}, res[SYN_RES]= {0};
+    char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
 
     TargetRA = ra;
     TargetDE = dec;
@@ -1101,7 +1118,7 @@ bool SynscanDriver::Sync(double ra, double dec)
     uint64_t n1 = J2000Pos.ra  / 360 * 0x100000000;
     uint64_t n2 = J2000Pos.dec / 360 * 0x100000000;
 
-    LOGF_DEBUG("Sync - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra/15.0, J2000Pos.dec);
+    LOGF_DEBUG("Sync - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra / 15.0, J2000Pos.dec);
 
 
     snprintf(cmd, SYN_RES, "s%08lX,%08lX", n1, n2);
@@ -1118,7 +1135,7 @@ ln_hrz_posn SynscanDriver::getAltAzPosition(double ra, double dec)
     Location.lat = LocationN[LOCATION_LATITUDE].value;
     Location.lng = LocationN[LOCATION_LONGITUDE].value;
 
-    Eq.ra  = ra*360.0 / 24.0;
+    Eq.ra  = ra * 360.0 / 24.0;
     Eq.dec = dec;
     ln_get_hrz_from_equ(&Eq, &Location, ln_get_julian_from_sys(), &AltAz);
     AltAz.az -= 180;
@@ -1163,7 +1180,7 @@ bool SynscanDriver::sendCommand(const char * cmd, char * res, int cmd_len, int r
 
     if (cmd_len > 0)
     {
-        char hex_cmd[SYN_RES*3]={0};
+        char hex_cmd[SYN_RES * 3] = {0};
         hexDump(hex_cmd, cmd, cmd_len);
         LOGF_DEBUG("CMD <%s>", hex_cmd);
         rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
@@ -1176,7 +1193,7 @@ bool SynscanDriver::sendCommand(const char * cmd, char * res, int cmd_len, int r
 
     if (rc != TTY_OK)
     {
-        char errstr[MAXRBUF]= {0};
+        char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Serial write error: %s.", errstr);
         return false;
@@ -1186,13 +1203,13 @@ bool SynscanDriver::sendCommand(const char * cmd, char * res, int cmd_len, int r
         return true;
 
     if (res_len > 0)
-        rc= tty_read(PortFD, res, res_len, SYN_TIMEOUT, &nbytes_read);
+        rc = tty_read(PortFD, res, res_len, SYN_TIMEOUT, &nbytes_read);
     else
         rc = tty_nread_section(PortFD, res, SYN_RES, SYN_DEL, SYN_TIMEOUT, &nbytes_read);
 
     if (rc != TTY_OK)
     {
-        char errstr[MAXRBUF]= {0};
+        char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Serial read error: %s.", errstr);
         return false;
@@ -1200,7 +1217,7 @@ bool SynscanDriver::sendCommand(const char * cmd, char * res, int cmd_len, int r
 
     if (res_len > 0)
     {
-        char hex_res[SYN_RES*3]={0};
+        char hex_res[SYN_RES * 3] = {0};
         hexDump(hex_res, res, res_len);
         LOGF_DEBUG("RES <%s>", hex_res);
     }
@@ -1214,7 +1231,7 @@ bool SynscanDriver::sendCommand(const char * cmd, char * res, int cmd_len, int r
     return true;
 }
 
-void SynscanDriver::hexDump(char *buf, const char *data, int size)
+void SynscanDriver::hexDump(char * buf, const char * data, int size)
 {
     for (int i = 0; i < size; i++)
         sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
@@ -1238,14 +1255,14 @@ void SynscanDriver::mountSim()
 
     dt  = tv.tv_sec - ltv.tv_sec + (tv.tv_usec - ltv.tv_usec) / 1e6;
     ltv = tv;
-    double currentSlewRate = SIM_SLEW_RATE[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL/3600.0;
+    double currentSlewRate = SIM_SLEW_RATE[IUFindOnSwitchIndex(&SlewRateSP)] * TRACKRATE_SIDEREAL / 3600.0;
     da  = currentSlewRate * dt;
 
     /* Process per current state. We check the state of EQUATORIAL_COORDS and act acoordingly */
     switch (TrackState)
     {
         case SCOPE_IDLE:
-            CurrentRA += (TrackRateN[AXIS_RA].value/3600.0 * dt) / 15.0;
+            CurrentRA += (TrackRateN[AXIS_RA].value / 3600.0 * dt) / 15.0;
             CurrentRA = range24(CurrentRA);
             break;
 
@@ -1308,7 +1325,7 @@ void SynscanDriver::mountSim()
 
 bool SynscanDriver::slewFixedRate(SynscanDirection direction, uint8_t rate)
 {
-    char cmd[SYN_RES]={0}, res[SYN_RES]={0};
+    char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
 
     cmd[0] = 'P';
     cmd[1] = 2;
@@ -1324,7 +1341,7 @@ bool SynscanDriver::slewFixedRate(SynscanDirection direction, uint8_t rate)
 
 bool SynscanDriver::slewVariableRate(SynscanDirection direction, double rate)
 {
-    char cmd[SYN_RES]={0}, res[SYN_RES]={0};
+    char cmd[SYN_RES] = {0}, res[SYN_RES] = {0};
 
     // According to Synscan documentation. We need to multiply by 4
     // then separate into high and low bytes
@@ -1408,14 +1425,14 @@ IPState SynscanDriver::GuideWest(uint32_t ms)
     return IPS_BUSY;
 }
 
-void SynscanDriver::guideTimeoutHelperNS(void *context)
+void SynscanDriver::guideTimeoutHelperNS(void * context)
 {
-    static_cast<SynscanDriver*>(context)->guideTimeoutCallbackNS();
+    static_cast<SynscanDriver *>(context)->guideTimeoutCallbackNS();
 }
 
-void SynscanDriver::guideTimeoutHelperWE(void *context)
+void SynscanDriver::guideTimeoutHelperWE(void * context)
 {
-    static_cast<SynscanDriver*>(context)->guideTimeoutCallbackWE();
+    static_cast<SynscanDriver *>(context)->guideTimeoutCallbackWE();
 }
 
 void SynscanDriver::guideTimeoutCallbackNS()
@@ -1436,7 +1453,7 @@ void SynscanDriver::guideTimeoutCallbackWE()
 
 bool SynscanDriver::isSlewComplete()
 {
-    char res[SYN_RES]={0};
+    char res[SYN_RES] = {0};
 
     if (!sendCommand("L", res))
         return false;
