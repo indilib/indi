@@ -82,6 +82,11 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 
     ISwitch CoolerS[2];
     ISwitchVectorProperty CoolerSP;
+    enum
+    {
+        COOLER_ON,
+        COOLER_OFF,
+    };
 
     INumber CoolerN[1];
     INumberVectorProperty CoolerNP;
@@ -125,7 +130,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
     // Setup basic CCD parameters on connection
     bool setupParams();
     // Enable/disable cooler
-    void setCooler(bool enable);
+    bool activateCooler(bool enable);
     // Check if the camera is QHY5PII-C model
     bool isQHY5PIIC();
 

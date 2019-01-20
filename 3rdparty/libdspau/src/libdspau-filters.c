@@ -18,26 +18,12 @@
 
 #include "libdspau.h"
 
-typedef struct {
-    dspau_t e;
-    dspau_t p;
-    dspau_t d0;
-    dspau_t d1;
-    dspau_t d2;
-    dspau_t x0;
-    dspau_t x1;
-    dspau_t x2;
-    dspau_t y0;
-    dspau_t y1;
-    dspau_t y2;
-} Coefficient;
-
-dspau_t* dspau_filter_squarelaw(dspau_stream_p stream)
+double* dspau_filter_squarelaw(dspau_stream_p stream)
 {
-    dspau_t* in = stream->in;
-    dspau_t* out = stream->out;
+    double* in = stream->in;
+    double* out = stream->out;
     int len = stream->len;
-    dspau_t mean = dspau_stats_mean(in, len);
+    double mean = dspau_stats_mean(in, len);
 	int val = 0;
 	int i;
 	for(i = 0; i < len; i++) {
@@ -47,63 +33,91 @@ dspau_t* dspau_filter_squarelaw(dspau_stream_p stream)
     return out;
 }
 
-dspau_t* dspau_filter_lowpass(dspau_stream_p stream, dspau_t SamplingFrequency, dspau_t Frequency, dspau_t Q)
+void dspau_filter_calc_coefficients(double SamplingFrequency, double LowFrequency, double HighFrequency, double* CF, double* R, double *K)
 {
-    dspau_t wa = 0.0;
-    dspau_t wc = (Frequency * PI / SamplingFrequency) * 2.0;
-    for(int i = 0; i < stream->len; i++) {
-        wa = pow(sin((dspau_t)i * wc), Q);
-        stream->out[i] = stream->in[i] * wa;
-    }
-    return stream->out;
+    double BW = (HighFrequency - LowFrequency) / SamplingFrequency;
+    *CF = 2.0 * cos((LowFrequency + HighFrequency) * PI / SamplingFrequency);
+    *R = 1.0 - 3.0 * BW;
+    *K = (1.0 - *R * *CF + *R * *R) / (2.0 - *CF);
 }
 
-dspau_t* dspau_filter_highpass(dspau_stream_p stream, dspau_t SamplingFrequency, dspau_t Frequency, dspau_t Q)
+double* dspau_filter_lowpass(dspau_stream_p stream, double SamplingFrequency, double Frequency, double Q)
 {
-    dspau_t wa = 0.0;
-    dspau_t wc = (Frequency * PI / SamplingFrequency) * 2.0;
-    for(int i = 0; i < stream->len; i++) {
-        wa = pow(sin((dspau_t)i * wc), Q);
-        stream->out[i] = stream->in[i] -(stream->in[i] * wa);
+    double *out = calloc(sizeof(double), stream->len);
+    double wa = 0.0;
+    double CF = cos(Frequency / 2.0 * PI / SamplingFrequency);
+    for(int i = 1; i < stream->len; i++) {
+        wa = stream->in[i] + (wa - stream->in[i]) * (CF * Q);
+        out[i] = wa;
     }
-    return stream->out;
+    return out;
 }
 
-dspau_t* dspau_filter_bandreject(dspau_stream_p stream, dspau_t SamplingFrequency, dspau_t LowFrequency, dspau_t HighFrequency, dspau_t Q) {
-    dspau_t wal = 0.0;
-    dspau_t wah = 0.0;
-    dspau_t wcl = (LowFrequency * PI / SamplingFrequency) * 2.0;
-    dspau_t wch = (HighFrequency * PI / SamplingFrequency) * 2.0;
-    for(int i = 0; i < stream->len; i++) {
-        wal = pow(sin((dspau_t)i * wcl), Q);
-        wah = pow(sin((dspau_t)i * wch), Q);
-        stream->out[i] = (stream->in[i] -(stream->in[i] * wah)) * wal;
-    }
-    return stream->out;
-}
-
-dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t SamplingFrequency, dspau_t LowFrequency, dspau_t HighFrequency, dspau_t Q) {
-    dspau_t wal = 0.0;
-    dspau_t wah = 0.0;
-    dspau_t wcl = (LowFrequency * PI / SamplingFrequency) * 2.0;
-    dspau_t wch = (HighFrequency * PI / SamplingFrequency) * 2.0;
-    for(int i = 0; i < stream->len; i++) {
-        wal = pow(sin((dspau_t)i * wcl), Q);
-        wah = pow(sin((dspau_t)i * wch), Q);
-        stream->out[i] = (stream->in[i] -(stream->in[i] * wal)) * wah;
-    }
-    return stream->out;
-}
-
-dspau_t* dspau_filter_deviate(dspau_stream_p stream, dspau_stream_p deviation, dspau_t mindeviation, dspau_t maxdeviation)
+double* dspau_filter_highpass(dspau_stream_p stream, double SamplingFrequency, double Frequency, double Q)
 {
-    dspau_t min, max;
+    double *out = calloc(sizeof(double), stream->len);
+    double wa = 0.0;
+    double CF = cos(Frequency / 2.0 * PI / SamplingFrequency);
+    for(int i = 1; i < stream->len; i++) {
+        wa = stream->in[i] + (wa - stream->in[i]) * (CF * Q);
+        out[i] = stream->in[i] - wa;
+    }
+    return out;
+}
+
+double* dspau_filter_bandreject(dspau_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
+    double R, K, CF;
+    dspau_filter_calc_coefficients(SamplingFrequency, LowFrequency, HighFrequency, &CF, &R, &K);
+    double R2 = R*R;
+
+    double a[3] = { K, -K*CF, K };
+    double b[2] = { R*CF, -R2 };
+
+    for(int i = 0; i < stream->len; i++) {
+        stream->out[i] = 0;
+        for(int x = 0; x < 3; x++) {
+            stream->out[i] += stream->in[i + x] * a[2 - x];
+        }
+        if(i > 1) {
+            for(int x = 0; x < 2; x++) {
+                stream->out[i] -= stream->out[i - 2 + x] * b[x];
+            }
+        }
+    }
+    return stream->out;
+}
+
+double* dspau_filter_bandpass(dspau_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
+    double R, K, CF;
+    dspau_filter_calc_coefficients(SamplingFrequency, LowFrequency, HighFrequency, &CF, &R, &K);
+    double R2 = R*R;
+
+    double a[3] = { 1 - K, (K-R)*CF, R2 - K };
+    double b[2] = { R*CF, -R2 };
+
+    for(int i = 0; i < stream->len; i++) {
+        stream->out[i] = 0;
+        for(int x = 0; x < 3; x++) {
+            stream->out[i] += stream->in[i + x] * a[2 - x];
+        }
+        if(i > 1) {
+            for(int x = 0; x < 2; x++) {
+                stream->out[i] -= stream->out[i - 2 + x] * b[x];
+            }
+        }
+    }
+    return stream->out;
+}
+
+double* dspau_filter_deviate(dspau_stream_p stream, dspau_stream_p deviation, double mindeviation, double maxdeviation)
+{
+    double min, max;
     dspau_stats_minmidmax(stream->in, stream->len, &min, &max);
     int dims = Min(stream->dims, deviation->dims);
     int len = Min(stream->len, deviation->len);
     for(int dim = 0; dim < dims; dim++) {
         int size = len / Min(stream->sizes[dim], deviation->sizes[dim]);
-        dspau_t * tmp = calloc(size, sizeof(dspau_t));
+        double * tmp = calloc(size, sizeof(double));
         for(int x = 0; x < len; x += size) {
             tmp = dspau_buffer_deviate(stream->in + x, size, deviation->in + x, size, mindeviation, maxdeviation);
             dspau_buffer_sum(stream->out + x, size, tmp, size);

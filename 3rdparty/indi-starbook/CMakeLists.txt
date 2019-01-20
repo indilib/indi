@@ -7,7 +7,7 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/"
 include(GNUInstallDirs)
 
 set(STARBOOK_DRIVER_VERSION_MAJOR 0)
-set(STARBOOK_DRIVER_VERSION_MINOR 2)
+set(STARBOOK_DRIVER_VERSION_MINOR 3)
 
 find_package(INDI REQUIRED)
 find_package(CURL REQUIRED)
@@ -27,7 +27,7 @@ include(CMakeCommon)
 ############# STARBOOK ###############
 set(indi_starbook_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/indi_starbook.cpp ${CMAKE_CURRENT_SOURCE_DIR}/starbook_types.cpp)
 
-add_executable(indi_starbook_telescope ${indi_starbook_SRCS})
+add_executable(indi_starbook_telescope ${indi_starbook_SRCS} connectioncurl.cpp connectioncurl.h command_interface.cpp command_interface.h)
 
 target_link_libraries(indi_starbook_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES} ${CURL_LIBRARIES})
 
@@ -47,7 +47,7 @@ if (INDI_BUILD_UNITTESTS)
 
     include_directories(${GTEST_INCLUDE_DIRS})
 
-    add_executable(test_starbook test_starbook.cpp ${indi_starbook_SRCS})
+    add_executable(test_starbook test_starbook.cpp ${indi_starbook_SRCS} connectioncurl.cpp connectioncurl.h command_interface.cpp command_interface.h)
 
 
     #   test shouldn't be so dependent on external libs, but here we are

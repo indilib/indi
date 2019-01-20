@@ -52,7 +52,6 @@ class FocusLynxBase : public INDI::Focuser
   public:
     FocusLynxBase();
     FocusLynxBase(const char *target);
-    ~FocusLynxBase();
 
     enum
     {
@@ -115,6 +114,8 @@ class FocusLynxBase : public INDI::Focuser
 
   protected:
     virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+    virtual bool ReverseFocuser(bool enabled) override;
+    virtual bool SyncFocuser(uint32_t ticks) override;
 
     // Move from private to public to validate
     bool configurationComplete;
@@ -165,14 +166,10 @@ class FocusLynxBase : public INDI::Focuser
     bool setBacklashCompensation(bool enable);
     bool setBacklashCompensationSteps(uint16_t steps);
 
-    // Sync
-    bool sync(uint32_t position);
-
     // Motion functions
     bool stop();
     bool home();
     bool center();
-    bool reverse(bool enable);
 
     // Led level
     bool setLedLevel(int level);
@@ -219,8 +216,8 @@ class FocusLynxBase : public INDI::Focuser
     ISwitchVectorProperty ResetSP;
 
     // Reverse Direction
-    ISwitch ReverseS[2];
-    ISwitchVectorProperty ReverseSP;
+//    ISwitch ReverseS[2];
+//    ISwitchVectorProperty ReverseSP;
 
     // Go to home/center
     ISwitch GotoS[2];
@@ -253,4 +250,6 @@ class FocusLynxBase : public INDI::Focuser
     bool isAbsolute;
     bool isSynced;
     bool isHoming;
+
+    static const uint8_t LYNX_MAX { 64 };
 };

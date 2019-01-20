@@ -41,6 +41,9 @@
 #define HEIGHT 1024
 
 static std::unique_ptr<SSAGCCD> camera(new SSAGCCD());
+/* Ivan Benak Start:  Fix SetTimer to abort */
+int T_Handle;
+/* Ivan Benak End:  Fix SetTimer to abort */
 
 void ISGetProperties(const char *dev)
 {
@@ -98,7 +101,9 @@ bool SSAGCCD::initProperties()
     IUFillNumber(&GainN[0], "CCD_GAIN", "Gain", "%.0f", 1, 15, 1, 1);
     IUFillNumberVector(&GainNP, GainN, 1, getDeviceName(), "CCD_GAIN", "Gain", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
     addDebugControl();
-    SetCCDCapability(CCD_HAS_ST4_PORT | CCD_CAN_ABORT);
+/* IB adjusting capabilities   SetCCDCapability(CCD_HAS_ST4_PORT | CCD_CAN_ABORT); */
+/* SSAG's CCD part number is MT9M001, which claims to have an electronic shutter */
+    SetCCDCapability(CCD_HAS_ST4_PORT | CCD_CAN_ABORT | CCD_HAS_SHUTTER);
     SetCCDParams(WIDTH, HEIGHT, 8, 5.2, 5.2);
     setDriverInterface(CCD_INTERFACE | GUIDER_INTERFACE);
     return true;
@@ -143,23 +148,46 @@ bool SSAGCCD::StartExposure(float duration)
     if (duration < 1)
     {
         remaining = 0;
-        SetTimer(duration * 1000);
+/* Ivan Benak Start:  Fix SetTimer to abort */
+        //SetTimer(duration * 1000);
+        T_Handle=SetTimer(duration * 1000);
+/* Ivan Benak End:  Fix SetTimer to abort */
     }
     else
     {
         remaining = duration - 1;
-        SetTimer(1000);
+/* Ivan Benak Start:  Fix SetTimer to abort */
+        //SetTimer(1000);
+        T_Handle=SetTimer(1000);
+/* Ivan Benak End:  Fix SetTimer to abort */
     }
     return true;
 }
 
 bool SSAGCCD::AbortExposure()
 {
+/* Ivan Benak Start:  Fix SetTimer to abort and to actually cancel the exposure */
+    if (InExposure) 
+    {
+        if (T_Handle!=0) 
+	    {
+            RemoveTimer(T_Handle);
+		    T_Handle = 0;
+	    }
+
+//        ssag->CancelExposure(); /* Ivan Benak would add, BUT it generates an error after the procedure.  Not sure why other than "not tested" is in the procedure of openssag.cpp  */
+
+        InExposure = false;
+    }
+/* Ivan Benak End:  Fix SetTimer to abort and to actually cancel the exposure */
     return true;
 }
 
 void SSAGCCD::TimerHit()
 {
+/* Ivan Benak Start:  Set SetTimer handle to zero since that is why we end up being here. */
+    T_Handle = 0;
+/* Ivan Benak End:  Set SetTimer handle to zero since that is why we end up being here. */
     if (InExposure)
     {
         PrimaryCCD.setExposureLeft(remaining);
@@ -180,7 +208,10 @@ void SSAGCCD::TimerHit()
         else
         {
             remaining -= 1;
-            SetTimer(1000);
+/* Ivan Benak Start:  Fix SetTimer to abort */
+            //SetTimer(1000);
+            T_Handle = SetTimer(1000);
+/* Ivan Benak End:  Fix SetTimer to abort */
         }
     }
 }

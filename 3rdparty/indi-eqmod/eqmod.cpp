@@ -38,6 +38,7 @@
 #include <memory>
 #include <cstring>
 #include <unistd.h>
+#include <assert.h>
 #include <indicom.h>
 
 #include <connectionplugins/connectiontcp.h>
@@ -370,7 +371,7 @@ void EQMod::ISGetProperties(const char *dev)
         defineSwitch(HemisphereSP);
         defineNumber(HorizontalCoordNP);
         defineSwitch(ReverseDECSP);
-        defineSwitch(EnforceCWUP);
+        defineSwitch(TargetPierSideSP);
         defineNumber(StandardSyncNP);
         defineNumber(StandardSyncPointNP);
         defineNumber(SyncPolarAlignNP);
@@ -445,7 +446,7 @@ bool EQMod::loadProperties()
     HemisphereSP       = getSwitch("HEMISPHERE");
     TrackDefaultSP     = getSwitch("TELESCOPE_TRACK_DEFAULT");
     ReverseDECSP       = getSwitch("REVERSEDEC");
-    EnforceCWUP        = getSwitch("FORCECWUP");
+    TargetPierSideSP    = getSwitch("TARGETPIERSIDE");
 
     HorizontalCoordNP   = getNumber("HORIZONTAL_COORD");
     StandardSyncNP      = getNumber("STANDARDSYNC");
@@ -517,7 +518,7 @@ bool EQMod::updateProperties()
         defineSwitch(HemisphereSP);
         defineNumber(HorizontalCoordNP);
         defineSwitch(ReverseDECSP);
-        defineSwitch(EnforceCWUP);
+        defineSwitch(TargetPierSideSP);
         defineNumber(StandardSyncNP);
         defineNumber(StandardSyncPointNP);
         defineNumber(SyncPolarAlignNP);
@@ -666,7 +667,7 @@ bool EQMod::updateProperties()
         deleteProperty(HemisphereSP->name);
         deleteProperty(HorizontalCoordNP->name);
         deleteProperty(ReverseDECSP->name);
-        deleteProperty(EnforceCWUP->name);
+        deleteProperty(TargetPierSideSP->name);
         deleteProperty(StandardSyncNP->name);
         deleteProperty(StandardSyncPointNP->name);
         deleteProperty(SyncPolarAlignNP->name);
@@ -866,10 +867,13 @@ bool EQMod::ReadScopeStatus()
 
     try
     {
+        TelescopePierSide pierSide;
         currentRAEncoder = mount->GetRAEncoder();
         currentDEEncoder = mount->GetDEEncoder();
         DEBUGF(DBG_SCOPE_STATUS, "Current encoders RA=%ld DE=%ld", static_cast<long>(currentRAEncoder), static_cast<long>(currentDEEncoder));
-        EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA);
+        EncodersToRADec(currentRAEncoder, currentDEEncoder, lst, &currentRA, &currentDEC, &currentHA, &pierSide);
+        setPierSide(pierSide);
+
         alignedRA    = currentRA;
         alignedDEC   = currentDEC;
         ghalignedRA  = currentRA;
@@ -1456,9 +1460,10 @@ bool EQMod::ReadScopeStatus()
     return true;
 }
 
-void EQMod::EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha)
+void EQMod::EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double *ra, double *de, double *ha, TelescopePierSide *pierSide)
 {
     double RACurrent = 0.0, DECurrent = 0.0, HACurrent = 0.0;
+    TelescopePierSide p;
     HACurrent = EncoderToHours(rastep, zeroRAEncoder, totalRAEncoder, Hemisphere);
     RACurrent = HACurrent + lst;
     DECurrent = EncoderToDegrees(destep, zeroDEEncoder, totalDEEncoder, Hemisphere);
@@ -1468,21 +1473,19 @@ void EQMod::EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double
         if ((DECurrent > 90.0) && (DECurrent <= 270.0))
         {
             RACurrent = RACurrent - 12.0;
-            //currentPierSide = EAST;
-            setPierSide(PIER_EAST);
+            p = PIER_EAST;
         }
         else
-            setPierSide(PIER_WEST);
-        //currentPierSide = WEST;
+            p = PIER_WEST;
     }
     else if ((DECurrent <= 90.0) || (DECurrent > 270.0))
     {
         RACurrent = RACurrent + 12.0;
         //currentPierSide = EAST;
-        setPierSide(PIER_EAST);
+        p = PIER_EAST;
     }
     else
-        setPierSide(PIER_WEST);
+        p = PIER_WEST;
     //currentPierSide = WEST;
     HACurrent = rangeHA(HACurrent);
     RACurrent = range24(RACurrent);
@@ -1491,6 +1494,8 @@ void EQMod::EncodersToRADec(uint32_t rastep, uint32_t destep, double lst, double
     *de       = DECurrent;
     if (ha)
         *ha = HACurrent;
+    if (pierSide)
+        *pierSide = p;
 }
 
 double EQMod::EncoderToHours(uint32_t step, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
@@ -1541,53 +1546,46 @@ double EQMod::EncoderFromHour(double hour, uint32_t initstep, uint32_t totalstep
     shifthour        = range24(hour - 6);
     if (h == NORTH)
         if (shifthour < 12.0)
-            return (initstep - ((shifthour / 24.0) * totalstep));
+            return round(initstep - ((shifthour / 24.0) * totalstep));
         else
-            return (initstep + (((24.0 - shifthour) / 24.0) * totalstep));
+            return round(initstep + (((24.0 - shifthour) / 24.0) * totalstep));
     else if (shifthour < 12.0)
-        return (initstep + ((shifthour / 24.0) * totalstep));
+        return round(initstep + ((shifthour / 24.0) * totalstep));
     else
-        return (initstep - (((24.0 - shifthour) / 24.0) * totalstep));
+        return round(initstep - (((24.0 - shifthour) / 24.0) * totalstep));
 }
 
-double EQMod::EncoderFromRA(double ratarget, double detarget, double lst, uint32_t initstep,
+double EQMod::EncoderFromRA(double ratarget, TelescopePierSide p, double lst, uint32_t initstep,
                             uint32_t totalstep, enum Hemisphere h)
 {
     double ha = 0.0;
     ha        = ratarget - lst;
 
-    // used only in simulation??
-    if (h == NORTH)
-        if ((detarget > 90.0) && (detarget <= 270.0))
-            ha = ha - 12.0;
-    if (h == SOUTH)
-        if ((detarget > 90.0) && (detarget <= 270.0))
-            ha = ha + 12.0;
+//    if ((h == NORTH && p == PIER_EAST) || (h == SOUTH && p == PIER_WEST))
+    if (p == PIER_EAST)
+       ha = ha + 12.0;
 
     ha = range24(ha);
     return EncoderFromHour(ha, initstep, totalstep, h);
 }
 
-double EQMod::EncoderFromDegree(double degree, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
-                                enum Hemisphere h)
+double EQMod::EncoderFromDegree(double degree, uint32_t initstep, uint32_t totalstep, enum Hemisphere h)
 {
     double target = 0.0;
-    target        = degree;
+    target        = range360(degree);
     if (h == SOUTH)
         target = 360.0 - target;
-    if ((target > 180.0) && (p == PIER_EAST))
-        return (initstep - (((360.0 - target) / 360.0) * totalstep));
-    else
-        return (initstep + ((target / 360.0) * totalstep));
+    if (target > 270.0)
+        target -= 360.0;
+    return round(initstep + ((target / 360.0) * totalstep));
 }
+
 double EQMod::EncoderFromDec(double detarget, TelescopePierSide p, uint32_t initstep, uint32_t totalstep,
                              enum Hemisphere h)
 {
-    double target = 0.0;
-    target        = detarget;
-    if (p == PIER_WEST)
-        target = 180.0 - target;
-    return EncoderFromDegree(target, p, initstep, totalstep, h);
+    if ((h == NORTH && p == PIER_EAST) || (h == SOUTH && p == PIER_WEST))
+        detarget = 180.0 - detarget;
+    return EncoderFromDegree(detarget, initstep, totalstep, h);
 }
 
 void EQMod::SetSouthernHemisphere(bool southern)
@@ -1628,10 +1626,9 @@ void EQMod::UpdateDEInverted()
 void EQMod::EncoderTarget(GotoParams *g)
 {
     double r, d;
-    double ha = 0.0, targetra = 0.0;
+    double ha = 0.0;
     double juliandate;
     double lst;
-    TelescopePierSide targetpier;
     uint32_t targetraencoder = 0, targetdecencoder = 0;
     bool outsidelimits = false;
     r                  = g->ratarget;
@@ -1640,82 +1637,36 @@ void EQMod::EncoderTarget(GotoParams *g)
     juliandate = getJulianDate();
     lst        = getLst(juliandate, getLongitude());
 
-    ha = rangeHA(r - lst);
-    if (ha < 0.0)
-    { // target EAST
-        if (g->forcecwup)
-        {
-            if (Hemisphere == NORTH)
-                targetpier = PIER_EAST;
-            else
-                targetpier = PIER_WEST;
-            targetra = r;
-        }
-        else
-        {
-            if (Hemisphere == NORTH)
-                targetpier = PIER_WEST;
-            else
-                targetpier = PIER_EAST;
-            targetra = range24(r - 12.0);
-        }
-    }
-    else
+    if (g->pier_side == PIER_UNKNOWN)
     {
-        if (g->forcecwup)
-        {
-            if (Hemisphere == NORTH)
-                targetpier = PIER_WEST;
-            else
-                targetpier = PIER_EAST;
-            targetra = range24(r - 12.0);
+        // decide pier side and keep it consistent in iterative calls
+        ha = rangeHA(r - lst);
+        if (ha < 0.0)
+        { // target WEST
+            g->pier_side = PIER_EAST;
         }
         else
         {
-            if (Hemisphere == NORTH)
-                targetpier = PIER_EAST;
-            else
-                targetpier = PIER_WEST;
-            targetra = r;
+            g->pier_side = PIER_WEST;
         }
     }
 
-    targetraencoder  = EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
-    targetdecencoder = EncoderFromDec(d, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
+    targetraencoder  = EncoderFromRA(r, g->pier_side, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
+    targetdecencoder = EncoderFromDec(d, g->pier_side, zeroDEEncoder, totalDEEncoder, Hemisphere);
 
-    if ((g->forcecwup) && (g->checklimits))
+    if (g->checklimits)
     {
         if (Hemisphere == NORTH)
         {
+            assert(g->limiteast <= g->limitwest);
             if ((targetraencoder < g->limiteast) || (targetraencoder > g->limitwest))
                 outsidelimits = true;
         }
         else
         {
+            assert(g->limiteast >= g->limitwest);
             if ((targetraencoder > g->limiteast) || (targetraencoder < g->limitwest))
                 outsidelimits = true;
-        }
-        if (outsidelimits)
-        {
-            LOG_WARN("Goto: RA Limits prevent Counterweights-up slew.");
-            if (ha < 0.0)
-            { // target EAST
-                if (Hemisphere == NORTH)
-                    targetpier = PIER_WEST;
-                else
-                    targetpier = PIER_EAST;
-                targetra = range24(r - 12.0);
-            }
-            else
-            {
-                if (Hemisphere == NORTH)
-                    targetpier = PIER_EAST;
-                else
-                    targetpier = PIER_WEST;
-                targetra = r;
-            }
-            targetraencoder  = EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
-            targetdecencoder = EncoderFromDec(d, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
         }
     }
     g->outsidelimits   = outsidelimits;
@@ -1986,16 +1937,31 @@ bool EQMod::Goto(double r, double d)
     gotoparams.decurrentencoder = currentDEEncoder;
     gotoparams.completed        = false;
     gotoparams.checklimits      = true;
-    gotoparams.forcecwup        = ForceCwUp;
+    gotoparams.pier_side        = TargetPier;
     gotoparams.outsidelimits    = false;
-    gotoparams.limiteast        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
-    gotoparams.limitwest        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h
+    if (Hemisphere == NORTH)
+    {
+         gotoparams.limiteast        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // 13h
+         gotoparams.limitwest        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // 23h
+    }
+    else
+    {
+         gotoparams.limiteast        = zeroRAEncoder + (totalRAEncoder / 4) + (totalRAEncoder / 24); // ??
+         gotoparams.limitwest        = zeroRAEncoder - (totalRAEncoder / 4) - (totalRAEncoder / 24); // ??
+    }
 
-    if (gotoparams.forcecwup) {
-        LOG_WARN("Enforcing the counterweight up prevents a meridian flip and may lead to collisions of the telescope with obstacles.");
+    if (gotoparams.pier_side != PIER_UNKNOWN) {
+        LOG_WARN("Enforcing the pier side prevents a meridian flip and may lead to collisions of the telescope with obstacles.");
     }
 
     EncoderTarget(&gotoparams);
+
+    if (gotoparams.outsidelimits) {
+        LOGF_INFO("Target is unreachable, aborting (target encoders %u %u)", gotoparams.ratargetencoder, gotoparams.detargetencoder);
+        Abort();
+        return true;
+    }
+
     try
     {
         // stop motor
@@ -2088,9 +2054,8 @@ bool EQMod::Sync(double ra, double dec)
     double juliandate;
     double lst;
     SyncData tmpsyncdata;
-    double ha, targetra;
-    TelescopePierSide targetpier;
-    double telescopeHA;
+    double ha;
+    TelescopePierSide pier_side;
 
     // get current mount position asap
     tmpsyncdata.telescopeRAEncoder  = mount->GetRAEncoder();
@@ -2113,30 +2078,29 @@ bool EQMod::Sync(double ra, double dec)
     tmpsyncdata.targetRA  = ra;
     tmpsyncdata.targetDEC = dec;
 
-    ha = rangeHA(ra - lst);
-    if (ha < 0.0)
-    { // target EAST
-        if (Hemisphere == NORTH)
-            targetpier = PIER_WEST;
+    if (TargetPier == PIER_UNKNOWN)
+    {
+        ha = rangeHA(ra - lst);
+        if (ha < 0.0)
+        { // target WEST
+            pier_side = PIER_EAST;
+        }
         else
-            targetpier = PIER_EAST;
-        targetra = range24(ra - 12.0);
+        {
+            pier_side = PIER_WEST;
+        }
     }
     else
     {
-        if (Hemisphere == NORTH)
-            targetpier = PIER_EAST;
-        else
-            targetpier = PIER_WEST;
-        targetra = ra;
+        pier_side = TargetPier;
     }
-    tmpsyncdata.targetRAEncoder  = EncoderFromRA(targetra, 0.0, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
-    tmpsyncdata.targetDECEncoder = EncoderFromDec(dec, targetpier, zeroDEEncoder, totalDEEncoder, Hemisphere);
+    tmpsyncdata.targetRAEncoder  = EncoderFromRA(ra, pier_side, lst, zeroRAEncoder, totalRAEncoder, Hemisphere);
+    tmpsyncdata.targetDECEncoder = EncoderFromDec(dec, pier_side, zeroDEEncoder, totalDEEncoder, Hemisphere);
 
     try
     {
         EncodersToRADec(tmpsyncdata.telescopeRAEncoder, tmpsyncdata.telescopeDECEncoder, lst, &tmpsyncdata.telescopeRA,
-                        &tmpsyncdata.telescopeDEC, &telescopeHA);
+                        &tmpsyncdata.telescopeDEC, nullptr, nullptr);
     }
     catch (EQModError e)
     {
@@ -2859,17 +2823,23 @@ bool EQMod::ISNewSwitch(const char *dev, const char *name, ISState *states, char
             IDSetSwitch(ReverseDECSP, nullptr);
         }
 
-        if (!strcmp(name, "FORCECWUP"))
+        if (!strcmp(name, "TARGETPIERSIDE"))
         {
-            IUUpdateSwitch(EnforceCWUP, states, names, n);
+            IUUpdateSwitch(TargetPierSideSP, states, names, n);
 
-            EnforceCWUP->s = IPS_OK;
+            TargetPierSideSP->s = IPS_OK;
 
-            ForceCwUp = (EnforceCWUP->sp[0].s == ISS_ON) ? true : false;
+            TargetPier = PIER_UNKNOWN;
+            if (IUFindSwitch(TargetPierSideSP, "PIER_EAST")->s == ISS_ON) {
+                TargetPier = PIER_EAST;
+                LOG_INFO("Target pier side set to EAST");
+            }
+            else if (IUFindSwitch(TargetPierSideSP, "PIER_WEST")->s == ISS_ON) {
+                TargetPier = PIER_WEST;
+                LOG_INFO("Target pier side set to WEST");
+            }
 
-            LOG_INFO("Enforcing counter weight up");
-
-            IDSetSwitch(EnforceCWUP, nullptr);
+            IDSetSwitch(TargetPierSideSP, nullptr);
         }
 
         //if (MountInformationTP && MountInformationTP->tp && (!strcmp(MountInformationTP->tp[0].text, "EQ8") || !strcmp(MountInformationTP->tp[0].text, "AZEQ6"))) {

@@ -28,6 +28,30 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indistandardproperty.h"
 #include "lx/Lx.h"
 
+// Pixel size info for different cameras
+typedef struct
+{
+    const char *deviceName; // device name reported by V4L
+    const char *commonName; // if null, use device name
+    float pixelSizeX;
+    float pixelSizeY; // if negative, use pixelSizeX also for Y
+    bool tested; //if False print please report message
+} PixelSizeInfo;
+
+static const PixelSizeInfo pixelSizeInfo[] = {
+    { "NexImage 5", nullptr, 2.2f, -1 , true },
+    { "UVC Camera (046d:0809)", "Logitech Webcam Pro 9000", 3.3f, -1 , true },
+    { "SVBONY SV105: SVBONY SV105", "SVBONY SV105", 3.0f, -1 , true },
+    { "NexImage 10", nullptr, 1.67f, -1 , false },
+    { "NexImage Burst Color", nullptr, 3.75f, -1 , false },
+    { "NexImage Burst Mono", nullptr, 3.75f, -1 , false },
+    { "Skyris 132C", nullptr, 3.75f, -1 , false },
+    { "Skyris 132M", nullptr, 3.75f, -1 , false },
+    { "Skyris 236C", nullptr, 2.8f, -1 , false },
+    { "Skyris 236M", nullptr, 2.8f, -1 , false },
+    { nullptr, nullptr, 5.6f, -1 , false} // sentinel and default pixel size, needs to be last
+};
+
 V4L2_Driver::V4L2_Driver()
 {
     //sigevent sevp;
@@ -236,7 +260,41 @@ bool V4L2_Driver::updateProperties()
         defineText(&CaptureColorSpaceTP);
 #endif
 
-        SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
+        // Check if we have pixel size info
+        const PixelSizeInfo *info = pixelSizeInfo;
+        while (info->deviceName)
+        {
+            if (!strcmp(v4l_base->getDeviceName(), info->deviceName))
+                break;
+            ++info;
+        }
+
+        const char *commonName = info->commonName;
+        float pixX             = info->pixelSizeX;
+        float pixY             = info->pixelSizeY;
+
+        if (!commonName)
+            commonName = info->deviceName;
+        if (pixY < 0)
+            pixY = pixX;
+
+        if (info->deviceName)
+        {
+            LOGF_INFO("Setting pixel size correctly for %s", commonName);
+	    if (info->tested==false) {
+		    LOGF_INFO("Please report that the camera worked: Name: %s/%s Detected and working, to https://www.indilib.org/forum/ccds-dslrs/4392-indi-pixel-size-detection.html", v4l_base->getDeviceName(), commonName);
+	    }
+        }
+        else
+        {
+            LOGF_INFO("Setting pixel size to default of %5.2f", pixX);
+            LOGF_INFO("For future autodetection of pixel size, please report the following: Reported Name: '%s', "
+                      "Common Name (Eg: NexImage 10), Pixel Size to the following thread: "
+                      "https://www.indilib.org/forum/ccds-dslrs/4392-indi-pixel-size-detection.html#33485 ",
+                      v4l_base->getDeviceName());
+        }
+        SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, pixX, pixY);
+
         PrimaryCCD.setImageExtension("fits");
 
         //v4l_base->setRecorder(Streamer->getRecorder());
