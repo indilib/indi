@@ -1,5 +1,8 @@
 CMakeLists.txt.user*
 
+# Projectile tags
+TAGS
+
 # Ignore build directory
 build/
 build-*/
