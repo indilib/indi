@@ -469,8 +469,8 @@ bool SynscanDriver::ReadScopeStatus()
     if (!sendCommand("e", res))
         return false;
 
-    uint64_t n1 = 0, n2 = 0;
-    sscanf(res, "%lx,%lx#", &n1, &n2);
+    uint32_t n1 = 0, n2 = 0;
+    sscanf(res, "%x,%x#", &n1, &n2);
     double ra  = static_cast<double>(n1) / 0x100000000 * 360.0;
     double de  = static_cast<double>(n2) / 0x100000000 * 360.0;
 
@@ -487,12 +487,12 @@ bool SynscanDriver::ReadScopeStatus()
     char Axis1Coords[MAXINDINAME] = {0}, Axis2Coords[MAXINDINAME] = {0};
     fs_sexa(Axis1Coords, J2000Pos.ra / 15.0, 2, 3600);
     fs_sexa(Axis2Coords, J2000Pos.dec, 2, 3600);
-    LOGF_INFO("J2000 RA <%s> DE <%s>", Axis1Coords, Axis2Coords);
+    LOGF_DEBUG("J2000 RA <%s> DE <%s>", Axis1Coords, Axis2Coords);
     memset(Axis1Coords, 0, MAXINDINAME);
     memset(Axis2Coords, 0, MAXINDINAME);
     fs_sexa(Axis1Coords, CurrentRA, 2, 3600);
     fs_sexa(Axis2Coords, CurrentDE, 2, 3600);
-    LOGF_INFO("JNOW RA <%s> DE <%s>", Axis1Coords, Axis2Coords);
+    LOGF_DEBUG("JNOW  RA <%s> DE <%s>", Axis1Coords, Axis2Coords);
 
     //  Now feed the rest of the system with corrected data
     NewRaDec(CurrentRA, CurrentDE);
@@ -502,7 +502,7 @@ bool SynscanDriver::ReadScopeStatus()
     if (!sendCommand("z", res))
         return false;
 
-    sscanf(res, "%lx,%lx#", &n1, &n2);
+    sscanf(res, "%x,%x#", &n1, &n2);
     double az  = static_cast<double>(n1) / 0x100000000 * 360.0;
     double al  = static_cast<double>(n2) / 0x100000000 * 360.0;
     al = rangeDec(al);
@@ -514,7 +514,7 @@ bool SynscanDriver::ReadScopeStatus()
     memset(Axis2Coords, 0, MAXINDINAME);
     fs_sexa(Axis1Coords, az, 2, 3600);
     fs_sexa(Axis2Coords, al, 2, 3600);
-    LOGF_INFO("AZ <%s> ALT <%s>", Axis1Coords, Axis2Coords);
+    LOGF_DEBUG("AZ <%s> ALT <%s>", Axis1Coords, Axis2Coords);
 
     IDSetNumber(&HorizontalCoordsNP, nullptr);
 
@@ -684,8 +684,8 @@ bool SynscanDriver::SetCurrentPark()
     if (!sendCommand("z", res))
         return false;
 
-    uint64_t n1 = 0, n2 = 0;
-    sscanf(res, "%lx,%lx#", &n1, &n2);
+    uint32_t n1 = 0, n2 = 0;
+    sscanf(res, "%ux,%ux#", &n1, &n2);
     double az  = static_cast<double>(n1) / 0x100000000 * 360.0;
     double al  = static_cast<double>(n2) / 0x100000000 * 360.0;
     al = rangeDec(al);
