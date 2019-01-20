@@ -62,7 +62,7 @@ Dome::Dome() : ParkDataFileName(GetHomeDirectory() + "/.indi/ParkData.xml")
     shutterState = SHUTTER_UNKNOWN;
     domeState    = DOME_IDLE;
 
-    parkDataType = PARK_BINARY;
+    parkDataType = PARK_NONE;
     ParkdataXmlRoot = nullptr;
 }
 
@@ -277,7 +277,7 @@ bool Dome::updateProperties()
         if (CanPark())
         {
             defineSwitch(&ParkSP);
-            if (parkDataType != PARK_BINARY)
+            if (parkDataType != PARK_NONE)
             {
                 defineNumber(&ParkPositionNP);
                 defineSwitch(&ParkOptionSP);
@@ -318,7 +318,7 @@ bool Dome::updateProperties()
         if (CanPark())
         {
             deleteProperty(ParkSP.name);
-            if (parkDataType != PARK_BINARY)
+            if (parkDataType != PARK_NONE)
             {
                 deleteProperty(ParkPositionNP.name);
                 deleteProperty(ParkOptionSP.name);
@@ -1340,7 +1340,7 @@ void Dome::SetParkDataType(Dome::DomeParkData type)
 
     switch (parkDataType)
     {
-        case PARK_BINARY:
+        case PARK_NONE:
             strncpy(DomeMotionS[DOME_CW].label, "Open", MAXINDILABEL);
             strncpy(DomeMotionS[DOME_CCW].label, "Close", MAXINDILABEL);
             break;
@@ -1401,7 +1401,7 @@ bool Dome::InitPark()
         return false;
     }
 
-    if (parkDataType != PARK_BINARY)
+    if (parkDataType != PARK_NONE)
     {
         SyncParkStatus(isParked());
 
@@ -1488,7 +1488,7 @@ const char * Dome::LoadParkXML()
     ParkdeviceXml        = parkxml;
     ParkstatusXml        = findXMLEle(parkxml, "parkstatus");
 
-    if (parkDataType != PARK_BINARY)
+    if (parkDataType != PARK_NONE)
     {
         ParkpositionXml      = findXMLEle(parkxml, "parkposition");
         ParkpositionAxis1Xml = findXMLEle(ParkpositionXml, "axis1position");
@@ -1615,7 +1615,7 @@ IPState Dome::Move(DomeDirection dir, DomeMotionCommand operation)
     // Check if it is already parked.
     if (CanPark())
     {
-        if (parkDataType != PARK_BINARY && isParked())
+        if (parkDataType != PARK_NONE && isParked())
         {
             DEBUG(Logger::DBG_WARNING, "Please unpark the dome before issuing any motion commands.");
             return IPS_ALERT;

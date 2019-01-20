@@ -83,7 +83,7 @@ bool RollOff::initProperties()
 {
     INDI::Dome::initProperties();
 
-    SetParkDataType(PARK_BINARY);
+    SetParkDataType(PARK_NONE);
 
     addAuxControls();
 
