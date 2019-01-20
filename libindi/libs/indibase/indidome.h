@@ -101,7 +101,8 @@ class Dome : public DefaultDevice
     /*! Dome Parking data type enum */
     enum DomeParkData
     {
-        PARK_NONE,       /*!< Open loop Parking  */
+        PARK_NONE,       /*!< No Parking Support */
+        PARK_BINARY,     /*!< 2-state parking (Open or Closed only)  */
         PARK_AZ,         /*!< Parking via azimuth angle control */
         PARK_AZ_ENCODER, /*!< Parking via azimuth encoder control */
     };
