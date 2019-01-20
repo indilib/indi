@@ -129,6 +129,7 @@ class SynscanDriver : public INDI::Telescope, public INDI::GuiderInterface
         // Utility
         ln_hrz_posn getAltAzPosition(double ra, double dec);
         int hexStrToInteger(const std::string &str);
+        void hexDump(char *buf, const char *data, int size);
 
         // Is mount type Alt-Az?
         bool m_isAltAz { false };

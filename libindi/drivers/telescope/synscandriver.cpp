@@ -143,14 +143,14 @@ bool SynscanDriver::updateProperties()
         if (InitPark())
         {
             SetAxis1ParkDefault(359);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(m_isAltAz ? 0 : LocationN[LOCATION_LATITUDE].value);
         }
         else
         {
             SetAxis1Park(359);
-            SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2Park(m_isAltAz ? 0 : LocationN[LOCATION_LATITUDE].value);
             SetAxis1ParkDefault(359);
-            SetAxis2ParkDefault(LocationN[LOCATION_LATITUDE].value);
+            SetAxis2ParkDefault(m_isAltAz ? 0 : LocationN[LOCATION_LATITUDE].value);
         }
     }
     else
@@ -405,6 +405,9 @@ bool SynscanDriver::readModel()
         IUSaveText(&StatusT[MI_MOUNT_MODEL], "Unknown model");
 
     m_isAltAz = m_MountModel > 4;
+
+    LOGF_INFO("Driver is running in %s mode.", m_isAltAz ? "Alt-Az" : "Equatorial");
+    LOGF_INFO("Detected mount: %s. Mount must be aligned from the handcontroller before using the driver.", StatusT[MI_MOUNT_MODEL].text);
 
     return true;
 }
@@ -955,8 +958,6 @@ bool SynscanDriver::sendLocation()
     g = res[6];
     h = res[7];
 
-    LOGF_DEBUG("Pos %d:%d:%d  %d:%d:%d",a,b,c,e,f,g);
-
     double t1, t2, t3;
 
     t1  = c;
@@ -1017,8 +1018,8 @@ bool SynscanDriver::updateTime(ln_date * utc, double utc_offset)
     //  and no daylight savings adjustments, it's already included in the offset
     cmd[8] = 0;
 
-    LOGF_INFO("Setting mount date/time to %04d-%02d-%02d %d:%02d:%02d UTC Offset: %g",
-              ltm.years, ltm.months, ltm.days, ltm.hours, ltm.minutes, ltm.seconds, utc_offset);
+    LOGF_INFO("Setting mount date/time to %04d-%02d-%02d %d:%02d:%02d UTC Offset: %.2f",
+              ltm.years, ltm.months, ltm.days, ltm.hours, ltm.minutes, static_cast<int>(rint(ltm.seconds)), utc_offset);
 
     if (isSimulation())
         return true;
@@ -1160,12 +1161,18 @@ bool SynscanDriver::sendCommand(const char * cmd, char * res, int cmd_len, int r
 
     tcflush(PortFD, TCIOFLUSH);
 
-    LOGF_DEBUG("CMD <%s>", cmd);
-
     if (cmd_len > 0)
+    {
+        char hex_cmd[SYN_RES*3]={0};
+        hexDump(hex_cmd, cmd, cmd_len);
+        LOGF_DEBUG("CMD <%s>", hex_cmd);
         rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
+    }
     else
+    {
+        LOGF_DEBUG("CMD <%s>", cmd);
         rc = tty_write_string(PortFD, cmd, &nbytes_written);
+    }
 
     if (rc != TTY_OK)
     {
@@ -1191,11 +1198,29 @@ bool SynscanDriver::sendCommand(const char * cmd, char * res, int cmd_len, int r
         return false;
     }
 
-    LOGF_DEBUG("RES <%s>", res);
+    if (res_len > 0)
+    {
+        char hex_res[SYN_RES*3]={0};
+        hexDump(hex_res, res, res_len);
+        LOGF_DEBUG("RES <%s>", hex_res);
+    }
+    else
+    {
+        LOGF_DEBUG("RES <%s>", res);
+    }
 
     tcflush(PortFD, TCIOFLUSH);
 
     return true;
+}
+
+void SynscanDriver::hexDump(char *buf, const char *data, int size)
+{
+    for (int i = 0; i < size; i++)
+        sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
+
+    if (size > 0)
+        buf[3 * size - 1] = '\0';
 }
 
 void SynscanDriver::mountSim()
