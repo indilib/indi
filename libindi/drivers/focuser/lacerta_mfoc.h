@@ -56,9 +56,9 @@ class lacerta_mfoc : public INDI::Focuser
   private:
     double internalTicks { 0 };
     double initTicks { 0 };
-    virtual bool SetBacklash(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool SetTempComp(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool SetPositionMax(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool SetBacklash(double values[], char *names[], int n);
+    virtual bool SetTempComp(double values[], char *names[], int n);
+    virtual bool SetPositionMax(double values[], char *names[], int n);
 
     // MFOC specific parameters
     // 

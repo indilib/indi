@@ -1,0 +1,13 @@
+prefix=/usr
+exec_prefix=/usr
+libdir=/usr/lib/x86_64-linux-gnu
+includedir=/usr/include/
+
+Name: libindi
+Description: Instrument Neutral Distributed Interface
+URL: http://www.indilib.org/
+Version: 1.7.6
+Libs: -L${libdir}  -lindidriver -lindiAlignmentDriver
+Libs.private: -lz -lcfitsio -lnova
+Cflags: -I${includedir} -I${includedir}/libindi
+

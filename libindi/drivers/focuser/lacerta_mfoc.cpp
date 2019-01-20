@@ -113,8 +113,6 @@ bool lacerta_mfoc::Disconnect()
 ************************************************************************************/
 const char *lacerta_mfoc::getDefaultName()
 {
-    LOGF_INFO("getDefaultName...", 0);
-
     return (const char *)"Lacerta MFOC";
 }
 
@@ -123,21 +121,19 @@ const char *lacerta_mfoc::getDefaultName()
 ************************************************************************************/
 void lacerta_mfoc::ISGetProperties(const char *dev)
 {
-    LOGF_INFO("ISGetProperties...", 0);
-
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
 
     INDI::Focuser::ISGetProperties(dev);
 
     defineSwitch(&ModeSP);
-    loadConfig(true, "Mode");
+    loadConfig(true, ModeSP.name);
     
     defineSwitch(&TempTrackDirSP);
-    loadConfig(true, "Temp. Track Direction");
+    loadConfig(true, TempTrackDirSP.name);
     
     defineSwitch(&StartSavedPositionSP);
-    loadConfig(true, "Start at saved pos.");
+    loadConfig(true, StartSavedPositionSP.name);
 }
 
 /************************************************************************************
@@ -146,7 +142,6 @@ void lacerta_mfoc::ISGetProperties(const char *dev)
 bool lacerta_mfoc::initProperties()
 {
     INDI::Focuser::initProperties();
-    LOGF_INFO("initProperties...", 0);
 
     IUFillSwitch(&ModeS[MODE_ALL], "All", "All", ISS_ON);
     IUFillSwitch(&ModeS[MODE_ABSOLUTE], "Absolute", "Absolute", ISS_OFF);
@@ -155,12 +150,10 @@ bool lacerta_mfoc::initProperties()
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     // Driver can define those to clients if there is support
-    IUFillNumber(&FocusAbsPosN[0], "FOCUS_ABSOLUTE_POSITION", "Ticks", "%4.0f", MFOC_POSMIN_HARDWARE, MFOC_POSMAX_HARDWARE, 10.0, 0);
     IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, getDeviceName(), "ABS_FOCUS_POSITION", "Pos. Abs",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
     
     
-    IUFillNumber(&FocusRelPosN[0], "FOCUS_RELATIVE_POSITION", "Ticks", "%4.0f", 0.0, 100000.0, 10.0, 0);
     IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, getDeviceName(), "REL_FOCUS_POSITION", "Rel. Pos.",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_OK);
     
@@ -187,12 +180,6 @@ bool lacerta_mfoc::initProperties()
     IUFillSwitch(&StartSavedPositionS[MODE_SAVED_OFF], "No",  "No",  ISS_OFF);
     IUFillSwitchVector(&StartSavedPositionSP, StartSavedPositionS, MODE_COUNT_SAVED, getDeviceName(), "Start saved pos.", "Start saved pos.", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
-
-    // Presets
-    IUFillNumber(&PresetN[0], "PRESET_1", "Preset 1", "%.f", MFOC_POSMIN_HARDWARE, MFOC_POSMAX_HARDWARE, 100, 3000);
-    IUFillNumber(&PresetN[1], "PRESET_2", "Preset 2", "%.f", MFOC_POSMIN_HARDWARE, MFOC_POSMAX_HARDWARE, 100, 4000);
-    IUFillNumber(&PresetN[2], "PRESET_3", "Preset 3", "%.f", MFOC_POSMIN_HARDWARE, MFOC_POSMAX_HARDWARE, 100, 5000);
-    IUFillNumberVector(&PresetNP, PresetN, 3, getDeviceName(), "Presets", "", "Presets", IP_RW, 0, IPS_IDLE);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_9600);
 
@@ -408,19 +395,19 @@ bool lacerta_mfoc::ISNewNumber(const char *dev, const char *name, double values[
     {
         if (strcmp(name, "BACKLASH_SETTINGS") == 0)
         {
-            return SetBacklash(dev, name, values, names, n);
+            return SetBacklash(values, names, n);
         }
 
 
         if (strcmp(name, "TEMPCOMP_SETTINGS") == 0)
         {
-            return SetTempComp(dev, name, values, names, n);
+            return SetTempComp(values, names, n);
         }
 
 
         if (strcmp(name, "POSITIONMAX_SETTINGS") == 0)
         {
-            return SetPositionMax(dev, name, values, names, n);
+            return SetPositionMax(values, names, n);
         }
     }
 
@@ -431,7 +418,7 @@ bool lacerta_mfoc::ISNewNumber(const char *dev, const char *name, double values[
 /************************************************************************************
  *
 ************************************************************************************/
-bool lacerta_mfoc::SetBacklash(const char *dev, const char *name, double values[], char *names[], int n)
+bool lacerta_mfoc::SetBacklash(double values[], char *names[], int n)
 {
     LOGF_INFO("-> BACKLASH_SETTINGS",0);
     char MFOC_cmd[32]  = ": B ";
@@ -464,7 +451,7 @@ bool lacerta_mfoc::SetBacklash(const char *dev, const char *name, double values[
     return true;
 }
 
-bool lacerta_mfoc::SetTempComp(const char *dev, const char *name, double values[], char *names[], int n)
+bool lacerta_mfoc::SetTempComp(double values[], char *names[], int n)
 {
     LOGF_INFO("-> TEMPCOMP_SETTINGS",0);
     char MFOC_cmd[32]  = ": D ";
@@ -497,7 +484,7 @@ bool lacerta_mfoc::SetTempComp(const char *dev, const char *name, double values[
     return true;
 }
 
-bool lacerta_mfoc::SetPositionMax(const char *dev, const char *name, double values[], char *names[], int n)
+bool lacerta_mfoc::SetPositionMax(double values[], char *names[], int n)
 {
     LOGF_INFO("-> POSITIONMAX_SETTINGS",0);
     char MFOC_cmd[32]  = ": G ";
@@ -540,15 +527,10 @@ bool lacerta_mfoc::SetPositionMax(const char *dev, const char *name, double valu
 IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
 {
     char MFOC_cmd[32]  =": M ";
-    char MFOC_res[32]  ={0};
-    char MFOC_query[32]  =": Q #";
     int abs_pos_int = 0;
     char abs_pos_char[32]  = {0};
-    int nbytes_read    = 0;
     int nbytes_written = 0;
-    int MFOC_pos_measd = 0;
-    char MFOC_res_type[32]  ="0";
-    int i = 0;
+
     LOGF_INFO("MoveAbsFocuser...", 0);
 
     //int pos = GetAbsFocuserPosition();
@@ -559,7 +541,7 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
     strcat(MFOC_cmd, abs_pos_char);
     
     tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    LOGF_INFO("MFOC cmd sent %s", MFOC_cmd);
+    LOGF_DEBUG("MFOC cmd sent %s", MFOC_cmd);
 
     //Waiting makes no sense - will be immediatly interrupted by the ekos system...
     //int ticks = std::abs((int)(targetTicks - pos) * FOCUS_MOTION_DELAY);
