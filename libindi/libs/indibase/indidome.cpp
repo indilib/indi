@@ -1515,6 +1515,9 @@ const char * Dome::LoadParkData()
     if (!strcmp(pcdataXMLEle(ParkstatusXml), "true"))
         IsParked = true;
 
+    if (parkDataType == PARK_NONE)
+        return nullptr;
+
     double axis1Pos = std::numeric_limits<double>::quiet_NaN();
 
     int rc = sscanf(pcdataXMLEle(ParkpositionAxis1Xml), "%lf", &axis1Pos);
