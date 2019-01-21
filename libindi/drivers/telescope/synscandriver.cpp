@@ -583,13 +583,13 @@ bool SynscanDriver::Goto(double ra, double dec)
     ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
 
     // Mount deals in J2000 coords.
-    uint64_t n1 = J2000Pos.ra / 360  * 0x100000000;
-    uint64_t n2 = J2000Pos.dec / 360 * 0x100000000;
+    uint32_t n1 = J2000Pos.ra  / 360  * 0x100000000;
+    uint32_t n2 = J2000Pos.dec / 360 * 0x100000000;
 
     LOGF_DEBUG("Goto - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra / 15.0, J2000Pos.dec);
 
 
-    snprintf(cmd, SYN_RES, "r%08lX,%08lX", n1, n2);
+    snprintf(cmd, SYN_RES, "r%08X,%08X", n1, n2);
     if (sendCommand(cmd, res, 18))
     {
         TrackState = SCOPE_SLEWING;
@@ -630,12 +630,12 @@ bool SynscanDriver::GotoAzAlt(double az, double alt)
     }
 
     // Az/Alt to encoders
-    uint64_t n1 = az  / 360 * 0x100000000;
-    uint64_t n2 = alt / 360 * 0x100000000;
+    uint32_t n1 = az  / 360.0 * 0x100000000;
+    uint32_t n2 = alt / 360.0 * 0x100000000;
 
     LOGF_DEBUG("Goto - Az: %.2f Alt: %.2f", az, alt);
 
-    snprintf(cmd, SYN_RES, "b%08lX,%08lX", n1, n2);
+    snprintf(cmd, SYN_RES, "b%08X,%08X", n1, n2);
     if (sendCommand(cmd, res, 18))
     {
         TrackState = SCOPE_SLEWING;
@@ -1115,13 +1115,12 @@ bool SynscanDriver::Sync(double ra, double dec)
     ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
 
     // Mount deals in J2000 coords.
-    uint64_t n1 = J2000Pos.ra  / 360 * 0x100000000;
-    uint64_t n2 = J2000Pos.dec / 360 * 0x100000000;
+    uint32_t n1 = J2000Pos.ra  / 360 * 0x100000000;
+    uint32_t n2 = J2000Pos.dec / 360 * 0x100000000;
 
     LOGF_DEBUG("Sync - JNow RA: %g JNow DE: %g J2000 RA: %g J2000 DE: %g", ra, dec, J2000Pos.ra / 15.0, J2000Pos.dec);
 
-
-    snprintf(cmd, SYN_RES, "s%08lX,%08lX", n1, n2);
+    snprintf(cmd, SYN_RES, "s%08X,%08X", n1, n2);
     return sendCommand(cmd, res, 18);
 }
 
