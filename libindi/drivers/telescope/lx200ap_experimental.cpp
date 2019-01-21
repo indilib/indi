@@ -885,12 +885,16 @@ IPState LX200AstroPhysicsExperimental::GuideNorth(uint32_t ms)
         GuideNSTID = 0;
     }
 
-    if (usePulseCommand && ms < MAX_LX200AP_PULSE_LEN)
+    if (usePulseCommand && ms <= MAX_LX200AP_PULSE_LEN)
     {
+        LOGF_DEBUG("GuideNorth using SendPulseCmd() for duration %d", ms);
         SendPulseCmd(LX200_NORTH, ms);
+        GuideNSTID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperNS, this);
     }
     else
     {
+        LOGF_DEBUG("GuideNorth using simulated pulse for duration %d", ms);
+
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
         updateSlewRate(SLEW_GUIDE);
@@ -901,10 +905,9 @@ IPState LX200AstroPhysicsExperimental::GuideNorth(uint32_t ms)
         ISState states[] = { ISS_ON, ISS_OFF };
         const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
         ISNewSwitch(MovementNSSP.device, MovementNSSP.name, states, const_cast<char **>(names), 2);
+        GuideNSTID      = IEAddTimer(static_cast<int>(ms), simulGuideTimeoutHelperNS, this);
     }
 
-    guide_direction_ns = LX200_NORTH;
-    GuideNSTID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperNS, this);
     return IPS_BUSY;
 }
 
@@ -923,12 +926,15 @@ IPState LX200AstroPhysicsExperimental::GuideSouth(uint32_t ms)
         GuideNSTID = 0;
     }
 
-    if (usePulseCommand && ms < MAX_LX200AP_PULSE_LEN)
+    if (usePulseCommand && ms <= MAX_LX200AP_PULSE_LEN)
     {
         SendPulseCmd(LX200_SOUTH, ms);
+        GuideNSTID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperNS, this);
     }
     else
     {
+        LOGF_DEBUG("GuideSouth using simulated pulse for duration %d", ms);
+
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
 
@@ -940,10 +946,9 @@ IPState LX200AstroPhysicsExperimental::GuideSouth(uint32_t ms)
         ISState states[] = { ISS_OFF, ISS_ON };
         const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
         ISNewSwitch(MovementNSSP.device, MovementNSSP.name, states, const_cast<char **>(names), 2);
+        GuideNSTID      = IEAddTimer(static_cast<int>(ms), simulGuideTimeoutHelperNS, this);
     }
 
-    guide_direction_ns = LX200_SOUTH;
-    GuideNSTID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperNS, this);
     return IPS_BUSY;
 }
 
@@ -962,12 +967,15 @@ IPState LX200AstroPhysicsExperimental::GuideEast(uint32_t ms)
         GuideWETID = 0;
     }
 
-    if (usePulseCommand && ms < MAX_LX200AP_PULSE_LEN)
+    if (usePulseCommand && ms <= MAX_LX200AP_PULSE_LEN)
     {
         SendPulseCmd(LX200_EAST, ms);
+        GuideWETID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperWE, this);
     }
     else
     {
+        LOGF_DEBUG("GuideEast using simulated pulse for duration %d", ms);
+
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
 
@@ -979,10 +987,9 @@ IPState LX200AstroPhysicsExperimental::GuideEast(uint32_t ms)
         ISState states[] = { ISS_OFF, ISS_ON };
         const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
         ISNewSwitch(MovementWESP.device, MovementWESP.name, states, const_cast<char **>(names), 2);
+        GuideWETID      = IEAddTimer(static_cast<int>(ms), simulGuideTimeoutHelperWE, this);
     }
 
-    guide_direction_we = LX200_EAST;
-    GuideWETID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperWE, this);
     return IPS_BUSY;
 }
 
@@ -1001,12 +1008,15 @@ IPState LX200AstroPhysicsExperimental::GuideWest(uint32_t ms)
         GuideWETID = 0;
     }
 
-    if (usePulseCommand && ms < MAX_LX200AP_PULSE_LEN)
+    if (usePulseCommand && ms <= MAX_LX200AP_PULSE_LEN)
     {
         SendPulseCmd(LX200_WEST, ms);
+        GuideWETID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperWE, this);
     }
     else
     {
+        LOGF_DEBUG("GuideWest using simulated pulse for duration %d", ms);
+
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
 
@@ -1018,11 +1028,66 @@ IPState LX200AstroPhysicsExperimental::GuideWest(uint32_t ms)
         ISState states[] = { ISS_ON, ISS_OFF };
         const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
         ISNewSwitch(MovementWESP.device, MovementWESP.name, states, const_cast<char **>(names), 2);
+        GuideWETID      = IEAddTimer(static_cast<int>(ms), simulGuideTimeoutHelperWE, this);
     }
 
-    guide_direction_we = LX200_WEST;
-    GuideWETID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperWE, this);
     return IPS_BUSY;
+}
+
+void LX200AstroPhysicsExperimental::pulseGuideTimeoutHelperNS(void * p)
+{
+    static_cast<LX200AstroPhysicsExperimental *>(p)->AstroPhysicsGuideTimeoutNS(false);
+}
+
+void LX200AstroPhysicsExperimental::pulseGuideTimeoutHelperWE(void * p)
+{
+    static_cast<LX200AstroPhysicsExperimental *>(p)->AstroPhysicsGuideTimeoutWE(false);
+}
+
+void LX200AstroPhysicsExperimental::simulGuideTimeoutHelperNS(void * p)
+{
+    static_cast<LX200AstroPhysicsExperimental *>(p)->AstroPhysicsGuideTimeoutNS(true);
+}
+
+void LX200AstroPhysicsExperimental::simulGuideTimeoutHelperWE(void * p)
+{
+    static_cast<LX200AstroPhysicsExperimental *>(p)->AstroPhysicsGuideTimeoutWE(true);
+}
+
+void LX200AstroPhysicsExperimental::AstroPhysicsGuideTimeoutWE(bool simul)
+{
+    LOGF_DEBUG("AstroPhysicsGuideTimeoutWE() pulse guide simul = %d", simul);
+
+    if (simul == true)
+    {
+        ISState states[] = { ISS_OFF, ISS_OFF };
+        const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
+        ISNewSwitch(MovementWESP.device, MovementWESP.name, states, const_cast<char **>(names), 2);
+    }
+
+    GuideWENP.np[DIRECTION_WEST].value = 0;
+    GuideWENP.np[DIRECTION_EAST].value = 0;
+    GuideWENP.s           = IPS_IDLE;
+    GuideWETID            = 0;
+    IDSetNumber(&GuideWENP, nullptr);
+}
+
+void LX200AstroPhysicsExperimental::AstroPhysicsGuideTimeoutNS(bool simul)
+{
+    LOGF_DEBUG("AstroPhysicsGuideTimeoutNS() pulse guide simul = %d", simul);
+
+    if (simul == true)
+    {
+        ISState states[] = { ISS_OFF, ISS_OFF };
+        const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
+        ISNewSwitch(MovementNSSP.device, MovementNSSP.name, states, const_cast<char **>(names), 2);
+    }
+
+    GuideNSNP.np[0].value = 0;
+    GuideNSNP.np[1].value = 0;
+    GuideNSNP.s           = IPS_IDLE;
+    GuideNSTID            = 0;
+    IDSetNumber(&GuideNSNP, nullptr);
 }
 
 int LX200AstroPhysicsExperimental::SendPulseCmd(int8_t direction, uint32_t duration_msec)
@@ -1403,10 +1468,11 @@ bool LX200AstroPhysicsExperimental::UnPark()
         }
     }
 
+    SetParked(false);
+
     // Enable tracking
     SetTrackEnabled(true);
-
-    SetParked(false);
+    TrackState = SCOPE_TRACKING;
 
     return true;
 }
@@ -1513,6 +1579,8 @@ bool LX200AstroPhysicsExperimental::SetTrackMode(uint8_t mode)
 {
     int err=0;
 
+    LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackMode(%d)", mode);
+
     if (mode == TRACK_CUSTOM)
     {
         if (!isSimulation() && (err = selectAPTrackingMode(PortFD, AP_TRACKING_SIDEREAL)) < 0)
@@ -1535,7 +1603,15 @@ bool LX200AstroPhysicsExperimental::SetTrackMode(uint8_t mode)
 
 bool LX200AstroPhysicsExperimental::SetTrackEnabled(bool enabled)
 {
-   return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
+   bool rc;
+
+   LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackEnabled(%d)", enabled);
+
+   rc = SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
+
+   LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackMode() returned %d", rc);
+
+   return rc;
 }
 
 bool LX200AstroPhysicsExperimental::SetTrackRate(double raRate, double deRate)

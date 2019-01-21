@@ -449,18 +449,25 @@ bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 
     switch (dir)
     {
-        case IEQ_N:
-            strcpy(cmd, ":mn#");
-            break;
-        case IEQ_S:
-            strcpy(cmd, ":ms#");
-            break;
-        case IEQ_W:
-            strcpy(cmd, ":mw#");
-            break;
-        case IEQ_E:
-            strcpy(cmd, ":me#");
-            break;
+    case IEQ_N:
+        strcpy(cmd, ":mn#");
+        break;
+    case IEQ_S:
+        strcpy(cmd, ":ms#");
+        break;
+        //        case IEQ_W:
+        //            strcpy(cmd, ":mw#");
+        //            break;
+        //        case IEQ_E:
+        //            strcpy(cmd, ":me#");
+        //            break;
+        // JM 2019-01-17: Appears iOptron implementation is reversed?
+    case IEQ_W:
+        strcpy(cmd, ":me#");
+        break;
+    case IEQ_E:
+        strcpy(cmd, ":mw#");
+        break;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);

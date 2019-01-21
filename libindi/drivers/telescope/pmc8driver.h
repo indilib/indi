@@ -36,6 +36,9 @@ typedef enum {
     ST_HOME
 } PMC8_SYSTEM_STATUS;
 
+
+//#endif
+
 typedef enum { PMC8_TRACK_SIDEREAL, PMC8_TRACK_LUNAR, PMC8_TRACK_SOLAR, PMC8_TRACK_CUSTOM } PMC8_TRACK_RATE;
 
 typedef enum { PMC8_MOVE_4X, PMC8_MOVE_16X, PMC8_MOVE_64X, PMC8_MOVE_256X } PMC8_MOVE_RATE;
@@ -67,6 +70,7 @@ typedef struct
 void set_pmc8_debug(bool enable);
 void set_pmc8_simulation(bool enable);
 void set_pmc8_device(const char *name);
+void set_pmc8_myMount(int index);
 
 /**************************************************************************
  Simulation
