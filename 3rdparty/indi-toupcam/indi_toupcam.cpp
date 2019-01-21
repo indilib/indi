@@ -753,7 +753,12 @@ void TOUPCAM::setupParams()
     // Speed
     rc = Toupcam_get_Speed(m_CameraHandle, &nDef);
     LOGF_DEBUG("Speed Control: %d", nDef);
+    // JM 2019-01-17: Always set it to 1 less than the max on ARM
+    #ifdef __arm__
+    ControlN[TC_SPEED].value = nDef-1;
+    #else
     ControlN[TC_SPEED].value = nDef;
+    #endif
     ControlN[TC_SPEED].max = m_Instance->model->maxspeed;
 
     // Set Bin more for better quality over skip
