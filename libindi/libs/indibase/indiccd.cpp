@@ -57,6 +57,10 @@ const char *GUIDE_CONTROL_TAB  = "Guider Control";
 const char *RAPIDGUIDE_TAB     = "Rapid Guide";
 const char *WCS_TAB            = "WCS";
 
+#ifdef HAVE_WEBSOCKET
+uint16_t INDIWSServer::m_global_port = 11623;
+#endif
+
 // Create dir recursively
 static int _ccd_mkdir(const char *dir, mode_t mode)
 {
@@ -84,297 +88,6 @@ static int _ccd_mkdir(const char *dir, mode_t mode)
 
 namespace INDI
 {
-
-CCDChip::CCDChip()
-{
-    SendCompressed = false;
-    Interlaced     = false;
-
-    SubX = SubY = 0;
-    SubW = SubH = 1;
-    BPP         = 8;
-    BinX = BinY = 1;
-    NAxis       = 2;
-
-    BinFrame = nullptr;
-
-    strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
-
-    FrameType  = LIGHT_FRAME;
-    lastRapidX = lastRapidY = -1;    
-}
-
-CCDChip::~CCDChip()
-{
-    delete [] RawFrame;
-    delete[] BinFrame;
-}
-
-void CCDChip::setFrameType(CCD_FRAME type)
-{
-    FrameType = type;
-}
-
-void CCDChip::setResolution(int x, int y)
-{
-    XRes = x;
-    YRes = y;
-
-    ImagePixelSizeN[0].value = x;
-    ImagePixelSizeN[1].value = y;
-
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
-
-    ImageFrameN[FRAME_X].min = 0;
-    ImageFrameN[FRAME_X].max = x - 1;
-    ImageFrameN[FRAME_Y].min = 0;
-    ImageFrameN[FRAME_Y].max = y - 1;
-
-    ImageFrameN[FRAME_W].min = 1;
-    ImageFrameN[FRAME_W].max = x;
-    ImageFrameN[FRAME_H].max = 1;
-    ImageFrameN[FRAME_H].max = y;
-    IUUpdateMinMax(&ImageFrameNP);
-}
-
-void CCDChip::setFrame(int subx, int suby, int subw, int subh)
-{
-    SubX = subx;
-    SubY = suby;
-    SubW = subw;
-    SubH = subh;
-
-    ImageFrameN[FRAME_X].value = SubX;
-    ImageFrameN[FRAME_Y].value = SubY;
-    ImageFrameN[FRAME_W].value = SubW;
-    ImageFrameN[FRAME_H].value = SubH;
-
-    IDSetNumber(&ImageFrameNP, nullptr);
-}
-
-void CCDChip::setBin(int hor, int ver)
-{
-    BinX = hor;
-    BinY = ver;
-
-    ImageBinN[BIN_W].value = BinX;
-    ImageBinN[BIN_H].value = BinY;
-
-    IDSetNumber(&ImageBinNP, nullptr);
-}
-
-void CCDChip::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                            bool sendToClient)
-{
-    INumberVectorProperty *nvp = nullptr;
-
-    if (!strcmp(property, ImageExposureNP.name))
-        nvp = &ImageExposureNP;
-    else if (!strcmp(property, ImageFrameNP.name))
-        nvp = &ImageFrameNP;
-    else if (!strcmp(property, ImageBinNP.name))
-        nvp = &ImageBinNP;
-    else if (!strcmp(property, ImagePixelSizeNP.name))
-        nvp = &ImagePixelSizeNP;
-    else if (!strcmp(property, RapidGuideDataNP.name))
-        nvp = &RapidGuideDataNP;
-
-    INumber *np = IUFindNumber(nvp, element);
-    if (np)
-    {
-        np->min  = min;
-        np->max  = max;
-        np->step = step;
-
-        if (sendToClient)
-            IUUpdateMinMax(nvp);
-    }
-}
-
-void CCDChip::setPixelSize(float x, float y)
-{
-    PixelSizex = x;
-    PixelSizey = y;
-
-    ImagePixelSizeN[2].value = x;
-    ImagePixelSizeN[3].value = x;
-    ImagePixelSizeN[4].value = y;
-
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
-}
-
-void CCDChip::setBPP(int bbp)
-{
-    BPP = bbp;
-
-    ImagePixelSizeN[5].value = BPP;
-
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
-}
-
-void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
-{
-    if (nbuf == RawFrameSize)
-        return;
-
-    RawFrameSize = nbuf;
-
-    if (allocMem == false)
-        return;
-
-    delete [] RawFrame;
-    RawFrame = new uint8_t[nbuf];
-
-    if (BinFrame)
-    {
-        delete [] BinFrame;
-        BinFrame = new uint8_t[nbuf];
-    }
-}
-
-void CCDChip::setExposureLeft(double duration)
-{
-    ImageExposureNP.s = IPS_BUSY;
-    ImageExposureN[0].value = duration;
-
-    IDSetNumber(&ImageExposureNP, nullptr);
-}
-
-void CCDChip::setExposureDuration(double duration)
-{
-    exposureDuration = duration;
-    gettimeofday(&startExposureTime, nullptr);
-}
-
-const char *CCDChip::getFrameTypeName(CCD_FRAME fType)
-{
-    return FrameTypeS[fType].name;
-}
-
-const char *CCDChip::getExposureStartTime()
-{
-    static char ts[32];
-
-    char iso8601[32] = {0};
-    struct tm *tp = nullptr;
-
-    // Get exposure startup timestamp
-    time_t t = static_cast<time_t>(startExposureTime.tv_sec);
-
-    // Get UTC timestamp
-    tp = gmtime(&t);
-
-    // Format it in ISO8601 format
-    strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
-
-    // Add millisecond
-    snprintf(ts, 32, "%s.%03d", iso8601, static_cast<int>(startExposureTime.tv_usec / 1000.0));
-
-    return (ts);
-}
-
-void CCDChip::setInterlaced(bool intr)
-{
-    Interlaced = intr;
-}
-
-void CCDChip::setExposureFailed()
-{
-    ImageExposureNP.s = IPS_ALERT;
-    IDSetNumber(&ImageExposureNP, nullptr);
-}
-
-int CCDChip::getNAxis() const
-{
-    return NAxis;
-}
-
-void CCDChip::setNAxis(int value)
-{
-    NAxis = value;
-}
-
-void CCDChip::setImageExtension(const char *ext)
-{
-    strncpy(imageExtention, ext, MAXINDIBLOBFMT);
-}
-
-void CCDChip::binFrame()
-{
-    if (BinX == 1)
-        return;
-
-    // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
-    if (BinFrame == nullptr)
-        BinFrame = new uint8_t[RawFrameSize];
-
-    memset(BinFrame, 0, RawFrameSize);
-
-    switch (getBPP())
-    {
-        case 8:
-        {
-            uint8_t *bin_buf = BinFrame;
-            // Try to average pixels since in 8bit they get saturated pretty quickly
-            double factor      = (BinX * BinX) / 2;
-            double accumulator = 0;
-
-            for (int i = 0; i < SubH; i += BinX)
-                for (int j = 0; j < SubW; j += BinX)
-                {
-                    accumulator = 0;
-                    for (int k = 0; k < BinX; k++)
-                    {
-                        for (int l = 0; l < BinX; l++)
-                        {
-                            accumulator += *(RawFrame + j + (i + k) * SubW + l);
-                        }
-                    }
-
-                    accumulator /= factor;
-                    if (accumulator > UINT8_MAX)
-                        *bin_buf = UINT8_MAX;
-                    else
-                        *bin_buf += static_cast<uint8_t>(accumulator);
-                    bin_buf++;
-                }
-        }
-        break;
-
-        case 16:
-        {
-            uint16_t *bin_buf    = reinterpret_cast<uint16_t *>(BinFrame);
-            uint16_t *RawFrame16 = reinterpret_cast<uint16_t *>(RawFrame);
-            uint16_t val;
-            for (int i = 0; i < SubH; i += BinX)
-                for (int j = 0; j < SubW; j += BinX)
-                {
-                    for (int k = 0; k < BinX; k++)
-                    {
-                        for (int l = 0; l < BinX; l++)
-                        {
-                            val = *(RawFrame16 + j + (i + k) * SubW + l);
-                            if (val + *bin_buf > UINT16_MAX)
-                                *bin_buf = UINT16_MAX;
-                            else
-                                *bin_buf += val;
-                        }
-                    }
-                    bin_buf++;
-                }
-        }
-        break;
-
-        default:
-            return;
-    }
-
-    // Swap frame pointers
-    uint8_t *rawFramePointer = RawFrame;
-    RawFrame                 = BinFrame;
-    // We just memset it next time we use it
-    BinFrame = rawFramePointer;
-}
 
 CCD::CCD()
 {
@@ -675,6 +388,18 @@ bool CCD::initProperties()
 #endif
 
     /**********************************************/
+    /**************** Web Socket ******************/
+    /**********************************************/
+    IUFillSwitch(&WebSocketS[WEBSOCKET_ENABLED], "WEBSOCKET_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&WebSocketS[WEBSOCKET_DISABLED], "WEBSOCKET_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&WebSocketSP, WebSocketS, 2, getDeviceName(), "CCD_WEBSOCKET", "Websocket", OPTIONS_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&WebSocketSettingsN[WS_SETTINGS_PORT], "WS_SETTINGS_PORT", "Port", "%.f", 0, 50000, 0, 0);
+    IUFillNumberVector(&WebSocketSettingsNP, WebSocketSettingsN, 1, getDeviceName(), "CCD_WEBSOCKET_SETTINGS", "WS Settings", OPTIONS_TAB, IP_RW,
+                       60, IPS_IDLE);
+
+    /**********************************************/
     /**************** Snooping ********************/
     /**********************************************/
 
@@ -815,6 +540,11 @@ bool CCD::updateProperties()
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
         defineText(&UploadSettingsTP);
 
+        #ifdef HAVE_WEBSOCKET
+        if (HasWebSocket())
+            defineSwitch(&WebSocketSP);
+        #endif
+
 #ifdef WITH_EXPOSURE_LOOPING
         defineSwitch(&ExposureLoopSP);
         defineNumber(&ExposureLoopCountNP);
@@ -884,6 +614,13 @@ bool CCD::updateProperties()
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
 
+        #ifdef HAVE_WEBSOCKET
+        if (HasWebSocket())
+        {
+            deleteProperty(WebSocketSP.name);
+            deleteProperty(WebSocketSettingsNP.name);
+        }
+        #endif
 #ifdef WITH_EXPOSURE_LOOPING
         deleteProperty(ExposureLoopSP.name);
         deleteProperty(ExposureLoopCountNP.name);
@@ -1476,6 +1213,32 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
         }
 #endif
 
+        #ifdef HAVE_WEBSOCKET
+        // Websocket Enable/Disable
+        if (!strcmp(name, WebSocketSP.name))
+        {
+            IUUpdateSwitch(&WebSocketSP, states, names, n);
+            WebSocketSP.s = IPS_OK;
+
+            if (WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
+            {
+                wsThread = std::thread(&wsThreadHelper, this);
+                WebSocketSettingsN[WS_SETTINGS_PORT].value = wsServer.generatePort();
+                WebSocketSettingsNP.s = IPS_OK;
+                defineNumber(&WebSocketSettingsNP);
+            }
+            else if (wsServer.is_running())
+            {
+                wsServer.stop();
+                wsThread.join();
+                deleteProperty(WebSocketSettingsNP.name);
+            }
+
+            IDSetSwitch(&WebSocketSP, nullptr);
+            return true;
+        }
+        #endif
+
         // WCS Enable/Disable
         if (!strcmp(name, WorldCoordSP.name))
         {
@@ -1530,6 +1293,8 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             }
 
             POLLMS = getPollingPeriod();
+
+            #ifdef WITH_EXPOSURE_LOOPING
             if (ExposureLoopCountNP.s == IPS_BUSY)
             {
                 uploadTime=0;
@@ -1537,6 +1302,7 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
                 ExposureLoopCountN[0].value = 1;
                 IDSetNumber(&ExposureLoopCountNP, nullptr);
             }
+            #endif
             IDSetSwitch(&PrimaryCCD.AbortExposureSP, nullptr);
             IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
 
@@ -1825,10 +1591,10 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
 {
     int status = 0;
     char dev_name[32];
-    char exp_start[32];    
+    char exp_start[32];
     double pixSize1, pixSize2;
 
-    AutoCNumeric locale;    
+    AutoCNumeric locale;
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
 
     // Telescope
@@ -1927,7 +1693,7 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_update_key_dbl(fptr, "SCALE", pixScale, 6, "arcsecs per pixel", &status);
 
     if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(J2000RA) && !std::isnan(J2000DE))
-    {        
+    {
         char ra_str[32]={0}, de_str[32]={0};
 
         fs_sexa(ra_str, J2000RA, 2, 360000);
@@ -1951,7 +1717,7 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     {
         fits_update_key_dbl(fptr, "SITELAT", Latitude, 6, "Latitude of the imaging site in degrees", &status);
         fits_update_key_dbl(fptr, "SITELONG", Longitude, 6, "Longitude of the imaging site in degrees", &status);
-	}
+    }
         if (!std::isnan(Airmass))
             //fits_update_key_s(fptr, TDOUBLE, "AIRMASS", &Airmass, "Airmass", &status);
             fits_update_key_dbl(fptr, "AIRMASS", Airmass, 6, "Airmass", &status);
@@ -2052,7 +1818,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             }
             else
             {
-                auto end = std::chrono::system_clock::now();                
+                auto end = std::chrono::system_clock::now();
 
                 uploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - exposureLoopStartup)).count() / 1000.0 - duration;
                 LOGF_DEBUG("Image download and upload/save took %.3f seconds.", uploadTime);
@@ -2090,7 +1856,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             ExposureLoopCountNP.s = IPS_IDLE;
             IDSetNumber(&ExposureLoopCountNP, nullptr);
         }
-    }    
+    }
 #endif
 
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
@@ -2827,7 +2593,30 @@ bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalByte
     targetChip->FitsBP.s   = IPS_OK;
 
     if (sendImage)
-        IDSetBLOB(&targetChip->FitsBP, nullptr);
+    {
+        #ifdef HAVE_WEBSOCKET
+        if (HasWebSocket() && WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+
+            // Send format/size/..etc first later
+            wsServer.send_text(std::string(targetChip->FitsB.format));
+            wsServer.send_binary(targetChip->FitsB.blob, targetChip->FitsB.bloblen);
+
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> diff = end-start;
+            LOGF_DEBUG("Websocket transfer took %g seconds", diff.count());
+        }
+        else
+        #endif
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+            IDSetBLOB(&targetChip->FitsBP, nullptr);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> diff = end-start;
+            LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
+        }
+    }
 
     if (compressedData)
         delete [] compressedData;
@@ -3069,5 +2858,17 @@ bool CCD::StopStreaming()
     DEBUG(Logger::DBG_ERROR, "Streaming is not supported.");
     return false;
 }
+
+#ifdef HAVE_WEBSOCKET
+void CCD::wsThreadHelper(void *context)
+{
+    static_cast<CCD*>(context)->wsThreadEntry();
+}
+
+void CCD::wsThreadEntry()
+{
+    wsServer.run();
+}
+#endif
 
 }

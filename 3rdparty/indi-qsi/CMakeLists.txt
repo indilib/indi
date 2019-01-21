@@ -14,7 +14,7 @@ find_package(QSI REQUIRED)
 find_package(ZLIB REQUIRED)
 
 set (QSI_VERSION_MAJOR 0)
-set (QSI_VERSION_MINOR 8)
+set (QSI_VERSION_MINOR 9)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_qsi.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_qsi.xml )
@@ -27,6 +27,14 @@ include_directories( ${QSI_INCLUDE_DIR})
 
 include(CMakeCommon)
 
+if (INDI_WEBSOCKET)
+    find_package(websocketpp REQUIRED)
+    find_package(Boost COMPONENTS system thread)
+    include_directories (${Boost_INCLUDE_DIRS})
+    add_definitions(-DHAVE_WEBSOCKET)
+    SET(HAVE_WEBSOCKET 1)
+endif()
+
 ########### QSI ###########
 set(indiqsi_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/qsi_ccd.cpp
@@ -35,6 +43,10 @@ set(indiqsi_SRCS
 add_executable(indi_qsi_ccd ${indiqsi_SRCS})
 
 target_link_libraries(indi_qsi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${QSI_LIBRARIES})
+
+if (HAVE_WEBSOCKET)
+    target_link_libraries(indi_qsi_ccd ${Boost_LIBRARIES})
+endif()
 
 install(TARGETS indi_qsi_ccd RUNTIME DESTINATION bin )
 

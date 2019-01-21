@@ -75,7 +75,7 @@ void ISSnoopDevice(XMLEle *root)
 }
 
 CCDSim::CCDSim() : INDI::FilterInterface(this)
-{    
+{
     currentRA  = RA;
     currentDE = Dec;
 
@@ -216,6 +216,7 @@ bool CCDSim::initProperties()
     cap |= CCD_HAS_SHUTTER;
     cap |= CCD_HAS_ST4_PORT;
     cap |= CCD_HAS_STREAMING;
+    cap |= CCD_HAS_WEB_SOCKET;
 
     SetCCDCapability(cap);
 
@@ -239,7 +240,7 @@ void CCDSim::ISGetProperties(const char *dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineNumber(SimulatorSettingsNV);
-    defineSwitch(TimeFactorSV);    
+    defineSwitch(TimeFactorSV);
     defineNumber(&EqPENP);
 }
 
@@ -874,7 +875,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
             *ptr = val++;
             ptr++;
         }
-    }    
+    }
 
     return 0;
 }
