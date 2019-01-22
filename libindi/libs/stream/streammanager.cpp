@@ -227,8 +227,8 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
     getitimer(ITIMER_REAL, &tframe2);
     //ms2=capture->get(CV_CAP_PROP_POS_MSEC);
 
-    ms1 = (1000.0 * (double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1000.0);
-    ms2 = (1000.0 * (double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1000.0);
+    ms1 = (1000.0 * tframe1.it_value.tv_sec) + (tframe1.it_value.tv_usec / 1000.0);
+    ms2 = (1000.0 * tframe2.it_value.tv_sec) + (tframe2.it_value.tv_usec / 1000.0);
     if (ms2 > ms1)
         deltams = ms2 - ms1; //ms1 +( (24*3600*1000.0) - ms2);
     else
@@ -252,6 +252,12 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         IDSetNumber(&FpsNP, nullptr);
     }
 
+    std::thread(&StreamManager::asyncStream, this, buffer, nbytes, deltams).detach();
+}
+
+void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams)
+{
+    std::unique_lock<std::mutex> guard(currentCCD->ccdBufferLock);
     // For streaming, downscale 16 to 8
     if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
     {
@@ -562,7 +568,7 @@ bool StreamManager::startRecording()
         return true;
 
     /* get filter name for pattern substitution */
-    if (currentCCD->CurrentFilterSlot != -1 && currentCCD->CurrentFilterSlot <= (int)currentCCD->FilterNames.size())
+    if (currentCCD->CurrentFilterSlot != -1 && currentCCD->CurrentFilterSlot <= static_cast<int>(currentCCD->FilterNames.size()))
     {
         filtername      = currentCCD->FilterNames.at(currentCCD->CurrentFilterSlot - 1);
         patterns["_F_"] = filtername;
@@ -700,11 +706,9 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
             {
                 RecordStreamSP.s = IPS_BUSY;
                 if (RecordStreamSP.sp[1].s == ISS_ON)
-                    LOGF_INFO("Starting video record (Duration): %g secs.",
-                              RecordOptionsNP.np[0].value);
+                    LOGF_INFO("Starting video record (Duration): %g secs.", RecordOptionsNP.np[0].value);
                 else if (RecordStreamSP.sp[2].s == ISS_ON)
-                    LOGF_INFO("Starting video record (Frame count): %d.",
-                              (int)(RecordOptionsNP.np[1].value));
+                    LOGF_INFO("Starting video record (Frame count): %d.", static_cast<int>(RecordOptionsNP.np[1].value));
                 else
                     LOG_INFO("Starting video record.");
 
@@ -723,8 +727,7 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
             RecordStreamSP.s = IPS_IDLE;
             if (m_isRecording)
             {
-                LOGF_INFO("Recording stream has been disabled. Frame count %d",
-                          recordframeCount);
+                LOGF_INFO("Recording stream has been disabled. Frame count %d", recordframeCount);
                 stopRecording();
             }
         }

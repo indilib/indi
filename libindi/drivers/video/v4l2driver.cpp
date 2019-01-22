@@ -1267,6 +1267,7 @@ void V4L2_Driver::newFrame()
         int totalBytes        = 0;
         unsigned char * buffer = nullptr;
 
+        std::unique_lock<std::mutex> guard(ccdBufferLock);
         if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
         {
             V4LFrame->Y = v4l_base->getY();
@@ -1319,16 +1320,19 @@ void V4L2_Driver::newFrame()
         {
             memcpy(PrimaryCCD.getFrameBuffer(), buffer, totalBytes);
             PrimaryCCD.binFrame();
+            guard.unlock();
             Streamer->newFrame(PrimaryCCD.getFrameBuffer(), frameBytes / PrimaryCCD.getBinX());
         }
         else
+        {
+            guard.unlock();
             Streamer->newFrame(buffer, frameBytes);
+        }
         return;
     }
 
     if (PrimaryCCD.isExposing())
     {
-
         // Stack Mono frames
         if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON))
         {
@@ -1469,6 +1473,7 @@ void V4L2_Driver::newFrame()
         else
         {
             // Binning not supported in color images for now
+            std::unique_lock<std::mutex> guard(ccdBufferLock);
             unsigned char * src  = v4l_base->getRGBBuffer();
             unsigned char * dest = PrimaryCCD.getFrameBuffer();
             // We have RGB RGB RGB data but for FITS file we need each color in separate plane. i.e. RRR GGG BBB ..etc
@@ -1482,11 +1487,9 @@ void V4L2_Driver::newFrame()
                 *(green++) = *(src + i + 1);
                 *(blue++)  = *(src + i + 2);
             }
+            guard.unlock();
 
-            // TODO NO BINNING YET for color frames. We can bin each plane above separately it should be fine
-            //PrimaryCCD.binFrame();
         }
-        //IDLog("Copy frame finished.\n");
         frameCount += 1;
 
         if (lx->isEnabled())
@@ -1495,11 +1498,8 @@ void V4L2_Driver::newFrame()
             if (Streamer->isBusy() == false)
                 stop_capturing();
 
-            LOGF_INFO("Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec,
-                      current_exposure.tv_usec);
+            LOGF_INFO("Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec, current_exposure.tv_usec);
             ExposureComplete(&PrimaryCCD);
-            //PrimaryCCD.setFrameBufferSize(frameBytes);
-            //}
         }
         else
         {
@@ -1512,7 +1512,6 @@ void V4L2_Driver::newFrame()
             LOGF_INFO("Capture of one frame (%d stacked frames) took %ld.%06ld seconds.",
                       subframeCount, current_exposure.tv_sec, current_exposure.tv_usec);
             ExposureComplete(&PrimaryCCD);
-            //PrimaryCCD.setFrameBufferSize(frameBytes);
         }
     }
     else

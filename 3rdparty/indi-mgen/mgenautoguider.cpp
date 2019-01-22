@@ -68,7 +68,8 @@ MGenAutoguider &MGenAutoguider::instance()
 
 const MGIO_INSERT_BUTTON::Button MGIO_Buttons[] = { MGIO_INSERT_BUTTON::IOB_ESC,   MGIO_INSERT_BUTTON::IOB_SET,
                                                     MGIO_INSERT_BUTTON::IOB_UP,    MGIO_INSERT_BUTTON::IOB_LEFT,
-                                                    MGIO_INSERT_BUTTON::IOB_RIGHT, MGIO_INSERT_BUTTON::IOB_DOWN };
+                                                    MGIO_INSERT_BUTTON::IOB_RIGHT, MGIO_INSERT_BUTTON::IOB_DOWN
+                                                  };
 
 /**************************************************************************************
 ** Return properties of device->
@@ -566,9 +567,11 @@ void MGenAutoguider::TimerHit()
 
                     if (CR_SUCCESS == read_frame.ask(*device))
                     {
+                        std::unique_lock<std::mutex> guard(ccdBufferLock);
                         MGIO_READ_DISPLAY_FRAME::ByteFrame frame;
                         read_frame.get_frame(frame);
                         memcpy(PrimaryCCD.getFrameBuffer(), frame.data(), frame.size());
+                        guard.unlock();
                         ExposureComplete(&PrimaryCCD);
                     }
                     else

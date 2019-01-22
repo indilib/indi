@@ -40,6 +40,7 @@
 #include <cstring>
 #include <chrono>
 #include <stdint.h>
+#include <mutex>
 
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
@@ -69,12 +70,36 @@ class StreamManager;
  * snoops Sky-Quality-Meter devices to record sky quality in units of Magnitudes-Per-Arcsecond-Squared
  * (MPASS) in the FITS header.
  *
- * Support for streaming is available (Linux only) and is handled by the StreamRecorder class.
+ * Support for streaming and recording is available and is handled by the StreamManager class.
  *
  * Developers need to subclass INDI::CCD to implement any driver for CCD cameras within INDI.
  *
+ * Data binary transfers are supported using two methods:
+ * # INDI BLOBs: This is the and recommended default configuration.
+ * # Websockets: This requires INDI to be built with websocket support. There is marginal
+ * improvement in throughput with Websockets when compared with INDI base64 BLOB encoding.
+ * It requires the client to explicitly support websockets. It is not recommended to use this
+ * approach unless for the most demanding and FPS sensitive tasks.
+ *
+ * INDI::CCD and INDI::StreamManager both upload frames asynchrounously in a worker thread.
+ * The CCD Buffer data is protected by the ccdBufferLock mutex. When reading the camera data
+ * and writing to the buffer, it must be first locked by the mutex. After the write is complete
+ * release the lock. For example:
+ *
+ * \code{.cpp}
+ * std::unique_lock<std::mutex> guard(ccdBufferLock);
+ * get_ccd_frame(PrimaryCCD.getFrameBuffer);
+ * guard.unlock();
+ * ExposureComplete();
+ * \endcode
+ *
+ * Similiary, before calling Streamer->newFrame, the buffer needs to be protected in a similiar fashion using
+ * the same ccdBufferLock mutex.
+ *
  * \example CCD Simulator
- * \author Jasem Mutlaq, Gerry Rozema
+ * \version 1.1
+ * \author Jasem Mutlaq
+ * \author Gerry Rozema
  *
  */
 class CCD : public DefaultDevice, GuiderInterface

@@ -1877,7 +1877,9 @@ void GPhotoCCD::streamLiveView()
                 Streamer->setSize(liveVideoWidth, liveVideoHeight);
             }
 
+            std::unique_lock<std::mutex> ccdguard(ccdBufferLock);
             Streamer->newFrame(inBuffer, previewSize);
+            ccdguard.unlock();
             continue;
         }
 
