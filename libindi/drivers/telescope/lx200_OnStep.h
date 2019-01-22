@@ -237,6 +237,8 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty PreferredPierSideSP;
     ISwitch PreferredPierSideS[3];    
     
+    INumberVectorProperty minutesPastMeridianNP;    
+    INumber minutesPastMeridianN[2];    
     
     ISwitchVectorProperty OSPECStatusSP;
     ISwitch OSPECStatusS[5];

@@ -124,6 +124,15 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&FrequencyAdjustS[2], "3", "Reset Sidereal Frequency", ISS_OFF);
     IUFillSwitchVector(&FrequencyAdjustSP, FrequencyAdjustS, 3, getDeviceName(), "FrequencyAdjust", "Frequency Adjust", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
+    IUFillSwitch(&PreferredPierSideS[0], "1", "West", ISS_OFF);
+    IUFillSwitch(&PreferredPierSideS[1], "2", "East", ISS_OFF);
+    IUFillSwitch(&PreferredPierSideS[2], "3", "Best", ISS_OFF);
+    IUFillSwitchVector(&PreferredPierSideSP, PreferredPierSideS, 3, getDeviceName(), "Preferred Pier Side", "Preferred Pier Side", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    
+    IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", 0, 180, 1, 15);
+    IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", 0, 180, 1, 15);
+    IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian", "Minutes Past Meridian", MOTION_TAB, IP_RW, 0,IPS_IDLE);
+    
 
     // ============== SITE_MANAGEMENT_TAB
     IUFillSwitch(&SetHomeS[0], "RETURN_HOME", "Return  Home", ISS_OFF);
@@ -281,6 +290,8 @@ bool LX200_OnStep::updateProperties()
         defineSwitch(&AutoFlipSP);
         defineSwitch(&HomePauseSP);
         defineSwitch(&FrequencyAdjustSP);
+	defineSwitch(&PreferredPierSideSP);
+	defineNumber(&minutesPastMeridianNP);
 
         // Site Management
         defineSwitch(&ParkOptionSP);
@@ -371,7 +382,8 @@ bool LX200_OnStep::updateProperties()
         deleteProperty(AutoFlipSP.name);
         deleteProperty(HomePauseSP.name);
         deleteProperty(FrequencyAdjustSP.name);
-	
+	deleteProperty(PreferredPierSideSP.name);
+	deleteProperty(minutesPastMeridianNP.name);
 
         // Site Management
         deleteProperty(ParkOptionSP.name);
@@ -484,13 +496,13 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
                 if (bktp == &BacklashN[0])
                 {
                     bklshdec = values[i];
-                    //LOGF_INFO("===CMD==> Backlash DEC= %f", bklshdec);
+                    LOGF_DEBUG("===CMD==> Backlash DEC= %f", bklshdec);
                     nset += bklshdec >= 0 && bklshdec <= 999;  //range 0 to 999
                 }
                 else if (bktp == &BacklashN[1])
                 {
                     bklshra = values[i];
-                    //LOGF_INFO("===CMD==> Backlash RA= %f", bklshra);
+                    LOGF_DEBUG("===CMD==> Backlash RA= %f", bklshra);
                     nset += bklshra >= 0 && bklshra <= 999;   //range 0 to 999
                 }
             }
@@ -574,6 +586,58 @@ bool LX200_OnStep::ISNewNumber(const char *dev, const char *name, double values[
         }
     }
 
+    if (!strcmp(name, minutesPastMeridianNP.name))  
+    {
+	    char cmd[20];
+	    int i, nset;
+	    double minPMEast=0, minPMWest=0;
+	    
+	    for (nset = i = 0; i < n; i++)
+	    {
+		    INumber *bktp = IUFindNumber(&minutesPastMeridianNP, names[i]);
+		    if (bktp == &minutesPastMeridianN[0])
+		    {
+			    minPMEast = values[i];
+			    LOGF_DEBUG("===CMD==> minutesPastMeridianN[0]/East = %f", minPMEast);
+			    nset += minPMEast >= 0 && minPMEast <= 180;  //range 0 to 180
+		    }
+		    else if (bktp == &minutesPastMeridianN[1])
+		    {
+			    minPMWest = values[i];
+			    LOGF_DEBUG("===CMD==> minutesPastMeridianN[1]/West= %f", minPMWest);
+			    nset += minPMWest >= 0 && minPMWest <= 180;   //range 0 to 180
+		    }
+	    }
+	    if (nset == 2)
+	    {
+		    snprintf(cmd, 20, ":SXE9,%d#", (int) minPMEast);
+		    if (sendOnStepCommand(cmd))
+		    {
+			    minutesPastMeridianNP.s = IPS_ALERT;
+			    IDSetNumber(&minutesPastMeridianNP, "Error Backlash DEC limit.");
+		    }
+		    const struct timespec timeout = {0, 100000000L};
+		    nanosleep(&timeout, nullptr); // time for OnStep to respond to previous cmd
+		    snprintf(cmd, 20, ":SXEA,%d#", (int) minPMWest);
+		    if (sendOnStepCommand(cmd))
+		    {
+			    minutesPastMeridianNP.s = IPS_ALERT;
+			    IDSetNumber(&minutesPastMeridianNP, "Error Backlash RA limit.");
+		    }
+		    
+		    minutesPastMeridianNP.np[0].value = minPMEast;
+		    minutesPastMeridianNP.np[1].value = minPMWest;
+		    minutesPastMeridianNP.s           = IPS_OK;
+		    IDSetNumber(&minutesPastMeridianNP, nullptr);
+		    return true;
+	    }
+	    else
+	    {
+		    minutesPastMeridianNP.s = IPS_ALERT;
+		    IDSetNumber(&minutesPastMeridianNP, "minutesPastMeridian invalid.");
+		    return false;
+	    }
+    }
     // Focuser
     // Focuser 1 Now handled by Focusr Interface
 
@@ -1192,6 +1256,7 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     char OSbacklashDEC[RB_MAX_LEN];
     char OSbacklashRA[RB_MAX_LEN];
     char TempValue[RB_MAX_LEN];
+    char TempValue2[RB_MAX_LEN];
     Errors Lasterror = ERR_NONE;
 
     if (isSimulation()) //if Simulation is selected
@@ -1420,15 +1485,41 @@ bool LX200_OnStep::ReadScopeStatus()      // Tested
     //AutoFlip
     getCommandString(PortFD,TempValue,":GX95#");
     if (atoi(TempValue)) {
-	    AutoFlipS[1].s = ISS_ON;
-	    AutoFlipSP.s = IPS_OK;
-	    IDSetSwitch(&AutoFlipSP, nullptr);
+	AutoFlipS[1].s = ISS_ON;
+	AutoFlipSP.s = IPS_OK;
+	IDSetSwitch(&AutoFlipSP, nullptr);
     } else {
-	    AutoFlipS[0].s=ISS_ON;
-	    AutoFlipSP.s = IPS_OK;
-	    IDSetSwitch(&AutoFlipSP, nullptr);
+	AutoFlipS[0].s=ISS_ON;
+	AutoFlipSP.s = IPS_OK;
+	IDSetSwitch(&AutoFlipSP, nullptr);
     }
     
+    //PreferredPierSide
+    getCommandString(PortFD,TempValue,":GX96#");
+    if (strstr(TempValue,"W")) {
+	PreferredPierSideS[0].s = ISS_ON;
+	PreferredPierSideSP.s = IPS_OK;
+	IDSetSwitch(&PreferredPierSideSP, nullptr);
+    } else if (strstr(TempValue,"E")) {
+	PreferredPierSideS[1].s=ISS_ON;
+	PreferredPierSideSP.s = IPS_OK;
+	IDSetSwitch(&PreferredPierSideSP, nullptr);
+    } else if (strstr(TempValue,"B")) {
+	PreferredPierSideS[2].s=ISS_ON;
+	PreferredPierSideSP.s = IPS_OK;
+	IDSetSwitch(&PreferredPierSideSP, nullptr);
+    } else {
+	IUResetSwitch(&PreferredPierSideSP);
+	PreferredPierSideSP.s = IPS_BUSY;
+	IDSetSwitch(&PreferredPierSideSP, nullptr);
+    }
+
+    
+    getCommandString(PortFD,TempValue, ":GXE9#"); // E
+    getCommandString(PortFD,TempValue2, ":GXEA#"); // W 
+    minutesPastMeridianNP.np[0].value = atof(TempValue); // E
+    minutesPastMeridianNP.np[1].value = atof(TempValue2); //W
+    IDSetNumber(&minutesPastMeridianNP, nullptr);
 
     // Update OnStep Status TAB
     IDSetText(&OnstepStatTP, nullptr); //Azwing just update, no message
