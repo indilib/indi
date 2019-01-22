@@ -234,6 +234,9 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty SetHomeSP;
     ISwitch SetHomeS[2];
 
+    ISwitchVectorProperty PreferredPierSideSP;
+    ISwitch PreferredPierSideS[3];    
+    
     
     ISwitchVectorProperty OSPECStatusSP;
     ISwitch OSPECStatusS[5];

@@ -804,6 +804,46 @@ bool LX200_OnStep::ISNewSwitch(const char *dev, const char *name, ISState *state
 		IDSetSwitch(&FrequencyAdjustSP, nullptr);
 		return true;
 	}
+	
+	//Pier Side
+	if (!strcmp(name, PreferredPierSideSP.name))
+	{
+		IUUpdateSwitch(&PreferredPierSideSP, states, names, n);
+		PreferredPierSideSP.s = IPS_BUSY;
+		
+		if (PreferredPierSideS[0].s == ISS_ON) //West
+		{
+			if (sendOnStepCommand(":SX96,W#"))
+			{
+				PreferredPierSideSP.s = IPS_OK;
+				IDSetSwitch(&PreferredPierSideSP, "Preferred Pier Side: West");
+				return true;
+			} 
+		}
+		if (PreferredPierSideS[1].s == ISS_ON) //East
+		{
+			if (sendOnStepCommand(":SX96,E#"))
+			{
+				PreferredPierSideSP.s = IPS_OK;
+				IDSetSwitch(&PreferredPierSideSP, "Preferred Pier Side: East");
+				return true;
+			}
+		}
+		if (PreferredPierSideS[2].s == ISS_ON) //Best
+		{
+			if (sendOnStepCommand(":SX96,B#"))
+			{
+				PreferredPierSideSP.s = IPS_OK;
+				IDSetSwitch(&PreferredPierSideSP, "Preferred Pier Side: Best");
+				return true;
+			}
+		}
+		IUResetSwitch(&PreferredPierSideSP);
+		IDSetSwitch(&PreferredPierSideSP, nullptr);
+		return true;
+	}	
+	
+	
         // Focuser
         // Focuser 1 Rates
         if (!strcmp(name, OSFocus1InitializeSP.name))
