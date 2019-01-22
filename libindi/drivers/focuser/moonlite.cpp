@@ -643,7 +643,7 @@ bool MoonLite::sendCommand(const char * cmd, char * res)
         return false;
     }
 
-    LOGF_DEBUG("RES <%s>", cmd);
+    LOGF_DEBUG("RES <%s>", res);
 
     tcflush(PortFD, TCIOFLUSH);
 

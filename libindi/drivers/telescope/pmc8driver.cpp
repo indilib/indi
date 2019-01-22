@@ -41,14 +41,26 @@
 
 #define PMC8_SIMUL_VERSION_RESP "ESGvES06B9T9"
 
-// FIXME - these should be read from the controller? Depends on mount type.
-#define PMC8_AXIS0_SCALE 4608000.0
-#define PMC8_AXIS1_SCALE 4608000.0
+// MOUNT_G11
+#define PMC8_G11_AXIS0_SCALE 4608000.0
+#define PMC8_G11_AXIS1_SCALE 4608000.0
+// MOUNT_EXOS2
+#define PMC8_EXOS2_AXIS0_SCALE 4147200.0
+#define PMC8_EXOS2_AXIS1_SCALE 4147200.0
+// MOUNT_iEXOS100
+#define PMC8_iEXOS100_AXIS0_SCALE 4147200.0
+#define PMC8_iEXOS100_AXIS1_SCALE 4147200.0
+
+double PMC8_AXIS0_SCALE;
+double PMC8_AXIS1_SCALE;
+
 #define ARCSEC_IN_CIRCLE 1296000.0
 
 // FIXME - (just placeholders need better way to represent
 //         This value is from PMC8 SDK document
-#define PMC8_MAX_PRECISE_MOTOR_RATE 2641
+//#define PMC8_MAX_PRECISE_MOTOR_RATE 2641
+// Actually SDK says 2621.11
+#define PMC8_MAX_PRECISE_MOTOR_RATE 2621
 
 // set max settable slew rate as move rate as 256x sidereal
 #define PMC8_MAX_MOVE_MOTOR_RATE (256*15)
@@ -109,6 +121,29 @@ struct
     double moveRate;
     double guide_rate;
 } simPMC8Data;
+
+
+void set_pmc8_myMount(int index)
+{
+	switch(index)
+	{
+	case 0: // LosMandy G11
+		PMC8_AXIS0_SCALE = PMC8_G11_AXIS0_SCALE;
+		PMC8_AXIS1_SCALE = PMC8_G11_AXIS1_SCALE;
+		break;
+	case 1: // EXOS2
+		PMC8_AXIS0_SCALE = PMC8_EXOS2_AXIS0_SCALE;
+		PMC8_AXIS1_SCALE = PMC8_EXOS2_AXIS1_SCALE;
+		break;
+	case 2: // iEXOS100
+		PMC8_AXIS0_SCALE = PMC8_iEXOS100_AXIS0_SCALE;
+		PMC8_AXIS1_SCALE = PMC8_iEXOS100_AXIS1_SCALE;
+		break;
+	default:
+        DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_ERROR, "Need To Select a  Mount");
+		break;
+	}
+}
 
 void set_pmc8_debug(bool enable)
 {
@@ -192,7 +227,6 @@ bool check_pmc8_connection(int fd)
     int nbytes_written = 0;
 
     DEBUGDEVICE(pmc8_device, INDI::Logger::DBG_DEBUG, "Initializing PMC8 using ESGv! CMD...");
-
     for (int i = 0; i < 2; i++)
     {
         if (pmc8_simulation)
@@ -721,7 +755,7 @@ bool convert_motor_rate_to_move_rate(int mrate, float *rate)
     return true;
 }
 
-// set speed for move action (MoveNS/MoveWE) NOT slews!  This version DOESNT handle direciton and expects a motor rate!
+// set speed for move action (MoveNS/MoveWE) NOT slews!  This version DOESNT handle direction and expects a motor rate!
 // if fast is true dont wait on response!  Used for psuedo-pulse guide
 // NOTE that this will possibly mean the response will be read by a following command if it is called before
 //      response comes from controller, since next command will flush before data is in buffer!
