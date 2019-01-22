@@ -245,7 +245,7 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitch OSPECReadS[2];
     
     ISwitchVectorProperty OSNAlignStarsSP;
-    ISwitch OSNAlignStarsS[6];
+    ISwitch OSNAlignStarsS[7];
     ISwitchVectorProperty OSNAlignSP;
     ISwitch OSNAlignS[4];
     IText OSNAlignT[8] {};
