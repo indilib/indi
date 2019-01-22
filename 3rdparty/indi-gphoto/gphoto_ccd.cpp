@@ -1665,32 +1665,33 @@ void GPhotoCCD::AddWidget(gphoto_widget * widget)
             opt->item.sw = create_switch(widget->name, widget->choices, widget->choice_cnt, widget->value.index);
             IUFillSwitchVector(&opt->prop.sw, opt->item.sw, widget->choice_cnt, getDeviceName(), widget->name,
                                widget->name, widget->parent, perm, ISR_1OFMANY, 60, IPS_IDLE);
-            IDDefSwitch(&opt->prop.sw, nullptr);
+            defineSwitch(&opt->prop.sw);
             break;
         case GP_WIDGET_TEXT:
             IUFillText(&opt->item.text, widget->name, widget->name, widget->value.text);
             IUFillTextVector(&opt->prop.text, &opt->item.text, 1, getDeviceName(), widget->name, widget->name,
                              widget->parent, perm, 60, IPS_IDLE);
-            IDDefText(&opt->prop.text, nullptr);
+            defineText(&opt->prop.text);
             break;
         case GP_WIDGET_TOGGLE:
             opt->item.sw = create_switch(widget->name, (char **)on_off, 2, widget->value.toggle ? 0 : 1);
             IUFillSwitchVector(&opt->prop.sw, opt->item.sw, 2, getDeviceName(), widget->name, widget->name,
                                widget->parent, perm, ISR_1OFMANY, 60, IPS_IDLE);
-            IDDefSwitch(&opt->prop.sw, nullptr);
+            defineSwitch(&opt->prop.sw);
             break;
         case GP_WIDGET_RANGE:
             IUFillNumber(&opt->item.num, widget->name, widget->name, "%5.2f", widget->min, widget->max, widget->step,
                          widget->value.num);
             IUFillNumberVector(&opt->prop.num, &opt->item.num, 1, getDeviceName(), widget->name, widget->name,
                                widget->parent, perm, 60, IPS_IDLE);
+            defineNumber(&opt->prop.num);
             break;
         case GP_WIDGET_DATE:
             tm = gmtime((time_t *)&widget->value.date);
             IUFillText(&opt->item.text, widget->name, widget->name, asctime(tm));
             IUFillTextVector(&opt->prop.text, &opt->item.text, 1, getDeviceName(), widget->name, widget->name,
                              widget->parent, perm, 60, IPS_IDLE);
-            IDDefText(&opt->prop.text, nullptr);
+            defineText(&opt->prop.text);
             break;
         default:
             delete opt;
@@ -1833,33 +1834,25 @@ void GPhotoCCD::streamLiveView()
     unsigned long int previewSize = 0;
     CameraFile * previewFile = nullptr;
 
+    rc = gp_file_new(&previewFile);
+    if (rc != GP_OK)
+    {
+        LOGF_ERROR("Error creating gphoto file: %s", gp_result_as_string(rc));
+        return;
+    }
+
     while (true)
     {
         std::unique_lock<std::mutex> guard(liveStreamMutex);
         if (m_RunLiveStream == false)
-            return;
+            break;
         guard.unlock();
 
-        rc = gp_file_new(&previewFile);
+        rc = gphoto_capture_preview(gphotodrv, previewFile, errMsg);
         if (rc != GP_OK)
         {
-            LOGF_ERROR("Error creating gphoto file: %s", gp_result_as_string(rc));
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            continue;
-        }
-
-        for (int i = 0; i < MAX_RETRIES; i++)
-        {
-            rc = gphoto_capture_preview(gphotodrv, previewFile, errMsg);
-            if (rc == true)
-                break;
-        }
-
-        if (rc != GP_OK)
-        {
-            LOGF_ERROR("%s", errMsg);
-            gp_file_unref(previewFile);
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            //LOGF_DEBUG("%s", errMsg);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
         }
 
@@ -1869,8 +1862,7 @@ void GPhotoCCD::streamLiveView()
             if (rc != GP_OK)
             {
                 LOGF_ERROR("Error getting preview image data and size: %s", gp_result_as_string(rc));
-                gp_file_unref(previewFile);
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
             }
         }
@@ -1886,7 +1878,6 @@ void GPhotoCCD::streamLiveView()
             }
 
             Streamer->newFrame(inBuffer, previewSize);
-            gp_file_unref(previewFile);
             continue;
         }
 
@@ -1901,12 +1892,13 @@ void GPhotoCCD::streamLiveView()
         if (rc != 0)
         {
             LOG_ERROR("Error getting live video frame.");
-            gp_file_unref(previewFile);
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            return;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
         }
 
         PrimaryCCD.setFrameBuffer(ccdBuffer);
+
+        // We are done with writing to CCD buffer
         ccdguard.unlock();
 
         if (naxis != PrimaryCCD.getNAxis())
@@ -1927,9 +1919,9 @@ void GPhotoCCD::streamLiveView()
             PrimaryCCD.setFrameBufferSize(size, false);
 
         Streamer->newFrame(ccdBuffer, size);
-
-        gp_file_unref(previewFile);
     }
+
+    gp_file_unref(previewFile);
 }
 
 #if 0
