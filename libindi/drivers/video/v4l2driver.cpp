@@ -291,22 +291,19 @@ bool V4L2_Driver::updateProperties()
             LOGF_INFO("Setting pixel size correctly for %s", commonName);
             if (info->tested == false)
             {
-                LOGF_INFO("Please report that the camera worked: Name: %s/%s Detected and working, to https://www.indilib.org/forum/ccds-dslrs/4392-indi-pixel-size-detection.html", v4l_base->getDeviceName(), commonName);
+                LOGF_INFO("Please report that the camera worked: Name: %s/%s Detected and working, to https://bit.ly/2S1Vxjq", v4l_base->getDeviceName(), commonName);
             }
         }
         else
         {
             LOGF_INFO("Setting pixel size to default of %5.2f", pixX);
-            LOGF_INFO("For future autodetection of pixel size, please report the following: Reported Name: '%s', "
-                      "Common Name (Eg: NexImage 10), Pixel Size to the following thread: "
-                      "https://www.indilib.org/forum/ccds-dslrs/4392-indi-pixel-size-detection.html#33485 ",
+            LOGF_INFO("For future autodetection of pixel size, please report the following: Reported Name: %s, "
+                      "Common Name (Eg: NexImage 10), Pixel Size to the following thread: https://bit.ly/2S1Vxjq",
                       v4l_base->getDeviceName());
         }
         SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, pixX, pixY);
 
         PrimaryCCD.setImageExtension("fits");
-
-        //v4l_base->setRecorder(Streamer->getRecorder());
 
         if (v4l_base->isLXmodCapable())
             lx->updateProperties();
