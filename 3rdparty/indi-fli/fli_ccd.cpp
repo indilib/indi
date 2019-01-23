@@ -183,12 +183,12 @@ bool FLICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
     {
         if (!strcmp(name, FlushNP.name))
         {
-            int err=0;
+            int err = 0;
             long nflushes = values[0];
 
             if ((err = FLISetNFlushes(fli_dev, nflushes)))
             {
-                LOGF_DEBUG("Error: FLISetNFlushes() failed. %s.", strerror((int)-err));
+                LOGF_DEBUG("Error: FLISetNFlushes() failed. %s.", strerror((int) - err));
                 FlushNP.s = IPS_ALERT;
                 IDSetNumber(&FlushNP, nullptr);
                 return true;
@@ -222,11 +222,11 @@ bool FLICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         // Background Flushing
         if (!strcmp(name, BackgroundFlushSP.name))
         {
-            int err=0;
+            int err = 0;
             bool enabled = !strcmp(IUFindOnSwitchName(states, names, n), "ENABLED");
             if ((err = FLIControlBackgroundFlush(fli_dev, enabled ? FLI_BGFLUSH_START : FLI_BGFLUSH_STOP)))
             {
-                LOGF_ERROR("Error: FLIControlBackgroundFlush() %s failed. %s.", (enabled ? "starting" : "stopping"), strerror((int)-err));
+                LOGF_ERROR("Error: FLIControlBackgroundFlush() %s failed. %s.", (enabled ? "starting" : "stopping"), strerror((int) - err));
                 BackgroundFlushSP.s = IPS_ALERT;
                 IDSetSwitch(&BackgroundFlushSP, nullptr);
                 return true;
@@ -247,7 +247,7 @@ bool FLICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             flimode_t cameraModelIndex = static_cast<flimode_t>(IUFindOnSwitchIndex(&CameraModeSP));
             if ( (errCode = FLISetCameraMode(fli_dev, cameraModelIndex)))
             {
-                LOGF_ERROR("Error: FLISetCameraMode(%ld) failed. %s.", cameraModelIndex, strerror((int)-errCode));
+                LOGF_ERROR("Error: FLISetCameraMode(%ld) failed. %s.", cameraModelIndex, strerror((int) - errCode));
                 IUResetSwitch(&CameraModeSP);
                 CameraModeS[currentIndex].s = ISS_ON;
                 CameraModeSP.s = IPS_ALERT;
@@ -291,7 +291,7 @@ bool FLICCD::Connect()
 
     if ((err = FLIOpen(&fli_dev, FLICam.name, FLIDEVICE_CAMERA | FLICam.domain)))
     {
-        LOGF_ERROR("Error: FLIOpen() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("Error: FLIOpen() failed. %s.", strerror((int) - err));
         return false;
     }
 
@@ -309,7 +309,7 @@ bool FLICCD::Disconnect()
 
     if ((err = FLIClose(fli_dev)))
     {
-        LOGF_DEBUG("Error: FLIClose() failed. %s.", strerror((int)-err));
+        LOGF_DEBUG("Error: FLIClose() failed. %s.", strerror((int) - err));
         return false;
     }
 
@@ -323,7 +323,7 @@ bool FLICCD::setupParams()
 
     LOG_DEBUG("Retieving camera parameters...");
 
-    char hw_rev[16]={0}, fw_rev[16]={0};
+    char hw_rev[16] = {0}, fw_rev[16] = {0};
 
     //////////////////////
     // 1. Get Camera Model
@@ -333,7 +333,7 @@ bool FLICCD::setupParams()
         IUSaveText(&CamInfoT[0], getDeviceName());
     else if ((err = FLIGetModel(fli_dev, FLICam.model, 32)))
     {
-        LOGF_ERROR("FLIGetModel() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLIGetModel() failed. %s.", strerror((int) - err));
         return false;
     }
     else
@@ -349,7 +349,7 @@ bool FLICCD::setupParams()
         FLICam.HWRevision = 1;
     else if ((err = FLIGetHWRevision(fli_dev, &FLICam.HWRevision)))
     {
-        LOGF_ERROR("FLIGetHWRevision() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLIGetHWRevision() failed. %s.", strerror((int) - err));
         return false;
     }
     else
@@ -366,7 +366,7 @@ bool FLICCD::setupParams()
         FLICam.FWRevision = 1;
     else if ((err = FLIGetFWRevision(fli_dev, &FLICam.FWRevision)))
     {
-        LOGF_ERROR("FLIGetFWRevision() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLIGetFWRevision() failed. %s.", strerror((int) - err));
         return false;
     }
     else
@@ -387,7 +387,7 @@ bool FLICCD::setupParams()
     }
     else if ((err = FLIGetPixelSize(fli_dev, &FLICam.x_pixel_size, &FLICam.y_pixel_size)))
     {
-        LOGF_ERROR("FLIGetPixelSize() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLIGetPixelSize() failed. %s.", strerror((int) - err));
         return false;
     }
     else
@@ -395,7 +395,7 @@ bool FLICCD::setupParams()
         FLICam.x_pixel_size *= 1e6;
         FLICam.y_pixel_size *= 1e6;
         LOGF_DEBUG("FLIGetPixelSize() succeed -> %g x %g", FLICam.x_pixel_size,
-               FLICam.y_pixel_size);
+                   FLICam.y_pixel_size);
     }
 
     ///////////////////////////
@@ -410,13 +410,13 @@ bool FLICCD::setupParams()
     else if ((err = FLIGetArrayArea(fli_dev, &FLICam.Array_Area[0], &FLICam.Array_Area[1], &FLICam.Array_Area[2],
                                     &FLICam.Array_Area[3])))
     {
-        LOGF_ERROR("FLIGetArrayArea() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLIGetArrayArea() failed. %s.", strerror((int) - err));
         return false;
     }
     else
     {
         LOGF_DEBUG("FLIGetArrayArea() succeed -> %ld x %ld + %ld x %ld", FLICam.Array_Area[0],
-               FLICam.Array_Area[1], FLICam.Array_Area[2], FLICam.Array_Area[3]);
+                   FLICam.Array_Area[1], FLICam.Array_Area[2], FLICam.Array_Area[3]);
     }
 
     ///////////////////////////
@@ -431,13 +431,13 @@ bool FLICCD::setupParams()
     else if ((err = FLIGetVisibleArea(fli_dev, &FLICam.Visible_Area[0], &FLICam.Visible_Area[1],
                                       &FLICam.Visible_Area[2], &FLICam.Visible_Area[3])))
     {
-        LOGF_ERROR("FLIGetVisibleArea() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLIGetVisibleArea() failed. %s.", strerror((int) - err));
         return false;
     }
     else
     {
         LOGF_DEBUG("FLIGetVisibleArea() succeed -> %ld x %ld + %ld x %ld", FLICam.Visible_Area[0],
-               FLICam.Visible_Area[1], FLICam.Visible_Area[2], FLICam.Visible_Area[3]);
+                   FLICam.Visible_Area[1], FLICam.Visible_Area[2], FLICam.Visible_Area[3]);
     }
 
     ///////////////////////////
@@ -447,7 +447,7 @@ bool FLICCD::setupParams()
         FLICam.temperature = 25.0;
     else if ((err = FLIGetTemperature(fli_dev, &FLICam.temperature)))
     {
-        LOGF_ERROR("FLIGetTemperature() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLIGetTemperature() failed. %s.", strerror((int) - err));
         return false;
     }
     else
@@ -468,21 +468,21 @@ bool FLICCD::setupParams()
         /* Default frame type is NORMAL */
         if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL)))
         {
-            LOGF_DEBUG("FLISetFrameType() failed. %s.", strerror((int)-err));
+            LOGF_DEBUG("FLISetFrameType() failed. %s.", strerror((int) - err));
             return false;
         }
 
         /* X horizontal binning */
         if ((err = FLISetHBin(fli_dev, PrimaryCCD.getBinX())))
         {
-            LOGF_ERROR("FLISetBin() failed. %s.", strerror((int)-err));
+            LOGF_ERROR("FLISetBin() failed. %s.", strerror((int) - err));
             return false;
         }
 
         /* Y vertical binning */
         if ((err = FLISetVBin(fli_dev, PrimaryCCD.getBinY())))
         {
-            LOGF_ERROR("FLISetVBin() failed. %s.", strerror((int)-err));
+            LOGF_ERROR("FLISetVBin() failed. %s.", strerror((int) - err));
             return false;
         }
     }
@@ -507,8 +507,8 @@ bool FLICCD::setupParams()
         if (CameraModeS)
             delete [] CameraModeS;
         CameraModeS = new ISwitch[index];
-        for (int i=0; i < index; i++)
-            IUFillSwitch(CameraModeS+i, cameraModeValues.at(i).c_str(), cameraModeValues.at(i).c_str(), ISS_OFF);
+        for (int i = 0; i < index; i++)
+            IUFillSwitch(CameraModeS + i, cameraModeValues.at(i).c_str(), cameraModeValues.at(i).c_str(), ISS_OFF);
 
         IUFillSwitchVector(&CameraModeSP, CameraModeS, index, getDeviceName(), "CAMERA_MODES", "Modes", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
         FLIGetCameraMode(fli_dev, &index);
@@ -524,7 +524,7 @@ int FLICCD::SetTemperature(double temperature)
 
     if (!sim && (err = FLISetTemperature(fli_dev, temperature)))
     {
-        LOGF_ERROR("FLISetTemperature() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLISetTemperature() failed. %s.", strerror((int) - err));
         return -1;
     }
 
@@ -548,12 +548,12 @@ bool FLICCD::StartExposure(float duration)
     {
         if ((err = FLISetExposureTime(fli_dev, (long)(duration * 1000))))
         {
-            LOGF_ERROR("FLISetExposureTime() failed. %s.", strerror((int)-err));
+            LOGF_ERROR("FLISetExposureTime() failed. %s.", strerror((int) - err));
             return false;
         }
         if ((err = FLIExposeFrame(fli_dev)))
         {
-            LOGF_ERROR("FLIExposeFrame() failed. %s.", strerror((int)-err));
+            LOGF_ERROR("FLIExposeFrame() failed. %s.", strerror((int) - err));
             return false;
         }
     }
@@ -574,7 +574,7 @@ bool FLICCD::AbortExposure()
 
     if (!sim && (err = FLICancelExposure(fli_dev)))
     {
-        LOGF_ERROR("FLICancelExposure() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLICancelExposure() failed. %s.", strerror((int) - err));
         return false;
     }
 
@@ -583,7 +583,7 @@ bool FLICCD::AbortExposure()
 }
 
 bool FLICCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
-{    
+{
     if (sim)
         return true;
 
@@ -594,7 +594,7 @@ bool FLICCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
         case INDI::CCDChip::DARK_FRAME:
             if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_DARK)))
             {
-                LOGF_ERROR("FLISetFrameType() failed. %s.", strerror((int)-err));
+                LOGF_ERROR("FLISetFrameType() failed. %s.", strerror((int) - err));
                 return false;
             }
             break;
@@ -603,7 +603,7 @@ bool FLICCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
         case INDI::CCDChip::FLAT_FRAME:
             if ((err = FLISetFrameType(fli_dev, FLI_FRAME_TYPE_NORMAL)))
             {
-                LOGF_ERROR("FLISetFrameType() failed. %s.", strerror((int)-err));
+                LOGF_ERROR("FLISetFrameType() failed. %s.", strerror((int) - err));
                 return false;
             }
             break;
@@ -619,23 +619,23 @@ bool FLICCD::UpdateCCDFrame(int x, int y, int w, int h)
     long bin_right  = x + (w / PrimaryCCD.getBinX());
     long bin_bottom = y + (h / PrimaryCCD.getBinY());
 
-    if ( (x+w) > PrimaryCCD.getXRes())
+    if ( (x + w) > PrimaryCCD.getXRes())
     {
         LOGF_ERROR("Error: invalid frame requested (%d,%d) size(%d,%d)", x, y, w, h);
         return false;
     }
-    else if ( (y+h) > PrimaryCCD.getYRes())
+    else if ( (y + h) > PrimaryCCD.getYRes())
     {
         LOGF_ERROR("Error: invalid frame requested (%d,%d) size(%d,%d)", x, y, w, h);
         return false;
     }
 
     LOGF_DEBUG("Binning (%dx%d). Final FLI image area is (%d, %d), (%ld, %ld). Size (%dx%d)", PrimaryCCD.getBinX(), PrimaryCCD.getBinY(),
-           x, y, bin_right, bin_bottom, w / PrimaryCCD.getBinX(), h / PrimaryCCD.getBinY());
+               x, y, bin_right, bin_bottom, w / PrimaryCCD.getBinX(), h / PrimaryCCD.getBinY());
 
     if (!sim && (err = FLISetImageArea(fli_dev, x, y, bin_right, bin_bottom)))
     {
-        LOGF_ERROR("FLISetImageArea() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLISetImageArea() failed. %s.", strerror((int) - err));
         return false;
     }
 
@@ -655,14 +655,14 @@ bool FLICCD::UpdateCCDBin(int binx, int biny)
     /* X horizontal binning */
     if (!sim && (err = FLISetHBin(fli_dev, binx)))
     {
-        LOGF_ERROR("FLISetBin() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLISetBin() failed. %s.", strerror((int) - err));
         return false;
     }
 
     /* Y vertical binning */
     if (!sim && (err = FLISetVBin(fli_dev, biny)))
     {
-        LOGF_ERROR("FLISetVBin() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLISetVBin() failed. %s.", strerror((int) - err));
         return false;
     }
 
@@ -674,6 +674,7 @@ bool FLICCD::UpdateCCDBin(int binx, int biny)
 // Downloads the image from the CCD.
 bool FLICCD::grabImage()
 {
+    std::unique_lock<std::mutex> guard(ccdBufferLock);
     int err        = 0;
     uint8_t *image = PrimaryCCD.getFrameBuffer();
     int row_size   = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * PrimaryCCD.getBPP() / 8;
@@ -696,7 +697,7 @@ bool FLICCD::grabImage()
                 /* print this error once but read to the end to flush the array */
                 if (success)
                 {
-                    LOGF_ERROR("FLIGrabRow() failed at row %d. %s.", i, strerror((int)-err));
+                    LOGF_ERROR("FLIGrabRow() failed at row %d. %s.", i, strerror((int) - err));
                     success = false;
                 }
             }
@@ -705,6 +706,7 @@ bool FLICCD::grabImage()
         if (!success)
             return false;
     }
+    guard.unlock();
 
     LOG_INFO("Download complete.");
 
@@ -735,24 +737,24 @@ void FLICCD::TimerHit()
         }
         else
         {
-	    if ((err = FLIGetDeviceStatus(fli_dev, &camera_status))) 
+            if ((err = FLIGetDeviceStatus(fli_dev, &camera_status)))
             {
-               LOGF_ERROR("FLIGetDeviceStatus() failed. %s.", strerror((int)-err));
-               SetTimer(POLLMS);
-               return;
+                LOGF_ERROR("FLIGetDeviceStatus() failed. %s.", strerror((int) - err));
+                SetTimer(POLLMS);
+                return;
             }
             LOGF_DEBUG("FLIGetDeviceStatus() succeed -> %ld", camera_status);
- 
+
             if ((err = FLIGetExposureStatus(fli_dev, &timeleft)))
             {
-                LOGF_ERROR("FLIGetExposureStatus() failed. %s.", strerror((int)-err));
+                LOGF_ERROR("FLIGetExposureStatus() failed. %s.", strerror((int) - err));
                 SetTimer(POLLMS);
                 return;
             }
             LOGF_DEBUG("FLIGetExposureStatus() succeed -> %ld", timeleft);
-          
+
             if (!sim && (((camera_status == FLI_CAMERA_STATUS_UNKNOWN) && (timeleft == 0)) ||
-                               ((camera_status != FLI_CAMERA_STATUS_UNKNOWN) && ((camera_status & FLI_CAMERA_DATA_READY) != 0))))
+                         ((camera_status != FLI_CAMERA_STATUS_UNKNOWN) && ((camera_status & FLI_CAMERA_DATA_READY) != 0))))
             {
 
                 /* We're done exposing */
@@ -781,14 +783,14 @@ void FLICCD::TimerHit()
                 {
                     TemperatureNP.s = IPS_IDLE;
                     IDSetNumber(&TemperatureNP, nullptr);
-                    LOGF_ERROR("FLIGetTemperature() failed. %s.", strerror((int)-err));
+                    LOGF_ERROR("FLIGetTemperature() failed. %s.", strerror((int) - err));
                     break;
                 }
                 if ((err = FLIGetCoolerPower(fli_dev, &ccdPower)))
                 {
                     CoolerNP.s = IPS_IDLE;
                     IDSetNumber(&TemperatureNP, nullptr);
-                    IDSetNumber(&TemperatureNP, "FLIGetCoolerPower() failed. %s.", strerror((int)-err));
+                    IDSetNumber(&TemperatureNP, "FLIGetCoolerPower() failed. %s.", strerror((int) - err));
                     break;
                 }
             }
@@ -819,14 +821,14 @@ void FLICCD::TimerHit()
                 {
                     TemperatureNP.s = IPS_IDLE;
                     IDSetNumber(&TemperatureNP, nullptr);
-                    LOGF_ERROR("FLIGetTemperature() failed. %s.", strerror((int)-err));
+                    LOGF_ERROR("FLIGetTemperature() failed. %s.", strerror((int) - err));
                     break;
                 }
 
                 if ((err = FLIGetCoolerPower(fli_dev, &ccdPower)))
                 {
                     CoolerNP.s = IPS_IDLE;
-                    IDSetNumber(&TemperatureNP, "FLIGetCoolerPower() failed. %s.", strerror((int)-err));
+                    IDSetNumber(&TemperatureNP, "FLIGetCoolerPower() failed. %s.", strerror((int) - err));
                     break;
                 }
             }
@@ -866,7 +868,7 @@ bool FLICCD::findFLICCD(flidomain_t domain)
 
     if ((err = FLIList(domain | FLIDEVICE_CAMERA, &names)))
     {
-        LOGF_ERROR("FLIList() failed. %s", strerror((int)-err));
+        LOGF_ERROR("FLIList() failed. %s", strerror((int) - err));
         return false;
     }
 
@@ -912,7 +914,7 @@ bool FLICCD::findFLICCD(flidomain_t domain)
 
         if ((err = FLIFreeList(names)))
         {
-            LOGF_ERROR("FLIFreeList() failed. %s.", strerror((int)-err));
+            LOGF_ERROR("FLIFreeList() failed. %s.", strerror((int) - err));
             return false;
         }
 
@@ -923,7 +925,7 @@ bool FLICCD::findFLICCD(flidomain_t domain)
 
         if ((err = FLIFreeList(names)))
         {
-            LOGF_ERROR("FLIFreeList() failed. %s.", strerror((int)-err));
+            LOGF_ERROR("FLIFreeList() failed. %s.", strerror((int) - err));
             return false;
         }
 

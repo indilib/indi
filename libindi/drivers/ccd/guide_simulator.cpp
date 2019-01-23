@@ -74,7 +74,7 @@ void ISSnoopDevice(XMLEle *root)
 }
 
 GuideSim::GuideSim()
-{    
+{
     currentRA  = RA;
     currentDE = Dec;
 
@@ -92,7 +92,7 @@ GuideSim::GuideSim()
 }
 
 bool GuideSim::SetupParms()
-{    
+{
     SetCCDParams(SimulatorSettingsN[0].value, SimulatorSettingsN[1].value, 16, SimulatorSettingsN[2].value,
                  SimulatorSettingsN[3].value);
 
@@ -213,7 +213,7 @@ bool GuideSim::updateProperties()
 
     if (isConnected())
     {
-        SetupParms();        
+        SetupParms();
     }
 
     return true;
@@ -257,7 +257,10 @@ float GuideSim::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
     gettimeofday(&now, nullptr);
 
     timesince =
@@ -362,9 +365,6 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         PEOffset = PEOffset / 3600; //  convert to degrees
         //PeOffset=PeOffset/15;       //  ra is in h:mm
 
-        //  Start by clearing the frame buffer
-        memset(targetChip->getFrameBuffer(), 0, targetChip->getFrameBufferSize());
-
         //  Spin up a set of plate constants that will relate
         //  ra/dec of stars, to our fictitious ccd layout
 
@@ -422,10 +422,10 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         ImageScalex = Scalex;
         ImageScaley = Scaley;
 
-        #ifdef USE_EQUATORIAL_PE
+#ifdef USE_EQUATORIAL_PE
         if (!usePE)
         {
-        #endif
+#endif
 
             currentRA  = RA;
             currentDE = Dec;
@@ -443,9 +443,9 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 
             currentDE += guideNSOffset;
             currentRA += guideWEOffset;
-        #ifdef USE_EQUATORIAL_PE
+#ifdef USE_EQUATORIAL_PE
         }
-        #endif
+#endif
 
         //  calc this now, we will use it a lot later
         rad = currentRA * 15.0;
@@ -494,6 +494,10 @@ int GuideSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 
         //  if this is a light frame, we need a star field drawn
         INDI::CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
+
+        std::unique_lock<std::mutex> guard(ccdBufferLock);
+        //  Start by clearing the frame buffer
+        memset(targetChip->getFrameBuffer(), 0, targetChip->getFrameBufferSize());
 
         if (ftype == INDI::CCDChip::LIGHT_FRAME)
         {
@@ -833,8 +837,8 @@ IPState GuideSim::GuideSouth(uint32_t v)
 IPState GuideSim::GuideEast(uint32_t v)
 {
     float c   = v / 1000.0 * GuideRate;
-    c   = c/ 3600.0 / 15.0;
-    c   = c/ (cos(currentDE * 0.0174532925));
+    c   = c / 3600.0 / 15.0;
+    c   = c / (cos(currentDE * 0.0174532925));
 
     guideWEOffset += c;
 
@@ -844,8 +848,8 @@ IPState GuideSim::GuideEast(uint32_t v)
 IPState GuideSim::GuideWest(uint32_t v)
 {
     float c   = v / -1000.0 * GuideRate;
-    c   = c/ 3600.0 / 15.0;
-    c   = c/ (cos(currentDE * 0.0174532925));
+    c   = c / 3600.0 / 15.0;
+    c   = c / (cos(currentDE * 0.0174532925));
 
     guideWEOffset += c;
 
@@ -1008,7 +1012,7 @@ bool GuideSim::UpdateCCDFrame(int x, int y, int w, int h)
 
     Streamer->setSize(bin_width, bin_height);
 
-    return INDI::CCD::UpdateCCDFrame(x,y,w,h);
+    return INDI::CCD::UpdateCCDFrame(x, y, w, h);
 }
 
 bool GuideSim::UpdateCCDBin(int hor, int ver)
@@ -1027,7 +1031,7 @@ bool GuideSim::UpdateCCDBin(int hor, int ver)
 
     Streamer->setSize(bin_width, bin_height);
 
-    return INDI::CCD::UpdateCCDBin(hor,ver);
+    return INDI::CCD::UpdateCCDBin(hor, ver);
 }
 
 void *GuideSim::streamVideoHelper(void *context)
@@ -1071,14 +1075,14 @@ void *GuideSim::streamVideo()
         deltas = fabs(s2 - s1);
 
         if (deltas < ExposureRequest)
-            usleep(fabs(ExposureRequest-deltas)*1e6);
+            usleep(fabs(ExposureRequest - deltas) * 1e6);
 
-        uint32_t size = PrimaryCCD.getFrameBufferSize() / (PrimaryCCD.getBinX()*PrimaryCCD.getBinY());
+        uint32_t size = PrimaryCCD.getFrameBufferSize() / (PrimaryCCD.getBinX() * PrimaryCCD.getBinY());
         Streamer->newFrame(PrimaryCCD.getFrameBuffer(), size);
 
         getitimer(ITIMER_REAL, &tframe2);
     }
 
     pthread_mutex_unlock(&condMutex);
-    return 0;
+    return nullptr;
 }

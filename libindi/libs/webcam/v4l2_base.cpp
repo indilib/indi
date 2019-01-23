@@ -195,7 +195,7 @@ V4L2_Base::~V4L2_Base()
  */
 bool V4L2_Base::is_compressed() const
 {
-/* See note at top of this file */
+    /* See note at top of this file */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
     switch (fmt.fmt.pix.pixelformat)
     {
@@ -237,14 +237,15 @@ bool V4L2_Base::is_compressed() const
  * @return the result of the ioctl.
  * @note This function takes care of EINTR while running the ioctl.
  */
-int V4L2_Base::xioctl(int fd, int request, void *arg, char const *const request_str)
+int V4L2_Base::xioctl(int fd, int request, void * arg, char const * const request_str)
 {
     int r = -1;
 
     do
     {
         r = ioctl(fd, request, arg);
-    } while (-1 == r && EINTR == errno);
+    }
+    while (-1 == r && EINTR == errno);
 
     if (-1 == r)
         DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "%s: ioctl 0x%08X/%s received errno %d (%s)", __FUNCTION__,
@@ -280,7 +281,7 @@ int V4L2_Base::xioctl(int fd, int request, void *arg, char const *const request_
  * to zero to refresh the instance format with the current device format.
  * @return 0 if ioctl is successful, or -1 with error message updated.
  */
-int V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char *errmsg)
+int V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char * errmsg)
 {
     /* Reopen device if it streamed at least once and we want to update the format*/
     if (streamedonce && new_fmt.type)
@@ -340,7 +341,7 @@ int V4L2_Base::ioctl_set_format(struct v4l2_format new_fmt, char *errmsg)
     return 0;
 }
 
-int V4L2_Base::errno_exit(const char *s, char *errmsg)
+int V4L2_Base::errno_exit(const char * s, char * errmsg)
 {
     fprintf(stderr, "%s error %d, %s\n", s, errno, strerror(errno));
     snprintf(errmsg, ERRMSGSIZ, "%s error %d, %s\n", s, errno, strerror(errno));
@@ -356,7 +357,7 @@ void V4L2_Base::doDecode(bool d)
     dodecode = d;
 }
 
-int V4L2_Base::connectCam(const char *devpath, char *errmsg, int pixelFormat, int width, int height)
+int V4L2_Base::connectCam(const char * devpath, char * errmsg, int pixelFormat, int width, int height)
 {
     INDI_UNUSED(pixelFormat);
     INDI_UNUSED(width);
@@ -459,7 +460,7 @@ bool V4L2_Base::isLXmodCapable()
  * @param errmsg is the error messsage updated in case of error.
  * @return 0 if frame read is processed, or -1 with error message updated.
  */
-int V4L2_Base::read_frame(char *errmsg)
+int V4L2_Base::read_frame(char * errmsg)
 {
     unsigned int i;
     //cerr << "in read Frame" << endl;
@@ -558,8 +559,8 @@ int V4L2_Base::read_frame(char *errmsg)
 
                 if (false)
                 {
-                    unsigned char const *b   = (unsigned char const *)buffers[buf.index].start;
-                    unsigned char const *end = b + buf.bytesused;
+                    unsigned char const * b   = (unsigned char const *)buffers[buf.index].start;
+                    unsigned char const * end = b + buf.bytesused;
 
                     do
                         DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,
@@ -695,7 +696,7 @@ int V4L2_Base::read_frame(char *errmsg)
     return 0;
 }
 
-int V4L2_Base::stop_capturing(char *errmsg)
+int V4L2_Base::stop_capturing(char * errmsg)
 {
     enum v4l2_buf_type type;
 
@@ -730,7 +731,7 @@ int V4L2_Base::stop_capturing(char *errmsg)
     return 0;
 }
 
-int V4L2_Base::start_capturing(char *errmsg)
+int V4L2_Base::start_capturing(char * errmsg)
 {
     unsigned int i;
     enum v4l2_buf_type type;
@@ -798,14 +799,14 @@ int V4L2_Base::start_capturing(char *errmsg)
     return 0;
 }
 
-void V4L2_Base::newFrame(int /*fd*/, void *p)
+void V4L2_Base::newFrame(int /*fd*/, void * p)
 {
     char errmsg[ERRMSGSIZ];
 
     ((V4L2_Base *)(p))->read_frame(errmsg);
 }
 
-int V4L2_Base::uninit_device(char *errmsg)
+int V4L2_Base::uninit_device(char * errmsg)
 {
     switch (io)
     {
@@ -850,7 +851,7 @@ void V4L2_Base::init_read(unsigned int buffer_size)
     }
 }
 
-int V4L2_Base::init_mmap(char *errmsg)
+int V4L2_Base::init_mmap(char * errmsg)
 {
     struct v4l2_requestbuffers req;
 
@@ -960,7 +961,7 @@ void V4L2_Base::init_userp(unsigned int buffer_size)
     }
 }
 
-int V4L2_Base::check_device(char *errmsg)
+int V4L2_Base::check_device(char * errmsg)
 {
     struct v4l2_input input_avail;
 
@@ -986,19 +987,19 @@ int V4L2_Base::check_device(char *errmsg)
     setframerate = &V4L2_Base::stdsetframerate;
     getframerate = &V4L2_Base::stdgetframerate;
 
-//    if (!(strncmp((const char *)cap.driver, "pwc", sizeof(cap.driver))))
-//    {
-        //unsigned int qual = 3;
-        //pwc driver does not allow to get current fps with VIDIOCPWC
-        //frameRate.numerator=1; // using default module load fps
-        //frameRate.denominator=10;
-        //if (ioctl(fd, VIDIOCPWCSLED, &qual)) {
-        //  DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"ioctl: can't set pwc video quality to High (uncompressed).\n");
-        //}
-        //else
-        //  DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  Setting pwc video quality to High (uncompressed)\n");
-        //setframerate=&V4L2_Base::pwcsetframerate;
-//    }
+    //    if (!(strncmp((const char *)cap.driver, "pwc", sizeof(cap.driver))))
+    //    {
+    //unsigned int qual = 3;
+    //pwc driver does not allow to get current fps with VIDIOCPWC
+    //frameRate.numerator=1; // using default module load fps
+    //frameRate.denominator=10;
+    //if (ioctl(fd, VIDIOCPWCSLED, &qual)) {
+    //  DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"ioctl: can't set pwc video quality to High (uncompressed).\n");
+    //}
+    //else
+    //  DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"  Setting pwc video quality to High (uncompressed)\n");
+    //setframerate=&V4L2_Base::pwcsetframerate;
+    //    }
 
     DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Driver capabilities:");
     if (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)
@@ -1146,7 +1147,7 @@ int V4L2_Base::check_device(char *errmsg)
                 DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG,
                             "    Enumerating available Frame sizes/rates for this format:");
                 for (frm_sizeenum.index = 0; XIOCTL(fd, VIDIOC_ENUM_FRAMESIZES, &frm_sizeenum) != -1;
-                     frm_sizeenum.index++)
+                        frm_sizeenum.index++)
                 {
                     switch (frm_sizeenum.type)
                     {
@@ -1201,7 +1202,7 @@ int V4L2_Base::check_device(char *errmsg)
                         frmi_valenum.stepwise.step.denominator = 0;
                         DEBUGDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "        Frame intervals:");
                         for (frmi_valenum.index = 0; XIOCTL(fd, VIDIOC_ENUM_FRAMEINTERVALS, &frmi_valenum) != -1;
-                             frmi_valenum.index++)
+                                frmi_valenum.index++)
                         {
                             switch (frmi_valenum.type)
                             {
@@ -1300,7 +1301,7 @@ int V4L2_Base::check_device(char *errmsg)
     return ioctl_set_format(fmt, errmsg);
 }
 
-int V4L2_Base::init_device(char *errmsg)
+int V4L2_Base::init_device(char * errmsg)
 {
     //findMinMax();
 
@@ -1336,7 +1337,7 @@ void V4L2_Base::close_device()
     fd = -1;
 }
 
-int V4L2_Base::open_device(const char *devpath, char *errmsg)
+int V4L2_Base::open_device(const char * devpath, char * errmsg)
 {
     struct stat st;
 
@@ -1376,7 +1377,7 @@ int V4L2_Base::open_device(const char *devpath, char *errmsg)
  *
  * @param inputssp is the property to store to (nothing is stored if null).
  */
-void V4L2_Base::getinputs(ISwitchVectorProperty *inputssp)
+void V4L2_Base::getinputs(ISwitchVectorProperty * inputssp)
 {
     if (!inputssp)
         return;
@@ -1385,7 +1386,7 @@ void V4L2_Base::getinputs(ISwitchVectorProperty *inputssp)
 
     /* Allocate inputs from previously enumerated count */
     size_t const inputsLen = enumeratedInputs * sizeof(ISwitch);
-    ISwitch *inputs        = (ISwitch *)malloc(inputsLen);
+    ISwitch * inputs        = (ISwitch *)malloc(inputsLen);
     if (!inputs)
         exit(EXIT_FAILURE);
     memset(inputs, 0, inputsLen);
@@ -1418,7 +1419,7 @@ void V4L2_Base::getinputs(ISwitchVectorProperty *inputssp)
                  (int)sizeof(inputs[input.index].name), inputs[input.index].name);
 }
 
-int V4L2_Base::setinput(unsigned int inputindex, char *errmsg)
+int V4L2_Base::setinput(unsigned int inputindex, char * errmsg)
 {
     DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Setting Video input to %d", inputindex);
     if (streamedonce)
@@ -1448,7 +1449,7 @@ int V4L2_Base::setinput(unsigned int inputindex, char *errmsg)
  *
  * @param captureformatssp is the property to store to (nothing is stored if null).
  */
-void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp)
+void V4L2_Base::getcaptureformats(ISwitchVectorProperty * captureformatssp)
 {
     if (!captureformatssp)
         return;
@@ -1457,7 +1458,7 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp)
 
     /* Allocate capture formats from preliminary enumerated count */
     size_t const formatsLen = enumeratedCaptureFormats * sizeof(ISwitch);
-    ISwitch *formats        = (ISwitch *)malloc(formatsLen);
+    ISwitch * formats        = (ISwitch *)malloc(formatsLen);
     if (!formats)
         exit(EXIT_FAILURE);
     memset(formats, 0, formatsLen);
@@ -1512,7 +1513,7 @@ void V4L2_Base::getcaptureformats(ISwitchVectorProperty *captureformatssp)
  * @param errmsg is the error message to return in case of failure.
  * @return 0 if successful, else -1 with error message updated.
  */
-int V4L2_Base::setcaptureformat(unsigned int captureformat, char *errmsg)
+int V4L2_Base::setcaptureformat(unsigned int captureformat, char * errmsg)
 {
     struct v4l2_format new_fmt;
     CLEAR(new_fmt);
@@ -1523,16 +1524,20 @@ int V4L2_Base::setcaptureformat(unsigned int captureformat, char *errmsg)
     return ioctl_set_format(new_fmt, errmsg);
 }
 
-void V4L2_Base::getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVectorProperty *capturesizenp)
+void V4L2_Base::getcapturesizes(ISwitchVectorProperty * capturesizessp, INumberVectorProperty * capturesizenp)
 {
     struct v4l2_frmsizeenum frm_sizeenum;
-    ISwitch *sizes     = nullptr;
-    INumber *sizevalue = nullptr;
+    ISwitch * sizes     = nullptr;
+    INumber * sizevalue = nullptr;
     bool sizefound     = false;
-    if (capturesizessp->sp)
-        free(capturesizessp->sp);
-    if (capturesizenp->np)
-        free(capturesizenp->np);
+
+    // FIXME JM 2019-01-20: This leads to always a crash
+    // with error: corrupted size vs. prev_size
+    // Must CHECK and FIX
+    //    if (capturesizessp->sp)
+    //        free(capturesizessp->sp);
+    //    if (capturesizenp->np)
+    //        free(capturesizenp->np);
 
     frm_sizeenum.pixel_format = fmt.fmt.pix.pixelformat;
     //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  Available Frame sizes/rates for this format:\n");
@@ -1542,7 +1547,7 @@ void V4L2_Base::getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVe
         {
             case V4L2_FRMSIZE_TYPE_DISCRETE:
                 sizes = (sizes == nullptr) ? (ISwitch *)malloc(sizeof(ISwitch)) :
-                                             (ISwitch *)realloc(sizes, (frm_sizeenum.index + 1) * sizeof(ISwitch));
+                        (ISwitch *)realloc(sizes, (frm_sizeenum.index + 1) * sizeof(ISwitch));
 
                 snprintf(sizes[frm_sizeenum.index].name, MAXINDINAME, "%dx%d", frm_sizeenum.discrete.width,
                          frm_sizeenum.discrete.height);
@@ -1552,7 +1557,7 @@ void V4L2_Base::getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVe
                 if (!sizefound)
                 {
                     if ((fmt.fmt.pix.width == frm_sizeenum.discrete.width) &&
-                        (fmt.fmt.pix.height == frm_sizeenum.discrete.height))
+                            (fmt.fmt.pix.height == frm_sizeenum.discrete.height))
                     {
                         sizes[frm_sizeenum.index].s = ISS_ON;
                         sizefound                   = true;
@@ -1598,7 +1603,7 @@ void V4L2_Base::getcapturesizes(ISwitchVectorProperty *capturesizessp, INumberVe
  * @param errmsg is the returned error message in case of failure.
  * @return 0 if successful, else -1 with error message updated.
  */
-int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char *errmsg)
+int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char * errmsg)
 {
     struct v4l2_format new_fmt = fmt;
 
@@ -1608,11 +1613,11 @@ int V4L2_Base::setcapturesize(unsigned int w, unsigned int h, char *errmsg)
     return ioctl_set_format(new_fmt, errmsg);
 }
 
-void V4L2_Base::getframerates(ISwitchVectorProperty *frameratessp, INumberVectorProperty *frameratenp)
+void V4L2_Base::getframerates(ISwitchVectorProperty * frameratessp, INumberVectorProperty * frameratenp)
 {
     struct v4l2_frmivalenum frmi_valenum;
-    ISwitch *rates     = nullptr;
-    INumber *ratevalue = nullptr;
+    ISwitch * rates     = nullptr;
+    INumber * ratevalue = nullptr;
     struct v4l2_fract frate;
 
     if (frameratessp->sp)
@@ -1632,13 +1637,13 @@ void V4L2_Base::getframerates(ISwitchVectorProperty *frameratessp, INumberVector
         {
             case V4L2_FRMIVAL_TYPE_DISCRETE:
                 rates = (rates == nullptr) ? (ISwitch *)malloc(sizeof(ISwitch)) :
-                                             (ISwitch *)realloc(rates, (frmi_valenum.index + 1) * sizeof(ISwitch));
+                        (ISwitch *)realloc(rates, (frmi_valenum.index + 1) * sizeof(ISwitch));
                 snprintf(rates[frmi_valenum.index].name, MAXINDINAME, "%d/%d", frmi_valenum.discrete.numerator,
                          frmi_valenum.discrete.denominator);
                 snprintf(rates[frmi_valenum.index].label, MAXINDINAME, "%d/%d", frmi_valenum.discrete.numerator,
                          frmi_valenum.discrete.denominator);
                 if ((frate.numerator == frmi_valenum.discrete.numerator) &&
-                    (frate.denominator == frmi_valenum.discrete.denominator))
+                        (frate.denominator == frmi_valenum.discrete.denominator))
                 {
                     DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Current frame interval is %d/%d",
                                  frmi_valenum.discrete.numerator, frmi_valenum.discrete.denominator);
@@ -1680,7 +1685,7 @@ void V4L2_Base::getframerates(ISwitchVectorProperty *frameratessp, INumberVector
     }
 }
 
-int V4L2_Base::setcroprect(int x, int y, int w, int h, char *errmsg)
+int V4L2_Base::setcroprect(int x, int y, int w, int h, char * errmsg)
 {
     bool softcrop = false;
 
@@ -1706,7 +1711,7 @@ int V4L2_Base::setcroprect(int x, int y, int w, int h, char *errmsg)
         return -1;
     }
     if ((crop.c.left == 0) && (crop.c.top == 0) && ((int)crop.c.width == (int)fmt.fmt.pix.width) &&
-        ((int)crop.c.height == (int)fmt.fmt.pix.height))
+            ((int)crop.c.height == (int)fmt.fmt.pix.height))
     {
         cropset = false;
         decoder->resetcrop();
@@ -1770,7 +1775,7 @@ struct v4l2_rect V4L2_Base::getcroprect()
     return crop.c;
 }
 
-int V4L2_Base::stdsetframerate(struct v4l2_fract frate, char *errmsg)
+int V4L2_Base::stdsetframerate(struct v4l2_fract frate, char * errmsg)
 {
     struct v4l2_streamparm sparm;
     //if (!cansetrate) {sprintf(errmsg, "Can not set rate"); return -1;}
@@ -1791,7 +1796,7 @@ int V4L2_Base::stdsetframerate(struct v4l2_fract frate, char *errmsg)
  * @param errmsg is the returned error message in case of error.
  * @return 0 if successful, else -1 with error message updated.
  */
-int V4L2_Base::pwcsetframerate(struct v4l2_fract frate, char *errmsg)
+int V4L2_Base::pwcsetframerate(struct v4l2_fract frate, char * errmsg)
 {
     int const fps = frate.denominator / frate.numerator;
 
@@ -1825,7 +1830,7 @@ struct v4l2_fract V4L2_Base::stdgetframerate()
     return frameRate;
 }
 
-char *V4L2_Base::getDeviceName()
+char * V4L2_Base::getDeviceName()
 {
     return ((char *)cap.card);
 }
@@ -1873,17 +1878,17 @@ void V4L2_Base::setColorProcessing(bool quantization, bool colorconvert, bool li
     bpp = decoder->getBpp();
 }
 
-unsigned char *V4L2_Base::getY()
+unsigned char * V4L2_Base::getY()
 {
     return decoder->getY();
 }
 
-unsigned char *V4L2_Base::getU()
+unsigned char * V4L2_Base::getU()
 {
     return decoder->getU();
 }
 
-unsigned char *V4L2_Base::getV()
+unsigned char * V4L2_Base::getV()
 {
     return decoder->getV();
 }
@@ -1893,17 +1898,17 @@ unsigned char *V4L2_Base::getV()
   return decoder->geColorBuffer();
 }*/
 
-unsigned char *V4L2_Base::getRGBBuffer()
+unsigned char * V4L2_Base::getRGBBuffer()
 {
     return decoder->getRGBBuffer();
 }
 
-float *V4L2_Base::getLinearY()
+float * V4L2_Base::getLinearY()
 {
     return decoder->getLinearY();
 }
 
-void V4L2_Base::registerCallback(WPF *fp, void *ud)
+void V4L2_Base::registerCallback(WPF * fp, void * ud)
 {
     callback = fp;
     uptr     = ud;
@@ -2064,7 +2069,7 @@ void V4L2_Base::enumerate_menu()
 }
 
 int V4L2_Base::query_ctrl(unsigned int ctrl_id, double &ctrl_min, double &ctrl_max, double &ctrl_step,
-                          double &ctrl_value, char *errmsg)
+                          double &ctrl_value, char * errmsg)
 {
     struct v4l2_control control;
 
@@ -2109,15 +2114,15 @@ int V4L2_Base::query_ctrl(unsigned int ctrl_id, double &ctrl_min, double &ctrl_m
     return 0;
 }
 
-void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options,
-                              unsigned int *noptions, const char *dev, const char *group)
+void V4L2_Base::queryControls(INumberVectorProperty * nvp, unsigned int * nnumber, ISwitchVectorProperty ** options,
+                              unsigned int * noptions, const char * dev, const char * group)
 {
     struct v4l2_control control;
 
-    INumber *numbers           = nullptr;
-    unsigned int *num_ctrls    = nullptr;
+    INumber * numbers           = nullptr;
+    unsigned int * num_ctrls    = nullptr;
     int nnum                   = 0;
-    ISwitchVectorProperty *opt = nullptr;
+    ISwitchVectorProperty * opt = nullptr;
     unsigned int nopt          = 0;
     char optname[]             = "OPT000";
     char swonname[]            = "SET_OPT000";
@@ -2142,11 +2147,11 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
             if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
             {
                 numbers = (numbers == nullptr) ? (INumber *)malloc(sizeof(INumber)) :
-                                                 (INumber *)realloc(numbers, (nnum + 1) * sizeof(INumber));
+                          (INumber *)realloc(numbers, (nnum + 1) * sizeof(INumber));
 
                 num_ctrls = (num_ctrls == nullptr) ?
-                                (unsigned int *)malloc(sizeof(unsigned int)) :
-                                (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
+                            (unsigned int *)malloc(sizeof(unsigned int)) :
+                            (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
 
                 strncpy(numbers[nnum].name, (const char *)entityXML((char *)queryctrl.name), MAXINDINAME);
                 strncpy(numbers[nnum].label, (const char *)entityXML((char *)queryctrl.name), MAXINDILABEL);
@@ -2172,14 +2177,14 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
             }
             if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
             {
-                ISwitch *sw = (ISwitch *)malloc(2 * sizeof(ISwitch));
+                ISwitch * sw = (ISwitch *)malloc(2 * sizeof(ISwitch));
                 snprintf(optname + 3, 4, "%03d", nopt);
                 snprintf(swonname + 7, 4, "%03d", nopt);
                 snprintf(swoffname + 9, 4, "%03d", nopt);
 
                 opt = (opt == nullptr) ?
-                          (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
-                          (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
+                      (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
+                      (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
 
                 CLEAR(control);
                 control.id = queryctrl.id;
@@ -2203,7 +2208,7 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
             if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
 #endif
             {
-                ISwitch *sw           = nullptr;
+                ISwitch * sw           = nullptr;
                 unsigned int nmenuopt = 0;
                 char sname[32];
                 snprintf(menuname + 4, 4, "%03d", nopt);
@@ -2211,8 +2216,8 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
                 menuoptname[7] = '_';
 
                 opt = (opt == nullptr) ?
-                          (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
-                          (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
+                      (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
+                      (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
 
                 CLEAR(control);
                 control.id = queryctrl.id;
@@ -2226,7 +2231,7 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
                     if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
                     {
                         sw = (sw == nullptr) ? (ISwitch *)malloc(sizeof(ISwitch)) :
-                                               (ISwitch *)realloc(sw, (nmenuopt + 1) * sizeof(ISwitch));
+                             (ISwitch *)realloc(sw, (nmenuopt + 1) * sizeof(ISwitch));
                         snprintf(menuoptname + 11, 4, "%03d", nmenuopt);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
                         if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
@@ -2296,11 +2301,11 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
             if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
             {
                 numbers = (numbers == nullptr) ? (INumber *)malloc(sizeof(INumber)) :
-                                                 (INumber *)realloc(numbers, (nnum + 1) * sizeof(INumber));
+                          (INumber *)realloc(numbers, (nnum + 1) * sizeof(INumber));
 
                 num_ctrls = (num_ctrls == nullptr) ?
-                                (unsigned int *)malloc(sizeof(unsigned int)) :
-                                (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
+                            (unsigned int *)malloc(sizeof(unsigned int)) :
+                            (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
 
                 strncpy(numbers[nnum].name, (const char *)entityXML((char *)queryctrl.name), MAXINDINAME);
                 strncpy(numbers[nnum].label, (const char *)entityXML((char *)queryctrl.name), MAXINDILABEL);
@@ -2326,14 +2331,14 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
             }
             if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
             {
-                ISwitch *sw = (ISwitch *)malloc(2 * sizeof(ISwitch));
+                ISwitch * sw = (ISwitch *)malloc(2 * sizeof(ISwitch));
                 snprintf(optname + 3, 4, "%03d", nopt);
                 snprintf(swonname + 7, 4, "%03d", nopt);
                 snprintf(swoffname + 9, 4, "%03d", nopt);
 
                 opt = (opt == nullptr) ?
-                          (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
-                          (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
+                      (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
+                      (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
 
                 CLEAR(control);
                 control.id = queryctrl.id;
@@ -2358,7 +2363,7 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
             if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
 #endif
             {
-                ISwitch *sw           = nullptr;
+                ISwitch * sw           = nullptr;
                 unsigned int nmenuopt = 0;
                 char sname[32];
                 snprintf(menuname + 4, 4, "%03d", nopt);
@@ -2366,8 +2371,8 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
                 menuoptname[7] = '_';
 
                 opt = (opt == nullptr) ?
-                          (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
-                          (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
+                      (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
+                      (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
 
                 CLEAR(control);
                 control.id = queryctrl.id;
@@ -2381,7 +2386,7 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
                     if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
                     {
                         sw = (sw == nullptr) ? (ISwitch *)malloc(sizeof(ISwitch)) :
-                                               (ISwitch *)realloc(sw, (nmenuopt + 1) * sizeof(ISwitch));
+                             (ISwitch *)realloc(sw, (nmenuopt + 1) * sizeof(ISwitch));
                         snprintf(menuoptname + 11, 4, "%03d", nmenuopt);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
                         if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
@@ -2441,13 +2446,13 @@ void V4L2_Base::queryControls(INumberVectorProperty *nvp, unsigned int *nnumber,
     *noptions = nopt;
 }
 
-int V4L2_Base::queryINTControls(INumberVectorProperty *nvp)
+int V4L2_Base::queryINTControls(INumberVectorProperty * nvp)
 {
     struct v4l2_control control;
     char errmsg[ERRMSGSIZ];
     CLEAR(queryctrl);
-    INumber *numbers        = nullptr;
-    unsigned int *num_ctrls = nullptr;
+    INumber * numbers        = nullptr;
+    unsigned int * num_ctrls = nullptr;
     int nnum                = 0;
 
     for (queryctrl.id = V4L2_CID_BASE; queryctrl.id < V4L2_CID_LASTP1; queryctrl.id++)
@@ -2463,11 +2468,11 @@ int V4L2_Base::queryINTControls(INumberVectorProperty *nvp)
             if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
             {
                 numbers = (numbers == nullptr) ? (INumber *)malloc(sizeof(INumber)) :
-                                                 (INumber *)realloc(numbers, (nnum + 1) * sizeof(INumber));
+                          (INumber *)realloc(numbers, (nnum + 1) * sizeof(INumber));
 
                 num_ctrls = (num_ctrls == nullptr) ?
-                                (unsigned int *)malloc(sizeof(unsigned int)) :
-                                (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
+                            (unsigned int *)malloc(sizeof(unsigned int)) :
+                            (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
 
                 strncpy(numbers[nnum].name, ((char *)queryctrl.name), MAXINDINAME);
                 strncpy(numbers[nnum].label, ((char *)queryctrl.name), MAXINDILABEL);
@@ -2514,11 +2519,11 @@ int V4L2_Base::queryINTControls(INumberVectorProperty *nvp)
             if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
             {
                 numbers = (numbers == nullptr) ? (INumber *)malloc(sizeof(INumber)) :
-                                                 (INumber *)realloc(numbers, (nnum + 1) * sizeof(INumber));
+                          (INumber *)realloc(numbers, (nnum + 1) * sizeof(INumber));
 
                 num_ctrls = (num_ctrls == nullptr) ?
-                                (unsigned int *)malloc(sizeof(unsigned int)) :
-                                (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
+                            (unsigned int *)malloc(sizeof(unsigned int)) :
+                            (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
 
                 strncpy(numbers[nnum].name, ((char *)queryctrl.name), MAXINDINAME);
                 strncpy(numbers[nnum].label, ((char *)queryctrl.name), MAXINDILABEL);
@@ -2554,7 +2559,7 @@ int V4L2_Base::queryINTControls(INumberVectorProperty *nvp)
     return nnum;
 }
 
-int V4L2_Base::getControl(unsigned int ctrl_id, double *value, char *errmsg)
+int V4L2_Base::getControl(unsigned int ctrl_id, double * value, char * errmsg)
 {
     struct v4l2_control control;
 
@@ -2567,7 +2572,7 @@ int V4L2_Base::getControl(unsigned int ctrl_id, double *value, char *errmsg)
     return 0;
 }
 
-int V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value, char *errmsg)
+int V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value, char * errmsg)
 {
     struct v4l2_control control;
 
@@ -2577,14 +2582,14 @@ int V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value, char *errms
     if (-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl))
         return 0;
     if ((queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY) || (queryctrl.flags & V4L2_CTRL_FLAG_GRABBED) ||
-        (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) || (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
+            (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) || (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
     {
         DEBUGFDEVICE(deviceName, INDI::Logger::DBG_WARNING, "Setting INT control %.*s will fail, currently %s%s%s%s",
                      (int)sizeof(queryctrl.name), queryctrl.name,
-                     queryctrl.flags&V4L2_CTRL_FLAG_READ_ONLY?"read only ":"",
-                     queryctrl.flags&V4L2_CTRL_FLAG_GRABBED?"grabbed ":"",
-                     queryctrl.flags&V4L2_CTRL_FLAG_INACTIVE?"inactive ":"",
-                     queryctrl.flags&V4L2_CTRL_FLAG_VOLATILE?"volatile":"");
+                     queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY ? "read only " : "",
+                     queryctrl.flags & V4L2_CTRL_FLAG_GRABBED ? "grabbed " : "",
+                     queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE ? "inactive " : "",
+                     queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE ? "volatile" : "");
         return 0;
     }
 
@@ -2597,13 +2602,13 @@ int V4L2_Base::setINTControl(unsigned int ctrl_id, double new_value, char *errms
     if (-1 == XIOCTL(fd, VIDIOC_S_CTRL, &control))
     {
         DEBUGFDEVICE(deviceName, INDI::Logger::DBG_ERROR, "Setting INT control %.*s failed (%s)",
-               (int)sizeof(queryctrl.name), queryctrl.name, errmsg);
+                     (int)sizeof(queryctrl.name), queryctrl.name, errmsg);
         return errno_exit("VIDIOC_S_CTRL", errmsg);
     }
     return 0;
 }
 
-int V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char *errmsg)
+int V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char * errmsg)
 {
     struct v4l2_control control;
 
@@ -2613,14 +2618,14 @@ int V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char 
     if (-1 == ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl))
         return 0;
     if ((queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY) || (queryctrl.flags & V4L2_CTRL_FLAG_GRABBED) ||
-        (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) || (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
+            (queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE) || (queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE))
     {
         DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG, "Setting OPT control %.*s will fail, currently %s%s%s%s",
                      (int)sizeof(queryctrl.name), queryctrl.name,
-                     queryctrl.flags&V4L2_CTRL_FLAG_READ_ONLY?"read only ":"",
-                     queryctrl.flags&V4L2_CTRL_FLAG_GRABBED?"grabbed ":"",
-                     queryctrl.flags&V4L2_CTRL_FLAG_INACTIVE?"inactive ":"",
-                     queryctrl.flags&V4L2_CTRL_FLAG_VOLATILE?"volatile":"");
+                     queryctrl.flags & V4L2_CTRL_FLAG_READ_ONLY ? "read only " : "",
+                     queryctrl.flags & V4L2_CTRL_FLAG_GRABBED ? "grabbed " : "",
+                     queryctrl.flags & V4L2_CTRL_FLAG_INACTIVE ? "inactive " : "",
+                     queryctrl.flags & V4L2_CTRL_FLAG_VOLATILE ? "volatile" : "");
         return 0;
     }
 
@@ -2633,7 +2638,7 @@ int V4L2_Base::setOPTControl(unsigned int ctrl_id, unsigned int new_value, char 
     if (-1 == XIOCTL(fd, VIDIOC_S_CTRL, &control))
     {
         DEBUGFDEVICE(deviceName, INDI::Logger::DBG_ERROR, "Setting INT control %.*s failed (%s)",
-               (int)sizeof(queryctrl.name), queryctrl.name, errmsg);
+                     (int)sizeof(queryctrl.name), queryctrl.name, errmsg);
         return errno_exit("VIDIOC_S_CTRL", errmsg);
     }
     return 0;
@@ -2689,15 +2694,15 @@ bool V4L2_Base::enumerate_ext_ctrl()
 
 // TODO free opt/menu aux placeholders
 
-bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumber, ISwitchVectorProperty **options,
-                                 unsigned int *noptions, const char *dev, const char *group)
+bool V4L2_Base::queryExtControls(INumberVectorProperty * nvp, unsigned int * nnumber, ISwitchVectorProperty ** options,
+                                 unsigned int * noptions, const char * dev, const char * group)
 {
     struct v4l2_control control;
 
-    INumber *numbers           = nullptr;
-    unsigned int *num_ctrls    = nullptr;
+    INumber * numbers           = nullptr;
+    unsigned int * num_ctrls    = nullptr;
     int nnum                   = 0;
-    ISwitchVectorProperty *opt = nullptr;
+    ISwitchVectorProperty * opt = nullptr;
     unsigned int nopt          = 0;
     char optname[]             = "OPT000";
     char swonname[]            = "SET_OPT000";
@@ -2736,10 +2741,10 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
         if (queryctrl.type == V4L2_CTRL_TYPE_INTEGER)
         {
             numbers = (numbers == nullptr) ? (INumber *)malloc(sizeof(INumber)) :
-                                             (INumber *)realloc(numbers, (nnum + 1) * sizeof(INumber));
+                      (INumber *)realloc(numbers, (nnum + 1) * sizeof(INumber));
 
             num_ctrls = (num_ctrls == nullptr) ? (unsigned int *)malloc(sizeof(unsigned int)) :
-                                                 (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
+                        (unsigned int *)realloc(num_ctrls, (nnum + 1) * sizeof(unsigned int));
 
             strncpy(numbers[nnum].name, (const char *)entityXML((char *)queryctrl.name), MAXINDINAME);
             strncpy(numbers[nnum].label, (const char *)entityXML((char *)queryctrl.name), MAXINDILABEL);
@@ -2766,13 +2771,13 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
         }
         if (queryctrl.type == V4L2_CTRL_TYPE_BOOLEAN)
         {
-            ISwitch *sw = (ISwitch *)malloc(2 * sizeof(ISwitch));
+            ISwitch * sw = (ISwitch *)malloc(2 * sizeof(ISwitch));
             snprintf(optname + 3, 4, "%03d", nopt);
             snprintf(swonname + 7, 4, "%03d", nopt);
             snprintf(swoffname + 9, 4, "%03d", nopt);
 
             opt = (opt == nullptr) ? (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
-                                     (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
+                  (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
 
             CLEAR(control);
             control.id = queryctrl.id;
@@ -2794,13 +2799,13 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
         }
         if (queryctrl.type == V4L2_CTRL_TYPE_BUTTON)
         {
-            ISwitch *sw = (ISwitch *)malloc(sizeof(ISwitch));
+            ISwitch * sw = (ISwitch *)malloc(sizeof(ISwitch));
             snprintf(optname + 3, 4, "%03d", nopt);
             snprintf(swonname + 7, 4, "%03d", nopt);
             //snprintf(swoffname+9, 4, "%03d", nopt);
 
             opt = (opt == nullptr) ? (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
-                                     (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
+                  (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
 
             queryctrl.name[31] = '\0';
             IUFillSwitch(sw, swonname, (const char *)entityXML((char *)queryctrl.name), ISS_OFF);
@@ -2819,7 +2824,7 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
         if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
 #endif
         {
-            ISwitch *sw           = nullptr;
+            ISwitch * sw           = nullptr;
             unsigned int nmenuopt = 0;
             char sname[32];
             snprintf(menuname + 4, 4, "%03d", nopt);
@@ -2827,7 +2832,7 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
             menuoptname[7] = '_';
 
             opt = (opt == nullptr) ? (ISwitchVectorProperty *)malloc(sizeof(ISwitchVectorProperty)) :
-                                     (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
+                  (ISwitchVectorProperty *)realloc(opt, (nopt + 1) * sizeof(ISwitchVectorProperty));
 
             CLEAR(control);
             control.id = queryctrl.id;
@@ -2841,7 +2846,7 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
                 if (0 == XIOCTL(fd, VIDIOC_QUERYMENU, &querymenu))
                 {
                     sw = (sw == nullptr) ? (ISwitch *)malloc(sizeof(ISwitch)) :
-                                           (ISwitch *)realloc(sw, (nmenuopt + 1) * sizeof(ISwitch));
+                         (ISwitch *)realloc(sw, (nmenuopt + 1) * sizeof(ISwitch));
                     snprintf(menuoptname + 11, 4, "%03d", nmenuopt);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
                     if (queryctrl.type == V4L2_CTRL_TYPE_MENU)
@@ -2908,7 +2913,7 @@ bool V4L2_Base::queryExtControls(INumberVectorProperty *nvp, unsigned int *nnumb
     return true;
 }
 
-void V4L2_Base::setDeviceName(const char *name)
+void V4L2_Base::setDeviceName(const char * name)
 {
     strncpy(deviceName, name, MAXINDIDEVICE);
 }
