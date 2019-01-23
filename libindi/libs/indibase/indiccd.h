@@ -41,6 +41,7 @@
 #include <chrono>
 #include <stdint.h>
 #include <mutex>
+#include <thread>
 
 //JM 2019-01-17: Disabled until further notice
 //#define WITH_EXPOSURE_LOOPING
