@@ -65,6 +65,10 @@
                 <driver name="Celestron GPS">indi_celestron_gps</driver>
                 <version>3.1</version>
         </device>
+        <device label="Celestron CGX" manufacturer="Celestron">
+                <driver name="Celestron GPS">indi_celestron_gps</driver>
+                <version>3.1</version>
+        </device>
         <device label="Astro-Electronic FS-2">
                 <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
                 <version>2.0</version>
