@@ -1534,10 +1534,10 @@ void V4L2_Base::getcapturesizes(ISwitchVectorProperty * capturesizessp, INumberV
     // FIXME JM 2019-01-20: This leads to always a crash
     // with error: corrupted size vs. prev_size
     // Must CHECK and FIX
-    //    if (capturesizessp->sp)
-    //        free(capturesizessp->sp);
-    //    if (capturesizenp->np)
-    //        free(capturesizenp->np);
+    if (capturesizessp->sp)
+        free(capturesizessp->sp);
+    if (capturesizenp->np)
+        free(capturesizenp->np);
 
     frm_sizeenum.pixel_format = fmt.fmt.pix.pixelformat;
     //DEBUGFDEVICE(deviceName, INDI::Logger::DBG_DEBUG,"\t  Available Frame sizes/rates for this format:\n");

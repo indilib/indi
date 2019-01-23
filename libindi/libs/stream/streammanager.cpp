@@ -726,6 +726,7 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
         else
         {
             RecordStreamSP.s = IPS_IDLE;
+            m_Format.clear();
             if (m_isRecording)
             {
                 LOGF_INFO("Recording stream has been disabled. Frame count %d", recordframeCount);
@@ -922,6 +923,7 @@ bool StreamManager::setStream(bool enable)
             }
 
             m_isStreaming = true;
+            m_Format.clear();
             IUResetSwitch(&StreamSP);
             StreamS[0].s = ISS_ON;
 
@@ -931,6 +933,7 @@ bool StreamManager::setStream(bool enable)
     else
     {
         StreamSP.s = IPS_IDLE;
+        m_Format.clear();
         if (m_isStreaming)
         {
             LOGF_DEBUG("The video stream has been disabled. Frame count %d", streamframeCount);
@@ -949,6 +952,7 @@ bool StreamManager::setStream(bool enable)
             IUResetSwitch(&StreamSP);
             StreamS[1].s = ISS_ON;
             m_isStreaming = false;
+            m_Format.clear();
 
             recorder->setStreamEnabled(false);
         }
