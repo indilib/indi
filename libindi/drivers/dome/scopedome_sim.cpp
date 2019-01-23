@@ -33,6 +33,8 @@ bool ScopeDomeSim::detect()
 
 int ScopeDomeSim::writeBuf(ScopeDomeCommand cmd, uint8_t len, uint8_t *buff)
 {
+    (void)len;
+    (void)buff;
     int err = 0;
     switch (cmd)
     {
@@ -59,9 +61,11 @@ int ScopeDomeSim::write(ScopeDomeCommand cmd)
 
 int ScopeDomeSim::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
 {
+    (void)len;
+    (void)buff;
     int err                   = 0;
-    int BytesToRead           = len + 4;
-    uint8_t cbuf[BytesToRead] = { 0 };
+//    int BytesToRead           = len + 4;
+//    uint8_t cbuf[BytesToRead] = { 0 };
 
     cmd = lastCmd;
     return err;
@@ -70,7 +74,7 @@ int ScopeDomeSim::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
 int ScopeDomeSim::read(ScopeDomeCommand &cmd)
 {
     int err         = 0;
-    uint8_t cbuf[4] = { 0 };
+//    uint8_t cbuf[4] = { 0 };
 
     cmd = lastCmd;
     return err;
