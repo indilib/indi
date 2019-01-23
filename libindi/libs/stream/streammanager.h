@@ -278,6 +278,7 @@ class StreamManager
         INDI_PIXEL_FORMAT m_PixelFormat;
         uint8_t m_PixelDepth;
         uint16_t rawWidth = 0, rawHeight = 0;
+        std::string m_Format;
 
         // Downscale buffer for streaming
         uint8_t *downscaleBuffer = nullptr;

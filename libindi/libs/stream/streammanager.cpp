@@ -985,7 +985,12 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 #ifdef HAVE_WEBSOCKET
         if (currentCCD->HasWebSocket() && currentCCD->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
         {
-            currentCCD->wsServer.send_text(std::string(".stream_jpg"));
+            if (m_Format != ".stream_jpg")
+            {
+                m_Format = ".stream_jpg";
+                currentCCD->wsServer.send_text(m_Format);
+            }
+
             currentCCD->wsServer.send_binary(buffer, nbytes);
             return true;
         }
@@ -1064,7 +1069,12 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 #ifdef HAVE_WEBSOCKET
             if (currentCCD->HasWebSocket() && currentCCD->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
             {
-                currentCCD->wsServer.send_text(std::string(".stream"));
+                if (m_Format != ".stream")
+                {
+                    m_Format = ".stream";
+                    currentCCD->wsServer.send_text(m_Format);
+                }
+
                 currentCCD->wsServer.send_binary(downscaleBuffer, nbytes);
                 return true;
             }
@@ -1121,7 +1131,12 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 #ifdef HAVE_WEBSOCKET
         if (currentCCD->HasWebSocket() && currentCCD->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
         {
-            currentCCD->wsServer.send_text(std::string(".stream"));
+            if (m_Format != ".stream")
+            {
+                m_Format = ".stream";
+                currentCCD->wsServer.send_text(m_Format);
+            }
+
             currentCCD->wsServer.send_binary(buffer, nbytes);
             return true;
         }
