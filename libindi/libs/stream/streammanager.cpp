@@ -29,6 +29,7 @@
 #include <cerrno>
 #include <signal.h>
 #include <sys/stat.h>
+#include <cmath>
 
 static const char * STREAM_TAB = "Streaming";
 
