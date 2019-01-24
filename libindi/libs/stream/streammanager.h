@@ -216,13 +216,13 @@ class StreamManager
         IText RecordFileT[2] {};
         ITextVectorProperty RecordFileTP;
 
-        /* Streaming Options */
-        /*INumber StreamOptionsN[2];
-        INumberVectorProperty StreamOptionsNP;
-        enum { OPTION_TARGET_FPS, OPTION_RATE_DIVISOR};*/
-
-        INumber StreamExposureN[1];
+        INumber StreamExposureN[2];
         INumberVectorProperty StreamExposureNP;
+        enum
+        {
+            STREAM_EXPOSURE,
+            STREAM_SKIP,
+        };
 
         /* Measured FPS */
         INumber FpsN[2];
@@ -254,9 +254,8 @@ class StreamManager
         bool m_isStreaming;
         bool m_isRecording;
 
-        int streamframeCount;
-        int recordframeCount;
-        double recordDuration;
+        uint32_t m_RecordingFrameTotal {0};
+        double m_RecordingFrameDuration {0};
 
         // Recorder
         RecorderManager *recorderManager = nullptr;
@@ -269,11 +268,8 @@ class StreamManager
         EncoderInterface *encoder = nullptr;
 
         // Measure FPS
-        // timer_t fpstimer;
-        // struct itimerspec tframe1, tframe2;
-        // use bsd timers
         struct itimerval tframe1, tframe2;
-        double mssum, framecountsec;
+        uint32_t mssum, m_FrameCounterPerSecond;
 
         INDI_PIXEL_FORMAT m_PixelFormat = INDI_MONO;
         uint8_t m_PixelDepth = 8;
