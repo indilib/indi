@@ -92,23 +92,14 @@ bool StreamManager::initProperties()
     IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                        STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    /* Stream Rate divisor */
-    /*IUFillNumber(&StreamOptionsN[OPTION_TARGET_FPS], "STREAM_FPS", "Target FPS", "%.f", 0, 30.0, 1, 10);
-    IUFillNumber(&StreamOptionsN[OPTION_RATE_DIVISOR], "STREAM_RATE", "Rate Divisor", "%3.0f", 0, 60.0, 5, 0);
-    IUFillNumberVector(&StreamOptionsNP, StreamOptionsN, NARRAY(StreamOptionsN), getDeviceName(), "STREAM_OPTIONS",
-                       "Settings", STREAM_TAB, IP_RW, 60, IPS_IDLE);*/
-
-    IUFillNumber(&StreamExposureN[0], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
-    IUFillNumberVector(&StreamExposureNP, StreamExposureN, 1, getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
+    IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
+    IUFillNumber(&StreamExposureN[STREAM_DIVISOR], "STREAMING_DIVISOR_VALUE", "Divisor", "%.f", 1, 15, 1, 1);
+    IUFillNumberVector(&StreamExposureNP, StreamExposureN, NARRAY(StreamExposureN), getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
     IUFillNumber(&FpsN[FPS_INSTANT], "EST_FPS", "Instant.", "%3.2f", 0.0, 999.0, 0.0, 30);
     IUFillNumber(&FpsN[FPS_AVERAGE], "AVG_FPS", "Average (1 sec.)", "%3.2f", 0.0, 999.0, 0.0, 30);
     IUFillNumberVector(&FpsNP, FpsN, NARRAY(FpsN), getDeviceName(), "FPS", "FPS", STREAM_TAB, IP_RO, 60, IPS_IDLE);
-
-    /* Frames to Drop */
-    //IUFillNumber(&FramestoDropN[0], "To drop", "", "%2.0f", 0, 99, 1, 0);
-    //IUFillNumberVector(&FramestoDropNP, FramestoDropN, NARRAY(FramestoDropN), getDeviceName(), "Frames", "", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Record Frames */
     /* File */
@@ -166,7 +157,6 @@ void StreamManager::ISGetProperties(const char * dev)
     if (currentCCD->isConnected())
     {
         currentCCD->defineSwitch(&StreamSP);
-        //currentCCD->defineNumber(&StreamOptionsNP);
         currentCCD->defineNumber(&StreamExposureNP);
         currentCCD->defineNumber(&FpsNP);
         currentCCD->defineSwitch(&RecordStreamSP);
@@ -186,7 +176,6 @@ bool StreamManager::updateProperties()
         imageB  = imageBP->bp;
 
         currentCCD->defineSwitch(&StreamSP);
-        //currentCCD->defineNumber(&StreamOptionsNP);
         currentCCD->defineNumber(&StreamExposureNP);
         currentCCD->defineNumber(&FpsNP);
         currentCCD->defineSwitch(&RecordStreamSP);
@@ -199,10 +188,8 @@ bool StreamManager::updateProperties()
     else
     {
         currentCCD->deleteProperty(StreamSP.name);
-        //currentCCD->deleteProperty(StreamOptionsNP.name);
         currentCCD->deleteProperty(StreamExposureNP.name);
         currentCCD->deleteProperty(FpsNP.name);
-        //ccd->deleteProperty(FramestoDropNP.name);
         currentCCD->deleteProperty(RecordFileTP.name);
         currentCCD->deleteProperty(RecordStreamSP.name);
         currentCCD->deleteProperty(RecordOptionsNP.name);
@@ -222,32 +209,33 @@ bool StreamManager::updateProperties()
  * Binned frame must be sent from the camera driver for this to work consistentaly for all drivers.*/
 void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 {
-    double ms1, ms2, deltams;
+    m_FrameCounterPerSecond += 1;
+    if (StreamExposureN[STREAM_DIVISOR].value > 1 && (m_FrameCounterPerSecond % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
+        return;
 
+    double ms1, ms2, deltams;
     // Measure FPS
     getitimer(ITIMER_REAL, &tframe2);
-    //ms2=capture->get(CV_CAP_PROP_POS_MSEC);
-
     ms1 = (1000.0 * tframe1.it_value.tv_sec) + (tframe1.it_value.tv_usec / 1000.0);
     ms2 = (1000.0 * tframe2.it_value.tv_sec) + (tframe2.it_value.tv_usec / 1000.0);
     if (ms2 > ms1)
-        deltams = ms2 - ms1; //ms1 +( (24*3600*1000.0) - ms2);
+        deltams = ms2 - ms1;
     else
         deltams = ms1 - ms2;
 
-    //EstFps->value=1000.0 / deltams;
     tframe1 = tframe2;
     mssum += deltams;
-    framecountsec += 1;
 
     double newFPS = 1000.0 / deltams;
     if (mssum >= 1000.0)
     {
-        FpsN[1].value = (framecountsec * 1000.0) / mssum;
+        FpsN[1].value = (m_FrameCounterPerSecond * 1000.0) / mssum;
         mssum         = 0;
-        framecountsec = 0;
+        m_FrameCounterPerSecond = 0;
     }
-    if (fabs(newFPS - FpsN[0].value) > 1)
+
+    // Only send FPS when there is a substancial update
+    if (fabs(newFPS - FpsN[0].value) > 1 || m_FrameCounterPerSecond == 0)
     {
         FpsN[0].value = newFPS;
         IDSetNumber(&FpsNP, nullptr);
@@ -444,12 +432,12 @@ bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double
     if (rc == false)
         return rc;
 
-    recordDuration += deltams;
-    recordframeCount += 1;
+    m_RecordingFrameDuration += deltams;
+    m_RecordingFrameTotal += 1;
 
-    if ((RecordStreamSP.sp[1].s == ISS_ON) && (recordDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
+    if ((RecordStreamSP.sp[1].s == ISS_ON) && (m_RecordingFrameDuration >= (RecordOptionsNP.np[0].value * 1000.0)))
     {
-        LOGF_INFO("Ending record after %g millisecs", recordDuration);
+        LOGF_INFO("Ending record after %g millisecs", m_RecordingFrameDuration);
         stopRecording();
         RecordStreamSP.sp[1].s = ISS_OFF;
         RecordStreamSP.sp[3].s = ISS_ON;
@@ -457,9 +445,9 @@ bool StreamManager::recordStream(const uint8_t * buffer, uint32_t nbytes, double
         IDSetSwitch(&RecordStreamSP, nullptr);
     }
 
-    if ((RecordStreamSP.sp[2].s == ISS_ON) && (recordframeCount >= (RecordOptionsNP.np[1].value)))
+    if ((RecordStreamSP.sp[2].s == ISS_ON) && (m_RecordingFrameTotal >= (RecordOptionsNP.np[1].value)))
     {
-        LOGF_INFO("Ending record after %d frames", recordframeCount);
+        LOGF_INFO("Ending record after %d frames", m_RecordingFrameTotal);
         stopRecording();
         RecordStreamSP.sp[2].s = ISS_OFF;
         RecordStreamSP.sp[3].s = ISS_ON;
@@ -625,12 +613,12 @@ bool StreamManager::startRecording()
             recorder->setDefaultColor();
     }
 #endif
-    recordDuration   = 0.0;
-    recordframeCount = 0;
+    m_RecordingFrameDuration   = 0.0;
+    m_RecordingFrameTotal = 0;
 
     getitimer(ITIMER_REAL, &tframe1);
     mssum         = 0;
-    framecountsec = 0;
+    m_FrameCounterPerSecond = 0;
     if (m_isStreaming == false && currentCCD->StartStreaming() == false)
     {
         LOG_ERROR("Failed to start recording.");
@@ -656,8 +644,8 @@ bool StreamManager::stopRecording(bool force)
     if (force)
         return false;
 
-    LOGF_INFO("Record Duration(millisec): %g -- Frame count: %d", recordDuration,
-              recordframeCount);
+    LOGF_INFO("Record Duration(millisec): %g -- Frame count: %d", m_RecordingFrameDuration,
+              m_RecordingFrameTotal);
     return true;
 }
 
@@ -727,9 +715,10 @@ bool StreamManager::ISNewSwitch(const char * dev, const char * name, ISState * s
         {
             RecordStreamSP.s = IPS_IDLE;
             m_Format.clear();
+            FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
             if (m_isRecording)
             {
-                LOGF_INFO("Recording stream has been disabled. Frame count %d", recordframeCount);
+                LOGF_INFO("Recording stream has been disabled. Frame count %d", m_RecordingFrameTotal);
                 stopRecording();
             }
         }
@@ -817,17 +806,6 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
     if (dev != nullptr && strcmp(getDeviceName(), dev))
         return true;
 
-    /* Stream rate */
-#if 0
-    if (!strcmp(StreamOptionsNP.name, name))
-    {
-        IUUpdateNumber(&StreamOptionsNP, values, names, n);
-        StreamOptionsNP.s = IPS_OK;
-        IDSetNumber(&StreamOptionsNP, nullptr);
-        return true;
-    }
-#endif
-
     if (!strcmp(StreamExposureNP.name, name))
     {
         IUUpdateNumber(&StreamExposureNP, values, names, n);
@@ -896,7 +874,6 @@ bool StreamManager::setStream(bool enable)
         if (!m_isStreaming)
         {
             StreamSP.s       = IPS_BUSY;
-            streamframeCount = 0;
 #if 0
             if (StreamOptionsN[OPTION_RATE_DIVISOR].value > 0)
                 DEBUGF(INDI::Logger::DBG_SESSION,
@@ -907,11 +884,9 @@ bool StreamManager::setStream(bool enable)
 #endif
             LOGF_INFO("Starting the video stream with target exposure %.4f s (FPS %.f)", StreamExposureN[0].value, 1 / StreamExposureN[0].value);
 
-            streamframeCount = 0;
-
             getitimer(ITIMER_REAL, &tframe1);
             mssum         = 0;
-            framecountsec = 0;
+            m_FrameCounterPerSecond = 0;
             if (currentCCD->StartStreaming() == false)
             {
                 IUResetSwitch(&StreamSP);
@@ -924,6 +899,7 @@ bool StreamManager::setStream(bool enable)
 
             m_isStreaming = true;
             m_Format.clear();
+            FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
             IUResetSwitch(&StreamSP);
             StreamS[0].s = ISS_ON;
 
@@ -934,9 +910,10 @@ bool StreamManager::setStream(bool enable)
     {
         StreamSP.s = IPS_IDLE;
         m_Format.clear();
+        FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
         if (m_isStreaming)
         {
-            LOGF_DEBUG("The video stream has been disabled. Frame count %d", streamframeCount);
+            //LOGF_DEBUG("The video stream has been disabled. Frame count %d", streamframeCount);
             //if (!is_exposing && !is_recording) stop_capturing();
             if (!m_isRecording)
             {
@@ -953,6 +930,7 @@ bool StreamManager::setStream(bool enable)
             StreamS[1].s = ISS_ON;
             m_isStreaming = false;
             m_Format.clear();
+            FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
 
             recorder->setStreamEnabled(false);
         }
