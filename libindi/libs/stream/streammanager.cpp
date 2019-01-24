@@ -93,7 +93,7 @@ bool StreamManager::initProperties()
                        STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
-    IUFillNumber(&StreamExposureN[STREAM_SKIP], "STREAMING_SKIP_VALUE", "Skip Every", "%.f", 0, 15, 1, 0);
+    IUFillNumber(&StreamExposureN[STREAM_DIVISOR], "STREAMING_DIVISOR_VALUE", "Divisor", "%.f", 1, 15, 1, 1);
     IUFillNumberVector(&StreamExposureNP, StreamExposureN, NARRAY(StreamExposureN), getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
     /* Measured FPS */
@@ -209,6 +209,10 @@ bool StreamManager::updateProperties()
  * Binned frame must be sent from the camera driver for this to work consistentaly for all drivers.*/
 void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 {
+    m_FrameCounterPerSecond += 1;
+    if (StreamExposureN[STREAM_DIVISOR].value > 1 && (m_FrameCounterPerSecond % static_cast<int>(StreamExposureN[STREAM_DIVISOR].value)) == 0)
+        return;
+
     double ms1, ms2, deltams;
     // Measure FPS
     getitimer(ITIMER_REAL, &tframe2);
@@ -221,7 +225,6 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 
     tframe1 = tframe2;
     mssum += deltams;
-    m_FrameCounterPerSecond += 1;
 
     double newFPS = 1000.0 / deltams;
     if (mssum >= 1000.0)

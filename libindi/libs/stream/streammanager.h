@@ -221,7 +221,7 @@ class StreamManager
         enum
         {
             STREAM_EXPOSURE,
-            STREAM_SKIP,
+            STREAM_DIVISOR,
         };
 
         /* Measured FPS */
