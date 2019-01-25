@@ -1,31 +1,4 @@
-/*
- QHYCCD SDK
- 
- Copyright (c) 2014 QHYCCD.
- All Rights Reserved.
- 
- This program is free software; you can redistribute it and/or modify it
- under the terms of the GNU General Public License as published by the Free
- Software Foundation; either version 2 of the License, or (at your option)
- any later version.
- 
- This program is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- more details.
- 
- You should have received a copy of the GNU General Public License along with
- this program; if not, write to the Free Software Foundation, Inc., 59
- Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- 
- The full GNU General Public License is included in this distribution in the
- file called LICENSE.
- */
 
-/*!
- * @file qhyccd.h
- * @brief QHYCCD SDK interface for programmers
- */
 #include "qhyccderr.h"
 #include "qhyccdcamdef.h"
 #include "qhyccdstruct.h"
@@ -722,6 +695,8 @@ EXPORTC uint32_t STDCALL SetQHYCCDGPSMasterSlave(qhyccd_handle *handle,uint8_t i
 
 EXPORTC void STDCALL SetQHYCCDGPSSlaveModeParameter(qhyccd_handle *handle,uint32_t target_sec,uint32_t target_us,uint32_t deltaT_sec,uint32_t deltaT_us,uint32_t expTime);
 
+EXPORTFUNC void STDCALL SetQHYCCDQuit();
+
 EXPORTC uint32_t STDCALL QHYCCDVendRequestWrite(qhyccd_handle *h,uint8_t req,uint16_t value,uint16_t index1,uint32_t length,uint8_t *data);
 
 EXPORTC uint32_t STDCALL QHYCCDReadUSB_SYNC(qhyccd_handle *pDevHandle, uint8_t endpoint, uint32_t length, uint8_t *data, uint32_t timeout);
@@ -729,6 +704,25 @@ EXPORTC uint32_t STDCALL QHYCCDReadUSB_SYNC(qhyccd_handle *pDevHandle, uint8_t e
 EXPORTC uint32_t STDCALL QHYCCDLibusbBulkTransfer(qhyccd_handle *pDevHandle, uint8_t endpoint, uint8_t *data, uint32_t length, int32_t *transferred, uint32_t timeout);
 
 EXPORTC uint32_t STDCALL GetQHYCCDSDKVersion(uint32_t *year,uint32_t *month,uint32_t *day,uint32_t *subday);
+
+
+
+
+
+//APIs for the Readout Mode. One camera may have more than one readout mode. The different readout mode has different base-resolution. For example
+//The QHY42PRO support HDR and STD mode. HDR mode base-resolution is 4096*2048. While the STD mode is 2048*2048. In this case we need to use the 
+//readout mode to set it. The host application need to get the readout mode and select one to set it. The sequece that call this fucntion need to be(......)
+
+
+EXPORTC uint32_t STDCALL GetQHYCCDNumberOfReadModes(qhyccd_handle *h,uint32_t *numModes);
+// Get the maximum resolution for a read mode
+EXPORTC uint32_t STDCALL GetQHYCCDReadModeResolution(qhyccd_handle *h,uint32_t modeNumber, uint32_t* width, uint32_t* height);
+// Get the name of a read mode
+EXPORTC uint32_t STDCALL GetQHYCCDReadModeName(qhyccd_handle *h,uint32_t modeNumber, char* name);
+// Set the read mode
+EXPORTC uint32_t STDCALL SetQHYCCDReadMode(qhyccd_handle *h,uint32_t modeNumber);
+// Get the read mode
+EXPORTC uint32_t STDCALL GetQHYCCDReadMode(qhyccd_handle *h,uint32_t* modeNumber);
 
 
 #endif

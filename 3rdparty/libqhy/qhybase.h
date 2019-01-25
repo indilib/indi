@@ -1,31 +1,3 @@
-/*
- QHYCCD SDK
- 
- Copyright (c) 2014 QHYCCD.
- All Rights Reserved.
- 
- This program is free software; you can redistribute it and/or modify it
- under the terms of the GNU General Public License as published by the Free
- Software Foundation; either version 2 of the License, or (at your option)
- any later version.
- 
- This program is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- more details.
- 
- You should have received a copy of the GNU General Public License along with
- this program; if not, write to the Free Software Foundation, Inc., 59
- Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- 
- The full GNU General Public License is included in this distribution in the
- file called LICENSE.
- */
-
-/*!
- * @file qhybase.h
- * @brief QHYCCD QHYBASE class define
- */
 
 #include "qhycam.h"
 #include "qhyccdcamdef.h"
@@ -102,7 +74,7 @@ public:
     ccdpixelw = 0;
     ccdpixelh = 0;
 
-    targetTEMP = 0;
+    targetTEMP = -100;
     currentTEMP = 0;
     currentPWM = 0;
     nowVoltage = 0;
@@ -659,6 +631,7 @@ public:
   virtual uint32_t SetChipCoolPWM(qhyccd_handle *h, double PWM)
   {
     OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipCoolPWM|Not implemented");
+    targetTEMP = -100;
     return QHYCCD_ERROR;
   }
 
@@ -1251,6 +1224,7 @@ public:
     return gpson;
   }
 
+#if 0
   uint32_t QSleep(uint32_t mstime)
   {
 #if defined (_WIN32)
@@ -1263,6 +1237,26 @@ public:
     return QHYCCD_SUCCESS;
   }
 
+uint32_t QBeep(uint32_t volume,uint32_t mstime)
+{
+#if defined (_WIN32)
+  Beep(volume,mstime);
+#else
+#if 0
+
+  int   fd   =   open("/dev/tty10",   O_RDONLY);
+  if   (fd   ==   -1   ||   argc   !=   3)
+  {
+    return   -1;
+  }
+  ioctl(fd,   KDMKTONE,   20000);
+  close(fd);
+#endif
+#endif
+
+return QHYCCD_SUCCESS;
+}
+#endif
   /**
    */
   uint32_t SetPIDParas(qhyccd_handle *handle, double p, double i, double d);
@@ -1294,6 +1288,9 @@ public:
   uint32_t SetAutoExposure(qhyccd_handle *h, double value);
 
   uint32_t SetAutoFocus(qhyccd_handle *h, double value);
+#ifdef QHYCCD_OPENCV_SUPPORT
+  uint32_t CallAECAGC(qhyccd_handle *h, IplImage *img, int MessureMethod, int ControlMode);
+#endif
 
   uint32_t SetBrightness(qhyccd_handle *h, double value);
 
@@ -1365,6 +1362,8 @@ public:
 
 
   uint8_t camtype;
+  //uint32_t CameraType;
+ 
 
   uint32_t camx; //!< current camera width
   uint32_t camy; //!< current camera height
@@ -1504,6 +1503,9 @@ public:
   uint8_t qhy5iiGuidePortOnOff;
   bool delRowRoise;
   uint32_t ddrnum;
+
+  double lastTargetTemp;
+  double  lastPWM;  
 
 #if defined (_WIN32)
 
