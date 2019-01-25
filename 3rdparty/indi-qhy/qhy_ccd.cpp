@@ -1499,6 +1499,7 @@ bool QHYCCD::saveConfigItems(FILE *fp)
 
 bool QHYCCD::StartStreaming()
 {
+    int ret = 0;
     ExposureRequest = 1.0 / Streamer->getTargetFPS();
 
     // N.B. There is no corresponding value for GBGR. It is odd that QHY selects this as the default as no one seems to process it
@@ -1507,6 +1508,34 @@ bool QHYCCD::StartStreaming()
         { "BGGR", INDI_BAYER_BGGR },
         { "RGGB", INDI_BAYER_RGGB }
     };
+
+    // Set binning mode
+    if (sim)
+        ret = QHYCCD_SUCCESS;
+    else
+        ret = SetQHYCCDBinMode(camhandle, camxbin, camybin);
+    if (ret != QHYCCD_SUCCESS)
+    {
+        LOGF_INFO("Set QHYCCD Bin mode failed (%d)", ret);
+        return false;
+    }
+
+    LOGF_DEBUG("SetQHYCCDBinMode (%dx%d).", camxbin, camybin);
+
+    // Set Region of Interest (ROI)
+    if (sim)
+        ret = QHYCCD_SUCCESS;
+    else
+        ret = SetQHYCCDResolution(camhandle, camroix, camroiy, camroiwidth, camroiheight);
+    if (ret != QHYCCD_SUCCESS)
+    {
+        LOGF_INFO("Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)", camroix, camroiy,
+                  camroiwidth, camroiheight, ret);
+        return false;
+    }
+
+    LOGF_DEBUG("SetQHYCCDResolution camroix %d camroiy %d camroiwidth %d camroiheight %d", camroix,
+               camroiy, camroiwidth, camroiheight);
 
     INDI_PIXEL_FORMAT qhyFormat = INDI_MONO;
     if (BayerT[2].text && formats.count(BayerT[2].text) != 0)
