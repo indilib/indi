@@ -126,6 +126,11 @@ ScopeDome::ScopeDome()
             fclose(inertia);
             LOGF_INFO("Read inertia file %s", wexp.we_wordv[0]);
         }
+        else
+        {
+            LOG_INFO("Could not read inertia file, please generate one with Windows driver setup and copy to "
+                     "~/.indi/ScopeDome_DomeInertia_Table.txt");
+        }
     }
     wordfree(&wexp);
 }
