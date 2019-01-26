@@ -1574,15 +1574,21 @@ bool Dome::WriteParkData()
 
     if (!ParkstatusXml)
         ParkstatusXml = addXMLEle(ParkdeviceXml, "parkstatus");
-    if (!ParkpositionXml)
-        ParkpositionXml = addXMLEle(ParkdeviceXml, "parkposition");
-    if (!ParkpositionAxis1Xml)
-        ParkpositionAxis1Xml = addXMLEle(ParkpositionXml, "axis1position");
+    if (parkDataType != PARK_NONE)
+    {
+        if (!ParkpositionXml)
+            ParkpositionXml = addXMLEle(ParkdeviceXml, "parkposition");
+        if (!ParkpositionAxis1Xml)
+            ParkpositionAxis1Xml = addXMLEle(ParkpositionXml, "axis1position");
+    }
 
     editXMLEle(ParkstatusXml, (IsParked ? "true" : "false"));
 
-    snprintf(pcdata, sizeof(pcdata), "%lf", Axis1ParkPosition);
-    editXMLEle(ParkpositionAxis1Xml, pcdata);
+    if (parkDataType != PARK_NONE)
+    {
+        snprintf(pcdata, sizeof(pcdata), "%lf", Axis1ParkPosition);
+        editXMLEle(ParkpositionAxis1Xml, pcdata);
+    }
 
     prXMLEle(fp, ParkdataXmlRoot, 0);
     fclose(fp);
