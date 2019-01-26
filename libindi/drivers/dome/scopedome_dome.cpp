@@ -87,6 +87,7 @@ void ISSnoopDevice(XMLEle *root)
 
 ScopeDome::ScopeDome()
 {
+    setVersion(1, 0);
     targetAz         = 0;
     shutterState     = SHUTTER_UNKNOWN;
     simShutterStatus = SHUTTER_CLOSED;
