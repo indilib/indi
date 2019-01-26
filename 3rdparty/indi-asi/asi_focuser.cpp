@@ -360,7 +360,7 @@ bool ASIEAF::SyncFocuser(uint32_t ticks)
     return true;
 }
 
-bool ASIEAF::MoveFocuser(uint32_t position)
+bool ASIEAF::gotoAbsolute(uint32_t position)
 {
     EAF_ERROR_CODE rc = EAFMove(m_ID, position);
     if (rc != EAF_SUCCESS)
@@ -403,7 +403,7 @@ IPState ASIEAF::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
-    if (!MoveFocuser(targetPos))
+    if (!gotoAbsolute(targetPos))
         return IPS_ALERT;
 
     return IPS_BUSY;
@@ -420,7 +420,7 @@ IPState ASIEAF::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
     // Clamp
     newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
-    if (!MoveFocuser(newPosition))
+    if (!gotoAbsolute(newPosition))
         return IPS_ALERT;
 
     FocusRelPosN[0].value = ticks;
