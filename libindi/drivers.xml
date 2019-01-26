@@ -65,6 +65,10 @@
                 <driver name="Celestron GPS">indi_celestron_gps</driver>
                 <version>3.1</version>
         </device>
+        <device label="Celestron CGX" manufacturer="Celestron">
+                <driver name="Celestron GPS">indi_celestron_gps</driver>
+                <version>3.1</version>
+        </device>
         <device label="Astro-Electronic FS-2">
                 <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
                 <version>2.0</version>
@@ -336,6 +340,10 @@
         <device label="SkySafari">
             <driver name="SkySafari">indi_skysafari</driver>
             <version>0.1</version>
+        </device>
+        <device label="Pegasus PPB">
+                <driver name="Pegasus PPB">indi_pegasus_ppb</driver>
+                <version>1.0</version>
         </device>
         <device label="Pegasus UPB">
                 <driver name="Pegasus UPB">indi_pegasus_upb</driver>
