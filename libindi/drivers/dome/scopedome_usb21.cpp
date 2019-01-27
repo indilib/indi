@@ -25,7 +25,7 @@
 #include "scopedome_dome.h"
 #include "indicom.h"
 
-#include <termio.h>
+#include <termios.h>
 
 #define SCOPEDOME_TIMEOUT 2
 #define SCOPEDOME_MAX_READS 10
