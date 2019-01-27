@@ -1562,11 +1562,11 @@ bool ALTAIRCAM::StartExposure(float duration)
         m_CurrentTriggerMode = TRIGGER_SOFTWARE;
     }
 
-    int timeMS = uSecs / 1000 - 50;
-    if (timeMS <= 0)
-        sendImageCallBack();
-    else if (static_cast<uint32_t>(timeMS) < POLLMS)
-        IEAddTimer(timeMS, &ALTAIRCAM::sendImageCB, this);
+    //    int timeMS = uSecs / 1000 - 50;
+    //    if (timeMS <= 0)
+    //        sendImageCallBack();
+    //    else if (static_cast<uint32_t>(timeMS) < POLLMS)
+    //        IEAddTimer(timeMS, &ALTAIRCAM::sendImageCB, this);
 
     // Trigger an exposure
     if ( (rc = Altaircam_Trigger(m_CameraHandle, 1) != 0) )
@@ -1660,22 +1660,24 @@ void ALTAIRCAM::TimerHit()
         gettimeofday(&curtime, nullptr);
         timersub(&ExposureEnd, &curtime, &diff);
         double timeleft = diff.tv_sec + diff.tv_usec / 1e6;
-        uint32_t msecs = 0;
-        if (timeleft <= 0)
-            msecs = 0;
-        else
-            msecs = timeleft * 1000.0;
-        // If within 50ms, let's set it done
-        if (msecs <= 50)
-            sendImageCallBack();
+        if (timeleft < 0)
+            timeleft = 0;
+        //        uint32_t msecs = 0;
+        //        if (timeleft <= 0)
+        //            msecs = 0;
+        //        else
+        //            msecs = timeleft * 1000.0;
+        //        // If within 50ms, let's set it done
+        //        if (msecs <= 50)
+        //            sendImageCallBack();
         // If time left is less than our polling then let's send image before next poll event
-        else
-        {
-            if (msecs < POLLMS)
-                IEAddTimer(msecs - 50, &ALTAIRCAM::sendImageCB, this);
+        //else
+        //{
+        //            if (msecs < POLLMS)
+        //                IEAddTimer(msecs - 50, &ALTAIRCAM::sendImageCB, this);
 
-            PrimaryCCD.setExposureLeft(timeleft);
-        }
+        PrimaryCCD.setExposureLeft(timeleft);
+        //}
     }
 
     if (m_Instance->model->flag & ALTAIRCAM_FLAG_GETTEMPERATURE)
@@ -2101,56 +2103,56 @@ void ALTAIRCAM::AutoExposureChanged()
     // TODO
 }
 
-void ALTAIRCAM::sendImageCB(void* pCtx)
-{
-    static_cast<ALTAIRCAM*>(pCtx)->sendImageCallBack();
-}
+//void ALTAIRCAM::sendImageCB(void* pCtx)
+//{
+//    static_cast<ALTAIRCAM*>(pCtx)->sendImageCallBack();
+//}
 
 void ALTAIRCAM::eventCB(unsigned event, void* pCtx)
 {
     static_cast<ALTAIRCAM*>(pCtx)->eventPullCallBack(event);
 }
 
-void ALTAIRCAM::sendImageCallBack()
-{
-    PrimaryCCD.setExposureLeft(0);
-    InExposure = false;
-    m_lastEventID = -1;
+//void ALTAIRCAM::sendImageCallBack()
+//{
+//    PrimaryCCD.setExposureLeft(0);
+//    InExposure = false;
+//    m_lastEventID = -1;
 
-    //    RemoveTimer(m_TimeoutTimerID);
-    //    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &ALTAIRCAM::checkTimeoutHelper, this);
-}
+//    //    RemoveTimer(m_TimeoutTimerID);
+//    //    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &ALTAIRCAM::checkTimeoutHelper, this);
+//}
 
-void ALTAIRCAM::checkTimeoutHelper(void *context)
-{
-    static_cast<ALTAIRCAM*>(context)->checkCameraCallback();
-}
+//void ALTAIRCAM::checkTimeoutHelper(void *context)
+//{
+//    static_cast<ALTAIRCAM*>(context)->checkCameraCallback();
+//}
 
-void ALTAIRCAM::checkCameraCallback()
-{
-    if (m_lastEventID != 4)
-    {
-        LOG_DEBUG("Exposure timeout, restarting...");
-        if (m_TimeoutRetries++ >= MAX_RETRIES)
-        {
-            PrimaryCCD.setExposureFailed();
-            m_TimeoutRetries = 0;
-            LOG_ERROR("Exposure timeout.");
-        }
-        else
-            StartExposure(PrimaryCCD.getExposureDuration());
-    }
-    else
-    {
-        m_TimeoutRetries = 0;
-    }
-}
+//void ALTAIRCAM::checkCameraCallback()
+//{
+//    if (m_lastEventID != 4)
+//    {
+//        LOG_DEBUG("Exposure timeout, restarting...");
+//        if (m_TimeoutRetries++ >= MAX_RETRIES)
+//        {
+//            PrimaryCCD.setExposureFailed();
+//            m_TimeoutRetries = 0;
+//            LOG_ERROR("Exposure timeout.");
+//        }
+//        else
+//            StartExposure(PrimaryCCD.getExposureDuration());
+//    }
+//    else
+//    {
+//        m_TimeoutRetries = 0;
+//    }
+//}
 
 void ALTAIRCAM::eventPullCallBack(unsigned event)
 {
     LOGF_DEBUG("Event %#04X", event);
 
-    m_lastEventID = event;
+    //m_lastEventID = event;
 
     switch (event)
     {
@@ -2198,6 +2200,9 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
                 }
                 else
                 {
+                    InExposure  = false;
+                    PrimaryCCD.setExposureLeft(0);
+
                     if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                     {
                         std::unique_lock<std::mutex> guard(ccdBufferLock);
