@@ -304,11 +304,6 @@ class ALTAIRCAM : public INDI::CCD
         //#############################################################################
         // Capture
         //#############################################################################
-        //    static void checkTimeoutHelper(void *context);
-        //    void checkCameraCallback();
-        //    int m_TimeoutTimerID { -1 };
-        //    int m_lastEventID { -1 };
-
         void allocateFrameBuffer();
         struct timeval ExposureEnd;
         double ExposureRequest;
@@ -372,9 +367,6 @@ class ALTAIRCAM : public INDI::CCD
         //#############################################################################
         // Callbacks
         //#############################################################################
-        //static void sendImageCB(void* pCtx);
-        //void sendImageCallBack();
-
         static void eventCB(unsigned event, void* pCtx);
         void eventPullCallBack(unsigned event);
 

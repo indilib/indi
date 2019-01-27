@@ -757,6 +757,7 @@ void ALTAIRCAM::setupParams()
     // JM 2019-01-17: Always set it to 0 on ARM due to USB limitations
 #ifdef __arm__
     ControlN[TC_SPEED].value = 0;
+    Altaircam_set_Speed(m_CameraHandle, 0);
 #else
     ControlN[TC_SPEED].value = nDef;
 #endif
@@ -1662,22 +1663,7 @@ void ALTAIRCAM::TimerHit()
         double timeleft = diff.tv_sec + diff.tv_usec / 1e6;
         if (timeleft < 0)
             timeleft = 0;
-        //        uint32_t msecs = 0;
-        //        if (timeleft <= 0)
-        //            msecs = 0;
-        //        else
-        //            msecs = timeleft * 1000.0;
-        //        // If within 50ms, let's set it done
-        //        if (msecs <= 50)
-        //            sendImageCallBack();
-        // If time left is less than our polling then let's send image before next poll event
-        //else
-        //{
-        //            if (msecs < POLLMS)
-        //                IEAddTimer(msecs - 50, &ALTAIRCAM::sendImageCB, this);
-
         PrimaryCCD.setExposureLeft(timeleft);
-        //}
     }
 
     if (m_Instance->model->flag & ALTAIRCAM_FLAG_GETTEMPERATURE)
@@ -1895,139 +1881,6 @@ void ALTAIRCAM::refreshControls()
     IDSetNumber(&ControlNP, nullptr);
 }
 
-#if 0
-void *ALTAIRCAM::imagingHelper(void *context)
-{
-    return static_cast<ALTAIRCAM *>(context)->imagingThreadEntry();
-}
-
-/*
- * A dedicated thread is used for handling streaming video and image
- * exposures because the operations take too much time to be done
- * as part of a timer call-back: there is one timer for the entire
- * process, which must handle events for all ASI cameras
- */
-void *ALTAIRCAM::imagingThreadEntry()
-{
-    pthread_mutex_lock(&condMutex);
-    threadState = StateIdle;
-    pthread_cond_signal(&cv);
-    while (true)
-    {
-        while (threadRequest == StateIdle)
-        {
-            pthread_cond_wait(&cv, &condMutex);
-        }
-        threadState = threadRequest;
-        if (threadRequest == StateExposure)
-        {
-            getSnapImage();
-        }
-        else if (threadRequest == StateStream)
-        {
-            getVideoImage();
-        }
-        else if (threadRequest == StateRestartExposure)
-        {
-            threadRequest = StateIdle;
-            pthread_mutex_unlock(&condMutex);
-            StartExposure(ExposureRequest);
-            pthread_mutex_lock(&condMutex);
-        }
-        else if (threadRequest == StateTerminate)
-        {
-            break;
-        }
-        else
-        {
-            threadRequest = StateIdle;
-            pthread_cond_signal(&cv);
-        }
-        threadState = StateIdle;
-    }
-    threadState = StateTerminated;
-    pthread_cond_signal(&cv);
-    pthread_mutex_unlock(&condMutex);
-
-    return nullptr;
-}
-
-void ALTAIRCAM::getVideoImage()
-{
-#if 0
-    int ret;
-    int frames = 0;
-
-    while (threadRequest == StateStream)
-    {
-        pthread_mutex_unlock(&condMutex);
-
-        uint8_t *targetFrame = PrimaryCCD.getFrameBuffer();
-        uint32_t totalBytes  = PrimaryCCD.getFrameBufferSize();
-        int waitMS           = (int)(ExposureRequest * 2000.0) + 500;
-
-        ret = ASIGetVideoData(m_camInfo->CameraID, targetFrame, totalBytes,
-                              waitMS);
-        if (ret != 0)
-        {
-            if (ret != ASI_ERROR_TIMEOUT)
-            {
-                Streamer->setStream(false);
-                pthread_mutex_lock(&condMutex);
-                if (threadRequest == StateStream)
-                {
-                    LOGF_ERROR(
-                        "Error reading video data (%d)", ret);
-                    threadRequest = StateIdle;
-                }
-                break;
-            }
-            else
-            {
-                frames = 0;
-                usleep(100);
-            }
-        }
-        else
-        {
-            if (currentVideoFormat == ASI_IMG_RGB24)
-            {
-                for (uint32_t i = 0; i < totalBytes; i += 3)
-                {
-                    uint8_t r = targetFrame[i];
-                    targetFrame[i] = targetFrame[i + 2];
-                    targetFrame[i + 2] = r;
-                }
-            }
-
-            Streamer->newFrame(targetFrame, totalBytes);
-
-            /*
-             * Release the CPU every 30 frames
-             */
-            frames++;
-            if (frames == 30)
-            {
-                frames = 0;
-                usleep(10);
-            }
-        }
-
-        pthread_mutex_lock(&condMutex);
-    }
-#endif
-}
-
-/* Caller must hold the mutex */
-void ALTAIRCAM::exposureSetRequest(ImageState request)
-{
-    if (threadRequest == StateExposure)
-    {
-        threadRequest = request;
-    }
-}
-#endif
-
 void ALTAIRCAM::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
 {
     INDI::CCD::addFITSKeywords(fptr, targetChip);
@@ -2103,50 +1956,10 @@ void ALTAIRCAM::AutoExposureChanged()
     // TODO
 }
 
-//void ALTAIRCAM::sendImageCB(void* pCtx)
-//{
-//    static_cast<ALTAIRCAM*>(pCtx)->sendImageCallBack();
-//}
-
 void ALTAIRCAM::eventCB(unsigned event, void* pCtx)
 {
     static_cast<ALTAIRCAM*>(pCtx)->eventPullCallBack(event);
 }
-
-//void ALTAIRCAM::sendImageCallBack()
-//{
-//    PrimaryCCD.setExposureLeft(0);
-//    InExposure = false;
-//    m_lastEventID = -1;
-
-//    //    RemoveTimer(m_TimeoutTimerID);
-//    //    m_TimeoutTimerID = IEAddTimer(POLLMS+50, &ALTAIRCAM::checkTimeoutHelper, this);
-//}
-
-//void ALTAIRCAM::checkTimeoutHelper(void *context)
-//{
-//    static_cast<ALTAIRCAM*>(context)->checkCameraCallback();
-//}
-
-//void ALTAIRCAM::checkCameraCallback()
-//{
-//    if (m_lastEventID != 4)
-//    {
-//        LOG_DEBUG("Exposure timeout, restarting...");
-//        if (m_TimeoutRetries++ >= MAX_RETRIES)
-//        {
-//            PrimaryCCD.setExposureFailed();
-//            m_TimeoutRetries = 0;
-//            LOG_ERROR("Exposure timeout.");
-//        }
-//        else
-//            StartExposure(PrimaryCCD.getExposureDuration());
-//    }
-//    else
-//    {
-//        m_TimeoutRetries = 0;
-//    }
-//}
 
 void ALTAIRCAM::eventPullCallBack(unsigned event)
 {
@@ -2166,11 +1979,6 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
             AltaircamFrameInfoV2 info;
             memset(&info, 0, sizeof(AltaircamFrameInfoV2));
 
-            //PrimaryCCD.setFrameBufferSize(subFrameSize, false);
-            //PrimaryCCD.setResolution(w, h);
-            //PrimaryCCD.setNAxis(m_Channels == 1 ? 2 : 3);
-            //PrimaryCCD.setBPP(m_BitsPerPixel);
-
             int captureBits = m_BitsPerPixel == 8 ? 8 : m_MaxBitDepth;
 
             if (Streamer->isStreaming())
@@ -2181,8 +1989,10 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
                 if (rc >= 0)
                     Streamer->newFrame(PrimaryCCD.getFrameBuffer(), PrimaryCCD.getFrameBufferSize());
             }
-            else
+            else if (InExposure)
             {
+                InExposure  = false;
+                PrimaryCCD.setExposureLeft(0);
                 uint8_t *buffer = PrimaryCCD.getFrameBuffer();
 
                 if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
@@ -2200,9 +2010,6 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
                 }
                 else
                 {
-                    InExposure  = false;
-                    PrimaryCCD.setExposureLeft(0);
-
                     if (m_MonoCamera == false && m_CurrentVideoFormat == TC_VIDEO_COLOR_RGB)
                     {
                         std::unique_lock<std::mutex> guard(ccdBufferLock);
