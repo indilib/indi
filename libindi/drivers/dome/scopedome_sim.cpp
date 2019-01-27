@@ -24,8 +24,6 @@
 
 #include "scopedome_dome.h"
 
-static const uint8_t header = 0xaa;
-
 bool ScopeDomeSim::detect()
 {
     return true;
