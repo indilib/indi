@@ -3483,7 +3483,7 @@ bool FocusLynxBase::checkIfAbsoluteFocuser()
     deleteProperty(SyncMandatorySP.name);
 
     // Check if we have absolute or relative focusers
-    if (strstr(focusName, "TCF") || !strcmp(focusName, "FastFocus"))
+    if (strstr(focusName, "TCF") || strstr(focusName, "Leo") || !strcmp(focusName, "FastFocus"))
     {
         LOG_DEBUG("Absolute focuser detected.");
         GotoSP.nsp = 2;
