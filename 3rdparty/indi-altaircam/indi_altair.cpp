@@ -757,7 +757,7 @@ void ALTAIRCAM::setupParams()
     // JM 2019-01-17: Always set it to 0 on ARM due to USB limitations
 #ifdef __arm__
     ControlN[TC_SPEED].value = 0;
-    Altaircam_set_Speed(m_CameraHandle, 0);
+    Altaircam_put_Speed(m_CameraHandle, 0);
 #else
     ControlN[TC_SPEED].value = nDef;
 #endif
