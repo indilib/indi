@@ -132,7 +132,7 @@ int ScopeDomeUSB21::readBuf(ScopeDomeCommand &cmd, uint8_t len, uint8_t *buff)
 {
     int nbytes_read = 0, rc = -1;
     int BytesToRead           = len + 4;
-    uint8_t cbuf[BytesToRead] = { 0 };
+    uint8_t cbuf[BytesToRead];
     char errstr[MAXRBUF];
 
     // Read buffer
