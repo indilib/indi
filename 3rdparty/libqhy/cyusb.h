@@ -1,30 +1,20 @@
 #ifndef __CYUSB_H
 #define __CYUSB_H
 #include "config.h"
-/*********************************************************************************\
- * This is the main header file for the cyusb suite for Linux/Mac, called cyusb.h *
- *                                                                                *
- * Author              :        V. Radhakrishnan ( rk@atr-labs.com )              *
- * License             :        GPL Ver 2.0                                       *
- * Copyright           :        Cypress Semiconductors Inc. / ATR-LABS            *
- * Date written        :        March 12, 2012                                    *
- * Modification Notes  :                                                          *
- *    1. Cypress Semiconductor, January 23, 2013                                  *
- *       Added function documentation.                                            *
- *       Added new constant to specify number of device ID entries.               *
- *                                                                                *
- \********************************************************************************/
+
 
 
 #if defined (_WIN32)
 #include "Context.h"
 #include "QUsb.h"
+#define QUSB_SINGLEFRAMEUSBPACKETSIZE 2048 * 20 *2
 #endif
 
 
 #if (defined(__linux__ )&&!defined (__ANDROID__)) ||(defined (__APPLE__)&&defined( __MACH__)) ||(defined(__linux__ )&&defined (__ANDROID__))
 #include <libusb-1.0/libusb.h>
 #include "qhyccd.h"
+#define QUSB_SINGLEFRAMEUSBPACKETSIZE 2048*20
 #endif
 
 #include "unlockimagequeue.h"
@@ -89,6 +79,10 @@ struct cydev
   qhyccd_handle *handle;
 #endif
 
+  uint8_t usbtype;
+  uint8_t ImageMode; 
+  bool IsChecked; 
+  int8_t deviceNO; 
   uint16_t vid; //!< Vendor ID
   uint16_t pid; //!< Product ID
   uint8_t is_open; //!< When device is opened, val = 1
@@ -155,7 +149,7 @@ struct cydev
   struct libusb_transfer *img_transfer[OVERLAPS];
   uint8_t img_buff[OVERLAPS * TRANSSIZE];
   pthread_t rawhandle;
-  ;
+
   volatile bool raw_exit;
   volatile uint8_t evtnumflag;
 
@@ -197,7 +191,7 @@ static uint16_t camvid[MAX_DEVICES_ID] =
     0x1618, 0x1618, 0x04b4, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618,
     0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x04b4, 0x1618,
     0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618, 0x1618,
-    0x1618, 0x1618
+    0x1618, 0x1618, 0x1618
   };
 
 /* Global struct for camera'io product id */
@@ -210,7 +204,7 @@ static uint16_t campid[MAX_DEVICES_ID] =
     0x0186, 0x6953, 0x8614, 0x1601, 0x1633, 0x4201, 0x0225, 0xC175, 0x0291,
     0xC179, 0xC225, 0xC291, 0xC164, 0xC166, 0xC368, 0xC184, 0x8614, 0xF368,
     0xA815, 0x5301, 0x1633, 0xC248, 0xC168, 0xC129, 0x9001 ,0x4041, 0xC295,
-    0x2021, 0xC551
+    0x2021, 0xC551, 0x4203
   };
 
 /* Global struct for camera'firmware product id */
@@ -223,7 +217,7 @@ static uint16_t fpid[MAX_DEVICES_ID] =
     0x0185, 0x6952, 0x8613, 0x1600, 0x1632, 0xC400, 0x0224, 0xC174, 0x0290,
     0xC178, 0xC224, 0xC290, 0xC163, 0xC165, 0xC367, 0xC183, 0x8613, 0xF367,
     0xA814, 0x5300, 0x1632, 0xC247, 0xC167, 0xC128, 0x9000, 0x4040, 0xC294,
-    0x2020, 0xC551
+    0x2020, 0xC550, 0X4202
   };
 
 /****************************************************************************************

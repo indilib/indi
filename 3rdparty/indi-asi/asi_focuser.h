@@ -93,7 +93,7 @@ class ASIEAF : public INDI::Focuser
         // Are we moving?
         bool isMoving();
 
-        bool MoveFocuser(uint32_t position);
+        bool gotoAbsolute(uint32_t position);
         double targetPos { 0 }, lastPos { 0 }, lastTemperature { 0 };
 
         // Read Only Temperature Reporting
