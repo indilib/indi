@@ -6,6 +6,7 @@ set (DSPAU_VERSION_MINOR 0)
 set (DSPAU_VERSION_REVISION 5)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error -std=gnu99")
@@ -19,6 +20,9 @@ add_definitions(-Wall -O2)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/libdspau.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/libdspau.h )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
+
+#This is for craft
+include_directories("${CMAKE_INSTALL_PREFIX}/include")
 
 set(dspau_lib_srcs
    ${CMAKE_CURRENT_SOURCE_DIR}/src/libdspau-align.c
