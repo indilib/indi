@@ -395,6 +395,10 @@
         </device>
 </devGroup>
 <devGroup group="Domes">
+        <device label="ScopeDome Dome">
+                <driver name="ScopeDome Dome">indi_scopedome_dome</driver>
+                <version>1.0</version>
+        </device>
         <device label="Baader Dome">
                 <driver name="Baader Dome">indi_baader_dome</driver>
                 <version>1.0</version>
