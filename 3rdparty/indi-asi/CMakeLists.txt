@@ -15,8 +15,8 @@ find_package(Threads REQUIRED)
 # Using ASI EFW SDK Version 0.3.1205 updated on 2017-12-05
 # Using ASI ST4 SDK Version 1.0 updated on 2018-07-23
 # Using ASI EAF SDK Version 0.0.1128 updated on 2019-01-21
-set(ASI_VERSION_MAJOR 0)
-set(ASI_VERSION_MINOR 9)
+set(ASI_VERSION_MAJOR 1)
+set(ASI_VERSION_MINOR 0)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_asi.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_asi.xml)
@@ -27,6 +27,14 @@ include_directories( ${INDI_INCLUDE_DIR})
 include_directories( ${CFITSIO_INCLUDE_DIR})
 
 include(CMakeCommon)
+
+if (INDI_WEBSOCKET)
+    find_package(websocketpp REQUIRED)
+    find_package(Boost COMPONENTS system thread)
+    include_directories (${Boost_INCLUDE_DIRS})
+    add_definitions(-DHAVE_WEBSOCKET)
+    SET(HAVE_WEBSOCKET 1)
+endif()
 
 if (APPLE)
     set(ASICAMLIB ${CMAKE_CURRENT_SOURCE_DIR}/mac/libASICamera2.bin)
@@ -68,8 +76,11 @@ set(indi_asi_SRCS
    )
 
 add_executable(indi_asi_ccd ${indi_asi_SRCS})
-
 target_link_libraries(indi_asi_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${ASICAMLIB} ${USB1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+if (HAVE_WEBSOCKET)
+    target_link_libraries(indi_asi_ccd ${Boost_LIBRARIES})
+endif()
+
 
 
 ########### indi_asi_wheel ###########

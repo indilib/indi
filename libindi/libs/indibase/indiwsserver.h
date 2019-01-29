@@ -25,14 +25,15 @@
 
 //typedef websocketpp::server<websocketpp::config::asio> server;
 
-struct deflate_server_config : public websocketpp::config::asio {
+struct deflate_server_config : public websocketpp::config::asio
+{
     // ... additional custom config if you need it for other things
 
     /// permessage_compress extension
     struct permessage_deflate_config {};
 
     typedef websocketpp::extensions::permessage_deflate::enabled
-        <permessage_deflate_config> permessage_deflate_type;
+    <permessage_deflate_config> permessage_deflate_type;
 };
 
 typedef websocketpp::server<deflate_server_config> server;
@@ -44,99 +45,124 @@ using websocketpp::lib::bind;
 
 class INDIWSServer
 {
-public:
-    INDIWSServer()  {}
+    public:
+        INDIWSServer()  {}
 
-    uint16_t generatePort()
-    {
-        m_global_port++;
-        m_port = m_global_port;
-        return m_port ;
-    }
-
-    void on_open(connection_hdl hdl)
-    {
-        m_connections.insert(hdl);
-    }
-
-    void on_close(connection_hdl hdl)
-    {
-        m_connections.erase(hdl);
-    }
-
-//    void on_message(connection_hdl hdl, server::message_ptr msg)
-//    {
-//        for (auto it : m_connections)
-//        {
-//            m_server->send(it,msg);
-//        }
-//    }
-
-    void send_binary(void const * payload, size_t len)
-    {
-        for (auto it : m_connections)
+        uint16_t generatePort()
         {
-            m_server->send(it, payload, len, websocketpp::frame::opcode::binary);
-        }
-    }
-
-    void send_text(const std::string &payload)
-    {
-        for (auto it : m_connections)
-        {
-            m_server->send(it, payload, websocketpp::frame::opcode::text);
-        }
-    }
-
-    void stop()
-    {
-        for (auto it : m_connections)
-            m_server->close(it, websocketpp::close::status::normal, "Switched off by user.");
-
-        m_connections.clear();
-        m_server->stop();
-    }
-
-    bool is_running()
-    {
-        return m_server->is_listening();
-    }
-
-    void run()
-    {
-        try
-        {
-            m_server.reset(new server());
-
-            m_server->init_asio();
-            m_server->set_reuse_addr(true);
-
-
-            m_server->set_open_handler(bind(&INDIWSServer::on_open,this,::_1));
-            m_server->set_close_handler(bind(&INDIWSServer::on_close,this,::_1));
-            //m_server->set_message_handler(bind(&INDIWSServer::on_message,this,::_1,::_2));
-
-            m_server->listen(m_port);
-            m_server->start_accept();
-            m_server->run();
-
-        }
-        catch (websocketpp::exception const & e)
-        {
-            std::cerr << e.what() << std::endl;
-        } catch (...)
-        {
-            std::cerr << "other exception" << std::endl;
+            m_global_port++;
+            m_port = m_global_port;
+            return m_port ;
         }
 
-    }
+        void on_open(connection_hdl hdl)
+        {
+            m_connections.insert(hdl);
+        }
 
-private:
-    typedef std::set<connection_hdl,std::owner_less<connection_hdl>> con_list;
+        void on_close(connection_hdl hdl)
+        {
+            m_connections.erase(hdl);
+        }
 
-    std::unique_ptr<server> m_server;
-    con_list m_connections;
-    uint16_t m_port;
-    static uint16_t m_global_port;
+        //    void on_message(connection_hdl hdl, server::message_ptr msg)
+        //    {
+        //        for (auto it : m_connections)
+        //        {
+        //            m_server->send(it,msg);
+        //        }
+        //    }
+
+        void send_binary(void const * payload, size_t len)
+        {
+            for (auto it : m_connections)
+            {
+                try
+                {
+                    m_server->send(it, payload, len, websocketpp::frame::opcode::binary);
+                }
+                catch (websocketpp::exception const &e)
+                {
+                    std::cerr << e.what() << std::endl;
+                }
+                catch (...)
+                {
+                    std::cerr << "other exception" << std::endl;
+                }
+
+            }
+        }
+
+        void send_text(const std::string &payload)
+        {
+            for (auto it : m_connections)
+            {
+                try
+                {
+                    m_server->send(it, payload, websocketpp::frame::opcode::text);
+                }
+                catch (websocketpp::exception const &e)
+                {
+                    std::cerr << e.what() << std::endl;
+                }
+                catch (...)
+                {
+                    std::cerr << "other exception" << std::endl;
+                }
+
+            }
+        }
+
+        void stop()
+        {
+            for (auto it : m_connections)
+                m_server->close(it, websocketpp::close::status::normal, "Switched off by user.");
+
+            m_connections.clear();
+            m_server->stop();
+        }
+
+        bool is_running()
+        {
+            return m_server->is_listening();
+        }
+
+        void run()
+        {
+            try
+            {
+                m_server.reset(new server());
+
+                m_server->init_asio();
+                m_server->set_reuse_addr(true);
+
+
+                m_server->set_open_handler(bind(&INDIWSServer::on_open, this, ::_1));
+                m_server->set_close_handler(bind(&INDIWSServer::on_close, this, ::_1));
+                //m_server->set_message_handler(bind(&INDIWSServer::on_message,this,::_1,::_2));
+
+                m_server->listen(m_port);
+                m_server->start_accept();
+                m_server->run();
+
+            }
+            catch (websocketpp::exception const &e)
+            {
+                std::cerr << e.what() << std::endl;
+            }
+            catch (...)
+            {
+                std::cerr << "other exception" << std::endl;
+            }
+
+        }
+
+    private:
+        typedef std::set<connection_hdl, std::owner_less<connection_hdl>> con_list;
+
+        std::unique_ptr<server> m_server;
+        con_list m_connections;
+        uint16_t m_port;
+        static uint16_t m_global_port;
 };
 

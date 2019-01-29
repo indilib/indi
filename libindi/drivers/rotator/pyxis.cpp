@@ -129,7 +129,7 @@ bool Pyxis::Handshake()
     if (Ack())
         return true;
 
-    LOG_INFO("Error retreiving data from Pyrix, please ensure Pyrix controller is powered and the port is correct.");
+    LOG_INFO("Error retreiving data from Pyxis, please ensure Pyxis controller is powered and the port is correct.");
     return false;
 }
 
@@ -143,13 +143,13 @@ bool Pyxis::updateProperties()
     INDI::Rotator::updateProperties();
 
     if (isConnected())
-    { 
+    {
         defineNumber(&RotationRateNP)  ;
         defineSwitch(&SteppingSP);
         defineSwitch(&PowerSP);
         defineText(&FirmwareTP) ;
         defineText(&ModelTP) ;
-        
+
         queryParams();
     }
     else
@@ -197,7 +197,7 @@ void Pyxis::queryParams()
         bool rc = setRotationRate(rate) ;
         LOGF_DEBUG("queryParms rate = %d, firmware = %s", rate, sversion.c_str()) ;
         if (rc)
-	{
+        {
             RotationRateNP.s = IPS_OK ;
             RotationRateN[0].value = rate ;
             IDSetNumber(&RotationRateNP, nullptr) ;
@@ -205,13 +205,13 @@ void Pyxis::queryParams()
             IUSaveText(&ModelT[0], "Pyxis 3 Inch") ;
             ModelTP.s = IPS_OK;
             IDSetText(&ModelTP, nullptr)  ;
-	}
+        }
     }
     else
     {
         IUSaveText(&ModelT[0], "Pyxis 2 Inch") ;
         ModelTP.s = IPS_OK;
-        IDSetText(&ModelTP, nullptr) ; 
+        IDSetText(&ModelTP, nullptr) ;
     }
 
 }
@@ -251,7 +251,7 @@ bool Pyxis::Ack()
         LOG_ERROR("Cannot establish communication. Check power is on and homing is complete.");
         return false;
     }
-    
+
     return true;
 }
 
@@ -261,17 +261,17 @@ bool Pyxis::ISNewNumber(const char *dev, const char *name, double values[], char
     {
         if (!strcmp(name, RotationRateNP.name))
         {
-           bool rc = setRotationRate(static_cast<uint8_t>(values[0]));
-           if (rc)
-           {
-               RotationRateNP.s = IPS_OK;
-               RotationRateN[0].value = values[0];
-           }
-           else
-               RotationRateNP.s = IPS_ALERT;
+            bool rc = setRotationRate(static_cast<uint8_t>(values[0]));
+            if (rc)
+            {
+                RotationRateNP.s = IPS_OK;
+                RotationRateN[0].value = values[0];
+            }
+            else
+                RotationRateNP.s = IPS_ALERT;
 
-           IDSetNumber(&RotationRateNP, nullptr);
-           return true;
+            IDSetNumber(&RotationRateNP, nullptr);
+            return true;
         }
     }
 
@@ -343,9 +343,9 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 IUResetSwitch(&PowerSP);
                 if (rc)
                 {
-                   PowerSP.s = IPS_OK;
-                   PowerS[POWER_SLEEP].s = ISS_ON;
-                   LOG_INFO("Controller in sleep mode. No functions can be used until controller is waken up.");
+                    PowerSP.s = IPS_OK;
+                    PowerS[POWER_SLEEP].s = ISS_ON;
+                    LOG_INFO("Controller in sleep mode. No functions can be used until controller is waken up.");
                 }
                 else
                     PowerSP.s = IPS_ALERT;
@@ -353,8 +353,6 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 IDSetSwitch(&PowerSP, nullptr);
                 return true;
             }
-
-            return true;
         }
     }
 
@@ -503,7 +501,7 @@ IPState Pyxis::MoveRotator(double angle)
     char errstr[MAXRBUF];
 
     uint16_t current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
- 
+
     targetPA = static_cast<uint16_t>(round(angle));
 
     if (targetPA > 359)
@@ -512,14 +510,14 @@ IPState Pyxis::MoveRotator(double angle)
     // Rotator will only rotation +-180 degress from home (0 degrees) so it make take
     // the long way to avoid cable wrap
     if (current <= 180 && targetPA < 180)
-	direction = (targetPA >= current ? 1 : -1) ;
+        direction = (targetPA >= current ? 1 : -1) ;
     else if (current <= 180 && targetPA > 180)
         direction = -1 ;
     else if (current > 180 && targetPA >= 180)
-	direction = (targetPA >= current ? 1 : -1) ;
+        direction = (targetPA >= current ? 1 : -1) ;
     else if (current > 180 && targetPA < 180)
-	direction = 1 ;
-    
+        direction = 1 ;
+
     snprintf(cmd, PYRIX_BUF, "CPA%03d", targetPA);
 
     LOGF_DEBUG("CMD <%s>", cmd);
@@ -565,7 +563,7 @@ void Pyxis::TimerHit()
     {
         SetTimer(POLLMS);
         return;
-    }    
+    }
 
     if (HomeRotatorSP.s == IPS_BUSY)
     {
@@ -584,8 +582,8 @@ void Pyxis::TimerHit()
         }
     }
     else if (GotoRotatorNP.s == IPS_BUSY)
-    { 
-        if (!isMotionComplete())   
+    {
+        if (!isMotionComplete())
         {
             LOGF_DEBUG("Motion in %s", "progress") ;
             SetTimer(POLL_100MS) ;
@@ -608,7 +606,7 @@ bool Pyxis::isMotionComplete()
 {
     int nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char res[PYXIS_3INCH_PER_DEG+1] = { 0 };
+    char res[PYXIS_3INCH_PER_DEG + 1] = { 0 };
 
     bool pyxis3inch = atoi(FirmwareT[0].text) >= 3 ;
 
@@ -618,26 +616,26 @@ bool Pyxis::isMotionComplete()
         if (rc == TTY_TIME_OUT)
             return false;
         else if (rc == TTY_OVERFLOW)
-	{
+        {
             LOGF_DEBUG("RES <%s>", res);
 
             int current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
-		
+
             current = current + direction ;
             if (current < 0) current = 359 ;
             if (current > 360) current = 1 ;
 
             GotoRotatorN[0].value = current ;
             IDSetNumber(&GotoRotatorNP, nullptr);
- 
+
             LOGF_DEBUG("ANGLE = %d", current) ;
             LOGF_DEBUG("TTY_OVERFLOW, nbytes_read = %d", nbytes_read) ;
             return false ;
-	}
+        }
 
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-        
+
         if (HomeRotatorSP.s == IPS_BUSY)
         {
             HomeRotatorS[0].s = ISS_OFF;

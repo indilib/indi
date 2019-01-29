@@ -19,7 +19,7 @@
         </device>
         <device label="LX200 OnStep">
                 <driver name="LX200 OnStep">indi_lx200_OnStep</driver>
-                <version>1.5</version>
+                <version>1.6</version>
         </device>
         <device label="LX200 16" manufacturer="Meade">
                 <driver name="LX200 16">indi_lx200_16</driver>
@@ -62,6 +62,10 @@
                 <version>3.1</version>
         </device>
         <device label="Celestron AVX" manufacturer="Celestron">
+                <driver name="Celestron GPS">indi_celestron_gps</driver>
+                <version>3.1</version>
+        </device>
+        <device label="Celestron CGX" manufacturer="Celestron">
                 <driver name="Celestron GPS">indi_celestron_gps</driver>
                 <version>3.1</version>
         </device>
@@ -337,6 +341,10 @@
             <driver name="SkySafari">indi_skysafari</driver>
             <version>0.1</version>
         </device>
+        <device label="Pegasus PPB">
+                <driver name="Pegasus PPB">indi_pegasus_ppb</driver>
+                <version>1.0</version>
+        </device>
         <device label="Pegasus UPB">
                 <driver name="Pegasus UPB">indi_pegasus_upb</driver>
                 <version>1.0</version>
@@ -387,6 +395,10 @@
         </device>
 </devGroup>
 <devGroup group="Domes">
+        <device label="ScopeDome Dome">
+                <driver name="ScopeDome Dome">indi_scopedome_dome</driver>
+                <version>1.0</version>
+        </device>
         <device label="Baader Dome">
                 <driver name="Baader Dome">indi_baader_dome</driver>
                 <version>1.0</version>

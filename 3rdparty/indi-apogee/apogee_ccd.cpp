@@ -1,21 +1,25 @@
 #if 0
-    Apogee CCD
-    INDI Driver for Apogee CCDs and Filter Wheels
-    Copyright (C) 2014 Jasem Mutlaq <mutlaqja AT ikarustech DOT com>
+Apogee CCD
+INDI Driver for Apogee CCDs and Filter Wheels
+Copyright (C) 2014 Jasem Mutlaq <mutlaqja AT ikarustech DOT com>
 
-    This library is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
-    License as published by the Free Software Foundation; either
-    version 2.1 of the License, or (at your option) any later version.
+    This library is free software;
+you can redistribute it and / or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation;
+either
+version 2.1 of the License, or (at your option) any later version.
 
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+This library is distributed in the hope that it will be useful,
+     but WITHOUT ANY WARRANTY;
+without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU Lesser General Public
+License along with this library;
+if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 #endif
 
@@ -41,12 +45,12 @@
 #include <memory>
 
 #ifdef OSX_EMBEDED_MODE
- #include "Alta.h"
- #include "AltaF.h"
- #include "Ascent.h"
- #include "Aspen.h"
- #include "Quad.h"
- #include "ApgLogger.h"
+#include "Alta.h"
+#include "AltaF.h"
+#include "Ascent.h"
+#include "Aspen.h"
+#include "Quad.h"
+#include "ApgLogger.h"
 #else
 #include <libapogee/Alta.h>
 #include <libapogee/AltaF.h>
@@ -287,7 +291,7 @@ bool ApogeeCCD::getCameraParams()
 
         IDSetSwitch(&CoolerSP, nullptr);
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("getCameraParams failed. %s.", err.what());
         return false;
@@ -303,7 +307,7 @@ bool ApogeeCCD::getCameraParams()
     {
         fStatus = ApgCam->GetFanMode();
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("GetFanMode failed. %s.", err.what());
         return false;
@@ -338,7 +342,7 @@ bool ApogeeCCD::getCameraParams()
     {
         minDuration = ApgCam->GetMinExposureTime();
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("get_MinExposureTime() failed. %s.", err.what());
         return false;
@@ -365,7 +369,7 @@ int ApogeeCCD::SetTemperature(double temperature)
         if (isSimulation() == false)
             ApgCam->SetCoolerSetPoint(temperature);
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("SetCoolerSetPoint failed. %s.", err.what());
         return -1;
@@ -404,7 +408,7 @@ bool ApogeeCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     if (isSimulation() == false)
                         ApgCam->SetCcdAdcSpeed(Apg::AdcSpeed_Normal);
                 }
-                catch (std::runtime_error& err)
+                catch (std::runtime_error &err)
                 {
                     IUResetSwitch(&ReadOutSP);
                     ReadOutSP.s = IPS_ALERT;
@@ -420,7 +424,7 @@ bool ApogeeCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     if (isSimulation() == false)
                         ApgCam->SetCcdAdcSpeed(Apg::AdcSpeed_Fast);
                 }
-                catch (std::runtime_error& err)
+                catch (std::runtime_error &err)
                 {
                     IUResetSwitch(&ReadOutSP);
                     ReadOutSP.s = IPS_ALERT;
@@ -539,7 +543,7 @@ bool ApogeeCCD::StartExposure(float duration)
                 PrimaryCCD.setExposureDuration(ExposureRequest);
             }
         }
-        catch (std::runtime_error& err)
+        catch (std::runtime_error &err)
         {
             LOGF_ERROR("StartExposure() failed. %s.", err.what());
             return false;
@@ -555,7 +559,7 @@ bool ApogeeCCD::StartExposure(float duration)
                 PrimaryCCD.setExposureDuration(ExposureRequest);
             }
         }
-        catch (std::runtime_error& err)
+        catch (std::runtime_error &err)
         {
             LOGF_ERROR("StartExposure() failed. %s.", err.what());
             return false;
@@ -576,7 +580,7 @@ bool ApogeeCCD::AbortExposure()
         if (isSimulation() == false)
             ApgCam->StopExposure(false);
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("AbortExposure() failed. %s.", err.what());
         return false;
@@ -641,7 +645,7 @@ bool ApogeeCCD::UpdateCCDFrame(int x, int y, int w, int h)
             ApgCam->SetRoiNumRows(imageHeight);
         }
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("Setting image area failed. %s.", err.what());
         return false;
@@ -670,7 +674,7 @@ bool ApogeeCCD::UpdateCCDBin(int binx, int biny)
         if (isSimulation() == false)
             ApgCam->SetRoiBinCol(binx);
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("SetRoiBinCol failed. %s.", err.what());
         return false;
@@ -681,7 +685,7 @@ bool ApogeeCCD::UpdateCCDBin(int binx, int biny)
         if (isSimulation() == false)
             ApgCam->SetRoiBinRow(biny);
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("SetRoiBinRow failed. %s.", err.what());
         return false;
@@ -697,10 +701,11 @@ bool ApogeeCCD::UpdateCCDBin(int binx, int biny)
 int ApogeeCCD::grabImage()
 {
     std::vector<uint16_t> pImageData;
-    unsigned short *image = (unsigned short *)PrimaryCCD.getFrameBuffer();
+    uint16_t *image = reinterpret_cast<uint16_t*>(PrimaryCCD.getFrameBuffer());
 
     try
     {
+        std::unique_lock<std::mutex> guard(ccdBufferLock);
         if (isSimulation())
         {
             for (int i = 0; i < imageHeight; i++)
@@ -714,8 +719,9 @@ int ApogeeCCD::grabImage()
             imageHeight = ApgCam->GetRoiNumRows();
             copy(pImageData.begin(), pImageData.end(), image);
         }
+        guard.unlock();
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("GetImage failed. %s.", err.what());
         return -1;
@@ -913,8 +919,8 @@ bool ApogeeCCD::Connect()
         if (isSimulation())
         {
             msg  = std::string("<d>address=0,interface=usb,deviceType=camera,id=0x49,firmwareRev=0x21,model=AltaU-"
-                              "4020ML,interfaceStatus=NA</d><d>address=1,interface=usb,model=Filter "
-                              "Wheel,deviceType=filterWheel,id=0xFFFF,firmwareRev=0xFFEE</d>");
+                               "4020ML,interfaceStatus=NA</d><d>address=1,interface=usb,model=Filter "
+                               "Wheel,deviceType=filterWheel,id=0xFFFF,firmwareRev=0xFFEE</d>");
             addr = GetUsbAddress(msg);
         }
         else
@@ -926,7 +932,7 @@ bool ApogeeCCD::Connect()
                 msg  = lookUsb.Find();
                 addr = GetUsbAddress(msg);
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 LOGF_ERROR("Error getting USB address: %s", err.what());
                 return false;
@@ -958,7 +964,7 @@ bool ApogeeCCD::Connect()
                 msg = look4cam.Find(subnet);
                 LOGF_DEBUG("Network search result: %s", msg.c_str());
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 LOGF_ERROR("Error getting network address: %s", err.what());
                 return false;
@@ -1042,7 +1048,7 @@ bool ApogeeCCD::Connect()
 
         default:
             LOGF_ERROR("Model %s is not supported by the INDI Apogee driver.",
-                   GetItemFromFindStr(msg, "model=").c_str());
+                       GetItemFromFindStr(msg, "model=").c_str());
             return false;
             break;
     }
@@ -1055,7 +1061,7 @@ bool ApogeeCCD::Connect()
             ApgCam->Init();
         }
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("Error opening camera: %s", err.what());
         return false;
@@ -1076,7 +1082,7 @@ bool ApogeeCCD::Disconnect()
         if (isSimulation() == false)
             ApgCam->CloseConnection();
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         LOGF_ERROR("Error: CloseConnection failed. %s.", err.what());
         return false;
@@ -1103,7 +1109,7 @@ void ApogeeCCD::activateCooler(bool enable)
             coolerSet = true;
         }
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         CoolerSP.s   = IPS_ALERT;
         CoolerS[0].s = ISS_OFF;
@@ -1174,7 +1180,7 @@ void ApogeeCCD::TimerHit()
                 else
                     ccdTemp = ApgCam->GetTempCcd();
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 TemperatureNP.s = IPS_IDLE;
                 LOGF_ERROR("GetTempCcd failed. %s.", err.what());
@@ -1198,7 +1204,7 @@ void ApogeeCCD::TimerHit()
                 else
                     ccdTemp = ApgCam->GetTempCcd();
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 TemperatureNP.s = IPS_ALERT;
                 LOGF_ERROR("GetTempCcd failed. %s.", err.what());
@@ -1229,7 +1235,7 @@ void ApogeeCCD::TimerHit()
                 else
                     coolerPower = ApgCam->GetCoolerDrive();
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 CoolerNP.s = IPS_IDLE;
                 LOGF_ERROR("GetCoolerDrive failed. %s.", err.what());
@@ -1257,7 +1263,7 @@ void ApogeeCCD::TimerHit()
                 else
                     coolerPower = ApgCam->GetCoolerDrive();
             }
-            catch (std::runtime_error& err)
+            catch (std::runtime_error &err)
             {
                 CoolerNP.s = IPS_ALERT;
                 LOGF_ERROR("GetCoolerDrive failed. %s.", err.what());

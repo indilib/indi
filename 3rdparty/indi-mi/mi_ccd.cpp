@@ -309,7 +309,7 @@ void MICCD::ISGetProperties(const char *dev)
 
         if (numFilters > 0)
         {
-           INDI::FilterInterface::updateProperties();
+            INDI::FilterInterface::updateProperties();
         }
     }
 }
@@ -624,7 +624,7 @@ bool MICCD::UpdateCCDBin(int hor, int ver)
     if (hor < 1 || hor > maxBinX || ver < 1 || ver > maxBinY)
     {
         LOGF_ERROR("Binning (%dx%d) are out of range. Range from 1x1 to (%dx%d)", maxBinX,
-               maxBinY);
+                   maxBinY);
         return false;
     }
     if (gxccd_set_binning(cameraHandle, hor, ver) < 0)
@@ -671,9 +671,9 @@ static void mirror_image(void *buf, size_t w, size_t d)
 /* Downloads the image from the CCD. */
 int MICCD::grabImage()
 {
+    std::unique_lock<std::mutex> guard(ccdBufferLock);
     int ret              = 0;
     unsigned char *image = (unsigned char *)PrimaryCCD.getFrameBuffer();
-
     int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
     int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
@@ -699,6 +699,8 @@ int MICCD::grabImage()
             mirror_image(image, width, height);
         }
     }
+
+    guard.unlock();
 
     if (ExposureRequest > POLLMS * 5 && !ret)
         LOG_INFO("Download complete.");
