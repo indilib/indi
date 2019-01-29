@@ -41,11 +41,6 @@ int videoThread(qhyccd_handle *pCamHandle, unsigned char *pImgData)
     uint32_t frames = 0, w, h, bpp, channels;
     int rc = 0;
 
-    rc = SetQHYCCDStreamMode(pCamHandle, 0x01);
-    if (rc != QHYCCD_SUCCESS)
-    {
-        fprintf(stderr, "SetQHYCCDStreamMode failed: %d", rc);
-    }
     rc = BeginQHYCCDLive(pCamHandle);
     if (rc != QHYCCD_SUCCESS)
     {
@@ -57,7 +52,12 @@ int videoThread(qhyccd_handle *pCamHandle, unsigned char *pImgData)
     while (!exit_thread)
     {
         if (GetQHYCCDLiveFrame(pCamHandle, &w, &h, &bpp, &channels, pImgData) == QHYCCD_SUCCESS)
+        {
             frames++;
+            usleep(2000);
+        }
+        else
+            usleep(1000);
     }
 
     auto stop = timer.now();
@@ -66,7 +66,6 @@ int videoThread(qhyccd_handle *pCamHandle, unsigned char *pImgData)
 
     fprintf(stderr, "Frames: %d Duration: %.3f seconds FPS: %.3f\n", frames, duration.count(), frames / duration.count());
 
-    SetQHYCCDStreamMode(pCamHandle, 0x0);
     StopQHYCCDLive(pCamHandle);
 
     return 0;
@@ -75,11 +74,11 @@ int videoThread(qhyccd_handle *pCamHandle, unsigned char *pImgData)
 int main(int, char **)
 {
 
-    int USB_TRAFFIC = 0;
-    int USB_SPEED = 0;
+    int USB_TRAFFIC = 20;
+    int USB_SPEED = 2;
     int CHIP_GAIN = 1;
     int CHIP_OFFSET = 180;
-    int EXPOSURE_TIME = 40000;
+    int EXPOSURE_TIME = 1;
     int camBinX = 1;
     int camBinY = 1;
 
@@ -340,6 +339,13 @@ int main(int, char **)
         return 1;
     }
 
+    // N.B. SetQHYCCDStreamMode must be called immediately after CONTROL_EXPOSURE is SET
+    retVal = SetQHYCCDStreamMode(pCamHandle, 0x01);
+    if (retVal != QHYCCD_SUCCESS)
+    {
+        fprintf(stderr, "SetQHYCCDStreamMode failed: %d", retVal);
+    }
+
     // set image resolution
     retVal = SetQHYCCDResolution(pCamHandle, roiStartX, roiStartY, roiSizeX, roiSizeY);
     if (QHYCCD_SUCCESS == retVal)
@@ -393,6 +399,8 @@ int main(int, char **)
         exit_thread = true;
         t.join();
     }
+
+    SetQHYCCDStreamMode(pCamHandle, 0x0);
 
     // close camera handle
     retVal = CloseQHYCCD(pCamHandle);
