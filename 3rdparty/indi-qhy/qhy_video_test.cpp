@@ -47,17 +47,20 @@ int videoThread(qhyccd_handle *pCamHandle, unsigned char *pImgData)
         if (GetQHYCCDLiveFrame(pCamHandle, &w, &h, &bpp, &channels, pImgData) == QHYCCD_SUCCESS)
         {
             frames++;
+
+            auto stop = timer.now();
+            fsec duration = (stop - start);
+            if (duration.count() >= 3)
+            {
+                fprintf(stderr, "Frames: %d Duration: %.3f seconds FPS: %.3f\n", frames, duration.count(), frames / duration.count());
+                start = timer.now();
+                frames = 0;
+            }
             usleep(3000);
         }
         else
             usleep(1000);
     }
-
-    auto stop = timer.now();
-
-    fsec duration = (stop - start);
-
-    fprintf(stderr, "Frames: %d Duration: %.3f seconds FPS: %.3f\n", frames, duration.count(), frames / duration.count());
 
     return 0;
 }
@@ -248,6 +251,31 @@ int main(int, char **)
         fprintf(stderr, "This is a mono camera.\n");
     }
 
+    // set exposure time
+    rc = SetQHYCCDParam(pCamHandle, CONTROL_EXPOSURE, EXPOSURE_TIME);
+    fprintf(stderr, "SetQHYCCDParam CONTROL_EXPOSURE set to: %d us, success.\n", EXPOSURE_TIME);
+    if (QHYCCD_SUCCESS == rc)
+    {
+    }
+    else
+    {
+        fprintf(stderr, "SetQHYCCDParam CONTROL_EXPOSURE failure, error: %d us\n", rc);
+        getchar();
+        return 1;
+    }
+
+    // N.B. SetQHYCCDStreamMode must be called immediately after CONTROL_EXPOSURE is SET
+    // 1. Exposure
+    // 2. Stream Mode
+    // 3. Speed
+    // 4. Traffic
+    // 5. 8-bit
+    rc = SetQHYCCDStreamMode(pCamHandle, 1);
+    if (rc != QHYCCD_SUCCESS)
+    {
+        fprintf(stderr, "SetQHYCCDStreamMode failed: %d", rc);
+    }
+
     // check traffic
     rc = IsQHYCCDControlAvailable(pCamHandle, CONTROL_USBTRAFFIC);
     if (QHYCCD_SUCCESS == rc)
@@ -314,26 +342,6 @@ int main(int, char **)
             getchar();
             return 1;
         }
-    }
-
-    // set exposure time
-    rc = SetQHYCCDParam(pCamHandle, CONTROL_EXPOSURE, EXPOSURE_TIME);
-    fprintf(stderr, "SetQHYCCDParam CONTROL_EXPOSURE set to: %d us, success.\n", EXPOSURE_TIME);
-    if (QHYCCD_SUCCESS == rc)
-    {
-    }
-    else
-    {
-        fprintf(stderr, "SetQHYCCDParam CONTROL_EXPOSURE failure, error: %d us\n", rc);
-        getchar();
-        return 1;
-    }
-
-    // N.B. SetQHYCCDStreamMode must be called immediately after CONTROL_EXPOSURE is SET
-    rc = SetQHYCCDStreamMode(pCamHandle, 0x01);
-    if (rc != QHYCCD_SUCCESS)
-    {
-        fprintf(stderr, "SetQHYCCDStreamMode failed: %d", rc);
     }
 
     // set image resolution
