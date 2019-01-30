@@ -28,12 +28,12 @@
 #include "connectioncurl.h"
 #include "command_interface.h"
 
-class Starbook : public INDI::Telescope
+class StarbookDriver : public INDI::Telescope
 {
 public:
-    Starbook();
+    StarbookDriver();
 
-    ~Starbook() override;
+    ~StarbookDriver() override;
 
     bool initProperties() override;
 

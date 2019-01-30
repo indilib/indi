@@ -26,7 +26,7 @@
 #include <cstring>
 #include <regex>
 
-static std::unique_ptr<Starbook> starbook_driver(new Starbook());
+static std::unique_ptr<StarbookDriver> starbook_driver(new StarbookDriver());
 
 void ISGetProperties(const char* dev)
 {
@@ -66,7 +66,7 @@ void ISSnoopDevice(XMLEle* root)
     INDI_UNUSED(root);
 }
 
-Starbook::Starbook()
+StarbookDriver::StarbookDriver()
 {
     setVersion(STARBOOK_DRIVER_VERSION_MAJOR, STARBOOK_DRIVER_VERSION_MINOR);
     SetTelescopeCapability(
@@ -76,9 +76,9 @@ Starbook::Starbook()
     setTelescopeConnection(CONNECTION_NONE);
 }
 
-Starbook::~Starbook() = default;
+StarbookDriver::~StarbookDriver() = default;
 
-bool Starbook::initProperties()
+bool StarbookDriver::initProperties()
 {
     Telescope::initProperties();
 
@@ -113,7 +113,7 @@ bool Starbook::initProperties()
     return true;
 }
 
-bool Starbook::updateProperties() {
+bool StarbookDriver::updateProperties() {
     Telescope::updateProperties();
     if (isConnected()) {
         defineText(&VersionTP);
@@ -127,7 +127,7 @@ bool Starbook::updateProperties() {
     return true;
 }
 
-bool Starbook::Connect()
+bool StarbookDriver::Connect()
 {
     bool rc = Telescope::Connect();
     if (rc) {
@@ -136,17 +136,17 @@ bool Starbook::Connect()
     return rc;
 }
 
-bool Starbook::Disconnect()
+bool StarbookDriver::Disconnect()
 {
     return Telescope::Disconnect();
 }
 
-const char* Starbook::getDefaultName()
+const char *StarbookDriver::getDefaultName()
 {
     return "Starbook mount controller";
 }
 
-bool Starbook::ReadScopeStatus()
+bool StarbookDriver::ReadScopeStatus()
 {
     LOG_DEBUG("Status! Sending GETSTATUS command");
     starbook::StatusResponse res;
@@ -199,7 +199,7 @@ bool Starbook::ReadScopeStatus()
     return true;
 }
 
-bool Starbook::Goto(double ra, double dec)
+bool StarbookDriver::Goto(double ra, double dec)
 {
     ra = ra * 15; // CONVERSION
 
@@ -208,7 +208,7 @@ bool Starbook::Goto(double ra, double dec)
     return rc == starbook::OK;
 }
 
-bool Starbook::Sync(double ra, double dec)
+bool StarbookDriver::Sync(double ra, double dec)
 {
     ra = ra * 15; // CONVERSION
 
@@ -217,14 +217,14 @@ bool Starbook::Sync(double ra, double dec)
     return rc == starbook::OK;
 }
 
-bool Starbook::Abort()
+bool StarbookDriver::Abort()
 {
     starbook::ResponseCode rc = cmd_interface->Stop();
     LogResponse("Abort", rc);
     return rc == starbook::OK;
 }
 
-bool Starbook::Park()
+bool StarbookDriver::Park()
 {
     // TODO Park
     LOG_WARN("HOME command is unstable");
@@ -233,26 +233,26 @@ bool Starbook::Park()
     return rc == starbook::OK;
 }
 
-bool Starbook::UnPark()
+bool StarbookDriver::UnPark()
 {
     // TODO UnPark
     LOG_WARN("Always unparked");
     return true;
 }
 
-bool Starbook::MoveNS(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand command) {
+bool StarbookDriver::MoveNS(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand command) {
     starbook::ResponseCode rc = cmd_interface->Move(dir, command);
     LogResponse("MoveNS", rc);
     return rc == starbook::OK;
 }
 
-bool Starbook::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
+bool StarbookDriver::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
     starbook::ResponseCode rc = cmd_interface->Move(dir, command);
     LogResponse("MoveWE", rc);
     return rc == starbook::OK;
 }
 
-bool Starbook::updateTime(ln_date *utc, double utc_offset) {
+bool StarbookDriver::updateTime(ln_date *utc, double utc_offset) {
     INDI_UNUSED(utc_offset);
 
     starbook::ResponseCode rc = cmd_interface->SetTime(*utc);
@@ -261,7 +261,7 @@ bool Starbook::updateTime(ln_date *utc, double utc_offset) {
 
 }
 
-bool Starbook::getFirmwareVersion() {
+bool StarbookDriver::getFirmwareVersion() {
     starbook::VersionResponse res;
     starbook::ResponseCode rc = cmd_interface->Version(res);
 
@@ -284,13 +284,13 @@ bool Starbook::getFirmwareVersion() {
     return true;
 }
 
-bool Starbook::Handshake()
+bool StarbookDriver::Handshake()
 {
     LOG_DEBUG("Handshake");
     return Telescope::Handshake();
 }
 
-void Starbook::LogResponse(const std::string &cmd, const starbook::ResponseCode &rc) {
+void StarbookDriver::LogResponse(const std::string &cmd, const starbook::ResponseCode &rc) {
     std::stringstream msg;
 
     msg << cmd << " [";
@@ -346,7 +346,7 @@ void Starbook::LogResponse(const std::string &cmd, const starbook::ResponseCode 
 //    LOGF_DEBUG("extracted response:", cmd_interface->last_response.c_str());
 }
 
-bool Starbook::ISNewSwitch(const char *dev, const char *name, ISState *states, char **names, int n) {
+bool StarbookDriver::ISNewSwitch(const char *dev, const char *name, ISState *states, char **names, int n) {
 
     if (!strcmp(name, StartSP.name)) {
         IUResetSwitch(&StartSP);
