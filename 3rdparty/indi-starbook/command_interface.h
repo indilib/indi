@@ -38,6 +38,9 @@ namespace starbook {
         float major_minor;
     } VersionResponse;
 
+    const int MIN_SPEED = 0;
+    const int MAX_SPEED = 7;
+
     class CommandInterface {
     public:
 

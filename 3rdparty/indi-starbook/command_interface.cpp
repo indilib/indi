@@ -168,6 +168,7 @@ namespace starbook {
         res.equ = {0, 0};
         ln_hequ_to_equ(&equ_posn, &res.equ);
 
+        // we should be able to parse whole response
         if (cmd_res.empty()) {
             return OK;
         }
@@ -200,7 +201,7 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::SetSpeed(int speed) {
-        if (speed < 0 || speed > 7)
+        if (speed < MIN_SPEED || speed > MAX_SPEED)
             return ERROR_FORMAT;
 
         std::ostringstream cmd;
