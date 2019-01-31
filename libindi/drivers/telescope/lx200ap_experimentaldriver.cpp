@@ -69,6 +69,21 @@ int APParkMount(int fd)
     return 0;
 }
 
+// make this a function with logging instead of a #define like in legacy driver
+int APUnParkMount(int fd)
+{
+    int error_type;
+    int nbytes_write = 0;
+
+    DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "APUnParkMount: Sending unpark command.");
+    DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "CMD <%s>", "#:PO");
+
+    if ((error_type = tty_write_string(fd, "#:PO", &nbytes_write)) != TTY_OK)
+        return error_type;
+
+    return 0;
+}
+
 // This is a modified version of selectAPMoveRate() from lx200apdriver.cpp
 // This version allows changing the rate to GUIDE as well as 12x/64x/600x/1200x
 // and is required some the experimental AP driver properly handles
@@ -129,21 +144,6 @@ int selectAPCenterRate(int fd, int centerRate)
         return -1;
         break;
     }
-    return 0;
-}
-
-// make this a function with logging instead of a #define like in legacy driver
-int APUnParkMount(int fd)
-{
-    int error_type;
-    int nbytes_write = 0;
-
-    DEBUGDEVICE(lx200ap_exp_name, INDI::Logger::DBG_DEBUG, "APUnParkMount: Sending unpark command.");
-    DEBUGFDEVICE(lx200ap_exp_name, AP_EXP_DBG_SCOPE, "CMD <%s>", "#:PO");
-
-    if ((error_type = tty_write_string(fd, "#:PO", &nbytes_write)) != TTY_OK)
-        return error_type;
-
     return 0;
 }
 
