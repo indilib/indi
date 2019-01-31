@@ -87,7 +87,7 @@ bool StarbookDriver::initProperties()
                      IPS_IDLE);
 
     IUFillText(&StateT[0], "State", "State", "");
-    IUFillTextVector(&VersionTP, StateT, 1, getDeviceName(), "Status", "Status", MAIN_CONTROL_TAB, IP_RO, 0,
+    IUFillTextVector(&StateTP, StateT, 1, getDeviceName(), "Status", "Status", MAIN_CONTROL_TAB, IP_RO, 0,
                      IPS_IDLE);
 
     IUFillSwitch(&StartS[0], "Initialize", "Initialize", ISS_OFF);
@@ -99,7 +99,7 @@ bool StarbookDriver::initProperties()
     curlConnection->registerHandshake([&]() { return callHandshake(); });
     registerConnection(curlConnection);
 
-    curlConnection->setDefaultHost("192.168.0.102");
+    curlConnection->setDefaultHost("169.254.1.1");
     curlConnection->setDefaultPort(80);
 
     cmd_interface = std::unique_ptr<starbook::CommandInterface>(
@@ -190,13 +190,12 @@ bool StarbookDriver::ReadScopeStatus()
             IUSaveText(&StateT[0], "UNKNOWN");
             break;
     }
-    IDSetText(&StateTP, nullptr);
     StateTP.s = IPS_OK;
+    IDSetText(&StateTP, nullptr);
 
     NewRaDec(res.equ.ra / 15, res.equ.dec); // CONVERSION
 
     LOG_DEBUG("STATUS");
-    LOG_INFO("STATUS");
 //    LOGF_DEBUG("REQ: %s RES: %s", cmd_interface->last_cmd_url.c_str(), cmd_interface->last_response.c_str());
     return true;
 }
