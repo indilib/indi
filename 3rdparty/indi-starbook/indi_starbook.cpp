@@ -72,7 +72,7 @@ StarbookDriver::StarbookDriver()
     SetTelescopeCapability(
             TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME, 1);
 
-//    we are using custom connection
+//    we are using custom Connection::Curl
     setTelescopeConnection(CONNECTION_NONE);
 }
 
@@ -132,6 +132,8 @@ bool StarbookDriver::Connect()
     bool rc = Telescope::Connect();
     if (rc) {
         getFirmwareVersion();
+        // TODO: resolve this in less hacky way https://github.com/indilib/indi/issues/810
+        saveConfig(false, "DEVICE_ADDRESS");
     }
     return rc;
 }
@@ -361,6 +363,13 @@ bool StarbookDriver::ISNewSwitch(const char *dev, const char *name, ISState *sta
         }
         IDSetSwitch(&StartSP, nullptr);
         return true;
+    }
+
+    if (!strcmp(name, "CONNECTION_MODE")) {
+        // TODO: resolve this in less hacky way https://github.com/indilib/indi/issues/810
+        loadConfig(false, "DEVICE_ADDRESS");
+        // we pass rest of the work to parent function
+        // hopefully, loading property before connection mode setups won't break anything
     }
 
     return Telescope::ISNewSwitch(dev, name, states, names, n);
