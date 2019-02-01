@@ -157,7 +157,8 @@ void StreamManager::ISGetProperties(const char * dev)
     if (currentCCD->isConnected())
     {
         currentCCD->defineSwitch(&StreamSP);
-        currentCCD->defineNumber(&StreamExposureNP);
+        if (m_hasStreamingExposure)
+            currentCCD->defineNumber(&StreamExposureNP);
         currentCCD->defineNumber(&FpsNP);
         currentCCD->defineSwitch(&RecordStreamSP);
         currentCCD->defineText(&RecordFileTP);
@@ -176,7 +177,8 @@ bool StreamManager::updateProperties()
         imageB  = imageBP->bp;
 
         currentCCD->defineSwitch(&StreamSP);
-        currentCCD->defineNumber(&StreamExposureNP);
+        if (m_hasStreamingExposure)
+            currentCCD->defineNumber(&StreamExposureNP);
         currentCCD->defineNumber(&FpsNP);
         currentCCD->defineSwitch(&RecordStreamSP);
         currentCCD->defineText(&RecordFileTP);
@@ -188,7 +190,8 @@ bool StreamManager::updateProperties()
     else
     {
         currentCCD->deleteProperty(StreamSP.name);
-        currentCCD->deleteProperty(StreamExposureNP.name);
+        if (m_hasStreamingExposure)
+            currentCCD->deleteProperty(StreamExposureNP.name);
         currentCCD->deleteProperty(FpsNP.name);
         currentCCD->deleteProperty(RecordFileTP.name);
         currentCCD->deleteProperty(RecordStreamSP.name);
