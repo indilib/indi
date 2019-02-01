@@ -302,6 +302,9 @@ GPhotoCCD::GPhotoCCD() : FI(this)
     on_off[1]        = strdup("Off");
 
     setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);
+
+    Streamer->setStreamingExposureEnabled(false);
+
 }
 
 GPhotoCCD::GPhotoCCD(const char * model, const char * port) : FI(this)
@@ -1896,6 +1899,13 @@ void GPhotoCCD::streamLiveView()
             LOG_ERROR("Error getting live video frame.");
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
+        }
+
+        if (liveVideoWidth <= 0)
+        {
+            liveVideoWidth = w;
+            liveVideoHeight = h;
+            Streamer->setSize(liveVideoWidth, liveVideoHeight);
         }
 
         PrimaryCCD.setFrameBuffer(ccdBuffer);
