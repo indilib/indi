@@ -4,8 +4,6 @@ set -x -e
 
 FLAGS="-DCMAKE_INSTALL_PREFIX=/usr/local -DFIX_WARNINGS=ON -DCMAKE_BUILD_TYPE=$1"
 
-modules=$(grep path .gitmodules | grep 3rdparty | cut -d '=' -f 2 | tr -d '\n')
-
 # The build-libs.sh must be run first for this to work
 if [ .${CIRCLE_BRANCH%_*} == '.drv' -a `lsb_release -si` == 'Ubuntu' ] ; then
     DRV="indi-${CIRCLE_BRANCH#drv_}"

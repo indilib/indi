@@ -36,14 +36,6 @@ sudo apt-get -q -y install \
  libswscale-dev \
  libavutil-dev \
 
-modules=$(grep path .gitmodules | cut -d '=' -f 2 | tr -d '\n')
-
-for module in $modules; do
-        git submodule init $module
-        git submodule update --init $module
-        git submodule update --remote $module
-done
-
 # Install libftdi for MGen driver
 CURDIR="$(pwd)"
 sudo apt-get -q -y install libusb-1.0-0-dev libconfuse-dev python3-all-dev doxygen libboost-test-dev python-all-dev swig g++

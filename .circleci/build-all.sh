@@ -5,14 +5,6 @@ set -x -e
 br=( master develop package travis pull )
 
 build_all () {
-    modules=$(grep path .gitmodules | cut -d '=' -f 2 | tr -d '\n')
-
-    for module in $modules; do
-            git submodule init $module
-            git submodule update --init $module
-            git submodule update --remote $module
-    done
-
     .circleci/build-core.sh
     .circleci/build-libs.sh
     .circleci/build-3rdparty.sh
