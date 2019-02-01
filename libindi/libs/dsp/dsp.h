@@ -133,7 +133,7 @@ extern "C" {
 #ifdef _WIN32
 #define DLL_EXPORT __declspec(dllexport)
 #else
-#define DLL_EXPORT extern 
+#define DLL_EXPORT extern "C"
 #endif
 #endif
 

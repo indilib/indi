@@ -51,11 +51,11 @@
 #ifdef  __cplusplus
 #define CXX_EXPORT extern "C"
 #endif
+#ifndef DLL_EXPORT
 #ifdef _WIN32
-#ifdef DLL_EXPORT
-#define DLL_EXPORT CXX_EXPORT __declspec(dllexport)
+#define DLL_EXPORT __declspec(dllexport)
 #else
-#define DLL_EXPORT CXX_EXPORT
+#define DLL_EXPORT extern
 #endif
 #endif
 
