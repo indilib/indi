@@ -192,8 +192,6 @@ typedef struct {
     int radius;
 } dsp_star;
 
-inline static const char* dsp_version_string() { return DSP_VERSION; }
-
 /**
 * @brief Create a spectrum from a double array of values
 * @param in the input stream. (input)
