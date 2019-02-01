@@ -302,9 +302,6 @@ GPhotoCCD::GPhotoCCD() : FI(this)
     on_off[1]        = strdup("Off");
 
     setVersion(INDI_GPHOTO_VERSION_MAJOR, INDI_GPHOTO_VERSION_MINOR);
-
-    Streamer->setStreamingExposureEnabled(false);
-
 }
 
 GPhotoCCD::GPhotoCCD(const char * model, const char * port) : FI(this)
@@ -433,6 +430,8 @@ bool GPhotoCCD::initProperties()
 #else
     SetCCDCapability(CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_HAS_BAYER | CCD_HAS_STREAMING);
 #endif
+
+    Streamer->setStreamingExposureEnabled(false);
 
     FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED);
 
