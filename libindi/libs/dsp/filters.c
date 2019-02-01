@@ -16,14 +16,14 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libdspau.h"
+#include "dsp.h"
 
-double* dspau_filter_squarelaw(dspau_stream_p stream)
+double* dsp_filter_squarelaw(dsp_stream_p stream)
 {
     double* in = stream->in;
     double* out = stream->out;
     int len = stream->len;
-    double mean = dspau_stats_mean(in, len);
+    double mean = dsp_stats_mean(in, len);
 	int val = 0;
 	int i;
 	for(i = 0; i < len; i++) {
@@ -33,7 +33,7 @@ double* dspau_filter_squarelaw(dspau_stream_p stream)
     return out;
 }
 
-void dspau_filter_calc_coefficients(double SamplingFrequency, double LowFrequency, double HighFrequency, double* CF, double* R, double *K)
+void dsp_filter_calc_coefficients(double SamplingFrequency, double LowFrequency, double HighFrequency, double* CF, double* R, double *K)
 {
     double BW = (HighFrequency - LowFrequency) / SamplingFrequency;
     *CF = 2.0 * cos((LowFrequency + HighFrequency) * PI / SamplingFrequency);
@@ -41,7 +41,7 @@ void dspau_filter_calc_coefficients(double SamplingFrequency, double LowFrequenc
     *K = (1.0 - *R * *CF + *R * *R) / (2.0 - *CF);
 }
 
-double* dspau_filter_lowpass(dspau_stream_p stream, double SamplingFrequency, double Frequency, double Q)
+double* dsp_filter_lowpass(dsp_stream_p stream, double SamplingFrequency, double Frequency, double Q)
 {
     double *out = calloc(sizeof(double), stream->len);
     double wa = 0.0;
@@ -53,7 +53,7 @@ double* dspau_filter_lowpass(dspau_stream_p stream, double SamplingFrequency, do
     return out;
 }
 
-double* dspau_filter_highpass(dspau_stream_p stream, double SamplingFrequency, double Frequency, double Q)
+double* dsp_filter_highpass(dsp_stream_p stream, double SamplingFrequency, double Frequency, double Q)
 {
     double *out = calloc(sizeof(double), stream->len);
     double wa = 0.0;
@@ -65,9 +65,9 @@ double* dspau_filter_highpass(dspau_stream_p stream, double SamplingFrequency, d
     return out;
 }
 
-double* dspau_filter_bandreject(dspau_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
+double* dsp_filter_bandreject(dsp_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
     double R, K, CF;
-    dspau_filter_calc_coefficients(SamplingFrequency, LowFrequency, HighFrequency, &CF, &R, &K);
+    dsp_filter_calc_coefficients(SamplingFrequency, LowFrequency, HighFrequency, &CF, &R, &K);
     double R2 = R*R;
 
     double a[3] = { K, -K*CF, K };
@@ -87,9 +87,9 @@ double* dspau_filter_bandreject(dspau_stream_p stream, double SamplingFrequency,
     return stream->out;
 }
 
-double* dspau_filter_bandpass(dspau_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
+double* dsp_filter_bandpass(dsp_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
     double R, K, CF;
-    dspau_filter_calc_coefficients(SamplingFrequency, LowFrequency, HighFrequency, &CF, &R, &K);
+    dsp_filter_calc_coefficients(SamplingFrequency, LowFrequency, HighFrequency, &CF, &R, &K);
     double R2 = R*R;
 
     double a[3] = { 1 - K, (K-R)*CF, R2 - K };
@@ -109,21 +109,21 @@ double* dspau_filter_bandpass(dspau_stream_p stream, double SamplingFrequency, d
     return stream->out;
 }
 
-double* dspau_filter_deviate(dspau_stream_p stream, dspau_stream_p deviation, double mindeviation, double maxdeviation)
+double* dsp_filter_deviate(dsp_stream_p stream, dsp_stream_p deviation, double mindeviation, double maxdeviation)
 {
     double min, max;
-    dspau_stats_minmidmax(stream->in, stream->len, &min, &max);
+    dsp_stats_minmidmax(stream->in, stream->len, &min, &max);
     int dims = Min(stream->dims, deviation->dims);
     int len = Min(stream->len, deviation->len);
     for(int dim = 0; dim < dims; dim++) {
         int size = len / Min(stream->sizes[dim], deviation->sizes[dim]);
         double * tmp = calloc(size, sizeof(double));
         for(int x = 0; x < len; x += size) {
-            tmp = dspau_buffer_deviate(stream->in + x, size, deviation->in + x, size, mindeviation, maxdeviation);
-            dspau_buffer_sum(stream->out + x, size, tmp, size);
+            tmp = dsp_buffer_deviate(stream->in + x, size, deviation->in + x, size, mindeviation, maxdeviation);
+            dsp_buffer_sum(stream->out + x, size, tmp, size);
         }
         free(tmp);
     }
-    dspau_buffer_stretch(stream->out, len, min, max);
+    dsp_buffer_stretch(stream->out, len, min, max);
     return stream->out;
 }

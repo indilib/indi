@@ -23,7 +23,6 @@
 #include <unistd.h>
 #include <indilogger.h>
 #include <memory>
-#include <libdspau.h>
 
 #define MAX_TRIES 20
 #define MAX_DEVICES 4
@@ -389,24 +388,24 @@ void RadioSim::grabData()
 	continuum = PrimaryDetector.getContinuumBuffer();
 	spectrum = PrimaryDetector.getSpectrumBuffer();
 
-	double *buf = dspau_signals_sinewave(len, PrimaryDetector.getSampleRate(), 1.0);
-	buf = dspau_buffer_stretch(buf, len, -val, val);
+	double *buf = dsp_signals_sinewave(len, PrimaryDetector.getSampleRate(), 1.0);
+	buf = dsp_buffer_stretch(buf, len, -val, val);
 	for(int i = 0; i < len; i++) {
 		buf[i] += ((double)(rand() % (int)val) / 2.0) - val / 4.0;
 	}
 	memcpy(continuum, buf, PrimaryDetector.getContinuumBufferSize());
         free(buf);
 
-        //Create the dspau stream
-        dspau_stream_p stream = dspau_stream_new();
-        dspau_stream_add_dim(stream, len);
+        //Create the dsp stream
+        dsp_stream_p stream = dsp_stream_new();
+        dsp_stream_add_dim(stream, len);
         //Create the spectrum
-	dspau_stream_set_input_buffer(stream, buf, len);
-        double *out = dspau_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
-	buf = dspau_buffer_stretch(buf, len, 0, 1.0);
+	dsp_stream_set_input_buffer(stream, buf, len);
+        double *out = dsp_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
+	buf = dsp_buffer_stretch(buf, len, 0, 1.0);
 	memcpy(spectrum, out, PrimaryDetector.getSpectrumBufferSize());
-        //Destroy the dspau stream
-        dspau_stream_free(stream);
+        //Destroy the dsp stream
+        dsp_stream_free(stream);
         free(out);
 
 	LOG_INFO("Download complete.");

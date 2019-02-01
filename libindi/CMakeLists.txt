@@ -295,12 +295,14 @@ find_package(USB1 REQUIRED)
 find_package(CURL REQUIRED)
 find_package(GSL REQUIRED)
 find_package(JPEG REQUIRED)
+find_package(FFTW3 REQUIRED)
 # Math Library
 FIND_LIBRARY(M_LIB m)
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream)
 include_directories( ${CFITSIO_INCLUDE_DIR})
@@ -308,6 +310,7 @@ include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${USB1_INCLUDE_DIRS})
 include_directories( ${GSL_INCLUDE_DIRS})
 include_directories( ${JPEG_INCLUDE_DIR} )
+include_directories( ${FFTW3_INCLUDE_DIR} )
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam)
 ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -368,6 +371,19 @@ ENDIF(OGGTHEORA_FOUND)
      ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ENDIF(UNIX)
 
+SET(libdsp_C_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/align.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/astro.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/buffer.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convert.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fft.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/filters.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/signals.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convolution.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/stats.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/stream.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/time.c)
+
 SET(indidriver_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
     ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
@@ -422,10 +438,10 @@ if (CYGWIN)
 ## For Cygwin we only build static library
 add_definitions(-U__STRICT_ANSI__)
 find_package(Iconv REQUIRED)
-add_library(indidriver STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${hidapi_SRCS})
+add_library(indidriver STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${hidapi_SRCS} ${libdsp_C_SRC})
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARY})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
@@ -1559,6 +1575,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
         ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/dsp.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h

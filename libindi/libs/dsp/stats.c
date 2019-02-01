@@ -16,9 +16,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libdspau.h"
+#include "dsp.h"
 
-double dspau_stats_minmidmax(double* in, int len, double* min, double* max)
+double dsp_stats_minmidmax(double* in, int len, double* min, double* max)
 {
     int i;
     *min = DBL_MAX;
@@ -30,7 +30,7 @@ double dspau_stats_minmidmax(double* in, int len, double* min, double* max)
     return (double)((*max - *min) / 2.0 + *min);
 }
 
-double dspau_stats_mean(double* in, int len)
+double dsp_stats_mean(double* in, int len)
 {
     int i;
     double mean = 0.0;
@@ -42,29 +42,29 @@ double dspau_stats_mean(double* in, int len)
     return mean;
 }
 
-int dspau_stats_maximum_index(double* in, int len)
+int dsp_stats_maximum_index(double* in, int len)
 {
     int i;
     double min, max;
-    dspau_stats_minmidmax(in, len, &min, &max);
+    dsp_stats_minmidmax(in, len, &min, &max);
     for(i = 0; i < len; i++) {
         if(in[i] == max) break;
     }
     return i;
 }
 
-int dspau_stats_minimum_index(double* in, int len)
+int dsp_stats_minimum_index(double* in, int len)
 {
     int i;
     double min, max;
-    dspau_stats_minmidmax(in, len, &min, &max);
+    dsp_stats_minmidmax(in, len, &min, &max);
     for(i = 0; i < len; i++) {
         if(in[i] == min) break;
     }
     return i;
 }
 
-int dspau_stats_val_count(double* in, int len, double val)
+int dsp_stats_val_count(double* in, int len, double val)
 {
     int x;
     int count = 0;

@@ -1,5 +1,5 @@
 /*
- *   libDSPAU - a digital signal processing library for astronomy usage
+ *   libDSP - a digital signal processing library for astronomy usage
  *   Copyright (C) 2017  Ilia Platone <info@iliaplatone.com>
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -16,8 +16,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DSPAU_H
-#define _DSPAU_H
+#ifndef _DSP_H
+#define _DSP_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,8 +44,8 @@
      _a > _b ? _a : _b; })
 #endif
 
-#ifndef dspau_buffer_reverse
-#define dspau_buffer_reverse(a, b, len) \
+#ifndef dsp_buffer_reverse
+#define dsp_buffer_reverse(a, b, len) \
     ({ \
         int i = len - 1; \
         int j = 0; \
@@ -58,8 +58,8 @@
     })
 #endif
 
-#ifndef dspau_convert
-#define dspau_convert(in, out, len) \
+#ifndef dsp_convert
+#define dsp_convert(in, out, len) \
     ({ \
         int k; \
         for(k = 0; k < len; k++) { \
@@ -71,73 +71,73 @@
 #define sin2cos(s) cos(asin(s))
 #define cos2sin(c) sin(acos(c))
 
-#define DSPAU_VERSION "2.0.6"
+#define DSP_VERSION "%DSP_VERSION_STRING%"
 
 #ifndef PI
-#define PI (dspau_t)3.14159265358979323846
+#define PI (double)3.14159265358979323846
 #endif
 #ifndef ONE_SECOND
-#define ONE_SECOND (dspau_t)100000000
+#define ONE_SECOND (double)100000000
 #endif
 #ifndef ONE_MILLISECOND
-#define ONE_MILLISECOND (dspau_t)100000
+#define ONE_MILLISECOND (double)100000
 #endif
 #ifndef ONE_MICROSECOND
-#define ONE_MICROSECOND (dspau_t)100
+#define ONE_MICROSECOND (double)100
 #endif
 #ifndef SOLAR_DAY
-#define SOLAR_DAY (dspau_t)86400.0000000
+#define SOLAR_DAY (double)86400.0000000
 #endif
 #ifndef SIDEREAL_DAY
-#define SIDEREAL_DAY (dspau_t)86164.0916000
+#define SIDEREAL_DAY (double)86164.0916000
 #endif
 #ifndef J2000
-#define J2000 (dspau_t)63082324800.0000000
+#define J2000 (double)63082324800.0000000
 #endif
 #ifndef EarthRadiusEquatorial
-#define EarthRadiusEquatorial (dspau_t)6378137.0
+#define EarthRadiusEquatorial (double)6378137.0
 #endif
 #ifndef EarthRadiusPolar
-#define EarthRadiusPolar (dspau_t)6356752.0
+#define EarthRadiusPolar (double)6356752.0
 #endif
 #ifndef EarthRadiusMean
-#define EarthRadiusMean (dspau_t)6372797.0
+#define EarthRadiusMean (double)6372797.0
 #endif
 #ifndef LightSpeed
-#define LightSpeed (dspau_t)299792458.0
+#define LightSpeed (double)299792458.0
 #endif
 #ifndef GammaJ2000
-#define GammaJ2000 (dspau_t)1.753357767
+#define GammaJ2000 (double)1.753357767
 #endif
 #ifndef Euler
-#define Euler (dspau_t)2.71828182845904523536028747135266249775724709369995
+#define Euler (double)2.71828182845904523536028747135266249775724709369995
 #endif
 #ifndef ROOT2
-#define ROOT2 (dspau_t)1.41421356237309504880168872420969807856967187537694
+#define ROOT2 (double)1.41421356237309504880168872420969807856967187537694
 #endif
 #ifndef Airy
-#define Airy (dspau_t)1.21966
+#define Airy (double)1.21966
 #endif
 #ifndef CIRCLE_DEG
-#define CIRCLE_DEG (dspau_t)360
+#define CIRCLE_DEG (double)360
 #endif
 #ifndef CIRCLE_AM
-#define CIRCLE_AM (dspau_t)(CIRCLE_DEG * 60)
+#define CIRCLE_AM (double)(CIRCLE_DEG * 60)
 #endif
 #ifndef CIRCLE_AS
-#define CIRCLE_AS (dspau_t)(CIRCLE_AM * 60)
+#define CIRCLE_AS (double)(CIRCLE_AM * 60)
 #endif
 #ifndef RAD_AS
-#define RAD_AS (dspau_t)(CIRCLE_AS/(PI*2))
+#define RAD_AS (double)(CIRCLE_AS/(PI*2))
 #endif
 #ifndef AstronomicalUnit
-#define AstronomicalUnit (dspau_t)1.495978707E+11
+#define AstronomicalUnit (double)1.495978707E+11
 #endif
 #ifndef Parsec
-#define Parsec (dspau_t)(AstronomicalUnit*2.06264806247096E+5)
+#define Parsec (double)(AstronomicalUnit*2.06264806247096E+5)
 #endif
 #ifndef LightYear
-#define LightYear (dspau_t)(LightSpeed * SIDEREAL_DAY * 365)
+#define LightYear (double)(LightSpeed * SIDEREAL_DAY * 365)
 #endif
 #ifdef  __cplusplus
 
@@ -149,8 +149,7 @@ extern "C" {
 #define DLL_EXPORT extern 
 #endif
 
-typedef double dspau_t;
-typedef void *(*dspau_func_t) (void *);
+typedef void *(*dsp_func_t) (void *);
 
 typedef enum {
     magnitude = 0,
@@ -159,73 +158,73 @@ typedef enum {
     magnitude_square = 3,
     phase_degrees = 4,
     phase_radians = 5,
-} dspau_conversiontype;
+} dsp_conversiontype;
 
 /**
 * @brief Delegate function
 */
 
-typedef struct dspau_stream_s {
+typedef struct dsp_stream_s {
     int len;
     int dims;
     int* sizes;
     int* pos;
     int index;
-    dspau_t* in;
-    dspau_t* out;
+    double* in;
+    double* out;
     void *arg;
-    struct dspau_stream_s* parent;
-    struct dspau_stream_s** children;
+    struct dsp_stream_s* parent;
+    struct dsp_stream_s** children;
     int child_count;
-    dspau_t* location;
-    dspau_t* target;
-    dspau_t lambda;
-    dspau_t samplerate;
+    double* location;
+    double* target;
+    double lambda;
+    double samplerate;
     struct timespec starttimeutc;
     pthread_t thread;
-    dspau_func_t func;
-} dspau_stream, *dspau_stream_p;
+    dsp_func_t func;
+} dsp_stream, *dsp_stream_p;
 
 typedef struct {
-    dspau_stream_p items;
+    dsp_stream_p items;
     int index;
     int count;
-} dspau_stream_array, *dspau_stream_p_array;
+} dsp_stream_array, *dsp_stream_p_array;
 
 typedef struct {
     int x;
     int y;
-} dspau_point;
+} dsp_point;
 
 typedef struct {
     int start;
     int len;
-} dspau_region;
+} dsp_region;
 
 typedef struct {
-    dspau_point center;
+    dsp_point center;
     int radius;
-} dspau_star;
+} dsp_star;
 
-inline static const char* dspau_version_string() { return DSPAU_VERSION; }
+inline static const char* dsp_version_string() { return DSP_VERSION; }
 
 /**
-* @brief Create a spectrum from a dspau_t array of values
+* @brief Create a spectrum from a double array of values
 * @param in the input stream. (input)
 * @param out the output stream. (output)
 * @param dims the number of dimensions of the input stream (input).
 * @param sizes array with the lengths of each dimension of the input stream (input).
-* @param conversion the output magnitude dspau_conversiontype type.
+* @param conversion the output magnitude dsp_conversiontype type.
 * @return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_fft_spectrum(dspau_stream_p stream, int conversion, int size);
+DLL_EXPORT double* dsp_fft_spectrum(dsp_stream_p stream, int conversion, int size);
 
-DLL_EXPORT dspau_t* dspau_fft_shift(dspau_t* in, int dims, int* sizes);
+DLL_EXPORT double* dsp_fft_shift(double* in, int dims, int* sizes);
 
-DLL_EXPORT dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion);
+DLL_EXPORT double* dsp_fft_dft(dsp_stream_p stream, int sign, int conversion);
 
 /**
 * @brief A square law filter
@@ -237,7 +236,7 @@ DLL_EXPORT dspau_t* dspau_fft_dft(dspau_stream_p stream, int sign, int conversio
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_filter_squarelaw(dspau_stream_p stream);
+DLL_EXPORT double* dsp_filter_squarelaw(dsp_stream_p stream);
 
 /**
 * @brief A low pass filter
@@ -252,7 +251,7 @@ DLL_EXPORT dspau_t* dspau_filter_squarelaw(dspau_stream_p stream);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_filter_lowpass(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t frequency, dspau_t q);
+DLL_EXPORT double* dsp_filter_lowpass(dsp_stream_p stream, double samplingfrequency, double frequency, double q);
 
 /**
 * @brief A high pass filter
@@ -267,7 +266,7 @@ DLL_EXPORT dspau_t* dspau_filter_lowpass(dspau_stream_p stream, dspau_t sampling
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_filter_highpass(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t frequency, dspau_t q);
+DLL_EXPORT double* dsp_filter_highpass(dsp_stream_p stream, double samplingfrequency, double frequency, double q);
 
 /**
 * @brief A band pass filter
@@ -282,7 +281,7 @@ DLL_EXPORT dspau_t* dspau_filter_highpass(dspau_stream_p stream, dspau_t samplin
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t LowFrequency, dspau_t HighFrequency);
+DLL_EXPORT double* dsp_filter_bandpass(dsp_stream_p stream, double samplingfrequency, double LowFrequency, double HighFrequency);
 
 /**
 * @brief A band reject filter
@@ -297,7 +296,7 @@ DLL_EXPORT dspau_t* dspau_filter_bandpass(dspau_stream_p stream, dspau_t samplin
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_filter_bandreject(dspau_stream_p stream, dspau_t samplingfrequency, dspau_t LowFrequency, dspau_t HighFrequency);
+DLL_EXPORT double* dsp_filter_bandreject(dsp_stream_p stream, double samplingfrequency, double LowFrequency, double HighFrequency);
 
 /**
 * @brief A cross-convolution processor
@@ -313,9 +312,9 @@ DLL_EXPORT dspau_t* dspau_filter_bandreject(dspau_stream_p stream, dspau_t sampl
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_convolution_convolution(dspau_stream_p stream1, dspau_stream_p stream2);
+DLL_EXPORT double* dsp_convolution_convolution(dsp_stream_p stream1, dsp_stream_p stream2);
 
-DLL_EXPORT void dspau_stream_add_child(dspau_stream_p stream, dspau_stream_p child);
+DLL_EXPORT void dsp_stream_add_child(dsp_stream_p stream, dsp_stream_p child);
 
 /**
 * @brief Gets minimum, mid, and maximum values of the input stream
@@ -326,7 +325,7 @@ DLL_EXPORT void dspau_stream_add_child(dspau_stream_p stream, dspau_stream_p chi
 * @return the mid value (max - min) / 2 + min.
 * Return mid if success.
 */
-DLL_EXPORT dspau_t dspau_stats_minmidmax(dspau_t* in, int len, dspau_t* min, dspau_t* max);
+DLL_EXPORT double dsp_stats_minmidmax(double* in, int len, double* min, double* max);
 
 /**
 * @brief A mean calculator
@@ -335,7 +334,7 @@ DLL_EXPORT dspau_t dspau_stats_minmidmax(dspau_t* in, int len, dspau_t* min, dsp
 * @return the mean value of the stream.
 * Return mean if success.
 */
-DLL_EXPORT dspau_t dspau_stats_mean(dspau_t* in, int len);
+DLL_EXPORT double dsp_stats_mean(double* in, int len);
 
 /**
 * @brief Counts value occurrences into stream
@@ -346,7 +345,7 @@ DLL_EXPORT dspau_t dspau_stats_mean(dspau_t* in, int len);
 * @return the mean value of the stream.
 * Return mean if success.
 */
-DLL_EXPORT int dspau_stats_val_count(dspau_t* in, int len, dspau_t val);
+DLL_EXPORT int dsp_stats_val_count(double* in, int len, double val);
 
 /**
 * @brief Subtract mean from stream
@@ -358,7 +357,7 @@ DLL_EXPORT int dspau_stats_val_count(dspau_t* in, int len, dspau_t val);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t dspau_buffer_compare(dspau_t* in1, int len1, dspau_t* in2, int len2);
+DLL_EXPORT double dsp_buffer_compare(double* in1, int len1, double* in2, int len2);
 
 /**
 * @brief Subtract mean from stream
@@ -370,7 +369,7 @@ DLL_EXPORT dspau_t dspau_buffer_compare(dspau_t* in1, int len1, dspau_t* in2, in
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_removemean(dspau_t* in, int len);
+DLL_EXPORT double* dsp_buffer_removemean(double* in, int len);
 
 /**
 * @brief Stretch minimum and maximum values of the input stream
@@ -384,7 +383,7 @@ DLL_EXPORT dspau_t* dspau_buffer_removemean(dspau_t* in, int len);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_stretch(dspau_t* in, int len, dspau_t min, dspau_t max);
+DLL_EXPORT double* dsp_buffer_stretch(double* in, int len, double min, double max);
 
 /**
 * @brief Normalize the input stream to the minimum and maximum values
@@ -400,7 +399,7 @@ DLL_EXPORT dspau_t* dspau_buffer_stretch(dspau_t* in, int len, dspau_t min, dspa
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_normalize(dspau_t* in, int len, dspau_t min, dspau_t max);
+DLL_EXPORT double* dsp_buffer_normalize(double* in, int len, double min, double max);
 
 /**
 * @brief Subtract elements of one stream from another's
@@ -413,7 +412,7 @@ DLL_EXPORT dspau_t* dspau_buffer_normalize(dspau_t* in, int len, dspau_t min, ds
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_sub(dspau_t* in1, int len1, dspau_t* in2, int len2);
+DLL_EXPORT double* dsp_buffer_sub(double* in1, int len1, double* in2, int len2);
 
 /**
 * @brief Sum elements of one stream to another's
@@ -426,7 +425,7 @@ DLL_EXPORT dspau_t* dspau_buffer_sub(dspau_t* in1, int len1, dspau_t* in2, int l
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_sum(dspau_t* in1, int len1, dspau_t* in2, int len2);
+DLL_EXPORT double* dsp_buffer_sum(double* in1, int len1, double* in2, int len2);
 
 /**
 * @brief Divide elements of one stream to another's
@@ -439,7 +438,7 @@ DLL_EXPORT dspau_t* dspau_buffer_sum(dspau_t* in1, int len1, dspau_t* in2, int l
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_div(dspau_t* in1, int len1, dspau_t* in2, int len2);
+DLL_EXPORT double* dsp_buffer_div(double* in1, int len1, double* in2, int len2);
 
 /**
 * @brief Multiply elements of one stream to another's
@@ -452,11 +451,11 @@ DLL_EXPORT dspau_t* dspau_buffer_div(dspau_t* in1, int len1, dspau_t* in2, int l
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_mul(dspau_t* in1, int len1, dspau_t* in2, int len2);
+DLL_EXPORT double* dsp_buffer_mul(double* in1, int len1, double* in2, int len2);
 
-DLL_EXPORT dspau_t* dspau_buffer_pow(dspau_t* in, int len, dspau_t val);
+DLL_EXPORT double* dsp_buffer_pow(double* in, int len, double val);
 
-DLL_EXPORT dspau_t* dspau_buffer_root(dspau_t* in, int len, dspau_t val);
+DLL_EXPORT double* dsp_buffer_root(double* in, int len, double val);
 /**
 * @brief Subtract a value from elements of the input stream
 * @param in the Numerators input stream. (input)
@@ -468,8 +467,8 @@ DLL_EXPORT dspau_t* dspau_buffer_root(dspau_t* in, int len, dspau_t val);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_sub1(dspau_t* in, int len, dspau_t val);
-DLL_EXPORT dspau_t* dspau_buffer_1sub(dspau_t* in, int len, dspau_t val);
+DLL_EXPORT double* dsp_buffer_sub1(double* in, int len, double val);
+DLL_EXPORT double* dsp_buffer_1sub(double* in, int len, double val);
 
 /**
 * @brief Sum elements of the input stream to a value
@@ -482,7 +481,7 @@ DLL_EXPORT dspau_t* dspau_buffer_1sub(dspau_t* in, int len, dspau_t val);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_sum1(dspau_t* in, int len, dspau_t val);
+DLL_EXPORT double* dsp_buffer_sum1(double* in, int len, double val);
 
 /**
 * @brief Divide elements of the input stream to a value
@@ -495,8 +494,8 @@ DLL_EXPORT dspau_t* dspau_buffer_sum1(dspau_t* in, int len, dspau_t val);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_div1(dspau_t* in, int len, dspau_t val);
-DLL_EXPORT dspau_t* dspau_buffer_1div(dspau_t* in, int len, dspau_t val);
+DLL_EXPORT double* dsp_buffer_div1(double* in, int len, double val);
+DLL_EXPORT double* dsp_buffer_1div(double* in, int len, double val);
 
 /**
 * @brief Multiply elements of the input stream to a value
@@ -509,7 +508,7 @@ DLL_EXPORT dspau_t* dspau_buffer_1div(dspau_t* in, int len, dspau_t val);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_mul1(dspau_t* in, int len, dspau_t val);
+DLL_EXPORT double* dsp_buffer_mul1(double* in, int len, double val);
 
 /**
 * @brief Median elements of the inut stream
@@ -521,7 +520,7 @@ DLL_EXPORT dspau_t* dspau_buffer_mul1(dspau_t* in, int len, dspau_t val);
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_median(dspau_t* in, int len, int size, int median);
+DLL_EXPORT double* dsp_buffer_median(double* in, int len, int size, int median);
 
 /**
 * @brief Histogram of the inut stream
@@ -533,102 +532,102 @@ DLL_EXPORT dspau_t* dspau_buffer_median(dspau_t* in, int len, int size, int medi
 * Return 0 if success.
 * Return -1 if any error occurs.
 */
-DLL_EXPORT dspau_t* dspau_buffer_histogram(dspau_t* in, int len, int size);
+DLL_EXPORT double* dsp_buffer_histogram(double* in, int len, int size);
 
-DLL_EXPORT dspau_t* dspau_buffer_zerofill(dspau_t* out, int len);
+DLL_EXPORT double* dsp_buffer_zerofill(double* out, int len);
 
-DLL_EXPORT dspau_t* dspau_buffer_val_sum(dspau_t* in, int len);
+DLL_EXPORT double* dsp_buffer_val_sum(double* in, int len);
 
-DLL_EXPORT dspau_t* dspau_buffer_convolute(dspau_t* in1, int len1, dspau_t* in2, int len2);
+DLL_EXPORT double* dsp_buffer_convolute(double* in1, int len1, double* in2, int len2);
 
-DLL_EXPORT dspau_t* dspau_buffer_deviate(dspau_t* in1, int len1, dspau_t* in2, int len2, dspau_t mindeviation, dspau_t maxdeviation);
+DLL_EXPORT double* dsp_buffer_deviate(double* in1, int len1, double* in2, int len2, double mindeviation, double maxdeviation);
 
-DLL_EXPORT struct timespec dspau_t_mktimespec(int year, int month, int dom, int hour, int minute, int second, long nanosecond);
+DLL_EXPORT struct timespec dsp_t_mktimespec(int year, int month, int dom, int hour, int minute, int second, long nanosecond);
 
-DLL_EXPORT dspau_t dspau_time_timespec_to_J2000time(struct timespec tp);
+DLL_EXPORT double dsp_time_timespec_to_J2000time(struct timespec tp);
 
-DLL_EXPORT dspau_t dspau_time_J2000time_to_lst(dspau_t secs_since_J2000, dspau_t Long);
+DLL_EXPORT double dsp_time_J2000time_to_lst(double secs_since_J2000, double Long);
 
-DLL_EXPORT struct timespec dspau_time_J2000time_to_timespec(dspau_t secs);
+DLL_EXPORT struct timespec dsp_time_J2000time_to_timespec(double secs);
 
-DLL_EXPORT struct timespec dspau_time_YmdHMSn_to_timespec(int Y, int m, int d, int H, int M, int S, long n);
+DLL_EXPORT struct timespec dsp_time_YmdHMSn_to_timespec(int Y, int m, int d, int H, int M, int S, long n);
 
-DLL_EXPORT dspau_t dspau_astro_ra2ha(dspau_t Ra, dspau_t Lst);
+DLL_EXPORT double dsp_astro_ra2ha(double Ra, double Lst);
 
-DLL_EXPORT void dspau_astro_hadec2altaz(dspau_t Ha, dspau_t Dec, dspau_t Lat, dspau_t* Alt, dspau_t *Az);
+DLL_EXPORT void dsp_astro_hadec2altaz(double Ha, double Dec, double Lat, double* Alt, double *Az);
 
-DLL_EXPORT dspau_t dspau_astro_elevation(dspau_t Lat, dspau_t El);
+DLL_EXPORT double dsp_astro_elevation(double Lat, double El);
 
-DLL_EXPORT dspau_t dspau_astro_ra2ha(dspau_t Ra, dspau_t Lst);
+DLL_EXPORT double dsp_astro_ra2ha(double Ra, double Lst);
 
-DLL_EXPORT void dspau_astro_hadec2altaz(dspau_t Ha, dspau_t Dec, dspau_t Lat, dspau_t* Alt, dspau_t *Az);
+DLL_EXPORT void dsp_astro_hadec2altaz(double Ha, double Dec, double Lat, double* Alt, double *Az);
 
-DLL_EXPORT dspau_t dspau_astro_elevation(dspau_t Lat, dspau_t El);
+DLL_EXPORT double dsp_astro_elevation(double Lat, double El);
 
-DLL_EXPORT dspau_t dspau_astro_field_rotation_rate(dspau_t Alt, dspau_t Az, dspau_t Lat);
+DLL_EXPORT double dsp_astro_field_rotation_rate(double Alt, double Az, double Lat);
 
-DLL_EXPORT dspau_t dspau_astro_field_rotation(dspau_t HA, dspau_t rate);
+DLL_EXPORT double dsp_astro_field_rotation(double HA, double rate);
 
-DLL_EXPORT dspau_t dspau_astro_parsecmag2absmag(dspau_t parsec, dspau_t deltamag, int lambda_index, dspau_t* ref_specrum, int ref_len, dspau_t* spectrum, int len);
+DLL_EXPORT double dsp_astro_parsecmag2absmag(double parsec, double deltamag, int lambda_index, double* ref_specrum, int ref_len, double* spectrum, int len);
 
-DLL_EXPORT dspau_t *dspau_stream_set_input_buffer_len(dspau_stream_p stream, int len);
+DLL_EXPORT double *dsp_stream_set_input_buffer_len(dsp_stream_p stream, int len);
 
-DLL_EXPORT dspau_t *dspau_stream_set_output_buffer_len(dspau_stream_p stream, int len);
+DLL_EXPORT double *dsp_stream_set_output_buffer_len(dsp_stream_p stream, int len);
 
-DLL_EXPORT dspau_t *dspau_stream_set_input_buffer(dspau_stream_p stream, void *buffer, int len);
+DLL_EXPORT double *dsp_stream_set_input_buffer(dsp_stream_p stream, void *buffer, int len);
 
-DLL_EXPORT dspau_t *dspau_stream_set_output_buffer(dspau_stream_p stream, void *buffer, int len);
+DLL_EXPORT double *dsp_stream_set_output_buffer(dsp_stream_p stream, void *buffer, int len);
 
-DLL_EXPORT dspau_t *dspau_stream_get_input_buffer(dspau_stream_p stream);
+DLL_EXPORT double *dsp_stream_get_input_buffer(dsp_stream_p stream);
 
-DLL_EXPORT dspau_t *dspau_stream_get_output_buffer(dspau_stream_p stream);
+DLL_EXPORT double *dsp_stream_get_output_buffer(dsp_stream_p stream);
 
-DLL_EXPORT void dspau_stream_free_input_buffer(dspau_stream_p stream);
+DLL_EXPORT void dsp_stream_free_input_buffer(dsp_stream_p stream);
 
-DLL_EXPORT void dspau_stream_free_output_buffer(dspau_stream_p stream);
+DLL_EXPORT void dsp_stream_free_output_buffer(dsp_stream_p stream);
 
-DLL_EXPORT dspau_stream_p dspau_stream_new();
+DLL_EXPORT dsp_stream_p dsp_stream_new();
 
-DLL_EXPORT dspau_stream_p dspau_stream_copy(dspau_stream_p stream);
+DLL_EXPORT dsp_stream_p dsp_stream_copy(dsp_stream_p stream);
 
-DLL_EXPORT void dspau_stream_add_dim(dspau_stream_p stream, int size);
+DLL_EXPORT void dsp_stream_add_dim(dsp_stream_p stream, int size);
 
-DLL_EXPORT void dspau_stream_free(dspau_stream_p stream);
+DLL_EXPORT void dsp_stream_free(dsp_stream_p stream);
 
-DLL_EXPORT int dspau_stream_byte_size(dspau_stream_p stream);
+DLL_EXPORT int dsp_stream_byte_size(dsp_stream_p stream);
 
-DLL_EXPORT dspau_stream_p dspau_stream_set_position(dspau_stream_p stream);
+DLL_EXPORT dsp_stream_p dsp_stream_set_position(dsp_stream_p stream);
 
-DLL_EXPORT dspau_stream_p dspau_stream_get_position(dspau_stream_p stream);
+DLL_EXPORT dsp_stream_p dsp_stream_get_position(dsp_stream_p stream);
 
-DLL_EXPORT void *dspau_stream_exec(dspau_stream_p stream);
+DLL_EXPORT void *dsp_stream_exec(dsp_stream_p stream);
 
-DLL_EXPORT void *dspau_stream_exec_multidim(dspau_stream_p stream);
+DLL_EXPORT void *dsp_stream_exec_multidim(dsp_stream_p stream);
 
-DLL_EXPORT dspau_stream_p dspau_stream_crop(dspau_stream_p in, dspau_region* rect);
+DLL_EXPORT dsp_stream_p dsp_stream_crop(dsp_stream_p in, dsp_region* rect);
 
-DLL_EXPORT void dspau_stream_mul(dspau_stream_p in1, dspau_stream_p in2);
+DLL_EXPORT void dsp_stream_mul(dsp_stream_p in1, dsp_stream_p in2);
 
-DLL_EXPORT void dspau_stream_sum(dspau_stream_p in1, dspau_stream_p in2);
+DLL_EXPORT void dsp_stream_sum(dsp_stream_p in1, dsp_stream_p in2);
 
-DLL_EXPORT void dspau_stream_swap_buffers(dspau_stream_p stream);
+DLL_EXPORT void dsp_stream_swap_buffers(dsp_stream_p stream);
 
-DLL_EXPORT dspau_t dspau_astro_field_rotation_rate(dspau_t Alt, dspau_t Az, dspau_t Lat);
+DLL_EXPORT double dsp_astro_field_rotation_rate(double Alt, double Az, double Lat);
 
-DLL_EXPORT dspau_t dspau_astro_field_rotation(dspau_t HA, dspau_t rate);
+DLL_EXPORT double dsp_astro_field_rotation(double HA, double rate);
 
-DLL_EXPORT dspau_t* dspau_signals_sinewave(int len, dspau_t samplefreq, dspau_t freq);
+DLL_EXPORT double* dsp_signals_sinewave(int len, double samplefreq, double freq);
 
-DLL_EXPORT dspau_t* dspau_signals_sawteethwave(int len, dspau_t samplefreq, dspau_t freq);
+DLL_EXPORT double* dsp_signals_sawteethwave(int len, double samplefreq, double freq);
 
-DLL_EXPORT dspau_t* dspau_signals_triwave(int len, dspau_t samplefreq, dspau_t freq);
+DLL_EXPORT double* dsp_signals_triwave(int len, double samplefreq, double freq);
 
-DLL_EXPORT dspau_t* dspau_modulation_frequency(dspau_t* in, int len, dspau_t samplefreq, dspau_t freq, dspau_t bandwidth);
+DLL_EXPORT double* dsp_modulation_frequency(double* in, int len, double samplefreq, double freq, double bandwidth);
 
-DLL_EXPORT dspau_t* dspau_modulation_amplitude(dspau_t* in, int len, dspau_t samplefreq, dspau_t freq);
+DLL_EXPORT double* dsp_modulation_amplitude(double* in, int len, double samplefreq, double freq);
 
 #ifdef  __cplusplus
 }
 #endif
 
-#endif //_DSPAU_H
+#endif //_DSP_H

@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <indilogger.h>
-#include <libdspau.h>
 #include <memory>
 
 #define min(a,b) \
@@ -423,17 +422,17 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
             InCapture = false;
             rtlsdr_cancel_async(rtl_dev);
 
-            //Create the dspau stream
-            dspau_stream_p stream = dspau_stream_new();
-            dspau_stream_add_dim(stream, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
+            //Create the dsp stream
+            dsp_stream_p stream = dsp_stream_new();
+            dsp_stream_add_dim(stream, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
             //Create the spectrum
-            dspau_convert(continuum, stream->in, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
-            stream->in = dspau_buffer_div1(stream->in, stream->len, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
-            double *out = dspau_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
-            out = dspau_buffer_mul1(out, SPECTRUM_SIZE, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
-            dspau_convert(out, spectrum, SPECTRUM_SIZE);
-            //Destroy the dspau stream
-            dspau_stream_free(stream);
+            dsp_convert(continuum, stream->in, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
+            stream->in = dsp_buffer_div1(stream->in, stream->len, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
+            double *out = dsp_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
+            out = dsp_buffer_mul1(out, SPECTRUM_SIZE, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
+            dsp_convert(out, spectrum, SPECTRUM_SIZE);
+            //Destroy the dsp stream
+            dsp_stream_free(stream);
             free(out);
 
             LOG_INFO("Download complete.");

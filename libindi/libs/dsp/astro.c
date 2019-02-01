@@ -16,15 +16,15 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libdspau.h"
+#include "dsp.h"
 #define ratio (max - min) / (mx - mn + 1)
 
-double dspau_astro_ra2ha(double Ra, double Lst)
+double dsp_astro_ra2ha(double Ra, double Lst)
 {
     return Lst - (Ra * 360.0 / 24.0);
 }
 
-void dspau_astro_hadec2altaz(double Ha, double Dec, double Lat, double* Alt, double *Az)
+void dsp_astro_hadec2altaz(double Ha, double Dec, double Lat, double* Alt, double *Az)
 {
     double alt, az;
     Ha *= PI / 180.0;
@@ -40,7 +40,7 @@ void dspau_astro_hadec2altaz(double Ha, double Dec, double Lat, double* Alt, dou
     *Az = az;
 }
 
-double dspau_astro_elevation(double Lat, double El)
+double dsp_astro_elevation(double Lat, double El)
 {
     Lat *= PI / 180.0;
     Lat = sin(Lat);
@@ -48,7 +48,7 @@ double dspau_astro_elevation(double Lat, double El)
     return El;
 }
 
-double dspau_astro_field_rotation_rate(double Alt, double Az, double Lat)
+double dsp_astro_field_rotation_rate(double Alt, double Az, double Lat)
 {
     Alt *= PI / 180.0;
     Az *= PI / 180.0;
@@ -58,7 +58,7 @@ double dspau_astro_field_rotation_rate(double Alt, double Az, double Lat)
     return ret;
 }
 
-double dspau_astro_field_rotation(double HA, double rate)
+double dsp_astro_field_rotation(double HA, double rate)
 {
     HA *= rate;
     while(HA >= 360.0)
@@ -68,21 +68,21 @@ double dspau_astro_field_rotation(double HA, double rate)
     return HA;
 }
 
-double dspau_astro_frtoas(double fr)
+double dsp_astro_frtoas(double fr)
 {
     return RAD_AS * acos(fr);
 }
 
-double dspau_astro_as2parsec(double as)
+double dsp_astro_as2parsec(double as)
 {
     return as * Parsec;
 }
 
-double dspau_astro_parsecmag2absmag(double parsec, double deltamag, int lambda_index, double* ref_specrum, int ref_len, double* spectrum, int len)
+double dsp_astro_parsecmag2absmag(double parsec, double deltamag, int lambda_index, double* ref_specrum, int ref_len, double* spectrum, int len)
 {
-    double* r_spectrum = dspau_buffer_stretch(ref_specrum, ref_len, 0, 1.0);
+    double* r_spectrum = dsp_buffer_stretch(ref_specrum, ref_len, 0, 1.0);
     double ref = 1.0/r_spectrum[lambda_index];
-    double* t_spectrum = dspau_buffer_stretch(spectrum, ref_len, 0, ref);
-    deltamag *= dspau_buffer_compare(r_spectrum, ref_len, t_spectrum, len);
+    double* t_spectrum = dsp_buffer_stretch(spectrum, ref_len, 0, ref);
+    deltamag *= dsp_buffer_compare(r_spectrum, ref_len, t_spectrum, len);
     return deltamag * parsec;
 }

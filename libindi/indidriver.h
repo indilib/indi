@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #pragma once
 
 #include "indiapi.h"
+#include "dsp.h"
 #include "lilxml.h"
 
 #include <stdio.h>

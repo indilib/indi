@@ -16,12 +16,12 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libdspau.h"
+#include "dsp.h"
 #define ratio (max - min) / (mx - mn + 1)
 /*
-dspau_star dspau_align_findstar(double* in, dspau_region* tmpRect, int intensity, int width, int height)
+dsp_star dsp_align_findstar(double* in, dsp_region* tmpRect, int intensity, int width, int height)
 {
-    dspau_star ret;
+    dsp_star ret;
     int left = Max(0, Min(tmpRect.x, tmpRect.x + tmpRect.width));
     int top = Max(0, Min(tmpRect.y, tmpRect.y + tmpRect.height));
     int right = Min(tmpRect.width, Max(tmpRect.x, tmpRect.x + tmpRect.width));
@@ -38,7 +38,7 @@ dspau_star dspau_align_findstar(double* in, dspau_region* tmpRect, int intensity
             tmpBuf[p++] = (double)(in[x + y * width]);
         }
     }
-    tmpBuf = dspau_buffer_stretch(tmpBuf, len, 0.0, 100.0);
+    tmpBuf = dsp_buffer_stretch(tmpBuf, len, 0.0, 100.0);
     width = right - left;
     height = bottom - top;
     right -= left;
@@ -101,8 +101,8 @@ dspau_star dspau_align_findstar(double* in, dspau_region* tmpRect, int intensity
     }
     if (!found)
         goto lost;
-    ret = (dspau_star) {
-        .center = (dspau_point) {
+    ret = (dsp_star) {
+        .center = (dsp_point) {
             .x = tmpRect.x + (right - left) / 2 + left,
             .y = tmpRect.y + (bottom - top) / 2 + top,
         },
@@ -110,8 +110,8 @@ dspau_star dspau_align_findstar(double* in, dspau_region* tmpRect, int intensity
     };
     return ret;
 lost:
-    ret = (dspau_star) {
-        .center = (dspau_point) {
+    ret = (dsp_star) {
+        .center = (dsp_point) {
            tmpRect.x,
            tmpRect.y,
         },
