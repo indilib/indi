@@ -71,11 +71,6 @@
 #define sin2cos(s) cos(asin(s))
 #define cos2sin(c) sin(acos(c))
 
-#define DSP_VERSION "%DSP_VERSION_STRING%"
-
-#ifndef PI
-#define PI (double)3.14159265358979323846
-#endif
 #ifndef ONE_SECOND
 #define ONE_SECOND (double)100000000
 #endif
@@ -84,15 +79,6 @@
 #endif
 #ifndef ONE_MICROSECOND
 #define ONE_MICROSECOND (double)100
-#endif
-#ifndef SOLAR_DAY
-#define SOLAR_DAY (double)86400.0000000
-#endif
-#ifndef SIDEREAL_DAY
-#define SIDEREAL_DAY (double)86164.0916000
-#endif
-#ifndef J2000
-#define J2000 (double)63082324800.0000000
 #endif
 #ifndef EarthRadiusEquatorial
 #define EarthRadiusEquatorial (double)6378137.0
