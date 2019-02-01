@@ -52,9 +52,11 @@
 #define CXX_EXPORT extern "C"
 #endif
 #ifdef _WIN32
+#ifdef DLL_EXPORT
 #define DLL_EXPORT CXX_EXPORT __declspec(dllexport)
 #else
 #define DLL_EXPORT CXX_EXPORT
+#endif
 #endif
 
 /*! \fn void iNovaSDK_MaxCamera()
