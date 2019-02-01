@@ -49,7 +49,7 @@
 #define ROI_HEIGHT_MASK		0xfffe
 
 #ifdef  __cplusplus
-#define CXX_EXPORT extern "C"
+extern "C" {
 #endif
 #ifndef DLL_EXPORT
 #ifdef _WIN32
@@ -337,4 +337,7 @@ DLL_EXPORT double iNovaSDK_GetPixelSizeY();
 */
 DLL_EXPORT timeval iNovaSDK_GetLastFrameTime();
 
+#ifdef  __cplusplus
+}
+#endif
 #endif
