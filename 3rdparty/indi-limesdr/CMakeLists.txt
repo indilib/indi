@@ -33,7 +33,7 @@ set(limesdr_SRCS
 
 add_executable(indi_limesdr_detector ${limesdr_SRCS})
 
-target_link_libraries(indi_limesdr_detector ${LIMESUITE_LIBRARIES} ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_limesdr_detector ${INDI_LIBRARIES} ${LIMESUITE_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_limesdr_detector RUNTIME DESTINATION bin)
 

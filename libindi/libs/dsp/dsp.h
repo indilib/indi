@@ -75,6 +75,9 @@ extern "C" {
 #define sin2cos(s) cos(asin(s))
 #define cos2sin(c) sin(acos(c))
 
+#ifndef PI
+#define PI 3.14159265358979323846
+#endif
 #ifndef ONE_SECOND
 #define ONE_SECOND (double)100000000
 #endif
@@ -83,6 +86,9 @@ extern "C" {
 #endif
 #ifndef ONE_MICROSECOND
 #define ONE_MICROSECOND (double)100
+#endif
+#ifndef SIDEREAL_DAY
+#define SIDEREAL_DAY 86164.0916000
 #endif
 #ifndef EarthRadiusEquatorial
 #define EarthRadiusEquatorial (double)6378137.0

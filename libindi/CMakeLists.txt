@@ -382,14 +382,16 @@ SET(libdsp_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convolution.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/stats.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/stream.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/time.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/time.c
+    )
 
 SET(indidriver_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
     ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
+    )
 
 SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
@@ -423,11 +425,12 @@ SET(indidriver_CXX_SRC
     )
 
 IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC 10 c)
+    ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC libdsp_C_SRC 10 c)
     ENABLE_UNITY_BUILD(indidriver_cxx indidriver_CXX_SRC 10 cpp)
 ENDIF ()
 
 SET(indidriver_C_SRC ${indidriver_C_SRC}
+    ${libdsp_C_SRC}
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 ##################################################
@@ -441,7 +444,7 @@ find_package(Iconv REQUIRED)
 add_library(indidriver STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${hidapi_SRCS} ${libdsp_C_SRC})
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARY})
+target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
@@ -451,11 +454,11 @@ ENDIF()
 install(TARGETS indidriver ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 else()
 ## Static indidriver Library
-add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS})
+add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS} ${libdsp_C_SRC})
 set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriverstatic ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriverstatic ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
@@ -464,11 +467,11 @@ target_link_libraries(indidriverstatic ${Boost_LIBRARIES})
 ENDIF()
 install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 ## Dynamic indidriver Library
-add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS})
+add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS} ${libdsp_C_SRC})
 set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()

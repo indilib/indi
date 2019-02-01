@@ -33,7 +33,7 @@ set(rtlsdr_SRCS
 
 add_executable(indi_rtlsdr_detector ${rtlsdr_SRCS})
 
-target_link_libraries(indi_rtlsdr_detector ${RTLSDR_LIBRARIES} ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_rtlsdr_detector ${INDI_LIBRARIES} ${RTLSDR_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_rtlsdr_detector RUNTIME DESTINATION bin)
 
