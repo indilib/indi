@@ -19,6 +19,10 @@
 #ifndef _DSP_H
 #define _DSP_H
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -125,15 +129,13 @@
 #ifndef LightYear
 #define LightYear (double)(LightSpeed * SIDEREAL_DAY * 365)
 #endif
-#ifdef  __cplusplus
 
-extern "C" {
-#endif
+
 #ifndef DLL_EXPORT
 #ifdef _WIN32
 #define DLL_EXPORT __declspec(dllexport)
 #else
-#define DLL_EXPORT extern "C"
+#define DLL_EXPORT extern
 #endif
 #endif
 
