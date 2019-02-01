@@ -397,32 +397,27 @@ endif (WITH_MGEN)
 
 # RadioSim
 if (WITH_RADIOSIM)
-find_package(DSPAU)
-if (DSPAU_FOUND)
 add_subdirectory(indi-radiosim)
-endif (DSPAU_FOUND)
 endif (WITH_RADIOSIM)
 
 ## RTL-SDR
 if (WITH_RTLSDR)
 find_package(RTLSDR)
-find_package(DSPAU)
-if (RTLSDR_FOUND AND DSPAU_FOUND)
+if (RTLSDR_FOUND)
 add_subdirectory(indi-rtlsdr)
-else (RTLSDR_FOUND AND DSPAU_FOUND)
+else (RTLSDR_FOUND)
 SET(LIBRARIES_FOUND FALSE)
-endif (RTLSDR_FOUND AND DSPAU_FOUND)
+endif (RTLSDR_FOUND)
 endif (WITH_RTLSDR)
 
 ## LIME-SDR
 if (WITH_LIMESDR)
 find_package(LIMESUITE)
-find_package(DSPAU)
-if (LIMESUITE_FOUND AND DSPAU_FOUND)
+if (LIMESUITE_FOUND)
 add_subdirectory(indi-limesdr)
-else (LIMESUITE_FOUND AND DSPAU_FOUND)
+else (LIMESUITE_FOUND)
 SET(LIBRARIES_FOUND FALSE)
-endif (LIMESUITE_FOUND AND DSPAU_FOUND)
+endif (LIMESUITE_FOUND)
 endif (WITH_LIMESDR)
 
 if (WITH_ARMADILLO)
