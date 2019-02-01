@@ -129,6 +129,7 @@ bool StarbookDriver::updateProperties() {
 
 bool StarbookDriver::Connect()
 {
+    failed_res = 0;
     bool rc = Telescope::Connect();
     if (rc) {
         getFirmwareVersion();
@@ -155,6 +156,14 @@ bool StarbookDriver::ReadScopeStatus()
     starbook::ResponseCode rc = cmd_interface->GetStatus(res);
     if (rc != starbook::OK) {
         StateTP.s = IPS_ALERT;
+        // TODO: move outside this function, handle disconnection
+        LogResponse("Status", rc);
+        failed_res++;
+        if (failed_res > 10) {
+            LOG_ERROR("Failed to keep connection, disconnecting");
+            Disconnect();
+            failed_res = 0;
+        }
         return false;
     }
 

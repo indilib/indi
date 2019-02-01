@@ -46,9 +46,11 @@ public:
 private:
     std::unique_ptr<starbook::CommandInterface> cmd_interface;
 
+    Connection::Curl *curlConnection = nullptr;
+
     starbook::StarbookState last_known_state;
 
-    Connection::Curl *curlConnection = nullptr;
+    int failed_res;
 
     void LogResponse(const std::string &cmd, const starbook::ResponseCode &rc);
 
