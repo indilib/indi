@@ -18,69 +18,84 @@
 
 #include "libdspau.h"
 
-dspau_t* dspau_signals_sinewave(int len, dspau_t samplefreq, dspau_t freq, dspau_t max)
+double* dspau_signals_sinewave(int len, double samplefreq, double freq)
 {
-    dspau_t* out = (dspau_t*)calloc(sizeof(dspau_t), len);
-    int k;
-    for(k = 0; k < len; k++)
-        out[k] = sin((freq / samplefreq) * PI * 2 * k) * max;
-    return out;
-}
-
-dspau_t* dspau_signals_sawteethwave(int len, dspau_t samplefreq, dspau_t freq, dspau_t max)
-{
-    dspau_t* out = (dspau_t*)calloc(sizeof(dspau_t), len);
-    int k;
-    for(k = 0; k < len; k++) {
-        dspau_t value = ((freq / samplefreq) * k);
-        while (value > max)
-            value -= max;
-        out[k] = value;
+    double* out = (double*)calloc(sizeof(double), len);
+    freq /= samplefreq;
+    double rad = 0;
+    double x = 0;
+    for(int k = 0; k < len; k++) {
+        rad += freq;
+        x = rad;
+        while (x > 1.0)
+            x -= 1.0;
+        x *= PI * 2;
+        out[k] = sin(x);
     }
     return out;
 }
 
-dspau_t* dspau_signals_triwave(int len, dspau_t samplefreq, dspau_t freq, dspau_t max)
+double* dspau_signals_sawteethwave(int len, double samplefreq, double freq)
 {
-    dspau_t* out = (dspau_t*)calloc(sizeof(dspau_t), len);
-    int k;
-    for(k = 0; k < len; k++) {
-        dspau_t value = ((freq / samplefreq) * k);
-        while (value > max * 2)
-            value -= max * 2;
-        value = value > max ? max - value : value;
-        out[k] = value;
+    double* out = (double*)calloc(sizeof(double), len);
+    freq /= samplefreq;
+    double rad = 0;
+    double x = 0;
+    for(int k = 0; k < len; k++) {
+        rad += freq;
+        x = rad;
+        while (x > 1.0)
+            x -= 1.0;
+        out[k] = x;
     }
     return out;
 }
 
-dspau_t* dspau_modulation_frequency(dspau_t* in, int len, dspau_t samplefreq, dspau_t freq, dspau_t bandwidth)
+double* dspau_signals_triwave(int len, double samplefreq, double freq)
 {
-    dspau_t* carrying = dspau_signals_sinewave(len, samplefreq, freq, 1.0);
-    dspau_t lo = freq / samplefreq;
-    dspau_t hi = freq / samplefreq;
+    double* out = (double*)calloc(sizeof(double), len);
+    freq /= samplefreq;
+    double rad = 0;
+    double x = 0;
+    for(int k = 0; k < len; k++) {
+        rad += freq;
+        x = rad;
+        while (x > 2.0)
+            x -= 2.0;
+        while (x > 1.0)
+            x = 2.0 - x;
+        out[k] = x;
+    }
+    return out;
+}
+
+double* dspau_modulation_frequency(double* in, int len, double samplefreq, double freq, double bandwidth)
+{
+    double* carrying = dspau_signals_sinewave(len, samplefreq, freq);
+    double lo = freq / samplefreq;
+    double hi = freq / samplefreq;
     return dspau_buffer_deviate(carrying, len, in, len, lo - bandwidth * 0.5, hi + bandwidth * 1.5);
 }
 
-dspau_t* dspau_modulation_amplitude(dspau_t* in, int len, dspau_t samplefreq, dspau_t freq)
+double* dspau_modulation_amplitude(double* in, int len, double samplefreq, double freq)
 {
-    dspau_t* modulating = (dspau_t*)calloc(sizeof(dspau_t), len);
-    dspau_t* out = (dspau_t*)calloc(sizeof(dspau_t), len);
-    in = dspau_signals_sinewave(len, samplefreq, freq, 0.5);
+    double* modulating = (double*)calloc(sizeof(double), len);
+    double* out = (double*)calloc(sizeof(double), len);
+    in = dspau_signals_sinewave(len, samplefreq, freq);
     out = dspau_buffer_sum(modulating, len, in, len);
     return out;
 }
 
-dspau_t* dspau_modulation_buffer(dspau_t* in1, int len1, dspau_t* in2, int len2, dspau_t samplefreq, dspau_t freq)
+double* dspau_modulation_buffer(double* in1, int len1, double* in2, int len2, double samplefreq, double freq)
 {
     int len = Min(len1, len2);
     int olen = Max(len1, len2);
-    dspau_t* buf1 = (len == len1 ? in1 : in2);
-    dspau_t* buf2 = (olen == len1 ? in1 : in2);
-    dspau_t* out = (dspau_t*)calloc(sizeof(dspau_t), olen);
+    double* buf1 = (len == len1 ? in1 : in2);
+    double* buf2 = (olen == len1 ? in1 : in2);
+    double* out = (double*)calloc(sizeof(double), olen);
     freq /= samplefreq;
     for(int i = 0; i < olen; i+= len) {
-        dspau_t* tmp = dspau_buffer_sum(&buf2[i], len, buf1, len);
+        double* tmp = dspau_buffer_sum(&buf2[i], len, buf1, len);
         memcpy(&out[i], tmp, len);
     }
     return out;

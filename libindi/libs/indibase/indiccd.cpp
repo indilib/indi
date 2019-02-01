@@ -50,18 +50,22 @@
 #include <zlib.h>
 #include <sys/stat.h>
 
-const char *IMAGE_SETTINGS_TAB = "Image Settings";
-const char *IMAGE_INFO_TAB     = "Image Info";
-const char *GUIDE_HEAD_TAB     = "Guider Head";
-const char *GUIDE_CONTROL_TAB  = "Guider Control";
-const char *RAPIDGUIDE_TAB     = "Rapid Guide";
-const char *WCS_TAB            = "WCS";
+const char * IMAGE_SETTINGS_TAB = "Image Settings";
+const char * IMAGE_INFO_TAB     = "Image Info";
+const char * GUIDE_HEAD_TAB     = "Guider Head";
+const char * GUIDE_CONTROL_TAB  = "Guider Control";
+const char * RAPIDGUIDE_TAB     = "Rapid Guide";
+const char * WCS_TAB            = "WCS";
+
+#ifdef HAVE_WEBSOCKET
+uint16_t INDIWSServer::m_global_port = 11623;
+#endif
 
 // Create dir recursively
-static int _ccd_mkdir(const char *dir, mode_t mode)
+static int _ccd_mkdir(const char * dir, mode_t mode)
 {
     char tmp[PATH_MAX];
-    char *p = nullptr;
+    char * p = nullptr;
     size_t len;
 
     snprintf(tmp, sizeof(tmp), "%s", dir);
@@ -84,297 +88,6 @@ static int _ccd_mkdir(const char *dir, mode_t mode)
 
 namespace INDI
 {
-
-CCDChip::CCDChip()
-{
-    SendCompressed = false;
-    Interlaced     = false;
-
-    SubX = SubY = 0;
-    SubW = SubH = 1;
-    BPP         = 8;
-    BinX = BinY = 1;
-    NAxis       = 2;
-
-    BinFrame = nullptr;
-
-    strncpy(imageExtention, "fits", MAXINDIBLOBFMT);
-
-    FrameType  = LIGHT_FRAME;
-    lastRapidX = lastRapidY = -1;    
-}
-
-CCDChip::~CCDChip()
-{
-    delete [] RawFrame;
-    delete[] BinFrame;
-}
-
-void CCDChip::setFrameType(CCD_FRAME type)
-{
-    FrameType = type;
-}
-
-void CCDChip::setResolution(int x, int y)
-{
-    XRes = x;
-    YRes = y;
-
-    ImagePixelSizeN[0].value = x;
-    ImagePixelSizeN[1].value = y;
-
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
-
-    ImageFrameN[FRAME_X].min = 0;
-    ImageFrameN[FRAME_X].max = x - 1;
-    ImageFrameN[FRAME_Y].min = 0;
-    ImageFrameN[FRAME_Y].max = y - 1;
-
-    ImageFrameN[FRAME_W].min = 1;
-    ImageFrameN[FRAME_W].max = x;
-    ImageFrameN[FRAME_H].max = 1;
-    ImageFrameN[FRAME_H].max = y;
-    IUUpdateMinMax(&ImageFrameNP);
-}
-
-void CCDChip::setFrame(int subx, int suby, int subw, int subh)
-{
-    SubX = subx;
-    SubY = suby;
-    SubW = subw;
-    SubH = subh;
-
-    ImageFrameN[FRAME_X].value = SubX;
-    ImageFrameN[FRAME_Y].value = SubY;
-    ImageFrameN[FRAME_W].value = SubW;
-    ImageFrameN[FRAME_H].value = SubH;
-
-    IDSetNumber(&ImageFrameNP, nullptr);
-}
-
-void CCDChip::setBin(int hor, int ver)
-{
-    BinX = hor;
-    BinY = ver;
-
-    ImageBinN[BIN_W].value = BinX;
-    ImageBinN[BIN_H].value = BinY;
-
-    IDSetNumber(&ImageBinNP, nullptr);
-}
-
-void CCDChip::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                            bool sendToClient)
-{
-    INumberVectorProperty *nvp = nullptr;
-
-    if (!strcmp(property, ImageExposureNP.name))
-        nvp = &ImageExposureNP;
-    else if (!strcmp(property, ImageFrameNP.name))
-        nvp = &ImageFrameNP;
-    else if (!strcmp(property, ImageBinNP.name))
-        nvp = &ImageBinNP;
-    else if (!strcmp(property, ImagePixelSizeNP.name))
-        nvp = &ImagePixelSizeNP;
-    else if (!strcmp(property, RapidGuideDataNP.name))
-        nvp = &RapidGuideDataNP;
-
-    INumber *np = IUFindNumber(nvp, element);
-    if (np)
-    {
-        np->min  = min;
-        np->max  = max;
-        np->step = step;
-
-        if (sendToClient)
-            IUUpdateMinMax(nvp);
-    }
-}
-
-void CCDChip::setPixelSize(float x, float y)
-{
-    PixelSizex = x;
-    PixelSizey = y;
-
-    ImagePixelSizeN[2].value = x;
-    ImagePixelSizeN[3].value = x;
-    ImagePixelSizeN[4].value = y;
-
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
-}
-
-void CCDChip::setBPP(int bbp)
-{
-    BPP = bbp;
-
-    ImagePixelSizeN[5].value = BPP;
-
-    IDSetNumber(&ImagePixelSizeNP, nullptr);
-}
-
-void CCDChip::setFrameBufferSize(int nbuf, bool allocMem)
-{
-    if (nbuf == RawFrameSize)
-        return;
-
-    RawFrameSize = nbuf;
-
-    if (allocMem == false)
-        return;
-
-    delete [] RawFrame;
-    RawFrame = new uint8_t[nbuf];
-
-    if (BinFrame)
-    {
-        delete [] BinFrame;
-        BinFrame = new uint8_t[nbuf];
-    }
-}
-
-void CCDChip::setExposureLeft(double duration)
-{
-    ImageExposureNP.s = IPS_BUSY;
-    ImageExposureN[0].value = duration;
-
-    IDSetNumber(&ImageExposureNP, nullptr);
-}
-
-void CCDChip::setExposureDuration(double duration)
-{
-    exposureDuration = duration;
-    gettimeofday(&startExposureTime, nullptr);
-}
-
-const char *CCDChip::getFrameTypeName(CCD_FRAME fType)
-{
-    return FrameTypeS[fType].name;
-}
-
-const char *CCDChip::getExposureStartTime()
-{
-    static char ts[32];
-
-    char iso8601[32] = {0};
-    struct tm *tp = nullptr;
-
-    // Get exposure startup timestamp
-    time_t t = static_cast<time_t>(startExposureTime.tv_sec);
-
-    // Get UTC timestamp
-    tp = gmtime(&t);
-
-    // Format it in ISO8601 format
-    strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
-
-    // Add millisecond
-    snprintf(ts, 32, "%s.%03d", iso8601, static_cast<int>(startExposureTime.tv_usec / 1000.0));
-
-    return (ts);
-}
-
-void CCDChip::setInterlaced(bool intr)
-{
-    Interlaced = intr;
-}
-
-void CCDChip::setExposureFailed()
-{
-    ImageExposureNP.s = IPS_ALERT;
-    IDSetNumber(&ImageExposureNP, nullptr);
-}
-
-int CCDChip::getNAxis() const
-{
-    return NAxis;
-}
-
-void CCDChip::setNAxis(int value)
-{
-    NAxis = value;
-}
-
-void CCDChip::setImageExtension(const char *ext)
-{
-    strncpy(imageExtention, ext, MAXINDIBLOBFMT);
-}
-
-void CCDChip::binFrame()
-{
-    if (BinX == 1)
-        return;
-
-    // Jasem: Keep full frame shadow in memory to enhance performance and just swap frame pointers after operation is complete
-    if (BinFrame == nullptr)
-        BinFrame = new uint8_t[RawFrameSize];
-
-    memset(BinFrame, 0, RawFrameSize);
-
-    switch (getBPP())
-    {
-        case 8:
-        {
-            uint8_t *bin_buf = BinFrame;
-            // Try to average pixels since in 8bit they get saturated pretty quickly
-            double factor      = (BinX * BinX) / 2;
-            double accumulator = 0;
-
-            for (int i = 0; i < SubH; i += BinX)
-                for (int j = 0; j < SubW; j += BinX)
-                {
-                    accumulator = 0;
-                    for (int k = 0; k < BinX; k++)
-                    {
-                        for (int l = 0; l < BinX; l++)
-                        {
-                            accumulator += *(RawFrame + j + (i + k) * SubW + l);
-                        }
-                    }
-
-                    accumulator /= factor;
-                    if (accumulator > UINT8_MAX)
-                        *bin_buf = UINT8_MAX;
-                    else
-                        *bin_buf += static_cast<uint8_t>(accumulator);
-                    bin_buf++;
-                }
-        }
-        break;
-
-        case 16:
-        {
-            uint16_t *bin_buf    = reinterpret_cast<uint16_t *>(BinFrame);
-            uint16_t *RawFrame16 = reinterpret_cast<uint16_t *>(RawFrame);
-            uint16_t val;
-            for (int i = 0; i < SubH; i += BinX)
-                for (int j = 0; j < SubW; j += BinX)
-                {
-                    for (int k = 0; k < BinX; k++)
-                    {
-                        for (int l = 0; l < BinX; l++)
-                        {
-                            val = *(RawFrame16 + j + (i + k) * SubW + l);
-                            if (val + *bin_buf > UINT16_MAX)
-                                *bin_buf = UINT16_MAX;
-                            else
-                                *bin_buf += val;
-                        }
-                    }
-                    bin_buf++;
-                }
-        }
-        break;
-
-        default:
-            return;
-    }
-
-    // Swap frame pointers
-    uint8_t *rawFramePointer = RawFrame;
-    RawFrame                 = BinFrame;
-    // We just memset it next time we use it
-    BinFrame = rawFramePointer;
-}
 
 CCD::CCD()
 {
@@ -675,6 +388,18 @@ bool CCD::initProperties()
 #endif
 
     /**********************************************/
+    /**************** Web Socket ******************/
+    /**********************************************/
+    IUFillSwitch(&WebSocketS[WEBSOCKET_ENABLED], "WEBSOCKET_ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&WebSocketS[WEBSOCKET_DISABLED], "WEBSOCKET_DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&WebSocketSP, WebSocketS, 2, getDeviceName(), "CCD_WEBSOCKET", "Websocket", OPTIONS_TAB,
+                       IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&WebSocketSettingsN[WS_SETTINGS_PORT], "WS_SETTINGS_PORT", "Port", "%.f", 0, 50000, 0, 0);
+    IUFillNumberVector(&WebSocketSettingsNP, WebSocketSettingsN, 1, getDeviceName(), "CCD_WEBSOCKET_SETTINGS", "WS Settings", OPTIONS_TAB, IP_RW,
+                       60, IPS_IDLE);
+
+    /**********************************************/
     /**************** Snooping ********************/
     /**********************************************/
 
@@ -719,7 +444,7 @@ bool CCD::initProperties()
     return true;
 }
 
-void CCD::ISGetProperties(const char *dev)
+void CCD::ISGetProperties(const char * dev)
 {
     DefaultDevice::ISGetProperties(dev);
 
@@ -815,6 +540,11 @@ bool CCD::updateProperties()
             IUSaveText(&UploadSettingsT[UPLOAD_DIR], getenv("HOME"));
         defineText(&UploadSettingsTP);
 
+#ifdef HAVE_WEBSOCKET
+        if (HasWebSocket())
+            defineSwitch(&WebSocketSP);
+#endif
+
 #ifdef WITH_EXPOSURE_LOOPING
         defineSwitch(&ExposureLoopSP);
         defineNumber(&ExposureLoopCountNP);
@@ -884,23 +614,30 @@ bool CCD::updateProperties()
         deleteProperty(UploadSP.name);
         deleteProperty(UploadSettingsTP.name);
 
+#ifdef HAVE_WEBSOCKET
+        if (HasWebSocket())
+        {
+            deleteProperty(WebSocketSP.name);
+            deleteProperty(WebSocketSettingsNP.name);
+        }
+#endif
 #ifdef WITH_EXPOSURE_LOOPING
         deleteProperty(ExposureLoopSP.name);
         deleteProperty(ExposureLoopCountNP.name);
 #endif
     }
 
-// Streamer
+    // Streamer
     if (HasStreaming())
         Streamer->updateProperties();
 
     return true;
 }
 
-bool CCD::ISSnoopDevice(XMLEle *root)
+bool CCD::ISSnoopDevice(XMLEle * root)
 {
-    XMLEle *ep           = nullptr;
-    const char *propName = findXMLAttValu(root, "name");
+    XMLEle * ep           = nullptr;
+    const char * propName = findXMLAttValu(root, "name");
 
     if (IUSnoopNumber(root, &EqNP) == 0)
     {
@@ -918,7 +655,7 @@ bool CCD::ISSnoopDevice(XMLEle *root)
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            const char *name = findXMLAttValu(ep, "name");
+            const char * name = findXMLAttValu(ep, "name");
 
             if (!strcmp(name, "TELESCOPE_APERTURE"))
             {
@@ -955,7 +692,7 @@ bool CCD::ISSnoopDevice(XMLEle *root)
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            const char *name = findXMLAttValu(ep, "name");
+            const char * name = findXMLAttValu(ep, "name");
 
             if (!strcmp(name, "SKY_BRIGHTNESS"))
             {
@@ -968,7 +705,7 @@ bool CCD::ISSnoopDevice(XMLEle *root)
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            const char *name = findXMLAttValu(ep, "name");
+            const char * name = findXMLAttValu(ep, "name");
 
             if (!strcmp(name, "ANGLE"))
             {
@@ -981,7 +718,7 @@ bool CCD::ISSnoopDevice(XMLEle *root)
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
-            const char *name = findXMLAttValu(ep, "name");
+            const char * name = findXMLAttValu(ep, "name");
 
             if (!strcmp(name, "LONG"))
             {
@@ -999,7 +736,7 @@ bool CCD::ISSnoopDevice(XMLEle *root)
     return DefaultDevice::ISSnoopDevice(root);
 }
 
-bool CCD::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool CCD::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     //  first check if it's for our device
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -1080,14 +817,14 @@ bool CCD::ISNewText(const char *dev, const char *name, char *texts[], char *name
         }
     }
 
-// Streamer
+    // Streamer
     if (HasStreaming())
         Streamer->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
-bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     //  first check if it's for our device
     //IDLog("CCD::ISNewNumber %s\n",name);
@@ -1096,7 +833,7 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
         if (!strcmp(name, "CCD_EXPOSURE"))
         {
             if (PrimaryCCD.getFrameType() != CCDChip::BIAS_FRAME &&
-                (values[0] < PrimaryCCD.ImageExposureN[0].min || values[0] > PrimaryCCD.ImageExposureN[0].max))
+                    (values[0] < PrimaryCCD.ImageExposureN[0].min || values[0] > PrimaryCCD.ImageExposureN[0].max))
             {
                 DEBUGF(Logger::DBG_ERROR, "Requested exposure value (%g) seconds out of bounds [%g,%g].",
                        values[0], PrimaryCCD.ImageExposureN[0].min, PrimaryCCD.ImageExposureN[0].max);
@@ -1146,8 +883,8 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
                 }
 
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
-                if (ExposureTime*1000 < POLLMS)
-                    POLLMS = ExposureTime*950;
+                if (ExposureTime * 1000 < POLLMS)
+                    POLLMS = ExposureTime * 950;
             }
             else
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
@@ -1158,7 +895,7 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
         if (!strcmp(name, "GUIDER_EXPOSURE"))
         {
             if (GuideCCD.getFrameType() != CCDChip::BIAS_FRAME &&
-                (values[0] < GuideCCD.ImageExposureN[0].min || values[0] > GuideCCD.ImageExposureN[0].max))
+                    (values[0] < GuideCCD.ImageExposureN[0].min || values[0] > GuideCCD.ImageExposureN[0].max))
             {
                 DEBUGF(Logger::DBG_ERROR, "Requested guide exposure value (%g) seconds out of bounds [%g,%g].",
                        values[0], GuideCCD.ImageExposureN[0].min, GuideCCD.ImageExposureN[0].max);
@@ -1184,7 +921,7 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
         if (!strcmp(name, "CCD_BINNING"))
         {
             //  We are being asked to set camera binning
-            INumber *np = IUFindNumber(&PrimaryCCD.ImageBinNP, names[0]);
+            INumber * np = IUFindNumber(&PrimaryCCD.ImageBinNP, names[0]);
             if (np == nullptr)
             {
                 PrimaryCCD.ImageBinNP.s = IPS_ALERT;
@@ -1220,7 +957,7 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
         if (!strcmp(name, "GUIDER_BINNING"))
         {
             //  We are being asked to set camera binning
-            INumber *np = IUFindNumber(&GuideCCD.ImageBinNP, names[0]);
+            INumber * np = IUFindNumber(&GuideCCD.ImageBinNP, names[0]);
             if (np == nullptr)
             {
                 GuideCCD.ImageBinNP.s = IPS_ALERT;
@@ -1255,8 +992,8 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
 
         if (!strcmp(name, "CCD_FRAME"))
         {
-            int x=-1,y=-1,w=-1,h=-1;
-            for (int i=0; i < n; i++)
+            int x = -1, y = -1, w = -1, h = -1;
+            for (int i = 0; i < n; i++)
             {
                 if (!strcmp(names[i], "X"))
                     x = values[i];
@@ -1280,8 +1017,8 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
 
             if (UpdateCCDFrame(x, y, w, h))
             {
-                    PrimaryCCD.ImageFrameNP.s = IPS_OK;
-                    IUUpdateNumber(&PrimaryCCD.ImageFrameNP, values, names, n);
+                PrimaryCCD.ImageFrameNP.s = IPS_OK;
+                IUUpdateNumber(&PrimaryCCD.ImageFrameNP, values, names, n);
             }
             else
                 PrimaryCCD.ImageFrameNP.s = IPS_ALERT;
@@ -1407,14 +1144,14 @@ bool CCD::ISNewNumber(const char *dev, const char *name, double values[], char *
         }
     }
 
-// Streamer
+    // Streamer
     if (HasStreaming())
         Streamer->ISNewNumber(dev, name, values, names, n);
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -1476,6 +1213,32 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
         }
 #endif
 
+#ifdef HAVE_WEBSOCKET
+        // Websocket Enable/Disable
+        if (!strcmp(name, WebSocketSP.name))
+        {
+            IUUpdateSwitch(&WebSocketSP, states, names, n);
+            WebSocketSP.s = IPS_OK;
+
+            if (WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
+            {
+                wsThread = std::thread(&wsThreadHelper, this);
+                WebSocketSettingsN[WS_SETTINGS_PORT].value = wsServer.generatePort();
+                WebSocketSettingsNP.s = IPS_OK;
+                defineNumber(&WebSocketSettingsNP);
+            }
+            else if (wsServer.is_running())
+            {
+                wsServer.stop();
+                wsThread.join();
+                deleteProperty(WebSocketSettingsNP.name);
+            }
+
+            IDSetSwitch(&WebSocketSP, nullptr);
+            return true;
+        }
+#endif
+
         // WCS Enable/Disable
         if (!strcmp(name, WorldCoordSP.name))
         {
@@ -1485,8 +1248,8 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             if (WorldCoordS[0].s == ISS_ON)
             {
                 DEBUG(Logger::DBG_WARNING, "World Coordinate System is enabled. CCD rotation must be set either "
-                                                 "manually or by solving the image before proceeding to capture any "
-                                                 "frames, otherwise the WCS information may be invalid.");
+                      "manually or by solving the image before proceeding to capture any "
+                      "frames, otherwise the WCS information may be invalid.");
                 defineNumber(&CCDRotationNP);
             }
             else
@@ -1530,13 +1293,16 @@ bool CCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             }
 
             POLLMS = getPollingPeriod();
+
+#ifdef WITH_EXPOSURE_LOOPING
             if (ExposureLoopCountNP.s == IPS_BUSY)
             {
-                uploadTime=0;
+                uploadTime = 0;
                 ExposureLoopCountNP.s = IPS_IDLE;
                 ExposureLoopCountN[0].value = 1;
                 IDSetNumber(&ExposureLoopCountNP, nullptr);
             }
+#endif
             IDSetSwitch(&PrimaryCCD.AbortExposureSP, nullptr);
             IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
 
@@ -1796,7 +1562,7 @@ bool CCD::UpdateCCDBin(int hor, int ver)
     PrimaryCCD.setBin(hor, ver);
     // Reset size
     if (HasStreaming())
-        Streamer->setSize(PrimaryCCD.getSubW()/hor, PrimaryCCD.getSubH()/ver);
+        Streamer->setSize(PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver);
     return true;
 }
 
@@ -1821,14 +1587,14 @@ bool CCD::UpdateGuiderFrameType(CCDChip::CCD_FRAME fType)
     return true;
 }
 
-void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
+void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
 {
     int status = 0;
     char dev_name[32];
-    char exp_start[32];    
+    char exp_start[32];
     double pixSize1, pixSize2;
 
-    AutoCNumeric locale;    
+    AutoCNumeric locale;
     fits_update_key_str(fptr, "INSTRUME", getDeviceName(), "CCD Name", &status);
 
     // Telescope
@@ -1927,13 +1693,13 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_update_key_dbl(fptr, "SCALE", pixScale, 6, "arcsecs per pixel", &status);
 
     if (targetChip->getFrameType() == CCDChip::LIGHT_FRAME && !std::isnan(J2000RA) && !std::isnan(J2000DE))
-    {        
-        char ra_str[32]={0}, de_str[32]={0};
+    {
+        char ra_str[32] = {0}, de_str[32] = {0};
 
         fs_sexa(ra_str, J2000RA, 2, 360000);
         fs_sexa(de_str, J2000DE, 2, 360000);
 
-        char *raPtr = ra_str, *dePtr = de_str;
+        char * raPtr = ra_str, *dePtr = de_str;
         while (*raPtr != '\0')
         {
             if (*raPtr == ':')
@@ -1947,11 +1713,11 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
             dePtr++;
         }
 
-    if (!std::isnan(Latitude) && !std::isnan(Longitude))
-    {
-        fits_update_key_dbl(fptr, "SITELAT", Latitude, 6, "Latitude of the imaging site in degrees", &status);
-        fits_update_key_dbl(fptr, "SITELONG", Longitude, 6, "Longitude of the imaging site in degrees", &status);
-	}
+        if (!std::isnan(Latitude) && !std::isnan(Longitude))
+        {
+            fits_update_key_dbl(fptr, "SITELAT", Latitude, 6, "Latitude of the imaging site in degrees", &status);
+            fits_update_key_dbl(fptr, "SITELONG", Longitude, 6, "Longitude of the imaging site in degrees", &status);
+        }
         if (!std::isnan(Airmass))
             //fits_update_key_s(fptr, TDOUBLE, "AIRMASS", &Airmass, "Airmass", &status);
             fits_update_key_dbl(fptr, "AIRMASS", Airmass, 6, "Airmass", &status);
@@ -1959,7 +1725,7 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
         fits_update_key_str(fptr, "OBJCTRA", ra_str, "Object J2000 RA in Hours", &status);
         fits_update_key_str(fptr, "OBJCTDEC", de_str, "Object J2000 DEC in Degrees", &status);
 
-        fits_update_key_dbl(fptr, "RA", J2000RA*15, 6, "Object J2000 RA in Degrees", &status);
+        fits_update_key_dbl(fptr, "RA", J2000RA * 15, 6, "Object J2000 RA in Degrees", &status);
         fits_update_key_dbl(fptr, "DEC", J2000DE, 6, "Object J2000 DEC in Degrees", &status);
 
         //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
@@ -2026,18 +1792,26 @@ void CCD::addFITSKeywords(fitsfile *fptr, CCDChip *targetChip)
     fits_write_comment(fptr, "Generated by INDI", &status);
 }
 
-void CCD::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation,
-                                  int *status)
+void CCD::fits_update_key_s(fitsfile * fptr, int type, std::string name, void * p, std::string explanation,
+                            int * status)
 {
     // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
 }
 
-bool CCD::ExposureComplete(CCDChip *targetChip)
+bool CCD::ExposureComplete(CCDChip * targetChip)
 {
     // Reset POLLMS to default value
     POLLMS = getPollingPeriod();
 
+    // Run async
+    std::thread(&CCD::ExposureCompletePrivate, this, targetChip).detach();
+
+    return true;
+}
+
+bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
+{
 #ifdef WITH_EXPOSURE_LOOPING
     // If looping is on, let's immediately take another capture
     if (ExposureLoopS[EXPOSURE_LOOP_ON].s == ISS_ON)
@@ -2052,7 +1826,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             }
             else
             {
-                auto end = std::chrono::system_clock::now();                
+                auto end = std::chrono::system_clock::now();
 
                 uploadTime = (std::chrono::duration_cast<std::chrono::milliseconds>(end - exposureLoopStartup)).count() / 1000.0 - duration;
                 LOGF_DEBUG("Image download and upload/save took %.3f seconds.", uploadTime);
@@ -2069,15 +1843,15 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
                 StartExposure(duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_BUSY;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-                if (duration*1000 < POLLMS)
-                    POLLMS = duration*950;
+                if (duration * 1000 < POLLMS)
+                    POLLMS = duration * 950;
             }
             else
             {
                 LOGF_ERROR("Rapid exposure not possible since upload time is %.2f seconds while exposure time is %.2f seconds.", uploadTime, duration);
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
-                ExposureLoopCountN[0].value=1;
+                ExposureLoopCountN[0].value = 1;
                 ExposureLoopCountNP.s = IPS_IDLE;
                 IDSetNumber(&ExposureLoopCountNP, nullptr);
                 uploadTime = 0;
@@ -2090,7 +1864,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             ExposureLoopCountNP.s = IPS_IDLE;
             IDSetNumber(&ExposureLoopCountNP, nullptr);
         }
-    }    
+    }
 #endif
 
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
@@ -2125,7 +1899,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
         targetChip->RapidGuideDataNP.s = IPS_BUSY;
         int width                      = targetChip->getSubW() / targetChip->getBinX();
         int height                     = targetChip->getSubH() / targetChip->getBinY();
-        void *src                      = (unsigned short *)targetChip->getFrameBuffer();
+        void * src                      = (unsigned short *)targetChip->getFrameBuffer();
         int i0, i1, i2, i3, i4, i5, i6, i7, i8;
         int ix = 0, iy = 0;
         int xM4;
@@ -2143,7 +1917,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
         }
         if (targetChip->getBPP() == 16)
         {
-            unsigned short *p;
+            unsigned short * p;
             for (int x = minx; x < maxx; x++)
                 for (int y = miny; y < maxy; y++)
                 {
@@ -2241,8 +2015,8 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
                     i8 += *p++;
                     average = (i0 + i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8) / 85.0;
                     fit     = P0 * (i0 - average) + P1 * (i1 - 4 * average) + P2 * (i2 - 4 * average) +
-                          P3 * (i3 - 4 * average) + P4 * (i4 - 8 * average) + P5 * (i5 - 4 * average) +
-                          P6 * (i6 - 4 * average) + P7 * (i7 - 8 * average) + P8 * (i8 - 48 * average);
+                              P3 * (i3 - 4 * average) + P4 * (i4 - 8 * average) + P5 * (i5 - 4 * average) +
+                              P6 * (i6 - 4 * average) + P7 * (i7 - 8 * average) + P8 * (i8 - 48 * average);
                     if (bestFit < fit)
                     {
                         bestFit = fit;
@@ -2253,7 +2027,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
         }
         else
         {
-            unsigned char *p;
+            unsigned char * p;
             for (int x = minx; x < maxx; x++)
                 for (int y = miny; y < maxy; y++)
                 {
@@ -2351,8 +2125,8 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
                     i8 += *p++;
                     average = (i0 + i1 + i2 + i3 + i4 + i5 + i6 + i7 + i8) / 85.0;
                     fit     = P0 * (i0 - average) + P1 * (i1 - 4 * average) + P2 * (i2 - 4 * average) +
-                          P3 * (i3 - 4 * average) + P4 * (i4 - 8 * average) + P5 * (i5 - 4 * average) +
-                          P6 * (i6 - 4 * average) + P7 * (i7 - 8 * average) + P8 * (i8 - 48 * average);
+                              P3 * (i3 - 4 * average) + P4 * (i4 - 8 * average) + P5 * (i5 - 4 * average) +
+                              P6 * (i6 - 4 * average) + P7 * (i7 - 8 * average) + P8 * (i8 - 48 * average);
                     if (bestFit < fit)
                     {
                         bestFit = fit;
@@ -2377,7 +2151,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
 
             if (targetChip->getBPP() == 16)
             {
-                unsigned short *p;
+                unsigned short * p;
                 for (int y = iy - 4; y <= iy + 4; y++)
                 {
                     p = (unsigned short *)src + y * width + ix - 4;
@@ -2406,7 +2180,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             }
             else
             {
-                unsigned char *p;
+                unsigned char * p;
                 for (int y = iy - 4; y <= iy + 4; y++)
                 {
                     p = (unsigned char *)src + y * width + ix - 4;
@@ -2467,7 +2241,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
 
             if (targetChip->getBPP() == 16)
             {
-                unsigned short *p;
+                unsigned short * p;
                 if (ymin > 0)
                 {
                     p = (unsigned short *)src + ymin * width + xmin;
@@ -2500,7 +2274,7 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             }
             else
             {
-                unsigned char *p;
+                unsigned char * p;
                 if (ymin > 0)
                 {
                     p = (unsigned char *)src + ymin * width + xmin;
@@ -2538,18 +2312,18 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
     {
         if (!strcmp(targetChip->getImageExtension(), "fits"))
         {
-            void *memptr;
+            void * memptr;
             size_t memsize;
             int img_type  = 0;
             int byte_type = 0;
             int status    = 0;
             long naxis    = targetChip->getNAxis();
-            long naxes[naxis];
+            long naxes[3];
             int nelements = 0;
             std::string bit_depth;
             char error_status[MAXRBUF];
 
-            fitsfile *fptr = nullptr;
+            fitsfile * fptr = nullptr;
 
             naxes[0] = targetChip->getSubW() / targetChip->getBinX();
             naxes[1] = targetChip->getSubH() / targetChip->getBinY();
@@ -2577,7 +2351,6 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
                 default:
                     DEBUGF(Logger::DBG_ERROR, "Unsupported bits per pixel value %d", targetChip->getBPP());
                     return false;
-                    break;
             }
 
             nelements = naxes[0] * naxes[1];
@@ -2590,12 +2363,15 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             /*DEBUGF(Logger::DBG_DEBUG, "Exposure complete. Image Depth: %s. Width: %d Height: %d nelements: %d", bit_depth.c_str(), naxes[0],
                     naxes[1], nelements);*/
 
+            std::unique_lock<std::mutex> guard(ccdBufferLock);
+
             //  Now we have to send fits format data to the client
             memsize = 5760;
             memptr  = malloc(memsize);
             if (!memptr)
             {
-                DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
+                DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", memsize);
+                return false;
             }
 
             fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
@@ -2604,6 +2380,8 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
+                fits_close_file(fptr, &status);
+                free(memptr);
                 DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                 return false;
             }
@@ -2614,6 +2392,8 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
+                fits_close_file(fptr, &status);
+                free(memptr);
                 DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                 return false;
             }
@@ -2626,6 +2406,8 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
+                fits_close_file(fptr, &status);
+                free(memptr);
                 DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                 return false;
             }
@@ -2636,6 +2418,8 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
 
             free(memptr);
 
+            guard.unlock();
+
             if (rc == false)
             {
                 targetChip->setExposureFailed();
@@ -2644,8 +2428,10 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
         }
         else
         {
+            std::unique_lock<std::mutex> guard(ccdBufferLock);
             bool rc = uploadFile(targetChip, targetChip->getFrameBuffer(), targetChip->getFrameBufferSize(), sendImage,
-                       saveImage);
+                                 saveImage);
+            guard.unlock();
 
             if (rc == false)
             {
@@ -2720,10 +2506,10 @@ bool CCD::ExposureComplete(CCDChip *targetChip)
     return true;
 }
 
-bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalBytes, bool sendImage,
-                           bool saveImage /*, bool useSolver*/)
+bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBytes, bool sendImage,
+                     bool saveImage /*, bool useSolver*/)
 {
-    unsigned char *compressedData = nullptr;
+    unsigned char * compressedData = nullptr;
     uLongf compressedBytes        = 0;
 
     DEBUGF(Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendImage? %s, saveImage? %s",
@@ -2735,12 +2521,12 @@ bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalByte
         targetChip->FitsB.bloblen = totalBytes;
         snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s", targetChip->getImageExtension());
 
-        FILE *fp = nullptr;
+        FILE * fp = nullptr;
         char imageFileName[MAXRBUF];
 
         std::string prefix = UploadSettingsT[UPLOAD_PREFIX].text;
         int maxIndex       = getFileIndex(UploadSettingsT[UPLOAD_DIR].text, UploadSettingsT[UPLOAD_PREFIX].text,
-                                    targetChip->FitsB.format);
+                                          targetChip->FitsB.format);
 
         if (maxIndex < 0)
         {
@@ -2752,7 +2538,7 @@ bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalByte
         if (maxIndex > 0)
         {
             char ts[32];
-            struct tm *tp;
+            struct tm * tp;
             time_t t;
             time(&t);
             tp = localtime(&t);
@@ -2827,7 +2613,30 @@ bool CCD::uploadFile(CCDChip *targetChip, const void *fitsData, size_t totalByte
     targetChip->FitsBP.s   = IPS_OK;
 
     if (sendImage)
-        IDSetBLOB(&targetChip->FitsBP, nullptr);
+    {
+#ifdef HAVE_WEBSOCKET
+        if (HasWebSocket() && WebSocketS[WEBSOCKET_ENABLED].s == ISS_ON)
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+
+            // Send format/size/..etc first later
+            wsServer.send_text(std::string(targetChip->FitsB.format));
+            wsServer.send_binary(targetChip->FitsB.blob, targetChip->FitsB.bloblen);
+
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> diff = end - start;
+            LOGF_DEBUG("Websocket transfer took %g seconds", diff.count());
+        }
+        else
+#endif
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+            IDSetBLOB(&targetChip->FitsBP, nullptr);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> diff = end - start;
+            LOGF_DEBUG("BLOB transfer took %g seconds", diff.count());
+        }
+    }
 
     if (compressedData)
         delete [] compressedData;
@@ -2857,7 +2666,7 @@ void CCD::SetGuiderParams(int x, int y, int bpp, float xf, float yf)
     GuideCCD.setBPP(bpp);
 }
 
-bool CCD::saveConfigItems(FILE *fp)
+bool CCD::saveConfigItems(FILE * fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
@@ -2917,7 +2726,7 @@ IPState CCD::GuideWest(uint32_t ms)
     return IPS_ALERT;
 }
 
-void CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
+void CCD::getMinMax(double * min, double * max, CCDChip * targetChip)
 {
     int ind         = 0, i, j;
     int imageHeight = targetChip->getSubH() / targetChip->getBinY();
@@ -2928,7 +2737,7 @@ void CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
     {
         case 8:
         {
-            unsigned char *imageBuffer = (unsigned char *)targetChip->getFrameBuffer();
+            unsigned char * imageBuffer = (unsigned char *)targetChip->getFrameBuffer();
             lmin = lmax = imageBuffer[0];
 
             for (i = 0; i < imageHeight; i++)
@@ -2945,7 +2754,7 @@ void CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
 
         case 16:
         {
-            unsigned short *imageBuffer = (unsigned short *)targetChip->getFrameBuffer();
+            unsigned short * imageBuffer = (unsigned short *)targetChip->getFrameBuffer();
             lmin = lmax = imageBuffer[0];
 
             for (i = 0; i < imageHeight; i++)
@@ -2962,7 +2771,7 @@ void CCD::getMinMax(double *min, double *max, CCDChip *targetChip)
 
         case 32:
         {
-            unsigned int *imageBuffer = (unsigned int *)targetChip->getFrameBuffer();
+            unsigned int * imageBuffer = (unsigned int *)targetChip->getFrameBuffer();
             lmin = lmax = imageBuffer[0];
 
             for (i = 0; i < imageHeight; i++)
@@ -2988,12 +2797,12 @@ std::string regex_replace_compat(const std::string &input, const std::string &pa
     return s.str();
 }
 
-int CCD::getFileIndex(const char *dir, const char *prefix, const char *ext)
+int CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
 {
     INDI_UNUSED(ext);
 
-    DIR *dpdf = nullptr;
-    struct dirent *epdf = nullptr;
+    DIR * dpdf = nullptr;
+    struct dirent * epdf = nullptr;
     std::vector<std::string> files = std::vector<std::string>();
 
     std::string prefixIndex = prefix;
@@ -3069,5 +2878,17 @@ bool CCD::StopStreaming()
     DEBUG(Logger::DBG_ERROR, "Streaming is not supported.");
     return false;
 }
+
+#ifdef HAVE_WEBSOCKET
+void CCD::wsThreadHelper(void * context)
+{
+    static_cast<CCD *>(context)->wsThreadEntry();
+}
+
+void CCD::wsThreadEntry()
+{
+    wsServer.run();
+}
+#endif
 
 }

@@ -1,3 +1,9 @@
+indi-asi (1.0) bionic; urgency=low
+
+  * Added ZWO EAF support.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Tue, 23 Jan 2019 23:00:00 +0300
+
 indi-asi (0.9) bionic; urgency=low
 
   * Added ZWO USB2ST4 support.
@@ -27,7 +33,7 @@ indi-asi (0.5) vivid; urgency=low
   * Updated SDK. Name changed to indi-asi
 
  -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 12 Jun 2016 13:00:00 +0300
- 
+
 indi-asicam (0.4) vivid; urgency=low
 
   * Fix west/east guide issues.

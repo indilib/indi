@@ -19,14 +19,14 @@
 #include "libdspau.h"
 #define ratio (max - min) / (mx - mn + 1)
 
-dspau_t dspau_astro_ra2ha(dspau_t Ra, dspau_t Lst)
+double dspau_astro_ra2ha(double Ra, double Lst)
 {
     return Lst - (Ra * 360.0 / 24.0);
 }
 
-void dspau_astro_hadec2altaz(dspau_t Ha, dspau_t Dec, dspau_t Lat, dspau_t* Alt, dspau_t *Az)
+void dspau_astro_hadec2altaz(double Ha, double Dec, double Lat, double* Alt, double *Az)
 {
-    dspau_t alt, az;
+    double alt, az;
     Ha *= PI / 180.0;
     Dec *= PI / 180.0;
     Lat *= PI / 180.0;
@@ -40,7 +40,7 @@ void dspau_astro_hadec2altaz(dspau_t Ha, dspau_t Dec, dspau_t Lat, dspau_t* Alt,
     *Az = az;
 }
 
-dspau_t dspau_astro_elevation(dspau_t Lat, dspau_t El)
+double dspau_astro_elevation(double Lat, double El)
 {
     Lat *= PI / 180.0;
     Lat = sin(Lat);
@@ -48,17 +48,17 @@ dspau_t dspau_astro_elevation(dspau_t Lat, dspau_t El)
     return El;
 }
 
-dspau_t dspau_astro_field_rotation_rate(dspau_t Alt, dspau_t Az, dspau_t Lat)
+double dspau_astro_field_rotation_rate(double Alt, double Az, double Lat)
 {
     Alt *= PI / 180.0;
     Az *= PI / 180.0;
     Lat *= PI / 180.0;
-    dspau_t ret = cos(Lat) * cos(Az) / cos(Alt);
+    double ret = cos(Lat) * cos(Az) / cos(Alt);
     ret *= 180.0 / PI;
     return ret;
 }
 
-dspau_t dspau_astro_field_rotation(dspau_t HA, dspau_t rate)
+double dspau_astro_field_rotation(double HA, double rate)
 {
     HA *= rate;
     while(HA >= 360.0)
@@ -68,21 +68,21 @@ dspau_t dspau_astro_field_rotation(dspau_t HA, dspau_t rate)
     return HA;
 }
 
-dspau_t dspau_astro_frtoas(dspau_t fr)
+double dspau_astro_frtoas(double fr)
 {
     return RAD_AS * acos(fr);
 }
 
-dspau_t dspau_astro_as2parsec(dspau_t as)
+double dspau_astro_as2parsec(double as)
 {
     return as * Parsec;
 }
 
-dspau_t dspau_astro_parsecmag2absmag(dspau_t parsec, dspau_t deltamag, int lambda_index, dspau_t* ref_specrum, int ref_len, dspau_t* spectrum, int len)
+double dspau_astro_parsecmag2absmag(double parsec, double deltamag, int lambda_index, double* ref_specrum, int ref_len, double* spectrum, int len)
 {
-    dspau_t* r_spectrum = dspau_buffer_stretch(ref_specrum, ref_len, 0, 1.0);
-    dspau_t ref = 1.0/r_spectrum[lambda_index];
-    dspau_t* t_spectrum = dspau_buffer_stretch(spectrum, ref_len, 0, ref);
+    double* r_spectrum = dspau_buffer_stretch(ref_specrum, ref_len, 0, 1.0);
+    double ref = 1.0/r_spectrum[lambda_index];
+    double* t_spectrum = dspau_buffer_stretch(spectrum, ref_len, 0, ref);
     deltamag *= dspau_buffer_compare(r_spectrum, ref_len, t_spectrum, len);
     return deltamag * parsec;
 }

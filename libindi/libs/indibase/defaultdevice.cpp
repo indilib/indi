@@ -85,8 +85,8 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
             LOG_DEBUG("Configuration successfully loaded.");
         }
         else
-            LOGF_ERROR(
-                   "Error loading user configuration. %s. To save user configuration, click Save under the "
+            LOGF_WARN(
+                   "Failed to load user configuration. %s. To save user configuration, click Save under the "
                    "Configuration property in the Options tab. ",
                    errmsg);
     }
@@ -170,7 +170,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         if (fp == nullptr)
         {
             if (!silent)
-                LOGF_ERROR("Error saving configuration. %s", errmsg);
+                LOGF_WARN("Failed to save configuration. %s", errmsg);
             return false;
         }
 

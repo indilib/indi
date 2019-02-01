@@ -72,6 +72,14 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     virtual bool GuideNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool GuideWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
 
+    // Pulse Guide specific to AstroPhysics
+    static void pulseGuideTimeoutHelperWE(void * p);
+    static void pulseGuideTimeoutHelperNS(void * p);
+    static void simulGuideTimeoutHelperWE(void * p);
+    static void simulGuideTimeoutHelperNS(void * p);
+    void AstroPhysicsGuideTimeoutWE(bool simul);
+    void AstroPhysicsGuideTimeoutNS(bool simul);
+
     virtual bool getUTFOffset(double *offset) override;
 
     // Tracking

@@ -57,6 +57,11 @@ IF (UNIX OR APPLE)
     ENDIF ()
 ENDIF ()
 
+# Option to build the 3rd Party libraries instead of the 3rd Party drivers.
+# This is by default OFF, so you must set the option to build them.
+# It is a good idea to run with this option before the 3rd Party build so all the libraries are built first.
+option(BUILD_LIBS "Build 3rd Party Libraries, not 3rd Party Drivers" Off)
+
 # Define standard set of drivers to build (default linux target)
 option(WITH_EQMOD "Install EQMod Driver" On)
 option(WITH_STARBOOK "Install Starbook Driver" On)
@@ -110,6 +115,10 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_INOVAPLX Off)
     set(WITH_GIGE Off)
     set(WITH_FXLOAD Off)
+    set(WITH_QHY Off)
+    set(WITH_RTLSDR Off)
+    set(WITH_RADIOSIM Off)
+    set(WITH_LIMESDR Off)
 ENDIF ()
 # Disable apogee, qhy and mi with gcc 4.8 and earlier versions
 IF (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
@@ -117,6 +126,68 @@ IF (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
     SET(WITH_QHY Off)
     SET(WITH_MI Off)
 ENDIF ()
+
+# If the Build Libs option is selected, it will just build the required libraries.
+# This should be run before the main 3rd Party Drivers build, so the drivers can find the libraries.
+IF (BUILD_LIBS)
+
+#libaltaircam
+if (WITH_ALTAIRCAM)
+add_subdirectory(libaltaircam)
+endif (WITH_ALTAIRCAM)
+
+#libapogee
+if (WITH_APOGEE)
+add_subdirectory(libapogee)
+endif(WITH_APOGEE)
+
+#libatik
+if (WITH_ATIK)
+add_subdirectory(libatik)
+endif (WITH_ATIK)
+
+#libdspau
+if (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
+add_subdirectory(libdspau)
+endif (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
+
+#libfishcamp
+if (WITH_FISHCAMP)
+add_subdirectory(libfishcamp)
+endif(WITH_FISHCAMP)
+
+#libfli
+if (WITH_FLI)
+add_subdirectory(libfli)
+endif(WITH_FLI)
+
+#libinovasdk
+if (WITH_INOVAPLX)
+add_subdirectory(libinovasdk)
+endif (WITH_INOVAPLX)
+
+#libqhy
+if (WITH_QHY)
+add_subdirectory(libqhy)
+endif (WITH_QHY)
+
+#libqsi
+if (WITH_QSI)
+add_subdirectory(libqsi)
+endif (WITH_QSI)
+
+#libsbig
+if (WITH_SBIG)
+add_subdirectory(libsbig)
+endif (WITH_SBIG)
+
+#libtoupcam
+if (WITH_TOUPCAM)
+add_subdirectory(libtoupcam)
+endif (WITH_TOUPCAM)
+
+# This is the main 3rd Party build.  It runs if the Build Libs option is not selected.
+ELSE(BUILD_LIBS)
 
 ## EQMod
 if (WITH_EQMOD)
@@ -326,10 +397,17 @@ endif (WITH_MGEN)
 
 ## DETECTORS
 
-if (WITH_RTLSDR OR WITH_LIMESDR)
+if (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
 
 find_package(DSPAU)
 find_package(LIMESUITE)
+
+# RadioSim
+if (WITH_RADIOSIM)
+if (DSPAU_FOUND)
+add_subdirectory(indi-radiosim)
+endif (DSPAU_FOUND)
+endif (WITH_RADIOSIM)
 
 ## RTL-SDR
 if (WITH_RTLSDR)
@@ -343,6 +421,7 @@ if (WITH_LIMESDR)
 if (DSPAU_FOUND AND LIMESUITE_FOUND)
 add_subdirectory(indi-limesdr)
 endif (DSPAU_FOUND AND LIMESUITE_FOUND)
+
 endif (WITH_LIMESDR)
 
 if (NOT DSPAU_FOUND)
@@ -350,12 +429,7 @@ add_subdirectory(libdspau)
 SET(LIBRARIES_FOUND FALSE)
 endif (NOT DSPAU_FOUND)
 
-endif (WITH_RTLSDR OR WITH_LIMESDR)
-
-# RadioSim
-if (WITH_RADIOSIM)
-add_subdirectory(indi-radiosim)
-endif (WITH_RADIOSIM)
+endif (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
 
 if (WITH_ARMADILLO)
 add_subdirectory(indi-armadillo-platypus)
@@ -436,4 +510,6 @@ endif (WITH_LIMESDR OR WITH_RTLSDR)
 
 message(STATUS "####################################################################################################################################")
 endif (LIBRARIES_FOUND)
+
+ENDIF(BUILD_LIBS)
 

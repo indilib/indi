@@ -3,7 +3,7 @@ SX INDI Driver
 
 This package provides the INDI drivers for SX CCDs, SX wheel and SX Active Optics
 
-Requirtments
+Requirements
 ============
 
 + libindi0 >= v0.9.7 (http://indi.sf.net)

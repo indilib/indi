@@ -5,7 +5,7 @@ This package provides the INDI driver for Radio Astronomy Supplies' SpectraCyber
 
 TODO: Add stuff about GNUPlot or other solutions here?
 
-Requirtments
+Requirements
 ============
 
 + libindi0 >= v0.6 (http://indi.sf.net)

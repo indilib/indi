@@ -112,7 +112,7 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
     INumberVectorProperty *SyncPolarAlignNP    = NULL;
     ISwitchVectorProperty *SyncManageSP        = NULL;
     ISwitchVectorProperty *ReverseDECSP        = NULL;
-    ISwitchVectorProperty *EnforceCWUP         = NULL;
+    ISwitchVectorProperty *TargetPierSideSP    = NULL;
     INumberVectorProperty *BacklashNP          = NULL;
     ISwitchVectorProperty *UseBacklashSP       = NULL;
 #if defined WITH_ALIGN && defined WITH_ALIGN_GEEHALEL
@@ -150,12 +150,13 @@ class EQMod : public INDI::Telescope, public INDI::GuiderInterface
         uint32_t ratargetencoder, detargetencoder, racurrentencoder, decurrentencoder;
         uint32_t limiteast, limitwest;
         unsigned int iterative_count;
-        bool forcecwup, checklimits, outsidelimits, completed;
+        bool checklimits, outsidelimits, completed;
+        TelescopePierSide pier_side;
     } GotoParams;
 
     Hemisphere Hemisphere;
     bool RAInverted, DEInverted;
-    bool ForceCwUp = false;
+    TelescopePierSide TargetPier = PIER_UNKNOWN;
     GotoParams gotoparams;
     SyncData syncdata, syncdata2;
 

@@ -305,7 +305,7 @@ IPState HitecAstroDCFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     command[0] = dir == FOCUS_INWARD ? 0x50 : 0x52;
     command[1] = (unsigned char)((ticks >> 8) & 0xFF);
     command[2] = (unsigned char)(ticks & 0xFF);
-    command[3] = 0x05;
+    command[3] = 0x03;
     command[4] = (unsigned char)(speed & 0xFF);
     command[5] = 0;
     command[6] = 0;
@@ -369,7 +369,7 @@ IPState HitecAstroDCFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t
     command[0] = dir == FOCUS_INWARD ? 0x54 : 0x56;
     command[1] = (unsigned char)((speed >> 8) & 0xFF);
     command[2] = (unsigned char)(speed & 0xFF);
-    command[3] = 0x05;
+    command[3] = 0x03;
     command[4] = 0;
     command[5] = 0;
     command[6] = 0;
