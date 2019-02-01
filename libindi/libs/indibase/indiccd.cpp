@@ -2318,7 +2318,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             int byte_type = 0;
             int status    = 0;
             long naxis    = targetChip->getNAxis();
-            long naxes[naxis];
+            long naxes[3];
             int nelements = 0;
             std::string bit_depth;
             char error_status[MAXRBUF];
@@ -2363,12 +2363,15 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             /*DEBUGF(Logger::DBG_DEBUG, "Exposure complete. Image Depth: %s. Width: %d Height: %d nelements: %d", bit_depth.c_str(), naxes[0],
                     naxes[1], nelements);*/
 
+            std::unique_lock<std::mutex> guard(ccdBufferLock);
+
             //  Now we have to send fits format data to the client
             memsize = 5760;
             memptr  = malloc(memsize);
             if (!memptr)
             {
-                DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
+                DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", memsize);
+                return false;
             }
 
             fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
@@ -2377,6 +2380,8 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
+                fits_close_file(fptr, &status);
+                free(memptr);
                 DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                 return false;
             }
@@ -2387,18 +2392,22 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
+                fits_close_file(fptr, &status);
+                free(memptr);
                 DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                 return false;
             }
 
-            std::unique_lock<std::mutex> guard(ccdBufferLock);
             addFITSKeywords(fptr, targetChip);
+
             fits_write_img(fptr, byte_type, 1, nelements, targetChip->getFrameBuffer(), &status);
 
             if (status)
             {
                 fits_report_error(stderr, status); /* print out any error messages */
                 fits_get_errstatus(status, error_status);
+                fits_close_file(fptr, &status);
+                free(memptr);
                 DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
                 return false;
             }
@@ -2407,9 +2416,9 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 
             bool rc = uploadFile(targetChip, memptr, memsize, sendImage, saveImage /*, useSolver*/);
 
-            guard.unlock();
-
             free(memptr);
+
+            guard.unlock();
 
             if (rc == false)
             {

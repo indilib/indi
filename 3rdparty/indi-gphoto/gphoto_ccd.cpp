@@ -431,6 +431,8 @@ bool GPhotoCCD::initProperties()
     SetCCDCapability(CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_HAS_BAYER | CCD_HAS_STREAMING);
 #endif
 
+    Streamer->setStreamingExposureEnabled(false);
+
     FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED);
 
     FocusSpeedN[0].min   = 0;
@@ -1896,6 +1898,13 @@ void GPhotoCCD::streamLiveView()
             LOG_ERROR("Error getting live video frame.");
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
+        }
+
+        if (liveVideoWidth <= 0)
+        {
+            liveVideoWidth = w;
+            liveVideoHeight = h;
+            Streamer->setSize(liveVideoWidth, liveVideoHeight);
         }
 
         PrimaryCCD.setFrameBuffer(ccdBuffer);
