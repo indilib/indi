@@ -77,7 +77,10 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool SetCurrentPark() override;
     virtual bool SetDefaultPark() override;
 
-  private:
+    // helper functions
+    double getAzimuth(double r, double d);
+
+private:
     double currentRA { 0 };
     double currentDEC { 90 };
     double targetRA { 0 };
