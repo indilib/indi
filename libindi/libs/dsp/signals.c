@@ -16,9 +16,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libdspau.h"
+#include "dsp.h"
 
-double* dspau_signals_sinewave(int len, double samplefreq, double freq)
+double* dsp_signals_sinewave(int len, double samplefreq, double freq)
 {
     double* out = (double*)calloc(sizeof(double), len);
     freq /= samplefreq;
@@ -35,7 +35,7 @@ double* dspau_signals_sinewave(int len, double samplefreq, double freq)
     return out;
 }
 
-double* dspau_signals_sawteethwave(int len, double samplefreq, double freq)
+double* dsp_signals_sawteethwave(int len, double samplefreq, double freq)
 {
     double* out = (double*)calloc(sizeof(double), len);
     freq /= samplefreq;
@@ -51,7 +51,7 @@ double* dspau_signals_sawteethwave(int len, double samplefreq, double freq)
     return out;
 }
 
-double* dspau_signals_triwave(int len, double samplefreq, double freq)
+double* dsp_signals_triwave(int len, double samplefreq, double freq)
 {
     double* out = (double*)calloc(sizeof(double), len);
     freq /= samplefreq;
@@ -69,24 +69,24 @@ double* dspau_signals_triwave(int len, double samplefreq, double freq)
     return out;
 }
 
-double* dspau_modulation_frequency(double* in, int len, double samplefreq, double freq, double bandwidth)
+double* dsp_modulation_frequency(double* in, int len, double samplefreq, double freq, double bandwidth)
 {
-    double* carrying = dspau_signals_sinewave(len, samplefreq, freq);
+    double* carrying = dsp_signals_sinewave(len, samplefreq, freq);
     double lo = freq / samplefreq;
     double hi = freq / samplefreq;
-    return dspau_buffer_deviate(carrying, len, in, len, lo - bandwidth * 0.5, hi + bandwidth * 1.5);
+    return dsp_buffer_deviate(carrying, len, in, len, lo - bandwidth * 0.5, hi + bandwidth * 1.5);
 }
 
-double* dspau_modulation_amplitude(double* in, int len, double samplefreq, double freq)
+double* dsp_modulation_amplitude(double* in, int len, double samplefreq, double freq)
 {
     double* modulating = (double*)calloc(sizeof(double), len);
     double* out = (double*)calloc(sizeof(double), len);
-    in = dspau_signals_sinewave(len, samplefreq, freq);
-    out = dspau_buffer_sum(modulating, len, in, len);
+    in = dsp_signals_sinewave(len, samplefreq, freq);
+    out = dsp_buffer_sum(modulating, len, in, len);
     return out;
 }
 
-double* dspau_modulation_buffer(double* in1, int len1, double* in2, int len2, double samplefreq, double freq)
+double* dsp_modulation_buffer(double* in1, int len1, double* in2, int len2, double samplefreq, double freq)
 {
     int len = Min(len1, len2);
     int olen = Max(len1, len2);
@@ -95,7 +95,7 @@ double* dspau_modulation_buffer(double* in1, int len1, double* in2, int len2, do
     double* out = (double*)calloc(sizeof(double), olen);
     freq /= samplefreq;
     for(int i = 0; i < olen; i+= len) {
-        double* tmp = dspau_buffer_sum(&buf2[i], len, buf1, len);
+        double* tmp = dsp_buffer_sum(&buf2[i], len, buf1, len);
         memcpy(&out[i], tmp, len);
     }
     return out;

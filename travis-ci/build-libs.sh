@@ -7,15 +7,15 @@ SRC=../../3rdparty/
 
 if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
     LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau"
-else 
+else
     LIBS="libapogee libqsi libdspau"
 fi
 
-if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then 
+if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then
     DRV=lib"${TRAVIS_BRANCH#drv_}"
     if [ -d 3rdparty/$DRV ] ; then
         LIBS="$DRV"
-    else 
+    else
         LIBS=""
     fi
     echo "[$DRV] [$LIBS]"

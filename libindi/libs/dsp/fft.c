@@ -16,7 +16,7 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libdspau.h"
+#include "dsp.h"
 
 static double complex_mag(fftw_complex n)
 {
@@ -85,16 +85,16 @@ static void complex2phirad(fftw_complex* in, double* out, int len)
 	}
 }
 
-double* dspau_fft_spectrum(dspau_stream_p stream, int conversion, int size)
+double* dsp_fft_spectrum(dsp_stream_p stream, int conversion, int size)
 {
     double* ret;
-    double* out = dspau_fft_dft(stream, -1, conversion);
-    ret = dspau_buffer_histogram(out, stream->len, size);
+    double* out = dsp_fft_dft(stream, -1, conversion);
+    ret = dsp_buffer_histogram(out, stream->len, size);
     free(out);
     return ret;
 }
 
-double* dspau_fft_shift(double* in, int dims, int* sizes)
+double* dsp_fft_shift(double* in, int dims, int* sizes)
 {
     if(dims == 0)
         return NULL;
@@ -113,14 +113,14 @@ double* dspau_fft_shift(double* in, int dims, int* sizes)
     return o;
 }
 
-double* dspau_fft_dft(dspau_stream_p stream, int sign, int conversion)
+double* dsp_fft_dft(dsp_stream_p stream, int sign, int conversion)
 {
     fftw_plan p;
     int len = stream->len;
-    dspau_stream_add_dim(stream, 1);
+    dsp_stream_add_dim(stream, 1);
     int* sizes = calloc(sizeof(int),stream->dims);
     int dims = stream->dims;
-    dspau_buffer_reverse(sizes, stream->sizes, stream->dims);
+    dsp_buffer_reverse(sizes, stream->sizes, stream->dims);
     double* out = (double*)calloc(sizeof(double), stream->len);
     fftw_complex *fft_in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * stream->len);
     fftw_complex *fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * stream->len);
