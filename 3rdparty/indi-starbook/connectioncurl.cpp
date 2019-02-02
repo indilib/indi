@@ -34,6 +34,7 @@ namespace Connection {
     }
 
     Curl::~Curl() {
+        Disconnect();
         curl_global_cleanup();
     }
 
@@ -49,10 +50,10 @@ namespace Connection {
 
         LOGF_INFO("Creating HTTP handle for %s@%s", hostname, port);
         if (handle != nullptr) {
-            LOG_WARN("Found old handle, recreating");
-            curl_easy_cleanup(handle);
+            LOG_WARN("Found old handle, reusing");
+        } else {
+            handle = curl_easy_init();
         }
-        handle = curl_easy_init();
         if (handle == nullptr) {
             LOG_ERROR("Can't create HTTP handle");
             return false;
@@ -66,8 +67,9 @@ namespace Connection {
         if (rc) {
             LOGF_INFO("%s is online.", getDeviceName());
 //            m_Device->saveConfig(true, "DEVICE_ADDRESS");
-        } else
+        } else {
             LOG_DEBUG("Handshake failed.");
+        }
 
         return rc;
     }
@@ -76,11 +78,12 @@ namespace Connection {
         curl_easy_setopt(handle, CURLOPT_TIMEOUT, HANDLE_TIMEOUT);
         curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
         // if debug
-        curl_easy_setopt(handle, CURLOPT_VERBOSE, 1);
+//        curl_easy_setopt(handle, CURLOPT_VERBOSE, 0);
     }
 
     bool Curl::Disconnect() {
         curl_easy_cleanup(handle);
+        handle = nullptr;
         return true;
     }
 
