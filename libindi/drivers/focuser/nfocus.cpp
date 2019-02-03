@@ -1,10 +1,10 @@
 /*
     NFocus
     Copyright (C) 2013 Felix Krämer (rigelsys@felix-kraemer.de)
+    Copyright (C) 2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     Based on the work for robofocus by
                   2006 Markus Wildi (markus.wildi@datacomm.ch)
-                  2011 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
 
     2017-05-31: Jasem Mutlaq
@@ -14,6 +14,9 @@
     + Removed timer-based motion.
     + Set Focuser capabilities on startup.
     + Removed duplicate properties.
+
+    2019-02-03: Jasem Mutlaq
+    + Driver overhaul
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -49,20 +52,6 @@
 #define BACKLASH_READOUT    0
 #define MAXTRAVEL_READOUT   99999
 #define INOUTSCALAR_READOUT 1
-
-#define currentSpeed            SpeedN[0].value
-#define currentPosition         FocusAbsPosN[0].value
-#define currentTemperature      TemperatureN[0].value
-#define currentOnTime           SettingsN[0].value
-#define currentOffTime          SettingsN[1].value
-#define currentFastDelay        SettingsN[2].value
-#define currentInOutScalar      InOutScalarN[0].value
-#define currentRelativeMovement FocusRelPosN[0].value
-#define currentAbsoluteMovement FocusAbsPosN[0].value
-#define currentSetBacklash      SetBacklashN[0].value
-#define currentMinPosition      MinMaxPositionN[0].value
-#define currentMaxPosition      MinMaxPositionN[1].value
-#define currentMaxTravel        FocusMaxPosN[0].value
 
 static std::unique_ptr<NFocus> nFocus(new NFocus());
 
@@ -113,59 +102,23 @@ bool NFocus::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    // No speed for nfocus
-    FocusSpeedN[0].min = FocusSpeedN[0].max = FocusSpeedN[0].value = 1;
-
-    IUUpdateMinMax(&FocusSpeedNP);
-
-    /* Focuser temperature */
-    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", 0, 65000., 0., 10000.);
+    // Focuser temperature
+    IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -100, 100, 0, 0);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    /* Settings of the Nfocus */
-    IUFillNumber(&SettingsN[0], "ON time", "ON waiting time", "%6.0f", 10., 250., 0., 73.);
-    IUFillNumber(&SettingsN[1], "OFF time", "OFF waiting time", "%6.0f", 1., 250., 0., 15.);
-    IUFillNumber(&SettingsN[2], "Fast Mode Delay", "Fast Mode Delay", "%6.0f", 0., 255., 0., 9.);
-    IUFillNumberVector(&SettingsNP, SettingsN, 3, getDeviceName(), "FOCUS_SETTINGS", "Settings", OPTIONS_TAB, IP_RW, 0,
-                       IPS_IDLE);
+    // Settings of the Nfocus
+    IUFillNumber(&SettingsN[SETTING_ON_TIME], "ON time", "ON waiting time", "%6.0f", 10., 250., 0., 73.);
+    IUFillNumber(&SettingsN[SETTING_OFF_TIME], "OFF time", "OFF waiting time", "%6.0f", 1., 250., 0., 15.);
+    IUFillNumber(&SettingsN[SETTING_MODE_DELAY], "Fast Mode Delay", "Fast Mode Delay", "%6.0f", 0., 255., 0., 9.);
+    IUFillNumberVector(&SettingsNP, SettingsN, 3, getDeviceName(), "FOCUS_SETTINGS", "Settings", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
-    /* tick scaling factor. Inward dir ticks times this factor is considered to
-    be the same as outward dir tick numbers. This is to compensate  for DC motor
-    incapabilities with regards to exact positioning at least a bit on the mass
-    dependent path.... */
+    // tick scaling factor. Inward dir ticks times this factor is considered to
+    // be the same as outward dir tick numbers. This is to compensate  for DC motor
+    // incapabilities with regards to exact positioning at least a bit on the mass
+    // dependent path....
     IUFillNumber(&InOutScalarN[0], "In/Out Scalar", "In/Out Scalar", "%1.2f", 0., 2., 1., 1.0);
-    IUFillNumberVector(&InOutScalarNP, InOutScalarN, 1, getDeviceName(), "FOCUS_DIRSCALAR", "Direction scaling factor",
-                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-
-    /* Nfocus should stay within these limits */
-    IUFillNumber(&MinMaxPositionN[0], "MINPOS", "Minimum Tick", "%6.0f", -65000., 65000., 0., -65000.);
-    IUFillNumber(&MinMaxPositionN[1], "MAXPOS", "Maximum Tick", "%6.0f", 1., 65000., 0., 65000.);
-    IUFillNumberVector(&MinMaxPositionNP, MinMaxPositionN, 2, getDeviceName(), "FOCUS_MINMAXPOSITION", "Extrema",
-                       OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
-
-    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 64000., 0., 10000.);
-    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB,
-                       IP_RW, 0, IPS_IDLE);
-
-    // Cannot change maximum position
-    FocusMaxPosNP.p = IP_RO;
-    FocusMaxPosN[0].value = 64000;
-
-//    /* Set Nfocus position register to this position */
-//    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%.f", 0, 64000., 0., 0.);
-//    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-
-    /* Relative and absolute movement */
-    FocusRelPosN[0].min   = 0;
-    FocusRelPosN[0].max   = MinMaxPositionN[1].value;
-    FocusRelPosN[0].value = 1000;
-    FocusRelPosN[0].step  = 100;
-
-    FocusAbsPosN[0].min   = MinMaxPositionN[0].min;
-    FocusAbsPosN[0].max   = MinMaxPositionN[0].max;
-    FocusAbsPosN[0].value = 0;
-    FocusAbsPosN[0].step  = 10000;
+    IUFillNumberVector(&InOutScalarNP, InOutScalarN, 1, getDeviceName(), "FOCUS_DIRSCALAR", "Scaling Factor", SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     addAuxControls();
 
@@ -181,9 +134,6 @@ bool NFocus::updateProperties()
         defineNumber(&TemperatureNP);
         defineNumber(&SettingsNP);
         defineNumber(&InOutScalarNP);
-        defineNumber(&MinMaxPositionNP);
-        defineNumber(&MaxTravelNP);
-//        defineNumber(&SyncNP);
 
         if (GetFocusParams())
             LOG_INFO("NFocus is ready.");
@@ -193,9 +143,6 @@ bool NFocus::updateProperties()
         deleteProperty(TemperatureNP.name);
         deleteProperty(SettingsNP.name);
         deleteProperty(InOutScalarNP.name);
-        deleteProperty(MinMaxPositionNP.name);
-        deleteProperty(MaxTravelNP.name);
-//        deleteProperty(SyncNP.name);
     }
 
     return true;
@@ -212,18 +159,18 @@ const char *NFocus::getDefaultName()
     return "NFocus";
 }
 
-int NFocus::SendCommand(char *rf_cmd)
+bool NFocus::SendCommand(const char *cmd, char *res)
 {
     int nbytes_written = 0, err_code = 0;
     char nfocus_error[MAXRBUF];
 
-    LOGF_DEBUG("CMD <%s>", rf_cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     if (!isSimulation())
     {
         tcflush(PortFD, TCIOFLUSH);
 
-        if ((err_code = tty_write(PortFD, rf_cmd, strlen(rf_cmd) + 1, &nbytes_written) != TTY_OK))
+        if ((err_code = tty_write_string(PortFD, cmd, &nbytes_written) != TTY_OK))
         {
             tty_error_msg(err_code, nfocus_error, MAXRBUF);
             LOGF_ERROR("TTY error detected: %s", nfocus_error);
@@ -440,8 +387,10 @@ int NFocus::moveNFInward(const double *value)
                 strncpy(rf_cmd, "S\0", 2);
                 if ((ret_read_tmp = SendRequest(rf_cmd)) < 0)
                     return ret_read_tmp;
-            } while (atoi(rf_cmd) != 0);
-        } while (newval > 0);
+            }
+            while (atoi(rf_cmd) != 0);
+        }
+        while (newval > 0);
     }
 
     currentPosition -= *value;
@@ -490,8 +439,10 @@ int NFocus::moveNFOutward(const double *value)
                 strncpy(rf_cmd, "S\0", 2);
                 if ((ret_read_tmp = SendRequest(rf_cmd)) < 0)
                     return ret_read_tmp;
-            } while (atoi(rf_cmd) != 0);
-        } while (newval > 0);
+            }
+            while (atoi(rf_cmd) != 0);
+        }
+        while (newval > 0);
     }
 
     currentPosition += *value;
@@ -837,83 +788,6 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
                 return false;
             }
         }
-
-        if (strcmp(name, MaxTravelNP.name) == 0)
-        {
-            double new_maxt = 0;
-            int ret         = -1;
-
-            for (nset = i = 0; i < n; i++)
-            {
-                /* Find numbers with the passed names in the MinMaxPositionNP property */
-                INumber *mmpp = IUFindNumber(&MaxTravelNP, names[i]);
-
-                /* If the number found is  (MaxTravelN[0]) then process it */
-                if (mmpp == &MaxTravelN[0])
-                {
-                    new_maxt = (values[i]);
-                    nset += static_cast<int>(new_maxt >= 1 && new_maxt <= 64000);
-                }
-            }
-            /* Did we process the one number? */
-            if (nset == 1)
-            {
-                IDSetNumber(&MinMaxPositionNP, nullptr);
-
-                if ((ret = setNFMaxPosition(&new_maxt)) < 0)
-                {
-                    MaxTravelNP.s = IPS_IDLE;
-                    IDSetNumber(&MaxTravelNP, "Changing to new maximum travel failed");
-                    return false;
-                }
-
-                currentMaxTravel    = new_maxt;
-                MaxTravelNP.s       = IPS_OK;
-                FocusAbsPosN[0].max = currentMaxTravel;
-                IUUpdateMinMax(&FocusAbsPosNP);
-                IDSetNumber(&MaxTravelNP, "Maximum travel is now  %3.0f", currentMaxTravel);
-                return true;
-            }
-            else
-            {
-                /* Set property state to idle */
-
-                MaxTravelNP.s = IPS_IDLE;
-                IDSetNumber(&MaxTravelNP, "Maximum travel absent or bogus.");
-
-                return false;
-            }
-        }
-
-        // Sync
-//        if (strcmp(name, SyncNP.name) == 0)
-//        {
-//            double new_apos = values[0];
-//            int rc          = 0;
-//            if ((new_apos < currentMinPosition) || (new_apos > currentMaxPosition))
-//            {
-//                SyncNP.s = IPS_ALERT;
-//                IDSetNumber(&SyncNP, "Value out of limits  %5.0f", new_apos);
-//                return false;
-//            }
-
-//            if ((rc = syncNF(&new_apos)) < 0)
-//            {
-//                SyncNP.s = IPS_ALERT;
-//                IDSetNumber(&SyncNP, "Read out of the set position to %3d failed.", rc);
-//                return false;
-//            }
-
-//            LOGF_DEBUG("Focuser sycned to %g ticks", new_apos);
-//            SyncN[0].value        = new_apos;
-//            FocusAbsPosN[0].value = new_apos;
-//            currentPosition       = new_apos;
-
-//            SyncNP.s        = IPS_OK;
-//            IDSetNumber(&SyncNP, nullptr);
-//            IDSetNumber(&FocusAbsPosNP, nullptr);
-//            return true;
-//        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -962,15 +836,15 @@ bool NFocus::GetFocusParams()
     SettingsNP.s = IPS_OK;
     IDSetNumber(&SettingsNP, nullptr);
 
-//    currentMaxTravel = MAXTRAVEL_READOUT;
-//    if ((ret = setNFMaxPosition(&currentMaxTravel)) < 0)
-//    {
-//        MaxTravelNP.s = IPS_ALERT;
-//        IDSetNumber(&MaxTravelNP, "Unknown error while reading  Nfocus maximum travel");
-//        return false;
-//    }
-//    MaxTravelNP.s = IPS_OK;
-//    IDSetNumber(&MaxTravelNP, nullptr);
+    //    currentMaxTravel = MAXTRAVEL_READOUT;
+    //    if ((ret = setNFMaxPosition(&currentMaxTravel)) < 0)
+    //    {
+    //        MaxTravelNP.s = IPS_ALERT;
+    //        IDSetNumber(&MaxTravelNP, "Unknown error while reading  Nfocus maximum travel");
+    //        return false;
+    //    }
+    //    MaxTravelNP.s = IPS_OK;
+    //    IDSetNumber(&MaxTravelNP, nullptr);
 
     return true;
 }
@@ -1044,4 +918,9 @@ bool NFocus::saveConfigItems(FILE *fp)
     IUSaveConfigNumber(fp, &SettingsNP);
     IUSaveConfigNumber(fp, &InOutScalarNP);
     return true;
+}
+
+bool NFocus::SetFocuserMaxPosition(uint32_t ticks)
+{
+    return (ticks <= 64000);
 }

@@ -1,8 +1,8 @@
 /*
     NFocus
+    Copyright (C) 2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2013 Felix Krämer (rigelsys@felix-kraemer.de)
     Copyright (C) 2006 Markus Wildi (markus.wildi@datacomm.ch)
-                  2011 Jasem Mutlaq (mutlaqja@ikarustech.com)
-          2013 Felix Krämer (rigelsys@felix-kraemer.de)
 
     Thanks to Rigel Systems, especially Gene Nolan and Leon Palmer,
     for their support in writing this driver.
@@ -29,60 +29,52 @@
 
 class NFocus : public INDI::Focuser
 {
-  public:
-    NFocus();
-    virtual ~NFocus() override = default;
+    public:
+        NFocus();
+        virtual ~NFocus() override = default;
 
-    virtual bool Handshake() override;
-    const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool Handshake() override;
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
 
-  protected:
-    bool saveConfigItems(FILE *fp) override;
-    bool SyncFocuser(uint32_t ticks) override;
+    protected:
+        bool saveConfigItems(FILE *fp) override;
+        bool SyncFocuser(uint32_t ticks) override;
+        bool SetFocuserMaxPosition(uint32_t ticks) override;
 
-  private:
-    unsigned char CalculateSum(char *rf_cmd);
-    int SendCommand(char *rf_cmd);
-    int SendRequest(char *rf_cmd);
-    int ReadResponse(char *buf, int nbytes, int timeout);
-    bool GetFocusParams();
+    private:
+        unsigned char CalculateSum(char *rf_cmd);
+        bool SendCommand(const char *cmd, char *res);
+        bool GetFocusParams();
 
-    int updateNFTemperature(double *value);
-    int updateNFInOutScalar(double *value);
-    int updateNFMotorSettings(double *onTime, double *offTime, double *fastDelay);
-    int moveNFInward(const double *value);
-    int moveNFOutward(const double *value);
-    int getNFAbsolutePosition(double *value);
-    int setNFAbsolutePosition(const double *value);
-    int setNFMaxPosition(double *value);
-    //int syncNF(const double *value);
+        int updateNFTemperature(double *value);
+        int updateNFInOutScalar(double *value);
+        int updateNFMotorSettings(double *onTime, double *offTime, double *fastDelay);
+        int moveNFInward(const double *value);
+        int moveNFOutward(const double *value);
+        int getNFAbsolutePosition(double *value);
+        int setNFAbsolutePosition(const double *value);
+        int setNFMaxPosition(double *value);
+        //int syncNF(const double *value);
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    INumber SettingsN[3];
-    INumberVectorProperty SettingsNP;
+        INumber SettingsN[3];
+        INumberVectorProperty SettingsNP;
+        enum
+        {
+            SETTING_ON_TIME,
+            SETTING_OFF_TIME,
+            SETTING_MODE_DELAY,
+        };
 
-    INumber MinMaxPositionN[2];
-    INumberVectorProperty MinMaxPositionNP;
+        INumber InOutScalarN[1];
+        INumberVectorProperty InOutScalarNP;
 
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
-
-//    INumber SyncN[1];
-//    INumberVectorProperty SyncNP;
-
-    INumber InOutScalarN[1];
-    INumberVectorProperty InOutScalarNP;
-
-    INumber RelMovementN[1];
-    INumberVectorProperty RelMovementNP;
-
-    INumber AbsMovementN[1];
-    INumberVectorProperty AbsMovementNP;
+        static constexpr const char * SETTINGS_TAB = "Settings";
 };
