@@ -585,9 +585,9 @@ bool ScopeSim::ReadScopeStatus()
     if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
     {
         if (getAzimuth(currentRA, currentDEC) > 180.)
-            setPierSide(INDI::Telescope::PIER_WEST);
-        else
             setPierSide(INDI::Telescope::PIER_EAST);
+        else
+            setPierSide(INDI::Telescope::PIER_WEST);
     }
 
     return true;
@@ -602,17 +602,11 @@ bool ScopeSim::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    double current_az = getAzimuth(currentRA, currentDEC);
+    double target_az = getAzimuth(r, d);
 
-    if (current_az > MIN_AZ_FLIP && current_az < MAX_AZ_FLIP)
+    if (target_az > MIN_AZ_FLIP && getPierSide() == PIER_WEST)
     {
-        double target_az = getAzimuth(r, d);
-
-        //if (targetAz > currentAz && target_az > MIN_AZ_FLIP && target_az < MAX_AZ_FLIP)
-        if (target_az >= current_az && target_az > MIN_AZ_FLIP)
-        {
-            forceMeridianFlip = true;
-        }
+        forceMeridianFlip = true;
     }
 
     if (IUFindOnSwitchIndex(&TrackModeSP) != SLEW_MAX)
