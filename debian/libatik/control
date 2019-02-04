@@ -9,5 +9,5 @@ Package: libatik
 conflicts: atikccd
 replaces: atikccd
 Architecture: i386 amd64 armhf arm64
-Depends: ${shlibs:Depends}, ${misc:Depends}, fxload
+Depends: ${shlibs:Depends}, ${misc:Depends}, libraw1394-11
 Description: Library for Atik Cameras.
