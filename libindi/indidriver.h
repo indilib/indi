@@ -27,7 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #pragma once
 
 #include "indiapi.h"
-#include "dsp.h"
 #include "lilxml.h"
 
 #include <stdio.h>
@@ -39,7 +38,7 @@ extern "C" {
 /* insure RO properties are never modified. RO Sanity Check */
 typedef struct
 {
-    char propName[MAXINDINAME];
+char propName[MAXINDINAME];
     char devName[MAXINDIDEVICE];
     IPerm perm;
     const void *ptr;
