@@ -42,7 +42,6 @@ IF (UNIX OR APPLE)
             STRING(FIND ${SOURCE_FILE} libsbig DIR6_FOUND)
             STRING(FIND ${SOURCE_FILE} fxload DIR7_FOUND)
             STRING(FIND ${SOURCE_FILE} libinovasdk DIR8_FOUND)
-            STRING(FIND ${SOURCE_FILE} libdspau DIR9_FOUND)
             IF (NOT ${DIR1_FOUND} EQUAL -1 OR NOT ${DIR2_FOUND} EQUAL -1 OR NOT ${DIR3_FOUND} EQUAL -1 OR NOT ${DIR4_FOUND} EQUAL -1 OR
                 NOT ${DIR5_FOUND} EQUAL -1 OR NOT ${DIR6_FOUND} EQUAL -1 OR NOT ${DIR7_FOUND} EQUAL -1 OR NOT ${DIR8_FOUND} EQUAL -1 OR
                 NOT ${DIR9_FOUND} EQUAL -1)
@@ -145,11 +144,6 @@ endif(WITH_APOGEE)
 if (WITH_ATIK)
 add_subdirectory(libatik)
 endif (WITH_ATIK)
-
-#libdspau
-if (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
-add_subdirectory(libdspau)
-endif (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
 
 #libfishcamp
 if (WITH_FISHCAMP)
@@ -491,11 +485,13 @@ if (WITH_FISHCAMP AND NOT FISHCAMP_FOUND)
 message(STATUS "libfishcamp was not found and will now be built. Please install libfishcamp first before running cmake again to install indi-fishcamp.")
 endif (WITH_FISHCAMP AND NOT FISHCAMP_FOUND)
 
-if (WITH_LIMESDR OR WITH_RTLSDR)
-if (NOT DSPAU_FOUND)
-message(STATUS "libdspau was not found and will now be built. Please install libdspau first before running cmake again to install indi-rtlsdr and indi-limesdr.")
-endif (NOT DSPAU_FOUND)
-endif (WITH_LIMESDR OR WITH_RTLSDR)
+if (WITH_LIMESDR AND NOT LIMESDR_FOUND)
+message(STATUS "liblimesuite was not found and will now be built. Please install liblimesuite first before running cmake again to install indi-limesdr.")
+endif (WITH_LIMESDR AND NOT LIMESDR_FOUND)
+
+if (WITH_RTLSDR AND NOT RTLSDR)
+message(STATUS "librtlsdr was not found and will now be built. Please install librtlsdr first before running cmake again to install indi-rtlsdr.")
+endif (WITH_RTLSDR AND NOT RTLSDR)
 
 message(STATUS "####################################################################################################################################")
 endif (LIBRARIES_FOUND)
