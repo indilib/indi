@@ -402,6 +402,9 @@ bool StreamManager::close()
 
 bool StreamManager::setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth)
 {
+    if (pixelFormat == m_PixelFormat && pixelDepth == m_PixelDepth)
+        return true;
+
     bool recorderOK = recorder->setPixelFormat(pixelFormat, pixelDepth);
     if (recorderOK == false)
     {
