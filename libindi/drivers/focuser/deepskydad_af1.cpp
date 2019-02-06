@@ -530,7 +530,7 @@ bool DeepSkyDadAF1::ISNewSwitch(const char * dev, const char * name, ISState * s
                 AlwaysOnS[1].s = ISS_ON;
                 AlwaysOnS[0].s = ISS_OFF;
                 IDSetSwitch(&AlwaysOnSP, nullptr);
-                sendCommandSet("[SAO1]");
+                sendCommandSet("[SAON1]");
                 LOG_WARN("Microstepping turned on. Switching Always on to YES.");
             }
 
