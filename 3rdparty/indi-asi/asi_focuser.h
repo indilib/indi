@@ -34,7 +34,7 @@ class ASIEAF : public INDI::Focuser
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         //virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
-        //virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n) override;
+        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n) override;
 
         char m_Name[MAXINDINAME];
 
@@ -90,6 +90,8 @@ class ASIEAF : public INDI::Focuser
         bool readMaxPosition();
         // Read reverse state
         bool readReverse();
+        // Read Beep state
+        bool readBeep();
         // Are we moving?
         bool isMoving();
 
@@ -99,6 +101,15 @@ class ASIEAF : public INDI::Focuser
         // Read Only Temperature Reporting
         INumber TemperatureN[1];
         INumberVectorProperty TemperatureNP;
+
+        // Beep
+        ISwitch BeepS[2];
+        ISwitchVectorProperty BeepSP;
+        enum
+        {
+            BEEP_ON,
+            BEEL_OFF
+        };
 
         const uint8_t m_ID;
         const int m_MaxSteps;

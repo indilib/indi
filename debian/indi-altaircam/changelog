@@ -1,3 +1,9 @@
+indi-altaircam (0.2) bionic; urgency=low
+
+  * Various fixes.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 2 Feb 2019 21:00:00 +0300
+
 indi-altaircam (0.1) bionic; urgency=low
 
   * Initial Release.

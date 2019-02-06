@@ -400,11 +400,6 @@ bool GPhotoCCD::initProperties()
     IUFillSwitchVector(&livePreviewSP, livePreviewS, 2, getDeviceName(), "AUX_VIDEO_STREAM", "Preview",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillSwitch(&streamSubframeS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&streamSubframeS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&streamSubframeSP, streamSubframeS, 2, getDeviceName(), "STREAM_SUBFRAME", "Subframe",
-                       "Streaming", IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
     IUFillSwitch(&captureTargetS[CAPTURE_INTERNAL_RAM], "RAM", "", ISS_ON);
     IUFillSwitch(&captureTargetS[CAPTURE_SD_CARD], "SD Card", "", ISS_OFF);
     IUFillSwitchVector(&captureTargetSP, captureTargetS, 2, getDeviceName(), "CCD_CAPTURE_TARGET", "Capture Target",
@@ -430,6 +425,8 @@ bool GPhotoCCD::initProperties()
 #else
     SetCCDCapability(CCD_CAN_SUBFRAME | CCD_CAN_ABORT | CCD_HAS_BAYER | CCD_HAS_STREAMING);
 #endif
+
+    Streamer->setStreamingExposureEnabled(false);
 
     FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED);
 
@@ -538,7 +535,6 @@ bool GPhotoCCD::updateProperties()
             defineNumber(&TemperatureNP);
         }
 
-        defineSwitch(&streamSubframeSP);
         defineSwitch(&forceBULBSP);
 
         //timerID = SetTimer(POLLMS);
@@ -569,7 +565,6 @@ bool GPhotoCCD::updateProperties()
 
         deleteProperty(SDCardImageSP.name);
 
-        deleteProperty(streamSubframeSP.name);
         deleteProperty(forceBULBSP.name);
 
         HideExtendedOptions();
@@ -664,23 +659,6 @@ bool GPhotoCCD::ISNewSwitch(const char * dev, const char * name, ISState * state
             }
 
             IDSetSwitch(&forceBULBSP, nullptr);
-            return true;
-        }
-
-        if (!strcmp(name, streamSubframeSP.name))
-        {
-            if (IUUpdateSwitch(&streamSubframeSP, states, names, n) < 0)
-                return false;
-
-            streamSubframeSP.s = IPS_OK;
-            IDSetSwitch(&streamSubframeSP, nullptr);
-
-            if (streamSubframeS[0].s == ISS_ON)
-                Streamer->setPixelFormat(INDI_RGB);
-            // otherwise, we send raw JPG
-            else
-                Streamer->setPixelFormat(INDI_JPG);
-
             return true;
         }
 
@@ -1798,13 +1776,7 @@ bool GPhotoCCD::StartStreaming()
 
     if (gphoto_start_preview(gphotodrv) == GP_OK)
     {
-        // If we're subframing, then we send RGB
-        if (streamSubframeS[0].s == ISS_ON)
-            Streamer->setPixelFormat(INDI_RGB);
-        // otherwise, we send raw JPG
-        else
-            Streamer->setPixelFormat(INDI_JPG);
-
+        Streamer->setPixelFormat(INDI_RGB);
         std::unique_lock<std::mutex> guard(liveStreamMutex);
         m_RunLiveStream = true;
         guard.unlock();
@@ -1869,19 +1841,19 @@ void GPhotoCCD::streamLiveView()
 
         unsigned char * inBuffer = (unsigned char *)(const_cast<char *>(previewData));
 
-        if (streamSubframeS[1].s == ISS_ON)
-        {
-            if (liveVideoWidth <= 0)
-            {
-                read_jpeg_size(inBuffer, previewSize, &liveVideoWidth, &liveVideoHeight);
-                Streamer->setSize(liveVideoWidth, liveVideoHeight);
-            }
+        //        if (streamSubframeS[1].s == ISS_ON)
+        //        {
+        //            if (liveVideoWidth <= 0)
+        //            {
+        //                read_jpeg_size(inBuffer, previewSize, &liveVideoWidth, &liveVideoHeight);
+        //                Streamer->setSize(liveVideoWidth, liveVideoHeight);
+        //            }
 
-            std::unique_lock<std::mutex> ccdguard(ccdBufferLock);
-            Streamer->newFrame(inBuffer, previewSize);
-            ccdguard.unlock();
-            continue;
-        }
+        //            std::unique_lock<std::mutex> ccdguard(ccdBufferLock);
+        //            Streamer->newFrame(inBuffer, previewSize);
+        //            ccdguard.unlock();
+        //            continue;
+        //        }
 
         uint8_t * ccdBuffer      = PrimaryCCD.getFrameBuffer();
         size_t size             = 0;
@@ -1896,6 +1868,13 @@ void GPhotoCCD::streamLiveView()
             LOG_ERROR("Error getting live video frame.");
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
+        }
+
+        if (liveVideoWidth <= 0)
+        {
+            liveVideoWidth = w;
+            liveVideoHeight = h;
+            Streamer->setSize(liveVideoWidth, liveVideoHeight);
         }
 
         PrimaryCCD.setFrameBuffer(ccdBuffer);
@@ -2031,8 +2010,8 @@ bool GPhotoCCD::saveConfigItems(FILE * fp)
     // Transfer Format
     IUSaveConfigSwitch(fp, &transferFormatSP);
 
-    // Subframe Stream
-    IUSaveConfigSwitch(fp, &streamSubframeSP);
+    //    // Subframe Stream
+    //    IUSaveConfigSwitch(fp, &streamSubframeSP);
 
     // Force BULB Mode
     IUSaveConfigSwitch(fp, &forceBULBSP);

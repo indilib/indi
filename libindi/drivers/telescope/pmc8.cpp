@@ -82,8 +82,6 @@ void ISSnoopDevice(XMLEle *root)
 /* Constructor */
 PMC8::PMC8()
 {
-    set_pmc8_device(getDeviceName());
-
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC = 90;
 
@@ -148,6 +146,8 @@ bool PMC8::initProperties()
     SetParkDataType(PARK_RA_DEC);
 
     addAuxControls();
+
+    set_pmc8_device(getDeviceName());
 
     IUFillText(&FirmwareT[0], "Version", "Version", "");
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);

@@ -51,7 +51,7 @@ void LX200AstroPhysicsExperimental::disclaimerMessage()
 LX200AstroPhysicsExperimental::LX200AstroPhysicsExperimental() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 5);
 
     sendLocationOnStartup = false;
     sendTimeOnStartup = false;
@@ -102,11 +102,12 @@ bool LX200AstroPhysicsExperimental::initProperties()
     TrackRateN[AXIS_DE].max = 998.9999;
 
     // Motion speed of axis when pressing NSWE buttons
-    IUFillSwitch(&SlewRateS[0], "12", "12x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[1], "64", "64x", ISS_ON);
-    IUFillSwitch(&SlewRateS[2], "600", "600x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[3], "1200", "1200x", ISS_OFF);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&SlewRateS[0], "1", "Guide", ISS_OFF);
+    IUFillSwitch(&SlewRateS[1], "12", "12x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[2], "64", "64x", ISS_ON);
+    IUFillSwitch(&SlewRateS[3], "600", "600x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[4], "1200", "1200x", ISS_OFF);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 5, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slew speed when performing regular GOTO
     IUFillSwitch(&APSlewSpeedS[0], "600", "600x", ISS_ON);
@@ -350,7 +351,7 @@ bool LX200AstroPhysicsExperimental::initMount()
         {
             // This is how to init the mount in case RA/DE are missing.
             // :PO#
-            if (setAPUnPark(PortFD) < 0)
+            if (APUnParkMount(PortFD) < 0)
             {
                 LOG_ERROR("UnParking Failed.");
                 return false;
@@ -367,7 +368,7 @@ bool LX200AstroPhysicsExperimental::initMount()
 
     // Astrophysics mount is always unparked on startup
     // In this driver, unpark only sets the tracking ON.
-    // setAPUnPark() is NOT called as this function, despite its name, is only used for initialization purposes.
+    // APParkMount() is NOT called as this function, despite its name, is only used for initialization purposes.
     UnPark();
 
     // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
@@ -375,9 +376,9 @@ bool LX200AstroPhysicsExperimental::initMount()
     // Slew speeds so we have to keep two lists.
     //
     // SlewRateS is used as the MoveTo speed
-    if (isSimulation() == false && (err = selectAPMoveToRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP))) < 0)
+    if (isSimulation() == false && (err = selectAPCenterRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP))) < 0)
     {
-        LOGF_ERROR("Error setting move rate (%d).", err);
+        LOGF_ERROR("Error setting center (MoveTo) rate (%d).", err);
         return false;
     }
 
@@ -665,7 +666,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         {
             LOG_DEBUG("Parking slew is complete. Asking astrophysics mount to park...");
 
-            if (!isSimulation() && setAPPark(PortFD) < 0)
+            if (!isSimulation() && APParkMount(PortFD) < 0)
             {
                 LOG_ERROR("Parking Failed.");
                 return false;
@@ -867,6 +868,29 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 }
 
 
+bool LX200AstroPhysicsExperimental::updateAPSlewRate(int index)
+{
+//    if (IUFindOnSwitchIndex(&SlewRateSP) == index)
+//    {
+//        LOGF_DEBUG("updateAPSlewRate: slew rate %d already choosen so ignoring.", index);
+//        return true;
+//    }
+
+    if (!isSimulation() && selectAPCenterRate(PortFD, index) < 0)
+    {
+        SlewRateSP.s = IPS_ALERT;
+        IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+        return false;
+    }
+
+    IUResetSwitch(&SlewRateSP);
+    SlewRateS[index].s = ISS_ON;
+    SlewRateSP.s = IPS_OK;
+    IDSetSwitch(&SlewRateSP, nullptr);
+    return true;
+}
+
+
 // AP mounts handle guide commands differently enough from the "generic" LX200 we need to override some
 // functions related to the GuiderInterface
 
@@ -897,7 +921,9 @@ IPState LX200AstroPhysicsExperimental::GuideNorth(uint32_t ms)
 
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
-        updateSlewRate(SLEW_GUIDE);
+
+        // Set slew to guiding
+        updateAPSlewRate(AP_SLEW_GUIDE);
 
         // Set to dummy value to that MoveNS does not reset slew rate to rememberSlewRate
         GuideNSTID = 1;
@@ -938,7 +964,8 @@ IPState LX200AstroPhysicsExperimental::GuideSouth(uint32_t ms)
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
 
-        updateSlewRate(SLEW_GUIDE);
+        // Set slew to guiding
+        updateAPSlewRate(AP_SLEW_GUIDE);
 
         // Set to dummy value to that MoveNS does not reset slew rate to rememberSlewRate
         GuideNSTID = 1;
@@ -979,7 +1006,8 @@ IPState LX200AstroPhysicsExperimental::GuideEast(uint32_t ms)
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
 
-        updateSlewRate(SLEW_GUIDE);
+        // Set slew to guiding
+        updateAPSlewRate(AP_SLEW_GUIDE);
 
         // Set to dummy value to that MoveWE does not reset slew rate to rememberSlewRate
         GuideWETID = 1;
@@ -1020,7 +1048,8 @@ IPState LX200AstroPhysicsExperimental::GuideWest(uint32_t ms)
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
 
-        updateSlewRate(SLEW_GUIDE);
+        // Set slew to guiding
+        updateAPSlewRate(AP_SLEW_GUIDE);
 
         // Set to dummy value to that MoveWE does not reset slew rate to rememberSlewRate
         GuideWETID = 1;
@@ -1298,7 +1327,7 @@ void LX200AstroPhysicsExperimental::debugTriggered(bool enable)
 // ApSetSlew
 bool LX200AstroPhysicsExperimental::SetSlewRate(int index)
 {
-    if (!isSimulation() && selectAPMoveToRate(PortFD, index) < 0)
+    if (!isSimulation() && selectAPCenterRate(PortFD, index) < 0)
     {        
         LOG_ERROR("Error setting slew mode.");
         return false;

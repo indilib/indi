@@ -81,6 +81,7 @@ INDI is intended for developers seeking to add support for their devices in INDI
 <li>@ref INDI::SP "INDI Standard Properties"</li>
 <li><a href="md_libs_indibase_alignment_alignment_white_paper.html">INDI Alignment Subsystem</a></li>
 <li><a href="structINDI_1_1Logger.html">INDI Debugging & Logging API</a></li>
+<li>@ref DSP "Digital Signal Processing API"</li>
 <li><a href="indicom_8h.html">INDI Common Routine Library</a></li>
 <li><a href="lilxml_8h.html">INDI LilXML Library</a></li>
 <li><a href="classStreamManager.html">INDI Stream Manager for video encoding, streaming, and recording.</a></li>
@@ -142,40 +143,44 @@ For a full list of contributors, please check <a href="https://github.com/indili
  * @typedef ISState
  * @brief Switch state.
  */
-typedef enum {
-    ISS_OFF = 0, /*!< Switch is OFF */
-    ISS_ON       /*!< Switch is ON */
+typedef enum
+{
+ISS_OFF = 0, /*!< Switch is OFF */
+ISS_ON       /*!< Switch is ON */
 } ISState;
 
 /**
  * @typedef IPState
  * @brief Property state.
  */
-typedef enum {
-    IPS_IDLE = 0, /*!< State is idle */
-    IPS_OK,       /*!< State is ok */
-    IPS_BUSY,     /*!< State is busy */
-    IPS_ALERT     /*!< State is alert */
+typedef enum
+{
+IPS_IDLE = 0, /*!< State is idle */
+IPS_OK,       /*!< State is ok */
+IPS_BUSY,     /*!< State is busy */
+IPS_ALERT     /*!< State is alert */
 } IPState;
 
 /**
  * @typedef ISRule
  * @brief Switch vector rule hint.
  */
-typedef enum {
-    ISR_1OFMANY, /*!< Only 1 switch of many can be ON (e.g. radio buttons) */
-    ISR_ATMOST1, /*!< At most one switch can be ON, but all switches can be off. It is similar to ISR_1OFMANY with the exception that all switches can be off. */
-    ISR_NOFMANY  /*!< Any number of switches can be ON (e.g. check boxes) */
+typedef enum
+{
+ISR_1OFMANY, /*!< Only 1 switch of many can be ON (e.g. radio buttons) */
+ISR_ATMOST1, /*!< At most one switch can be ON, but all switches can be off. It is similar to ISR_1OFMANY with the exception that all switches can be off. */
+ISR_NOFMANY  /*!< Any number of switches can be ON (e.g. check boxes) */
 } ISRule;
 
 /**
  * @typedef IPerm
  * @brief Permission hint, with respect to client.
  */
-typedef enum {
-    IP_RO, /*!< Read Only */
-    IP_WO, /*!< Write Only */
-    IP_RW  /*!< Read & Write */
+typedef enum
+{
+IP_RO, /*!< Read Only */
+IP_WO, /*!< Write Only */
+IP_RW  /*!< Read & Write */
 } IPerm;
 
 // The XML strings for these attributes may be any length but implementations
@@ -216,8 +221,8 @@ typedef enum {
  */
 typedef struct
 {
-    /** Index name */
-    char name[MAXINDINAME];
+/** Index name */
+char name[MAXINDINAME];
     /** Short description */
     char label[MAXINDILABEL];
     /** Allocated text string */

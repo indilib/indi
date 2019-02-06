@@ -11,7 +11,6 @@ set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(DSPAU REQUIRED)
 find_package(Threads REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
@@ -33,7 +32,7 @@ set(radiosim_SRCS
 
 add_executable(indi_radiosim_detector ${radiosim_SRCS})
 
-target_link_libraries(indi_radiosim_detector ${INDI_LIBRARIES} ${DSPAU_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_radiosim_detector ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_radiosim_detector RUNTIME DESTINATION bin)
 

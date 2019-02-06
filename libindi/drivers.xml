@@ -249,7 +249,7 @@
         </device>
         <device label="HitecAstro DC">
                 <driver name="HitecAstro DC">indi_hitecastrodc_focus</driver>
-                <version>0.1</version>
+                <version>0.2</version>
         </device>
         <device label="SmartFocus">
                 <driver name="SmartFocus">indi_smartfocus_focus</driver>
