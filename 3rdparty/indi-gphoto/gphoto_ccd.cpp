@@ -1456,14 +1456,14 @@ bool GPhotoCCD::grabImage()
 
             // Align all boundaries to be even
             // This should fix issues with subframed bayered images.
-            subX -= subX % 2;
-            subY -= subY % 2;
-            subW -= subW % 2;
-            subH -= subH % 2;
+            //            subX -= subX % 2;
+            //            subY -= subY % 2;
+            //            subW -= subW % 2;
+            //            subH -= subH % 2;
 
             int subFrameSize     = subW * subH * bpp / 8 * ((naxis == 3) ? 3 : 1);
             int oneFrameSize     = subW * subH * bpp / 8;
-            uint8_t * subframeBuf = new uint8_t[subFrameSize];
+            //uint8_t * subframeBuf = new uint8_t[subFrameSize];
 
             int lineW  = subW * bpp / 8;
 
@@ -1474,13 +1474,17 @@ bool GPhotoCCD::grabImage()
             if (naxis == 2)
             {
                 for (int i = subY; i < subY + subH; i++)
-                    memcpy(subframeBuf + (i - subY) * lineW, memptr + (i * w + subX) * bpp / 8, lineW);
+                    memcpy(memptr + (i - subY) * lineW, memptr + (i * w + subX) * bpp / 8, lineW);
+                //memcpy(subframeBuf + (i - subY) * lineW, memptr + (i * w + subX) * bpp / 8, lineW);
             }
             else
             {
-                uint8_t * subR = subframeBuf;
-                uint8_t * subG = subframeBuf + oneFrameSize;
-                uint8_t * subB = subframeBuf + oneFrameSize * 2;
+                //                uint8_t * subR = subframeBuf;
+                //                uint8_t * subG = subframeBuf + oneFrameSize;
+                //                uint8_t * subB = subframeBuf + oneFrameSize * 2;
+                uint8_t * subR = memptr;
+                uint8_t * subG = memptr + oneFrameSize;
+                uint8_t * subB = memptr + oneFrameSize * 2;
 
                 uint8_t * startR = memptr;
                 uint8_t * startG = memptr + (w * h * bpp / 8);
@@ -1494,8 +1498,8 @@ bool GPhotoCCD::grabImage()
                 }
             }
 
-            PrimaryCCD.setFrameBuffer(subframeBuf);
-            PrimaryCCD.setFrameBufferSize(subFrameSize, false);
+            PrimaryCCD.setFrameBuffer(memptr);
+            PrimaryCCD.setFrameBufferSize(memsize, false);
             PrimaryCCD.setResolution(w, h);
             PrimaryCCD.setFrame(subX, subY, subW, subH);
             PrimaryCCD.setNAxis(naxis);
@@ -1504,9 +1508,9 @@ bool GPhotoCCD::grabImage()
             ExposureComplete(&PrimaryCCD);
 
             // Restore old pointer and release memory
-            PrimaryCCD.setFrameBuffer(memptr);
-            PrimaryCCD.setFrameBufferSize(memsize, false);
-            delete [] (subframeBuf);
+            //PrimaryCCD.setFrameBuffer(memptr);
+            //PrimaryCCD.setFrameBufferSize(memsize, false);
+            //delete [] (subframeBuf);
         }
         else
         {
