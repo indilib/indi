@@ -456,32 +456,30 @@ void GPhotoCCD::ISGetProperties(const char * dev)
     defineText(&PortTP);
     loadConfig(true, "DEVICE_PORT");
 
-#if 0
     if (isConnected())
-    {
-        if (mExposurePresetSP.nsp > 0)
-            defineSwitch(&mExposurePresetSP);
-        if (mIsoSP.nsp > 0)
-            defineSwitch(&mIsoSP);
-        if (mFormatSP.nsp > 0)
-            defineSwitch(&mFormatSP);
+        return;
 
-        defineSwitch(&livePreviewSP);
-        defineSwitch(&transferFormatSP);
-        defineSwitch(&autoFocusSP);
-        defineSwitch(&FocusMotionSP);
-        defineNumber(&FocusSpeedNP);
-        defineNumber(&FocusTimerNP);
+    // Read Image Info if we have not connected yet.
+    double pixel = 0, pixel_x = 0, pixel_y = 0;
+    IUGetConfigNumber(getDeviceName(), "CCD_INFO", "CCD_PIXEL_SIZE", &pixel);
+    IUGetConfigNumber(getDeviceName(), "CCD_INFO", "CCD_PIXEL_SIZE_X", &pixel_x);
+    IUGetConfigNumber(getDeviceName(), "CCD_INFO", "CCD_PIXEL_SIZE_Y", &pixel_y);
 
-        if (captureTargetSP.s == IPS_OK)
-            defineSwitch(&captureTargetSP);
+    INumberVectorProperty *nvp = PrimaryCCD.getCCDInfo();
 
-        ShowExtendedOptions();
+    if (!nvp)
+        return;
 
-        if (strstr(gphoto_get_manufacturer(gphotodrv), "Canon"))
-            defineNumber(&mMirrorLockNP);
-    }
-#endif
+    // Load the necessary pixel size information
+    // The maximum resolution and bits per pixel depend on the capture itself.
+    // while the pixel size data remains constant.
+    if (pixel > 0)
+        nvp->np[INDI::CCDChip::CCD_PIXEL_SIZE].value = pixel;
+    if (pixel_x > 0)
+        nvp->np[INDI::CCDChip::CCD_PIXEL_SIZE_X].value = pixel_x;
+    if (pixel_y > 0)
+        nvp->np[INDI::CCDChip::CCD_PIXEL_SIZE_Y].value = pixel_y;
+
 }
 
 bool GPhotoCCD::updateProperties()
@@ -1328,32 +1326,42 @@ void GPhotoCCD::UpdateExtendedOptions(bool force)
 
 bool GPhotoCCD::grabImage()
 {
-    //char ext[16];
     uint8_t * memptr = PrimaryCCD.getFrameBuffer();
     size_t memsize = 0;
     int fd = 0, naxis = 2, w = 0, h = 0, bpp = 8;
 
     if (isSimulation())
     {
-        w                   = PrimaryCCD.getXRes();
-        h                   = PrimaryCCD.getYRes();
-        size_t fullbuf_size = w * h + 512;
-        uint8_t * fullbuf    = (uint8_t *)malloc(fullbuf_size);
-        for (int i = 0; i < h; i++)
-            for (int j = 0; j < w; j++)
-                fullbuf[i * w + j] = rand() % 255;
+        uint16_t subW = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
+        uint16_t subH = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
-        // Starting address if subframing
-        memptr  = fullbuf + (PrimaryCCD.getSubY() * PrimaryCCD.getXRes()) + PrimaryCCD.getSubX();
-        memsize = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * PrimaryCCD.getBPP() / 8;
+        subW -= subW % 2;
+        subH -= subH % 2;
 
-        PrimaryCCD.setFrameBuffer(memptr);
-        PrimaryCCD.setFrameBufferSize(memsize, false);
-        //PrimaryCCD.setResolution(w, h);
-        //PrimaryCCD.setFrame(0, 0, w, h);
-        PrimaryCCD.setNAxis(naxis);
-        PrimaryCCD.setBPP(bpp);
+        uint32_t size = subW * subH;
 
+        if (PrimaryCCD.getFrameBufferSize() < static_cast<int>(size))
+        {
+            PrimaryCCD.setFrameBufferSize(size);
+            memptr = PrimaryCCD.getFrameBuffer();
+        }
+
+        // TODO
+        // Need to simulate bayer
+        // Need to simulate subframing
+        if (PrimaryCCD.getBPP() == 8)
+        {
+            for (uint32_t i = 0 ; i < size; i++)
+                memptr[i] = rand() % 255;
+        }
+        else
+        {
+            uint16_t *buffer = reinterpret_cast<uint16_t*>(memptr);
+            for (uint32_t i = 0 ; i < size; i++)
+                buffer[i] = rand() % 65535;
+        }
+
+        PrimaryCCD.setFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), subW, subH);
         ExposureComplete(&PrimaryCCD);
         return true;
     }
@@ -1396,8 +1404,9 @@ bool GPhotoCCD::grabImage()
             return false;
         }
 
-        /* We're done exposing */
-        LOG_INFO("Exposure done, downloading image...");
+        // We're done exposing
+        if (ExposureRequest > 3)
+            LOG_INFO("Exposure done, downloading image...");
 
         if (strcasecmp(gphoto_get_file_extension(gphotodrv), "jpg") == 0 ||
                 strcasecmp(gphoto_get_file_extension(gphotodrv), "jpeg") == 0)
@@ -1416,15 +1425,6 @@ bool GPhotoCCD::grabImage()
         }
         else
         {
-            /*if (read_dcraw(tmpfile, &memptr, &memsize, &naxis, &w, &h, &bpp))
-                {
-                    LOG_ERROR("Exposure failed to parse raw image.");
-                    unlink(tmpfile);
-                    return false;
-                }
-
-                LOGF_DEBUG("read_dcraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d)", memsize, naxis, w, h, bpp);*/
-
             char bayer_pattern[8] = {};
 
             if (read_libraw(tmpfile, &memptr, &memsize, &naxis, &w, &h, &bpp, bayer_pattern))
@@ -1434,7 +1434,7 @@ bool GPhotoCCD::grabImage()
                 return false;
             }
 
-            LOGF_DEBUG("read_libraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d) pattern (%s)",
+            LOGF_DEBUG("read_libraw: memsize (%d) naxis (%d) w (%d) h (%d) bpp (%d) bayer pattern (%s)",
                        memsize, naxis, w, h, bpp, bayer_pattern);
 
             unlink(tmpfile);
@@ -1447,26 +1447,34 @@ bool GPhotoCCD::grabImage()
         PrimaryCCD.setImageExtension("fits");
 
         // If subframing is requested
-        /*if (frameInitialized &&
-                PrimaryCCD.getSubH() < PrimaryCCD.getYRes() || PrimaryCCD.getSubW() < PrimaryCCD.getXRes())*/
         if (PrimaryCCD.getSubW() < w || PrimaryCCD.getSubH() < h)
         {
-            int subFrameSize     = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp / 8 * ((naxis == 3) ? 3 : 1);
-            int oneFrameSize     = PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * bpp / 8;
-            uint8_t * subframeBuf = (uint8_t *)malloc(subFrameSize);
+            uint16_t subX = PrimaryCCD.getSubX();
+            uint16_t subY = PrimaryCCD.getSubY();
+            uint16_t subW = PrimaryCCD.getSubW();
+            uint16_t subH = PrimaryCCD.getSubH();
 
-            int startY = PrimaryCCD.getSubY();
-            int endY   = startY + PrimaryCCD.getSubH();
-            int lineW  = PrimaryCCD.getSubW() * bpp / 8;
-            int subX   = PrimaryCCD.getSubX();
+            // Align all boundaries to be even
+            // This should fix issues with subframed bayered images.
+            subX -= subX % 2;
+            subY -= subY % 2;
+            subW -= subW % 2;
+            subH -= subH % 2;
 
-            LOGF_DEBUG("Subframing... subFrameSize: %d - oneFrameSize: %d - startY: %d - endY: %d - lineW: %d - subX: %d", subFrameSize, oneFrameSize,
-                       startY, endY, lineW, subX);
+            int subFrameSize     = subW * subH * bpp / 8 * ((naxis == 3) ? 3 : 1);
+            int oneFrameSize     = subW * subH * bpp / 8;
+            uint8_t * subframeBuf = new uint8_t[subFrameSize];
+
+            int lineW  = subW * bpp / 8;
+
+            LOGF_DEBUG("Subframing... subFrameSize: %d - oneFrameSize: %d - subX: %d - subY: %d - subW: %d - subH: %d",
+                       subFrameSize, oneFrameSize,
+                       subX, subY, subW, subH);
 
             if (naxis == 2)
             {
-                for (int i = startY; i < endY; i++)
-                    memcpy(subframeBuf + (i - startY) * lineW, memptr + (i * w + subX) * bpp / 8, lineW);
+                for (int i = subY; i < subY + subH; i++)
+                    memcpy(subframeBuf + (i - subY) * lineW, memptr + (i * w + subX) * bpp / 8, lineW);
             }
             else
             {
@@ -1478,17 +1486,18 @@ bool GPhotoCCD::grabImage()
                 uint8_t * startG = memptr + (w * h * bpp / 8);
                 uint8_t * startB = memptr + (w * h * bpp / 8 * 2);
 
-                for (int i = startY; i < endY; i++)
+                for (int i = subY; i < subY + subH; i++)
                 {
-                    memcpy(subR + (i - startY) * lineW, startR + (i * w + subX) * bpp / 8, lineW);
-                    memcpy(subG + (i - startY) * lineW, startG + (i * w + subX) * bpp / 8, lineW);
-                    memcpy(subB + (i - startY) * lineW, startB + (i * w + subX) * bpp / 8, lineW);
+                    memcpy(subR + (i - subY) * lineW, startR + (i * w + subX) * bpp / 8, lineW);
+                    memcpy(subG + (i - subY) * lineW, startG + (i * w + subX) * bpp / 8, lineW);
+                    memcpy(subB + (i - subY) * lineW, startB + (i * w + subX) * bpp / 8, lineW);
                 }
             }
 
             PrimaryCCD.setFrameBuffer(subframeBuf);
             PrimaryCCD.setFrameBufferSize(subFrameSize, false);
             PrimaryCCD.setResolution(w, h);
+            PrimaryCCD.setFrame(subX, subY, subW, subH);
             PrimaryCCD.setNAxis(naxis);
             PrimaryCCD.setBPP(bpp);
 
@@ -1497,13 +1506,10 @@ bool GPhotoCCD::grabImage()
             // Restore old pointer and release memory
             PrimaryCCD.setFrameBuffer(memptr);
             PrimaryCCD.setFrameBufferSize(memsize, false);
-            free(subframeBuf);
+            delete [] (subframeBuf);
         }
         else
         {
-            // We need to initially set the frame dimensions for the first time since it is unknown at the time of connection.
-            //frameInitialized = true;
-
             if (PrimaryCCD.getSubW() != 0 && (w > PrimaryCCD.getSubW() || h > PrimaryCCD.getSubH()))
                 LOGF_WARN("Camera image size (%dx%d) is less than requested size (%d,%d). Update frame size to match camera size.", w, h, PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 
@@ -1517,6 +1523,7 @@ bool GPhotoCCD::grabImage()
             ExposureComplete(&PrimaryCCD);
         }
     }
+    // Read Native image AS IS
     else
     {
         int rc = gphoto_read_exposure(gphotodrv);
@@ -1530,13 +1537,14 @@ bool GPhotoCCD::grabImage()
             return false;
         }
 
-        /* We're done exposing */
-        LOG_DEBUG("Exposure done, downloading image...");
+        // We're done exposing
+        if (ExposureRequest > 3)
+            LOG_DEBUG("Exposure done, downloading image...");
         uint8_t * newMemptr = nullptr;
         gphoto_get_buffer(gphotodrv, (const char **)&newMemptr, &memsize);
-        memptr = (uint8_t *)realloc(memptr,
-                                    memsize); // We copy the obtained memory pointer to avoid freeing some gphoto memory
-        memcpy(memptr, newMemptr, memsize);   //
+        // We copy the obtained memory pointer to avoid freeing some gphoto memory
+        memptr = static_cast<uint8_t *>(realloc(memptr, memsize));
+        memcpy(memptr, newMemptr, memsize);
 
         gphoto_get_dimensions(gphotodrv, &w, &h);
 
