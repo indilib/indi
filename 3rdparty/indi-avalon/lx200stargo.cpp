@@ -1392,11 +1392,11 @@ bool LX200StarGo::syncSideOfPier()
     case 'W':
         // seems to be vice versa
         LOG_DEBUG("Detected pier side west.");
-        setPierSide(INDI::Telescope::PIER_WEST);
+        setPierSide(INDI::Telescope::PIER_EAST);
         break;
     case 'E':
         LOG_DEBUG("Detected pier side east.");
-        setPierSide(INDI::Telescope::PIER_EAST);
+        setPierSide(INDI::Telescope::PIER_WEST);
         break;
     default:
         break;
