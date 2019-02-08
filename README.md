@@ -145,13 +145,14 @@ If you would like to make cleaner PR (recommended!) please read this [tutorial](
 
 When submitting a new driver, the driver user **documentation** is required as part of the submission process.
 
-* Installation: Driver name, executable name, what version in INDI it would be available at
-* Features: What features it supports exactly?
-* Operation: How to operate the focuser, each sub section should come with a screenshot of the various tabs..etc.
-  Preferebly annotated to make it easier for new users to follow.
-  ** Connecting
-  ** Main Control
-  ** Options
+* Installation: Driver name, executable name, version, required INDI version.
+* Features: What features does it support exactly?
+* Operation: How to operate the driver? Each sub section should come with a screen shot of the various tabs..etc.
+  Preferably annotated to make it easier for new users to follow.
+  * Connecting: How to establish connection? How to set port if any?
+  * Main Control: Primary control tab and its functions.
+  * Options: Explanation for the various options available.
+  * Etc: Any other tabs created by the driver.
 * Issues: Any problems or issues or warnings the users should be aware about when using this driver.
 
 # Unit tests
