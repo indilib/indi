@@ -43,6 +43,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx200zeq25.h"
 #include "lx200gotonova.h"
 #include "ioptronHC8406.h"
+#include "eq500x.h"
 #include <cmath>
 #include <memory>
 #include <cstring>
@@ -183,6 +184,13 @@ void ISInit()
 
         if (telescope.get() == nullptr)
             telescope.reset(new LX200_10MICRON());
+    }
+    else if (strstr(me, "indi_eq500x"))
+    {
+        IDLog("initializing for EQ500X mount...\n");
+
+        if (telescope.get() == nullptr)
+            telescope.reset(new EQ500X());
     }
     // be nice and give them a generic device
     else if (telescope.get() == nullptr)
