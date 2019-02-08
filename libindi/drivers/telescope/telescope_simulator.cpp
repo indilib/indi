@@ -584,10 +584,13 @@ bool ScopeSim::ReadScopeStatus()
     // pier side might only change with a slew or parking
     if (TrackState == SCOPE_SLEWING || TrackState == SCOPE_PARKING)
     {
-        if (getAzimuth(currentRA, currentDEC) > 180.)
-            setPierSide(INDI::Telescope::PIER_EAST);
+        double az = getAzimuth(currentRA, currentDEC);
+        bool north = lnobserver.lat >= 0.;
+
+        if ((0 <= az && az < 90) || (180 <= az && az < 270))
+            setPierSide(north ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
         else
-            setPierSide(INDI::Telescope::PIER_WEST);
+            setPierSide(north ? INDI::Telescope::PIER_WEST : INDI::Telescope::PIER_EAST);
     }
 
     return true;
@@ -602,11 +605,17 @@ bool ScopeSim::Goto(double r, double d)
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
 
-    double target_az = getAzimuth(r, d);
+    double current_az = getAzimuth(currentRA, currentDEC);
 
-    if (target_az > MIN_AZ_FLIP && getPierSide() == PIER_WEST)
+    if (current_az > MIN_AZ_FLIP && current_az < MAX_AZ_FLIP)
     {
-        forceMeridianFlip = true;
+        double target_az = getAzimuth(r, d);
+
+        //if (targetAz > currentAz && target_az > MIN_AZ_FLIP && target_az < MAX_AZ_FLIP)
+        if (target_az >= current_az && target_az > MIN_AZ_FLIP)
+        {
+            forceMeridianFlip = true;
+        }
     }
 
     if (IUFindOnSwitchIndex(&TrackModeSP) != SLEW_MAX)
