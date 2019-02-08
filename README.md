@@ -100,8 +100,8 @@ Typical INDI Client / Server / Driver / Device connectivity:
                       |                  |
                       |                  |
     INDI Client n ----|                  |---- INDI Driver C  ---- Dev T
-    
-    
+
+
      Client       INET       Server       UNIX     Driver          Hardware
      processes    sockets    process      pipes    processes       devices
 
@@ -140,6 +140,19 @@ Here is the short version on how to submit a PR:
 7. Pushing updates to the PR: just update your branch (git push -f my_fork my_branch:my_branch)..
 
 If you would like to make cleaner PR (recommended!) please read this [tutorial](https://blog.adamspiers.org/2015/03/24/why-and-how-to-correctly-amend-github-pull-requests/) and follow it. The best way is to keep *one logical change per commit* and not pollute the history by multiple small fixes to the PR.
+
+### Driver Documentation
+
+When submitting a new driver, the driver user **documentation** is required as part of the submission process.
+
+* Installation: Driver name, executable name, what version in INDI it would be available at
+* Features: What features it supports exactly?
+* Operation: How to operate the focuser, each sub section should come with a screenshot of the various tabs..etc.
+  Preferebly annotated to make it easier for new users to follow.
+  ** Connecting
+  ** Main Control
+  ** Options
+* Issues: Any problems or issues or warnings the users should be aware about when using this driver.
 
 # Unit tests
 
