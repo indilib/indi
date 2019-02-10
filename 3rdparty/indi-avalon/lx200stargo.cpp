@@ -308,10 +308,6 @@ bool LX200StarGo::initProperties()
     IUFillSwitch(&MountGotoHomeS[0], "MOUNT_GOTO_HOME_VALUE", "Goto Home", ISS_OFF);
     IUFillSwitchVector(&MountGotoHomeSP, MountGotoHomeS, 1, getDeviceName(), "MOUNT_GOTO_HOME", "Goto Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
-    IUFillLight(&MountParkingStatusL[0], "MOUNT_IS_PARKED_VALUE", "Parked", IPS_IDLE);
-    IUFillLight(&MountParkingStatusL[1], "MOUNT_IS_UNPARKED_VALUE", "Unparked", IPS_IDLE);
-    IUFillLightVector(&MountParkingStatusLP, MountParkingStatusL, 2, getDeviceName(), "PARKING_STATUS", "Parking Status", MAIN_CONTROL_TAB, IPS_IDLE);
-
     IUFillSwitch(&MountSetParkS[0], "MOUNT_SET_PARK_VALUE", "Set Park", ISS_OFF);
     IUFillSwitchVector(&MountSetParkSP, MountSetParkS, 1, getDeviceName(), "MOUNT_SET_PARK", "Set Park", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
@@ -352,7 +348,6 @@ bool LX200StarGo::updateProperties()
     if (! LX200Telescope::updateProperties()) return false;
     if (isConnected())
     {
-        defineLight(&MountParkingStatusLP);
         defineSwitch(&SyncHomeSP);
         defineSwitch(&MountGotoHomeSP);
         defineSwitch(&MountSetParkSP);
@@ -363,7 +358,6 @@ bool LX200StarGo::updateProperties()
     }
     else
     {
-        deleteProperty(MountParkingStatusLP.name);
         deleteProperty(SyncHomeSP.name);
         deleteProperty(MountGotoHomeSP.name);
         deleteProperty(MountSetParkSP.name);
@@ -856,9 +850,6 @@ void LX200StarGo::SetParked(bool isparked)
 {
     LOGF_DEBUG("%s %s", __FUNCTION__, isparked?"PARKED":"UNPARKED");
     INDI::Telescope::SetParked(isparked);
-    MountParkingStatusL[0].s = isparked ? IPS_OK : IPS_IDLE;
-    MountParkingStatusL[1].s = isparked ? IPS_IDLE : IPS_OK;
-    IDSetLight(&MountParkingStatusLP, nullptr);
 }
 
 bool LX200StarGo::UnPark()
@@ -887,12 +878,6 @@ bool LX200StarGo::UnPark()
     if (sendQuery(":X370#", response) && strcmp(response, "p0") == 0)
     {
         LOG_INFO("Unparking mount...");
-/*        TrackState = SCOPE_TRACKING;
-        SetParked(false);
-        MountParkingStatusL[1].s = IPS_OK;
-        MountParkingStatusL[0].s = IPS_IDLE;
-        IDSetLight(&MountParkingStatusLP, nullptr);
-*/
         return true;
     }
     else

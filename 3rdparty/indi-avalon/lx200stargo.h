@@ -119,8 +119,6 @@ protected:
     // parking position
     ISwitchVectorProperty MountSetParkSP;
     ISwitch MountSetParkS[1];
-    ILightVectorProperty MountParkingStatusLP;
-    ILight MountParkingStatusL[2];
 
     // guiding
     INumberVectorProperty GuidingSpeedNP;
