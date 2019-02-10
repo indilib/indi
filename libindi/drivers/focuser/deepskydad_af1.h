@@ -33,7 +33,7 @@ class DeepSkyDadAF1 : public INDI::Focuser
 
         typedef enum { FULL, HALF, QUARTER, EIGHT } FocusStepMode;
 
-        typedef enum { ALWAYS_ON_NO, ALWAYS_ON_YES } AlwaysOn;
+        typedef enum { ALWAYS_ON, IDLE_OFF, IDLE_COILS_TIMEOUT } CoilsMode;
         typedef enum { CURRENT_25, CURRENT_50, CURRENT_75, CURRENT_100 } Current;
 
         const char * getDefaultName() override;
@@ -97,43 +97,43 @@ class DeepSkyDadAF1 : public INDI::Focuser
         bool readStepMode();
         bool readPosition();
         bool readSettleBuffer();
-        bool readAlwaysOn();
+        bool readIdleCoilsTimeout();
+        bool readCoilsMode();
         bool readCurrentMove();
-        bool readCurrentAo();
+        bool readCurrentHold();
         bool isMoving();
 
         void timedMoveCallback();
 
-        bool setStepMode(FocusStepMode mode);
-        bool setSettleBuffer(uint32_t position);
-        bool setAlwaysOnSwitch(char * names[], int n, ISState * states);
-
         bool MoveFocuser(uint32_t position);
 
 
-        double targetPos { 0 }, lastPos { 0 }, lastSettleBuffer { 0 };
+        double targetPos { 0 }, lastPos { 0 }, lastSettleBuffer { 0 }, lastIdleCoilsTimeout { 0 };
 
-        int settleBuffer { 0 };
 
         // Step modes
         ISwitch StepModeS[4];
         ISwitchVectorProperty StepModeSP;
 
-        // Always on
-        ISwitch AlwaysOnS[2];
-        ISwitchVectorProperty AlwaysOnSP;
+        // Coils mode
+        ISwitch CoilsModeS[3];
+        ISwitchVectorProperty CoilsModeSP;
 
         //Current move
         ISwitch CurrentMoveS[4];
         ISwitchVectorProperty CurrentMoveSP;
 
-        //Current always on
-        ISwitch CurrentAoS[4];
-        ISwitchVectorProperty CurrentAoSP;
+        //Current hold
+        ISwitch CurrentHoldS[4];
+        ISwitchVectorProperty CurrentHoldSP;
 
         // Settle buffer
         INumber SettleBufferN[1];
         INumberVectorProperty SettleBufferNP;
+
+        // Idle coils timeout (ms)
+        INumber IdleCoilsTimeoutN[1];
+        INumberVectorProperty IdleCoilsTimeoutNP;
 
         // Response Buffer
         
