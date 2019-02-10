@@ -112,6 +112,10 @@ protected:
     ITextVectorProperty MountFirmwareInfoTP;
     IText MountFirmwareInfoT[1] = {};
 
+    // AUX focusers control
+    ISwitchVectorProperty Aux1FocuserSP;
+    ISwitch Aux1FocuserS[2];
+
     // goto home
     ISwitchVectorProperty MountGotoHomeSP;
     ISwitch MountGotoHomeS[1];

@@ -37,7 +37,7 @@
 
 // Unique pointers
 static std::unique_ptr<LX200StarGo> telescope;
-static std::unique_ptr<LX200StarGoFocuser> focuser;
+static std::unique_ptr<LX200StarGoFocuser> focuserAux1;
 
 const char *RA_DEC_TAB = "RA / DEC";
 
@@ -53,7 +53,7 @@ void ISInit()
     {
         LX200StarGo* myScope = new LX200StarGo();
         telescope.reset(myScope);
-        focuser.reset(new LX200StarGoFocuser(myScope, "AUX1 Focuser"));
+        focuserAux1.reset(new LX200StarGoFocuser(myScope, "AUX1 Focuser"));
     }
 }
 
@@ -68,7 +68,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 {
     ISInit();
     telescope->ISNewSwitch(dev, name, states, names, n);
-    focuser->ISNewSwitch(dev, name, states, names, n);
+    focuserAux1->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -82,7 +82,7 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
 {
    ISInit();
     telescope->ISNewNumber(dev, name, values, names, n);
-    focuser->ISNewNumber(dev, name, values, names, n);
+    focuserAux1->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -258,6 +258,16 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetSwitch(&MeridianFlipModeSP, nullptr);
             return true;
         }
+        else if (!strcmp(name, Aux1FocuserSP.name))
+        {
+            if (IUUpdateSwitch(&Aux1FocuserSP, states, names, n) < 0)
+                return false;
+            bool enabled = (IUFindOnSwitchIndex(&Aux1FocuserSP) == 0);
+            focuserAux1->activate(enabled);
+            Aux1FocuserSP.s = enabled ? IPS_OK : IPS_IDLE;
+            IDSetSwitch(&Aux1FocuserSP, nullptr);
+            return true;
+        }
     }
 
     //  Nobody has claimed this, so pass it to the parent
@@ -305,6 +315,10 @@ bool LX200StarGo::initProperties()
     /* Make sure to init parent properties first */
     if (!LX200Telescope::initProperties()) return false;
 
+    IUFillSwitch(&Aux1FocuserS[0], "AUX1_FOCUSER_ON", "On", ISS_OFF);
+    IUFillSwitch(&Aux1FocuserS[1], "AUX1_FOCUSER_OFF", "Off", ISS_ON);
+    IUFillSwitchVector(&Aux1FocuserSP, Aux1FocuserS, 2, getDeviceName(), "AUX1_FOCUSER_CONTROL", "AUX1 Focuser", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     IUFillSwitch(&MountGotoHomeS[0], "MOUNT_GOTO_HOME_VALUE", "Goto Home", ISS_OFF);
     IUFillSwitchVector(&MountGotoHomeSP, MountGotoHomeS, 1, getDeviceName(), "MOUNT_GOTO_HOME", "Goto Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
 
@@ -335,7 +349,7 @@ bool LX200StarGo::initProperties()
 
     // overwrite the custom tracking mode button
     IUFillSwitch(&TrackModeS[3], "TRACK_NONE", "None", ISS_OFF);
-    focuser->initProperties("AUX1 Focuser");
+    focuserAux1->initProperties("AUX1 Focuser");
 
     return true;
 }
@@ -348,6 +362,7 @@ bool LX200StarGo::updateProperties()
     if (! LX200Telescope::updateProperties()) return false;
     if (isConnected())
     {
+        defineSwitch(&Aux1FocuserSP);
         defineSwitch(&SyncHomeSP);
         defineSwitch(&MountGotoHomeSP);
         defineSwitch(&MountSetParkSP);
@@ -358,6 +373,7 @@ bool LX200StarGo::updateProperties()
     }
     else
     {
+        deleteProperty(Aux1FocuserSP.name);
         deleteProperty(SyncHomeSP.name);
         deleteProperty(MountGotoHomeSP.name);
         deleteProperty(MountSetParkSP.name);
@@ -366,8 +382,6 @@ bool LX200StarGo::updateProperties()
         deleteProperty(MeridianFlipModeSP.name);
         deleteProperty(MountFirmwareInfoTP.name);
     }
-
-    focuser->updateProperties();
 
     return true;
 }
@@ -456,8 +470,8 @@ bool LX200StarGo::ReadScopeStatus()
        return false;
     }
 
-    if (focuser.get() != nullptr && TrackState != SCOPE_SLEWING)
-        return focuser.get()->ReadFocuserStatus();
+    if (focuserAux1.get() != nullptr && TrackState != SCOPE_SLEWING)
+        return focuserAux1.get()->ReadFocuserStatus();
     else
         return true;
 }
