@@ -75,6 +75,7 @@ HitecAstroDCFocuser::HitecAstroDCFocuser() : m_HIDHandle(nullptr)
 {
     FI::SetCapability(FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_REVERSE);
     setSupportedConnections(CONNECTION_NONE);
+    setVersion(0, 2);
 }
 
 HitecAstroDCFocuser::~HitecAstroDCFocuser()

@@ -82,8 +82,6 @@ void ISSnoopDevice(XMLEle *root)
 /* Constructor */
 PMC8::PMC8()
 {
-    set_pmc8_device(getDeviceName());
-
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC = 90;
 
@@ -117,7 +115,6 @@ bool PMC8::initProperties()
     IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
 		 IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
     AddTrackMode("TRACK_SOLAR", "Solar");
@@ -149,8 +146,13 @@ bool PMC8::initProperties()
 
     addAuxControls();
 
+    set_pmc8_device(getDeviceName());
+
     IUFillText(&FirmwareT[0], "Version", "Version", "");
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+    // needed so PHD2 will recognize mount
+    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     return true;
 }

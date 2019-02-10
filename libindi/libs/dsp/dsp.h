@@ -147,7 +147,18 @@ extern "C" {
 
 typedef void *(*dsp_func_t) (void *);
 
-typedef enum {
+/**
+ * \defgroup DSP Digital Signal Processing API
+ *
+ * The Digital Signal Processing API is used for TODO
+ *
+ * \example RadioSim
+
+ */
+/*@{*/
+
+typedef enum
+{
     magnitude = 0,
     magnitude_dbv = 1,
     magnitude_root = 2,
@@ -160,7 +171,8 @@ typedef enum {
 * @brief Delegate function
 */
 
-typedef struct dsp_stream_s {
+typedef struct dsp_stream_s
+{
     int len;
     int dims;
     int* sizes;
@@ -181,23 +193,27 @@ typedef struct dsp_stream_s {
     dsp_func_t func;
 } dsp_stream, *dsp_stream_p;
 
-typedef struct {
+typedef struct
+{
     dsp_stream_p items;
     int index;
     int count;
 } dsp_stream_array, *dsp_stream_p_array;
 
-typedef struct {
+typedef struct
+{
     int x;
     int y;
 } dsp_point;
 
-typedef struct {
+typedef struct
+{
     int start;
     int len;
 } dsp_region;
 
-typedef struct {
+typedef struct
+{
     dsp_point center;
     int radius;
 } dsp_star;
@@ -619,6 +635,8 @@ DLL_EXPORT double* dsp_signals_triwave(int len, double samplefreq, double freq);
 DLL_EXPORT double* dsp_modulation_frequency(double* in, int len, double samplefreq, double freq, double bandwidth);
 
 DLL_EXPORT double* dsp_modulation_amplitude(double* in, int len, double samplefreq, double freq);
+
+/*@}*/
 
 #ifdef  __cplusplus
 }
