@@ -1,5 +1,8 @@
 /*
     Deep Sky Dad AF1
+
+    Copyright (C) 2019 Pavle Gartner
+
     Based on Moonline driver.
     Copyright (C) 2013-2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
@@ -44,41 +47,41 @@ class DeepSkyDadAF1 : public INDI::Focuser
 
         static void timedMoveHelper(void * context);
     protected:
-       /*
-        * @brief Handshake Try to communicate with Focuser and see if there is a valid response.
-        * @return True if communication is successful, false otherwise.
-        */
-       virtual bool Handshake() override;
+        /*
+         * @brief Handshake Try to communicate with Focuser and see if there is a valid response.
+         * @return True if communication is successful, false otherwise.
+         */
+        virtual bool Handshake() override;
 
-       /**
-        * @brief MoveFocuser Move focuser in a specific direction and speed for period of time.
-        * @param dir Direction of motion. Inward or Outward
-        * @param speed Speed of motion
-        * @param duration Timeout in milliseconds.
-        * @return IPS_BUSY if motion is in progress. IPS_OK if motion is small and already complete. IPS_ALERT for trouble.
-        */
-       virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+        /**
+         * @brief MoveFocuser Move focuser in a specific direction and speed for period of time.
+         * @param dir Direction of motion. Inward or Outward
+         * @param speed Speed of motion
+         * @param duration Timeout in milliseconds.
+         * @return IPS_BUSY if motion is in progress. IPS_OK if motion is small and already complete. IPS_ALERT for trouble.
+         */
+        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
 
-       /**
-        * @brief MoveAbsFocuser Move to an absolute target position
-        * @param targetTicks target position
-        * @return IPS_BUSY if motion is in progress. IPS_OK if motion is small and already complete. IPS_ALERT for trouble.
-        */
-       virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        /**
+         * @brief MoveAbsFocuser Move to an absolute target position
+         * @param targetTicks target position
+         * @return IPS_BUSY if motion is in progress. IPS_OK if motion is small and already complete. IPS_ALERT for trouble.
+         */
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
 
-       /**
-        * @brief MoveRelFocuser Move focuser for a relative amount of ticks in a specific direction
-        * @param dir Directoin of motion
-        * @param ticks steps to move
-        * @return IPS_BUSY if motion is in progress. IPS_OK if motion is small and already complete. IPS_ALERT for trouble.
-        */
-       virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        /**
+         * @brief MoveRelFocuser Move focuser for a relative amount of ticks in a specific direction
+         * @param dir Directoin of motion
+         * @param ticks steps to move
+         * @return IPS_BUSY if motion is in progress. IPS_OK if motion is small and already complete. IPS_ALERT for trouble.
+         */
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
 
-       virtual bool SyncFocuser(uint32_t ticks) override;
-       virtual bool ReverseFocuser(bool enabled) override;
-       virtual bool AbortFocuser() override;
-       virtual void TimerHit() override;
-       virtual bool saveConfigItems(FILE * fp) override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
+        virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
+        virtual bool saveConfigItems(FILE * fp) override;
 
     private:
         bool Ack();
@@ -142,7 +145,7 @@ class DeepSkyDadAF1 : public INDI::Focuser
         INumberVectorProperty IdleCoilsTimeoutNP;
 
         // Response Buffer
-        
+
         static const uint8_t DSD_RES { 32 };
         static const char DSD_DEL { ')' };
         static const uint8_t DSD_TIMEOUT { 3 };

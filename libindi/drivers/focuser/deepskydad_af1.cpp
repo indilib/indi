@@ -1,5 +1,8 @@
 /*
     Deep Sky Dad AF1 focuser
+
+    Copyright (C) 2019 Pavle Gartner
+
     Based on Moonline driver.
     Copyright (C) 2013-2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
@@ -192,8 +195,9 @@ bool DeepSkyDadAF1::Ack()
 {
     sleep(2);
 
-    char res[DSD_RES]= {0};
-    if (!sendCommand("[GPOS]", res)) {
+    char res[DSD_RES] = {0};
+    if (!sendCommand("[GPOS]", res))
+    {
         LOG_ERROR("ACK - getPosition failed");
         return false;
     }
@@ -201,7 +205,8 @@ bool DeepSkyDadAF1::Ack()
     int32_t pos;
     int rc = sscanf(res, "(%d)", &pos);
 
-    if (rc <= 0) {
+    if (rc <= 0)
+    {
         LOG_ERROR("ACK - getPosition failed");
         return false;
     }
@@ -211,7 +216,7 @@ bool DeepSkyDadAF1::Ack()
 
 bool DeepSkyDadAF1::readStepMode()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GSTP]", res) == false)
         return false;
@@ -235,7 +240,7 @@ bool DeepSkyDadAF1::readStepMode()
 
 bool DeepSkyDadAF1::readPosition()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GPOS]", res) == false)
         return false;
@@ -256,14 +261,15 @@ bool DeepSkyDadAF1::readPosition()
 
 bool DeepSkyDadAF1::readMaxMovement()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GMXM]", res) == false)
         return false;
 
     uint32_t steps = 0;
     int rc = sscanf(res, "(%d)", &steps);
-    if (rc > 0) {
+    if (rc > 0)
+    {
         FocusMaxMoveN[0].value = steps;
         FocusMaxMoveNP.s = IPS_OK;
     }
@@ -278,14 +284,15 @@ bool DeepSkyDadAF1::readMaxMovement()
 
 bool DeepSkyDadAF1::readMaxPosition()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GMXP]", res) == false)
         return false;
 
     uint32_t steps = 0;
     int rc = sscanf(res, "(%d)", &steps);
-    if (rc > 0) {
+    if (rc > 0)
+    {
         FocusMaxPosN[0].value = steps;
         FocusMaxPosNP.s = IPS_OK;
     }
@@ -300,14 +307,15 @@ bool DeepSkyDadAF1::readMaxPosition()
 
 bool DeepSkyDadAF1::readSettleBuffer()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GBUF]", res) == false)
         return false;
 
     uint32_t settleBuffer = 0;
     int rc = sscanf(res, "(%d)", &settleBuffer);
-    if (rc > 0) {
+    if (rc > 0)
+    {
         SettleBufferN[0].value = settleBuffer;
         SettleBufferNP.s = settleBuffer > 0 ? IPS_OK : IPS_IDLE;
     }
@@ -322,14 +330,15 @@ bool DeepSkyDadAF1::readSettleBuffer()
 
 bool DeepSkyDadAF1::readIdleCoilsTimeout()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GIDC]", res) == false)
         return false;
 
     uint32_t ms = 0;
     int rc = sscanf(res, "(%d)", &ms);
-    if (rc > 0) {
+    if (rc > 0)
+    {
         IdleCoilsTimeoutN[0].value = ms;
         IdleCoilsTimeoutNP.s = ms > 0 ? IPS_OK : IPS_IDLE;
     }
@@ -344,20 +353,23 @@ bool DeepSkyDadAF1::readIdleCoilsTimeout()
 
 bool DeepSkyDadAF1::readCoilsMode()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GCLM]", res) == false)
         return false;
 
-    if (strcmp(res, "(0)") == 0) {
+    if (strcmp(res, "(0)") == 0)
+    {
         CoilsModeSP.s = IPS_IDLE;
         CoilsModeS[IDLE_OFF].s = ISS_ON;
     }
-    else if (strcmp(res, "(1)") == 0) {
+    else if (strcmp(res, "(1)") == 0)
+    {
         CoilsModeSP.s = IPS_OK;
         CoilsModeS[ALWAYS_ON].s = ISS_ON;
     }
-    else if (strcmp(res, "(2)") == 0) {
+    else if (strcmp(res, "(2)") == 0)
+    {
         CoilsModeSP.s = IPS_IDLE;
         CoilsModeS[IDLE_COILS_TIMEOUT].s = ISS_ON;
     }
@@ -372,24 +384,28 @@ bool DeepSkyDadAF1::readCoilsMode()
 
 bool DeepSkyDadAF1::readCurrentMove()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GCMV%]", res) == false)
         return false;
 
-    if (strcmp(res, "(25%)") == 0) {
+    if (strcmp(res, "(25%)") == 0)
+    {
         CurrentMoveSP.s = IPS_OK;
         CurrentMoveS[CURRENT_25].s = ISS_ON;
     }
-    else if (strcmp(res, "(50%)") == 0) {
+    else if (strcmp(res, "(50%)") == 0)
+    {
         CurrentMoveSP.s = IPS_OK;
         CurrentMoveS[CURRENT_50].s = ISS_ON;
     }
-    else if (strcmp(res, "(75%)") == 0) {
+    else if (strcmp(res, "(75%)") == 0)
+    {
         CurrentMoveSP.s = IPS_OK;
         CurrentMoveS[CURRENT_75].s = ISS_ON;
     }
-    else if (strcmp(res, "(100%)") == 0) {
+    else if (strcmp(res, "(100%)") == 0)
+    {
         CurrentMoveSP.s = IPS_OK;
         CurrentMoveS[CURRENT_100].s = ISS_ON;
     }
@@ -405,24 +421,28 @@ bool DeepSkyDadAF1::readCurrentMove()
 
 bool DeepSkyDadAF1::readCurrentHold()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GCHD%]", res) == false)
         return false;
 
-    if (strcmp(res, "(25%)") == 0) {
+    if (strcmp(res, "(25%)") == 0)
+    {
         CurrentHoldSP.s = IPS_OK;
         CurrentHoldS[CURRENT_25].s = ISS_ON;
     }
-    else if (strcmp(res, "(50%)") == 0) {
+    else if (strcmp(res, "(50%)") == 0)
+    {
         CurrentHoldSP.s = IPS_OK;
         CurrentHoldS[CURRENT_50].s = ISS_ON;
     }
-    else if (strcmp(res, "(75%)") == 0) {
+    else if (strcmp(res, "(75%)") == 0)
+    {
         CurrentHoldSP.s = IPS_OK;
         CurrentHoldS[CURRENT_75].s = ISS_ON;
     }
-    else if (strcmp(res, "(100%)") == 0) {
+    else if (strcmp(res, "(100%)") == 0)
+    {
         CurrentHoldSP.s = IPS_OK;
         CurrentHoldS[CURRENT_100].s = ISS_ON;
     }
@@ -438,7 +458,7 @@ bool DeepSkyDadAF1::readCurrentHold()
 
 bool DeepSkyDadAF1::isMoving()
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand("[GMOV]", res) == false)
         return false;
@@ -454,28 +474,29 @@ bool DeepSkyDadAF1::isMoving()
 
 bool DeepSkyDadAF1::SyncFocuser(uint32_t ticks)
 {
-    char cmd[DSD_RES]= {0};
+    char cmd[DSD_RES] = {0};
     snprintf(cmd, DSD_RES, "[SPOS%06d]", ticks);
     return sendCommand(cmd);
 }
 
 bool DeepSkyDadAF1::ReverseFocuser(bool enabled)
 {
-    char cmd[DSD_RES]= {0};
+    char cmd[DSD_RES] = {0};
     snprintf(cmd, DSD_RES, "[SREV%01d]", enabled ? 1 : 0);
     return sendCommand(cmd);
 }
 
 bool DeepSkyDadAF1::MoveFocuser(uint32_t position)
 {
-    char cmd[DSD_RES]= {0};
-    char res[DSD_RES]= {0};
+    char cmd[DSD_RES] = {0};
+    char res[DSD_RES] = {0};
     snprintf(cmd, DSD_RES, "[STRG%06d]", position);
     // Set Position First
     if (sendCommand(cmd, res) == false)
         return false;
 
-    if(strcmp(res, "!101)") == 0) {
+    if(strcmp(res, "!101)") == 0)
+    {
         LOG_ERROR("MoveFocuserFailed - requested movement too big. You can increase the limit by changing the value of Max. movement.");
         return false;
     }
@@ -507,7 +528,7 @@ bool DeepSkyDadAF1::ISNewSwitch(const char * dev, const char * name, ISState * s
                 return true;
             }
 
-            char cmd[DSD_RES]= {0};
+            char cmd[DSD_RES] = {0};
 
             if(target_mode == 0)
                 target_mode = 1;
@@ -556,7 +577,7 @@ bool DeepSkyDadAF1::ISNewSwitch(const char * dev, const char * name, ISState * s
             else if(coilsModeTarget == 2)
                 coilsModeTarget = 2;
 
-            char cmd[DSD_RES]= {0};
+            char cmd[DSD_RES] = {0};
             snprintf(cmd, DSD_RES, "[SCLM%d]", coilsModeTarget);
 
             bool rc = sendCommandSet(cmd);
@@ -590,7 +611,8 @@ bool DeepSkyDadAF1::ISNewSwitch(const char * dev, const char * name, ISState * s
             }
 
             int targetCurrentValue = 75;
-            switch(targetCurrent) {
+            switch(targetCurrent)
+            {
                 case 0:
                     targetCurrentValue = 25;
                     break;
@@ -605,7 +627,7 @@ bool DeepSkyDadAF1::ISNewSwitch(const char * dev, const char * name, ISState * s
                     break;
             }
 
-            char cmd[DSD_RES]= {0};
+            char cmd[DSD_RES] = {0};
             snprintf(cmd, DSD_RES, "[SCMV%d%%]", targetCurrentValue);
 
             bool rc = sendCommandSet(cmd);
@@ -639,7 +661,8 @@ bool DeepSkyDadAF1::ISNewSwitch(const char * dev, const char * name, ISState * s
             }
 
             int targetCurrentValue = 75;
-            switch(targetCurrent) {
+            switch(targetCurrent)
+            {
                 case 0:
                     targetCurrentValue = 25;
                     break;
@@ -654,7 +677,7 @@ bool DeepSkyDadAF1::ISNewSwitch(const char * dev, const char * name, ISState * s
                     break;
             }
 
-            char cmd[DSD_RES]= {0};
+            char cmd[DSD_RES] = {0};
             snprintf(cmd, DSD_RES, "[SCHD%d%%]", targetCurrentValue);
 
             bool rc = sendCommandSet(cmd);
@@ -684,8 +707,8 @@ bool DeepSkyDadAF1::ISNewNumber(const char * dev, const char * name, double valu
         if (strcmp(name, SettleBufferNP.name) == 0)
         {
             IUUpdateNumber(&SettleBufferNP, values, names, n);
-            char cmd[DSD_RES]= {0};
-            snprintf(cmd, DSD_RES, "[SBUF%06d]", (int)SettleBufferN[0].value);
+            char cmd[DSD_RES] = {0};
+            snprintf(cmd, DSD_RES, "[SBUF%06d]", static_cast<int>(SettleBufferN[0].value));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
@@ -702,8 +725,8 @@ bool DeepSkyDadAF1::ISNewNumber(const char * dev, const char * name, double valu
         if (strcmp(name, IdleCoilsTimeoutNP.name) == 0)
         {
             IUUpdateNumber(&IdleCoilsTimeoutNP, values, names, n);
-            char cmd[DSD_RES]= {0};
-            snprintf(cmd, DSD_RES, "[SIDC%06d]", (int)IdleCoilsTimeoutN[0].value);
+            char cmd[DSD_RES] = {0};
+            snprintf(cmd, DSD_RES, "[SIDC%06d]", static_cast<int>(IdleCoilsTimeoutN[0].value));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
@@ -720,8 +743,8 @@ bool DeepSkyDadAF1::ISNewNumber(const char * dev, const char * name, double valu
         if (strcmp(name, FocusMaxPosNP.name) == 0)
         {
             IUUpdateNumber(&FocusMaxPosNP, values, names, n);
-            char cmd[DSD_RES]= {0};
-            snprintf(cmd, DSD_RES, "[SMXP%d]", (int)FocusMaxPosN[0].value);
+            char cmd[DSD_RES] = {0};
+            snprintf(cmd, DSD_RES, "[SMXP%d]", static_cast<int>(FocusMaxPosN[0].value));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
@@ -738,8 +761,8 @@ bool DeepSkyDadAF1::ISNewNumber(const char * dev, const char * name, double valu
         if (strcmp(name, FocusMaxMoveNP.name) == 0)
         {
             IUUpdateNumber(&FocusMaxMoveNP, values, names, n);
-            char cmd[DSD_RES]= {0};
-            snprintf(cmd, DSD_RES, "[SMXM%d]", (int)FocusMaxMoveN[0].value);
+            char cmd[DSD_RES] = {0};
+            snprintf(cmd, DSD_RES, "[SMXM%d]", static_cast<int>(FocusMaxMoveN[0].value));
             bool rc = sendCommandSet(cmd);
             if (!rc)
             {
@@ -793,6 +816,7 @@ void DeepSkyDadAF1::GetFocusParams()
 
 IPState DeepSkyDadAF1::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
+    INDI_UNUSED(speed);
     // either go all the way in or all the way out
     // then use timer to stop
     if (dir == FOCUS_INWARD)
@@ -846,8 +870,9 @@ IPState DeepSkyDadAF1::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     if (!MoveFocuser(newPosition))
         return IPS_ALERT;
 
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
+    // JM 2019-02-10: This is already set by the framework
+    //FocusRelPosN[0].value = ticks;
+    //FocusRelPosNP.s       = IPS_BUSY;
 
     return IPS_BUSY;
 }
@@ -916,7 +941,7 @@ bool DeepSkyDadAF1::sendCommand(const char * cmd, char * res)
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
-        char errstr[MAXRBUF]= {0};
+        char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Serial write error: %s.", errstr);
         return false;
@@ -927,7 +952,7 @@ bool DeepSkyDadAF1::sendCommand(const char * cmd, char * res)
 
     if ((rc = tty_nread_section(PortFD, res, DSD_RES, DSD_DEL, DSD_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
-        char errstr[MAXRBUF]= {0};
+        char errstr[MAXRBUF] = {0};
         tty_error_msg(rc, errstr, MAXRBUF);
         LOGF_ERROR("Serial read error: %s.", errstr);
         return false;
@@ -942,7 +967,7 @@ bool DeepSkyDadAF1::sendCommand(const char * cmd, char * res)
 
 bool DeepSkyDadAF1::sendCommandSet(const char * cmd)
 {
-    char res[DSD_RES]= {0};
+    char res[DSD_RES] = {0};
 
     if (sendCommand(cmd, res) == false)
         return false;
