@@ -96,6 +96,8 @@ class DeepSkyDadAF1 : public INDI::Focuser
         void GetFocusParams();
         bool readStepMode();
         bool readPosition();
+        bool readMaxPosition();
+        bool readMaxMovement();
         bool readSettleBuffer();
         bool readIdleCoilsTimeout();
         bool readCoilsMode();
@@ -108,7 +110,7 @@ class DeepSkyDadAF1 : public INDI::Focuser
         bool MoveFocuser(uint32_t position);
 
 
-        double targetPos { 0 }, lastPos { 0 }, lastSettleBuffer { 0 }, lastIdleCoilsTimeout { 0 };
+        double targetPos { 0 }, lastPos { 0 };
 
 
         // Step modes
@@ -126,6 +128,10 @@ class DeepSkyDadAF1 : public INDI::Focuser
         //Current hold
         ISwitch CurrentHoldS[4];
         ISwitchVectorProperty CurrentHoldSP;
+
+        // Max movement
+        INumber FocusMaxMoveN[1];
+        INumberVectorProperty FocusMaxMoveNP;
 
         // Settle buffer
         INumber SettleBufferN[1];

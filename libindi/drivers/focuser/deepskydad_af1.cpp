@@ -97,14 +97,19 @@ bool DeepSkyDadAF1::initProperties()
     FocusAbsPosN[0].value = 50000.;
     FocusAbsPosN[0].step = 500.;
 
+    // Max. movement
+    IUFillNumber(&FocusMaxMoveN[0], "MAX_MOVE", "Steps", "%7.0f", 0, 9999999, 100, 0);
+    IUFillNumberVector(&FocusMaxMoveNP, FocusMaxMoveN, 1, getDeviceName(), "FOCUS_MAX_MOVE", "Max. movement",
+                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
     // Settle buffer
-    IUFillNumber(&SettleBufferN[0], "SETTLE_BUFFER", "Settle buffer", "%5.0f", 0, 99999, 100, 0);
+    IUFillNumber(&SettleBufferN[0], "SETTLE_BUFFER", "Period (ms)", "%5.0f", 0, 99999, 100, 0);
     IUFillNumberVector(&SettleBufferNP, SettleBufferN, 1, getDeviceName(), "FOCUS_SETTLE_BUFFER", "Settle buffer",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Idle coils timeout (ms)
-    IUFillNumber(&IdleCoilsTimeoutN[0], "IDLE_COILS_TIMEOUT", "Idle - coils timeout (ms)", "%6.0f", 0, 999999, 1000, 60000);
-    IUFillNumberVector(&IdleCoilsTimeoutNP, IdleCoilsTimeoutN, 1, getDeviceName(), "FOCUS_IDLE_COILS_TIMEOUT", "Idle - coils timeout (ms)",
+    IUFillNumber(&IdleCoilsTimeoutN[0], "IDLE_COILS_TIMEOUT", "Period (ms)", "%6.0f", 0, 999999, 1000, 60000);
+    IUFillNumberVector(&IdleCoilsTimeoutNP, IdleCoilsTimeoutN, 1, getDeviceName(), "FOCUS_IDLE_COILS_TIMEOUT", "Idle - coils timeout",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Coils mode
@@ -139,6 +144,7 @@ bool DeepSkyDadAF1::updateProperties()
 
     if (isConnected())
     {
+        defineNumber(&FocusMaxMoveNP);
         defineSwitch(&StepModeSP);
         defineNumber(&SettleBufferNP);
         defineSwitch(&CoilsModeSP);
@@ -152,6 +158,7 @@ bool DeepSkyDadAF1::updateProperties()
     }
     else
     {
+        deleteProperty(FocusMaxMoveNP.name);
         deleteProperty(StepModeSP.name);
         deleteProperty(SettleBufferNP.name);
         deleteProperty(CoilsModeSP.name);
@@ -185,13 +192,17 @@ bool DeepSkyDadAF1::Ack()
 {
     sleep(2);
 
-    if (!sendCommandSet("[SMXP100000]")) {
-        LOG_ERROR("ACK - write setMaxPosition failed");
+    char res[DSD_RES]= {0};
+    if (!sendCommand("[GPOS]", res)) {
+        LOG_ERROR("ACK - getPosition failed");
         return false;
     }
 
-    if (!sendCommandSet("[SMXM5000]")) {
-        LOG_ERROR("ACK - write setMaxMovement failed");
+    int32_t pos;
+    int rc = sscanf(res, "(%d)", &pos);
+
+    if (rc <= 0) {
+        LOG_ERROR("ACK - getPosition failed");
         return false;
     }
 
@@ -243,6 +254,49 @@ bool DeepSkyDadAF1::readPosition()
     return true;
 }
 
+bool DeepSkyDadAF1::readMaxMovement()
+{
+    char res[DSD_RES]= {0};
+
+    if (sendCommand("[GMXM]", res) == false)
+        return false;
+
+    uint32_t steps = 0;
+    int rc = sscanf(res, "(%d)", &steps);
+    if (rc > 0) {
+        FocusMaxMoveN[0].value = steps;
+        FocusMaxMoveNP.s = IPS_OK;
+    }
+    else
+    {
+        LOGF_ERROR("Unknown error: maximum movement value (%s)", res);
+        return false;
+    }
+
+    return true;
+}
+
+bool DeepSkyDadAF1::readMaxPosition()
+{
+    char res[DSD_RES]= {0};
+
+    if (sendCommand("[GMXP]", res) == false)
+        return false;
+
+    uint32_t steps = 0;
+    int rc = sscanf(res, "(%d)", &steps);
+    if (rc > 0) {
+        FocusMaxPosN[0].value = steps;
+        FocusMaxPosNP.s = IPS_OK;
+    }
+    else
+    {
+        LOGF_ERROR("Unknown error: maximum position value (%s)", res);
+        return false;
+    }
+
+    return true;
+}
 
 bool DeepSkyDadAF1::readSettleBuffer()
 {
@@ -422,7 +476,7 @@ bool DeepSkyDadAF1::MoveFocuser(uint32_t position)
         return false;
 
     if(strcmp(res, "!101)") == 0) {
-        LOG_ERROR("MoveFocuserFailed - invalid target position (maximum relative movement is limited to 5000 steps)");
+        LOG_ERROR("MoveFocuserFailed - requested movement too big. You can increase the limit by changing the value of Max. movement.");
         return false;
     }
 
@@ -661,6 +715,42 @@ bool DeepSkyDadAF1::ISNewNumber(const char * dev, const char * name, double valu
             IDSetNumber(&IdleCoilsTimeoutNP, nullptr);
             return true;
         }
+
+        // Max. position
+        if (strcmp(name, FocusMaxPosNP.name) == 0)
+        {
+            IUUpdateNumber(&FocusMaxPosNP, values, names, n);
+            char cmd[DSD_RES]= {0};
+            snprintf(cmd, DSD_RES, "[SMXP%d]", (int)FocusMaxPosN[0].value);
+            bool rc = sendCommandSet(cmd);
+            if (!rc)
+            {
+                FocusMaxPosNP.s = IPS_ALERT;
+                return false;
+            }
+
+            FocusMaxPosNP.s = IPS_OK;
+            IDSetNumber(&FocusMaxPosNP, nullptr);
+            return true;
+        }
+
+        // Max. movement
+        if (strcmp(name, FocusMaxMoveNP.name) == 0)
+        {
+            IUUpdateNumber(&FocusMaxMoveNP, values, names, n);
+            char cmd[DSD_RES]= {0};
+            snprintf(cmd, DSD_RES, "[SMXM%d]", (int)FocusMaxMoveN[0].value);
+            bool rc = sendCommandSet(cmd);
+            if (!rc)
+            {
+                FocusMaxMoveNP.s = IPS_ALERT;
+                return false;
+            }
+
+            FocusMaxMoveNP.s = IPS_OK;
+            IDSetNumber(&FocusMaxMoveNP, nullptr);
+            return true;
+        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -681,6 +771,12 @@ void DeepSkyDadAF1::GetFocusParams()
 
     if (readSettleBuffer())
         IDSetNumber(&SettleBufferNP, nullptr);
+
+    if (readMaxPosition())
+        IDSetNumber(&FocusMaxPosNP, nullptr);
+
+    if (readMaxMovement())
+        IDSetNumber(&FocusMaxMoveNP, nullptr);
 
     if (readIdleCoilsTimeout())
         IDSetNumber(&IdleCoilsTimeoutNP, nullptr);
@@ -774,27 +870,6 @@ void DeepSkyDadAF1::TimerHit()
         }
     }
 
-    rc = readSettleBuffer();
-    if (rc)
-    {
-        if (fabs(lastSettleBuffer - SettleBufferN[0].value) >= 1)
-        {
-            IDSetNumber(&SettleBufferNP, nullptr);
-            lastSettleBuffer = SettleBufferN[0].value;
-        }
-    }
-
-
-    rc = readIdleCoilsTimeout();
-    if (rc)
-    {
-        if (fabs(lastIdleCoilsTimeout - IdleCoilsTimeoutN[0].value) >= 1)
-        {
-            IDSetNumber(&IdleCoilsTimeoutNP, nullptr);
-            lastIdleCoilsTimeout = IdleCoilsTimeoutN[0].value;
-        }
-    }
-
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
         if (!isMoving())
@@ -821,6 +896,7 @@ bool DeepSkyDadAF1::saveConfigItems(FILE * fp)
     Focuser::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &StepModeSP);
+    IUSaveConfigNumber(fp, &FocusMaxMoveNP);
     IUSaveConfigNumber(fp, &SettleBufferNP);
     IUSaveConfigSwitch(fp, &CoilsModeSP);
     IUSaveConfigNumber(fp, &IdleCoilsTimeoutNP);
