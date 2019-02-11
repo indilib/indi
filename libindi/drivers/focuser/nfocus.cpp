@@ -42,17 +42,6 @@
 #include <memory>
 #include <termios.h>
 
-#define NF_MAX_CMD  8  /* cmd length */
-#define NF_TIMEOUT  15 /* com timeout */
-#define NF_STEP_RES 5  /* step res for a given time period */
-
-#define NF_MAX_TRIES 3
-#define NF_MAX_DELAY 100000
-
-#define BACKLASH_READOUT    0
-#define MAXTRAVEL_READOUT   99999
-#define INOUTSCALAR_READOUT 1
-
 static std::unique_ptr<NFocus> nFocus(new NFocus());
 
 void ISGetProperties(const char *dev)

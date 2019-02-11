@@ -64,13 +64,12 @@ class NFocus : public INDI::Focuser
         bool saveConfigItems(FILE *fp) override;
 
     private:
-        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
-
         bool readTemperature();
         bool readMotorSettings();
         bool setMotorSettings(double onTime, double offTime, double fastDelay);
 
         // Utility
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
         bool getStartupValues();
         void hexDump(char * buf, const char * data, int size);
         bool isMoving();
