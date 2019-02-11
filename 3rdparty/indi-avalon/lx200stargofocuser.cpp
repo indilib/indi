@@ -34,6 +34,7 @@ LX200StarGoFocuser::LX200StarGoFocuser(LX200StarGo* defaultDevice, const char *n
 {
     baseDevice = defaultDevice;
     deviceName = name;
+    focuserActivated = false;
 }
 
 /**
@@ -306,6 +307,10 @@ int LX200StarGoFocuser::getAbsoluteFocuserPositionFromRelative(int relativePosit
 
 
 bool LX200StarGoFocuser::ReadFocuserStatus() {
+    // do nothing if not active
+    if (!isConnected())
+        return true;
+
     int absolutePosition = 0;
     if (sendQueryFocuserPosition(&absolutePosition)) {
         FocusAbsPosN[0].value = absolutePosition;
@@ -384,7 +389,7 @@ IPState LX200StarGoFocuser::syncFocuser(int absolutePosition) {
 
 bool LX200StarGoFocuser::isConnected() {
     if (baseDevice == nullptr) return false;
-    return baseDevice->isConnected();
+    return (focuserActivated && baseDevice->isConnected());
 }
 
 const char *LX200StarGoFocuser::getDeviceName() {
@@ -395,6 +400,15 @@ const char *LX200StarGoFocuser::getDeviceName() {
 const char *LX200StarGoFocuser::getDefaultName()
 {
     return deviceName;
+}
+
+void LX200StarGoFocuser::activate(bool enabled)
+{
+    if (focuserActivated != enabled)
+    {
+        focuserActivated = enabled;
+        updateProperties();
+    }
 }
 
 /***************************************************************************
