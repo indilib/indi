@@ -529,7 +529,7 @@ bool NStep::readTemperature()
     if (temperature < -80)
         return false;
 
-    TemperatureN[0].value = temperature;
+    TemperatureN[0].value = temperature / 10.0;
 
     return true;
 }
