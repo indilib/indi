@@ -389,6 +389,8 @@ bool NStep::ISNewSwitch(const char * dev, const char * name, ISState * states, c
         if (!strcmp(name, PrimeManualSP.name))
         {
             sendCommand(":TI");
+            readTemperature();
+            readPosition();
             PrimeManualSP.s = IPS_OK;
             IDSetSwitch(&PrimeManualSP, nullptr);
             LOG_INFO("Prime for manual complete.");
