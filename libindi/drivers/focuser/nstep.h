@@ -78,6 +78,9 @@ class NStep : public INDI::Focuser
             COMPENSATION_SETTING_TIMER,
         };
 
+        ISwitch PrimeManualS[1];
+        ISwitchVectorProperty PrimeManualSP;
+
         ISwitch SteppingModeS[3];
         ISwitchVectorProperty SteppingModeSP;
         enum

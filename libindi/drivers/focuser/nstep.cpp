@@ -94,11 +94,16 @@ bool NStep::initProperties()
     IUFillSwitchVector(&CompensationModeSP, CompensationModeS, 3, getDeviceName(), "COMPENSATION_MODE", "Mode",
                        COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
+    // Prime for Manual
+    IUFillSwitch(&PrimeManualS[0], "MANUAL_MODE_PRIME", "Prime Manual Mode", ISS_OFF);
+    IUFillSwitchVector(&PrimeManualSP, PrimeManualS, 1, getDeviceName(), "COMPENSATION_PRIME", "Prime",
+                       COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+
     // Compensation Settings
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_CHANGE], "COMPENSATION_SETTING_CHANGE", "Change Threshold (C)", "%.1f", -99, 99, 0.1, 0);
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_STEP], "COMPENSATION_SETTING_STEP", "Steps per Change", "%.0f", 0, 999, 1, 0);
+    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_CHANGE], "COMPENSATION_SETTING_CHANGE", "Delta T. (C)", "%.1f", -99, 99, 0.1, 0);
+    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_STEP], "COMPENSATION_SETTING_STEP", "Steps per Delta", "%.0f", 0, 999, 1, 0);
     IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_BACKLASH], "COMPENSATION_SETTING_BACKLASH", "Backlash steps", "%.0f", 0, 999, 1, 0);
-    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_TIMER], "COMPENSATION_SETTING_TIMER", "Timer (s)", "%.0f", 0, 75, 1, 0);
+    IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_TIMER], "COMPENSATION_SETTING_TIMER", "Averaged Time (s)", "%.0f", 0, 75, 1, 0);
     IUFillNumberVector(&CompensationSettingsNP, CompensationSettingsN, 4, getDeviceName(), "COMPENSATION_SETTING", "Settings",
                        COMPENSATION_TAB, IP_RW, 0, IPS_OK);
 
@@ -163,6 +168,7 @@ bool NStep::updateProperties()
 
         // Settings
         defineSwitch(&CompensationModeSP);
+        defineSwitch(&PrimeManualSP);
         defineNumber(&CompensationSettingsNP);
         defineSwitch(&SteppingModeSP);
         defineNumber(&SteppingPhaseNP);
@@ -179,6 +185,7 @@ bool NStep::updateProperties()
             deleteProperty(TemperatureNP.name);
 
         deleteProperty(CompensationModeSP.name);
+        deleteProperty(PrimeManualSP.name);
         deleteProperty(CompensationSettingsNP.name);
         deleteProperty(SteppingModeSP.name);
         deleteProperty(SteppingPhaseNP.name);
@@ -375,6 +382,16 @@ bool NStep::ISNewSwitch(const char * dev, const char * name, ISState * states, c
             }
 
             IDSetSwitch(&CompensationModeSP, nullptr);
+            return true;
+        }
+
+        // Manual Prime
+        if (!strcmp(name, PrimeManualSP.name))
+        {
+            sendCommand(":TI");
+            PrimeManualSP.s = IPS_OK;
+            IDSetSwitch(&PrimeManualSP, nullptr);
+            LOG_INFO("Prime for manual complete.");
             return true;
         }
 
