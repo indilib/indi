@@ -1,10 +1,7 @@
 /*
-    NFocus
+    NFocus DC Relative Focuser
 
     Copyright (C) 2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
-
-    Thanks to Rigel Systems, especially Gene Nolan and Leon Palmer,
-    for their support in writing this driver.
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -19,6 +16,7 @@
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
 */
 
 #pragma once

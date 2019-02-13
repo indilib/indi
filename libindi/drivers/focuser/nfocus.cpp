@@ -1,22 +1,7 @@
 /*
-    NFocus
-    Copyright (C) 2013 Felix Krämer (rigelsys@felix-kraemer.de)
+    NFocus DC Relative Focuser
+
     Copyright (C) 2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
-
-    Based on the work for robofocus by
-                  2006 Markus Wildi (markus.wildi@datacomm.ch)
-
-
-    2017-05-31: Jasem Mutlaq
-    + Removed obsolete properties and functions
-    + Added proper Sync.
-    + Using INDI::Logger whenever possible.
-    + Removed timer-based motion.
-    + Set Focuser capabilities on startup.
-    + Removed duplicate properties.
-
-    2019-02-03: Jasem Mutlaq
-    + Driver overhaul
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -84,6 +69,7 @@ void ISSnoopDevice(XMLEle *root)
 
 NFocus::NFocus()
 {
+    setVersion(1, 1);
     FI::SetCapability(FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
@@ -119,7 +105,8 @@ bool NFocus::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&TemperatureNP);
+        if (readTemperature())
+            defineNumber(&TemperatureNP);
         defineNumber(&SettingsNP);
 
         if (getStartupValues())
@@ -231,10 +218,11 @@ bool NFocus::readTemperature()
     float temperature = -1000;
     sscanf(res, "%6f", &temperature);
 
-    if (temperature < -100)
+    if (temperature <= -80)
         return false;
 
     TemperatureN[0].value = temperature;
+    TemperatureNP.s = IPS_OK;
 
     return true;
 }
@@ -342,25 +330,14 @@ bool NFocus::ISNewNumber(const char *dev, const char *name, double values[], cha
 
 bool NFocus::getStartupValues()
 {
-    bool rc1 = readTemperature();
-
-    if (rc1)
-    {
-        TemperatureNP.s = IPS_OK;
-        IDSetNumber(&TemperatureNP, nullptr);
-    }
-
-    bool rc2 = readMotorSettings();
-
-    if (rc2)
+    if (readMotorSettings())
     {
         SettingsNP.s = IPS_OK;
         IDSetNumber(&SettingsNP, nullptr);
     }
 
-    return (rc1 && rc2);
+    return true;
 }
-
 
 IPState NFocus::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
@@ -410,7 +387,7 @@ void NFocus::TimerHit()
     }
 
     // Read temperature
-    if (m_TemperatureCounter++ == NFOCUS_TEMPERATURE_FREQ)
+    if (TemperatureNP.s == IPS_OK && m_TemperatureCounter++ == NFOCUS_TEMPERATURE_FREQ)
     {
         m_TemperatureCounter = 0;
         if (readTemperature())

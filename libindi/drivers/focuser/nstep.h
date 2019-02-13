@@ -111,7 +111,6 @@ class NStep : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////
         /// Write Data to Controller
         ///////////////////////////////////////////////////////////////////////////////
-        bool syncPosition(uint32_t steps);
         bool setCompensationMode(uint8_t mode);
         bool setCompensationSettings(double change, double move, double backlash, double timer);
         bool setSteppingPhase(uint8_t phase);
@@ -134,7 +133,8 @@ class NStep : public INDI::Focuser
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
-        static constexpr const char * SETTINGS_TAB = "Settings";
+        static constexpr const char * COMPENSATION_TAB = "Compensation";
+        static constexpr const char * STEPPING_TAB = "Stepping";
         // '#' is the stop char
         static const char NSTEP_STOP_CHAR { 0x23 };
         // Update temperature every 10x POLLMS. For 500ms, we would

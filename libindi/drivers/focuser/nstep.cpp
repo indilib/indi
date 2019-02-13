@@ -25,6 +25,8 @@
 #include <cstring>
 #include <termios.h>
 #include <memory>
+#include <thread>
+#include <chrono>
 
 static std::unique_ptr<NStep> nstep(new NStep());
 
@@ -89,35 +91,34 @@ bool NStep::initProperties()
     IUFillSwitch(&CompensationModeS[COMPENSATION_MODE_OFF], "COMPENSATION_MODE_OFF", "Off", ISS_ON);
     IUFillSwitch(&CompensationModeS[COMPENSATION_MODE_ONE_SHOT], "COMPENSATION_MODE_ONE_SHOT", "One shot", ISS_OFF);
     IUFillSwitch(&CompensationModeS[COMPENSATION_MODE_AUTO], "COMPENSATION_MODE_AUTO", "Auto", ISS_OFF);
-    IUFillSwitchVector(&CompensationModeSP, CompensationModeS, 3, getDeviceName(), "COMPENSATION_MODE", "Compensation Mode",
-                       SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+    IUFillSwitchVector(&CompensationModeSP, CompensationModeS, 3, getDeviceName(), "COMPENSATION_MODE", "Mode",
+                       COMPENSATION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     // Compensation Settings
     IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_CHANGE], "COMPENSATION_SETTING_CHANGE", "Change Threshold (C)", "%.1f", -99, 99, 0.1, 0);
     IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_STEP], "COMPENSATION_SETTING_STEP", "Steps per Change", "%.0f", 0, 999, 1, 0);
     IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_BACKLASH], "COMPENSATION_SETTING_BACKLASH", "Backlash steps", "%.0f", 0, 999, 1, 0);
     IUFillNumber(&CompensationSettingsN[COMPENSATION_SETTING_TIMER], "COMPENSATION_SETTING_TIMER", "Timer (s)", "%.0f", 0, 75, 1, 0);
-    IUFillNumberVector(&CompensationSettingsNP, CompensationSettingsN, 2, getDeviceName(), "COMPENSATION_SETTING", "Compensation Settings",
-                       SETTINGS_TAB, IP_RW, 0, IPS_OK);
+    IUFillNumberVector(&CompensationSettingsNP, CompensationSettingsN, 4, getDeviceName(), "COMPENSATION_SETTING", "Settings",
+                       COMPENSATION_TAB, IP_RW, 0, IPS_OK);
 
     // Stepping Modes
     IUFillSwitch(&SteppingModeS[STEPPING_WAVE], "STEPPING_WAVE", "Wave", ISS_OFF);
     IUFillSwitch(&SteppingModeS[STEPPING_HALF], "STEPPING_HALF", "Half", ISS_OFF);
     IUFillSwitch(&SteppingModeS[STEPPING_FULL], "STEPPING_FULL", "Full", ISS_ON);
-    IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 3, getDeviceName(), "STEPPING_MODE", "Stepping Mode",
-                       SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
+    IUFillSwitchVector(&SteppingModeSP, SteppingModeS, 3, getDeviceName(), "STEPPING_MODE", "Mode",
+                       STEPPING_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
+    // Stepping Phase
+    IUFillNumber(&SteppingPhaseN[0], "PHASES", "Wiring", "%.f", 0, 2, 1, 0);
+    IUFillNumberVector(&SteppingPhaseNP, SteppingPhaseN, 1, getDeviceName(), "STEPPING_PHASE", "Phase",
+                       STEPPING_TAB, IP_RW, 0, IPS_OK);
 
     // Coil Energized Status
     IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_OFF], "COIL_ENERGIZED_OFF", "De-energized", ISS_OFF);
     IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_ON], "COIL_ENERGIZED_OFF", "Energized", ISS_OFF);
     IUFillSwitchVector(&CoilStatusSP, CoilStatusS, 2, getDeviceName(), "COIL_MODE", "Coil After Move",
-                       SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
-
-    // Stepping Phase
-    IUFillNumber(&SteppingPhaseN[0], "PHASES", "Phase", "%.f", 0, 2, 1, 0);
-    IUFillNumberVector(&SteppingPhaseNP, SteppingPhaseN, 2, getDeviceName(), "STEPPING_PHASE", "Stepping Phase",
-                       SETTINGS_TAB, IP_RW, 0, IPS_OK);
+                       OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_OK);
 
     addDebugControl();
 
@@ -144,6 +145,13 @@ const char *NStep::getDefaultName()
 
 bool NStep::updateProperties()
 {
+    if (isConnected())
+    {
+        // Read these values before defining focuser interface properties
+        readPosition();
+        readSpeedInfo();
+    }
+
     INDI::Focuser::updateProperties();
 
     if (isConnected())
@@ -174,6 +182,7 @@ bool NStep::updateProperties()
         deleteProperty(CompensationSettingsNP.name);
         deleteProperty(SteppingModeSP.name);
         deleteProperty(SteppingPhaseNP.name);
+        deleteProperty(CoilStatusSP.name);
     }
 
     return true;
@@ -296,6 +305,7 @@ bool NStep::ISNewNumber(const char *dev, const char *name, double values[], char
                 IUUpdateNumber(&CompensationSettingsNP, values, names, n);
                 CompensationSettingsNP.s = IPS_OK;
             }
+            else
             {
                 CompensationSettingsNP.s = IPS_ALERT;
             }
@@ -406,15 +416,14 @@ bool NStep::ISNewSwitch(const char * dev, const char * name, ISState * states, c
 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
+
 bool NStep::getStartupValues()
 {
-    bool rc1 = readPosition();
-    bool rc2 = readCoilStatus();
-    bool rc3 = readSpeedInfo();
-    bool rc4 = readSteppingInfo();
-    bool rc5 = readCompensationInfo();
+    bool rc1 = readCoilStatus();
+    bool rc2 = readSteppingInfo();
+    bool rc3 = readCompensationInfo();
 
-    return (rc1 && rc2 && rc3 && rc4 && rc5);
+    return (rc1 && rc2 && rc3);
 }
 
 IPState NStep::MoveAbsFocuser(uint32_t targetTicks)
@@ -426,7 +435,7 @@ IPState NStep::MoveAbsFocuser(uint32_t targetTicks)
 IPState NStep::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     m_TargetDiff = ticks * ((dir == FOCUS_INWARD) ? -1 : 1);
-    return IPS_BUSY;
+    return MoveAbsFocuser(FocusAbsPosN[0].value + m_TargetDiff);
 }
 
 bool NStep::AbortFocuser()
@@ -446,7 +455,7 @@ void NStep::TimerHit()
         // Are we done moving?
         if (m_TargetDiff == 0)
         {
-            FocusAbsPosN[0].value = m_TargetDiff;
+            readPosition();
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -485,7 +494,7 @@ void NStep::TimerHit()
     }
 
     // Read temperature
-    if (m_TemperatureCounter++ == NSTEP_TEMPERATURE_FREQ)
+    if (TemperatureNP.s == IPS_OK && m_TemperatureCounter++ == NSTEP_TEMPERATURE_FREQ)
     {
         m_TemperatureCounter = 0;
         if (readTemperature())
@@ -517,7 +526,7 @@ bool NStep::readTemperature()
     float temperature = -1000;
     sscanf(res, "%6f", &temperature);
 
-    if (temperature < -100)
+    if (temperature < -80)
         return false;
 
     TemperatureN[0].value = temperature;
@@ -550,7 +559,11 @@ bool NStep::readCompensationInfo()
 
     // State (Off, One shot, or Auto)
     if (sendCommand(":RG", res, 3, 1) == false)
-        return false;
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        if (sendCommand(":RG", res, 3, 1) == false)
+            return false;
+    }
     sscanf(res, "%d", &state);
     if (state == 1e6)
         return false;
@@ -559,36 +572,57 @@ bool NStep::readCompensationInfo()
     CompensationModeSP.s = IPS_OK;
 
     // Change
+    memset(res, 0, NSTEP_LEN);
     if (sendCommand(":RA", res, 3, 4) == false)
-        return false;
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        if (sendCommand(":RA", res, 3, 4) == false)
+            return false;
+    }
     sscanf(res, "%d", &change);
     if (change == 1e6)
         return false;
     CompensationSettingsN[COMPENSATION_SETTING_CHANGE].value = change;
 
     // Step
+    memset(res, 0, NSTEP_LEN);
     if (sendCommand(":RB", res, 3, 3) == false)
-        return false;
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        if (sendCommand(":RB", res, 3, 3) == false)
+            return false;
+    }
     sscanf(res, "%d", &step);
     if (step == 1e6)
         return false;
     CompensationSettingsN[COMPENSATION_SETTING_STEP].value = step;
 
     // Backlash
+    memset(res, 0, NSTEP_LEN);
     if (sendCommand(":RE", res, 3, 3) == false)
-        return false;
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        if (sendCommand(":RE", res, 3, 3) == false)
+            return false;
+    }
     sscanf(res, "%d", &backlash);
     if (backlash == 1e6)
         return false;
-    CompensationSettingsN[COMPENSATION_SETTING_BACKLASH].value = step;
+    CompensationSettingsN[COMPENSATION_SETTING_BACKLASH].value = backlash;
 
     // Timer
+    memset(res, 0, NSTEP_LEN);
     if (sendCommand(":RH", res, 3, 2) == false)
-        return false;
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        if (sendCommand(":RH", res, 3, 2) == false)
+            return false;
+    }
     sscanf(res, "%d", &timer);
     if (timer == 1e6)
         return false;
     CompensationSettingsN[COMPENSATION_SETTING_TIMER].value = timer;
+    CompensationSettingsNP.s = IPS_OK;
 
     return true;
 
@@ -636,7 +670,7 @@ bool NStep::readSteppingInfo()
         return false;
 
     SteppingPhaseN[0].value = phase;
-    FocusSpeedNP.s = IPS_OK;
+    SteppingPhaseNP.s = IPS_OK;
 
     return true;
 }
@@ -657,10 +691,10 @@ bool NStep::readCoilStatus()
     return true;
 }
 
-bool NStep::syncPosition(uint32_t steps)
+bool NStep::SyncFocuser(uint32_t ticks)
 {
     char cmd[NSTEP_LEN] = {0};
-    snprintf(cmd, NSTEP_LEN, "#:CP+%06d#", steps);
+    snprintf(cmd, NSTEP_LEN, "#:CP+%06d#", ticks);
     return sendCommand(cmd);
 }
 
