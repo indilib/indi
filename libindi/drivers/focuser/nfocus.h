@@ -87,9 +87,6 @@ class NFocus : public INDI::Focuser
             SETTING_MODE_DELAY,
         };
 
-        INumber InOutScalarN[1];
-        INumberVectorProperty InOutScalarNP;
-
         /////////////////////////////////////////////////////////////////////////////
         /// Class Variables
         /////////////////////////////////////////////////////////////////////////////
