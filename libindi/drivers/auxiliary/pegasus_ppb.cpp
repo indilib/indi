@@ -250,7 +250,7 @@ bool PegasusPPB::Handshake()
 
     setupComplete = false;
 
-    return (!strcmp(response, "UPB_OK"));
+    return (!strcmp(response, "PPB_OK"));
 }
 
 bool PegasusPPB::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)

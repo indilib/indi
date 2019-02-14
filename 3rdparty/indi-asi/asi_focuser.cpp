@@ -61,13 +61,23 @@ void ASI_EAF_ISInit()
                     IDLog("ERROR: ASI EAF %d EAFGetID error %d.", i + 1, result);
                     continue;
                 }
+
+                // Open device
+                result = EAFOpen(id);
+                if (result != EAF_SUCCESS)
+                {
+                    IDLog("ERROR: ASI EAF %d Failed to open device %d.", i + 1, result);
+                    continue;
+                }
+
                 EAF_INFO info;
                 result = EAFGetProperty(id, &info);
-                if (result != EAF_SUCCESS && result != EAF_ERROR_CLOSED)
+                if (result != EAF_SUCCESS)
                 {
                     IDLog("ERROR: ASI EAF %d EAFGetProperty error %d.", i + 1, result);
                     continue;
                 }
+                EAFClose(id);
                 focusers[i] = new ASIEAF(id, info.Name, info.MaxStep);
                 iAvailableFocusersCount_ok++;
             }
@@ -187,6 +197,11 @@ bool ASIEAF::initProperties()
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
+    // Focus motion beep
+    IUFillSwitch(&BeepS[BEEP_ON], "ON", "On", ISS_ON);
+    IUFillSwitch(&BeepS[BEEL_OFF], "OFF", "Off", ISS_OFF);
+    IUFillSwitchVector(&BeepSP, BeepS, 2, getDeviceName(), "FOCUS_BEEP", "Beep", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     FocusRelPosN[0].min   = 0.;
     FocusRelPosN[0].max   = m_MaxSteps / 2.0;
     FocusRelPosN[0].value = 0;
@@ -220,14 +235,19 @@ bool ASIEAF::updateProperties()
             defineNumber(&TemperatureNP);
         }
 
+        defineSwitch(&BeepSP);
+
         GetFocusParams();
 
         LOG_INFO("ASI EAF paramaters updated, focuser ready for use.");
+
+        SetTimer(POLLMS);
     }
     else
     {
         if (TemperatureNP.s != IPS_IDLE)
             deleteProperty(TemperatureNP.name);
+        deleteProperty(BeepSP.name);
     }
 
     return true;
@@ -248,9 +268,7 @@ bool ASIEAF::Connect()
         return false;
     }
 
-    readMaxPosition();
-
-    return true;
+    return readMaxPosition();
 }
 
 bool ASIEAF::Disconnect()
@@ -325,6 +343,23 @@ bool ASIEAF::readReverse()
     return true;
 }
 
+bool ASIEAF::readBeep()
+{
+    bool beep = false;
+    EAF_ERROR_CODE rc = EAFGetBeep(m_ID, &beep);
+    if (rc != EAF_SUCCESS)
+    {
+        LOGF_ERROR("Failed to read beep status. Error: %d", rc);
+        return false;
+    }
+
+    BeepS[REVERSED_ENABLED].s  = beep ? ISS_ON : ISS_OFF;
+    BeepS[REVERSED_DISABLED].s = beep ? ISS_OFF : ISS_ON;
+    BeepSP.s = IPS_OK;
+
+    return true;
+}
+
 bool ASIEAF::ReverseFocuser(bool enabled)
 {
     EAF_ERROR_CODE rc = EAFSetReverse(m_ID, enabled);
@@ -372,14 +407,37 @@ bool ASIEAF::gotoAbsolute(uint32_t position)
 }
 
 
-//bool ASIEAF::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
-//{
-//    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-//    {
-//    }
+bool ASIEAF::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        // Turn on/off beep
+        if (!strcmp(name, BeepSP.name))
+        {
+            EAF_ERROR_CODE rc = EAF_SUCCESS;
+            if (!strcmp(BeepS[BEEP_ON].name, IUFindOnSwitchName(states, names, n)))
+                rc = EAFSetBeep(m_ID, true);
+            else
+                rc = EAFSetBeep(m_ID, false);
 
-//    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
-//}
+            if (rc == EAF_SUCCESS)
+            {
+                IUUpdateSwitch(&BeepSP, states, names, n);
+                BeepSP.s = IPS_OK;
+            }
+            else
+            {
+                BeepSP.s = IPS_ALERT;
+                LOGF_ERROR("Failed to set beep state. Error: %d", rc);
+            }
+
+            IDSetSwitch(&BeepSP, nullptr);
+            return true;
+        }
+    }
+
+    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
+}
 
 //bool ASIEAF::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 //{
@@ -397,6 +455,9 @@ void ASIEAF::GetFocusParams()
 
     if (readReverse())
         IDSetSwitch(&FocusReverseSP, nullptr);
+
+    if (readBeep())
+        IDSetSwitch(&BeepSP, nullptr);
 }
 
 IPState ASIEAF::MoveAbsFocuser(uint32_t targetTicks)

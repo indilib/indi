@@ -2,8 +2,8 @@
     INDI LIB
     Common routines used by all drivers
     Copyright (C) 2003 by Jason Harris (jharris@30doradus.org)
-    			  Elwood C. Downey
-			  Jasem Mutlaq
+                  Elwood C. Downey
+              Jasem Mutlaq
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -66,7 +66,8 @@ enum TTY_ERROR
     TTY_PORT_FAILURE = -5,
     TTY_PARAM_ERROR  = -6,
     TTY_ERRNO        = -7,
-    TTY_OVERFLOW     = -8
+    TTY_OVERFLOW     = -8,
+    TTY_PORT_BUSY    = -9,
 };
 
 #ifdef __cplusplus
@@ -181,10 +182,10 @@ int tty_timeout(int fd, int timeout);
   \param w the number of spaces in the whole part.
   \param fracbase is the number of pieces a whole is to broken into; valid options:\n
           \li 360000:	\<w\>:mm:ss.ss
-	  \li 36000:	\<w\>:mm:ss.s
- 	  \li 3600:	\<w\>:mm:ss
- 	  \li 600:	\<w\>:mm.m
- 	  \li 60:	\<w\>:mm
+      \li 36000:	\<w\>:mm:ss.s
+      \li 3600:	\<w\>:mm:ss
+      \li 600:	\<w\>:mm.m
+      \li 60:	\<w\>:mm
 
   \return number of characters written to out, not counting final null terminator.
  */

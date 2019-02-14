@@ -485,6 +485,10 @@ class ALTAIRCAM : public INDI::CCD
             TC_FAN_OFF,
         };
 
+        // Fan Speed
+        ISwitch *FanSpeedS = nullptr;
+        ISwitchVectorProperty FanSpeedSP;
+
         // Video Format
         ISwitch VideoFormatS[2];
         ISwitchVectorProperty VideoFormatSP;

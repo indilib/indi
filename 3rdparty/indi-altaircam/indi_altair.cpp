@@ -334,6 +334,11 @@ bool ALTAIRCAM::initProperties()
     IUFillSwitchVector(&FanControlSP, FanControlS, 2, getDeviceName(), "TC_FAN_CONTROL", "Fan", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     ///////////////////////////////////////////////////////////////////////////////////
+    /// Fan Speed
+    ///////////////////////////////////////////////////////////////////////////////////
+    IUFillSwitchVector(&FanSpeedSP, FanSpeedS, 0, getDeviceName(), "TC_FAN_Speed", "Fan Speed", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    ///////////////////////////////////////////////////////////////////////////////////
     /// Video Format
     ///////////////////////////////////////////////////////////////////////////////////
     /// RGB Mode but 8 bits grayscale
@@ -393,7 +398,10 @@ bool ALTAIRCAM::updateProperties()
         }
 
         if (m_Instance->model->flag & ALTAIRCAM_FLAG_FAN)
+        {
             defineSwitch(&FanControlSP);
+            defineSwitch(&FanSpeedSP);
+        }
 
         if (m_MonoCamera == false)
             defineSwitch(&WBAutoSP);
@@ -425,7 +433,10 @@ bool ALTAIRCAM::updateProperties()
             deleteProperty(TemperatureNP.name);
 
         if (m_Instance->model->flag & ALTAIRCAM_FLAG_FAN)
+        {
             deleteProperty(FanControlSP.name);
+            deleteProperty(FanSpeedSP.name);
+        }
 
         if (m_MonoCamera == false)
             deleteProperty(WBAutoSP.name);
@@ -685,6 +696,22 @@ void ALTAIRCAM::setupParams()
         FanControlS[TC_FAN_ON].s = fan == 0 ? ISS_OFF : ISS_ON;
         FanControlS[TC_FAN_OFF].s = fan == 0 ? ISS_ON : ISS_OFF;
         FanControlSP.s = (fan == 0) ? IPS_IDLE : IPS_BUSY;
+
+        // Fan Speed
+        delete [] FanSpeedS;
+        // If Fan is OFF, then set the default one to 1x
+        uint32_t activeFan = (fan == 0) ? 1 : fan;
+        FanSpeedS = new ISwitch[m_Instance->model->maxfanspeed];
+        for (uint32_t i = 0; i < m_Instance->model->maxfanspeed; i++)
+        {
+            char name[MAXINDINAME] = {0}, label[MAXINDINAME] = {0};
+            snprintf(name, MAXINDINAME, "FAN_SPEED_%d", i + 1);
+            snprintf(label, MAXINDINAME, "%dx", i + 1);
+            IUFillSwitch(FanSpeedS + i, name, label, (activeFan == i + 1) ? ISS_ON : ISS_OFF);
+        }
+        FanSpeedSP.sp = FanSpeedS;
+        FanSpeedSP.nsp = m_Instance->model->maxfanspeed;
+        FanSpeedSP.s = IPS_OK;
     }
 
     // Get active resolution index
@@ -1084,13 +1111,25 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         }
 
         //////////////////////////////////////////////////////////////////////
+        /// Fan Speed
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, FanSpeedSP.name))
+        {
+            IUUpdateSwitch(&FanSpeedSP, states, names, n);
+            FanSpeedSP.s = IPS_OK;
+            IDSetSwitch(&FanSpeedSP, nullptr);
+            return true;
+        }
+
+        //////////////////////////////////////////////////////////////////////
         /// Fan Control
         //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, FanControlSP.name))
         {
             int prevIndex = IUFindOnSwitchIndex(&FanControlSP);
             IUUpdateSwitch(&FanControlSP, states, names, n);
-            HRESULT rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_FAN, FanControlS[0].s == ISS_ON ? 1 : 0 );
+            HRESULT rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_FAN,
+                                              FanControlS[0].s == ISS_ON ? IUFindOnSwitchIndex(&FanSpeedSP) + 1 : 0 );
             if (rc != 0)
             {
                 LOGF_ERROR("Failed to turn the fan %s. Error (%s)", FanControlS[0].s == ISS_ON ? "on" : "off", errorCodes[rc].c_str());

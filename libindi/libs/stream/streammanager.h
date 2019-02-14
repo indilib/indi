@@ -176,6 +176,15 @@ class StreamManager
         void setSize(uint16_t width, uint16_t height);
         bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth = 8);
         void getStreamFrame(uint16_t *x, uint16_t *y, uint16_t *w, uint16_t *h);
+
+        /**
+         * @brief setStreamingExposureEnabled Can stream exposure time be changed?
+         * @param enable True if we can control the exact exposure time for each frame in the stream, false otherwise.
+         */
+        void setStreamingExposureEnabled(bool enable)
+        {
+            m_hasStreamingExposure = enable;
+        }
         bool close();
 
     protected:
@@ -251,8 +260,9 @@ class StreamManager
         ISwitchVectorProperty RecorderSP;
         enum { RECORDER_RAW, RECORDER_OGV };
 
-        bool m_isStreaming;
-        bool m_isRecording;
+        bool m_isStreaming { false };
+        bool m_isRecording { false };
+        bool m_hasStreamingExposure { true };
 
         uint32_t m_RecordingFrameTotal {0};
         double m_RecordingFrameDuration {0};

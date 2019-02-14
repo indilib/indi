@@ -23,19 +23,13 @@
 #include <unistd.h>
 #include <indilogger.h>
 #include <memory>
-#include <libdspau.h>
 
 #define MAX_TRIES 20
 #define MAX_DEVICES 4
 #define SPECTRUM_SIZE 512
-#define SUBFRAME_SIZE 256
 #define LIGHT_SPEED 299792458.0
-#define SAMPLE_RATE 1000000
-#define FREQUENCY 20000000000
-#define RAD_AS ((360 * 60 * 60) / M_PI)
-#define AIRY 1.21966
-#define AIRY_AS (AIRY * RAD_AS)
-#define RESOLUTION0 (AIRY_AS * LIGHT_SPEED / FREQUENCY)
+#define AIRY_AS (Airy * RAD_AS)
+#define RESOLUTION0 (AIRY_AS * LightSpeed / PrimaryDetector.getFrequency())
 #define DISH_SIZE_M 5.0
 #define MAX_DISH_SIZE_M 32.0
 #define RESOLUTION_AS(size) (RESOLUTION0 / size)
@@ -394,24 +388,24 @@ void RadioSim::grabData()
 	continuum = PrimaryDetector.getContinuumBuffer();
 	spectrum = PrimaryDetector.getSpectrumBuffer();
 
-	double *buf = dspau_signals_sinewave(len, PrimaryDetector.getSampleRate(), 1.0);
-	buf = dspau_buffer_stretch(buf, len, -val, val);
+	double *buf = dsp_signals_sinewave(len, PrimaryDetector.getSampleRate(), 1.0);
+	buf = dsp_buffer_stretch(buf, len, -val, val);
 	for(int i = 0; i < len; i++) {
 		buf[i] += ((double)(rand() % (int)val) / 2.0) - val / 4.0;
 	}
 	memcpy(continuum, buf, PrimaryDetector.getContinuumBufferSize());
         free(buf);
 
-        //Create the dspau stream
-        dspau_stream_p stream = dspau_stream_new();
-        dspau_stream_add_dim(stream, len);
+        //Create the dsp stream
+        dsp_stream_p stream = dsp_stream_new();
+        dsp_stream_add_dim(stream, len);
         //Create the spectrum
-	dspau_stream_set_input_buffer(stream, buf, len);
-        double *out = dspau_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
-	buf = dspau_buffer_stretch(buf, len, 0, 1.0);
+	dsp_stream_set_input_buffer(stream, buf, len);
+        double *out = dsp_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
+	buf = dsp_buffer_stretch(buf, len, 0, 1.0);
 	memcpy(spectrum, out, PrimaryDetector.getSpectrumBufferSize());
-        //Destroy the dspau stream
-        dspau_stream_free(stream);
+        //Destroy the dsp stream
+        dsp_stream_free(stream);
         free(out);
 
 	LOG_INFO("Download complete.");
