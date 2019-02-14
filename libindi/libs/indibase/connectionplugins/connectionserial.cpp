@@ -193,7 +193,7 @@ bool Serial::Connect()
 
         for (auto port : systemPorts)
         {
-            LOGF_DEBUG("Trying connection to %s @ %d ...", port.c_str(), baud);
+            LOGF_INFO("Trying connecting to %s @ %d ...", port.c_str(), baud);
             if (Connect(port.c_str(), baud))
             {
                 IUSaveText(&PortT[0], port.c_str());
