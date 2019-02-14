@@ -1,11 +1,7 @@
 /*
-    NFocus
-    Copyright (C) 2006 Markus Wildi (markus.wildi@datacomm.ch)
-                  2011 Jasem Mutlaq (mutlaqja@ikarustech.com)
-          2013 Felix Krämer (rigelsys@felix-kraemer.de)
+    NFocus DC Relative Focuser
 
-    Thanks to Rigel Systems, especially Gene Nolan and Leon Palmer,
-    for their support in writing this driver.
+    Copyright (C) 2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -27,62 +23,87 @@
 
 #include "indifocuser.h"
 
+/**
+ * @brief The NFocus class Handles communication and control with nFocus DC focuser
+ *
+ * API
+
+        ctrl-F  response 'n' for pc-nFOCUS focuser
+        S       response 1 if moving focuser, 0 if not
+        :FDSXXX#  Focus in dir D at speed S for XXX counts (S not implemented)
+                Counts are increments of (on+off) time, sending 000 halts any focus in progress
+                D = 0 Inward
+                D = 1 Outward
+        :COXXX#   (Configure On) Set focus ON time (# of 0.68ms to wait, default = 73 = 0.05sec)
+        :CFXXX#   (Configure oFf) Set focus OFF time (# of 0.68ms to wait, default = 15 = 0.01sec)
+        :CFSXX#   (Configure Speed) Set time to wait until second press if high speed requested
+                   (# of 0.68ms to wait, default = 73 = 0.05sec)
+        :RO       Read focus ON time
+        :RF       Read focus off time
+        :RS       Read Speed time
+        :RT     Read Temperature
+ */
 class NFocus : public INDI::Focuser
 {
-  public:
-    NFocus();
-    virtual ~NFocus() override = default;
+    public:
+        NFocus();
 
-    virtual bool Handshake() override;
-    const char *getDefaultName() override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool Handshake() override;
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-  protected:
-    bool saveConfigItems(FILE *fp) override;
-    bool SyncFocuser(uint32_t ticks) override;
+    protected:
+        virtual void TimerHit() override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
 
-  private:
-    unsigned char CalculateSum(char *rf_cmd);
-    int SendCommand(char *rf_cmd);
-    int SendRequest(char *rf_cmd);
-    int ReadResponse(char *buf, int nbytes, int timeout);
-    bool GetFocusParams();
+        bool saveConfigItems(FILE *fp) override;
 
-    int updateNFTemperature(double *value);
-    int updateNFInOutScalar(double *value);
-    int updateNFMotorSettings(double *onTime, double *offTime, double *fastDelay);
-    int moveNFInward(const double *value);
-    int moveNFOutward(const double *value);
-    int getNFAbsolutePosition(double *value);
-    int setNFAbsolutePosition(const double *value);
-    int setNFMaxPosition(double *value);
-    //int syncNF(const double *value);
+    private:
+        bool readTemperature();
+        bool readMotorSettings();
+        bool setMotorSettings(double onTime, double offTime, double fastDelay);
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        // Utility
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        bool getStartupValues();
+        void hexDump(char * buf, const char * data, int size);
+        bool isMoving();
 
-    INumber SettingsN[3];
-    INumberVectorProperty SettingsNP;
+        /////////////////////////////////////////////////////////////////////////////
+        /// Properties
+        /////////////////////////////////////////////////////////////////////////////
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    INumber MinMaxPositionN[2];
-    INumberVectorProperty MinMaxPositionNP;
+        INumber SettingsN[3];
+        INumberVectorProperty SettingsNP;
+        enum
+        {
+            SETTING_ON_TIME,
+            SETTING_OFF_TIME,
+            SETTING_MODE_DELAY,
+        };
 
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+        /////////////////////////////////////////////////////////////////////////////
+        /// Class Variables
+        /////////////////////////////////////////////////////////////////////////////
+        uint16_t m_TargetPosition { 0 };
+        uint16_t m_TemperatureCounter { 0 };
 
-//    INumber SyncN[1];
-//    INumberVectorProperty SyncNP;
-
-    INumber InOutScalarN[1];
-    INumberVectorProperty InOutScalarNP;
-
-    INumber RelMovementN[1];
-    INumberVectorProperty RelMovementNP;
-
-    INumber AbsMovementN[1];
-    INumberVectorProperty AbsMovementNP;
+        /////////////////////////////////////////////////////////////////////////////
+        /// Static Helper Values
+        /////////////////////////////////////////////////////////////////////////////
+        static constexpr const char * SETTINGS_TAB = "Settings";
+        // '#' is the stop char
+        static const char NFOCUS_STOP_CHAR { 0x23 };
+        // Update temperature every 10x POLLMS. For 500ms, we would
+        // update the temperature one every 5 seconds.
+        static constexpr const uint8_t NFOCUS_TEMPERATURE_FREQ {10};
+        // Wait up to a maximum of 3 seconds for serial input
+        static constexpr const uint8_t NFOCUS_TIMEOUT {3};
+        // Maximum buffer for sending/receving.
+        static constexpr const uint8_t NFOCUS_LEN {64};
 };

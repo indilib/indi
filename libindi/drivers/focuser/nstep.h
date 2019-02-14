@@ -1,7 +1,7 @@
 /*
   NStep Focuser
-  Copyright (c) 2016 Cloudmakers, s. r. o.
-  All Rights Reserved.
+
+  Copyright(c) 2019 Jasem Mutlaq. All rights reserved.
 
   Thanks to Rigel Systems, especially Gene Nolan and Leon Palmer,
   for their support in writing this driver.
@@ -25,48 +25,126 @@
 
 #include "indifocuser.h"
 
-class NSTEP : public INDI::Focuser
+class NStep : public INDI::Focuser
 {
-  public:
-    NSTEP();
-    ~NSTEP();
+    public:
+        NStep();
 
-    virtual bool Handshake();
-    const char *getDefaultName();
+        virtual bool Handshake() override;
+        const char *getDefaultName() override;
 
-    bool initProperties();
-    bool updateProperties();
+        bool initProperties() override;
+        bool updateProperties() override;
 
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    void TimerHit();
-    IPState MoveRelFocuser(FocusDirection dir, unsigned int ticks);
-    IPState MoveAbsFocuser(uint32_t targetTicks);
-    bool AbortFocuser();
-    bool SetFocuserSpeed(int speed);
-    bool saveConfigItems(FILE *fp);
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-  private:
-    bool command(const char *request, char *response, int count);
+    protected:
+        void TimerHit() override;
 
-    IPState moveFocuserRelative(FocusDirection dir, unsigned int ticks);
+        IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        bool SetFocuserSpeed(int speed) override;
+        bool SyncFocuser(uint32_t ticks) override;
+        bool AbortFocuser() override;
 
-    char buf[MAXRBUF];
-    long sim_position { 0 };
-    long position { 0 };
-    int temperature { 0 };
-    char steppingMode { 0 };
-    char steppingPhase { 0 };
-    pthread_mutex_t lock;
+        bool saveConfigItems(FILE *fp) override;
 
-    INumber TempN[1];
-    INumberVectorProperty TempNP;
-    ISwitch TempCompS[2];
-    ISwitchVectorProperty TempCompSP;
-    INumber TempCompN[2];
-    INumberVectorProperty TempCompNP;
-    ISwitch SteppingModeS[3];
-    ISwitchVectorProperty SteppingModeSP;
-    ISwitch SteppingPhaseS[3];
-    ISwitchVectorProperty SteppingPhaseSP;
+    private:
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Properties
+        ///////////////////////////////////////////////////////////////////////////////
+
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
+
+        ISwitch CompensationModeS[3];
+        ISwitchVectorProperty CompensationModeSP;
+        enum
+        {
+            COMPENSATION_MODE_OFF,
+            COMPENSATION_MODE_ONE_SHOT,
+            COMPENSATION_MODE_AUTO,
+        };
+
+        INumber CompensationSettingsN[4];
+        INumberVectorProperty CompensationSettingsNP;
+        enum
+        {
+            COMPENSATION_SETTING_CHANGE,
+            COMPENSATION_SETTING_STEP,
+            COMPENSATION_SETTING_BACKLASH,
+            COMPENSATION_SETTING_TIMER,
+        };
+
+        ISwitch PrimeManualS[1];
+        ISwitchVectorProperty PrimeManualSP;
+
+        ISwitch SteppingModeS[3];
+        ISwitchVectorProperty SteppingModeSP;
+        enum
+        {
+            STEPPING_WAVE,
+            STEPPING_HALF,
+            STEPPING_FULL,
+        };
+
+        ISwitch CoilStatusS[2];
+        ISwitchVectorProperty CoilStatusSP;
+        enum
+        {
+            COIL_ENERGIZED_OFF,
+            COIL_ENERGIZED_ON,
+        };
+
+        INumber SteppingPhaseN[1];
+        INumberVectorProperty SteppingPhaseNP;
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Read Data From Controller
+        ///////////////////////////////////////////////////////////////////////////////
+        bool readTemperature();
+        bool readPosition();
+        bool readCompensationInfo();
+        bool readSpeedInfo();
+        bool readSteppingInfo();
+        bool readCoilStatus();
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Write Data to Controller
+        ///////////////////////////////////////////////////////////////////////////////
+        bool setCompensationMode(uint8_t mode);
+        bool setCompensationSettings(double change, double move, double backlash, double timer);
+        bool setSteppingPhase(uint8_t phase);
+        bool setCoilStatus(uint8_t status);
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Utility Functions
+        ///////////////////////////////////////////////////////////////////////////////
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        bool getStartupValues();
+        void hexDump(char * buf, const char * data, int size);
+        bool isMoving();
+
+        /////////////////////////////////////////////////////////////////////////////
+        /// Class Variables
+        /////////////////////////////////////////////////////////////////////////////
+        int32_t m_TargetDiff { 0 };
+        uint16_t m_TemperatureCounter { 0 };
+
+        /////////////////////////////////////////////////////////////////////////////
+        /// Static Helper Values
+        /////////////////////////////////////////////////////////////////////////////
+        static constexpr const char * COMPENSATION_TAB = "Compensation";
+        static constexpr const char * STEPPING_TAB = "Stepping";
+        // '#' is the stop char
+        static const char NSTEP_STOP_CHAR { 0x23 };
+        // Update temperature every 10x POLLMS. For 500ms, we would
+        // update the temperature one every 5 seconds.
+        static constexpr const uint8_t NSTEP_TEMPERATURE_FREQ {10};
+        // Wait up to a maximum of 3 seconds for serial input
+        static constexpr const uint8_t NSTEP_TIMEOUT {3};
+        // Maximum buffer for sending/receving.
+        static constexpr const uint8_t NSTEP_LEN {64};
 };

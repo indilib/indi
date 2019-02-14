@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 PROJECT(libatik C CXX)
 
-set(ATIK_VERSION "2.2.0")
+# Built Feb 7th, 2019.
+set(ATIK_VERSION "2.2.4")
 set(ATIK_SOVERSION "2")
 
 set(FLYCAPTURE_VERSION "2.13.3.31")
@@ -36,6 +37,9 @@ IF(UNIX AND NOT WIN32)
   ELSEIF(CMAKE_SIZEOF_VOID_P MATCHES "8")
     exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/x64/libatikcameras.bin ${CMAKE_BINARY_DIR}/libatikcameras.so.${ATIK_VERSION})
     exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/x64/libflycapture.bin ${CMAKE_BINARY_DIR}/libflycapture.so.${FLYCAPTURE_VERSION})
+  ELSE()
+    exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/x86/libatikcameras.bin ${CMAKE_BINARY_DIR}/libatikcameras.so.${ATIK_VERSION})
+    exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/x86/libflycapture.bin ${CMAKE_BINARY_DIR}/libflycapture.so.${FLYCAPTURE_VERSION})
   ENDIF ()
 ENDIF(UNIX AND NOT WIN32)
 

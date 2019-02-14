@@ -46,6 +46,8 @@ public:
 
     bool isConnected();
 
+    void activate(bool enabled);
+
 protected:
 
     // Avalon specifics
@@ -74,6 +76,7 @@ protected:
     bool startMovingFocuserInward;
     bool startMovingFocuserOutward;
     uint32_t moveFocuserDurationRemaining;
+    bool focuserActivated;
 
 
     // LX200 commands

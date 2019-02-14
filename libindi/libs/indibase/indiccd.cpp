@@ -1114,6 +1114,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                          PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
                          PrimaryCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
             IDSetNumber(&PrimaryCCD.ImagePixelSizeNP, nullptr);
+            saveConfig(true);
             return true;
         }
 
@@ -1127,6 +1128,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
                             GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_X].value,
                             GuideCCD.ImagePixelSizeNP.np[CCDChip::CCD_PIXEL_SIZE_Y].value);
             IDSetNumber(&GuideCCD.ImagePixelSizeNP, nullptr);
+            saveConfig(true);
             return true;
         }
 

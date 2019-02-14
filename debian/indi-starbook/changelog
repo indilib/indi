@@ -5,7 +5,7 @@ indi-starbook (0.4) bionic; urgency=medium
   * Add ability to activate Starbook from INDI control panel
   * Fix driver not saving connection settings
 
- -- Norbert Szulc <norbert@not7cd.net> Fri, 1 Feb 2019 23:17:00 +0100
+ -- Norbert Szulc <norbert@not7cd.net>  Sat, 09 Feb 2019 08:44:32 +0300
 
 indi-starbook (0.1) bionic; urgency=medium
 
