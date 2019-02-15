@@ -46,16 +46,16 @@ static void cleanup()
     }
 }
 
-static void callback(unsigned char *buf, uint32_t len, void *ctx)
-{
-    RTLSDR *receiver = (RTLSDR*)ctx;
-    receiver->grabData(buf, len);
-}
-
 static void *startcap(void *ctx)
 {
     RTLSDR *receiver = (RTLSDR*)ctx;
-    rtlsdr_read_async(receiver->rtl_dev, callback, receiver, 1, min(MAX_FRAME_SIZE, receiver->to_read));
+    int len = min(MAX_FRAME_SIZE, receiver->to_read);
+    int olen = 0;
+    unsigned char *buf = (unsigned char *)malloc(len);
+    while(receiver->InCapture) {
+        rtlsdr_read_sync(receiver->rtl_dev, buf, len, &olen);
+        receiver->grabData(buf, len);
+    }
     return NULL;
 }
 
@@ -295,6 +295,7 @@ void RTLSDR::setupParams()
 bool RTLSDR::StartCapture(float duration)
 {
 	CaptureRequest = duration;
+    AbortCapture();
 
 	// Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
     PrimaryDetector.setCaptureDuration(duration);
@@ -333,7 +334,7 @@ bool RTLSDR::CaptureParamsUpdated(float sr, float freq, float bps, float bw, flo
     r |= rtlsdr_set_tuner_gain_mode(rtl_dev, 1);
 
     r |= rtlsdr_set_tuner_gain(rtl_dev, (int)(gain * 10));
-    //r |= rtlsdr_set_tuner_bandwidth(rtl_dev, (uint32_t)bw);
+    r |= rtlsdr_set_tuner_bandwidth(rtl_dev, (uint32_t)bw);
     r |= rtlsdr_set_center_freq(rtl_dev, (uint32_t)freq);
     r |= rtlsdr_set_sample_rate(rtl_dev, (uint32_t)sr);
 
@@ -351,7 +352,6 @@ bool RTLSDR::AbortCapture()
 {
     if(InCapture) {
         InCapture = false;
-        rtlsdr_cancel_async(rtl_dev);
     }
     return true;
 }
@@ -420,7 +420,6 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
         if(to_read <= 0) {
             LOG_INFO("Downloading...");
             InCapture = false;
-            rtlsdr_cancel_async(rtl_dev);
 
             //Create the dsp stream
             dsp_stream_p stream = dsp_stream_new();

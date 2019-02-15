@@ -19,6 +19,7 @@
 
 #include "indi_radiosim_detector.h"
 #include "hires.h"
+#include <indicom.h>
 #include <math.h>
 #include <unistd.h>
 #include <indilogger.h>
@@ -28,15 +29,15 @@
 #define MAX_DEVICES 4
 #define SPECTRUM_SIZE 512
 #define LIGHT_SPEED 299792458.0
-#define AIRY_AS (Airy * RAD_AS)
-#define RESOLUTION0 (AIRY_AS * LightSpeed / PrimaryDetector.getFrequency())
+#define AIRY_AS (AIRY * RAD_AS)
+#define RESOLUTION0 (AIRY_AS * LIGHTSPEED / PrimaryDetector.getFrequency())
 #define DISH_SIZE_M 5.0
 #define MAX_DISH_SIZE_M 32.0
 #define RESOLUTION_AS(size) (RESOLUTION0 / size)
 #define RESOLUTION_MAX (RESOLUTION0 / MAX_DISH_SIZE_M)
 #define IMAGE_WIDTH 1920
 #define IMAGE_HEIGHT 1200
-#define FOV_DEG (360.0 * IMAGE_WIDTH / SIDEREAL_DAY)
+#define FOV_DEG (360.0 * IMAGE_WIDTH / STELLAR_DAY)
 #define RESOLUTION_PX(size) (RESOLUTION_AS(size) * IMAGE_WIDTH / (FOV_DEG*60*60))
 #define RESOLUTION_PY(size) (RESOLUTION_AS(size) * IMAGE_HEIGHT / (FOV_DEG*60*60))
 
@@ -360,7 +361,7 @@ void RadioSim::TimerHit()
 		// This is an over simplified timing method, check DetectorSimulator and rtlsdrDetector for better timing checks
 		PrimaryDetector.setCaptureLeft(timeleft);
 	}
-	double value = (DetectorCoordsN[0].value + (360.0 / SIDEREAL_DAY) * POLLMS / 1000.0);
+    double value = (DetectorCoordsN[0].value + (360.0 / STELLAR_DAY) * POLLMS / 1000.0);
 	if (value >= FOV_DEG)
 		value -= FOV_DEG;
 	Ra = value;
@@ -382,7 +383,7 @@ void RadioSim::grabData()
 	int y = static_cast<int>(Dec * IMAGE_HEIGHT / FOV_DEG);
 	for(to_read = 0; to_read < len && x + to_read < IMAGE_WIDTH; to_read++)
 		val += MagickImage[x + (y * IMAGE_WIDTH) + to_read];
-	val /= to_read * (LightSpeed * Airy / PrimaryDetector.getFrequency());
+    val /= to_read * RESOLUTION0;
 	val *= (pow(DishSize, 2) * PrimaryDetector.getGain());
 	len = PrimaryDetector.getContinuumBufferSize() * 8 / abs(PrimaryDetector.getBPS());
 	continuum = PrimaryDetector.getContinuumBuffer();
