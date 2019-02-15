@@ -28,7 +28,6 @@ extern "C" {
 #include <string.h>
 #include <math.h>
 #include <float.h>
-#include <fftw3.h>
 #include <sys/types.h>
 #include <time.h>
 #include <assert.h>
@@ -68,19 +67,6 @@ extern "C" {
 /*@{*/
 
 /**
-* \brief DFT Conversion type
-*/
-typedef enum _dsp_conversiontype
-{
-    magnitude = 0,
-    magnitude_dbv = 1,
-    magnitude_root = 2,
-    magnitude_square = 3,
-    phase_degrees = 4,
-    phase_radians = 5,
-} dsp_conversiontype;
-
-/**
 * \brief DSP Point Type
 */
 typedef struct _dsp_point
@@ -88,6 +74,15 @@ typedef struct _dsp_point
     int x;
     int y;
 } dsp_point;
+
+/**
+* \brief DSP Complex Number Type
+*/
+typedef struct _dsp_complex
+{
+    double real;
+    double imaginary;
+} dsp_complex;
 
 /**
 * \brief DSP Region Type
@@ -117,26 +112,23 @@ typedef void *(*dsp_func_t) (void *);
 */
 typedef struct dsp_stream_s
 {
-    int len;
-    int dims;
-    int* sizes;
-    int* pos;
-    int index;
-    double* in;
-    double* out;
-    void *arg;
-    struct dsp_stream_s* parent;
-    struct dsp_stream_s** children;
-    int child_count;
-    double* location;
-    double* target;
-    double lambda;
-    double samplerate;
-    struct timespec starttimeutc;
-    pthread_t thread;
-    dsp_func_t func;
-    dsp_region *ROI;
-    dsp_star *stars;
+    int len; /// The buffers length
+    int dims; /// Number of dimensions of the buffers
+    int* sizes; /// Sizes of each dimension
+    int* pos; /// Positions on each dimension when index != 0
+    int index; /// Position on the buffers treated as monodimensional
+    double* in; /// Input buffer
+    double* out; /// Output buffer
+    void *arg; /// Optional argument for the func() callback
+    struct dsp_stream_s* parent; /// Parent stream if the current is its child
+    struct dsp_stream_s** children; /// Children streams of the current one
+    int child_count; /// Children streams count
+    double lambda; /// Wavelength observed, used as reference with signal generators or filters
+    double samplerate; /// Sample rate of the buffers
+    pthread_t thread; /// Thread type for future usage
+    dsp_func_t func; /// Callback function
+    dsp_region *ROI; /// Regions of interest for each dimension
+    dsp_star *stars; /// Stars or objects identified into the buffers - TODO
 } dsp_stream, *dsp_stream_p;
 
 /*@}*/
@@ -153,7 +145,7 @@ typedef struct dsp_stream_s
 * \return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 */
-extern double* dsp_fft_spectrum(dsp_stream_p stream, dsp_conversiontype conversion, int size);
+extern double* dsp_fft_spectrum(dsp_stream_p stream, int size);
 
 /**
 * \brief Shift a stream on each dimension
@@ -173,7 +165,37 @@ extern double* dsp_fft_shift(double* in, int dims, int* sizes);
 * \return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 */
-extern double* dsp_fft_dft(dsp_stream_p stream, int sign, dsp_conversiontype conversion);
+extern dsp_complex* dsp_fft_dft(dsp_stream_p stream);
+
+/**
+* \brief Calculate a complex number's magnitude
+* \param n the input complex.
+* \return the magnitude of the given number
+*/
+double dsp_fft_complex_to_magnitude(dsp_complex n);
+
+/**
+* \brief Calculate a complex number's phase
+* \param n the input complex.
+* \return the phase of the given number
+*/
+double dsp_fft_complex_to_phase(dsp_complex n);
+
+/**
+* \brief Calculate a complex number's array magnitudes
+* \param in the input complex number array.
+* \param len the input array length.
+* \return the array filled with the magnitudes
+*/
+double*  dsp_fft_complex_array_to_magnitude(dsp_complex* in, int len);
+
+/**
+* \brief Calculate a complex number's array phases
+* \param in the input complex number array.
+* \param len the input array length.
+* \return the array filled with the phases
+*/
+double*  dsp_fft_complex_array_to_phase(dsp_complex* in, int len);
 
 /*@}*/
 /**
@@ -611,13 +633,13 @@ extern double *dsp_stream_get_input_buffer(dsp_stream_p stream);
 extern double *dsp_stream_get_output_buffer(dsp_stream_p stream);
 
 /**
-* \brief Swap input and output buffers of the passed stream
+* \brief Free the input buffer of the DSP Stream passed as argument
 * \param stream the target DSP stream.
 */
 extern void dsp_stream_free_input_buffer(dsp_stream_p stream);
 
 /**
-* \brief Swap input and output buffers of the passed stream
+* \brief Free the output buffer of the DSP Stream passed as argument
 * \param stream the target DSP stream.
 */
 extern void dsp_stream_free_output_buffer(dsp_stream_p stream);
@@ -635,19 +657,28 @@ extern dsp_stream_p dsp_stream_new();
 extern dsp_stream_p dsp_stream_copy(dsp_stream_p stream);
 
 /**
-* \brief Swap input and output buffers of the passed stream
+* \brief Add a child to the DSP Stream passed as argument
 * \param stream the target DSP stream.
+* \param child the child to add to DSP stream.
 */
 extern void dsp_stream_add_child(dsp_stream_p stream, dsp_stream_p child);
 
 /**
-* \brief Swap input and output buffers of the passed stream
+* \brief Add a dimension with length len to a DSP stream
 * \param stream the target DSP stream.
+* \param len the size of the dimension to add
 */
-extern void dsp_stream_add_dim(dsp_stream_p stream, int size);
+extern void dsp_stream_add_dim(dsp_stream_p stream, int len);
 
 /**
-* \brief Swap input and output buffers of the passed stream
+* \brief Remove the dimension with index n to a DSP stream
+* \param stream the target DSP stream.
+* \param stream the index of the dimension to remove
+*/
+void dsp_stream_del_dim(dsp_stream_p stream, int n);
+
+/**
+* \brief Free the DSP stream passed as argument
 * \param stream the target DSP stream.
 */
 extern void dsp_stream_free(dsp_stream_p stream);
@@ -690,16 +721,18 @@ extern void *dsp_stream_exec_multidim(dsp_stream_p stream);
 extern dsp_stream_p dsp_stream_crop(dsp_stream_p stream);
 
 /**
-* \brief Swap input and output buffers of the passed stream
-* \param stream the target DSP stream.
+* \brief Multiply the buffers elements of the DSP streams passed as arguments
+* \param stream1 the first DSP stream.
+* \param stream2 the second DSP stream.
 */
 extern void dsp_stream_mul(dsp_stream_p in1, dsp_stream_p in2);
 
 /**
-* \brief Swap input and output buffers of the passed stream
-* \param stream the target DSP stream.
+* \brief Sum the buffers elements of the DSP streams passed as arguments
+* \param stream1 the first DSP stream.
+* \param stream2 the second DSP stream.
 */
-extern void dsp_stream_sum(dsp_stream_p in1, dsp_stream_p in2);
+extern void dsp_stream_sum(dsp_stream_p stream1, dsp_stream_p stream2);
 
 /**
 * \brief Swap input and output buffers of the passed stream

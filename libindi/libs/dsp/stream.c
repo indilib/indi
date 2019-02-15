@@ -88,8 +88,6 @@ dsp_stream_p dsp_stream_new()
     dsp_stream_p stream = (dsp_stream_p)calloc(sizeof(dsp_stream), 1);
     stream->out = (double*)calloc(sizeof(double), 1);
     stream->in = (double*)calloc(sizeof(double), 1);
-    stream->location = (double*)calloc(sizeof(double), 3);
-    stream->target = (double*)calloc(sizeof(double), 3);
     stream->sizes = (int*)calloc(sizeof(int), 1);
     stream->pos = (int*)calloc(sizeof(int), 1);
     stream->children = calloc(sizeof(dsp_stream_p), 1);
@@ -111,10 +109,6 @@ dsp_stream_p dsp_stream_copy(dsp_stream_p stream)
        dsp_stream_add_dim(dest, stream->sizes[i]);
     dest->lambda = stream->lambda;
     dest->samplerate = stream->samplerate;
-    dest->starttimeutc.tv_nsec = stream->starttimeutc.tv_nsec;
-    dest->starttimeutc.tv_sec = stream->starttimeutc.tv_sec;
-    memcpy(dest->location, stream->location, sizeof(double) * 3);
-    memcpy(dest->target, stream->target, sizeof(double) * 3);
     memcpy(dest->in, stream->in, sizeof(double) * stream->len);
     memcpy(dest->out, stream->out, sizeof(double) * stream->len);
     return dest;
@@ -123,13 +117,26 @@ dsp_stream_p dsp_stream_copy(dsp_stream_p stream)
 void dsp_stream_add_dim(dsp_stream_p stream, int size)
 {
     stream->sizes[stream->dims] = size;
-    stream->dims ++;
-    stream->ROI = (dsp_region*)realloc(stream->sizes, sizeof(dsp_region));
-    stream->sizes = (int*)realloc(stream->sizes, sizeof(int) * (stream->dims + 1));
-    stream->pos = (int*)realloc(stream->pos, sizeof(int) * (stream->dims + 1));
     stream->len *= size;
     stream->in = (double*)realloc(stream->in, sizeof(double) * stream->len);
     stream->out = (double*)realloc(stream->out, sizeof(double) * stream->len);
+    stream->dims ++;
+    stream->ROI = (dsp_region*)realloc(stream->ROI, sizeof(dsp_region) * (stream->dims + 1));
+    stream->sizes = (int*)realloc(stream->sizes, sizeof(int) * (stream->dims + 1));
+    stream->pos = (int*)realloc(stream->pos, sizeof(int) * (stream->dims + 1));
+}
+
+void dsp_stream_del_dim(dsp_stream_p stream, int index)
+{
+    int* sizes = (int*)calloc(sizeof(int), stream->dims);
+    memcpy(sizes, stream->sizes, sizeof(int) * stream->dims);
+    free(stream->sizes);
+    stream->dims = 0;
+    for(int i = 0; i < stream->dims; i++) {
+        if(i != index) {
+            dsp_stream_add_dim(stream, sizes[i]);
+        }
+    }
 }
 
 void dsp_stream_add_child(dsp_stream_p stream, dsp_stream_p child)
@@ -141,11 +148,7 @@ void dsp_stream_add_child(dsp_stream_p stream, dsp_stream_p child)
 }
 
 void dsp_stream_free(dsp_stream_p stream)
-{/*
-    free(stream->out);
-    free(stream->in);*/
-    free(stream->location);
-    free(stream->target);
+{
     free(stream->sizes);
     free(stream->pos);
     free(stream->children);
@@ -231,16 +234,21 @@ dsp_stream_p dsp_stream_crop(dsp_stream_p in)
     int dims = in->dims;
     if(dims == 0)
         return NULL;
-    int len = 1;
-    dsp_region* rect = in->ROI;
     dsp_stream_p ret = dsp_stream_new();
-    for(int dim = 0; dim < dims; dim++) {
-        dsp_stream_add_dim(ret, rect[dim].len);
-        for(int x = rect[dim].start, y = 0; x < rect[dim].len && x < in->sizes[dim]; x += len, y += rect[dim].len) {
-            ret->in[y] = in->in[x];
-            ret->out[y] = in->out[x];
+    for(int dim = 0; dim < in->dims; dim++) {
+        dsp_stream_add_dim(ret, in->ROI[dim].len);
+    }
+    int x = 0;
+    for (in->index = 0; in->index<in->len; in->index++)
+    {
+        dsp_stream_get_position(in);
+        for(int dim = 0; dim < in->dims; dim++) {
+            if(in->pos[dim] >= in->ROI[dim].start &&  (in->pos[dim]-in->ROI[dim].start) < in->ROI[dim].len) {
+                ret->in[x] = in->in[in->index];
+                ret->out[x] = in->out[in->index];
+                x++;
+            }
         }
-        len = in->sizes[dim];
     }
     return ret;
 }

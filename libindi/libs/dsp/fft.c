@@ -18,79 +18,47 @@
 
 #include "dsp.h"
 
-static double complex_mag(fftw_complex n)
+double dsp_fft_complex_to_magnitude(dsp_complex n)
 {
-	return sqrt (n[0] * n[0] + n[1] * n[1]);
+    return sqrt (n.real * n.real + n.imaginary * n.imaginary);
 }
 
-static double complex_phi(fftw_complex n)
+double dsp_fft_complex_to_phase(dsp_complex n)
 {
     double out = 0;
-	if (n[0] != 0)
-		out = atan (n[1] / n[0]);
+    if (n.real != 0) {
+        out = atan (n.imaginary / n.real);
+    }
 	return out;
 }
 
-static void complex2mag(fftw_complex* in, double* out, int len)
+double* dsp_fft_complex_array_to_magnitude(dsp_complex* in, int len)
 {
-	int i;
-	for(i = 0; i < len; i++) {
-		out [i] = complex_mag(in [i]);
-	}
+    int i;
+    double* out = (double*)calloc(sizeof(double), len);
+    for(i = 0; i < len; i++) {
+        out [i] = dsp_fft_complex_to_magnitude(in [i]);
+    }
+    return out;
 }
 
-static void complex2magpow(fftw_complex* in, double* out, int len)
+double* dsp_fft_complex_array_to_phase(dsp_complex* in, int len)
 {
 	int i;
+    double* out = (double*)calloc(sizeof(double), len);
 	for(i = 0; i < len; i++) {
-		out [i] = pow(complex_mag(in [i]), 2);
+        out [i] = dsp_fft_complex_to_phase(in [i]);
 	}
+    return out;
 }
 
-static void complex2magsqrt(fftw_complex* in, double* out, int len)
+double* dsp_fft_spectrum(dsp_stream_p stream, int size)
 {
-	int i;
-	for(i = 0; i < len; i++) {
-        out [i] = sqrt (complex_mag(in [i]));
-	}
-}
-
-static void complex2magdbv(fftw_complex* in, double* out, int len)
-{
-	int i;
-	for(i = 0; i < len; i++) {
-        double magVal = complex_mag(in [i]);
-
-		if (magVal <= 0.0)
-			magVal = DBL_EPSILON;
-
-		out [i] = 20 * log10 (magVal);
-	}
-}
-
-static void complex2phideg(fftw_complex* in, double* out, int len)
-{
-	int i;
-    double sf = 180.0 / M_PI;
-	for(i = 0; i < len; i++) {
-		out [i] = complex_phi(in [i]) * sf;
-	}
-}
-
-static void complex2phirad(fftw_complex* in, double* out, int len)
-{
-	int i;
-	for(i = 0; i < len; i++) {
-		out [i] = complex_phi(in [i]);
-	}
-}
-
-double* dsp_fft_spectrum(dsp_stream_p stream, dsp_conversiontype conversion, int size)
-{
-    double* ret;
-    double* out = dsp_fft_dft(stream, -1, conversion);
-    ret = dsp_buffer_histogram(out, stream->len, size);
-    free(out);
+    dsp_complex* dft = dsp_fft_dft(stream);
+    double* tmp = dsp_fft_complex_array_to_magnitude(dft, stream->len);
+    free(dft);
+    double* ret = dsp_buffer_histogram(tmp, stream->len, size);
+    free(tmp);
     return ret;
 }
 
@@ -113,48 +81,17 @@ double* dsp_fft_shift(double* in, int dims, int* sizes)
     return o;
 }
 
-double* dsp_fft_dft(dsp_stream_p stream, int sign, dsp_conversiontype conversion)
+dsp_complex* dsp_fft_dft(dsp_stream_p stream)
 {
-    fftw_plan p;
-    int len = stream->len;
-    dsp_stream_add_dim(stream, 1);
-    int* sizes = calloc(sizeof(int),stream->dims);
-    int dims = stream->dims;
-    dsp_buffer_reverse(sizes, stream->sizes, stream->dims);
-    double* out = (double*)calloc(sizeof(double), stream->len);
-    fftw_complex *fft_in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * stream->len);
-    fftw_complex *fft_out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * stream->len);
-    for(int i = 0; i < len; i++) {
-        fft_in[i][0] = stream->in[i];
-        fft_in[i][1] = 0;
+    dsp_complex* dft = (dsp_complex*)calloc(sizeof(dsp_complex), stream->len);
+    for (stream->index = 0 ; stream->index<stream->len; stream->index++)
+    {
+        dsp_stream_get_position(stream);
+        for(int dim = 0; dim < stream->dims; dim++) {
+            for (int n=0 ; n<stream->sizes[dim] ; ++n) dft[stream->index].real += stream->in[stream->index] * cos(n * stream->pos[dim] * M_PI * 2 / stream->sizes[dim]);
+            for (int n=0 ; n<stream->sizes[dim] ; ++n) dft[stream->index].imaginary -= stream->in[stream->index] * sin(n * stream->pos[dim] * M_PI * 2 / stream->sizes[dim]);
+        }
     }
-    p = fftw_plan_dft(dims, sizes, fft_in, fft_out, sign, FFTW_ESTIMATE);
-    fftw_execute(p);
-	switch (conversion) {
-	case magnitude:
-        complex2mag(fft_out, out, len);
-		break;
-	case magnitude_dbv:
-        complex2magdbv(fft_out, out, len);
-		break;
-    case magnitude_root:
-        complex2magsqrt(fft_out, out, len);
-		break;
-    case magnitude_square:
-        complex2magpow(fft_out, out, len);
-		break;
-	case phase_degrees:
-        complex2phideg(fft_out, out, len);
-		break;
-	case phase_radians:
-        complex2phirad(fft_out, out, len);
-		break;
-    default:
-		break;
-    }
-	fftw_destroy_plan(p);
-	fftw_free(fft_in);
-    fftw_free(fft_out);
-    return out;
+    return dft;
 }
 

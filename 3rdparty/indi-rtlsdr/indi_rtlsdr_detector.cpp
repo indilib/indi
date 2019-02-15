@@ -427,7 +427,7 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
             //Create the spectrum
             dsp_convert(continuum, stream->in, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
             stream->in = dsp_buffer_div1(stream->in, stream->len, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
-            double *out = dsp_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
+            double *out = dsp_fft_spectrum(stream, SPECTRUM_SIZE);
             out = dsp_buffer_mul1(out, SPECTRUM_SIZE, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
             dsp_convert(out, spectrum, SPECTRUM_SIZE);
             //Destroy the dsp stream
