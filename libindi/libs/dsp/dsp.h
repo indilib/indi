@@ -79,7 +79,7 @@ extern "C" {
 *
 * The DSP API is used for processing monodimensional or multidimensional buffers,<br>
 * converting array element types, generate statistics, extract informations from buffers, convolute or<br>
-* cross-correlate different single or multi dimensional streams, rotate, scale, crop images.v
+* cross-correlate different single or multi dimensional streams, rotate, scale, crop images.<br>
 * The DSP API can also be used for astrometrical purposes, by locating the ALT/AZ location of celestial<br>
 * objects or finding or recognizing a star into the field of view.<br>
 *

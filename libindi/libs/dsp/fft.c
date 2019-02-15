@@ -85,7 +85,7 @@ static void complex2phirad(fftw_complex* in, double* out, int len)
 	}
 }
 
-double* dsp_fft_spectrum(dsp_stream_p stream, int conversion, int size)
+double* dsp_fft_spectrum(dsp_stream_p stream, dsp_conversiontype conversion, int size)
 {
     double* ret;
     double* out = dsp_fft_dft(stream, -1, conversion);
@@ -113,7 +113,7 @@ double* dsp_fft_shift(double* in, int dims, int* sizes)
     return o;
 }
 
-double* dsp_fft_dft(dsp_stream_p stream, int sign, int conversion)
+double* dsp_fft_dft(dsp_stream_p stream, int sign, dsp_conversiontype conversion)
 {
     fftw_plan p;
     int len = stream->len;
