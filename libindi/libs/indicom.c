@@ -30,6 +30,7 @@
 #include "indidevapi.h"
 #include "locale_compat.h"
 
+#include "dsp.h"
 #include "config.h"
 
 #if defined(HAVE_LIBNOVA)
@@ -112,7 +113,7 @@ int extractISOTime(const char *timestr, struct ln_date *iso_date)
 
 /* sprint the variable a in sexagesimal format into out[].
  * w is the number of spaces for the whole part.
- * fracbase is the number of pieces a whole is to broken into; valid options:
+ * fracbase is the number of M_PIeces a whole is to broken into; valid options:
  *	360000:	<w>:mm:ss.ss
  *	36000:	<w>:mm:ss.s
  *	3600:	<w>:mm:ss
@@ -379,7 +380,7 @@ int tty_timeout(int fd, int timeout)
     /* Return -1 due to an error */
     else if (retval == -1)
         return TTY_SELECT_ERROR;
-    /* Return -2 if time expires before anything interesting happens */
+    /* Return -2 if time exM_PIres before anything interesting happens */
     else
         return TTY_TIME_OUT;
 
@@ -721,7 +722,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     }
 
     // Set raw input (non-canonical) mode, with reads blocking until either a single character
-    // has been received or a one second timeout expires.
+    // has been received or a one second timeout exM_PIres.
     // See tcsetattr(4) ("man 4 tcsetattr") and termios(4) ("man 4 termios") for details.
 
     cfmakeraw(&tty_setting);
@@ -1589,6 +1590,50 @@ double get_local_hour_angle(double sideral_time, double ra)
 {
     double HA = sideral_time - ra;
     return rangeHA(HA);
+}
+
+void get_alt_az_coordinates(double Ha, double Dec, double Lat, double* Alt, double *Az)
+{
+    double alt, az;
+    Ha *= M_PI / 180.0;
+    Dec *= M_PI / 180.0;
+    Lat *= M_PI / 180.0;
+    alt = asin(sin(Dec) * sin(Lat) + cos(Dec) * cos(Lat) * cos(Ha));
+    az = acos((sin(Dec) - sin(alt)*sin(Lat)) / (cos(alt) * cos(Lat)));
+    alt *= 180.0 / M_PI;
+    az *= 180.0 / M_PI;
+    if (sin(Ha) >= 0.0)
+        az = 360 - az;
+    *Alt = alt;
+    *Az = az;
+}
+
+double estimate_geocentric_elevation(double Lat, double El)
+{
+    Lat *= M_PI / 180.0;
+    Lat = sin(Lat);
+    El += Lat * (EARTHRADIUSPOLAR - EARTHRADIUSEQUATORIAL);
+    return El;
+}
+
+double estimate_field_rotation_rate(double Alt, double Az, double Lat)
+{
+    Alt *= M_PI / 180.0;
+    Az *= M_PI / 180.0;
+    Lat *= M_PI / 180.0;
+    double ret = cos(Lat) * cos(Az) / cos(Alt);
+    ret *= 180.0 / M_PI;
+    return ret;
+}
+
+double estimate_field_rotation(double HA, double rate)
+{
+    HA *= rate;
+    while(HA >= 360.0)
+        HA -= 360.0;
+    while(HA < 0)
+        HA += 360.0;
+    return HA;
 }
 
 #if defined(_MSC_VER)

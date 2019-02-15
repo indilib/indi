@@ -71,7 +71,7 @@ static void complex2magdbv(fftw_complex* in, double* out, int len)
 static void complex2phideg(fftw_complex* in, double* out, int len)
 {
 	int i;
-    double sf = 180.0 / PI;
+    double sf = 180.0 / M_PI;
 	for(i = 0; i < len; i++) {
 		out [i] = complex_phi(in [i]) * sf;
 	}

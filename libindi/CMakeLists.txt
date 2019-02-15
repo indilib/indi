@@ -372,8 +372,6 @@ ENDIF(OGGTHEORA_FOUND)
 ENDIF(UNIX)
 
 SET(libdsp_C_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/align.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/astro.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/buffer.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convert.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fft.c
@@ -382,7 +380,6 @@ SET(libdsp_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convolution.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/stats.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/stream.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/time.c
     )
 
 SET(indidriver_C_SRC

@@ -20,7 +20,6 @@
 #include "indidetector.h"
 
 #include "indicom.h"
-#include "dsp/dsp.h"
 
 #include <fitsio.h>
 

@@ -29,7 +29,7 @@ double* dsp_signals_sinewave(int len, double samplefreq, double freq)
         x = rad;
         while (x > 1.0)
             x -= 1.0;
-        x *= PI * 2;
+        x *= M_PI * 2;
         out[k] = sin(x);
     }
     return out;

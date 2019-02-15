@@ -230,12 +230,13 @@ void dsp_stream_sum(dsp_stream_p in1, dsp_stream_p in2)
     }
 }
 
-dsp_stream_p dsp_stream_crop(dsp_stream_p in, dsp_region* rect)
+dsp_stream_p dsp_stream_crop(dsp_stream_p in)
 {
     int dims = in->dims;
     if(dims == 0)
         return NULL;
     int len = 1;
+    dsp_region* rect = in->ROI;
     dsp_stream_p ret = dsp_stream_new();
     for(int dim = 0; dim < dims; dim++) {
         dsp_stream_add_dim(ret, rect[dim].len);

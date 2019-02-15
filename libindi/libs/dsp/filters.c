@@ -36,7 +36,7 @@ double* dsp_filter_squarelaw(dsp_stream_p stream)
 void dsp_filter_calc_coefficients(double SamplingFrequency, double LowFrequency, double HighFrequency, double* CF, double* R, double *K)
 {
     double BW = (HighFrequency - LowFrequency) / SamplingFrequency;
-    *CF = 2.0 * cos((LowFrequency + HighFrequency) * PI / SamplingFrequency);
+    *CF = 2.0 * cos((LowFrequency + HighFrequency) * M_PI / SamplingFrequency);
     *R = 1.0 - 3.0 * BW;
     *K = (1.0 - *R * *CF + *R * *R) / (2.0 - *CF);
 }
@@ -45,7 +45,7 @@ double* dsp_filter_lowpass(dsp_stream_p stream, double SamplingFrequency, double
 {
     double *out = calloc(sizeof(double), stream->len);
     double wa = 0.0;
-    double CF = cos(Frequency / 2.0 * PI / SamplingFrequency);
+    double CF = cos(Frequency / 2.0 * M_PI / SamplingFrequency);
     for(int i = 1; i < stream->len; i++) {
         wa = stream->in[i] + (wa - stream->in[i]) * (CF * Q);
         out[i] = wa;
@@ -57,7 +57,7 @@ double* dsp_filter_highpass(dsp_stream_p stream, double SamplingFrequency, doubl
 {
     double *out = calloc(sizeof(double), stream->len);
     double wa = 0.0;
-    double CF = cos(Frequency / 2.0 * PI / SamplingFrequency);
+    double CF = cos(Frequency / 2.0 * M_PI / SamplingFrequency);
     for(int i = 1; i < stream->len; i++) {
         wa = stream->in[i] + (wa - stream->in[i]) * (CF * Q);
         out[i] = stream->in[i] - wa;
