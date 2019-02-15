@@ -34,7 +34,6 @@ extern "C" {
 #include <assert.h>
 #include <pthread.h>
 
-
 #ifndef Min
 #define Min(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -48,31 +47,6 @@ extern "C" {
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
 #endif
-
-#ifndef dsp_buffer_reverse
-#define dsp_buffer_reverse(a, b, len) \
-    ({ \
-        int i = len - 1; \
-        int j = 0; \
-        while(i >= 0) \
-        { \
-          a[i] = b[j]; \
-          i--; \
-          j++; \
-        } \
-    })
-#endif
-
-#ifndef dsp_convert
-#define dsp_convert(in, out, len) \
-    ({ \
-        int k; \
-        for(k = 0; k < len; k++) { \
-        ((__typeof__ (out[0])*)out)[k] = (__typeof__ (out[0]))((__typeof__ (in[0])*)in)[k]; \
-        } \
-    })
-#endif
-
 
 /**
  * \defgroup DSP Digital Signal Processing API
@@ -542,54 +516,195 @@ extern double* dsp_buffer_val_sum(double* in, int len);
 */
 extern double* dsp_buffer_deviate(double* in1, int len1, double* in2, int len2, double mindeviation, double maxdeviation);
 
+/**
+* \brief Reverse the order of the input buffer elements
+* \param buf the input stream.
+* \param len the length of the first input stream.
+*/
+#ifndef dsp_buffer_reverse
+#define dsp_buffer_reverse(buf, len) \
+    ({ \
+        int i = (len - 1) / 2; \
+        int j = i + 1; \
+        __typeof__(buf[0]) _x; \
+        while(i >= 0) \
+        { \
+          _x = buf[j]; \
+          buf[i] = buf[j]; \
+          buf[j] = _x; \
+          i--; \
+          j++; \
+        } \
+    })
+#endif
+
+/**
+* \brief Fill the output buffer with the values of the
+* elements of the input stream by casting them to the
+* output buffer element type
+* \param in the input stream.
+* \param out the output stream.
+* \param len the length of the first input stream.
+*/
+#ifndef dsp_convert
+#define dsp_convert(in, out, len) \
+    ({ \
+        int k; \
+        for(k = 0; k < len; k++) { \
+        ((__typeof__ (out[0])*)out)[k] = (__typeof__ (out[0]))((__typeof__ (in[0])*)in)[k]; \
+        } \
+    })
+#endif
+
 /*@}*/
 /**
  * \defgroup DSP_DSPStream DSP API Stream type management functions
 */
 /*@{*/
 
+/**
+* \brief Set the input buffer length on the stream passed as argument
+* \param stream the target DSP stream.
+* \param len the new length of the input buffer.
+* \return the input buffer
+*/
 extern double *dsp_stream_set_input_buffer_len(dsp_stream_p stream, int len);
 
+/**
+* \brief Set the output buffer length on the stream passed as argument
+* \param stream the target DSP stream.
+* \param len the new length of the output buffer.
+* \return the output buffer
+*/
 extern double *dsp_stream_set_output_buffer_len(dsp_stream_p stream, int len);
 
+/**
+* \brief Set the input buffer of the stream passed as argument to a specific memory location
+* \param stream the target DSP stream.
+* \param buffer the new location of the input buffer.
+* \param len the new length of the input buffer.
+* \return the input buffer
+*/
 extern double *dsp_stream_set_input_buffer(dsp_stream_p stream, void *buffer, int len);
 
+/**
+* \brief Set the output buffer of the stream passed as argument to a specific memory location
+* \param stream the target DSP stream.
+* \param buffer the new location of the output buffer.
+* \param len the new length of the output buffer.
+* \return the output buffer
+*/
 extern double *dsp_stream_set_output_buffer(dsp_stream_p stream, void *buffer, int len);
 
+/**
+* \brief Return the input buffer of the stream passed as argument
+* \param stream the target DSP stream.
+* \return the input buffer
+*/
 extern double *dsp_stream_get_input_buffer(dsp_stream_p stream);
 
+/**
+* \brief Return the output buffer of the stream passed as argument
+* \param stream the target DSP stream.
+* \return the output buffer
+*/
 extern double *dsp_stream_get_output_buffer(dsp_stream_p stream);
 
+/**
+* \brief Swap input and output buffers of the passed stream
+* \param stream the target DSP stream.
+*/
 extern void dsp_stream_free_input_buffer(dsp_stream_p stream);
 
+/**
+* \brief Swap input and output buffers of the passed stream
+* \param stream the target DSP stream.
+*/
 extern void dsp_stream_free_output_buffer(dsp_stream_p stream);
 
+/**
+* \brief Allocate a new DSP stream type
+* \return the newly created DSP stream type
+*/
 extern dsp_stream_p dsp_stream_new();
 
+/**
+* \brief Create a copy of the DSP stream passed as argument
+* \return the copy of the DSP stream
+*/
 extern dsp_stream_p dsp_stream_copy(dsp_stream_p stream);
 
+/**
+* \brief Swap input and output buffers of the passed stream
+* \param stream the target DSP stream.
+*/
 extern void dsp_stream_add_child(dsp_stream_p stream, dsp_stream_p child);
 
+/**
+* \brief Swap input and output buffers of the passed stream
+* \param stream the target DSP stream.
+*/
 extern void dsp_stream_add_dim(dsp_stream_p stream, int size);
 
+/**
+* \brief Swap input and output buffers of the passed stream
+* \param stream the target DSP stream.
+*/
 extern void dsp_stream_free(dsp_stream_p stream);
 
-extern int dsp_stream_byte_size(dsp_stream_p stream);
-
+/**
+* \brief Update the pos field of the DSP stream passed as argument by reading the index field
+* \param stream the target DSP stream.
+* \return the updated DSP stream.
+*/
 extern dsp_stream_p dsp_stream_set_position(dsp_stream_p stream);
 
+/**
+* \brief Update the index field of the DSP stream passed as argument by reading the pos field
+* \param stream the target DSP stream.
+* \return the updated DSP stream.
+*/
 extern dsp_stream_p dsp_stream_get_position(dsp_stream_p stream);
 
+/**
+* \brief Execute the function callback pointed by the func field of the passed stream
+* \param stream the target DSP stream.
+* \return the return value of the function delegate.
+*/
 extern void *dsp_stream_exec(dsp_stream_p stream);
 
+/**
+* \brief Execute the function callback pointed by the func field of the passed stream
+* by increasing the index value and updating the position each time.
+* the function delegate should use the pos* field to obtain the current position on each dimension.
+* \param stream the target DSP stream.
+* \return the return value of the function delegate.
+*/
 extern void *dsp_stream_exec_multidim(dsp_stream_p stream);
 
-extern dsp_stream_p dsp_stream_crop(dsp_stream_p in);
+/**
+* \brief Crop the buffers of the stream passed as argument by reading the ROI field.
+* \param stream the target DSP stream.
+* \return the cropped DSP stream.
+*/
+extern dsp_stream_p dsp_stream_crop(dsp_stream_p stream);
 
+/**
+* \brief Swap input and output buffers of the passed stream
+* \param stream the target DSP stream.
+*/
 extern void dsp_stream_mul(dsp_stream_p in1, dsp_stream_p in2);
 
+/**
+* \brief Swap input and output buffers of the passed stream
+* \param stream the target DSP stream.
+*/
 extern void dsp_stream_sum(dsp_stream_p in1, dsp_stream_p in2);
 
+/**
+* \brief Swap input and output buffers of the passed stream
+* \param stream the target DSP stream.
+*/
 extern void dsp_stream_swap_buffers(dsp_stream_p stream);
 
 /*@}*/

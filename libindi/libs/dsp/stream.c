@@ -93,6 +93,7 @@ dsp_stream_p dsp_stream_new()
     stream->sizes = (int*)calloc(sizeof(int), 1);
     stream->pos = (int*)calloc(sizeof(int), 1);
     stream->children = calloc(sizeof(dsp_stream_p), 1);
+    stream->ROI = (dsp_region*)calloc(sizeof(dsp_region), 1);
     stream->child_count = 0;
     stream->parent = NULL;
     stream->dims = 0;
@@ -123,6 +124,7 @@ void dsp_stream_add_dim(dsp_stream_p stream, int size)
 {
     stream->sizes[stream->dims] = size;
     stream->dims ++;
+    stream->ROI = (dsp_region*)realloc(stream->sizes, sizeof(dsp_region));
     stream->sizes = (int*)realloc(stream->sizes, sizeof(int) * (stream->dims + 1));
     stream->pos = (int*)realloc(stream->pos, sizeof(int) * (stream->dims + 1));
     stream->len *= size;
@@ -148,12 +150,6 @@ void dsp_stream_free(dsp_stream_p stream)
     free(stream->pos);
     free(stream->children);
     free(stream);
-}
-
-int dsp_stream_byte_size(dsp_stream_p stream)
-{
-    int size = sizeof(*stream);
-    return size;
 }
 
 dsp_stream_p dsp_stream_get_position(dsp_stream_p stream) {
