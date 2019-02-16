@@ -169,6 +169,8 @@ bool Serial::Connect()
 
     if (rc)
         rc = processHandshake();
+    else
+        tty_disconnect(PortFD);
 
     // Start auto-search if option was selected and IF we have system ports to try connecting to
     if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr)
