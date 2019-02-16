@@ -547,6 +547,7 @@ bool NStep::readTemperature()
         return false;
 
     TemperatureN[0].value = temperature / 10.0;
+    TemperatureNP.s = IPS_OK;
 
     return true;
 }
@@ -666,7 +667,7 @@ bool NStep::readSpeedInfo()
 
     // nStep defines speed step rates from 1 to 254
     // when 1 being the fastest, so for speed we flip the values
-    FocusSpeedN[0].max   = 254 - max_step + 1;
+    FocusSpeedN[0].max   = max_step;
     FocusSpeedN[0].value = 254 - current_step + 1;
     FocusSpeedNP.s = IPS_OK;
 
@@ -720,7 +721,7 @@ bool NStep::SetFocuserSpeed(int speed)
     // Speed and Current NStep steps are opposite.
     // Speed 1 is slowest, translated to 254 for nStep.
     char cmd[NSTEP_LEN] = {0};
-    snprintf(cmd, NSTEP_LEN, "#:CO%03d#", 254 - speed);
+    snprintf(cmd, NSTEP_LEN, "#:CO%03d#", 254 - speed + 1);
     return sendCommand(cmd);
 }
 
