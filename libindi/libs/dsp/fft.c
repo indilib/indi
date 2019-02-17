@@ -53,26 +53,6 @@ double* dsp_fft_complex_array_to_phase(dsp_complex* in, int len)
     return out;
 }
 
-void dsp_buffer_shift(dsp_stream_p stream)
-{
-    if(stream->dims == 0)
-        return;
-    int total = 1;
-    for(int dim = 0; dim < stream->dims; dim++)
-        total *= stream->sizes[dim];
-    double* o = (double*)calloc(sizeof(double), total);
-    int len = 1;
-    for(int dim = 0; dim < stream->dims; dim++) {
-        len *= stream->sizes[dim];
-        for(int y = 0; y < total; y += len) {
-            memcpy(&o[y], &stream->buf[y + len / 2], sizeof(double) * len / 2);
-            memcpy(&o[y + len / 2], &stream->buf[y], sizeof(double) * len / 2);
-        }
-    }
-    dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, o, stream->len);
-}
-
 dsp_complex* dsp_fft_dft(dsp_stream_p stream)
 {
     dsp_complex* dft = (dsp_complex*)calloc(sizeof(dsp_complex), stream->len);

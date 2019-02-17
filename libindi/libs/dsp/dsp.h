@@ -162,14 +162,6 @@ typedef struct dsp_stream_t
 /*@{*/
 
 /**
-* \brief Shift a stream on each dimension
-* \param stream the input stream.
-* \return the output buffer if successfull elaboration. NULL if an
-* error is encountered.
-*/
-extern double* dsp_fft_shift(dsp_stream_p stream);
-
-/**
 * \brief Discrete Fourier Transform of a dsp_stream
 * \param stream the input stream.
 * \return the output stream if successfull elaboration. NULL if an
@@ -341,6 +333,14 @@ extern double dsp_stats_compare(dsp_stream_p stream, double* in, int len);
  * \defgroup DSP_Buffers DSP API Buffer editing functions
 */
 /*@{*/
+
+/**
+* \brief Shift a stream on each dimension
+* \param stream the input stream.
+* \return the output buffer if successfull elaboration. NULL if an
+* error is encountered.
+*/
+extern double* dsp_buffer_shift(dsp_stream_p stream);
 
 /**
 * \brief Subtract mean from stream
