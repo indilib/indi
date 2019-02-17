@@ -303,7 +303,7 @@ void indiduino::TimerHit()
                     return;
 
                 if (eqp->aux0 == nullptr) continue;
-                strcpy(eqp->text,(char*)eqp->aux0);
+                IUSaveText(eqp, (char*)eqp->aux0);
                 //LOGF_DEBUG("%s.%s TEXT: %s ",tvp->name,eqp->name,eqp->text);
                 IDSetText(tvp, nullptr);
             }
