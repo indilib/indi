@@ -943,13 +943,13 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
     {
         pin = atoi(findXMLAttValu(ioep, "pin"));
 
-        if (pin >= 1 && pin <= 40)
+        if (pin >= 0 && pin < MAX_IO_PIN)
         { //19 hardware pins.
             iopin[npin].pin = pin;
         }
         else
         {
-            LOG_ERROR("induino: pin number is required. Check pin attrib value (1-19)");
+            LOG_ERROR("induino: pin number is required. Check pin attrib value (0-127)");
             return false;
         }
 
