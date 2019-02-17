@@ -21,16 +21,17 @@
 void dsp_filter_squarelaw(dsp_stream_p stream)
 {
     double* in = stream->buf;
-    double* out = out;
+    double *out = calloc(sizeof(double), stream->len);
     int len = stream->len;
     double mean = dsp_stats_mean(stream);
-	int val = 0;
-	int i;
-	for(i = 0; i < len; i++) {
-		val = in [i] - mean;
-		out [i] = (abs (val) + mean);
-	}
-
+    int val = 0;
+    int i;
+    for(i = 0; i < len; i++) {
+        val = in [i] - mean;
+        out [i] = (abs (val) + mean);
+    }
+    dsp_stream_free_buffer(stream);
+    dsp_stream_set_buffer(stream, out, stream->len);
 }
 
 void dsp_filter_calc_coefficients(double SamplingFrequency, double LowFrequency, double HighFrequency, double* CF, double* R, double *K)
@@ -50,7 +51,8 @@ void dsp_filter_lowpass(dsp_stream_p stream, double SamplingFrequency, double Fr
         wa = stream->buf[i] + (wa - stream->buf[i]) * (CF * Q);
         out[i] = wa;
     }
-
+    dsp_stream_free_buffer(stream);
+    dsp_stream_set_buffer(stream, out, stream->len);
 }
 
 void dsp_filter_highpass(dsp_stream_p stream, double SamplingFrequency, double Frequency, double Q)
@@ -62,7 +64,8 @@ void dsp_filter_highpass(dsp_stream_p stream, double SamplingFrequency, double F
         wa = stream->buf[i] + (wa - stream->buf[i]) * (CF * Q);
         out[i] = stream->buf[i] - wa;
     }
-
+    dsp_stream_free_buffer(stream);
+    dsp_stream_set_buffer(stream, out, stream->len);
 }
 
 void dsp_filter_bandreject(dsp_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
@@ -85,7 +88,8 @@ void dsp_filter_bandreject(dsp_stream_p stream, double SamplingFrequency, double
             }
         }
     }
-
+    dsp_stream_free_buffer(stream);
+    dsp_stream_set_buffer(stream, out, stream->len);
 }
 
 void dsp_filter_bandpass(dsp_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
@@ -108,5 +112,6 @@ void dsp_filter_bandpass(dsp_stream_p stream, double SamplingFrequency, double L
             }
         }
     }
-
+    dsp_stream_free_buffer(stream);
+    dsp_stream_set_buffer(stream, out, stream->len);
 }
