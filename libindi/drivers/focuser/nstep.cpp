@@ -543,10 +543,13 @@ bool NStep::readTemperature()
     float temperature = -1000;
     sscanf(res, "%6f", &temperature);
 
+    // Divide by 10 to get actual value
+    temperature /= 10.0;
+
     if (temperature < -80)
         return false;
 
-    TemperatureN[0].value = temperature / 10.0;
+    TemperatureN[0].value = temperature;
     TemperatureNP.s = IPS_OK;
 
     return true;
