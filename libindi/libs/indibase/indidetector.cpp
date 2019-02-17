@@ -286,7 +286,7 @@ void Detector::SetDetectorCapability(uint32_t cap)
 
 bool Detector::initProperties()
 {
-    Detector::initProperties(); //  let the base class flesh in what it wants
+    DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
     // PrimaryDetector Temperature
     IUFillNumber(&TemperatureN[0], "DETECTOR_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
@@ -398,7 +398,7 @@ bool Detector::initProperties()
 
 void Detector::ISGetProperties(const char *dev)
 {
-    Detector::ISGetProperties(dev);
+    DefaultDevice::ISGetProperties(dev);
 
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
@@ -513,7 +513,7 @@ bool Detector::ISSnoopDevice(XMLEle *root)
         }
     }
 
-    return Detector::ISSnoopDevice(root);
+    return DefaultDevice::ISSnoopDevice(root);
 }
 
 bool Detector::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -561,7 +561,7 @@ bool Detector::ISNewText(const char *dev, const char *name, char *texts[], char 
         }
     }
 
-    return Detector::ISNewText(dev, name, texts, names, n);
+    return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
 
 bool Detector::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -631,7 +631,7 @@ bool Detector::ISNewNumber(const char *dev, const char *name, double values[], c
         }
     }
 
-    return Detector::ISNewNumber(dev, name, values, names, n);
+    return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
 bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -696,7 +696,7 @@ bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         }
     }
 
-    return Detector::ISNewSwitch(dev, name, states, names, n);
+    return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 int Detector::SetTemperature(double temperature)
@@ -1139,7 +1139,7 @@ void Detector::SetDetectorParams(float samplerate, float freq, float bps, float 
 
 bool Detector::saveConfigItems(FILE *fp)
 {
-    Detector::saveConfigItems(fp);
+    DefaultDevice::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &UploadSP);
