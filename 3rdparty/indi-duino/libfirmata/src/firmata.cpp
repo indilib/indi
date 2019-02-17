@@ -175,11 +175,11 @@ int Firmata::askPinState(int pin)
 int Firmata::reportDigitalPorts(int enable)
 {
     int rv = 0;
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 16; i++)
     {
         rv |= arduino->sendUchar(FIRMATA_REPORT_DIGITAL | i); // report analog
         rv |= arduino->sendUchar(enable);
-        LOGF_DEBUG("Sending REPORT_DIGITAL pin:%d, enable:%d", i, enable);
+        LOGF_DEBUG("Sending REPORT_DIGITAL port:%d, enable:%d", i, enable);
     }
     return (rv);
 }
@@ -187,11 +187,11 @@ int Firmata::reportDigitalPorts(int enable)
 int Firmata::reportAnalogPorts(int enable)
 {
     int rv = 0;
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 16; i++)
     {
         rv |= arduino->sendUchar(FIRMATA_REPORT_ANALOG | i); // report analog
         rv |= arduino->sendUchar(enable);
-        LOGF_DEBUG("Sending REPORT_ANALOG pin:%d, enable:%d", i, enable);
+        LOGF_DEBUG("Sending REPORT_ANALOG pin: A%d, enable:%d", i, enable);
     }
     return (rv);
 }
