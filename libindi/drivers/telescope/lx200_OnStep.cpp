@@ -1718,8 +1718,7 @@ void LX200_OnStep::OSUpdateFocuser()
 {
     char value[RB_MAX_LEN];
     double current = 0;
-    double temp=-1;
-	if (OSFocuser1) {
+        if (OSFocuser1) {
 	// Alternate option:
 	//if (!sendOnStepCommand(":FA#")) {
 		getCommandString(PortFD, value, ":FG#");
