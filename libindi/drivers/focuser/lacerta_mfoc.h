@@ -21,56 +21,39 @@
 
 #include "indifocuser.h"
 
-/**
- * @brief The FocusSim class provides a simple Focuser simulator that can simulator the following devices:
- * + Absolute Focuser with encoders.
- * + Relative Focuser.
- * + Simple DC Focuser.
- *
- * The focuser type must be selected before establishing connection to the focuser.
- *
- * The driver defines FWHM property that is used in the @ref CCDSim "CCD Simulator" driver to simulate the fuzziness of star images.
- * It can be used to test AutoFocus routines among other applications.
- */
 class lacerta_mfoc : public INDI::Focuser
 {
   public:
     lacerta_mfoc();
-    virtual ~lacerta_mfoc() = default;
-    const char *getDefaultName();
 
-    bool initProperties();
-    void ISGetProperties(const char *dev);
-    bool updateProperties();
+    bool initProperties() override;
+    void ISGetProperties(const char *dev) override;
+    bool updateProperties() override;
 
-    bool Connect();
-    bool Disconnect();
+    const char *getDefaultName() override;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;    
+
+protected:
     virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    virtual bool SetFocuserSpeed(int speed) override;
+    virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
     virtual bool saveConfigItems(FILE *fp) override;
-    virtual uint32_t GetAbsFocuserPosition();
-  private:
-    double internalTicks { 0 };
-    double initTicks { 0 };
-    virtual bool SetBacklash(double values[], char *names[], int n);
-    virtual bool SetTempComp(double values[], char *names[], int n);
-    virtual bool SetPositionMax(double values[], char *names[], int n);
 
-    // MFOC specific parameters
-    // 
+  private:
+    virtual bool SetBacklash(double values[], char *names[], int n);
+    virtual bool SetTempComp(double values[], char *names[], int n);    
+    virtual uint32_t GetAbsFocuserPosition();
+
+    // Backlash
     INumberVectorProperty BacklashNP;
     INumber BacklashN[1];
     
+    // Temperature Compensation
     INumberVectorProperty TempCompNP;
     INumber TempCompN[1];
-    
-    INumberVectorProperty PositionMaxNP;
-    INumber PositionMaxN[1];
-    
+
     enum
     {
         MODE_TDIR_BOTH,
@@ -90,13 +73,4 @@ class lacerta_mfoc : public INDI::Focuser
     ISwitchVectorProperty StartSavedPositionSP;
     ISwitch StartSavedPositionS[MODE_COUNT_SAVED];
 
-    enum
-    {
-        MODE_ALL,
-        MODE_ABSOLUTE,
-        MODE_RELATIVE,
-        MODE_COUNT
-    };
-    ISwitchVectorProperty ModeSP;
-    ISwitch ModeS[MODE_COUNT];
 };
