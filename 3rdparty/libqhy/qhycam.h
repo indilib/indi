@@ -105,7 +105,7 @@ public:
     usbintrep = 0x81;
     intepflag = 0;
     usbtype = QHYCCD_USBTYPE_CYUSB;
-    //CameraType = DEVICETYPE_UNKNOW;
+//    CameraType = DEVICETYPE_UNKNOW;
 	
 
 #if defined (_WIN32)
@@ -156,7 +156,6 @@ static void QBeep(uint32_t volume,uint32_t mstime)
 #endif
 #endif
 }
-
 
 
   /**

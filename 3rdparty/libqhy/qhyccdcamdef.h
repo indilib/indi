@@ -3,7 +3,7 @@
 #ifndef __QHYCCDCAMDEF_H__
 #define __QHYCCDCAMDEF_H__
 
-#include "config.h"
+
 
 /* IMG series */
 
