@@ -286,7 +286,7 @@ void Detector::SetDetectorCapability(uint32_t cap)
 
 bool Detector::initProperties()
 {
-    DefaultDevice::initProperties(); //  let the base class flesh in what it wants
+    Detector::initProperties(); //  let the base class flesh in what it wants
 
     // PrimaryDetector Temperature
     IUFillNumber(&TemperatureN[0], "DETECTOR_TEMPERATURE_VALUE", "Temperature (C)", "%5.2f", -50.0, 50.0, 0., 0.);
@@ -398,7 +398,7 @@ bool Detector::initProperties()
 
 void Detector::ISGetProperties(const char *dev)
 {
-    DefaultDevice::ISGetProperties(dev);
+    Detector::ISGetProperties(dev);
 
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
@@ -513,7 +513,7 @@ bool Detector::ISSnoopDevice(XMLEle *root)
         }
     }
 
-    return DefaultDevice::ISSnoopDevice(root);
+    return Detector::ISSnoopDevice(root);
 }
 
 bool Detector::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -561,7 +561,7 @@ bool Detector::ISNewText(const char *dev, const char *name, char *texts[], char 
         }
     }
 
-    return DefaultDevice::ISNewText(dev, name, texts, names, n);
+    return Detector::ISNewText(dev, name, texts, names, n);
 }
 
 bool Detector::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -631,7 +631,7 @@ bool Detector::ISNewNumber(const char *dev, const char *name, double values[], c
         }
     }
 
-    return DefaultDevice::ISNewNumber(dev, name, values, names, n);
+    return Detector::ISNewNumber(dev, name, values, names, n);
 }
 
 bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -696,7 +696,7 @@ bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *states, c
         }
     }
 
-    return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+    return Detector::ISNewSwitch(dev, name, states, names, n);
 }
 
 int Detector::SetTemperature(double temperature)
@@ -1139,7 +1139,7 @@ void Detector::SetDetectorParams(float samplerate, float freq, float bps, float 
 
 bool Detector::saveConfigItems(FILE *fp)
 {
-    DefaultDevice::saveConfigItems(fp);
+    Detector::saveConfigItems(fp);
 
     IUSaveConfigText(fp, &ActiveDeviceTP);
     IUSaveConfigSwitch(fp, &UploadSP);
@@ -1324,6 +1324,217 @@ int Detector::getFileIndex(const char *dir, const char *prefix, const char *ext)
     }
 
     return (maxIndex + 1);
+}
+
+//DSP API functions
+
+void Detector::Spectrum(void *buf, void *out, int len, int size, int bits_per_sample) {
+    void* fourier = malloc(len);
+    FourierTransform(buf, fourier, 1, &len, bits_per_sample);
+    Histogram(fourier, out, len, size, bits_per_sample);
+    free(fourier);
+}
+
+void Detector::Histogram(void *buf, void *out, int buf_len, int histogram_size, int bits_per_sample) {
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    dsp_stream_add_dim(stream, buf_len * 8 / abs(bits_per_sample));
+    dsp_stream_alloc_buffer(stream, stream->len);
+    //Create the spectrum
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy((static_cast<unsigned char *>(buf)), stream->buf, stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy((static_cast<unsigned short *>(buf)), stream->buf, stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy((static_cast<unsigned int *>(buf)), stream->buf, stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+        break;
+    default:
+        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+        dsp_stream_free_buffer(stream);
+        //Destroy the dsp stream
+        dsp_stream_free(stream);
+        return;
+    }
+    double *histo = dsp_stats_histogram(stream, histogram_size);
+    dsp_stream_free_buffer(stream);
+    //Destroy the dsp stream
+    dsp_stream_free(stream);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy(histo, (static_cast<unsigned char *>(out)), histogram_size);
+        break;
+    case 16:
+        dsp_buffer_copy(histo, (static_cast<unsigned short *>(out)), histogram_size);
+        break;
+    case 32:
+        dsp_buffer_copy(histo, (static_cast<unsigned int *>(out)), histogram_size);
+        break;
+    case 64:
+        dsp_buffer_copy(histo, (static_cast<unsigned long *>(out)), histogram_size);
+        break;
+    case -32:
+        dsp_buffer_copy(histo, (static_cast<float *>(out)), histogram_size);
+        break;
+    case -64:
+        dsp_buffer_copy(histo, (static_cast<double *>(out)), histogram_size);
+        break;
+    default:
+        break;
+    }
+    free(histo);
+}
+
+void Detector::FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample) {
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    for(int dim = 0; dim < dims; dim++)
+        dsp_stream_add_dim(stream, sizes[dim]);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy((static_cast<unsigned char *>(buf)), stream->buf, stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy((static_cast<unsigned short *>(buf)), stream->buf, stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy((static_cast<unsigned int *>(buf)), stream->buf, stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+        break;
+    default:
+        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+        dsp_stream_free_buffer(stream);
+        //Destroy the dsp stream
+        dsp_stream_free(stream);
+        return;
+    }
+    double mn, mx;
+    dsp_stats_minmidmax(stream, &mn, &mx);
+    dsp_complex *dft = dsp_fft_dft(stream);
+    double *mag = dsp_fft_complex_array_to_magnitude(dft, stream->len);
+    free(dft);
+    dsp_stream_free_buffer(stream);
+    dsp_stream_set_buffer(stream, mag, stream->len);
+    dsp_buffer_stretch(stream, mn, mx);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned char *>(out)), stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned short *>(out)), stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned int *>(out)), stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
+        break;
+    default:
+        break;
+    }
+    //Destroy the dsp stream
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+}
+
+void Detector::Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample) {
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    for(int dim = 0; dim < dims; dim++)
+        dsp_stream_add_dim(stream, sizes[dim]);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    dsp_stream_p matrix_stream = dsp_stream_new();
+    for(int dim = 0; dim < matrix_dims; dim++)
+        dsp_stream_add_dim(matrix_stream, matrix_sizes[dim]);
+    dsp_stream_alloc_buffer(matrix_stream, matrix_stream->len);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy((static_cast<unsigned char *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<unsigned char *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy((static_cast<unsigned short *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<unsigned short *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy((static_cast<unsigned int *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<unsigned int *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<unsigned long *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<float *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<double *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    default:
+        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+        //Destroy the dsp streams
+        dsp_stream_free_buffer(stream);
+        dsp_stream_free_buffer(matrix_stream);
+        dsp_stream_free(stream);
+        dsp_stream_free(matrix_stream);
+        return;
+    }
+    dsp_convolution_convolution(stream, matrix_stream);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned char *>(out)), stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned short *>(out)), stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned int *>(out)), stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
+        break;
+    default:
+        break;
+    }
+    //Destroy the dsp streams
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+    dsp_stream_free_buffer(matrix_stream);
+    dsp_stream_free(matrix_stream);
 }
 
 }
