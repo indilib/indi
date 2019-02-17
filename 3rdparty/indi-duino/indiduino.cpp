@@ -209,10 +209,10 @@ void indiduino::TimerHit()
                 IO *pin_config = (IO *)sqp->aux;
                 if (pin_config == nullptr)
                     continue;
-                if (pin_config->IOType == DO)
+                if ((pin_config->IOType == DO) || (pin_config->IOType == DI))
                 {
                     int pin = pin_config->pin;
-                    if (sf->pin_info[pin].mode == FIRMATA_MODE_OUTPUT)
+                    if ((sf->pin_info[pin].mode == FIRMATA_MODE_OUTPUT) || (sf->pin_info[pin].mode == FIRMATA_MODE_INPUT))
                     {
                         if (sf->pin_info[pin].value == 1)
                         {
@@ -790,6 +790,11 @@ bool indiduino::setPinModesFromSKEL()
                         LOGF_DEBUG("%s.%s  pin %u set as DIGITAL OUTPUT", svp->name, sqp->name, pin);
                         sf->setPinMode(pin, FIRMATA_MODE_OUTPUT);
                     }
+                    else if (iopin[numiopin].IOType == DI)
+                    {
+                        LOGF_DEBUG("%s.%s  pin %u set as DIGITAL INPUT", svp->name, sqp->name, pin);
+                        sf->setPinMode(pin, FIRMATA_MODE_INPUT);
+                    }
                     else if (iopin[numiopin].IOType == SERVO)
                     {
                         LOGF_DEBUG("%s.%s  pin %u set as SERVO", svp->name, sqp->name, pin);
@@ -979,6 +984,10 @@ bool indiduino::readInduinoXml(XMLEle *ioep, int npin)
                     iopin[npin].SwitchButton = const_cast<char *>(findXMLAttValu(ioep, "button"));
                     LOGF_DEBUG("found button %s", iopin[npin].SwitchButton);
                 }
+            }
+            else if (!strcmp(findXMLAttValu(ioep, "type"), "input"))
+            {
+                iopin[npin].IOType = DI;
             }
             else
             {
