@@ -537,11 +537,11 @@ bool NStep::readTemperature()
 {
     char res[NSTEP_LEN] = {0};
 
-    if (sendCommand(":RT", res, 3, 3) == false)
+    if (sendCommand(":RT", res, 3, 4) == false)
         return false;
 
     float temperature = -1000;
-    sscanf(res, "%6f", &temperature);
+    sscanf(res, "%f", &temperature);
 
     // Divide by 10 to get actual value
     temperature /= 10.0;
