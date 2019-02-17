@@ -88,7 +88,10 @@ bool FocuserInterface::updateProperties()
         if (HasVariableSpeed())
         {
             m_defaultDevice->defineNumber(&FocusSpeedNP);
-            m_defaultDevice->defineNumber(&FocusTimerNP);
+
+            // We only define Focus Timer if we can not absolute move
+            if (CanAbsMove() == false)
+                m_defaultDevice->defineNumber(&FocusTimerNP);
         }
         if (CanRelMove())
             m_defaultDevice->defineNumber(&FocusRelPosNP);
@@ -110,7 +113,9 @@ bool FocuserInterface::updateProperties()
         if (HasVariableSpeed())
         {
             m_defaultDevice->deleteProperty(FocusSpeedNP.name);
-            m_defaultDevice->deleteProperty(FocusTimerNP.name);
+
+            if (CanAbsMove() == false)
+                m_defaultDevice->deleteProperty(FocusTimerNP.name);
         }
         if (CanRelMove())
             m_defaultDevice->deleteProperty(FocusRelPosNP.name);
