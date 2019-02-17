@@ -119,6 +119,8 @@ bool CelestronSCT::initProperties()
 
     // Set default baud rate to 19200
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
+    // Defualt port to /dev/ttyACM0
+    serialConnection->setDefaultPort("/dev/ttyACM0");
 
     return true;
 }
