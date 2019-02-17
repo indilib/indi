@@ -465,6 +465,10 @@ void NStep::TimerHit()
     if (isConnected() == false)
         return;
 
+    double currentPosition = FocusAbsPosN[0].value;
+
+    readPosition();
+
     // Check if we have a pending motion
     // and if we STOPPED, then let's take the next action
     if ( (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY) && isMoving() == false)
@@ -472,7 +476,6 @@ void NStep::TimerHit()
         // Are we done moving?
         if (m_TargetDiff == 0)
         {
-            readPosition();
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -508,6 +511,11 @@ void NStep::TimerHit()
                 // Positive targetDiff decreases eventually to zero
                 m_TargetDiff = m_TargetDiff + (nextMotion * ((direction == FOCUS_INWARD) ? 1 : -1));
         }
+        // Check if can update the absolute position in case it changed.
+    }
+    else if (currentPosition != FocusAbsPosN[0].value)
+    {
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
     // Read temperature
