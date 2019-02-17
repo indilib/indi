@@ -1757,7 +1757,7 @@ void LX200_OnStep::OSUpdateFocuser()
 		IUUpdateMinMax(&FocusAbsPosNP);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
 		FI::updateProperties();
-		LOGF_DEBUG("After update proerties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+		LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
 	} 
 	
 
