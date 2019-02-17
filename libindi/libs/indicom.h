@@ -320,6 +320,39 @@ double estimate_field_rotation_rate(double Alt, double Az, double latitude);
  */
 double estimate_field_rotation(double hour_angle, double field_rotation_rate);
 
+/**
+ * @brief parsec2m Convert parallax arcseconds into meters
+ * @param parsec the parallax arcseconds to convert
+ * @return Estimation of the distance in meters
+ */
+double parsec2m(double parsec);
+
+/**
+ * @brief m2au Convert meters into astronomical units
+ * @param m the distance in meters to convert
+ * @return Estimation of the distance in astronomical units
+ */
+double m2au(double m);
+
+/**
+ * @brief calc_delta_magnitude Returns the difference of magnitudes given two spectra
+ * @param mag0 Reference magnitude
+ * @param mag Relative magnitude to normalize
+ * @param spectrum The spectrum of the star
+ * @param spectrum_size The size of the spectrum
+ * @param lambda the index of the position into the spectrum that parameter mag refers to
+ * @return the magnitude difference
+ */
+double calc_delta_magnitude(double mag0, double mag, double *spectrum, int spectrum_size, int lambda);
+
+/**
+ * @brief estimate_field_rotation Returns an estimation of the field rotation rate of the object
+ * @param dist The distance in parallax radiuses
+ * @param delta_mag The difference of magnitudes
+ * @return Aproximation of the absolute magnitude in Δmag
+ */
+double estimate_absolute_magnitude(double dist, double delta_mag);
+
 /*@}*/
 
 #ifdef __cplusplus

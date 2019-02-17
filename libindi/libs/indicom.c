@@ -1636,6 +1636,31 @@ double estimate_field_rotation(double HA, double rate)
     return HA;
 }
 
+double parsec2m(double parsec)
+{
+    return parsec * PARSEC;
+}
+
+double m2au(double m)
+{
+    return m / ASTRONOMICALUNIT;
+}
+
+double calc_delta_magnitude(double mag0, double mag, double *spectrum, int spectrum_size, int lambda)
+{
+    double delta_mag = 0;
+    for(int l = 0; l < spectrum_size; l++) {
+        delta_mag += spectrum[l] * (mag - mag0) / spectrum[lambda];
+    }
+    delta_mag /= spectrum_size;
+    return delta_mag;
+}
+
+double estimate_absolute_magnitude(double delta_dist, double delta_mag)
+{
+    return sqrt(delta_dist) * delta_mag;
+}
+
 #if defined(_MSC_VER)
 #undef snprintf
 #pragma warning(pop)
