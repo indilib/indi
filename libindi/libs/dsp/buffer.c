@@ -18,173 +18,174 @@
 
 #include "dsp.h"
 
-double* dsp_buffer_zerofill(double* out, int len)
+void dsp_buffer_zerofill(dsp_stream_p stream)
 {
     int k;
-    for(k = 0; k < len; k++)
-        out[k] = 0;
-    return out;
+    for(k = 0; k < stream->len; k++)
+        stream->buf[k] = 0;
+
 }
 
-double* dsp_buffer_removemean(double* in, int len)
+void dsp_buffer_removemean(dsp_stream_p stream)
 {
     int k;
-    double *out = calloc(len, sizeof(double));
-    double mean = dsp_stats_mean(in, len);
-    for(k = 0; k < len; k++)
-        out[k] = in[k] - mean;
-    return out;
+
+    double mean = dsp_stats_mean(stream);
+    for(k = 0; k < stream->len; k++)
+        stream->buf[k] = stream->buf[k] - mean;
+
 }
 
-double* dsp_buffer_stretch(double* in, int len, double min, double max)
+void dsp_buffer_stretch(dsp_stream_p stream, double min, double max)
 {
-    double *out = calloc(len, sizeof(double));
+
     int k;
     double mn, mx;
-    dsp_stats_minmidmax(in, len, &mn, &mx);
+    dsp_stats_minmidmax(stream, &mn, &mx);
     double oratio = (max - min);
     double iratio = (mx - mn);
     if(iratio == 0) iratio = 1.0;
-	for(k = 0; k < len; k++) {
-        out[k] = in[k] - mn;
-        out[k] = out[k] * oratio / iratio;
-        out[k] += min;
+    for(k = 0; k < stream->len; k++) {
+        stream->buf[k] -= mn;
+        stream->buf[k] = stream->buf[k] * oratio / iratio;
+        stream->buf[k] += min;
     }
-    return out;
+
 }
 
-double* dsp_buffer_normalize(double* in, int len, double min, double max)
+void dsp_buffer_normalize(dsp_stream_p stream, double min, double max)
 {
 	int k;
-    double *out = calloc(len, sizeof(double));
-	for(k = 0; k < len; k++) {
-        out[k] = (in[k] < min ? min : (in[k] > max ? max : in[k]));
+
+    for(k = 0; k < stream->len; k++) {
+        stream->buf[k] = (stream->buf[k] < min ? min : (stream->buf[k] > max ? max : stream->buf[k]));
 	}
-    return out;
+
 }
 
-double* dsp_buffer_sub(double* in1, int len1, double* in2, int len2)
+void dsp_buffer_sub(dsp_stream_p stream, double* in, int inlen)
 {
-    int len = Min(len1, len2);
-    double *out = calloc(len, sizeof(double));
+    int len = Min(stream->len, inlen);
+
 	int k;
 	for(k = 0; k < len; k++) {
-        out[k] = in1[k] - in2[k];
+        stream->buf[k] = stream->buf[k] - in[k];
 	}
-    return out;
+
 }
 
-double* dsp_buffer_sum(double* in1, int len1, double* in2, int len2)
+void dsp_buffer_sum(dsp_stream_p stream, double* in, int inlen)
 {
-    int len = Min(len1, len2);
-    double *out = calloc(len, sizeof(double));
+    int len = Min(stream->len, inlen);
+
 	int k;
 	for(k = 0; k < len; k++) {
-        out[k] = in1[k] + in2[k];
+        stream->buf[k] = stream->buf[k] + in[k];
 	}
-    return out;
+
 }
 
-double* dsp_buffer_div(double* in1, int len1, double* in2, int len2)
+void dsp_buffer_div(dsp_stream_p stream, double* in, int inlen)
 {
-    int len = Min(len1, len2);
-    double *out = calloc(len, sizeof(double));
+    int len = Min(stream->len, inlen);
+
 	int k;
 	for(k = 0; k < len; k++) {
-        out[k] = in1[k] / in2[k];
+        stream->buf[k] = stream->buf[k] / in[k];
 	}
-    return out;
+
 }
 
-double* dsp_buffer_mul(double* in1, int len1, double* in2, int len2)
+void dsp_buffer_mul(dsp_stream_p stream, double* in, int inlen)
 {
-    int len = Min(len1, len2);
-    double *out = calloc(len, sizeof(double));
+    int len = Min(stream->len, inlen);
+
+    int k;
+    for(k = 0; k < len; k++) {
+        stream->buf[k] = stream->buf[k] * in[k];
+    }
+
+}
+
+void dsp_buffer_pow(dsp_stream_p stream, double* in, int inlen)
+{
+    int len = Min(stream->len, inlen);
+
+    int k;
+    for(k = 0; k < len; k++) {
+        stream->buf[k] = pow(stream->buf[k], in[k]);
+    }
+
+}
+
+void dsp_buffer_1sub(dsp_stream_p stream, double val)
+{
+    int k;
+
+    for(k = 0; k < stream->len; k++) {
+        stream->buf[k] = val - stream->buf[k];
+    }
+
+}
+
+void dsp_buffer_sub1(dsp_stream_p stream, double val)
+{
+    int k;
+
+    for(k = 0; k < stream->len; k++) {
+        stream->buf[k] = stream->buf[k] - val;
+    }
+
+}
+
+void dsp_buffer_sum1(dsp_stream_p stream, double val)
+{
 	int k;
-	for(k = 0; k < len; k++) {
-        out[k] = in1[k] * in2[k];
+
+    for(k = 0; k < stream->len; k++) {
+        stream->buf[k] += val;
 	}
-    return out;
+
 }
 
-double* dsp_buffer_1sub(double* in, int len, double val)
+void dsp_buffer_1div(dsp_stream_p stream, double val)
 {
     int k;
-    double *out = calloc(len, sizeof(double));
-    for(k = 0; k < len; k++) {
-        out[k] = val - in[k];
+
+    for(k = 0; k < stream->len; k++) {
+        stream->buf[k] = val / stream->buf[k];
     }
-    return out;
+
 }
 
-double* dsp_buffer_sub1(double* in, int len, double val)
+void dsp_buffer_div1(dsp_stream_p stream, double val)
 {
     int k;
-    double *out = calloc(len, sizeof(double));
-    for(k = 0; k < len; k++) {
-        out[k] = in[k] - val;
+
+    for(k = 0; k < stream->len; k++) {
+        stream->buf[k] /= val;
     }
-    return out;
+
 }
 
-double* dsp_buffer_sum1(double* in, int len, double val)
-{
-	int k;
-    double *out = calloc(len, sizeof(double));
-	for(k = 0; k < len; k++) {
-        out[k] = in[k] + val;
-	}
-    return out;
-}
-
-double* dsp_buffer_1div(double* in, int len, double val)
+void dsp_buffer_mul1(dsp_stream_p stream, double val)
 {
     int k;
-    double *out = calloc(len, sizeof(double));
-    for(k = 0; k < len; k++) {
-        out[k] = val / in[k];
+
+    for(k = 0; k < stream->len; k++) {
+        stream->buf[k] = stream->buf[k] * val;
     }
-    return out;
+
 }
 
-double* dsp_buffer_div1(double* in, int len, double val)
+void dsp_buffer_pow1(dsp_stream_p stream, double val)
 {
     int k;
-    double *out = calloc(len, sizeof(double));
-    for(k = 0; k < len; k++) {
-        out[k] = in[k] / val;
-    }
-    return out;
-}
 
-double* dsp_buffer_mul1(double* in, int len, double val)
-{
-    int k;
-    double *out = calloc(len, sizeof(double));
-    for(k = 0; k < len; k++) {
-        out[k] = in[k] * val;
+    for(k = 0; k < stream->len; k++) {
+        stream->buf[k] = pow(stream->buf[k], val);
     }
-    return out;
-}
 
-double* dsp_buffer_pow(double* in, int len, double val)
-{
-    int k;
-    double *out = calloc(len, sizeof(double));
-    for(k = 0; k < len; k++) {
-        out[k] = pow(in[k], val);
-    }
-    return out;
-}
-
-double* dsp_buffer_root(double* in, int len, double val)
-{
-    int k;
-    double *out = calloc(len, sizeof(double));
-    for(k = 0; k < len; k++) {
-        out[k] = 1.0/pow(in[k], val);
-    }
-    return out;
 }
 
 static int compare( const void* a, const void* b)
@@ -197,63 +198,29 @@ static int compare( const void* a, const void* b)
      else return 1;
 }
 
-double* dsp_buffer_median(double* in, int len, int size, int median)
+void dsp_buffer_median(dsp_stream_p stream, int size, int median)
 {
-    double *out = calloc(len, sizeof(double));
+
 	int k;
     int mid = (size / 2) + (size % 2);
     double* sorted = (double*)malloc(size * sizeof(double));
-	for(k = mid; k < len; k++) {
-        memcpy (sorted, in + (k - mid), size * sizeof(double));
+    for(k = mid; k < stream->len; k++) {
+        memcpy (sorted, stream->buf + (k - mid), size * sizeof(double));
         qsort(sorted, size, sizeof(double), compare);
-		out[k] = sorted[median];
+        stream->buf[k] = sorted[median];
 	}
-    return out;
+
 }
 
-double* dsp_buffer_histogram(double* in, int len, int size)
+void dsp_buffer_deviate(dsp_stream_p stream, dsp_stream_p deviation, double mindeviation, double maxdeviation)
 {
-    int k;
-    long* i = calloc(sizeof(long), len);
-    double *o = dsp_buffer_stretch(in, len, 0.0, size);
-    double *out = calloc(sizeof(double), size);
-    dsp_convert(o, i, len);
-    dsp_convert(i, o, len);
-    for(k = 1; k < size; k++) {
-        out[k] = dsp_stats_val_count(o, len, k);
-    }
-    free(i);
-    free(o);
-    return out;
-}
-
-double* dsp_buffer_deviate(double* in1, int len1, double* in2, int len2, double mindeviation, double maxdeviation)
-{
-    double *out = calloc(len1, sizeof(double));
-    int len = Min(len1, len2);
-    in2 = dsp_buffer_stretch(in2, len, mindeviation, maxdeviation);
-    in2 = dsp_buffer_val_sum(in2, len);
+    int len = Min(stream->len, deviation->len);
+    dsp_stream_p tmp = dsp_stream_copy(deviation);
+    dsp_buffer_stretch(tmp, mindeviation, maxdeviation);
+    dsp_stats_val_sum(tmp);
     for(int k = 1; k < len; k++) {
-        out[(int)in2[k]] = in1[k];
+        stream->buf[(int)tmp->buf[k]] = stream->buf[k];
     }
-    return out;
-}
+    dsp_stream_free(tmp);
 
-double* dsp_buffer_val_sum(double* in, int len)
-{
-    double* out = calloc(len, sizeof(double));
-    out[0] = in[0];
-    for(int i = 1; i < len; i++) {
-        out[i] += in[i - 1];
-    }
-    return out;
-}
-
-double dsp_buffer_compare(double* in1, int len1, double* in2, int len2)
-{
-    double out = 0;
-    for(int i = 0; i < Min(len1, len2); i++) {
-        out += in1[i] - in2[i];
-    }
-    return out;
 }

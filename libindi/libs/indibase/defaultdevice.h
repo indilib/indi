@@ -450,6 +450,51 @@ class INDI::DefaultDevice : public INDI::BaseDevice
     /// Period in milliseconds to call TimerHit(). Default 1000 ms
     uint32_t POLLMS = 1000;
 
+    // DSP API Related functions
+
+    /**
+     * @brief Create a histogram
+     * @param buf the buffer from which extract the histogram
+     * @param out the buffer where to copy the histogram
+     * @param buf_len the length in bytes of the input buffer
+     * @param histogram_size the size of the histogram
+     * @param bits_per_sample can be one of 8,16,32,64 for unsigned types, -32,-64 for floating single and double types
+     */
+    void Histogram(void *buf, void *out, int buf_len, int histogram_size, int bits_per_sample);
+
+    /**
+     * @brief Create a Fourier transform
+     * @param buf the buffer from which extract the Fourier transform
+     * @param out the buffer where to copy the Fourier transform
+     * @param dims the number of dimensions of the input buffer
+     * @param sizes the sizes of each dimension
+     * @param bits_per_sample can be one of 8,16,32,64 for unsigned types, -32,-64 for floating single and double types
+     */
+    void FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample);
+
+    /**
+     * @brief Create a Spectrum
+     * @param buf the buffer from which extract the spectrum
+     * @param out the buffer where to copy the spectrum
+     * @param buf_len the length in bytes of the input buffer
+     * @param size the size of the spectrum
+     * @param bits_per_sample can be one of 8,16,32,64 for unsigned types, -32,-64 for floating single and double types
+     */
+    void Spectrum(void *buf, void *out, int buf_len, int size, int bits_per_sample);
+
+    /**
+     * @brief Convolute
+     * @param buf the buffer to convolute
+     * @param matrix the convolution matrix
+     * @param out the buffer where to copy the convoluted buffer
+     * @param dims the number of dimensions of the input buffer
+     * @param sizes the sizes of each dimension of the input buffer
+     * @param matrix_dims the number of dimensions of the matrix
+     * @param matrix_sizes the sizes of each dimension of the matrix
+     * @param bits_per_sample can be one of 8,16,32,64 for unsigned types, -32,-64 for floating single and double types
+     */
+    void Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample);
+
   private:
     bool isInit { false };
     bool pDebug { false };

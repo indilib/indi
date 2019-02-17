@@ -18,6 +18,8 @@
 */
 
 #include "indi_radiosim_detector.h"
+#include <cstdio>
+#include <cstdlib>
 #include <indicom.h>
 #include <math.h>
 #include <unistd.h>
@@ -26,20 +28,13 @@
 
 #define MAX_TRIES 20
 #define MAX_DEVICES 4
-#define SPECTRUM_SIZE 512
-#define LIGHT_SPEED 299792458.0
-#define AIRY_AS (AIRY * RAD_AS)
-#define RESOLUTION0 (AIRY_AS * LIGHTSPEED / PrimaryDetector.getFrequency())
+#define SPECTRUM_SIZE 255
+#define RESOLUTION0 (LIGHTSPEED / PrimaryDetector.getFrequency())
+#define RESOLUTION (RESOLUTION0 / primaryAperture)
 #define DISH_SIZE_M 5.0
 #define MAX_DISH_SIZE_M 32.0
-#define RESOLUTION_AS(size) (RESOLUTION0 / size)
-#define RESOLUTION_MAX (RESOLUTION0 / MAX_DISH_SIZE_M)
-#define IMAGE_WIDTH 1920
-#define IMAGE_HEIGHT 1200
 #define FOV_DEG_X (360.0)
 #define FOV_DEG_Y (180.0)
-#define RESOLUTION_PX(size) (RESOLUTION_AS(size) * IMAGE_WIDTH / (FOV_DEG_X*60*60))
-#define RESOLUTION_PY(size) (RESOLUTION_AS(size) * IMAGE_HEIGHT / (FOV_DEG_Y*60*60))
 
 static RadioSim *receiver;
 
@@ -123,8 +118,6 @@ RadioSim::RadioSim()
     Ra = 0;
     Dec = 0;
     setDeviceName(getDefaultName());
-	continuum = (uint8_t*)malloc(sizeof(uint8_t));
-	spectrum = (uint8_t*)malloc(sizeof(uint8_t));
 }
 
 /**************************************************************************************
@@ -133,6 +126,8 @@ RadioSim::RadioSim()
 bool RadioSim::Connect()
 {
     LOG_INFO("RadioSim connected successfully!");
+    continuum = (uint8_t*)malloc(sizeof(uint8_t));
+    spectrum = (uint8_t*)malloc(sizeof(uint8_t));
 	// Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
     //SetTimer(POLLMS);
@@ -182,10 +177,10 @@ bool RadioSim::initProperties()
 
 	PrimaryDetector.setMinMaxStep("DETECTOR_CAPTURE", "DETECTOR_CAPTURE_VALUE", 1.0e-6, 86164.092, 0.001, false);
     PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_FREQUENCY", 1.0e+6, 50.0e+9, 1.0, false);
-    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1.0e+3, 100.0e+6, 1.0, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_SAMPLERATE", 1.0e+3, 100.0e+3, 1.0, false);
     PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_GAIN", 0.0, 25.0, 1.0, false);
     PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BANDWIDTH", 1.0e+3, 100.0e+6, 1.0, false);
-	PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", -64, -64, -64, false);
+    PrimaryDetector.setMinMaxStep("DETECTOR_SETTINGS", "DETECTOR_BITSPERSAMPLE", -64, -64, -64, false);
 	PrimaryDetector.setCaptureExtension("fits");
 	// Add Debug, Simulator, and Configuration controls
 	addAuxControls();
@@ -224,7 +219,7 @@ bool RadioSim::updateProperties()
 void RadioSim::setupParams()
 {
 	// Our Detector is an 8 bit Detector, 100MHz frequency 1MHz bandwidth.
-    SetDetectorParams(1e+7, 1.42e+9, -64, 1.0e+6, 1);
+    SetDetectorParams(1e+6, 1.42e+9, -64, 1.0e+6, 1);
 }
 
 /**************************************************************************************
@@ -283,10 +278,11 @@ bool RadioSim::StartCapture(float duration)
 {
 	CaptureRequest = duration;
 
+    to_read = duration * PrimaryDetector.getSampleRate() * abs(PrimaryDetector.getBPS()) / 8;
 	// Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
 	PrimaryDetector.setCaptureDuration(duration);
-	PrimaryDetector.setContinuumBufferSize(duration * PrimaryDetector.getSampleRate() * abs(PrimaryDetector.getBPS()) / 8);
-	PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE * abs(PrimaryDetector.getBPS()) / 8);
+    PrimaryDetector.setContinuumBufferSize(to_read);
+    PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE);
 	gettimeofday(&CapStart, nullptr);
 
 	InCapture = true;
@@ -353,9 +349,8 @@ void RadioSim::TimerHit()
 		{
 			/* We're done capturing */
             LOG_INFO("Capture done, downloading data...");
-			timeleft = 0.0;
+            timeleft = 0.0;
             grabData();
-            InCapture = false;
         }
 
 		// This is an over simplified timing method, check DetectorSimulator and rtlsdrDetector for better timing checks
@@ -377,29 +372,32 @@ void RadioSim::TimerHit()
 ***************************************************************************************/
 void RadioSim::grabData()
 {
-    int len = PrimaryDetector.getContinuumBufferSize() * 8 / abs(PrimaryDetector.getBPS());
-    continuum = PrimaryDetector.getContinuumBuffer();
-    spectrum = PrimaryDetector.getSpectrumBuffer();
+    if(InCapture) {
+        int len = to_read * 8 / PrimaryDetector.getBPS();
 
-    //Create the dsp stream
-    dsp_stream_p stream = dsp_stream_new();
-    dsp_stream_add_dim(stream, len);
+        LOG_INFO("Downloading...");
+        InCapture = false;
+        dsp_stream_p stream = dsp_stream_new();
+        dsp_stream_add_dim(stream, len);
+        dsp_stream_alloc_buffer(stream, len);
+        dsp_signals_sinewave(stream, PrimaryDetector.getSampleRate(), ((rand()%(int)PrimaryDetector.getSampleRate())+1));
+        dsp_buffer_stretch(stream, 0, RESOLUTION0 * 255 / RESOLUTION);
+        for(int x = 0; x < stream->len; x++)
+        {
+            stream->buf[x] *= PrimaryDetector.getGain();
+            stream->buf[x] += (rand() % 255);
+        }
+        dsp_buffer_normalize(stream, 0, 4096);
+        continuum = PrimaryDetector.getContinuumBuffer();
+        dsp_buffer_copy(stream->buf, continuum, stream->len);
+        dsp_stream_free_buffer(stream);
+        dsp_stream_free(stream);
 
-    stream->in = dsp_signals_sinewave(len, PrimaryDetector.getSampleRate(), 44 + (rand()%440));
-    for(int i = 0; i < 8; i++) {
-        double *harmonic = dsp_signals_sinewave(len, PrimaryDetector.getSampleRate(), 44 + (rand()%440));
-        dsp_buffer_mul(stream->in, len, harmonic, len);
-        free (harmonic);
+        //Create the spectrum
+        spectrum = PrimaryDetector.getSpectrumBuffer();
+        Spectrum(continuum, spectrum, to_read, SPECTRUM_SIZE * 8 / PrimaryDetector.getBPS(), PrimaryDetector.getBPS());
+
+        LOG_INFO("Download complete.");
+        CaptureComplete(&PrimaryDetector);
     }
-    //Create the spectrum
-    stream->out = dsp_fft_spectrum(stream, SPECTRUM_SIZE);
-    stream->out = dsp_buffer_stretch(stream->out, stream->len, 0, 1.0);
-    dsp_convert(stream->in, continuum, stream->len);
-    dsp_convert(stream->out, spectrum, stream->len);
-    //Destroy the dsp stream
-    dsp_stream_free(stream);
-    LOG_INFO("Download complete.");
-
-    // Let INDI::Detector know we're done filling the data buffers
-    CaptureComplete(&PrimaryDetector);
 }

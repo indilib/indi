@@ -18,85 +18,73 @@
 
 #include "dsp.h"
 
-double* dsp_signals_sinewave(int len, double samplefreq, double freq)
+void dsp_signals_sinewave(dsp_stream_p stream, double samplefreq, double freq)
 {
-    double* out = (double*)calloc(sizeof(double), len);
     freq /= samplefreq;
     double rad = 0;
     double x = 0;
-    for(int k = 0; k < len; k++) {
+    for(int k = 0; k < stream->len; k++) {
         rad += freq;
         x = rad;
         while (x > 1.0)
             x -= 1.0;
         x *= M_PI * 2;
-        out[k] = sin(x);
+        stream->buf[k] = sin(x);
     }
-    return out;
+
 }
 
-double* dsp_signals_sawteethwave(int len, double samplefreq, double freq)
+void dsp_signals_sawtoothwave(dsp_stream_p stream, double samplefreq, double freq)
 {
-    double* out = (double*)calloc(sizeof(double), len);
     freq /= samplefreq;
     double rad = 0;
     double x = 0;
-    for(int k = 0; k < len; k++) {
+    for(int k = 0; k < stream->len; k++) {
         rad += freq;
         x = rad;
         while (x > 1.0)
             x -= 1.0;
-        out[k] = x;
+        stream->buf[k] = x;
     }
-    return out;
+
 }
 
-double* dsp_signals_triwave(int len, double samplefreq, double freq)
+void dsp_signals_triwave(dsp_stream_p stream, double samplefreq, double freq)
 {
-    double* out = (double*)calloc(sizeof(double), len);
     freq /= samplefreq;
     double rad = 0;
     double x = 0;
-    for(int k = 0; k < len; k++) {
+    for(int k = 0; k < stream->len; k++) {
         rad += freq;
         x = rad;
         while (x > 2.0)
             x -= 2.0;
         while (x > 1.0)
             x = 2.0 - x;
-        out[k] = x;
+        stream->buf[k] = x;
     }
-    return out;
+
 }
 
-double* dsp_modulation_frequency(double* in, int len, double samplefreq, double freq, double bandwidth)
+void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq, double freq, double bandwidth)
 {
-    double* carrying = dsp_signals_sinewave(len, samplefreq, freq);
+    dsp_stream_p carrier = dsp_stream_new();
+    dsp_signals_sinewave(carrier, samplefreq, freq);
     double lo = freq / samplefreq;
     double hi = freq / samplefreq;
-    return dsp_buffer_deviate(carrying, len, in, len, lo - bandwidth * 0.5, hi + bandwidth * 1.5);
+    dsp_buffer_deviate(carrier, stream, lo - bandwidth * 0.5, hi + bandwidth * 1.5);
+    dsp_stream_free_buffer(stream);
+    dsp_stream_set_buffer(stream, carrier->buf, stream->len);
+    dsp_stream_free(carrier);
+
 }
 
-double* dsp_modulation_amplitude(double* in, int len, double samplefreq, double freq)
+void dsp_modulation_amplitude(dsp_stream_p stream, double samplefreq, double freq)
 {
-    double* modulating = (double*)calloc(sizeof(double), len);
-    double* out = (double*)calloc(sizeof(double), len);
-    in = dsp_signals_sinewave(len, samplefreq, freq);
-    out = dsp_buffer_sum(modulating, len, in, len);
-    return out;
-}
+    dsp_stream_p carrier = dsp_stream_new();
+    dsp_signals_sinewave(carrier, samplefreq, freq);
+    dsp_buffer_sum(stream, carrier->buf, stream->len);
+    dsp_stream_free_buffer(carrier);
+    dsp_stream_free(carrier);
 
-double* dsp_modulation_buffer(double* in1, int len1, double* in2, int len2, double samplefreq, double freq)
-{
-    int len = Min(len1, len2);
-    int olen = Max(len1, len2);
-    double* buf1 = (len == len1 ? in1 : in2);
-    double* buf2 = (olen == len1 ? in1 : in2);
-    double* out = (double*)calloc(sizeof(double), olen);
-    freq /= samplefreq;
-    for(int i = 0; i < olen; i+= len) {
-        double* tmp = dsp_buffer_sum(&buf2[i], len, buf1, len);
-        memcpy(&out[i], tmp, len);
-    }
-    return out;
 }

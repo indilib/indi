@@ -33,7 +33,7 @@
 #define SUBFRAME_SIZE (16384)
 #define MIN_FRAME_SIZE (512)
 #define MAX_FRAME_SIZE (SUBFRAME_SIZE * 16)
-#define SPECTRUM_SIZE (256)
+#define SPECTRUM_SIZE (65535)
 
 static int iNumofConnectedDetectors;
 static RTLSDR *receivers[MAX_DEVICES];
@@ -410,7 +410,6 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
     if(InCapture) {
         n_read = min(to_read, n_read);
         continuum = PrimaryDetector.getContinuumBuffer();
-        spectrum = PrimaryDetector.getSpectrumBuffer();
         if(n_read > 0) {
             memcpy(continuum + b_read, buf, n_read);
             b_read += n_read;
@@ -421,18 +420,9 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
             LOG_INFO("Downloading...");
             InCapture = false;
 
-            //Create the dsp stream
-            dsp_stream_p stream = dsp_stream_new();
-            dsp_stream_add_dim(stream, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
             //Create the spectrum
-            dsp_convert(continuum, stream->in, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
-            stream->in = dsp_buffer_div1(stream->in, stream->len, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
-            double *out = dsp_fft_spectrum(stream, SPECTRUM_SIZE);
-            out = dsp_buffer_mul1(out, SPECTRUM_SIZE, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
-            dsp_convert(out, spectrum, SPECTRUM_SIZE);
-            //Destroy the dsp stream
-            dsp_stream_free(stream);
-            free(out);
+            spectrum = PrimaryDetector.getSpectrumBuffer();
+            Spectrum(continuum, spectrum, b_read, SPECTRUM_SIZE, PrimaryDetector.getBPS());
 
             LOG_INFO("Download complete.");
             CaptureComplete(&PrimaryDetector);

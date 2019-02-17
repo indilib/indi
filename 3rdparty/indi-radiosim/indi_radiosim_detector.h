@@ -69,6 +69,9 @@ class RadioSim : public INDI::Detector
 	double Ra; //should not stay here
 	double Dec; //should not stay here
 
+    int n_read;
+    int to_read;
+    int b_read;
 	float CaptureRequest;
 	uint8_t* continuum;
 	uint8_t* spectrum;
