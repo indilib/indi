@@ -1,5 +1,5 @@
 /*
- *   libDSP - a digital signal processing library for astronomy usage
+ *   libDSP - a digital signal processing library
  *   Copyright (C) 2017  Ilia Platone <info@iliaplatone.com>
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -172,8 +172,6 @@ extern double* dsp_fft_shift(dsp_stream_p stream);
 /**
 * \brief Discrete Fourier Transform of a dsp_stream
 * \param stream the input stream.
-* \param sign the direction of the Fourier transform.
-* \param conversion the output magnitude conversion type.
 * \return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 */
@@ -308,9 +306,7 @@ extern double dsp_stats_mean(dsp_stream_p stream);
 * \brief Counts value occurrences into stream
 * \param stream the stream on which execute
 * \param val the value to count.
-* \param prec the decimal precision.
-* \return the mean value of the stream.
-* Return mean if success.
+* \return the count of the value of the stream.
 */
 extern int dsp_stats_val_count(dsp_stream_p stream, double val);
 
@@ -508,7 +504,7 @@ extern void dsp_buffer_zerofill(dsp_stream_p stream);
 /**
 * \brief Deviate forward the first input stream using the second stream as indexing reference
 * \param stream the stream on which execute
-* \param stream the stream containing the deviation buffer
+* \param deviation the stream containing the deviation buffer
 * \param mindeviation the deviation at 0.
 * \param maxdeviation the deviation at 1.
 * \return the output stream if successfull elaboration. NULL if an
@@ -652,7 +648,8 @@ extern void dsp_stream_del_dim(dsp_stream_p stream, int n);
 /**
 * \brief Obtain the position the DSP stream by parsing multidimensional indexes
 * \param stream the target DSP stream.
-* \return the updated DSP stream.
+* \param pos the position of the index on each dimension.
+* \return the position of the index on a single dimension.
 * \sa dsp_stream_new
 * \sa dsp_stream_get_position
 * \sa dsp_stream_exec
@@ -663,7 +660,8 @@ extern int dsp_stream_set_position(dsp_stream_p stream, int *pos);
 /**
 * \brief Return the multidimensional positional indexes of a DSP stream by specify a linear index
 * \param stream the target DSP stream.
-* \return the updated DSP stream.
+* \param index the position of the index on a single dimension.
+* \return the the position of the index on each dimension.
 * \sa dsp_stream_new
 * \sa dsp_stream_set_position
 * \sa dsp_stream_exec
@@ -674,7 +672,6 @@ extern int* dsp_stream_get_position(dsp_stream_p stream, int index);
 /**
 * \brief Execute the function callback pointed by the func field of the passed stream
 * \param stream the target DSP stream.
-* \return the return value of the function delegate.
 * \sa dsp_stream_new
 * \sa dsp_stream_get_position
 * \sa dsp_stream_set_position
@@ -686,7 +683,6 @@ extern void *dsp_stream_exec(dsp_stream_p stream);
 * by increasing the index value and updating the position each time.
 * the function delegate should use the pos* field to obtain the current position on each dimension.
 * \param stream the target DSP stream.
-* \return the return value of the function delegate.
 * \sa dsp_stream_new
 * \sa dsp_stream_get_position
 * \sa dsp_stream_set_position
@@ -709,54 +705,42 @@ extern dsp_stream_p dsp_stream_crop(dsp_stream_p stream);
 
 /**
 * \brief Generate a sinusoidal wave
-* \param len the length of the output buffer
+* \param stream the target DSP stream.
 * \param samplefreq the sampling reference frequency
 * \param freq the sine wave frequency
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_signals_sinewave(dsp_stream_p stream, double samplefreq, double freq);
 
 /**
 * \brief Generate a sawtooth wave
-* \param len the length of the output buffer
+* \param stream the target DSP stream.
 * \param samplefreq the sampling reference frequency
 * \param freq the sawtooth wave frequency
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_signals_sawtoothwave(dsp_stream_p stream, double samplefreq, double freq);
 
 /**
 * \brief Generate a triangular wave
-* \param len the length of the output buffer
+* \param stream the target DSP stream.
 * \param samplefreq the sampling reference frequency
 * \param freq the triangular wave frequency
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_signals_triwave(dsp_stream_p stream, double samplefreq, double freq);
 
 /**
 * \brief Generate a frequency modulated wave
-* \param in the input stream.
-* \param len the length of the output buffer
+* \param stream the target DSP stream.
 * \param samplefreq the sampling reference frequency
 * \param freq the carrier wave frequency
 * \param bandwidth the bandwidth of the frequency modulation
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq, double freq, double bandwidth);
 
 /**
 * \brief Generate an amplitude modulated wave
-* \param in the input stream.
-* \param len the length of the output buffer
+* \param stream the target DSP stream.
 * \param samplefreq the sampling reference frequency
 * \param freq the carrier wave frequency
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_modulation_amplitude(dsp_stream_p stream, double samplefreq, double freq);
 
