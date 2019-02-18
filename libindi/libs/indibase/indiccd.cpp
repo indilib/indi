@@ -29,6 +29,7 @@
 
 #include "indiccd.h"
 
+#include "fpack/fpack.h"
 #include "indicom.h"
 #include "stream/streammanager.h"
 #include "locale_compat.h"
@@ -835,8 +836,8 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             if (PrimaryCCD.getFrameType() != CCDChip::BIAS_FRAME &&
                     (values[0] < PrimaryCCD.ImageExposureN[0].min || values[0] > PrimaryCCD.ImageExposureN[0].max))
             {
-                DEBUGF(Logger::DBG_ERROR, "Requested exposure value (%g) seconds out of bounds [%g,%g].",
-                       values[0], PrimaryCCD.ImageExposureN[0].min, PrimaryCCD.ImageExposureN[0].max);
+                LOGF_ERROR("Requested exposure value (%g) seconds out of bounds [%g,%g].",
+                           values[0], PrimaryCCD.ImageExposureN[0].min, PrimaryCCD.ImageExposureN[0].max);
                 PrimaryCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryCCD.ImageExposureNP, nullptr);
                 return false;
@@ -897,8 +898,8 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             if (GuideCCD.getFrameType() != CCDChip::BIAS_FRAME &&
                     (values[0] < GuideCCD.ImageExposureN[0].min || values[0] > GuideCCD.ImageExposureN[0].max))
             {
-                DEBUGF(Logger::DBG_ERROR, "Requested guide exposure value (%g) seconds out of bounds [%g,%g].",
-                       values[0], GuideCCD.ImageExposureN[0].min, GuideCCD.ImageExposureN[0].max);
+                LOGF_ERROR("Requested guide exposure value (%g) seconds out of bounds [%g,%g].",
+                           values[0], GuideCCD.ImageExposureN[0].min, GuideCCD.ImageExposureN[0].max);
                 GuideCCD.ImageExposureNP.s = IPS_ALERT;
                 IDSetNumber(&GuideCCD.ImageExposureNP, nullptr);
                 return false;
@@ -1007,9 +1008,9 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
 
             DEBUGF(Logger::DBG_DEBUG, "Requested CCD Frame is (%d,%d) (%d x %d)", x, y, w, h);
 
-            if (x < 0 || y < 0 || w < 0 || h < 0)
+            if (x < 0 || y < 0 || w <= 0 || h <= 0)
             {
-                DEBUGF(Logger::DBG_ERROR, "Invalid frame requested (%d,%d) (%d x %d)", x, y, w, h);
+                LOGF_ERROR("Invalid frame requested (%d,%d) (%d x %d)", x, y, w, h);
                 PrimaryCCD.ImageFrameNP.s = IPS_ALERT;
                 IDSetNumber(&PrimaryCCD.ImageFrameNP, nullptr);
                 return true;
@@ -1085,8 +1086,8 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             if (values[0] < TemperatureN[0].min || values[0] > TemperatureN[0].max)
             {
                 TemperatureNP.s = IPS_ALERT;
-                DEBUGF(Logger::DBG_ERROR, "Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
-                       TemperatureN[0].min, TemperatureN[0].max);
+                LOGF_ERROR("Error: Bad temperature value! Range is [%.1f, %.1f] [C].",
+                           TemperatureN[0].min, TemperatureN[0].max);
                 IDSetNumber(&TemperatureNP, nullptr);
                 return false;
             }
@@ -2351,7 +2352,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                     break;
 
                 default:
-                    DEBUGF(Logger::DBG_ERROR, "Unsupported bits per pixel value %d", targetChip->getBPP());
+                    LOGF_ERROR("Unsupported bits per pixel value %d", targetChip->getBPP());
                     return false;
             }
 
@@ -2372,7 +2373,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             memptr  = malloc(memsize);
             if (!memptr)
             {
-                DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", memsize);
+                LOGF_ERROR("Error: failed to allocate memory: %lu", memsize);
                 return false;
             }
 
@@ -2384,7 +2385,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 fits_get_errstatus(status, error_status);
                 fits_close_file(fptr, &status);
                 free(memptr);
-                DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                LOGF_ERROR("FITS Error: %s", error_status);
                 return false;
             }
 
@@ -2396,7 +2397,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 fits_get_errstatus(status, error_status);
                 fits_close_file(fptr, &status);
                 free(memptr);
-                DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                LOGF_ERROR("FITS Error: %s", error_status);
                 return false;
             }
 
@@ -2410,7 +2411,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
                 fits_get_errstatus(status, error_status);
                 fits_close_file(fptr, &status);
                 free(memptr);
-                DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
+                LOGF_ERROR("FITS Error: %s", error_status);
                 return false;
             }
 
@@ -2511,8 +2512,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
 bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBytes, bool sendImage,
                      bool saveImage /*, bool useSolver*/)
 {
-    unsigned char * compressedData = nullptr;
-    uLongf compressedBytes        = 0;
+    uint8_t * compressedData = nullptr;
 
     DEBUGF(Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendImage? %s, saveImage? %s",
            targetChip->getImageExtension(), totalBytes, sendImage ? "Yes" : "No", saveImage ? "Yes" : "No");
@@ -2532,8 +2532,8 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
         if (maxIndex < 0)
         {
-            DEBUGF(Logger::DBG_ERROR, "Error iterating directory %s. %s", UploadSettingsT[0].text,
-                   strerror(errno));
+            LOGF_ERROR("Error iterating directory %s. %s", UploadSettingsT[0].text,
+                       strerror(errno));
             return false;
         }
 
@@ -2560,7 +2560,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
         fp = fopen(imageFileName, "w");
         if (fp == nullptr)
         {
-            DEBUGF(Logger::DBG_ERROR, "Unable to save image file (%s). %s", imageFileName, strerror(errno));
+            LOGF_ERROR("Unable to save image file (%s). %s", imageFileName, strerror(errno));
             return false;
         }
 
@@ -2580,29 +2580,105 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
     if (targetChip->SendCompressed)
     {
-        compressedBytes = sizeof(char) * totalBytes + totalBytes / 64 + 16 + 3;
-        compressedData  = new uint8_t[compressedBytes];
-
-        if (fitsData == nullptr || compressedData == nullptr)
+        if (!strcmp(targetChip->getImageExtension(), "fits"))
         {
-            if (compressedData)
+            int  compressedBytes = 0;
+            char filename[MAXRBUF] = {0};
+            strncpy(filename, "/tmp/compressedfits.fits", MAXRBUF);
+
+            FILE * fp = fopen(filename, "w");
+            if (fp == nullptr)
+            {
+                LOGF_ERROR("Unable to save temporary image file: %s", strerror(errno));
+                return false;
+            }
+
+            int n = 0;
+            for (int nr = 0; nr < totalBytes; nr += n)
+                n = fwrite(static_cast<const uint8_t *>(fitsData) + nr, 1, totalBytes - nr, fp);
+            fclose(fp);
+
+            fpstate	fpvar;
+            std::vector<std::string> arguments = {"fpack", filename};
+            std::vector<char *> arglist;
+            for (const auto &arg : arguments)
+                arglist.push_back((char *)arg.data());
+            arglist.push_back(nullptr);
+
+            int argc = arglist.size() - 1;
+            char ** argv = arglist.data();
+
+            // TODO: Check for errors
+            fp_init (&fpvar);
+            fp_get_param (argc, argv, &fpvar);
+            fp_preflight (argc, argv, FPACK, &fpvar);
+            fp_loop (argc, argv, FPACK, filename, fpvar);
+
+            // Remove temporary file from disk
+            remove(filename);
+
+            // Add .fz
+            strncat(filename, ".fz", 3);
+
+            struct stat st;
+            stat(filename, &st);
+            compressedBytes = st.st_size;
+
+            compressedData = new uint8_t[compressedBytes];
+
+            if (compressedData == nullptr)
+            {
+                LOG_ERROR("Ran out of memory compressing image.");
+                return false;
+            }
+
+            fp = fopen(filename, "r");
+            if (fp == nullptr)
+            {
+                LOGF_ERROR("Unable to open temporary image file: %s", strerror(errno));
                 delete [] compressedData;
-            DEBUG(Logger::DBG_ERROR, "Error: Ran out of memory compressing image");
-            return false;
-        }
+                return false;
+            }
 
-        int r = compress2(compressedData, &compressedBytes, (const Bytef *)fitsData, totalBytes, 9);
-        if (r != Z_OK)
+            n = 0;
+            for (int nr = 0; nr < compressedBytes; nr += n)
+                n = fread(compressedData + nr, 1, compressedBytes - nr, fp);
+            fclose(fp);
+
+            // Remove compressed temporary file from disk
+            remove(filename);
+
+            targetChip->FitsB.blob    = compressedData;
+            targetChip->FitsB.bloblen = compressedBytes;
+            totalBytes = compressedBytes;
+            snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s.fz", targetChip->getImageExtension());
+        }
+        else
         {
-            /* this should NEVER happen */
-            DEBUG(Logger::DBG_ERROR, "Error: Failed to compress image");
-            delete [] compressedData;
-            return false;
-        }
+            uLong compressedBytes = sizeof(char) * totalBytes + totalBytes / 64 + 16 + 3;
+            compressedData  = new uint8_t[compressedBytes];
 
-        targetChip->FitsB.blob    = compressedData;
-        targetChip->FitsB.bloblen = compressedBytes;
-        snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s.z", targetChip->getImageExtension());
+            if (fitsData == nullptr || compressedData == nullptr)
+            {
+                if (compressedData)
+                    delete [] compressedData;
+                LOG_ERROR("Error: Ran out of memory compressing image");
+                return false;
+            }
+
+            int r = compress2(compressedData, &compressedBytes, (const Bytef *)fitsData, totalBytes, 9);
+            if (r != Z_OK)
+            {
+                /* this should NEVER happen */
+                LOG_ERROR("Error: Failed to compress image");
+                delete [] compressedData;
+                return false;
+            }
+
+            targetChip->FitsB.blob    = compressedData;
+            targetChip->FitsB.bloblen = compressedBytes;
+            snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s.z", targetChip->getImageExtension());
+        }
     }
     else
     {
@@ -2703,28 +2779,28 @@ bool CCD::saveConfigItems(FILE * fp)
 IPState CCD::GuideNorth(uint32_t ms)
 {
     INDI_UNUSED(ms);
-    DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
+    LOG_ERROR("The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
 IPState CCD::GuideSouth(uint32_t ms)
 {
     INDI_UNUSED(ms);
-    DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
+    LOG_ERROR("The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
 IPState CCD::GuideEast(uint32_t ms)
 {
     INDI_UNUSED(ms);
-    DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
+    LOG_ERROR("The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
 IPState CCD::GuideWest(uint32_t ms)
 {
     INDI_UNUSED(ms);
-    DEBUG(Logger::DBG_ERROR, "The CCD does not support guiding.");
+    LOG_ERROR("The CCD does not support guiding.");
     return IPS_ALERT;
 }
 
@@ -2820,11 +2896,11 @@ int CCD::getFileIndex(const char * dir, const char * prefix, const char * ext)
         {
             DEBUGF(Logger::DBG_DEBUG, "Creating directory %s...", dir);
             if (_ccd_mkdir(dir, 0755) == -1)
-                DEBUGF(Logger::DBG_ERROR, "Error creating directory %s (%s)", dir, strerror(errno));
+                LOGF_ERROR("Error creating directory %s (%s)", dir, strerror(errno));
         }
         else
         {
-            DEBUGF(Logger::DBG_ERROR, "Couldn't stat directory %s: %s", dir, strerror(errno));
+            LOGF_ERROR("Couldn't stat directory %s: %s", dir, strerror(errno));
             return -1;
         }
     }
@@ -2871,13 +2947,13 @@ void CCD::GuideComplete(INDI_EQ_AXIS axis)
 
 bool CCD::StartStreaming()
 {
-    DEBUG(Logger::DBG_ERROR, "Streaming is not supported.");
+    LOG_ERROR("Streaming is not supported.");
     return false;
 }
 
 bool CCD::StopStreaming()
 {
-    DEBUG(Logger::DBG_ERROR, "Streaming is not supported.");
+    LOG_ERROR("Streaming is not supported.");
     return false;
 }
 
