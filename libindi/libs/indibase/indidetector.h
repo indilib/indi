@@ -19,6 +19,7 @@
 #pragma once
 
 #include "defaultdevice.h"
+#include "dsp.h"
 #include <fitsio.h>
 
 #include <memory>

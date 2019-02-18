@@ -113,7 +113,7 @@ int extractISOTime(const char *timestr, struct ln_date *iso_date)
 
 /* sprint the variable a in sexagesimal format into out[].
  * w is the number of spaces for the whole part.
- * fracbase is the number of M_PIeces a whole is to broken into; valid options:
+ * fracbase is the number of pieces a whole is to broken into; valid options:
  *	360000:	<w>:mm:ss.ss
  *	36000:	<w>:mm:ss.s
  *	3600:	<w>:mm:ss
@@ -380,7 +380,7 @@ int tty_timeout(int fd, int timeout)
     /* Return -1 due to an error */
     else if (retval == -1)
         return TTY_SELECT_ERROR;
-    /* Return -2 if time exM_PIres before anything interesting happens */
+    /* Return -2 if time expires before anything interesting happens */
     else
         return TTY_TIME_OUT;
 
@@ -722,7 +722,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     }
 
     // Set raw input (non-canonical) mode, with reads blocking until either a single character
-    // has been received or a one second timeout exM_PIres.
+    // has been received or a one second timeout expires.
     // See tcsetattr(4) ("man 4 tcsetattr") and termios(4) ("man 4 termios") for details.
 
     cfmakeraw(&tty_setting);
