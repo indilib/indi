@@ -212,16 +212,18 @@ bool NFocus::readTemperature()
 {
     char res[NFOCUS_LEN] = {0};
 
-    if (sendCommand(":RT", res, 3, 3) == false)
+    if (sendCommand(":RT", res, 3, 4) == false)
         return false;
 
     float temperature = -1000;
-    sscanf(res, "%6f", &temperature);
+    sscanf(res, "%f", &temperature);
+
+    temperature /= 10.0;
 
     if (temperature <= -80)
         return false;
 
-    TemperatureN[0].value = temperature / 10.0;
+    TemperatureN[0].value = temperature;
     TemperatureNP.s = IPS_OK;
 
     return true;
