@@ -54,9 +54,7 @@
 const char * IMAGE_SETTINGS_TAB = "Image Settings";
 const char * IMAGE_INFO_TAB     = "Image Info";
 const char * GUIDE_HEAD_TAB     = "Guider Head";
-const char * GUIDE_CONTROL_TAB  = "Guider Control";
 const char * RAPIDGUIDE_TAB     = "Rapid Guide";
-const char * WCS_TAB            = "WCS";
 
 #ifdef HAVE_WEBSOCKET
 uint16_t INDIWSServer::m_global_port = 11623;
@@ -99,7 +97,7 @@ CCD::CCD()
     InGuideExposure         = false;
     RapidGuideEnabled       = false;
     GuiderRapidGuideEnabled = false;
-    ValidCCDRotation        = false;
+    m_ValidCCDRotation        = false;
 
     AutoLoop         = false;
     SendImage        = false;
@@ -1139,7 +1137,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             IUUpdateNumber(&CCDRotationNP, values, names, n);
             CCDRotationNP.s = IPS_OK;
             IDSetNumber(&CCDRotationNP, nullptr);
-            ValidCCDRotation = true;
+            m_ValidCCDRotation = true;
 
             DEBUGF(Logger::DBG_SESSION, "CCD FOV rotation updated to %g degrees.", CCDRotationN[0].value);
 
@@ -1260,7 +1258,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
                 deleteProperty(CCDRotationNP.name);
             }
 
-            ValidCCDRotation = false;
+            m_ValidCCDRotation = false;
             IDSetSwitch(&WorldCoordSP, nullptr);
         }
 
@@ -1735,7 +1733,7 @@ void CCD::addFITSKeywords(fitsfile * fptr, CCDChip * targetChip)
         fits_update_key_lng(fptr, "EQUINOX", 2000, "Equinox", &status);
 
         // Add WCS Info
-        if (WorldCoordS[0].s == ISS_ON && ValidCCDRotation && primaryFocalLength != -1)
+        if (WorldCoordS[0].s == ISS_ON && m_ValidCCDRotation && primaryFocalLength != -1)
         {
             double J2000RAHours = J2000RA * 15;
             fits_update_key_dbl(fptr, "CRVAL1", J2000RAHours, 10, "CRVAL1", &status);
@@ -2519,7 +2517,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
 
     if (saveImage)
     {
-        targetChip->FitsB.blob    = (unsigned char *)fitsData;
+        targetChip->FitsB.blob    = const_cast<void *>(fitsData);
         targetChip->FitsB.bloblen = totalBytes;
         snprintf(targetChip->FitsB.format, MAXINDIBLOBFMT, ".%s", targetChip->getImageExtension());
 
@@ -2594,7 +2592,7 @@ bool CCD::uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBy
             }
 
             int n = 0;
-            for (int nr = 0; nr < totalBytes; nr += n)
+            for (int nr = 0; nr < static_cast<int>(totalBytes); nr += n)
                 n = fwrite(static_cast<const uint8_t *>(fitsData) + nr, 1, totalBytes - nr, fp);
             fclose(fp);
 
@@ -2815,7 +2813,7 @@ void CCD::getMinMax(double * min, double * max, CCDChip * targetChip)
     {
         case 8:
         {
-            unsigned char * imageBuffer = (unsigned char *)targetChip->getFrameBuffer();
+            uint8_t * imageBuffer = targetChip->getFrameBuffer();
             lmin = lmax = imageBuffer[0];
 
             for (i = 0; i < imageHeight; i++)
@@ -2832,7 +2830,7 @@ void CCD::getMinMax(double * min, double * max, CCDChip * targetChip)
 
         case 16:
         {
-            unsigned short * imageBuffer = (unsigned short *)targetChip->getFrameBuffer();
+            uint16_t * imageBuffer = reinterpret_cast<uint16_t*>(targetChip->getFrameBuffer());
             lmin = lmax = imageBuffer[0];
 
             for (i = 0; i < imageHeight; i++)
@@ -2849,7 +2847,7 @@ void CCD::getMinMax(double * min, double * max, CCDChip * targetChip)
 
         case 32:
         {
-            unsigned int * imageBuffer = (unsigned int *)targetChip->getFrameBuffer();
+            uint32_t * imageBuffer = reinterpret_cast<uint32_t*>(targetChip->getFrameBuffer());
             lmin = lmax = imageBuffer[0];
 
             for (i = 0; i < imageHeight; i++)
