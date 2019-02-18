@@ -64,12 +64,14 @@ class RadioSim : public INDI::Detector
 	// Are we exposing?
 	bool InCapture;
 	// Struct to keep timing
-	struct timeval CapStart;
-
+    struct timeval CapStart;
 	double DishSize; //simulated dish size in meters
 	double Ra; //should not stay here
 	double Dec; //should not stay here
 
+    int n_read;
+    int to_read;
+    int b_read;
 	float CaptureRequest;
 	uint8_t* continuum;
 	uint8_t* spectrum;

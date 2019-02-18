@@ -2022,10 +2022,7 @@ bool ASICCD::saveConfigItems(FILE *fp)
     INDI::CCD::saveConfigItems(fp);
 
     if (HasCooler())
-    {
-        IUSaveConfigNumber(fp, &CoolerNP);
         IUSaveConfigSwitch(fp, &CoolerSP);
-    }
 
     if (ControlNP.nnp > 0)
         IUSaveConfigNumber(fp, &ControlNP);
