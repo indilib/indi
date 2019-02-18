@@ -207,8 +207,6 @@ extern double*  dsp_fft_complex_array_to_phase(dsp_complex* in, int len);
 /**
 * \brief A square law filter
 * \param stream the input stream.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_filter_squarelaw(dsp_stream_p stream);
 
@@ -218,8 +216,6 @@ extern void dsp_filter_squarelaw(dsp_stream_p stream);
 * \param samplingfrequency the sampling frequency of the input stream.
 * \param frequency the cutoff frequency of the filter.
 * \param q the cutoff slope.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_filter_lowpass(dsp_stream_p stream, double samplingfrequency, double frequency, double q);
 
@@ -229,8 +225,6 @@ extern void dsp_filter_lowpass(dsp_stream_p stream, double samplingfrequency, do
 * \param samplingfrequency the sampling frequency of the input stream.
 * \param frequency the cutoff frequency of the filter.
 * \param q the cutoff slope.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_filter_highpass(dsp_stream_p stream, double samplingfrequency, double frequency, double q);
 
@@ -240,8 +234,6 @@ extern void dsp_filter_highpass(dsp_stream_p stream, double samplingfrequency, d
 * \param samplingfrequency the sampling frequency of the input stream.
 * \param LowFrequency the high-pass cutoff frequency of the filter.
 * \param HighFrequency the low-pass cutoff frequency of the filter.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_filter_bandpass(dsp_stream_p stream, double samplingfrequency, double LowFrequency, double HighFrequency);
 
@@ -251,8 +243,6 @@ extern void dsp_filter_bandpass(dsp_stream_p stream, double samplingfrequency, d
 * \param samplingfrequency the sampling frequency of the input stream.
 * \param LowFrequency the high-pass cutoff frequency of the filter.
 * \param HighFrequency the low-pass cutoff frequency of the filter.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_filter_bandreject(dsp_stream_p stream, double samplingfrequency, double LowFrequency, double HighFrequency);
 
@@ -265,8 +255,6 @@ extern void dsp_filter_bandreject(dsp_stream_p stream, double samplingfrequency,
 * \brief A cross-convolution processor
 * \param stream1 the first input stream.
 * \param stream2 the second input stream.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_convolution_convolution(dsp_stream_p stream1, dsp_stream_p stream2);
 
@@ -282,7 +270,6 @@ extern void dsp_convolution_convolution(dsp_stream_p stream1, dsp_stream_p strea
 * \param min the minimum value.
 * \param max the maximum value.
 * \return the mid value (max - min) / 2 + min.
-* Return mid if success.
 */
 extern double dsp_stats_minmidmax(dsp_stream_p stream, double* min, double* max);
 
@@ -290,7 +277,6 @@ extern double dsp_stats_minmidmax(dsp_stream_p stream, double* min, double* max)
 * \brief A mean calculator
 * \param stream the stream on which execute
 * \return the mean value of the stream.
-* Return mean if success.
 */
 extern double dsp_stats_mean(dsp_stream_p stream);
 
@@ -337,16 +323,12 @@ extern double dsp_stats_compare(dsp_stream_p stream, double* in, int len);
 /**
 * \brief Shift a stream on each dimension
 * \param stream the input stream.
-* \return the output buffer if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_shift(dsp_stream_p stream);
 
 /**
 * \brief Subtract mean from stream
 * \param stream the stream on which execute
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_removemean(dsp_stream_p stream);
 
@@ -355,8 +337,6 @@ extern void dsp_buffer_removemean(dsp_stream_p stream);
 * \param stream the stream on which execute
 * \param min the desired minimum value.
 * \param max the desired maximum value.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_stretch(dsp_stream_p stream, double min, double max);
 
@@ -365,8 +345,6 @@ extern void dsp_buffer_stretch(dsp_stream_p stream, double min, double max);
 * \param stream the stream on which execute
 * \param min the clamping minimum value.
 * \param max the clamping maximum value.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_normalize(dsp_stream_p stream, double min, double max);
 
@@ -375,8 +353,6 @@ extern void dsp_buffer_normalize(dsp_stream_p stream, double min, double max);
 * \param stream the stream on which execute
 * \param in the buffer operand.
 * \param len the length of the buffer
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_sub(dsp_stream_p stream, double* in, int len);
 
@@ -385,8 +361,6 @@ extern void dsp_buffer_sub(dsp_stream_p stream, double* in, int len);
 * \param stream the stream on which execute
 * \param in the buffer operand.
 * \param len the length of the buffer
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_sum(dsp_stream_p stream, double* in, int len);
 
@@ -395,8 +369,6 @@ extern void dsp_buffer_sum(dsp_stream_p stream, double* in, int len);
 * \param stream the stream on which execute
 * \param in the buffer operand.
 * \param len the length of the buffer
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_div(dsp_stream_p stream, double* in, int len);
 
@@ -405,8 +377,6 @@ extern void dsp_buffer_div(dsp_stream_p stream, double* in, int len);
 * \param stream the stream on which execute
 * \param in the buffer operand.
 * \param len the length of the buffer
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_mul(dsp_stream_p stream, double* in, int len);
 
@@ -415,8 +385,6 @@ extern void dsp_buffer_mul(dsp_stream_p stream, double* in, int len);
 * \param stream the stream on which execute
 * \param in the buffer operand.
 * \param len the length of the buffer
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_pow(dsp_stream_p stream, double* in, int len);
 
@@ -424,8 +392,6 @@ extern void dsp_buffer_pow(dsp_stream_p stream, double* in, int len);
 * \brief Subtract a value from elements of the input stream
 * \param stream the stream on which execute
 * \param val the value to be subtracted.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_sub1(dsp_stream_p stream, double val);
 
@@ -433,8 +399,6 @@ extern void dsp_buffer_sub1(dsp_stream_p stream, double val);
 * \brief Subtract each element of the input stream a value
 * \param stream the stream on which execute
 * \param val the value to be subtracted.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_1sub(dsp_stream_p stream, double val);
 
@@ -442,8 +406,6 @@ extern void dsp_buffer_1sub(dsp_stream_p stream, double val);
 * \brief Sum elements of the input stream to a value
 * \param stream the stream on which execute
 * \param val the value used for this operation.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_sum1(dsp_stream_p stream, double val);
 
@@ -451,8 +413,6 @@ extern void dsp_buffer_sum1(dsp_stream_p stream, double val);
 * \brief Divide elements of the input stream to a value
 * \param stream the stream on which execute
 * \param val the denominator.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_div1(dsp_stream_p stream, double val);
 
@@ -460,8 +420,6 @@ extern void dsp_buffer_div1(dsp_stream_p stream, double val);
 * \brief Divide a value to each element of the input stream
 * \param stream the stream on which execute
 * \param val the nominator.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_1div(dsp_stream_p stream, double val);
 
@@ -469,8 +427,6 @@ extern void dsp_buffer_1div(dsp_stream_p stream, double val);
 * \brief Multiply elements of the input stream to a value
 * \param stream the stream on which execute
 * \param val the value used for this operation.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_mul1(dsp_stream_p stream, double val);
 
@@ -478,8 +434,6 @@ extern void dsp_buffer_mul1(dsp_stream_p stream, double val);
 * \brief Expose elements of the input stream to the given power
 * \param stream the stream on which execute
 * \param val the nth power to expose each element.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_pow1(dsp_stream_p stream, double val);
 
@@ -488,16 +442,12 @@ extern void dsp_buffer_pow1(dsp_stream_p stream, double val);
 * \param stream the stream on which execute
 * \param size the length of the median.
 * \param median the location of the median value.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_median(dsp_stream_p stream, int size, int median);
 
 /**
 * \brief Put zero on each element of the array
 * \param stream the stream on which execute
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_zerofill(dsp_stream_p stream);
 
@@ -507,8 +457,6 @@ extern void dsp_buffer_zerofill(dsp_stream_p stream);
 * \param deviation the stream containing the deviation buffer
 * \param mindeviation the deviation at 0.
 * \param maxdeviation the deviation at 1.
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
 */
 extern void dsp_buffer_deviate(dsp_stream_p stream, dsp_stream_p deviation, double mindeviation, double maxdeviation);
 
@@ -562,7 +510,6 @@ extern void dsp_buffer_deviate(dsp_stream_p stream, dsp_stream_p deviation, doub
 * \brief Allocate a buffer with length len on the stream passed as argument
 * \param stream the target DSP stream.
 * \param len the new length of the buffer.
-* \return the buffer
 */
 extern void dsp_stream_alloc_buffer(dsp_stream_p stream, int len);
 
@@ -571,7 +518,6 @@ extern void dsp_stream_alloc_buffer(dsp_stream_p stream, int len);
 * \param stream the target DSP stream.
 * \param buffer the new location of the buffer.
 * \param len the new length of the buffer.
-* \return the buffer
 */
 extern void dsp_stream_set_buffer(dsp_stream_p stream, void *buffer, int len);
 
@@ -672,6 +618,7 @@ extern int* dsp_stream_get_position(dsp_stream_p stream, int index);
 /**
 * \brief Execute the function callback pointed by the func field of the passed stream
 * \param stream the target DSP stream.
+* \return callback return value
 * \sa dsp_stream_new
 * \sa dsp_stream_get_position
 * \sa dsp_stream_set_position
