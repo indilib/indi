@@ -1095,4 +1095,5 @@ void DefaultDevice::setDefaultPollingPeriod(uint32_t period)
     PollPeriodN[0].value = period;
     POLLMS = period;
 }
+
 }
