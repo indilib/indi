@@ -340,7 +340,7 @@ extern double dsp_stats_compare(dsp_stream_p stream, double* in, int len);
 * \return the output buffer if successfull elaboration. NULL if an
 * error is encountered.
 */
-extern double* dsp_buffer_shift(dsp_stream_p stream);
+extern void dsp_buffer_shift(dsp_stream_p stream);
 
 /**
 * \brief Subtract mean from stream
