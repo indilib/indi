@@ -26,7 +26,6 @@
     - James Lan fixed Meredian Flip and Home Pause buttons
     - Cleaned Comments from previon versions
     - Updated lastError Codes
-    - James Lan fixed Focuser to accept negative values
 
     Version 1.5: Cleaning and Align Code Tuning
     - James Lan Align Code

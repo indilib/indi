@@ -129,8 +129,8 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&PreferredPierSideS[2], "3", "Best", ISS_OFF);
     IUFillSwitchVector(&PreferredPierSideSP, PreferredPierSideS, 3, getDeviceName(), "Preferred Pier Side", "Preferred Pier Side", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     
-    IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", 0, 180, 1, 30);
-    IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", 0, 180, 1, 30);
+    IUFillNumber(&minutesPastMeridianN[0], "East", "East", "%g", 0, 180, 1, 15);
+    IUFillNumber(&minutesPastMeridianN[1], "West", "West", "%g", 0, 180, 1, 15);
     IUFillNumberVector(&minutesPastMeridianNP, minutesPastMeridianN, 2, getDeviceName(), "Minutes Past Meridian", "Minutes Past Meridian", MOTION_TAB, IP_RW, 0,IPS_IDLE);
     
 
@@ -1688,11 +1688,17 @@ IPState LX200_OnStep::MoveFocuser(FocusDirection dir, int speed, uint16_t durati
 IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
 	//  :FSsnnn#  Set focuser target position (in microns)
 	//            Returns: Nothing
+	if (FocusAbsPosN[0].max >= targetTicks && FocusAbsPosN[0].min <= targetTicks) {
 		char read_buffer[32];
 		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", targetTicks);
 		sendOnStepCommandBlind(read_buffer);
-		return IPS_BUSY; // Normal case, should be set to normal by update.
-		//Remove checks here as 
+		return IPS_BUSY; // Normal case, should be set to normal by update. 
+	} else {
+		//Out of bounds as reported by OnStep
+		LOG_ERROR("Focuser value outside of limit");
+		LOGF_ERROR("Requested: %d min: %d max: %d", targetTicks, FocusAbsPosN[0].min, FocusAbsPosN[0].max);
+		return IPS_ALERT; 
+	}
 }
 IPState LX200_OnStep::MoveRelFocuser (FocusDirection dir, uint32_t ticks) {
 	//  :FRsnnn#  Set focuser target position relative (in microns)
@@ -1718,7 +1724,7 @@ void LX200_OnStep::OSUpdateFocuser()
 {
     char value[RB_MAX_LEN];
     double current = 0;
-        if (OSFocuser1) {
+	if (OSFocuser1) {
 	// Alternate option:
 	//if (!sendOnStepCommand(":FA#")) {
 		getCommandString(PortFD, value, ":FG#");
@@ -1749,6 +1755,8 @@ void LX200_OnStep::OSUpdateFocuser()
 		//         Returns: n#
 		getCommandString(PortFD, value, ":FM#");
 		FocusAbsPosN[0].max   = atoi(value);
+		IUUpdateMinMax(&FocusAbsPosNP);
+		IDSetNumber(&FocusAbsPosNP, nullptr);
 		//  :FI#  Get full in position (in microns)
 		//         Returns: n#
 		getCommandString(PortFD, value, ":FI#");
@@ -1756,7 +1764,6 @@ void LX200_OnStep::OSUpdateFocuser()
 		IUUpdateMinMax(&FocusAbsPosNP);
 		IDSetNumber(&FocusAbsPosNP, nullptr);
 		FI::updateProperties();
-		LOGF_DEBUG("After update properties: FocusAbsPosN min: %f max: %f", FocusAbsPosN[0].min, FocusAbsPosN[0].max);
 	} 
 	
 
