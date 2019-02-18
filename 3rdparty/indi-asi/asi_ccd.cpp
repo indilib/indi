@@ -1037,63 +1037,67 @@ bool ASICCD::AbortExposure()
 
 bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-    long bin_width  = w / PrimaryCCD.getBinX();
-    long bin_height = h / PrimaryCCD.getBinY();
+    uint32_t binX = PrimaryCCD.getBinX();
+    uint32_t binY = PrimaryCCD.getBinY();
+    uint32_t subX = x / binX;
+    uint32_t subY = y / binY;
+    uint32_t subW = w / binX;
+    uint32_t subH = h / binY;
 
-    bin_width  = bin_width - (bin_width % 2);
-    bin_height = bin_height - (bin_height % 2);
+    // If nothing changed, return immediately.
+    if (m_SubX == subX && m_SubY == subY && m_SubW == subW && m_SubH == subH)
+        return true;
 
-    w = bin_width * PrimaryCCD.getBinX();
-    h = bin_height * PrimaryCCD.getBinY();
-
-    ASI_ERROR_CODE errCode = ASI_SUCCESS;
-
-    /* Add the X and Y offsets */
-    long x_1 = x / PrimaryCCD.getBinX();
-    long y_1 = y / PrimaryCCD.getBinY();
-
-    if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+    if (subW > static_cast<uint32_t>(PrimaryCCD.getXRes() / binX))
     {
         LOGF_INFO("Error: invalid width requested %d", w);
         return false;
     }
-    else if (bin_height > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+    if (subH > static_cast<uint32_t>(PrimaryCCD.getYRes() / binY))
     {
         LOGF_INFO("Error: invalid height request %d", h);
         return false;
     }
 
-    LOGF_DEBUG("UpdateCCDFrame ASISetROIFormat (%dx%d,  bin %d, type %d)", bin_width, bin_height,
-               PrimaryCCD.getBinX(), getImageType());
-    if ((errCode = ASISetROIFormat(m_camInfo->CameraID, bin_width, bin_height, PrimaryCCD.getBinX(), getImageType())) !=
+    // ZWO rules are this
+    // width%8 = 0
+    // height%2 = 0
+    subW -= subW % 8;
+    subH -= subH % 2;
+
+    LOGF_DEBUG("CCD Frame ROI x:%d y:%d w:%d h:%d", subX, subY, subW, subH);
+
+    int rc = ASI_SUCCESS;
+
+    if ((rc = ASISetROIFormat(m_camInfo->CameraID, subW, subH, binX, getImageType())) !=
             ASI_SUCCESS)
     {
-        LOGF_ERROR("ASISetROIFormat (%dx%d @ %d) error (%d)", bin_width, bin_height,
-                   PrimaryCCD.getBinX(), errCode);
+        LOGF_ERROR("ASISetROIFormat error (%d)", rc);
         return false;
     }
 
-    if ((errCode = ASISetStartPos(m_camInfo->CameraID, x_1, y_1)) != ASI_SUCCESS)
+    if ((rc = ASISetStartPos(m_camInfo->CameraID, subX, subY)) != ASI_SUCCESS)
     {
-        LOGF_ERROR("ASISetStartPos (%d,%d) error (%d)", x_1, y_1, errCode);
+        LOGF_ERROR("ASISetStartPos error (%d)", rc);
         return false;
     }
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
 
-    int nChannels = 1;
-
-    if (getImageType() == ASI_IMG_RGB24)
-        nChannels = 3;
-
     // Total bytes required for image buffer
-    uint32_t nbuf = (bin_width * bin_height * PrimaryCCD.getBPP() / 8) * nChannels;
+    uint32_t nbuf = (subW * subH * static_cast<uint32_t>(PrimaryCCD.getBPP()) / 8) * ((getImageType() == ASI_IMG_RGB24) ? 3 : 1);
+
     LOGF_DEBUG("Setting frame buffer size to %d bytes.", nbuf);
     PrimaryCCD.setFrameBufferSize(nbuf);
 
+    m_SubX = subX;
+    m_SubY = subY;
+    m_SubW = subW;
+    m_SubH = subH;
+
     // Always set BINNED size
-    Streamer->setSize(bin_width, bin_height);
+    Streamer->setSize(subW, subH);
 
     return true;
 }
