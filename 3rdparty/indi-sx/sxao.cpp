@@ -34,7 +34,7 @@
 #include <string.h>
 #include <connectionplugins/connectionserial.h>
 
-std::unique_ptr<SXAO> sxao(new SXAO);
+static std::unique_ptr<SXAO> sxao(new SXAO);
 
 void ISGetProperties(const char *dev)
 {
@@ -80,7 +80,7 @@ SXAO::SXAO()
 
 const char *SXAO::getDefaultName()
 {
-    return (char *)"SX AO";
+    return "SX AO";
 }
 
 int SXAO::aoCommand(const char *request, char *response, int nbytes)
@@ -143,7 +143,10 @@ bool SXAO::initProperties()
     IUFillTextVector(&FWTP, FWT, 1, getDeviceName(), "INFO", "Info", OPTIONS_TAB, IP_RO, 60, IPS_IDLE);
 
     serialConnection = new Connection::Serial(this);
-    serialConnection->registerHandshake([&]() { return Handshake(); });
+    serialConnection->registerHandshake([&]()
+    {
+        return Handshake();
+    });
     registerConnection(serialConnection);
 
     addDebugControl();
@@ -158,7 +161,7 @@ bool SXAO::Handshake()
 {
     PortFD = serialConnection->getPortFD();
 
-    char buf[8]={0};
+    char buf[8] = {0};
     int rc = aoCommand("X", buf, 1);
 
     if (rc == TTY_OK)
