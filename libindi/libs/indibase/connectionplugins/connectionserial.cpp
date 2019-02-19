@@ -169,6 +169,8 @@ bool Serial::Connect()
 
     if (rc)
         rc = processHandshake();
+    else
+        tty_disconnect(PortFD);
 
     // Start auto-search if option was selected and IF we have system ports to try connecting to
     if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr)
@@ -193,7 +195,7 @@ bool Serial::Connect()
 
         for (auto port : systemPorts)
         {
-            LOGF_DEBUG("Trying connection to %s @ %d ...", port.c_str(), baud);
+            LOGF_INFO("Trying connecting to %s @ %d ...", port.c_str(), baud);
             if (Connect(port.c_str(), baud))
             {
                 IUSaveText(&PortT[0], port.c_str());

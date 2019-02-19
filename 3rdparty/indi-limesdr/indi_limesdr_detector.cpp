@@ -422,25 +422,15 @@ void LIMESDR::grabData(int n_read)
 {
     if(InCapture) {
         continuum = PrimaryDetector.getContinuumBuffer();
-        spectrum = PrimaryDetector.getSpectrumBuffer();
         LOG_INFO("Downloading...");
         LMS_RecvStream(&lime_stream, continuum, n_read, NULL, 1000);
         LMS_StopStream(&lime_stream);
         LMS_DestroyStream(lime_dev, &lime_stream);
         InCapture = false;
 
-        //Create the dsp stream
-        dsp_stream_p stream = dsp_stream_new();
-        dsp_stream_add_dim(stream, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
         //Create the spectrum
-        dsp_convert(continuum, stream->in, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
-        stream->in = dsp_buffer_div1(stream->in, stream->len, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
-        double *out = dsp_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
-        out = dsp_buffer_mul1(out, SPECTRUM_SIZE, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
-        dsp_convert(out, spectrum, SPECTRUM_SIZE);
-        //Destroy the dsp stream
-        dsp_stream_free(stream);
-        free(out);
+        spectrum = PrimaryDetector.getSpectrumBuffer();
+        Spectrum(continuum, spectrum, b_read, SPECTRUM_SIZE, PrimaryDetector.getBPS());
 
         LOG_INFO("Download complete.");
         CaptureComplete(&PrimaryDetector);

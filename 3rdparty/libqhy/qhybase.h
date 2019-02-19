@@ -449,6 +449,7 @@ public:
     return QHYCCD_ERROR;
   }
 
+
   /**
    @fn virtual uint32_t CorrectWH(uint32_t *w,uint32_t *h)
    @brief correct width and height if the setting width or height is not correct
@@ -1111,7 +1112,18 @@ public:
   {
     return 0;
   }
+
   virtual uint32_t SetDarkGenerateOnOff(qhyccd_handle *h, double mode);
+
+
+  //camera mode set/get
+  virtual uint32_t  GetNumberOfReadModes(qhyccd_handle *h,uint32_t *numModes);
+  virtual uint32_t  GetReadModeResolution(qhyccd_handle *h,uint32_t modeNumber, uint32_t* width, uint32_t* height);
+  virtual uint32_t  GetReadModeName(qhyccd_handle *h,uint32_t modeNumber, char* name);
+  virtual uint32_t  SetReadMode(qhyccd_handle *h,uint32_t modeNumber);
+  virtual uint32_t  GetReadMode(qhyccd_handle *h,uint32_t* modeNumber);
+
+
 public:
 
   /**

@@ -465,6 +465,10 @@ void NStep::TimerHit()
     if (isConnected() == false)
         return;
 
+    double currentPosition = FocusAbsPosN[0].value;
+
+    readPosition();
+
     // Check if we have a pending motion
     // and if we STOPPED, then let's take the next action
     if ( (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY) && isMoving() == false)
@@ -472,7 +476,6 @@ void NStep::TimerHit()
         // Are we done moving?
         if (m_TargetDiff == 0)
         {
-            readPosition();
             FocusAbsPosNP.s = IPS_OK;
             FocusRelPosNP.s = IPS_OK;
             IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -508,6 +511,11 @@ void NStep::TimerHit()
                 // Positive targetDiff decreases eventually to zero
                 m_TargetDiff = m_TargetDiff + (nextMotion * ((direction == FOCUS_INWARD) ? 1 : -1));
         }
+        // Check if can update the absolute position in case it changed.
+    }
+    else if (currentPosition != FocusAbsPosN[0].value)
+    {
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
     // Read temperature
@@ -537,16 +545,20 @@ bool NStep::readTemperature()
 {
     char res[NSTEP_LEN] = {0};
 
-    if (sendCommand(":RT", res, 3, 3) == false)
+    if (sendCommand(":RT", res, 3, 4) == false)
         return false;
 
     float temperature = -1000;
-    sscanf(res, "%6f", &temperature);
+    sscanf(res, "%f", &temperature);
+
+    // Divide by 10 to get actual value
+    temperature /= 10.0;
 
     if (temperature < -80)
         return false;
 
-    TemperatureN[0].value = temperature / 10.0;
+    TemperatureN[0].value = temperature;
+    TemperatureNP.s = IPS_OK;
 
     return true;
 }
@@ -666,7 +678,7 @@ bool NStep::readSpeedInfo()
 
     // nStep defines speed step rates from 1 to 254
     // when 1 being the fastest, so for speed we flip the values
-    FocusSpeedN[0].max   = 254 - max_step + 1;
+    FocusSpeedN[0].max   = max_step;
     FocusSpeedN[0].value = 254 - current_step + 1;
     FocusSpeedNP.s = IPS_OK;
 
@@ -720,7 +732,7 @@ bool NStep::SetFocuserSpeed(int speed)
     // Speed and Current NStep steps are opposite.
     // Speed 1 is slowest, translated to 254 for nStep.
     char cmd[NSTEP_LEN] = {0};
-    snprintf(cmd, NSTEP_LEN, "#:CO%03d#", 254 - speed);
+    snprintf(cmd, NSTEP_LEN, "#:CO%03d#", 254 - speed + 1);
     return sendCommand(cmd);
 }
 
