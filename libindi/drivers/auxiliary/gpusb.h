@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2012 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2012-2019 Jasem Mutlaq. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -25,52 +25,41 @@
 #include "defaultdevice.h"
 #include "indiguiderinterface.h"
 
+#include <chrono>
+
 class GPUSBDriver;
 
 class GPUSB : public INDI::GuiderInterface, public INDI::DefaultDevice
 {
-  public:
-    GPUSB();
-    virtual ~GPUSB();
+    public:
+        GPUSB();
+        virtual ~GPUSB();
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual void ISGetProperties(const char *dev);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
-    virtual bool ISSnoopDevice(XMLEle *root);
+        virtual bool initProperties();
+        virtual bool updateProperties();
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
 
-  protected:
-    //  Generic indi device entries
-    bool Connect();
-    bool Disconnect();
-    const char *getDefaultName();
-    void debugTriggered(bool enable);
+        static void NSTimerHelper(void *context);
+        static void WETimerHelper(void *context);
 
-    void TimerHit();
+    protected:
+        bool Connect();
+        bool Disconnect();
+        const char *getDefaultName();
+        void debugTriggered(bool enable);
 
-    virtual IPState GuideNorth(uint32_t ms);
-    virtual IPState GuideSouth(uint32_t ms);
-    virtual IPState GuideEast(uint32_t ms);
-    virtual IPState GuideWest(uint32_t ms);
+        virtual IPState GuideNorth(uint32_t ms);
+        virtual IPState GuideSouth(uint32_t ms);
+        virtual IPState GuideEast(uint32_t ms);
+        virtual IPState GuideWest(uint32_t ms);
 
-  private:
-    float CalcWEPulseTimeLeft();
-    float CalcNSPulseTimeLeft();
+    private:
+        std::chrono::system_clock::time_point NSGuideTS, WEGuideTS;
+        uint32_t NSPulseRequest = 0, WEPulseRequest = 0;
+        int NSDirection = -1, WEDirection = -1, NSTimerID = -1, WETimerID = -1;
 
-    bool InWEPulse;
-    float WEPulseRequest;
-    struct timeval WEPulseStart;
-    int WEtimerID;
+        void NSTimerCallback();
+        void WETimerCallback();
 
-    bool InNSPulse;
-    float NSPulseRequest;
-    struct timeval NSPulseStart;
-    int NStimerID;
-
-    int WEDir;
-    int NSDir;
-
-    GPUSBDriver *driver;
+        GPUSBDriver *driver;
 };
