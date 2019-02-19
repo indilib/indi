@@ -135,6 +135,13 @@ class CCD : public DefaultDevice, GuiderInterface
 
         static void wsThreadHelper(void * context);
 
+        /////////////////////////////////////////////////////////////////////////////
+        /// Group Names
+        /////////////////////////////////////////////////////////////////////////////
+        static constexpr const char *GUIDE_CONTROL_TAB  = "Guider Control";
+        static constexpr const char * WCS_TAB = "WCS";
+
+
     protected:
         /**
          * @brief GetCCDCapability returns the CCD capabilities.
@@ -654,12 +661,6 @@ class CCD : public DefaultDevice, GuiderInterface
         void wsThreadEntry();
         INDIWSServer wsServer;
 #endif
-
-        /////////////////////////////////////////////////////////////////////////////
-        /// Static Helper Values
-        /////////////////////////////////////////////////////////////////////////////
-        static constexpr const char *GUIDE_CONTROL_TAB  = "Guider Control";
-        static constexpr const char * WCS_TAB = "WCS";
 
         /////////////////////////////////////////////////////////////////////////////
         /// Misc.
