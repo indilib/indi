@@ -781,7 +781,7 @@ bool SBIGCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 IDSetNumber(&AONSNP, nullptr);
                 IDSetNumber(&AOWENP, nullptr);
 
-                LOG_INFO("Adaptive Options are centered.");
+                LOG_INFO("Adaptive Optics are centered.");
             }
             else
                 LOG_ERROR("Failed to center adaptive optics.");
