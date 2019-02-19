@@ -29,59 +29,59 @@
 #include <defaultdevice.h>
 #include <indiguiderinterface.h>
 
-extern const char *GUIDE_CONTROL_TAB;
-
 class SXAO : public INDI::DefaultDevice, INDI::GuiderInterface
 {
-  public:
-    SXAO();
-    ~SXAO() = default;
+    public:
+        SXAO();
+        ~SXAO() = default;
 
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+        bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
-    bool initProperties();
-    bool updateProperties();
+        bool initProperties();
+        bool updateProperties();
 
-    IPState GuideNorth(uint32_t ms);
-    IPState GuideSouth(uint32_t ms);
-    IPState GuideEast(uint32_t ms);
-    IPState GuideWest(uint32_t ms);
+        IPState GuideNorth(uint32_t ms);
+        IPState GuideSouth(uint32_t ms);
+        IPState GuideEast(uint32_t ms);
+        IPState GuideWest(uint32_t ms);
 
-    bool AONorth(int steps);
-    bool AOSouth(int steps);
-    bool AOEast(int steps);
-    bool AOWest(int steps);
+        bool AONorth(int steps);
+        bool AOSouth(int steps);
+        bool AOEast(int steps);
+        bool AOWest(int steps);
 
-    bool AOCenter();
-    bool AOUnjam();
+        bool AOCenter();
+        bool AOUnjam();
 
-    void CheckLimit(bool force);
+        void CheckLimit(bool force);
 
-    const char *getDefaultName();    
+        const char *getDefaultName();
 
-private:
-  int aoCommand(const char *request, char *response, int nbytes);
-  bool Handshake();
+    private:
+        int aoCommand(const char *request, char *response, int nbytes);
+        bool Handshake();
 
-  INumber AONS[2];
-  INumberVectorProperty AONSNP;
+        INumber AONS[2];
+        INumberVectorProperty AONSNP;
 
-  INumber AOWE[2];
-  INumberVectorProperty AOWENP;
+        INumber AOWE[2];
+        INumberVectorProperty AOWENP;
 
-  ISwitch Center[2];
-  ISwitchVectorProperty CenterP;
+        ISwitch Center[2];
+        ISwitchVectorProperty CenterP;
 
-  IText FWT[1] {};
-  ITextVectorProperty FWTP;
+        IText FWT[1] {};
+        ITextVectorProperty FWTP;
 
-  ILight AtLimitL[4];
-  ILightVectorProperty AtLimitLP;
+        ILight AtLimitL[4];
+        ILightVectorProperty AtLimitLP;
 
-  char lastLimit = -1;
+        char lastLimit = -1;
 
-  Connection::Serial *serialConnection { nullptr };
+        Connection::Serial *serialConnection { nullptr };
 
-  int PortFD { -1 };
+        int PortFD { -1 };
+
+        static constexpr const char *GUIDE_CONTROL_TAB  = "Guider Control";
 };
