@@ -108,6 +108,8 @@ bool SestoSenso::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
 
+    FocusMaxPosN[0].value = 2097152;
+
     addAuxControls();
 
     setDefaultPollingPeriod(500);
@@ -127,7 +129,7 @@ bool SestoSenso::updateProperties()
         if (updateTemperature())
             defineNumber(&TemperatureNP);
         defineText(&FirmwareTP);
-        defineNumber(&LimitsNP);
+        //defineNumber(&LimitsNP);
 
         if (getStartupValues())
             LOG_INFO("SestoSenso paramaters updated, focuser ready for use.");
@@ -140,7 +142,7 @@ bool SestoSenso::updateProperties()
         if (TemperatureNP.s == IPS_OK)
             deleteProperty(TemperatureNP.name);
         deleteProperty(FirmwareTP.name);
-        deleteProperty(LimitsNP.name);
+        //deleteProperty(LimitsNP.name);
     }
 
     return true;
@@ -202,6 +204,25 @@ bool SestoSenso::updateTemperature()
     TemperatureN[0].value = std::stod(res);
     TemperatureNP.s = (TemperatureN[0].value == 99.00) ? IPS_IDLE : IPS_OK;
 
+    return true;
+}
+
+bool SestoSenso::updateMaxLimit()
+{
+    char res[SESTO_LEN] = {0};
+
+    if (isSimulation())
+        return true;
+
+    if (sendCommand("#QM!", res) == false)
+        return false;
+
+    FocusMaxPosN[0].max = std::stod(res);
+    if (FocusMaxPosN[0].value > FocusMaxPosN[0].max)
+        FocusMaxPosN[0].value = FocusMaxPosN[0].max;
+
+    FocusMaxPosNP.s = IPS_OK;
+    IUUpdateMinMax(&FocusAbsPosNP);
     return true;
 }
 
@@ -432,9 +453,9 @@ bool SestoSenso::AbortFocuser()
     if (isSimulation())
         return true;
 
-    char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
+    char res[SESTO_LEN] = {0};
 
-    if (sendCommand(cmd, res))
+    if (sendCommand(":MA!", res))
     {
         if (!strcmp(res, "MAok!"))
         {
@@ -504,11 +525,13 @@ void SestoSenso::TimerHit()
 
 bool SestoSenso::getStartupValues()
 {
-    bool rc = updatePosition();
-    if (rc)
+    bool rc1 = updatePosition();
+    if (rc1)
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    return rc;
+    bool rc2 = updateMaxLimit();
+
+    return (rc1 && rc2);
 }
 
 bool SestoSenso::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)

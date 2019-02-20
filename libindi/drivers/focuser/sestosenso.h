@@ -47,8 +47,7 @@ class SestoSenso : public INDI::Focuser
         bool Ack();
         bool setMinLimit(uint32_t limit);
         bool setMaxLimit(uint32_t limit);
-        bool isCommandOK(const char *cmd);
-
+        bool updateMaxLimit();
 
         bool sync(uint32_t newPosition);
         bool updateTemperature();
