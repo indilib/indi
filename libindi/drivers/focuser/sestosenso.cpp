@@ -217,13 +217,23 @@ bool SestoSenso::updateMaxLimit()
     if (sendCommand("#QM!", res) == false)
         return false;
 
-    FocusMaxPosN[0].max = std::stod(res);
-    if (FocusMaxPosN[0].value > FocusMaxPosN[0].max)
-        FocusMaxPosN[0].value = FocusMaxPosN[0].max;
+    int maxLimit = 0;
 
-    FocusMaxPosNP.s = IPS_OK;
-    IUUpdateMinMax(&FocusAbsPosNP);
-    return true;
+    sscanf(res, "QM;%d!", &maxLimit);
+
+    if (maxLimit > 0)
+    {
+        FocusMaxPosN[0].max = maxLimit;
+        if (FocusMaxPosN[0].value > maxLimit)
+            FocusMaxPosN[0].value = maxLimit;
+
+        FocusMaxPosNP.s = IPS_OK;
+        IUUpdateMinMax(&FocusAbsPosNP);
+        return true;
+    }
+
+    FocusMaxPosNP.s = IPS_ALERT;
+    return false;
 }
 
 bool SestoSenso::updatePosition()
