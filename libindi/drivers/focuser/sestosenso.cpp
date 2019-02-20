@@ -29,8 +29,6 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define SESTOSENSO_TIMEOUT 3
-
 static std::unique_ptr<SestoSenso> sesto(new SestoSenso());
 
 void ISGetProperties(const char *dev)
@@ -73,6 +71,7 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso::SestoSenso()
 {
+    setVersion(1, 1);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
@@ -116,14 +115,6 @@ bool SestoSenso::initProperties()
     return true;
 }
 
-void SestoSenso::ISGetProperties(const char *dev)
-{
-    INDI::Focuser::ISGetProperties(dev);
-
-    defineNumber(&LimitsNP);
-    loadConfig(true, LimitsNP.name);
-}
-
 bool SestoSenso::updateProperties()
 {
     INDI::Focuser::updateProperties();
@@ -133,16 +124,19 @@ bool SestoSenso::updateProperties()
         defineNumber(&SyncNP);
         defineNumber(&TemperatureNP);
         defineText(&FirmwareTP);
+        defineNumber(&LimitsNP);
 
-        LOG_INFO("SestoSenso paramaters updated, focuser ready for use.");
-
-        GetFocusParams();
+        if (getStartupValues())
+            LOG_INFO("SestoSenso paramaters updated, focuser ready for use.");
+        else
+            LOG_WARN("Failed to inquire parameters. Check logs.");
     }
     else
     {
         deleteProperty(SyncNP.name);
         deleteProperty(TemperatureNP.name);
         deleteProperty(FirmwareTP.name);
+        deleteProperty(LimitsNP.name);
     }
 
     return true;
@@ -157,7 +151,7 @@ bool SestoSenso::Handshake()
     }
 
     LOG_INFO(
-          "Error retreiving data from SestoSenso, please ensure SestoSenso controller is powered and the port is correct.");
+        "Error retreiving data from SestoSenso, please ensure SestoSenso controller is powered and the port is correct.");
     return false;
 }
 
@@ -165,10 +159,7 @@ bool SestoSenso::Disconnect()
 {
     // Save current position to memory.
     if (isSimulation() == false)
-    {
-        int nbytes_written=0;
-        tty_write(PortFD, "#PC!", 4, &nbytes_written);
-    }
+        sendCommand("#PS!");
 
     return INDI::Focuser::Disconnect();
 }
@@ -180,88 +171,28 @@ const char *SestoSenso::getDefaultName()
 
 bool SestoSenso::Ack()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[16]={0};
-
-    LOG_DEBUG("CMD <#QF!>");
+    char res[SESTO_LEN] = {0};
 
     if (isSimulation())
-    {
-        strncpy(resp, "1.0 Simulation", 16);
-        nbytes_read = strlen(resp) + 1;
-    }
-    else
-    {
-        tcflush(PortFD, TCIOFLUSH);
+        strncpy(res, "1.0 Simulation", SESTO_LEN);
+    else if (sendCommand("#QF!", res) == false)
+        return false;
 
-        if ((rc = tty_write(PortFD, "#QF!", 4, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-            return false;
-        }
-
-        if ((rc = tty_read_section(PortFD, resp, 0xD, SESTOSENSO_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-            return false;
-        }
-
-        tcflush(PortFD, TCIOFLUSH);
-    }
-
-    resp[nbytes_read-1] = '\0';
-
-    LOGF_DEBUG("RES <%s>", resp);
-
-    IUSaveText(&FirmwareT[0], resp);
+    IUSaveText(&FirmwareT[0], res);
 
     return true;
 }
 
 bool SestoSenso::updateTemperature()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[16]={0};
-
-    LOG_DEBUG("CMD <#QT!>");
+    char res[SESTO_LEN] = {0};
 
     if (isSimulation())
-    {
-        strncpy(resp, "23.45", 16);
-        nbytes_read = strlen(resp) + 1;
-    }
-    else
-    {
-        tcflush(PortFD, TCIOFLUSH);
+        strncpy(res, "23.45", SESTO_LEN);
+    else if (sendCommand("#QT!", res) == false)
+        return false;
 
-        if ((rc = tty_write(PortFD, "#QT!", 4, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-            TemperatureNP.s = IPS_ALERT;
-            return false;
-        }
-
-        if ((rc = tty_read_section(PortFD, resp, 0xD, SESTOSENSO_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-            TemperatureNP.s = IPS_ALERT;
-            return false;
-        }
-
-        tcflush(PortFD, TCIOFLUSH);
-    }
-
-    resp[nbytes_read-1] = '\0';
-
-    LOGF_DEBUG("RES <%s>", resp);
-
-    TemperatureN[0].value = atof(resp);
+    TemperatureN[0].value = std::stod(res);
     TemperatureNP.s = (TemperatureN[0].value == 99.00) ? IPS_IDLE : IPS_OK;
 
     return true;
@@ -269,45 +200,13 @@ bool SestoSenso::updateTemperature()
 
 bool SestoSenso::updatePosition()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[16]={0};
-
-    LOG_DEBUG("CMD <#QP!>");
-
+    char res[SESTO_LEN] = {0};
     if (isSimulation())
-    {
-        snprintf(resp, 16, "%d", static_cast<uint32_t>(FocusAbsPosN[0].value));
-        nbytes_read = strlen(resp)+1;
-    }
-    else
-    {
-        tcflush(PortFD, TCIOFLUSH);
+        snprintf(res, SESTO_LEN, "%d", static_cast<uint32_t>(FocusAbsPosN[0].value));
+    else if (sendCommand("#QP!", res) == false)
+        return false;
 
-        if ((rc = tty_write(PortFD, "#QP!", 4, &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-            FocusAbsPosNP.s = IPS_ALERT;
-            return false;
-        }
-
-        if ((rc = tty_read_section(PortFD, resp, 0xD, SESTOSENSO_TIMEOUT, &nbytes_read)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-            FocusAbsPosNP.s = IPS_ALERT;
-            return false;
-        }
-
-        tcflush(PortFD, TCIOFLUSH);
-    }
-
-    resp[nbytes_read-1] = '\0';
-
-    LOGF_DEBUG("RES <%s>", resp);
-
-    FocusAbsPosN[0].value = atoi(resp);
+    FocusAbsPosN[0].value = std::stoi(res);
     FocusAbsPosNP.s = IPS_OK;
 
     return true;
@@ -315,9 +214,7 @@ bool SestoSenso::updatePosition()
 
 bool SestoSenso::isMotionComplete()
 {
-    int nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[16]={0};
+    char res[SESTO_LEN] = {0};
 
     if (isSimulation())
     {
@@ -329,32 +226,31 @@ bool SestoSenso::isMotionComplete()
         else if (targPos < nextPos)
             nextPos -= 250;
 
-        if (abs(nextPos-targPos) < 250)
+        if (abs(nextPos - targPos) < 250)
             nextPos = targetPos;
         else if (nextPos < 0)
             nextPos = 0;
         else if (nextPos > FocusAbsPosN[0].max)
             nextPos = FocusAbsPosN[0].max;
 
-        snprintf(resp, 16, "%d", nextPos);
-        nbytes_read = strlen(resp)+1;
+        snprintf(res, SESTO_LEN, "%d", nextPos);
     }
     else
     {
-        if ((rc = tty_read_section(PortFD, resp, 0xD, SESTOSENSO_TIMEOUT, &nbytes_read)) != TTY_OK)
+        int rc = 0, nbytes_read = 0;
+        if ((rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, SESTO_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
+            char errmsg[MAXRBUF];
+            tty_error_msg(rc, errmsg, MAXRBUF);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errmsg);
             return false;
         }
     }
 
-    resp[nbytes_read-1] = '\0';
-
-    if (!strcmp(resp, "GTok!"))
+    if (!strcmp(res, "GTok!"))
         return true;
 
-    uint32_t newPos = atoi(resp);
+    uint32_t newPos = std::stoi(res);
     FocusAbsPosN[0].value = newPos;
 
     if (newPos == targetPos)
@@ -365,92 +261,62 @@ bool SestoSenso::isMotionComplete()
 
 bool SestoSenso::sync(uint32_t newPosition)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[16]={0};
-
-    snprintf(cmd, 16, "#SP%d!", newPosition);
-
-    LOGF_DEBUG("CMD <%s>", cmd);
+    char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
+    snprintf(cmd, SESTO_LEN, "#SP%d!", newPosition);
 
     if (isSimulation())
-    {
         FocusAbsPosN[0].value = newPosition;
-    }
-    else
-    {
-        tcflush(PortFD, TCIOFLUSH);
+    else if (sendCommand(cmd, res) == false)
+        return false;
 
-        // Sync
-        if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-            return false;
-        }
-    }
+    return !strcmp(res, "SPok!");
+}
 
-    return isCommandOK("SP");
+bool SestoSenso::SetFocuserMaxPosition(uint32_t ticks)
+{
+    return setMaxLimit(ticks);
 }
 
 bool SestoSenso::setMaxLimit(uint32_t limit)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[16]={0};
+    char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
+    snprintf(cmd, SESTO_LEN, "#SM;%07d!", limit);
 
-    snprintf(cmd, 16, "#SM;%07d!", limit);
+    if (!isSimulation())
+    {
+        if (sendCommand(cmd, res) == false)
+            return false;
+    }
 
-    LOGF_DEBUG("CMD <%s>", cmd);
-
-    if (isSimulation())
+    if (!strcmp(res, "SMok!"))
     {
         FocusAbsPosN[0].max = limit;
-    }
-    else
-    {
-        tcflush(PortFD, TCIOFLUSH);
-
-        // Sync
-        if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-            return false;
-        }
+        FocusMaxPosN[0].max = limit;
+        return true;
     }
 
-    return isCommandOK("SM");
+    return false;
 }
 
 bool SestoSenso::setMinLimit(uint32_t limit)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[16]={0};
+    char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
+    snprintf(cmd, SESTO_LEN, "#Sm;%07d!", limit);
 
-    snprintf(cmd, 16, "#Sm;%07d!", limit);
+    if (!isSimulation())
+    {
+        if (sendCommand(cmd, res) == false)
+            return false;
+    }
 
-    LOGF_DEBUG("CMD <%s>", cmd);
-
-    if (isSimulation())
+    if (!strcmp(res, "Smok!"))
     {
         FocusAbsPosN[0].min = limit;
-    }
-    else
-    {
-        tcflush(PortFD, TCIOFLUSH);
-
-        // Sync
-        if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
-            return false;
-        }
+        FocusMaxPosN[0].min = limit;
+        return true;
     }
 
-    return isCommandOK("Sm");
+    return false;
 }
 
 bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -472,7 +338,7 @@ bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[],
             IUUpdateNumber(&LimitsNP, values, names, n);
 
             if (setMinLimit(static_cast<uint32_t>(LimitsN[SS_MIN_LIMIT].value)) &&
-                setMaxLimit(static_cast<uint32_t>(LimitsN[SS_MAX_LIMIT].value)))
+                    setMaxLimit(static_cast<uint32_t>(LimitsN[SS_MAX_LIMIT].value)))
                 LimitsNP.s = IPS_OK;
             else
             {
@@ -491,6 +357,9 @@ bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[],
             FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
             FocusRelPosN[0].value = 0;
             FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+
+            IUUpdateMinMax(&FocusAbsPosNP);
+            IUUpdateMinMax(&FocusMaxPosNP);
 
             saveConfig(true, LimitsNP.name);
 
@@ -519,33 +388,15 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[16]={0};
-
+    char cmd[SESTO_LEN] = {0};
     snprintf(cmd, 16, "#GT%d!", targetTicks);
-    LOGF_DEBUG("CMD <%s>", cmd);
-
     if (isSimulation() == false)
     {
-        if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
-        {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
+        if (sendCommand(cmd) == false)
             return IPS_ALERT;
-        }
     }
 
     return IPS_BUSY;
-
-    /*if (isCommandOK("GT"))
-    {
-        FocusAbsPosNP.s = IPS_BUSY;
-        return IPS_BUSY;
-    }
-
-    return IPS_ALERT;
-    */
 }
 
 IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
@@ -574,46 +425,22 @@ bool SestoSenso::AbortFocuser()
     if (isSimulation())
         return true;
 
-    int nbytes_written;
-    if (tty_write(PortFD, "#MA!", 4, &nbytes_written) == TTY_OK)
+    char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
+
+    if (sendCommand(cmd, res))
     {
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
-    }
-
-    return isCommandOK("MA");
-}
-
-bool SestoSenso::isCommandOK(const char *cmd)
-{
-    int nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF], resp[16];
-
-    char expectedResp[16];
-    snprintf(expectedResp, 16, "%sok!", cmd);
-
-    if (isSimulation())
-    {
-        strncpy(resp, expectedResp, 16);
-        nbytes_read = strlen(resp)+1;
-    }
-    else
-    {
-        if ((rc = tty_read_section(PortFD, resp, 0xD, SESTOSENSO_TIMEOUT, &nbytes_read)) != TTY_OK)
+        if (!strcmp(res, "MAok!"))
         {
-            tty_error_msg(rc, errstr, MAXRBUF);
-            LOGF_ERROR("%s error for command %s: %s.", __FUNCTION__, cmd, errstr);
-            return false;
+            FocusAbsPosNP.s = IPS_IDLE;
+            FocusRelPosNP.s = IPS_IDLE;
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+            IDSetNumber(&FocusRelPosNP, nullptr);
+
+            return true;
         }
     }
 
-    resp[nbytes_read-1] = '\0';
-
-    LOGF_DEBUG("RES <%s>", resp);
-
-    return (!strcmp(resp, expectedResp));
+    return false;
 }
 
 void SestoSenso::TimerHit()
@@ -652,24 +479,99 @@ void SestoSenso::TimerHit()
         }
     }
 
-    rc = updateTemperature();
-    if (rc)
+    if (m_TemperatureCounter++ == SESTO_TEMPERATURE_FREQ)
     {
-        if (fabs(lastTemperature - TemperatureN[0].value) >= 0.1)
+        rc = updateTemperature();
+        if (rc)
         {
-            IDSetNumber(&TemperatureNP, nullptr);
-            lastTemperature = TemperatureN[0].value;
+            if (fabs(lastTemperature - TemperatureN[0].value) >= 0.1)
+            {
+                IDSetNumber(&TemperatureNP, nullptr);
+                lastTemperature = TemperatureN[0].value;
+            }
         }
     }
 
     SetTimer(POLLMS);
 }
 
-void SestoSenso::GetFocusParams()
+bool SestoSenso::getStartupValues()
 {
-    if (updatePosition())
+    bool rc1 = updatePosition();
+    if (rc1)
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    if (updateTemperature())
+    bool rc2 = updateTemperature();
+    if (rc2)
         IDSetNumber(&TemperatureNP, nullptr);
+
+    return true;
+}
+
+bool SestoSenso::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
+{
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if (cmd_len > 0)
+    {
+        char hex_cmd[SESTO_LEN * 3] = {0};
+        hexDump(hex_cmd, cmd, cmd_len);
+        LOGF_DEBUG("CMD <%s>", hex_cmd);
+        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
+    }
+    else
+    {
+        LOGF_DEBUG("CMD <%s>", cmd);
+        rc = tty_write_string(PortFD, cmd, &nbytes_written);
+    }
+
+    if (rc != TTY_OK)
+    {
+        char errstr[MAXRBUF] = {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial write error: %s.", errstr);
+        return false;
+    }
+
+    if (res == nullptr)
+        return true;
+
+    if (res_len > 0)
+        rc = tty_read(PortFD, res, res_len, SESTO_TIMEOUT, &nbytes_read);
+    else
+        rc = tty_nread_section(PortFD, res, SESTO_LEN, SESTO_STOP_CHAR, SESTO_TIMEOUT, &nbytes_read);
+
+    if (rc != TTY_OK)
+    {
+        char errstr[MAXRBUF] = {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial read error: %s.", errstr);
+        return false;
+    }
+
+    if (res_len > 0)
+    {
+        char hex_res[SESTO_LEN * 3] = {0};
+        hexDump(hex_res, res, res_len);
+        LOGF_DEBUG("RES <%s>", hex_res);
+    }
+    else
+    {
+        LOGF_DEBUG("RES <%s>", res);
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    return true;
+}
+
+void SestoSenso::hexDump(char * buf, const char * data, int size)
+{
+    for (int i = 0; i < size; i++)
+        sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
+
+    if (size > 0)
+        buf[3 * size - 1] = '\0';
 }
