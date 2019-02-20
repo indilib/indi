@@ -467,15 +467,7 @@ bool SestoSenso::AbortFocuser()
 
     if (sendCommand("#MA!", res))
     {
-        if (!strcmp(res, "MAok!"))
-        {
-            FocusAbsPosNP.s = IPS_IDLE;
-            FocusRelPosNP.s = IPS_IDLE;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-
-            return true;
-        }
+        return !strcmp(res, "MAok!");
     }
 
     return false;
