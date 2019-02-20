@@ -569,7 +569,10 @@ bool SestoSenso::sendCommand(const char * cmd, char * res, int cmd_len, int res_
     if (res_len > 0)
         rc = tty_read(PortFD, res, res_len, SESTO_TIMEOUT, &nbytes_read);
     else
+    {
         rc = tty_nread_section(PortFD, res, SESTO_LEN, SESTO_STOP_CHAR, SESTO_TIMEOUT, &nbytes_read);
+        res[nbytes_read - 1] = 0;
+    }
 
     if (rc != TTY_OK)
     {
