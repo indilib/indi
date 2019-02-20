@@ -122,7 +122,10 @@ bool SestoSenso::updateProperties()
     if (isConnected())
     {
         defineNumber(&SyncNP);
-        defineNumber(&TemperatureNP);
+
+        // Only define temperature if there is a probe
+        if (updateTemperature())
+            defineNumber(&TemperatureNP);
         defineText(&FirmwareTP);
         defineNumber(&LimitsNP);
 
@@ -134,7 +137,8 @@ bool SestoSenso::updateProperties()
     else
     {
         deleteProperty(SyncNP.name);
-        deleteProperty(TemperatureNP.name);
+        if (TemperatureNP.s == IPS_OK)
+            deleteProperty(TemperatureNP.name);
         deleteProperty(FirmwareTP.name);
         deleteProperty(LimitsNP.name);
     }
@@ -190,6 +194,9 @@ bool SestoSenso::updateTemperature()
     if (isSimulation())
         strncpy(res, "23.45", SESTO_LEN);
     else if (sendCommand("#QT!", res) == false)
+        return false;
+
+    if (std::stod(res) > 90)
         return false;
 
     TemperatureN[0].value = std::stod(res);
@@ -288,7 +295,7 @@ bool SestoSenso::setMaxLimit(uint32_t limit)
             return false;
     }
 
-    if (!strcmp(res, "SMok!"))
+    if (strstr(res, "SM;"))
     {
         FocusAbsPosN[0].max = limit;
         FocusMaxPosN[0].max = limit;
@@ -309,7 +316,7 @@ bool SestoSenso::setMinLimit(uint32_t limit)
             return false;
     }
 
-    if (!strcmp(res, "Smok!"))
+    if (strstr(res, "Sm;"))
     {
         FocusAbsPosN[0].min = limit;
         FocusMaxPosN[0].min = limit;
@@ -497,15 +504,11 @@ void SestoSenso::TimerHit()
 
 bool SestoSenso::getStartupValues()
 {
-    bool rc1 = updatePosition();
-    if (rc1)
+    bool rc = updatePosition();
+    if (rc)
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    bool rc2 = updateTemperature();
-    if (rc2)
-        IDSetNumber(&TemperatureNP, nullptr);
-
-    return true;
+    return rc;
 }
 
 bool SestoSenso::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
