@@ -108,6 +108,8 @@ bool SestoSenso::initProperties()
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
 
+    FocusMaxPosN[0].value = 2097152;
+
     addAuxControls();
 
     setDefaultPollingPeriod(500);
@@ -122,9 +124,12 @@ bool SestoSenso::updateProperties()
     if (isConnected())
     {
         defineNumber(&SyncNP);
-        defineNumber(&TemperatureNP);
+
+        // Only define temperature if there is a probe
+        if (updateTemperature())
+            defineNumber(&TemperatureNP);
         defineText(&FirmwareTP);
-        defineNumber(&LimitsNP);
+        //defineNumber(&LimitsNP);
 
         if (getStartupValues())
             LOG_INFO("SestoSenso paramaters updated, focuser ready for use.");
@@ -134,9 +139,10 @@ bool SestoSenso::updateProperties()
     else
     {
         deleteProperty(SyncNP.name);
-        deleteProperty(TemperatureNP.name);
+        if (TemperatureNP.s == IPS_OK)
+            deleteProperty(TemperatureNP.name);
         deleteProperty(FirmwareTP.name);
-        deleteProperty(LimitsNP.name);
+        //deleteProperty(LimitsNP.name);
     }
 
     return true;
@@ -192,10 +198,42 @@ bool SestoSenso::updateTemperature()
     else if (sendCommand("#QT!", res) == false)
         return false;
 
+    if (std::stod(res) > 90)
+        return false;
+
     TemperatureN[0].value = std::stod(res);
     TemperatureNP.s = (TemperatureN[0].value == 99.00) ? IPS_IDLE : IPS_OK;
 
     return true;
+}
+
+bool SestoSenso::updateMaxLimit()
+{
+    char res[SESTO_LEN] = {0};
+
+    if (isSimulation())
+        return true;
+
+    if (sendCommand("#QM!", res) == false)
+        return false;
+
+    int maxLimit = 0;
+
+    sscanf(res, "QM;%d!", &maxLimit);
+
+    if (maxLimit > 0)
+    {
+        FocusMaxPosN[0].max = maxLimit;
+        if (FocusMaxPosN[0].value > maxLimit)
+            FocusMaxPosN[0].value = maxLimit;
+
+        FocusMaxPosNP.s = IPS_OK;
+        IUUpdateMinMax(&FocusAbsPosNP);
+        return true;
+    }
+
+    FocusMaxPosNP.s = IPS_ALERT;
+    return false;
 }
 
 bool SestoSenso::updatePosition()
@@ -288,7 +326,7 @@ bool SestoSenso::setMaxLimit(uint32_t limit)
             return false;
     }
 
-    if (!strcmp(res, "SMok!"))
+    if (strstr(res, "SM;"))
     {
         FocusAbsPosN[0].max = limit;
         FocusMaxPosN[0].max = limit;
@@ -309,7 +347,7 @@ bool SestoSenso::setMinLimit(uint32_t limit)
             return false;
     }
 
-    if (!strcmp(res, "Smok!"))
+    if (strstr(res, "Sm;"))
     {
         FocusAbsPosN[0].min = limit;
         FocusMaxPosN[0].min = limit;
@@ -425,19 +463,11 @@ bool SestoSenso::AbortFocuser()
     if (isSimulation())
         return true;
 
-    char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
+    char res[SESTO_LEN] = {0};
 
-    if (sendCommand(cmd, res))
+    if (sendCommand("#MA!", res))
     {
-        if (!strcmp(res, "MAok!"))
-        {
-            FocusAbsPosNP.s = IPS_IDLE;
-            FocusRelPosNP.s = IPS_IDLE;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-
-            return true;
-        }
+        return !strcmp(res, "MAok!");
     }
 
     return false;
@@ -501,11 +531,9 @@ bool SestoSenso::getStartupValues()
     if (rc1)
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    bool rc2 = updateTemperature();
-    if (rc2)
-        IDSetNumber(&TemperatureNP, nullptr);
+    bool rc2 = updateMaxLimit();
 
-    return true;
+    return (rc1 && rc2);
 }
 
 bool SestoSenso::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
@@ -541,7 +569,10 @@ bool SestoSenso::sendCommand(const char * cmd, char * res, int cmd_len, int res_
     if (res_len > 0)
         rc = tty_read(PortFD, res, res_len, SESTO_TIMEOUT, &nbytes_read);
     else
+    {
         rc = tty_nread_section(PortFD, res, SESTO_LEN, SESTO_STOP_CHAR, SESTO_TIMEOUT, &nbytes_read);
+        res[nbytes_read - 1] = 0;
+    }
 
     if (rc != TTY_OK)
     {
