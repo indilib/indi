@@ -283,6 +283,7 @@ bool SestoSenso::isMotionComplete()
             LOGF_ERROR("%s error: %s.", __FUNCTION__, errmsg);
             return false;
         }
+        res[nbytes_read - 1] = 0;
     }
 
     if (!strcmp(res, "GTok!"))
