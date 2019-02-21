@@ -87,9 +87,37 @@ class FocuserDriver : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions
         ///////////////////////////////////////////////////////////////////////////////
+        /**
+         * @brief sendCommand Send a string command to device.
+         * @param cmd Command to be sent. Can be either NULL TERMINATED or just byte buffer.
+         * @param res If not nullptr, the function will wait for a response from the device. If nullptr, it returns true immediately
+         * after the command is successfully sent.
+         * @param cmd_len if -1, it is assumed that the @a cmd is a null-terminated string. Otherwise, it would write @a cmd_len bytes from
+         * the @a cmd buffer.
+         * @param res_len if -1 and if @a res is not nullptr, the function will read until it detects the default delimeter DRIVER_STOP_CHAR
+         *  up to DRIVER_LEN length. Otherwise, the function will read @a res_len from the device and store it in @a res.
+         * @return True if successful, false otherwise.
+         */
         bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
-        bool getStartupValues();
+
+        /**
+         * @brief hexDump Helper function to print non-string commands to the logger so it is easier to debug
+         * @param buf buffer to format the command into hex strings.
+         * @param data the command
+         * @param size length of the command in bytes.
+         * @note This is called internally by sendCommand, no need to call it directly.
+         */
         void hexDump(char * buf, const char * data, int size);
+
+        /**
+         * @brief getStartupValues Call once during startup
+         * @return True if all values read OK, false otherwise
+         */
+        bool getStartupValues();
+
+        /**
+         * @return is the focuser in motion?
+         */
         bool isMoving();
 
         /////////////////////////////////////////////////////////////////////////////

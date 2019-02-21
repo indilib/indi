@@ -33,7 +33,7 @@ sudo make install
 ''sudo make install'' is not strictly necessary as you can execute the driver locally. For example:
 
 ```
-indiserver -vv indi_focuser_driver_focus
+indiserver -vv ./indi_focuser_driver_focus
 ```
 
 You will notice there is no XML drivers to describe the driver to the client like the regular drivers. You can manually modify /usr/share/indi/drivers.xml
