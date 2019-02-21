@@ -176,6 +176,36 @@ bool lacerta_mfoc::updateProperties()
 /************************************************************************************
  *
 ************************************************************************************/
+bool lacerta_mfoc::Handshake()
+{
+    char MFOC_cmd[32] = ": Q #";
+    char MFOC_res[32] = {0};
+    char MFOC_res_type[32] = "0";
+    int MFOC_pos_measd = 0;
+    int nbytes_written = 0;
+    int nbytes_read = 0;
+
+
+    tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
+    LOGF_INFO("CMD <%s>", MFOC_cmd);
+    tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
+    LOGF_DEBUG("RES <%s>", MFOC_res_type);
+
+    sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_pos_measd);
+
+    if (MFOC_res_type[0] == 'P')
+    {
+        FocusAbsPosN[0].value = MFOC_pos_measd;
+        FocusAbsPosNP.s = IPS_OK;
+        return true;
+    }
+
+    return false;
+}
+
+/************************************************************************************
+ *
+************************************************************************************/
 bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
