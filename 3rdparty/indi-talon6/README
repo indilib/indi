@@ -2,10 +2,12 @@ TALON6 INDI Driver
 ================
 
 This package provides the INDI driver for TALON6 Roll Off Roof.
-Talon6 is a Roll Off Roof control system. It has been in use in several hosting facilities (e.g. E-Eye in Spain).
+Talon6 is a Roll Off Roof control system. It has been in use in several hosting facilities (e.g. E-Eye in Spain, https://www.entreencinasyestrellas.es/).
 http://observatoriosspag.es/Whats_TALON6.htm
 
-Version 0.1: Provides only basic functionalities like open (unpark) / close (park) / abort and also reads the status from the device. All other features will be in a next version, like sync, move to position, snoop devices for mount / weather shutdown. Use it under strict control as mount / devices could be hit by the roof.
+Version 0.1: Provides only basic functionalities like open (unpark) / close (park) / abort and also reads the status from the device. 
+All other features will be in a next version, like sync, move to position, snoop devices for mount / weather shutdown. 
+Use it under strict control as mount / devices could be hit by the roof.
 
 Requirements
 ============
