@@ -1422,6 +1422,15 @@ void QHYCCD::updateTemperature()
     TemperatureN[0].value = ccdtemp;
     CoolerN[0].value      = coolpower / 255.0 * 100;
 
+    CoolerNP.s = CoolerN[0].value > 0 ? IPS_BUSY : IPS_IDLE;
+
+    IPState coolerState = CoolerN[0].value > 0 ? IPS_BUSY : IPS_OK;
+    if (coolerState != CoolerSP.s)
+    {
+        CoolerSP.s = coolerState;
+        IDSetSwitch(&CoolerSP, nullptr);
+    }
+
     //    if (coolpower > 0 && CoolerS[0].s == ISS_OFF)
     //    {
     //        CoolerNP.s   = IPS_BUSY;
