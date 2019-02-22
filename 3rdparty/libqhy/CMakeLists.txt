@@ -3,8 +3,8 @@ PROJECT(libqhy C CXX)
 
 include(GNUInstallDirs)
 
-# QHY SDK Built on 2019-02-16
-set(LIBQHY_VERSION "4.0.13")
+# QHY SDK Built on 2019-02-22
+set(LIBQHY_VERSION "4.0.14")
 set(LIBQHY_SOVERSION "4")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
@@ -51,7 +51,7 @@ IF(UNIX AND NOT WIN32)
  ENDIF ()
 ENDIF(UNIX AND NOT WIN32)
 
-install(FILES 85-qhy.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+install(FILES 85-qhyccd.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
 install(FILES ${CMAKE_BINARY_DIR}/libqhyccd.so.${LIBQHY_VERSION} DESTINATION ${LIB_INSTALL_DIR}${LIB_POSTFIX})
 
 # Make sure symbolic links are installed
