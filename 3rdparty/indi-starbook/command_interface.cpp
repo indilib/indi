@@ -33,7 +33,7 @@ namespace starbook {
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
         INDI_UNUSED(userp);
         size_t real_size = size * nmemb;
-        read_buffer.append((char *) contents, real_size);
+        read_buffer.append(static_cast<char *>(contents), real_size);
         return real_size;
     }
 
@@ -140,39 +140,15 @@ namespace starbook {
             return ERROR_UNKNOWN;
         }
 
-        lnh_equ_posn equ_posn = {{0, 0, 0},
-                                 {0, 0, 0, 0}};
-        res.executing_goto = false;
+        try {
+            res = ParseStatusResponse(cmd_res);
 
-        std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
-        std::smatch sm;
-
-        while (regex_search(cmd_res, sm, param_re)) {
-            std::string key = sm[1].str();
-            std::string value = sm[2].str();
-
-            if (key == "RA") {
-                starbook::HMS ra(value);
-                equ_posn.ra = ra;
-            } else if (key == "DEC") {
-                starbook::DMS dec(value);
-                equ_posn.dec = dec;
-            } else if (key == "STATE") {
-                res.state = ParseState(value);
-            } else if (key == "GOTO") {
-                res.executing_goto = value == "1";
-            }
-            cmd_res = sm.suffix();
+        }
+        catch (std::exception &e) {
+            return ERROR_UNKNOWN;
         }
 
-        res.equ = {0, 0};
-        ln_hequ_to_equ(&equ_posn, &res.equ);
-
-        // we should be able to parse whole response
-        if (cmd_res.empty()) {
-            return OK;
-        }
-        return ERROR_UNKNOWN;
+        return OK;
     }
 
     ResponseCode CommandInterface::SetTime(ln_date &utc) {
@@ -215,5 +191,41 @@ namespace starbook {
 
     const std::string &CommandInterface::getLastResponse() const {
         return last_response;
+    }
+
+    StatusResponse CommandInterface::ParseStatusResponse(const std::string &str) {
+        StatusResponse result;
+        std::string str_remaining = str;
+        lnh_equ_posn equ_posn = {{0, 0, 0},
+                                 {0, 0, 0, 0}};
+        result.executing_goto = false;
+
+        std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
+        std::smatch sm;
+
+        while (regex_search(str_remaining, sm, param_re)) {
+            std::string key = sm[1].str();
+            std::string value = sm[2].str();
+
+            if (key == "RA") {
+                starbook::HMS ra(value);
+                equ_posn.ra = ra;
+            } else if (key == "DEC") {
+                starbook::DMS dec(value);
+                equ_posn.dec = dec;
+            } else if (key == "STATE") {
+                result.state = ParseState(value);
+            } else if (key == "GOTO") {
+                result.executing_goto = value == "1";
+            }
+            str_remaining = sm.suffix();
+        }
+
+        result.equ = {0, 0};
+        ln_hequ_to_equ(&equ_posn, &result.equ);
+
+        if (!str_remaining.empty()) throw;
+
+        return result;
     }
 }
