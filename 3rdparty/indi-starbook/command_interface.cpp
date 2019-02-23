@@ -90,9 +90,7 @@ namespace starbook {
 
     ResponseCode CommandInterface::Version(VersionResponse &res) {
         std::string response_str = SendCommand("VERSION");
-        if (response_str.empty()) {
-            return ERROR_UNKNOWN;
-        }
+        if (response_str.empty()) return ERROR_UNKNOWN;
 
         try {
             res = ParseVersionResponse(response_str);
@@ -100,15 +98,12 @@ namespace starbook {
         catch (std::exception &e) {
             return ERROR_FORMAT;
         }
-
         return OK;
     }
 
     ResponseCode CommandInterface::GetStatus(StatusResponse &res) {
         std::string cmd_res = SendCommand("GETSTATUS");
-        if (cmd_res.empty()) {
-            return ERROR_UNKNOWN;
-        }
+        if (cmd_res.empty()) return ERROR_UNKNOWN;
 
         try {
             res = ParseStatusResponse(cmd_res);
@@ -116,7 +111,58 @@ namespace starbook {
         catch (std::exception &e) {
             return ERROR_FORMAT;
         }
+        return OK;
+    }
 
+    ResponseCode CommandInterface::GetPlace(PlaceResponse &res) {
+        std::string cmd_res = SendCommand("GETSTATUS");
+        if (cmd_res.empty()) return ERROR_UNKNOWN;
+
+        try {
+            res = ParsePlaceResponse(cmd_res);
+        }
+        catch (std::exception &e) {
+            return ERROR_FORMAT;
+        }
+        return OK;
+    }
+
+    ResponseCode CommandInterface::GetTime(ln_date &res) {
+        std::string cmd_res = SendCommand("GETSTATUS");
+        if (cmd_res.empty()) return ERROR_UNKNOWN;
+
+        try {
+            res = ParseTimeResponse(cmd_res);
+        }
+        catch (std::exception &e) {
+            return ERROR_FORMAT;
+        }
+        return OK;
+    }
+
+    ResponseCode CommandInterface::GetRound(long int &res) {
+        std::string cmd_res = SendCommand("GETSTATUS");
+        if (cmd_res.empty()) return ERROR_UNKNOWN;
+
+        try {
+            res = ParseRoundResponse(cmd_res);
+        }
+        catch (std::exception &e) {
+            return ERROR_FORMAT;
+        }
+        return OK;
+    }
+
+    ResponseCode CommandInterface::GetXY(XYResponse &res) {
+        std::string cmd_res = SendCommand("GETSTATUS");
+        if (cmd_res.empty()) return ERROR_UNKNOWN;
+
+        try {
+            res = ParseXYResponse(cmd_res);
+        }
+        catch (std::exception &e) {
+            return ERROR_FORMAT;
+        }
         return OK;
     }
 
@@ -153,7 +199,6 @@ namespace starbook {
             << (dir == DIRECTION_EAST && command == INDI::Telescope::TelescopeMotionCommand::MOTION_START ? 1 : 0);
         return SendOkCommand(cmd.str());
     }
-
 
     const std::string &CommandInterface::getLastCmdUrl() const {
         return last_cmd_url;
