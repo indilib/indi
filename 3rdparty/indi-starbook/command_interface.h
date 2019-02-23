@@ -112,6 +112,8 @@ namespace starbook {
 
         StarbookState ParseState(const std::string &value);
 
+        VersionResponse ParseVersionResponse(const std::string &response);
+
         StatusResponse ParseStatusResponse(const std::string &response);
 
     };

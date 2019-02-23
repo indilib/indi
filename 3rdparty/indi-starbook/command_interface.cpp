@@ -76,32 +76,6 @@ namespace starbook {
         return ParseCommandResponse(response);
     }
 
-    ResponseCode CommandInterface::ParseCommandResponse(const std::string &response) {
-        if (response == "OK")
-            return OK;
-        else if (response == "ERROR:FORMAT")
-            return ERROR_FORMAT;
-        else if (response == "ERROR:ILLEGAL STATE")
-            return ERROR_ILLEGAL_STATE;
-        else if (response == "ERROR:BELOW HORIZONE") /* it's not a typo */
-            return ERROR_BELOW_HORIZON;
-
-        return ERROR_UNKNOWN;
-    }
-
-    StarbookState CommandInterface::ParseState(const std::string &value) {
-        if (value == "SCOPE")
-            return SCOPE;
-        else if (value == "GUIDE")
-            return GUIDE;
-        else if (value == "USER")
-            return USER;
-        else if (value == "INIT")
-            return INIT;
-
-        return UNKNOWN;
-    }
-
     ResponseCode CommandInterface::GotoRaDec(double ra, double dec) {
         std::ostringstream cmd;
         cmd << "GOTORADEC?" << starbook::Equ{ra, dec};
@@ -115,21 +89,17 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::Version(VersionResponse &res) {
-        std::string response = SendCommand("VERSION");
-        if (response.empty()) {
-//            LOG_ERROR("Version [ERROR]: Can't get firmware version");
+        std::string response_str = SendCommand("VERSION");
+        if (response_str.empty()) {
             return ERROR_UNKNOWN;
         }
 
-        std::regex param_re(R"(version=((\d+\.\d+)\w+))");
-        std::smatch sm;
-        if (!regex_search(response, sm, param_re)) {
-//            LOGF_ERROR("Version [ERROR]: Can't parse firmware version %s", response.c_str());
+        try {
+            res = ParseVersionResponse(response_str);
+        }
+        catch (std::exception &e) {
             return ERROR_FORMAT;
         }
-
-        res.full_str = sm[1].str();
-        res.major_minor = std::stof(sm[2]);
 
         return OK;
     }
@@ -142,10 +112,9 @@ namespace starbook {
 
         try {
             res = ParseStatusResponse(cmd_res);
-
         }
         catch (std::exception &e) {
-            return ERROR_UNKNOWN;
+            return ERROR_FORMAT;
         }
 
         return OK;
@@ -196,6 +165,7 @@ namespace starbook {
     StatusResponse CommandInterface::ParseStatusResponse(const std::string &str) {
         StatusResponse result;
         std::string str_remaining = str;
+
         lnh_equ_posn equ_posn = {{0, 0, 0},
                                  {0, 0, 0, 0}};
         result.executing_goto = false;
@@ -227,5 +197,45 @@ namespace starbook {
         if (!str_remaining.empty()) throw;
 
         return result;
+    }
+
+    VersionResponse CommandInterface::ParseVersionResponse(const std::string &response) {
+        VersionResponse result;
+
+        std::regex param_re(R"(version=((\d+\.\d+)\w+))");
+        std::smatch sm;
+        if (!regex_search(response, sm, param_re)) {
+            throw;
+        }
+
+        result.full_str = sm[1].str();
+        result.major_minor = std::stof(sm[2]);
+        return result;
+    }
+
+    StarbookState CommandInterface::ParseState(const std::string &value) {
+        if (value == "SCOPE")
+            return SCOPE;
+        else if (value == "GUIDE")
+            return GUIDE;
+        else if (value == "USER")
+            return USER;
+        else if (value == "INIT")
+            return INIT;
+
+        return UNKNOWN;
+    }
+
+    ResponseCode CommandInterface::ParseCommandResponse(const std::string &response) {
+        if (response == "OK")
+            return OK;
+        else if (response == "ERROR:FORMAT")
+            return ERROR_FORMAT;
+        else if (response == "ERROR:ILLEGAL STATE")
+            return ERROR_ILLEGAL_STATE;
+        else if (response == "ERROR:BELOW HORIZONE") /* it's not a typo */
+            return ERROR_BELOW_HORIZON;
+
+        return ERROR_UNKNOWN;
     }
 }
