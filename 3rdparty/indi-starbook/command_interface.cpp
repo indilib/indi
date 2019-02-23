@@ -126,6 +126,15 @@ namespace starbook {
         return SendOkCommand(cmd.str());
     }
 
+    ResponseCode CommandInterface::SetSpeed(int speed) {
+        if (speed < MIN_SPEED || speed > MAX_SPEED)
+            return ERROR_FORMAT;
+
+        std::ostringstream cmd;
+        cmd << "SETSPEED?speed=" << speed;
+        return SendOkCommand(cmd.str());
+    }
+
     ResponseCode CommandInterface::Move(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand command) {
         std::ostringstream cmd;
         cmd << "MOVE?NORTH="
@@ -145,14 +154,6 @@ namespace starbook {
         return SendOkCommand(cmd.str());
     }
 
-    ResponseCode CommandInterface::SetSpeed(int speed) {
-        if (speed < MIN_SPEED || speed > MAX_SPEED)
-            return ERROR_FORMAT;
-
-        std::ostringstream cmd;
-        cmd << "SETSPEED?speed=" << speed;
-        return SendOkCommand(cmd.str());
-    }
 
     const std::string &CommandInterface::getLastCmdUrl() const {
         return last_cmd_url;

@@ -38,6 +38,11 @@ namespace starbook {
         float major_minor;
     } VersionResponse;
 
+    typedef struct {
+    } PlaceResponse;
+    typedef struct {
+    } XYResponse;
+
     const int MIN_SPEED = 0;
     const int MAX_SPEED = 7;
 
@@ -76,13 +81,13 @@ namespace starbook {
 
         ResponseCode GetStatus(StatusResponse &res);
 
-        ResponseCode GetPlace();
+        ResponseCode GetPlace(PlaceResponse &res);
 
-        ResponseCode GetTime();
+        ResponseCode GetTime(ln_date &res);
 
-        ResponseCode GetRound();
+        ResponseCode GetRound(long int &res);
 
-        ResponseCode GetXY();
+        ResponseCode GetXY(XYResponse &res);
 
         ResponseCode Version(VersionResponse &res);
 
@@ -115,6 +120,14 @@ namespace starbook {
         VersionResponse ParseVersionResponse(const std::string &response);
 
         StatusResponse ParseStatusResponse(const std::string &response);
+
+        PlaceResponse ParsePlaceResponse(const std::string &response);
+
+        ln_date ParseTimeResponse(const std::string &response);
+
+        XYResponse ParseXYResponse(const std::string &response);
+
+        long int ParseRoundResponse(const std::string &response);
 
     };
 
