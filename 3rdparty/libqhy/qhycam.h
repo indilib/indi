@@ -307,6 +307,9 @@ static void QBeep(uint32_t volume,uint32_t mstime)
    */
   uint32_t vendRXD_Ex(qhyccd_handle *dev_handle, uint8_t req, uint16_t value, uint16_t index, uint8_t* data, uint16_t length);
 
+  uint32_t vendErroeRecovery(qhyccd_handle *dev_handle);
+
+
   uint32_t QHY5IIIreadUSB2B(qhyccd_handle *dev_handle, uint8_t *data, uint32_t p_num, uint32_t timeout);
   /**
    @fn uint32_t readUSB2B(qhyccd_handle *dev_handle, uint8_t *data,uint32_t p_size, uint32_t p_num, uint32_t* pos)

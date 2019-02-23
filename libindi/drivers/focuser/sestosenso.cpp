@@ -192,17 +192,28 @@ bool SestoSenso::Ack()
 bool SestoSenso::updateTemperature()
 {
     char res[SESTO_LEN] = {0};
+    double temperature = 0;
 
     if (isSimulation())
         strncpy(res, "23.45", SESTO_LEN);
     else if (sendCommand("#QT!", res) == false)
         return false;
 
-    if (std::stod(res) > 90)
+    try
+    {
+        temperature = std::stod(res);
+    }
+    catch(...)
+    {
+        LOGF_WARN("Failed to process temperature response: %s (%d bytes)", res, strlen(res));
+        return false;
+    }
+
+    if (temperature > 90)
         return false;
 
-    TemperatureN[0].value = std::stod(res);
-    TemperatureNP.s = (TemperatureN[0].value == 99.00) ? IPS_IDLE : IPS_OK;
+    TemperatureN[0].value = temperature;
+    TemperatureNP.s = IPS_OK;
 
     return true;
 }
@@ -244,10 +255,18 @@ bool SestoSenso::updatePosition()
     else if (sendCommand("#QP!", res) == false)
         return false;
 
-    FocusAbsPosN[0].value = std::stoi(res);
-    FocusAbsPosNP.s = IPS_OK;
-
-    return true;
+    try
+    {
+        FocusAbsPosN[0].value = std::stoi(res);
+        FocusAbsPosNP.s = IPS_OK;
+        return true;
+    }
+    catch(...)
+    {
+        LOGF_WARN("Failed to process position response: %s (%d bytes)", res, strlen(res));
+        FocusAbsPosNP.s = IPS_ALERT;
+        return false;
+    }
 }
 
 bool SestoSenso::isMotionComplete()
@@ -289,11 +308,18 @@ bool SestoSenso::isMotionComplete()
     if (!strcmp(res, "GTok!"))
         return true;
 
-    uint32_t newPos = std::stoi(res);
-    FocusAbsPosN[0].value = newPos;
+    try
+    {
+        uint32_t newPos = std::stoi(res);
+        FocusAbsPosN[0].value = newPos;
 
-    if (newPos == targetPos)
-        return true;
+        if (newPos == targetPos)
+            return true;
+    }
+    catch (...)
+    {
+        LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
+    }
 
     return false;
 }

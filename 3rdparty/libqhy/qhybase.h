@@ -1236,39 +1236,6 @@ public:
     return gpson;
   }
 
-#if 0
-  uint32_t QSleep(uint32_t mstime)
-  {
-#if defined (_WIN32)
-    Sleep(mstime);
-#else
-
-    usleep(mstime * 1000);
-#endif
-
-    return QHYCCD_SUCCESS;
-  }
-
-uint32_t QBeep(uint32_t volume,uint32_t mstime)
-{
-#if defined (_WIN32)
-  Beep(volume,mstime);
-#else
-#if 0
-
-  int   fd   =   open("/dev/tty10",   O_RDONLY);
-  if   (fd   ==   -1   ||   argc   !=   3)
-  {
-    return   -1;
-  }
-  ioctl(fd,   KDMKTONE,   20000);
-  close(fd);
-#endif
-#endif
-
-return QHYCCD_SUCCESS;
-}
-#endif
   /**
    */
   uint32_t SetPIDParas(qhyccd_handle *handle, double p, double i, double d);
