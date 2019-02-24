@@ -883,23 +883,26 @@ static void indiRun(void)
     for (i = 0; s > 0 && i < ndvrinfo; i++)
     {
         DvrInfo *dp = &dvrinfo[i];
-        if (dp->pid != REMOTEDVR && FD_ISSET(dp->efd, &rs))
+        if (dp->active)
         {
-            if (stderrFromDriver(dp) < 0)
-                return; /* fds effected */
-            s--;
-        }
-        if (s > 0 && FD_ISSET(dp->rfd, &rs))
-        {
-            if (readFromDriver(dp) < 0)
-                return; /* fds effected */
-            s--;
-        }
-        if (s > 0 && FD_ISSET(dp->wfd, &ws) && nFQ(dp->msgq) > 0)
-        {
-            if (sendDriverMsg(dp) < 0)
-                return; /* fds effected */
-            s--;
+            if (dp->pid != REMOTEDVR && FD_ISSET(dp->efd, &rs))
+            {
+                if (stderrFromDriver(dp) < 0)
+                    return; /* fds effected */
+                s--;
+            }
+            if (s > 0 && FD_ISSET(dp->rfd, &rs))
+            {
+                if (readFromDriver(dp) < 0)
+                    return; /* fds effected */
+                s--;
+            }
+            if (s > 0 && FD_ISSET(dp->wfd, &ws) && nFQ(dp->msgq) > 0)
+            {
+                if (sendDriverMsg(dp) < 0)
+                    return; /* fds effected */
+                s--;
+            }
         }
     }
 }
