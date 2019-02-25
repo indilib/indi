@@ -51,7 +51,7 @@ void LX200AstroPhysicsExperimental::disclaimerMessage()
 LX200AstroPhysicsExperimental::LX200AstroPhysicsExperimental() : LX200Generic()
 {
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
-    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 4);
+    SetTelescopeCapability(GetTelescopeCapability() | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_PEC | TELESCOPE_CAN_CONTROL_TRACK | TELESCOPE_HAS_TRACK_RATE, 5);
 
     sendLocationOnStartup = false;
     sendTimeOnStartup = false;
@@ -62,7 +62,7 @@ LX200AstroPhysicsExperimental::LX200AstroPhysicsExperimental() : LX200Generic()
 
 const char *LX200AstroPhysicsExperimental::getDefaultName()
 {
-    return (const char *)"AstroPhysics Experimental";
+    return "AstroPhysics Experimental";
 }
 
 bool LX200AstroPhysicsExperimental::Connect()
@@ -102,11 +102,12 @@ bool LX200AstroPhysicsExperimental::initProperties()
     TrackRateN[AXIS_DE].max = 998.9999;
 
     // Motion speed of axis when pressing NSWE buttons
-    IUFillSwitch(&SlewRateS[0], "12", "12x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[1], "64", "64x", ISS_ON);
-    IUFillSwitch(&SlewRateS[2], "600", "600x", ISS_OFF);
-    IUFillSwitch(&SlewRateS[3], "1200", "1200x", ISS_OFF);
-    IUFillSwitchVector(&SlewRateSP, SlewRateS, 4, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&SlewRateS[0], "1", "Guide", ISS_OFF);
+    IUFillSwitch(&SlewRateS[1], "12", "12x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[2], "64", "64x", ISS_ON);
+    IUFillSwitch(&SlewRateS[3], "600", "600x", ISS_OFF);
+    IUFillSwitch(&SlewRateS[4], "1200", "1200x", ISS_OFF);
+    IUFillSwitchVector(&SlewRateSP, SlewRateS, 5, getDeviceName(), "TELESCOPE_SLEW_RATE", "Slew Rate", MOTION_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slew speed when performing regular GOTO
     IUFillSwitch(&APSlewSpeedS[0], "600", "600x", ISS_ON);
@@ -350,7 +351,7 @@ bool LX200AstroPhysicsExperimental::initMount()
         {
             // This is how to init the mount in case RA/DE are missing.
             // :PO#
-            if (setAPUnPark(PortFD) < 0)
+            if (APUnParkMount(PortFD) < 0)
             {
                 LOG_ERROR("UnParking Failed.");
                 return false;
@@ -367,7 +368,7 @@ bool LX200AstroPhysicsExperimental::initMount()
 
     // Astrophysics mount is always unparked on startup
     // In this driver, unpark only sets the tracking ON.
-    // setAPUnPark() is NOT called as this function, despite its name, is only used for initialization purposes.
+    // APParkMount() is NOT called as this function, despite its name, is only used for initialization purposes.
     UnPark();
 
     // On most mounts SlewRateS defines the MoveTo AND Slew (GOTO) speeds
@@ -375,9 +376,9 @@ bool LX200AstroPhysicsExperimental::initMount()
     // Slew speeds so we have to keep two lists.
     //
     // SlewRateS is used as the MoveTo speed
-    if (isSimulation() == false && (err = selectAPMoveToRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP))) < 0)
+    if (isSimulation() == false && (err = selectAPCenterRate(PortFD, IUFindOnSwitchIndex(&SlewRateSP))) < 0)
     {
-        LOGF_ERROR("Error setting move rate (%d).", err);
+        LOGF_ERROR("Error setting center (MoveTo) rate (%d).", err);
         return false;
     }
 
@@ -665,7 +666,7 @@ bool LX200AstroPhysicsExperimental::ReadScopeStatus()
         {
             LOG_DEBUG("Parking slew is complete. Asking astrophysics mount to park...");
 
-            if (!isSimulation() && setAPPark(PortFD) < 0)
+            if (!isSimulation() && APParkMount(PortFD) < 0)
             {
                 LOG_ERROR("Parking Failed.");
                 return false;
@@ -867,6 +868,29 @@ bool LX200AstroPhysicsExperimental::Goto(double r, double d)
 }
 
 
+bool LX200AstroPhysicsExperimental::updateAPSlewRate(int index)
+{
+//    if (IUFindOnSwitchIndex(&SlewRateSP) == index)
+//    {
+//        LOGF_DEBUG("updateAPSlewRate: slew rate %d already choosen so ignoring.", index);
+//        return true;
+//    }
+
+    if (!isSimulation() && selectAPCenterRate(PortFD, index) < 0)
+    {
+        SlewRateSP.s = IPS_ALERT;
+        IDSetSwitch(&SlewRateSP, "Error setting slew mode.");
+        return false;
+    }
+
+    IUResetSwitch(&SlewRateSP);
+    SlewRateS[index].s = ISS_ON;
+    SlewRateSP.s = IPS_OK;
+    IDSetSwitch(&SlewRateSP, nullptr);
+    return true;
+}
+
+
 // AP mounts handle guide commands differently enough from the "generic" LX200 we need to override some
 // functions related to the GuiderInterface
 
@@ -885,15 +909,21 @@ IPState LX200AstroPhysicsExperimental::GuideNorth(uint32_t ms)
         GuideNSTID = 0;
     }
 
-    if (usePulseCommand && ms < MAX_LX200AP_PULSE_LEN)
+    if (usePulseCommand && ms <= MAX_LX200AP_PULSE_LEN)
     {
+        LOGF_DEBUG("GuideNorth using SendPulseCmd() for duration %d", ms);
         SendPulseCmd(LX200_NORTH, ms);
+        GuideNSTID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperNS, this);
     }
     else
     {
+        LOGF_DEBUG("GuideNorth using simulated pulse for duration %d", ms);
+
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
-        updateSlewRate(SLEW_GUIDE);
+
+        // Set slew to guiding
+        updateAPSlewRate(AP_SLEW_GUIDE);
 
         // Set to dummy value to that MoveNS does not reset slew rate to rememberSlewRate
         GuideNSTID = 1;
@@ -901,10 +931,9 @@ IPState LX200AstroPhysicsExperimental::GuideNorth(uint32_t ms)
         ISState states[] = { ISS_ON, ISS_OFF };
         const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
         ISNewSwitch(MovementNSSP.device, MovementNSSP.name, states, const_cast<char **>(names), 2);
+        GuideNSTID      = IEAddTimer(static_cast<int>(ms), simulGuideTimeoutHelperNS, this);
     }
 
-    guide_direction_ns = LX200_NORTH;
-    GuideNSTID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperNS, this);
     return IPS_BUSY;
 }
 
@@ -923,16 +952,20 @@ IPState LX200AstroPhysicsExperimental::GuideSouth(uint32_t ms)
         GuideNSTID = 0;
     }
 
-    if (usePulseCommand && ms < MAX_LX200AP_PULSE_LEN)
+    if (usePulseCommand && ms <= MAX_LX200AP_PULSE_LEN)
     {
         SendPulseCmd(LX200_SOUTH, ms);
+        GuideNSTID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperNS, this);
     }
     else
     {
+        LOGF_DEBUG("GuideSouth using simulated pulse for duration %d", ms);
+
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
 
-        updateSlewRate(SLEW_GUIDE);
+        // Set slew to guiding
+        updateAPSlewRate(AP_SLEW_GUIDE);
 
         // Set to dummy value to that MoveNS does not reset slew rate to rememberSlewRate
         GuideNSTID = 1;
@@ -940,10 +973,9 @@ IPState LX200AstroPhysicsExperimental::GuideSouth(uint32_t ms)
         ISState states[] = { ISS_OFF, ISS_ON };
         const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
         ISNewSwitch(MovementNSSP.device, MovementNSSP.name, states, const_cast<char **>(names), 2);
+        GuideNSTID      = IEAddTimer(static_cast<int>(ms), simulGuideTimeoutHelperNS, this);
     }
 
-    guide_direction_ns = LX200_SOUTH;
-    GuideNSTID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperNS, this);
     return IPS_BUSY;
 }
 
@@ -962,16 +994,20 @@ IPState LX200AstroPhysicsExperimental::GuideEast(uint32_t ms)
         GuideWETID = 0;
     }
 
-    if (usePulseCommand && ms < MAX_LX200AP_PULSE_LEN)
+    if (usePulseCommand && ms <= MAX_LX200AP_PULSE_LEN)
     {
         SendPulseCmd(LX200_EAST, ms);
+        GuideWETID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperWE, this);
     }
     else
     {
+        LOGF_DEBUG("GuideEast using simulated pulse for duration %d", ms);
+
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
 
-        updateSlewRate(SLEW_GUIDE);
+        // Set slew to guiding
+        updateAPSlewRate(AP_SLEW_GUIDE);
 
         // Set to dummy value to that MoveWE does not reset slew rate to rememberSlewRate
         GuideWETID = 1;
@@ -979,10 +1015,9 @@ IPState LX200AstroPhysicsExperimental::GuideEast(uint32_t ms)
         ISState states[] = { ISS_OFF, ISS_ON };
         const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
         ISNewSwitch(MovementWESP.device, MovementWESP.name, states, const_cast<char **>(names), 2);
+        GuideWETID      = IEAddTimer(static_cast<int>(ms), simulGuideTimeoutHelperWE, this);
     }
 
-    guide_direction_we = LX200_EAST;
-    GuideWETID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperWE, this);
     return IPS_BUSY;
 }
 
@@ -1001,16 +1036,20 @@ IPState LX200AstroPhysicsExperimental::GuideWest(uint32_t ms)
         GuideWETID = 0;
     }
 
-    if (usePulseCommand && ms < MAX_LX200AP_PULSE_LEN)
+    if (usePulseCommand && ms <= MAX_LX200AP_PULSE_LEN)
     {
         SendPulseCmd(LX200_WEST, ms);
+        GuideWETID      = IEAddTimer(static_cast<int>(ms), pulseGuideTimeoutHelperWE, this);
     }
     else
     {
+        LOGF_DEBUG("GuideWest using simulated pulse for duration %d", ms);
+
         if (rememberSlewRate == -1)
             rememberSlewRate = IUFindOnSwitchIndex(&SlewRateSP);
 
-        updateSlewRate(SLEW_GUIDE);
+        // Set slew to guiding
+        updateAPSlewRate(AP_SLEW_GUIDE);
 
         // Set to dummy value to that MoveWE does not reset slew rate to rememberSlewRate
         GuideWETID = 1;
@@ -1018,11 +1057,66 @@ IPState LX200AstroPhysicsExperimental::GuideWest(uint32_t ms)
         ISState states[] = { ISS_ON, ISS_OFF };
         const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
         ISNewSwitch(MovementWESP.device, MovementWESP.name, states, const_cast<char **>(names), 2);
+        GuideWETID      = IEAddTimer(static_cast<int>(ms), simulGuideTimeoutHelperWE, this);
     }
 
-    guide_direction_we = LX200_WEST;
-    GuideWETID      = IEAddTimer(static_cast<int>(ms), guideTimeoutHelperWE, this);
     return IPS_BUSY;
+}
+
+void LX200AstroPhysicsExperimental::pulseGuideTimeoutHelperNS(void * p)
+{
+    static_cast<LX200AstroPhysicsExperimental *>(p)->AstroPhysicsGuideTimeoutNS(false);
+}
+
+void LX200AstroPhysicsExperimental::pulseGuideTimeoutHelperWE(void * p)
+{
+    static_cast<LX200AstroPhysicsExperimental *>(p)->AstroPhysicsGuideTimeoutWE(false);
+}
+
+void LX200AstroPhysicsExperimental::simulGuideTimeoutHelperNS(void * p)
+{
+    static_cast<LX200AstroPhysicsExperimental *>(p)->AstroPhysicsGuideTimeoutNS(true);
+}
+
+void LX200AstroPhysicsExperimental::simulGuideTimeoutHelperWE(void * p)
+{
+    static_cast<LX200AstroPhysicsExperimental *>(p)->AstroPhysicsGuideTimeoutWE(true);
+}
+
+void LX200AstroPhysicsExperimental::AstroPhysicsGuideTimeoutWE(bool simul)
+{
+    LOGF_DEBUG("AstroPhysicsGuideTimeoutWE() pulse guide simul = %d", simul);
+
+    if (simul == true)
+    {
+        ISState states[] = { ISS_OFF, ISS_OFF };
+        const char *names[] = { MovementWES[DIRECTION_WEST].name, MovementWES[DIRECTION_EAST].name};
+        ISNewSwitch(MovementWESP.device, MovementWESP.name, states, const_cast<char **>(names), 2);
+    }
+
+    GuideWENP.np[DIRECTION_WEST].value = 0;
+    GuideWENP.np[DIRECTION_EAST].value = 0;
+    GuideWENP.s           = IPS_IDLE;
+    GuideWETID            = 0;
+    IDSetNumber(&GuideWENP, nullptr);
+}
+
+void LX200AstroPhysicsExperimental::AstroPhysicsGuideTimeoutNS(bool simul)
+{
+    LOGF_DEBUG("AstroPhysicsGuideTimeoutNS() pulse guide simul = %d", simul);
+
+    if (simul == true)
+    {
+        ISState states[] = { ISS_OFF, ISS_OFF };
+        const char *names[] = { MovementNSS[DIRECTION_NORTH].name, MovementNSS[DIRECTION_SOUTH].name};
+        ISNewSwitch(MovementNSSP.device, MovementNSSP.name, states, const_cast<char **>(names), 2);
+    }
+
+    GuideNSNP.np[0].value = 0;
+    GuideNSNP.np[1].value = 0;
+    GuideNSNP.s           = IPS_IDLE;
+    GuideNSTID            = 0;
+    IDSetNumber(&GuideNSNP, nullptr);
 }
 
 int LX200AstroPhysicsExperimental::SendPulseCmd(int8_t direction, uint32_t duration_msec)
@@ -1233,7 +1327,7 @@ void LX200AstroPhysicsExperimental::debugTriggered(bool enable)
 // ApSetSlew
 bool LX200AstroPhysicsExperimental::SetSlewRate(int index)
 {
-    if (!isSimulation() && selectAPMoveToRate(PortFD, index) < 0)
+    if (!isSimulation() && selectAPCenterRate(PortFD, index) < 0)
     {        
         LOG_ERROR("Error setting slew mode.");
         return false;
@@ -1403,10 +1497,11 @@ bool LX200AstroPhysicsExperimental::UnPark()
         }
     }
 
+    SetParked(false);
+
     // Enable tracking
     SetTrackEnabled(true);
-
-    SetParked(false);
+    TrackState = SCOPE_TRACKING;
 
     return true;
 }
@@ -1513,6 +1608,8 @@ bool LX200AstroPhysicsExperimental::SetTrackMode(uint8_t mode)
 {
     int err=0;
 
+    LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackMode(%d)", mode);
+
     if (mode == TRACK_CUSTOM)
     {
         if (!isSimulation() && (err = selectAPTrackingMode(PortFD, AP_TRACKING_SIDEREAL)) < 0)
@@ -1535,7 +1632,15 @@ bool LX200AstroPhysicsExperimental::SetTrackMode(uint8_t mode)
 
 bool LX200AstroPhysicsExperimental::SetTrackEnabled(bool enabled)
 {
-   return SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
+   bool rc;
+
+   LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackEnabled(%d)", enabled);
+
+   rc = SetTrackMode(enabled ? IUFindOnSwitchIndex(&TrackModeSP) : AP_TRACKING_OFF);
+
+   LOGF_DEBUG("LX200AstroPhysicsExperimental::SetTrackMode() returned %d", rc);
+
+   return rc;
 }
 
 bool LX200AstroPhysicsExperimental::SetTrackRate(double raRate, double deRate)

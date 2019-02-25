@@ -28,127 +28,126 @@
 
 class IOptronV3 : public INDI::Telescope, public INDI::GuiderInterface
 {
-  public:
+    public:
 
-    IOptronV3();
-    ~IOptronV3() = default;
+        IOptronV3();
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-  protected:
-    virtual const char *getDefaultName() override;
+    protected:
+        virtual const char *getDefaultName() override;
 
-    virtual bool Handshake() override;
+        virtual bool Handshake() override;
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
 
-    virtual bool ReadScopeStatus() override;
+        virtual bool ReadScopeStatus() override;
 
-    virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
-    virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
+        virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
+        virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
 
-    virtual bool saveConfigItems(FILE *fp) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool Park() override;
-    virtual bool UnPark() override;
+        virtual bool Park() override;
+        virtual bool UnPark() override;
 
-    virtual bool Sync(double ra, double de) override;
-    virtual bool Goto(double ra, double de) override;
-    virtual bool Abort() override;
+        virtual bool Sync(double ra, double de) override;
+        virtual bool Goto(double ra, double de) override;
+        virtual bool Abort() override;
 
-    virtual bool updateTime(ln_date *utc, double utc_offset) override;
-    virtual bool updateLocation(double latitude, double longitude, double elevation) override;
+        virtual bool updateTime(ln_date *utc, double utc_offset) override;
+        virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
-    virtual void debugTriggered(bool enable) override;
-    virtual void simulationTriggered(bool enable) override;
+        virtual void debugTriggered(bool enable) override;
+        virtual void simulationTriggered(bool enable) override;
 
-    // Parking
-    virtual bool SetCurrentPark() override;
-    virtual bool SetDefaultPark() override;
+        // Parking
+        virtual bool SetCurrentPark() override;
+        virtual bool SetDefaultPark() override;
 
-    // Track Mode
-    virtual bool SetTrackMode(uint8_t mode) override;
+        // Track Mode
+        virtual bool SetTrackMode(uint8_t mode) override;
 
-    // Track Rate
-    virtual bool SetTrackRate(double raRate, double deRate) override;
+        // Track Rate
+        virtual bool SetTrackRate(double raRate, double deRate) override;
 
-    // Track On/Off
-    virtual bool SetTrackEnabled(bool enabled) override;
+        // Track On/Off
+        virtual bool SetTrackEnabled(bool enabled) override;
 
-    // Slew Rate
-    virtual bool SetSlewRate(int index) override;
+        // Slew Rate
+        virtual bool SetSlewRate(int index) override;
 
-    // Sim
-    void mountSim();
+        // Sim
+        void mountSim();
 
-    // Guide
-    virtual IPState GuideNorth(uint32_t ms) override;
-    virtual IPState GuideSouth(uint32_t ms) override;
-    virtual IPState GuideEast(uint32_t ms) override;
-    virtual IPState GuideWest(uint32_t ms) override;
+        // Guide
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
-  private:
-    /**
-        * @brief getStartupData Get initial mount info on startup.
-        */
-    void getStartupData();
+    private:
+        /**
+            * @brief getStartupData Get initial mount info on startup.
+            */
+        void getStartupData();
 
-    /* Firmware */
-    IText FirmwareT[5] {};
-    ITextVectorProperty FirmwareTP;
+        /* Firmware */
+        IText FirmwareT[5] {};
+        ITextVectorProperty FirmwareTP;
 
-    /* GPS Status */
-    ISwitch GPSStatusS[3];
-    ISwitchVectorProperty GPSStatusSP;
+        /* GPS Status */
+        ISwitch GPSStatusS[3];
+        ISwitchVectorProperty GPSStatusSP;
 
-    /* Time Source */
-    ISwitch TimeSourceS[3];
-    ISwitchVectorProperty TimeSourceSP;
+        /* Time Source */
+        ISwitch TimeSourceS[3];
+        ISwitchVectorProperty TimeSourceSP;
 
-    /* Hemisphere */
-    ISwitch HemisphereS[2];
-    ISwitchVectorProperty HemisphereSP;
+        /* Hemisphere */
+        ISwitch HemisphereS[2];
+        ISwitchVectorProperty HemisphereSP;
 
-    /* Home Control */
-    ISwitch HomeS[3];
-    ISwitchVectorProperty HomeSP;
+        /* Home Control */
+        ISwitch HomeS[3];
+        ISwitchVectorProperty HomeSP;
 
-    /* Guide Rate */
-    INumber GuideRateN[2];
-    INumberVectorProperty GuideRateNP;
+        /* Guide Rate */
+        INumber GuideRateN[2];
+        INumberVectorProperty GuideRateNP;
 
-    /* Slew Mode */
-    ISwitch SlewModeS[2];
-    ISwitchVectorProperty SlewModeSP;
+        /* Slew Mode */
+        ISwitch SlewModeS[2];
+        ISwitchVectorProperty SlewModeSP;
 
-    /* Counterweight Status */
-    ISwitch CWStateS[2];
-    ISwitchVectorProperty CWStateSP;
+        /* Counterweight Status */
+        ISwitch CWStateS[2];
+        ISwitchVectorProperty CWStateSP;
 
-    // TODO
+        // TODO
 #if 0
-    /* PE Recording */
-    ISwitch PERecordS[2];
-    ISwitchVectorProperty PERecordSP;
+        /* PE Recording */
+        ISwitch PERecordS[2];
+        ISwitchVectorProperty PERecordSP;
 
-    /* PEC Playback */
-    ISwitch PEPlaybackS[2];
-    ISwitchVectorProperty PEPlaybackSP;
+        /* PEC Playback */
+        ISwitch PEPlaybackS[2];
+        ISwitchVectorProperty PEPlaybackSP;
 #endif
 
-    /* Daylight Saving */
-    ISwitch DaylightS[2];
-    ISwitchVectorProperty DaylightSP;
+        /* Daylight Saving */
+        ISwitch DaylightS[2];
+        ISwitchVectorProperty DaylightSP;
 
-    uint32_t DBG_SCOPE;
+        uint32_t DBG_SCOPE;
 
-    double currentRA, currentDEC;
-    double targetRA, targetDEC;
+        double currentRA, currentDEC;
+        double targetRA, targetDEC;
 
-    IOPv3::IOPInfo scopeInfo;
-    IOPv3::FirmwareInfo firmwareInfo;
+        IOPv3::IOPInfo scopeInfo;
+        IOPv3::FirmwareInfo firmwareInfo;
 
-    std::unique_ptr<IOPv3::Driver> driver;
+        std::unique_ptr<IOPv3::Driver> driver;
 };

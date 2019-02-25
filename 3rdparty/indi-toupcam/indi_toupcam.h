@@ -1,5 +1,5 @@
 /*
- INDI ToupCam Driver
+ INDI Toup Driver
 
  Copyright (C) 2018 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
@@ -21,10 +21,13 @@
 
 #pragma once
 
-#include "toupcam.h"
-#include "indi_toupcam.h"
+#include <map>
+
+#include <toupcam.h>
 
 #include <indiccd.h>
+
+typedef unsigned long   ulong;            /* Short for unsigned long */
 
 class TOUPCAM : public INDI::CCD
 {
@@ -80,6 +83,21 @@ private:
         StateTerminate,
         StateTerminated
     } ImageState;
+
+    enum {
+        S_OK            = 0x00000000,
+        S_FALSE         = 0x00000001,
+        E_FAIL          = 0x80004005,
+        E_INVALIDARG    = 0x80070057,
+        E_NOTIMPL       = 0x80004001,
+        E_NOINTERFACE   = 0x80004002,
+        E_POINTER       = 0x80004003,
+        E_UNEXPECTED    = 0x8000FFFF,
+        E_OUTOFMEMORY   = 0x8007000E,
+        E_WRONG_THREAD  = 0x8001010E,
+    };
+    static std::map<int, std::string> errorCodes;
+
 
     enum eFLAG
     {
@@ -216,11 +234,11 @@ private:
 
     enum eGUIDEDIRECTION
     {
-        TOUPCAM_NORTH,
-        TOUPCAM_SOUTH,
-        TOUPCAM_EAST,
-        TOUPCAM_WEST,
-        TOUPCAM_STOP,
+        Toupcam_NORTH,
+        Toupcam_SOUTH,
+        Toupcam_EAST,
+        Toupcam_WEST,
+        Toupcam_STOP,
     };
 
     enum ePIXELFORMAT
@@ -237,6 +255,13 @@ private:
         PIXELFORMAT_GMCY8      = 0x09,
         PIXELFORMAT_GMCY12     = 0x0a,
         PIXELFORMAT_UYVY       = 0x0b
+    };
+
+    enum eTriggerMode
+    {
+        TRIGGER_VIDEO,
+        TRIGGER_SOFTWARE,
+        TRIGGER_EXTERNAL,
     };
 
     struct Resolution
@@ -256,7 +281,7 @@ private:
         uint ioctrol;
         float xpixsz;
         float ypixsz;
-        Resolution res[TOUPCAM_MAX];
+        ToupcamResolution res[TOUPCAM_MAX];
     };
 
     struct InstanceV2
@@ -278,24 +303,14 @@ private:
     //#############################################################################
     // Capture
     //#############################################################################
-//    static void *imagingHelper(void *context);
-//    void *imagingThreadEntry();
-//    void getSnapImage();
-//    void exposureSetRequest(ImageState request);
-    //int grabImage();
+    static void checkTimeoutHelper(void *context);
+    void checkCameraCallback();
+    int m_TimeoutTimerID { -1 };
+    int m_lastEventID { -1 };
 
     void allocateFrameBuffer();
     struct timeval ExposureEnd;
-    float ExposureRequest;
-
-    //#############################################################################
-    // Threading
-    //#############################################################################
-//    ImageState threadRequest;
-//    ImageState threadState;
-//    pthread_t imagingThread;
-//    pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-//    pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+    double ExposureRequest;
 
     //#############################################################################
     // Video Format & Streaming
@@ -309,9 +324,8 @@ private:
     static void TimerHelperNS(void *context);
     void TimerNS();
     void stopTimerNS();
-    IPState guidePulseNS(float ms, eGUIDEDIRECTION dir, const char *dirName);
-    float NSPulseRequest;
-    struct timeval NSPulseStart;
+    IPState guidePulseNS(uint32_t ms, eGUIDEDIRECTION dir, const char *dirName);
+    struct timeval NSPulseEnd;
     int NStimerID;
     eGUIDEDIRECTION NSDir;
     const char *NSDirName;
@@ -320,9 +334,8 @@ private:
     static void TimerHelperWE(void *context);
     void TimerWE();
     void stopTimerWE();
-    IPState guidePulseWE(float ms, eGUIDEDIRECTION dir, const char *dirName);
-    float WEPulseRequest;
-    struct timeval WEPulseStart;
+    IPState guidePulseWE(uint32_t ms, eGUIDEDIRECTION dir, const char *dirName);
+    struct timeval WEPulseEnd;
     int WEtimerID;
     eGUIDEDIRECTION WEDir;
     const char *WEDirName;
@@ -331,7 +344,7 @@ private:
     // Temperature Control & Cooling
     //#############################################################################
     bool activateCooler(bool enable);
-    float TemperatureRequest;
+    double TemperatureRequest;
 
     //#############################################################################
     // Setup & Controls
@@ -351,7 +364,7 @@ private:
 
     //#############################################################################
     // Misc.
-    //#############################################################################    
+    //#############################################################################
     // Get the current Bayer string used
     const char *getBayerString();
 
@@ -395,7 +408,7 @@ private:
         TC_COOLER_OFF,
     };
 
-    INumber ControlN[6];
+    INumber ControlN[7];
     INumberVectorProperty ControlNP;
     enum
     {
@@ -405,9 +418,10 @@ private:
         TC_SATURATION,
         TC_BRIGHTNESS,
         TC_GAMMA,
+        TC_SPEED,
     };
 
-    ISwitch AutoControlS[5];
+    ISwitch AutoControlS[4];
     ISwitchVectorProperty AutoControlSP;
     enum
     {
@@ -460,7 +474,7 @@ private:
       TC_WB_B,
     };
 
-    // Auto Balance
+    // Auto Balance Mode
     ISwitch WBAutoS[2];
     ISwitchVectorProperty WBAutoSP;
     enum
@@ -469,32 +483,56 @@ private:
       TC_AUTO_WB_RGB
     };
 
+    // Fan control
+    ISwitch FanControlS[2];
+    ISwitchVectorProperty FanControlSP;
+    enum
+    {
+        TC_FAN_ON,
+        TC_FAN_OFF,
+    };
+
     // Video Format
-    ISwitch VideoFormatS[4];
+    ISwitch VideoFormatS[2];
     ISwitchVectorProperty VideoFormatSP;
     enum
     {
+        TC_VIDEO_COLOR_RGB,
+        TC_VIDEO_COLOR_RAW,
+    };
+    enum
+    {
+
         TC_VIDEO_MONO_8,
         TC_VIDEO_MONO_16,
-        TC_VIDEO_RGB,
-        TC_VIDEO_RAW,
     };
 
-    uint8_t currentVideoFormat = TC_VIDEO_RGB;
-    uint8_t rememberVideoFormat = TC_VIDEO_RGB;
+    // Firmware Info
+    IText FirmwareT[5] = {};
+    ITextVectorProperty FirmwareTP;
+    enum
+    {
+        TC_FIRMWARE_SERIAL,
+        TC_FIRMWARE_SW_VERSION,
+        TC_FIRMWARE_HW_VERSION,
+        TC_FIRMWARE_DATE,
+        TC_FIRMWARE_REV
+    };
 
+    uint8_t m_CurrentVideoFormat = TC_VIDEO_COLOR_RGB;
     INDI_PIXEL_FORMAT m_CameraPixelFormat = INDI_RGB;
+    eTriggerMode m_CurrentTriggerMode = TRIGGER_VIDEO;
 
-    bool m_SendImage { false };
+    bool m_CanSnap { false };
     bool m_RAWFormatSupport { false };
     bool m_RAWHighDepthSupport { false };
+    bool m_MonoCamera { false };
 
     uint8_t m_BitsPerPixel { 8 };
     uint8_t m_RawBitsPerPixel { 8 };
+    uint8_t m_MaxBitDepth { 8 };
     uint8_t m_Channels { 1 };
-
-    IText SDKVersionS[1] = {};
-    ITextVectorProperty SDKVersionSP;
+    uint8_t m_TimeoutRetries { 0 };
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
@@ -502,4 +540,6 @@ private:
     friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
     friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
                             char *formats[], char *names[], int n);
+
+    static const uint8_t MAX_RETRIES { 5 };
 };

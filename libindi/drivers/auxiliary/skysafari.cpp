@@ -370,7 +370,7 @@ bool SkySafari::startServer()
     }
 
     lsocket = sfd;
-    DEBUG(INDI::Logger::DBG_SESSION,
+    LOG_INFO(
           "SkySafari Server is running. Connect the App now to this machine using SkySafari LX200 driver.");
     return true;
 }

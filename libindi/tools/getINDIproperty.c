@@ -219,7 +219,7 @@ int main(int ac, char *av[])
 static void usage()
 {
     fprintf(stderr, "Purpose: retrieve readable properties from an INDI server\n");
-    fprintf(stderr, "%s\n", "$Revision: 1.11 $");
+    fprintf(stderr, "%s\n", GIT_TAG_STRING);
     fprintf(stderr, "Usage: %s [options] [device.property.element ...]\n", me);
     fprintf(stderr, "  Any component may be \"*\" to match all (beware shell metacharacters).\n");
     fprintf(stderr, "  Reports all properties if none specified.\n");
@@ -611,7 +611,3 @@ static void oneBLOB(XMLEle *root, char *dev, char *nam, char *enam, char *p, int
     /* clean up */
     free(blob);
 }
-
-/* For RCS Only -- Do Not Edit */
-static char *rcsid[2] = { (char *)rcsid,
-                          "@(#) $RCSfile: getINDI.c,v $ $Date: 2007/10/11 20:11:23 $ $Revision: 1.11 $ $Name:  $" };

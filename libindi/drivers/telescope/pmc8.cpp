@@ -19,6 +19,9 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
+/* Experimental Mount selector switch G11 vs EXOS2 by Thomas Olson
+ *
+ */
 
 #include "pmc8.h"
 
@@ -45,7 +48,7 @@ void ISGetProperties(const char *dev)
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-    scope->ISNewSwitch(dev, name, states, names, num);
+	scope->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
@@ -70,6 +73,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
+
 void ISSnoopDevice(XMLEle *root)
 {
     scope->ISSnoopDevice(root);
@@ -78,9 +82,6 @@ void ISSnoopDevice(XMLEle *root)
 /* Constructor */
 PMC8::PMC8()
 {
-    set_pmc8_device(getDeviceName());
-
-    //ctor
     currentRA  = ln_get_apparent_sidereal_time(ln_get_julian_from_sys());
     currentDEC = 90;
 
@@ -106,6 +107,13 @@ const char *PMC8::getDefaultName()
 bool PMC8::initProperties()
 {
     INDI::Telescope::initProperties();
+
+    // Mount Type
+    IUFillSwitch(&MountTypeS[MOUNT_G11], "MOUNT_G11", "G11", ISS_OFF);
+    IUFillSwitch(&MountTypeS[MOUNT_EXOS2], "MOUNT_EXOS2", "EXOS2", ISS_ON);
+    IUFillSwitch(&MountTypeS[MOUNT_iEXOS100], "MOUNT_iEXOS100", "iEXOS100", ISS_OFF);
+    IUFillSwitchVector(&MountTypeSP, MountTypeS, 3, getDeviceName(), "MOUNT_TYPE", "Mount Type", CONNECTION_TAB,
+		 IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     /* Tracking Mode */
     AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
@@ -138,8 +146,13 @@ bool PMC8::initProperties()
 
     addAuxControls();
 
+    set_pmc8_device(getDeviceName());
+
     IUFillText(&FirmwareT[0], "Version", "Version", "");
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+    // needed so PHD2 will recognize mount
+    setDriverInterface(getDriverInterface() | GUIDER_INTERFACE);
 
     return true;
 }
@@ -154,9 +167,10 @@ bool PMC8::updateProperties()
         defineNumber(&GuideWENP);
         defineNumber(&GuideRateNP);
 
+	
         defineText(&FirmwareTP);
 
-        // do not support part position
+        // do not support park position
         deleteProperty(ParkPositionNP.name);
         deleteProperty(ParkOptionSP.name);
 
@@ -205,11 +219,7 @@ void PMC8::getStartupData()
     // seems like best place to put a warning that will be seen in log window of EKOS/etc
     LOG_INFO("NOTICE!!!");
     LOG_INFO("The PMC-Eight driver is in BETA development currently.");
-    LOG_INFO("When using this driver please remember it is being tested so stay near your mount");
-    LOG_INFO("and be prepared to intervene if something unexpected occurs.");
-    LOG_INFO("Please read the instructions at:");
-    LOG_INFO("    http://indilib.org/devices/telescopes/explore-scientific-g11-pmc-eight/");
-    LOG_INFO("before using this driver!");
+    LOG_INFO("Be prepared to intervene if something unexpected occurs.");
 
 #if 0
     // FIXEME - Need to handle southern hemisphere for DEC?
@@ -275,13 +285,32 @@ bool PMC8::ISNewNumber(const char *dev, const char *name, double values[], char 
     return INDI::Telescope::ISNewNumber(dev, name, values, names, n);
 }
 
+void PMC8::ISGetProperties(const char *dev)
+{
+	defineSwitch(&MountTypeSP);
+   	INDI::Telescope::ISGetProperties(dev);
+}
+
 bool PMC8::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(getDeviceName(), dev))
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        if (strcmp(name, MountTypeSP.name) == 0)
+        {
+            IUUpdateSwitch(&MountTypeSP, states, names, n);
+	int currentMountIndex = IUFindOnSwitchIndex(&MountTypeSP);
+	LOGF_INFO("Selected mount is %s", MountTypeS[currentMountIndex].label);
+
+		set_pmc8_myMount(currentMountIndex);
+		MountTypeSP.s = IPS_OK;
+                IDSetSwitch(&MountTypeSP, nullptr);
+//		defineSwitch(&MountTypeSP);
+            return true;
+        }
+
 
     }
-
+    
     return INDI::Telescope::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -832,6 +861,7 @@ bool PMC8::saveConfigItems(FILE *fp)
 {
     INDI::Telescope::saveConfigItems(fp);
 
+    IUSaveConfigSwitch(fp, &MountTypeSP);
     return true;
 }
 
@@ -984,7 +1014,7 @@ bool PMC8::SetTrackMode(uint8_t mode)
             pmc8_mode = PMC8_TRACK_LUNAR;
             break;
         case TRACK_SOLAR:
-            pmc8_mode = PMC8_TRACK_LUNAR;
+            pmc8_mode = PMC8_TRACK_SOLAR;
             break;
         case TRACK_CUSTOM:
             pmc8_mode = PMC8_TRACK_CUSTOM;

@@ -118,7 +118,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
         }
     }
     //This turns the LibFishcamp fcusb logging on and off along with the INDI Fishcamp file logging.
-   if (!strcmp(name, "LOG_OUTPUT"))
+    if (!strcmp(name, "LOG_OUTPUT"))
     {
         if(INDI::Logger::ConfigurationS[1].s == ISS_ON)
         {
@@ -456,7 +456,7 @@ bool FishCampCCD::UpdateCCDFrame(int x, int y, int w, int h)
     }
 
     LOGF_DEBUG("The Final image area is (%ld, %ld), (%ld, %ld)\n", x_1, y_1, bin_width,
-           bin_height);
+               bin_height);
 
     rc = fcUsb_cmd_setRoi(cameraNum, x_1, y_1,  x_1 + w - 1, y_1 + h - 1);
 
@@ -504,11 +504,11 @@ float FishCampCCD::CalcTimeLeft()
 /* Downloads the image from the CCD.*/
 int FishCampCCD::grabImage()
 {
+    std::unique_lock<std::mutex> guard(ccdBufferLock);
     uint8_t *image = PrimaryCCD.getFrameBuffer();
-
     UInt16 *frameBuffer = (UInt16 *)image;
-
     int numBytes = fcUsb_cmd_getRawFrame(cameraNum, PrimaryCCD.getSubW(), PrimaryCCD.getSubH(), frameBuffer);
+    guard.unlock();
     if(numBytes != 0)
     {
         LOG_INFO("Download complete.");

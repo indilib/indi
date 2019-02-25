@@ -46,7 +46,7 @@
 #define OPERATIVES	2		// relating the hw/fw info from the controller
 #define MODELS		4
 
-std::unique_ptr<ArmPlat> armplat(new ArmPlat());
+static std::unique_ptr<ArmPlat> armplat(new ArmPlat());
 
 void ISGetProperties(const char *dev)
 {
@@ -89,7 +89,7 @@ void ISSnoopDevice(XMLEle *root)
 ArmPlat::ArmPlat()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT );
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
 }
 
 bool ArmPlat::initProperties()
@@ -105,7 +105,7 @@ bool ArmPlat::initProperties()
     IUFillSwitch(&IntExtTempSensorS[EXT_TEMP_SENSOR], "External", "", ISS_OFF);
     IUFillSwitchVector(&IntExtTempSensorSP, IntExtTempSensorS, 2, getDeviceName(), "Temperature sensor in use", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // Peripheral Port 
+    // Peripheral Port
     IUFillSwitch(&PerPortS[PORT_MAIN], "Main", "", ISS_ON );
     IUFillSwitch(&PerPortS[PORT_EXP], "Exp", "", ISS_OFF );
 #   ifdef PLATYPUS
@@ -169,9 +169,8 @@ bool ArmPlat::initProperties()
     FocusAbsPosN[0].step  = 5000;
 
     // Focus Sync
-    IUFillNumber(&SyncN[0], "SYNC", "Ticks", "%.f", 0, 100000., 0., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "Sync", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE );
-
+//    IUFillNumber(&SyncN[0], "SYNC", "Ticks", "%.f", 0, 100000., 0., 0.);
+//    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "Sync", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE );
 
     addDebugControl();
 
@@ -196,10 +195,10 @@ bool ArmPlat::updateProperties()
         defineSwitch(&HalfStepSP);
         defineSwitch(&MotorTypeSP);
         defineSwitch(&WiringSP);
-	defineNumber(&SyncNP);
+        //defineNumber(&SyncNP);
         defineText(&FirmwareVersionTP);
-	if ( !loadConfig() )
-        	LOG_ERROR("Error loading config" );
+        if ( !loadConfig() )
+                LOG_ERROR("Error loading config" );
     }
     else
     {
@@ -215,7 +214,7 @@ bool ArmPlat::updateProperties()
         deleteProperty(MotorTypeSP.name);
         deleteProperty(MaxSpeedNP.name);
         deleteProperty(FirmwareVersionTP.name);
-        deleteProperty(SyncNP.name);
+        //deleteProperty(SyncNP.name);
     }
 
     return true;
@@ -223,9 +222,9 @@ bool ArmPlat::updateProperties()
 
 bool ArmPlat::Connect()
 {
-	INDI::Focuser::Connect();
+        INDI::Focuser::Connect();
 
-	return true;
+        return true;
 }
 
 
@@ -255,25 +254,25 @@ bool ArmPlat::echo()
 
     if ( slpSendRxInt( cmd, &rc ) )
     {
-	const char *operative[ OPERATIVES + 1 ] = { "", "Bootloader", "Error" };
-	const char *models[ MODELS + 1 ] = { "Error", "Seletek", "Armadillo", "Platypus", "Dragonfly" };
-	int fwmaj, fwmin, model, oper;
-	char txt[ 80 ];
+        const char *operative[ OPERATIVES + 1 ] = { "", "Bootloader", "Error" };
+        const char *models[ MODELS + 1 ] = { "Error", "Seletek", "Armadillo", "Platypus", "Dragonfly" };
+        int fwmaj, fwmin, model, oper;
+        char txt[ 80 ];
 
-	oper = rc / 10000;		// 0 normal, 1 bootloader
-	model = ( rc / 1000 ) % 10;	// 1 seletek, etc.
-	fwmaj = ( rc / 100 ) % 10;
-	fwmin = ( rc % 100 );
-	if ( oper >= OPERATIVES ) oper = OPERATIVES; 
-	if ( model >= MODELS ) model = 0;
-	sprintf( txt, "%s %s fwv %d.%d", operative[ oper ], models[ model ], fwmaj, fwmin );
-	if ( strcmp( models[ model ], CONTROLLER_NAME ) )
-		DEBUGF( INDI::Logger::DBG_WARNING, "Actual model (%s) and driver (" CONTROLLER_NAME ") mismatch - can lead to limited operability", models[model] );
-	
-	IUSaveText( &FirmwareVersionT[0], txt );
-    	LOGF_INFO("Setting version to [%s]", txt );
+        oper = rc / 10000;		// 0 normal, 1 bootloader
+        model = ( rc / 1000 ) % 10;	// 1 seletek, etc.
+        fwmaj = ( rc / 100 ) % 10;
+        fwmin = ( rc % 100 );
+        if ( oper >= OPERATIVES ) oper = OPERATIVES;
+        if ( model >= MODELS ) model = 0;
+        sprintf( txt, "%s %s fwv %d.%d", operative[ oper ], models[ model ], fwmaj, fwmin );
+        if ( strcmp( models[ model ], CONTROLLER_NAME ) )
+                DEBUGF( INDI::Logger::DBG_WARNING, "Actual model (%s) and driver (" CONTROLLER_NAME ") mismatch - can lead to limited operability", models[model] );
 
-	return true;
+        IUSaveText( &FirmwareVersionT[0], txt );
+        LOGF_INFO("Setting version to [%s]", txt );
+
+        return true;
     }
     return false;
 }
@@ -313,7 +312,7 @@ bool ArmPlat::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         {
             IUUpdateSwitch(&IntExtTempSensorSP, states, names, n);
             tempSensInUse = IUFindOnSwitchIndex(&IntExtTempSensorSP);
-	    bool rc = setTempSensorInUse( IUFindOnSwitchIndex(&IntExtTempSensorSP));
+            bool rc = setTempSensorInUse( IUFindOnSwitchIndex(&IntExtTempSensorSP));
             IntExtTempSensorSP.s = rc ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&IntExtTempSensorSP, nullptr);
             return true;
@@ -346,7 +345,7 @@ bool ArmPlat::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         else if (!strcmp(name, PerPortSP.name))
         {
             IUUpdateSwitch(&PerPortSP, states, names, n);
-	    bool rc = setPort( IUFindOnSwitchIndex(&PerPortSP));
+            bool rc = setPort( IUFindOnSwitchIndex(&PerPortSP));
             PerPortSP.s = rc ? IPS_OK : IPS_ALERT;
             IDSetSwitch(&PerPortSP, nullptr);
             return true;
@@ -385,31 +384,32 @@ bool ArmPlat::ISNewNumber(const char *dev, const char *name, double values[], ch
                 BacklashNP.s = rc ? IPS_OK : IPS_ALERT;
             }
             else
-	    {
-		backlash = 0;
+            {
+                backlash = 0;
                 BacklashNP.s = IPS_OK;
-	    }
+            }
             IDSetNumber(&BacklashNP, nullptr);
             return true;
         }
-        if (strcmp(name, SyncNP.name) == 0)
-        {
-            bool rc = sync(static_cast<uint32_t>(values[0]));
-            SyncNP.s = rc ? IPS_OK : IPS_ALERT;
-            if (rc)
-                SyncN[0].value = values[0];
 
-            IDSetNumber(&SyncNP, nullptr);
-            return true;
-        }
-	/////////////////////////////////////////////
+//        if (strcmp(name, SyncNP.name) == 0)
+//        {
+//            bool rc = sync(static_cast<uint32_t>(values[0]));
+//            SyncNP.s = rc ? IPS_OK : IPS_ALERT;
+//            if (rc)
+//                SyncN[0].value = values[0];
+
+//            IDSetNumber(&SyncNP, nullptr);
+//            return true;
+//        }
+        /////////////////////////////////////////////
         // Relative goto
         /////////////////////////////////////////////
         else if (strcmp(name, FocusRelPosNP.name) == 0)
         {
             IUUpdateNumber(&FocusRelPosNP, values, names, n);
             IDSetNumber(&FocusRelPosNP, nullptr);
-	    MoveRelFocuser( FocusMotionS[ 0 ].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD, (uint32_t)values[ 0 ] );
+            MoveRelFocuser( FocusMotionS[ 0 ].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD, (uint32_t)values[ 0 ] );
             return true;
         }
         /////////////////////////////////////////////
@@ -428,20 +428,21 @@ bool ArmPlat::ISNewNumber(const char *dev, const char *name, double values[], ch
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
-bool ArmPlat::sync(uint32_t newPosition)
+//bool ArmPlat::sync(uint32_t newPosition)
+bool ArmPlat::SyncFocuser(uint32_t ticks)
 {
     if ( port == -1 )
-	return false;
+        return false;
 
     int rc = -1;
     char cmd[SLP_SEND_BUF_SIZE]={0};
 
-    sprintf(cmd, "!step setpos %d %d#", port, newPosition);
+    sprintf(cmd, "!step setpos %d %d#", port, ticks);
 
     if ( slpSendRxInt( cmd, &rc ) )
     {
-	if ( rc == 0 )
-		return true;
+        if ( rc == 0 )
+                return true;
     }
 
     return false;
@@ -450,7 +451,7 @@ bool ArmPlat::sync(uint32_t newPosition)
 bool ArmPlat::getCurrentPos( uint32_t *curPos )
 {
     if ( port == -1 )
-	return false;
+        return false;
 
     int rc = -1;
     char cmd[SLP_SEND_BUF_SIZE]={0};
@@ -460,7 +461,7 @@ bool ArmPlat::getCurrentPos( uint32_t *curPos )
     if ( slpSendRxInt( cmd, &rc ) )
     {
         *curPos = rc;
-	return true;
+        return true;
     }
 
     return false;
@@ -476,23 +477,23 @@ bool ArmPlat::getCurrentTemp( uint32_t *curTemp )
 
     if ( slpSendRxInt( cmd, &rc ) )
     {
-	// this approach works for all Armadillo and +. Not perfect for older bare Seleteks
-	// assumes LM61, both internal and external
-	if ( tempSensInUse == 0 )	// internal
-	{
-		idC1 = 261;
-		idC2 = 250;
-		idF = 1.8;
-	}
-	else
-	{
-		idC1 = 192;
-		idC2 = 0;
-		idF = 1.7;
-	}
+        // this approach works for all Armadillo and +. Not perfect for older bare Seleteks
+        // assumes LM61, both internal and external
+        if ( tempSensInUse == 0 )	// internal
+        {
+                idC1 = 261;
+                idC2 = 250;
+                idF = 1.8;
+        }
+        else
+        {
+                idC1 = 192;
+                idC2 = 0;
+                idF = 1.7;
+        }
 
         *curTemp = (((rc - idC1) * idF) - idC2) / 10;
-	return true;
+        return true;
     }
 
     return false;
@@ -502,7 +503,7 @@ bool ArmPlat::setMaxSpeed(uint16_t nspeed)
 {
     speed = nspeed;	// saved for later, and for possible change of port
     if ( port == -1 )
-	return false;
+        return false;
 
     int rc;
     char cmd[SLP_SEND_BUF_SIZE]={0};
@@ -510,16 +511,16 @@ bool ArmPlat::setMaxSpeed(uint16_t nspeed)
     rc = (int)(500000-((nspeed-1)*50));
     if ( ( rc < 50 ) || ( rc > 500000 ) )
     {
-    	LOGF_ERROR("Wrong speed %d", nspeed );
-	return false;
+        LOGF_ERROR("Wrong speed %d", nspeed );
+        return false;
     }
 
-    sprintf(cmd, "!step speedrangeus %d %d %d#", port, rc, rc );	
+    sprintf(cmd, "!step speedrangeus %d %d %d#", port, rc, rc );
 
     if ( slpSendRxInt( cmd, &rc ) )
     {
-	if ( rc == 0 )
-		return true;
+        if ( rc == 0 )
+                return true;
     }
 
     return false;
@@ -529,17 +530,17 @@ bool ArmPlat::setWiring( uint16_t newwiring)
 {
     wiring = newwiring;	// saved for later, and for possible change of port
     if ( port == -1 )
-	return false;
+        return false;
 
     int rc = -1;
     char cmd[SLP_SEND_BUF_SIZE]={0};
 
-    sprintf(cmd, "!step wiremode %d %d#", port, newwiring );	
+    sprintf(cmd, "!step wiremode %d %d#", port, newwiring );
 
     if ( slpSendRxInt( cmd, &rc ) )
     {
-	if ( rc == 0 )
-		return true;
+        if ( rc == 0 )
+                return true;
     }
 
     return false;
@@ -549,18 +550,18 @@ bool ArmPlat::setHalfStep( bool active )
 {
     halfstep = active ? 1:0;	// saved for later, and for possible change of port
     if ( port == -1 )
-	return false;
+        return false;
 
     LOGF_DEBUG("Halfstep set to %s", active ? "true" : "false" );
     int rc = -1;
     char cmd[SLP_SEND_BUF_SIZE]={0};
 
-    sprintf(cmd, "!step halfstep %d %d#", port, active ? 1 : 0 );	
+    sprintf(cmd, "!step halfstep %d %d#", port, active ? 1 : 0 );
 
     if ( slpSendRxInt( cmd, &rc ) )
     {
-	if ( rc == 0 )
-		return true;
+        if ( rc == 0 )
+                return true;
     }
 
     return false;
@@ -570,18 +571,18 @@ bool ArmPlat::setMotorType(uint16_t type)
 {
     motortype = type;	// saved for later and optional port change
     if ( port == -1 )
-	return false;
+        return false;
 
     int rc = -1;
     char cmd[SLP_SEND_BUF_SIZE]={0};
 
     LOGF_DEBUG("Motor type set to %d", type );
-    sprintf(cmd, "!step model %d %d#", port, type );	
+    sprintf(cmd, "!step model %d %d#", port, type );
 
     if ( slpSendRxInt( cmd, &rc ) )
     {
-	if ( rc == 0 )
-		return true;
+        if ( rc == 0 )
+                return true;
     }
 
     return false;
@@ -600,18 +601,18 @@ bool ArmPlat::setPort( uint16_t newport )
     LOGF_DEBUG("Port set to %d", newport );
     if ( port != newport )
     {
-    	port = newport;
-	if ( halfstep != -1 )
-		setHalfStep( (bool)halfstep );
-	if ( wiring != -1 )
-		setWiring( (uint16_t)wiring );
-	if ( speed != -1 )
-		setMaxSpeed( (uint16_t)speed );
-	if ( motortype != -1 )
-		setMotorType( (uint16_t)motortype );
+        port = newport;
+        if ( halfstep != -1 )
+                setHalfStep( (bool)halfstep );
+        if ( wiring != -1 )
+                setWiring( (uint16_t)wiring );
+        if ( speed != -1 )
+                setMaxSpeed( (uint16_t)speed );
+        if ( motortype != -1 )
+                setMotorType( (uint16_t)motortype );
 
-    	LOG_INFO("Applying motor config, as port is active now" );
-	//loadConfig();
+        LOG_INFO("Applying motor config, as port is active now" );
+        //loadConfig();
     }
 
     return true;
@@ -620,7 +621,7 @@ bool ArmPlat::setPort( uint16_t newport )
 bool ArmPlat::setBacklash(uint16_t value)
 {
     if ( port == -1 )
-	return false;
+        return false;
 
     LOGF_DEBUG("Backlash %d", value );
     backlash = value;
@@ -631,57 +632,57 @@ bool ArmPlat::setBacklash(uint16_t value)
 IPState ArmPlat::MoveAbsFocuser(uint32_t targetTicks)
 {
     if ( port == -1 )
-   	return IPS_ALERT;	
+        return IPS_ALERT;
 
     char cmd[SLP_SEND_BUF_SIZE]={0};
     int rc = -1;
 
     LOGF_DEBUG("Abs move to %d", targetTicks );
-    sprintf(cmd, "!step goto %d %i %i#", port, targetTicks, backlash );	
+    sprintf(cmd, "!step goto %d %i %i#", port, targetTicks, backlash );
 
     if ( slpSendRxInt( cmd, &rc ) )
     {
-	if ( rc == 0 )
-	{
-		isMoving = true;
-    		FocusAbsPosNP.s = IPS_BUSY;
-    		return IPS_BUSY;
-	}
+        if ( rc == 0 )
+        {
+                isMoving = true;
+                FocusAbsPosNP.s = IPS_BUSY;
+                return IPS_BUSY;
+        }
     }
 
-   return IPS_ALERT;	
+   return IPS_ALERT;
 }
 
 IPState ArmPlat::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     //IDLog( "Rel focuser move %d %d\n", (int)dir, ticks );
     if ( port == -1 )
-   	return IPS_ALERT;	
+        return IPS_ALERT;
 
     int rc = -1;
     int realticks;
     char cmd[SLP_SEND_BUF_SIZE]={0};
 
     if (dir == FOCUS_INWARD)
-	realticks = -ticks;
+        realticks = -ticks;
     else
         realticks = ticks;
 
     LOGF_DEBUG("Rel move to %d", realticks );
-    sprintf(cmd, "!step gopr %d %d#", port, realticks );	
+    sprintf(cmd, "!step gopr %d %d#", port, realticks );
 
     if ( slpSendRxInt( cmd, &rc ) )
     {
-	if ( rc == 0 )
-	{
-	    isMoving = true;
-	    FocusRelPosN[0].value = ticks;
-	    FocusRelPosNP.s       = IPS_BUSY;
+        if ( rc == 0 )
+        {
+            isMoving = true;
+            FocusRelPosN[0].value = ticks;
+            FocusRelPosNP.s       = IPS_BUSY;
 
-	    return IPS_BUSY;
-	}
+            return IPS_BUSY;
+        }
    }
-   return IPS_ALERT;	
+   return IPS_ALERT;
 }
 
 void ArmPlat::TimerHit()
@@ -696,28 +697,28 @@ void ArmPlat::TimerHit()
 
     if ( port == -1 )
     {
-	if ( !portWarned )
-	{
-		DEBUG( INDI::Logger::DBG_WARNING, "Port must be selected (and configuration saved)" );
-		portWarned = true;
-	}
+        if ( !portWarned )
+        {
+                DEBUG( INDI::Logger::DBG_WARNING, "Port must be selected (and configuration saved)" );
+                portWarned = true;
+        }
         SetTimer(POLLMS);
-	return;
+        return;
     }
     else
-	portWarned = false;
+        portWarned = false;
 
     bool rc = getCurrentPos( &data );
 
     if (rc)
     {
-	if ( data != FocusAbsPosN[0].value )
-	{
-		FocusAbsPosN[0].value = data;
-		IDSetNumber(&FocusAbsPosNP, nullptr);
-	}
-	else
-		isMoving = false;
+        if ( data != FocusAbsPosN[0].value )
+        {
+                FocusAbsPosN[0].value = data;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+        }
+        else
+                isMoving = false;
 
         if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
         {
@@ -725,6 +726,8 @@ void ArmPlat::TimerHit()
             {
                 FocusAbsPosNP.s = IPS_OK;
                 FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                IDSetNumber(&FocusAbsPosNP, nullptr);
                 LOG_INFO("Focuser reached requested position.");
             }
         }
@@ -732,16 +735,16 @@ void ArmPlat::TimerHit()
 
     if (isMoving == false)
     {
-	bool rc = getCurrentTemp( &data );
+        bool rc = getCurrentTemp( &data );
 
-	if (rc)
-	{
-		if ( data != TemperatureN[0].value )
-		{
-			TemperatureN[0].value = data;
-			IDSetNumber(&TemperatureNP, nullptr);
-		}
-	}
+        if (rc)
+        {
+                if ( data != TemperatureN[0].value )
+                {
+                        TemperatureN[0].value = data;
+                        IDSetNumber(&TemperatureNP, nullptr);
+                }
+        }
     }
 
     SetTimer(POLLMS);
@@ -750,24 +753,24 @@ void ArmPlat::TimerHit()
 bool ArmPlat::AbortFocuser()
 {
     if ( port == -1 )
-	return false;
+        return false;
 
     int rc = -1;
     char cmd[SLP_SEND_BUF_SIZE]={0};
 
     LOG_DEBUG("Aborting motion" );
-    sprintf(cmd, "!step stop %d#", port );	
+    sprintf(cmd, "!step stop %d#", port );
 
     if ( slpSendRxInt( cmd, &rc ) )
     {
-	if ( rc == 0 )
-	{
-		FocusAbsPosNP.s = IPS_IDLE;
-		FocusRelPosNP.s = IPS_IDLE;
-		IDSetNumber(&FocusAbsPosNP, nullptr);
-		IDSetNumber(&FocusRelPosNP, nullptr);
-		return true;
-	}
+        if ( rc == 0 )
+        {
+                FocusAbsPosNP.s = IPS_IDLE;
+                FocusRelPosNP.s = IPS_IDLE;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                return true;
+        }
     }
 
     return true;
@@ -801,7 +804,7 @@ bool ArmPlat::slpSendRxInt( char *command, int *rcode )
     if ((rc = tty_write_string(PortFD, command, &nbytes_wrrd)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-       	//IDLog( "ERROR Tx: <%s>\n", errstr );
+        //IDLog( "ERROR Tx: <%s>\n", errstr );
         LOGF_ERROR("Send error: %s.", errstr);
         return false;
     }
@@ -809,26 +812,26 @@ bool ArmPlat::slpSendRxInt( char *command, int *rcode )
     if ((rc = tty_read_section(PortFD, res, '#', ArmPlat_TIMEOUT, &nbytes_wrrd)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-       	//IDLog( "ERROR Rx: <%s> error msg <%s>\n", res, errstr );
+        //IDLog( "ERROR Rx: <%s> error msg <%s>\n", res, errstr );
         LOGF_ERROR("Echo receiving error: %s.", errstr);
         return false;
     }
     LOGF_DEBUG("Rx [%s]", res);
-    //if ( ( strstr( command, "getpos" ) == nullptr ) && ( strstr( command, "temps" ) == nullptr ) ) 
-    	//IDLog( "Rx: <%s>\n", res );
+    //if ( ( strstr( command, "getpos" ) == nullptr ) && ( strstr( command, "temps" ) == nullptr ) )
+        //IDLog( "Rx: <%s>\n", res );
     return getIntResultCode( command, res, rcode );
 }
 
 bool ArmPlat::getIntResultCode( char *sent, char *rxed, int *rcode )
 {
-	sent[ strlen( sent ) - 1 ] = '\0';
-	char *cp = std::strtok( rxed, ":" );
-	if ( strcmp( cp, sent ) )
-	{
-    		LOGF_DEBUG("ERROR retrieving answer: Tx[%s] Rx[%s]", sent, rxed );
-		return false;
-	}
-	cp = std::strtok( nullptr, ":" );
-	*rcode = atoi( cp );
-	return true;
+        sent[ strlen( sent ) - 1 ] = '\0';
+        char *cp = std::strtok( rxed, ":" );
+        if ( strcmp( cp, sent ) )
+        {
+                LOGF_DEBUG("ERROR retrieving answer: Tx[%s] Rx[%s]", sent, rxed );
+                return false;
+        }
+        cp = std::strtok( nullptr, ":" );
+        *rcode = atoi( cp );
+        return true;
 }

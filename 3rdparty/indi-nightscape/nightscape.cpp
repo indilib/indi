@@ -38,64 +38,76 @@
 
 static std::unique_ptr<NightscapeCCD> nightscapeCCD(new NightscapeCCD());
 
-static int drop_root_privileges(void) {  // returns 0 on success and -1 on failure
+static int drop_root_privileges(void)    // returns 0 on success and -1 on failure
+{
     gid_t gid;
     uid_t uid;
     DO_DBG("%s\n", "privilege drop");
     // no need to "drop" the privileges that you don't have in the first place!
-    if (getuid() != 0) {
+    if (getuid() != 0)
+    {
         return 0;
     }
 
     // when your program is invoked with sudo, getuid() will return 0 and you
     // won't be able to drop your privileges
-    if ((uid = getuid()) == 0) {
+    if ((uid = getuid()) == 0)
+    {
         const char *sudo_uid = ___secure_getenv("SUDO_UID");
-        if (sudo_uid == nullptr) {
+        if (sudo_uid == nullptr)
+        {
             DO_ERR("%s\n", "environment variable `SUDO_UID` not found");
             return -1;
         }
         errno = 0;
         uid = (uid_t) strtoll(sudo_uid, nullptr, 10);
-        if (errno != 0) {
+        if (errno != 0)
+        {
             DO_ERR("under-/over-flow in converting `SUDO_UID` to integer %s", strerror(errno));
             return -1;
         }
     }
 
     // again, in case your program is invoked using sudo
-    if ((gid = getgid()) == 0) {
+    if ((gid = getgid()) == 0)
+    {
         const char *sudo_gid = ___secure_getenv("SUDO_GID");
-        if (sudo_gid == nullptr) {
+        if (sudo_gid == nullptr)
+        {
             DO_ERR("%s\n", "environment variable `SUDO_GID` not found");
             return -1;
         }
         errno = 0;
         gid = (gid_t) strtoll(sudo_gid, nullptr, 10);
-        if (errno != 0) {
+        if (errno != 0)
+        {
             DO_ERR("under-/over-flow in converting `SUDO_GID` to integer %s", strerror(errno));
             return -1;
         }
     }
 
-    if (setgid(gid) != 0) {
+    if (setgid(gid) != 0)
+    {
         DO_ERR("setgid %s", strerror(errno));
         return -1;
     }
-    if (setuid(uid) != 0) {
+    if (setuid(uid) != 0)
+    {
         DO_ERR("setuid %s", strerror(errno));
         return -1;
     }
 
     // change your directory to somewhere else, just in case if you are in a
     // root-owned one (e.g. /root)
-    if (chdir("/") != 0) {
+    if (chdir("/") != 0)
+    {
         DO_ERR("chdir %s", strerror(errno));
         return -1;
     }
 
     // check if we successfully dropped the root privileges
-    if (setuid(0) == 0 || seteuid(0) == 0) {
+    if (setuid(0) == 0 || seteuid(0) == 0)
+    {
         DO_ERR("%s\n", "could not drop root privileges!");
         return -1;
     }
@@ -147,8 +159,10 @@ void ISSnoopDevice(XMLEle *root)
 ***************************************************************************************/
 bool NightscapeCCD::Connect()
 {
-#ifdef HAVE_D2XX   
-    if (useD2xx == 1) { cn = new NsChannelFTD(camnum);
+#ifdef HAVE_D2XX
+    if (useD2xx == 1)
+    {
+        cn = new NsChannelFTD(camnum);
     }
     else
 #endif
@@ -162,25 +176,31 @@ bool NightscapeCCD::Connect()
             cn = new NsChannelSER(camnum);
         }
 #endif
-    if (cn->open() < 0) {
+    if (cn->open() < 0)
+    {
         LOG_DEBUG( "open failed!");
         delete cn;
         return false;
-    } else {
+    }
+    else
+    {
         LOG_DEBUG( "opened  successfully!");
     }
 
     m = new Nsmsg(cn);
     dn = new NsDownload(cn);
     st = new NsStatus(m, dn);
-    if(!m->inquiry()) {
+    if(!m->inquiry())
+    {
         LOG_WARN( "inquiry failed!");
         delete cn;
         delete dn;
         delete st;
         return false;
 
-    } else {
+    }
+    else
+    {
         LOGF_INFO( "Firmware ver %s", m->getFirmwareVer());
     }
     dn->setFrameYBinning(1);
@@ -190,10 +210,12 @@ bool NightscapeCCD::Connect()
     dn->setFbase("");
     dn->setNumExp(99999);
     dn->setImgWrite(false);
-    if (useD2xx == 0) {
+    if (useD2xx == 0)
+    {
         dn->setZeroReads(100);
     }
-    if (useD2xx == 2) {
+    if (useD2xx == 2)
+    {
         //dn->setZeroReads(100);
     }
     dn->startThread();
@@ -216,7 +238,7 @@ bool NightscapeCCD::Disconnect()
     //m->sendfan(deffanspeed);
     cn->close();
     delete m;
-    
+
     delete cn;
     delete dn;
     m = nullptr;
@@ -246,32 +268,32 @@ bool NightscapeCCD::initProperties()
     INDI::CCD::initProperties();
     IUFillSwitch(&CoolerS[0], "COOLER_ON", "ON", cooler ? ISS_ON : ISS_OFF);
     IUFillSwitch(&CoolerS[1], "COOLER_OFF", "OFF", cooler ? ISS_OFF : ISS_ON );
-    
+
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler",
                        MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
-    
-    IUFillSwitch(&FanS[0], "FANOFF", "Off", fanspeed == 1 ? ISS_ON: ISS_OFF);
-    IUFillSwitch(&FanS[1], "FANQUIET", "Quiet", fanspeed == 2 ? ISS_ON: ISS_OFF);
-    IUFillSwitch(&FanS[2], "FANFULL", "Full", fanspeed == 3 ? ISS_ON: ISS_OFF);
+
+    IUFillSwitch(&FanS[0], "FANOFF", "Off", fanspeed == 1 ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&FanS[1], "FANQUIET", "Quiet", fanspeed == 2 ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&FanS[2], "FANFULL", "Full", fanspeed == 3 ? ISS_ON : ISS_OFF);
     IUFillSwitchVector(&FanSP, FanS, 3, getDeviceName(), "CCD_FAN", "Fan",
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
-    
+
 
     IUFillNumber(&CamNumN[0], "CAMNUM", "Camera Number", "%4.0f", 1.0, 4.0, 1.0, 1.0);
     IUFillNumberVector(&CamNumNP, CamNumN, 1, getDeviceName(), "CAMNUM", "Camera Number",
                        MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     defineNumber(&CamNumNP);
-    
-    IUFillSwitch(&D2xxS[0], "USEFTDI", "libftdi", useD2xx == 0 ? ISS_ON: ISS_OFF);
+
+    IUFillSwitch(&D2xxS[0], "USEFTDI", "libftdi", useD2xx == 0 ? ISS_ON : ISS_OFF);
 #ifdef HAVE_D2XX
-    IUFillSwitch(&D2xxS[1], "USED2XX", "libd2xx", useD2xx== 1 ? ISS_ON: ISS_OFF);
+    IUFillSwitch(&D2xxS[1], "USED2XX", "libd2xx", useD2xx == 1 ? ISS_ON : ISS_OFF);
 #ifdef HAVE_SERIAL
-    IUFillSwitch(&D2xxS[2], "USESERIAL", "Serial", useD2xx == 2? ISS_ON: ISS_OFF);
+    IUFillSwitch(&D2xxS[2], "USESERIAL", "Serial", useD2xx == 2 ? ISS_ON : ISS_OFF);
 #endif
 #else
 #ifdef HAVE_SERIAL
-    IUFillSwitch(&D2xxS[1], "USESERIAL", "Serial", useD2xx == 2? ISS_ON: ISS_OFF);
+    IUFillSwitch(&D2xxS[1], "USESERIAL", "Serial", useD2xx == 2 ? ISS_ON : ISS_OFF);
 #endif
 #endif
 
@@ -279,24 +301,25 @@ bool NightscapeCCD::initProperties()
 #ifdef HAVE_SERIAL
     IUFillSwitchVector(&D2xxSP, D2xxS, 3, getDeviceName(), "CCD_LIBRARY", "USB Library",
                        MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
-#else 
+#else
     IUFillSwitchVector(&D2xxSP, D2xxS, 2, getDeviceName(), "CCD_LIBRARY", "USB Library",
                        MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 #endif
-#else 
+#else
 #ifdef HAVE_SERIAL
-    IUFillSwitchVector(&D2xxSP, D2xxS, 2, getDeviceName(), "CCD_LIBRARY", "USB Library", 
-    	MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
-#else 
+    IUFillSwitchVector(&D2xxSP, D2xxS, 2, getDeviceName(), "CCD_LIBRARY", "USB Library",
+                       MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
+#else
     IUFillSwitchVector(&D2xxSP, D2xxS, 1, getDeviceName(), "CCD_LIBRARY", "USB Library",
                        MAIN_CONTROL_TAB, IP_WO, ISR_1OFMANY, 60, IPS_IDLE);
 #endif
 #endif
     defineSwitch(&D2xxSP);
-    
+
     // We set the CCD capabilities
     uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER ;
-    if (bayer) {
+    if (bayer)
+    {
         cap |= CCD_HAS_BAYER;
         IUSaveText(&BayerT[0], "0");
         IUSaveText(&BayerT[1], "1");
@@ -382,11 +405,11 @@ bool NightscapeCCD::StartExposure(float duration)
     int zonestart = PrimaryCCD.getSubY();
     int zonelen = PrimaryCCD.getSubH();
     int framediv = PrimaryCCD.getBinY();
-    PrimaryCCD.setPixelSize(5.4*PrimaryCCD.getBinX(), 5.4*PrimaryCCD.getBinY());
-    dn->setImgSize(m->getRawImgSize(zonestart,zonelen,framediv));
+    PrimaryCCD.setPixelSize(5.4 * PrimaryCCD.getBinX(), 5.4 * PrimaryCCD.getBinY());
+    dn->setImgSize(m->getRawImgSize(zonestart, zonelen, framediv));
     dn->setFrameYBinning(framediv);
     dn->setFrameXBinning(PrimaryCCD.getBinX());
-    m->sendzone(zonestart , zonelen, framediv);
+    m->sendzone(zonestart, zonelen, framediv);
     INDI::CCDChip::CCD_FRAME ft = PrimaryCCD.getFrameType();
     if (ft == INDI::CCDChip::DARK_FRAME || ft == INDI::CCDChip::BIAS_FRAME) dark = true;
     else dark = false;
@@ -427,11 +450,14 @@ float NightscapeCCD::CalcTimeLeft()
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
     gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
-            (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
+                (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
     timesince = timesince / 1000;
 
     timeleft = ExposureRequest - timesince;
@@ -468,16 +494,19 @@ void NightscapeCCD::TimerHit()
             /* grab and save image */
             st->doStatus();
 
-            
+
         }
         else
-        {    // Just update time left in client
+        {
+            // Just update time left in client
             PrimaryCCD.setExposureLeft(timeleft);
         }
     }
-    if (InReadout) {
+    if (InReadout)
+    {
         stat = st->getStatus();
-        if(oldstat == 2 && stat == 0) {
+        if(oldstat == 2 && stat == 0)
+        {
             LOG_INFO( "Starting download...");
             InReadout = false;
             InDownload = true;
@@ -485,7 +514,8 @@ void NightscapeCCD::TimerHit()
         oldstat = stat;
 
     }
-    if (InDownload && !dn->inDownload()) {
+    if (InDownload && !dn->inDownload())
+    {
         LOG_INFO( "download done...");
         InDownload = false;
         grabImage();
@@ -495,40 +525,43 @@ void NightscapeCCD::TimerHit()
     // TemperatureNP is defined in INDI::CCD
     switch (TemperatureNP.s)
     {
-    case IPS_IDLE:
-    case IPS_OK:
-        break;
+        case IPS_IDLE:
+        case IPS_OK:
+            break;
 
-    case IPS_BUSY:
-        if (InDownload || InReadout || InExposure) break;
-        if(ntemps % backoffs == 0) {
-            currentCCDTemperature = m->rcvtemp();
-            backoffs *= 2;
-            if(backoffs > 32) backoffs = 32;
-        }
-        ntemps++;
-        dn->setActTemp(currentCCDTemperature);
+        case IPS_BUSY:
+            if (InDownload || InReadout || InExposure) break;
+            if(ntemps % backoffs == 0)
+            {
+                currentCCDTemperature = m->rcvtemp();
+                backoffs *= 2;
+                if(backoffs > 32) backoffs = 32;
+            }
+            ntemps++;
+            dn->setActTemp(currentCCDTemperature);
 
-        /* If target temperature is higher, then increase current CCD temperature */
-        if (fabs(currentCCDTemperature - TemperatureRequest)  < 0.1)
-            
-        {
-            TemperatureNP.s = IPS_OK;
-            IDSetNumber(&TemperatureNP, "Target temperature reached.");
+            /* If target temperature is higher, then increase current CCD temperature */
+            if (fabs(currentCCDTemperature - TemperatureRequest)  < 0.1)
+
+            {
+                TemperatureNP.s = IPS_OK;
+                IDSetNumber(&TemperatureNP, "Target temperature reached.");
+
+                break;
+            }
+
+            IDSetNumber(&TemperatureNP, nullptr);
 
             break;
-        }
 
-        IDSetNumber(&TemperatureNP, nullptr);
-
-        break;
-
-    case IPS_ALERT:
-        break;
+        case IPS_ALERT:
+            break;
     }
-    if (!InReadout && !InDownload) {
+    if (!InReadout && !InDownload)
+    {
         int stat = m->rcvstat();
-        if (oldstat != stat) {
+        if (oldstat != stat)
+        {
             LOGF_DEBUG("Status change %d", stat);
         }
         oldstat = stat;
@@ -551,6 +584,7 @@ void NightscapeCCD::TimerHit()
 void NightscapeCCD::grabImage()
 {
     // Let's get a pointer to the frame buffer
+    std::unique_lock<std::mutex> guard(ccdBufferLock);
     uint8_t *image = PrimaryCCD.getFrameBuffer();
     uint8_t * downbuf = dn->getBuf();
     size_t downsz = dn->getBufImageSize();
@@ -560,7 +594,8 @@ void NightscapeCCD::grabImage()
     //int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
     memset(image, 0, PrimaryCCD.getFrameBufferSize());
     dn->copydownload(image, PrimaryCCD.getSubX(), PrimaryCCD.getSubW(), PrimaryCCD.getBinX(), 1, 1);
-    IDLog("copied..\n");
+    guard.unlock();
+    //IDLog("copied..\n");
 
     // Fill buffer with random pattern
     //for (int i = 0; i < height; i++)
@@ -576,25 +611,28 @@ void NightscapeCCD::grabImage()
 bool NightscapeCCD::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     // Make sure the call is for our device
-    if(!strcmp(dev,getDeviceName()))
+    if(!strcmp(dev, getDeviceName()))
     {
-        if (!strcmp(name, FanSP.name)) {
+        if (!strcmp(name, FanSP.name))
+        {
             const char *actionName = IUFindOnSwitchName(states, names, n);
-            if (!strcmp(actionName, FanS[fanspeed -1].name))
+            if (!strcmp(actionName, FanS[fanspeed - 1].name))
             {
-                LOGF_INFO("Fan is already %s", FanS[fanspeed -1].label);
+                LOGF_INFO("Fan is already %s", FanS[fanspeed - 1].label);
                 FanSP.s = IPS_IDLE;
                 IDSetSwitch(&FanSP, nullptr);
                 return true;
             }
             IUUpdateSwitch(&FanSP, states, names, n);
-            fanspeed = IUFindOnSwitchIndex(&FanSP) +1;
-            LOGF_INFO("Fan is now %s", FanS[fanspeed -1].label);
+            fanspeed = IUFindOnSwitchIndex(&FanSP) + 1;
+            LOGF_INFO("Fan is now %s", FanS[fanspeed - 1].label);
             FanSP.s = IPS_OK;
             IDSetSwitch(&FanSP, nullptr);
             m->sendfan(fanspeed);
             return true;
-        } else if (!strcmp(name, CoolerSP.name)) {
+        }
+        else if (!strcmp(name, CoolerSP.name))
+        {
             const char *actionName = IUFindOnSwitchName(states, names, n);
             if (!strcmp(actionName, CoolerS[!cooler].name))
             {
@@ -612,7 +650,9 @@ bool NightscapeCCD::ISNewSwitch (const char *dev, const char *name, ISState *sta
             dn->setActTemp(currentCCDTemperature);
             return true;
 
-        } else if (!strcmp(name, D2xxSP.name)) {
+        }
+        else if (!strcmp(name, D2xxSP.name))
+        {
             const char *actionName = IUFindOnSwitchName(states, names, n);
             if (!strcmp(actionName, D2xxS[useD2xx].name))
             {
@@ -625,7 +665,7 @@ bool NightscapeCCD::ISNewSwitch (const char *dev, const char *name, ISState *sta
 #ifdef HAVE_D2XX
             useD2xx = IUFindOnSwitchIndex(&D2xxSP);
             LOGF_INFO( "Library is now %s", D2xxS[useD2xx].label);
-#else 
+#else
             useD2xx = IUFindOnSwitchIndex(&D2xxSP);
             LOGF_INFO( "Library is now %s", D2xxS[useD2xx].label);
             if(useD2xx == 1) useD2xx = 2;
@@ -643,12 +683,13 @@ bool NightscapeCCD::ISNewSwitch (const char *dev, const char *name, ISState *sta
 
 bool NightscapeCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if (!strcmp(name, CamNumNP.name)) {
+    if (!strcmp(name, CamNumNP.name))
+    {
         if (values[0] < CamNumN[0].min || values[0] > CamNumN[0].max)
         {
             CamNumNP.s = IPS_ALERT;
             LOGF_ERROR("Error: Bad camera number value! Range is [%.1f, %.1f].",
-                   CamNumN[0].min, CamNumN[0].max);
+                       CamNumN[0].min, CamNumN[0].max);
             IDSetNumber(&CamNumNP, nullptr);
             return false;
         }
@@ -669,7 +710,8 @@ bool NightscapeCCD::ISNewNumber(const char *dev, const char *name, double values
 
 }
 
-bool NightscapeCCD::saveConfigItems(FILE *fp) {
+bool NightscapeCCD::saveConfigItems(FILE *fp)
+{
     currentCCDTemperature = setTemp;
     IUSaveConfigSwitch(fp, &FanSP);
     IUSaveConfigSwitch(fp, &CoolerSP);

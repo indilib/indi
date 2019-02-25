@@ -28,15 +28,13 @@ class LX200AstroPhysicsExperimental : public LX200Generic
 {
   public:
     LX200AstroPhysicsExperimental();
-    ~LX200AstroPhysicsExperimental() {}
 
     typedef enum { MCV_E, MCV_F, MCV_G, MCV_H, MCV_I, MCV_J, MCV_K_UNUSED,
                    MCV_L, MCV_M, MCV_N, MCV_O, MCV_P, MCV_Q, MCV_R, MCV_S,
                    MCV_T, MCV_U, MCV_V, MCV_UNKNOWN} ControllerVersion;
     typedef enum { GTOCP1=1, GTOCP2, GTOCP3, GTOCP4, GTOCP_UNKNOWN} ServoVersion;
-
     typedef enum { PARK_LAST=0, PARK_CUSTOM=0, PARK_PARK1=1, PARK_PARK2=2, PARK_PARK3=3, PARK_PARK4=4} ParkPosition;
-
+    enum APTelescopeSlewRate {AP_SLEW_GUIDE, AP_SLEW_12X, AP_SLEW_64X, AP_SLEW_600X, AP_SLEW_1200X};
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual void ISGetProperties(const char *dev) override;    
@@ -63,6 +61,7 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual bool SetSlewRate(int index) override;
+    bool updateAPSlewRate(int index);
 
     // Guide Commands
     virtual IPState GuideNorth(uint32_t ms) override;
@@ -72,6 +71,14 @@ class LX200AstroPhysicsExperimental : public LX200Generic
     virtual int  SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
     virtual bool GuideNS(INDI_DIR_NS dir, TelescopeMotionCommand command);
     virtual bool GuideWE(INDI_DIR_WE dir, TelescopeMotionCommand command);
+
+    // Pulse Guide specific to AstroPhysics
+    static void pulseGuideTimeoutHelperWE(void * p);
+    static void pulseGuideTimeoutHelperNS(void * p);
+    static void simulGuideTimeoutHelperWE(void * p);
+    static void simulGuideTimeoutHelperNS(void * p);
+    void AstroPhysicsGuideTimeoutWE(bool simul);
+    void AstroPhysicsGuideTimeoutNS(bool simul);
 
     virtual bool getUTFOffset(double *offset) override;
 

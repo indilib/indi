@@ -27,9 +27,12 @@ Modifications
 ..
 ..
 0.11  psjshep 17-Mar-2017 - changed PortT[0].text to serialConnection->port()
+
+1.1 JM 29-11-2018: Misc fixes and improvements.
  */
+
 #define LAKESIDE_VERSION_MAJOR 1
-#define LAKESIDE_VERSION_MINOR 0
+#define LAKESIDE_VERSION_MINOR 1
 
 #include "lakeside.h"
 #include <config.h>
@@ -53,29 +56,29 @@ Modifications
 //  or nothing in the buffer during GetLakesideStatus()
 #define LAKESIDE_TIMEOUT_RETRIES   2
 
-std::unique_ptr<Lakeside> lakeside(new Lakeside());
+static std::unique_ptr<Lakeside> lakeside(new Lakeside());
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
     lakeside->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num)
 {
     lakeside->ISNewSwitch(dev, name, states, names, num);
 }
 
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
+void ISNewText(	const char * dev, const char * name, char * texts[], char * names[], int num)
 {
     lakeside->ISNewText(dev, name, texts, names, num);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num)
 {
     lakeside->ISNewNumber(dev, name, values, names, num);
 }
 
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
+void ISNewBLOB (const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[], char * names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -87,7 +90,7 @@ void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[],
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice (XMLEle *root)
+void ISSnoopDevice (XMLEle * root)
 {
     lakeside->ISSnoopDevice(root);
 }
@@ -96,10 +99,7 @@ Lakeside::Lakeside()
 {
     setVersion(LAKESIDE_VERSION_MAJOR, LAKESIDE_VERSION_MINOR);
 
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_ABORT );
-
-    lastPos = 0;
-    lastTemperature = 0;
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_REVERSE);
 }
 
 // Initialise
@@ -108,9 +108,9 @@ bool Lakeside::initProperties()
     INDI::Focuser::initProperties();
 
     // Current Direction
-    IUFillSwitch(&MoveDirectionS[0], "Normal", "", ISS_ON);
-    IUFillSwitch(&MoveDirectionS[1], "Reverse", "", ISS_OFF);
-    IUFillSwitchVector(&MoveDirectionSP, MoveDirectionS, 2, getDeviceName(), "","Move Direction", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    //    IUFillSwitch(&MoveDirectionS[0], "Normal", "", ISS_ON);
+    //    IUFillSwitch(&MoveDirectionS[1], "Reverse", "", ISS_OFF);
+    //    IUFillSwitchVector(&MoveDirectionSP, MoveDirectionS, 2, getDeviceName(), "","Move Direction", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Focuser temperature (degrees C) - read only
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%3.2f", -50, 70., 0., 0.);
@@ -127,54 +127,55 @@ bool Lakeside::initProperties()
 
     // Backlash 0-255
     IUFillNumber(&BacklashN[0], "BACKLASH", "(0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Maximum Travel - read only
-    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "No. Steps", "%.f", 1, 65536, 0, 10000);
-    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAXTRAVEL", "Max travel(Via Ctrlr)", OPTIONS_TAB, IP_RO, 0, IPS_IDLE );
+    //    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "No. Steps", "%.f", 1, 65536, 0, 10000);
+    //    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAXTRAVEL", "Max travel(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE );
+    FocusMaxPosNP.p = IP_RO;
 
     // Step Size - read only
     IUFillNumber(&StepSizeN[0], "STEPSIZE", "No. Steps", "%.f", 1, 65536, 0, 1);
-    IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEPSIZE", "Step Size(Via Ctrlr)", OPTIONS_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEPSIZE", "Step Size(Via Ctrlr)", SETTINGS_TAB, IP_RO, 0, IPS_IDLE);
 
     // Active Temperature Slope - select 1 or 2
     IUFillSwitch(&ActiveTemperatureSlopeS[0], "Slope 1", "", ISS_ON);
     IUFillSwitch(&ActiveTemperatureSlopeS[1], "Slope 2", "", ISS_OFF);
-    IUFillSwitchVector(&ActiveTemperatureSlopeSP, ActiveTemperatureSlopeS, 2, getDeviceName(), "Active Slope", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&ActiveTemperatureSlopeSP, ActiveTemperatureSlopeS, 2, getDeviceName(), "Active Slope", "Active Slope", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slope 1 : Directions
     IUFillSwitch(&Slope1DirS[0], "0", "", ISS_ON);
     IUFillSwitch(&Slope1DirS[1], "1", "", ISS_OFF);
-    IUFillSwitchVector(&Slope1DirSP, Slope1DirS, 2, getDeviceName(), "Slope 1 Direction", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&Slope1DirSP, Slope1DirS, 2, getDeviceName(), "Slope 1 Direction", "Slope 1 Direction", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Slope 1 : Slope Increments (counts per degree, 0.1 step increments
     IUFillNumber(&Slope1IncN[0], "SLOPE1INC", "No. Steps (0-655356", "%.f", 0, 65536, 0, 0);
-    IUFillNumberVector(&Slope1IncNP, Slope1IncN, 1, getDeviceName(), "SLOPE1INC","Slope1 Increments", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope1IncNP, Slope1IncN, 1, getDeviceName(), "SLOPE1INC", "Slope1 Increments", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // slope 1 : Deadband - value between 0 and 255
     IUFillNumber(&Slope1DeadbandN[0], "SLOPE1DEADBAND", "(0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&Slope1DeadbandNP, Slope1DeadbandN, 1, getDeviceName(), "SLOPE1DEADBAND", "Slope 1 Deadband", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope1DeadbandNP, Slope1DeadbandN, 1, getDeviceName(), "SLOPE1DEADBAND", "Slope 1 Deadband", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Slope 1 : Time Period (Minutes, 0.1 step increments
     IUFillNumber(&Slope1PeriodN[0], "SLOPE1PERIOD", "Minutes (0-99)", "%.f", 0, 99, 0, 0);
-    IUFillNumberVector(&Slope1PeriodNP, Slope1PeriodN, 1, getDeviceName(), "SLOPE1PERIOD", "Slope 1 Period", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope1PeriodNP, Slope1PeriodN, 1, getDeviceName(), "SLOPE1PERIOD", "Slope 1 Period", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // Slope 2 : Direction
     IUFillSwitch(&Slope2DirS[0], "0", "", ISS_ON);
     IUFillSwitch(&Slope2DirS[1], "1", "", ISS_OFF);
-    IUFillSwitchVector(&Slope2DirSP, Slope2DirS, 2, getDeviceName(), "Slope 2 Direction", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&Slope2DirSP, Slope2DirS, 2, getDeviceName(), "Slope 2 Direction", "", SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // slope 2 : Slope Increments (counts per degree, 0.1 step increments
     IUFillNumber(&Slope2IncN[0], "SLOPE2INC", "No. Steps (0-65536)", "%.f", 0, 65536, 0, 0);
-    IUFillNumberVector(&Slope2IncNP, Slope2IncN, 1, getDeviceName(), "SLOPE2INC", "Slope 2 Increments", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope2IncNP, Slope2IncN, 1, getDeviceName(), "SLOPE2INC", "Slope 2 Increments", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     // slope 2 : Deadband - value between 0 and 255
     IUFillNumber(&Slope2DeadbandN[0], "SLOPE2DEADBAND", "Steps (0-255)", "%.f", 0, 255, 0, 0);
-    IUFillNumberVector(&Slope2DeadbandNP, Slope2DeadbandN, 1, getDeviceName(), "SLOPE2DEADBAND", "Slope 2 Deadband", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope2DeadbandNP, Slope2DeadbandN, 1, getDeviceName(), "SLOPE2DEADBAND", "Slope 2 Deadband", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
-    // slope 2 : Time Period (Minutes, 0.1 step increments
+    // slope 2 : Time Period (Minutes, 0.1 step increments)
     IUFillNumber(&Slope2PeriodN[0], "SLOPE2PERIOD", "Minutes (0-99)", "%.f", 0, 99, 0, 0);
-    IUFillNumberVector(&Slope2PeriodNP, Slope2PeriodN, 1, getDeviceName(), "SLOPE2PERIOD", "Slope 2 Period", OPTIONS_TAB, IP_RW, 0, IPS_IDLE );
+    IUFillNumberVector(&Slope2PeriodNP, Slope2PeriodN, 1, getDeviceName(), "SLOPE2PERIOD", "Slope 2 Period", SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
     FocusAbsPosN[0].min = 0.;
 
@@ -196,11 +197,11 @@ bool Lakeside::updateProperties()
     if (isConnected())
     {
         defineNumber(&BacklashNP);
-        defineNumber(&MaxTravelNP);
+        //defineNumber(&MaxTravelNP);
         defineNumber(&StepSizeNP);
         defineNumber(&TemperatureNP);
         defineNumber(&TemperatureKNP);
-        defineSwitch(&MoveDirectionSP);
+        //defineSwitch(&MoveDirectionSP);
         defineSwitch(&TemperatureTrackingSP);
         defineSwitch(&ActiveTemperatureSlopeSP);
         defineSwitch(&Slope1DirSP);
@@ -219,9 +220,9 @@ bool Lakeside::updateProperties()
     else
     {
         deleteProperty(BacklashNP.name);
-        deleteProperty(MaxTravelNP.name);
+        //deleteProperty(MaxTravelNP.name);
         deleteProperty(StepSizeNP.name);
-        deleteProperty(MoveDirectionSP.name);
+        //deleteProperty(MoveDirectionSP.name);
         deleteProperty(TemperatureNP.name);
         deleteProperty(TemperatureKNP.name);
         deleteProperty(TemperatureTrackingSP.name);
@@ -242,7 +243,7 @@ bool Lakeside::updateProperties()
 
 #if 0
 // connect to focuser port
-// 
+//
 //        9600 baud
 //        8 bits
 //        0 parity
@@ -250,7 +251,7 @@ bool Lakeside::updateProperties()
 //
 bool Lakeside::Connect()
 {
-    int rc=0;
+    int rc = 0;
     char errorMsg[MAXRBUF];
 
     //    if ( (rc = tty_connect(PortT[0].text, 9600, 8, 0, 1, &PortFD)) != TTY_OK)
@@ -261,17 +262,17 @@ bool Lakeside::Connect()
         return false;
     }
 
-    LOGF_INFO("Connected to port %s",serialConnection->port());
+    LOGF_INFO("Connected to port %s", serialConnection->port());
 
     if (LakesideOnline())
     {
-        LOGF_INFO("Lakeside is online on port %s",serialConnection->port());
+        LOGF_INFO("Lakeside is online on port %s", serialConnection->port());
         SetTimer(POLLMS);
         return true;
     }
     else
     {
-        LOGF_INFO("Unable to connect to Lakeside Focuser. Please ensure the controller is powered on and the port (%s) is correct.",serialConnection->port());
+        LOGF_INFO("Unable to connect to Lakeside Focuser. Please ensure the controller is powered on and the port (%s) is correct.", serialConnection->port());
         return false;
     }
 }
@@ -304,20 +305,18 @@ const char * Lakeside::getDefaultName()
 // Returns true  for successful write
 //         false for failed write
 //
-bool Lakeside::SendCmd(const char* in_cmd)
+bool Lakeside::SendCmd(const char * in_cmd)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
+
+    LOGF_DEBUG("CMD <%s>", in_cmd);
 
     if ( (rc = tty_write_string(PortFD, in_cmd, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("SendCmd: Write for command (%s) failed - %s", in_cmd,errstr);
+        LOGF_ERROR("SendCmd: Write for command (%s) failed - %s", in_cmd, errstr);
         return false;
-    }
-    else
-    {
-        LOGF_DEBUG("SendCmd: Successfully sent (%s)", in_cmd);
     }
 
     return true;
@@ -331,9 +330,9 @@ bool Lakeside::SendCmd(const char* in_cmd)
 //         true  : something to read in the buffer
 //         false : error reading the buffer
 //
-bool Lakeside::ReadBuffer(char* response)
+bool Lakeside::ReadBuffer(char * response)
 {
-    int nbytes_read=0, rc=-1;
+    int nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
     char resp[LAKESIDE_LEN] = {0};
 
@@ -342,27 +341,24 @@ bool Lakeside::ReadBuffer(char* response)
     if ( (rc = tty_read_section(PortFD, resp, 0x23, LAKESIDE_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("ReadBuffer: Read failed - %s",errstr);
-        strncpy(response,"ERROR", LAKESIDE_LEN);
+        LOGF_ERROR("ReadBuffer: Read failed - %s", errstr);
+        strncpy(response, "ERROR", LAKESIDE_LEN);
         return false;
     }
-    else
-    {
-        LOGF_DEBUG("ReadBuffer: Received (%s)", resp);
-    }
 
-    strncpy(response,resp, LAKESIDE_LEN);
+    LOGF_DEBUG("RES <%s>", resp);
+
+    strncpy(response, resp, LAKESIDE_LEN);
     return true;
-
 }
 
 //
 // check for OK# from Lakeside - i.e. it is responding
 //
 bool Lakeside::LakesideOnline()
-{  
+{
     char resp[LAKESIDE_LEN] = {0};
-    const char *cmd="??#";
+    const char * cmd = "??#";
 
     //strcpy(resp,"       ");
 
@@ -381,14 +377,14 @@ bool Lakeside::LakesideOnline()
     // if SendCmd succeeded, resp contains response from the command
     LOGF_DEBUG("LakesideOnline: Received (%s)", resp);
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOG_DEBUG("LakesideOnline: Received OK# - Lakeside responded");
         return true;
     }
     else
     {
-        LOGF_ERROR("LakesideOnline: OK# not found. Instead, received (%s)",resp);
+        LOGF_ERROR("LakesideOnline: OK# not found. Instead, received (%s)", resp);
         return false;
     }
 
@@ -399,9 +395,9 @@ bool Lakeside::LakesideOnline()
 // 1 = Reversed
 bool Lakeside::updateMoveDirection()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?D#";
+    char cmd[] = "?D#";
 
     if (!SendCmd(cmd))
     {
@@ -413,7 +409,7 @@ bool Lakeside::updateMoveDirection()
         return false;
     }
 
-    IUResetSwitch(&MoveDirectionSP);
+    //IUResetSwitch(&MoveDirectionSP);
 
     // direction is in form Dnnnnn#
     // where nnnnn is 0 for normal or 1 for reversed
@@ -421,20 +417,19 @@ bool Lakeside::updateMoveDirection()
 
     if ( temp == 0)
     {
-        MoveDirectionS[0].s = ISS_ON;
+        FocusReverseS[REVERSED_DISABLED].s = ISS_ON;
+        LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
+    }
+    else if ( temp == 1)
+    {
+        FocusReverseS[REVERSED_ENABLED].s = ISS_ON;
         LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
     }
     else
-        if ( temp == 1)
-        {
-            MoveDirectionS[1].s = ISS_ON;
-            LOGF_DEBUG("updateMoveDirection: Move Direction is (%d)", temp);
-        }
-        else
-        {
-            LOGF_ERROR("updateMoveDirection: Unknown move Direction response (%s)", resp);
-            return false;
-        }
+    {
+        LOGF_ERROR("updateMoveDirection: Unknown move Direction response (%s)", resp);
+        return false;
+    }
 
     return true;
 }
@@ -448,26 +443,26 @@ bool Lakeside::updateMoveDirection()
 //          O : OK# received
 //          E : Error due to unknown/misformed command having been sent
 //          ? : unknown response received
-char Lakeside::DecodeBuffer(char* in_response)
+char Lakeside::DecodeBuffer(char * in_response)
 {
-    int temp=0, pos=0, rc=-1;
+    int temp = 0, pos = 0, rc = -1;
 
     LOGF_DEBUG("DecodeBuffer: in_response (%s)", in_response);
 
     // if focuser finished moving, DONE# received
-    if (!strncmp(in_response,"DONE#",5))
+    if (!strncmp(in_response, "DONE#", 5))
     {
         return 'D';
     }
 
     // if focuser returned OK#
-    if (!strncmp(in_response,"OK#",3))
+    if (!strncmp(in_response, "OK#", 3))
     {
         return 'O';
     }
 
     // if focuser returns an error for unknow command
-    if (!strncmp(in_response,"!#",2))
+    if (!strncmp(in_response, "!#", 2))
     {
         return 'E';
     }
@@ -477,7 +472,7 @@ char Lakeside::DecodeBuffer(char* in_response)
     if (rc > 0)
     {
         // need to divide result by 2
-        TemperatureN[0].value = ((int) temp)/2.0;
+        TemperatureN[0].value = ((int) temp) / 2.0;
         LOGF_DEBUG("DecodeBuffer: Result (%3.1f)", TemperatureN[0].value);
 
         return 'T';
@@ -488,7 +483,7 @@ char Lakeside::DecodeBuffer(char* in_response)
     if (rc > 0)
     {
         // need to divide result by 2
-        TemperatureKN[0].value = ((int) temp)/2.00;
+        TemperatureKN[0].value = ((int) temp) / 2.00;
         LOGF_DEBUG("DecodeBuffer: Result (%3.2f)", TemperatureKN[0].value);
 
         return 'K';
@@ -521,8 +516,8 @@ char Lakeside::DecodeBuffer(char* in_response)
 bool Lakeside::updateTemperature()
 {
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?T#";
-    char buffer_response='?';
+    char cmd[] = "?T#";
+    char buffer_response = '?';
 
     if (!SendCmd(cmd))
     {
@@ -537,7 +532,7 @@ bool Lakeside::updateTemperature()
     LOGF_DEBUG("updateTemperature: Read response (%s)", resp);
 
     // ascertain contents of buffer & update temp if necessary
-    buffer_response=DecodeBuffer(resp);
+    buffer_response = DecodeBuffer(resp);
 
     // if temperature updated, then return true
     if ( buffer_response == 'T' )
@@ -559,8 +554,8 @@ bool Lakeside::updateTemperature()
 bool Lakeside::updateTemperatureK()
 {
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?K#";
-    char buffer_response='?';
+    char cmd[] = "?K#";
+    char buffer_response = '?';
 
     if (!SendCmd(cmd))
     {
@@ -575,7 +570,7 @@ bool Lakeside::updateTemperatureK()
     LOGF_DEBUG("updateTemperatureK: Read response (%s)", resp);
 
     // ascertain contents of buffer & update temp in K if necessary
-    buffer_response=DecodeBuffer(resp);
+    buffer_response = DecodeBuffer(resp);
 
     // if temperature updated, then return true
     if ( buffer_response == 'K' )
@@ -597,15 +592,15 @@ bool Lakeside::updateTemperatureK()
 bool Lakeside::updatePosition()
 {
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?P#";
-    char buffer_response='?';
+    char cmd[] = "?P#";
+    char buffer_response = '?';
 
     if (!SendCmd(cmd))
     {
         return false;
     }
 
-    LOGF_DEBUG("updatePosition: Successfully sent (%s)",cmd);
+    LOGF_DEBUG("updatePosition: Successfully sent (%s)", cmd);
 
     if (!ReadBuffer(resp))
     {
@@ -615,7 +610,7 @@ bool Lakeside::updatePosition()
     LOGF_DEBUG("updatePosition: Fetched (%s)", resp);
 
     // ascertain contents of buffer & update position if necessary
-    buffer_response=DecodeBuffer(resp);
+    buffer_response = DecodeBuffer(resp);
 
     if ( buffer_response == 'P' )
     {
@@ -630,9 +625,9 @@ bool Lakeside::updatePosition()
 // Get Backlash compensation
 bool Lakeside::updateBacklash()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?B#";
+    char cmd[] = "?B#";
 
     if (!SendCmd(cmd))
     {
@@ -665,9 +660,9 @@ bool Lakeside::updateBacklash()
 // get Slope 1 Increments
 bool Lakeside::updateSlope1Inc()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN];
-    char cmd[]="?1#";
+    char cmd[] = "?1#";
 
     if (!SendCmd(cmd))
     {
@@ -700,9 +695,9 @@ bool Lakeside::updateSlope1Inc()
 // get Slope 2 Increments
 bool Lakeside::updateSlope2Inc()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?2#";
+    char cmd[] = "?2#";
 
     if (!SendCmd(cmd))
     {
@@ -735,9 +730,9 @@ bool Lakeside::updateSlope2Inc()
 // get Slope 1 direction : 0 or 1
 bool Lakeside::updateSlope1Dir()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?a#";
+    char cmd[] = "?a#";
 
     if (!SendCmd(cmd))
     {
@@ -758,16 +753,15 @@ bool Lakeside::updateSlope1Dir()
         Slope1DirS[0].s = ISS_ON;
         LOGF_DEBUG("updateSlope1Dir: Slope 1 Direction is (%d)", temp);
     }
+    else if ( temp == 1)
+    {
+        Slope1DirS[1].s = ISS_ON;
+    }
     else
-        if ( temp == 1)
-        {
-            Slope1DirS[1].s = ISS_ON;
-        }
-        else
-        {
-            LOGF_ERROR("updateSlope1Dir: Unknown Slope 1 Direction response (%s)", resp);
-            return false;
-        }
+    {
+        LOGF_ERROR("updateSlope1Dir: Unknown Slope 1 Direction response (%s)", resp);
+        return false;
+    }
 
     return true;
 }
@@ -775,9 +769,9 @@ bool Lakeside::updateSlope1Dir()
 // get Slope 2 direction : 0 or 1
 bool Lakeside::updateSlope2Dir()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?b#";
+    char cmd[] = "?b#";
 
     if (!SendCmd(cmd))
     {
@@ -798,16 +792,15 @@ bool Lakeside::updateSlope2Dir()
         Slope2DirS[0].s = ISS_ON;
         LOGF_DEBUG("updateSlope2Dir: Slope 2 Direction is (%d)", temp);
     }
+    else if ( temp == 1)
+    {
+        Slope2DirS[1].s = ISS_ON;
+    }
     else
-        if ( temp == 1)
-        {
-            Slope2DirS[1].s = ISS_ON;
-        }
-        else
-        {
-            LOGF_ERROR("updateSlope2Dir: Unknown Slope 2 Direction response (%s)", resp);
-            return false;
-        }
+    {
+        LOGF_ERROR("updateSlope2Dir: Unknown Slope 2 Direction response (%s)", resp);
+        return false;
+    }
 
     return true;
 }
@@ -815,9 +808,9 @@ bool Lakeside::updateSlope2Dir()
 // Get slope 1 deadband
 bool Lakeside::updateSlope1Deadband()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?c#";
+    char cmd[] = "?c#";
 
     if (!SendCmd(cmd))
     {
@@ -850,9 +843,9 @@ bool Lakeside::updateSlope1Deadband()
 // Get slope 2 deadband
 bool Lakeside::updateSlope2Deadband()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?d#";
+    char cmd[] = "?d#";
 
     if (!SendCmd(cmd))
     {
@@ -882,12 +875,12 @@ bool Lakeside::updateSlope2Deadband()
     return true;
 }
 
-// get Slope 1 time period 
+// get Slope 1 time period
 bool Lakeside::updateSlope1Period()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?e#";
+    char cmd[] = "?e#";
 
     if (!SendCmd(cmd))
     {
@@ -917,12 +910,12 @@ bool Lakeside::updateSlope1Period()
     return true;
 }
 
-// get Slope 2 time period 
+// get Slope 2 time period
 bool Lakeside::updateSlope2Period()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?f#";
+    char cmd[] = "?f#";
 
     if (!SendCmd(cmd))
     {
@@ -955,9 +948,9 @@ bool Lakeside::updateSlope2Period()
 // Get Max travel
 bool Lakeside::updateMaxTravel()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?I#";
+    char cmd[] = "?I#";
 
     if (!SendCmd(cmd))
     {
@@ -975,7 +968,7 @@ bool Lakeside::updateMaxTravel()
 
     if ( temp > 0)
     {
-        MaxTravelN[0].value = temp;
+        FocusMaxPosN[0].value = temp;
         LOGF_DEBUG("updateMaxTravel: MaxTravel is (%d)", temp);
     }
     else
@@ -990,9 +983,9 @@ bool Lakeside::updateMaxTravel()
 // get step size
 bool Lakeside::updateStepSize()
 {
-    int rc=-1, temp=-1;
+    int rc = -1, temp = -1;
     char resp[LAKESIDE_LEN] = {0};
-    char cmd[]="?S#";
+    char cmd[] = "?S#";
 
     if (!SendCmd(cmd))
     {
@@ -1035,7 +1028,7 @@ bool Lakeside::setCalibration()
 // Move focuser to "position"
 bool Lakeside::gotoPosition(uint32_t position)
 {
-    int calc_steps=0;
+    int calc_steps = 0;
     char cmd[LAKESIDE_LEN] = {0};
 
     // Lakeside only uses move NNNNN steps - goto step not available.
@@ -1044,9 +1037,9 @@ bool Lakeside::gotoPosition(uint32_t position)
     calc_steps = FocusAbsPosN[0].value - position;
 
     // MaxTravelN[0].value is set by "calibrate" via the control box, & read at connect
-    if ( position > MaxTravelN[0].value )
+    if ( position > FocusMaxPosN[0].value )
     {
-        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min, MaxTravelN[0].value);
+        LOGF_ERROR("Position requested (%ld) is out of bounds between %g and %g", position, FocusAbsPosN[0].min, FocusMaxPosN[0].value);
         FocusAbsPosNP.s = IPS_ALERT;
         return false;
     }
@@ -1054,7 +1047,7 @@ bool Lakeside::gotoPosition(uint32_t position)
     // -ve == Move Out
     if ( calc_steps < 0 )
     {
-        sprintf(cmd,"CO%d#",abs(calc_steps));
+        sprintf(cmd, "CO%d#", abs(calc_steps));
         LOGF_DEBUG("MoveFocuser: move-out cmd to send (%s)", cmd);
     }
     else
@@ -1062,7 +1055,7 @@ bool Lakeside::gotoPosition(uint32_t position)
         if ( calc_steps > 0 )
         {
             // Move in nnnnn steps = CInnnnn#
-            sprintf(cmd,"CI%d#",calc_steps);
+            sprintf(cmd, "CI%d#", calc_steps);
             LOGF_DEBUG("MoveFocuser: move-in cmd to send (%s)", cmd);
         }
         else
@@ -1093,14 +1086,14 @@ bool Lakeside::gotoPosition(uint32_t position)
 // Set backlash compensation
 //
 bool Lakeside::setBacklash(int backlash )
-{    
+{
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
     //CRBnnn#
-    sprintf(cmd,"CRB%d#",backlash);
+    sprintf(cmd, "CRB%d#", backlash);
 
     if (!SendCmd(cmd))
     {
@@ -1112,7 +1105,7 @@ bool Lakeside::setBacklash(int backlash )
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_INFO("Backlash steps set to %d", backlash);
     }
@@ -1130,14 +1123,14 @@ bool Lakeside::setBacklash(int backlash )
 //        Here for example
 //
 bool Lakeside::setStepSize(int stepsize )
-{    
+{
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
     // CRSnnnnn#
-    sprintf(cmd,"CRS%d#",stepsize);
+    sprintf(cmd, "CRS%d#", stepsize);
 
     if (!SendCmd(cmd))
     {
@@ -1149,7 +1142,7 @@ bool Lakeside::setStepSize(int stepsize )
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_DEBUG("setStepSize: cmd (%s) - %s", cmd, resp);
     }
@@ -1177,23 +1170,26 @@ bool Lakeside::setMaxTravel(int /*maxtravel*/ )
 // In case motor connection is on reverse side of the focus shaft
 // NOTE : This just reverses the voltage sent to the motor
 //        & does NOT reverse the CI / CO commands
-bool Lakeside::setMoveDirection(int direction)
+//bool Lakeside::setMoveDirection(int direction)
+bool Lakeside::ReverseFocuser(bool enabled)
 {
     char cmd[LAKESIDE_LEN] = {0};
     char resp[LAKESIDE_LEN] = {0};
 
     tcflush(PortFD, TCIOFLUSH);
 
-    if (direction == 0)
-        strncpy(cmd, "CRD0#", LAKESIDE_LEN);
-    else
-        if (direction == 1)
-            strncpy(cmd, "CRD1#", LAKESIDE_LEN);
-        else
-        {
-            LOGF_ERROR("setMoveDirection: Unknown direction (%d)", direction);
-            return false;
-        }
+    strncpy(cmd, enabled ? "CRD1#" : "CRD0#", LAKESIDE_LEN);
+
+    //    if (direction == 0)
+    //        strncpy(cmd, "CRD0#", LAKESIDE_LEN);
+    //    else
+    //        if (direction == 1)
+    //            strncpy(cmd, "CRD1#", LAKESIDE_LEN);
+    //        else
+    //        {
+    //            LOGF_ERROR("setMoveDirection: Unknown direction (%d)", direction);
+    //            return false;
+    //        }
 
     if (!SendCmd(cmd))
     {
@@ -1205,10 +1201,10 @@ bool Lakeside::setMoveDirection(int direction)
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_DEBUG("setMoveDirection: Completed cmd (%s). Result - %s", cmd, resp);
-        if (direction == 0)
+        if (!enabled)
             LOG_INFO("Move Direction : Normal");
         else
             LOG_INFO("Move Direction : Reversed");
@@ -1225,7 +1221,7 @@ bool Lakeside::setMoveDirection(int direction)
 // Enable/disable Temperature Tracking functionality
 bool Lakeside::setTemperatureTracking(bool enable)
 {
-    int nbytes_written=0, rc=-1;
+    int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
     char cmd[LAKESIDE_LEN] = {0};
 
@@ -1271,7 +1267,7 @@ bool Lakeside::setActiveTemperatureSlope(uint32_t active_slope)
     // CRg1# : Slope 1
     // CRg2# : Slope 2
 
-    sprintf(cmd,"CRg%d#",active_slope);
+    sprintf(cmd, "CRg%d#", active_slope);
 
     if (!SendCmd(cmd))
     {
@@ -1285,9 +1281,9 @@ bool Lakeside::setActiveTemperatureSlope(uint32_t active_slope)
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
-        LOGF_INFO("Selected Active Temperature Slope is %d",active_slope);
+        LOGF_INFO("Selected Active Temperature Slope is %d", active_slope);
     }
     else
     {
@@ -1310,7 +1306,7 @@ bool Lakeside::setSlope1Inc(uint32_t slope1_inc)
     tcflush(PortFD, TCIOFLUSH);
 
     //CR1nnn#
-    sprintf(cmd,"CR1%d#",slope1_inc);
+    sprintf(cmd, "CR1%d#", slope1_inc);
 
     if (!SendCmd(cmd))
     {
@@ -1322,7 +1318,7 @@ bool Lakeside::setSlope1Inc(uint32_t slope1_inc)
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_INFO("Slope 1 0.1 counts per degree set to %d", slope1_inc);
     }
@@ -1346,7 +1342,7 @@ bool Lakeside::setSlope2Inc(uint32_t slope2_inc)
     tcflush(PortFD, TCIOFLUSH);
 
     //CR2nnn#
-    sprintf(cmd,"CR2%d#",slope2_inc);
+    sprintf(cmd, "CR2%d#", slope2_inc);
 
     if (!SendCmd(cmd))
     {
@@ -1358,7 +1354,7 @@ bool Lakeside::setSlope2Inc(uint32_t slope2_inc)
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_INFO("Slope 2 0.1 counts per degree set to %d", slope2_inc);
     }
@@ -1382,7 +1378,7 @@ bool Lakeside::setSlope1Dir(uint32_t slope1_direction)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRannn#
-    sprintf(cmd,"CRa%d#",slope1_direction);
+    sprintf(cmd, "CRa%d#", slope1_direction);
 
     if (!SendCmd(cmd))
     {
@@ -1394,7 +1390,7 @@ bool Lakeside::setSlope1Dir(uint32_t slope1_direction)
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_INFO("Slope 1 Direction set to %d", slope1_direction);
     }
@@ -1418,7 +1414,7 @@ bool Lakeside::setSlope2Dir(uint32_t slope2_direction)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRannn#
-    sprintf(cmd,"CRb%d#",slope2_direction);
+    sprintf(cmd, "CRb%d#", slope2_direction);
 
     if (!SendCmd(cmd))
     {
@@ -1430,7 +1426,7 @@ bool Lakeside::setSlope2Dir(uint32_t slope2_direction)
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_INFO("Slope 2 Direction set to %d", slope2_direction);
     }
@@ -1454,7 +1450,7 @@ bool Lakeside::setSlope1Deadband(uint32_t slope1_deadband)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRcnnn#
-    sprintf(cmd,"CRc%d#",slope1_deadband);
+    sprintf(cmd, "CRc%d#", slope1_deadband);
 
     if (!SendCmd(cmd))
     {
@@ -1466,7 +1462,7 @@ bool Lakeside::setSlope1Deadband(uint32_t slope1_deadband)
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_INFO("Slope 1 deadband set to %d", slope1_deadband);
     }
@@ -1490,7 +1486,7 @@ bool Lakeside::setSlope2Deadband(uint32_t slope2_deadband)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRdnnn#
-    sprintf(cmd,"CRd%d#",slope2_deadband);
+    sprintf(cmd, "CRd%d#", slope2_deadband);
 
     if (!SendCmd(cmd))
     {
@@ -1502,7 +1498,7 @@ bool Lakeside::setSlope2Deadband(uint32_t slope2_deadband)
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_INFO("Slope 2 deadband set to %d", slope2_deadband);
     }
@@ -1526,7 +1522,7 @@ bool Lakeside::setSlope1Period(uint32_t slope1_period)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRennn#
-    sprintf(cmd,"CRe%d#",slope1_period);
+    sprintf(cmd, "CRe%d#", slope1_period);
 
     if (!SendCmd(cmd))
     {
@@ -1538,7 +1534,7 @@ bool Lakeside::setSlope1Period(uint32_t slope1_period)
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_INFO("Slope 1 Period set to %d", slope1_period);
     }
@@ -1562,7 +1558,7 @@ bool Lakeside::setSlope2Period(uint32_t slope2_period)
     tcflush(PortFD, TCIOFLUSH);
 
     //CRfnnn#
-    sprintf(cmd,"CRf%d#",slope2_period);
+    sprintf(cmd, "CRf%d#", slope2_period);
 
     if (!SendCmd(cmd))
     {
@@ -1574,7 +1570,7 @@ bool Lakeside::setSlope2Period(uint32_t slope2_period)
         return false;
     }
 
-    if (!strncmp(resp,"OK#",3))
+    if (!strncmp(resp, "OK#", 3))
     {
         LOGF_INFO("Slope 2 Period set to %d", slope2_period);
     }
@@ -1590,38 +1586,38 @@ bool Lakeside::setSlope2Period(uint32_t slope2_period)
 //
 // Process client new switch
 //
-bool Lakeside::ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n)
+bool Lakeside::ISNewSwitch (const char * dev, const char * name, ISState * states, char * names[], int n)
 {
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
         // Move Direction
-        if (!strcmp(MoveDirectionSP.name, name))
-        {
-            bool rc=false;
-            int current_mode = IUFindOnSwitchIndex(&MoveDirectionSP);
-            IUUpdateSwitch(&MoveDirectionSP, states, names, n);
-            int target_mode = IUFindOnSwitchIndex(&MoveDirectionSP);
-            if (current_mode == target_mode)
-            {
-                MoveDirectionSP.s = IPS_OK;
-                IDSetSwitch(&MoveDirectionSP, nullptr);
-            }
-            // switch will be either 0 for normal or 1 for reverse
-            rc = setMoveDirection(target_mode);
+        //        if (!strcmp(MoveDirectionSP.name, name))
+        //        {
+        //            bool rc=false;
+        //            int current_mode = IUFindOnSwitchIndex(&MoveDirectionSP);
+        //            IUUpdateSwitch(&MoveDirectionSP, states, names, n);
+        //            int target_mode = IUFindOnSwitchIndex(&MoveDirectionSP);
+        //            if (current_mode == target_mode)
+        //            {
+        //                MoveDirectionSP.s = IPS_OK;
+        //                IDSetSwitch(&MoveDirectionSP, nullptr);
+        //            }
+        //            // switch will be either 0 for normal or 1 for reverse
+        //            rc = setMoveDirection(target_mode);
 
-            if (rc == false)
-            {
-                IUResetSwitch(&MoveDirectionSP);
-                MoveDirectionS[current_mode].s = ISS_ON;
-                MoveDirectionSP.s = IPS_ALERT;
-                IDSetSwitch(&MoveDirectionSP, nullptr);
-                return false;
-            }
+        //            if (rc == false)
+        //            {
+        //                IUResetSwitch(&MoveDirectionSP);
+        //                MoveDirectionS[current_mode].s = ISS_ON;
+        //                MoveDirectionSP.s = IPS_ALERT;
+        //                IDSetSwitch(&MoveDirectionSP, nullptr);
+        //                return false;
+        //            }
 
-            MoveDirectionSP.s = IPS_OK;
-            IDSetSwitch(&MoveDirectionSP, nullptr);
-            return true;
-        }
+        //            MoveDirectionSP.s = IPS_OK;
+        //            IDSetSwitch(&MoveDirectionSP, nullptr);
+        //            return true;
+        //        }
 
         // Temperature Tracking
         if (!strcmp(TemperatureTrackingSP.name, name))
@@ -1649,7 +1645,7 @@ bool Lakeside::ISNewSwitch (const char *dev, const char *name, ISState *states, 
         // Active Temperature Slope
         if (!strcmp(ActiveTemperatureSlopeSP.name, name))
         {
-            bool rc=false;
+            bool rc = false;
             int current_slope = IUFindOnSwitchIndex(&ActiveTemperatureSlopeSP);
             // current slope Selection will be either 1 or 2
             // Need to add 1 to array index, as it starts at 0
@@ -1685,7 +1681,7 @@ bool Lakeside::ISNewSwitch (const char *dev, const char *name, ISState *states, 
         // Slope 1 direction - either 0 or 1
         if (!strcmp(Slope1DirSP.name, name))
         {
-            bool rc=false;
+            bool rc = false;
             int current_slope_dir1 = IUFindOnSwitchIndex(&Slope1DirSP);
             // current slope 1 Direction will be either 0 or 1
 
@@ -1719,7 +1715,7 @@ bool Lakeside::ISNewSwitch (const char *dev, const char *name, ISState *states, 
     // Slope 2 direction - either 0 or 1
     if (!strcmp(Slope2DirSP.name, name))
     {
-        bool rc=false;
+        bool rc = false;
         int current_slope_dir2 = IUFindOnSwitchIndex(&Slope2DirSP);
         // current slope 2 Direction will be either 0 or 1
 
@@ -1755,20 +1751,20 @@ bool Lakeside::ISNewSwitch (const char *dev, const char *name, ISState *states, 
 //
 // Process client new number
 //
-bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
+bool Lakeside::ISNewNumber (const char * dev, const char * name, double values[], char * names[], int n)
 {
-    int i=0;
+    int i = 0;
 
-    if(strcmp(dev,getDeviceName())==0)
+    if(strcmp(dev, getDeviceName()) == 0)
     {
-        // max travel - read only
-        if (!strcmp (name, MaxTravelNP.name))
-        {
-            IUUpdateNumber(&MaxTravelNP, values, names, n);
-            MaxTravelNP.s = IPS_OK;
-            IDSetNumber(&MaxTravelNP, nullptr);
-            return true;
-        }
+        //        // max travel - read only
+        //        if (!strcmp (name, MaxTravelNP.name))
+        //        {
+        //            IUUpdateNumber(&MaxTravelNP, values, names, n);
+        //            MaxTravelNP.s = IPS_OK;
+        //            IDSetNumber(&MaxTravelNP, nullptr);
+        //            return true;
+        //        }
 
         // Backlash compensation
         if (!strcmp (name, BacklashNP.name))
@@ -1779,23 +1775,26 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetBacklashNP property
-                INumber *eqp = IUFindNumber (&BacklashNP, names[i]);
+                INumber * eqp = IUFindNumber (&BacklashNP, names[i]);
 
                 //If the number found is Backlash (BacklashN[0]) then process it
-                if (eqp == &BacklashN[0]){
+                if (eqp == &BacklashN[0])
+                {
 
                     new_back = (values[i]);
 
                     // limits
                     nset += new_back >= -0xff && new_back <= 0xff;
                 }
-                if (nset == 1) {
+                if (nset == 1)
+                {
 
                     // Set the Lakeside state to BUSY
                     BacklashNP.s = IPS_BUSY;
                     IDSetNumber(&BacklashNP, nullptr);
 
-                    if( !setBacklash(new_back)) {
+                    if( !setBacklash(new_back))
+                    {
 
                         BacklashNP.s = IPS_IDLE;
                         IDSetNumber(&BacklashNP, "Setting new backlash failed.");
@@ -1808,7 +1807,9 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
                     IDSetNumber(&BacklashNP, nullptr);
 
                     return true;
-                } else {
+                }
+                else
+                {
 
                     BacklashNP.s = IPS_IDLE;
                     IDSetNumber(&BacklashNP, "Need exactly one parameter.");
@@ -1837,23 +1838,26 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope1IncNP property
-                INumber *eqp = IUFindNumber (&Slope1IncNP, names[i]);
+                INumber * eqp = IUFindNumber (&Slope1IncNP, names[i]);
 
                 //If the number found is Slope1Inc (Slope1IncN[0]) then process it
-                if (eqp == &Slope1IncN[0]){
+                if (eqp == &Slope1IncN[0])
+                {
 
                     new_Slope1Inc = (values[i]);
 
                     // limits
                     nset += new_Slope1Inc >= -0xff && new_Slope1Inc <= 0xff;
                 }
-                if (nset == 1) {
+                if (nset == 1)
+                {
 
                     // Set the Lakeside state to BUSY
                     Slope1IncNP.s = IPS_BUSY;
                     IDSetNumber(&Slope1IncNP, nullptr);
 
-                    if( !setSlope1Inc(new_Slope1Inc)) {
+                    if( !setSlope1Inc(new_Slope1Inc))
+                    {
 
                         Slope1IncNP.s = IPS_IDLE;
                         IDSetNumber(&Slope1IncNP, "Setting new Slope1 increment failed.");
@@ -1866,7 +1870,9 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
                     IDSetNumber(&Slope1IncNP, nullptr) ;
 
                     return true;
-                } else {
+                }
+                else
+                {
 
                     Slope1IncNP.s = IPS_IDLE;
                     IDSetNumber(&Slope1IncNP, "Need exactly one parameter.");
@@ -1886,23 +1892,26 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope2IncNP property
-                INumber *eqp = IUFindNumber (&Slope2IncNP, names[i]);
+                INumber * eqp = IUFindNumber (&Slope2IncNP, names[i]);
 
                 //If the number found is Slope2Inc (Slope2IncN[0]) then process it
-                if (eqp == &Slope2IncN[0]){
+                if (eqp == &Slope2IncN[0])
+                {
 
                     new_Slope2Inc = (values[i]);
 
                     // limits
                     nset += new_Slope2Inc >= -0xff && new_Slope2Inc <= 0xff;
                 }
-                if (nset == 1) {
+                if (nset == 1)
+                {
 
                     // Set the Lakeside state to BUSY
                     Slope2IncNP.s = IPS_BUSY;
                     IDSetNumber(&Slope2IncNP, nullptr);
 
-                    if( !setSlope2Inc(new_Slope2Inc)) {
+                    if( !setSlope2Inc(new_Slope2Inc))
+                    {
 
                         Slope2IncNP.s = IPS_IDLE;
                         IDSetNumber(&Slope2IncNP, "Setting new Slope2 increment failed.");
@@ -1915,7 +1924,9 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
                     IDSetNumber(&Slope2IncNP, nullptr);
 
                     return true;
-                } else {
+                }
+                else
+                {
 
                     Slope2IncNP.s = IPS_IDLE;
                     IDSetNumber(&Slope2IncNP, "Need exactly one parameter.");
@@ -1935,23 +1946,26 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope1DeadbandNP property
-                INumber *eqp = IUFindNumber (&Slope1DeadbandNP, names[i]);
+                INumber * eqp = IUFindNumber (&Slope1DeadbandNP, names[i]);
 
                 //If the number found is Slope1Deadband (Slope1DeadbandN[0]) then process it
-                if (eqp == &Slope1DeadbandN[0]){
+                if (eqp == &Slope1DeadbandN[0])
+                {
 
                     new_Slope1Deadband = (values[i]);
 
                     // limits
                     nset += new_Slope1Deadband >= -0xff && new_Slope1Deadband <= 0xff;
                 }
-                if (nset == 1) {
+                if (nset == 1)
+                {
 
                     // Set the Lakeside state to BUSY
                     Slope1DeadbandNP.s = IPS_BUSY;
                     IDSetNumber(&Slope1DeadbandNP, nullptr);
 
-                    if( !setSlope1Deadband(new_Slope1Deadband)) {
+                    if( !setSlope1Deadband(new_Slope1Deadband))
+                    {
 
                         Slope1DeadbandNP.s = IPS_IDLE;
                         IDSetNumber(&Slope1DeadbandNP, "Setting new Slope 1 Deadband failed.");
@@ -1964,7 +1978,9 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
                     IDSetNumber(&Slope1DeadbandNP, nullptr) ;
 
                     return true;
-                } else {
+                }
+                else
+                {
 
                     Slope1DeadbandNP.s = IPS_IDLE;
                     IDSetNumber(&Slope1DeadbandNP, "Need exactly one parameter.");
@@ -1984,23 +2000,26 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope2DeadbandNP property
-                INumber *eqp = IUFindNumber (&Slope2DeadbandNP, names[i]);
+                INumber * eqp = IUFindNumber (&Slope2DeadbandNP, names[i]);
 
                 //If the number found is Slope2Deadband (Slope2DeadbandN[0]) then process it
-                if (eqp == &Slope2DeadbandN[0]){
+                if (eqp == &Slope2DeadbandN[0])
+                {
 
                     new_Slope2Deadband = (values[i]);
 
                     // limits
                     nset += new_Slope2Deadband >= -0xff && new_Slope2Deadband <= 0xff;
                 }
-                if (nset == 1) {
+                if (nset == 1)
+                {
 
                     // Set the Lakeside state to BUSY
                     Slope2DeadbandNP.s = IPS_BUSY;
                     IDSetNumber(&Slope2DeadbandNP, nullptr);
 
-                    if( !setSlope2Deadband(new_Slope2Deadband)) {
+                    if( !setSlope2Deadband(new_Slope2Deadband))
+                    {
 
                         Slope2DeadbandNP.s = IPS_IDLE;
                         IDSetNumber(&Slope2DeadbandNP, "Setting new Slope 2 Deadband failed.");
@@ -2013,7 +2032,9 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
                     IDSetNumber(&Slope2DeadbandNP, nullptr) ;
 
                     return true;
-                } else {
+                }
+                else
+                {
 
                     Slope2DeadbandNP.s = IPS_IDLE;
                     IDSetNumber(&Slope2DeadbandNP, "Need exactly one parameter.");
@@ -2033,23 +2054,26 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope1PeriodNP property
-                INumber *eqp = IUFindNumber (&Slope1PeriodNP, names[i]);
+                INumber * eqp = IUFindNumber (&Slope1PeriodNP, names[i]);
 
                 //If the number found is Slope1Period (Slope1PeriodN[0]) then process it
-                if (eqp == &Slope1PeriodN[0]){
+                if (eqp == &Slope1PeriodN[0])
+                {
 
                     new_Slope1Period = (values[i]);
 
                     // limits
                     nset += new_Slope1Period >= -0xff && new_Slope1Period <= 0xff;
                 }
-                if (nset == 1) {
+                if (nset == 1)
+                {
 
                     // Set the Lakeside state to BUSY
                     Slope1PeriodNP.s = IPS_BUSY;
                     IDSetNumber(&Slope1PeriodNP, nullptr);
 
-                    if( !setSlope1Period(new_Slope1Period)) {
+                    if( !setSlope1Period(new_Slope1Period))
+                    {
 
                         Slope1PeriodNP.s = IPS_IDLE;
                         IDSetNumber(&Slope1PeriodNP, "Setting new Slope 1 Period failed.");
@@ -2062,7 +2086,9 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
                     IDSetNumber(&Slope1PeriodNP, nullptr);
 
                     return true;
-                } else {
+                }
+                else
+                {
 
                     Slope1PeriodNP.s = IPS_IDLE;
                     IDSetNumber(&Slope1PeriodNP, "Need exactly one parameter.");
@@ -2082,23 +2108,26 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
             for (nset = i = 0; i < n; i++)
             {
                 //Find numbers with the passed names in SetSlope2PeriodNP property
-                INumber *eqp = IUFindNumber (&Slope2PeriodNP, names[i]);
+                INumber * eqp = IUFindNumber (&Slope2PeriodNP, names[i]);
 
                 //If the number found is Slope2Period (Slope2PeriodN[0]) then process it
-                if (eqp == &Slope2PeriodN[0]){
+                if (eqp == &Slope2PeriodN[0])
+                {
 
                     new_Slope2Period = (values[i]);
 
                     // limits
                     nset += new_Slope2Period >= -0xff && new_Slope2Period <= 0xff;
                 }
-                if (nset == 1) {
+                if (nset == 1)
+                {
 
                     // Set the Lakeside state to BUSY
                     Slope2PeriodNP.s = IPS_BUSY;
                     IDSetNumber(&Slope2PeriodNP, nullptr);
 
-                    if( !setSlope2Period(new_Slope2Period)) {
+                    if( !setSlope2Period(new_Slope2Period))
+                    {
 
                         Slope2PeriodNP.s = IPS_IDLE;
                         IDSetNumber(&Slope2PeriodNP, "Setting new Slope 2 Period failed.");
@@ -2111,7 +2140,9 @@ bool Lakeside::ISNewNumber (const char *dev, const char *name, double values[], 
                     IDSetNumber(&Slope2PeriodNP, nullptr);
 
                     return true;
-                } else {
+                }
+                else
+                {
 
                     Slope2PeriodNP.s = IPS_IDLE;
                     IDSetNumber(&Slope2PeriodNP, "Need exactly one parameter.");
@@ -2143,15 +2174,15 @@ void Lakeside::GetFocusParams ()
 
     if (updateBacklash())
         IDSetNumber(&BacklashNP, nullptr);
-    
+
     if (updateMaxTravel())
-        IDSetNumber(&MaxTravelNP, nullptr);
-    
+        IDSetNumber(&FocusMaxPosNP, nullptr);
+
     if (updateStepSize())
         IDSetNumber(&StepSizeNP, nullptr);
 
     if (updateMoveDirection())
-        IDSetSwitch(&MoveDirectionSP, nullptr);
+        IDSetSwitch(&FocusReverseSP, nullptr);
 
     if (updateSlope1Inc())
         IDSetNumber(&Slope1IncNP, nullptr);
@@ -2181,23 +2212,7 @@ void Lakeside::GetFocusParams ()
 
 IPState Lakeside::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double newPosition = 0;
-    bool rc            = false;
-
-    if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
-    else
-        newPosition = FocusAbsPosN[0].value + ticks;
-
-    rc = gotoPosition((uint32_t)newPosition);
-
-    if (!rc)
-        return IPS_ALERT;
-
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
-
-    return IPS_BUSY;
+    return MoveAbsFocuser(dir == FOCUS_INWARD ? FocusAbsPosN[0].value - ticks : FocusAbsPosN[0].value + ticks);
 }
 
 //
@@ -2208,20 +2223,9 @@ IPState Lakeside::MoveAbsFocuser(uint32_t targetTicks)
     targetPos = targetTicks;
     bool rc = false;
 
-    rc = gotoPosition((uint32_t)targetPos);
+    rc = gotoPosition(targetPos);
 
-    // if MoveFocuser succeed, then move send successfully
-    if (rc == true)
-    {
-        FocusAbsPosNP.s = IPS_BUSY;
-        //LOG_DEBUG("MoveAbsFocuser: returning IPS_BUSY");
-        return IPS_BUSY;
-    }
-    else
-    {
-        LOG_DEBUG("MoveAbsFocuser: move failed");
-        return FocusAbsPosNP.s;
-    }
+    return (rc ? IPS_BUSY : IPS_ALERT);
 }
 
 //
@@ -2229,8 +2233,8 @@ IPState Lakeside::MoveAbsFocuser(uint32_t targetTicks)
 //
 void Lakeside::TimerHit()
 {
-    bool IsMoving=false;
-    int rc=-1;
+    bool IsMoving = false;
+    int rc = -1;
 
     if (isConnected() == false)
     {
@@ -2248,7 +2252,7 @@ void Lakeside::TimerHit()
         if ( IsMoving )
         {
             // GetLakesideStatus() shows position as it is moving
-            LOG_DEBUG("TimerHit: Focuser still moving");
+            LOG_DEBUG("Focuser is in motion...");
         }
         else
         {
@@ -2258,9 +2262,9 @@ void Lakeside::TimerHit()
             // update position
             // This is necessary in case user clicks short step moves in quick succession
             // Lakeside will abort move if command received during move
-            rc=updatePosition();
+            rc = updatePosition();
             IDSetNumber(&FocusAbsPosNP, nullptr);
-            LOGF_INFO("Focuser reached requested position %.f",FocusAbsPosN[0].value);
+            LOGF_INFO("Focuser reached requested position %.f", FocusAbsPosN[0].value);
         }
     }
 
@@ -2268,8 +2272,8 @@ void Lakeside::TimerHit()
     if (FocusAbsPosNP.s == IPS_OK || FocusAbsPosNP.s == IPS_IDLE)
     {
         // Get a temperature
-        rc=updateTemperature();
-        if (rc)
+        rc = updateTemperature();
+        if (rc && fabs(lastTemperature - TemperatureN[0].value) > TEMPERATURE_THRESHOLD)
         {
             IDSetNumber(&TemperatureNP, nullptr);
             lastTemperature = TemperatureN[0].value;
@@ -2277,10 +2281,10 @@ void Lakeside::TimerHit()
     }
 
     // IPS_ALERT - any alert situation generated
-    if ( FocusAbsPosNP.s == IPS_ALERT )
-    {
-        LOG_DEBUG("TimerHit: Focuser state = IPS_ALERT");
-    }
+    //    if ( FocusAbsPosNP.s == IPS_ALERT )
+    //    {
+    //        LOG_DEBUG("TimerHit: Focuser state = IPS_ALERT");
+    //    }
 
     SetTimer(POLLMS);
 
@@ -2295,11 +2299,11 @@ void Lakeside::TimerHit()
 // Returns OK#      : Focuser NOT moving (catchall) : return false
 bool Lakeside::GetLakesideStatus()
 {
-    int rc=-1, nbytes_read=0, count_timeouts=1, pos=0;
+    int rc = -1, nbytes_read = 0, count_timeouts = 1, pos = 0;
     char errstr[MAXRBUF];
     char resp[LAKESIDE_LEN] = {0};
-    bool read_buffer=true;
-    char buffer_response='?';
+    bool read_buffer = true;
+    char buffer_response = '?';
 
     // read buffer up to LAKESIDE_TIMEOUT_RETRIES times
     while (read_buffer)
@@ -2312,7 +2316,7 @@ bool Lakeside::GetLakesideStatus()
             // Retry LAKESIDE_TIMEOUT_RETRIES times to make sure focuser
             // is not in between status returns
             count_timeouts++;
-            LOGF_DEBUG("GetLakesideStatus: read buffer retry attempts : %d, error=%s", count_timeouts,errstr);
+            LOGF_DEBUG("GetLakesideStatus: read buffer retry attempts : %d, error=%s", count_timeouts, errstr);
 
             if (count_timeouts > LAKESIDE_TIMEOUT_RETRIES)
             {
@@ -2320,7 +2324,7 @@ bool Lakeside::GetLakesideStatus()
                 LOGF_DEBUG("GetLakesideStatus: Timeout limit (%d) reached reading buffer. Error - %s", LAKESIDE_TIMEOUT_RETRIES, errstr);
 
                 // force a get focuser position update
-                rc=updatePosition();
+                rc = updatePosition();
 
                 // return false as focuser is NOT known to be moving
                 return false;
@@ -2336,7 +2340,7 @@ bool Lakeside::GetLakesideStatus()
     LOGF_DEBUG("GetLakesideStatus: Read buffer contains : %s", resp);
 
     // decode the contents of the buffer (Temp & Pos are also updated)
-    buffer_response=DecodeBuffer(resp);
+    buffer_response = DecodeBuffer(resp);
 
     // If DONE# then focuser has finished a move, so get position
     if ( buffer_response == 'D' )
@@ -2359,7 +2363,7 @@ bool Lakeside::GetLakesideStatus()
     {
         // get step position for update message
         rc = sscanf(resp, "P%5d#", &pos);
-        LOGF_INFO("Focuser Moving... position : %d",pos);
+        LOGF_INFO("Focuser Moving... position : %d", pos);
         // Update current position
         FocusAbsPosN[0].value = pos;
         IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -2371,7 +2375,7 @@ bool Lakeside::GetLakesideStatus()
     // Possible that Temperature response still in the buffer?
     if ( buffer_response == 'T' )
     {
-        LOGF_DEBUG("GetLakesideStatus: Temperature status response found - %s",resp);
+        LOGF_DEBUG("GetLakesideStatus: Temperature status response found - %s", resp);
         // return false as focuser is not known to be moving
 
         // IPS_IDLE turns off light, IPS_OK turns light green
@@ -2383,7 +2387,7 @@ bool Lakeside::GetLakesideStatus()
     // Possible that Temperature in K response still in the buffer?
     if ( buffer_response == 'K' )
     {
-        LOGF_DEBUG("GetLakesideStatus: Temperature in K status response found - %s",resp);
+        LOGF_DEBUG("GetLakesideStatus: Temperature in K status response found - %s", resp);
         // return false as focuser is not known to be moving
 
         // IPS_IDLE turns off light, IPS_OK turns light green
@@ -2393,22 +2397,22 @@ bool Lakeside::GetLakesideStatus()
     }
 
     // At this point, something else is returned
-    LOGF_DEBUG("GetLakesideStatus: Unknown response from buffer read : (%s)",resp);
+    LOGF_DEBUG("GetLakesideStatus: Unknown response from buffer read : (%s)", resp);
     FocusAbsPosNP.s = IPS_OK;
 
     // return false as focuser is not known to be moving
     return false;
 
-}  
+}
 
 //
 // send abort command
 //
 bool Lakeside::AbortFocuser()
 {
-    int rc=-1;
+    int rc = -1;
     char errstr[MAXRBUF];
-    char cmd[]="CH#";
+    char cmd[] = "CH#";
 
     if (SendCmd(cmd))
     {
@@ -2421,7 +2425,7 @@ bool Lakeside::AbortFocuser()
     else
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("AbortFocuser: Write command (%s) failed - %s",cmd, errstr);
+        LOGF_ERROR("AbortFocuser: Write command (%s) failed - %s", cmd, errstr);
         return false;
     }
 }

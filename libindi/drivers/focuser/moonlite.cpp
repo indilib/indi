@@ -1,6 +1,6 @@
 /*
     Moonlite Focuser
-    Copyright (C) 2013 Jasem Mutlaq (mutlaqja@ikarustech.com)
+    Copyright (C) 2013-2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -29,32 +29,30 @@
 #include <termios.h>
 #include <unistd.h>
 
-#define MOONLITE_TIMEOUT 3
-
 static std::unique_ptr<MoonLite> moonLite(new MoonLite());
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
     moonLite->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     moonLite->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     moonLite->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     moonLite->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
+void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
+               char * names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -66,7 +64,7 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
     INDI_UNUSED(n);
 }
 
-void ISSnoopDevice(XMLEle *root)
+void ISSnoopDevice(XMLEle * root)
 {
     moonLite->ISSnoopDevice(root);
 }
@@ -74,7 +72,8 @@ void ISSnoopDevice(XMLEle *root)
 MoonLite::MoonLite()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED |
+                      FOCUSER_CAN_SYNC);
 }
 
 bool MoonLite::initProperties()
@@ -85,46 +84,36 @@ bool MoonLite::initProperties()
     FocusSpeedN[0].max   = 5;
     FocusSpeedN[0].value = 1;
 
-    /* Step Mode */
-    IUFillSwitch(&StepModeS[0], "Half Step", "", ISS_OFF);
-    IUFillSwitch(&StepModeS[1], "Full Step", "", ISS_ON);
-    IUFillSwitchVector(&StepModeSP, StepModeS, 2, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0,
-                       IPS_IDLE);
+    // Step Mode
+    IUFillSwitch(&StepModeS[FOCUS_HALF_STEP], "FOCUS_HALF_STEP", "Half Step", ISS_OFF);
+    IUFillSwitch(&StepModeS[FOCUS_FULL_STEP], "FOCUS_FULL_STEP", "Full Step", ISS_ON);
+    IUFillSwitchVector(&StepModeSP, StepModeS, 2, getDeviceName(), "Step Mode", "", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    /* Focuser temperature */
+    // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    // Maximum Travel
-    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Maximum travel", "%6.0f", 1., 60000., 0., 10000.);
-    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "FOCUS_MAXTRAVEL", "Max. travel", OPTIONS_TAB,
-                       IP_RW, 0, IPS_IDLE);
-
     // Temperature Settings
     IUFillNumber(&TemperatureSettingN[0], "Calibration", "", "%6.2f", -20, 20, 0.5, 0);
     IUFillNumber(&TemperatureSettingN[1], "Coefficient", "", "%6.2f", -20, 20, 0.5, 0);
-    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "Temperature Settings", "",
+    IUFillNumberVector(&TemperatureSettingNP, TemperatureSettingN, 2, getDeviceName(), "T. Settings", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Compensate for temperature
     IUFillSwitch(&TemperatureCompensateS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "Temperature Compensate",
+    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensate",
                        "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    // Sync
-    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 60000., 0., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     /* Relative and absolute movement */
     FocusRelPosN[0].min   = 0.;
-    FocusRelPosN[0].max   = 30000.;
+    FocusRelPosN[0].max   = 50000.;
     FocusRelPosN[0].value = 0;
     FocusRelPosN[0].step  = 1000;
 
     FocusAbsPosN[0].min   = 0.;
-    FocusAbsPosN[0].max   = 60000.;
+    FocusAbsPosN[0].max   = 100000.;
     FocusAbsPosN[0].value = 0;
     FocusAbsPosN[0].step  = 1000;
 
@@ -141,11 +130,9 @@ bool MoonLite::updateProperties()
     if (isConnected())
     {
         defineNumber(&TemperatureNP);
-        defineNumber(&MaxTravelNP);
         defineSwitch(&StepModeSP);
         defineNumber(&TemperatureSettingNP);
         defineSwitch(&TemperatureCompensateSP);
-        defineNumber(&SyncNP);
 
         GetFocusParams();
 
@@ -154,11 +141,9 @@ bool MoonLite::updateProperties()
     else
     {
         deleteProperty(TemperatureNP.name);
-        deleteProperty(MaxTravelNP.name);
         deleteProperty(StepModeSP.name);
         deleteProperty(TemperatureSettingNP.name);
         deleteProperty(TemperatureCompensateSP.name);
-        deleteProperty(SyncNP.name);
     }
 
     return true;
@@ -172,12 +157,12 @@ bool MoonLite::Handshake()
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION,
-          "Error retreiving data from MoonLite, please ensure MoonLite controller is powered and the port is correct.");
+    LOG_INFO(
+        "Error retreiving data from MoonLite, please ensure MoonLite controller is powered and the port is correct.");
     return false;
 }
 
-const char *MoonLite::getDefaultName()
+const char * MoonLite::getDefaultName()
 {
     return "MoonLite";
 }
@@ -186,7 +171,7 @@ bool MoonLite::Ack()
 {
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
-    char resp[5]={0};
+    char resp[5]= {0};
     short pos = -1;
 
     tcflush(PortFD, TCIOFLUSH);
@@ -210,7 +195,7 @@ bool MoonLite::Ack()
             LOGF_ERROR("Handshake Attempt %i, tty transmission error: %s.", numChecks, errstr);
         }
 
-        bool responseSuccess = (rc = tty_read(PortFD, resp, 5, MOONLITE_TIMEOUT, &nbytes_read)) == TTY_OK;
+        bool responseSuccess = (rc = tty_read(PortFD, resp, 5, ML_TIMEOUT, &nbytes_read)) == TTY_OK;
         if(!responseSuccess)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
@@ -233,157 +218,79 @@ bool MoonLite::Ack()
     return rc > 0;
 }
 
-bool MoonLite::updateStepMode()
+bool MoonLite::readStepMode()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[4]={0};
+    char res[ML_RES]= {0};
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ((rc = tty_write(PortFD, ":GH#", 4, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updateStepMode error: %s.", errstr);
+    if (sendCommand(":GH#", res) == false)
         return false;
-    }
 
-    if ((rc = tty_read(PortFD, resp, 3, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updateStepMode error: %s.", errstr);
-        return false;
-    }
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    resp[3] = '\0';
-    IUResetSwitch(&StepModeSP);
-
-    if (strcmp(resp, "FF#") == 0)
-        StepModeS[0].s = ISS_ON;
-    else if (strcmp(resp, "00#") == 0)
-        StepModeS[1].s = ISS_ON;
+    if (strcmp(res, "FF#") == 0)
+        StepModeS[FOCUS_HALF_STEP].s = ISS_ON;
+    else if (strcmp(res, "00#") == 0)
+        StepModeS[FOCUS_FULL_STEP].s = ISS_ON;
     else
     {
-        LOGF_ERROR("Unknown error: focuser step value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser step value (%s)", res);
         return false;
     }
 
     return true;
 }
 
-bool MoonLite::updateTemperature()
+bool MoonLite::readTemperature()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[16]={0};
+    char res[ML_RES]= {0};
 
-    tcflush(PortFD, TCIOFLUSH);
+    sendCommand(":C#");
 
-    tty_write(PortFD, ":C#", 3, &nbytes_written);
-
-    if ((rc = tty_write(PortFD, ":GT#", 4, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updateTemperature error: %s.", errstr);
+    if (sendCommand(":GT#", res) == false)
         return false;
-    }
-
-    if ((rc = tty_read_section(PortFD, resp, '#', MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updateTemperature error: %s.", errstr);
-        return false;
-    }
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    resp[nbytes_read-1] = '\0';
 
     uint32_t temp = 0;
-    rc = sscanf(resp, "%X", &temp);
-
+    int rc = sscanf(res, "%X", &temp);
     if (rc > 0)
-    {
         // Signed hex
         TemperatureN[0].value = static_cast<int16_t>(temp) / 2.0;
-    }
     else
     {
-        LOGF_ERROR("Unknown error: focuser temperature value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser temperature value (%s)", res);
         return false;
     }
 
     return true;
 }
 
-bool MoonLite::updatePosition()
+bool MoonLite::readPosition()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[5]={0};
-    int pos = -1;
+    char res[ML_RES]= {0};
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ((rc = tty_write(PortFD, ":GP#", 4, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updatePostion error: %s.", errstr);
+    if (sendCommand(":GP#", res) == false)
         return false;
-    }
 
-    if ((rc = tty_read(PortFD, resp, 5, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updatePostion error: %s.", errstr);
-        return false;
-    }
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    rc = sscanf(resp, "%X#", &pos);
+    int32_t pos;
+    int rc = sscanf(res, "%X#", &pos);
 
     if (rc > 0)
-    {
         FocusAbsPosN[0].value = pos;
-    }
     else
     {
-        LOGF_ERROR("Unknown error: focuser position value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser position value (%s)", res);
         return false;
     }
 
     return true;
 }
 
-bool MoonLite::updateSpeed()
+bool MoonLite::readSpeed()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[3]={0};
-    short speed;
+    char res[ML_RES]= {0};
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ((rc = tty_write(PortFD, ":GD#", 4, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updateSpeed error: %s.", errstr);
+    if (sendCommand(":GD#", res) == false)
         return false;
-    }
 
-    if ((rc = tty_read(PortFD, resp, 3, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("updateSpeed error: %s.", errstr);
-        return false;
-    }
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    rc = sscanf(resp, "%hX#", &speed);
+    uint16_t speed = 0;
+    int rc = sscanf(res, "%hX#", &speed);
 
     if (rc > 0)
     {
@@ -393,13 +300,11 @@ bool MoonLite::updateSpeed()
             speed >>= 1;
             focus_speed++;
         }
-
-        currentSpeed         = focus_speed;
         FocusSpeedN[0].value = focus_speed;
     }
     else
     {
-        LOGF_ERROR("Unknown error: focuser speed value (%s)", resp);
+        LOGF_ERROR("Unknown error: focuser speed value (%s)", res);
         return false;
     }
 
@@ -408,215 +313,87 @@ bool MoonLite::updateSpeed()
 
 bool MoonLite::isMoving()
 {
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char resp[4]={0};
+    char res[ML_RES]= {0};
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ((rc = tty_write(PortFD, ":GI#", 4, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("isMoving error: %s.", errstr);
+    if (sendCommand(":GI#", res) == false)
         return false;
-    }
 
-    if ((rc = tty_read(PortFD, resp, 3, MOONLITE_TIMEOUT, &nbytes_read)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("isMoving error: %s.", errstr);
-        return false;
-    }
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    resp[3] = '\0';
-    if (strcmp(resp, "01#") == 0)
+    if (strcmp(res, "01#") == 0)
         return true;
-    else if (strcmp(resp, "00#") == 0)
+    else if (strcmp(res, "00#") == 0)
         return false;
 
-    LOGF_ERROR("Unknown error: isMoving value (%s)", resp);
+    LOGF_ERROR("Unknown error: isMoving value (%s)", res);
     return false;
 }
 
 bool MoonLite::setTemperatureCalibration(double calibration)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[7]={0};
+    char cmd[ML_RES]= {0};
     int cal = calibration * 2;
-
-    snprintf(cmd, 7, ":PO%02X#", cal);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ((rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setTemperatureCalibration error: %s.", errstr);
-        return false;
-    }
-
-    return true;
+    snprintf(cmd, ML_RES, ":PO%02X#", cal);
+    return sendCommand(cmd);
 }
 
 bool MoonLite::setTemperatureCoefficient(double coefficient)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[7]={0};
-
+    char cmd[ML_RES]= {0};
     int coeff = coefficient * 2;
-
-    snprintf(cmd, 7, ":SC%02X#", coeff);
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if ((rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setTemperatureCoefficient error: %s.", errstr);
-        return false;
-    }
-
-    return true;
+    snprintf(cmd, ML_RES, ":SC%02X#", coeff);
+    return sendCommand(cmd);
 }
 
-bool MoonLite::sync(uint16_t offset)
+bool MoonLite::SyncFocuser(uint32_t ticks)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[9]={0};
-
-    snprintf(cmd, 9, ":SP%04X#", offset);
-
-    // Set Position
-    if ((rc = tty_write(PortFD, cmd, 8, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("reset error: %s.", errstr);
-        return false;
-    }
-
-    return true;
+    char cmd[ML_RES]= {0};
+    snprintf(cmd, ML_RES, ":SP%04X#", ticks);
+    return sendCommand(cmd);
 }
 
-bool MoonLite::MoveFocuser(unsigned int position)
+bool MoonLite::MoveFocuser(uint32_t position)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[9]={0};
-
-    if (position < FocusAbsPosN[0].min || position > FocusAbsPosN[0].max)
-    {
-        LOGF_ERROR("Requested position value out of bound: %d", position);
+    char cmd[ML_RES]= {0};
+    snprintf(cmd, ML_RES, ":SN%04X#", position);
+    // Set Position First
+    if (sendCommand(cmd) == false)
         return false;
-    }
-
-    /*if (fabs(position - FocusAbsPosN[0].value) > MaxTravelN[0].value)
-    {
-        LOGF_ERROR("Requested position value of %d exceeds maximum travel limit of %g", position, MaxTravelN[0].value);
+    // Now start motion toward position
+    if (sendCommand(":FG#") == false)
         return false;
-    }*/
-
-    snprintf(cmd, 9, ":SN%04X#", position);
-
-    // Set Position
-    if ((rc = tty_write(PortFD, cmd, 8, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setPosition error: %s.", errstr);
-        return false;
-    }
-
-    // MoveFocuser to Position
-    if ((rc = tty_write(PortFD, ":FG#", 4, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("MoveFocuser error: %s.", errstr);
-        return false;
-    }
 
     return true;
 }
 
 bool MoonLite::setStepMode(FocusStepMode mode)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[4]={0};
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if (mode == FOCUS_HALF_STEP)
-        strncpy(cmd, ":SH#", 4);
-    else
-        strncpy(cmd, ":SF#", 4);
-
-    if ((rc = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setStepMode error: %s.", errstr);
-        return false;
-    }
-
-    return true;
+    char cmd[ML_RES]= {0};
+    snprintf(cmd, ML_RES, ":S%c#", (mode == FOCUS_HALF_STEP) ? 'H' : 'F');
+    return sendCommand(cmd);
 }
 
-bool MoonLite::setSpeed(unsigned short speed)
+bool MoonLite::setSpeed(uint16_t speed)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[7]={0};
-
+    char cmd[ML_RES]= {0};
     int hex_value = 1;
-
     hex_value <<= speed;
-
-    snprintf(cmd, 7, ":SD%02X#", hex_value);
-
-    if ((rc = tty_write(PortFD, cmd, 6, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setSpeed error: %s.", errstr);
-        return false;
-    }
-
-    return true;
+    snprintf(cmd, ML_RES, ":SD%02X#", hex_value);
+    return sendCommand(cmd);
 }
 
 bool MoonLite::setTemperatureCompensation(bool enable)
 {
-    int nbytes_written = 0, rc = -1;
-    char errstr[MAXRBUF];
-    char cmd[4]={0};
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    if (enable)
-        strncpy(cmd, ":+#", 4);
-    else
-        strncpy(cmd, ":-#", 4);
-
-    if ((rc = tty_write(PortFD, cmd, 3, &nbytes_written)) != TTY_OK)
-    {
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("setTemperatureCompensation error: %s.", errstr);
-        return false;
-    }
-
-    return true;
+    char cmd[ML_RES]= {0};
+    snprintf(cmd, ML_RES, ":%c#", enable ? '+' : '-');
+    return sendCommand(cmd);
 }
 
-bool MoonLite::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool MoonLite::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Focus Step Mode
         if (strcmp(StepModeSP.name, name) == 0)
         {
-            bool rc          = false;
             int current_mode = IUFindOnSwitchIndex(&StepModeSP);
 
             IUUpdateSwitch(&StepModeSP, states, names, n);
@@ -629,11 +406,7 @@ bool MoonLite::ISNewSwitch(const char *dev, const char *name, ISState *states, c
                 IDSetSwitch(&StepModeSP, nullptr);
             }
 
-            if (target_mode == 0)
-                rc = setStepMode(FOCUS_HALF_STEP);
-            else
-                rc = setStepMode(FOCUS_FULL_STEP);
-
+            bool rc = setStepMode(target_mode == 0 ? FOCUS_HALF_STEP : FOCUS_FULL_STEP);
             if (!rc)
             {
                 IUResetSwitch(&StepModeSP);
@@ -648,6 +421,7 @@ bool MoonLite::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             return true;
         }
 
+        // Temperature Compensation Mode
         if (strcmp(TemperatureCompensateSP.name, name) == 0)
         {
             int last_index = IUFindOnSwitchIndex(&TemperatureCompensateSP);
@@ -673,34 +447,16 @@ bool MoonLite::ISNewSwitch(const char *dev, const char *name, ISState *states, c
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool MoonLite::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool MoonLite::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, SyncNP.name) == 0)
-        {
-            IUUpdateNumber(&SyncNP, values, names, n);
-            if (sync(SyncN[0].value))
-                SyncNP.s = IPS_OK;
-            else
-                SyncNP.s = IPS_ALERT;
-            IDSetNumber(&SyncNP, nullptr);
-            return true;
-        }
-
-        if (strcmp(name, MaxTravelNP.name) == 0)
-        {
-            IUUpdateNumber(&MaxTravelNP, values, names, n);
-            MaxTravelNP.s = IPS_OK;
-            IDSetNumber(&MaxTravelNP, nullptr);
-            return true;
-        }
-
+        // Temperature Settings
         if (strcmp(name, TemperatureSettingNP.name) == 0)
         {
             IUUpdateNumber(&TemperatureSettingNP, values, names, n);
             if (!setTemperatureCalibration(TemperatureSettingN[0].value) ||
-                !setTemperatureCoefficient(TemperatureSettingN[1].value))
+                    !setTemperatureCoefficient(TemperatureSettingN[1].value))
             {
                 TemperatureSettingNP.s = IPS_ALERT;
                 IDSetNumber(&TemperatureSettingNP, nullptr);
@@ -718,93 +474,82 @@ bool MoonLite::ISNewNumber(const char *dev, const char *name, double values[], c
 
 void MoonLite::GetFocusParams()
 {
-    if (updatePosition())
+    if (readPosition())
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    if (updateTemperature())
+    if (readTemperature())
         IDSetNumber(&TemperatureNP, nullptr);
 
-    if (updateSpeed())
+    if (readSpeed())
         IDSetNumber(&FocusSpeedNP, nullptr);
 
-    if (updateStepMode())
+    if (readStepMode())
         IDSetSwitch(&StepModeSP, nullptr);
 }
 
 bool MoonLite::SetFocuserSpeed(int speed)
 {
-    bool rc = false;
-
-    rc = setSpeed(speed);
-
-    if (!rc)
-        return false;
-
-    currentSpeed = speed;
-
-    FocusSpeedNP.s = IPS_OK;
-    IDSetNumber(&FocusSpeedNP, nullptr);
-
-    return true;
+    return setSpeed(speed);
 }
 
 IPState MoonLite::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    if (speed != (int)currentSpeed)
+    if (speed != static_cast<int>(FocusSpeedN[0].value))
     {
-        bool rc = setSpeed(speed);
-
-        if (!rc)
+        if (!setSpeed(speed))
             return IPS_ALERT;
     }
 
-    gettimeofday(&focusMoveStart, nullptr);
-    focusMoveRequest = duration / 1000.0;
-
+    // either go all the way in or all the way out
+    // then use timer to stop
     if (dir == FOCUS_INWARD)
         MoveFocuser(0);
     else
-        MoveFocuser(FocusAbsPosN[0].value + MaxTravelN[0].value - 1);
+        MoveFocuser(FocusMaxPosN[0].value);
 
-    if (duration <= POLLMS)
-    {
-        usleep(duration * 1000);
-        AbortFocuser();
-        return IPS_OK;
-    }
-
+    IEAddTimer(duration, &MoonLite::timedMoveHelper, this);
     return IPS_BUSY;
+}
+
+void MoonLite::timedMoveHelper(void * context)
+{
+    static_cast<MoonLite *>(context)->timedMoveCallback();
+}
+
+void MoonLite::timedMoveCallback()
+{
+    AbortFocuser();
+    FocusAbsPosNP.s = IPS_IDLE;
+    FocusRelPosNP.s = IPS_IDLE;
+    FocusTimerNP.s = IPS_IDLE;
+    FocusTimerN[0].value = 0;
+    IDSetNumber(&FocusAbsPosNP, nullptr);
+    IDSetNumber(&FocusRelPosNP, nullptr);
+    IDSetNumber(&FocusTimerNP, nullptr);
 }
 
 IPState MoonLite::MoveAbsFocuser(uint32_t targetTicks)
 {
     targetPos = targetTicks;
 
-    bool rc = false;
-
-    rc = MoveFocuser(targetPos);
-
-    if (!rc)
+    if (!MoveFocuser(targetPos))
         return IPS_ALERT;
-
-    FocusAbsPosNP.s = IPS_BUSY;
 
     return IPS_BUSY;
 }
 
 IPState MoonLite::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double newPosition = 0;
-    bool rc            = false;
+    int32_t newPosition = 0;
 
     if (dir == FOCUS_INWARD)
         newPosition = FocusAbsPosN[0].value - ticks;
     else
         newPosition = FocusAbsPosN[0].value + ticks;
 
-    rc = MoveFocuser(newPosition);
-
-    if (!rc)
+    // Clamp
+    newPosition = std::max(0, std::min(static_cast<int32_t>(FocusAbsPosN[0].max), newPosition));
+    if (!MoveFocuser(newPosition))
         return IPS_ALERT;
 
     FocusRelPosN[0].value = ticks;
@@ -821,7 +566,7 @@ void MoonLite::TimerHit()
         return;
     }
 
-    bool rc = updatePosition();
+    bool rc = readPosition();
     if (rc)
     {
         if (fabs(lastPos - FocusAbsPosN[0].value) > 5)
@@ -831,7 +576,7 @@ void MoonLite::TimerHit()
         }
     }
 
-    rc = updateTemperature();
+    rc = readTemperature();
     if (rc)
     {
         if (fabs(lastTemperature - TemperatureN[0].value) >= 0.5)
@@ -839,22 +584,6 @@ void MoonLite::TimerHit()
             IDSetNumber(&TemperatureNP, nullptr);
             lastTemperature = TemperatureN[0].value;
         }
-    }
-
-    if (FocusTimerNP.s == IPS_BUSY)
-    {
-        float remaining = CalcTimeLeft(focusMoveStart, focusMoveRequest);
-
-        if (remaining <= 0)
-        {
-            FocusTimerNP.s       = IPS_OK;
-            FocusTimerN[0].value = 0;
-            AbortFocuser();
-        }
-        else
-            FocusTimerN[0].value = remaining * 1000.0;
-
-        IDSetNumber(&FocusTimerNP, nullptr);
     }
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
@@ -875,38 +604,48 @@ void MoonLite::TimerHit()
 
 bool MoonLite::AbortFocuser()
 {
-    int nbytes_written;
-    if (tty_write(PortFD, ":FQ#", 4, &nbytes_written) == TTY_OK)
-    {
-        FocusAbsPosNP.s = IPS_IDLE;
-        FocusRelPosNP.s = IPS_IDLE;
-        IDSetNumber(&FocusAbsPosNP, nullptr);
-        IDSetNumber(&FocusRelPosNP, nullptr);
-        return true;
-    }
-    else
-        return false;
+    return sendCommand(":FQ#");
 }
 
-float MoonLite::CalcTimeLeft(timeval start, float req)
-{
-    double timesince;
-    double timeleft;
-    struct timeval now { 0, 0 };
-    gettimeofday(&now, nullptr);
-
-    timesince =
-        (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
-    timesince = timesince / 1000;
-    timeleft  = req - timesince;
-    return timeleft;
-}
-
-bool MoonLite::saveConfigItems(FILE *fp)
+bool MoonLite::saveConfigItems(FILE * fp)
 {
     Focuser::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &StepModeSP);
+
+    return true;
+}
+
+bool MoonLite::sendCommand(const char * cmd, char * res)
+{
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    LOGF_DEBUG("CMD <%s>", cmd);
+
+    if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+    {
+        char errstr[MAXRBUF]= {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial write error: %s.", errstr);
+        return false;
+    }
+
+    if (res == nullptr)
+        return true;
+
+    if ((rc = tty_nread_section(PortFD, res, ML_RES, ML_DEL, ML_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        char errstr[MAXRBUF]= {0};
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("Serial read error: %s.", errstr);
+        return false;
+    }
+
+    LOGF_DEBUG("RES <%s>", res);
+
+    tcflush(PortFD, TCIOFLUSH);
 
     return true;
 }

@@ -26,6 +26,7 @@
 #include <libnova/julian_day.h>
 
 #include <cmath>
+#include <map>
 #include <cstring>
 #include <termios.h>
 #include <unistd.h>
@@ -41,7 +42,8 @@ struct
 {
     double ra;
     double dec;
-    double guide_rate;
+    double ra_guide_rate;
+    double de_guide_rate;
 } simData;
 
 void set_ieqpro_debug(bool enable)
@@ -53,7 +55,10 @@ void set_ieqpro_simulation(bool enable)
 {
     ieqpro_simulation = enable;
     if (enable)
-        simData.guide_rate = 0.5;
+    {
+        simData.ra_guide_rate = 0.5;
+        simData.de_guide_rate = 0.5;
+    }
 }
 
 void set_ieqpro_device(const char *name)
@@ -101,9 +106,10 @@ void set_sim_dec(double dec)
     simData.dec = dec;
 }
 
-void set_sim_guide_rate(double rate)
+void set_sim_guide_rate(double ra, double de)
 {
-    simData.guide_rate = rate;
+    simData.ra_guide_rate = ra;
+    simData.de_guide_rate = de;
 }
 
 bool check_ieqpro_connection(int fd)
@@ -281,16 +287,26 @@ bool get_ieqpro_model(int fd, FirmwareInfo *info)
 
         if (nbytes_read == 4)
         {
-            if (!strcmp(response, "0060"))
-                info->Model = "CEM60";
-            else if (!strcmp(response, "0061"))
-                info->Model = "CEM60-EC";
-            else if (!strcmp(response, "0045"))
-                info->Model = "iEQ45 Pro";
-            else if (!strcmp(response, "0046"))
-                info->Model = "iEQ45 Pro AA";
-            else if (!strcmp(response, "0025"))
-                info->Model = "CEM25";
+            std::map<std::string, std::string> models =
+            {
+                {"0010", "Cube II EQ"},
+                {"0011", "Smart EQ Pro+"},
+                {"0025", "CEM25"},
+                {"0026", "CEM25-EC"},
+                {"0030", "iEQ30Pro"},
+                {"0045", "iEQ45 Pro EQ"},
+                {"0060", "CEM60"},
+                {"0061", "CEM60-EC"},
+                {"0120", "CEM120"},
+                {"0121", "CEM120-EC"},
+                {"0122", "CEM120-EC2"},
+                {"5010", "Cube II AA"},
+                {"5035", "AZ Mount Pro"},
+                {"5045", "iEQ45 Pro AA"},
+            };
+
+            if (models.find(response) != models.end())
+                info->Model = models[response];
             else
                 info->Model = "Unknown";
 
@@ -433,18 +449,25 @@ bool start_ieqpro_motion(int fd, IEQ_DIRECTION dir)
 
     switch (dir)
     {
-        case IEQ_N:
-            strcpy(cmd, ":mn#");
-            break;
-        case IEQ_S:
-            strcpy(cmd, ":ms#");
-            break;
-        case IEQ_W:
-            strcpy(cmd, ":mw#");
-            break;
-        case IEQ_E:
-            strcpy(cmd, ":me#");
-            break;
+    case IEQ_N:
+        strcpy(cmd, ":mn#");
+        break;
+    case IEQ_S:
+        strcpy(cmd, ":ms#");
+        break;
+        //        case IEQ_W:
+        //            strcpy(cmd, ":mw#");
+        //            break;
+        //        case IEQ_E:
+        //            strcpy(cmd, ":me#");
+        //            break;
+        // JM 2019-01-17: Appears iOptron implementation is reversed?
+    case IEQ_W:
+        strcpy(cmd, ":me#");
+        break;
+    case IEQ_E:
+        strcpy(cmd, ":mw#");
+        break;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
@@ -901,23 +924,23 @@ bool set_ieqpro_custom_de_track_rate(int fd, double rate)
     return false;
 }
 
-bool set_ieqpro_guide_rate(int fd, double rate)
+bool set_ieqpro_guide_rate(int fd, double raRate, double deRate)
 {
-    char cmd[16];
+    char cmd[16]={0};
     int errcode = 0;
     char errmsg[MAXRBUF];
     char response[8];
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
-    int num = rate * 1000;
-    snprintf(cmd, 16, ":RG%03d#", num);
+    snprintf(cmd, 16, ":RG%02d%02d#", static_cast<int>(raRate*100.0), static_cast<int>(deRate*100.0));
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
 
     if (ieqpro_simulation)
     {
-        simData.guide_rate = rate;
+        simData.ra_guide_rate = raRate;
+        simData.de_guide_rate = deRate;
         strcpy(response, "1");
         nbytes_read = strlen(response);
     }
@@ -953,12 +976,12 @@ bool set_ieqpro_guide_rate(int fd, double rate)
     return false;
 }
 
-bool get_ieqpro_guide_rate(int fd, double *rate)
+bool get_ieqpro_guide_rate(int fd, double *raRate, double *deRate)
 {
     char cmd[]  = ":AG#";
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[8];
+    char response[8]={0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -966,7 +989,7 @@ bool get_ieqpro_guide_rate(int fd, double *rate)
 
     if (ieqpro_simulation)
     {
-        snprintf(response, 8, "%3d#", (int)(simData.guide_rate * 1000));
+        snprintf(response, 8, "%02d%02d#", static_cast<int>(simData.ra_guide_rate * 100), static_cast<int>(simData.de_guide_rate * 100));
         nbytes_read = strlen(response);
     }
     else
@@ -993,26 +1016,20 @@ bool get_ieqpro_guide_rate(int fd, double *rate)
         response[nbytes_read-1] = '\0';
         DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_DEBUG, "RES <%s>", response);
 
-        int rate_num;
-
-        if (sscanf(response, "%d", &rate_num) > 0)
-        {
-            *rate = rate_num / 1000.0;
-            tcflush(fd, TCIFLUSH);
-            return true;
-        }
-        else
-        {
-            DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Error: Malformed result (%s).", response);
-            return false;
-        }
+        char raRateStr[8]={0}, deRateStr[8]={0};
+        strncpy(response, raRateStr, 2);
+        strncpy(response+2, deRateStr, 2);
+        *raRate = atoi(raRateStr) / 100.0;
+        *deRate = atoi(deRateStr) / 100.0;
+        tcflush(fd, TCIFLUSH);
+        return true;
     }
 
     DEBUGFDEVICE(ieqpro_device, INDI::Logger::DBG_ERROR, "Only received #%d bytes, expected 1.", nbytes_read);
     return false;
 }
 
-bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, int ms)
+bool start_ieqpro_guide(int fd, IEQ_DIRECTION dir, uint32_t ms)
 {
     char cmd[16];
     int errcode = 0;

@@ -121,8 +121,8 @@
 #define CHUNK_SIZE (4 * 1024 * 1024)
 //#warning "ARM mode, 4MB CHUNK_SIZE"
 #else
-#define CHUNK_SIZE (32*1024*1024)
-//#warning "Intel mode, 32MB CHUNK_SIZE"
+#define CHUNK_SIZE (16*1024*1024)
+//#warning "Intel mode, 16MB CHUNK_SIZE"
 #endif
 
 #if 1
@@ -171,6 +171,11 @@ static struct
                 { 0x517, "CoStar", 0 },
                 { 0x509, "SuperStar", 0 },
                 { 0x525, "UltraStar", 0 },
+                { 0x601, "SX-56", 0 },
+                { 0x604, "SX-46", 0 },
+                { 0x605, "SX-46C", 0 },
+                { 0x606, "SX-50", 0 },
+                { 0x607, "SX-50C", 0 },
                 { 0x200, "MX Camera", 0 },
                 { 0, nullptr, 0 } };
 

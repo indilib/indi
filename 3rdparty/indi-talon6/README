@@ -1,0 +1,36 @@
+TALON6 INDI Driver
+================
+
+This package provides the INDI driver for TALON6 Roll Off Roof.
+Talon6 is a Roll Off Roof control system. It has been in use in several hosting facilities (e.g. E-Eye in Spain, https://www.entreencinasyestrellas.es/).
+http://observatoriosspag.es/Whats_TALON6.htm
+
+Version 0.1: Provides only basic functionalities like open (unpark) / close (park) / abort and also reads the status from the device. 
+All other features will be in a next version, like sync, move to position, snoop devices for mount / weather shutdown. 
+Use it under strict control as mount / devices could be hit by the roof.
+
+Requirements
+============
+
++ INDI >= v0.6 (http://indi.sf.net)
+
+	You need to install both indi and indi-devel to build this package.
+	
+	
+Installation
+============
+
+	See INSTALL
+	
+How to Use
+==========
+
+	You can use the Talon6 INDI Driver in any INDI-compatible client such as KStars or Xephem. 
+	
+	To run the driver from the command line:
+	
+	$ indiserver indi_talon6_dome
+	
+	You can then connect to the driver from any client, the default port is 7624.
+	If you're using KStars, the driver will be automatically listed in KStars' Device Manager,
+	no further configuration is necessary.

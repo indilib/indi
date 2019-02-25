@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <indilogger.h>
-#include <libdspau.h>
 #include <memory>
 
 #define min(a,b) \
@@ -34,7 +33,7 @@
 #define SUBFRAME_SIZE (16384)
 #define MIN_FRAME_SIZE (512)
 #define MAX_FRAME_SIZE (SUBFRAME_SIZE * 16)
-#define SPECTRUM_SIZE 65535
+#define SPECTRUM_SIZE (256)
 
 static int iNumofConnectedDetectors;
 static LIMESDR *receivers[MAX_DEVICES];
@@ -423,24 +422,15 @@ void LIMESDR::grabData(int n_read)
 {
     if(InCapture) {
         continuum = PrimaryDetector.getContinuumBuffer();
-        spectrum = PrimaryDetector.getSpectrumBuffer();
         LOG_INFO("Downloading...");
         LMS_RecvStream(&lime_stream, continuum, n_read, NULL, 1000);
         LMS_StopStream(&lime_stream);
         LMS_DestroyStream(lime_dev, &lime_stream);
         InCapture = false;
 
-        //Create the dspau stream
-        dspau_stream_p stream = dspau_stream_new();
-        dspau_stream_add_dim(stream, n_read);
-        dspau_convert_from(continuum, stream->in, float, n_read);
-
         //Create the spectrum
-        stream->out = dspau_fft_spectrum(stream, magnitude_dbv, SPECTRUM_SIZE);
-        dspau_convert_to(stream->out, spectrum, float, SPECTRUM_SIZE);
-
-        //Destroy the dspau stream
-        dspau_stream_free(stream);
+        spectrum = PrimaryDetector.getSpectrumBuffer();
+        Spectrum(continuum, spectrum, b_read, SPECTRUM_SIZE, PrimaryDetector.getBPS());
 
         LOG_INFO("Download complete.");
         CaptureComplete(&PrimaryDetector);

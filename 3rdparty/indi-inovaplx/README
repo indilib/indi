@@ -3,7 +3,7 @@ i.Nova PLx Camera INDI Driver
 
 This package provides the INDI driver for the i.Nova PLx series CCD/CMOS cameras.
 
-Requirtments
+Requirements
 ============
 
 + INDI >= v1.4 (http://www.indilib.org)
