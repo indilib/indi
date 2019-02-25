@@ -21,11 +21,7 @@
 #include "CameraInfo.h" 
 #include "DefDllExport.h"
 
-#ifdef WIN_OS
 #include <memory>
-#else
-#include <tr1/memory>
-#endif
 
 class ICamIo;
 class CamRegMirror;

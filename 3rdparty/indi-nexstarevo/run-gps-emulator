@@ -20,7 +20,7 @@ SETPROP="indi_setprop -h $INDIHOST -p $INDIPORT "
 GETPROP="indi_getprop -h $INDIHOST -p $INDIPORT "
 
 SCOPEDRV="NexStar Evolution"
-GPSDRV="GPSD driver"
+GPSDRV="GPSD"
 
 # Activate and connect Scope
 $SETPROP -s "$SCOPEDRV.CONFIG_PROCESS.CONFIG_LOAD=On"

@@ -1,5 +1,5 @@
 PROJECT(indi-eqmod C CXX)
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 2.8)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
@@ -13,7 +13,7 @@ find_package(ZLIB REQUIRED)
 find_package(GSL REQUIRED)
 
 set(EQMOD_VERSION_MAJOR 0)
-set(EQMOD_VERSION_MINOR 3)
+set(EQMOD_VERSION_MINOR 6)
 
 if (CYGWIN)
 add_definitions(-U__STRICT_ANSI__)
@@ -75,9 +75,9 @@ else(WITH_ALIGN)
   target_link_libraries(indi_eqmod_telescope ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 endif(WITH_ALIGN)
 
-if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 target_link_libraries(indi_eqmod_telescope rt)
-endif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm*")
+endif (CMAKE_SYSTEM_PROCESSOR MATCHES "arm*")
 
 install(TARGETS indi_eqmod_telescope RUNTIME DESTINATION bin )
 
@@ -90,3 +90,20 @@ endif(WITH_ALIGN_GEEHALEL)
 if(WITH_SCOPE_LIMITS)
   install( FILES  scope-limits/indi_eqmod_scope_limits_sk.xml DESTINATION ${INDI_DATA_DIR})
 endif(WITH_SCOPE_LIMITS)
+
+###################################################################################################
+#########################################  Tests  #################################################
+###################################################################################################
+
+find_package (GTest)
+find_package (GMock)
+IF (GTEST_FOUND)
+  IF (INDI_BUILD_UNITTESTS)
+    MESSAGE (STATUS  "Building unit tests")
+    ADD_SUBDIRECTORY(test)
+  ELSE (INDI_BUILD_UNITTESTS)
+    MESSAGE (STATUS  "Not building unit tests")
+  ENDIF (INDI_BUILD_UNITTESTS)
+ELSE()
+  MESSAGE (STATUS  "GTEST not found, not building unit tests")
+ENDIF (GTEST_FOUND)

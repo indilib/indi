@@ -1,126 +1,184 @@
 version: 2
+
 jobs:
   build_stretch:
     docker:
-      - image: jochym/indi-stretch
+      - image: jochym/indi-docker:stretch
     steps:
       - checkout
-      - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
-      - run: 
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
   build_buster:
     docker:
-      - image: jochym/indi-buster
+      - image: jochym/indi-docker:buster
     steps:
       - checkout
-      - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
-      - run: 
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
   build_artful:
     docker:
-      - image: jochym/indi-artful
+      - image: jochym/indi-docker:artful
     steps:
       - checkout
-      - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
-      - run: 
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
   build_bionic:
     docker:
-      - image: jochym/indi-bionic
+      - image: jochym/indi-docker:bionic
     steps:
       - checkout
-      - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
-      - run: 
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+ 
+  build_cosmic:
+    docker:
+      - image: jochym/indi-docker:cosmic
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
+ 
   build_clang4:
     docker:
-      - image: jochym/indi-artful
+      - image: jochym/indi-docker:artful
         environment:
           CC: clang
           CXX: clang++
     steps:
       - checkout
-      - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
-      - run: 
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
 
   build_clang5:
     docker:
-      - image: jochym/indi-bionic
+      - image: jochym/indi-docker:bionic
         environment:
           CC: clang
           CXX: clang++
     steps:
       - checkout
-      - run: 
-          name: Build core
-          command: .circleci/build-core.sh
-      - run: 
-          name: Build libs
-          command: .circleci/build-libs.sh
-      - run: 
-          name: Build 3rd party drivers
-          command: .circleci/build-3rdparty.sh
-      - run: 
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
           name: Run tests
           command: .circleci/run-tests.sh
+
+  build_fedora:
+    docker:
+      - image: jochym/indi-docker:fedora
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_centos:
+    docker:
+      - image: jochym/indi-docker:centos
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_trusty:
+    docker:
+      - image: jochym/indi-docker:trusty
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_opensuse:
+    docker:
+      - image: jochym/indi-docker:opensuse
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
+  build_arch:
+    docker:
+      - image: jochym/indi-docker:arch
+    steps:
+      - checkout
+      - run:
+          name: Build all
+          command: .circleci/build-all.sh
+      - run:
+          name: Run tests
+          command: .circleci/run-tests.sh
+
 
 workflows:
   version: 2
   build_all:
     jobs:
-      - build_stretch
-      - build_buster
-      - build_artful
       - build_bionic
-      - build_clang4
-      - build_clang5
+      - build_stretch
+      - build_fedora
+      - build_opensuse
+      - build_arch
+      - build_artful:
+          requires:
+            - build_bionic
+      - build_cosmic:
+          requires:
+            - build_bionic
+      - build_buster:
+          requires:
+            - build_stretch
+      - build_centos:
+          requires:
+            - build_fedora
+#      - build_trusty:
+#          requires:
+#            - build_bionic
+
+#      - build_clang4
+#      - build_clang5:
+#          requires:
+#            - build_clang4

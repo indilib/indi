@@ -30,16 +30,23 @@
 #include <termios.h>
 #include <unistd.h>
 
+#define RB_MAX_LEN    64
+
 const int LX200SS2000PC::ShortTimeOut = 2;  // In seconds.
 const int LX200SS2000PC::LongTimeOut  = 10; // In seconds.
 
 LX200SS2000PC::LX200SS2000PC(void) : LX200Generic()
 {
-    setVersion(1, 0);
-    setLX200Capability(0);
+    setVersion(1, 1);
 
-    SetTelescopeCapability(
-        TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION, 4);    
+    setLX200Capability(LX200_HAS_PULSE_GUIDING);
+
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC |
+                           TELESCOPE_CAN_GOTO |
+                           TELESCOPE_CAN_ABORT |
+                           TELESCOPE_HAS_TIME |
+                           TELESCOPE_CAN_PARK |
+                           TELESCOPE_HAS_LOCATION, 4);
 }
 
 bool LX200SS2000PC::initProperties()
@@ -51,12 +58,14 @@ bool LX200SS2000PC::initProperties()
     IUFillNumberVector(&SlewAccuracyNP, SlewAccuracyN, NARRAY(SlewAccuracyN), getDeviceName(), "Slew Accuracy", "",
                        OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
+    SetParkDataType(PARK_AZ_ALT);
+
     return true;
 }
 
 bool LX200SS2000PC::updateProperties()
 {
-    INDI::Telescope::updateProperties();
+    LX200Generic::updateProperties();
 
     if (isConnected())
     {
@@ -94,7 +103,7 @@ bool LX200SS2000PC::ISNewNumber(const char *dev, const char *name, double values
 
 bool LX200SS2000PC::saveConfigItems(FILE *fp)
 {
-    INDI::Telescope::saveConfigItems(fp);
+    LX200Generic::saveConfigItems(fp);
 
     IUSaveConfigNumber(fp, &SlewAccuracyNP);
 
@@ -118,27 +127,27 @@ bool LX200SS2000PC::updateTime(ln_date *utc, double utc_offset)
         result = false;
         struct ln_zonedate ltm;
         ln_date_to_zonedate(utc, &ltm, static_cast<long>(utc_offset * 3600.0 + 0.5));
-        DEBUGF(INDI::Logger::DBG_DEBUG, "New zonetime is %04d-%02d-%02d %02d:%02d:%06.3f (offset=%ld)", ltm.years,
+        LOGF_DEBUG("New zonetime is %04d-%02d-%02d %02d:%02d:%06.3f (offset=%ld)", ltm.years,
                ltm.months, ltm.days, ltm.hours, ltm.minutes, ltm.seconds, ltm.gmtoff);
         JD = ln_get_julian_day(utc);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", JD);
+        LOGF_DEBUG("New JD is %f", JD);
         if (setLocalTime(PortFD, ltm.hours, ltm.minutes, static_cast<int>(ltm.seconds + 0.5)) < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting local time.");
+            LOG_ERROR("Error setting local time.");
         }
         else if (!setCalenderDate(ltm.years, ltm.months, ltm.days))
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting local date.");
+            LOG_ERROR("Error setting local date.");
         }
         // Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which
         // is the opposite of the standard definition of UTC offset!
         else if (!setUTCOffset(-(utc_offset)))
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC Offset.");
+            LOG_ERROR("Error setting UTC Offset.");
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Time updated.");
+            LOG_INFO("Time updated.");
             result = true;
         }
     }
@@ -162,13 +171,13 @@ bool LX200SS2000PC::isSlewComplete()
 
 bool LX200SS2000PC::getCalendarDate(int &year, int &month, int &day)
 {
-    char date[16];
+    char date[RB_MAX_LEN];
     bool result = (getCommandString(PortFD, date, ":GC#") == 0);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "LX200SS2000PC::getCalendarDate():: Date string from telescope: %s", date);
+    LOGF_DEBUG("LX200SS2000PC::getCalendarDate():: Date string from telescope: %s", date);
     if (result)
     {
         result = (sscanf(date, "%d%*c%d%*c%d", &month, &day, &year) == 3); // Meade format is MM/DD/YY
-        DEBUGF(INDI::Logger::DBG_DEBUG, "setCalenderDate: Date retrieved from telescope: %02d/%02d/%02d.", month, day,
+        LOGF_DEBUG("setCalenderDate: Date retrieved from telescope: %02d/%02d/%02d.", month, day,
                year);
         if (result)
             year +=
@@ -181,7 +190,7 @@ bool LX200SS2000PC::getCalendarDate(int &year, int &month, int &day)
 bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
 {
     // This method differs from the setCalenderDate function in lx200driver.cpp
-    // in that it reads and checks the complete respons from the SkySensor2000PC.
+    // in that it reads and checks the complete response from the SkySensor2000PC.
     // In addition, this method only sends the date when it differs from the date
     // of the SkySensor2000PC because the resulting update of the planetary data
     // takes quite some time.
@@ -189,12 +198,11 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
     int ss_year = 0, ss_month = 0, ss_day = 0;
     const bool send_to_skysensor =
         (!getCalendarDate(ss_year, ss_month, ss_day) || year != ss_year || month != ss_month || day != ss_day);
-    DEBUGF(INDI::Logger::DBG_DEBUG,
-           "LX200SS2000PC::setCalenderDate(): Driver date %02d/%02d/%02d, SS2000PC date %02d/%02d/%02d.", month, day,
+    LOGF_DEBUG("LX200SS2000PC::setCalenderDate(): Driver date %02d/%02d/%02d, SS2000PC date %02d/%02d/%02d.", month, day,
            year, ss_month, ss_day, ss_year);
     if (send_to_skysensor)
     {
-        char buffer[64];
+        char buffer[RB_MAX_LEN];
         int nbytes_written = 0;
 
         snprintf(buffer, sizeof(buffer), ":SC %02d/%02d/%02d#", month, day, (year % 100));
@@ -202,21 +210,21 @@ bool LX200SS2000PC::setCalenderDate(int year, int month, int day)
         if (result)
         {
             int nbytes_read = 0;
-            result          = (tty_read(PortFD, buffer, 1, ShortTimeOut, &nbytes_read) == TTY_OK && nbytes_read == 1 &&
+            result          = (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', ShortTimeOut, &nbytes_read) == TTY_OK && nbytes_read == 1 &&
                       buffer[0] == '1');
             if (result)
             {
-                if (tty_read_section(PortFD, buffer, '#', ShortTimeOut, &nbytes_read) != TTY_OK ||
+                if (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', ShortTimeOut, &nbytes_read) != TTY_OK ||
                     strncmp(buffer, "Updating        planetary data#", 24) != 0)
                 {
-                    DEBUGF(INDI::Logger::DBG_ERROR,
+                    LOGF_ERROR(
                            "LX200SS2000PC::setCalenderDate(): Received unexpected first line '%s'.", buffer);
                     result = false;
                 }
-                else if (tty_read_section(PortFD, buffer, '#', LongTimeOut, &nbytes_read) != TTY_OK &&
+                else if (tty_nread_section(PortFD, buffer, RB_MAX_LEN, '#', LongTimeOut, &nbytes_read) != TTY_OK &&
                          strncmp(buffer, "                              #", 24) != 0)
                 {
-                    DEBUGF(INDI::Logger::DBG_ERROR,
+                    LOGF_ERROR(
                            "LX200SS2000PC::setCalenderDate(): Received unexpected second line '%s'.", buffer);
                     result = false;
                 }
@@ -233,7 +241,7 @@ bool LX200SS2000PC::setUTCOffset(double offset)
     const bool send_to_skysensor = (getUTCOffset(PortFD, &ss_timezone) != 0 || offset != ss_timezone);
     if (send_to_skysensor)
     {
-        char temp_string[12];
+        char temp_string[RB_MAX_LEN];
         snprintf(temp_string, sizeof(temp_string), ":SG %+03d#", static_cast<int>(offset));
         result = (setStandardProcedure(PortFD, temp_string) == 0);
     }
@@ -250,31 +258,34 @@ bool LX200SS2000PC::updateLocation(double latitude, double longitude, double ele
     if (latitude == 0.0 && longitude == 0.0)
         return true;
 
-    if (setLatitude(latitude) < 0)
+    if (setSiteLatitude(PortFD, latitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site latitude coordinates");
+        LOG_ERROR("Error setting site latitude coordinates");
     }
 
-    if (setLongitude(longitude) < 0)
+    if (setSiteLongitude(PortFD, 360.0 - longitude) < 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error setting site longitude coordinates");
+        LOG_ERROR("Error setting site longitude coordinates");
         return false;
     }
 
-    char slat[32], slong[32];
+    char slat[RB_MAX_LEN], slong[RB_MAX_LEN];
     fs_sexa(slat, latitude, 3, 3600);
     fs_sexa(slong, longitude, 4, 3600);
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Site location updated to Latitude: %.32s - Longitude: %.32s", slat, slong);
+    LOGF_INFO("Site location updated to Latitude: %.32s - Longitude: %.32s", slat, slong);
 
     return true;
 }
 
-int LX200SS2000PC::setLatitude(double Lat)
+// This override is needed, because the Sky Sensor 2000 PC requires a space
+// between the command its argument, unlike the 'standard' LX200 mounts, which
+// does not work on this mount.
+int LX200SS2000PC::setSiteLatitude(int fd, double Lat)
 {
     int d, m, s;
     char sign;
-    char temp_string[32];
+    char temp_string[RB_MAX_LEN];
 
     if (Lat > 0)
         sign = '+';
@@ -283,63 +294,240 @@ int LX200SS2000PC::setLatitude(double Lat)
 
     getSexComponents(Lat, &d, &m, &s);
 
-    snprintf(temp_string, sizeof(temp_string), ":St %c%02d*%02d:%02d#", sign, abs(d), m, s);
+    snprintf(temp_string, sizeof(temp_string), ":St %c%03d*%02d#", sign, d, m);
 
-    return (LX200SS2000PC::sendCommand(PortFD, temp_string));
+    return setStandardProcedure(fd, temp_string);
 }
 
-int LX200SS2000PC::setLongitude(double Long)
+// This override is needed, because the Sky Sensor 2000 PC requires a space
+// between the command its argument, unlike the 'standard' LX200 mounts, which
+// does not work on this mount.
+int LX200SS2000PC::setSiteLongitude(int fd, double Long)
 {
     int d, m, s;
-    char temp_string[32];
-    double final_longitude;
+    char temp_string[RB_MAX_LEN];
 
-    if (Long > 180)
-        final_longitude = Long - 360.0;
-    else
-        final_longitude = Long;
+    getSexComponents(Long, &d, &m, &s);
 
-    getSexComponents(final_longitude, &d, &m, &s);
+    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d#", d, m);
 
-    snprintf(temp_string, sizeof(temp_string), ":Sg %03d*%02d:%02d#", abs(d), m, s);
-
-    return (LX200SS2000PC::sendCommand(PortFD, temp_string));
+    return setStandardProcedure(fd, temp_string);
 }
 
-int LX200SS2000PC::sendCommand(int fd, const char *data)
+bool LX200SS2000PC::Park()
 {
-    char result[2];
-    int error_type;
-    int nbytes_write = 0, nbytes_read = 0;
+    double parkAz  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
 
-    tcflush(fd, TCIFLUSH);
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAz, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
-    if ((error_type = tty_write_string(fd, data, &nbytes_write)) != TTY_OK)
+    if (isSimulation())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Error writing string to tty: %s", data);
-        return error_type;
+        ln_lnlat_posn observer;
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+
+        horizontalPos.az = parkAz + 180;
+        if (horizontalPos.az > 360)
+            horizontalPos.az -= 360;
+        horizontalPos.alt = parkAlt;
+
+        ln_equ_posn equatorialPos;
+
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        Goto(equatorialPos.ra / 15.0, equatorialPos.dec);
+    }
+    else
+    {
+        if (setObjAz(PortFD, parkAz) < 0 || setObjAlt(PortFD, parkAlt) < 0)
+        {
+            LOG_ERROR("Error setting Az/Alt.");
+            return false;
+        }
+
+        int err = 0;
+
+        /* Slew reads the '0', that is not the end of the slew */
+        if ((err = Slew(PortFD)))
+        {
+            LOGF_ERROR("Error Slewing to Az %s - Alt %s", AzStr, AltStr);
+            slewError(err);
+            return false;
+        }
     }
 
-    tcflush(fd, TCIFLUSH);
+    EqNP.s     = IPS_BUSY;
+    TrackState = SCOPE_PARKING;
+    LOG_INFO("Parking is in progress...");
 
-    error_type = tty_read(fd, result, 1, ShortTimeOut, &nbytes_read);
-    if (error_type != TTY_OK) 
-    {
-        DEBUGF(INDI::Logger::DBG_SESSION, "error_type %d, result %c", error_type, result[0]);
-        return error_type;
-    }
-
-    if (nbytes_read < 1)
-    {
-        DEBUGF(INDI::Logger::DBG_SESSION, "nbytes less than 1 %d", 0);
-        return error_type;
-    }
-
-    if (result[0] == '0')
-    {
-        return -1;
-    }
-
-    return 0;
+    return true;
 }
+
+bool LX200SS2000PC::UnPark()
+{
+    // First we unpark astrophysics
+    if (isSimulation() == false)
+    {
+        if (setAlignmentMode(PortFD, LX200_ALIGN_POLAR) < 0)
+        {
+            LOG_ERROR("UnParking Failed.");
+            return false;
+        }
+    }
+
+    // Then we sync with to our last stored position
+    double parkAz  = GetAxis1Park();
+    double parkAlt = GetAxis2Park();
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAz, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+    LOGF_DEBUG("Syncing to parked coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    if (isSimulation())
+    {
+        ln_lnlat_posn observer;
+        observer.lat = LocationN[LOCATION_LATITUDE].value;
+        observer.lng = LocationN[LOCATION_LONGITUDE].value;
+        if (observer.lng > 180)
+            observer.lng -= 360;
+
+        ln_hrz_posn horizontalPos;
+        // Libnova south = 0, west = 90, north = 180, east = 270
+
+        horizontalPos.az = parkAz + 180;
+        if (horizontalPos.az > 360)
+            horizontalPos.az -= 360;
+        horizontalPos.alt = parkAlt;
+
+        ln_equ_posn equatorialPos;
+
+        ln_get_equ_from_hrz(&horizontalPos, &observer, ln_get_julian_from_sys(), &equatorialPos);
+
+        currentRA = equatorialPos.ra / 15.0;
+        currentDEC= equatorialPos.dec;
+    }
+    else
+    {
+        if (setObjAz(PortFD, parkAz) < 0 || (setObjAlt(PortFD, parkAlt)) < 0)
+        {
+            LOG_ERROR("Error setting Az/Alt.");
+            return false;
+        }
+
+        char syncString[256];
+        if (::Sync(PortFD, syncString) < 0)
+        {
+            LOG_WARN("Sync failed.");
+            return false;
+        }
+    }
+
+    SetParked(false);
+    return true;
+}
+
+bool LX200SS2000PC::SetCurrentPark()
+{
+    ln_hrz_posn horizontalPos;
+    // Libnova south = 0, west = 90, north = 180, east = 270
+
+    ln_lnlat_posn observer;
+    observer.lat = LocationN[LOCATION_LATITUDE].value;
+    observer.lng = LocationN[LOCATION_LONGITUDE].value;
+    if (observer.lng > 180)
+        observer.lng -= 360;
+
+    ln_equ_posn equatorialPos;
+    equatorialPos.ra  = currentRA * 15;
+    equatorialPos.dec = currentDEC;
+    ln_get_hrz_from_equ(&equatorialPos, &observer, ln_get_julian_from_sys(), &horizontalPos);
+
+    double parkAZ = horizontalPos.az - 180;
+    if (parkAZ < 0)
+        parkAZ += 360;
+    double parkAlt = horizontalPos.alt;
+
+    char AzStr[16], AltStr[16];
+    fs_sexa(AzStr, parkAZ, 2, 3600);
+    fs_sexa(AltStr, parkAlt, 2, 3600);
+
+    LOGF_DEBUG("Setting current parking position to coordinates Az (%s) Alt (%s)...", AzStr, AltStr);
+
+    SetAxis1Park(parkAZ);
+    SetAxis2Park(parkAlt);
+
+    return true;
+}
+
+bool LX200SS2000PC::SetDefaultPark()
+{
+    // Az = 0 for North hemisphere
+    SetAxis1Park(LocationN[LOCATION_LATITUDE].value > 0 ? 0 : 180);
+
+    // Alt = Latitude
+    SetAxis2Park(LocationN[LOCATION_LATITUDE].value);
+
+    return true;
+}
+
+bool LX200SS2000PC::ReadScopeStatus()
+{
+    if (!isConnected())
+        return false;
+
+    if (isSimulation())
+    {
+        mountSim();
+        return true;
+    }
+
+    //if (check_lx200_connection(PortFD))
+    //return false;
+
+    if (TrackState == SCOPE_SLEWING)
+    {
+        // Check if LX200 is done slewing
+        if (isSlewComplete())
+        {
+            // Set slew mode to "Centering"
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[SLEW_CENTERING].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, nullptr);
+
+            TrackState = SCOPE_TRACKING;
+            LOG_INFO("Slew is complete. Tracking...");
+        }
+    }
+    else if (TrackState == SCOPE_PARKING)
+    {
+        if (isSlewComplete())
+        {
+            SetParked(true);
+
+            setAlignmentMode(PortFD, LX200_ALIGN_LAND);
+        }
+    }
+
+    if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        return false;
+    }
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
+}
+
 

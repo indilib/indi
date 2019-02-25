@@ -89,10 +89,10 @@ bool MBox::initProperties()
 {
     INDI::Weather::initProperties();
 
-    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, -20, 40);
-    addParameter("WEATHER_BAROMETER", "Barometer (mbar)", 20, 32.5, 20, 32.5);
-    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 0, 100);
-    addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 0, 100);
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);
+    addParameter("WEATHER_BAROMETER", "Barometer (mbar)", 20, 32.5, 15);
+    addParameter("WEATHER_HUMIDITY", "Humidity %", 0, 100, 15);
+    addParameter("WEATHER_DEWPOINT", "Dew Point (C)", 0, 100, 15);
 
     setCriticalParameter("WEATHER_TEMPERATURE");
 
@@ -183,7 +183,7 @@ IPState MBox::updateWeather()
         if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             return IPS_ALERT;
         }
 
@@ -193,11 +193,11 @@ IPState MBox::updateWeather()
     // Remove \r\n
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     if (verifyCRC(response) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "CRC check failed!");
+        LOG_ERROR("CRC check failed!");
         return IPS_ALERT;
     }
 
@@ -209,73 +209,73 @@ IPState MBox::updateWeather()
     char *token = std::strtok(response, ",");
 
     // Sensor Type: Pressure
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // P Sensor Value
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid response.");
+        LOG_ERROR("Invalid response.");
         return IPS_ALERT;
     }
     // Convert Pascal to mbar
     setParameterValue("WEATHER_BAROMETER", atof(token)/100.0);
 
     // Sensor Units (Pascal)
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Sensor ID
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // Sensor Type: Temperature
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // T Sensor value Temperature
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid response.");
+        LOG_ERROR("Invalid response.");
         return IPS_ALERT;
     }
     setParameterValue("WEATHER_TEMPERATURE", atof(token));
 
     // Sensor Units (C)
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Sensor ID
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // Sensor Type: Humidity
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Humidity
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid response.");
+        LOG_ERROR("Invalid response.");
         return IPS_ALERT;
     }
     setParameterValue("WEATHER_HUMIDITY", atof(token));
 
     // Sensor Units (Percentage)
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Sensor ID
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // Sensor Type: Dew Point
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Dew Point
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid response.");
+        LOG_ERROR("Invalid response.");
         return IPS_ALERT;
     }
     setParameterValue("WEATHER_DEWPOINT", atof(token));
 
     // Sensor Units (C)
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Sensor ID
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // Firmware
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (strcmp(token, FirmwareT[0].text))
     {
         IUSaveText(&FirmwareT[0], token);
@@ -302,7 +302,7 @@ MBox::AckResponse MBox::ack()
         if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             return ACK_ERROR;
         }
 
@@ -312,7 +312,7 @@ MBox::AckResponse MBox::ack()
             if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
             {
                 tty_error_msg(rc, errstr, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+                LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
                 return ACK_ERROR;
             }
         }
@@ -321,7 +321,7 @@ MBox::AckResponse MBox::ack()
     // Remove \r\n
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     if (strstr(response, "MBox"))
         return ACK_OK_STARTUP;
@@ -381,7 +381,7 @@ bool MBox::ISNewSwitch(const char *dev, const char *name, ISState *states, char 
             {
                 ResetSP.s = IPS_OK;
                 IDSetSwitch(&ResetSP, nullptr);
-                DEBUG(INDI::Logger::DBG_SESSION, "Calibration values are reset.");
+                LOG_INFO("Calibration values are reset.");
 
                 CalibrationN[CAL_PRESSURE].value = 0;
                 CalibrationN[CAL_TEMPERATURE].value = 0;
@@ -411,7 +411,7 @@ bool MBox::getCalibration(bool sendCommand)
     char response[MBOX_BUF];
 
     if (sendCommand)
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+        LOGF_DEBUG("CMD <%s>", command);
 
     if (isSimulation())
     {
@@ -427,7 +427,7 @@ bool MBox::getCalibration(bool sendCommand)
             if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
             {
                 tty_error_msg(rc, errstr, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_ERROR, "%s write error: %s.", __FUNCTION__, errstr);
+                LOGF_ERROR("%s write error: %s.", __FUNCTION__, errstr);
                 return false;
             }
         }
@@ -435,7 +435,7 @@ bool MBox::getCalibration(bool sendCommand)
         if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s read error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s read error: %s.", __FUNCTION__, errstr);
             return false;
         }
 
@@ -445,7 +445,7 @@ bool MBox::getCalibration(bool sendCommand)
             if ((rc = tty_read_section(PortFD, response, 0xA, MBOX_TIMEOUT, &nbytes_read)) != TTY_OK)
             {
                 tty_error_msg(rc, errstr, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_ERROR, "%s read error: %s.", __FUNCTION__, errstr);
+                LOGF_ERROR("%s read error: %s.", __FUNCTION__, errstr);
                 return false;
             }
         }
@@ -454,11 +454,11 @@ bool MBox::getCalibration(bool sendCommand)
     // Remove \r\n
     response[nbytes_read - 2] = '\0';
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", response);
+    LOGF_DEBUG("RES <%s>", response);
 
     if (verifyCRC(response) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "CRC check failed!");
+        LOG_ERROR("CRC check failed!");
         return false;
     }
 
@@ -470,35 +470,35 @@ bool MBox::getCalibration(bool sendCommand)
     char *token = std::strtok(response, ",");
 
     // P
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
 
     // Pressure
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid response.");
+        LOG_ERROR("Invalid response.");
         return false;
     }
     CalibrationN[CAL_PRESSURE].value = atof(token)/10.0;
 
     // T
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Temperature
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid response.");
+        LOG_ERROR("Invalid response.");
         return false;
     }
     CalibrationN[CAL_TEMPERATURE].value = atof(token)/10.0;
 
     // H
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     // Humidity
-    token = std::strtok(NULL, ",");
+    token = std::strtok(nullptr, ",");
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid response.");
+        LOG_ERROR("Invalid response.");
         return false;
     }
     CalibrationN[CAL_HUMIDITY].value = atof(token)/10.0;
@@ -517,7 +517,7 @@ bool MBox::setCalibration(CalibrationType type)
         // Pressure.
         snprintf(command, 16, ":calp,%d*", static_cast<int32_t>(CalibrationN[CAL_PRESSURE].value*10.0));
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+        LOGF_DEBUG("CMD <%s>", command);
 
         if (isSimulation() == false)
         {
@@ -526,7 +526,7 @@ bool MBox::setCalibration(CalibrationType type)
             if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
             {
                 tty_error_msg(rc, errstr, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+                LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
                 return false;
             }
 
@@ -537,7 +537,7 @@ bool MBox::setCalibration(CalibrationType type)
         // Temperature
         snprintf(command, 16, ":calt,%d*", static_cast<int32_t>(CalibrationN[CAL_TEMPERATURE].value*10.0));
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+        LOGF_DEBUG("CMD <%s>", command);
 
         if (isSimulation() == false)
         {
@@ -546,7 +546,7 @@ bool MBox::setCalibration(CalibrationType type)
             if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
             {
                 tty_error_msg(rc, errstr, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+                LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
                 return false;
             }
         }
@@ -556,7 +556,7 @@ bool MBox::setCalibration(CalibrationType type)
         // Humidity
         snprintf(command, 16, ":calh,%d*", static_cast<int32_t>(CalibrationN[CAL_HUMIDITY].value*10.0));
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+        LOGF_DEBUG("CMD <%s>", command);
 
         if (isSimulation() == false)
         {
@@ -565,7 +565,7 @@ bool MBox::setCalibration(CalibrationType type)
             if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
             {
                 tty_error_msg(rc, errstr, MAXRBUF);
-                DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+                LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
                 return false;
             }
 
@@ -582,7 +582,7 @@ bool MBox::resetCalibration()
 
     const char *command = ":calreset*";
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", command);
+    LOGF_DEBUG("CMD <%s>", command);
 
     if (isSimulation() == false)
     {
@@ -591,7 +591,7 @@ bool MBox::resetCalibration()
         if ((rc = tty_write(PortFD, command, strlen(command), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(rc, errstr, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+            LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
             return false;
         }
     }
@@ -610,7 +610,7 @@ bool MBox::verifyCRC(const char *response)
     char *token = std::strtok(checksum_string, "*");
 
     // Checksum string
-    token = std::strtok(NULL, "*");
+    token = std::strtok(nullptr, "*");
     // Hex value
     uint8_t response_checksum_val = std::stoi(token, 0, 16);
     // Terminate it

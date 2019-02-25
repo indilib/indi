@@ -35,6 +35,7 @@
 #include <memory>
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 #include <string.h>
 #include <pthread.h>
 
@@ -97,7 +98,7 @@ bool GPSNMEA::initProperties()
     // We init parent properties first
     INDI::GPS::initProperties();
 
-    IUFillText(&GPSstatusT[0], "GPS_FIX", "Fix Mode", NULL);
+    IUFillText(&GPSstatusT[0], "GPS_FIX", "Fix Mode", nullptr);
     IUFillTextVector(&GPSstatusTP, GPSstatusT, 1, getDeviceName(), "GPS_STATUS", "GPS Status", MAIN_CONTROL_TAB, IP_RO,
                      60, IPS_IDLE);
 
@@ -114,7 +115,7 @@ bool GPSNMEA::initProperties()
 
     addDebugControl();
 
-    setDriverInterface(AUX_INTERFACE);
+    setDriverInterface(GPS_INTERFACE | AUX_INTERFACE);
 
     return true;
 }
@@ -162,7 +163,7 @@ bool GPSNMEA::isNMEA()
     int tty_rc = tty_nread_section(PortFD, line, MINMEA_MAX_LENGTH, 0xA, 3, &bytes_read);
     if (tty_rc < 0)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error getting device readings: %s", strerror(errno));
+        LOGF_ERROR("Error getting device readings: %s", strerror(errno));
         return false;
     }
     line[bytes_read] = '\0';
@@ -189,7 +190,12 @@ void GPSNMEA::parseNEMA()
         if (tty_rc < 0)
         {
             if (tty_rc == TTY_OVERFLOW)
-                continue;
+            {
+                LOG_WARN("Overflow detected. Possible remote GPS disconnection. Disconnecting driver...");
+                INDI::GPS::setConnected(false);
+                updateProperties();
+                break;
+            }
             else
             {
                 char errmsg[MAXRBUF];
@@ -206,7 +212,7 @@ void GPSNMEA::parseNEMA()
                     }
                     else if (timeoutCounter++ > MAX_TIMEOUT_COUNT)
                     {
-                        DEBUG(INDI::Logger::DBG_WARNING, "Timeout limit reached, reconnecting...");
+                        LOG_WARN("Timeout limit reached, reconnecting...");
 
                         tcpConnection->Disconnect();
                         // sleep for 5 seconds
@@ -221,7 +227,7 @@ void GPSNMEA::parseNEMA()
         }
         line[bytes_read] = '\0';
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s", line);
+        LOGF_DEBUG("%s", line);
         switch (minmea_sentence_id(line, false))
         {
         case MINMEA_SENTENCE_RMC:
@@ -248,6 +254,10 @@ void GPSNMEA::parseNEMA()
                     strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
                     IUSaveText(&TimeT[0], ts);
 
+                    #ifdef __linux__
+                    stime(&raw_time);
+                    #endif
+
                     local = localtime(&raw_time);
                     snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
                     IUSaveText(&TimeT[1], ts);
@@ -255,13 +265,13 @@ void GPSNMEA::parseNEMA()
                     pthread_mutex_lock(&lock);
                     locationPending = false;
                     timePending = false;
-                    DEBUG(INDI::Logger::DBG_DEBUG, "Threaded Location and Time updates complete.");
+                    LOG_DEBUG("Threaded Location and Time updates complete.");
                     pthread_mutex_unlock(&lock);
                 }
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_DEBUG, "$xxRMC sentence is not parsed");
+                LOG_DEBUG("$xxRMC sentence is not parsed");
             }
         }
         break;
@@ -298,6 +308,10 @@ void GPSNMEA::parseNEMA()
                     strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
                     IUSaveText(&TimeT[0], ts);
 
+                    #ifdef __linux__
+                    stime(&raw_time);
+                    #endif
+
                     local = localtime(&raw_time);
                     snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
                     IUSaveText(&TimeT[1], ts);
@@ -305,13 +319,13 @@ void GPSNMEA::parseNEMA()
                     pthread_mutex_lock(&lock);
                     timePending = false;
                     locationPending = false;
-                    DEBUG(INDI::Logger::DBG_DEBUG, "Threaded Location and Time updates complete.");
+                    LOG_DEBUG("Threaded Location and Time updates complete.");
                     pthread_mutex_unlock(&lock);
                 }
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_DEBUG, "$xxGGA sentence is not parsed");
+                LOG_DEBUG("$xxGGA sentence is not parsed");
             }
         } break;
 
@@ -340,7 +354,7 @@ void GPSNMEA::parseNEMA()
             }
             else
             {
-              DEBUG(INDI::Logger::DBG_DEBUG, "$xxGSA sentence is not parsed.");
+              LOG_DEBUG("$xxGSA sentence is not parsed.");
             }
         }
             break;
@@ -349,7 +363,7 @@ void GPSNMEA::parseNEMA()
             struct minmea_sentence_zda frame;
             if (minmea_parse_zda(&frame, line))
             {
-                DEBUGF(INDI::Logger::DBG_DEBUG, "$xxZDA: %d:%d:%d %02d.%02d.%d UTC%+03d:%02d",
+                LOGF_DEBUG("$xxZDA: %d:%d:%d %02d.%02d.%d UTC%+03d:%02d",
                        frame.time.hours,
                        frame.time.minutes,
                        frame.time.seconds,
@@ -370,28 +384,32 @@ void GPSNMEA::parseNEMA()
                 strftime(ts, 32, "%Y-%m-%dT%H:%M:%S", utc);
                 IUSaveText(&TimeT[0], ts);
 
+                #ifdef __linux__
+                stime(&raw_time);
+                #endif
+
                 local = localtime(&raw_time);
                 snprintf(ts, 32, "%4.2f", (local->tm_gmtoff / 3600.0));
                 IUSaveText(&TimeT[1], ts);
 
                 pthread_mutex_lock(&lock);
                 timePending = false;
-                DEBUG(INDI::Logger::DBG_DEBUG, "Threaded Time update complete.");
+                LOG_DEBUG("Threaded Time update complete.");
                 pthread_mutex_unlock(&lock);
             }
             else {
-                DEBUG(INDI::Logger::DBG_DEBUG, "$xxZDA sentence is not parsed");
+                LOG_DEBUG("$xxZDA sentence is not parsed");
             }
         } break;
 
         case MINMEA_INVALID:
         {
-            //DEBUG(INDI::Logger::DBG_WARNING, "$xxxxx sentence is not valid");
+            //LOG_WARN("$xxxxx sentence is not valid");
         } break;
 
         default:
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "$xxxxx sentence is not parsed");
+            LOG_DEBUG("$xxxxx sentence is not parsed");
         }
             break;
         }

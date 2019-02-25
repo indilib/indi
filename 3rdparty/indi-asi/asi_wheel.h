@@ -49,5 +49,5 @@ class ASIWHEEL : public INDI::FilterWheel
     virtual void TimerHit() override;
 
 private:
-  int fw_id;
+    int fw_id = -1;
 };

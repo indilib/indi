@@ -1,13 +1,13 @@
 /**
  * Copyright (C) 2015 Ben Gilsrud
- * 
+ *
  * Modifications and extensions for Meade DSI III Pro by G. Schmidt (gs)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -26,8 +26,7 @@
 #include <iostream>
 #include <math.h>
 #include <arpa/inet.h>
-
-const int POLLMS = 250;
+#include <unistd.h>
 
 std::unique_ptr<DSICCD> dsiCCD(new DSICCD());
 
@@ -73,7 +72,7 @@ DSICCD::DSICCD()
 {
     InExposure = false;
     capturing  = false;
-    dsi        = NULL;
+    dsi        = nullptr;
 
     setVersion(DSI_VERSION_MAJOR, DSI_VERSION_MINOR);
 }
@@ -86,40 +85,47 @@ bool DSICCD::Connect()
     uint32_t cap = 0;
     std::string ccd;
 
-    dsi = DSI::DeviceFactory::getInstance(NULL);
+    dsi = DSI::DeviceFactory::getInstance(nullptr);
+#ifdef __APPLE__
+    if (!dsi)
+    {
+        sleep(2);
+        dsi = DSI::DeviceFactory::getInstance(nullptr);
+    }
+#endif
     if (!dsi)
     {
         /* The vendor and product ID for all DSI's (I/II/III) are the same.
             * When the Cypress FX2 firmware hasn't been loaded, the PID will
             * be 0x0100. Once the fw is loaded, the PID becomes 0x0101.
             */
-        DEBUG(INDI::Logger::DBG_SESSION, "Unable to find DSI. Has the firmware been loaded?");
+        LOG_INFO("Unable to find DSI. Has the firmware been loaded?");
         return false;
     }
     ccd = dsi->getCcdChipName();
     if (ccd == "ICX254AL")
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Found a DSI Pro!");
+        LOG_INFO("Found a DSI Pro!");
     }
     else if (ccd == "ICX429ALL")
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Found a DSI Pro II!");
+        LOG_INFO("Found a DSI Pro II!");
     }
     else if (ccd == "ICX429AKL")
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Found a DSI Color II!");
+        LOG_INFO("Found a DSI Color II!");
     }
     else if (ccd == "ICX404AK")
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Found a DSI Color!");
+        LOG_INFO("Found a DSI Color!");
     }
     else if (ccd == "ICX285AL")
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Found a DSI Pro III!");
+        LOG_INFO("Found a DSI Pro III!");
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Found a DSI with an unknown CCD: %s", ccd.c_str());
+        LOGF_INFO("Found a DSI with an unknown CCD: %s", ccd.c_str());
     }
 
     cap |= CCD_CAN_ABORT;
@@ -135,7 +141,7 @@ bool DSICCD::Connect()
     if (dsi->hasTempSensor())
     {
         CCDTempN[0].value = dsi->ccdTemp();
-        IDSetNumber(&CCDTempNP, NULL);
+        IDSetNumber(&CCDTempNP, nullptr);
     }
 
     return true;
@@ -146,13 +152,10 @@ bool DSICCD::Connect()
 *******************************************************************************/
 bool DSICCD::Disconnect()
 {
-    if (dsi)
-    {
-        delete dsi;
-        dsi = NULL;
-    }
+    delete dsi;
+    dsi = nullptr;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Successfully disconnected!");
+    LOG_INFO("Successfully disconnected!");
     return true;
 }
 
@@ -187,7 +190,7 @@ bool DSICCD::initProperties()
     IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "OFFSET", "Offset", IMAGE_SETTINGS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
-    /* Vdd on during exposure property (gs) 
+    /* Vdd on during exposure property (gs)
        Actually, Meade envisage leaves Vdd always on for DSI III during
        exposure. However, this results in a significant amount of amp glow.
        Vdd auto mode also seems not to work properly for the DSI III.
@@ -212,6 +215,8 @@ bool DSICCD::initProperties()
        for taking bias frames.                                                */
 
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 3600, 1, false);
+
+    setDefaultPollingPeriod(250);
 
     return true;
 }
@@ -282,7 +287,7 @@ bool DSICCD::UpdateCCDBin(int hor, int ver)
     else
     {
         IDMessage(getDeviceName(), "Only 1x1 and 2x2 binning is supported by DSI III.");
-        DEBUG(INDI::Logger::DBG_SESSION, "Only 1x1 and 2x2 binning is supported by DSI III.");
+        LOG_INFO("Only 1x1 and 2x2 binning is supported by DSI III.");
         return false;
     }
 }
@@ -304,14 +309,14 @@ bool DSICCD::StartExposure(float duration)
     PrimaryCCD.setBPP(dsi->getReadBpp() * 8);
     PrimaryCCD.setExposureDuration(duration);
 
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
 
     InExposure = true;
-    DEBUG(INDI::Logger::DBG_SESSION, "Exposure has begun.");
+    LOG_INFO("Exposure has begun.");
 
     /* Adjust gain and offset (gs)
        The gain is normalized in the same way as in Meade envisage (0..100)
-       while the offset takes the values (-50..50) instead of (0..10) to 
+       while the offset takes the values (-50..50) instead of (0..10) to
        reflect that positive and negative offsets may be set                  */
 
     gain   = (int)round(GainN[0].value / 100.0 * 63);   // normalize 100% -> 63
@@ -342,7 +347,7 @@ float DSICCD::CalcTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
                 (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
@@ -363,7 +368,7 @@ bool DSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             IUUpdateNumber(&GainNP, values, names, n);
             GainNP.s = IPS_OK;
-            IDSetNumber(&GainNP, NULL);
+            IDSetNumber(&GainNP, nullptr);
 
             return true;
         }
@@ -372,7 +377,7 @@ bool DSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
         {
             IUUpdateNumber(&OffsetNP, values, names, n);
             OffsetNP.s = IPS_OK;
-            IDSetNumber(&OffsetNP, NULL);
+            IDSetNumber(&OffsetNP, nullptr);
 
             return true;
         }
@@ -383,7 +388,7 @@ bool DSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 }
 
 /*******************************************************************************
-** Client is asking us to set a new switch 
+** Client is asking us to set a new switch
 *******************************************************************************/
 
 bool DSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -437,7 +442,7 @@ void DSICCD::TimerHit()
         if (!dsi->ExposureInProgress())
         {
             /* We're done exposing */
-            DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+            LOG_INFO("Exposure done, downloading image...");
 
             // Set exposure left to zero
             PrimaryCCD.setExposureLeft(0);
@@ -455,7 +460,7 @@ void DSICCD::TimerHit()
             if (dsi->hasTempSensor())
             {
                 CCDTempN[0].value = dsi->ccdTemp();
-                IDSetNumber(&CCDTempNP, NULL);
+                IDSetNumber(&CCDTempNP, nullptr);
             }
         }
         else
@@ -493,6 +498,7 @@ void DSICCD::grabImage()
     uint16_t *buf = nullptr;
     int x = 0, y = 0;
 
+    std::unique_lock<std::mutex> guard(ccdBufferLock);
     // Let's get a pointer to the frame buffer
     uint8_t *image = PrimaryCCD.getFrameBuffer();
 
@@ -506,9 +512,10 @@ void DSICCD::grabImage()
     }
     catch (...)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Image download failed!");
+        LOG_INFO("Image download failed!");
         return;
     }
+    guard.unlock();
 
     for (y = 0; y < height; ++y)
     {
@@ -523,7 +530,7 @@ void DSICCD::grabImage()
     // Let INDI::CCD know we're done filling the image buffer
     ExposureComplete(&PrimaryCCD);
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Exposure complete.");
+    LOG_INFO("Exposure complete.");
 }
 
 /******************************************************************************/

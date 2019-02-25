@@ -1,3 +1,159 @@
+From 1.7.4 to 1.7.5
+
+      + New Altair Cameras driver.
+      + New Touptek Cameras.
+      + New standalone QHY CFW driver.
+      + New manual filter wheel driver.
+      + New OpenWeatherMap driver.
+      + New OnFocus driver.
+      + Support for AZ-GTi driver via EQMod.
+      + Support for Gemini SnapCap driver.
+      + Support for FocusCube.
+      + limesdr (Software Defined Radio) driver fixes & improvements.
+      + MGEN driver updates and fixes.
+      + RTL-SDR driver updates and fixes.
+      + arduino driver updates and fixes.
+      + Duplicate models handling in multiple drivers.
+      + Add fallback shutters speed for some GPhoto cameras.
+      + Add pier side support to Celestron and Synscan drivers.
+      + Add focus limits to SestoSenso driver.
+      + Major update to USBFocusV3 driver.
+      + Added stream struct and some astronomic helpers to libdspau.
+      + OnStep fixes and updates.
+      + FocusLynx refactor and updates.
+      + Geographic location update fixes in mount driver.
+      + Parking support in SS2000PC mount.
+      + TCFS refactoring and fixes.
+      + WeatherWatcher socket bug fixes.
+      + Fix Synscan J2000 epoch issue.
+      + Fix DSUSB GPhoto bug when capturing short exposures.
+      + Add option to force BULB by default in GPhoto driver.
+      + Add XPIXSX and YPIXSX for logical binned pixel size.
+      + Fix problem with handling XML entities between clients, servers, and drivers.
+      + Fix feature stacking streamed frames to simulate absolute exposure.
+      + Fix iOptron guide rates.
+      + Fix iOptron calender setting.
+      + Removed libapogee libboost dependency.
+      + Removed Zulu prefix in FITS header timestamp.
+      + Updated Morovian SDK (0.3.5)
+      + Updated QHY SDK (4.0.1)
+      + Updated ZWO SDK (1.13.0930)
+
+From 1.7.2 to 1.7.4
+
+      + New Celestron Nightscape 8300 CCD driver.
+      + New INDI FFMPEG-based Webcam driver.
+      + New ZWO USB2ST4 driver.
+      + New Arduino ST4 driver.
+      + New Weather Watcher driver.
+      + Optec IFW to support TCP/IP.
+      + Added color support for OGV recorder.
+      + Pulse Command now turned on by default.      
+      + Support for Park Positions 1/2/3/4 in Astrophsyics driver. Fixed pulse guiding.
+      + Add DSLR temperature reporting.
+      + Add support for GRBG pixel layout (8-bit) used by things such as NexImage 5.
+      + Improved Pulse Guiding in EQMod.
+      + Fixed EQMod DEC Inversion which caused issues with PHD2.
+      + Fixex checksum error in maxdomeii. Implement dome motion buttons.
+      + Fixed tracking issue in EQMod when using a joystick.
+      + Fixex pier side reporting for 10Micron mounts.
+      + Fixed protocol issue with ethernet connection to AP GTOCP4.
+      + Fixed Celestron Pulse guiding.
+      + Fixed occasional filter loading issues.
+      + Add additional FITS Keyword SITELAT and SITELONG.
+      + Add custom max filter count to trutech.
+      + Add Zulu postfix to UTC time in FITS header.
+      + Increase usbfs_memory to 256 for all USB cameras as it helps under ARM architecture.
+      + SBIG, SSAG, Moravian, Radio, Fishcamp & FLI driver support under MacOS.      
+      + Updated QHY SDK to 2.0.10.
+
+
+From 1.7.0 to 1.7.2
+
+      + Fixed live view, mirror locking, and ghost images in GPhoto driver.
+      + Warn user when configuration files are owned by root.
+      + Fix setting of GPS Interface in GPS dervied classes.
+      + Added camera download speed options to FLI driver.
+      + Added NIR preflash for Moravian CCD if hardware supports it.
+      + Several Pyrix rotator fixes.
+      + Fix incorrect use of sizeof.
+
+From 1.6.3 to 1.7.0
+
+      + Updated QHY SDK.
+      + FLI drivers are now based on libusb rather than legacy kernel driver.
+      + New driver for CEM120 mount.
+      + Several memory leaks were fixed.
+      + Added support for background flushing for FLI CCDs.
+      + Added preliminary support for CCD rapid captures on the millisecond range.
+      + SX CCD driver updated to support ￼ICX453 & M25C.
+      + SX AO driver updated to emply INDI serial connection plugin.
+      + Fix timing issue with GPhoto making it stuck in busy state after initial capture.
+      + ASI driver enhancements. Video format recall fix.
+      + MaxDomeII driver refactored and updated.
+      + Several fixes for Gemini Integra driver.
+      + Polling period for most drivers is now customizable.
+      + GPhoto driver supported Abort exposure. Subframing fixes.
+      + GPS driver can set system time from GPS source.
+      + Astrophyics Experimental Driver with multi-parking support.
+      + Numerous OnStep driver fixes and updates.
+      + SkySensor2000 Pulse guiding support.
+      + Prevent sandbox ACCESS_VIOLATION on Gentoo
+      + Celestron driver refactoring and support for high-precision formats.
+      + Fixed script execution in scripting gateways
+      + Fix flags for Cygwin.
+      + Fix non-standard POSIX C functions.
+      + Replace deprecated usleep with nanosleep.
+      + CCD & Telescope simulator updated so that can be used effectively in any combination with physical devices.
+
+From 1.6.0 to 1.6.2
+
+      + INDI API version was not updated to 1.6.X+
+      + cmake_modules directory was missing from release.
+      + Fixed crash with joystick driver with joysticks with odd axis.
+
+From 1.5.0 to 1.6.0
+
+      + INDI Base Client is now supported on Windows, MacOS, and Linux.
+      + Added 10Micron Mount support.
+      + Added spectrum support and libDSPAU.
+      + Added NexDome support.
+      + Added Pyxis Rotator support.
+      + Added Pegasus Focuser support.
+      + Added MBox Weather box support.
+      + Added SnapCap dust cap and flat panel support.
+      + Added Sesto-Senso focuser support.
+      + Added USB_DewPoint support.
+      + Added GPS-NMEA sources support.
+      + Added Gemini Telescope Design Integra85 Focusing Rotator WIP support.
+      + Added Lunatico's Armadillo and Platypus support.
+      + Video Streaming support for MacOS.
+      + Video Recording with libtheora (Optional).
+      + Video Streaming with MJPEG encoder.
+      + IOptron fixes and improvements.
+      + More NextstarEvo improvements.
+      + Dedicated Guider Simulator.
+      + QHY & ASI updated to latest SDK.
+      + Apogee fixes for MacOS.
+      + INova fixes and improvements. Updated SDK.
+      + QHY, Apogee, DSI builds for MacOS.
+      + EQMod Horizon fixes.
+      + Skywatcher Alt-Az Mount & Syncscan fixes and improvements including guide support.
+      + StarSense support in Celestron Driver.
+      + Improvements to mount parking & unparking.
+      + New experimental Astrophysics Driver.
+      + Support for Losmandy UDP protocol.
+      + Fixed Dome slaving slew and tracking.
+      + Added Radio Antenna Simulator.
+      + New INDI Rotator Interface.
+      + UDEV rule to disable automount of DSLR cameras.
+      + Sky Quality Meter simulator.
+      + Improvements to INDI GPS drivers.
+      + TCFS Fixes.
+      + SkySensorPC2000 fixes.
+      + Fixed WatchDog behavior in case of unavailable dome.
+      + Improved Continious Integration support with Travis & CircleCI using Docker.
+
 From 1.4.0 to 1.5.0
 
       + New Detector Interface for photon and radio detectors.

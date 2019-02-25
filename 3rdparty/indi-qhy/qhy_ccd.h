@@ -21,151 +21,168 @@
 
 #pragma once
 
-#include "qhyccd.h"
+#include <qhycam.h>
+#include <qhyccd.h>
 
 #include <indiccd.h>
 #include <indifilterinterface.h>
 
+#include <functional>
 #include <pthread.h>
 
 #define DEVICE struct usb_device *
 
 class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 {
-  public:
-    QHYCCD(const char *name);
-    virtual ~QHYCCD();
+    public:
+        QHYCCD(const char *name);
+        virtual ~QHYCCD() override = default;
 
-    virtual const char *getDefaultName() override;
+        virtual const char *getDefaultName() override;
 
-    virtual bool initProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool updateProperties() override;
+        virtual bool initProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool updateProperties() override;
 
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
 
-    virtual int SetTemperature(double temperature) override;
-    virtual bool StartExposure(float duration) override;
-    virtual bool AbortExposure() override;
+        virtual int SetTemperature(double temperature) override;
+        virtual bool StartExposure(float duration) override;
+        virtual bool AbortExposure() override;
 
-    virtual void debugTriggered(bool enable) override;
+        virtual void debugTriggered(bool enable) override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-    static void *streamVideoHelper(void *context);
-    void *streamVideo();
+    protected:
+        // Misc.
+        //virtual void TimerHit() override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-  protected:
-    // Misc.
-    virtual void TimerHit() override;
-    virtual bool saveConfigItems(FILE *fp) override;
+        // CCD
+        virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+        virtual bool UpdateCCDBin(int binx, int biny) override;
 
-    // CCD
-    virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
-    virtual bool UpdateCCDBin(int binx, int biny) override;
+        // Guide Port
+        virtual IPState GuideNorth(uint32_t ms) override;
+        virtual IPState GuideSouth(uint32_t ms) override;
+        virtual IPState GuideEast(uint32_t ms) override;
+        virtual IPState GuideWest(uint32_t ms) override;
 
-    // Guide Port
-    virtual IPState GuideNorth(float) override;
-    virtual IPState GuideSouth(float) override;
-    virtual IPState GuideEast(float) override;
-    virtual IPState GuideWest(float) override;
+        // Filter Wheel CFW
+        virtual int QueryFilter() override;
+        virtual bool SelectFilter(int position) override;
 
-    // Filter Wheel CFW
-    virtual int QueryFilter() override;
-    virtual bool SelectFilter(int position) override;
+        // Streaming
+        virtual bool StartStreaming() override;
+        virtual bool StopStreaming() override;
 
-#ifndef __APPLE__
-    // Streaming
-    virtual bool StartStreaming() override;
-    virtual bool StopStreaming() override;
-#endif
+        ISwitch CoolerS[2];
+        ISwitchVectorProperty CoolerSP;
+        enum
+        {
+            COOLER_ON,
+            COOLER_OFF,
+        };
 
-    ISwitch CoolerS[2];
-    ISwitchVectorProperty CoolerSP;
+        INumber CoolerN[1];
+        INumberVectorProperty CoolerNP;
 
-    INumber CoolerN[1];
-    INumberVectorProperty CoolerNP;
+        INumber GainN[1];
+        INumberVectorProperty GainNP;
 
-    INumber GainN[1];
-    INumberVectorProperty GainNP;
+        INumber OffsetN[1];
+        INumberVectorProperty OffsetNP;
 
-    INumber OffsetN[1];
-    INumberVectorProperty OffsetNP;
+        INumber SpeedN[1];
+        INumberVectorProperty SpeedNP;
 
-    INumber SpeedN[1];
-    INumberVectorProperty SpeedNP;
+        INumber USBTrafficN[1];
+        INumberVectorProperty USBTrafficNP;
 
-    INumber USBTrafficN[1];
-    INumberVectorProperty USBTrafficNP;
+    private:
+        typedef enum ImageState
+        {
+            StateNone = 0,
+            StateIdle,
+            StateStream,
+            StateExposure,
+            StateRestartExposure,
+            StateAbort,
+            StateTerminate,
+            StateTerminated
+        } ImageState;
 
-  private:
-    // Get time until next image is due
-    float calcTimeLeft();
-    // Get image buffer from camera
-    int grabImage();
-    // Setup basic CCD parameters on connection
-    bool setupParams();
-    // Enable/disable cooler
-    void setCooler(bool enable);
-    // Check if the camera is QHY5PII-C model
-    bool isQHY5PIIC();
+        /* Imaging functions */
+        static void *imagingHelper(void *context);
+        void *imagingThreadEntry();
+        void streamVideo();
+        void getExposure();
+        void exposureSetRequest(ImageState request);
 
-    // Temperature update
-    void updateTemperature();
-    static void updateTemperatureHelper(void *);
+        // Get time until next image is due
+        double calcTimeLeft();
+        // Get image buffer from camera
+        int grabImage();
+        // Setup basic CCD parameters on connection
+        bool setupParams();
+        // Enable/disable cooler
+        bool activateCooler(bool enable);
+        // Check if the camera is QHY5PII-C model
+        bool isQHY5PIIC();
 
-    char name[MAXINDIDEVICE];
-    char camid[MAXINDIDEVICE];
+        // Temperature update
+        void updateTemperature();
+        static void updateTemperatureHelper(void *);
 
-    // CCD dimensions
-    int camxbin;
-    int camybin;
-    int camroix;
-    int camroiy;
-    int camroiwidth;
-    int camroiheight;
+        char name[MAXINDIDEVICE];
+        char camid[MAXINDIDEVICE];
 
-    // CCD extra capabilities
-    bool HasUSBTraffic;
-    bool HasUSBSpeed;
-    bool HasGain;
-    bool HasOffset;
-    bool HasFilters;
+        // CCD extra capabilities
+        bool HasUSBTraffic;
+        bool HasUSBSpeed;
+        bool HasGain;
+        bool HasOffset;
+        bool HasFilters;
+        bool HasTransferBit;
 
-    qhyccd_handle *camhandle;
-    INDI::CCDChip::CCD_FRAME imageFrameType;
-    bool sim;
+        qhyccd_handle *m_CameraHandle;
+        INDI::CCDChip::CCD_FRAME m_ImageFrameType;
 
-    // Temperature tracking
-    float TemperatureRequest;
-    int temperatureID;
-    bool coolerEnabled;//, useSoftBin;
+        // Temperature tracking
+        double m_TemperatureRequest {0};
+        int temperatureID;
+        bool coolerEnabled;
 
-    // Exposure progress
-    float ExposureRequest;
-    float LastExposureRequest;
-    struct timeval ExpStart;
-    int timerID;
+        // Exposure progress
+        double m_ExposureRequest;
+        // Last exposure request in microseconds
+        uint32_t m_LastExposureRequestuS;
+        struct timeval ExpStart;
 
-    // Gain
-    float GainRequest;
-    float LastGainRequest;
+        // Gain
+        double GainRequest;
+        double LastGainRequest;
 
-    // Threading
-    int streamPredicate;
-    pthread_t primary_thread;
-    bool terminateThread;
-    pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-    pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+        // Threading
+        // Imaging thread
+        ImageState threadRequest;
+        ImageState threadState;
+        pthread_t imagingThread;
+        pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+        pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
-    friend void ::ISGetProperties(const char *dev);
-    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                            char *formats[], char *names[], int n);
-    friend void ::ISSnoopDevice(XMLEle *root);
+        void logQHYMessages(const std::string &message);
+        std::function<void(const std::string &)> m_QHYLogCallback;
+
+        friend void ::ISGetProperties(const char *dev);
+        friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
+        friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
+        friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
+        friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
+                                char *formats[], char *names[], int n);
+        friend void ::ISSnoopDevice(XMLEle *root);
 };

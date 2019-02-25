@@ -4,6 +4,7 @@
 #include <indidevapi.h>
 
 #include <string.h>
+#include <stdint.h>
 
 void SkywatcherSimulator::send_byte(unsigned char c)
 {
@@ -98,7 +99,7 @@ void SkywatcherSimulator::setupRA(unsigned int nb_teeth, unsigned int gear_ratio
     ra_breaks         = 400;
 
     ra_status = 0X0010; // lowspeed, forward, slew mode, stopped
-    gettimeofday(&lastraTime, NULL);
+    gettimeofday(&lastraTime, nullptr);
     //IDLog("Simulator setupRA %d %d\n", ra_steps_360, ra_steps_worm);
 }
 void SkywatcherSimulator::setupDE(unsigned int nb_teeth, unsigned int gear_ratio_num, unsigned int gear_ratio_den,
@@ -129,7 +130,7 @@ void SkywatcherSimulator::setupDE(unsigned int nb_teeth, unsigned int gear_ratio
 
 void SkywatcherSimulator::compute_timer_ra(unsigned int wormperiod)
 {
-    unsigned long n = (wormperiod * MUL_RA);
+    uint32_t n = (wormperiod * MUL_RA);
     n += ((wormperiod * REM_RA) / ra_steps_worm);
     ra_period = n;
     //IDLog("Simulator RA Worm period = %d, Microstep timer period = %d µs\n", wormperiod, ra_period);
@@ -137,7 +138,7 @@ void SkywatcherSimulator::compute_timer_ra(unsigned int wormperiod)
 
 void SkywatcherSimulator::compute_timer_de(unsigned int wormperiod)
 {
-    unsigned long n = (wormperiod * MUL_DE);
+    uint32_t n = (wormperiod * MUL_DE);
     n += ((wormperiod * REM_DE) / de_steps_worm);
     de_period = n;
     //IDLog("Simulator DE Worm period = %d, Microstep timer period = %d µs\n", wormperiod, de_period);
@@ -146,7 +147,7 @@ void SkywatcherSimulator::compute_timer_de(unsigned int wormperiod)
 void SkywatcherSimulator::compute_ra_position()
 {
     struct timeval raTime, resTime;
-    gettimeofday(&raTime, NULL);
+    gettimeofday(&raTime, nullptr);
     timersub(&raTime, &lastraTime, &resTime);
     if (GETMOTORPROPERTY(ra_status, RUNNING))
     {
@@ -190,7 +191,7 @@ void SkywatcherSimulator::compute_ra_position()
 void SkywatcherSimulator::compute_de_position()
 {
     struct timeval deTime, resTime;
-    gettimeofday(&deTime, NULL);
+    gettimeofday(&deTime, nullptr);
     timersub(&deTime, &lastdeTime, &resTime);
     if (GETMOTORPROPERTY(de_status, RUNNING))
     {
@@ -232,7 +233,7 @@ void SkywatcherSimulator::compute_de_position()
 
 void SkywatcherSimulator::ra_resume()
 {
-    gettimeofday(&lastraTime, NULL);
+    gettimeofday(&lastraTime, nullptr);
     compute_timer_ra(ra_wormperiod);
     //GOTO
     if (!(GETMOTORPROPERTY(ra_status, SLEWMODE)))
@@ -243,7 +244,7 @@ void SkywatcherSimulator::ra_resume()
 
 void SkywatcherSimulator::de_resume()
 {
-    gettimeofday(&lastdeTime, NULL);
+    gettimeofday(&lastdeTime, nullptr);
     compute_timer_de(de_wormperiod);
     //GOTO
     if (!(GETMOTORPROPERTY(de_status, SLEWMODE)))

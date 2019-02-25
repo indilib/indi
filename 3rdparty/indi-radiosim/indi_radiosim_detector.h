@@ -46,7 +46,7 @@ class RadioSim : public INDI::Detector
 
 	// Detector specific functions
 	bool StartCapture(float duration);
-	bool CaptureParamsUpdated(float sr, float freq, float bps);
+	bool CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain);
 	bool AbortCapture();
 	void TimerHit();
 
@@ -72,4 +72,5 @@ class RadioSim : public INDI::Detector
 
 	float CaptureRequest;
 	uint8_t* continuum;
+	uint8_t* spectrum;
 };

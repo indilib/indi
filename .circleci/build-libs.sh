@@ -4,35 +4,26 @@
 # It is *not* for general audience
 
 SRC=../../3rdparty/
+FLAGS="-DCMAKE_INSTALL_PREFIX=/usr/local -DFIX_WARNINGS=ON -DCMAKE_BUILD_TYPE=$1"
 
-if [ ${TRAVIS_OS_NAME} == "linux" ] ; then
-    LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau"
-else 
-    LIBS="libqsi"
-fi
+LIBS="libapogee libfishcamp libfli libqhy libqsi libsbig libinovasdk libdspau"
 
-if [ .${TRAVIS_BRANCH%_*} == '.drv' ] ; then 
-    DRV=lib"${TRAVIS_BRANCH#drv_}"
+if [ .${CIRCLE_BRANCH%_*} == '.drv' -a `lsb_release -si` == 'Ubuntu' ] ; then
+    DRV=lib"${CIRCLE_BRANCH#drv_}"
     if [ -d 3rdparty/$DRV ] ; then
         LIBS="$DRV"
-    else 
+    else
         LIBS=""
     fi
     echo "[$DRV] [$LIBS]"
-    if [ ${TRAVIS_OS_NAME} == "osx" ] ; then
-        echo "Cannot build one driver on OSX"
-        LIBS=""
-    fi
 fi
 
 for lib in $LIBS ; do
-(
     echo "Building $lib ..."
     mkdir -p build/$lib
     pushd build/$lib
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local . $SRC/$lib -DFIX_WARNINGS=ON -DCMAKE_BUILD_TYPE=$1
+    cmake $FLAGS . $SRC/$lib
     make
     make install
     popd
-)
 done

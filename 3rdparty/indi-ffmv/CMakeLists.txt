@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 3.0)
 PROJECT(indi-ffmv CXX C)
 
 set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
@@ -6,7 +6,9 @@ LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake_modules/")
 include(GNUInstallDirs)
 
+IF(NOT APPLE)
 set(UDEVRULES_INSTALL_DIR "/lib/udev/rules.d" CACHE STRING "Base directory for udev rules")
+ENDIF(NOT APPLE)
 
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
@@ -14,7 +16,7 @@ find_package(ZLIB REQUIRED)
 find_package(DC1394 REQUIRED)
 
 set (FFMV_VERSION_MAJOR 0)
-set (FFMV_VERSION_MINOR 1)
+set (FFMV_VERSION_MINOR 2)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_ffmv.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_ffmv.xml )
@@ -39,5 +41,8 @@ target_link_libraries(indi_ffmv_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${DC1
 install(TARGETS indi_ffmv_ccd RUNTIME DESTINATION bin )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/indi_ffmv.xml DESTINATION ${INDI_DATA_DIR})
+
+IF(NOT APPLE)
 install(FILES 99-fireflymv.rules DESTINATION ${UDEVRULES_INSTALL_DIR})
+ENDIF(NOT APPLE)
 

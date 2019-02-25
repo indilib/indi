@@ -21,6 +21,21 @@
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
 
+/**
+ * @brief The ScopeSim class provides a simple mount simulator of an equatorial mount.
+ *
+ * It supports the following features:
+ * + Sideral and Custom Tracking rates.
+ * + Goto & Sync
+ * + NWSE Hand controller direciton key slew.
+ * + Tracking On/Off.
+ * + Parking & Unparking with custom parking positions.
+ * + Setting Time & Location.
+ *
+ * On startup and by default the mount shall point to the celestial pole.
+ *
+ * @author Jasem Mutlaq
+ */
 class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 {
   public:
@@ -43,10 +58,10 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command) override;
     virtual bool Abort() override;
 
-    virtual IPState GuideNorth(float ms) override;
-    virtual IPState GuideSouth(float ms) override;
-    virtual IPState GuideEast(float ms) override;
-    virtual IPState GuideWest(float ms) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
 
     virtual bool SetTrackMode(uint8_t mode) override;
@@ -62,14 +77,16 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     virtual bool SetCurrentPark() override;
     virtual bool SetDefaultPark() override;
 
-  private:
+    // helper functions
+    double getAzimuth(double r, double d);
+
+private:
     double currentRA { 0 };
     double currentDEC { 90 };
     double targetRA { 0 };
     double targetDEC { 0 };
 
     ln_lnlat_posn lnobserver { 0, 0 };
-    ln_hrz_posn lnaltaz { 0, 0 };
     bool forceMeridianFlip { false };
     unsigned int DBG_SCOPE { 0 };
 
@@ -79,6 +96,7 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
     INumber GuideRateN[2];
     INumberVectorProperty GuideRateNP;
 
+#ifdef USE_EQUATORIAL_PE
     INumberVectorProperty EqPENV;
     INumber EqPEN[2];
 
@@ -87,4 +105,5 @@ class ScopeSim : public INDI::Telescope, public INDI::GuiderInterface
 
     ISwitch PEErrWES[2];
     ISwitchVectorProperty PEErrWESP;
+#endif
 };

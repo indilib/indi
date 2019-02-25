@@ -4,7 +4,7 @@ Lunatico Armadillo & Platypus INDI Driver
 This package provides the INDI driver for Lunatico Astronomia Armadillo & Platypus controllers.
 As of this version, it covers focuser functionality, in one port of the controller. 
 
-Requirtments
+Requirements
 ============
 
 + INDI >= v0.6 (http://indi.sf.net)

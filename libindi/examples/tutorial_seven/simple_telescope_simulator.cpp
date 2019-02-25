@@ -19,8 +19,6 @@
 
 using namespace INDI::AlignmentSubsystem;
 
-#define POLLMS 1000 // Default timer tick
-
 // We declare an auto pointer to ScopeSim.
 std::unique_ptr<ScopeSim> telescope_sim(new ScopeSim());
 
@@ -89,7 +87,7 @@ bool ScopeSim::Abort()
     AbortSP.s = IPS_OK;
     IUResetSwitch(&AbortSP);
     IDSetSwitch(&AbortSP, nullptr);
-    DEBUG(INDI::Logger::DBG_SESSION, "Telescope aborted.");
+    LOG_INFO("Telescope aborted.");
 
     return true;
 }

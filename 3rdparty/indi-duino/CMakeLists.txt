@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.7)
+cmake_minimum_required(VERSION 2.8)
 PROJECT(indi_duino CXX C)
 
 LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
@@ -7,7 +7,7 @@ set(FIRMATA_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libfirmata/src/")
 include(GNUInstallDirs)
 
 set (DUINO_VERSION_MAJOR 0)
-set (DUINO_VERSION_MINOR 2)
+set (DUINO_VERSION_MINOR 3)
  
 find_package(INDI REQUIRED)
 

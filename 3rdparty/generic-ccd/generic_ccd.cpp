@@ -37,7 +37,6 @@
 #define MAX_X_BIN      16   /* Max Horizontal binning */
 #define MAX_Y_BIN      16   /* Max Vertical binning */
 #define MAX_PIXELS     4096 /* Max number of pixels in one dimension */
-#define POLLMS         1000 /* Polling time (ms) */
 #define TEMP_THRESHOLD .25  /* Differential temperature threshold (C)*/
 #define MAX_DEVICES    20   /* Max device cameraCount */
 
@@ -55,7 +54,7 @@ static struct
     int vid;
     int pid;
     const char *name;
-} deviceTypes[] = { { 0x0001, 0x0001, "Model 1" }, { 0x0001, 0x0002, "Model 2" }, { 0, 0, NULL } };
+} deviceTypes[] = { { 0x0001, 0x0001, "Model 1" }, { 0x0001, 0x0002, "Model 2" }, { 0, 0, nullptr } };
 
 static void cleanup()
 {
@@ -93,7 +92,7 @@ void ISInit()
 
         /* For demo purposes we are creating two test devices */
         cameraCount            = 2;
-        struct usb_device *dev = NULL;
+        struct usb_device *dev = nullptr;
         cameras[0]             = new GenericCCD(dev, deviceTypes[0].name);
         cameras[1]             = new GenericCCD(dev, deviceTypes[1].name);
 
@@ -108,10 +107,10 @@ void ISGetProperties(const char *dev)
     for (int i = 0; i < cameraCount; i++)
     {
         GenericCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISGetProperties(dev);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -123,10 +122,10 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     for (int i = 0; i < cameraCount; i++)
     {
         GenericCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewSwitch(dev, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -138,10 +137,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     for (int i = 0; i < cameraCount; i++)
     {
         GenericCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewText(dev, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -153,10 +152,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     for (int i = 0; i < cameraCount; i++)
     {
         GenericCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewNumber(dev, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -242,7 +241,7 @@ bool GenericCCD::updateProperties()
 
 bool GenericCCD::Connect()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "Attempting to find the Generic CCD...");
+    LOG_INFO("Attempting to find the Generic CCD...");
 
     /**********************************************************
    *
@@ -251,14 +250,14 @@ bool GenericCCD::Connect()
    *  IMPORRANT: Put here your CCD Connect function
    *  If you encameraCounter an error, send the client a message
    *  e.g.
-   *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to connect due to ...");
+   *  LOG_INFO( "Error, unable to connect due to ...");
    *  return false;
    *
    *
    **********************************************************/
 
     /* Success! */
-    DEBUG(INDI::Logger::DBG_SESSION, "CCD is online. Retrieving basic data.");
+    LOG_INFO("CCD is online. Retrieving basic data.");
 
     return true;
 }
@@ -272,13 +271,13 @@ bool GenericCCD::Disconnect()
    *  IMPORRANT: Put here your CCD disonnect function
    *  If you encameraCounter an error, send the client a message
    *  e.g.
-   *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to disconnect due to ...");
+   *  LOG_INFO( "Error, unable to disconnect due to ...");
    *  return false;
    *
    *
    **********************************************************/
 
-    DEBUG(INDI::Logger::DBG_SESSION, "CCD is offline.");
+    LOG_INFO("CCD is offline.");
     return true;
 }
 
@@ -325,8 +324,8 @@ bool GenericCCD::setupParams()
     ///////////////////////////
     // Setting sample temperature -- MAKE CALL TO API FUNCTION TO GET TEMPERATURE IN REAL DRIVER
     TemperatureN[0].value = 25.0;
-    DEBUGF(INDI::Logger::DBG_SESSION, "The CCD Temperature is %f", TemperatureN[0].value);
-    IDSetNumber(&TemperatureNP, NULL);
+    LOGF_INFO("The CCD Temperature is %f", TemperatureN[0].value);
+    IDSetNumber(&TemperatureNP, nullptr);
 
     ///////////////////////////
     // 4. Get temperature
@@ -365,7 +364,7 @@ int GenericCCD::SetTemperature(double temperature)
 
     // Otherwise, we set the temperature request and we update the status in TimerHit() function.
     TemperatureRequest = temperature;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Setting CCD temperature to %+06.2f C", temperature);
+    LOGF_INFO("Setting CCD temperature to %+06.2f C", temperature);
     return 0;
 }
 
@@ -382,7 +381,7 @@ bool GenericCCD::StartExposure(float duration)
     if (imageFrameType == INDI::CCDChip::BIAS_FRAME)
     {
         duration = minDuration;
-        DEBUGF(INDI::Logger::DBG_SESSION, "Bias Frame (s) : %g\n", minDuration);
+        LOGF_INFO("Bias Frame (s) : %g\n", minDuration);
     }
 
     /**********************************************************
@@ -393,7 +392,7 @@ bool GenericCCD::StartExposure(float duration)
    *  Please note that duration passed is in seconds.
    *  If there is an error, report it back to client
    *  e.g.
-   *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to start exposure due to ...");
+   *  LOG_INFO( "Error, unable to start exposure due to ...");
    *  return -1;
    *
    *
@@ -402,8 +401,8 @@ bool GenericCCD::StartExposure(float duration)
     PrimaryCCD.setExposureDuration(duration);
     ExposureRequest = duration;
 
-    gettimeofday(&ExpStart, NULL);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Taking a %g seconds frame...", ExposureRequest);
+    gettimeofday(&ExpStart, nullptr);
+    LOGF_INFO("Taking a %g seconds frame...", ExposureRequest);
 
     InExposure = true;
 
@@ -419,7 +418,7 @@ bool GenericCCD::AbortExposure()
    *  IMPORRANT: Put here your CCD abort exposure here
    *  If there is an error, report it back to client
    *  e.g.
-   *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to abort exposure due to ...");
+   *  LOG_INFO( "Error, unable to abort exposure due to ...");
    *  return false;
    *
    *
@@ -450,7 +449,7 @@ bool GenericCCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
      *  must be closed. Customize as appropiate for the hardware
      *  If there is an error, report it back to client
      *  e.g.
-     *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to set frame type to ...");
+     *  LOG_INFO( "Error, unable to set frame type to ...");
      *  return false;
      *
      *
@@ -469,7 +468,7 @@ bool GenericCCD::UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType)
      *  must be open. Customize as appropiate for the hardware
      *  If there is an error, report it back to client
      *  e.g.
-     *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to set frame type to ...");
+     *  LOG_INFO( "Error, unable to set frame type to ...");
      *  return false;
      *
      *
@@ -493,12 +492,12 @@ bool GenericCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Error: invalid width requested %d", w);
+        LOGF_INFO("Error: invalid width requested %d", w);
         return false;
     }
     else if (bin_height > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Error: invalid height request %d", h);
+        LOGF_INFO("Error: invalid height request %d", h);
         return false;
     }
 
@@ -513,7 +512,7 @@ bool GenericCCD::UpdateCCDFrame(int x, int y, int w, int h)
    *  the above calculations.
    *  If there is an error, report it back to client
    *  e.g.
-   *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to set frame to ...");
+   *  LOG_INFO( "Error, unable to set frame to ...");
    *  return false;
    *
    *
@@ -527,7 +526,7 @@ bool GenericCCD::UpdateCCDFrame(int x, int y, int w, int h)
     nbuf += 512;                                               //  leave a little extra at the end
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Setting frame buffer size to %d bytes.", nbuf);
+    LOGF_DEBUG("Setting frame buffer size to %d bytes.", nbuf);
 
     return true;
 }
@@ -541,7 +540,7 @@ bool GenericCCD::UpdateCCDBin(int binx, int biny)
    *  IMPORRANT: Put here your CCD Binning call
    *  If there is an error, report it back to client
    *  e.g.
-   *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to set binning to ...");
+   *  LOG_INFO( "Error, unable to set binning to ...");
    *  return false;
    *
    *
@@ -557,7 +556,7 @@ float GenericCCD::CalcTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
                 (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
@@ -588,7 +587,7 @@ int GenericCCD::grabImage()
         for (int j = 0; j < width; j++)
             image[i * width + j] = rand() % 255;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Download complete.");
+    LOG_INFO("Download complete.");
 
     ExposureComplete(&PrimaryCCD);
 
@@ -645,7 +644,7 @@ void GenericCCD::TimerHit()
                     }
 
                     /* We're done exposing */
-                    DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+                    LOG_INFO("Exposure done, downloading image...");
 
                     PrimaryCCD.setExposureLeft(0);
                     InExposure = false;
@@ -677,7 +676,7 @@ void GenericCCD::TimerHit()
      *  IMPORRANT: Put here your CCD Get temperature call here
      *  If there is an error, report it back to client
      *  e.g.
-     *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to get temp due to ...");
+     *  LOG_INFO( "Error, unable to get temp due to ...");
      *  return false;
      *
      *
@@ -692,7 +691,7 @@ void GenericCCD::TimerHit()
        *  IMPORRANT: Put here your CCD Get temperature call here
        *  If there is an error, report it back to client
        *  e.g.
-       *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to get temp due to ...");
+       *  LOG_INFO( "Error, unable to get temp due to ...");
        *  return false;
        *
        *
@@ -703,7 +702,7 @@ void GenericCCD::TimerHit()
             if (fabs(TemperatureRequest - TemperatureN[0].value) <= TEMP_THRESHOLD)
                 TemperatureNP.s = IPS_OK;
 
-            IDSetNumber(&TemperatureNP, NULL);
+            IDSetNumber(&TemperatureNP, nullptr);
             break;
 
         case IPS_ALERT:
@@ -715,7 +714,7 @@ void GenericCCD::TimerHit()
     return;
 }
 
-IPState GenericCCD::GuideNorth(float ms)
+IPState GenericCCD::GuideNorth(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************
@@ -730,7 +729,7 @@ IPState GenericCCD::GuideNorth(float ms)
    *  available in INDI 3rd party repository
    *  If there is an error, report it back to client
    *  e.g.
-   *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
+   *  LOG_INFO( "Error, unable to guide due ...");
    *  return IPS_ALERT;
    *
    *
@@ -739,7 +738,7 @@ IPState GenericCCD::GuideNorth(float ms)
     return IPS_OK;
 }
 
-IPState GenericCCD::GuideSouth(float ms)
+IPState GenericCCD::GuideSouth(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************
@@ -754,7 +753,7 @@ IPState GenericCCD::GuideSouth(float ms)
      *  available in INDI 3rd party repository
      *  If there is an error, report it back to client
      *  e.g.
-     *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
+     *  LOG_INFO( "Error, unable to guide due ...");
      *  return IPS_ALERT;
      *
      *
@@ -763,7 +762,7 @@ IPState GenericCCD::GuideSouth(float ms)
     return IPS_OK;
 }
 
-IPState GenericCCD::GuideEast(float ms)
+IPState GenericCCD::GuideEast(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************
@@ -778,7 +777,7 @@ IPState GenericCCD::GuideEast(float ms)
      *  available in INDI 3rd party repository
      *  If there is an error, report it back to client
      *  e.g.
-     *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
+     *  LOG_INFO( "Error, unable to guide due ...");
      *  return IPS_ALERT;
      *
      *
@@ -787,7 +786,7 @@ IPState GenericCCD::GuideEast(float ms)
     return IPS_OK;
 }
 
-IPState GenericCCD::GuideWest(float ms)
+IPState GenericCCD::GuideWest(uint32_t ms)
 {
     INDI_UNUSED(ms);
     /**********************************************************
@@ -802,7 +801,7 @@ IPState GenericCCD::GuideWest(float ms)
      *  available in INDI 3rd party repository
      *  If there is an error, report it back to client
      *  e.g.
-     *  DEBUG(INDI::Logger::DBG_SESSION,  "Error, unable to guide due ...");
+     *  LOG_INFO( "Error, unable to guide due ...");
      *  return IPS_ALERT;
      *
      *

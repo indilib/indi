@@ -15,6 +15,14 @@
 0.5
 </defNumber>
 </defNumberVector>
+<defNumberVector device="EQMod Mount" name="PULSE_LIMITS" label="Pulse Limits" group="Motion Control" state="Idle" perm="rw">
+<defNumber name="MIN_PULSE" label="Minimum pulse (ms)" format="%3.0f" min="0.0" max="100.0" step="10">
+10
+</defNumber>
+<defNumber name="MIN_PULSE_TIMER" label="Minimum pulse timer (ms)" format="%3.0f" min="0.0" max="500" step="50">
+100
+</defNumber>
+</defNumberVector>
 <defTextVector device="EQMod Mount" name="MOUNTINFORMATION" label="Mount Information" group="Firmware" state="Idle" perm="ro" message="Mount Info message">
 <defText name="MOUNT_TYPE" label="Mount Type"></defText> 
 <defText name="MOTOR_CONTROLLER" label="Firmware Version"></defText> 
@@ -137,6 +145,17 @@ Off
 On
 </defSwitch>
 </defSwitchVector>
+<defSwitchVector device="EQMod Mount" name="TARGETPIERSIDE" label="Target pier side" group="Main Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="AUTO" label="Auto">
+On
+</defSwitch>
+<defSwitch name="PIER_WEST" label="West (pointing east)">
+Off
+</defSwitch>
+<defSwitch name="PIER_EAST" label="East (pointing west)">
+Off
+</defSwitch>
+</defSwitchVector>
 <defNumberVector device="EQMod Mount" name="STANDARDSYNC" label="Delta" group="Sync" state="Idle" perm="ro">
 <defNumber name="STANDARDSYNC_RA" label="Delta RA (hh:mm:ss)" format="%010.6m" min="0.0" max="24.0" step="0.0">
 0.0
@@ -181,10 +200,10 @@ Off
 </defSwitchVector>
 <defNumberVector device="EQMod Mount" name="BACKLASH" label="Backlash" group="Options" state="Idle" perm="rw">
 <defNumber name="BACKLASHRA" label="RA Backlash (microsteps)" format="%.0f" min="10.0" max="16777215.0" step="1.0">
-1.0
+10.0
 </defNumber>
 <defNumber name="BACKLASHDE" label="DE Backlash (microsteps)" format="%.0f" min="10.0" max="16777215.0" step="1.0">
-1.0
+10.0
 </defNumber>
 </defNumberVector>
 <defSwitchVector device="EQMod Mount" name="USEBACKLASH" label="Use Backlash" group="Options" state="Idle" perm="rw" rule="AnyOfMany">

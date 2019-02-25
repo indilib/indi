@@ -1,5 +1,5 @@
 /*
-    MaxDome II 
+    MaxDome II
     Copyright (C) 2009 Ferran Casarramona (ferran.casarramona@gmail.com)
 
     Migrated to INDI::Dome by Jasem Mutlaq (2014)
@@ -23,6 +23,7 @@
 #pragma once
 
 #include <indidome.h>
+#include "maxdomeiidriver.h"
 
 #define MD_AZIMUTH_IDLE   0
 #define MD_AZIMUTH_MOVING 1
@@ -48,6 +49,8 @@ class MaxDomeII : public INDI::Dome
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     virtual IPState MoveAbs(double az) override;
+    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
+
     //virtual IPState Home();
     virtual bool Abort() override;
 
@@ -105,4 +108,6 @@ class MaxDomeII : public INDI::Dome
     double prev_az, prev_alt;
 
     bool SetupParms();
+
+    MaxDomeIIDriver driver;
 };

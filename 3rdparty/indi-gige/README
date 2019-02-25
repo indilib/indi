@@ -4,7 +4,7 @@ GigE CCD Driver
 This package provides basic support for most GigE machine vision cameras through Project Aravis.
 
 
-Requirtments
+Requirements
 ============
 
 + INDI >= v1.2.0 (https://github.com/indilib/indi)

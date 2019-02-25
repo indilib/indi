@@ -20,11 +20,7 @@
 
 #include <string>
 #include <vector>
-#ifdef WIN_OS
 #include <memory>
-#else
-#include <tr1/memory>
-#endif
 
 class IUsb;
 

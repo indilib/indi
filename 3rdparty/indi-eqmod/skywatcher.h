@@ -62,16 +62,16 @@ class Skywatcher
     bool HasAuxEncoders();
     bool HasPPEC();
 
-    unsigned long GetRAEncoder();
-    unsigned long GetDEEncoder();
-    unsigned long GetRAEncoderZero();
-    unsigned long GetRAEncoderTotal();
-    unsigned long GetRAEncoderHome();
-    unsigned long GetDEEncoderZero();
-    unsigned long GetDEEncoderTotal();
-    unsigned long GetDEEncoderHome();
-    unsigned long GetRAPeriod();
-    unsigned long GetDEPeriod();
+    uint32_t GetRAEncoder();
+    uint32_t GetDEEncoder();
+    uint32_t GetRAEncoderZero();
+    uint32_t GetRAEncoderTotal();
+    uint32_t GetRAEncoderHome();
+    uint32_t GetDEEncoderZero();
+    uint32_t GetDEEncoderTotal();
+    uint32_t GetDEEncoderHome();
+    uint32_t GetRAPeriod();
+    uint32_t GetDEPeriod();
     void GetRAMotorStatus(ILightVectorProperty *motorLP);
     void GetDEMotorStatus(ILightVectorProperty *motorLP);
     void InquireBoardVersion(ITextVectorProperty *boardTP);
@@ -85,8 +85,8 @@ class Skywatcher
     void StopDE();
     void SetRARate(double rate);
     void SetDERate(double rate);
-    void SlewTo(long deltaraencoder, long deltadeencoder);
-    void AbsSlewTo(unsigned long raencoder, unsigned long deencoder, bool raup, bool deup);
+    void SlewTo(int32_t deltaraencoder, int32_t deltadeencoder);
+    void AbsSlewTo(uint32_t raencoder, uint32_t deencoder, bool raup, bool deup);
     void StartRATracking(double trackspeed);
     void StartDETracking(double trackspeed);
     bool IsRARunning();
@@ -98,15 +98,15 @@ class Skywatcher
     bool simulation;
 
     // Backlash
-    void SetBacklashRA(unsigned long backlash);
+    void SetBacklashRA(uint32_t backlash);
     void SetBacklashUseRA(bool usebacklash);
-    void SetBacklashDE(unsigned long backlash);
+    void SetBacklashDE(uint32_t backlash);
     void SetBacklashUseDE(bool usebacklash);
 
-    unsigned long GetlastreadRAIndexer();
-    unsigned long GetlastreadDEIndexer();
-    unsigned long GetRAAuxEncoder();
-    unsigned long GetDEAuxEncoder();
+    uint32_t GetlastreadRAIndexer();
+    uint32_t GetlastreadDEIndexer();
+    uint32_t GetRAAuxEncoder();
+    uint32_t GetDEAuxEncoder();
     void TurnRAEncoder(bool on);
     void TurnDEEncoder(bool on);
     void TurnRAPPECTraining(bool on);
@@ -119,8 +119,8 @@ class Skywatcher
     void ResetDEIndexer();
     void GetRAIndexer();
     void GetDEIndexer();
-    void SetRAAxisPosition(unsigned long step);
-    void SetDEAxisPosition(unsigned long step);
+    void SetRAAxisPosition(uint32_t step);
+    void SetDEAxisPosition(uint32_t step);
     void SetST4RAGuideRate(unsigned char r);
     void SetST4DEGuideRate(unsigned char r);
 
@@ -134,7 +134,7 @@ class Skywatcher
     static const char SkywatcherTrailingChar = 0x0d;
     static constexpr double MIN_RATE         = 0.05;
     static constexpr double MAX_RATE         = 800.0;
-    unsigned long minperiods[2];
+    uint32_t minperiods[2];
 
     // Types
     enum SkywatcherCommand
@@ -245,23 +245,23 @@ class Skywatcher
     void CheckMotorStatus(SkywatcherAxis axis);
     void ReadMotorStatus(SkywatcherAxis axis);
     void SetMotion(SkywatcherAxis axis, SkywatcherAxisStatus newstatus);
-    void SetSpeed(SkywatcherAxis axis, unsigned long period);
-    void SetTarget(SkywatcherAxis axis, unsigned long increment);
-    void SetTargetBreaks(SkywatcherAxis axis, unsigned long increment);
-    void SetAbsTarget(SkywatcherAxis axis, unsigned long target);
-    void SetAbsTargetBreaks(SkywatcherAxis axis, unsigned long breakstep);
+    void SetSpeed(SkywatcherAxis axis, uint32_t period);
+    void SetTarget(SkywatcherAxis axis, uint32_t increment);
+    void SetTargetBreaks(SkywatcherAxis axis, uint32_t increment);
+    void SetAbsTarget(SkywatcherAxis axis, uint32_t target);
+    void SetAbsTargetBreaks(SkywatcherAxis axis, uint32_t breakstep);
     void StartMotor(SkywatcherAxis axis);
     void StopMotor(SkywatcherAxis axis);
     void InstantStopMotor(SkywatcherAxis axis);
     void StopWaitMotor(SkywatcherAxis axis);
-    void SetFeature(SkywatcherAxis axis, unsigned long command);
-    void GetFeature(SkywatcherAxis axis, unsigned long command);
+    void SetFeature(SkywatcherAxis axis, uint32_t command);
+    void GetFeature(SkywatcherAxis axis, uint32_t command);
     void TurnEncoder(SkywatcherAxis axis, bool on);
-    unsigned long ReadEncoder(SkywatcherAxis axis);
+    uint32_t ReadEncoder(SkywatcherAxis axis);
     void ResetIndexer(SkywatcherAxis axis);
     void GetIndexer(SkywatcherAxis axis);
     void SetST4GuideRate(SkywatcherAxis axis, unsigned char r);
-    void SetAxisPosition(SkywatcherAxis axis, unsigned long step);
+    void SetAxisPosition(SkywatcherAxis axis, uint32_t step);
     void TurnPPECTraining(SkywatcherAxis axis, bool on);
     void TurnPPEC(SkywatcherAxis axis, bool on);
     void GetPPECStatus(SkywatcherAxis axis, bool *intraining, bool *inppec);
@@ -269,36 +269,42 @@ class Skywatcher
     bool read_eqmod();
     bool dispatch_command(SkywatcherCommand cmd, SkywatcherAxis axis, char *arg);
 
-    unsigned long Revu24str2long(char *);
-    unsigned long Highstr2long(char *);
-    void long2Revu24str(unsigned long, char *);
+    uint32_t Revu24str2long(char *);
+    uint32_t Highstr2long(char *);
+    void long2Revu24str(uint32_t, char *);
 
     double get_min_rate();
     double get_max_rate();
     bool isDebug();
 
     // Variables
-    //string default_port;
     // See Skywatcher protocol
-    unsigned long MCVersion; // Motor Controller Version
-    unsigned long MountCode; //
+    uint32_t MCVersion; // Motor Controller Version
+    uint32_t MountCode; //
 
-    unsigned long RASteps360;
-    unsigned long DESteps360;
-    unsigned long RAStepsWorm;
-    unsigned long DEStepsWorm;
-    unsigned long RAHighspeedRatio; // Motor controller multiplies speed values by this ratio when in low speed mode
-    unsigned long
-        DEHighspeedRatio; // This is a reflect of either using a timer interrupt with an interrupt count greater than 1 for low speed
-                          // or of using microstepping only for low speeds and half/full stepping for high speeds
-    unsigned long RAStep;     // Current RA encoder position in step
-    unsigned long DEStep;     // Current DE encoder position in step
-    unsigned long RAStepInit; // Initial RA position in step
-    unsigned long DEStepInit; // Initial DE position in step
-    unsigned long RAStepHome; // Home RA position in step
-    unsigned long DEStepHome; // Home DE position in step
-    unsigned long RAPeriod;   // Current RA worm period
-    unsigned long DEPeriod;   // Current DE worm period
+    uint32_t RASteps360;
+    uint32_t DESteps360;
+    uint32_t RAStepsWorm;
+    uint32_t DEStepsWorm;
+    // Motor controller multiplies speed values by this ratio when in low speed mode
+    uint32_t RAHighspeedRatio;
+    // This is a reflect of either using a timer interrupt with an interrupt count greater than 1 for low speed
+     // or of using microstepping only for low speeds and half/full stepping for high speeds
+    uint32_t DEHighspeedRatio;
+
+    uint32_t RAStep;     // Current RA encoder position in step
+    uint32_t DEStep;     // Current DE encoder position in step
+    uint32_t RAStepInit; // Initial RA position in step
+    uint32_t DEStepInit; // Initial DE position in step
+    uint32_t RAStepHome; // Home RA position in step
+    uint32_t DEStepHome; // Home DE position in step
+    uint32_t RAPeriod {256};   // Current RA worm period
+    uint32_t DEPeriod {256};   // Current DE worm period
+
+    uint32_t lastRAStep {0xFFFFFFFF};
+    uint32_t lastDEStep {0xFFFFFFFF};
+    uint32_t lastRAPeriod {0xFFFFFFFF};
+    uint32_t lastDEPeriod {0xFFFFFFFF};
 
     bool RAInitialized, DEInitialized, RARunning, DERunning;
     bool wasinitialized;
@@ -315,13 +321,16 @@ class Skywatcher
     bool reconnect;
 
     // Backlash
-    unsigned long Backlash[NUMBER_OF_SKYWATCHERAXIS];
+    uint32_t Backlash[NUMBER_OF_SKYWATCHERAXIS];
     bool UseBacklash[NUMBER_OF_SKYWATCHERAXIS];
-    unsigned long Target[NUMBER_OF_SKYWATCHERAXIS];
-    unsigned long TargetBreaks[NUMBER_OF_SKYWATCHERAXIS];
+    uint32_t Target[NUMBER_OF_SKYWATCHERAXIS];
+    uint32_t TargetBreaks[NUMBER_OF_SKYWATCHERAXIS];
     SkywatcherAxisStatus LastRunningStatus[NUMBER_OF_SKYWATCHERAXIS];
     SkywatcherAxisStatus NewStatus[NUMBER_OF_SKYWATCHERAXIS];
-    unsigned long backlashperiod[NUMBER_OF_SKYWATCHERAXIS];
+    uint32_t backlashperiod[NUMBER_OF_SKYWATCHERAXIS];
 
-    unsigned long lastreadIndexer[NUMBER_OF_SKYWATCHERAXIS];
+    uint32_t lastreadIndexer[NUMBER_OF_SKYWATCHERAXIS];
+
+    const uint8_t EQMOD_TIMEOUT = 5;
+    const uint8_t EQMOD_MAX_RETRY = 3;
 };

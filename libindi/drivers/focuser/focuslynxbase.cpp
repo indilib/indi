@@ -19,17 +19,6 @@
 
 #include "focuslynxbase.h"
 
-#define LYNXFOCUS_MAX_RETRIES        1
-#define LYNXFOCUS_TIMEOUT            2
-#define LYNXFOCUS_MAXBUF             16
-#define LYNXFOCUS_TEMPERATURE_FREQ   20 /* Update every 20 POLLMS cycles. For POLLMS 500ms = 10 seconds freq */
-#define LYNXFOCUS_POSITION_THRESHOLD 5  /* Only send position updates to client if the diff exceeds 5 steps */
-
-#define FOCUS_SETTINGS_TAB "Settings"
-#define FOCUS_STATUS_TAB   "Status"
-
-#define POLLMS 1000
-
 /************************************************************************************
  *
 * ***********************************************************************************/
@@ -51,15 +40,16 @@ FocusLynxBase::FocusLynxBase()
     lynxModels["Optec Fast Focus Secondary Focuser"] = "OD";
     lynxModels["Optec TCF-S Classic converted"] = "OE";
     lynxModels["Optec TCF-S3 Classic converted"] = "OF";
-    //  lynxModels["OG"] = "Optec Gemini (reserved for future use)";
+    //  lynxModels["Optec Gemini (reserved for future use)"] = "OG";
+    lynxModels["Optec Leo"] = "OI";
+    lynxModels["Optec Leo High-Torque"] = "OJ";
     lynxModels["FocusLynx QuickSync FT Hi-Torque"] = "FA";
     lynxModels["FocusLynx QuickSync FT Hi-Speed"] = "FB";
-    //  lynxModels["FC"] = "FocusLynx QuickSync SV (reserved for future use)";
+    //  lynxModels["FocusLynx QuickSync SV (reserved for future use)"] = "FC";
     lynxModels["DirectSync TEC with bipolar motor - higher speed"] = "FD";
     lynxModels["FocusLynx QuickSync  Long Travel Hi-Torque"] = "FE";
     lynxModels["FocusLynx QuickSync Long Travel Hi-Speed"] = "FF";
     lynxModels["FeatherTouch Motor PDMS"] = "FE";
-    lynxModels["FeatherTouch Motor Hi-Speed"] = "FE";
     lynxModels["FeatherTouch Motor Hi-Speed"] = "SO";
     lynxModels["FeatherTouch Motor Hi-Torque"] = "SP";
     lynxModels["Starlight Instruments - FTM with MicroTouch"] = "SQ";
@@ -71,7 +61,7 @@ FocusLynxBase::FocusLynxBase()
     simPosition      = 0;
 
     // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    SetFocuserCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
+    FI::SetCapability(FOCUSER_CAN_ABORT | FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
 
     isAbsolute = false;
     isSynced   = false;
@@ -90,13 +80,6 @@ FocusLynxBase::FocusLynxBase()
 /************************************************************************************
  *
 * ***********************************************************************************/
-FocusLynxBase::~FocusLynxBase()
-{
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
 bool FocusLynxBase::initProperties()
 {
     INDI::Focuser::initProperties();
@@ -109,23 +92,14 @@ bool FocusLynxBase::initProperties()
     // Enable/Disable temperature compensation
     IUFillSwitch(&TemperatureCompensateS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. Compensation", "",
+    IUFillSwitchVector(&TemperatureCompensateSP, TemperatureCompensateS, 2, getDeviceName(), "T. COMPENSATION", "T. Compensation",
                        FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Enable/Disable temperature compensation on start
     IUFillSwitch(&TemperatureCompensateOnStartS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateOnStartS[1], "Disable", "", ISS_ON);
     IUFillSwitchVector(&TemperatureCompensateOnStartSP, TemperatureCompensateOnStartS, 2, getDeviceName(),
-                       "T. Compensation @Start", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
-    // Temperature Coefficient
-    IUFillNumber(&TemperatureCoeffN[0], "A", "", "%.f", -9999, 9999, 100., 0.);
-    IUFillNumber(&TemperatureCoeffN[1], "B", "", "%.f", -9999, 9999, 100., 0.);
-    IUFillNumber(&TemperatureCoeffN[2], "C", "", "%.f", -9999, 9999, 100., 0.);
-    IUFillNumber(&TemperatureCoeffN[3], "D", "", "%.f", -9999, 9999, 100., 0.);
-    IUFillNumber(&TemperatureCoeffN[4], "E", "", "%.f", -9999, 9999, 100., 0.);
-    IUFillNumberVector(&TemperatureCoeffNP, TemperatureCoeffN, 5, getDeviceName(), "T. Coeff", "", FOCUS_SETTINGS_TAB,
-                       IP_RW, 0, IPS_IDLE);
+                       "T. COMPENSATION @START", "T. Compensation @Start", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Enable/Disable temperature Mode
     IUFillSwitch(&TemperatureCompensateModeS[0], "A", "", ISS_OFF);
@@ -133,61 +107,76 @@ bool FocusLynxBase::initProperties()
     IUFillSwitch(&TemperatureCompensateModeS[2], "C", "", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateModeS[3], "D", "", ISS_OFF);
     IUFillSwitch(&TemperatureCompensateModeS[4], "E", "", ISS_OFF);
-    IUFillSwitchVector(&TemperatureCompensateModeSP, TemperatureCompensateModeS, 5, getDeviceName(), "Compensate Mode",
-                       "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitchVector(&TemperatureCompensateModeSP, TemperatureCompensateModeS, 5, getDeviceName(), "COMPENSATE MODE",
+                       "Compensate Mode", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
+    IUFillNumber(&TemperatureParamN[0], "T. Coefficient", "", "%.f", -9999, 9999, 100., 0.);
+    IUFillNumber(&TemperatureParamN[1], "T. Intercept", "", "%.f", -32766, 32766, 100., 0.);
+    IUFillNumberVector(&TemperatureParamNP, TemperatureParamN, 2, getDeviceName(), "T. PARAMETERS", "Mode Parameters",
+                       FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Enable/Disable backlash
     IUFillSwitch(&BacklashCompensationS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&BacklashCompensationS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&BacklashCompensationSP, BacklashCompensationS, 2, getDeviceName(), "Backlash Compensation", "",
+    IUFillSwitchVector(&BacklashCompensationSP, BacklashCompensationS, 2, getDeviceName(), "BACKLASH COMPENSATION", "Backlash Compensation",
                        FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Backlash Value
-    IUFillNumber(&BacklashN[0], "Value", "", "%.f", 0, 99, 5., 0.);
-    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "Backlash", "", FOCUS_SETTINGS_TAB, IP_RW, 0,
+    IUFillNumber(&BacklashN[0], "Steps", "", "%.f", 0, 99, 5., 0.);
+    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH", "Backlash", FOCUS_SETTINGS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
+    // Enable/Disable Sync Mandatory for relative focuser
+    IUFillSwitch(&SyncMandatoryS[0], "Enable", "", isSynced == false ? ISS_ON : ISS_OFF);
+    IUFillSwitch(&SyncMandatoryS[1], "Disable", "", isSynced == true ? ISS_ON : ISS_OFF);
+    IUFillSwitchVector(&SyncMandatorySP, SyncMandatoryS, 2, getDeviceName(), "SYNC MANDATORY", "Sync Mandatory",
+                       FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     // Max Travel relative focusers
-    IUFillNumber(&MaxTravelN[0], "Ticks", "", "%.f", 0, 100000, 0., 0.);
-    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "Max Travel", "", FOCUS_SETTINGS_TAB, IP_RW, 0,
-                       IPS_IDLE);
+    //    IUFillNumber(&MaxTravelN[0], "Ticks", "", "%.f", 0, 100000, 0., 0.);
+    //    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAX TRAVEL", "Max Travel", FOCUS_SETTINGS_TAB, IP_RW, 0,
+    //                       IPS_IDLE);
+
+    // Focuser Step Size
+    IUFillNumber(&StepSizeN[0], "10000*microns/step", "", "%.f", 0, 65535, 0., 0);
+    IUFillNumberVector(&StepSizeNP, StepSizeN, 1, getDeviceName(), "STEP SIZE", "Step Size", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
 
     // Reset to Factory setting
     IUFillSwitch(&ResetS[0], "Factory", "", ISS_OFF);
-    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "Reset", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0,
+    IUFillSwitchVector(&ResetSP, ResetS, 1, getDeviceName(), "RESET", "Reset", FOCUS_SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0,
                        IPS_IDLE);
 
     // Go to home/center
     IUFillSwitch(&GotoS[GOTO_CENTER], "Center", "", ISS_OFF);
     IUFillSwitch(&GotoS[GOTO_HOME], "Home", "", ISS_OFF);
-    IUFillSwitchVector(&GotoSP, GotoS, 2, getDeviceName(), "GOTO", "", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
+    IUFillSwitchVector(&GotoSP, GotoS, 2, getDeviceName(), "GOTO", "Goto", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Reverse direction
-    IUFillSwitch(&ReverseS[0], "Enable", "", ISS_OFF);
-    IUFillSwitch(&ReverseS[1], "Disable", "", ISS_ON);
-    IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "Reverse", "", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY,
-                       0, IPS_IDLE);
+    //    IUFillSwitch(&ReverseS[0], "Enable", "", ISS_OFF);
+    //    IUFillSwitch(&ReverseS[1], "Disable", "", ISS_ON);
+    //    IUFillSwitchVector(&ReverseSP, ReverseS, 2, getDeviceName(), "REVERSE", "Reverse", FOCUS_SETTINGS_TAB, IP_RW, ISR_1OFMANY,
+    //                       0, IPS_IDLE);
 
     // List all supported models
     std::map<std::string, std::string>::iterator iter;
     int nModels = 1;
-    ModelS      = (ISwitch *)malloc(sizeof(ISwitch));
+    ModelS = static_cast<ISwitch *>(malloc(sizeof(ISwitch)));
     // Need to be able to select no focuser to avoid troubles with Ekos
-    IUFillSwitch(ModelS, "ZZ", "No Focuser", ISS_ON);
+    IUFillSwitch(ModelS, "No Focuser", "No Focuser", ISS_ON);
     for (iter = lynxModels.begin(); iter != lynxModels.end(); ++iter)
     {
-        ModelS = (ISwitch *)realloc(ModelS, (nModels + 1) * sizeof(ISwitch));
-        IUFillSwitch(ModelS + nModels, (iter->second).c_str(), (iter->first).c_str(), ISS_OFF);
+        ModelS = static_cast<ISwitch *>(realloc(ModelS, (nModels + 1) * sizeof(ISwitch)));
+        IUFillSwitch(ModelS + nModels, (iter->first).c_str(), (iter->first).c_str(), ISS_OFF);
 
         nModels++;
     }
-    IUFillSwitchVector(&ModelSP, ModelS, nModels, getDeviceName(), "Model", "", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0,
+    IUFillSwitchVector(&ModelSP, ModelS, nModels, getDeviceName(), "MODEL", "Model", MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 0,
                        IPS_IDLE);
 
     // Sync to a particular position
     IUFillNumber(&SyncN[0], "Ticks", "", "%.f", 0, 200000, 100., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "Sync", "", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Status indicators
     IUFillLight(&StatusL[STATUS_MOVING], "Is Moving", "", IPS_IDLE);
@@ -198,16 +187,16 @@ bool FocusLynxBase::initProperties()
     IUFillLight(&StatusL[STATUS_REMOTEIO], "Remote IO", "", IPS_IDLE);
     IUFillLight(&StatusL[STATUS_HNDCTRL], "Hnd Ctrl", "", IPS_IDLE);
     IUFillLight(&StatusL[STATUS_REVERSE], "Reverse", "", IPS_IDLE);
-    IUFillLightVector(&StatusLP, StatusL, 8, getDeviceName(), "Status", "", FOCUS_STATUS_TAB, IPS_IDLE);
+    IUFillLightVector(&StatusLP, StatusL, 8, getDeviceName(), "STATUS", "Status", FOCUS_STATUS_TAB, IPS_IDLE);
 
     // Focus name configure in the HUB
     IUFillText(&HFocusNameT[0], "FocusName", "Focuser name", "");
-    IUFillTextVector(&HFocusNameTP, HFocusNameT, 1, getDeviceName(), "FOCUSNAME", "HUB", FOCUS_SETTINGS_TAB, IP_RW, 0,
+    IUFillTextVector(&HFocusNameTP, HFocusNameT, 1, getDeviceName(), "FOCUSNAME", "Focuser", FOCUS_SETTINGS_TAB, IP_RW, 0,
                      IPS_IDLE);
 
     // Led intensity value
     IUFillNumber(&LedN[0], "Intensity", "", "%.f", 0, 100, 5., 0.);
-    IUFillNumberVector(&LedNP, LedN, 1, getDeviceName(), "Led", "", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumberVector(&LedNP, LedN, 1, getDeviceName(), "LED", "Led", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE);
     //simPosition = FocusAbsPosN[0].value;
 
     addAuxControls();
@@ -226,7 +215,8 @@ void FocusLynxBase::ISGetProperties(const char *dev)
     INDI::Focuser::ISGetProperties(dev);
 
     defineSwitch(&ModelSP);
-    loadConfig(true, "Model");
+    if (isSimulation())
+        loadConfig(true, "Model");
 }
 
 /************************************************************************************
@@ -234,71 +224,60 @@ void FocusLynxBase::ISGetProperties(const char *dev)
 * ***********************************************************************************/
 bool FocusLynxBase::updateProperties()
 {
+    // For absolute focusers the vector is set to RO, as we get value from the HUB
+    if (isAbsolute == false)
+        FocusMaxPosNP.p = IP_RW;
+    else
+        FocusMaxPosNP.p = IP_RO;
+
     INDI::Focuser::updateProperties();
 
     if (isConnected())
     {
         defineText(&HFocusNameTP);
-        // If focuser is relative, we define SYNC command.
-        if (isAbsolute == false)
-            defineNumber(&SyncNP);
 
         defineNumber(&TemperatureNP);
-        defineNumber(&TemperatureCoeffNP);
         defineSwitch(&TemperatureCompensateModeSP);
+        defineNumber(&TemperatureParamNP);
         defineSwitch(&TemperatureCompensateSP);
         defineSwitch(&TemperatureCompensateOnStartSP);
 
         defineSwitch(&BacklashCompensationSP);
         defineNumber(&BacklashNP);
 
-        // For absolute focusers the vector is set to RO, as we get value from the HUB
-        if (isAbsolute == false)
-            MaxTravelNP.p = IP_RW;
-        else
-            MaxTravelNP.p = IP_RO;
-        defineNumber(&MaxTravelNP);
+        //defineNumber(&MaxTravelNP);
+
+        defineNumber(&StepSizeNP);
 
         defineSwitch(&ResetSP);
-
-        // If focuser is relative, we only exposure "Center" command as it cannot home
-        if (isAbsolute == false)
-            GotoSP.nsp = 1;
-        else
-            GotoSP.nsp = 2;
-
-        defineSwitch(&GotoSP);
-        defineSwitch(&ReverseSP);
-
+        //defineSwitch(&ReverseSP);
         defineLight(&StatusLP);
 
-        if (getFocusConfig())
-            DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx paramaters updated, focuser ready for use.");
+        if (getFocusConfig() && getFocusTemp())
+            LOG_INFO("FocusLynx paramaters updated, focuser ready for use.");
         else
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to retrieve focuser configuration settings...");
+            LOG_ERROR("Failed to retrieve focuser configuration settings...");
             return false;
         }
     }
     else
     {
-        if (isAbsolute == false)
-            deleteProperty(SyncNP.name);
-
         deleteProperty(TemperatureNP.name);
-        deleteProperty(TemperatureCoeffNP.name);
         deleteProperty(TemperatureCompensateModeSP.name);
         deleteProperty(TemperatureCompensateSP.name);
+        deleteProperty(TemperatureParamNP.name);
         deleteProperty(TemperatureCompensateOnStartSP.name);
 
         deleteProperty(BacklashCompensationSP.name);
         deleteProperty(BacklashNP.name);
 
-        deleteProperty(MaxTravelNP.name);
+        //deleteProperty(MaxTravelNP.name);
+        deleteProperty(StepSizeNP.name);
 
         deleteProperty(ResetSP.name);
         deleteProperty(GotoSP.name);
-        deleteProperty(ReverseSP.name);
+        //deleteProperty(ReverseSP.name);
 
         deleteProperty(StatusLP.name);
         deleteProperty(HFocusNameTP.name);
@@ -314,15 +293,12 @@ bool FocusLynxBase::Handshake()
 {
     if (ack())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "FocusLynx is online. Getting focus parameters...");
-        int modelIndex = IUFindOnSwitchIndex(&ModelSP);
-        setDeviceType(modelIndex);
-        SetTimer(POLLMS);
+        LOG_INFO("FocusLynx is online. Getting focus parameters...");
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from FocusLynx, please ensure FocusLynxBase controller is "
-                                     "powered and the port is correct.");
+    LOG_INFO("Error retreiving data from FocusLynx, please ensure FocusLynxBase controller is "
+             "powered and the port is correct.");
     return false;
 }
 
@@ -340,7 +316,6 @@ const char *FocusLynxBase::getDefaultName()
 * ***********************************************************************************/
 bool FocusLynxBase::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    DEBUGF(INDI::Logger::DBG_SESSION, "Device: %s", dev);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Models
@@ -350,23 +325,17 @@ bool FocusLynxBase::ISNewSwitch(const char *dev, const char *name, ISState *stat
             ModelSP.s = IPS_OK;
             IDSetSwitch(&ModelSP, nullptr);
             if (isConnected())
-                DEBUG(INDI::Logger::DBG_SESSION, "Focuser model set. Please disconnect and reconnect now...");
+            {
+                setDeviceType(IUFindOnSwitchIndex(&ModelSP));
+                LOG_INFO("Focuser model set. Please disconnect and reconnect now...");
+            }
             else
-                DEBUG(INDI::Logger::DBG_SESSION, "Focuser model set. Please connect now...");
-
-            const char *focusName = IUFindOnSwitch(&ModelSP)->label;
+                LOG_INFO("Focuser model set. Please connect now...");
 
             // Check if we have absolute or relative focusers
-            if (strstr(focusName, "TCF") || !strcmp(focusName, "FastFocus"))
-            {
-                DEBUG(INDI::Logger::DBG_DEBUG, "Absolute focuser detected.");
-                isAbsolute = true;
-            }
-            else
-            {
-                DEBUG(INDI::Logger::DBG_DEBUG, "Relative focuser detected.");
-                isAbsolute = false;
-            }
+            checkIfAbsoluteFocuser();
+            //Read the config for this new model form the HUB
+            getFocusConfig();
 
             return true;
         }
@@ -490,20 +459,33 @@ bool FocusLynxBase::ISNewSwitch(const char *dev, const char *name, ISState *stat
         }
 
         // Reverse Direction
-        if (!strcmp(ReverseSP.name, name))
+        //        if (!strcmp(ReverseSP.name, name))
+        //        {
+        //            IUUpdateSwitch(&ReverseSP, states, names, n);
+
+        //            if (reverse(ReverseS[0].s == ISS_ON))
+        //                ReverseSP.s = IPS_OK;
+        //            else
+        //                ReverseSP.s = IPS_ALERT;
+
+        //            IDSetSwitch(&ReverseSP, nullptr);
+        //            return true;
+        //        }
+
+        // Sync Mandatory
+        if (!strcmp(SyncMandatorySP.name, name))
         {
-            IUUpdateSwitch(&ReverseSP, states, names, n);
+            IUUpdateSwitch(&SyncMandatorySP, states, names, n);
 
-            if (reverse(ReverseS[0].s == ISS_ON))
-                ReverseSP.s = IPS_OK;
+            if (SyncMandatory(SyncMandatoryS[0].s == ISS_ON))
+                SyncMandatorySP.s = IPS_OK;
             else
-                ReverseSP.s = IPS_ALERT;
+                SyncMandatorySP.s = IPS_ALERT;
 
-            IDSetSwitch(&ReverseSP, nullptr);
+            IDSetSwitch(&SyncMandatorySP, nullptr);
             return true;
         }
     }
-
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -536,23 +518,24 @@ bool FocusLynxBase::ISNewNumber(const char *dev, const char *name, double values
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Temperature Coefficient
-        if (!strcmp(TemperatureCoeffNP.name, name))
+        // Temperature Coefficient & Inceptions
+        if (!strcmp(TemperatureParamNP.name, name))
         {
-            IUUpdateNumber(&TemperatureCoeffNP, values, names, n);
-            for (int i = 0; i < n; i++)
+            IUUpdateNumber(&TemperatureParamNP, values, names, n);
+
+            char mode = static_cast<char>(65 + IUFindOnSwitchIndex(&TemperatureCompensateModeSP));
+            if (!setTemperatureCompensationCoeff(mode, TemperatureParamN[0].value) ||
+                    !setTemperatureInceptions(mode, TemperatureParamN[1].value))
             {
-                if (setTemperatureCompensationCoeff('A' + i, TemperatureCoeffN[i].value) == false)
-                {
-                    DEBUG(INDI::Logger::DBG_ERROR, "Failed to set temperature coefficeints.");
-                    TemperatureCoeffNP.s = IPS_ALERT;
-                    IDSetNumber(&TemperatureCoeffNP, nullptr);
-                    return false;
-                }
+                LOG_ERROR("Failed to write temperature coefficient or intercept");
+                TemperatureParamNP.s = IPS_ALERT;
+                IDSetNumber(&TemperatureParamNP, nullptr);
+                return false;
             }
 
-            TemperatureCoeffNP.s = IPS_OK;
-            IDSetNumber(&TemperatureCoeffNP, nullptr);
+            TemperatureParamNP.s = IPS_OK;
+            getFocusTemp();
+
             return true;
         }
 
@@ -562,7 +545,7 @@ bool FocusLynxBase::ISNewNumber(const char *dev, const char *name, double values
             IUUpdateNumber(&BacklashNP, values, names, n);
             if (setBacklashCompensationSteps(BacklashN[0].value) == false)
             {
-                DEBUG(INDI::Logger::DBG_ERROR, "Failed to set temperature coefficients.");
+                LOG_ERROR("Failed to set temperature coefficients.");
                 BacklashNP.s = IPS_ALERT;
                 IDSetNumber(&BacklashNP, nullptr);
                 return false;
@@ -574,59 +557,64 @@ bool FocusLynxBase::ISNewNumber(const char *dev, const char *name, double values
         }
 
         // Sync
-        if (strcmp(SyncNP.name, name) == 0)
-        {
-            IUUpdateNumber(&SyncNP, values, names, n);
-            if (sync(SyncN[0].value) == false)
-                SyncNP.s = IPS_ALERT;
-            else
-                SyncNP.s = IPS_OK;
+        //        if (strcmp(SyncNP.name, name) == 0)
+        //        {
+        //            IUUpdateNumber(&SyncNP, values, names, n);
+        //            if (sync(SyncN[0].value) == false)
+        //            {
+        //                LOG_ERROR("Failed to set the actual value.");
+        //                SyncNP.s = IPS_ALERT;
+        //                IDSetNumber(&SyncNP, nullptr);
+        //                return false;
+        //            }
+        //            else
+        //                SyncNP.s = IPS_OK;
 
-            IDSetNumber(&SyncNP, nullptr);
+        //            IDSetNumber(&SyncNP, nullptr);
+        //            return true;
+        //        }
+
+        // StepSize
+        if (strcmp(StepSizeNP.name, name) == 0)
+        {
+            IUUpdateNumber(&StepSizeNP, values, names, n);
+            if (setStepSize(StepSizeN[0].value) == false)
+            {
+                LOG_ERROR("Failed to set the actual value.");
+                StepSizeNP.s = IPS_ALERT;
+                IDSetNumber(&StepSizeNP, nullptr);
+                return false;
+            }
+            else
+                StepSizeNP.s = IPS_OK;
+
+            IDSetNumber(&StepSizeNP, nullptr);
             return true;
         }
 
         // Max Travel if relative focusers
-        if (!strcmp(MaxTravelNP.name, name))
+        //        if (strcmp(MaxTravelNP.name, name) == 0)
+        //        {
+        //            IUUpdateNumber(&MaxTravelNP, values, names, n);
 
-        // Max Travel
-        if (strcmp(MaxTravelNP.name, name) == 0)
-        {
-            IUUpdateNumber(&MaxTravelNP, values, names, n);
+        //            if (setMaxTravel(MaxTravelN[0].value) == false)
+        //                MaxTravelNP.s = IPS_ALERT;
+        //            else
+        //            {
+        //                MaxTravelNP.s = IPS_OK;
+        //                FocusAbsPosN[0].max = SyncN[0].max = MaxTravelN[0].value;
+        //                FocusAbsPosN[0].step = SyncN[0].step = (MaxTravelN[0].value / 50.0);
 
-            if (MaxTravelN[0].value > 0)
-            {
-                // If reverse is enabled.
-                if (ReverseS[0].s == ISS_ON)
-                {
-                    FocusAbsPosN[0].min = SyncN[0].min = (maxControllerTicks - MaxTravelN[0].value);
-                    FocusAbsPosN[0].max = SyncN[0].max = maxControllerTicks;
-                    FocusAbsPosN[0].step = SyncN[0].step = maxControllerTicks / 50.0;
-                }
-                // If reverse is disabled
-                else
-                {
-                    FocusAbsPosN[0].min = SyncN[0].min = 0;
-                    FocusAbsPosN[0].max = SyncN[0].max = MaxTravelN[0].value;
-                    FocusAbsPosN[0].step = SyncN[0].step = MaxTravelN[0].value / 50.0;
-                }
+        //                IUUpdateMinMax(&FocusAbsPosNP);
+        //                IUUpdateMinMax(&SyncNP);
 
-                FocusRelPosN[0].max  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 2;
-                FocusRelPosN[0].step = FocusRelPosN[0].max / 100.0;
-                FocusRelPosN[0].min  = 0;
+        //                IDSetNumber(&MaxTravelNP, nullptr);
 
-                IUUpdateMinMax(&FocusAbsPosNP);
-                IUUpdateMinMax(&FocusRelPosNP);
-                IUUpdateMinMax(&SyncNP);
-
-                DEBUGF(INDI::Logger::DBG_SESSION, "Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min,
-                       FocusAbsPosN[0].max);
-            }
-
-            MaxTravelNP.s = IPS_OK;
-            IDSetNumber(&MaxTravelNP, nullptr);
-            return true;
-        }
+        //                LOGF_INFO("Focuser absolute limits: min (%g) max (%g)", FocusAbsPosN[0].min,
+        //                       FocusAbsPosN[0].max);
+        //            }
+        //            return true;
+        //        }
 
         // Set LED intensity to the HUB itself via function setLedLevel()
         if (!strcmp(LedNP.name, name))
@@ -636,7 +624,7 @@ bool FocusLynxBase::ISNewNumber(const char *dev, const char *name, double values
                 LedNP.s = IPS_OK;
             else
                 LedNP.s = IPS_ALERT;
-            DEBUGF(INDI::Logger::DBG_SESSION, "Focuser LED level intensity : %f", LedN[0].value);
+            LOGF_INFO("Focuser LED level intensity : %f", LedN[0].value);
             IDSetNumber(&LedNP, nullptr);
             return true;
         }
@@ -650,41 +638,40 @@ bool FocusLynxBase::ISNewNumber(const char *dev, const char *name, double values
 * ***********************************************************************************/
 bool FocusLynxBase::ack()
 {
-    char cmd[32];
+    char cmd[LYNX_MAX] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[32];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sHELLO>", getFocusTarget());
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    snprintf(cmd, LYNX_MAX, "<%sHELLO>", getFocusTarget());
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
         const char *focusName = IUFindOnSwitch(&ModelSP)->label;
-        strncpy(response, focusName, 32);
-        response[31] = '\0';
+        strncpy(response, focusName, LYNX_MAX);
         nbytes_read = strlen(response) + 1;
     }
     else
     {
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -692,8 +679,8 @@ bool FocusLynxBase::ack()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s is detected.", response);
+        LOGF_DEBUG("RES (%s)", response);
+        LOGF_INFO("%s is detected.", response);
 
         return true;
     }
@@ -706,18 +693,18 @@ bool FocusLynxBase::ack()
 * ***********************************************************************************/
 bool FocusLynxBase::getFocusConfig()
 {
-    char cmd[32];
+    char cmd[LYNX_MAX] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[32];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
     char key[16];
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sGETCONFIG>", getFocusTarget());
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    snprintf(cmd, LYNX_MAX, "<%sGETCONFIG>", getFocusTarget());
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -729,20 +716,20 @@ bool FocusLynxBase::getFocusConfig()
     }
     else
     {
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -750,7 +737,7 @@ bool FocusLynxBase::getFocusConfig()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if ((strcmp(response, "CONFIG1")) && (strcmp(response, "CONFIG2")))
             return false;
@@ -767,11 +754,11 @@ bool FocusLynxBase::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     char nickname[16];
     int rc = sscanf(response, "%16[^=]=%16[^\n]s", key, nickname);
@@ -801,14 +788,14 @@ bool FocusLynxBase::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     uint32_t maxPos = 0;
-    rc              = sscanf(response, "%16[^=]=%d", key, &maxPos);
+    rc = sscanf(response, "%16[^=]=%d", key, &maxPos);
     if (rc == 2)
     {
         FocusAbsPosN[0].max = SyncN[0].max = maxPos;
@@ -823,13 +810,9 @@ bool FocusLynxBase::getFocusConfig()
         IUUpdateMinMax(&FocusRelPosNP);
         IUUpdateMinMax(&SyncNP);
 
-        maxControllerTicks = maxPos;
-
-        // if it is relative focuser and the backup have a value, MaxTravNP[0].value
-        // will be overide by the backup restore call
-        MaxTravelNP.s = IPS_OK;
-        MaxTravelN[0].value = maxPos;
-        IDSetNumber(&MaxTravelNP, NULL);
+        FocusMaxPosNP.s = IPS_OK;
+        FocusMaxPosN[0].value = maxPos;
+        IDSetNumber(&FocusMaxPosNP, nullptr);
 
     }
     else
@@ -840,210 +823,120 @@ bool FocusLynxBase::getFocusConfig()
     // Get Device Type
     if (isSimulation())
     {
-        snprintf(response, 32, "Dev Typ = %s\n", "OA");
+        // In simulation each focuser is different, one Absolute and one relative
+        if (strcmp(getFocusTarget(), "F2"))
+            snprintf(response, 32, "Dev Type = %s\n", "OA");
+        else
+            snprintf(response, 32, "Dev Type = %s\n", "SO");
         nbytes_read = strlen(response);
     }
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
+
+    // Don't process the response if isSimulation active, Value read from saved config
+    if (!isSimulation())
+    {
+        //Extract the code from the response value
+        std::string tmpString;
+        tmpString.assign(response + 11, 2);
+        int count = 0;
+
+        //As "ZZ" is not exist in lynxModel, not need interator, 'No focuser' is known as first in ModelS
+        if(tmpString != "ZZ")
+        {
+            // If not 'No Focuser' then do iterator
+            // iterate throught all elements in std::map<std::string, std::string> and search the index from the code.
+            std::map<std::string, std::string>::iterator it = lynxModels.begin();
+            while(it != lynxModels.end())
+            {
+                count++;
+                if (it->second == tmpString)
+                    break;
+                it++;
+            }
+        }
+
+        // as different focuser could have the same code in the HUB, we are not able to find the correct name in the list of focuser.
+        // The first one would be show as the item.
+        IUResetSwitch(&ModelSP);
+        ModelS[count].s = ISS_ON;
+        IDSetSwitch(&ModelSP, nullptr);
+
+        // If focuser is relative, we only exposure "Center" command as it cannot home
+        checkIfAbsoluteFocuser();
+
+        LOGF_DEBUG("Index focuser : %d", count);
+    } // end if (!isSimulation)
 
     // Get Status Parameters
 
     memset(response, 0, sizeof(response));
 
-    // Temperature Compensation On?
-    if (isSimulation())
-    {
-        snprintf(response, 32, "TComp ON = %d\n", TemperatureCompensateS[0].s == ISS_ON ? 1 : 0);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    // Temperature information processed on function getFocusTemp(), do nothing with related response
+
+    // Temperature Compensation On
+    if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    int TCompOn;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCompOn);
-    if (rc != 2)
-        return false;
-
-    IUResetSwitch(&TemperatureCompensateSP);
-    TemperatureCompensateS[0].s = TCompOn ? ISS_ON : ISS_OFF;
-    TemperatureCompensateS[0].s = TCompOn ? ISS_OFF : ISS_ON;
-    TemperatureCompensateSP.s   = IPS_OK;
-    IDSetSwitch(&TemperatureCompensateSP, nullptr);
-
-    memset(response, 0, sizeof(response));
 
     // Temperature Coeff A
-    if (isSimulation())
-    {
-        snprintf(response, 32, "TempCo A = %d\n", (int)TemperatureCoeffN[FOCUS_A_COEFF].value);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    int TCoeffA;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCoeffA);
-    if (rc != 2)
-        return false;
-
-    TemperatureCoeffN[FOCUS_A_COEFF].value = TCoeffA;
-
-    memset(response, 0, sizeof(response));
 
     // Temperature Coeff B
-    if (isSimulation())
-    {
-        snprintf(response, 32, "TempCo B = %d\n", (int)TemperatureCoeffN[FOCUS_B_COEFF].value);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    int TCoeffB;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCoeffB);
-    if (rc != 2)
-        return false;
-
-    TemperatureCoeffN[FOCUS_B_COEFF].value = TCoeffB;
-
-    memset(response, 0, sizeof(response));
 
     // Temperature Coeff C
-    if (isSimulation())
-    {
-        snprintf(response, 32, "TempCo C = %d\n", (int)TemperatureCoeffN[FOCUS_C_COEFF].value);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    int TCoeffC;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCoeffC);
-    if (rc != 2)
-        return false;
-
-    TemperatureCoeffN[FOCUS_C_COEFF].value = TCoeffC;
-
-    memset(response, 0, sizeof(response));
 
     // Temperature Coeff D
-    if (isSimulation())
-    {
-        snprintf(response, 32, "TempCo D = %d\n", (int)TemperatureCoeffN[FOCUS_D_COEFF].value);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    int TCoeffD;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCoeffD);
-    if (rc != 2)
-        return false;
-
-    TemperatureCoeffN[FOCUS_D_COEFF].value = TCoeffD;
-
-    memset(response, 0, sizeof(response));
 
     // Temperature Coeff E
-    if (isSimulation())
-    {
-        snprintf(response, 32, "TempCo E = %d\n", (int)TemperatureCoeffN[FOCUS_E_COEFF].value);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    int TCoeffE;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCoeffE);
-    if (rc != 2)
-        return false;
-
-    TemperatureCoeffN[FOCUS_E_COEFF].value = TCoeffE;
-
-    TemperatureCoeffNP.s = IPS_OK;
-    IDSetNumber(&TemperatureCoeffNP, nullptr);
-
-    memset(response, 0, sizeof(response));
 
     // Temperature Compensation Mode
-    if (isSimulation())
-    {
-        snprintf(response, 32, "TC Mode = %c\n", 'C');
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    char compensateMode;
-    rc = sscanf(response, "%16[^=]= %c", key, &compensateMode);
-    if (rc != 2)
-        return false;
-
-    IUResetSwitch(&TemperatureCompensateModeSP);
-    int index = compensateMode - 'A';
-    if (index >= 0 && index <= 5)
-    {
-        TemperatureCompensateModeS[index].s = ISS_ON;
-        TemperatureCompensateModeSP.s       = IPS_OK;
-    }
-    else
-    {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Invalid index %d for compensation mode.", index);
-        TemperatureCompensateModeSP.s = IPS_ALERT;
-    }
-
-    IDSetSwitch(&TemperatureCompensateModeSP, nullptr);
 
     // Backlash Compensation
-    memset(response, 0, sizeof(response));
     if (isSimulation())
     {
         snprintf(response, 32, "BLC En = %d\n", BacklashCompensationS[0].s == ISS_ON ? 1 : 0);
@@ -1052,11 +945,11 @@ bool FocusLynxBase::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int BLCCompensate;
     rc = sscanf(response, "%16[^=]=%d", key, &BLCCompensate);
@@ -1079,11 +972,11 @@ bool FocusLynxBase::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int BLCValue;
     rc = sscanf(response, "%16[^=]=%d", key, &BLCValue);
@@ -1104,11 +997,11 @@ bool FocusLynxBase::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
     response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+    LOGF_DEBUG("RES (%s)", response);
 
     int LEDBrightness;
     rc = sscanf(response, "%16[^=]=%d", key, &LEDBrightness);
@@ -1120,31 +1013,12 @@ bool FocusLynxBase::getFocusConfig()
     IDSetNumber(&LedNP, nullptr);
 
     // Temperature Compensation on Start
-    memset(response, 0, sizeof(response));
-    if (isSimulation())
-    {
-        snprintf(response, 32, "TC@Start = %d\n", TemperatureCompensateOnStartS[0].s == ISS_ON ? 1 : 0);
-        nbytes_read = strlen(response);
-    }
-    else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
-    response[nbytes_read - 1] = '\0';
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
-    int TCOnStart;
-    rc = sscanf(response, "%16[^=]=%d", key, &TCOnStart);
-    if (rc != 2)
-        return false;
-
-    IUResetSwitch(&TemperatureCompensateOnStartSP);
-    TemperatureCompensateOnStartS[0].s = TCOnStart ? ISS_ON : ISS_OFF;
-    TemperatureCompensateOnStartS[1].s = TCOnStart ? ISS_OFF : ISS_ON;
-    TemperatureCompensateOnStartSP.s   = IPS_OK;
-    IDSetSwitch(&TemperatureCompensateOnStartSP, nullptr);
 
     // END is reached
     memset(response, 0, sizeof(response));
@@ -1156,7 +1030,7 @@ bool FocusLynxBase::getFocusConfig()
     else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(errcode, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+        LOGF_ERROR("%s", errmsg);
         return false;
     }
 
@@ -1165,7 +1039,7 @@ bool FocusLynxBase::getFocusConfig()
         response[nbytes_read - 1] = '\0';
 
         // Display the response to be sure to have read the complet TTY Buffer.
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if (strcmp(response, "END"))
             return false;
@@ -1183,18 +1057,18 @@ bool FocusLynxBase::getFocusConfig()
 * ***********************************************************************************/
 bool FocusLynxBase::getFocusStatus()
 {
-    char cmd[32];
+    char cmd[LYNX_MAX] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[32];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
     char key[16];
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sGETSTATUS>", getFocusTarget());
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    snprintf(cmd, LYNX_MAX, "<%sGETSTATUS>", getFocusTarget());
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1208,20 +1082,20 @@ bool FocusLynxBase::getFocusStatus()
     {
         //tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -1229,10 +1103,13 @@ bool FocusLynxBase::getFocusStatus()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
-        if ((strcmp(response, "STATUS1")) && (strcmp(response, "STATUS2")))
+        if (!((!strcmp(response, "STATUS1")) && (!strcmp(getFocusTarget(), "F1"))) && !((!strcmp(response, "STATUS2")) && (!strcmp(getFocusTarget(), "F2"))))
+        {
+            tcflush(PortFD, TCIFLUSH);
             return false;
+        }
 
         // Get Temperature
         memset(response, 0, sizeof(response));
@@ -1244,11 +1121,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         float temperature = 0;
         int rc            = sscanf(response, "%16[^=]=%f", key, &temperature);
@@ -1283,11 +1160,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         uint32_t currPos = 0;
         rc               = sscanf(response, "%16[^=]=%d", key, &currPos);
@@ -1309,11 +1186,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         // Get Status Parameters
 
@@ -1327,11 +1204,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         int isMoving;
         rc = sscanf(response, "%16[^=]=%d", key, &isMoving);
@@ -1350,11 +1227,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         int _isHoming;
         rc = sscanf(response, "%16[^=]=%d", key, &_isHoming);
@@ -1380,11 +1257,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         int isHomed;
         rc = sscanf(response, "%16[^=]=%d", key, &isHomed);
@@ -1406,11 +1283,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         int FFDetect;
         rc = sscanf(response, "%16[^=]=%d", key, &FFDetect);
@@ -1429,11 +1306,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         int TmpProbe;
         rc = sscanf(response, "%16[^=]=%d", key, &TmpProbe);
@@ -1452,11 +1329,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         int RemoteIO;
         rc = sscanf(response, "%16[^=]=%d", key, &RemoteIO);
@@ -1475,11 +1352,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         int HndCtlr;
         rc = sscanf(response, "%16[^=]=%d", key, &HndCtlr);
@@ -1498,11 +1375,11 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
         response[nbytes_read - 1] = '\0';
-        DEBUGF(DBG_FOCUS, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         int reverse;
         rc = sscanf(response, "%16[^=]=%d", key, &reverse);
@@ -1513,12 +1390,12 @@ bool FocusLynxBase::getFocusStatus()
 
         // If reverse is enable and switch shows disabled, let's change that
         // same thing is reverse is disabled but switch is enabled
-        if ((reverse && ReverseS[1].s == ISS_ON) || (!reverse && ReverseS[0].s == ISS_ON))
+        if ((reverse && FocusReverseS[1].s == ISS_ON) || (!reverse && FocusReverseS[0].s == ISS_ON))
         {
-            IUResetSwitch(&ReverseSP);
-            ReverseS[0].s = (reverse == 1) ? ISS_ON : ISS_OFF;
-            ReverseS[1].s = (reverse == 0) ? ISS_ON : ISS_OFF;
-            IDSetSwitch(&ReverseSP, nullptr);
+            IUResetSwitch(&FocusReverseSP);
+            FocusReverseS[0].s = (reverse == 1) ? ISS_ON : ISS_OFF;
+            FocusReverseS[1].s = (reverse == 0) ? ISS_ON : ISS_OFF;
+            IDSetSwitch(&FocusReverseSP, nullptr);
         }
 
         StatusLP.s = IPS_OK;
@@ -1534,7 +1411,7 @@ bool FocusLynxBase::getFocusStatus()
         else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
@@ -1543,8 +1420,7 @@ bool FocusLynxBase::getFocusStatus()
             response[nbytes_read - 1] = '\0';
 
             // Display the response to be sure to have read the complet TTY Buffer.
-            DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-
+            LOGF_DEBUG("RES (%s)", response);
             if (strcmp(response, "END"))
                 return false;
         }
@@ -1553,7 +1429,484 @@ bool FocusLynxBase::getFocusStatus()
 
         return true;
     }
+    return false;
+}
 
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool FocusLynxBase::getFocusTemp()
+{
+    // Get value related to Temperature compensation
+
+    char cmd[LYNX_MAX] = {0};
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[LYNX_MAX] = {0};
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+    char key[16];
+
+    memset(response, 0, sizeof(response));
+
+    snprintf(cmd, LYNX_MAX, "<%sGETTCI>", getFocusTarget());
+    LOGF_DEBUG("CMD (%s)", cmd);
+
+    if (isSimulation())
+    {
+        if (!strcmp(getFocusTarget(), "F1"))
+            strncpy(response, "TEMP COMP1", 16);
+        else
+            strncpy(response, "TEMP COMP2", 16);
+        nbytes_read = strlen(response) + 1;
+    }
+    else
+    {
+        if ((errcode = tty_write_string(PortFD, cmd,  &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+
+        if (!isResponseOK())
+            return false;
+
+        if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
+
+        if ((strcmp(response, "TEMP COMP1")) && (strcmp(response, "TEMP COMP2")))
+            return false;
+
+        memset(response, 0, sizeof(response));
+
+        // Temperature Compensation On?
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TComp ON = %d\n", TemperatureCompensateS[0].s == ISS_ON ? 1 : 0);
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        response[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
+
+        int TCompOn;
+        int rc = sscanf(response, "%16[^=]=%d", key, &TCompOn);
+        if (rc != 2)
+            return false;
+
+        IUResetSwitch(&TemperatureCompensateSP);
+        TemperatureCompensateS[0].s = TCompOn ? ISS_ON : ISS_OFF;
+        TemperatureCompensateS[1].s = TCompOn ? ISS_OFF : ISS_ON;
+        TemperatureCompensateSP.s   = IPS_OK;
+        IDSetSwitch(&TemperatureCompensateSP, nullptr);
+
+        memset(response, 0, sizeof(response));
+
+        // Temperature Compensation Mode
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TC Mode = %c\n", 'C');
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        response[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
+
+        char compensateMode;
+        rc = sscanf(response, "%16[^=]= %c", key, &compensateMode);
+        if (rc != 2)
+            return false;
+
+        IUResetSwitch(&TemperatureCompensateModeSP);
+        int index = compensateMode - 'A';
+        if (index >= 0 && index <= 5)
+        {
+            TemperatureCompensateModeS[index].s = ISS_ON;
+            TemperatureCompensateModeSP.s       = IPS_OK;
+        }
+        else
+        {
+            LOGF_ERROR("Invalid index %d for compensation mode.", index);
+            TemperatureCompensateModeSP.s = IPS_ALERT;
+        }
+
+        IDSetSwitch(&TemperatureCompensateModeSP, nullptr);
+
+
+        // Temperature Compensation on Start
+        memset(response, 0, sizeof(response));
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TC@Start = %d\n", TemperatureCompensateOnStartS[0].s == ISS_ON ? 1 : 0);
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        response[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
+
+        int TCOnStart;
+        rc = sscanf(response, "%16[^=]=%d", key, &TCOnStart);
+        if (rc != 2)
+            return false;
+
+        IUResetSwitch(&TemperatureCompensateOnStartSP);
+        TemperatureCompensateOnStartS[0].s = TCOnStart ? ISS_ON : ISS_OFF;
+        TemperatureCompensateOnStartS[1].s = TCOnStart ? ISS_OFF : ISS_ON;
+        TemperatureCompensateOnStartSP.s   = IPS_OK;
+        IDSetSwitch(&TemperatureCompensateOnStartSP, nullptr);
+
+        // Temperature Coeff A
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TempCo A = %d\n", static_cast<int>(TemperatureParamN[0].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+
+        if (TemperatureCompensateModeS[0].s == ISS_ON)
+        {
+            response[nbytes_read - 1] = '\0';
+            LOGF_DEBUG("RES (%s)", response);
+
+            int TCoeff;
+            rc = sscanf(response, "%16[^=]=%d", key, &TCoeff);
+            if (rc != 2)
+                return false;
+
+            TemperatureParamN[0].value = TCoeff;
+        }
+        memset(response, 0, sizeof(response));
+
+        // Temperature Coeff B
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TempCo B = %d\n", static_cast<int>(TemperatureParamN[0].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        if (TemperatureCompensateModeS[1].s == ISS_ON)
+        {
+            response[nbytes_read - 1] = '\0';
+            LOGF_DEBUG("RES (%s)", response);
+
+            int TCoeff;
+            rc = sscanf(response, "%16[^=]=%d", key, &TCoeff);
+            if (rc != 2)
+                return false;
+
+            TemperatureParamN[0].value = TCoeff;
+        }
+
+        memset(response, 0, sizeof(response));
+
+        // Temperature Coeff C
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TempCo C = %d\n", static_cast<int>(TemperatureParamN[0].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        if (TemperatureCompensateModeS[2].s == ISS_ON)
+        {
+            response[nbytes_read - 1] = '\0';
+            LOGF_DEBUG("RES (%s)", response);
+
+            int TCoeff;
+            rc = sscanf(response, "%16[^=]=%d", key, &TCoeff);
+            if (rc != 2)
+                return false;
+
+            TemperatureParamN[0].value = TCoeff;
+        }
+
+        memset(response, 0, sizeof(response));
+
+        // Temperature Coeff D
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TempCo D = %d\n", static_cast<int>(TemperatureParamN[0].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        if (TemperatureCompensateModeS[3].s == ISS_ON)
+        {
+            response[nbytes_read - 1] = '\0';
+            LOGF_DEBUG("RES (%s)", response);
+
+            int TCoeff;
+            rc = sscanf(response, "%16[^=]=%d", key, &TCoeff);
+            if (rc != 2)
+                return false;
+
+            TemperatureParamN[0].value = TCoeff;
+        }
+
+        memset(response, 0, sizeof(response));
+
+        // Temperature Coeff E
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TempCo E = %d\n", static_cast<int>(TemperatureParamN[0].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        if (TemperatureCompensateModeS[4].s == ISS_ON)
+        {
+            response[nbytes_read - 1] = '\0';
+            LOGF_DEBUG("RES (%s)", response);
+
+            int TCoeff;
+            rc = sscanf(response, "%16[^=]=%d", key, &TCoeff);
+            if (rc != 2)
+                return false;
+
+            TemperatureParamN[0].value = TCoeff;
+        }
+
+        memset(response, 0, sizeof(response));
+
+        // Temperature intercepts A
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TempIn A = %d\n", static_cast<int>(TemperatureParamN[1].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        if (TemperatureCompensateModeS[0].s == ISS_ON)
+        {
+            response[nbytes_read - 1] = '\0';
+            LOGF_DEBUG("RES (%s)", response);
+
+            int TInter;
+            rc = sscanf(response, "%16[^=]=%d", key, &TInter);
+            if (rc != 2)
+                return false;
+
+            TemperatureParamN[1].value = TInter;
+        }
+
+        memset(response, 0, sizeof(response));
+
+        // Temperature intercepts B
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TempIn B = %d\n", static_cast<int>(TemperatureParamN[1].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        if (TemperatureCompensateModeS[1].s == ISS_ON)
+        {
+            response[nbytes_read - 1] = '\0';
+            LOGF_DEBUG("RES (%s)", response);
+
+            int TInter;
+            rc = sscanf(response, "%16[^=]=%d", key, &TInter);
+            if (rc != 2)
+                return false;
+
+            TemperatureParamN[1].value = TInter;
+        }
+
+        memset(response, 0, sizeof(response));
+
+        // Temperature intercepts C
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TempIn C = %d\n", static_cast<int>(TemperatureParamN[1].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        if (TemperatureCompensateModeS[2].s == ISS_ON)
+        {
+            response[nbytes_read - 1] = '\0';
+            LOGF_DEBUG("RES (%s)", response);
+
+            int TInter;
+            rc = sscanf(response, "%16[^=]=%d", key, &TInter);
+            if (rc != 2)
+                return false;
+
+            TemperatureParamN[1].value = TInter;
+        }
+
+        memset(response, 0, sizeof(response));
+
+        // Temperature intercepts D
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TempIn D = %d\n", static_cast<int>(TemperatureParamN[1].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        if (TemperatureCompensateModeS[3].s == ISS_ON)
+        {
+            response[nbytes_read - 1] = '\0';
+            LOGF_DEBUG("RES (%s)", response);
+
+            int TInter;
+            rc = sscanf(response, "%16[^=]=%d", key, &TInter);
+            if (rc != 2)
+                return false;
+
+            TemperatureParamN[1].value = TInter;
+        }
+
+        memset(response, 0, sizeof(response));
+
+        // Temperature intercepts E
+        if (isSimulation())
+        {
+            snprintf(response, 32, "TempIn E = %d\n", static_cast<int>(TemperatureParamN[1].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        if (TemperatureCompensateModeS[4].s == ISS_ON)
+        {
+            response[nbytes_read - 1] = '\0';
+            LOGF_DEBUG("RES (%s)", response);
+
+            int TInter;
+            rc = sscanf(response, "%16[^=]=%d", key, &TInter);
+            if (rc != 2)
+                return false;
+
+            TemperatureParamN[1].value = TInter;
+        }
+
+        TemperatureParamNP.s = IPS_OK;
+        IDSetNumber(&TemperatureParamNP, nullptr);
+
+        memset(response, 0, sizeof(response));
+
+        // StepSize
+        if (isSimulation())
+        {
+            snprintf(response, 32, "StepSize = %d\n", static_cast<int>(StepSizeN[0].value));
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+        response[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
+
+        int valueStepSize;
+        rc = sscanf(response, "%16[^=]=%d", key, &valueStepSize);
+        if (rc != 2)
+            return false;
+
+        StepSizeN[0].value = valueStepSize;
+        IDSetNumber(&StepSizeNP, nullptr);
+
+        memset(response, 0, sizeof(response));
+
+        // END is reached
+        memset(response, 0, sizeof(response));
+        if (isSimulation())
+        {
+            strncpy(response, "END\n", 16);
+            nbytes_read = strlen(response);
+        }
+        else if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+
+        if (nbytes_read > 0)
+        {
+            response[nbytes_read - 1] = '\0';
+
+            // Display the response to be sure to have read the complet TTY Buffer.
+            LOGF_DEBUG("RES (%s)", response);
+            if (strcmp(response, "END"))
+                return false;
+        }
+
+        tcflush(PortFD, TCIFLUSH);
+
+        return true;
+    }
     return false;
 }
 
@@ -1565,15 +1918,15 @@ bool FocusLynxBase::setDeviceType(int index)
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<%sSCDT%s>", getFocusTarget(), ModelS[index].name);
+    snprintf(cmd, 16, "<%sSCDT%s>", getFocusTarget(), index > 0 ? lynxModels[ModelS[index].name].c_str() : "ZZ");
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1584,20 +1937,20 @@ bool FocusLynxBase::setDeviceType(int index)
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -1605,7 +1958,7 @@ bool FocusLynxBase::setDeviceType(int index)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -1627,7 +1980,7 @@ bool FocusLynxBase::setLedLevel(int level)
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -1635,7 +1988,7 @@ bool FocusLynxBase::setLedLevel(int level)
 
     snprintf(cmd, 16, "<FHSCLB%d>", level);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1646,20 +1999,20 @@ bool FocusLynxBase::setLedLevel(int level)
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -1667,7 +2020,7 @@ bool FocusLynxBase::setLedLevel(int level)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -1685,18 +2038,18 @@ bool FocusLynxBase::setLedLevel(int level)
 bool FocusLynxBase::setDeviceNickname(const char *nickname)
 // Write via the connected port to the HUB the choiced nikname of the focuser
 {
-    char cmd[32];
+    char cmd[LYNX_MAX] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sSCNN%s>", getFocusTarget(), nickname);
+    snprintf(cmd, LYNX_MAX, "<%sSCNN%s>", getFocusTarget(), nickname);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1707,20 +2060,20 @@ bool FocusLynxBase::setDeviceNickname(const char *nickname)
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -1728,7 +2081,7 @@ bool FocusLynxBase::setDeviceNickname(const char *nickname)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -1744,26 +2097,26 @@ bool FocusLynxBase::setDeviceNickname(const char *nickname)
 * ***********************************************************************************/
 bool FocusLynxBase::home()
 {
-    char cmd[32];
+    char cmd[LYNX_MAX] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sHOME>", getFocusTarget());
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    snprintf(cmd, LYNX_MAX, "<%sHOME>", getFocusTarget());
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
         strncpy(response, "H", 16);
         nbytes_read              = strlen(response) + 1;
         targetPosition           = 0;
-        FocusAbsPosN[0].value = MaxTravelN[0].value;
+        //FocusAbsPosN[0].value = MaxTravelN[0].value;
         FocusAbsPosNP.s = IPS_OK;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
         simStatus[STATUS_HOMING] = ISS_ON;
         simStatus[STATUS_HOMED] = ISS_OFF;
         simPosition = FocusAbsPosN[0].value;
@@ -1772,20 +2125,20 @@ bool FocusLynxBase::home()
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -1793,12 +2146,12 @@ bool FocusLynxBase::home()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         FocusAbsPosNP.s = IPS_BUSY;
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
         isHoming = true;
-        DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to home position...");
+        LOG_INFO("Focuser moving to home position...");
 
         tcflush(PortFD, TCIFLUSH);
 
@@ -1813,10 +2166,10 @@ bool FocusLynxBase::home()
 * ***********************************************************************************/
 bool FocusLynxBase::center()
 {
-    char cmd[32];
+    char cmd[LYNX_MAX] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -1825,8 +2178,8 @@ bool FocusLynxBase::center()
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sCENTER>", getFocusTarget());
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    snprintf(cmd, LYNX_MAX, "<%sCENTER>", getFocusTarget());
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1839,20 +2192,20 @@ bool FocusLynxBase::center()
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -1860,9 +2213,9 @@ bool FocusLynxBase::center()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
-        DEBUG(INDI::Logger::DBG_SESSION, "Focuser moving to center position...");
+        LOG_INFO("Focuser moving to center position...");
 
         FocusAbsPosNP.s = IPS_BUSY;
         IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -1883,7 +2236,7 @@ bool FocusLynxBase::setTemperatureCompensation(bool enable)
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -1891,7 +2244,7 @@ bool FocusLynxBase::setTemperatureCompensation(bool enable)
 
     snprintf(cmd, 16, "<%sSCTE%d>", getFocusTarget(), enable ? 1 : 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1902,20 +2255,20 @@ bool FocusLynxBase::setTemperatureCompensation(bool enable)
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -1923,7 +2276,7 @@ bool FocusLynxBase::setTemperatureCompensation(bool enable)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -1943,7 +2296,7 @@ bool FocusLynxBase::setTemperatureCompensationMode(char mode)
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -1951,7 +2304,7 @@ bool FocusLynxBase::setTemperatureCompensationMode(char mode)
 
     snprintf(cmd, 16, "<%sSCTM%c>", getFocusTarget(), mode);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -1962,20 +2315,20 @@ bool FocusLynxBase::setTemperatureCompensationMode(char mode)
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -1983,11 +2336,12 @@ bool FocusLynxBase::setTemperatureCompensationMode(char mode)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
+        // If OK, the value would be read and update UI properties
         if (!strcmp(response, "SET"))
-            return true;
+            return getFocusTemp();
         else
             return false;
     }
@@ -2003,15 +2357,15 @@ bool FocusLynxBase::setTemperatureCompensationCoeff(char mode, int16_t coeff)
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<%sSCTC%c%c%04d>", getFocusTarget(), mode, coeff >= 0 ? '+' : '-', (int)std::abs(coeff));
+    snprintf(cmd, 16, "<%sSCTC%c%c%04d>", getFocusTarget(), mode, coeff >= 0 ? '+' : '-', static_cast<int>(std::abs(coeff)));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2022,20 +2376,20 @@ bool FocusLynxBase::setTemperatureCompensationCoeff(char mode, int16_t coeff)
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -2043,7 +2397,67 @@ bool FocusLynxBase::setTemperatureCompensationCoeff(char mode, int16_t coeff)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
+        tcflush(PortFD, TCIFLUSH);
+
+        if (!strcmp(response, "SET"))
+            return true;
+        else
+            return false;
+    }
+
+    return false;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool FocusLynxBase::setTemperatureInceptions(char mode, int32_t inter)
+{
+    char cmd[LYNX_MAX] = {0};
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[LYNX_MAX] = {0};
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+    memset(response, 0, sizeof(response));
+
+    snprintf(cmd, LYNX_MAX, "<%sSETINT%c%c%06d>", getFocusTarget(), mode, inter >= 0 ? '+' : '-', static_cast<int>(std::abs(inter)));
+
+    LOGF_DEBUG("CMD (%s)", cmd);
+
+    if (isSimulation())
+    {
+        strncpy(response, "SET", 16);
+        nbytes_read = strlen(response) + 1;
+    }
+    else
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+
+        if (!isResponseOK())
+            return false;
+
+        if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -2063,7 +2477,7 @@ bool FocusLynxBase::setTemperatureCompensationOnStart(bool enable)
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -2071,7 +2485,7 @@ bool FocusLynxBase::setTemperatureCompensationOnStart(bool enable)
 
     snprintf(cmd, 16, "<%sSCTS%d>", getFocusTarget(), enable ? 1 : 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2082,20 +2496,20 @@ bool FocusLynxBase::setTemperatureCompensationOnStart(bool enable)
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -2103,7 +2517,7 @@ bool FocusLynxBase::setTemperatureCompensationOnStart(bool enable)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -2123,7 +2537,7 @@ bool FocusLynxBase::setBacklashCompensation(bool enable)
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -2131,7 +2545,7 @@ bool FocusLynxBase::setBacklashCompensation(bool enable)
 
     snprintf(cmd, 16, "<%sSCBE%d>", getFocusTarget(), enable ? 1 : 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2140,20 +2554,20 @@ bool FocusLynxBase::setBacklashCompensation(bool enable)
     }
     else
     {
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -2161,7 +2575,7 @@ bool FocusLynxBase::setBacklashCompensation(bool enable)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -2181,7 +2595,7 @@ bool FocusLynxBase::setBacklashCompensationSteps(uint16_t steps)
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
@@ -2189,7 +2603,7 @@ bool FocusLynxBase::setBacklashCompensationSteps(uint16_t steps)
 
     snprintf(cmd, 16, "<%sSCBS%02d>", getFocusTarget(), steps);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2198,20 +2612,20 @@ bool FocusLynxBase::setBacklashCompensationSteps(uint16_t steps)
     }
     else
     {
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -2219,7 +2633,7 @@ bool FocusLynxBase::setBacklashCompensationSteps(uint16_t steps)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -2234,43 +2648,43 @@ bool FocusLynxBase::setBacklashCompensationSteps(uint16_t steps)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool FocusLynxBase::reverse(bool enable)
+bool FocusLynxBase::ReverseFocuser(bool enabled)
 {
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 16, "<%sREVERSE%d>", getFocusTarget(), enable ? 1 : 0);
+    snprintf(cmd, 16, "<%sREVERSE%d>", getFocusTarget(), enabled ? 1 : 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
         strncpy(response, "SET", 16);
         nbytes_read               = strlen(response) + 1;
-        simStatus[STATUS_REVERSE] = enable ? ISS_ON : ISS_OFF;
+        simStatus[STATUS_REVERSE] = enabled ? ISS_ON : ISS_OFF;
     }
     else
     {
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -2278,7 +2692,7 @@ bool FocusLynxBase::reverse(bool enable)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
@@ -2293,43 +2707,191 @@ bool FocusLynxBase::reverse(bool enable)
 /************************************************************************************
  *
 * ***********************************************************************************/
-bool FocusLynxBase::sync(uint32_t position)
+bool FocusLynxBase::SyncFocuser(uint32_t ticks)
 {
-    char cmd[32];
+    char cmd[LYNX_MAX] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
+    int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sSCCP%06d>", getFocusTarget(), position);
-
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    snprintf(cmd, LYNX_MAX, "<%sSCCP%06d>", getFocusTarget(), ticks);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
-        simPosition = position;
+        simPosition = ticks;
+        strncpy(response, "SET", 16);
+        nbytes_read = strlen(response) + 1;
     }
     else
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
+            return false;
+
+        if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
+        tcflush(PortFD, TCIFLUSH);
+
+        if (!strcmp(response, "SET"))
+        {
+            LOGF_INFO("Setting current position to %d", ticks);
+            isSynced = true;
+            return true;
+        }
+        else
+            return false;
+    }
+    return false;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+//bool FocusLynxBase::setMaxTravel(u_int16_t travel)
+bool FocusLynxBase::SetFocuserMaxPosition(uint32_t ticks)
+{
+    char cmd[LYNX_MAX] = {0};
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[LYNX_MAX] = {0};
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+    memset(response, 0, sizeof(response));
+
+    snprintf(cmd, LYNX_MAX, "<%sSETMAX%06d>", getFocusTarget(), ticks);
+    LOGF_DEBUG("CMD (%s)", cmd);
+
+    SyncPresets(ticks);
+
+    if (isSimulation())
+    {
+        strncpy(response, "SET", 16);
+        nbytes_read = strlen(response) + 1;
+    }
+    else
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+
+        if (!isResponseOK())
+            return false;
+
+        if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
+        tcflush(PortFD, TCIFLUSH);
+
+        if (!strcmp(response, "SET"))
+        {
+            getFocusConfig();
+            return true;
+        }
+        else
             return false;
     }
 
-    tcflush(PortFD, TCIFLUSH);
-    DEBUGF(INDI::Logger::DBG_SESSION, "Setting current position to %d", position);
-    isSynced = true;
-    return true;
+    return false;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool FocusLynxBase::setStepSize(u_int16_t stepsize)
+{
+    char cmd[LYNX_MAX] = {0};
+    int errcode = 0;
+    char errmsg[MAXRBUF];
+    char response[LYNX_MAX] = {0};
+    int nbytes_read    = 0;
+    int nbytes_written = 0;
+
+    memset(response, 0, sizeof(response));
+
+    snprintf(cmd, LYNX_MAX, "<%sSETFSS%06d>", getFocusTarget(), stepsize);
+    LOGF_DEBUG("CMD (%s)", cmd);
+
+    if (isSimulation())
+    {
+        strncpy(response, "SET", 16);
+        nbytes_read = strlen(response) + 1;
+    }
+    else
+    {
+        tcflush(PortFD, TCIFLUSH);
+
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+
+        if (!isResponseOK())
+            return false;
+
+        if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
+        {
+            tty_error_msg(errcode, errmsg, MAXRBUF);
+            LOGF_ERROR("%s", errmsg);
+            return false;
+        }
+    }
+
+    if (nbytes_read > 0)
+    {
+        response[nbytes_read - 1] = '\0';
+        LOGF_DEBUG("RES (%s)", response);
+        tcflush(PortFD, TCIFLUSH);
+
+        if (!strcmp(response, "SET"))
+        {
+            getFocusConfig();
+            return true;
+        }
+        else
+            return false;
+    }
+
+    return false;
 }
 
 /************************************************************************************
@@ -2337,17 +2899,17 @@ bool FocusLynxBase::sync(uint32_t position)
 * ***********************************************************************************/
 bool FocusLynxBase::resetFactory()
 {
-    char cmd[32];
+    char cmd[LYNX_MAX] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sRESET>", getFocusTarget());
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    snprintf(cmd, LYNX_MAX, "<%sRESET>", getFocusTarget());
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2358,20 +2920,20 @@ bool FocusLynxBase::resetFactory()
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -2379,13 +2941,13 @@ bool FocusLynxBase::resetFactory()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
         tcflush(PortFD, TCIFLUSH);
 
         if (!strcmp(response, "SET"))
         {
-            return true;
             getFocusConfig();
+            return true;
         }
         else
             return false;
@@ -2401,7 +2963,7 @@ bool FocusLynxBase::isResponseOK()
 {
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[32];
+    char response[LYNX_MAX] = {0};
     int nbytes_read = 0;
 
     memset(response, 0, sizeof(response));
@@ -2416,7 +2978,7 @@ bool FocusLynxBase::isResponseOK()
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "TTY error: %s", errmsg);
+            LOGF_ERROR("TTY error: %s", errmsg);
             return false;
         }
     }
@@ -2424,13 +2986,13 @@ bool FocusLynxBase::isResponseOK()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if (response[0] == '!')
             return true;
         else
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Controller error: %s", response);
+            LOGF_ERROR("Controller error: %s", response);
             return false;
         }
     }
@@ -2445,15 +3007,14 @@ IPState FocusLynxBase::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
     char cmd[16];
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
     // Relative focusers must be synced initially.
     if (isAbsolute == false && isSynced == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR,
-              "Relative focusers must be synced. Please sync before issuing any motion commands.");
+        LOG_ERROR("Relative focusers must be synced. Please sync before issuing any motion commands.");
         return IPS_ALERT;
     }
 
@@ -2461,7 +3022,7 @@ IPState FocusLynxBase::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
 
     snprintf(cmd, 16, "<%sM%cR%c>", getFocusTarget(), (dir == FOCUS_INWARD) ? 'I' : 'O', (speed == 0) ? '0' : '1');
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2472,14 +3033,14 @@ IPState FocusLynxBase::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return IPS_ALERT;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return IPS_ALERT;
 
         gettimeofday(&focusMoveStart, nullptr);
@@ -2488,7 +3049,7 @@ IPState FocusLynxBase::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return IPS_ALERT;
         }
     }
@@ -2496,7 +3057,7 @@ IPState FocusLynxBase::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if (duration <= POLLMS)
         {
@@ -2518,18 +3079,17 @@ IPState FocusLynxBase::MoveFocuser(FocusDirection dir, int speed, uint16_t durat
 * ***********************************************************************************/
 IPState FocusLynxBase::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char cmd[32];
+    char cmd[LYNX_MAX] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
     // Relative focusers must be synced initially.
     if (isAbsolute == false && isSynced == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR,
-              "Relative focusers must be synced. Please sync before issuing any motion commands.");
+        LOG_ERROR("Relative focusers must be synced. Please sync before issuing any motion commands.");
         return IPS_ALERT;
     }
 
@@ -2537,9 +3097,9 @@ IPState FocusLynxBase::MoveAbsFocuser(uint32_t targetTicks)
 
     memset(response, 0, sizeof(response));
 
-    snprintf(cmd, 32, "<%sMA%06d>", getFocusTarget(), targetTicks);
+    snprintf(cmd, LYNX_MAX, "<%sMA%06d>", getFocusTarget(), targetTicks);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2551,20 +3111,20 @@ IPState FocusLynxBase::MoveAbsFocuser(uint32_t targetTicks)
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return IPS_ALERT;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return IPS_ALERT;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return IPS_ALERT;
         }
     }
@@ -2572,7 +3132,7 @@ IPState FocusLynxBase::MoveAbsFocuser(uint32_t targetTicks)
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         FocusAbsPosNP.s = IPS_BUSY;
 
@@ -2594,8 +3154,7 @@ IPState FocusLynxBase::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     // Relative focusers must be synced initially.
     if (isAbsolute == false && isSynced == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR,
-              "Relative focusers must be synced. Please sync before issuing any motion commands.");
+        LOG_DEBUG("Relative focusers must be synced. Please sync before issuing any motion commands.");
         return IPS_ALERT;
     }
 
@@ -2631,7 +3190,7 @@ void FocusLynxBase::TimerHit()
 
     if (statusrc == false)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Unable to read focuser status....");
+        LOG_WARN("Unable to read focuser status....");
         SetTimer(POLLMS);
         return;
     }
@@ -2647,7 +3206,7 @@ void FocusLynxBase::TimerHit()
 
             simStatus[STATUS_MOVING] = ISS_ON;
 
-            if (std::abs((int64_t)simPosition - (int64_t)targetPosition) < 100)
+            if (std::abs(static_cast<int64_t>(simPosition) - static_cast<int64_t>(targetPosition)) < 100)
             {
                 FocusAbsPosN[0].value    = targetPosition;
                 simPosition              = FocusAbsPosN[0].value;
@@ -2663,7 +3222,7 @@ void FocusLynxBase::TimerHit()
             }
             else
                 StatusL[STATUS_MOVING].s = IPS_BUSY;
-            IDSetLight(&StatusLP, NULL);
+            IDSetLight(&StatusLP, nullptr);
         }
 
         if (isHoming && StatusL[STATUS_HOMED].s == IPS_OK)
@@ -2675,7 +3234,7 @@ void FocusLynxBase::TimerHit()
             IDSetSwitch(&GotoSP, nullptr);
             FocusAbsPosNP.s = IPS_OK;
             IDSetNumber(&FocusRelPosNP, nullptr);
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached home position.");
+            LOG_INFO("Focuser reached home position.");
             if (isSimulation())
                 center();
         }
@@ -2691,7 +3250,7 @@ void FocusLynxBase::TimerHit()
                 GotoSP.s = IPS_OK;
                 IDSetSwitch(&GotoSP, nullptr);
             }
-            DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
+            LOG_INFO("Focuser reached requested position.");
         }
         else if (StatusL[STATUS_MOVING].s == IPS_BUSY && focusMoveRequest > 0)
         {
@@ -2719,16 +3278,16 @@ void FocusLynxBase::TimerHit()
 * ***********************************************************************************/
 bool FocusLynxBase::AbortFocuser()
 {
-    char cmd[32];
+    char cmd[LYNX_MAX] = {0};
     int errcode = 0;
     char errmsg[MAXRBUF];
-    char response[16];
+    char response[LYNX_MAX] = {0};
     int nbytes_read    = 0;
     int nbytes_written = 0;
 
     memset(response, 0, sizeof(response));
-    snprintf(cmd, 32, "<%sHALT>", getFocusTarget());
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    snprintf(cmd, LYNX_MAX, "<%sHALT>", getFocusTarget());
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (isSimulation())
     {
@@ -2741,20 +3300,20 @@ bool FocusLynxBase::AbortFocuser()
     {
         tcflush(PortFD, TCIFLUSH);
 
-        if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
+        if ((errcode = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
 
-        if (isResponseOK() == false)
+        if (!isResponseOK())
             return false;
 
         if ((errcode = tty_read_section(PortFD, response, 0xA, LYNXFOCUS_TIMEOUT, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -2762,7 +3321,7 @@ bool FocusLynxBase::AbortFocuser()
     if (nbytes_read > 0)
     {
         response[nbytes_read - 1] = '\0';
-        DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
+        LOGF_DEBUG("RES (%s)", response);
 
         if (FocusRelPosNP.s == IPS_BUSY)
         {
@@ -2791,11 +3350,14 @@ float FocusLynxBase::calcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
     gettimeofday(&now, nullptr);
 
     timesince =
-        (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) - (double)(start.tv_sec * 1000.0 + start.tv_usec / 1000);
+        static_cast<int>((now.tv_sec * 1000.0 + now.tv_usec / 1000)) - static_cast<int>((start.tv_sec * 1000.0 + start.tv_usec / 1000));
     timesince = timesince / 1000;
     timeleft  = req - timesince;
     return timeleft;
@@ -2811,15 +3373,52 @@ bool FocusLynxBase::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &ModelSP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateSP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateOnStartSP);
-    IUSaveConfigSwitch(fp, &ReverseSP);
-    IUSaveConfigNumber(fp, &TemperatureCoeffNP);
+    //IUSaveConfigSwitch(fp, &ReverseSP);
+    IUSaveConfigNumber(fp, &TemperatureNP);
     IUSaveConfigSwitch(fp, &TemperatureCompensateModeSP);
     IUSaveConfigSwitch(fp, &BacklashCompensationSP);
     IUSaveConfigNumber(fp, &BacklashNP);
+    IUSaveConfigNumber(fp, &StepSizeNP);
     if (isAbsolute == false)
-        IUSaveConfigNumber(fp, &MaxTravelNP);
-
+    {
+        //IUSaveConfigNumber(fp, &MaxTravelNP);
+        IUSaveConfigSwitch(fp, &SyncMandatorySP);
+    }
     return true;
+}
+
+/************************************************************************************
+*
+************************************************************************************/
+bool FocusLynxBase::loadConfig(bool silent, const char *property)
+{
+    bool result = true;
+
+    if (property == nullptr)
+    {
+        // Need to know the user choice for this option not store in HUB
+        result = INDI::DefaultDevice::loadConfig(silent, "SYNC MANDATORY");
+        result = INDI::DefaultDevice::loadConfig(silent, "Presets") && result;
+        if (isSimulation())
+        {
+            // Only load for simulation, otherwise got from the HUB
+            result = (INDI::DefaultDevice::loadConfig(silent, "MODEL") && result);
+            result = (INDI::DefaultDevice::loadConfig(silent, "T. COMPENSATION") && result);
+            result = (INDI::DefaultDevice::loadConfig(silent, "T. COMPENSATION @START") && result);
+            result = (INDI::DefaultDevice::loadConfig(silent, "REVERSE") && result);
+            result = (INDI::DefaultDevice::loadConfig(silent, "T. COEFF") && result);
+            result = (INDI::DefaultDevice::loadConfig(silent, "COMPENSATE MODE") && result);
+            result = (INDI::DefaultDevice::loadConfig(silent, "BACKLASH COMPENSATION") && result);
+            result = (INDI::DefaultDevice::loadConfig(silent, "BACKLASH") && result);
+            result = (INDI::DefaultDevice::loadConfig(silent, "MAX TRAVEL") && result);
+            result = (INDI::DefaultDevice::loadConfig(silent, "STEP SIZE") && result);
+            result = (INDI::DefaultDevice::loadConfig(silent, "T. PARAMETERS") && result);
+        }
+    }
+    else
+        result = INDI::DefaultDevice::loadConfig(silent, property);
+
+    return result;
 }
 
 /************************************************************************************
@@ -2863,13 +3462,58 @@ int FocusLynxBase::getVersion(int *major, int *minor, int *sub)
      * Not yet implemented in this version of the driver
      */
     char sMajor[8], sMinor[8], sSub[8];
-    int  rc = sscanf(version, "%[^.].%[^.].%s",sMajor, sMinor, sSub);
+    int  rc = sscanf(version, "%[^.].%[^.].%s", sMajor, sMinor, sSub);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Version major: %s, minor: %s, subversion: %s", sMajor, sMinor, sSub);
+    LOGF_DEBUG("Version major: %s, minor: %s, subversion: %s", sMajor, sMinor, sSub);
     *major = atoi(sMajor);
     *minor = atoi(sMinor);
     *sub = atoi(sSub);
     if (rc == 3)
         return *major;
     return 0;  // 0 Means error in this case
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool FocusLynxBase::checkIfAbsoluteFocuser()
+{
+    const char *focusName = IUFindOnSwitch(&ModelSP)->label;
+    deleteProperty(GotoSP.name);
+    deleteProperty(SyncMandatorySP.name);
+
+    // Check if we have absolute or relative focusers
+    if (strstr(focusName, "TCF") || strstr(focusName, "Leo") || !strcmp(focusName, "FastFocus"))
+    {
+        LOG_DEBUG("Absolute focuser detected.");
+        GotoSP.nsp = 2;
+        isAbsolute = true;
+        deleteProperty(SyncNP.name);
+    }
+    else
+    {
+        LOG_DEBUG("Relative focuser detected.");
+        GotoSP.nsp = 1;
+        defineNumber(&SyncNP);
+        SyncMandatoryS[0].s = ISS_OFF;
+        SyncMandatoryS[1].s = ISS_ON;
+        defineSwitch(&SyncMandatorySP);
+        INDI::DefaultDevice::loadConfig(true, "SYNC MANDATORY");
+        if (SyncMandatoryS[0].s == ISS_ON)
+            isSynced = false;
+        else isSynced = true;
+        isAbsolute = false;
+    }
+    defineSwitch(&GotoSP);
+
+    return isAbsolute;
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+bool FocusLynxBase::SyncMandatory(bool enable)
+{
+    isSynced = !enable;
+    return true;
 }

@@ -183,7 +183,9 @@ int read_ppm(FILE *handle, struct dcraw_header *header, uint8_t **memptr, size_t
             uint16_t *ppm16 = (uint16_t *)ppm;
             if (htons(0x55aa) != 0x55aa)
             {
-                swab(ppm, ppm, width * bpp);
+                uint8_t *ppmtemp = ppm;
+                swab(ppm, ppmtemp, width * bpp);
+                ppm = ppmtemp;
             }
             if (naxis == 3)
             {
@@ -264,7 +266,7 @@ int dcraw_parse_header_info(const char *filename, struct dcraw_header *header)
     DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "%s", cmd);
     handle = popen(cmd, "r");
     free(cmd);
-    if (handle == NULL)
+    if (handle == nullptr)
     {
         return 1;
     }
@@ -342,10 +344,10 @@ int read_libraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_
     *h            = RawProcessor.imgdata.rawdata.sizes.height;
     *bitsperpixel = 16;
     // cdesc contains counter-clock wise e.g. RGBG CFA pattern while we want it sequential as RGGB
-    bayer_pattern[0] = RawProcessor.imgdata.idata.cdesc[0];
-    bayer_pattern[1] = RawProcessor.imgdata.idata.cdesc[1];
-    bayer_pattern[2] = RawProcessor.imgdata.idata.cdesc[3];
-    bayer_pattern[3] = RawProcessor.imgdata.idata.cdesc[2];
+    bayer_pattern[0] = RawProcessor.imgdata.idata.cdesc[RawProcessor.COLOR(0, 0)];
+    bayer_pattern[1] = RawProcessor.imgdata.idata.cdesc[RawProcessor.COLOR(0, 1)];
+    bayer_pattern[2] = RawProcessor.imgdata.idata.cdesc[RawProcessor.COLOR(1, 0)];
+    bayer_pattern[3] = RawProcessor.imgdata.idata.cdesc[RawProcessor.COLOR(1, 1)];
     bayer_pattern[4] = '\0';
 
     int first_visible_pixel = RawProcessor.imgdata.rawdata.sizes.raw_width * RawProcessor.imgdata.sizes.top_margin +
@@ -397,7 +399,7 @@ int read_dcraw(const char *filename, uint8_t **memptr, size_t *memsize, int *n_a
 
     handle = popen(cmd, "r");
     free(cmd);
-    if (handle == NULL)
+    if (handle == nullptr)
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "read_file_from_dcraw: failed to run dcraw");
         return -1;
@@ -498,7 +500,7 @@ int read_jpeg_mem(unsigned char *inBuffer, unsigned long inSize, uint8_t **mempt
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
     /* libjpeg data structure for storing one row, that is, scanline of an image */
-    JSAMPROW row_pointer[1] = { NULL };
+    JSAMPROW row_pointer[1] = { nullptr };
 
     /* here we set up the standard libjpeg error handler */
     cinfo.err = jpeg_std_error(&jerr);

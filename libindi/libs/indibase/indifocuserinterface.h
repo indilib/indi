@@ -24,146 +24,262 @@
 
 #include <stdint.h>
 
+// Alias
+using FI = INDI::FocuserInterface;
+
+namespace INDI
+{
+
 /**
  * \class FocuserInterface
    \brief Provides interface to implement focuser functionality.
 
-   A focuser can be an independent device, or an embedded focuser within another device (e.g. Camera).
+   A focuser can be an independent device, or an embedded focuser within another device (e.g. Camera or mount).
 
-   \e IMPORTANT: initFocuserProperties() must be called before any other function to initialize the focuser properties.
+   When developing a driver for a fully indepdent focuser device, use INDI::Focuser directly. To add focus functionality to
+   an existing mount or camera driver, subclass INDI::FocuserInterface. In your driver, then call the necessary focuser interface functions.
 
-   \e IMPORTANT: processFocuserNumber() and processFocuserSwitch() must be called in your driver's ISNewNumber() and ISNewSwitch functions recepectively.
+   <table>
+   <tr><th>Function</th><th>Where to call it from your driver</th></tr>
+   <tr><td>FI::SetCapability</td><td>Constructor</td></tr>
+   <tr><td>FI::initProperties</td><td>initProperties()</td></tr>
+   <tr><td>FI::updateProperties</td><td>updateProperties()</td></tr>
+   <tr><td>FI::processNumber</td><td>ISNewNumber(...) Check if the property name contains FOCUS_* and then call FI::processNumber(..) for such properties</td></tr>
+   <tr><td>FI::processSwitch</td><td>ISNewSwitch(...)</td></tr>
+   </table>
+
+   Implement and overwrite the rest of the virtual functions as needed. INDI GPhoto driver is a good example to check for an actual implementation
+   of a focuser interface within a CCD driver.
 \author Jasem Mutlaq
 */
-namespace INDI
-{
-
 class FocuserInterface
 {
-  public:
-    enum FocusDirection
-    {
-        FOCUS_INWARD,
-        FOCUS_OUTWARD
-    };
+    public:
+        enum FocusDirection
+        {
+            FOCUS_INWARD,
+            FOCUS_OUTWARD
+        };
 
-    enum
-    {
-        FOCUSER_CAN_ABS_MOVE       = 1 << 0, /*!< Can the focuser move by absolute position? */
-        FOCUSER_CAN_REL_MOVE       = 1 << 1, /*!< Can the focuser move by relative position? */
-        FOCUSER_CAN_ABORT          = 1 << 2, /*!< Is it possible to abort focuser motion? */
-        FOCUSER_HAS_VARIABLE_SPEED = 1 << 3  /*!< Can the focuser move in different configurable speeds? */
-    } FocuserCapability;
+        enum
+        {
+            FOCUSER_CAN_ABS_MOVE       = 1 << 0, /*!< Can the focuser move by absolute position? */
+            FOCUSER_CAN_REL_MOVE       = 1 << 1, /*!< Can the focuser move by relative position? */
+            FOCUSER_CAN_ABORT          = 1 << 2, /*!< Is it possible to abort focuser motion? */
+            FOCUSER_CAN_REVERSE        = 1 << 3, /*!< Is it possible to reverse focuser motion? */
+            FOCUSER_CAN_SYNC           = 1 << 4, /*!< Can the focuser sync to a custom position */
+            FOCUSER_HAS_VARIABLE_SPEED = 1 << 5  /*!< Can the focuser move in different configurable speeds? */
+        } FocuserCapability;
 
-    /**
-     * @brief GetFocuserCapability returns the capability of the focuser
-     */
-    uint32_t GetFocuserCapability() const { return capability; }
+        /**
+         * @brief GetFocuserCapability returns the capability of the focuser
+         */
+        uint32_t GetCapability() const
+        {
+            return capability;
+        }
 
-    /**
-     * @brief SetFocuserCapability sets the focuser capabilities. All capabilities must be initialized.
-     * @param cap pointer to focuser capability struct.
-     */
-    void SetFocuserCapability(uint32_t cap);
+        /**
+         * @brief FI::SetCapability sets the focuser capabilities. All capabilities must be initialized.
+         * @param cap pointer to focuser capability struct.
+         */
+        void SetCapability(uint32_t cap)
+        {
+            capability = cap;
+        }
 
-    /**
-     * @return True if the focuser has absolute position encoders.
-     */
-    bool CanAbsMove() { return capability & FOCUSER_CAN_ABS_MOVE; }
+        /**
+         * @return True if the focuser has absolute position encoders.
+         */
+        bool CanAbsMove()
+        {
+            return capability & FOCUSER_CAN_ABS_MOVE;
+        }
 
-    /**
-     * @return True if the focuser has relative position encoders.
-     */
-    bool CanRelMove() { return capability & FOCUSER_CAN_REL_MOVE; }
+        /**
+         * @return True if the focuser has relative position encoders.
+         */
+        bool CanRelMove()
+        {
+            return capability & FOCUSER_CAN_REL_MOVE;
+        }
 
-    /**
-     * @return True if the focuser motion can be aborted.
-     */
-    bool CanAbort() { return capability & FOCUSER_CAN_ABORT; }
+        /**
+         * @return True if the focuser motion can be aborted.
+         */
+        bool CanAbort()
+        {
+            return capability & FOCUSER_CAN_ABORT;
+        }
 
-    /**
-     * @return True if the focuser has multiple speeds.
-     */
-    bool HasVariableSpeed() { return capability & FOCUSER_HAS_VARIABLE_SPEED; }
+        /**
+         * @return True if the focuser motion can be reversed.
+         */
+        bool CanReverse()
+        {
+            return capability & FOCUSER_CAN_REVERSE;
+        }
 
-  protected:
-    FocuserInterface() = default;
-    virtual ~FocuserInterface() = default;
+        /**
+         * @return True if the focuser motion can be reversed.
+         */
+        bool CanSync()
+        {
+            return capability & FOCUSER_CAN_SYNC;
+        }
 
-    /**
-     * \brief Initilize focuser properties. It is recommended to call this function within
-     * initProperties() of your primary device
-     * \param deviceName Name of the primary device
-     * \param groupName Group or tab name to be used to define focuser properties.
-     */
-    void initFocuserProperties(const char *deviceName, const char *groupName);
+        /**
+         * @return True if the focuser has multiple speeds.
+         */
+        bool HasVariableSpeed()
+        {
+            return capability & FOCUSER_HAS_VARIABLE_SPEED;
+        }
 
-    /** \brief Process focus number properties */
-    bool processFocuserNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    protected:
+        explicit FocuserInterface(DefaultDevice * defaultDevice);
+        virtual ~FocuserInterface() = default;
 
-    /** \brief Process focus switch properties */
-    bool processFocuserSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        /**
+         * \brief Initilize focuser properties. It is recommended to call this function within
+         * initProperties() of your primary device
+         * \param groupName Group or tab name to be used to define focuser properties.
+         */
+        void initProperties(const char * groupName);
 
-    /**
-     * @brief SetFocuserSpeed Set Focuser speed
-     * @param speed focuser speed
-     * @return true if successful, false otherwise
-     */
-    virtual bool SetFocuserSpeed(int speed);
+        /**
+         * @brief updateProperties Define or Delete Rotator properties based on the connection status of the base device
+         * @return True if successful, false otherwise.
+         */
+        bool updateProperties();
 
-    /**
-     * \brief MoveFocuser the focuser in a particular direction with a specific speed for a
-     * finite duration.
-     * \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
-     * \param speed Speed of focuser if supported by the focuser.
-     * \param duration The timeout in milliseconds before the focus motion halts.
-     * \return Return IPS_OK if motion is completed and focuser reached requested position.
-     * Return IPS_BUSY if focuser started motion to requested position and is in progress.
-     * Return IPS_ALERT if there is an error.
-     */
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
+        /** \brief Process focus number properties */
+        bool processNumber(const char * dev, const char * name, double values[], char * names[], int n);
 
-    /**
-     * \brief MoveFocuser the focuser to an absolute position.
-     * \param ticks The new position of the focuser.
-     * \return Return IPS_OK if motion is completed and focuser reached requested position. Return
-     * IPS_BUSY if focuser started motion to requested position and is in progress.
-     * Return IPS_ALERT if there is an error.
-     */
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
+        /** \brief Process focus switch properties */
+        bool processSwitch(const char * dev, const char * name, ISState * states, char * names[], int n);
 
-    /**
-     * \brief MoveFocuser the focuser to an relative position.
-     * \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
-     * \param ticks The relative ticks to move.
-     * \return Return IPS_OK if motion is completed and focuser reached requested position. Return
-     * IPS_BUSY if focuser started motion to requested position and is in progress.
-     * Return IPS_ALERT if there is an error.
-     */
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+        /**
+         * @brief SetFocuserSpeed Set Focuser speed
+         * @param speed focuser speed
+         * @return true if successful, false otherwise
+         */
+        virtual bool SetFocuserSpeed(int speed);
 
-    /**
-     * @brief AbortFocuser all focus motion
-     * @return True if abort is successful, false otherwise.
-     */
-    virtual bool AbortFocuser();
+        /**
+         * \brief MoveFocuser the focuser in a particular direction with a specific speed for a
+         * finite duration.
+         * \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
+         * \param speed Speed of focuser if supported by the focuser.
+         * \param duration The timeout in milliseconds before the focus motion halts. Pass 0 to move indefinitely.
+         * \return Return IPS_OK if motion is completed and focuser reached requested position.
+         * Return IPS_BUSY if focuser started motion to requested position and is in progress.
+         * Return IPS_ALERT if there is an error.
+         */
+        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
 
-    INumberVectorProperty FocusSpeedNP;
-    INumber FocusSpeedN[1];
-    ISwitchVectorProperty FocusMotionSP; //  A Switch in the client interface to park the scope
-    ISwitch FocusMotionS[2];
-    INumberVectorProperty FocusTimerNP;
-    INumber FocusTimerN[1];
-    INumberVectorProperty FocusAbsPosNP;
-    INumber FocusAbsPosN[1];
-    INumberVectorProperty FocusRelPosNP;
-    INumber FocusRelPosN[1];
-    ISwitchVectorProperty AbortSP;
-    ISwitch AbortS[1];
+        /**
+         * \brief MoveFocuser the focuser to an absolute position.
+         * \param ticks The new position of the focuser.
+         * \return Return IPS_OK if motion is completed and focuser reached requested position. Return
+         * IPS_BUSY if focuser started motion to requested position and is in progress.
+         * Return IPS_ALERT if there is an error.
+         */
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks);
 
-    uint32_t capability;
+        /**
+         * \brief MoveFocuser the focuser to an relative position.
+         * \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
+         * \param ticks The relative ticks to move.
+         * \return Return IPS_OK if motion is completed and focuser reached requested position. Return
+         * IPS_BUSY if focuser started motion to requested position and is in progress.
+         * Return IPS_ALERT if there is an error.
+         */
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
 
-    char focuserName[MAXINDIDEVICE];
-    double lastTimerValue;
+        /**
+         * @brief ReverseFocuser Reverse focuser motion direction
+         * @param enabled If true, normal default focuser motion is reversed. If false, the direction is set to the default focuser motion.
+         * @return True if successful, false otherwise.
+         */
+        virtual bool ReverseFocuser(bool enabled);
+
+        /**
+         * @brief SyncFocuser Set current position to ticks without moving the focuser.
+         * @param ticks Desired new sync position.
+         * @return True if successful, false otherwise.
+         */
+        virtual bool SyncFocuser(uint32_t ticks);
+
+        /**
+         * @brief SetFocuserMaxPosition Set Focuser Maximum position limit in the hardware.
+         * @param ticks maximum steps permitted
+         * @return True if successful, false otherwise.
+         * @note If setting maximum position limit in the hardware is not available or not supported, do not override this function as the default
+         * implementation will always return true.
+         */
+        virtual bool SetFocuserMaxPosition(uint32_t ticks);
+
+        /**
+         * @brief AbortFocuser all focus motion
+         * @return True if abort is successful, false otherwise.
+         */
+        virtual bool AbortFocuser();
+
+        /**
+         * @brief saveConfigItems save focuser properties defined in the interface in config file
+         * @param fp pointer to config file
+         * @return Always return true
+         */
+        bool saveConfigItems(FILE * fp);
+
+        // Focuser Speed (if variable speeds are supported)
+        INumberVectorProperty FocusSpeedNP;
+        INumber FocusSpeedN[1];
+
+        // Focuser Motion switch.
+        // For absolute focusers, this controls the directoin of FocusRelPos when updated.
+        // For DC speed based focusers, this moves the focuser continues in the CW/CCW directions until stopped.
+        ISwitchVectorProperty FocusMotionSP;
+        ISwitch FocusMotionS[2];
+
+        // Timer for user with DC focusers to run focuser in specific direction for this duration
+        INumberVectorProperty FocusTimerNP;
+        INumber FocusTimerN[1];
+
+        // Absolute Focuser Position in steps
+        INumberVectorProperty FocusAbsPosNP;
+        INumber FocusAbsPosN[1];
+
+        // Relative Focuser position to be commanded
+        INumberVectorProperty FocusRelPosNP;
+        INumber FocusRelPosN[1];
+
+        // Absolute Focuser positoin is 0 to this maximum limit. By Default, it is set to 200,000.
+        INumberVectorProperty FocusMaxPosNP;
+        INumber FocusMaxPosN[1];
+
+        // Sync
+        INumberVectorProperty FocusSyncNP;
+        INumber FocusSyncN[1];
+
+        // Abort Focuser
+        ISwitchVectorProperty FocusAbortSP;
+        ISwitch FocusAbortS[1];
+
+        // Reverse Focuser
+        ISwitchVectorProperty FocusReverseSP;
+        ISwitch FocusReverseS[2];
+        enum
+        {
+            REVERSED_ENABLED,
+            REVERSED_DISABLED,
+        };
+
+        uint32_t capability;
+
+        double lastTimerValue = { 0 };
+
+        DefaultDevice * m_defaultDevice { nullptr };
 };
 }

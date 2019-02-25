@@ -51,21 +51,22 @@ class XAGYLWheel : public INDI::FilterWheel
     typedef enum { SET_SPEED, SET_JITTER, SET_THRESHOLD, SET_PULSE_WITDH, SET_POSITION } SET_COMMAND;
 
     XAGYLWheel();
-    virtual ~XAGYLWheel() = default;
+    virtual ~XAGYLWheel();
 
-    virtual bool initProperties();
-    virtual bool updateProperties();
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
 
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
   protected:
-    const char *getDefaultName();
+    const char *getDefaultName() override;
 
-    bool Handshake();
-    void TimerHit();
+    bool Handshake() override;
+    void TimerHit() override;
 
-    bool SelectFilter(int);
+    bool SelectFilter(int) override;
+    bool saveConfigItems(FILE *fp) override;
 
   private:
     bool getCommand(GET_COMMAND cmd, char *result);
@@ -107,7 +108,6 @@ class XAGYLWheel : public INDI::FilterWheel
     ISwitchVectorProperty ResetSP;
     ISwitch ResetS[4];
 
-    bool sim { false };
     SimData simData;
     uint8_t firmwareVersion { 0 };
 };

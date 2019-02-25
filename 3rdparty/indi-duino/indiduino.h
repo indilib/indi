@@ -26,6 +26,11 @@
 
 #include <defaultdevice.h>
 
+namespace Connection
+{
+class Serial;
+}
+
 class Firmata;
 
 /* NAMES in the xml skeleton file to 
@@ -86,6 +91,7 @@ class indiduino : public INDI::DefaultDevice
     virtual const char *getDefaultName() override;
 
   private:
+    bool Handshake();
     char skelFileName[MAX_SKELTON_FILE_NAME_LEN];
     IO iopin[MAX_IO_PIN];
 
@@ -93,4 +99,6 @@ class indiduino : public INDI::DefaultDevice
     bool readInduinoXml(XMLEle *ioep, int npin);
     Firmata *sf;
     INDI::Controller *controller;
+
+    Connection::Serial *serialConnection { nullptr };
 };

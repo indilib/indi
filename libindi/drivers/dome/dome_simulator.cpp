@@ -25,7 +25,7 @@
 #include <unistd.h>
 
 // We declare an auto pointer to domeSim.
-std::unique_ptr<DomeSim> domeSim(new DomeSim());
+static std::unique_ptr<DomeSim> domeSim(new DomeSim());
 
 #define DOME_SPEED    10.0 /* 10 degrees per second, constant */
 #define SHUTTER_TIMER 5.0  /* Shutter closes/open in 5 seconds */
@@ -124,7 +124,7 @@ bool DomeSim::SetupParms()
 
 const char *DomeSim::getDefaultName()
 {
-    return (const char *)"Dome Simulator";
+    return "Dome Simulator";
 }
 
 bool DomeSim::updateProperties()
@@ -173,7 +173,7 @@ void DomeSim::TimerHit()
         if (fabs(targetAz - DomeAbsPosN[0].value) <= DOME_SPEED)
         {
             DomeAbsPosN[0].value = targetAz;
-            DEBUG(INDI::Logger::DBG_SESSION, "Dome reached requested azimuth angle.");
+            LOG_INFO("Dome reached requested azimuth angle.");
 
             if (getDomeState() == DOME_PARKING)
                 SetParked(true);
@@ -192,7 +192,7 @@ void DomeSim::TimerHit()
         {
             shutterTimer    = 0;
             DomeShutterSP.s = IPS_OK;
-            DEBUGF(INDI::Logger::DBG_SESSION, "Shutter is %s.", (DomeShutterS[0].s == ISS_ON ? "open" : "closed"));
+            LOGF_INFO("Shutter is %s.", (DomeShutterS[0].s == ISS_ON ? "open" : "closed"));
             IDSetSwitch(&DomeShutterSP, nullptr);
 
             if (getDomeState() == DOME_UNPARKING)
@@ -263,7 +263,7 @@ IPState DomeSim::Park()
 {
     if (INDI::Dome::isLocked())
     {
-        DEBUG(INDI::Logger::DBG_SESSION,
+        LOG_INFO(
               "Cannot Park Dome when mount is locking. See: Telescope parking policy, in options tab");
         return IPS_ALERT;
     }

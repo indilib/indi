@@ -45,25 +45,26 @@ class Microtouch : public INDI::Focuser
 {
   public:
     Microtouch();
-    virtual ~Microtouch() = default;
+    virtual ~Microtouch() override = default;
 
-    virtual bool Handshake();
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks);
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-    virtual bool SetFocuserSpeed(int speed);
-    virtual bool AbortFocuser();
-    virtual void TimerHit();
+    virtual bool Handshake() override;
+    const char *getDefaultName() override;
+    virtual bool initProperties() override;
+    virtual bool updateProperties() override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+    virtual bool SetFocuserSpeed(int speed) override;
+    virtual bool SyncFocuser(uint32_t ticks) override;
+    virtual bool AbortFocuser() override;
+    virtual void TimerHit() override;
 
   private:
     void GetFocusParams();
-    bool reset();
-    bool reset(double pos);
+//    bool reset();
+//    bool reset(double pos);
     bool updateMotorSpeed();
     bool updateTemperature();
     bool updatePosition();
@@ -82,7 +83,6 @@ class Microtouch : public INDI::Focuser
     bool WriteCmdGetResponse(char cmd, char *readbuffer, char numbytes);
     char WriteCmdGetByte(char cmd);
     bool WriteCmdSetByte(char cmd, char val);
-    signed short int WriteCmdGetShortInt(char cmd);
     bool WriteCmdSetShortInt(char cmd, short int val);
     int WriteCmdGetInt(char cmd);
     bool WriteCmdSetInt(char cmd, int val);
@@ -102,8 +102,8 @@ class Microtouch : public INDI::Focuser
     ISwitch MotorSpeedS[2];
     ISwitchVectorProperty MotorSpeedSP;
 
-    INumber MaxTravelN[1];
-    INumberVectorProperty MaxTravelNP;
+//    INumber MaxTravelN[1];
+//    INumberVectorProperty MaxTravelNP;
 
     INumber TemperatureSettingN[2];
     INumberVectorProperty TemperatureSettingNP;
@@ -111,9 +111,9 @@ class Microtouch : public INDI::Focuser
     ISwitch TemperatureCompensateS[2];
     ISwitchVectorProperty TemperatureCompensateSP;
 
-    ISwitch ResetS[1];
-    ISwitchVectorProperty ResetSP;
+//    ISwitch ResetS[1];
+//    ISwitchVectorProperty ResetSP;
 
-    INumber ResetToPosN[1];
-    INumberVectorProperty ResetToPosNP;
+//    INumber ResetToPosN[1];
+//    INumberVectorProperty ResetToPosNP;
 };

@@ -32,6 +32,9 @@
 namespace INDI
 {
 
+/**
+ * @brief The TheoraRecorder class implemented recording of video streaming data in a libtheora OGV file.
+ */
 class TheoraRecorder : public RecorderInterface
 {
   public:

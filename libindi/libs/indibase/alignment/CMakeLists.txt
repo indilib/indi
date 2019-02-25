@@ -54,7 +54,7 @@ ELSE ()
 ENDIF ()
 
 if (INDI_BUILD_QT5)
-qt5_use_modules(AlignmentDriver Network)
+    target_link_libraries(AlignmentDriver Qt5::Network)
 endif(INDI_BUILD_QT5)
 
 set_target_properties(AlignmentDriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indiAlignmentDriver)
@@ -80,7 +80,7 @@ set (AlignmentClient_SRCS
 add_library(AlignmentClient STATIC ${AlignmentClient_SRCS})
 
 if (INDI_BUILD_QT5)
-qt5_use_modules(AlignmentClient Network)
+    target_link_libraries(AlignmentClient Qt5::Network)
 endif(INDI_BUILD_QT5)
 if (NOT CYGWIN AND NOT WIN32)
 SET_TARGET_PROPERTIES(AlignmentClient PROPERTIES COMPILE_FLAGS "-fPIC")
@@ -151,7 +151,7 @@ install(TARGETS indi_SVD_MathPlugin
     RUNTIME DESTINATION ${INDI_MATH_PLUGINS_DIRECTORY})
 
 ##################################################
-############ Skywatcher Alt-Az Mount ################
+########### Skywatcher Alt-Az Mount ##############
 ##################################################
 set(skywatcherAltAzMount_SRCS
    ${CMAKE_SOURCE_DIR}/drivers/telescope/skywatcherAPIMount.cpp
@@ -162,4 +162,14 @@ target_link_libraries(indi_skywatcherAltAzMount indidriver AlignmentDriver)
 
 install(TARGETS indi_skywatcherAltAzMount RUNTIME DESTINATION bin)
 
+#########################################################
+########### Skywatcher Alt-Az Simple Mount ##############
+#########################################################
+set(skywatcherAltAzSimple_SRCS
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/skywatcherAltAzSimple.cpp
+   ${CMAKE_SOURCE_DIR}/drivers/telescope/skywatcherAPI.cpp )
 
+add_executable(indi_skywatcherAltAzSimple ${skywatcherAltAzSimple_SRCS})
+target_link_libraries(indi_skywatcherAltAzSimple indidriver)
+
+install(TARGETS indi_skywatcherAltAzSimple RUNTIME DESTINATION bin)

@@ -6,9 +6,11 @@ XSBC-Original-Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
 Build-Depends: debhelper (>= 6), cdbs, cmake, libusb-1.0-0
 Standards-Version: 3.9.1
 
-Package: libsbigudrv2
+Package: libsbig
 Architecture: i386 amd64 armhf
 Depends: ${shlibs:Depends}, ${misc:Depends}, fxload
+conflicts: libsbigudrv2
+replaces: libsbigudrv2
 Description: Santa Barbra Instrument Group (SBIG) Universal Library Driver
  The Official Santa Barbra Instrument Group (SBIG) Universal Library
  Driver is used by applications to access and control the USB,

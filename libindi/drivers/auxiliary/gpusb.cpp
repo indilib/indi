@@ -28,8 +28,6 @@
 #include <cstring>
 #include <unistd.h>
 
-#define POLLMS 250
-
 // We declare an auto pointer to gpGuide.
 std::unique_ptr<GPUSB> gpGuide(new GPUSB());
 
@@ -98,27 +96,31 @@ bool GPUSB::Connect()
     bool rc = driver->Connect();
 
     if (rc)
-        DEBUG(INDI::Logger::DBG_SESSION, "GPUSB is online.");
+        LOG_INFO("GPUSB is online.");
     else
-        DEBUG(INDI::Logger::DBG_ERROR, "Error: cannot find GPUSB device.");
+        LOG_ERROR("Error: cannot find GPUSB device.");
 
     return rc;
 }
 
 bool GPUSB::Disconnect()
 {
-    DEBUG(INDI::Logger::DBG_SESSION, "GPSUSB is offline.");
+    LOG_INFO("GPSUSB is offline.");
 
     return driver->Disconnect();
 }
 
 bool GPUSB::initProperties()
 {
+    INDI::DefaultDevice::initProperties();
+
     initGuiderProperties(getDeviceName(), MAIN_CONTROL_TAB);
 
     addDebugControl();
 
-    return INDI::DefaultDevice::initProperties();
+    setDefaultPollingPeriod(250);
+
+    return true;
 }
 
 bool GPUSB::updateProperties()
@@ -301,7 +303,7 @@ void GPUSB::TimerHit()
     }
 }
 
-IPState GPUSB::GuideNorth(float ms)
+IPState GPUSB::GuideNorth(uint32_t ms)
 {
     RemoveTimer(NStimerID);
 
@@ -309,7 +311,7 @@ IPState GPUSB::GuideNorth(float ms)
 
     NSDir = GPUSB_NORTH;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting NORTH guide");
+    LOG_DEBUG("Starting NORTH guide");
 
     if (ms <= POLLMS)
     {
@@ -328,13 +330,13 @@ IPState GPUSB::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState GPUSB::GuideSouth(float ms)
+IPState GPUSB::GuideSouth(uint32_t ms)
 {
     RemoveTimer(NStimerID);
 
     driver->startPulse(GPUSB_SOUTH);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting SOUTH guide");
+    LOG_DEBUG("Starting SOUTH guide");
 
     NSDir = GPUSB_SOUTH;
 
@@ -355,13 +357,13 @@ IPState GPUSB::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState GPUSB::GuideEast(float ms)
+IPState GPUSB::GuideEast(uint32_t ms)
 {
     RemoveTimer(WEtimerID);
 
     driver->startPulse(GPUSB_EAST);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting EAST guide");
+    LOG_DEBUG("Starting EAST guide");
 
     WEDir = GPUSB_EAST;
 
@@ -382,13 +384,13 @@ IPState GPUSB::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState GPUSB::GuideWest(float ms)
+IPState GPUSB::GuideWest(uint32_t ms)
 {
     RemoveTimer(WEtimerID);
 
     driver->startPulse(GPUSB_WEST);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting WEST guide");
+    LOG_DEBUG("Starting WEST guide");
 
     WEDir = GPUSB_WEST;
 

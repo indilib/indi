@@ -50,6 +50,9 @@
 
 namespace INDI
 {
+/**
+ * @brief The RecorderInterface class is the base class for recorders.
+ */
 class RecorderInterface
 {
   public:

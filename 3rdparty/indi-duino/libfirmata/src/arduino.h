@@ -47,6 +47,7 @@ class Arduino
     int readPort(void *buff, int count);
     int openPort(const char *_serialPort);
     int openPort(const char *_serialPort, int _baud);
+    int openPort(int _fd);
     int closePort();
     int flushPort();
 

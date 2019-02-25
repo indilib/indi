@@ -1,7 +1,7 @@
 /*
     Driver type: SBIG CCD Camera INDI Driver
 
-    Copyright (C) 2013-2014 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
+    Copyright (C) 2013-2018 Jasem Mutlaq (mutlaqja AT ikarustech DOT com)
     Copyright (C) 2005-2006 Jan Soldan (jsoldan AT asu DOT cas DOT cz)
 
     Acknowledgement:
@@ -30,13 +30,17 @@
 #include <indiccd.h>
 #include <indifilterinterface.h>
 
-#ifdef OSX_EMBEDED_MODE
-#include <SBIGUDrv/SBIGUDrv.h>
+#ifdef __APPLE__
+#include <libusb-1.0/libusb.h>
+#include <libsbig/sbigudrv.h>
 #else
 #include <sbigudrv.h>
 #endif
 
+
 #include <string>
+
+typedef unsigned long   ulong;            /* Short for unsigned long */
 
 //#define ASYNC_READOUT
 
@@ -139,6 +143,11 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     bool isExposureDone(INDI::CCDChip *targetChip);
 
   protected:
+  #ifdef __APPLE__
+    libusb_device *dev;
+    libusb_device_handle *handle;
+  #endif
+
     virtual void TimerHit() override;
     virtual int SetTemperature(double temperature) override;
     virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
@@ -147,10 +156,10 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     virtual bool UpdateGuiderBin(int binx, int biny) override;
     virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType) override;
     virtual bool saveConfigItems(FILE *fp) override;
-    virtual IPState GuideNorth(float) override;
-    virtual IPState GuideSouth(float) override;
-    virtual IPState GuideEast(float) override;
-    virtual IPState GuideWest(float) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     // Filter Wheel CFW
     virtual int QueryFilter() override;
@@ -163,6 +172,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     std::string m_start_exposure_timestamp;
 
     void InitVars();
+    void loadFirmwareOnOSXifNeeded();
     int OpenDriver();
     int CloseDriver();
     unsigned short CalcSetpoint(double temperature);
@@ -180,7 +190,7 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     DEVICE device;
     char name[MAXINDINAME];
 
-    IText ProductInfoT[2];
+    IText ProductInfoT[2] {};
     ITextVectorProperty ProductInfoTP;
 
     ISwitch PortS[8];
@@ -201,8 +211,12 @@ class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
     INumber CoolerN[1];
     INumberVectorProperty CoolerNP;
 
+    // Options
+    ISwitch IgnoreErrorsS[1];
+    ISwitchVectorProperty IgnoreErrorsSP;
+
     // CFW GROUP:
-    IText FilterProdcutT[2];
+    IText FilterProdcutT[2] {};
     ITextVectorProperty FilterProdcutTP;
 
     ISwitch FilterTypeS[MAX_CFW_TYPES];

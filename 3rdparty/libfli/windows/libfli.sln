@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libfli", "libfli.vcproj", "{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		DLL Debug|Win32 = DLL Debug|Win32
+		DLL Debug|x64 = DLL Debug|x64
+		DLL Release|Win32 = DLL Release|Win32
+		DLL Release|x64 = DLL Release|x64
+		Static Library Debug|Win32 = Static Library Debug|Win32
+		Static Library Debug|x64 = Static Library Debug|x64
+		Static Library Release|Win32 = Static Library Release|Win32
+		Static Library Release|x64 = Static Library Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.DLL Debug|Win32.ActiveCfg = DLL Debug|Win32
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.DLL Debug|Win32.Build.0 = DLL Debug|Win32
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.DLL Debug|x64.ActiveCfg = DLL Debug|x64
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.DLL Debug|x64.Build.0 = DLL Debug|x64
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.DLL Release|Win32.ActiveCfg = DLL Release|Win32
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.DLL Release|Win32.Build.0 = DLL Release|Win32
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.DLL Release|x64.ActiveCfg = DLL Release|x64
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.DLL Release|x64.Build.0 = DLL Release|x64
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.Static Library Debug|Win32.ActiveCfg = Static Library Debug|Win32
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.Static Library Debug|Win32.Build.0 = Static Library Debug|Win32
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.Static Library Debug|x64.ActiveCfg = Static Library Debug|x64
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.Static Library Debug|x64.Build.0 = Static Library Debug|x64
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.Static Library Release|Win32.ActiveCfg = Static Library Release|Win32
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.Static Library Release|Win32.Build.0 = Static Library Release|Win32
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.Static Library Release|x64.ActiveCfg = Static Library Release|x64
+		{EF4B8A79-8ACA-4B90-A36C-BA3E2E727535}.Static Library Release|x64.Build.0 = Static Library Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

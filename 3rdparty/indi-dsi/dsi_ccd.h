@@ -65,11 +65,6 @@ class DSICCD : public INDI::CCD
     struct timeval ExpStart;
 
     float ExposureRequest;
-    float TemperatureRequest;
-    int timerID;
-    float max_exposure;
-    float last_exposure_length;
-    int sub_count;
 
     INumber GainN[1];
     INumberVectorProperty GainNP;

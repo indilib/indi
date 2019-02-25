@@ -28,6 +28,31 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "indistandardproperty.h"
 #include "lx/Lx.h"
 
+// Pixel size info for different cameras
+typedef struct
+{
+    const char * deviceName; // device name reported by V4L
+    const char * commonName; // if null, use device name
+    float pixelSizeX;
+    float pixelSizeY; // if negative, use pixelSizeX also for Y
+    bool tested; //if False print please report message
+} PixelSizeInfo;
+
+static const PixelSizeInfo pixelSizeInfo[] =
+{
+    { "NexImage 5", nullptr, 2.2f, -1, true },
+    { "UVC Camera (046d:0809)", "Logitech Webcam Pro 9000", 3.3f, -1, true },
+    { "SVBONY SV105: SVBONY SV105", "SVBONY SV105", 3.0f, -1, true },
+    { "NexImage 10", nullptr, 1.67f, -1, false },
+    { "NexImage Burst Color", nullptr, 3.75f, -1, false },
+    { "NexImage Burst Mono", nullptr, 3.75f, -1, false },
+    { "Skyris 132C", nullptr, 3.75f, -1, false },
+    { "Skyris 132M", nullptr, 3.75f, -1, false },
+    { "Skyris 236C", nullptr, 2.8f, -1, false },
+    { "Skyris 236M", nullptr, 2.8f, -1, false },
+    { nullptr, nullptr, 5.6f, -1, false}  // sentinel and default pixel size, needs to be last
+};
+
 V4L2_Driver::V4L2_Driver()
 {
     //sigevent sevp;
@@ -43,6 +68,9 @@ V4L2_Driver::V4L2_Driver()
     v4loptions       = 0;
     AbsExposureN     = nullptr;
     ManualExposureSP = nullptr;
+    CaptureSizesSP.sp = nullptr;
+    CaptureSizesNP.np = nullptr;
+    FrameRatesSP.sp = nullptr;
 
     stackMode = STACK_NONE;
 
@@ -66,7 +94,7 @@ void V4L2_Driver::updateFrameSize()
                      (PrimaryCCD.getBPP() / 8 + (PrimaryCCD.getBPP() % 8 ? 1 : 0)) * 3;
 
     PrimaryCCD.setFrameBufferSize(frameBytes);
-    DEBUGF(INDI::Logger::DBG_DEBUG, "%s: frame bytes %d", __FUNCTION__, PrimaryCCD.getFrameBufferSize());
+    LOGF_DEBUG("%s: frame bytes %d", __FUNCTION__, PrimaryCCD.getFrameBufferSize());
 }
 
 bool V4L2_Driver::initProperties()
@@ -105,7 +133,7 @@ bool V4L2_Driver::initProperties()
     IUFillSwitchVector(&StackModeSP, StackModeS, NARRAY(StackModeS), getDeviceName(), "Stack", "", MAIN_CONTROL_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    stackMode = 0;
+    stackMode = STACK_NONE;
 
     /* Inputs */
     IUFillSwitchVector(&InputsSP, nullptr, 0, getDeviceName(), "V4L2_INPUT", "Inputs", CAPTURE_FORMAT, IP_RW,
@@ -146,9 +174,13 @@ bool V4L2_Driver::initProperties()
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.001, 3600, 1, false);
 
     if (!lx->initProperties(this))
-        DEBUG(INDI::Logger::DBG_WARNING, "Can not init Long Exposure");
+        LOG_WARN("Can not init Long Exposure");
 
+#ifdef HAVE_WEBSOCKET
+    SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING | CCD_CAN_ABORT | CCD_HAS_WEB_SOCKET);
+#else
     SetCCDCapability(CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING | CCD_CAN_ABORT);
+#endif
 
     v4l_base->setDeviceName(getDeviceName());
 
@@ -160,7 +192,7 @@ void V4L2_Driver::initCamBase()
     v4l_base = new INDI::V4L2_Base();
 }
 
-void V4L2_Driver::ISGetProperties(const char *dev)
+void V4L2_Driver::ISGetProperties(const char * dev)
 {
     if (dev != nullptr && strcmp(getDeviceName(), dev) != 0)
         return;
@@ -187,9 +219,10 @@ void V4L2_Driver::ISGetProperties(const char *dev)
         else if (FrameRateNP.np != nullptr)
             defineNumber(&FrameRateNP);
 
+        defineSwitch(&StackModeSP);
+
 #ifdef WITH_V4L2_EXPERIMENTS
         defineSwitch(&ImageDepthSP);
-        defineSwitch(&StackModeSP);
         defineSwitch(&ColorProcessingSP);
         defineText(&CaptureColorSpaceTP);
 #endif
@@ -227,17 +260,50 @@ bool V4L2_Driver::updateProperties()
         else if (FrameRateNP.np != nullptr)
             defineNumber(&FrameRateNP);
 
+        defineSwitch(&StackModeSP);
+
 #ifdef WITH_V4L2_EXPERIMENTS
         defineSwitch(&ImageDepthSP);
-        defineSwitch(&StackModeSP);
         defineSwitch(&ColorProcessingSP);
         defineText(&CaptureColorSpaceTP);
 #endif
 
-        SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, 5.6, 5.6);
-        PrimaryCCD.setImageExtension("fits");
+        // Check if we have pixel size info
+        const PixelSizeInfo * info = pixelSizeInfo;
+        while (info->deviceName)
+        {
+            if (!strcmp(v4l_base->getDeviceName(), info->deviceName))
+                break;
+            ++info;
+        }
 
-        //v4l_base->setRecorder(Streamer->getRecorder());
+        const char * commonName = info->commonName;
+        float pixX             = info->pixelSizeX;
+        float pixY             = info->pixelSizeY;
+
+        if (!commonName)
+            commonName = info->deviceName;
+        if (pixY < 0)
+            pixY = pixX;
+
+        if (info->deviceName)
+        {
+            LOGF_INFO("Setting pixel size correctly for %s", commonName);
+            if (info->tested == false)
+            {
+                LOGF_INFO("Please report that the camera worked: Name: %s/%s Detected and working, to https://bit.ly/2S1Vxjq", v4l_base->getDeviceName(), commonName);
+            }
+        }
+        else
+        {
+            LOGF_INFO("Setting pixel size to default of %5.2f", pixX);
+            LOGF_INFO("For future autodetection of pixel size, please report the following: Reported Name: %s, "
+                      "Common Name (Eg: NexImage 10), Pixel Size to the following thread: https://bit.ly/2S1Vxjq",
+                      v4l_base->getDeviceName());
+        }
+        SetCCDParams(V4LFrame->width, V4LFrame->height, V4LFrame->bpp, pixX, pixY);
+
+        PrimaryCCD.setImageExtension("fits");
 
         if (v4l_base->isLXmodCapable())
             lx->updateProperties();
@@ -273,9 +339,10 @@ bool V4L2_Driver::updateProperties()
         Options    = nullptr;
         v4loptions = 0;
 
+        deleteProperty(StackModeSP.name);
+
 #ifdef WITH_V4L2_EXPERIMENTS
         deleteProperty(ImageDepthSP.name);
-        deleteProperty(StackModeSP.name);
         deleteProperty(ColorProcessingSP.name);
         deleteProperty(CaptureColorSpaceTP.name);
 #endif
@@ -284,7 +351,7 @@ bool V4L2_Driver::updateProperties()
     }
 }
 
-bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool V4L2_Driver::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     char errmsg[ERRMSGSIZ];
     unsigned int iopt;
@@ -299,7 +366,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Can not set input while capturing.");
+            LOG_ERROR("Can not set input while capturing.");
             InputsSP.s = IPS_ALERT;
             IDSetSwitch(&InputsSP, nullptr);
             return false;
@@ -314,7 +381,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
 
             if (v4l_base->setinput(inputindex, errmsg) == -1)
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setinput): %s", errmsg);
+                LOGF_INFO("ERROR (setinput): %s", errmsg);
                 IUResetSwitch(&InputsSP);
                 InputsSP.sp[oldindex].s = ISS_ON;
                 InputsSP.s              = IPS_ALERT;
@@ -338,7 +405,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
                 defineNumber(&CaptureSizesNP);
             InputsSP.s = IPS_OK;
             IDSetSwitch(&InputsSP, nullptr);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Capture input: %d. %s", inputindex, InputsSP.sp[inputindex].name);
+            LOGF_INFO("Capture input: %d. %s", inputindex, InputsSP.sp[inputindex].name);
             return true;
         }
     }
@@ -349,7 +416,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Can not set format while capturing.");
+            LOG_ERROR("Can not set format while capturing.");
             CaptureFormatsSP.s = IPS_ALERT;
             IDSetSwitch(&CaptureFormatsSP, nullptr);
             return false;
@@ -364,7 +431,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
 
             if (v4l_base->setcaptureformat(*((unsigned int *)CaptureFormatsSP.sp[index].aux), errmsg) == -1)
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setformat): %s", errmsg);
+                LOGF_INFO("ERROR (setformat): %s", errmsg);
                 IUResetSwitch(&CaptureFormatsSP);
                 CaptureFormatsSP.sp[oldindex].s = ISS_ON;
                 CaptureFormatsSP.s              = IPS_ALERT;
@@ -395,12 +462,12 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
 #endif
             //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
             INDI_PIXEL_FORMAT pixelFormat;
-            uint8_t pixelDepth=8;
+            uint8_t pixelDepth = 8;
             if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
                 Streamer->setPixelFormat(pixelFormat, pixelDepth);
 
-           IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
-           return true;
+            IDSetSwitch(&CaptureFormatsSP, "Capture format: %d. %s", index, CaptureFormatsSP.sp[index].name);
+            return true;
         }
     }
 
@@ -410,7 +477,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
         //if ((StreamSP.s == IPS_BUSY) ||  (ExposeTimeNP->s == IPS_BUSY) || (RecordStreamSP.s == IPS_BUSY)) {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Can not set capture size while capturing.");
+            LOG_ERROR("Can not set capture size while capturing.");
             CaptureSizesSP.s = IPS_ALERT;
             IDSetSwitch(&CaptureSizesSP, nullptr);
             return false;
@@ -423,7 +490,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
             sscanf(CaptureSizesSP.sp[index].name, "%dx%d", &w, &h);
             if (v4l_base->setcapturesize(w, h, errmsg) == -1)
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setsize): %s", errmsg);
+                LOGF_INFO("ERROR (setsize): %s", errmsg);
                 CaptureSizesSP.s = IPS_ALERT;
                 IDSetSwitch(&CaptureSizesSP, nullptr);
                 return false;
@@ -457,7 +524,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Can not change frame rate while capturing.");
+            LOG_ERROR("Can not change frame rate while capturing.");
             FrameRatesSP.s = IPS_ALERT;
             IDSetSwitch(&FrameRatesSP, nullptr);
             return false;
@@ -469,7 +536,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
         sscanf(FrameRatesSP.sp[index].name, "%d/%d", &frate.numerator, &frate.denominator);
         if ((v4l_base->*(v4l_base->setframerate))(frate, errmsg) == -1)
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setframerate): %s", errmsg);
+            LOGF_INFO("ERROR (setframerate): %s", errmsg);
             FrameRatesSP.s = IPS_ALERT;
             IDSetSwitch(&FrameRatesSP, nullptr);
             return false;
@@ -485,7 +552,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     {
         if (Streamer->isRecording())
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Can not set Image type (GRAY/COLOR) while recording.");
+            LOG_WARN("Can not set Image type (GRAY/COLOR) while recording.");
             return false;
         }
 
@@ -507,7 +574,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
         updateFrameSize();
 #if 0
         INDI_PIXEL_FORMAT pixelFormat;
-        uint8_t pixelDepth=8;
+        uint8_t pixelDepth = 8;
         if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
             Streamer->setPixelFormat(pixelFormat, pixelDepth);
 #endif
@@ -521,7 +588,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     {
         if (Streamer->isRecording())
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "Can not set Image depth (8/16bits) while recording.");
+            LOG_WARN("Can not set Image depth (8/16bits) while recording.");
             return false;
         }
 
@@ -568,7 +635,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     {
         unsigned int ctrl_id, optindex, ctrlindex;
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Toggle switch %s=%s", Options[iopt].name, Options[iopt].label);
+        LOGF_DEBUG("Toggle switch %s=%s", Options[iopt].name, Options[iopt].label);
 
         Options[iopt].s = IPS_IDLE;
         IUResetSwitch(&Options[iopt]);
@@ -581,8 +648,8 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
         else
             ctrlindex = optindex;
         ctrl_id = (*((unsigned int *)Options[iopt].aux));
-        DEBUGF(INDI::Logger::DBG_DEBUG, "  On switch is (%d) %s=\"%s\", ctrl_id = 0x%X ctrl_index=%d", optindex,
-               Options[iopt].sp[optindex].name, Options[iopt].sp[optindex].label, ctrl_id, ctrlindex);
+        LOGF_DEBUG("  On switch is (%d) %s=\"%s\", ctrl_id = 0x%X ctrl_index=%d", optindex,
+                   Options[iopt].sp[optindex].name, Options[iopt].sp[optindex].label, ctrl_id, ctrlindex);
         if (v4l_base->setOPTControl(ctrl_id, ctrlindex, errmsg) < 0)
         {
             if (Options[iopt].nsp == 1) // button
@@ -591,7 +658,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
             }
             Options[iopt].s = IPS_ALERT;
             IDSetSwitch(&Options[iopt], nullptr);
-            DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust setting. %s", errmsg);
+            LOGF_ERROR("Unable to adjust setting. %s", errmsg);
             return false;
         }
         if (Options[iopt].nsp == 1) // button
@@ -621,7 +688,7 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
         }
         else
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "No color processing in color mode ");
+            LOG_WARN("No color processing in color mode ");
             return false;
         }
     }
@@ -629,9 +696,9 @@ bool V4L2_Driver::ISNewSwitch(const char *dev, const char *name, ISState *states
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool V4L2_Driver::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool V4L2_Driver::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
-    IText *tp;
+    IText * tp;
 
     /* ignore if not ours */
     if (dev != nullptr && strcmp(getDeviceName(), dev) != 0)
@@ -652,7 +719,7 @@ bool V4L2_Driver::ISNewText(const char *dev, const char *name, char *texts[], ch
     return INDI::CCD::ISNewText(dev, name, texts, names, n);
 }
 
-bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool V4L2_Driver::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     char errmsg[ERRMSGSIZ];
 
@@ -665,7 +732,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
     {
         if (PrimaryCCD.isExposing() || Streamer->isBusy())
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Can not set capture size while capturing.");
+            LOG_ERROR("Can not set capture size while capturing.");
             CaptureSizesNP.s = IPS_BUSY;
             IDSetNumber(&CaptureSizesNP, nullptr);
             return false;
@@ -687,7 +754,7 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
             }
             if (v4l_base->setcapturesize(sizes[0], sizes[1], errmsg) == -1)
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setsize): %s", errmsg);
+                LOGF_INFO("ERROR (setsize): %s", errmsg);
                 CaptureSizesNP.s = IPS_ALERT;
                 IDSetNumber(&CaptureSizesNP, nullptr);
                 return false;
@@ -733,14 +800,14 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
             unsigned int const ctrl_id = *((unsigned int *)ImageAdjustNP.np[i].aux0);
             double const value = ImageAdjustNP.np[i].value;
 
-            DEBUGF(INDI::Logger::DBG_DEBUG, "  Setting %s (%s) to %f, ctrl_id = 0x%X", ImageAdjustNP.np[i].name,
-                   ImageAdjustNP.np[i].label, value, ctrl_id);
+            LOGF_DEBUG("  Setting %s (%s) to %f, ctrl_id = 0x%X", ImageAdjustNP.np[i].name,
+                       ImageAdjustNP.np[i].label, value, ctrl_id);
 
             if (v4l_base->setINTControl(ctrl_id, ImageAdjustNP.np[i].value, errmsg) < 0)
             {
                 /* Some controls may become read-only depending on selected options */
-                DEBUGF(INDI::Logger::DBG_WARNING, "Unable to adjust %s (ctrl_id =  0x%X)", ImageAdjustNP.np[i].label,
-                       ctrl_id);
+                LOGF_WARN("Unable to adjust %s (ctrl_id =  0x%X)", ImageAdjustNP.np[i].label,
+                          ctrl_id);
             }
             /* Some controls may have been ajusted by the driver */
             /* a read is mandatory as VIDIOC_S_CTRL is write only and does not return the actual new value */
@@ -749,8 +816,8 @@ bool V4L2_Driver::ISNewNumber(const char *dev, const char *name, double values[]
             /* Warn the client if the control returned another value than what was set */
             if(value != ImageAdjustNP.np[i].value)
             {
-                DEBUGF(INDI::Logger::DBG_WARNING, "Control %s set to %f returned %f (ctrl_id =  0x%X)",
-                       ImageAdjustNP.np[i].label, value, ImageAdjustNP.np[i].value, ctrl_id);
+                LOGF_WARN("Control %s set to %f returned %f (ctrl_id =  0x%X)",
+                          ImageAdjustNP.np[i].label, value, ImageAdjustNP.np[i].value, ctrl_id);
             }
         }
         ImageAdjustNP.s = IPS_OK;
@@ -771,15 +838,15 @@ bool V4L2_Driver::StartExposure(float duration)
     {
         if (Streamer->isBusy())
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Cannot start new exposure while streamer is busy, stop streaming first");
+            LOG_ERROR("Cannot start new exposure while streamer is busy, stop streaming first");
             return !(GetCCDCapability() & CCD_CAN_ABORT);
         }
 
         if (is_capturing)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR,
-                   "Cannot start new exposure until the current one completes (%.3f seconds left).",
-                   getRemainingExposure());
+            LOGF_ERROR(
+                "Cannot start new exposure until the current one completes (%.3f seconds left).",
+                getRemainingExposure());
             return !(GetCCDCapability() & CCD_CAN_ABORT);
         }
     }
@@ -811,10 +878,10 @@ bool V4L2_Driver::setShutter(double duration)
 {
     if (lx->isEnabled())
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Using long exposure mode for %.3f sec frame.", duration);
+        LOGF_INFO("Using long exposure mode for %.3f sec frame.", duration);
         if (startlongexposure(duration))
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Started %.3f-second long exposure.", duration);
+            LOGF_INFO("Started %.3f-second long exposure.", duration);
             return true;
         }
         else
@@ -833,26 +900,69 @@ bool V4L2_Driver::setShutter(double duration)
         frameCount    = 0;
         subframeCount = 0;
 
-        DEBUGF(INDI::Logger::DBG_SESSION, "Started %.3f-second manual exposure.", duration);
+        LOGF_INFO("Started %.3f-second manual exposure.", duration);
         return true;
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, no adequate control is registered.",
-               duration);
+        LOGF_WARN("Failed %.3f-second manual exposure, no adequate control is registered.",
+                  duration);
         return false;
     }
 }
 
 bool V4L2_Driver::setManualExposure(double duration)
 {
+    /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
+    /* With DMx 21AU04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
+     * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set
+     * exposure unconditionally */
+    /*if (duration * 10000 != AbsExposureN->value)*/
+
+    // INT control for manual exposure duration is an integer in 1/10000 seconds
+    long ticks = lround(duration * 10000.0f);
+
+    /* First check the presence of an absolute exposure control */
     if (nullptr == AbsExposureN)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed exposing, the absolute exposure duration control is undefined", "");
-        return false;
+        /* We don't have an absolute exposure control but we can stack gray frames until the exposure elapses */
+        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        {
+            LOGF_WARN("Absolute exposure duration control is undefined, stacking up to %.3f seconds using %.16s.",
+                      duration, StackModeS[stackMode].name);
+            return true;
+        }
+        /* We don't have an absolute exposure control and stacking is not configured, bail out */
+        else
+        {
+            LOGF_ERROR("Failed exposing, the absolute exposure duration control is undefined, and stacking is not ready.", "");
+            LOGF_ERROR("Configure grayscale and stacking in order to stack streamed frames up to %.3f seconds.", duration);
+            return false;
+        }
     }
+    /* Then if we have an exposure control, check the requested exposure duration */
+    else if (AbsExposureN->max < ticks)
+    {
+        /* We can't expose as long as requested but we can stack gray frames until the exposure elapses */
+        if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON && stackMode != STACK_NONE && stackMode != STACK_RESET_DARK)
+        {
+            LOGF_WARN("Requested manual exposure is out of device bounds [%.3f,%.3f], stacking up to %.3f seconds using %.16s.",
+                      (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f,
+                      duration, StackModeS[stackMode].name);
+            ticks = AbsExposureN->max;
+        }
+        /* We can't expose as long as requested and stacking is not configured, bail out */
+        else
+        {
+            LOGF_ERROR("Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f], and stacking is not ready.",
+                       duration, (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f);
+            LOGF_ERROR("Configure grayscale and stacking in order to stack streamed frames up to %.3f seconds.", duration);
+            return false;
+        }
+    }
+    /* Lower-than-minimal exposure duration is left managed below */
 
-    char errmsg[MAXRBUF];
+    /* At this point we do have an absolute exposure control and a valid exposure duration, so start exposing. */
 
     /* Manual mode should be set before changing Exposure (Auto), if possible.
      * In some cases there might be no control available, so don't fail and try to continue.
@@ -868,6 +978,7 @@ bool V4L2_Driver::setManualExposure(double duration)
             unsigned int const ctrlindex = ManualExposureSP->sp[0].aux ? *(unsigned int *)(ManualExposureSP->sp[0].aux) : 0;
             unsigned int const ctrl_id = (*((unsigned int *)ManualExposureSP->aux));
 
+            char errmsg[MAXRBUF];
             if (v4l_base->setOPTControl(ctrl_id, ctrlindex, errmsg) < 0)
             {
                 ManualExposureSP->sp[0].s = ISS_OFF;
@@ -875,7 +986,7 @@ bool V4L2_Driver::setManualExposure(double duration)
                 ManualExposureSP->s       = IPS_ALERT;
                 IDSetSwitch(ManualExposureSP, nullptr);
 
-                DEBUGF(INDI::Logger::DBG_ERROR, "Unable to adjust manual/auto exposure control. %s", errmsg);
+                LOGF_ERROR("Unable to adjust manual/auto exposure control. %s", errmsg);
                 return false;
             }
 
@@ -885,30 +996,23 @@ bool V4L2_Driver::setManualExposure(double duration)
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed switching to manual exposure, control is unavailable", "");
+        LOGF_WARN("Failed switching to manual exposure, control is unavailable", "");
         /* Don't fail, let the driver try to set the absolute duration, we'll see what happens */
         /* return false; */
     }
 
-    /* N.B. Check how this differs from one camera to another. This is just a proof of concept for now */
-    /* With DMx 21AU04.AS, exposing twice with the same duration causes an incomplete frame to pop in the buffer list
-     * This can be worked around by verifying the buffer size, but it won't work for anything else than Y8/Y16, so set
-     * exposure unconditionally */
-    /*if (duration * 10000 != AbsExposureN->value)*/
-
-    // INT control for manual exposure duration is an integer in 1/10000 seconds
-    long const ticks = lround(duration * 10000.0f);
-
+    /* Configure absolute exposure */
     if (AbsExposureN->min <= ticks && ticks <= AbsExposureN->max)
     {
         double const restoredValue = AbsExposureN->value;
         AbsExposureN->value = ticks;
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%.3f-second exposure translates to %ld 1/10,000th-second device ticks.",
-               duration, ticks);
+        LOGF_DEBUG("%.3f-second exposure translates to %ld 1/10,000th-second device ticks.",
+                   duration, ticks);
 
         unsigned int const ctrl_id = *((unsigned int *)AbsExposureN->aux0);
 
+        char errmsg[MAXRBUF];
         if (v4l_base->setINTControl(ctrl_id, AbsExposureN->value, errmsg) < 0)
         {
             ImageAdjustNP.s     = IPS_ALERT;
@@ -922,8 +1026,8 @@ bool V4L2_Driver::setManualExposure(double duration)
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f].",
-               duration, (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f);
+        LOGF_ERROR("Failed %.3f-second manual exposure, out of device bounds [%.3f,%.3f].",
+                   duration, (double) AbsExposureN->min / 10000.0f, (double) AbsExposureN->max / 10000.0f);
         return false;
     }
 
@@ -934,9 +1038,9 @@ bool V4L2_Driver::setManualExposure(double duration)
  *
  * This provides a very rough estimation of the remaining exposure to the client.
  */
-void V4L2_Driver::stdtimerCallback(void *userpointer)
+void V4L2_Driver::stdtimerCallback(void * userpointer)
 {
-    V4L2_Driver *p = (V4L2_Driver *)userpointer;
+    V4L2_Driver * p = (V4L2_Driver *)userpointer;
     float remaining = p->getRemainingExposure();
     //DEBUGF(INDI::Logger::DBG_SESSION,"Exposure running, %f seconds left...", remaining);
     if (1.0f < remaining)
@@ -955,26 +1059,25 @@ bool V4L2_Driver::start_capturing(bool do_stream)
     INDI_UNUSED(do_stream);
     if (Streamer->isBusy())
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Cannot start exposure while streaming is in progress");
+        LOG_WARN("Cannot start exposure while streaming is in progress");
         return false;
     }
 
     if (is_capturing)
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Cannot start exposure while another is in progress (%.3f seconds left)",
-               getRemainingExposure());
+        LOGF_WARN("Cannot start exposure while another is in progress (%.3f seconds left)",
+                  getRemainingExposure());
         return false;
     }
-
     char errmsg[ERRMSGSIZ];
     if (v4l_base->start_capturing(errmsg))
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "V4L2 base failed starting capture (%s)", errmsg);
+        LOGF_WARN("V4L2 base failed starting capture (%s)", errmsg);
         return false;
     }
 
     //if (do_stream)
-        //v4l_base->doRecord(Streamer->isDirectRecording());
+    //v4l_base->doRecord(Streamer->isDirectRecording());
 
     is_capturing = true;
     return true;
@@ -984,14 +1087,14 @@ bool V4L2_Driver::stop_capturing()
 {
     if (!is_capturing)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "No exposure or streaming in progress");
+        LOG_WARN("No exposure or streaming in progress");
         return true;
     }
 
     if (!Streamer->isBusy() && 0.0f < getRemainingExposure())
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Stopping running exposure %.3f seconds before completion",
-               getRemainingExposure());
+        LOGF_WARN("Stopping running exposure %.3f seconds before completion",
+                  getRemainingExposure());
     }
 
     // FIXME what to do with doRecord?
@@ -1002,7 +1105,7 @@ bool V4L2_Driver::stop_capturing()
 
     if (v4l_base->stop_capturing(errmsg))
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "V4L2 base failed stopping capture (%s)", errmsg);
+        LOGF_WARN("V4L2 base failed stopping capture (%s)", errmsg);
     }
     is_capturing = false;
     return true;
@@ -1015,9 +1118,9 @@ bool V4L2_Driver::startlongexposure(double timeinsec)
     return (lx->startLx());
 }
 
-void V4L2_Driver::lxtimerCallback(void *userpointer)
+void V4L2_Driver::lxtimerCallback(void * userpointer)
 {
-    V4L2_Driver *p = (V4L2_Driver *)userpointer;
+    V4L2_Driver * p = (V4L2_Driver *)userpointer;
 
     p->lx->stopLx();
     if (p->lx->getLxmode() == LXSERIAL)
@@ -1045,30 +1148,30 @@ bool V4L2_Driver::UpdateCCDBin(int hor, int ver)
             return true;
         }
 
-        DEBUG(INDI::Logger::DBG_WARNING, "Binning color frames is currently not supported.");                
+        LOG_WARN("Binning color frames is currently not supported.");
         return false;
     }
 
     if (hor != ver)
     {
-        DEBUGF(INDI::Logger::DBG_WARNING, "Cannot accept asymmetrical binning %dx%d.", hor, ver);
+        LOGF_WARN("Cannot accept asymmetrical binning %dx%d.", hor, ver);
         return false;
     }
 
     if (hor != 1 && hor != 2 && hor != 4)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Can only accept 1x1, 2x2, and 4x4 binning.");
+        LOG_WARN("Can only accept 1x1, 2x2, and 4x4 binning.");
         return false;
     }
 
     if (Streamer->isBusy())
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Cannot change binning while streaming/recording.");
+        LOG_WARN("Cannot change binning while streaming/recording.");
         return false;
     }
 
     PrimaryCCD.setBin(hor, ver);
-    Streamer->setSize(PrimaryCCD.getSubW()/hor, PrimaryCCD.getSubH()/ver);
+    Streamer->setSize(PrimaryCCD.getSubW() / hor, PrimaryCCD.getSubH() / ver);
 
     return true;
 }
@@ -1077,7 +1180,7 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
 {
     char errmsg[ERRMSGSIZ];
 
-    //DEBUGF(INDI::Logger::DBG_SESSION, "calling updateCCDFrame: %d %d %d %d", x, y, w, h);
+    //LOGF_INFO("calling updateCCDFrame: %d %d %d %d", x, y, w, h);
     //IDLog("calling updateCCDFrame: %d %d %d %d\n", x, y, w, h);
     if (v4l_base->setcroprect(x, y, w, h, errmsg) != -1)
     {
@@ -1093,40 +1196,44 @@ bool V4L2_Driver::UpdateCCDFrame(int x, int y, int w, int h)
     }
     else
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "ERROR (setcroprect): %s", errmsg);
+        LOGF_INFO("ERROR (setcroprect): %s", errmsg);
     }
 
     return false;
 }
 
-void V4L2_Driver::newFrame(void *p)
+void V4L2_Driver::newFrame(void * p)
 {
     ((V4L2_Driver *)(p))->newFrame();
 }
 
+/** @internal Stack normalized luminance pixels coming from the camera in an accumulator frame.
+ */
 void V4L2_Driver::stackFrame()
 {
+    /* FIXME: use unsigned floats, or double */
+    size_t const size      = v4l_base->getWidth() * v4l_base->getHeight();
+    float const * src       = v4l_base->getLinearY();
+    float const * const end = v4l_base->getLinearY() + size;
+    float * dest            = V4LFrame->stackedFrame;
+
     if (!V4LFrame->stackedFrame)
     {
-        float *src = nullptr, *dest = nullptr;
-
-        V4LFrame->stackedFrame = (float *)malloc(sizeof(float) * v4l_base->getWidth() * v4l_base->getHeight());
-        src                    = v4l_base->getLinearY();
-        dest                   = V4LFrame->stackedFrame;
-        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-            *dest++ = *src++;
+        /* FIXME: allocate and reset the accumulator frame prior to this function, because memory owner is unclear, and we need more speed while accumulating */
+        V4LFrame->stackedFrame = (float *)malloc(sizeof(float) * size);
+        memcpy(V4LFrame->stackedFrame, src, sizeof(float) * size);
         subframeCount = 1;
     }
     else
     {
-        float *src = nullptr, *dest = nullptr;
-
-        src  = v4l_base->getLinearY();
-        dest = V4LFrame->stackedFrame;
-        for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-        {
-            *dest++ += *src++;
-        }
+        /* Clamp to max float value */
+        float const frameMax = std::numeric_limits<float>::max();
+        while (src < end) if (frameMax - *dest < *src)
+            {
+                *dest++ = frameMax;
+                src++;
+            }
+            else *dest++ += *src++;
         subframeCount += 1;
     }
 }
@@ -1142,7 +1249,7 @@ struct timeval V4L2_Driver::getElapsedExposure() const
 float V4L2_Driver::getRemainingExposure() const
 {
     struct timeval elapsed = getElapsedExposure(), remaining = { .tv_sec = 0, .tv_usec = 0 };
-    timersub(&exposure_duration,&elapsed,&remaining);
+    timersub(&exposure_duration, &elapsed, &remaining);
     return (float) remaining.tv_sec + (float) remaining.tv_usec / 1000000.0f;
 }
 
@@ -1155,8 +1262,9 @@ void V4L2_Driver::newFrame()
         int bpp               = v4l_base->getBpp();
         int dbpp              = 8;
         int totalBytes        = 0;
-        unsigned char *buffer = nullptr;
+        unsigned char * buffer = nullptr;
 
+        std::unique_lock<std::mutex> guard(ccdBufferLock);
         if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
         {
             V4LFrame->Y = v4l_base->getY();
@@ -1173,8 +1281,8 @@ void V4L2_Driver::newFrame()
         // downscale Y10 Y12 Y16
         if (bpp > dbpp)
         {
-            unsigned short *src = (unsigned short *)buffer;
-            unsigned char *dest = buffer;
+            unsigned short * src = (unsigned short *)buffer;
+            unsigned char * dest = buffer;
             unsigned char shift = 0;
 
             if (bpp < 16)
@@ -1195,7 +1303,7 @@ void V4L2_Driver::newFrame()
             }
             else
             {
-                unsigned char *src = (unsigned char *)buffer + 1; // Y16 is little endian
+                unsigned char * src = (unsigned char *)buffer + 1; // Y16 is little endian
 
                 for (int i = 0; i < totalBytes; i++)
                 {
@@ -1209,16 +1317,19 @@ void V4L2_Driver::newFrame()
         {
             memcpy(PrimaryCCD.getFrameBuffer(), buffer, totalBytes);
             PrimaryCCD.binFrame();
-            Streamer->newFrame(PrimaryCCD.getFrameBuffer(), frameBytes/PrimaryCCD.getBinX());
+            guard.unlock();
+            Streamer->newFrame(PrimaryCCD.getFrameBuffer(), frameBytes / PrimaryCCD.getBinX());
         }
         else
+        {
+            guard.unlock();
             Streamer->newFrame(buffer, frameBytes);
+        }
         return;
     }
 
     if (PrimaryCCD.isExposing())
     {
-
         // Stack Mono frames
         if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON))
         {
@@ -1227,8 +1338,9 @@ void V4L2_Driver::newFrame()
 
         struct timeval const current_exposure = getElapsedExposure();
 
+        /* FIXME: stacking does not account for transfer time, so we'll miss the last frames probably */
         if ((stackMode) && !(lx->isEnabled()) && !(ImageColorS[1].s == ISS_ON) &&
-            (timercmp(&current_exposure, &exposure_duration, <)))
+                (timercmp(&current_exposure, &exposure_duration, < )))
             return; // go on stacking
 
         //IDLog("Copying frame.\n");
@@ -1236,7 +1348,7 @@ void V4L2_Driver::newFrame()
         {
             if (!stackMode)
             {
-                unsigned char *src, *dest;
+                unsigned char * src, *dest;
                 src  = v4l_base->getY();
                 dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
 
@@ -1248,11 +1360,12 @@ void V4L2_Driver::newFrame()
             }
             else
             {
-                float *src = V4LFrame->stackedFrame;
+                float * src = V4LFrame->stackedFrame;
 
+                /* If we have a dark frame configured, substract it from the stack */
                 if ((stackMode != STACK_TAKE_DARK) && (V4LFrame->darkFrame != nullptr))
                 {
-                    float *dark = V4LFrame->darkFrame;
+                    float * dark = V4LFrame->darkFrame;
 
                     for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
                     {
@@ -1265,24 +1378,29 @@ void V4L2_Driver::newFrame()
                     }
                     src = V4LFrame->stackedFrame;
                 }
+
                 //IDLog("Copying stack frame from %p to %p.\n", src, dest);
                 if (stackMode == STACK_MEAN)
                 {
                     if (ImageDepthS[0].s == ISS_ON)
                     {
                         // depth 8 bits
-                        unsigned char *dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
+                        unsigned char * dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
 
+                        std::unique_lock<std::mutex> guard(ccdBufferLock);
                         for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-                            *dest++ = (unsigned char)((*src++ * 255) / subframeCount);
+                            *dest++ = (unsigned char)((*src++ * 255.0f) / subframeCount);
+                        guard.unlock();
                     }
                     else
                     {
                         // depth 16 bits
-                        unsigned short *dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
+                        unsigned short * dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
 
+                        std::unique_lock<std::mutex> guard(ccdBufferLock);
                         for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-                            *dest++ = (unsigned short)((*src++ * 65535) / subframeCount);
+                            *dest++ = (unsigned short)((*src++ * 65535.0f) / subframeCount);
+                        guard.unlock();
                     }
 
                     free(V4LFrame->stackedFrame);
@@ -1290,21 +1408,30 @@ void V4L2_Driver::newFrame()
                 }
                 else if (stackMode == STACK_ADDITIVE)
                 {
+                    /* Clamp additive stacking to frame dynamic range - that is, do not consider normalized source greater than 1.0f */
                     if (ImageDepthS[0].s == ISS_ON)
                     {
                         // depth 8 bits
-                        unsigned char *dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
+                        unsigned char * dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
 
+                        std::unique_lock<std::mutex> guard(ccdBufferLock);
                         for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-                            *dest++ = (unsigned char)((*src++ * 255));
+                        {
+                            *dest++ = *src < 1.0f ? (unsigned char)((*src * 255)) : 255;
+                            src++;
+                        }
+                        guard.unlock();
                     }
                     else
                     {
                         // depth 16 bits
-                        unsigned short *dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
+                        unsigned short * dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
 
                         for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
-                            *dest++ = (unsigned short)((*src++ * 65535));
+                        {
+                            *dest++ = *src < 1.0f ? (unsigned short)((*src * 65535)) : 65535;
+                            src++;
+                        }
                     }
 
                     free(V4LFrame->stackedFrame);
@@ -1320,18 +1447,22 @@ void V4L2_Driver::newFrame()
                     if (ImageDepthS[0].s == ISS_ON)
                     {
                         // depth 8 bits
-                        unsigned char *dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
+                        unsigned char * dest = (unsigned char *)PrimaryCCD.getFrameBuffer();
 
+                        std::unique_lock<std::mutex> guard(ccdBufferLock);
                         for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
                             *dest++ = (unsigned char)((*src++ * 255));
+                        guard.unlock();
                     }
                     else
                     {
                         // depth 16 bits
-                        unsigned short *dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
+                        unsigned short * dest = (unsigned short *)PrimaryCCD.getFrameBuffer();
 
+                        std::unique_lock<std::mutex> guard(ccdBufferLock);
                         for (int i = 0; i < v4l_base->getWidth() * v4l_base->getHeight(); i++)
                             *dest++ = (unsigned short)((*src++ * 65535));
+                        guard.unlock();
                     }
                 }
             }
@@ -1339,12 +1470,13 @@ void V4L2_Driver::newFrame()
         else
         {
             // Binning not supported in color images for now
-            unsigned char *src  = v4l_base->getRGBBuffer();
-            unsigned char *dest = PrimaryCCD.getFrameBuffer();
+            std::unique_lock<std::mutex> guard(ccdBufferLock);
+            unsigned char * src  = v4l_base->getRGBBuffer();
+            unsigned char * dest = PrimaryCCD.getFrameBuffer();
             // We have RGB RGB RGB data but for FITS file we need each color in separate plane. i.e. RRR GGG BBB ..etc
-            unsigned char *red   = dest;
-            unsigned char *green = dest + v4l_base->getWidth() * v4l_base->getHeight() * (v4l_base->getBpp() / 8);
-            unsigned char *blue  = dest + v4l_base->getWidth() * v4l_base->getHeight() * (v4l_base->getBpp() / 8) * 2;
+            unsigned char * red   = dest;
+            unsigned char * green = dest + v4l_base->getWidth() * v4l_base->getHeight() * (v4l_base->getBpp() / 8);
+            unsigned char * blue  = dest + v4l_base->getWidth() * v4l_base->getHeight() * (v4l_base->getBpp() / 8) * 2;
 
             for (int i = 0; i < (int)frameBytes; i += 3)
             {
@@ -1352,11 +1484,9 @@ void V4L2_Driver::newFrame()
                 *(green++) = *(src + i + 1);
                 *(blue++)  = *(src + i + 2);
             }
+            guard.unlock();
 
-            // TODO NO BINNING YET for color frames. We can bin each plane above separately it should be fine
-            //PrimaryCCD.binFrame();
         }
-        //IDLog("Copy frame finished.\n");
         frameCount += 1;
 
         if (lx->isEnabled())
@@ -1365,11 +1495,8 @@ void V4L2_Driver::newFrame()
             if (Streamer->isBusy() == false)
                 stop_capturing();
 
-            DEBUGF(INDI::Logger::DBG_SESSION, "Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec,
-                   current_exposure.tv_usec);
+            LOGF_INFO("Capture of LX frame took %ld.%06ld seconds.", current_exposure.tv_sec, current_exposure.tv_usec);
             ExposureComplete(&PrimaryCCD);
-            //PrimaryCCD.setFrameBufferSize(frameBytes);
-            //}
         }
         else
         {
@@ -1379,10 +1506,9 @@ void V4L2_Driver::newFrame()
             else
                 IDLog("%s: streamer is busy, continue capturing\n", __FUNCTION__);
 
-            DEBUGF(INDI::Logger::DBG_SESSION, "Capture of one frame (%d stacked frames) took %ld.%06ld seconds.",
-                   subframeCount, current_exposure.tv_sec, current_exposure.tv_usec);
+            LOGF_INFO("Capture of one frame (%d stacked frames) took %ld.%06ld seconds.",
+                      subframeCount, current_exposure.tv_sec, current_exposure.tv_usec);
             ExposureComplete(&PrimaryCCD);
-            //PrimaryCCD.setFrameBufferSize(frameBytes);
         }
     }
     else
@@ -1409,7 +1535,7 @@ bool V4L2_Driver::AbortExposure()
         return stop_capturing();
     }
 
-    DEBUG(INDI::Logger::DBG_WARNING, "Cannot abort exposure while video streamer is busy, stop streaming first");
+    LOG_WARN("Cannot abort exposure while video streamer is busy, stop streaming first");
     return false;
 }
 
@@ -1420,20 +1546,20 @@ bool V4L2_Driver::Connect()
     {
         if (v4l_base->connectCam(PortT[0].text, errmsg) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error: unable to open device. %s", errmsg);
+            LOGF_ERROR("Error: unable to open device. %s", errmsg);
             return false;
         }
 
         /* Sucess! */
-        DEBUG(INDI::Logger::DBG_SESSION, "V4L2 CCD Device is online. Initializing properties.");
+        LOG_INFO("V4L2 CCD Device is online. Initializing properties.");
 
         v4l_base->registerCallback(newFrame, this);
 
         lx->setCamerafd(v4l_base->fd);
 
         if (!(strcmp((const char *)v4l_base->cap.driver, "pwc")))
-            DEBUG(INDI::Logger::DBG_SESSION,
-                  "To use LED Long exposure mode with recent kernels, see https://code.google.com/p/pwc-lxled/");
+            LOG_INFO(
+                "To use LED Long exposure mode with recent kernels, see https://code.google.com/p/pwc-lxled/");
     }
 
     return true;
@@ -1450,7 +1576,7 @@ bool V4L2_Driver::Disconnect()
     return true;
 }
 
-const char *V4L2_Driver::getDefaultName()
+const char * V4L2_Driver::getDefaultName()
 {
     return (const char *)"V4L2 CCD";
 }
@@ -1478,12 +1604,12 @@ void V4L2_Driver::getBasicData()
     formatindex = IUFindOnSwitchIndex(&CaptureFormatsSP);
     frate       = (v4l_base->*(v4l_base->getframerate))();
     if (inputindex >= 0 && formatindex >= 0)
-        DEBUGF(INDI::Logger::DBG_SESSION, "Found intial Input \"%s\", Format \"%s\", Size %dx%d, Frame interval %d/%ds",
-               InputsSP.sp[inputindex].name, CaptureFormatsSP.sp[formatindex].name, w, h, frate.numerator,
-               frate.denominator);
+        LOGF_INFO("Found intial Input \"%s\", Format \"%s\", Size %dx%d, Frame interval %d/%ds",
+                  InputsSP.sp[inputindex].name, CaptureFormatsSP.sp[formatindex].name, w, h, frate.numerator,
+                  frate.denominator);
     else
-        DEBUGF(INDI::Logger::DBG_SESSION, "Found intial size %dx%d, frame interval %d/%ds", w, h, frate.numerator,
-               frate.denominator);
+        LOGF_INFO("Found intial size %dx%d, frame interval %d/%ds", w, h, frate.numerator,
+                  frate.denominator);
 
     IUSaveText(&camNameT[0], v4l_base->getDeviceName());
     IDSetText(&camNameTP, nullptr);
@@ -1506,7 +1632,7 @@ void V4L2_Driver::getBasicData()
     //direct_record=recorder->setpixelformat(v4l_base->fmt.fmt.pix.pixelformat);
     //recorder->setsize(w, h);
     INDI_PIXEL_FORMAT pixelFormat;
-    uint8_t pixelDepth=8;
+    uint8_t pixelDepth = 8;
     if (getPixelFormat(v4l_base->fmt.fmt.pix.pixelformat, pixelFormat, pixelDepth))
         Streamer->setPixelFormat(pixelFormat, pixelDepth);
 
@@ -1517,7 +1643,7 @@ void V4L2_Driver::updateV4L2Controls()
 {
     unsigned int i;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG,"Enumerating V4L2 controls...","");
+    LOG_DEBUG("Enumerating V4L2 controls...");
 
     // #1 Query for INTEGER controls, and fill up the structure
     free(ImageAdjustNP.np);
@@ -1536,21 +1662,22 @@ void V4L2_Driver::updateV4L2Controls()
 
     if (v4ladjustments > 0)
     {
-        DEBUGF(INDI::Logger::DBG_DEBUG,"Found %d V4L2 adjustments", v4ladjustments);
+        LOGF_DEBUG("Found %d V4L2 adjustments", v4ladjustments);
         defineNumber(&ImageAdjustNP);
 
         for (int i = 0; i < ImageAdjustNP.nnp; i++)
         {
             if (strcmp(ImageAdjustNP.np[i].label, "Exposure (Absolute)") == 0 ||
-                strcmp(ImageAdjustNP.np[i].label, "Exposure Time, Absolute") == 0)
+                    strcmp(ImageAdjustNP.np[i].label, "Exposure Time, Absolute") == 0 ||
+                    strcmp(ImageAdjustNP.np[i].label, "Exposure") == 0)
             {
                 AbsExposureN = ImageAdjustNP.np + i;
-                DEBUGF(INDI::Logger::DBG_DEBUG,"- %s (used for absolute exposure duration)", ImageAdjustNP.np[i].label);
+                LOGF_DEBUG("- %s (used for absolute exposure duration)", ImageAdjustNP.np[i].label);
             }
-            else DEBUGF(INDI::Logger::DBG_DEBUG,"- %s", ImageAdjustNP.np[i].label);
+            else LOGF_DEBUG("- %s", ImageAdjustNP.np[i].label);
         }
     }
-    DEBUGF(INDI::Logger::DBG_DEBUG,"Found %d V4L2 options", v4loptions);
+    LOGF_DEBUG("Found %d V4L2 options", v4loptions);
     for (i = 0; i < v4loptions; i++)
     {
         defineSwitch(&Options[i]);
@@ -1558,16 +1685,16 @@ void V4L2_Driver::updateV4L2Controls()
         if (strcmp(Options[i].label, "Exposure, Auto") == 0 || strcmp(Options[i].label, "Auto Exposure") == 0)
         {
             ManualExposureSP = Options + i;
-            DEBUGF(INDI::Logger::DBG_DEBUG,"- %s (used for manual/auto exposure control)", Options[i].label);
+            LOGF_DEBUG("- %s (used for manual/auto exposure control)", Options[i].label);
         }
-        else DEBUGF(INDI::Logger::DBG_DEBUG,"- %s", Options[i].label);
+        else LOGF_DEBUG("- %s", Options[i].label);
     }
 
     if(!AbsExposureN)
-        DEBUGF(INDI::Logger::DBG_WARNING,"Absolute exposure duration control is not possible on the device!","");
+        DEBUGF(INDI::Logger::DBG_WARNING, "Absolute exposure duration control is not possible on the device!", "");
 
     if(!ManualExposureSP)
-        DEBUGF(INDI::Logger::DBG_WARNING,"Manual/auto exposure control is not possible on the device!","");
+        DEBUGF(INDI::Logger::DBG_WARNING, "Manual/auto exposure control is not possible on the device!", "");
 
     //v4l_base->enumerate_ctrl();
 }
@@ -1578,7 +1705,7 @@ void V4L2_Driver::allocateBuffers()
 
     if (V4LFrame == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Critial Error: Unable to initialize driver. Low memory.");
+        LOG_ERROR("Critial Error: Unable to initialize driver. Low memory.");
         exit(-1);
     }
 
@@ -1599,7 +1726,7 @@ bool V4L2_Driver::StartStreaming()
 {
     if (PrimaryCCD.getBinX() > 1 && PrimaryCCD.getNAxis() > 2)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "Cannot stream binned color frame.");
+        LOG_WARN("Cannot stream binned color frame.");
         return false;
     }
 
@@ -1612,22 +1739,25 @@ bool V4L2_Driver::StopStreaming()
     if (!Streamer->isBusy() /*&& is_capturing*/)
     {
         /* Strange situation indeed, but it's theoretically possible to try to stop streaming while exposing - safeguard actually */
-        DEBUGF(INDI::Logger::DBG_WARNING, "Cannot stop streaming, exposure running (%.1f seconds remaining)",
-               getRemainingExposure());
+        LOGF_WARN("Cannot stop streaming, exposure running (%.1f seconds remaining)",
+                  getRemainingExposure());
         return false;
     }
 
     return stop_capturing();
 }
 
-bool V4L2_Driver::saveConfigItems(FILE *fp)
+bool V4L2_Driver::saveConfigItems(FILE * fp)
 {
     INDI::CCD::saveConfigItems(fp);
+
+    if (ImageAdjustNP.nnp > 0)
+        IUSaveConfigNumber(fp, &ImageAdjustNP);
 
     return Streamer->saveConfigItems(fp);
 }
 
-bool V4L2_Driver::getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT & pixelFormat, uint8_t & pixelDepth)
+bool V4L2_Driver::getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT &pixelFormat, uint8_t &pixelDepth)
 {
     //IDLog("recorder: setpixelformat %d\n", format);
     pixelDepth = 8;
@@ -1704,7 +1834,7 @@ bool V4L2_Driver::getPixelFormat(uint32_t v4l2format, INDI_PIXEL_FORMAT & pixelF
 #ifdef V4L2_PIX_FMT_SGRBG12
         case V4L2_PIX_FMT_SGRBG12:
 #endif
-            pixelDepth = INDI_BAYER_GRBG;
+            pixelFormat = INDI_BAYER_GRBG;
 #ifdef V4L2_PIX_FMT_SGRBG10
             if (v4l2format == V4L2_PIX_FMT_SGRBG10)
                 pixelDepth = 10;

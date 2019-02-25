@@ -38,7 +38,7 @@ extern "C" {
 /* insure RO properties are never modified. RO Sanity Check */
 typedef struct
 {
-    char propName[MAXINDINAME];
+char propName[MAXINDINAME];
     char devName[MAXINDIDEVICE];
     IPerm perm;
     const void *ptr;
@@ -168,6 +168,17 @@ extern void IUSaveConfigBLOB(FILE *fp, const IBLOBVectorProperty *bvp);
  * @return 0 on success, -1 if not found.
  */
 extern int IUGetConfigNumber(const char *dev, const char *property, const char *member, double *value);
+
+/**
+ * @brief IUGetConfigText Opens configuration file and reads text property.
+ * @param dev name of device
+ * @param property name of vector property
+ * @param member name of member property
+ * @param value pointer to save value of property if found.
+ * @param len size of char buffer (value)
+ * @return 0 on success, -1 if not found.
+ */
+extern int IUGetConfigText(const char *dev, const char *property, const char *member, char *value, int len);
 
 /*@}*/
 

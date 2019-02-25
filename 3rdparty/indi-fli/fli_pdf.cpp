@@ -31,45 +31,28 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#define POLLMS 1000 /* Polling time (ms) */
-
-std::unique_ptr<FLIPDF> fliPDF(new FLIPDF());
+static std::unique_ptr<FLIPDF> fliPDF(new FLIPDF());
 
 const flidomain_t Domains[] = { FLIDOMAIN_USB, FLIDOMAIN_SERIAL, FLIDOMAIN_PARALLEL_PORT, FLIDOMAIN_INET };
 
-void ISInit()
-{
-    static int isInit = 0;
-
-    if (isInit == 1)
-        return;
-
-    isInit = 1;
-    if (fliPDF.get() == 0)
-        fliPDF.reset(new FLIPDF());
-}
 
 void ISGetProperties(const char *dev)
 {
-    ISInit();
     fliPDF->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-    ISInit();
     fliPDF->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-    ISInit();
     fliPDF->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-    ISInit();
     fliPDF->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -87,7 +70,6 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 }
 void ISSnoopDevice(XMLEle *root)
 {
-    ISInit();
     fliPDF->ISSnoopDevice(root);
 }
 
@@ -95,16 +77,12 @@ FLIPDF::FLIPDF()
 {
     sim = false;
 
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
-}
-
-FLIPDF::~FLIPDF()
-{
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
 const char *FLIPDF::getDefaultName()
 {
-    return (char *)"FLI PDF";
+    return "FLI PDF";
 }
 
 bool FLIPDF::initProperties()
@@ -187,7 +165,7 @@ bool FLIPDF::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                 return false;
 
             PortSP.s = IPS_OK;
-            IDSetSwitch(&PortSP, NULL);
+            IDSetSwitch(&PortSP, nullptr);
             return true;
         }
     }
@@ -211,19 +189,18 @@ bool FLIPDF::Connect()
 
     if (findFLIPDF(Domains[portSwitchIndex]) == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error: no focusers were detected.");
+        LOG_ERROR("Error: no focusers were detected.");
         return false;
     }
 
     if ((err = FLIOpen(&fli_dev, FLIFocus.name, FLIDEVICE_FOCUSER | FLIFocus.domain)))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: FLIOpen() failed. %s.", strerror((int)-err));
-
+        LOGF_ERROR("Error: FLIOpen() failed. %s.", strerror((int)-err));
         return false;
     }
 
     /* Success! */
-    DEBUG(INDI::Logger::DBG_SESSION, "Focuser is online. Retrieving basic data.");
+    LOG_INFO("Focuser is online. Retrieving basic data.");
     return true;
 }
 
@@ -236,21 +213,18 @@ bool FLIPDF::Disconnect()
 
     if ((err = FLIClose(fli_dev)))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: FLIClose() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("Error: FLIClose() failed. %s.", strerror((int)-err));
 
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Focuser is offline.");
+    LOG_INFO("Focuser is offline.");
     return true;
 }
 
 bool FLIPDF::setupParams()
 {
     int err = 0;
-
-    if (isDebug())
-        IDLog("In setupParams\n");
 
     char hw_rev[16], fw_rev[16];
 
@@ -259,10 +233,7 @@ bool FLIPDF::setupParams()
     //////////////////////
     if (!sim && (err = FLIGetModel(fli_dev, FLIFocus.model, 200))) //ToDo: lazy
     {
-        IDMessage(getDeviceName(), "FLIGetModel() failed. %s.", strerror((int)-err));
-
-        if (isDebug())
-            IDLog("FLIGetModel() failed. %s.\n", strerror((int)-err));
+        LOGF_ERROR("FLIGetModel() failed. %s.", strerror((int)-err));
         return false;
     }
 
@@ -278,7 +249,7 @@ bool FLIPDF::setupParams()
         FLIFocus.HWRevision = 1;
     else if ((err = FLIGetHWRevision(fli_dev, &FLIFocus.HWRevision)))
     {
-        IDMessage(getDeviceName(), "FLIGetHWRevision() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLIGetHWRevision() failed. %s.", strerror((int)-err));
 
         if (isDebug())
             IDLog("FLIGetHWRevision() failed. %s.\n", strerror((int)-err));
@@ -296,18 +267,14 @@ bool FLIPDF::setupParams()
         FLIFocus.FWRevision = 1;
     else if ((err = FLIGetFWRevision(fli_dev, &FLIFocus.FWRevision)))
     {
-        IDMessage(getDeviceName(), "FLIGetFWRevision() failed. %s.", strerror((int)-err));
-
-        if (isDebug())
-            IDLog("FLIGetFWRevision() failed. %s.\n", strerror((int)-err));
-
+        LOGF_ERROR("FLIGetFWRevision() failed. %s.", strerror((int)-err));
         return false;
     }
 
     snprintf(fw_rev, 16, "%ld", FLIFocus.FWRevision);
     IUSaveText(&FocusInfoT[2], fw_rev);
 
-    IDSetText(&FocusInfoTP, NULL);
+    IDSetText(&FocusInfoTP, nullptr);
     ///////////////////////////
     // 4. Focuser position
     ///////////////////////////
@@ -315,10 +282,7 @@ bool FLIPDF::setupParams()
         FLIFocus.current_pos = 3500;
     else if ((err = FLIGetStepperPosition(fli_dev, &FLIFocus.current_pos)))
     {
-        IDMessage(getDeviceName(), "FLIGetStepperPosition() failed. %s.", strerror((int)-err));
-
-        if (isDebug())
-            IDLog("FLIGetStepperPosition() failed. %s.\n", strerror((int)-err));
+        LOGF_ERROR("FLIGetStepperPosition() failed. %s.", strerror((int)-err));
         return false;
     }
 
@@ -329,10 +293,7 @@ bool FLIPDF::setupParams()
         FLIFocus.max_pos = 50000;
     else if ((err = FLIGetFocuserExtent(fli_dev, &FLIFocus.max_pos)))
     {
-        IDMessage(getDeviceName(), "FLIGetFocuserExtent() failed. %s.", strerror((int)-err));
-
-        if (isDebug())
-            IDLog("FLIGetFocuserExtent() failed. %s.\n", strerror((int)-err));
+        LOGF_ERROR("FLIGetFocuserExtent() failed. %s.", strerror((int)-err));
         return false;
     }
 
@@ -365,11 +326,7 @@ void FLIPDF::goHomePosition()
 
     if (!sim && (err = FLIHomeFocuser(fli_dev)))
     {
-        IDMessage(getDeviceName(), "FLIHomeFocuser() failed. %s.", strerror((int)-err));
-
-        if (isDebug())
-            IDLog("FLIHomeFocuser() failed. %s.", strerror((int)-err));
-
+        LOGF_ERROR("FLIHomeFocuser() failed. %s.", strerror((int)-err));
         return;
     }
 
@@ -406,11 +363,7 @@ void FLIPDF::TimerHit()
         // while moving, display the remaing steps
         else if ((err = FLIGetStepsRemaining(fli_dev, &FLIFocus.steps_remaing)))
         {
-            IDMessage(getDeviceName(), "FLIGetStepsRemaining() failed. %s.", strerror((int)-err));
-
-            if (isDebug())
-                IDLog("FLIGetStepsRemaining() failed. %s.", strerror((int)-err));
-
+            LOGF_ERROR("FLIGetStepsRemaining() failed. %s.", strerror((int)-err));
             SetTimer(POLLMS);
             return;
         }
@@ -421,25 +374,22 @@ void FLIPDF::TimerHit()
             if (FocusRelPosNP.s == IPS_BUSY)
             {
                 FocusRelPosNP.s = IPS_OK;
-                IDSetNumber(&FocusRelPosNP, NULL);
+                IDSetNumber(&FocusRelPosNP, nullptr);
             }
         }
 
         FocusAbsPosN[0].value = FLIFocus.steps_remaing;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
     else // we need to display the current position after move finished
     {
         if ((err = FLIGetStepperPosition(fli_dev, &FLIFocus.current_pos)))
         {
-            IDMessage(getDeviceName(), "FLIGetStepperPosition() failed. %s.", strerror((int)-err));
-
-            if (isDebug())
-                IDLog("FLIGetStepperPosition() failed. %s.\n", strerror((int)-err));
+            LOGF_ERROR("FLIGetStepperPosition() failed. %s.", strerror((int)-err));
             return;
         }
         FocusAbsPosN[0].value = FLIFocus.current_pos;
-        IDSetNumber(&FocusAbsPosNP, NULL);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
     }
 
     if (timerID == -1)
@@ -453,25 +403,19 @@ IPState FLIPDF::MoveAbsFocuser(uint32_t targetTicks)
 
     if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max)
     {
-        IDMessage(getDeviceName(), "Error, requested absolute position is out of range.");
+        LOG_ERROR("Error, requested absolute position is out of range.");
         return IPS_ALERT;
     }
     long current;
     if ((err = FLIGetStepperPosition(fli_dev, &current)))
     {
-        IDMessage(getDeviceName(), "FLIPDF::MoveAbsFocuser: FLIGetStepperPosition() failed. %s.", strerror((int)-err));
-
-        if (isDebug())
-            IDLog("FLIPDF::MoveAbsFocuser: FLIGetStepperPosition() failed. %s.\n", strerror((int)-err));
+        LOGF_ERROR("FLIPDF::MoveAbsFocuser: FLIGetStepperPosition() failed. %s.", strerror((int)-err));
         return IPS_ALERT;
     }
     err = FLIStepMotorAsync(fli_dev, (targetTicks - current));
     if (!sim && (err))
     {
-        IDMessage(getDeviceName(), "FLIStepMotor() failed. %s.", strerror((int)-err));
-
-        if (isDebug())
-            IDLog("FLIStepMotor() failed. %s.", strerror((int)-err));
+        LOGF_ERROR("FLIStepMotor() failed. %s.", strerror((int)-err));
         return IPS_ALERT;
     }
 
@@ -502,19 +446,17 @@ bool FLIPDF::findFLIPDF(flidomain_t domain)
     char **names;
     long err;
 
-    if (isDebug())
-        IDLog("In find Focuser, the domain is %ld\n", domain);
+    LOGF_DEBUG("In find Focuser, the domain is %ld", domain);
 
     if ((err = FLIList(domain | FLIDEVICE_FOCUSER, &names)))
     {
-        if (isDebug())
-            IDLog("FLIList() failed. %s\n", strerror((int)-err));
+        LOGF_ERROR("FLIList() failed. %s", strerror((int)-err));
         return false;
     }
 
-    if (names != NULL && names[0] != NULL)
+    if (names != nullptr && names[0] != nullptr)
     {
-        for (int i = 0; names[i] != NULL; i++)
+        for (int i = 0; names[i] != nullptr; i++)
         {
             for (int j = 0; names[i][j] != '\0'; j++)
                 if (names[i][j] == ';')
@@ -552,8 +494,7 @@ bool FLIPDF::findFLIPDF(flidomain_t domain)
 
         if ((err = FLIFreeList(names)))
         {
-            if (isDebug())
-                IDLog("FLIFreeList() failed. %s.\n", strerror((int)-err));
+            LOGF_ERROR("FLIFreeList() failed. %s.", strerror((int)-err));
             return false;
         }
 
@@ -562,16 +503,14 @@ bool FLIPDF::findFLIPDF(flidomain_t domain)
     {
         if ((err = FLIFreeList(names)))
         {
-            if (isDebug())
-                IDLog("FLIFreeList() failed. %s.\n", strerror((int)-err));
+            LOGF_ERROR("FLIFreeList() failed. %s.", strerror((int)-err));
             return false;
         }
 
         return false;
     }
 
-    if (isDebug())
-        IDLog("FindFLIPDF() finished successfully.\n");
+    LOG_DEBUG("FindFLIPDF() finished successfully.");
 
     return true;
 }

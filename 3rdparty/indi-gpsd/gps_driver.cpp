@@ -78,11 +78,6 @@ void ISSnoopDevice(XMLEle *root)
 GPSD::GPSD()
 {
     setVersion(GPSD_VERSION_MAJOR, GPSD_VERSION_MINOR);
-    gps = NULL;
-}
-
-GPSD::~GPSD()
-{
 }
 
 const char *GPSD::getDefaultName()
@@ -92,13 +87,13 @@ const char *GPSD::getDefaultName()
 
 bool GPSD::Connect()
 {
-    if (gps == NULL)
+    if (gps == nullptr)
     {
         gps = new gpsmm("localhost", DEFAULT_GPSD_PORT);
     }
-    if (gps->stream(WATCH_ENABLE | WATCH_JSON) == NULL)
+    if (gps->stream(WATCH_ENABLE | WATCH_JSON) == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_WARNING, "No GPSD running.");
+        LOG_WARN("No GPSD running.");
         return false;
     }
     return true;
@@ -107,8 +102,8 @@ bool GPSD::Connect()
 bool GPSD::Disconnect()
 {
     delete gps;
-    gps = NULL;
-    DEBUG(INDI::Logger::DBG_SESSION, "GPS disconnected successfully.");
+    gps = nullptr;
+    LOG_INFO("GPS disconnected successfully.");
     return true;
 }
 
@@ -117,13 +112,15 @@ bool GPSD::initProperties()
     // We init parent properties first
     INDI::GPS::initProperties();
 
-    IUFillText(&GPSstatusT[0], "GPS_FIX", "Fix Mode", NULL);
+    IUFillText(&GPSstatusT[0], "GPS_FIX", "Fix Mode", nullptr);
     IUFillTextVector(&GPSstatusTP, GPSstatusT, 1, getDeviceName(), "GPS_STATUS", "GPS Status", MAIN_CONTROL_TAB, IP_RO,
                      60, IPS_IDLE);
 
     IUFillNumber(&PolarisN[0], "HA", "Polaris Hour Angle", "%010.6m", 0, 24, 0, 0.0);
     IUFillNumberVector(&PolarisNP, PolarisN, 1, getDeviceName(), "POLARIS", "Polaris", MAIN_CONTROL_TAB, IP_RO, 60,
                        IPS_IDLE);
+
+    setDriverInterface(GPS_INTERFACE | AUX_INTERFACE);
 
     return true;
 }
@@ -150,17 +147,35 @@ bool GPSD::updateProperties()
 IPState GPSD::updateGPS()
 {
     // Indicate gps refresh in progress
-    TimeTP.s = IPS_BUSY;
-    IDSetText(&TimeTP, NULL);
-    LocationNP.s = IPS_BUSY;
-    IDSetNumber(&LocationNP, NULL);
+    if (TimeTP.s != IPS_BUSY)
+    {
+        TimeTP.s = IPS_BUSY;
+        IDSetText(&TimeTP, nullptr);
+    }
 
-    GPSstatusTP.s = IPS_BUSY;
-    IDSetText(&GPSstatusTP, NULL);
-    PolarisNP.s = IPS_BUSY;
-    IDSetNumber(&PolarisNP, NULL);
-    RefreshSP.s = IPS_BUSY;
-    IDSetSwitch(&RefreshSP, NULL);
+    if (LocationNP.s != IPS_BUSY)
+    {
+        LocationNP.s = IPS_BUSY;
+        IDSetNumber(&LocationNP, nullptr);
+    }
+
+    if (GPSstatusTP.s != IPS_BUSY)
+    {
+        GPSstatusTP.s = IPS_BUSY;
+        IDSetText(&GPSstatusTP, nullptr);
+    }
+
+    if (PolarisNP.s != IPS_BUSY)
+    {
+        PolarisNP.s = IPS_BUSY;
+        IDSetNumber(&PolarisNP, nullptr);
+    }
+
+    if (RefreshSP.s != IPS_BUSY)
+    {
+        RefreshSP.s = IPS_BUSY;
+        IDSetSwitch(&RefreshSP, nullptr);
+    }
 
     struct gps_data_t *gpsData;
 
@@ -194,16 +209,16 @@ IPState GPSD::updateGPS()
     {
         if (GPSstatusTP.s != IPS_BUSY)
         {
-            DEBUG(INDI::Logger::DBG_SESSION, "Waiting for gps data...");
+            LOG_INFO("Waiting for gps data...");
             GPSstatusTP.s = IPS_BUSY;
         }
         return IPS_BUSY;
     }
 
-    if ((gpsData = gps->read()) == NULL)
+    if ((gpsData = gps->read()) == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "GPSD read error.");
-        IDSetText(&GPSstatusTP, NULL);
+        LOG_ERROR("GPSD read error.");
+        IDSetText(&GPSstatusTP, nullptr);
         return IPS_ALERT;
     }
 
@@ -213,10 +228,10 @@ IPState GPSD::updateGPS()
         IUSaveText(&GPSstatusT[0], "NO FIX");
         if (GPSstatusTP.s == IPS_OK)
         {
-            DEBUG(INDI::Logger::DBG_WARNING, "GPS fix lost.");
+            LOG_WARN("GPS fix lost.");
         }
         GPSstatusTP.s = IPS_BUSY;
-        IDSetText(&GPSstatusTP, NULL);
+        IDSetText(&GPSstatusTP, nullptr);
         return IPS_BUSY;
     }
     else
@@ -230,36 +245,36 @@ IPState GPSD::updateGPS()
             IUSaveText(&GPSstatusT[0], "NO FIX");
             if (GPSstatusTP.s == IPS_OK)
             {
-                DEBUG(INDI::Logger::DBG_WARNING, "GPS fix lost.");
+                LOG_WARN("GPS fix lost.");
             }
             GPSstatusTP.s = IPS_BUSY;
-            IDSetText(&GPSstatusTP, NULL);
+            IDSetText(&GPSstatusTP, nullptr);
             return IPS_BUSY;
         }
     }
 
     // detect gps fix showing up after not being avaliable
     if (GPSstatusTP.s != IPS_OK)
-        DEBUG(INDI::Logger::DBG_SESSION, "GPS fix obtained.");
+        LOG_INFO("GPS fix obtained.");
 
     // update gps fix status
     if (gpsData->fix.mode == MODE_3D)
     {
         IUSaveText(&GPSstatusT[0], "3D FIX");
         GPSstatusTP.s      = IPS_OK;
-        IDSetText(&GPSstatusTP, NULL);
+        IDSetText(&GPSstatusTP, nullptr);
     }
     else if (gpsData->fix.mode == MODE_2D)
     {
         IUSaveText(&GPSstatusT[0], "2D FIX");
         GPSstatusTP.s      = IPS_OK;
-        IDSetText(&GPSstatusTP, NULL);
+        IDSetText(&GPSstatusTP, nullptr);
     }
     else
     {
         IUSaveText(&GPSstatusT[0], "NO FIX");
         GPSstatusTP.s      = IPS_BUSY;
-        IDSetText(&GPSstatusTP, NULL);
+        IDSetText(&GPSstatusTP, nullptr);
         return IPS_BUSY;
     }
 
@@ -296,11 +311,11 @@ IPState GPSD::updateGPS()
     PolarisN[0].value = polarislsrt;
 
     GPSstatusTP.s = IPS_OK;
-    IDSetText(&GPSstatusTP, NULL);
+    IDSetText(&GPSstatusTP, nullptr);
     PolarisNP.s = IPS_OK;
-    IDSetNumber(&PolarisNP, NULL);
+    IDSetNumber(&PolarisNP, nullptr);
     RefreshSP.s = IPS_OK;
-    IDSetSwitch(&RefreshSP, NULL);
+    IDSetSwitch(&RefreshSP, nullptr);
 
     return IPS_OK;
 }

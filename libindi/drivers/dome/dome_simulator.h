@@ -20,6 +20,16 @@
 
 #include "indidome.h"
 
+/**
+ * @brief The DomeSim class provides an absolute position dome that supports parking, unparking, and slaving.
+ *
+ * The driver can support custom parking positions and includes shutter control. It can be used to simulate dome slaving.
+ *
+ * The dome parameters must be set before slaving is enabled. Furthermore, the dome listens to changes in the TARGET_EOD_COORS of the mount driver
+ * in order to make the decision to move to a new target location.
+ *
+ * All the mathematical models are taken care of in the base INDI::Dome class.
+ */
 class DomeSim : public INDI::Dome
 {
   public:

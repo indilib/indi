@@ -21,7 +21,12 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#include <linux/serial.h>
+
+extern void (*firmata_debug_cb)(const char *file, int line, const char *msg, ...);
+
+#define LOG_DEBUG(msg) {if (firmata_debug_cb) firmata_debug_cb(__FILE__, __LINE__, msg);}
+#define LOGF_DEBUG(msg, ...) {if (firmata_debug_cb) firmata_debug_cb(__FILE__, __LINE__, msg, __VA_ARGS__);}
+
 
 Arduino::Arduino()
 {
@@ -47,12 +52,12 @@ int Arduino::destroy()
 int Arduino::sendUchar(const unsigned char data)
 {
 #ifdef DEBUG
-    printf("Arduino::sendUchar sending: 0x%02x\n", data);
+    LOGF_DEBUG("Arduino::sendUchar sending: 0x%02x", data);
 #endif // DEBUG
     if (write(fd, &data, sizeof(char)) < 0)
     {
-        perror("Arduino::sendUchar():write():");
-        fprintf(stderr, "during write 0x%02x (%c)\n", data, data);
+        LOGF_DEBUG("Arduino::sendUchar():write():%s", strerror(errno));
+        LOGF_DEBUG("during write 0x%02x (%c)", data, data);
         return (-1);
     }
     usleep(100);
@@ -65,7 +70,7 @@ int Arduino::sendString(const string datastr)
     {
         unsigned char data = (unsigned char)datastr[i];
 #ifdef DEBUG
-        printf("Arduino::sendString sending: %01x\n", data);
+        LOGF_DEBUG("Arduino::sendString sending: %01x", data);
 #endif // DEBUG
         rv |= sendUchar(data);
     }
@@ -85,7 +90,7 @@ int Arduino::readPort(void *buff, int count)
     tv.tv_usec = (msec % 1000) * 1000;
     FD_ZERO(&rfds);
     FD_SET(fd, &rfds);
-    if (select(fd + 1, &rfds, NULL, NULL, &tv) == 0)
+    if (select(fd + 1, &rfds, nullptr, nullptr, &tv) == 0)
         return 0;
 
     int n, bits;
@@ -135,29 +140,29 @@ int Arduino::openPort(const char *_serialPort, int _baud)
 
     if (fd >= 0)
     {
-        fprintf(stderr, "Connection to %s already open\n", serialPort);
+        LOGF_DEBUG("Connection to %s already open", serialPort);
         return (-1);
     }
 
-    printf("Opening connection to Arduino on %s...", serialPort);
+    LOGF_DEBUG("Opening connection to Arduino on %s...", serialPort);
     fflush(stdout);
 
     // Open it. non-blocking at first, in case there's no arduino
     if ((fd = open(serialPort, O_RDWR | O_NONBLOCK, S_IRUSR | S_IWUSR)) < 0)
     {
-        perror("Arduino::openPort():open():");
+        LOGF_DEBUG("Arduino::openPort():open():%s", strerror(errno));
         return (-1);
     }
     if (tcflush(fd, TCIFLUSH) < 0)
     {
-        perror("Arduino::openPort():tcflush():");
+        LOGF_DEBUG("Arduino::openPort():tcflush():%s", strerror(errno));
         close(fd);
         fd = -1;
         return (-1);
     }
     if (tcgetattr(fd, &oldterm) < 0)
     {
-        perror("Arduino::openPort():tcgetattr():");
+        LOGF_DEBUG("Arduino::openPort():tcgetattr():%s", strerror(errno));
         close(fd);
         fd = -1;
         return (-1);
@@ -168,18 +173,17 @@ int Arduino::openPort(const char *_serialPort, int _baud)
     cfsetispeed(&term, baud);
     cfsetospeed(&term, baud);
     term.c_cflag |= (CLOCAL | CREAD | CS8);
-    term.c_iflag |= ICRNL;
 
     if (tcsetattr(fd, TCSAFLUSH, &term) < 0)
     {
-        perror("Arduino::openPort():tcsetattr():");
+        LOGF_DEBUG("Arduino::openPort():tcsetattr():%s", strerror(errno));
         close(fd);
         fd = -1;
         return (-1);
     }
     /* TODO
 	if(storeFirmwareVersion() < 0) {
-		perror("Arduino::openPort():storeFirmwareVersion():");
+		LOGF_DEBUG("Arduino::openPort():storeFirmwareVersion():%s", strerror(errno));
 		close(fd);
 		fd = -1;
 		return(-1);
@@ -188,39 +192,48 @@ int Arduino::openPort(const char *_serialPort, int _baud)
     /*
 	// OK we have a working connection, set to BLOCK
 	if((flags = fcntl(fd, F_GETFL)) < 0) {
-		perror("Arduino::openPort():fcntl():");
+		LOGF_DEBUG("Arduino::openPort():fcntl():%s", strerror(errno));
 		close(fd);
 		fd = -1;
 		return(-1);
 	}
 	if(fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) < 0) {
-		perror("Arduino::openPort():fcntl(NONBLOCK):");
+		LOGF_DEBUG("Arduino::openPort():fcntl(NONBLOCK):%s", strerror(errno));
 		close(fd);
 		fd = -1;
 		return(-1);
 	}
   */
-    printf("Done.\n");
+    LOG_DEBUG("Done.");
 
     return (0);
 }
 
+int Arduino::openPort(int _fd)
+{
+    strncpy(serialPort, "indi", sizeof(serialPort) - 1);
+    fd = _fd;
+    return 0;
+}
+
 int Arduino::closePort()
 {
+    if (strcmp(serialPort, "indi") == 0) return 0; // do not close port that we did not open
+
     int rv = 0;
     rv |= flushPort();
     if (fd < 0)
     {
-        fprintf(stderr, "Connection to %s already closed\n", serialPort);
+        LOGF_DEBUG("Connection to %s already closed", serialPort);
         rv |= -1;
     }
     else if (tcsetattr(fd, TCSAFLUSH, &oldterm) < 0)
     {
-        perror("Arduino::closePort():tcsetattr():");
+        LOGF_DEBUG("Arduino::closePort():tcsetattr():%s", strerror(errno));
         rv |= -2;
         if (close(fd) < 0)
         {
-            perror("Arduino::closePort():close():");
+            LOGF_DEBUG("Arduino::closePort():close():%s", strerror(errno));
             rv |= -4;
         }
         else
@@ -235,7 +248,7 @@ int Arduino::flushPort()
 {
     if (tcflush(fd, TCIFLUSH) < 0)
     {
-        perror("Arduino::flushPort():tcflush():");
+        LOGF_DEBUG("Arduino::flushPort():tcflush():%s", strerror(errno));
         return (-1);
     }
     return (0);

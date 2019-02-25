@@ -55,34 +55,6 @@ static void cleanup()
     }
 }
 
-//static void deinterlace(unsigned short *data, int width, int height)
-//{
-//    int row, column;
-//    long *averages = (long *)malloc((height + 1) * sizeof(long));
-//    for (row = 0; row < height; row++)
-//    {
-//        long average = 0;
-//        int r        = row * width;
-//        for (column = 0; column < width; column++)
-//        {
-//            average += data[r + column];
-//        }
-//        averages[row] = average;
-//    }
-//    averages[row] = averages[row - 1];
-//    for (row = 1; row < height; row += 2)
-//    {
-//        double q = (averages[row]) / ((averages[row - 1] + averages[row + 1]) / 2.0);
-//        int r    = row * width;
-//        for (column = 0; column < width; column++)
-//        {
-//            int c   = r + column;
-//            data[c] = (unsigned short)(data[c] / q);
-//        }
-//    }
-//    free(averages);
-//}
-
 void ISInit()
 {
     static bool isInit = false;
@@ -106,10 +78,10 @@ void ISGetProperties(const char *dev)
     for (int i = 0; i < count; i++)
     {
         SXCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISGetProperties(camera->name);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -121,10 +93,10 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
     for (int i = 0; i < count; i++)
     {
         SXCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewSwitch(camera->name, name, states, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -136,10 +108,10 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
     for (int i = 0; i < count; i++)
     {
         SXCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewText(camera->name, name, texts, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -151,10 +123,10 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
     for (int i = 0; i < count; i++)
     {
         SXCCD *camera = cameras[i];
-        if (dev == NULL || !strcmp(dev, camera->name))
+        if (dev == nullptr || !strcmp(dev, camera->name))
         {
             camera->ISNewNumber(camera->name, name, values, names, num);
-            if (dev != NULL)
+            if (dev != nullptr)
                 break;
         }
     }
@@ -207,10 +179,10 @@ void NSGuiderTimerCallback(void *p)
 SXCCD::SXCCD(DEVICE device, const char *name)
 {
     this->device          = device;
-    handle                = NULL;
+    handle                = nullptr;
     model                 = 0;
-    oddBuf                = NULL;
-    evenBuf               = NULL;
+    oddBuf                = nullptr;
+    evenBuf               = nullptr;
     GuideStatus           = 0;
     TemperatureRequest    = 0;
     TemperatureReported   = 0;
@@ -269,7 +241,7 @@ bool SXCCD::initProperties()
 
     //  we can expose less than 0.01 seconds at a time
     //  and we need to for an allsky in daytime
-    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 3600, 0.0001, true);
+    PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", 0.0001, 3600, 0.0001, false);
 
     return true;
 }
@@ -279,6 +251,7 @@ bool SXCCD::updateProperties()
     INDI::CCD::updateProperties();
     if (isConnected())
     {
+        SetupParms();
         if (HasCooler)
             defineSwitch(&CoolerSP);
         if (HasShutter)
@@ -305,23 +278,17 @@ bool SXCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     if (x_2 > PrimaryCCD.getXRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Requested image out of bounds (%ld, %ld)", x_2, y_2);
+        LOGF_ERROR("Error: Requested image out of bounds (%ld, %ld)", x_2, y_2);
         return false;
     }
     else if (y_2 > PrimaryCCD.getYRes())
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error: Requested image out of bounds (%ld, %ld)", x_2, y_2);
+        LOGF_ERROR("Error: Requested image out of bounds (%ld, %ld)", x_2, y_2);
         return false;
     }
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
-    int nbuf;
-    //  this is pixel count
-    nbuf = (w * h) / (PrimaryCCD.getBinX() * PrimaryCCD.getBinY()) * PrimaryCCD.getBPP() / 8;
-    //  leave a little extra at the end
-    nbuf += 512;
-    PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
 }
@@ -333,6 +300,11 @@ bool SXCCD::UpdateCCDBin(int hor, int ver)
         IDMessage(getDeviceName(), "3x3 binning is not supported.");
         return false;
     }
+    if (sxIsICX453(model) && hor != ver)
+    {
+        IDMessage(getDeviceName(), "Asymetric binning is not supported.");
+        return false;
+    }
     PrimaryCCD.setBin(hor, ver);
 
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
@@ -340,12 +312,36 @@ bool SXCCD::UpdateCCDBin(int hor, int ver)
 
 bool SXCCD::Connect()
 {
-    if (handle == NULL)
+    if (handle == nullptr)
     {
         int rc = sxOpen(device, &handle);
         if (rc >= 0)
         {
-            getCameraParams();
+            struct t_sxccd_params params;
+            model             = sxGetCameraModel(handle);
+            sxGetCameraParams(handle, 0, &params);
+
+            HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
+            HasCooler    = params.extra_caps & SXUSB_CAPS_COOLER;
+            HasShutter   = params.extra_caps & SXUSB_CAPS_SHUTTER;
+            HasST4Port   = params.extra_caps & SXCCD_CAPS_STAR2K;
+
+            uint32_t cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_CAN_BIN;
+
+            if (HasCooler)
+                cap |= CCD_HAS_COOLER;
+
+            if (HasGuideHead)
+                cap |= CCD_HAS_GUIDE_HEAD;
+
+            if (HasShutter)
+                cap |= CCD_HAS_SHUTTER;
+
+            if (HasST4Port)
+                cap |= CCD_HAS_ST4_PORT;
+
+            SetCCDCapability(cap);
+
             return true;
         }
     }
@@ -354,18 +350,19 @@ bool SXCCD::Connect()
 
 bool SXCCD::Disconnect()
 {
-    if (handle != NULL)
+    if (handle != nullptr)
     {
         sxClose(&handle);
     }
     return true;
 }
 
-void SXCCD::getCameraParams()
+void SXCCD::SetupParms()
 {
     struct t_sxccd_params params;
     model             = sxGetCameraModel(handle);
     bool isInterlaced = sxIsInterlaced(model);
+    bool isICX453     = sxIsICX453(model);
     PrimaryCCD.setInterlaced(isInterlaced);
     sxGetCameraParams(handle, 0, &params);
     if (isInterlaced)
@@ -374,22 +371,33 @@ void SXCCD::getCameraParams()
         params.height *= 2;
         wipeDelay = 130000;
     }
+    else if (isICX453)
+    {
+        params.width = 3032;
+        params.height = 2016;
+    }
     SetCCDParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
+ 
     int nbuf = params.width * params.height;
     if (params.bits_per_pixel == 16)
         nbuf *= 2;
-    nbuf += 512;
+    //nbuf += 512;
     PrimaryCCD.setFrameBufferSize(nbuf);
-    if (evenBuf != NULL)
-        delete evenBuf;
-    if (oddBuf != NULL)
-        delete oddBuf;
-    evenBuf      = new char[nbuf / 2];
-    oddBuf       = new char[nbuf / 2];
-    HasGuideHead = params.extra_caps & SXCCD_CAPS_GUIDER;
-    HasCooler    = params.extra_caps & SXUSB_CAPS_COOLER;
-    HasShutter   = params.extra_caps & SXUSB_CAPS_SHUTTER;
-    HasST4Port   = params.extra_caps & SXCCD_CAPS_STAR2K;
+    if (isInterlaced)
+    {
+        if (evenBuf != nullptr)
+            delete evenBuf;
+        if (oddBuf != nullptr)
+            delete oddBuf;
+        evenBuf      = new char[nbuf / 2];
+        oddBuf       = new char[nbuf / 2];
+    }
+    else if (isICX453)
+    {
+        if (evenBuf != nullptr)
+            delete evenBuf;
+        evenBuf      = new char[nbuf];
+    }
 
     if (HasGuideHead)
     {
@@ -400,22 +408,6 @@ void SXCCD::getCameraParams()
         GuideCCD.setFrameBufferSize(nbuf);
         SetGuiderParams(params.width, params.height, params.bits_per_pixel, params.pix_width, params.pix_height);
     }
-
-    uint32_t cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_CAN_BIN;
-
-    if (HasCooler)
-        cap |= CCD_HAS_COOLER;
-
-    if (HasGuideHead)
-        cap |= CCD_HAS_GUIDE_HEAD;
-
-    if (HasShutter)
-        cap |= CCD_HAS_SHUTTER;
-
-    if (HasST4Port)
-        cap |= CCD_HAS_ST4_PORT;
-
-    SetCCDCapability(cap);
 
     SetTimer(TIMER);
 }
@@ -438,7 +430,7 @@ void SXCCD::TimerHit()
                     TemperatureNP.s = IPS_OK;
                 else
                     TemperatureNP.s = IPS_BUSY;
-                IDSetNumber(&TemperatureNP, NULL);
+                IDSetNumber(&TemperatureNP, nullptr);
             }
         }
     }
@@ -467,7 +459,7 @@ int SXCCD::SetTemperature(double temperature)
     CoolerSP.s   = IPS_OK;
     CoolerS[0].s = ISS_ON;
     CoolerS[1].s = ISS_OFF;
-    IDSetSwitch(&CoolerSP, NULL);
+    IDSetSwitch(&CoolerSP, nullptr);
 
     return result;
 }
@@ -541,6 +533,7 @@ void SXCCD::ExposureTimerHit()
             int binX          = PrimaryCCD.getBinX();
             int binY          = PrimaryCCD.getBinY();
             int subWW         = subW * 2;
+            bool isICX453     = sxIsICX453(model);
             uint8_t *buf      = PrimaryCCD.getFrameBuffer();
             int size;
             if (isInterlaced && binY > 1)
@@ -564,11 +557,11 @@ void SXCCD::ExposureTimerHit()
                     rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_EVEN | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2, subW,
                                        subH / 2, binX, 1);
                     struct timeval tv;
-                    gettimeofday(&tv, NULL);
+                    gettimeofday(&tv, nullptr);
                     long startTime = tv.tv_sec * 1000000 + tv.tv_usec;
                     if (rc)
                         rc = sxReadPixels(handle, evenBuf, size);
-                    gettimeofday(&tv, NULL);
+                    gettimeofday(&tv, nullptr);
                     wipeDelay = tv.tv_sec * 1000000 + tv.tv_usec - startTime;
                     if (rc)
                         rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_ODD | CCD_EXP_FLAGS_SPARE2, 0, subX, subY / 2,
@@ -583,6 +576,37 @@ void SXCCD::ExposureTimerHit()
                             memcpy(buf + ((i + 1) * subWW), evenBuf + (j * subWW), subWW);
                         }
                         //            deinterlace((unsigned short *)buf, subW, subH);
+                    }
+                }
+            }
+            else if (isICX453)
+            {   rc = sxLatchPixels(handle, CCD_EXP_FLAGS_FIELD_BOTH, 0, subX * 2, subY / 2, subW * 2, subH / 2, binX, binY);
+                if (rc)
+                {   if (binX == 1 && binY == 1)
+                    {   rc = sxReadPixels(handle, evenBuf, size * 2);
+                        if (rc)
+                        {
+                            uint16_t *buf16 = (uint16_t *)buf;
+                            uint16_t *evenBuf16 = (uint16_t *)evenBuf;
+
+                            for (int i = 0; i < subH; i += 2)
+                            {
+                                for (int j = 0; j < subW; j += 2)
+                                {
+                                    int isubW = i * subW;
+                                    int i1subW = (i + 1) * subW;
+                                    int j2 = j * 2;
+                                    buf16[isubW + j]  = evenBuf16[isubW + j2];
+                                    buf16[isubW + j + 1]  = evenBuf16[isubW + j2 + 2];
+                                    buf16[i1subW + j]  = evenBuf16[isubW + j2 + 1];
+                                    buf16[i1subW + j + 1]  = evenBuf16[isubW + j2 + 3];
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        rc = sxReadPixels(handle, buf, size * 2);
                     }
                 }
             }
@@ -654,9 +678,9 @@ void SXCCD::GuideExposureTimerHit()
     }
 }
 
-IPState SXCCD::GuideWest(float time)
+IPState SXCCD::GuideWest(uint32_t ms)
 {
-    if (!HasST4Port || time < 1)
+    if (!HasST4Port || ms < 1)
     {
         return IPS_ALERT;
     }
@@ -668,20 +692,20 @@ IPState SXCCD::GuideWest(float time)
     GuideStatus &= SX_CLEAR_WE;
     GuideStatus |= SX_GUIDE_WEST;
     sxSetSTAR2000(handle, GuideStatus);
-    if (time < 100)
+    if (ms < 100)
     {
-        usleep(time * 1000);
+        usleep(ms * 1000);
         GuideStatus &= SX_CLEAR_WE;
         sxSetSTAR2000(handle, GuideStatus);
     }
     else
-        WEGuiderTimerID = IEAddTimer(time, WEGuiderTimerCallback, this);
+        WEGuiderTimerID = IEAddTimer(ms, WEGuiderTimerCallback, this);
     return IPS_OK;
 }
 
-IPState SXCCD::GuideEast(float time)
+IPState SXCCD::GuideEast(uint32_t ms)
 {
-    if (!HasST4Port || time < 1)
+    if (!HasST4Port || ms < 1)
     {
         return IPS_ALERT;
     }
@@ -693,14 +717,14 @@ IPState SXCCD::GuideEast(float time)
     GuideStatus &= SX_CLEAR_WE;
     GuideStatus |= SX_GUIDE_EAST;
     sxSetSTAR2000(handle, GuideStatus);
-    if (time < 100)
+    if (ms < 100)
     {
-        usleep(time * 1000);
+        usleep(ms * 1000);
         GuideStatus &= SX_CLEAR_WE;
         sxSetSTAR2000(handle, GuideStatus);
     }
     else
-        WEGuiderTimerID = IEAddTimer(time, WEGuiderTimerCallback, this);
+        WEGuiderTimerID = IEAddTimer(ms, WEGuiderTimerCallback, this);
     return IPS_OK;
 }
 
@@ -712,9 +736,9 @@ void SXCCD::WEGuiderTimerHit()
     GuideComplete(AXIS_RA);
 }
 
-IPState SXCCD::GuideNorth(float time)
+IPState SXCCD::GuideNorth(uint32_t ms)
 {
-    if (!HasST4Port || time < 1)
+    if (!HasST4Port || ms < 1)
     {
         return IPS_ALERT;
     }
@@ -726,20 +750,20 @@ IPState SXCCD::GuideNorth(float time)
     GuideStatus &= SX_CLEAR_NS;
     GuideStatus |= SX_GUIDE_NORTH;
     sxSetSTAR2000(handle, GuideStatus);
-    if (time < 100)
+    if (ms < 100)
     {
-        usleep(time * 1000);
+        usleep(ms * 1000);
         GuideStatus &= SX_CLEAR_NS;
         sxSetSTAR2000(handle, GuideStatus);
     }
     else
-        NSGuiderTimerID = IEAddTimer(time, NSGuiderTimerCallback, this);
+        NSGuiderTimerID = IEAddTimer(ms, NSGuiderTimerCallback, this);
     return IPS_OK;
 }
 
-IPState SXCCD::GuideSouth(float time)
+IPState SXCCD::GuideSouth(uint32_t ms)
 {
-    if (!HasST4Port || time < 1)
+    if (!HasST4Port || ms < 1)
     {
         return IPS_ALERT;
     }
@@ -751,14 +775,14 @@ IPState SXCCD::GuideSouth(float time)
     GuideStatus &= SX_CLEAR_NS;
     GuideStatus |= SX_GUIDE_SOUTH;
     sxSetSTAR2000(handle, GuideStatus);
-    if (time < 100)
+    if (ms < 100)
     {
-        usleep(time * 1000);
+        usleep(ms * 1000);
         GuideStatus &= SX_CLEAR_NS;
         sxSetSTAR2000(handle, GuideStatus);
     }
     else
-        NSGuiderTimerID = IEAddTimer(time, NSGuiderTimerCallback, this);
+        NSGuiderTimerID = IEAddTimer(ms, NSGuiderTimerCallback, this);
     return IPS_OK;
 }
 
@@ -784,7 +808,7 @@ bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
     {
         IUUpdateSwitch(&ShutterSP, states, names, n);
         ShutterSP.s = IPS_OK;
-        IDSetSwitch(&ShutterSP, NULL);
+        IDSetSwitch(&ShutterSP, nullptr);
         sxSetShutter(handle, ShutterS[0].s != ISS_ON);
         result = true;
     }
@@ -792,14 +816,14 @@ bool SXCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char
     {
         IUUpdateSwitch(&CoolerSP, states, names, n);
         CoolerSP.s = IPS_OK;
-        IDSetSwitch(&CoolerSP, NULL);
+        IDSetSwitch(&CoolerSP, nullptr);
         unsigned char status;
         unsigned short temperature;
         sxSetCooler(handle, (unsigned char)(CoolerS[0].s == ISS_ON), (unsigned short)(TemperatureRequest * 10 + 2730),
                     &status, &temperature);
         TemperatureReported = TemperatureN[0].value = (temperature - 2730) / 10.0;
         TemperatureNP.s                             = IPS_OK;
-        IDSetNumber(&TemperatureNP, NULL);
+        IDSetNumber(&TemperatureNP, nullptr);
         result = true;
     }
     else

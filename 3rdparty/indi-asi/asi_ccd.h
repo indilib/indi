@@ -2,6 +2,7 @@
  ASI CCD Driver
 
  Copyright (C) 2015 Jasem Mutlaq (mutlaqja@ikarustech.com)
+ Copyright (C) 2018 Leonard Bottleman (leonard@whiteweasel.net)
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -28,8 +29,8 @@
 class ASICCD : public INDI::CCD
 {
   public:
-    explicit ASICCD(ASI_CAMERA_INFO *camInfo);
-    virtual ~ASICCD();
+    explicit ASICCD(ASI_CAMERA_INFO *camInfo, std::string cameraName);
+    ~ASICCD() override = default;
 
     virtual const char *getDefaultName() override;
 
@@ -43,14 +44,11 @@ class ASICCD : public INDI::CCD
     virtual bool StartExposure(float duration) override;
     virtual bool AbortExposure() override;
 
-    static void *streamVideoHelper(void *context);
-    void *streamVideo();
-
   protected:
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-// Streaming
+    // Streaming
     virtual bool StartStreaming() override;
     virtual bool StopStreaming() override;
 
@@ -59,10 +57,10 @@ class ASICCD : public INDI::CCD
     virtual bool UpdateCCDBin(int binx, int biny) override;
 
     // Guide Port
-    virtual IPState GuideNorth(float ms) override;
-    virtual IPState GuideSouth(float ms) override;
-    virtual IPState GuideEast(float ms) override;
-    virtual IPState GuideWest(float ms) override;
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     // ASI specific keywords
     virtual void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;
@@ -71,10 +69,38 @@ class ASICCD : public INDI::CCD
     virtual bool saveConfigItems(FILE *fp) override;
 
   private:
+    typedef enum ImageState
+    {
+        StateNone = 0,
+        StateIdle,
+        StateStream,
+        StateExposure,
+        StateRestartExposure,
+        StateAbort,
+        StateTerminate,
+        StateTerminated
+    } ImageState;
+
+    /* Imaging functions */
+    static void *imagingHelper(void *context);
+    void *imagingThreadEntry();
+    void streamVideo();
+    void getExposure();
+    void exposureSetRequest(ImageState request);
+    /* Timer functions for NS guiding */
+    static void TimerHelperNS(void *context);
+    void TimerNS();
+    void stopTimerNS();
+    IPState guidePulseNS(float ms, ASI_GUIDE_DIRECTION dir, const char *dirName);
+    /* Timer functions for WE guiding */
+    static void TimerHelperWE(void *context);
+    void TimerWE();
+    void stopTimerWE();
+    IPState guidePulseWE(float ms, ASI_GUIDE_DIRECTION dir, const char *dirName);
     /** Get image from CCD and send it to client */
     int grabImage();
     /** Get initial parameters from camera */
-    bool setupParams();
+    void setupParams();
     /** Calculate time left in seconds after start_time */
     float calcTimeLeft(float duration, timeval *start_time);
     /** Create number and switch controls for camera by querying the API */
@@ -112,39 +138,40 @@ class ASICCD : public INDI::CCD
     uint8_t rememberVideoFormat = { 0 };
     ASI_IMG_TYPE currentVideoFormat;
 
-    double minimumExposureDuration = 0;
+    INumber ADCDepthN;
+    INumberVectorProperty ADCDepthNP;
+
+    IText SDKVersionS[1] = {};
+    ITextVectorProperty SDKVersionSP;
+
     struct timeval ExpStart;
-    float ExposureRequest;
-    float TemperatureRequest;
-    int TemperatureUpdateCounter;
+    double ExposureRequest;
+    double TemperatureRequest;
 
     ASI_CAMERA_INFO *m_camInfo;
     ASI_CONTROL_CAPS *pControlCaps;
 
-    bool sim;
+    int genTimerID;
 
-    // Threads
-    int streamPredicate;
-    bool terminateThread;
-    pthread_t primary_thread;
+    // Imaging thread
+    ImageState threadRequest;
+    ImageState threadState;
+    pthread_t imagingThread;
     pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
     pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
-    int exposureRetries;
-
     // ST4
-    bool InWEPulse;
     float WEPulseRequest;
     struct timeval WEPulseStart;
     int WEtimerID;
+    ASI_GUIDE_DIRECTION WEDir;
+    const char *WEDirName;
 
-    bool InNSPulse;
     float NSPulseRequest;
     struct timeval NSPulseStart;
     int NStimerID;
-
-    ASI_GUIDE_DIRECTION WEDir;
     ASI_GUIDE_DIRECTION NSDir;
+    const char *NSDirName;
 
     friend void ::ISGetProperties(const char *dev);
     friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);

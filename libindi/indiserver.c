@@ -44,6 +44,8 @@
  * Clients that get more than maxqsiz bytes behind are shut down.
  */
 
+#define _GNU_SOURCE // needed for siginfo_t and sigaction
+
 #include "config.h"
 
 #include "fq.h"
@@ -360,7 +362,7 @@ static void usage(void)
 {
     fprintf(stderr, "Usage: %s [options] driver [driver ...]\n", me);
     fprintf(stderr, "Purpose: server for local and remote INDI drivers\n");
-    fprintf(stderr, "INDI Library: %s\nCode %s. Protocol %g.\n", CMAKE_INDI_VERSION_STRING, "$Rev$", INDIV);
+    fprintf(stderr, "INDI Library: %s\nCode %s. Protocol %g.\n", CMAKE_INDI_VERSION_STRING, GIT_TAG_STRING, INDIV);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, " -l d     : log driver messages to <d>/YYYY-MM-DD.islog\n");
     fprintf(stderr, " -m m     : kill client if gets more than this many MB behind, default %d\n", DEFMAXQSIZ);
@@ -948,11 +950,11 @@ static void newFIFO(void)
         char cmd[MAXSBUF], arg[4][1], var[4][MAXSBUF], tDriver[MAXSBUF], tName[MAXSBUF], envConfig[MAXSBUF],
             envSkel[MAXSBUF], envPrefix[MAXSBUF];
 
-        memset(&tDriver[0], 0, sizeof(MAXSBUF));
-        memset(&tName[0], 0, sizeof(MAXSBUF));
-        memset(&envConfig[0], 0, sizeof(MAXSBUF));
-        memset(&envSkel[0], 0, sizeof(MAXSBUF));
-        memset(&envPrefix[0], 0, sizeof(MAXSBUF));
+        memset(&tDriver[0], 0, sizeof(char) * MAXSBUF);
+        memset(&tName[0], 0, sizeof(char) * MAXSBUF);
+        memset(&envConfig[0], 0, sizeof(char) * MAXSBUF);
+        memset(&envSkel[0], 0, sizeof(char) * MAXSBUF);
+        memset(&envPrefix[0], 0, sizeof(char) * MAXSBUF);
 
         int n = 0;
 

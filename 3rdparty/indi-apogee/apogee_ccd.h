@@ -26,9 +26,9 @@
 #include <indiguiderinterface.h>
 #include <iostream>
 
-#include <ApogeeCam.h>
-#include <FindDeviceEthernet.h>
-#include <FindDeviceUsb.h>
+#include "ApogeeCam.h"
+#include "FindDeviceEthernet.h"
+#include "FindDeviceUsb.h"
 
 class ApogeeCCD : public INDI::CCD
 {
@@ -83,10 +83,10 @@ class ApogeeCCD : public INDI::CCD
     ISwitch PortTypeS[2];
     ISwitchVectorProperty PortTypeSP;
 
-    IText NetworkInfoT[2];
+    IText NetworkInfoT[2] {};
     ITextVectorProperty NetworkInfoTP;
 
-    IText CamInfoT[2];
+    IText CamInfoT[2] {};
     ITextVectorProperty CamInfoTP;
 
     ISwitch FanStatusS[4];

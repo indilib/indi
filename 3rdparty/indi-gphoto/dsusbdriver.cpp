@@ -38,7 +38,7 @@ DSUSBDriver::DSUSBDriver(const char *device)
     // Try to see if it is DSUSB
     dev = FindDevice(0x134A, 0x9021, 0);
     // DSUSB2?
-    if (dev == NULL)
+    if (dev == nullptr)
     {
         DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Finding DSUSB 0x134A, 0x9026 ...");
         dev = FindDevice(0x134A, 0x9026, 0);

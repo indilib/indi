@@ -27,7 +27,7 @@
 namespace INDI
 {
 
-Focuser::Focuser()
+Focuser::Focuser() : FI(this)
 {
     controller = new Controller(this);
 
@@ -43,7 +43,7 @@ bool Focuser::initProperties()
 {
     DefaultDevice::initProperties(); //  let the base class flesh in what it wants
 
-    initFocuserProperties(getDeviceName(), MAIN_CONTROL_TAB);
+    FI::initProperties(MAIN_CONTROL_TAB);
 
     // Presets
     IUFillNumber(&PresetN[0], "PRESET_1", "Preset 1", "%.f", 0, 100000, 1000, 0);
@@ -59,6 +59,7 @@ bool Focuser::initProperties()
                        IPS_IDLE);
 
     addDebugControl();
+    addPollPeriodControl();
 
     controller->mapController("Focus In", "Focus In", Controller::CONTROLLER_BUTTON, "BUTTON_1");
     controller->mapController("Focus Out", "Focus Out", Controller::CONTROLLER_BUTTON, "BUTTON_2");
@@ -96,22 +97,10 @@ void Focuser::ISGetProperties(const char *dev)
 
 bool Focuser::updateProperties()
 {
+    FI::updateProperties();
+
     if (isConnected())
     {
-        //  Now we add our focusser specific stuff
-        defineSwitch(&FocusMotionSP);
-
-        if (HasVariableSpeed())
-        {
-            defineNumber(&FocusSpeedNP);
-            defineNumber(&FocusTimerNP);
-        }
-        if (CanRelMove())
-            defineNumber(&FocusRelPosNP);
-        if (CanAbsMove())
-            defineNumber(&FocusAbsPosNP);
-        if (CanAbort())
-            defineSwitch(&AbortSP);
         if (CanAbsMove())
         {
             defineNumber(&PresetNP);
@@ -120,18 +109,6 @@ bool Focuser::updateProperties()
     }
     else
     {
-        deleteProperty(FocusMotionSP.name);
-        if (HasVariableSpeed())
-        {
-            deleteProperty(FocusSpeedNP.name);
-            deleteProperty(FocusTimerNP.name);
-        }
-        if (CanRelMove())
-            deleteProperty(FocusRelPosNP.name);
-        if (CanAbsMove())
-            deleteProperty(FocusAbsPosNP.name);
-        if (CanAbort())
-            deleteProperty(AbortSP.name);
         if (CanAbsMove())
         {
             deleteProperty(PresetNP.name);
@@ -160,7 +137,7 @@ bool Focuser::ISNewNumber(const char *dev, const char *name, double values[], ch
         }
 
         if (strstr(name, "FOCUS_"))
-            return processFocuserNumber(dev, name, values, names, n);
+            return FI::processNumber(dev, name, values, names, n);
     }
 
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
@@ -208,7 +185,7 @@ bool Focuser::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         }
 
         if (strstr(name, "FOCUS_"))
-            return processFocuserSwitch(dev, name, states, names, n);
+            return FI::processSwitch(dev, name, states, names, n);
     }
 
     controller->ISNewSwitch(dev, name, states, names, n);
@@ -240,8 +217,9 @@ bool Focuser::saveConfigItems(FILE *fp)
 {
     DefaultDevice::saveConfigItems(fp);
 
-    IUSaveConfigNumber(fp, &PresetNP);
+    FI::saveConfigItems(fp);
 
+    IUSaveConfigNumber(fp, &PresetNP);
     controller->saveConfigItems(fp);
 
     return true;
@@ -267,7 +245,7 @@ void Focuser::processButton(const char *button_n, ISState state)
     {
         if (AbortFocuser())
         {
-            AbortSP.s = IPS_OK;
+            FocusAbortSP.s = IPS_OK;
             DEBUG(Logger::DBG_SESSION, "Focuser aborted.");
             if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
             {
@@ -282,11 +260,11 @@ void Focuser::processButton(const char *button_n, ISState state)
         }
         else
         {
-            AbortSP.s = IPS_ALERT;
+            FocusAbortSP.s = IPS_ALERT;
             DEBUG(Logger::DBG_ERROR, "Aborting focuser failed.");
         }
 
-        IDSetSwitch(&AbortSP, nullptr);
+        IDSetSwitch(&FocusAbortSP, nullptr);
     }
     // Focus In
     else if (!strcmp(button_n, "Focus In"))
@@ -366,12 +344,7 @@ bool Focuser::callHandshake()
     return Handshake();
 }
 
-uint8_t Focuser::getFocuserConnection() const
-{
-    return focuserConnection;
-}
-
-void Focuser::setFocuserConnection(const uint8_t &value)
+void Focuser::setSupportedConnections(const uint8_t &value)
 {
     uint8_t mask = CONNECTION_SERIAL | CONNECTION_TCP | CONNECTION_NONE;
 
@@ -382,5 +355,22 @@ void Focuser::setFocuserConnection(const uint8_t &value)
     }
 
     focuserConnection = value;
+}
+
+bool Focuser::SetFocuserMaxPosition(uint32_t ticks)
+{
+    SyncPresets(ticks);
+    return true;
+}
+
+void Focuser::SyncPresets(uint32_t ticks)
+{
+    PresetN[0].max = ticks;
+    PresetN[0].step = PresetN[0].max/50.0;
+    PresetN[1].max = ticks;
+    PresetN[1].step = PresetN[0].max/50.0;
+    PresetN[2].max = ticks;
+    PresetN[2].step = PresetN[0].max/50.0;
+    IUUpdateMinMax(&PresetNP);
 }
 }

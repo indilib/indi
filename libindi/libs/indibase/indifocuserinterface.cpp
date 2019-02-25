@@ -23,46 +23,117 @@
 #include "indilogger.h"
 
 #include <cstring>
+#include <cmath>
 
 namespace INDI
 {
 
-void FocuserInterface::initFocuserProperties(const char *deviceName, const char *groupName)
+FocuserInterface::FocuserInterface(DefaultDevice * defaultDevice) : m_defaultDevice(defaultDevice)
 {
-    strncpy(focuserName, deviceName, MAXINDIDEVICE);
+}
 
+void FocuserInterface::initProperties(const char * groupName)
+{
     IUFillNumber(&FocusSpeedN[0], "FOCUS_SPEED_VALUE", "Focus Speed", "%3.0f", 0.0, 255.0, 1.0, 255.0);
-    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, deviceName, "FOCUS_SPEED", "Speed", groupName, IP_RW, 60, IPS_OK);
+    IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, m_defaultDevice->getDeviceName(), "FOCUS_SPEED", "Speed", groupName, IP_RW, 60, IPS_OK);
 
     IUFillNumber(&FocusTimerN[0], "FOCUS_TIMER_VALUE", "Focus Timer (ms)", "%4.0f", 0.0, 5000.0, 50.0, 1000.0);
-    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, deviceName, "FOCUS_TIMER", "Timer", groupName, IP_RW, 60, IPS_OK);
+    IUFillNumberVector(&FocusTimerNP, FocusTimerN, 1, m_defaultDevice->getDeviceName(), "FOCUS_TIMER", "Timer", groupName, IP_RW, 60, IPS_OK);
     lastTimerValue = 1000.0;
 
     IUFillSwitch(&FocusMotionS[0], "FOCUS_INWARD", "Focus In", ISS_ON);
     IUFillSwitch(&FocusMotionS[1], "FOCUS_OUTWARD", "Focus Out", ISS_OFF);
-    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, deviceName, "FOCUS_MOTION", "Direction", groupName, IP_RW,
+    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, m_defaultDevice->getDeviceName(), "FOCUS_MOTION", "Direction", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_OK);
 
-    // Driver can define those to clients if there is support
-    IUFillNumber(&FocusAbsPosN[0], "FOCUS_ABSOLUTE_POSITION", "Ticks", "%4.0f", 0.0, 100000.0, 1000.0, 0);
-    IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, deviceName, "ABS_FOCUS_POSITION", "Absolute Position",
+    // Absolute Position
+    IUFillNumber(&FocusAbsPosN[0], "FOCUS_ABSOLUTE_POSITION", "Steps", "%.f", 0.0, 100000.0, 1000.0, 0);
+    IUFillNumberVector(&FocusAbsPosNP, FocusAbsPosN, 1, m_defaultDevice->getDeviceName(), "ABS_FOCUS_POSITION", "Absolute Position",
                        groupName, IP_RW, 60, IPS_OK);
 
-    IUFillNumber(&FocusRelPosN[0], "FOCUS_RELATIVE_POSITION", "Ticks", "%4.0f", 0.0, 100000.0, 1000.0, 0);
-    IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, deviceName, "REL_FOCUS_POSITION", "Relative Position",
+    // Relative Position
+    IUFillNumber(&FocusRelPosN[0], "FOCUS_RELATIVE_POSITION", "Steps", "%.f", 0.0, 100000.0, 1000.0, 0);
+    IUFillNumberVector(&FocusRelPosNP, FocusRelPosN, 1, m_defaultDevice->getDeviceName(), "REL_FOCUS_POSITION", "Relative Position",
                        groupName, IP_RW, 60, IPS_OK);
 
-    IUFillSwitch(&AbortS[0], "ABORT", "Abort", ISS_OFF);
-    IUFillSwitchVector(&AbortSP, AbortS, 1, deviceName, "FOCUS_ABORT_MOTION", "Abort Motion", groupName, IP_RW,
+    // Sync
+    IUFillNumber(&FocusSyncN[0], "FOCUS_SYNC_VALUE", "Steps", "%.f", 0.0, 100000.0, 1000.0, 0);
+    IUFillNumberVector(&FocusSyncNP, FocusSyncN, 1, m_defaultDevice->getDeviceName(), "FOCUS_SYNC", "Sync",
+                       groupName, IP_RW, 60, IPS_OK);
+
+    // Maximum Position
+    IUFillNumber(&FocusMaxPosN[0], "FOCUS_MAX_VALUE", "Steps", "%.f", 1e3, 1e6, 1e4, 1e5);
+    IUFillNumberVector(&FocusMaxPosNP, FocusMaxPosN, 1, m_defaultDevice->getDeviceName(), "FOCUS_MAX", "Max. Position",
+                       groupName, IP_RW, 60, IPS_OK);
+
+    // Abort
+    IUFillSwitch(&FocusAbortS[0], "ABORT", "Abort", ISS_OFF);
+    IUFillSwitchVector(&FocusAbortSP, FocusAbortS, 1, m_defaultDevice->getDeviceName(), "FOCUS_ABORT_MOTION", "Abort Motion", groupName, IP_RW,
                        ISR_ATMOST1, 60, IPS_IDLE);
+
+    // Revese
+    IUFillSwitch(&FocusReverseS[REVERSED_ENABLED], "ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&FocusReverseS[REVERSED_DISABLED], "DISABLED", "Disabled", ISS_ON);
+    IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION", "Reverse Motion", groupName, IP_RW,
+                       ISR_1OFMANY, 60, IPS_IDLE);
 }
 
-bool FocuserInterface::processFocuserNumber(const char *dev, const char *name, double values[], char *names[],
-                                                  int n)
+bool FocuserInterface::updateProperties()
 {
-    //  This is for our device
-    //  Now lets see if it's something we process here
-    if (strcmp(name, "FOCUS_TIMER") == 0)
+    if (m_defaultDevice->isConnected())
+    {
+        //  Now we add our focusser specific stuff
+        m_defaultDevice->defineSwitch(&FocusMotionSP);
+
+        if (HasVariableSpeed())
+        {
+            m_defaultDevice->defineNumber(&FocusSpeedNP);
+            m_defaultDevice->defineNumber(&FocusTimerNP);
+        }
+        if (CanRelMove())
+            m_defaultDevice->defineNumber(&FocusRelPosNP);
+        if (CanAbsMove())
+        {
+            m_defaultDevice->defineNumber(&FocusAbsPosNP);
+            m_defaultDevice->defineNumber(&FocusMaxPosNP);
+        }
+        if (CanAbort())
+            m_defaultDevice->defineSwitch(&FocusAbortSP);
+        if (CanSync())
+            m_defaultDevice->defineNumber(&FocusSyncNP);
+        if (CanReverse())
+            m_defaultDevice->defineSwitch(&FocusReverseSP);
+    }
+    else
+    {
+        m_defaultDevice->deleteProperty(FocusMotionSP.name);
+        if (HasVariableSpeed())
+        {
+            m_defaultDevice->deleteProperty(FocusSpeedNP.name);
+            m_defaultDevice->deleteProperty(FocusTimerNP.name);
+        }
+        if (CanRelMove())
+            m_defaultDevice->deleteProperty(FocusRelPosNP.name);
+        if (CanAbsMove())
+        {
+            m_defaultDevice->deleteProperty(FocusAbsPosNP.name);
+            m_defaultDevice->deleteProperty(FocusMaxPosNP.name);
+        }
+        if (CanAbort())
+            m_defaultDevice->deleteProperty(FocusAbortSP.name);
+        if (CanSync())
+            m_defaultDevice->deleteProperty(FocusSyncNP.name);
+        if (CanReverse())
+            m_defaultDevice->deleteProperty(FocusReverseSP.name);
+    }
+
+    return true;
+}
+
+bool FocuserInterface::processNumber(const char * dev, const char * name, double values[], char * names[], int n)
+{
+    // Move focuser based on requested timeout
+    if (!strcmp(name, FocusTimerNP.name))
     {
         FocusDirection dir;
         int speed;
@@ -87,7 +158,8 @@ bool FocuserInterface::processFocuserNumber(const char *dev, const char *name, d
         return true;
     }
 
-    if (strcmp(name, "FOCUS_SPEED") == 0)
+    // Set variable focus speed
+    if (!strcmp(name, FocusSpeedNP.name))
     {
         FocusSpeedNP.s    = IPS_OK;
         int current_speed = FocusSpeedN[0].value;
@@ -104,9 +176,57 @@ bool FocuserInterface::processFocuserNumber(const char *dev, const char *name, d
         return true;
     }
 
-    if (strcmp(name, "ABS_FOCUS_POSITION") == 0)
+    // Update Maximum Position allowed
+    if (!strcmp(name, FocusMaxPosNP.name))
     {
-        int newPos = (int)values[0];
+        uint32_t maxTravel = rint(values[0]);
+        if (SetFocuserMaxPosition(maxTravel))
+        {
+            IUUpdateNumber(&FocusMaxPosNP, values, names, n);
+
+            FocusAbsPosN[0].max = FocusSyncN[0].max = FocusMaxPosN[0].value;
+            FocusAbsPosN[0].step = FocusSyncN[0].step = FocusMaxPosN[0].value / 50.0;
+            FocusAbsPosN[0].min = FocusSyncN[0].min = 0;
+
+            FocusRelPosN[0].max  = FocusMaxPosN[0].value / 2;
+            FocusRelPosN[0].step = FocusMaxPosN[0].value / 100.0;
+            FocusRelPosN[0].min  = 0;
+
+            IUUpdateMinMax(&FocusAbsPosNP);
+            IUUpdateMinMax(&FocusRelPosNP);
+            IUUpdateMinMax(&FocusSyncNP);
+
+            FocusMaxPosNP.s = IPS_OK;
+        }
+        else
+            FocusMaxPosNP.s = IPS_ALERT;
+
+        IDSetNumber(&FocusMaxPosNP, nullptr);
+        return true;
+    }
+
+    // Sync
+    if (!strcmp(name, FocusSyncNP.name))
+    {
+        if (SyncFocuser(rint(values[0])))
+        {
+            FocusSyncN[0].value = FocusAbsPosN[0].value = rint(values[0]);
+            FocusSyncNP.s = IPS_OK;
+            IDSetNumber(&FocusSyncNP, nullptr);
+            IDSetNumber(&FocusAbsPosNP, nullptr);
+        }
+        else
+        {
+            FocusSyncNP.s = IPS_ALERT;
+            IDSetNumber(&FocusSyncNP, nullptr);
+        }
+        return true;
+    }
+
+    // Update Absolute Focuser Position
+    if (!strcmp(name, FocusAbsPosNP.name))
+    {
+        int newPos = rint(values[0]);
 
         if (newPos < FocusAbsPosN[0].min)
         {
@@ -149,9 +269,10 @@ bool FocuserInterface::processFocuserNumber(const char *dev, const char *name, d
         return false;
     }
 
-    if (strcmp(name, "REL_FOCUS_POSITION") == 0)
+    // Update Relative focuser steps. This moves the focuser CW/CCW by this number of steps.
+    if (!strcmp(name, FocusRelPosNP.name))
     {
-        int newPos = (int)values[0];
+        int newPos = rint(values[0]);
 
         if (newPos <= 0)
         {
@@ -217,29 +338,47 @@ bool FocuserInterface::processFocuserNumber(const char *dev, const char *name, d
     return false;
 }
 
-bool FocuserInterface::processFocuserSwitch(const char *dev, const char *name, ISState *states, char *names[],
-                                                  int n)
+bool FocuserInterface::processSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     INDI_UNUSED(dev);
-    //  This one is for us
-    if (strcmp(name, "FOCUS_MOTION") == 0)
+    //  This one is for focus motion
+    if (!strcmp(name, FocusMotionSP.name))
     {
-        //  client is telling us what to do with focus direction
-        FocusMotionSP.s = IPS_OK;
+        // Record last direction and state.
+        FocusDirection prevDirection = FocusMotionS[FOCUS_INWARD].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD;
+        IPState prevState = FocusMotionSP.s;
+
         IUUpdateSwitch(&FocusMotionSP, states, names, n);
-        //  Update client display
+
+        FocusDirection targetDirection = FocusMotionS[FOCUS_INWARD].s == ISS_ON ? FOCUS_INWARD : FOCUS_OUTWARD;
+
+        if (CanRelMove() || CanAbsMove() || HasVariableSpeed())
+        {
+            FocusMotionSP.s = IPS_OK;
+        }
+        // If we are dealing with a simple dumb DC focuser, we move in a specific direction in an open-loop fashion until stopped.
+        else
+        {
+            // If we are reversing direction let's issue abort first.
+            if (prevDirection != targetDirection && prevState == IPS_BUSY)
+                AbortFocuser();
+
+            FocusMotionSP.s = MoveFocuser(targetDirection, 0, 0);
+        }
+
         IDSetSwitch(&FocusMotionSP, nullptr);
 
         return true;
     }
 
-    if (strcmp(name, "FOCUS_ABORT_MOTION") == 0)
+    // Abort Focuser
+    if (!strcmp(name, FocusAbortSP.name))
     {
-        IUResetSwitch(&AbortSP);
+        IUResetSwitch(&FocusAbortSP);
 
         if (AbortFocuser())
         {
-            AbortSP.s = IPS_OK;
+            FocusAbortSP.s = IPS_OK;
             if (CanAbsMove() && FocusAbsPosNP.s != IPS_IDLE)
             {
                 FocusAbsPosNP.s = IPS_IDLE;
@@ -252,9 +391,28 @@ bool FocuserInterface::processFocuserSwitch(const char *dev, const char *name, I
             }
         }
         else
-            AbortSP.s = IPS_ALERT;
+            FocusAbortSP.s = IPS_ALERT;
 
-        IDSetSwitch(&AbortSP, nullptr);
+        IDSetSwitch(&FocusAbortSP, nullptr);
+        return true;
+    }
+
+    // Reverse Motion
+    if (!strcmp(name, FocusReverseSP.name))
+    {
+        bool enabled = !strcmp("ENABLED", IUFindOnSwitchName(states, names, n));
+
+        if (ReverseFocuser(enabled))
+        {
+            IUUpdateSwitch(&FocusReverseSP, states, names, n);
+            FocusReverseSP.s = IPS_OK;
+        }
+        else
+        {
+            FocusReverseSP.s = IPS_ALERT;
+        }
+
+        IDSetSwitch(&FocusReverseSP, nullptr);
         return true;
     }
 
@@ -289,7 +447,21 @@ bool FocuserInterface::AbortFocuser()
 {
     //  This should be a virtual function, because the low level hardware class
     //  must override this
-    DEBUGDEVICE(focuserName, Logger::DBG_ERROR, "Focuser does not support abort motion.");
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Focuser does not support abort motion.");
+    return false;
+}
+
+bool FocuserInterface::ReverseFocuser(bool enabled)
+{
+    INDI_UNUSED(enabled);
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Focuser does not support reverse motion.");
+    return false;
+}
+
+bool FocuserInterface::SyncFocuser(uint32_t ticks)
+{
+    INDI_UNUSED(ticks);
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Focuser does not support syncing.");
     return false;
 }
 
@@ -299,12 +471,24 @@ bool FocuserInterface::SetFocuserSpeed(int speed)
 
     //  This should be a virtual function, because the low level hardware class
     //  must override this
-    DEBUGDEVICE(focuserName, Logger::DBG_ERROR, "Focuser does not support variable speed.");
+    DEBUGDEVICE(m_defaultDevice->getDeviceName(), Logger::DBG_ERROR, "Focuser does not support variable speed.");
     return false;
 }
 
-void FocuserInterface::SetFocuserCapability(uint32_t cap)
+bool FocuserInterface::SetFocuserMaxPosition(uint32_t ticks)
 {
-    capability = cap;
+    INDI_UNUSED(ticks);
+    return true;
 }
+
+bool FocuserInterface::saveConfigItems(FILE * fp)
+{
+    if (CanAbsMove())
+        IUSaveConfigNumber(fp, &FocusMaxPosNP);
+    if (CanReverse())
+        IUSaveConfigSwitch(fp, &FocusReverseSP);
+
+    return true;
+}
+
 }

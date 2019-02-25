@@ -34,9 +34,7 @@
 #define FOCUS_SETTINGS_TAB "Settings"
 #define TEMPERATURE_THRESHOLD 0.1
 
-#define POLLMS 500
-
-std::unique_ptr<DMFC> dmfc(new DMFC());
+static std::unique_ptr<DMFC> dmfc(new DMFC());
 
 void ISGetProperties(const char *dev)
 {
@@ -79,7 +77,7 @@ void ISSnoopDevice(XMLEle *root)
 DMFC::DMFC()
 {
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    SetFocuserCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
 bool DMFC::initProperties()
@@ -149,7 +147,7 @@ bool DMFC::initProperties()
 
     addDebugControl();
 
-    updatePeriodMS = POLLMS;
+    setDefaultPollingPeriod(500);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
@@ -196,11 +194,11 @@ bool DMFC::Handshake()
 {
     if (ack())
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "DMFC is online. Getting focus parameters...");
+        LOG_INFO("DMFC is online. Getting focus parameters...");
         return true;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION,
+    LOG_INFO(
           "Error retreiving data from DMFC, please ensure DMFC controller is powered and the port is correct.");
     return false;
 }
@@ -220,32 +218,35 @@ bool DMFC::ack()
     cmd[0] = '#';
     cmd[1] = 0xA;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%#02X>", cmd[0]);
+    LOGF_DEBUG("CMD <%#02X>", cmd[0]);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 2, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Ack error: %s.", errstr);
+        LOGF_ERROR("Ack error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, res, 0xA, DMFC_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Ack error: %s.", errstr);
+        LOGF_ERROR("Ack error: %s.", errstr);
         return false;
     }
 
     // Get rid of 0xA
     res[nbytes_read-1] = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    // Check for '\r' at end of string and replace with nullptr (DMFC firmware version 2.8)
+    if( res[nbytes_read-2] == '\r') res[nbytes_read-2] = 0;
+
+    LOGF_DEBUG("RES <%s>", res);
 
     tcflush(PortFD, TCIOFLUSH);
 
-    return (!strcmp(res, "OK_DMFCN"));
+    return (strstr(res, "OK_") != nullptr);
 }
 
 bool DMFC::sync(uint32_t newPosition)
@@ -257,13 +258,13 @@ bool DMFC::sync(uint32_t newPosition)
     snprintf(cmd, 16, "W:%d", newPosition);
     cmd[strlen(cmd)] = 0xA;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     // Set Position
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "sync error: %s.", errstr);
+        LOGF_ERROR("sync error: %s.", errstr);
         return false;
     }
 
@@ -279,13 +280,13 @@ bool DMFC::move(uint32_t newPosition)
     snprintf(cmd, 16, "M:%d", newPosition);
     cmd[strlen(cmd)] = 0xA;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     // Set Position
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "move error: %s.", errstr);
+        LOGF_ERROR("move error: %s.", errstr);
         return false;
     }
 
@@ -420,44 +421,48 @@ bool DMFC::updateFocusParams()
     cmd[0] = 'A';
     cmd[1] = 0xA;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%#02X>", cmd[0]);
+    LOGF_DEBUG("CMD <%#02X>", cmd[0]);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 2, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "GetFocusParams error: %s.", errstr);
+        LOGF_ERROR("GetFocusParams error: %s.", errstr);
         return false;
     }
 
     if ((rc = tty_read_section(PortFD, res, 0xA, DMFC_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "GetFocusParams error: %s.", errstr);
+        LOGF_ERROR("GetFocusParams error: %s.", errstr);
         return false;
     }
 
     res[nbytes_read-1] = 0;
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+
+    // Check for '\r' at end of string and replace with nullptr (DMFC firmware version 2.8)
+    if( res[nbytes_read-2] == '\r') res[nbytes_read-2] = 0;
+
+    LOGF_DEBUG("RES <%s>", res);
 
     tcflush(PortFD, TCIOFLUSH);
 
     char *token = std::strtok(res, ":");
 
     // #1 Status
-    if (token == nullptr || strcmp(token, "OK_DMFCN"))
+    if (token == nullptr || strstr(token, "OK_") == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid status response.");
+        LOG_ERROR("Invalid status response.");
         return false;
     }
 
     // #2 Version
-    token = std::strtok(NULL, ":");
+    token = std::strtok(nullptr, ":");
 
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid version response.");
+        LOG_ERROR("Invalid version response.");
         return false;
     }
 
@@ -469,11 +474,11 @@ bool DMFC::updateFocusParams()
     }
 
     // #3 Motor Type
-    token = std::strtok(NULL, ":");
+    token = std::strtok(nullptr, ":");
 
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid motor mode response.");
+        LOG_ERROR("Invalid motor mode response.");
         return false;
     }
 
@@ -487,11 +492,11 @@ bool DMFC::updateFocusParams()
     }
 
     // #4 Temperature
-    token = std::strtok(NULL, ":");
+    token = std::strtok(nullptr, ":");
 
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid temperature response.");
+        LOG_ERROR("Invalid temperature response.");
         return false;
     }
 
@@ -512,11 +517,11 @@ bool DMFC::updateFocusParams()
     }
 
     // #5 Position
-    token = std::strtok(NULL, ":");
+    token = std::strtok(nullptr, ":");
 
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid position response.");
+        LOG_ERROR("Invalid position response.");
         return false;
     }
 
@@ -528,22 +533,22 @@ bool DMFC::updateFocusParams()
     }
 
     // #6 Moving Status
-    token = std::strtok(NULL, ":");
+    token = std::strtok(nullptr, ":");
 
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid moving satus response.");
+        LOG_ERROR("Invalid moving satus response.");
         return false;
     }
 
     isMoving = (token[0] == '1');
 
     // #7 LED Status
-    token = std::strtok(NULL, ":");
+    token = std::strtok(nullptr, ":");
 
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid LED response.");
+        LOG_ERROR("Invalid LED response.");
         return false;
     }
 
@@ -557,11 +562,11 @@ bool DMFC::updateFocusParams()
     }
 
     // #8 Reverse Status
-    token = std::strtok(NULL, ":");
+    token = std::strtok(nullptr, ":");
 
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid reverse response.");
+        LOG_ERROR("Invalid reverse response.");
         return false;
     }
 
@@ -575,11 +580,11 @@ bool DMFC::updateFocusParams()
     }
 
     // #9 Encoder status
-    token = std::strtok(NULL, ":");
+    token = std::strtok(nullptr, ":");
 
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid encoder response.");
+        LOG_ERROR("Invalid encoder response.");
         return false;
     }
 
@@ -593,11 +598,11 @@ bool DMFC::updateFocusParams()
     }
 
     // #10 Backlash
-    token = std::strtok(NULL, ":");
+    token = std::strtok(nullptr, ":");
 
     if (token == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Invalid encoder response.");
+        LOG_ERROR("Invalid encoder response.");
         return false;
     }
 
@@ -616,7 +621,7 @@ bool DMFC::updateFocusParams()
         {
             BacklashN[0].value = backlash;
             BacklashNP.s = IPS_OK;
-            IDSetNumber(&BacklashNP, NULL);
+            IDSetNumber(&BacklashNP, nullptr);
         }
 
         if (BacklashCompensationS[BACKLASH_DISABLED].s == ISS_ON)
@@ -640,7 +645,7 @@ bool DMFC::setMaxSpeed(uint16_t speed)
     snprintf(cmd, 16, "S:%d", speed);
     cmd[strlen(cmd)] = 0xA;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -648,7 +653,7 @@ bool DMFC::setMaxSpeed(uint16_t speed)
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "setMaxSpeed error: %s.", errstr);
+        LOGF_ERROR("setMaxSpeed error: %s.", errstr);
         return false;
     }
 
@@ -664,7 +669,7 @@ bool DMFC::setReverseEnabled(bool enable)
     snprintf(cmd, 16, "N:%d", enable ? 1 : 0);
     cmd[strlen(cmd)] = 0xA;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -672,7 +677,7 @@ bool DMFC::setReverseEnabled(bool enable)
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Reverse error: %s.", errstr);
+        LOGF_ERROR("Reverse error: %s.", errstr);
         return false;
     }
 
@@ -688,7 +693,7 @@ bool DMFC::setLedEnabled(bool enable)
     snprintf(cmd, 16, "L:%d", enable ? 2 : 1);
     cmd[strlen(cmd)] = 0xA;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -696,7 +701,7 @@ bool DMFC::setLedEnabled(bool enable)
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Led error: %s.", errstr);
+        LOGF_ERROR("Led error: %s.", errstr);
         return false;
     }
 
@@ -712,7 +717,7 @@ bool DMFC::setEncodersEnabled(bool enable)
     snprintf(cmd, 16, "E:%d", enable ? 0 : 1);
     cmd[strlen(cmd)] = 0xA;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -720,7 +725,7 @@ bool DMFC::setEncodersEnabled(bool enable)
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Encoder error: %s.", errstr);
+        LOGF_ERROR("Encoder error: %s.", errstr);
         return false;
     }
 
@@ -736,7 +741,7 @@ bool DMFC::setBacklash(uint16_t value)
     snprintf(cmd, 16, "C:%d", value);
     cmd[strlen(cmd)] = 0xA;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -744,7 +749,7 @@ bool DMFC::setBacklash(uint16_t value)
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Backlash error: %s.", errstr);
+        LOGF_ERROR("Backlash error: %s.", errstr);
         return false;
     }
 
@@ -760,7 +765,7 @@ bool DMFC::setMotorType(uint8_t type)
     snprintf(cmd, 16, "E:%d", (type == MOTOR_STEPPER) ? 1 : 0);
     cmd[strlen(cmd)] = 0xA;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -768,7 +773,7 @@ bool DMFC::setMotorType(uint8_t type)
     if ((rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Motor type error: %s.", errstr);
+        LOGF_ERROR("Motor type error: %s.", errstr);
         return false;
     }
 
@@ -816,7 +821,7 @@ void DMFC::TimerHit()
 {
     if (!isConnected())
     {
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
         return;
     }
 
@@ -832,12 +837,12 @@ void DMFC::TimerHit()
                 FocusRelPosNP.s = IPS_OK;
                 IDSetNumber(&FocusAbsPosNP, nullptr);
                 IDSetNumber(&FocusRelPosNP, nullptr);
-                DEBUG(INDI::Logger::DBG_SESSION, "Focuser reached requested position.");
+                LOG_INFO("Focuser reached requested position.");
             }
         }
     }
 
-    SetTimer(updatePeriodMS);
+    SetTimer(POLLMS);
 }
 
 bool DMFC::AbortFocuser()

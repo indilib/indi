@@ -30,7 +30,7 @@ namespace Connection
 {
 extern const char *CONNECTION_TAB;
 
-TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
+TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_TCP)
 {
     // Address/Port
     IUFillText(&AddressT[0], "ADDRESS", "Address", "");
@@ -47,7 +47,7 @@ TCP::TCP(INDI::DefaultDevice *dev) : Interface(dev)
 
 bool TCP::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    if (!strcmp(dev, device->getDeviceName()))
+    if (!strcmp(dev, m_Device->getDeviceName()))
     {
         // TCP Server settings
         if (!strcmp(name, AddressTP.name))
@@ -64,7 +64,7 @@ bool TCP::ISNewText(const char *dev, const char *name, char *texts[], char *name
 
 bool TCP::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    if (!strcmp(dev, device->getDeviceName()))
+    if (!strcmp(dev, m_Device->getDeviceName()))
     {
         if (!strcmp(name, TcpUdpSP.name))
         {
@@ -85,16 +85,16 @@ bool TCP::Connect()
     if (AddressT[0].text == nullptr || AddressT[0].text[0] == '\0' || AddressT[1].text == nullptr ||
         AddressT[1].text[0] == '\0')
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Error! Server address is missing or invalid.");
+        LOG_ERROR("Error! Server address is missing or invalid.");
         return false;
     }
 
     const char *hostname = AddressT[0].text;
     const char *port     = AddressT[1].text;
 
-    DEBUGF(INDI::Logger::DBG_SESSION, "Connecting to %s@%s ...", hostname, port);
+    LOGF_INFO("Connecting to %s@%s ...", hostname, port);
 
-    if (device->isSimulation() == false)
+    if (m_Device->isSimulation() == false)
     {
         struct sockaddr_in serv_addr;
         struct hostent *hp = nullptr;
@@ -111,7 +111,7 @@ bool TCP::Connect()
         hp = gethostbyname(hostname);
         if (!hp)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to lookup IP Address or hostname.");
+            LOG_ERROR("Failed to lookup IP Address or hostname.");
             return false;
         }
 
@@ -132,14 +132,14 @@ bool TCP::Connect()
 
         if ((sockfd = socket(AF_INET, socketType, 0)) < 0)
         {
-            DEBUG(INDI::Logger::DBG_ERROR, "Failed to create socket.");
+            LOG_ERROR("Failed to create socket.");
             return false;
         }
 
         // Connect to the mount
         if ((ret = ::connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
+            LOGF_ERROR("Failed to connect to mount %s@%s: %s.", hostname, port, strerror(errno));
             close(sockfd);
             sockfd = -1;
             return false;
@@ -152,17 +152,17 @@ bool TCP::Connect()
 
     PortFD = sockfd;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Connection successful, attempting handshake...");
+    LOG_DEBUG("Connection successful, attempting handshake...");
     bool rc = Handshake();
 
     if (rc)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
-        device->saveConfig(true, "DEVICE_ADDRESS");
-        device->saveConfig(true, "CONNECTION_TYPE");
+        LOGF_INFO("%s is online.", getDeviceName());
+        m_Device->saveConfig(true, "DEVICE_ADDRESS");
+        m_Device->saveConfig(true, "CONNECTION_TYPE");
     }
     else
-        DEBUG(INDI::Logger::DBG_DEBUG, "Handshake failed.");
+        LOG_DEBUG("Handshake failed.");
 
     return rc;
 }
@@ -180,16 +180,16 @@ bool TCP::Disconnect()
 
 void TCP::Activated()
 {
-    device->defineText(&AddressTP);
-    device->defineSwitch(&TcpUdpSP);
-    device->loadConfig(true, "DEVICE_ADDRESS");
-    device->loadConfig(true, "CONNECTION_TYPE");
+    m_Device->defineText(&AddressTP);
+    m_Device->defineSwitch(&TcpUdpSP);
+    m_Device->loadConfig(true, "DEVICE_ADDRESS");
+    m_Device->loadConfig(true, "CONNECTION_TYPE");
 }
 
 void TCP::Deactivated()
 {
-    device->deleteProperty(AddressTP.name);
-    device->deleteProperty(TcpUdpSP.name);
+    m_Device->deleteProperty(AddressTP.name);
+    m_Device->deleteProperty(TcpUdpSP.name);
 }
 
 bool TCP::saveConfigItems(FILE *fp)

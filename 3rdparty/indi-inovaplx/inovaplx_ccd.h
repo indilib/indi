@@ -11,7 +11,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <memory>
-#include <pthread.h>
 #include <indiccd.h>
 
 #include <inovasdk.h>
@@ -43,10 +42,10 @@ protected:
     void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip);
 
     // Guiding
-    IPState GuideEast(float ms);
-    IPState GuideWest(float ms);
-    IPState GuideNorth(float ms);
-    IPState GuideSouth(float ms);
+    IPState GuideEast(uint32_t ms);
+    IPState GuideWest(uint32_t ms);
+    IPState GuideNorth(uint32_t ms);
+    IPState GuideSouth(uint32_t ms);
 
 private:
 
@@ -57,22 +56,15 @@ private:
 
     // Are we exposing?
     bool InExposure;
-    bool threadsRunning;
-//    bool FrameReady;
 
     unsigned char *RawData;
-//    unsigned char *TmpData;
 
     // Struct to keep timing
     struct timeval ExpStart;
-    float ExposureRequest;
-//    int GainRequest;
-//    int BlackLevelRequest;
-//    int timerID;
-    pthread_t captureThread;       
+    float ExposureRequest;      
 
     // We declare the CCD properties
-    IText iNovaInformationT[5];
+    IText iNovaInformationT[5] {};
     ITextVectorProperty iNovaInformationTP;
 
     INumber CameraPropertiesN[2];

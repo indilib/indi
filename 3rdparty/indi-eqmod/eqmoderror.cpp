@@ -44,7 +44,7 @@ const char *EQModError::severityString()
         case EQModError::ErrInvalidParameter:
             return ("Invalid parameter");
         case EQModError::ErrDisconnect:
-            return ("");
+            return ("Communication failed");
         default:
             return ("Unknown severity");
     }
@@ -63,13 +63,15 @@ bool EQModError::DefaultHandleException(EQMod *device)
         case EQModError::ErrDisconnect:
             DEBUGFDEVICE(device->getDeviceName(), INDI::Logger::DBG_ERROR, "Error: %s -> %s", severityString(),
                          message);
-            device->Disconnect();
+            //device->Disconnect();
+            device->abnormalDisconnect();
             return false;
         default:
             DEBUGFDEVICE(device->getDeviceName(), INDI::Logger::DBG_ERROR, "Unhandled exception: %s -> %s",
                          severityString(), message);
-            device->Disconnect();
+            //device->Disconnect();
+            device->abnormalDisconnect();
             return false;
-            break;
+            //break;
     }
 }

@@ -39,7 +39,7 @@ class LX200Autostar : public LX200Generic
     virtual bool updateProperties();
 
     ITextVectorProperty VersionTP;
-    IText VersionT[5];
+    IText VersionT[5] {};
 
     INumberVectorProperty FocusSpeedNP;
     INumber FocusSpeedN[1];

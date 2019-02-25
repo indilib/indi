@@ -24,11 +24,6 @@
 
 #include <memory>
 
-const int POLLMS           = 500; /* Polling interval 500 ms */
-//const int MAX_DETECTOR_TEMP     = 45;  /* Max Detector temperature */
-//const int MIN_DETECTOR_TEMP     = -55; /* Min Detector temperature */
-//const float TEMP_THRESHOLD = .25; /* Differential temperature threshold (C)*/
-
 /* Macro shortcut to Detector temperature value */
 #define currentDetectorTemperature TemperatureN[0].value
 
@@ -117,6 +112,8 @@ bool SimpleDetector::initProperties()
     // Add Debug, Simulator, and Configuration controls
     addAuxControls();
 
+    setDefaultPollingPeriod(500);
+
     return true;
 }
 
@@ -144,11 +141,13 @@ bool SimpleDetector::updateProperties()
 /**************************************************************************************
 ** Client is updating capture settings
 ***************************************************************************************/
-bool SimpleDetector::CaptureParamsUpdated(float sr, float freq, float bps)
+bool SimpleDetector::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
 {
     	INDI_UNUSED(bps);
-    	INDI_UNUSED(freq);
-    	INDI_UNUSED(sr);
+        INDI_UNUSED(freq);
+        INDI_UNUSED(sr);
+        INDI_UNUSED(bw);
+        INDI_UNUSED(gain);
 	return true;
 }
 
@@ -158,7 +157,7 @@ bool SimpleDetector::CaptureParamsUpdated(float sr, float freq, float bps)
 void SimpleDetector::setupParams()
 {
     // Our Detector is an 8 bit Detector, 100MHz frequency 1MHz samplerate.
-    SetDetectorParams(1000000.0, 100000000.0, 8);
+    SetDetectorParams(1000000.0, 100000000.0, 8, 10000.0, 1.0);
 }
 
 /**************************************************************************************
@@ -308,7 +307,7 @@ void SimpleDetector::grabFrame()
     PrimaryDetector.setSpectrumBufferSize(len);
  
    // Let's get a pointer to the frame buffer
-    double *spectrum = PrimaryDetector.getSpectrumBuffer();
+    uint8_t *spectrum = PrimaryDetector.getSpectrumBuffer();
 
     // Fill buffer with random pattern
     for (int i = 0; i < len; i++)

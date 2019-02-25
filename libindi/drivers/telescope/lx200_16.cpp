@@ -74,6 +74,7 @@ void LX200_16::ISGetProperties(const char *dev)
     // process parent first
     LX200GPS::ISGetProperties(dev);
 
+    /*
     if (isConnected())
     {
         defineNumber(&HorizontalCoordsNP);
@@ -81,6 +82,7 @@ void LX200_16::ISGetProperties(const char *dev)
         defineSwitch(&HomeSearchSP);
         defineSwitch(&FieldDeRotatorSP);
     }
+    */
 }
 
 bool LX200_16::updateProperties()
@@ -235,6 +237,7 @@ bool LX200_16::ISNewSwitch(const char *dev, const char *name, ISState *states, c
 
 bool LX200_16::handleAltAzSlew()
 {
+    const struct timespec timeout = {0, 100000000L};
     char altStr[64], azStr[64];
 
     if (HorizontalCoordsNP.s == IPS_BUSY)
@@ -242,7 +245,7 @@ bool LX200_16::handleAltAzSlew()
         abortSlew(PortFD);
 
         // sleep for 100 mseconds
-        usleep(100000);
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation() && slewToAltAz(PortFD))

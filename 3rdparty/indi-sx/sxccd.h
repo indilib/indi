@@ -68,7 +68,7 @@ class SXCCD : public INDI::CCD
   protected:
     const char *getDefaultName();
     bool initProperties();
-    void getCameraParams();
+    void SetupParms();
     bool updateProperties();
     bool UpdateCCDFrame(int x, int y, int w, int h);
     bool UpdateCCDBin(int hor, int ver);
@@ -84,10 +84,10 @@ class SXCCD : public INDI::CCD
     void GuideExposureTimerHit();
     void WEGuiderTimerHit();
     void NSGuiderTimerHit();
-    IPState GuideWest(float time);
-    IPState GuideEast(float time);
-    IPState GuideNorth(float time);
-    IPState GuideSouth(float time);
+    IPState GuideWest(uint32_t ms);
+    IPState GuideEast(uint32_t ms);
+    IPState GuideNorth(uint32_t ms);
+    IPState GuideSouth(uint32_t ms);
 
   public:
     bool HasCooler;

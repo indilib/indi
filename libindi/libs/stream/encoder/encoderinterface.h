@@ -35,6 +35,9 @@ namespace INDI
 
 class CCD;
 
+/**
+ * @brief The EncoderInterface class is the base class for video streaming encoders.
+ */
 class EncoderInterface
 {
   public:

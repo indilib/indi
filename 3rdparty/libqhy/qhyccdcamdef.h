@@ -1,38 +1,8 @@
-/*
- QHYCCD SDK
 
- Copyright (c) 2014 QHYCCD.
- All Rights Reserved.
-
- This program is free software; you can redistribute it and/or modify it
- under the terms of the GNU General Public License as published by the Free
- Software Foundation; either version 2 of the License, or (at your option)
- any later version.
-
- This program is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- more details.
-
- You should have received a copy of the GNU General Public License along with
- this program; if not, write to the Free Software Foundation, Inc., 59
- Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
- The full GNU General Public License is included in this distribution in the
- file called LICENSE.
- */
-
-/*!
-   @file qhyccdcamdef.h
-   @brief QHYCCD SDK error define
-  */
 
 #ifndef __QHYCCDCAMDEF_H__
 #define __QHYCCDCAMDEF_H__
 
-//#define GIGAESUPPORT
-
-//#define QHYCCD_OPENCV_SUPPORT
 
 
 /* IMG series */
@@ -354,9 +324,15 @@
 
 /**
  * Type define for QHY128C*/
-#define DEVICETYPE_QHY128       4052
+#define DEVICETYPE_QHY128        4052
 
 #define DEVICETYPE_QHY128C      4053
+#define DEVICETYPE_QHY294        4054
+#define DEVICETYPE_QHY2020      4055
+#define DEVICETYPE_QHY4040      4056
+#define DEVICETYPE_QHY550        4057
+#define DEVICETYPE_QHY42PRO   4058
+
 
 /**
  * Type define for QHY5IIIEND*/
@@ -474,6 +450,11 @@
 #define DEVICETYPE_16803        906
 
 /**
+ * Type define for 16803 */
+#define DEVICETYPE_09000        930
+
+
+/**
  * Type define for 695A*/
 #define DEVICETYPE_695A         916
 
@@ -506,8 +487,14 @@
 
 #define DEVICETYPE_QHY10_FOCUS  9012
 
+#define DEVICETYPE_QHY50GX      9013
+
+
+
 /**
  * Type define for UNKNOW */
 #define DEVICETYPE_UNKNOW       -1
+
+#define MAX_EXPOSURE_TIMES	(1800) //s
 
 #endif

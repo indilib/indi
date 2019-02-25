@@ -31,8 +31,18 @@
 #define PYXIS_TIMEOUT 3
 #define PYRIX_BUF 7
 #define PYRIX_CMD 6
-#define POLLMS 1000
 #define SETTINGS_TAB    "Settings"
+
+// Recommended default rates for 3 inch and 2 inch rotators
+#define PYXIS_3INCH_RATE 6
+#define PYXIS_2INCH_RATE 8
+
+// Number of steps per degree for rotators
+#define PYXIS_3INCH_PER_DEG (128)
+#define PYXIS_2INCH_PER_DEG 14
+
+// 100ms poll rate while rotating
+#define POLL_100MS 100
 
 std::unique_ptr<Pyxis> pyxis(new Pyxis());
 
@@ -77,7 +87,7 @@ void ISSnoopDevice (XMLEle *root)
 Pyxis::Pyxis()
 {
     // We do not have absolute ticks
-    SetRotatorCapability(ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
+    RI::SetCapability(ROTATOR_CAN_HOME | ROTATOR_CAN_REVERSE);
 
     setRotatorConnection(CONNECTION_SERIAL);
 }
@@ -100,11 +110,18 @@ bool Pyxis::initProperties()
     IUFillSwitch(&PowerS[POWER_WAKEUP], "POWER_WAKEUP", "Wake Up", ISS_OFF);
     IUFillSwitchVector(&PowerSP, PowerS, 2, getDeviceName(), "POWER_STATE", "Power", SETTINGS_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    updatePeriodMS = POLLMS;
+    // Firmware version
+    IUFillText(&FirmwareT[0], "FIRMWARE_VERSION", "Version", "Unknown");
+    IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_VERSION", "Firmware", INFO_TAB, IP_RO, 0, IPS_IDLE);
+
+    // Firmware version
+    IUFillText(&ModelT[0], "HARDWARE_MODEL", "Model", "Unknown");
+    IUFillTextVector(&ModelTP, ModelT, 1, getDeviceName(), "HARDWARE_MODEL", "Model", INFO_TAB, IP_RO, 0, IPS_IDLE);
+
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
-    return true;
+    return true ;
 }
 
 bool Pyxis::Handshake()
@@ -112,7 +129,7 @@ bool Pyxis::Handshake()
     if (Ack())
         return true;
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Error retreiving data from Pyrix, please ensure Pyrix controller is powered and the port is correct.");
+    LOG_INFO("Error retreiving data from Pyxis, please ensure Pyxis controller is powered and the port is correct.");
     return false;
 }
 
@@ -127,9 +144,11 @@ bool Pyxis::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&RotationRateNP);
+        defineNumber(&RotationRateNP)  ;
         defineSwitch(&SteppingSP);
         defineSwitch(&PowerSP);
+        defineText(&FirmwareTP) ;
+        defineText(&ModelTP) ;
 
         queryParams();
     }
@@ -138,6 +157,8 @@ bool Pyxis::updateProperties()
         deleteProperty(RotationRateNP.name);
         deleteProperty(SteppingSP.name);
         deleteProperty(PowerSP.name);
+        deleteProperty(FirmwareTP.name) ;
+        deleteProperty(ModelTP.name) ;
     }
 
     return true;
@@ -149,6 +170,7 @@ void Pyxis::queryParams()
     // Reverse Parameter
     ////////////////////////////////////////////
     int dir = getReverseStatus();
+
     IUResetSwitch(&ReverseRotatorSP);
     ReverseRotatorSP.s = IPS_OK;
     if (dir == 0)
@@ -160,6 +182,38 @@ void Pyxis::queryParams()
 
     IDSetSwitch(&ReverseRotatorSP, nullptr);
 
+    // Firmware version parameter
+    std::string sversion = getVersion() ;
+    IUSaveText(&FirmwareT[0], sversion.c_str()) ;
+    FirmwareTP.s = IPS_OK;
+    IDSetText(&FirmwareTP, nullptr) ;
+
+    LOGF_DEBUG("queryParms firmware = %s", sversion.c_str()) ;
+
+    // Firmware tells us device type, 3 inch or 2 inch, which defines the correct default rotation rate
+    if (atof(sversion.c_str()) >= 3)
+    {
+        uint16_t rate = (atof(sversion.c_str()) >= 3 ? PYXIS_3INCH_RATE : PYXIS_2INCH_RATE) ;
+        bool rc = setRotationRate(rate) ;
+        LOGF_DEBUG("queryParms rate = %d, firmware = %s", rate, sversion.c_str()) ;
+        if (rc)
+        {
+            RotationRateNP.s = IPS_OK ;
+            RotationRateN[0].value = rate ;
+            IDSetNumber(&RotationRateNP, nullptr) ;
+
+            IUSaveText(&ModelT[0], "Pyxis 3 Inch") ;
+            ModelTP.s = IPS_OK;
+            IDSetText(&ModelTP, nullptr)  ;
+        }
+    }
+    else
+    {
+        IUSaveText(&ModelT[0], "Pyxis 2 Inch") ;
+        ModelTP.s = IPS_OK;
+        IDSetText(&ModelTP, nullptr) ;
+    }
+
 }
 
 bool Pyxis::Ack()
@@ -170,31 +224,31 @@ bool Pyxis::Ack()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+    LOGF_DEBUG("RES <%c>", res[0]);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if (res[0] != '!')
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot establish communication. Check power is on and homing is complete.");
+        LOG_ERROR("Cannot establish communication. Check power is on and homing is complete.");
         return false;
     }
 
@@ -207,22 +261,21 @@ bool Pyxis::ISNewNumber(const char *dev, const char *name, double values[], char
     {
         if (!strcmp(name, RotationRateNP.name))
         {
-           bool rc = setRotationRate(static_cast<uint8_t>(values[0]));
-           if (rc)
-           {
-               RotationRateNP.s = IPS_OK;
-               RotationRateN[0].value = values[0];
-           }
-           else
-               RotationRateNP.s = IPS_ALERT;
+            bool rc = setRotationRate(static_cast<uint8_t>(values[0]));
+            if (rc)
+            {
+                RotationRateNP.s = IPS_OK;
+                RotationRateN[0].value = values[0];
+            }
+            else
+                RotationRateNP.s = IPS_ALERT;
 
-           IDSetNumber(&RotationRateNP, nullptr);
-           return true;
+            IDSetNumber(&RotationRateNP, nullptr);
+            return true;
         }
     }
 
     return Rotator::ISNewNumber(dev, name, values, names, n);
-
 }
 
 bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -265,7 +318,7 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 if (PowerS[POWER_SLEEP].s == ISS_OFF)
                 {
                     PowerSP.s = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_WARNING, "Controller is not in sleep mode.");
+                    LOG_WARN("Controller is not in sleep mode.");
                     IDSetSwitch(&PowerSP, nullptr);
                     return true;
                 }
@@ -276,7 +329,7 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 {
                     IUResetSwitch(&PowerSP);
                     PowerSP.s = IPS_OK;
-                    DEBUG(INDI::Logger::DBG_SESSION, "Controller is awake.");
+                    LOG_INFO("Controller is awake.");
                 }
                 else
                     PowerSP.s = IPS_ALERT;
@@ -290,9 +343,9 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 IUResetSwitch(&PowerSP);
                 if (rc)
                 {
-                   PowerSP.s = IPS_OK;
-                   PowerS[POWER_SLEEP].s = ISS_ON;
-                   DEBUG(INDI::Logger::DBG_SESSION, "Controller in sleep mode. No functions can be used until controller is waken up.");
+                    PowerSP.s = IPS_OK;
+                    PowerS[POWER_SLEEP].s = ISS_ON;
+                    LOG_INFO("Controller in sleep mode. No functions can be used until controller is waken up.");
                 }
                 else
                     PowerSP.s = IPS_ALERT;
@@ -300,8 +353,6 @@ bool Pyxis::ISNewSwitch(const char *dev, const char *name, ISState *states, char
                 IDSetSwitch(&PowerSP, nullptr);
                 return true;
             }
-
-            return true;
         }
     }
 
@@ -317,14 +368,14 @@ bool Pyxis::setSteppingMode(uint8_t mode)
 
     snprintf(cmd, PYRIX_BUF, "CZ%dxxx", mode);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
@@ -334,26 +385,37 @@ bool Pyxis::setSteppingMode(uint8_t mode)
 bool Pyxis::setRotationRate(uint8_t rate)
 {
     char cmd[PYRIX_BUF] = {0};
-
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
+    char res[1] = { 0 } ;
+    int nbytes_read = 0 ;
+
     snprintf(cmd, PYRIX_BUF, "CTxx%02d", rate);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
+        return false;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     tcflush(PortFD, TCIOFLUSH);
 
-    return true;
+    LOGF_DEBUG("RES <%c>", res[0]);
+
+    return (res[0] == '!');
 }
 
 bool Pyxis::sleepController()
@@ -363,14 +425,14 @@ bool Pyxis::sleepController()
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
@@ -385,27 +447,27 @@ bool Pyxis::wakeupController()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+    LOGF_DEBUG("RES <%c>", res[0]);
 
     return (res[0] == '!');
 }
@@ -417,14 +479,14 @@ IPState Pyxis::HomeRotator()
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return IPS_ALERT;
     }
 
@@ -438,21 +500,34 @@ IPState Pyxis::MoveRotator(double angle)
     int nbytes_written = 0, rc = -1;
     char errstr[MAXRBUF];
 
+    uint16_t current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
+
     targetPA = static_cast<uint16_t>(round(angle));
 
     if (targetPA > 359)
         targetPA = 0;
 
+    // Rotator will only rotation +-180 degress from home (0 degrees) so it make take
+    // the long way to avoid cable wrap
+    if (current <= 180 && targetPA < 180)
+        direction = (targetPA >= current ? 1 : -1) ;
+    else if (current <= 180 && targetPA > 180)
+        direction = -1 ;
+    else if (current > 180 && targetPA >= 180)
+        direction = (targetPA >= current ? 1 : -1) ;
+    else if (current > 180 && targetPA < 180)
+        direction = 1 ;
+
     snprintf(cmd, PYRIX_BUF, "CPA%03d", targetPA);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return IPS_ALERT;
     }
 
@@ -468,14 +543,14 @@ bool Pyxis::ReverseRotator(bool enabled)
 
     snprintf(cmd, PYRIX_BUF, "CD%dxxx", enabled ? 1 : 0);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
@@ -486,9 +561,9 @@ void Pyxis::TimerHit()
 {
     if (!isConnected() || PowerS[POWER_SLEEP].s == ISS_ON)
     {
-        SetTimer(updatePeriodMS);
+        SetTimer(POLLMS);
         return;
-    }    
+    }
 
     if (HomeRotatorSP.s == IPS_BUSY)
     {
@@ -497,28 +572,24 @@ void Pyxis::TimerHit()
             HomeRotatorSP.s = IPS_OK;
             HomeRotatorS[0].s = ISS_OFF;
             IDSetSwitch(&HomeRotatorSP, nullptr);
-            DEBUG(INDI::Logger::DBG_SESSION, "Homing is complete.");
+            LOG_INFO("Homing is complete.");
         }
         else
         {
             // Fast timer
-            SetTimer(100);
+            SetTimer(POLLMS);
             return;
         }
     }
     else if (GotoRotatorNP.s == IPS_BUSY)
     {
-        if (isMotionComplete())
+        if (!isMotionComplete())
         {
-            GotoRotatorNP.s = IPS_OK;
+            LOGF_DEBUG("Motion in %s", "progress") ;
+            SetTimer(POLL_100MS) ;
+            return ;
         }
-        else
-        {
-            // Fast timer
-            SetTimer(100);
-            return;
-        }
-        //if (PA == targetPA)
+        GotoRotatorNP.s = IPS_OK;
     }
 
     uint16_t PA = 0;
@@ -528,9 +599,60 @@ void Pyxis::TimerHit()
         IDSetNumber(&GotoRotatorNP, nullptr);
     }
 
-    SetTimer(updatePeriodMS);
+    SetTimer(POLLMS);
 }
 
+bool Pyxis::isMotionComplete()
+{
+    int nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+    char res[PYXIS_3INCH_PER_DEG + 1] = { 0 };
+
+    bool pyxis3inch = atoi(FirmwareT[0].text) >= 3 ;
+
+    if ( (rc = tty_nread_section(PortFD, res, (pyxis3inch ? PYXIS_3INCH_PER_DEG : PYXIS_2INCH_PER_DEG), 'F', 1, &nbytes_read)) != TTY_OK)
+    {
+        // '!' motion is not complete yet
+        if (rc == TTY_TIME_OUT)
+            return false;
+        else if (rc == TTY_OVERFLOW)
+        {
+            LOGF_DEBUG("RES <%s>", res);
+
+            int current = static_cast<uint16_t>(GotoRotatorN[0].value) ;
+
+            current = current + direction ;
+            if (current < 0) current = 359 ;
+            if (current > 360) current = 1 ;
+
+            GotoRotatorN[0].value = current ;
+            IDSetNumber(&GotoRotatorNP, nullptr);
+
+            LOGF_DEBUG("ANGLE = %d", current) ;
+            LOGF_DEBUG("TTY_OVERFLOW, nbytes_read = %d", nbytes_read) ;
+            return false ;
+        }
+
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
+
+        if (HomeRotatorSP.s == IPS_BUSY)
+        {
+            HomeRotatorS[0].s = ISS_OFF;
+            HomeRotatorSP.s = IPS_ALERT;
+            LOG_ERROR("Homing failed. Check possible jam.");
+            tcflush(PortFD, TCIOFLUSH);
+        }
+
+        return false;
+    }
+
+    LOGF_DEBUG("RES <%s>", res);
+
+    return true;
+}
+
+#if 0
 bool Pyxis::isMotionComplete()
 {
     int nbytes_read = 0, rc = -1;
@@ -540,11 +662,11 @@ bool Pyxis::isMotionComplete()
     if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+    LOGF_DEBUG("RES <%c>", res[0]);
 
     // Homing still in progress
     if (res[0] == '!')
@@ -557,12 +679,50 @@ bool Pyxis::isMotionComplete()
     {
         HomeRotatorS[0].s = ISS_OFF;
         HomeRotatorSP.s = IPS_ALERT;
-        DEBUG(INDI::Logger::DBG_ERROR, "Homing failed. Check possible jam.");
+        LOG_ERROR("Homing failed. Check possible jam.");
         tcflush(PortFD, TCIOFLUSH);
     }
 
     return false;
 }
+#endif
+
+std::string Pyxis::getVersion()
+{
+    const char *cmd = "CVxxxx";
+    char res[4] = {0};
+
+    int nbytes_written = 0, nbytes_read = 0, rc = -1;
+    char errstr[MAXRBUF];
+
+    LOGF_DEBUG("CMD <%s>", cmd);
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
+        return std::string("");;
+    }
+
+    if ( (rc = tty_read(PortFD, res, 3, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
+    {
+        tty_error_msg(rc, errstr, MAXRBUF);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
+        return std::string("") ;
+    }
+
+    tcflush(PortFD, TCIOFLUSH);
+
+    LOGF_DEBUG("RES <%s>", res);
+
+    if (res[0] == '!')
+        return std::string("");
+
+    return std::string(res) ;;
+}
+
 
 bool Pyxis::getPA(uint16_t &PA)
 {
@@ -572,27 +732,27 @@ bool Pyxis::getPA(uint16_t &PA)
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     if ( (rc = tty_read(PortFD, res, 3, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return false;
     }
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%s>", res);
+    LOGF_DEBUG("RES <%s>", res);
 
     if (res[0] == '!')
         return false;
@@ -610,28 +770,27 @@ int Pyxis::getReverseStatus()
     int nbytes_written = 0, nbytes_read = 0, rc = -1;
     char errstr[MAXRBUF];
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD <%s>", cmd);
+    LOGF_DEBUG("CMD <%s>", cmd);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (rc = tty_write(PortFD, cmd, PYRIX_CMD, &nbytes_written)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s: %s.", __FUNCTION__, errstr);
         return -1;
     }
 
     if ( (rc = tty_read(PortFD, res, 1, PYXIS_TIMEOUT, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(rc, errstr, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s error: %s.", __FUNCTION__, errstr);
+        LOGF_ERROR("%s error: %s.", __FUNCTION__, errstr);
         return -1;
     }
 
     tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES <%c>", res[0]);
+    LOGF_DEBUG("RES <%c>", res[0]);
 
-    // Subtract from '0' to get actual number (0 or 1)
-    return (res[0] - 0x30);
+    return (res[0] == '1' ? 1 : 0);
 }

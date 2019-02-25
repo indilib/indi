@@ -48,7 +48,7 @@ class GigECCD : public INDI::CCD
     void TimerHit();
     virtual bool UpdateCCDFrame(int x, int y, int w, int h);
     virtual bool UpdateCCDBin(int binx, int biny);
-    virtual bool UpdateCCDFrameType(CCDChip::CCD_FRAME fType);
+    virtual bool UpdateCCDFrameType(INDI::CCDChip::CCD_FRAME fType);
 
   private:
     void _delete_indi_properties(void);
@@ -70,7 +70,7 @@ class GigECCD : public INDI::CCD
 
     INumber indiprop_gain[1];
     INumberVectorProperty indiprop_gain_prop;
-    IText indiprop_info[3];
+    IText indiprop_info[3] {};
     ITextVectorProperty indiprop_info_prop;
 
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);

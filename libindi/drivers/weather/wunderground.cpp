@@ -101,7 +101,7 @@ bool WunderGround::Connect()
 {
     if (wunderAPIKeyT[0].text == nullptr)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Weather Underground API Key is not available. Please register your API key at "
+        LOG_ERROR("Weather Underground API Key is not available. Please register your API key at "
                                        "www.wunderground.com and save it under Options.");
         return false;
     }
@@ -122,11 +122,11 @@ bool WunderGround::initProperties()
     IUFillTextVector(&wunderAPIKeyTP, wunderAPIKeyT, 1, getDeviceName(), "WUNDER_API_KEY", "Wunder", OPTIONS_TAB, IP_RW,
                      60, IPS_IDLE);
 
-    addParameter("WEATHER_FORECAST", "Weather", 0, 0, 0, 1);
-    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, -20, 40);
-    addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 0, 40);
-    addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 0, 50);
-    addParameter("WEATHER_RAIN_HOUR", "Precip (mm)", 0, 0, 0, 0);
+    addParameter("WEATHER_FORECAST", "Weather", 0, 0, 15);
+    addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);
+    addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 15);
+    addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 15);
+    addParameter("WEATHER_RAIN_HOUR", "Precip (mm)", 0, 0, 15);
 
     setCriticalParameter("WEATHER_FORECAST");
     setCriticalParameter("WEATHER_TEMPERATURE");
@@ -209,9 +209,9 @@ IPState WunderGround::updateWeather()
     int status = jsonParse(source, &endptr, &value, allocator);
     if (status != JSON_OK)
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "%s at %zd", jsonStrError(status), endptr - source);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s", requestURL);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "%s", readBuffer.c_str());
+        LOGF_ERROR("%s at %zd", jsonStrError(status), endptr - source);
+        LOGF_DEBUG("%s", requestURL);
+        LOGF_DEBUG("%s", readBuffer.c_str());
         return IPS_ALERT;
     }
 
@@ -238,7 +238,7 @@ IPState WunderGround::updateWeather()
                     else
                         setParameterValue("WEATHER_FORECAST", 2);
 
-                    DEBUGF(INDI::Logger::DBG_SESSION, "Weather condition: %s", value);
+                    LOGF_INFO("Weather condition: %s", value);
                 }
                 else if (!strcmp(observationIterator->key, "temp_c"))
                 {

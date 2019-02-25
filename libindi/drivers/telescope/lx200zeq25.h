@@ -26,7 +26,7 @@ class LX200ZEQ25 : public LX200Generic
 {
   public:
     LX200ZEQ25();
-    ~LX200ZEQ25() {}
+    virtual ~LX200ZEQ25() override = default;
 
     virtual bool updateProperties() override;
     virtual bool initProperties() override;
@@ -46,6 +46,7 @@ class LX200ZEQ25 : public LX200Generic
     virtual bool SetSlewRate(int index) override;
     virtual bool SetTrackMode(uint8_t mode) override;
     virtual bool Goto(double, double) override;
+    virtual bool Sync(double, double) override;
     virtual bool updateTime(ln_date *utc, double utc_offset) override;
     virtual bool updateLocation(double latitude, double longitude, double elevation) override;
     virtual bool MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command) override;
@@ -57,14 +58,15 @@ class LX200ZEQ25 : public LX200Generic
     virtual bool Park() override;
     virtual bool UnPark() override;
 
-    virtual int SendPulseCmd(int direction, int duration_msec) override;
+    virtual int SendPulseCmd(int8_t direction, uint32_t duration_msec) override;
 
  private:
     int setZEQ25StandardProcedure(int fd, const char *data);
     int setZEQ25Latitude(double Lat);
     int setZEQ25Longitude(double Long);
     int setZEQ25UTCOffset(double hours);
-    int slewZEQ25();
+    int setZEQ25Date(int days, int months, int years);
+    bool slewZEQ25();
     int moveZEQ25To(int direction);
     int haltZEQ25Movement();
     int getZEQ25MoveRate();

@@ -11,7 +11,6 @@ set(BIN_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin")
 find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(DSPAU REQUIRED)
 find_package(RTLSDR REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -34,7 +33,7 @@ set(rtlsdr_SRCS
 
 add_executable(indi_rtlsdr_detector ${rtlsdr_SRCS})
 
-target_link_libraries(indi_rtlsdr_detector ${RTLSDR_LIBRARIES} ${DSPAU_LIBRARIES} ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_rtlsdr_detector ${INDI_LIBRARIES} ${RTLSDR_LIBRARIES} ${CFITSIO_LIBRARIES} ${M_LIB} ${CMAKE_THREAD_LIBS_INIT})
 
 install(TARGETS indi_rtlsdr_detector RUNTIME DESTINATION bin)
 

@@ -1,3 +1,25 @@
+/*******************************************************************************
+  Copyright(c) 2017 Simon Holmbo. All rights reserved.
+
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the Free
+  Software Foundation; either version 2 of the License, or (at your option)
+  any later version.
+
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+  more details.
+
+  You should have received a copy of the GNU Library General Public License
+  along with this library; see the file COPYING.LIB.  If not, write to
+  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+  Boston, MA 02110-1301, USA.
+
+  The full GNU General Public License is included in this distribution in the
+  file called LICENSE.
+*******************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,7 +82,8 @@ ShelyakEshel::ShelyakEshel()
 {
     PortFD = -1;
 
-    setVersion(SHELYAK_VERSION_MAJOR, SHELYAK_VERSION_MINOR);
+
+    setVersion(SHELYAK_ESHEL_VERSION_MAJOR, SHELYAK_ESHEL_VERSION_MINOR);
 }
 
 ShelyakEshel::~ShelyakEshel()
@@ -84,7 +107,7 @@ bool ShelyakEshel::initProperties()
 
     // setup the mirror switch
     IUFillSwitch(&MirrorS[0], "ACTIVATED", "Activated", ISS_OFF);
-    IUFillSwitch(&MirrorS[1], "DEACTIVATED", "Dectivated", ISS_ON);
+    IUFillSwitch(&MirrorS[1], "DEACTIVATED", "Deactivated", ISS_ON);
     IUFillSwitchVector(&MirrorSP, MirrorS, 2, getDeviceName(), "FLIP_MIRROR", "Flip mirror", CALIBRATION_UNIT_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -115,6 +138,8 @@ bool ShelyakEshel::initProperties()
     IUFillNumberVector(&SettingsNP, SettingsN, 5, getDeviceName(), "SPECTROGRAPH_SETTINGS", "Spectrograph settings",
                        SPECTROGRAPH_SETTINGS_TAB, IP_RW, 60, IPS_IDLE);
 
+    setDriverInterface(SPECTROGRAPH_INTERFACE);
+
     return true;
 }
 
@@ -137,7 +162,7 @@ bool ShelyakEshel::updateProperties()
     }
     else
     {
-        // delete properties if we arent connected
+        // delete properties if we aren't connected
         deleteProperty(MirrorSP.name);
         deleteProperty(LampSP.name);
     }
@@ -151,17 +176,17 @@ bool ShelyakEshel::Connect()
     if ((rc = tty_connect(PortT[0].text, 2400, 8, 0, 1, &PortFD)) != TTY_OK)
     {
         tty_error_msg(rc, errMsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Failed to connect to port %s. Error: %s", PortT[0].text, errMsg);
+        LOGF_ERROR("Failed to connect to port %s. Error: %s", PortT[0].text, errMsg);
         return false;
     }
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s is online.", getDeviceName());
+    LOGF_INFO("%s is online.", getDeviceName());
     return true;
 }
 
 bool ShelyakEshel::Disconnect()
 {
     tty_disconnect(PortFD);
-    DEBUGF(INDI::Logger::DBG_SESSION, "%s is offline.", getDeviceName());
+    LOGF_INFO("%s is offline.", getDeviceName());
     return true;
 }
 
@@ -184,7 +209,7 @@ bool ShelyakEshel::ISNewSwitch(const char *dev, const char *name, ISState *state
                 }
             }
             IUUpdateSwitch(&LampSP, states, names, n); // update lamps
-            IDSetSwitch(&LampSP, NULL);                // tell clients to update
+            IDSetSwitch(&LampSP, nullptr);                // tell clients to update
             return true;
         }
         else
@@ -200,7 +225,7 @@ bool ShelyakEshel::ISNewSwitch(const char *dev, const char *name, ISState *state
                 if (!rc)
                     MirrorSP.s = IPS_ALERT;
             }
-            IDSetSwitch(&MirrorSP, NULL); // tell clients to update
+            IDSetSwitch(&MirrorSP, nullptr); // tell clients to update
             return true;
         }
     }
@@ -217,7 +242,7 @@ bool ShelyakEshel::ISNewText(const char *dev, const char *name, char *texts[], c
         {
             IUUpdateText(&PortTP, texts, names, n); // update port
             PortTP.s = IPS_OK;                      // set state to ok
-            IDSetText(&PortTP, NULL);               // tell clients to update the port
+            IDSetText(&PortTP, nullptr);               // tell clients to update the port
             return true;
         }
     }
@@ -238,7 +263,7 @@ bool ShelyakEshel::calibrationUnitCommand(char command, char parameter)
     {
         char errmsg[MAXRBUF];
         tty_error_msg(rc, errmsg, MAXRBUF);
-        DEBUGF(INDI::Logger::DBG_ERROR, "error: %s.", errmsg);
+        LOGF_ERROR("error: %s.", errmsg);
         return false;
     }
     sleep(1); // wait for the calibration unit to actually flip the switch

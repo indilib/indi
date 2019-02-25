@@ -69,8 +69,6 @@ bool FilterWheel::initProperties()
 void FilterWheel::ISGetProperties(const char *dev)
 {
     DefaultDevice::ISGetProperties(dev);
-    if (isConnected())
-        FilterInterface::updateProperties();
 
     controller->ISGetProperties(dev);
     return;

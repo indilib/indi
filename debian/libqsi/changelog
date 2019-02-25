@@ -1,3 +1,9 @@
+libqsi (7.6.1) bionic; urgency=medium
+
+  * New release
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 22 Jan 2018 08:45:00 +0300
+
 libqsi (7.6.0) xenial; urgency=low
 
   * 7.6.0 release

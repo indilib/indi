@@ -20,6 +20,7 @@
 
 #include "indicom.h"
 #include "indicontroller.h"
+//#include "connectionplugins/connectioninterface.h"
 #include "connectionplugins/connectionserial.h"
 
 #include <memory>
@@ -114,7 +115,8 @@ FilterIFW::FilterIFW()
     strncpy(filterSim, filterSim5, sizeof(filterSim)); // For simulation mode
 
     // Set communication to serail only and avoid driver crash at starting up
-    setFilterConnection(CONNECTION_SERIAL);
+   // setFilterConnection(CONNECTION_SERIAL);
+    setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 
     // We add an additional debug level so we can log verbose member function starting
     // DBG_TAG is used by macro DEBUGTAG() define in ifwoptec.h
@@ -166,9 +168,9 @@ bool FilterIFW::initProperties()
     IUFillText(&FirmwareT[0], "FIRMWARE", "Firmware", "Unknown");
     IUFillTextVector(&FirmwareTP, FirmwareT, 1, getDeviceName(), "FIRMWARE_ID", "IFW", FILTER_TAB, IP_RO, 60, IPS_IDLE);
 
-    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
     addAuxControls();
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
 
     return true;
 }
@@ -178,7 +180,8 @@ bool FilterIFW::initProperties()
 ************************************************************************************/
 bool FilterIFW::updateProperties()
 {
-    if (isConnected())
+   INDI::FilterWheel::updateProperties();
+	 if (isConnected())
     {
         defineSwitch(&HomeSP);
         defineText(&FirmwareTP);
@@ -219,14 +222,14 @@ bool FilterIFW::WriteTTY(char *command)
     int nbytes_written = 0;
 
     snprintf(cmd, OPTEC_MAXLEN_CMD, "%s%s", command, "\n\r");
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD (%s)", cmd);
+    LOGF_DEBUG("CMD (%s)", cmd);
 
     if (!isSimulation())
     {
         if ((errcode = tty_write(PortFD, cmd, strlen(cmd), &nbytes_written)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s", errmsg);
+            LOGF_ERROR("%s", errmsg);
             return false;
         }
     }
@@ -255,21 +258,21 @@ bool FilterIFW::ReadTTY(char *resp, char *simulation, int timeout)
         if ((errcode = tty_read_section(PortFD, response, 0xd, timeout, &nbytes_read)) != TTY_OK)
         {
             tty_error_msg(errcode, errmsg, MAXRBUF);
-            DEBUGF(INDI::Logger::DBG_ERROR, "%s() TTY error: %s", __FUNCTION__, "errmsg");
+            LOGF_ERROR("%s() TTY error: %s", __FUNCTION__, errmsg);
             return false;
         }
     }
 
     if (nbytes_read <= 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Controller error: Nothing returned by the IFW");
+        LOG_ERROR("Controller error: Nothing returned by the IFW");
         response[0] = '\0';
         return false;
     }
 
     response[nbytes_read - 2] = '\0'; //Remove control char from string (\n\r)
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES (%s)", response);
-    strncpy(resp, response, sizeof(response));
+    LOGF_DEBUG("RES (%s)", response);
+    strncpy(resp, response, /* sizeof(response)*/ OPTEC_MAXLEN_RESP +1);
     return true;
 }
 
@@ -280,28 +283,27 @@ bool FilterIFW::Handshake()
 {
     char response[OPTEC_MAXLEN_RESP + 1];
     memset(response, 0, sizeof(response));
-
     if (!WriteTTY((char *)"WSMODE"))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
         return false;
     }
 
     if (!ReadTTY(response, (char *)"!", OPTEC_TIMEOUT))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to read to TTY", __FUNCTION__);
         return false;
     }
 
     if (strcmp(response, "!") != 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "failed, wrong response from IFW");
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Response : (%s)", response);
+        LOG_ERROR("failed, wrong response from IFW");
+        LOGF_DEBUG("Response : (%s)", response);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Success, response from IFW is : %s", response);
-    DEBUG(INDI::Logger::DBG_SESSION, "IFW is online");
+    LOGF_DEBUG("Success, response from IFW is : %s", response);
+    LOG_INFO("IFW is online");
 
     return true;
 }
@@ -317,24 +319,24 @@ bool FilterIFW::Disconnect()
 
     if (!WriteTTY((char *)"WEXITS"))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
         return false;
     }
 
     if (!ReadTTY(response, (char *)"END", OPTEC_TIMEOUT))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to read to TTY", __FUNCTION__);
         return false;
     }
 
     if (strcmp(response, "END") != 0)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "failed, wrong response from IFW");
+        LOG_ERROR("failed, wrong response from IFW");
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "IFW return in manual mode, response from IFW is : %s", response);
-    DEBUG(INDI::Logger::DBG_SESSION, "IFW is offline.");
+    LOGF_DEBUG("IFW return in manual mode, response from IFW is : %s", response);
+    LOG_INFO("IFW is offline.");
 
     return INDI::FilterWheel::Disconnect();
 }
@@ -358,7 +360,7 @@ bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char
             {
                 for (int i = 0; i < n; i++)
                 {
-                    DEBUGF(INDI::Logger::DBG_DEBUG, "FilterName request N°%d : %s", i, texts[i]);
+                    LOGF_DEBUG("FilterName request N°%d : %s", i, texts[i]);
                     match = std::regex_match(texts[i], rx);
                     if (!match)
                         break;
@@ -375,11 +377,11 @@ bool FilterIFW::ISNewText(const char *dev, const char *name, char *texts[], char
             {
                 FilterNameTP->s = IPS_ALERT;
                 IDSetText(FilterNameTP, nullptr);
-                DEBUG(INDI::Logger::DBG_SESSION, "WARNING *****************************************************");
-                DEBUG(INDI::Logger::DBG_SESSION,
+                LOG_INFO("WARNING *****************************************************");
+                LOG_INFO(
                       "One of the filter name is not valid. It should not have more than 8 chars");
-                DEBUG(INDI::Logger::DBG_SESSION, "Valid chars are A to Z, 0 to 9 = . # / - percent or space");
-                DEBUG(INDI::Logger::DBG_SESSION, "WARNING *****************************************************");
+                LOG_INFO("Valid chars are A to Z, 0 to 9 = . # / - percent or space");
+                LOG_INFO("WARNING *****************************************************");
                 return false;
             }
             return true;
@@ -401,7 +403,7 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             // User request the IWF reset (Home procedure will read the Wheel ID, load from EEProm the filters names and goes to filter N°1
             IUUpdateSwitch(&HomeSP, states, names, n);
             IUResetSwitch(&HomeSP);
-            DEBUG(INDI::Logger::DBG_SESSION, "Executing Home command...");
+            LOG_INFO("Executing Home command...");
 
             FilterNameTP->s = IPS_BUSY;
             IDSetText(FilterNameTP, nullptr);
@@ -413,7 +415,7 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             }
             else
             {
-                DEBUG(INDI::Logger::DBG_DEBUG, "Getting filter information...");
+                LOG_DEBUG("Getting filter information...");
 
                 if (!(GetFilterNames() && GetFilterPos() != 0))
                 {
@@ -425,8 +427,8 @@ bool FilterIFW::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IDSetSwitch(&HomeSP, nullptr);
             if (!result)
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s() failed to get information", __FUNCTION__);
-                DEBUG(INDI::Logger::DBG_SESSION, "Please check unit and press 'Home' button");
+                LOGF_INFO("%s() failed to get information", __FUNCTION__);
+                LOG_INFO("Please check unit and press 'Home' button");
                 return false;
             }
 
@@ -531,7 +533,7 @@ bool FilterIFW::SelectFilter(int f)
 
     if (!WriteTTY(cmd))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
         result = false;
     }
     else
@@ -567,12 +569,12 @@ bool FilterIFW::SelectFilter(int f)
 
         if (!ReadTTY(response, (char *)"*", OPTEC_TIMEOUT_MOVE))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
+            LOGF_ERROR("(Function %s()) failed to read to TTY", __FUNCTION__);
             result = false;
         }
         else if (strncmp(response, "*", 1) != 0)
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Error: %s", response);
+            LOGF_INFO("Error: %s", response);
             PRINT_ER(response);
             result = false;
         }
@@ -614,12 +616,12 @@ bool FilterIFW::GetFilterNames()
 
     if (!WriteTTY((char *)"WREAD"))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
         result = false;
     }
     else if (!ReadTTY(response, filterSim, OPTEC_TIMEOUT))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to read to TTY", __FUNCTION__);
         result = false;
     }
 
@@ -646,11 +648,11 @@ bool FilterIFW::GetFilterNames()
                 maxFilter = 0; // Means error somewhere
         }
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Length of response %d", lenResponse);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "MaxFilter  %d", maxFilter);
+        LOGF_DEBUG("Length of response %d", lenResponse);
+        LOGF_DEBUG("MaxFilter  %d", maxFilter);
         if (maxFilter != 0)
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Success, response from IFW is : %s", response);
+            LOGF_DEBUG("Success, response from IFW is : %s", response);
 
             // Start parsing from IFW message
             char *p = response;
@@ -662,13 +664,13 @@ bool FilterIFW::GetFilterNames()
                 strncpy(filterNameIFW[i], p, OPTEC_LEN_FLTNAME);
                 filterNameIFW[i][OPTEC_LEN_FLTNAME] = '\0';
                 p                                   = p + OPTEC_LEN_FLTNAME;
-                DEBUGF(INDI::Logger::DBG_DEBUG, "filterNameIFW[%d] : %s", i, filterNameIFW[i]);
+                LOGF_DEBUG("filterNameIFW[%d] : %s", i, filterNameIFW[i]);
                 strncat(filterList, filterNameIFW[i], OPTEC_LEN_FLTNAME);
                 strncat(filterList, "/", 1);
             }
             filterList[strlen(filterList) - 1] = '\0'; //Remove last "/"
 
-            DEBUG(INDI::Logger::DBG_DEBUG, "Redo filters name list");
+            LOG_DEBUG("Redo filters name list");
             // Set new max value on the filter_slot property
             FilterSlotN[0].max = maxFilter;
             if (isSimulation())
@@ -679,8 +681,14 @@ bool FilterIFW::GetFilterNames()
             deleteProperty(FilterNameTP->name);
 
             if (FilterNameT != nullptr)
+            {
+                for (int i=0; i < FilterNameTP->ntp; i++)
+                    free(FilterNameT[i].text);
                 delete [] FilterNameT;
+            }
+
             FilterNameT = new IText[maxFilter];
+            memset(FilterNameT, 0, sizeof(IText) * maxFilter);
 
             for (int i = 0; i < maxFilter; i++)
             {
@@ -712,11 +720,11 @@ bool FilterIFW::GetFilterNames()
             return true;
         }
         else
-            DEBUGF(INDI::Logger::DBG_ERROR, "List of filters name is wrong Nbr char red are: %s", lenResponse);
+            LOGF_ERROR("List of filters name is wrong Nbr char red are: %s", lenResponse);
     }
 
     FilterNameTP->s = IPS_ALERT;
-    DEBUG(INDI::Logger::DBG_ERROR, "Failed to read filter names!");
+    LOG_ERROR("Failed to read filter names!");
     IDSetText(FilterNameTP, nullptr);
     return false;
 }
@@ -756,11 +764,11 @@ bool FilterIFW::SetFilterNames()
         strncpy(FilterNameT[i].text, tempo, OPTEC_LEN_FLTNAME);
         FilterNameT[i].text[OPTEC_LEN_FLTNAME] = '\0';
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Value of the command :%s", cmd);
+        LOGF_DEBUG("Value of the command :%s", cmd);
         //memset(response, 0, sizeof(tempo));
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Length of the command to write to IFW = %d", strlen(cmd));
+    LOGF_DEBUG("Length of the command to write to IFW = %d", strlen(cmd));
 
     if (isSimulation())
     {
@@ -770,7 +778,7 @@ bool FilterIFW::SetFilterNames()
 
     if (!WriteTTY(cmd))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
         FilterNameTP->s = IPS_ALERT;
         IDSetText(FilterNameTP, nullptr);
         result = false;
@@ -782,14 +790,14 @@ bool FilterIFW::SetFilterNames()
     {
         if (!ReadTTY(response, (char *)"!", OPTEC_TIMEOUT))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
+            LOGF_ERROR("(Function %s()) failed to read to TTY", __FUNCTION__);
             result = false;
         }
         else
         {
             if (strncmp(response, "ER=", 3) == 0)
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Error: %s", response);
+                LOGF_INFO("Error: %s", response);
                 PRINT_ER(response);
                 result = false;
             }
@@ -803,12 +811,12 @@ bool FilterIFW::SetFilterNames()
         return false;
     }
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Filters name are saved in IFW");
+    LOG_INFO("Filters name are saved in IFW");
 
     // Interface not ready before the message "DATA OK" disapear from the display IFW
     for (int i = OPTEC_WAIT_DATA_OK; i > 0; i--)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Please wait for HOME command start... %d", i);
+        LOGF_INFO("Please wait for HOME command start... %d", i);
         sleep(1);
     }
 
@@ -835,19 +843,19 @@ bool FilterIFW::GetWheelID()
 
     if (!WriteTTY((char *)"WIDENT"))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
         result = false;
     }
     else
     {
         if (!ReadTTY(response, (char *)"C", OPTEC_TIMEOUT))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
+            LOGF_ERROR("(Function %s()) failed to read to TTY", __FUNCTION__);
             result = false;
         }
         else if (strncmp(response, "ER=", 3) == 0)
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Get wheel ID error: %s", response);
+            LOGF_INFO("Get wheel ID error: %s", response);
             PRINT_ER(response);
             result = false;
         }
@@ -883,7 +891,7 @@ int FilterIFW::GetFilterPos()
 
     if (!WriteTTY((char *)"WFILTR"))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
         result = -1;
     }
     else
@@ -893,7 +901,7 @@ int FilterIFW::GetFilterPos()
 
         if (!ReadTTY(response, filter, OPTEC_TIMEOUT))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
+            LOGF_ERROR("(Function %s()) failed to read to TTY", __FUNCTION__);
             result = -1;
         }
     }
@@ -930,7 +938,7 @@ bool FilterIFW::moveHome()
 
     if (!WriteTTY((char *)"WHOME"))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
         result = false;
     }
     else
@@ -940,14 +948,14 @@ bool FilterIFW::moveHome()
 
         if (!ReadTTY(response, (char *)"A", OPTEC_TIMEOUT_WHOME))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read from TTY", __FUNCTION__);
+            LOGF_ERROR("(Function %s()) failed to read from TTY", __FUNCTION__);
             result = false;
         }
         else
         {
             if (strncmp(response, "ER=", 3) == 0)
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Move to Home error: %s", response);
+                LOGF_INFO("Move to Home error: %s", response);
                 PRINT_ER(response);
                 result = false;
             }
@@ -982,19 +990,19 @@ bool FilterIFW::GetFirmware()
 
     if (!WriteTTY((char *)"WVAAAA"))
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to write to TTY", __FUNCTION__);
+        LOGF_ERROR("(Function %s()) failed to write to TTY", __FUNCTION__);
         result = false;
     }
     else
     {
         if (!ReadTTY(response, (char *)"V= 2.04", OPTEC_TIMEOUT_FIRMWARE))
         {
-            DEBUGF(INDI::Logger::DBG_ERROR, "(Function %s()) failed to read to TTY", __FUNCTION__);
+            LOGF_ERROR("(Function %s()) failed to read to TTY", __FUNCTION__);
             result = false;
         }
         else if (strncmp(response, "ER=", 3) == 0)
         {
-            DEBUGF(INDI::Logger::DBG_SESSION, "Get wheel ID error: %s", response);
+            LOGF_INFO("Get wheel ID error: %s", response);
             PRINT_ER(response);
             result = false;
         }

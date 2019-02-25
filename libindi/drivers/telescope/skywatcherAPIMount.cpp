@@ -163,7 +163,7 @@ bool SkywatcherAPIMount::Handshake()
 const char *SkywatcherAPIMount::getDefaultName()
 {
     //DEBUG(DBG_SCOPE, "SkywatcherAPIMount::getDefaultName\n");
-    return "Skywatcher Alt-Az Mount";
+    return "Skywatcher Alt-Az";
 }
 
 bool SkywatcherAPIMount::Goto(double ra, double dec)
@@ -182,7 +182,7 @@ bool SkywatcherAPIMount::Goto(double ra, double dec)
         fs_sexa(DecStr, dec, 2, 3600);
         CurrentTrackingTarget.ra  = ra;
         CurrentTrackingTarget.dec = dec;
-        DEBUGF(INDI::Logger::DBG_SESSION, "New Tracking target RA %s DEC %s", RAStr, DecStr);
+        LOGF_INFO("New Tracking target RA %s DEC %s", RAStr, DecStr);
     }
 
     ln_hrz_posn AltAz { 0, 0 };
@@ -596,7 +596,7 @@ void SkywatcherAPIMount::UpdateScopeConfigSwitch()
 {
     if (!CheckFile(ScopeConfigFileName, false))
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Can't open XML file (%s) for read", ScopeConfigFileName.c_str());
+        LOGF_INFO("Can't open XML file (%s) for read", ScopeConfigFileName.c_str());
         return;
     }
     LilXML *XmlHandle      = newLilXML();
@@ -612,12 +612,12 @@ void SkywatcherAPIMount::UpdateScopeConfigSwitch()
     XmlHandle = nullptr;
     if (!RootXmlNode)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Failed to parse XML file (%s): %s", ScopeConfigFileName.c_str(), ErrMsg);
+        LOGF_INFO("Failed to parse XML file (%s): %s", ScopeConfigFileName.c_str(), ErrMsg);
         return;
     }
     if (std::string(tagXMLEle(RootXmlNode)) != ScopeConfigRootXmlNode)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "Not a scope config XML file (%s)", ScopeConfigFileName.c_str());
+        LOGF_INFO("Not a scope config XML file (%s)", ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return;
     }
@@ -640,7 +640,7 @@ void SkywatcherAPIMount::UpdateScopeConfigSwitch()
     }
     if (!DeviceFound)
     {
-        DEBUGF(INDI::Logger::DBG_SESSION, "No a scope config found for %s in the XML file (%s)", getDeviceName(),
+        LOGF_INFO("No a scope config found for %s in the XML file (%s)", getDeviceName(),
                ScopeConfigFileName.c_str());
         delXMLEle(RootXmlNode);
         return;
@@ -1152,7 +1152,7 @@ bool SkywatcherAPIMount::Sync(double ra, double dec)
             }
             ZeroPositionEncoders[AXIS1] = PolarisPositionEncoders[AXIS1]-DegreesToMicrosteps(AXIS1, AltAz.az);
             ZeroPositionEncoders[AXIS2] = PolarisPositionEncoders[AXIS2]-DegreesToMicrosteps(AXIS2, AltAz.alt);
-            MYDEBUGF(INDI::Logger::DBG_SESSION, "Sync (Alt: %lf Az: %lf) in park position", OrigAlt, AltAz.az);
+            LOGF_INFO("Sync (Alt: %lf Az: %lf) in park position", OrigAlt, AltAz.az);
             GetAlignmentDatabase().clear();
             return true;
         }
@@ -1233,7 +1233,7 @@ void SkywatcherAPIMount::TimerHit()
         case SCOPE_SLEWING:
             if (!Slewing)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Slewing started");
+                LOG_INFO("Slewing started");
             }
             TrackingMsecs   = 0;
             GuideDeltaAlt   = 0;
@@ -1263,7 +1263,7 @@ void SkywatcherAPIMount::TimerHit()
         {
             if (!Tracking)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Tracking started");
+                LOG_INFO("Tracking started");
                 TrackingMsecs = 0;
                 GuideDeltaAlt = 0;
                 GuideDeltaAz  = 0;
@@ -1293,7 +1293,7 @@ void SkywatcherAPIMount::TimerHit()
             TrackingMsecs += TimeoutDuration;
             if (TrackingMsecs % 60000 == 0)
             {
-                DEBUGF(INDI::Logger::DBG_SESSION, "Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
+                LOGF_INFO("Tracking in progress (%d seconds elapsed)", TrackingMsecs / 1000);
             }
             Tracking = true;
             Slewing  = false;
@@ -1509,11 +1509,11 @@ void SkywatcherAPIMount::TimerHit()
         default:
             if (Slewing)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Slewing stopped");
+                LOG_INFO("Slewing stopped");
             }
             if (Tracking)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Tracking stopped");
+                LOG_INFO("Tracking stopped");
             }
             TrackingMsecs   = 0;
             GuideDeltaAlt   = 0;
@@ -1596,7 +1596,7 @@ bool SkywatcherAPIMount::updateProperties()
     }
 }
 
-IPState SkywatcherAPIMount::GuideNorth(float ms)
+IPState SkywatcherAPIMount::GuideNorth(uint32_t ms)
 {
     GuidingPulse Pulse;
 
@@ -1612,7 +1612,7 @@ IPState SkywatcherAPIMount::GuideNorth(float ms)
     return IPS_OK;
 }
 
-IPState SkywatcherAPIMount::GuideSouth(float ms)
+IPState SkywatcherAPIMount::GuideSouth(uint32_t ms)
 {
     GuidingPulse Pulse;
 
@@ -1628,7 +1628,7 @@ IPState SkywatcherAPIMount::GuideSouth(float ms)
     return IPS_OK;
 }
 
-IPState SkywatcherAPIMount::GuideWest(float ms)
+IPState SkywatcherAPIMount::GuideWest(uint32_t ms)
 {
     GuidingPulse Pulse;
 
@@ -1644,7 +1644,7 @@ IPState SkywatcherAPIMount::GuideWest(float ms)
     return IPS_OK;
 }
 
-IPState SkywatcherAPIMount::GuideEast(float ms)
+IPState SkywatcherAPIMount::GuideEast(uint32_t ms)
 {
     GuidingPulse Pulse;
 

@@ -579,11 +579,11 @@ bool LX200Pulsar2::Connect()
     {
         if (isParked())
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "%s", "Trying to wake up the mount.");
+            LOGF_DEBUG("%s", "Trying to wake up the mount.");
             UnPark();
         }
         else
-            DEBUGF(INDI::Logger::DBG_DEBUG, "%s", "The mount is already tracking.");
+            LOGF_DEBUG("%s", "The mount is already tracking.");
     }
     return success;
 }
@@ -660,12 +660,13 @@ void LX200Pulsar2::ISGetProperties(const char *dev)
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
     LX200Generic::ISGetProperties(dev);
-    if (isConnected())
+
+    /*if (isConnected())
     {
         defineSwitch(&PeriodicErrorCorrectionSP);
         defineSwitch(&PoleCrossingSP);
         defineSwitch(&RefractionCorrectionSP);
-    }
+    }*/
 }
 
 bool LX200Pulsar2::initProperties()
@@ -861,17 +862,17 @@ bool LX200Pulsar2::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
         case MOTION_START:
             success = (isSimulation() || Pulsar2Commands::moveTo(PortFD, current_move));
             if (success)
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", Pulsar2Commands::DirectionName[current_move]);
+                LOGF_INFO("Moving toward %s.", Pulsar2Commands::DirectionName[current_move]);
             else
-                DEBUG(INDI::Logger::DBG_ERROR, "Error starting N/S motion.");
+                LOG_ERROR("Error starting N/S motion.");
             break;
         case MOTION_STOP:
             success = (isSimulation() || Pulsar2Commands::haltMovement(PortFD, current_move));
             if (success)
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                LOGF_INFO("Movement toward %s halted.",
                        Pulsar2Commands::DirectionName[current_move]);
             else
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping N/S motion.");
+                LOG_ERROR("Error stopping N/S motion.");
             break;
     }
     return success;
@@ -887,17 +888,17 @@ bool LX200Pulsar2::MoveWE(INDI_DIR_WE dir, TelescopeMotionCommand command)
         case MOTION_START:
             success = (isSimulation() || Pulsar2Commands::moveTo(PortFD, current_move));
             if (success)
-                DEBUGF(INDI::Logger::DBG_SESSION, "Moving toward %s.", Pulsar2Commands::DirectionName[current_move]);
+                LOGF_INFO("Moving toward %s.", Pulsar2Commands::DirectionName[current_move]);
             else
-                DEBUG(INDI::Logger::DBG_ERROR, "Error starting W/E motion.");
+                LOG_ERROR("Error starting W/E motion.");
             break;
         case MOTION_STOP:
             success = (isSimulation() || Pulsar2Commands::haltMovement(PortFD, current_move));
             if (success)
-                DEBUGF(INDI::Logger::DBG_SESSION, "Movement toward %s halted.",
+                LOGF_INFO("Movement toward %s halted.",
                        Pulsar2Commands::DirectionName[current_move]);
             else
-                DEBUG(INDI::Logger::DBG_ERROR, "Error stopping W/E motion.");
+                LOG_ERROR("Error stopping W/E motion.");
             break;
     }
     return success;
@@ -929,16 +930,15 @@ bool LX200Pulsar2::Abort()
         }
     }
     else
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort slew.");
+        LOG_ERROR("Failed to abort slew.");
     return success;
 }
 
-IPState LX200Pulsar2::GuideNorth(float ms)
+IPState LX200Pulsar2::GuideNorth(uint32_t ms)
 {
-    const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
@@ -952,7 +952,7 @@ IPState LX200Pulsar2::GuideNorth(float ms)
         IERmTimer(GuideNSTID);
         GuideNSTID = 0;
     }
-    if (use_pulse_cmd)
+    if (usePulseCommand)
         (void)Pulsar2Commands::pulseGuide(PortFD, Pulsar2Commands::North, ms);
     else
     {
@@ -969,17 +969,16 @@ IPState LX200Pulsar2::GuideNorth(float ms)
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = LX200_NORTH;
-    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    guide_direction_ns = LX200_NORTH;
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperNS, this);
     return IPS_BUSY;
 }
 
-IPState LX200Pulsar2::GuideSouth(float ms)
+IPState LX200Pulsar2::GuideSouth(uint32_t ms)
 {
-    const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
@@ -993,7 +992,7 @@ IPState LX200Pulsar2::GuideSouth(float ms)
         IERmTimer(GuideNSTID);
         GuideNSTID = 0;
     }
-    if (use_pulse_cmd)
+    if (usePulseCommand)
         (void)Pulsar2Commands::pulseGuide(PortFD, Pulsar2Commands::South, ms);
     else
     {
@@ -1010,17 +1009,16 @@ IPState LX200Pulsar2::GuideSouth(float ms)
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = LX200_SOUTH;
-    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    guide_direction_ns = LX200_SOUTH;
+    GuideNSTID      = IEAddTimer(ms, guideTimeoutHelperNS, this);
     return IPS_BUSY;
 }
 
-IPState LX200Pulsar2::GuideEast(float ms)
+IPState LX200Pulsar2::GuideEast(uint32_t ms)
 {
-    const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
@@ -1034,7 +1032,7 @@ IPState LX200Pulsar2::GuideEast(float ms)
         IERmTimer(GuideWETID);
         GuideWETID = 0;
     }
-    if (use_pulse_cmd)
+    if (usePulseCommand)
         (void)Pulsar2Commands::pulseGuide(PortFD, Pulsar2Commands::East, ms);
     else
     {
@@ -1051,17 +1049,16 @@ IPState LX200Pulsar2::GuideEast(float ms)
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = LX200_EAST;
-    GuideWETID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    guide_direction_we = LX200_EAST;
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperWE, this);
     return IPS_BUSY;
 }
 
-IPState LX200Pulsar2::GuideWest(float ms)
+IPState LX200Pulsar2::GuideWest(uint32_t ms)
 {
-    const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-    if (!use_pulse_cmd && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
+    if (!usePulseCommand && (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY))
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Cannot guide while moving.");
+        LOG_ERROR("Cannot guide while moving.");
         return IPS_ALERT;
     }
     // If already moving (no pulse command), then stop movement
@@ -1075,7 +1072,7 @@ IPState LX200Pulsar2::GuideWest(float ms)
         IERmTimer(GuideWETID);
         GuideWETID = 0;
     }
-    if (use_pulse_cmd)
+    if (usePulseCommand)
         (void)Pulsar2Commands::pulseGuide(PortFD, Pulsar2Commands::West, ms);
     else
     {
@@ -1092,8 +1089,8 @@ IPState LX200Pulsar2::GuideWest(float ms)
     IUResetSwitch(&SlewRateSP);
     SlewRateS[SLEW_GUIDE].s = ISS_ON;
     IDSetSwitch(&SlewRateSP, nullptr);
-    guide_direction = LX200_WEST;
-    GuideWETID      = IEAddTimer(ms, guideTimeoutHelper, this);
+    guide_direction_we = LX200_WEST;
+    GuideWETID      = IEAddTimer(ms, guideTimeoutHelperWE, this);
     return IPS_BUSY;
 }
 
@@ -1106,18 +1103,18 @@ bool LX200Pulsar2::updateTime(ln_date *utc, double utc_offset)
         struct ln_zonedate ltm;
         ln_date_to_zonedate(utc, &ltm, 0.0); // One should use UTC only with Pulsar!
         JD = ln_get_julian_day(utc);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "New JD is %f", static_cast<float>(JD));
+        LOGF_DEBUG("New JD is %f", static_cast<float>(JD));
         success = Pulsar2Commands::setTime(PortFD, ltm.hours, ltm.minutes, ltm.seconds);
         if (success)
         {
             success = Pulsar2Commands::setDate(PortFD, ltm.days, ltm.months, ltm.years);
             if (success)
-                DEBUG(INDI::Logger::DBG_SESSION, "Time updated, updating planetary data...");
+                LOG_INFO("Time updated, updating planetary data...");
             else
-                DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC date.");
+                LOG_ERROR("Error setting UTC date.");
         }
         else
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting UTC time.");
+            LOG_ERROR("Error setting UTC time.");
         // Pulsar cannot set UTC offset (?)
     }
     return success;
@@ -1138,13 +1135,14 @@ bool LX200Pulsar2::updateLocation(double latitude, double longitude, double elev
             IDMessage(getDeviceName(), "Site location updated to Lat %.32s - Long %.32s", l, L);
         }
         else
-            DEBUG(INDI::Logger::DBG_ERROR, "Error setting site coordinates");
+            LOG_ERROR("Error setting site coordinates");
     }
     return success;
 }
 
 bool LX200Pulsar2::Goto(double r, double d)
 {
+    const struct timespec timeout = {0, 100000000L};
     char RAStr[64], DecStr[64];
     fs_sexa(RAStr, targetRA = r, 2, 3600);
     fs_sexa(DecStr, targetDEC = d, 2, 3600);
@@ -1173,7 +1171,7 @@ bool LX200Pulsar2::Goto(double r, double d)
             IDSetSwitch(&MovementNSSP, nullptr);
             IDSetSwitch(&MovementWESP, nullptr);
         }
-        usleep(100000); // sleep for 100 mseconds
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation())
@@ -1196,12 +1194,14 @@ bool LX200Pulsar2::Goto(double r, double d)
 
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
     return true;
 }
 
 bool LX200Pulsar2::Park()
 {
+    const struct timespec timeout = {0, 100000000L};
+
     if (!isSimulation())
     {
         if (!Pulsar2Commands::isHomeSet(PortFD))
@@ -1243,7 +1243,7 @@ bool LX200Pulsar2::Park()
             IDSetSwitch(&MovementNSSP, nullptr);
             IDSetSwitch(&MovementWESP, nullptr);
         }
-        usleep(100000); // sleep for 100 msec
+        nanosleep(&timeout, nullptr);
     }
 
     if (!isSimulation() && !Pulsar2Commands::park(PortFD))
@@ -1260,6 +1260,7 @@ bool LX200Pulsar2::Park()
 
 bool LX200Pulsar2::Sync(double ra, double dec)
 {
+    const struct timespec timeout = {0, 300000000L};
     bool result = true;
     if (!isSimulation())
     {
@@ -1271,21 +1272,21 @@ bool LX200Pulsar2::Sync(double ra, double dec)
         }
         else
         {
-            usleep(300000L); // This seems to be necessary
+            nanosleep(&timeout, nullptr); // This seems to be necessary
             result = Pulsar2Commands::sync(PortFD);
             if (result)
             {
-                DEBUG(INDI::Logger::DBG_SESSION, "Reading sync response");
+                LOG_INFO("Reading sync response");
                 // Pulsar sends coordinates separated by # characters (<RA>#<Dec>#)
                 char RAresponse[Pulsar2Commands::BufferSize];
                 result = Pulsar2Commands::receive(PortFD, RAresponse);
                 if (result)
                 {
-                    DEBUGF(INDI::Logger::DBG_DEBUG, "First synchronization string: '%s'.", RAresponse);
+                    LOGF_DEBUG("First synchronization string: '%s'.", RAresponse);
                     char DECresponse[Pulsar2Commands::BufferSize];
                     result = Pulsar2Commands::receive(PortFD, DECresponse);
                     if (result)
-                        DEBUGF(INDI::Logger::DBG_DEBUG, "Second synchronization string: '%s'.", DECresponse);
+                        LOGF_DEBUG("Second synchronization string: '%s'.", DECresponse);
                 }
                 //TODO: Check that the received coordinates match the original coordinates
                 if (!result)
@@ -1300,7 +1301,7 @@ bool LX200Pulsar2::Sync(double ra, double dec)
     {
         currentRA  = ra;
         currentDEC = dec;
-        DEBUG(INDI::Logger::DBG_SESSION, "Synchronization successful.");
+        LOG_INFO("Synchronization successful.");
         EqNP.s     = IPS_OK;
         NewRaDec(currentRA, currentDEC);
     }
@@ -1350,12 +1351,14 @@ bool LX200Pulsar2::isSlewComplete()
 
 bool LX200Pulsar2::checkConnection()
 {
+    const struct timespec timeout = {0, 50000000L};
+
     if (isSimulation())
         return true;
 
     if (LX200Generic::checkConnection())
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Checking Pulsar version ...");
+        LOG_DEBUG("Checking Pulsar version ...");
         for (int i = 0; i < 2; ++i)
         {
             char response[Pulsar2Commands::BufferSize];
@@ -1365,11 +1368,11 @@ bool LX200Pulsar2::checkConnection()
                 char version[16];
                 int year, month, day;
                 (void)sscanf(response, "PULSAR V%8s ,%4d.%2d.%2d. ", version, &year, &month, &day);
-                DEBUGF(INDI::Logger::DBG_SESSION, "%s version %s dated %04d.%02d.%02d",
+                LOGF_INFO("%s version %s dated %04d.%02d.%02d",
                        (version[0] > '2' ? "Pulsar2" : "Pulsar"), version, year, month, day);
                 return true;
             }
-            usleep(50000);
+            nanosleep(&timeout, nullptr);
         }
     }
     return false;
@@ -1381,7 +1384,7 @@ void LX200Pulsar2::getBasicData()
     {
         if (!Pulsar2Commands::ensureLongFormat(PortFD))
         {
-            DEBUG(INDI::Logger::DBG_DEBUG, "Failed to ensure that long format coordinates are used.");
+            LOG_DEBUG("Failed to ensure that long format coordinates are used.");
         }
         if (!Pulsar2Commands::getObjectRADec(PortFD, &currentRA, &currentDEC))
         {
@@ -1454,26 +1457,21 @@ void LX200Pulsar2::sendScopeLocation()
     if (isSimulation() || Pulsar2Commands::getSiteLatitude(PortFD, &dd, &mm))
     {
         LocationNP.np[0].value = (dd < 0 ? -1 : 1) * (abs(dd) + mm / 60.0);
-        if (isDebug())
-        {
-            IDLog("Pulsar latitude: %d:%d\n", dd, mm);
-            IDLog("INDI Latitude: %g\n", LocationNP.np[0].value);
-        }
+        LOGF_DEBUG("Pulsar latitude: %d:%d", dd, mm);
     }
     else
     {
         IDMessage(getDeviceName(), "Failed to get site latitude from Pulsar controller.");
         LocationNP.s = IPS_ALERT;
     }
-    dd = 48, mm = 0;
+    dd = 48;
+    mm = 0;
     if (isSimulation() || Pulsar2Commands::getSiteLongitude(PortFD, &dd, &mm))
     {
         LocationNP.np[1].value = (dd > 0 ? 360.0 - (dd + mm / 60.0) : -(dd - mm / 60.0));
-        if (isDebug())
-        {
-            IDLog("Pulsar longitude: %d:%d\n", dd, mm);
-            IDLog("INDI Longitude: %g\n", LocationNP.np[1].value);
-        }
+        LOGF_DEBUG("Pulsar longitude: %d:%d", dd, mm);
+
+        saveConfig(true, "GEOGRAPHIC_COORD");
     }
     else
     {
@@ -1519,74 +1517,8 @@ void LX200Pulsar2::sendScopeTime()
         IDLog("Telescope UTC Time: %s\n", TimeT[0].text);
     }
     // Let's send everything to the client
+    TimeTP.s = IPS_OK;
     IDSetText(&TimeTP, nullptr);
-}
-
-void LX200Pulsar2::guideTimeoutHelper(void *p)
-{
-    static_cast<LX200Pulsar2 *>(p)->guideTimeout();
-}
-
-void LX200Pulsar2::guideTimeout()
-{
-    const int use_pulse_cmd = IUFindOnSwitchIndex(&UsePulseCmdSP);
-    if (guide_direction == -1)
-    {
-        Pulsar2Commands::haltMovement(PortFD, Pulsar2Commands::North);
-        Pulsar2Commands::haltMovement(PortFD, Pulsar2Commands::South);
-        Pulsar2Commands::haltMovement(PortFD, Pulsar2Commands::East);
-        Pulsar2Commands::haltMovement(PortFD, Pulsar2Commands::West);
-        MovementNSSP.s = IPS_IDLE;
-        MovementWESP.s = IPS_IDLE;
-        IUResetSwitch(&MovementNSSP);
-        IUResetSwitch(&MovementWESP);
-        IDSetSwitch(&MovementNSSP, nullptr);
-        IDSetSwitch(&MovementWESP, nullptr);
-        IERmTimer(GuideNSTID);
-        IERmTimer(GuideWETID);
-    }
-    else if (!use_pulse_cmd)
-    {
-        switch (guide_direction)
-        {
-            case LX200_NORTH:
-            case LX200_SOUTH:
-                MoveNS(guide_direction == LX200_NORTH ? DIRECTION_NORTH : DIRECTION_SOUTH, MOTION_STOP);
-                GuideNSNP.np[(guide_direction == LX200_NORTH ? 0 : 1)].value = 0;
-                GuideNSNP.s                                                  = IPS_IDLE;
-                IDSetNumber(&GuideNSNP, nullptr);
-                MovementNSSP.s = IPS_IDLE;
-                IUResetSwitch(&MovementNSSP);
-                IDSetSwitch(&MovementNSSP, nullptr);
-                break;
-            case LX200_WEST:
-            case LX200_EAST:
-                MoveWE(guide_direction == LX200_WEST ? DIRECTION_WEST : DIRECTION_EAST, MOTION_STOP);
-                GuideWENP.np[(guide_direction == LX200_WEST ? 0 : 1)].value = 0;
-                GuideWENP.s                                                 = IPS_IDLE;
-                IDSetNumber(&GuideWENP, nullptr);
-                MovementWESP.s = IPS_IDLE;
-                IUResetSwitch(&MovementWESP);
-                IDSetSwitch(&MovementWESP, nullptr);
-                break;
-        }
-    }
-    if (guide_direction == LX200_NORTH || guide_direction == LX200_SOUTH || guide_direction == -1)
-    {
-        GuideNSNP.np[0].value = 0;
-        GuideNSNP.np[1].value = 0;
-        GuideNSNP.s           = IPS_IDLE;
-        GuideNSTID            = 0;
-        IDSetNumber(&GuideNSNP, nullptr);
-    }
-    if (guide_direction == LX200_WEST || guide_direction == LX200_EAST || guide_direction == -1)
-    {
-        GuideWENP.np[0].value = 0;
-        GuideWENP.np[1].value = 0;
-        GuideWENP.s           = IPS_IDLE;
-        GuideWETID            = 0;
-        IDSetNumber(&GuideWENP, nullptr);
-    }
 }
 
 bool LX200Pulsar2::isSlewing()

@@ -2,11 +2,20 @@
     Losmandy Gemini INDI driver
 
     Copyright (C) 2017 Jasem Mutlaq
+    Copyright (C) 2018 Eric Vickery
 
     Difference from LX200 Generic:
 
     1. Added Side of Pier
     2. Reimplemented isSlewComplete to use :Gv# since it is more reliable
+    3. Support networked connections.
+    4. Side of pier
+    5. Variable GOTO/SLEW/MOVE speeds.
+
+    v1.4:
+
+    + Added MOUNT_STATE_UPDATE_FREQ to reduce number of calls to updateMountState to reduce traffic
+    + All TCIFLUSH --> TCIOFLUSH to make sure both pipes are flushed since we received logs with mismatched traffic.
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -28,7 +37,7 @@
 #include "indicom.h"
 #include "lx200driver.h"
 #include "connectionplugins/connectioninterface.h"
-#include"connectionplugins/connectiontcp.h"
+#include "connectionplugins/connectiontcp.h"
 
 #include <cstring>
 #include <termios.h>
@@ -41,9 +50,9 @@
 
 LX200Gemini::LX200Gemini()
 {
-    setVersion(1, 3);
+    setVersion(1, 5);
 
-    setLX200Capability(LX200_HAS_SITES | LX200_HAS_FOCUS | LX200_HAS_PULSE_GUIDING);
+    setLX200Capability(LX200_HAS_SITES | LX200_HAS_PULSE_GUIDING);
 
     SetTelescopeCapability(TELESCOPE_CAN_PARK | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT |
                                TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE | TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK,
@@ -52,7 +61,7 @@ LX200Gemini::LX200Gemini()
 
 const char *LX200Gemini::getDefaultName()
 {
-    return (const char *)"Losmandy Gemini";
+    return static_cast<const char *>("Losmandy Gemini");
 }
 
 bool LX200Gemini::Connect()
@@ -94,23 +103,23 @@ bool LX200Gemini::initProperties()
                        MAIN_CONTROL_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
     IUFillNumber(&ManualSlewingSpeedN[0], "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", "%g", 20, 2000., 10., 800);
-    IUFillNumberVector(&ManualSlewingSpeedNP, ManualSlewingSpeedN, 1, getDeviceName(), "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&ManualSlewingSpeedNP, ManualSlewingSpeedN, 1, getDeviceName(), "MANUAL_SLEWING_SPEED", "Manual Slewing Speed", MOTION_TAB, IP_RW,
                        0, IPS_IDLE);
 
     IUFillNumber(&GotoSlewingSpeedN[0], "GOTO_SLEWING_SPEED", "Goto Slewing Speed", "%g", 20, 2000., 10., 800);
-    IUFillNumberVector(&GotoSlewingSpeedNP, GotoSlewingSpeedN, 1, getDeviceName(), "GOTO_SLEWING_SPEED", "Goto Slewing Speed", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&GotoSlewingSpeedNP, GotoSlewingSpeedN, 1, getDeviceName(), "GOTO_SLEWING_SPEED", "Goto Slewing Speed", MOTION_TAB, IP_RW,
                        0, IPS_IDLE);
 
     IUFillNumber(&MoveSpeedN[0], "MOVE_SPEED", "Move Speed", "%g", 20, 2000., 10., 10);
-    IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&MoveSpeedNP, MoveSpeedN, 1, getDeviceName(), "MOVE_SLEWING_SPEED", "Move Slewing Speed", MOTION_TAB, IP_RW,
                        0, IPS_IDLE);
 
     IUFillNumber(&GuidingSpeedN[0], "GUIDING_SPEED", "Guiding Speed", "%g", 0.2, 0.8, 0.1, 0.5);
-    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED", "Guiding Slewing Speed", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedN, 1, getDeviceName(), "GUIDING_SLEWING_SPEED", "Guiding Slewing Speed", GUIDE_TAB, IP_RW,
                        0, IPS_IDLE);
 
     IUFillNumber(&CenteringSpeedN[0], "CENTERING_SPEED", "Centering Speed", "%g", 20, 2000., 10., 10);
-    IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED", "Centering Slewing Speed", OPTIONS_TAB, IP_RW,
+    IUFillNumberVector(&CenteringSpeedNP, CenteringSpeedN, 1, getDeviceName(), "CENTERING_SLEWING_SPEED", "Centering Slewing Speed", MOTION_TAB, IP_RW,
                        0, IPS_IDLE);
 
     IUFillSwitch(&TrackModeS[GEMINI_TRACK_SIDEREAL], "TRACK_SIDEREAL", "Sidereal", ISS_ON);
@@ -125,7 +134,7 @@ bool LX200Gemini::updateProperties()
 {
     const int MAX_VALUE_LENGTH = 32;
     char value[MAX_VALUE_LENGTH];
-    uint speed = 0;
+    unsigned int speed = 0;
     float guidingSpeed = 0.0;
 
     LX200Generic::updateProperties();
@@ -187,7 +196,7 @@ bool LX200Gemini::ISNewSwitch(const char *dev, const char *name, ISState *states
             IUUpdateSwitch(&StartupModeSP, states, names, n);
             StartupModeSP.s = IPS_OK;
 
-            DEBUG(INDI::Logger::DBG_SESSION, "Startup mode will take effect on future connections.");
+            LOG_INFO("Startup mode will take effect on future connections.");
             IDSetSwitch(&StartupModeSP, nullptr);
             return true;
         }
@@ -214,7 +223,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
 
         if (!strcmp(name, ManualSlewingSpeedNP.name))
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set manual slewing speed of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set manual slewing speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(MANUAL_SLEWING_SPEED_ID, valueString))
             {
@@ -231,7 +240,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         }
         if (!strcmp(name, GotoSlewingSpeedNP.name))
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set goto slewing speed of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set goto slewing speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(GOTO_SLEWING_SPEED_ID, valueString))
             {
@@ -248,7 +257,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         }
         if (!strcmp(name, MoveSpeedNP.name))
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set move speed of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set move speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(MOVE_SPEED_ID, valueString))
             {
@@ -265,7 +274,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         }
         if (!strcmp(name, GuidingSpeedNP.name))
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set guiding speed of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set guiding speed of: %f", values[0]);
 
             // Special formatting for guiding speed
             snprintf(valueString, 16, "%1.1f", values[0]);
@@ -285,7 +294,7 @@ bool LX200Gemini::ISNewNumber(const char *dev, const char *name, double values[]
         }
         if (!strcmp(name, CenteringSpeedNP.name))
         {
-            DEBUGF(INDI::Logger::DBG_DEBUG, "Trying to set centering speed of: %f\n", values[0]);
+            LOGF_DEBUG("Trying to set centering speed of: %f", values[0]);
 
             if (!isSimulation() && !setGeminiProperty(CENTERING_SPEED_ID, valueString))
             {
@@ -315,7 +324,7 @@ bool LX200Gemini::checkConnection()
     char response[8] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%#02X>", 0x06);
+    LOGF_DEBUG("CMD: <%#02X>", 0x06);
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -325,7 +334,7 @@ bool LX200Gemini::checkConnection()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return false;
     }
 
@@ -334,7 +343,7 @@ bool LX200Gemini::checkConnection()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error reading from device %s (%d)", errmsg, rc);
         return false;
     }
 
@@ -342,12 +351,12 @@ bool LX200Gemini::checkConnection()
 
     tcflush(PortFD, TCIFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
+    LOGF_DEBUG("RES: <%s>", response);
 
     // If waiting for selection of startup mode, let us select it
     if (response[0] == 'b')
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Mount is waiting for selection of the startup mode.");
+        LOG_DEBUG("Mount is waiting for selection of the startup mode.");
         char cmd[4]     = "bC#";
         int startupMode = IUFindOnSwitchIndex(&StartupModeSP);
         if (startupMode == WARM_START)
@@ -355,13 +364,13 @@ bool LX200Gemini::checkConnection()
         else if (startupMode == WARM_RESTART)
             strncpy(cmd, "bR#", 4);
 
-        DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+        LOGF_DEBUG("CMD: <%s>", cmd);
 
         if ((rc = tty_write(PortFD, cmd, 4, &nbytes_written)) != TTY_OK)
         {
             char errmsg[256];
             tty_error_msg(rc, errmsg, 256);
-            DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+            LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
             return false;
         }
 
@@ -372,20 +381,20 @@ bool LX200Gemini::checkConnection()
     }
     else if (response[0] == 'B')
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Initial startup message is being displayed.");
+        LOG_DEBUG("Initial startup message is being displayed.");
     }
     else if (response[0] == 'S')
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Cold start in progress.");
+        LOG_DEBUG("Cold start in progress.");
     }
     else if (response[0] == 'G')
     {
-        updateMovementState();
-        DEBUG(INDI::Logger::DBG_DEBUG, "Startup complete with equatorial mount selected.");
+        updateMountState();
+        LOG_DEBUG("Startup complete with equatorial mount selected.");
     }
     else if (response[0] == 'A')
     {
-        DEBUG(INDI::Logger::DBG_DEBUG, "Startup complete with Alt-Az mount selected.");
+        LOG_DEBUG("Startup complete with Alt-Az mount selected.");
     }
 
     return true;
@@ -409,7 +418,15 @@ bool LX200Gemini::ReadScopeStatus()
     if (isSimulation())
         return LX200Generic::ReadScopeStatus();
 
-    updateMovementState();
+    if (m_isSleeping)
+        return true;
+
+    // JM 2018-10-23: After after MOUNT_STATE_UPDATE_FREQ to reduce unnecessary traffic
+    if (mountStateCounter++ == MOUNT_STATE_UPDATE_FREQ)
+    {
+        updateMountState();
+        mountStateCounter=0;
+    }
 
     if (TrackState == SCOPE_SLEWING)
     {
@@ -422,7 +439,7 @@ bool LX200Gemini::ReadScopeStatus()
             IDSetSwitch(&SlewRateSP, nullptr);
 
             TrackState = SCOPE_TRACKING;
-            DEBUG(INDI::Logger::DBG_SESSION, "Slew is complete. Tracking...");
+            LOG_INFO("Slew is complete. Tracking...");
         }
     }
     else if (TrackState == SCOPE_PARKING)
@@ -431,13 +448,13 @@ bool LX200Gemini::ReadScopeStatus()
         {
             SetParked(true);
             sleepMount();
+            return true;
         }
     }
 
     if (getLX200RA(PortFD, &currentRA) < 0 || getLX200DEC(PortFD, &currentDEC) < 0)
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        LOG_ERROR("Error reading RA/DEC.");
         return false;
     }
 
@@ -456,15 +473,15 @@ void LX200Gemini::syncSideOfPier()
     char response[8] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return;
     }
 
@@ -472,15 +489,15 @@ void LX200Gemini::syncSideOfPier()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error reading from device %s (%d)", errmsg, rc);
         return;
     }
 
     response[nbytes_read - 1] = '\0';
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
+    LOGF_DEBUG("RES: <%s>", response);
 
     setPierSide(response[0] == 'E' ? INDI::Telescope::PIER_EAST : INDI::Telescope::PIER_WEST);
 }
@@ -499,19 +516,19 @@ bool LX200Gemini::Park()
     // Response
     int rc = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return false;
     }
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     ParkSP.s   = IPS_BUSY;
     TrackState = SCOPE_PARKING;
@@ -534,21 +551,22 @@ bool LX200Gemini::sleepMount()
     // Response
     int rc = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return false;
     }
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Mount is sleeping...");
+    m_isSleeping = true;
+    LOG_INFO("Mount is sleeping...");
     return true;
 }
 
@@ -559,21 +577,22 @@ bool LX200Gemini::wakeupMount()
     // Response
     int rc = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return false;
     }
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
-    DEBUG(INDI::Logger::DBG_SESSION, "Mount is awake...");
+    m_isSleeping = false;
+    LOG_INFO("Mount is awake...");
     return true;
 }
 
@@ -583,25 +602,20 @@ void LX200Gemini::setTrackState(INDI::Telescope::TelescopeStatus state)
         TrackState = state;
 }
 
+void LX200Gemini::updateMountState()
+{
+    updateParkingState();
+    updateMovementState();
+}
+
 void LX200Gemini::updateMovementState()
 {
-    LX200Gemini::ParkingState parkingState = getParkingState();
-
-    if (parkingState != priorParkingState)
-    {
-        if (parkingState == PARKED)
-            SetParked(true);
-        else if (parkingState == NOT_PARKED)
-            SetParked(false);
-    }
-    priorParkingState = parkingState;
-
     LX200Gemini::MovementState movementState = getMovementState();
 
     switch (movementState)
     {
         case NO_MOVEMENT:
-            if (parkingState == PARKED)
+            if (priorParkingState == PARKED)
                 setTrackState(SCOPE_PARKED);
             else
                 setTrackState(SCOPE_IDLE);
@@ -623,21 +637,35 @@ void LX200Gemini::updateMovementState()
     }
 }
 
+void LX200Gemini::updateParkingState()
+{
+    LX200Gemini::ParkingState parkingState = getParkingState();
+
+    if (parkingState != priorParkingState)
+    {
+        if (parkingState == PARKED)
+            SetParked(true);
+        else if (parkingState == NOT_PARKED)
+            SetParked(false);
+    }
+    priorParkingState = parkingState;
+}
+
 LX200Gemini::MovementState LX200Gemini::getMovementState()
 {
     const char *cmd = ":Gv#";
     char response[2] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return LX200Gemini::MovementState::NO_MOVEMENT;
     }
 
@@ -645,15 +673,15 @@ LX200Gemini::MovementState LX200Gemini::getMovementState()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error reading from device %s (%d)", errmsg, rc);
         return LX200Gemini::MovementState::NO_MOVEMENT;
     }
 
     response[1] = '\0';
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
+    LOGF_DEBUG("RES: <%s>", response);
 
     switch (response[0])
     {
@@ -686,15 +714,15 @@ LX200Gemini::ParkingState LX200Gemini::getParkingState()
     char response[2] = { 0 };
     int rc = 0, nbytes_read = 0, nbytes_written = 0;
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
     if ((rc = tty_write(PortFD, cmd, 5, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return LX200Gemini::ParkingState::NOT_PARKED;
     }
 
@@ -702,15 +730,15 @@ LX200Gemini::ParkingState LX200Gemini::getParkingState()
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error reading from device %s (%d)", errmsg, rc);
         return LX200Gemini::ParkingState::NOT_PARKED;
     }
 
     response[1] = '\0';
 
-    tcflush(PortFD, TCIFLUSH);
+    tcflush(PortFD, TCIOFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", response);
+    LOGF_DEBUG("RES: <%s>", response);
 
     switch (response[0])
     {
@@ -751,13 +779,13 @@ bool LX200Gemini::getGeminiProperty(uint8_t propertyNumber, char* value)
 
     snprintf(cmd, 16, "%s%c#", prefix, checksum);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return false;
     }
 
@@ -765,7 +793,7 @@ bool LX200Gemini::getGeminiProperty(uint8_t propertyNumber, char* value)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error reading from device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error reading from device %s (%d)", errmsg, rc);
         return false;
     }
 
@@ -773,7 +801,7 @@ bool LX200Gemini::getGeminiProperty(uint8_t propertyNumber, char* value)
 
     tcflush(PortFD, TCIFLUSH);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "RES: <%s>", value);
+    LOGF_DEBUG("RES: <%s>", value);
     return true;
 }
 
@@ -790,13 +818,13 @@ bool LX200Gemini::setGeminiProperty(uint8_t propertyNumber, char* value)
 
     snprintf(cmd, 16, "%s%c#", prefix, checksum);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return false;
     }
 
@@ -817,14 +845,14 @@ bool LX200Gemini::SetTrackMode(uint8_t mode)
 
     snprintf(cmd, 16, "%s%c#", prefix, checksum);
 
-    DEBUG(INDI::Logger::DBG_ERROR, "Setting track mode");
-    DEBUGF(INDI::Logger::DBG_DEBUG, "CMD: <%s>", cmd);
+    LOG_ERROR("Setting track mode");
+    LOGF_DEBUG("CMD: <%s>", cmd);
 
     if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
     {
         char errmsg[256];
         tty_error_msg(rc, errmsg, 256);
-        DEBUGF(INDI::Logger::DBG_ERROR, "Error writing to device %s (%d)", errmsg, rc);
+        LOGF_ERROR("Error writing to device %s (%d)", errmsg, rc);
         return false;
     }
 

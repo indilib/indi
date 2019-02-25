@@ -47,6 +47,10 @@
 #include <string.h>
 #include <time.h>
 
+#ifdef __linux__
+#include <sys/ioctl.h>
+#endif
+
 #ifdef __APPLE__
 #include <sys/param.h>
 #endif
@@ -81,7 +85,9 @@
 
 int tty_debug = 0;
 int ttyGeminiUdpFormat = 0;
+int ttySkyWatcherUdpFormat = 0;
 int sequenceNumber = 1;
+int ttyClrTrailingLF = 0;
 
 #if defined(HAVE_LIBNOVA)
 int extractISOTime(const char *timestr, struct ln_date *iso_date)
@@ -143,31 +149,31 @@ int fs_sexa(char *out, double a, int w, int fracbase)
     /* do the rest */
     switch (fracbase)
     {
-        case 60: /* dd:mm */
-            m = f / (fracbase / 60);
-            out += snprintf(out, MAXINDIFORMAT, ":%02d", m);
-            break;
-        case 600: /* dd:mm.m */
-            out += snprintf(out, MAXINDIFORMAT, ":%02d.%1d", f / 10, f % 10);
-            break;
-        case 3600: /* dd:mm:ss */
-            m = f / (fracbase / 60);
-            s = f % (fracbase / 60);
-            out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d", m, s);
-            break;
-        case 36000: /* dd:mm:ss.s*/
-            m = f / (fracbase / 60);
-            s = f % (fracbase / 60);
-            out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d.%1d", m, s / 10, s % 10);
-            break;
-        case 360000: /* dd:mm:ss.ss */
-            m = f / (fracbase / 60);
-            s = f % (fracbase / 60);
-            out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d.%02d", m, s / 100, s % 100);
-            break;
-        default:
-            printf("fs_sexa: unknown fracbase: %d\n", fracbase);
-            return -1;
+    case 60: /* dd:mm */
+        m = f / (fracbase / 60);
+        out += snprintf(out, MAXINDIFORMAT, ":%02d", m);
+        break;
+    case 600: /* dd:mm.m */
+        out += snprintf(out, MAXINDIFORMAT, ":%02d.%1d", f / 10, f % 10);
+        break;
+    case 3600: /* dd:mm:ss */
+        m = f / (fracbase / 60);
+        s = f % (fracbase / 60);
+        out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d", m, s);
+        break;
+    case 36000: /* dd:mm:ss.s*/
+        m = f / (fracbase / 60);
+        s = f % (fracbase / 60);
+        out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d.%1d", m, s / 10, s % 10);
+        break;
+    case 360000: /* dd:mm:ss.ss */
+        m = f / (fracbase / 60);
+        s = f % (fracbase / 60);
+        out += snprintf(out, MAXINDIFORMAT, ":%02d:%02d.%02d", m, s / 100, s % 100);
+        break;
+    default:
+        printf("fs_sexa: unknown fracbase: %d\n", fracbase);
+        return -1;
     }
 
     return (out - out0);
@@ -233,6 +239,19 @@ void getSexComponents(double value, int *d, int *m, int *s)
     *m = (int32_t)((fabs(value) - *d) * 60.0);
     *s = (int32_t)rint(((fabs(value) - *d) * 60.0 - *m) * 60.0);
 
+    // Special case if seconds are >= 59.5 so it will be rounded by rint above
+    // to 60
+    if (*s == 60)
+    {
+        *s  = 0;
+        *m += 1;
+    }
+    if (*m == 60)
+    {
+        *m  = 0;
+        *d += 1;
+    }
+
     if (value < 0)
         *d *= -1;
 }
@@ -258,21 +277,21 @@ int numberFormat(char *buf, const char *format, double value)
         /* INDI sexi format */
         switch (f)
         {
-            case 9:
-                s = 360000;
-                break;
-            case 8:
-                s = 36000;
-                break;
-            case 6:
-                s = 3600;
-                break;
-            case 5:
-                s = 600;
-                break;
-            default:
-                s = 60;
-                break;
+        case 9:
+            s = 360000;
+            break;
+        case 8:
+            s = 36000;
+            break;
+        case 6:
+            s = 3600;
+            break;
+        case 5:
+            s = 600;
+            break;
+        default:
+            s = 60;
+            break;
         }
         return (fs_sexa(buf, value, w - f, s));
     }
@@ -317,6 +336,16 @@ void tty_set_debug(int debug)
 void tty_set_gemini_udp_format(int enabled)
 {
     ttyGeminiUdpFormat = enabled;
+}
+
+void tty_set_skywatcher_udp_format(int enabled)
+{
+    ttySkyWatcherUdpFormat = enabled;
+}
+
+void tty_clr_trailing_read_lf(int enabled)
+{
+    ttyClrTrailingLF = enabled;
 }
 
 int tty_timeout(int fd, int timeout)
@@ -462,9 +491,19 @@ int tty_read(int fd, char *buf, int nbytes, int timeout, int *nbytes_read)
                 IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, i, (unsigned char)buf[i], buf[i]);
         }
 
+        if (*nbytes_read == 0 && ttyClrTrailingLF && *buffer == 0x0A)
+        {
+            if (tty_debug)
+                IDLog("%s: Cleared LF char left in buf\n", __FUNCTION__);
+
+            memcpy(buffer, buffer+1,bytesRead);
+            --bytesRead;
+        }
+
         *nbytes_read += bytesRead;
         numBytesToRead -= bytesRead;
     }
+
 
     if (ttyGeminiUdpFormat)
     {
@@ -528,7 +567,22 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
                 return TTY_OK;
             }
         }
+    }
+    else if (ttySkyWatcherUdpFormat)
+    {
+        bytesRead = read(fd, readBuffer, 255);
+        if (bytesRead < 0)
+            return TTY_READ_ERROR;
+        for (int index = 0; index < bytesRead; index++)
+        {
+            (*nbytes_read)++;
 
+            if (*(readBuffer+index) == stop_char)
+            {
+                strncpy(buf, readBuffer, *nbytes_read);
+                return TTY_OK;
+            }
+        }
     }
     else
     {
@@ -546,10 +600,16 @@ int tty_read_section(int fd, char *buf, char stop_char, int timeout, int *nbytes
             if (tty_debug)
                 IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
-            (*nbytes_read)++;
+            if (!(ttyClrTrailingLF && *read_char == 0X0A && *nbytes_read == 0))
+                (*nbytes_read)++;
+            else {
+                if (tty_debug)
+                    IDLog("%s: Cleared LF char left in buf\n", __FUNCTION__);
+            }
 
-            if (*read_char == stop_char)
+            if (*read_char == stop_char) {
                 return TTY_OK;
+            }
         }
     }
 
@@ -567,11 +627,15 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
     if (fd == -1)
         return TTY_ERRNO;
 
+    // For Gemini
+    if (ttyGeminiUdpFormat)
+        return tty_read_section(fd, buf, stop_char, timeout, nbytes_read);
+
     int bytesRead = 0;
     int err       = TTY_OK;
     *nbytes_read  = 0;
-
     uint8_t *read_char = 0;
+    memset(buf, 0, nsize);
 
     if (tty_debug)
         IDLog("%s: Request to read until stop char '%#02X' with %d timeout for fd %d\n", __FUNCTION__, stop_char, timeout, fd);
@@ -590,7 +654,12 @@ int tty_nread_section(int fd, char *buf, int nsize, char stop_char, int timeout,
         if (tty_debug)
             IDLog("%s: buffer[%d]=%#X (%c)\n", __FUNCTION__, (*nbytes_read), *read_char, *read_char);
 
-        (*nbytes_read)++;
+        if (!(ttyClrTrailingLF && *read_char == 0X0A && *nbytes_read == 0))
+            (*nbytes_read)++;
+        else {
+            if (tty_debug)
+                IDLog("%s: Cleared LF char left in buf\n", __FUNCTION__);
+        }
 
         if (*read_char == stop_char)
             return TTY_OK;
@@ -662,131 +731,131 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     // The baud rate, word length, and handshake options can be set as follows:
     switch (bit_rate)
     {
-        case 0:
-            bps = B0;
-            break;
-        case 50:
-            bps = B50;
-            break;
-        case 75:
-            bps = B75;
-            break;
-        case 110:
-            bps = B110;
-            break;
-        case 134:
-            bps = B134;
-            break;
-        case 150:
-            bps = B150;
-            break;
-        case 200:
-            bps = B200;
-            break;
-        case 300:
-            bps = B300;
-            break;
-        case 600:
-            bps = B600;
-            break;
-        case 1200:
-            bps = B1200;
-            break;
-        case 1800:
-            bps = B1800;
-            break;
-        case 2400:
-            bps = B2400;
-            break;
-        case 4800:
-            bps = B4800;
-            break;
-        case 9600:
-            bps = B9600;
-            break;
-        case 19200:
-            bps = B19200;
-            break;
-        case 38400:
-            bps = B38400;
-            break;
-        case 57600:
-            bps = B57600;
-            break;
-        case 115200:
-            bps = B115200;
-            break;
-        case 230400:
-            bps = B230400;
-            break;
-        default:
-            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
-                perror(NULL);
-            else
-                perror(msg);
-            return TTY_PARAM_ERROR;
+    case 0:
+        bps = B0;
+        break;
+    case 50:
+        bps = B50;
+        break;
+    case 75:
+        bps = B75;
+        break;
+    case 110:
+        bps = B110;
+        break;
+    case 134:
+        bps = B134;
+        break;
+    case 150:
+        bps = B150;
+        break;
+    case 200:
+        bps = B200;
+        break;
+    case 300:
+        bps = B300;
+        break;
+    case 600:
+        bps = B600;
+        break;
+    case 1200:
+        bps = B1200;
+        break;
+    case 1800:
+        bps = B1800;
+        break;
+    case 2400:
+        bps = B2400;
+        break;
+    case 4800:
+        bps = B4800;
+        break;
+    case 9600:
+        bps = B9600;
+        break;
+    case 19200:
+        bps = B19200;
+        break;
+    case 38400:
+        bps = B38400;
+        break;
+    case 57600:
+        bps = B57600;
+        break;
+    case 115200:
+        bps = B115200;
+        break;
+    case 230400:
+        bps = B230400;
+        break;
+    default:
+        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
+            perror(NULL);
+        else
+            perror(msg);
+        return TTY_PARAM_ERROR;
     }
 
     cfsetspeed(&tty_setting, bps); // Set baud rate
     /* word size */
     switch (word_size)
     {
-        case 5:
-            tty_setting.c_cflag |= CS5;
-            break;
-        case 6:
-            tty_setting.c_cflag |= CS6;
-            break;
-        case 7:
-            tty_setting.c_cflag |= CS7;
-            break;
-        case 8:
-            tty_setting.c_cflag |= CS8;
-            break;
-        default:
-            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
-                perror(NULL);
-            else
-                perror(msg);
+    case 5:
+        tty_setting.c_cflag |= CS5;
+        break;
+    case 6:
+        tty_setting.c_cflag |= CS6;
+        break;
+    case 7:
+        tty_setting.c_cflag |= CS7;
+        break;
+    case 8:
+        tty_setting.c_cflag |= CS8;
+        break;
+    default:
+        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
+            perror(NULL);
+        else
+            perror(msg);
 
-            return TTY_PARAM_ERROR;
+        return TTY_PARAM_ERROR;
     }
 
     /* parity */
     switch (parity)
     {
-        case PARITY_NONE:
-            break;
-        case PARITY_EVEN:
-            tty_setting.c_cflag |= PARENB;
-            break;
-        case PARITY_ODD:
-            tty_setting.c_cflag |= PARENB | PARODD;
-            break;
-        default:
-            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid parity selection value.", parity) < 0)
-                perror(NULL);
-            else
-                perror(msg);
+    case PARITY_NONE:
+        break;
+    case PARITY_EVEN:
+        tty_setting.c_cflag |= PARENB;
+        break;
+    case PARITY_ODD:
+        tty_setting.c_cflag |= PARENB | PARODD;
+        break;
+    default:
+        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid parity selection value.", parity) < 0)
+            perror(NULL);
+        else
+            perror(msg);
 
-            return TTY_PARAM_ERROR;
+        return TTY_PARAM_ERROR;
     }
 
     /* stop_bits */
     switch (stop_bits)
     {
-        case 1:
-            break;
-        case 2:
-            tty_setting.c_cflag |= CSTOPB;
-            break;
-        default:
-            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid stop bit count.", stop_bits) < 0)
-                perror(NULL);
-            else
-                perror(msg);
+    case 1:
+        break;
+    case 2:
+        tty_setting.c_cflag |= CSTOPB;
+        break;
+    default:
+        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid stop bit count.", stop_bits) < 0)
+            perror(NULL);
+        else
+            perror(msg);
 
-            return TTY_PARAM_ERROR;
+        return TTY_PARAM_ERROR;
     }
 
 #if defined(MAC_OS_X_VERSION_10_4) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_4)
@@ -824,7 +893,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
 
     handshake = TIOCM_DTR | TIOCM_RTS | TIOCM_CTS | TIOCM_DSR;
     if (ioctl(t_fd, TIOCMSET, &handshake) == -1)
-    // Set the modem lines depending on the bits set in handshake
+        // Set the modem lines depending on the bits set in handshake
     {
         IDLog("Error setting handshake lines %s - %s(%d).\n", device, strerror(errno), errno);
     }
@@ -833,7 +902,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     // See tty(4) ("man 4 tty") and ioctl(2) ("man 2 ioctl") for details.
 
     if (ioctl(t_fd, TIOCMGET, &handshake) == -1)
-    // Store the state of the modem lines in handshake
+        // Store the state of the modem lines in handshake
     {
         IDLog("Error getting handshake lines %s - %s(%d).\n", device, strerror(errno), errno);
     }
@@ -861,7 +930,7 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     /* return success */
     return TTY_OK;
 
-// Failure path
+    // Failure path
 error:
     if (t_fd != -1)
     {
@@ -879,14 +948,44 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
 
 #else
     int t_fd = -1;
-    char msg[80];
+    int i = 0;
+    char msg[128]={0};
     int bps;
     struct termios tty_setting;
 
-    if ((t_fd = open(device, O_RDWR | O_NOCTTY)) == -1)
+    // Open as Read/Write, no fnctl, and close on exclusive
+    for (i = 0 ; i < 2 ; i++)
     {
-        *fd = -1;
+        t_fd = open(device, O_RDWR | O_NOCTTY | O_CLOEXEC);
+        if (t_fd == -1)
+        {
+            *fd = -1;
+            if (errno == EBUSY)
+            {
+                usleep(1e6);
+                continue;
+            }
+            else
+                return TTY_PORT_FAILURE;
+        }
+    }
 
+    if (t_fd == -1)
+        return TTY_PORT_BUSY;
+
+    // Set port in exclusive mode to prevent other non-root processes from opening it.
+    if (ioctl(t_fd, TIOCEXCL) == -1)
+    {
+        perror("tty_connect: Error setting TIOCEXC.");
+        close(t_fd);
+        return TTY_PORT_FAILURE;
+    }
+
+    // Get the current options and save them so we can restore the default settings later.
+    if (tcgetattr(t_fd, &tty_setting) == -1)
+    {
+        perror("tty_connect: failed getting tty attributes.");
+        close(t_fd);
         return TTY_PORT_FAILURE;
     }
 
@@ -894,73 +993,75 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     Set bps rate */
     switch (bit_rate)
     {
-        case 0:
-            bps = B0;
-            break;
-        case 50:
-            bps = B50;
-            break;
-        case 75:
-            bps = B75;
-            break;
-        case 110:
-            bps = B110;
-            break;
-        case 134:
-            bps = B134;
-            break;
-        case 150:
-            bps = B150;
-            break;
-        case 200:
-            bps = B200;
-            break;
-        case 300:
-            bps = B300;
-            break;
-        case 600:
-            bps = B600;
-            break;
-        case 1200:
-            bps = B1200;
-            break;
-        case 1800:
-            bps = B1800;
-            break;
-        case 2400:
-            bps = B2400;
-            break;
-        case 4800:
-            bps = B4800;
-            break;
-        case 9600:
-            bps = B9600;
-            break;
-        case 19200:
-            bps = B19200;
-            break;
-        case 38400:
-            bps = B38400;
-            break;
-        case 57600:
-            bps = B57600;
-            break;
-        case 115200:
-            bps = B115200;
-            break;
-        case 230400:
-            bps = B230400;
-            break;
-        default:
-            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
-                perror(NULL);
-            else
-                perror(msg);
-            return TTY_PARAM_ERROR;
+    case 0:
+        bps = B0;
+        break;
+    case 50:
+        bps = B50;
+        break;
+    case 75:
+        bps = B75;
+        break;
+    case 110:
+        bps = B110;
+        break;
+    case 134:
+        bps = B134;
+        break;
+    case 150:
+        bps = B150;
+        break;
+    case 200:
+        bps = B200;
+        break;
+    case 300:
+        bps = B300;
+        break;
+    case 600:
+        bps = B600;
+        break;
+    case 1200:
+        bps = B1200;
+        break;
+    case 1800:
+        bps = B1800;
+        break;
+    case 2400:
+        bps = B2400;
+        break;
+    case 4800:
+        bps = B4800;
+        break;
+    case 9600:
+        bps = B9600;
+        break;
+    case 19200:
+        bps = B19200;
+        break;
+    case 38400:
+        bps = B38400;
+        break;
+    case 57600:
+        bps = B57600;
+        break;
+    case 115200:
+        bps = B115200;
+        break;
+    case 230400:
+        bps = B230400;
+        break;
+    default:
+        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid bit rate.", bit_rate) < 0)
+            perror(NULL);
+        else
+            perror(msg);
+        close(t_fd);
+        return TTY_PARAM_ERROR;
     }
     if ((cfsetispeed(&tty_setting, bps) < 0) || (cfsetospeed(&tty_setting, bps) < 0))
     {
         perror("tty_connect: failed setting bit rate.");
+        close(t_fd);
         return TTY_PORT_FAILURE;
     }
 
@@ -974,67 +1075,70 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     /* word size */
     switch (word_size)
     {
-        case 5:
-            tty_setting.c_cflag |= CS5;
-            break;
-        case 6:
-            tty_setting.c_cflag |= CS6;
-            break;
-        case 7:
-            tty_setting.c_cflag |= CS7;
-            break;
-        case 8:
-            tty_setting.c_cflag |= CS8;
-            break;
-        default:
+    case 5:
+        tty_setting.c_cflag |= CS5;
+        break;
+    case 6:
+        tty_setting.c_cflag |= CS6;
+        break;
+    case 7:
+        tty_setting.c_cflag |= CS7;
+        break;
+    case 8:
+        tty_setting.c_cflag |= CS8;
+        break;
+    default:
 
-            fprintf(stderr, "Default\n");
-            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
-                perror(NULL);
-            else
-                perror(msg);
+        fprintf(stderr, "Default\n");
+        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid data bit count.", word_size) < 0)
+            perror(NULL);
+        else
+            perror(msg);
 
-            return TTY_PARAM_ERROR;
+        close(t_fd);
+        return TTY_PARAM_ERROR;
     }
 
     /* parity */
     switch (parity)
     {
-        case PARITY_NONE:
-            break;
-        case PARITY_EVEN:
-            tty_setting.c_cflag |= PARENB;
-            break;
-        case PARITY_ODD:
-            tty_setting.c_cflag |= PARENB | PARODD;
-            break;
-        default:
+    case PARITY_NONE:
+        break;
+    case PARITY_EVEN:
+        tty_setting.c_cflag |= PARENB;
+        break;
+    case PARITY_ODD:
+        tty_setting.c_cflag |= PARENB | PARODD;
+        break;
+    default:
 
-            fprintf(stderr, "Default1\n");
-            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid parity selection value.", parity) < 0)
-                perror(NULL);
-            else
-                perror(msg);
+        fprintf(stderr, "Default1\n");
+        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid parity selection value.", parity) < 0)
+            perror(NULL);
+        else
+            perror(msg);
 
-            return TTY_PARAM_ERROR;
+        close(t_fd);
+        return TTY_PARAM_ERROR;
     }
 
     /* stop_bits */
     switch (stop_bits)
     {
-        case 1:
-            break;
-        case 2:
-            tty_setting.c_cflag |= CSTOPB;
-            break;
-        default:
-            fprintf(stderr, "Default2\n");
-            if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid stop bit count.", stop_bits) < 0)
-                perror(NULL);
-            else
-                perror(msg);
+    case 1:
+        break;
+    case 2:
+        tty_setting.c_cflag |= CSTOPB;
+        break;
+    default:
+        fprintf(stderr, "Default2\n");
+        if (snprintf(msg, sizeof(msg), "tty_connect: %d is not a valid stop bit count.", stop_bits) < 0)
+            perror(NULL);
+        else
+            perror(msg);
 
-            return TTY_PARAM_ERROR;
+        close(t_fd);
+        return TTY_PARAM_ERROR;
     }
     /* Control Modes complete */
 
@@ -1098,58 +1202,62 @@ void tty_error_msg(int err_code, char *err_msg, int err_msg_len)
 
     switch (err_code)
     {
-        case TTY_OK:
-            strncpy(err_msg, "No Error", err_msg_len);
-            break;
+    case TTY_OK:
+        strncpy(err_msg, "No Error", err_msg_len);
+        break;
 
-        case TTY_READ_ERROR:
-            snprintf(error_string, 512, "Read Error: %s", strerror(errno));
-            strncpy(err_msg, error_string, err_msg_len);
-            break;
+    case TTY_READ_ERROR:
+        snprintf(error_string, 512, "Read Error: %s", strerror(errno));
+        strncpy(err_msg, error_string, err_msg_len);
+        break;
 
-        case TTY_WRITE_ERROR:
-            snprintf(error_string, 512, "Write Error: %s", strerror(errno));
-            strncpy(err_msg, error_string, err_msg_len);
-            break;
+    case TTY_WRITE_ERROR:
+        snprintf(error_string, 512, "Write Error: %s", strerror(errno));
+        strncpy(err_msg, error_string, err_msg_len);
+        break;
 
-        case TTY_SELECT_ERROR:
-            snprintf(error_string, 512, "Select Error: %s", strerror(errno));
-            strncpy(err_msg, error_string, err_msg_len);
-            break;
+    case TTY_SELECT_ERROR:
+        snprintf(error_string, 512, "Select Error: %s", strerror(errno));
+        strncpy(err_msg, error_string, err_msg_len);
+        break;
 
-        case TTY_TIME_OUT:
-            strncpy(err_msg, "Timeout error", err_msg_len);
-            break;
+    case TTY_TIME_OUT:
+        strncpy(err_msg, "Timeout error", err_msg_len);
+        break;
 
-        case TTY_PORT_FAILURE:
-            if (errno == EACCES)
-                snprintf(error_string, 512,
-                         "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser "
-                         "$USER dialout)",
-                         strerror(errno));
-            else
-                snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.",
-                         strerror(errno));
+    case TTY_PORT_FAILURE:
+        if (errno == EACCES)
+            snprintf(error_string, 512,
+                     "Port failure Error: %s. Try adding your user to the dialout group and restart (sudo adduser "
+                     "$USER dialout)",
+                     strerror(errno));
+        else
+            snprintf(error_string, 512, "Port failure Error: %s. Check if device is connected to this port.",
+                     strerror(errno));
 
-            strncpy(err_msg, error_string, err_msg_len);
-            break;
+        strncpy(err_msg, error_string, err_msg_len);
+        break;
 
-        case TTY_PARAM_ERROR:
-            strncpy(err_msg, "Parameter error", err_msg_len);
-            break;
+    case TTY_PARAM_ERROR:
+        strncpy(err_msg, "Parameter error", err_msg_len);
+        break;
 
-        case TTY_ERRNO:
-            snprintf(error_string, 512, "%s", strerror(errno));
-            strncpy(err_msg, error_string, err_msg_len);
-            break;
+    case TTY_ERRNO:
+        snprintf(error_string, 512, "%s", strerror(errno));
+        strncpy(err_msg, error_string, err_msg_len);
+        break;
 
-        case TTY_OVERFLOW:
-            strncpy(err_msg, "Read overflow", err_msg_len);
-            break;
+    case TTY_OVERFLOW:
+        strncpy(err_msg, "Read overflow", err_msg_len);
+        break;
 
-        default:
-            strncpy(err_msg, "Error: unrecognized error code", err_msg_len);
-            break;
+    case TTY_PORT_BUSY:
+        strncpy(err_msg, "Port is busy", err_msg_len);
+        break;
+
+    default:
+        strncpy(err_msg, "Error: unrecognized error code", err_msg_len);
+        break;
     }
 }
 
@@ -1158,17 +1266,17 @@ const char *pstateStr(IPState s)
 {
     switch (s)
     {
-        case IPS_IDLE:
-            return ("Idle");
-        case IPS_OK:
-            return ("Ok");
-        case IPS_BUSY:
-            return ("Busy");
-        case IPS_ALERT:
-            return ("Alert");
-        default:
-            fprintf(stderr, "Impossible IPState %d\n", s);
-            return NULL;
+    case IPS_IDLE:
+        return ("Idle");
+    case IPS_OK:
+        return ("Ok");
+    case IPS_BUSY:
+        return ("Busy");
+    case IPS_ALERT:
+        return ("Alert");
+    default:
+        fprintf(stderr, "Impossible IPState %d\n", s);
+        return NULL;
     }
 }
 
@@ -1235,13 +1343,13 @@ const char *sstateStr(ISState s)
 {
     switch (s)
     {
-        case ISS_ON:
-            return ("On");
-        case ISS_OFF:
-            return ("Off");
-        default:
-            fprintf(stderr, "Impossible ISState %d\n", s);
-            return NULL;
+    case ISS_ON:
+        return ("On");
+    case ISS_OFF:
+        return ("Off");
+    default:
+        fprintf(stderr, "Impossible ISState %d\n", s);
+        return NULL;
     }
 }
 
@@ -1250,15 +1358,15 @@ const char *ruleStr(ISRule r)
 {
     switch (r)
     {
-        case ISR_1OFMANY:
-            return ("OneOfMany");
-        case ISR_ATMOST1:
-            return ("AtMostOne");
-        case ISR_NOFMANY:
-            return ("AnyOfMany");
-        default:
-            fprintf(stderr, "Impossible ISRule %d\n", r);
-            return NULL;
+    case ISR_1OFMANY:
+        return ("OneOfMany");
+    case ISR_ATMOST1:
+        return ("AtMostOne");
+    case ISR_NOFMANY:
+        return ("AnyOfMany");
+    default:
+        fprintf(stderr, "Impossible ISRule %d\n", r);
+        return NULL;
     }
 }
 
@@ -1267,15 +1375,15 @@ const char *permStr(IPerm p)
 {
     switch (p)
     {
-        case IP_RO:
-            return ("ro");
-        case IP_WO:
-            return ("wo");
-        case IP_RW:
-            return ("rw");
-        default:
-            fprintf(stderr, "Impossible IPerm %d\n", p);
-            return NULL;
+    case IP_RO:
+        return ("ro");
+    case IP_WO:
+        return ("wo");
+    case IP_RW:
+        return ("rw");
+    default:
+        fprintf(stderr, "Impossible IPerm %d\n", p);
+        return NULL;
     }
 }
 

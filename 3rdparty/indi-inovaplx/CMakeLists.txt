@@ -12,7 +12,6 @@ find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(INOVASDK REQUIRED)
-find_package(Threads REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_inovaplx_ccd.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_inovaplx_ccd.xml )
@@ -32,7 +31,7 @@ set(inovaplxccd_SRCS
 
 add_executable(indi_inovaplx_ccd ${inovaplxccd_SRCS})
 
-target_link_libraries(indi_inovaplx_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${INOVASDK_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_inovaplx_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${INOVASDK_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY})
 
 install(TARGETS indi_inovaplx_ccd RUNTIME DESTINATION bin)
 

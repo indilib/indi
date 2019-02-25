@@ -286,22 +286,22 @@ class Telescope : public DefaultDevice
     /**
      * @return Get current RA/AZ parking position.
      */
-    double GetAxis1Park();
+    double GetAxis1Park() const;
 
     /**
      * @return Get default RA/AZ parking position.
      */
-    double GetAxis1ParkDefault();
+    double GetAxis1ParkDefault() const;
 
     /**
      * @return Get current DEC/ALT parking position.
      */
-    double GetAxis2Park();
+    double GetAxis2Park() const;
 
     /**
      * @return Get defailt DEC/ALT parking position.
      */
-    double GetAxis2ParkDefault();
+    double GetAxis2ParkDefault() const;
 
     /**
      * @brief SetRAPark Set current RA/AZ parking position. The data park file (stored in
@@ -338,7 +338,7 @@ class Telescope : public DefaultDevice
      * @return true if lock status equals true and DomeClosedLockTP is Dome Locks or Dome Locks and
      * Dome Parks (both).
      */
-    bool isLocked();
+    bool isLocked() const;
 
     // Joystick helpers
     static void joystickHelper(const char *joystick_n, double mag, double angle, void *context);
@@ -634,8 +634,15 @@ class Telescope : public DefaultDevice
     INumberVectorProperty ParkPositionNP;
 
     // Custom parking options
-    ISwitch ParkOptionS[3];
+    ISwitch ParkOptionS[4];
     ISwitchVectorProperty ParkOptionSP;
+    enum
+    {
+        PARK_CURRENT,
+        PARK_DEFAULT,
+        PARK_WRITE_DATA,
+        PARK_PURGE_DATA,
+    };
 
     // A switch for North/South motion
     ISwitch MovementNSS[2];
@@ -654,12 +661,13 @@ class Telescope : public DefaultDevice
     INumberVectorProperty ScopeParametersNP;
 
     // UTC and UTC Offset
-    IText TimeT[2];
+    IText TimeT[2] {};
     ITextVectorProperty TimeTP;
+    void sendTimeFromSystem();
 
     // Active GPS/Dome device to snoop
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[2];
+    IText ActiveDeviceT[2] {};
 
     // Switch to lock if dome is closed, and or force parking if dome parks
     ISwitchVectorProperty DomeClosedLockTP;
@@ -700,12 +708,13 @@ class Telescope : public DefaultDevice
     int last_we_motion, last_ns_motion;
 
     //Park
-    char *LoadParkData();
+    const char *LoadParkData();
     bool WriteParkData();
+    bool PurgeParkData();
 
     int PortFD                           = -1;
-    Connection::Serial *serialConnection = NULL;
-    Connection::TCP *tcpConnection       = NULL;
+    Connection::Serial *serialConnection = nullptr;
+    Connection::TCP *tcpConnection       = nullptr;
 
   // XML node names for scope config
   const std::string ScopeConfigRootXmlNode { "scopeconfig" };
@@ -732,7 +741,7 @@ class Telescope : public DefaultDevice
 
     // Scope config name
     ITextVectorProperty ScopeConfigNameTP;
-    IText ScopeConfigNameT[1];
+    IText ScopeConfigNameT[1] {};
 
     /// The telescope/guide scope configuration file name
     const std::string ScopeConfigFileName;
@@ -740,8 +749,18 @@ class Telescope : public DefaultDevice
 private:
     bool processTimeInfo(const char *utc, const char *offset);
     bool processLocationInfo(double latitude, double longitude, double elevation);
-
     void triggerSnoop(const char *driverName, const char *propertyName);
+    /**
+     * @brief SyncParkStatus Update the state and switches for parking
+     * @param isparked True if parked, false otherwise.
+     */
+    void SyncParkStatus(bool isparked);
+
+    /**
+     * @brief LoadParkXML Read and process park XML data.
+     * @return error string if there is problem opening the file
+     */
+    const char *LoadParkXML();
 
     TelescopeParkData parkDataType;
     bool IsLocked;

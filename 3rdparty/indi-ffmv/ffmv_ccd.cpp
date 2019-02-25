@@ -1,11 +1,11 @@
 /**
  * Copyright (C) 2013 Ben Gilsrud
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -28,8 +28,6 @@
 
 #include "ffmv_ccd.h"
 #include "config.h"
-
-const int POLLMS = 250;
 
 std::unique_ptr<FFMVCCD> ffmvCCD(new FFMVCCD());
 
@@ -132,11 +130,6 @@ bool FFMVCCD::Connect()
 {
     dc1394camera_list_t *list;
     dc1394error_t err;
-    bool supported;
-    bool settings_valid;
-    uint32_t val;
-    dc1394format7mode_t fm7;
-    dc1394feature_info_t feature;
     float min, max;
 
     dc1394 = dc1394_new();
@@ -235,15 +228,20 @@ bool FFMVCCD::Connect()
 #if 0
     /* Set absolute gain to max */
     err = dc1394_feature_set_absolute_control(dcam, DC1394_FEATURE_GAIN, DC1394_ON);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Failed to enable ansolute gain control.");
-    } 
+    }
     err = dc1394_feature_get_absolute_boundaries(dcam, DC1394_FEATURE_GAIN, &min, &max);
-    if (err != DC1394_SUCCESS) {
+    if (err != DC1394_SUCCESS)
+    {
         IDMessage(getDeviceName(), "Could not get max gain value");
-    } else {
+    }
+    else
+    {
         err = dc1394_feature_set_absolute_value(dcam, DC1394_FEATURE_GAIN, max);
-        if (err != DC1394_SUCCESS) {
+        if (err != DC1394_SUCCESS)
+        {
             IDMessage(getDeviceName(), "Could not set max gain value");
         }
     }
@@ -332,6 +330,8 @@ bool FFMVCCD::initProperties()
     IUFillSwitchVector(&GainSP, GainS, 2, getDeviceName(), "GAIN", "Gain", IMAGE_SETTINGS_TAB, IP_WO, ISR_NOFMANY, 0,
                        IPS_IDLE);
 
+    setDefaultPollingPeriod(250);
+
     return true;
 }
 
@@ -381,14 +381,9 @@ void FFMVCCD::setupParams()
 ***************************************************************************************/
 bool FFMVCCD::StartExposure(float duration)
 {
-    FILE *imagefile;
     dc1394error_t err;
     dc1394video_frame_t *frame;
-    int i;
     int ms;
-    unsigned int val;
-    float gain = 1.0;
-    uint32_t uwidth, uheight;
     float sub_length;
     float fval;
 
@@ -402,17 +397,13 @@ bool FFMVCCD::StartExposure(float duration)
     PrimaryCCD.setBPP(16);
     PrimaryCCD.setExposureDuration(duration);
 
-    gettimeofday(&ExpStart, NULL);
+    gettimeofday(&ExpStart, nullptr);
 
     InExposure = true;
     IDMessage(getDeviceName(), "Exposure has begun.");
 
     // Let's get a pointer to the frame buffer
     uint8_t *image = PrimaryCCD.getFrameBuffer();
-
-    // Get width and height
-    int width  = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
-    int height = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
 
     memset(image, 0, PrimaryCCD.getFrameBufferSize());
 
@@ -428,12 +419,13 @@ bool FFMVCCD::StartExposure(float duration)
 
         IDMessage(getDeviceName(), "Triggering a %f second exposure using %d subs of %f seconds", duration, sub_count,
                   sub_length);
-/* Set sub length */
+        /* Set sub length */
 #if 0
-    err = dc1394_feature_set_absolute_control(dcam, DC1394_FEATURE_SHUTTER, DC1394_ON);
-    if (err != DC1394_SUCCESS) {
-        IDMessage(getDeviceName(), "Failed to enable ansolute shutter control.");
-    }
+        err = dc1394_feature_set_absolute_control(dcam, DC1394_FEATURE_SHUTTER, DC1394_ON);
+        if (err != DC1394_SUCCESS)
+        {
+            IDMessage(getDeviceName(), "Failed to enable ansolute shutter control.");
+        }
 #endif
         err = dc1394_feature_set_absolute_value(dcam, DC1394_FEATURE_SHUTTER, sub_length);
         if (err != DC1394_SUCCESS)
@@ -496,7 +488,7 @@ float FFMVCCD::CalcTimeLeft()
     double timesince;
     double timeleft;
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
 
     timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
                 (double)(ExpStart.tv_sec * 1000.0 + ExpStart.tv_usec / 1000);
@@ -659,6 +651,7 @@ void FFMVCCD::grabImage()
     uint16_t val;
     struct timeval start, end;
 
+    std::unique_lock<std::mutex> guard(ccdBufferLock);
     // Let's get a pointer to the frame buffer
     uint8_t *image = PrimaryCCD.getFrameBuffer();
 
@@ -672,7 +665,7 @@ void FFMVCCD::grabImage()
     *  stop data transmission
     *-----------------------------------------------------------------------*/
 
-    gettimeofday(&start, NULL);
+    gettimeofday(&start, nullptr);
     for (sub = 0; sub < sub_count; ++sub)
     {
         IDMessage(getDeviceName(), "Getting sub %d of %d", sub, sub_count);
@@ -708,9 +701,10 @@ void FFMVCCD::grabImage()
 
         dc1394_capture_enqueue(dcam, frame);
     }
+    guard.unlock();
     err = dc1394_video_set_transmission(dcam, DC1394_OFF);
     IDMessage(getDeviceName(), "Download complete.");
-    gettimeofday(&end, NULL);
+    gettimeofday(&end, nullptr);
     IDMessage(getDeviceName(), "Download took %d uS",
               (int)((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)));
 

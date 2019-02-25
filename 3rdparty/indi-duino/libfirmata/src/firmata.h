@@ -76,6 +76,8 @@
 
 using namespace std;
 
+extern void (*firmata_debug_cb)(const char *file, int line, const char *msg, ...);
+
 typedef struct
 {
     uint8_t mode;
@@ -89,6 +91,8 @@ class Firmata
   public:
     Firmata();
     Firmata(const char *_serialPort);
+    Firmata(const char *_serialPort, uint32_t baud);
+    Firmata(int fd);
     ~Firmata();
 
     int writeDigitalPin(unsigned char pin, unsigned char mode); // mode can be ARDUINO_HIGH or ARDUINO_LOW
@@ -106,6 +110,9 @@ class Firmata
     int flushPort();
     //int getSysExData();
     int sendStringData(char *data);
+    int askPinStateWaitForReply(int pin);
+    int initState();
+    time_t secondsSinceVersionReply();
     pin_t pin_info[128];
     void print_state();
     char firmata_name[140];
@@ -114,24 +121,23 @@ class Firmata
     bool portOpen;
 
   private:
-    int parse_count;
-    int parse_command_len;
+    int parse_count { 0 };
+    int parse_command_len { 0 };
     uint8_t parse_buf[4096];
     void Parse(const uint8_t *buf, int len);
     void DoMessage(void);
+    int have_analog_mapping { 0 };
+    int have_capabilities { 0 };
+    time_t version_reply_time { 0 };
 
   protected:
     Arduino *arduino;
 
-    int waitForData;
-    int executeMultiByteCommand;
-    int multiByteChannel;
-    unsigned char serialInBuf[FIRMATA_MAX_DATA_BYTES];
-    unsigned char serialOutBuf[FIRMATA_MAX_DATA_BYTES];
-
-    vector<unsigned char> sysExBuf;
     char firmwareVersion[FIRMATA_FIRMWARE_VERSION_SIZE];
-    int digitalPortValue[ARDUINO_DIG_PORTS]; /// bitpacked digital pin state
-    int init(const char *_serialPort);
+    uint8_t digitalPortValue[ARDUINO_DIG_PORTS]; /// bitpacked digital pin state
+    int init(const char *_serialPort, uint32_t baud);
+    int init(int fd);
+    int handshake();
     int sendValueAsTwo7bitBytes(int value);
+    int updateDigitalPort(unsigned char pin, unsigned char mode); // mode can be ARDUINO_HIGH or ARDUINO_LOW
 };

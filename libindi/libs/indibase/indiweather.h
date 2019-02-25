@@ -25,6 +25,7 @@
 #pragma once
 
 #include "defaultdevice.h"
+#include "indiweatherinterface.h"
 
 #include <list>
 
@@ -64,7 +65,7 @@ class TCP;
  */
 namespace INDI
 {
-class Weather : public DefaultDevice
+class Weather : public DefaultDevice, public WeatherInterface
 {
   public:
     enum WeatherLocation
@@ -97,22 +98,12 @@ class Weather : public DefaultDevice
 
   protected:
     /**
-     * @brief updateWeather Update weather conditions from device or service. The function should
-     * not change the state of any property in the device as this is handled by Weather. It
-     * should only update the raw values.
-     * @return Return overall state. The state should be IPS_OK if data is valid. IPS_BUSY if
-     * weather update is in progress. IPS_ALERT is there is an error. The clients will only accept
-     * values with IPS_OK state.
-     */
-    virtual IPState updateWeather();
-
-    /**
      * @brief TimerHit Keep calling updateWeather() until it is successful, if it fails upon first
      * connection.
      */
     virtual void TimerHit();
 
-    /** \brief Update telescope location settings
+    /** \brief Update weather station location
      *  \param latitude Site latitude in degrees.
      *  \param longitude Site latitude in degrees increasing eastward from Greenwich (0 to 360).
      *  \param elevation Site elevation in meters.
@@ -120,41 +111,6 @@ class Weather : public DefaultDevice
      *  \note This function performs no action unless subclassed by the child class if required.
      */
     virtual bool updateLocation(double latitude, double longitude, double elevation);
-
-    /**
-     * @brief addParameter Add a physical weather measurable parameter to the weather driver.
-     * The weather value has three zones:
-     * <ol>
-     * <li>OK: Set minimum and maximum values for acceptable values.</li>
-     * <li>Warning: Set minimum and maximum values for values outside of Ok range and in the
-     * dangerous warning zone.</li>
-     * <li>Alert: Any value outsize of Ok and Warning zone is marked as Alert.</li>
-     * </ol>
-     * @param name Name of parameter
-     * @param label Label of paremeter (in GUI)
-     * @param minimumOK Minimum OK value.
-     * @param maximumOK Maximum OK value.
-     * @param minimumWarning Minimum Warning value.
-     * @param maximumWarning Maximum Warning value.
-     */
-    void addParameter(std::string name, std::string label, double minimumOK, double maximumOK, double minimumWarning,
-                      double maximumWarning);
-
-    /**
-     * @brief setCriticalParameter Set parameter that is considered critical to the operation of the
-     * observatory. The parameter state can affect the overall weather driver state which signals
-     * the client to take appropriate action depending on the severity of the state.
-     * @param param Name of critical parameter.
-     * @return True if critical parameter was set, false if parameter is not found.
-     */
-    bool setCriticalParameter(std::string param);
-
-    /**
-     * @brief setParameterValue Update weather parameter value
-     * @param name name of weather parameter
-     * @param value new value of weather parameter;
-     */
-    void setParameterValue(std::string name, double value);
 
     /**
      * @brief setWeatherConnection Set Weather connection mode. Child class should call this
@@ -177,40 +133,26 @@ class Weather : public DefaultDevice
     INumberVectorProperty LocationNP;
     INumber LocationN[3];
 
-    // Refresh data
-    ISwitch RefreshS[1];
-    ISwitchVectorProperty RefreshSP;
-
-    // Parameters
-    INumber *ParametersN;
-    INumberVectorProperty ParametersNP;
-
-    // Parameter Ranges
-    INumberVectorProperty *ParametersRangeNP;
-    uint8_t nRanges;
-
-    // Weather status
-    ILight *critialParametersL;
-    ILightVectorProperty critialParametersLP;
-
     // Active devices to snoop
     ITextVectorProperty ActiveDeviceTP;
-    IText ActiveDeviceT[1];
+    IText ActiveDeviceT[1] {};
 
     // Update Period
     INumber UpdatePeriodN[1];
     INumberVectorProperty UpdatePeriodNP;
 
-    Connection::Serial *serialConnection = NULL;
-    Connection::TCP *tcpConnection       = NULL;
+    // Refresh data
+    ISwitch RefreshS[1];
+    ISwitchVectorProperty RefreshSP;
+
+    Connection::Serial *serialConnection {nullptr};
+    Connection::TCP *tcpConnection       {nullptr};
 
     int PortFD = -1;
+    int updateTimerID { -1 };
 
   private:
     bool processLocationInfo(double latitude, double longitude, double elevation);
-    void createParameterRange(std::string name, std::string label);
-    void updateWeatherState();
-    int updateTimerID;
 
     bool callHandshake();
     uint8_t weatherConnection = CONNECTION_SERIAL | CONNECTION_TCP;

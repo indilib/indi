@@ -24,7 +24,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#define POLLMS  1000
 #define MAXARGS 20
 
 typedef enum
@@ -44,7 +43,7 @@ typedef enum
     SCRIPT_COUNT
 } scripts;
 
-std::unique_ptr<ScopeScript> scope_script(new ScopeScript());
+static std::unique_ptr<ScopeScript> scope_script(new ScopeScript());
 
 void ISGetProperties(const char *dev)
 {
@@ -98,7 +97,7 @@ bool ScopeScript::initProperties()
 {
     INDI::Telescope::initProperties();
 
-#ifdef OSX_EMBEDED_MODE
+#if defined(__APPLE__)
     IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/local/share/indi/scripts");
 #else
     IUFillText(&ScriptsT[0], "FOLDER", "Folder", "/usr/share/indi/scripts");
@@ -149,56 +148,67 @@ bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], ch
 
 bool ScopeScript::RunScript(int script, ...)
 {
-    int pid = fork();
-
-    if (pid == -1)
+  char tmp[256];
+  strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
+  
+  char **args = (char **)malloc(MAXARGS * sizeof(char *));
+  int arg     = 1;
+  char *p     = tmp;
+  args[0] = p;
+  while (arg < MAXARGS)
+  {
+    char *pp = strstr(p, " ");
+    if (pp == nullptr)
+      break;
+    *pp++       = 0;
+    args[arg++] = pp;
+    p           = pp;
+  }
+  va_list ap;
+  va_start(ap, script);
+  while (arg < MAXARGS)
+  {
+    char *pp    = va_arg(ap, char *);
+    args[arg++] = pp;
+    if (pp == nullptr)
+      break;
+  }
+  va_end(ap);
+  char path[1024];
+  snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
+  
+  if (isDebug())
+  { char dbg[8 * 1024];
+    snprintf(dbg, sizeof(dbg), "execvp('%s'", path);
+    for (int i = 0; args[i]; i++)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Fork failed");
-        return false;
+      strcat(dbg, ", '");
+      strcat(dbg, args[i]);
+      strcat(dbg, "'");
     }
-    else if (pid == 0)
-    {
-        char tmp[256];
-
-        strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
-
-        auto **args = (char **)malloc(MAXARGS * sizeof(char *));
-        int arg     = 1;
-        char *p     = tmp;
-
-        while (arg < MAXARGS)
-        {
-            char *pp = strstr(p, " ");
-
-            if (pp == nullptr)
-                break;
-            *pp++       = 0;
-            args[arg++] = pp;
-            p           = pp;
-        }
-        va_list ap;
-        va_start(ap, script);
-        while (arg < MAXARGS)
-        {
-            char *pp    = va_arg(ap, char *);
-            args[arg++] = pp;
-            if (pp == nullptr)
-                break;
-        }
-        va_end(ap);
-        char path[256];
-        snprintf(path, 256, "%s/%s", ScriptsT[0].text, tmp);
-        execvp(path, args);
-        DEBUG(INDI::Logger::DBG_DEBUG, "Failed to execute script");
-        exit(0);
-    }
-    else
-    {
-        int status;
-        waitpid(pid, &status, 0);
-        DEBUGF(INDI::Logger::DBG_DEBUG, "Script %s returned %d", ScriptsT[script].text, status);
-        return status == 0;
-    }
+    strcat(dbg, ", nullptr)");
+    LOG_DEBUG(dbg);
+  }
+  
+  int pid = fork();
+  if (pid == -1)
+  {
+    LOG_ERROR("Fork failed");
+    return false;
+  }
+  else if (pid == 0)
+  {
+    execvp(path, args);
+    LOG_DEBUG("Failed to execute script");
+    exit(0);
+  }
+  else
+  {
+    int status;
+    waitpid(pid, &status, 0);
+    LOGF_DEBUG("Script %s returned %d", ScriptsT[script].text, status);
+    return status == 0;
+  }
 }
 
 bool ScopeScript::Handshake()
@@ -213,7 +223,7 @@ bool ScopeScript::Connect()
     bool status = RunScript(SCRIPT_CONNECT, nullptr);
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Successfully connected");
+        LOG_INFO("Successfully connected");
         ReadScopeStatus();
         SetTimer(POLLMS);
     }
@@ -225,14 +235,14 @@ bool ScopeScript::Disconnect()
     bool status = RunScript(SCRIPT_DISCONNECT, nullptr);
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Successfully disconnected");
+        LOG_INFO("Successfully disconnected");
     }
     return status;
 }
 
 bool ScopeScript::ReadScopeStatus()
 {
-    char *name  = tmpnam(nullptr);
+    char name[1024];
     bool status = RunScript(SCRIPT_STATUS, name, nullptr);
     if (status)
     {
@@ -249,7 +259,7 @@ bool ScopeScript::ReadScopeStatus()
             if (!isParked())
             {
                 SetParked(true);
-                DEBUG(INDI::Logger::DBG_SESSION, "Park succesfully executed");
+                LOG_INFO("Park succesfully executed");
             }
         }
         else
@@ -257,14 +267,14 @@ bool ScopeScript::ReadScopeStatus()
             if (isParked())
             {
                 SetParked(false);
-                DEBUG(INDI::Logger::DBG_SESSION, "Unpark succesfully executed");
+                LOG_INFO("Unpark succesfully executed");
             }
         }
         NewRaDec(ra, dec);
     }
     else
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to read status");
+        LOG_ERROR("Failed to read status");
     }
     return status;
 }
@@ -277,7 +287,7 @@ bool ScopeScript::Goto(double ra, double dec)
     bool status = RunScript(SCRIPT_GOTO, _ra, _dec, nullptr);
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Goto succesfully executed");
+        LOG_INFO("Goto succesfully executed");
     }
     return status;
 }
@@ -290,7 +300,7 @@ bool ScopeScript::Sync(double ra, double dec)
     bool status = RunScript(SCRIPT_SYNC, _ra, _dec, nullptr);
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Sync succesfully executed");
+        LOG_INFO("Sync succesfully executed");
     }
     return status;
 }
@@ -300,7 +310,7 @@ bool ScopeScript::Park()
     bool status = RunScript(SCRIPT_PARK, nullptr);
     if (!status)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to park");
+        LOG_ERROR("Failed to park");
     }
     return status;
 }
@@ -310,7 +320,7 @@ bool ScopeScript::UnPark()
     bool status = RunScript(SCRIPT_UNPARK, nullptr);
     if (!status)
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to unpark");
+        LOG_ERROR("Failed to unpark");
     }
     return status;
 }
@@ -338,11 +348,11 @@ bool ScopeScript::Abort()
     bool status = RunScript(SCRIPT_ABORT, nullptr);
     if (status)
     {
-        DEBUG(INDI::Logger::DBG_SESSION, "Successfully aborted");
+        LOG_INFO("Successfully aborted");
     }
     else
     {
-        DEBUG(INDI::Logger::DBG_ERROR, "Failed to abort");
+        LOG_ERROR("Failed to abort");
     }
     return status;
 }

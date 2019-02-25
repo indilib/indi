@@ -497,7 +497,7 @@ bool BaseDevice::buildSkeleton(const char *filename)
 #if defined(OSX_EMBEDED_MODE)
                 snprintf(pathname, MAXRBUF - 1, "%s/Contents/Resources/%s", indiprefix, filename);
 #elif defined(__APPLE__)
-                snprintf(pathname, MAXRBUF - 1, "%s/%s", indiprefix, filename);
+                snprintf(pathname, MAXRBUF - 1, "%s/Contents/Resources/DriverSupport/%s", indiprefix, filename);
 #else
                 snprintf(pathname, MAXRBUF - 1, "%s/share/indi/%s", indiprefix, filename);
 #endif
@@ -532,6 +532,7 @@ bool BaseDevice::buildSkeleton(const char *filename)
     for (root = nextXMLEle(fproot, 1); root != nullptr; root = nextXMLEle(fproot, 0))
         buildProp(root, errmsg);
 
+    delXMLEle(fproot);
     return true;
     /**************************************************************************/
 }
@@ -857,6 +858,7 @@ int BaseDevice::buildProp(XMLEle *root, char *errmsg)
 
         bvp->s = state;
         bvp->p = perm;
+        bvp->timeout = timeout;
 
         /* pull out each name/value pair */
         for (n = 0, ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0), n++)

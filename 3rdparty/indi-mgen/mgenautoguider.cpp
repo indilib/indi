@@ -4,9 +4,9 @@
     Tommy (teleskopaustria@gmail.com) and Zoltan (mgen@freemail.hu).
 
     Teleskop & Mikroskop Zentrum (www.teleskop.austria.com)
-    A-1050 WIEN, Schönbrunner Strasse 96
+    A-1050 WIEN, SchÃ¶nbrunner Strasse 96
     +43 699 1197 0808 (Shop in Wien und Rechnungsanschrift)
-    A-4020 LINZ, Gärtnerstrasse 16
+    A-4020 LINZ, GÃ¤rtnerstrasse 16
     +43 699 1901 2165 (Shop in Linz)
 
     Lacerta GmbH
@@ -42,6 +42,7 @@
 #include <memory>
 #include <vector>
 #include <queue>
+#include <array>
 
 #include "indidevapi.h"
 #include "indilogger.h"
@@ -67,7 +68,8 @@ MGenAutoguider &MGenAutoguider::instance()
 
 const MGIO_INSERT_BUTTON::Button MGIO_Buttons[] = { MGIO_INSERT_BUTTON::IOB_ESC,   MGIO_INSERT_BUTTON::IOB_SET,
                                                     MGIO_INSERT_BUTTON::IOB_UP,    MGIO_INSERT_BUTTON::IOB_LEFT,
-                                                    MGIO_INSERT_BUTTON::IOB_RIGHT, MGIO_INSERT_BUTTON::IOB_DOWN };
+                                                    MGIO_INSERT_BUTTON::IOB_RIGHT, MGIO_INSERT_BUTTON::IOB_DOWN
+                                                  };
 
 /**************************************************************************************
 ** Return properties of device->
@@ -133,6 +135,35 @@ bool MGenAutoguider::ISNewSwitch(const char *dev, const char *name, ISState *sta
                 else ui.buttons.properties[1].s = IPS_ALERT;
                 IDSetSwitch(&ui.buttons.properties[1], NULL);
             }
+            if (!strcmp(name, "MGEN_UI_BUTTONS3"))
+            {
+                IUUpdateSwitch(&ui.buttons.properties[2], states, names, n);
+                ISwitch *const key_switch = IUFindOnSwitch(&ui.buttons.properties[2]);
+                if (key_switch)
+                {
+                    MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
+                    MGIO_INSERT_BUTTON(button).ask(*device);
+                    key_switch->s              = ISS_OFF;
+                    ui.buttons.properties[2].s = IPS_OK;
+                }
+                else ui.buttons.properties[2].s = IPS_ALERT;
+                IDSetSwitch(&ui.buttons.properties[2], NULL);
+            }
+            if (!strcmp(name, "MGEN_UI_BUTTONS4"))
+            {
+                IUUpdateSwitch(&ui.buttons.properties[3], states, names, n);
+                ISwitch *const key_switch = IUFindOnSwitch(&ui.buttons.properties[3]);
+                if (key_switch)
+                {
+                    MGIO_INSERT_BUTTON::Button button = *(reinterpret_cast<MGIO_INSERT_BUTTON::Button *>(key_switch->aux));
+                    MGIO_INSERT_BUTTON(button).ask(*device);
+                    key_switch->s              = ISS_OFF;
+                    ui.buttons.properties[3].s = IPS_OK;
+                }
+                else ui.buttons.properties[3].s = IPS_ALERT;
+                IDSetSwitch(&ui.buttons.properties[3], NULL);
+            }
+
         }
     }
 
@@ -197,7 +228,7 @@ void ISSnoopDevice(XMLEle *root)
     INDI_UNUSED(root);
 }
 
-MGenAutoguider::MGenAutoguider(): device(NULL)
+MGenAutoguider::MGenAutoguider(): device(nullptr)
 {
     SetCCDParams(128, 64, 8, 5.0f, 5.0f);
     PrimaryCCD.setFrameBufferSize(PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8, true);
@@ -208,8 +239,7 @@ MGenAutoguider::~MGenAutoguider()
     Disconnect();
     setConnected(false, IPS_ALERT);
     updateProperties();
-    if (device)
-        delete device;
+    delete device;
 }
 
 bool MGenAutoguider::initProperties()
@@ -263,11 +293,17 @@ bool MGenAutoguider::initProperties()
         IUFillSwitch(&ui.buttons.switches[5], "MGEN_UI_BUTTON_DOWN", "DOWN", ISS_OFF);
         ui.buttons.switches[5].aux = (void *)&MGIO_Buttons[5];
         /* ESC SET
-         * UP LEFT RIGHT DOWN
+         * UP
+         * LEFT RIGHT
+         * DOWN
          */
         IUFillSwitchVector(&ui.buttons.properties[0], &ui.buttons.switches[0], 2, getDeviceName(), "MGEN_UI_BUTTONS1",
                            "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
-        IUFillSwitchVector(&ui.buttons.properties[1], &ui.buttons.switches[2], 4, getDeviceName(), "MGEN_UI_BUTTONS2",
+        IUFillSwitchVector(&ui.buttons.properties[1], &ui.buttons.switches[2], 1, getDeviceName(), "MGEN_UI_BUTTONS2",
+                           "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+        IUFillSwitchVector(&ui.buttons.properties[2], &ui.buttons.switches[3], 2, getDeviceName(), "MGEN_UI_BUTTONS3",
+                           "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+        IUFillSwitchVector(&ui.buttons.properties[3], &ui.buttons.switches[5], 1, getDeviceName(), "MGEN_UI_BUTTONS4",
                            "UI Buttons", TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
     }
 
@@ -287,6 +323,8 @@ bool MGenAutoguider::updateProperties()
         defineNumber(&ui.framerate.property);
         defineSwitch(&ui.buttons.properties[0]);
         defineSwitch(&ui.buttons.properties[1]);
+        defineSwitch(&ui.buttons.properties[2]);
+        defineSwitch(&ui.buttons.properties[3]);
     }
     else
     {
@@ -297,6 +335,8 @@ bool MGenAutoguider::updateProperties()
         deleteProperty(ui.framerate.property.name);
         deleteProperty(ui.buttons.properties[0].name);
         deleteProperty(ui.buttons.properties[1].name);
+        deleteProperty(ui.buttons.properties[2].name);
+        deleteProperty(ui.buttons.properties[3].name);
     }
 
     return true;
@@ -527,9 +567,11 @@ void MGenAutoguider::TimerHit()
 
                     if (CR_SUCCESS == read_frame.ask(*device))
                     {
+                        std::unique_lock<std::mutex> guard(ccdBufferLock);
                         MGIO_READ_DISPLAY_FRAME::ByteFrame frame;
                         read_frame.get_frame(frame);
                         memcpy(PrimaryCCD.getFrameBuffer(), frame.data(), frame.size());
+                        guard.unlock();
                         ExposureComplete(&PrimaryCCD);
                     }
                     else

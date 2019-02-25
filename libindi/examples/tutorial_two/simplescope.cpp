@@ -26,10 +26,7 @@
 #include <cmath>
 #include <memory>
 
-//const float SIDE_RATE = 0.004178; /* sidereal rate, degrees/s */
-const int SLEW_RATE = 1;        /* slew rate, degrees/s */
-
-std::unique_ptr<SimpleScope> simpleScope(new SimpleScope());
+static std::unique_ptr<SimpleScope> simpleScope(new SimpleScope());
 
 /**************************************************************************************
 ** Return properties of device.
@@ -77,18 +74,13 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 ***************************************************************************************/
 void ISSnoopDevice(XMLEle *root)
 {
-    INDI_UNUSED(root);
+    simpleScope->ISSnoopDevice(root);
 }
 
 SimpleScope::SimpleScope()
 {
-    currentRA  = 0;
-    currentDEC = 90;
-
     // We add an additional debug level so we can log verbose scope status
     DBG_SCOPE = INDI::Logger::getInstance().addDebugLevel("Scope Verbose", "SCOPE");
-
-    SetTelescopeCapability(TELESCOPE_CAN_ABORT);
 }
 
 /**************************************************************************************
@@ -99,7 +91,15 @@ bool SimpleScope::initProperties()
     // ALWAYS call initProperties() of parent first
     INDI::Telescope::initProperties();
 
+    // Add Debug control so end user can turn debugging/loggin on and off
     addDebugControl();
+
+    // Enable simulation mode so that serial connection in INDI::Telescope does not try
+    // to attempt to perform a physical connection to the serial port.
+    setSimulation(true);
+
+    // Set telescope capabilities. 0 is for the the number of slew rates that we support. We have none for this simple driver.
+    SetTelescopeCapability(TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT, 0);
 
     return true;
 }
@@ -139,7 +139,7 @@ bool SimpleScope::Goto(double ra, double dec)
     TrackState = SCOPE_SLEWING;
 
     // Inform client we are slewing to a new position
-    DEBUGF(INDI::Logger::DBG_SESSION, "Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
 
     // Success!
     return true;
@@ -221,7 +221,7 @@ bool SimpleScope::ReadScopeStatus()
                 // Let's set state to TRACKING
                 TrackState = SCOPE_TRACKING;
 
-                DEBUG(INDI::Logger::DBG_SESSION, "Telescope slew is complete. Tracking...");
+                LOG_INFO("Telescope slew is complete. Tracking...");
             }
             break;
 

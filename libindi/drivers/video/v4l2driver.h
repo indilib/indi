@@ -116,9 +116,9 @@ class V4L2_Driver : public INDI::CCD
     ISwitch ColorProcessingS[3];
 
     /* Texts */
-    IText PortT[1];
-    IText camNameT[1];
-    IText CaptureColorSpaceT[3];
+    IText PortT[1] {};
+    IText camNameT[1] {};
+    IText CaptureColorSpaceT[3] {};
 
     /* Numbers */
     //INumber *ExposeTimeN;

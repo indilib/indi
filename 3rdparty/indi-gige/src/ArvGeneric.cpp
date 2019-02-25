@@ -147,9 +147,9 @@ bool ArvGeneric::_configure(void)
 
 void ArvGeneric::_init()
 {
-    this->camera        = NULL;
-    this->buffer        = NULL;
-    this->stream        = NULL;
+    this->camera        = nullptr;
+    this->buffer        = nullptr;
+    this->stream        = nullptr;
     this->stream_active = false;
 
     /* Don't clear device_id, its needed to re-attach with connect() */
@@ -279,14 +279,14 @@ void ArvGeneric::set_exposure_time(double const val)
     }
 
     gint const payload = arv_camera_get_payload(this->camera);
-    buffer             = arv_buffer_new(payload, NULL);
+    buffer             = arv_buffer_new(payload, nullptr);
     arv_stream_push_buffer(this->stream, buffer);
     return buffer;
 }
 
 ::ArvStream *ArvGeneric::_stream_create(void)
 {
-    ::ArvStream *stream = arv_camera_create_stream(this->camera, NULL, NULL);
+    ::ArvStream *stream = arv_camera_create_stream(this->camera, nullptr, nullptr);
     return stream;
 }
 
@@ -336,10 +336,10 @@ void ArvGeneric::exposure_abort(void)
 void ArvGeneric::_get_image(void (*fn_image_callback)(void *const, uint8_t const *const, size_t), void *const usr_ptr)
 {
     ArvBuffer *const popped_buf = arv_stream_timeout_pop_buffer(this->stream, 100000);
-    if ((popped_buf != NULL) && (popped_buf == this->buffer) &&
+    if ((popped_buf != nullptr) && (popped_buf == this->buffer) &&
         arv_buffer_get_status(this->buffer) == ARV_BUFFER_STATUS_SUCCESS)
     {
-        if (fn_image_callback != NULL)
+        if (fn_image_callback != nullptr)
         {
             size_t size;
             uint8_t const *const data = (uint8_t const *const)arv_buffer_get_data(this->buffer, &size);

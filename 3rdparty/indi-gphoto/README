@@ -3,7 +3,7 @@ Gphoto INDI Driver
 
 This package provides the INDI driver for libgphoto2 supported cameras (currently only canon EOS DSLRs)
 
-Requirtments
+Requirements
 ============
 
 + libindi0 >= v0.6 (http://indi.sf.net)

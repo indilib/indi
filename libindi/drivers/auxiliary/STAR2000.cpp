@@ -32,8 +32,6 @@
 
 #include <unistd.h>
 
-#define POLLMS 250
-
 // We declare an auto pointer to gpGuide.
 std::unique_ptr<STAR2000> s2kGuide(new STAR2000());
 
@@ -136,6 +134,8 @@ bool STAR2000::initProperties()
     addDebugControl();
 
     setDriverInterface(TELESCOPE_INTERFACE);
+
+    setDefaultPollingPeriod(250);
 
     return (rc);
 }
@@ -332,7 +332,7 @@ void STAR2000::TimerHit()
     }
 }
 
-IPState STAR2000::GuideNorth(float ms)
+IPState STAR2000::GuideNorth(uint32_t ms)
 {
     RemoveTimer(NStimerID);
 
@@ -340,7 +340,7 @@ IPState STAR2000::GuideNorth(float ms)
 
     NSDir = NORTH;
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting NORTH guide");
+    LOG_DEBUG("Starting NORTH guide");
 
     if (ms <= POLLMS)
     {
@@ -360,13 +360,13 @@ IPState STAR2000::GuideNorth(float ms)
     return IPS_BUSY;
 }
 
-IPState STAR2000::GuideSouth(float ms)
+IPState STAR2000::GuideSouth(uint32_t ms)
 {
     RemoveTimer(NStimerID);
 
     StartPulse(SOUTH);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting SOUTH guide");
+    LOG_DEBUG("Starting SOUTH guide");
 
     NSDir = SOUTH;
 
@@ -388,13 +388,13 @@ IPState STAR2000::GuideSouth(float ms)
     return IPS_BUSY;
 }
 
-IPState STAR2000::GuideEast(float ms)
+IPState STAR2000::GuideEast(uint32_t ms)
 {
     RemoveTimer(WEtimerID);
 
     StartPulse(EAST);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting EAST guide");
+    LOG_DEBUG("Starting EAST guide");
 
     WEDir = EAST;
 
@@ -416,13 +416,13 @@ IPState STAR2000::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState STAR2000::GuideWest(float ms)
+IPState STAR2000::GuideWest(uint32_t ms)
 {
     RemoveTimer(WEtimerID);
 
     StartPulse(WEST);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting WEST guide");
+    LOG_DEBUG("Starting WEST guide");
 
     WEDir = WEST;
 
