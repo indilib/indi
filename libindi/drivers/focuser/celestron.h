@@ -25,6 +25,7 @@
 #include "indifocuser.h"
 
 #include <chrono>
+#include "celestronauxpacket.h"
 
 class CelestronSCT : public INDI::Focuser
 {
@@ -58,19 +59,19 @@ class CelestronSCT : public INDI::Focuser
          */
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
 
-        /**
-         * @brief SyncFocuser Set the supplied position as the current focuser position
-         * @param ticks target position
-         * @return IPS_OK if focuser position is now set to ticks. IPS_ALERT for problems.
-         */
-        virtual bool SyncFocuser(uint32_t ticks) override;
+//        /**
+//         * @brief SyncFocuser Set the supplied position as the current focuser position
+//         * @param ticks target position
+//         * @return IPS_OK if focuser position is now set to ticks. IPS_ALERT for problems.
+//         */
+        //virtual bool SyncFocuser(uint32_t ticks) override;
 
-        /**
-         * @brief SetFocuserSpeed Set target focuser speed. Speed starts from 1.
-         * @param speed target speed
-         * @return True if speed is set successfully, false otherwise.
-         */
-        virtual bool SetFocuserSpeed(int speed) override;
+//        /**
+//         * @brief SetFocuserSpeed Set target focuser speed. Speed starts from 1.
+//         * @param speed target speed
+//         * @return True if speed is set successfully, false otherwise.
+//         */
+        //virtual bool SetFocuserSpeed(int speed) override;
 
         /**
          * @brief AbortFocuser Abort Focuser motion
@@ -87,6 +88,7 @@ class CelestronSCT : public INDI::Focuser
         virtual bool saveConfigItems(FILE * fp) override;
 
     private:
+        AuxCommunicator communicator;
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions
         ///////////////////////////////////////////////////////////////////////////////
@@ -102,10 +104,10 @@ class CelestronSCT : public INDI::Focuser
          * @example To send command ":ST100#" to the device without requiring a response, simply call
          * @code sendCommand("ST100#")@endcode
          */
-        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        //bool sendCommand(AuxCommands cmd, AuxTargets dest, buffer data, buffer reply);
 
         // Format command/response as hex
-        void hexDump(char * buf, const char * data, int size);
+        //void hexDump(char * buf, const char * data, int size);
 
         // Do we have a response from the focuser?
         bool Ack();
@@ -118,17 +120,20 @@ class CelestronSCT : public INDI::Focuser
         ///////////////////////////////////////////////////////////////////////////////
         // Read and update Position
         bool readPosition();
-        // Read and update speed
-        bool readSpeed();
-        // Read and update backlash
-        bool readBacklash();
         // Are we moving?
         bool isMoving();
+        // read limits
+        bool readLimits();
+
+        // Read and update speed
+        //bool readSpeed();
+        // Read and update backlash
+        //bool readBacklash();
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Write Data to Controller
         ///////////////////////////////////////////////////////////////////////////////
-        bool sendBacklash(uint32_t steps);
+        //bool sendBacklash(uint32_t steps);
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Properties
@@ -136,14 +141,16 @@ class CelestronSCT : public INDI::Focuser
         INumber BacklashN[1];
         INumberVectorProperty BacklashNP;
 
+        INumber FocusMinPosN[1];
+        INumberVectorProperty FocusMinPosNP;
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
-        // Celestron Buffer
-        static const uint8_t CELESTRON_LEN { 32 };
-        // Celestorn Delimeter
-        static const char CELESTRON_DEL { '#' };
-        // Celestron Tiemout in seconds
-        static const uint8_t CELESTRON_TIMEOUT { 3 };
+//        // Celestron Buffer
+//        static const uint8_t CELESTRON_LEN { 32 };
+//        // Celestorn Delimeter
+//        static const char CELESTRON_DEL { '#' };
+//        // Celestron Tiemout in seconds
+//        static const uint8_t CELESTRON_TIMEOUT { 3 };
 };
