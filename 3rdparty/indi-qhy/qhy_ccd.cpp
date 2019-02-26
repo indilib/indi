@@ -1545,17 +1545,37 @@ bool QHYCCD::StartStreaming()
     if (BayerT[2].text && formats.count(BayerT[2].text) != 0)
         qhyFormat = formats.at(BayerT[2].text);
 
-    Streamer->setPixelFormat(qhyFormat, PrimaryCCD.getBPP());
-
     double uSecs = static_cast<long>(m_ExposureRequest * 950000.0);
+
+    LOGF_INFO("Starting video streaming with exposure %.3f seconds (%.f FPS)", m_ExposureRequest, Streamer->getTargetFPS());
+
     SetQHYCCDParam(m_CameraHandle, CONTROL_EXPOSURE, uSecs);
+
+    // Set Stream Mode
     SetQHYCCDStreamMode(m_CameraHandle, 1);
 
     if (HasUSBSpeed)
-        SetQHYCCDParam(m_CameraHandle, CONTROL_SPEED, 2.0);
+    {
+        ret = SetQHYCCDParam(m_CameraHandle, CONTROL_SPEED, 2.0);
+        if (ret != QHYCCD_SUCCESS)
+            LOG_WARN("SetQHYCCDParam CONTROL_SPEED 2.0 failed.");
+    }
     if (HasUSBTraffic)
-        SetQHYCCDParam(m_CameraHandle, CONTROL_USBTRAFFIC, 20.0);
-    SetQHYCCDBitsMode(m_CameraHandle, 8);
+    {
+        ret = SetQHYCCDParam(m_CameraHandle, CONTROL_USBTRAFFIC, 20.0);
+        if (ret != QHYCCD_SUCCESS)
+            LOG_WARN("SetQHYCCDParam CONTROL_USBTRAFFIC 20.0 failed.");
+    }
+
+    ret = SetQHYCCDBitsMode(m_CameraHandle, 8);
+    if (ret == QHYCCD_SUCCESS)
+        Streamer->setPixelFormat(qhyFormat, 8);
+    else
+    {
+        LOG_WARN("SetQHYCCDBitsMode 8bit failed.");
+        Streamer->setPixelFormat(qhyFormat, PrimaryCCD.getBPP());
+    }
+
     BeginQHYCCDLive(m_CameraHandle);
 
     pthread_mutex_lock(&condMutex);
