@@ -808,6 +808,7 @@ install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin)
 ################ Celestron SCT Focuser ################
 
 SET(celestronsct_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/celestronauxpacket.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/celestron.cpp)
 
 add_executable(indi_celestron_sct_focus ${celestronsct_SRC})

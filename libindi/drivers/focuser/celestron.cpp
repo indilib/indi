@@ -73,26 +73,37 @@ void ISSnoopDevice(XMLEle * root)
 
 CelestronSCT::CelestronSCT()
 {
-    // Can move in Absolute & Relative motions, can AbortFocuser motion, and has variable speed.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_HAS_VARIABLE_SPEED |
-                      FOCUSER_CAN_SYNC);
+    // Can move in Absolute & Relative motions, can AbortFocuser motion.
+    // CR variable speed and sync removed
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT );
+
+    communicator.source = APP;
 }
 
 bool CelestronSCT::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    // Focuser temperature
-    IUFillNumber(&BacklashN[0], "STEPS", "Steps", "%.f", 0, 99., 1., 0.);
+    // Focuser backlash
+    // CR this is a value, positive or negative to define the direction.  It will need to be implemented
+    // in the driver.
+    IUFillNumber(&BacklashN[0], "STEPS", "Steps", "%.f", -500., 500, 1., 0.);
     IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "FOCUS_BACKLASH", "Backlash",
+                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+
+    // Focuser min limit
+    IUFillNumber(&FocusMinPosN[0], "FOCUS_MIN_VALUE", "Steps", "%.f", 0, 40000., 1., 0.);
+    IUFillNumberVector(&FocusMinPosNP, FocusMinPosN, 1, getDeviceName(), "FOCUS_MIN", "Min. Position",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Speed range
+    // CR no need to have adjustable speed, how to remove?
     FocusSpeedN[0].min   = 1;
     FocusSpeedN[0].max   = 3;
     FocusSpeedN[0].value = 1;
 
     // From online screenshots, seems maximum value is 60,000 steps
+    // max and min positions can be read from a calibrated focuser
 
     // Relative Position Range
     FocusRelPosN[0].min   = 0.;
@@ -110,6 +121,7 @@ bool CelestronSCT::initProperties()
     FocusMaxPosN[0].max   = 60000;
     FocusMaxPosN[0].min   = 1000;
     FocusMaxPosN[0].value = 60000;
+    FocusMaxPosNP.p = IP_RO;
 
     // Poll every 500ms
     setDefaultPollingPeriod(500);
@@ -119,9 +131,11 @@ bool CelestronSCT::initProperties()
 
     // Set default baud rate to 19200
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
-    // Defualt port to /dev/ttyACM0
-    serialConnection->setDefaultPort("/dev/ttyACM0");
 
+    // Defualt port to /dev/ttyACM0
+    //serialConnection->setDefaultPort("/dev/ttyACM0");
+
+    LOG_INFO("initProperties end");
     return true;
 }
 
@@ -133,14 +147,18 @@ bool CelestronSCT::updateProperties()
     {
         defineNumber(&BacklashNP);
 
+        defineNumber(&FocusMinPosNP);
+
         if (getStartupParameters())
             LOG_INFO("Celestron SCT focuser paramaters updated, focuser ready for use.");
         else
             LOG_WARN("Failed to retrieve some focuser parameters. Check logs.");
+
     }
     else
     {
         deleteProperty(BacklashNP.name);
+        deleteProperty(FocusMinPosNP.name);
     }
 
     return true;
@@ -167,87 +185,106 @@ bool CelestronSCT::Ack()
 {
     // send simple command to focuser and check response to make sure
     // it is online and responding
-    return false;
-}
-
-bool CelestronSCT::readBacklash()
-{
-    char cmd[CELESTRON_LEN] = {0}, res[CELESTRON_LEN] = {0};
-
-    // If command is a null-terminated string, use snprintf below
-    snprintf(cmd, CELESTRON_LEN, "Celestron_Command_Here");
-
-    // This would send the command and reads the response (until it encouters the delimiter).
-    if (sendCommand(cmd, res) == false)
+    // use get firmware version command
+    buffer reply;
+    if (!communicator.sendCommand(PortFD, FOCUSER, GET_VER, reply))
         return false;
 
-    // If the command is NOT null-terminated string, fill each byte like this:
-    // cmd[0] = 0xA
-    // cmd[0] = 0xB
-    // cmd[0] = 0xC
-    // cmd[0] = 0xD
-    // cmd[0] = 0xE
-    // We have 5 bytes
-    // This would send the command, and read 8 bytes as response. If you want to read until delimeter, skip the last param.
-    if (sendCommand(cmd, res, 5, 8) == false)
-        return false;
-
-    // Now use scanf to extract the value in the buffer. For example:
-    int backlash = 0;
-    if (sscanf(res, "%d", &backlash) != 1)
-        return false;
-
-    // Now set it to property
-    BacklashN[0].value = backlash;
-
-    BacklashNP.s = IPS_OK;
-
+    if (reply.size() == 4)
+    {
+        LOGF_INFO("Firmware Version %i.%i.%i", reply[0], reply [1], (reply[2]<<8) + reply[3]);
+    }
+    else
+        LOGF_INFO("Firmware Version %i.%i", reply[0], reply [1]);
     return true;
 }
+
+//bool CelestronSCT::readBacklash()
+//{
+    // CR Backlash has to be implemented in this driver, the backlash in the motor driver
+    // is only for button moves.
+    // Bascklash will need to be implemented by making the move in two parts with a state machine
+    // to manage this. the final move would probably happen in the timer function.
+//    buffer reply;
+//    if (communicator.sendCommand(PortFD, MC_GET_POS_BACKLASH, FOC, reply) == false)
+//        return false;
+
+//    int backlash = reply[0];
+//    // Now set it to property
+//    BacklashN[0].value = backlash;
+//    LOGF_INFO("readBacklash %i", backlash);
+
+//    BacklashNP.s = IPS_OK;
+
+//    return true;
+//}
 
 bool CelestronSCT::readPosition()
 {
-    // Same as readBacklash
-    //FocusAbsPosN[0].value = position;
+    buffer reply;
+    if (!communicator.sendCommand(PortFD, FOCUSER, MC_GET_POSITION, reply))
+        return false;
+
+    int position = (reply[0] << 16) + (reply[1] << 8) + reply[2];
+    LOGF_DEBUG("readPosition %i", position);
+    FocusAbsPosN[0].value = position;
+    FocusAbsPosNP.s = IPS_OK;
     return true;
 }
 
-bool CelestronSCT::readSpeed()
-{
-    // Same as readBacklash
-    //FocusSpeedN[0].value = speed;
-    return true;
-}
+//bool CelestronSCT::readSpeed()
+//{
+//    // Same as readBacklash
+//    //FocusSpeedN[0].value = speed;
+//    return true;
+//}
 
 bool CelestronSCT::isMoving()
 {
-    // Ditto
-    return false;
+    buffer reply(1);
+    if (!communicator.sendCommand(PortFD, FOCUSER, MC_SLEW_DONE, reply))
+        return false;
+    return reply[0] != 0xFF;
 }
 
 
-bool CelestronSCT::sendBacklash(uint32_t steps)
+//bool CelestronSCT::sendBacklash(uint32_t steps)
+//{
+//    // Ditto
+//    // If there is no response required then we simply send the following:
+//    //return sendCommand(cmd);
+
+//    // this will be a value that is held in the driver
+
+//    return true;
+//}
+
+//bool CelestronSCT::SetFocuserSpeed(int speed)
+//{
+//    // Ditto
+//    return true;
+//}
+
+// read the focuser limits from the hardware
+bool CelestronSCT::readLimits()
 {
-    // Ditto
-    // If there is no response required then we simply send the following:
-    //return sendCommand(cmd);
+    buffer reply(8);
+    if(!communicator.sendCommand(PortFD, FOCUSER, FOC_GET_HS_POSITIONS, reply))
+        return false;
+    int lo = (reply[0] << 24) + (reply[1] << 16) + (reply[2] << 8) + reply[3];
+    int hi = (reply[4] << 24) + (reply[5] << 16) + (reply[6] << 8) + reply[7];
 
-    return true;
-}
+    FocusAbsPosN[0].max = hi;
+    FocusAbsPosN[0].min = lo;
+    FocusAbsPosNP.s = IPS_OK;
 
-bool CelestronSCT::SetFocuserSpeed(int speed)
-{
-    // Ditto
-    return true;
-}
+    FocusMaxPosN[0].value = hi;
+    FocusMaxPosNP.s = IPS_OK;
 
-bool CelestronSCT::SyncFocuser(uint32_t ticks)
-{
-    // Can Celestron focuser be synced? Not sure
-    //char cmd[ML_RES] = {0};
-    //snprintf(cmd, ML_RES, ":SP%04X#", ticks);
-    //return sendCommand(cmd);
+    FocusMinPosN[0].value = lo;
+    FocusMinPosNP.s = IPS_OK;
 
+    LOGF_INFO("read limits hi %i lo %i", hi, lo);
     return true;
 }
 
@@ -258,15 +295,9 @@ bool CelestronSCT::ISNewNumber(const char * dev, const char * name, double value
         // Backlash
         if (!strcmp(name, BacklashNP.name))
         {
-
-            if (sendBacklash(values[0]))
-            {
-                IUUpdateNumber(&BacklashNP, values, names, n);
-                BacklashNP.s = IPS_OK;
-            }
-            else
-                BacklashNP.s = IPS_ALERT;
-
+            // just update the number
+            IUUpdateNumber(&BacklashNP, values, names, n);
+            BacklashNP.s = IPS_OK;
             IDSetNumber(&BacklashNP, nullptr);
             return true;
         }
@@ -277,26 +308,41 @@ bool CelestronSCT::ISNewNumber(const char * dev, const char * name, double value
 
 bool CelestronSCT::getStartupParameters()
 {
-    bool rc1 = false, rc2 = false, rc3 = false;
+    bool rc1 = false, rc2 = false;
 
     if ( (rc1 = readPosition()))
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    if ( (rc2 = readBacklash()))
-        IDSetNumber(&BacklashNP, nullptr);
+//    if ( (rc2 = readBacklash()))
+//        IDSetNumber(&BacklashNP, nullptr);
 
-    if ( (rc3 = readSpeed()))
-        IDSetNumber(&FocusSpeedNP, nullptr);
+//    if ( (rc3 = readSpeed()))
+//        IDSetNumber(&FocusSpeedNP, nullptr);
 
-    return (rc1 && rc2 && rc3);
+    if ( (rc2 = readLimits()))
+    {
+        IUUpdateMinMax(&FocusAbsPosNP);
+
+        IDSetNumber(&FocusMaxPosNP, nullptr);
+        IDSetNumber(&FocusMinPosNP, nullptr);
+    }
+
+    return (rc1 && rc2);
 }
 
 IPState CelestronSCT::MoveAbsFocuser(uint32_t targetTicks)
 {
     // Send command to focuser
-    // If OK and moving, return IPS_BUSY
+    // CR This will need changing to implement backlash
+    // If OK and moving, return IPS_BUSY (CR don't see this, it seems to just start a new move)
     // If OK and motion already done (was very small), return IPS_OK
     // If error, return IPS_ALERT
+    buffer data = {(unsigned char)((targetTicks >> 16) & 0xFF),
+                   (unsigned char)((targetTicks >> 8) & 0xFF),
+                   (unsigned char)(targetTicks & 0xFF)};
+    LOGF_DEBUG("MoveAbs %i, %x %x %x\n", targetTicks, data[0], data[1], data[2]);
+    if (!communicator.commandBlind(PortFD, FOCUSER, MC_GOTO_FAST, data))
+        return IPS_ALERT;
 
     return IPS_BUSY;
 }
@@ -335,6 +381,10 @@ void CelestronSCT::TimerHit()
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
+        // CR The backlash handling will probably have to be done here, if the move state
+        // shows that a backlash move has been done then the final move needs to be started
+        // and the states left at IPS_BUSY
+
         // There are two ways to know when focuser motion is over
         // define class variable uint32_t m_TargetPosition and set it in MoveAbsFocuser(..) function
         // then compare current value to m_TargetPosition
@@ -354,8 +404,9 @@ void CelestronSCT::TimerHit()
 
 bool CelestronSCT::AbortFocuser()
 {
-    //return sendCommand(":FQ#");
-    return false;
+    // send a command to move at rate 0
+    buffer data = {0};
+    return communicator.commandBlind(PortFD, FOCUSER, MC_MOVE_POS, data);
 }
 
 bool CelestronSCT::saveConfigItems(FILE * fp)
@@ -367,70 +418,4 @@ bool CelestronSCT::saveConfigItems(FILE * fp)
     return true;
 }
 
-bool CelestronSCT::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
-{
-    int nbytes_written = 0, nbytes_read = 0, rc = -1;
 
-    tcflush(PortFD, TCIOFLUSH);
-
-    if (cmd_len > 0)
-    {
-        char hex_cmd[CELESTRON_LEN * 3] = {0};
-        hexDump(hex_cmd, cmd, cmd_len);
-        LOGF_DEBUG("CMD <%s>", hex_cmd);
-        rc = tty_write(PortFD, cmd, cmd_len, &nbytes_written);
-    }
-    else
-    {
-        LOGF_DEBUG("CMD <%s>", cmd);
-        rc = tty_write_string(PortFD, cmd, &nbytes_written);
-    }
-
-    if (rc != TTY_OK)
-    {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial write error: %s.", errstr);
-        return false;
-    }
-
-    if (res == nullptr)
-        return true;
-
-    if (res_len > 0)
-        rc = tty_read(PortFD, res, res_len, CELESTRON_TIMEOUT, &nbytes_read);
-    else
-        rc = tty_nread_section(PortFD, res, CELESTRON_LEN, CELESTRON_DEL, CELESTRON_TIMEOUT, &nbytes_read);
-
-    if (rc != TTY_OK)
-    {
-        char errstr[MAXRBUF] = {0};
-        tty_error_msg(rc, errstr, MAXRBUF);
-        LOGF_ERROR("Serial read error: %s.", errstr);
-        return false;
-    }
-
-    if (res_len > 0)
-    {
-        char hex_res[CELESTRON_LEN * 3] = {0};
-        hexDump(hex_res, res, res_len);
-        LOGF_DEBUG("RES <%s>", hex_res);
-    }
-    else
-    {
-        LOGF_DEBUG("RES <%s>", res);
-    }
-
-    tcflush(PortFD, TCIOFLUSH);
-
-    return true;
-}
-
-void CelestronSCT::hexDump(char * buf, const char * data, int size)
-{
-    for (int i = 0; i < size; i++)
-        sprintf(buf + 3 * i, "%02X ", static_cast<uint8_t>(data[i]));
-
-    if (size > 0)
-        buf[3 * size - 1] = '\0';
-}
