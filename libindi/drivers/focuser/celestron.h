@@ -59,18 +59,18 @@ class CelestronSCT : public INDI::Focuser
          */
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
 
-//        /**
-//         * @brief SyncFocuser Set the supplied position as the current focuser position
-//         * @param ticks target position
-//         * @return IPS_OK if focuser position is now set to ticks. IPS_ALERT for problems.
-//         */
+        //        /**
+        //         * @brief SyncFocuser Set the supplied position as the current focuser position
+        //         * @param ticks target position
+        //         * @return IPS_OK if focuser position is now set to ticks. IPS_ALERT for problems.
+        //         */
         //virtual bool SyncFocuser(uint32_t ticks) override;
 
-//        /**
-//         * @brief SetFocuserSpeed Set target focuser speed. Speed starts from 1.
-//         * @param speed target speed
-//         * @return True if speed is set successfully, false otherwise.
-//         */
+        //        /**
+        //         * @brief SetFocuserSpeed Set target focuser speed. Speed starts from 1.
+        //         * @param speed target speed
+        //         * @return True if speed is set successfully, false otherwise.
+        //         */
         //virtual bool SetFocuserSpeed(int speed) override;
 
         /**
@@ -88,26 +88,7 @@ class CelestronSCT : public INDI::Focuser
         virtual bool saveConfigItems(FILE * fp) override;
 
     private:
-        AuxCommunicator communicator;
-        ///////////////////////////////////////////////////////////////////////////////
-        /// Utility Functions
-        ///////////////////////////////////////////////////////////////////////////////
-        /**
-         * @brief sendCommand Sends command to device port.
-         * @param cmd Command to be sent. Maximum length is CELESTRON_LEN
-         * @param res If not nullptr, the function will read the response dependeing on the value of res_len parameter.
-         * @param cmd_len If -1 (default), then the function will treat cmd as a null-terminated string and will send it accordingly.
-         * if cmd_len is specified, it will write this many bytes to the port.
-         * @param res_len if @a res_len is -1 (default), then the function will read until it encounters character @a CELESTRON_DEL ('#').
-         * if res_len is specified, it will read up until @a res_len given it is equal or less than @a CELESTRON_LEN.
-         * @return True if successful, false otherwise.
-         * @example To send command ":ST100#" to the device without requiring a response, simply call
-         * @code sendCommand("ST100#")@endcode
-         */
-        //bool sendCommand(AuxCommands cmd, AuxTargets dest, buffer data, buffer reply);
-
-        // Format command/response as hex
-        //void hexDump(char * buf, const char * data, int size);
+        Aux::Communicator communicator;
 
         // Do we have a response from the focuser?
         bool Ack();
@@ -147,10 +128,10 @@ class CelestronSCT : public INDI::Focuser
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////
-//        // Celestron Buffer
-//        static const uint8_t CELESTRON_LEN { 32 };
-//        // Celestorn Delimeter
-//        static const char CELESTRON_DEL { '#' };
-//        // Celestron Tiemout in seconds
-//        static const uint8_t CELESTRON_TIMEOUT { 3 };
+        //        // Celestron Buffer
+        //        static const uint8_t CELESTRON_LEN { 32 };
+        //        // Celestorn Delimeter
+        //        static const char CELESTRON_DEL { '#' };
+        //        // Celestron Tiemout in seconds
+        //        static const uint8_t CELESTRON_TIMEOUT { 3 };
 };

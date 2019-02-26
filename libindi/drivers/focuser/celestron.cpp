@@ -77,7 +77,7 @@ CelestronSCT::CelestronSCT()
     // CR variable speed and sync removed
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT );
 
-    communicator.source = APP;
+    communicator.source = Aux::Target::APP;
 }
 
 bool CelestronSCT::initProperties()
@@ -131,6 +131,8 @@ bool CelestronSCT::initProperties()
 
     // Set default baud rate to 19200
     serialConnection->setDefaultBaudRate(Connection::Serial::B_19200);
+
+    communicator.setDeviceName(getDeviceName());
 
     // Defualt port to /dev/ttyACM0
     //serialConnection->setDefaultPort("/dev/ttyACM0");
@@ -186,13 +188,13 @@ bool CelestronSCT::Ack()
     // send simple command to focuser and check response to make sure
     // it is online and responding
     // use get firmware version command
-    buffer reply;
-    if (!communicator.sendCommand(PortFD, FOCUSER, GET_VER, reply))
+    Aux::buffer reply;
+    if (!communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::GET_VER, reply))
         return false;
 
     if (reply.size() == 4)
     {
-        LOGF_INFO("Firmware Version %i.%i.%i", reply[0], reply [1], (reply[2]<<8) + reply[3]);
+        LOGF_INFO("Firmware Version %i.%i.%i", reply[0], reply [1], (reply[2] << 8) + reply[3]);
     }
     else
         LOGF_INFO("Firmware Version %i.%i", reply[0], reply [1]);
@@ -201,10 +203,10 @@ bool CelestronSCT::Ack()
 
 //bool CelestronSCT::readBacklash()
 //{
-    // CR Backlash has to be implemented in this driver, the backlash in the motor driver
-    // is only for button moves.
-    // Bascklash will need to be implemented by making the move in two parts with a state machine
-    // to manage this. the final move would probably happen in the timer function.
+// CR Backlash has to be implemented in this driver, the backlash in the motor driver
+// is only for button moves.
+// Bascklash will need to be implemented by making the move in two parts with a state machine
+// to manage this. the final move would probably happen in the timer function.
 //    buffer reply;
 //    if (communicator.sendCommand(PortFD, MC_GET_POS_BACKLASH, FOC, reply) == false)
 //        return false;
@@ -221,12 +223,12 @@ bool CelestronSCT::Ack()
 
 bool CelestronSCT::readPosition()
 {
-    buffer reply;
-    if (!communicator.sendCommand(PortFD, FOCUSER, MC_GET_POSITION, reply))
+    Aux::buffer reply;
+    if (!communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_GET_POSITION, reply))
         return false;
 
     int position = (reply[0] << 16) + (reply[1] << 8) + reply[2];
-    LOGF_DEBUG("readPosition %i", position);
+    LOGF_DEBUG("Position %i", position);
     FocusAbsPosN[0].value = position;
     FocusAbsPosNP.s = IPS_OK;
     return true;
@@ -241,8 +243,8 @@ bool CelestronSCT::readPosition()
 
 bool CelestronSCT::isMoving()
 {
-    buffer reply(1);
-    if (!communicator.sendCommand(PortFD, FOCUSER, MC_SLEW_DONE, reply))
+    Aux::buffer reply(1);
+    if (!communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_SLEW_DONE, reply))
         return false;
     return reply[0] != 0xFF;
 }
@@ -268,9 +270,10 @@ bool CelestronSCT::isMoving()
 // read the focuser limits from the hardware
 bool CelestronSCT::readLimits()
 {
-    buffer reply(8);
-    if(!communicator.sendCommand(PortFD, FOCUSER, FOC_GET_HS_POSITIONS, reply))
+    Aux::buffer reply(8);
+    if(!communicator.sendCommand(PortFD, Aux::Target::FOCUSER, Aux::Command::FOC_GET_HS_POSITIONS, reply))
         return false;
+
     int lo = (reply[0] << 24) + (reply[1] << 16) + (reply[2] << 8) + reply[3];
     int hi = (reply[4] << 24) + (reply[5] << 16) + (reply[6] << 8) + reply[7];
 
@@ -284,7 +287,7 @@ bool CelestronSCT::readLimits()
     FocusMinPosN[0].value = lo;
     FocusMinPosNP.s = IPS_OK;
 
-    LOGF_INFO("read limits hi %i lo %i", hi, lo);
+    LOGF_INFO("Focus Limits: Maximum (%i) Minimum (%i) steps.", hi, lo);
     return true;
 }
 
@@ -313,11 +316,11 @@ bool CelestronSCT::getStartupParameters()
     if ( (rc1 = readPosition()))
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-//    if ( (rc2 = readBacklash()))
-//        IDSetNumber(&BacklashNP, nullptr);
+    //    if ( (rc2 = readBacklash()))
+    //        IDSetNumber(&BacklashNP, nullptr);
 
-//    if ( (rc3 = readSpeed()))
-//        IDSetNumber(&FocusSpeedNP, nullptr);
+    //    if ( (rc3 = readSpeed()))
+    //        IDSetNumber(&FocusSpeedNP, nullptr);
 
     if ( (rc2 = readLimits()))
     {
@@ -337,11 +340,16 @@ IPState CelestronSCT::MoveAbsFocuser(uint32_t targetTicks)
     // If OK and moving, return IPS_BUSY (CR don't see this, it seems to just start a new move)
     // If OK and motion already done (was very small), return IPS_OK
     // If error, return IPS_ALERT
-    buffer data = {(unsigned char)((targetTicks >> 16) & 0xFF),
-                   (unsigned char)((targetTicks >> 8) & 0xFF),
-                   (unsigned char)(targetTicks & 0xFF)};
-    LOGF_DEBUG("MoveAbs %i, %x %x %x\n", targetTicks, data[0], data[1], data[2]);
-    if (!communicator.commandBlind(PortFD, FOCUSER, MC_GOTO_FAST, data))
+    Aux::buffer data =
+    {
+        static_cast<uint8_t>((targetTicks >> 16) & 0xFF),
+        static_cast<uint8_t>((targetTicks >> 8) & 0xFF),
+        static_cast<uint8_t>(targetTicks & 0xFF)
+    };
+
+    LOGF_DEBUG("MoveAbs %i, %x %x %x", targetTicks, data[0], data[1], data[2]);
+
+    if (!communicator.commandBlind(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_GOTO_FAST, data))
         return IPS_ALERT;
 
     return IPS_BUSY;
@@ -405,8 +413,8 @@ void CelestronSCT::TimerHit()
 bool CelestronSCT::AbortFocuser()
 {
     // send a command to move at rate 0
-    buffer data = {0};
-    return communicator.commandBlind(PortFD, FOCUSER, MC_MOVE_POS, data);
+    Aux::buffer data = {0};
+    return communicator.commandBlind(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_MOVE_POS, data);
 }
 
 bool CelestronSCT::saveConfigItems(FILE * fp)
