@@ -551,7 +551,7 @@ bool QHYCCD::Connect()
     {
         LOGF_INFO("Connected to %s.", camid);
 
-        cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING;
+        cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME;
 
         // Disable the stream mode before connecting
         ret = SetQHYCCDStreamMode(m_CameraHandle, 0);
@@ -573,6 +573,14 @@ bool QHYCCD::Connect()
         }
 
         LOGF_DEBUG("Shutter Control: %s", cap & CCD_HAS_SHUTTER ? "True" : "False");
+
+        ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_VIEW_MODE);
+        if (ret == QHYCCD_SUCCESS)
+        {
+            cap |= CCD_HAS_STREAMING;
+        }
+
+        LOGF_DEBUG("Has Streaming: %s", cap & CCD_HAS_STREAMING ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_COOLER);
         if (ret == QHYCCD_SUCCESS)
