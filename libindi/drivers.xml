@@ -207,6 +207,10 @@
                 <driver name="RoboFocus">indi_robo_focus</driver>
                 <version>1.0</version>
         </device>
+        <device label="Celestron SCT">
+          <driver name="Celestron SCT">indi_celestron_sct_focus</driver>
+          <version>1.0</version>
+        </device>
         <device label="Rigelsys NFocus">
           <driver name="NFocus">indi_nfocus</driver>
           <version>1.1</version>

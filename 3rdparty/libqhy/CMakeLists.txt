@@ -3,7 +3,7 @@ PROJECT(libqhy C CXX)
 
 include(GNUInstallDirs)
 
-# QHY SDK Built on 2019-02-22
+# QHY SDK Built on 2019-02-27
 set(LIBQHY_VERSION "4.0.14")
 set(LIBQHY_SOVERSION "4")
 

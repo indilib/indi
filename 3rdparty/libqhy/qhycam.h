@@ -6,7 +6,8 @@
 #if defined (_WIN32)
 #include "CyAPI.h"
 #include <process.h>
-
+#include <windows.h>
+#include <mmsystem.h>
 #else
 #include <stdio.h>
 #include <unistd.h>
@@ -127,6 +128,17 @@ public:
     pthread_mutex_destroy(&mutex);
 #endif
 
+  }
+  
+static int32_t QGetTimerMS()
+  {
+#if defined (_WIN32)
+    return timeGetTime() ;
+#else
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+#endif
   }
 
 
