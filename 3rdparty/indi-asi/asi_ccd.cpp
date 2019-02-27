@@ -1899,8 +1899,8 @@ void ASICCD::getExposure()
             {
                 InExposure = false;
                 PrimaryCCD.setExposureLeft(0.0);
-                DEBUG(INDI::Logger::DBG_SESSION,
-                      "Exposure done, downloading image...");
+                if (PrimaryCCD.getExposureDuration() > 3)
+                    LOG_INFO("Exposure done, downloading image...");
                 pthread_mutex_lock(&condMutex);
                 exposureSetRequest(StateIdle);
                 pthread_mutex_unlock(&condMutex);
