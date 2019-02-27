@@ -201,26 +201,6 @@ bool CelestronSCT::Ack()
     return true;
 }
 
-//bool CelestronSCT::readBacklash()
-//{
-// CR Backlash has to be implemented in this driver, the backlash in the motor driver
-// is only for button moves.
-// Bascklash will need to be implemented by making the move in two parts with a state machine
-// to manage this. the final move would probably happen in the timer function.
-//    buffer reply;
-//    if (communicator.sendCommand(PortFD, MC_GET_POS_BACKLASH, FOC, reply) == false)
-//        return false;
-
-//    int backlash = reply[0];
-//    // Now set it to property
-//    BacklashN[0].value = backlash;
-//    LOGF_INFO("readBacklash %i", backlash);
-
-//    BacklashNP.s = IPS_OK;
-
-//    return true;
-//}
-
 bool CelestronSCT::readPosition()
 {
     Aux::buffer reply;
@@ -230,16 +210,9 @@ bool CelestronSCT::readPosition()
     int position = (reply[0] << 16) + (reply[1] << 8) + reply[2];
     LOGF_DEBUG("Position %i", position);
     FocusAbsPosN[0].value = position;
-    FocusAbsPosNP.s = IPS_OK;
+    //FocusAbsPosNP.s = IPS_OK;
     return true;
 }
-
-//bool CelestronSCT::readSpeed()
-//{
-//    // Same as readBacklash
-//    //FocusSpeedN[0].value = speed;
-//    return true;
-//}
 
 bool CelestronSCT::isMoving()
 {
@@ -248,24 +221,6 @@ bool CelestronSCT::isMoving()
         return false;
     return reply[0] != 0xFF;
 }
-
-
-//bool CelestronSCT::sendBacklash(uint32_t steps)
-//{
-//    // Ditto
-//    // If there is no response required then we simply send the following:
-//    //return sendCommand(cmd);
-
-//    // this will be a value that is held in the driver
-
-//    return true;
-//}
-
-//bool CelestronSCT::SetFocuserSpeed(int speed)
-//{
-//    // Ditto
-//    return true;
-//}
 
 // read the focuser limits from the hardware
 bool CelestronSCT::readLimits()
@@ -305,7 +260,6 @@ bool CelestronSCT::ISNewNumber(const char * dev, const char * name, double value
             return true;
         }
     }
-
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -340,19 +294,37 @@ IPState CelestronSCT::MoveAbsFocuser(uint32_t targetTicks)
     // If OK and moving, return IPS_BUSY (CR don't see this, it seems to just start a new move)
     // If OK and motion already done (was very small), return IPS_OK
     // If error, return IPS_ALERT
-    Aux::buffer data =
+
+    uint32_t position = targetTicks;
+
+    // implement backlash
+    int delta = targetTicks - FocusAbsPosN[0].value;
+    if ((BacklashN[0].value < 0 && delta > 0) ||
+        (BacklashN[0].value > 0 && delta < 0))
     {
-        static_cast<uint8_t>((targetTicks >> 16) & 0xFF),
-        static_cast<uint8_t>((targetTicks >> 8) & 0xFF),
-        static_cast<uint8_t>(targetTicks & 0xFF)
-    };
+        backlashMove = true;
+        finalPosition = position;
+        position-= BacklashN[0].value;
+    }
 
-    LOGF_DEBUG("MoveAbs %i, %x %x %x", targetTicks, data[0], data[1], data[2]);
-
-    if (!communicator.commandBlind(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_GOTO_FAST, data))
+    if (!startMove(position))
         return IPS_ALERT;
 
     return IPS_BUSY;
+}
+
+bool CelestronSCT::startMove(uint32_t position)
+{
+    Aux::buffer data =
+    {
+        static_cast<uint8_t>((position >> 16) & 0xFF),
+        static_cast<uint8_t>((position >> 8) & 0xFF),
+        static_cast<uint8_t>(position & 0xFF)
+    };
+
+    LOGF_DEBUG("startMove %i, %x %x %x", position, data[0], data[1], data[2]);
+
+    return communicator.commandBlind(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_GOTO_FAST, data);
 }
 
 IPState CelestronSCT::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
@@ -399,11 +371,22 @@ void CelestronSCT::TimerHit()
         // The other way is to have a function that calls a focuser specific function about motion
         if (!isMoving())
         {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            LOG_INFO("Focuser reached requested position.");
+            if (backlashMove)
+            {
+                backlashMove = false;
+                if (startMove(finalPosition))
+                    LOGF_INFO("Backlash move to %i", finalPosition);
+                else
+                    LOG_INFO("Backlash move failed");
+            }
+            else
+            {
+                FocusAbsPosNP.s = IPS_OK;
+                FocusRelPosNP.s = IPS_OK;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+                IDSetNumber(&FocusRelPosNP, nullptr);
+                LOG_INFO("Focuser reached requested position.");
+            }
         }
     }
 
@@ -425,5 +408,3 @@ bool CelestronSCT::saveConfigItems(FILE * fp)
 
     return true;
 }
-
-
