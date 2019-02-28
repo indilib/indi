@@ -114,10 +114,6 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_INOVAPLX Off)
     set(WITH_GIGE Off)
     set(WITH_FXLOAD Off)
-    set(WITH_QHY Off)
-    set(WITH_RTLSDR Off)
-    set(WITH_RADIOSIM Off)
-    set(WITH_LIMESDR Off)
 ENDIF ()
 # Disable apogee, qhy and mi with gcc 4.8 and earlier versions
 IF (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
@@ -486,11 +482,11 @@ message(STATUS "libfishcamp was not found and will now be built. Please install 
 endif (WITH_FISHCAMP AND NOT FISHCAMP_FOUND)
 
 if (WITH_LIMESDR AND NOT LIMESDR_FOUND)
-message(STATUS "liblimesuite was not found and will now be built. Please install liblimesuite first before running cmake again to install indi-limesdr.")
+message(STATUS "liblimesuite was not found. Please install liblimesuite first before running cmake again to install indi-limesdr.")
 endif (WITH_LIMESDR AND NOT LIMESDR_FOUND)
 
 if (WITH_RTLSDR AND NOT RTLSDR)
-message(STATUS "librtlsdr was not found and will now be built. Please install librtlsdr first before running cmake again to install indi-rtlsdr.")
+message(STATUS "librtlsdr was not found. Please install librtlsdr first before running cmake again to install indi-rtlsdr.")
 endif (WITH_RTLSDR AND NOT RTLSDR)
 
 message(STATUS "####################################################################################################################################")
