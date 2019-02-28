@@ -1774,7 +1774,10 @@ void QHYCCD::logQHYMessages(const std::string &message)
 
 void QHYCCD::debugTriggered(bool enable)
 {
+// For some reason QHYSDK does not define this for MacOS! Needs to be fixed
+#ifdef __linux__
     SetQHYCCDLogFunction(m_QHYLogCallback);
+#endif
     if (enable)
         SetQHYCCDLogLevel(5);
     else
