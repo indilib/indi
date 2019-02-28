@@ -822,7 +822,7 @@ bool QHYCCD::StartExposure(float duration)
 {
     unsigned int ret = QHYCCD_ERROR;
 
-    if (Streamer->isBusy())
+    if (HasStreaming() && Streamer->isBusy())
     {
         LOG_ERROR("Cannot take exposure while streaming/recording is active.");
         return false;
@@ -1780,7 +1780,7 @@ void QHYCCD::logQHYMessages(const std::string &message)
 
 void QHYCCD::debugTriggered(bool enable)
 {
-// For some reason QHYSDK does not define this for MacOS! Needs to be fixed
+    // For some reason QHYSDK does not define this for MacOS! Needs to be fixed
 #ifdef __linux__
     SetQHYCCDLogFunction(m_QHYLogCallback);
 #endif
