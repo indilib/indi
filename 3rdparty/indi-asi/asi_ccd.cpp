@@ -502,12 +502,12 @@ void ASICCD::setupParams()
                                     &pCtrlCaps);
         if (errCode == ASI_SUCCESS)
         {
-            CoolerN[0].min = (double)pCtrlCaps.MinValue;
-            CoolerN[0].max = (double)pCtrlCaps.MaxValue;
-            CoolerN[0].value = (double)pCtrlCaps.DefaultValue;
+            CoolerN[0].min = pCtrlCaps.MinValue;
+            CoolerN[0].max = pCtrlCaps.MaxValue;
+            CoolerN[0].value = pCtrlCaps.DefaultValue;
         }
-        defineNumber(&CoolerNP);
-        defineSwitch(&CoolerSP);
+        //defineNumber(&CoolerNP);
+        //defineSwitch(&CoolerSP);
     }
 
     // Set minimum ASI_BANDWIDTHOVERLOAD on ARM
@@ -1228,7 +1228,7 @@ void ASICCD::TimerHit()
     }
     else
     {
-        TemperatureN[0].value = (double)ASIControlValue / 10.0;
+        TemperatureN[0].value = ASIControlValue / 10.0;
     }
 
     switch (TemperatureNP.s)
