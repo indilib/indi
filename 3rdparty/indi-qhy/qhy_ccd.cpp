@@ -791,8 +791,12 @@ bool QHYCCD::setupParams()
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    Streamer->setPixelFormat(INDI_MONO);
-    Streamer->setSize(imagew, imageh);
+    if (HasStreaming())
+    {
+        Streamer->setPixelFormat(INDI_MONO);
+        Streamer->setSize(imagew, imageh);
+    }
+
     return true;
 }
 
@@ -818,7 +822,7 @@ bool QHYCCD::StartExposure(float duration)
 {
     unsigned int ret = QHYCCD_ERROR;
 
-    if (Streamer->isBusy())
+    if (HasStreaming() && Streamer->isBusy())
     {
         LOG_ERROR("Cannot take exposure while streaming/recording is active.");
         return false;
@@ -968,8 +972,10 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
     // Total bytes required for image buffer
     uint32_t nbuf = (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * PrimaryCCD.getBPP() / 8);
     PrimaryCCD.setFrameBufferSize(nbuf);
+
     // Streamer is always updated with BINNED size.
-    Streamer->setSize(PrimaryCCD.getSubW() / PrimaryCCD.getBinX(), PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
+    if (HasStreaming())
+        Streamer->setSize(PrimaryCCD.getSubW() / PrimaryCCD.getBinX(), PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
     return true;
 }
 
@@ -1774,7 +1780,7 @@ void QHYCCD::logQHYMessages(const std::string &message)
 
 void QHYCCD::debugTriggered(bool enable)
 {
-// For some reason QHYSDK does not define this for MacOS! Needs to be fixed
+    // For some reason QHYSDK does not define this for MacOS! Needs to be fixed
 #ifdef __linux__
     SetQHYCCDLogFunction(m_QHYLogCallback);
 #endif
