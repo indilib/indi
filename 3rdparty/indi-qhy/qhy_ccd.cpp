@@ -1292,49 +1292,98 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 
         if (strcmp(name, GainNP.name) == 0)
         {
+            double currentGain = GainN[0].value;
             IUUpdateNumber(&GainNP, values, names, n);
             GainRequest = GainN[0].value;
             if (fabs(LastGainRequest - GainRequest) > 0.001)
             {
-                SetQHYCCDParam(m_CameraHandle, CONTROL_GAIN, GainN[0].value);
-                LastGainRequest = GainRequest;
+                int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_GAIN, GainN[0].value);
+                if (rc == QHYCCD_SUCCESS)
+                {
+                    LastGainRequest = GainRequest;
+                    GainNP.s = IPS_OK;
+                    saveConfig(true, GainNP.name);
+                    LOGF_INFO("Gain updated to %.f", GainN[0].value);
+                }
+                else
+                {
+                    GainN[0].value = currentGain;
+                    GainNP.s = IPS_ALERT;
+                    LOGF_ERROR("Failed to changed gain: %d.", rc);
+                }
             }
-            LOGF_INFO("Current %s value %f", GainNP.name, GainN[0].value);
-            GainNP.s = IPS_OK;
+            else
+                GainNP.s = IPS_OK;
+
             IDSetNumber(&GainNP, nullptr);
             return true;
         }
 
         if (strcmp(name, OffsetNP.name) == 0)
         {
+            double currentOffset = OffsetN[0].value;
             IUUpdateNumber(&OffsetNP, values, names, n);
-            SetQHYCCDParam(m_CameraHandle, CONTROL_OFFSET, OffsetN[0].value);
-            LOGF_INFO("Current %s value %f", OffsetNP.name, OffsetN[0].value);
-            OffsetNP.s = IPS_OK;
+            int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_OFFSET, OffsetN[0].value);
+
+            if (rc == QHYCCD_SUCCESS)
+            {
+                OffsetNP.s = IPS_OK;
+                LOGF_INFO("Offset updated to %.f", OffsetN[0].value);
+                saveConfig(true, OffsetNP.name);
+            }
+            else
+            {
+                LOGF_ERROR("Failed to update offset: %.f", OffsetN[0].value);
+                OffsetN[0].value = currentOffset;
+                OffsetNP.s = IPS_ALERT;
+            }
+
             IDSetNumber(&OffsetNP, nullptr);
-            saveConfig(true, OffsetNP.name);
             return true;
         }
 
         if (strcmp(name, SpeedNP.name) == 0)
         {
+            double currentSpeed = SpeedN[0].value;
             IUUpdateNumber(&SpeedNP, values, names, n);
-            SetQHYCCDParam(m_CameraHandle, CONTROL_SPEED, SpeedN[0].value);
-            LOGF_INFO("Current %s value %f", SpeedNP.name, SpeedN[0].value);
-            SpeedNP.s = IPS_OK;
+            int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_SPEED, SpeedN[0].value);
+
+            if (rc == QHYCCD_SUCCESS)
+            {
+                LOGF_INFO("Speed updated to %.f", SpeedN[0].value);
+                SpeedNP.s = IPS_OK;
+                saveConfig(true, SpeedNP.name);
+            }
+            else
+            {
+                LOGF_ERROR("Failed to update speed: %d", rc);
+                SpeedNP.s = IPS_ALERT;
+                SpeedN[0].value = currentSpeed;
+            }
+
             IDSetNumber(&SpeedNP, nullptr);
-            saveConfig(true, SpeedNP.name);
             return true;
         }
 
         if (strcmp(name, USBTrafficNP.name) == 0)
         {
+            double currentTraffic = USBTrafficN[0].value;
             IUUpdateNumber(&USBTrafficNP, values, names, n);
-            SetQHYCCDParam(m_CameraHandle, CONTROL_USBTRAFFIC, USBTrafficN[0].value);
-            LOGF_INFO("Current %s value %f", USBTrafficNP.name, USBTrafficN[0].value);
-            USBTrafficNP.s = IPS_OK;
+            int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_USBTRAFFIC, USBTrafficN[0].value);
+            if (rc == QHYCCD_SUCCESS)
+            {
+                LOGF_INFO("USB Traffic updated to %.f", USBTrafficN[0].value);
+                USBTrafficNP.s = IPS_OK;
+                saveConfig(true, USBTrafficNP.name);
+            }
+            else
+            {
+                USBTrafficNP.s = IPS_ALERT;
+                USBTrafficN[0].value = currentTraffic;
+                LOGF_ERROR("Failed to update USB Traffic: %d", rc);
+            }
+
             IDSetNumber(&USBTrafficNP, nullptr);
-            saveConfig(true, USBTrafficNP.name);
             return true;
         }
     }
