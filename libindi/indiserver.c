@@ -1589,6 +1589,9 @@ static void q2SDrivers(DvrInfo *me, int isblob, const char *dev, const char *nam
 
     for (dp = dvrinfo; dp < &dvrinfo[ndvrinfo]; dp++)
     {
+        if (dp->active == 0)
+            continue;
+
         Property *sp = findSDevice(dp, dev, name);
 
         /* nothing for dp if not snooping for dev/name or wrong BLOB mode */
