@@ -19,6 +19,7 @@
 
  */
 
+#include <exception>
 #include <regex>
 #include <inditelescope.h>
 #include "command_interface.h"
@@ -40,15 +41,15 @@ namespace starbook {
     std::string CommandInterface::SendCommand(std::string cmd) {
         int rc = 0;
         CURL *handle = connection->getHandle();
+        last_response.clear();
+        read_buffer.clear();
         std::ostringstream cmd_url;
 
         cmd_url << "http://" << connection->host() << ":" << connection->port() << "/" << cmd;
         last_cmd_url = cmd_url.str();
 
-        last_response.clear();
-        read_buffer.clear();
-        curl_easy_setopt(handle, CURLOPT_USERAGENT, "curl/7.58.0");
 
+        curl_easy_setopt(handle, CURLOPT_USERAGENT, "curl/7.58.0");
         /* send all data to this function  */
         curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(handle, CURLOPT_WRITEDATA, &read_buffer);
@@ -57,17 +58,21 @@ namespace starbook {
         rc = curl_easy_perform(handle);
 
         if (rc != CURLE_OK) {
-            return "";
+            throw std::runtime_error("curl error " + std::to_string(rc));
         }
 
         // all responses are hidden in HTML comments ...
         std::regex response_comment_re("<!--(.*)-->", std::regex_constants::ECMAScript);
         std::smatch comment_match;
         if (!regex_search(read_buffer, comment_match, response_comment_re)) {
-            return "";
+            throw std::runtime_error("parsing error, response not found ");
         }
 
         last_response = comment_match[1].str();
+        if (last_response.empty()) {
+            throw std::runtime_error("parsing error, response empty");
+        }
+
         return comment_match[1].str();
     }
 
@@ -89,11 +94,10 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::Version(VersionResponse &res) {
-        std::string response_str = SendCommand("VERSION");
-        if (response_str.empty()) return ERROR_UNKNOWN;
+        std::string cmd_res = SendCommand("VERSION");
 
         try {
-            res = ParseVersionResponse(response_str);
+            res = ParseVersionResponse(cmd_res);
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
@@ -103,7 +107,6 @@ namespace starbook {
 
     ResponseCode CommandInterface::GetStatus(StatusResponse &res) {
         std::string cmd_res = SendCommand("GETSTATUS");
-        if (cmd_res.empty()) return ERROR_UNKNOWN;
 
         try {
             res = ParseStatusResponse(cmd_res);
@@ -116,7 +119,6 @@ namespace starbook {
 
     ResponseCode CommandInterface::GetPlace(PlaceResponse &res) {
         std::string cmd_res = SendCommand("GETSTATUS");
-        if (cmd_res.empty()) return ERROR_UNKNOWN;
 
         try {
             res = ParsePlaceResponse(cmd_res);
@@ -129,7 +131,6 @@ namespace starbook {
 
     ResponseCode CommandInterface::GetTime(ln_date &res) {
         std::string cmd_res = SendCommand("GETSTATUS");
-        if (cmd_res.empty()) return ERROR_UNKNOWN;
 
         try {
             res = ParseTimeResponse(cmd_res);
@@ -142,7 +143,6 @@ namespace starbook {
 
     ResponseCode CommandInterface::GetRound(long int &res) {
         std::string cmd_res = SendCommand("GETSTATUS");
-        if (cmd_res.empty()) return ERROR_UNKNOWN;
 
         try {
             res = ParseRoundResponse(cmd_res);
@@ -155,7 +155,6 @@ namespace starbook {
 
     ResponseCode CommandInterface::GetXY(XYResponse &res) {
         std::string cmd_res = SendCommand("GETSTATUS");
-        if (cmd_res.empty()) return ERROR_UNKNOWN;
 
         try {
             res = ParseXYResponse(cmd_res);
@@ -190,6 +189,7 @@ namespace starbook {
 
         return SendOkCommand(cmd.str());
     }
+
 
     ResponseCode CommandInterface::Move(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
         std::ostringstream cmd;
@@ -240,7 +240,7 @@ namespace starbook {
         result.equ = {0, 0};
         ln_hequ_to_equ(&equ_posn, &result.equ);
 
-        if (!str_remaining.empty()) throw;
+        if (!str_remaining.empty()) throw std::runtime_error("parsing error, couldn't parse full response");
 
         return result;
     }
