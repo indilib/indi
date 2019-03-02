@@ -1469,10 +1469,13 @@ void QHYCCD::updateTemperature()
         ccdtemp   = GetQHYCCDParam(m_CameraHandle, CONTROL_CURTEMP);
         coolpower = GetQHYCCDParam(m_CameraHandle, CONTROL_CURPWM);
 
-        // In previous SDKs, we have to call this _every_ second to set the temperature
-        // but shouldn't be required for SDK v3 and above.
-        if (CoolerSP.s == IPS_BUSY)
+        // Call this function as long as we are busy
+        if (TemperatureNP.s == IPS_BUSY)
+        {
+            // Sleep for 1 second before setting temperature again.
+            usleep(1000000);
             ControlQHYCCDTemp(m_CameraHandle, m_TemperatureRequest);
+        }
     }
 
     // No need to spam to log
@@ -1483,45 +1486,22 @@ void QHYCCD::updateTemperature()
     }
 
     TemperatureN[0].value = ccdtemp;
-    CoolerN[0].value      = coolpower / 255.0 * 100;
 
+    CoolerN[0].value      = coolpower / 255.0 * 100;
     CoolerNP.s = CoolerN[0].value > 0 ? IPS_BUSY : IPS_IDLE;
 
-    IPState coolerState = CoolerN[0].value > 0 ? IPS_BUSY : IPS_OK;
-    if (coolerState != CoolerSP.s)
+    IPState coolerSwitchState = CoolerN[0].value > 0 ? IPS_BUSY : IPS_OK;
+    if (coolerSwitchState != CoolerSP.s)
     {
-        CoolerSP.s = coolerState;
+        CoolerSP.s = coolerSwitchState;
         IDSetSwitch(&CoolerSP, nullptr);
     }
-
-    //    if (coolpower > 0 && CoolerS[0].s == ISS_OFF)
-    //    {
-    //        CoolerNP.s   = IPS_BUSY;
-    //        CoolerSP.s   = IPS_OK;
-    //        CoolerS[0].s = ISS_ON;
-    //        CoolerS[1].s = ISS_OFF;
-    //        IDSetSwitch(&CoolerSP, nullptr);
-    //    }
-    //    else if (coolpower <= 0 && CoolerS[0].s == ISS_ON)
-    //    {
-    //        CoolerNP.s   = IPS_IDLE;
-    //        CoolerSP.s   = IPS_IDLE;
-    //        CoolerS[0].s = ISS_OFF;
-    //        CoolerS[1].s = ISS_ON;
-    //        IDSetSwitch(&CoolerSP, nullptr);
-    //    }
 
     if (TemperatureNP.s == IPS_BUSY && fabs(TemperatureN[0].value - m_TemperatureRequest) <= TEMP_THRESHOLD)
     {
         TemperatureN[0].value = m_TemperatureRequest;
         TemperatureNP.s       = IPS_OK;
     }
-
-    /*
-    //we need call ControlQHYCCDTemp every second to control temperature
-    if (TemperatureNP.s == IPS_BUSY)
-        nextPoll = TEMPERATURE_BUSY_MS;
-    */
 
     IDSetNumber(&TemperatureNP, nullptr);
     IDSetNumber(&CoolerNP, nullptr);
