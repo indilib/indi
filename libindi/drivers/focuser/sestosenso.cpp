@@ -296,30 +296,30 @@ bool SestoSenso::isMotionComplete()
     {
         int rc = TTY_OK, nbytes_read = 0;
 
-        while (rc != TTY_TIME_OUT)
+        //while (rc != TTY_TIME_OUT)
+        //{
+        rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, 1, &nbytes_read);
+        if (rc == TTY_OK)
         {
-            rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, 1, &nbytes_read);
-            if (rc == TTY_OK)
+            res[nbytes_read - 1] = 0;
+
+            if (!strcmp(res, "GTok!"))
+                return true;
+
+            try
             {
-                res[nbytes_read - 1] = 0;
-
-                if (!strcmp(res, "GTok!"))
-                    return true;
-
-                try
-                {
-                    uint32_t newPos = std::stoi(res);
-                    FocusAbsPosN[0].value = newPos;
-                    IDSetNumber(&FocusAbsPosNP, nullptr);
-                    //if (newPos == targetPos)
-                    //    return true;
-                }
-                catch (...)
-                {
-                    LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
-                }
+                uint32_t newPos = std::stoi(res);
+                FocusAbsPosN[0].value = newPos;
+                //IDSetNumber(&FocusAbsPosNP, nullptr);
+                //if (newPos == targetPos)
+                //    return true;
+            }
+            catch (...)
+            {
+                LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
             }
         }
+        //}
     }
 
     return false;
@@ -523,7 +523,7 @@ void SestoSenso::TimerHit()
             IDSetNumber(&FocusAbsPosNP, nullptr);
 
         lastPos = FocusAbsPosN[0].value;
-        SetTimer(POLLMS);
+        SetTimer(10);
         return;
     }
 
