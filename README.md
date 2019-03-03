@@ -53,6 +53,18 @@ make
 sudo make install
 ```
 
+Build and install in a local directory
+```
+mkdir build install install_udev
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=$(readlink -f $(pwd)/../install) -DCMAKE_BUILD_TYPE=Debug -DUDEVRULES_INSTALL_DIR=$(readlink -f $(pwd)/../install_udev) ../libindi
+make
+make install
+sudo cp ../install_udev /usr/lib/udev/rules.d/
+```
+
+The last step is needed so that the usb recognizes various devices
+
 ## Build 3rd party drivers
 
 You can build the all the 3rd party drivers at once (not recommended) or build the required 3rd party driver as required (recommended). Each 3rd party driver may have its own pre-requisites and requirements. For example, to build INDI EQMod driver:
