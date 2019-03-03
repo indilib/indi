@@ -155,6 +155,7 @@ void indiduino::TimerHit()
         //DIGITAL INPUT
         if (type == INDI_LIGHT)
         {
+            bool changed = false;
             ILightVectorProperty *lvp = getLight(name);
             if (lvp->aux != (void *)indiduino_id)
                 continue;
@@ -173,27 +174,31 @@ void indiduino::TimerHit()
                     int pin = pin_config->pin;
                     if (sf->pin_info[pin].mode == FIRMATA_MODE_INPUT)
                     {
-                        if (sf->pin_info[pin].value == 1)
+                        if ((sf->pin_info[pin].value == 1) && (lqp->s != IPS_OK))
                         {
                             //LOGF_DEBUG("%s.%s on pin %u change to  ON",lvp->name,lqp->name,pin);
                             //IDSetLight (lvp, "%s.%s change to ON\n",lvp->name,lqp->name);
                             lqp->s = IPS_OK;
+                            changed = true;
+
                         }
-                        else
+                        else if ((sf->pin_info[pin].value == 0) && (lqp->s != IPS_IDLE))
                         {
                             //LOGF_DEBUG("%s.%s on pin %u change to  OFF",lvp->name,lqp->name,pin);
                             //IDSetLight (lvp, "%s.%s change to OFF\n",lvp->name,lqp->name);
                             lqp->s = IPS_IDLE;
+                            changed = true;
                         }
                     }
                 }
             }
-            IDSetLight(lvp, nullptr);
+            if (changed) IDSetLight(lvp, nullptr);
         }
 
         //read back DIGITAL OUTPUT values as reported by the board (FIRMATA_PIN_STATE_RESPONSE)
         if (type == INDI_SWITCH)
         {
+            bool changed = false;
             int n_on = 0;
             ISwitchVectorProperty *svp = getSwitch(name);
 
@@ -216,42 +221,48 @@ void indiduino::TimerHit()
                     {
                         if (sf->pin_info[pin].value == 1)
                         {
+                            changed = changed || (sqp->s != ISS_ON);
                             sqp->s = ISS_ON;
                             n_on++;
                         }
                         else
                         {
+                            changed = changed || (sqp->s != ISS_OFF);
                             sqp->s = ISS_OFF;
                         }
                     }
                 }
             }
-            if (svp->r == ISR_1OFMANY) // make sure that 1 switch is on
+            if (changed)
             {
-                for (int i = 0; i < svp->nsp; i++)
+                if (svp->r == ISR_1OFMANY) // make sure that 1 switch is on
                 {
-                    ISwitch *sqp = &svp->sp[i];
+                    for (int i = 0; i < svp->nsp; i++)
+                    {
+                        ISwitch *sqp = &svp->sp[i];
 
-                    if ((IO *)sqp->aux != nullptr)
-                       continue;
-                    if (n_on > 0)
-                    {
-                        sqp->s = ISS_OFF;
-                    }
-                    else
-                    {
-                        sqp->s = ISS_ON;
-                        n_on++;
+                        if ((IO *)sqp->aux != nullptr)
+                            continue;
+                        if (n_on > 0)
+                        {
+                            sqp->s = ISS_OFF;
+                        }
+                        else
+                        {
+                            sqp->s = ISS_ON;
+                            n_on++;
+                        }
                     }
                 }
-            }
 
-            IDSetSwitch(svp, nullptr);
+                IDSetSwitch(svp, nullptr);
+            }
         }
 
         //ANALOG
         if (type == INDI_NUMBER)
         {
+            bool changed = false;
             INumberVectorProperty *nvp = getNumber(name);
 
             if (nvp->aux != (void *)indiduino_id)
@@ -272,9 +283,10 @@ void indiduino::TimerHit()
                     int pin = pin_config->pin;
                     if (sf->pin_info[pin].mode == FIRMATA_MODE_ANALOG)
                     {
-                        eqp->value = pin_config->MulScale * (double)(sf->pin_info[pin].value) + pin_config->AddScale;
+                        double new_value = pin_config->MulScale * (double)(sf->pin_info[pin].value) + pin_config->AddScale;
+                        changed = changed || (eqp->value != new_value);
+                        eqp->value = new_value;
                         //LOGF_DEBUG("%f",eqp->value);
-                        IDSetNumber(nvp, nullptr);
                     }
                 }
                 if (pin_config->IOType == AO) // read back ANALOG OUTPUT values as reported by the board (FIRMATA_PIN_STATE_RESPONSE)
@@ -282,12 +294,14 @@ void indiduino::TimerHit()
                     int pin = pin_config->pin;
                     if (sf->pin_info[pin].mode == FIRMATA_MODE_PWM)
                     {
-                        eqp->value = ((double)(sf->pin_info[pin].value) - pin_config->AddScale) / pin_config->MulScale;
+                        double new_value = ((double)(sf->pin_info[pin].value) - pin_config->AddScale) / pin_config->MulScale;
+                        changed = changed || (eqp->value != new_value);
+                        eqp->value = new_value;
                         //LOGF_DEBUG("%f",eqp->value);
-                        IDSetNumber(nvp, nullptr);
                     }
                 }
             }
+            if (changed) IDSetNumber(nvp, nullptr);
         }
 
         //TEXT
@@ -303,9 +317,12 @@ void indiduino::TimerHit()
                     return;
 
                 if (eqp->aux0 == nullptr) continue;
-                IUSaveText(eqp, (char*)eqp->aux0);
-                //LOGF_DEBUG("%s.%s TEXT: %s ",tvp->name,eqp->name,eqp->text);
-                IDSetText(tvp, nullptr);
+                if (strcmp(eqp->text, (char*)eqp->aux0) != 0)
+                {
+                    IUSaveText(eqp, (char*)eqp->aux0);
+                    //LOGF_DEBUG("%s.%s TEXT: %s ",tvp->name,eqp->name,eqp->text);
+                    IDSetText(tvp, nullptr);
+                }
             }
         }
     }

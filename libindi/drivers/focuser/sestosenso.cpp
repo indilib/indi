@@ -294,31 +294,32 @@ bool SestoSenso::isMotionComplete()
     }
     else
     {
-        int rc = 0, nbytes_read = 0;
-        if ((rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, SESTO_TIMEOUT, &nbytes_read)) != TTY_OK)
+        int rc = TTY_OK, nbytes_read = 0;
+
+        while (rc != TTY_TIME_OUT)
         {
-            char errmsg[MAXRBUF];
-            tty_error_msg(rc, errmsg, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errmsg);
-            return false;
+            rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, 1, &nbytes_read);
+            if (rc == TTY_OK)
+            {
+                res[nbytes_read - 1] = 0;
+
+                if (!strcmp(res, "GTok!"))
+                    return true;
+
+                try
+                {
+                    uint32_t newPos = std::stoi(res);
+                    FocusAbsPosN[0].value = newPos;
+                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                    //if (newPos == targetPos)
+                    //    return true;
+                }
+                catch (...)
+                {
+                    LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
+                }
+            }
         }
-        res[nbytes_read - 1] = 0;
-    }
-
-    if (!strcmp(res, "GTok!"))
-        return true;
-
-    try
-    {
-        uint32_t newPos = std::stoi(res);
-        FocusAbsPosN[0].value = newPos;
-
-        if (newPos == targetPos)
-            return true;
-    }
-    catch (...)
-    {
-        LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
     }
 
     return false;
