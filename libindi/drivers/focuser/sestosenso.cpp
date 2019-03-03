@@ -500,15 +500,7 @@ bool SestoSenso::AbortFocuser()
     if (isSimulation())
         return true;
 
-    char res[SESTO_LEN] = {0};
-
-    for (int i = 0; i < 3; i++)
-    {
-        if (sendCommand("#MA!", res) && !strcmp(res, "MAok!"))
-            return true;
-    }
-
-    return false;
+    return sendCommand("#MA!");
 }
 
 void SestoSenso::checkMotionProgressHelper(void *context)
