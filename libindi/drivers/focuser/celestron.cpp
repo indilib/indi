@@ -137,7 +137,7 @@ bool CelestronSCT::initProperties()
     // Defualt port to /dev/ttyACM0
     //serialConnection->setDefaultPort("/dev/ttyACM0");
 
-    LOG_INFO("initProperties end");
+    //LOG_INFO("initProperties end");
     return true;
 }
 
