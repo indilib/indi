@@ -308,6 +308,8 @@ bool SestoSenso::isMotionComplete()
     if (!strcmp(res, "GTok!"))
         return true;
 
+    tcflush(PortFD, TCIFLUSH);
+
     try
     {
         uint32_t newPos = std::stoi(res);
