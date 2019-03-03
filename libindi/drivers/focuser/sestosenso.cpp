@@ -502,9 +502,10 @@ bool SestoSenso::AbortFocuser()
 
     char res[SESTO_LEN] = {0};
 
-    if (sendCommand("#MA!", res))
+    for (int i = 0; i < 3; i++)
     {
-        return !strcmp(res, "MAok!");
+        if (sendCommand("#MA!", res) && !strcmp(res, "MAok!"))
+            return true;
     }
 
     return false;
