@@ -23,56 +23,56 @@
 
 enum Settings
 {
-	FREQUENCY_N=0,
-	SAMPLERATE_N,
-	BANDWIDTH_N,
-	NUM_SETTINGS
+    FREQUENCY_N = 0,
+    SAMPLERATE_N,
+    BANDWIDTH_N,
+    NUM_SETTINGS
 };
 class RadioSim : public INDI::Detector
 {
-  public:
-    RadioSim();
+    public:
+        RadioSim();
 
-    bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-    void ISGetProperties(const char *dev);
+        bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
+        void ISGetProperties(const char *dev);
 
-  protected:
-	// General device functions
-	bool Connect();
-	bool Disconnect();
-	const char *getDefaultName();
-	bool initProperties();
-	bool updateProperties();
+    protected:
+        // General device functions
+        bool Connect();
+        bool Disconnect();
+        const char *getDefaultName();
+        bool initProperties();
+        bool updateProperties();
 
-	// Detector specific functions
-	bool StartCapture(float duration);
-	bool CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain);
-	bool AbortCapture();
-	void TimerHit();
+        // Detector specific functions
+        bool StartCapture(float duration);
+        bool CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain);
+        bool AbortCapture();
+        void TimerHit();
 
 
-  private:
-	INumber DetectorPropertiesN[1];
-	INumber DetectorCoordsN[2];
-	INumberVectorProperty DetectorPropertiesNP;
-	INumberVectorProperty DetectorCoordsNP;
-	// Utility functions
-	float CalcTimeLeft();
-	void setupParams();
-	void grabData();
+    private:
+        INumber DetectorPropertiesN[1];
+        INumber DetectorCoordsN[2];
+        INumberVectorProperty DetectorPropertiesNP;
+        INumberVectorProperty DetectorCoordsNP;
+        // Utility functions
+        float CalcTimeLeft();
+        void setupParams();
+        void grabData();
 
-	// Are we exposing?
-	bool InCapture;
-	// Struct to keep timing
-    struct timeval CapStart;
-	double DishSize; //simulated dish size in meters
-	double Ra; //should not stay here
-	double Dec; //should not stay here
+        // Are we exposing?
+        //bool InCapture;
+        // Struct to keep timing
+        struct timeval CapStart;
+        double DishSize; //simulated dish size in meters
+        //double Ra; //should not stay here
+        //double Dec; //should not stay here
 
-    int n_read;
-    int to_read;
-    int b_read;
-	float CaptureRequest;
-	uint8_t* continuum;
-	uint8_t* spectrum;
+        //int n_read;
+        int to_read;
+        //int b_read;
+        float CaptureRequest;
+        uint8_t* continuum;
+        uint8_t* spectrum;
 };
