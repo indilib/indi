@@ -98,6 +98,7 @@ option(WITH_ATIK "Install Atik Driver" On)
 option(WITH_TOUPCAM "Install Toupcam Driver" On)
 option(WITH_ALTAIRCAM "Install Altair Driver" On)
 option(WITH_AVALON "Install Avalon StarGO Driver" On)
+option(WITH_BEEFOCUS "Install Bee Focuser Driver" On)
 
 find_package(FFmpeg)
 
@@ -278,6 +279,12 @@ add_subdirectory(libaltaircam)
 SET(LIBRARIES_FOUND FALSE)
 endif (ALTAIRCAM_FOUND)
 endif (WITH_ALTAIRCAM)
+
+## Bee Focuser
+if (WITH_BEEFOCUS)
+add_subdirectory(indi-beefocus)
+endif(WITH_BEEFOCUS)
+
 
 ## INOVA
 if (WITH_INOVAPLX)
