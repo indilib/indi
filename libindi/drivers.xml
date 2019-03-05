@@ -359,7 +359,7 @@
         </device>
         <device label="Pegasus PPB">
                 <driver name="Pegasus PPB">indi_pegasus_ppb</driver>
-                <version>1.0</version>
+                <version>1.1</version>
         </device>
         <device label="Pegasus UPB">
                 <driver name="Pegasus UPB">indi_pegasus_upb</driver>
