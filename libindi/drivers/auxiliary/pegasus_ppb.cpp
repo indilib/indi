@@ -75,7 +75,7 @@ void ISSnoopDevice(XMLEle * root)
 
 PegasusPPB::PegasusPPB() : WI(this)
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
     lastSensorData.reserve(PA_N);
 }
 
@@ -98,9 +98,9 @@ bool PegasusPPB::initProperties()
     IUFillSwitchVector(&PowerCycleAllSP, PowerCycleAllS, 2, getDeviceName(), "POWER_CYCLE", "Cycle Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // DSLR on/off
-    IUFillSwitch(&PowerCycleAllS[DSLR_OFF], "DSLR_OFF", "Off", ISS_OFF);
-    IUFillSwitch(&PowerCycleAllS[DSLR_ON], "DSLR_ON", "On", ISS_OFF);
-    IUFillSwitchVector(&PowerCycleAllSP, PowerCycleAllS, 2, getDeviceName(), "DSLR_POWER", "DSLR Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitch(&DSLRPowerS[DSLR_OFF], "DSLR_OFF", "Off", ISS_OFF);
+    IUFillSwitch(&DSLRPowerS[DSLR_ON], "DSLR_ON", "On", ISS_OFF);
+    IUFillSwitchVector(&DSLRPowerSP, DSLRPowerS, 2, getDeviceName(), "DSLR_POWER", "DSLR Power", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Reboot
     IUFillSwitch(&RebootS[0], "REBOOT", "Reboot Device", ISS_OFF);
