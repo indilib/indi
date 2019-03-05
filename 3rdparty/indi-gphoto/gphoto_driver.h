@@ -35,7 +35,8 @@ typedef struct
     const char *name;
     const char *parent;
     int readonly;
-    union {
+    union
+    {
         int toggle;
         char index;
         char *text;
@@ -114,3 +115,4 @@ int gphoto_delete_sdcard_image(gphoto_driver *gphoto, bool delete_sdcard_image);
 bool gphoto_supports_temperature(gphoto_driver *gphoto);
 float gphoto_get_last_sensor_temperature(gphoto_driver *gphoto);
 void gphoto_force_bulb(gphoto_driver *gphoto, bool enabled);
+void gphoto_set_view_finder(gphoto_driver *gphoto, bool enabled);

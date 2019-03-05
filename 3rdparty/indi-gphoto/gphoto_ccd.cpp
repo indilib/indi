@@ -1233,6 +1233,7 @@ void GPhotoCCD::TimerHit()
             {
                 FocusTimerN[0].value = 0;
                 FocusTimerNP.s       = IPS_OK;
+                gphoto_set_view_finder(gphotodrv, false);
             }
             else if (timerID == -1)
                 timerID = SetTimer(FOCUS_TIMER);
@@ -1764,6 +1765,9 @@ IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
            return IPS_ALERT;
        }
     }*/
+
+    // If we have a view finder, let's turn it on
+    gphoto_set_view_finder(gphotodrv, true);
 
     SetTimer(FOCUS_TIMER);
 
