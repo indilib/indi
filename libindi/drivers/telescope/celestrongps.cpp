@@ -181,13 +181,13 @@ bool CelestronGPS::initProperties()
     FocusMaxPosNP.p = IP_RO;
 
     // Focuser backlash
-    // CR this is a value, positive or negative to define the direction.  It will need to be implemented
+    // CR this is a value, positive or negative to define the direction.  It is implemented
     // in the driver.
     IUFillNumber(&FocusBacklashN[0], "STEPS", "Steps", "%.f", -500., 500, 1., 0.);
     IUFillNumberVector(&FocusBacklashNP, FocusBacklashN, 1, getDeviceName(), "FOCUS_BACKLASH", "Backlash",
                        FOCUS_TAB, IP_RW, 0, IPS_IDLE);
 
-    // Focuser min limit
+    // Focuser min limit, read from the hardware
     IUFillNumber(&FocusMinPosN[0], "FOCUS_MIN_VALUE", "Steps", "%.f", 0, 40000., 1., 0.);
     IUFillNumberVector(&FocusMinPosNP, FocusMinPosN, 1, getDeviceName(), "FOCUS_MIN", "Min. Position",
                        FOCUS_TAB, IP_RO, 0, IPS_IDLE);
@@ -1328,6 +1328,8 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &UseHibernateSP);
     //IUSaveConfigSwitch(fp, &TrackSP);
     IUSaveConfigSwitch(fp, &UsePulseCmdSP);
+
+    IUSaveConfigNumber(fp, &FocusBacklashNP);
 
     return true;
 }
