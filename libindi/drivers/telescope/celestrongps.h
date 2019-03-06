@@ -132,4 +132,15 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         FirmwareInfo fwInfo;
         bool usePreciseCoords {false};
         bool usePulseCommand { false };
+
+        // focuser
+        INumber FocusBacklashN[1];
+        INumberVectorProperty FocusBacklashNP;
+
+        INumber FocusMinPosN[1];
+        INumberVectorProperty FocusMinPosNP;
+
+        bool focusBacklashMove;      // set if a final move is needed
+        uint32_t focusPosition;
+        bool focusReadLimits();
 };

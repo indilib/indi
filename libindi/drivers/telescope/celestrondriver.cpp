@@ -172,8 +172,10 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
             if (ascii_resp)
                 err = serial_read_section('#', &nbytes);
             else
+            {
                 err = serial_read(resp_len, &nbytes);
-
+                // to do check response ends with '#'
+            }
             if (err)
             {
                 tty_error_msg(err, errmsg, MAXRBUF);
@@ -795,6 +797,7 @@ bool CelestronDriver::check_aligned()
 bool CelestronDriver::foc_exists()
 {
     char focVersion[16];
+    int vernum = 0;     // version as a number: 0xMMmmbbbb
     LOG_DEBUG("Does focuser exist...");
     int rlen = send_passthrough(CELESTRON_DEV_FOC, GET_VER, nullptr, 0, response, 4);
     switch (rlen)
@@ -802,38 +805,45 @@ bool CelestronDriver::foc_exists()
     case 2:
     case 3:
         snprintf(focVersion, 15, "%d.%02d", response[0], response[1]);
+        vernum = (response[0] << 24) + (response[1] << 16);
         break;
     case 4:
     case 5:
         snprintf(focVersion, 15, "%d.%02d.%d", response[0], response[1], (int)((response[3] << 8) + response[4]));
+        vernum = (response[0] << 24) + (response[1] << 16) + (response[2] << 8) + response[3];
         break;
     default:
         LOG_DEBUG("No focuser found");
         return false;
     }
-    LOGF_DEBUG("Focuser Version %s", focVersion);
-    return true;
+
+    LOGF_DEBUG("Focuser Version %s, exists %s", focVersion, vernum != 0 ? "true" : "false");
+    return vernum != 0;
 }
 
-int CelestronDriver::get_foc_position()
+int CelestronDriver::foc_position()
 {
     int rlen = send_passthrough(CELESTRON_DEV_FOC, MC_GET_POSITION, nullptr, 0, response, 3);
     if (rlen >= 3)
     {
-        return (response[0] << 16) + (response[1] << 8) + response[2];
+        int pos = (response[0] << 16) + (response[1] << 8) + response[2];
+        LOGF_DEBUG("get focus position %d", pos);
+        return pos;
     }
+    LOG_DEBUG("get Focus position fail");
     return -1;
 }
 
 bool CelestronDriver::foc_move(int steps)
 {
+    LOGF_DEBUG("Focus move %d", steps);
     char payload[] = {(char)(steps >> 16 & 0xff), (char)(steps >> 8 & 0xff), (char)(steps & 0xff)};
 
     int rlen = send_passthrough(CELESTRON_DEV_FOC, MC_GOTO_FAST, payload, 3, response, 0);
     return rlen >=0;
 }
 
-bool CelestronDriver::is_foc_moving()
+bool CelestronDriver::foc_moving()
 {
     int rlen = send_passthrough(CELESTRON_DEV_FOC, MC_SLEW_DONE, nullptr, 0, response, 1);
     if (rlen < 1 )
@@ -841,7 +851,7 @@ bool CelestronDriver::is_foc_moving()
     return response[0] != 0xff;
 }
 
-bool CelestronDriver::get_foc_limits(int * low, int * high)
+bool CelestronDriver::foc_limits(int * low, int * high)
 {
     int rlen = send_passthrough(CELESTRON_DEV_FOC, FOC_GET_HS_POSITIONS, nullptr, 0, response, 8);
     if (rlen < 8)
@@ -850,17 +860,7 @@ bool CelestronDriver::get_foc_limits(int * low, int * high)
     *low = (response[0] << 24) + (response[1] << 16) + (response[2] << 8) + response[3];
     *high = (response[4] << 24) + (response[5] << 16) + (response[6] << 8) + response[7];
 
-//    FocusAbsPosN[0].max = hi;
-//    FocusAbsPosN[0].min = lo;
-//    FocusAbsPosNP.s = IPS_OK;
-
-//    FocusMaxPosN[0].value = hi;
-//    FocusMaxPosNP.s = IPS_OK;
-
-//    FocusMinPosN[0].value = lo;
-//    FocusMinPosNP.s = IPS_OK;
-
-    LOGF_INFO("Focus Limits: Maximum (%i) Minimum (%i) steps.", high, low);
+    LOGF_DEBUG("Focus Limits: Maximum (%i) Minimum (%i)", *high, *low);
     return true;
 }
 
