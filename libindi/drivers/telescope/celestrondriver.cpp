@@ -848,7 +848,7 @@ bool CelestronDriver::foc_moving()
     int rlen = send_passthrough(CELESTRON_DEV_FOC, MC_SLEW_DONE, nullptr, 0, response, 1);
     if (rlen < 1 )
         return false;
-    return response[0] != 0xff;
+    return response[0] != '\xff';   // use char comparison because some compilers object
 }
 
 bool CelestronDriver::foc_limits(int * low, int * high)
