@@ -574,7 +574,7 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Shutter Control: %s", cap & CCD_HAS_SHUTTER ? "True" : "False");
 
-        ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_VIEW_MODE);
+        ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_LIVEVIDEOMODE);
         if (ret == QHYCCD_SUCCESS)
         {
             cap |= CCD_HAS_STREAMING;
