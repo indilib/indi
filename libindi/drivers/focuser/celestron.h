@@ -36,6 +36,7 @@ class CelestronSCT : public INDI::Focuser
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
         virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
         /**
@@ -108,6 +109,15 @@ class CelestronSCT : public INDI::Focuser
 
         bool backlashMove;      // set if a final move is needed
         uint32_t finalPosition;
+
+        ISwitch CalibrateS[2];
+        ISwitchVectorProperty CalibrateSP;
+
+        IText CalibrateStateT[1];
+        ITextVectorProperty CalibrateStateTP;
+
+        bool calibrateInProgress;
+        int calibrateState;
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
