@@ -433,7 +433,7 @@ bool GPhotoCCD::initProperties()
     FocusSpeedN[0].min   = 0;
     FocusSpeedN[0].max   = 3;
     FocusSpeedN[0].step  = 1;
-    FocusSpeedN[0].value = 1;
+    FocusSpeedN[0].value = 3;
 
     /* JM 2014-05-20 Make PrimaryCCD.ImagePixelSizeNP writable since we can't know for now the pixel size and bit depth from gphoto */
     PrimaryCCD.getCCDInfo()->p = IP_RW;
@@ -499,7 +499,8 @@ bool GPhotoCCD::updateProperties()
         defineSwitch(&transferFormatSP);
         defineSwitch(&autoFocusSP);
 
-        FI::updateProperties();
+        if (m_CanFocus)
+            FI::updateProperties();
 
         if (captureTargetSP.s == IPS_OK)
         {
@@ -551,7 +552,8 @@ bool GPhotoCCD::updateProperties()
         deleteProperty(autoFocusSP.name);
         deleteProperty(transferFormatSP.name);
 
-        FI::updateProperties();
+        if (m_CanFocus)
+            FI::updateProperties();
 
         if (captureTargetSP.s != IPS_IDLE)
         {
@@ -1071,6 +1073,8 @@ bool GPhotoCCD::Connect()
         captureTargetSP.s                      = IPS_OK;
     }
 
+    m_CanFocus = gphoto_can_focus(gphotodrv);
+
     LOGF_INFO("%s is online.", getDeviceName());
 
     if (!isSimulation() && gphoto_get_manufacturer(gphotodrv) && gphoto_get_model(gphotodrv))
@@ -1217,31 +1221,31 @@ void GPhotoCCD::TimerHit()
     }
     */
 
-    if (FocusTimerNP.s == IPS_BUSY)
-    {
-        char errMsg[MAXRBUF];
-        if (gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
-        {
-            LOGF_ERROR("Focusing failed: %s", errMsg);
-            FocusTimerNP.s       = IPS_ALERT;
-            FocusTimerN[0].value = 0;
-        }
-        else
-        {
-            FocusTimerN[0].value -= FOCUS_TIMER;
-            if (FocusTimerN[0].value <= 0)
-            {
-                FocusTimerN[0].value = 0;
-                FocusTimerNP.s       = IPS_OK;
-                if (Streamer->isBusy() == false)
-                    gphoto_set_view_finder(gphotodrv, false);
-            }
-            else if (timerID == -1)
-                timerID = SetTimer(FOCUS_TIMER);
-        }
+    //    if (FocusTimerNP.s == IPS_BUSY)
+    //    {
+    //        char errMsg[MAXRBUF];
+    //        if (gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
+    //        {
+    //            LOGF_ERROR("Focusing failed: %s", errMsg);
+    //            FocusTimerNP.s       = IPS_ALERT;
+    //            FocusTimerN[0].value = 0;
+    //        }
+    //        else
+    //        {
+    //            FocusTimerN[0].value -= FOCUS_TIMER;
+    //            if (FocusTimerN[0].value <= 0)
+    //            {
+    //                FocusTimerN[0].value = 0;
+    //                FocusTimerNP.s       = IPS_OK;
+    //                if (Streamer->isBusy() == false)
+    //                    gphoto_set_view_finder(gphotodrv, false);
+    //            }
+    //            else if (timerID == -1)
+    //                timerID = SetTimer(FOCUS_TIMER);
+    //        }
 
-        IDSetNumber(&FocusTimerNP, nullptr);
-    }
+    //        IDSetNumber(&FocusTimerNP, nullptr);
+    //    }
 
     if (InExposure)
     {
@@ -1744,12 +1748,16 @@ void GPhotoCCD::HideExtendedOptions(void)
 
 IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
-    INDI_UNUSED(duration);
-
-    /* gphoto works with steps */
-
     if (isSimulation() || speed == 0)
         return IPS_OK;
+
+    // Set speed accordng to duration
+    if (duration >= 1000)
+        speed = 3;
+    else if (duration >= 250)
+        speed = 2;
+    else
+        speed = 1;
 
     if (dir == FOCUS_INWARD)
         focusSpeed = speed * -1;
@@ -1757,6 +1765,9 @@ IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
         focusSpeed = speed;
 
     LOGF_DEBUG("Setting focuser speed to %d", focusSpeed);
+
+    FocusTimerNP.s = IPS_BUSY;
+    IDSetNumber(&FocusTimerNP, nullptr);
 
     /*while (duration-->0)
     {
@@ -1771,9 +1782,19 @@ IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
     if (Streamer->isBusy() == false)
         gphoto_set_view_finder(gphotodrv, true);
 
-    SetTimer(FOCUS_TIMER);
+    //SetTimer(FOCUS_TIMER);
 
-    return IPS_BUSY;
+    char errMsg[MAXRBUF];
+    if (gphoto_manual_focus(gphotodrv, focusSpeed, errMsg) != GP_OK)
+    {
+        LOGF_ERROR("Focusing failed: %s", errMsg);
+        return IPS_ALERT;
+    }
+    else if (Streamer->isBusy() == false)
+        gphoto_set_view_finder(gphotodrv, false);
+
+    FocusTimerN[0].value = 0;
+    return IPS_OK;
 }
 
 bool GPhotoCCD::SetFocuserSpeed(int speed)

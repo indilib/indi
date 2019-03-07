@@ -130,6 +130,7 @@ struct _gphoto_driver
     gphoto_widget *autoexposuremode_widget;
     gphoto_widget *capturetarget_widget;
     gphoto_widget *viewfinder_widget;
+    gphoto_widget *focus_widget;
     gphoto_widget *customfuncex_widget;
 
     char bulb_port[256];
@@ -1719,6 +1720,11 @@ gphoto_driver *gphoto_open(Camera *camera, GPContext *context, const char *model
                      (gphoto->viewfinder_widget->value.toggle == 0) ? "Off" : "On");
     }
 
+    if ((gphoto->focus_widget = find_widget(gphoto, "manualfocusdrive")) != nullptr)
+    {
+        DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "ManualFocusDrive Widget: %s", gphoto->focus_widget->name);
+    }
+
     // Check customfuncex widget to enable/disable mirror lockup.
     if ((gphoto->customfuncex_widget = find_widget(gphoto, EOS_CUSTOMFUNCEX)) != nullptr)
     {
@@ -1822,6 +1828,8 @@ int gphoto_close(gphoto_driver *gphoto)
         widget_free(gphoto->autoexposuremode_widget);
     if (gphoto->viewfinder_widget)
         widget_free(gphoto->viewfinder_widget);
+    if (gphoto->focus_widget)
+        widget_free(gphoto->focus_widget);
     if (gphoto->customfuncex_widget)
         widget_free(gphoto->customfuncex_widget);
 
@@ -2115,6 +2123,12 @@ void gphoto_set_view_finder(gphoto_driver *gphoto, bool enabled)
         gphoto_set_widget_num(gphoto, gphoto->viewfinder_widget, enabled ? 1 : 0);
     }
 }
+
+bool gphoto_can_focus(gphoto_driver *gphoto)
+{
+    return gphoto->focus_widget != nullptr;
+}
+
 /* Manual focusing a camera...
  * xx is -3 / -2 / -1 / 0 / 1 / 2 / 3
  * Choice: 0 (-3) Near 1
@@ -2125,85 +2139,52 @@ void gphoto_set_view_finder(gphoto_driver *gphoto, bool enabled)
  * Choice: 5 (+2) Far 2
  * Choice: 6 (+3) Far 3
  */
-int gphoto_manual_focus(gphoto_driver *gphoto, int xx, char *errMsg)
+int gphoto_manual_focus(gphoto_driver *gphoto, int speed, char *errMsg)
 {
-    CameraWidget *widget = nullptr, *child = nullptr;
-    CameraWidgetType type;
-    int ret;
-    float rval;
-    char *mval;
+    int rc = 0;
 
-    // Hack. -3 should be -1 and -1 should be -3
-    switch (xx)
-    {
-        case -3:
-            xx = -1;
-            break;
-        case -1:
-            xx = -3;
-            break;
-    }
-
-    ret = gp_camera_get_config(gphoto->camera, &widget, gphoto->context);
-    if (ret < GP_OK)
-    {
-        snprintf(errMsg, MAXRBUF, "camera_get_config failed: %d", ret);
-        return ret;
-    }
-    ret = _lookup_widget(widget, "manualfocusdrive", &child);
-    if (ret < GP_OK)
-    {
-        snprintf(errMsg, MAXRBUF, "lookup manualfocusdrive failed: %d", ret);
-        goto out;
-    }
-
-    /* check that this is a toggle */
-    ret = gp_widget_get_type(child, &type);
-    if (ret < GP_OK)
-    {
-        snprintf(errMsg, MAXRBUF, "widget get type failed: %d", ret);
-        goto out;
-    }
-    switch (type)
+    switch (gphoto->focus_widget->type)
     {
         case GP_WIDGET_RADIO:
         {
-            int choices = gp_widget_count_choices(child);
+            // For Canon
+            // Speed is either
+            // 0: (None)
+            // 1: Far 1
+            // 2: Far 2
+            // 3: Far 3
+            // -1: Near 1
+            // -2: Near 2
+            // -3: Near 3
 
-            ret = gp_widget_get_value(child, &mval);
-            if (ret < GP_OK)
+            // Widget: Near1, Near2, Near3, None, Far1, Far2, Far3
+            // Mapping target speed to widget choices
+            uint8_t choice_index = (speed >= 0) ? speed + 3 : (speed * -1) - 1;
+            if (choice_index > gphoto->focus_widget->choice_cnt)
             {
-                snprintf(errMsg, MAXRBUF, "could not get widget value: %d", ret);
-                goto out;
+                snprintf(errMsg, MAXRBUF, "Speed %d choice index %d is out of bounds for focus widget count %d",
+                         speed, choice_index, gphoto->focus_widget->choice_cnt);
+                return rc;
             }
-            if (choices == 7)
+
+            // Set to None First before setting the actual value
+            rc = gp_widget_set_value(gphoto->focus_widget->widget, gphoto->focus_widget->choices[3]);
+            rc = gphoto_set_config(gphoto->camera, gphoto->config, gphoto->context);
+
+            usleep(100000);
+
+            rc = gp_widget_set_value(gphoto->focus_widget->widget, gphoto->focus_widget->choices[choice_index]);
+            if (rc < GP_OK)
             {
-                /* see what Canon has in EOS_MFDrive */
-                ret = gp_widget_get_choice(child, xx + 3, (const char **)&mval);
-                if (ret < GP_OK)
-                {
-                    snprintf(errMsg, MAXRBUF, "could not get widget choice %d: %d", xx + 3, ret);
-                    goto out;
-                }
-                DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "manual focus %d -> %s", xx, mval);
-            }
-            ret = gp_widget_set_value(child, mval);
-            if (ret < GP_OK)
-            {
-                snprintf(errMsg, MAXRBUF, "could not set widget value to 1: %d", ret);
-                goto out;
+                snprintf(errMsg, MAXRBUF, "Failed to set focus widget choice to %d: %s", choice_index, gp_result_as_string(rc));
+                return rc;
             }
             break;
         }
         case GP_WIDGET_RANGE:
-            ret = gp_widget_get_value(child, &rval);
-            if (ret < GP_OK)
-            {
-                snprintf(errMsg, MAXRBUF, "could not get widget value: %d", ret);
-                goto out;
-            }
-
-            switch (xx)
+        {
+            int rval = 0;
+            switch (speed)
             {
                 /* Range is on Nikon from -32768 <-> 32768 */
                 case -3:
@@ -2215,9 +2196,6 @@ int gphoto_manual_focus(gphoto_driver *gphoto, int xx, char *errMsg)
                 case -1:
                     rval = -128;
                     break;
-                case 0:
-                    rval = 0;
-                    break;
                 case 1:
                     rval = 128;
                     break;
@@ -2227,36 +2205,45 @@ int gphoto_manual_focus(gphoto_driver *gphoto, int xx, char *errMsg)
                 case 3:
                     rval = 1024;
                     break;
-
                 default:
-                    rval = xx;
-                    break; /* hack */
+                    rval = 0;
+                    break;
             }
 
-            DEBUGFDEVICE(device, INDI::Logger::DBG_DEBUG, "manual focus %d -> %f", xx, rval);
-
-            ret = gp_widget_set_value(child, &rval);
-            if (ret < GP_OK)
+            rc = gp_widget_set_value(gphoto->focus_widget->widget, &rval);
+            if (rc < GP_OK)
             {
-                snprintf(errMsg, MAXRBUF, "could not set widget value to 1: %d", ret);
-                goto out;
+                snprintf(errMsg, MAXRBUF, "could not set widget value to 1: %s", gp_result_as_string(rc));
+                return rc;
             }
             break;
+        }
         default:
-            snprintf(errMsg, MAXRBUF, "widget has bad type %d", type);
-            ret = GP_ERROR_BAD_PARAMETERS;
-            goto out;
+            rc = -1;
+            snprintf(errMsg, MAXRBUF, "Unsupported camera type: %d", gphoto->focus_widget->type);
+            return rc;
     }
 
-    ret = gp_camera_set_config(gphoto->camera, widget, gphoto->context);
-    if (ret < GP_OK)
+
+    for (int i = 0; i < 10; i++)
     {
-        snprintf(errMsg, MAXRBUF, "could not set config tree to autofocus: %d", ret);
-        goto out;
+        rc = gphoto_set_config(gphoto->camera, gphoto->config, gphoto->context);
+        if (rc == GP_ERROR_CAMERA_BUSY)
+        {
+            usleep(500000);
+            continue;
+        }
+        else
+            break;
     }
-out:
-    gp_widget_free(widget);
-    return ret;
+
+    if (rc < GP_OK)
+    {
+        snprintf(errMsg, MAXRBUF, "could not set config tree to manual focus: %s", gp_result_as_string(rc));
+        return rc;
+    }
+
+    return rc;
 }
 
 const char *gphoto_get_manufacturer(gphoto_driver *gphoto)

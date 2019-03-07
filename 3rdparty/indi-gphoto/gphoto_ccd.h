@@ -36,7 +36,6 @@
 
 typedef struct _Camera Camera;
 
-
 enum
 {
     ON_S,
@@ -137,12 +136,13 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
         std::map<std::string, cam_opt *> CamOptions;
         int expTID; /* exposure callback timer id, if any */
         int optTID; /* callback for exposure timer id */
-        int focusSpeed;
+        int focusSpeed {0};
 
         char * on_off[2];
         int timerID;
         bool frameInitialized;
         bool isTemperatureSupported { false };
+        bool m_CanFocus { false };
 
         int liveVideoWidth  {-1};
         int liveVideoHeight {-1};
