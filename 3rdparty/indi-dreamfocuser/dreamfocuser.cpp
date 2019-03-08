@@ -76,8 +76,6 @@ MG00000z - park
 response - MG00000z
 */
 
-const int POLLMS = 500;
-
 // We declare an auto pointer to DreamFocuser.
 std::unique_ptr<DreamFocuser> dreamFocuser(new DreamFocuser());
 
@@ -197,6 +195,8 @@ bool DreamFocuser::initProperties()
   serialConnection->setDefaultPort("/dev/ttyACM0");
   //strcpy(PortT[0].text, "/dev/ttyACM0");
   //addAuxControls();
+
+  setDefaultPollingPeriod(500);
 
   return true;
 }
