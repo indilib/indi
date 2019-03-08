@@ -324,7 +324,7 @@ bool CelestronDriver::get_version(char *version, int size)
     if (!send_command("V", 1, response, 3, true, false))
         return false;
 
-    snprintf(version, size, "%d.%02d", (uint8_t)response[0], (uint8_t)response[1]);
+    snprintf(version, size, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
 
     LOGF_INFO("Controller version: %s", version);
     return true;
@@ -338,7 +338,7 @@ bool CelestronDriver::get_variant(char *variant)
     if (!send_command("v", 1, response, 2, true, false))
         return false;
 
-    *variant = (uint8_t)response[0];
+    *variant = static_cast<uint8_t>(response[0]);
     return true;
 }
 
@@ -378,7 +378,7 @@ bool CelestronDriver::get_model(char *model, int size, bool *isGem)
     if (!send_command("m", 1, response, 2, true, false))
         return false;
 
-    int m = (uint8_t)response[0];
+    int m = static_cast<uint8_t>(response[0]);
 
     if (models.find(m) != models.end())
     {
@@ -419,10 +419,10 @@ bool CelestronDriver::get_dev_firmware(int dev, char *version, int size)
 
     switch (rlen) {
     case 2:
-        snprintf(version, size, "%01d.0", (uint8_t)response[0]);
+        snprintf(version, size, "%01d.0", static_cast<uint8_t>(response[0]));
         break;
     case 3:
-        snprintf(version, size, "%d.%02d", (uint8_t)response[0], (uint8_t)response[1]);
+        snprintf(version, size, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
         break;
     default:
         return false;
@@ -809,13 +809,15 @@ bool CelestronDriver::foc_exists()
     {
     case 2:
     case 3:
-        snprintf(focVersion, 15, "%d.%02d", (uint8_t)response[0], (uint8_t)response[1]);
-        vernum = ((uint8_t)response[0] << 24) + ((uint8_t)response[1] << 16);
+        snprintf(focVersion, 15, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
+        vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16);
         break;
     case 4:
     case 5:
-        snprintf(focVersion, 15, "%d.%02d.%d", (uint8_t)response[0], (uint8_t)response[1], (int)(((uint8_t)response[3] << 8) + (uint8_t)response[4]));
-        vernum = ((uint8_t)response[0] << 24) + ((uint8_t)response[1] << 16) + ((uint8_t)response[2] << 8) + (uint8_t)response[3];
+        snprintf(focVersion, 15, "%d.%02d.%d",
+                 static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]),
+                (int)((static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3])));
+        vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
         break;
     default:
         LOG_DEBUG("No focuser found");
@@ -831,7 +833,7 @@ int CelestronDriver::foc_position()
     int rlen = send_passthrough(CELESTRON_DEV_FOC, MC_GET_POSITION, nullptr, 0, response, 3);
     if (rlen >= 3)
     {
-        int pos = ((uint8_t)response[0] << 16) + ((uint8_t)response[1] << 8) + (uint8_t)response[2];
+        int pos = (static_cast<uint8_t>(response[0]) << 16) + (static_cast<uint8_t>(response[1]) << 8) + static_cast<uint8_t>(response[2]);
         LOGF_DEBUG("get focus position %d", pos);
         return pos;
     }
@@ -862,8 +864,8 @@ bool CelestronDriver::foc_limits(int * low, int * high)
     if (rlen < 8)
         return false;
 
-    *low = ((uint8_t)response[0] << 24) + ((uint8_t)response[1] << 16) + ((uint8_t)response[2] << 8) + (uint8_t)response[3];
-    *high = ((uint8_t)response[4] << 24) + ((uint8_t)response[5] << 16) + ((uint8_t)response[6] << 8) + (uint8_t)response[7];
+    *low = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
+    *high = (static_cast<uint8_t>(response[4]) << 24) + (static_cast<uint8_t>(response[5]) << 16) + (static_cast<uint8_t>(response[6]) << 8) + static_cast<uint8_t>(response[7]);
 
 
     // check on integrity of values, they must be sensible and the range must be more than 2 turns
