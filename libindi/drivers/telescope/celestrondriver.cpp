@@ -174,7 +174,7 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
             else
             {
                 err = serial_read(resp_len, &nbytes);
-                // to do check response ends with '#'
+                // to do: check response ends with '#'
             }
             if (err)
             {
@@ -185,13 +185,17 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
         }
     }
 
-    if (resp_len == 0)
-        return true;
-
     if (nbytes != resp_len)
     {
-        LOGF_ERROR("Received %d bytes, expected %d.", nbytes, resp_len);
+        hex_dump(hexbuf, resp, nbytes > resp_len ? nbytes : resp_len);
+        LOGF_ERROR("Received %d bytes, expected %d <%s>", nbytes, resp_len, hexbuf);
         return 0;
+    }
+
+    if (resp_len == 0)
+    {
+        LOG_DEBUG("resp_len 0, no response expected");
+        return true;
     }
 
     resp[nbytes] = '\0';
@@ -204,6 +208,7 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
         hex_dump(hexbuf, resp, resp_len);
         LOGF_DEBUG("RES <%s>", hexbuf);
     }
+
     return nbytes;
 }
 
@@ -319,7 +324,7 @@ bool CelestronDriver::get_version(char *version, int size)
     if (!send_command("V", 1, response, 3, true, false))
         return false;
 
-    snprintf(version, size, "%d.%02d", response[0], response[1]);
+    snprintf(version, size, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
 
     LOGF_INFO("Controller version: %s", version);
     return true;
@@ -333,7 +338,7 @@ bool CelestronDriver::get_variant(char *variant)
     if (!send_command("v", 1, response, 2, true, false))
         return false;
 
-    *variant = response[0];
+    *variant = static_cast<uint8_t>(response[0]);
     return true;
 }
 
@@ -373,7 +378,7 @@ bool CelestronDriver::get_model(char *model, int size, bool *isGem)
     if (!send_command("m", 1, response, 2, true, false))
         return false;
 
-    int m = response[0];
+    int m = static_cast<uint8_t>(response[0]);
 
     if (models.find(m) != models.end())
     {
@@ -414,10 +419,10 @@ bool CelestronDriver::get_dev_firmware(int dev, char *version, int size)
 
     switch (rlen) {
     case 2:
-        snprintf(version, size, "%01d.0", response[0]);
+        snprintf(version, size, "%01d.0", static_cast<uint8_t>(response[0]));
         break;
     case 3:
-        snprintf(version, size, "%d.%02d", response[0], response[1]);
+        snprintf(version, size, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
         break;
     default:
         return false;
@@ -700,7 +705,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     *ss        = response[2];
     *mm        = response[3];
     *dd        = response[4];
-    *yy        = response[5] + 2000;
+    *yy        = response[5] + 2000;    // should be good as a signed char until 2127
     *utc_hours = response[6];
 
     if (*utc_hours > 12)
@@ -761,7 +766,7 @@ bool CelestronDriver::set_track_mode(CELESTRON_TRACK_MODE mode)
 
 bool CelestronDriver::hibernate()
 {
-    return send_command("x#", 2, response, 0, true, true);
+    return send_command("x#", 2, response, 1, true, true);
 }
 
 bool CelestronDriver::wakeup()
@@ -804,13 +809,15 @@ bool CelestronDriver::foc_exists()
     {
     case 2:
     case 3:
-        snprintf(focVersion, 15, "%d.%02d", response[0], response[1]);
-        vernum = (response[0] << 24) + (response[1] << 16);
+        snprintf(focVersion, 15, "%d.%02d", static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]));
+        vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16);
         break;
     case 4:
     case 5:
-        snprintf(focVersion, 15, "%d.%02d.%d", response[0], response[1], (int)((response[3] << 8) + response[4]));
-        vernum = (response[0] << 24) + (response[1] << 16) + (response[2] << 8) + response[3];
+        snprintf(focVersion, 15, "%d.%02d.%d",
+                 static_cast<uint8_t>(response[0]), static_cast<uint8_t>(response[1]),
+                (int)((static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3])));
+        vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
         break;
     default:
         LOG_DEBUG("No focuser found");
@@ -826,7 +833,7 @@ int CelestronDriver::foc_position()
     int rlen = send_passthrough(CELESTRON_DEV_FOC, MC_GET_POSITION, nullptr, 0, response, 3);
     if (rlen >= 3)
     {
-        int pos = (response[0] << 16) + (response[1] << 8) + response[2];
+        int pos = (static_cast<uint8_t>(response[0]) << 16) + (static_cast<uint8_t>(response[1]) << 8) + static_cast<uint8_t>(response[2]);
         LOGF_DEBUG("get focus position %d", pos);
         return pos;
     }
@@ -857,8 +864,16 @@ bool CelestronDriver::foc_limits(int * low, int * high)
     if (rlen < 8)
         return false;
 
-    *low = (response[0] << 24) + (response[1] << 16) + (response[2] << 8) + response[3];
-    *high = (response[4] << 24) + (response[5] << 16) + (response[6] << 8) + response[7];
+    *low = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
+    *high = (static_cast<uint8_t>(response[4]) << 24) + (static_cast<uint8_t>(response[5]) << 16) + (static_cast<uint8_t>(response[6]) << 8) + static_cast<uint8_t>(response[7]);
+
+
+    // check on integrity of values, they must be sensible and the range must be more than 2 turns
+    if (*high - *low < 2000 || *high < 0 || *high > 60000 || *low < 0 || *low > 50000)
+    {
+        LOGF_INFO("Focus range %i to %i invalid, range not updated", *high, *low);
+        return false;
+    }
 
     LOGF_DEBUG("Focus Limits: Maximum (%i) Minimum (%i)", *high, *low);
     return true;
