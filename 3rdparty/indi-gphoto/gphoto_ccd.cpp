@@ -428,12 +428,15 @@ bool GPhotoCCD::initProperties()
 
     Streamer->setStreamingExposureEnabled(false);
 
+#if 0
     FI::SetCapability(FOCUSER_HAS_VARIABLE_SPEED);
-
     FocusSpeedN[0].min   = 0;
     FocusSpeedN[0].max   = 3;
     FocusSpeedN[0].step  = 1;
     FocusSpeedN[0].value = 3;
+#endif
+
+    FI::SetCapability(FOCUSER_CAN_REL_MOVE);
 
     /* JM 2014-05-20 Make PrimaryCCD.ImagePixelSizeNP writable since we can't know for now the pixel size and bit depth from gphoto */
     PrimaryCCD.getCCDInfo()->p = IP_RW;
@@ -1746,6 +1749,7 @@ void GPhotoCCD::HideExtendedOptions(void)
     }
 }
 
+#if 0
 IPState GPhotoCCD::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
 {
     if (isSimulation() || speed == 0)
@@ -1803,6 +1807,73 @@ bool GPhotoCCD::SetFocuserSpeed(int speed)
         return true;
 
     return false;
+}
+#endif
+
+IPState GPhotoCCD::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+{
+    INDI_UNUSED(dir);
+
+    // Reduce by a factor of 10
+    double adaptiveTicks = ticks / 10.0;
+
+    double largeStep = adaptiveTicks / (FOCUS_HIGH_MED_RATIO * FOCUS_MED_LOW_RATIO);
+    double medStep   = (largeStep - rint(largeStep)) * FOCUS_HIGH_MED_RATIO;
+    double lowStep   = (medStep - rint(medStep)) * FOCUS_MED_LOW_RATIO;
+
+    m_TargetLargeStep = rint(fabs(largeStep));
+    m_TargetMedStep = rint(fabs(medStep));
+    m_TargetLowStep = rint(fabs(lowStep));
+
+    if (m_FocusTimerID > 0)
+        RemoveTimer(m_FocusTimerID);
+
+    m_FocusTimerID = IEAddTimer(FOCUS_TIMER, &GPhotoCCD::UpdateFocusMotionHelper, this);
+
+    return IPS_BUSY;
+}
+
+void GPhotoCCD::UpdateFocusMotionHelper(void *context)
+{
+    static_cast<GPhotoCCD*>(context)->UpdateFocusMotionCallback();
+}
+
+void GPhotoCCD::UpdateFocusMotionCallback()
+{
+    char errmsg[MAXRBUF] = {0};
+    int focusSpeed = -1;
+
+    if (m_TargetLargeStep > 0)
+    {
+        m_TargetLargeStep--;
+        focusSpeed = IUFindOnSwitchIndex(&FocusMotionSP) == FOCUS_INWARD ? -3 : 3;
+    }
+    else if (m_TargetMedStep > 0)
+    {
+        m_TargetMedStep--;
+        focusSpeed = IUFindOnSwitchIndex(&FocusMotionSP) == FOCUS_INWARD ? -2 : 2;
+    }
+    else if (m_TargetLowStep > 0)
+    {
+        m_TargetLowStep--;
+        focusSpeed = IUFindOnSwitchIndex(&FocusMotionSP) == FOCUS_INWARD ? -1 : 1;
+    }
+
+    if (gphoto_manual_focus(gphotodrv, focusSpeed, errmsg) != GP_OK)
+    {
+        LOGF_ERROR("Focusing failed: %s", errmsg);
+        FocusRelPosNP.s = IPS_ALERT;
+        IDSetNumber(&FocusRelPosNP, nullptr);
+        return;
+    }
+
+    if (m_TargetLargeStep == 0 && m_TargetMedStep == 0 && m_TargetLowStep == 0)
+    {
+        FocusRelPosNP.s = IPS_OK;
+        IDSetNumber(&FocusRelPosNP, nullptr);
+    }
+    else
+        m_FocusTimerID = IEAddTimer(FOCUS_TIMER, &GPhotoCCD::UpdateFocusMotionHelper, this);
 }
 
 bool GPhotoCCD::StartStreaming()
