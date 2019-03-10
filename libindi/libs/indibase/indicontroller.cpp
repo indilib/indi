@@ -208,7 +208,7 @@ bool Controller::ISSnoopDevice(XMLEle *root)
             const char *elemName = findXMLAttValu(ep, "name");
             const char *setting  = getControllerSetting(elemName);
             if (setting == nullptr)
-                return false;
+                continue;
 
             mag = atof(pcdataXMLEle(ep));
 
