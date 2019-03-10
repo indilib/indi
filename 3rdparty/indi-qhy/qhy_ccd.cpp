@@ -114,18 +114,22 @@ void ISInit()
     }
 #endif
 
-    //On OS X, Prefer embedded App location if it exists
+//#if defined(__APPLE__)
+//    char driverSupportPath[128];
+//    if (getenv("INDIPREFIX") != nullptr)
+//        sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
+//    else
+//        strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
+//    strncat(driverSupportPath, "/DriverSupport/qhy/firmware", 128);
+//    IDLog("QHY firmware path: %s\n", driverSupportPath);
+//    OSXInitQHYCCDFirmware(driverSupportPath);
+//#endif
+
+// JM 2019-03-07: Use OSXInitQHYCCDFirmwareArray as recommended by QHY
 #if defined(__APPLE__)
-    char driverSupportPath[128];
-    if (getenv("INDIPREFIX") != nullptr)
-        sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
-    else
-        strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
-    strncat(driverSupportPath, "/DriverSupport/qhy", 128);
-    IDLog("QHY firmware path: %s\n", driverSupportPath);
-    OSXInitQHYCCDFirmware(driverSupportPath);
-    // Wait a bit before calling GetDeviceIDs on MacOS
-    usleep(2000000);
+OSXInitQHYCCDFirmwareArray();
+// Wait a bit before calling GetDeviceIDs on MacOS
+usleep(2000000);
 #endif
 
     std::vector<std::string> devices = GetDevicesIDs();
@@ -551,7 +555,7 @@ bool QHYCCD::Connect()
     {
         LOGF_INFO("Connected to %s.", camid);
 
-        cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME | CCD_HAS_STREAMING;
+        cap = CCD_CAN_ABORT | CCD_CAN_SUBFRAME;
 
         // Disable the stream mode before connecting
         ret = SetQHYCCDStreamMode(m_CameraHandle, 0);
@@ -573,6 +577,14 @@ bool QHYCCD::Connect()
         }
 
         LOGF_DEBUG("Shutter Control: %s", cap & CCD_HAS_SHUTTER ? "True" : "False");
+
+        ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_LIVEVIDEOMODE);
+        if (ret == QHYCCD_SUCCESS)
+        {
+            cap |= CCD_HAS_STREAMING;
+        }
+
+        LOGF_DEBUG("Has Streaming: %s", cap & CCD_HAS_STREAMING ? "True" : "False");
 
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_COOLER);
         if (ret == QHYCCD_SUCCESS)
@@ -783,8 +795,12 @@ bool QHYCCD::setupParams()
     nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
-    Streamer->setPixelFormat(INDI_MONO);
-    Streamer->setSize(imagew, imageh);
+    if (HasStreaming())
+    {
+        Streamer->setPixelFormat(INDI_MONO);
+        Streamer->setSize(imagew, imageh);
+    }
+
     return true;
 }
 
@@ -810,7 +826,7 @@ bool QHYCCD::StartExposure(float duration)
 {
     unsigned int ret = QHYCCD_ERROR;
 
-    if (Streamer->isBusy())
+    if (HasStreaming() && Streamer->isBusy())
     {
         LOG_ERROR("Cannot take exposure while streaming/recording is active.");
         return false;
@@ -960,8 +976,10 @@ bool QHYCCD::UpdateCCDFrame(int x, int y, int w, int h)
     // Total bytes required for image buffer
     uint32_t nbuf = (PrimaryCCD.getSubW() * PrimaryCCD.getSubH() * PrimaryCCD.getBPP() / 8);
     PrimaryCCD.setFrameBufferSize(nbuf);
+
     // Streamer is always updated with BINNED size.
-    Streamer->setSize(PrimaryCCD.getSubW() / PrimaryCCD.getBinX(), PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
+    if (HasStreaming())
+        Streamer->setSize(PrimaryCCD.getSubW() / PrimaryCCD.getBinX(), PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
     return true;
 }
 
@@ -1278,49 +1296,98 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 
         if (strcmp(name, GainNP.name) == 0)
         {
+            double currentGain = GainN[0].value;
             IUUpdateNumber(&GainNP, values, names, n);
             GainRequest = GainN[0].value;
             if (fabs(LastGainRequest - GainRequest) > 0.001)
             {
-                SetQHYCCDParam(m_CameraHandle, CONTROL_GAIN, GainN[0].value);
-                LastGainRequest = GainRequest;
+                int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_GAIN, GainN[0].value);
+                if (rc == QHYCCD_SUCCESS)
+                {
+                    LastGainRequest = GainRequest;
+                    GainNP.s = IPS_OK;
+                    saveConfig(true, GainNP.name);
+                    LOGF_INFO("Gain updated to %.f", GainN[0].value);
+                }
+                else
+                {
+                    GainN[0].value = currentGain;
+                    GainNP.s = IPS_ALERT;
+                    LOGF_ERROR("Failed to changed gain: %d.", rc);
+                }
             }
-            LOGF_INFO("Current %s value %f", GainNP.name, GainN[0].value);
-            GainNP.s = IPS_OK;
+            else
+                GainNP.s = IPS_OK;
+
             IDSetNumber(&GainNP, nullptr);
             return true;
         }
 
         if (strcmp(name, OffsetNP.name) == 0)
         {
+            double currentOffset = OffsetN[0].value;
             IUUpdateNumber(&OffsetNP, values, names, n);
-            SetQHYCCDParam(m_CameraHandle, CONTROL_OFFSET, OffsetN[0].value);
-            LOGF_INFO("Current %s value %f", OffsetNP.name, OffsetN[0].value);
-            OffsetNP.s = IPS_OK;
+            int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_OFFSET, OffsetN[0].value);
+
+            if (rc == QHYCCD_SUCCESS)
+            {
+                OffsetNP.s = IPS_OK;
+                LOGF_INFO("Offset updated to %.f", OffsetN[0].value);
+                saveConfig(true, OffsetNP.name);
+            }
+            else
+            {
+                LOGF_ERROR("Failed to update offset: %.f", OffsetN[0].value);
+                OffsetN[0].value = currentOffset;
+                OffsetNP.s = IPS_ALERT;
+            }
+
             IDSetNumber(&OffsetNP, nullptr);
-            saveConfig(true, OffsetNP.name);
             return true;
         }
 
         if (strcmp(name, SpeedNP.name) == 0)
         {
+            double currentSpeed = SpeedN[0].value;
             IUUpdateNumber(&SpeedNP, values, names, n);
-            SetQHYCCDParam(m_CameraHandle, CONTROL_SPEED, SpeedN[0].value);
-            LOGF_INFO("Current %s value %f", SpeedNP.name, SpeedN[0].value);
-            SpeedNP.s = IPS_OK;
+            int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_SPEED, SpeedN[0].value);
+
+            if (rc == QHYCCD_SUCCESS)
+            {
+                LOGF_INFO("Speed updated to %.f", SpeedN[0].value);
+                SpeedNP.s = IPS_OK;
+                saveConfig(true, SpeedNP.name);
+            }
+            else
+            {
+                LOGF_ERROR("Failed to update speed: %d", rc);
+                SpeedNP.s = IPS_ALERT;
+                SpeedN[0].value = currentSpeed;
+            }
+
             IDSetNumber(&SpeedNP, nullptr);
-            saveConfig(true, SpeedNP.name);
             return true;
         }
 
         if (strcmp(name, USBTrafficNP.name) == 0)
         {
+            double currentTraffic = USBTrafficN[0].value;
             IUUpdateNumber(&USBTrafficNP, values, names, n);
-            SetQHYCCDParam(m_CameraHandle, CONTROL_USBTRAFFIC, USBTrafficN[0].value);
-            LOGF_INFO("Current %s value %f", USBTrafficNP.name, USBTrafficN[0].value);
-            USBTrafficNP.s = IPS_OK;
+            int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_USBTRAFFIC, USBTrafficN[0].value);
+            if (rc == QHYCCD_SUCCESS)
+            {
+                LOGF_INFO("USB Traffic updated to %.f", USBTrafficN[0].value);
+                USBTrafficNP.s = IPS_OK;
+                saveConfig(true, USBTrafficNP.name);
+            }
+            else
+            {
+                USBTrafficNP.s = IPS_ALERT;
+                USBTrafficN[0].value = currentTraffic;
+                LOGF_ERROR("Failed to update USB Traffic: %d", rc);
+            }
+
             IDSetNumber(&USBTrafficNP, nullptr);
-            saveConfig(true, USBTrafficNP.name);
             return true;
         }
     }
@@ -1406,10 +1473,13 @@ void QHYCCD::updateTemperature()
         ccdtemp   = GetQHYCCDParam(m_CameraHandle, CONTROL_CURTEMP);
         coolpower = GetQHYCCDParam(m_CameraHandle, CONTROL_CURPWM);
 
-        // In previous SDKs, we have to call this _every_ second to set the temperature
-        // but shouldn't be required for SDK v3 and above.
-        if (CoolerSP.s == IPS_BUSY)
+        // Call this function as long as we are busy
+        if (TemperatureNP.s == IPS_BUSY)
+        {
+            // Sleep for 1 second before setting temperature again.
+            usleep(1000000);
             ControlQHYCCDTemp(m_CameraHandle, m_TemperatureRequest);
+        }
     }
 
     // No need to spam to log
@@ -1420,45 +1490,22 @@ void QHYCCD::updateTemperature()
     }
 
     TemperatureN[0].value = ccdtemp;
-    CoolerN[0].value      = coolpower / 255.0 * 100;
 
+    CoolerN[0].value      = coolpower / 255.0 * 100;
     CoolerNP.s = CoolerN[0].value > 0 ? IPS_BUSY : IPS_IDLE;
 
-    IPState coolerState = CoolerN[0].value > 0 ? IPS_BUSY : IPS_OK;
-    if (coolerState != CoolerSP.s)
+    IPState coolerSwitchState = CoolerN[0].value > 0 ? IPS_BUSY : IPS_OK;
+    if (coolerSwitchState != CoolerSP.s)
     {
-        CoolerSP.s = coolerState;
+        CoolerSP.s = coolerSwitchState;
         IDSetSwitch(&CoolerSP, nullptr);
     }
-
-    //    if (coolpower > 0 && CoolerS[0].s == ISS_OFF)
-    //    {
-    //        CoolerNP.s   = IPS_BUSY;
-    //        CoolerSP.s   = IPS_OK;
-    //        CoolerS[0].s = ISS_ON;
-    //        CoolerS[1].s = ISS_OFF;
-    //        IDSetSwitch(&CoolerSP, nullptr);
-    //    }
-    //    else if (coolpower <= 0 && CoolerS[0].s == ISS_ON)
-    //    {
-    //        CoolerNP.s   = IPS_IDLE;
-    //        CoolerSP.s   = IPS_IDLE;
-    //        CoolerS[0].s = ISS_OFF;
-    //        CoolerS[1].s = ISS_ON;
-    //        IDSetSwitch(&CoolerSP, nullptr);
-    //    }
 
     if (TemperatureNP.s == IPS_BUSY && fabs(TemperatureN[0].value - m_TemperatureRequest) <= TEMP_THRESHOLD)
     {
         TemperatureN[0].value = m_TemperatureRequest;
         TemperatureNP.s       = IPS_OK;
     }
-
-    /*
-    //we need call ControlQHYCCDTemp every second to control temperature
-    if (TemperatureNP.s == IPS_BUSY)
-        nextPoll = TEMPERATURE_BUSY_MS;
-    */
 
     IDSetNumber(&TemperatureNP, nullptr);
     IDSetNumber(&CoolerNP, nullptr);
@@ -1545,17 +1592,37 @@ bool QHYCCD::StartStreaming()
     if (BayerT[2].text && formats.count(BayerT[2].text) != 0)
         qhyFormat = formats.at(BayerT[2].text);
 
-    Streamer->setPixelFormat(qhyFormat, PrimaryCCD.getBPP());
-
     double uSecs = static_cast<long>(m_ExposureRequest * 950000.0);
+
+    LOGF_INFO("Starting video streaming with exposure %.3f seconds (%.f FPS)", m_ExposureRequest, Streamer->getTargetFPS());
+
     SetQHYCCDParam(m_CameraHandle, CONTROL_EXPOSURE, uSecs);
+
+    // Set Stream Mode
     SetQHYCCDStreamMode(m_CameraHandle, 1);
 
     if (HasUSBSpeed)
-        SetQHYCCDParam(m_CameraHandle, CONTROL_SPEED, 2.0);
+    {
+        ret = SetQHYCCDParam(m_CameraHandle, CONTROL_SPEED, 2.0);
+        if (ret != QHYCCD_SUCCESS)
+            LOG_WARN("SetQHYCCDParam CONTROL_SPEED 2.0 failed.");
+    }
     if (HasUSBTraffic)
-        SetQHYCCDParam(m_CameraHandle, CONTROL_USBTRAFFIC, 20.0);
-    SetQHYCCDBitsMode(m_CameraHandle, 8);
+    {
+        ret = SetQHYCCDParam(m_CameraHandle, CONTROL_USBTRAFFIC, 20.0);
+        if (ret != QHYCCD_SUCCESS)
+            LOG_WARN("SetQHYCCDParam CONTROL_USBTRAFFIC 20.0 failed.");
+    }
+
+    ret = SetQHYCCDBitsMode(m_CameraHandle, 8);
+    if (ret == QHYCCD_SUCCESS)
+        Streamer->setPixelFormat(qhyFormat, 8);
+    else
+    {
+        LOG_WARN("SetQHYCCDBitsMode 8bit failed.");
+        Streamer->setPixelFormat(qhyFormat, PrimaryCCD.getBPP());
+    }
+
     BeginQHYCCDLive(m_CameraHandle);
 
     pthread_mutex_lock(&condMutex);
@@ -1746,7 +1813,10 @@ void QHYCCD::logQHYMessages(const std::string &message)
 
 void QHYCCD::debugTriggered(bool enable)
 {
+    // For some reason QHYSDK does not define this for MacOS! Needs to be fixed
+#ifdef __linux__
     SetQHYCCDLogFunction(m_QHYLogCallback);
+#endif
     if (enable)
         SetQHYCCDLogLevel(5);
     else

@@ -149,7 +149,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         bool HasFilters;
         bool HasTransferBit;
 
-        qhyccd_handle *m_CameraHandle;
+        qhyccd_handle *m_CameraHandle {nullptr};
         INDI::CCDChip::CCD_FRAME m_ImageFrameType;
 
         // Temperature tracking
@@ -164,8 +164,8 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         struct timeval ExpStart;
 
         // Gain
-        double GainRequest;
-        double LastGainRequest;
+        double GainRequest = 1e6;
+        double LastGainRequest = 1e6;
 
         // Threading
         // Imaging thread

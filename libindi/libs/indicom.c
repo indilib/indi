@@ -30,7 +30,7 @@
 #include "indidevapi.h"
 #include "locale_compat.h"
 
-#include "dsp.h"
+#include "dsp/dsp.h"
 #include "config.h"
 
 #if defined(HAVE_LIBNOVA)
@@ -955,10 +955,12 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     struct termios tty_setting;
 
     // Open as Read/Write, no fnctl, and close on exclusive
-    for (i = 0 ; i < 2 ; i++)
+    for (i = 0 ; i < 3 ; i++)
     {
         t_fd = open(device, O_RDWR | O_NOCTTY | O_CLOEXEC);
-        if (t_fd == -1)
+        if (t_fd > 0)
+            break;
+        else
         {
             *fd = -1;
             if (errno == EBUSY)

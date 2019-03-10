@@ -212,7 +212,7 @@ bool SynscanDriver::Handshake()
 
     if (m_isAltAz)
     {
-        SetTelescopeCapability(GetTelescopeCapability() & ~TELESCOPE_HAS_PIER_SIDE);
+        SetTelescopeCapability(GetTelescopeCapability() & ~TELESCOPE_HAS_PIER_SIDE, 10);
     }
 
     return true;

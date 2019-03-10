@@ -502,12 +502,12 @@ void ASICCD::setupParams()
                                     &pCtrlCaps);
         if (errCode == ASI_SUCCESS)
         {
-            CoolerN[0].min = (double)pCtrlCaps.MinValue;
-            CoolerN[0].max = (double)pCtrlCaps.MaxValue;
-            CoolerN[0].value = (double)pCtrlCaps.DefaultValue;
+            CoolerN[0].min = pCtrlCaps.MinValue;
+            CoolerN[0].max = pCtrlCaps.MaxValue;
+            CoolerN[0].value = pCtrlCaps.DefaultValue;
         }
-        defineNumber(&CoolerNP);
-        defineSwitch(&CoolerSP);
+        //defineNumber(&CoolerNP);
+        //defineSwitch(&CoolerSP);
     }
 
     // Set minimum ASI_BANDWIDTHOVERLOAD on ARM
@@ -562,7 +562,7 @@ void ASICCD::setupParams()
         nVideoFormats++;
     }
     size_t size = sizeof(ISwitch) * nVideoFormats;
-    VideoFormatS = (ISwitch *)malloc(size);
+    VideoFormatS = static_cast<ISwitch *>(malloc(size));
     if (VideoFormatS == nullptr)
     {
         LOGF_ERROR("Camera ID: %d malloc failed (setup)",  m_camInfo->CameraID);
@@ -850,7 +850,8 @@ bool ASICCD::setVideoFormat(uint8_t index)
             break;
     }
 
-    UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+    // When changing video format, reset frame
+    UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
     updateRecorderFormat();
 
@@ -1037,16 +1038,13 @@ bool ASICCD::AbortExposure()
 
 bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
+
     uint32_t binX = PrimaryCCD.getBinX();
     uint32_t binY = PrimaryCCD.getBinY();
     uint32_t subX = x / binX;
     uint32_t subY = y / binY;
     uint32_t subW = w / binX;
     uint32_t subH = h / binY;
-
-    // If nothing changed, return immediately.
-    if (m_SubX == subX && m_SubY == subY && m_SubW == subW && m_SubH == subH)
-        return true;
 
     if (subW > static_cast<uint32_t>(PrimaryCCD.getXRes() / binX))
     {
@@ -1083,7 +1081,8 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     }
 
     // Set UNBINNED coords
-    PrimaryCCD.setFrame(x, y, w, h);
+    //PrimaryCCD.setFrame(x, y, w, h);
+    PrimaryCCD.setFrame(subX * binX, subY * binY, subW * binX, subH * binY);
 
     // Total bytes required for image buffer
     uint32_t nbuf = (subW * subH * static_cast<uint32_t>(PrimaryCCD.getBPP()) / 8) * ((getImageType() == ASI_IMG_RGB24) ? 3 : 1);
@@ -1128,7 +1127,7 @@ float ASICCD::calcTimeLeft(float duration, timeval *start_time)
     {
         timeleft = 0.0;
     }
-    return (float)timeleft;
+    return timeleft;
 }
 
 /* Downloads the image from the CCD.
@@ -1142,25 +1141,25 @@ int ASICCD::grabImage()
     std::unique_lock<std::mutex> guard(ccdBufferLock);
     uint8_t *image = PrimaryCCD.getFrameBuffer();
     uint8_t *buffer = image;
-    int width     = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
-    int height    = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
+
+    uint16_t subW = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
+    uint16_t subH = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
     int nChannels = (type == ASI_IMG_RGB24) ? 3 : 1;
-    size_t size = width * height * nChannels;
+    size_t nTotalBytes = subW * subH * nChannels * (PrimaryCCD.getBPP() / 8);
 
     if (type == ASI_IMG_RGB24)
     {
-        buffer = (unsigned char *)malloc(size);
+        buffer = static_cast<uint8_t *>(malloc(nTotalBytes));
         if (buffer == nullptr)
         {
-            LOGF_ERROR("CCD ID: %d malloc failed (RGB 24)",
-                       m_camInfo->CameraID);
+            LOGF_ERROR("%s: %d malloc failed (RGB 24)", getDeviceName());
             return -1;
         }
     }
 
-    if ((errCode = ASIGetDataAfterExp(m_camInfo->CameraID, buffer, size)) != ASI_SUCCESS)
+    if ((errCode = ASIGetDataAfterExp(m_camInfo->CameraID, buffer, nTotalBytes)) != ASI_SUCCESS)
     {
-        LOGF_ERROR("ASIGetDataAfterExp (%dx%d #%d channels) error (%d)", width, height, nChannels,
+        LOGF_ERROR("ASIGetDataAfterExp (%dx%d #%d channels) error (%d)", subW, subH, nChannels,
                    errCode);
         if (type == ASI_IMG_RGB24)
             free(buffer);
@@ -1170,11 +1169,11 @@ int ASICCD::grabImage()
     if (type == ASI_IMG_RGB24)
     {
         uint8_t *subR = image;
-        uint8_t *subG = image + width * height;
-        uint8_t *subB = image + width * height * 2;
-        int size      = width * height * 3 - 3;
+        uint8_t *subG = image + subW * subH;
+        uint8_t *subB = image + subW * subH * 2;
+        uint32_t nPixels = subW * subH * 3 - 3;
 
-        for (int i = 0; i <= size; i += 3)
+        for (uint32_t i = 0; i <= nPixels; i += 3)
         {
             *subB++ = buffer[i];
             *subG++ = buffer[i + 1];
@@ -1190,24 +1189,16 @@ int ASICCD::grabImage()
     else
         PrimaryCCD.setNAxis(2);
 
-    bool restoreBayer = false;
-
-    // If we're sending Luma, turn off bayering
-    if (type == ASI_IMG_Y8 && HasBayer())
-    {
-        restoreBayer = true;
+    // If we're sending Luma or RGB, turn off bayering
+    if (type == ASI_IMG_Y8 || type == ASI_IMG_RGB24)
         SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
-    }
+    else
+        SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
 
     if (ExposureRequest > VERBOSE_EXPOSURE)
         LOG_INFO("Download complete.");
 
     ExposureComplete(&PrimaryCCD);
-
-    // Restore bayer cap
-    if (restoreBayer)
-        SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
-
     return 0;
 }
 
@@ -1228,7 +1219,7 @@ void ASICCD::TimerHit()
     }
     else
     {
-        TemperatureN[0].value = (double)ASIControlValue / 10.0;
+        TemperatureN[0].value = ASIControlValue / 10.0;
     }
 
     switch (TemperatureNP.s)
@@ -1899,8 +1890,8 @@ void ASICCD::getExposure()
             {
                 InExposure = false;
                 PrimaryCCD.setExposureLeft(0.0);
-                DEBUG(INDI::Logger::DBG_SESSION,
-                      "Exposure done, downloading image...");
+                if (PrimaryCCD.getExposureDuration() > 3)
+                    LOG_INFO("Exposure done, downloading image...");
                 pthread_mutex_lock(&condMutex);
                 exposureSetRequest(StateIdle);
                 pthread_mutex_unlock(&condMutex);

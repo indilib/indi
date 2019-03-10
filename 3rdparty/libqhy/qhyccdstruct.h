@@ -198,7 +198,10 @@ enum CONTROL_ID
   DefaultGain,
   DefaultOffset,
   OutputDataActualBits,
-  OutputDataAlignment
+  OutputDataAlignment,
+
+  CAM_SINGLEFRAMEMODE,
+  CAM_LIVEVIDEOMODE
 };
 
 /**
