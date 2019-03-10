@@ -33,6 +33,8 @@ class SestoSenso : public INDI::Focuser
         virtual bool updateProperties() override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
+        static void checkMotionProgressHelper(void *context);
+
     protected:
         virtual bool Handshake() override;
         virtual bool Disconnect() override;
@@ -52,6 +54,8 @@ class SestoSenso : public INDI::Focuser
         bool sync(uint32_t newPosition);
         bool updateTemperature();
         bool updatePosition();
+
+        void checkMotionProgressCallback();
 
         ///////////////////////////////////////////////////////////////////////////////
         /// Utility Functions
@@ -83,6 +87,7 @@ class SestoSenso : public INDI::Focuser
             SS_MAX_LIMIT
         };
 
+        int m_MotionProgressTimerID = -1;
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
         /////////////////////////////////////////////////////////////////////////////

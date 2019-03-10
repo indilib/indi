@@ -51,6 +51,7 @@ EXPORTC uint32_t STDCALL InitQHYCCDResource(void);
 	  another QHYCCD_ERROR code on other failures
   */
 EXPORTC uint32_t STDCALL ReleaseQHYCCDResource(void);
+EXPORTC uint32_t STDCALL ReleaseQHYCCDResourceOne(qhyccd_handle *h);
 
 /** \fn uint32_t ScanQHYCCD()
       \brief scan the connected cameras

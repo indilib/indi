@@ -948,7 +948,7 @@ void ATIKCCD::TimerHit()
         {
             if (moving == 0 && currentPos == targetPos)
             {
-                SelectFilterDone(currentPos);
+                SelectFilterDone(currentPos + 1);
             }
         }
 
@@ -1267,7 +1267,7 @@ bool ATIKCCD::saveConfigItems(FILE *fp)
 
 bool ATIKCCD::SelectFilter(int targetFilter)
 {
-    int rc = ArtemisFilterWheelMove(hCam, targetFilter);
+    int rc = ArtemisFilterWheelMove(hCam, targetFilter - 1);
     return (rc == ARTEMIS_OK);
 }
 
@@ -1282,7 +1282,7 @@ int ATIKCCD::QueryFilter()
         return -1;
     }
 
-    return currentPos;
+    return currentPos + 1;
 }
 
 void ATIKCCD::debugTriggered(bool enable)

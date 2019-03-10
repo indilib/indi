@@ -91,9 +91,9 @@ bool QHYCFW3::initProperties()
 }
 
 bool QHYCFW3::Handshake()
-{    
-    int rc=-1, nbytes_written=0, nbytes_read=0;
-    char res[32]={0};
+{
+    int rc = -1, nbytes_written = 0, nbytes_read = 0;
+    char res[32] = {0};
 
     if (isSimulation())
         return true;
@@ -105,7 +105,7 @@ bool QHYCFW3::Handshake()
         char error_message[ERRMSG_SIZE];
         tty_error_msg(rc, error_message, ERRMSG_SIZE);
 
-        LOGF_ERROR("Hankshake failed: %s. Firmware must be higher than 201409", error_message);
+        LOGF_ERROR("Handshake failed: %s. Firmware must be higher than 201409", error_message);
         return false;
     }
 
@@ -114,7 +114,7 @@ bool QHYCFW3::Handshake()
         char error_message[ERRMSG_SIZE];
         tty_error_msg(rc, error_message, ERRMSG_SIZE);
 
-        LOGF_ERROR("Hankshake failed: %s. Firmware must be higher than 201409", error_message);
+        LOGF_ERROR("Handshake failed: %s. Firmware must be higher than 201409", error_message);
         return false;
     }
 
@@ -177,7 +177,7 @@ bool QHYCFW3::Handshake()
 
     LOGF_DEBUG("RES <%s>", res);
 
-    CurrentFilter = atoi(res)+1;
+    CurrentFilter = atoi(res) + 1;
     FilterSlotN[0].value = CurrentFilter;
 
     return true;
@@ -186,15 +186,15 @@ bool QHYCFW3::Handshake()
 bool QHYCFW3::SelectFilter(int f)
 {
     TargetFilter = f;
-    char cmd[8] = {0}, res[8]={0};
-    int rc = -1, nbytes_written=0, nbytes_read=0;
+    char cmd[8] = {0}, res[8] = {0};
+    int rc = -1, nbytes_written = 0, nbytes_read = 0;
 
-    LOGF_DEBUG("CMD <%d>", TargetFilter-1);
+    LOGF_DEBUG("CMD <%d>", TargetFilter - 1);
 
-    snprintf(cmd, 2, "%d", TargetFilter-1);
+    snprintf(cmd, 2, "%d", TargetFilter - 1);
 
     if (isSimulation())
-        snprintf(res, 8, "%d", TargetFilter-1);
+        snprintf(res, 8, "%d", TargetFilter - 1);
     else
     {
         if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
@@ -218,7 +218,7 @@ bool QHYCFW3::SelectFilter(int f)
         LOGF_DEBUG("RES <%s>", res);
     }
 
-    if (atoi(res)+1 == TargetFilter)
+    if (atoi(res) + 1 == TargetFilter)
     {
         CurrentFilter = TargetFilter;
         SelectFilterDone(CurrentFilter);

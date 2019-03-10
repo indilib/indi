@@ -1261,7 +1261,11 @@ int IUReadConfig(const char *filename, const char *dev, const char *property, in
             continue;
 
         if ((property && !strcmp(property, rname)) || property == NULL)
+        {
             dispatch(root, errmsg);
+            if (property)
+                break;
+        }
     }
 
     if (nXMLEle(fproot) > 0 && silent != 1)

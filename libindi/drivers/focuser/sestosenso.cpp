@@ -294,31 +294,32 @@ bool SestoSenso::isMotionComplete()
     }
     else
     {
-        int rc = 0, nbytes_read = 0;
-        if ((rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, SESTO_TIMEOUT, &nbytes_read)) != TTY_OK)
+        int rc = TTY_OK, nbytes_read = 0;
+
+        //while (rc != TTY_TIME_OUT)
+        //{
+        rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, 1, &nbytes_read);
+        if (rc == TTY_OK)
         {
-            char errmsg[MAXRBUF];
-            tty_error_msg(rc, errmsg, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errmsg);
-            return false;
+            res[nbytes_read - 1] = 0;
+
+            if (!strcmp(res, "GTok!"))
+                return true;
+
+            try
+            {
+                uint32_t newPos = std::stoi(res);
+                FocusAbsPosN[0].value = newPos;
+                //IDSetNumber(&FocusAbsPosNP, nullptr);
+                //if (newPos == targetPos)
+                //    return true;
+            }
+            catch (...)
+            {
+                LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
+            }
         }
-        res[nbytes_read - 1] = 0;
-    }
-
-    if (!strcmp(res, "GTok!"))
-        return true;
-
-    try
-    {
-        uint32_t newPos = std::stoi(res);
-        FocusAbsPosN[0].value = newPos;
-
-        if (newPos == targetPos)
-            return true;
-    }
-    catch (...)
-    {
-        LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
+        //}
     }
 
     return false;
@@ -461,6 +462,9 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
             return IPS_ALERT;
     }
 
+    if (m_MotionProgressTimerID > 0)
+        IERmTimer(m_MotionProgressTimerID);
+    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso::checkMotionProgressHelper, this);
     return IPS_BUSY;
 }
 
@@ -487,17 +491,40 @@ IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 
 bool SestoSenso::AbortFocuser()
 {
+    if (m_MotionProgressTimerID > 0)
+    {
+        IERmTimer(m_MotionProgressTimerID);
+        m_MotionProgressTimerID = -1;
+    }
+
     if (isSimulation())
         return true;
 
-    char res[SESTO_LEN] = {0};
+    return sendCommand("#MA!");
+}
 
-    if (sendCommand("#MA!", res))
+void SestoSenso::checkMotionProgressHelper(void *context)
+{
+    static_cast<SestoSenso*>(context)->checkMotionProgressCallback();
+}
+
+void SestoSenso::checkMotionProgressCallback()
+{
+    if (isMotionComplete())
     {
-        return !strcmp(res, "MAok!");
+        FocusAbsPosNP.s = IPS_OK;
+        FocusRelPosNP.s = IPS_OK;
+        IDSetNumber(&FocusRelPosNP, nullptr);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+        LOG_INFO("Focuser reached requested position.");
     }
+    else
+        IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    return false;
+    lastPos = FocusAbsPosN[0].value;
+
+    IERmTimer(m_MotionProgressTimerID);
+    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso::checkMotionProgressHelper, this);
 }
 
 void SestoSenso::TimerHit()
@@ -509,22 +536,7 @@ void SestoSenso::TimerHit()
     }
 
     if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
-    {
-        if (isMotionComplete())
-        {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            LOG_INFO("Focuser reached requested position.");
-        }
-        else
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-
-        lastPos = FocusAbsPosN[0].value;
-        SetTimer(POLLMS);
         return;
-    }
 
     bool rc = updatePosition();
     if (rc)
@@ -558,9 +570,10 @@ bool SestoSenso::getStartupValues()
     if (rc1)
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    bool rc2 = updateMaxLimit();
+    if (updateMaxLimit() == false)
+        LOG_WARN("SestoSenso firmware is old, please update it to benefit from all features.");
 
-    return (rc1 && rc2);
+    return (rc1);
 }
 
 bool SestoSenso::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)

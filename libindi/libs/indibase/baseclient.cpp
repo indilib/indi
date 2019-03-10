@@ -58,7 +58,7 @@
 INDI::BaseClient::BaseClient()
 {
     cServer    = "localhost";
-    cPort      = 7624;    
+    cPort      = 7624;
     sConnected = false;
     verbose    = false;
 
@@ -96,11 +96,11 @@ bool INDI::BaseClient::connectServer()
 {
 #ifdef _WINDOWS
     WSADATA wsaData;
-    int iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
+    int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (iResult != NO_ERROR)
     {
-      IDLog("Error at WSAStartup()\n");
-      return false;
+        IDLog("Error at WSAStartup()\n");
+        return false;
     }
 #endif
 
@@ -109,7 +109,7 @@ bool INDI::BaseClient::connectServer()
     ts.tv_usec = timeout_us;
 
     struct sockaddr_in serv_addr;
-    struct hostent *hp;    
+    struct hostent *hp;
     int ret = 0;
 
     /* lookup host address */
@@ -142,22 +142,22 @@ bool INDI::BaseClient::connectServer()
 
     /* set the socket in non-blocking */
     //set socket nonblocking flag
-    #ifdef _WINDOWS
+#ifdef _WINDOWS
     u_long iMode = 0;
     iResult = ioctlsocket(sockfd, FIONBIO, &iMode);
     if (iResult != NO_ERROR)
     {
-      IDLog("ioctlsocket failed with error: %ld\n", iResult);
-      return false;
+        IDLog("ioctlsocket failed with error: %ld\n", iResult);
+        return false;
     }
-    #else
+#else
     int flags = 0;
     if ((flags = fcntl(sockfd, F_GETFL, 0)) < 0)
         return false;
 
     if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) < 0)
         return false;
-    #endif
+#endif
 
     //clear out descriptor sets for select
     //add socket to the descriptor sets
@@ -197,7 +197,7 @@ bool INDI::BaseClient::connectServer()
     }
 
     /* we had a positivite return so a descriptor is ready */
-    #ifndef _WINDOWS
+#ifndef _WINDOWS
     int error     = 0;
     socklen_t len = sizeof(error);
     if (FD_ISSET(sockfd, &rset) || FD_ISSET(sockfd, &wset))
@@ -209,7 +209,7 @@ bool INDI::BaseClient::connectServer()
         }
     }
     else
-        return false;    
+        return false;
 
     /* check if we had a socket error */
     if (error)
@@ -218,9 +218,9 @@ bool INDI::BaseClient::connectServer()
         perror("socket");
         return false;
     }
-    #endif
+#endif
 
-    #ifndef _WINDOWS
+#ifndef _WINDOWS
     int pipefd[2];
     ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
 
@@ -232,7 +232,7 @@ bool INDI::BaseClient::connectServer()
 
     m_receiveFd = pipefd[0];
     m_sendFd    = pipefd[1];
-    #endif
+#endif
 
     sConnected = true;
 
@@ -274,7 +274,7 @@ bool INDI::BaseClient::disconnectServer()
 
     listen_thread->join();
     delete(listen_thread);
-    listen_thread=nullptr;
+    listen_thread = nullptr;
     //pthread_join(listen_thread, nullptr);
 
     int exit_code = 0;
@@ -345,7 +345,7 @@ void INDI::BaseClient::setDriverConnection(bool status, const char *deviceName)
 
 INDI::BaseDevice *INDI::BaseClient::getDevice(const char *deviceName)
 {
-    for (auto& device : cDevices)
+    for (auto &device : cDevices)
     {
         if (!strcmp(deviceName, device->getDeviceName()))
             return device;
@@ -384,7 +384,7 @@ void INDI::BaseClient::listenINDI()
     }
     else
     {
-        for (auto& str : cDeviceNames)
+        for (auto &str : cDeviceNames)
         {
             sendString("<getProperties version='%g' device='%s'/>\n", INDIV, str.c_str());
             if (verbose)
@@ -512,15 +512,26 @@ int INDI::BaseClient::dispatchCommand(XMLEle *root, char *errmsg)
         return INDI_DEVICE_NOT_FOUND;
     }
 
-    // FIXME REMOVE THIS
-
     // Ignore echoed newXXX
     if (strstr(tagXMLEle(root), "new"))
         return 0;
 
+    // If device is set to BLOB_ONLY, we ignore everything else
+    // not related to blobs
+    if (getBLOBMode(dp->getDeviceName()) == B_ONLY)
+    {
+        if (!strcmp(tagXMLEle(root), "defBLOBVector"))
+            return dp->buildProp(root, errmsg);
+        else if (!strcmp(tagXMLEle(root), "setBLOBVector"))
+            return dp->setValue(root, errmsg);
+
+        // Ignore everything else
+        return 0;
+    }
+
     if ((!strcmp(tagXMLEle(root), "defTextVector")) || (!strcmp(tagXMLEle(root), "defNumberVector")) ||
-        (!strcmp(tagXMLEle(root), "defSwitchVector")) || (!strcmp(tagXMLEle(root), "defLightVector")) ||
-        (!strcmp(tagXMLEle(root), "defBLOBVector")))
+            (!strcmp(tagXMLEle(root), "defSwitchVector")) || (!strcmp(tagXMLEle(root), "defLightVector")) ||
+            (!strcmp(tagXMLEle(root), "defBLOBVector")))
         return dp->buildProp(root, errmsg);
     else if (!strcmp(tagXMLEle(root), "setTextVector") || !strcmp(tagXMLEle(root), "setNumberVector") ||
              !strcmp(tagXMLEle(root), "setSwitchVector") || !strcmp(tagXMLEle(root), "setLightVector") ||
@@ -1001,11 +1012,11 @@ BLOBHandling INDI::BaseClient::getBLOBMode(const char *dev, const char *prop)
     return bHandle;
 }
 
-INDI::BaseClient::BLOBMode *INDI::BaseClient::findBLOBMode(const std::string& device, const std::string& property)
+INDI::BaseClient::BLOBMode *INDI::BaseClient::findBLOBMode(const std::string &device, const std::string &property)
 {
-    for (auto& blob : blobModes)
+    for (auto &blob : blobModes)
     {
-        if (blob->device == device && blob->property == property)
+        if (blob->device == device && (property.empty() || blob->property == property))
             return blob;
     }
 
