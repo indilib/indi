@@ -178,7 +178,7 @@ bool Serial::Connect()
         tty_disconnect(PortFD);
 
     // Start auto-search if option was selected and IF we have system ports to try connecting to
-    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr)
+    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr && SystemPortSP.nsp > 1)
     {
         LOGF_WARN("Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text,
                   baud);

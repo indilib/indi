@@ -81,8 +81,14 @@ void QHYCFW2::ISGetProperties(const char *dev)
 {
     INDI::FilterWheel::ISGetProperties(dev);
 
+    // Only read value when we're offline
+    if (isConnected() == false)
+    {
+        double maxCount = 5;
+        IUGetConfigNumber(dev, "MAX_FILTER", "Count", &maxCount);
+        FilterSlotN[0].max = maxCount;
+    }
     defineNumber(&MaxFilterNP);
-    loadConfig(true, "MAX_FILTER");
 }
 
 bool QHYCFW2::initProperties()
@@ -94,7 +100,7 @@ bool QHYCFW2::initProperties()
 
     CurrentFilter      = 1;
     FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = MaxFilterN[0].value;
+    FilterSlotN[0].max = 5;
 
     addAuxControls();
 
@@ -105,15 +111,15 @@ bool QHYCFW2::initProperties()
 bool QHYCFW2::SelectFilter(int f)
 {
     TargetFilter = f;
-    char cmd[8] = {0}, res[8]={0};
-    int rc = -1, nbytes_written=0, nbytes_read=0;
+    char cmd[8] = {0}, res[8] = {0};
+    int rc = -1, nbytes_written = 0, nbytes_read = 0;
 
-    LOGF_DEBUG("CMD <%d>", TargetFilter-1);
+    LOGF_DEBUG("CMD <%d>", TargetFilter - 1);
 
-    snprintf(cmd, 2, "%d", TargetFilter-1);
+    snprintf(cmd, 2, "%d", TargetFilter - 1);
 
     if (isSimulation())
-        snprintf(res, 8, "%d", TargetFilter-1);
+        snprintf(res, 8, "%d", TargetFilter - 1);
     else
     {
         if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
@@ -137,7 +143,7 @@ bool QHYCFW2::SelectFilter(int f)
         LOGF_DEBUG("RES <%s>", res);
     }
 
-    if (atoi(res)+1 == TargetFilter)
+    if (atoi(res) + 1 == TargetFilter)
     {
         CurrentFilter = TargetFilter;
         SelectFilterDone(CurrentFilter);
@@ -153,16 +159,15 @@ bool QHYCFW2::ISNewNumber(const char *dev, const char *name, double values[], ch
     {
         if (!strcmp(name, MaxFilterNP.name))
         {
-            IUUpdateNumber(&MaxFilterNP, values, names, n);
-            MaxFilterNP.s = IPS_OK;
-            saveConfig();
-            IDSetNumber(&MaxFilterNP, nullptr);
-            FilterSlotN[0].max = MaxFilterN[0].value;
-            if (isConnected())
+            if (values[0] != MaxFilterN[0].value)
+            {
+                IUUpdateNumber(&MaxFilterNP, values, names, n);
+                saveConfig();
                 LOG_INFO("Max number of filters updated. You must reconnect for this change to take effect.");
-            else
-                LOGF_INFO("Max number of filters updated to %.f", MaxFilterN[0].value);
+            }
 
+            MaxFilterNP.s = IPS_OK;
+            IDSetNumber(&MaxFilterNP, nullptr);
             return true;
         }
 
