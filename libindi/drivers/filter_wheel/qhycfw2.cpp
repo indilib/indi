@@ -88,6 +88,7 @@ void QHYCFW2::ISGetProperties(const char *dev)
         IUGetConfigNumber(dev, "MAX_FILTER", "Count", &maxCount);
         FilterSlotN[0].max = maxCount;
     }
+    defineNumber(&MaxFilterNP);
 }
 
 bool QHYCFW2::initProperties()
