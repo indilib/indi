@@ -395,7 +395,7 @@ bool CelestronGPS::updateProperties()
         // last align is only available for mounts with switches that define the start index position
         // At present that is only the CGX and CGX-L mounts so the control is only made available for them
         // comment out this line and rebuild if you want to run with other mounts - at your own risk!
-        //if (strcmp(fwInfo.Model.c_str(), "CGX") == 0)
+        if (strcmp(fwInfo.Model.c_str(), "CGX") == 0)
         {
             defineSwitch(&LastAlignSP);
         }
