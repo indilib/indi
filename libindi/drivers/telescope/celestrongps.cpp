@@ -138,6 +138,10 @@ bool CelestronGPS::initProperties()
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
+    // CR This isn't correct, track modes should be pre-defined track rates - sidereal, solar, lunar etc.
+    // the Celestron track mode will need to be handled differently.
+    // AFAIK the track rate can be set but not read and for equatorial mounts only.
+
     AddTrackMode("TRACK_ALTAZ", "Alt/Az");
     AddTrackMode("TRACK_EQN", "Eq North", true);
     AddTrackMode("TRACK_EQS", "Eq South");
@@ -152,6 +156,12 @@ bool CelestronGPS::initProperties()
     IUFillSwitch(&UsePulseCmdS[1], "On", "", ISS_ON);
     IUFillSwitchVector(&UsePulseCmdSP, UsePulseCmdS, 2, getDeviceName(), "Use Pulse Cmd", "", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
+
+    // experimental last align control
+    IUFillSwitchVector(&LastAlignSP, LastAlignS, 1, getDeviceName(), "Align", "Align", MAIN_CONTROL_TAB,
+                       IP_WO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&LastAlignS[0], "Align", "Align", ISS_OFF);
+    // maybe a second switch which confirms the align
 
     SetParkDataType(PARK_AZ_ALT);
 
@@ -382,6 +392,13 @@ bool CelestronGPS::updateProperties()
         else
             LOG_WARN("Mount does not support retrieval of date and time settings.");
 
+        // last align is only available for mounts with switches that define the start index position
+        // At present that is only the CGX and CGX-L mounts so the control is only made available for them
+        // comment out this line and rebuild if you want to run with other mounts - at your own risk!
+        //if (strcmp(fwInfo.Model.c_str(), "CGX") == 0)
+        {
+            defineSwitch(&LastAlignSP);
+        }
 
         // Sometimes users start their mount when it is NOT yet aligned and then try to proceed to use it
         // So we check issue and issue error if not aligned.
@@ -416,6 +433,8 @@ bool CelestronGPS::updateProperties()
         deleteProperty(UsePulseCmdSP.name);
         deleteProperty(GuideNSNP.name);
         deleteProperty(GuideWENP.name);
+
+        deleteProperty(LastAlignSP.name);
 
         //deleteProperty(TrackSP.name);
         if (fwInfo.Version != "Invalid")
@@ -610,6 +629,45 @@ bool CelestronGPS::ReadScopeStatus()
         HorizontalCoordsN[AXIS_ALT].value = currentALT;
     }*/
 
+    // aligning
+    if (slewToIndex)
+    {
+        bool atIndex;
+        if (!driver.indexreached(&atIndex))
+        {
+            LOG_ERROR("IndexReached Failure");
+            slewToIndex = false;
+            return false;
+        }
+        if (atIndex)
+        {
+            slewToIndex = false;
+            // reached the index position.
+            // consider setting the time
+            // do an alignment
+            if (strcmp(fwInfo.Model.c_str(), "CGX") != 0)
+            {
+                // put another dire warning here
+                LOG_WARN("This mount does not have index switches, the alignment assumes it is at the index position.");
+            }
+
+            if (!driver.lastalign())
+            {
+                LOG_ERROR("LastAlign failed");
+                return false;
+            }
+            LastAlignSP.s = IPS_IDLE;
+            IDSetSwitch(&LastAlignSP, "Align finished");
+
+            if (driver.check_aligned())
+                LOG_INFO("Mount is aligned");
+            else
+                LOG_WARN("Alignment Failed!");
+
+            return true;
+        }
+    }
+
     switch (TrackState)
     {
         case SCOPE_SLEWING:
@@ -788,22 +846,6 @@ bool CelestronGPS::Handshake()
         driver.set_sim_dec(90);
     }
 
-    bool parkDataValid = (LoadParkData() == nullptr);
-    // Check if we need to wake up IF:
-    // 1. Park data exists in ParkData.xml
-    // 2. Mount is currently parked
-    // 3. Hibernate option is enabled
-    if (parkDataValid && isParked() && UseHibernateS[0].s == ISS_ON)
-    {
-        LOG_INFO("Waking up mount...");
-        if (!driver.wakeup())
-        {
-            LOG_ERROR("Waking up mount failed! Make sure mount is powered and connected. "
-                  "Hibernate requires firmware version >= 5.21");
-            return false;
-        }
-    }
-
     if (driver.check_connection() == false)
     {
         LOG_ERROR("Failed to communicate with the mount, check the logs for details.");
@@ -844,6 +886,36 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
             usePulseCommand = (UsePulseCmdS[1].s == ISS_ON);
             LOGF_INFO("Pulse guiding is %s.", usePulseCommand ? "enabled" : "disabled");
             return true;
+        }
+
+        // start a last align
+        // the process is:
+        //  start move to switch position
+        //  wait for the move to finish
+        //  set the time from the PC - maybe
+        //  send a Last Align command "Y"
+
+
+        if (!strcmp(name, LastAlignSP.name))
+        {
+            if (strcmp(fwInfo.Model.c_str(), "CGX") != 0)
+            {
+                // put the dire warning here
+                LOG_WARN("This mount does not have index switches, make sure that it is at the index position.");
+            }
+            LOG_DEBUG("Start Align");
+            // start move to switch positions
+            if (!driver.startmovetoindex())
+            {
+                LastAlignSP.s = IPS_ALERT;
+                return false;
+            }
+            // wait for the move to finish
+            // done in ReadScopeStatus
+           slewToIndex = true;
+           LastAlignSP.s = IPS_BUSY;
+           IDSetSwitch(&LastAlignSP, "Align in progress");
+           return true;
         }
 
         // Focuser
@@ -1207,9 +1279,28 @@ bool CelestronGPS::Park()
 
 bool CelestronGPS::UnPark()
 {
+    bool parkDataValid = (LoadParkData() == nullptr);
+    // Check if we need to wake up IF:
+    // 1. Park data exists in ParkData.xml
+    // 2. Mount is currently parked
+    // 3. Hibernate option is enabled
+    if (parkDataValid && isParked() && UseHibernateS[0].s == ISS_ON)
+    {
+        LOG_INFO("Waking up mount...");
+
+        if (!driver.wakeup())
+        {
+            LOG_ERROR("Waking up mount failed! Make sure mount is powered and connected. "
+                  "Hibernate requires firmware version >= 5.21");
+            return false;
+        }
+    }
+
     // Set tracking mode to whatever it was stored before
     SetParked(false);
     loadConfig(true, "TELESCOPE_TRACK_MODE");
+    // do we want to turn tracking on?
+    //LOGF_DEBUG("track state %s", getSwitch( TrackStateSP.)
     return true;
 
 #if 0
@@ -1329,7 +1420,8 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
     //IUSaveConfigSwitch(fp, &TrackSP);
     IUSaveConfigSwitch(fp, &UsePulseCmdSP);
 
-    IUSaveConfigNumber(fp, &FocusBacklashNP);
+    IUSaveConfigNumber(fp, &FocusBacklashNP);    
+    IUSaveConfigNumber(fp, &FocusMinPosNP);
 
     return true;
 }
@@ -1339,7 +1431,7 @@ bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
     if (driver.set_track_mode(mode))
     {
         TrackState = (mode == TRACKING_OFF) ? SCOPE_IDLE : SCOPE_TRACKING;
-        LOGF_DEBUG("Tracking mode set to %s.", TrackModeS[mode - 1].label);
+        LOGF_DEBUG("Tracking mode set to %i, %s.", mode, TrackModeS[mode - 1].label);
         return true;
     }
 
