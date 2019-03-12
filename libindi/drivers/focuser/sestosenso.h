@@ -42,6 +42,7 @@ class SestoSenso : public INDI::Focuser
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
 
         virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
 
@@ -51,7 +52,6 @@ class SestoSenso : public INDI::Focuser
         bool setMaxLimit(uint32_t limit);
         bool updateMaxLimit();
 
-        bool sync(uint32_t newPosition);
         bool updateTemperature();
         bool updatePosition();
 

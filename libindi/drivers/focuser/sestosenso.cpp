@@ -71,9 +71,9 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso::SestoSenso()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
 }
 
 bool SestoSenso::initProperties()
@@ -87,10 +87,6 @@ bool SestoSenso::initProperties()
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-
-    // Sync
-    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 60000., 0., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Limits
     IUFillNumber(&LimitsN[SS_MIN_LIMIT], "FOCUS_MIN_STEP", "Min", "%.f", 0, 10000., 0., 0.);
@@ -123,8 +119,6 @@ bool SestoSenso::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SyncNP);
-
         // Only define temperature if there is a probe
         if (updateTemperature())
             defineNumber(&TemperatureNP);
@@ -138,7 +132,6 @@ bool SestoSenso::updateProperties()
     }
     else
     {
-        deleteProperty(SyncNP.name);
         if (TemperatureNP.s == IPS_OK)
             deleteProperty(TemperatureNP.name);
         deleteProperty(FirmwareTP.name);
@@ -325,13 +318,13 @@ bool SestoSenso::isMotionComplete()
     return false;
 }
 
-bool SestoSenso::sync(uint32_t newPosition)
+bool SestoSenso::SyncFocuser(uint32_t ticks)
 {
     char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
-    snprintf(cmd, SESTO_LEN, "#SP%d!", newPosition);
+    snprintf(cmd, SESTO_LEN, "#SP%d!", ticks);
 
     if (isSimulation())
-        FocusAbsPosN[0].value = newPosition;
+        FocusAbsPosN[0].value = ticks;
     else if (sendCommand(cmd, res) == false)
         return false;
 
@@ -431,18 +424,6 @@ bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[],
 
             LOG_INFO("Focuser limits are updated.");
 
-            return true;
-        }
-
-        // Sync current position
-        else if (!strcmp(name, SyncNP.name))
-        {
-            IUUpdateNumber(&SyncNP, values, names, n);
-            if (sync(SyncN[0].value))
-                SyncNP.s = IPS_OK;
-            else
-                SyncNP.s = IPS_ALERT;
-            IDSetNumber(&SyncNP, nullptr);
             return true;
         }
     }
