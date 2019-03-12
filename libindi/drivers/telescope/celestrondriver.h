@@ -41,15 +41,21 @@
 // focuser device
 #define CELESTRON_DEV_FOC 0x12
 
-// focuser passthrough commands
+// motor commands
 #define MC_GET_POSITION 0x01            // return 24 bit position
 #define MC_GOTO_FAST    0x02            // send 24 bit target
+#define MC_LEVEL_START  0x0b            // move to switch position
+#define MC_LEVEL_DONE   0x12            // return 0xFF when move finished
 #define MC_SLEW_DONE    0x13            // return 0xFF when move finished
 #define MC_MOVE_POS     0x24            // send move rate 0-9
-#define GET_VER         0xfe            // return 2 or 4 bytes major.minor.build
+
+// focuser passthrough commands
 #define FOC_CALIB_ENABLE  42            // send 0 to start or 1 to stop
 #define FOC_CALIB_DONE    43            // returns 2 bytes [0] done, [1] state 0-12
-#define FOC_GET_HS_POSITIONS 44         // returns 2 ints low and high limits
+#define FOC_GET_HS_POSITIONS 44         // returns 2 ints, low and high limits
+
+// generic device commands
+#define GET_VER         0xfe            // return 2 or 4 bytes major.minor.build
 
 
 typedef enum { GPS_OFF, GPS_ON } CELESTRON_GPS_STATUS;
@@ -146,15 +152,18 @@ class CelestronDriver
         bool set_location(double longitude, double latitude);
         bool set_datetime(struct ln_date *utc, double utc_offset);
 
-        // Track Mode
+        // Track Mode, this is not the Indi track mode
         bool get_track_mode(CELESTRON_TRACK_MODE *mode);
         bool set_track_mode(CELESTRON_TRACK_MODE mode);
 
         bool is_slewing();
 
-        // Hibernate/Wakup
+        // Hibernate/Wakeup/ align
         bool hibernate();
         bool wakeup();
+        bool lastalign();
+        bool startmovetoindex();
+        bool indexreached(bool *atIndex);
 
         // Pulse Guide (experimental)
         int send_pulse(CELESTRON_DIRECTION direction, signed char rate, unsigned char duration_msec);
@@ -183,7 +192,7 @@ class CelestronDriver
         int send_command(const char *cmd, int cmd_len, char *resp, int resp_len,
                 bool ascii_cmd, bool ascii_resp);
         int send_passthrough(int dest, int cmd_id, const char *payload,
-                int payload_len, char *response, int response_len);
+                int payload_len, char *resp, int response_len);
 
         char response[MAX_RESP_SIZE];
         bool simulation = false;
