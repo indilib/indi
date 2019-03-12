@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DRV_LIST="indi-gphoto indi-nexstarevo indi-gpsd"
+DRV_LIST="indi-beefocus indi-gphoto indi-nexstarevo indi-gpsd"
 SRC_DIR=`pwd`"/.."
 
 for drv in $DRV_LIST ; do
