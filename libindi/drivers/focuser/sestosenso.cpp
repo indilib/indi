@@ -510,14 +510,11 @@ void SestoSenso::checkMotionProgressCallback()
 
 void SestoSenso::TimerHit()
 {
-    if (!isConnected())
+    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
         SetTimer(POLLMS);
         return;
     }
-
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
-        return;
 
     bool rc = updatePosition();
     if (rc)
