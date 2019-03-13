@@ -243,8 +243,7 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
     HasUSBSpeed   = false;
     HasGain       = false;
     HasOffset     = false;
-    HasFilters    = false;
-    coolerEnabled = false;
+    HasFilters    = false;    
 
     snprintf(this->name, MAXINDINAME, "QHY CCD %.15s", name);
     snprintf(this->camid, MAXINDINAME, "%s", name);
@@ -285,7 +284,7 @@ bool QHYCCD::initProperties()
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Regulation power
-    IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
+    IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 100., 5, 0.0);
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB,
                        IP_RO, 60, IPS_IDLE);
 
@@ -308,6 +307,12 @@ bool QHYCCD::initProperties()
     IUFillNumberVector(&USBTrafficNP, USBTrafficN, 1, getDeviceName(), "USB_TRAFFIC", "USB Traffic", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
 
+    // Cooler Mode
+    IUFillSwitch(&CoolerModeS[COOLER_AUTOMATIC], "COOLER_AUTOMATIC", "Auto", ISS_ON);
+    IUFillSwitch(&CoolerModeS[COOLER_MANUAL], "COOLER_MANUAL", "Manual", ISS_OFF);
+    IUFillSwitchVector(&CoolerModeSP, CoolerModeS, 2, getDeviceName(), "CCD_COOLER_MODE", "Cooler Mode", MAIN_CONTROL_TAB, IP_RO,
+                       ISR_1OFMANY, 0, IPS_IDLE);
+
     addAuxControls();
 
     setDriverInterface(getDriverInterface() | FILTER_INTERFACE);
@@ -324,6 +329,12 @@ void QHYCCD::ISGetProperties(const char *dev)
         if (HasCooler())
         {
             defineSwitch(&CoolerSP);
+
+            if (HasCoolerManualMode)
+            {
+                defineSwitch(&CoolerModeSP);
+            }
+
             defineNumber(&CoolerNP);
         }
 
@@ -359,9 +370,15 @@ bool QHYCCD::updateProperties()
         if (HasCooler())
         {
             defineSwitch(&CoolerSP);
+            if (HasCoolerManualMode)
+            {
+                defineSwitch(&CoolerModeSP);
+            }
+
+            CoolerNP.p = HasCoolerManualMode ? IP_RW : IP_RO;
             defineNumber(&CoolerNP);
 
-            temperatureID = IEAddTimer(POLLMS, QHYCCD::updateTemperatureHelper, this);
+            m_TemperatureTimerID = IEAddTimer(POLLMS, QHYCCD::updateTemperatureHelper, this);
         }
 
         double min = 0, max = 0, step = 0;
@@ -487,6 +504,10 @@ bool QHYCCD::updateProperties()
         if (HasCooler())
         {
             deleteProperty(CoolerSP.name);
+
+            if (HasCoolerManualMode)
+                deleteProperty(CoolerModeSP.name);
+
             deleteProperty(CoolerNP.name);
         }
 
@@ -570,6 +591,9 @@ bool QHYCCD::Connect()
             return false;
         }
 
+        ////////////////////////////////////////////////////////////////////
+        /// Shutter Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_MECHANICALSHUTTER);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -578,6 +602,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Shutter Control: %s", cap & CCD_HAS_SHUTTER ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Streaming Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_LIVEVIDEOMODE);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -586,14 +613,30 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Has Streaming: %s", cap & CCD_HAS_STREAMING ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// AutoMode Cooler Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_COOLER);
         if (ret == QHYCCD_SUCCESS)
         {
+            HasCoolerAutoMode = true;
             cap |= CCD_HAS_COOLER;
         }
+        LOGF_DEBUG("Automatic Cooler Control: %s", cap & CCD_HAS_COOLER ? "True" : "False");
 
-        LOGF_DEBUG("Cooler Control: %s", cap & CCD_HAS_COOLER ? "True" : "False");
+        ////////////////////////////////////////////////////////////////////
+        /// Manual PWM Support
+        ////////////////////////////////////////////////////////////////////
+        ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_MANULPWM);
+        if (ret == QHYCCD_SUCCESS)
+        {
+            HasCoolerManualMode = true;
+        }
+        LOGF_DEBUG("Manual Cooler Control: %s", HasCoolerManualMode ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// ST4 Port Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_ST4PORT);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -602,6 +645,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Guider Port Control: %s", cap & CCD_HAS_ST4_PORT ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Camera Speed Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_SPEED);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -617,6 +663,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("USB Speed Control: %s", HasUSBSpeed ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Gain Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_GAIN);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -625,6 +674,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Gain Control: %s", HasGain ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Offset Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_OFFSET);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -633,6 +685,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Offset Control: %s", HasOffset ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Filter Wheel Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_CFWPORT);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -641,16 +696,15 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Has Filters: %s", HasFilters ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// 8bit Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_TRANSFERBIT);
         HasTransferBit = (ret == QHYCCD_SUCCESS);
         LOGF_DEBUG("Has Transfer Bit control? %s", HasTransferBit ? "True" : "False");
 
         // Using software binning
         cap |= CCD_CAN_BIN;
-
-        // Always use INDI software binning
-        //useSoftBin = true;
-
 
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_BIN1X1MODE);
         LOGF_DEBUG("Bin 1x1: %s", (ret == QHYCCD_SUCCESS) ? "True" : "False");
@@ -664,6 +718,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// USB Traffic Control Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_USBTRAFFIC);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -676,6 +733,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("USB Traffic Control: %s", HasUSBTraffic ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Color Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_COLOR);
         //if(ret != QHYCCD_ERROR && ret != QHYCCD_ERROR_NOTSUPPORT)
         if (ret != QHYCCD_ERROR)
@@ -813,11 +873,18 @@ int QHYCCD::SetTemperature(double temperature)
     LOGF_DEBUG("Requested temperature is %.3f, current temperature is %.3f", temperature, TemperatureN[0].value);
 
     m_TemperatureRequest = temperature;
+    m_PWMRequest = -1;
 
-    // Enable cooler
-    //setCooler(true);
+    if (IUFindOnSwitchIndex(&CoolerModeSP) == COOLER_MANUAL)
+    {
+        IUResetSwitch(&CoolerModeSP);
+        CoolerModeS[COOLER_AUTOMATIC].s = ISS_ON;
+        LOG_INFO("Switching to automatic cooler control.");
+        IDSetSwitch(&CoolerModeSP, nullptr);
+    }
 
-    ControlQHYCCDTemp(m_CameraHandle, m_TemperatureRequest);
+    SetQHYCCDParam(m_CameraHandle, CONTROL_COOLER, m_TemperatureRequest);
+    //ControlQHYCCDTemp(m_CameraHandle, m_TemperatureRequest);
 
     return 0;
 }
@@ -1223,7 +1290,9 @@ bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Cooler controler
+        //////////////////////////////////////////////////////////////////////
+        /// Cooler On/Off Control
+        //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, CoolerSP.name))
         {
             if (IUUpdateSwitch(&CoolerSP, states, names, n) < 0)
@@ -1260,6 +1329,26 @@ bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             return activateCooler(enabled);
         }
+
+        //////////////////////////////////////////////////////////////////////
+        /// Cooler Mode
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(CoolerModeSP.name, name))
+        {
+            IUUpdateSwitch(&CoolerModeSP, states, names, n);
+            if (IUFindOnSwitchIndex(&CoolerModeSP) == COOLER_AUTOMATIC)
+            {
+                m_PWMRequest = -1;
+                LOG_INFO("Camera cooler is now automatically controlled to maintain the desired temperature.");
+            }
+            else
+            {
+                m_TemperatureRequest = 30;
+                LOG_INFO("Camera cooler is manually controlled. Set the desired cooler power.");
+            }
+
+            IDSetSwitch(&CoolerModeSP, nullptr);
+        }
     }
 
     //  Nobody has claimed this, so, ignore it
@@ -1285,16 +1374,17 @@ bool QHYCCD::ISNewText(const char *dev, const char *name, char *texts[], char *n
 bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    //IDLog("INDI::CCD::ISNewNumber %s\n",name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, FilterSlotNP.name) == 0)
+        if (!strcmp(name, FilterSlotNP.name))
         {
-            INDI::FilterInterface::processNumber(dev, name, values, names, n);
-            return true;
+            return INDI::FilterInterface::processNumber(dev, name, values, names, n);
         }
 
-        if (strcmp(name, GainNP.name) == 0)
+        //////////////////////////////////////////////////////////////////////
+        /// Gain Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, GainNP.name))
         {
             double currentGain = GainN[0].value;
             IUUpdateNumber(&GainNP, values, names, n);
@@ -1323,7 +1413,10 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
 
-        if (strcmp(name, OffsetNP.name) == 0)
+        //////////////////////////////////////////////////////////////////////
+        /// Gain Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, OffsetNP.name))
         {
             double currentOffset = OffsetN[0].value;
             IUUpdateNumber(&OffsetNP, values, names, n);
@@ -1346,7 +1439,10 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
 
-        if (strcmp(name, SpeedNP.name) == 0)
+        //////////////////////////////////////////////////////////////////////
+        /// Speed Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, SpeedNP.name))
         {
             double currentSpeed = SpeedN[0].value;
             IUUpdateNumber(&SpeedNP, values, names, n);
@@ -1369,7 +1465,10 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
 
-        if (strcmp(name, USBTrafficNP.name) == 0)
+        //////////////////////////////////////////////////////////////////////
+        /// USB Traffic Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, USBTrafficNP.name))
         {
             double currentTraffic = USBTrafficN[0].value;
             IUUpdateNumber(&USBTrafficNP, values, names, n);
@@ -1388,6 +1487,25 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             }
 
             IDSetNumber(&USBTrafficNP, nullptr);
+            return true;
+        }
+
+        //////////////////////////////////////////////////////////////////////
+        /// Cooler PWM Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, CoolerNP.name))
+        {
+            if (HasCoolerManualMode == false)
+            {
+                CoolerNP.s = IPS_ALERT;
+                LOG_WARN("Manual cooler control is not available.");
+                IDSetNumber(&CoolerNP, nullptr);
+            }
+
+            m_PWMRequest = values[0];
+            CoolerNP.s = IPS_BUSY;
+            LOGF_INFO("Setting cooler power manually to %.2f", m_PWMRequest);
+            IDSetNumber(&CoolerNP, nullptr);
             return true;
         }
     }
@@ -1409,6 +1527,12 @@ bool QHYCCD::activateCooler(bool enable)
             CoolerS[COOLER_OFF].s = ISS_OFF;
             CoolerSP.s = IPS_BUSY;
         }
+        else if (HasCoolerManualMode)
+        {
+            CoolerS[COOLER_ON].s = ISS_ON;
+            CoolerS[COOLER_OFF].s = ISS_OFF;
+            LOG_INFO("Camera cooler in manual mode. Set target cooler power.");
+        }
         else
         {
             CoolerS[COOLER_ON].s = ISS_OFF;
@@ -1421,15 +1545,34 @@ bool QHYCCD::activateCooler(bool enable)
     }
     else if (enable == false)
     {
-        int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_MANULPWM, 0);
-        if (rc != QHYCCD_SUCCESS)
+        if (HasCoolerManualMode)
         {
-            CoolerS[COOLER_ON].s = ISS_ON;
-            CoolerS[COOLER_OFF].s = ISS_OFF;
-            CoolerSP.s = IPS_ALERT;
-            LOGF_ERROR("Failed to warm camera (%d).", rc);
-            IDSetSwitch(&CoolerSP, nullptr);
-            return false;
+            // If automatic, switch to manual
+            if (IUFindOnSwitchIndex(&CoolerModeSP) == COOLER_AUTOMATIC)
+            {
+                IUResetSwitch(&CoolerModeSP);
+                CoolerModeS[COOLER_MANUAL].s = ISS_ON;
+                IDSetSwitch(&CoolerModeSP, nullptr);
+            }
+
+            m_PWMRequest = 0;
+            int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_MANULPWM, 0);
+            if (rc != QHYCCD_SUCCESS)
+            {
+                CoolerS[COOLER_ON].s = ISS_ON;
+                CoolerS[COOLER_OFF].s = ISS_OFF;
+                CoolerSP.s = IPS_ALERT;
+                LOGF_ERROR("Failed to warm camera (%d).", rc);
+                IDSetSwitch(&CoolerSP, nullptr);
+                return false;
+            }
+        }
+        // If we do not have manual PWM control. Let us set a high temperautre as the target
+        // in order to warm the camera
+        else
+        {
+            m_TemperatureRequest = 30;
+            SetQHYCCDParam(m_CameraHandle, CONTROL_COOLER, m_TemperatureRequest);
         }
 
         CoolerS[COOLER_ON].s = ISS_OFF;
@@ -1470,23 +1613,26 @@ void QHYCCD::updateTemperature()
     }
     else
     {
-        ccdtemp   = GetQHYCCDParam(m_CameraHandle, CONTROL_CURTEMP);
-        coolpower = GetQHYCCDParam(m_CameraHandle, CONTROL_CURPWM);
+        // Sleep for 1 second before setting temperature/pwm again.
+        usleep(1000000);
 
         // Call this function as long as we are busy
         if (TemperatureNP.s == IPS_BUSY)
         {
-            // Sleep for 1 second before setting temperature again.
-            usleep(1000000);
-            ControlQHYCCDTemp(m_CameraHandle, m_TemperatureRequest);
+            SetQHYCCDParam(m_CameraHandle, CONTROL_COOLER, m_TemperatureRequest);
+        } else if (m_PWMRequest >= 0)
+        {
+            SetQHYCCDParam(m_CameraHandle, CONTROL_MANULPWM, m_PWMRequest);
         }
+
+        ccdtemp   = GetQHYCCDParam(m_CameraHandle, CONTROL_CURTEMP);
+        coolpower = GetQHYCCDParam(m_CameraHandle, CONTROL_CURPWM);
     }
 
     // No need to spam to log
     if (fabs(ccdtemp - TemperatureN[0].value) > 0.001 || fabs(CoolerN[0].value - (coolpower / 255.0 * 100)) > 0.001)
     {
-        LOGF_DEBUG("CCD Temp: %g CCD RAW Cooling Power: %g, CCD Cooling percentage: %g", ccdtemp,
-                   coolpower, coolpower / 255.0 * 100);
+        LOGF_DEBUG("CCD T.: %.3f (C) Power: %.3f (%%.2f)", ccdtemp, coolpower, coolpower / 255.0 * 100);
     }
 
     TemperatureN[0].value = ccdtemp;
@@ -1510,7 +1656,7 @@ void QHYCCD::updateTemperature()
     IDSetNumber(&TemperatureNP, nullptr);
     IDSetNumber(&CoolerNP, nullptr);
 
-    temperatureID = IEAddTimer(nextPoll, QHYCCD::updateTemperatureHelper, this);
+    m_TemperatureTimerID = IEAddTimer(nextPoll, QHYCCD::updateTemperatureHelper, this);
 }
 
 bool QHYCCD::saveConfigItems(FILE *fp)

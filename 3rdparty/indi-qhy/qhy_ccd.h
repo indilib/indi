@@ -103,6 +103,14 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         INumber USBTrafficN[1];
         INumberVectorProperty USBTrafficNP;
 
+        ISwitchVectorProperty CoolerModeSP;
+        ISwitch CoolerModeS[2];
+        enum
+        {
+            COOLER_AUTOMATIC,
+            COOLER_MANUAL,
+        };
+
     private:
         typedef enum ImageState
         {
@@ -142,20 +150,24 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         char camid[MAXINDIDEVICE];
 
         // CCD extra capabilities
-        bool HasUSBTraffic;
-        bool HasUSBSpeed;
-        bool HasGain;
-        bool HasOffset;
-        bool HasFilters;
-        bool HasTransferBit;
+        bool HasUSBTraffic { false };
+        bool HasUSBSpeed { false };
+        bool HasGain { false };
+        bool HasOffset { false };
+        bool HasFilters { false };
+        bool HasTransferBit { false };
+        bool HasCoolerAutoMode { false };
+        bool HasCoolerManualMode { false };
 
         qhyccd_handle *m_CameraHandle {nullptr};
         INDI::CCDChip::CCD_FRAME m_ImageFrameType;
 
-        // Temperature tracking
+        // Requested target temperature
         double m_TemperatureRequest {0};
-        int temperatureID;
-        bool coolerEnabled;
+        // Requested target PWM
+        double m_PWMRequest { -1 };
+        // Temperature Timer
+        int m_TemperatureTimerID;
 
         // Exposure progress
         double m_ExposureRequest;
