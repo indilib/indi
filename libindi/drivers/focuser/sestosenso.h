@@ -43,6 +43,7 @@ class SestoSenso : public INDI::Focuser
 
         virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
         virtual bool SyncFocuser(uint32_t ticks) override;
+        virtual bool ReverseFocuser(bool enabled) override;
         virtual bool AbortFocuser() override;
         virtual void TimerHit() override;
 
@@ -75,9 +76,6 @@ class SestoSenso : public INDI::Focuser
 
         IText FirmwareT[1] {};
         ITextVectorProperty FirmwareTP;
-
-        INumber SyncN[1];
-        INumberVectorProperty SyncNP;
 
         INumber LimitsN[2];
         INumberVectorProperty LimitsNP;

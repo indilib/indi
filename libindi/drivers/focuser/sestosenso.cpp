@@ -73,7 +73,7 @@ SestoSenso::SestoSenso()
 {
     setVersion(1, 2);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
 }
 
 bool SestoSenso::initProperties()
@@ -451,23 +451,13 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double newPosition = 0;
-    bool rc            = false;
+    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == REVERSED_ENABLED) ? -1 : 1;
+    int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
+    double newPosition = FocusAbsPosN[0].value + relativeTicks;
 
-    if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
-    else
-        newPosition = FocusAbsPosN[0].value + ticks;
+    bool rc = MoveAbsFocuser(newPosition);
 
-    rc = MoveAbsFocuser(newPosition);
-
-    if (!rc)
-        return IPS_ALERT;
-
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
-
-    return IPS_BUSY;
+    return (rc ? IPS_BUSY : IPS_ALERT);
 }
 
 bool SestoSenso::AbortFocuser()
@@ -519,7 +509,7 @@ void SestoSenso::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (lastPos != FocusAbsPosN[0].value)
+        if (fabs(lastPos - FocusAbsPosN[0].value) > 0)
         {
             IDSetNumber(&FocusAbsPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
@@ -623,4 +613,10 @@ void SestoSenso::hexDump(char * buf, const char * data, int size)
 
     if (size > 0)
         buf[3 * size - 1] = '\0';
+}
+
+bool SestoSenso::ReverseFocuser(bool enable)
+{
+    INDI_UNUSED(enable);
+    return true;
 }
