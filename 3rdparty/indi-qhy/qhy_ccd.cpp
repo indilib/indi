@@ -877,17 +877,10 @@ int QHYCCD::SetTemperature(double temperature)
     m_TemperatureRequest = temperature;
     m_PWMRequest = -1;
 
-    if (IUFindOnSwitchIndex(&CoolerModeSP) == COOLER_MANUAL)
-    {
-        IUResetSwitch(&CoolerModeSP);
-        CoolerModeS[COOLER_AUTOMATIC].s = ISS_ON;
-        LOG_INFO("Switching to automatic cooler control.");
-        IDSetSwitch(&CoolerModeSP, nullptr);
-    }
-
     SetQHYCCDParam(m_CameraHandle, CONTROL_COOLER, m_TemperatureRequest);
-    //ControlQHYCCDTemp(m_CameraHandle, m_TemperatureRequest);
 
+    setCoolerEnabled(m_TemperatureRequest < TemperatureN[0].value);
+    setCoolerMode(COOLER_AUTOMATIC);
     return 0;
 }
 
@@ -1306,38 +1299,59 @@ bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             bool enabled = (CoolerS[COOLER_ON].s == ISS_ON);
 
-            // If user turns on cooler, but the requested temperature is higher than current temperature
-            // then we set temperature to zero degrees. If that was still higher than current temperature
-            // we return an error
-            if (enabled && m_TemperatureRequest > TemperatureN[0].value)
+            // If explicitly enabled, we always set temperature to 0
+            if (enabled)
             {
-                m_TemperatureRequest = 0;
-                // If current temperature is still lower than zero, then we shouldn't risk
-                // setting temperature to any arbitrary value. Instead, we report an error and ask
-                // user to explicitly set the requested temperature.
-                if (m_TemperatureRequest > TemperatureN[0].value)
+                if (HasCoolerAutoMode)
                 {
-                    CoolerS[COOLER_ON].s = ISS_OFF;
-                    CoolerS[COOLER_OFF].s = ISS_OFF;
-                    CoolerSP.s = IPS_ALERT;
-                    LOGF_WARN("Cannot manually activate cooler since current temperature is %.2f. To activate cooler, request a lower temperature.", TemperatureN[0].value);
-                    IDSetSwitch(&CoolerSP, nullptr);
+                    if (SetTemperature(0) == 0)
+                    {
+                        TemperatureNP.s = IPS_BUSY;
+                        IDSetNumber(&TemperatureNP, nullptr);
+                    }
                     return true;
-                }
-
-                if (SetTemperature(0) == 0)
-                {
-                    TemperatureNP.s = IPS_BUSY;
                 }
                 else
                 {
-                    TemperatureNP.s = IPS_ALERT;
+                    IUResetSwitch(&CoolerSP);
+                    CoolerS[COOLER_OFF].s = ISS_ON;
+                    CoolerSP.s = IPS_ALERT;
+                    LOG_ERROR("Cannot turn on cooler in manual mode. Set cooler power to activate it.");
+                    IDSetSwitch(&CoolerSP, nullptr);
+                    return true;
                 }
-                IDSetNumber(&TemperatureNP, nullptr);
-                return true;
+            }
+            else
+            {
+                if (HasCoolerManualMode)
+                {
+                    m_PWMRequest = 0;
+                    m_TemperatureRequest = 30;
+                    SetQHYCCDParam(m_CameraHandle, CONTROL_MANULPWM, 0);
+
+                    CoolerSP.s = IPS_IDLE;
+                    IDSetSwitch(&CoolerSP, nullptr);
+
+                    TemperatureNP.s = IPS_IDLE;
+                    IDSetNumber(&TemperatureNP, nullptr);
+
+                    setCoolerMode(COOLER_MANUAL);
+                    LOG_INFO("Camera is warming up.");
+                }
+                else
+                {
+                    // Warm up the camera in auto mode
+                    if (SetTemperature(30) == 0)
+                    {
+                        TemperatureNP.s = IPS_IDLE;
+                        IDSetNumber(&TemperatureNP, nullptr);
+                    }
+                    LOG_INFO("Camera is warming up.");
+                    return true;
+                }
             }
 
-            return activateCooler(enabled);
+            return true;
         }
 
         //////////////////////////////////////////////////////////////////////
@@ -1361,7 +1375,6 @@ bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
         }
     }
 
-    //  Nobody has claimed this, so, ignore it
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -1512,9 +1525,8 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                 IDSetNumber(&CoolerNP, nullptr);
             }
 
-            CoolerModeS[COOLER_AUTOMATIC].s = ISS_OFF;
-            CoolerModeS[COOLER_MANUAL].s = ISS_ON;
-            IDSetSwitch(&CoolerModeSP, nullptr);
+            setCoolerEnabled(values[0] > 0);
+            setCoolerMode(COOLER_MANUAL);
 
             m_PWMRequest = values[0] / 100.0 * 255;
             CoolerNP.s = IPS_BUSY;
@@ -1527,86 +1539,32 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
-bool QHYCCD::activateCooler(bool enable)
+void QHYCCD::setCoolerMode(uint8_t mode)
 {
+    int currentMode = IUFindOnSwitchIndex(&CoolerModeSP);
+    if (mode == currentMode)
+        return;
+
+    IUResetSwitch(&CoolerModeSP);
+
+    CoolerModeS[COOLER_AUTOMATIC].s = (mode == COOLER_AUTOMATIC) ? ISS_ON : ISS_OFF;
+    CoolerModeS[COOLER_MANUAL].s = (mode == COOLER_AUTOMATIC) ? ISS_OFF : ISS_ON;
+    CoolerSP.s = IPS_OK;
+    LOGF_INFO("Switching to %s cooler control.", (mode == COOLER_AUTOMATIC) ? "automatic" : "manual");
+    IDSetSwitch(&CoolerModeSP, nullptr);
+}
+
+void QHYCCD::setCoolerEnabled(bool enable)
+{
+    bool isEnabled = IUFindOnSwitchIndex(&CoolerSP) == COOLER_ON;
+    if (isEnabled == enable)
+        return;
+
     IUResetSwitch(&CoolerSP);
-    if (enable)
-    {
-        if (m_TemperatureRequest < TemperatureN[0].value)
-        {
-            if (CoolerSP.s != IPS_BUSY)
-                LOG_INFO("Camera cooler is on.");
-
-            if (SetTemperature(m_TemperatureRequest) == 0)
-            {
-                TemperatureNP.s = IPS_BUSY;
-            }
-            else
-            {
-                TemperatureNP.s = IPS_ALERT;
-            }
-            IDSetNumber(&TemperatureNP, nullptr);
-
-            CoolerS[COOLER_ON].s = ISS_ON;
-            CoolerS[COOLER_OFF].s = ISS_OFF;
-            CoolerSP.s = IPS_BUSY;
-        }
-        else if (HasCoolerManualMode)
-        {
-            CoolerS[COOLER_ON].s = ISS_ON;
-            CoolerS[COOLER_OFF].s = ISS_OFF;
-            LOG_INFO("Camera cooler in manual mode. Set target cooler power.");
-        }
-        else
-        {
-            CoolerS[COOLER_ON].s = ISS_OFF;
-            CoolerS[COOLER_OFF].s = ISS_ON;
-            CoolerSP.s = IPS_IDLE;
-            LOG_WARN("Cooler cannot be activated manually. Set a lower temperature to activate it.");
-            IDSetSwitch(&CoolerSP, nullptr);
-            return false;
-        }
-    }
-    else if (enable == false)
-    {
-        if (HasCoolerManualMode)
-        {
-            // If automatic, switch to manual
-            if (IUFindOnSwitchIndex(&CoolerModeSP) == COOLER_AUTOMATIC)
-            {
-                IUResetSwitch(&CoolerModeSP);
-                CoolerModeS[COOLER_MANUAL].s = ISS_ON;
-                IDSetSwitch(&CoolerModeSP, nullptr);
-            }
-
-            m_PWMRequest = 0;
-            int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_MANULPWM, 0);
-            if (rc != QHYCCD_SUCCESS)
-            {
-                CoolerS[COOLER_ON].s = ISS_ON;
-                CoolerS[COOLER_OFF].s = ISS_OFF;
-                CoolerSP.s = IPS_ALERT;
-                LOGF_ERROR("Failed to warm camera (%d).", rc);
-                IDSetSwitch(&CoolerSP, nullptr);
-                return false;
-            }
-        }
-        // If we do not have manual PWM control. Let us set a high temperautre as the target
-        // in order to warm the camera
-        else
-        {
-            m_TemperatureRequest = 30;
-            SetQHYCCDParam(m_CameraHandle, CONTROL_COOLER, m_TemperatureRequest);
-        }
-
-        CoolerS[COOLER_ON].s = ISS_OFF;
-        CoolerS[COOLER_OFF].s = ISS_ON;
-        CoolerSP.s = IPS_IDLE;
-        LOG_INFO("Camera is warming up...");
-    }
-
+    CoolerS[COOLER_ON].s = enable ? ISS_ON : ISS_OFF;
+    CoolerS[COOLER_OFF].s = enable ? ISS_OFF : ISS_ON;
+    CoolerSP.s = enable ? IPS_BUSY : IPS_IDLE;
     IDSetSwitch(&CoolerSP, nullptr);
-    return true;
 }
 
 bool QHYCCD::isQHY5PIIC()

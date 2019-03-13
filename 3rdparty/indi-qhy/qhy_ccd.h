@@ -138,7 +138,9 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         // Setup basic CCD parameters on connection
         bool setupParams();
         // Enable/disable cooler
-        bool activateCooler(bool enable);
+        void setCoolerEnabled(bool enable);
+        // Set Cooler Mode
+        void setCoolerMode(uint8_t mode);
         // Check if the camera is QHY5PII-C model
         bool isQHY5PIIC();
 
