@@ -114,22 +114,22 @@ void ISInit()
     }
 #endif
 
-//#if defined(__APPLE__)
-//    char driverSupportPath[128];
-//    if (getenv("INDIPREFIX") != nullptr)
-//        sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
-//    else
-//        strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
-//    strncat(driverSupportPath, "/DriverSupport/qhy/firmware", 128);
-//    IDLog("QHY firmware path: %s\n", driverSupportPath);
-//    OSXInitQHYCCDFirmware(driverSupportPath);
-//#endif
+    //#if defined(__APPLE__)
+    //    char driverSupportPath[128];
+    //    if (getenv("INDIPREFIX") != nullptr)
+    //        sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
+    //    else
+    //        strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
+    //    strncat(driverSupportPath, "/DriverSupport/qhy/firmware", 128);
+    //    IDLog("QHY firmware path: %s\n", driverSupportPath);
+    //    OSXInitQHYCCDFirmware(driverSupportPath);
+    //#endif
 
-// JM 2019-03-07: Use OSXInitQHYCCDFirmwareArray as recommended by QHY
+    // JM 2019-03-07: Use OSXInitQHYCCDFirmwareArray as recommended by QHY
 #if defined(__APPLE__)
-OSXInitQHYCCDFirmwareArray();
-// Wait a bit before calling GetDeviceIDs on MacOS
-usleep(2000000);
+    OSXInitQHYCCDFirmwareArray();
+    // Wait a bit before calling GetDeviceIDs on MacOS
+    usleep(2000000);
 #endif
 
     std::vector<std::string> devices = GetDevicesIDs();
@@ -243,7 +243,7 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
     HasUSBSpeed   = false;
     HasGain       = false;
     HasOffset     = false;
-    HasFilters    = false;    
+    HasFilters    = false;
 
     snprintf(this->name, MAXINDINAME, "QHY CCD %.15s", name);
     snprintf(this->camid, MAXINDINAME, "%s", name);
@@ -278,8 +278,8 @@ bool QHYCCD::initProperties()
     FilterSlotN[0].max = 9;
 
     // CCD Cooler Switch
-    IUFillSwitch(&CoolerS[0], "COOLER_ON", "On", ISS_ON);
-    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "Off", ISS_OFF);
+    IUFillSwitch(&CoolerS[0], "COOLER_ON", "On", ISS_OFF);
+    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "Off", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -509,6 +509,8 @@ bool QHYCCD::updateProperties()
                 deleteProperty(CoolerModeSP.name);
 
             deleteProperty(CoolerNP.name);
+
+            RemoveTimer(m_TemperatureTimerID);
         }
 
         if (HasUSBSpeed)
@@ -1323,7 +1325,15 @@ bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
                     return true;
                 }
 
-                SetTemperature(0);
+                if (SetTemperature(0) == 0)
+                {
+                    TemperatureNP.s = IPS_BUSY;
+                }
+                else
+                {
+                    TemperatureNP.s = IPS_ALERT;
+                }
+                IDSetNumber(&TemperatureNP, nullptr);
                 return true;
             }
 
@@ -1414,7 +1424,7 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
         }
 
         //////////////////////////////////////////////////////////////////////
-        /// Gain Control
+        /// Offset Control
         //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, OffsetNP.name))
         {
@@ -1502,9 +1512,13 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
                 IDSetNumber(&CoolerNP, nullptr);
             }
 
-            m_PWMRequest = values[0];
+            CoolerModeS[COOLER_AUTOMATIC].s = ISS_OFF;
+            CoolerModeS[COOLER_MANUAL].s = ISS_ON;
+            IDSetSwitch(&CoolerModeSP, nullptr);
+
+            m_PWMRequest = values[0] / 100.0 * 255;
             CoolerNP.s = IPS_BUSY;
-            LOGF_INFO("Setting cooler power manually to %.2f", m_PWMRequest);
+            LOGF_INFO("Setting cooler power manually to %.2f%%", values[0]);
             IDSetNumber(&CoolerNP, nullptr);
             return true;
         }
@@ -1522,6 +1536,16 @@ bool QHYCCD::activateCooler(bool enable)
         {
             if (CoolerSP.s != IPS_BUSY)
                 LOG_INFO("Camera cooler is on.");
+
+            if (SetTemperature(m_TemperatureRequest) == 0)
+            {
+                TemperatureNP.s = IPS_BUSY;
+            }
+            else
+            {
+                TemperatureNP.s = IPS_ALERT;
+            }
+            IDSetNumber(&TemperatureNP, nullptr);
 
             CoolerS[COOLER_ON].s = ISS_ON;
             CoolerS[COOLER_OFF].s = ISS_OFF;
@@ -1592,14 +1616,12 @@ bool QHYCCD::isQHY5PIIC()
 
 void QHYCCD::updateTemperatureHelper(void *p)
 {
-    if (static_cast<QHYCCD *>(p)->isConnected())
-        static_cast<QHYCCD *>(p)->updateTemperature();
+    static_cast<QHYCCD *>(p)->updateTemperature();
 }
 
 void QHYCCD::updateTemperature()
 {
     double ccdtemp = 0, coolpower = 0;
-    double nextPoll = POLLMS;
 
     if (isSimulation())
     {
@@ -1614,13 +1636,14 @@ void QHYCCD::updateTemperature()
     else
     {
         // Sleep for 1 second before setting temperature/pwm again.
-        usleep(1000000);
+        //usleep(1000000);
 
         // Call this function as long as we are busy
         if (TemperatureNP.s == IPS_BUSY)
         {
             SetQHYCCDParam(m_CameraHandle, CONTROL_COOLER, m_TemperatureRequest);
-        } else if (m_PWMRequest >= 0)
+        }
+        else if (m_PWMRequest >= 0)
         {
             SetQHYCCDParam(m_CameraHandle, CONTROL_MANULPWM, m_PWMRequest);
         }
@@ -1656,7 +1679,7 @@ void QHYCCD::updateTemperature()
     IDSetNumber(&TemperatureNP, nullptr);
     IDSetNumber(&CoolerNP, nullptr);
 
-    m_TemperatureTimerID = IEAddTimer(nextPoll, QHYCCD::updateTemperatureHelper, this);
+    m_TemperatureTimerID = IEAddTimer(POLLMS, QHYCCD::updateTemperatureHelper, this);
 }
 
 bool QHYCCD::saveConfigItems(FILE *fp)
