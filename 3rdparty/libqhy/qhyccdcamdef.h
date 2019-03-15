@@ -499,4 +499,7 @@
 
 #define MREMAINING_MAX_EXPOSURETIMES	(3000)//ms
 
+#define	MAX_CAMERA_NUMBER	200
+
+
 #endif
