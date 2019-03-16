@@ -172,7 +172,7 @@ bool WeatherMeta::ISNewText(const char *dev, const char *name, char *texts[], ch
             if (ActiveDeviceT[1].text != nullptr)
             {
                 IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_STATUS");
-                IDSnoopDevice(ActiveDeviceT[0].text, "WEATHER_UPDATE");
+                IDSnoopDevice(ActiveDeviceT[1].text, "WEATHER_UPDATE");
             }
             if (ActiveDeviceT[2].text != nullptr)
             {
@@ -182,7 +182,7 @@ bool WeatherMeta::ISNewText(const char *dev, const char *name, char *texts[], ch
             if (ActiveDeviceT[3].text != nullptr)
             {
                 IDSnoopDevice(ActiveDeviceT[3].text, "WEATHER_STATUS");
-                IDSnoopDevice(ActiveDeviceT[2].text, "WEATHER_UPDATE");
+                IDSnoopDevice(ActiveDeviceT[3].text, "WEATHER_UPDATE");
             }
 
             return true;
