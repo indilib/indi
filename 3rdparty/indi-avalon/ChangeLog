@@ -1,15 +1,36 @@
+Version 1.3 - 2019-02-08 (bug fix release)
+        + control added to activate/deactivate focuser on AUX1
+	  focuser status read only if focuser is activated
+	+ Doubled parking status light removed
+
+Version 1.2 - 2019-02-08 (bug fix release)
+        + pier side display corrected
+
+Version 1.1 - 2019-01-13 (bug fix release)
+        + focus status tracking added
+
+Version 1.0 - 2019-01-01 (first official version)
+        + first focuser implementation added
+	+ start / stop tracking added
+	+ enabling/disabling meridian flip added
+	+ forcing meridian flip added
+	+ setting guiding speed added
+
 Version 0.5 - 2018-05-19
 	+ forcing meridian flip added
         + enabling/disbling ST4 added
 	+ setting guiding speed added
+
 Version 0.4 - 2018-04-14
 	+ display of parking status
 	+ send LST before unpark
 	+ pier side display corrected
 	+ merged with INDI v 1.7.1
+
 Version 0.3 - 2018-04-12
 	+ showing pier side implemented
 	+ merged with INDI v 1.7.0
+
 Version 0.2 - 2018-03-30
 	+ Moved to 3rdparty
 	+ introduction of LX200Telescope as base class separated
@@ -21,4 +42,3 @@ Version 0.2 - 2018-03-30
 
 Version 0.1 - 2018-03-20
 	+ Initial version, based on LX200Generic
-	

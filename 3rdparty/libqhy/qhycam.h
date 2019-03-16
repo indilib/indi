@@ -1,39 +1,13 @@
-/*
- QHYCCD SDK
- 
- Copyright (c) 2014 QHYCCD.
- All Rights Reserved.
- 
- This program is free software; you can redistribute it and/or modify it
- under the terms of the GNU General Public License as published by the Free
- Software Foundation; either version 2 of the License, or (at your option)
- any later version.
- 
- This program is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- more details.
- 
- You should have received a copy of the GNU General Public License along with
- this program; if not, write to the Free Software Foundation, Inc., 59
- Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- 
- The full GNU General Public License is included in this distribution in the
- file called LICENSE.
- */
-
-/*!
- * @file qhycam.h
- * @brief QHYCAM class define
- */
 
 #include <math.h>
 #include "qhyccdstruct.h"
 #include "config.h"
+#include "qhyccdcamdef.h"
 #if defined (_WIN32)
 #include "CyAPI.h"
 #include <process.h>
-
+#include <windows.h>
+#include <mmsystem.h>
 #else
 #include <stdio.h>
 #include <unistd.h>
@@ -52,12 +26,16 @@
 #define EXPOSING 1
 #define DOWNLOADING 2
 
+#define QHYCCD_IMAGEMODE_NONE    		0x00
+#define QHYCCD_IMAGEMODE_SINGLE   	0x01
+#define QHYCCD_IMAGEMODE_LIVE	  	0x02
 
-#define QHYCCD_USBTYPE_NONE    0xFF
-#define QHYCCD_USBTYPE_CYUSB   0x00
-#define QHYCCD_USBTYPE_WINUSB  0x01
+#define QHYCCD_USBTYPE_NONE    	0x00
+#define QHYCCD_USBTYPE_CYUSB   	0x01
+#define QHYCCD_USBTYPE_WINUSB  	0x02
+#define QHYCCD_USBTYPE_LIBUSB  	0x03
 
-#define USB_ENDPOINT  0x81
+#define USB_ENDPOINT  				0x81
 
 /**
  * typedef the libusb_deivce qhyccd_device
@@ -128,6 +106,8 @@ public:
     usbintrep = 0x81;
     intepflag = 0;
     usbtype = QHYCCD_USBTYPE_CYUSB;
+//    CameraType = DEVICETYPE_UNKNOW;
+	
 
 #if defined (_WIN32)
 
@@ -149,6 +129,46 @@ public:
 #endif
 
   }
+  
+static int32_t QGetTimerMS()
+  {
+#if defined (_WIN32)
+    return timeGetTime() ;
+#else
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+#endif
+  }
+
+
+static void QSleep(uint32_t mstime)
+  {
+#if defined (_WIN32)
+    Sleep(mstime);
+#else
+    usleep(mstime * 1000);
+#endif
+  }
+
+static void QBeep(uint32_t volume,uint32_t mstime)
+{
+#if defined (_WIN32)
+  Beep(volume,mstime);
+#else
+#if 0
+
+  int   fd   =   open("/dev/tty10",   O_RDONLY);
+  if   (fd   ==   -1   ||   argc   !=   3)
+  {
+    return   -1;
+  }
+  ioctl(fd,   KDMKTONE,   20000);
+  close(fd);
+#endif
+#endif
+}
+
 
   /**
    @fn uint32_t openCamera(qhyccd_deivce *d,qhyccd_handle **h)
@@ -298,6 +318,9 @@ public:
    another QHYCCD_ERROR code on other failures
    */
   uint32_t vendRXD_Ex(qhyccd_handle *dev_handle, uint8_t req, uint16_t value, uint16_t index, uint8_t* data, uint16_t length);
+
+  uint32_t vendErroeRecovery(qhyccd_handle *dev_handle);
+
 
   uint32_t QHY5IIIreadUSB2B(qhyccd_handle *dev_handle, uint8_t *data, uint32_t p_num, uint32_t timeout);
   /**

@@ -69,7 +69,7 @@ void ATIK_CCD_ISInit()
                 if (ArtemisDeviceIsPresent(i) == false || ArtemisDeviceIsCamera(i) == false)
                     continue;
 
-                char pName[MAXINDILABEL]={0};
+                char pName[MAXINDILABEL] = {0};
                 std::string cameraName;
 
                 if (ArtemisDeviceName(i, pName) == false)
@@ -79,7 +79,7 @@ void ATIK_CCD_ISInit()
                     cameraName = std::string(pName);
                 else
                     cameraName = std::string(pName) + " " +
-                            std::to_string(static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), pName))+1);
+                                 std::to_string(static_cast<int>(std::count(cameraNames.begin(), cameraNames.end(), pName)) + 1);
 
                 cameras[i] = new ATIKCCD(cameraName, i);
                 cameraNames.push_back(pName);
@@ -344,7 +344,7 @@ bool ATIKCCD::setupParams()
     m_CameraFlags = pProp.cameraflags;
     LOGF_DEBUG("Camera flags: %d", m_CameraFlags);
 
-    int binX=1, binY=1;
+    int binX = 1, binY = 1;
 
     rc = ArtemisGetMaxBin(hCam, &binX, &binY);
 
@@ -395,7 +395,7 @@ bool ATIKCCD::setupParams()
     if (m_TemperatureSensorsCount > 0)
     {
         // Do we have cooler control?
-        int flags, level, minlvl, maxlvl,setpoint;
+        int flags, level, minlvl, maxlvl, setpoint;
         rc = ArtemisCoolingInfo(hCam, &flags, &level, &minlvl, &maxlvl, &setpoint);
         if (flags & 0x1)
         {
@@ -447,8 +447,8 @@ bool ATIKCCD::setupParams()
     m_isHorizon = ArtemisHasCameraSpecificOption(hCam, 1);
     if (m_isHorizon)
     {
-        uint8_t data[2]={0};
-        int len=0, index=0;
+        uint8_t data[2] = {0};
+        int len = 0, index = 0;
         ArtemisCameraSpecificOptionGetData(hCam, ID_AtikHorizonGOPresetMode, data, 2, &len);
         index = *(reinterpret_cast<uint16_t*>(&data));
         LOGF_DEBUG("Horizon current GO mode: data[0] %d data[1] %d index %d", data[0], data[1], index);
@@ -556,7 +556,7 @@ bool ATIKCCD::ISNewNumber(const char *dev, const char *name, double values[], ch
 
                 // Gain 0, Offset 1. We add 5 to them to get them to Atik horizon IDs
                 uint16_t value = static_cast<uint16_t>(ControlN[i].value);
-                ArtemisCameraSpecificOptionSetData(hCam,i+5, reinterpret_cast<uint8_t*>(&value), 2);
+                ArtemisCameraSpecificOptionSetData(hCam, i + 5, reinterpret_cast<uint8_t*>(&value), 2);
             }
 
             ControlNP.s = IPS_OK;
@@ -578,7 +578,7 @@ bool ATIKCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             int prevIndex = IUFindOnSwitchIndex(&ControlPresetsSP);
             IUUpdateSwitch(&ControlPresetsSP, states, names, n);
             int targetIndex = IUFindOnSwitchIndex(&ControlPresetsSP);
-            uint16_t value = static_cast<uint16_t>(targetIndex+2);
+            uint16_t value = static_cast<uint16_t>(targetIndex + 2);
             uint8_t *data = reinterpret_cast<uint8_t*>(&value);
             int rc = ArtemisCameraSpecificOptionSetData(hCam, ID_AtikHorizonGOPresetMode, data, 2);
             if (rc != ARTEMIS_OK)
@@ -728,21 +728,21 @@ bool ATIKCCD::StartExposure(float duration)
 
     LOGF_DEBUG("Start Exposure : %.3fs", duration);
 
-//    if (m_CameraFlags & ARTEMIS_PROPERTIES_CAMERAFLAGS_HAS_SHUTTER)
-//    {
-//        if (PrimaryCCD.getFrameType() == INDI::CCDChip::DARK_FRAME ||
-//            PrimaryCCD.getFrameType() == INDI::CCDChip::BIAS_FRAME)
-//        {
-//            ArtemisCloseShutter(hCam);
-//        }
-//        else
-//        {
-//            ArtemisOpenShutter(hCam);
-//        }
-//    }
+    //    if (m_CameraFlags & ARTEMIS_PROPERTIES_CAMERAFLAGS_HAS_SHUTTER)
+    //    {
+    //        if (PrimaryCCD.getFrameType() == INDI::CCDChip::DARK_FRAME ||
+    //            PrimaryCCD.getFrameType() == INDI::CCDChip::BIAS_FRAME)
+    //        {
+    //            ArtemisCloseShutter(hCam);
+    //        }
+    //        else
+    //        {
+    //            ArtemisOpenShutter(hCam);
+    //        }
+    //    }
 
     ArtemisSetDarkMode(hCam, PrimaryCCD.getFrameType() == INDI::CCDChip::DARK_FRAME ||
-                             PrimaryCCD.getFrameType() == INDI::CCDChip::BIAS_FRAME);
+                       PrimaryCCD.getFrameType() == INDI::CCDChip::BIAS_FRAME);
 
     int rc = ArtemisStartExposure(hCam, duration);
 
@@ -801,7 +801,7 @@ bool ATIKCCD::UpdateCCDFrame(int x, int y, int w, int h)
     PrimaryCCD.setFrame(x, y, w, h);
 
     // Total bytes required for image buffer
-    PrimaryCCD.setFrameBufferSize(w/PrimaryCCD.getBinX() * h/PrimaryCCD.getBinY() * PrimaryCCD.getBPP() / 8, false);
+    PrimaryCCD.setFrameBufferSize(w / PrimaryCCD.getBinX() * h / PrimaryCCD.getBinY() * PrimaryCCD.getBPP() / 8, false);
     return true;
 }
 
@@ -826,20 +826,22 @@ bool ATIKCCD::UpdateCCDBin(int binx, int biny)
 bool ATIKCCD::grabImage()
 {
     //uint8_t *image = PrimaryCCD.getFrameBuffer();
-    int x,y,w,h,binx,biny;
+    int x, y, w, h, binx, biny;
 
     int rc = ArtemisGetImageData(hCam, &x, &y, &w, &h, &binx, &biny);
     if (rc != ARTEMIS_OK)
         return false;
 
-    int bufferSize = w * binx * h * biny * PrimaryCCD.getBPP()/8;
+    int bufferSize = w * binx * h * biny * PrimaryCCD.getBPP() / 8;
     if ( bufferSize < PrimaryCCD.getFrameBufferSize())
     {
         LOGF_WARN("Image size is unexpected. Expecting %d bytes but received %d bytes.", PrimaryCCD.getFrameBufferSize(), bufferSize);
         PrimaryCCD.setFrameBufferSize(bufferSize, false);
     }
 
+    std::unique_lock<std::mutex> guard(ccdBufferLock);
     PrimaryCCD.setFrameBuffer(reinterpret_cast<uint8_t*>(ArtemisImageBuffer(hCam)));
+    guard.unlock();
 
     if (ExposureRequest > VERBOSE_EXPOSURE)
         LOG_INFO("Download complete.");
@@ -870,7 +872,7 @@ void ATIKCCD::TimerHit()
 
     LOGF_DEBUG("Cooling: flags (%d) level (%d), minlvl (%d), maxlvl (%d), setpoint (%d)", flags, level, minlvl, maxlvl, setpoint);
 
-    int temperature=0;
+    int temperature = 0;
     pthread_mutex_lock(&accessMutex);
     rc = ArtemisTemperatureSensorInfo(hCam, 1, &temperature);
     pthread_mutex_unlock(&accessMutex);
@@ -901,9 +903,9 @@ void ATIKCCD::TimerHit()
 
     if (HasCooler())
     {
-        bool coolerChanged=false;
-        double coolerPower = static_cast<double>(level)/maxlvl * 100.0;
-        if (fabs(CoolerN[0].value-coolerPower) > 0.01)
+        bool coolerChanged = false;
+        double coolerPower = static_cast<double>(level) / maxlvl * 100.0;
+        if (fabs(CoolerN[0].value - coolerPower) > 0.01)
         {
             CoolerN[0].value = coolerPower;
             coolerChanged = true;
@@ -912,7 +914,7 @@ void ATIKCCD::TimerHit()
         // b5 0 = normal control 1=warming up
         // b6 0 = cooling off 1 = cooling on
         if (!(flags & 0x20) && // Normal Control?
-             (flags & 0x40))   // Cooling On?
+                (flags & 0x40))   // Cooling On?
         {
             if (CoolerNP.s != IPS_BUSY)
                 coolerChanged = true;
@@ -946,7 +948,7 @@ void ATIKCCD::TimerHit()
         {
             if (moving == 0 && currentPos == targetPos)
             {
-                SelectFilterDone(currentPos);
+                SelectFilterDone(currentPos + 1);
             }
         }
 
@@ -971,9 +973,9 @@ void ATIKCCD::stopTimerNS()
 {
     if (NStimerID != -1)
     {
-      GuideComplete(AXIS_DE);
-      IERmTimer(NStimerID);
-      NStimerID = -1;
+        GuideComplete(AXIS_DE);
+        IERmTimer(NStimerID);
+        NStimerID = -1;
     }
 }
 
@@ -1029,9 +1031,9 @@ void ATIKCCD::stopTimerWE()
 {
     if (WEtimerID != -1)
     {
-      GuideComplete(AXIS_RA);
-      IERmTimer(WEtimerID);
-      WEtimerID = -1;
+        GuideComplete(AXIS_RA);
+        IERmTimer(WEtimerID);
+        WEtimerID = -1;
     }
 }
 
@@ -1137,17 +1139,17 @@ void ATIKCCD::checkExposureProgress()
         pthread_mutex_lock(&accessMutex);
         if (ArtemisImageReady(hCam))
         {
-                InExposure = false;
-                PrimaryCCD.setExposureLeft(0.0);
-                if (ExposureRequest > VERBOSE_EXPOSURE)
-                    DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
-                pthread_mutex_lock(&condMutex);
-                exposureSetRequest(StateIdle);
-                pthread_mutex_unlock(&condMutex);
-                grabImage();
-                pthread_mutex_lock(&condMutex);
-                pthread_mutex_unlock(&accessMutex);
-                break;
+            InExposure = false;
+            PrimaryCCD.setExposureLeft(0.0);
+            if (ExposureRequest > VERBOSE_EXPOSURE)
+                DEBUG(INDI::Logger::DBG_SESSION, "Exposure done, downloading image...");
+            pthread_mutex_lock(&condMutex);
+            exposureSetRequest(StateIdle);
+            pthread_mutex_unlock(&condMutex);
+            grabImage();
+            pthread_mutex_lock(&condMutex);
+            pthread_mutex_unlock(&accessMutex);
+            break;
         }
 
         int state = ArtemisCameraState(hCam);
@@ -1236,8 +1238,8 @@ void ATIKCCD::addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip)
     if (m_isHorizon)
     {
         int status = 0;
-        fits_update_key_dbl(fptr,"Gain", ControlN[CONTROL_GAIN].value, 3, "Gain", &status);
-        fits_update_key_dbl(fptr,"Offset", ControlN[CONTROL_OFFSET].value, 3, "Offset", &status);
+        fits_update_key_dbl(fptr, "Gain", ControlN[CONTROL_GAIN].value, 3, "Gain", &status);
+        fits_update_key_dbl(fptr, "Offset", ControlN[CONTROL_OFFSET].value, 3, "Offset", &status);
     }
 }
 
@@ -1265,7 +1267,7 @@ bool ATIKCCD::saveConfigItems(FILE *fp)
 
 bool ATIKCCD::SelectFilter(int targetFilter)
 {
-    int rc = ArtemisFilterWheelMove(hCam, targetFilter);
+    int rc = ArtemisFilterWheelMove(hCam, targetFilter - 1);
     return (rc == ARTEMIS_OK);
 }
 
@@ -1280,7 +1282,7 @@ int ATIKCCD::QueryFilter()
         return -1;
     }
 
-    return currentPos;
+    return currentPos + 1;
 }
 
 void ATIKCCD::debugTriggered(bool enable)

@@ -21,7 +21,7 @@ install( FILES ${CMAKE_BINARY_DIR}/libsbig.${SBIG_VERSION}.dylib DESTINATION ${L
 # This is a temporary work-around until a better linking solution is found for MacOS
 exec_program(ln ARGS -s ${LIB_INSTALL_DIR}/libsbig.${SBIG_VERSION}.dylib ${LIB_INSTALL_DIR}/libsbig.${SBIG_SOVERSION}.dylib)
 exec_program(ln ARGS -s ${LIB_INSTALL_DIR}/libsbig.${SBIG_SOVERSION}.dylib ${LIB_INSTALL_DIR}/libsbig.dylib)
-	
+
 ELSE(APPLE)
 
 set(FIRMWARE_INSTALL_DIR "/lib/firmware")
@@ -34,7 +34,7 @@ IF(UNIX AND NOT WIN32)
     exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbig_arm_v8.bin ${CMAKE_BINARY_DIR}/libsbig.so.${SBIG_VERSION})
   ELSEIF(CMAKE_SIZEOF_VOID_P MATCHES "8")
     exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbig64.bin ${CMAKE_BINARY_DIR}/libsbig.so.${SBIG_VERSION})
-  ELSE()
+  ELSE(CMAKE_SIZEOF_VOID_P MATCHES "8")
     exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libsbig32.bin ${CMAKE_BINARY_DIR}/libsbig.so.${SBIG_VERSION})
   ENDIF ()
 ENDIF(UNIX AND NOT WIN32)

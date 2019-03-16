@@ -42,7 +42,6 @@ IF (UNIX OR APPLE)
             STRING(FIND ${SOURCE_FILE} libsbig DIR6_FOUND)
             STRING(FIND ${SOURCE_FILE} fxload DIR7_FOUND)
             STRING(FIND ${SOURCE_FILE} libinovasdk DIR8_FOUND)
-            STRING(FIND ${SOURCE_FILE} libdspau DIR9_FOUND)
             IF (NOT ${DIR1_FOUND} EQUAL -1 OR NOT ${DIR2_FOUND} EQUAL -1 OR NOT ${DIR3_FOUND} EQUAL -1 OR NOT ${DIR4_FOUND} EQUAL -1 OR
                 NOT ${DIR5_FOUND} EQUAL -1 OR NOT ${DIR6_FOUND} EQUAL -1 OR NOT ${DIR7_FOUND} EQUAL -1 OR NOT ${DIR8_FOUND} EQUAL -1 OR
                 NOT ${DIR9_FOUND} EQUAL -1)
@@ -56,6 +55,11 @@ IF (UNIX OR APPLE)
         ENDIF ()
     ENDIF ()
 ENDIF ()
+
+# Option to build the 3rd Party libraries instead of the 3rd Party drivers.
+# This is by default OFF, so you must set the option to build them.
+# It is a good idea to run with this option before the 3rd Party build so all the libraries are built first.
+option(BUILD_LIBS "Build 3rd Party Libraries, not 3rd Party Drivers" Off)
 
 # Define standard set of drivers to build (default linux target)
 option(WITH_EQMOD "Install EQMod Driver" On)
@@ -94,6 +98,7 @@ option(WITH_ATIK "Install Atik Driver" On)
 option(WITH_TOUPCAM "Install Toupcam Driver" On)
 option(WITH_ALTAIRCAM "Install Altair Driver" On)
 option(WITH_AVALON "Install Avalon StarGO Driver" On)
+option(WITH_BEEFOCUS "Install Bee Focuser Driver" On)
 
 find_package(FFmpeg)
 
@@ -117,6 +122,63 @@ IF (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
     SET(WITH_QHY Off)
     SET(WITH_MI Off)
 ENDIF ()
+
+# If the Build Libs option is selected, it will just build the required libraries.
+# This should be run before the main 3rd Party Drivers build, so the drivers can find the libraries.
+IF (BUILD_LIBS)
+
+#libaltaircam
+if (WITH_ALTAIRCAM)
+add_subdirectory(libaltaircam)
+endif (WITH_ALTAIRCAM)
+
+#libapogee
+if (WITH_APOGEE)
+add_subdirectory(libapogee)
+endif(WITH_APOGEE)
+
+#libatik
+if (WITH_ATIK)
+add_subdirectory(libatik)
+endif (WITH_ATIK)
+
+#libfishcamp
+if (WITH_FISHCAMP)
+add_subdirectory(libfishcamp)
+endif(WITH_FISHCAMP)
+
+#libfli
+if (WITH_FLI)
+add_subdirectory(libfli)
+endif(WITH_FLI)
+
+#libinovasdk
+if (WITH_INOVAPLX)
+add_subdirectory(libinovasdk)
+endif (WITH_INOVAPLX)
+
+#libqhy
+if (WITH_QHY)
+add_subdirectory(libqhy)
+endif (WITH_QHY)
+
+#libqsi
+if (WITH_QSI)
+add_subdirectory(libqsi)
+endif (WITH_QSI)
+
+#libsbig
+if (WITH_SBIG)
+add_subdirectory(libsbig)
+endif (WITH_SBIG)
+
+#libtoupcam
+if (WITH_TOUPCAM)
+add_subdirectory(libtoupcam)
+endif (WITH_TOUPCAM)
+
+# This is the main 3rd Party build.  It runs if the Build Libs option is not selected.
+ELSE(BUILD_LIBS)
 
 ## EQMod
 if (WITH_EQMOD)
@@ -217,6 +279,12 @@ add_subdirectory(libaltaircam)
 SET(LIBRARIES_FOUND FALSE)
 endif (ALTAIRCAM_FOUND)
 endif (WITH_ALTAIRCAM)
+
+## Bee Focuser
+if (WITH_BEEFOCUS)
+add_subdirectory(indi-beefocus)
+endif(WITH_BEEFOCUS)
+
 
 ## INOVA
 if (WITH_INOVAPLX)
@@ -324,41 +392,30 @@ if (WITH_MGEN)
 add_subdirectory(indi-mgen)
 endif (WITH_MGEN)
 
-## DETECTORS
-
-if (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
-
-find_package(DSPAU)
-find_package(LIMESUITE)
-
 # RadioSim
 if (WITH_RADIOSIM)
-if (DSPAU_FOUND)
 add_subdirectory(indi-radiosim)
-endif (DSPAU_FOUND)
 endif (WITH_RADIOSIM)
 
 ## RTL-SDR
 if (WITH_RTLSDR)
-if (DSPAU_FOUND)
+find_package(RTLSDR)
+if (RTLSDR_FOUND)
 add_subdirectory(indi-rtlsdr)
-endif (DSPAU_FOUND)
+else (RTLSDR_FOUND)
+SET(LIBRARIES_FOUND FALSE)
+endif (RTLSDR_FOUND)
 endif (WITH_RTLSDR)
 
 ## LIME-SDR
 if (WITH_LIMESDR)
-if (DSPAU_FOUND AND LIMESUITE_FOUND)
+find_package(LIMESUITE)
+if (LIMESUITE_FOUND)
 add_subdirectory(indi-limesdr)
-endif (DSPAU_FOUND AND LIMESUITE_FOUND)
-
-endif (WITH_LIMESDR)
-
-if (NOT DSPAU_FOUND)
-add_subdirectory(libdspau)
+else (LIMESUITE_FOUND)
 SET(LIBRARIES_FOUND FALSE)
-endif (NOT DSPAU_FOUND)
-
-endif (WITH_RTLSDR OR WITH_LIMESDR OR WITH_RADIOSIM)
+endif (LIMESUITE_FOUND)
+endif (WITH_LIMESDR)
 
 if (WITH_ARMADILLO)
 add_subdirectory(indi-armadillo-platypus)
@@ -431,12 +488,16 @@ if (WITH_FISHCAMP AND NOT FISHCAMP_FOUND)
 message(STATUS "libfishcamp was not found and will now be built. Please install libfishcamp first before running cmake again to install indi-fishcamp.")
 endif (WITH_FISHCAMP AND NOT FISHCAMP_FOUND)
 
-if (WITH_LIMESDR OR WITH_RTLSDR)
-if (NOT DSPAU_FOUND)
-message(STATUS "libdspau was not found and will now be built. Please install libdspau first before running cmake again to install indi-rtlsdr and indi-limesdr.")
-endif (NOT DSPAU_FOUND)
-endif (WITH_LIMESDR OR WITH_RTLSDR)
+if (WITH_LIMESDR AND NOT LIMESDR_FOUND)
+message(STATUS "liblimesuite was not found. Please install liblimesuite first before running cmake again to install indi-limesdr.")
+endif (WITH_LIMESDR AND NOT LIMESDR_FOUND)
+
+if (WITH_RTLSDR AND NOT RTLSDR)
+message(STATUS "librtlsdr was not found. Please install librtlsdr first before running cmake again to install indi-rtlsdr.")
+endif (WITH_RTLSDR AND NOT RTLSDR)
 
 message(STATUS "####################################################################################################################################")
 endif (LIBRARIES_FOUND)
+
+ENDIF(BUILD_LIBS)
 

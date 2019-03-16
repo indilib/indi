@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <indilogger.h>
-#include <libdspau.h>
 #include <memory>
 
 #define min(a,b) \
@@ -34,7 +33,7 @@
 #define SUBFRAME_SIZE (16384)
 #define MIN_FRAME_SIZE (512)
 #define MAX_FRAME_SIZE (SUBFRAME_SIZE * 16)
-#define SPECTRUM_SIZE (256)
+#define SPECTRUM_SIZE (65535)
 
 static int iNumofConnectedDetectors;
 static RTLSDR *receivers[MAX_DEVICES];
@@ -47,16 +46,16 @@ static void cleanup()
     }
 }
 
-static void callback(unsigned char *buf, uint32_t len, void *ctx)
-{
-    RTLSDR *receiver = (RTLSDR*)ctx;
-    receiver->grabData(buf, len);
-}
-
 static void *startcap(void *ctx)
 {
     RTLSDR *receiver = (RTLSDR*)ctx;
-    rtlsdr_read_async(receiver->rtl_dev, callback, receiver, 1, min(MAX_FRAME_SIZE, receiver->to_read));
+    int len = min(MAX_FRAME_SIZE, receiver->to_read);
+    int olen = 0;
+    unsigned char *buf = (unsigned char *)malloc(len);
+    while(receiver->InCapture) {
+        rtlsdr_read_sync(receiver->rtl_dev, buf, len, &olen);
+        receiver->grabData(buf, len);
+    }
     return NULL;
 }
 
@@ -296,6 +295,7 @@ void RTLSDR::setupParams()
 bool RTLSDR::StartCapture(float duration)
 {
 	CaptureRequest = duration;
+    AbortCapture();
 
 	// Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
     PrimaryDetector.setCaptureDuration(duration);
@@ -352,7 +352,6 @@ bool RTLSDR::AbortCapture()
 {
     if(InCapture) {
         InCapture = false;
-        rtlsdr_cancel_async(rtl_dev);
     }
     return true;
 }
@@ -411,7 +410,6 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
     if(InCapture) {
         n_read = min(to_read, n_read);
         continuum = PrimaryDetector.getContinuumBuffer();
-        spectrum = PrimaryDetector.getSpectrumBuffer();
         if(n_read > 0) {
             memcpy(continuum + b_read, buf, n_read);
             b_read += n_read;
@@ -421,20 +419,10 @@ void RTLSDR::grabData(unsigned char *buf, int n_read)
         if(to_read <= 0) {
             LOG_INFO("Downloading...");
             InCapture = false;
-            rtlsdr_cancel_async(rtl_dev);
 
-            //Create the dspau stream
-            dspau_stream_p stream = dspau_stream_new();
-            dspau_stream_add_dim(stream, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
             //Create the spectrum
-            dspau_convert(continuum, stream->in, PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS());
-            stream->in = dspau_buffer_div1(stream->in, stream->len, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
-            dspau_t *out = dspau_fft_spectrum(stream, magnitude, SPECTRUM_SIZE);
-            out = dspau_buffer_mul1(out, SPECTRUM_SIZE, (1 << (PrimaryDetector.getBPS() - 1)) - SPECTRUM_SIZE);
-            dspau_convert(out, spectrum, SPECTRUM_SIZE);
-            //Destroy the dspau stream
-            dspau_stream_free(stream);
-            free(out);
+            spectrum = PrimaryDetector.getSpectrumBuffer();
+            Spectrum(continuum, spectrum, b_read, SPECTRUM_SIZE, PrimaryDetector.getBPS());
 
             LOG_INFO("Download complete.");
             CaptureComplete(&PrimaryDetector);

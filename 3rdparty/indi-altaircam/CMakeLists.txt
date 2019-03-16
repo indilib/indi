@@ -14,7 +14,7 @@ find_package(ALTAIRCAM REQUIRED)
 
 # Using Altair Library
 set(ALTAIRCAM_VERSION_MAJOR 0)
-set(ALTAIRCAM_VERSION_MINOR 1)
+set(ALTAIRCAM_VERSION_MINOR 2)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_altaircam.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_altaircam.xml)

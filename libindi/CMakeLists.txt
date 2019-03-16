@@ -295,12 +295,14 @@ find_package(USB1 REQUIRED)
 find_package(CURL REQUIRED)
 find_package(GSL REQUIRED)
 find_package(JPEG REQUIRED)
+find_package(FFTW3 REQUIRED)
 # Math Library
 FIND_LIBRARY(M_LIB m)
 # 2. Includes
 include_directories( ${CMAKE_CURRENT_BINARY_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs)
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase)
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/stream)
 include_directories( ${CFITSIO_INCLUDE_DIR})
@@ -308,6 +310,7 @@ include_directories( ${NOVA_INCLUDE_DIR})
 include_directories( ${USB1_INCLUDE_DIRS})
 include_directories( ${GSL_INCLUDE_DIRS})
 include_directories( ${JPEG_INCLUDE_DIR} )
+include_directories( ${FFTW3_INCLUDE_DIR} )
 IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/webcam)
 ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -368,19 +371,36 @@ ENDIF(OGGTHEORA_FOUND)
      ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 ENDIF(UNIX)
 
+SET(libdsp_C_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/buffer.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convert.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/fft.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/filters.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/signals.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/convolution.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/stats.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/stream.c
+    )
+
+set(fpack_C_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/fpack/fpack.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/fpack/fpackutil.c
+    )
+
 SET(indidriver_C_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.c
     ${CMAKE_CURRENT_SOURCE_DIR}/indidrivermain.c
     ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.c
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/lilxml.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/base64.c
+    )
 
 SET(indidriver_CXX_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/defaultdevice.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiproperty.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccd.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indiccdchip.cpp    
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indidetector.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/inditelescope.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indifilterwheel.cpp
@@ -407,11 +427,14 @@ SET(indidriver_CXX_SRC
     )
 
 IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC 10 c)
+    ENABLE_UNITY_BUILD(indidriver_c indidriver_C_SRC libdsp_C_SRC fpack_C_SRC 10 c)
     ENABLE_UNITY_BUILD(indidriver_cxx indidriver_CXX_SRC 10 cpp)
 ENDIF ()
 
-SET(indidriver_C_SRC ${indidriver_C_SRC}
+SET(indidriver_C_SRC
+    ${indidriver_C_SRC}
+    ${libdsp_C_SRC}
+    ${fpack_C_SRC}
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.c)
 
 ##################################################
@@ -422,10 +445,10 @@ if (CYGWIN)
 ## For Cygwin we only build static library
 add_definitions(-U__STRICT_ANSI__)
 find_package(Iconv REQUIRED)
-add_library(indidriver STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${hidapi_SRCS})
+add_library(indidriver STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${hidapi_SRCS} ${libdsp_C_SRC} ${fpack_C_SRC})
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
@@ -435,11 +458,11 @@ ENDIF()
 install(TARGETS indidriver ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 else()
 ## Static indidriver Library
-add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS})
+add_library(indidriverstatic STATIC ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS} ${libdsp_C_SRC} ${fpack_C_SRC})
 set_target_properties(indidriverstatic PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriverstatic PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriverstatic PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriverstatic ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriverstatic ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriverstatic ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
@@ -448,11 +471,11 @@ target_link_libraries(indidriverstatic ${Boost_LIBRARIES})
 ENDIF()
 install(TARGETS indidriverstatic ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 ## Dynamic indidriver Library
-add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS})
+add_library(indidriver SHARED ${indidriver_C_SRC} ${indidriver_CXX_SRC} ${libstream_C_SRC} ${libstream_CXX_SRC} ${libwebcam_C_SRC} ${libwebcam_CXX_SRC} ${hidapi_SRCS} ${libdsp_C_SRC} ${fpack_C_SRC})
 set_target_properties(indidriver PROPERTIES COMPILE_FLAGS "-fPIC")
 target_compile_definitions(indidriver PRIVATE "-DHAVE_LIBNOVA")
 set_target_properties(indidriver PROPERTIES VERSION ${CMAKE_INDI_VERSION_STRING} SOVERSION ${INDI_SOVERSION} OUTPUT_NAME indidriver)
-target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY})
+target_link_libraries(indidriver ${ICONV_LIBRARIES} ${USB1_LIBRARIES} ${NOVA_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${CFITSIO_LIBRARIES} ${M_LIB} ${ZLIB_LIBRARY} ${JPEG_LIBRARY} ${FFTW3_LIBRARIES})
 IF (OGGTHEORA_FOUND)
 target_link_libraries(indidriver ${OGGTHEORA_LIBRARIES} ${THEORA_LIBRARIES})
 ENDIF()
@@ -786,6 +809,16 @@ add_executable(indi_nstep_focus ${nstep_SRC})
 target_link_libraries(indi_nstep_focus indidriver)
 install(TARGETS indi_nstep_focus RUNTIME DESTINATION bin)
 
+################ Celestron SCT Focuser ################
+
+SET(celestronsct_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/celestronauxpacket.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/celestron.cpp)
+
+add_executable(indi_celestron_sct_focus ${celestronsct_SRC})
+target_link_libraries(indi_celestron_sct_focus indidriver)
+install(TARGETS indi_celestron_sct_focus RUNTIME DESTINATION bin)
+
 ################ Moonlite Focuser ################
 
 SET(moonlite_SRC
@@ -906,6 +939,15 @@ add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRC})
 target_link_libraries(indi_hitecastrodc_focus indidriver)
 install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin)
 
+################ DeepSky Dad Focuser ################
+
+SET(deepskydad_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/deepskydad_af1.cpp)
+
+add_executable(indi_deepskydad_af1_focus ${deepskydad_SRC})
+target_link_libraries(indi_deepskydad_af1_focus indidriver)
+install(TARGETS indi_deepskydad_af1_focus RUNTIME DESTINATION bin)
+
 ################ JMI Smart Focus Focuser ################
 
 SET(smartfocus_SRC
@@ -928,6 +970,15 @@ install(TARGETS indi_tcfs_focus RUNTIME DESTINATION bin)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake
 "exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_tcfs_focus \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_tcfs3_focus)\n")
 set_target_properties(indi_tcfs_focus PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_tcfs_symlink.cmake)
+
+################ Lacerta MFOC Focuser ################
+
+SET(lacerta_mfoc_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/lacerta_mfoc.cpp)
+
+add_executable(indi_lacerta_mfoc_focus ${lacerta_mfoc_SRC})
+target_link_libraries(indi_lacerta_mfoc_focus indidriver)
+install(TARGETS indi_lacerta_mfoc_focus RUNTIME DESTINATION bin)
 
 #### UDEV Rules File for Focusers ####
 #### One rule for for all INDI standard focusers ####
@@ -1084,6 +1135,18 @@ add_executable(indi_baader_dome ${baaderdome_SRC})
 target_link_libraries(indi_baader_dome indidriver)
 install(TARGETS indi_baader_dome RUNTIME DESTINATION bin)
 
+################ ScopeDome Dome ################
+
+set(scopedome_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_dome.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_usb21.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/scopedome_sim.cpp
+   )
+
+add_executable(indi_scopedome_dome ${scopedome_SRCS})
+target_link_libraries(indi_scopedome_dome indidriver)
+install(TARGETS indi_scopedome_dome RUNTIME DESTINATION bin )
+
 ########### Dome Scripting Gateway ##############
 SET(domescript_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/dome/dome_script.cpp)
@@ -1174,6 +1237,15 @@ SET(pegasus_upb_SRC
 add_executable(indi_pegasus_upb ${pegasus_upb_SRC})
 target_link_libraries(indi_pegasus_upb indidriver)
 install(TARGETS indi_pegasus_upb RUNTIME DESTINATION bin)
+
+########### Pegasus Pocket Power Box Driver ###############
+
+SET(pegasus_ppb_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/pegasus_ppb.cpp)
+
+add_executable(indi_pegasus_ppb ${pegasus_ppb_SRC})
+target_link_libraries(indi_pegasus_ppb indidriver)
+install(TARGETS indi_pegasus_ppb RUNTIME DESTINATION bin)
 
 ########### SnapCap Driver ###############
 
@@ -1538,6 +1610,7 @@ if (INDI_BUILD_DRIVERS OR INDI_BUILD_CLIENT OR INDI_BUILD_QT5_CLIENT)
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indicom.h
         ${CMAKE_CURRENT_SOURCE_DIR}/eventloop.h
         ${CMAKE_CURRENT_SOURCE_DIR}/indidriver.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/dsp/dsp.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibase.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/indibasetypes.h
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/indibase/basedevice.h

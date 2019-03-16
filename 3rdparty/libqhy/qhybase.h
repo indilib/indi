@@ -1,31 +1,3 @@
-/*
- QHYCCD SDK
- 
- Copyright (c) 2014 QHYCCD.
- All Rights Reserved.
- 
- This program is free software; you can redistribute it and/or modify it
- under the terms of the GNU General Public License as published by the Free
- Software Foundation; either version 2 of the License, or (at your option)
- any later version.
- 
- This program is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- more details.
- 
- You should have received a copy of the GNU General Public License along with
- this program; if not, write to the Free Software Foundation, Inc., 59
- Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- 
- The full GNU General Public License is included in this distribution in the
- file called LICENSE.
- */
-
-/*!
- * @file qhybase.h
- * @brief QHYCCD QHYBASE class define
- */
 
 #include "qhycam.h"
 #include "qhyccdcamdef.h"
@@ -102,7 +74,7 @@ public:
     ccdpixelw = 0;
     ccdpixelh = 0;
 
-    targetTEMP = 0;
+    targetTEMP = -100;
     currentTEMP = 0;
     currentPWM = 0;
     nowVoltage = 0;
@@ -178,6 +150,8 @@ public:
     delRowRoise = false;
 
     memset(&ccdreg, 0, sizeof (ccdreg));
+    BeginEXPtime = 0.0; 
+    IsStartExposure = false;
 
     //testparam = 0;
     //campartnum = DEVICETYPE_UNKNOW;
@@ -477,6 +451,7 @@ public:
     return QHYCCD_ERROR;
   }
 
+
   /**
    @fn virtual uint32_t CorrectWH(uint32_t *w,uint32_t *h)
    @brief correct width and height if the setting width or height is not correct
@@ -659,6 +634,7 @@ public:
   virtual uint32_t SetChipCoolPWM(qhyccd_handle *h, double PWM)
   {
     OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|SetChipCoolPWM|Not implemented");
+    targetTEMP = -100;
     return QHYCCD_ERROR;
   }
 
@@ -827,8 +803,48 @@ public:
   virtual uint32_t ExposureRemaining(qhyccd_handle *h)
   {
     OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ExposureRemaining|Not implemented");
-    return 100;
+    double i = EXPcamtime - (QGetTimerMS() - BeginEXPtime);
+    if (IsStartExposure == true)
+    {
+        if (i > 1.0)
+        {
+    	   return (uint32_t)(i * 100 /EXPcamtime) ;
+        }
+        else	
+        {
+    	  return 0 ;
+        }	
+    }
+    return QHYCCD_ERROR;
   }
+
+
+  virtual uint32_t SetRemainingExposeTime(qhyccd_handle *h, double times)
+  {
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ExposureRemaining|Not implemented");
+    EXPcamtime = times / 1000.0;
+		
+    return QHYCCD_SUCCESS;
+  }  
+  
+  virtual uint32_t StartRemainingTimesCount(qhyccd_handle *h)
+  {
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|StartRemainingTimesCount|Not implemented");
+    if (camtime >= MREMAINING_MAX_EXPOSURETIMES)
+    {
+        BeginEXPtime = QGetTimerMS(); 
+        IsStartExposure = true;  
+    }
+    return QHYCCD_SUCCESS;
+  }
+
+  virtual uint32_t StopRemainingTimesCount(qhyccd_handle *h)
+  {
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|StopRemainingTimesCount|Not implemented");
+    IsStartExposure = false;  
+    return QHYCCD_SUCCESS;
+  }
+
 
   /**
    @fn uint32_t SetStreamMode(qhyccd_handle *handle,uint8_t mode)
@@ -1138,7 +1154,18 @@ public:
   {
     return 0;
   }
+
   virtual uint32_t SetDarkGenerateOnOff(qhyccd_handle *h, double mode);
+
+
+  //camera mode set/get
+  virtual uint32_t  GetNumberOfReadModes(qhyccd_handle *h,uint32_t *numModes);
+  virtual uint32_t  GetReadModeResolution(qhyccd_handle *h,uint32_t modeNumber, uint32_t* width, uint32_t* height);
+  virtual uint32_t  GetReadModeName(qhyccd_handle *h,uint32_t modeNumber, char* name);
+  virtual uint32_t  SetReadMode(qhyccd_handle *h,uint32_t modeNumber);
+  virtual uint32_t  GetReadMode(qhyccd_handle *h,uint32_t* modeNumber);
+
+
 public:
 
   /**
@@ -1251,18 +1278,6 @@ public:
     return gpson;
   }
 
-  uint32_t QSleep(uint32_t mstime)
-  {
-#if defined (_WIN32)
-    Sleep(mstime);
-#else
-
-    usleep(mstime * 1000);
-#endif
-
-    return QHYCCD_SUCCESS;
-  }
-
   /**
    */
   uint32_t SetPIDParas(qhyccd_handle *handle, double p, double i, double d);
@@ -1294,6 +1309,9 @@ public:
   uint32_t SetAutoExposure(qhyccd_handle *h, double value);
 
   uint32_t SetAutoFocus(qhyccd_handle *h, double value);
+#ifdef QHYCCD_OPENCV_SUPPORT
+  uint32_t CallAECAGC(qhyccd_handle *h, IplImage *img, int MessureMethod, int ControlMode);
+#endif
 
   uint32_t SetBrightness(qhyccd_handle *h, double value);
 
@@ -1365,6 +1383,8 @@ public:
 
 
   uint8_t camtype;
+  //uint32_t CameraType;
+ 
 
   uint32_t camx; //!< current camera width
   uint32_t camy; //!< current camera height
@@ -1374,6 +1394,9 @@ public:
   uint32_t camchannels; //!< current camera channels
   uint32_t usbtraffic; //!< current usbtraffic
   uint32_t usbspeed; //!< current usb speed mode
+  double EXPcamtime; //!< current cam expose time
+  double BeginEXPtime; //!< current cam expose time
+  bool IsStartExposure;
   double camtime; //!< current cam expose time
   double camgain; //!< current cam gain
   double camoffset; //!< current cam offset
@@ -1504,6 +1527,9 @@ public:
   uint8_t qhy5iiGuidePortOnOff;
   bool delRowRoise;
   uint32_t ddrnum;
+
+  double lastTargetTemp;
+  double  lastPWM;  
 
 #if defined (_WIN32)
 

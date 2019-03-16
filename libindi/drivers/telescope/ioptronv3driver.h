@@ -24,11 +24,17 @@
 #include <map>
 #include "indilogger.h"
 
+/**
+ * @namespace IOPv3
+ * @brief Encapsulates classes and structures required for iOptron Command Set v3 implementation
+ *
+ */
 namespace IOPv3
 {
 
 typedef enum { GPS_OFF, GPS_ON, GPS_DATA_OK } IOP_GPS_STATUS;
-typedef enum {
+typedef enum
+{
     ST_STOPPED,
     ST_TRACKING_PEC_OFF,
     ST_SLEWING,
@@ -39,7 +45,7 @@ typedef enum {
     ST_HOME
 } IOP_SYSTEM_STATUS;
 typedef enum { TR_SIDEREAL, TR_LUNAR, TR_SOLAR, TR_KING, TR_CUSTOM } IOP_TRACK_RATE;
-typedef enum { SR_1=1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_MAX } IOP_SLEW_RATE;
+typedef enum { SR_1 = 1, SR_2, SR_3, SR_4, SR_5, SR_6, SR_7, SR_8, SR_MAX } IOP_SLEW_RATE;
 typedef enum { TS_RS232, TS_CONTROLLER, TS_GPS } IOP_TIME_SOURCE;
 typedef enum { HEMI_SOUTH, HEMI_NORTH } IOP_HEMISPHERE;
 typedef enum { FW_MODEL, FW_BOARD, FW_CONTROLLER, FW_RA, FW_DEC } IOP_FIRMWARE;
@@ -74,136 +80,136 @@ typedef struct
 class Driver
 {
 
-public:
+    public:
 
-    explicit Driver(const char *deviceName);
-    ~Driver() = default;
+        explicit Driver(const char *deviceName);
+        ~Driver() = default;
 
-    static const std::map<std::string,std::string> models;
-    // Slew speeds. N.B. 1024 is arbitrary as the real max value different from
-    // one mount to another. It is used for simulation purposes only.
-    static const uint16_t IOP_SLEW_RATES[];
+        static const std::map<std::string, std::string> models;
+        // Slew speeds. N.B. 1024 is arbitrary as the real max value different from
+        // one mount to another. It is used for simulation purposes only.
+        static const uint16_t IOP_SLEW_RATES[];
 
-    /**************************************************************************
-     Communication
-    **************************************************************************/
-    bool sendCommand(const char *command, int count=1, char *response=nullptr, uint8_t timeout=IOP_TIMEOUT, uint8_t debugLog=INDI::Logger::DBG_DEBUG);
-    bool checkConnection(int fd);
+        /**************************************************************************
+         Communication
+        **************************************************************************/
+        bool sendCommand(const char *command, int count = 1, char *response = nullptr, uint8_t timeout = IOP_TIMEOUT, uint8_t debugLog = INDI::Logger::DBG_DEBUG);
+        bool checkConnection(int fd);
 
-    /**************************************************************************
-     Get Info
-    **************************************************************************/
-    /** Get iEQ current status info */
-    bool getStatus(IOPInfo *info);
-    /** Get All firmware informatin in addition to mount model */
-    bool getFirmwareInfo(FirmwareInfo *info);
-    /** Get RA/DEC */
-    bool getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW_STATE *cwState);
-    /** Get UTC JD plus utc offset and whether daylight savings is active or not */
-    bool getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSaving);
+        /**************************************************************************
+         Get Info
+        **************************************************************************/
+        /** Get iEQ current status info */
+        bool getStatus(IOPInfo *info);
+        /** Get All firmware informatin in addition to mount model */
+        bool getFirmwareInfo(FirmwareInfo *info);
+        /** Get RA/DEC */
+        bool getCoords(double *ra, double *de, IOP_PIER_STATE *pierState, IOP_CW_STATE *cwState);
+        /** Get UTC JD plus utc offset and whether daylight savings is active or not */
+        bool getUTCDateTime(double *JD, int *utcOffsetMinutes, bool *dayLightSaving);
 
-    /**************************************************************************
-     Motion
-    **************************************************************************/
-    bool startMotion(IOP_DIRECTION dir);
-    bool stopMotion(IOP_DIRECTION dir);
-    bool setSlewRate(IOP_SLEW_RATE rate);
-    bool setCustomRATrackRate(double rate);
-    bool setTrackMode(IOP_TRACK_RATE rate);
-    bool setTrackEnabled(bool enabled);
-    bool abort();
-    bool slewNormal();
-    bool slewCWUp();
-    bool sync();
-    bool setRA(double ra);
-    bool setDE(double de);
+        /**************************************************************************
+         Motion
+        **************************************************************************/
+        bool startMotion(IOP_DIRECTION dir);
+        bool stopMotion(IOP_DIRECTION dir);
+        bool setSlewRate(IOP_SLEW_RATE rate);
+        bool setCustomRATrackRate(double rate);
+        bool setTrackMode(IOP_TRACK_RATE rate);
+        bool setTrackEnabled(bool enabled);
+        bool abort();
+        bool slewNormal();
+        bool slewCWUp();
+        bool sync();
+        bool setRA(double ra);
+        bool setDE(double de);
 
-    /**************************************************************************
-     Home
-    **************************************************************************/
-    bool findHome();
-    bool gotoHome();
-    bool setCurrentHome();
+        /**************************************************************************
+         Home
+        **************************************************************************/
+        bool findHome();
+        bool gotoHome();
+        bool setCurrentHome();
 
-    /**************************************************************************
-     Park
-    **************************************************************************/
-    bool park();
-    bool unpark();
+        /**************************************************************************
+         Park
+        **************************************************************************/
+        bool park();
+        bool unpark();
 
-    /**************************************************************************
-     Guide
-    **************************************************************************/
-    bool setGuideRate(double RARate, double DERate);
-    bool getGuideRate(double *RARate, double *DERate);
-    bool startGuide(IOP_DIRECTION dir, uint32_t ms);
+        /**************************************************************************
+         Guide
+        **************************************************************************/
+        bool setGuideRate(double RARate, double DERate);
+        bool getGuideRate(double *RARate, double *DERate);
+        bool startGuide(IOP_DIRECTION dir, uint32_t ms);
 
-    /**************************************************************************
-     Time & Location
-    **************************************************************************/
-    bool setLongitude(double longitude);
-    bool setLatitude(double latitude);
-    bool setUTCDateTime(double JD);
-    bool setUTCOffset(int offsetMinutes);
-    bool setDaylightSaving(bool enabled);
+        /**************************************************************************
+         Time & Location
+        **************************************************************************/
+        bool setLongitude(double longitude);
+        bool setLatitude(double latitude);
+        bool setUTCDateTime(double JD);
+        bool setUTCOffset(int offsetMinutes);
+        bool setDaylightSaving(bool enabled);
 
-    /**************************************************************************
-     Misc.
-    **************************************************************************/
-    void setDebug(bool enable);
-    void setSimulation(bool enable);
+        /**************************************************************************
+         Misc.
+        **************************************************************************/
+        void setDebug(bool enable);
+        void setSimulation(bool enable);
 
-    /**************************************************************************
-     Simulation
-    **************************************************************************/
-    void setSimGPSstatus(IOP_GPS_STATUS value);
-    void setSimSytemStatus(IOP_SYSTEM_STATUS value);
-    void setSimTrackRate(IOP_TRACK_RATE value);
-    void setSimSlewRate(IOP_SLEW_RATE value);
-    void setSimTimeSource(IOP_TIME_SOURCE value);
-    void setSimHemisphere(IOP_HEMISPHERE value);
-    void setSimRA(double ra);
-    void setSimDE(double de);
-    void setSimLongLat(double longitude, double latitude);
-    void setSimGuideRate(double raRate, double deRate);
+        /**************************************************************************
+         Simulation
+        **************************************************************************/
+        void setSimGPSstatus(IOP_GPS_STATUS value);
+        void setSimSytemStatus(IOP_SYSTEM_STATUS value);
+        void setSimTrackRate(IOP_TRACK_RATE value);
+        void setSimSlewRate(IOP_SLEW_RATE value);
+        void setSimTimeSource(IOP_TIME_SOURCE value);
+        void setSimHemisphere(IOP_HEMISPHERE value);
+        void setSimRA(double ra);
+        void setSimDE(double de);
+        void setSimLongLat(double longitude, double latitude);
+        void setSimGuideRate(double raRate, double deRate);
 
-protected:
+    protected:
 
-    /**************************************************************************
-     Firmware Info
-    **************************************************************************/
-    /** Get mainboard and controller firmware only */
-    bool getMainFirmware(std::string &mainFirmware, std::string &controllerFirmware);
-    /** Get RA and DEC firmware info */
-    bool getRADEFirmware(std::string &RAFirmware, std::string &DEFirmware);
-    /** Get Mount model */
-    bool getModel(std::string &model);
+        /**************************************************************************
+         Firmware Info
+        **************************************************************************/
+        /** Get mainboard and controller firmware only */
+        bool getMainFirmware(std::string &mainFirmware, std::string &controllerFirmware);
+        /** Get RA and DEC firmware info */
+        bool getRADEFirmware(std::string &RAFirmware, std::string &DEFirmware);
+        /** Get Mount model */
+        bool getModel(std::string &model);
 
-    struct
-    {
-        double ra;
-        double de;
-        double ra_guide_rate;
-        double de_guide_rate;
-        double JD;
-        int utc_offset_minutes;
-        bool day_light_saving;
-        IOP_PIER_STATE pier_state;
-        IOP_CW_STATE cw_state;
+        struct
+        {
+            double ra;
+            double de;
+            double ra_guide_rate;
+            double de_guide_rate;
+            double JD;
+            int utc_offset_minutes;
+            bool day_light_saving;
+            IOP_PIER_STATE pier_state;
+            IOP_CW_STATE cw_state;
 
-        IOPInfo simInfo;
-    } simData;
+            IOPInfo simInfo;
+        } simData;
 
-private:
-    int PortFD = { -1 };
-    bool m_Debug = {false};
-    bool m_Simulation = {false};
-    const char *m_DeviceName;
+    private:
+        int PortFD = { -1 };
+        bool m_Debug = {false};
+        bool m_Simulation = {false};
+        const char *m_DeviceName;
 
-    // FD timeout in seconds
-    static const uint8_t IOP_TIMEOUT=5;
-    // Buffer to store mount response
-    static const uint8_t IOP_BUFFER=64;
+        // FD timeout in seconds
+        static const uint8_t IOP_TIMEOUT = 5;
+        // Buffer to store mount response
+        static const uint8_t IOP_BUFFER = 64;
 };
 
 }

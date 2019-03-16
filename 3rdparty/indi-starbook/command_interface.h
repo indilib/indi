@@ -38,14 +38,17 @@ namespace starbook {
         float major_minor;
     } VersionResponse;
 
+    const int MIN_SPEED = 0;
+    const int MAX_SPEED = 7;
+
     class CommandInterface {
     public:
 
         explicit CommandInterface(Connection::Curl *connection);
 
-        std::string last_cmd_url;
+        const std::string &getLastCmdUrl() const;
 
-        std::string last_response;
+        const std::string &getLastResponse() const;
 
         ResponseCode Start() {
             return SendOkCommand("START");
@@ -95,6 +98,12 @@ namespace starbook {
 
     private:
 
+        Connection::Curl *connection = nullptr;
+
+        std::string last_cmd_url;
+
+        std::string last_response;
+
         std::string SendCommand(std::string command);
 
         ResponseCode SendOkCommand(const std::string &cmd);
@@ -102,8 +111,6 @@ namespace starbook {
         ResponseCode ParseCommandResponse(const std::string &response);
 
         StarbookState ParseState(const std::string &value);
-
-        Connection::Curl *connection = nullptr;
 
     };
 

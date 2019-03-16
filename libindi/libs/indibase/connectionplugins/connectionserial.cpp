@@ -24,6 +24,9 @@
 #include <dirent.h>
 #include <cerrno>
 #include <cstring>
+#include <algorithm>
+#include <thread>
+#include <chrono>
 
 namespace Connection
 {
@@ -77,7 +80,7 @@ bool Serial::ISNewText(const char *dev, const char *name, char *texts[], char *n
             if (SystemPortS)
             {
                 bool isSystemPort = false;
-                for (int i=0; i < SystemPortSP.nsp; i++)
+                for (int i = 0; i < SystemPortSP.nsp; i++)
                 {
                     if (!strcmp(PortT[0].text, SystemPortS[i].label))
                     {
@@ -122,8 +125,8 @@ bool Serial::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
             // Only display message if there is an actual change
             if (wasEnabled == false && AutoSearchS[0].s == ISS_ON)
                 LOG_INFO("Auto search is enabled. When connecting, the driver shall attempt to "
-                                                 "communicate with all available system ports until a connection is "
-                                                 "established.");
+                         "communicate with all available system ports until a connection is "
+                         "established.");
             else if (wasEnabled && AutoSearchS[1].s == ISS_ON)
                 LOG_INFO("Auo search is disabled.");
             IDSetSwitch(&AutoSearchSP, nullptr);
@@ -165,24 +168,52 @@ bool Serial::Connect()
     bool rc       = Connect(PortT[0].text, baud);
 
     if (rc)
+    {
         rc = processHandshake();
+    }
+
+    // Important, disconnect from port immediately
+    // to release the lock, otherwise another driver will find it busy.
+    if (rc == false)
+        tty_disconnect(PortFD);
 
     // Start auto-search if option was selected and IF we have system ports to try connecting to
-    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr)
+    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr && SystemPortSP.nsp > 1)
     {
         LOGF_WARN("Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text,
-               baud);
+                  baud);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(500 + (rand() % 1000)));
+
+        // Try to connect "randomly" so that competing devices don't all try to connect to the same
+        // ports at the same time.
+        std::vector<std::string> systemPorts;
         for (int i = 0; i < SystemPortSP.nsp; i++)
         {
-            LOGF_DEBUG("Trying connection to %s @ %d ...", SystemPortS[i].name, baud);
-            if (Connect(SystemPortS[i].name, baud))
+            // Don't connect to the same port again.
+            if (!strcmp(SystemPortS[i].name, PortT[0].text))
+                continue;
+
+            systemPorts.push_back(SystemPortS[i].name);
+        }
+        std::random_shuffle (systemPorts.begin(), systemPorts.end());
+
+        for (auto port : systemPorts)
+        {
+            LOGF_INFO("Trying connecting to %s @ %d ...", port.c_str(), baud);
+            if (Connect(port.c_str(), baud))
             {
-                IUSaveText(&PortT[0], SystemPortS[i].name);
+                IUSaveText(&PortT[0], port.c_str());
                 IDSetText(&PortTP, nullptr);
                 rc = processHandshake();
                 if (rc)
                     return true;
+                else
+                    tty_disconnect(PortFD);
             }
+            // sleep randomly anytime between 0.5s and ~1.5s
+            // This enables different competing devices to connect
+            std::this_thread::sleep_for(std::chrono::milliseconds(500 + (rand() % 1000)));
         }
 
         return false;
@@ -219,10 +250,14 @@ bool Serial::Connect(const char *port, uint32_t baud)
 
     if ((connectrc = tty_connect(port, baud, wordSize, parity, stopBits, &PortFD)) != TTY_OK)
     {
+        if (connectrc == TTY_PORT_BUSY)
+        {
+            LOGF_WARN("Port %s is already used by another driver or process.", port);
+            return false;
+        }
+
         tty_error_msg(connectrc, errorMsg, MAXRBUF);
-
         LOGF_ERROR("Failed to connect to port (%s). Error: %s", port, errorMsg);
-
         return false;
     }
 
@@ -341,7 +376,7 @@ bool Serial::Refresh(bool silent)
             else
             {
                 LOGF_DEBUG("Ignoring devices over %d : %s", m_Ports.size(),
-                       namelist[devCount]->d_name);
+                           namelist[devCount]->d_name);
             }
             free(namelist[devCount]);
         }
