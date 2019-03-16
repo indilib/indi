@@ -2373,16 +2373,30 @@ void Telescope::processNSWE(double mag, double angle)
                 angle = 270;
         }
 
+        // Snap angle to x or y direction if close to corresponding axis (i.e. deviation < 15°)
+        if (angle > 75 && angle < 105)
+        {
+            angle = 90;
+        }
+        if (angle > 165 && angle < 195)
+        {
+            angle = 180;
+        }
+        if (angle > 255 && angle < 285)
+        {
+            angle = 270;
+        }
+        if (angle > 345 || angle < 15)
+        {
+            angle = 0;
+        }
+
         // North
         if (angle > 0 && angle < 180)
         {
             // Don't try to move if you're busy and moving in the same direction
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[0].s != ISS_ON)
                 MoveNS(DIRECTION_NORTH, MOTION_START);
-
-            // If angle is close to 90, make it exactly 90 to reduce noise that could trigger east/west motion as well
-            if (angle > 80 && angle < 110)
-                angle = 90;
 
             MovementNSSP.s                     = IPS_BUSY;
             MovementNSSP.sp[DIRECTION_NORTH].s = ISS_ON;
@@ -2395,10 +2409,6 @@ void Telescope::processNSWE(double mag, double angle)
             // Don't try to move if you're busy and moving in the same direction
             if (MovementNSSP.s != IPS_BUSY || MovementNSS[1].s != ISS_ON)
                 MoveNS(DIRECTION_SOUTH, MOTION_START);
-
-            // If angle is close to 270, make it exactly 270 to reduce noise that could trigger east/west motion as well
-            if (angle > 260 && angle < 280)
-                angle = 270;
 
             MovementNSSP.s                     = IPS_BUSY;
             MovementNSSP.sp[DIRECTION_NORTH].s = ISS_OFF;
