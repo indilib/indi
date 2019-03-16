@@ -174,7 +174,18 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
             else
             {
                 err = serial_read(resp_len, &nbytes);
-                // to do: check response ends with '#'
+                // passthrough commands that fail will return an extra 0 then the terminator
+                while (resp[nbytes-1] != '#')
+                {
+                    char m[1];
+                    int n;
+                    err = tty_read(fd, m, 1, CELESTRON_TIMEOUT, &n);
+                    if (n == 1)
+                    {
+                        resp[nbytes] = m[0];
+                        nbytes++;
+                    }
+                }
             }
             if (err)
             {
@@ -187,9 +198,10 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
 
     if (nbytes != resp_len)
     {
-        hex_dump(hexbuf, resp, nbytes > resp_len ? nbytes : resp_len);
-        LOGF_ERROR("Received %d bytes, expected %d <%s>", nbytes, resp_len, hexbuf);
-        return 0;
+        int max = nbytes > resp_len ? nbytes : resp_len;
+        hex_dump(hexbuf, resp, max);
+        LOGF_DEBUG("Received %d bytes, expected %d <%s>", nbytes, resp_len, hexbuf);
+        return max;
     }
 
     if (resp_len == 0)
@@ -215,7 +227,7 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
 // Send a 'passthrough command' to the mount. Return the number of bytes
 // received or 0 in case of error
 int CelestronDriver::send_passthrough(int dest, int cmd_id, const char *payload,
-        int payload_len, char *response, int response_len)
+        int payload_len, char *resp, int response_len)
 {
     char cmd[8] = {0};
 
@@ -228,7 +240,7 @@ int CelestronDriver::send_passthrough(int dest, int cmd_id, const char *payload,
     // payload_len must be <= 3 !
     memcpy(cmd + 4, payload, payload_len);
 
-    return send_command(cmd, 8, response, response_len + 1, false, false);
+    return send_command(cmd, 8, resp, response_len + 1, false, false);
 }
 
 bool CelestronDriver::check_connection()
@@ -652,7 +664,7 @@ bool CelestronDriver::set_location(double longitude, double latitude)
     cmd[2] = lat_m;
     cmd[3] = lat_s;
     cmd[4] = lat_d > 0 ? 0 : 1;
-    cmd[5] = abs(long_d);
+    cmd[5] = abs(long_d);       // not sure how the conversion from int to char will work for longtitudes > 127
     cmd[6] = long_m;
     cmd[7] = long_s;
     cmd[8] = long_d > 0 ? 0 : 1;
@@ -766,13 +778,41 @@ bool CelestronDriver::set_track_mode(CELESTRON_TRACK_MODE mode)
 
 bool CelestronDriver::hibernate()
 {
-    return send_command("x#", 2, response, 1, true, true);
+    set_sim_response("#");
+    return send_command("x", 1, response, 1, true, true);
 }
 
+// wakeup the mount
 bool CelestronDriver::wakeup()
 {
     set_sim_response("#");
-    return send_command("y#", 2, response, 1, true, true);
+    return send_command("y", 1, response, 1, true, true);
+}
+
+// do a last align, assumes the mount is at the index position
+bool CelestronDriver::lastalign()
+{
+    set_sim_response("#");
+    return send_command("Y", 1, response, 1, true, true);
+}
+
+bool CelestronDriver::startmovetoindex()
+{
+    if (!send_passthrough(CELESTRON_DEV_RA, MC_LEVEL_START, nullptr, 0, response, 1))
+        return false;
+    return send_passthrough(CELESTRON_DEV_DEC, MC_LEVEL_START, nullptr, 0, response, 1);
+}
+
+bool CelestronDriver::indexreached(bool *atIndex)
+{
+    if (!send_passthrough(CELESTRON_DEV_DEC, MC_LEVEL_DONE, nullptr, 0, response, 1))
+        return false;
+    bool atDecIndex = response[0] != '\00';
+    if (!send_passthrough(CELESTRON_DEV_RA, MC_LEVEL_DONE, nullptr, 0, response, 1))
+        return false;
+    bool atRaIndex = response[0] != '\00';
+    *atIndex = atDecIndex && atRaIndex;
+    return true;
 }
 
 // Get pier side command, returns 'E' or 'W'

@@ -133,6 +133,12 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         bool usePreciseCoords {false};
         bool usePulseCommand { false };
 
+        // experimental last align property
+        ISwitch LastAlignS[1];
+        ISwitchVectorProperty LastAlignSP;
+
+        bool slewToIndex;
+
         // focuser
         INumber FocusBacklashN[1];
         INumberVectorProperty FocusBacklashNP;
