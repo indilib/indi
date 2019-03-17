@@ -111,6 +111,8 @@ const int MAX_CFW_TYPES = 16;
 
 typedef enum { CCD_THERMISTOR, AMBIENT_THERMISTOR } THERMISTOR_TYPE;
 
+typedef unsigned long   ulong;            /* Short for unsigned long */
+
 class SBIGCCD : public INDI::CCD, public INDI::FilterInterface
 {
     public:

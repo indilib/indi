@@ -150,6 +150,8 @@ public:
     delRowRoise = false;
 
     memset(&ccdreg, 0, sizeof (ccdreg));
+    BeginEXPtime = 0.0; 
+    IsStartExposure = false;
 
     //testparam = 0;
     //campartnum = DEVICETYPE_UNKNOW;
@@ -801,8 +803,48 @@ public:
   virtual uint32_t ExposureRemaining(qhyccd_handle *h)
   {
     OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ExposureRemaining|Not implemented");
-    return 100;
+    double i = EXPcamtime - (QGetTimerMS() - BeginEXPtime);
+    if (IsStartExposure == true)
+    {
+        if (i > 1.0)
+        {
+    	   return (uint32_t)(i * 100 /EXPcamtime) ;
+        }
+        else	
+        {
+    	  return 0 ;
+        }	
+    }
+    return QHYCCD_ERROR;
   }
+
+
+  virtual uint32_t SetRemainingExposeTime(qhyccd_handle *h, double times)
+  {
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ExposureRemaining|Not implemented");
+    EXPcamtime = times / 1000.0;
+		
+    return QHYCCD_SUCCESS;
+  }  
+  
+  virtual uint32_t StartRemainingTimesCount(qhyccd_handle *h)
+  {
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|StartRemainingTimesCount|Not implemented");
+    if (camtime >= MREMAINING_MAX_EXPOSURETIMES)
+    {
+        BeginEXPtime = QGetTimerMS(); 
+        IsStartExposure = true;  
+    }
+    return QHYCCD_SUCCESS;
+  }
+
+  virtual uint32_t StopRemainingTimesCount(qhyccd_handle *h)
+  {
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|StopRemainingTimesCount|Not implemented");
+    IsStartExposure = false;  
+    return QHYCCD_SUCCESS;
+  }
+
 
   /**
    @fn uint32_t SetStreamMode(qhyccd_handle *handle,uint8_t mode)
@@ -1236,39 +1278,6 @@ public:
     return gpson;
   }
 
-#if 0
-  uint32_t QSleep(uint32_t mstime)
-  {
-#if defined (_WIN32)
-    Sleep(mstime);
-#else
-
-    usleep(mstime * 1000);
-#endif
-
-    return QHYCCD_SUCCESS;
-  }
-
-uint32_t QBeep(uint32_t volume,uint32_t mstime)
-{
-#if defined (_WIN32)
-  Beep(volume,mstime);
-#else
-#if 0
-
-  int   fd   =   open("/dev/tty10",   O_RDONLY);
-  if   (fd   ==   -1   ||   argc   !=   3)
-  {
-    return   -1;
-  }
-  ioctl(fd,   KDMKTONE,   20000);
-  close(fd);
-#endif
-#endif
-
-return QHYCCD_SUCCESS;
-}
-#endif
   /**
    */
   uint32_t SetPIDParas(qhyccd_handle *handle, double p, double i, double d);
@@ -1385,6 +1394,9 @@ return QHYCCD_SUCCESS;
   uint32_t camchannels; //!< current camera channels
   uint32_t usbtraffic; //!< current usbtraffic
   uint32_t usbspeed; //!< current usb speed mode
+  double EXPcamtime; //!< current cam expose time
+  double BeginEXPtime; //!< current cam expose time
+  bool IsStartExposure;
   double camtime; //!< current cam expose time
   double camgain; //!< current cam gain
   double camoffset; //!< current cam offset

@@ -1,0 +1,23 @@
+Source: indi-beefocus
+Section: science
+Priority: extra
+Maintainer: Andrew Brownbill <andrew.brownbill@gmail.com>
+Build-Depends: debhelper (>= 10), cdbs, cmake, libindi-dev
+Standards-Version: 3.9.2
+
+Package: indi-beefocus
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1
+Description: INDI Beefocus Driver
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.  The driver interacts with a Bee Focuser using TCP/IP.   
+
+Package: indi-beefocus-dbg
+Priority: extra
+Section: debug
+Architecture: any
+Depends: indi-beefocus (= ${binary:Version}), ${misc:Depends}
+Description: INDI Beefocus Driver.
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.
+ This package contains the debug symbols for the this driver, useful to investigate problems in INDI.
