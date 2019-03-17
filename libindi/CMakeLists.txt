@@ -1383,6 +1383,16 @@ add_executable(indi_watcher_weather ${weatherwatcher_SRC})
 target_link_libraries(indi_watcher_weather indidriver ${CURL_LIBRARIES})
 install(TARGETS indi_watcher_weather RUNTIME DESTINATION bin )
 
+########### Weather Scripting Gateway ###############
+
+SET(weatherscript_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/gason.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/weather/weather_script.cpp)
+
+add_executable(indi_script_weather ${weatherscript_SRC})
+target_link_libraries(indi_script_weather indidriver ${CURL_LIBRARIES})
+install(TARGETS indi_script_weather RUNTIME DESTINATION bin )
+
 ########### MBox Driver ###############
 
 SET(mbox_SRC
