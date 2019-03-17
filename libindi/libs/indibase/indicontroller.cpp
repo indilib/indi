@@ -201,14 +201,14 @@ bool Controller::ISSnoopDevice(XMLEle *root)
     const char *propName = findXMLAttValu(root, "name");
 
     // Check axis
-    if (!strcmp("JOYSTICK_AXIS", propName))
+    if (!strcmp("JOYSTICK_AXES", propName))
     {
         for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
         {
             const char *elemName = findXMLAttValu(ep, "name");
             const char *setting  = getControllerSetting(elemName);
             if (setting == nullptr)
-                return false;
+                continue;
 
             mag = atof(pcdataXMLEle(ep));
 
@@ -270,7 +270,7 @@ void Controller::enableJoystick()
             IDSnoopDevice("Joystick", JoystickSettingTP.tp[i].text);
     }
 
-    IDSnoopDevice("Joystick", "JOYSTICK_AXIS");
+    IDSnoopDevice("Joystick", "JOYSTICK_AXES");
     IDSnoopDevice("Joystick", "JOYSTICK_BUTTONS");
 }
 
