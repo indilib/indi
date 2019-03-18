@@ -725,5 +725,8 @@ EXPORTC uint32_t STDCALL SetQHYCCDReadMode(qhyccd_handle *h,uint32_t modeNumber)
 // Get the read mode
 EXPORTC uint32_t STDCALL GetQHYCCDReadMode(qhyccd_handle *h,uint32_t* modeNumber);
 
+EXPORTC uint32_t STDCALL GetQHYCCDBeforeOpenParam(
+	QHYCameraParam *p, 
+	CONTROL_ID controlId);
 
 #endif
