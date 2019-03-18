@@ -81,7 +81,7 @@ WeatherScript::~WeatherScript() {}
 
 const char *WeatherScript::getDefaultName()
 {
-    return (const char *)"Weather Scripting Gateway";
+    return (const char *)"Weather_Safety_Proxy";
 }
 
 bool WeatherScript::Connect()
@@ -103,16 +103,29 @@ bool WeatherScript::initProperties()
                      60, IPS_IDLE);
 
     IUFillText(&ScriptsT[WEATHER_SCRIPTS_FOLDER], "WEATHER_SCRIPTS_FOLDER", "Weather script folder", "/usr/local/share/indi/scripts");
-    IUFillText(&ScriptsT[WEATHER_STATUS_SCRIPT], "WEATHER_STATUS_SCRIPT", "Get weather status script", "weather_status.py");
+    IUFillText(&ScriptsT[WEATHER_STATUS_SCRIPT], "WEATHER_STATUS_SCRIPT", "Get weather safety script", "weather_status.py");
+    IUFillTextVector(&ScriptsTP, ScriptsT, WEATHER_SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60,
+                     IPS_IDLE);
+
+    addParameter("WEATHER_SAFETY", "Weather Safety", 0.9, 1.1, 0); // 0 is unsafe, 1 is safe
+    setCriticalParameter("WEATHER_SAFETY");
 
     addDebugControl();
 
     return true;
 }
 
+bool WeatherScript::saveConfigItems(FILE *fp)
+{
+    INDI::Weather::saveConfigItems(fp);
+    IUSaveConfigText(fp, &ScriptsTP);
+    return true;
+}
+
 void WeatherScript::ISGetProperties(const char *dev)
 {
     INDI::Weather::ISGetProperties(dev);
+    defineText(&ScriptsTP);
 }
 
 bool WeatherScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -148,16 +161,29 @@ IPState WeatherScript::executeScript(int script)
     char cmd[1024];
     snprintf(cmd, sizeof(cmd), "%s/%s", ScriptsT[WEATHER_SCRIPTS_FOLDER].text, ScriptsT[script].text);
 
+    if (access(cmd, F_OK|X_OK) == -1)
+    {
+        LOGF_ERROR("Cannot use script [%s], check its existence and permissions", cmd);
+        return IPS_ALERT;
+    }
+
+    LOGF_DEBUG("Run script: %s", cmd);
     FILE *handle = popen(cmd, "r");
     if (handle == nullptr)
     {
-        LOGF_DEBUG("Failed to run script: %s", strerror(errno));
+        LOGF_ERROR("Failed to run script [%s]", strerror(errno));
         return IPS_ALERT;
     }
-    char buf[1024];
+    char buf[BUFSIZ];
     size_t byte_count = fread(buf, 1, BUFSIZ - 1, handle);
     fclose(handle);
     buf[byte_count] = 0;
+    if (byte_count == 0)
+    {
+        LOGF_ERROR("Got no output from script [%s]", cmd);
+        return IPS_ALERT;
+    }
+    LOGF_DEBUG("Read %d bytes output [%s]", byte_count, buf);
 
     char *source = buf;
     char *endptr;
@@ -166,7 +192,7 @@ IPState WeatherScript::executeScript(int script)
     int status = jsonParse(source, &endptr, &value, allocator);
     if (status != JSON_OK)
     {
-        LOGF_ERROR("%s at %zd", jsonStrError(status), endptr - source);
+        LOGF_ERROR("jsonParse %s at position %zd", jsonStrError(status), endptr - source);
         return IPS_ALERT;
     }
 
@@ -180,7 +206,21 @@ IPState WeatherScript::executeScript(int script)
             {
                 if (!strcmp(observationIterator->key, "open_ok"))
                 {
-                    setParameterValue("WEATHER_CONDITION", observationIterator->value.toNumber());
+                    int NewSafety = observationIterator->value.toNumber();
+                    if (NewSafety != Safety)
+                    {
+                        if (NewSafety == 0)
+                        {
+                            LOG_WARN("Weather is UNSAFE");
+                        }
+                        else if (NewSafety == 1)
+                        {
+                            LOG_INFO("Weather is SAFE");
+                        }
+                        Safety = NewSafety;
+                    }
+                    // setParameterValue("WEATHER_CONDITION", NewSafety);
+                    setParameterValue("WEATHER_SAFETY", NewSafety);
                 }
 //                else if (!strcmp(observationIterator->key, "reasons"))
 //                {

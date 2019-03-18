@@ -29,7 +29,8 @@
 typedef enum
 {
     WEATHER_SCRIPTS_FOLDER = 0,
-    WEATHER_STATUS_SCRIPT
+    WEATHER_STATUS_SCRIPT,
+    WEATHER_SCRIPT_COUNT
 } weather_scripts_enum;
 
 class WeatherScript : public INDI::Weather
@@ -50,10 +51,12 @@ class WeatherScript : public INDI::Weather
 
   protected:
     virtual IPState updateWeather() override;
-//    virtual bool saveConfigItems(FILE *fp) override;
+    virtual bool saveConfigItems(FILE *fp) override;
 
   private:
     IPState executeScript(int script);
+
+    int Safety = -1;
 
     IText keywordT[1] {};
     ITextVectorProperty keywordTP;
