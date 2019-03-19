@@ -28,28 +28,28 @@
 #include <cstring>
 
 #include "gason.h"
-#include "weather_script.h"
+#include "weather_safety_proxy.h"
 
-std::unique_ptr<WeatherScript> weatherScript(new WeatherScript());
+std::unique_ptr<WeatherSafetyProxy> weatherSafetyProxy(new WeatherSafetyProxy());
 
 void ISGetProperties(const char *dev)
 {
-    weatherScript->ISGetProperties(dev);
+    weatherSafetyProxy->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    weatherScript->ISNewSwitch(dev, name, states, names, n);
+    weatherSafetyProxy->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    weatherScript->ISNewText(dev, name, texts, names, n);
+    weatherSafetyProxy->ISNewText(dev, name, texts, names, n);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    weatherScript->ISNewNumber(dev, name, values, names, n);
+    weatherSafetyProxy->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -67,34 +67,34 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    weatherScript->ISSnoopDevice(root);
+    weatherSafetyProxy->ISSnoopDevice(root);
 }
 
-WeatherScript::WeatherScript()
+WeatherSafetyProxy::WeatherSafetyProxy()
 {
     setVersion(1, 0);
 
     setWeatherConnection(CONNECTION_NONE);
 }
 
-WeatherScript::~WeatherScript() {}
+WeatherSafetyProxy::~WeatherSafetyProxy() {}
 
-const char *WeatherScript::getDefaultName()
+const char *WeatherSafetyProxy::getDefaultName()
 {
     return (const char *)"Weather_Safety_Proxy";
 }
 
-bool WeatherScript::Connect()
+bool WeatherSafetyProxy::Connect()
 {
     return true;
 }
 
-bool WeatherScript::Disconnect()
+bool WeatherSafetyProxy::Disconnect()
 {
     return true;
 }
 
-bool WeatherScript::initProperties()
+bool WeatherSafetyProxy::initProperties()
 {
     INDI::Weather::initProperties();
 
@@ -115,20 +115,21 @@ bool WeatherScript::initProperties()
     return true;
 }
 
-bool WeatherScript::saveConfigItems(FILE *fp)
+// TODO FIX loadConfig script path or wherever that lives
+bool WeatherSafetyProxy::saveConfigItems(FILE *fp)
 {
     INDI::Weather::saveConfigItems(fp);
     IUSaveConfigText(fp, &ScriptsTP);
     return true;
 }
 
-void WeatherScript::ISGetProperties(const char *dev)
+void WeatherSafetyProxy::ISGetProperties(const char *dev)
 {
     INDI::Weather::ISGetProperties(dev);
     defineText(&ScriptsTP);
 }
 
-bool WeatherScript::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool WeatherSafetyProxy::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -151,12 +152,13 @@ bool WeatherScript::ISNewText(const char *dev, const char *name, char *texts[], 
     return INDI::Weather::ISNewText(dev, name, texts, names, n);
 }
 
-IPState WeatherScript::updateWeather()
+IPState WeatherSafetyProxy::updateWeather()
 {
+    // TODO choose script or curl
     return executeScript(WEATHER_STATUS_SCRIPT);
 }
 
-IPState WeatherScript::executeScript(int script)
+IPState WeatherSafetyProxy::executeScript(int script)
 {
     char cmd[1024];
     snprintf(cmd, sizeof(cmd), "%s/%s", ScriptsT[WEATHER_SCRIPTS_FOLDER].text, ScriptsT[script].text);
@@ -198,14 +200,19 @@ IPState WeatherScript::executeScript(int script)
 
     JsonIterator it;
     JsonIterator observationIterator;
+    bool roof_status_found = false;
+    bool open_ok_found = false;
+    bool reasons_found = false;
     for (it = begin(value); it != end(value); ++it)
     {
         if (!strcmp(it->key, "roof_status"))
         {
+            roof_status_found = true;
             for (observationIterator = begin(it->value); observationIterator != end(it->value); ++observationIterator)
             {
                 if (!strcmp(observationIterator->key, "open_ok"))
                 {
+                    open_ok_found = true;
                     int NewSafety = observationIterator->value.toNumber();
                     if (NewSafety != Safety)
                     {
@@ -222,13 +229,27 @@ IPState WeatherScript::executeScript(int script)
                     // setParameterValue("WEATHER_CONDITION", NewSafety);
                     setParameterValue("WEATHER_SAFETY", NewSafety);
                 }
-//                else if (!strcmp(observationIterator->key, "reasons"))
-//                {
-//                    setParameterValue("WEATHER_CONDITION_REASONS", observationIterator->value);
-//                }
+                else if (!strcmp(observationIterator->key, "reasons"))
+                {
+                    reasons_found = true;
+                    char *reasons = observationIterator->value.toString();
+// TODO                    setParameterValue("WEATHER_CONDITION_REASONS", reasons);
+                }
             }
         }
     }
 
+    if (!roof_status_found)
+    {
+        LOGF_ERROR("Found no roof_status field in JSON [%s]", buf);
+        return IPS_ALERT;
+    }
+    if (!open_ok_found)
+    {
+        LOGF_ERROR("Found no open_ok field in roof_status JSON [%s]", buf);
+        return IPS_ALERT;
+    }
+    // TODO add reasons_found
     return IPS_OK;
+
 }

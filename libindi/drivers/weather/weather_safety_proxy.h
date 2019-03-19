@@ -33,11 +33,11 @@ typedef enum
     WEATHER_SCRIPT_COUNT
 } weather_scripts_enum;
 
-class WeatherScript : public INDI::Weather
+class WeatherSafetyProxy : public INDI::Weather
 {
   public:
-    WeatherScript();
-    virtual ~WeatherScript();
+    WeatherSafetyProxy();
+    virtual ~WeatherSafetyProxy();
 
     //  Generic indi device entries
     bool Connect() override;
@@ -56,7 +56,7 @@ class WeatherScript : public INDI::Weather
   private:
     IPState executeScript(int script);
 
-    int Safety = -1;
+    int Safety = -1; // TODO make this a Light
 
     IText keywordT[1] {};
     ITextVectorProperty keywordTP;
