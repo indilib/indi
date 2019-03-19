@@ -1,7 +1,7 @@
 /*******************************************************************************
   Copyright(c) 2019 Hans Lambermont. All rights reserved.
 
-  INDI Weather Scripting Gateway
+  INDI Weather Safety Proxy
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
