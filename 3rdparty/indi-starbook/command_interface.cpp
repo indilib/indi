@@ -58,7 +58,7 @@ namespace starbook {
         rc = curl_easy_perform(handle);
 
         if (rc != CURLE_OK) {
-            throw std::runtime_error("curl error " + std::to_string(rc));
+            throw rc;
         }
 
         // all responses are hidden in HTML comments ...
@@ -77,8 +77,14 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::SendOkCommand(const std::string &cmd) {
-        std::string response = CommandInterface::SendCommand(cmd);
-        return ParseCommandResponse(response);
+        std::string res;
+        try {
+            res = CommandInterface::SendCommand(cmd);
+        } catch (int e) {
+            return ERROR_UNKNOWN;
+        }
+
+        return ParseCommandResponse(res);
     }
 
     ResponseCode CommandInterface::GotoRaDec(double ra, double dec) {
@@ -94,7 +100,12 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::Version(VersionResponse &res) {
-        std::string cmd_res = SendCommand("VERSION");
+        std::string cmd_res;
+        try {
+            cmd_res = SendCommand("VERSION");
+        } catch (int e) {
+            return ERROR_UNKNOWN;
+        }
 
         try {
             res = ParseVersionResponse(cmd_res);
@@ -106,7 +117,12 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::GetStatus(StatusResponse &res) {
-        std::string cmd_res = SendCommand("GETSTATUS");
+        std::string cmd_res;
+        try {
+            cmd_res = SendCommand("GETSTATUS");
+        } catch (int e) {
+            throw e; // let's handle it in driver to disconnect properly
+        }
 
         try {
             res = ParseStatusResponse(cmd_res);

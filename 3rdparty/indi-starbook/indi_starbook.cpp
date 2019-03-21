@@ -135,6 +135,8 @@ bool StarbookDriver::Connect()
         getFirmwareVersion();
         // TODO: resolve this in less hacky way https://github.com/indilib/indi/issues/810
         saveConfig(false, "DEVICE_ADDRESS");
+    } else {
+        LOG_ERROR("Connection failed");
     }
     return rc;
 }
@@ -153,12 +155,23 @@ bool StarbookDriver::ReadScopeStatus()
 {
     LOG_DEBUG("Status! Sending GETSTATUS command");
     starbook::StatusResponse res;
-    starbook::ResponseCode rc = cmd_interface->GetStatus(res);
-    if (rc != starbook::OK) {
+    starbook::ResponseCode rc;
+    try {
+        rc = cmd_interface->GetStatus(res);
+    } catch (int e) {
         StateTP.s = IPS_ALERT;
-        // TODO: move outside this function, handle disconnection
-        LogResponse("Status", rc);
         failed_res++;
+        switch (e) {
+            case CURLE_COULDNT_CONNECT:
+                LOGF_WARN("Couldn't connect: %i (%i)", e, failed_res);
+            case CURLE_OPERATION_TIMEDOUT:
+                LOGF_WARN("Timeout: %i (%i)", e, failed_res);
+                break;
+            default:
+                LOGF_ERROR("Unknown error code: %i (%i)", e, failed_res);
+                break;
+        }
+
         if (failed_res > 10) {
             LOG_ERROR("Failed to keep connection, disconnecting");
             Disconnect();
@@ -199,6 +212,7 @@ bool StarbookDriver::ReadScopeStatus()
             IUSaveText(&StateT[0], "UNKNOWN");
             break;
     }
+    failed_res = 0;
     StateTP.s = IPS_OK;
     IDSetText(&StateTP, nullptr);
 
