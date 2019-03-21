@@ -100,8 +100,8 @@ bool StarbookDriver::initProperties()
     curlConnection->registerHandshake([&]() { return callHandshake(); });
     registerConnection(curlConnection);
 
-    curlConnection->setDefaultHost("169.254.1.1");
-    curlConnection->setDefaultPort(80);
+    curlConnection->setDefaultHost(DEFAULT_STARBOOK_ADDRESS);
+    curlConnection->setDefaultPort(DEFAULT_STARBOOK_PORT);
 
     cmd_interface = std::unique_ptr<starbook::CommandInterface>(
             new starbook::CommandInterface(curlConnection)
