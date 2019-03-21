@@ -106,6 +106,7 @@ class LX200_10MICRON : public LX200Generic
     bool UnPark() override;
     bool SyncConfigBehaviour(bool cmcfg);
     bool setLocalDate(uint8_t days, uint8_t months, uint16_t years) override;
+    bool setTLEtoFollow(const char *tle);
 
     int AddSyncPoint(double MRa, double MDec, double MSide, double PRa, double PDec, double SidTime);
     int AddSyncPointHere(double PRa, double PDec);
