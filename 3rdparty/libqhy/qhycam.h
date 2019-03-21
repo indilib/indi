@@ -236,6 +236,7 @@ static void QBeep(uint32_t volume,uint32_t mstime)
    */
   uint32_t vendRXD(qhyccd_handle *dev_handle, uint8_t req, uint8_t *data, uint16_t length);
 
+#if 0
   /**
    @fn iTXD(qhyccd_handle *dev_handle,uint8_t *data, int32_t length)
    @brief send a package to deivce using the bulk endpoint
@@ -247,6 +248,7 @@ static void QBeep(uint32_t volume,uint32_t mstime)
    another QHYCCD_ERROR code on other failures
    */
   uint32_t iTXD(qhyccd_handle *dev_handle, uint8_t *data, int32_t length);
+#endif
 
   /**
    @fn iTXD_Ex(qhyccd_handle *dev_handle,uint8_t *data, int32_t length,uint8_t ep)
@@ -261,6 +263,7 @@ static void QBeep(uint32_t volume,uint32_t mstime)
    */
   uint32_t iTXD_Ex(qhyccd_handle *dev_handle, uint8_t *data, int32_t length, uint8_t ep);
 
+#if 0
   /**
    @fn iRXD(qhyccd_handle *dev_handle,uint8_t *data, int32_t length)
    @brief get a package from deivce using the bulk endpoint
@@ -272,6 +275,7 @@ static void QBeep(uint32_t volume,uint32_t mstime)
    another QHYCCD_ERROR code on other failures
    */
   uint32_t iRXD(qhyccd_handle *dev_handle, uint8_t *data, int32_t length);
+#endif
 
   /**
    @fn iRXD_Ex(qhyccd_handle *dev_handle,uint8_t *data, int32_t length,uint8_t ep)
