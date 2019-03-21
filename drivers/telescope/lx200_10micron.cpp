@@ -514,6 +514,12 @@ bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
     return 0 == setStandardProcedureAndExpect(fd, data, "1");
 }
 
+bool LX200_10MICRON::setTLEtoFollow(const char *tle)
+{
+  LOG_INFO("The function is called")
+}
+
+
 int LX200_10MICRON::SetRefractionModelTemperature(double temperature)
 {
     char data[16];
