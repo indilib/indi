@@ -134,7 +134,12 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::GetPlace(PlaceResponse &res) {
-        std::string cmd_res = SendCommand("GETSTATUS");
+        std::string cmd_res;
+        try {
+            cmd_res = SendCommand("GETPLACE");
+        } catch (int e) {
+            return ERROR_UNKNOWN;
+        }
 
         try {
             res = ParsePlaceResponse(cmd_res);
@@ -146,7 +151,12 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::GetTime(ln_date &res) {
-        std::string cmd_res = SendCommand("GETSTATUS");
+        std::string cmd_res;
+        try {
+            cmd_res = SendCommand("GETTIME");
+        } catch (int e) {
+            return ERROR_UNKNOWN;
+        }
 
         try {
             res = ParseTimeResponse(cmd_res);
@@ -158,7 +168,12 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::GetRound(long int &res) {
-        std::string cmd_res = SendCommand("GETSTATUS");
+        std::string cmd_res;
+        try {
+            cmd_res = SendCommand("GETROUND");
+        } catch (int e) {
+            return ERROR_UNKNOWN;
+        }
 
         try {
             res = ParseRoundResponse(cmd_res);
@@ -170,7 +185,12 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::GetXY(XYResponse &res) {
-        std::string cmd_res = SendCommand("GETSTATUS");
+        std::string cmd_res;
+        try {
+            cmd_res = SendCommand("GETXY");
+        } catch (int e) {
+            return ERROR_UNKNOWN;
+        }
 
         try {
             res = ParseXYResponse(cmd_res);
