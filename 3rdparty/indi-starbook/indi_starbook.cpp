@@ -26,6 +26,7 @@
 #include <cstring>
 #include <regex>
 
+
 static std::unique_ptr<StarbookDriver> starbook_driver(new StarbookDriver());
 
 void ISGetProperties(const char* dev)
@@ -172,7 +173,7 @@ bool StarbookDriver::ReadScopeStatus()
                 break;
         }
 
-        if (failed_res > 10) {
+        if (failed_res > 3) {
             LOG_ERROR("Failed to keep connection, disconnecting");
             Disconnect();
             failed_res = 0;
