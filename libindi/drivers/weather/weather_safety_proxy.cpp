@@ -190,6 +190,9 @@ IPState WeatherSafetyProxy::executeScript(int script)
         return IPS_ALERT;
     }
     LOGF_DEBUG("Read %d bytes output [%s]", byte_count, buf);
+    // Save buf in clean_buf because jsonParse will destroy buf
+    char clean_buf[BUFSIZ];
+    strncpy(clean_buf, buf, byte_count + 1);
 
     char *source = buf;
     char *endptr;
@@ -208,6 +211,7 @@ IPState WeatherSafetyProxy::executeScript(int script)
     bool roof_status_found = false;
     bool open_ok_found = false;
     bool reasons_found = false;
+    bool error_found = false;
     for (it = begin(value); it != end(value); ++it)
     {
         if (!strcmp(it->key, "roof_status"))
@@ -242,17 +246,27 @@ IPState WeatherSafetyProxy::executeScript(int script)
                 }
             }
         }
+        if (!strcmp(it->key, "error"))
+        {
+            error_found = true;
+        }
     }
 
+    if (error_found)
+    {
+        LOGF_ERROR("Error hint found in JSON [%s]", clean_buf);
+        LastParseSuccess = false;
+        return IPS_ALERT;
+    }
     if (!roof_status_found)
     {
-        LOGF_ERROR("Found no roof_status field in JSON [%s]", buf);
+        LOGF_ERROR("Found no roof_status field in JSON [%s]", clean_buf);
         LastParseSuccess = false;
         return IPS_ALERT;
     }
     if (!open_ok_found)
     {
-        LOGF_ERROR("Found no open_ok field in roof_status JSON [%s]", buf);
+        LOGF_ERROR("Found no open_ok field in roof_status JSON [%s]", clean_buf);
         LastParseSuccess = false;
         return IPS_ALERT;
     }
