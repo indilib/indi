@@ -115,7 +115,6 @@ bool WeatherSafetyProxy::initProperties()
     return true;
 }
 
-// TODO FIX loadConfig script path or wherever that lives
 bool WeatherSafetyProxy::saveConfigItems(FILE *fp)
 {
     INDI::Weather::saveConfigItems(fp);
@@ -127,6 +126,7 @@ void WeatherSafetyProxy::ISGetProperties(const char *dev)
 {
     INDI::Weather::ISGetProperties(dev);
     defineText(&ScriptsTP);
+    loadConfig(false, "SCRIPTS");
 }
 
 bool WeatherSafetyProxy::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -135,15 +135,16 @@ bool WeatherSafetyProxy::ISNewText(const char *dev, const char *name, char *text
     {
         if (strcmp(name, keywordTP.name) == 0)
         {
-            IUUpdateText(&keywordTP, texts, names, n);
             keywordTP.s = IPS_OK;
+            IUUpdateText(&keywordTP, texts, names, n);
             IDSetText(&keywordTP, nullptr);
             return true;
         }
         if (strcmp(name, ScriptsTP.name) == 0)
         {
-            IUUpdateText(&ScriptsTP, texts, names, n);
             ScriptsTP.s = IPS_OK;
+            IUUpdateText(&ScriptsTP, texts, names, n);
+            // update client display
             IDSetText(&ScriptsTP, nullptr);
             return true;
         }
@@ -166,6 +167,7 @@ IPState WeatherSafetyProxy::executeScript(int script)
     if (access(cmd, F_OK|X_OK) == -1)
     {
         LOGF_ERROR("Cannot use script [%s], check its existence and permissions", cmd);
+        LastParseSuccess = false;
         return IPS_ALERT;
     }
 
@@ -174,6 +176,7 @@ IPState WeatherSafetyProxy::executeScript(int script)
     if (handle == nullptr)
     {
         LOGF_ERROR("Failed to run script [%s]", strerror(errno));
+        LastParseSuccess = false;
         return IPS_ALERT;
     }
     char buf[BUFSIZ];
@@ -183,6 +186,7 @@ IPState WeatherSafetyProxy::executeScript(int script)
     if (byte_count == 0)
     {
         LOGF_ERROR("Got no output from script [%s]", cmd);
+        LastParseSuccess = false;
         return IPS_ALERT;
     }
     LOGF_DEBUG("Read %d bytes output [%s]", byte_count, buf);
@@ -195,6 +199,7 @@ IPState WeatherSafetyProxy::executeScript(int script)
     if (status != JSON_OK)
     {
         LOGF_ERROR("jsonParse %s at position %zd", jsonStrError(status), endptr - source);
+        LastParseSuccess = false;
         return IPS_ALERT;
     }
 
@@ -242,14 +247,22 @@ IPState WeatherSafetyProxy::executeScript(int script)
     if (!roof_status_found)
     {
         LOGF_ERROR("Found no roof_status field in JSON [%s]", buf);
+        LastParseSuccess = false;
         return IPS_ALERT;
     }
     if (!open_ok_found)
     {
         LOGF_ERROR("Found no open_ok field in roof_status JSON [%s]", buf);
+        LastParseSuccess = false;
         return IPS_ALERT;
     }
     // TODO add reasons_found
+    if (!LastParseSuccess)
+    {
+        // show the good news. Once.
+        LOGF_INFO("Script output fully parsed, weather is %s", (Safety == 1) ? "SAFE" : "UNSAFE");
+        LastParseSuccess = true;
+    }
     return IPS_OK;
 
 }

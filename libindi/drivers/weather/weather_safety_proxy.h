@@ -56,12 +56,13 @@ class WeatherSafetyProxy : public INDI::Weather
   private:
     IPState executeScript(int script);
 
-    int Safety = -1; // TODO make this a Light
-
     IText keywordT[1] {};
     ITextVectorProperty keywordTP;
 
-    IText ScriptsT[2] {};
+    IText ScriptsT[WEATHER_SCRIPT_COUNT] {};
     ITextVectorProperty ScriptsTP;
+
+    int Safety = -1;
+    bool LastParseSuccess = false;
 
 };
