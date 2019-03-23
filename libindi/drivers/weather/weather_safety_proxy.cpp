@@ -118,6 +118,10 @@ bool WeatherSafetyProxy::initProperties()
     IUFillSwitch(&ScriptOrCurlS[WSP_USE_CURL], "Use url", "", ISS_OFF);
     IUFillSwitchVector(&ScriptOrCurlSP, ScriptOrCurlS, WSP_USE_COUNT, getDeviceName(), "SCRIPT_OR_CURL", "Script or url", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
+    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_MAX], "SOFT_ERROR_MAX", "Max soft errors", "%g", 0.0, 1000.0, 5.0, 0.5);
+    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY], "SOFT_ERROR_RECOVERY", "Minumum soft error for recovery", "%g", 0.0, 1000.0, 5.0, 0.5);
+    IUFillNumberVector(&softErrorHysteresisNP, softErrorHysteresisN, 2, getDeviceName(), "SOFT_ERROR_HYSTERESIS", "Soft error hysterese", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
+
     addParameter("WEATHER_SAFETY", "Weather Safety", 0.9, 1.1, 0); // 0 is unsafe, 1 is safe
     setCriticalParameter("WEATHER_SAFETY");
 
@@ -151,6 +155,7 @@ bool WeatherSafetyProxy::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &ScriptsTP);
     IUSaveConfigText(fp, &UrlTP);
     IUSaveConfigSwitch(fp, &ScriptOrCurlSP);
+    IUSaveConfigNumber(fp, &softErrorHysteresisNP);
     return true;
 }
 
@@ -164,10 +169,28 @@ void WeatherSafetyProxy::ISGetProperties(const char *dev)
         defineText(&ScriptsTP);
         defineText(&UrlTP);
         defineSwitch(&ScriptOrCurlSP);
+        defineNumber(&softErrorHysteresisNP);
         loadConfig(false, "WEATHER_SAFETY_SCRIPTS");
         loadConfig(false, "WEATHER_SAFETY_URLS");
         loadConfig(false, "SCRIPT_OR_CURL");
+        loadConfig(false, "SOFT_ERROR_HYSTERESIS");
     }
+}
+
+bool WeatherSafetyProxy::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(name, softErrorHysteresisNP.name) == 0)
+        {
+            LOG_DEBUG("WeatherSafetyProxy::ISNewNumber");
+            IUUpdateNumber(&softErrorHysteresisNP, values, names, n);
+            softErrorHysteresisNP.s = IPS_OK;
+            IDSetNumber(&softErrorHysteresisNP, nullptr);
+            return true;
+        }
+    }
+    return INDI::Weather::ISNewNumber(dev, name, values, names, n);
 }
 
 bool WeatherSafetyProxy::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -220,6 +243,7 @@ bool WeatherSafetyProxy::ISNewSwitch(const char *dev, const char *name, ISState 
     return INDI::Weather::ISNewSwitch(dev, name, states, names, n);
 }
 
+// Called by Weather::TimerHit every UpdatePeriodN[0].value seconds if we return IPS_OK or every 5 seconds otherwise
 IPState WeatherSafetyProxy::updateWeather()
 {
     IPState ret = IPS_ALERT;
@@ -230,6 +254,36 @@ IPState WeatherSafetyProxy::updateWeather()
     else
     {
         ret = executeCurl();
+    }
+    if (ret != IPS_OK)
+    {
+        if (Safety == WSP_SAFE)
+        {
+            SofterrorCount++;
+            LOGF_WARN("Soft error %d occured during SAFE conditions, counting", SofterrorCount);
+            if (SofterrorCount > softErrorHysteresisN[WSP_SOFT_ERROR_MAX].value)
+            {
+                char Warning[] = "Max softerrors reached while Weather was SAFE";
+                LOG_WARN(Warning);
+                Safety = WSP_UNSAFE;
+                setParameterValue("WEATHER_SAFETY", WSP_UNSAFE);
+                IUSaveText(&reasonsT[0], Warning);
+                reasonsTP.s = IPS_OK;
+                IDSetText(&reasonsTP, nullptr);
+                SofterrorRecoveryMode = true;
+                ret = IPS_OK; // So that indiweather actually syncs the CriticalParameters we just set
+            }
+        }
+        else
+        {
+            LOG_WARN("Soft error occured during UNSAFE conditions, ignore");
+            SofterrorCount = 0;
+            SofterrorRecoveryCount = 0;
+        }
+    }
+    else
+    {
+        SofterrorCount = 0;
     }
     return ret;
 }
@@ -336,13 +390,31 @@ IPState WeatherSafetyProxy::parseSafetyJSON(const char *clean_buf, int byte_coun
                     int NewSafety = observationIterator->value.toNumber();
                     if (NewSafety != Safety)
                     {
-                        if (NewSafety == 0)
+                        if (NewSafety == WSP_UNSAFE)
                         {
                             LOG_WARN("Weather is UNSAFE");
                         }
-                        else if (NewSafety == 1)
+                        else if (NewSafety == WSP_SAFE)
                         {
-                            LOG_INFO("Weather is SAFE");
+                            if (SofterrorRecoveryMode == true)
+                            {
+                                SofterrorRecoveryCount++;
+                                if (SofterrorRecoveryCount > softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY].value)
+                                {
+                                    LOG_INFO("Minimum soft recovery errors reached while Weather was SAFE");
+                                    SofterrorRecoveryCount = 0;
+                                    SofterrorRecoveryMode = false;
+                                }
+                                else
+                                {
+                                    LOGF_INFO("Weather is SAFE but soft error recovery %d is still counting", SofterrorRecoveryCount);
+                                    NewSafety = WSP_UNSAFE;
+                                }
+                            }
+                            else
+                            {
+                                LOG_INFO("Weather is SAFE");
+                            }
                         }
                         Safety = NewSafety;
                     }
@@ -352,7 +424,16 @@ IPState WeatherSafetyProxy::parseSafetyJSON(const char *clean_buf, int byte_coun
                 {
                     reasons_found = true;
                     char *reasons = observationIterator->value.toString();
-                    IUSaveText(&reasonsT[0], reasons);
+                    if (SofterrorRecoveryMode == true)
+                    {
+                        char newReasons[MAXRBUF];
+                        snprintf(newReasons, MAXRBUF, "SofterrorRecoveryMode, %s", reasons);
+                        IUSaveText(&reasonsT[0], newReasons);
+                    }
+                    else
+                    {
+                        IUSaveText(&reasonsT[0], reasons);
+                    }
                     reasonsTP.s = IPS_OK;
                     IDSetText(&reasonsTP, nullptr);
                 }

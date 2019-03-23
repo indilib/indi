@@ -72,7 +72,7 @@ class WeatherSafetyProxy : public INDI::Weather
     virtual bool initProperties() override;
     virtual bool updateProperties() override;
     virtual void ISGetProperties(const char *dev);
-//    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
@@ -101,11 +101,12 @@ class WeatherSafetyProxy : public INDI::Weather
     IText reasonsT[1] {};
     ITextVectorProperty reasonsTP;
 
-    INumber softErrorHystereseN[WSP_SOFT_ERROR_COUNT];
-    INumberVectorProperty softErrorHystereseNP;
+    INumber softErrorHysteresisN[WSP_SOFT_ERROR_COUNT];
+    INumberVectorProperty softErrorHysteresisNP;
 
     int Safety = -1;
     int SofterrorCount = 0;
     int SofterrorRecoveryCount = 0;
+    bool SofterrorRecoveryMode = false;
     bool LastParseSuccess = false;
 };
