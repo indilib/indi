@@ -108,12 +108,11 @@ bool WeatherSafetyProxy::initProperties()
     IUFillText(&keywordT[0], "WEATHER_CONDITION", "Weather Condition", "condition");
     IUFillTextVector(&keywordTP, keywordT, 1, getDeviceName(), "KEYWORD", "Keywords", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillText(&ScriptsT[WEATHER_SCRIPTS_FOLDER], "WEATHER_SCRIPTS_FOLDER", "Weather script folder", "/usr/local/share/indi/scripts");
-    IUFillText(&ScriptsT[WEATHER_STATUS_SCRIPT], "WEATHER_STATUS_SCRIPT", "Get weather safety script", "weather_status.py");
-    IUFillTextVector(&ScriptsTP, ScriptsT, WEATHER_SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
+    IUFillText(&ScriptsT[WSP_SCRIPT], "WEATHER_SAFETY_SCRIPT", "Weather safety script", "/usr/local/share/indi/scripts/weather_status.py");
+    IUFillTextVector(&ScriptsTP, ScriptsT, WSP_SCRIPT_COUNT, getDefaultName(), "WEATHER_SAFETY_SCRIPTS", "Script", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
 
-    IUFillText(&UrlT[0], "WEATHER_SAFETY_URL", "Weather safety URL", "http://0.0.0.0:5000/weather/safety");
-    IUFillTextVector(&UrlTP, UrlT, 1, getDefaultName(), "WEATHER_SAFETY_URLS", "Urls", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
+    IUFillText(&UrlT[WSP_URL], "WEATHER_SAFETY_URL", "Weather safety URL", "http://0.0.0.0:5000/weather/safety");
+    IUFillTextVector(&UrlTP, UrlT, WSP_URL_COUNT, getDefaultName(), "WEATHER_SAFETY_URLS", "Url", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
 
     IUFillSwitch(&ScriptOrCurlS[WSP_USE_SCRIPT], "Use script", "", ISS_ON);
     IUFillSwitch(&ScriptOrCurlS[WSP_USE_CURL], "Use url", "", ISS_OFF);
@@ -165,7 +164,7 @@ void WeatherSafetyProxy::ISGetProperties(const char *dev)
         defineText(&ScriptsTP);
         defineText(&UrlTP);
         defineSwitch(&ScriptOrCurlSP);
-        loadConfig(false, "SCRIPTS");
+        loadConfig(false, "WEATHER_SAFETY_SCRIPTS");
         loadConfig(false, "WEATHER_SAFETY_URLS");
         loadConfig(false, "SCRIPT_OR_CURL");
     }
@@ -223,20 +222,21 @@ bool WeatherSafetyProxy::ISNewSwitch(const char *dev, const char *name, ISState 
 
 IPState WeatherSafetyProxy::updateWeather()
 {
-    if (ScriptOrCurlS[0].s == ISS_ON)
+    IPState ret = IPS_ALERT;
+    if (ScriptOrCurlS[WSP_USE_SCRIPT].s == ISS_ON)
     {
-        return executeScript(WEATHER_STATUS_SCRIPT);
+        ret = executeScript();
     }
     else
     {
-        return executeCurl();
+        ret = executeCurl();
     }
+    return ret;
 }
 
-IPState WeatherSafetyProxy::executeScript(int script)
+IPState WeatherSafetyProxy::executeScript()
 {
-    char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "%s/%s", ScriptsT[WEATHER_SCRIPTS_FOLDER].text, ScriptsT[script].text);
+    char *cmd = ScriptsT[WSP_SCRIPT].text;
 
     if (access(cmd, F_OK|X_OK) == -1)
     {
@@ -277,11 +277,11 @@ IPState WeatherSafetyProxy::executeCurl()
     curl_handle = curl_easy_init();
     if (curl_handle)
     {
-        curl_easy_setopt(curl_handle, CURLOPT_URL, UrlT[0].text);
+        curl_easy_setopt(curl_handle, CURLOPT_URL, UrlT[WSP_URL].text);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WSP_WriteCallback);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &readBuffer);
         curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-        LOGF_DEBUG("Call curl %s", UrlT[0].text);
+        LOGF_DEBUG("Call curl %s", UrlT[WSP_URL].text);
         res = curl_easy_perform(curl_handle);
         if (res != CURLE_OK)
         {
@@ -301,7 +301,7 @@ IPState WeatherSafetyProxy::executeCurl()
 
 IPState WeatherSafetyProxy::parseSafetyJSON(const char *clean_buf, int byte_count)
 {
-    // Save clean_buf in buf because jsonParse will destroy buf
+    // copy clean_buf to buf which jsonParse can destroy
     char buf[BUFSIZ];
     strncpy(buf, clean_buf, byte_count);
 
@@ -350,7 +350,6 @@ IPState WeatherSafetyProxy::parseSafetyJSON(const char *clean_buf, int byte_coun
                 }
                 else if (!strcmp(observationIterator->key, "reasons"))
                 {
-                    // "WEATHER_CONDITION_REASONS"
                     reasons_found = true;
                     char *reasons = observationIterator->value.toString();
                     IUSaveText(&reasonsT[0], reasons);
@@ -383,7 +382,7 @@ IPState WeatherSafetyProxy::parseSafetyJSON(const char *clean_buf, int byte_coun
         LastParseSuccess = false;
         return IPS_ALERT;
     }
-    // TODO add reasons_found
+    // do not error if reasons are missing, they're not required for safety
     if (!LastParseSuccess)
     {
         // show the good news. Once.

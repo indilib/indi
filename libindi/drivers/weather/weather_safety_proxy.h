@@ -28,10 +28,15 @@
 
 typedef enum
 {
-    WEATHER_SCRIPTS_FOLDER = 0,
-    WEATHER_STATUS_SCRIPT,
-    WEATHER_SCRIPT_COUNT
-} weather_scripts_enum;
+    WSP_SCRIPT = 0,
+    WSP_SCRIPT_COUNT
+} wsp_scripts_enum;
+
+typedef enum
+{
+    WSP_URL = 0,
+    WSP_URL_COUNT
+} wsp_urls_enum;
 
 typedef enum
 {
@@ -39,6 +44,19 @@ typedef enum
     WSP_USE_CURL,
     WSP_USE_COUNT
 } wsp_use_enum;
+
+typedef enum
+{
+    WSP_UNSAFE = 0,
+    WSP_SAFE
+} wsp_safety;
+
+typedef enum
+{
+    WSP_SOFT_ERROR_MAX = 0,
+    WSP_SOFT_ERROR_RECOVERY,
+    WSP_SOFT_ERROR_COUNT
+} wsp_soft_error_enum;
 
 class WeatherSafetyProxy : public INDI::Weather
 {
@@ -64,26 +82,30 @@ class WeatherSafetyProxy : public INDI::Weather
     virtual bool saveConfigItems(FILE *fp) override;
 
   private:
-    IPState executeScript(int script);
+    IPState executeScript();
     IPState executeCurl();
     IPState parseSafetyJSON(const char *buf, int byte_count);
 
     IText keywordT[1] {};
     ITextVectorProperty keywordTP;
 
-    IText ScriptsT[WEATHER_SCRIPT_COUNT] {};
+    IText ScriptsT[WSP_SCRIPT_COUNT] {};
     ITextVectorProperty ScriptsTP;
+
+    IText UrlT[WSP_URL_COUNT] {};
+    ITextVectorProperty UrlTP;
 
     ISwitch ScriptOrCurlS[WSP_USE_COUNT];
     ISwitchVectorProperty ScriptOrCurlSP;
 
-    IText UrlT[1] {};
-    ITextVectorProperty UrlTP;
-
     IText reasonsT[1] {};
     ITextVectorProperty reasonsTP;
 
-    int Safety = -1;
-    bool LastParseSuccess = false;
+    INumber softErrorHystereseN[WSP_SOFT_ERROR_COUNT];
+    INumberVectorProperty softErrorHystereseNP;
 
+    int Safety = -1;
+    int SofterrorCount = 0;
+    int SofterrorRecoveryCount = 0;
+    bool LastParseSuccess = false;
 };
