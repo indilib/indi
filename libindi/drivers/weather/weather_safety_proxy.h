@@ -45,6 +45,7 @@ class WeatherSafetyProxy : public INDI::Weather
     const char *getDefaultName() override;
 
     virtual bool initProperties() override;
+    virtual bool updateProperties() override;
     virtual void ISGetProperties(const char *dev);
 //    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
@@ -61,6 +62,9 @@ class WeatherSafetyProxy : public INDI::Weather
 
     IText ScriptsT[WEATHER_SCRIPT_COUNT] {};
     ITextVectorProperty ScriptsTP;
+
+    IText reasonsT[1] {};
+    ITextVectorProperty reasonsTP;
 
     int Safety = -1;
     bool LastParseSuccess = false;

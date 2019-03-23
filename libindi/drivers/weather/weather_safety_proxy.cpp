@@ -110,7 +110,27 @@ bool WeatherSafetyProxy::initProperties()
     addParameter("WEATHER_SAFETY", "Weather Safety", 0.9, 1.1, 0); // 0 is unsafe, 1 is safe
     setCriticalParameter("WEATHER_SAFETY");
 
+    IUFillText(&reasonsT[0], "Reasons", "", nullptr);
+    IUFillTextVector(&reasonsTP, reasonsT, 1, getDeviceName(), "WEATHER_SAFETY_REASONS", "Weather Safety Reasons", MAIN_CONTROL_TAB, IP_RO, 60,
+                     IPS_IDLE);
+
     addDebugControl();
+
+    return true;
+}
+
+bool WeatherSafetyProxy::updateProperties()
+{
+    INDI::Weather::updateProperties();
+
+    if (isConnected())
+    {
+        defineText(&reasonsTP);
+    }
+    else
+    {
+        deleteProperty(reasonsTP.name);
+    }
 
     return true;
 }
@@ -235,14 +255,16 @@ IPState WeatherSafetyProxy::executeScript(int script)
                         }
                         Safety = NewSafety;
                     }
-                    // setParameterValue("WEATHER_CONDITION", NewSafety);
                     setParameterValue("WEATHER_SAFETY", NewSafety);
                 }
                 else if (!strcmp(observationIterator->key, "reasons"))
                 {
                     reasons_found = true;
                     char *reasons = observationIterator->value.toString();
-// TODO                    setParameterValue("WEATHER_CONDITION_REASONS", reasons);
+                    IUSaveText(&reasonsT[0], reasons);
+                    reasonsTP.s = IPS_OK;
+                    IDSetText(&reasonsTP, nullptr);
+// TODO   "WEATHER_CONDITION_REASONS"
                 }
             }
         }
