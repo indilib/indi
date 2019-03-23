@@ -95,3 +95,33 @@ ostream &starbook::operator<<(ostream &os, const starbook::UTC &utc) {
        << setw(2) << floor(utc.seconds);
     return os;
 }
+
+starbook::CommandResponse::CommandResponse(const std::string &url_like) : status{OK}, raw{url_like} {
+    if (url_like.empty()) throw runtime_error("parsing error, no payload");
+    if (url_like.rfind("OK", 0) == 0 || url_like.rfind("ERROR", 0) == 0) {
+        if (url_like == "OK")
+            status = OK;
+        else if (url_like == "ERROR:FORMAT")
+            status = ERROR_FORMAT;
+        else if (url_like == "ERROR:ILLEGAL STATE")
+            status = ERROR_ILLEGAL_STATE;
+        else if (url_like == "ERROR:BELOW HORIZONE") /* it's not a typo */
+            status = ERROR_BELOW_HORIZON;
+        status = ERROR_UNKNOWN;
+        return; /* commands with status codes don't contain payload */
+    }
+
+    std::string str_remaining = url_like;
+    std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
+    std::smatch sm;
+
+    while (regex_search(str_remaining, sm, param_re)) {
+        std::string key = sm[1].str();
+        std::string value = sm[2].str();
+
+        payload[key] = value;
+        str_remaining = sm.suffix();
+    }
+    if (!str_remaining.empty()) throw std::runtime_error("parsing error, couldn't parse full response");
+
+}

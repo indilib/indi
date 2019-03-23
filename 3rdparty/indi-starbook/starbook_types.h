@@ -23,6 +23,7 @@
 
 #include <libnova/utility.h>
 #include <iostream>
+#include <map>
 
 namespace starbook {
     struct DMS : ln_dms {
@@ -74,5 +75,13 @@ namespace starbook {
         ERROR_FORMAT, /* who knows... */
         ERROR_BELOW_HORIZON, /* Starbook thinks that issued movement command will bring scope horizon */
         ERROR_UNKNOWN, /* no specified reason */
+    };
+
+    struct CommandResponse {
+        CommandResponse(const std::string &url_like);
+
+        ResponseCode status;
+        std::string raw;
+        std::map<std::string, std::string> payload;
     };
 }
