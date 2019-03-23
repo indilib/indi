@@ -118,8 +118,8 @@ bool WeatherSafetyProxy::initProperties()
     IUFillSwitch(&ScriptOrCurlS[WSP_USE_CURL], "Use url", "", ISS_OFF);
     IUFillSwitchVector(&ScriptOrCurlSP, ScriptOrCurlS, WSP_USE_COUNT, getDeviceName(), "SCRIPT_OR_CURL", "Script or url", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_MAX], "SOFT_ERROR_MAX", "Max soft errors", "%g", 0.0, 1000.0, 5.0, 0.5);
-    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY], "SOFT_ERROR_RECOVERY", "Minumum soft error for recovery", "%g", 0.0, 1000.0, 5.0, 0.5);
+    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_MAX], "SOFT_ERROR_MAX", "Max soft errors", "%g", 0.0, 1000.0, 1.0, 30.0);
+    IUFillNumber(&softErrorHysteresisN[WSP_SOFT_ERROR_RECOVERY], "SOFT_ERROR_RECOVERY", "Minumum soft error for recovery", "%g", 0.0, 1000.0, 1.0, 7.0);
     IUFillNumberVector(&softErrorHysteresisNP, softErrorHysteresisN, 2, getDeviceName(), "SOFT_ERROR_HYSTERESIS", "Soft error hysterese", OPTIONS_TAB, IP_RW, 0, IPS_IDLE);
 
     addParameter("WEATHER_SAFETY", "Weather Safety", 0.9, 1.1, 0); // 0 is unsafe, 1 is safe
