@@ -26,11 +26,18 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <cstring>
+#include <curl/curl.h>
 
 #include "gason.h"
 #include "weather_safety_proxy.h"
 
 std::unique_ptr<WeatherSafetyProxy> weatherSafetyProxy(new WeatherSafetyProxy());
+
+static size_t WSP_WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    ((std::string *)userp)->append((char *)contents, size * nmemb);
+    return size * nmemb;
+}
 
 void ISGetProperties(const char *dev)
 {
@@ -99,20 +106,24 @@ bool WeatherSafetyProxy::initProperties()
     INDI::Weather::initProperties();
 
     IUFillText(&keywordT[0], "WEATHER_CONDITION", "Weather Condition", "condition");
-    IUFillTextVector(&keywordTP, keywordT, 1, getDeviceName(), "KEYWORD", "Keywords", OPTIONS_TAB, IP_RW,
-                     60, IPS_IDLE);
+    IUFillTextVector(&keywordTP, keywordT, 1, getDeviceName(), "KEYWORD", "Keywords", OPTIONS_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillText(&ScriptsT[WEATHER_SCRIPTS_FOLDER], "WEATHER_SCRIPTS_FOLDER", "Weather script folder", "/usr/local/share/indi/scripts");
     IUFillText(&ScriptsT[WEATHER_STATUS_SCRIPT], "WEATHER_STATUS_SCRIPT", "Get weather safety script", "weather_status.py");
-    IUFillTextVector(&ScriptsTP, ScriptsT, WEATHER_SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 60,
-                     IPS_IDLE);
+    IUFillTextVector(&ScriptsTP, ScriptsT, WEATHER_SCRIPT_COUNT, getDefaultName(), "SCRIPTS", "Scripts", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
+
+    IUFillText(&UrlT[0], "WEATHER_SAFETY_URL", "Weather safety URL", "http://0.0.0.0:5000/weather/safety");
+    IUFillTextVector(&UrlTP, UrlT, 1, getDefaultName(), "WEATHER_SAFETY_URLS", "Urls", OPTIONS_TAB, IP_RW, 100, IPS_IDLE);
+
+    IUFillSwitch(&ScriptOrCurlS[WSP_USE_SCRIPT], "Use script", "", ISS_ON);
+    IUFillSwitch(&ScriptOrCurlS[WSP_USE_CURL], "Use url", "", ISS_OFF);
+    IUFillSwitchVector(&ScriptOrCurlSP, ScriptOrCurlS, WSP_USE_COUNT, getDeviceName(), "SCRIPT_OR_CURL", "Script or url", OPTIONS_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     addParameter("WEATHER_SAFETY", "Weather Safety", 0.9, 1.1, 0); // 0 is unsafe, 1 is safe
     setCriticalParameter("WEATHER_SAFETY");
 
     IUFillText(&reasonsT[0], "Reasons", "", nullptr);
-    IUFillTextVector(&reasonsTP, reasonsT, 1, getDeviceName(), "WEATHER_SAFETY_REASONS", "Weather Safety Reasons", MAIN_CONTROL_TAB, IP_RO, 60,
-                     IPS_IDLE);
+    IUFillTextVector(&reasonsTP, reasonsT, 1, getDeviceName(), "WEATHER_SAFETY_REASONS", "Weather Safety Reasons", MAIN_CONTROL_TAB, IP_RO, 120, IPS_IDLE);
 
     addDebugControl();
 
@@ -139,14 +150,25 @@ bool WeatherSafetyProxy::saveConfigItems(FILE *fp)
 {
     INDI::Weather::saveConfigItems(fp);
     IUSaveConfigText(fp, &ScriptsTP);
+    IUSaveConfigText(fp, &UrlTP);
+    IUSaveConfigSwitch(fp, &ScriptOrCurlSP);
     return true;
 }
 
 void WeatherSafetyProxy::ISGetProperties(const char *dev)
 {
     INDI::Weather::ISGetProperties(dev);
-    defineText(&ScriptsTP);
-    loadConfig(false, "SCRIPTS");
+    static bool once = true;
+    if (once)
+    {
+        once = false;
+        defineText(&ScriptsTP);
+        defineText(&UrlTP);
+        defineSwitch(&ScriptOrCurlSP);
+        loadConfig(false, "SCRIPTS");
+        loadConfig(false, "WEATHER_SAFETY_URLS");
+        loadConfig(false, "SCRIPT_OR_CURL");
+    }
 }
 
 bool WeatherSafetyProxy::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -157,6 +179,7 @@ bool WeatherSafetyProxy::ISNewText(const char *dev, const char *name, char *text
         {
             keywordTP.s = IPS_OK;
             IUUpdateText(&keywordTP, texts, names, n);
+            // update client display
             IDSetText(&keywordTP, nullptr);
             return true;
         }
@@ -168,15 +191,46 @@ bool WeatherSafetyProxy::ISNewText(const char *dev, const char *name, char *text
             IDSetText(&ScriptsTP, nullptr);
             return true;
         }
+        if (strcmp(name, UrlTP.name) == 0)
+        {
+            UrlTP.s = IPS_OK;
+            IUUpdateText(&UrlTP, texts, names, n);
+            // update client display
+            IDSetText(&UrlTP, nullptr);
+            return true;
+        }
     }
 
     return INDI::Weather::ISNewText(dev, name, texts, names, n);
 }
 
+bool WeatherSafetyProxy::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (!strcmp(getDeviceName(), dev))
+    {
+        if (!strcmp(name, ScriptOrCurlSP.name))
+        {
+            LOG_DEBUG("WeatherSafetyProxy::ISNewSwitch");
+            IUUpdateSwitch(&ScriptOrCurlSP, states, names, n);
+            ScriptOrCurlSP.s = IPS_OK;
+            IDSetSwitch(&ScriptOrCurlSP, nullptr);
+            return true;
+        }
+    }
+
+    return INDI::Weather::ISNewSwitch(dev, name, states, names, n);
+}
+
 IPState WeatherSafetyProxy::updateWeather()
 {
-    // TODO choose script or curl
-    return executeScript(WEATHER_STATUS_SCRIPT);
+    if (ScriptOrCurlS[0].s == ISS_ON)
+    {
+        return executeScript(WEATHER_STATUS_SCRIPT);
+    }
+    else
+    {
+        return executeCurl();
+    }
 }
 
 IPState WeatherSafetyProxy::executeScript(int script)
@@ -210,9 +264,46 @@ IPState WeatherSafetyProxy::executeScript(int script)
         return IPS_ALERT;
     }
     LOGF_DEBUG("Read %d bytes output [%s]", byte_count, buf);
-    // Save buf in clean_buf because jsonParse will destroy buf
-    char clean_buf[BUFSIZ];
-    strncpy(clean_buf, buf, byte_count + 1);
+
+    return parseSafetyJSON(buf, byte_count);
+}
+
+IPState WeatherSafetyProxy::executeCurl()
+{
+    CURL *curl_handle;
+    CURLcode res;
+    std::string readBuffer;
+
+    curl_handle = curl_easy_init();
+    if (curl_handle)
+    {
+        curl_easy_setopt(curl_handle, CURLOPT_URL, UrlT[0].text);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WSP_WriteCallback);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &readBuffer);
+        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+        LOGF_DEBUG("Call curl %s", UrlT[0].text);
+        res = curl_easy_perform(curl_handle);
+        if (res != CURLE_OK)
+        {
+            LOGF_ERROR("curl_easy_perform failed with [%s]", curl_easy_strerror(res));
+            return IPS_ALERT;
+        }
+        curl_easy_cleanup(curl_handle);
+        LOGF_DEBUG("Read %d bytes output [%s]", readBuffer.size(), readBuffer.c_str());
+        return parseSafetyJSON(readBuffer.c_str(), readBuffer.size());
+    }
+    else
+    {
+        LOG_ERROR("curl_easy_init failed");
+        return IPS_ALERT;
+    }
+}
+
+IPState WeatherSafetyProxy::parseSafetyJSON(const char *clean_buf, int byte_count)
+{
+    // Save clean_buf in buf because jsonParse will destroy buf
+    char buf[BUFSIZ];
+    strncpy(buf, clean_buf, byte_count);
 
     char *source = buf;
     char *endptr;
@@ -259,12 +350,12 @@ IPState WeatherSafetyProxy::executeScript(int script)
                 }
                 else if (!strcmp(observationIterator->key, "reasons"))
                 {
+                    // "WEATHER_CONDITION_REASONS"
                     reasons_found = true;
                     char *reasons = observationIterator->value.toString();
                     IUSaveText(&reasonsT[0], reasons);
                     reasonsTP.s = IPS_OK;
                     IDSetText(&reasonsTP, nullptr);
-// TODO   "WEATHER_CONDITION_REASONS"
                 }
             }
         }
@@ -300,5 +391,4 @@ IPState WeatherSafetyProxy::executeScript(int script)
         LastParseSuccess = true;
     }
     return IPS_OK;
-
 }

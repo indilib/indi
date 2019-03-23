@@ -33,6 +33,13 @@ typedef enum
     WEATHER_SCRIPT_COUNT
 } weather_scripts_enum;
 
+typedef enum
+{
+    WSP_USE_SCRIPT = 0,
+    WSP_USE_CURL,
+    WSP_USE_COUNT
+} wsp_use_enum;
+
 class WeatherSafetyProxy : public INDI::Weather
 {
   public:
@@ -49,6 +56,8 @@ class WeatherSafetyProxy : public INDI::Weather
     virtual void ISGetProperties(const char *dev);
 //    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
     virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+
 
   protected:
     virtual IPState updateWeather() override;
@@ -56,12 +65,20 @@ class WeatherSafetyProxy : public INDI::Weather
 
   private:
     IPState executeScript(int script);
+    IPState executeCurl();
+    IPState parseSafetyJSON(const char *buf, int byte_count);
 
     IText keywordT[1] {};
     ITextVectorProperty keywordTP;
 
     IText ScriptsT[WEATHER_SCRIPT_COUNT] {};
     ITextVectorProperty ScriptsTP;
+
+    ISwitch ScriptOrCurlS[WSP_USE_COUNT];
+    ISwitchVectorProperty ScriptOrCurlSP;
+
+    IText UrlT[1] {};
+    ITextVectorProperty UrlTP;
 
     IText reasonsT[1] {};
     ITextVectorProperty reasonsTP;
