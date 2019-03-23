@@ -109,7 +109,7 @@ namespace starbook {
 
         std::string last_response;
 
-        std::string SendCommand(std::string command);
+        CommandResponse SendCommand(std::string command);
 
         ResponseCode SendOkCommand(const std::string &cmd);
 
@@ -117,17 +117,17 @@ namespace starbook {
 
         StarbookState ParseState(const std::string &value);
 
-        VersionResponse ParseVersionResponse(const std::string &response);
+        VersionResponse ParseVersionResponse(const CommandResponse &response);
 
-        StatusResponse ParseStatusResponse(const std::string &response);
+        StatusResponse ParseStatusResponse(const CommandResponse &response);
 
-        PlaceResponse ParsePlaceResponse(const std::string &response);
+        PlaceResponse ParsePlaceResponse(const CommandResponse &response);
 
-        ln_date ParseTimeResponse(const std::string &response);
+        ln_date ParseTimeResponse(const CommandResponse &response);
 
-        XYResponse ParseXYResponse(const std::string &response);
+        XYResponse ParseXYResponse(const CommandResponse &response);
 
-        long int ParseRoundResponse(const std::string &response);
+        long int ParseRoundResponse(const CommandResponse &response);
 
     };
 

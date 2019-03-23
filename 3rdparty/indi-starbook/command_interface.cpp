@@ -38,7 +38,7 @@ namespace starbook {
         return real_size;
     }
 
-    std::string CommandInterface::SendCommand(std::string cmd) {
+    CommandResponse CommandInterface::SendCommand(std::string cmd) {
         int rc = 0;
         CURL *handle = connection->getHandle();
         last_response.clear();
@@ -73,18 +73,16 @@ namespace starbook {
             throw std::runtime_error("parsing error, response empty");
         }
 
-        return comment_match[1].str();
+        return CommandResponse(comment_match[1].str());
     }
 
     ResponseCode CommandInterface::SendOkCommand(const std::string &cmd) {
-        std::string res;
         try {
-            res = CommandInterface::SendCommand(cmd);
+            CommandResponse res = CommandInterface::SendCommand(cmd);
+            return res.status;
         } catch (int e) {
             return ERROR_UNKNOWN;
         }
-
-        return ParseCommandResponse(res);
     }
 
     ResponseCode CommandInterface::GotoRaDec(double ra, double dec) {
@@ -100,105 +98,81 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::Version(VersionResponse &res) {
-        std::string cmd_res;
         try {
-            cmd_res = SendCommand("VERSION");
-        } catch (int e) {
-            return ERROR_UNKNOWN;
-        }
-
-        try {
+            CommandResponse cmd_res = SendCommand("VERSION");
             res = ParseVersionResponse(cmd_res);
-        }
-        catch (std::exception &e) {
-            return ERROR_FORMAT;
-        }
-        return OK;
-    }
-
-    ResponseCode CommandInterface::GetStatus(StatusResponse &res) {
-        std::string cmd_res;
-        try {
-            cmd_res = SendCommand("GETSTATUS");
+            return cmd_res.status;
         } catch (int e) {
             throw e; // let's handle it in driver to disconnect properly
         }
+        catch (std::exception &e) {
+            return ERROR_FORMAT;
+        }
+    }
 
+    ResponseCode CommandInterface::GetStatus(StatusResponse &res) {
         try {
+            CommandResponse cmd_res = SendCommand("GETSTATUS");
             res = ParseStatusResponse(cmd_res);
+            return cmd_res.status;
+        } catch (int e) {
+            throw e; // let's handle it in driver to disconnect properly
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
         }
-        return OK;
     }
 
     ResponseCode CommandInterface::GetPlace(PlaceResponse &res) {
-        std::string cmd_res;
         try {
-            cmd_res = SendCommand("GETPLACE");
-        } catch (int e) {
-            return ERROR_UNKNOWN;
-        }
-
-        try {
+            CommandResponse cmd_res = SendCommand("GETPLACE");
             res = ParsePlaceResponse(cmd_res);
+            return cmd_res.status;
+        } catch (int e) {
+            throw e; // let's handle it in driver to disconnect properly
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
         }
-        return OK;
     }
 
     ResponseCode CommandInterface::GetTime(ln_date &res) {
-        std::string cmd_res;
         try {
-            cmd_res = SendCommand("GETTIME");
-        } catch (int e) {
-            return ERROR_UNKNOWN;
-        }
-
-        try {
+            CommandResponse cmd_res = SendCommand("GETIME");
             res = ParseTimeResponse(cmd_res);
+            return cmd_res.status;
+        } catch (int e) {
+            throw e; // let's handle it in driver to disconnect properly
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
         }
-        return OK;
     }
 
     ResponseCode CommandInterface::GetRound(long int &res) {
-        std::string cmd_res;
         try {
-            cmd_res = SendCommand("GETROUND");
-        } catch (int e) {
-            return ERROR_UNKNOWN;
-        }
-
-        try {
+            CommandResponse cmd_res = SendCommand("GETROUND");
             res = ParseRoundResponse(cmd_res);
+            return cmd_res.status;
+        } catch (int e) {
+            throw e; // let's handle it in driver to disconnect properly
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
         }
-        return OK;
     }
 
     ResponseCode CommandInterface::GetXY(XYResponse &res) {
-        std::string cmd_res;
         try {
-            cmd_res = SendCommand("GETXY");
-        } catch (int e) {
-            return ERROR_UNKNOWN;
-        }
-
-        try {
+            CommandResponse cmd_res = SendCommand("GETXY");
             res = ParseXYResponse(cmd_res);
+            return cmd_res.status;
+        } catch (int e) {
+            throw e; // let's handle it in driver to disconnect properly
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
         }
-        return OK;
     }
 
     ResponseCode CommandInterface::SetTime(ln_date &utc) {
@@ -244,49 +218,31 @@ namespace starbook {
         return last_response;
     }
 
-    StatusResponse CommandInterface::ParseStatusResponse(const std::string &str) {
+    StatusResponse CommandInterface::ParseStatusResponse(const CommandResponse &res) {
         StatusResponse result;
-        std::string str_remaining = str;
 
         lnh_equ_posn equ_posn = {{0, 0, 0},
                                  {0, 0, 0, 0}};
-        result.executing_goto = false;
 
-        std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
-        std::smatch sm;
-
-        while (regex_search(str_remaining, sm, param_re)) {
-            std::string key = sm[1].str();
-            std::string value = sm[2].str();
-
-            if (key == "RA") {
-                starbook::HMS ra(value);
-                equ_posn.ra = ra;
-            } else if (key == "DEC") {
-                starbook::DMS dec(value);
-                equ_posn.dec = dec;
-            } else if (key == "STATE") {
-                result.state = ParseState(value);
-            } else if (key == "GOTO") {
-                result.executing_goto = value == "1";
-            }
-            str_remaining = sm.suffix();
-        }
-
+        starbook::HMS ra(res.payload.at("RA"));
+        equ_posn.ra = ra;
+        starbook::DMS dec(res.payload.at("DEC"));
+        equ_posn.dec = dec;
         result.equ = {0, 0};
         ln_hequ_to_equ(&equ_posn, &result.equ);
 
-        if (!str_remaining.empty()) throw std::runtime_error("parsing error, couldn't parse full response");
+        result.state = ParseState(res.payload.at("STATE"));
+        result.executing_goto = res.payload.at("GOTO") == "1";
 
         return result;
     }
 
-    VersionResponse CommandInterface::ParseVersionResponse(const std::string &response) {
+    VersionResponse CommandInterface::ParseVersionResponse(const CommandResponse &response) {
         VersionResponse result;
 
-        std::regex param_re(R"(version=((\d+\.\d+)\w+))");
+        std::regex param_re(R"(((\d+\.\d+)\w+))");
         std::smatch sm;
-        if (!regex_search(response, sm, param_re)) {
+        if (!regex_search(response.payload.at("version"), sm, param_re)) {
             throw;
         }
 

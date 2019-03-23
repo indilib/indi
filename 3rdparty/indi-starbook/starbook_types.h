@@ -78,7 +78,7 @@ namespace starbook {
     };
 
     struct CommandResponse {
-        CommandResponse(const std::string &url_like);
+        explicit CommandResponse(const std::string &url_like);
 
         ResponseCode status;
         std::string raw;
