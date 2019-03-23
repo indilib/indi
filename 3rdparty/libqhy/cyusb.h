@@ -178,6 +178,7 @@ struct cydev
 
 
 
+
 /* Global struct for camera's vendor id */
 static uint16_t camvid[MAX_DEVICES_ID] =
   {

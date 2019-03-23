@@ -118,6 +118,8 @@ void CCDChip::setMinMaxStep(const char *property, const char *element, double mi
         nvp = &ImagePixelSizeNP;
     else if (!strcmp(property, RapidGuideDataNP.name))
         nvp = &RapidGuideDataNP;
+    else
+        return;
 
     INumber *np = IUFindNumber(nvp, element);
     if (np)

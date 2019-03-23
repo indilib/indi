@@ -28,7 +28,7 @@
 #include <termios.h>
 #include <stdio.h>
 
-#define SHORT_TIMEOUT 1
+#define SHORT_TIMEOUT 2
 
 namespace Aux
 {
@@ -144,7 +144,6 @@ bool Communicator::sendPacket(int portFD, Target dest, Command cmd, buffer data)
 
     buffer txbuff;
     pkt.FillBuffer(txbuff);
-    //Focuser.LogMessage("SendPacket", "txbuff: {0}", BufStr(txbuff));
     int ns;
 
     int ttyrc = 0;
@@ -170,7 +169,8 @@ bool Communicator::readPacket(int portFD, Packet &reply)
         {
             char errmsg[MAXRBUF];
             tty_error_msg(ttyrc, errmsg, MAXRBUF);
-            DEBUGFDEVICE(Communicator::Device.c_str(), INDI::Logger::DBG_ERROR, "readPacket fail read hdr tty %i %s, nr %i", ttyrc, errmsg, nr);
+            DEBUGFDEVICE(Communicator::Device.c_str(), INDI::Logger::DBG_ERROR,
+                         "readPacket fail read hdr tty %i %s, nr %i", ttyrc, errmsg, nr);
             return false;		// read failure is instantly fatal
         }
     }
