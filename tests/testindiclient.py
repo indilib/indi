@@ -134,6 +134,20 @@ if not(device_telescope.isConnected()):
     telescope_connect[0].s=PyIndi.ISS_ON  # the "CONNECT" switch
     telescope_connect[1].s=PyIndi.ISS_OFF # the "DISCONNECT" switch
     indiclient.sendNewSwitch(telescope_connect) # send this new value to the device
+#
+# TEST our homemade functions
+
+
+# SET TLE
+telescope_TLE=device_telescope.getText("TLE")
+while not(telescope_TLE):
+    time.sleep(0.5)
+    telescope_TLE=device_telescope.getText("TLE")
+# we set the IP and port
+while not(telescope_TLE[0].text=='bla'):
+    telescope_TLE[0].text='bla'
+    indiclient.sendNewText(telescope_TLE)
+
 print("done")
 # Now let's make a goto to vega
 # Beware that ra/dec are in decimal hours/degrees
