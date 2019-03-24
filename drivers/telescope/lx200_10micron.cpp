@@ -31,6 +31,7 @@
 
 #define PRODUCT_TAB   "Product"
 #define ALIGNMENT_TAB "Alignment"
+#define SATELLITE_TAB "Satellite"
 #define LX200_TIMEOUT 5 /* FD timeout in seconds */
 
 LX200_10MICRON::LX200_10MICRON() : LX200Generic()
@@ -132,6 +133,10 @@ bool LX200_10MICRON::initProperties()
     IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(), "NEW_MODEL_NAME", "New Name", ALIGNMENT_TAB,
                      IP_RW, 60, IPS_IDLE);
 
+    IUFillText(&TLEtoUploadT[0], "TLE", "TLE", "");
+    IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(), "TLE", "TLE", SATELLITE_TAB,
+                     IP_RW, 60, IPS_IDLE);
+
     return result;
 }
 
@@ -172,6 +177,7 @@ bool LX200_10MICRON::updateProperties()
         defineNumber(&NewAlpNP);
         defineNumber(&NewAlignmentPointsNP);
         defineText(&NewModelNameTP);
+        defineText(&TLEtoUploadTP);
     }
     else
     {
@@ -186,6 +192,7 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(NewAlpNP.name);
         deleteProperty(NewAlignmentPointsNP.name);
         deleteProperty(NewModelNameTP.name);
+        deleteProperty(TLEtoUploadTP.name);
     }
     bool result = LX200Generic::updateProperties();
     return result;
@@ -233,6 +240,7 @@ bool LX200_10MICRON::ReadScopeStatus()
     }
     DEBUGFDEVICE(getDefaultName(), DBG_SCOPE, "CMD <%s> RES <%s>", cmd, data);
 
+    //TODO: check if this needs changing when satellite tracking
     // Now parse the data. This format may consist of more parts some day
     nbytes_read = sscanf(data, "%g,%g,%c,%g,%g,%g,%d,%d#", &Ginfo.RA_JNOW, &Ginfo.DEC_JNOW, &Ginfo.SideOfPier,
         &Ginfo.AZ, &Ginfo.ALT, &Ginfo.Jdate, &Ginfo.Gstat, &Ginfo.SlewStatus);
@@ -516,7 +524,9 @@ bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 
 bool LX200_10MICRON::setTLEtoFollow(const char *tle)
 {
-  LOG_INFO("The function is called")
+  LOG_INFO("The function is called");
+  LOGF_INFO("Selected TLE %s", tle);
+  return 0;
 }
 
 
@@ -764,6 +774,18 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
             IDSetText(&NewModelNameTP, nullptr);
             LOGF_INFO("Model saved with name %s", NewModelNameT[0].text);
             return true;
+        }
+        //TODO: add function to upload the TLE? --> if/else clause here to directly upload the TLE
+        if (strcmp(name, "TLE") == 0)
+        {
+          if (0 != setTLEtoFollow(TLEtoUploadT[0].text))
+            {
+              IUUpdateText(&TLEtoUploadTP, texts, names, n);
+              TLEtoUploadTP.s = IPS_OK;
+              IDSetText(&TLEtoUploadTP, nullptr);
+              LOGF_INFO("Selected TLE %s", TLEtoUploadT[0].text);
+              return true;
+            }
         }
     }
     return LX200Generic::ISNewText(dev, name, texts, names, n);

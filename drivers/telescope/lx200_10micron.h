@@ -154,6 +154,10 @@ class LX200_10MICRON : public LX200Generic
     IText NewModelNameT[1] {};
     ITextVectorProperty NewModelNameTP;
 
+    IText TLEtoUploadT[1] {};
+    ITextVectorProperty TLEtoUploadTP;
+
+
   private:
     int fd = -1; // short notation for PortFD/sockfd
     bool getMountInfo();
