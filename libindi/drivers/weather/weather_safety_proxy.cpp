@@ -88,7 +88,7 @@ WeatherSafetyProxy::~WeatherSafetyProxy() {}
 
 const char *WeatherSafetyProxy::getDefaultName()
 {
-    return (const char *)"Weather_Safety_Proxy";
+    return "Weather Safety Proxy";
 }
 
 bool WeatherSafetyProxy::Connect()
