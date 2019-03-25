@@ -39,12 +39,17 @@ namespace starbook {
     } VersionResponse;
 
     typedef struct {
+        LnLat posn;
+        int t;
     } PlaceResponse;
+
     typedef struct {
+        double x;
+        double y;
     } XYResponse;
 
-    const int MIN_SPEED = 0;
-    const int MAX_SPEED = 7;
+    constexpr int MIN_SPEED = 0;
+    constexpr int MAX_SPEED = 7;
 
     class CommandInterface {
     public:
@@ -93,7 +98,7 @@ namespace starbook {
 
         ResponseCode SetSpeed(int speed);
 
-        ResponseCode SetPlace();
+        ResponseCode SetPlace(LnLat posn, int tz);
 
         ResponseCode SetTime(ln_date &utc);
 

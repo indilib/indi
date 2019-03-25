@@ -85,15 +85,32 @@ ostream &starbook::operator<<(ostream &os, const starbook::Equ &equ) {
     return os;
 }
 
-ostream &starbook::operator<<(ostream &os, const starbook::UTC &utc) {
+constexpr char sep = '+';
+
+ostream &starbook::operator<<(ostream &os, const starbook::UTC &obj) {
     os << setfill('0') << std::fixed << setprecision(0)
-       << utc.years << "+"
-       << setw(2) << utc.months << "+"
-       << setw(2) << utc.days << "+"
-       << setw(2) << utc.hours << "+"
-       << setw(2) << utc.minutes << "+"
-       << setw(2) << floor(utc.seconds);
+       << obj.years << sep
+       << setw(2) << obj.months << sep
+       << setw(2) << obj.days << sep
+       << setw(2) << obj.hours << sep
+       << setw(2) << obj.minutes << sep
+       << setw(2) << floor(obj.seconds);
     return os;
+}
+
+std::istream &starbook::operator>>(std::istream &is, starbook::UTC &utc) {
+    int Y, M, D, h, m, s;
+    std::array<char, 5> ch = {};
+    is >> Y >> ch[0] >> M >> ch[1] >> D >> ch[2] >> h >> ch[3] >> m >> ch[4] >> s;
+
+    if (!is) return is;
+    for (char i : ch)
+        if (i != sep) {
+            is.clear(ios_base::failbit);
+            return is;
+        }
+    utc = UTC(Y, M, D, h, m, static_cast<double>(s));
+    return is;
 }
 
 starbook::CommandResponse::CommandResponse(const std::string &url_like) : status{OK}, raw{url_like} {

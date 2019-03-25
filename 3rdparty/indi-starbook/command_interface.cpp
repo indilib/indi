@@ -22,6 +22,7 @@
 #include <exception>
 #include <regex>
 #include <inditelescope.h>
+#include <iomanip>
 #include "command_interface.h"
 
 
@@ -181,6 +182,16 @@ namespace starbook {
         return SendOkCommand(cmd.str());
     }
 
+    ResponseCode CommandInterface::SetPlace(LnLat posn, int tz) {
+        std::ostringstream cmd;
+        if (tz > 24 || tz < -24) throw std::runtime_error("bad tz");
+        cmd << "SETPLACE?" << posn
+            << "&timezone="
+            << std::setfill('0') << std::setw(2) << tz;
+        return SendOkCommand(cmd.str());
+    }
+
+
     ResponseCode CommandInterface::SetSpeed(int speed) {
         if (speed < MIN_SPEED || speed > MAX_SPEED)
             return ERROR_FORMAT;
@@ -199,7 +210,6 @@ namespace starbook {
 
         return SendOkCommand(cmd.str());
     }
-
 
     ResponseCode CommandInterface::Move(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
         std::ostringstream cmd;
@@ -275,5 +285,31 @@ namespace starbook {
             return ERROR_BELOW_HORIZON;
 
         return ERROR_UNKNOWN;
+    }
+
+    PlaceResponse CommandInterface::ParsePlaceResponse(const CommandResponse &response) {
+        if (!response.status) throw std::runtime_error("can't parse");
+        return {{0, 0}, 0}; // TODO
+    }
+
+    ln_date CommandInterface::ParseTimeResponse(const CommandResponse &response) {
+        if (!response.status) throw std::runtime_error("can't parse");
+        std::stringstream ss{response.payload.at("time")};
+        UTC time(0, 0, 0, 0, 0, 0);
+        ss >> time;
+        return time;
+    }
+
+    XYResponse CommandInterface::ParseXYResponse(const CommandResponse &response) {
+        if (!response.status) throw std::runtime_error("can't parse");
+        return {
+                .x = std::stod(response.payload.at("X")),
+                .y = std::stod(response.payload.at("Y"))
+        };
+    }
+
+    long int CommandInterface::ParseRoundResponse(const CommandResponse &response) {
+        if (!response.status) throw std::runtime_error("can't parse");
+        return std::stol(response.payload.at("ROUND"));
     }
 }

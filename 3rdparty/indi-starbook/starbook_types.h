@@ -49,7 +49,20 @@ namespace starbook {
         UTC(int years, int months, int days, int hours, int minutes, double seconds)
                 : ln_date{years, months, days, hours, minutes, seconds} {};
 
-        friend std::ostream &operator<<(std::ostream &os, const UTC &utc);
+        friend std::ostream &operator<<(std::ostream &os, const UTC &obj);
+
+        friend std::istream &operator>>(std::istream &is, UTC &obj);
+
+    };
+
+    struct LnLat : ln_lnlat_posn {
+        // I regret my life decisions
+        LnLat(double ln, double lat)
+                : ln_lnlat_posn{ln, lat} {};
+
+        friend std::ostream &operator<<(std::ostream &os, const LnLat &obj);
+
+        friend std::istream &operator>>(std::istream &is, LnLat &obj);
     };
 
     std::ostream &operator<<(std::ostream &os, const DMS &dms);
@@ -58,7 +71,13 @@ namespace starbook {
 
     std::ostream &operator<<(std::ostream &os, const Equ &equ);
 
-    std::ostream &operator<<(std::ostream &os, const UTC &utc);
+    std::ostream &operator<<(std::ostream &os, const UTC &obj);
+
+    std::istream &operator>>(std::istream &is, UTC &obj);
+
+    std::ostream &operator<<(std::ostream &os, const LnLat &obj);
+
+    std::istream &operator>>(std::istream &is, LnLat &obj);
 
     enum StarbookState {
         INIT, /* Initial state after boot */
