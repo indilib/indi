@@ -274,19 +274,6 @@ namespace starbook {
         return UNKNOWN;
     }
 
-    ResponseCode CommandInterface::ParseCommandResponse(const std::string &response) {
-        if (response == "OK")
-            return OK;
-        else if (response == "ERROR:FORMAT")
-            return ERROR_FORMAT;
-        else if (response == "ERROR:ILLEGAL STATE")
-            return ERROR_ILLEGAL_STATE;
-        else if (response == "ERROR:BELOW HORIZONE") /* it's not a typo */
-            return ERROR_BELOW_HORIZON;
-
-        return ERROR_UNKNOWN;
-    }
-
     PlaceResponse CommandInterface::ParsePlaceResponse(const CommandResponse &response) {
         if (!response.status) throw std::runtime_error("can't parse");
         return {{0, 0}, 0}; // TODO

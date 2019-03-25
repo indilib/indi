@@ -40,7 +40,7 @@ namespace starbook {
 
     typedef struct {
         LnLat posn;
-        int t;
+        int tz;
     } PlaceResponse;
 
     typedef struct {
@@ -117,8 +117,6 @@ namespace starbook {
         CommandResponse SendCommand(std::string command);
 
         ResponseCode SendOkCommand(const std::string &cmd);
-
-        ResponseCode ParseCommandResponse(const std::string &response);
 
         StarbookState ParseState(const std::string &value);
 
