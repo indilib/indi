@@ -152,13 +152,15 @@ public:
     memset(&ccdreg, 0, sizeof (ccdreg));
     BeginEXPtime = 0.0; 
     IsStartExposure = false;
+    EXPcamtime = -1.0;		
 
     //testparam = 0;
     //campartnum = DEVICETYPE_UNKNOW;
   }
 
   virtual ~QHYBASE()
-  {}
+  {
+  }
   ;
 
   virtual void InitCmos(qhyccd_handle *h)
@@ -793,6 +795,15 @@ public:
     return QHYCCD_ERROR;
   }
 
+
+  virtual uint32_t StopRemainingTimesCount(qhyccd_handle *h)
+  {
+    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|StopRemainingTimesCount|Not implemented");
+    IsStartExposure = false;  
+    EXPcamtime = -1.0;	
+    return QHYCCD_SUCCESS;
+  }
+
   /** @fn virtual uint32_t ExposureRemaining(qhyccd_handle *h)
     @brief Get remaining ccd/cmos expose time
     @param h camera control handle
@@ -803,26 +814,31 @@ public:
   virtual uint32_t ExposureRemaining(qhyccd_handle *h)
   {
     OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ExposureRemaining|Not implemented");
-    double i = EXPcamtime - (QGetTimerMS() - BeginEXPtime);
-    if (IsStartExposure == true)
+    if ((IsStartExposure == true)&&
+		(EXPcamtime >= MREMAINING_MAX_EXPOSURETIMES))
     {
+        double i = EXPcamtime - (QGetTimerMS() - BeginEXPtime);    
         if (i > 1.0)
         {
-    	   return (uint32_t)(i * 100 /EXPcamtime) ;
+    	   return (uint32_t)((i * 100) /EXPcamtime) ;
         }
         else	
         {
-    	  return 0 ;
+          StopRemainingTimesCount(h);
+    	  return QHYCCD_SUCCESS ;
         }	
     }
-    return QHYCCD_ERROR;
+    else
+    {
+        return QHYCCD_SUCCESS;
+    }
   }
 
 
   virtual uint32_t SetRemainingExposeTime(qhyccd_handle *h, double times)
   {
     OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|ExposureRemaining|Not implemented");
-    EXPcamtime = times / 1000.0;
+    EXPcamtime = times / 1000;
 		
     return QHYCCD_SUCCESS;
   }  
@@ -830,7 +846,7 @@ public:
   virtual uint32_t StartRemainingTimesCount(qhyccd_handle *h)
   {
     OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|StartRemainingTimesCount|Not implemented");
-    if (camtime >= MREMAINING_MAX_EXPOSURETIMES)
+    if (EXPcamtime >= MREMAINING_MAX_EXPOSURETIMES)
     {
         BeginEXPtime = QGetTimerMS(); 
         IsStartExposure = true;  
@@ -838,12 +854,6 @@ public:
     return QHYCCD_SUCCESS;
   }
 
-  virtual uint32_t StopRemainingTimesCount(qhyccd_handle *h)
-  {
-    OutputDebugPrintf(QHYCCD_MSGL_INFO,"QHYCCD|QHYBASE.H|StopRemainingTimesCount|Not implemented");
-    IsStartExposure = false;  
-    return QHYCCD_SUCCESS;
-  }
 
 
   /**

@@ -32,6 +32,7 @@ libindi/make_tcfs_symlink.cmake
 *.cbp
 install_manifest.txt
 .idea
+*.kdev4
 libindi/examples/tutorial_eight/tutorial_eight
 libindi/examples/tutorial_five/tutorial_dome
 libindi/examples/tutorial_five/tutorial_rain

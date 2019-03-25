@@ -34,11 +34,17 @@ extern const char *CONNECTION_TAB;
 
 Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
 {
+    char defaultPort[MAXINDINAME] = {0};
+    // Try to load the port from the config file. If that fails, use default port.
+    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", defaultPort, MAXINDINAME) < 0)
+    {
 #ifdef __APPLE__
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/cu.usbserial");
+        strncpy(defaultPort, "/dev/cu.usbserial", MAXINDINAME);
 #else
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
+        strncpy(defaultPort, "/dev/ttyUSB0", MAXINDINAME);
 #endif
+    }
+    IUFillText(&PortT[0], "PORT", "Port", defaultPort);
     IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, IP_RW, 60,
                      IPS_IDLE);
 

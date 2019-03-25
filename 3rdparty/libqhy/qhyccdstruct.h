@@ -220,4 +220,15 @@ enum CodecID
   H261_CODEC
 };
 
+typedef struct _QHYCameraParam
+{
+  char *name;
+  int min;
+  int max;
+  int step;
+}QHYCameraParam;
+
+
+
+
 #endif
