@@ -167,50 +167,15 @@ bool NexDome::SetupParms()
 
 bool NexDome::Handshake()
 {
-    //SetTimer(10);
-    return true;
-}
-
-/*
-
-bool NexDome::Connect()
-{
-    bool rc;
-
-    rc = INDI::Dome::Connect();
-
-    if (rc)
+    char res[DRIVER_LEN] = {0};
+    sendCommand("v\n", res);
+    if (res[0] == 'V')
     {
-        fprintf(stderr,"Dome is connected fd is %d\n",PortFD);
-        // set a short timer so we read it right away
-        SetTimer(1000);
-    } else {
-    fprintf(stderr,"Call to connect returned false\n");
+        IUSaveText(&FirmwareVersionT[0], &res[1]);
+        return true;
+    }
+
     return false;
-    }
-
-
-
-    return true;
-
-    int rc;
-
-    rc=tty_connect(PortT[0].text,9600,8,0,1,&PortFD);
-    if(rc != TTY_OK) {
-      fprintf(stderr,"Failed to connect to NexDome\n");
-      return false;
-    }
-    fprintf(stderr,"Dome is connected\n");
-    // set a short timer so we read it right away
-    SetTimer(10);
-    return true;
-
-}
-*/
-
-NexDome::~NexDome()
-{
-
 }
 
 const char * NexDome::getDefaultName()
@@ -730,16 +695,6 @@ void NexDome::processDomeMessage(const char *buf)
         }
         break;
 
-        // Firmware Version
-        case 'V':
-        {
-            IUSaveText(&FirmwareVersionT[0], &buf[1]);
-            IDSetText(&FirmwareVersionTP, nullptr);
-            m_HaveFirmwareVersion = true;
-
-        }
-        break;
-
         default:
             break;
     }
@@ -814,12 +769,6 @@ void NexDome::ReadDomeStatus()
     if(m_DomeReversed == -1)
     {
         if (!sendCommand("y\n"))
-            goto end;
-    }
-
-    if(!m_HaveFirmwareVersion)
-    {
-        if (!sendCommand("v\n"))
             goto end;
     }
 

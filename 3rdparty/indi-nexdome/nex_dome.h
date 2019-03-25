@@ -30,7 +30,7 @@ class NexDome : public INDI::Dome
 {
     public:
         NexDome();
-        virtual ~NexDome();
+        virtual ~NexDome() = default;
 
         virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
@@ -117,7 +117,6 @@ class NexDome : public INDI::Dome
         bool AtHome;
         bool m_Calibrating { false };
         int m_TimeSinceUpdate {0};
-        bool m_HaveFirmwareVersion { false};
 
         /////////////////////////////////////////////////////////////////////////////
         /// Static Helper Values
