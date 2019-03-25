@@ -40,7 +40,7 @@ namespace starbook {
     }
 
     CommandResponse CommandInterface::SendCommand(std::string cmd) {
-        int rc = 0;
+        CURLcode rc;
         CURL *handle = connection->getHandle();
         last_response.clear();
         read_buffer.clear();
@@ -59,7 +59,7 @@ namespace starbook {
         rc = curl_easy_perform(handle);
 
         if (rc != CURLE_OK) {
-            throw rc;
+            throw std::runtime_error(curl_easy_strerror(rc));
         }
 
         // all responses are hidden in HTML comments ...
@@ -112,12 +112,10 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::GetStatus(StatusResponse &res) {
+        CommandResponse cmd_res = SendCommand("GETSTATUS");
         try {
-            CommandResponse cmd_res = SendCommand("GETSTATUS");
             res = ParseStatusResponse(cmd_res);
             return cmd_res.status;
-        } catch (int e) {
-            throw e; // let's handle it in driver to disconnect properly
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
@@ -125,12 +123,10 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::GetPlace(PlaceResponse &res) {
+        CommandResponse cmd_res = SendCommand("GETPLACE");
         try {
-            CommandResponse cmd_res = SendCommand("GETPLACE");
             res = ParsePlaceResponse(cmd_res);
             return cmd_res.status;
-        } catch (int e) {
-            throw e; // let's handle it in driver to disconnect properly
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
@@ -138,12 +134,10 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::GetTime(ln_date &res) {
+        CommandResponse cmd_res = SendCommand("GETIME");
         try {
-            CommandResponse cmd_res = SendCommand("GETIME");
             res = ParseTimeResponse(cmd_res);
             return cmd_res.status;
-        } catch (int e) {
-            throw e; // let's handle it in driver to disconnect properly
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
@@ -151,12 +145,10 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::GetRound(long int &res) {
+        CommandResponse cmd_res = SendCommand("GETROUND");
         try {
-            CommandResponse cmd_res = SendCommand("GETROUND");
             res = ParseRoundResponse(cmd_res);
             return cmd_res.status;
-        } catch (int e) {
-            throw e; // let's handle it in driver to disconnect properly
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
@@ -164,12 +156,10 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::GetXY(XYResponse &res) {
+        CommandResponse cmd_res = SendCommand("GETXY");
         try {
-            CommandResponse cmd_res = SendCommand("GETXY");
             res = ParseXYResponse(cmd_res);
             return cmd_res.status;
-        } catch (int e) {
-            throw e; // let's handle it in driver to disconnect properly
         }
         catch (std::exception &e) {
             return ERROR_FORMAT;
@@ -184,7 +174,8 @@ namespace starbook {
 
     ResponseCode CommandInterface::SetPlace(LnLat posn, int tz) {
         std::ostringstream cmd;
-        if (tz > 24 || tz < -24) throw std::runtime_error("bad tz");
+        if (tz > 24 || tz < -24)
+            throw std::domain_error("timezone should be between -24 and 24");
         cmd << "SETPLACE?" << posn
             << "&timezone="
             << std::setfill('0') << std::setw(2) << tz;
@@ -194,7 +185,8 @@ namespace starbook {
 
     ResponseCode CommandInterface::SetSpeed(int speed) {
         if (speed < MIN_SPEED || speed > MAX_SPEED)
-            return ERROR_FORMAT;
+            throw std::domain_error(
+                    "speed should be between" + std::to_string(MIN_SPEED) + " and " + std::to_string(MAX_SPEED));
 
         std::ostringstream cmd;
         cmd << "SETSPEED?speed=" << speed;

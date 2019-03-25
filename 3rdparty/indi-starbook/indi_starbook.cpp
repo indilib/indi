@@ -24,6 +24,7 @@
 
 #include <indicom.h>
 #include <cstring>
+#include <cmath>
 #include <regex>
 
 
@@ -159,19 +160,10 @@ bool StarbookDriver::ReadScopeStatus()
     starbook::ResponseCode rc;
     try {
         rc = cmd_interface->GetStatus(res);
-    } catch (int e) {
+    } catch (std::exception &e) {
         StateTP.s = IPS_ALERT;
         failed_res++;
-        switch (e) {
-            case CURLE_COULDNT_CONNECT:
-                LOGF_WARN("Couldn't connect: %i (%i)", e, failed_res);
-            case CURLE_OPERATION_TIMEDOUT:
-                LOGF_WARN("Timeout: %i (%i)", e, failed_res);
-                break;
-            default:
-                LOGF_ERROR("Unknown error code: %i (%i)", e, failed_res);
-                break;
-        }
+        LOG_ERROR(e.what());
 
         if (failed_res > 3) {
             LOG_ERROR("Failed to keep connection, disconnecting");
