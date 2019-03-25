@@ -495,6 +495,7 @@ void NexDome::processDomeMessage(const char *buf)
             IDSetNumber(&DomeAbsPosNP, nullptr);
         }
         break;
+
         //  Home sensor
         case 'Z':
         {
@@ -558,7 +559,8 @@ void NexDome::processDomeMessage(const char *buf)
                 else
                 {
                     //  and it's off now
-                    if(m_MotorPower) IDSetNumber(&BatteryLevelNP, "Motor is NOT powered.");
+                    if(m_MotorPower)
+                        IDSetNumber(&BatteryLevelNP, "Motor is NOT powered.");
                     m_MotorPower = false;
                     DomeAbsPosNP.s = IPS_ALERT;
                     IDSetNumber(&DomeAbsPosNP, nullptr);
@@ -578,28 +580,31 @@ void NexDome::processDomeMessage(const char *buf)
             IDSetSwitch(&HomeSP, "Dome has %d steps per revolution.", m_StepsPerDomeTurn);
         }
         break;
+
         //  Pointing error at last home sensor
         case 'O':
         {
             float b1 = atof(&buf[1]);
             if(b1 != m_HomeError)
             {
-                LOGF_DEBUG("Home error %4.2f", b1);
+                LOGF_DEBUG("Home error %4.2f.", b1);
                 m_HomeError = b1;
             }
         }
         break;
+
         //  Processed a sync
         case 'S':
         {
             float b1 = atof(&buf[1]);
             SyncPositionNP.s = IPS_OK;
-            IDSetNumber(&SyncPositionNP, "Dome sync at %3.0f", b1);
+            IDSetNumber(&SyncPositionNP, "Dome sync at %3.0f.", b1);
             //  refetch the new home azimuth
             m_HomeAz = -1;
         }
         break;
 
+        // Home Position Offset
         case 'I':
         {
             float b1 = atof(&buf[1]);
@@ -612,6 +617,7 @@ void NexDome::processDomeMessage(const char *buf)
         }
         break;
 
+        // Shutter Position
         case 'B':
         {
             float b1 = atof(&buf[1]);
@@ -649,6 +655,7 @@ void NexDome::processDomeMessage(const char *buf)
         }
         break;
 
+        // Shutter Status
         case 'U':
         {
             int b = atoi(&buf[1]);
@@ -702,6 +709,7 @@ void NexDome::processDomeMessage(const char *buf)
         }
         break;
 
+        // Dome Reverse Motion
         case 'Y':
         {
             m_DomeReversed = atoi(&buf[1]);
@@ -722,6 +730,7 @@ void NexDome::processDomeMessage(const char *buf)
         }
         break;
 
+        // Firmware Version
         case 'V':
         {
             IUSaveText(&FirmwareVersionT[0], &buf[1]);
@@ -807,6 +816,7 @@ void NexDome::ReadDomeStatus()
         if (!sendCommand("y\n"))
             goto end;
     }
+
     if(!m_HaveFirmwareVersion)
     {
         if (!sendCommand("v\n"))
@@ -863,13 +873,17 @@ IPState NexDome::Move(DomeDirection dir, DomeMotionCommand operation)
         {
             target -= 5;
         }
-        if(target < 0) target += 360;
-        if(target >= 360) target -= 360;
+
+        if(target < 0)
+            target += 360;
+        if(target >= 360)
+            target -= 360;
     }
     else
     {
         target = DomeAbsPosN[0].value;
     }
+
     MoveAbs(target);
 
     return ((operation == MOTION_START) ? IPS_BUSY : IPS_OK);
@@ -1034,4 +1048,13 @@ void NexDome::hexDump(char * buf, const char * data, int size)
 
     if (size > 0)
         buf[3 * size - 1] = '\0';
+}
+
+bool NexDome::saveConfigItems(FILE * fp)
+{
+    INDI::Dome::saveConfigItems(fp);
+
+    IUSaveConfigSwitch(fp, &ReversedSP);
+
+    return true;
 }

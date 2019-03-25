@@ -50,6 +50,9 @@ class NexDome : public INDI::Dome
         virtual IPState ControlShutter(ShutterOperation operation);
         virtual bool Abort();
 
+        // Config
+        virtual bool saveConfigItems(FILE * fp);
+
         // Parking
         virtual bool SetCurrentPark();
         virtual bool SetDefaultPark();
