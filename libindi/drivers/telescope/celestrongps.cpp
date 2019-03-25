@@ -115,10 +115,10 @@ bool CelestronGPS::checkMinVersion(float minVersion, const char *feature, bool d
          (fwInfo.controllerVersion < minVersion)))
     {
         if (debug)
-            LOGF_DEBUG("Firmware v%3.1f does not support %s. Minimun required version is %3.1f",
+            LOGF_DEBUG("Firmware v%3.2f does not support %s. Minimun required version is %3.2f",
                     fwInfo.controllerVersion, feature, minVersion);
         else
-            LOGF_WARN("Firmware v%3.1f does not support %s. Minimun required version is %3.1f",
+            LOGF_WARN("Firmware v%3.2f does not support %s. Minimun required version is %3.2f",
                     fwInfo.controllerVersion, feature, minVersion);
 
         return false;

@@ -175,7 +175,7 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
             {
                 err = serial_read(resp_len, &nbytes);
                 // passthrough commands that fail will return an extra 0 then the terminator
-                while (resp[nbytes-1] != '#')
+                while (err == TTY_OK && resp[nbytes-1] != '#')
                 {
                     char m[1];
                     int n;
@@ -271,7 +271,13 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
 
     LOG_DEBUG("Getting controller variant...");
     info->controllerVariant = ISNEXSTAR;
-    get_variant(&(info->controllerVariant));
+    // variant is only available for NexStar + versions 5.28 or more and Starsense.
+    // StarSense versions are currently 1.9 so overlap the early NexStar versions.
+    // NS HCs before 2.0 will test and timeout
+    if (info->controllerVersion < 2.0 && info->controllerVersion >= 5.28)
+    {
+        get_variant(&(info->controllerVariant));
+    }
 
     if (((info->controllerVariant == ISSTARSENSE) &&
             info->controllerVersion >= MINSTSENSVER) ||
@@ -754,7 +760,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     // the precise time reader reports the time zone in 15 minute steps
 
     // read the local time from the HC
-    if (!send_command(precise ? "h" : "i", 1, response, 9, true, false))
+    if (!send_command(precise ? "i" : "h", 1, response, 9, true, false))
         return false;
 
     // HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT
