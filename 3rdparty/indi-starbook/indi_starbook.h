@@ -91,6 +91,8 @@ protected:
 
     bool UnPark() override;
 
+    bool SetSlewRate(int index) override;
+
     bool updateTime(ln_date *utc, double utc_offset) override;
 
     bool getFirmwareVersion();

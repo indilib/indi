@@ -269,6 +269,12 @@ bool StarbookDriver::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCom
     return rc == starbook::OK;
 }
 
+bool StarbookDriver::SetSlewRate(int index) {
+    starbook::ResponseCode rc = cmd_interface->SetSpeed(index);
+    LogResponse("SetSlewRate", rc);
+    return rc == starbook::OK;
+}
+
 bool StarbookDriver::updateTime(ln_date *utc, double utc_offset) {
     INDI_UNUSED(utc_offset);
     starbook::PlaceResponse res{{0, 0}, 0};
