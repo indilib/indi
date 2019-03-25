@@ -63,6 +63,8 @@ protected:
 
     ITextVectorProperty StateTP;
 
+    bool updateLocation(double latitude, double longitude, double elevation) override;
+
     ISwitch StartS[1];
 
     ISwitchVectorProperty StartSP;

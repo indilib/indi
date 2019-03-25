@@ -271,11 +271,37 @@ bool StarbookDriver::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCom
 
 bool StarbookDriver::updateTime(ln_date *utc, double utc_offset) {
     INDI_UNUSED(utc_offset);
-
-    starbook::ResponseCode rc = cmd_interface->SetTime(*utc);
+    starbook::PlaceResponse res{{0, 0}, 0};
+    starbook::ResponseCode rc;
+    rc = cmd_interface->SetTime(*utc);
+    if (!rc) {
+        LogResponse("updateTime", rc);
+        return false;
+    }
+    rc = cmd_interface->GetPlace(res);
+    if (!rc) {
+        LogResponse("updateTime", rc);
+        return false;
+    }
+    rc = cmd_interface->SetPlace(res.posn, floor(utc_offset));
     LogResponse("updateTime", rc);
     return rc == starbook::OK;
 
+}
+
+bool StarbookDriver::updateLocation(double latitude, double longitude, double elevation) {
+    INDI_UNUSED(elevation);
+    starbook::LnLat posn(latitude, longitude);
+    starbook::ResponseCode rc;
+    starbook::PlaceResponse res{{0, 0}, 0};
+    rc = cmd_interface->GetPlace(res);
+    if (!rc) {
+        LogResponse("updatePlace", rc);
+        return false;
+    }
+    rc = cmd_interface->SetPlace(posn, res.tz);
+    LogResponse("updatePlace", rc);
+    return rc == starbook::OK;
 }
 
 bool StarbookDriver::getFirmwareVersion() {
