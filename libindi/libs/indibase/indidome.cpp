@@ -418,7 +418,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             if (rc == IPS_OK || rc == IPS_BUSY)
             {
                 PresetGotoSP.s = IPS_OK;
-                DEBUGF(Logger::DBG_SESSION, "Moving to Preset %d (%g degrees).", index + 1, PresetN[index].value);
+                LOGF_INFO("Moving to Preset %d (%g degrees).", index + 1, PresetN[index].value);
                 IDSetSwitch(&PresetGotoSP, nullptr);
                 return true;
             }
@@ -575,7 +575,7 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
                 if (rc)
                     DEBUG(Logger::DBG_SESSION, "Saved Park Status/Position.");
                 else
-                    DEBUG(Logger::DBG_WARNING, "Can not save Park Status/Position.");
+                    LOG_WARN( "Can not save Park Status/Position.");
             }
 
             ParkOptionSP.s = rc ? IPS_OK : IPS_ALERT;
@@ -591,10 +591,10 @@ bool Dome::ISNewSwitch(const char * dev, const char * name, ISState * states, ch
             AutoParkSP.s = IPS_OK;
 
             if (AutoParkS[0].s == ISS_ON)
-                DEBUG(Logger::DBG_WARNING, "Warning: Auto park is enabled. If weather conditions are in the "
-                      "danger zone, the dome will be automatically parked. Only enable this "
-                      "option is parking the dome at any time will not cause damange to any "
-                      "equipment.");
+                LOG_WARN( "Warning: Auto park is enabled. If weather conditions are in the "
+                          "danger zone, the dome will be automatically parked. Only enable this "
+                          "option is parking the dome at any time will not cause damange to any "
+                          "equipment.");
             else
                 DEBUG(Logger::DBG_SESSION, "Auto park is disabled.");
 
@@ -793,8 +793,8 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                     IsLocked = true;
             }
             if (prevState != IsLocked && TelescopeClosedLockT[1].s == ISS_ON)
-                DEBUGF(Logger::DBG_SESSION, "Telescope status changed. Lock is set to: %s",
-                       IsLocked ? "locked" : "unlocked");
+                LOGF_INFO("Telescope status changed. Lock is set to: %s",
+                          IsLocked ? "locked" : "unlocked");
         }
         return true;
     }
@@ -811,12 +811,12 @@ bool Dome::ISSnoopDevice(XMLEle * root)
             {
                 if (!isParked())
                 {
-                    DEBUG(Logger::DBG_WARNING, "Weather conditions in the danger zone! Parking dome...");
+                    LOG_WARN( "Weather conditions in the danger zone! Parking dome...");
                     Dome::Park();
                 }
             }
             else
-                DEBUG(Logger::DBG_WARNING, "Weather conditions in the danger zone! Close the dome immediately!");
+                LOG_WARN( "Weather conditions in the danger zone! Close the dome immediately!");
 
             return true;
         }
@@ -1030,7 +1030,7 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     if (HaveLatLong == false)
     {
         triggerSnoop(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
-        DEBUG(Logger::DBG_WARNING, "Geographic coordinates are not yet defined, triggering snoop...");
+        LOG_WARN( "Geographic coordinates are not yet defined, triggering snoop...");
         return false;
     }
 
@@ -1277,8 +1277,8 @@ void Dome::UpdateAutoSync()
         {
             if (isParked() == true)
             {
-                DEBUG(Logger::DBG_WARNING,
-                      "Cannot perform autosync with dome parked. Please unpark to enable autosync operation.");
+                LOG_WARN(
+                    "Cannot perform autosync with dome parked. Please unpark to enable autosync operation.");
                 return;
             }
         }
@@ -1298,9 +1298,9 @@ void Dome::UpdateAutoSync()
         {
             IPState ret = Dome::MoveAbs(targetAz);
             if (ret == IPS_OK)
-                DEBUGF(Logger::DBG_SESSION, "Dome synced to position %g degrees.", targetAz);
+                LOGF_INFO("Dome synced to position %g degrees.", targetAz);
             else if (ret == IPS_BUSY)
-                DEBUGF(Logger::DBG_SESSION, "Dome is syncing to position %g degrees...", targetAz);
+                LOGF_INFO("Dome is syncing to position %g degrees...", targetAz);
             else
                 DEBUG(Logger::DBG_SESSION, "Dome failed to sync to new requested position.");
 
@@ -1626,7 +1626,7 @@ IPState Dome::Move(DomeDirection dir, DomeMotionCommand operation)
     {
         if (parkDataType != PARK_NONE && isParked())
         {
-            DEBUG(Logger::DBG_WARNING, "Please unpark the dome before issuing any motion commands.");
+            LOG_WARN( "Please unpark the dome before issuing any motion commands.");
             return IPS_ALERT;
         }
     }
@@ -1634,7 +1634,7 @@ IPState Dome::Move(DomeDirection dir, DomeMotionCommand operation)
     if ((DomeMotionSP.s != IPS_BUSY && (DomeAbsPosNP.s == IPS_BUSY || DomeRelPosNP.s == IPS_BUSY)) ||
             (domeState == DOME_PARKING))
     {
-        DEBUG(Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
+        LOG_WARN( "Please stop dome before issuing any further motion commands.");
         return IPS_ALERT;
     }
 
@@ -1663,13 +1663,13 @@ IPState Dome::MoveRel(double azDiff)
 {
     if (CanRelMove() == false)
     {
-        DEBUG(Logger::DBG_ERROR, "Dome does not support relative motion.");
+        LOG_ERROR( "Dome does not support relative motion.");
         return IPS_ALERT;
     }
 
     if (domeState == DOME_PARKED)
     {
-        DEBUG(Logger::DBG_ERROR, "Please unpark before issuing any motion commands.");
+        LOG_ERROR( "Please unpark before issuing any motion commands.");
         DomeRelPosNP.s = IPS_ALERT;
         IDSetNumber(&DomeRelPosNP, nullptr);
         return IPS_ALERT;
@@ -1677,7 +1677,7 @@ IPState Dome::MoveRel(double azDiff)
 
     if ((DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY) || (domeState == DOME_PARKING))
     {
-        DEBUG(Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
+        LOG_WARN( "Please stop dome before issuing any further motion commands.");
         DomeRelPosNP.s = IPS_IDLE;
         IDSetNumber(&DomeRelPosNP, nullptr);
         return IPS_ALERT;
@@ -1722,7 +1722,8 @@ IPState Dome::MoveRel(double azDiff)
 
     domeState      = DOME_IDLE;
     DomeRelPosNP.s = IPS_ALERT;
-    IDSetNumber(&DomeRelPosNP, "Dome failed to move to new requested position.");
+    LOG_WARN("Dome failed to move to new requested position.");
+    IDSetNumber(&DomeRelPosNP, nullptr);
     return IPS_ALERT;
 }
 
@@ -1730,14 +1731,13 @@ IPState Dome::MoveAbs(double az)
 {
     if (CanAbsMove() == false)
     {
-        DEBUG(Logger::DBG_ERROR,
-              "Dome does not support MoveAbs(). MoveAbs() must be implemented in the child class.");
+        LOG_ERROR("Dome does not support MoveAbs(). MoveAbs() must be implemented in the child class.");
         return IPS_ALERT;
     }
 
     if (domeState == DOME_PARKED)
     {
-        DEBUG(Logger::DBG_ERROR, "Please unpark before issuing any motion commands.");
+        LOG_ERROR( "Please unpark before issuing any motion commands.");
         DomeAbsPosNP.s = IPS_ALERT;
         IDSetNumber(&DomeAbsPosNP, nullptr);
         return IPS_ALERT;
@@ -1745,7 +1745,7 @@ IPState Dome::MoveAbs(double az)
 
     if ((DomeRelPosNP.s != IPS_BUSY && DomeMotionSP.s == IPS_BUSY) || (domeState == DOME_PARKING))
     {
-        DEBUG(Logger::DBG_WARNING, "Please stop dome before issuing any further motion commands.");
+        LOG_WARN( "Please stop dome before issuing any further motion commands.");
         return IPS_ALERT;
     }
 
@@ -1753,7 +1753,7 @@ IPState Dome::MoveAbs(double az)
 
     if (az < DomeAbsPosN[0].min || az > DomeAbsPosN[0].max)
     {
-        DEBUGF(Logger::DBG_ERROR, "Error: requested azimuth angle %g is out of range.", az);
+        LOGF_ERROR( "Error: requested azimuth angle %g is out of range.", az);
         DomeAbsPosNP.s = IPS_ALERT;
         IDSetNumber(&DomeAbsPosNP, nullptr);
         return IPS_ALERT;
@@ -1764,7 +1764,7 @@ IPState Dome::MoveAbs(double az)
         domeState            = DOME_IDLE;
         DomeAbsPosNP.s       = IPS_OK;
         DomeAbsPosN[0].value = az;
-        DEBUGF(Logger::DBG_SESSION, "Dome moved to position %g degrees.", az);
+        LOGF_INFO("Dome moved to position %g degrees.", az);
         IDSetNumber(&DomeAbsPosNP, nullptr);
 
         return IPS_OK;
@@ -1773,7 +1773,7 @@ IPState Dome::MoveAbs(double az)
     {
         domeState      = DOME_MOVING;
         DomeAbsPosNP.s = IPS_BUSY;
-        DEBUGF(Logger::DBG_SESSION, "Dome is moving to position %g degrees...", az);
+        LOGF_INFO("Dome is moving to position %g degrees...", az);
         IDSetNumber(&DomeAbsPosNP, nullptr);
 
         DomeMotionSP.s = IPS_BUSY;
@@ -1795,7 +1795,7 @@ bool Dome::Abort()
 {
     if (CanAbort() == false)
     {
-        DEBUG(Logger::DBG_ERROR, "Dome does not support abort.");
+        LOG_ERROR( "Dome does not support abort.");
         return false;
     }
 
@@ -1849,7 +1849,7 @@ bool Dome::SetSpeed(double speed)
 {
     if (HasVariableSpeed() == false)
     {
-        DEBUG(Logger::DBG_ERROR, "Dome does not support variable speed.");
+        LOG_ERROR( "Dome does not support variable speed.");
         return false;
     }
 
@@ -1870,13 +1870,13 @@ IPState Dome::ControlShutter(ShutterOperation operation)
 {
     if (HasShutter() == false)
     {
-        DEBUG(Logger::DBG_ERROR, "Dome does not have shutter control.");
+        LOG_ERROR( "Dome does not have shutter control.");
         return IPS_ALERT;
     }
 
     if (weatherState == IPS_ALERT && operation == SHUTTER_OPEN)
     {
-        DEBUG(Logger::DBG_WARNING, "Weather is in the danger zone! Cannot open shutter.");
+        LOG_WARN( "Weather is in the danger zone! Cannot open shutter.");
         return IPS_ALERT;
     }
 
@@ -1914,7 +1914,7 @@ IPState Dome::Park()
 {
     if (CanPark() == false)
     {
-        DEBUG(Logger::DBG_ERROR, "Dome does not support parking.");
+        LOG_ERROR( "Dome does not support parking.");
         return IPS_ALERT;
     }
 
@@ -1951,7 +1951,7 @@ IPState Dome::UnPark()
 {
     if (CanPark() == false)
     {
-        DEBUG(Logger::DBG_ERROR, "Dome does not support parking.");
+        LOG_ERROR( "Dome does not support parking.");
         return IPS_ALERT;
     }
 
@@ -1966,7 +1966,7 @@ IPState Dome::UnPark()
 
     if (weatherState == IPS_ALERT)
     {
-        DEBUG(Logger::DBG_WARNING, "Weather is in the danger zone! Cannot unpark dome.");
+        LOG_WARN( "Weather is in the danger zone! Cannot unpark dome.");
         ParkSP.s = IPS_OK;
         IDSetSwitch(&ParkSP, nullptr);
         return IPS_ALERT;
@@ -1986,13 +1986,13 @@ IPState Dome::UnPark()
 
 bool Dome::SetCurrentPark()
 {
-    DEBUG(Logger::DBG_WARNING, "Parking is not supported.");
+    LOG_WARN( "Parking is not supported.");
     return false;
 }
 
 bool Dome::SetDefaultPark()
 {
-    DEBUG(Logger::DBG_WARNING, "Parking is not supported.");
+    LOG_WARN( "Parking is not supported.");
     return false;
 }
 
@@ -2025,7 +2025,7 @@ void Dome::setDomeConnection(const uint8_t &value)
 
     if (value == 0 || (mask & value) == 0)
     {
-        DEBUGF(Logger::DBG_ERROR, "Invalid connection mode %d", value);
+        LOGF_ERROR( "Invalid connection mode %d", value);
         return;
     }
 

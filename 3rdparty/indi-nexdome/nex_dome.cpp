@@ -706,7 +706,7 @@ void NexDome::ReadDomeStatus()
         return;
 
     if (!sendCommand("m\n") || !sendCommand("q\n"))
-        goto end;
+        return;
 
     if(!m_InMotion)
     {
@@ -714,7 +714,7 @@ void NexDome::ReadDomeStatus()
         // Check for home position
         // Check voltage on batteries
         if (!sendCommand("z\n") || !sendCommand("k\n"))
-            goto end;
+            return;
 
         //  if we have started a calibration cycle
         //  it has finished since we are not in motion
@@ -724,33 +724,33 @@ void NexDome::ReadDomeStatus()
             m_Calibrating = false;
             //  lets get our new value for how many steps to turn the dome 360 degrees
             if (!sendCommand("t\n"))
-                goto end;
+                return;
         }
         //  lets see how far off we were on last home detect
         if (!sendCommand("o\n"))
-            goto end;
+            return;
         //  if we have not already fetched this value
         //  fetch it for interest sake
         if(m_StepsPerDomeTurn == 0)
         {
             if (!sendCommand("t\n"))
-                goto end;
+                return;
         }
         //  if we have not fetched the home position, fetch it
         if(m_HomeAz == -1)
         {
             if (!sendCommand("i\n"))
-                goto end;
+                return;
         }
         //  get shutter status
         if (!sendCommand("u\n"))
-            goto end;
+            return;
 
         //  get shutter position if shutter is talking to us
         if(m_ShutterState != 0)
         {
             if (!sendCommand("b\n"))
-                goto end;
+                return;
         }
         //  if the jog switch is set, unset it
         if((DomeMotionS[0].s == ISS_ON) || (DomeMotionS[1].s == ISS_ON))
@@ -769,7 +769,7 @@ void NexDome::ReadDomeStatus()
     if(m_DomeReversed == -1)
     {
         if (!sendCommand("y\n"))
-            goto end;
+            return;
     }
 
     //  Not all mounts update ra/dec constantly if tracking co-ordinates
@@ -782,9 +782,6 @@ void NexDome::ReadDomeStatus()
         m_TimeSinceUpdate = 0;
         UpdateMountCoords();
     }
-
-end:
-    SetTimer(POLLMS);
 }
 
 IPState NexDome::MoveAbs(double az)
