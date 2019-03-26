@@ -672,7 +672,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         {
             const char * elemName = findXMLAttValu(ep, "name");
 
-            DEBUGF(Logger::DBG_DEBUG, "Snooped Target RA-DEC: %s", pcdataXMLEle(ep));
+            LOGF_DEBUG("Snooped Target RA-DEC: %s", pcdataXMLEle(ep));
             if (!strcmp(elemName, "RA"))
                 rc_ra = f_scansexa(pcdataXMLEle(ep), &ra);
             else if (!strcmp(elemName, "DEC"))
@@ -692,8 +692,8 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 //  and see if we can get there at the same time as the mount
                 mountEquatorialCoords.ra  = ra * 15.0;
                 mountEquatorialCoords.dec = de;
-                DEBUGF(Logger::DBG_DEBUG, "Calling Update mount to anticipate goto target: %g - DEC: %g",
-                       mountEquatorialCoords.ra, mountEquatorialCoords.dec);
+                LOGF_DEBUG("Calling Update mount to anticipate goto target: %g - DEC: %g",
+                           mountEquatorialCoords.ra, mountEquatorialCoords.dec);
                 UpdateMountCoords();
             }
         }
@@ -710,7 +710,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         {
             const char * elemName = findXMLAttValu(ep, "name");
 
-            DEBUGF(Logger::DBG_DEBUG, "Snooped RA-DEC: %s", pcdataXMLEle(ep));
+            LOGF_DEBUG("Snooped RA-DEC: %s", pcdataXMLEle(ep));
             if (!strcmp(elemName, "RA"))
                 rc_ra = f_scansexa(pcdataXMLEle(ep), &ra);
             else if (!strcmp(elemName, "DEC"))
@@ -732,8 +732,8 @@ bool Dome::ISSnoopDevice(XMLEle * root)
         {
             prev_ra  = mountEquatorialCoords.ra;
             prev_dec = mountEquatorialCoords.dec;
-            DEBUGF(Logger::DBG_DEBUG, "Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra,
-                   mountEquatorialCoords.dec);
+            LOGF_DEBUG("Snooped RA: %g - DEC: %g", mountEquatorialCoords.ra,
+                       mountEquatorialCoords.dec);
             //  a mount still intializing will emit 0 and 0 on the first go
             //  we dont want to process 0/0
             if ((mountEquatorialCoords.ra != 0) || (mountEquatorialCoords.dec != 0))
@@ -765,7 +765,7 @@ bool Dome::ISSnoopDevice(XMLEle * root)
                 f_scansexa(pcdataXMLEle(ep), &(observer.lat));
         }
 
-        DEBUGF(Logger::DBG_DEBUG, "Snooped LONG: %g - LAT: %g", observer.lng, observer.lat);
+        LOGF_DEBUG("Snooped LONG: %g - LAT: %g", observer.lng, observer.lat);
 
         UpdateMountCoords();
 
@@ -872,7 +872,7 @@ bool Dome::saveConfigItems(FILE * fp)
 
 void Dome::triggerSnoop(const char * driverName, const char * snoopedProp)
 {
-    DEBUGF(Logger::DBG_DEBUG, "Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
+    LOGF_DEBUG("Active Snoop, driver: %s, property: %s", driverName, snoopedProp);
     IDSnoopDevice(driverName, snoopedProp);
 }
 
@@ -1037,18 +1037,18 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
     double JD  = ln_get_julian_from_sys();
     double MSD = ln_get_mean_sidereal_time(JD);
 
-    DEBUGF(Logger::DBG_DEBUG, "JD: %g - MSD: %g", JD, MSD);
+    LOGF_DEBUG("JD: %g - MSD: %g", JD, MSD);
 
     MountCenter.x = DomeMeasurementsN[DM_EAST_DISPLACEMENT].value; // Positive to East
     MountCenter.y = DomeMeasurementsN[DM_NORTH_DISPLACEMENT].value;  // Positive to North
     MountCenter.z = DomeMeasurementsN[DM_UP_DISPLACEMENT].value;    // Positive Up
 
-    DEBUGF(Logger::DBG_DEBUG, "MC.x: %g - MC.y: %g MC.z: %g", MountCenter.x, MountCenter.y, MountCenter.z);
+    LOGF_DEBUG("MC.x: %g - MC.y: %g MC.z: %g", MountCenter.x, MountCenter.y, MountCenter.z);
 
     // Get hour angle in hours
     hourAngle = rangeHA( MSD + observer.lng / 15.0 - mountEquatorialCoords.ra / 15.0);
 
-    DEBUGF(Logger::DBG_DEBUG, "HA: %g  Lng: %g RA: %g", hourAngle, observer.lng, mountEquatorialCoords.ra);
+    LOGF_DEBUG("HA: %g  Lng: %g RA: %g", hourAngle, observer.lng, mountEquatorialCoords.ra);
 
     //  this will have state OK if the mount sent us information
     //  and it will be IDLE if not
@@ -1072,9 +1072,9 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     OpticalCenter(MountCenter, OTASide * DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat, hourAngle, OptCenter);
 
-    DEBUGF(Logger::DBG_DEBUG, "OTA_SIDE: %d", OTASide);
-    DEBUGF(Logger::DBG_DEBUG, "OTA_OFFSET: %g  Lat: %g", DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat);
-    DEBUGF(Logger::DBG_DEBUG, "OC.x: %g - OC.y: %g OC.z: %g", OptCenter.x, OptCenter.y, OptCenter.z);
+    LOGF_DEBUG("OTA_SIDE: %d", OTASide);
+    LOGF_DEBUG("OTA_OFFSET: %g  Lat: %g", DomeMeasurementsN[DM_OTA_OFFSET].value, observer.lat);
+    LOGF_DEBUG("OC.x: %g - OC.y: %g OC.z: %g", OptCenter.x, OptCenter.y, OptCenter.z);
 
     // To be sure mountHoriztonalCoords is up to date.
     ln_get_hrz_from_equ(&mountEquatorialCoords, &observer, JD, &mountHoriztonalCoords);
@@ -1087,8 +1087,8 @@ bool Dome::GetTargetAz(double &Az, double &Alt, double &minAz, double &maxAz)
 
     // Get optical axis point. This and the previous form the optical axis line
     OpticalVector(mountHoriztonalCoords.az, mountHoriztonalCoords.alt, OptVector);
-    DEBUGF(Logger::DBG_DEBUG, "Mount Az: %g  Alt: %g", mountHoriztonalCoords.az, mountHoriztonalCoords.alt);
-    DEBUGF(Logger::DBG_DEBUG, "OV.x: %g - OV.y: %g OV.z: %g", OptVector.x, OptVector.y, OptVector.z);
+    LOGF_DEBUG("Mount Az: %g  Alt: %g", mountHoriztonalCoords.az, mountHoriztonalCoords.alt);
+    LOGF_DEBUG("OV.x: %g - OV.y: %g OV.z: %g", OptVector.x, OptVector.y, OptVector.z);
 
     if (Intersection(OptCenter, OptVector, DomeMeasurementsN[DM_DOME_RADIUS].value, mu1, mu2))
     {
@@ -1261,7 +1261,7 @@ void Dome::UpdateMountCoords()
     {
         prev_az  = mountHoriztonalCoords.az;
         prev_alt = mountHoriztonalCoords.alt;
-        DEBUGF(Logger::DBG_DEBUG, "Updated telescope Az: %g - Alt: %g", prev_az, prev_alt);
+        LOGF_DEBUG("Updated telescope Az: %g - Alt: %g", prev_az, prev_alt);
     }
 
     // Check if we need to move if mount is unparked.
@@ -1277,22 +1277,26 @@ void Dome::UpdateAutoSync()
         {
             if (isParked() == true)
             {
-                LOG_WARN(
-                    "Cannot perform autosync with dome parked. Please unpark to enable autosync operation.");
+                if (AutoSyncWarning == false)
+                {
+                    LOG_WARN("Cannot perform autosync with dome parked. Please unpark to enable autosync operation.");
+                    AutoSyncWarning = true;
+                }
                 return;
             }
         }
 
+        AutoSyncWarning = false;
         double targetAz = 0, targetAlt = 0, minAz = 0, maxAz = 0;
         bool res;
         res = GetTargetAz(targetAz, targetAlt, minAz, maxAz);
         if (!res)
         {
-            DEBUGF(Logger::DBG_DEBUG, "GetTargetAz failed %g", targetAz);
+            LOGF_DEBUG("GetTargetAz failed %g", targetAz);
             return;
         }
-        DEBUGF(Logger::DBG_DEBUG, "Calculated target azimuth is %g. MinAz: %g, MaxAz: %g", targetAz, minAz,
-               maxAz);
+        LOGF_DEBUG("Calculated target azimuth is %g. MinAz: %g, MaxAz: %g", targetAz, minAz,
+                   maxAz);
 
         if (fabs(targetAz - DomeAbsPosN[0].value) > DomeParamN[0].value)
         {
