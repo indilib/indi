@@ -908,8 +908,8 @@ bool NexDome::sendCommand(const char * cmd, char * res, int cmd_len, int res_len
     {
         while (true)
         {
-            // Seems only this command expects a 0xA delimiter?
-            if (cmd[0] == 'm')
+            // Seems only these commands expects a 0xA delimiter?
+            if (cmd[0] == 'm' || cmd[0] == 'q')
                 rc = tty_nread_section(PortFD, res, DRIVER_LEN, 0xA, DRIVER_TIMEOUT, &nbytes_read);
             else
                 rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
