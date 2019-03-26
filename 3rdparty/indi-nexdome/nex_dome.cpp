@@ -143,33 +143,10 @@ bool NexDome::initProperties()
     return true;
 }
 
-bool NexDome::SetupParms()
-{
-    DomeAbsPosN[0].value = 0;
-
-    IDSetNumber(&DomeAbsPosNP, nullptr);
-    IDSetNumber(&DomeParamNP, nullptr);
-
-    if (InitPark())
-    {
-        // If loading parking data is successful, we just set the default parking values.
-        SetAxis1ParkDefault(90);
-    }
-    else
-    {
-        // Otherwise, we set all parking data to default in case no parking data is found.
-        SetAxis1Park(90);
-        SetAxis1ParkDefault(90);
-    }
-
-    return true;
-}
-
 bool NexDome::Handshake()
 {
     char res[DRIVER_LEN] = {0};
-    sendCommand("v\n", res);
-    if (res[0] == 'V')
+    if (sendCommand("v\n", res))
     {
         IUSaveText(&FirmwareVersionT[0], &res[1]);
         return true;
@@ -189,6 +166,8 @@ bool NexDome::updateProperties()
 
     if (isConnected())
     {
+        readStartupParameters();
+
         defineSwitch(&HomeSP);
         defineSwitch(&CalibrateSP);
         defineNumber(&SyncPositionNP);
@@ -196,8 +175,6 @@ bool NexDome::updateProperties()
         defineNumber(&BatteryLevelNP);
         defineText(&FirmwareVersionTP);
         defineSwitch(&ReversedSP);
-
-        SetupParms();
     }
     else
     {
@@ -224,25 +201,25 @@ bool NexDome::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
         {
             if(AtHome)
             {
-                //fprintf(stderr,"Already at home\n");
                 HomeSP.s = IPS_OK;
-                IDSetSwitch(&HomeSP, "Already at home");
+                LOG_INFO("Already at home.");
             }
             else
             {
-                //fprintf(stderr,"Homing the dome\n");
                 if(!m_MotorPower)
                 {
                     HomeSP.s = IPS_ALERT;
-                    IDSetSwitch(&HomeSP, "Cannot home without motor power");
+                    LOG_ERROR("Cannot home without motor power");
                 }
                 else
                 {
                     HomeSP.s = IPS_BUSY;
                     sendCommand("h\n");
-                    IDSetSwitch(&HomeSP, "Dome finding home");
+                    LOG_INFO("Dome finding home...");
                 }
             }
+
+            IDSetSwitch(&HomeSP, nullptr);
             return true;
         }
 
@@ -258,12 +235,15 @@ bool NexDome::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 m_Calibrating = true;
                 time(&CalStartTime);
                 m_HomeAz = -1;
-                IDSetSwitch(&CalibrateSP, "Dome is Calibrating");
+                LOG_INFO("Dome is Calibrating...");
             }
             else
             {
-                IDSetSwitch(&CalibrateSP, "Cannot calibrate unless dome is at home position");
+                CalibrateSP.s = IPS_ALERT;
+                LOG_ERROR("Cannot calibrate unless dome is at home position.");
             }
+
+            IDSetSwitch(&CalibrateSP, nullptr);
             return true;
         }
 
@@ -278,7 +258,7 @@ bool NexDome::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 ReversedS[0].s = ISS_OFF;
                 ReversedS[1].s = ISS_ON;
                 sendCommand("y 1\n");
-                IDSetSwitch(&ReversedSP, "Dome is reversed");
+                LOG_INFO("Dome is reversed.");
             }
             else
             {
@@ -286,8 +266,10 @@ bool NexDome::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 ReversedS[0].s = ISS_ON;
                 ReversedS[1].s = ISS_OFF;
                 sendCommand("y 0\n");
-                IDSetSwitch(&ReversedSP, "Dome is not reversed");
+                LOG_INFO("Dome is not reversed.");
             }
+
+            IDSetSwitch(&ReversedSP, nullptr);
         }
     }
     return INDI::Dome::ISNewSwitch(dev, name, states, names, n);
@@ -302,410 +284,41 @@ bool NexDome::ISNewNumber(const char *dev, const char *name, double values[], ch
         ///////////////////////////////////////////////////////////////////////////////
         if(!strcmp(name, SyncPositionNP.name))
         {
-            char buf[DRIVER_LEN] = {0};
-            SyncPositionN[0].value = values[0];
-            snprintf(buf, DRIVER_LEN, "s %4.1f\n", values[0]);
-            SyncPositionNP.s = sendCommand(buf) ? IPS_BUSY : IPS_ALERT;
-            IDSetNumber(&SyncPositionNP, nullptr);
+            char cmd[DRIVER_LEN] = {0}, res[DRIVER_LEN] = {0};
+            snprintf(cmd, DRIVER_LEN, "s %4.1f\n", values[0]);
+            if (sendCommand(cmd, res))
+            {
+                SyncPositionN[0].value = values[0];
+                float b1 = atof(&res[1]);
+                SyncPositionNP.s = IPS_OK;
+                LOGF_INFO("Dome sync at %3.0f.", b1);
+                //  refetch the new home azimuth
+                m_HomeAz = -1;
+            }
+            else
+                SyncPositionNP.s =  IPS_ALERT;
 
+            IDSetNumber(&SyncPositionNP, nullptr);
             return true;
         }
     }
     return INDI::Dome::ISNewNumber(dev, name, values, names, n);
 }
 
-//int NexDome::ClearSerialBuffers()
-//{
-//    int bytesRead;
-//    char str[35];
-
-//    if(isConnected() == false) return 0;
-
-//    //  clear anything already in the buffer
-//    while(tty_read(PortFD, str, 30, 0, &bytesRead) == TTY_OK)
-//    {
-//        fprintf(stderr, "Clearing %d bytes\n", bytesRead);
-//    }
-//    return 0;
-//}
-
-/* read a string till lf or cr */
-//int NexDome::ReadString(char *buf, int size)
-//{
-//    //char *pt;
-//    int num;
-//    int bytesRead;
-//    char a;
-//    int rc;
-
-//    num = 0;
-//    buf[num] = 0;
-//    //fprintf(stderr,"first read\n");
-//    rc = tty_read(PortFD, &a, 1, 2, &bytesRead);
-//    while(rc == TTY_OK)
-//    {
-//        //fprintf(stderr,"read returns %d %c\n",rc,a);
-//        if((a == '\n') || (a == '\r')) return num;
-//        buf[num] = a;
-//        num++;
-//        buf[num] = 0;
-//        if(num == size) return num;
-//        //fprintf(stderr,"second read\n");
-//        rc = tty_read(PortFD, &a, 1, 1, &bytesRead);
-//    }
-//    if(rc != TTY_OK)
-//    {
-//        //fprintf(stderr,"Readstring returns error %d\n",rc);
-//        return -1;
-//    }
-//    return num;
-//}
-
-//int NexDome::sendCommand(const char *buf)
-//{
-//    char ReadBuf[40];
-//    int bytesWritten;
-//    int rc;
-//    char m;
-
-//    tty_write(PortFD, buf, strlen(buf), &bytesWritten);
-//    //tty_write(PortFD,"\n",1,&bytesWritten);
-
-//    //  lets process returns
-//    //  There may be more than one response qued
-//    //  So continue processing them till we read the response message
-//    //  for the query we just wrote
-//    rc = ReadString(ReadBuf, 40);
-//    while(rc >= 0)
-//    {
-//        //  return size zero says dome just sent an empty linefeed
-//        if(rc > 0)
-//        {
-//            ProcessDomeMessage(ReadBuf);
-//            //  A message is always sent using lower case
-//            //  and the response is upper case
-//            m = buf[0];
-//            m = toupper(m);
-//            //  if first character of response is the upper case variant of what
-//            //  we just sent, we have processed the que
-//            if(m == ReadBuf[0]) return 0;
-//        }
-//        rc = ReadString(ReadBuf, 40);
-//    }
-//    //  if we get here, there was a tty error
-//    //  reading from the dome
-//    return -1;
-//}
-
 void NexDome::TimerHit()
 {
     if(isConnected())
-        ReadDomeStatus();
+        readDomeStatus();
 
     SetTimer(POLLMS);
 }
 
-void NexDome::processDomeMessage(const char *buf)
-{
-    switch (buf[0])
-    {
-        case 'M':
-        {
-            int m = atoi(&buf[1]);
-            if(m == 0)
-            {
-                if(getDomeState() == DOME_PARKING)
-                {
-                    SetParked(true);
-                }
-                m_InMotion = false;
-                if(m_MotorPower)
-                {
-                    DomeAbsPosNP.s = IPS_OK;
-                    DomeMotionSP.s = IPS_OK;
-                }
-                else
-                {
-                    DomeAbsPosNP.s = IPS_ALERT;
-                    DomeMotionSP.s = IPS_ALERT;
-                }
-                IDSetSwitch(&DomeMotionSP, nullptr);
-                if(m_Calibrating)
-                {
-                    float delta;
-                    time_t now;
-                    time(&now);
-                    delta = difftime(now, CalStartTime);
-                    CalibrateSP.s = IPS_OK;
-                    IDSetSwitch(&CalibrateSP, "Calibration complete %3.0f seconds.", delta);
-                }
-            }
-            else
-            {
-                m_InMotion = true;
-                DomeAbsPosNP.s = IPS_BUSY;
-                if(HomeSP.s == IPS_OK)
-                {
-                    HomeSP.s = IPS_IDLE;
-                    IDSetSwitch(&HomeSP, nullptr);
-                }
-            }
-        }
-        break;
-
-        case 'Q':
-        {
-            float h = atof(&buf[1]);
-            DomeAbsPosN[0].value = h;
-            IDSetNumber(&DomeAbsPosNP, nullptr);
-        }
-        break;
-
-        //  Home sensor
-        case 'Z':
-        {
-            int t = atoi(&buf[1]);
-            if(t == 1)
-            {
-                AtHome = true;
-                if(HomeSP.s != IPS_OK)
-                {
-                    HomeSP.s = IPS_OK;
-                    IDSetSwitch(&HomeSP, "Dome is at home.");
-                }
-            }
-            if(t == 0)
-            {
-                AtHome = false;
-                if(HomeSP.s != IPS_IDLE)
-                {
-                    if(m_MotorPower) HomeSP.s = IPS_IDLE;
-                    else HomeSP.s = IPS_ALERT;
-                    IDSetSwitch(&HomeSP, nullptr);
-                }
-            }
-
-            if(t == -1)
-            {
-                if(HomeSP.s != IPS_BUSY)
-                {
-                    if(m_MotorPower) HomeSP.s = IPS_BUSY;
-                    else HomeSP.s = IPS_ALERT;
-                    IDSetSwitch(&HomeSP, "Dome has not been homed");
-                }
-            }
-        }
-        break;
-
-        //  Battery Levels
-        case 'K':
-        {
-            int b1, b2;
-            float b3, b4;
-            char a;
-            sscanf(buf, "%c %d %d", &a, &b1, &b2);
-            b3 = b1 / 100.0;
-            b4 = b2 / 100.0;
-            if((m_BatteryMain != b3) || (m_BatteryShutter != b4))
-            {
-                m_BatteryMain = b3;
-                m_BatteryShutter = b4;
-                BatteryLevelN[0].value = m_BatteryMain;
-                BatteryLevelN[1].value = m_BatteryShutter;
-                if(m_BatteryMain > 7)
-                {
-                    BatteryLevelNP.s = IPS_OK;
-                    if(!m_MotorPower)
-                    {
-                        IDSetNumber(&BatteryLevelNP, "Motor is powered.");
-                    }
-                    m_MotorPower = true;
-                }
-                else
-                {
-                    //  and it's off now
-                    if(m_MotorPower)
-                        IDSetNumber(&BatteryLevelNP, "Motor is NOT powered.");
-                    m_MotorPower = false;
-                    DomeAbsPosNP.s = IPS_ALERT;
-                    IDSetNumber(&DomeAbsPosNP, nullptr);
-                    HomeSP.s = IPS_ALERT;
-                    IDSetSwitch(&HomeSP, nullptr);
-                    BatteryLevelNP.s = IPS_ALERT;
-                }
-                IDSetNumber(&BatteryLevelNP, nullptr);
-            }
-        }
-        break;
-
-        //  Steps per revolution
-        case 'T':
-        {
-            m_StepsPerDomeTurn = atoi(&buf[1]);
-            IDSetSwitch(&HomeSP, "Dome has %d steps per revolution.", m_StepsPerDomeTurn);
-        }
-        break;
-
-        //  Pointing error at last home sensor
-        case 'O':
-        {
-            float b1 = atof(&buf[1]);
-            if(b1 != m_HomeError)
-            {
-                LOGF_DEBUG("Home error %4.2f.", b1);
-                m_HomeError = b1;
-            }
-        }
-        break;
-
-        //  Processed a sync
-        case 'S':
-        {
-            float b1 = atof(&buf[1]);
-            SyncPositionNP.s = IPS_OK;
-            IDSetNumber(&SyncPositionNP, "Dome sync at %3.0f.", b1);
-            //  refetch the new home azimuth
-            m_HomeAz = -1;
-        }
-        break;
-
-        // Home Position Offset
-        case 'I':
-        {
-            float b1 = atof(&buf[1]);
-            if(b1 != m_HomeAz)
-            {
-                HomePositionN[0].value = b1;
-                IDSetNumber(&HomePositionNP, "Home position is %4.1f degrees.", b1);
-                m_HomeAz = b1;
-            }
-        }
-        break;
-
-        // Shutter Position
-        case 'B':
-        {
-            float b1 = atof(&buf[1]);
-            if((b1 != m_ShutterPosition))
-            {
-                m_ShutterPosition = b1;
-                if(b1 == 90.0)
-                {
-                    shutterState = SHUTTER_OPENED;
-                    DomeShutterSP.s = IPS_OK;
-                    DomeShutterS[0].s = ISS_OFF;
-                    DomeShutterS[1].s = ISS_OFF;
-                    IDSetSwitch(&DomeShutterSP, "Shutter is open");
-                }
-                else
-                {
-                    if(b1 == -22.5)
-                    {
-                        shutterState = SHUTTER_CLOSED;
-                        DomeShutterSP.s = IPS_IDLE;
-                        DomeShutterS[0].s = ISS_OFF;
-                        DomeShutterS[1].s = ISS_OFF;
-                        IDSetSwitch(&DomeShutterSP, "Shutter is closed");
-                    }
-                    else
-                    {
-                        shutterState = SHUTTER_UNKNOWN;
-                        DomeShutterSP.s = IPS_ALERT;
-                        DomeShutterS[0].s = ISS_OFF;
-                        DomeShutterS[1].s = ISS_OFF;
-                        IDSetSwitch(&DomeShutterSP, "Shutter Position %4.1f", b1);
-                    }
-                }
-            }
-        }
-        break;
-
-        // Shutter Status
-        case 'U':
-        {
-            int b = atoi(&buf[1]);
-            if(b != m_ShutterState)
-            {
-                if(b == 0)
-                {
-                    DomeShutterSP.s = IPS_ALERT;
-                    DomeShutterS[0].s = ISS_OFF;
-                    DomeShutterS[1].s = ISS_OFF;
-                    IDSetSwitch(&DomeShutterSP, "Shutter is not connected");
-                }
-                if(b == 1)
-                {
-                    DomeShutterSP.s = IPS_OK;
-                    DomeShutterS[0].s = ISS_OFF;
-                    DomeShutterS[1].s = ISS_OFF;
-                    IDSetSwitch(&DomeShutterSP, "Shutter is open");
-                }
-                if(b == 2)
-                {
-                    DomeShutterSP.s = IPS_BUSY;
-                    DomeShutterS[0].s = ISS_OFF;
-                    DomeShutterS[1].s = ISS_OFF;
-                    IDSetSwitch(&DomeShutterSP, "Shutter is opening");
-                }
-                if(b == 3)
-                {
-                    DomeShutterSP.s = IPS_IDLE;
-                    DomeShutterS[0].s = ISS_OFF;
-                    DomeShutterS[1].s = ISS_OFF;
-                    IDSetSwitch(&DomeShutterSP, "Shutter is closed");
-                }
-                if(b == 4)
-                {
-                    DomeShutterSP.s = IPS_BUSY;
-                    DomeShutterS[0].s = ISS_OFF;
-                    DomeShutterS[1].s = ISS_OFF;
-                    IDSetSwitch(&DomeShutterSP, "Shutter is closing");
-                }
-                if(b == 5)
-                {
-                    DomeShutterSP.s = IPS_ALERT;
-                    DomeShutterS[0].s = ISS_OFF;
-                    DomeShutterS[1].s = ISS_OFF;
-                    IDSetSwitch(&DomeShutterSP, "Shutter state undetermined");
-                }
-
-                m_ShutterState = b;
-            }
-        }
-        break;
-
-        // Dome Reverse Motion
-        case 'Y':
-        {
-            m_DomeReversed = atoi(&buf[1]);
-            if(m_DomeReversed == 1)
-            {
-                ReversedS[0].s = ISS_OFF;
-                ReversedS[1].s = ISS_ON;
-                ReversedSP.s = IPS_OK;
-                IDSetSwitch(&ReversedSP, nullptr);
-            }
-            else
-            {
-                ReversedS[0].s = ISS_ON;
-                ReversedS[1].s = ISS_OFF;
-                ReversedSP.s = IPS_IDLE;
-                IDSetSwitch(&ReversedSP, nullptr);
-            }
-        }
-        break;
-
-        default:
-            break;
-    }
-}
-
-void NexDome::ReadDomeStatus()
+void NexDome::readDomeStatus()
 {
     if(isConnected() == false)
         return;
 
-    if (!sendCommand("m\n") || !sendCommand("q\n"))
+    if (!readMotionStatus() || !readPosition())
         return;
 
     if(!m_InMotion)
@@ -713,7 +326,7 @@ void NexDome::ReadDomeStatus()
         // Dome is not in motion, lets check a few more things
         // Check for home position
         // Check voltage on batteries
-        if (!sendCommand("z\n") || !sendCommand("k\n"))
+        if (!readHomeSensor() || !readBatteryLevel())
             return;
 
         //  if we have started a calibration cycle
@@ -723,35 +336,29 @@ void NexDome::ReadDomeStatus()
             //  we just calibrated, and are now not moving
             m_Calibrating = false;
             //  lets get our new value for how many steps to turn the dome 360 degrees
-            if (!sendCommand("t\n"))
+            if (!readStepsPerRevolution())
                 return;
         }
+
         //  lets see how far off we were on last home detect
-        if (!sendCommand("o\n"))
+        if (!readHomeError())
             return;
-        //  if we have not already fetched this value
-        //  fetch it for interest sake
-        if(m_StepsPerDomeTurn == 0)
-        {
-            if (!sendCommand("t\n"))
-                return;
-        }
-        //  if we have not fetched the home position, fetch it
-        if(m_HomeAz == -1)
-        {
-            if (!sendCommand("i\n"))
-                return;
-        }
+
+        // If we need to fetch home position
+        if (m_HomeAz == -1)
+            readHomePosition();
+
         //  get shutter status
-        if (!sendCommand("u\n"))
+        if (!readShutterStatus())
             return;
 
         //  get shutter position if shutter is talking to us
         if(m_ShutterState != 0)
         {
-            if (!sendCommand("b\n"))
+            if (!readShutterPosition())
                 return;
         }
+
         //  if the jog switch is set, unset it
         if((DomeMotionS[0].s == ISS_ON) || (DomeMotionS[1].s == ISS_ON))
         {
@@ -759,17 +366,6 @@ void NexDome::ReadDomeStatus()
             DomeMotionS[1].s = ISS_OFF;
             IDSetSwitch(&DomeMotionSP, nullptr);
         }
-    }
-    else
-    {
-        //fprintf(stderr,"In Motion\n");
-    }
-
-    //  we only need to query this once at startup
-    if(m_DomeReversed == -1)
-    {
-        if (!sendCommand("y\n"))
-            return;
     }
 
     //  Not all mounts update ra/dec constantly if tracking co-ordinates
@@ -782,6 +378,368 @@ void NexDome::ReadDomeStatus()
         m_TimeSinceUpdate = 0;
         UpdateMountCoords();
     }
+}
+
+bool NexDome::readMotionStatus()
+{
+    char res[DRIVER_LEN] = {0};
+
+    if (!sendCommand("m\n", res))
+        return false;
+
+    int m = atoi(&res[1]);
+
+    if(m == 0)
+    {
+        if(getDomeState() == DOME_PARKING)
+        {
+            SetParked(true);
+        }
+        m_InMotion = false;
+        if(m_MotorPower)
+        {
+            DomeAbsPosNP.s = IPS_OK;
+            DomeMotionSP.s = IPS_OK;
+        }
+        else
+        {
+            DomeAbsPosNP.s = IPS_ALERT;
+            DomeMotionSP.s = IPS_ALERT;
+        }
+        IDSetSwitch(&DomeMotionSP, nullptr);
+        if(m_Calibrating)
+        {
+            float delta;
+            time_t now;
+            time(&now);
+            delta = difftime(now, CalStartTime);
+            CalibrateSP.s = IPS_OK;
+            IDSetSwitch(&CalibrateSP, "Calibration complete %3.0f seconds.", delta);
+        }
+    }
+    else
+    {
+        m_InMotion = true;
+        DomeAbsPosNP.s = IPS_BUSY;
+        if(HomeSP.s == IPS_OK)
+        {
+            HomeSP.s = IPS_IDLE;
+            IDSetSwitch(&HomeSP, nullptr);
+        }
+    }
+
+    return true;
+}
+
+bool NexDome::readPosition()
+{
+    char res[DRIVER_LEN] = {0};
+
+    if (!sendCommand("q\n", res))
+        return false;
+
+    DomeAbsPosN[0].value = atof(&res[1]);
+    IDSetNumber(&DomeAbsPosNP, nullptr);
+
+    return true;
+}
+
+bool NexDome::readHomeSensor()
+{
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand("z\n", res))
+        return false;
+
+    int t = atoi(&res[1]);
+
+    if(t == 1)
+    {
+        AtHome = true;
+        if(HomeSP.s != IPS_OK)
+        {
+            HomeSP.s = IPS_OK;
+            IDSetSwitch(&HomeSP, "Dome is at home.");
+        }
+    }
+    else if(t == 0)
+    {
+        AtHome = false;
+        if(HomeSP.s != IPS_IDLE)
+        {
+            if(m_MotorPower) HomeSP.s = IPS_IDLE;
+            else HomeSP.s = IPS_ALERT;
+            IDSetSwitch(&HomeSP, nullptr);
+        }
+    }
+    else if(t == -1)
+    {
+        if(HomeSP.s != IPS_BUSY)
+        {
+            if(m_MotorPower)
+                HomeSP.s = IPS_BUSY;
+            else
+                HomeSP.s = IPS_ALERT;
+
+            IDSetSwitch(&HomeSP, "Dome has not been homed.");
+        }
+    }
+
+    return true;
+}
+
+bool NexDome::readBatteryLevel()
+{
+    char res[DRIVER_LEN] = {0};
+
+    if (!sendCommand("k\n", res))
+        return false;
+
+    int b1, b2;
+    float b3, b4;
+    char a;
+    sscanf(res, "%c %d %d", &a, &b1, &b2);
+    b3 = b1 / 100.0;
+    b4 = b2 / 100.0;
+    if((m_BatteryMain != b3) || (m_BatteryShutter != b4))
+    {
+        m_BatteryMain = b3;
+        m_BatteryShutter = b4;
+        BatteryLevelN[0].value = m_BatteryMain;
+        BatteryLevelN[1].value = m_BatteryShutter;
+        if(m_BatteryMain > 7)
+        {
+            BatteryLevelNP.s = IPS_OK;
+            if(!m_MotorPower)
+            {
+                IDSetNumber(&BatteryLevelNP, "Motor is powered.");
+            }
+            m_MotorPower = true;
+        }
+        else
+        {
+            //  and it's off now
+            if(m_MotorPower)
+                IDSetNumber(&BatteryLevelNP, "Motor is NOT powered.");
+            m_MotorPower = false;
+            DomeAbsPosNP.s = IPS_ALERT;
+            IDSetNumber(&DomeAbsPosNP, nullptr);
+            HomeSP.s = IPS_ALERT;
+            IDSetSwitch(&HomeSP, nullptr);
+            BatteryLevelNP.s = IPS_ALERT;
+        }
+        IDSetNumber(&BatteryLevelNP, nullptr);
+    }
+
+    return true;
+}
+
+bool NexDome::readStepsPerRevolution()
+{
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand("t\n", res))
+        return false;
+
+    m_StepsPerDomeTurn = atoi(&res[1]);
+    LOGF_INFO("Dome has %d steps per revolution.", m_StepsPerDomeTurn);
+    IDSetSwitch(&HomeSP, nullptr);
+
+    return true;
+}
+
+bool NexDome::readHomeError()
+{
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand("o\n", res))
+        return false;
+
+    float b1 = atof(&res[1]);
+    if(b1 != m_HomeError)
+    {
+        LOGF_DEBUG("Home error %4.2f.", b1);
+        m_HomeError = b1;
+    }
+
+    return true;
+}
+
+bool NexDome::readHomePosition()
+{
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand("i\n", res))
+        return false;
+
+    float b1 = atof(&res[1]);
+    if(b1 != m_HomeAz)
+    {
+        HomePositionN[0].value = b1;
+        LOGF_INFO("Home position is %4.1f degrees.", b1);
+        IDSetNumber(&HomePositionNP, nullptr);
+        m_HomeAz = b1;
+    }
+
+    return true;
+}
+
+bool NexDome::readShutterStatus()
+{
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand("u\n", res))
+        return false;
+
+    int b = atoi(&res[1]);
+
+    if(b != m_ShutterState)
+    {
+        if(b == 0)
+        {
+            DomeShutterSP.s = IPS_ALERT;
+            DomeShutterS[0].s = ISS_OFF;
+            DomeShutterS[1].s = ISS_OFF;
+            LOG_INFO("Shutter is not connected.");
+            IDSetSwitch(&DomeShutterSP, nullptr);
+        }
+
+        if(b == 1)
+        {
+            DomeShutterSP.s = IPS_OK;
+            DomeShutterS[0].s = ISS_OFF;
+            DomeShutterS[1].s = ISS_OFF;
+            LOG_INFO("Shutter is open.");
+            IDSetSwitch(&DomeShutterSP, nullptr);
+        }
+
+        if(b == 2)
+        {
+            DomeShutterSP.s = IPS_BUSY;
+            DomeShutterS[0].s = ISS_OFF;
+            DomeShutterS[1].s = ISS_OFF;
+            LOG_INFO("Shutter is opening...");
+            IDSetSwitch(&DomeShutterSP, nullptr);
+        }
+
+        if(b == 3)
+        {
+            DomeShutterSP.s = IPS_IDLE;
+            DomeShutterS[0].s = ISS_OFF;
+            DomeShutterS[1].s = ISS_OFF;
+            LOG_INFO("Shutter is closed.");
+            IDSetSwitch(&DomeShutterSP, nullptr);
+        }
+
+        if(b == 4)
+        {
+            DomeShutterSP.s = IPS_BUSY;
+            DomeShutterS[0].s = ISS_OFF;
+            DomeShutterS[1].s = ISS_OFF;
+            LOG_INFO("Shutter is closing...");
+            IDSetSwitch(&DomeShutterSP, nullptr);
+        }
+
+        if(b == 5)
+        {
+            DomeShutterSP.s = IPS_ALERT;
+            DomeShutterS[0].s = ISS_OFF;
+            DomeShutterS[1].s = ISS_OFF;
+            LOG_INFO("Shutter state undetermined.");
+            IDSetSwitch(&DomeShutterSP, nullptr);
+        }
+
+        m_ShutterState = b;
+    }
+
+    return true;
+}
+
+bool NexDome::readShutterPosition()
+{
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand("b\n", res))
+        return false;
+
+    float b1 = atof(&res[1]);
+
+    if((b1 != m_ShutterPosition))
+    {
+        m_ShutterPosition = b1;
+        if(b1 == 90.0)
+        {
+            shutterState = SHUTTER_OPENED;
+            DomeShutterSP.s = IPS_OK;
+            DomeShutterS[0].s = ISS_OFF;
+            DomeShutterS[1].s = ISS_OFF;
+            LOG_INFO("Shutter is open.");
+            IDSetSwitch(&DomeShutterSP, nullptr);
+        }
+        else
+        {
+            if(b1 == -22.5)
+            {
+                shutterState = SHUTTER_CLOSED;
+                DomeShutterSP.s = IPS_IDLE;
+                DomeShutterS[0].s = ISS_OFF;
+                DomeShutterS[1].s = ISS_OFF;
+                LOG_INFO("Shutter is closed.");
+                IDSetSwitch(&DomeShutterSP, nullptr);
+            }
+            else
+            {
+                shutterState = SHUTTER_UNKNOWN;
+                DomeShutterSP.s = IPS_ALERT;
+                DomeShutterS[0].s = ISS_OFF;
+                DomeShutterS[1].s = ISS_OFF;
+                LOGF_INFO("Shutter Position %4.1f", b1);
+                IDSetSwitch(&DomeShutterSP, nullptr);
+            }
+        }
+    }
+
+    return true;
+}
+
+bool NexDome::readReversedStatus()
+{
+    char res[DRIVER_LEN] = {0};
+    if (!sendCommand("y\n", res))
+        return false;
+
+    m_DomeReversed = atoi(&res[1]);
+    if(m_DomeReversed == 1)
+    {
+        ReversedS[0].s = ISS_OFF;
+        ReversedS[1].s = ISS_ON;
+        ReversedSP.s = IPS_OK;
+        IDSetSwitch(&ReversedSP, nullptr);
+    }
+    else
+    {
+        ReversedS[0].s = ISS_ON;
+        ReversedS[1].s = ISS_OFF;
+        ReversedSP.s = IPS_IDLE;
+        IDSetSwitch(&ReversedSP, nullptr);
+    }
+
+    return true;
+}
+
+bool NexDome::readStartupParameters()
+{
+    bool rc1 = readStepsPerRevolution();
+    bool rc2 = readHomePosition();
+    bool rc3 = readReversedStatus();
+
+    if (InitPark())
+    {
+        // If loading parking data is successful, we just set the default parking values.
+        SetAxis1ParkDefault(180);
+    }
+    else
+    {
+        // Otherwise, we set all parking data to default in case no parking data is found.
+        SetAxis1Park(180);
+        SetAxis1ParkDefault(180);
+    }
+
+    return (rc1 && rc2 && rc3);
 }
 
 IPState NexDome::MoveAbs(double az)

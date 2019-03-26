@@ -89,23 +89,42 @@ class NexDome : public INDI::Dome
         bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
         void hexDump(char * buf, const char * data, int size);
 
-        //        int ReadString(char *, int);
-        //        int WriteString(const char *);
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Read Dome data
+        ///////////////////////////////////////////////////////////////////////////////
+        bool readStartupParameters();
+        void readDomeStatus();
+        bool readBatteryLevel();
+        bool readStepsPerRevolution();
+        bool readMotionStatus();
+        bool readPosition();
+        bool readReversedStatus();
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Home Commands
+        ///////////////////////////////////////////////////////////////////////////////
+        bool readHomeSensor();
+        bool readHomeError();
+        bool readHomePosition();
+
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Shutter Commands
+        ///////////////////////////////////////////////////////////////////////////////
+        bool readShutterStatus();
+        bool readShutterPosition();
 
         void processDomeMessage(const char *);
-        void ReadDomeStatus();
-        bool SetupParms();
         int ClearSerialBuffers();
 
-        float m_BatteryMain { 0 };
-        float m_BatteryShutter { 0 };
-
-        float m_ShutterPosition { 0 };
+        double m_BatteryMain { 0 };
+        double m_BatteryShutter { 0 };
         bool m_MotorPower { false };
-        float m_HomeError { 0 };
-        float m_HomeAz { -1 };
 
-        float m_StoredPark { - 1};
+        double m_ShutterPosition { 0 };
+        double m_HomeError { 0 };
+        double m_HomeAz { -1 };
+
+        double m_StoredPark { - 1};
 
         int m_ShutterState { -1 };
         int m_DomeReversed { -1 };
