@@ -908,13 +908,11 @@ bool NexDome::sendCommand(const char * cmd, char * res, int cmd_len, int res_len
     {
         while (true)
         {
-            rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
-            if (rc == TTY_TIME_OUT)
-            {
-                // This is alternative delimeter.. why is it using 0xD and 0xA?
-                if (res[nbytes_read - 1] == 0xA)
-                    rc = TTY_OK;
-            }
+            // Seems only this command expects a 0xA delimiter?
+            if (cmd[0] == 'm')
+                rc = tty_nread_section(PortFD, res, DRIVER_LEN, 0xA, DRIVER_TIMEOUT, &nbytes_read);
+            else
+                rc = tty_nread_section(PortFD, res, DRIVER_LEN, DRIVER_STOP_CHAR, DRIVER_TIMEOUT, &nbytes_read);
 
             if (rc != TTY_OK)
                 break;

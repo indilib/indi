@@ -143,7 +143,7 @@ class NexDome : public INDI::Dome
         // CR is the stop char
         static const char DRIVER_STOP_CHAR { 0xD };
         // Wait up to a maximum of 3 seconds for serial input
-        static constexpr const uint8_t DRIVER_TIMEOUT {1};
+        static constexpr const uint8_t DRIVER_TIMEOUT {3};
         // Maximum buffer for sending/receving.
         static constexpr const uint8_t DRIVER_LEN {64};
 };
