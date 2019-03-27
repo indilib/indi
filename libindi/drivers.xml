@@ -337,11 +337,11 @@
         </device>
         <device label="QHYCFW2">
             <driver name="QHYCFW2">indi_qhycfw2_wheel</driver>
-            <version>0.1</version>
+            <version>1.2</version>
         </device>
         <device label="QHYCFW3">
             <driver name="QHYCFW3">indi_qhycfw3_wheel</driver>
-            <version>0.1</version>
+            <version>1.1</version>
         </device>
         <device label="Manual Filter">
                 <driver name="Manual Filter">indi_manual_wheel</driver>
