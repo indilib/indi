@@ -720,6 +720,23 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             LOGF_INFO("New unnamed Model now has %d alignment points", NewAlignmentPointsN[0].value);
             return true;
         }
+        if (strcmp(name, "TRAJECTORY_TIME") == 0)
+          {
+            IUUpdateNumber(&CalculateSatTrajectoryForTimeP, values, names, n);
+            CalculateSatTrajectoryForTimeP.s = IPS_OK;
+            IDSetNumber(&CalculateSatTrajectoryForTimeP, nullptr);
+            LOG_INFO("Calculate trajectory is called");
+            return true;
+        }
+        if (strcmp(name, "TLE_NUMBER") == 0)
+        {
+            IUUpdateNumber(&TLEfromDatabalseNP, values, names, n);
+            TLEfromDatabaseNP.s = IPS_OK;
+            TLEtoUploadTP.s = IPS_IDLE;
+            IDSetNumber(&TLEfromDatabaseNP, nullptr);
+            LOGF_INFO("Selected TLE nr %d from database", TLEfromDatabaseN[0].value);
+            return true;
+        }
     }
 
     // Let INDI::LX200Generic handle any other number properties
@@ -789,6 +806,26 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             IDSetSwitch(&AlignmentSP, nullptr);
             return true;
         }
+        if (strcmp(TrackSatSP.name, name)==0)
+          {
+            IUUpdateSwitch(&TrackSatSP, states, names, n);
+            int index    = IUFindOnSwitchIndex(&TrackSatSP);
+
+            switch (index)
+              {
+              case SAT_TRACK:
+                TrackSatSP.s = IPS_OK;
+                LOG_INFO("Tracking satellite");
+                return true;
+              case SAT_HALT:
+                TrackSatSP.s = IPS_OK;
+                LOG_INFO("Halt tracking");
+                return true;
+              default:
+                TrackSatSP.s = IPS_ALERT;
+                IDSetSwitch(&TrackSatSP, "Unknown tracking modus %d", index);
+                return false;
+          }
     }
 
     return LX200Generic::ISNewSwitch(dev, name, states, names, n);
@@ -813,6 +850,7 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
           if (0 == setTLEtoFollow(TLEtoUploadT[0].text))
             {
               TLEtoUploadTP.s = IPS_OK;
+              TLEfromDatabaseNP.s = IPS_IDLE;
               IDSetText(&TLEtoUploadTP, nullptr);
               LOGF_INFO("Selected TLE %s", TLEtoUploadT[0].text);
               return true;
@@ -820,6 +858,7 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
           else
             {
               TLEtoUploadTP.s = IPS_ALERT;
+              TLEfromDatabaseNP.s = IPS_IDLE;
               IDSetText(&TLEtoUploadTP, nullptr);
               LOG_ERROR("TLE was not correctly uploaded");
               return false;
