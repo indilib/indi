@@ -90,6 +90,24 @@ class LX200_10MICRON : public LX200Generic
         ALIGN_COUNT
     };
 
+    enum LX200_10MICRON_SAT_TRAJECTORY_TIME
+    {
+        SAT_YYYY,
+        SAT_MM,
+        SAT_DD,
+        SAT_HH24,
+        SAT_MM60,
+        SAT_MM1440_NEXT,
+        SAT_COUNT
+    };
+
+    enum LX200_10MICRON_SAT_TRACK
+    {
+        SAT_TRACK,
+        SAT_HALT,
+        SAT_TRACK_COUNT
+    };
+
     LX200_10MICRON();
     ~LX200_10MICRON() {}
 
@@ -159,6 +177,12 @@ class LX200_10MICRON : public LX200Generic
 
     INumber TLEfromDatabaseN[1];
     INumberVectorProperty TLEfromDatabaseNP;
+
+    INumber CalculateSatTrajectoryForTimeN[SAT_COUNT];
+    INumberVectorProperty CalculateSatTrajectoryForTimeNP;
+
+    ISwitch TrackSatS[SAT_TRACK_COUNT];
+    ISwitchVectorProperty TrackSatSP;
 
 
   private:
