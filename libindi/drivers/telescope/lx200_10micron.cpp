@@ -140,7 +140,7 @@ bool LX200_10MICRON::initProperties()
 
     IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 0, 999, 0, 0);
     IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
-                       "TLE_NUMBER", "TLE # from Databse", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+                       "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
     ln_get_date_from_sys(&today);
     IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_YYYY], "YEAR", "Year (yyyy)", "%.0f", 0, 9999, 0, today.years);
@@ -152,12 +152,12 @@ bool LX200_10MICRON::initProperties()
                  "In the following # minutes", "%.0f", 0, 1440, 0, 0);
     IUFillNumberVector(&CalculateSatTrajectoryForTimeNP, CalculateSatTrajectoryForTimeN,
                        SAT_COUNT, getDeviceName(), "TRAJECTORY_TIME",
-                       "Trajectory calculation for a time", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+                       "Sat pass", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&TrackSatS[SAT_TRACK], "Track", "Track", ISS_OFF);
     IUFillSwitch(&TrackSatS[SAT_HALT], "Halt", "Halt", ISS_ON);
     IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
-                       "Satellite tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+                       "Sat tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
 
 
 
