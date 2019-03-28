@@ -28,6 +28,7 @@
 #include <strings.h>
 #include <termios.h>
 #include <math.h>
+#include <libnova.h>
 
 #define PRODUCT_TAB   "Product"
 #define ALIGNMENT_TAB "Alignment"
@@ -141,11 +142,12 @@ bool LX200_10MICRON::initProperties()
     IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
                        "TLE_NUMBER", "TLE # from Databse", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_YYYY], "YEAR", "Year (yyyy)", "%.0f", 0, 9999, 0, 0);
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM], "MONTH", "Month (mm)", "%.0f", 1, 12, 0, 0);
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_DD], "DAY", "Day (dd)", "%.0f", 1, 31, 0, 0);
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_HH24], "HOUR", "Hour 24 (hh)", "%.0f", 0, 24, 0, 0);
-    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM60], "MINUTE", "Minute", "%.0f", 0, 60, 0, 0);
+    ln_get_date_from_sys(&today);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_YYYY], "YEAR", "Year (yyyy)", "%.0f", 0, 9999, 0, today.years);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM], "MONTH", "Month (mm)", "%.0f", 1, 12, 0, today.months);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_DD], "DAY", "Day (dd)", "%.0f", 1, 31, 0, today.days);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_HH24], "HOUR", "Hour 24 (hh)", "%.0f", 0, 24, 0, today.hours);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM60], "MINUTE", "Minute", "%.0f", 0, 60, 0, today.minutes);
     IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM1440_NEXT], "COMING",
                  "In the following # minutes", "%.0f", 0, 1440, 0, 0);
     IUFillNumberVector(&CalculateSatTrajectoryForTimeNP, CalculateSatTrajectoryForTimeN,
@@ -550,7 +552,7 @@ bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
     return 0 == setStandardProcedureAndExpect(fd, data, "1");
 }
 
-bool LX200_10MICRON::setTLEtoFollow(const char *tle)
+bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
 {
   LOGF_INFO("The function is called with TLE %s", tle);
   if (strcmp(tle,"testa")==0)
@@ -560,6 +562,32 @@ bool LX200_10MICRON::setTLEtoFollow(const char *tle)
   return 0;
 }
 
+bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
+{
+  LOG_INFO("Setting TLE from Database");
+  return 0;
+}
+
+bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour, int minute, int nextpass, ln_date date_pass)
+{
+  LOGF_INFO("Calculate trajectory is called with date: %d-%d-%d %d:%d pass %d",
+            year, month, day, hour, minute, nextpass);
+  date_pass.years = year;
+  date_pass.months = month;
+  date_pass.days = day;
+  date_pass.hours = hour;
+  date_pass.minutes = minute;
+  date_pass.seconds = 0.0;
+  JD = ln_get_julian_day(&date_pass);
+  LOGF_INFO("Julian day being %6.6f", JD);
+  return 0;
+}
+
+bool LX200_10MICRON::TrackSat()
+{
+  LOG_INFO("Tracking satellite");
+  return 0
+}
 
 int LX200_10MICRON::SetRefractionModelTemperature(double temperature)
 {
@@ -723,9 +751,21 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
         if (strcmp(name, "TRAJECTORY_TIME") == 0)
           {
             IUUpdateNumber(&CalculateSatTrajectoryForTimeNP, values, names, n);
+            if (0 != CalculateTrajectory(CalculateSatTrajectoryForTimeN[SAT_YYYY].value,
+                                         CalculateSatTrajectoryForTimeN[SAT_MM].value,
+                                         CalculateSatTrajectoryForTimeN[SAT_DD].value,
+                                         CalculateSatTrajectoryForTimeN[SAT_HH24].value,
+                                         CalculateSatTrajectoryForTimeN[SAT_MM60].value,
+                                         CalculateSatTrajectoryForTimeN[SAT_MM1440_NEXT].value,
+                                         date_pass)
+                )
+              {
+                CalculateSatTrajectoryForTimeNP.s = IPS_ALERT;
+                IDSetNumber(&CalculateSatTrajectoryForTimeNP, nullptr);
+                return false;
+              }
             CalculateSatTrajectoryForTimeNP.s = IPS_OK;
             IDSetNumber(&CalculateSatTrajectoryForTimeNP, nullptr);
-            LOG_INFO("Calculate trajectory is called");
             return true;
         }
         if (strcmp(name, "TLE_NUMBER") == 0)
@@ -735,7 +775,7 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
             TLEtoUploadTP.s = IPS_IDLE;
             IDSetText(&TLEtoUploadTP, nullptr);
             IDSetNumber(&TLEfromDatabaseNP, nullptr);
-            LOGF_INFO("Selected TLE nr %d from database", TLEfromDatabaseN[0].value);
+            LOGF_INFO("Selected TLE nr %.0f from database", TLEfromDatabaseN[0].value);
             return true;
         }
     }
@@ -850,7 +890,7 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         if (strcmp(name, "TLE_TEXT") == 0)
         {
           IUUpdateText(&TLEtoUploadTP, texts, names, n);
-          if (0 == setTLEtoFollow(TLEtoUploadT[0].text))
+          if (0 == SetTLEtoFollow(TLEtoUploadT[0].text))
             {
               TLEtoUploadTP.s = IPS_OK;
               TLEfromDatabaseNP.s = IPS_IDLE;
