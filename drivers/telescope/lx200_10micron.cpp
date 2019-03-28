@@ -133,9 +133,31 @@ bool LX200_10MICRON::initProperties()
     IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(), "NEW_MODEL_NAME", "New Name", ALIGNMENT_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    IUFillText(&TLEtoUploadT[0], "TLE", "TLE", "test");
-    IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(), "TLE", "TLE", SATELLITE_TAB,
+    IUFillText(&TLEtoUploadT[0], "TLE", "TLE", "");
+    IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(), "TLE_TEXT", "TLE", SATELLITE_TAB,
                      IP_RW, 60, IPS_IDLE);
+
+    IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 0, 999, 0, 0);
+    IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
+                       "TLE_NUMBER", "TLE # from Databse", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_YYYY], "YEAR", "Year (yyyy)", "%.0f", 0, 9999, 0, 0);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM], "MONTH", "Month (mm)", "%.0f", 1, 12, 0, 0);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_DD], "DAY", "Day (dd)", "%.0f", 1, 31, 0, 0);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_HH24], "HOUR", "Hour 24 (hh)", "%.0f", 0, 24, 0, 0);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM60], "MINUTE", "Minute", "%.0f", 0, 60, 0, 0);
+    IUFillNumber(&CalculateSatTrajectoryForTimeN[SAT_MM1440_NEXT], "COMING",
+                 "In the following # minutes", "%.0f", 0, 1440, 0, 0);
+    IUFillNumberVector(&CalculateSatTrajectoryForTimeNP, CalculateSatTrajectoryForTimeN,
+                       SAT_COUNT, getDeviceName(), "TRAJECTORY_TIME",
+                       "Trajectory calculation for a time", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
+
+    IUFillSwitch(&TrackSatS[SAT_TRACK], "Track", "Track", ISS_OFF);
+    IUFillSwitch(&TrackSatS[SAT_HALT], "Halt", "Halt", ISS_ON);
+    IUFillSwitchVector(&TrackSatSP, TrackSatS, SAT_TRACK_COUNT, getDeviceName(), "SAT_TRACKING_STAT",
+                       "Satellite tracking", SATELLITE_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+
 
     return result;
 }
@@ -178,6 +200,9 @@ bool LX200_10MICRON::updateProperties()
         defineNumber(&NewAlignmentPointsNP);
         defineText(&NewModelNameTP);
         defineText(&TLEtoUploadTP);
+        defineNumber(&TLEfromDatabaseNP);
+        defineNumber(&CalculateSatTrajectoryForTimeNP);
+        defineSwitch(&TrackSatSP);
     }
     else
     {
@@ -193,6 +218,9 @@ bool LX200_10MICRON::updateProperties()
         deleteProperty(NewAlignmentPointsNP.name);
         deleteProperty(NewModelNameTP.name);
         deleteProperty(TLEtoUploadTP.name);
+        deleteProperty(TLEfromDatabaseNP);
+        deleteProperty(CalculateSatTrajectoryforTimeNP);
+        deleteProperty(TrackSatSP);
     }
     bool result = LX200Generic::updateProperties();
     return result;
@@ -779,7 +807,7 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
             return true;
         }
         //TODO: add function to upload the TLE? --> if/else clause here to directly upload the TLE
-        if (strcmp(name, "TLE") == 0)
+        if (strcmp(name, "TLE_TEXT") == 0)
         {
           IUUpdateText(&TLEtoUploadTP, texts, names, n);
           if (0 == setTLEtoFollow(TLEtoUploadT[0].text))
