@@ -122,7 +122,7 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
 
     private:
         bool setTrackMode(CELESTRON_TRACK_MODE mode);
-        bool checkMinVersion(float minVersion, const char *feature);
+        bool checkMinVersion(float minVersion, const char *feature, bool debug = false);
         void checkAlignment();
 
         double currentRA, currentDEC, currentAZ, currentALT;

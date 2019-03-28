@@ -35,6 +35,8 @@ Version with experimental pulse guide support. GC 04.12.2015
 #include <cstring>
 #include <unistd.h>
 
+//#include <time.h>
+
 // Simulation Parameters
 #define GOTO_RATE       5        // slew rate, degrees/s
 #define SLEW_RATE       0.5      // slew rate, degrees/s
@@ -105,15 +107,20 @@ CelestronGPS::CelestronGPS() : FI(this)
     // Unused option: FOCUSER_HAS_VARIABLE_SPEED
 }
 
-bool CelestronGPS::checkMinVersion(float minVersion, const char *feature)
+bool CelestronGPS::checkMinVersion(float minVersion, const char *feature, bool debug)
 {
     if (((fwInfo.controllerVariant == ISSTARSENSE) &&
          (fwInfo.controllerVersion < MINSTSENSVER)) ||
         ((fwInfo.controllerVariant == ISNEXSTAR) &&
          (fwInfo.controllerVersion < minVersion)))
     {
-        LOGF_WARN("Firmware v%3.1f does not support %s. Minimun required version is %3.1f",
-                fwInfo.controllerVersion, feature, minVersion);
+        if (debug)
+            LOGF_DEBUG("Firmware v%3.2f does not support %s. Minimun required version is %3.2f",
+                    fwInfo.controllerVersion, feature, minVersion);
+        else
+            LOGF_WARN("Firmware v%3.2f does not support %s. Minimun required version is %3.2f",
+                    fwInfo.controllerVersion, feature, minVersion);
+
         return false;
     }
     return true;
@@ -253,7 +260,6 @@ bool CelestronGPS::updateProperties()
             IUSaveText(&FirmwareT[FW_RA], fwInfo.RAFirmware.c_str());
             IUSaveText(&FirmwareT[FW_DEC], fwInfo.DEFirmware.c_str());
 
-            //usePreciseCoords = (fwInfo.controllerVersion > 2.2);
             usePreciseCoords = (checkMinVersion(2.2, "usePreciseCoords"));
         }
         else
@@ -294,7 +300,7 @@ bool CelestronGPS::updateProperties()
         else
             LOG_WARN("Mount firmware does not support track mode.");
 
-        if (fwInfo.isGem  && checkMinVersion(4.15, "Pier Side"))
+        if (fwInfo.isGem  && checkMinVersion(4.15, "Pier Side", true))
             cap |= TELESCOPE_HAS_PIER_SIDE;
         else
             LOG_WARN("Mount firmware does not support getting pier side.");
@@ -371,7 +377,8 @@ bool CelestronGPS::updateProperties()
         {
             double utc_offset;
             int yy, dd, mm, hh, minute, ss;
-            if (driver.get_utc_date_time(&utc_offset, &yy, &mm, &dd, &hh, &minute, &ss))
+            bool precise = checkMinVersion(5.28, "precise time", true);
+            if (driver.get_utc_date_time(&utc_offset, &yy, &mm, &dd, &hh, &minute, &ss, precise))
             {
                 char isoDateTime[32];
                 char utcOffset[8];
@@ -383,7 +390,7 @@ bool CelestronGPS::updateProperties()
                 IUSaveText(IUFindText(&TimeTP, "OFFSET"), utcOffset);
 
                 LOGF_INFO("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
-                LOGF_DEBUG("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
+                //LOGF_DEBUG("Mount UTC offset is %s. UTC time is %s", utcOffset, isoDateTime);
 
                 TimeTP.s = IPS_OK;
                 IDSetText(&TimeTP, nullptr);
@@ -643,7 +650,7 @@ bool CelestronGPS::ReadScopeStatus()
         {
             slewToIndex = false;
             // reached the index position.
-            // consider setting the time
+
             // do an alignment
             if (strcmp(fwInfo.Model.c_str(), "CGX") != 0)
             {
@@ -656,6 +663,7 @@ bool CelestronGPS::ReadScopeStatus()
                 LOG_ERROR("LastAlign failed");
                 return false;
             }
+
             LastAlignSP.s = IPS_IDLE;
             IDSetSwitch(&LastAlignSP, "Align finished");
 
@@ -663,6 +671,8 @@ bool CelestronGPS::ReadScopeStatus()
                 LOG_INFO("Mount is aligned");
             else
                 LOG_WARN("Alignment Failed!");
+
+            driver.unsync();
 
             return true;
         }
@@ -863,14 +873,17 @@ bool CelestronGPS::ISNewSwitch(const char *dev, const char *name, ISState *state
         if (!strcmp(name, UseHibernateSP.name))
         {
             IUUpdateSwitch(&UseHibernateSP, states, names, n);
-            if (UseHibernateS[0].s == ISS_ON && checkMinVersion(4.22, "hibernation") == false)
+            if (fwInfo.controllerVersion > 0)
             {
-                UseHibernateS[0].s = ISS_OFF;
-                UseHibernateS[1].s = ISS_ON;
-                UseHibernateSP.s = IPS_ALERT;
+                if (UseHibernateS[0].s == ISS_ON && (checkMinVersion(4.22, "hibernation", true) == false))
+                {
+                    UseHibernateS[0].s = ISS_OFF;
+                    UseHibernateS[1].s = ISS_ON;
+                    UseHibernateSP.s = IPS_ALERT;
+                }
+                else
+                    UseHibernateSP.s = IPS_OK;
             }
-            else
-                UseHibernateSP.s = IPS_OK;
             IDSetSwitch(&UseHibernateSP, nullptr);
             return true;
         }
@@ -1218,7 +1231,12 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
     if (!checkMinVersion(2.3, "updating time"))
         return false;
 
-    return (driver.set_datetime(utc, utc_offset));
+    bool precise = checkMinVersion(5.28, "precise time", true);
+
+    LOGF_DEBUG("Update time: offset %f UTC %i-%02i-%02iT%02i:%02i:%02i", utc_offset, utc->years, utc->months, utc->days,
+               utc->hours, utc->minutes, utc->seconds);
+
+    return (driver.set_datetime(utc, utc_offset, precise));
 }
 
 bool CelestronGPS::Park()
@@ -1229,6 +1247,10 @@ bool CelestronGPS::Park()
     char AzStr[16], AltStr[16];
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
+
+    if (!driver.unsync())
+        return false;
+
     LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
 
     if (driver.slew_azalt(parkAZ, parkAlt, usePreciseCoords))
