@@ -133,7 +133,7 @@ bool LX200_10MICRON::initProperties()
     IUFillTextVector(&NewModelNameTP, NewModelNameT, 1, getDeviceName(), "NEW_MODEL_NAME", "New Name", ALIGNMENT_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    IUFillText(&TLEtoUploadT[0], "TLE", "TLE", "");
+    IUFillText(&TLEtoUploadT[0], "TLE", "TLE", "test");
     IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(), "TLE", "TLE", SATELLITE_TAB,
                      IP_RW, 60, IPS_IDLE);
 
@@ -524,8 +524,11 @@ bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 
 bool LX200_10MICRON::setTLEtoFollow(const char *tle)
 {
-  LOG_INFO("The function is called");
-  LOGF_INFO("Selected TLE %s", tle);
+  LOGF_INFO("The function is called with TLE %s", tle);
+  if (strcmp(tle,"testa")==0)
+    {
+      return 1;
+    }
   return 0;
 }
 
@@ -778,13 +781,20 @@ bool LX200_10MICRON::ISNewText(const char *dev, const char *name, char *texts[],
         //TODO: add function to upload the TLE? --> if/else clause here to directly upload the TLE
         if (strcmp(name, "TLE") == 0)
         {
-          if (0 != setTLEtoFollow(TLEtoUploadT[0].text))
+          IUUpdateText(&TLEtoUploadTP, texts, names, n);
+          if (0 == setTLEtoFollow(TLEtoUploadT[0].text))
             {
-              IUUpdateText(&TLEtoUploadTP, texts, names, n);
               TLEtoUploadTP.s = IPS_OK;
               IDSetText(&TLEtoUploadTP, nullptr);
               LOGF_INFO("Selected TLE %s", TLEtoUploadT[0].text);
               return true;
+            }
+          else
+            {
+              TLEtoUploadTP.s = IPS_ALERT;
+              IDSetText(&TLEtoUploadTP, nullptr);
+              LOG_ERROR("TLE was not correctly uploaded");
+              return false;
             }
         }
     }

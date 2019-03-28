@@ -157,6 +157,9 @@ class LX200_10MICRON : public LX200Generic
     IText TLEtoUploadT[1] {};
     ITextVectorProperty TLEtoUploadTP;
 
+    INumber TLEfromDatabaseN[1];
+    INumberVectorProperty TLEfromDatabaseNP;
+
 
   private:
     int fd = -1; // short notation for PortFD/sockfd
