@@ -54,6 +54,9 @@ private:
 
     void LogResponse(const std::string &cmd, const starbook::ResponseCode &rc);
 
+public:
+    void TimerHit() override;
+
 protected:
     IText VersionT[1]{};
 

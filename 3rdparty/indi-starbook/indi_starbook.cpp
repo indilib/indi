@@ -30,24 +30,53 @@
 
 static std::unique_ptr<StarbookDriver> starbook_driver(new StarbookDriver());
 
+void log_exception(const char *dev, const char *what) {
+    // NOTE: temporary solution to log driver failing and being silently restarted by server
+    INDI::Logger::getInstance().print(dev, INDI::Logger::DBG_ERROR, __FILE__, __LINE__, what);
+}
+
 void ISGetProperties(const char* dev)
 {
-    starbook_driver->ISGetProperties(dev);
+    try {
+        starbook_driver->ISGetProperties(dev);
+    }
+    catch (std::exception &e) {
+        log_exception(starbook_driver->getDeviceName(), e.what());
+        throw e;
+    }
 }
 
 void ISNewSwitch(const char* dev, const char* name, ISState* states, char* names[], int n)
 {
-    starbook_driver->ISNewSwitch(dev, name, states, names, n);
+    try {
+        starbook_driver->ISNewSwitch(dev, name, states, names, n);
+    }
+    catch (std::exception &e) {
+        log_exception(starbook_driver->getDeviceName(), e.what());
+        throw e;
+    }
 }
 
 void ISNewText(const char* dev, const char* name, char* texts[], char* names[], int n)
 {
-    starbook_driver->ISNewText(dev, name, texts, names, n);
+    try {
+        starbook_driver->ISNewText(dev, name, texts, names, n);
+    }
+    catch (std::exception &e) {
+        log_exception(starbook_driver->getDeviceName(), e.what());
+        throw e;
+    }
 }
 
 void ISNewNumber(const char* dev, const char* name, double values[], char* names[], int n)
 {
-    starbook_driver->ISNewNumber(dev, name, values, names, n);
+    try {
+        starbook_driver->ISNewNumber(dev, name, values, names, n);
+    }
+    catch (std::exception &e) {
+        log_exception(starbook_driver->getDeviceName(), e.what());
+        throw e;
+    }
 }
 
 void ISNewBLOB(const char* dev, const char* name, int sizes[], int blobsizes[], char* blobs[],
@@ -449,4 +478,15 @@ bool StarbookDriver::ISNewSwitch(const char *dev, const char *name, ISState *sta
     }
 
     return Telescope::ISNewSwitch(dev, name, states, names, n);
+}
+
+void StarbookDriver::TimerHit() {
+    try {
+        Telescope::TimerHit();
+    }
+    catch (std::exception &e) {
+        log_exception(getDeviceName(), e.what());
+        throw e;
+    }
+
 }
