@@ -83,7 +83,9 @@ namespace starbook {
         INIT, /* Initial state after boot */
         GUIDE, /* ??? */
         SCOPE, /* After START command or user input */
+        CHART, /* When users explores internal sky map??? */
         USER,
+        ALTAZ, /* No idea, also found in code dump */
         UNKNOWN,
     };
 
@@ -93,6 +95,7 @@ namespace starbook {
         ERROR_ILLEGAL_STATE, /* Starbook has wrong internal state to accept command */
         ERROR_FORMAT, /* who knows... */
         ERROR_BELOW_HORIZON, /* Starbook thinks that issued movement command will bring scope horizon */
+        ERROR_POINT, /* Found in code dump, no idea */
         ERROR_UNKNOWN, /* no specified reason */
     };
 

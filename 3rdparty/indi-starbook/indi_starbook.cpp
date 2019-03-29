@@ -192,6 +192,8 @@ bool StarbookDriver::ReadScopeStatus()
             break;
         case starbook::SCOPE:
         case starbook::GUIDE:
+        case starbook::CHART:
+        case starbook::ALTAZ:
             TrackState = res.executing_goto ? SCOPE_SLEWING : SCOPE_TRACKING;
             break;
         case starbook::UNKNOWN:
@@ -214,6 +216,12 @@ bool StarbookDriver::ReadScopeStatus()
             break;
         case starbook::UNKNOWN:
             IUSaveText(&StateT[0], "UNKNOWN");
+            break;
+        case starbook::ALTAZ:
+            IUSaveText(&StateT[0], "ALTAZ");
+            break;
+        case starbook::CHART:
+            IUSaveText(&StateT[0], "CHART");
             break;
     }
     failed_res = 0;
@@ -371,6 +379,9 @@ void StarbookDriver::LogResponse(const std::string &cmd, const starbook::Respons
         case starbook::ERROR_UNKNOWN:
             msg << "ERROR_UNKNOWN";
             break;
+        case starbook::ERROR_POINT:
+            msg << "ERROR_POINT";
+            break;
     }
 
     if (rc == starbook::ERROR_ILLEGAL_STATE) {
@@ -391,6 +402,12 @@ void StarbookDriver::LogResponse(const std::string &cmd, const starbook::Respons
                 break;
             case starbook::UNKNOWN:
                 msg << "UNKNOWN";
+                break;
+            case starbook::ALTAZ:
+                msg << "ALTAZ";
+                break;
+            case starbook::CHART:
+                msg << "CHART";
                 break;
         }
         msg << ")";
