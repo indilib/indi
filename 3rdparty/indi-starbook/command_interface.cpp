@@ -79,12 +79,8 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::SendOkCommand(const std::string &cmd) {
-        try {
-            CommandResponse res = CommandInterface::SendCommand(cmd);
-            return res.status;
-        } catch (int e) {
-            return ERROR_UNKNOWN;
-        }
+        CommandResponse res = CommandInterface::SendCommand(cmd);
+        return res.status;
     }
 
     ResponseCode CommandInterface::GotoRaDec(double ra, double dec) {
@@ -100,71 +96,45 @@ namespace starbook {
     }
 
     ResponseCode CommandInterface::Version(VersionResponse &res) {
-        try {
-            CommandResponse cmd_res = SendCommand("VERSION");
-            res = ParseVersionResponse(cmd_res);
-            return cmd_res.status;
-        } catch (int e) {
-            throw e; // let's handle it in driver to disconnect properly
-        }
-        catch (std::exception &e) {
-            return ERROR_FORMAT;
-        }
+        CommandResponse cmd_res = SendCommand("VERSION");
+        if (!cmd_res.status) return cmd_res.status;
+        res = ParseVersionResponse(cmd_res);
+        return cmd_res.status;
     }
 
     ResponseCode CommandInterface::GetStatus(StatusResponse &res) {
         CommandResponse cmd_res = SendCommand("GETSTATUS");
-        try {
-            res = ParseStatusResponse(cmd_res);
-            return cmd_res.status;
-        }
-        catch (std::exception &e) {
-            return ERROR_FORMAT;
-        }
+        if (!cmd_res.status) return cmd_res.status;
+        res = ParseStatusResponse(cmd_res);
+        return cmd_res.status;
     }
 
     ResponseCode CommandInterface::GetPlace(PlaceResponse &res) {
         CommandResponse cmd_res = SendCommand("GETPLACE");
-        try {
-            res = ParsePlaceResponse(cmd_res);
-            return cmd_res.status;
-        }
-        catch (std::exception &e) {
-            return ERROR_FORMAT;
-        }
+        if (!cmd_res.status) return cmd_res.status;
+        res = ParsePlaceResponse(cmd_res);
+        return cmd_res.status;
     }
 
     ResponseCode CommandInterface::GetTime(ln_date &res) {
         CommandResponse cmd_res = SendCommand("GETIME");
-        try {
-            res = ParseTimeResponse(cmd_res);
-            return cmd_res.status;
-        }
-        catch (std::exception &e) {
-            return ERROR_FORMAT;
-        }
+        if (!cmd_res.status) return cmd_res.status;
+        res = ParseTimeResponse(cmd_res);
+        return cmd_res.status;
     }
 
     ResponseCode CommandInterface::GetRound(long int &res) {
         CommandResponse cmd_res = SendCommand("GETROUND");
-        try {
-            res = ParseRoundResponse(cmd_res);
-            return cmd_res.status;
-        }
-        catch (std::exception &e) {
-            return ERROR_FORMAT;
-        }
+        if (!cmd_res.status) return cmd_res.status;
+        res = ParseRoundResponse(cmd_res);
+        return cmd_res.status;
     }
 
     ResponseCode CommandInterface::GetXY(XYResponse &res) {
         CommandResponse cmd_res = SendCommand("GETXY");
-        try {
-            res = ParseXYResponse(cmd_res);
-            return cmd_res.status;
-        }
-        catch (std::exception &e) {
-            return ERROR_FORMAT;
-        }
+        if (!cmd_res.status) return cmd_res.status;
+        res = ParseXYResponse(cmd_res);
+        return cmd_res.status;
     }
 
     ResponseCode CommandInterface::SetTime(ln_date &local_time) {
@@ -274,12 +244,12 @@ namespace starbook {
     }
 
     PlaceResponse CommandInterface::ParsePlaceResponse(const CommandResponse &response) {
-        if (!response.status) throw std::runtime_error("can't parse");
+        if (!response.status) throw std::runtime_error("can't parse place");
         return {{0, 0}, 0}; // TODO
     }
 
     ln_date CommandInterface::ParseTimeResponse(const CommandResponse &response) {
-        if (!response.status) throw std::runtime_error("can't parse");
+        if (!response.status) throw std::runtime_error("can't parse time");
         std::stringstream ss{response.payload.at("time")};
         DateTime time(0, 0, 0, 0, 0, 0);
         ss >> time;
@@ -287,7 +257,7 @@ namespace starbook {
     }
 
     XYResponse CommandInterface::ParseXYResponse(const CommandResponse &response) {
-        if (!response.status) throw std::runtime_error("can't parse");
+        if (!response.status) throw std::runtime_error("can't parse xy");
         return {
                 .x = std::stod(response.payload.at("X")),
                 .y = std::stod(response.payload.at("Y"))
@@ -295,7 +265,7 @@ namespace starbook {
     }
 
     long int CommandInterface::ParseRoundResponse(const CommandResponse &response) {
-        if (!response.status) throw std::runtime_error("can't parse");
+        if (!response.status) throw std::runtime_error("can't parse round");
         return std::stol(response.payload.at("ROUND"));
     }
 }
