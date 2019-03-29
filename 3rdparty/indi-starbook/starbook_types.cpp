@@ -113,6 +113,15 @@ std::istream &starbook::operator>>(std::istream &is, starbook::DateTime &utc) {
     return is;
 }
 
+std::ostream &starbook::operator<<(std::ostream &os, const starbook::LnLat &obj) {
+    os << setfill('0') << std::fixed << setprecision(0)
+       << "longitude=" << ((obj.lng > 0) ? "E" : "W")
+       << setw(2) << obj.lng
+       << "latitude=" << ((obj.lat > 0) ? "N" : "S")
+       << setw(2) << obj.lat;
+    return os;
+}
+
 starbook::CommandResponse::CommandResponse(const std::string &url_like) : status(OK), raw(url_like) {
     if (url_like.empty()) throw runtime_error("parsing error, no payload");
     if (url_like.rfind("OK", 0) == 0) {

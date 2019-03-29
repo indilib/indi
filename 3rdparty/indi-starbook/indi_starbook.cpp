@@ -199,9 +199,8 @@ bool StarbookDriver::ReadScopeStatus()
 {
     LOG_DEBUG("Status! Sending GETSTATUS command");
     starbook::StatusResponse res;
-    starbook::ResponseCode rc;
     try {
-        rc = cmd_interface->GetStatus(res);
+        cmd_interface->GetStatus(res);
     } catch (std::exception &e) {
         StateTP.s = IPS_ALERT;
         failed_res++;
@@ -232,29 +231,7 @@ bool StarbookDriver::ReadScopeStatus()
             break;
     }
 
-    switch (last_known_state) {
-        case starbook::INIT:
-            IUSaveText(&StateT[0], "INIT");
-            break;
-        case starbook::GUIDE:
-            IUSaveText(&StateT[0], "GUIDE");
-            break;
-        case starbook::SCOPE:
-            IUSaveText(&StateT[0], "SCOPE");
-            break;
-        case starbook::USER:
-            IUSaveText(&StateT[0], "USER");
-            break;
-        case starbook::UNKNOWN:
-            IUSaveText(&StateT[0], "UNKNOWN");
-            break;
-        case starbook::ALTAZ:
-            IUSaveText(&StateT[0], "ALTAZ");
-            break;
-        case starbook::CHART:
-            IUSaveText(&StateT[0], "CHART");
-            break;
-    }
+    IUSaveText(&StateT[0], starbook::state_str.at(last_known_state).c_str());
     failed_res = 0;
     StateTP.s = IPS_OK;
     IDSetText(&StateTP, nullptr);
@@ -347,7 +324,7 @@ bool StarbookDriver::updateLocation(double latitude, double longitude, double el
         LogResponse("updateLocation", starbook::ERROR_ILLEGAL_STATE);
         return false;
     }
-    int utc_offset = static_cast<int>(std::floor(std::strtof(TimeT[1].text, nullptr)));
+    auto utc_offset = static_cast<int>(std::floor(std::strtof(TimeT[1].text, nullptr)));
     starbook::LnLat posn(latitude, longitude);
     starbook::ResponseCode rc = cmd_interface->SetPlace(posn, utc_offset);
     LogResponse("updateLocation", rc);
@@ -409,32 +386,7 @@ void StarbookDriver::LogResponse(const std::string &cmd, const starbook::Respons
     }
 
     if (rc == starbook::ERROR_ILLEGAL_STATE) {
-        msg << " (";
-        switch (last_known_state) {
-
-            case starbook::INIT:
-                msg << "INIT";
-                break;
-            case starbook::GUIDE:
-                msg << "GUIDE";
-                break;
-            case starbook::SCOPE:
-                msg << "SCOPE";
-                break;
-            case starbook::USER:
-                msg << "USER";
-                break;
-            case starbook::UNKNOWN:
-                msg << "UNKNOWN";
-                break;
-            case starbook::ALTAZ:
-                msg << "ALTAZ";
-                break;
-            case starbook::CHART:
-                msg << "CHART";
-                break;
-        }
-        msg << ")";
+        msg << " (" << starbook::state_str.at(last_known_state) << ")";
     }
 
     msg << "]";

@@ -89,6 +89,16 @@ namespace starbook {
         UNKNOWN,
     };
 
+    static const std::map<StarbookState, std::string> state_str = {
+            {INIT,    "INIT"},
+            {GUIDE,   "GUIDE"},
+            {SCOPE,   "SCOPE"},
+            {CHART,   "CHART"},
+            {USER,    "USER"},
+            {ALTAZ,   "ALTAZ"},
+            {UNKNOWN, "UNKNOWN"},
+    };
+
     /// @brief possible response codes returned by starbook
     enum ResponseCode {
         OK = 0,
