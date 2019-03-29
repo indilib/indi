@@ -145,7 +145,18 @@ bool StarbookDriver::Connect()
 
 bool StarbookDriver::Disconnect()
 {
-    return Telescope::Disconnect();
+    if (isConnected()) {
+        bool rc = Telescope::Disconnect();
+        // Disconnection is successful, set it IDLE and updateProperties.
+        if (rc) {
+            setConnected(false, IPS_IDLE);
+            updateProperties();
+        } else
+            setConnected(true, IPS_ALERT);
+        return rc;
+    } else {
+        return false;
+    }
 }
 
 const char *StarbookDriver::getDefaultName()
@@ -167,7 +178,7 @@ bool StarbookDriver::ReadScopeStatus()
 
         if (failed_res > 3) {
             LOG_ERROR("Failed to keep connection, disconnecting");
-            Disconnect();
+            StarbookDriver::Disconnect();
             failed_res = 0;
         }
         return false;
