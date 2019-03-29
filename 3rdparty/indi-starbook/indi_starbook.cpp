@@ -1,3 +1,5 @@
+#include <cmath>
+
 /*
  Starbook mount driver
 
@@ -347,16 +349,14 @@ bool StarbookDriver::updateTime(ln_date *utc, double utc_offset) {
 
 bool StarbookDriver::updateLocation(double latitude, double longitude, double elevation) {
     INDI_UNUSED(elevation);
-    starbook::LnLat posn(latitude, longitude);
-    starbook::ResponseCode rc;
-    starbook::PlaceResponse res{{0, 0}, 0};
-    rc = cmd_interface->GetPlace(res);
-    if (!rc) {
-        LogResponse("updatePlace", rc);
+    if (last_known_state != starbook::INIT) {
+        LogResponse("updateLocation", starbook::ERROR_ILLEGAL_STATE);
         return false;
     }
-    rc = cmd_interface->SetPlace(posn, res.tz);
-    LogResponse("updatePlace", rc);
+    int utc_offset = static_cast<int>(std::floor(std::strtof(TimeT[1].text, nullptr)));
+    starbook::LnLat posn(latitude, longitude);
+    starbook::ResponseCode rc = cmd_interface->SetPlace(posn, utc_offset);
+    LogResponse("updateLocation", rc);
     return rc == starbook::OK;
 }
 
