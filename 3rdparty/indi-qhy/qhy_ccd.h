@@ -21,12 +21,11 @@
 
 #pragma once
 
-#include <qhycam.h>
 #include <qhyccd.h>
-
 #include <indiccd.h>
 #include <indifilterinterface.h>
 
+#include <unistd.h>
 #include <functional>
 #include <pthread.h>
 

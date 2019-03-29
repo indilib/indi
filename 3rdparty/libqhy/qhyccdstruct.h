@@ -4,6 +4,7 @@
 
 
 
+
 #if defined (_WIN32)
 #include <windows.h>
 #endif
@@ -28,6 +29,26 @@
 #endif
 
 #include "stdint.h"
+
+
+#if defined (_WIN32)
+
+#ifdef _M_IX86
+typedef uint32_t QHYDWORD; 
+#else
+typedef uint64_t QHYDWORD;
+#endif
+
+#else
+
+#ifdef __i386__
+typedef uint32_t QHYDWORD;  
+#else
+typedef uint64_t QHYDWORD;
+#endif
+
+#endif
+
 
 /**
  * usb vendor request command
@@ -201,7 +222,8 @@ enum CONTROL_ID
   OutputDataAlignment,
 
   CAM_SINGLEFRAMEMODE,
-  CAM_LIVEVIDEOMODE
+  CAM_LIVEVIDEOMODE,
+  CONTROL_MAX_ID
 };
 
 /**
@@ -222,13 +244,20 @@ enum CodecID
 
 typedef struct _QHYCameraParam
 {
-  char *name;
-  int min;
-  int max;
-  int step;
+  const char *name;
+  double min;
+  double max;
+  double step;
 }QHYCameraParam;
 
 
+
+#if CALLBACK_MODE_SUPPORT
+typedef uint32_t  (*QHYCCDProcCallBack) (void *handle,
+	QHYDWORD message, 
+	QHYDWORD wParam, 
+	QHYDWORD lParam);
+#endif
 
 
 #endif
