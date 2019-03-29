@@ -24,7 +24,6 @@
 
 #include <indicom.h>
 #include <cstring>
-#include <cmath>
 #include <regex>
 
 
@@ -80,7 +79,7 @@ void ISNewNumber(const char* dev, const char* name, double values[], char* names
 }
 
 void ISNewBLOB(const char* dev, const char* name, int sizes[], int blobsizes[], char* blobs[],
-    char* formats[], char* names[], int n)
+               char* formats[], char* names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -101,7 +100,8 @@ StarbookDriver::StarbookDriver()
 {
     setVersion(STARBOOK_DRIVER_VERSION_MAJOR, STARBOOK_DRIVER_VERSION_MINOR);
     SetTelescopeCapability(
-            TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME, 1);
+            TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME,
+            starbook::MAX_SPEED);
 
 //    we are using custom Connection::Curl
     setTelescopeConnection(CONNECTION_NONE);
@@ -318,6 +318,7 @@ bool StarbookDriver::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCom
 }
 
 bool StarbookDriver::SetSlewRate(int index) {
+    ++index; // MIN_SPEED is 1, index starts at 0
     starbook::ResponseCode rc = cmd_interface->SetSpeed(index);
     LogResponse("SetSlewRate", rc);
     return rc == starbook::OK;
