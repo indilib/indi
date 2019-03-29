@@ -5,6 +5,22 @@
 #include <gtest/gtest.h>
 #include "starbook_types.h"
 
+TEST(StarbookDriver, cmd_res) {
+    starbook::CommandResponse res1("OK");
+    ASSERT_EQ(res1.status, starbook::OK);
+    std::cerr << res1.status << " " << res1.raw;
+
+    starbook::CommandResponse res2("ERROR");
+    ASSERT_EQ(res2.status, starbook::ERROR_UNKNOWN);
+
+    starbook::CommandResponse res3("OK    ");
+    ASSERT_EQ(res3.status, starbook::OK);
+    std::cerr << res3.status << " " << res3.raw;
+
+    starbook::CommandResponse res4("    OK");
+    ASSERT_EQ(res4.status, starbook::OK);
+    std::cerr << res4.status << " " << res4.raw;
+}
 
 TEST(StarbookDriver, time) {
     std::ostringstream result;

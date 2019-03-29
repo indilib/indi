@@ -115,30 +115,30 @@ std::istream &starbook::operator>>(std::istream &is, starbook::DateTime &utc) {
 
 starbook::CommandResponse::CommandResponse(const std::string &url_like) : status{OK}, raw{url_like} {
     if (url_like.empty()) throw runtime_error("parsing error, no payload");
-    if (url_like.rfind("OK", 0) == 0 || url_like.rfind("ERROR", 0) == 0) {
-        if (url_like == "OK")
-            status = OK;
-        else if (url_like == "ERROR:FORMAT")
+    if (url_like.rfind("OK", 0) == 0) {
+        status = OK;
+    } else if (url_like.rfind("ERROR", 0) == 0) {
+        if (url_like.rfind("ERROR:FORMAT", 0) == 0)
             status = ERROR_FORMAT;
-        else if (url_like == "ERROR:ILLEGAL STATE")
+        else if (url_like.rfind("ERROR:ILLEGAL STATE", 0) == 0)
             status = ERROR_ILLEGAL_STATE;
-        else if (url_like == "ERROR:BELOW HORIZONE") /* it's not a typo */
+        else if (url_like.rfind("ERROR:BELOW HORIZONE", 0) == 0) /* it's not a typo */
             status = ERROR_BELOW_HORIZON;
-        status = ERROR_UNKNOWN;
-        return; /* commands with status codes don't contain payload */
+        else
+            status = ERROR_UNKNOWN;
+    } else {
+        std::string str_remaining = url_like;
+        std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
+        std::smatch sm;
+
+        while (regex_search(str_remaining, sm, param_re)) {
+            std::string key = sm[1].str();
+            std::string value = sm[2].str();
+
+            payload[key] = value;
+            str_remaining = sm.suffix();
+        }
+        if (!str_remaining.empty()) throw std::runtime_error("parsing error, couldn't parse full payload");
+        status = OK;
     }
-
-    std::string str_remaining = url_like;
-    std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
-    std::smatch sm;
-
-    while (regex_search(str_remaining, sm, param_re)) {
-        std::string key = sm[1].str();
-        std::string value = sm[2].str();
-
-        payload[key] = value;
-        str_remaining = sm.suffix();
-    }
-    if (!str_remaining.empty()) throw std::runtime_error("parsing error, couldn't parse full response");
-
 }
