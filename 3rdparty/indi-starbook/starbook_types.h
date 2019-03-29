@@ -44,14 +44,14 @@ namespace starbook {
         friend std::ostream &operator<<(std::ostream &os, const Equ &equ);
     };
 
-    struct UTC : ln_date {
+    struct DateTime : ln_date {
         // I regret my life decisions
-        UTC(int years, int months, int days, int hours, int minutes, double seconds)
+        DateTime(int years, int months, int days, int hours, int minutes, double seconds)
                 : ln_date{years, months, days, hours, minutes, seconds} {};
 
-        friend std::ostream &operator<<(std::ostream &os, const UTC &obj);
+        friend std::ostream &operator<<(std::ostream &os, const DateTime &obj);
 
-        friend std::istream &operator>>(std::istream &is, UTC &obj);
+        friend std::istream &operator>>(std::istream &is, DateTime &obj);
 
     };
 
@@ -71,9 +71,9 @@ namespace starbook {
 
     std::ostream &operator<<(std::ostream &os, const Equ &equ);
 
-    std::ostream &operator<<(std::ostream &os, const UTC &obj);
+    std::ostream &operator<<(std::ostream &os, const DateTime &obj);
 
-    std::istream &operator>>(std::istream &is, UTC &obj);
+    std::istream &operator>>(std::istream &is, DateTime &obj);
 
     std::ostream &operator<<(std::ostream &os, const LnLat &obj);
 

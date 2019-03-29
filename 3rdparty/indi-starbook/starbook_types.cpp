@@ -87,7 +87,7 @@ ostream &starbook::operator<<(ostream &os, const starbook::Equ &equ) {
 
 constexpr char sep = '+';
 
-ostream &starbook::operator<<(ostream &os, const starbook::UTC &obj) {
+ostream &starbook::operator<<(ostream &os, const starbook::DateTime &obj) {
     os << setfill('0') << std::fixed << setprecision(0)
        << obj.years << sep
        << setw(2) << obj.months << sep
@@ -98,7 +98,7 @@ ostream &starbook::operator<<(ostream &os, const starbook::UTC &obj) {
     return os;
 }
 
-std::istream &starbook::operator>>(std::istream &is, starbook::UTC &utc) {
+std::istream &starbook::operator>>(std::istream &is, starbook::DateTime &utc) {
     int Y, M, D, h, m, s;
     std::array<char, 5> ch = {};
     is >> Y >> ch[0] >> M >> ch[1] >> D >> ch[2] >> h >> ch[3] >> m >> ch[4] >> s;
@@ -109,7 +109,7 @@ std::istream &starbook::operator>>(std::istream &is, starbook::UTC &utc) {
             is.clear(ios_base::failbit);
             return is;
         }
-    utc = UTC(Y, M, D, h, m, static_cast<double>(s));
+    utc = DateTime(Y, M, D, h, m, static_cast<double>(s));
     return is;
 }
 

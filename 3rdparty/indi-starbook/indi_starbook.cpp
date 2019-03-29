@@ -290,6 +290,7 @@ bool StarbookDriver::updateTime(ln_date *utc, double utc_offset) {
     INDI_UNUSED(utc_offset);
     starbook::PlaceResponse res{{0, 0}, 0};
     starbook::ResponseCode rc;
+    utc->hours += floor(utc_offset); // fuck me
     rc = cmd_interface->SetTime(*utc);
     if (!rc) {
         LogResponse("updateTime", rc);

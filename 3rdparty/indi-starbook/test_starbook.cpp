@@ -9,19 +9,19 @@
 TEST(StarbookDriver, time) {
     std::ostringstream result;
 
-    result << starbook::UTC(2018, 10, 5, 12, 30, 4.4);
+    result << starbook::DateTime(2018, 10, 5, 12, 30, 4.4);
     ASSERT_EQ(result.str(), "2018+10+05+12+30+04");
 
     result.str("");
     result.clear();
 
-    result << starbook::UTC(2000, 1, 1, 1, 1, 0.);
+    result << starbook::DateTime(2000, 1, 1, 1, 1, 0.);
     ASSERT_EQ(result.str(), "2000+01+01+01+01+00");
 
     result.str("");
     result.clear();
 
-    result << starbook::UTC(2345, 12, 29, 23, 59, 59.99);
+    result << starbook::DateTime(2345, 12, 29, 23, 59, 59.99);
     ASSERT_EQ(result.str(), "2345+12+29+23+59+59");
 }
 

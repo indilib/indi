@@ -42,6 +42,7 @@ namespace starbook {
     CommandResponse CommandInterface::SendCommand(std::string cmd) {
         CURLcode rc;
         CURL *handle = connection->getHandle();
+
         last_response.clear();
         read_buffer.clear();
         std::ostringstream cmd_url;
@@ -166,9 +167,9 @@ namespace starbook {
         }
     }
 
-    ResponseCode CommandInterface::SetTime(ln_date &utc) {
+    ResponseCode CommandInterface::SetTime(ln_date &local_time) {
         std::ostringstream cmd;
-        cmd << "SETTIME?TIME=" << static_cast<starbook::UTC &>(utc);
+        cmd << "SETTIME?TIME=" << static_cast<starbook::DateTime &>(local_time);
         return SendOkCommand(cmd.str());
     }
 
@@ -274,7 +275,7 @@ namespace starbook {
     ln_date CommandInterface::ParseTimeResponse(const CommandResponse &response) {
         if (!response.status) throw std::runtime_error("can't parse");
         std::stringstream ss{response.payload.at("time")};
-        UTC time(0, 0, 0, 0, 0, 0);
+        DateTime time(0, 0, 0, 0, 0, 0);
         ss >> time;
         return time;
     }

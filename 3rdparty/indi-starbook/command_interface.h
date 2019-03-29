@@ -100,7 +100,7 @@ namespace starbook {
 
         ResponseCode SetPlace(LnLat posn, int tz);
 
-        ResponseCode SetTime(ln_date &utc);
+        ResponseCode SetTime(ln_date &local_time);
 
         ResponseCode SaveSetting() {
             return SendOkCommand("SAVESETTING");
