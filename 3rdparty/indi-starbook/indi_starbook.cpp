@@ -445,24 +445,12 @@ void StarbookDriver::LogResponse(const std::string &cmd, const starbook::Respons
     } else {
         LOG_INFO(msg.str().c_str());
     }
-//    LOGF_DEBUG("extracted response:", cmd_interface->last_response.c_str());
 }
 
 bool StarbookDriver::ISNewSwitch(const char *dev, const char *name, ISState *states, char **names, int n) {
 
     if (!strcmp(name, StartSP.name)) {
-        IUResetSwitch(&StartSP);
-
-        if (last_known_state == starbook::INIT) {
-            if (cmd_interface->Start()) {
-                StartSP.s = IPS_OK;
-            }
-        } else {
-            LOG_ERROR("Already initialized");
-            StartSP.s = IPS_ALERT;
-        }
-        IDSetSwitch(&StartSP, nullptr);
-        return true;
+        return performStart();
     }
 
     if (!strcmp(name, "CONNECTION_MODE")) {
@@ -473,6 +461,20 @@ bool StarbookDriver::ISNewSwitch(const char *dev, const char *name, ISState *sta
     }
 
     return Telescope::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool StarbookDriver::performStart() {
+    IUResetSwitch(&StartSP);
+    if (last_known_state == starbook::INIT) {
+        if (cmd_interface->Start()) {
+            StartSP.s = IPS_OK;
+        }
+    } else {
+        LOG_ERROR("Already initialized");
+        StartSP.s = IPS_ALERT;
+    }
+    IDSetSwitch(&StartSP, nullptr);
+    return true;
 }
 
 void StarbookDriver::TimerHit() {

@@ -99,4 +99,6 @@ protected:
     bool updateTime(ln_date *utc, double utc_offset) override;
 
     bool getFirmwareVersion();
+
+    bool performStart();
 };
