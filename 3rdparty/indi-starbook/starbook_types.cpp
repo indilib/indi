@@ -113,10 +113,11 @@ std::istream &starbook::operator>>(std::istream &is, starbook::DateTime &utc) {
     return is;
 }
 
-starbook::CommandResponse::CommandResponse(const std::string &url_like) : status{OK}, raw{url_like} {
+starbook::CommandResponse::CommandResponse(const std::string &url_like) : status(OK), raw(url_like) {
     if (url_like.empty()) throw runtime_error("parsing error, no payload");
     if (url_like.rfind("OK", 0) == 0) {
         status = OK;
+        return;
     } else if (url_like.rfind("ERROR", 0) == 0) {
         if (url_like.rfind("ERROR:FORMAT", 0) == 0)
             status = ERROR_FORMAT;
@@ -126,6 +127,7 @@ starbook::CommandResponse::CommandResponse(const std::string &url_like) : status
             status = ERROR_BELOW_HORIZON;
         else
             status = ERROR_UNKNOWN;
+        return;
     } else {
         std::string str_remaining = url_like;
         std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
@@ -138,6 +140,7 @@ starbook::CommandResponse::CommandResponse(const std::string &url_like) : status
             payload[key] = value;
             str_remaining = sm.suffix();
         }
+        if (payload.empty()) throw std::runtime_error("parsing error, couldn't parse any field");
         if (!str_remaining.empty()) throw std::runtime_error("parsing error, couldn't parse full payload");
         status = OK;
     }

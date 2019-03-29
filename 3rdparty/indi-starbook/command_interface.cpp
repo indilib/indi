@@ -97,42 +97,42 @@ namespace starbook {
 
     ResponseCode CommandInterface::Version(VersionResponse &res) {
         CommandResponse cmd_res = SendCommand("VERSION");
-        if (!cmd_res.status) return cmd_res.status;
+        if (cmd_res.status != OK) return cmd_res.status;
         res = ParseVersionResponse(cmd_res);
         return cmd_res.status;
     }
 
     ResponseCode CommandInterface::GetStatus(StatusResponse &res) {
         CommandResponse cmd_res = SendCommand("GETSTATUS");
-        if (!cmd_res.status) return cmd_res.status;
+        if (cmd_res.status != OK) return cmd_res.status;
         res = ParseStatusResponse(cmd_res);
         return cmd_res.status;
     }
 
     ResponseCode CommandInterface::GetPlace(PlaceResponse &res) {
         CommandResponse cmd_res = SendCommand("GETPLACE");
-        if (!cmd_res.status) return cmd_res.status;
+        if (cmd_res.status != OK) return cmd_res.status;
         res = ParsePlaceResponse(cmd_res);
         return cmd_res.status;
     }
 
     ResponseCode CommandInterface::GetTime(ln_date &res) {
         CommandResponse cmd_res = SendCommand("GETIME");
-        if (!cmd_res.status) return cmd_res.status;
+        if (cmd_res.status != OK) return cmd_res.status;
         res = ParseTimeResponse(cmd_res);
         return cmd_res.status;
     }
 
     ResponseCode CommandInterface::GetRound(long int &res) {
         CommandResponse cmd_res = SendCommand("GETROUND");
-        if (!cmd_res.status) return cmd_res.status;
+        if (cmd_res.status != OK) return cmd_res.status;
         res = ParseRoundResponse(cmd_res);
         return cmd_res.status;
     }
 
     ResponseCode CommandInterface::GetXY(XYResponse &res) {
         CommandResponse cmd_res = SendCommand("GETXY");
-        if (!cmd_res.status) return cmd_res.status;
+        if (cmd_res.status != OK) return cmd_res.status;
         res = ParseXYResponse(cmd_res);
         return cmd_res.status;
     }

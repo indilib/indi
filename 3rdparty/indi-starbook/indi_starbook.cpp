@@ -329,16 +329,16 @@ bool StarbookDriver::updateTime(ln_date *utc, double utc_offset) {
     starbook::ResponseCode rc;
     utc->hours += floor(utc_offset); // fuck me
     rc = cmd_interface->SetTime(*utc);
-    if (!rc) {
-        LogResponse("updateTime", rc);
-        return false;
-    }
-    rc = cmd_interface->GetPlace(res);
-    if (!rc) {
-        LogResponse("updateTime", rc);
-        return false;
-    }
-    rc = cmd_interface->SetPlace(res.posn, floor(utc_offset));
+//    if (!rc) {
+//        LogResponse("updateTime", rc);
+//        return false;
+//    }
+//    rc = cmd_interface->GetPlace(res);
+//    if (!rc) {
+//        LogResponse("updateTime", rc);
+//        return false;
+//    }
+//    rc = cmd_interface->SetPlace(res.posn, floor(utc_offset));
     LogResponse("updateTime", rc);
     return rc == starbook::OK;
 
@@ -445,7 +445,7 @@ void StarbookDriver::LogResponse(const std::string &cmd, const starbook::Respons
     msg << "]";
 
     if (rc != starbook::OK) {
-        msg << ": " << cmd_interface->getLastResponse();
+        msg << ": \"" << cmd_interface->getLastResponse() << "\"";
         LOG_ERROR(msg.str().c_str());
     } else {
         LOG_INFO(msg.str().c_str());
