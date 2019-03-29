@@ -263,6 +263,12 @@ namespace starbook {
             return USER;
         else if (value == "INIT")
             return INIT;
+        else if (value == "CHART")
+            return CHART;
+        else if (value == "GUIDE")
+            return GUIDE;
+        else if (value == "ALTAZ")
+            return ALTAZ;
 
         return UNKNOWN;
     }
