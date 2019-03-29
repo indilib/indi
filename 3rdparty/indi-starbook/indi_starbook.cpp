@@ -328,20 +328,14 @@ bool StarbookDriver::SetSlewRate(int index) {
 
 bool StarbookDriver::updateTime(ln_date *utc, double utc_offset) {
     INDI_UNUSED(utc_offset);
-    starbook::PlaceResponse res{{0, 0}, 0};
+    if (last_known_state != starbook::INIT) {
+        LogResponse("updateTime", starbook::ERROR_ILLEGAL_STATE);
+        return false;
+    }
     starbook::ResponseCode rc;
-    utc->hours += floor(utc_offset); // fuck me
+    utc->hours += floor(utc_offset); // starbook stores local time, go figure
+//    utc->minutes += floor((utc_offset - floor(utc_offset)) * 60);
     rc = cmd_interface->SetTime(*utc);
-//    if (!rc) {
-//        LogResponse("updateTime", rc);
-//        return false;
-//    }
-//    rc = cmd_interface->GetPlace(res);
-//    if (!rc) {
-//        LogResponse("updateTime", rc);
-//        return false;
-//    }
-//    rc = cmd_interface->SetPlace(res.posn, floor(utc_offset));
     LogResponse("updateTime", rc);
     return rc == starbook::OK;
 
