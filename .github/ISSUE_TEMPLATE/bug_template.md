@@ -21,7 +21,8 @@ labels: bug
 
 ## Steps to Reproduce
 <!--- Provide a link to a live example, or an unambiguous set of steps to -->
-<!--- reproduce this bug. Include code to reproduce, if relevant -->
+<!--- reproduce this bug. Include log files if relevant -->
+<!--- https://indilib.org/support/logs-submission.html -->
 1.
 2.
 3.
@@ -29,7 +30,7 @@ labels: bug
 
 ## Context
 <!--- How has this bug affected you? What were you trying to accomplish? -->
-<!--- Attaching log files will be greatly appreciated, https://indilib.org/support/logs-submission.html -->
+
 
 ## Your Environment
 <!--- Include as many relevant details about the environment you experienced the bug in -->
