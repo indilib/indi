@@ -100,7 +100,7 @@ ostream &starbook::operator<<(ostream &os, const starbook::DateTime &obj) {
 
 std::istream &starbook::operator>>(std::istream &is, starbook::DateTime &utc) {
     int Y, M, D, h, m, s;
-    std::array<char, 5> ch = {};
+    std::array<char, 5> ch = {'\0'};
     is >> Y >> ch[0] >> M >> ch[1] >> D >> ch[2] >> h >> ch[3] >> m >> ch[4] >> s;
 
     if (!is) return is;
