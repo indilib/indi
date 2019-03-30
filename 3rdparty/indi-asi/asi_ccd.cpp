@@ -223,7 +223,6 @@ ASICCD::ASICCD(ASI_CAMERA_INFO *camInfo, std::string cameraName)
     NSDir = ASI_GUIDE_NORTH;
     WEDir = ASI_GUIDE_WEST;
 
-    //snprintf(this->name, MAXINDIDEVICE, "ZWO CCD %s", m_camInfo->Name + 4);
     strncpy(this->name, cameraName.c_str(), MAXINDIDEVICE);
     setDeviceName(this->name);
 }
@@ -1189,8 +1188,8 @@ int ASICCD::grabImage()
     else
         PrimaryCCD.setNAxis(2);
 
-    // If we're sending Luma or RGB, turn off bayering
-    if (type == ASI_IMG_Y8 || type == ASI_IMG_RGB24)
+    // If mono camera or we're sending Luma or RGB, turn off bayering
+    if (m_camInfo->IsColorCam == false || type == ASI_IMG_Y8 || type == ASI_IMG_RGB24)
         SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
     else
         SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
