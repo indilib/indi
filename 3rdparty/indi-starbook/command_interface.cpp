@@ -216,7 +216,7 @@ namespace starbook {
         std::regex param_re(R"(((\d+\.\d+)\w+))");
         std::smatch sm;
         if (!regex_search(response.payload.at("version"), sm, param_re)) {
-            throw;
+            throw std::runtime_error("parsing error, version string not found");
         }
 
         result.full_str = sm[1].str();
@@ -225,21 +225,10 @@ namespace starbook {
     }
 
     StarbookState CommandInterface::ParseState(const std::string &value) {
-        if (value == "SCOPE")
-            return SCOPE;
-        else if (value == "GUIDE")
-            return GUIDE;
-        else if (value == "USER")
-            return USER;
-        else if (value == "INIT")
-            return INIT;
-        else if (value == "CHART")
-            return CHART;
-        else if (value == "GUIDE")
-            return GUIDE;
-        else if (value == "ALTAZ")
-            return ALTAZ;
-
+        for (std::pair<StarbookState, std::string> element : STATE_TO_STR) {
+            if (value == element.second)
+                return element.first;
+        }
         return UNKNOWN;
     }
 

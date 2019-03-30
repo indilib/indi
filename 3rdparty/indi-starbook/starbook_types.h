@@ -89,7 +89,7 @@ namespace starbook {
         UNKNOWN,
     };
 
-    static const std::map<StarbookState, std::string> state_str = {
+    static const std::map<StarbookState, std::string> STATE_TO_STR = {
             {INIT,    "INIT"},
             {GUIDE,   "GUIDE"},
             {SCOPE,   "SCOPE"},

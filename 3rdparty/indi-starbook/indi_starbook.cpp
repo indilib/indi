@@ -103,7 +103,7 @@ StarbookDriver::StarbookDriver()
     setVersion(STARBOOK_DRIVER_VERSION_MAJOR, STARBOOK_DRIVER_VERSION_MINOR);
     SetTelescopeCapability(
             TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME,
-            starbook::MAX_SPEED);
+            starbook::MAX_SPEED + 1);
 
 //    we are using custom Connection::Curl
     setTelescopeConnection(CONNECTION_NONE);
@@ -231,7 +231,7 @@ bool StarbookDriver::ReadScopeStatus()
             break;
     }
 
-    IUSaveText(&StateT[0], starbook::state_str.at(last_known_state).c_str());
+    IUSaveText(&StateT[0], starbook::STATE_TO_STR.at(last_known_state).c_str());
     failed_res = 0;
     StateTP.s = IPS_OK;
     IDSetText(&StateTP, nullptr);
@@ -297,7 +297,6 @@ bool StarbookDriver::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCom
 }
 
 bool StarbookDriver::SetSlewRate(int index) {
-    ++index; // MIN_SPEED is 1, index starts at 0
     starbook::ResponseCode rc = cmd_interface->SetSpeed(index);
     LogResponse("SetSlewRate", rc);
     return rc == starbook::OK;
@@ -386,7 +385,7 @@ void StarbookDriver::LogResponse(const std::string &cmd, const starbook::Respons
     }
 
     if (rc == starbook::ERROR_ILLEGAL_STATE) {
-        msg << " (" << starbook::state_str.at(last_known_state) << ")";
+        msg << " (" << starbook::STATE_TO_STR.at(last_known_state) << ")";
     }
 
     msg << "]";
