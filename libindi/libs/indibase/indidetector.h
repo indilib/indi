@@ -31,6 +31,7 @@ extern const char *CAPTURE_SETTINGS_TAB;
 extern const char *CAPTURE_INFO_TAB;
 extern const char *GUIDE_HEAD_TAB;
 
+
 /**
  * @brief The DetectorDevice class provides functionality of a Detector Device within a Detector.
  */
@@ -405,7 +406,6 @@ class DetectorDevice
 
 namespace INDI
 {
-
 class Detector : public DefaultDevice
 {
     public:
@@ -635,8 +635,6 @@ class Detector : public DefaultDevice
          */
         virtual bool saveConfigItems(FILE *fp);
 
-        double lat, Lon, El;
-        double RA, Dec;
         double primaryAperture;
         double primaryFocalLength;
         bool InCapture;
@@ -699,6 +697,8 @@ class Detector : public DefaultDevice
         };
 
     private:
+        double Lat, Lon, El;
+        double RA, Dec;
         uint32_t capability;
 
         bool uploadFile(DetectorDevice *targetDevice, const void *fitsData, size_t totalBytes, bool sendCapture, bool saveCapture, int blobindex);
