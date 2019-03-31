@@ -189,7 +189,7 @@ class DetectorDevice
          * yourself (i.e. allocMem is false), then you must call this function to set the pointer
          * to the raw frame buffer.
          */
-        void setContinuumBuffer(uint8_t *buffer)
+        inline void setContinuumBuffer(uint8_t *buffer)
         {
             ContinuumBuffer = buffer;
         }
@@ -202,7 +202,7 @@ class DetectorDevice
          * yourself (i.e. allocMem is false), then you must call this function to set the pointer
          * to the raw frame buffer.
          */
-        void setTimeDeviationBuffer(uint8_t *buffer)
+        inline void setTimeDeviationBuffer(uint8_t *buffer)
         {
             TimeDeviationBuffer = buffer;
         }
@@ -215,7 +215,7 @@ class DetectorDevice
          * yourself (i.e. allocMem is false), then you must call this function to set the pointer
          * to the raw frame buffer.
          */
-        void setSpectrumBuffer(uint8_t *buffer)
+        inline void setSpectrumBuffer(uint8_t *buffer)
         {
             SpectrumBuffer = buffer;
         }
@@ -223,7 +223,7 @@ class DetectorDevice
         /**
          * @brief Return Detector Info Property
          */
-        INumberVectorProperty *getDetectorSettings()
+        inline INumberVectorProperty *getDetectorSettings()
         {
             return &DetectorSettingsNP;
         }
@@ -340,7 +340,7 @@ class DetectorDevice
         /**
          * @return Return capture extension (fits, jpeg, raw..etc)
          */
-        char *getCaptureExtension()
+        inline char *getCaptureExtension()
         {
             return captureExtention;
         }
@@ -348,7 +348,7 @@ class DetectorDevice
         /**
          * @return True if Detector is currently exposing, false otherwise.
          */
-        bool isCapturing()
+        inline bool isCapturing()
         {
             return (FramedCaptureNP.s == IPS_BUSY);
         }
@@ -635,6 +635,7 @@ class Detector : public DefaultDevice
          */
         virtual bool saveConfigItems(FILE *fp);
 
+        double lat, Lon, El;
         double RA, Dec;
         double primaryAperture;
         double primaryFocalLength;

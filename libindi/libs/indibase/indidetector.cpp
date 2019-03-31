@@ -795,6 +795,24 @@ void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uin
         fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
     }
 
+    Lat = this->getNumber("GEOGRAPHIC_COORDS")->np[0];
+    Lon = this->getNumber("GEOGRAPHIC_COORDS")->np[1];
+    El = this->getNumber("GEOGRAPHIC_COORDS")->np[2];
+
+    if (Lat != -1000 && Lon != -1000 && El != -1000)
+    {
+        char lat_str = fs_sexa(ra_str, Lat, 2, 360000);
+        char lon_str = fs_sexa(ra_str, Lon, 2, 360000);
+        char el_str[150];
+        sprintf(el_str, "%lf", El);
+        fits_update_key_s(fptr, TSTRING, "LAT", lat_str, "Location Latitude", &status);
+        fits_update_key_s(fptr, TSTRING, "LONG", lon_str, "Location Longitude", &status);
+        fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
+    }
+
+    RA = this->getNumber("EQUATORIAL_EOD_COORDS")->np[0];
+    Dec = this->getNumber("EQUATORIAL_EOD_COORDS")->np[1];
+
     if (RA != -1000 && Dec != -1000)
     {
         ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
