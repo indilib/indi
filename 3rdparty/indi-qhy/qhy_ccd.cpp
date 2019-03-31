@@ -1198,14 +1198,15 @@ void QHYCCD::TimerHit()
         int rc = GetQHYCCDCFWStatus(m_CameraHandle, currentPos);
         if (rc == QHYCCD_SUCCESS)
         {
-            LOGF_DEBUG("Filter current position: %c", currentPos[0] + 1);
-            // Since QHY filters are 0-indexed and start from 0x30 ('0')
-            // While INDI filter are 1-indexed and start from 1
-            // Therefore Filter #1 matches (1 == 0x30 - 0x29)
-            if (TargetFilter == (currentPos[0] - 0x29))
+            // QHY filter wheel positions are from '0' to 'F'
+            // 0 to 15
+            // INDI Filter Wheel 1 to 16
+            CurrentFilter = strtol(currentPos, nullptr, 16) + 1;
+            LOGF_DEBUG("Filter current position: %d", CurrentFilter);
+
+            if (TargetFilter == CurrentFilter)
             {
                 m_FilterCheckCounter = 0;
-                CurrentFilter = TargetFilter;
                 SelectFilterDone(TargetFilter);
                 LOGF_DEBUG("%s: Filter changed to %d", camid, TargetFilter);
             }
@@ -1250,11 +1251,12 @@ bool QHYCCD::SelectFilter(int position)
     if (isSimulation())
         return true;
 
-    // Target Position is '0' + INDI 1-index position - 1
-    // So INDI Filter #2 (SECOND FILTER physically) would be
-    // targetPos = 0x30 + 2 - 1 = 0x31
-    char targetPos = 0x30 + (position - 1);
-    return (SendOrder2QHYCCDCFW(m_CameraHandle, &targetPos, 1) == QHYCCD_SUCCESS);
+    // QHY Filter position is '0' to 'F'
+    // 0 to 15
+    // INDI Filters 1 to 16
+    char targetPos[8] = {0};
+    snprintf(targetPos, 8, "%X", position - 1);
+    return (SendOrder2QHYCCDCFW(m_CameraHandle, targetPos, 1) == QHYCCD_SUCCESS);
 }
 
 int QHYCCD::QueryFilter()
