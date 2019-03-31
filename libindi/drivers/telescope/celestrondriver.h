@@ -138,7 +138,7 @@ class CelestronDriver
         bool get_dev_firmware(int dev, char *version, int size);
         bool get_radec(double *ra, double *dec, bool precise);
         bool get_azalt(double *az, double *alt, bool precise);
-        bool get_utc_date_time(double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss);
+        bool get_utc_date_time(double *utc_hours, int *yy, int *mm, int *dd, int *hh, int *minute, int *ss, bool precise = false);
 
         // Motion
         bool start_motion(CELESTRON_DIRECTION dir, CELESTRON_SLEW_RATE rate);
@@ -147,10 +147,12 @@ class CelestronDriver
         bool slew_radec(double ra, double dec, bool precise);
         bool slew_azalt(double az, double alt, bool precise);
         bool sync(double ra, double dec, bool precise);
+        bool unsync();
 
         // Time & Location
         bool set_location(double longitude, double latitude);
-        bool set_datetime(struct ln_date *utc, double utc_offset);
+        bool get_location(double* longitude, double *latitude);
+        bool set_datetime(struct ln_date *utc, double utc_offset, bool precise= false);
 
         // Track Mode, this is not the Indi track mode
         bool get_track_mode(CELESTRON_TRACK_MODE *mode);

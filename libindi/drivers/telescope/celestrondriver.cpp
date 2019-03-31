@@ -175,7 +175,7 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
             {
                 err = serial_read(resp_len, &nbytes);
                 // passthrough commands that fail will return an extra 0 then the terminator
-                while (resp[nbytes-1] != '#')
+                while (err == TTY_OK && resp[nbytes-1] != '#')
                 {
                     char m[1];
                     int n;
@@ -271,7 +271,13 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
 
     LOG_DEBUG("Getting controller variant...");
     info->controllerVariant = ISNEXSTAR;
-    get_variant(&(info->controllerVariant));
+    // variant is only available for NexStar + versions 5.28 or more and Starsense.
+    // StarSense versions are currently 1.9 so overlap the early NexStar versions.
+    // NS HCs before 2.0 will test and timeout
+    if (info->controllerVersion < 2.0 && info->controllerVersion >= 5.28)
+    {
+        get_variant(&(info->controllerVariant));
+    }
 
     if (((info->controllerVariant == ISSTARSENSE) &&
             info->controllerVersion >= MINSTSENSVER) ||
@@ -572,6 +578,13 @@ bool CelestronDriver::sync(double ra, double dec, bool precise)
     return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
+bool CelestronDriver::unsync()
+{
+    LOG_DEBUG("Unsync");
+    set_sim_response("#");
+    return send_command("u", 1, response, 1, true, true);
+}
+
 void parseCoordsResponse(char *response, double *d1, double *d2, bool precise)
 {
     uint32_t d1_int = 0, d2_int = 0;
@@ -673,8 +686,30 @@ bool CelestronDriver::set_location(double longitude, double latitude)
     return send_command(cmd, 9, response, 1, false, true);
 }
 
+bool CelestronDriver::get_location(double *longitude, double *latitude)
+{
+    // Simulated response (lat_d lat_m lat_s N|S long_d long_m long_s E|W)
+    set_sim_response("%c%c%c%c%c%c%c%c#", 51, 36, 17, 0, 0, 43, 3, 1);
+
+    if (!send_command("w", 1, response, 9, true, false))
+        return false;
+
+    *latitude = response[0];
+    *latitude += response[1] / 60.0;
+    *latitude += response[2] / 3600.0;
+    if (response[3] != 0)
+        *latitude = -*latitude;
+
+    *longitude = response[4];
+    *longitude += response[5] / 60.0;
+    *longitude += response[6] / 3600.0;
+    if(response[7] != 0)
+        *longitude = -*longitude;
+    return true;
+}
+
 // there are newer time commands that have the utc offset in 15 minute increments
-bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset)
+bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset, bool precise)
 {
     struct ln_zonedate local_date;
 
@@ -690,12 +725,25 @@ bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset)
     cmd[5] = local_date.days;
     cmd[6] = local_date.years - 2000;
 
-    if (utc_offset < 0)
-        cmd[7] = 256 - ((uint16_t)fabs(utc_offset));
+    // changes for HC versions that support the high precision time zone
+    if(precise)
+    {
+        cmd[0] = 'I';
+        cmd[7] = static_cast<int8_t>(utc_offset * 4);
+    }
     else
-        cmd[7] = ((uint16_t)fabs(utc_offset));
+        cmd[7] = static_cast<int8_t>(utc_offset);
 
-    // Always assume standard time
+    // just in case the time zone isn't signed
+    if (cmd[7] > 50)
+        cmd[7] -= 256;
+
+//    if (utc_offset < 0)
+//        cmd[7] = 256 - ((uint16_t)fabs(utc_offset));
+//    else
+//        cmd[7] = ((uint16_t)fabs(utc_offset));
+
+    // Always assume standard time, no dst
     cmd[8] = 0;
 
     set_sim_response("#");
@@ -703,12 +751,16 @@ bool CelestronDriver::set_datetime(struct ln_date *utc, double utc_offset)
 }
 
 bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
-                                        int *dd, int *hh, int *minute, int *ss)
+                                        int *dd, int *hh, int *minute, int *ss, bool precise)
 {
     // Simulated response (HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT)
+    // 2015-04-01T17:30:10  tz +3 dst 0
     set_sim_response("%c%c%c%c%c%c%c%c#", 17, 30, 10, 4, 1, 15, 3, 0);
 
-    if (!send_command("h", 1, response, 9, true, false))
+    // the precise time reader reports the time zone in 15 minute steps
+
+    // read the local time from the HC
+    if (!send_command(precise ? "i" : "h", 1, response, 9, true, false))
         return false;
 
     // HH MM SS MONTH DAY YEAR OFFSET DAYLIGHT
@@ -720,8 +772,15 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     *yy        = response[5] + 2000;    // should be good as a signed char until 2127
     *utc_hours = response[6];
 
-    if (*utc_hours > 12)
+    // the expected value is in the range -12 to +12 or -48 to +48 for precise.
+    // if it's greater than this it looks as if the char value was transferred unsigned so -ve
+    // values will be in the range 0xff for -1 to 0xf4 for -12 or 0xD0 for -48.
+    // subtracting 256 should give the correct signed value.
+    if (*utc_hours > 50)
         *utc_hours -= 256;
+
+    if (precise)
+        *utc_hours /= 4.0;
 
     ln_zonedate localTime;
     ln_date utcTime;
@@ -732,7 +791,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     localTime.hours   = *hh;
     localTime.minutes = *minute;
     localTime.seconds = *ss;
-    localTime.gmtoff  = *utc_hours * 3600;
+    localTime.gmtoff  = *utc_hours * 3600.0;
 
     ln_zonedate_to_date(&localTime, &utcTime);
 
@@ -798,9 +857,9 @@ bool CelestronDriver::lastalign()
 
 bool CelestronDriver::startmovetoindex()
 {
-    if (!send_passthrough(CELESTRON_DEV_RA, MC_LEVEL_START, nullptr, 0, response, 1))
+    if (!send_passthrough(CELESTRON_DEV_RA, MC_LEVEL_START, nullptr, 0, response, 0))
         return false;
-    return send_passthrough(CELESTRON_DEV_DEC, MC_LEVEL_START, nullptr, 0, response, 1);
+    return send_passthrough(CELESTRON_DEV_DEC, MC_LEVEL_START, nullptr, 0, response, 0);
 }
 
 bool CelestronDriver::indexreached(bool *atIndex)

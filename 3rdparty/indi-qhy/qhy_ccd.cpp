@@ -694,6 +694,30 @@ bool QHYCCD::Connect()
         if (ret == QHYCCD_SUCCESS)
         {
             HasFilters = true;
+
+            int maxCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+            FilterSlotN[0].max = maxCount;
+            if (FilterNameTP->ntp != maxCount)
+            {
+                char filterName[MAXINDINAME];
+                char filterLabel[MAXINDILABEL];
+                if (FilterNameT != nullptr)
+                {
+                    for (int i = 0; i < FilterNameTP->ntp; i++)
+                        free(FilterNameT[i].text);
+                    delete [] FilterNameT;
+                }
+
+                FilterNameT = new IText[static_cast<int>(maxCount)];
+                memset(FilterNameT, 0, sizeof(IText) * maxCount);
+                for (int i = 0; i < maxCount; i++)
+                {
+                    snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+                    snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
+                    IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
+                }
+                IUFillTextVector(FilterNameTP, FilterNameT, maxCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+            }
         }
 
         LOGF_DEBUG("Has Filters: %s", HasFilters ? "True" : "False");
@@ -787,6 +811,8 @@ bool QHYCCD::Connect()
             pthread_cond_wait(&cv, &condMutex);
         }
         pthread_mutex_unlock(&condMutex);
+
+        SetTimer(POLLMS);
 
         return true;
     }
@@ -1161,53 +1187,40 @@ int QHYCCD::grabImage()
     return 0;
 }
 
-//void QHYCCD::TimerHit()
-//{
-//    if (isConnected() == false)
-//        return;
+void QHYCCD::TimerHit()
+{
+    if (isConnected() == false)
+        return;
 
-//    if (InExposure)
-//    {
-//        long timeleft = calcTimeLeft();
+    if (FilterSlotNP.s == IPS_BUSY)
+    {
+        char currentPos[MAXINDINAME] = {0};
+        int rc = GetQHYCCDCFWStatus(m_CameraHandle, currentPos);
+        if (rc == QHYCCD_SUCCESS)
+        {
+            // QHY filter wheel positions are from '0' to 'F'
+            // 0 to 15
+            // INDI Filter Wheel 1 to 16
+            CurrentFilter = strtol(currentPos, nullptr, 16) + 1;
+            LOGF_DEBUG("Filter current position: %d", CurrentFilter);
 
-//        if (timeleft < 1.0)
-//        {
-//            if (timeleft > 0.25)
-//            {
-//                //  a quarter of a second or more
-//                //  just set a tighter timer
-//                SetTimer(250);
-//            }
-//            else
-//            {
-//                if (timeleft > 0.07)
-//                {
-//                    //  use an even tighter timer
-//                    SetTimer(50);
-//                }
-//                else
-//                {
-//                    /* We're done exposing */
-//                    LOG_DEBUG("Exposure done, downloading image...");
-//                    // Don't spam the session log unless it is a long exposure > 5 seconds
-//                    if (ExposureRequest > POLLMS * 5)
-//                        LOG_INFO("Exposure done, downloading image...");
+            if (TargetFilter == CurrentFilter)
+            {
+                m_FilterCheckCounter = 0;
+                SelectFilterDone(TargetFilter);
+                LOGF_DEBUG("%s: Filter changed to %d", camid, TargetFilter);
+            }
+        }
+        else if (++m_FilterCheckCounter > 30)
+        {
+            FilterSlotNP.s = IPS_ALERT;
+            LOG_ERROR("Filter change timed out.");
+            IDSetNumber(&FilterSlotNP, nullptr);
+        }
+    }
 
-//                    PrimaryCCD.setExposureLeft(0);
-//                    InExposure = false;
-
-//                    // grab and save image
-//                    grabImage();
-//                }
-//            }
-//        }
-//        else
-//        {
-//            PrimaryCCD.setExposureLeft(timeleft);
-//            SetTimer(POLLMS);
-//        }
-//    }
-//}
+    SetTimer(POLLMS);
+}
 
 IPState QHYCCD::GuideNorth(uint32_t ms)
 {
@@ -1235,45 +1248,15 @@ IPState QHYCCD::GuideWest(uint32_t ms)
 
 bool QHYCCD::SelectFilter(int position)
 {
-    char targetpos = 0;
-    char currentpos[64] = {0};
-    int checktimes = 0;
-    int ret = 0;
-
     if (isSimulation())
-        ret = QHYCCD_SUCCESS;
-    else
-    {
-        // JM: THIS WILL CRASH! I am using another method with same result!
-        //sprintf(&targetpos,"%d",position - 1);
-        targetpos = '0' + (position - 1);
-        ret       = SendOrder2QHYCCDCFW(m_CameraHandle, &targetpos, 1);
-    }
-
-    if (ret == QHYCCD_SUCCESS)
-    {
-        while (checktimes < 90)
-        {
-            ret = GetQHYCCDCFWStatus(m_CameraHandle, currentpos);
-            if (ret == QHYCCD_SUCCESS)
-            {
-                if ((targetpos + 1) == currentpos[0])
-                {
-                    break;
-                }
-            }
-            checktimes++;
-        }
-
-        CurrentFilter = position;
-        SelectFilterDone(position);
-        LOGF_DEBUG("%s: Filter changed to %d", camid, position);
         return true;
-    }
-    else
-        LOGF_ERROR("Changing filter failed (%d)", ret);
 
-    return false;
+    // QHY Filter position is '0' to 'F'
+    // 0 to 15
+    // INDI Filters 1 to 16
+    char targetPos[8] = {0};
+    snprintf(targetPos, 8, "%X", position - 1);
+    return (SendOrder2QHYCCDCFW(m_CameraHandle, targetPos, 1) == QHYCCD_SUCCESS);
 }
 
 int QHYCCD::QueryFilter()

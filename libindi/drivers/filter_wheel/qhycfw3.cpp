@@ -69,6 +69,7 @@ void ISSnoopDevice(XMLEle *root)
 
 QHYCFW3::QHYCFW3()
 {
+    setVersion(1, 1);
     setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 }
 

@@ -3,9 +3,9 @@ PROJECT(libqhy C CXX)
 
 include(GNUInstallDirs)
 
-# QHY SDK Built on 2019-03-15
-set(LIBQHY_VERSION "4.0.16")
-set(LIBQHY_SOVERSION "4")
+# QHY SDK Built on 2019-03-29
+set(LIBQHY_VERSION "5.0.1")
+set(LIBQHY_SOVERSION "5")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
@@ -47,6 +47,7 @@ IF(UNIX AND NOT WIN32)
  ELSEIF(CMAKE_SIZEOF_VOID_P MATCHES "8")
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhyccd_x86_64.bin ${CMAKE_BINARY_DIR}/libqhyccd.so.${LIBQHY_VERSION})
  ELSE()
+# 32bit is NOT maintained.
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhyccd_x86_32.bin ${CMAKE_BINARY_DIR}/libqhyccd.so.${LIBQHY_VERSION})
  ENDIF ()
 ENDIF(UNIX AND NOT WIN32)
@@ -62,9 +63,10 @@ install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \"libqh
 
 ENDIF (APPLE)
 
-#install(FILES qhyccd.h qhybase.h qhydevice.h debugview.h cmosdll.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h log4z.h qhycam.h unlockimagequeue.h cyusb.h DESTINATION include/libqhy)
-install(FILES qhyccd.h qhybase.h debugview.h cmosdll.h qhyccdcamdef.h qhyccderr.h qhyccdstruct.h qhycam.h unlockimagequeue.h cyusb.h DESTINATION include/libqhy)
+# Install header files
+install(FILES qhyccd.h qhyccderr.h qhyccdcamdef.h qhyccdstruct.h DESTINATION include/libqhy)
 
+# Install firmware
 install(
    CODE "
    file(GLOB QHY_FIRMWARE ${CMAKE_CURRENT_SOURCE_DIR}/firmware/*) \n
