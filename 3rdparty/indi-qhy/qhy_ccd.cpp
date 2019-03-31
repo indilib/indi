@@ -694,6 +694,30 @@ bool QHYCCD::Connect()
         if (ret == QHYCCD_SUCCESS)
         {
             HasFilters = true;
+
+            int maxCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+            FilterSlotN[0].max = maxCount;
+            if (FilterNameTP->ntp != maxCount)
+            {
+                char filterName[MAXINDINAME];
+                char filterLabel[MAXINDILABEL];
+                if (FilterNameT != nullptr)
+                {
+                    for (int i = 0; i < FilterNameTP->ntp; i++)
+                        free(FilterNameT[i].text);
+                    delete [] FilterNameT;
+                }
+
+                FilterNameT = new IText[static_cast<int>(maxCount)];
+                memset(FilterNameT, 0, sizeof(IText) * maxCount);
+                for (int i = 0; i < maxCount; i++)
+                {
+                    snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+                    snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
+                    IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
+                }
+                IUFillTextVector(FilterNameTP, FilterNameT, maxCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+            }
         }
 
         LOGF_DEBUG("Has Filters: %s", HasFilters ? "True" : "False");
