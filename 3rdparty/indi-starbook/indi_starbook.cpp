@@ -142,7 +142,6 @@ bool StarbookDriver::initProperties()
     addDebugControl();
 
     last_known_state = starbook::UNKNOWN;
-
     return true;
 }
 
@@ -163,6 +162,7 @@ bool StarbookDriver::updateProperties() {
 bool StarbookDriver::Connect()
 {
     failed_res = 0;
+    last_known_state = starbook::UNKNOWN;
     bool rc = Telescope::Connect();
     if (rc) {
         getFirmwareVersion();
@@ -178,6 +178,7 @@ bool StarbookDriver::Disconnect()
 {
     if (isConnected()) {
         bool rc = Telescope::Disconnect();
+        last_known_state = starbook::UNKNOWN;
         // Disconnection is successful, set it IDLE and updateProperties.
         if (rc) {
             setConnected(false, IPS_IDLE);
@@ -254,7 +255,7 @@ bool StarbookDriver::Goto(double ra, double dec)
     ra = ra * 15; // CONVERSION
 
     starbook::ResponseCode rc = cmd_interface->GotoRaDec(ra, dec);
-    LogResponse("Goto", rc);
+    LogResponse("GOTO", rc);
     return rc == starbook::OK;
 }
 
@@ -270,16 +271,16 @@ bool StarbookDriver::Sync(double ra, double dec)
 bool StarbookDriver::Abort()
 {
     starbook::ResponseCode rc = cmd_interface->Stop();
-    LogResponse("Abort", rc);
+    LogResponse("Aborting", rc);
     return rc == starbook::OK;
 }
 
 bool StarbookDriver::Park()
 {
     // TODO Park
-    LOG_WARN("HOME command is unstable");
+    LOG_WARN("Parking is unstable");
     starbook::ResponseCode rc = cmd_interface->Home();
-    LogResponse("Park", rc);
+    LogResponse("Parking", rc);
     return rc == starbook::OK;
 }
 
@@ -292,33 +293,32 @@ bool StarbookDriver::UnPark()
 
 bool StarbookDriver::MoveNS(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand command) {
     starbook::ResponseCode rc = cmd_interface->Move(dir, command);
-    LogResponse("MoveNS", rc);
+    LogResponse("Move N-S", rc);
     return rc == starbook::OK;
 }
 
 bool StarbookDriver::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
     starbook::ResponseCode rc = cmd_interface->Move(dir, command);
-    LogResponse("MoveWE", rc);
+    LogResponse("Move W-E", rc);
     return rc == starbook::OK;
 }
 
 bool StarbookDriver::SetSlewRate(int index) {
     starbook::ResponseCode rc = cmd_interface->SetSpeed(index);
-    LogResponse("SetSlewRate", rc);
+    LogResponse("Setting slew rate", rc);
     return rc == starbook::OK;
 }
 
 bool StarbookDriver::updateTime(ln_date *utc, double utc_offset) {
     INDI_UNUSED(utc_offset);
     if (last_known_state != starbook::INIT) {
-        LogResponse("updateTime", starbook::ERROR_ILLEGAL_STATE);
+        LOGF_WARN("Can't update time in %s state", starbook::STATE_TO_STR.at(last_known_state).c_str());
         return false;
     }
     starbook::ResponseCode rc;
     utc->hours += floor(utc_offset); // starbook stores local time, go figure
-//    utc->minutes += floor((utc_offset - floor(utc_offset)) * 60);
     rc = cmd_interface->SetTime(*utc);
-    LogResponse("updateTime", rc);
+    LogResponse("Updating time", rc);
     return rc == starbook::OK;
 
 }
@@ -326,13 +326,13 @@ bool StarbookDriver::updateTime(ln_date *utc, double utc_offset) {
 bool StarbookDriver::updateLocation(double latitude, double longitude, double elevation) {
     INDI_UNUSED(elevation);
     if (last_known_state != starbook::INIT) {
-        LogResponse("updateLocation", starbook::ERROR_ILLEGAL_STATE);
+        LOGF_WARN("Can't update location in %s state", starbook::STATE_TO_STR.at(last_known_state).c_str());
         return false;
     }
     auto utc_offset = static_cast<int>(std::floor(std::strtof(TimeT[1].text, nullptr)));
     starbook::LnLat posn(latitude, longitude);
     starbook::ResponseCode rc = cmd_interface->SetPlace(posn, utc_offset);
-    LogResponse("updateLocation", rc);
+    LogResponse("Updating location", rc);
     return rc == starbook::OK;
 }
 
@@ -341,17 +341,13 @@ bool StarbookDriver::getFirmwareVersion() {
     starbook::ResponseCode rc = cmd_interface->Version(res);
 
     if (rc != starbook::OK) {
-        if (rc == starbook::ERROR_FORMAT) {
-            LOGF_ERROR("Version [ERROR]: Can't parse firmware version %s", cmd_interface->getLastResponse().c_str());
-        } else {
-            LOG_ERROR("Version [ERROR]: Can't get firmware version");
-        }
+        LogResponse("Get version", rc);
         return false;
     }
     if (res.major_minor < 2.7) {
-        LOGF_WARN("Version [OK]: %s (< 2.7) not well supported", res.full_str.c_str());
+        LOGF_WARN("Get version [OK]: %s (< 2.7) not well supported", res.full_str.c_str());
     } else {
-        LOGF_INFO("Version [OK]: %s", res.full_str.c_str());
+        LOGF_INFO("Get version [OK]: %s", res.full_str.c_str());
     }
     IUSaveText(&VersionT[0], res.full_str.c_str());
     IDSetText(&VersionTP, nullptr);
@@ -397,7 +393,8 @@ void StarbookDriver::LogResponse(const std::string &cmd, const starbook::Respons
     msg << "]";
 
     if (rc != starbook::OK) {
-        msg << ": \"" << cmd_interface->getLastResponse() << "\"";
+        msg << ": \"" << cmd_interface->getLastCmdUrl() << "\"";
+        msg << " \"" << cmd_interface->getLastResponse() << "\"";
         LOG_ERROR(msg.str().c_str());
     } else {
         LOG_INFO(msg.str().c_str());
@@ -427,7 +424,7 @@ bool StarbookDriver::performStart() {
             StartSP.s = IPS_OK;
         }
     } else {
-        LOG_ERROR("Already initialized");
+        LOGF_WARN("Can't initialize in %s state, must be INIT", starbook::STATE_TO_STR.at(last_known_state).c_str());
         StartSP.s = IPS_ALERT;
     }
     IDSetSwitch(&StartSP, nullptr);

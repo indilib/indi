@@ -82,11 +82,11 @@ namespace starbook {
     enum StarbookState {
         INIT, /* Initial state after boot */
         GUIDE, /* ??? */
-        SCOPE, /* After START command or user input */
+        SCOPE, /* After START command or user input, when user can move mount */
         CHART, /* When users explores internal sky map??? */
-        USER,
+        USER, /* user dialog or something */
         ALTAZ, /* No idea, also found in code dump */
-        UNKNOWN,
+        UNKNOWN, /* We haven't got starbook yet */
     };
 
     static const std::map<StarbookState, std::string> STATE_TO_STR = {
