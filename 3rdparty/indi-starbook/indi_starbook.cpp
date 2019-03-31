@@ -215,7 +215,24 @@ bool StarbookDriver::ReadScopeStatus()
     }
 
     last_known_state = res.state;
-    switch (last_known_state) {
+
+    setTrackState(res);
+    setStarbookState(res.state);
+    NewRaDec(res.equ.ra / 15, res.equ.dec); // CONVERSION
+
+    failed_res = 0;
+    LOG_DEBUG("STATUS");
+    return true;
+}
+
+void StarbookDriver::setStarbookState(const starbook::StarbookState &state) {
+    IUSaveText(&StateT[0], starbook::STATE_TO_STR.at(state).c_str());
+    StateTP.s = IPS_OK;
+    IDSetText(&StateTP, nullptr);
+}
+
+void StarbookDriver::setTrackState(const starbook::StatusResponse &res) {
+    switch (res.state) {
         case starbook::INIT:
         case starbook::USER:
             TrackState = SCOPE_IDLE;
@@ -230,17 +247,6 @@ bool StarbookDriver::ReadScopeStatus()
             TrackState = SCOPE_IDLE;
             break;
     }
-
-    IUSaveText(&StateT[0], starbook::STATE_TO_STR.at(last_known_state).c_str());
-    failed_res = 0;
-    StateTP.s = IPS_OK;
-    IDSetText(&StateTP, nullptr);
-
-    NewRaDec(res.equ.ra / 15, res.equ.dec); // CONVERSION
-
-    LOG_DEBUG("STATUS");
-//    LOGF_DEBUG("REQ: %s RES: %s", cmd_interface->last_cmd_url.c_str(), cmd_interface->last_response.c_str());
-    return true;
 }
 
 bool StarbookDriver::Goto(double ra, double dec)

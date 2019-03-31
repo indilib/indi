@@ -66,8 +66,6 @@ protected:
 
     ITextVectorProperty StateTP;
 
-    bool updateLocation(double latitude, double longitude, double elevation) override;
-
     ISwitch StartS[1];
 
     ISwitchVectorProperty StartSP;
@@ -98,7 +96,13 @@ protected:
 
     bool updateTime(ln_date *utc, double utc_offset) override;
 
+    bool updateLocation(double latitude, double longitude, double elevation) override;
+
     bool getFirmwareVersion();
 
     bool performStart();
+
+    void setTrackState(const starbook::StatusResponse &res);
+
+    void setStarbookState(const starbook::StarbookState &state);
 };
