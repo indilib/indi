@@ -812,6 +812,8 @@ bool QHYCCD::Connect()
         }
         pthread_mutex_unlock(&condMutex);
 
+        SetTimer(POLLMS);
+
         return true;
     }
 
@@ -1185,53 +1187,39 @@ int QHYCCD::grabImage()
     return 0;
 }
 
-//void QHYCCD::TimerHit()
-//{
-//    if (isConnected() == false)
-//        return;
+void QHYCCD::TimerHit()
+{
+    if (isConnected() == false)
+        return;
 
-//    if (InExposure)
-//    {
-//        long timeleft = calcTimeLeft();
+    if (FilterSlotNP.s == IPS_BUSY)
+    {
+        char currentPos[MAXINDINAME] = {0};
+        int rc = GetQHYCCDCFWStatus(m_CameraHandle, currentPos);
+        if (rc == QHYCCD_SUCCESS)
+        {
+            LOGF_DEBUG("Filter current position: %c", currentPos[0] + 1);
+            // Since QHY filters are 0-indexed and start from 0x30 ('0')
+            // While INDI filter are 1-indexed and start from 1
+            // Therefore Filter #1 matches (1 == 0x30 - 0x29)
+            if (TargetFilter == (currentPos[0] - 0x29))
+            {
+                m_FilterCheckCounter = 0;
+                CurrentFilter = TargetFilter;
+                SelectFilterDone(TargetFilter);
+                LOGF_DEBUG("%s: Filter changed to %d", camid, TargetFilter);
+            }
+        }
+        else if (++m_FilterCheckCounter > 30)
+        {
+            FilterSlotNP.s = IPS_ALERT;
+            LOG_ERROR("Filter change timed out.");
+            IDSetNumber(&FilterSlotNP, nullptr);
+        }
+    }
 
-//        if (timeleft < 1.0)
-//        {
-//            if (timeleft > 0.25)
-//            {
-//                //  a quarter of a second or more
-//                //  just set a tighter timer
-//                SetTimer(250);
-//            }
-//            else
-//            {
-//                if (timeleft > 0.07)
-//                {
-//                    //  use an even tighter timer
-//                    SetTimer(50);
-//                }
-//                else
-//                {
-//                    /* We're done exposing */
-//                    LOG_DEBUG("Exposure done, downloading image...");
-//                    // Don't spam the session log unless it is a long exposure > 5 seconds
-//                    if (ExposureRequest > POLLMS * 5)
-//                        LOG_INFO("Exposure done, downloading image...");
-
-//                    PrimaryCCD.setExposureLeft(0);
-//                    InExposure = false;
-
-//                    // grab and save image
-//                    grabImage();
-//                }
-//            }
-//        }
-//        else
-//        {
-//            PrimaryCCD.setExposureLeft(timeleft);
-//            SetTimer(POLLMS);
-//        }
-//    }
-//}
+    SetTimer(POLLMS);
+}
 
 IPState QHYCCD::GuideNorth(uint32_t ms)
 {
@@ -1259,45 +1247,14 @@ IPState QHYCCD::GuideWest(uint32_t ms)
 
 bool QHYCCD::SelectFilter(int position)
 {
-    char targetpos = 0;
-    char currentpos[64] = {0};
-    int checktimes = 0;
-    int ret = 0;
-
     if (isSimulation())
-        ret = QHYCCD_SUCCESS;
-    else
-    {
-        // JM: THIS WILL CRASH! I am using another method with same result!
-        //sprintf(&targetpos,"%d",position - 1);
-        targetpos = '0' + (position - 1);
-        ret       = SendOrder2QHYCCDCFW(m_CameraHandle, &targetpos, 1);
-    }
-
-    if (ret == QHYCCD_SUCCESS)
-    {
-        while (checktimes < 90)
-        {
-            ret = GetQHYCCDCFWStatus(m_CameraHandle, currentpos);
-            if (ret == QHYCCD_SUCCESS)
-            {
-                if ((targetpos + 1) == currentpos[0])
-                {
-                    break;
-                }
-            }
-            checktimes++;
-        }
-
-        CurrentFilter = position;
-        SelectFilterDone(position);
-        LOGF_DEBUG("%s: Filter changed to %d", camid, position);
         return true;
-    }
-    else
-        LOGF_ERROR("Changing filter failed (%d)", ret);
 
-    return false;
+    // Target Position is '0' + INDI 1-index position - 1
+    // So INDI Filter #2 (SECOND FILTER physically) would be
+    // targetPos = 0x30 + 2 - 1 = 0x31
+    char targetPos = 0x30 + (position - 1);
+    return (SendOrder2QHYCCDCFW(m_CameraHandle, &targetPos, 1) == QHYCCD_SUCCESS);
 }
 
 int QHYCCD::QueryFilter()

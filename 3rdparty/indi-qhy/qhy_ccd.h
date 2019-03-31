@@ -58,7 +58,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 
     protected:
         // Misc.
-        //virtual void TimerHit() override;
+        virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE *fp) override;
 
         // CCD
@@ -179,6 +179,9 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         // Gain
         double GainRequest = 1e6;
         double LastGainRequest = 1e6;
+
+        // Filter Wheel Timeout
+        uint16_t m_FilterCheckCounter = 0;
 
         // Threading
         // Imaging thread
