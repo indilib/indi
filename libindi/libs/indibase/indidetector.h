@@ -31,6 +31,7 @@ extern const char *CAPTURE_SETTINGS_TAB;
 extern const char *CAPTURE_INFO_TAB;
 extern const char *GUIDE_HEAD_TAB;
 
+
 /**
  * @brief The DetectorDevice class provides functionality of a Detector Device within a Detector.
  */
@@ -189,7 +190,7 @@ class DetectorDevice
          * yourself (i.e. allocMem is false), then you must call this function to set the pointer
          * to the raw frame buffer.
          */
-        void setContinuumBuffer(uint8_t *buffer)
+        inline void setContinuumBuffer(uint8_t *buffer)
         {
             ContinuumBuffer = buffer;
         }
@@ -202,7 +203,7 @@ class DetectorDevice
          * yourself (i.e. allocMem is false), then you must call this function to set the pointer
          * to the raw frame buffer.
          */
-        void setTimeDeviationBuffer(uint8_t *buffer)
+        inline void setTimeDeviationBuffer(uint8_t *buffer)
         {
             TimeDeviationBuffer = buffer;
         }
@@ -215,7 +216,7 @@ class DetectorDevice
          * yourself (i.e. allocMem is false), then you must call this function to set the pointer
          * to the raw frame buffer.
          */
-        void setSpectrumBuffer(uint8_t *buffer)
+        inline void setSpectrumBuffer(uint8_t *buffer)
         {
             SpectrumBuffer = buffer;
         }
@@ -223,7 +224,7 @@ class DetectorDevice
         /**
          * @brief Return Detector Info Property
          */
-        INumberVectorProperty *getDetectorSettings()
+        inline INumberVectorProperty *getDetectorSettings()
         {
             return &DetectorSettingsNP;
         }
@@ -340,7 +341,7 @@ class DetectorDevice
         /**
          * @return Return capture extension (fits, jpeg, raw..etc)
          */
-        char *getCaptureExtension()
+        inline char *getCaptureExtension()
         {
             return captureExtention;
         }
@@ -348,7 +349,7 @@ class DetectorDevice
         /**
          * @return True if Detector is currently exposing, false otherwise.
          */
-        bool isCapturing()
+        inline bool isCapturing()
         {
             return (FramedCaptureNP.s == IPS_BUSY);
         }
@@ -405,7 +406,6 @@ class DetectorDevice
 
 namespace INDI
 {
-
 class Detector : public DefaultDevice
 {
     public:
@@ -635,7 +635,6 @@ class Detector : public DefaultDevice
          */
         virtual bool saveConfigItems(FILE *fp);
 
-        double RA, Dec;
         double primaryAperture;
         double primaryFocalLength;
         bool InCapture;
@@ -696,8 +695,10 @@ class Detector : public DefaultDevice
             FITS_OBSERVER,
             FITS_OBJECT
         };
-
+        double Lat, Lon, El;
+        double RA, Dec;
     private:
+
         uint32_t capability;
 
         bool uploadFile(DetectorDevice *targetDevice, const void *fitsData, size_t totalBytes, bool sendCapture, bool saveCapture, int blobindex);
