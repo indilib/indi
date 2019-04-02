@@ -35,6 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <unistd.h>
 
 #include <libnova/sidereal_time.h>
+#include <libnova/transform.h>
 
 static struct _simEQ500X
 {
@@ -52,7 +53,7 @@ EQ500X::EQ500X(): LX200Generic()
 {
     setVersion(1, 0);
     setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_PULSE_GUIDING);
-    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT);
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION );
     LOG_DEBUG("Initializing from EQ500X device...");
 }
 
@@ -79,6 +80,231 @@ bool EQ500X::initProperties()
     return true;
 }
 
+/**************************************************************************************
+**
+***************************************************************************************/
+void EQ500X::getBasicData()
+{
+    /* */
+}
+
+bool EQ500X::checkConnection()
+{
+    if (isSimulation())
+        return true;
+
+    if (PortFD <= 0)
+        return false;
+
+    LOGF_DEBUG("Testing telescope connection using GR...", "");
+    tty_set_debug(1);
+
+    LOGF_DEBUG("Clearing input...", "");
+    tcflush(PortFD, TCIFLUSH);
+
+    char b[64/*RB_MAX_LEN*/] = {0};
+
+    for (int i = 0; i < 2; i++)
+    {
+        LOGF_DEBUG("Getting RA...", "");
+        if (getCommandString(PortFD, b, ":GR#") && 1 <= i)
+        {
+            LOGF_DEBUG("Failure. Telescope is not responding to GR!", "");
+            return false;
+        }
+        const struct timespec timeout = {0, 50000000L};
+        nanosleep(&timeout, nullptr);
+    }
+
+    /* Blink the control pad */
+    const struct timespec timeout = {0, 1000000L};
+    sendCmd(":RG#");
+    nanosleep(&timeout, nullptr);
+    sendCmd(":RC#");
+    nanosleep(&timeout, nullptr);
+    sendCmd(":RM#");
+    nanosleep(&timeout, nullptr);
+    sendCmd(":RS#");
+    nanosleep(&timeout, nullptr);
+    sendCmd(":RC#");
+    nanosleep(&timeout, nullptr);
+    sendCmd(":RM#");
+    nanosleep(&timeout, nullptr);
+    sendCmd(":RS#");
+    nanosleep(&timeout, nullptr);
+    sendCmd(":RC#");
+    nanosleep(&timeout, nullptr);
+    sendCmd(":RM#");
+    nanosleep(&timeout, nullptr);
+    sendCmd(":RS#");
+
+    LOGF_DEBUG("Connection check successful!", "");
+    tty_set_debug(0);
+    return true;
+}
+
+bool EQ500X::updateLocation(double latitude, double longitude, double elevation)
+{
+    // Picked from ScopeSim
+    INDI_UNUSED(elevation);
+    lnobserver.lng = longitude;
+
+    if (lnobserver.lng > 180)
+        lnobserver.lng -= 360;
+    lnobserver.lat = latitude;
+
+    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
+    return true;
+}
+
+bool EQ500X::ReadScopeStatus()
+{
+    if (!isConnected())
+        return false;
+
+    if (isSimulation())
+    {
+        mountSim();
+        getEQ500XRA_snprint(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA), currentRA);
+        getEQ500XDEC_snprint(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC), currentDEC);
+        LOGF_DEBUG("RA/DEC simulated as %f/%f, stored as %s/%s", currentRA, currentDEC, simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
+    }
+
+    if (!getEQ500XRA(&currentRA) || !getEQ500XDEC(&currentDEC))
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+        return false;
+    }
+
+    if (TrackState == SCOPE_SLEWING)
+    {
+        // Check if mount is done slewing - NewRaDec will update EqN
+        if (EqN[AXIS_RA].value == currentRA && EqN[AXIS_DE].value == currentDEC)
+        {
+            TrackState = SCOPE_TRACKING;
+            LOG_INFO("Slew is complete. Tracking...");
+        }
+        // If mount is close to target, issue a slower goto
+        else if (std::fmod(std::abs(currentRA-targetRA), 24) < 5.f && std::fmod(std::abs(currentDEC-targetDEC), 360) < 5.f)
+        {
+            LOG_INFO("Slew is close to target...");
+        }
+    }
+
+    NewRaDec(currentRA, currentDEC);
+
+    return true;
+}
+
+bool EQ500X::Goto(double ra, double dec)
+{
+    targetRA  = ra;
+    targetDEC = dec;
+
+    // Check whether a meridian flip is required
+    ln_equ_posn lnradec { 0, 0 };
+    lnradec.ra  = (currentRA * 360) / 24.0;
+    lnradec.dec = currentDEC;
+
+    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+    /* libnova measures azimuth from south towards west */
+    double current_az = range360(lnaltaz.az + 180);
+    double const MIN_AZ_FLIP = 180;
+    double const MAX_AZ_FLIP = 200;
+
+    if (current_az > MIN_AZ_FLIP && current_az < MAX_AZ_FLIP)
+    {
+        lnradec.ra  = (ra * 360) / 24.0;
+        lnradec.dec = dec;
+
+        ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
+
+        double target_az = range360(lnaltaz.az + 180);
+
+        //forceMeridianFlip = (target_az >= current_az && target_az > MIN_AZ_FLIP);
+    }
+
+    char RAStr[16]={0}, DecStr[16]={0};
+    int const fracbase = 3600;
+    fs_sexa(RAStr, targetRA, 2, fracbase);
+    fs_sexa(DecStr, targetDEC, 2, fracbase);
+
+    // If moving, let's stop it first.
+    if (EqNP.s == IPS_BUSY)
+    {
+        if (!isSimulation() && abortSlew(PortFD) < 0)
+        {
+            AbortSP.s = IPS_ALERT;
+            IDSetSwitch(&AbortSP, "Abort slew failed.");
+            return false;
+        }
+
+        AbortSP.s = IPS_OK;
+        EqNP.s    = IPS_IDLE;
+        IDSetSwitch(&AbortSP, "Slew aborted.");
+        IDSetNumber(&EqNP, nullptr);
+
+        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
+        {
+            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
+            EqNP.s                          = IPS_IDLE;
+            IUResetSwitch(&MovementNSSP);
+            IUResetSwitch(&MovementWESP);
+            IDSetSwitch(&MovementNSSP, nullptr);
+            IDSetSwitch(&MovementWESP, nullptr);
+        }
+
+        // sleep for 100 mseconds
+        const struct timespec timeout = {0, 100000000L};
+        nanosleep(&timeout, nullptr);
+    }
+
+    if (!setEQ500XRA(targetRA) || !setEQ500XDEC(targetDEC))
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error setting RA/DEC.");
+        return false;
+    }
+
+    if (sendCmd(":RM#"))
+    {
+        LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+        slewError(-1);
+        return false;
+    }
+
+    if (sendCmd(":MS#"))
+    {
+        LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+        slewError(-1);
+        return false;
+    }
+
+    TrackState = SCOPE_SLEWING;
+    EqNP.s     = IPS_BUSY;
+
+    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+
+    return true;
+}
+
+bool EQ500X::slewEQ500X()
+{
+    if (!sendCmd(":MS#"))
+        goto slew_failed;
+
+    return true;
+
+slew_failed:
+    EqNP.s = IPS_ALERT;
+    IDSetNumber(&EqNP, "Error slewing.");
+    return false;
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
 /*
 function MountPosition () {
 #Function that asks for mount coordinates. These coordinates are being returned in the MCC format, and with a bool variable USD to show if the  mount is currently upside-down.
@@ -126,9 +352,6 @@ function mmcString2mcc ([String]$ValueString, [String]$ValueString) {
     $DecDouble
 }
 */
-/**************************************************************************************
-**
-***************************************************************************************/
 int EQ500X::sendCmd(const char *data)
 {
     int error_type;
@@ -146,46 +369,61 @@ int EQ500X::sendCmd(const char *data)
 
 bool EQ500X::getEQ500XRA(double *result)
 {
-    char ValueString[16] = {0};
+    char b[64/*RB_MAX_LEN*/] = {0};
 
     if (isSimulation())
     {
-        memcpy(ValueString, simEQ500X.MechanicalRA, std::min(sizeof(ValueString), sizeof(simEQ500X.MechanicalRA)));
+        memcpy(b, simEQ500X.MechanicalRA, std::min(sizeof(b), sizeof(simEQ500X.MechanicalRA)));
     }
-    else if (getCommandString(PortFD, ValueString, ":GR#") < 0)
+    else if (getCommandString(PortFD, b, ":GR#") < 0)
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error reading RA.");
         return false;
     }
 
-    LOGF_INFO("RA reads '%s'.", ValueString, static_cast <float> (*result));
+    LOGF_INFO("RA reads '%s'.", b);
 
     // Mount replies to "#GR:" with "HH:MM:SS".
     // HH, MM and SS are respectively hours, minutes and seconds in [00:00:00,23:59:59].
+    // FIXME: Sanitize.
 
     struct _RaValues {
         char hours[3];
         char minutes[3];
         char seconds[3];
-    } * const RaValues = (struct _RaValues*) ValueString;
+    } * const RaValues = (struct _RaValues*) b;
 
     RaValues->hours[2] = RaValues->minutes[2] = RaValues->seconds[2] = '\0';
 
+    float const value =
+            atof(RaValues->hours) +
+            atof(RaValues->minutes)/60.0f +
+            atof(RaValues->seconds)/3600.0f+
+            (forceMeridianFlip? -12 : 0 );
+
+    LOGF_INFO("RA converts as %f.", value);
+
     if (result != nullptr)
-    {
-        *result = static_cast <double> (atof(RaValues->hours) + atof(RaValues->minutes)/60.0f + atof(RaValues->seconds)/3600.0f);
-        LOGF_INFO("RA converts as %f.", static_cast <float> (*result));
-    }
+        *result = static_cast <double> (value);
 
     return true;
 }
 
 bool EQ500X::getEQ500XRA_snprint(char *buf, size_t buf_length, double value)
 {
-    int const sgn = value >= 0.0 ? +1 : -1;
+    // NotFlipped                 Flipped
+    // S -12.0h <-> -12:00:00 <-> -24.0h
+    // E -06.0h <-> -06:00:00 <-> -18.0
+    // N +00.0h <-> +00:00:00 <-> -12.0h
+    // W +06.0h <-> +06:00:00 <-> -06.0°
+    // S +12.0h <-> +12:00:00 <-> +00.0°
+    // E +18.0h <-> +18:00:00 <-> +06.0°
+    // N +24.0h <-> +24:00:00 <-> +12.0°
+
+    int const sgn = forceMeridianFlip ? value <= -12.0 ? -1 : 1 : value <= 0.0 ? -1 : 1;
     double const mechanical_hours = std::abs(value);
-    int const hours = (24 + sgn * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
+    int const hours = ((forceMeridianFlip ? 12 : 0 ) + 24 + sgn * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
     int const minutes = static_cast <int> (std::floor(mechanical_hours * 60.0)) % 60;
     int const seconds = static_cast <int> (std::lround(mechanical_hours * 3600.0)) % 60;
 
@@ -212,20 +450,20 @@ bool EQ500X::setEQ500XRA(double value)
 
 bool EQ500X::getEQ500XDEC(double *result)
 {
-    char ValueString[16] = {0};
+    char b[64/*RB_MAX_LEN*/] = {0};
 
     if (isSimulation())
     {
-        memcpy(ValueString, simEQ500X.MechanicalDEC, std::min(sizeof(ValueString), sizeof(simEQ500X.MechanicalDEC)));
+        memcpy(b, simEQ500X.MechanicalDEC, std::min(sizeof(b), sizeof(simEQ500X.MechanicalDEC)));
     }
-    else if (getCommandString(PortFD, ValueString, ":GD#") < 0)
+    else if (getCommandString(PortFD, b, ":GD#") < 0)
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error reading DEC.");
         return false;
     }
 
-    LOGF_INFO("DEC reads '%s'", ValueString);
+    LOGF_INFO("DEC reads '%s'", b);
 
     // Mount replies to "#GD:" with "sDD:MM:SS".
     // s is in {+,-} and provides a sign.
@@ -233,11 +471,11 @@ bool EQ500X::getEQ500XDEC(double *result)
     // MM are minutes, SS are seconds in [00:00,59:59].
     // The whole reply is in [-255:59:59,+255:59:59].
 
-    struct _RaValues {
+    struct _DecValues {
         char degrees[4];
         char minutes[3];
         char seconds[3];
-    } * const DecValues = (struct _RaValues*) ValueString;
+    } * const DecValues = (struct _DecValues*) b;
 
     int sgn = DecValues->degrees[0] == '-' ? -1 : +1;
 
@@ -264,10 +502,16 @@ bool EQ500X::getEQ500XDEC(double *result)
     }
     DecValues->degrees[3] = DecValues->minutes[2] = DecValues->seconds[2] = '\0';
 
+    float const value = 90.0f + sgn * (
+                atof(DecValues->degrees) +
+                atof(DecValues->minutes)/60.0f +
+                atof(DecValues->seconds)/3600.0f);
+
+    LOGF_INFO("DEC converts as %f.", value);
+
     if (result != nullptr)
     {
-        *result = static_cast <double> (90.0 + sgn * (atof(DecValues->degrees) + atof(DecValues->minutes)/60.0f + atof(DecValues->seconds)/3600.0f));
-        LOGF_INFO("DEC converts as %f.", static_cast <float> (*result));
+        *result = static_cast <double> (value);
     }
 
     return true;
@@ -275,21 +519,22 @@ bool EQ500X::getEQ500XDEC(double *result)
 
 bool EQ500X::getEQ500XDEC_snprint(char *buf, size_t buf_length, double value)
 {
-    // -270:00:00 <-> -180.0°
-    // -180:00:00 <->  -90.0°
-    //  -90:00:00 <->  +00.0°
-    //  +00:00:00 <->  +90.0°
-    //  +90:00:00 <-> +180.0°
-    // +180:00:00 <-> +270.0°
-    // +270:00:00 <-> +360.0°
+    // NotFlipped                 Flipped
+    //             -270:00:00
+    //  -90.0° <-> -180:00:00
+    //  +00.0° <->  -90:00:00
+    //  +90.0° <->  +00:00:00 <->  -90.0°
+    //              +90:00:00 <->  +00.0°
+    //             +180:00:00 <->  +90.0°
+    //             +270:00:00
 
-    int const sgn = value >= 90.0 ? +1 : -1;
-    double const mechanical_degrees = std::abs(value - 90.0);
-    int const degrees = sgn * static_cast <int> (mechanical_degrees);
+    int const sgn = forceMeridianFlip ? -1 : +1;
+    double const mechanical_degrees = std::abs( forceMeridianFlip ? value + 90.0 : value - 90.0);
+    int const degrees = static_cast <int> (mechanical_degrees) * sgn;
     int const minutes = static_cast <int> (std::floor(mechanical_degrees * 60.0)) % 60;
     int const seconds = static_cast <int> (std::lround(mechanical_degrees * 3600.0)) % 60;
 
-    snprintf(buf, buf_length, "%+02d:%02d:%02d", degrees, minutes, seconds);
+    snprintf(buf, buf_length, "%+03d:%02d:%02d", degrees, minutes, seconds);
     return true;
 }
 
@@ -313,121 +558,3 @@ bool EQ500X::setEQ500XDEC(double value)
     return true;
 }
 
-bool EQ500X::slewEQ500X()
-{
-    if (!sendCmd(":MS#"))
-        goto slew_failed;
-
-    return true;
-
-slew_failed:
-    EqNP.s = IPS_ALERT;
-    IDSetNumber(&EqNP, "Error slewing.");
-    return false;
-}
-
-/**************************************************************************************
-**
-***************************************************************************************/
-void EQ500X::getBasicData()
-{
-    /* */
-}
-
-bool EQ500X::ReadScopeStatus()
-{
-    if (!isConnected())
-        return false;
-
-    if (isSimulation())
-    {
-        mountSim();
-        getEQ500XRA_snprint(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA), currentRA);
-        getEQ500XDEC_snprint(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC), currentDEC);
-        LOGF_DEBUG("RA/DEC simulated as %f/%f, stored as %s/%s", currentRA, currentDEC, simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
-    }
-
-    if (!getEQ500XRA(&currentRA) || !getEQ500XDEC(&currentDEC))
-    {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA/DEC.");
-        return false;
-    }
-
-    if (TrackState == SCOPE_SLEWING)
-    {
-        // Check if LX200 is done slewing
-        if (isSlewComplete())
-        {
-            TrackState = SCOPE_TRACKING;
-            LOG_INFO("Slew is complete. Tracking...");
-        }
-    }
-
-    NewRaDec(currentRA, currentDEC);
-
-    return true;
-}
-
-bool EQ500X::Goto(double ra, double dec)
-{
-    const struct timespec timeout = {0, 100000000L};
-
-    targetRA  = ra;
-    targetDEC = dec;
-
-    char RAStr[16]={0}, DecStr[16]={0};
-    int const fracbase = 3600;
-    fs_sexa(RAStr, targetRA, 2, fracbase);
-    fs_sexa(DecStr, targetDEC, 2, fracbase);
-
-    // If moving, let's stop it first.
-    if (EqNP.s == IPS_BUSY)
-    {
-        if (!isSimulation() && abortSlew(PortFD) < 0)
-        {
-            AbortSP.s = IPS_ALERT;
-            IDSetSwitch(&AbortSP, "Abort slew failed.");
-            return false;
-        }
-
-        AbortSP.s = IPS_OK;
-        EqNP.s    = IPS_IDLE;
-        IDSetSwitch(&AbortSP, "Slew aborted.");
-        IDSetNumber(&EqNP, nullptr);
-
-        if (MovementNSSP.s == IPS_BUSY || MovementWESP.s == IPS_BUSY)
-        {
-            MovementNSSP.s = MovementWESP.s = IPS_IDLE;
-            EqNP.s                          = IPS_IDLE;
-            IUResetSwitch(&MovementNSSP);
-            IUResetSwitch(&MovementWESP);
-            IDSetSwitch(&MovementNSSP, nullptr);
-            IDSetSwitch(&MovementWESP, nullptr);
-        }
-
-        // sleep for 100 mseconds
-        nanosleep(&timeout, nullptr);
-    }
-
-    if (!setEQ500XRA(targetRA) || !setEQ500XDEC(targetDEC))
-    {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error setting RA/DEC.");
-        return false;
-    }
-
-    if (sendCmd(":MS#"))
-    {
-        LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-        slewError(-1);
-        return false;
-    }
-
-    TrackState = SCOPE_SLEWING;
-    EqNP.s     = IPS_BUSY;
-
-    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
-
-    return true;
-}
