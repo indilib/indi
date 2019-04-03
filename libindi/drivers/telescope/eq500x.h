@@ -31,10 +31,11 @@ protected:
     bool getCurrentPosition(MechanicalPoint&);
     bool setTargetPosition(MechanicalPoint&);
     bool gotoTargetPosition();
-    bool setEQ500XRA(double);
-    bool setEQ500XDEC(double);
     bool slewEQ500X();
-    int sendCmd(const char *);
+protected:
+    int sendCmd(char const *);
+    int getReply(char *, size_t const);
+protected:
     virtual bool checkConnection();
     virtual bool ReadScopeStatus();
     virtual bool initProperties() override;

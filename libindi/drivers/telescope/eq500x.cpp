@@ -49,6 +49,8 @@ static struct _simEQ500X
 #define MechanicalPoint_DEC_Format "+DDD:MM:SS"
 #define MechanicalPoint_RA_Format  "HH:MM:SS"
 
+static int const EQ500X_TIMEOUT = 5;
+
 /**************************************************************************************
 ** EQ500X Constructor
 ***************************************************************************************/
@@ -272,8 +274,26 @@ bool EQ500X::Goto(double ra, double dec)
         return false;
     }
 
-    if (targetPosition - currentPosition < 5.0)
+    double const distance = targetPosition - currentPosition;
+    LOGF_INFO("(%lf,%lf) - (%lf,%lf) = %lf", targetPosition.RAm(), targetPosition.DECm(), currentPosition.RAm(), currentPosition.DECm(), distance);
+    if (targetPosition - currentPosition < 1/3600.0f)
     {
+        LOGF_INFO("Distance is %lf, not moving under 1 second", distance);
+        return true;
+    }
+    else if (targetPosition - currentPosition < 1/60.0f)
+    {
+        LOGF_INFO("Distance is %lf, using guiding speed under 1 minute", distance);
+        if (sendCmd(":RG#"))
+        {
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+            slewError(-1);
+            return false;
+        }
+    }
+    else if (targetPosition - currentPosition < 5.0)
+    {
+        LOGF_INFO("Distance is %lf, using centering speed under 5 degrees", distance);
         if (sendCmd(":RC#"))
         {
             LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
@@ -283,7 +303,8 @@ bool EQ500X::Goto(double ra, double dec)
     }
     else
     {
-        if (sendCmd(":RM#"))
+        LOGF_INFO("Distance is %lf, using full slew speed", distance);
+        if (sendCmd(":RC#"))
         {
             LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
             slewError(-1);
@@ -369,29 +390,40 @@ function mmcString2mcc ([String]$ValueString, [String]$ValueString) {
     $DecDouble
 }
 */
-int EQ500X::sendCmd(const char *data)
+int EQ500X::sendCmd(char const *data)
 {
-    int error_type;
-    int nbytes_write = 0;
-
+    tcflush(PortFD, TCIFLUSH);
     LOGF_DEBUG("CMD <%s>", data);
     if (!isSimulation())
     {
-        if ((error_type = tty_write_string(PortFD, data, &nbytes_write)) != TTY_OK)
-            return error_type;
-        tcflush(PortFD, TCIFLUSH);
+        int nbytes_write = 0;
+        return tty_write_string(PortFD, data, &nbytes_write);
+    }
+    return 0;
+}
+
+int EQ500X::getReply(char *data, size_t const len)
+{
+    if (!isSimulation())
+    {
+        int nbytes_read = 0;
+        int error_type = tty_read(PortFD, data, len, EQ500X_TIMEOUT, &nbytes_read);
+
+        LOGF_DEBUG("RES <%.*s> (%d)", nbytes_read, data, error_type);
+        return error_type;
     }
     return 0;
 }
 
 bool EQ500X::gotoTargetPosition()
 {
-    char buf[64/*RB_MAX_LEN*/] = {0};
     tcflush(PortFD, TCIFLUSH);
-    LOGF_DEBUG("CMD <:MS#>", "");
-    if (!getCommandString(PortFD, buf, ":MS#"))
-        if (buf[0] == '0')
-            return false;
+    if (!sendCmd(":MS#"))
+    {
+        char buf[64/*RB_MAX_LEN*/] = {0};
+        if (!getReply(buf, 1))
+            return buf[0] != '0'; // 0 is valid for :MS
+    }
     return true;
 }
 
@@ -436,19 +468,25 @@ bool EQ500X::setTargetPosition(MechanicalPoint &p)
 
     char buf[64/*RB_MAX_LEN*/] = {0};
     tcflush(PortFD, TCIFLUSH);
-    LOGF_DEBUG("CMD <%s>", CmdString);
-    if (getCommandString(PortFD, buf, CmdString))
-        goto radec_error;
-    if (buf[0] != '0' && buf[1] != '0')
-        goto radec_error;
 
-    EqNP.s = IPS_OK;
-    IDSetNumber(&EqNP, "Written RA/DEC.");
-    return false;
+    if (sendCmd(CmdString))
+    {
+        LOGF_WARN("Failed '%s'", CmdString);
+        return true;
+    }
 
-radec_error:
-    EqNP.s = IPS_ALERT;
-    IDSetNumber(&EqNP, "Error writing RA/DEC.");
+    if (getReply(buf, 2))
+    {
+        LOGF_WARN("Failed getting 2-byte reply to '%s'", CmdString);
+        return true;
+    }
+
+    if (buf[0] != '1' && buf[1] != '1')
+    {
+        LOGF_WARN("Failed '%s', mount replied %c%c", CmdString, buf[0], buf[1]);
+        return true;
+    }
+
     return false;
 }
 
@@ -457,31 +495,22 @@ bool EQ500X::MechanicalPoint::parseStringRA(char *buf, size_t buf_length)
     if (buf_length < sizeof(MechanicalPoint_RA_Format))
         return true;
 
-    char b[sizeof(MechanicalPoint_RA_Format)] = {0};
-    strncpy(b, buf, sizeof(b));
-
     // Mount replies to "#GR:" with "HH:MM:SS".
     // HH, MM and SS are respectively hours, minutes and seconds in [00:00:00,23:59:59].
     // FIXME: Sanitize.
 
-    struct _RaValues {
-        char hours[3];
-        char minutes[3];
-        char seconds[3];
-    } * const RaValues = (struct _RaValues*) b;
+    int hours = 0, minutes = 0, seconds = 0;
+    if (3 == sscanf(buf, "%02d:%02d:%02d", &hours, &minutes, &seconds))
+    {
+        _RAm = static_cast <double> (
+                    static_cast <float> (hours) +
+                    static_cast <float> (minutes) / 60.0f +
+                    static_cast <float> (seconds) / 3600.0f +
+                    (forceMeridianFlip ? -12.0f : 0.0f) );
+        return false;
+    }
 
-    RaValues->hours[2] = RaValues->minutes[2] = RaValues->seconds[2] = '\0';
-
-    float const value =
-            atof(RaValues->hours) +
-            atof(RaValues->minutes)/60.0f +
-            atof(RaValues->seconds)/3600.0f+
-            (forceMeridianFlip? -12 : 0 );
-
-    //LOGF_INFO("RA converts as %f.", value);
-
-    _RAm = static_cast <double> (value);
-    return false;
+    return true;
 }
 
 double EQ500X::MechanicalPoint::RAm(double const value)
@@ -493,15 +522,15 @@ char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length)
 {
     // NotFlipped                 Flipped
     // S -12.0h <-> -12:00:00 <-> -24.0h
-    // E -06.0h <-> -06:00:00 <-> -18.0
+    // E -06.0h <-> -06:00:00 <-> -18.0h
     // N +00.0h <-> +00:00:00 <-> -12.0h
-    // W +06.0h <-> +06:00:00 <-> -06.0°
-    // S +12.0h <-> +12:00:00 <-> +00.0°
-    // E +18.0h <-> +18:00:00 <-> +06.0°
-    // N +24.0h <-> +24:00:00 <-> +12.0°
+    // W +06.0h <-> +06:00:00 <-> -06.0h
+    // S +12.0h <-> +12:00:00 <-> +00.0h
+    // E +18.0h <-> +18:00:00 <-> +06.0h
+    // N +24.0h <-> +24:00:00 <-> +12.0h
 
     double value = _RAm;
-    int const sgn = forceMeridianFlip ? value <= -12.0 ? -1 : 1 : value <= 0.0 ? -1 : 1;
+    int const sgn = forceMeridianFlip ? (value <= -12.0 ? -1 : 1) : (value <= 0.0 ? -1 : 1);
     double const mechanical_hours = std::abs(value);
     int const hours = ((forceMeridianFlip ? 12 : 0 ) + 24 + sgn * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
     int const minutes = static_cast <int> (std::floor(mechanical_hours * 60.0)) % 60;
@@ -557,14 +586,15 @@ bool EQ500X::MechanicalPoint::parseStringDEC(char *buf, size_t buf_length)
     }
     DecValues->degrees[3] = DecValues->minutes[2] = DecValues->seconds[2] = '\0';
 
-    float const value = 90.0f + sgn * (
-                atof(DecValues->degrees) +
-                atof(DecValues->minutes)/60.0f +
-                atof(DecValues->seconds)/3600.0f);
+    // FIXME: could be sscanf("%d%d%d", ...) but needs intermediate variables, however that would count matches
+    _DECm = static_cast <double> (
+                90.0f + sgn * (
+                    atof(DecValues->degrees) +
+                    atof(DecValues->minutes)/60.0f +
+                    atof(DecValues->seconds)/3600.0f ));
 
     //LOGF_INFO("DEC converts as %f.", value);
 
-    _DECm = static_cast <double> (value);
     return false;
 }
 
@@ -598,6 +628,9 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length)
 
 double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint &b) const
 {
+    // RA is circular, DEC is not
     double ra = 15*(b._RAm - _RAm), dec = b._DECm - _DECm;
+    if (ra > +180.0) ra -= 360.0;
+    if (ra < -180.0) ra += 360.0;
     return std::sqrt(ra*ra + dec*dec);
 }
