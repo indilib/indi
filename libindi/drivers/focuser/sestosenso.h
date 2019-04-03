@@ -24,58 +24,79 @@
 
 class SestoSenso : public INDI::Focuser
 {
-  public:
-    SestoSenso();
-    virtual ~SestoSenso() override = default;
+    public:
+        SestoSenso();
+        virtual ~SestoSenso() override = default;
 
-    typedef enum { FOCUS_HALF_STEP, FOCUS_FULL_STEP } FocusStepMode;
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    const char *getDefaultName() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
+        static void checkMotionProgressHelper(void *context);
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    protected:
+        virtual bool Handshake() override;
+        virtual bool Disconnect() override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
 
-protected:
-    virtual bool Handshake() override;
-    virtual bool Disconnect() override;
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-    virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
+        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
+        virtual bool ReverseFocuser(bool enabled) override;
+        virtual bool AbortFocuser() override;
+        virtual void TimerHit() override;
 
-    virtual bool AbortFocuser() override;
-    virtual void TimerHit() override;
+    private:
+        bool Ack();
+        bool setMinLimit(uint32_t limit);
+        bool setMaxLimit(uint32_t limit);
+        bool updateMaxLimit();
 
-  private:
-    bool Ack();
-    void GetFocusParams();
-    bool setMinLimit(uint32_t limit);
-    bool setMaxLimit(uint32_t limit);
-    bool isCommandOK(const char *cmd);
-    bool isMotionComplete();
+        bool updateTemperature();
+        bool updatePosition();
 
-    bool sync(uint32_t newPosition);
-    bool updateTemperature();
-    bool updatePosition();
+        void checkMotionProgressCallback();
 
-    uint32_t targetPos { 0 };
-    uint32_t lastPos { 0 };
-    double lastTemperature { 0 };
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Utility Functions
+        ///////////////////////////////////////////////////////////////////////////////
+        bool sendCommand(const char * cmd, char * res = nullptr, int cmd_len = -1, int res_len = -1);
+        bool getStartupValues();
+        void hexDump(char * buf, const char * data, int size);
+        bool isMotionComplete();
 
-    INumber TemperatureN[1];
-    INumberVectorProperty TemperatureNP;
+        uint32_t targetPos { 0 };
+        uint32_t lastPos { 0 };
+        double lastTemperature { 0 };
+        uint16_t m_TemperatureCounter { 0 };
 
-    IText FirmwareT[1] {};
-    ITextVectorProperty FirmwareTP;
+        INumber TemperatureN[1];
+        INumberVectorProperty TemperatureNP;
 
-    INumber SyncN[1];
-    INumberVectorProperty SyncNP;
+        IText FirmwareT[1] {};
+        ITextVectorProperty FirmwareTP;
 
-    INumber LimitsN[2];
-    INumberVectorProperty LimitsNP;
-    enum
-    {
-        SS_MIN_LIMIT,
-        SS_MAX_LIMIT
-    };
+        INumber LimitsN[2];
+        INumberVectorProperty LimitsNP;
+        enum
+        {
+            SS_MIN_LIMIT,
+            SS_MAX_LIMIT
+        };
+
+        int m_MotionProgressTimerID = -1;
+        /////////////////////////////////////////////////////////////////////////////
+        /// Static Helper Values
+        /////////////////////////////////////////////////////////////////////////////
+        // CR is the stop char
+        static const char SESTO_STOP_CHAR { 0xD };
+        // Update temperature every 10x POLLMS. For 500ms, we would
+        // update the temperature one every 5 seconds.
+        static constexpr const uint8_t SESTO_TEMPERATURE_FREQ {10};
+        // Wait up to a maximum of 3 seconds for serial input
+        static constexpr const uint8_t SESTO_TIMEOUT {3};
+        // Maximum buffer for sending/receving.
+        static constexpr const uint8_t SESTO_LEN {64};
+
 };

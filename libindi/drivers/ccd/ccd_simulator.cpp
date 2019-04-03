@@ -35,30 +35,30 @@ static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 // We declare an auto pointer to ccdsim.
 static std::unique_ptr<CCDSim> ccdsim(new CCDSim());
 
-void ISPoll(void *p);
+void ISPoll(void * p);
 
-void ISGetProperties(const char *dev)
+void ISGetProperties(const char * dev)
 {
     ccdsim->ISGetProperties(dev);
 }
 
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+void ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     ccdsim->ISNewSwitch(dev, name, states, names, n);
 }
 
-void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+void ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     ccdsim->ISNewText(dev, name, texts, names, n);
 }
 
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+void ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     ccdsim->ISNewNumber(dev, name, values, names, n);
 }
 
-void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
-               char *names[], int n)
+void ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[], char * formats[],
+               char * names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -69,13 +69,13 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
     INDI_UNUSED(names);
     INDI_UNUSED(n);
 }
-void ISSnoopDevice(XMLEle *root)
+void ISSnoopDevice(XMLEle * root)
 {
     ccdsim->ISSnoopDevice(root);
 }
 
 CCDSim::CCDSim() : INDI::FilterInterface(this)
-{    
+{
     currentRA  = RA;
     currentDE = Dec;
 
@@ -149,7 +149,7 @@ bool CCDSim::Disconnect()
     return true;
 }
 
-const char *CCDSim::getDefaultName()
+const char * CCDSim::getDefaultName()
 {
     return static_cast<const char *>("CCD Simulator");
 }
@@ -194,14 +194,14 @@ bool CCDSim::initProperties()
 
     IUFillNumber(&EqPEN[0], "RA_PE", "RA (hh:mm:ss)", "%010.6m", 0, 24, 0, 0);
     IUFillNumber(&EqPEN[1], "DEC_PE", "DEC (dd:mm:ss)", "%010.6m", -90, 90, 0, 0);
-    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config" , IP_RW, 60,
+    IUFillNumberVector(&EqPENP, EqPEN, 2, getDeviceName(), "EQUATORIAL_PE", "EQ PE", "Simulator Config", IP_RW, 60,
                        IPS_IDLE);
 
-    #ifdef USE_EQUATORIAL_PE
+#ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
-    #else
+#else
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-    #endif
+#endif
 
 
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
@@ -217,6 +217,10 @@ bool CCDSim::initProperties()
     cap |= CCD_HAS_ST4_PORT;
     cap |= CCD_HAS_STREAMING;
 
+#ifdef HAVE_WEBSOCKET
+    cap |= CCD_HAS_WEB_SOCKET;
+#endif
+
     SetCCDCapability(cap);
 
     INDI::FilterInterface::initProperties(FILTER_TAB);
@@ -231,7 +235,7 @@ bool CCDSim::initProperties()
     return true;
 }
 
-void CCDSim::ISGetProperties(const char *dev)
+void CCDSim::ISGetProperties(const char * dev)
 {
     //  First we let our parent populate
 
@@ -239,7 +243,7 @@ void CCDSim::ISGetProperties(const char *dev)
     INDI::CCD::ISGetProperties(dev);
 
     defineNumber(SimulatorSettingsNV);
-    defineSwitch(TimeFactorSV);    
+    defineSwitch(TimeFactorSV);
     defineNumber(&EqPENP);
 }
 
@@ -349,7 +353,10 @@ float CCDSim::CalcTimeLeft(timeval start, float req)
 {
     double timesince;
     double timeleft;
-    struct timeval now { 0, 0 };
+    struct timeval now
+    {
+        0, 0
+    };
     gettimeofday(&now, nullptr);
 
     timesince =
@@ -480,17 +487,17 @@ void CCDSim::TimerHit()
     SetTimer(nextTimer);
 }
 
-int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
+int CCDSim::DrawCcdFrame(INDI::CCDChip * targetChip)
 {
     //  CCD frame is 16 bit data
     uint16_t val;
     float ExposureTime;
     float targetFocalLength;
 
-    uint16_t *ptr = reinterpret_cast<uint16_t*>(targetChip->getFrameBuffer());
+    uint16_t * ptr = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
     if (targetChip->getXRes() == 500)
-        ExposureTime = GuideExposureRequest*4;
+        ExposureTime = GuideExposureRequest * 4;
     else if (Streamer->isStreaming())
         ExposureTime = (ExposureRequest < 1) ? (ExposureRequest * 100) : ExposureRequest * 2;
     else
@@ -504,7 +511,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
     if (ShowStarField)
     {
         char gsccmd[250];
-        FILE *pp;
+        FILE * pp;
         int stars = 0;
         int lines = 0;
         int drawn = 0;
@@ -532,9 +539,6 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         //fprintf(stderr,"PEOffset = %4.2f arcseconds timesince %4.2f\n",PEOffset,timesince);
         PEOffset = PEOffset / 3600; //  convert to degrees
         //PeOffset=PeOffset/15;       //  ra is in h:mm
-
-        //  Start by clearing the frame buffer
-        memset(targetChip->getFrameBuffer(), 0, targetChip->getFrameBufferSize());
 
         //  Spin up a set of plate constants that will relate
         //  ra/dec of stars, to our fictitious ccd layout
@@ -593,10 +597,10 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
         ImageScalex = Scalex;
         ImageScaley = Scaley;
 
-        #ifdef USE_EQUATORIAL_PE
+#ifdef USE_EQUATORIAL_PE
         if (!usePE)
         {
-        #endif
+#endif
 
             currentRA  = RA;
             currentDE = Dec;
@@ -614,9 +618,9 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 
             currentDE += guideNSOffset;
             currentRA += guideWEOffset;
-        #ifdef USE_EQUATORIAL_PE
+#ifdef USE_EQUATORIAL_PE
         }
-        #endif
+#endif
 
         //  calc this now, we will use it a lot later
         rad = currentRA * 15.0;
@@ -665,6 +669,11 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
 
         //  if this is a light frame, we need a star field drawn
         INDI::CCDChip::CCD_FRAME ftype = targetChip->getFrameType();
+
+        std::unique_lock<std::mutex> guard(ccdBufferLock);
+
+        //  Start by clearing the frame buffer
+        memset(targetChip->getFrameBuffer(), 0, targetChip->getFrameBufferSize());
 
         if (ftype == INDI::CCDChip::LIGHT_FRAME)
         {
@@ -785,9 +794,7 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
             skyflux = skyflux * ExposureTime;
             //IDLog("SkyFlux = %g ExposureRequest %g\n",skyflux,ExposureTime);
 
-            unsigned short *pt;
-
-            pt = (uint16_t *)targetChip->getFrameBuffer();
+            uint16_t * pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
             nheight = targetChip->getSubH();
             nwidth  = targetChip->getSubW();
@@ -874,12 +881,12 @@ int CCDSim::DrawCcdFrame(INDI::CCDChip *targetChip)
             *ptr = val++;
             ptr++;
         }
-    }    
+    }
 
     return 0;
 }
 
-int CCDSim::DrawImageStar(INDI::CCDChip *targetChip, float mag, float x, float y, float ExposureTime)
+int CCDSim::DrawImageStar(INDI::CCDChip * targetChip, float mag, float x, float y, float ExposureTime)
 {
     //float d;
     //float r;
@@ -948,7 +955,7 @@ int CCDSim::DrawImageStar(INDI::CCDChip *targetChip, float mag, float x, float y
     return drew;
 }
 
-int CCDSim::AddToPixel(INDI::CCDChip *targetChip, int x, int y, int val)
+int CCDSim::AddToPixel(INDI::CCDChip * targetChip, int x, int y, int val)
 {
     int nwidth  = targetChip->getSubW();
     int nheight = targetChip->getSubH();
@@ -965,11 +972,11 @@ int CCDSim::AddToPixel(INDI::CCDChip *targetChip, int x, int y, int val)
             {
                 if (y < nheight)
                 {
-                    unsigned short *pt;
+                    unsigned short * pt;
                     int newval;
                     drew++;
 
-                    pt = (uint16_t *)targetChip->getFrameBuffer();
+                    pt = reinterpret_cast<uint16_t *>(targetChip->getFrameBuffer());
 
                     pt += (y * nwidth);
                     pt += x;
@@ -1004,8 +1011,8 @@ IPState CCDSim::GuideSouth(uint32_t v)
 IPState CCDSim::GuideEast(uint32_t v)
 {
     float c   = v / 1000.0 * GuideRate;
-    c   = c/ 3600.0 / 15.0;
-    c   = c/ (cos(currentDE * 0.0174532925));
+    c   = c / 3600.0 / 15.0;
+    c   = c / (cos(currentDE * 0.0174532925));
 
     guideWEOffset += c;
 
@@ -1015,15 +1022,15 @@ IPState CCDSim::GuideEast(uint32_t v)
 IPState CCDSim::GuideWest(uint32_t v)
 {
     float c   = v / -1000.0 * GuideRate;
-    c   = c/ 3600.0 / 15.0;
-    c   = c/ (cos(currentDE * 0.0174532925));
+    c   = c / 3600.0 / 15.0;
+    c   = c / (cos(currentDE * 0.0174532925));
 
     guideWEOffset += c;
 
     return IPS_OK;
 }
 
-bool CCDSim::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+bool CCDSim::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -1039,7 +1046,7 @@ bool CCDSim::ISNewText(const char *dev, const char *name, char *texts[], char *n
     return INDI::CCD::ISNewText(dev, name, texts, names, n);
 }
 
-bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool CCDSim::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -1089,7 +1096,7 @@ bool CCDSim::ISNewNumber(const char *dev, const char *name, double values[], cha
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
-bool CCDSim::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool CCDSim::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -1145,17 +1152,17 @@ bool CCDSim::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
 void CCDSim::activeDevicesUpdated()
 {
-    #ifdef USE_EQUATORIAL_PE
+#ifdef USE_EQUATORIAL_PE
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_PE");
-    #else
+#else
     IDSnoopDevice(ActiveDeviceT[0].text, "EQUATORIAL_EOD_COORD");
-    #endif
+#endif
     IDSnoopDevice(ActiveDeviceT[1].text, "FWHM");
 
     strncpy(FWHMNP.device, ActiveDeviceT[1].text, MAXINDIDEVICE);
 }
 
-bool CCDSim::ISSnoopDevice(XMLEle *root)
+bool CCDSim::ISSnoopDevice(XMLEle * root)
 {
     if (IUSnoopNumber(root, &FWHMNP) == 0)
     {
@@ -1164,49 +1171,49 @@ bool CCDSim::ISSnoopDevice(XMLEle *root)
     }
 
     // We try to snoop EQPEC first, if not found, we snoop regular EQNP
-    #ifdef USE_EQUATORIAL_PE
-    const char *propName = findXMLAttValu(root, "name");
+#ifdef USE_EQUATORIAL_PE
+    const char * propName = findXMLAttValu(root, "name");
     if (!strcmp(propName, EqPENP.name))
     {
-            XMLEle *ep = nullptr;
-            int rc_ra = -1, rc_de = -1;
-            double newra = 0, newdec = 0;
+        XMLEle * ep = nullptr;
+        int rc_ra = -1, rc_de = -1;
+        double newra = 0, newdec = 0;
 
-            for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            {
-                const char *elemName = findXMLAttValu(ep, "name");
+        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+        {
+            const char * elemName = findXMLAttValu(ep, "name");
 
-                if (!strcmp(elemName, "RA_PE"))
-                    rc_ra = f_scansexa(pcdataXMLEle(ep), &newra);
-                else if (!strcmp(elemName, "DEC_PE"))
-                    rc_de = f_scansexa(pcdataXMLEle(ep), &newdec);
-            }
+            if (!strcmp(elemName, "RA_PE"))
+                rc_ra = f_scansexa(pcdataXMLEle(ep), &newra);
+            else if (!strcmp(elemName, "DEC_PE"))
+                rc_de = f_scansexa(pcdataXMLEle(ep), &newdec);
+        }
 
-            if (rc_ra == 0 && rc_de == 0 && ((newra != raPE) || (newdec != decPE)))
-            {
-                ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-                epochPos.ra  = newra * 15.0;
-                epochPos.dec = newdec;
-                ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-                raPE  = J2000Pos.ra / 15.0;
-                decPE = J2000Pos.dec;
-                usePE = true;
+        if (rc_ra == 0 && rc_de == 0 && ((newra != raPE) || (newdec != decPE)))
+        {
+            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            epochPos.ra  = newra * 15.0;
+            epochPos.dec = newdec;
+            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+            raPE  = J2000Pos.ra / 15.0;
+            decPE = J2000Pos.dec;
+            usePE = true;
 
-                EqPEN[AXIS_RA].value = newra;
-                EqPEN[AXIS_DE].value = newdec;
-                IDSetNumber(&EqPENP, nullptr);
+            EqPEN[AXIS_RA].value = newra;
+            EqPEN[AXIS_DE].value = newdec;
+            IDSetNumber(&EqPENP, nullptr);
 
-                LOGF_DEBUG("raPE %g  decPE %g Snooped raPE %g  decPE %g", raPE, decPE, newra, newdec);
+            LOGF_DEBUG("raPE %g  decPE %g Snooped raPE %g  decPE %g", raPE, decPE, newra, newdec);
 
-                return true;
-            }
+            return true;
+        }
     }
-    #endif
+#endif
 
     return INDI::CCD::ISSnoopDevice(root);
 }
 
-bool CCDSim::saveConfigItems(FILE *fp)
+bool CCDSim::saveConfigItems(FILE * fp)
 {
     // Save CCD Config
     INDI::CCD::saveConfigItems(fp);
@@ -1264,7 +1271,7 @@ bool CCDSim::UpdateCCDFrame(int x, int y, int w, int h)
 
     Streamer->setSize(bin_width, bin_height);
 
-    return INDI::CCD::UpdateCCDFrame(x,y,w,h);
+    return INDI::CCD::UpdateCCDFrame(x, y, w, h);
 }
 
 bool CCDSim::UpdateCCDBin(int hor, int ver)
@@ -1283,15 +1290,15 @@ bool CCDSim::UpdateCCDBin(int hor, int ver)
 
     Streamer->setSize(bin_width, bin_height);
 
-    return INDI::CCD::UpdateCCDBin(hor,ver);
+    return INDI::CCD::UpdateCCDBin(hor, ver);
 }
 
-void *CCDSim::streamVideoHelper(void *context)
+void * CCDSim::streamVideoHelper(void * context)
 {
     return ((CCDSim *)context)->streamVideo();
 }
 
-void *CCDSim::streamVideo()
+void * CCDSim::streamVideo()
 {
     struct itimerval tframe1, tframe2;
     double s1, s2, deltas;
@@ -1327,14 +1334,14 @@ void *CCDSim::streamVideo()
         deltas = fabs(s2 - s1);
 
         if (deltas < ExposureRequest)
-            usleep(fabs(ExposureRequest-deltas)*1e6);
+            usleep(fabs(ExposureRequest - deltas) * 1e6);
 
-        uint32_t size = PrimaryCCD.getFrameBufferSize() / (PrimaryCCD.getBinX()*PrimaryCCD.getBinY());
+        uint32_t size = PrimaryCCD.getFrameBufferSize() / (PrimaryCCD.getBinX() * PrimaryCCD.getBinY());
         Streamer->newFrame(PrimaryCCD.getFrameBuffer(), size);
 
         getitimer(ITIMER_REAL, &tframe2);
     }
 
     pthread_mutex_unlock(&condMutex);
-    return 0;
+    return nullptr;
 }

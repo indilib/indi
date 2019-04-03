@@ -28,13 +28,13 @@
 #include <indifocuserinterface.h>
 
 #include <map>
+#include <future>
 #include <string>
 
 #define MAXEXPERR 10 /* max err in exp time we allow, secs */
 #define OPENDT    5  /* open retry delay, secs */
 
 typedef struct _Camera Camera;
-
 
 enum
 {
@@ -44,13 +44,15 @@ enum
 
 typedef struct
 {
-    gphoto_widget *widget;
-    union {
+    gphoto_widget * widget;
+    union
+    {
         INumber num;
-        ISwitch *sw;
+        ISwitch * sw;
         IText text;
     } item;
-    union {
+    union
+    {
         INumberVectorProperty num;
         ISwitchVectorProperty sw;
         ITextVectorProperty text;
@@ -59,156 +61,181 @@ typedef struct
 
 class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
 {
-  public:
-    explicit GPhotoCCD();
-    explicit GPhotoCCD(const char *model, const char *port);
-    virtual ~GPhotoCCD() override;
+    public:
+        explicit GPhotoCCD();
+        explicit GPhotoCCD(const char * model, const char * port);
+        virtual ~GPhotoCCD() override;
 
-    const char *getDefaultName() override;
+        const char * getDefaultName() override;
 
-    bool initProperties() override;
-    void ISGetProperties(const char *dev) override;
-    bool updateProperties() override;
+        bool initProperties() override;
+        void ISGetProperties(const char * dev) override;
+        bool updateProperties() override;
 
-    bool Connect() override;
-    bool Disconnect() override;
+        bool Connect() override;
+        bool Disconnect() override;
 
-    bool StartExposure(float duration) override;
-    bool AbortExposure() override;
-    bool UpdateCCDFrame(int x, int y, int w, int h) override;
+        bool StartExposure(float duration) override;
+        bool AbortExposure() override;
+        bool UpdateCCDFrame(int x, int y, int w, int h) override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewNumber(const char * dev, const char * name, double values[], char * names[], int n) override;
+        virtual bool ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int n) override;
+        virtual bool ISNewText(const char * dev, const char * name, char * texts[], char * names[], int n) override;
 
-    static void ExposureUpdate(void *vp);
-    void ExposureUpdate();
+        static void ExposureUpdate(void * vp);
+        void ExposureUpdate();
 
-    static void UpdateExtendedOptions(void *vp);
-    void UpdateExtendedOptions(bool force = false);
+        static void UpdateExtendedOptions(void * vp);
+        void UpdateExtendedOptions(bool force = false);
 
-  protected:
-    // Misc.
-    bool saveConfigItems(FILE *fp) override;
-    void addFITSKeywords(fitsfile *fptr, INDI::CCDChip *targetChip) override;
-    void TimerHit() override;
+        static void UpdateFocusMotionHelper(void *context);
+        void UpdateFocusMotionCallback();
 
-    // Upload Mode
-    bool UpdateCCDUploadMode(CCD_UPLOAD_MODE mode) override;
+    protected:
+        // Misc.
+        bool saveConfigItems(FILE * fp) override;
+        void addFITSKeywords(fitsfile * fptr, INDI::CCDChip * targetChip) override;
+        void TimerHit() override;
 
-    // Focusing
-    bool SetFocuserSpeed(int speed) override;
-    IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+        // Upload Mode
+        bool UpdateCCDUploadMode(CCD_UPLOAD_MODE mode) override;
 
-    // Streaming
-    bool StartStreaming() override;
-    bool StopStreaming() override;
+        // Focusing
+#if 0
+        bool SetFocuserSpeed(int speed) override;
+        IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+#endif
+        /**
+         * \brief MoveFocuser the focuser to an relative position.
+         * \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
+         * \param ticks The relative ticks to move.
+         * \return Return IPS_OK if motion is completed and focuser reached requested position. Return
+         * IPS_BUSY if focuser started motion to requested position and is in progress.
+         * Return IPS_ALERT if there is an error.
+         */
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
 
-    bool startLiveVideo();
-    bool stopLiveVideo();
+        // Streaming
+        bool StartStreaming() override;
+        bool StopStreaming() override;
+        void streamLiveView();
 
-    // Preview
-    //bool startLivePreview();
+        std::mutex liveStreamMutex;
+        bool m_RunLiveStream;
+        //bool stopLiveVideo();
+
+        // Preview
+        //bool startLivePreview();
 
 
-  private:
-    ISwitch *create_switch(const char *basestr, char **options, int max_opts, int setidx);
-    void AddWidget(gphoto_widget *widget);
-    void UpdateWidget(cam_opt *opt);
-    void ShowExtendedOptions(void);
-    void HideExtendedOptions(void);
+    private:
+        ISwitch * create_switch(const char * basestr, char ** options, int max_opts, int setidx);
+        void AddWidget(gphoto_widget * widget);
+        void UpdateWidget(cam_opt * opt);
+        void ShowExtendedOptions(void);
+        void HideExtendedOptions(void);
 
-    double CalcTimeLeft();
-    bool grabImage();
+        double CalcTimeLeft();
+        bool grabImage();
 
-    char name[MAXINDIDEVICE];
-    char model[MAXINDINAME];
-    char port[MAXINDINAME];
+        char name[MAXINDIDEVICE];
+        char model[MAXINDINAME];
+        char port[MAXINDINAME];
 
-    struct timeval ExpStart;
-    double ExposureRequest;
+        struct timeval ExpStart;
+        double ExposureRequest;
 
-    gphoto_driver *gphotodrv;
-    std::map<std::string, cam_opt *> CamOptions;
-    int expTID; /* exposure callback timer id, if any */
-    int optTID; /* callback for exposure timer id */
-    int focusSpeed;
+        gphoto_driver * gphotodrv;
+        std::map<std::string, cam_opt *> CamOptions;
+        int expTID; /* exposure callback timer id, if any */
+        int optTID; /* callback for exposure timer id */
+        int focusSpeed {0};
 
-    char *on_off[2];
-    int timerID;
-    bool frameInitialized;
-    bool isTemperatureSupported { false };
+        char * on_off[2];
+        int timerID;
+        bool frameInitialized;
+        bool isTemperatureSupported { false };
 
-    int liveVideoWidth  {-1};
-    int liveVideoHeight {-1};
+        // Focus
+        bool m_CanFocus { false };
+        int32_t m_TargetLargeStep {0}, m_TargetMedStep {0}, m_TargetLowStep {0}, m_FocusTimerID {-1};
 
-    ISwitch mConnectS[2];
-    ISwitchVectorProperty mConnectSP;
-    IText mPortT[1] {};
-    ITextVectorProperty PortTP;
+        int liveVideoWidth  {-1};
+        int liveVideoHeight {-1};
 
-    INumber mMirrorLockN[1];
-    INumberVectorProperty mMirrorLockNP;
+        ISwitch mConnectS[2];
+        ISwitchVectorProperty mConnectSP;
+        IText mPortT[1] {};
+        ITextVectorProperty PortTP;
 
-    INumber mExposureN[1];
-    INumberVectorProperty mExposureNP;
+        INumber mMirrorLockN[1];
+        INumberVectorProperty mMirrorLockNP;
 
-    ISwitch *mIsoS = nullptr;
-    ISwitchVectorProperty mIsoSP;
-    ISwitch *mFormatS = nullptr;
-    ISwitchVectorProperty mFormatSP;
+        INumber mExposureN[1];
+        INumberVectorProperty mExposureNP;
 
-    ISwitch transferFormatS[2];
-    ISwitchVectorProperty transferFormatSP;
+        ISwitch * mIsoS = nullptr;
+        ISwitchVectorProperty mIsoSP;
+        ISwitch * mFormatS = nullptr;
+        ISwitchVectorProperty mFormatSP;
 
-    ISwitch captureTargetS[2];
-    ISwitchVectorProperty captureTargetSP;
-    enum
-    {
-        CAPTURE_INTERNAL_RAM,
-        CAPTURE_SD_CARD
-    };
+        ISwitch transferFormatS[2];
+        ISwitchVectorProperty transferFormatSP;
 
-    ISwitch SDCardImageS[2];
-    ISwitchVectorProperty SDCardImageSP;
-    enum
-    {
-        SD_CARD_SAVE_IMAGE,
-        SD_CARD_DELETE_IMAGE
-    };
+        ISwitch captureTargetS[2];
+        ISwitchVectorProperty captureTargetSP;
+        enum
+        {
+            CAPTURE_INTERNAL_RAM,
+            CAPTURE_SD_CARD
+        };
 
-    ISwitch autoFocusS[1];
-    ISwitchVectorProperty autoFocusSP;
+        ISwitch SDCardImageS[2];
+        ISwitchVectorProperty SDCardImageSP;
+        enum
+        {
+            SD_CARD_SAVE_IMAGE,
+            SD_CARD_DELETE_IMAGE
+        };
 
-    ISwitch livePreviewS[2];
-    ISwitchVectorProperty livePreviewSP;
+        ISwitch autoFocusS[1];
+        ISwitchVectorProperty autoFocusSP;
 
-    ISwitch streamSubframeS[2];
-    ISwitchVectorProperty streamSubframeSP;
+        ISwitch livePreviewS[2];
+        ISwitchVectorProperty livePreviewSP;
 
-    ISwitch *mExposurePresetS = nullptr;
-    ISwitchVectorProperty mExposurePresetSP;
+        ISwitch * mExposurePresetS = nullptr;
+        ISwitchVectorProperty mExposurePresetSP;
 
-    ISwitch forceBULBS[2];
-    ISwitchVectorProperty forceBULBSP;
-    enum
-    {
-        FORCE_BULB_ON,
-        FORCE_BULB_OFF
-    };
+        ISwitch forceBULBS[2];
+        ISwitchVectorProperty forceBULBSP;
+        enum
+        {
+            FORCE_BULB_ON,
+            FORCE_BULB_OFF
+        };
 
-    IBLOBVectorProperty *imageBP = nullptr;
-    IBLOB *imageB                = nullptr;
+        IBLOBVectorProperty * imageBP = nullptr;
+        IBLOB * imageB                = nullptr;
 
-    Camera *camera = nullptr;
+        Camera * camera = nullptr;
 
-    static constexpr double MINUMUM_CAMERA_TEMPERATURE = -60.0;
+        // Threading
+        std::thread liveViewThread;
 
-    friend void ::ISSnoopDevice(XMLEle *root);
-    friend void ::ISGetProperties(const char *dev);
-    friend void ::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num);
-    friend void ::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num);
-    friend void ::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num);
-    friend void ::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                            char *formats[], char *names[], int n);
+        static constexpr double MINUMUM_CAMERA_TEMPERATURE = -60.0;
+
+        // Ratio from far 3 to far 2
+        static constexpr double FOCUS_HIGH_MED_RATIO = 7.33;
+        // Ratio from far 2 to far 1
+        static constexpr double FOCUS_MED_LOW_RATIO = 6.36;
+
+        friend void ::ISSnoopDevice(XMLEle * root);
+        friend void ::ISGetProperties(const char * dev);
+        friend void ::ISNewSwitch(const char * dev, const char * name, ISState * states, char * names[], int num);
+        friend void ::ISNewText(const char * dev, const char * name, char * texts[], char * names[], int num);
+        friend void ::ISNewNumber(const char * dev, const char * name, double values[], char * names[], int num);
+        friend void ::ISNewBLOB(const char * dev, const char * name, int sizes[], int blobsizes[], char * blobs[],
+                                char * formats[], char * names[], int n);
 };

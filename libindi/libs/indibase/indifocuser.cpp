@@ -72,14 +72,20 @@ bool Focuser::initProperties()
     if (focuserConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(serialConnection);
     }
 
     if (focuserConnection & CONNECTION_TCP)
     {
         tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(tcpConnection);
     }
 
@@ -176,6 +182,9 @@ bool Focuser::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
                 DEBUGF(Logger::DBG_SESSION, "Moving to Preset %d with position %g.", index + 1,
                        PresetN[index].value);
                 IDSetSwitch(&PresetGotoSP, nullptr);
+
+                FocusAbsPosNP.s = IPS_BUSY;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
                 return true;
             }
 
@@ -366,11 +375,11 @@ bool Focuser::SetFocuserMaxPosition(uint32_t ticks)
 void Focuser::SyncPresets(uint32_t ticks)
 {
     PresetN[0].max = ticks;
-    PresetN[0].step = PresetN[0].max/50.0;
+    PresetN[0].step = PresetN[0].max / 50.0;
     PresetN[1].max = ticks;
-    PresetN[1].step = PresetN[0].max/50.0;
+    PresetN[1].step = PresetN[0].max / 50.0;
     PresetN[2].max = ticks;
-    PresetN[2].step = PresetN[0].max/50.0;
+    PresetN[2].step = PresetN[0].max / 50.0;
     IUUpdateMinMax(&PresetNP);
 }
 }

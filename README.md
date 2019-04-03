@@ -36,7 +36,7 @@ Learn more about INDI:
 On Debian/Ubuntu:
 
 ```
-sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtiff-dev
+sudo apt-get install libnova-dev libcfitsio-dev libusb-1.0-0-dev zlib1g-dev libgsl-dev build-essential cmake git libjpeg-dev libcurl4-gnutls-dev libtiff-dev libfftw3-dev
 ```
 ## Get the code
 ```
@@ -69,7 +69,7 @@ sudo make install
 The complete list of system dependancies for all drivers on Debian / Ubuntu
 
 ```
-sudo apt-get install libftdi-dev libgps-dev libraw-dev libdc1394-22-dev libgphoto2-dev libboost-dev libboost-regex-dev librtlsdr-dev liblimesuite-dev libftdi1-dev libfftw3-dev
+sudo apt-get install libftdi-dev libgps-dev libraw-dev libdc1394-22-dev libgphoto2-dev libboost-dev libboost-regex-dev librtlsdr-dev liblimesuite-dev libftdi1-dev
 ```
 
 To build **all** 3rd party drivers, you need to run cmake and make install **twice**. First time is to install any dependencies of the 3rd party drivers (for example indi-qsi depends on libqsi), and second time to install the actual drivers themselves.
@@ -100,8 +100,8 @@ Typical INDI Client / Server / Driver / Device connectivity:
                       |                  |
                       |                  |
     INDI Client n ----|                  |---- INDI Driver C  ---- Dev T
-    
-    
+
+
      Client       INET       Server       UNIX     Driver          Hardware
      processes    sockets    process      pipes    processes       devices
 
@@ -125,6 +125,7 @@ INDI server only provides convenient port, fork and data steering services. If d
 + [Tutorials](http://indilib.org/develop/tutorials.html)
 + [Developers Forum](http://indilib.org/forum/development.html)
 + [Developers Chat](https://riot.im/app/#/room/#kstars:matrix.org)
++ Sample drivers are available under examples and drivers/skeleton directories. They can be used as a starting point for your driver development.
 
 ### How to create Github pull request (PR)
 
@@ -140,6 +141,24 @@ Here is the short version on how to submit a PR:
 7. Pushing updates to the PR: just update your branch (git push -f my_fork my_branch:my_branch)..
 
 If you would like to make cleaner PR (recommended!) please read this [tutorial](https://blog.adamspiers.org/2015/03/24/why-and-how-to-correctly-amend-github-pull-requests/) and follow it. The best way is to keep *one logical change per commit* and not pollute the history by multiple small fixes to the PR.
+
+### Driver Documentation
+
+When submitting a new driver, the driver user **documentation** is required as part of the submission process.
+
+* Installation: Driver name, executable name, version, required INDI version.
+* Features: What features does it support exactly?
+* Operation: How to operate the driver? Each sub section should come with a screen shot of the various tabs..etc.
+  Preferably annotated to make it easier for new users to follow.
+  * Connecting: How to establish connection? How to set port if any?
+  * Main Control: Primary control tab and its functions.
+  * Options: Explanation for the various options available.
+  * Etc: Any other tabs created by the driver.
+* Issues: Any problems or issues or warnings the users should be aware about when using this driver.
+
+### Sample Drivers
+
+You can base a new driver from an existing driver. Look in either the examples or drivers/skeleton directories on how to get started.
 
 # Unit tests
 

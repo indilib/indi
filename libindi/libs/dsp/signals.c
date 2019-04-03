@@ -1,0 +1,90 @@
+/*
+ *   libDSPAU - a digital signal processing library for astronomy usage
+ *   Copyright (C) 2017  Ilia Platone <info@iliaplatone.com>
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include "dsp.h"
+
+void dsp_signals_sinewave(dsp_stream_p stream, double samplefreq, double freq)
+{
+    freq /= samplefreq;
+    double rad = 0;
+    double x = 0;
+    for(int k = 0; k < stream->len; k++) {
+        rad += freq;
+        x = rad;
+        while (x > 1.0)
+            x -= 1.0;
+        x *= M_PI * 2;
+        stream->buf[k] = sin(x);
+    }
+
+}
+
+void dsp_signals_sawtoothwave(dsp_stream_p stream, double samplefreq, double freq)
+{
+    freq /= samplefreq;
+    double rad = 0;
+    double x = 0;
+    for(int k = 0; k < stream->len; k++) {
+        rad += freq;
+        x = rad;
+        while (x > 1.0)
+            x -= 1.0;
+        stream->buf[k] = x;
+    }
+
+}
+
+void dsp_signals_triwave(dsp_stream_p stream, double samplefreq, double freq)
+{
+    freq /= samplefreq;
+    double rad = 0;
+    double x = 0;
+    for(int k = 0; k < stream->len; k++) {
+        rad += freq;
+        x = rad;
+        while (x > 2.0)
+            x -= 2.0;
+        while (x > 1.0)
+            x = 2.0 - x;
+        stream->buf[k] = x;
+    }
+
+}
+
+void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq, double freq, double bandwidth)
+{
+    dsp_stream_p carrier = dsp_stream_new();
+    dsp_signals_sinewave(carrier, samplefreq, freq);
+    double lo = freq / samplefreq;
+    double hi = freq / samplefreq;
+    dsp_buffer_deviate(carrier, stream, lo - bandwidth * 0.5, hi + bandwidth * 1.5);
+    dsp_stream_free_buffer(stream);
+    dsp_stream_set_buffer(stream, carrier->buf, stream->len);
+    dsp_stream_free(carrier);
+
+}
+
+void dsp_modulation_amplitude(dsp_stream_p stream, double samplefreq, double freq)
+{
+    dsp_stream_p carrier = dsp_stream_new();
+    dsp_signals_sinewave(carrier, samplefreq, freq);
+    dsp_buffer_sum(stream, carrier->buf, stream->len);
+    dsp_stream_free_buffer(carrier);
+    dsp_stream_free(carrier);
+
+}

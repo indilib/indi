@@ -1,3 +1,12 @@
+indi-starbook (0.4) bionic; urgency=medium
+
+  * Improves connection stability
+  * Add disconnection detection
+  * Add ability to activate Starbook from INDI control panel
+  * Fix driver not saving connection settings
+
+ -- Norbert Szulc <norbert@not7cd.net>  Sat, 09 Feb 2019 08:44:32 +0300
+
 indi-starbook (0.1) bionic; urgency=medium
 
   * New release

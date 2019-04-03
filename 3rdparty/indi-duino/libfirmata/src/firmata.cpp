@@ -120,13 +120,31 @@ int Firmata::setPinMode(unsigned char pin, unsigned char mode)
     return (rv);
 }
 
-int Firmata::setPwmPin(unsigned char pin, int16_t value)
+int Firmata::setPwmPin(unsigned char pin, uint16_t value)
 {
     int rv = 0;
-    rv |= arduino->sendUchar(FIRMATA_ANALOG_MESSAGE + pin);
-    rv |= arduino->sendUchar((unsigned char)(value % 128));
-    rv |= arduino->sendUchar((unsigned char)(value >> 7));
-    LOGF_DEBUG("Sending ANALOG_MESSAGE pin:%d, value:%d", pin, value);
+    if ((pin <= 0xf) && (value <= 0x3fff))
+    {
+        LOGF_DEBUG("Sending ANALOG_MESSAGE pin:%d, value:%d", pin, value);
+        rv |= arduino->sendUchar(FIRMATA_ANALOG_MESSAGE + pin);
+        rv |= arduino->sendUchar((unsigned char)(value % 128));
+        rv |= arduino->sendUchar((unsigned char)(value >> 7));
+    }
+    else
+    {
+        LOGF_DEBUG("Sending EXTENDED_ANALOG pin:%d, value:%lu", pin, value);
+        rv |= arduino->sendUchar(FIRMATA_START_SYSEX);
+        rv |= arduino->sendUchar(FIRMATA_EXTENDED_ANALOG);
+        rv |= arduino->sendUchar(pin & 0x7f);
+         rv |= arduino->sendUchar(value & 0x7f);
+         value >>= 7;
+         while (value)
+         {
+             rv |= arduino->sendUchar(value & 0x7f);
+             value >>= 7;
+         }
+         rv |= arduino->sendUchar(FIRMATA_END_SYSEX);
+    }
     return (rv);
 }
 int Firmata::mapAnalogChannels()
@@ -175,11 +193,11 @@ int Firmata::askPinState(int pin)
 int Firmata::reportDigitalPorts(int enable)
 {
     int rv = 0;
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 16; i++)
     {
         rv |= arduino->sendUchar(FIRMATA_REPORT_DIGITAL | i); // report analog
         rv |= arduino->sendUchar(enable);
-        LOGF_DEBUG("Sending REPORT_DIGITAL pin:%d, enable:%d", i, enable);
+        LOGF_DEBUG("Sending REPORT_DIGITAL port:%d, enable:%d", i, enable);
     }
     return (rv);
 }
@@ -187,11 +205,11 @@ int Firmata::reportDigitalPorts(int enable)
 int Firmata::reportAnalogPorts(int enable)
 {
     int rv = 0;
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 16; i++)
     {
         rv |= arduino->sendUchar(FIRMATA_REPORT_ANALOG | i); // report analog
         rv |= arduino->sendUchar(enable);
-        LOGF_DEBUG("Sending REPORT_ANALOG pin:%d, enable:%d", i, enable);
+        LOGF_DEBUG("Sending REPORT_ANALOG pin: A%d, enable:%d", i, enable);
     }
     return (rv);
 }
@@ -518,19 +536,22 @@ void Firmata::DoMessage(void)
         }
         else if (parse_buf[1] == FIRMATA_EXTENDED_ANALOG)
         {
-            //TODO Testting
             if ((parse_count - 3) > 8)
                 LOG_DEBUG("Extended analog max precision uint64_bit");
-            int pin = (parse_buf[2] & 0x7F); //UP to 128 analogs
-            if (pin_info[pin].mode == FIRMATA_MODE_INPUT)
+            int analog_ch = (parse_buf[2] & 0x7F); //UP to 128 analogs
+            uint64_t analog_val = 0;
+            for (int i = parse_count - 2; i >= 3; i--)
             {
-                int analog_val = (parse_buf[3] & 0x7F);
-                for (int i = 4; i < parse_count - 1; i++)
+                analog_val = (analog_val << 7) | (parse_buf[i] & 0x7F);
+            }
+            for (int pin = 0; pin < 128; pin++)
+            {
+                if (pin_info[pin].analog_channel == analog_ch)
                 {
-                    analog_val = (analog_val << 7) | (parse_buf[i] & 0x7F);
+                    pin_info[pin].value = analog_val;
+                    LOGF_DEBUG("EXTENDED_ANALOG: pin %d is A%d = %lu", pin, analog_ch, analog_val);
+                    break;
                 }
-                pin_info[pin].value = analog_val;
-                LOGF_DEBUG("Extended analog: pin %d = %d", pin, analog_val);
             }
         }
         else if (parse_buf[1] == FIRMATA_I2C_REPLY)
