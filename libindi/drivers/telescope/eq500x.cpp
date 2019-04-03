@@ -42,9 +42,12 @@ static struct _simEQ500X
     char MechanicalRA[16];
     char MechanicalDEC[16];
 } simEQ500X = {
-    "12:00:00",
-    "+00:00:00",
+    "00:00:00",
+    "+00*00'00",
 };
+
+#define MechanicalPoint_DEC_Format "+DDD:MM:SS"
+#define MechanicalPoint_RA_Format  "HH:MM:SS"
 
 /**************************************************************************************
 ** EQ500X Constructor
@@ -165,28 +168,31 @@ bool EQ500X::ReadScopeStatus()
     if (isSimulation())
     {
         mountSim();
-        getEQ500XRA_snprint(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA), currentRA);
-        getEQ500XDEC_snprint(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC), currentDEC);
+        currentPosition.toStringRA(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA));
+        currentPosition.toStringDEC(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC));
         LOGF_DEBUG("RA/DEC simulated as %f/%f, stored as %s/%s", currentRA, currentDEC, simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
     }
 
-    if (!getEQ500XRA(&currentRA) || !getEQ500XDEC(&currentDEC))
+    if (getCurrentPosition(currentPosition))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error reading RA/DEC.");
         return false;
     }
 
+    currentRA = currentPosition.RAm();
+    currentDEC = currentPosition.DECm();
+
     if (TrackState == SCOPE_SLEWING)
     {
         // Check if mount is done slewing - NewRaDec will update EqN
-        if (EqN[AXIS_RA].value == currentRA && EqN[AXIS_DE].value == currentDEC)
+        if (EqN[AXIS_RA].value == currentPosition.RAm() && EqN[AXIS_DE].value == currentPosition.DECm())
         {
             TrackState = SCOPE_TRACKING;
             LOG_INFO("Slew is complete. Tracking...");
         }
         // If mount is close to target, issue a slower goto
-        else if (std::fmod(std::abs(currentRA-targetRA), 24) < 5.f && std::fmod(std::abs(currentDEC-targetDEC), 360) < 5.f)
+        else if (std::fmod(std::abs(currentPosition.RAm()-targetRA), 24) < 5.f && std::fmod(std::abs(currentPosition.DECm()-targetDEC), 360) < 5.f)
         {
             LOG_INFO("Slew is close to target...");
         }
@@ -199,8 +205,8 @@ bool EQ500X::ReadScopeStatus()
 
 bool EQ500X::Goto(double ra, double dec)
 {
-    targetRA  = ra;
-    targetDEC = dec;
+    targetPosition.RAm(ra);
+    targetPosition.DECm(dec);
 
     // Check whether a meridian flip is required
     ln_equ_posn lnradec { 0, 0 };
@@ -226,9 +232,8 @@ bool EQ500X::Goto(double ra, double dec)
     }
 
     char RAStr[16]={0}, DecStr[16]={0};
-    int const fracbase = 3600;
-    fs_sexa(RAStr, targetRA, 2, fracbase);
-    fs_sexa(DecStr, targetDEC, 2, fracbase);
+    targetPosition.toStringRA(RAStr, sizeof(RAStr));
+    targetPosition.toStringDEC(DecStr, sizeof(DecStr));
 
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
@@ -260,21 +265,33 @@ bool EQ500X::Goto(double ra, double dec)
         nanosleep(&timeout, nullptr);
     }
 
-    if (!setEQ500XRA(targetRA) || !setEQ500XDEC(targetDEC))
+    if (setTargetPosition(targetPosition))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error setting RA/DEC.");
         return false;
     }
 
-    if (sendCmd(":RM#"))
+    if (targetPosition - currentPosition < 5.0)
     {
-        LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-        slewError(-1);
-        return false;
+        if (sendCmd(":RC#"))
+        {
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+            slewError(-1);
+            return false;
+        }
+    }
+    else
+    {
+        if (sendCmd(":RM#"))
+        {
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+            slewError(-1);
+            return false;
+        }
     }
 
-    if (sendCmd(":MS#"))
+    if (gotoTargetPosition())
     {
         LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
         slewError(-1);
@@ -367,22 +384,81 @@ int EQ500X::sendCmd(const char *data)
     return 0;
 }
 
-bool EQ500X::getEQ500XRA(double *result)
+bool EQ500X::gotoTargetPosition()
+{
+    char buf[64/*RB_MAX_LEN*/] = {0};
+    tcflush(PortFD, TCIFLUSH);
+    LOGF_DEBUG("CMD <:MS#>", "");
+    if (!getCommandString(PortFD, buf, ":MS#"))
+        if (buf[0] == '0')
+            return false;
+    return true;
+}
+
+bool EQ500X::getCurrentPosition(MechanicalPoint &p)
 {
     char b[64/*RB_MAX_LEN*/] = {0};
+    MechanicalPoint result;
+
+    tcflush(PortFD, TCIFLUSH);
 
     if (isSimulation())
-    {
         memcpy(b, simEQ500X.MechanicalRA, std::min(sizeof(b), sizeof(simEQ500X.MechanicalRA)));
-    }
     else if (getCommandString(PortFD, b, ":GR#") < 0)
-    {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading RA.");
-        return false;
-    }
+        goto radec_error;
+    else if (result.parseStringRA(b, 64))
+        goto radec_error;
 
-    LOGF_INFO("RA reads '%s'.", b);
+    LOGF_INFO("RA reads '%s' as %lf.", b, result.RAm());
+
+    if (isSimulation())
+        memcpy(b, simEQ500X.MechanicalDEC, std::min(sizeof(b), sizeof(simEQ500X.MechanicalDEC)));
+    else if (getCommandString(PortFD, b, ":GD#") < 0)
+        goto radec_error;
+    else if (result.parseStringDEC(b, 64))
+        goto radec_error;
+
+    LOGF_INFO("DEC reads '%s' as %lf.", b, result.DECm());
+
+    p = result;
+    return false;
+
+radec_error:
+    return true;
+}
+
+bool EQ500X::setTargetPosition(MechanicalPoint &p)
+{
+    char CmdString[] = ":Sr" MechanicalPoint_RA_Format "#:Sd" MechanicalPoint_DEC_Format "#";
+    char bufRA[16], bufDEC[16];
+    snprintf(CmdString, sizeof(CmdString), ":Sr%s#:Sd%s#", p.toStringRA(bufRA, sizeof(bufRA)), p.toStringDEC(bufDEC, sizeof(bufDEC)));
+    LOGF_INFO("RA '%f' DEC '%f' converted to '%s'", static_cast <float> (p.RAm()), static_cast <float> (p.DECm()), CmdString);
+
+    char buf[64/*RB_MAX_LEN*/] = {0};
+    tcflush(PortFD, TCIFLUSH);
+    LOGF_DEBUG("CMD <%s>", CmdString);
+    if (getCommandString(PortFD, buf, CmdString))
+        goto radec_error;
+    if (buf[0] != '0' && buf[1] != '0')
+        goto radec_error;
+
+    EqNP.s = IPS_OK;
+    IDSetNumber(&EqNP, "Written RA/DEC.");
+    return false;
+
+radec_error:
+    EqNP.s = IPS_ALERT;
+    IDSetNumber(&EqNP, "Error writing RA/DEC.");
+    return false;
+}
+
+bool EQ500X::MechanicalPoint::parseStringRA(char *buf, size_t buf_length)
+{
+    if (buf_length < sizeof(MechanicalPoint_RA_Format))
+        return true;
+
+    char b[sizeof(MechanicalPoint_RA_Format)] = {0};
+    strncpy(b, buf, sizeof(b));
 
     // Mount replies to "#GR:" with "HH:MM:SS".
     // HH, MM and SS are respectively hours, minutes and seconds in [00:00:00,23:59:59].
@@ -402,15 +478,18 @@ bool EQ500X::getEQ500XRA(double *result)
             atof(RaValues->seconds)/3600.0f+
             (forceMeridianFlip? -12 : 0 );
 
-    LOGF_INFO("RA converts as %f.", value);
+    //LOGF_INFO("RA converts as %f.", value);
 
-    if (result != nullptr)
-        *result = static_cast <double> (value);
-
-    return true;
+    _RAm = static_cast <double> (value);
+    return false;
 }
 
-bool EQ500X::getEQ500XRA_snprint(char *buf, size_t buf_length, double value)
+double EQ500X::MechanicalPoint::RAm(double const value)
+{
+    return _RAm = value;
+}
+
+char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length)
 {
     // NotFlipped                 Flipped
     // S -12.0h <-> -12:00:00 <-> -24.0h
@@ -421,49 +500,25 @@ bool EQ500X::getEQ500XRA_snprint(char *buf, size_t buf_length, double value)
     // E +18.0h <-> +18:00:00 <-> +06.0°
     // N +24.0h <-> +24:00:00 <-> +12.0°
 
+    double value = _RAm;
     int const sgn = forceMeridianFlip ? value <= -12.0 ? -1 : 1 : value <= 0.0 ? -1 : 1;
     double const mechanical_hours = std::abs(value);
     int const hours = ((forceMeridianFlip ? 12 : 0 ) + 24 + sgn * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
     int const minutes = static_cast <int> (std::floor(mechanical_hours * 60.0)) % 60;
     int const seconds = static_cast <int> (std::lround(mechanical_hours * 3600.0)) % 60;
 
-    return 8 == snprintf(buf, buf_length, "%02d:%02d:%02d", hours, minutes, seconds);
+    int const written = snprintf(buf, buf_length, "%02d:%02d:%02d", hours, minutes, seconds);
+
+    return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
-bool EQ500X::setEQ500XRA(double value)
+bool EQ500X::MechanicalPoint::parseStringDEC(char *buf, size_t buf_length)
 {
-    char CmdString[16] = ":Sr";
-    getEQ500XRA_snprint(CmdString+std::strlen(CmdString), sizeof(CmdString)-std::strlen(CmdString), value);
-    std::strcat(CmdString, "#");
-    LOGF_INFO("RA '%f' converted to '%s'", static_cast <float> (value), CmdString);
+    if (buf_length < sizeof(MechanicalPoint_DEC_Format))
+        return true;
 
-    // FIXME: Is there a result expected to the command?
-    if (sendCmd(CmdString))
-    {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error writing RA.");
-        return false;
-    }
-
-    return true;
-}
-
-bool EQ500X::getEQ500XDEC(double *result)
-{
-    char b[64/*RB_MAX_LEN*/] = {0};
-
-    if (isSimulation())
-    {
-        memcpy(b, simEQ500X.MechanicalDEC, std::min(sizeof(b), sizeof(simEQ500X.MechanicalDEC)));
-    }
-    else if (getCommandString(PortFD, b, ":GD#") < 0)
-    {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error reading DEC.");
-        return false;
-    }
-
-    LOGF_INFO("DEC reads '%s'", b);
+    char b[sizeof(MechanicalPoint_DEC_Format)] = {0};
+    strncpy(b, buf, sizeof(b));
 
     // Mount replies to "#GD:" with "sDD:MM:SS".
     // s is in {+,-} and provides a sign.
@@ -507,17 +562,18 @@ bool EQ500X::getEQ500XDEC(double *result)
                 atof(DecValues->minutes)/60.0f +
                 atof(DecValues->seconds)/3600.0f);
 
-    LOGF_INFO("DEC converts as %f.", value);
+    //LOGF_INFO("DEC converts as %f.", value);
 
-    if (result != nullptr)
-    {
-        *result = static_cast <double> (value);
-    }
-
-    return true;
+    _DECm = static_cast <double> (value);
+    return false;
 }
 
-bool EQ500X::getEQ500XDEC_snprint(char *buf, size_t buf_length, double value)
+double EQ500X::MechanicalPoint::DECm(double const value)
+{
+    return _DECm = value;
+}
+
+char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length)
 {
     // NotFlipped                 Flipped
     //             -270:00:00
@@ -528,33 +584,20 @@ bool EQ500X::getEQ500XDEC_snprint(char *buf, size_t buf_length, double value)
     //             +180:00:00 <->  +90.0°
     //             +270:00:00
 
+    double value = _DECm;
     int const sgn = forceMeridianFlip ? -1 : +1;
     double const mechanical_degrees = std::abs( forceMeridianFlip ? value + 90.0 : value - 90.0);
     int const degrees = static_cast <int> (mechanical_degrees) * sgn;
     int const minutes = static_cast <int> (std::floor(mechanical_degrees * 60.0)) % 60;
     int const seconds = static_cast <int> (std::lround(mechanical_degrees * 3600.0)) % 60;
 
-    snprintf(buf, buf_length, "%+03d:%02d:%02d", degrees, minutes, seconds);
-    return true;
+    int const written = snprintf(buf, buf_length, "%+03d:%02d:%02d", degrees, minutes, seconds);
+
+    return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
-bool EQ500X::setEQ500XDEC(double value)
+double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint &b) const
 {
-    char CmdString[16] = ":Sd";
-    getEQ500XDEC_snprint(CmdString+std::strlen(CmdString), sizeof(CmdString)-std::strlen(CmdString), value);
-    std::strcat(CmdString, "#");
-    LOGF_INFO("DEC '%f' converted to '%s'", static_cast <float> (value), CmdString);
-
-    // FIXME: Is there a result expected to the command?
-    // See  int LX200_10MICRON::setStandardProcedureWithoutRead(int fd, const char *data)
-
-    if (sendCmd(CmdString))
-    {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error writing DEC.");
-        return false;
-    }
-
-    return true;
+    double ra = 15*(b._RAm - _RAm), dec = b._DECm - _DECm;
+    return std::sqrt(ra*ra + dec*dec);
 }
-

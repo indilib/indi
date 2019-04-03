@@ -4,12 +4,34 @@
 class EQ500X : public LX200Generic
 {
 public:
+    class MechanicalPoint
+    {
+    public:
+        //MechanicalPoint();
+    public:
+        double RAm() const { return _RAm; }
+        double DECm() const { return _DECm; }
+        double RAm(double const);
+        double DECm(double const);
+    public:
+        bool parseStringRA(char *, size_t);
+        bool parseStringDEC(char *, size_t);
+        char const * toStringRA(char *, size_t);
+        char const * toStringDEC(char *, size_t);
+    public:
+        double operator -(MechanicalPoint &b) const;
+    protected:
+        bool forceMeridianFlip {false};
+        double _RAm {0.0}, _DECm {90.0};
+    };
+public:
     EQ500X();
     const char *getDefautName();
 protected:
-    bool getEQ500XRA(double *);
+    bool getCurrentPosition(MechanicalPoint&);
+    bool setTargetPosition(MechanicalPoint&);
+    bool gotoTargetPosition();
     bool setEQ500XRA(double);
-    bool getEQ500XDEC(double *);
     bool setEQ500XDEC(double);
     bool slewEQ500X();
     int sendCmd(const char *);
@@ -18,14 +40,12 @@ protected:
     virtual bool initProperties() override;
     virtual bool Goto(double, double) override;
     virtual void getBasicData() override;
-    bool getEQ500XRA_snprint(char *buf, size_t buf_length, double value);
-    bool getEQ500XDEC_snprint(char *buf, size_t buf_length, double value);
     bool updateLocation(double latitude, double longitude, double elevation);
 private:
+    MechanicalPoint currentPosition, targetPosition;
     double previousRA = {0}, previousDEC = {0};
     ln_lnlat_posn lnobserver { 0, 0 };
     ln_hrz_posn lnaltaz { 0, 0 };
-    bool forceMeridianFlip { false };
 };
 
 #endif // EQ500X_H
