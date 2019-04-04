@@ -20,6 +20,8 @@ public:
         char const * toStringDEC(char *, size_t);
     public:
         double operator -(MechanicalPoint &b) const;
+        double RA_degrees_to(MechanicalPoint &b) const;
+        double DEC_degrees_to(MechanicalPoint &b) const;
     protected:
         bool forceMeridianFlip {false};
         double _RAm {0.0}, _DECm {90.0};

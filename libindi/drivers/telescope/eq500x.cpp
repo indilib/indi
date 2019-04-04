@@ -50,6 +50,12 @@ static struct _simEQ500X
 #define MechanicalPoint_RA_Format  "HH:MM:SS"
 
 static int const EQ500X_TIMEOUT = 5;
+static double const ONEDEGREE = 1.0;
+static double const ARCMINUTE = ONEDEGREE/60.0;
+static double const ARCSECOND = ONEDEGREE/3600.0;
+static double const RADIUS_ONEDEGREE = std::sqrt(ONEDEGREE*ONEDEGREE + ONEDEGREE*ONEDEGREE);
+static double const RADIUS_ARCMINUTE = RADIUS_ONEDEGREE/60.0;
+static double const RADIUS_ARCSECOND = RADIUS_ONEDEGREE/3660.0;
 
 /**************************************************************************************
 ** EQ500X Constructor
@@ -190,13 +196,126 @@ bool EQ500X::ReadScopeStatus()
         // Check if mount is done slewing - NewRaDec will update EqN
         if (EqN[AXIS_RA].value == currentPosition.RAm() && EqN[AXIS_DE].value == currentPosition.DECm())
         {
-            TrackState = SCOPE_TRACKING;
-            LOG_INFO("Slew is complete. Tracking...");
-        }
-        // If mount is close to target, issue a slower goto
-        else if (std::fmod(std::abs(currentPosition.RAm()-targetRA), 24) < 5.f && std::fmod(std::abs(currentPosition.DECm()-targetDEC), 360) < 5.f)
-        {
-            LOG_INFO("Slew is close to target...");
+            // If mount stopped, but is not at target, issue a slower goto
+            double const distance = targetPosition - currentPosition;
+            if (!isSimulation() && RADIUS_ARCSECOND/2 < distance /*&& distance < 2*RADIUS_ONEDEGREE*/)
+            {
+                char CmdString[16] = {0};
+                double epsilon = 0.0;
+                if (distance < RADIUS_ARCMINUTE/2)
+                {
+                    LOGF_INFO("Distance to target is %lf, adjusting at guide speed...", distance);
+                    strncat(CmdString, ":RG#", sizeof(CmdString));
+                    epsilon = ARCSECOND;
+                }
+                else
+                if (distance < 10*RADIUS_ARCMINUTE)
+                {
+                    LOGF_INFO("Distance to target is %lf, adjusting at find speed...", distance);
+                    strncat(CmdString, ":RG#", sizeof(CmdString));
+                    epsilon = ARCSECOND;
+                }
+                else
+                {
+                    LOGF_INFO("Distance to target is %lf, adjusting at centering speed...", distance);
+                    strncat(CmdString, ":RC#", sizeof(CmdString));
+                    epsilon = ARCMINUTE;
+                }
+
+                double ra_delta = currentPosition.RA_degrees_to(targetPosition);
+                bool east = ARCSECOND <= ra_delta;
+                bool west = ra_delta <= -ARCSECOND;
+                if (east) strncat(CmdString, ":Me#", sizeof(CmdString));
+                if (west) strncat(CmdString, ":Mw#", sizeof(CmdString));
+
+                double dec_delta = currentPosition.DEC_degrees_to(targetPosition);
+                bool north = ARCSECOND <= dec_delta;
+                bool south = dec_delta <= -ARCSECOND;
+                if (north) strncat(CmdString, ":Mn#", sizeof(CmdString));
+                if (south) strncat(CmdString, ":Ms#", sizeof(CmdString));
+
+                if (sendCmd(CmdString))
+                {
+                    LOGF_ERROR("Error centering to (%lf,%lf)", targetPosition.RAm(), targetPosition.DECm());
+                    slewError(-1);
+                    return false;
+                }
+
+                int countdown = 50;
+
+                while (RADIUS_ARCSECOND/2 <= targetPosition - currentPosition)
+                {
+                    LOGF_INFO("Centering delta (%lf,%lf) moving %c%c%c%c", ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.');
+
+                    const struct timespec timeout = {0, 100000000L};
+                    nanosleep(&timeout, nullptr);
+
+                    CmdString[0] = '\0';
+
+                    if (getCurrentPosition(currentPosition))
+                    {
+                        EqNP.s = IPS_ALERT;
+                        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+                        return false;
+                    }
+
+                    ra_delta = std::abs(currentPosition.RA_degrees_to(targetPosition));
+                    if (ra_delta < epsilon)
+                    {
+                        if (east) { strncat(CmdString, ":Qe#", sizeof(CmdString)); east = false; }
+                        if (west) { strncat(CmdString, ":Qw#", sizeof(CmdString)); west = false; }
+                    }
+
+                    dec_delta = std::abs(currentPosition.DEC_degrees_to(targetPosition));
+                    if (dec_delta < epsilon)
+                    {
+                        if (north) { strncat(CmdString, ":Qn#", sizeof(CmdString)); north = false; }
+                        if (south) { strncat(CmdString, ":Qs#", sizeof(CmdString)); south = false; }
+                    }
+
+                    if (CmdString[0] != '\0')
+                    {
+                        if (sendCmd(CmdString))
+                        {
+                            LOGF_ERROR("Error centering to (%lf,%lf)", targetPosition.RAm(), targetPosition.DECm());
+                            slewError(-1);
+                            return false;
+                        }
+                    }
+
+                    if (--countdown <= 0)
+                    {
+                        LOG_INFO("Aborting slew intermediate adjustment.");
+                        if (sendCmd(":Q#"))
+                        {
+                            LOGF_ERROR("Error centering to (%lf,%lf)", targetPosition.RAm(), targetPosition.DECm());
+                            slewError(-1);
+                            return false;
+                        }
+                        break;
+                    }
+
+                    if (!east && !west && !north && !south)
+                    {
+                        LOGF_INFO("Centering delta (%lf,%lf) intermediate adjustment complete (%c%c%c%c)", ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.');
+                        break;
+                    }
+                }
+
+                /* Now don't go to tracking now, let ReadScope check again next second, and adjust again */
+            }
+            else
+            {
+                TrackState = SCOPE_TRACKING;
+                LOGF_INFO("Slew is complete at a distance of %lf. Tracking...", distance);
+
+                if (sendCmd(":RG#"))
+                {
+                    LOG_ERROR("Error setting guiding rate for tracking");
+                    slewError(-1);
+                    return false;
+                }
+            }
         }
     }
 
@@ -274,55 +393,46 @@ bool EQ500X::Goto(double ra, double dec)
         return false;
     }
 
+    /* The goto feature is quite imprecise because it will always use full speed.
+     * By the time the mount stops, the position is off by nearly one degree, depending on the speed attained during the move.
+     * So, when slewing for more than a few degrees, use goto and adjust afterwards using centering speed or slower.
+     * IF slewing for less than a few degrees, let ReadScope adjust the position.
+     */
+
     double const distance = targetPosition - currentPosition;
-    LOGF_INFO("(%lf,%lf) - (%lf,%lf) = %lf", targetPosition.RAm(), targetPosition.DECm(), currentPosition.RAm(), currentPosition.DECm(), distance);
-    if (targetPosition - currentPosition < 1/3600.0f)
+    //LOGF_INFO("(%lf,%lf) - (%lf,%lf) = %lf", targetPosition.RAm(), targetPosition.DECm(), currentPosition.RAm(), currentPosition.DECm(), distance);
+    if (distance < RADIUS_ARCSECOND/2)
     {
-        LOGF_INFO("Distance is %lf, not moving under 1 second", distance);
+        LOGF_INFO("Distance is %lf, not moving...", distance);
         return true;
     }
-    else if (targetPosition - currentPosition < 1/60.0f)
+    else if (distance < 30.0*RADIUS_ARCMINUTE)
     {
-        LOGF_INFO("Distance is %lf, using guiding speed under 1 minute", distance);
-        if (sendCmd(":RG#"))
-        {
-            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-            slewError(-1);
-            return false;
-        }
-    }
-    else if (targetPosition - currentPosition < 5.0)
-    {
-        LOGF_INFO("Distance is %lf, using centering speed under 5 degrees", distance);
-        if (sendCmd(":RC#"))
-        {
-            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-            slewError(-1);
-            return false;
-        }
+        LOGF_INFO("Distance is %lf, adjusting to target...", distance);
+        /* Let ReadScope do the centering */
     }
     else
     {
-        LOGF_INFO("Distance is %lf, using full slew speed", distance);
-        if (sendCmd(":RC#"))
+        LOGF_INFO("Distance is %lf, using full slew speed goto", distance);
+        /*if (sendCmd(":RC#"))
+        {
+            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+            slewError(-1);
+            return false;
+        }*/
+
+        if (gotoTargetPosition())
         {
             LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
             slewError(-1);
             return false;
         }
-    }
-
-    if (gotoTargetPosition())
-    {
-        LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-        slewError(-1);
-        return false;
     }
 
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
 
-    LOGF_INFO("Slewing to RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to mechanical RA: %s - DEC: %s", RAStr, DecStr);
 
     return true;
 }
@@ -615,7 +725,7 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length)
     //             +270:00:00
 
     double value = _DECm;
-    int const sgn = forceMeridianFlip ? -1 : +1;
+    int const sgn = forceMeridianFlip ? +1 : -1;
     double const mechanical_degrees = std::abs( forceMeridianFlip ? value + 90.0 : value - 90.0);
     int const degrees = static_cast <int> (mechanical_degrees) * sgn;
     int const minutes = static_cast <int> (std::floor(mechanical_degrees * 60.0)) % 60;
@@ -626,11 +736,24 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length)
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
-double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint &b) const
+double EQ500X::MechanicalPoint::RA_degrees_to(EQ500X::MechanicalPoint &b) const
 {
     // RA is circular, DEC is not
-    double ra = 15*(b._RAm - _RAm), dec = b._DECm - _DECm;
+    double ra = 15*(b._RAm - _RAm);
     if (ra > +180.0) ra -= 360.0;
     if (ra < -180.0) ra += 360.0;
+    return ra;
+}
+
+double EQ500X::MechanicalPoint::DEC_degrees_to(EQ500X::MechanicalPoint &b) const
+{
+    // RA is circular, DEC is not
+    return b._DECm - _DECm;
+}
+
+double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint &b) const
+{
+    double const ra = RA_degrees_to(b);
+    double const dec = DEC_degrees_to(b);
     return std::sqrt(ra*ra + dec*dec);
 }
