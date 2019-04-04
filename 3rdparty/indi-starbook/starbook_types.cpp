@@ -114,7 +114,8 @@ std::istream &starbook::operator>>(std::istream &is, starbook::DateTime &utc) {
 }
 
 std::ostream &starbook::operator<<(std::ostream &os, const starbook::LnLat &obj) {
-    lnh_lnlat_posn dms{};
+    lnh_lnlat_posn dms{{0, 0, 0, 0},
+                       {0, 0, 0, 0}};
     auto tmp = static_cast<ln_lnlat_posn>(obj);
     ln_lnlat_to_hlnlat(&tmp, &dms);
 
