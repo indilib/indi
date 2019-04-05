@@ -142,6 +142,8 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         void setCoolerMode(uint8_t mode);
         // Check if the camera is QHY5PII-C model
         bool isQHY5PIIC();
+        // Call when max filter count is known
+        bool updateFilterProperties();
 
         // Temperature update
         void updateTemperature();
@@ -167,6 +169,8 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         double m_TemperatureRequest {0};
         // Requested target PWM
         double m_PWMRequest { -1 };
+        // Max filter count.
+        int m_MaxFilterCount { -1 };
         // Temperature Timer
         int m_TemperatureTimerID;
 
