@@ -387,6 +387,9 @@ bool EQ500X::ReadScopeStatus()
                     slewError(-1);
                     return false;
                 }
+
+                EqNP.s = IPS_OK;
+                IDSetNumber(&EqNP, "Mount is tracking");
             }
         }
     }
