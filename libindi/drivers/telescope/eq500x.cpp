@@ -246,7 +246,9 @@ bool EQ500X::ReadScopeStatus()
     if (isSimulation())
     {
         mountSim();
+        currentPosition.RAm(currentRA);
         currentPosition.toStringRA(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA));
+        currentPosition.DECm(currentDEC);
         currentPosition.toStringDEC(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC));
         LOGF_DEBUG("RA/DEC simulated as %f/%f, stored as %s/%s", currentRA, currentDEC, simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
     }
@@ -456,46 +458,41 @@ bool EQ500X::Goto(double ra, double dec)
         nanosleep(&timeout, nullptr);
     }
 
-    if (setTargetPosition(targetPosition))
+    if (!isSimulation())
     {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error setting RA/DEC.");
-        return false;
-    }
-
-    /* The goto feature is quite imprecise because it will always use full speed.
-     * By the time the mount stops, the position is off by nearly one degree, depending on the speed attained during the move.
-     * So, when slewing for more than a few degrees, use goto and adjust afterwards using centering speed or slower.
-     * IF slewing for less than a few degrees, let ReadScope adjust the position.
-     */
-
-    double const distance = targetPosition - currentPosition;
-    //LOGF_INFO("(%lf,%lf) - (%lf,%lf) = %lf", targetPosition.RAm(), targetPosition.DECm(), currentPosition.RAm(), currentPosition.DECm(), distance);
-    if (distance < RADIUS_ARCSECOND/2)
-    {
-        LOGF_INFO("Distance is %lf, not moving...", distance);
-        return true;
-    }
-    else if (distance < 30.0*RADIUS_ARCMINUTE)
-    {
-        LOGF_INFO("Distance is %lf, adjusting to target...", distance);
-        /* Let ReadScope do the centering */
-    }
-    else
-    {
-        LOGF_INFO("Distance is %lf, using full slew speed goto", distance);
-        /*if (sendCmd(":RC#"))
+        if (setTargetPosition(targetPosition))
         {
-            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-            slewError(-1);
+            EqNP.s = IPS_ALERT;
+            IDSetNumber(&EqNP, "Error setting RA/DEC.");
             return false;
-        }*/
+        }
 
-        if (gotoTargetPosition())
+        /* The goto feature is quite imprecise because it will always use full speed.
+         * By the time the mount stops, the position is off by nearly half a degree, depending on the speed attained during the move.
+         * So, when slewing for more than a few degrees, use goto and adjust afterwards using centering speed or slower.
+         * IF slewing for less than a few degrees, let ReadScope adjust the position.
+         */
+
+        double const distance = targetPosition - currentPosition;
+        if (distance < RADIUS_ARCSECOND/2)
         {
-            LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-            slewError(-1);
-            return false;
+            LOGF_INFO("Distance is %lf, not moving...", distance);
+            return true;
+        }
+        else if (distance < 30.0*RADIUS_ARCMINUTE)
+        {
+            LOGF_INFO("Distance is %lf, adjusting to target...", distance);
+            /* Let ReadScope do the centering */
+        }
+        else
+        {
+            LOGF_INFO("Distance is %lf, using full slew speed goto", distance);
+            if (gotoTargetPosition())
+            {
+                LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
+                slewError(-1);
+                return false;
+            }
         }
     }
 
@@ -618,7 +615,7 @@ bool EQ500X::getCurrentPosition(MechanicalPoint &p)
         memcpy(b, simEQ500X.MechanicalRA, std::min(sizeof(b), sizeof(simEQ500X.MechanicalRA)));
     else if (getCommandString(PortFD, b, ":GR#") < 0)
         goto radec_error;
-    else if (result.parseStringRA(b, 64))
+    if (result.parseStringRA(b, 64))
         goto radec_error;
 
     LOGF_INFO("RA reads '%s' as %lf.", b, result.RAm());
@@ -627,7 +624,7 @@ bool EQ500X::getCurrentPosition(MechanicalPoint &p)
         memcpy(b, simEQ500X.MechanicalDEC, std::min(sizeof(b), sizeof(simEQ500X.MechanicalDEC)));
     else if (getCommandString(PortFD, b, ":GD#") < 0)
         goto radec_error;
-    else if (result.parseStringDEC(b, 64))
+    if (result.parseStringDEC(b, 64))
         goto radec_error;
 
     LOGF_INFO("DEC reads '%s' as %lf.", b, result.DECm());
