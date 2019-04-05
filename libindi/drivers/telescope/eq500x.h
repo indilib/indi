@@ -14,8 +14,8 @@ public:
         double RAm(double const);
         double DECm(double const);
     public:
-        bool parseStringRA(char *, size_t);
-        bool parseStringDEC(char *, size_t);
+        bool parseStringRA(char const *, size_t);
+        bool parseStringDEC(char const *, size_t);
         char const * toStringRA(char *, size_t);
         char const * toStringDEC(char *, size_t);
     public:

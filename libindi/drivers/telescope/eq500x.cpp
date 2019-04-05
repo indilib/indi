@@ -46,7 +46,7 @@ static struct _simEQ500X
     "+00*00'00",
 };
 
-#define MechanicalPoint_DEC_Format "+DDD:MM:SS"
+#define MechanicalPoint_DEC_Format "+DD:MM:SS"
 #define MechanicalPoint_RA_Format  "HH:MM:SS"
 
 static int const EQ500X_TIMEOUT = 5;
@@ -670,9 +670,9 @@ bool EQ500X::setTargetPosition(MechanicalPoint &p)
     return false;
 }
 
-bool EQ500X::MechanicalPoint::parseStringRA(char *buf, size_t buf_length)
+bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
 {
-    if (buf_length < sizeof(MechanicalPoint_RA_Format))
+    if (buf_length < sizeof(MechanicalPoint_RA_Format-1))
         return true;
 
     // Mount replies to "#GR:" with "HH:MM:SS".
@@ -683,7 +683,7 @@ bool EQ500X::MechanicalPoint::parseStringRA(char *buf, size_t buf_length)
     if (3 == sscanf(buf, "%02d:%02d:%02d", &hours, &minutes, &seconds))
     {
         _RAm = static_cast <double> (
-                    static_cast <float> (hours) +
+                    static_cast <float> (hours % 24) +
                     static_cast <float> (minutes) / 60.0f +
                     static_cast <float> (seconds) / 3600.0f +
                     (forceMeridianFlip ? -12.0f : 0.0f) );
@@ -721,9 +721,9 @@ char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length)
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
-bool EQ500X::MechanicalPoint::parseStringDEC(char *buf, size_t buf_length)
+bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
 {
-    if (buf_length < sizeof(MechanicalPoint_DEC_Format))
+    if (buf_length < sizeof(MechanicalPoint_DEC_Format)-1)
         return true;
 
     char b[sizeof(MechanicalPoint_DEC_Format)] = {0};
@@ -786,22 +786,24 @@ double EQ500X::MechanicalPoint::DECm(double const value)
 char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length)
 {
     // NotFlipped                 Flipped
-    //             -270:00:00
-    //  -90.0° <-> -180:00:00
-    //  +00.0° <->  -90:00:00
-    //  +90.0° <->  +00:00:00 <->  -90.0°
-    //              +90:00:00 <->  +00.0°
-    //             +180:00:00 <->  +90.0°
-    //             +270:00:00
+    // -135.0° <-> -F5:00:00 <-> +315.0°
+    //  -90.0° <-> -B0:00:00 <-> +270.0°
+    //  -45.0° <-> -=5:00:00 <-> +225.0°
+    //  +00.0° <-> -90:00:00 <-> +180.0°
+    //  +45.0° <-> -45:00:00 <-> +135.0°
+    //  +90.0° <-> +00:00:00 <->  +90.0°
+    // +135.0° <-> +45:00:00 <->  +45.0°
+    // +180.0° <-> +90:00:00 <->  +00.0°
+    // +225.0° <-> +=5:00:00 <->  -45.0°
+    // +270.0° <-> +B0:00:00 <->  -90.0°
+    // +315.0° <-> +F5:00:00 <-> -135.0°
 
     double value = _DECm;
-    int const sgn = forceMeridianFlip ? +1 : -1;
-    double const mechanical_degrees = std::abs( forceMeridianFlip ? value + 90.0 : value - 90.0);
-    int const degrees = static_cast <int> (mechanical_degrees) * sgn;
-    int const minutes = static_cast <int> (std::floor(mechanical_degrees * 60.0)) % 60;
-    int const seconds = static_cast <int> (std::lround(mechanical_degrees * 3600.0)) % 60;
+    int const degrees = static_cast <int> (forceMeridianFlip ? (value + 90.0) : (value - 90.0));
+    int const minutes = static_cast <int> (std::floor(std::abs(degrees)* 60.0)) % 60;
+    int const seconds = static_cast <int> (std::lround(std::abs(degrees) * 3600.0)) % 60;
 
-    int const written = snprintf(buf, buf_length, "%+03d:%02d:%02d", degrees, minutes, seconds);
+    int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0<=degrees)?'+':'-', '0'+std::abs(degrees)/10, '0'+std::abs(degrees)%10, minutes, seconds);
 
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
