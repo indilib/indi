@@ -277,34 +277,34 @@ bool EQ500X::ReadScopeStatus()
                 if (distance < RADIUS_ARCMINUTE/2)
                 {
                     LOGF_INFO("Distance to target is %lf, adjusting at guide speed...", distance);
-                    strncat(CmdString, ":RG#", sizeof(CmdString));
+                    strcat(CmdString, ":RG#");
                     epsilon = ARCSECOND;
                 }
                 else
                 if (distance < 10*RADIUS_ARCMINUTE)
                 {
                     LOGF_INFO("Distance to target is %lf, adjusting at find speed...", distance);
-                    strncat(CmdString, ":RG#", sizeof(CmdString));
+                    strcat(CmdString, ":RG#");
                     epsilon = ARCSECOND;
                 }
                 else
                 {
                     LOGF_INFO("Distance to target is %lf, adjusting at centering speed...", distance);
-                    strncat(CmdString, ":RC#", sizeof(CmdString));
+                    strcat(CmdString, ":RC#");
                     epsilon = ARCMINUTE;
                 }
 
                 double ra_delta = currentPosition.RA_degrees_to(targetPosition);
                 bool east = ARCSECOND <= ra_delta;
                 bool west = ra_delta <= -ARCSECOND;
-                if (east) strncat(CmdString, ":Me#", sizeof(CmdString));
-                if (west) strncat(CmdString, ":Mw#", sizeof(CmdString));
+                if (east) strcat(CmdString, ":Me#");
+                if (west) strcat(CmdString, ":Mw#");
 
                 double dec_delta = currentPosition.DEC_degrees_to(targetPosition);
                 bool north = ARCSECOND <= dec_delta;
                 bool south = dec_delta <= -ARCSECOND;
-                if (north) strncat(CmdString, ":Mn#", sizeof(CmdString));
-                if (south) strncat(CmdString, ":Ms#", sizeof(CmdString));
+                if (north) strcat(CmdString, ":Mn#");
+                if (south) strcat(CmdString, ":Ms#");
 
                 if (sendCmd(CmdString))
                 {
@@ -334,15 +334,15 @@ bool EQ500X::ReadScopeStatus()
                     ra_delta = std::abs(currentPosition.RA_degrees_to(targetPosition));
                     if (ra_delta < epsilon)
                     {
-                        if (east) { strncat(CmdString, ":Qe#", sizeof(CmdString)); east = false; }
-                        if (west) { strncat(CmdString, ":Qw#", sizeof(CmdString)); west = false; }
+                        if (east) { strcat(CmdString, ":Qe#"); east = false; }
+                        if (west) { strcat(CmdString, ":Qw#"); west = false; }
                     }
 
                     dec_delta = std::abs(currentPosition.DEC_degrees_to(targetPosition));
                     if (dec_delta < epsilon)
                     {
-                        if (north) { strncat(CmdString, ":Qn#", sizeof(CmdString)); north = false; }
-                        if (south) { strncat(CmdString, ":Qs#", sizeof(CmdString)); south = false; }
+                        if (north) { strcat(CmdString, ":Qn#"); north = false; }
+                        if (south) { strcat(CmdString, ":Qs#"); south = false; }
                     }
 
                     if (CmdString[0] != '\0')
