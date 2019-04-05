@@ -317,7 +317,7 @@ bool EQ500X::ReadScopeStatus()
 
                 while (RADIUS_ARCSECOND/2 <= targetPosition - currentPosition)
                 {
-                    LOGF_INFO("Centering delta (%lf,%lf) moving %c%c%c%c", ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.');
+                    LOGF_INFO("Centering (%lf,%lf) delta (%lf,%lf) moving %c%c%c%c", targetPosition.RAm(), targetPosition.DECm(), ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.');
 
                     const struct timespec timeout = {0, 100000000L};
                     nanosleep(&timeout, nullptr);
