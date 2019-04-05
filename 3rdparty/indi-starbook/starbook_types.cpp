@@ -100,7 +100,7 @@ ostream &starbook::operator<<(ostream &os, const starbook::DateTime &obj) {
 
 std::istream &starbook::operator>>(std::istream &is, starbook::DateTime &utc) {
     int Y, M, D, h, m, s;
-    std::array<char, 5> ch = {'\0'};
+    std::array<char, 5> ch = {{'\0'}};
     is >> Y >> ch[0] >> M >> ch[1] >> D >> ch[2] >> h >> ch[3] >> m >> ch[4] >> s;
 
     if (!is) return is;
@@ -114,11 +114,16 @@ std::istream &starbook::operator>>(std::istream &is, starbook::DateTime &utc) {
 }
 
 std::ostream &starbook::operator<<(std::ostream &os, const starbook::LnLat &obj) {
+    lnh_lnlat_posn dms{{0, 0, 0, 0},
+                       {0, 0, 0, 0}};
+    auto tmp = static_cast<ln_lnlat_posn>(obj);
+    ln_lnlat_to_hlnlat(&tmp, &dms);
+
     os << setfill('0') << std::fixed << setprecision(0)
-       << "longitude=" << ((obj.lng > 0) ? "E" : "W")
-       << setw(2) << obj.lng
-       << "latitude=" << ((obj.lat > 0) ? "N" : "S")
-       << setw(2) << obj.lat;
+       << "longitude=" << ((dms.lng.neg == 0) ? "E" : "W")
+       << setw(2) << dms.lng.degrees << sep << setw(2) << dms.lng.minutes
+       << "latitude=" << ((dms.lat.neg == 0) ? "N" : "S")
+       << setw(2) << dms.lng.degrees << sep << setw(2) << dms.lat.minutes;
     return os;
 }
 

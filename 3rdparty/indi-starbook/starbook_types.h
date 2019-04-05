@@ -24,6 +24,7 @@
 #include <libnova/utility.h>
 #include <iostream>
 #include <map>
+#include <array>
 
 namespace starbook {
     struct DMS : ln_dms {
