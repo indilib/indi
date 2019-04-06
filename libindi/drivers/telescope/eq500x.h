@@ -45,6 +45,8 @@ protected:
     virtual void getBasicData() override;
     bool updateLocation(double latitude, double longitude, double elevation);
 private:
+    void runTestSuite();
+private:
     MechanicalPoint currentPosition, targetPosition;
     double previousRA = {0}, previousDEC = {0};
     ln_lnlat_posn lnobserver { 0, 0 };

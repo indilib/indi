@@ -101,78 +101,12 @@ void EQ500X::getBasicData()
     /* */
 }
 
-#include <cassert>
 bool EQ500X::checkConnection()
 {
     if (isSimulation())
     {
-        EQ500X::MechanicalPoint p;
-        char b[64]= {0};
-        // NotFlipped                 Flipped
-        // S -12.0h <-> 12:00:00 <-> -24.0h
-        // E -06.0h <-> 18:00:00 <-> -18.0h
-        // N +00.0h <-> 00:00:00 <-> -12.0h
-        // W +06.0h <-> 06:00:00 <-> -06.0h
-        // S +12.0h <-> 12:00:00 <-> +00.0h
-        // E +18.0h <-> 18:00:00 <-> +06.0h
-        // N +24.0h <-> 00:00:00 <-> +12.0h
-        assert(!p.parseStringRA("00:00:00",8));
-        assert( 0.0 == p.RAm());
-        assert(!strncmp("00:00:00",p.toStringRA(b,64),64));
-        assert(!p.parseStringRA("06:00:00",8));
-        assert( 6.0 == p.RAm());
-        assert(!strncmp("06:00:00",p.toStringRA(b,64),64));
-        assert(!p.parseStringRA("12:00:00",8));
-        assert(12.0 == p.RAm());
-        assert(!strncmp("12:00:00",p.toStringRA(b,64),64));
-        assert(!p.parseStringRA("18:00:00",8));
-        assert(18.0 == p.RAm());
-        assert(!strncmp("18:00:00",p.toStringRA(b,64),64));
-        assert(!p.parseStringRA("24:00:00",8));
-        assert( 0.0 == p.RAm());
-        assert(!strncmp("00:00:00",p.toStringRA(b,64),64));
-        // NotFlipped                 Flipped
-        // -135.0° <-> -F5:00:00 <-> +315.0°
-        //  -90.0° <-> -B0:00:00 <-> +270.0°
-        //  -45.0° <-> -=5:00:00 <-> +225.0°
-        //  +00.0° <-> -90:00:00 <-> +180.0°
-        //  +45.0° <-> -45:00:00 <-> +135.0°
-        //  +90.0° <-> +00:00:00 <->  +90.0°
-        // +135.0° <-> +45:00:00 <->  +45.0°
-        // +180.0° <-> +90:00:00 <->  +00.0°
-        // +225.0° <-> +=5:00:00 <->  -45.0°
-        // +270.0° <-> +B0:00:00 <->  -90.0°
-        // +315.0° <-> +F5:00:00 <-> -135.0°
-        assert(!p.parseStringDEC("-F5:00:00",9));
-        assert(-135.0 == p.DECm());
-        assert(!strncmp("-F5:00:00",p.toStringDEC(b,64),64));
-        assert(!p.parseStringDEC("-B0:00:00",9));
-        assert( -90.0 == p.DECm());
-        assert(!strncmp("-B0:00:00",p.toStringDEC(b,64),64));
-        assert(!p.parseStringDEC("-=5:00:00",9));
-        assert( -45.0 == p.DECm());
-        assert(!strncmp("-=5:00:00",p.toStringDEC(b,64),64));
-        assert(!p.parseStringDEC("-90:00:00",9));
-        assert(  +0.0 == p.DECm());
-        assert(!strncmp("-90:00:00",p.toStringDEC(b,64),64));
-        assert(!p.parseStringDEC("-45:00:00",9));
-        assert( +45.0 == p.DECm());
-        assert(!strncmp("-45:00:00",p.toStringDEC(b,64),64));
-        assert(!p.parseStringDEC("+00:00:00",9));
-        assert( +90.0 == p.DECm());
-        assert(!strncmp("+00:00:00",p.toStringDEC(b,64),64));
-        assert(!p.parseStringDEC("+45:00:00",9));
-        assert(+135.0 == p.DECm());
-        assert(!strncmp("+45:00:00",p.toStringDEC(b,64),64));
-        assert(!p.parseStringDEC("+90:00:00",9));
-        assert(+180.0 == p.DECm());
-        assert(!strncmp("+90:00:00",p.toStringDEC(b,64),64));
-        assert(!p.parseStringDEC("+=5:00:00",9));
-        assert(+225.0 == p.DECm());
-        assert(!strncmp("+=5:00:00",p.toStringDEC(b,64),64));
-        assert(!p.parseStringDEC("+B0:00:00",9));
-        assert(+270.0 == p.DECm());
-        assert(!strncmp("+B0:00:00",p.toStringDEC(b,64),64));
+        // Test suite is run on connection to allow attaching a gdb to the driver pid for debugging
+        runTestSuite();
         return true;
     }
 
@@ -829,5 +763,78 @@ double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint &b) const
 {
     double const ra = RA_degrees_to(b);
     double const dec = DEC_degrees_to(b);
+    // FIXME: Incorrect distance calculation, but enough for our purpose
     return std::sqrt(ra*ra + dec*dec);
+}
+
+#include <cassert>
+void EQ500X::runTestSuite()
+{
+    EQ500X::MechanicalPoint p;
+    char b[64]= {0};
+    // NotFlipped                 Flipped
+    // S -12.0h <-> 12:00:00 <-> -24.0h
+    // E -06.0h <-> 18:00:00 <-> -18.0h
+    // N +00.0h <-> 00:00:00 <-> -12.0h
+    // W +06.0h <-> 06:00:00 <-> -06.0h
+    // S +12.0h <-> 12:00:00 <-> +00.0h
+    // E +18.0h <-> 18:00:00 <-> +06.0h
+    // N +24.0h <-> 00:00:00 <-> +12.0h
+    assert(!p.parseStringRA("00:00:00",8));
+    assert( 0.0 == p.RAm());
+    assert(!strncmp("00:00:00",p.toStringRA(b,64),64));
+    assert(!p.parseStringRA("06:00:00",8));
+    assert( 6.0 == p.RAm());
+    assert(!strncmp("06:00:00",p.toStringRA(b,64),64));
+    assert(!p.parseStringRA("12:00:00",8));
+    assert(12.0 == p.RAm());
+    assert(!strncmp("12:00:00",p.toStringRA(b,64),64));
+    assert(!p.parseStringRA("18:00:00",8));
+    assert(18.0 == p.RAm());
+    assert(!strncmp("18:00:00",p.toStringRA(b,64),64));
+    assert(!p.parseStringRA("24:00:00",8));
+    assert( 0.0 == p.RAm());
+    assert(!strncmp("00:00:00",p.toStringRA(b,64),64));
+    // NotFlipped                 Flipped
+    // -135.0° <-> -F5:00:00 <-> +315.0°
+    //  -90.0° <-> -B0:00:00 <-> +270.0°
+    //  -45.0° <-> -=5:00:00 <-> +225.0°
+    //  +00.0° <-> -90:00:00 <-> +180.0°
+    //  +45.0° <-> -45:00:00 <-> +135.0°
+    //  +90.0° <-> +00:00:00 <->  +90.0°
+    // +135.0° <-> +45:00:00 <->  +45.0°
+    // +180.0° <-> +90:00:00 <->  +00.0°
+    // +225.0° <-> +=5:00:00 <->  -45.0°
+    // +270.0° <-> +B0:00:00 <->  -90.0°
+    // +315.0° <-> +F5:00:00 <-> -135.0°
+    assert(!p.parseStringDEC("-F5:00:00",9));
+    assert(-135.0 == p.DECm());
+    assert(!strncmp("-F5:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("-B0:00:00",9));
+    assert( -90.0 == p.DECm());
+    assert(!strncmp("-B0:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("-=5:00:00",9));
+    assert( -45.0 == p.DECm());
+    assert(!strncmp("-=5:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("-90:00:00",9));
+    assert(  +0.0 == p.DECm());
+    assert(!strncmp("-90:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("-45:00:00",9));
+    assert( +45.0 == p.DECm());
+    assert(!strncmp("-45:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+00:00:00",9));
+    assert( +90.0 == p.DECm());
+    assert(!strncmp("+00:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+45:00:00",9));
+    assert(+135.0 == p.DECm());
+    assert(!strncmp("+45:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+90:00:00",9));
+    assert(+180.0 == p.DECm());
+    assert(!strncmp("+90:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+=5:00:00",9));
+    assert(+225.0 == p.DECm());
+    assert(!strncmp("+=5:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+B0:00:00",9));
+    assert(+270.0 == p.DECm());
+    assert(!strncmp("+B0:00:00",p.toStringDEC(b,64),64));
 }
