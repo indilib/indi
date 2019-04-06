@@ -63,7 +63,9 @@ static double const RADIUS_ARCSECOND = RADIUS_ONEDEGREE/3660.0;
 EQ500X::EQ500X(): LX200Generic()
 {
     setVersion(1, 0);
-    setLX200Capability(LX200_HAS_TRACKING_FREQ | LX200_HAS_PULSE_GUIDING);
+    // Only pulse guiding, no tracking frequency
+    setLX200Capability(LX200_HAS_PULSE_GUIDING);
+    // Sync, goto, abort, location and 4 slew rates, no guiding rates and no park position
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION, 4);
     LOG_DEBUG("Initializing from EQ500X device...");
 }
