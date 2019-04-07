@@ -274,7 +274,7 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
     // variant is only available for NexStar + versions 5.28 or more and Starsense.
     // StarSense versions are currently 1.9 so overlap the early NexStar versions.
     // NS HCs before 2.0 will test and timeout
-    if (info->controllerVersion < 2.0 && info->controllerVersion >= 5.28)
+    if (info->controllerVersion < 2.2 || info->controllerVersion >= 5.28)
     {
         get_variant(&(info->controllerVariant));
     }
@@ -705,6 +705,11 @@ bool CelestronDriver::get_location(double *longitude, double *latitude)
     *longitude += response[6] / 3600.0;
     if(response[7] != 0)
         *longitude = -*longitude;
+
+    // convert longitude to INDI range 0 to 359.999
+    if (*longitude < 0)
+        *longitude += 360.0;
+
     return true;
 }
 
@@ -919,7 +924,7 @@ bool CelestronDriver::foc_exists()
         vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
         break;
     default:
-        LOG_DEBUG("No focuser found");
+        LOGF_DEBUG("No focuser found, %i", echo());
         return false;
     }
 

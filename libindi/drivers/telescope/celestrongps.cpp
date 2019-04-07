@@ -115,10 +115,10 @@ bool CelestronGPS::checkMinVersion(float minVersion, const char *feature, bool d
          (fwInfo.controllerVersion < minVersion)))
     {
         if (debug)
-            LOGF_DEBUG("Firmware v%3.2f does not support %s. Minimun required version is %3.2f",
+            LOGF_DEBUG("Firmware v%3.2f does not support %s. Minimum required version is %3.2f",
                     fwInfo.controllerVersion, feature, minVersion);
         else
-            LOGF_WARN("Firmware v%3.2f does not support %s. Minimun required version is %3.2f",
+            LOGF_WARN("Firmware v%3.2f does not support %s. Minimum required version is %3.2f",
                     fwInfo.controllerVersion, feature, minVersion);
 
         return false;
@@ -357,6 +357,7 @@ bool CelestronGPS::updateProperties()
                         SetParked(false);
 
                     TrackState = SCOPE_TRACKING;
+                    LOGF_DEBUG("mount tracking, mode %s", TrackModeS[mode-1].label);
                 }
                 else
                 {
@@ -365,7 +366,10 @@ bool CelestronGPS::updateProperties()
                 }
             }
             else
+            {
+                LOG_DEBUG("get_track_mode failed");
                 TrackModeSP.s = IPS_ALERT;
+            }
 
             IDSetSwitch(&TrackModeSP, nullptr);
         }
@@ -377,7 +381,8 @@ bool CelestronGPS::updateProperties()
         {
             double utc_offset;
             int yy, dd, mm, hh, minute, ss;
-            bool precise = checkMinVersion(5.28, "precise time", true);
+            // StarSense doesn't seems to handle the precise time commands
+            bool precise = fwInfo.controllerVersion >= 5.28;
             if (driver.get_utc_date_time(&utc_offset, &yy, &mm, &dd, &hh, &minute, &ss, precise))
             {
                 char isoDateTime[32];
@@ -394,6 +399,14 @@ bool CelestronGPS::updateProperties()
 
                 TimeTP.s = IPS_OK;
                 IDSetText(&TimeTP, nullptr);
+            }
+            double longitude, latitude;
+            if (driver.get_location(&longitude, &latitude))
+            {
+                LocationNP.np[LOCATION_LATITUDE].value = latitude;
+                LocationNP.np[LOCATION_LONGITUDE].value = longitude;
+                LocationNP.np[LOCATION_ELEVATION].value = 0;
+                LocationNP.s = IPS_OK;
             }
         }
         else
@@ -495,7 +508,10 @@ bool CelestronGPS::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    LOG_INFO("Sync successful.");
+    char RAStr[32], DecStr[32];
+    fs_sexa(RAStr, targetRA, 2, 3600);
+    fs_sexa(DecStr, targetDEC, 2, 3600);
+    LOGF_INFO("Sync to %s, %s successful.", RAStr, DecStr);
 
     return true;
 }
@@ -671,8 +687,6 @@ bool CelestronGPS::ReadScopeStatus()
                 LOG_INFO("Mount is aligned");
             else
                 LOG_WARN("Alignment Failed!");
-
-            driver.unsync();
 
             return true;
         }
@@ -1216,12 +1230,22 @@ void CelestronGPS::simulationTriggered(bool enable)
     driver.set_simulation(enable);
 }
 
+// Update Location and time are disabled if the mount is aligned.  This is because
+// changing either will change the mount model because at least the local sidereal time
+// will be changed. StarSense will set the mount to unaligned but it isn't a good idea even
+// with the NexStar HCs
+
 bool CelestronGPS::updateLocation(double latitude, double longitude, double elevation)
 {
-    INDI_UNUSED(elevation);
+    //INDI_UNUSED(elevation);
 
     if (!checkMinVersion(2.3, "updating location"))
         return false;
+
+    if (driver.check_aligned())
+        return false;
+
+    LOGF_DEBUG("Update location %8.3f, %8.3f, %4.0f", latitude, longitude, elevation);
 
     return driver.set_location(longitude, latitude);
 }
@@ -1231,9 +1255,14 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
     if (!checkMinVersion(2.3, "updating time"))
         return false;
 
-    bool precise = checkMinVersion(5.28, "precise time", true);
+    // setting time on StarSense seems to make it not aligned
+    if (driver.check_aligned())
+        return false;
 
-    LOGF_DEBUG("Update time: offset %f UTC %i-%02i-%02iT%02i:%02i:%02i", utc_offset, utc->years, utc->months, utc->days,
+    // starsense HC doesn't seem to support the precise time setting
+    bool precise = fwInfo.controllerVersion >= 5.28;
+
+    LOGF_DEBUG("Update time: offset %f UTC %i-%02i-%02iT%02i:%02i:%02.0f", utc_offset, utc->years, utc->months, utc->days,
                utc->hours, utc->minutes, utc->seconds);
 
     return (driver.set_datetime(utc, utc_offset, precise));
@@ -1248,7 +1277,8 @@ bool CelestronGPS::Park()
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
 
-    if (!driver.unsync())
+    // unsync is only for NS+ 5.29 or more and not StarSense
+    if (fwInfo.controllerVersion >= 5.29 && !driver.unsync())
         return false;
 
     LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
