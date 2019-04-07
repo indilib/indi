@@ -776,7 +776,6 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     *dd        = response[4];
     *yy        = response[5] + 2000;    // should be good as a signed char until 2127
     *utc_hours = response[6];
-    int dst = response[7];
 
     // the expected value is in the range -12 to +12 or -48 to +48 for precise.
     // if it's greater than this it looks as if the char value was transferred unsigned so -ve
@@ -787,9 +786,6 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
 
     if (precise)
         *utc_hours /= 4.0;
-
-    if (dst == 1)
-        *utc_hours--;
 
     ln_zonedate localTime;
     ln_date utcTime;
