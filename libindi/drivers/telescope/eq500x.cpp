@@ -181,12 +181,13 @@ bool EQ500X::ReadScopeStatus()
 
     if (isSimulation())
     {
+        LOGF_DEBUG("Current RA/DEC is %f/%f, stored as %s/%s", currentRA, currentDEC, simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
         mountSim();
         currentPosition.RAm(currentRA);
         currentPosition.toStringRA(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA));
         currentPosition.DECm(currentDEC);
         currentPosition.toStringDEC(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC));
-        LOGF_DEBUG("RA/DEC simulated as %f/%f, stored as %s/%s", currentRA, currentDEC, simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
+        LOGF_DEBUG("New RA/DEC simulated as %f/%f, stored as %s/%s", currentRA, currentDEC, simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
     }
 
     if (getCurrentPosition(currentPosition))
@@ -201,8 +202,8 @@ bool EQ500X::ReadScopeStatus()
 
     if (TrackState == SCOPE_SLEWING)
     {
-        // Check if mount is done slewing - NewRaDec will update EqN
-        if (EqN[AXIS_RA].value == currentPosition.RAm() && EqN[AXIS_DE].value == currentPosition.DECm())
+        // Check if mount is done slewing - NewRaDec will update EqN, but mountSim as well
+        if (!isSimulation() && EqN[AXIS_RA].value == currentPosition.RAm() && EqN[AXIS_DE].value == currentPosition.DECm())
         {
             // If mount stopped, but is not at target, issue a slower goto
             double const distance = targetPosition - currentPosition;
@@ -293,7 +294,7 @@ bool EQ500X::ReadScopeStatus()
 
                     if (--countdown <= 0)
                     {
-                        LOG_INFO("Aborting slew intermediate adjustment.");
+                        LOG_INFO("Cancelling to check slew intermediate adjustment.");
                         if (sendCmd(":Q#"))
                         {
                             LOGF_ERROR("Error centering to (%lf,%lf)", targetPosition.RAm(), targetPosition.DECm());
@@ -308,6 +309,10 @@ bool EQ500X::ReadScopeStatus()
                         LOGF_INFO("Centering delta (%lf,%lf) intermediate adjustment complete (%c%c%c%c)", ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.');
                         break;
                     }
+
+                    currentRA = currentPosition.RAm();
+                    currentDEC = currentPosition.DECm();
+                    NewRaDec(currentRA, currentDEC);
                 }
 
                 /* Now don't go to tracking now, let ReadScope check again next second, and adjust again */
@@ -330,15 +335,16 @@ bool EQ500X::ReadScopeStatus()
         }
     }
 
-    NewRaDec(currentRA, currentDEC);
+    if (!isSimulation())
+        NewRaDec(currentRA, currentDEC);
 
     return true;
 }
 
 bool EQ500X::Goto(double ra, double dec)
 {
-    targetPosition.RAm(ra);
-    targetPosition.DECm(dec);
+    targetPosition.RAm(targetRA = ra);
+    targetPosition.DECm(targetDEC = dec);
 
     // Check whether a meridian flip is required
     ln_equ_posn lnradec { 0, 0 };
@@ -360,12 +366,12 @@ bool EQ500X::Goto(double ra, double dec)
 
         double target_az = range360(lnaltaz.az + 180);
 
-        //forceMeridianFlip = (target_az >= current_az && target_az > MIN_AZ_FLIP);
+        targetPosition.setFlipped(target_az >= current_az && target_az > MIN_AZ_FLIP);
     }
 
     char RAStr[16]={0}, DecStr[16]={0};
-    targetPosition.toStringRA(RAStr, sizeof(RAStr));
-    targetPosition.toStringDEC(DecStr, sizeof(DecStr));
+    fs_sexa(RAStr, targetRA, 2, 3600);
+    fs_sexa(DecStr, targetDEC, 2, 3600);
 
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
@@ -397,15 +403,15 @@ bool EQ500X::Goto(double ra, double dec)
         nanosleep(&timeout, nullptr);
     }
 
+    if (setTargetPosition(targetPosition))
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error setting RA/DEC.");
+        return false;
+    }
+
     if (!isSimulation())
     {
-        if (setTargetPosition(targetPosition))
-        {
-            EqNP.s = IPS_ALERT;
-            IDSetNumber(&EqNP, "Error setting RA/DEC.");
-            return false;
-        }
-
         /* The goto feature is quite imprecise because it will always use full speed.
          * By the time the mount stops, the position is off by nearly half a degree, depending on the speed attained during the move.
          * So, when slewing for more than a few degrees, use goto and adjust afterwards using centering speed or slower.
@@ -433,12 +439,13 @@ bool EQ500X::Goto(double ra, double dec)
                 return false;
             }
         }
+        */
     }
 
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
 
-    LOGF_INFO("Slewing to mechanical RA: %s - DEC: %s", RAStr, DecStr);
+    LOGF_INFO("Slewing to JNow RA: %s - DEC: %s", RAStr, DecStr);
 
     return true;
 }
@@ -546,7 +553,7 @@ bool EQ500X::gotoTargetPosition()
 bool EQ500X::getCurrentPosition(MechanicalPoint &p)
 {
     char b[64/*RB_MAX_LEN*/] = {0};
-    MechanicalPoint result;
+    MechanicalPoint result = p;
 
     tcflush(PortFD, TCIFLUSH);
 
@@ -575,32 +582,35 @@ radec_error:
     return true;
 }
 
-bool EQ500X::setTargetPosition(MechanicalPoint &p)
+bool EQ500X::setTargetPosition(MechanicalPoint const &p)
 {
     char CmdString[] = ":Sr" MechanicalPoint_RA_Format "#:Sd" MechanicalPoint_DEC_Format "#";
-    char bufRA[16], bufDEC[16];
+    char bufRA[sizeof(MechanicalPoint_RA_Format)], bufDEC[sizeof(MechanicalPoint_DEC_Format)];
     snprintf(CmdString, sizeof(CmdString), ":Sr%s#:Sd%s#", p.toStringRA(bufRA, sizeof(bufRA)), p.toStringDEC(bufDEC, sizeof(bufDEC)));
-    LOGF_INFO("RA '%f' DEC '%f' converted to '%s'", static_cast <float> (p.RAm()), static_cast <float> (p.DECm()), CmdString);
+    LOGF_INFO("Target RA '%f' DEC '%f' converted to '%s'", static_cast <float> (p.RAm()), static_cast <float> (p.DECm()), CmdString);
 
-    char buf[64/*RB_MAX_LEN*/] = {0};
-    tcflush(PortFD, TCIFLUSH);
-
-    if (sendCmd(CmdString))
+    if (!isSimulation())
     {
-        LOGF_WARN("Failed '%s'", CmdString);
-        return true;
-    }
+        char buf[64/*RB_MAX_LEN*/] = {0};
+        tcflush(PortFD, TCIFLUSH);
 
-    if (getReply(buf, 2))
-    {
-        LOGF_WARN("Failed getting 2-byte reply to '%s'", CmdString);
-        return true;
-    }
+        if (sendCmd(CmdString))
+        {
+            LOGF_WARN("Failed '%s'", CmdString);
+            return true;
+        }
 
-    if (buf[0] != '1' && buf[1] != '1')
-    {
-        LOGF_WARN("Failed '%s', mount replied %c%c", CmdString, buf[0], buf[1]);
-        return true;
+        if (getReply(buf, 2))
+        {
+            LOGF_WARN("Failed getting 2-byte reply to '%s'", CmdString);
+            return true;
+        }
+
+        if (buf[0] != '1' && buf[1] != '1')
+        {
+            LOGF_WARN("Failed '%s', mount replied %c%c", CmdString, buf[0], buf[1]);
+            return true;
+        }
     }
 
     return false;
@@ -634,7 +644,7 @@ double EQ500X::MechanicalPoint::RAm(double const value)
     return _RAm = value;
 }
 
-char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length)
+char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length) const
 {
     // NotFlipped                 Flipped
     // S -12.0h <-> -12:00:00 <-> -24.0h
@@ -646,9 +656,9 @@ char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length)
     // N +24.0h <-> +24:00:00 <-> +12.0h
 
     double value = _RAm;
-    int const sgn = forceMeridianFlip ? (value <= -12.0 ? -1 : 1) : (value <= 0.0 ? -1 : 1);
+    int const sgn = _isFlipped ? (value <= -12.0 ? -1 : 1) : (value <= 0.0 ? -1 : 1);
     double const mechanical_hours = std::abs(value);
-    int const hours = ((forceMeridianFlip ? 12 : 0 ) + 24 + sgn * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
+    int const hours = ((_isFlipped ? 12 : 0 ) + 24 + sgn * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
     int const minutes = static_cast <int> (std::floor(mechanical_hours * 60.0)) % 60;
     int const seconds = static_cast <int> (std::lround(mechanical_hours * 3600.0)) % 60;
 
@@ -677,7 +687,10 @@ bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
         char seconds[3];
     } * const DecValues = (struct _DecValues*) b;
 
-    int sgn = DecValues->degrees[0] == '-' ? -1 : +1;
+    if (DecValues->degrees[1] < '0' || 'I' < DecValues->degrees[1])
+        return true;
+
+    int const sgn = DecValues->degrees[0] == '-' ? -1 : +1;
 
     // Replace sign with hundredth, or space if lesser than 100
     switch (DecValues->degrees[1])
@@ -703,8 +716,9 @@ bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
     DecValues->degrees[3] = DecValues->minutes[2] = DecValues->seconds[2] = '\0';
 
     // FIXME: could be sscanf("%d%d%d", ...) but needs intermediate variables, however that would count matches
+    int const orientation = _isFlipped ? -1 : +1;
     _DECm = static_cast <double> (
-                90.0f + sgn * (
+                90.0f + orientation * sgn * (
                     atof(DecValues->degrees) +
                     atof(DecValues->minutes)/60.0f +
                     atof(DecValues->seconds)/3600.0f ));
@@ -716,30 +730,65 @@ bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
 
 double EQ500X::MechanicalPoint::DECm(double const value)
 {
+    // Should be inside [-180,+180], even [-90,+90], but mount supports a larger (not useful) interval
     return _DECm = value;
 }
 
-char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length)
+char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) const
 {
-    // NotFlipped                 Flipped
-    // -135.0° <-> -F5:00:00 <-> +315.0°
-    //  -90.0° <-> -B0:00:00 <-> +270.0°
-    //  -45.0° <-> -=5:00:00 <-> +225.0°
-    //  +00.0° <-> -90:00:00 <-> +180.0°
-    //  +45.0° <-> -45:00:00 <-> +135.0°
-    //  +90.0° <-> +00:00:00 <->  +90.0°
-    // +135.0° <-> +45:00:00 <->  +45.0°
-    // +180.0° <-> +90:00:00 <->  +00.0°
-    // +225.0° <-> +=5:00:00 <->  -45.0°
-    // +270.0° <-> +B0:00:00 <->  -90.0°
-    // +315.0° <-> +F5:00:00 <-> -135.0°
+    // NotFlipped                         Flipped
+    // -180.0° <-> -255.0 = -I5:00:00 <-> +345.0°
+    // -135.0° <-> -225.0 = -F5:00:00 <-> +315.0°
+    //  -90.0° <-> -180.0 = -B0:00:00 <-> +270.0°
+    //  -45.0° <-> -135.0 = -=5:00:00 <-> +225.0°
+    //  +00.0° <->  -90.0 = -90:00:00 <-> +180.0°
+    //  +45.0° <->  -45.0 = -45:00:00 <-> +135.0°
+    //  +90.0° <->    0.0 = +00:00:00 <->  +90.0°
+    // +135.0° <->   45.0 = +45:00:00 <->  +45.0°
+    // +180.0° <->   90.0 = +90:00:00 <->  +00.0°
+    // +225.0° <->  135.0 = +=5:00:00 <->  -45.0°
+    // +270.0° <->  180.0 = +B0:00:00 <->  -90.0°
+    // +315.0° <->  225.0 = +F5:00:00 <-> -135.0°
+    // +345.0° <->  255.0 = +I5:00:00 <-> -180.0°
 
     double value = _DECm;
-    int const degrees = static_cast <int> (forceMeridianFlip ? (value + 90.0) : (value - 90.0));
+    int const degrees = static_cast <int> (_isFlipped ? (90.0 - value) : (value - 90.0));
+
+    if (degrees < -255 || +255 < degrees)
+        return (char const*)0;
+
+    char high_digit = '0';
+    if (-100 < degrees && degrees < 100)
+    {
+        high_digit = '0' + (std::abs(degrees)/10);
+    }
+    else switch (std::abs(degrees)/10)
+    {
+    case 10: high_digit = ':'; break;
+    case 11: high_digit = ';'; break;
+    case 12: high_digit = '<'; break;
+    case 13: high_digit = '='; break;
+    case 14: high_digit = '>'; break;
+    case 15: high_digit = '?'; break;
+    case 16: high_digit = '@'; break;
+    case 17: high_digit = 'A'; break;
+    case 18: high_digit = 'B'; break;
+    case 19: high_digit = 'C'; break;
+    case 20: high_digit = 'D'; break;
+    case 21: high_digit = 'E'; break;
+    case 22: high_digit = 'F'; break;
+    case 23: high_digit = 'G'; break;
+    case 24: high_digit = 'H'; break;
+    case 25: high_digit = 'I'; break;
+    default: return (char const*)0; break;
+    }
+
+    char const low_digit = '0' + (std::abs(degrees)%10);
+
     int const minutes = static_cast <int> (std::floor(std::abs(degrees)* 60.0)) % 60;
     int const seconds = static_cast <int> (std::lround(std::abs(degrees) * 3600.0)) % 60;
 
-    int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0<=degrees)?'+':'-', '0'+std::abs(degrees)/10, '0'+std::abs(degrees)%10, minutes, seconds);
+    int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0<=degrees)?'+':'-', high_digit, low_digit, minutes, seconds);
 
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
@@ -767,6 +816,11 @@ double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint &b) const
     return std::sqrt(ra*ra + dec*dec);
 }
 
+bool EQ500X::MechanicalPoint::setFlipped(bool const flipped)
+{
+    return _isFlipped = flipped;
+}
+
 #include <cassert>
 void EQ500X::runTestSuite()
 {
@@ -780,33 +834,60 @@ void EQ500X::runTestSuite()
     // S +12.0h <-> 12:00:00 <-> +00.0h
     // E +18.0h <-> 18:00:00 <-> +06.0h
     // N +24.0h <-> 00:00:00 <-> +12.0h
+
+    assert(false == p.setFlipped(false));
     assert(!p.parseStringRA("00:00:00",8));
-    assert( 0.0 == p.RAm());
+    assert( +0.0 == p.RAm());
     assert(!strncmp("00:00:00",p.toStringRA(b,64),64));
     assert(!p.parseStringRA("06:00:00",8));
-    assert( 6.0 == p.RAm());
+    assert( +6.0 == p.RAm());
     assert(!strncmp("06:00:00",p.toStringRA(b,64),64));
     assert(!p.parseStringRA("12:00:00",8));
-    assert(12.0 == p.RAm());
+    assert(+12.0 == p.RAm());
     assert(!strncmp("12:00:00",p.toStringRA(b,64),64));
     assert(!p.parseStringRA("18:00:00",8));
-    assert(18.0 == p.RAm());
+    assert(+18.0 == p.RAm());
     assert(!strncmp("18:00:00",p.toStringRA(b,64),64));
     assert(!p.parseStringRA("24:00:00",8));
-    assert( 0.0 == p.RAm());
+    assert( +0.0 == p.RAm());
     assert(!strncmp("00:00:00",p.toStringRA(b,64),64));
-    // NotFlipped                 Flipped
-    // -135.0° <-> -F5:00:00 <-> +315.0°
-    //  -90.0° <-> -B0:00:00 <-> +270.0°
-    //  -45.0° <-> -=5:00:00 <-> +225.0°
-    //  +00.0° <-> -90:00:00 <-> +180.0°
-    //  +45.0° <-> -45:00:00 <-> +135.0°
-    //  +90.0° <-> +00:00:00 <->  +90.0°
-    // +135.0° <-> +45:00:00 <->  +45.0°
-    // +180.0° <-> +90:00:00 <->  +00.0°
-    // +225.0° <-> +=5:00:00 <->  -45.0°
-    // +270.0° <-> +B0:00:00 <->  -90.0°
-    // +315.0° <-> +F5:00:00 <-> -135.0°
+
+    assert(true == p.setFlipped(true));
+    assert(!p.parseStringRA("00:00:00",8));
+    assert(+12.0 == p.RAm());
+    assert(!strncmp("00:00:00",p.toStringRA(b,64),64));
+    assert(!p.parseStringRA("06:00:00",8));
+    assert(+18.0 == p.RAm());
+    assert(!strncmp("06:00:00",p.toStringRA(b,64),64));
+    assert(!p.parseStringRA("12:00:00",8));
+    assert( +0.0 == p.RAm());
+    assert(!strncmp("12:00:00",p.toStringRA(b,64),64));
+    assert(!p.parseStringRA("18:00:00",8));
+    assert( +6.0 == p.RAm());
+    assert(!strncmp("18:00:00",p.toStringRA(b,64),64));
+    assert(!p.parseStringRA("24:00:00",8));
+    assert(+12.0 == p.RAm());
+    assert(!strncmp("00:00:00",p.toStringRA(b,64),64));
+
+    // NotFlipped                         Flipped
+    // -165.0° <-> -255.0 = -I5:00:00 <-> +345.0°
+    // -135.0° <-> -225.0 = -F5:00:00 <-> +315.0°
+    //  -90.0° <-> -180.0 = -B0:00:00 <-> +270.0°
+    //  -45.0° <-> -135.0 = -=5:00:00 <-> +225.0°
+    //  +00.0° <->  -90.0 = -90:00:00 <-> +180.0°
+    //  +45.0° <->  -45.0 = -45:00:00 <-> +135.0°
+    //  +90.0° <->    0.0 = +00:00:00 <->  +90.0°
+    // +135.0° <->   45.0 = +45:00:00 <->  +45.0°
+    // +180.0° <->   90.0 = +90:00:00 <->  +00.0°
+    // +225.0° <->  135.0 = +=5:00:00 <->  -45.0°
+    // +270.0° <->  180.0 = +B0:00:00 <->  -90.0°
+    // +315.0° <->  225.0 = +F5:00:00 <-> -135.0°
+    // +345.0° <->  255.0 = +I5:00:00 <-> -165.0°
+
+    assert(false == p.setFlipped(false));
+    assert(!p.parseStringDEC("-I5:00:00",9));
+    assert(-165.0 == p.DECm());
+    assert(!strncmp("-I5:00:00",p.toStringDEC(b,64),64));
     assert(!p.parseStringDEC("-F5:00:00",9));
     assert(-135.0 == p.DECm());
     assert(!strncmp("-F5:00:00",p.toStringDEC(b,64),64));
@@ -837,4 +918,57 @@ void EQ500X::runTestSuite()
     assert(!p.parseStringDEC("+B0:00:00",9));
     assert(+270.0 == p.DECm());
     assert(!strncmp("+B0:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+F5:00:00",9));
+    assert(+315.0 == p.DECm());
+    assert(!strncmp("+F5:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+I5:00:00",9));
+    assert(+345.0 == p.DECm());
+    assert(!strncmp("+I5:00:00",p.toStringDEC(b,64),64));
+
+    assert(p.parseStringDEC("+J0:00:00",9));
+    assert(p.parseStringDEC("-J0:00:00",9));
+
+    assert(true == p.setFlipped(true));
+    assert(!p.parseStringDEC("-I5:00:00",9));
+    assert(+345.0 == p.DECm());
+    assert(!strncmp("-I5:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("-F5:00:00",9));
+    assert(+315.0 == p.DECm());
+    assert(!strncmp("-F5:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("-B0:00:00",9));
+    assert(+270.0 == p.DECm());
+    assert(!strncmp("-B0:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("-=5:00:00",9));
+    assert(+225.0 == p.DECm());
+    assert(!strncmp("-=5:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("-90:00:00",9));
+    assert(+180.0 == p.DECm());
+    assert(!strncmp("-90:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("-45:00:00",9));
+    assert(+135.0 == p.DECm());
+    assert(!strncmp("-45:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+00:00:00",9));
+    assert( +90.0 == p.DECm());
+    assert(!strncmp("+00:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+45:00:00",9));
+    assert( +45.0 == p.DECm());
+    assert(!strncmp("+45:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+90:00:00",9));
+    assert( +0.0 == p.DECm());
+    assert(!strncmp("+90:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+=5:00:00",9));
+    assert( -45.0 == p.DECm());
+    assert(!strncmp("+=5:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+B0:00:00",9));
+    assert( -90.0 == p.DECm());
+    assert(!strncmp("+B0:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+F5:00:00",9));
+    assert(-135.0 == p.DECm());
+    assert(!strncmp("+F5:00:00",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+I5:00:00",9));
+    assert(-165.0 == p.DECm());
+    assert(!strncmp("+I5:00:00",p.toStringDEC(b,64),64));
+
+    assert(p.parseStringDEC("+J0:00:00",9));
+    assert(p.parseStringDEC("-J0:00:00",9));
 }

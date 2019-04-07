@@ -14,16 +14,19 @@ public:
         double RAm(double const);
         double DECm(double const);
     public:
+        bool isFlipped() const { return _isFlipped; }
+        bool setFlipped(bool const);
+    public:
         bool parseStringRA(char const *, size_t);
         bool parseStringDEC(char const *, size_t);
-        char const * toStringRA(char *, size_t);
-        char const * toStringDEC(char *, size_t);
+        char const * toStringRA(char *, size_t) const;
+        char const * toStringDEC(char *, size_t) const;
     public:
         double operator -(MechanicalPoint &b) const;
         double RA_degrees_to(MechanicalPoint &b) const;
         double DEC_degrees_to(MechanicalPoint &b) const;
     protected:
-        bool forceMeridianFlip {false};
+        bool _isFlipped {false};
         double _RAm {0.0}, _DECm {90.0};
     };
 public:
@@ -31,7 +34,7 @@ public:
     const char *getDefautName();
 protected:
     bool getCurrentPosition(MechanicalPoint&);
-    bool setTargetPosition(MechanicalPoint&);
+    bool setTargetPosition(MechanicalPoint const&);
     bool gotoTargetPosition();
     bool slewEQ500X();
 protected:
