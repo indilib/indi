@@ -7,7 +7,7 @@ public:
     class MechanicalPoint
     {
     public:
-        //MechanicalPoint();
+        void setLST(double const);
     public:
         double RAm() const { return _RAm; }
         double DECm() const { return _DECm; }
@@ -27,6 +27,7 @@ public:
         double DEC_degrees_to(MechanicalPoint &b) const;
     protected:
         bool _isFlipped {false};
+        double _LST {0.0};
         double _RAm {0.0}, _DECm {90.0};
     };
 public:

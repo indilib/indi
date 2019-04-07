@@ -170,7 +170,11 @@ bool EQ500X::updateLocation(double latitude, double longitude, double elevation)
         lnobserver.lng -= 360;
     lnobserver.lat = latitude;
 
-    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
+    double const LST = get_local_sidereal_time(lnobserver.lng);
+    currentPosition.setLST(LST);
+    targetPosition.setLST(LST);
+
+    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g) LST (%g)", lnobserver.lng, lnobserver.lat, LST);
     return true;
 }
 
@@ -628,15 +632,23 @@ bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
     int hours = 0, minutes = 0, seconds = 0;
     if (3 == sscanf(buf, "%02d:%02d:%02d", &hours, &minutes, &seconds))
     {
-        _RAm = static_cast <double> (
-                    static_cast <float> (hours % 24) +
-                    static_cast <float> (minutes) / 60.0f +
-                    static_cast <float> (seconds) / 3600.0f +
-                    (forceMeridianFlip ? -12.0f : 0.0f) );
+        _RAm = range24(
+                    static_cast <double> (
+                        std::fmod(
+                            static_cast <float> (hours % 24) +
+                            static_cast <float> (minutes) / 60.0f +
+                            static_cast <float> (seconds) / 3600.0f +
+                            (_isFlipped ? +12.0f : +0.0f), 24 ) )
+                    - _LST );
         return false;
     }
 
     return true;
+}
+
+void EQ500X::MechanicalPoint::setLST(double const LST)
+{
+   _LST = LST;
 }
 
 double EQ500X::MechanicalPoint::RAm(double const value)
@@ -655,7 +667,7 @@ char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length) c
     // E +18.0h <-> +18:00:00 <-> +06.0h
     // N +24.0h <-> +24:00:00 <-> +12.0h
 
-    double value = _RAm;
+    double value = range24(_RAm + _LST);
     int const sgn = _isFlipped ? (value <= -12.0 ? -1 : 1) : (value <= 0.0 ? -1 : 1);
     double const mechanical_hours = std::abs(value);
     int const hours = ((_isFlipped ? 12 : 0 ) + 24 + sgn * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
