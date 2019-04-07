@@ -97,6 +97,7 @@ option(WITH_NIGHTSCAPE "Install Nightscape 8300 Driver" On)
 option(WITH_ATIK "Install Atik Driver" On)
 option(WITH_TOUPCAM "Install Toupcam Driver" On)
 option(WITH_ALTAIRCAM "Install Altair Driver" On)
+option(WITH_DREAMFOCUSER "Install DreamFocuser Driver" On)
 option(WITH_AVALON "Install Avalon StarGO Driver" On)
 option(WITH_BEEFOCUS "Install Bee Focuser Driver" On)
 
@@ -432,6 +433,10 @@ endif()
 if (WITH_NIGHTSCAPE)
 add_subdirectory(indi-nightscape)
 endif(WITH_NIGHTSCAPE)
+
+if (WITH_DREAMFOCUSER)
+add_subdirectory(indi-dreamfocuser)
+endif()
 
 # Avalon StarGO
 if (WITH_AVALON)
