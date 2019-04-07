@@ -274,7 +274,7 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
     // variant is only available for NexStar + versions 5.28 or more and Starsense.
     // StarSense versions are currently 1.9 so overlap the early NexStar versions.
     // NS HCs before 2.0 will test and timeout
-    if (info->controllerVersion < 2.0 && info->controllerVersion >= 5.28)
+    if (info->controllerVersion < 2.2 || info->controllerVersion >= 5.28)
     {
         get_variant(&(info->controllerVariant));
     }
@@ -705,6 +705,11 @@ bool CelestronDriver::get_location(double *longitude, double *latitude)
     *longitude += response[6] / 3600.0;
     if(response[7] != 0)
         *longitude = -*longitude;
+
+    // convert longitude to INDI range 0 to 359.999
+    if (*longitude < 0)
+        *longitude += 360.0;
+
     return true;
 }
 
@@ -771,6 +776,7 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     *dd        = response[4];
     *yy        = response[5] + 2000;    // should be good as a signed char until 2127
     *utc_hours = response[6];
+    int dst = response[7];
 
     // the expected value is in the range -12 to +12 or -48 to +48 for precise.
     // if it's greater than this it looks as if the char value was transferred unsigned so -ve
@@ -781,6 +787,9 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
 
     if (precise)
         *utc_hours /= 4.0;
+
+    if (dst == 1)
+        *utc_hours--;
 
     ln_zonedate localTime;
     ln_date utcTime;
@@ -919,7 +928,7 @@ bool CelestronDriver::foc_exists()
         vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
         break;
     default:
-        LOG_DEBUG("No focuser found");
+        LOGF_DEBUG("No focuser found, %i", echo());
         return false;
     }
 
