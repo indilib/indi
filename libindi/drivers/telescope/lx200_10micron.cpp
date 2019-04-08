@@ -138,7 +138,7 @@ bool LX200_10MICRON::initProperties()
     IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(), "TLE_TEXT", "TLE", SATELLITE_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 0, 0);
+    IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 1, 1);
     IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
                        "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -589,17 +589,41 @@ bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
 
 bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour, int minute, int nextpass, ln_date date_pass)
 {
-  LOGF_INFO("Calculate trajectory is called with date: %d-%d-%d %d:%d pass %d",
-            year, month, day, hour, minute, nextpass);
-  date_pass.years = year;
-  date_pass.months = month;
-  date_pass.days = day;
-  date_pass.hours = hour;
-  date_pass.minutes = minute;
-  date_pass.seconds = 0.0;
-  JD = ln_get_julian_day(&date_pass);
-  LOGF_INFO("Julian day being %6.6f", JD);
-  return 0;
+    LOGF_INFO("Calculate trajectory is called with date: %d-%d-%d %d:%d pass %d",
+                year, month, day, hour, minute, nextpass);
+    date_pass.years = year;
+    date_pass.months = month;
+    date_pass.days = day;
+    date_pass.hours = hour;
+    date_pass.minutes = minute;
+    date_pass.seconds = 0.0;
+    JD = ln_get_julian_day(&date_pass);
+
+    char command[28];
+    snprintf(command, sizeof(command), ":TLEP%7.8f,%01d#", JD, nextpass);
+    LOGF_INFO("Julian day being %7.5f", JD);
+    if ( !isSimulation() )
+        {
+            LOG_INFO(command);
+            char response[36];
+            if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 36) )
+            {
+                LOG_ERROR("TLE calculate error");
+                return 1;
+            }
+            if (response[0] == 'E')
+            {
+                LOG_ERROR("TLE not loaded or invalid command");
+                return 1;
+            }
+            if (response[0] == 'N')
+            {
+                LOG_ERROR("No passes loaded");
+                return 1;
+            }
+            LOG_INFO(response);
+        }
+    return 0;
 }
 
 bool LX200_10MICRON::TrackSat()
