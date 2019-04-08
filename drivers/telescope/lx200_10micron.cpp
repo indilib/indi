@@ -564,8 +564,27 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
 
 bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
 {
-  LOG_INFO("Setting TLE from Database");
-  return 0;
+    char command[10];
+    snprintf(command, sizeof(command), ":TLEDL%03d#", tleN);
+
+    LOG_INFO("Setting TLE from Database");
+    if ( !isSimulation() )
+    {
+        LOG_INFO(command);
+        char response[210];
+        if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 210) )
+        {
+            if (response[0] == 'E')
+            {
+                LOG_ERROR("TLE number not in mount");
+                return 1;
+            }
+            LOG_ERROR("TLE set error");
+            return 1;
+        }
+        LOG_INFO(response);
+    }
+    return 0;
 }
 
 bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour, int minute, int nextpass, ln_date date_pass)
@@ -586,7 +605,7 @@ bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour,
 bool LX200_10MICRON::TrackSat()
 {
   LOG_INFO("Tracking satellite");
-  return 0
+  return 0;
 }
 
 int LX200_10MICRON::SetRefractionModelTemperature(double temperature)
@@ -771,6 +790,12 @@ bool LX200_10MICRON::ISNewNumber(const char *dev, const char *name, double value
         if (strcmp(name, "TLE_NUMBER") == 0)
         {
             IUUpdateNumber(&TLEfromDatabaseNP, values, names, n);
+            if ( 0 != SetTLEfromDatabase(TLEfromDatabaseN[0].value) )
+            {
+                TLEfromDatabaseNP.s = IPS_ALERT;
+                IDSetNumber(&TLEfromDatabaseNP, nullptr);
+                return false;
+            }
             TLEfromDatabaseNP.s = IPS_OK;
             TLEtoUploadTP.s = IPS_IDLE;
             IDSetText(&TLEtoUploadTP, nullptr);
