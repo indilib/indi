@@ -138,7 +138,7 @@ bool LX200_10MICRON::initProperties()
     IUFillTextVector(&TLEtoUploadTP, TLEtoUploadT, 1, getDeviceName(), "TLE_TEXT", "TLE", SATELLITE_TAB,
                      IP_RW, 60, IPS_IDLE);
 
-    IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 0, 999, 0, 0);
+    IUFillNumber(&TLEfromDatabaseN[0], "NUMBER", "#", "%.0f", 1, 999, 0, 0);
     IUFillNumberVector(&TLEfromDatabaseNP, TLEfromDatabaseN, 1, getDeviceName(),
                        "TLE_NUMBER", "Database TLE ", SATELLITE_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -564,8 +564,8 @@ bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
 
 bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
 {
-    char command[10];
-    snprintf(command, sizeof(command), ":TLEDL%03d#", tleN);
+    char command[12];
+    snprintf(command, sizeof(command), ":TLEDL%01d#", tleN);
 
     LOG_INFO("Setting TLE from Database");
     if ( !isSimulation() )
@@ -574,12 +574,12 @@ bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
         char response[210];
         if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 210) )
         {
-            if (response[0] == 'E')
-            {
-                LOG_ERROR("TLE number not in mount");
-                return 1;
-            }
             LOG_ERROR("TLE set error");
+            return 1;
+        }
+        if (response[0] == 'E')
+        {
+            LOG_ERROR("TLE number not in mount");
             return 1;
         }
         LOG_INFO(response);
