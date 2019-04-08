@@ -23,7 +23,7 @@ public:
         char const * toStringDEC(char *, size_t) const;
     public:
         double operator -(MechanicalPoint &b) const;
-        double RA_degrees_to(MechanicalPoint &b) const;
+        double RA_hours_to(MechanicalPoint &b) const;
         double DEC_degrees_to(MechanicalPoint &b) const;
     protected:
         bool _isFlipped {false};

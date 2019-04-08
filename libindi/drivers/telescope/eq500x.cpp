@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <cstring>
 #include <termios.h>
 #include <unistd.h>
+#include <cassert>
 
 #include <libnova/sidereal_time.h>
 #include <libnova/transform.h>
@@ -210,82 +211,106 @@ bool EQ500X::ReadScopeStatus()
         if (!isSimulation() && EqN[AXIS_RA].value == currentPosition.RAm() && EqN[AXIS_DE].value == currentPosition.DECm())
         {
             // If mount stopped, but is not at target, issue a slower goto
-            double const distance = targetPosition - currentPosition;
-            if (!isSimulation() && RADIUS_ARCSECOND/2 < distance /*&& distance < 2*RADIUS_ONEDEGREE*/)
+            double ra_delta = currentPosition.RA_hours_to(targetPosition);
+            double dec_delta = currentPosition.DEC_degrees_to(targetPosition);
+            LOGF_INFO("Distance to target is %lf/%lf, adjusting until less than (%lf,%lf).", ra_delta, dec_delta, ARCSECOND, ARCSECOND);
+            if (ARCSECOND <= std::abs(ra_delta) || ARCSECOND <= std::abs(dec_delta))
             {
                 char CmdString[16] = {0};
-                double epsilon = 0.0;
-                if (distance < RADIUS_ARCMINUTE/2)
-                {
-                    LOGF_INFO("Distance to target is %lf, adjusting at guide speed...", distance);
-                    strcat(CmdString, ":RG#");
-                    epsilon = ARCSECOND;
-                }
-                else
-                if (distance < 10*RADIUS_ARCMINUTE)
-                {
-                    LOGF_INFO("Distance to target is %lf, adjusting at find speed...", distance);
-                    strcat(CmdString, ":RG#");
-                    epsilon = ARCSECOND;
-                }
-                else
-                {
-                    LOGF_INFO("Distance to target is %lf, adjusting at centering speed...", distance);
-                    strcat(CmdString, ":RC#");
-                    epsilon = ARCMINUTE;
-                }
 
-                double ra_delta = currentPosition.RA_degrees_to(targetPosition);
-                bool east = ARCSECOND <= ra_delta;
-                bool west = ra_delta <= -ARCSECOND;
-                if (east) strcat(CmdString, ":Me#");
-                if (west) strcat(CmdString, ":Mw#");
-
-                double dec_delta = currentPosition.DEC_degrees_to(targetPosition);
-                bool north = ARCSECOND <= dec_delta;
-                bool south = dec_delta <= -ARCSECOND;
-                if (north) strcat(CmdString, ":Mn#");
-                if (south) strcat(CmdString, ":Ms#");
-
-                if (sendCmd(CmdString))
+                struct _adjustment {
+                    char const * slew_rate;
+                    double epsilon;
+                    double distance;
+                } const adjustments[] =
                 {
-                    LOGF_ERROR("Error centering to (%lf,%lf)", targetPosition.RAm(), targetPosition.DECm());
-                    slewError(-1);
-                    return false;
-                }
+                    {":RG#", 1*ARCSECOND,    0.5*ARCMINUTE }, // Guiding speed
+                    {":RC#", 0.25*ARCMINUTE, 2*ARCMINUTE    }, // Centering speed
+                    {":RM#", 1*ARCMINUTE,    4*ONEDEGREE   }, // Finding speed
+                    {":RS#", 3*ONEDEGREE,    360*ONEDEGREE  }  // Slew speed
+                };
 
+                bool east = false, west = false, north = false, south = false;
                 int countdown = 50;
+                struct _adjustment const * previous_adjustment = nullptr;
 
-                while (RADIUS_ARCSECOND/2 <= targetPosition - currentPosition)
+                while (true) //(RADIUS_ARCSECOND <= ra_delta || RADIUS_ARCSECOND <= dec_delta)
                 {
-                    LOGF_INFO("Centering (%lf,%lf) delta (%lf,%lf) moving %c%c%c%c", targetPosition.RAm(), targetPosition.DECm(), ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.');
+                    struct _adjustment const *ra_adjust = nullptr, *dec_adjust = nullptr;
 
-                    const struct timespec timeout = {0, 100000000L};
-                    nanosleep(&timeout, nullptr);
+                    // Choose slew rate for RA based on distance to target
+                    double const abs_ra_delta = std::abs(ra_delta);
+                    for(size_t i = 0; i < sizeof(adjustments) && nullptr == ra_adjust; i++)
+                        if (abs_ra_delta <= adjustments[i].distance)
+                            ra_adjust = &adjustments[i];
+                    assert(nullptr != ra_adjust);
 
+                    // Choose slew rate for DEC based on distance to target
+                    double const abs_dec_delta = std::abs(dec_delta);
+                    for(size_t i = 0; i < sizeof(adjustments) && nullptr == dec_adjust; i++)
+                        if (abs_dec_delta <= adjustments[i].distance)
+                            dec_adjust = &adjustments[i];
+                    assert(nullptr != dec_adjust);
+
+                    // Reset command string
                     CmdString[0] = '\0';
 
-                    if (getCurrentPosition(currentPosition))
+                    // We adjust the axis which has the faster slew rate, eventually both axis at the same time, at the same speed
+                    struct _adjustment const * const adjustment = ra_adjust < dec_adjust ? dec_adjust : ra_adjust;
+                    if (previous_adjustment != adjustment)
                     {
-                        EqNP.s = IPS_ALERT;
-                        IDSetNumber(&EqNP, "Error reading RA/DEC.");
-                        return false;
+                        strcat(CmdString, adjustment->slew_rate);
+                        previous_adjustment = adjustment;
                     }
 
-                    ra_delta = std::abs(currentPosition.RA_degrees_to(targetPosition));
-                    if (ra_delta < epsilon)
+                    // If RA is being adjusted, check delta against adjustment epsilon to enable or disable movement
+                    if (ra_adjust == adjustment)
                     {
-                        if (east) { strcat(CmdString, ":Qe#"); east = false; }
-                        if (west) { strcat(CmdString, ":Qw#"); west = false; }
+                        if (adjustment->epsilon <= ra_delta)
+                        {
+                            if (!east) { strcat(CmdString, ":Me#"); east = true;  }
+                        }
+                        else
+                        {
+                            if (east)  { strcat(CmdString, ":Qe#"); east = false; }
+                        }
+
+                        if (ra_delta <= -adjustment->epsilon)
+                        {
+                            if (!west) { strcat(CmdString, ":Mw#"); west = true;  }
+                        }
+                        else
+                        {
+                            if (west)  { strcat(CmdString, ":Qw#"); west = false; }
+                        }
                     }
 
-                    dec_delta = std::abs(currentPosition.DEC_degrees_to(targetPosition));
-                    if (dec_delta < epsilon)
+                    // If DEC is being adjusted, check delta against adjustment epsilon to enable or disable movement
+                    if (dec_adjust == adjustment)
                     {
-                        if (north) { strcat(CmdString, ":Qn#"); north = false; }
-                        if (south) { strcat(CmdString, ":Qs#"); south = false; }
+                        if (adjustment->epsilon <= dec_delta)
+                        {
+                            if (!north) { strcat(CmdString, ":Mn#"); north = true;  }
+                        }
+                        else
+                        {
+                            if (north)  { strcat(CmdString, ":Qn#"); north = false; }
+                        }
+
+                        if (dec_delta <= -adjustment->epsilon)
+                        {
+                            if (!south) { strcat(CmdString, ":Ms#"); south = true;  }
+                        }
+                        else
+                        {
+                            if (south)  { strcat(CmdString, ":Qs#"); south = false; }
+                        }
                     }
 
+                    // Basic algorithm sanitization on movement orientation: move one way or the other, or not at all
+                    assert(!(east && west) && !(north && south));
+
+                    LOGF_INFO("Centering (%lf,%lf) delta (%lf,%lf) moving %c%c%c%c at %s until less than %lf", targetPosition.RAm(), targetPosition.DECm(), ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.', adjustment->slew_rate, adjustment->epsilon);
                     if (CmdString[0] != '\0')
                     {
                         if (sendCmd(CmdString))
@@ -314,9 +339,24 @@ bool EQ500X::ReadScopeStatus()
                         break;
                     }
 
+                    const struct timespec timeout = {0, 100000000L};
+                    nanosleep(&timeout, nullptr);
+
+                    if (getCurrentPosition(currentPosition))
+                    {
+                        EqNP.s = IPS_ALERT;
+                        IDSetNumber(&EqNP, "Error reading RA/DEC.");
+                        return false;
+                    }
+
+                    // Update displayed RA/DEC
                     currentRA = currentPosition.RAm();
                     currentDEC = currentPosition.DECm();
                     NewRaDec(currentRA, currentDEC);
+
+                    // Update deltas for next loop
+                    ra_delta = currentPosition.RA_hours_to(targetPosition);
+                    dec_delta = currentPosition.DEC_degrees_to(targetPosition);
                 }
 
                 /* Now don't go to tracking now, let ReadScope check again next second, and adjust again */
@@ -324,7 +364,7 @@ bool EQ500X::ReadScopeStatus()
             else
             {
                 TrackState = SCOPE_TRACKING;
-                LOGF_INFO("Slew is complete at a distance of %lf. Tracking...", distance);
+                LOG_INFO("Slew is complete. Tracking...");
 
                 if (sendCmd(":RG#"))
                 {
@@ -428,11 +468,12 @@ bool EQ500X::Goto(double ra, double dec)
             LOGF_INFO("Distance is %lf, not moving...", distance);
             return true;
         }
-        else if (distance < 30.0*RADIUS_ARCMINUTE)
+        else /*if (distance < 30.0*RADIUS_ARCMINUTE)*/
         {
             LOGF_INFO("Distance is %lf, adjusting to target...", distance);
             /* Let ReadScope do the centering */
         }
+        /*
         else
         {
             LOGF_INFO("Distance is %lf, using full slew speed goto", distance);
@@ -805,12 +846,14 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) 
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
-double EQ500X::MechanicalPoint::RA_degrees_to(EQ500X::MechanicalPoint &b) const
+double EQ500X::MechanicalPoint::RA_hours_to(EQ500X::MechanicalPoint &b) const
 {
     // RA is circular, DEC is not
-    double ra = 15*(b._RAm - _RAm);
-    if (ra > +180.0) ra -= 360.0;
-    if (ra < -180.0) ra += 360.0;
+    // We keep hours and not degrees because that's what the mount is handling in terms of precision
+    // If we were to use real degrees, the RA movement would need to be 15 times more precise
+    double ra = (b._RAm - _RAm);
+    if (ra > +12.0) ra -= 24.0;
+    if (ra < -12.0) ra += 24.0;
     return ra;
 }
 
@@ -822,10 +865,10 @@ double EQ500X::MechanicalPoint::DEC_degrees_to(EQ500X::MechanicalPoint &b) const
 
 double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint &b) const
 {
-    double const ra = RA_degrees_to(b);
-    double const dec = DEC_degrees_to(b);
+    double const ra_distance = RA_hours_to(b);
+    double const dec_distance = DEC_degrees_to(b);
     // FIXME: Incorrect distance calculation, but enough for our purpose
-    return std::sqrt(ra*ra + dec*dec);
+    return std::sqrt(ra_distance*ra_distance + dec_distance*dec_distance);
 }
 
 bool EQ500X::MechanicalPoint::setFlipped(bool const flipped)
@@ -833,7 +876,6 @@ bool EQ500X::MechanicalPoint::setFlipped(bool const flipped)
     return _isFlipped = flipped;
 }
 
-#include <cassert>
 void EQ500X::runTestSuite()
 {
     EQ500X::MechanicalPoint p;
