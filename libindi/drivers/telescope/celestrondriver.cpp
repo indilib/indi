@@ -578,6 +578,7 @@ bool CelestronDriver::sync(double ra, double dec, bool precise)
     return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
+// NS+ 5.28 and more only, not StarSense
 bool CelestronDriver::unsync()
 {
     LOG_DEBUG("Unsync");
@@ -899,6 +900,25 @@ bool CelestronDriver::check_aligned()
         return false;
 
     return response[0] == 0x01;
+}
+
+bool CelestronDriver::set_track_rate(CELESTRON_TRACK_RATE rate, CELESTRON_TRACK_MODE mode)
+{
+    set_sim_response("#");
+    char cmd;
+    switch (mode)
+    {
+    case CTM_EQN:
+        cmd = MC_SET_POS_GUIDERATE;
+        break;
+    case CTM_EQS:
+        cmd = MC_SET_NEG_GUIDERATE;
+        break;
+    default:
+        return false;
+    }
+    char payload[] = {(char)(rate >> 8 & 0xff), (char)(rate & 0xff)};
+    return send_passthrough(CELESTRON_DEV_RA, cmd, payload, 2, response, 0);
 }
 
 // focuser commands
