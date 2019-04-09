@@ -104,7 +104,10 @@ CelestronGPS::CelestronGPS() : FI(this)
 
     // focuser
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    // Unused option: FOCUSER_HAS_VARIABLE_SPEED
+
+    // Set minimum properties.
+    // ISGetProperties in INDI::Telescope checks for CanGOTO which must be set.
+    SetTelescopeCapability(TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT, 9);
 }
 
 bool CelestronGPS::checkMinVersion(float minVersion, const char *feature, bool debug)
@@ -128,7 +131,7 @@ bool CelestronGPS::checkMinVersion(float minVersion, const char *feature, bool d
 
 const char *CelestronGPS::getDefaultName()
 {
-    return static_cast<const char *>("Celestron GPS");
+    return "Celestron GPS";
 }
 
 bool CelestronGPS::initProperties()
