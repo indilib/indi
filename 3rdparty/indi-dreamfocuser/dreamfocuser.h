@@ -37,87 +37,74 @@ using namespace std;
 class DreamFocuser : public INDI::Focuser
 {
 
-public:
+    public:
 
-  struct DreamFocuserCommand  {
-    char M = 'M';
-    char k;
-    unsigned char a;
-    unsigned char b;
-    unsigned char c;
-    unsigned char d;
-    unsigned char n = '\0';
-    unsigned char z;
-  };
+        struct DreamFocuserCommand
+        {
+            char M = 'M';
+            char k;
+            unsigned char a;
+            unsigned char b;
+            unsigned char c;
+            unsigned char d;
+            unsigned char n = '\0';
+            unsigned char z;
+        };
 
-  DreamFocuser();
-  ~DreamFocuser();
+        DreamFocuser();
 
-  // Standard INDI interface functions
-  virtual bool Connect();
-  virtual bool Disconnect();
-  const char *getDefaultName();
-  virtual bool initProperties();
-  virtual bool updateProperties();
-  virtual bool saveConfigItems(FILE *fp);
-  //virtual void ISGetProperties(const char *dev);
-  virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-  virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n);
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        //virtual bool saveConfigItems(FILE *fp) override;
+        //virtual bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch (const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
-protected:
-  virtual void TimerHit();
+    protected:
+        virtual bool Handshake() override;
+        virtual void TimerHit() override;
+        virtual bool SyncFocuser(uint32_t ticks) override;
 
-  //virtual bool SetFocuserSpeed(int speed);
-  //virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
-  virtual IPState MoveAbsFocuser(uint32_t ticks);
-  virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
-  virtual bool AbortFocuser();
+        virtual IPState MoveAbsFocuser(uint32_t ticks) override;
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual bool AbortFocuser() override;
 
-private:
+    private:
 
-  INumber MaxTravelN[1];
-  INumberVectorProperty MaxTravelNP;
+        INumber EnvironmentN[2];
+        INumberVectorProperty EnvironmentNP;
 
-  INumber MaxPositionN[1];
-  INumberVectorProperty MaxPositionNP;
+        ISwitch ParkS[1];
+        ISwitchVectorProperty ParkSP;
 
-  INumber EnvironmentN[2];
-  INumberVectorProperty EnvironmentNP;
+        ISwitch StatusS[2];
+        ISwitchVectorProperty StatusSP;
 
-  ISwitch SyncS[1];
-  ISwitchVectorProperty SyncSP;
+        //INumber SetBacklashN[1];
+        //INumberVectorProperty SetBacklashNP;
 
-  ISwitch ParkS[1];
-  ISwitchVectorProperty ParkSP;
+        unsigned char calculate_checksum(DreamFocuserCommand c);
+        bool send_command(char k, uint32_t l = 0);
+        bool read_response();
+        bool dispatch_command(char k, uint32_t l = 0);
 
-  ISwitch StatusS[2];
-  ISwitchVectorProperty StatusSP;
+        bool getTemperature();
+        bool getStatus();
+        bool getPosition();
+        bool setPosition(int32_t position);
+        bool setSync(int32_t position = 0);
+        bool setPark();
 
-  //INumber SetBacklashN[1];
-  //INumberVectorProperty SetBacklashNP;
-
-  unsigned char calculate_checksum(DreamFocuserCommand c);
-  bool send_command(char k, uint32_t l = 0);
-  bool read_response();
-  bool dispatch_command(char k, uint32_t l = 0);
-
-  bool getTemperature();
-  bool getStatus();
-  bool getPosition();
-  bool setPosition(int32_t position);
-  bool setSync(int32_t position = 0);
-  bool setPark();
-
-  // Variables
-  float focusMoveRequest;
-  string default_port;
-  int fd;
-  float simulatedTemperature, currentTemperature;
-  float simulatedHumidity, currentHumidity;
-  int32_t simulatedPosition, currentPosition;
-  bool isAbsolute;
-  bool isMoving;
-  DreamFocuserCommand currentResponse;
+        // Variables
+        //float focusMoveRequest;
+        //string default_port;
+        //int fd;
+        float simulatedTemperature, currentTemperature;
+        float simulatedHumidity, currentHumidity;
+        int32_t simulatedPosition, currentPosition;
+        bool isAbsolute;
+        bool isMoving;
+        DreamFocuserCommand currentResponse;
 };
 
 #endif
