@@ -26,7 +26,7 @@ public:
         double DEC_degrees_to(MechanicalPoint &) const;
     public:
         double operator -(MechanicalPoint &) const;
-        double operator !=(MechanicalPoint &) const;
+        bool operator !=(MechanicalPoint &) const;
     protected:
         bool _isFlipped {false};
         double _LST {0.0};
