@@ -135,7 +135,8 @@ bool EQ500X::checkConnection()
     }
 
     /* Blink the control pad */
-    const struct timespec timeout = {0, 1000000L};
+#if 0
+    const struct timespec timeout = {0, 250000000L};
     sendCmd(":RG#");
     nanosleep(&timeout, nullptr);
     sendCmd(":RC#");
@@ -155,6 +156,9 @@ bool EQ500X::checkConnection()
     sendCmd(":RM#");
     nanosleep(&timeout, nullptr);
     sendCmd(":RS#");
+    nanosleep(&timeout, nullptr);
+    sendCmd(":RG#");
+#endif
 
     LOG_DEBUG("Connection check successful!");
     tty_set_debug(0);
