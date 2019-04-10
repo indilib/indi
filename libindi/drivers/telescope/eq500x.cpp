@@ -114,20 +114,20 @@ bool EQ500X::checkConnection()
     if (PortFD <= 0)
         return false;
 
-    LOGF_DEBUG("Testing telescope connection using GR...", "");
+    LOG_DEBUG("Testing telescope connection using GR...");
     tty_set_debug(1);
 
-    LOGF_DEBUG("Clearing input...", "");
+    LOG_DEBUG("Clearing input...");
     tcflush(PortFD, TCIFLUSH);
 
     char b[64/*RB_MAX_LEN*/] = {0};
 
     for (int i = 0; i < 2; i++)
     {
-        LOGF_DEBUG("Getting RA...", "");
+        LOG_DEBUG("Getting RA...");
         if (getCommandString(PortFD, b, ":GR#") && 1 <= i)
         {
-            LOGF_DEBUG("Failure. Telescope is not responding to GR!", "");
+            LOG_DEBUG("Failure. Telescope is not responding to GR!");
             return false;
         }
         const struct timespec timeout = {0, 50000000L};
@@ -156,7 +156,7 @@ bool EQ500X::checkConnection()
     nanosleep(&timeout, nullptr);
     sendCmd(":RS#");
 
-    LOGF_DEBUG("Connection check successful!", "");
+    LOG_DEBUG("Connection check successful!");
     tty_set_debug(0);
     return true;
 }
@@ -618,7 +618,7 @@ bool EQ500X::getCurrentPosition(MechanicalPoint &p)
     if (result.parseStringRA(b, 64))
         goto radec_error;
 
-    LOGF_INFO("RA reads '%s' as %lf.", b, result.RAm());
+    LOGF_DEBUG("RA reads '%s' as %lf.", b, result.RAm());
 
     if (isSimulation())
         memcpy(b, simEQ500X.MechanicalDEC, std::min(sizeof(b), sizeof(simEQ500X.MechanicalDEC)));
@@ -627,7 +627,7 @@ bool EQ500X::getCurrentPosition(MechanicalPoint &p)
     if (result.parseStringDEC(b, 64))
         goto radec_error;
 
-    LOGF_INFO("DEC reads '%s' as %lf.", b, result.DECm());
+    LOGF_DEBUG("DEC reads '%s' as %lf.", b, result.DECm());
 
     p = result;
     return false;
@@ -641,7 +641,7 @@ bool EQ500X::setTargetPosition(MechanicalPoint const &p)
     char CmdString[] = ":Sr" MechanicalPoint_RA_Format "#:Sd" MechanicalPoint_DEC_Format "#";
     char bufRA[sizeof(MechanicalPoint_RA_Format)], bufDEC[sizeof(MechanicalPoint_DEC_Format)];
     snprintf(CmdString, sizeof(CmdString), ":Sr%s#:Sd%s#", p.toStringRA(bufRA, sizeof(bufRA)), p.toStringDEC(bufDEC, sizeof(bufDEC)));
-    LOGF_INFO("Target RA '%f' DEC '%f' converted to '%s'", static_cast <float> (p.RAm()), static_cast <float> (p.DECm()), CmdString);
+    LOGF_DEBUG("Target RA '%f' DEC '%f' converted to '%s'", static_cast <float> (p.RAm()), static_cast <float> (p.DECm()), CmdString);
 
     if (!isSimulation())
     {
