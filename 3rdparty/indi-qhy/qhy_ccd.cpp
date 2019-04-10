@@ -697,10 +697,24 @@ bool QHYCCD::Connect()
 
             m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
             LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+            // If we get invalid value, check again in 0.5 sec
             if (m_MaxFilterCount > 16)
+            {
+                usleep(500000);
+                m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+                LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+            }
+
+            if (m_MaxFilterCount > 16)
+            {
+                LOG_DEBUG("Camera can support CFW but no filters are present.");
                 m_MaxFilterCount = -1;
+            }
+
             if (m_MaxFilterCount > 0)
                 updateFilterProperties();
+            else
+                HasFilters = false;
         }
 
         LOGF_DEBUG("Has Filters: %s", HasFilters ? "True" : "False");
@@ -1175,22 +1189,22 @@ void QHYCCD::TimerHit()
     if (isConnected() == false)
         return;
 
-    if (HasFilters && m_MaxFilterCount == -1)
-    {
-        m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
-        LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
-        if (m_MaxFilterCount > 16)
-            m_MaxFilterCount = -1;
-        if (m_MaxFilterCount > 0)
-        {
-            if (updateFilterProperties())
-            {
-                deleteProperty("FILTER_NAME");
-                IUUpdateMinMax(&FilterSlotNP);
-                defineText(FilterNameTP);
-            }
-        }
-    }
+    //    if (HasFilters && m_MaxFilterCount == -1)
+    //    {
+    //        m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+    //        LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+    //        if (m_MaxFilterCount > 16)
+    //            m_MaxFilterCount = -1;
+    //        if (m_MaxFilterCount > 0)
+    //        {
+    //            if (updateFilterProperties())
+    //            {
+    //                deleteProperty("FILTER_NAME");
+    //                IUUpdateMinMax(&FilterSlotNP);
+    //                defineText(FilterNameTP);
+    //            }
+    //        }
+    //    }
 
     if (FilterSlotNP.s == IPS_BUSY)
     {
