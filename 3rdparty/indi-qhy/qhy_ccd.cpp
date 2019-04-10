@@ -696,6 +696,7 @@ bool QHYCCD::Connect()
             HasFilters = true;
 
             m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+            LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
             if (m_MaxFilterCount > 0)
                 updateFilterProperties();
         }
@@ -1175,6 +1176,7 @@ void QHYCCD::TimerHit()
     if (HasFilters && m_MaxFilterCount == -1)
     {
         m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+        LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
         if (m_MaxFilterCount > 0)
         {
             if (updateFilterProperties())
@@ -1931,6 +1933,7 @@ bool QHYCCD::updateFilterProperties()
 {
     if (FilterNameTP->ntp != m_MaxFilterCount)
     {
+        LOGF_DEBUG("Max filter count is: %d", m_MaxFilterCount);
         FilterSlotN[0].max = m_MaxFilterCount;
         char filterName[MAXINDINAME];
         char filterLabel[MAXINDILABEL];
@@ -1941,7 +1944,7 @@ bool QHYCCD::updateFilterProperties()
             delete [] FilterNameT;
         }
 
-        FilterNameT = new IText[static_cast<int>(m_MaxFilterCount)];
+        FilterNameT = new IText[m_MaxFilterCount];
         memset(FilterNameT, 0, sizeof(IText) * m_MaxFilterCount);
         for (int i = 0; i < m_MaxFilterCount; i++)
         {
