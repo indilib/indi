@@ -210,47 +210,67 @@ bool EQ500X::ReadScopeStatus()
         // Check if mount is done slewing - NewRaDec will update EqN, but mountSim as well
         if (!isSimulation() && EqN[AXIS_RA].value == currentPosition.RAm() && EqN[AXIS_DE].value == currentPosition.DECm())
         {
-            // If mount stopped, but is not at target, issue a slower goto
-            double ra_delta = currentPosition.RA_hours_to(targetPosition);
+            // Compute RA/DEC deltas - keep in mind RA is in hours on the mount, with a granularity of 15 degrees
+            double ra_delta = currentPosition.RA_degrees_to(targetPosition);
             double dec_delta = currentPosition.DEC_degrees_to(targetPosition);
-            LOGF_INFO("Distance to target is %lf/%lf, adjusting until less than (%lf,%lf).", ra_delta, dec_delta, ARCSECOND, ARCSECOND);
-            if (ARCSECOND <= std::abs(ra_delta) || ARCSECOND <= std::abs(dec_delta))
-            {
-                char CmdString[16] = {0};
 
+            // If mount stopped, but is not at target, issue a slower goto
+            if (currentPosition != targetPosition)
+            {
+                // RA/DEC deltas are recomputed at the end of the while loop to spare one exchange with the mount
+
+                // Hardcoded adjustment intervals
+                // RA/DEC deltas are adjusted at specific 'slew_rate' down to 'epsilon' degrees when smaller than 'distance' degrees
+                // The greater adjustment requirement drives the slew rate (one single command for both axis)
                 struct _adjustment {
                     char const * slew_rate;
                     double epsilon;
                     double distance;
-                } const adjustments[] =
-                {
-                    {":RG#", 1*ARCSECOND,    0.5*ARCMINUTE }, // Guiding speed
-                    {":RC#", 0.25*ARCMINUTE, 2*ARCMINUTE    }, // Centering speed
-                    {":RM#", 1*ARCMINUTE,    4*ONEDEGREE   }, // Finding speed
+                }
+                const adjustments[] = {
+                    {":RG#", 1*ARCSECOND,    0.75*ARCMINUTE }, // Guiding speed
+                    {":RC#", 0.25*ARCMINUTE, 4*ARCMINUTE    }, // Centering speed
+                    {":RM#", 1*ARCMINUTE,    4*ONEDEGREE    }, // Finding speed
                     {":RS#", 3*ONEDEGREE,    360*ONEDEGREE  }  // Slew speed
                 };
 
+                // Movement markers, end of loop exits when no movement is required and all flags are cleared
                 bool east = false, west = false, north = false, south = false;
-                int countdown = 50;
+
+                // Previous alignment marker to spot when to change slew rate
                 struct _adjustment const * previous_adjustment = nullptr;
 
-                while (true) //(RADIUS_ARCSECOND <= ra_delta || RADIUS_ARCSECOND <= dec_delta)
+                // Command string to send to the mount
+                char CmdString[32] = {0};
+
+                // Loops to run until breaking out to check for convergence failures - the mount slows down when asked to stop
+                int countdown = 75;
+
+                // This loops until at target, and is broken out by counter 'countdown'
+                while (currentPosition != targetPosition)
                 {
+                    // Adjustments in both axes
                     struct _adjustment const *ra_adjust = nullptr, *dec_adjust = nullptr;
 
-                    // Choose slew rate for RA based on distance to target
-                    double const abs_ra_delta = std::abs(ra_delta);
-                    for(size_t i = 0; i < sizeof(adjustments) && nullptr == ra_adjust; i++)
-                        if (abs_ra_delta <= adjustments[i].distance)
-                            ra_adjust = &adjustments[i];
-                    assert(nullptr != ra_adjust);
+                    // Choose slew rate for RA based on distance to target - convert distance to degrees, but keep epsilon in hours
+                    {
+                        double const abs_ra_delta = std::abs(ra_delta);
+                        for(size_t i = 0; i < sizeof(adjustments) && nullptr == ra_adjust; i++)
+                            if (abs_ra_delta <= adjustments[i].distance)
+                                ra_adjust = &adjustments[i];
+                        assert(nullptr != ra_adjust);
+                        LOGF_DEBUG("RA  delta %+lf° under %lf° would require adjustment at %s until less than %lf°", ra_delta, ra_adjust->distance, ra_adjust->slew_rate, std::max(ra_adjust->epsilon, 15.0/3600.0));
+                    }
 
                     // Choose slew rate for DEC based on distance to target
-                    double const abs_dec_delta = std::abs(dec_delta);
-                    for(size_t i = 0; i < sizeof(adjustments) && nullptr == dec_adjust; i++)
-                        if (abs_dec_delta <= adjustments[i].distance)
-                            dec_adjust = &adjustments[i];
-                    assert(nullptr != dec_adjust);
+                    {
+                        double const abs_dec_delta = std::abs(dec_delta);
+                        for(size_t i = 0; i < sizeof(adjustments) && nullptr == dec_adjust; i++)
+                            if (abs_dec_delta <= adjustments[i].distance)
+                                dec_adjust = &adjustments[i];
+                        assert(nullptr != dec_adjust);
+                        LOGF_DEBUG("DEC delta %+lf° under %lf° would require adjustment at %s until less than %lf°", dec_delta, dec_adjust->distance, dec_adjust->slew_rate, dec_adjust->epsilon);
+                    }
 
                     // Reset command string
                     CmdString[0] = '\0';
@@ -259,25 +279,31 @@ bool EQ500X::ReadScopeStatus()
                     struct _adjustment const * const adjustment = ra_adjust < dec_adjust ? dec_adjust : ra_adjust;
                     if (previous_adjustment != adjustment)
                     {
+                        // Add the new slew rate
                         strcat(CmdString, adjustment->slew_rate);
                         previous_adjustment = adjustment;
+                        // FIXME: wait for the mount to slow down to improve convergence?
                     }
+                    LOGF_DEBUG("Current adjustment is %s until RA/DEC deltas are less than %lf", adjustment->slew_rate, adjustment->epsilon);
 
                     // If RA is being adjusted, check delta against adjustment epsilon to enable or disable movement
+                    // The smallest change detectable in RA is 1/3600 hours, or 15/3600 degrees
                     if (ra_adjust == adjustment)
                     {
-                        if (adjustment->epsilon <= ra_delta)
+                        double const ra_epsilon = std::max(adjustment->epsilon, 15.0/3600.0);
+                        if (ra_epsilon <= ra_delta)
                         {
-                            if (!east) { strcat(CmdString, ":Me#"); east = true;  }
+                            // XXX
+                            /*if (!east)*/ { strcat(CmdString, ":Me#"); east = true;  }
                         }
                         else
                         {
                             if (east)  { strcat(CmdString, ":Qe#"); east = false; }
                         }
 
-                        if (ra_delta <= -adjustment->epsilon)
+                        if (ra_delta <= -ra_epsilon)
                         {
-                            if (!west) { strcat(CmdString, ":Mw#"); west = true;  }
+                            /*if (!west)*/ { strcat(CmdString, ":Mw#"); west = true;  }
                         }
                         else
                         {
@@ -286,11 +312,12 @@ bool EQ500X::ReadScopeStatus()
                     }
 
                     // If DEC is being adjusted, check delta against adjustment epsilon to enable or disable movement
+                    // The smallest change detectable in DEC is 1/3600 degrees
                     if (dec_adjust == adjustment)
                     {
                         if (adjustment->epsilon <= dec_delta)
                         {
-                            if (!north) { strcat(CmdString, ":Mn#"); north = true;  }
+                            /*if (!north)*/ { strcat(CmdString, ":Mn#"); north = true;  }
                         }
                         else
                         {
@@ -299,7 +326,7 @@ bool EQ500X::ReadScopeStatus()
 
                         if (dec_delta <= -adjustment->epsilon)
                         {
-                            if (!south) { strcat(CmdString, ":Ms#"); south = true;  }
+                            /*if (!south)*/ { strcat(CmdString, ":Ms#"); south = true;  }
                         }
                         else
                         {
@@ -310,7 +337,9 @@ bool EQ500X::ReadScopeStatus()
                     // Basic algorithm sanitization on movement orientation: move one way or the other, or not at all
                     assert(!(east && west) && !(north && south));
 
-                    LOGF_INFO("Centering (%lf,%lf) delta (%lf,%lf) moving %c%c%c%c at %s until less than %lf", targetPosition.RAm(), targetPosition.DECm(), ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.', adjustment->slew_rate, adjustment->epsilon);
+                    // This log shows target in Degrees/Degrees and delta in Degrees/Degrees
+                    LOGF_INFO("Centering (%lf°,%lf°) delta (%lf°,%lf°) moving %c%c%c%c at %s until less than (%lf°,%lf°)", targetPosition.RAm()*15.0, targetPosition.DECm(), ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.', adjustment->slew_rate, std::max(adjustment->epsilon, 15.0/3600.0), adjustment->epsilon);
+
                     if (CmdString[0] != '\0')
                     {
                         if (sendCmd(CmdString))
@@ -321,6 +350,9 @@ bool EQ500X::ReadScopeStatus()
                         }
                     }
 
+                    // If it has been too long since we started, maybe we have a convergence problem.
+                    // The mount slows down when requested to stop under minimum distance, so we may miss the target.
+                    // The behavior is improved by changing the slew rate while converging, but is still tricky to tune.
                     if (--countdown <= 0)
                     {
                         LOG_INFO("Cancelling to check slew intermediate adjustment.");
@@ -333,6 +365,7 @@ bool EQ500X::ReadScopeStatus()
                         break;
                     }
 
+                    // If all movement flags are cleared, exit the loop
                     if (!east && !west && !north && !south)
                     {
                         LOGF_INFO("Centering delta (%lf,%lf) intermediate adjustment complete (%c%c%c%c)", ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.');
@@ -355,11 +388,11 @@ bool EQ500X::ReadScopeStatus()
                     NewRaDec(currentRA, currentDEC);
 
                     // Update deltas for next loop
-                    ra_delta = currentPosition.RA_hours_to(targetPosition);
+                    ra_delta = currentPosition.RA_degrees_to(targetPosition);
                     dec_delta = currentPosition.DEC_degrees_to(targetPosition);
                 }
 
-                /* Now don't go to tracking now, let ReadScope check again next second, and adjust again */
+                /* Now don't go to tracking now, let ReadScope check again next second, and adjust again if we broke out or simply missed the target because of slowdown */
             }
             else
             {
@@ -458,33 +491,9 @@ bool EQ500X::Goto(double ra, double dec)
     {
         /* The goto feature is quite imprecise because it will always use full speed.
          * By the time the mount stops, the position is off by nearly half a degree, depending on the speed attained during the move.
-         * So, when slewing for more than a few degrees, use goto and adjust afterwards using centering speed or slower.
-         * IF slewing for less than a few degrees, let ReadScope adjust the position.
+         * Additionally, a firmware limitation prevents the goto feature from slewing to close coordinates, and will cause uneeded axis rotation.
+         * Therefore, don't use the goto feature for a goto, and let ReadScope adjust the position by itself.
          */
-
-        double const distance = targetPosition - currentPosition;
-        if (distance < RADIUS_ARCSECOND/2)
-        {
-            LOGF_INFO("Distance is %lf, not moving...", distance);
-            return true;
-        }
-        else /*if (distance < 30.0*RADIUS_ARCMINUTE)*/
-        {
-            LOGF_INFO("Distance is %lf, adjusting to target...", distance);
-            /* Let ReadScope do the centering */
-        }
-        /*
-        else
-        {
-            LOGF_INFO("Distance is %lf, using full slew speed goto", distance);
-            if (gotoTargetPosition())
-            {
-                LOGF_ERROR("Error Slewing to JNow RA %s - DEC %s", RAStr, DecStr);
-                slewError(-1);
-                return false;
-            }
-        }
-        */
     }
 
     TrackState = SCOPE_SLEWING;
@@ -674,12 +683,11 @@ bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
     if (3 == sscanf(buf, "%02d:%02d:%02d", &hours, &minutes, &seconds))
     {
         _RAm = range24(
-                    static_cast <double> (
-                        std::fmod(
-                            static_cast <float> (hours % 24) +
-                            static_cast <float> (minutes) / 60.0f +
-                            static_cast <float> (seconds) / 3600.0f +
-                            (_isFlipped ? +12.0f : +0.0f), 24 ) )
+                    std::fmod(
+                        static_cast <double> (hours % 24) +
+                        static_cast <double> (minutes) / 60.0f +
+                        static_cast <double> (seconds) / 3600.0f +
+                        (_isFlipped ? +12.0 : +0.0), 24 )
                     - _LST );
         return false;
     }
@@ -689,12 +697,12 @@ bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
 
 void EQ500X::MechanicalPoint::setLST(double const LST)
 {
-   _LST = LST;
+   _LST = std::lround(LST*3600.0)/3600.0;
 }
 
 double EQ500X::MechanicalPoint::RAm(double const value)
 {
-    return _RAm = value;
+    return _RAm = std::lround(value*3600.0)/3600.0;
 }
 
 char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length) const
@@ -771,10 +779,10 @@ bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
     // FIXME: could be sscanf("%d%d%d", ...) but needs intermediate variables, however that would count matches
     int const orientation = _isFlipped ? -1 : +1;
     _DECm = static_cast <double> (
-                90.0f + orientation * sgn * (
-                    atof(DecValues->degrees) +
-                    atof(DecValues->minutes)/60.0f +
-                    atof(DecValues->seconds)/3600.0f ));
+                90.0 + orientation * sgn * (
+                    static_cast <double> (atof(DecValues->degrees)) +
+                    static_cast <double> (atof(DecValues->minutes))/60.0 +
+                    static_cast <double> (atof(DecValues->seconds))/3600.0 ));
 
     //LOGF_INFO("DEC converts as %f.", value);
 
@@ -784,7 +792,7 @@ bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
 double EQ500X::MechanicalPoint::DECm(double const value)
 {
     // Should be inside [-180,+180], even [-90,+90], but mount supports a larger (not useful) interval
-    return _DECm = value;
+    return _DECm = std::lround(value*3600.0)/3600.0;
 }
 
 char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) const
@@ -838,23 +846,24 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) 
 
     char const low_digit = '0' + (std::abs(degrees)%10);
 
-    int const minutes = static_cast <int> (std::floor(std::abs(degrees)* 60.0)) % 60;
-    int const seconds = static_cast <int> (std::lround(std::abs(degrees) * 3600.0)) % 60;
+    int const minutes = static_cast <int> (std::floor(std::abs(value)* 60.0)) % 60;
+    int const seconds = static_cast <int> (std::lround(std::abs(value) * 3600.0)) % 60;
 
     int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0<=degrees)?'+':'-', high_digit, low_digit, minutes, seconds);
 
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
-double EQ500X::MechanicalPoint::RA_hours_to(EQ500X::MechanicalPoint &b) const
+double EQ500X::MechanicalPoint::RA_degrees_to(EQ500X::MechanicalPoint &b) const
 {
     // RA is circular, DEC is not
-    // We keep hours and not degrees because that's what the mount is handling in terms of precision
-    // If we were to use real degrees, the RA movement would need to be 15 times more precise
+    // We have hours and not degrees because that's what the mount is handling in terms of precision
+    // We need to be cautious, as if we were to use real degrees, the RA movement would need to be 15 times more precise
     double ra = (b._RAm - _RAm);
     if (ra > +12.0) ra -= 24.0;
     if (ra < -12.0) ra += 24.0;
-    return ra;
+    // Scale degrees at the end to avoid rounding issues
+    return ra * 15.0;
 }
 
 double EQ500X::MechanicalPoint::DEC_degrees_to(EQ500X::MechanicalPoint &b) const
@@ -865,10 +874,15 @@ double EQ500X::MechanicalPoint::DEC_degrees_to(EQ500X::MechanicalPoint &b) const
 
 double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint &b) const
 {
-    double const ra_distance = RA_hours_to(b);
+    double const ra_distance = RA_degrees_to(b);
     double const dec_distance = DEC_degrees_to(b);
     // FIXME: Incorrect distance calculation, but enough for our purpose
     return std::sqrt(ra_distance*ra_distance + dec_distance*dec_distance);
+}
+
+double EQ500X::MechanicalPoint::operator !=(EQ500X::MechanicalPoint &b) const
+{
+   return (_RAm != b._RAm) || (_DECm != b._DECm) || (_LST != b._LST);
 }
 
 bool EQ500X::MechanicalPoint::setFlipped(bool const flipped)
@@ -922,6 +936,14 @@ void EQ500X::runTestSuite()
     assert(!p.parseStringRA("24:00:00",8));
     assert(+12.0 == p.RAm());
     assert(!strncmp("00:00:00",p.toStringRA(b,64),64));
+
+    p.setFlipped(false);
+    assert(!p.parseStringRA("00:00:01",8));
+    assert(1/3600.0 == p.RAm());
+    assert(!strncmp("00:00:01",p.toStringRA(b,64),64));
+    assert(!p.parseStringRA("00:01:00",8));
+    assert(1/60.0 == p.RAm());
+    assert(!strncmp("00:01:00",p.toStringRA(b,64),64));
 
     // NotFlipped                         Flipped
     // -165.0° <-> -255.0 = -I5:00:00 <-> +345.0°
@@ -1025,4 +1047,12 @@ void EQ500X::runTestSuite()
 
     assert(p.parseStringDEC("+J0:00:00",9));
     assert(p.parseStringDEC("-J0:00:00",9));
+
+    p.setFlipped(false);
+    assert(!p.parseStringDEC("+00:00:01",9));
+    assert(90.0 + 1/3600.0 == p.DECm());
+    assert(!strncmp("+00:00:01",p.toStringDEC(b,64),64));
+    assert(!p.parseStringDEC("+00:01:00",9));
+    assert(90.0 + 1/60.0 == p.DECm());
+    assert(!strncmp("+00:01:00",p.toStringDEC(b,64),64));
 }
