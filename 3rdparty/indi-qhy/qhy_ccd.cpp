@@ -697,6 +697,8 @@ bool QHYCCD::Connect()
 
             m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
             LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+            if (m_MaxFilterCount > 16)
+                m_MaxFilterCount = -1;
             if (m_MaxFilterCount > 0)
                 updateFilterProperties();
         }
@@ -1177,6 +1179,8 @@ void QHYCCD::TimerHit()
     {
         m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
         LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+        if (m_MaxFilterCount > 16)
+            m_MaxFilterCount = -1;
         if (m_MaxFilterCount > 0)
         {
             if (updateFilterProperties())
