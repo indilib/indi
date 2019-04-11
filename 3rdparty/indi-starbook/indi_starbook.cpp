@@ -326,7 +326,13 @@ bool StarbookDriver::updateLocation(double latitude, double longitude, double el
         LOGF_WARN("Can't update location in %s state", starbook::STATE_TO_STR.at(last_known_state).c_str());
         return false;
     }
+    if (TimeT[1].text == nullptr) {
+        LOG_WARN("Can't update location before time");
+        return false;
+    }
+
     auto utc_offset = static_cast<int>(std::floor(std::strtof(TimeT[1].text, nullptr)));
+    LOGF_DEBUG("UTC offset for location: %i", utc_offset);
     starbook::LnLat posn(latitude, longitude);
     starbook::ResponseCode rc = cmd_interface->SetPlace(posn, utc_offset);
     LogResponse("Updating location", rc);

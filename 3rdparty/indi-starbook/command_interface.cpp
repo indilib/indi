@@ -145,11 +145,11 @@ namespace starbook {
 
     ResponseCode CommandInterface::SetPlace(LnLat posn, int tz) {
         std::ostringstream cmd;
-        if (tz > 24 || tz < -24)
-            throw std::domain_error("timezone should be between -24 and 24");
+        if (tz > 12 || tz < -12)
+            throw std::domain_error("timezone should be between -12 and 12");
         cmd << "SETPLACE?" << posn
             << "&timezone="
-            << std::setfill('0') << std::setw(2) << tz;
+            << tz;
         return SendOkCommand(cmd.str());
     }
 
