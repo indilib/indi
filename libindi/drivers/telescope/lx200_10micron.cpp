@@ -554,12 +554,18 @@ bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 
 bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
 {
-  LOGF_INFO("The function is called with TLE %s", tle);
-  if (strcmp(tle,"testa")==0)
+    LOGF_INFO("The function is called with TLE %s", tle);
+    if (sizeof(tle) != 3*69)
     {
-      return 1;
+        LOG_ERROR("TLE not correctly formatted");
+        return 1;
     }
-  return 0;
+    char tle_[210]; 
+    for (int ii, ii=0, ii++) // WTF
+    {
+
+    }
+    return 0;
 }
 
 bool LX200_10MICRON::SetTLEfromDatabase(int tleN)
