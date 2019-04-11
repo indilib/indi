@@ -690,13 +690,12 @@ bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
     int hours = 0, minutes = 0, seconds = 0;
     if (3 == sscanf(buf, "%02d:%02d:%02d", &hours, &minutes, &seconds))
     {
-        _RAm = range24(
-                    std::fmod(
-                        static_cast <double> (hours % 24) +
-                        static_cast <double> (minutes) / 60.0f +
-                        static_cast <double> (seconds) / 3600.0f +
-                        (_isFlipped ? +12.0 : +0.0), 24 )
-                    - _LST + 6);
+        _RAm = std::fmod(
+                    static_cast <double> (hours % 24) +
+                    static_cast <double> (minutes) / 60.0f +
+                    static_cast <double> (seconds) / 3600.0f +
+                    (_isFlipped ? +12.0 : +0.0)
+                    - _LST + 6, 24.0);
         return false;
     }
 
@@ -724,7 +723,7 @@ char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length) c
     // E +18.0h <-> +18:00:00 <-> +06.0h
     // N +24.0h <-> +24:00:00 <-> +12.0h
 
-    double value = range24(_RAm + _LST - 6);
+    double value = std::fmod(_RAm + _LST - 6, 24.0);
     int const sgn = _isFlipped ? (value <= -12.0 ? -1 : 1) : (value <= 0.0 ? -1 : 1);
     double const mechanical_hours = std::abs(value);
     int const hours = ((_isFlipped ? 12 : 0 ) + 24 + sgn * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
