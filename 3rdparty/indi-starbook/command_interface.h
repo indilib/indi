@@ -77,7 +77,7 @@ namespace starbook {
         ResponseCode Move(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command);
 
         ResponseCode Home() {
-            return SendOkCommand("HOME");
+            return SendOkCommand("GOHOME?HOME=0"); // as seen in https://github.com/farhi/matlab-starbook
         }
 
         ResponseCode Stop() {

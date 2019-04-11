@@ -278,8 +278,6 @@ bool StarbookDriver::Abort()
 
 bool StarbookDriver::Park()
 {
-    // TODO Park
-    LOG_WARN("Parking is unstable");
     starbook::ResponseCode rc = cmd_interface->Home();
     LogResponse("Parking", rc);
     return rc == starbook::OK;
@@ -287,8 +285,6 @@ bool StarbookDriver::Park()
 
 bool StarbookDriver::UnPark()
 {
-    // TODO UnPark
-    LOG_WARN("Always unparked");
     return true;
 }
 
