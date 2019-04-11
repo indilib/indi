@@ -725,10 +725,12 @@ char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length) c
 
     double value = std::fmod(_RAm + _LST - 6, 24.0);
     int const sgn = _isFlipped ? (value <= -12.0 ? -1 : 1) : (value <= 0.0 ? -1 : 1);
-    double const mechanical_hours = std::abs(value);
+
+    double const mechanical_hours = std::lround(std::abs(value)*3600.0)/3600.0;
     int const hours = ((_isFlipped ? 12 : 0 ) + 24 + sgn * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
     int const minutes = static_cast <int> (std::floor(mechanical_hours * 60.0)) % 60;
-    int const seconds = static_cast <int> (std::lround(mechanical_hours * 3600.0)) % 60;
+    int const seconds = static_cast <int> (std::floor(mechanical_hours * 3600.0)) % 60;
+
 
     int const written = snprintf(buf, buf_length, "%02d:%02d:%02d", hours, minutes, seconds);
 
@@ -819,7 +821,10 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) 
     // +315.0° <->  225.0 = +F5:00:00 <-> -135.0°
     // +345.0° <->  255.0 = +I5:00:00 <-> -180.0°
 
-    double value = _DECm;
+    double value = std::lround(_DECm*3600.0)/3600.0;
+    int const minutes = static_cast <int> (std::floor(std::abs(value)*60.0)) % 60;
+    int const seconds = static_cast <int> (std::floor(std::abs(value)*3600.0)) % 60;
+
     int const degrees = static_cast <int> (_isFlipped ? (90.0 - value) : (value - 90.0));
 
     if (degrees < -255 || +255 < degrees)
@@ -852,9 +857,6 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) 
     }
 
     char const low_digit = '0' + (std::abs(degrees)%10);
-
-    int const minutes = static_cast <int> (std::floor(std::abs(value)* 60.0)) % 60;
-    int const seconds = static_cast <int> (std::lround(std::abs(value) * 3600.0)) % 60;
 
     int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0<=degrees)?'+':'-', high_digit, low_digit, minutes, seconds);
 
