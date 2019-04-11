@@ -49,9 +49,7 @@ protected:
     virtual bool initProperties() override;
     virtual bool Goto(double, double) override;
     virtual void getBasicData() override;
-    bool updateLocation(double latitude, double longitude, double elevation);
-private:
-    void runTestSuite();
+    virtual bool updateLocation(double latitude, double longitude, double elevation);
 private:
     MechanicalPoint currentPosition, targetPosition;
     double previousRA = {0}, previousDEC = {0};
