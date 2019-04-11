@@ -196,10 +196,13 @@ namespace starbook {
 
         lnh_equ_posn equ_posn = {{0, 0, 0},
                                  {0, 0, 0, 0}};
+        HMS ra{};
+        DMS dec(res.payload.at("DEC"));
 
-        starbook::HMS ra(res.payload.at("RA"));
+        std::stringstream ss{res.payload.at("RA")};
+        ss >> ra;
+
         equ_posn.ra = ra;
-        starbook::DMS dec(res.payload.at("DEC"));
         equ_posn.dec = dec;
         result.equ = {0, 0};
         ln_hequ_to_equ(&equ_posn, &result.equ);
@@ -240,7 +243,7 @@ namespace starbook {
     ln_date CommandInterface::ParseTimeResponse(const CommandResponse &response) {
         if (!response.status) throw std::runtime_error("can't parse time");
         std::stringstream ss{response.payload.at("time")};
-        DateTime time(0, 0, 0, 0, 0, 0);
+        DateTime time{0, 0, 0, 0, 0, 0};
         ss >> time;
         return time;
     }
