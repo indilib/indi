@@ -306,17 +306,17 @@ bool DreamFocuser::ISNewSwitch (const char *dev, const char *name, ISState *stat
             int index = IUFindOnSwitchIndex(&ParkSP);
             IUResetSwitch(&ParkSP);
 
-            if ( (isParked && (index == 1)) || ( !isParked && (index == 0)) )
+            if ( (isParked && (index == PARK_UNPARK)) || ( !isParked && (index == PARK_PARK)) )
             {
                 LOG_INFO("Park, issuing command.");
-            	if ( setPark() )
-            	{
-                	//ParkSP.s = IPS_OK;
-                	FocusAbsPosNP.s = IPS_OK;
-                	IDSetNumber(&FocusAbsPosNP, nullptr);
-            	}
-            	else
-                	ParkSP.s = IPS_ALERT;
+                if ( setPark() )
+                {
+                    //ParkSP.s = IPS_OK;
+                    FocusAbsPosNP.s = IPS_OK;
+                    IDSetNumber(&FocusAbsPosNP, nullptr);
+                }
+                else
+                    ParkSP.s = IPS_ALERT;
             }
             IDSetSwitch(&ParkSP, nullptr);
             return true;
