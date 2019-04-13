@@ -358,10 +358,10 @@ bool DreamFocuser::getStatus()
     LOG_DEBUG("getStatus.");
     if ( dispatch_command('I') )
     {
-        isMoving = currentResponse.d & 3 != 0 ? true : false;
-        //isZero = (currentResponse.d>>2) & 1 == 1;
+        isMoving = ( currentResponse.d & 3 ) != 0 ? true : false;
+        //isZero = ( (currentResponse.d>>2) & 1 )  == 1;
         isParked = (currentResponse.d>>3) & 3;
-        isVcc12V = (currentResponse.d>>5) & 1 == 1;
+        isVcc12V = ( (currentResponse.d>>5) & 1 ) == 1;
     }
     else
         return false;
@@ -407,8 +407,8 @@ bool DreamFocuser::setSync( int32_t position)
             LOGF_DEBUG("Syncing to position %d", position);
             return true;
         };
-    LOG_ERROR("Sync failed.");
-    return false;
+        LOG_ERROR("Sync failed.");
+        return false;
 }
 
 bool DreamFocuser::setPark()
@@ -416,7 +416,7 @@ bool DreamFocuser::setPark()
     if (isAbsolute == false)
     {
         LOG_ERROR("Focuser is not in Absolute mode. Please sync before to allow parking.");
-        return IPS_ALERT;
+        return false;
     }
 
     if ( dispatch_command('G') )
