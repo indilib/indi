@@ -36,10 +36,6 @@
 #include "dreamfocuser.h"
 #include "connectionplugins/connectionserial.h"
 
-#define FOCUS_SETTINGS_TAB  "Settings"
-#define FOCUS_STATUS_TAB    "Status"
-
-
 /*
 COMMANDS:
 
@@ -75,6 +71,9 @@ response - MV00cd0z - version: c.d
 MG00000z - park
 response - MG00000z
 */
+
+#define PARK_PARK 0
+#define PARK_UNPARK 1
 
 // We declare an auto pointer to DreamFocuser.
 static std::unique_ptr<DreamFocuser> dreamFocuser(new DreamFocuser());
@@ -125,11 +124,12 @@ void ISSnoopDevice (XMLEle *root)
 
 DreamFocuser::DreamFocuser()
 {
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC);
 
     isAbsolute = false;
     isMoving = false;
-
+    isParked = 0;
+    isVcc12V = false;
 }
 
 bool DreamFocuser::initProperties()
@@ -149,27 +149,29 @@ bool DreamFocuser::initProperties()
     //    IUFillNumber(&MaxTravelN[0], "MAXTRAVEL", "Ticks", "%.f", 1., 500000., 1000., 300000.);
     //    IUFillNumberVector(&MaxTravelNP, MaxTravelN, 1, getDeviceName(), "MAXTRAVEL", "Max Relative Travel", FOCUS_SETTINGS_TAB, IP_RW, 0, IPS_IDLE );
 
-
     //    // Focus Sync
     //    IUFillSwitch(&SyncS[0], "SYNC", "Synchronize", ISS_OFF);
     //    IUFillSwitchVector(&SyncSP, SyncS, 1, getDeviceName(), "SYNC", "Synchronize", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Focus Park
-    IUFillSwitch(&ParkS[0], "PARK", "Park", ISS_OFF);
-    IUFillSwitchVector(&ParkSP, ParkS, 1, getDeviceName(), "PARK", "Park", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+    IUFillSwitch(&ParkS[PARK_PARK], "PARK", "Park", ISS_OFF);
+    IUFillSwitch(&ParkS[PARK_UNPARK], "UNPARK", "Unpark", ISS_OFF);
+    IUFillSwitchVector(&ParkSP, ParkS, 2, getDeviceName(), "PARK", "Park", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
     // Focuser temperature and humidity
-    IUFillNumber(&EnvironmentN[0], "TEMPERATURE", "Temperature [K]", "%6.1f", 0, 999., 0., 0.);
-    IUFillNumber(&EnvironmentN[1], "HUMIDITY", "Humidity [%]", "%6.1f", 0, 999., 0., 0.);
-    IUFillNumberVector(&EnvironmentNP, EnvironmentN, 2, getDeviceName(), "ATMOSPHERE", "Atmosphere", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+    IUFillNumber(&WeatherN[0], "TEMPERATURE", "Temperature [C]", "%6.1f", -100, 100, 0, 0);
+    IUFillNumber(&WeatherN[1], "HUMIDITY", "Humidity [%]", "%6.1f", 0, 100, 0, 0);
+    IUFillNumber(&WeatherN[2], "DEWPOINT", "Dew point [C]", "%6.1f", -100, 100, 0, 0);
+    IUFillNumberVector(&WeatherNP, WeatherN, 3, getDeviceName(), "FOCUS_WEATHER", "Weather", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Focuser humidity
     //IUFillNumberVector(&HumidityNP, HumidityN, 1, getDeviceName(), "HUMIDITY", "Humidity", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // We init here the property we wish to "snoop" from the target device
-    IUFillSwitch(&StatusS[0], "SYNCHRONIZED", "Synchronized", ISS_OFF);
+    IUFillSwitch(&StatusS[0], "ABSOLUTE", "Absolute", ISS_OFF);
     IUFillSwitch(&StatusS[1], "MOVING", "Moving", ISS_OFF);
-    IUFillSwitchVector(&StatusSP, StatusS, 2, getDeviceName(), "STATUS", "Status", MAIN_CONTROL_TAB, IP_RO, ISR_NOFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&StatusS[2], "PARKED", "Parked", ISS_OFF);
+    IUFillSwitchVector(&StatusSP, StatusS, 3, getDeviceName(), "STATUS", "Status", MAIN_CONTROL_TAB, IP_RO, ISR_NOFMANY, 0, IPS_IDLE);
 
     //    PresetN[0].min = PresetN[1].min = PresetN[2].min = FocusAbsPosN[0].min = -MaxPositionN[0].value;
     //    PresetN[0].max = PresetN[1].max = PresetN[2].max = FocusAbsPosN[0].max = MaxPositionN[0].value;
@@ -178,16 +180,13 @@ bool DreamFocuser::initProperties()
     //    strcpy(PresetN[2].format, "%6.0f");
     //    PresetN[0].step = PresetN[1].step = PresetN[2].step = FocusAbsPosN[0].step = DREAMFOCUSER_STEP_SIZE;
     FocusAbsPosN[0].value = 0;
-
+    FocusRelPosN[0].min = -FocusMaxPosN[0].max;
     FocusRelPosN[0].max = FocusMaxPosN[0].max;
     FocusRelPosN[0].step = DREAMFOCUSER_STEP_SIZE;
     FocusRelPosN[0].value = 5 * DREAMFOCUSER_STEP_SIZE;
 
-    simulatedTemperature = 20.0;
-    simulatedHumidity = 1.0;
-    simulatedPosition = 2000;
-
     serialConnection->setDefaultPort("/dev/ttyACM0");
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_115200);
     setDefaultPollingPeriod(500);
 
     return true;
@@ -201,7 +200,7 @@ bool DreamFocuser::updateProperties()
     {
         //defineSwitch(&SyncSP);
         defineSwitch(&ParkSP);
-        defineNumber(&EnvironmentNP);
+        defineNumber(&WeatherNP);
         defineSwitch(&StatusSP);
         //defineNumber(&MaxPositionNP);
         //defineNumber(&MaxTravelNP);
@@ -210,7 +209,7 @@ bool DreamFocuser::updateProperties()
     {
         //deleteProperty(SyncSP.name);
         deleteProperty(ParkSP.name);
-        deleteProperty(EnvironmentNP.name);
+        deleteProperty(WeatherNP.name);
         deleteProperty(StatusSP.name);
         //deleteProperty(MaxPositionNP.name);
         //deleteProperty(MaxTravelNP.name);
@@ -241,7 +240,6 @@ void DreamFocuser::ISGetProperties(const char *dev)
 
 //    return true;
 //}
-
 
 //bool DreamFocuser::ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n)
 //{
@@ -304,16 +302,22 @@ bool DreamFocuser::ISNewSwitch (const char *dev, const char *name, ISState *stat
         // Park
         if (!strcmp(ParkSP.name, name))
         {
+            IUUpdateSwitch(&ParkSP, states, names, n);
+            int index = IUFindOnSwitchIndex(&ParkSP);
             IUResetSwitch(&ParkSP);
 
-            if ( setPark() )
+            if ( (isParked && (index == 1)) || ( !isParked && (index == 0)) )
             {
-                ParkSP.s = IPS_OK;
-                FocusAbsPosNP.s = IPS_OK;
-                IDSetNumber(&FocusAbsPosNP, nullptr);
+                LOG_INFO("Park, issuing command.");
+            	if ( setPark() )
+            	{
+                	//ParkSP.s = IPS_OK;
+                	FocusAbsPosNP.s = IPS_OK;
+                	IDSetNumber(&FocusAbsPosNP, nullptr);
+            	}
+            	else
+                	ParkSP.s = IPS_ALERT;
             }
-            else
-                ParkSP.s = IPS_ALERT;
             IDSetSwitch(&ParkSP, nullptr);
             return true;
         }
@@ -322,11 +326,6 @@ bool DreamFocuser::ISNewSwitch (const char *dev, const char *name, ISState *stat
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-
-/****************************************************************
-**
-**
-*****************************************************************/
 bool DreamFocuser::SyncFocuser(uint32_t ticks)
 {
     return setSync(ticks);
@@ -339,14 +338,9 @@ bool DreamFocuser::SyncFocuser(uint32_t ticks)
 
 bool DreamFocuser::getTemperature()
 {
-    if ( isSimulation() )
+    if ( dispatch_command('T') )
     {
-        currentTemperature = simulatedTemperature;
-        currentHumidity = simulatedHumidity;
-    }
-    else if ( dispatch_command('T') )
-    {
-        currentTemperature = ((short int)( (currentResponse.c << 8) | currentResponse.d )) / 10. + 273.15;
+        currentTemperature = ((short int)( (currentResponse.c << 8) | currentResponse.d )) / 10.;
         currentHumidity = ((short int)( (currentResponse.a << 8) | currentResponse.b )) / 10.;
     }
     else
@@ -361,19 +355,21 @@ bool DreamFocuser::Handshake()
 
 bool DreamFocuser::getStatus()
 {
-    if ( ! isSimulation() )
+    LOG_DEBUG("getStatus.");
+    if ( dispatch_command('I') )
     {
-        LOG_DEBUG("getStatus - real, not simualtion.");
-        if ( dispatch_command('I') ) // Is moving?
-            isMoving = currentResponse.d == 1 ? true : false;
-        else
-            return false;
-
-        if ( dispatch_command('W') ) // Is absolute?
-            isAbsolute = currentResponse.d == 1 ? true : false;
-        else
-            return false;
+        isMoving = currentResponse.d & 3 != 0 ? true : false;
+        //isZero = (currentResponse.d>>2) & 1 == 1;
+        isParked = (currentResponse.d>>3) & 3;
+        isVcc12V = (currentResponse.d>>5) & 1 == 1;
     }
+    else
+        return false;
+
+    if ( dispatch_command('W') ) // Is absolute?
+        isAbsolute = currentResponse.d == 1 ? true : false;
+    else
+        return false;
     return true;
 }
 
@@ -382,9 +378,7 @@ bool DreamFocuser::getPosition()
 {
     //int32_t pos;
 
-    if ( isSimulation() )
-        currentPosition = simulatedPosition;
-    else if ( dispatch_command('P') )
+    if ( dispatch_command('P') )
         currentPosition = (currentResponse.a << 24) | (currentResponse.b << 16) | (currentResponse.c << 8) | currentResponse.d;
     else
         return false;
@@ -419,11 +413,17 @@ bool DreamFocuser::setSync( int32_t position)
 
 bool DreamFocuser::setPark()
 {
+    if (isAbsolute == false)
+    {
+        LOG_ERROR("Focuser is not in Absolute mode. Please sync before to allow parking.");
+        return IPS_ALERT;
+    }
+
     if ( dispatch_command('G') )
     {
-        LOG_INFO("Focuser parked.");
-        return true;
-    };
+      LOG_INFO( "Focuser park command.");
+      return true;
+    }
     LOG_ERROR("Park failed.");
     return false;
 }
@@ -467,14 +467,19 @@ IPState DreamFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t durati
 
 IPState DreamFocuser::MoveAbsFocuser(uint32_t ticks)
 {
-    //  if ( ! isSynced )
-    //  {
-    //    DEBUGF(INDI::Logger::DBG_DEBUG, "Not synced, absolute mode disabled");
-    //    return IPS_ALERT;
-    //  }
+    LOGF_DEBUG("MoveAbsPosition: %d", ticks);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "MoveAbsPosition: %d", ticks);
+    if (isAbsolute == false)
+    {
+        LOG_ERROR("Focuser is not in Absolute mode. Please sync.");
+        return IPS_ALERT;
+    }
 
+    if (isParked != 0)
+    {
+        LOG_ERROR("Please unpark before issuing any motion commands.");
+        return IPS_ALERT;
+    }
     if ( setPosition(ticks) )
     {
         FocusAbsPosNP.s = IPS_OK;
@@ -488,7 +493,13 @@ IPState DreamFocuser::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     int32_t finalTicks = currentPosition + ((int32_t)ticks * (dir == FOCUS_INWARD ? -1 : 1));
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "MoveRelPosition: %d", finalTicks);
+    LOGF_DEBUG("MoveRelPosition: %d", finalTicks);
+
+    if (isParked != 0)
+    {
+        LOG_ERROR("Please unpark before issuing any motion commands.");
+        return IPS_ALERT;
+    }
 
     if ( setPosition(finalTicks) )
     {
@@ -526,21 +537,46 @@ void DreamFocuser::TimerHit()
             StatusS[1].s = ISS_OFF;
         };
 
-        if ( isAbsolute )
-            StatusS[0].s = ISS_ON;
+        if ( isParked != 0 )
+        {
+            StatusS[2].s = ISS_ON;
+            ParkS[0].s = ISS_ON;
+        }
         else
+        {
+            StatusS[2].s = ISS_OFF;
+            ParkS[1].s = ISS_ON;
+        }
+
+        if ( isAbsolute )
+        {
+            StatusS[0].s = ISS_ON;
+            if ( FocusAbsPosN[0].min != 0 )
+            {
+                FocusAbsPosN[0].min = 0;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+            }
+        }
+        else
+        {
+            if ( FocusAbsPosN[0].min == 0 )
+            {
+                FocusAbsPosN[0].min = -FocusAbsPosN[0].max;
+                IDSetNumber(&FocusAbsPosNP, nullptr);
+            }
             StatusS[0].s = ISS_OFF;
+        }
 
         if ( getTemperature() )
         {
-            EnvironmentNP.s = ( (EnvironmentN[0].value != currentTemperature) || (EnvironmentN[1].value != currentHumidity)) ? IPS_BUSY : IPS_OK;
-            EnvironmentN[0].value = currentTemperature;
-            EnvironmentN[1].value = currentHumidity;
+            WeatherNP.s = ( (WeatherN[0].value != currentTemperature) || (WeatherN[1].value != currentHumidity)) ? IPS_BUSY : IPS_OK;
+            WeatherN[0].value = currentTemperature;
+            WeatherN[1].value = currentHumidity;
+            WeatherN[2].value = pow(currentHumidity / 100, 1.0 / 8) * (112 + 0.9 * currentTemperature) + 0.1 * currentTemperature - 112;
         }
         else
-        {
-            EnvironmentNP.s = IPS_ALERT;
-        }
+            WeatherNP.s = IPS_ALERT;
+
 
         if ( FocusAbsPosNP.s != IPS_IDLE )
         {
@@ -570,9 +606,10 @@ void DreamFocuser::TimerHit()
     if ((oldAbsStatus != FocusAbsPosNP.s) || (oldPosition != currentPosition))
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    IDSetNumber(&EnvironmentNP, nullptr);
+    IDSetNumber(&WeatherNP, nullptr);
     //IDSetSwitch(&SyncSP, nullptr);
     IDSetSwitch(&StatusSP, nullptr);
+   IDSetSwitch(&ParkSP, NULL);
 
     SetTimer(POLLMS);
 
@@ -635,26 +672,18 @@ bool DreamFocuser::send_command(char k, uint32_t l)
     c.n = '\0';
     c.z = calculate_checksum(c);
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Sending command: c=%c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", c.k, c.a, c.b, c.c, c.d, c.d, c.n, c.z);
-
-    if (isSimulation())
-    {
-        currentResponse.k = k;
-        currentResponse.n = '\0';
-        currentResponse.z = c.z;
-        return true;
-    }
+    LOGF_DEBUG("Sending command: c=%c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", c.k, c.a, c.b, c.c, c.d, c.d, c.n, c.z);
 
     tcflush(PortFD, TCIOFLUSH);
 
     if ( (err_code = tty_write(PortFD, (char *)&c, sizeof(c), &nbytes_written) != TTY_OK))
     {
         tty_error_msg(err_code, dreamFocuser_error, DREAMFOCUSER_ERROR_BUFFER);
-        DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", dreamFocuser_error);
+        LOGF_ERROR("TTY error detected: %s", dreamFocuser_error);
         return false;
     }
 
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Sending complete. Number of bytes written: %d", nbytes_written);
+    LOGF_DEBUG("Sending complete. Number of bytes written: %d", nbytes_written);
 
     return true;
 }
@@ -666,31 +695,25 @@ bool DreamFocuser::read_response()
 
     //LOG_DEBUG("Read response");
 
-    if (isSimulation())
-    {
-        LOG_DEBUG("Simulation!");
-        return true;
-    }
-
     // Read a single response
     if ( (err_code = tty_read(PortFD, (char *)&currentResponse, sizeof(currentResponse), 5, &nbytes_read)) != TTY_OK)
     {
         tty_error_msg(err_code, err_msg, 32);
-        DEBUGF(INDI::Logger::DBG_ERROR, "TTY error detected: %s", err_msg);
+        LOGF_ERROR("TTY error detected: %s", err_msg);
         return false;
     }
-    DEBUGF(INDI::Logger::DBG_DEBUG, "Response: %c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", currentResponse.k, currentResponse.a, currentResponse.b, currentResponse.c, currentResponse.d, currentResponse.d, currentResponse.n, currentResponse.z);
+    LOGF_DEBUG("Response: %c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", currentResponse.k, currentResponse.a, currentResponse.b, currentResponse.c, currentResponse.d, currentResponse.d, currentResponse.n, currentResponse.z);
 
     if ( nbytes_read != sizeof(currentResponse) )
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Number of bytes read: %d, expected: %d", nbytes_read, sizeof(currentResponse));
+        LOGF_ERROR("Number of bytes read: %d, expected: %d", nbytes_read, sizeof(currentResponse));
         return false;
     }
 
     z = calculate_checksum(currentResponse);
     if ( z != currentResponse.z )
     {
-        DEBUGF(INDI::Logger::DBG_ERROR, "Response checksum in not correct %hhu, expected: %hhu", currentResponse.z, z );
+        LOGF_ERROR("Response checksum in not correct %hhu, expected: %hhu", currentResponse.z, z );
         return false;
     }
 
