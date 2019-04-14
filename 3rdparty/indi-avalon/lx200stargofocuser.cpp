@@ -478,7 +478,7 @@ bool LX200StarGoFocuser::sendSyncFocuserToPosition(int position) {
     // Command  - :X0Cpppppp#
     // Response - Nothing
     char command[AVALON_COMMAND_BUFFER_LENGTH] = {0};
-    sprintf(command, ":X0C%06d#", AVALON_FOCUSER_POSITION_OFFSET + position);
+    sprintf(command, ":X0C%06d#", AVALON_FOCUSER_POSITION_OFFSET + ((focuserReversed == REVERSED_DISABLED) ? position : -position));
     if (!baseDevice->transmit(command)) {
         DEBUGF(INDI::Logger::DBG_ERROR, "%s: Failed to send AUX1 sync command.", getDeviceName());
         return false;
