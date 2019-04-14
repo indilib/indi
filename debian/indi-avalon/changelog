@@ -1,3 +1,9 @@
+indi-avalon (1.4.1) stretch; urgency=medium
+
+  * bugfix declaring Connect and Disconnect as override
+
+ -- Wolfgang Reissenberger <sterne-jaeger@t-online.de>  Sun, 14 Apr 2019 23:20:40 +0200
+
 indi-avalon (1.4) stretch; urgency=medium
 
   * Control to reverse focuser direction added

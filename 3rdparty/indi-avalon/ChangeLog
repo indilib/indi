@@ -1,3 +1,6 @@
+Version 1.4.1 - 2019-04-14
+	+ bugfix declaring Connect and Disconnect as override
+
 Version 1.4 - 2019-04-14
 	+ control for reversing focuser direction added
 	+ storing focuser parameters into the config file added
