@@ -150,6 +150,8 @@ protected:
     virtual bool UnPark() override;
     virtual bool saveConfigItems(FILE *fp) override;
     virtual bool Goto(double ra, double dec) override;
+    virtual bool Connect();
+    virtual bool Disconnect();
 
     // StarGo stuff
     virtual bool syncHomePosition();

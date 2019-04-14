@@ -413,7 +413,7 @@ IPState LX200StarGoFocuser::syncFocuser(int absolutePosition) {
 
 bool LX200StarGoFocuser::isConnected() {
     if (baseDevice == nullptr) return false;
-    return (focuserActivated && baseDevice->isConnected());
+    return focuserActivated;
 }
 
 const char *LX200StarGoFocuser::getDeviceName() {
@@ -426,13 +426,10 @@ const char *LX200StarGoFocuser::getDefaultName()
     return deviceName;
 }
 
-void LX200StarGoFocuser::activate(bool enabled)
+bool LX200StarGoFocuser::activate(bool enabled)
 {
-    if (focuserActivated != enabled)
-    {
-        focuserActivated = enabled;
-        updateProperties();
-    }
+    focuserActivated = enabled;
+    return updateProperties();
 }
 
 bool LX200StarGoFocuser::saveConfigItems(FILE *fp)

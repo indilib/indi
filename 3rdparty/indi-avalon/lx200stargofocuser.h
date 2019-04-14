@@ -46,7 +46,7 @@ public:
 
     bool isConnected();
 
-    void activate(bool enabled);
+    bool activate(bool enabled);
 
     bool saveConfigItems(FILE *fp);
 

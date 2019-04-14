@@ -263,10 +263,18 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             if (IUUpdateSwitch(&Aux1FocuserSP, states, names, n) < 0)
                 return false;
             bool enabled = (IUFindOnSwitchIndex(&Aux1FocuserSP) == 0);
-            focuserAux1->activate(enabled);
-            Aux1FocuserSP.s = enabled ? IPS_OK : IPS_IDLE;
-            IDSetSwitch(&Aux1FocuserSP, nullptr);
-            return true;
+            if (focuserAux1->activate(enabled))
+            {
+                Aux1FocuserSP.s = enabled ? IPS_OK : IPS_IDLE;
+                IDSetSwitch(&Aux1FocuserSP, nullptr);
+                return true;
+            }
+            else
+            {
+                Aux1FocuserSP.s = IPS_ALERT;
+                IDSetSwitch(&Aux1FocuserSP, nullptr);
+                return false;
+            }
         }
     }
 
@@ -384,6 +392,24 @@ bool LX200StarGo::updateProperties()
     }
 
     return true;
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200StarGo::Connect()
+{
+    if (! DefaultDevice::Connect())
+        return false;
+
+    // activate focuser AUX1 if the switch is set to "activated"
+    return focuserAux1->activate((IUFindOnSwitchIndex(&Aux1FocuserSP) == 0));
+}
+
+bool LX200StarGo::Disconnect()
+{
+    focuserAux1->activate(false);
+    return DefaultDevice::Disconnect();
 }
 
 /**************************************************************************************
