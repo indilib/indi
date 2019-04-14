@@ -71,13 +71,13 @@ class DreamFocuser : public INDI::Focuser
 
     private:
 
-        INumber EnvironmentN[2];
-        INumberVectorProperty EnvironmentNP;
+        INumber WeatherN[3];
+        INumberVectorProperty WeatherNP;
 
-        ISwitch ParkS[1];
+        ISwitch ParkS[2];
         ISwitchVectorProperty ParkSP;
 
-        ISwitch StatusS[2];
+        ISwitch StatusS[3];
         ISwitchVectorProperty StatusSP;
 
         //INumber SetBacklashN[1];
@@ -95,15 +95,14 @@ class DreamFocuser : public INDI::Focuser
         bool setSync(int32_t position = 0);
         bool setPark();
 
-        // Variables
-        //float focusMoveRequest;
-        //string default_port;
-        //int fd;
-        float simulatedTemperature, currentTemperature;
-        float simulatedHumidity, currentHumidity;
-        int32_t simulatedPosition, currentPosition;
+       // Variables
+        float currentTemperature;
+        float currentHumidity;
+        int32_t currentPosition;
         bool isAbsolute;
         bool isMoving;
+        unsigned char isParked;
+        bool isVcc12V;
         DreamFocuserCommand currentResponse;
 };
 
