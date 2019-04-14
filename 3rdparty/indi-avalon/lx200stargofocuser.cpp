@@ -435,6 +435,14 @@ void LX200StarGoFocuser::activate(bool enabled)
     }
 }
 
+bool LX200StarGoFocuser::saveConfigItems(FILE *fp)
+{
+    IUSaveConfigSwitch(fp, &FocusReverseSP);
+
+    return true;
+}
+
+
 /***************************************************************************
  * LX200 queries, sent to baseDevice
  ***************************************************************************/

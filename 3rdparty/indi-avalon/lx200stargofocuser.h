@@ -48,6 +48,8 @@ public:
 
     void activate(bool enabled);
 
+    bool saveConfigItems(FILE *fp);
+
 protected:
 
     // Avalon specifics

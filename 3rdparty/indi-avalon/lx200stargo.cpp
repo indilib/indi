@@ -936,12 +936,14 @@ bool LX200StarGo::getLST_String(char* input)
 bool LX200StarGo::saveConfigItems(FILE *fp)
 {
     LOG_DEBUG(__FUNCTION__);
-    LX200Telescope::saveConfigItems(fp);
-
     IUSaveConfigText(fp, &SiteNameTP);
+    IUSaveConfigSwitch(fp, &Aux1FocuserSP);
 
-    return true;
+    focuserAux1->saveConfigItems(fp);
+
+    return LX200Telescope::saveConfigItems(fp);
 }
+
 
 /*********************************************************************************
  * Queries
