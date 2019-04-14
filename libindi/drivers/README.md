@@ -101,7 +101,7 @@ This provides general information about the currently running driver and driver 
 <p style="text-align: center;"><img src="images/devices/DRIVER_NAME/image_info.jpg" alt="Image Info" /></p>
 <p>The image info tab contains information on the resolution of the CCD (Maximum Width & Height) in addition to the pixel size in microns. If the camera supports Bayer mask, then the bayer filter and offset can be set here. These are usually set automatically by the driver, but can be adjusted manually if needed.</p>
 <h2><i class="fa fa-bugs"></i> Issues</h2>
-There are no known bugs for this driver. If you found a bug, please report it at INDI's <a href="https://sourceforge.net/p/indi/bugs/">bug tracking system</a> at SourceForge. (You can log in with a variety of existing accounts, including Google, Yahoo and OpenID.)
+There are no known bugs for this driver. If you found a bug, please report it at INDI's <a href="https://github.com/indilib/indi/issues">Issue Tracking System</a> at Github.
 <form action="http://www.indilib.org/download.html">
 	<p style="text-align:center;">
 		<button class="btn btn-large btn-primary" type="submit">Download Now!</button>
@@ -155,13 +155,12 @@ The Options tab contains settings for all drivers that include polling (frequenc
 	<li>Preset Positions: You may set up to 3 preset positions. When you make a change, the new values will be saved in the driver's configuration file and are loaded automatically in subsequent uses.</li>
 	<li>Preset GOTO: Click any preset to go to that position</li>
 </ul>
-<h2><i class="fa fa-bug"></i> Issues</h2>
-<p>There are no known bugs for this driver. If you found a bug, please report it at INDI's <a href="https://github.com/indilib/indi/issues">bug tracking system</a> at Github.</p>
+<h2><i class="fa fa-bugs"></i> Issues</h2>
+There are no known bugs for this driver. If you found a bug, please report it at INDI's <a href="https://github.com/indilib/indi/issues">Issue Tracking System</a> at Github.
 <form action="http://www.indilib.org/download.html">
-	<p style="text-align: center;">
-		<button type="submit" class="btn btn-large btn-primary">Download Now!</button>
+	<p style="text-align:center;">
+		<button class="btn btn-large btn-primary" type="submit">Download Now!</button>
 	</p>
 </form>
-<p><span style="font-size: 1.5em;"></span></p>
 ```
 
