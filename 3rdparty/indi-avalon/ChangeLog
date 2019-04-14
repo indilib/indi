@@ -1,3 +1,8 @@
+Version 1.4 - 2019-04-14
+	+ control for reversing focuser direction added
+	+ storing focuser parameters into the config file added
+	+ connection handling of focuser follows the base device
+
 Version 1.3 - 2019-02-08 (bug fix release)
         + control added to activate/deactivate focuser on AUX1
 	  focuser status read only if focuser is activated
