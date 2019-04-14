@@ -1,3 +1,9 @@
+libqhy (5.0.3) bionic; urgency=medium
+
+  * Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sun, 14 Apr 2019 12:00:00 +0300
+
 libqhy (5.0.1) bionic; urgency=medium
 
   * Upstream release.
