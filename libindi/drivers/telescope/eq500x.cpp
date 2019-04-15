@@ -686,29 +686,36 @@ bool EQ500X::MechanicalPoint::atParkingPosition() const
     return this->operator ==(MechanicalPoint(0,90));
 }
 
+double EQ500X::MechanicalPoint::RAm() const
+{
+    return static_cast <double> (_RAm)/3600.0;
+}
+
+double EQ500X::MechanicalPoint::DECm() const
+{
+    return static_cast <double> (_DECm)/3600.0;
+}
+
 double EQ500X::MechanicalPoint::RAm(double const value)
 {
-    return _RAm = std::lround(value*3600.0)/3600.0;
+    _RAm = std::lround(std::fmod(value+24.0,24.0)*3600.0);
+    return RAm();
+}
+
+double EQ500X::MechanicalPoint::DECm(double const value)
+{
+    // Should be inside [-180,+180], even [-90,+90], but mount supports a larger (not useful) interval
+    _DECm = std::lround(std::fmod(value+256.0,256.0)*3600.0);
+    return DECm();
 }
 
 char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length) const
 {
-    // PierEast             (LST = -6)           PierWest
-    // E +12.0h = LST-18 <-> 12:00:00 <-> LST-18 = +00.0h W
-    // N +18.0h = LST-12 <-> 18:00:00 <-> LST-12 = +06.0h N
-    // W +00.0h = LST-6  <-> 00:00:00 <-> LST-6  = +12.0h E
-    // S +06.0h = LST+0  <-> 06:00:00 <-> LST+0  = +18.0h S
-    // E +12.0h = LST+6  <-> 12:00:00 <-> LST+6  = +00.0h W
-    // N +18.0h = LST+12 <-> 18:00:00 <-> LST+12 = +06.0h N
-    // W +00.0h = LST+18 <-> 00:00:00 <-> LST+18 = +12.0h E
+    // See /test/test_eq500xdriver.cpp for description of RA conversion
 
-    double value = std::fmod(_RAm + 24.0, 24.0);
-    //int const sgn = _pierSide == PIER_WEST ? (value <= -12.0 ? -1 : 1) : (value <= 0.0 ? -1 : 1);
-
-    double const mechanical_hours = std::lround(std::abs(value)*3600.0)/3600.0;
-    int const hours = ((_pierSide == PIER_WEST ? 12 : 0 ) + 24 + 1 * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
-    int const minutes = static_cast <int> (std::floor(mechanical_hours * 60.0)) % 60;
-    int const seconds = static_cast <int> (std::floor(mechanical_hours * 3600.0)) % 60;
+    int const hours = ((_pierSide == PIER_WEST ? 12 : 0) + 24 + static_cast <int> (_RAm/3600)) % 24;
+    int const minutes = static_cast <int> (_RAm/60) % 60;
+    int const seconds = static_cast <int> (_RAm) % 60;
 
     int const written = snprintf(buf, buf_length, "%02d:%02d:%02d", hours, minutes, seconds);
 
@@ -727,16 +734,58 @@ bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
     int hours = 0, minutes = 0, seconds = 0;
     if (3 == sscanf(buf, "%02d:%02d:%02d", &hours, &minutes, &seconds))
     {
-        _RAm = std::fmod(
-                    static_cast <double> (hours % 24) +
-                    static_cast <double> (minutes) / 60.0f +
-                    static_cast <double> (seconds) / 3600.0f +
-                    (_pierSide == PIER_WEST ? -12.0 : +0.0)
-                    + 24.0, 24.0);
+        _RAm = (    (_pierSide == PIER_WEST ? -12*3600 : +0) + 24*3600 +
+                    (hours % 24) * 3600 +
+                    minutes * 60 +
+                    seconds ) % (24*3600);
         return false;
     }
 
     return true;
+}
+
+char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) const
+{
+    // See /test/test_eq500xdriver.cpp for description of DEC conversion
+
+    int const degrees = static_cast <int> (_pierSide == PIER_EAST ? (90.0 - _DECm/3600) : (_DECm/3600 - 90.0));
+    int const minutes = static_cast <int> (std::abs(_DECm)/60) % 60;
+    int const seconds = static_cast <int> (std::abs(_DECm)) % 60;
+
+    if (degrees < -255 || +255 < degrees)
+        return (char const*)0;
+
+    char high_digit = '0';
+    if (-100 < degrees && degrees < 100)
+    {
+        high_digit = '0' + (std::abs(degrees)/10);
+    }
+    else switch (std::abs(degrees)/10)
+    {
+    case 10: high_digit = ':'; break;
+    case 11: high_digit = ';'; break;
+    case 12: high_digit = '<'; break;
+    case 13: high_digit = '='; break;
+    case 14: high_digit = '>'; break;
+    case 15: high_digit = '?'; break;
+    case 16: high_digit = '@'; break;
+    case 17: high_digit = 'A'; break;
+    case 18: high_digit = 'B'; break;
+    case 19: high_digit = 'C'; break;
+    case 20: high_digit = 'D'; break;
+    case 21: high_digit = 'E'; break;
+    case 22: high_digit = 'F'; break;
+    case 23: high_digit = 'G'; break;
+    case 24: high_digit = 'H'; break;
+    case 25: high_digit = 'I'; break;
+    default: return (char const*)0; break;
+    }
+
+    char const low_digit = '0' + (std::abs(degrees)%10);
+
+    int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0<=degrees)?'+':'-', high_digit, low_digit, minutes, seconds);
+
+    return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
 bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
@@ -789,79 +838,14 @@ bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
 
     // FIXME: could be sscanf("%d%d%d", ...) but needs intermediate variables, however that would count matches
     int const orientation = _pierSide == PIER_EAST ? -1 : +1;
-    _DECm = 90.0 + orientation * sgn * (
-                    static_cast <double> (atof(DecValues->degrees)) +
-                    static_cast <double> (atof(DecValues->minutes))/60.0 +
-                    static_cast <double> (atof(DecValues->seconds))/3600.0 );
+    _DECm = 90*3600 + orientation * sgn * (
+                    atoi(DecValues->degrees)*3600 +
+                    atoi(DecValues->minutes)*60 +
+                    atoi(DecValues->seconds) );
 
     //LOGF_INFO("DEC converts as %f.", value);
 
     return false;
-}
-
-double EQ500X::MechanicalPoint::DECm(double const value)
-{
-    // Should be inside [-180,+180], even [-90,+90], but mount supports a larger (not useful) interval
-    return _DECm = std::lround(value*3600.0)/3600.0;
-}
-
-char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) const
-{
-    // PierEast                           PierWest
-    // -180.0° <-> -255.0 = -I5:00:00 <-> +345.0°
-    // -135.0° <-> -225.0 = -F5:00:00 <-> +315.0°
-    //  -90.0° <-> -180.0 = -B0:00:00 <-> +270.0°
-    //  -45.0° <-> -135.0 = -=5:00:00 <-> +225.0°
-    //  +00.0° <->  -90.0 = -90:00:00 <-> +180.0°
-    //  +45.0° <->  -45.0 = -45:00:00 <-> +135.0°
-    //  +90.0° <->    0.0 = +00:00:00 <->  +90.0°
-    // +135.0° <->   45.0 = +45:00:00 <->  +45.0°
-    // +180.0° <->   90.0 = +90:00:00 <->  +00.0°
-    // +225.0° <->  135.0 = +=5:00:00 <->  -45.0°
-    // +270.0° <->  180.0 = +B0:00:00 <->  -90.0°
-    // +315.0° <->  225.0 = +F5:00:00 <-> -135.0°
-    // +345.0° <->  255.0 = +I5:00:00 <-> -180.0°
-
-    double value = std::lround(_DECm*3600.0)/3600.0;
-    int const minutes = static_cast <int> (std::floor(std::abs(value)*60.0)) % 60;
-    int const seconds = static_cast <int> (std::floor(std::abs(value)*3600.0)) % 60;
-
-    int const degrees = static_cast <int> (_pierSide == PIER_EAST ? (90.0 - value) : (value - 90.0));
-
-    if (degrees < -255 || +255 < degrees)
-        return (char const*)0;
-
-    char high_digit = '0';
-    if (-100 < degrees && degrees < 100)
-    {
-        high_digit = '0' + (std::abs(degrees)/10);
-    }
-    else switch (std::abs(degrees)/10)
-    {
-    case 10: high_digit = ':'; break;
-    case 11: high_digit = ';'; break;
-    case 12: high_digit = '<'; break;
-    case 13: high_digit = '='; break;
-    case 14: high_digit = '>'; break;
-    case 15: high_digit = '?'; break;
-    case 16: high_digit = '@'; break;
-    case 17: high_digit = 'A'; break;
-    case 18: high_digit = 'B'; break;
-    case 19: high_digit = 'C'; break;
-    case 20: high_digit = 'D'; break;
-    case 21: high_digit = 'E'; break;
-    case 22: high_digit = 'F'; break;
-    case 23: high_digit = 'G'; break;
-    case 24: high_digit = 'H'; break;
-    case 25: high_digit = 'I'; break;
-    default: return (char const*)0; break;
-    }
-
-    char const low_digit = '0' + (std::abs(degrees)%10);
-
-    int const written = snprintf(buf, buf_length, "%c%c%c:%02d:%02d", (0<=degrees)?'+':'-', high_digit, low_digit, minutes, seconds);
-
-    return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
 double EQ500X::MechanicalPoint::RA_degrees_to(EQ500X::MechanicalPoint const &b) const
@@ -869,17 +853,17 @@ double EQ500X::MechanicalPoint::RA_degrees_to(EQ500X::MechanicalPoint const &b) 
     // RA is circular, DEC is not
     // We have hours and not degrees because that's what the mount is handling in terms of precision
     // We need to be cautious, as if we were to use real degrees, the RA movement would need to be 15 times more precise
-    double ra = (b._RAm - _RAm);
-    if (ra > +12.0) ra -= 24.0;
-    if (ra < -12.0) ra += 24.0;
+    long delta = b._RAm - _RAm;
+    if (delta > +12*3600) delta -= 24*3600;
+    if (delta < -12*3600) delta += 24*3600;
     // Scale degrees at the end to avoid rounding issues
-    return ra * 15.0;
+    return (delta * 15)/3600.0;
 }
 
 double EQ500X::MechanicalPoint::DEC_degrees_to(EQ500X::MechanicalPoint const &b) const
 {
     // RA is circular, DEC is not
-    return b._DECm - _DECm;
+    return (b._DECm - _DECm)/3600.0;
 }
 
 double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint const &b) const

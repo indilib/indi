@@ -12,8 +12,8 @@ public:
     public:
         bool atParkingPosition() const;
     public:
-        double RAm() const { return _RAm; }
-        double DECm() const { return _DECm; }
+        double RAm() const;
+        double DECm() const;
         double RAm(double const);
         double DECm(double const);
     public:
@@ -32,7 +32,7 @@ public:
         bool operator ==(MechanicalPoint const &) const;
     protected:
         enum TelescopePierSide _pierSide {PIER_EAST};
-        double _RAm {0.0}, _DECm {90.0};
+        long _RAm {0*3600}, _DECm {90*3600};
     };
 public:
     EQ500X();
