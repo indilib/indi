@@ -74,7 +74,7 @@ EQ500X::EQ500X(): LX200Generic()
     // Only pulse guiding, no tracking frequency
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
     // Sync, goto, abort, location and 4 slew rates, no guiding rates and no park position
-    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION, 4);
+    SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE, 4);
     LOG_DEBUG("Initializing from EQ500X device...");
 }
 
@@ -84,6 +84,11 @@ EQ500X::EQ500X(): LX200Generic()
 const char *EQ500X::getDefautName()
 {
     return (const char*)"EQ500X";
+}
+
+double EQ500X::getLST()
+{
+    return get_local_sidereal_time(lnobserver.lng);
 }
 
 /**************************************************************************************
@@ -177,12 +182,17 @@ bool EQ500X::updateLocation(double latitude, double longitude, double elevation)
     if (lnobserver.lng > 180)
         lnobserver.lng -= 360;
     lnobserver.lat = latitude;
+    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g)", lnobserver.lng, lnobserver.lat);
 
-    double const LST = get_local_sidereal_time(lnobserver.lng);
-    currentPosition.setLST(LST);
-    targetPosition.setLST(LST);
+    // Only update LST if the mount is connected and "parked" looking at the pole
+    if (isConnected() && !getCurrentPosition(currentPosition) && currentPosition.atParkingPosition())
+    {
+        double const LST = getLST();
+        // Mechanical HA is east, 6 hours before meridian
+        Sync(LST - 6, currentPosition.DECm());
+        LOGF_INFO("Location updated: LST reset to %g", LST);
+    }
 
-    LOGF_INFO("Location updated: Longitude (%g) Latitude (%g) LST (%g)", lnobserver.lng, lnobserver.lat, LST);
     return true;
 }
 
@@ -326,20 +336,20 @@ bool EQ500X::ReadScopeStatus()
                     double const dec_epsilon = std::max(adjustment->epsilon, DEC_GRANULARITY);
                     if (dec_epsilon <= dec_delta)
                     {
-                        /*if (!north)*/ { strcat(CmdString, ":Mn#"); north = true;  }
-                    }
-                    else
-                    {
-                        if (north)  { strcat(CmdString, ":Qn#"); north = false; }
-                    }
-
-                    if (dec_delta <= -dec_epsilon)
-                    {
                         /*if (!south)*/ { strcat(CmdString, ":Ms#"); south = true;  }
                     }
                     else
                     {
                         if (south)  { strcat(CmdString, ":Qs#"); south = false; }
+                    }
+
+                    if (dec_delta <= -dec_epsilon)
+                    {
+                        /*if (!north)*/ { strcat(CmdString, ":Mn#"); north = true;  }
+                    }
+                    else
+                    {
+                        if (north)  { strcat(CmdString, ":Qn#"); north = false; }
                     }
                 }
 
@@ -432,28 +442,16 @@ bool EQ500X::Goto(double ra, double dec)
     targetPosition.DECm(targetDEC = dec);
 
     // Check whether a meridian flip is required
-    ln_equ_posn lnradec { 0, 0 };
-    lnradec.ra  = (currentRA * 360) / 24.0;
-    lnradec.dec = currentDEC;
+    double const LST = getLST();
+    double const HA = std::fmod(LST - ra + 12.0, 12.0);
+    if ((-12 < HA && HA <= -6) || (0 <= HA && HA < 6))
+        INDI::Telescope::setPierSide(PIER_WEST);
+    else
+        INDI::Telescope::setPierSide(PIER_EAST);
+    LOGF_INFO("Goto target HA is %lf, LST is %lf, quadrant is %s", HA, INDI::Telescope::getPierSide());
+    targetPosition.setPierSide(INDI::Telescope::getPierSide());
 
-    ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
-    /* libnova measures azimuth from south towards west */
-    double current_az = range360(lnaltaz.az + 180);
-    double const MIN_AZ_FLIP = 180;
-    double const MAX_AZ_FLIP = 200;
-
-    if (current_az > MIN_AZ_FLIP && current_az < MAX_AZ_FLIP)
-    {
-        lnradec.ra  = (ra * 360) / 24.0;
-        lnradec.dec = dec;
-
-        ln_get_hrz_from_equ(&lnradec, &lnobserver, ln_get_julian_from_sys(), &lnaltaz);
-
-        double target_az = range360(lnaltaz.az + 180);
-
-        targetPosition.setFlipped(target_az >= current_az && target_az > MIN_AZ_FLIP);
-    }
-
+    // Format RA/DEC for logs
     char RAStr[16]={0}, DecStr[16]={0};
     fs_sexa(RAStr, targetRA, 2, 3600);
     fs_sexa(DecStr, targetDEC, 2, 3600);
@@ -498,7 +496,7 @@ bool EQ500X::Goto(double ra, double dec)
     if (!isSimulation())
     {
         /* The goto feature is quite imprecise because it will always use full speed.
-         * By the time the mount stops, the position is off by nearly half a degree, depending on the speed attained during the move.
+         * By the time the mount stops, the position is off by 0-5 degrees, depending on the speed attained during the move.
          * Additionally, a firmware limitation prevents the goto feature from slewing to close coordinates, and will cause uneeded axis rotation.
          * Therefore, don't use the goto feature for a goto, and let ReadScope adjust the position by itself.
          */
@@ -509,6 +507,39 @@ bool EQ500X::Goto(double ra, double dec)
 
     LOGF_INFO("Slewing to JNow RA: %s - DEC: %s", RAStr, DecStr);
 
+    return true;
+}
+
+bool EQ500X::Sync(double ra, double dec)
+{
+    if(!setTargetPosition(MechanicalPoint(ra, dec)))
+    {
+        if (!isSimulation())
+        {
+            char b[64/*RB_MAX_LEN*/] = {0};
+            tcflush(PortFD, TCIFLUSH);
+
+            if (getCommandString(PortFD, b, ":CM#") < 0)
+                goto sync_error;
+            if (!strncmp("No name", b, sizeof(b)))
+                goto sync_error;
+        }
+
+        currentRA = currentPosition.RAm(targetPosition.RAm(ra));
+        currentDEC = currentPosition.DECm(targetPosition.DECm(dec));
+
+        if (isSimulation())
+        {
+            currentPosition.toStringRA(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA));
+            currentPosition.toStringDEC(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC));
+        }
+
+        LOGF_INFO("Mount synced to target RA '%lf' DEC '%lf'", targetPosition.RAm(), targetPosition.DECm());
+        return false;
+    }
+
+sync_error:
+    LOGF_ERROR("Mount sync to target RA '%lf' DEC '%lf' failed", targetPosition.RAm(), targetPosition.DECm());
     return true;
 }
 
@@ -525,56 +556,17 @@ slew_failed:
     return false;
 }
 
+void EQ500X::setPierSide(TelescopePierSide side)
+{
+    INDI_UNUSED(side);
+    PierSideSP.s = IPS_ALERT;
+    IDSetSwitch(&PierSideSP, "Not supported");
+}
+
 /**************************************************************************************
 **
 ***************************************************************************************/
-/*
-function MountPosition () {
-#Function that asks for mount coordinates. These coordinates are being returned in the MCC format, and with a bool variable USD to show if the  mount is currently upside-down.
 
-    $ValueString = Send2Mount ":GR#" 1
-    $ValueString = Send2Mount ":GD#" 1
-
-    $MCC = mmcString2mcc $ValueString $ValueString
-    $USD = isMccUSD $MCC[0] $MCC[1]
-
-    #Returns variables, MCC is already an array of RA and DEC
-    $MCC
-    $USD
-}
-
-function mmcString2mcc ([String]$ValueString, [String]$ValueString) {
-
-#This function takes two Strings from mount Input in the following form:
-#RA: HH:MM:SS# from 00:00:00 to 23:59:59
-#DEC: sDD*MM'SS# from -255:59:59 to +255:59:59.
-#"from Mount input" means, that this function is directly used to interpret the strings the mount reports, when being asked for a set of coordinates.
-#The function gives back a decimal representation for the RA hours and the DEC angle. The function automatically converts the MMC into MCC
-
-    if ($ValueString.Substring(0,1) -like "+")  {$factor = +1} else {$factor = -1} #The sign (plus minus) of the DEC value is being interpreted first
-
-    #The Mount has a weird way to represent the values from 1 to 25 with only one digit (when reading DEC value). For Example 155° is being reported as ?5°. Probably to save one character in the string....
-    $DekaValue = switch ($ValueString.Substring(1,1)) { "0" {0} "1" {1} "2" {2} "3" {3} "4" {4} "5" {5} "6" {6} "7" {7} "8" {8} "9" {9} ":" {10} ";" {11} "<" {12} "=" {13} ">" {14} "?" {15} "@" {16} "A" {17} "B" {18} "C" {19} "D" {20} "E" {21} "F" {22} "G" {23} "H" {24} "I" {25}}
-
-    #the following is almost identical to what one can find in string2hic
-    $Degrees = $DekaValue * 10 + $ValueString.Substring(2,1)/1
-    $ArcMinutes = $ValueString.Substring(4,2)/1
-    $ArcSeconds = $ValueString.Substring(7,2)/1
-    #Properly formating the values. /1 turns strings into integers
-    $DecDouble = $factor * ($Degrees + $ArcMinutes/60 + $SArcSeconds/3600)
-    $DecDouble = $DecDouble + 90 # To translate between MMC and MCC, 90° is added to the DEC value
-
-
-    $RaHours = $ValueString.Substring(0,2)/1
-    $RaMinutes = $ValueString.Substring(3,2)/1
-    $RaSeconds = $ValueString.Substring(6,2)/1
-    $RaDouble = $RaHours + $RaMinutes/60 + $RaSeconds/3600
-
-    #Returns:
-    $RaDouble
-    $DecDouble
-}
-*/
 int EQ500X::sendCmd(char const *data)
 {
     tcflush(PortFD, TCIFLUSH);
@@ -678,6 +670,51 @@ bool EQ500X::setTargetPosition(MechanicalPoint const &p)
     return false;
 }
 
+/**************************************************************************************
+**
+***************************************************************************************/
+
+EQ500X::MechanicalPoint::MechanicalPoint(double ra, double dec)
+{
+    RAm(ra);
+    DECm(dec);
+}
+
+bool EQ500X::MechanicalPoint::atParkingPosition() const
+{
+    // Consider 0/+90 is pole - no way to check if synced already
+    return this->operator ==(MechanicalPoint(0,90));
+}
+
+double EQ500X::MechanicalPoint::RAm(double const value)
+{
+    return _RAm = std::lround(value*3600.0)/3600.0;
+}
+
+char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length) const
+{
+    // PierEast             (LST = -6)           PierWest
+    // E +12.0h = LST-18 <-> 12:00:00 <-> LST-18 = +00.0h W
+    // N +18.0h = LST-12 <-> 18:00:00 <-> LST-12 = +06.0h N
+    // W +00.0h = LST-6  <-> 00:00:00 <-> LST-6  = +12.0h E
+    // S +06.0h = LST+0  <-> 06:00:00 <-> LST+0  = +18.0h S
+    // E +12.0h = LST+6  <-> 12:00:00 <-> LST+6  = +00.0h W
+    // N +18.0h = LST+12 <-> 18:00:00 <-> LST+12 = +06.0h N
+    // W +00.0h = LST+18 <-> 00:00:00 <-> LST+18 = +12.0h E
+
+    double value = std::fmod(_RAm + 24.0, 24.0);
+    //int const sgn = _pierSide == PIER_WEST ? (value <= -12.0 ? -1 : 1) : (value <= 0.0 ? -1 : 1);
+
+    double const mechanical_hours = std::lround(std::abs(value)*3600.0)/3600.0;
+    int const hours = ((_pierSide == PIER_WEST ? 12 : 0 ) + 24 + 1 * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
+    int const minutes = static_cast <int> (std::floor(mechanical_hours * 60.0)) % 60;
+    int const seconds = static_cast <int> (std::floor(mechanical_hours * 3600.0)) % 60;
+
+    int const written = snprintf(buf, buf_length, "%02d:%02d:%02d", hours, minutes, seconds);
+
+    return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
+}
+
 bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
 {
     if (buf_length < sizeof(MechanicalPoint_RA_Format-1))
@@ -694,47 +731,12 @@ bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
                     static_cast <double> (hours % 24) +
                     static_cast <double> (minutes) / 60.0f +
                     static_cast <double> (seconds) / 3600.0f +
-                    (_isFlipped ? +12.0 : +0.0)
-                    - _LST + 6, 24.0);
+                    (_pierSide == PIER_WEST ? -12.0 : +0.0)
+                    + 24.0, 24.0);
         return false;
     }
 
     return true;
-}
-
-void EQ500X::MechanicalPoint::setLST(double const LST)
-{
-   _LST = std::lround(LST*3600.0)/3600.0;
-}
-
-double EQ500X::MechanicalPoint::RAm(double const value)
-{
-    return _RAm = std::lround(value*3600.0)/3600.0;
-}
-
-char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length) const
-{
-    // NotFlipped                 Flipped
-    // S -12.0h <-> -12:00:00 <-> -24.0h
-    // E -06.0h <-> -06:00:00 <-> -18.0h
-    // N +00.0h <-> +00:00:00 <-> -12.0h
-    // W +06.0h <-> +06:00:00 <-> -06.0h
-    // S +12.0h <-> +12:00:00 <-> +00.0h
-    // E +18.0h <-> +18:00:00 <-> +06.0h
-    // N +24.0h <-> +24:00:00 <-> +12.0h
-
-    double value = std::fmod(_RAm + _LST - 6, 24.0);
-    int const sgn = _isFlipped ? (value <= -12.0 ? -1 : 1) : (value <= 0.0 ? -1 : 1);
-
-    double const mechanical_hours = std::lround(std::abs(value)*3600.0)/3600.0;
-    int const hours = ((_isFlipped ? 12 : 0 ) + 24 + sgn * (static_cast <int> (std::floor(mechanical_hours)) % 24)) % 24;
-    int const minutes = static_cast <int> (std::floor(mechanical_hours * 60.0)) % 60;
-    int const seconds = static_cast <int> (std::floor(mechanical_hours * 3600.0)) % 60;
-
-
-    int const written = snprintf(buf, buf_length, "%02d:%02d:%02d", hours, minutes, seconds);
-
-    return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
 bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
@@ -786,12 +788,11 @@ bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
     DecValues->degrees[3] = DecValues->minutes[2] = DecValues->seconds[2] = '\0';
 
     // FIXME: could be sscanf("%d%d%d", ...) but needs intermediate variables, however that would count matches
-    int const orientation = _isFlipped ? -1 : +1;
-    _DECm = static_cast <double> (
-                90.0 + orientation * sgn * (
+    int const orientation = _pierSide == PIER_EAST ? -1 : +1;
+    _DECm = 90.0 + orientation * sgn * (
                     static_cast <double> (atof(DecValues->degrees)) +
                     static_cast <double> (atof(DecValues->minutes))/60.0 +
-                    static_cast <double> (atof(DecValues->seconds))/3600.0 ));
+                    static_cast <double> (atof(DecValues->seconds))/3600.0 );
 
     //LOGF_INFO("DEC converts as %f.", value);
 
@@ -806,7 +807,7 @@ double EQ500X::MechanicalPoint::DECm(double const value)
 
 char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) const
 {
-    // NotFlipped                         Flipped
+    // PierEast                           PierWest
     // -180.0° <-> -255.0 = -I5:00:00 <-> +345.0°
     // -135.0° <-> -225.0 = -F5:00:00 <-> +315.0°
     //  -90.0° <-> -180.0 = -B0:00:00 <-> +270.0°
@@ -825,7 +826,7 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) 
     int const minutes = static_cast <int> (std::floor(std::abs(value)*60.0)) % 60;
     int const seconds = static_cast <int> (std::floor(std::abs(value)*3600.0)) % 60;
 
-    int const degrees = static_cast <int> (_isFlipped ? (90.0 - value) : (value - 90.0));
+    int const degrees = static_cast <int> (_pierSide == PIER_EAST ? (90.0 - value) : (value - 90.0));
 
     if (degrees < -255 || +255 < degrees)
         return (char const*)0;
@@ -863,7 +864,7 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) 
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
-double EQ500X::MechanicalPoint::RA_degrees_to(EQ500X::MechanicalPoint &b) const
+double EQ500X::MechanicalPoint::RA_degrees_to(EQ500X::MechanicalPoint const &b) const
 {
     // RA is circular, DEC is not
     // We have hours and not degrees because that's what the mount is handling in terms of precision
@@ -875,13 +876,13 @@ double EQ500X::MechanicalPoint::RA_degrees_to(EQ500X::MechanicalPoint &b) const
     return ra * 15.0;
 }
 
-double EQ500X::MechanicalPoint::DEC_degrees_to(EQ500X::MechanicalPoint &b) const
+double EQ500X::MechanicalPoint::DEC_degrees_to(EQ500X::MechanicalPoint const &b) const
 {
     // RA is circular, DEC is not
     return b._DECm - _DECm;
 }
 
-double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint &b) const
+double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint const &b) const
 {
     double const ra_distance = RA_degrees_to(b);
     double const dec_distance = DEC_degrees_to(b);
@@ -889,12 +890,17 @@ double EQ500X::MechanicalPoint::operator -(EQ500X::MechanicalPoint &b) const
     return std::sqrt(ra_distance*ra_distance + dec_distance*dec_distance);
 }
 
-bool EQ500X::MechanicalPoint::operator !=(EQ500X::MechanicalPoint &b) const
+bool EQ500X::MechanicalPoint::operator !=(EQ500X::MechanicalPoint const &b) const
 {
-   return (_LST != b._LST) || (RA_GRANULARITY <= std::abs(RA_degrees_to(b))) || (DEC_GRANULARITY <= std::abs(DEC_degrees_to(b)));
+    return (_pierSide != b._pierSide) || (RA_GRANULARITY <= std::abs(RA_degrees_to(b))) || (DEC_GRANULARITY <= std::abs(DEC_degrees_to(b)));
 }
 
-bool EQ500X::MechanicalPoint::setFlipped(bool const flipped)
+bool EQ500X::MechanicalPoint::operator ==(EQ500X::MechanicalPoint const &b) const
 {
-    return _isFlipped = flipped;
+    return !this->operator !=(b);
+}
+
+enum INDI::Telescope::TelescopePierSide EQ500X::MechanicalPoint::setPierSide(enum INDI::Telescope::TelescopePierSide pierSide)
+{
+    return _pierSide = pierSide;
 }
