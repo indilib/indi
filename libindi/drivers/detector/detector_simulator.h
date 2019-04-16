@@ -53,6 +53,9 @@ class RadioSim : public INDI::Detector
         virtual bool StartStreaming() override;
         virtual bool StopStreaming() override;
 
+        static void * streamCaptureHelper(void * context);
+        void * streamCapture();
+
 
     private:
         INumber DetectorPropertiesN[1];

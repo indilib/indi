@@ -136,7 +136,7 @@ bool RadioSim::Connect()
     spectrum = (uint8_t*)malloc(sizeof(uint8_t));
     streamPredicate = 0;
     terminateThread = false;
-    pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
+    pthread_create(&primary_thread, nullptr, &streamCaptureHelper, this);
     // Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
     SetTimer(POLLMS);
@@ -421,3 +421,52 @@ bool RadioSim::StopStreaming()
 
     return true;
 }
+
+void * RadioSim::streamCaptureHelper(void * context)
+{
+    return ((RadioSim *)context)->streamCapture();
+}
+
+void * RadioSim::streamCapture()
+{
+    struct itimerval tframe1, tframe2;
+    double s1, s2, deltas;
+
+    while (true)
+    {
+        pthread_mutex_lock(&condMutex);
+
+        while (streamPredicate == 0)
+        {
+            pthread_cond_wait(&cv, &condMutex);
+            CaptureRequest = 1.0 / Streamer->getTargetFPS();
+        }
+
+        if (terminateThread)
+            break;
+
+        // release condMutex
+        pthread_mutex_unlock(&condMutex);
+
+        // Simulate exposure time
+        //usleep(ExposureRequest*1e5);
+
+        getitimer(ITIMER_REAL, &tframe1);
+
+        s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
+        s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
+        deltas = fabs(s2 - s1);
+
+        if (deltas < CaptureRequest)
+            usleep(fabs(CaptureRequest - deltas) * 1e6);
+
+        uint32_t size = PrimaryDetector.getContinuumBufferSize();
+        Streamer->newFrame(PrimaryDetector.getContinuumBuffer(), size);
+
+        getitimer(ITIMER_REAL, &tframe2);
+    }
+
+    pthread_mutex_unlock(&condMutex);
+    return nullptr;
+}
+
