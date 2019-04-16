@@ -217,7 +217,7 @@ void DetectorDevice::setCaptureLeft(double duration)
 void DetectorDevice::setCaptureDuration(double duration)
 {
     captureDuration = duration;
-    timespec_get(&startCaptureTime, 0);
+    clock_gettime(CLOCK_REALTIME, &startCaptureTime);
 }
 
 const char *DetectorDevice::getCaptureStartTime()
