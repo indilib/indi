@@ -67,7 +67,7 @@ std::istream &starbook::operator>>(std::istream &is, starbook::HMS &obj) {
     is >> h >> ch[0] >> m >> ch[1] >> m_tenth;
 
     if (!is) return is;
-    if (ch[0] != sep && ch[1] != '.') {
+    if (ch[0] != sep || ch[1] != '.') {
         is.clear(ios_base::failbit);
         return is;
     }
