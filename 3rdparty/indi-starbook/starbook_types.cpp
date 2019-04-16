@@ -126,7 +126,7 @@ std::ostream &starbook::operator<<(std::ostream &os, const starbook::LnLat &obj)
        << "longitude=" << ((dms.lng.neg == 0) ? "E" : "W")
        << setw(2) << dms.lng.degrees << sep << setw(2) << dms.lng.minutes
        << "latitude=" << ((dms.lat.neg == 0) ? "N" : "S")
-       << setw(2) << dms.lng.degrees << sep << setw(2) << dms.lat.minutes;
+       << setw(2) << dms.lat.degrees << sep << setw(2) << dms.lat.minutes;
     return os;
 }
 
