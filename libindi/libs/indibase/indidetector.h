@@ -728,10 +728,10 @@ class Detector : public DefaultDevice
             FITS_OBSERVER,
             FITS_OBJECT
         };
-
-    private:
         double Lat, Lon, El;
         double RA, Dec;
+    private:
+
         uint32_t capability;
 
         bool uploadFile(DetectorDevice *targetDevice, const void *fitsData, size_t totalBytes, bool sendCapture, bool saveCapture, int blobindex);
