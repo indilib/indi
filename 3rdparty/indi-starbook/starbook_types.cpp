@@ -85,13 +85,77 @@ ostream &starbook::operator<<(ostream &os, const starbook::Equ &equ) {
     return os;
 }
 
-ostream &starbook::operator<<(ostream &os, const starbook::UTC &utc) {
+constexpr char sep = '+';
+
+ostream &starbook::operator<<(ostream &os, const starbook::DateTime &obj) {
     os << setfill('0') << std::fixed << setprecision(0)
-       << utc.years << "+"
-       << setw(2) << utc.months << "+"
-       << setw(2) << utc.days << "+"
-       << setw(2) << utc.hours << "+"
-       << setw(2) << utc.minutes << "+"
-       << setw(2) << floor(utc.seconds);
+       << obj.years << sep
+       << setw(2) << obj.months << sep
+       << setw(2) << obj.days << sep
+       << setw(2) << obj.hours << sep
+       << setw(2) << obj.minutes << sep
+       << setw(2) << floor(obj.seconds);
     return os;
+}
+
+std::istream &starbook::operator>>(std::istream &is, starbook::DateTime &utc) {
+    int Y, M, D, h, m, s;
+    std::array<char, 5> ch = {{'\0'}};
+    is >> Y >> ch[0] >> M >> ch[1] >> D >> ch[2] >> h >> ch[3] >> m >> ch[4] >> s;
+
+    if (!is) return is;
+    for (char i : ch)
+        if (i != sep) {
+            is.clear(ios_base::failbit);
+            return is;
+        }
+    utc = DateTime(Y, M, D, h, m, static_cast<double>(s));
+    return is;
+}
+
+std::ostream &starbook::operator<<(std::ostream &os, const starbook::LnLat &obj) {
+    lnh_lnlat_posn dms{{0, 0, 0, 0},
+                       {0, 0, 0, 0}};
+    auto tmp = static_cast<ln_lnlat_posn>(obj);
+    ln_lnlat_to_hlnlat(&tmp, &dms);
+
+    os << setfill('0') << std::fixed << setprecision(0)
+       << "longitude=" << ((dms.lng.neg == 0) ? "E" : "W")
+       << setw(2) << dms.lng.degrees << sep << setw(2) << dms.lng.minutes
+       << "latitude=" << ((dms.lat.neg == 0) ? "N" : "S")
+       << setw(2) << dms.lng.degrees << sep << setw(2) << dms.lat.minutes;
+    return os;
+}
+
+starbook::CommandResponse::CommandResponse(const std::string &url_like) : status(OK), raw(url_like) {
+    if (url_like.empty()) throw runtime_error("parsing error, no payload");
+    if (url_like.rfind("OK", 0) == 0) {
+        status = OK;
+        return;
+    } else if (url_like.rfind("ERROR", 0) == 0) {
+        if (url_like.rfind("ERROR:FORMAT", 0) == 0)
+            status = ERROR_FORMAT;
+        else if (url_like.rfind("ERROR:ILLEGAL STATE", 0) == 0)
+            status = ERROR_ILLEGAL_STATE;
+        else if (url_like.rfind("ERROR:BELOW HORIZONE", 0) == 0) /* it's not a typo */
+            status = ERROR_BELOW_HORIZON;
+        else
+            status = ERROR_UNKNOWN;
+        return;
+    } else {
+        std::string str_remaining = url_like;
+        std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
+        std::smatch sm;
+
+        while (regex_search(str_remaining, sm, param_re)) {
+            std::string key = sm[1].str();
+            std::string value = sm[2].str();
+
+            payload[key] = value;
+            str_remaining = sm.suffix();
+        }
+        if (payload.empty()) throw std::runtime_error("parsing error, couldn't parse any field");
+        if (!str_remaining.empty()) throw std::runtime_error("parsing error, couldn't parse full payload");
+        status = OK;
+    }
 }

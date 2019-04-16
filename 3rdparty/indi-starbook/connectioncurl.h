@@ -59,7 +59,10 @@ namespace Connection {
 
         void setDefaultPort(uint32_t addressPort);
 
-        CURL *getHandle() const { return handle; }
+        CURL *getHandle() const {
+            if (handle == nullptr) throw std::runtime_error("connection error, no handle");
+            return handle;
+        }
 
     protected:
         ITextVectorProperty AddressTP;

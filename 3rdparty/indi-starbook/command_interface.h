@@ -38,8 +38,18 @@ namespace starbook {
         float major_minor;
     } VersionResponse;
 
-    const int MIN_SPEED = 0;
-    const int MAX_SPEED = 7;
+    typedef struct {
+        LnLat posn;
+        int tz;
+    } PlaceResponse;
+
+    typedef struct {
+        double x;
+        double y;
+    } XYResponse;
+
+    constexpr int MIN_SPEED = 0;
+    constexpr int MAX_SPEED = 7;
 
     class CommandInterface {
     public:
@@ -76,21 +86,21 @@ namespace starbook {
 
         ResponseCode GetStatus(StatusResponse &res);
 
-        ResponseCode GetPlace();
+        ResponseCode GetPlace(PlaceResponse &res);
 
-        ResponseCode GetTime();
+        ResponseCode GetTime(ln_date &res);
 
-        ResponseCode GetRound();
+        ResponseCode GetRound(long int &res);
 
-        ResponseCode GetXY();
+        ResponseCode GetXY(XYResponse &res);
 
         ResponseCode Version(VersionResponse &res);
 
         ResponseCode SetSpeed(int speed);
 
-        ResponseCode SetPlace();
+        ResponseCode SetPlace(LnLat posn, int tz);
 
-        ResponseCode SetTime(ln_date &utc);
+        ResponseCode SetTime(ln_date &local_time);
 
         ResponseCode SaveSetting() {
             return SendOkCommand("SAVESETTING");
@@ -104,13 +114,23 @@ namespace starbook {
 
         std::string last_response;
 
-        std::string SendCommand(std::string command);
+        CommandResponse SendCommand(std::string command);
 
         ResponseCode SendOkCommand(const std::string &cmd);
 
-        ResponseCode ParseCommandResponse(const std::string &response);
-
         StarbookState ParseState(const std::string &value);
+
+        VersionResponse ParseVersionResponse(const CommandResponse &response);
+
+        StatusResponse ParseStatusResponse(const CommandResponse &response);
+
+        PlaceResponse ParsePlaceResponse(const CommandResponse &response);
+
+        ln_date ParseTimeResponse(const CommandResponse &response);
+
+        XYResponse ParseXYResponse(const CommandResponse &response);
+
+        long int ParseRoundResponse(const CommandResponse &response);
 
     };
 

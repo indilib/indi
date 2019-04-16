@@ -695,29 +695,26 @@ bool QHYCCD::Connect()
         {
             HasFilters = true;
 
-            int maxCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
-            FilterSlotN[0].max = maxCount;
-            if (FilterNameTP->ntp != maxCount)
+            m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+            LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+            // If we get invalid value, check again in 0.5 sec
+            if (m_MaxFilterCount > 16)
             {
-                char filterName[MAXINDINAME];
-                char filterLabel[MAXINDILABEL];
-                if (FilterNameT != nullptr)
-                {
-                    for (int i = 0; i < FilterNameTP->ntp; i++)
-                        free(FilterNameT[i].text);
-                    delete [] FilterNameT;
-                }
-
-                FilterNameT = new IText[static_cast<int>(maxCount)];
-                memset(FilterNameT, 0, sizeof(IText) * maxCount);
-                for (int i = 0; i < maxCount; i++)
-                {
-                    snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
-                    snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
-                    IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
-                }
-                IUFillTextVector(FilterNameTP, FilterNameT, maxCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+                usleep(500000);
+                m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+                LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
             }
+
+            if (m_MaxFilterCount > 16)
+            {
+                LOG_DEBUG("Camera can support CFW but no filters are present.");
+                m_MaxFilterCount = -1;
+            }
+
+            if (m_MaxFilterCount > 0)
+                updateFilterProperties();
+            else
+                HasFilters = false;
         }
 
         LOGF_DEBUG("Has Filters: %s", HasFilters ? "True" : "False");
@@ -1191,6 +1188,23 @@ void QHYCCD::TimerHit()
 {
     if (isConnected() == false)
         return;
+
+    //    if (HasFilters && m_MaxFilterCount == -1)
+    //    {
+    //        m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+    //        LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+    //        if (m_MaxFilterCount > 16)
+    //            m_MaxFilterCount = -1;
+    //        if (m_MaxFilterCount > 0)
+    //        {
+    //            if (updateFilterProperties())
+    //            {
+    //                deleteProperty("FILTER_NAME");
+    //                IUUpdateMinMax(&FilterSlotNP);
+    //                defineText(FilterNameTP);
+    //            }
+    //        }
+    //    }
 
     if (FilterSlotNP.s == IPS_BUSY)
     {
@@ -1931,4 +1945,35 @@ void QHYCCD::debugTriggered(bool enable)
         SetQHYCCDLogLevel(5);
     else
         SetQHYCCDLogLevel(2);
+}
+
+bool QHYCCD::updateFilterProperties()
+{
+    if (FilterNameTP->ntp != m_MaxFilterCount)
+    {
+        LOGF_DEBUG("Max filter count is: %d", m_MaxFilterCount);
+        FilterSlotN[0].max = m_MaxFilterCount;
+        char filterName[MAXINDINAME];
+        char filterLabel[MAXINDILABEL];
+        if (FilterNameT != nullptr)
+        {
+            for (int i = 0; i < FilterNameTP->ntp; i++)
+                free(FilterNameT[i].text);
+            delete [] FilterNameT;
+        }
+
+        FilterNameT = new IText[m_MaxFilterCount];
+        memset(FilterNameT, 0, sizeof(IText) * m_MaxFilterCount);
+        for (int i = 0; i < m_MaxFilterCount; i++)
+        {
+            snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+            snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
+            IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
+        }
+        IUFillTextVector(FilterNameTP, FilterNameT, m_MaxFilterCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+
+        return true;
+    }
+
+    return false;
 }

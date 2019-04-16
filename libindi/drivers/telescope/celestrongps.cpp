@@ -104,7 +104,10 @@ CelestronGPS::CelestronGPS() : FI(this)
 
     // focuser
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
-    // Unused option: FOCUSER_HAS_VARIABLE_SPEED
+
+    // Set minimum properties.
+    // ISGetProperties in INDI::Telescope checks for CanGOTO which must be set.
+    SetTelescopeCapability(TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT, 9);
 }
 
 bool CelestronGPS::checkMinVersion(float minVersion, const char *feature, bool debug)
@@ -115,10 +118,10 @@ bool CelestronGPS::checkMinVersion(float minVersion, const char *feature, bool d
          (fwInfo.controllerVersion < minVersion)))
     {
         if (debug)
-            LOGF_DEBUG("Firmware v%3.2f does not support %s. Minimun required version is %3.2f",
+            LOGF_DEBUG("Firmware v%3.2f does not support %s. Minimum required version is %3.2f",
                     fwInfo.controllerVersion, feature, minVersion);
         else
-            LOGF_WARN("Firmware v%3.2f does not support %s. Minimun required version is %3.2f",
+            LOGF_WARN("Firmware v%3.2f does not support %s. Minimum required version is %3.2f",
                     fwInfo.controllerVersion, feature, minVersion);
 
         return false;
@@ -128,7 +131,7 @@ bool CelestronGPS::checkMinVersion(float minVersion, const char *feature, bool d
 
 const char *CelestronGPS::getDefaultName()
 {
-    return static_cast<const char *>("Celestron GPS");
+    return "Celestron GPS";
 }
 
 bool CelestronGPS::initProperties()
@@ -145,13 +148,19 @@ bool CelestronGPS::initProperties()
     IUFillTextVector(&FirmwareTP, FirmwareT, 5, getDeviceName(), "Firmware Info", "", MOUNTINFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
-    // CR This isn't correct, track modes should be pre-defined track rates - sidereal, solar, lunar etc.
-    // the Celestron track mode will need to be handled differently.
-    // AFAIK the track rate can be set but not read and for equatorial mounts only.
+    // Celestron Track Modes are Off, AltAz, EQ N and EQ S
+    // off is not provided as these are used to set the track mode when tracking is enabled
+    // may be required for set up, value will be read from the mount if possible
+    IUFillSwitchVector(&CelestronTrackModeSP, CelestronTrackModeS, 3, getDeviceName(), "CELESTRON_TRACK_MODE", "Celestron Track Mode",
+                       MOUNTINFO_TAB, IP_RO, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitch(&CelestronTrackModeS[0], "MODE_ALTAZ", "Alt Az", ISS_OFF);
+    IUFillSwitch(&CelestronTrackModeS[1], "MODE_EQ_N", "EQ N", ISS_ON);
+    IUFillSwitch(&CelestronTrackModeS[2], "MODE_EQ_S", "EQ S", ISS_OFF);
 
-    AddTrackMode("TRACK_ALTAZ", "Alt/Az");
-    AddTrackMode("TRACK_EQN", "Eq North", true);
-    AddTrackMode("TRACK_EQS", "Eq South");
+    // INDI track modes are sidereal, solar and lunar
+    AddTrackMode("TRACK_SIDEREAL", "Sidereal", true);
+    AddTrackMode("TRACK_SOLAR", "Solar");
+    AddTrackMode("TRACK_LUNAR", "Lunar");
 
     IUFillSwitch(&UseHibernateS[0], "Enable", "", ISS_OFF);
     IUFillSwitch(&UseHibernateS[1], "Disable", "", ISS_ON);
@@ -222,6 +231,7 @@ void CelestronGPS::ISGetProperties(const char *dev)
     INDI::Telescope::ISGetProperties(dev);
 
     defineSwitch(&UseHibernateSP);
+    defineSwitch(&CelestronTrackModeSP);
     if (configLoaded == false)
     {
         configLoaded = true;
@@ -261,6 +271,8 @@ bool CelestronGPS::updateProperties()
             IUSaveText(&FirmwareT[FW_DEC], fwInfo.DEFirmware.c_str());
 
             usePreciseCoords = (checkMinVersion(2.2, "usePreciseCoords"));
+            // set the default switch index, will be updated from the mount if possible
+            fwInfo.celestronTrackMode = static_cast<CELESTRON_TRACK_MODE>(IUFindOnSwitchIndex(&CelestronTrackModeSP) + 1);
         }
         else
         {
@@ -294,16 +306,71 @@ bool CelestronGPS::updateProperties()
         if (checkMinVersion(2.3, "updating time and location settings"))
             cap |= TELESCOPE_HAS_TIME | TELESCOPE_HAS_LOCATION;
 
+        // changing track mode (aka rate) is only available for equatorial mounts
+
         // StarSense supports track mode
-        if (checkMinVersion(2.3, "track control"))
-            cap |= TELESCOPE_HAS_TRACK_MODE | TELESCOPE_CAN_CONTROL_TRACK;
+        if (checkMinVersion(2.3, "track on/off"))
+            cap |= TELESCOPE_CAN_CONTROL_TRACK;
         else
-            LOG_WARN("Mount firmware does not support track mode.");
+            LOG_WARN("Mount firmware does not support track on off.");
 
         if (fwInfo.isGem  && checkMinVersion(4.15, "Pier Side", true))
             cap |= TELESCOPE_HAS_PIER_SIDE;
         else
             LOG_WARN("Mount firmware does not support getting pier side.");
+
+        // Track Mode (t) is only supported for 2.3+
+        if (checkMinVersion(2.3, "track mode"))
+        {
+            if (isSimulation())
+            {
+                if (isParked())
+                    driver.set_sim_track_mode(CTM_OFF);
+                else
+                    driver.set_sim_track_mode(CTM_EQN);
+            }
+            CELESTRON_TRACK_MODE ctm;
+            if (driver.get_track_mode(&ctm))
+            {
+                if (ctm != CTM_OFF)
+                {
+                    //IUResetSwitch(&TrackSP);
+                    fwInfo.celestronTrackMode = ctm;
+                    IUResetSwitch(&CelestronTrackModeSP);
+                    CelestronTrackModeS[ctm - 1].s = ISS_ON;
+                    CelestronTrackModeSP.s      = IPS_OK;
+
+                    // If tracking is ON then mount is NOT parked
+                    if (isParked())
+                        SetParked(false);
+
+                    TrackState = SCOPE_TRACKING;
+                    saveConfig("CELESTRON_TRACK_MODE");
+                    LOGF_DEBUG("Celestron mount tracking, mode %s", CelestronTrackModeS[ctm - 1].label);
+                }
+                else
+                {
+                    LOG_INFO("Mount tracking is off.");
+                    TrackState = isParked() ? SCOPE_PARKED : SCOPE_IDLE;
+                }
+            }
+            else
+            {
+                LOG_DEBUG("get_track_mode failed");
+                CelestronTrackModeSP.s = IPS_ALERT;
+            }
+
+            IDSetSwitch(&CelestronTrackModeSP, nullptr);
+        }
+
+        if (fwInfo.celestronTrackMode != CTM_ALTAZ)
+            cap |= TELESCOPE_HAS_TRACK_MODE;
+        else
+        {
+            TrackModeS[TRACK_SIDEREAL].s = ISS_ON;
+            LOG_WARN("Mount firmware does not support track mode.");
+        }
+
 
         SetTelescopeCapability(cap, 9);
 
@@ -332,43 +399,7 @@ bool CelestronGPS::updateProperties()
         defineNumber(&GuideNSNP);
         defineNumber(&GuideWENP);
 
-        // Track Mode (t) is only supported for 2.3+
-        if (checkMinVersion(2.3, "track mode"))
-        {
-            CELESTRON_TRACK_MODE mode;
-            if (isSimulation())
-            {
-                if (isParked())
-                    driver.set_sim_track_mode(TRACKING_OFF);
-                else
-                    driver.set_sim_track_mode(TRACK_EQN);
-            }
-            if (driver.get_track_mode(&mode))
-            {
-                if (mode != TRACKING_OFF)
-                {
-                    //IUResetSwitch(&TrackSP);
-                    IUResetSwitch(&TrackModeSP);
-                    TrackModeS[mode-1].s = ISS_ON;
-                    TrackModeSP.s      = IPS_OK;
-
-                    // If tracking is ON then mount is NOT parked
-                    if (isParked())
-                        SetParked(false);
-
-                    TrackState = SCOPE_TRACKING;
-                }
-                else
-                {
-                    LOG_INFO("Mount tracking is off.");
-                    TrackState = isParked() ? SCOPE_PARKED : SCOPE_IDLE;
-                }
-            }
-            else
-                TrackModeSP.s = IPS_ALERT;
-
-            IDSetSwitch(&TrackModeSP, nullptr);
-        }
+        defineSwitch(&CelestronTrackModeSP);
 
         // JM 2014-04-14: User (davidw) reported AVX mount serial communication times out issuing "h" command with firmware 5.28
         // JM 2018-09-27: User (suramara) reports that it works with AVX mount with Star Sense firmware version 1.19
@@ -377,7 +408,8 @@ bool CelestronGPS::updateProperties()
         {
             double utc_offset;
             int yy, dd, mm, hh, minute, ss;
-            bool precise = checkMinVersion(5.28, "precise time", true);
+            // StarSense doesn't seems to handle the precise time commands
+            bool precise = fwInfo.controllerVersion >= 5.28;
             if (driver.get_utc_date_time(&utc_offset, &yy, &mm, &dd, &hh, &minute, &ss, precise))
             {
                 char isoDateTime[32];
@@ -395,9 +427,18 @@ bool CelestronGPS::updateProperties()
                 TimeTP.s = IPS_OK;
                 IDSetText(&TimeTP, nullptr);
             }
+            double longitude, latitude;
+            if (driver.get_location(&longitude, &latitude))
+            {
+                LocationNP.np[LOCATION_LATITUDE].value = latitude;
+                LocationNP.np[LOCATION_LONGITUDE].value = longitude;
+                LocationNP.np[LOCATION_ELEVATION].value = 0;
+                LocationNP.s = IPS_OK;
+                LOGF_DEBUG("Mount latitude %8.4f longitude %8.4f", latitude, longitude);
+            }
         }
         else
-            LOG_WARN("Mount does not support retrieval of date and time settings.");
+            LOG_WARN("Mount does not support retrieval of date, time and location.");
 
         // last align is only available for mounts with switches that define the start index position
         // At present that is only the CGX and CGX-L mounts so the control is only made available for them
@@ -442,6 +483,7 @@ bool CelestronGPS::updateProperties()
         deleteProperty(GuideWENP.name);
 
         deleteProperty(LastAlignSP.name);
+        deleteProperty(CelestronTrackModeSP.name);
 
         //deleteProperty(TrackSP.name);
         if (fwInfo.Version != "Invalid")
@@ -495,7 +537,10 @@ bool CelestronGPS::Sync(double ra, double dec)
     currentRA  = ra;
     currentDEC = dec;
 
-    LOG_INFO("Sync successful.");
+    char RAStr[32], DecStr[32];
+    fs_sexa(RAStr, targetRA, 2, 3600);
+    fs_sexa(DecStr, targetDEC, 2, 3600);
+    LOGF_INFO("Sync to %s, %s successful.", RAStr, DecStr);
 
     return true;
 }
@@ -672,8 +717,6 @@ bool CelestronGPS::ReadScopeStatus()
             else
                 LOG_WARN("Alignment Failed!");
 
-            driver.unsync();
-
             return true;
         }
     }
@@ -694,7 +737,7 @@ bool CelestronGPS::ReadScopeStatus()
             // are we done?
             if (driver.is_slewing() == false)
             {
-                if (driver.set_track_mode(TRACKING_OFF))
+                if (driver.set_track_mode(CTM_OFF))
                     LOG_DEBUG("Mount tracking is off.");
 
                 SetParked(true);
@@ -1211,17 +1254,28 @@ void CelestronGPS::mountSim()
      set_sim_az(horizontalPos.az);
      set_sim_alt(horizontalPos.alt);*/
 }
+
 void CelestronGPS::simulationTriggered(bool enable)
 {
     driver.set_simulation(enable);
 }
 
+// Update Location and time are disabled if the mount is aligned.  This is because
+// changing either will change the mount model because at least the local sidereal time
+// will be changed. StarSense will set the mount to unaligned but it isn't a good idea even
+// with the NexStar HCs
+
 bool CelestronGPS::updateLocation(double latitude, double longitude, double elevation)
 {
-    INDI_UNUSED(elevation);
+    //INDI_UNUSED(elevation);
 
     if (!checkMinVersion(2.3, "updating location"))
         return false;
+
+    if (driver.check_aligned())
+        return false;
+
+    LOGF_DEBUG("Update location %8.3f, %8.3f, %4.0f", latitude, longitude, elevation);
 
     return driver.set_location(longitude, latitude);
 }
@@ -1231,9 +1285,14 @@ bool CelestronGPS::updateTime(ln_date *utc, double utc_offset)
     if (!checkMinVersion(2.3, "updating time"))
         return false;
 
-    bool precise = checkMinVersion(5.28, "precise time", true);
+    // setting time on StarSense seems to make it not aligned
+    if (driver.check_aligned())
+        return false;
 
-    LOGF_DEBUG("Update time: offset %f UTC %i-%02i-%02iT%02i:%02i:%02i", utc_offset, utc->years, utc->months, utc->days,
+    // starsense HC doesn't seem to support the precise time setting
+    bool precise = fwInfo.controllerVersion >= 5.28;
+
+    LOGF_DEBUG("Update time: offset %f UTC %i-%02i-%02iT%02i:%02i:%02.0f", utc_offset, utc->years, utc->months, utc->days,
                utc->hours, utc->minutes, utc->seconds);
 
     return (driver.set_datetime(utc, utc_offset, precise));
@@ -1248,7 +1307,8 @@ bool CelestronGPS::Park()
     fs_sexa(AzStr, parkAZ, 2, 3600);
     fs_sexa(AltStr, parkAlt, 2, 3600);
 
-    if (!driver.unsync())
+    // unsync is only for NS+ 5.29 or more and not StarSense
+    if (fwInfo.controllerVersion >= 5.29 && !driver.unsync())
         return false;
 
     LOGF_DEBUG("Parking to Az (%s) Alt (%s)...", AzStr, AltStr);
@@ -1439,7 +1499,7 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
     FI::saveConfigItems(fp);
 
     IUSaveConfigSwitch(fp, &UseHibernateSP);
-    //IUSaveConfigSwitch(fp, &TrackSP);
+    IUSaveConfigSwitch(fp, &CelestronTrackModeSP);
     IUSaveConfigSwitch(fp, &UsePulseCmdSP);
 
     IUSaveConfigNumber(fp, &FocusBacklashNP);    
@@ -1448,12 +1508,12 @@ bool CelestronGPS::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool CelestronGPS::setTrackMode(CELESTRON_TRACK_MODE mode)
+bool CelestronGPS::setCelestronTrackMode(CELESTRON_TRACK_MODE mode)
 {
     if (driver.set_track_mode(mode))
     {
-        TrackState = (mode == TRACKING_OFF) ? SCOPE_IDLE : SCOPE_TRACKING;
-        LOGF_DEBUG("Tracking mode set to %i, %s.", mode, TrackModeS[mode - 1].label);
+        TrackState = (mode == CTM_OFF) ? SCOPE_IDLE : SCOPE_TRACKING;
+        LOGF_DEBUG("Tracking mode set to %i, %s.", mode, CelestronTrackModeS[mode - 1].label);
         return true;
     }
 
@@ -1737,14 +1797,44 @@ void CelestronGPS::guideTimeout(CELESTRON_DIRECTION calldir)
     //LOG_WARN("GUIDE CMD COMPLETED");
 }
 
+// the INDI overload, expected to set the track rate
+// sidereal, solar or lunar and only if the mount is equatorial
 bool CelestronGPS::SetTrackMode(uint8_t mode)
 {
-    return setTrackMode(static_cast<CELESTRON_TRACK_MODE>(mode+1));
+    CELESTRON_TRACK_RATE rate;
+
+    switch (fwInfo.celestronTrackMode)
+    {
+    case CTM_OFF:
+    case CTM_ALTAZ:
+    default:
+        return false;
+    case CTM_EQN:
+    case CTM_EQS:
+        break;
+    }
+
+    switch (mode)
+    {
+    case 0:
+        rate = CTR_SIDEREAL;
+        break;
+    case 1:
+        rate = CTR_SOLAR;
+        break;
+    case 2:
+        rate = CTR_LUNAR;
+        break;
+    default:
+        return false;
+    }
+    return driver.set_track_rate(rate, fwInfo.celestronTrackMode);
 }
 
 bool CelestronGPS::SetTrackEnabled(bool enabled)
 {
-    return setTrackMode(enabled ? static_cast<CELESTRON_TRACK_MODE>(IUFindOnSwitchIndex(&TrackModeSP)+1) : TRACKING_OFF);
+    return setCelestronTrackMode(enabled ? fwInfo.celestronTrackMode : CTM_OFF);
+    //return setTrackMode(enabled ? static_cast<CELESTRON_TRACK_MODE>(IUFindOnSwitchIndex(&TrackModeSP)+1) : TRACKING_OFF);
 }
 
 void CelestronGPS::checkAlignment()
