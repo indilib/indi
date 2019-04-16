@@ -21,21 +21,21 @@
 void dsp_stream_alloc_buffer(dsp_stream_p stream, int len)
 {
     if(stream->buf!=NULL) {
-        stream->buf = (double*)realloc(stream->buf, sizeof(double) * len);
+        stream->buf = (dsp_t*)realloc(stream->buf, sizeof(dsp_t) * len);
     } else {
-        stream->buf = (double*)malloc(sizeof(double) * len);
+        stream->buf = (dsp_t*)malloc(sizeof(dsp_t) * len);
     }
 
 }
 
 void dsp_stream_set_buffer(dsp_stream_p stream, void *buffer, int len)
 {
-    stream->buf = (double*)buffer;
+    stream->buf = (dsp_t*)buffer;
     stream->len = len;
 
 }
 
-double* dsp_stream_get_buffer(dsp_stream_p stream)
+dsp_t* dsp_stream_get_buffer(dsp_stream_p stream)
 {
     return stream->buf;
 }
@@ -51,10 +51,13 @@ void dsp_stream_free_buffer(dsp_stream_p stream)
 dsp_stream_p dsp_stream_new()
 {
     dsp_stream_p stream = (dsp_stream_p)calloc(sizeof(dsp_stream), 1);
-    stream->buf = (double*)calloc(sizeof(double), 1);
+    stream->buf = (dsp_t*)calloc(sizeof(dsp_t), 1);
     stream->sizes = (int*)calloc(sizeof(int), 1);
     stream->children = calloc(sizeof(dsp_stream_p), 1);
     stream->ROI = (dsp_region*)calloc(sizeof(dsp_region), 1);
+    stream->location = (double*)calloc(sizeof(double), 3);
+    stream->target = (double*)calloc(sizeof(double), 3);
+    stream->stars = (dsp_star**)calloc(sizeof(dsp_star*), 1);
     stream->child_count = 0;
     stream->parent = NULL;
     stream->dims = 0;
@@ -81,7 +84,7 @@ dsp_stream_p dsp_stream_copy(dsp_stream_p stream)
     dsp_stream_alloc_buffer(dest, dest->len);
     dest->lambda = stream->lambda;
     dest->samplerate = stream->samplerate;
-    memcpy(dest->buf, stream->buf, sizeof(double) * stream->len);
+    memcpy(dest->buf, stream->buf, sizeof(dsp_t) * stream->len);
     return dest;
 }
 
@@ -92,6 +95,13 @@ void dsp_stream_add_dim(dsp_stream_p stream, int size)
     stream->dims ++;
     stream->ROI = (dsp_region*)realloc(stream->ROI, sizeof(dsp_region) * (stream->dims + 1));
     stream->sizes = (int*)realloc(stream->sizes, sizeof(int) * (stream->dims + 1));
+}
+
+void dsp_stream_add_star(dsp_stream_p stream, dsp_star *star)
+{
+    stream->stars = (dsp_star**)realloc(stream->stars, sizeof(dsp_star*) * (stream->star_count + 1));
+    stream->stars[stream->star_count] = star;
+    stream->star_count ++;
 }
 
 void dsp_stream_del_dim(dsp_stream_p stream, int index)
@@ -156,16 +166,10 @@ int dsp_stream_set_position(dsp_stream_p stream, int* pos) {
 }
 
 void *dsp_stream_exec(dsp_stream_p stream) {
-    return stream->func(stream);
-}
-
-void dsp_stream_exec_multidim(dsp_stream_p stream) {
-    if(stream->dims == 0)
-        return;
-    for(int dim = 0; dim < stream->dims; dim++) {
-        stream->arg = (void*)&dim;
-        stream->func(stream);
+    if(stream->func != NULL) {
+        return stream->func(stream);
     }
+    return NULL;
 }
 
 dsp_stream_p dsp_stream_crop(dsp_stream_p in)

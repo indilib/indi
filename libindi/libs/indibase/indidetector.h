@@ -22,15 +22,47 @@
 #include "dsp.h"
 #include <fitsio.h>
 
+#ifdef HAVE_WEBSOCKET
+#include "indiwsserver.h"
+#endif
+
+#include <fitsio.h>
+
 #include <memory>
 #include <cstring>
-
+#include <chrono>
 #include <stdint.h>
+#include <mutex>
+#include <thread>
+
+//JM 2019-01-17: Disabled until further notice
+//#define WITH_EXPOSURE_LOOPING
 
 extern const char *CAPTURE_SETTINGS_TAB;
 extern const char *CAPTURE_INFO_TAB;
 extern const char *GUIDE_HEAD_TAB;
 
+
+/**
+ * \class INDI::Detector
+ * \brief Class to provide general functionality of Monodimensional Detector.
+ *
+ * The Detector capabilities must be set to select which features are exposed to the clients.
+ * SetDetectorCapability() is typically set in the constructor or initProperties(), but can also be
+ * called after connection is established with the Detector, but must be called /em before returning
+ * true in Connect().
+ *
+ * Developers need to subclass INDI::Detector to implement any driver for Detectors within INDI.
+ *
+ * \example Detector Simulator
+ * \author Jasem Mutlaq, Ilia Platone
+ *
+ */
+
+namespace INDI
+{
+
+class StreamManager;
 
 /**
  * @brief The DetectorDevice class provides functionality of a Detector Device within a Detector.
@@ -370,7 +402,7 @@ class DetectorDevice
         uint8_t *SpectrumBuffer;
         int SpectrumBufferSize;
         double captureDuration;
-        timeval startCaptureTime;
+        timespec startCaptureTime;
         char captureExtention[MAXINDIBLOBFMT];
 
         INumberVectorProperty FramedCaptureNP;
@@ -387,25 +419,6 @@ class DetectorDevice
 
         friend class INDI::Detector;
 };
-
-/**
- * \class INDI::Detector
- * \brief Class to provide general functionality of Monodimensional Detector.
- *
- * The Detector capabilities must be set to select which features are exposed to the clients.
- * SetDetectorCapability() is typically set in the constructor or initProperties(), but can also be
- * called after connection is established with the Detector, but must be called /em before returning
- * true in Connect().
- *
- * Developers need to subclass INDI::Detector to implement any driver for Detectors within INDI.
- *
- * \example Detector Simulator
- * \author Jasem Mutlaq, Ilia Platone
- *
- */
-
-namespace INDI
-{
 class Detector : public DefaultDevice
 {
     public:
@@ -420,6 +433,7 @@ class Detector : public DefaultDevice
             DETECTOR_HAS_CONTINUUM              = 1 << 3,  /*!< Does the Detector support live streaming?  */
             DETECTOR_HAS_SPECTRUM               = 1 << 4,  /*!< Does the Detector support spectrum analysis?  */
             DETECTOR_HAS_TDEV                   = 1 << 5,  /*!< Does the Detector support time deviation correction?  */
+            DETECTOR_HAS_STREAMING              = 1 << 6,  /*!< Does the Detector supports streaming?  */
         } DetectorCapability;
 
         virtual bool initProperties();
@@ -491,6 +505,14 @@ class Detector : public DefaultDevice
         bool HasTimeDeviation()
         {
             return capability & DETECTOR_HAS_TDEV;
+        }
+
+        /**
+         * @return  True if the Detector supports live video streaming. False otherwise.
+         */
+        bool HasStreaming()
+        {
+            return capability & DETECTOR_HAS_STREAMING;
         }
 
         /**
@@ -599,6 +621,18 @@ class Detector : public DefaultDevice
         void Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample);
 
         /**
+         * @brief StartStreaming Start live video streaming
+         * @return True if successful, false otherwise.
+         */
+        virtual bool StartStreaming();
+
+        /**
+         * @brief StopStreaming Stop live video streaming
+         * @return True if successful, false otherwise.
+         */
+        virtual bool StopStreaming();
+
+        /**
          * \brief Add FITS keywords to a fits file
          * \param fptr pointer to a valid FITS file.
          * \param targetDevice The target device to extract the keywords from.
@@ -648,10 +682,9 @@ class Detector : public DefaultDevice
         // Sky Quality
         double MPSAS;
 
-        std::vector<std::string> FilterNames;
-        int CurrentFilterSlot;
-
         DetectorDevice PrimaryDetector;
+
+        std::unique_ptr<StreamManager> Streamer;
 
         //  We are going to snoop these from a telescope
         INumberVectorProperty EqNP;
@@ -704,6 +737,10 @@ class Detector : public DefaultDevice
         bool uploadFile(DetectorDevice *targetDevice, const void *fitsData, size_t totalBytes, bool sendCapture, bool saveCapture, int blobindex);
         void getMinMax(double *min, double *max, uint8_t *buf, int len, int bpp);
         int getFileIndex(const char *dir, const char *prefix, const char *ext);
-};
 
+        /////////////////////////////////////////////////////////////////////////////
+        /// Misc.
+        /////////////////////////////////////////////////////////////////////////////
+        friend class StreamManager;
+};
 }

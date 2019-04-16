@@ -20,18 +20,18 @@
 
 void dsp_filter_squarelaw(dsp_stream_p stream)
 {
-    double* in = stream->buf;
-    double *out = calloc(sizeof(double), stream->len);
+    dsp_t* in = stream->buf;
+    dsp_t *out = calloc(sizeof(dsp_t), stream->len);
     int len = stream->len;
-    double mean = dsp_stats_mean(stream);
+    double mean = dsp_stats_mean(stream->buf, stream->len);
     int val = 0;
     int i;
     for(i = 0; i < len; i++) {
         val = in [i] - mean;
         out [i] = (abs (val) + mean);
     }
-    dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, out, stream->len);
+    memcpy(stream->buf, out, stream->len * sizeof(dsp_t));
+    free(out);
 }
 
 void dsp_filter_calc_coefficients(double SamplingFrequency, double LowFrequency, double HighFrequency, double* CF, double* R, double *K)
@@ -42,34 +42,40 @@ void dsp_filter_calc_coefficients(double SamplingFrequency, double LowFrequency,
     *K = (1.0 - *R * *CF + *R * *R) / (2.0 - *CF);
 }
 
-void dsp_filter_lowpass(dsp_stream_p stream, double SamplingFrequency, double Frequency, double Q)
+void dsp_filter_lowpass(dsp_stream_p stream, double SamplingFrequency, double Frequency)
 {
-    double *out = calloc(sizeof(double), stream->len);
-    double wa = 0.0;
+    dsp_t *out = calloc(sizeof(dsp_t), stream->len);
     double CF = cos(Frequency / 2.0 * M_PI / SamplingFrequency);
-    for(int i = 1; i < stream->len; i++) {
-        wa = stream->buf[i] + (wa - stream->buf[i]) * (CF * Q);
-        out[i] = wa;
+    int dim = -1;
+    out[0] = stream->buf[0];
+    while (dim++ < stream->dims - 1) {
+        int size = (dim < 0 ? 1 : stream->sizes[dim]);
+        for(int i = size; i < stream->len; i+=size) {
+            out[i] += stream->buf[i] + (out[i - size] - stream->buf[i]) * CF;
+        }
     }
-    dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, out, stream->len);
+    memcpy(stream->buf, out, stream->len * sizeof(dsp_t));
+    free(out);
 }
 
-void dsp_filter_highpass(dsp_stream_p stream, double SamplingFrequency, double Frequency, double Q)
+void dsp_filter_highpass(dsp_stream_p stream, double SamplingFrequency, double Frequency)
 {
-    double *out = calloc(sizeof(double), stream->len);
-    double wa = 0.0;
+    dsp_t *out = calloc(sizeof(dsp_t), stream->len);
     double CF = cos(Frequency / 2.0 * M_PI / SamplingFrequency);
-    for(int i = 1; i < stream->len; i++) {
-        wa = stream->buf[i] + (wa - stream->buf[i]) * (CF * Q);
-        out[i] = stream->buf[i] - wa;
+    int dim = -1;
+    out[0] = stream->buf[0];
+    while (dim++ < stream->dims - 1) {
+        int size = (dim < 0 ? 1 : stream->sizes[dim]);
+        for(int i = size; i < stream->len; i+=size) {
+            out[i] += stream->buf[i] + (out[i - size] - stream->buf[i]) * CF;
+        }
     }
-    dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, out, stream->len);
+    dsp_buffer_sub(stream, out, stream->len);
+    free(out);
 }
 
 void dsp_filter_bandreject(dsp_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
-    double *out = calloc(sizeof(double), stream->len);
+    dsp_t *out = calloc(sizeof(dsp_t), stream->len);
     double R, K, CF;
     dsp_filter_calc_coefficients(SamplingFrequency, LowFrequency, HighFrequency, &CF, &R, &K);
     double R2 = R*R;
@@ -77,23 +83,29 @@ void dsp_filter_bandreject(dsp_stream_p stream, double SamplingFrequency, double
     double a[3] = { K, -K*CF, K };
     double b[2] = { R*CF, -R2 };
 
-    for(int i = 0; i < stream->len; i++) {
-        out[i] = 0;
-        for(int x = 0; x < 3; x++) {
-            out[i] += stream->buf[i + x] * a[2 - x];
-        }
-        if(i > 1) {
-            for(int x = 0; x < 2; x++) {
-                out[i] -= out[i - 2 + x] * b[x];
+    int dim = -1;
+    while (dim++ < stream->dims - 1) {
+        for(int i = 0; i < stream->len; i++) {
+            int size = (dim < 0 ? 1 : stream->sizes[dim]);
+            out[i] = 0;
+            if(i < stream->len - 2 * size) {
+                for(int x = 0; x < 3; x++) {
+                    out[i] += (dsp_t)stream->buf[i + x * size] * a[2 - x];
+                }
+            }
+            if(i > size) {
+                for(int x = 0; x < 2; x++) {
+                    out[i] -= out[i - 2 * size + x * size] * b[x];
+                }
             }
         }
     }
-    dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, out, stream->len);
+    memcpy(stream->buf, out, stream->len * sizeof(dsp_t));
+    free(out);
 }
 
 void dsp_filter_bandpass(dsp_stream_p stream, double SamplingFrequency, double LowFrequency, double HighFrequency) {
-    double *out = calloc(sizeof(double), stream->len);
+    dsp_t *out = calloc(sizeof(dsp_t), stream->len);
     double R, K, CF;
     dsp_filter_calc_coefficients(SamplingFrequency, LowFrequency, HighFrequency, &CF, &R, &K);
     double R2 = R*R;
@@ -101,17 +113,23 @@ void dsp_filter_bandpass(dsp_stream_p stream, double SamplingFrequency, double L
     double a[3] = { 1 - K, (K-R)*CF, R2 - K };
     double b[2] = { R*CF, -R2 };
 
-    for(int i = 0; i < stream->len; i++) {
-        out[i] = 0;
-        for(int x = 0; x < 3; x++) {
-            out[i] += stream->buf[i + x] * a[2 - x];
-        }
-        if(i > 1) {
-            for(int x = 0; x < 2; x++) {
-                out[i] -= out[i - 2 + x] * b[x];
+    int dim = -1;
+    while (dim++ < stream->dims - 1) {
+        for(int i = 0; i < stream->len; i++) {
+            int size = (dim < 0 ? 1 : stream->sizes[dim]);
+            out[i] = 0;
+            if(i < stream->len - 2 * size) {
+                for(int x = 0; x < 3; x++) {
+                    out[i] += (dsp_t)stream->buf[i + x * size] * a[2 - x];
+                }
+            }
+            if(i > size) {
+                for(int x = 0; x < 2; x++) {
+                    out[i] -= out[i - 2 * size + x * size] * b[x];
+                }
             }
         }
     }
-    dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, out, stream->len);
+    memcpy(stream->buf, out, stream->len * sizeof(dsp_t));
+    free(out);
 }
