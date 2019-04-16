@@ -97,7 +97,9 @@ option(WITH_NIGHTSCAPE "Install Nightscape 8300 Driver" On)
 option(WITH_ATIK "Install Atik Driver" On)
 option(WITH_TOUPCAM "Install Toupcam Driver" On)
 option(WITH_ALTAIRCAM "Install Altair Driver" On)
+option(WITH_DREAMFOCUSER "Install DreamFocuser Driver" On)
 option(WITH_AVALON "Install Avalon StarGO Driver" On)
+option(WITH_BEEFOCUS "Install Bee Focuser Driver" On)
 
 find_package(FFmpeg)
 
@@ -114,10 +116,6 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(WITH_INOVAPLX Off)
     set(WITH_GIGE Off)
     set(WITH_FXLOAD Off)
-    set(WITH_QHY Off)
-    set(WITH_RTLSDR Off)
-    set(WITH_RADIOSIM Off)
-    set(WITH_LIMESDR Off)
 ENDIF ()
 # Disable apogee, qhy and mi with gcc 4.8 and earlier versions
 IF (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
@@ -283,6 +281,12 @@ SET(LIBRARIES_FOUND FALSE)
 endif (ALTAIRCAM_FOUND)
 endif (WITH_ALTAIRCAM)
 
+## Bee Focuser
+if (WITH_BEEFOCUS)
+add_subdirectory(indi-beefocus)
+endif(WITH_BEEFOCUS)
+
+
 ## INOVA
 if (WITH_INOVAPLX)
 find_package(INOVASDK)
@@ -430,6 +434,10 @@ if (WITH_NIGHTSCAPE)
 add_subdirectory(indi-nightscape)
 endif(WITH_NIGHTSCAPE)
 
+if (WITH_DREAMFOCUSER)
+add_subdirectory(indi-dreamfocuser)
+endif()
+
 # Avalon StarGO
 if (WITH_AVALON)
 add_subdirectory(indi-avalon)
@@ -486,11 +494,11 @@ message(STATUS "libfishcamp was not found and will now be built. Please install 
 endif (WITH_FISHCAMP AND NOT FISHCAMP_FOUND)
 
 if (WITH_LIMESDR AND NOT LIMESDR_FOUND)
-message(STATUS "liblimesuite was not found and will now be built. Please install liblimesuite first before running cmake again to install indi-limesdr.")
+message(STATUS "liblimesuite was not found. Please install liblimesuite first before running cmake again to install indi-limesdr.")
 endif (WITH_LIMESDR AND NOT LIMESDR_FOUND)
 
 if (WITH_RTLSDR AND NOT RTLSDR)
-message(STATUS "librtlsdr was not found and will now be built. Please install librtlsdr first before running cmake again to install indi-rtlsdr.")
+message(STATUS "librtlsdr was not found. Please install librtlsdr first before running cmake again to install indi-rtlsdr.")
 endif (WITH_RTLSDR AND NOT RTLSDR)
 
 message(STATUS "####################################################################################################################################")

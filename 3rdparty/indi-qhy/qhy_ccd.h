@@ -21,12 +21,11 @@
 
 #pragma once
 
-#include <qhycam.h>
 #include <qhyccd.h>
-
 #include <indiccd.h>
 #include <indifilterinterface.h>
 
+#include <unistd.h>
 #include <functional>
 #include <pthread.h>
 
@@ -59,7 +58,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 
     protected:
         // Misc.
-        //virtual void TimerHit() override;
+        virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE *fp) override;
 
         // CCD
@@ -103,6 +102,14 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         INumber USBTrafficN[1];
         INumberVectorProperty USBTrafficNP;
 
+        ISwitchVectorProperty CoolerModeSP;
+        ISwitch CoolerModeS[2];
+        enum
+        {
+            COOLER_AUTOMATIC,
+            COOLER_MANUAL,
+        };
+
     private:
         typedef enum ImageState
         {
@@ -130,9 +137,13 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         // Setup basic CCD parameters on connection
         bool setupParams();
         // Enable/disable cooler
-        bool activateCooler(bool enable);
+        void setCoolerEnabled(bool enable);
+        // Set Cooler Mode
+        void setCoolerMode(uint8_t mode);
         // Check if the camera is QHY5PII-C model
         bool isQHY5PIIC();
+        // Call when max filter count is known
+        bool updateFilterProperties();
 
         // Temperature update
         void updateTemperature();
@@ -142,20 +153,26 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         char camid[MAXINDIDEVICE];
 
         // CCD extra capabilities
-        bool HasUSBTraffic;
-        bool HasUSBSpeed;
-        bool HasGain;
-        bool HasOffset;
-        bool HasFilters;
-        bool HasTransferBit;
+        bool HasUSBTraffic { false };
+        bool HasUSBSpeed { false };
+        bool HasGain { false };
+        bool HasOffset { false };
+        bool HasFilters { false };
+        bool HasTransferBit { false };
+        bool HasCoolerAutoMode { false };
+        bool HasCoolerManualMode { false };
 
-        qhyccd_handle *m_CameraHandle;
+        qhyccd_handle *m_CameraHandle {nullptr};
         INDI::CCDChip::CCD_FRAME m_ImageFrameType;
 
-        // Temperature tracking
+        // Requested target temperature
         double m_TemperatureRequest {0};
-        int temperatureID;
-        bool coolerEnabled;
+        // Requested target PWM
+        double m_PWMRequest { -1 };
+        // Max filter count.
+        int m_MaxFilterCount { -1 };
+        // Temperature Timer
+        int m_TemperatureTimerID;
 
         // Exposure progress
         double m_ExposureRequest;
@@ -164,8 +181,11 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         struct timeval ExpStart;
 
         // Gain
-        double GainRequest;
-        double LastGainRequest;
+        double GainRequest = 1e6;
+        double LastGainRequest = 1e6;
+
+        // Filter Wheel Timeout
+        uint16_t m_FilterCheckCounter = 0;
 
         // Threading
         // Imaging thread

@@ -237,7 +237,7 @@ IPState GPUSB::GuideEast(uint32_t ms)
 
     driver->startPulse(GPUSB_EAST);
 
-    NSDirection = GPUSB_EAST;
+    WEDirection = GPUSB_EAST;
 
     LOG_DEBUG("Starting EAST guide");
 
@@ -256,7 +256,7 @@ IPState GPUSB::GuideWest(uint32_t ms)
 
     driver->startPulse(GPUSB_WEST);
 
-    NSDirection = GPUSB_WEST;
+    WEDirection = GPUSB_WEST;
 
     LOG_DEBUG("Starting WEST guide");
 

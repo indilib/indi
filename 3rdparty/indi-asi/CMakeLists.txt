@@ -11,12 +11,12 @@ find_package(ZLIB REQUIRED)
 find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
 
-# Using ASI Camera SDK Version 1.13.0930 updated on 2018-10-01
+# Using ASI Camera SDK Version 1.14.0227 updated on 2019-03-12
 # Using ASI EFW SDK Version 0.3.1205 updated on 2017-12-05
 # Using ASI ST4 SDK Version 1.0 updated on 2018-07-23
 # Using ASI EAF SDK Version 0.0.1128 updated on 2019-01-21
 set(ASI_VERSION_MAJOR 1)
-set(ASI_VERSION_MINOR 0)
+set(ASI_VERSION_MINOR 2)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_asi.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_asi.xml)
@@ -65,7 +65,7 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "i[3-6]86")
     set(ASICAMLIB ${CMAKE_CURRENT_SOURCE_DIR}/x86/libASICamera2.bin)
     set(ASIFWLIB ${CMAKE_CURRENT_SOURCE_DIR}/x86/libEFWFilter.bin)
-    set(ASIEAFLIB ${CMAKE_CURRENT_SOURCE_DIR}/x32/libEAFFocuser.bin)
+    set(ASIEAFLIB ${CMAKE_CURRENT_SOURCE_DIR}/x86/libEAFFocuser.bin)
     set(ASIST4LIB ${CMAKE_CURRENT_SOURCE_DIR}/x86/libUSB2ST4Conv.bin)
     message("-- Using 32 bit static ASI library")
 endif ()

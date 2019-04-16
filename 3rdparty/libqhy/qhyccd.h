@@ -6,6 +6,10 @@
 #include "config.h"
 #include <functional>
 
+
+
+
+
 #if defined (_WIN32)
 #include "cyapi.h"
 #endif
@@ -51,6 +55,7 @@ EXPORTC uint32_t STDCALL InitQHYCCDResource(void);
 	  another QHYCCD_ERROR code on other failures
   */
 EXPORTC uint32_t STDCALL ReleaseQHYCCDResource(void);
+EXPORTC uint32_t STDCALL ReleaseQHYCCDResourceOne(qhyccd_handle *h);
 
 /** \fn uint32_t ScanQHYCCD()
       \brief scan the connected cameras
@@ -723,6 +728,14 @@ EXPORTC uint32_t STDCALL GetQHYCCDReadModeName(qhyccd_handle *h,uint32_t modeNum
 EXPORTC uint32_t STDCALL SetQHYCCDReadMode(qhyccd_handle *h,uint32_t modeNumber);
 // Get the read mode
 EXPORTC uint32_t STDCALL GetQHYCCDReadMode(qhyccd_handle *h,uint32_t* modeNumber);
+
+EXPORTC uint32_t STDCALL GetQHYCCDBeforeOpenParam(
+	QHYCameraParam *p, 
+	CONTROL_ID controlId);
+
+#if CALLBACK_MODE_SUPPORT
+EXPORTC uint32_t STDCALL SetQHYCCDCallBack(QHYCCDProcCallBack ProcCallBack);
+#endif
 
 
 #endif

@@ -71,9 +71,9 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso::SestoSenso()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
 }
 
 bool SestoSenso::initProperties()
@@ -87,10 +87,6 @@ bool SestoSenso::initProperties()
     // Focuser temperature
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
-
-    // Sync
-    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 60000., 0., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Limits
     IUFillNumber(&LimitsN[SS_MIN_LIMIT], "FOCUS_MIN_STEP", "Min", "%.f", 0, 10000., 0., 0.);
@@ -123,8 +119,6 @@ bool SestoSenso::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SyncNP);
-
         // Only define temperature if there is a probe
         if (updateTemperature())
             defineNumber(&TemperatureNP);
@@ -138,7 +132,6 @@ bool SestoSenso::updateProperties()
     }
     else
     {
-        deleteProperty(SyncNP.name);
         if (TemperatureNP.s == IPS_OK)
             deleteProperty(TemperatureNP.name);
         deleteProperty(FirmwareTP.name);
@@ -192,17 +185,28 @@ bool SestoSenso::Ack()
 bool SestoSenso::updateTemperature()
 {
     char res[SESTO_LEN] = {0};
+    double temperature = 0;
 
     if (isSimulation())
         strncpy(res, "23.45", SESTO_LEN);
     else if (sendCommand("#QT!", res) == false)
         return false;
 
-    if (std::stod(res) > 90)
+    try
+    {
+        temperature = std::stod(res);
+    }
+    catch(...)
+    {
+        LOGF_WARN("Failed to process temperature response: %s (%d bytes)", res, strlen(res));
+        return false;
+    }
+
+    if (temperature > 90)
         return false;
 
-    TemperatureN[0].value = std::stod(res);
-    TemperatureNP.s = (TemperatureN[0].value == 99.00) ? IPS_IDLE : IPS_OK;
+    TemperatureN[0].value = temperature;
+    TemperatureNP.s = IPS_OK;
 
     return true;
 }
@@ -244,10 +248,18 @@ bool SestoSenso::updatePosition()
     else if (sendCommand("#QP!", res) == false)
         return false;
 
-    FocusAbsPosN[0].value = std::stoi(res);
-    FocusAbsPosNP.s = IPS_OK;
-
-    return true;
+    try
+    {
+        FocusAbsPosN[0].value = std::stoi(res);
+        FocusAbsPosNP.s = IPS_OK;
+        return true;
+    }
+    catch(...)
+    {
+        LOGF_WARN("Failed to process position response: %s (%d bytes)", res, strlen(res));
+        FocusAbsPosNP.s = IPS_ALERT;
+        return false;
+    }
 }
 
 bool SestoSenso::isMotionComplete()
@@ -275,36 +287,44 @@ bool SestoSenso::isMotionComplete()
     }
     else
     {
-        int rc = 0, nbytes_read = 0;
-        if ((rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, SESTO_TIMEOUT, &nbytes_read)) != TTY_OK)
+        int rc = TTY_OK, nbytes_read = 0;
+
+        //while (rc != TTY_TIME_OUT)
+        //{
+        rc = tty_read_section(PortFD, res, SESTO_STOP_CHAR, 1, &nbytes_read);
+        if (rc == TTY_OK)
         {
-            char errmsg[MAXRBUF];
-            tty_error_msg(rc, errmsg, MAXRBUF);
-            LOGF_ERROR("%s error: %s.", __FUNCTION__, errmsg);
-            return false;
+            res[nbytes_read - 1] = 0;
+
+            if (!strcmp(res, "GTok!"))
+                return true;
+
+            try
+            {
+                uint32_t newPos = std::stoi(res);
+                FocusAbsPosN[0].value = newPos;
+                //IDSetNumber(&FocusAbsPosNP, nullptr);
+                //if (newPos == targetPos)
+                //    return true;
+            }
+            catch (...)
+            {
+                LOGF_WARN("Failed to process motion response: %s (%d bytes)", res, strlen(res));
+            }
         }
-        res[nbytes_read - 1] = 0;
+        //}
     }
-
-    if (!strcmp(res, "GTok!"))
-        return true;
-
-    uint32_t newPos = std::stoi(res);
-    FocusAbsPosN[0].value = newPos;
-
-    if (newPos == targetPos)
-        return true;
 
     return false;
 }
 
-bool SestoSenso::sync(uint32_t newPosition)
+bool SestoSenso::SyncFocuser(uint32_t ticks)
 {
     char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
-    snprintf(cmd, SESTO_LEN, "#SP%d!", newPosition);
+    snprintf(cmd, SESTO_LEN, "#SP%d!", ticks);
 
     if (isSimulation())
-        FocusAbsPosN[0].value = newPosition;
+        FocusAbsPosN[0].value = ticks;
     else if (sendCommand(cmd, res) == false)
         return false;
 
@@ -406,18 +426,6 @@ bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[],
 
             return true;
         }
-
-        // Sync current position
-        else if (!strcmp(name, SyncNP.name))
-        {
-            IUUpdateNumber(&SyncNP, values, names, n);
-            if (sync(SyncN[0].value))
-                SyncNP.s = IPS_OK;
-            else
-                SyncNP.s = IPS_ALERT;
-            IDSetNumber(&SyncNP, nullptr);
-            return true;
-        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -435,67 +443,65 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
             return IPS_ALERT;
     }
 
+    if (m_MotionProgressTimerID > 0)
+        IERmTimer(m_MotionProgressTimerID);
+    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso::checkMotionProgressHelper, this);
     return IPS_BUSY;
 }
 
 IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double newPosition = 0;
-    bool rc            = false;
+    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == REVERSED_ENABLED) ? -1 : 1;
+    int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
+    double newPosition = FocusAbsPosN[0].value + relativeTicks;
 
-    if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
-    else
-        newPosition = FocusAbsPosN[0].value + ticks;
+    bool rc = MoveAbsFocuser(newPosition);
 
-    rc = MoveAbsFocuser(newPosition);
-
-    if (!rc)
-        return IPS_ALERT;
-
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
-
-    return IPS_BUSY;
+    return (rc ? IPS_BUSY : IPS_ALERT);
 }
 
 bool SestoSenso::AbortFocuser()
 {
+    if (m_MotionProgressTimerID > 0)
+    {
+        IERmTimer(m_MotionProgressTimerID);
+        m_MotionProgressTimerID = -1;
+    }
+
     if (isSimulation())
         return true;
 
-    char res[SESTO_LEN] = {0};
+    return sendCommand("#MA!");
+}
 
-    if (sendCommand("#MA!", res))
+void SestoSenso::checkMotionProgressHelper(void *context)
+{
+    static_cast<SestoSenso*>(context)->checkMotionProgressCallback();
+}
+
+void SestoSenso::checkMotionProgressCallback()
+{
+    if (isMotionComplete())
     {
-        return !strcmp(res, "MAok!");
+        FocusAbsPosNP.s = IPS_OK;
+        FocusRelPosNP.s = IPS_OK;
+        IDSetNumber(&FocusRelPosNP, nullptr);
+        IDSetNumber(&FocusAbsPosNP, nullptr);
+        LOG_INFO("Focuser reached requested position.");
     }
+    else
+        IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    return false;
+    lastPos = FocusAbsPosN[0].value;
+
+    IERmTimer(m_MotionProgressTimerID);
+    m_MotionProgressTimerID = IEAddTimer(10, &SestoSenso::checkMotionProgressHelper, this);
 }
 
 void SestoSenso::TimerHit()
 {
-    if (!isConnected())
+    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
-        SetTimer(POLLMS);
-        return;
-    }
-
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
-    {
-        if (isMotionComplete())
-        {
-            FocusAbsPosNP.s = IPS_OK;
-            FocusRelPosNP.s = IPS_OK;
-            IDSetNumber(&FocusRelPosNP, nullptr);
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-            LOG_INFO("Focuser reached requested position.");
-        }
-        else
-            IDSetNumber(&FocusAbsPosNP, nullptr);
-
-        lastPos = FocusAbsPosN[0].value;
         SetTimer(POLLMS);
         return;
     }
@@ -503,7 +509,7 @@ void SestoSenso::TimerHit()
     bool rc = updatePosition();
     if (rc)
     {
-        if (lastPos != FocusAbsPosN[0].value)
+        if (fabs(lastPos - FocusAbsPosN[0].value) > 0)
         {
             IDSetNumber(&FocusAbsPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
@@ -532,9 +538,10 @@ bool SestoSenso::getStartupValues()
     if (rc1)
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    bool rc2 = updateMaxLimit();
+    if (updateMaxLimit() == false)
+        LOG_WARN("SestoSenso firmware is old, please update it to benefit from all features.");
 
-    return (rc1 && rc2);
+    return (rc1);
 }
 
 bool SestoSenso::sendCommand(const char * cmd, char * res, int cmd_len, int res_len)
@@ -606,4 +613,10 @@ void SestoSenso::hexDump(char * buf, const char * data, int size)
 
     if (size > 0)
         buf[3 * size - 1] = '\0';
+}
+
+bool SestoSenso::ReverseFocuser(bool enable)
+{
+    INDI_UNUSED(enable);
+    return true;
 }

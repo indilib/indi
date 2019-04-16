@@ -11,9 +11,10 @@ find_package(ZLIB REQUIRED)
 find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(ATIK REQUIRED)
+FIND_LIBRARY(M_LIB m)
 
 set(ATIK_VERSION_MAJOR 2)
-set(ATIK_VERSION_MINOR 1)
+set(ATIK_VERSION_MINOR 2)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_atik.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_atik.xml)
@@ -33,7 +34,7 @@ set(indi_atik_SRCS
 
 add_executable(indi_atik_ccd ${indi_atik_SRCS})
 
-target_link_libraries(indi_atik_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${ATIK_LIBRARIES} ${USB1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(indi_atik_ccd ${INDI_LIBRARIES} ${CFITSIO_LIBRARIES} ${ATIK_LIBRARIES} ${USB1_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${M_LIB})
 
 
 ########## indi_atik_wheel ###########

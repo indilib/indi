@@ -17,6 +17,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#include "defaultdevice.h"
 #include "indidetector.h"
 
 #include "indicom.h"
@@ -270,6 +271,9 @@ Detector::Detector()
     RA              = -1000;
     Dec             = -1000;
     MPSAS           = -1000;
+    Lat             = -1000;
+    Lon             = -1000;
+    El              = -1000;
     primaryAperture = primaryFocalLength - 1;
 }
 
@@ -794,6 +798,26 @@ void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uin
     {
         fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
     }
+
+    Lat = this->getNumber("GEOGRAPHIC_COORDS")->np[0].value;
+    Lon = this->getNumber("GEOGRAPHIC_COORDS")->np[1].value;
+    El = this->getNumber("GEOGRAPHIC_COORDS")->np[2].value;
+
+    if (Lat != -1000 && Lon != -1000 && El != -1000)
+    {
+        char lat_str[32];
+        char lon_str[32];
+        char el_str[32];
+        fs_sexa(lat_str, Lat, 2, 360000);
+        fs_sexa(lat_str, Lon, 2, 360000);
+        sprintf(el_str, "%lf", El);
+        fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
+        fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
+        fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
+    }
+
+    RA = this->getNumber("EQUATORIAL_EOD_COORDS")->np[0].value;
+    Dec = this->getNumber("EQUATORIAL_EOD_COORDS")->np[1].value;
 
     if (RA != -1000 && Dec != -1000)
     {
