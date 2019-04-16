@@ -280,13 +280,13 @@ bool NexStarAUXScope::detectScope()
     for (int n = 0; n < 10; n++)
     {
         recvlen = recvfrom(fd, buf, BUFSIZE, 0, (struct sockaddr *)&remaddr, &addrlen);
-        // Scope broadcasts 110b UDP packets from port 2000 to 55555
+        // Scope broadcasts 110b/108b UDP packets from port 2000/4097 to 55555
         // we use it for detection
-        if (ntohs(remaddr.sin_port) == 2000 && recvlen == 110)
+        if ((ntohs(remaddr.sin_port) == 2000 && recvlen == 110) || (ntohs(remaddr.sin_port) == 4097 && recvlen == 108))
         {
             fprintf(stderr, "%s:%d (%d)\n", inet_ntoa(remaddr.sin_addr), ntohs(remaddr.sin_port), recvlen);
             addr.sin_addr.s_addr = remaddr.sin_addr.s_addr;
-            addr.sin_port        = remaddr.sin_port;
+            addr.sin_port        = htons(2000);
             close(fd);
             return true;
         }
@@ -308,7 +308,7 @@ bool NexStarAUXScope::Connect(int PortFD)
         return true;
     }
 
-    // Detect the scope by UDP broadcasts from port 2000 to port 55555
+    // Detect the scope by UDP broadcasts from port 2000/4097 to port 55555
     // This is just to print where is the scope if there is no connection
     if (!detectScope())
     {
