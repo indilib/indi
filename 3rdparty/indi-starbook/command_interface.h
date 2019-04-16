@@ -98,7 +98,7 @@ namespace starbook {
 
         ResponseCode SetSpeed(int speed);
 
-        ResponseCode SetPlace(LnLat posn, int tz);
+        ResponseCode SetPlace(LnLat posn, short tz);
 
         ResponseCode SetTime(ln_date &local_time);
 

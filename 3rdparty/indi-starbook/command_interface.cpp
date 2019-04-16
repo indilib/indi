@@ -143,7 +143,7 @@ namespace starbook {
         return SendOkCommand(cmd.str());
     }
 
-    ResponseCode CommandInterface::SetPlace(LnLat posn, int tz) {
+    ResponseCode CommandInterface::SetPlace(LnLat posn, short tz) {
         std::ostringstream cmd;
         if (tz > 12 || tz < -12)
             throw std::domain_error("timezone should be between -12 and 12");
