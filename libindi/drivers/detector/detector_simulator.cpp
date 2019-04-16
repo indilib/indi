@@ -159,7 +159,7 @@ bool RadioSim::Disconnect()
 ***************************************************************************************/
 const char *RadioSim::getDefaultName()
 {
-    return "RadioSim Receiver";
+    return "Detector Simulator";
 }
 
 /**************************************************************************************
