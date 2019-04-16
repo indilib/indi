@@ -33,22 +33,22 @@ class RadioSim : public INDI::Detector
     public:
         RadioSim();
 
-        bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n);
-        void ISGetProperties(const char *dev);
+        bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
+        void ISGetProperties(const char *dev) override;
 
     protected:
         // General device functions
-        bool Connect();
-        bool Disconnect();
-        const char *getDefaultName();
-        bool initProperties();
-        bool updateProperties();
+        bool Connect() override;
+        bool Disconnect() override;
+        const char *getDefaultName() override;
+        bool initProperties() override;
+        bool updateProperties() override;
 
         // Detector specific functions
-        bool StartCapture(float duration);
-        bool CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain);
-        bool AbortCapture();
-        void TimerHit();
+        bool StartCapture(float duration) override;
+        bool CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain) override;
+        bool AbortCapture() override;
+        void TimerHit() override;
 
         virtual bool StartStreaming() override;
         virtual bool StopStreaming() override;

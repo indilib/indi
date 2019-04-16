@@ -134,9 +134,12 @@ bool RadioSim::Connect()
     LOG_INFO("RadioSim connected successfully!");
     continuum = (uint8_t*)malloc(sizeof(uint8_t));
     spectrum = (uint8_t*)malloc(sizeof(uint8_t));
+    streamPredicate = 0;
+    terminateThread = false;
+    pthread_create(&primary_thread, nullptr, &streamVideoHelper, this);
     // Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
-    //SetTimer(POLLMS);
+    SetTimer(POLLMS);
 
 
     return true;
