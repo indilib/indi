@@ -50,14 +50,14 @@ void dsp_stream_free_buffer(dsp_stream_p stream)
 
 dsp_stream_p dsp_stream_new()
 {
-    dsp_stream_p stream = (dsp_stream_p)calloc(sizeof(dsp_stream), 1);
-    stream->buf = (dsp_t*)calloc(sizeof(dsp_t), 1);
-    stream->sizes = (int*)calloc(sizeof(int), 1);
-    stream->children = calloc(sizeof(dsp_stream_p), 1);
-    stream->ROI = (dsp_region*)calloc(sizeof(dsp_region), 1);
-    stream->location = (double*)calloc(sizeof(double), 3);
-    stream->target = (double*)calloc(sizeof(double), 3);
-    stream->stars = (dsp_star**)calloc(sizeof(dsp_star*), 1);
+    dsp_stream_p stream = (dsp_stream_p)malloc(sizeof(dsp_stream) * 1);
+    stream->buf = (dsp_t*)malloc(sizeof(dsp_t) * 1);
+    stream->sizes = (int*)malloc(sizeof(int) * 1);
+    stream->children = malloc(sizeof(dsp_stream_p) * 1);
+    stream->ROI = (dsp_region*)malloc(sizeof(dsp_region) * 1);
+    stream->location = (double*)malloc(sizeof(double) * 3);
+    stream->target = (double*)malloc(sizeof(double) * 3);
+    stream->stars = (dsp_star**)malloc(sizeof(dsp_star*) * 1);
     stream->child_count = 0;
     stream->parent = NULL;
     stream->dims = 0;
@@ -106,7 +106,7 @@ void dsp_stream_add_star(dsp_stream_p stream, dsp_star *star)
 
 void dsp_stream_del_dim(dsp_stream_p stream, int index)
 {
-    int* sizes = (int*)calloc(sizeof(int), stream->dims);
+    int* sizes = (int*)malloc(sizeof(int) * stream->dims);
     int dims = stream->dims;
     memcpy(sizes, stream->sizes, sizeof(int) * stream->dims);
     free(stream->sizes);
@@ -128,7 +128,7 @@ void dsp_stream_add_child(dsp_stream_p stream, dsp_stream_p child)
 
 void dsp_stream_del_child(dsp_stream_p stream, int index)
 {
-    dsp_stream_p* children = (dsp_stream_p*)calloc(sizeof(dsp_stream_p), stream->child_count);
+    dsp_stream_p* children = (dsp_stream_p*)malloc(sizeof(dsp_stream_p) * stream->child_count);
     int child_count = stream->child_count;
     memcpy(children, stream->children, sizeof(dsp_stream_p*) * stream->child_count);
     free(stream->children);

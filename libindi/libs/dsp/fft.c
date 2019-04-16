@@ -36,7 +36,7 @@ double dsp_fourier_complex_get_phase(dsp_complex n)
 double* dsp_fourier_complex_array_get_magnitude(dsp_complex* in, int len)
 {
     int i;
-    double* out = (double*)calloc(sizeof(double), len);
+    double* out = (double*)malloc(sizeof(double) * len);
     for(i = 0; i < len; i++) {
         out [i] = (double)dsp_fourier_complex_get_magnitude(in [i]);
     }
@@ -46,7 +46,7 @@ double* dsp_fourier_complex_array_get_magnitude(dsp_complex* in, int len)
 double* dsp_fourier_complex_array_get_phase(dsp_complex* in, int len)
 {
     int i;
-    double* out = (double*)calloc(sizeof(double), len);
+    double* out = (double*)malloc(sizeof(double) * len);
     for(i = 0; i < len; i++) {
         out [i] = (double)dsp_fourier_complex_get_phase(in [i]);
     }
@@ -55,7 +55,7 @@ double* dsp_fourier_complex_array_get_phase(dsp_complex* in, int len)
 
 dsp_complex* dsp_fourier_dft(dsp_stream_p stream)
 {
-    dsp_complex* dft = calloc(sizeof(dsp_complex*), stream->len);
+    dsp_complex* dft = malloc(sizeof(dsp_complex*) * stream->len);
     for(int x = 0; x < stream->len; x++) {
         dft[x].real = stream->buf[x];
         dft[x].imaginary = stream->buf[x];

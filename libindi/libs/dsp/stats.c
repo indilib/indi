@@ -22,8 +22,8 @@ dsp_t* dsp_stats_histogram(dsp_stream_p stream, int size)
 {
     int k;
     dsp_stream_p o = dsp_stream_copy(stream);
-    dsp_t* out = calloc(sizeof(dsp_t), size);
-    long* i = calloc(sizeof(long), o->len);
+    dsp_t* out = (dsp_t*)malloc(sizeof(dsp_t) * size);
+    long* i = (long*)malloc(sizeof(long) * o->len);
     dsp_buffer_normalize(o->buf, o->len, 0.0, size);
     dsp_buffer_copy(o->buf, i, o->len);
     dsp_buffer_copy(i, o->buf, o->len);

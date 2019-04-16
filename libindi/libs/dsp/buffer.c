@@ -22,7 +22,7 @@ void dsp_buffer_shift(dsp_stream_p stream)
 {
     if(stream->dims == 0)
         return;
-    dsp_t* out = (dsp_t*)calloc(sizeof(dsp_t), stream->len);
+    dsp_t* out = (dsp_t*)malloc(sizeof(dsp_t) * stream->len);
     for(int len = 1, dim = 0; dim < stream->dims; dim++, len *= stream->sizes[dim]) {
         for(int y = 0; y < stream->len; y += len) {
             int offset = len / 2;

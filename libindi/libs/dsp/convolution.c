@@ -19,7 +19,7 @@
 #include "dsp.h"
 
 void dsp_convolution_convolution(dsp_stream_p stream, dsp_stream_p matrix) {
-    double *tmp = calloc(sizeof(double), stream->len);
+    double *tmp = malloc(sizeof(double) * stream->len);
     for(int y = 0; y < matrix->len; y++)
     {
         double value = 0;
