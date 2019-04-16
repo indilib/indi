@@ -17,7 +17,6 @@
  */
 
 #include "dsp.h"
-#include "fftw3.h"
 
 double dsp_fourier_complex_get_magnitude(dsp_complex n)
 {
