@@ -23,6 +23,10 @@
 extern "C" {
 #endif
 
+#ifndef DLL_EXPORT
+#define DLL_EXPORT extern
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,19 +37,6 @@ extern "C" {
 #include <assert.h>
 #include <pthread.h>
 
-#ifndef Min
-#define Min(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
-#endif
-
-#ifndef Max
-#define Max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-#endif
 
 /**
  * \defgroup DSP Digital Signal Processing API
@@ -58,7 +49,35 @@ extern "C" {
 */
 /*@{*/
 
+/**
+ * \defgroup DSP_Defines DSP API defines
+*/
+/*@{*/
 
+#ifndef dsp_t
+#define dsp_t double
+#endif
+
+///if min() is not present you can use this one
+#ifndef Min
+#define Min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+#endif
+///if max() is not present you can use this one
+#ifndef Max
+#define Max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+#endif
+///Logarithm of a with arbitrary base b
+#ifndef Log
+#define Log(a,b) \
+( log(a) / log(b) )
+#endif
+/*@}*/
 /**
  * \defgroup DSP_Types DSP API types
 */
@@ -78,8 +97,8 @@ typedef struct dsp_point_t
 
 /**
 * \brief Complex number, used in Fourier Transform functions
-* \sa dsp_fft_dft
-* \sa dsp_fft_complex_to_magnitude
+* \sa dsp_fourier_dft
+* \sa dsp_fourier_complex_to_magnitude
 */
 typedef struct dsp_complex_t
 {
@@ -114,7 +133,7 @@ typedef struct dsp_star_t
 /**
 * \brief Multi-dimensional processing delegate function
 */
-typedef void *(*dsp_func_t) (void *);
+typedef void *(*dsp_func_t) (void *, ...);
 
 /**
 * \brief Contains a set of informations and data relative to a buffer and how to use it
@@ -132,15 +151,21 @@ typedef struct dsp_stream_t
 /// Sizes of each dimension
     int* sizes;
 /// buffer
-    double* buf;
+    dsp_t* buf;
 /// Optional argument for the func() callback
     void *arg;
-/// Parent stream if the current is its child
+/// The stream this one is child of
     struct dsp_stream_t* parent;
 /// Children streams of the current one
     struct dsp_stream_t** children;
 /// Children streams count
     int child_count;
+/// Location coordinates
+    double* location;
+/// Target coordinates
+    double* target;
+/// Time at the beginning of the stream
+    struct timespec starttimeutc;
 /// Wavelength observed, used as reference with signal generators or filters
     double lambda;
 /// Sample rate of the buffers
@@ -152,81 +177,93 @@ typedef struct dsp_stream_t
 /// Regions of interest for each dimension
     dsp_region *ROI;
 /// Stars or objects identified into the buffers - TODO
-    dsp_star *stars;
+    dsp_star **stars;
+/// Stars or objects quantity - TODO
+    int star_count;
 } dsp_stream, *dsp_stream_p;
 
 /*@}*/
 /**
- * \defgroup DSP_FourierTransform DSP API Fourier transform related functions
+ * \defgroup dsp_FourierTransform DSP API Fourier transform related functions
 */
 /*@{*/
 
 /**
-* \brief Discrete Fourier Transform of a dsp_stream
+* \brief Perform a discrete Fourier Transform of a dsp_stream
 * \param stream the input stream.
 * \return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 */
-extern dsp_complex* dsp_fft_dft(dsp_stream_p stream);
+DLL_EXPORT dsp_complex* dsp_fourier_dft(dsp_stream_p stream);
 
 /**
-* \brief Calculate a complex number's magnitude
+* \brief Obtain a complex number's magnitude
 * \param n the input complex.
 * \return the magnitude of the given number
 */
-extern double dsp_fft_complex_to_magnitude(dsp_complex n);
+DLL_EXPORT double dsp_fourier_complex_get_magnitude(dsp_complex n);
 
 /**
-* \brief Calculate a complex number's phase
+* \brief Obtain a complex number's phase
 * \param n the input complex.
 * \return the phase of the given number
 */
-extern double dsp_fft_complex_to_phase(dsp_complex n);
+DLL_EXPORT double dsp_fourier_complex_get_phase(dsp_complex n);
 
 /**
-* \brief Calculate a complex number's array magnitudes
+* \brief Obtain a complex number's array magnitudes
 * \param in the input complex number array.
 * \param len the input array length.
 * \return the array filled with the magnitudes
 */
-extern double*  dsp_fft_complex_array_to_magnitude(dsp_complex* in, int len);
+DLL_EXPORT double* dsp_fourier_complex_array_get_magnitude(dsp_complex* in, int len);
 
 /**
-* \brief Calculate a complex number's array phases
+* \brief Obtain a complex number's array phases
 * \param in the input complex number array.
 * \param len the input array length.
 * \return the array filled with the phases
 */
-extern double*  dsp_fft_complex_array_to_phase(dsp_complex* in, int len);
+DLL_EXPORT double* dsp_fourier_complex_array_get_phase(dsp_complex* in, int len);
+
+/**
+* \brief Perform a discrete Fourier Transform of a dsp_stream and obtain the complex magnitudes
+* \param stream the input stream.
+*/
+DLL_EXPORT void dsp_fourier_dft_magnitude(dsp_stream_p stream);
+
+/**
+* \brief Perform a discrete Fourier Transform of a dsp_stream and obtain the complex phases
+* \param stream the input stream.
+*/
+DLL_EXPORT void dsp_fourier_dft_phase(dsp_stream_p stream);
 
 /*@}*/
 /**
- * \defgroup DSP_Filters DSP API Linear buffer filtering functions
+ * \defgroup dsp_Filters DSP API Linear buffer filtering functions
 */
 /*@{*/
 /**
 * \brief A square law filter
 * \param stream the input stream.
 */
-extern void dsp_filter_squarelaw(dsp_stream_p stream);
+DLL_EXPORT void dsp_filter_squarelaw(dsp_stream_p stream);
 
 /**
 * \brief A low pass filter
 * \param stream the input stream.
 * \param samplingfrequency the sampling frequency of the input stream.
 * \param frequency the cutoff frequency of the filter.
-* \param q the cutoff slope.
 */
-extern void dsp_filter_lowpass(dsp_stream_p stream, double samplingfrequency, double frequency, double q);
+DLL_EXPORT void dsp_filter_lowpass(dsp_stream_p stream, double samplingfrequency, double frequency);
 
 /**
 * \brief A high pass filter
 * \param stream the input stream.
 * \param samplingfrequency the sampling frequency of the input stream.
 * \param frequency the cutoff frequency of the filter.
-* \param q the cutoff slope.
 */
-extern void dsp_filter_highpass(dsp_stream_p stream, double samplingfrequency, double frequency, double q);
+DLL_EXPORT void dsp_filter_highpass(dsp_stream_p stream, double samplingfrequency, double frequency);
 
 /**
 * \brief A band pass filter
@@ -235,7 +272,7 @@ extern void dsp_filter_highpass(dsp_stream_p stream, double samplingfrequency, d
 * \param LowFrequency the high-pass cutoff frequency of the filter.
 * \param HighFrequency the low-pass cutoff frequency of the filter.
 */
-extern void dsp_filter_bandpass(dsp_stream_p stream, double samplingfrequency, double LowFrequency, double HighFrequency);
+DLL_EXPORT void dsp_filter_bandpass(dsp_stream_p stream, double samplingfrequency, double LowFrequency, double HighFrequency);
 
 /**
 * \brief A band reject filter
@@ -244,11 +281,11 @@ extern void dsp_filter_bandpass(dsp_stream_p stream, double samplingfrequency, d
 * \param LowFrequency the high-pass cutoff frequency of the filter.
 * \param HighFrequency the low-pass cutoff frequency of the filter.
 */
-extern void dsp_filter_bandreject(dsp_stream_p stream, double samplingfrequency, double LowFrequency, double HighFrequency);
+DLL_EXPORT void dsp_filter_bandreject(dsp_stream_p stream, double samplingfrequency, double LowFrequency, double HighFrequency);
 
 /*@}*/
 /**
- * \defgroup DSP_Convolution DSP API Convolution and cross-correlation functions
+ * \defgroup dsp_Convolution DSP API Convolution and cross-correlation functions
 */
 /*@{*/
 /**
@@ -256,37 +293,141 @@ extern void dsp_filter_bandreject(dsp_stream_p stream, double samplingfrequency,
 * \param stream1 the first input stream.
 * \param stream2 the second input stream.
 */
-extern void dsp_convolution_convolution(dsp_stream_p stream1, dsp_stream_p stream2);
+DLL_EXPORT void dsp_convolution_convolution(dsp_stream_p stream1, dsp_stream_p stream2);
 
 /*@}*/
 /**
- * \defgroup DSP_Stats DSP API Buffer statistics functions
+ * \defgroup dsp_Stats DSP API Buffer statistics functions
 */
 /*@{*/
 
 /**
-* \brief Gets minimum, mid, and maximum values of the input stream
-* \param stream the stream on which execute
-* \param min the minimum value.
-* \param max the maximum value.
-* \return the mid value (max - min) / 2 + min.
+* \brief Gets the minimum value of the input stream
+* \param buf the input buffer
+* \param len the length in elements of the buffer.
+* \return the minimum value.
 */
-extern double dsp_stats_minmidmax(dsp_stream_p stream, double* min, double* max);
+#define dsp_stats_min(buf, len)\
+({\
+    int i;\
+    __typeof__(buf[0]) min = (__typeof__(buf[0]))buf[0];\
+    for(i = 0; i < len; i++) {\
+        min = Min(buf[i], min);\
+    }\
+    min;\
+    })
+
+/**
+* \brief Gets the maximum value of the input stream
+* \param buf the input buffer
+* \param len the length in elements of the buffer.
+* \return the maximum value.
+*/
+#define dsp_stats_max(buf, len)\
+({\
+    int i;\
+    __typeof__(buf[0]) max = (__typeof__(buf[0]))buf[0];\
+    for(i = 0; i < len; i++) {\
+        max = Max(buf[i], max);\
+    }\
+    max;\
+    })
+
+/**
+* \brief Gets the middle value of the input stream
+* \param buf the input buffer
+* \param len the length in elements of the buffer.
+* \return the middle value.
+*/
+#define dsp_stats_mid(buf, len)\
+({\
+    int i;\
+    __typeof__(buf[0]) min = dsp_stats_min(buf, len);\
+    (__typeof__(buf[0]))(min - dsp_stats_max(buf, len)) / 2.0 + min);\
+})
+
+/**
+* \brief Gets minimum value's position into the buffer
+* \param buf the input buffer
+* \param len the length in elements of the buffer.
+* \return the position index of the minimum value.
+*/
+#define dsp_stats_minimum_index(buf, len)\
+({\
+    int i;\
+    __typeof__(buf[0]) min = dsp_stats_min(buf, len);\
+    for(i = 0; i < len; i++) {\
+        if(buf[i] == min) break;\
+    }\
+    i;\
+    })
+
+/**
+* \brief Gets maximum value's position into the buffer
+* \param buf the input buffer
+* \param len the length in elements of the buffer.
+* \return the position index of the maximum value.
+*/
+#define dsp_stats_maximum_index(buf, len)\
+({\
+    int i;\
+    __typeof__(buf[0]) max = dsp_stats_max(buf, len);\
+    for(i = 0; i < len; i++) {\
+        if(buf[i] == max) break;\
+    }\
+    i;\
+    })
 
 /**
 * \brief A mean calculator
-* \param stream the stream on which execute
+* \param buf the input buffer
+* \param len the length in elements of the buffer.
 * \return the mean value of the stream.
 */
-extern double dsp_stats_mean(dsp_stream_p stream);
+#define dsp_stats_mean(buf, len)\
+({\
+    int i;\
+    __typeof__(buf[0]) mean = 0;\
+    for(i = 0; i < len; i++) {\
+        mean += buf[i];\
+    }\
+    mean /= len;\
+    mean;\
+    })
 
 /**
 * \brief Counts value occurrences into stream
-* \param stream the stream on which execute
+* \param buf the input buffer
+* \param len the length in elements of the buffer.
 * \param val the value to count.
 * \return the count of the value of the stream.
 */
-extern int dsp_stats_val_count(dsp_stream_p stream, double val);
+#define dsp_stats_val_count(buf, len, val) \
+({\
+    int x;\
+    int count = 0;\
+    for(x = 0; x < len; x++) {\
+        if(buf[x] == val)\
+            count ++;\
+    }\
+    count;\
+    })
+
+/**
+* \brief Compare two streams
+* \param in1 the first input buffer
+* \param in2 the second input buffer
+* \param len the length in elements of the buffer.
+* \return the sum of the subtraction of each element of both streams
+*/
+#define dsp_stats_compare(in1, in2, len)\
+({\
+    __typeof__(in1[0]) out = 0;\
+    for(int i = 0; i < len; i++) {\
+        out += in1[i] - (__typeof__(in1[0]))in2[i];\
+    }\
+    out;\
+    })
 
 /**
 * \brief Histogram of the inut stream
@@ -295,28 +436,11 @@ extern int dsp_stats_val_count(dsp_stream_p stream, double val);
 * \return the output stream if successfull elaboration. NULL if an
 * error is encountered.
 */
-extern double* dsp_stats_histogram(dsp_stream_p stream, int size);
-
-/**
-* \brief Sum each buffer's element with its previous in a fibonacci style
-* \param stream the stream on which execute
-* \return the output stream if successfull elaboration. NULL if an
-* error is encountered.
-*/
-extern double* dsp_stats_val_sum(dsp_stream_p stream);
-
-/**
-* \brief Compare two streams
-* \param stream the stream on which execute
-* \param in the buffer operand.
-* \param len the length of the buffer
-* \return the sum of the subtraction of each element of both streams
-*/
-extern double dsp_stats_compare(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT dsp_t* dsp_stats_histogram(dsp_stream_p stream, int size);
 
 /*@}*/
 /**
- * \defgroup DSP_Buffers DSP API Buffer editing functions
+ * \defgroup dsp_Buffers DSP API Buffer editing functions
 */
 /*@{*/
 
@@ -324,29 +448,51 @@ extern double dsp_stats_compare(dsp_stream_p stream, double* in, int len);
 * \brief Shift a stream on each dimension
 * \param stream the input stream.
 */
-extern void dsp_buffer_shift(dsp_stream_p stream);
+DLL_EXPORT void dsp_buffer_shift(dsp_stream_p stream);
 
 /**
 * \brief Subtract mean from stream
 * \param stream the stream on which execute
 */
-extern void dsp_buffer_removemean(dsp_stream_p stream);
+DLL_EXPORT void dsp_buffer_removemean(dsp_stream_p stream);
 
 /**
 * \brief Stretch minimum and maximum values of the input stream
-* \param stream the stream on which execute
+* \param buf the input buffer
+* \param len the length in elements of the buffer.
 * \param min the desired minimum value.
 * \param max the desired maximum value.
 */
-extern void dsp_buffer_stretch(dsp_stream_p stream, double min, double max);
+
+#define dsp_buffer_stretch(buf, len, min, max)\
+({\
+    int k;\
+    __typeof__(buf[0]) mn = dsp_stats_min(buf, len);\
+    __typeof__(buf[0]) mx = dsp_stats_max(buf, len);\
+    double oratio = (max - min);\
+    double iratio = (mx - mn);\
+    if(iratio == 0.0) iratio = 1;\
+    for(k = 0; k < len; k++) {\
+        buf[k] -= mn;\
+        buf[k] = (__typeof__(buf[0]))((double)buf[k] * oratio / iratio);\
+        buf[k] += (__typeof__(buf[0]))min;\
+    }\
+})
 
 /**
 * \brief Normalize the input stream to the minimum and maximum values
-* \param stream the stream on which execute
+* \param buf the input buffer
+* \param len the length in elements of the buffer.
 * \param min the clamping minimum value.
 * \param max the clamping maximum value.
 */
-extern void dsp_buffer_normalize(dsp_stream_p stream, double min, double max);
+#define dsp_buffer_normalize(buf, len, min, max)\
+({\
+        int k;\
+    for(k = 0; k < len; k++) {\
+        buf[k] = (buf[k] < min ? min : (buf[k] > max ? max : buf[k]));\
+        }\
+})
 
 /**
 * \brief Subtract elements of one stream from another's
@@ -354,7 +500,7 @@ extern void dsp_buffer_normalize(dsp_stream_p stream, double min, double max);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-extern void dsp_buffer_sub(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_sub(dsp_stream_p stream, dsp_t* in, int len);
 
 /**
 * \brief Sum elements of one stream to another's
@@ -362,7 +508,7 @@ extern void dsp_buffer_sub(dsp_stream_p stream, double* in, int len);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-extern void dsp_buffer_sum(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_sum(dsp_stream_p stream, dsp_t* in, int len);
 
 /**
 * \brief Divide elements of one stream to another's
@@ -370,7 +516,7 @@ extern void dsp_buffer_sum(dsp_stream_p stream, double* in, int len);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-extern void dsp_buffer_div(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_div(dsp_stream_p stream, double* in, int len);
 
 /**
 * \brief Multiply elements of one stream to another's
@@ -378,7 +524,7 @@ extern void dsp_buffer_div(dsp_stream_p stream, double* in, int len);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-extern void dsp_buffer_mul(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_mul(dsp_stream_p stream, double* in, int len);
 
 /**
 * \brief Expose elements of one stream to another's
@@ -386,56 +532,71 @@ extern void dsp_buffer_mul(dsp_stream_p stream, double* in, int len);
 * \param in the buffer operand.
 * \param len the length of the buffer
 */
-extern void dsp_buffer_pow(dsp_stream_p stream, double* in, int len);
+DLL_EXPORT void dsp_buffer_pow(dsp_stream_p stream, double* in, int len);
+
+/**
+* \brief Logarithm elements of one stream using another's as base
+* \param stream the stream on which execute
+* \param in the buffer operand.
+* \param len the length of the buffer
+*/
+DLL_EXPORT void dsp_buffer_log(dsp_stream_p stream, double* in, int len);
 
 /**
 * \brief Subtract a value from elements of the input stream
 * \param stream the stream on which execute
 * \param val the value to be subtracted.
 */
-extern void dsp_buffer_sub1(dsp_stream_p stream, double val);
+DLL_EXPORT void dsp_buffer_sub1(dsp_stream_p stream, dsp_t val);
 
 /**
 * \brief Subtract each element of the input stream a value
 * \param stream the stream on which execute
 * \param val the value to be subtracted.
 */
-extern void dsp_buffer_1sub(dsp_stream_p stream, double val);
+DLL_EXPORT void dsp_buffer_1sub(dsp_stream_p stream, dsp_t val);
 
 /**
 * \brief Sum elements of the input stream to a value
 * \param stream the stream on which execute
 * \param val the value used for this operation.
 */
-extern void dsp_buffer_sum1(dsp_stream_p stream, double val);
+DLL_EXPORT void dsp_buffer_sum1(dsp_stream_p stream, dsp_t val);
 
 /**
 * \brief Divide elements of the input stream to a value
 * \param stream the stream on which execute
 * \param val the denominator.
 */
-extern void dsp_buffer_div1(dsp_stream_p stream, double val);
+DLL_EXPORT void dsp_buffer_div1(dsp_stream_p stream, double val);
 
 /**
 * \brief Divide a value to each element of the input stream
 * \param stream the stream on which execute
 * \param val the nominator.
 */
-extern void dsp_buffer_1div(dsp_stream_p stream, double val);
+DLL_EXPORT void dsp_buffer_1div(dsp_stream_p stream, double val);
 
 /**
 * \brief Multiply elements of the input stream to a value
 * \param stream the stream on which execute
 * \param val the value used for this operation.
 */
-extern void dsp_buffer_mul1(dsp_stream_p stream, double val);
+DLL_EXPORT void dsp_buffer_mul1(dsp_stream_p stream, double val);
 
 /**
 * \brief Expose elements of the input stream to the given power
 * \param stream the stream on which execute
 * \param val the nth power to expose each element.
 */
-extern void dsp_buffer_pow1(dsp_stream_p stream, double val);
+DLL_EXPORT void dsp_buffer_pow1(dsp_stream_p stream, double val);
+
+/**
+* \brief Logarithm elements of the input stream using the given base
+* \param stream the stream on which execute
+* \param val the logarithmic base.
+*/
+DLL_EXPORT void dsp_buffer_log1(dsp_stream_p stream, double val);
 
 /**
 * \brief Median elements of the inut stream
@@ -443,13 +604,13 @@ extern void dsp_buffer_pow1(dsp_stream_p stream, double val);
 * \param size the length of the median.
 * \param median the location of the median value.
 */
-extern void dsp_buffer_median(dsp_stream_p stream, int size, int median);
+DLL_EXPORT void dsp_buffer_median(dsp_stream_p stream, int size, int median);
 
 /**
 * \brief Put zero on each element of the array
 * \param stream the stream on which execute
 */
-extern void dsp_buffer_zerofill(dsp_stream_p stream);
+DLL_EXPORT void dsp_buffer_clear(dsp_stream_p stream);
 
 /**
 * \brief Deviate forward the first input stream using the second stream as indexing reference
@@ -458,7 +619,7 @@ extern void dsp_buffer_zerofill(dsp_stream_p stream);
 * \param mindeviation the deviation at 0.
 * \param maxdeviation the deviation at 1.
 */
-extern void dsp_buffer_deviate(dsp_stream_p stream, dsp_stream_p deviation, double mindeviation, double maxdeviation);
+DLL_EXPORT void dsp_buffer_deviate(dsp_stream_p stream, double* deviation, double mindeviation, double maxdeviation);
 
 /**
 * \brief Reverse the order of the buffer elements
@@ -502,7 +663,7 @@ extern void dsp_buffer_deviate(dsp_stream_p stream, dsp_stream_p deviation, doub
 
 /*@}*/
 /**
- * \defgroup DSP_DSPStream DSP API Stream type management functions
+ * \defgroup dsp_DSPStream DSP API Stream type management functions
 */
 /*@{*/
 
@@ -511,7 +672,7 @@ extern void dsp_buffer_deviate(dsp_stream_p stream, dsp_stream_p deviation, doub
 * \param stream the target DSP stream.
 * \param len the new length of the buffer.
 */
-extern void dsp_stream_alloc_buffer(dsp_stream_p stream, int len);
+DLL_EXPORT void dsp_stream_alloc_buffer(dsp_stream_p stream, int len);
 
 /**
 * \brief Set the buffer of the stream passed as argument to a specific memory location
@@ -519,41 +680,49 @@ extern void dsp_stream_alloc_buffer(dsp_stream_p stream, int len);
 * \param buffer the new location of the buffer.
 * \param len the new length of the buffer.
 */
-extern void dsp_stream_set_buffer(dsp_stream_p stream, void *buffer, int len);
+DLL_EXPORT void dsp_stream_set_buffer(dsp_stream_p stream, void *buffer, int len);
 
 /**
 * \brief Return the buffer of the stream passed as argument
 * \param stream the target DSP stream.
 * \return the buffer
 */
-extern double* dsp_stream_get_buffer(dsp_stream_p stream);
+DLL_EXPORT dsp_t* dsp_stream_get_buffer(dsp_stream_p stream);
 
 /**
 * \brief Free the buffer of the DSP Stream passed as argument
 * \param stream the target DSP stream.
 */
-extern void dsp_stream_free_buffer(dsp_stream_p stream);
+DLL_EXPORT void dsp_stream_free_buffer(dsp_stream_p stream);
 
 /**
 * \brief Allocate a new DSP stream type
 * \return the newly created DSP stream type
 * \sa dsp_stream_free
 */
-extern dsp_stream_p dsp_stream_new();
+DLL_EXPORT dsp_stream_p dsp_stream_new();
 
 /**
 * \brief Free the DSP stream passed as argument
 * \param stream the target DSP stream.
 * \sa dsp_stream_new
 */
-extern void dsp_stream_free(dsp_stream_p stream);
+DLL_EXPORT void dsp_stream_free(dsp_stream_p stream);
 
 /**
 * \brief Create a copy of the DSP stream passed as argument
+* \param stream the DSP stream to copy.
 * \return the copy of the DSP stream
 * \sa dsp_stream_new
 */
-extern dsp_stream_p dsp_stream_copy(dsp_stream_p stream);
+DLL_EXPORT dsp_stream_p dsp_stream_copy(dsp_stream_p stream);
+
+/**
+* \brief Add a star into the stream struct
+* \param stream the target DSP stream.
+* \param star the star to add to the stream.
+*/
+DLL_EXPORT void dsp_stream_add_star(dsp_stream_p stream, dsp_star *star);
 
 /**
 * \brief Add a child to the DSP Stream passed as argument
@@ -562,7 +731,7 @@ extern dsp_stream_p dsp_stream_copy(dsp_stream_p stream);
 * \sa dsp_stream_new
 * \sa dsp_stream_del_child
 */
-extern void dsp_stream_add_child(dsp_stream_p stream, dsp_stream_p child);
+DLL_EXPORT void dsp_stream_add_child(dsp_stream_p stream, dsp_stream_p child);
 
 /**
 * \brief Remove the child with index n to a DSP stream
@@ -571,7 +740,7 @@ extern void dsp_stream_add_child(dsp_stream_p stream, dsp_stream_p child);
 * \sa dsp_stream_new
 * \sa dsp_stream_add_child
 */
-extern void dsp_stream_del_child(dsp_stream_p stream, int n);
+DLL_EXPORT void dsp_stream_del_child(dsp_stream_p stream, int n);
 
 /**
 * \brief Add a dimension with length len to a DSP stream
@@ -580,7 +749,7 @@ extern void dsp_stream_del_child(dsp_stream_p stream, int n);
 * \sa dsp_stream_new
 * \sa dsp_stream_del_dim
 */
-extern void dsp_stream_add_dim(dsp_stream_p stream, int len);
+DLL_EXPORT void dsp_stream_add_dim(dsp_stream_p stream, int len);
 
 /**
 * \brief Remove the dimension with index n to a DSP stream
@@ -589,7 +758,7 @@ extern void dsp_stream_add_dim(dsp_stream_p stream, int len);
 * \sa dsp_stream_new
 * \sa dsp_stream_add_dim
 */
-extern void dsp_stream_del_dim(dsp_stream_p stream, int n);
+DLL_EXPORT void dsp_stream_del_dim(dsp_stream_p stream, int n);
 
 /**
 * \brief Obtain the position the DSP stream by parsing multidimensional indexes
@@ -601,7 +770,7 @@ extern void dsp_stream_del_dim(dsp_stream_p stream, int n);
 * \sa dsp_stream_exec
 * \sa dsp_stream_exec_multidim
 */
-extern int dsp_stream_set_position(dsp_stream_p stream, int *pos);
+DLL_EXPORT int dsp_stream_set_position(dsp_stream_p stream, int *pos);
 
 /**
 * \brief Return the multidimensional positional indexes of a DSP stream by specify a linear index
@@ -613,7 +782,7 @@ extern int dsp_stream_set_position(dsp_stream_p stream, int *pos);
 * \sa dsp_stream_exec
 * \sa dsp_stream_exec_multidim
 */
-extern int* dsp_stream_get_position(dsp_stream_p stream, int index);
+DLL_EXPORT int* dsp_stream_get_position(dsp_stream_p stream, int index);
 
 /**
 * \brief Execute the function callback pointed by the func field of the passed stream
@@ -623,18 +792,7 @@ extern int* dsp_stream_get_position(dsp_stream_p stream, int index);
 * \sa dsp_stream_get_position
 * \sa dsp_stream_set_position
 */
-extern void *dsp_stream_exec(dsp_stream_p stream);
-
-/**
-* \brief Execute the function callback pointed by the func field of the passed stream
-* by increasing the index value and updating the position each time.
-* the function delegate should use the pos* field to obtain the current position on each dimension.
-* \param stream the target DSP stream.
-* \sa dsp_stream_new
-* \sa dsp_stream_get_position
-* \sa dsp_stream_set_position
-*/
-extern void dsp_stream_exec_multidim(dsp_stream_p stream);
+DLL_EXPORT void *dsp_stream_exec(dsp_stream_p stream);
 
 /**
 * \brief Crop the buffers of the stream passed as argument by reading the ROI field.
@@ -642,11 +800,11 @@ extern void dsp_stream_exec_multidim(dsp_stream_p stream);
 * \return the cropped DSP stream.
 * \sa dsp_stream_new
 */
-extern dsp_stream_p dsp_stream_crop(dsp_stream_p stream);
+DLL_EXPORT dsp_stream_p dsp_stream_crop(dsp_stream_p stream);
 
 /*@}*/
 /**
- * \defgroup DSP_SignalGen DSP API Signal generation functions
+ * \defgroup dsp_SignalGen DSP API Signal generation functions
 */
 /*@{*/
 
@@ -656,7 +814,7 @@ extern dsp_stream_p dsp_stream_crop(dsp_stream_p stream);
 * \param samplefreq the sampling reference frequency
 * \param freq the sine wave frequency
 */
-extern void dsp_signals_sinewave(dsp_stream_p stream, double samplefreq, double freq);
+DLL_EXPORT void dsp_signals_sinewave(dsp_stream_p stream, double samplefreq, double freq);
 
 /**
 * \brief Generate a sawtooth wave
@@ -664,7 +822,7 @@ extern void dsp_signals_sinewave(dsp_stream_p stream, double samplefreq, double 
 * \param samplefreq the sampling reference frequency
 * \param freq the sawtooth wave frequency
 */
-extern void dsp_signals_sawtoothwave(dsp_stream_p stream, double samplefreq, double freq);
+DLL_EXPORT void dsp_signals_sawtoothwave(dsp_stream_p stream, double samplefreq, double freq);
 
 /**
 * \brief Generate a triangular wave
@@ -672,7 +830,7 @@ extern void dsp_signals_sawtoothwave(dsp_stream_p stream, double samplefreq, dou
 * \param samplefreq the sampling reference frequency
 * \param freq the triangular wave frequency
 */
-extern void dsp_signals_triwave(dsp_stream_p stream, double samplefreq, double freq);
+DLL_EXPORT void dsp_signals_triwave(dsp_stream_p stream, double samplefreq, double freq);
 
 /**
 * \brief Generate a frequency modulated wave
@@ -681,7 +839,7 @@ extern void dsp_signals_triwave(dsp_stream_p stream, double samplefreq, double f
 * \param freq the carrier wave frequency
 * \param bandwidth the bandwidth of the frequency modulation
 */
-extern void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq, double freq, double bandwidth);
+DLL_EXPORT void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq, double freq, double bandwidth);
 
 /**
 * \brief Generate an amplitude modulated wave
@@ -689,7 +847,7 @@ extern void dsp_modulation_frequency(dsp_stream_p stream, double samplefreq, dou
 * \param samplefreq the sampling reference frequency
 * \param freq the carrier wave frequency
 */
-extern void dsp_modulation_amplitude(dsp_stream_p stream, double samplefreq, double freq);
+DLL_EXPORT void dsp_modulation_amplitude(dsp_stream_p stream, double samplefreq, double freq);
 
 /*@}*/
 /*@}*/

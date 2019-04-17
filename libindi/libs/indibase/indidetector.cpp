@@ -21,6 +21,8 @@
 #include "indidetector.h"
 
 #include "indicom.h"
+#include "stream/streammanager.h"
+#include "locale_compat.h"
 
 #include <fitsio.h>
 
@@ -65,6 +67,9 @@ static int _det_mkdir(const char *dir, mode_t mode)
 
     return 0;
 }
+
+namespace INDI
+{
 
 DetectorDevice::DetectorDevice()
 {
@@ -212,7 +217,7 @@ void DetectorDevice::setCaptureLeft(double duration)
 void DetectorDevice::setCaptureDuration(double duration)
 {
     captureDuration = duration;
-    gettimeofday(&startCaptureTime, nullptr);
+    clock_gettime(CLOCK_REALTIME, &startCaptureTime);
 }
 
 const char *DetectorDevice::getCaptureStartTime()
@@ -222,7 +227,7 @@ const char *DetectorDevice::getCaptureStartTime()
     char iso8601[32];
     struct tm *tp;
     time_t t = (time_t)startCaptureTime.tv_sec;
-    int u    = startCaptureTime.tv_usec / 1000.0;
+    int u    = startCaptureTime.tv_nsec / 1000.0;
 
     tp = gmtime(&t);
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
@@ -251,9 +256,6 @@ void DetectorDevice::setCaptureExtension(const char *ext)
     strncpy(captureExtention, ext, MAXINDIBLOBFMT);
 }
 
-namespace INDI
-{
-
 Detector::Detector()
 {
     //ctor
@@ -266,7 +268,6 @@ Detector::Detector()
     ShowMarker       = false;
 
     CaptureTime       = 0.0;
-    CurrentFilterSlot  = -1;
 
     RA              = -1000;
     Dec             = -1000;
@@ -286,6 +287,12 @@ void Detector::SetDetectorCapability(uint32_t cap)
     capability = cap;
 
     setDriverInterface(getDriverInterface());
+
+    if (HasStreaming() && Streamer.get() == nullptr)
+    {
+        Streamer.reset(new StreamManager(this));
+        Streamer->initProperties();
+    }
 }
 
 bool Detector::initProperties()
@@ -406,6 +413,9 @@ void Detector::ISGetProperties(const char *dev)
 
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
+
+    if (HasStreaming())
+        Streamer->ISGetProperties(dev);
 }
 
 bool Detector::updateProperties()
@@ -454,6 +464,10 @@ bool Detector::updateProperties()
         deleteProperty(UploadSettingsTP.name);
     }
 
+    // Streamer
+    if (HasStreaming())
+        Streamer->updateProperties();
+
     return true;
 }
 
@@ -489,19 +503,6 @@ bool Detector::ISSnoopDevice(XMLEle *root)
                 primaryFocalLength = atof(pcdataXMLEle(ep));
             }
         }
-    }
-    else if (!strcmp(propName, "FILTER_NAME"))
-    {
-        FilterNames.clear();
-
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            FilterNames.push_back(pcdataXMLEle(ep));
-    }
-    else if (!strcmp(propName, "FILTER_SLOT"))
-    {
-        CurrentFilterSlot = -1;
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            CurrentFilterSlot = atoi(pcdataXMLEle(ep));
     }
     else if (!strcmp(propName, "SKY_QUALITY"))
     {
@@ -564,6 +565,10 @@ bool Detector::ISNewText(const char *dev, const char *name, char *texts[], char 
             return true;
         }
     }
+
+    // Streamer
+    if (HasStreaming())
+        Streamer->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
@@ -635,6 +640,10 @@ bool Detector::ISNewNumber(const char *dev, const char *name, double values[], c
         }
     }
 
+    // Streamer
+    if (HasStreaming())
+        Streamer->ISNewNumber(dev, name, values, names, n);
+
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -699,6 +708,9 @@ bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             return true;
         }
     }
+
+    if (HasStreaming())
+        Streamer->ISNewSwitch(dev, name, states, names, n);
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
@@ -772,13 +784,6 @@ void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uin
 
     if (HasCooler())
         fits_update_key_s(fptr, TDOUBLE, "DETECTOR-TEMP", &(TemperatureN[0].value), "PrimaryDetector Temperature (Celsius)", &status);
-
-    if (CurrentFilterSlot != -1 && CurrentFilterSlot <= (int)FilterNames.size())
-    {
-        char filter[32];
-        strncpy(filter, FilterNames.at(CurrentFilterSlot - 1).c_str(), 32);
-        fits_update_key_s(fptr, TSTRING, "FILTER", filter, "Filter", &status);
-    }
 
 #ifdef WITH_MINMAX
     if (targetDevice->getNAxis() == 2)
@@ -1061,6 +1066,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
     {
         PrimaryDetector.FramedCaptureN[0].value = CaptureTime;
         PrimaryDetector.FramedCaptureNP.s       = IPS_BUSY;
+
         if (StartCapture(CaptureTime))
             PrimaryDetector.FramedCaptureNP.s = IPS_BUSY;
         else
@@ -1169,6 +1175,9 @@ bool Detector::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
+
+    if (HasStreaming())
+        Streamer->saveConfigItems(fp);
 
     return true;
 }
@@ -1422,6 +1431,7 @@ void Detector::Histogram(void *buf, void *out, int buf_len, int histogram_size, 
 
 void Detector::FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample) {
     //Create the dsp stream
+    dsp_t mn, mx;
     dsp_stream_p stream = dsp_stream_new();
     for(int dim = 0; dim < dims; dim++)
         dsp_stream_add_dim(stream, sizes[dim]);
@@ -1452,14 +1462,10 @@ void Detector::FourierTransform(void *buf, void *out, int dims, int *sizes, int 
         dsp_stream_free(stream);
         return;
     }
-    double mn, mx;
-    dsp_stats_minmidmax(stream, &mn, &mx);
-    dsp_complex *dft = dsp_fft_dft(stream);
-    double *mag = dsp_fft_complex_array_to_magnitude(dft, stream->len);
-    free(dft);
-    dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, mag, stream->len);
-    dsp_buffer_stretch(stream, mn, mx);
+    mn = dsp_stats_min(stream->buf, stream->len);
+    mx = dsp_stats_max(stream->buf, stream->len);
+    dsp_fourier_dft_magnitude(stream);
+    dsp_buffer_stretch(stream->buf, stream->len, mn, mx);
     switch (bits_per_sample) {
     case 8:
         dsp_buffer_copy(stream->buf, (static_cast<unsigned char *>(out)), stream->len);
@@ -1559,6 +1565,20 @@ void Detector::Convolution(void *buf, void *matrix, void *out, int dims, int *si
     dsp_stream_free(stream);
     dsp_stream_free_buffer(matrix_stream);
     dsp_stream_free(matrix_stream);
+}
+
+//Streamer API functions
+
+bool Detector::StartStreaming()
+{
+    LOG_ERROR("Streaming is not supported.");
+    return false;
+}
+
+bool Detector::StopStreaming()
+{
+    LOG_ERROR("Streaming is not supported.");
+    return false;
 }
 
 }

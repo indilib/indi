@@ -393,11 +393,6 @@ if (WITH_MGEN)
 add_subdirectory(indi-mgen)
 endif (WITH_MGEN)
 
-# RadioSim
-if (WITH_RADIOSIM)
-add_subdirectory(indi-radiosim)
-endif (WITH_RADIOSIM)
-
 ## RTL-SDR
 if (WITH_RTLSDR)
 find_package(RTLSDR)

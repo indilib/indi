@@ -91,6 +91,7 @@ namespace INDI
 {
 
 class CCD;
+class Detector;
 
 class StreamManager
 {
@@ -104,6 +105,7 @@ class StreamManager
         };
 
         StreamManager(CCD *mainCCD);
+        StreamManager(Detector *mainDetector);
         virtual ~StreamManager();
 
         virtual void ISGetProperties(const char *dev);
@@ -189,6 +191,7 @@ class StreamManager
 
     protected:
         CCD *currentCCD = nullptr;
+        Detector *currentDetector = nullptr;
 
     private:
         /* Utility for record file */

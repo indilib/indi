@@ -34,6 +34,7 @@ namespace INDI
 {
 
 class CCD;
+class Detector;
 
 /**
  * @brief The EncoderInterface class is the base class for video streaming encoders.
@@ -46,6 +47,8 @@ class EncoderInterface
 
     virtual void init(CCD *activeCCD);
 
+    virtual void init(Detector *activeDetector);
+
     virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
 
     virtual bool setSize(uint16_t width, uint16_t height);
@@ -56,6 +59,7 @@ class EncoderInterface
 
   protected:
     const char *name;
+    Detector *currentDetector = nullptr;
     CCD *currentCCD = nullptr;
     INDI_PIXEL_FORMAT pixelFormat;            // INDI Pixel Format
     uint8_t pixelDepth = 8;                   // Bits per Pixels

@@ -314,6 +314,12 @@
                 <version>1.0</version>
         </device>
 </devGroup>
+<devGroup group="Detectors">
+        <device label="Detector Simulator" mdpd="true">
+                <driver name="Detector Simulator">indi_simulator_detector</driver>
+                <version>1.0</version>
+        </device>
+</devGroup>
 <devGroup group="Filter Wheels">
         <device label="XAGYL Wheel">
                 <driver name="XAGYL Wheel">indi_xagyl_wheel</driver>
