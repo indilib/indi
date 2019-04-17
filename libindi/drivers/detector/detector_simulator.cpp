@@ -174,7 +174,7 @@ bool RadioSim::initProperties()
     INDI::Detector::initProperties();
 
     // We set the Detector capabilities
-    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
+    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM | DETECTOR_HAS_STREAMING;
     SetDetectorCapability(cap);
 
     IUFillNumber(&DetectorPropertiesN[0], "DETECTOR_SIZE", "Dish size (m)", "%4.0f", 5, MAX_DISH_SIZE_M, 1, 5.0);
@@ -450,7 +450,7 @@ void * RadioSim::streamCapture()
 
         // Simulate exposure time
         //usleep(ExposureRequest*1e5);
-
+        grabData();
         getitimer(ITIMER_REAL, &tframe1);
 
         s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
