@@ -67,37 +67,41 @@ The driver supports capture, binning, setting temperature, gain and offset adjus
 <p style="text-align: center;"><img src="images/devices/DRIVER_NAME/general_info.jpg" alt="General Info" /></p>
 This provides general information about the currently running driver and driver version.  It also lets you set the Observer and Object Information for the FITS Header.
 <h3>Capture</h3>
-<p>
-Talk about how capture is done. Does it support subframing? different color formats? special controls for gain, offset..etc? Bayer support?
-</p>
+<p>To capture a signle-frame image, simple set the desired exposure time in seconds and click <b>Set</b>. After the capture is complete, it should be downloaded as a FITS image. If the camera is equipped with a cooler, target temperature can be set. To change the format and bit depth (if supported), select a different image format in the <b>Controls</b> tab.</p>
 <h3>Options</h3>
 <p style="text-align: center;"><img src="images/devices/DRIVER_NAME/options.jpg" alt="Options" /></p>
-<p>
-The Options tab contains settings for default file locations, upload behavior, and debugging. The polling period for this driver should be kept as is unless you need to reduce it for a specific reason.
-
-<h4>Saving locally</h4>
-You can opt to save all captured images to the local storage. This is the local storage of the device running the INDI GPhoto driver and not the SD Card. Settings for saving to SD card is also available. Under Options tab you can select the Upload mode:
-
-Client: Upload image to client (default).
-Local: Store image locally, never send to client.
-Both: Store image locally and send it to client as well.
-
-<h4>Driver Specific Options</h4>
-Add here any driver-specific options in the tab.
-
-</p>
+<p>The Options tab contains settings for default file locations, upload behavior, and debugging. The polling period for this driver should be kept as is unless you need to reduce it for a specific reason.</p>
+<ol>
+	<li><strong>Debug</strong>: Toggle driver debug logging on/off</li>
+	<li><strong>Configuration</strong>: After changing driver settings, click <b>Save</b> to save the changes to the configuration file. The saved values should be used when starting the driver again in the future. The configuration file is saved to the user home directory under <b>.indi</b> directory in an XML file.(e.g. ~/.indi/camera_name.xml)</li>
+	<li><strong>Snoop Device</strong>: The camera driver can <i>listen</i> to properties defined in other drivers. This can be used to store the relevant information in the FITS header (like the mount's RA and DE coordinates). The respective drivers (Telescope, Focuser..etc) are usually set by the client, but can be set directly if desired.</li>
+	<li><strong>Rapid Guide</strong>: Rapid Guide uses internal algorithm to automataically select guide stars.</li>
+	<li><strong>Telescope</strong>: Toggle between <i>Primary</i> and <i>Guide</i> scope selection. This selection is required in order to calculate World-Coordinate-System (WCS) values like Field-Of-View (FOV). When <b>WCS</b> is enabled, the FITS header is populated with WCS keywords that enable clients to map the sources in the image to physical coordinates in the sky. Usually, you do not need to toggle this setting manually as it is usually set by the client automatically</li>
+	<li><strong>Upload</strong>: Selects how the captured image is saved/uploaded?
+		<ul>
+			<li><strong>Client</strong>: The image is uploaded the client (i.e. Ekos or SkyCharts)</li>
+			<li><strong>Local</strong>: The image is saved to local storage only.</li>
+			<li><strong>Both</strong>: The image is saved to local storage and also uploaded to the client.</li>
+		</ul>
+	</li>
+	<li><strong>Upload Settings</strong>: Sets the <i>local</i> desired directory and prefix used to save the image when either the <b>Local</b> or <b>Both</b> upload modes are active. The <i>IMAGE_XXX</i> is automatically replaced by the image name where the XXX is the image counter (i.e. M42_005.fits). The driver scan the local storage and increments the counter automatically when a new image is captured and stored.</li>
+</ol>
 <h3>Image Settings</h3>
 <p style="text-align: center;"><img src="images/devices/DRIVER_NAME/image_settings.jpg" alt="Image Settings" /></p>
-
+<p>
+  In the <i>Image Settings</i> tab, you can configure the framing and binning of the captured image:
+</p>
+<ul>
+  <li><strong>Frame</strong>: Set the desired <i>Region-Of-Interest</i> (ROI) by specifying the starting X and Y positions of the image and the desired width and height. It is recommended to set use even numbers only to enable binning if required. The ROI values are indenepdent of the binning used.</li>
+<li><strong>Binning</strong>: Set the desired binning. The usually supported  </li>
+<p>Image compression can be turned on in image settings to compress FITS images. This might require more processing but can reduce the size of the image by <b>up to 70%</b>. The uploaded image would have an extenstion of .fits.fz and it can be viewed in multiple clients like KStars.</p>
+<p>The <b>Frame Type</b> property is used to mark the frame type in the FITS header which is useful information for some processing applications. If there an electronic or mechanical shutter, the driver closes it automatically when taking dark frames.</p>
+<p>To restore the ROI to the default values, click on the <b>Reset</b> button.</p>
 <h3>Image Info</h3>
 <p style="text-align: center;"><img src="images/devices/DRIVER_NAME/image_info.jpg" alt="Image Info" /></p>
-<p>
-The image info tab contains information on the resolution of the CCD (Maximum Width & Height) in addition to the pixel size in microns. If the camera supports Bayer mask, then the bayer filter and offset can be set here. These are usually set automatically by the driver, but can be adjusted manually if needed.
-</p>
-
-
-<h2><i class="fa fa-bugs" data-mce-empty="1"> </i> Issues</h2>
-There are no known bugs for this driver. If you found a bug, please report it at INDI's <a href="https://sourceforge.net/p/indi/bugs/">bug tracking system</a> at SourceForge. (You can log in with a variety of existing accounts, including Google, Yahoo and OpenID.)
+<p>The image info tab contains information on the resolution of the CCD (Maximum Width & Height) in addition to the pixel size in microns. If the camera supports Bayer mask, then the bayer filter and offset can be set here. These are usually set automatically by the driver, but can be adjusted manually if needed.</p>
+<h2><i class="fa fa-bugs"></i> Issues</h2>
+There are no known bugs for this driver. If you found a bug, please report it at INDI's <a href="https://github.com/indilib/indi/issues">Issue Tracking System</a> at Github.
 <form action="http://www.indilib.org/download.html">
 	<p style="text-align:center;">
 		<button class="btn btn-large btn-primary" type="submit">Download Now!</button>
@@ -151,13 +155,12 @@ The Options tab contains settings for all drivers that include polling (frequenc
 	<li>Preset Positions: You may set up to 3 preset positions. When you make a change, the new values will be saved in the driver's configuration file and are loaded automatically in subsequent uses.</li>
 	<li>Preset GOTO: Click any preset to go to that position</li>
 </ul>
-<h2><i class="fa fa-bug"></i> Issues</h2>
-<p>There are no known bugs for this driver. If you found a bug, please report it at INDI's <a href="https://github.com/indilib/indi/issues">bug tracking system</a> at Github.</p>
+<h2><i class="fa fa-bugs"></i> Issues</h2>
+There are no known bugs for this driver. If you found a bug, please report it at INDI's <a href="https://github.com/indilib/indi/issues">Issue Tracking System</a> at Github.
 <form action="http://www.indilib.org/download.html">
-	<p style="text-align: center;">
-		<button type="submit" class="btn btn-large btn-primary">Download Now!</button>
+	<p style="text-align:center;">
+		<button class="btn btn-large btn-primary" type="submit">Download Now!</button>
 	</p>
 </form>
-<p><span style="font-size: 1.5em;"></span></p>
 ```
 

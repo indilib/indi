@@ -23,6 +23,7 @@
 
 #include <unistd.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 #define MAXARGS 20
 
@@ -148,67 +149,72 @@ bool ScopeScript::ISNewText(const char *dev, const char *name, char *texts[], ch
 
 bool ScopeScript::RunScript(int script, ...)
 {
-  char tmp[256];
-  strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
-  
-  char **args = (char **)malloc(MAXARGS * sizeof(char *));
-  int arg     = 1;
-  char *p     = tmp;
-  args[0] = p;
-  while (arg < MAXARGS)
-  {
-    char *pp = strstr(p, " ");
-    if (pp == nullptr)
-      break;
-    *pp++       = 0;
-    args[arg++] = pp;
-    p           = pp;
-  }
-  va_list ap;
-  va_start(ap, script);
-  while (arg < MAXARGS)
-  {
-    char *pp    = va_arg(ap, char *);
-    args[arg++] = pp;
-    if (pp == nullptr)
-      break;
-  }
-  va_end(ap);
-  char path[1024];
-  snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
-  
-  if (isDebug())
-  { char dbg[8 * 1024];
-    snprintf(dbg, sizeof(dbg), "execvp('%s'", path);
-    for (int i = 0; args[i]; i++)
+    char tmp[256];
+    strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
+
+    char **args = (char **)malloc(MAXARGS * sizeof(char *));
+    int arg     = 1;
+    char *p     = tmp;
+    args[0] = p;
+    while (arg < MAXARGS)
     {
-      strcat(dbg, ", '");
-      strcat(dbg, args[i]);
-      strcat(dbg, "'");
+        char *pp = strstr(p, " ");
+        if (pp == nullptr)
+            break;
+        *pp++       = 0;
+        args[arg++] = pp;
+        p           = pp;
     }
-    strcat(dbg, ", nullptr)");
-    LOG_DEBUG(dbg);
-  }
-  
-  int pid = fork();
-  if (pid == -1)
-  {
-    LOG_ERROR("Fork failed");
-    return false;
-  }
-  else if (pid == 0)
-  {
-    execvp(path, args);
-    LOG_DEBUG("Failed to execute script");
-    exit(0);
-  }
-  else
-  {
-    int status;
-    waitpid(pid, &status, 0);
-    LOGF_DEBUG("Script %s returned %d", ScriptsT[script].text, status);
-    return status == 0;
-  }
+    va_list ap;
+    va_start(ap, script);
+    while (arg < MAXARGS)
+    {
+        char *pp    = va_arg(ap, char *);
+        args[arg++] = pp;
+        if (pp == nullptr)
+            break;
+    }
+    va_end(ap);
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
+
+    if (access(path, F_OK|X_OK) != 0)
+    {
+        LOGF_ERROR("Cannot use script [%s], %s", path, strerror(errno));
+        return false;
+    }
+    if (isDebug())
+    { char dbg[8 * 1024];
+        snprintf(dbg, sizeof(dbg), "execvp('%s'", path);
+        for (int i = 0; args[i]; i++)
+        {
+            strcat(dbg, ", '");
+            strcat(dbg, args[i]);
+            strcat(dbg, "'");
+        }
+        strcat(dbg, ", nullptr)");
+        LOG_DEBUG(dbg);
+    }
+
+    int pid = fork();
+    if (pid == -1)
+    {
+        LOG_ERROR("Fork failed");
+        return false;
+    }
+    else if (pid == 0)
+    {
+        execvp(path, args);
+        LOG_ERROR("Failed to execute script");
+        exit(1);
+    }
+    else
+    {
+        int status;
+        waitpid(pid, &status, 0);
+        LOGF_DEBUG("Script %s returned %d", ScriptsT[script].text, status);
+        return status == 0;
+    }
 }
 
 bool ScopeScript::Handshake()
@@ -220,12 +226,17 @@ bool ScopeScript::Connect()
 {
     if (isConnected())
         return true;
+
     bool status = RunScript(SCRIPT_CONNECT, nullptr);
     if (status)
     {
         LOG_INFO("Successfully connected");
         ReadScopeStatus();
         SetTimer(POLLMS);
+    }
+    else
+    {
+        LOG_ERROR("Failed to connect");
     }
     return status;
 }
@@ -237,23 +248,37 @@ bool ScopeScript::Disconnect()
     {
         LOG_INFO("Successfully disconnected");
     }
+    else
+    {
+        LOG_WARN("Failed to disconnect");
+    }
     return status;
 }
 
 bool ScopeScript::ReadScopeStatus()
 {
-    char name[1024];
-    bool status = RunScript(SCRIPT_STATUS, name, nullptr);
+    if (!isConnected())
+        return false;
+    char tmpfile[] = "/tmp/indi_telescope_script_status_XXXXXX";
+    int fd = mkstemp(tmpfile);
+    if (fd == -1)
+    {
+        LOGF_ERROR("Temp file %s creation for status script failed, %s", tmpfile, strerror(errno));
+        unlink(tmpfile);
+        return false;
+    }
+    close(fd);
+    bool status = RunScript(SCRIPT_STATUS, tmpfile, nullptr);
     if (status)
     {
         int parked = 0;
         float ra = 0, dec = 0;
-        FILE *file = fopen(name, "r");
+        FILE *file = fopen(tmpfile, "r");
         int ret = 0;
 
         ret = fscanf(file, "%d %f %f", &parked, &ra, &dec);
         fclose(file);
-        unlink(name);
+        unlink(tmpfile);
         if (parked != 0)
         {
             if (!isParked())
@@ -289,6 +314,10 @@ bool ScopeScript::Goto(double ra, double dec)
     {
         LOG_INFO("Goto succesfully executed");
     }
+    else
+    {
+        LOG_ERROR("Goto failed");
+    }
     return status;
 }
 
@@ -301,6 +330,10 @@ bool ScopeScript::Sync(double ra, double dec)
     if (status)
     {
         LOG_INFO("Sync succesfully executed");
+    }
+    else
+    {
+        LOG_ERROR("Failed to sync");
     }
     return status;
 }

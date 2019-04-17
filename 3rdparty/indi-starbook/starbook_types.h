@@ -30,19 +30,23 @@ namespace starbook {
     struct DMS : ln_dms {
         explicit DMS(std::string dms);
 
-        friend std::ostream &operator<<(std::ostream &os, const DMS &dms);
+        friend std::ostream &operator<<(std::ostream &os, const DMS &obj);
+
+        friend std::istream &operator>>(std::istream &is, DMS &obj);
     };
 
     struct HMS : ln_hms {
-        explicit HMS(std::string hms);
+        explicit HMS(unsigned short h = 0, unsigned short m = 0, double s = 0) : ln_hms{h, m, s} {}
 
-        friend std::ostream &operator<<(std::ostream &os, const HMS &hms);
+        friend std::ostream &operator<<(std::ostream &os, const HMS &obj);
+
+        friend std::istream &operator>>(std::istream &is, HMS &obj);
     };
 
     struct Equ : lnh_equ_posn {
         Equ(double ra, double dec);
 
-        friend std::ostream &operator<<(std::ostream &os, const Equ &equ);
+        friend std::ostream &operator<<(std::ostream &os, const Equ &obj);
     };
 
     struct DateTime : ln_date {
@@ -66,11 +70,15 @@ namespace starbook {
         friend std::istream &operator>>(std::istream &is, LnLat &obj);
     };
 
-    std::ostream &operator<<(std::ostream &os, const DMS &dms);
+    std::ostream &operator<<(std::ostream &os, const DMS &obj);
 
-    std::ostream &operator<<(std::ostream &os, const HMS &hms);
+    std::istream &operator>>(std::istream &is, DMS &obj);
 
-    std::ostream &operator<<(std::ostream &os, const Equ &equ);
+    std::ostream &operator<<(std::ostream &os, const HMS &obj);
+
+    std::istream &operator>>(std::istream &is, HMS &obj);
+
+    std::ostream &operator<<(std::ostream &os, const Equ &obj);
 
     std::ostream &operator<<(std::ostream &os, const DateTime &obj);
 

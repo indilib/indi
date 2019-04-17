@@ -696,8 +696,25 @@ bool QHYCCD::Connect()
             HasFilters = true;
 
             m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+            LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+            // If we get invalid value, check again in 0.5 sec
+            if (m_MaxFilterCount > 16)
+            {
+                usleep(500000);
+                m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+                LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+            }
+
+            if (m_MaxFilterCount > 16)
+            {
+                LOG_DEBUG("Camera can support CFW but no filters are present.");
+                m_MaxFilterCount = -1;
+            }
+
             if (m_MaxFilterCount > 0)
                 updateFilterProperties();
+            else
+                HasFilters = false;
         }
 
         LOGF_DEBUG("Has Filters: %s", HasFilters ? "True" : "False");
@@ -1172,19 +1189,22 @@ void QHYCCD::TimerHit()
     if (isConnected() == false)
         return;
 
-    if (HasFilters && m_MaxFilterCount == -1)
-    {
-        m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
-        if (m_MaxFilterCount > 0)
-        {
-            if (updateFilterProperties())
-            {
-                deleteProperty("FILTER_NAME");
-                IUUpdateMinMax(&FilterSlotNP);
-                defineText(FilterNameTP);
-            }
-        }
-    }
+    //    if (HasFilters && m_MaxFilterCount == -1)
+    //    {
+    //        m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+    //        LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+    //        if (m_MaxFilterCount > 16)
+    //            m_MaxFilterCount = -1;
+    //        if (m_MaxFilterCount > 0)
+    //        {
+    //            if (updateFilterProperties())
+    //            {
+    //                deleteProperty("FILTER_NAME");
+    //                IUUpdateMinMax(&FilterSlotNP);
+    //                defineText(FilterNameTP);
+    //            }
+    //        }
+    //    }
 
     if (FilterSlotNP.s == IPS_BUSY)
     {
@@ -1931,6 +1951,7 @@ bool QHYCCD::updateFilterProperties()
 {
     if (FilterNameTP->ntp != m_MaxFilterCount)
     {
+        LOGF_DEBUG("Max filter count is: %d", m_MaxFilterCount);
         FilterSlotN[0].max = m_MaxFilterCount;
         char filterName[MAXINDINAME];
         char filterLabel[MAXINDILABEL];
@@ -1941,7 +1962,7 @@ bool QHYCCD::updateFilterProperties()
             delete [] FilterNameT;
         }
 
-        FilterNameT = new IText[static_cast<int>(m_MaxFilterCount)];
+        FilterNameT = new IText[m_MaxFilterCount];
         memset(FilterNameT, 0, sizeof(IText) * m_MaxFilterCount);
         for (int i = 0; i < m_MaxFilterCount; i++)
         {
