@@ -26,6 +26,8 @@
 
 using namespace std;
 
+constexpr char sep = '+';
+
 starbook::DMS::DMS(string dms) : ln_dms{0, 0, 0, 0} {
     static regex pattern(R"((-?)(\d+)\+(\d+))");
     smatch results;
@@ -39,35 +41,38 @@ starbook::DMS::DMS(string dms) : ln_dms{0, 0, 0, 0} {
     }
 }
 
-ostream &starbook::operator<<(ostream &os, const starbook::DMS &dms) {
-    if (dms.neg != 0) os << "-";
+ostream &starbook::operator<<(ostream &os, const starbook::DMS &obj) {
+    if (obj.neg != 0) os << "-";
     os << fixed << setprecision(0) << setfill('0')
-       << setw(3) << dms.degrees
-       << setw(0) << "+"
-       << setw(2) << dms.minutes
+       << setw(3) << obj.degrees
+       << setw(0) << sep
+       << setw(2) << obj.minutes
        << setw(0);
     return os;
 }
 
-starbook::HMS::HMS(string hms) : ln_hms{0, 0, 0} {
-    static regex pattern(R"((\d+)\+(\d+)\.(\d+))");
-    smatch results;
-    if (regex_search(hms, results, pattern)) {
-        hours = (unsigned short) stoi(results[1].str());
-        minutes = (unsigned short) stoi(results[2].str());
-        seconds = (double) stoi(results[3].str());
-    } else {
-        throw;
-    }
+ostream &starbook::operator<<(ostream &os, const starbook::HMS &obj) {
+    os << fixed << setprecision(0) << setfill('0')
+       << setw(2) << obj.hours
+       << setw(0) << sep
+       << setw(2) << obj.minutes
+       << setw(0) << "."
+       << setw(1) << floor(obj.seconds / 6);
+    return os;
 }
 
-ostream &starbook::operator<<(ostream &os, const starbook::HMS &hms) {
-    os << fixed << setprecision(0) << setfill('0')
-       << setw(2) << hms.hours
-       << setw(0) << "+"
-       << setw(2) << hms.minutes
-       << setw(0) << "." << floor(hms.seconds);
-    return os;
+std::istream &starbook::operator>>(std::istream &is, starbook::HMS &obj) {
+    unsigned short h, m, m_tenth;
+    std::array<char, 2> ch = {{'\0'}};
+    is >> h >> ch[0] >> m >> ch[1] >> m_tenth;
+
+    if (!is) return is;
+    if (ch[0] != sep || ch[1] != '.') {
+        is.clear(ios_base::failbit);
+        return is;
+    }
+    obj = HMS(h, m, static_cast<double>(m_tenth * 6));
+    return is;
 }
 
 starbook::Equ::Equ(double ra, double dec) : lnh_equ_posn{{0, 0, 0},
@@ -76,16 +81,14 @@ starbook::Equ::Equ(double ra, double dec) : lnh_equ_posn{{0, 0, 0},
     ln_equ_to_hequ(&target_d, this);
 }
 
-ostream &starbook::operator<<(ostream &os, const starbook::Equ &equ) {
+ostream &starbook::operator<<(ostream &os, const starbook::Equ &obj) {
     os << "RA=";
-    os << static_cast<const HMS &> (equ.ra);
+    os << static_cast<const HMS &> (obj.ra);
 
     os << "&DEC=";
-    os << static_cast<const DMS &> (equ.dec);
+    os << static_cast<const DMS &> (obj.dec);
     return os;
 }
-
-constexpr char sep = '+';
 
 ostream &starbook::operator<<(ostream &os, const starbook::DateTime &obj) {
     os << setfill('0') << std::fixed << setprecision(0)
@@ -123,7 +126,7 @@ std::ostream &starbook::operator<<(std::ostream &os, const starbook::LnLat &obj)
        << "longitude=" << ((dms.lng.neg == 0) ? "E" : "W")
        << setw(2) << dms.lng.degrees << sep << setw(2) << dms.lng.minutes
        << "latitude=" << ((dms.lat.neg == 0) ? "N" : "S")
-       << setw(2) << dms.lng.degrees << sep << setw(2) << dms.lat.minutes;
+       << setw(2) << dms.lat.degrees << sep << setw(2) << dms.lat.minutes;
     return os;
 }
 

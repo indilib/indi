@@ -143,13 +143,13 @@ namespace starbook {
         return SendOkCommand(cmd.str());
     }
 
-    ResponseCode CommandInterface::SetPlace(LnLat posn, int tz) {
+    ResponseCode CommandInterface::SetPlace(LnLat posn, short tz) {
         std::ostringstream cmd;
-        if (tz > 24 || tz < -24)
-            throw std::domain_error("timezone should be between -24 and 24");
+        if (tz > 12 || tz < -12)
+            throw std::domain_error("timezone should be between -12 and 12");
         cmd << "SETPLACE?" << posn
             << "&timezone="
-            << std::setfill('0') << std::setw(2) << tz;
+            << tz;
         return SendOkCommand(cmd.str());
     }
 
@@ -196,10 +196,13 @@ namespace starbook {
 
         lnh_equ_posn equ_posn = {{0, 0, 0},
                                  {0, 0, 0, 0}};
+        HMS ra{};
+        DMS dec(res.payload.at("DEC"));
 
-        starbook::HMS ra(res.payload.at("RA"));
+        std::stringstream ss{res.payload.at("RA")};
+        ss >> ra;
+
         equ_posn.ra = ra;
-        starbook::DMS dec(res.payload.at("DEC"));
         equ_posn.dec = dec;
         result.equ = {0, 0};
         ln_hequ_to_equ(&equ_posn, &result.equ);
@@ -240,7 +243,7 @@ namespace starbook {
     ln_date CommandInterface::ParseTimeResponse(const CommandResponse &response) {
         if (!response.status) throw std::runtime_error("can't parse time");
         std::stringstream ss{response.payload.at("time")};
-        DateTime time(0, 0, 0, 0, 0, 0);
+        DateTime time{0, 0, 0, 0, 0, 0};
         ss >> time;
         return time;
     }
