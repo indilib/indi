@@ -91,7 +91,7 @@ bool ApogeeCFW::initProperties()
     IUFillSwitch(&FilterTypeS[TYPE_FW50_7S], "TYPE_FW50_7S", "FW50 7S", ISS_OFF);
     IUFillSwitch(&FilterTypeS[TYPE_AFW50_10S], "TYPE_AFW50_10S", "AFW50 10S", ISS_OFF);
     IUFillSwitch(&FilterTypeS[TYPE_AFW31_17R], "TYPE_AFW31_17R", "AFW31 17R", ISS_OFF);
-    IUFillSwitchVector(&FilterTypeSP, FilterTypeS, 5, getDeviceName(), "Filter_TYPE", "Type", MAIN_CONTROL_TAB, IP_RW,
+    IUFillSwitchVector(&FilterTypeSP, FilterTypeS, 5, getDeviceName(), "FILTER_TYPE", "Type", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillSwitch(&PortTypeS[PORT_USB], "USB_PORT", "USB", ISS_ON);
@@ -122,9 +122,9 @@ void ApogeeCFW::ISGetProperties(const char *dev)
     defineSwitch(&PortTypeSP);
     defineText(&NetworkInfoTP);
 
-    loadConfig(true, "FILTER_TYPE");
-    loadConfig(true, "PORT_TYPE");
-    loadConfig(true, "NETWORK_INFO");
+    loadConfig(true, FilterTypeSP.name);
+    loadConfig(true, PortTypeSP.name);
+    loadConfig(true, NetworkInfoTP.name);
 }
 
 bool ApogeeCFW::updateProperties()
@@ -293,9 +293,6 @@ bool ApogeeCFW::Connect()
 {
     std::string msg;
     std::string addr;
-    std::string delimiter = "</d>";
-    size_t pos = 0;
-    std::string token, token_ip;
     bool filterFound = false;
 
     LOG_INFO("Attempting to find Apogee CFW...");
@@ -319,7 +316,8 @@ bool ApogeeCFW::Connect()
                 msg  = lookUsb.Find();
                 if (msg.size() > 0)
                 {
-                    LOGF_DEBUG("USB search result: %s", msg.c_str());
+                    // FIXME this can cause a crash
+                    //LOGF_DEBUG("USB search result: %s", msg.c_str());
                     addr = GetUsbAddress(msg);
                 }
                 else
@@ -333,6 +331,9 @@ bool ApogeeCFW::Connect()
             }
         }
 
+        std::string delimiter = "</d>";
+        size_t pos = 0;
+        std::string token, token_ip;
         while ((pos = msg.find(delimiter)) != std::string::npos)
         {
             token    = msg.substr(0, pos);
@@ -349,7 +350,7 @@ bool ApogeeCFW::Connect()
     else
     {
         ioInterface = std::string("ethernet");
-        FindDeviceEthernet look4cam;
+        FindDeviceEthernet look4Filter;
         char ip[32];
         int port;
 
@@ -363,8 +364,9 @@ bool ApogeeCFW::Connect()
         {
             try
             {
-                msg = look4cam.Find(subnet);
-                LOGF_DEBUG("Network search result: %s", msg.c_str());
+                msg = look4Filter.Find(subnet);
+                // FIXME this can cause a crash
+                //LOGF_DEBUG("Network search result: %s", msg.c_str());
             }
             catch (std::runtime_error &err)
             {
@@ -381,6 +383,10 @@ bool ApogeeCFW::Connect()
 
         // If we have IP:Port, then let's skip all entries that does not have our desired IP address.
         addr = NetworkInfoT[NETWORK_ADDRESS].text;
+
+        std::string delimiter = "</d>";
+        size_t pos = 0;
+        std::string token, token_ip;
         while ((pos = msg.find(delimiter)) != std::string::npos)
         {
             token    = msg.substr(0, pos);
@@ -393,8 +399,8 @@ bool ApogeeCFW::Connect()
                     IUSaveText(&NetworkInfoT[NETWORK_ADDRESS], addr.c_str());
                     LOGF_INFO("Detected filter at %s", addr.c_str());
                     IDSetText(&NetworkInfoTP, nullptr);
-
                     filterFound = true;
+                    break;
                 }
                 else
                 {

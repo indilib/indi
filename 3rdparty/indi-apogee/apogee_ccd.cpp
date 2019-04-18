@@ -918,7 +918,8 @@ bool ApogeeCCD::Connect()
                 msg  = lookUsb.Find();
                 if (msg.size() > 0)
                 {
-                    LOGF_DEBUG("USB search result: %s", msg.c_str());
+                    // FIXME This causes a crash for some reason
+                    //LOGF_DEBUG("USB search result: %s", msg.c_str());
                     addr = GetUsbAddress(msg);
                 }
                 else
@@ -966,7 +967,8 @@ bool ApogeeCCD::Connect()
             try
             {
                 msg = look4cam.Find(subnet);
-                LOGF_DEBUG("Network search result: %s", msg.c_str());
+                // This can cause a crash
+                //LOGF_DEBUG("Network search result: %s", msg.c_str());
             }
             catch (std::runtime_error &err)
             {
@@ -996,8 +998,8 @@ bool ApogeeCCD::Connect()
                     IUSaveText(&NetworkInfoT[NETWORK_ADDRESS], addr.c_str());
                     LOGF_INFO("Detected camera at %s", addr.c_str());
                     IDSetText(&NetworkInfoTP, nullptr);
-
                     cameraFound = true;
+                    break;
                 }
                 else
                 {
