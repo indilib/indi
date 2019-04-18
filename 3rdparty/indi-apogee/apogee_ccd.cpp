@@ -939,7 +939,10 @@ bool ApogeeCCD::Connect()
 
             cameraFound = IsDeviceCamera(token);
             if (cameraFound)
+            {
+                msg = token;
                 break;
+            }
 
             msg.erase(0, pos + delimiter.length());
         }
@@ -999,6 +1002,7 @@ bool ApogeeCCD::Connect()
                     LOGF_INFO("Detected camera at %s", addr.c_str());
                     IDSetText(&NetworkInfoTP, nullptr);
                     cameraFound = true;
+                    msg = token;
                     break;
                 }
                 else

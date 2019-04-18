@@ -341,7 +341,10 @@ bool ApogeeCFW::Connect()
 
             filterFound = IsDeviceFilterWheel(token);
             if (filterFound)
+            {
+                msg = token;
                 break;
+            }
 
             msg.erase(0, pos + delimiter.length());
         }
@@ -400,6 +403,7 @@ bool ApogeeCFW::Connect()
                     LOGF_INFO("Detected filter at %s", addr.c_str());
                     IDSetText(&NetworkInfoTP, nullptr);
                     filterFound = true;
+                    msg = token;
                     break;
                 }
                 else
