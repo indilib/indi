@@ -84,7 +84,7 @@ double max(void);
 #define TEMP_UPDATE_THRESHOLD   0.05
 #define COOLER_UPDATE_THRESHOLD 0.05
 
-std::unique_ptr<ApogeeCCD> apogeeCCD(new ApogeeCCD());
+static std::unique_ptr<ApogeeCCD> apogeeCCD(new ApogeeCCD());
 
 void ISGetProperties(const char *dev)
 {
@@ -138,7 +138,7 @@ ApogeeCCD::~ApogeeCCD()
 
 const char *ApogeeCCD::getDefaultName()
 {
-    return (char *)"Apogee CCD";
+    return "Apogee CCD";
 }
 
 bool ApogeeCCD::initProperties()
@@ -316,7 +316,7 @@ bool ApogeeCCD::getCameraParams()
     if (fStatus != Apg::FanMode_Unknown)
     {
         IUResetSwitch(&FanStatusSP);
-        FanStatusS[(int)fStatus].s = ISS_ON;
+        FanStatusS[fStatus].s = ISS_ON;
         IDSetSwitch(&FanStatusSP, nullptr);
     }
 
@@ -348,9 +348,7 @@ bool ApogeeCCD::getCameraParams()
         return false;
     }
 
-    int nbuf;
-    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8; //  this is pixel count
-    nbuf += 512;                                                                  //  leave a little extra at the end
+    int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
@@ -511,22 +509,14 @@ bool ApogeeCCD::ISNewNumber(const char *dev, const char *name, double values[], 
 
 bool ApogeeCCD::StartExposure(float duration)
 {
-    if (duration < minDuration)
-    {
-        ExposureRequest = minDuration;
-        DEBUGF(INDI::Logger::DBG_WARNING,
-               "Exposure shorter than minimum ExposureRequest %g s requested. \n Setting exposure time to %g s.",
-               minDuration, minDuration);
-    }
-    else
-        ExposureRequest = duration;
+    ExposureRequest = duration;
 
     imageFrameType = PrimaryCCD.getFrameType();
 
     if (imageFrameType == INDI::CCDChip::BIAS_FRAME)
     {
         ExposureRequest = minDuration;
-        LOGF_INFO("Bias Frame (s) : %g", ExposureRequest);
+        LOGF_INFO("Bias Frame (s) : %.3f", ExposureRequest);
     }
 
     if (isSimulation() == false)
@@ -653,9 +643,7 @@ bool ApogeeCCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     // Set UNBINNED coords
     PrimaryCCD.setFrame(x, y, w, h);
-    int nbuf;
-    nbuf = (imageWidth * imageHeight * PrimaryCCD.getBPP() / 8); //  this is pixel count
-    nbuf += 512;                                                 //  leave a little extra at the end
+    int nbuf = (imageWidth * imageHeight * PrimaryCCD.getBPP() / 8);
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     return true;
@@ -696,8 +684,6 @@ bool ApogeeCCD::UpdateCCDBin(int binx, int biny)
     return UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
 }
 
-/* Downloads the image from the CCD.
- N.B. No processing is done on the image */
 int ApogeeCCD::grabImage()
 {
     std::vector<uint16_t> pImageData;
@@ -866,7 +852,6 @@ void ApogeeCCD::checkStatus(const Apg::Status status)
             std::runtime_error except(errMsg);
             throw except;
         }
-        break;
 
         case Apg::Status_DataError:
         {
@@ -874,7 +859,6 @@ void ApogeeCCD::checkStatus(const Apg::Status status)
             std::runtime_error except(errMsg);
             throw except;
         }
-        break;
 
         case Apg::Status_PatternError:
         {
@@ -882,7 +866,6 @@ void ApogeeCCD::checkStatus(const Apg::Status status)
             std::runtime_error except(errMsg);
             throw except;
         }
-        break;
 
         case Apg::Status_Idle:
         {
@@ -890,7 +873,6 @@ void ApogeeCCD::checkStatus(const Apg::Status status)
             std::runtime_error except(errMsg);
             throw except;
         }
-        break;
 
         default:
             //no op on purpose
@@ -1050,7 +1032,6 @@ bool ApogeeCCD::Connect()
             LOGF_ERROR("Model %s is not supported by the INDI Apogee driver.",
                        GetItemFromFindStr(msg, "model=").c_str());
             return false;
-            break;
     }
 
     try
