@@ -405,6 +405,7 @@ bool ApogeeCFW::Connect()
                     {
                         msg = token;
                         LOGF_DEBUG("IP matched (%s).", msg.c_str());
+                        addr = GetEthernetAddress(token);
                         filterFound = true;
                         break;
                     }
