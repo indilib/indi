@@ -813,12 +813,12 @@ uint16_t ApogeeCCD::GetFrmwrRev(const std::string &msg)
 }
 
 ////////////////////////////
-//	        IS      DEVICE      FILTER      WHEEL
-bool ApogeeCCD::IsDeviceFilterWheel(const std::string &msg)
+// Do we have a camera?
+bool ApogeeCCD::IsDeviceCamera(const std::string &msg)
 {
     std::string str = GetItemFromFindStr(msg, "deviceType=");
 
-    return (0 == str.compare("filterWheel") ? true : false);
+    return (0 == str.compare("camera") ? true : false);
 }
 
 ////////////////////////////
@@ -891,6 +891,10 @@ bool ApogeeCCD::Connect()
 {
     std::string msg;
     std::string addr;
+    std::string delimiter = "</d>";
+    size_t pos = 0;
+    std::string token, token_ip;
+    bool cameraFound = false;
 
     LOG_INFO("Attempting to find Apogee CCD...");
 
@@ -919,6 +923,18 @@ bool ApogeeCCD::Connect()
                 LOGF_ERROR("Error getting USB address: %s", err.what());
                 return false;
             }
+        }
+
+        while ((pos = msg.find(delimiter)) != std::string::npos)
+        {
+            token    = msg.substr(0, pos);
+            LOGF_DEBUG("Checking device: %s", token.c_str());
+
+            cameraFound = IsDeviceCamera(token);
+            if (cameraFound)
+                break;
+
+            msg.erase(0, pos + delimiter.length());
         }
     }
     // Ethernet
@@ -960,40 +976,44 @@ bool ApogeeCCD::Connect()
             rc = sscanf(NetworkInfoT[NETWORK_ADDRESS].text, "%[^:]:%d", ip, &port);
 
         // If we have IP:Port, then let's skip all entries that does not have our desired IP address.
-        if (rc == 2)
+        // If we have IP:Port, then let's skip all entries that does not have our desired IP address.
+        addr = NetworkInfoT[NETWORK_ADDRESS].text;
+        while ((pos = msg.find(delimiter)) != std::string::npos)
         {
-            addr                  = NetworkInfoT[NETWORK_ADDRESS].text;
-            std::string delimiter = "</d>";
+            token    = msg.substr(0, pos);
 
-            size_t pos = 0;
-            std::string token, token_ip;
-            while ((pos = msg.find(delimiter)) != std::string::npos)
+            if (IsDeviceCamera(token))
             {
-                token    = msg.substr(0, pos);
-                token_ip = GetIPAddress(token);
-                LOGF_DEBUG("Checking %s (%s) for IP %s", token.c_str(), token_ip.c_str(), ip);
-                if (token_ip == ip)
+                if (rc == 2)
                 {
-                    msg = token;
-                    LOGF_DEBUG("IP matched (%s).", msg.c_str());
-                    break;
+                    addr = GetEthernetAddress(token);
+                    IUSaveText(&NetworkInfoT[NETWORK_ADDRESS], addr.c_str());
+                    LOGF_INFO("Detected camera at %s", addr.c_str());
+                    IDSetText(&NetworkInfoTP, nullptr);
+
+                    cameraFound = true;
                 }
-                msg.erase(0, pos + delimiter.length());
+                else
+                {
+                    token_ip = GetIPAddress(token);
+                    LOGF_DEBUG("Checking %s (%s) for IP %s", token.c_str(), token_ip.c_str(), ip);
+                    if (token_ip == ip)
+                    {
+                        msg = token;
+                        LOGF_DEBUG("IP matched (%s).", msg.c_str());
+                        cameraFound = true;
+                        break;
+                    }
+                }
             }
-        }
-        else
-        {
-            addr = GetEthernetAddress(msg);
-            IUSaveText(&NetworkInfoT[NETWORK_ADDRESS], addr.c_str());
-            LOGF_INFO("Detected camera at %s", addr.c_str());
-            IDSetText(&NetworkInfoTP, nullptr);
+
+            msg.erase(0, pos + delimiter.length());
         }
     }
 
-    if (msg.compare("<d></d>") == 0)
+    if (cameraFound == false)
     {
-        DEBUG(INDI::Logger::DBG_ERROR,
-              "Unable to find Apogee CCDs or Filter Wheels attached. Please check connection and power and try again.");
+        LOG_ERROR("Unable to find Apogee camera attached. Please check connection and power and try again.");
         return false;
     }
 

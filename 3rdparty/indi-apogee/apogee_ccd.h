@@ -116,7 +116,7 @@ class ApogeeCCD : public INDI::CCD
         uint16_t GetID(const std::string &msg);
         uint16_t GetFrmwrRev(const std::string &msg);
 
-        bool IsDeviceFilterWheel(const std::string &msg);
+        bool IsDeviceCamera(const std::string &msg);
         bool IsAscent(const std::string &msg);
         void printInfo(const std::string &model, uint16_t maxImgRows, uint16_t maxImgCols);
 
