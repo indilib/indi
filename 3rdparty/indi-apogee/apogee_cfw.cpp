@@ -317,8 +317,14 @@ bool ApogeeCFW::Connect()
             try
             {
                 msg  = lookUsb.Find();
-                LOGF_DEBUG("USB search result: %s", msg.c_str());
-                addr = GetUsbAddress(msg);
+                if (msg.size() > 0)
+                {
+                    LOGF_DEBUG("USB search result: %s", msg.c_str());
+                    addr = GetUsbAddress(msg);
+                }
+                else
+                    LOG_ERROR("USB lookup failed. Nothing detected.");
+
             }
             catch (std::runtime_error &err)
             {
