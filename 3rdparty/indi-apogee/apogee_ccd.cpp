@@ -916,18 +916,10 @@ bool ApogeeCCD::Connect()
             try
             {
                 msg  = lookUsb.Find();
-                if (msg.size() > 0)
-                {
-                    // FIXME This causes a crash for some reason
-                    //LOGF_DEBUG("USB search result: %s", msg.c_str());
-                    addr = GetUsbAddress(msg);
-                }
-                else
-                    LOG_ERROR("USB lookup failed. Nothing detected.");
             }
             catch (std::runtime_error &err)
             {
-                LOGF_ERROR("Error getting USB address: %s", err.what());
+                LOGF_ERROR("Error finding USB device: %s", err.what());
                 return false;
             }
         }
@@ -1008,6 +1000,7 @@ bool ApogeeCCD::Connect()
                 else
                 {
                     token_ip = GetIPAddress(token);
+                    addr = GetEthernetAddress(token);
                     LOGF_DEBUG("Checking %s (%s) for IP %s", token.c_str(), token_ip.c_str(), ip);
                     if (token_ip == ip)
                     {
@@ -1035,7 +1028,9 @@ bool ApogeeCCD::Connect()
     char firmwareStr[16];
     snprintf(firmwareStr, 16, "0x%X", frmwrRev);
     firmwareRev = std::string(firmwareStr);
-    model       = GetModel(msg);
+
+    model = GetModel(msg);
+    addr = GetUsbAddress(msg);
 
     LOGF_INFO("Model: %s ID: %d Address: %s Firmware: %s",
               GetItemFromFindStr(msg, "model=").c_str(), id, addr.c_str(), firmwareRev.c_str());

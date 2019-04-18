@@ -298,7 +298,7 @@ bool ApogeeCFW::Connect()
     LOG_INFO("Attempting to find Apogee CFW...");
 
     // USB
-    if (PortTypeS[0].s == ISS_ON)
+    if (PortTypeS[PORT_USB].s == ISS_ON)
     {
         // Simulation
         if (isSimulation())
@@ -314,19 +314,10 @@ bool ApogeeCFW::Connect()
             try
             {
                 msg  = lookUsb.Find();
-                if (msg.size() > 0)
-                {
-                    // FIXME this can cause a crash
-                    //LOGF_DEBUG("USB search result: %s", msg.c_str());
-                    addr = GetUsbAddress(msg);
-                }
-                else
-                    LOG_ERROR("USB lookup failed. Nothing detected.");
-
             }
             catch (std::runtime_error &err)
             {
-                LOGF_ERROR("Error getting USB address: %s", err.what());
+                LOGF_ERROR("Error finding USB device: %s", err.what());
                 return false;
             }
         }
@@ -441,7 +432,9 @@ bool ApogeeCFW::Connect()
     {
         if (isSimulation() == false)
         {
-            ApgCFW->Init(static_cast<ApogeeFilterWheel::Type>(IUFindOnSwitchIndex(&FilterTypeSP)), addr);
+            ApogeeFilterWheel::Type type = static_cast<ApogeeFilterWheel::Type>(IUFindOnSwitchIndex(&FilterTypeSP));
+            LOGF_DEBUG("Opening connection to CFW type: %d @ address: %s", type, addr.c_str());
+            ApgCFW->Init(type, addr);
         }
     }
     catch (std::runtime_error &err)
