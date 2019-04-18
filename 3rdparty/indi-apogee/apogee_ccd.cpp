@@ -1037,6 +1037,9 @@ bool ApogeeCCD::Connect()
     firmwareRev = std::string(firmwareStr);
     model       = GetModel(msg);
 
+    LOGF_INFO("Model: %s ID: %d Address: %s Firmware: %s",
+              GetItemFromFindStr(msg, "model=").c_str(), id, addr.c_str(), firmwareRev.c_str());
+
     switch (model)
     {
         case CamModel::ALTAU:
