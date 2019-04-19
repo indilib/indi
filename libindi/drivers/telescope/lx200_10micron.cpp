@@ -555,11 +555,33 @@ bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
 {
     LOGF_INFO("The function is called with TLE %s", tle);
-    char *pch = strtok ((char*) tle,"\n");
-    while (pch != NULL)
-    { 
-        LOGF_INFO("%s\n",pch);
-        pch = strtok (NULL, "\n");
+    char command[230];
+    snprintf(command, sizeof(command), ":TLEL0%s#", tle);
+
+    if ( !isSimulation() )
+    {
+        LOG_INFO(command);
+        char response[2];
+        if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 2) )
+        {
+            LOG_ERROR("TLE set error");
+            return 1;
+        }
+        if (response[0] == 'E')
+        {
+            LOG_ERROR("TLE number not in mount");
+            return 1;
+        }
+        LOG_INFO(response);
+    }
+    else
+    {
+        char *pch = strtok ((char*) tle,"\n");
+        while (pch != NULL)
+        { 
+            LOGF_INFO("%s\n",pch);
+            pch = strtok (NULL, "\n");
+        }
     }
     return 0;
 }
@@ -630,7 +652,45 @@ bool LX200_10MICRON::CalculateTrajectory(int year, int month, int day, int hour,
 
 bool LX200_10MICRON::TrackSat()
 {
-  LOG_INFO("Tracking satellite");
+    LOG_INFO("Tracking satellite");
+    char command[6];
+    snprintf(command, sizeof(command), ":TLEs#");
+    if ( !isSimulation() )
+    {
+        LOG_INFO(command);
+        char response[2];
+        if (0 != setStandardProcedureAndReturnResponse(fd, command, response, 2) )
+        {
+            LOG_ERROR("TLE track error");
+            return 1;
+        }
+        if (response[0] == 'E')
+        {
+            LOG_ERROR("TLE transit not calculated");
+            return 2;
+        }
+        if (response[0] == 'F')
+        {
+            LOG_ERROR("Slew failed");
+            return 3;
+        }
+        if (response[0] == 'V')
+        {
+            LOG_INFO("Slewing to start of transit");
+            return 0;
+        }
+        if (response[0] == 'S')
+        {
+            LOG_ERROR("Slewing to transiting satellite");
+            return 0;
+        }
+        if (response[0] == 'Q')
+        {
+            LOG_ERROR("Transit is already over");
+            return 4;
+        }
+        LOG_INFO(response);
+    }
   return 0;
 }
 
@@ -906,11 +966,25 @@ bool LX200_10MICRON::ISNewSwitch(const char *dev, const char *name, ISState *sta
             switch (index)
               {
               case SAT_TRACK:
+                if ( 0!=TrackSat() )
+                {
+                    TrackSatSP.s = IPS_ALERT;
+                    IDSetSwitch(&TrackSatSP, nullptr);
+                    LOG_ERROR("Tracking failed");
+                    return false;
+                }
                 TrackSatSP.s = IPS_OK;
                 IDSetSwitch(&TrackSatSP, nullptr);
                 LOG_INFO("Tracking satellite");
                 return true;
               case SAT_HALT:
+                if ( !Abort() )
+                {
+                    TrackSatSP.s = IPS_ALERT;
+                    IDSetSwitch(&TrackSatSP, nullptr);
+                    LOG_ERROR("Halt failed");
+                    return false;
+                }
                 TrackSatSP.s = IPS_OK;
                 IDSetSwitch(&TrackSatSP, nullptr);
                 LOG_INFO("Halt tracking");
