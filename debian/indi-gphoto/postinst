@@ -13,4 +13,10 @@ then
     rm -f "/usr/lib/gvfs/gvfs-gphoto2-volume-monitor" 2> /dev/null
 fi
 
+libgphoto_ppa="/etc/apt/sources.list.d/mutlaqja-ubuntu-libgphoto2-$(lsb_release -sc).list"
 
+if [ ! -f  $libgphoto_ppa ] ;
+then
+    echo "libgphoto2 PPA is not installed. Will enable it now..."
+    apt-add-repository -y ppa:mutlaqja/libgphoto2
+fi
