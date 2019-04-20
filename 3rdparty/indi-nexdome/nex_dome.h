@@ -61,6 +61,12 @@ class NexDome : public INDI::Dome
         /// Properties
         /////////////////////////////////////////////////////////////////////////////
 
+        enum
+        {
+            DISABLED,
+            ENABLED
+        };
+
         ISwitchVectorProperty HomeSP;
         ISwitch HomeS[1];
 
@@ -81,6 +87,9 @@ class NexDome : public INDI::Dome
 
         ISwitchVectorProperty ReversedSP;
         ISwitch ReversedS[2];
+
+        ISwitchVectorProperty CloseShutterOnParkSP;
+        ISwitch CloseShutterOnParkS[2];
 
     private:
         ///////////////////////////////////////////////////////////////////////////////
