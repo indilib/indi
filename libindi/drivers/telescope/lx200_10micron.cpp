@@ -555,6 +555,10 @@ bool LX200_10MICRON::setLocalDate(uint8_t days, uint8_t months, uint16_t years)
 bool LX200_10MICRON::SetTLEtoFollow(const char *tle)
 {
     LOGF_INFO("The function is called with TLE %s", tle);
+    if (strlen(tle)>230)
+    {
+        LOG_WARN("TLE is too long");
+    }
     char command[230];
     snprintf(command, sizeof(command), ":TLEL0%s#", tle);
 
@@ -654,7 +658,7 @@ bool LX200_10MICRON::TrackSat()
 {
     LOG_INFO("Tracking satellite");
     char command[6];
-    snprintf(command, sizeof(command), ":TLEs#");
+    snprintf(command, sizeof(command), ":TLES#");
     if ( !isSimulation() )
     {
         LOG_INFO(command);
@@ -681,7 +685,7 @@ bool LX200_10MICRON::TrackSat()
         }
         if (response[0] == 'S')
         {
-            LOG_ERROR("Slewing to transiting satellite");
+            LOG_INFO("Slewing to transiting satellite");
             return 0;
         }
         if (response[0] == 'Q')
