@@ -41,6 +41,11 @@ void EncoderInterface::init(CCD *activeCCD)
     currentCCD = activeCCD;
 }
 
+void EncoderInterface::init(Detector *activeDetector)
+{
+    currentDetector = activeDetector;
+}
+
 bool EncoderInterface::setSize(uint16_t width, uint16_t height)
 {
     rawWidth  = width;

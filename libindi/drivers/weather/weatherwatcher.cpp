@@ -31,7 +31,7 @@
 #include <cstring>
 
 // We declare an auto pointer to WeatherWatcher.
-std::unique_ptr<WeatherWatcher> weatherWatcher(new WeatherWatcher());
+static std::unique_ptr<WeatherWatcher> weatherWatcher(new WeatherWatcher());
 
 static size_t write_data(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -78,14 +78,14 @@ void ISSnoopDevice(XMLEle *root)
 
 WeatherWatcher::WeatherWatcher()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     setWeatherConnection(CONNECTION_NONE);
 }
 
 const char *WeatherWatcher::getDefaultName()
 {
-    return static_cast<const char *>("Weather Watcher");
+    return "Weather Watcher";
 }
 
 bool WeatherWatcher::Connect()
@@ -113,33 +113,69 @@ bool WeatherWatcher::createPropertiesFromMap()
     if (readWatchFile() == false)
         return false;
 
-    for (auto const& x : weatherMap)
+    double minOK = 0, maxOK = 0, percWarn = 15;
+    for (auto const &x : weatherMap)
     {
         if (x.first == keywordT[1].text)
         {
-            addParameter("WEATHER_TEMPERATURE", "Temperature (C)", -10, 30, 15);
+            minOK = -10;
+            maxOK = 30;
+            percWarn = 15;
+            IUGetConfigNumber(getDeviceName(), "WEATHER_TEMPERATURE", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_TEMPERATURE", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_TEMPERATURE", "PERC_WARN", &percWarn);
+
+            addParameter("WEATHER_TEMPERATURE", "Temperature (C)", minOK, maxOK, percWarn);
             setCriticalParameter("WEATHER_TEMPERATURE");
         }
         else if (x.first == keywordT[2].text)
         {
-            addParameter("WEATHER_WIND_SPEED", "Wind (kph)", 0, 20, 15);
+            minOK = 0;
+            maxOK = 20;
+            percWarn = 15;
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_SPEED", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_SPEED", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_SPEED", "PERC_WARN", &percWarn);
+
+            addParameter("WEATHER_WIND_SPEED", "Wind (kph)", minOK, maxOK, percWarn);
             setCriticalParameter("WEATHER_WIND_SPEED");
         }
         else if (x.first == keywordT[3].text)
-		{
-            addParameter("WEATHER_WIND_GUST", "Gust (kph)", 0, 20, 15);
-		}        
-		else if (x.first == keywordT[0].text)
         {
-            addParameter("WEATHER_RAIN_HOUR", "Rain (mm)", 0, 0, 15);
+            minOK = 0;
+            maxOK = 20;
+            percWarn = 15;
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_GUST", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_GUST", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_WIND_GUST", "PERC_WARN", &percWarn);
+
+            addParameter("WEATHER_WIND_GUST", "Gust (kph)", minOK, maxOK, percWarn);
+        }
+        else if (x.first == keywordT[0].text)
+        {
+            minOK = 0;
+            maxOK = 0;
+            percWarn = 15;
+            IUGetConfigNumber(getDeviceName(), "WEATHER_RAIN_HOUR", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_RAIN_HOUR", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_RAIN_HOUR", "PERC_WARN", &percWarn);
+
+            addParameter("WEATHER_RAIN_HOUR", "Rain (mm)", minOK, maxOK, percWarn);
             setCriticalParameter("WEATHER_RAIN_HOUR");
         }
         else if (x.first == keywordT[4].text)
         {
-            addParameter("WEATHER_FORECAST", "Weather", 0, 0,15);
+            minOK = 0;
+            maxOK = 0;
+            percWarn = 15;
+            IUGetConfigNumber(getDeviceName(), "WEATHER_FORECAST", "MIN_OK", &minOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_FORECAST", "MAX_OK", &maxOK);
+            IUGetConfigNumber(getDeviceName(), "WEATHER_FORECAST", "PERC_WARN", &percWarn);
+
+            addParameter("WEATHER_FORECAST", "Weather", minOK, maxOK, percWarn);
             setCriticalParameter("WEATHER_FORECAST");
         }
-     }
+    }
 
     initialParse = true;
 
@@ -149,16 +185,16 @@ bool WeatherWatcher::createPropertiesFromMap()
 bool WeatherWatcher::initProperties()
 {
     INDI::Weather::initProperties();
-    
-	IUFillText(&keywordT[0], "RAIN", "Rain", "precip");
-	IUFillText(&keywordT[1], "TEMP", "Temperature", "temperature");
+
+    IUFillText(&keywordT[0], "RAIN", "Rain", "precip");
+    IUFillText(&keywordT[1], "TEMP", "Temperature", "temperature");
     IUFillText(&keywordT[2], "WIND", "Wind", "wind");
     IUFillText(&keywordT[3], "GUST", "Gust", "gust");
     IUFillText(&keywordT[4], "FORECAST", "Forecast", "forecast");
     IUFillTextVector(&keywordTP, keywordT, 5, getDeviceName(), "KEYWORD", "Keywords", OPTIONS_TAB, IP_RW,
                      60, IPS_IDLE);
 
-	IUFillText(&watchFileT[0], "URL", "File", nullptr);
+    IUFillText(&watchFileT[0], "URL", "File", nullptr);
     IUFillTextVector(&watchFileTP, watchFileT, 1, getDeviceName(), "WATCH_SOURCE", "Source", OPTIONS_TAB, IP_RW,
                      60, IPS_IDLE);
 
@@ -177,11 +213,11 @@ void WeatherWatcher::ISGetProperties(const char *dev)
 
     defineText(&watchFileTP);
     loadConfig(true, "WATCH_SOURCE");
-    
-	defineText(&keywordTP);
+
+    defineText(&keywordTP);
     loadConfig(true, "KEYWORD");
 
-	defineText(&separatorTP);
+    defineText(&separatorTP);
     loadConfig(true, "SEPARATOR_KEYWORD");
 
 }
@@ -219,11 +255,11 @@ bool WeatherWatcher::ISNewText(const char *dev, const char *name, char *texts[],
 
 IPState WeatherWatcher::updateWeather()
 {
-	    
-	if (readWatchFile() == false)
+
+    if (readWatchFile() == false)
         return IPS_BUSY;
 
-    for (auto const& x : weatherMap)
+    for (auto const &x : weatherMap)
     {
         if (x.first == keywordT[0].text)
         {
@@ -237,11 +273,12 @@ IPState WeatherWatcher::updateWeather()
         {
             setParameterValue("WEATHER_WIND_SPEED", std::strtod(x.second.c_str(), nullptr));
         }
-        else if (x.first == keywordT[3].text){
+        else if (x.first == keywordT[3].text)
+        {
 
             setParameterValue("WEATHER_WIND_GUST", std::strtod(x.second.c_str(), nullptr));
         }
-		else if (x.first == keywordT[4].text)
+        else if (x.first == keywordT[4].text)
         {
             setParameterValue("WEATHER_FORECAST", std::strtod(x.second.c_str(), nullptr));
         }
@@ -295,7 +332,7 @@ bool WeatherWatcher::saveConfigItems(FILE *fp)
     return true;
 }
 
-std::map<std::string, std::string> WeatherWatcher::createMap(std::string const& s)
+std::map<std::string, std::string> WeatherWatcher::createMap(std::string const &s)
 {
     std::map<std::string, std::string> m;
 

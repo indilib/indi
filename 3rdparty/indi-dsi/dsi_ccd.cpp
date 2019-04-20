@@ -1,13 +1,13 @@
 /**
  * Copyright (C) 2015 Ben Gilsrud
- * 
+ *
  * Modifications and extensions for Meade DSI III Pro by G. Schmidt (gs)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -86,13 +86,13 @@ bool DSICCD::Connect()
     std::string ccd;
 
     dsi = DSI::DeviceFactory::getInstance(nullptr);
-    #ifdef __APPLE__
+#ifdef __APPLE__
     if (!dsi)
     {
         sleep(2);
         dsi = DSI::DeviceFactory::getInstance(nullptr);
     }
-    #endif
+#endif
     if (!dsi)
     {
         /* The vendor and product ID for all DSI's (I/II/III) are the same.
@@ -152,11 +152,11 @@ bool DSICCD::Connect()
 *******************************************************************************/
 bool DSICCD::Disconnect()
 {
-   delete dsi;
-   dsi = nullptr;
+    delete dsi;
+    dsi = nullptr;
 
-   LOG_INFO("Successfully disconnected!");
-   return true;
+    LOG_INFO("Successfully disconnected!");
+    return true;
 }
 
 /*******************************************************************************
@@ -190,7 +190,7 @@ bool DSICCD::initProperties()
     IUFillNumberVector(&OffsetNP, OffsetN, 1, getDeviceName(), "OFFSET", "Offset", IMAGE_SETTINGS_TAB, IP_RW, 0,
                        IPS_IDLE);
 
-    /* Vdd on during exposure property (gs) 
+    /* Vdd on during exposure property (gs)
        Actually, Meade envisage leaves Vdd always on for DSI III during
        exposure. However, this results in a significant amount of amp glow.
        Vdd auto mode also seems not to work properly for the DSI III.
@@ -316,7 +316,7 @@ bool DSICCD::StartExposure(float duration)
 
     /* Adjust gain and offset (gs)
        The gain is normalized in the same way as in Meade envisage (0..100)
-       while the offset takes the values (-50..50) instead of (0..10) to 
+       while the offset takes the values (-50..50) instead of (0..10) to
        reflect that positive and negative offsets may be set                  */
 
     gain   = (int)round(GainN[0].value / 100.0 * 63);   // normalize 100% -> 63
@@ -388,7 +388,7 @@ bool DSICCD::ISNewNumber(const char *dev, const char *name, double values[], cha
 }
 
 /*******************************************************************************
-** Client is asking us to set a new switch 
+** Client is asking us to set a new switch
 *******************************************************************************/
 
 bool DSICCD::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
@@ -498,6 +498,7 @@ void DSICCD::grabImage()
     uint16_t *buf = nullptr;
     int x = 0, y = 0;
 
+    std::unique_lock<std::mutex> guard(ccdBufferLock);
     // Let's get a pointer to the frame buffer
     uint8_t *image = PrimaryCCD.getFrameBuffer();
 
@@ -514,6 +515,7 @@ void DSICCD::grabImage()
         LOG_INFO("Image download failed!");
         return;
     }
+    guard.unlock();
 
     for (y = 0; y < height; ++y)
     {

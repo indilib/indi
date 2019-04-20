@@ -37,7 +37,7 @@
 
 // Unique pointers
 static std::unique_ptr<LX200StarGo> telescope;
-static std::unique_ptr<LX200StarGoFocuser> focuser;
+static std::unique_ptr<LX200StarGoFocuser> focuserAux1;
 
 const char *RA_DEC_TAB = "RA / DEC";
 
@@ -53,7 +53,7 @@ void ISInit()
     {
         LX200StarGo* myScope = new LX200StarGo();
         telescope.reset(myScope);
-        focuser.reset(new LX200StarGoFocuser(myScope, "AUX1 Focuser"));
+        focuserAux1.reset(new LX200StarGoFocuser(myScope, "AUX1 Focuser"));
     }
 }
 
@@ -68,7 +68,7 @@ void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names
 {
     ISInit();
     telescope->ISNewSwitch(dev, name, states, names, n);
-    focuser->ISNewSwitch(dev, name, states, names, n);
+    focuserAux1->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
@@ -82,7 +82,7 @@ void ISNewNumber(const char *dev, const char *name, double values[], char *names
 {
    ISInit();
     telescope->ISNewNumber(dev, name, values, names, n);
-    focuser->ISNewNumber(dev, name, values, names, n);
+    focuserAux1->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -258,6 +258,24 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetSwitch(&MeridianFlipModeSP, nullptr);
             return true;
         }
+        else if (!strcmp(name, Aux1FocuserSP.name))
+        {
+            if (IUUpdateSwitch(&Aux1FocuserSP, states, names, n) < 0)
+                return false;
+            bool enabled = (IUFindOnSwitchIndex(&Aux1FocuserSP) == 0);
+            if (focuserAux1->activate(enabled))
+            {
+                Aux1FocuserSP.s = enabled ? IPS_OK : IPS_IDLE;
+                IDSetSwitch(&Aux1FocuserSP, nullptr);
+                return true;
+            }
+            else
+            {
+                Aux1FocuserSP.s = IPS_ALERT;
+                IDSetSwitch(&Aux1FocuserSP, nullptr);
+                return false;
+            }
+        }
     }
 
     //  Nobody has claimed this, so pass it to the parent
@@ -305,12 +323,12 @@ bool LX200StarGo::initProperties()
     /* Make sure to init parent properties first */
     if (!LX200Telescope::initProperties()) return false;
 
+    IUFillSwitch(&Aux1FocuserS[0], "AUX1_FOCUSER_ON", "On", ISS_OFF);
+    IUFillSwitch(&Aux1FocuserS[1], "AUX1_FOCUSER_OFF", "Off", ISS_ON);
+    IUFillSwitchVector(&Aux1FocuserSP, Aux1FocuserS, 2, getDeviceName(), "AUX1_FOCUSER_CONTROL", "AUX1 Focuser", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
     IUFillSwitch(&MountGotoHomeS[0], "MOUNT_GOTO_HOME_VALUE", "Goto Home", ISS_OFF);
     IUFillSwitchVector(&MountGotoHomeSP, MountGotoHomeS, 1, getDeviceName(), "MOUNT_GOTO_HOME", "Goto Home", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
-
-    IUFillLight(&MountParkingStatusL[0], "MOUNT_IS_PARKED_VALUE", "Parked", IPS_IDLE);
-    IUFillLight(&MountParkingStatusL[1], "MOUNT_IS_UNPARKED_VALUE", "Unparked", IPS_IDLE);
-    IUFillLightVector(&MountParkingStatusLP, MountParkingStatusL, 2, getDeviceName(), "PARKING_STATUS", "Parking Status", MAIN_CONTROL_TAB, IPS_IDLE);
 
     IUFillSwitch(&MountSetParkS[0], "MOUNT_SET_PARK_VALUE", "Set Park", ISS_OFF);
     IUFillSwitchVector(&MountSetParkSP, MountSetParkS, 1, getDeviceName(), "MOUNT_SET_PARK", "Set Park", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_OK);
@@ -339,7 +357,7 @@ bool LX200StarGo::initProperties()
 
     // overwrite the custom tracking mode button
     IUFillSwitch(&TrackModeS[3], "TRACK_NONE", "None", ISS_OFF);
-    focuser->initProperties("AUX1 Focuser");
+    focuserAux1->initProperties("AUX1 Focuser");
 
     return true;
 }
@@ -352,7 +370,7 @@ bool LX200StarGo::updateProperties()
     if (! LX200Telescope::updateProperties()) return false;
     if (isConnected())
     {
-        defineLight(&MountParkingStatusLP);
+        defineSwitch(&Aux1FocuserSP);
         defineSwitch(&SyncHomeSP);
         defineSwitch(&MountGotoHomeSP);
         defineSwitch(&MountSetParkSP);
@@ -363,7 +381,7 @@ bool LX200StarGo::updateProperties()
     }
     else
     {
-        deleteProperty(MountParkingStatusLP.name);
+        deleteProperty(Aux1FocuserSP.name);
         deleteProperty(SyncHomeSP.name);
         deleteProperty(MountGotoHomeSP.name);
         deleteProperty(MountSetParkSP.name);
@@ -373,9 +391,25 @@ bool LX200StarGo::updateProperties()
         deleteProperty(MountFirmwareInfoTP.name);
     }
 
-    focuser->updateProperties();
-
     return true;
+}
+
+/**************************************************************************************
+**
+***************************************************************************************/
+bool LX200StarGo::Connect()
+{
+    if (! DefaultDevice::Connect())
+        return false;
+
+    // activate focuser AUX1 if the switch is set to "activated"
+    return focuserAux1->activate((IUFindOnSwitchIndex(&Aux1FocuserSP) == 0));
+}
+
+bool LX200StarGo::Disconnect()
+{
+    focuserAux1->activate(false);
+    return DefaultDevice::Disconnect();
 }
 
 /**************************************************************************************
@@ -456,7 +490,16 @@ bool LX200StarGo::ReadScopeStatus()
     TrackState = newTrackState;
     NewRaDec(currentRA, currentDEC);
 
-    return syncSideOfPier();
+    if (! syncSideOfPier())
+    {
+       LOG_ERROR("Cannot determine scope status, failed to determine pier side.");
+       return false;
+    }
+
+    if (focuserAux1.get() != nullptr && TrackState != SCOPE_SLEWING)
+        return focuserAux1.get()->ReadFocuserStatus();
+    else
+        return true;
 }
 
 /**************************************************************************************
@@ -847,9 +890,6 @@ void LX200StarGo::SetParked(bool isparked)
 {
     LOGF_DEBUG("%s %s", __FUNCTION__, isparked?"PARKED":"UNPARKED");
     INDI::Telescope::SetParked(isparked);
-    MountParkingStatusL[0].s = isparked ? IPS_OK : IPS_IDLE;
-    MountParkingStatusL[1].s = isparked ? IPS_IDLE : IPS_OK;
-    IDSetLight(&MountParkingStatusLP, nullptr);
 }
 
 bool LX200StarGo::UnPark()
@@ -878,12 +918,6 @@ bool LX200StarGo::UnPark()
     if (sendQuery(":X370#", response) && strcmp(response, "p0") == 0)
     {
         LOG_INFO("Unparking mount...");
-/*        TrackState = SCOPE_TRACKING;
-        SetParked(false);
-        MountParkingStatusL[1].s = IPS_OK;
-        MountParkingStatusL[0].s = IPS_IDLE;
-        IDSetLight(&MountParkingStatusLP, nullptr);
-*/
         return true;
     }
     else
@@ -928,12 +962,14 @@ bool LX200StarGo::getLST_String(char* input)
 bool LX200StarGo::saveConfigItems(FILE *fp)
 {
     LOG_DEBUG(__FUNCTION__);
-    LX200Telescope::saveConfigItems(fp);
-
     IUSaveConfigText(fp, &SiteNameTP);
+    IUSaveConfigSwitch(fp, &Aux1FocuserSP);
 
-    return true;
+    focuserAux1->saveConfigItems(fp);
+
+    return LX200Telescope::saveConfigItems(fp);
 }
+
 
 /*********************************************************************************
  * Queries
@@ -1383,11 +1419,11 @@ bool LX200StarGo::syncSideOfPier()
     case 'W':
         // seems to be vice versa
         LOG_DEBUG("Detected pier side west.");
-        setPierSide(INDI::Telescope::PIER_WEST);
+        setPierSide(INDI::Telescope::PIER_EAST);
         break;
     case 'E':
         LOG_DEBUG("Detected pier side east.");
-        setPierSide(INDI::Telescope::PIER_EAST);
+        setPierSide(INDI::Telescope::PIER_WEST);
         break;
     default:
         break;

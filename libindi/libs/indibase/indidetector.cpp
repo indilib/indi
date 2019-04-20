@@ -17,9 +17,12 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#include "defaultdevice.h"
 #include "indidetector.h"
 
 #include "indicom.h"
+#include "stream/streammanager.h"
+#include "locale_compat.h"
 
 #include <fitsio.h>
 
@@ -64,6 +67,9 @@ static int _det_mkdir(const char *dir, mode_t mode)
 
     return 0;
 }
+
+namespace INDI
+{
 
 DetectorDevice::DetectorDevice()
 {
@@ -211,7 +217,7 @@ void DetectorDevice::setCaptureLeft(double duration)
 void DetectorDevice::setCaptureDuration(double duration)
 {
     captureDuration = duration;
-    gettimeofday(&startCaptureTime, nullptr);
+    clock_gettime(CLOCK_REALTIME, &startCaptureTime);
 }
 
 const char *DetectorDevice::getCaptureStartTime()
@@ -221,7 +227,7 @@ const char *DetectorDevice::getCaptureStartTime()
     char iso8601[32];
     struct tm *tp;
     time_t t = (time_t)startCaptureTime.tv_sec;
-    int u    = startCaptureTime.tv_usec / 1000.0;
+    int u    = startCaptureTime.tv_nsec / 1000.0;
 
     tp = gmtime(&t);
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
@@ -250,9 +256,6 @@ void DetectorDevice::setCaptureExtension(const char *ext)
     strncpy(captureExtention, ext, MAXINDIBLOBFMT);
 }
 
-namespace INDI
-{
-
 Detector::Detector()
 {
     //ctor
@@ -265,11 +268,13 @@ Detector::Detector()
     ShowMarker       = false;
 
     CaptureTime       = 0.0;
-    CurrentFilterSlot  = -1;
 
     RA              = -1000;
     Dec             = -1000;
     MPSAS           = -1000;
+    Lat             = -1000;
+    Lon             = -1000;
+    El              = -1000;
     primaryAperture = primaryFocalLength - 1;
 }
 
@@ -282,6 +287,12 @@ void Detector::SetDetectorCapability(uint32_t cap)
     capability = cap;
 
     setDriverInterface(getDriverInterface());
+
+    if (HasStreaming() && Streamer.get() == nullptr)
+    {
+        Streamer.reset(new StreamManager(this));
+        Streamer->initProperties();
+    }
 }
 
 bool Detector::initProperties()
@@ -402,6 +413,9 @@ void Detector::ISGetProperties(const char *dev)
 
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
+
+    if (HasStreaming())
+        Streamer->ISGetProperties(dev);
 }
 
 bool Detector::updateProperties()
@@ -450,6 +464,10 @@ bool Detector::updateProperties()
         deleteProperty(UploadSettingsTP.name);
     }
 
+    // Streamer
+    if (HasStreaming())
+        Streamer->updateProperties();
+
     return true;
 }
 
@@ -485,19 +503,6 @@ bool Detector::ISSnoopDevice(XMLEle *root)
                 primaryFocalLength = atof(pcdataXMLEle(ep));
             }
         }
-    }
-    else if (!strcmp(propName, "FILTER_NAME"))
-    {
-        FilterNames.clear();
-
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            FilterNames.push_back(pcdataXMLEle(ep));
-    }
-    else if (!strcmp(propName, "FILTER_SLOT"))
-    {
-        CurrentFilterSlot = -1;
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            CurrentFilterSlot = atoi(pcdataXMLEle(ep));
     }
     else if (!strcmp(propName, "SKY_QUALITY"))
     {
@@ -560,6 +565,10 @@ bool Detector::ISNewText(const char *dev, const char *name, char *texts[], char 
             return true;
         }
     }
+
+    // Streamer
+    if (HasStreaming())
+        Streamer->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
@@ -631,6 +640,10 @@ bool Detector::ISNewNumber(const char *dev, const char *name, double values[], c
         }
     }
 
+    // Streamer
+    if (HasStreaming())
+        Streamer->ISNewNumber(dev, name, values, names, n);
+
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -695,6 +708,9 @@ bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             return true;
         }
     }
+
+    if (HasStreaming())
+        Streamer->ISNewSwitch(dev, name, states, names, n);
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
@@ -769,13 +785,6 @@ void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uin
     if (HasCooler())
         fits_update_key_s(fptr, TDOUBLE, "DETECTOR-TEMP", &(TemperatureN[0].value), "PrimaryDetector Temperature (Celsius)", &status);
 
-    if (CurrentFilterSlot != -1 && CurrentFilterSlot <= (int)FilterNames.size())
-    {
-        char filter[32];
-        strncpy(filter, FilterNames.at(CurrentFilterSlot - 1).c_str(), 32);
-        fits_update_key_s(fptr, TSTRING, "FILTER", filter, "Filter", &status);
-    }
-
 #ifdef WITH_MINMAX
     if (targetDevice->getNAxis() == 2)
     {
@@ -794,6 +803,26 @@ void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uin
     {
         fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
     }
+
+    Lat = this->getNumber("GEOGRAPHIC_COORDS")->np[0].value;
+    Lon = this->getNumber("GEOGRAPHIC_COORDS")->np[1].value;
+    El = this->getNumber("GEOGRAPHIC_COORDS")->np[2].value;
+
+    if (Lat != -1000 && Lon != -1000 && El != -1000)
+    {
+        char lat_str[32];
+        char lon_str[32];
+        char el_str[32];
+        fs_sexa(lat_str, Lat, 2, 360000);
+        fs_sexa(lat_str, Lon, 2, 360000);
+        sprintf(el_str, "%lf", El);
+        fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
+        fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
+        fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
+    }
+
+    RA = this->getNumber("EQUATORIAL_EOD_COORDS")->np[0].value;
+    Dec = this->getNumber("EQUATORIAL_EOD_COORDS")->np[1].value;
 
     if (RA != -1000 && Dec != -1000)
     {
@@ -1037,6 +1066,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
     {
         PrimaryDetector.FramedCaptureN[0].value = CaptureTime;
         PrimaryDetector.FramedCaptureNP.s       = IPS_BUSY;
+
         if (StartCapture(CaptureTime))
             PrimaryDetector.FramedCaptureNP.s = IPS_BUSY;
         else
@@ -1145,6 +1175,9 @@ bool Detector::saveConfigItems(FILE *fp)
     IUSaveConfigSwitch(fp, &UploadSP);
     IUSaveConfigText(fp, &UploadSettingsTP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
+
+    if (HasStreaming())
+        Streamer->saveConfigItems(fp);
 
     return true;
 }
@@ -1324,6 +1357,228 @@ int Detector::getFileIndex(const char *dir, const char *prefix, const char *ext)
     }
 
     return (maxIndex + 1);
+}
+
+//DSP API functions
+
+void Detector::Spectrum(void *buf, void *out, int len, int size, int bits_per_sample) {
+    void* fourier = malloc(len);
+    FourierTransform(buf, fourier, 1, &len, bits_per_sample);
+    Histogram(fourier, out, len, size, bits_per_sample);
+    free(fourier);
+}
+
+void Detector::Histogram(void *buf, void *out, int buf_len, int histogram_size, int bits_per_sample) {
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    dsp_stream_add_dim(stream, buf_len * 8 / abs(bits_per_sample));
+    dsp_stream_alloc_buffer(stream, stream->len);
+    //Create the spectrum
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy((static_cast<unsigned char *>(buf)), stream->buf, stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy((static_cast<unsigned short *>(buf)), stream->buf, stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy((static_cast<unsigned int *>(buf)), stream->buf, stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+        break;
+    default:
+        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+        dsp_stream_free_buffer(stream);
+        //Destroy the dsp stream
+        dsp_stream_free(stream);
+        return;
+    }
+    double *histo = dsp_stats_histogram(stream, histogram_size);
+    dsp_stream_free_buffer(stream);
+    //Destroy the dsp stream
+    dsp_stream_free(stream);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy(histo, (static_cast<unsigned char *>(out)), histogram_size);
+        break;
+    case 16:
+        dsp_buffer_copy(histo, (static_cast<unsigned short *>(out)), histogram_size);
+        break;
+    case 32:
+        dsp_buffer_copy(histo, (static_cast<unsigned int *>(out)), histogram_size);
+        break;
+    case 64:
+        dsp_buffer_copy(histo, (static_cast<unsigned long *>(out)), histogram_size);
+        break;
+    case -32:
+        dsp_buffer_copy(histo, (static_cast<float *>(out)), histogram_size);
+        break;
+    case -64:
+        dsp_buffer_copy(histo, (static_cast<double *>(out)), histogram_size);
+        break;
+    default:
+        break;
+    }
+    free(histo);
+}
+
+void Detector::FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample) {
+    //Create the dsp stream
+    dsp_t mn, mx;
+    dsp_stream_p stream = dsp_stream_new();
+    for(int dim = 0; dim < dims; dim++)
+        dsp_stream_add_dim(stream, sizes[dim]);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy((static_cast<unsigned char *>(buf)), stream->buf, stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy((static_cast<unsigned short *>(buf)), stream->buf, stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy((static_cast<unsigned int *>(buf)), stream->buf, stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+        break;
+    default:
+        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+        dsp_stream_free_buffer(stream);
+        //Destroy the dsp stream
+        dsp_stream_free(stream);
+        return;
+    }
+    mn = dsp_stats_min(stream->buf, stream->len);
+    mx = dsp_stats_max(stream->buf, stream->len);
+    dsp_fourier_dft_magnitude(stream);
+    dsp_buffer_stretch(stream->buf, stream->len, mn, mx);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned char *>(out)), stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned short *>(out)), stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned int *>(out)), stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
+        break;
+    default:
+        break;
+    }
+    //Destroy the dsp stream
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+}
+
+void Detector::Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample) {
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    for(int dim = 0; dim < dims; dim++)
+        dsp_stream_add_dim(stream, sizes[dim]);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    dsp_stream_p matrix_stream = dsp_stream_new();
+    for(int dim = 0; dim < matrix_dims; dim++)
+        dsp_stream_add_dim(matrix_stream, matrix_sizes[dim]);
+    dsp_stream_alloc_buffer(matrix_stream, matrix_stream->len);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy((static_cast<unsigned char *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<unsigned char *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy((static_cast<unsigned short *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<unsigned short *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy((static_cast<unsigned int *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<unsigned int *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<unsigned long *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<float *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+        dsp_buffer_copy((static_cast<double *>(matrix)), matrix_stream->buf, matrix_stream->len);
+        break;
+    default:
+        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+        //Destroy the dsp streams
+        dsp_stream_free_buffer(stream);
+        dsp_stream_free_buffer(matrix_stream);
+        dsp_stream_free(stream);
+        dsp_stream_free(matrix_stream);
+        return;
+    }
+    dsp_convolution_convolution(stream, matrix_stream);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned char *>(out)), stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned short *>(out)), stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned int *>(out)), stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
+        break;
+    default:
+        break;
+    }
+    //Destroy the dsp streams
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+    dsp_stream_free_buffer(matrix_stream);
+    dsp_stream_free(matrix_stream);
+}
+
+//Streamer API functions
+
+bool Detector::StartStreaming()
+{
+    LOG_ERROR("Streaming is not supported.");
+    return false;
+}
+
+bool Detector::StopStreaming()
+{
+    LOG_ERROR("Streaming is not supported.");
+    return false;
 }
 
 }

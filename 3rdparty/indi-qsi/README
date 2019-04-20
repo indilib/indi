@@ -3,7 +3,7 @@ QSI INDI Driver
 
 This package provides the INDI driver for Quantum Scientific Imaging CCDs & Filter Wheels.
 
-Requirtments
+Requirements
 ============
 
 + INDI >= v0.6 (http://indi.sf.net)

@@ -28,8 +28,6 @@
 // We declare an auto pointer to QHYCFW.
 static std::unique_ptr<QHYCFW2> qhycfw(new QHYCFW2());
 
-void ISPoll(void *p);
-
 void ISGetProperties(const char *dev)
 {
     qhycfw->ISGetProperties(dev);
@@ -69,20 +67,48 @@ void ISSnoopDevice(XMLEle *root)
 
 QHYCFW2::QHYCFW2()
 {
+    setVersion(1, 2);
     setFilterConnection(CONNECTION_SERIAL | CONNECTION_TCP);
 }
 
 const char *QHYCFW2::getDefaultName()
 {
-    return static_cast<const char *>("QHYCFW2");
+    return "QHYCFW2";
 }
 
 void QHYCFW2::ISGetProperties(const char *dev)
 {
     INDI::FilterWheel::ISGetProperties(dev);
 
+    // Only read value when we're offline
+    if (isConnected() == false)
+    {
+        double maxCount = 5;
+        IUGetConfigNumber(getDeviceName(), "MAX_FILTER", "Count", &maxCount);
+        FilterSlotN[0].max = maxCount;
+        if (FilterNameTP->ntp != maxCount)
+        {
+            char filterName[MAXINDINAME];
+            char filterLabel[MAXINDILABEL];
+            if (FilterNameT != nullptr)
+            {
+                for (int i = 0; i < FilterNameTP->ntp; i++)
+                    free(FilterNameT[i].text);
+                delete [] FilterNameT;
+            }
+
+            FilterNameT = new IText[static_cast<int>(maxCount)];
+            memset(FilterNameT, 0, sizeof(IText) * maxCount);
+            for (int i = 0; i < maxCount; i++)
+            {
+                snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+                snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
+                IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
+            }
+            IUFillTextVector(FilterNameTP, FilterNameT, maxCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+        }
+    }
     defineNumber(&MaxFilterNP);
-    loadConfig(true, "MAX_FILTER");
 }
 
 bool QHYCFW2::initProperties()
@@ -94,26 +120,25 @@ bool QHYCFW2::initProperties()
 
     CurrentFilter      = 1;
     FilterSlotN[0].min = 1;
-    FilterSlotN[0].max = MaxFilterN[0].value;
+    FilterSlotN[0].max = 5;
 
     addAuxControls();
 
     return true;
 }
 
-
 bool QHYCFW2::SelectFilter(int f)
 {
     TargetFilter = f;
-    char cmd[8] = {0}, res[8]={0};
-    int rc = -1, nbytes_written=0, nbytes_read=0;
+    char cmd[8] = {0}, res[8] = {0};
+    int rc = -1, nbytes_written = 0, nbytes_read = 0;
 
-    LOGF_DEBUG("CMD <%d>", TargetFilter-1);
+    LOGF_DEBUG("CMD <%d>", TargetFilter - 1);
 
-    snprintf(cmd, 2, "%d", TargetFilter-1);
+    snprintf(cmd, 2, "%d", TargetFilter - 1);
 
     if (isSimulation())
-        snprintf(res, 8, "%d", TargetFilter-1);
+        snprintf(res, 8, "%d", TargetFilter - 1);
     else
     {
         if ((rc = tty_write_string(PortFD, cmd, &nbytes_written)) != TTY_OK)
@@ -137,7 +162,7 @@ bool QHYCFW2::SelectFilter(int f)
         LOGF_DEBUG("RES <%s>", res);
     }
 
-    if (atoi(res)+1 == TargetFilter)
+    if (atoi(res) + 1 == TargetFilter)
     {
         CurrentFilter = TargetFilter;
         SelectFilterDone(CurrentFilter);
@@ -153,20 +178,28 @@ bool QHYCFW2::ISNewNumber(const char *dev, const char *name, double values[], ch
     {
         if (!strcmp(name, MaxFilterNP.name))
         {
-            IUUpdateNumber(&MaxFilterNP, values, names, n);
-            MaxFilterNP.s = IPS_OK;
-            saveConfig(true, "MAX_FILTER");
-            IDSetNumber(&MaxFilterNP, nullptr);
-            FilterSlotN[0].max = MaxFilterN[0].value;
-            if (isConnected())
+            if (values[0] != MaxFilterN[0].value)
+            {
+                IUUpdateNumber(&MaxFilterNP, values, names, n);
+                saveConfig();
                 LOG_INFO("Max number of filters updated. You must reconnect for this change to take effect.");
-            else
-                LOGF_INFO("Max number of filters updated to %.f", MaxFilterN[0].value);
+            }
 
+            MaxFilterNP.s = IPS_OK;
+            IDSetNumber(&MaxFilterNP, nullptr);
             return true;
         }
 
     }
 
     return INDI::FilterWheel::ISNewNumber(dev, name, values, names, n);
+}
+
+bool QHYCFW2::saveConfigItems(FILE *fp)
+{
+    FilterWheel::saveConfigItems(fp);
+
+    IUSaveConfigNumber(fp, &MaxFilterNP);
+
+    return true;
 }

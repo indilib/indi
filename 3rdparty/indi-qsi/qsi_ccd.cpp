@@ -1046,7 +1046,11 @@ bool QSICCD::Connect()
         return false;
     }
 
+    #ifdef HAVE_WEBSOCKET
+    uint32_t cap = CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER | CCD_HAS_WEB_SOCKET;
+    #else
     uint32_t cap = CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER;
+    #endif
 
     if (canAbort)
         cap |= CCD_CAN_ABORT;

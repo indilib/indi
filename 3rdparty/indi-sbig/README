@@ -3,7 +3,7 @@ SBIG INDI Driver
 
 This package provides the INDI driver for Santa Barbra Instruments Group line of CCDs & Filter Wheels.
 
-Requirtments
+Requirements
 ============
 
 + INDI >= v0.6 (http://indi.sf.net)

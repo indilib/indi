@@ -93,9 +93,11 @@ bool LX200Telescope::initProperties()
     if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
     {
 	    IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 55, 65, 0.00001, 60.16427);
-    } else {
-	IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
     }
+    else
+    {
+        IUFillNumber(&TrackFreqN[0], "trackFreq", "Freq", "%g", 56.4, 60.1, 0.1, 60.1);
+    }    
     IUFillNumberVector(&TrackingFreqNP, TrackFreqN, 1, getDeviceName(), "Tracking Frequency", "", MOTION_TAB, IP_RW, 0,
                        IPS_IDLE);
 
@@ -686,40 +688,43 @@ bool LX200Telescope::ISNewNumber(const char *dev, const char *name, double value
         // Update Frequency
         if (!strcmp(name, TrackingFreqNP.name))
         {
-         LOGF_DEBUG("Trying to set track freq of: %04.1f", values[0]);
-         if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
-		{
-		    if (!isSimulation() && setPreciseTrackFreq(PortFD, values[0]) < 0)
-		    {
-			TrackingFreqNP.s = IPS_ALERT;
-			IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
-			return false;
-		    }
-		    TrackingFreqNP.s           = IPS_OK;
-		    TrackingFreqNP.np[0].value = values[0];
-		    IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %8.5f", values[0]);
-		} else { //Normal Tracking Frequency
-			if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
+            LOGF_DEBUG("Trying to set track freq of: %04.1f", values[0]);
+            if (genericCapability & LX200_HAS_PRECISE_TRACKING_FREQ)
+            {
+                if (!isSimulation() && setPreciseTrackFreq(PortFD, values[0]) < 0)
+                {
+                    TrackingFreqNP.s = IPS_ALERT;
+                    IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
+                    return false;
+                }
+                TrackingFreqNP.s           = IPS_OK;
+                TrackingFreqNP.np[0].value = values[0];
+                IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %8.5f", values[0]);
+            }
+            else
+            {
+                //Normal Tracking Frequency
+                if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
 
-		    LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
-		    if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
-		    {
-		    LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
-		    if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
-		    {
-		    TrackingFreqNP.s = IPS_ALERT;
-		    IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
-		    return false;
-		    }
-		    TrackingFreqNP.s           = IPS_OK;
-		    IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
-		    return false;
-		    }
+                    LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
+                if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
+                {
+                    LOGF_DEBUG("Trying to set track freq of: %f\n", values[0]);
+                    if (!isSimulation() && setTrackFreq(PortFD, values[0]) < 0)
+                    {
+                        TrackingFreqNP.s = IPS_ALERT;
+                        IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
+                        return false;
+                    }
+                    TrackingFreqNP.s           = IPS_OK;
+                    IDSetNumber(&TrackingFreqNP, "Error setting tracking frequency");
+                    return false;
+                }
 
-            TrackingFreqNP.s           = IPS_OK;
-            TrackingFreqNP.np[0].value = values[0];
-            IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %04.1f", values[0]);
-	    }
+                TrackingFreqNP.s           = IPS_OK;
+                TrackingFreqNP.np[0].value = values[0];
+                IDSetNumber(&TrackingFreqNP, "Tracking frequency set to %04.1f", values[0]);
+            }
 
             if (trackingMode != LX200_TRACK_MANUAL)
             {

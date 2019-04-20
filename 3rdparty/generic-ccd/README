@@ -3,7 +3,7 @@ Generic CCD Driver
 
 This package provides a template CCD INDI driver to be customized by developers.
 
-Requirtments
+Requirements
 ============
 
 + INDI >= v0.9.6 (http://indi.sf.net)

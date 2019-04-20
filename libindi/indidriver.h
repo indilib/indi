@@ -38,7 +38,7 @@ extern "C" {
 /* insure RO properties are never modified. RO Sanity Check */
 typedef struct
 {
-    char propName[MAXINDINAME];
+char propName[MAXINDINAME];
     char devName[MAXINDIDEVICE];
     IPerm perm;
     const void *ptr;

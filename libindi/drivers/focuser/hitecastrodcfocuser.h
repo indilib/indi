@@ -26,44 +26,45 @@
 
 class HitecAstroDCFocuser : public INDI::Focuser, public INDI::USBDevice
 {
-  public:
-    typedef enum { IDLE, SLEWING } STATE;
+    public:
+        typedef enum { IDLE, SLEWING } STATE;
 
-    HitecAstroDCFocuser();
-    virtual ~HitecAstroDCFocuser();
+        HitecAstroDCFocuser();
+        virtual ~HitecAstroDCFocuser() override;
 
-    virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    const char *getDefaultName();
-    virtual bool initProperties();
-    virtual bool updateProperties();
-    virtual bool saveConfigItems(FILE *fp);
+    protected:
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-    bool Connect();
-    bool Disconnect();
+        bool Connect() override;
+        bool Disconnect() override;
 
-    void TimerHit();
+        void TimerHit() override;
 
-    virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
+        virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+        virtual bool ReverseFocuser(bool enabled) override
+        {
+            INDI_UNUSED(enabled);
+            return true;
+        }
 
-    virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
+    private:
+        hid_device *m_HIDHandle;
+        char m_StopChar;
+        STATE m_State;
+        uint16_t m_Duration;
 
-  private:
-    hid_device *_handle;
+        //        INumber MaxPositionN[1];
+        //        INumberVectorProperty MaxPositionNP;
 
-    bool sim;
+        INumber SlewSpeedN[1];
+        INumberVectorProperty SlewSpeedNP;
 
-    char _stop;
-    STATE _state;
-    uint16_t _duration;
-
-    INumber MaxPositionN[1];
-    INumberVectorProperty MaxPositionNP;
-
-    INumber SlewSpeedN[1];
-    INumberVectorProperty SlewSpeedNP;
-
-    ISwitch ReverseDirectionS[1];
-    ISwitchVectorProperty ReverseDirectionSP;
+        //        ISwitch ReverseDirectionS[1];
+        //        ISwitchVectorProperty ReverseDirectionSP;
 };

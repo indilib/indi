@@ -35,7 +35,8 @@ typedef struct
     const char *name;
     const char *parent;
     int readonly;
-    union {
+    union
+    {
         int toggle;
         char index;
         char *text;
@@ -100,7 +101,8 @@ int gphoto_read_widget(gphoto_widget *widget);
 int gphoto_widget_changed(gphoto_widget *widget);
 int gphoto_get_dimensions(gphoto_driver *gphoto, int *width, int *height);
 int gphoto_auto_focus(gphoto_driver *gphoto, char *errMsg);
-int gphoto_manual_focus(gphoto_driver *gphoto, int xx, char *errMsg);
+int gphoto_manual_focus(gphoto_driver *gphoto, int speed, char *errMsg);
+bool gphoto_can_focus(gphoto_driver *gphoto);
 int gphoto_capture_preview(gphoto_driver *gphoto, CameraFile *previewFile, char *errMsg);
 int gphoto_stop_preview(gphoto_driver *gphoto);
 int gphoto_start_preview(gphoto_driver *gphoto);
@@ -114,3 +116,4 @@ int gphoto_delete_sdcard_image(gphoto_driver *gphoto, bool delete_sdcard_image);
 bool gphoto_supports_temperature(gphoto_driver *gphoto);
 float gphoto_get_last_sensor_temperature(gphoto_driver *gphoto);
 void gphoto_force_bulb(gphoto_driver *gphoto, bool enabled);
+void gphoto_set_view_finder(gphoto_driver *gphoto, bool enabled);

@@ -34,19 +34,18 @@ class LX200Telescope : public INDI::Telescope, public INDI::GuiderInterface
 {
 public:
     LX200Telescope() = default;
-    virtual ~LX200Telescope() = default;
     /**
      * \struct LX200Capability
      * \brief Holds properties of LX200 Generic that might be used by child classes
      */
     enum
     {
-        LX200_HAS_FOCUS             = 1 << 0, /** Define focus properties */
-        LX200_HAS_TRACKING_FREQ     = 1 << 1, /** Define Tracking Frequency */
-        LX200_HAS_ALIGNMENT_TYPE    = 1 << 2, /** Define Alignment Type */
-        LX200_HAS_SITES             = 1 << 3, /** Define Sites */
-        LX200_HAS_PULSE_GUIDING     = 1 << 4, /** Define Pulse Guiding */
-	LX200_HAS_PRECISE_TRACKING_FREQ = 1 << 5, /*Use more precise tracking frequency */
+        LX200_HAS_FOCUS                 = 1 << 0, /** Define focus properties */
+        LX200_HAS_TRACKING_FREQ         = 1 << 1, /** Define Tracking Frequency */
+        LX200_HAS_ALIGNMENT_TYPE        = 1 << 2, /** Define Alignment Type */
+        LX200_HAS_SITES                 = 1 << 3, /** Define Sites */
+        LX200_HAS_PULSE_GUIDING         = 1 << 4, /** Define Pulse Guiding */
+        LX200_HAS_PRECISE_TRACKING_FREQ = 1 << 5, /** Use more precise tracking frequency, if supported by hardware. */
     } LX200Capability;
 
     uint32_t getLX200Capability() const { return genericCapability; }

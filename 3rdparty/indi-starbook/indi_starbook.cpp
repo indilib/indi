@@ -1,3 +1,5 @@
+#include <cmath>
+
 /*
  Starbook mount driver
 
@@ -23,37 +25,63 @@
 #include "config.h"
 
 #include <indicom.h>
-#include <connectionplugins/connectiontcp.h>
-#include <memory>
 #include <cstring>
 #include <regex>
 
-static std::string readBuffer;
 
-static std::unique_ptr<Starbook> starbook_driver(new Starbook());
+static std::unique_ptr<StarbookDriver> starbook_driver(new StarbookDriver());
+
+void log_exception(const char *dev, const char *what) {
+    // NOTE: temporary solution to log driver failing and being silently restarted by server
+    INDI::Logger::getInstance().print(dev, INDI::Logger::DBG_ERROR, __FILE__, __LINE__, what);
+}
 
 void ISGetProperties(const char* dev)
 {
-    starbook_driver->ISGetProperties(dev);
+    try {
+        starbook_driver->ISGetProperties(dev);
+    }
+    catch (std::exception &e) {
+        log_exception(starbook_driver->getDeviceName(), e.what());
+        throw e;
+    }
 }
 
 void ISNewSwitch(const char* dev, const char* name, ISState* states, char* names[], int n)
 {
-    starbook_driver->ISNewSwitch(dev, name, states, names, n);
+    try {
+        starbook_driver->ISNewSwitch(dev, name, states, names, n);
+    }
+    catch (std::exception &e) {
+        log_exception(starbook_driver->getDeviceName(), e.what());
+        throw e;
+    }
 }
 
 void ISNewText(const char* dev, const char* name, char* texts[], char* names[], int n)
 {
-    starbook_driver->ISNewText(dev, name, texts, names, n);
+    try {
+        starbook_driver->ISNewText(dev, name, texts, names, n);
+    }
+    catch (std::exception &e) {
+        log_exception(starbook_driver->getDeviceName(), e.what());
+        throw e;
+    }
 }
 
 void ISNewNumber(const char* dev, const char* name, double values[], char* names[], int n)
 {
-    starbook_driver->ISNewNumber(dev, name, values, names, n);
+    try {
+        starbook_driver->ISNewNumber(dev, name, values, names, n);
+    }
+    catch (std::exception &e) {
+        log_exception(starbook_driver->getDeviceName(), e.what());
+        throw e;
+    }
 }
 
 void ISNewBLOB(const char* dev, const char* name, int sizes[], int blobsizes[], char* blobs[],
-    char* formats[], char* names[], int n)
+               char* formats[], char* names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -70,303 +98,349 @@ void ISSnoopDevice(XMLEle* root)
     INDI_UNUSED(root);
 }
 
-Starbook::Starbook()
+StarbookDriver::StarbookDriver()
 {
     setVersion(STARBOOK_DRIVER_VERSION_MAJOR, STARBOOK_DRIVER_VERSION_MINOR);
     SetTelescopeCapability(
-            TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME, 1);
+            TELESCOPE_CAN_PARK | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_SYNC | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_TIME |
+            TELESCOPE_HAS_LOCATION,
+            starbook::MAX_SPEED + 1);
 
-    setTelescopeConnection(CONNECTION_TCP);
-    curl_global_init(CURL_GLOBAL_ALL);
+//    we are using custom Connection::Curl
+    setTelescopeConnection(CONNECTION_NONE);
 }
 
-Starbook::~Starbook()
-{
-    curl_global_cleanup();
-}
+StarbookDriver::~StarbookDriver() = default;
 
-bool Starbook::initProperties()
+bool StarbookDriver::initProperties()
 {
     Telescope::initProperties();
 
     IUFillText(&VersionT[0], "Version", "Version", "");
-    IUFillTextVector(&VersionInfo, VersionT, 1, getDeviceName(), "Firmware", "Firmware", MAIN_CONTROL_TAB, IP_RO, 0,
+    IUFillTextVector(&VersionTP, VersionT, 1, getDeviceName(), "Firmware", "Firmware", INFO_TAB, IP_RO, 0,
                      IPS_IDLE);
 
+    IUFillText(&StateT[0], "State", "State", "");
+    IUFillTextVector(&StateTP, StateT, 1, getDeviceName(), "Status", "Status", MAIN_CONTROL_TAB, IP_RO, 0,
+                     IPS_IDLE);
 
-    if (getTelescopeConnection() & CONNECTION_TCP)
-    {
-        tcpConnection->setDefaultHost("127.0.0.1");
-        tcpConnection->setDefaultPort(5000);
-    }
+    IUFillSwitch(&StartS[0], "Initialize", "Initialize", ISS_OFF);
+    IUFillSwitchVector(&StartSP, StartS, 1, getDeviceName(), "Basic", "Basic control", MAIN_CONTROL_TAB,
+                       IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+
+    curlConnection = new Connection::Curl(this);
+    curlConnection->registerHandshake([&]() { return callHandshake(); });
+    registerConnection(curlConnection);
+
+    curlConnection->setDefaultHost(DEFAULT_STARBOOK_ADDRESS);
+    curlConnection->setDefaultPort(DEFAULT_STARBOOK_PORT);
+
+    cmd_interface = std::unique_ptr<starbook::CommandInterface>(
+            new starbook::CommandInterface(curlConnection)
+    );
 
     addDebugControl();
 
-    state = starbook::UNKNOWN;
-
+    last_known_state = starbook::UNKNOWN;
     return true;
 }
 
-bool Starbook::updateProperties() {
+bool StarbookDriver::updateProperties() {
     Telescope::updateProperties();
     if (isConnected()) {
-        defineText(&VersionInfo);
+        defineText(&VersionTP);
+        defineText(&StateTP);
+        defineSwitch(&StartSP);
     } else {
-        deleteProperty(VersionInfo.name);
+        deleteProperty(VersionTP.name);
+        deleteProperty(StateTP.name);
+        deleteProperty(StartSP.name);
     }
     return true;
 }
 
-bool Starbook::Connect()
+bool StarbookDriver::Connect()
 {
-    handle = curl_easy_init();
+    failed_res = 0;
+    last_known_state = starbook::UNKNOWN;
     bool rc = Telescope::Connect();
     if (rc) {
         getFirmwareVersion();
+        // TODO: resolve this in less hacky way https://github.com/indilib/indi/issues/810
+        saveConfig(false, "DEVICE_ADDRESS");
+    } else {
+        LOG_ERROR("Connection failed");
     }
     return rc;
 }
 
-bool Starbook::Disconnect()
+bool StarbookDriver::Disconnect()
 {
-    curl_easy_cleanup(handle);
-    return Telescope::Disconnect();
+    if (isConnected()) {
+        bool rc = Telescope::Disconnect();
+        last_known_state = starbook::UNKNOWN;
+        // Disconnection is successful, set it IDLE and updateProperties.
+        if (rc) {
+            setConnected(false, IPS_IDLE);
+            updateProperties();
+        } else
+            setConnected(true, IPS_ALERT);
+        return rc;
+    } else {
+        return false;
+    }
 }
 
-const char* Starbook::getDefaultName()
+const char *StarbookDriver::getDefaultName()
 {
     return "Starbook mount controller";
 }
 
-bool Starbook::ReadScopeStatus()
+bool StarbookDriver::ReadScopeStatus()
 {
     LOG_DEBUG("Status! Sending GETSTATUS command");
-    std::string response = SendCommand("GETSTATUS");
-    if (response.empty()) {
+    starbook::StatusResponse res;
+    try {
+        cmd_interface->GetStatus(res);
+    } catch (std::exception &e) {
+        StateTP.s = IPS_ALERT;
+        failed_res++;
+        LOG_ERROR(e.what());
+
+        if (failed_res > 3) {
+            LOG_ERROR("Failed to keep connection, disconnecting");
+            StarbookDriver::Disconnect();
+            failed_res = 0;
+        }
         return false;
     }
 
-    LOG_DEBUG(response.c_str());
+    last_known_state = res.state;
 
-    std::regex param_re(R"((\w+)=(\-?[\w\+\.]+))");
-    std::smatch sm;
+    setTrackState(res);
+    setStarbookState(res.state);
+    NewRaDec(res.equ.ra / 15, res.equ.dec); // CONVERSION
 
-    lnh_equ_posn equ_posn = { { 0, 0, 0 }, { 0, 0, 0, 0 } };
+    failed_res = 0;
+    LOG_DEBUG("STATUS");
+    return true;
+}
 
-    while (regex_search(response, sm, param_re))
-    {
-        std::string key = sm[1].str();
-        std::string value = sm[2].str();
+void StarbookDriver::setStarbookState(const starbook::StarbookState &state) {
+    IUSaveText(&StateT[0], starbook::STATE_TO_STR.at(state).c_str());
+    StateTP.s = IPS_OK;
+    IDSetText(&StateTP, nullptr);
+}
 
-        if (key == "RA")
-        {
-            starbook::HMS ra(value);
-            equ_posn.ra = ra;
-        }
-        else if (key == "DEC")
-        {
-            starbook::DMS dec(value);
-            equ_posn.dec = dec;
-        }
-        else if (key == "STATE")
-        {
-            state = ParseState(value);
-            LOGF_DEBUG("Parsed STATE %i", state);
-        }
-        response = sm.suffix();
+void StarbookDriver::setTrackState(const starbook::StatusResponse &res) {
+    switch (res.state) {
+        case starbook::INIT:
+        case starbook::USER:
+            TrackState = SCOPE_IDLE;
+            break;
+        case starbook::SCOPE:
+        case starbook::GUIDE:
+        case starbook::CHART:
+        case starbook::ALTAZ:
+            TrackState = res.executing_goto ? SCOPE_SLEWING : SCOPE_TRACKING;
+            break;
+        case starbook::UNKNOWN:
+            TrackState = SCOPE_IDLE;
+            break;
     }
+}
 
-    ln_equ_posn d_equ_posn = {0, 0};
-    ln_hequ_to_equ(&equ_posn, &d_equ_posn);
-    LOGF_DEBUG("Parsed RADEC %d, %d", d_equ_posn.ra / 15, d_equ_posn.dec);
-    NewRaDec(d_equ_posn.ra / 15, d_equ_posn.dec); // CONVERSION
+bool StarbookDriver::Goto(double ra, double dec)
+{
+    ra = ra * 15; // CONVERSION
+
+    starbook::ResponseCode rc = cmd_interface->GotoRaDec(ra, dec);
+    LogResponse("GOTO", rc);
+    return rc == starbook::OK;
+}
+
+bool StarbookDriver::Sync(double ra, double dec)
+{
+    ra = ra * 15; // CONVERSION
+
+    starbook::ResponseCode rc = cmd_interface->Align(ra, dec);
+    LogResponse("Sync", rc);
+    return rc == starbook::OK;
+}
+
+bool StarbookDriver::Abort()
+{
+    starbook::ResponseCode rc = cmd_interface->Stop();
+    LogResponse("Aborting", rc);
+    return rc == starbook::OK;
+}
+
+bool StarbookDriver::Park()
+{
+    starbook::ResponseCode rc = cmd_interface->Home();
+    LogResponse("Parking", rc);
+    return rc == starbook::OK;
+}
+
+bool StarbookDriver::UnPark()
+{
     return true;
 }
 
-bool Starbook::Goto(double ra, double dec)
-{
-    ra = ra * 15; // CONVERSION
-    std::ostringstream params;
-    params << "?" << starbook::Equ{ ra, dec };
-
-    LOGF_INFO("GoTo! %s", params.str().c_str());
-
-    return SendOkCommand("GOTORADEC" + params.str());
+bool StarbookDriver::MoveNS(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand command) {
+    starbook::ResponseCode rc = cmd_interface->Move(dir, command);
+    LogResponse("Move N-S", rc);
+    return rc == starbook::OK;
 }
 
-bool Starbook::Sync(double ra, double dec)
-{
-    ra = ra * 15; // CONVERSION
-    std::ostringstream params;
-    params << "?" << starbook::Equ{ ra, dec };
-
-    LOGF_INFO("Sync! %s", params.str().c_str());
-    // TODO: check if distance to new ra, dec > 10 degrees
-    return SendOkCommand("ALIGN" + params.str());
+bool StarbookDriver::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
+    starbook::ResponseCode rc = cmd_interface->Move(dir, command);
+    LogResponse("Move W-E", rc);
+    return rc == starbook::OK;
 }
 
-bool Starbook::Abort()
-{
-    LOG_INFO("Aborting!");
-    return SendOkCommand("STOP");
+bool StarbookDriver::SetSlewRate(int index) {
+    starbook::ResponseCode rc = cmd_interface->SetSpeed(index);
+    LogResponse("Setting slew rate", rc);
+    return rc == starbook::OK;
 }
 
-bool Starbook::Park()
-{
-    // TODO Park
-    LOG_WARN("HOME command is unstable");
-    return SendOkCommand("HOME");
-}
-
-bool Starbook::UnPark()
-{
-    // TODO UnPark
-    LOG_WARN("Always unparked");
-    return true;
-}
-
-bool Starbook::MoveNS(INDI_DIR_NS dir, INDI::Telescope::TelescopeMotionCommand command) {
-    std::ostringstream params;
-    params << "?NORTH="
-           << ((dir == DIRECTION_NORTH && command == MOTION_START) ? 1 : 0)
-           << "&SOUTH="
-           << ((dir == DIRECTION_SOUTH && command == MOTION_START) ? 1 : 0);
-
-    LOGF_INFO("Move! %s", params.str().c_str());
-    return SendOkCommand("MOVE" + params.str());
-}
-
-bool Starbook::MoveWE(INDI_DIR_WE dir, INDI::Telescope::TelescopeMotionCommand command) {
-    std::ostringstream params;
-    params << "?WEST="
-           << ((dir == DIRECTION_WEST && command == MOTION_START) ? 1 : 0)
-           << "&EAST="
-           << ((dir == DIRECTION_EAST && command == MOTION_START) ? 1 : 0);
-
-    LOGF_INFO("Move! %s", params.str().c_str());
-    return SendOkCommand("MOVE" + params.str());
-}
-
-bool Starbook::updateTime(ln_date *utc, double utc_offset) {
+bool StarbookDriver::updateTime(ln_date *utc, double utc_offset) {
     INDI_UNUSED(utc_offset);
-
-    std::ostringstream params;
-    params << "?TIME=" << *static_cast<starbook::UTC *>(utc);
-
-    LOGF_INFO("Time! %s", params.str().c_str());
-
-    return SendOkCommand("SETTIME" + params.str());
+    if (last_known_state != starbook::INIT) {
+        LOGF_WARN("Can't update time in %s state", starbook::STATE_TO_STR.at(last_known_state).c_str());
+        return false;
+    }
+    starbook::ResponseCode rc;
+    utc->hours += floor(utc_offset); // starbook stores local time, go figure
+    rc = cmd_interface->SetTime(*utc);
+    LogResponse("Updating time", rc);
+    return rc == starbook::OK;
 
 }
 
-bool Starbook::getFirmwareVersion() {
-    std::string response = SendCommand("VERSION");
-    if (response.empty()) {
-        LOG_ERROR("Can't get firmware version");
+bool StarbookDriver::updateLocation(double latitude, double longitude, double elevation) {
+    INDI_UNUSED(elevation);
+    if (last_known_state != starbook::INIT) {
+        LOGF_WARN("Can't update location in %s state", starbook::STATE_TO_STR.at(last_known_state).c_str());
+        return false;
+    }
+    if (TimeT[1].text == nullptr) {
+        LOG_WARN("Can't update location before time");
         return false;
     }
 
-    std::regex param_re(R"(version=((\d+\.\d+)\w+))");
-    std::smatch sm;
-    if (!regex_search(response, sm, param_re)) {
-        LOG_ERROR("Can't parse firmware version");
+    auto utc_offset = static_cast<short>(std::floor(std::strtof(TimeT[1].text, nullptr)));
+    LOGF_WARN("UTC offset for location: %i", utc_offset);
+    starbook::LnLat posn(latitude, longitude);
+    starbook::ResponseCode rc = cmd_interface->SetPlace(posn, utc_offset);
+    LogResponse("Updating location", rc);
+    return rc == starbook::OK;
+}
+
+bool StarbookDriver::getFirmwareVersion() {
+    starbook::VersionResponse res;
+    starbook::ResponseCode rc = cmd_interface->Version(res);
+
+    if (rc != starbook::OK) {
+        LogResponse("Get version", rc);
         return false;
     }
-
-    std::string version_full = sm[1].str();
-    float version = std::stof(sm[2]);
-
-    if (version < 2.7) {
-        LOGF_WARN("Version %s (< 2.7) not well supported", version_full.c_str());
+    if (res.major_minor < 2.7) {
+        LOGF_WARN("Get version [OK]: %s (< 2.7) not well supported", res.full_str.c_str());
+    } else {
+        LOGF_INFO("Get version [OK]: %s", res.full_str.c_str());
     }
-
-    IUSaveText(&VersionT[0], version_full.c_str());
-    IDSetText(&VersionInfo, nullptr);
+    IUSaveText(&VersionT[0], res.full_str.c_str());
+    IDSetText(&VersionTP, nullptr);
 
     return true;
 }
 
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
-{
-    INDI_UNUSED(userp);
-    size_t real_size = size * nmemb;
-    readBuffer.append((char*)contents, real_size);
-    return real_size;
-}
-
-std::string Starbook::SendCommand(std::string cmd)
-{
-    int rc = 0;
-
-    readBuffer.clear();
-    curl_easy_setopt(handle, CURLOPT_TIMEOUT, 2L);
-    curl_easy_setopt(handle, CURLOPT_VERBOSE, 1);
-    curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
-    curl_easy_setopt(handle, CURLOPT_USERAGENT, "curl/7.58.0");
-
-    /* send all data to this function  */
-    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(handle, CURLOPT_WRITEDATA, &readBuffer);
-
-    // TODO: https://github.com/indilib/indi/pull/779
-    // HACK: Just use CURL, and use tcpConnection as input
-    std::ostringstream cmd_url;
-    cmd_url << "http://" << tcpConnection->host() << "/" << cmd;
-    curl_easy_setopt(handle, CURLOPT_URL, cmd_url.str().c_str());
-
-    rc = curl_easy_perform(handle);
-
-    if (rc != CURLE_OK) {
-        return "";
-    }
-
-    // all responses are hidden in HTML comments ...
-    std::regex response_comment_re("<!--(.*)-->", std::regex_constants::ECMAScript);
-    std::smatch comment_match;
-    if (!std::regex_search(readBuffer, comment_match, response_comment_re)) {
-        return "";
-    }
-
-    return comment_match[1].str();
-}
-
-bool Starbook::SendOkCommand(const std::string &cmd) {
-    std::string response = SendCommand(cmd);
-    starbook::ResponseCode code = ParseCommandResponse(response);
-    if (code == starbook::OK) {
-        return true;
-    }
-    LOGF_ERROR("%s failed: %s", cmd.c_str(), response.c_str());
-    return false;
-}
-
-starbook::ResponseCode Starbook::ParseCommandResponse(const std::string &response) {
-    if (response == "OK")
-        return starbook::OK;
-    else if (response == "ERROR:FORMAT")
-        return starbook::ERROR_FORMAT;
-    else if (response == "ERROR:ILLEGAL STATE")
-        return starbook::ERROR_ILLEGAL_STATE;
-    else if (response == "ERROR:BELOW HORIZONE") /* it's not a typo */
-        return starbook::ERROR_BELOW_HORIZON;
-
-    return starbook::ERROR_UNKNOWN;
-}
-
-starbook::StarbookState Starbook::ParseState(const std::string &value) {
-    if (value == "SCOPE")
-        return starbook::SCOPE;
-    else if (value == "GUIDE")
-        return starbook::GUIDE;
-    else if (value == "INIT")
-        return starbook::INIT;
-
-    LOGF_ERROR("Unknown state %s", value.c_str());
-    return starbook::UNKNOWN;
-}
-
-bool Starbook::Handshake()
+bool StarbookDriver::Handshake()
 {
     LOG_DEBUG("Handshake");
     return Telescope::Handshake();
+}
+
+void StarbookDriver::LogResponse(const std::string &cmd, const starbook::ResponseCode &rc) {
+    std::stringstream msg;
+
+    msg << cmd << " [";
+    switch (rc) {
+        case starbook::OK:
+            msg << "OK";
+            break;
+        case starbook::ERROR_ILLEGAL_STATE:
+            msg << "ERROR_ILLEGAL_STATE";
+            break;
+        case starbook::ERROR_FORMAT:
+            msg << "ERROR_FORMAT";
+            break;
+        case starbook::ERROR_BELOW_HORIZON:
+            msg << "ERROR_BELOW_HORIZON";
+            break;
+        case starbook::ERROR_UNKNOWN:
+            msg << "ERROR_UNKNOWN";
+            break;
+        case starbook::ERROR_POINT:
+            msg << "ERROR_POINT";
+            break;
+    }
+
+    if (rc == starbook::ERROR_ILLEGAL_STATE) {
+        msg << " (" << starbook::STATE_TO_STR.at(last_known_state) << ")";
+    }
+
+    msg << "]";
+
+    if (rc != starbook::OK) {
+        msg << ": \"" << cmd_interface->getLastCmdUrl() << "\"";
+        msg << " \"" << cmd_interface->getLastResponse() << "\"";
+        LOG_ERROR(msg.str().c_str());
+    } else {
+        LOG_INFO(msg.str().c_str());
+    }
+}
+
+bool StarbookDriver::ISNewSwitch(const char *dev, const char *name, ISState *states, char **names, int n) {
+
+    if (!strcmp(name, StartSP.name)) {
+        return performStart();
+    }
+
+    if (!strcmp(name, "CONNECTION_MODE")) {
+        // TODO: resolve this in less hacky way https://github.com/indilib/indi/issues/810
+        loadConfig(false, "DEVICE_ADDRESS");
+        // we pass rest of the work to parent function
+        // hopefully, loading property before connection mode setups won't break anything
+    }
+
+    return Telescope::ISNewSwitch(dev, name, states, names, n);
+}
+
+bool StarbookDriver::performStart() {
+    IUResetSwitch(&StartSP);
+    if (last_known_state == starbook::INIT) {
+        if (cmd_interface->Start()) {
+            StartSP.s = IPS_OK;
+        }
+    } else {
+        LOGF_WARN("Can't initialize in %s state, must be INIT", starbook::STATE_TO_STR.at(last_known_state).c_str());
+        StartSP.s = IPS_ALERT;
+    }
+    IDSetSwitch(&StartSP, nullptr);
+    return true;
+}
+
+void StarbookDriver::TimerHit() {
+    try {
+        Telescope::TimerHit();
+    }
+    catch (std::exception &e) {
+        log_exception(getDeviceName(), e.what());
+        throw e;
+    }
+
 }

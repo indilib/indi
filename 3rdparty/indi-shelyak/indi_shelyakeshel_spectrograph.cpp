@@ -107,7 +107,7 @@ bool ShelyakEshel::initProperties()
 
     // setup the mirror switch
     IUFillSwitch(&MirrorS[0], "ACTIVATED", "Activated", ISS_OFF);
-    IUFillSwitch(&MirrorS[1], "DEACTIVATED", "Dectivated", ISS_ON);
+    IUFillSwitch(&MirrorS[1], "DEACTIVATED", "Deactivated", ISS_ON);
     IUFillSwitchVector(&MirrorSP, MirrorS, 2, getDeviceName(), "FLIP_MIRROR", "Flip mirror", CALIBRATION_UNIT_TAB,
                        IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
@@ -162,7 +162,7 @@ bool ShelyakEshel::updateProperties()
     }
     else
     {
-        // delete properties if we arent connected
+        // delete properties if we aren't connected
         deleteProperty(MirrorSP.name);
         deleteProperty(LampSP.name);
     }

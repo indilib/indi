@@ -1,5 +1,5 @@
 /*******************************************************************************
-  Copyright(c) 2012 Jasem Mutlaq. All rights reserved.
+  Copyright(c) 2012-2019 Jasem Mutlaq. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -29,7 +29,7 @@
 #include <unistd.h>
 
 // We declare an auto pointer to gpGuide.
-std::unique_ptr<GPUSB> gpGuide(new GPUSB());
+static std::unique_ptr<GPUSB> gpGuide(new GPUSB());
 
 void ISGetProperties(const char *dev)
 {
@@ -71,22 +71,16 @@ void ISSnoopDevice(XMLEle *root)
 GPUSB::GPUSB()
 {
     driver = new GPUSBDriver();
-    WEDir = NSDir = 0;
-    InWEPulse = InNSPulse = false;
-    WEPulseRequest = NSPulseRequest = 0;
-    WEtimerID = NStimerID = 0;
 }
 
 GPUSB::~GPUSB()
 {
-    //dtor
-
     delete (driver);
 }
 
 const char *GPUSB::getDefaultName()
 {
-    return (const char *)"GPUSB";
+    return "GPUSB";
 }
 
 bool GPUSB::Connect()
@@ -118,6 +112,8 @@ bool GPUSB::initProperties()
 
     addDebugControl();
 
+    setDriverInterface(AUX_INTERFACE | GUIDER_INTERFACE);
+
     setDefaultPollingPeriod(250);
 
     return true;
@@ -141,11 +137,6 @@ bool GPUSB::updateProperties()
     return true;
 }
 
-void GPUSB::ISGetProperties(const char *dev)
-{
-    INDI::DefaultDevice::ISGetProperties(dev);
-}
-
 bool GPUSB::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -160,253 +151,143 @@ bool GPUSB::ISNewNumber(const char *dev, const char *name, double values[], char
     return INDI::DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
-bool GPUSB::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    return INDI::DefaultDevice::ISNewSwitch(dev, name, states, names, n);
-}
-
-bool GPUSB::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
-{
-    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
-}
-
-bool GPUSB::ISSnoopDevice(XMLEle *root)
-{
-    return INDI::DefaultDevice::ISSnoopDevice(root);
-}
-
 void GPUSB::debugTriggered(bool enable)
 {
     driver->setDebug(enable);
 }
 
-float GPUSB::CalcWEPulseTimeLeft()
-{
-    double timesince;
-    double timeleft;
-    struct timeval now { 0, 0 };
-    gettimeofday(&now, nullptr);
+//float GPUSB::CalcWEPulseTimeLeft()
+//{
+//    double timesince;
+//    double timeleft;
+//    struct timeval now
+//    {
+//        0, 0
+//    };
+//    gettimeofday(&now, nullptr);
 
-    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
-                (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec / 1000);
-    timesince = timesince / 1000;
+//    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+//                (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec / 1000);
+//    timesince = timesince / 1000;
 
-    timeleft = WEPulseRequest - timesince;
-    return timeleft;
-}
+//    timeleft = WEPulseRequest - timesince;
+//    return timeleft;
+//}
 
-float GPUSB::CalcNSPulseTimeLeft()
-{
-    double timesince;
-    double timeleft;
-    struct timeval now { 0, 0 };
-    gettimeofday(&now, nullptr);
+//float GPUSB::CalcNSPulseTimeLeft()
+//{
+//    double timesince;
+//    double timeleft;
+//    struct timeval now
+//    {
+//        0, 0
+//    };
+//    gettimeofday(&now, nullptr);
 
-    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
-                (double)(NSPulseStart.tv_sec * 1000.0 + NSPulseStart.tv_usec / 1000);
-    timesince = timesince / 1000;
+//    timesince = (double)(now.tv_sec * 1000.0 + now.tv_usec / 1000) -
+//                (double)(NSPulseStart.tv_sec * 1000.0 + NSPulseStart.tv_usec / 1000);
+//    timesince = timesince / 1000;
 
-    timeleft = NSPulseRequest - timesince;
-    return timeleft;
-}
+//    timeleft = NSPulseRequest - timesince;
+//    return timeleft;
+//}
 
-void GPUSB::TimerHit()
-{
-    float timeleft;
-
-    if (InWEPulse)
-    {
-        timeleft = CalcWEPulseTimeLeft();
-
-        if (timeleft < 1.0)
-        {
-            if (timeleft > 0.25)
-            {
-                //  a quarter of a second or more
-                //  just set a tighter timer
-                WEtimerID = SetTimer(250);
-            }
-            else
-            {
-                if (timeleft > 0.07)
-                {
-                    //  use an even tighter timer
-                    WEtimerID = SetTimer(50);
-                }
-                else
-                {
-                    //  it's real close now, so spin on it
-                    while (timeleft > 0)
-                    {
-                        int slv;
-                        slv = 100000 * timeleft;
-                        //IDLog("usleep %d\n",slv);
-                        usleep(slv);
-                        timeleft = CalcWEPulseTimeLeft();
-                    }
-
-                    driver->stopPulse(WEDir);
-                    InWEPulse = false;
-
-                    // If we have another pulse, keep going
-                    if (!InNSPulse)
-                        SetTimer(250);
-                }
-            }
-        }
-        else if (!InNSPulse)
-        {
-            WEtimerID = SetTimer(250);
-        }
-    }
-
-    if (InNSPulse)
-    {
-        timeleft = CalcNSPulseTimeLeft();
-
-        if (timeleft < 1.0)
-        {
-            if (timeleft > 0.25)
-            {
-                //  a quarter of a second or more
-                //  just set a tighter timer
-                NStimerID = SetTimer(250);
-            }
-            else
-            {
-                if (timeleft > 0.07)
-                {
-                    //  use an even tighter timer
-                    NStimerID = SetTimer(50);
-                }
-                else
-                {
-                    //  it's real close now, so spin on it
-                    while (timeleft > 0)
-                    {
-                        int slv;
-                        slv = 100000 * timeleft;
-                        //IDLog("usleep %d\n",slv);
-                        usleep(slv);
-                        timeleft = CalcNSPulseTimeLeft();
-                    }
-
-                    driver->stopPulse(NSDir);
-                    InNSPulse = false;
-                }
-            }
-        }
-        else
-        {
-            NStimerID = SetTimer(250);
-        }
-    }
-}
 
 IPState GPUSB::GuideNorth(uint32_t ms)
 {
-    RemoveTimer(NStimerID);
+    RemoveTimer(NSTimerID);
 
     driver->startPulse(GPUSB_NORTH);
 
-    NSDir = GPUSB_NORTH;
+    NSDirection = GPUSB_NORTH;
 
     LOG_DEBUG("Starting NORTH guide");
 
-    if (ms <= POLLMS)
-    {
-        usleep(ms * 1000);
+    NSPulseRequest = ms;
 
-        driver->stopPulse(GPUSB_NORTH);
-        return IPS_OK;
-    }
+    NSGuideTS = std::chrono::system_clock::now();
 
-    NSPulseRequest = ms / 1000.0;
-    gettimeofday(&NSPulseStart, nullptr);
-    InNSPulse = true;
-
-    NStimerID = SetTimer(ms - 50);
+    NSTimerID = IEAddTimer(ms, &GPUSB::NSTimerHelper, this);
 
     return IPS_BUSY;
 }
 
 IPState GPUSB::GuideSouth(uint32_t ms)
 {
-    RemoveTimer(NStimerID);
+    RemoveTimer(NSTimerID);
 
     driver->startPulse(GPUSB_SOUTH);
 
+    NSDirection = GPUSB_SOUTH;
+
     LOG_DEBUG("Starting SOUTH guide");
 
-    NSDir = GPUSB_SOUTH;
+    NSPulseRequest = ms;
 
-    if (ms <= POLLMS)
-    {
-        usleep(ms * 1000);
+    NSGuideTS = std::chrono::system_clock::now();
 
-        driver->stopPulse(GPUSB_SOUTH);
-        return IPS_OK;
-    }
-
-    NSPulseRequest = ms / 1000.0;
-    gettimeofday(&NSPulseStart, nullptr);
-    InNSPulse = true;
-
-    NStimerID = SetTimer(ms - 50);
+    NSTimerID = IEAddTimer(ms, &GPUSB::NSTimerHelper, this);
 
     return IPS_BUSY;
 }
 
 IPState GPUSB::GuideEast(uint32_t ms)
 {
-    RemoveTimer(WEtimerID);
+    RemoveTimer(WETimerID);
 
     driver->startPulse(GPUSB_EAST);
 
+    WEDirection = GPUSB_EAST;
+
     LOG_DEBUG("Starting EAST guide");
 
-    WEDir = GPUSB_EAST;
+    WEPulseRequest = ms;
 
-    if (ms <= POLLMS)
-    {
-        usleep(ms * 1000);
+    WEGuideTS = std::chrono::system_clock::now();
 
-        driver->stopPulse(GPUSB_EAST);
-        return IPS_OK;
-    }
-
-    WEPulseRequest = ms / 1000.0;
-    gettimeofday(&WEPulseStart, nullptr);
-    InWEPulse = true;
-
-    WEtimerID = SetTimer(ms - 50);
+    WETimerID = IEAddTimer(ms, &GPUSB::WETimerHelper, this);
 
     return IPS_BUSY;
 }
 
 IPState GPUSB::GuideWest(uint32_t ms)
 {
-    RemoveTimer(WEtimerID);
+    RemoveTimer(WETimerID);
 
     driver->startPulse(GPUSB_WEST);
 
+    WEDirection = GPUSB_WEST;
+
     LOG_DEBUG("Starting WEST guide");
 
-    WEDir = GPUSB_WEST;
+    WEPulseRequest = ms;
 
-    if (ms <= POLLMS)
-    {
-        usleep(ms * 1000);
+    WEGuideTS = std::chrono::system_clock::now();
 
-        driver->stopPulse(GPUSB_WEST);
-        return IPS_OK;
-    }
-
-    WEPulseRequest = ms / 1000.0;
-    gettimeofday(&WEPulseStart, nullptr);
-    InWEPulse = true;
-
-    WEtimerID = SetTimer(ms - 50);
+    WETimerID = IEAddTimer(ms, &GPUSB::WETimerHelper, this);
 
     return IPS_BUSY;
 }
+
+void GPUSB::NSTimerHelper(void *context)
+{
+    static_cast<GPUSB*>(context)->NSTimerCallback();
+}
+
+void GPUSB::WETimerHelper(void *context)
+{
+    static_cast<GPUSB*>(context)->WETimerCallback();
+}
+
+void GPUSB::NSTimerCallback()
+{
+    driver->stopPulse(NSDirection);
+    GuideComplete(AXIS_DE);
+}
+
+void GPUSB::WETimerCallback()
+{
+    driver->stopPulse(WEDirection);
+    GuideComplete(AXIS_RA);
+}
+

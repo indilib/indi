@@ -28,11 +28,11 @@
 namespace INDI
 {
 
-FocuserInterface::FocuserInterface(DefaultDevice *defaultDevice) : m_defaultDevice(defaultDevice)
+FocuserInterface::FocuserInterface(DefaultDevice * defaultDevice) : m_defaultDevice(defaultDevice)
 {
 }
 
-void FocuserInterface::initProperties(const char *groupName)
+void FocuserInterface::initProperties(const char * groupName)
 {
     IUFillNumber(&FocusSpeedN[0], "FOCUS_SPEED_VALUE", "Focus Speed", "%3.0f", 0.0, 255.0, 1.0, 255.0);
     IUFillNumberVector(&FocusSpeedNP, FocusSpeedN, 1, m_defaultDevice->getDeviceName(), "FOCUS_SPEED", "Speed", groupName, IP_RW, 60, IPS_OK);
@@ -43,7 +43,7 @@ void FocuserInterface::initProperties(const char *groupName)
 
     IUFillSwitch(&FocusMotionS[0], "FOCUS_INWARD", "Focus In", ISS_ON);
     IUFillSwitch(&FocusMotionS[1], "FOCUS_OUTWARD", "Focus Out", ISS_OFF);
-    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2 ,m_defaultDevice->getDeviceName(), "FOCUS_MOTION", "Direction", groupName, IP_RW,
+    IUFillSwitchVector(&FocusMotionSP, FocusMotionS, 2, m_defaultDevice->getDeviceName(), "FOCUS_MOTION", "Direction", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_OK);
 
     // Absolute Position
@@ -72,8 +72,8 @@ void FocuserInterface::initProperties(const char *groupName)
                        ISR_ATMOST1, 60, IPS_IDLE);
 
     // Revese
-    IUFillSwitch(&FocusReverseS[0], "ENABLED", "Enabled", ISS_OFF);
-    IUFillSwitch(&FocusReverseS[1], "DISABLED", "Disabled", ISS_ON);
+    IUFillSwitch(&FocusReverseS[REVERSED_ENABLED], "ENABLED", "Enabled", ISS_OFF);
+    IUFillSwitch(&FocusReverseS[REVERSED_DISABLED], "DISABLED", "Disabled", ISS_ON);
     IUFillSwitchVector(&FocusReverseSP, FocusReverseS, 2, m_defaultDevice->getDeviceName(), "FOCUS_REVERSE_MOTION", "Reverse Motion", groupName, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 }
@@ -88,7 +88,10 @@ bool FocuserInterface::updateProperties()
         if (HasVariableSpeed())
         {
             m_defaultDevice->defineNumber(&FocusSpeedNP);
-            m_defaultDevice->defineNumber(&FocusTimerNP);
+
+            // We only define Focus Timer if we can not absolute move
+            if (CanAbsMove() == false)
+                m_defaultDevice->defineNumber(&FocusTimerNP);
         }
         if (CanRelMove())
             m_defaultDevice->defineNumber(&FocusRelPosNP);
@@ -110,7 +113,9 @@ bool FocuserInterface::updateProperties()
         if (HasVariableSpeed())
         {
             m_defaultDevice->deleteProperty(FocusSpeedNP.name);
-            m_defaultDevice->deleteProperty(FocusTimerNP.name);
+
+            if (CanAbsMove() == false)
+                m_defaultDevice->deleteProperty(FocusTimerNP.name);
         }
         if (CanRelMove())
             m_defaultDevice->deleteProperty(FocusRelPosNP.name);
@@ -130,7 +135,7 @@ bool FocuserInterface::updateProperties()
     return true;
 }
 
-bool FocuserInterface::processNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool FocuserInterface::processNumber(const char * dev, const char * name, double values[], char * names[], int n)
 {
     // Move focuser based on requested timeout
     if (!strcmp(name, FocusTimerNP.name))
@@ -338,7 +343,7 @@ bool FocuserInterface::processNumber(const char *dev, const char *name, double v
     return false;
 }
 
-bool FocuserInterface::processSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool FocuserInterface::processSwitch(const char * dev, const char * name, ISState * states, char * names[], int n)
 {
     INDI_UNUSED(dev);
     //  This one is for focus motion
@@ -481,7 +486,7 @@ bool FocuserInterface::SetFocuserMaxPosition(uint32_t ticks)
     return true;
 }
 
-bool FocuserInterface::saveConfigItems(FILE *fp)
+bool FocuserInterface::saveConfigItems(FILE * fp)
 {
     if (CanAbsMove())
         IUSaveConfigNumber(fp, &FocusMaxPosNP);

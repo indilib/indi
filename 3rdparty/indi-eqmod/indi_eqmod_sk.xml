@@ -145,12 +145,15 @@ Off
 On
 </defSwitch>
 </defSwitchVector>
-<defSwitchVector device="EQMod Mount" name="FORCECWUP" label="Enforce counter-weight up" group="Main Control" state="Idle" perm="rw" rule="OneOfMany">
-<defSwitch name="ENABLE" label="Enable">
+<defSwitchVector device="EQMod Mount" name="TARGETPIERSIDE" label="Target pier side" group="Main Control" state="Idle" perm="rw" rule="OneOfMany">
+<defSwitch name="AUTO" label="Auto">
+On
+</defSwitch>
+<defSwitch name="PIER_WEST" label="West (pointing east)">
 Off
 </defSwitch>
-<defSwitch name="DISABLE" label="Disable">
-On
+<defSwitch name="PIER_EAST" label="East (pointing west)">
+Off
 </defSwitch>
 </defSwitchVector>
 <defNumberVector device="EQMod Mount" name="STANDARDSYNC" label="Delta" group="Sync" state="Idle" perm="ro">

@@ -22,6 +22,8 @@ CMakeFiles
 cmake_install.cmake
 CTestTestfile.cmake
 Testing
+doxygen_warnings.txt
+documentation
 libindi/test/celestrondriver/test_celestrondriver
 libindi/libs/indibase/alignment/indi_skywatcherAPIMount
 libindi/libs/indibase/alignment/indi_skywatcherAltAzMount
@@ -30,6 +32,7 @@ libindi/make_tcfs_symlink.cmake
 *.cbp
 install_manifest.txt
 .idea
+*.kdev4
 libindi/examples/tutorial_eight/tutorial_eight
 libindi/examples/tutorial_five/tutorial_dome
 libindi/examples/tutorial_five/tutorial_rain
