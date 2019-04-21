@@ -969,15 +969,15 @@ bool QHYCCD::StartExposure(float duration)
         ret = QHYCCD_SUCCESS;
     else
         ret = SetQHYCCDResolution(m_CameraHandle,
-                                  PrimaryCCD.getSubX(),
-                                  PrimaryCCD.getSubY(),
+                                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
     if (ret != QHYCCD_SUCCESS)
     {
         LOGF_INFO("Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)",
-                  PrimaryCCD.getSubX(),
-                  PrimaryCCD.getSubY(),
+                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY(),
                   ret);
@@ -985,8 +985,8 @@ bool QHYCCD::StartExposure(float duration)
     }
 
     LOGF_DEBUG("SetQHYCCDResolution x: %d y: %d w: %d h: %d",
-               PrimaryCCD.getSubX(),
-               PrimaryCCD.getSubY(),
+               PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+               PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
 
@@ -1691,15 +1691,15 @@ bool QHYCCD::StartStreaming()
         ret = QHYCCD_SUCCESS;
     else
         ret = SetQHYCCDResolution(m_CameraHandle,
-                                  PrimaryCCD.getSubX(),
-                                  PrimaryCCD.getSubY(),
+                                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
     if (ret != QHYCCD_SUCCESS)
     {
         LOGF_INFO("Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)",
-                  PrimaryCCD.getSubX(),
-                  PrimaryCCD.getSubY(),
+                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY(),
                   ret);
@@ -1707,8 +1707,8 @@ bool QHYCCD::StartStreaming()
     }
 
     LOGF_DEBUG("SetQHYCCDResolution x: %d y: %d w: %d h: %d",
-               PrimaryCCD.getSubX(),
-               PrimaryCCD.getSubY(),
+               PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+               PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
 
