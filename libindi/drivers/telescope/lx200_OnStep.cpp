@@ -22,6 +22,8 @@
 
 */
 
+#define ONSTEP_NOTDONE
+
 #include "lx200_OnStep.h"
 
 #define LIBRARY_TAB  "Library"
@@ -242,6 +244,12 @@ bool LX200_OnStep::initProperties()
     IUFillSwitch(&OSOutput2S[0], "0", "OFF", ISS_ON);
     IUFillSwitch(&OSOutput2S[1], "1", "ON", ISS_OFF);
     IUFillSwitchVector(&OSOutput2SP, OSOutput2S, 2, getDeviceName(), "Output 2", "Output 2", OUTPUT_TAB, IP_RW, ISR_ATMOST1, 60, IPS_ALERT);
+
+    IUFillNumber(&OutputPWM[0], "PWM_OUTPUT_1", "Output 1", "%g", 0, 255, 1, 0);
+    IUFillNumber(&OutputPWM[1], "PWM_OUTPUT_2", "Output 2", "%g", 0, 255, 1, 0);
+
+    IUFillNumberVector(&OutputPWM_NP, OutputPWM, 2, getDeviceName(), "PWM_Outputs", "PWM Outputs",  OUTPUT_TAB, IP_WO, 60, IPS_OK);
+
 #endif
     
     // ============== STATUS_TAB
@@ -336,6 +344,8 @@ bool LX200_OnStep::updateProperties()
         //Outputs
         defineSwitch(&OSOutput1SP);
         defineSwitch(&OSOutput2SP);
+
+        defineNumber(&OutputPWM_NP);
     #endif
         // OnStep Status
         defineText(&OnstepStatTP);
@@ -419,6 +429,9 @@ bool LX200_OnStep::updateProperties()
         //Outputs
         deleteProperty(OSOutput1SP.name);
         deleteProperty(OSOutput2SP.name);
+
+        deleteProperty(OutputPWM_NP.name);
+
     #endif
 
         // OnStep Status

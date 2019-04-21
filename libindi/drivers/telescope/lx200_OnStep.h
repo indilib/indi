@@ -256,6 +256,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty OSOutput2SP;
     ISwitch OSOutput2S[2];
     
+
+    INumber OutputPWM[2];
+    INumberVectorProperty OutputPWM_NP;
+
+
     char OSStat[RB_MAX_LEN];
     char OldOSStat[RB_MAX_LEN];
 
