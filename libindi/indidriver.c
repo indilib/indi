@@ -1462,6 +1462,32 @@ void IDMessage(const char *dev, const char *fmt, ...)
     pthread_mutex_unlock(&stdout_mutex);
 }
 
+int IUPurgeConfig(const char *filename, const char *dev, char errmsg[])
+{
+    char configFileName[MAXRBUF];
+    char configDir[MAXRBUF];
+
+    snprintf(configDir, MAXRBUF, "%s/.indi/", getenv("HOME"));
+
+    if (filename)
+        strncpy(configFileName, filename, MAXRBUF);
+    else
+    {
+        if (getenv("INDICONFIG"))
+            strncpy(configFileName, getenv("INDICONFIG"), MAXRBUF);
+        else
+            snprintf(configFileName, MAXRBUF, "%s%s_config.xml", configDir, dev);
+    }
+
+    if (remove(configFileName) != 0)
+    {
+        snprintf(errmsg, MAXRBUF, "Unable to purge configuration file %s. Error %s", configFileName, strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
 FILE *IUGetConfigFP(const char *filename, const char *dev, const char *mode, char errmsg[])
 {
     char configFileName[MAXRBUF];
