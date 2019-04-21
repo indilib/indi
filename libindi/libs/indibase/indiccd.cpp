@@ -2756,7 +2756,10 @@ bool CCD::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
     if (HasGuideHead())
+    {
         IUSaveConfigSwitch(fp, &GuideCCD.CompressSP);
+        IUSaveConfigNumber(fp, &GuideCCD.ImageBinNP);
+    }
 
     if (CanSubFrame())
         IUSaveConfigNumber(fp, &PrimaryCCD.ImageFrameNP);
