@@ -22,52 +22,52 @@
 
 #include <indiccd.h>
 #include <indiguiderinterface.h>
+#include <indifilterinterface.h>
 #include <iostream>
 
 #include "ApogeeCam.h"
+#include "ApogeeFilterWheel.h"
 #include "FindDeviceEthernet.h"
 #include "FindDeviceUsb.h"
 
-class ApogeeCCD : public INDI::CCD
+class ApogeeCCD : public INDI::CCD, public INDI::FilterInterface
 {
     public:
         ApogeeCCD();
-        virtual ~ApogeeCCD();
 
-        enum
-        {
-            NETWORK_SUBNET,
-            NETWORK_ADDRESS
-        };
+        const char *getDefaultName() override;
 
-        const char *getDefaultName();
+        void ISGetProperties(const char *dev) override;
+        bool initProperties() override;
+        bool updateProperties() override;
 
-        void ISGetProperties(const char *dev);
-        bool initProperties();
-        bool updateProperties();
-
-        bool Connect();
-        bool Disconnect();
-
-        int SetTemperature(double temperature);
-        bool StartExposure(float duration);
-        bool AbortExposure();
-
-        void TimerHit();
-
-        virtual bool UpdateCCDFrame(int x, int y, int w, int h);
-        virtual bool UpdateCCDBin(int binx, int biny);
-
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n);
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
-        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
     protected:
-        void debugTriggered(bool enabled);
-        bool saveConfigItems(FILE *fp);
+
+        bool Connect() override;
+        bool Disconnect() override;
+
+        int SetTemperature(double temperature) override;
+        bool StartExposure(float duration) override;
+        bool AbortExposure() override;
+
+        void TimerHit() override;
+
+        virtual bool UpdateCCDFrame(int x, int y, int w, int h) override;
+        virtual bool UpdateCCDBin(int binx, int biny) override;
+
+        virtual void debugTriggered(bool enabled) override;
+        virtual bool saveConfigItems(FILE *fp) override;
+
+        virtual bool SelectFilter(int) override;
+        virtual int QueryFilter() override;
 
     private:
-        ApogeeCam *ApgCam;
+        std::unique_ptr<ApogeeCam> ApgCam;
+        std::unique_ptr<ApogeeFilterWheel> ApgCFW;
 
         INumber CoolerN[1];
         INumberVectorProperty CoolerNP;
@@ -78,11 +78,21 @@ class ApogeeCCD : public INDI::CCD
         ISwitch ReadOutS[2];
         ISwitchVectorProperty ReadOutSP;
 
-        ISwitch PortTypeS[2];
         ISwitchVectorProperty PortTypeSP;
+        ISwitch PortTypeS[2];
+        enum
+        {
+            PORT_USB,
+            PORT_NETWORK
+        };
 
-        IText NetworkInfoT[2] {};
         ITextVectorProperty NetworkInfoTP;
+        IText NetworkInfoT[2] {};
+        enum
+        {
+            NETWORK_SUBNET,
+            NETWORK_ADDRESS
+        };
 
         IText CamInfoT[2] {};
         ITextVectorProperty CamInfoTP;
@@ -90,10 +100,32 @@ class ApogeeCCD : public INDI::CCD
         ISwitch FanStatusS[4];
         ISwitchVectorProperty FanStatusSP;
 
+        // Filter Type
+        ISwitchVectorProperty FilterTypeSP;
+        ISwitch FilterTypeS[5];
+        enum
+        {
+            TYPE_UNKNOWN,
+            TYPE_FW50_9R,
+            TYPE_FW50_7S,
+            TYPE_AFW50_10S,
+            TYPE_AFW31_17R
+        };
+
+        // Filter Information
+        ITextVectorProperty FilterInfoTP;
+        IText FilterInfoT[2] {};
+        enum
+        {
+          INFO_NAME,
+          INFO_FIRMWARE,
+        };
+
         double minDuration;
         double ExposureRequest;
         int imageWidth, imageHeight;
         int timerID;
+        bool cameraFound {false}, cfwFound {false};
         INDI::CCDChip::CCD_FRAME imageFrameType;
         struct timeval ExpStart;
 
@@ -116,7 +148,11 @@ class ApogeeCCD : public INDI::CCD
         uint16_t GetID(const std::string &msg);
         uint16_t GetFrmwrRev(const std::string &msg);
 
+        bool connectCamera();
+        bool connectCFW();
+
         bool IsDeviceCamera(const std::string &msg);
+        bool IsDeviceFilterWheel(const std::string &msg);
         bool IsAscent(const std::string &msg);
         void printInfo(const std::string &model, uint16_t maxImgRows, uint16_t maxImgCols);
 
