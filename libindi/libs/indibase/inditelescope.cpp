@@ -556,9 +556,17 @@ bool Telescope::ISSnoopDevice(XMLEle *root)
                 // Dome options is dome parks or both and dome is parking.
                 if ((DomeClosedLockT[2].s == ISS_ON || DomeClosedLockT[3].s == ISS_ON) && !IsLocked && !IsParked)
                 {
-                    RememberTrackState = TrackState;
-                    Park();
-                    DEBUG(Logger::DBG_SESSION, "Dome is closing, parking mount...");
+                    for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
+                    {
+                        const char * elemName = findXMLAttValu(ep, "name");
+                        if (( (!strcmp(elemName, "SHUTTER_CLOSE") || !strcmp(elemName, "PARK"))
+                              && !strcmp(pcdataXMLEle(ep), "On")))
+                        {
+                            RememberTrackState = TrackState;
+                            Park();
+                            LOG_INFO("Dome is closing, parking mount...");
+                        }
+                    }
                 }
             } // Dome is changing state and Dome options is lock or both. d
             else if (!strcmp(findXMLAttValu(root, "state"), "Ok"))
@@ -964,7 +972,7 @@ bool Telescope::ISNewNumber(const char *dev, const char *name, double values[], 
             // effect.
             if (TrackState == SCOPE_TRACKING && strcmp(IUFindOnSwitch(&TrackModeSP)->name, "TRACK_CUSTOM"))
             {
-                DEBUG(Logger::DBG_SESSION, "Custom tracking rates set. Tracking mode must be set to Custom for these rates to take effect.");
+                LOG_INFO("Custom tracking rates set. Tracking mode must be set to Custom for these rates to take effect.");
             }
 
             // If mount is NOT tracking, we simply accept whatever valid values for use when mount tracking is engaged.
@@ -1025,7 +1033,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 IUResetSwitch(&ParkSP);
                 ParkSP.s = IPS_ALERT;
                 Abort();
-                DEBUG(Logger::DBG_SESSION, "Parking/Unparking aborted.");
+                LOG_INFO("Parking/Unparking aborted.");
                 IDSetSwitch(&ParkSP, nullptr);
                 return true;
             }
@@ -1062,7 +1070,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 IUResetSwitch(&ParkSP);
                 ParkS[0].s = ISS_ON;
                 ParkSP.s   = IPS_IDLE;
-                DEBUG(Logger::DBG_SESSION, "Telescope already parked.");
+                LOG_INFO("Telescope already parked.");
                 IDSetSwitch(&ParkSP, nullptr);
                 return true;
             }
@@ -1235,13 +1243,13 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                     ParkSP.s = IPS_ALERT;
                     IDSetSwitch(&ParkSP, nullptr);
 
-                    DEBUG(Logger::DBG_SESSION, "Parking aborted.");
+                    LOG_INFO("Parking aborted.");
                 }
                 if (EqNP.s == IPS_BUSY)
                 {
                     EqNP.s = lastEqState = IPS_IDLE;
                     IDSetNumber(&EqNP, nullptr);
-                    DEBUG(Logger::DBG_SESSION, "Slew/Track aborted.");
+                    LOG_INFO("Slew/Track aborted.");
                 }
                 if (MovementWESP.s == IPS_BUSY)
                 {
@@ -1371,7 +1379,7 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             if ((TrackState != SCOPE_IDLE && TrackState != SCOPE_TRACKING) || MovementNSSP.s == IPS_BUSY ||
                     MovementWESP.s == IPS_BUSY)
             {
-                DEBUG(Logger::DBG_SESSION, "Can not change park position while slewing or already parked...");
+                LOG_INFO("Can not change park position while slewing or already parked...");
                 ParkOptionSP.s = IPS_ALERT;
                 IDSetSwitch(&ParkOptionSP, nullptr);
                 return false;
@@ -1388,14 +1396,14 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 case PARK_WRITE_DATA:
                     rc = WriteParkData();
                     if (rc)
-                        DEBUG(Logger::DBG_SESSION, "Saved Park Status/Position.");
+                        LOG_INFO("Saved Park Status/Position.");
                     else
                         DEBUG(Logger::DBG_WARNING, "Can not save Park Status/Position.");
                     break;
                 case PARK_PURGE_DATA:
                     rc = PurgeParkData();
                     if (rc)
-                        DEBUG(Logger::DBG_SESSION, "Park data purged.");
+                        LOG_INFO("Park data purged.");
                     else
                         DEBUG(Logger::DBG_WARNING, "Can not purge Park Status/Position.");
                     break;
@@ -1415,16 +1423,16 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             if (n == 1)
             {
                 if (!strcmp(names[0], DomeClosedLockT[0].name))
-                    DEBUG(Logger::DBG_SESSION, "Dome parking policy set to: Ignore dome");
+                    LOG_INFO("Dome parking policy set to: Ignore dome");
                 else if (!strcmp(names[0], DomeClosedLockT[1].name))
-                    DEBUG(Logger::DBG_SESSION, "Warning: Dome parking policy set to: Dome locks. This disallows "
+                    LOG_INFO("Warning: Dome parking policy set to: Dome locks. This disallows "
                           "the scope from unparking when dome is parked");
                 else if (!strcmp(names[0], DomeClosedLockT[2].name))
-                    DEBUG(Logger::DBG_SESSION, "Warning: Dome parking policy set to: Dome parks. This tells "
+                    LOG_INFO("Warning: Dome parking policy set to: Dome parks. This tells "
                           "scope to park if dome is parking. This will disable the locking "
                           "for dome parking, EVEN IF MOUNT PARKING FAILS");
                 else if (!strcmp(names[0], DomeClosedLockT[3].name))
-                    DEBUG(Logger::DBG_SESSION, "Warning: Dome parking policy set to: Both. This disallows the "
+                    LOG_INFO("Warning: Dome parking policy set to: Both. This disallows the "
                           "scope from unparking when dome is parked, and tells scope to "
                           "park if dome is parking. This will disable the locking for dome "
                           "parking, EVEN IF MOUNT PARKING FAILS.");
@@ -1446,9 +1454,9 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             MotionControlModeTP.s = IPS_OK;
             IDSetSwitch(&MotionControlModeTP, nullptr);
             if (MotionControlModeT[MOTION_CONTROL_JOYSTICK].s == ISS_ON)
-                DEBUG(Logger::DBG_SESSION, "Motion control is set to 4-way joystick.");
+                LOG_INFO("Motion control is set to 4-way joystick.");
             else if (MotionControlModeT[MOTION_CONTROL_AXES].s == ISS_ON)
-                DEBUG(Logger::DBG_SESSION, "Motion control is set to 2 separate axes.");
+                LOG_INFO("Motion control is set to 2 separate axes.");
             else
                 DEBUGF(Logger::DBG_WARNING, "Motion control is set to unknown value %d!", n);
             return true;
@@ -1463,11 +1471,11 @@ bool Telescope::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             LockAxisSP.s = IPS_OK;
             IDSetSwitch(&LockAxisSP, nullptr);
             if (LockAxisS[AXIS_RA].s == ISS_ON)
-                DEBUG(Logger::DBG_SESSION, "Joystick motion is locked to West/East axis only.");
+                LOG_INFO("Joystick motion is locked to West/East axis only.");
             else if (LockAxisS[AXIS_DE].s == ISS_ON)
-                DEBUG(Logger::DBG_SESSION, "Joystick motion is locked to North/South axis only.");
+                LOG_INFO("Joystick motion is locked to North/South axis only.");
             else
-                DEBUG(Logger::DBG_SESSION, "Joystick motion is unlocked.");
+                LOG_INFO("Joystick motion is unlocked.");
             return true;
         }
 
@@ -1834,14 +1842,14 @@ void Telescope::SyncParkStatus(bool isparked)
         ParkS[0].s = ISS_ON;
         TrackState = SCOPE_PARKED;
         ParkSP.s = IPS_OK;
-        DEBUG(Logger::DBG_SESSION, "Mount is parked.");
+        LOG_INFO("Mount is parked.");
     }
     else
     {
         ParkS[1].s = ISS_ON;
         TrackState = SCOPE_IDLE;
         ParkSP.s = IPS_IDLE;
-        DEBUG(Logger::DBG_SESSION, "Mount is unparked.");
+        LOG_INFO("Mount is unparked.");
     }
 
     IDSetSwitch(&ParkSP, nullptr);
