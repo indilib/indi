@@ -29,24 +29,13 @@
       __typeof__ (b) _b = (b); \
     _a < _b ? _a : _b; })
 
-static RadioSim *receiver;
-
-static void cleanup()
-{
-    delete receiver;
-}
+std::unique_ptr<RadioSim> receiver(new RadioSim());
 
 void ISInit()
 {
     static bool isInit = false;
     if (!isInit)
     {
-        if (receiver == nullptr)
-        {
-            receiver = new RadioSim();
-        }
-
-        atexit(cleanup);
         isInit = true;
     }
 }
