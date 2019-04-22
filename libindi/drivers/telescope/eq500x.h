@@ -41,7 +41,6 @@ protected:
     bool getCurrentPosition(MechanicalPoint&);
     bool setTargetPosition(MechanicalPoint const&);
     bool gotoTargetPosition();
-    bool slewEQ500X();
 protected:
     virtual double getLST();
 protected:

@@ -549,26 +549,17 @@ bool EQ500X::Sync(double ra, double dec)
             currentPosition.toStringDEC(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC));
         }
 
+        NewRaDec(currentRA, currentDEC);
+
         LOGF_INFO("Mount synced to target RA '%lf' DEC '%lf'", targetPosition.RAm(), targetPosition.DECm());
         return false;
     }
 
 sync_error:
+    EqNP.s = IPS_ALERT;
+    IDSetNumber(&EqNP, "Synchronization failed.");
     LOGF_ERROR("Mount sync to target RA '%lf' DEC '%lf' failed", targetPosition.RAm(), targetPosition.DECm());
     return true;
-}
-
-bool EQ500X::slewEQ500X()
-{
-    if (!sendCmd(":MS#"))
-        goto slew_failed;
-
-    return true;
-
-slew_failed:
-    EqNP.s = IPS_ALERT;
-    IDSetNumber(&EqNP, "Error slewing.");
-    return false;
 }
 
 void EQ500X::setPierSide(TelescopePierSide side)
@@ -584,7 +575,6 @@ void EQ500X::setPierSide(TelescopePierSide side)
 
 int EQ500X::sendCmd(char const *data)
 {
-    tcflush(PortFD, TCIFLUSH);
     LOGF_DEBUG("CMD <%s>", data);
     if (!isSimulation())
     {
@@ -609,22 +599,23 @@ int EQ500X::getReply(char *data, size_t const len)
 
 bool EQ500X::gotoTargetPosition()
 {
-    tcflush(PortFD, TCIFLUSH);
-    if (!sendCmd(":MS#"))
+    if (!isSimulation())
     {
-        char buf[64/*RB_MAX_LEN*/] = {0};
-        if (!getReply(buf, 1))
-            return buf[0] != '0'; // 0 is valid for :MS
+        if (!sendCmd(":MS#"))
+        {
+            char buf[64/*RB_MAX_LEN*/] = {0};
+            if (!getReply(buf, 1))
+                return buf[0] != '0'; // 0 is valid for :MS
+        }
+        else return true;
     }
-    return true;
+    return false;
 }
 
 bool EQ500X::getCurrentPosition(MechanicalPoint &p)
 {
     char b[64/*RB_MAX_LEN*/] = {0};
     MechanicalPoint result = p;
-
-    tcflush(PortFD, TCIFLUSH);
 
     if (isSimulation())
         memcpy(b, simEQ500X.MechanicalRA, std::min(sizeof(b), sizeof(simEQ500X.MechanicalRA)));
@@ -644,7 +635,7 @@ bool EQ500X::getCurrentPosition(MechanicalPoint &p)
     if (result.parseStringDEC(b, 64))
         goto radec_error;
 
-    LOGF_INFO("DEC reads '%s' as %lf.", b, result.DECm());
+    LOGF_DEBUG("DEC reads '%s' as %lf.", b, result.DECm());
 
     p = result;
     return false;
@@ -655,33 +646,27 @@ radec_error:
 
 bool EQ500X::setTargetPosition(MechanicalPoint const &p)
 {
-    char CmdString[] = ":Sr" MechanicalPoint_RA_Format "#:Sd" MechanicalPoint_DEC_Format "#";
-    char bufRA[sizeof(MechanicalPoint_RA_Format)], bufDEC[sizeof(MechanicalPoint_DEC_Format)];
-    snprintf(CmdString, sizeof(CmdString), ":Sr%s#:Sd%s#", p.toStringRA(bufRA, sizeof(bufRA)), p.toStringDEC(bufDEC, sizeof(bufDEC)));
-    LOGF_DEBUG("Target RA '%f' DEC '%f' converted to '%s'", static_cast <float> (p.RAm()), static_cast <float> (p.DECm()), CmdString);
-
     if (!isSimulation())
     {
+        // Size string buffers appropriately
+        char CmdString[] = ":Sr" MechanicalPoint_RA_Format "#:Sd" MechanicalPoint_DEC_Format "#";
+        char bufRA[sizeof(MechanicalPoint_RA_Format)], bufDEC[sizeof(MechanicalPoint_DEC_Format)];
+
+        // Write RA/DEC in placeholders
+        snprintf(CmdString, sizeof(CmdString), ":Sr%s#:Sd%s#", p.toStringRA(bufRA, sizeof(bufRA)), p.toStringDEC(bufDEC, sizeof(bufDEC)));
+        LOGF_DEBUG("Target RA '%f' DEC '%f' converted to '%s'", static_cast <float> (p.RAm()), static_cast <float> (p.DECm()), CmdString);
+
         char buf[64/*RB_MAX_LEN*/] = {0};
-        tcflush(PortFD, TCIFLUSH);
 
-        if (sendCmd(CmdString))
-        {
-            LOGF_WARN("Failed '%s'", CmdString);
-            return true;
-        }
+        if (!sendCmd(CmdString))
+            if (!getReply(buf, 2))
+                if (buf[0] == '1' && buf[1] == '1')
+                    return false;
+                else LOGF_ERROR("Failed '%s', mount replied %c%c", CmdString, buf[0], buf[1]);
+            else LOGF_ERROR("Failed getting 2-byte reply to '%s'", CmdString);
+        else LOGF_ERROR("Failed '%s'", CmdString);
 
-        if (getReply(buf, 2))
-        {
-            LOGF_WARN("Failed getting 2-byte reply to '%s'", CmdString);
-            return true;
-        }
-
-        if (buf[0] != '1' && buf[1] != '1')
-        {
-            LOGF_WARN("Failed '%s', mount replied %c%c", CmdString, buf[0], buf[1]);
-            return true;
-        }
+        return true;
     }
 
     return false;
