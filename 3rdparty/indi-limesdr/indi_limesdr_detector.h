@@ -48,7 +48,7 @@ class LIMESDR : public INDI::Detector
     bool AbortCapture();
     void TimerHit();
 
-    void grabData(int n_read) override;
+    void grabData() override;
 
   private:
     lms_device_t *lime_dev = { nullptr };
@@ -62,6 +62,7 @@ class LIMESDR : public INDI::Detector
 	struct timeval CapStart;
     int to_read;
     int b_read;
+    int n_read;
 	float CaptureRequest;
 	uint8_t* continuum;
     uint8_t *spectrum;

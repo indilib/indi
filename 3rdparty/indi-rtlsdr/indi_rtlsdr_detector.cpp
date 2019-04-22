@@ -54,7 +54,9 @@ static void *startcap(void *ctx)
     unsigned char *buf = (unsigned char *)malloc(len);
     while(receiver->InCapture) {
         rtlsdr_read_sync(receiver->rtl_dev, buf, len, &olen);
-        receiver->grabData(buf, len);
+        receiver->buffer = buf;
+        receiver->n_read = olen;
+        receiver->grabData();
     }
     return NULL;
 }
@@ -405,13 +407,13 @@ void RTLSDR::TimerHit()
 /**************************************************************************************
 ** Create the spectrum
 ***************************************************************************************/
-void RTLSDR::grabData(unsigned char *buf, int n_read)
+void RTLSDR::grabData()
 {
     if(InCapture) {
         n_read = min(to_read, n_read);
         continuum = PrimaryDetector.getContinuumBuffer();
         if(n_read > 0) {
-            memcpy(continuum + b_read, buf, n_read);
+            memcpy(continuum + b_read, buffer, n_read);
             b_read += n_read;
             to_read -= n_read;
         }
