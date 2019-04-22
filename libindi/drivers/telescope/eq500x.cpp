@@ -69,8 +69,9 @@ static double constexpr ARCSECOND = ONEDEGREE/3600.0;
 static double constexpr RA_GRANULARITY = std::lround((15.0*ARCSECOND)*3600.0)/3600.0;
 static double constexpr DEC_GRANULARITY = std::lround((1.0*ARCSECOND)*3600.0)/3600.0;
 
- // This is the number of loops expected to achieve convergence on each slew rate
-static int MAX_CONVERGENCE_LOOPS = 20;
+// This is the number of loops expected to achieve convergence on each slew rate
+// A full rotation at 5deg/s would take 360/5=72s to complete at RS speed, checking position twice per second
+static int MAX_CONVERGENCE_LOOPS = 144;
 
 // Hardcoded adjustment intervals
 // RA/DEC deltas are adjusted at specific 'slew_rate' down to 'epsilon' degrees when smaller than 'distance' degrees
@@ -226,7 +227,7 @@ bool EQ500X::updateLocation(double latitude, double longitude, double elevation)
         double const LST = getLST();
         // Mechanical HA is east, 6 hours before meridian
         Sync(LST - 6, currentPosition.DECm());
-        LOGF_INFO("Location updated: LST reset to %g", LST);
+        LOGF_INFO("Location updated: mount considered parked, synced to LST %gh", LST);
     }
 
     return true;
@@ -236,8 +237,6 @@ bool EQ500X::ReadScopeStatus()
 {
     if (!isConnected())
         return false;
-
-    LOGF_INFO("(%lf°,%lf°)", currentPosition.RAm()*15.0, currentPosition.DECm());
 
     if (getCurrentPosition(currentPosition))
     {
@@ -273,7 +272,7 @@ bool EQ500X::ReadScopeStatus()
                     if (abs_ra_delta <= adjustments[i].distance)
                         ra_adjust = &adjustments[i];
                 assert(nullptr != ra_adjust);
-                LOGF_INFO("RA  %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetPosition.RAm()*15.0, currentPosition.RAm(), ra_delta, ra_adjust->distance, ra_adjust->slew_rate, std::max(ra_adjust->epsilon, 15.0/3600.0));
+                LOGF_DEBUG("RA  %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetPosition.RAm()*15.0, currentPosition.RAm(), ra_delta, ra_adjust->distance, ra_adjust->slew_rate, std::max(ra_adjust->epsilon, 15.0/3600.0));
             }
 
             // Choose slew rate for DEC based on distance to target
@@ -283,7 +282,7 @@ bool EQ500X::ReadScopeStatus()
                     if (abs_dec_delta <= adjustments[i].distance)
                         dec_adjust = &adjustments[i];
                 assert(nullptr != dec_adjust);
-                LOGF_INFO("DEC %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetPosition.DECm(), currentPosition.DECm(), dec_delta, dec_adjust->distance, dec_adjust->slew_rate, dec_adjust->epsilon);
+                LOGF_DEBUG("DEC %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetPosition.DECm(), currentPosition.DECm(), dec_delta, dec_adjust->distance, dec_adjust->slew_rate, dec_adjust->epsilon);
             }
 
             // This will hold the command string to send to the mount, with move commands
@@ -308,7 +307,7 @@ bool EQ500X::ReadScopeStatus()
                 // Remember previous adjustment
                 previous_adjustment = adjustment;
             }
-            LOGF_INFO("Current adjustment speed is %s", adjustment->slew_rate);
+            LOGF_DEBUG("Current adjustment speed is %s", adjustment->slew_rate);
 
             // Movement markers, adjustment is done when no movement is required and all flags are cleared
             static bool east = false, west = false, north = false, south = false;
@@ -359,7 +358,7 @@ bool EQ500X::ReadScopeStatus()
             assert(!(east && west) && !(north && south));
 
             // This log shows target in Degrees/Degrees and delta in Degrees/Degrees
-            LOGF_INFO("Centering (%lf°,%lf°) delta (%lf°,%lf°) moving %c%c%c%c at %s until less than (%lf°,%lf°)", targetPosition.RAm()*15.0, targetPosition.DECm(), ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.', adjustment->slew_rate, std::max(adjustment->epsilon, RA_GRANULARITY), adjustment->epsilon);
+            LOGF_DEBUG("Centering (%lf°,%lf°) delta (%lf°,%lf°) moving %c%c%c%c at %s until less than (%lf°,%lf°)", targetPosition.RAm()*15.0, targetPosition.DECm(), ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.', adjustment->slew_rate, std::max(adjustment->epsilon, RA_GRANULARITY), adjustment->epsilon);
 
             // If we have a command to run, issue it
             if (CmdString[0] != '\0' && sendCmd(CmdString))
@@ -372,6 +371,7 @@ bool EQ500X::ReadScopeStatus()
             // If simulating, do simulate rates - in that case currentPosition is driven by currentRA/currentDEC
             if (isSimulation())
             {
+                // These are the simulated rates
                 double const rates[sizeof(adjustments)] =
                 {
                         /*RG*/5*ARCSECOND,
@@ -379,73 +379,69 @@ bool EQ500X::ReadScopeStatus()
                         /*RM*/20*ARCMINUTE,
                         /*RS*/5*ONEDEGREE,
                 };
+
+                // Calculate elapsed time since last status read
                 struct timespec clock = {0,0};
                 clock_gettime(CLOCK_MONOTONIC, &clock);
                 long const now = clock.tv_sec * 1000 + static_cast <long> (round(clock.tv_nsec / 1000000.0));
                 double const delta = simEQ500X.last_sim ? static_cast <double> (now - simEQ500X.last_sim)/1000.0 : 0.0;
                 simEQ500X.last_sim = now;
+
                 // Use currentRA/currentDEC to store smaller-than-one-arcsecond values
                 if (west) currentRA += rates[adjustment - adjustments]*delta;
                 if (east) currentRA -= rates[adjustment - adjustments]*delta;
-                currentPosition.RAm(currentRA);
-                currentPosition.toStringRA(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA));
                 if (north) currentDEC -= rates[adjustment - adjustments]*delta;
                 if (south) currentDEC += rates[adjustment - adjustments]*delta;
+
+                // Update current position and rewrite simulated mechanical positions
+                currentPosition.RAm(currentRA);
+                currentPosition.toStringRA(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA));
                 currentPosition.DECm(currentDEC);
                 currentPosition.toStringDEC(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC));
-                LOGF_INFO("New RA/DEC simulated as %lfh/%lf° (%+lf,%+lf), stored as %lf/%lf = %s/%s", currentRA, currentDEC, rates[adjustment-adjustments]*delta, rates[adjustment-adjustments]*delta, currentPosition.RAm(), currentPosition.DECm(), simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
+
+                LOGF_DEBUG("New RA/DEC simulated as %lfh/%lf° (%+lf,%+lf), stored as %lf/%lf = %s/%s", currentRA, currentDEC, rates[adjustment-adjustments]*delta, rates[adjustment-adjustments]*delta, currentPosition.RAm(), currentPosition.DECm(), simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
             }
 
-            // If it has been too long since we started, maybe we have a convergence problem.
+            // If all movement flags are cleared, we are done adjusting
+            if (!east && !west && !north && !south)
+            {
+                LOGF_INFO("Centering delta (%lf,%lf) intermediate adjustment complete (%d loops)", ra_delta, dec_delta, MAX_CONVERGENCE_LOOPS - countdown);
+            }
+            // Else, if it has been too long since we started, maybe we have a convergence problem.
             // The mount slows down when requested to stop under minimum distance, so we may miss the target.
             // The behavior is improved by changing the slew rate while converging, but is still tricky to tune.
-            if (--countdown <= 0)
+            else if (--countdown <= 0)
             {
-                LOG_INFO("Cancelling to check slew intermediate adjustment.");
-                if (sendCmd(":Q#"))
-                {
-                    LOGF_ERROR("Error centering to (%lf,%lf)", targetPosition.RAm(), targetPosition.DECm());
-                    slewError(-1);
-                    return false;
-                }
+                LOGF_ERROR("Failed centering to (%lf,%lf) under loop limit, aborting...", targetPosition.RAm(), targetPosition.DECm());
+                goto slew_failure;
             }
-            else
-            {
-
-                // If all movement flags are cleared, exit the loop
-                if (!east && !west && !north && !south)
-                {
-                    LOGF_INFO("Centering delta (%lf,%lf) intermediate adjustment complete (%c%c%c%c)", ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.');
-                }
-                else
-                {
-
-                    //const struct timespec timeout = {0, 1000000L*static_cast<long> (adjustment->polling_interval)};
-                    //nanosleep(&timeout, nullptr);
-                    POLLMS = static_cast <uint32_t> (adjustment->polling_interval);
-                }
-            }
+            // Else adjust poll timeout to adjustment speed and continue
+            else POLLMS = static_cast <uint32_t> (adjustment->polling_interval);
         }
+        // If we attained target position at one arcsecond precision, finish procedure and track target
         else
         {
-            TrackState = SCOPE_TRACKING;
             LOG_INFO("Slew is complete. Tracking...");
-
-            if (sendCmd(":RG#"))
-            {
-                LOG_ERROR("Error setting guiding rate for tracking");
-                slewError(-1);
-                return false;
-            }
-
+            sendCmd(":Q#:RG#");
+            POLLMS = 1000;
+            TrackState = SCOPE_TRACKING;
             EqNP.s = IPS_OK;
             IDSetNumber(&EqNP, "Mount is tracking");
         }
     }
 
+    // Update RA/DEC properties
     NewRaDec(currentPosition.RAm(), currentPosition.DECm());
-
     return true;
+
+slew_failure:
+    // If we failed at some point, attempt to stop moving and update properties with error
+    sendCmd(":Q#");
+    POLLMS = 1000;
+    TrackState = SCOPE_TRACKING;
+    NewRaDec(currentPosition.RAm(), currentPosition.DECm());
+    slewError(-1);
+    return false;
 }
 
 bool EQ500X::Goto(double ra, double dec)
