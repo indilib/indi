@@ -31,7 +31,7 @@ class SestoSenso : public INDI::Focuser
         const char *getDefaultName() override;
         virtual bool initProperties() override;
         virtual bool updateProperties() override;
-        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+        //virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
         static void checkMotionProgressHelper(void *context);
 
@@ -77,13 +77,13 @@ class SestoSenso : public INDI::Focuser
         IText FirmwareT[1] {};
         ITextVectorProperty FirmwareTP;
 
-        INumber LimitsN[2];
-        INumberVectorProperty LimitsNP;
-        enum
-        {
-            SS_MIN_LIMIT,
-            SS_MAX_LIMIT
-        };
+//        INumber LimitsN[2];
+//        INumberVectorProperty LimitsNP;
+//        enum
+//        {
+//            SS_MIN_LIMIT,
+//            SS_MAX_LIMIT
+//        };
 
         int m_MotionProgressTimerID = -1;
         /////////////////////////////////////////////////////////////////////////////
