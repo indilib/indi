@@ -223,8 +223,7 @@ bool RadioSim::CaptureParamsUpdated(float sr, float freq, float bps, float bw, f
     INDI_UNUSED(gain);
     INDI_UNUSED(freq);
     INDI_UNUSED(bps);
-    INDI_UNUSED(bps);
-    PrimaryDetector.setBandwidth(0);
+    PrimaryDetector.setBandwidth(bw);
     PrimaryDetector.setSampleRate(sr);
 
     return true;
