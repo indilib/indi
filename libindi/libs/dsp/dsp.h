@@ -809,6 +809,12 @@ DLL_EXPORT dsp_stream_p dsp_stream_crop(dsp_stream_p stream);
 /*@{*/
 
 /**
+* \brief Generate white noise
+* \param stream the target DSP stream.
+*/
+DLL_EXPORT void dsp_signals_whitenoise(dsp_stream_p stream);
+
+/**
 * \brief Generate a sinusoidal wave
 * \param stream the target DSP stream.
 * \param samplefreq the sampling reference frequency

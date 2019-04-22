@@ -1578,6 +1578,65 @@ void Detector::Convolution(void *buf, void *matrix, void *out, int dims, int *si
     dsp_stream_free(matrix_stream);
 }
 
+void Detector::WhiteNoise(void *buf, int size, int bits_per_sample) {
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    dsp_stream_add_dim(stream, size);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy((static_cast<unsigned char *>(buf)), stream->buf, stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy((static_cast<unsigned short *>(buf)), stream->buf, stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy((static_cast<unsigned int *>(buf)), stream->buf, stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+        break;
+    default:
+        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+        //Destroy the dsp streams
+        dsp_stream_free_buffer(stream);
+        dsp_stream_free(stream);
+        return;
+    }
+    dsp_signals_whitenoise (stream);
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned char *>(buf)), stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned short *>(buf)), stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned int *>(buf)), stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(buf)), stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy(stream->buf, (static_cast<float *>(buf)), stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy(stream->buf, (static_cast<double *>(buf)), stream->len);
+        break;
+    default:
+        break;
+    }
+    //Destroy the dsp streams
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+}
+
 //Streamer API functions
 
 bool Detector::StartStreaming()

@@ -621,6 +621,14 @@ class Detector : public DefaultDevice
         void Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample);
 
         /**
+         * @brief White noise generator
+         * @param buf the buffer to fill
+         * @param size the size of the input buffer
+         * @param bits_per_sample can be one of 8,16,32,64 for unsigned types, -32,-64 for floating single and double types
+         */
+        void WhiteNoise(void *out, int size, int bits_per_sample);
+
+        /**
          * @brief grabData
          *  This function actually grabs data from the receiver and fills the buffers.
          */

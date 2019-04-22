@@ -36,6 +36,8 @@ class RadioSim : public INDI::Detector
         bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
         void ISGetProperties(const char *dev) override;
 
+        void grabData() override;
+
     protected:
         // General device functions
         bool Connect() override;
@@ -49,8 +51,6 @@ class RadioSim : public INDI::Detector
         bool CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain) override;
         bool AbortCapture() override;
         void TimerHit() override;
-
-        void grabData() override;
 
     private:
         INumber DetectorPropertiesN[1];
@@ -69,9 +69,6 @@ class RadioSim : public INDI::Detector
         //double Dec; //should not stay here
 
         //int n_read;
-        int to_read;
         //int b_read;
         float CaptureRequest;
-        uint8_t* continuum;
-        uint8_t* spectrum;
 };
