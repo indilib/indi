@@ -69,14 +69,14 @@ void ISNewText(const char *dev, const char *name, char *texts[], char *names[], 
 {
     ISInit();
 
-    receiver->ISNewSwitch(dev, name, texts, names, num);
+    receiver->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
     ISInit();
 
-    receiver->ISNewSwitch(dev, name, values, names, num);
+    receiver->ISNewNumber(dev, name, values, names, num);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -206,10 +206,10 @@ bool RadioSim::StartCapture(float duration)
 
     // Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
     PrimaryDetector.setCaptureDuration(duration);
-    to_read = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration() * sizeof(unsigned short);
+    int to_read = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration() * sizeof(unsigned short);
 
     PrimaryDetector.setContinuumBufferSize(to_read);
-    PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE * sizeof(unsigned short));
+    PrimaryDetector.setSpectrumBufferSize((1 << abs(PrimaryDetector.getBPS())) * sizeof(unsigned short));
 
     // We're done
     return false;
