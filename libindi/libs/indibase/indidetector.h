@@ -61,7 +61,6 @@ extern const char *GUIDE_HEAD_TAB;
 
 namespace INDI
 {
-
 class StreamManager;
 
 /**
@@ -484,7 +483,7 @@ class Detector : public DefaultDevice
         }
 
         /**
-         * @return  True if the Detector supports live streaming. False otherwise.
+         * @return  True if the Detector supports continuum blobs. False otherwise.
          */
         bool HasContinuum()
         {
@@ -492,7 +491,7 @@ class Detector : public DefaultDevice
         }
 
         /**
-         * @return  True if the Detector supports live streaming. False otherwise.
+         * @return  True if the Detector supports spectrum blobs. False otherwise.
          */
         bool HasSpectrum()
         {
@@ -500,7 +499,7 @@ class Detector : public DefaultDevice
         }
 
         /**
-         * @return  True if the Detector supports live streaming. False otherwise.
+         * @return  True if the Detector supports time deviation correction blobs. False otherwise.
          */
         bool HasTimeDeviation()
         {
@@ -628,24 +627,18 @@ class Detector : public DefaultDevice
          */
         void WhiteNoise(void *out, int size, int bits_per_sample);
 
-        /**
-         * @brief grabData
-         *  This function actually grabs data from the receiver and fills the buffers.
-         */
-        virtual void grabData();
 
         /**
          * @brief StartStreaming Start live video streaming
          * @return True if successful, false otherwise.
          */
-        bool StartStreaming();
+        virtual bool StartStreaming();
 
         /**
          * @brief StopStreaming Stop live video streaming
          * @return True if successful, false otherwise.
          */
-        bool StopStreaming();
-
+        virtual bool StopStreaming();
         /**
          * \brief Add FITS keywords to a fits file
          * \param fptr pointer to a valid FITS file.
@@ -696,9 +689,12 @@ class Detector : public DefaultDevice
         // Sky Quality
         double MPSAS;
 
-        DetectorDevice PrimaryDetector;
+        // Threading
+        std::mutex detectorBufferLock;
+
 
         std::unique_ptr<StreamManager> Streamer;
+        DetectorDevice PrimaryDetector;
 
         //  We are going to snoop these from a telescope
         INumberVectorProperty EqNP;
@@ -746,13 +742,6 @@ class Detector : public DefaultDevice
         double RA, Dec;
     private:
 
-        int streamPredicate;
-        pthread_t primary_thread;
-        bool terminateThread;
-
-        static void * streamCaptureHelper(void * context);
-        void * streamCapture();
-
         uint32_t capability;
 
         bool uploadFile(DetectorDevice *targetDevice, const void *fitsData, size_t totalBytes, bool sendCapture, bool saveCapture, int blobindex);
@@ -763,5 +752,5 @@ class Detector : public DefaultDevice
         /// Misc.
         /////////////////////////////////////////////////////////////////////////////
         friend class StreamManager;
-};
+        };
 }

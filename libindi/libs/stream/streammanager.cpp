@@ -24,6 +24,7 @@
 
 #include "streammanager.h"
 #include "indiccd.h"
+#include "indidetector.h"
 #include "indilogger.h"
 
 #include <cerrno>
@@ -36,9 +37,9 @@ static const char * STREAM_TAB = "Streaming";
 namespace INDI
 {
 
-StreamManager::StreamManager(CCD * mainCCD)
+StreamManager::StreamManager(DefaultDevice *mainDevice)
 {
-    currentCCD = mainCCD;
+    currentDevice = mainDevice;
 
     m_isStreaming = false;
     m_isRecording = false;
@@ -67,43 +68,8 @@ StreamManager::StreamManager(CCD * mainCCD)
 
     encoderManager = new EncoderManager();
     encoder = encoderManager->getDefaultEncoder();
-    encoder->init(mainCCD);
 
-    LOGF_DEBUG("Using default encoder (%s)", encoder->getName());
-}
-
-StreamManager::StreamManager(Detector * mainDetector)
-{
-    currentDetector = mainDetector;
-
-    m_isStreaming = false;
-    m_isRecording = false;
-
-    // Timer
-    // now use BSD setimer to avoi librt dependency
-    //sevp.sigev_notify=SIGEV_NONE;
-    //timer_create(CLOCK_MONOTONIC, &sevp, &fpstimer);
-    //fpssettings.it_interval.tv_sec=24*3600;
-    //fpssettings.it_interval.tv_nsec=0;
-    //fpssettings.it_value=fpssettings.it_interval;
-    //timer_settime(fpstimer, 0, &fpssettings, nullptr);
-
-    struct itimerval fpssettings;
-    fpssettings.it_interval.tv_sec  = 24 * 3600;
-    fpssettings.it_interval.tv_usec = 0;
-    fpssettings.it_value            = fpssettings.it_interval;
-    signal(SIGALRM, SIG_IGN); //portable
-    setitimer(ITIMER_REAL, &fpssettings, nullptr);
-
-    recorderManager = new RecorderManager();
-    recorder    = recorderManager->getDefaultRecorder();
-    direct_record = false;
-
-    LOGF_DEBUG("Using default recorder (%s)", recorder->getName());
-
-    encoderManager = new EncoderManager();
-    encoder = encoderManager->getDefaultEncoder();
-    encoder->init(currentDetector);
+    encoder->init(currentDevice);
 
     LOGF_DEBUG("Using default encoder (%s)", encoder->getName());
 }
@@ -117,7 +83,7 @@ StreamManager::~StreamManager()
 
 const char * StreamManager::getDeviceName()
 {
-    return currentCCD->getDeviceName();
+    return currentDevice->getDeviceName();
 }
 
 bool StreamManager::initProperties()
@@ -125,7 +91,7 @@ bool StreamManager::initProperties()
     /* Video Stream */
     IUFillSwitch(&StreamS[0], "STREAM_ON", "Stream On", ISS_OFF);
     IUFillSwitch(&StreamS[1], "STREAM_OFF", "Stream Off", ISS_ON);
-    IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
+    IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "INDI_VIDEO_STREAM", "Video Stream",
                        STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
@@ -159,28 +125,30 @@ bool StreamManager::initProperties()
     IUFillSwitchVector(&RecordStreamSP, RecordStreamS, NARRAY(RecordStreamS), getDeviceName(), "RECORD_STREAM",
                        "Video Record", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
-    // CCD Streaming Frame
-    IUFillNumber(&StreamFrameN[0], "X", "Left ", "%4.0f", 0, 0.0, 0, 0);
-    IUFillNumber(&StreamFrameN[1], "Y", "Top", "%4.0f", 0, 0, 0, 0);
-    IUFillNumber(&StreamFrameN[2], "WIDTH", "Width", "%4.0f", 0, 0.0, 0, 0.0);
-    IUFillNumber(&StreamFrameN[3], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0.0);
-    IUFillNumberVector(&StreamFrameNP, StreamFrameN, 4, getDeviceName(), "CCD_STREAM_FRAME", "Frame", STREAM_TAB, IP_RW,
-                       60, IPS_IDLE);
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+        // CCD Streaming Frame
+        IUFillNumber(&StreamFrameN[0], "X", "Left ", "%4.0f", 0, 0.0, 0, 0);
+        IUFillNumber(&StreamFrameN[1], "Y", "Top", "%4.0f", 0, 0, 0, 0);
+        IUFillNumber(&StreamFrameN[2], "WIDTH", "Width", "%4.0f", 0, 0.0, 0, 0.0);
+        IUFillNumber(&StreamFrameN[3], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0.0);
+        IUFillNumberVector(&StreamFrameNP, StreamFrameN, 4, getDeviceName(), "INDI_STREAM_FRAME", "Frame", STREAM_TAB, IP_RW,
+                           60, IPS_IDLE);
+    }
 
     // Encoder Selection
     IUFillSwitch(&EncoderS[ENCODER_RAW], "RAW", "RAW", ISS_ON);
     IUFillSwitch(&EncoderS[ENCODER_MJPEG], "MJPEG", "MJPEG", ISS_OFF);
-    IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "INDI_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Recorder Selector
     IUFillSwitch(&RecorderS[RECORDER_RAW], "SER", "SER", ISS_ON);
     IUFillSwitch(&RecorderS[RECORDER_OGV], "OGV", "OGV", ISS_OFF);
-    IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "INDI_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+
     // If we do not have theora installed, let's just define SER default recorder
 #ifndef HAVE_THEORA
-    RecorderSP.nsp = 1;
+        RecorderSP.nsp = 1;
 #endif
-
     return true;
 }
 
@@ -190,55 +158,60 @@ void StreamManager::ISGetProperties(const char * dev)
     if (dev != nullptr && strcmp(getDeviceName(), dev))
         return;
 
-    if (currentCCD->isConnected())
+    if (currentDevice->isConnected())
     {
-        currentCCD->defineSwitch(&StreamSP);
+        currentDevice->defineSwitch(&StreamSP);
         if (m_hasStreamingExposure)
-            currentCCD->defineNumber(&StreamExposureNP);
-        currentCCD->defineNumber(&FpsNP);
-        currentCCD->defineSwitch(&RecordStreamSP);
-        currentCCD->defineText(&RecordFileTP);
-        currentCCD->defineNumber(&RecordOptionsNP);
-        currentCCD->defineNumber(&StreamFrameNP);
-        currentCCD->defineSwitch(&EncoderSP);
-        currentCCD->defineSwitch(&RecorderSP);
+            currentDevice->defineNumber(&StreamExposureNP);
+        currentDevice->defineNumber(&FpsNP);
+        currentDevice->defineSwitch(&RecordStreamSP);
+        currentDevice->defineText(&RecordFileTP);
+        currentDevice->defineNumber(&RecordOptionsNP);
+        currentDevice->defineNumber(&StreamFrameNP);
+        currentDevice->defineSwitch(&EncoderSP);
+        currentDevice->defineSwitch(&RecorderSP);
     }
 }
 
 bool StreamManager::updateProperties()
 {
-    if (currentCCD->isConnected())
+    if (currentDevice->isConnected())
     {
-        imageBP = currentCCD->getBLOB("CCD1");
+        if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+            imageBP = currentDevice->getBLOB("CCD1");
+        } if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+            imageBP = currentDevice->getBLOB("DETECTOR");
+        }
         imageB  = imageBP->bp;
 
-        currentCCD->defineSwitch(&StreamSP);
+        currentDevice->defineSwitch(&StreamSP);
         if (m_hasStreamingExposure)
-            currentCCD->defineNumber(&StreamExposureNP);
-        currentCCD->defineNumber(&FpsNP);
-        currentCCD->defineSwitch(&RecordStreamSP);
-        currentCCD->defineText(&RecordFileTP);
-        currentCCD->defineNumber(&RecordOptionsNP);
-        currentCCD->defineNumber(&StreamFrameNP);
-        currentCCD->defineSwitch(&EncoderSP);
-        currentCCD->defineSwitch(&RecorderSP);
+            currentDevice->defineNumber(&StreamExposureNP);
+        currentDevice->defineNumber(&FpsNP);
+        currentDevice->defineSwitch(&RecordStreamSP);
+        currentDevice->defineText(&RecordFileTP);
+        currentDevice->defineNumber(&RecordOptionsNP);
+        currentDevice->defineNumber(&StreamFrameNP);
+        currentDevice->defineSwitch(&EncoderSP);
+        currentDevice->defineSwitch(&RecorderSP);
+        return true;
     }
     else
     {
-        currentCCD->deleteProperty(StreamSP.name);
+        currentDevice->deleteProperty(StreamSP.name);
         if (m_hasStreamingExposure)
-            currentCCD->deleteProperty(StreamExposureNP.name);
-        currentCCD->deleteProperty(FpsNP.name);
-        currentCCD->deleteProperty(RecordFileTP.name);
-        currentCCD->deleteProperty(RecordStreamSP.name);
-        currentCCD->deleteProperty(RecordOptionsNP.name);
-        currentCCD->deleteProperty(StreamFrameNP.name);
-        currentCCD->deleteProperty(EncoderSP.name);
-        currentCCD->deleteProperty(RecorderSP.name);
+            currentDevice->deleteProperty(StreamExposureNP.name);
+        currentDevice->deleteProperty(FpsNP.name);
+        currentDevice->deleteProperty(RecordFileTP.name);
+        currentDevice->deleteProperty(RecordStreamSP.name);
+        currentDevice->deleteProperty(RecordOptionsNP.name);
+        currentDevice->deleteProperty(StreamFrameNP.name);
+        currentDevice->deleteProperty(EncoderSP.name);
+        currentDevice->deleteProperty(RecorderSP.name);
 
         return true;
     }
-    return true;
+    return false;
 }
 
 /*
@@ -279,13 +252,16 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
         FpsN[0].value = newFPS;
         IDSetNumber(&FpsNP, nullptr);
     }
-
     std::thread(&StreamManager::asyncStream, this, buffer, nbytes, deltams).detach();
 }
 
 void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams)
 {
-    std::unique_lock<std::mutex> guard(currentCCD->ccdBufferLock);
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+        std::unique_lock<std::mutex> guard(((INDI::CCD*)currentDevice)->ccdBufferLock);
+    } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+        std::unique_lock<std::mutex> guard(((INDI::Detector*)currentDevice)->detectorBufferLock);
+    }
     // For streaming, downscale 16 to 8
     if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
     {
@@ -294,9 +270,13 @@ void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double d
         {
             recordStream(buffer, nbytes, deltams);
         }
-
-        uint32_t npixels = (currentCCD->PrimaryCCD.getSubW() / currentCCD->PrimaryCCD.getBinX()) * (currentCCD->PrimaryCCD.getSubH() / currentCCD->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
-        //uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+        uint32_t npixels = 0;
+        if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+            npixels = (((INDI::CCD*)currentDevice)->PrimaryCCD.getSubW() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX()) * (((INDI::CCD*)currentDevice)->PrimaryCCD.getSubH() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+            //uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+        } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+            npixels = ((INDI::Detector*)currentDevice)->PrimaryDetector.getSampleRate() * ((INDI::Detector*)currentDevice)->PrimaryDetector.getCaptureDuration() * 8 / ((INDI::Detector*)currentDevice)->PrimaryDetector.getBPS();
+        }
         // Allocale new buffer if size changes
         if (downscaleBufferSize != npixels)
         {
@@ -598,12 +578,14 @@ bool StreamManager::startRecording()
     if (m_isRecording)
         return true;
 
-    /* get filter name for pattern substitution */
-    if (currentCCD->CurrentFilterSlot != -1 && currentCCD->CurrentFilterSlot <= static_cast<int>(currentCCD->FilterNames.size()))
-    {
-        filtername      = currentCCD->FilterNames.at(currentCCD->CurrentFilterSlot - 1);
-        patterns["_F_"] = filtername;
-        LOGF_DEBUG("Adding filter pattern %s", filtername.c_str());
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+        /* get filter name for pattern substitution */
+        if (((INDI::CCD*)currentDevice)->CurrentFilterSlot != -1 && ((INDI::CCD*)currentDevice)->CurrentFilterSlot <= static_cast<int>(((INDI::CCD*)currentDevice)->FilterNames.size()))
+        {
+            filtername      = ((INDI::CCD*)currentDevice)->FilterNames.at(((INDI::CCD*)currentDevice)->CurrentFilterSlot - 1);
+            patterns["_F_"] = filtername;
+            LOGF_DEBUG("Adding filter pattern %s", filtername.c_str());
+        }
     }
 
     recorder->setFPS(FpsN[FPS_AVERAGE].value);
@@ -649,7 +631,7 @@ bool StreamManager::startRecording()
     else
     {
         //if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
-        if (currentCCD->PrimaryCCD.getNAxis() == 2)
+        if (((INDI::CCD*)currentDevice)->PrimaryCCD.getNAxis() == 2)
             recorder->setDefaultMono();
         else
             recorder->setDefaultColor();
@@ -661,13 +643,24 @@ bool StreamManager::startRecording()
     getitimer(ITIMER_REAL, &tframe1);
     mssum         = 0;
     m_FrameCounterPerSecond = 0;
-    if (m_isStreaming == false && currentCCD->StartStreaming() == false)
-    {
-        LOG_ERROR("Failed to start recording.");
-        RecordStreamSP.s = IPS_ALERT;
-        IUResetSwitch(&RecordStreamSP);
-        RecordStreamS[RECORD_OFF].s = ISS_ON;
-        IDSetSwitch(&RecordStreamSP, nullptr);
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+        if (m_isStreaming == false && ((INDI::CCD*)currentDevice)->StartStreaming() == false)
+        {
+            LOG_ERROR("Failed to start recording.");
+            RecordStreamSP.s = IPS_ALERT;
+            IUResetSwitch(&RecordStreamSP);
+            RecordStreamS[RECORD_OFF].s = ISS_ON;
+            IDSetSwitch(&RecordStreamSP, nullptr);
+        }
+    } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+        if (m_isStreaming == false && ((INDI::Detector*)currentDevice)->StartStreaming() == false)
+        {
+            LOG_ERROR("Failed to start recording.");
+            RecordStreamSP.s = IPS_ALERT;
+            IUResetSwitch(&RecordStreamSP);
+            RecordStreamS[RECORD_OFF].s = ISS_ON;
+            IDSetSwitch(&RecordStreamSP, nullptr);
+        }
     }
     m_isRecording = true;
     return true;
@@ -677,8 +670,14 @@ bool StreamManager::stopRecording(bool force)
 {
     if (!m_isRecording && force == false)
         return true;
-    if (!m_isStreaming)
-        currentCCD->StopStreaming();
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+        if (!m_isStreaming)
+            ((INDI::CCD*)currentDevice)->StopStreaming();
+    } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+        if (!m_isStreaming)
+            ((INDI::Detector*)currentDevice)->StopStreaming();
+
+    }
 
     m_isRecording = false;
     recorder->close();
@@ -880,8 +879,16 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
             return false;
         }
 
-        int subW = currentCCD->PrimaryCCD.getSubW() / currentCCD->PrimaryCCD.getBinX();
-        int subH = currentCCD->PrimaryCCD.getSubH() / currentCCD->PrimaryCCD.getBinY();
+        int subW = 0;
+        int subH = 0;
+
+        if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+            subW = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubW() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX();
+            subH = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubH() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY();
+        } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+            subW = ((INDI::Detector*)currentDevice)->PrimaryDetector.getSampleRate() * ((INDI::Detector*)currentDevice)->PrimaryDetector.getCaptureDuration() * 8 / ((INDI::Detector*)currentDevice)->PrimaryDetector.getBPS();
+            subH = 1;
+        }
 
         IUUpdateNumber(&StreamFrameNP, values, names, n);
         StreamFrameNP.s = IPS_OK;
@@ -929,16 +936,27 @@ bool StreamManager::setStream(bool enable)
             getitimer(ITIMER_REAL, &tframe1);
             mssum         = 0;
             m_FrameCounterPerSecond = 0;
-            if (currentCCD->StartStreaming() == false)
-            {
-                IUResetSwitch(&StreamSP);
-                StreamS[1].s = ISS_ON;
-                StreamSP.s   = IPS_ALERT;
-                LOG_ERROR("Failed to start streaming.");
-                IDSetSwitch(&StreamSP, nullptr);
-                return false;
+            if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+                if (((INDI::CCD*)currentDevice)->StartStreaming() == false)
+                {
+                    IUResetSwitch(&StreamSP);
+                    StreamS[1].s = ISS_ON;
+                    StreamSP.s   = IPS_ALERT;
+                    LOG_ERROR("Failed to start streaming.");
+                    IDSetSwitch(&StreamSP, nullptr);
+                    return false;
+                }
+            } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+                if (((INDI::Detector*)currentDevice)->StartStreaming() == false)
+                {
+                    IUResetSwitch(&StreamSP);
+                    StreamS[1].s = ISS_ON;
+                    StreamSP.s   = IPS_ALERT;
+                    LOG_ERROR("Failed to start streaming.");
+                    IDSetSwitch(&StreamSP, nullptr);
+                    return false;
+                }
             }
-
             m_isStreaming = true;
             m_Format.clear();
             FpsN[FPS_INSTANT].value = FpsN[FPS_AVERAGE].value = 0;
@@ -959,12 +977,22 @@ bool StreamManager::setStream(bool enable)
             //if (!is_exposing && !is_recording) stop_capturing();
             if (!m_isRecording)
             {
-                if (currentCCD->StopStreaming() == false)
-                {
-                    StreamSP.s = IPS_ALERT;
-                    LOG_ERROR("Failed to stop streaming.");
-                    IDSetSwitch(&StreamSP, nullptr);
-                    return false;
+                if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+                    if (((INDI::CCD*)currentDevice)->StopStreaming() == false)
+                    {
+                        StreamSP.s = IPS_ALERT;
+                        LOG_ERROR("Failed to stop streaming.");
+                        IDSetSwitch(&StreamSP, nullptr);
+                        return false;
+                    }
+                } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+                    if (((INDI::Detector*)currentDevice)->StopStreaming() == false)
+                    {
+                        StreamSP.s = IPS_ALERT;
+                        LOG_ERROR("Failed to stop streaming.");
+                        IDSetSwitch(&StreamSP, nullptr);
+                        return false;
+                    }
                 }
             }
 
@@ -1007,15 +1035,15 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         // Upload to client now
 
 #ifdef HAVE_WEBSOCKET
-        if (currentCCD->HasWebSocket() && currentCCD->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
+        if (((INDI::CCD*)currentDevice)->HasWebSocket() && ((INDI::CCD*)currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
         {
             if (m_Format != ".stream_jpg")
             {
                 m_Format = ".stream_jpg";
-                currentCCD->wsServer.send_text(m_Format);
+                ((INDI::CCD*)currentDevice)->wsServer.send_text(m_Format);
             }
 
-            currentCCD->wsServer.send_binary(buffer, nbytes);
+            ((INDI::CCD*)currentDevice)->wsServer.send_binary(buffer, nbytes);
             return true;
         }
 #endif
@@ -1028,30 +1056,37 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         return true;
     }
 
-    //memcpy(currentCCD->PrimaryCCD.getFrameBuffer(), buffer, currentCCD->PrimaryCCD.getFrameBufferSize());
+    //memcpy(((INDI::CCD*)currentDevice)->PrimaryCCD.getFrameBuffer(), buffer, ((INDI::CCD*)currentDevice)->PrimaryCCD.getFrameBufferSize());
 
     // Binning for grayscale frames only for now
 #if 0
-    if (currentCCD->PrimaryCCD.getNAxis() == 2)
+    if (((INDI::CCD*)currentDevice)->PrimaryCCD.getNAxis() == 2)
     {
-        currentCCD->PrimaryCCD.binFrame();
-        nbytes /= (currentCCD->PrimaryCCD.getBinX() * currentCCD->PrimaryCCD.getBinY());
+        ((INDI::CCD*)currentDevice)->PrimaryCCD.binFrame();
+        nbytes /= (((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX() * ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY());
     }
 #endif
 
     int subX, subY, subW, subH;
-    subX = currentCCD->PrimaryCCD.getSubX() / currentCCD->PrimaryCCD.getBinX();
-    subY = currentCCD->PrimaryCCD.getSubY() / currentCCD->PrimaryCCD.getBinY();
-    subW = currentCCD->PrimaryCCD.getSubW() / currentCCD->PrimaryCCD.getBinX();
-    subH = currentCCD->PrimaryCCD.getSubH() / currentCCD->PrimaryCCD.getBinY();
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+        subX = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubX() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX();
+        subY = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubY() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY();
+        subW = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubW() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX();
+        subH = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubH() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY();
+    } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+        subX = 0;
+        subY = 0;
+        subW = ((INDI::Detector*)currentDevice)->PrimaryDetector.getSampleRate() * ((INDI::Detector*)currentDevice)->PrimaryDetector.getCaptureDuration() * 8 / ((INDI::Detector*)currentDevice)->PrimaryDetector.getBPS();
+        subH = 1;
+    }
 
     //uint8_t *streamBuffer = buffer;
 
     // If stream frame was not yet initilized, let's do that now
     if (StreamFrameN[CCDChip::FRAME_W].value == 0 || StreamFrameN[CCDChip::FRAME_H].value == 0)
     {
-        //if (currentCCD->PrimaryCCD.getNAxis() == 2)
-        //    binFactor = currentCCD->PrimaryCCD.getBinX();
+        //if (((INDI::CCD*)currentDevice)->PrimaryCCD.getNAxis() == 2)
+        //    binFactor = ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX();
 
         StreamFrameN[CCDChip::FRAME_X].value = subX;
         StreamFrameN[CCDChip::FRAME_Y].value = subY;
@@ -1088,34 +1123,57 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 
         nbytes = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * components;
 
-        if (encoder->upload(imageB, downscaleBuffer, nbytes, currentCCD->PrimaryCCD.isCompressed()))
-        {
-#ifdef HAVE_WEBSOCKET
-            if (currentCCD->HasWebSocket() && currentCCD->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
+        if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+            if (encoder->upload(imageB, downscaleBuffer, nbytes, ((INDI::CCD*)currentDevice)->PrimaryCCD.isCompressed()))
             {
-                if (m_Format != ".stream")
+#ifdef HAVE_WEBSOCKET
+                if (((INDI::CCD*)currentDevice)->HasWebSocket() && ((INDI::CCD*)currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
                 {
-                    m_Format = ".stream";
-                    currentCCD->wsServer.send_text(m_Format);
-                }
+                    if (m_Format != ".stream")
+                    {
+                        m_Format = ".stream";
+                        ((INDI::CCD*)currentDevice)->wsServer.send_text(m_Format);
+                    }
 
-                currentCCD->wsServer.send_binary(downscaleBuffer, nbytes);
+                    ((INDI::CCD*)currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
+                    return true;
+                }
+#endif
+                // Upload to client now
+                imageBP->s = IPS_OK;
+                IDSetBLOB(imageBP, nullptr);
                 return true;
             }
-#endif
-            // Upload to client now
-            imageBP->s = IPS_OK;
-            IDSetBLOB(imageBP, nullptr);
-            return true;
+        } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+            if (encoder->upload(imageB, downscaleBuffer, nbytes, false))//((INDI::Detector*)currentDevice)->PrimaryDetector.isCompressed()))
+            {
+    #ifdef HAVE_WEBSOCKET
+                if (((INDI::Detector*)currentDevice)->HasWebSocket() && ((INDI::Detector*)currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
+                {
+                    if (m_Format != ".stream")
+                    {
+                        m_Format = ".stream";
+                        ((INDI::Detector*)currentDevice)->wsServer.send_text(m_Format);
+                    }
+
+                    ((INDI::Detector*)currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
+                    return true;
+                }
+    #endif
+                // Upload to client now
+                imageBP->s = IPS_OK;
+                IDSetBLOB(imageBP, nullptr);
+                return true;
+            }
         }
 
         return false;
     }
 #if 0
     // For MONO
-    if (currentCCD->PrimaryCCD.getNAxis() == 2)
+    if (((INDI::CCD*)currentDevice)->PrimaryCCD.getNAxis() == 2)
     {
-        int binFactor = (currentCCD->PrimaryCCD.getBinX() * currentCCD->PrimaryCCD.getBinY());
+        int binFactor = (((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX() * ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY());
         int offset =
             ((subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value) / binFactor;
 
@@ -1150,25 +1208,48 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     }
 #endif
 
-    if (encoder->upload(imageB, buffer, nbytes, currentCCD->PrimaryCCD.isCompressed()))
-    {
-#ifdef HAVE_WEBSOCKET
-        if (currentCCD->HasWebSocket() && currentCCD->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
+    if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
+        if (encoder->upload(imageB, buffer, nbytes, ((INDI::CCD*)currentDevice)->PrimaryCCD.isCompressed()))
         {
-            if (m_Format != ".stream")
+    #ifdef HAVE_WEBSOCKET
+            if (((INDI::CCD*)currentDevice)->HasWebSocket() && ((INDI::CCD*)currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
             {
-                m_Format = ".stream";
-                currentCCD->wsServer.send_text(m_Format);
-            }
+                if (m_Format != ".stream")
+                {
+                    m_Format = ".stream";
+                    ((INDI::CCD*)currentDevice)->wsServer.send_text(m_Format);
+                }
 
-            currentCCD->wsServer.send_binary(buffer, nbytes);
+                ((INDI::CCD*)currentDevice)->wsServer.send_binary(buffer, nbytes);
+                return true;
+            }
+    #endif
+            // Upload to client now
+            imageBP->s = IPS_OK;
+            IDSetBLOB(imageBP, nullptr);
             return true;
         }
-#endif
-        // Upload to client now
-        imageBP->s = IPS_OK;
-        IDSetBLOB(imageBP, nullptr);
-        return true;
+    } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
+        if (encoder->upload(imageB, buffer, nbytes, false))//((INDI::Detector*)currentDevice)->PrimaryDetector.isCompressed()))
+        {
+    #ifdef HAVE_WEBSOCKET
+            if (((INDI::Detector*)currentDevice)->HasWebSocket() && ((INDI::Detector*)currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
+            {
+                if (m_Format != ".stream")
+                {
+                    m_Format = ".stream";
+                    ((INDI::Detector*)currentDevice)->wsServer.send_text(m_Format);
+                }
+
+                ((INDI::Detector*)currentDevice)->wsServer.send_binary(buffer, nbytes);
+                return true;
+            }
+    #endif
+            // Upload to client now
+            imageBP->s = IPS_OK;
+            IDSetBLOB(imageBP, nullptr);
+            return true;
+        }
     }
 
     return false;

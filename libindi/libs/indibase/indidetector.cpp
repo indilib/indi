@@ -39,9 +39,6 @@
 #include <zlib.h>
 #include <sys/stat.h>
 
-static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
-
 
 const char *CAPTURE_SETTINGS_TAB = "Capture Settings";
 const char *CAPTURE_INFO_TAB     = "Capture Info";
@@ -295,9 +292,6 @@ void Detector::SetDetectorCapability(uint32_t cap)
     {
         Streamer.reset(new StreamManager(this));
         Streamer->initProperties();
-        streamPredicate = 0;
-        terminateThread = false;
-        pthread_create(&primary_thread, nullptr, &streamCaptureHelper, this);
     }
 }
 
@@ -470,7 +464,6 @@ bool Detector::updateProperties()
         deleteProperty(UploadSettingsTP.name);
     }
 
-    // Streamer
     if (HasStreaming())
         Streamer->updateProperties();
 
@@ -572,7 +565,6 @@ bool Detector::ISNewText(const char *dev, const char *name, char *texts[], char 
         }
     }
 
-    // Streamer
     if (HasStreaming())
         Streamer->ISNewText(dev, name, texts, names, n);
 
@@ -646,7 +638,6 @@ bool Detector::ISNewNumber(const char *dev, const char *name, double values[], c
         }
     }
 
-    // Streamer
     if (HasStreaming())
         Streamer->ISNewNumber(dev, name, values, names, n);
 
@@ -733,11 +724,6 @@ bool Detector::StartCapture(float duration)
     INDI_UNUSED(duration);
     DEBUGF(Logger::DBG_WARNING, "Detector::StartCapture %4.2f -  Should never get here", duration);
     return false;
-}
-
-void Detector::grabData()
-{
-    DEBUGF(Logger::DBG_WARNING, "Detector::grabData - %s Should never get here", "");
 }
 
 bool Detector::CaptureParamsUpdated(float sr, float freq, float bps, float bw, float gain)
@@ -1637,79 +1623,18 @@ void Detector::WhiteNoise(void *buf, int size, int bits_per_sample) {
     dsp_stream_free(stream);
 }
 
-//Streamer API functions
 
 bool Detector::StartStreaming()
 {
-    Streamer->setPixelFormat(INDI_MONO, PrimaryDetector.getBPS());
-    Streamer->setSize(PrimaryDetector.getContinuumBufferSize() * 8 / abs(PrimaryDetector.getBPS()), 1);
-    PrimaryDetector.setCaptureDuration(1.0 / Streamer->getTargetFPS());
-    pthread_mutex_lock(&condMutex);
-    streamPredicate = 1;
-    pthread_mutex_unlock(&condMutex);
-    pthread_cond_signal(&cv);
-
-    return true;
+    LOG_ERROR("Streaming is not supported.");
+    return false;
 }
 
 bool Detector::StopStreaming()
 {
-    pthread_mutex_lock(&condMutex);
-    streamPredicate = 0;
-    pthread_mutex_unlock(&condMutex);
-    pthread_cond_signal(&cv);
-
-    return true;
+    LOG_ERROR("Streaming is not supported.");
+    return false;
 }
-
-void * Detector::streamCaptureHelper(void * context)
-{
-    return ((Detector *)context)->streamCapture();
-}
-
-void * Detector::streamCapture()
-{
-    struct itimerval tframe1, tframe2;
-    double s1, s2, deltas;
-
-    while (true)
-    {
-        pthread_mutex_lock(&condMutex);
-
-        while (streamPredicate == 0)
-        {
-            pthread_cond_wait(&cv, &condMutex);
-            PrimaryDetector.setCaptureDuration(1.0 / Streamer->getTargetFPS());
-        }
-
-        if (terminateThread)
-            break;
-
-        // release condMutex
-        pthread_mutex_unlock(&condMutex);
-
-        // Simulate exposure time
-        //usleep(ExposureRequest*1e5);
-        grabData();
-        getitimer(ITIMER_REAL, &tframe1);
-
-        s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
-        s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
-        deltas = fabs(s2 - s1);
-
-        if (deltas < CaptureTime)
-            usleep(fabs(CaptureTime - deltas) * 1e6);
-
-        uint32_t size = PrimaryDetector.getContinuumBufferSize();
-        Streamer->newFrame(PrimaryDetector.getContinuumBuffer(), size);
-
-        getitimer(ITIMER_REAL, &tframe2);
-    }
-
-    pthread_mutex_unlock(&condMutex);
-    return nullptr;
-}
-
 
 
 }

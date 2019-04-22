@@ -34,7 +34,7 @@ class RTLSDR : public INDI::Detector
   public:
     RTLSDR(uint32_t index);
 
-    void grabData() override;
+    void grabData();
     rtlsdr_dev_t *rtl_dev = { nullptr };
     int to_read;
     // Are we exposing?

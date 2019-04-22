@@ -1,4 +1,4 @@
-/*
+﻿/*
     indi_rtlsdr_detector - a software defined radio driver for INDI
     Copyright (C) 2017  Ilia Platone
 
@@ -20,6 +20,7 @@
 #pragma once
 
 #include "indidetector.h"
+#include "stream/streammanager.h"
 
 enum Settings
 {
@@ -32,11 +33,7 @@ class RadioSim : public INDI::Detector
 {
     public:
         RadioSim();
-
-        bool ISNewNumber (const char *dev, const char *name, double values[], char *names[], int n) override;
-        void ISGetProperties(const char *dev) override;
-
-        void grabData() override;
+        ~RadioSim();
 
     protected:
         // General device functions
@@ -52,6 +49,12 @@ class RadioSim : public INDI::Detector
         bool AbortCapture() override;
         void TimerHit() override;
 
+        bool StartStreaming();
+        bool StopStreaming();
+        static void * streamCaptureHelper(void * context);
+        void * streamCapture();
+        void grabData();
+
     private:
         INumber DetectorPropertiesN[1];
         INumberVectorProperty DetectorPropertiesNP;
@@ -59,11 +62,10 @@ class RadioSim : public INDI::Detector
         // Utility functions
         float CalcTimeLeft();
         void setupParams();
-
-        // Are we exposing?
-        //bool InCapture;
-        // Struct to keep timing
         struct timeval CapStart;
-
         float CaptureRequest;
+
+        int streamPredicate;
+        pthread_t primary_thread;
+        bool terminateThread;
 };

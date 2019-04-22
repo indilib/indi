@@ -31,40 +31,23 @@
 
 std::unique_ptr<RadioSim> receiver(new RadioSim());
 
-void ISInit()
-{
-    static bool isInit = false;
-    if (!isInit)
-    {
-        isInit = true;
-    }
-}
-
 void ISGetProperties(const char *dev)
 {
-    ISInit();
-
     receiver->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
 {
-    ISInit();
-
     receiver->ISNewSwitch(dev, name, states, names, num);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int num)
 {
-    ISInit();
-
     receiver->ISNewText(dev, name, texts, names, num);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
 {
-    ISInit();
-
     receiver->ISNewNumber(dev, name, values, names, num);
 }
 
@@ -83,14 +66,17 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    ISInit();
-
     receiver->ISSnoopDevice(root);
 }
 
 RadioSim::RadioSim()
 {
-    InCapture = false;
+
+}
+
+RadioSim::~RadioSim()
+{
+
 }
 
 /**************************************************************************************
@@ -151,7 +137,6 @@ bool RadioSim::initProperties()
     addAuxControls();
 
     setDefaultPollingPeriod(500);
-
     return true;
 }
 
@@ -200,6 +185,7 @@ bool RadioSim::StartCapture(float duration)
     PrimaryDetector.setContinuumBufferSize(to_read);
     PrimaryDetector.setSpectrumBufferSize((1 << abs(PrimaryDetector.getBPS())) * sizeof(unsigned short));
 
+    gettimeofday(&CapStart, nullptr);
     // We're done
     return false;
 }
@@ -260,11 +246,12 @@ void RadioSim::TimerHit()
     if (InCapture)
     {
         timeleft = CalcTimeLeft();
-        if(timeleft < 0.1)
+        if(timeleft <= 0.0)
         {
             /* We're done capturing */
             LOG_INFO("Capture done, expecting data...");
             timeleft = 0.0;
+            grabData();
         }
 
         // This is an over simplified timing method, check DetectorSimulator and RadioSimDetector for better timing checks
@@ -299,4 +286,80 @@ void RadioSim::grabData()
         LOG_INFO("Download complete.");
         CaptureComplete(&PrimaryDetector);
     }
+}
+
+static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
+
+//Streamer API functions
+
+bool RadioSim::StartStreaming()
+{
+    Streamer->setPixelFormat(INDI_MONO, 16);
+    Streamer->setSize(PrimaryDetector.getContinuumBufferSize() * 8 / abs(PrimaryDetector.getBPS()), 1);
+    StartCapture(1.0 / Streamer->getTargetFPS());
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 1;
+    pthread_mutex_unlock(&condMutex);
+    pthread_cond_signal(&cv);
+
+    return true;
+}
+
+bool RadioSim::StopStreaming()
+{
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 0;
+    pthread_mutex_unlock(&condMutex);
+    pthread_cond_signal(&cv);
+
+    return true;
+}
+
+void * RadioSim::streamCaptureHelper(void * context)
+{
+    return ((RadioSim *)context)->streamCapture();
+}
+
+void * RadioSim::streamCapture()
+{
+    struct itimerval tframe1, tframe2;
+    double s1, s2, deltas;
+
+    while (true)
+    {
+        pthread_mutex_lock(&condMutex);
+
+        while (streamPredicate == 0)
+        {
+            pthread_cond_wait(&cv, &condMutex);
+            StartCapture(1.0 / Streamer->getTargetFPS());
+        }
+
+        if (terminateThread)
+            break;
+
+        // release condMutex
+        pthread_mutex_unlock(&condMutex);
+
+        // Simulate exposure time
+        //usleep(ExposureRequest*1e5);
+        grabData();
+        getitimer(ITIMER_REAL, &tframe1);
+
+        s1 = ((double)tframe1.it_value.tv_sec) + ((double)tframe1.it_value.tv_usec / 1e6);
+        s2 = ((double)tframe2.it_value.tv_sec) + ((double)tframe2.it_value.tv_usec / 1e6);
+        deltas = fabs(s2 - s1);
+
+        if (deltas < CaptureTime)
+            usleep(fabs(CaptureTime - deltas) * 1e6);
+
+        uint32_t size = PrimaryDetector.getContinuumBufferSize();
+        Streamer->newFrame(PrimaryDetector.getContinuumBuffer(), size);
+
+        getitimer(ITIMER_REAL, &tframe2);
+    }
+
+    pthread_mutex_unlock(&condMutex);
+    return nullptr;
 }
