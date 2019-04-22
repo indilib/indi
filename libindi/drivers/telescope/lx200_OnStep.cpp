@@ -1546,7 +1546,7 @@ IPState LX200_OnStep::MoveFocuser(FocusDirection dir, int speed, uint16_t durati
 IPState LX200_OnStep::MoveAbsFocuser (uint32_t targetTicks) {
 	//  :FSsnnn#  Set focuser target position (in microns)
 	//            Returns: Nothing
-	if (FocusAbsPosN[0].max >= targetTicks && FocusAbsPosN[0].min <= targetTicks) {
+	if (FocusAbsPosN[0].max >= int(targetTicks) && FocusAbsPosN[0].min <= int(targetTicks)) {
 		char read_buffer[32];
 		snprintf(read_buffer, sizeof(read_buffer), ":FS%06d#", targetTicks);
 		sendOnStepCommandBlind(read_buffer);
