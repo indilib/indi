@@ -168,12 +168,17 @@ bool Serial::Connect()
     bool rc       = Connect(PortT[0].text, baud);
 
     if (rc)
+    {
         rc = processHandshake();
-    else
+    }
+
+    // Important, disconnect from port immediately
+    // to release the lock, otherwise another driver will find it busy.
+    if (rc == false)
         tty_disconnect(PortFD);
 
     // Start auto-search if option was selected and IF we have system ports to try connecting to
-    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr)
+    if (rc == false && AutoSearchS[0].s == ISS_ON && SystemPortS != nullptr && SystemPortSP.nsp > 1)
     {
         LOGF_WARN("Communication with %s @ %d failed. Starting Auto Search...", PortT[0].text,
                   baud);

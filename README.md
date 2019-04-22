@@ -125,6 +125,7 @@ INDI server only provides convenient port, fork and data steering services. If d
 + [Tutorials](http://indilib.org/develop/tutorials.html)
 + [Developers Forum](http://indilib.org/forum/development.html)
 + [Developers Chat](https://riot.im/app/#/room/#kstars:matrix.org)
++ Sample drivers are available under examples and drivers/skeleton directories. They can be used as a starting point for your driver development.
 
 ### How to create Github pull request (PR)
 
@@ -154,6 +155,10 @@ When submitting a new driver, the driver user **documentation** is required as p
   * Options: Explanation for the various options available.
   * Etc: Any other tabs created by the driver.
 * Issues: Any problems or issues or warnings the users should be aware about when using this driver.
+
+### Sample Drivers
+
+You can base a new driver from an existing driver. Look in either the examples or drivers/skeleton directories on how to get started.
 
 # Unit tests
 

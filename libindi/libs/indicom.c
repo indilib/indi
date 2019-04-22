@@ -30,6 +30,7 @@
 #include "indidevapi.h"
 #include "locale_compat.h"
 
+#include "dsp/dsp.h"
 #include "config.h"
 
 #if defined(HAVE_LIBNOVA)
@@ -954,10 +955,12 @@ int tty_connect(const char *device, int bit_rate, int word_size, int parity, int
     struct termios tty_setting;
 
     // Open as Read/Write, no fnctl, and close on exclusive
-    for (i = 0 ; i < 2 ; i++)
+    for (i = 0 ; i < 3 ; i++)
     {
         t_fd = open(device, O_RDWR | O_NOCTTY | O_CLOEXEC);
-        if (t_fd == -1)
+        if (t_fd > 0)
+            break;
+        else
         {
             *fd = -1;
             if (errno == EBUSY)
@@ -1589,6 +1592,75 @@ double get_local_hour_angle(double sideral_time, double ra)
 {
     double HA = sideral_time - ra;
     return rangeHA(HA);
+}
+
+void get_alt_az_coordinates(double Ha, double Dec, double Lat, double* Alt, double *Az)
+{
+    double alt, az;
+    Ha *= M_PI / 180.0;
+    Dec *= M_PI / 180.0;
+    Lat *= M_PI / 180.0;
+    alt = asin(sin(Dec) * sin(Lat) + cos(Dec) * cos(Lat) * cos(Ha));
+    az = acos((sin(Dec) - sin(alt)*sin(Lat)) / (cos(alt) * cos(Lat)));
+    alt *= 180.0 / M_PI;
+    az *= 180.0 / M_PI;
+    if (sin(Ha) >= 0.0)
+        az = 360 - az;
+    *Alt = alt;
+    *Az = az;
+}
+
+double estimate_geocentric_elevation(double Lat, double El)
+{
+    Lat *= M_PI / 180.0;
+    Lat = sin(Lat);
+    El += Lat * (EARTHRADIUSPOLAR - EARTHRADIUSEQUATORIAL);
+    return El;
+}
+
+double estimate_field_rotation_rate(double Alt, double Az, double Lat)
+{
+    Alt *= M_PI / 180.0;
+    Az *= M_PI / 180.0;
+    Lat *= M_PI / 180.0;
+    double ret = cos(Lat) * cos(Az) / cos(Alt);
+    ret *= 180.0 / M_PI;
+    return ret;
+}
+
+double estimate_field_rotation(double HA, double rate)
+{
+    HA *= rate;
+    while(HA >= 360.0)
+        HA -= 360.0;
+    while(HA < 0)
+        HA += 360.0;
+    return HA;
+}
+
+double parsec2m(double parsec)
+{
+    return parsec * PARSEC;
+}
+
+double m2au(double m)
+{
+    return m / ASTRONOMICALUNIT;
+}
+
+double calc_delta_magnitude(double mag0, double mag, double *spectrum, int spectrum_size, int lambda)
+{
+    double delta_mag = 0;
+    for(int l = 0; l < spectrum_size; l++) {
+        delta_mag += spectrum[l] * (mag - mag0) / spectrum[lambda];
+    }
+    delta_mag /= spectrum_size;
+    return delta_mag;
+}
+
+double estimate_absolute_magnitude(double delta_dist, double delta_mag)
+{
+    return sqrt(delta_dist) * delta_mag;
 }
 
 #if defined(_MSC_VER)

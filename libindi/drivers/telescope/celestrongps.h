@@ -28,8 +28,9 @@
 
 #include "indiguiderinterface.h"
 #include "inditelescope.h"
+#include "indifocuserinterface.h"
 
-class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
+class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, public INDI::FocuserInterface
 {
     public:
         CelestronGPS();
@@ -109,6 +110,16 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
         ISwitchVectorProperty UseHibernateSP;
         ISwitch UseHibernateS[2];
 
+        //FocuserInterface
+
+        IPState MoveAbsFocuser (uint32_t targetTicks) override;
+        IPState MoveRelFocuser (FocusDirection dir, uint32_t ticks) override;
+        bool AbortFocuser () override;
+
+
+
+        //End FocuserInterface
+
     private:
         bool setTrackMode(CELESTRON_TRACK_MODE mode);
         bool checkMinVersion(float minVersion, const char *feature);
@@ -121,4 +132,21 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface
         FirmwareInfo fwInfo;
         bool usePreciseCoords {false};
         bool usePulseCommand { false };
+
+        // experimental last align property
+        ISwitch LastAlignS[1];
+        ISwitchVectorProperty LastAlignSP;
+
+        bool slewToIndex;
+
+        // focuser
+        INumber FocusBacklashN[1];
+        INumberVectorProperty FocusBacklashNP;
+
+        INumber FocusMinPosN[1];
+        INumberVectorProperty FocusMinPosNP;
+
+        bool focusBacklashMove;      // set if a final move is needed
+        uint32_t focusPosition;
+        bool focusReadLimits();
 };

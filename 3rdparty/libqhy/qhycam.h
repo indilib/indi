@@ -6,7 +6,8 @@
 #if defined (_WIN32)
 #include "CyAPI.h"
 #include <process.h>
-
+#include <windows.h>
+#include <mmsystem.h>
 #else
 #include <stdio.h>
 #include <unistd.h>
@@ -127,6 +128,17 @@ public:
     pthread_mutex_destroy(&mutex);
 #endif
 
+  }
+  
+static int32_t QGetTimerMS()
+  {
+#if defined (_WIN32)
+    return timeGetTime() ;
+#else
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+#endif
   }
 
 
@@ -306,6 +318,9 @@ static void QBeep(uint32_t volume,uint32_t mstime)
    another QHYCCD_ERROR code on other failures
    */
   uint32_t vendRXD_Ex(qhyccd_handle *dev_handle, uint8_t req, uint16_t value, uint16_t index, uint8_t* data, uint16_t length);
+
+  uint32_t vendErroeRecovery(qhyccd_handle *dev_handle);
+
 
   uint32_t QHY5IIIreadUSB2B(qhyccd_handle *dev_handle, uint8_t *data, uint32_t p_num, uint32_t timeout);
   /**

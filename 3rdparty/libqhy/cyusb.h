@@ -14,7 +14,7 @@
 #if (defined(__linux__ )&&!defined (__ANDROID__)) ||(defined (__APPLE__)&&defined( __MACH__)) ||(defined(__linux__ )&&defined (__ANDROID__))
 #include <libusb-1.0/libusb.h>
 #include "qhyccd.h"
-#define QUSB_SINGLEFRAMEUSBPACKETSIZE 2048*20
+#define QUSB_SINGLEFRAMEUSBPACKETSIZE 16384
 #endif
 
 #include "unlockimagequeue.h"
@@ -123,8 +123,6 @@ struct cydev
   uint8_t isinitcontext;
   int  transSize;
   CamContext g_CamContextList;
-  MMRESULT timer_id_183m;
-  MMRESULT timer_id_183;
 
   double agc_pos ;                                                       //#AECAGC
   double aec_pos ;                                                     //#AECAGC
@@ -176,7 +174,6 @@ struct cydev
   uint32_t ddrstable;
   uint32_t retrynum;
   struct COUNTEXPTIME CountExposureTime;
-
 };
 
 

@@ -22,6 +22,8 @@ CMakeFiles
 cmake_install.cmake
 CTestTestfile.cmake
 Testing
+doxygen_warnings.txt
+documentation
 libindi/test/celestrondriver/test_celestrondriver
 libindi/libs/indibase/alignment/indi_skywatcherAPIMount
 libindi/libs/indibase/alignment/indi_skywatcherAltAzMount

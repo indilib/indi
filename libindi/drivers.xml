@@ -55,19 +55,19 @@
         </device>
         <device label="Celestron GPS" manufacturer="Celestron">
                 <driver name="Celestron GPS">indi_celestron_gps</driver>
-                <version>3.1</version>
+                <version>3.2</version>
         </device>
         <device label="Celestron NexStar" manufacturer="Celestron">
                 <driver name="Celestron GPS">indi_celestron_gps</driver>
-                <version>3.1</version>
+                <version>3.2</version>
         </device>
         <device label="Celestron AVX" manufacturer="Celestron">
                 <driver name="Celestron GPS">indi_celestron_gps</driver>
-                <version>3.1</version>
+                <version>3.2</version>
         </device>
         <device label="Celestron CGX" manufacturer="Celestron">
                 <driver name="Celestron GPS">indi_celestron_gps</driver>
-                <version>3.1</version>
+                <version>3.2</version>
         </device>
         <device label="Astro-Electronic FS-2">
                 <driver name="Astro-Electronic FS-2">indi_lx200fs2</driver>
@@ -112,6 +112,10 @@
         <device label="SkySensor2000PC">
                 <driver name="SkySensor2000PC">indi_lx200ss2000pc</driver>
                 <version>1.1</version>
+        </device>
+        <device label="iOptron iEQ30 Pro" manufacturer="iOptron">
+                <driver name="iEQ">indi_ieq_telescope</driver>
+                <version>1.5</version>
         </device>
         <device label="iOptron iEQ45 Pro" manufacturer="iOptron">
                 <driver name="iEQ">indi_ieq_telescope</driver>
@@ -203,6 +207,10 @@
                 <driver name="RoboFocus">indi_robo_focus</driver>
                 <version>1.0</version>
         </device>
+        <device label="Celestron SCT">
+          <driver name="Celestron SCT">indi_celestron_sct_focus</driver>
+          <version>1.0</version>
+        </device>
         <device label="Rigelsys NFocus">
           <driver name="NFocus">indi_nfocus</driver>
           <version>1.1</version>
@@ -219,7 +227,7 @@
                 <driver name="MoonLite DRO">indi_moonlitedro_focus</driver>
                 <version>1.0</version>
         </device>
-		<device label="DeepSkyDad AF1">
+                <device label="DeepSkyDad AF1">
                 <driver name="DeepSkyDad AF1">indi_deepskydad_af1_focus</driver>
                 <version>1.0</version>
         </device>
@@ -269,7 +277,7 @@
         </device>
         <device label="Sesto Senso">
                 <driver name="Sesto Senso">indi_sestosenso_focus</driver>
-                <version>1.0</version>
+                <version>1.2</version>
         </device>
         <device label="Lakeside">
                 <driver name="Lakeside">indi_lakeside_focus</driver>
@@ -282,6 +290,10 @@
         <device label="PerfectStar">
                 <driver name="PerfectStar">indi_perfectstar_focus</driver>
                 <version>0.1</version>
+        </device>
+        <device label="Lacerta MFOC">
+                <driver name="Lacerta MFOC">indi_lacerta_mfoc_focus</driver>
+                <version>0.4</version>
         </device>
 </devGroup>
 <devGroup group="CCDs">
@@ -347,7 +359,7 @@
         </device>
         <device label="Pegasus PPB">
                 <driver name="Pegasus PPB">indi_pegasus_ppb</driver>
-                <version>1.0</version>
+                <version>1.1</version>
         </device>
         <device label="Pegasus UPB">
                 <driver name="Pegasus UPB">indi_pegasus_upb</driver>

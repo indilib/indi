@@ -36,7 +36,6 @@
 
 typedef struct _Camera Camera;
 
-
 enum
 {
     ON_S,
@@ -90,6 +89,9 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
         static void UpdateExtendedOptions(void * vp);
         void UpdateExtendedOptions(bool force = false);
 
+        static void UpdateFocusMotionHelper(void *context);
+        void UpdateFocusMotionCallback();
+
     protected:
         // Misc.
         bool saveConfigItems(FILE * fp) override;
@@ -100,8 +102,19 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
         bool UpdateCCDUploadMode(CCD_UPLOAD_MODE mode) override;
 
         // Focusing
+#if 0
         bool SetFocuserSpeed(int speed) override;
         IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration) override;
+#endif
+        /**
+         * \brief MoveFocuser the focuser to an relative position.
+         * \param dir Direction of focuser, either FOCUS_INWARD or FOCUS_OUTWARD.
+         * \param ticks The relative ticks to move.
+         * \return Return IPS_OK if motion is completed and focuser reached requested position. Return
+         * IPS_BUSY if focuser started motion to requested position and is in progress.
+         * Return IPS_ALERT if there is an error.
+         */
+        virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
 
         // Streaming
         bool StartStreaming() override;
@@ -137,12 +150,16 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
         std::map<std::string, cam_opt *> CamOptions;
         int expTID; /* exposure callback timer id, if any */
         int optTID; /* callback for exposure timer id */
-        int focusSpeed;
+        int focusSpeed {0};
 
         char * on_off[2];
         int timerID;
         bool frameInitialized;
         bool isTemperatureSupported { false };
+
+        // Focus
+        bool m_CanFocus { false };
+        int32_t m_TargetLargeStep {0}, m_TargetMedStep {0}, m_TargetLowStep {0}, m_FocusTimerID {-1};
 
         int liveVideoWidth  {-1};
         int liveVideoHeight {-1};
@@ -208,6 +225,11 @@ class GPhotoCCD : public INDI::CCD, public INDI::FocuserInterface
         std::thread liveViewThread;
 
         static constexpr double MINUMUM_CAMERA_TEMPERATURE = -60.0;
+
+        // Ratio from far 3 to far 2
+        static constexpr double FOCUS_HIGH_MED_RATIO = 7.33;
+        // Ratio from far 2 to far 1
+        static constexpr double FOCUS_MED_LOW_RATIO = 6.36;
 
         friend void ::ISSnoopDevice(XMLEle * root);
         friend void ::ISGetProperties(const char * dev);

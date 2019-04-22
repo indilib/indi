@@ -135,6 +135,13 @@ class CCD : public DefaultDevice, GuiderInterface
 
         static void wsThreadHelper(void * context);
 
+        /////////////////////////////////////////////////////////////////////////////
+        /// Group Names
+        /////////////////////////////////////////////////////////////////////////////
+        static constexpr const char *GUIDE_CONTROL_TAB  = "Guider Control";
+        static constexpr const char * WCS_TAB = "WCS";
+
+
     protected:
         /**
          * @brief GetCCDCapability returns the CCD capabilities.
@@ -513,10 +520,27 @@ class CCD : public DefaultDevice, GuiderInterface
         CCDChip PrimaryCCD;
         CCDChip GuideCCD;
 
-        //  We are going to snoop these from a telescope
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Properties
+        ///////////////////////////////////////////////////////////////////////////////
+
+
+        /**
+         * @brief EqNP Snoop property to read the equatorial coordinates of the mount.
+         * ActiveDeviceTP defines snoop devices and the driver listens to this property emitted
+         * by the mount driver if specified. It is important to generate a proper FITS header.
+         */
         INumberVectorProperty EqNP;
         INumber EqN[2];
 
+        /**
+         * @brief ActiveDeviceTP defines 4 devices the camera driver can listen to (snoop) for
+         * properties of interest so that it can generate a proper FITS header.
+         * + **Mount**: Listens for equatorial coordinates in JNow epoch.
+         * + **Rotator**: Listens for Rotator Absolute Rotation Angle (E of N) in degrees.
+         * + **Filter Wheel**: Listens for FILTER_SLOT and FILTER_NAME properties.
+         * + **SQM**: Listens for sky quality meter magnitude.
+         */
         ITextVectorProperty ActiveDeviceTP;
         IText ActiveDeviceT[4] {};
         enum
@@ -527,14 +551,25 @@ class CCD : public DefaultDevice, GuiderInterface
             SNOOP_SQM
         };
 
-        INumber TemperatureN[1];
+        /**
+         * @brief TemperatureNP Read-Only Temperature in Celcius.
+         */
         INumberVectorProperty TemperatureNP;
+        INumber TemperatureN[1];
 
-        IText BayerT[3] {};
+        /**
+         *@brief BayerTP Bayer pattern offset and type
+         */
         ITextVectorProperty BayerTP;
+        IText BayerT[3] {};
 
-        IText FileNameT[1] {};
+        /**
+         *@brief FileNameTP File name of locally-saved images. By default, images are uploaded to the client
+         * but when upload option is set to either @a Both or @a Local, then they are saved on the local disk with
+         * this name.
+         */
         ITextVectorProperty FileNameTP;
+        IText FileNameT[1] {};
 
         ISwitch UploadS[3];
         ISwitchVectorProperty UploadSP;
@@ -610,8 +645,11 @@ class CCD : public DefaultDevice, GuiderInterface
     private:
         uint32_t capability;
 
-        bool ValidCCDRotation;
+        bool m_ValidCCDRotation;
 
+        ///////////////////////////////////////////////////////////////////////////////
+        /// Utility Functions
+        ///////////////////////////////////////////////////////////////////////////////
         bool uploadFile(CCDChip * targetChip, const void * fitsData, size_t totalBytes, bool sendImage, bool saveImage);
         void getMinMax(double * min, double * max, CCDChip * targetChip);
         int getFileIndex(const char * dir, const char * prefix, const char * ext);
@@ -624,6 +662,9 @@ class CCD : public DefaultDevice, GuiderInterface
         INDIWSServer wsServer;
 #endif
 
+        /////////////////////////////////////////////////////////////////////////////
+        /// Misc.
+        /////////////////////////////////////////////////////////////////////////////
         friend class StreamManager;
 };
 }

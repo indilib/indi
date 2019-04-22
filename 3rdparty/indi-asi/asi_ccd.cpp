@@ -502,12 +502,12 @@ void ASICCD::setupParams()
                                     &pCtrlCaps);
         if (errCode == ASI_SUCCESS)
         {
-            CoolerN[0].min = (double)pCtrlCaps.MinValue;
-            CoolerN[0].max = (double)pCtrlCaps.MaxValue;
-            CoolerN[0].value = (double)pCtrlCaps.DefaultValue;
+            CoolerN[0].min = pCtrlCaps.MinValue;
+            CoolerN[0].max = pCtrlCaps.MaxValue;
+            CoolerN[0].value = pCtrlCaps.DefaultValue;
         }
-        defineNumber(&CoolerNP);
-        defineSwitch(&CoolerSP);
+        //defineNumber(&CoolerNP);
+        //defineSwitch(&CoolerSP);
     }
 
     // Set minimum ASI_BANDWIDTHOVERLOAD on ARM
@@ -562,7 +562,7 @@ void ASICCD::setupParams()
         nVideoFormats++;
     }
     size_t size = sizeof(ISwitch) * nVideoFormats;
-    VideoFormatS = (ISwitch *)malloc(size);
+    VideoFormatS = static_cast<ISwitch *>(malloc(size));
     if (VideoFormatS == nullptr)
     {
         LOGF_ERROR("Camera ID: %d malloc failed (setup)",  m_camInfo->CameraID);
@@ -850,7 +850,8 @@ bool ASICCD::setVideoFormat(uint8_t index)
             break;
     }
 
-    UpdateCCDFrame(PrimaryCCD.getSubX(), PrimaryCCD.getSubY(), PrimaryCCD.getSubW(), PrimaryCCD.getSubH());
+    // When changing video format, reset frame
+    UpdateCCDFrame(0, 0, PrimaryCCD.getXRes(), PrimaryCCD.getYRes());
 
     updateRecorderFormat();
 
@@ -1037,63 +1038,65 @@ bool ASICCD::AbortExposure()
 
 bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
 {
-    long bin_width  = w / PrimaryCCD.getBinX();
-    long bin_height = h / PrimaryCCD.getBinY();
 
-    bin_width  = bin_width - (bin_width % 2);
-    bin_height = bin_height - (bin_height % 2);
+    uint32_t binX = PrimaryCCD.getBinX();
+    uint32_t binY = PrimaryCCD.getBinY();
+    uint32_t subX = x / binX;
+    uint32_t subY = y / binY;
+    uint32_t subW = w / binX;
+    uint32_t subH = h / binY;
 
-    w = bin_width * PrimaryCCD.getBinX();
-    h = bin_height * PrimaryCCD.getBinY();
-
-    ASI_ERROR_CODE errCode = ASI_SUCCESS;
-
-    /* Add the X and Y offsets */
-    long x_1 = x / PrimaryCCD.getBinX();
-    long y_1 = y / PrimaryCCD.getBinY();
-
-    if (bin_width > PrimaryCCD.getXRes() / PrimaryCCD.getBinX())
+    if (subW > static_cast<uint32_t>(PrimaryCCD.getXRes() / binX))
     {
         LOGF_INFO("Error: invalid width requested %d", w);
         return false;
     }
-    else if (bin_height > PrimaryCCD.getYRes() / PrimaryCCD.getBinY())
+    if (subH > static_cast<uint32_t>(PrimaryCCD.getYRes() / binY))
     {
         LOGF_INFO("Error: invalid height request %d", h);
         return false;
     }
 
-    LOGF_DEBUG("UpdateCCDFrame ASISetROIFormat (%dx%d,  bin %d, type %d)", bin_width, bin_height,
-               PrimaryCCD.getBinX(), getImageType());
-    if ((errCode = ASISetROIFormat(m_camInfo->CameraID, bin_width, bin_height, PrimaryCCD.getBinX(), getImageType())) !=
+    // ZWO rules are this
+    // width%8 = 0
+    // height%2 = 0
+    subW -= subW % 8;
+    subH -= subH % 2;
+
+    LOGF_DEBUG("CCD Frame ROI x:%d y:%d w:%d h:%d", subX, subY, subW, subH);
+
+    int rc = ASI_SUCCESS;
+
+    if ((rc = ASISetROIFormat(m_camInfo->CameraID, subW, subH, binX, getImageType())) !=
             ASI_SUCCESS)
     {
-        LOGF_ERROR("ASISetROIFormat (%dx%d @ %d) error (%d)", bin_width, bin_height,
-                   PrimaryCCD.getBinX(), errCode);
+        LOGF_ERROR("ASISetROIFormat error (%d)", rc);
         return false;
     }
 
-    if ((errCode = ASISetStartPos(m_camInfo->CameraID, x_1, y_1)) != ASI_SUCCESS)
+    if ((rc = ASISetStartPos(m_camInfo->CameraID, subX, subY)) != ASI_SUCCESS)
     {
-        LOGF_ERROR("ASISetStartPos (%d,%d) error (%d)", x_1, y_1, errCode);
+        LOGF_ERROR("ASISetStartPos error (%d)", rc);
         return false;
     }
 
     // Set UNBINNED coords
-    PrimaryCCD.setFrame(x, y, w, h);
-
-    int nChannels = 1;
-
-    if (getImageType() == ASI_IMG_RGB24)
-        nChannels = 3;
+    //PrimaryCCD.setFrame(x, y, w, h);
+    PrimaryCCD.setFrame(subX * binX, subY * binY, subW * binX, subH * binY);
 
     // Total bytes required for image buffer
-    uint32_t nbuf = (bin_width * bin_height * PrimaryCCD.getBPP() / 8) * nChannels;
+    uint32_t nbuf = (subW * subH * static_cast<uint32_t>(PrimaryCCD.getBPP()) / 8) * ((getImageType() == ASI_IMG_RGB24) ? 3 : 1);
+
     LOGF_DEBUG("Setting frame buffer size to %d bytes.", nbuf);
     PrimaryCCD.setFrameBufferSize(nbuf);
 
+    m_SubX = subX;
+    m_SubY = subY;
+    m_SubW = subW;
+    m_SubH = subH;
+
     // Always set BINNED size
-    Streamer->setSize(bin_width, bin_height);
+    Streamer->setSize(subW, subH);
 
     return true;
 }
@@ -1124,7 +1127,7 @@ float ASICCD::calcTimeLeft(float duration, timeval *start_time)
     {
         timeleft = 0.0;
     }
-    return (float)timeleft;
+    return timeleft;
 }
 
 /* Downloads the image from the CCD.
@@ -1138,25 +1141,25 @@ int ASICCD::grabImage()
     std::unique_lock<std::mutex> guard(ccdBufferLock);
     uint8_t *image = PrimaryCCD.getFrameBuffer();
     uint8_t *buffer = image;
-    int width     = PrimaryCCD.getSubW() / PrimaryCCD.getBinX() * (PrimaryCCD.getBPP() / 8);
-    int height    = PrimaryCCD.getSubH() / PrimaryCCD.getBinY() * (PrimaryCCD.getBPP() / 8);
+
+    uint16_t subW = PrimaryCCD.getSubW() / PrimaryCCD.getBinX();
+    uint16_t subH = PrimaryCCD.getSubH() / PrimaryCCD.getBinY();
     int nChannels = (type == ASI_IMG_RGB24) ? 3 : 1;
-    size_t size = width * height * nChannels;
+    size_t nTotalBytes = subW * subH * nChannels * (PrimaryCCD.getBPP() / 8);
 
     if (type == ASI_IMG_RGB24)
     {
-        buffer = (unsigned char *)malloc(size);
+        buffer = static_cast<uint8_t *>(malloc(nTotalBytes));
         if (buffer == nullptr)
         {
-            LOGF_ERROR("CCD ID: %d malloc failed (RGB 24)",
-                       m_camInfo->CameraID);
+            LOGF_ERROR("%s: %d malloc failed (RGB 24)", getDeviceName());
             return -1;
         }
     }
 
-    if ((errCode = ASIGetDataAfterExp(m_camInfo->CameraID, buffer, size)) != ASI_SUCCESS)
+    if ((errCode = ASIGetDataAfterExp(m_camInfo->CameraID, buffer, nTotalBytes)) != ASI_SUCCESS)
     {
-        LOGF_ERROR("ASIGetDataAfterExp (%dx%d #%d channels) error (%d)", width, height, nChannels,
+        LOGF_ERROR("ASIGetDataAfterExp (%dx%d #%d channels) error (%d)", subW, subH, nChannels,
                    errCode);
         if (type == ASI_IMG_RGB24)
             free(buffer);
@@ -1166,11 +1169,11 @@ int ASICCD::grabImage()
     if (type == ASI_IMG_RGB24)
     {
         uint8_t *subR = image;
-        uint8_t *subG = image + width * height;
-        uint8_t *subB = image + width * height * 2;
-        int size      = width * height * 3 - 3;
+        uint8_t *subG = image + subW * subH;
+        uint8_t *subB = image + subW * subH * 2;
+        uint32_t nPixels = subW * subH * 3 - 3;
 
-        for (int i = 0; i <= size; i += 3)
+        for (uint32_t i = 0; i <= nPixels; i += 3)
         {
             *subB++ = buffer[i];
             *subG++ = buffer[i + 1];
@@ -1186,24 +1189,16 @@ int ASICCD::grabImage()
     else
         PrimaryCCD.setNAxis(2);
 
-    bool restoreBayer = false;
-
-    // If we're sending Luma, turn off bayering
-    if (type == ASI_IMG_Y8 && HasBayer())
-    {
-        restoreBayer = true;
+    // If we're sending Luma or RGB, turn off bayering
+    if (type == ASI_IMG_Y8 || type == ASI_IMG_RGB24)
         SetCCDCapability(GetCCDCapability() & ~CCD_HAS_BAYER);
-    }
+    else
+        SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
 
     if (ExposureRequest > VERBOSE_EXPOSURE)
         LOG_INFO("Download complete.");
 
     ExposureComplete(&PrimaryCCD);
-
-    // Restore bayer cap
-    if (restoreBayer)
-        SetCCDCapability(GetCCDCapability() | CCD_HAS_BAYER);
-
     return 0;
 }
 
@@ -1224,7 +1219,7 @@ void ASICCD::TimerHit()
     }
     else
     {
-        TemperatureN[0].value = (double)ASIControlValue / 10.0;
+        TemperatureN[0].value = ASIControlValue / 10.0;
     }
 
     switch (TemperatureNP.s)
@@ -1895,8 +1890,8 @@ void ASICCD::getExposure()
             {
                 InExposure = false;
                 PrimaryCCD.setExposureLeft(0.0);
-                DEBUG(INDI::Logger::DBG_SESSION,
-                      "Exposure done, downloading image...");
+                if (PrimaryCCD.getExposureDuration() > 3)
+                    LOG_INFO("Exposure done, downloading image...");
                 pthread_mutex_lock(&condMutex);
                 exposureSetRequest(StateIdle);
                 pthread_mutex_unlock(&condMutex);
@@ -2018,10 +2013,7 @@ bool ASICCD::saveConfigItems(FILE *fp)
     INDI::CCD::saveConfigItems(fp);
 
     if (HasCooler())
-    {
-        IUSaveConfigNumber(fp, &CoolerNP);
         IUSaveConfigSwitch(fp, &CoolerSP);
-    }
 
     if (ControlNP.nnp > 0)
         IUSaveConfigNumber(fp, &ControlNP);

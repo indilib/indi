@@ -48,6 +48,14 @@ namespace INDI
    <tr><td>FI::processSwitch</td><td>ISNewSwitch(...)</td></tr>
    </table>
 
+   The interface supports three types of focusers:
+   + **Absolute Position**: Focusers that know their absolute position in steps on power up. You can issue GOTO to an absolute position. By definition,
+   position 0 (zero) is where the focuser is completely @a retracted (i.e. closest to the OTA) and it increases positively as it move @a outwards. When moving
+   @a inward, the position value decreases. @warning Negative values are not accepted for absolute focusers.
+   + **Relateive Position**: Focusers that can move in specific steps inwward or outward, but have no information on absolute position on power up.
+   + **DC Motor**: Focusers without any position feedback. The only way to reliably control them is by using timers and moving them for specific pulses in or
+   out.
+
    Implement and overwrite the rest of the virtual functions as needed. INDI GPhoto driver is a good example to check for an actual implementation
    of a focuser interface within a CCD driver.
 \author Jasem Mutlaq
