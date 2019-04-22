@@ -50,12 +50,7 @@ class RadioSim : public INDI::Detector
         bool AbortCapture() override;
         void TimerHit() override;
 
-        virtual bool StartStreaming() override;
-        virtual bool StopStreaming() override;
-
-        static void * streamCaptureHelper(void * context);
-        void * streamCapture();
-
+        void grabData() override;
 
     private:
         INumber DetectorPropertiesN[1];
@@ -64,7 +59,6 @@ class RadioSim : public INDI::Detector
         // Utility functions
         float CalcTimeLeft();
         void setupParams();
-        void grabData();
 
         // Are we exposing?
         //bool InCapture;
@@ -80,8 +74,4 @@ class RadioSim : public INDI::Detector
         float CaptureRequest;
         uint8_t* continuum;
         uint8_t* spectrum;
-
-        int streamPredicate;
-        pthread_t primary_thread;
-        bool terminateThread;
 };

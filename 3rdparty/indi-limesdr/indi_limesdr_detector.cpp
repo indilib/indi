@@ -226,7 +226,7 @@ const char *LIMESDR::getDefaultName()
 bool LIMESDR::initProperties()
 {
     // We set the Detector capabilities
-    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM;
+    uint32_t cap = DETECTOR_CAN_ABORT | DETECTOR_HAS_CONTINUUM | DETECTOR_HAS_SPECTRUM | DETECTOR_HAS_STREAMING;
     SetDetectorCapability(cap);
 
 	// Must init parent properties first!

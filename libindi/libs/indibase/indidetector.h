@@ -621,16 +621,22 @@ class Detector : public DefaultDevice
         void Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample);
 
         /**
+         * @brief grabData
+         *  This function actually grabs data from the receiver and fills the buffers.
+         */
+        virtual void grabData();
+
+        /**
          * @brief StartStreaming Start live video streaming
          * @return True if successful, false otherwise.
          */
-        virtual bool StartStreaming();
+        bool StartStreaming();
 
         /**
          * @brief StopStreaming Stop live video streaming
          * @return True if successful, false otherwise.
          */
-        virtual bool StopStreaming();
+        bool StopStreaming();
 
         /**
          * \brief Add FITS keywords to a fits file
@@ -731,6 +737,13 @@ class Detector : public DefaultDevice
         double Lat, Lon, El;
         double RA, Dec;
     private:
+
+        int streamPredicate;
+        pthread_t primary_thread;
+        bool terminateThread;
+
+        static void * streamCaptureHelper(void * context);
+        void * streamCapture();
 
         uint32_t capability;
 
