@@ -26,20 +26,27 @@ class MockEQ500XDriver : public EQ500X
 public:
     MockEQ500XDriver() : EQ500X()
     {
+        resetSimulation();
         ISGetProperties("");
         setSimulation(true);
-        setConnected(true);
+        if (checkConnection())
+            setConnected(true);
     }
 public:
     // Default LST for this driver is 6 - RA is east when starting up
     double LST { 6 };
     double getLST() { return LST; }
-    bool getPosition(MechanicalPoint &p) { return getCurrentPosition(p); }
+    bool getMechanicalPosition(MechanicalPoint &p) { return getCurrentPosition(p); }
+    TelescopeStatus getTrackState() const { return TrackState; }
+    long getReadScopeStatusInterval() const { return POLLMS; }
+public:
     void setLongitude(double lng) {
         /* Say it's 0h on Greenwich meridian (GHA=0) - express LST as hours */
         LST = 0.0 + lng/15.0;
         updateLocation(0,lng,0);
     }
+    bool executeReadScopeStatus() { return ReadScopeStatus(); }
+    bool executeGotoOffset(double ra_offset, double dec_offset) { return Goto(currentRA+ra_offset,currentDEC+dec_offset); }
 };
 
 
@@ -74,19 +81,78 @@ TEST(EQ500XDriverTest, test_LSTSync)
     EQ500X::MechanicalPoint p;
     // Assign a longitude that makes the RA of the scope point east - default position is 90° east
     d.setLongitude(6*15);
-    ASSERT_FALSE(d.getPosition(p));
+    ASSERT_FALSE(d.getMechanicalPosition(p));
     ASSERT_DOUBLE_EQ(  +0.0, p.RAm());
     ASSERT_DOUBLE_EQ( +90.0, p.DECm());
     // Assign a new longitude
     d.setLongitude(5*15);
-    ASSERT_FALSE(d.getPosition(p));
+    ASSERT_FALSE(d.getMechanicalPosition(p));
     ASSERT_DOUBLE_EQ(  23.0, p.RAm());
     ASSERT_DOUBLE_EQ( +90.0, p.DECm());
     // Assign a new longitude - but this time the mount is not considered "parked" east/pole and does not sync
     d.setLongitude(7*15);
-    ASSERT_FALSE(d.getPosition(p));
+    ASSERT_FALSE(d.getMechanicalPosition(p));
     ASSERT_DOUBLE_EQ(  23.0, p.RAm());  // Expected 1h - not possible to assign longitude without restarting the mount
     ASSERT_DOUBLE_EQ( +90.0, p.DECm());
+}
+
+TEST(EQ500XDriverTest, test_Goto_NoMovement)
+{
+    MockEQ500XDriver d;
+    struct timespec timeout = {0,100000000L};
+
+    ASSERT_TRUE(d.isConnected());
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    ASSERT_TRUE(d.executeGotoOffset(0,0));
+    ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
+    for(int i = 0; i < 10; i++)
+    {
+        nanosleep(&timeout, nullptr);
+        ASSERT_TRUE(d.executeReadScopeStatus());
+        if (EQ500X::SCOPE_TRACKING == d.getTrackState()) break;
+        ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
+    }
+    ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
+}
+
+TEST(EQ500XDriverTest, test_Goto_SouthMovement)
+{
+    MockEQ500XDriver d;
+
+    ASSERT_TRUE(d.isConnected());
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    ASSERT_TRUE(d.executeGotoOffset(0,-10));
+    ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
+    // DEC sim turns at 5deg/s max
+    for(int i = 0; i < 100; i++)
+    {
+        struct timespec timeout = {0, d.getReadScopeStatusInterval()*1000000L};
+        nanosleep(&timeout, nullptr);
+        ASSERT_TRUE(d.executeReadScopeStatus());
+        if (EQ500X::SCOPE_TRACKING == d.getTrackState()) break;
+        ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
+    }
+    ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
+}
+
+TEST(EQ500XDriverTest, test_Goto_NorthMovement)
+{
+    MockEQ500XDriver d;
+
+    ASSERT_TRUE(d.isConnected());
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    ASSERT_TRUE(d.executeGotoOffset(0,+10));
+    ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
+    // DEC sim turns at 5deg/s max
+    for(int i = 0; i < 100; i++)
+    {
+        struct timespec timeout = {0, d.getReadScopeStatusInterval()*1000000L};
+        nanosleep(&timeout, nullptr);
+        ASSERT_TRUE(d.executeReadScopeStatus());
+        if (EQ500X::SCOPE_TRACKING == d.getTrackState()) break;
+        ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
+    }
+    ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
 }
 
 TEST(EQ500XDriverTest, test_PierFlip)
@@ -121,6 +187,69 @@ TEST(EQ500XDriverTest, test_PierFlip)
     ASSERT_EQ(INDI::Telescope::PIER_EAST, p.setPierSide(INDI::Telescope::PIER_EAST));
     ASSERT_FALSE(strncmp( "00:00:00", p.toStringRA (b,64),64));
     ASSERT_FALSE(strncmp("+20:00:00", p.toStringDEC(b,64),64));
+}
+
+TEST(EQ500XDriverTest, test_Stability_RA_Conversions)
+{
+    EQ500X::TelescopePierSide const sides[] = {EQ500X::PIER_EAST, EQ500X::PIER_WEST};
+    for (size_t ps = 0; ps < sizeof(sides); ps++)
+    {
+        for (int s = 0; s < 60; s++)
+        {
+            for (int m = 0; m < 60; m++)
+            {
+                for (int h = 0; h < 24; h++)
+                {
+                    // Locals are on purpose - reset test material on each loop
+                    EQ500X::MechanicalPoint p;
+                    char b[64] = {0}, c[64] = {0};
+
+                    p.setPierSide(sides[ps]);
+
+                    snprintf(b, sizeof(b), "%02d:%02d:%02d", h, m, s);
+                    p.parseStringRA(b, sizeof(b));
+                    p.toStringRA(c, sizeof(c));
+
+                    ASSERT_FALSE(strncmp(b,c,sizeof(b)));
+                }
+            }
+        }
+    }
+}
+
+TEST(EQ500XDriverTest, test_Stability_DEC_Conversions)
+{
+    EQ500X::TelescopePierSide const sides[] = {EQ500X::PIER_EAST, EQ500X::PIER_WEST};
+    for (size_t ps = 0; ps < sizeof(sides); ps++)
+    {
+        for (int s = 0; s < 60; s++)
+        {
+            for (int m = 0; m < 60; m++)
+            {
+                for (int d = -90; d < 91; d++)
+                {
+                    // Locals are on purpose - reset test material on each loop
+                    EQ500X::MechanicalPoint p;
+                    char b[64] = {0}, c[64] = {0};
+
+                    p.setPierSide(sides[ps]);
+
+                    snprintf(b, sizeof(b), "%+03d:%02d:%02d", d, m, s);
+                    p.parseStringDEC(b, sizeof(b));
+                    p.toStringDEC(c, sizeof(c));
+
+                    // Debug test with this block
+                    if (strncmp(b,c,sizeof(b)))
+                    {
+                        p.parseStringDEC(b, sizeof(b));
+                        p.toStringDEC(c, sizeof(c));
+                    }
+
+                    ASSERT_FALSE(strncmp(b,c,sizeof(b)));
+                }
+            }
+        }
+    }
 }
 
 TEST(EQ500XDriverTest, test_EastSideOfPier_RA_Conversions)

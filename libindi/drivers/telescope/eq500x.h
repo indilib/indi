@@ -46,6 +46,7 @@ protected:
     virtual double getLST();
 protected:
     bool isParked();
+    void resetSimulation();
 protected:
     int sendCmd(char const *);
     int getReply(char *, size_t const);
@@ -62,7 +63,8 @@ private:
     MechanicalPoint currentPosition, targetPosition;
     double previousRA = {0}, previousDEC = {0};
     ln_lnlat_posn lnobserver { 0, 0 };
-    ln_hrz_posn lnaltaz { 0, 0 };
+    int countdown {0};
+
 };
 
 #endif // EQ500X_H

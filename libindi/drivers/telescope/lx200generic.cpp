@@ -43,11 +43,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include "lx200zeq25.h"
 #include "lx200gotonova.h"
 #include "ioptronHC8406.h"
-#include "eq500x.h"
 #include <cmath>
 #include <memory>
 #include <cstring>
 #include <unistd.h>
+#include "eq500x.h"
 
 // We declare an auto pointer to LX200Generic.
 static std::unique_ptr<LX200Generic> telescope;
