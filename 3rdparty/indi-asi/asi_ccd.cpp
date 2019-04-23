@@ -617,21 +617,34 @@ void ASICCD::setupParams()
     rememberVideoFormat = IUFindOnSwitchIndex(&VideoFormatSP);
 
     float x_pixel_size, y_pixel_size;
-    int x_1, y_1, x_2, y_2;
 
     x_pixel_size = m_camInfo->PixelSize;
     y_pixel_size = m_camInfo->PixelSize;
 
-    x_1 = y_1 = 0;
-    x_2       = m_camInfo->MaxWidth;
-    y_2       = m_camInfo->MaxHeight;
+    uint32_t maxWidth = m_camInfo->MaxWidth;
+    uint32_t maxHeight = m_camInfo->MaxHeight;
 
-    SetCCDParams(x_2 - x_1, y_2 - y_1, bit_depth, x_pixel_size, y_pixel_size);
+    // JM 2019-04-22
+    // We need to restrict width to width % 8 = 0
+    // and height to height % 2 = 0;
+    // Check this thread for discussion:
+    // https://www.indilib.org/forum/ccds-dslrs/4956-indi-asi-driver-bug-causes-false-binned-images.html
+    int maxBin = 1;
+    for (int i = 0; i < 16; i++)
+    {
+        if (m_camInfo->SupportedBins[i] != 0)
+            maxBin = m_camInfo->SupportedBins[i];
+        else
+            break;
+    }
+
+    maxWidth  = ((maxWidth / maxBin) - ((maxWidth / maxBin) % 8)) * maxBin;
+    maxHeight = ((maxHeight / maxBin) - ((maxHeight / maxBin) % 2)) * maxBin;
+
+    SetCCDParams(maxWidth, maxHeight, bit_depth, x_pixel_size, y_pixel_size);
 
     // Let's calculate required buffer
-    int nbuf;
-    nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8; //  this is pixel cameraCount
-    //nbuf += 512;    //  leave a little extra at the end
+    int nbuf = PrimaryCCD.getXRes() * PrimaryCCD.getYRes() * PrimaryCCD.getBPP() / 8;
     PrimaryCCD.setFrameBufferSize(nbuf);
 
     //if (HasCooler())
@@ -650,12 +663,12 @@ void ASICCD::setupParams()
 
     ASIStopVideoCapture(m_camInfo->CameraID);
 
-    LOGF_DEBUG("setupParams ASISetROIFormat (%dx%d,  bin %d, type %d)", m_camInfo->MaxWidth,
-               m_camInfo->MaxHeight, 1, imgType);
-    ASISetROIFormat(m_camInfo->CameraID, m_camInfo->MaxWidth, m_camInfo->MaxHeight, 1, imgType);
+    LOGF_DEBUG("setupParams ASISetROIFormat (%dx%d,  bin %d, type %d)", maxWidth,
+               maxHeight, 1, imgType);
+    ASISetROIFormat(m_camInfo->CameraID, maxWidth, maxHeight, 1, imgType);
 
     updateRecorderFormat();
-    Streamer->setSize(w, h);
+    Streamer->setSize(maxWidth, maxHeight);
 }
 
 bool ASICCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
@@ -976,7 +989,7 @@ bool ASICCD::StartExposure(float duration)
     ExposureRequest = duration;
 
     LOGF_DEBUG("StartExposure->setexp : %.3fs", duration);
-    long uSecs = (long)(duration * 1000000.0);
+    long uSecs = duration * 1000000.0;
     ASISetControlValue(m_camInfo->CameraID, ASI_EXPOSURE, uSecs, ASI_FALSE);
 
     // Try exposure for 3 times
