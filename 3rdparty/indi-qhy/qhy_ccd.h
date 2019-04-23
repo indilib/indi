@@ -21,12 +21,11 @@
 
 #pragma once
 
-#include <qhycam.h>
 #include <qhyccd.h>
-
 #include <indiccd.h>
 #include <indifilterinterface.h>
 
+#include <unistd.h>
 #include <functional>
 #include <pthread.h>
 
@@ -59,7 +58,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 
     protected:
         // Misc.
-        //virtual void TimerHit() override;
+        virtual void TimerHit() override;
         virtual bool saveConfigItems(FILE *fp) override;
 
         // CCD
@@ -143,6 +142,8 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         void setCoolerMode(uint8_t mode);
         // Check if the camera is QHY5PII-C model
         bool isQHY5PIIC();
+        // Call when max filter count is known
+        bool updateFilterProperties();
 
         // Temperature update
         void updateTemperature();
@@ -168,6 +169,8 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         double m_TemperatureRequest {0};
         // Requested target PWM
         double m_PWMRequest { -1 };
+        // Max filter count.
+        int m_MaxFilterCount { -1 };
         // Temperature Timer
         int m_TemperatureTimerID;
 
@@ -180,6 +183,9 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         // Gain
         double GainRequest = 1e6;
         double LastGainRequest = 1e6;
+
+        // Filter Wheel Timeout
+        uint16_t m_FilterCheckCounter = 0;
 
         // Threading
         // Imaging thread
