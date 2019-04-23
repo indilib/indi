@@ -428,8 +428,10 @@ void LIMESDR::grabData()
         InCapture = false;
 
         //Create the spectrum
-        spectrum = PrimaryDetector.getSpectrumBuffer();
-        Spectrum(continuum, spectrum, b_read, SPECTRUM_SIZE, PrimaryDetector.getBPS());
+        if(HasSpectrum()) {
+            spectrum = PrimaryDetector.getSpectrumBuffer();
+            Spectrum(continuum, spectrum, n_read * 8 / abs(PrimaryDetector.getBPS()), SPECTRUM_SIZE, PrimaryDetector.getBPS());
+        }
 
         LOG_INFO("Download complete.");
         CaptureComplete(&PrimaryDetector);

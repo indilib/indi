@@ -33,7 +33,7 @@
 #define SUBFRAME_SIZE (16384)
 #define MIN_FRAME_SIZE (512)
 #define MAX_FRAME_SIZE (SUBFRAME_SIZE * 16)
-#define SPECTRUM_SIZE (65535)
+#define SPECTRUM_SIZE (256)
 
 static int iNumofConnectedDetectors;
 static RTLSDR *receivers[MAX_DEVICES];
@@ -423,8 +423,10 @@ void RTLSDR::grabData()
             InCapture = false;
 
             //Create the spectrum
-            spectrum = PrimaryDetector.getSpectrumBuffer();
-            Spectrum(continuum, spectrum, b_read, SPECTRUM_SIZE, PrimaryDetector.getBPS());
+            if(HasSpectrum()) {
+                spectrum = PrimaryDetector.getSpectrumBuffer();
+                Spectrum(continuum, spectrum, b_read * 8 / abs(PrimaryDetector.getBPS()), SPECTRUM_SIZE, PrimaryDetector.getBPS());
+            }
 
             LOG_INFO("Download complete.");
             CaptureComplete(&PrimaryDetector);

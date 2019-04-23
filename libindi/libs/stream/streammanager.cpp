@@ -275,7 +275,7 @@ void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double d
             npixels = (((INDI::CCD*)currentDevice)->PrimaryCCD.getSubW() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX()) * (((INDI::CCD*)currentDevice)->PrimaryCCD.getSubH() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
             //uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
         } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
-            npixels = ((INDI::Detector*)currentDevice)->PrimaryDetector.getSampleRate() * ((INDI::Detector*)currentDevice)->PrimaryDetector.getCaptureDuration() * 8 / ((INDI::Detector*)currentDevice)->PrimaryDetector.getBPS();
+            npixels = nbytes * 8 / ((INDI::Detector*)currentDevice)->PrimaryDetector.getBPS();
         }
         // Allocale new buffer if size changes
         if (downscaleBufferSize != npixels)
@@ -1068,6 +1068,8 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 #endif
 
     int subX, subY, subW, subH;
+    subX = subY = 0;
+    subW = subH = 0;
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
         subX = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubX() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX();
         subY = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubY() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY();

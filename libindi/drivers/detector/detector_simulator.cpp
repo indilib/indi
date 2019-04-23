@@ -24,11 +24,14 @@
 #include <indilogger.h>
 #include <memory>
 
+#define SPECTRUM_SIZE (256)
 #define min(a,b) \
   ({ __typeof__ (a) _a = (a); \
       __typeof__ (b) _b = (b); \
     _a < _b ? _a : _b; })
 
+static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 std::unique_ptr<RadioSim> receiver(new RadioSim());
 
 void ISGetProperties(const char *dev)
@@ -71,7 +74,8 @@ void ISSnoopDevice(XMLEle *root)
 
 RadioSim::RadioSim()
 {
-
+    streamPredicate = 0;
+    terminateThread = false;
 }
 
 RadioSim::~RadioSim()
@@ -88,7 +92,10 @@ bool RadioSim::Connect()
     // Let's set a timer that checks teleDetectors status every POLLMS milliseconds.
     // JM 2017-07-31 SetTimer already called in updateProperties(). Just call it once
     //SetTimer(POLLMS);
-
+    streamPredicate = 0;
+    terminateThread = false;
+    pthread_create(&primary_thread, nullptr, &streamCaptureHelper, this);
+    SetTimer(POLLMS);
 
     return true;
 }
@@ -101,6 +108,11 @@ bool RadioSim::Disconnect()
     InCapture = false;
     PrimaryDetector.setContinuumBufferSize(1);
     PrimaryDetector.setSpectrumBufferSize(1);
+    pthread_mutex_lock(&condMutex);
+    streamPredicate = 1;
+    terminateThread = true;
+    pthread_cond_signal(&cv);
+    pthread_mutex_unlock(&condMutex);
     LOG_INFO("Simulator Detector disconnected successfully!");
     return true;
 }
@@ -180,14 +192,22 @@ bool RadioSim::StartCapture(float duration)
 
     // Since we have only have one Detector with one chip, we set the exposure duration of the primary Detector
     PrimaryDetector.setCaptureDuration(duration);
-    int to_read = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration() * sizeof(unsigned short);
+    int to_read = PrimaryDetector.getSampleRate() * PrimaryDetector.getCaptureDuration() * abs(PrimaryDetector.getBPS()) / 8;
 
     PrimaryDetector.setContinuumBufferSize(to_read);
-    PrimaryDetector.setSpectrumBufferSize((1 << abs(PrimaryDetector.getBPS())) * sizeof(unsigned short));
+    if(HasSpectrum()) {
+        PrimaryDetector.setSpectrumBufferSize(SPECTRUM_SIZE * abs(PrimaryDetector.getBPS()) / 8);
+    }
+    InCapture = true;
 
     gettimeofday(&CapStart, nullptr);
+    if(HasStreaming()) {
+        Streamer->setPixelFormat(INDI_MONO, PrimaryDetector.getBPS());
+        Streamer->setSize(PrimaryDetector.getContinuumBufferSize() * 8 / abs(PrimaryDetector.getBPS()), 1);
+    }
+
     // We're done
-    return false;
+    return true;
 }
 
 /**************************************************************************************
@@ -198,7 +218,9 @@ bool RadioSim::CaptureParamsUpdated(float sr, float freq, float bps, float bw, f
     INDI_UNUSED(gain);
     INDI_UNUSED(freq);
     INDI_UNUSED(bps);
-    PrimaryDetector.setBandwidth(bw);
+    INDI_UNUSED(bw);
+    PrimaryDetector.setBPS(16);
+    PrimaryDetector.setBandwidth(100000);
     PrimaryDetector.setSampleRate(sr);
 
     return true;
@@ -273,31 +295,29 @@ void RadioSim::grabData()
         InCapture = false;
 
         uint8_t* continuum;
-        uint8_t* spectrum;
-        int size = PrimaryDetector.getContinuumBufferSize() * 8 / PrimaryDetector.getBPS();
-        //Fill the continuum
-        continuum = PrimaryDetector.getContinuumBuffer();
-        WhiteNoise(continuum, size, PrimaryDetector.getBPS());
+        int size = PrimaryDetector.getContinuumBufferSize() * 8 / abs(PrimaryDetector.getBPS());
 
-        //Create the spectrum
-        spectrum = PrimaryDetector.getSpectrumBuffer();
-        Spectrum(continuum, spectrum, size, (1 << abs(PrimaryDetector.getBPS())), PrimaryDetector.getBPS());
+        //Fill the continuum
+        if(HasContinuum()) {
+            continuum = PrimaryDetector.getContinuumBuffer();
+            WhiteNoise(continuum, size, PrimaryDetector.getBPS());
+
+            //Create the spectrum
+            if(HasSpectrum()) {
+                uint8_t* spectrum = PrimaryDetector.getSpectrumBuffer();
+                Spectrum(continuum, spectrum, size, SPECTRUM_SIZE, PrimaryDetector.getBPS());
+            }
+        }
 
         LOG_INFO("Download complete.");
         CaptureComplete(&PrimaryDetector);
     }
 }
 
-static pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
-
 //Streamer API functions
 
 bool RadioSim::StartStreaming()
 {
-    Streamer->setPixelFormat(INDI_MONO, 16);
-    Streamer->setSize(PrimaryDetector.getContinuumBufferSize() * 8 / abs(PrimaryDetector.getBPS()), 1);
-    StartCapture(1.0 / Streamer->getTargetFPS());
     pthread_mutex_lock(&condMutex);
     streamPredicate = 1;
     pthread_mutex_unlock(&condMutex);
