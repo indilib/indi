@@ -77,6 +77,8 @@ void dsp_fourier_dft_magnitude(dsp_stream_p stream)
 {
     dsp_t mn = dsp_stats_min(stream->buf, stream->len);
     dsp_t mx = dsp_stats_min(stream->buf, stream->len);
+    (void)mn;
+    (void)mx;
     dsp_complex* dft = dsp_fourier_dft(stream);
     double* mag = dsp_fourier_complex_array_get_magnitude(dft, stream->len);
     dsp_buffer_stretch(mag, stream->len, mn, mx);
@@ -89,6 +91,8 @@ void dsp_fourier_dft_phase(dsp_stream_p stream)
 {
     dsp_t mn = dsp_stats_min(stream->buf, stream->len);
     dsp_t mx = dsp_stats_min(stream->buf, stream->len);
+    (void)mn;
+    (void)mx;
     dsp_complex* dft = dsp_fourier_dft(stream);
     double* phi = dsp_fourier_complex_array_get_phase(dft, stream->len);
     dsp_buffer_stretch(phi, stream->len, mn, mx);

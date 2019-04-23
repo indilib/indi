@@ -1434,7 +1434,6 @@ void Detector::Histogram(void *buf, void *out, int n_elements, int histogram_siz
 
 void Detector::FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample) {
     //Create the dsp stream
-    dsp_t mn, mx;
     dsp_stream_p stream = dsp_stream_new();
     for(int dim = 0; dim < dims; dim++)
         dsp_stream_add_dim(stream, sizes[dim]);
