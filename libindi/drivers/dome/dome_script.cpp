@@ -25,6 +25,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 #define MAXARGS 20
 
@@ -153,44 +154,50 @@ bool DomeScript::RunScript(int script, ...)
 {
     char tmp[256];
     strncpy(tmp, ScriptsT[script].text, sizeof(tmp));
-  
+
     char **args = (char **)malloc(MAXARGS * sizeof(char *));
     int arg     = 1;
     char *p     = tmp;
     args[0] = p;
     while (arg < MAXARGS)
     {
-      char *pp = strstr(p, " ");
-      if (pp == nullptr)
-        break;
-      *pp++       = 0;
-      args[arg++] = pp;
-      p           = pp;
+        char *pp = strstr(p, " ");
+        if (pp == nullptr)
+            break;
+        *pp++       = 0;
+        args[arg++] = pp;
+        p           = pp;
     }
     va_list ap;
     va_start(ap, script);
     while (arg < MAXARGS)
     {
-      char *pp    = va_arg(ap, char *);
-      args[arg++] = pp;
-      if (pp == nullptr)
-        break;
+        char *pp    = va_arg(ap, char *);
+        args[arg++] = pp;
+        if (pp == nullptr)
+            break;
     }
     va_end(ap);
     char path[1024];
     snprintf(path, sizeof(path), "%s/%s", ScriptsT[0].text, tmp);
 
+    if (access(path, F_OK|X_OK) != 0)
+    {
+        LOGF_ERROR("Cannot use script [%s], %s", path, strerror(errno));
+        return false;
+    }
     if (isDebug())
-    { char dbg[8 * 1024];
-      snprintf(dbg, sizeof(dbg), "execvp('%s'", path);
-      for (int i = 0; args[i]; i++)
-      {
-        strcat(dbg, ", '");
-        strcat(dbg, args[i]);
-        strcat(dbg, "'");
-      }
-      strcat(dbg, ", nullptr)");
-      LOG_DEBUG(dbg);
+    {
+        char dbg[8 * 1024];
+        snprintf(dbg, sizeof(dbg), "execvp('%s'", path);
+        for (int i = 0; args[i]; i++)
+        {
+            strcat(dbg, ", '");
+            strcat(dbg, args[i]);
+            strcat(dbg, "'");
+        }
+        strcat(dbg, ", nullptr)");
+        LOG_DEBUG(dbg);
     }
 
     int pid = fork();
@@ -202,8 +209,8 @@ bool DomeScript::RunScript(int script, ...)
     else if (pid == 0)
     {
         execvp(path, args);
-        LOG_DEBUG("Failed to execute script");
-        exit(0);
+        LOG_ERROR("Failed to execute script");
+        exit(1);
     }
     else
     {
@@ -237,22 +244,26 @@ void DomeScript::TimerHit()
 {
     if (!isConnected())
         return;
-    char name[1024]={0};
-    // N.B. INDI_UNUSED to make it compile on MacOS
-    // DO NOT CHANGE
-    char *s = tmpnam(name);
-    INDI_UNUSED(s);
-    bool status = RunScript(SCRIPT_STATUS, name, nullptr);
+    char tmpfile[] = "/tmp/indi_dome_script_status_XXXXXX";
+    int fd = mkstemp(tmpfile);
+    if (fd == -1)
+    {
+        LOGF_ERROR("Temp file %s creation for status script failed, %s", tmpfile, strerror(errno));
+        unlink(tmpfile);
+        return;
+    }
+    close(fd);
+    bool status = RunScript(SCRIPT_STATUS, tmpfile, nullptr);
     if (status)
     {
         int parked = 0, shutter = 0;
         float az   = 0;
-        FILE *file = fopen(name, "r");
+        FILE *file = fopen(tmpfile, "r");
         int ret    = 0;
 
         ret = fscanf(file, "%d %d %f", &parked, &shutter, &az);
         fclose(file);
-        unlink(name);
+        unlink(tmpfile);
         DomeAbsPosN[0].value = az = round(range360(az) * 10) / 10;
         if (parked != 0)
         {
@@ -322,10 +333,13 @@ bool DomeScript::Connect()
         return true;
 
     bool status = RunScript(SCRIPT_CONNECT, nullptr);
-
     if (status)
     {
         LOG_INFO("Successfully connected");
+    }
+    else
+    {
+        LOG_WARN("Failed to connect");
     }
     return status;
 }
@@ -336,6 +350,10 @@ bool DomeScript::Disconnect()
     if (status)
     {
         LOG_INFO("Successfully disconnected");
+    }
+    else
+    {
+        LOG_WARN("Failed to disconnect");
     }
     return status;
 }
@@ -382,6 +400,7 @@ IPState DomeScript::MoveAbs(double az)
         TargetAz = az;
         return IPS_BUSY;
     }
+    LOG_ERROR("Failed to MoveAbs");
     return IPS_ALERT;
 }
 
@@ -420,6 +439,10 @@ bool DomeScript::Abort()
     if (status)
     {
         LOG_INFO("Successfully aborted");
+    }
+    else
+    {
+        LOG_WARN("Failed to abort");
     }
     return status;
 }

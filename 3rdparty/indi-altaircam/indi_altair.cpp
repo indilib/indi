@@ -1,7 +1,7 @@
 /*
  Altair CCD Driver
 
- Copyright (C) 2018 Jasem Mutlaq (mutlaqja@ikarustech.com)
+ Copyright (C) 2018-2019 Jasem Mutlaq (mutlaqja@ikarustech.com)
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -59,12 +59,6 @@ static int iConnectedCamerasCount;
 static AltaircamInstV2 pAltairCameraInfo[ALTAIRCAM_MAX];
 static ALTAIRCAM *cameras[ALTAIRCAM_MAX];
 
-//#define USE_SIMULATION
-#ifdef USE_SIMULATION
-static altaircamModelV2 model;
-#endif
-
-
 /********************************************************************************/
 /* HRESULT                                                                      */
 /*    |----------------|---------------------------------------|------------|   */
@@ -107,19 +101,6 @@ void ALTAIRCAM_ISInit()
     static bool isInit = false;
     if (!isInit)
     {
-#ifdef USE_SIMULATION
-        iConnectedCamerasCount = 1;
-        strncpy(pAltairCameraInfo[0].displayname, "Simulation", 64);
-        model.flag = ALTAIRCAM_FLAG_RAW16 | ALTAIRCAM_FLAG_BINSKIP_SUPPORTED | ALTAIRCAM_FLAG_ROI_HARDWARE | ALTAIRCAM_FLAG_TEC_ONOFF | ALTAIRCAM_FLAG_ST4;
-        model.name = pAltairCameraInfo[0].displayname;
-        model.xpixsz = model.ypixsz  = 5.4;
-        model.res[0].width = 1280;
-        model.res[0].height = 1024;
-        model.res[1].width = 640;
-        model.res[1].height = 480;
-        pAltairCameraInfo[0].model = &model;
-        cameras[0] = new ALTAIR(&pAltairCameraInfo[0]);
-#else
         iConnectedCamerasCount = Altaircam_EnumV2(pAltairCameraInfo);
         if (iConnectedCamerasCount <= 0)
             IDLog("No Altair detected. Power on?");
@@ -130,7 +111,6 @@ void ALTAIRCAM_ISInit()
                 cameras[i] = new ALTAIRCAM(&pAltairCameraInfo[i]);
             }
         }
-#endif
 
         atexit(cleanup);
         isInit = true;
@@ -536,6 +516,14 @@ bool ALTAIRCAM::Connect()
     Altaircam_get_ExpTimeRange(m_CameraHandle, &min, &max, &current);
     LOGF_DEBUG("Exposure Time Range (us): Min %u Max %u Default %u", min, max, current);
     PrimaryCCD.setMinMaxStep("CCD_EXPOSURE", "CCD_EXPOSURE_VALUE", min / 1000000.0, max / 1000000.0, 0, false);
+
+    int bin = 1;
+    HRESULT rc = Altaircam_get_Option(m_CameraHandle, ALTAIRCAM_OPTION_BINNING, &bin);
+    LOGF_DEBUG("Binning %d rc: %d", bin, rc);
+    if (bin != 1 && rc >= 0)
+    {
+        PrimaryCCD.setBin(bin, bin);
+    }
 
     // Success!
     LOGF_INFO("%s is online. Retrieving basic data.", getDeviceName());
@@ -989,7 +977,7 @@ bool ALTAIRCAM::ISNewNumber(const char *dev, const char *name, double values[], 
 
             HRESULT rc = 0;
 
-            if ( (rc = Altaircam_put_LevelRange(m_CameraHandle, lo, hi)) != 0)
+            if ( (rc = Altaircam_put_LevelRange(m_CameraHandle, lo, hi)) < 0)
             {
                 LevelRangeNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set level range. %s", errorCodes[rc].c_str());
@@ -1018,7 +1006,7 @@ bool ALTAIRCAM::ISNewNumber(const char *dev, const char *name, double values[], 
 
             HRESULT rc = 0;
 
-            if ( (rc = Altaircam_put_BlackBalance(m_CameraHandle, aSub)) != 0)
+            if ( (rc = Altaircam_put_BlackBalance(m_CameraHandle, aSub)) < 0)
             {
                 BlackBalanceNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set Black Balance. %s", errorCodes[rc].c_str());
@@ -1068,7 +1056,7 @@ bool ALTAIRCAM::ISNewNumber(const char *dev, const char *name, double values[], 
                 static_cast<int>(WBRGBN[TC_WB_B].value),
             };
 
-            if ( (rc = Altaircam_put_WhiteBalanceGain(m_CameraHandle, aSub)) != 0)
+            if ( (rc = Altaircam_put_WhiteBalanceGain(m_CameraHandle, aSub)) < 0)
             {
                 WBRGBNP.s = IPS_ALERT;
                 LOGF_ERROR("Failed to set White Balance gain. %s", errorCodes[rc].c_str());
@@ -1130,7 +1118,7 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             IUUpdateSwitch(&FanControlSP, states, names, n);
             HRESULT rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_FAN,
                                               FanControlS[0].s == ISS_ON ? IUFindOnSwitchIndex(&FanSpeedSP) + 1 : 0 );
-            if (rc != 0)
+            if (rc < 0)
             {
                 LOGF_ERROR("Failed to turn the fan %s. Error (%s)", FanControlS[0].s == ISS_ON ? "on" : "off", errorCodes[rc].c_str());
                 FanControlSP.s = IPS_ALERT;
@@ -1204,7 +1192,7 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 //                    LOGF_DEBUG("Set ALTAIRCAM_OPTION_RGB --> %d", currentIndex+3);
 
                 rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BITDEPTH, currentIndex);
-                if (rc != 0)
+                if (rc < 0)
                 {
                     LOGF_ERROR("Failed to set high bit depth mode %s", errorCodes[rc].c_str());
                     VideoFormatSP.s = IPS_ALERT;
@@ -1242,7 +1230,7 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
                 Altaircam_Stop(m_CameraHandle);
 
                 rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_RAW, currentIndex);
-                if (rc != 0)
+                if (rc < 0)
                 {
                     LOGF_ERROR("Failed to set video mode: %s", errorCodes[rc].c_str());
                     VideoFormatSP.s = IPS_ALERT;
@@ -1354,7 +1342,7 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
 
             IUResetSwitch(&AutoControlSP);
 
-            if (rc != 0)
+            if (rc < 0)
             {
                 AutoControlS[previousSwitch].s = ISS_ON;
                 AutoControlSP.s = IPS_ALERT;
@@ -1394,7 +1382,7 @@ bool ALTAIRCAM::ISNewSwitch(const char *dev, const char *name, ISState *states, 
             int targetIndex = IUFindOnSwitchIndex(&ResolutionSP);
 
             HRESULT rc = Altaircam_put_eSize(m_CameraHandle, targetIndex);
-            if (rc != 0)
+            if (rc < 0)
             {
                 ResolutionSP.s = IPS_ALERT;
                 IUResetSwitch(&ResolutionSP);
@@ -1491,7 +1479,7 @@ bool ALTAIRCAM::StopStreaming()
     //        return false;
     //    }
 
-    if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 1)) != 0)
+    if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 1)) < 0)
     {
         LOGF_ERROR("Failed to set video trigger mode. %s", errorCodes[rc].c_str());
         return false;
@@ -1516,7 +1504,7 @@ int ALTAIRCAM::SetTemperature(double temperature)
     int16_t nTemperature = static_cast<int16_t>(temperature * 10.0);
 
     HRESULT rc = Altaircam_put_Temperature(m_CameraHandle, nTemperature);
-    if (rc != 0)
+    if (rc < 0)
     {
         LOGF_ERROR("Failed to set temperature. %s", errorCodes[rc].c_str());
         return -1;
@@ -1532,7 +1520,7 @@ bool ALTAIRCAM::activateCooler(bool enable)
 {
     HRESULT rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TEC, enable ? 1 : 0);
     IUResetSwitch(&CoolerSP);
-    if (rc != 0)
+    if (rc < 0)
     {
         CoolerS[enable ? TC_COOLER_OFF : TC_COOLER_ON].s = ISS_ON;
         CoolerSP.s = IPS_ALERT;
@@ -1563,7 +1551,7 @@ bool ALTAIRCAM::StartExposure(float duration)
     {
         ExposureRequest = duration;
 
-        if ( (rc = Altaircam_put_ExpoTime(m_CameraHandle, uSecs)) != 0)
+        if ( (rc = Altaircam_put_ExpoTime(m_CameraHandle, uSecs)) < 0)
         {
             LOGF_ERROR("Failed to set exposure time. Error: %s", errorCodes[rc].c_str());
             return false;
@@ -1595,7 +1583,7 @@ bool ALTAIRCAM::StartExposure(float duration)
 
     if (m_CurrentTriggerMode != TRIGGER_SOFTWARE)
     {
-        if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 1)) != 0)
+        if ( (rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_TRIGGER, 1)) < 0)
         {
             LOGF_ERROR("Failed to set software trigger mode. %s", errorCodes[rc].c_str());
         }
@@ -1609,7 +1597,7 @@ bool ALTAIRCAM::StartExposure(float duration)
     //        IEAddTimer(timeMS, &ALTAIRCAM::sendImageCB, this);
 
     // Trigger an exposure
-    if ( (rc = Altaircam_Trigger(m_CameraHandle, 1) != 0) )
+    if ( (rc = Altaircam_Trigger(m_CameraHandle, 1) < 0) )
     {
         LOGF_ERROR("Failed to trigger exposure. Error: %s", errorCodes[rc].c_str());
         return false;
@@ -1648,7 +1636,7 @@ bool ALTAIRCAM::UpdateCCDFrame(int x, int y, int w, int h)
     LOGF_DEBUG("Altaircam ROI. X: %d Y: %d W: %d H: %d. Binning %dx%d ", x, y, w, h, PrimaryCCD.getBinX(), PrimaryCCD.getBinY());
 
     HRESULT rc = Altaircam_put_Roi(m_CameraHandle, x, y, w, h);
-    if (rc != 0)
+    if (rc < 0)
     {
         LOGF_ERROR("Error setting camera ROI: %d", rc);
         return false;
@@ -1678,7 +1666,7 @@ bool ALTAIRCAM::UpdateCCDBin(int binx, int biny)
 
     // TODO add option to select between additive vs. average binning
     HRESULT rc = Altaircam_put_Option(m_CameraHandle, ALTAIRCAM_OPTION_BINNING, binx);
-    if (rc != 0)
+    if (rc < 0)
     {
         LOGF_ERROR("Binning %dx%d is not support. %s", binx, biny, errorCodes[rc].c_str());
         return false;
@@ -1710,7 +1698,7 @@ void ALTAIRCAM::TimerHit()
         double currentTemperature = TemperatureN[0].value;
         int16_t nTemperature = 0;
         HRESULT rc = Altaircam_get_Temperature(m_CameraHandle, &nTemperature);
-        if (rc != 0)
+        if (rc < 0)
         {
             LOGF_ERROR("Altaircam_get_Temperature error. %s", errorCodes[rc].c_str());
             TemperatureNP.s = IPS_ALERT;
@@ -1785,7 +1773,7 @@ IPState ALTAIRCAM::guidePulseNS(uint32_t ms, eGUIDEDIRECTION dir, const char *di
     // If pulse < 50ms, we wait. Otherwise, we schedule it.
     int uSecs = ms * 1000;
     HRESULT rc = Altaircam_ST4PlusGuide(m_CameraHandle, dir, ms);
-    if (rc != 0)
+    if (rc < 0)
     {
         LOGF_ERROR("%s pulse guiding failed: %s", dirName, errorCodes[rc].c_str());
         return IPS_ALERT;
@@ -1853,7 +1841,7 @@ IPState ALTAIRCAM::guidePulseWE(uint32_t ms, eGUIDEDIRECTION dir, const char *di
     // If pulse < 50ms, we wait. Otherwise, we schedule it.
     int uSecs = ms * 1000;
     HRESULT rc = Altaircam_ST4PlusGuide(m_CameraHandle, dir, ms);
-    if (rc != 0)
+    if (rc < 0)
     {
         LOGF_ERROR("%s pulse guiding failed: %s", dirName, errorCodes[rc].c_str());
         return IPS_ALERT;
@@ -2040,7 +2028,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
                 std::unique_lock<std::mutex> guard(ccdBufferLock);
                 HRESULT rc = Altaircam_PullImageV2(m_CameraHandle, buffer, captureBits * m_Channels, &info);
                 guard.unlock();
-                if (rc != 0)
+                if (rc < 0)
                 {
                     LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
                     PrimaryCCD.setExposureFailed();
@@ -2086,7 +2074,7 @@ void ALTAIRCAM::eventPullCallBack(unsigned event)
             std::unique_lock<std::mutex> guard(ccdBufferLock);
             HRESULT rc = Altaircam_PullStillImageV2(m_CameraHandle, PrimaryCCD.getFrameBuffer(), 24, &info);
             guard.unlock();
-            if (rc != 0)
+            if (rc < 0)
             {
                 LOGF_ERROR("Failed to pull image. %s", errorCodes[rc].c_str());
                 PrimaryCCD.setExposureFailed();

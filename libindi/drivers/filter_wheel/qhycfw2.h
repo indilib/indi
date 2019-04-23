@@ -24,19 +24,24 @@
 
 class QHYCFW2 : public INDI::FilterWheel
 {
-  public:
-    QHYCFW2();
-    virtual void ISGetProperties(const char *dev) override;
-    bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
+    public:
+        QHYCFW2();
+        virtual void ISGetProperties(const char *dev) override;
+        bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-  protected:    
-    const char *getDefaultName() override;
-    bool initProperties() override;
+    protected:
+        const char *getDefaultName() override;
+        virtual bool initProperties() override;
 
-    bool Handshake() override { return true; }
-    bool SelectFilter(int) override;
+        virtual bool saveConfigItems(FILE *fp) override;
 
-  private:
-    INumber MaxFilterN[1];
-    INumberVectorProperty MaxFilterNP;
+        virtual bool Handshake() override
+        {
+            return true;
+        }
+        virtual bool SelectFilter(int) override;
+
+    private:
+        INumber MaxFilterN[1];
+        INumberVectorProperty MaxFilterNP;
 };

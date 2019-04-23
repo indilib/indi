@@ -70,20 +70,31 @@ bool Weather::initProperties()
     IUFillSwitchVector(&RefreshSP, RefreshS, 1, getDeviceName(), "WEATHER_REFRESH", "Weather", MAIN_CONTROL_TAB, IP_RW,
                        ISR_ATMOST1, 0, IPS_IDLE);
 
+    // Override
+    IUFillSwitch(&OverrideS[0], "OVERRIDE", "Override Status", ISS_OFF);
+    IUFillSwitchVector(&OverrideSP, OverrideS, 1, getDeviceName(), "WEATHER_OVERRIDE", "Safety", MAIN_CONTROL_TAB, IP_RW,
+                       ISR_NOFMANY, 0, IPS_IDLE);
+
 
     IDSnoopDevice(ActiveDeviceT[0].text, "GEOGRAPHIC_COORD");
 
     if (weatherConnection & CONNECTION_SERIAL)
     {
         serialConnection = new Connection::Serial(this);
-        serialConnection->registerHandshake([&]() { return callHandshake(); });
+        serialConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(serialConnection);
     }
 
     if (weatherConnection & CONNECTION_TCP)
     {
         tcpConnection = new Connection::TCP(this);
-        tcpConnection->registerHandshake([&]() { return callHandshake(); });
+        tcpConnection->registerHandshake([&]()
+        {
+            return callHandshake();
+        });
         registerConnection(tcpConnection);
     }
 
@@ -103,6 +114,7 @@ bool Weather::updateProperties()
         updateTimerID = -1;
         defineSwitch(&RefreshSP);
         defineNumber(&UpdatePeriodNP);
+        defineSwitch(&OverrideSP);
         defineNumber(&LocationNP);
         defineText(&ActiveDeviceTP);
 
@@ -115,6 +127,7 @@ bool Weather::updateProperties()
 
         deleteProperty(RefreshSP.name);
         deleteProperty(UpdatePeriodNP.name);
+        deleteProperty(OverrideSP.name);
         deleteProperty(LocationNP.name);
         deleteProperty(ActiveDeviceTP.name);
     }
@@ -126,6 +139,7 @@ bool Weather::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
+        // Refresh
         if (!strcmp(name, RefreshSP.name))
         {
             RefreshS[0].s = ISS_OFF;
@@ -133,6 +147,30 @@ bool Weather::ISNewSwitch(const char *dev, const char *name, ISState *states, ch
             IDSetSwitch(&RefreshSP, nullptr);
 
             TimerHit();
+        }
+
+        // Override
+        if (!strcmp(name, OverrideSP.name))
+        {
+            IUUpdateSwitch(&OverrideSP, states, names, n);
+            if (OverrideS[0].s == ISS_ON)
+            {
+                LOG_WARN("Weather override is enabled. Observatory is not safe. Turn off override as soon as possible.");
+                OverrideSP.s = IPS_BUSY;
+
+                critialParametersLP.s = IPS_OK;
+                IDSetLight(&critialParametersLP, nullptr);
+            }
+            else
+            {
+                LOG_INFO("Weather override is disabled");
+                OverrideSP.s = IPS_IDLE;
+
+                syncCriticalParameters();
+            }
+
+            IDSetSwitch(&OverrideSP, nullptr);
+            return true;
         }
     }
 
@@ -254,18 +292,26 @@ void Weather::TimerHit()
 
     IPState state = updateWeather();
 
+    // Override weather state if required
+    if (OverrideS[0].s == ISS_ON)
+        state = IPS_OK;
+
     switch (state)
     {
         // Ok
         case IPS_OK:
 
             syncCriticalParameters();
+
+            if (OverrideS[0].s == ISS_ON)
+                critialParametersLP.s = IPS_OK;
+
             ParametersNP.s = state;
             IDSetNumber(&ParametersNP, nullptr);
 
             // If update period is set, then set up the timer
             if (UpdatePeriodN[0].value > 0)
-                updateTimerID = SetTimer((int)(UpdatePeriodN[0].value * 1000));
+                updateTimerID = SetTimer(static_cast<int>(UpdatePeriodN[0].value * 1000));
 
             return;
 
@@ -297,7 +343,7 @@ bool Weather::processLocationInfo(double latitude, double longitude, double elev
 {
     // Do not update if not necessary
     if (latitude == LocationN[LOCATION_LATITUDE].value && longitude == LocationN[LOCATION_LONGITUDE].value &&
-        elevation == LocationN[LOCATION_ELEVATION].value)
+            elevation == LocationN[LOCATION_ELEVATION].value)
     {
         LocationNP.s = IPS_OK;
         IDSetNumber(&LocationNP, nullptr);

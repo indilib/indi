@@ -72,6 +72,42 @@ StreamManager::StreamManager(CCD * mainCCD)
     LOGF_DEBUG("Using default encoder (%s)", encoder->getName());
 }
 
+StreamManager::StreamManager(Detector * mainDetector)
+{
+    currentDetector = mainDetector;
+
+    m_isStreaming = false;
+    m_isRecording = false;
+
+    // Timer
+    // now use BSD setimer to avoi librt dependency
+    //sevp.sigev_notify=SIGEV_NONE;
+    //timer_create(CLOCK_MONOTONIC, &sevp, &fpstimer);
+    //fpssettings.it_interval.tv_sec=24*3600;
+    //fpssettings.it_interval.tv_nsec=0;
+    //fpssettings.it_value=fpssettings.it_interval;
+    //timer_settime(fpstimer, 0, &fpssettings, nullptr);
+
+    struct itimerval fpssettings;
+    fpssettings.it_interval.tv_sec  = 24 * 3600;
+    fpssettings.it_interval.tv_usec = 0;
+    fpssettings.it_value            = fpssettings.it_interval;
+    signal(SIGALRM, SIG_IGN); //portable
+    setitimer(ITIMER_REAL, &fpssettings, nullptr);
+
+    recorderManager = new RecorderManager();
+    recorder    = recorderManager->getDefaultRecorder();
+    direct_record = false;
+
+    LOGF_DEBUG("Using default recorder (%s)", recorder->getName());
+
+    encoderManager = new EncoderManager();
+    encoder = encoderManager->getDefaultEncoder();
+    encoder->init(currentDetector);
+
+    LOGF_DEBUG("Using default encoder (%s)", encoder->getName());
+}
+
 StreamManager::~StreamManager()
 {
     delete (recorderManager);

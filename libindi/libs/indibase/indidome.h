@@ -576,6 +576,7 @@ class Dome : public DefaultDevice
         bool IsParked = false;
         bool IsMountParked = false;
         bool IsLocked = true;
+        bool AutoSyncWarning = false;
 
         const char * ParkDeviceName;
         const std::string ParkDataFileName;

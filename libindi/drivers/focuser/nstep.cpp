@@ -70,7 +70,7 @@ void ISSnoopDevice(XMLEle *root)
 
 NStep::NStep()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     FI::SetCapability(FOCUSER_CAN_ABORT |
                       FOCUSER_CAN_ABS_MOVE |
                       FOCUSER_CAN_REL_MOVE |
@@ -118,6 +118,11 @@ bool NStep::initProperties()
     IUFillNumber(&SteppingPhaseN[0], "PHASES", "Wiring", "%.f", 0, 2, 1, 0);
     IUFillNumberVector(&SteppingPhaseNP, SteppingPhaseN, 1, getDeviceName(), "STEPPING_PHASE", "Phase",
                        STEPPING_TAB, IP_RW, 0, IPS_OK);
+
+    // Max Speed
+    IUFillNumber(&MaxSpeedN[0], "RATE", "Rate", "%.f", 1, 254, 10, 0);
+    IUFillNumberVector(&MaxSpeedNP, MaxSpeedN, 1, getDeviceName(), "MAX_SPEED", "Max Speed",
+                       MAIN_CONTROL_TAB, IP_RW, 0, IPS_OK);
 
     // Coil Energized Status
     IUFillSwitch(&CoilStatusS[COIL_ENERGIZED_OFF], "COIL_ENERGIZED_OFF", "De-energized", ISS_OFF);
@@ -167,6 +172,7 @@ bool NStep::updateProperties()
         bool rc = getStartupValues();
 
         // Settings
+        defineNumber(&MaxSpeedNP);
         defineSwitch(&CompensationModeSP);
         defineSwitch(&PrimeManualSP);
         defineNumber(&CompensationSettingsNP);
@@ -184,6 +190,7 @@ bool NStep::updateProperties()
         if (TemperatureNP.s == IPS_OK)
             deleteProperty(TemperatureNP.name);
 
+        deleteProperty(MaxSpeedNP.name);
         deleteProperty(CompensationModeSP.name);
         deleteProperty(PrimeManualSP.name);
         deleteProperty(CompensationSettingsNP.name);
@@ -337,6 +344,26 @@ bool NStep::ISNewNumber(const char *dev, const char *name, double values[], char
             return true;
         }
 
+        // Max Speed
+        if (!strcmp(name, MaxSpeedNP.name))
+        {
+            if (setMaxSpeed(static_cast<uint8_t>(values[0])))
+            {
+                IUUpdateNumber(&MaxSpeedNP, values, names, n);
+                MaxSpeedNP.s = IPS_OK;
+
+                // We must update the Min/Max of focus speed
+                FocusSpeedN[0].max = values[0];
+                IUUpdateMinMax(&FocusSpeedNP);
+            }
+            else
+            {
+                MaxSpeedNP.s = IPS_ALERT;
+            }
+
+            IDSetNumber(&MaxSpeedNP, nullptr);
+            return true;
+        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
@@ -676,9 +703,12 @@ bool NStep::readSpeedInfo()
     if (current_step == 1e6)
         return false;
 
+    MaxSpeedN[0].value = 254 - max_step + 1;
+    MaxSpeedNP.s = IPS_OK;
+
     // nStep defines speed step rates from 1 to 254
     // when 1 being the fastest, so for speed we flip the values
-    FocusSpeedN[0].max   = max_step;
+    FocusSpeedN[0].max   = 254 - max_step + 1;
     FocusSpeedN[0].value = 254 - current_step + 1;
     FocusSpeedNP.s = IPS_OK;
 
@@ -733,6 +763,16 @@ bool NStep::SetFocuserSpeed(int speed)
     // Speed 1 is slowest, translated to 254 for nStep.
     char cmd[NSTEP_LEN] = {0};
     snprintf(cmd, NSTEP_LEN, "#:CO%03d#", 254 - speed + 1);
+    return sendCommand(cmd);
+}
+
+bool NStep::setMaxSpeed(uint8_t maxSpeed)
+{
+    // INDI Focus Speed and Current NStep steps are opposite.
+    // INDI Speed 1 is slowest, translated to 254 for nStep.
+    // and vice versa
+    char cmd[NSTEP_LEN] = {0};
+    snprintf(cmd, NSTEP_LEN, ":CS%03d#", 254 - maxSpeed + 1);
     return sendCommand(cmd);
 }
 
