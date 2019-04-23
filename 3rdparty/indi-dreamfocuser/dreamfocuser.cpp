@@ -556,11 +556,16 @@ void DreamFocuser::TimerHit()
     int32_t oldPosition = currentPosition;
 
     if ( getMaxPosition() )
+    {
         if ( FocusMaxPosN[0].value != currentMaxPosition ) {
             FocusMaxPosN[0].value = currentMaxPosition;
+            FocusMaxPosNP.s = IPS_OK;
             IDSetNumber(&FocusMaxPosNP, nullptr);
             SetFocuserMaxPosition(currentMaxPosition);
         }
+    }
+    else
+        FocusMaxPosNP.s = IPS_ALERT;
 
     if ( getStatus() )
     {
@@ -617,41 +622,42 @@ void DreamFocuser::TimerHit()
             StatusS[0].s = ISS_OFF;
         }
 
-        if ( getTemperature() )
-        {
-            WeatherNP.s = ( (WeatherN[0].value != currentTemperature) || (WeatherN[1].value != currentHumidity)) ? IPS_BUSY : IPS_OK;
-            WeatherN[0].value = currentTemperature;
-            WeatherN[1].value = currentHumidity;
-            WeatherN[2].value = pow(currentHumidity / 100, 1.0 / 8) * (112 + 0.9 * currentTemperature) + 0.1 * currentTemperature - 112;
-        }
-        else
-            WeatherNP.s = IPS_ALERT;
-
-
-        if ( FocusAbsPosNP.s != IPS_IDLE )
-        {
-            if ( getPosition() )
-            {
-                if ( oldPosition != currentPosition )
-                {
-                    FocusAbsPosNP.s = IPS_BUSY;
-                    StatusS[1].s = ISS_ON;
-                    FocusAbsPosN[0].value = currentPosition;
-                }
-                else
-                {
-                    StatusS[1].s = ISS_OFF;
-                    FocusAbsPosNP.s = IPS_OK;
-                }
-                //if ( currentPosition < 0 )
-                // FocusAbsPosNP.s = IPS_ALERT;
-            }
-            else
-                FocusAbsPosNP.s = IPS_ALERT;
-        }
     }
     else
         StatusSP.s = IPS_ALERT;
+
+    if ( getTemperature() )
+    {
+        WeatherNP.s = ( (WeatherN[0].value != currentTemperature) || (WeatherN[1].value != currentHumidity)) ? IPS_BUSY : IPS_OK;
+        WeatherN[0].value = currentTemperature;
+        WeatherN[1].value = currentHumidity;
+        WeatherN[2].value = pow(currentHumidity / 100, 1.0 / 8) * (112 + 0.9 * currentTemperature) + 0.1 * currentTemperature - 112;
+    }
+    else
+        WeatherNP.s = IPS_ALERT;
+
+    if ( FocusAbsPosNP.s != IPS_IDLE )
+    {
+        if ( getPosition() )
+        {
+            if ( oldPosition != currentPosition )
+            {
+                FocusAbsPosNP.s = IPS_BUSY;
+                StatusS[1].s = ISS_ON;
+                FocusAbsPosN[0].value = currentPosition;
+            }
+            else
+            {
+                StatusS[1].s = ISS_OFF;
+                FocusAbsPosNP.s = IPS_OK;
+            }
+            //if ( currentPosition < 0 )
+            // FocusAbsPosNP.s = IPS_ALERT;
+        }
+        else
+            FocusAbsPosNP.s = IPS_ALERT;
+    }
+
 
     if ((oldAbsStatus != FocusAbsPosNP.s) || (oldPosition != currentPosition))
         IDSetNumber(&FocusAbsPosNP, nullptr);
