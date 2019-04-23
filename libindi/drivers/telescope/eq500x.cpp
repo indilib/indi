@@ -82,11 +82,12 @@ struct _adjustment {
     double distance;
     int polling_interval;
 }
-const adjustments[4] = {
-{":RG#",   1*ARCSECOND,  0.7*ARCMINUTE, 100 }, // Guiding speed
-{":RC#", 0.7*ARCMINUTE,   10*ARCMINUTE, 200 }, // Centering speed
-{":RM#",  10*ARCMINUTE,    5*ONEDEGREE, 500 }, // Finding speed
-{":RS#",   5*ONEDEGREE,  360*ONEDEGREE, 500 }};  // Slew speed
+const adjustments[] = {
+{":RG#",   1*ARCSECOND,  0.7*ARCMINUTE, 100 },   // Guiding speed
+{":RC#", 0.7*ARCMINUTE,   10*ARCMINUTE, 200 },   // Centering speed
+{":RM#",  10*ARCMINUTE,    5*ONEDEGREE, 500 },   // Finding speed
+{":RS#",   5*ONEDEGREE,   10*ONEDEGREE, 500 },   // Slew speed
+{":RS#",  10*ONEDEGREE,  360*ONEDEGREE, 1000 }}; // Slew speed
 
 /**************************************************************************************
 ** EQ500X Constructor
@@ -358,12 +359,12 @@ bool EQ500X::ReadScopeStatus()
             assert(!(east && west) && !(north && south));
 
             // This log shows target in Degrees/Degrees and delta in Degrees/Degrees
-            LOGF_DEBUG("Centering (%lf°,%lf°) delta (%lf°,%lf°) moving %c%c%c%c at %s until less than (%lf°,%lf°)", targetPosition.RAm()*15.0, targetPosition.DECm(), ra_delta, dec_delta, north?'N':'.', south?'S':'.', west?'W':'.', east?'E':'.', adjustment->slew_rate, std::max(adjustment->epsilon, RA_GRANULARITY), adjustment->epsilon);
+            LOGF_DEBUG("Centering (%lf°,%lf°) delta (%lf°,%lf°) moving %c%c%c%c at %s until less than (%lf°,%lf°)", targetPosition.RAm()*15.0, targetPosition.DECm(), ra_delta, dec_delta, west?'W':'.', east?'E':'.', north?'N':'.', south?'S':'.', adjustment->slew_rate, std::max(adjustment->epsilon, RA_GRANULARITY), adjustment->epsilon);
 
             // If we have a command to run, issue it
             if (CmdString[0] != '\0' && sendCmd(CmdString))
             {
-                LOGF_ERROR("Error centering to (%lf,%lf)", targetPosition.RAm()*15.0, targetPosition.DECm());
+                LOGF_ERROR("Error centering (%lf°,%lf°)", targetPosition.RAm()*15.0, targetPosition.DECm());
                 slewError(-1);
                 return false;
             }
@@ -378,6 +379,7 @@ bool EQ500X::ReadScopeStatus()
                         /*RC*/5*ARCMINUTE,
                         /*RM*/20*ARCMINUTE,
                         /*RS*/5*ONEDEGREE,
+                        /*RS*/5*ONEDEGREE,
                 };
 
                 // Calculate elapsed time since last status read
@@ -388,8 +390,8 @@ bool EQ500X::ReadScopeStatus()
                 simEQ500X.last_sim = now;
 
                 // Use currentRA/currentDEC to store smaller-than-one-arcsecond values
-                if (west) currentRA += rates[adjustment - adjustments]*delta;
-                if (east) currentRA -= rates[adjustment - adjustments]*delta;
+                if (west) currentRA -= rates[adjustment - adjustments]*delta/15.0;
+                if (east) currentRA += rates[adjustment - adjustments]*delta/15.0;
                 if (north) currentDEC -= rates[adjustment - adjustments]*delta;
                 if (south) currentDEC += rates[adjustment - adjustments]*delta;
 
@@ -399,7 +401,7 @@ bool EQ500X::ReadScopeStatus()
                 currentPosition.DECm(currentDEC);
                 currentPosition.toStringDEC(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC));
 
-                LOGF_DEBUG("New RA/DEC simulated as %lfh/%lf° (%+lf,%+lf), stored as %lf/%lf = %s/%s", currentRA, currentDEC, rates[adjustment-adjustments]*delta, rates[adjustment-adjustments]*delta, currentPosition.RAm(), currentPosition.DECm(), simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
+                LOGF_DEBUG("New RA/DEC simulated as %lf°/%lf° (%+lf°,%+lf°), stored as %lfh/%lf° = %s/%s", currentRA*15.0, currentDEC, (west||east)?rates[adjustment-adjustments]*delta:0, (north||south)?rates[adjustment-adjustments]*delta:0, currentPosition.RAm(), currentPosition.DECm(), simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
             }
 
             // If all movement flags are cleared, we are done adjusting
