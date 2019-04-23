@@ -56,9 +56,6 @@ class RadioSim : public INDI::Detector
         void grabData();
 
     private:
-        INumber DetectorPropertiesN[1];
-        INumberVectorProperty DetectorPropertiesNP;
-        INumberVectorProperty DetectorCoordsNP;
         // Utility functions
         float CalcTimeLeft();
         void setupParams();
