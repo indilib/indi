@@ -197,6 +197,36 @@ TEST(EQ500XDriverTest, test_Goto_WestMovement)
     ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
 }
 
+TEST(EQ500XDriverTest, test_MechanicalPointEquality)
+{
+    EQ500X::MechanicalPoint p, q;
+
+    p.RAm(1.23456789);
+    p.DECm(1.23456789);
+    p.setPierSide(EQ500X::PIER_EAST);
+    q.RAm(1.23456789);
+    q.DECm(1.23456789);
+    q.setPierSide(EQ500X::PIER_EAST);
+    ASSERT_TRUE(p == q);
+    ASSERT_FALSE(p != q);
+    q.setPierSide(EQ500X::PIER_WEST);
+    ASSERT_FALSE(p == q);
+    ASSERT_TRUE(p != q);
+    q.setPierSide(EQ500X::PIER_EAST);
+    q.RAm(q.RAm()+15.0/3600.0);
+    ASSERT_FALSE(p == q);
+    ASSERT_TRUE(p != q);
+    q.RAm(q.RAm()-15.0/3600.0);
+    ASSERT_TRUE(p == q);
+    ASSERT_FALSE(p != q);
+    q.DECm(q.DECm()+1.0/3600.0);
+    ASSERT_FALSE(p == q);
+    ASSERT_TRUE(p != q);
+    q.DECm(q.DECm()-1.0/3600.0);
+    ASSERT_TRUE(p == q);
+    ASSERT_FALSE(p != q);
+}
+
 TEST(EQ500XDriverTest, test_PierFlip)
 {
     EQ500X::MechanicalPoint p;

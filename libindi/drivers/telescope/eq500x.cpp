@@ -257,34 +257,30 @@ bool EQ500X::ReadScopeStatus()
     if (TrackState == SCOPE_SLEWING)
     {
         // Compute RA/DEC deltas - keep in mind RA is in hours on the mount, with a granularity of 15 degrees
-        double ra_delta = currentPosition.RA_degrees_to(targetPosition);
-        double dec_delta = currentPosition.DEC_degrees_to(targetPosition);
+        double const ra_delta = currentPosition.RA_degrees_to(targetPosition);
+        double const dec_delta = currentPosition.DEC_degrees_to(targetPosition);
+        double const abs_ra_delta = std::abs(ra_delta);
+        double const abs_dec_delta = std::abs(dec_delta);
 
         // If mount is not at target, adjust
-        if (currentPosition != targetPosition)
+        if (RA_GRANULARITY <= abs_ra_delta || DEC_GRANULARITY <= abs_dec_delta)
         {
             // This will hold required adjustments in RA and DEC axes
             struct _adjustment const *ra_adjust = nullptr, *dec_adjust = nullptr;
 
             // Choose slew rate for RA based on distance to target
-            {
-                double const abs_ra_delta = std::abs(ra_delta);
-                for(size_t i = 0; i < sizeof(adjustments) && nullptr == ra_adjust; i++)
-                    if (abs_ra_delta <= adjustments[i].distance)
-                        ra_adjust = &adjustments[i];
-                assert(nullptr != ra_adjust);
-                LOGF_DEBUG("RA  %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetPosition.RAm()*15.0, currentPosition.RAm(), ra_delta, ra_adjust->distance, ra_adjust->slew_rate, std::max(ra_adjust->epsilon, 15.0/3600.0));
-            }
+            for(size_t i = 0; i < sizeof(adjustments) && nullptr == ra_adjust; i++)
+                if (abs_ra_delta <= adjustments[i].distance)
+                    ra_adjust = &adjustments[i];
+            assert(nullptr != ra_adjust);
+            LOGF_DEBUG("RA  %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetPosition.RAm()*15.0, currentPosition.RAm()*15.0, ra_delta, ra_adjust->distance, ra_adjust->slew_rate, std::max(ra_adjust->epsilon, 15.0/3600.0));
 
             // Choose slew rate for DEC based on distance to target
-            {
-                double const abs_dec_delta = std::abs(dec_delta);
-                for(size_t i = 0; i < sizeof(adjustments) && nullptr == dec_adjust; i++)
-                    if (abs_dec_delta <= adjustments[i].distance)
-                        dec_adjust = &adjustments[i];
-                assert(nullptr != dec_adjust);
-                LOGF_DEBUG("DEC %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetPosition.DECm(), currentPosition.DECm(), dec_delta, dec_adjust->distance, dec_adjust->slew_rate, dec_adjust->epsilon);
-            }
+            for(size_t i = 0; i < sizeof(adjustments) && nullptr == dec_adjust; i++)
+                if (abs_dec_delta <= adjustments[i].distance)
+                    dec_adjust = &adjustments[i];
+            assert(nullptr != dec_adjust);
+            LOGF_DEBUG("DEC %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetPosition.DECm(), currentPosition.DECm(), dec_delta, dec_adjust->distance, dec_adjust->slew_rate, dec_adjust->epsilon);
 
             // This will hold the command string to send to the mount, with move commands
             char CmdString[32] = {0};
