@@ -321,13 +321,13 @@ bool EQ500X::ReadScopeStatus()
                 double const ra_epsilon = std::max(adjustment->epsilon, RA_GRANULARITY);
 
                 // Find requirement
-                bool go_east = ra_epsilon <= ra_delta;
-                bool go_west = ra_delta <= -ra_epsilon;
+                bool const go_east = ra_epsilon <= ra_delta;
+                bool const go_west = ra_delta <= -ra_epsilon;
                 assert(!(go_east && go_west));
 
                 // Stop movement if required - just stopping or going opposite
-                if ((!go_east && east) || (go_east && west)) { strcat(CmdString, ":Qw#"); west = false; }
-                if ((!go_west && west) || (go_west && east)) { strcat(CmdString, ":Qe#"); east = false; }
+                if (east && (!go_east || go_west)) { strcat(CmdString, ":Qe#"); east = false; }
+                if (west && (!go_west || go_east)) { strcat(CmdString, ":Qw#"); west = false; }
 
                 // Initiate movement if required
                 if (go_east && !east) { strcat(CmdString, ":Me#"); east = true; }
@@ -342,13 +342,13 @@ bool EQ500X::ReadScopeStatus()
                 double const dec_epsilon = std::max(adjustment->epsilon, DEC_GRANULARITY);
 
                 // Find requirement
-                bool go_south = dec_epsilon <= dec_delta;
-                bool go_north = dec_delta <= -dec_epsilon;
+                bool const go_south = dec_epsilon <= dec_delta;
+                bool const go_north = dec_delta <= -dec_epsilon;
                 assert(!(go_south && go_north));
 
                 // Stop movement if required - just stopping or going opposite
-                if ((!go_south && south) || (go_south && north)) { strcat(CmdString, ":Qn#"); north = false; }
-                if ((!go_north && north) || (go_north && south)) { strcat(CmdString, ":Qs#"); south = false; }
+                if (south && (!go_south || go_north)) { strcat(CmdString, ":Qs#"); south = false; }
+                if (north && (!go_north || go_south)) { strcat(CmdString, ":Qn#"); north = false; }
 
                 // Initiate movement if required
                 if (go_south && !south) { strcat(CmdString, ":Ms#"); south = true; }
