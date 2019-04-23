@@ -31,6 +31,10 @@ public:
         resetSimulation();
         ISGetProperties("");
         setSimulation(true);
+        setDebug(true);
+        char * names[] = {"DBG_DEBUG"};
+        ISState states[] = {ISS_ON};
+        ISNewSwitch(getDeviceName(),"DEBUG_LEVEL",states,names,1);
         if (checkConnection())
             setConnected(true);
     }
