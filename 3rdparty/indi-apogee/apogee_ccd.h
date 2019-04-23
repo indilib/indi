@@ -148,9 +148,6 @@ class ApogeeCCD : public INDI::CCD, public INDI::FilterInterface
         uint16_t GetID(const std::string &msg);
         uint16_t GetFrmwrRev(const std::string &msg);
 
-        bool connectCamera();
-        bool connectCFW();
-
         bool IsDeviceCamera(const std::string &msg);
         bool IsDeviceFilterWheel(const std::string &msg);
         bool IsAscent(const std::string &msg);

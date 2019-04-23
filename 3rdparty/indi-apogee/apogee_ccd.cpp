@@ -902,29 +902,35 @@ CamModel::PlatformType ApogeeCCD::GetModel(const std::string &msg)
     return CamModel::GetPlatformType(modelStr);
 }
 
+//bool ApogeeCCD::Connect()
+//{
+//    cameraFound = cfwFound = false;
+
+//    bool rcCamera = connectCamera();
+
+//    bool rcCFW = true;
+
+//    if (IUFindOnSwitchIndex(&FilterTypeSP) != TYPE_UNKNOWN)
+//        rcCFW = connectCFW();
+
+//    return rcCamera && rcCFW;
+//}
+
 bool ApogeeCCD::Connect()
 {
     cameraFound = cfwFound = false;
 
-    bool rcCamera = connectCamera();
-
-    bool rcCFW = true;
-
-    if (IUFindOnSwitchIndex(&FilterTypeSP) != TYPE_UNKNOWN)
-        rcCFW = connectCFW();
-
-    return rcCamera && rcCFW;
-}
-
-bool ApogeeCCD::connectCamera()
-{
-    std::string msg;
-    std::string addr;
+    std::string msg, addr, token, token_ip;
+    std::string cameraInfo, cfwInfo;
     std::string delimiter = "</d>";
-    size_t pos = 0;
-    std::string token, token_ip;
+    size_t pos = 0;    
 
-    LOG_INFO("Attempting to find Apogee CCD...");
+    bool findCFW = IUFindOnSwitchIndex(&FilterTypeSP) != TYPE_UNKNOWN;
+
+    if (!findCFW)
+        LOG_INFO("Searching for Apogee CCD...");
+    else
+        LOG_INFO("Searching for Apogee CCD & CFW...");
 
     // USB
     if (PortTypeS[0].s == ISS_ON)
@@ -957,12 +963,23 @@ bool ApogeeCCD::connectCamera()
             token    = msg.substr(0, pos);
             LOGF_DEBUG("Checking device: %s", token.c_str());
 
-            cameraFound = IsDeviceCamera(token);
-            if (cameraFound)
+            if (cameraFound == false)
             {
-                msg = token;
-                break;
+                cameraFound = IsDeviceCamera(token);
+                if (cameraFound)
+                    cameraInfo = token;
             }
+            else if (findCFW && cfwFound == false)
+            {
+                cfwFound = IsDeviceFilterWheel(token);
+                if (cfwFound)
+                    cfwInfo = token;
+            }
+
+            // Exit if camera and optionally cfw are found
+            // if no cfw is required, then just camera suffice
+            if (cameraFound && (findCFW == false || (findCFW && cfwFound)))
+                break;
 
             msg.erase(0, pos + delimiter.length());
         }
@@ -1013,7 +1030,7 @@ bool ApogeeCCD::connectCamera()
         {
             token    = msg.substr(0, pos);
 
-            if (IsDeviceCamera(token))
+            if (cameraFound == false && IsDeviceCamera(token))
             {
                 if (rc == 2)
                 {
@@ -1022,8 +1039,7 @@ bool ApogeeCCD::connectCamera()
                     LOGF_INFO("Detected camera at %s", addr.c_str());
                     IDSetText(&NetworkInfoTP, nullptr);
                     cameraFound = true;
-                    msg = token;
-                    break;
+                    cameraInfo = token;
                 }
                 else
                 {
@@ -1032,13 +1048,39 @@ bool ApogeeCCD::connectCamera()
                     LOGF_DEBUG("Checking %s (%s) for IP %s", token.c_str(), token_ip.c_str(), ip);
                     if (token_ip == ip)
                     {
-                        msg = token;
                         LOGF_DEBUG("IP matched (%s).", msg.c_str());
                         cameraFound = true;
-                        break;
+                        cameraInfo = token;
                     }
                 }
             }
+            else if (findCFW && cfwFound == false && IsDeviceFilterWheel(token))
+            {
+                if (rc == 2)
+                {
+                    addr = GetEthernetAddress(token);
+                    LOGF_INFO("Detected filter wheel at %s", addr.c_str());
+                    cfwFound = true;
+                    cfwInfo = token;
+                }
+                else
+                {
+                    token_ip = GetIPAddress(token);
+                    addr = GetEthernetAddress(token);
+                    LOGF_DEBUG("Checking %s (%s) for IP %s", token.c_str(), token_ip.c_str(), ip);
+                    if (token_ip == ip)
+                    {
+                        LOGF_DEBUG("IP matched (%s).", msg.c_str());
+                        cfwFound = true;
+                        cfwInfo = token;
+                    }
+                }
+            }
+
+            // Exit if camera and optionally cfw are found
+            // if no cfw is required, then just camera suffice
+            if (cameraFound && (findCFW == false || (findCFW && cfwFound)))
+                break;
 
             msg.erase(0, pos + delimiter.length());
         }
@@ -1050,18 +1092,18 @@ bool ApogeeCCD::connectCamera()
         return false;
     }
 
-    uint16_t id       = GetID(msg);
-    uint16_t frmwrRev = GetFrmwrRev(msg);
+    uint16_t id       = GetID(cameraInfo);
+    uint16_t frmwrRev = GetFrmwrRev(cameraInfo);
 
     char firmwareStr[16];
     snprintf(firmwareStr, 16, "0x%X", frmwrRev);
     firmwareRev = std::string(firmwareStr);
 
-    model = GetModel(msg);
-    addr = GetUsbAddress(msg);
+    model = GetModel(cameraInfo);
+    addr = GetUsbAddress(cameraInfo);
 
     LOGF_INFO("Model: %s ID: %d Address: %s Firmware: %s",
-              GetItemFromFindStr(msg, "model=").c_str(), id, addr.c_str(), firmwareRev.c_str());
+              GetItemFromFindStr(cameraInfo, "model=").c_str(), id, addr.c_str(), firmwareRev.c_str());
 
     switch (model)
     {
@@ -1088,7 +1130,7 @@ bool ApogeeCCD::connectCamera()
 
         default:
             LOGF_ERROR("Model %s is not supported by the INDI Apogee driver.",
-                       GetItemFromFindStr(msg, "model=").c_str());
+                       GetItemFromFindStr(cameraInfo, "model=").c_str());
             return false;
     }
 
@@ -1108,7 +1150,68 @@ bool ApogeeCCD::connectCamera()
 
     uint32_t cap = CCD_CAN_ABORT | CCD_CAN_BIN | CCD_CAN_SUBFRAME | CCD_HAS_COOLER | CCD_HAS_SHUTTER;
     SetCCDCapability(cap);
-    LOG_INFO("Camera is online. Retrieving basic data.");
+
+    // If we do not need to find CFW, we're done.
+    if (findCFW == false)
+    {
+        LOG_INFO("Camera is online. Retrieving basic data.");
+        return true;
+    }
+
+    LOG_INFO("Camera is online.");
+
+    if (cfwFound == false)
+    {
+        LOG_ERROR("Unable to find Apogee Filter Wheels attached. Please check connection and power and try again.");
+        return false;
+    }
+
+    try
+    {
+        if (isSimulation() == false)
+        {
+            ApogeeFilterWheel::Type type = static_cast<ApogeeFilterWheel::Type>(IUFindOnSwitchIndex(&FilterTypeSP));
+            LOGF_DEBUG("Opening connection to CFW type: %d @ address: %s", type, addr.c_str());
+            ApgCFW->Init(type, addr);
+        }
+    }
+    catch (std::runtime_error &err)
+    {
+        LOGF_ERROR("Error opening CFW: %s", err.what());
+        return false;
+    }
+
+    if (isSimulation())
+        FilterSlotN[0].max = 5;
+    else
+    {
+        try
+        {
+            FilterSlotN[0].max = ApgCFW->GetMaxPositions();
+        }
+        catch(std::runtime_error &err)
+        {
+            LOGF_ERROR("Failed to retrieve maximum filter position: %s", err.what());
+            ApgCFW->Close();
+            return false;
+        }
+    }
+
+    if (isSimulation())
+    {
+        IUSaveText(&FilterInfoT[INFO_NAME], "Simulated Filter");
+        IUSaveText(&FilterInfoT[INFO_FIRMWARE], "123456");
+    }
+    else
+    {
+        IUSaveText(&FilterInfoT[INFO_NAME], ApgCFW->GetName().c_str());
+        IUSaveText(&FilterInfoT[INFO_FIRMWARE], ApgCFW->GetUsbFirmwareRev().c_str());
+    }
+
+    FilterInfoTP.s = IPS_OK;
+
+    LOG_INFO("CFW is online.");
+
     return true;
 }
 
@@ -1410,6 +1513,7 @@ bool ApogeeCCD::IsDeviceFilterWheel(const std::string &msg)
     return (0 == str.compare("filterWheel") ? true : false);
 }
 
+#if 0
 bool ApogeeCCD::connectCFW()
 {
     std::string msg;
@@ -1596,3 +1700,4 @@ bool ApogeeCCD::connectCFW()
     LOG_INFO("CFW is online.");
     return true;
 }
+#endif
