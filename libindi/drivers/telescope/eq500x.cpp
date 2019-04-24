@@ -291,7 +291,24 @@ bool EQ500X::ReadScopeStatus()
             static struct _adjustment const * previous_adjustment = nullptr;
 
             // We adjust the axis which has the faster slew rate first, eventually both axis at the same time if they have same speed
+            // Because we have only one rate for both axes, we need to choose the fastest rate and control the axis (eventually both) which requires that rate
             struct _adjustment const * const adjustment = ra_adjust < dec_adjust ? dec_adjust : ra_adjust;
+
+            // If RA was moving but now would be moving at the wrong rate, stop it
+            if (ra_adjust != adjustment)
+            {
+                if (east) { strcat(CmdString, ":Qe#"); east = false; }
+                if (west) { strcat(CmdString, ":Qw#"); west = false; }
+            }
+
+            // If DEC was moving but now would be moving at the wrong rate, stop it
+            if (dec_adjust != adjustment)
+            {
+                if (north) { strcat(CmdString, ":Qn#"); north = false; }
+                if (south) { strcat(CmdString, ":Qs#"); south = false; }
+            }
+
+            // Prepare for the new rate
             if (previous_adjustment != adjustment)
             {
                 // Add the new slew rate
