@@ -99,6 +99,10 @@ EQ500X::EQ500X(): LX200Generic()
     for (size_t i = 0; i < sizeof(adjustments)/sizeof(adjustments[0])-1; i++)
         assert(adjustments[i+1].epsilon <= adjustments[i].distance);
 
+    // Sanitize constants: epsilon of slew rates must be smaller than distance
+    for (size_t i = 0; i < sizeof(adjustments)/sizeof(adjustments[0]); i++)
+        assert(adjustments[i].epsilon <= adjustments[i].distance);
+
     // Only pulse guiding, no tracking frequency
     setLX200Capability(LX200_HAS_PULSE_GUIDING);
 
@@ -585,9 +589,9 @@ sync_error:
 
 bool EQ500X::Abort()
 {
-    LX200Telescope::Abort();
     POLLMS = 1000;
     TrackState = SCOPE_TRACKING;
+    return LX200Telescope::Abort();
 }
 
 void EQ500X::setPierSide(TelescopePierSide side)
