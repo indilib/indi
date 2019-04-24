@@ -1166,6 +1166,7 @@ bool ApogeeCCD::Connect()
         return false;
     }
 
+    ApgCFW.reset(new ApogeeFilterWheel());
     addr = GetUsbAddress(cfwInfo);
 
     try
