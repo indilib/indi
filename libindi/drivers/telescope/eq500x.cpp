@@ -86,7 +86,7 @@ const adjustments[] = {
 {":RG#",   1*ARCSECOND,  0.7*ARCMINUTE, 100 },   // Guiding speed
 {":RC#", 0.7*ARCMINUTE,   10*ARCMINUTE, 200 },   // Centering speed
 {":RM#",  10*ARCMINUTE,    5*ONEDEGREE, 500 },   // Finding speed
-{":RS#",   5*ONEDEGREE,   10*ONEDEGREE, 500 },   // Slew speed
+{":RS#",   5*ONEDEGREE,   10*ONEDEGREE, 200 },   // Slew speed
 {":RS#",  10*ONEDEGREE,  360*ONEDEGREE, 1000 }}; // Slew speed
 
 /**************************************************************************************
@@ -253,6 +253,9 @@ bool EQ500X::ReadScopeStatus()
         currentDEC = currentPosition.DECm();
     }
 
+    // Movement markers, adjustment is done when no movement is required and all flags are cleared
+    static bool east = false, west = false, north = false, south = false;
+
     // If we are slewing, adjust movement and timer time to achieve arcsecond goto precision
     if (TrackState == SCOPE_SLEWING)
     {
@@ -305,9 +308,6 @@ bool EQ500X::ReadScopeStatus()
                 previous_adjustment = adjustment;
             }
             LOGF_DEBUG("Current adjustment speed is %s", adjustment->slew_rate);
-
-            // Movement markers, adjustment is done when no movement is required and all flags are cleared
-            static bool east = false, west = false, north = false, south = false;
 
             // If RA is being adjusted, check delta against adjustment epsilon to enable or disable movement
             // The smallest change detectable in RA is 1/3600 hours, or 15/3600 degrees
@@ -426,6 +426,14 @@ bool EQ500X::ReadScopeStatus()
             EqNP.s = IPS_OK;
             IDSetNumber(&EqNP, "Mount is tracking");
         }
+    }
+    else
+    {
+        // Force-reset markers in case we got aborted
+        if (north) north = false;
+        if (south) south = false;
+        if (east) east = false;
+        if (west) west = false;
     }
 
     // Update RA/DEC properties
@@ -558,6 +566,13 @@ sync_error:
     IDSetNumber(&EqNP, "Synchronization failed.");
     LOGF_ERROR("Mount sync to target RA '%lf' DEC '%lf' failed", targetPosition.RAm(), targetPosition.DECm());
     return true;
+}
+
+bool EQ500X::Abort()
+{
+    LX200Telescope::Abort();
+    POLLMS = 1000;
+    TrackState = SCOPE_TRACKING;
 }
 
 void EQ500X::setPierSide(TelescopePierSide side)

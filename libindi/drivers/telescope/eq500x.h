@@ -57,6 +57,7 @@ protected:
     virtual bool initProperties() override;
     virtual bool Goto(double, double) override;
     virtual bool Sync(double, double) override;
+    virtual bool Abort() override;
     virtual void setPierSide(TelescopePierSide);
 private:
     MechanicalPoint currentPosition, targetPosition;
