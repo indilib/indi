@@ -320,7 +320,8 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         else
         {
             delXMLEle(root);
-            return false;
+            // If property does not exist, save the whole thing
+            return saveConfig(silent);
         }
     }
 
