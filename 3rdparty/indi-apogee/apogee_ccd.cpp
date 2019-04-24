@@ -232,8 +232,8 @@ bool ApogeeCCD::updateProperties()
 
         if (cfwFound)
         {
-          INDI::FilterInterface::updateProperties();
-          deleteProperty(FilterInfoTP.name);
+            INDI::FilterInterface::updateProperties();
+            deleteProperty(FilterInfoTP.name);
         }
 
         rmTimer(timerID);
@@ -510,7 +510,7 @@ bool ApogeeCCD::ISNewText(const char *dev, const char *name, char *texts[], char
 
 bool ApogeeCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    if(!strcmp(dev,getDeviceName()))
+    if(!strcmp(dev, getDeviceName()))
     {
         if (!strcmp(name, FilterSlotNP.name))
         {
@@ -923,7 +923,7 @@ bool ApogeeCCD::Connect()
     std::string msg, addr, token, token_ip;
     std::string cameraInfo, cfwInfo;
     std::string delimiter = "</d>";
-    size_t pos = 0;    
+    size_t pos = 0;
 
     bool findCFW = IUFindOnSwitchIndex(&FilterTypeSP) != TYPE_UNKNOWN;
 
@@ -1165,6 +1165,8 @@ bool ApogeeCCD::Connect()
         LOG_ERROR("Unable to find Apogee Filter Wheels attached. Please check connection and power and try again.");
         return false;
     }
+
+    addr = GetUsbAddress(cfwInfo);
 
     try
     {
