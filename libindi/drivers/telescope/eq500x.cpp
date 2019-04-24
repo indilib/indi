@@ -86,8 +86,7 @@ const adjustments[] = {
 {":RG#",   1*ARCSECOND,  0.7*ARCMINUTE, 100 },   // Guiding speed
 {":RC#", 0.7*ARCMINUTE,   10*ARCMINUTE, 200 },   // Centering speed
 {":RM#",  10*ARCMINUTE,    5*ONEDEGREE, 500 },   // Finding speed
-{":RS#",   5*ONEDEGREE,   10*ONEDEGREE, 200 },   // Slew speed
-{":RS#",  10*ONEDEGREE,  360*ONEDEGREE, 1000 }}; // Slew speed
+{":RS#",   5*ONEDEGREE,  360*ONEDEGREE, 1000 }}; // Slew speed
 
 /**************************************************************************************
 ** EQ500X Constructor
@@ -374,7 +373,6 @@ bool EQ500X::ReadScopeStatus()
                         /*RG*/5*ARCSECOND,
                         /*RC*/5*ARCMINUTE,
                         /*RM*/20*ARCMINUTE,
-                        /*RS*/5*ONEDEGREE,
                         /*RS*/5*ONEDEGREE,
                 };
 
