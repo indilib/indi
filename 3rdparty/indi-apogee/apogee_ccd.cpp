@@ -969,7 +969,8 @@ bool ApogeeCCD::Connect()
                 if (cameraFound)
                     cameraInfo = token;
             }
-            else if (findCFW && cfwFound == false)
+
+            if (findCFW && cfwFound == false)
             {
                 cfwFound = IsDeviceFilterWheel(token);
                 if (cfwFound)
