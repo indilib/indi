@@ -1,6 +1,8 @@
 /*******************************************************************************
-  Copyright(c) 2018 Franck Le Rhun. All rights reserved.
-  Copyright(c) 2018 Christian Liska. All rights reserved.
+ Copyright(c) 2019 Christian Liska. All rights reserved.
+
+ Implementation based on Lacerta MFOC driver
+ (written 2018 by Franck Le Rhun and Christian Liska).
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -17,7 +19,7 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
-#include "lacerta_mfoc.h"
+#include "astromechanics_foc.h"
 #include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
@@ -26,35 +28,34 @@
 #include <cstring>
 #include <unistd.h>
 
-// We declare an auto pointer to lacerta_mfoc.
-static std::unique_ptr<lacerta_mfoc> Lacerta_mfoc(new lacerta_mfoc());
+// We declare an auto pointer to astromechanics_foc.
+static std::unique_ptr<astromechanics_foc> Astromechanics_foc(new astromechanics_foc());
 
 // Delay for receiving messages
-#define FOCUSMFOC_TIMEOUT  1000
-// According to documentation for v2
-#define MFOC_POSMAX_HARDWARE 250000
-#define MFOC_POSMIN_HARDWARE 300
+#define FOCUS_TIMEOUT  1000
+#define FOC_POSMAX_HARDWARE 9999
+#define FOC_POSMIN_HARDWARE 0
 
 void ISPoll(void *p);
 
 void ISGetProperties(const char *dev)
 {
-    Lacerta_mfoc->ISGetProperties(dev);
+    Astromechanics_foc->ISGetProperties(dev);
 }
 
 void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    Lacerta_mfoc->ISNewSwitch(dev, name, states, names, n);
+    Astromechanics_foc->ISNewSwitch(dev, name, states, names, n);
 }
 
 void ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
 {
-    Lacerta_mfoc->ISNewText(dev, name, texts, names, n);
+    Astromechanics_foc->ISNewText(dev, name, texts, names, n);
 }
 
 void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    Lacerta_mfoc->ISNewNumber(dev, name, values, names, n);
+    Astromechanics_foc->ISNewNumber(dev, name, values, names, n);
 }
 
 void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[],
@@ -72,13 +73,13 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
 
 void ISSnoopDevice(XMLEle *root)
 {
-    Lacerta_mfoc->ISSnoopDevice(root);
+    Astromechanics_foc->ISSnoopDevice(root);
 }
 
 /************************************************************************************
  *
 ************************************************************************************/
-lacerta_mfoc::lacerta_mfoc()
+astromechanics_foc::astromechanics_foc()
 {
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
@@ -86,15 +87,15 @@ lacerta_mfoc::lacerta_mfoc()
 /************************************************************************************
  *
 ************************************************************************************/
-const char *lacerta_mfoc::getDefaultName()
+const char *astromechanics_foc::getDefaultName()
 {
-    return "Lacerta MFOC";
+    return "Astromechanics FOC";
 }
 
 /************************************************************************************
  *
 ************************************************************************************/
-void lacerta_mfoc::ISGetProperties(const char *dev)
+void astromechanics_foc::ISGetProperties(const char *dev)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
         return;
@@ -111,7 +112,7 @@ void lacerta_mfoc::ISGetProperties(const char *dev)
 /************************************************************************************
  *
 ************************************************************************************/
-bool lacerta_mfoc::initProperties()
+bool astromechanics_foc::initProperties()
 {
     INDI::Focuser::initProperties();
 
@@ -123,10 +124,10 @@ bool lacerta_mfoc::initProperties()
     IUFillNumberVector(&TempCompNP, TempCompN, 1, getDeviceName(), "TEMPCOMP_SETTINGS", "T Comp.", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
 
-    FocusMaxPosN[0].min = MFOC_POSMIN_HARDWARE;
-    FocusMaxPosN[0].max = MFOC_POSMAX_HARDWARE;
+    FocusMaxPosN[0].min = FOC_POSMIN_HARDWARE;
+    FocusMaxPosN[0].max = FOC_POSMAX_HARDWARE;
     FocusMaxPosN[0].step = (FocusMaxPosN[0].max - FocusMaxPosN[0].min) / 20.0;
-    FocusMaxPosN[0].value = 8000;
+    FocusMaxPosN[0].value = 5000;
 
     FocusAbsPosN[0].max = FocusAbsPosN[0].value;
 
@@ -147,7 +148,7 @@ bool lacerta_mfoc::initProperties()
 /************************************************************************************
  *
 ************************************************************************************/
-bool lacerta_mfoc::updateProperties()
+bool astromechanics_foc::updateProperties()
 {
     // Get Initial Position before we define it in the INDI::Focuser class
     FocusAbsPosN[0].value = GetAbsFocuserPosition();
@@ -176,26 +177,26 @@ bool lacerta_mfoc::updateProperties()
 /************************************************************************************
  *
 ************************************************************************************/
-bool lacerta_mfoc::Handshake()
+bool astromechanics_foc::Handshake()
 {
-    char MFOC_cmd[32] = ": Q #";
-    char MFOC_res[32] = {0};
-    char MFOC_res_type[32] = "0";
-    int MFOC_pos_measd = 0;
+    char FOC_cmd[32] = ": Q #";
+    char FOC_res[32] = {0};
+    char FOC_res_type[32] = "0";
+    int FOC_pos_measd = 0;
     int nbytes_written = 0;
     int nbytes_read = 0;
 
 
-    tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    LOGF_INFO("CMD <%s>", MFOC_cmd);
-    tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
-    LOGF_DEBUG("RES <%s>", MFOC_res_type);
+    tty_write_string(PortFD, FOC_cmd, &nbytes_written);
+    LOGF_INFO("CMD <%s>", FOC_cmd);
+    tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
+    LOGF_DEBUG("RES <%s>", FOC_res_type);
 
-    sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_pos_measd);
+    sscanf(FOC_res, "%s %d", FOC_res_type, &FOC_pos_measd);
 
-    if (MFOC_res_type[0] == 'P')
+    if (FOC_res_type[0] == 'P')
     {
-        FocusAbsPosN[0].value = MFOC_pos_measd;
+        FocusAbsPosN[0].value = FOC_pos_measd;
         FocusAbsPosNP.s = IPS_OK;
         return true;
     }
@@ -206,7 +207,7 @@ bool lacerta_mfoc::Handshake()
 /************************************************************************************
  *
 ************************************************************************************/
-bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+bool astromechanics_foc::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -216,28 +217,28 @@ bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *state
             IUUpdateSwitch(&TempTrackDirSP, states, names, n);
             int tdir = 0;
             int index    = IUFindOnSwitchIndex(&TempTrackDirSP);
-            char MFOC_cmd[32]  = ": I ";
-            char MFOC_res[32]  = {0};
+            char FOC_cmd[32]  = ": I ";
+            char FOC_res[32]  = {0};
             int nbytes_read    = 0;
             int nbytes_written = 0;
-            int MFOC_tdir_measd = 0;
-            char MFOC_res_type[32]  = "0";
+            int FOC_tdir_measd = 0;
+            char FOC_res_type[32]  = "0";
 
             switch (index)
             {
                 case MODE_TDIR_BOTH:
                     tdir = 0;
-                    strcat(MFOC_cmd, "0 #");
+                    strcat(FOC_cmd, "0 #");
                     break;
 
                 case MODE_TDIR_IN:
                     tdir = 1;
-                    strcat(MFOC_cmd, "1 #");
+                    strcat(FOC_cmd, "1 #");
                     break;
 
                 case MODE_TDIR_OUT:
                     tdir = 2;
-                    strcat(MFOC_cmd, "2 #");
+                    strcat(FOC_cmd, "2 #");
                     break;
 
                 default:
@@ -247,14 +248,14 @@ bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *state
             }
 
 
-            tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-            LOGF_DEBUG("CMD <%s>", MFOC_cmd);
+            tty_write_string(PortFD, FOC_cmd, &nbytes_written);
+            LOGF_DEBUG("CMD <%s>", FOC_cmd);
             tty_write_string(PortFD, ": W #", &nbytes_written);
-            tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
-            sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_tdir_measd);
-            LOGF_DEBUG("RES <%s>", MFOC_res);
+            tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
+            sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_tdir_measd);
+            LOGF_DEBUG("RES <%s>", FOC_res);
 
-            if  (MFOC_tdir_measd == tdir)
+            if  (FOC_tdir_measd == tdir)
             {
                 TempTrackDirSP.s = IPS_OK;
             }
@@ -274,23 +275,23 @@ bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *state
             IUUpdateSwitch(&StartSavedPositionSP, states, names, n);
             int svstart = 0;
             int index    = IUFindOnSwitchIndex(&StartSavedPositionSP);
-            char MFOC_cmd[32]  = ": F ";
-            char MFOC_res[32]  = {0};
+            char FOC_cmd[32]  = ": F ";
+            char FOC_res[32]  = {0};
             int nbytes_read    = 0;
             int nbytes_written = 0;
-            int MFOC_svstart_measd = 0;
-            char MFOC_res_type[32]  = "0";
+            int FOC_svstart_measd = 0;
+            char FOC_res_type[32]  = "0";
 
             switch (index)
             {
                 case MODE_SAVED_ON:
                     svstart = 1;
-                    strcat(MFOC_cmd, "1 #");
+                    strcat(FOC_cmd, "1 #");
                     break;
 
                 case MODE_SAVED_OFF:
                     svstart = 0;
-                    strcat(MFOC_cmd, "0 #");
+                    strcat(FOC_cmd, "0 #");
                     break;
 
                 default:
@@ -299,15 +300,15 @@ bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *state
                     return true;
             }
 
-            tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-            LOGF_DEBUG("CMD <%s>", MFOC_cmd);
+            tty_write_string(PortFD, FOC_cmd, &nbytes_written);
+            LOGF_DEBUG("CMD <%s>", FOC_cmd);
             tty_write_string(PortFD, ": N #", &nbytes_written);
-            tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
-            sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_svstart_measd);
+            tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
+            sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_svstart_measd);
 
-            LOGF_DEBUG("RES <%s>", MFOC_res);
-            //            LOGF_DEBUG("Debug MFOC cmd sent %s", MFOC_cmd);
-            if  (MFOC_svstart_measd == svstart)
+            LOGF_DEBUG("RES <%s>", FOC_res);
+            //            LOGF_DEBUG("Debug FOC cmd sent %s", FOC_cmd);
+            if  (FOC_svstart_measd == svstart)
             {
                 StartSavedPositionSP.s = IPS_OK;
             }
@@ -324,7 +325,7 @@ bool lacerta_mfoc::ISNewSwitch(const char *dev, const char *name, ISState *state
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-bool lacerta_mfoc::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
+bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
@@ -347,114 +348,114 @@ bool lacerta_mfoc::ISNewNumber(const char *dev, const char *name, double values[
 /************************************************************************************
  *
 ************************************************************************************/
-bool lacerta_mfoc::SetBacklash(double values[], char *names[], int n)
+bool astromechanics_foc::SetBacklash(double values[], char *names[], int n)
 {
     LOGF_DEBUG("-> BACKLASH_SETTINGS", 0);
-    char MFOC_cmd[32]  = ": B ";
-    char MFOC_res[32]  = {0};
+    char FOC_cmd[32]  = ": B ";
+    char FOC_res[32]  = {0};
     int nbytes_read    =  0;
     int nbytes_written =  0;
-    int MFOC_tdir_measd = 0;
+    int FOC_tdir_measd = 0;
     int bl_int = 0;
     char bl_char[32]  = {0};
-    char MFOC_res_type[32]  = "0";
+    char FOC_res_type[32]  = "0";
     BacklashNP.s = IPS_OK;
     IUUpdateNumber(&BacklashNP, values, names, n);
     bl_int = BacklashN[0].value;
     sprintf(bl_char, "%d", bl_int);
     strcat(bl_char, " #");
-    strcat(MFOC_cmd, bl_char);
+    strcat(FOC_cmd, bl_char);
 
-    tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    LOGF_DEBUG("CMD <%s>", MFOC_cmd);
+    tty_write_string(PortFD, FOC_cmd, &nbytes_written);
+    LOGF_DEBUG("CMD <%s>", FOC_cmd);
     tty_write_string(PortFD, ": J #", &nbytes_written);
 
-    tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
+    tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
 
-    sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_tdir_measd);
+    sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_tdir_measd);
 
-    LOGF_DEBUG("RES <%s>", MFOC_res);
+    LOGF_DEBUG("RES <%s>", FOC_res);
 
     IDSetNumber(&BacklashNP, nullptr);
 
     return true;
 }
 
-bool lacerta_mfoc::SetTempComp(double values[], char *names[], int n)
+bool astromechanics_foc::SetTempComp(double values[], char *names[], int n)
 {
     LOGF_INFO("-> TEMPCOMP_SETTINGS", 0);
-    char MFOC_cmd[32]  = ": D ";
-    char MFOC_res[32]  = {0};
+    char FOC_cmd[32]  = ": D ";
+    char FOC_res[32]  = {0};
     int nbytes_read    =  0;
     int nbytes_written =  0;
-    int MFOC_tc_measd = 0;
+    int FOC_tc_measd = 0;
     int tc_int = 0;
     char tc_char[32]  = {0};
-    char MFOC_res_type[32]  = "0";
+    char FOC_res_type[32]  = "0";
     TempCompNP.s = IPS_OK;
     IUUpdateNumber(&TempCompNP, values, names, n);
     tc_int = TempCompN[0].value;
     sprintf(tc_char, "%d", tc_int);
     strcat(tc_char, " #");
-    strcat(MFOC_cmd, tc_char);
+    strcat(FOC_cmd, tc_char);
 
-    tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    LOGF_DEBUG("CMD <%s>", MFOC_cmd);
+    tty_write_string(PortFD, FOC_cmd, &nbytes_written);
+    LOGF_DEBUG("CMD <%s>", FOC_cmd);
     tty_write_string(PortFD, ": U #", &nbytes_written);
 
-    tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
+    tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
 
-    sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_tc_measd);
+    sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_tc_measd);
 
-    LOGF_DEBUG("RES <%s>", MFOC_res);
+    LOGF_DEBUG("RES <%s>", FOC_res);
 
     IDSetNumber(&TempCompNP, nullptr);
 
     return true;
 }
 
-bool lacerta_mfoc::SetFocuserMaxPosition(uint32_t ticks)
+bool astromechanics_foc::SetFocuserMaxPosition(uint32_t ticks)
 {
-    char MFOC_cmd[32]  = ": G ";
-    char MFOC_res[32]  = {0};
+    char FOC_cmd[32]  = ": G ";
+    char FOC_res[32]  = {0};
     int nbytes_read    =  0;
     int nbytes_written =  0;
-    int MFOC_pm_measd = 0;
+    int FOC_pm_measd = 0;
     char pm_char[32]  = {0};
-    char MFOC_res_type[32]  = "0";
+    char FOC_res_type[32]  = "0";
 
     sprintf(pm_char, "%d", ticks);
     strcat(pm_char, " #");
-    strcat(MFOC_cmd, pm_char);
+    strcat(FOC_cmd, pm_char);
 
-    tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    LOGF_DEBUG("CMD <%s>", MFOC_cmd);
+    tty_write_string(PortFD, FOC_cmd, &nbytes_written);
+    LOGF_DEBUG("CMD <%s>", FOC_cmd);
     tty_write_string(PortFD, ": O #", &nbytes_written);
 
-    tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
+    tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
 
-    sscanf (MFOC_res, "%s %d", MFOC_res_type, &MFOC_pm_measd);
+    sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_pm_measd);
 
-    LOGF_DEBUG("RES <%s>", MFOC_res);
+    LOGF_DEBUG("RES <%s>", FOC_res);
     return true;
 }
 
 /************************************************************************************
  *
 ************************************************************************************/
-IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
+IPState astromechanics_foc::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char MFOC_cmd[32]  = ": M ";
+    char FOC_cmd[32]  = ": M ";
     char abs_pos_char[32]  = {0};
     int nbytes_written = 0;
 
     //int pos = GetAbsFocuserPosition();
     sprintf(abs_pos_char, "%d", targetTicks);
     strcat(abs_pos_char, " #");
-    strcat(MFOC_cmd, abs_pos_char);
+    strcat(FOC_cmd, abs_pos_char);
 
-    tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-    LOGF_DEBUG("CMD <%s>", MFOC_cmd);
+    tty_write_string(PortFD, FOC_cmd, &nbytes_written);
+    LOGF_DEBUG("CMD <%s>", FOC_cmd);
 
     //Waiting makes no sense - will be immediatly interrupted by the ekos system...
     //int ticks = std::abs((int)(targetTicks - pos) * FOCUS_MOTION_DELAY);
@@ -463,7 +464,7 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
 
     FocusAbsPosN[0].value = targetTicks;
 
-    //only for debugging! Maybe there is a bug in the MFOC firmware command "Q #"!
+    //only for debugging! Maybe there is a bug in the FOC firmware command "Q #"!
     GetAbsFocuserPosition();
 
     return IPS_OK;
@@ -472,7 +473,7 @@ IPState lacerta_mfoc::MoveAbsFocuser(uint32_t targetTicks)
 /************************************************************************************
  *
 ************************************************************************************/
-IPState lacerta_mfoc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
+IPState astromechanics_foc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
     // Calculation of the demand absolute position
     uint32_t targetTicks = FocusAbsPosN[0].value + (ticks * (dir == FOCUS_INWARD ? -1 : 1));
@@ -483,7 +484,7 @@ IPState lacerta_mfoc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 }
 
 
-bool lacerta_mfoc::saveConfigItems(FILE *fp)
+bool astromechanics_foc::saveConfigItems(FILE *fp)
 {
     // Save Focuser Config
     INDI::Focuser::saveConfigItems(fp);
@@ -495,27 +496,27 @@ bool lacerta_mfoc::saveConfigItems(FILE *fp)
     return true;
 }
 
-uint32_t lacerta_mfoc::GetAbsFocuserPosition()
+uint32_t astromechanics_foc::GetAbsFocuserPosition()
 {
-    char MFOC_cmd[32] = ": Q #";
-    char MFOC_res[32] = {0};
-    char MFOC_res_type[32] = "0";
-    int MFOC_pos_measd = 0;
+    char FOC_cmd[32] = ": Q #";
+    char FOC_res[32] = {0};
+    char FOC_res_type[32] = "0";
+    int FOC_pos_measd = 0;
 
     int nbytes_written = 0;
     int nbytes_read = 0;
 
     do
     {
-        tty_write_string(PortFD, MFOC_cmd, &nbytes_written);
-        LOGF_INFO("CMD <%s>", MFOC_cmd);
-        tty_read_section(PortFD, MFOC_res, 0xD, FOCUSMFOC_TIMEOUT, &nbytes_read);
-        sscanf(MFOC_res, "%s %d", MFOC_res_type, &MFOC_pos_measd);
+        tty_write_string(PortFD, FOC_cmd, &nbytes_written);
+        LOGF_INFO("CMD <%s>", FOC_cmd);
+        tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
+        sscanf(FOC_res, "%s %d", FOC_res_type, &FOC_pos_measd);
     }
-    while(strcmp(MFOC_res_type, "P") != 0);
+    while(strcmp(FOC_res_type, "P") != 0);
 
-    LOGF_DEBUG("RES <%s>", MFOC_res_type);
-    LOGF_DEBUG("current position: %d", MFOC_pos_measd);
+    LOGF_DEBUG("RES <%s>", FOC_res_type);
+    LOGF_DEBUG("current position: %d", FOC_pos_measd);
 
-    return static_cast<uint32_t>(MFOC_pos_measd);
+    return static_cast<uint32_t>(FOC_pos_measd);
 }

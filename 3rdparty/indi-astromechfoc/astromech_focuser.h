@@ -1,6 +1,8 @@
 /*******************************************************************************
-  Copyright(c) 2018 Franck Le Rhun. All rights reserved.
-  Copyright(c) 2018 Christian Liska. All rights reserved.
+ Copyright(c) 2019 Christian Liska. All rights reserved.
+
+ Implementation based on Lacerta MFOC driver
+ (written 2018 by Franck Le Rhun and Christian Liska).
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Library General Public
@@ -21,10 +23,10 @@
 
 #include "indifocuser.h"
 
-class lacerta_mfoc : public INDI::Focuser
+class astromechanics_foc : public INDI::Focuser
 {
     public:
-        lacerta_mfoc();
+        astromechanics_foc();
 
         bool initProperties() override;
         void ISGetProperties(const char *dev) override;
