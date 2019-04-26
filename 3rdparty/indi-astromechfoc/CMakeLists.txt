@@ -29,13 +29,13 @@ include_directories(${USB1_INCLUDE_DIRS})
 
 include(CMakeCommon)
 
-########### MFOCFocuser ###########
+########### Astromechanics Focuser ###########
 set(indiastromechfoc_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/astromech_focuser.cpp
    )
 
 IF (UNITY_BUILD)
-    ENABLE_UNITY_BUILD(indimfoc indiastromechfoc_SRCS 10 cpp)
+    ENABLE_UNITY_BUILD(indiastromechfoc indiastromechfoc_SRCS 10 cpp)
 ENDIF ()
 
 add_executable(indi_astromechfoc ${indiastromechfoc_SRCS})
