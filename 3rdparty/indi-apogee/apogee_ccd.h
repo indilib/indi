@@ -117,8 +117,8 @@ class ApogeeCCD : public INDI::CCD, public INDI::FilterInterface
         IText FilterInfoT[2] {};
         enum
         {
-          INFO_NAME,
-          INFO_FIRMWARE,
+            INFO_NAME,
+            INFO_FIRMWARE,
         };
 
         double minDuration;

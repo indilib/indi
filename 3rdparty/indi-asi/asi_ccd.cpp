@@ -624,6 +624,7 @@ void ASICCD::setupParams()
     uint32_t maxWidth = m_camInfo->MaxWidth;
     uint32_t maxHeight = m_camInfo->MaxHeight;
 
+#if 0
     // JM 2019-04-22
     // We need to restrict width to width % 8 = 0
     // and height to height % 2 = 0;
@@ -640,6 +641,7 @@ void ASICCD::setupParams()
 
     maxWidth  = ((maxWidth / maxBin) - ((maxWidth / maxBin) % 8)) * maxBin;
     maxHeight = ((maxHeight / maxBin) - ((maxHeight / maxBin) % 2)) * maxBin;
+#endif
 
     SetCCDParams(maxWidth, maxHeight, bit_depth, x_pixel_size, y_pixel_size);
 
