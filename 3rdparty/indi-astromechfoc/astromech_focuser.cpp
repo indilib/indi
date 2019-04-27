@@ -117,11 +117,6 @@ bool astromechanics_foc::initProperties()
 
     FocusAbsPosN[0].max = FocusAbsPosN[0].value;
 
-    IUFillSwitch(&StartSavedPositionS[MODE_SAVED_ON],  "Yes", "Yes", ISS_ON);
-    IUFillSwitch(&StartSavedPositionS[MODE_SAVED_OFF], "No",  "No",  ISS_OFF);
-    IUFillSwitchVector(&StartSavedPositionSP, StartSavedPositionS, MODE_COUNT_SAVED, getDeviceName(), "Start saved pos.", "Start saved pos.", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
-
     IUFillNumber(&AppertureN[0], "LENS_APP", "Index", "%2d", 0, 22, 1, 0);
     IUFillNumberVector(&AppertureNP, AppertureN, 1, getDeviceName(),"LENS_APP_SETTING", "Apperture", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
@@ -164,6 +159,11 @@ bool astromechanics_foc::Handshake()
     int nbytes_read = 0;
 
     LOGF_INFO("Handshake", 0);
+    if (CanAbsMove()) {
+        LOGF_INFO("CanAbsMove",0);
+    } else {
+        LOGF_INFO("Can't ABSMOVE",0);
+    }
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
     LOGF_INFO("CMD (%s)", FOC_cmd);
     if (tty_read_section(PortFD, FOC_res, '#', FOCUS_TIMEOUT, &nbytes_read) == TTY_OK) {
@@ -188,58 +188,6 @@ bool astromechanics_foc::ISNewSwitch(const char *dev, const char *name, ISState 
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         LOGF_INFO("ISNewSwitch (%s) (%s)", dev, name);
-        // Start at saved position
-        /*
-        if (strcmp(StartSavedPositionSP.name, name) == 0)
-        {
-            IUUpdateSwitch(&StartSavedPositionSP, states, names, n);
-            int svstart = 0;
-            int index    = IUFindOnSwitchIndex(&StartSavedPositionSP);
-            char FOC_cmd[32]  = ": F ";
-            char FOC_res[32]  = {0};
-            int nbytes_read    = 0;
-            int nbytes_written = 0;
-            int FOC_svstart_measd = 0;
-            char FOC_res_type[32]  = "0";
-
-            switch (index)
-            {
-                case MODE_SAVED_ON:
-                    svstart = 1;
-                    strcat(FOC_cmd, "1 #");
-                    break;
-
-                case MODE_SAVED_OFF:
-                    svstart = 0;
-                    strcat(FOC_cmd, "0 #");
-                    break;
-
-                default:
-                    StartSavedPositionSP.s = IPS_ALERT;
-                    IDSetSwitch(&StartSavedPositionSP, "Unknown mode index %d", index);
-                    return true;
-            }
-
-            tty_write_string(PortFD, FOC_cmd, &nbytes_written);
-            LOGF_DEBUG("CMD <%s>", FOC_cmd);
-            tty_write_string(PortFD, ": N #", &nbytes_written);
-            tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
-            sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_svstart_measd);
-
-            LOGF_DEBUG("RES <%s>", FOC_res);
-            //            LOGF_DEBUG("Debug FOC cmd sent %s", FOC_cmd);
-            if  (FOC_svstart_measd == svstart)
-            {
-                StartSavedPositionSP.s = IPS_OK;
-            }
-            else
-            {
-                StartSavedPositionSP.s = IPS_ALERT;
-            }
-
-            IDSetSwitch(&StartSavedPositionSP, nullptr);
-            return true;
-        }*/
     }
 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
@@ -265,39 +213,6 @@ bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double v
 
     // Let INDI::Focuser handle any other number properties
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
-}
-
-/************************************************************************************
- *
-************************************************************************************/
-
-bool astromechanics_foc::SetFocuserMaxPosition(uint32_t ticks)
-{
-    LOGF_INFO("SetFocuserMaxPosition %d - not available", ticks);
-    /*
-    char FOC_cmd[32]  = ": G ";
-    char FOC_res[32]  = {0};
-    int nbytes_read    =  0;
-    int nbytes_written =  0;
-    int FOC_pm_measd = 0;
-    char pm_char[32]  = {0};
-    char FOC_res_type[32]  = "0";
-
-    sprintf(pm_char, "%d", ticks);
-    strcat(pm_char, " #");
-    strcat(FOC_cmd, pm_char);
-
-    tty_write_string(PortFD, FOC_cmd, &nbytes_written);
-    LOGF_DEBUG("CMD <%s>", FOC_cmd);
-    tty_write_string(PortFD, ": O #", &nbytes_written);
-
-    tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
-
-    sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_pm_measd);
-
-    LOGF_DEBUG("RES <%s>", FOC_res);
-    */
-    return true;
 }
 
 /************************************************************************************

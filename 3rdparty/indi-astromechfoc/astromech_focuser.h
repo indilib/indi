@@ -41,7 +41,6 @@ class astromechanics_foc : public INDI::Focuser
         virtual bool Handshake() override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-        virtual bool SetFocuserMaxPosition(uint32_t ticks) override;
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:
