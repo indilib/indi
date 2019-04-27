@@ -52,7 +52,7 @@ public:
         updateLocation(0,lng,0);
     }
     bool executeReadScopeStatus() { return ReadScopeStatus(); }
-    bool executeGotoOffset(double ra_offset, double dec_offset) { return Goto(currentRA+ra_offset,currentDEC+dec_offset); }
+    bool executeGotoOffset(double ra_offset, double dec_offset) { return Goto(std::fmod(currentRA+ra_offset,24.0),currentDEC+dec_offset); }
     bool executeAbort() { return Abort(); }
     bool executeSync(double ra, double dec) { return Sync(ra,dec); }
 };
@@ -606,7 +606,7 @@ TEST(EQ500XDriverTest, test_Goto_NoMovement)
 
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
-    ASSERT_TRUE(d.executeSync(0,0));
+    ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
     ASSERT_TRUE(d.executeGotoOffset(0,0));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     for(int i = 0; i < 10; i++)
@@ -617,6 +617,7 @@ TEST(EQ500XDriverTest, test_Goto_NoMovement)
         ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     }
     ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
+    ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
 }
 
 TEST(EQ500XDriverTest, test_Goto_AbortMovement)
@@ -625,7 +626,6 @@ TEST(EQ500XDriverTest, test_Goto_AbortMovement)
 
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
-    ASSERT_TRUE(d.executeSync(0,0));
     ASSERT_TRUE(d.executeGotoOffset(-1,-10));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     for(int i = 0; i < 4; i++)
@@ -648,10 +648,10 @@ TEST(EQ500XDriverTest, test_Goto_SouthMovement)
 
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
-    ASSERT_TRUE(d.executeSync(0,0));
+    ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
     ASSERT_TRUE(d.executeGotoOffset(0,-10));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 150; i++)
     {
         long seconds = d.getReadScopeStatusInterval()/1000;
         struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
@@ -661,7 +661,7 @@ TEST(EQ500XDriverTest, test_Goto_SouthMovement)
         ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     }
     ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
-    ASSERT_EQ(EQ500X::PIER_EAST, d.getPierSide());
+    ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
 }
 
 TEST(EQ500XDriverTest, test_Goto_NorthMovement)
@@ -670,10 +670,10 @@ TEST(EQ500XDriverTest, test_Goto_NorthMovement)
 
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
-    ASSERT_TRUE(d.executeSync(0,0));
+    ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
     ASSERT_TRUE(d.executeGotoOffset(0,+10));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 150; i++)
     {
         long seconds = d.getReadScopeStatusInterval()/1000;
         struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
@@ -692,31 +692,10 @@ TEST(EQ500XDriverTest, test_Goto_EastMovement)
 
     ASSERT_TRUE(d.isConnected());
     ASSERT_TRUE(d.executeReadScopeStatus());
-    ASSERT_TRUE(d.executeSync(0,0));
+    ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
     ASSERT_TRUE(d.executeGotoOffset(+1,0));
     ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
-    for(int i = 0; i < 100; i++)
-    {
-        long seconds = d.getReadScopeStatusInterval()/1000;
-        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
-        nanosleep(&timeout, nullptr);
-        ASSERT_TRUE(d.executeReadScopeStatus());
-        if (EQ500X::SCOPE_TRACKING == d.getTrackState()) break;
-        ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
-    }
-    ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
-    ASSERT_EQ(EQ500X::PIER_EAST, d.getPierSide());
-}
-
-TEST(EQ500XDriverTest, test_Goto_WestMovement)
-{
-    MockEQ500XDriver d;
-
-    ASSERT_TRUE(d.isConnected());
-    ASSERT_TRUE(d.executeReadScopeStatus());
-    ASSERT_TRUE(d.executeGotoOffset(-1,0));
-    ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 150; i++)
     {
         long seconds = d.getReadScopeStatusInterval()/1000;
         struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
@@ -727,6 +706,28 @@ TEST(EQ500XDriverTest, test_Goto_WestMovement)
     }
     ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
     ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
+}
+
+TEST(EQ500XDriverTest, test_Goto_WestMovement)
+{
+    MockEQ500XDriver d;
+
+    ASSERT_TRUE(d.isConnected());
+    ASSERT_TRUE(d.executeReadScopeStatus());
+    ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
+    ASSERT_TRUE(d.executeGotoOffset(-1,0));
+    ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
+    for(int i = 0; i < 150; i++)
+    {
+        long seconds = d.getReadScopeStatusInterval()/1000;
+        struct timespec timeout = {seconds, (d.getReadScopeStatusInterval()-seconds*1000)*1000000L};
+        nanosleep(&timeout, nullptr);
+        ASSERT_TRUE(d.executeReadScopeStatus());
+        if (EQ500X::SCOPE_TRACKING == d.getTrackState()) break;
+        ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
+    }
+    ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
+    ASSERT_EQ(EQ500X::PIER_EAST, d.getPierSide());
 }
 
 int main(int argc, char **argv)

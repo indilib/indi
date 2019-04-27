@@ -71,6 +71,10 @@ private:
     double previousRA = {0}, previousDEC = {0};
     ln_lnlat_posn lnobserver { 0, 0 };
     int countdown {0};
+    // Movement markers, adjustment is done when no movement is required and all flags are cleared
+    bool east {false}, west {false}, north {false}, south {false};
+    // Current adjustment rate
+    struct _adjustment const * adjustment {nullptr};
     bool _gotoEngaged {false};
 };
 
