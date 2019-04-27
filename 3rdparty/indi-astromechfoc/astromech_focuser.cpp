@@ -179,20 +179,20 @@ bool astromechanics_foc::updateProperties()
 ************************************************************************************/
 bool astromechanics_foc::Handshake()
 {
-    char FOC_cmd[32] = ": Q #";
+    char FOC_cmd[32] = "P#";
     char FOC_res[32] = {0};
     char FOC_res_type[32] = "0";
     int FOC_pos_measd = 0;
     int nbytes_written = 0;
     int nbytes_read = 0;
 
-
+    LOGF_DEBUG("Handshake");
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
     LOGF_INFO("CMD <%s>", FOC_cmd);
     tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
-    LOGF_DEBUG("RES <%s>", FOC_res_type);
+    LOGF_DEBUG("RES <%s>", FOC_res);
 
-    sscanf(FOC_res, "%s %d", FOC_res_type, &FOC_pos_measd);
+    sscanf(FOC_res, "%d#", &FOC_pos_measd);
 
     if (FOC_res_type[0] == 'P')
     {
@@ -211,65 +211,9 @@ bool astromechanics_foc::ISNewSwitch(const char *dev, const char *name, ISState 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Temp. Track Direction
-        if (strcmp(TempTrackDirSP.name, name) == 0)
-        {
-            IUUpdateSwitch(&TempTrackDirSP, states, names, n);
-            int tdir = 0;
-            int index    = IUFindOnSwitchIndex(&TempTrackDirSP);
-            char FOC_cmd[32]  = ": I ";
-            char FOC_res[32]  = {0};
-            int nbytes_read    = 0;
-            int nbytes_written = 0;
-            int FOC_tdir_measd = 0;
-            char FOC_res_type[32]  = "0";
-
-            switch (index)
-            {
-                case MODE_TDIR_BOTH:
-                    tdir = 0;
-                    strcat(FOC_cmd, "0 #");
-                    break;
-
-                case MODE_TDIR_IN:
-                    tdir = 1;
-                    strcat(FOC_cmd, "1 #");
-                    break;
-
-                case MODE_TDIR_OUT:
-                    tdir = 2;
-                    strcat(FOC_cmd, "2 #");
-                    break;
-
-                default:
-                    TempTrackDirSP.s = IPS_ALERT;
-                    IDSetSwitch(&TempTrackDirSP, "Unknown mode index %d", index);
-                    return true;
-            }
-
-
-            tty_write_string(PortFD, FOC_cmd, &nbytes_written);
-            LOGF_DEBUG("CMD <%s>", FOC_cmd);
-            tty_write_string(PortFD, ": W #", &nbytes_written);
-            tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
-            sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_tdir_measd);
-            LOGF_DEBUG("RES <%s>", FOC_res);
-
-            if  (FOC_tdir_measd == tdir)
-            {
-                TempTrackDirSP.s = IPS_OK;
-            }
-            else
-            {
-                TempTrackDirSP.s = IPS_ALERT;
-            }
-
-            IDSetSwitch(&TempTrackDirSP, nullptr);
-            return true;
-        }
-
-
+        LOGF_DEBUG("ISNewSwitch: %s", name);
         // Start at saved position
+        /*
         if (strcmp(StartSavedPositionSP.name, name) == 0)
         {
             IUUpdateSwitch(&StartSavedPositionSP, states, names, n);
@@ -319,7 +263,7 @@ bool astromechanics_foc::ISNewSwitch(const char *dev, const char *name, ISState 
 
             IDSetSwitch(&StartSavedPositionSP, nullptr);
             return true;
-        }
+        }*/
     }
 
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
@@ -327,6 +271,7 @@ bool astromechanics_foc::ISNewSwitch(const char *dev, const char *name, ISState 
 
 bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
+    /*
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         if (strcmp(name, "BACKLASH_SETTINGS") == 0)
@@ -340,7 +285,7 @@ bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double v
             return SetTempComp(values, names, n);
         }
     }
-
+    */
     // Let INDI::Focuser handle any other number properties
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
@@ -350,7 +295,8 @@ bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double v
 ************************************************************************************/
 bool astromechanics_foc::SetBacklash(double values[], char *names[], int n)
 {
-    LOGF_DEBUG("-> BACKLASH_SETTINGS", 0);
+    LOGF_DEBUG("-> BACKLASH_SETTINGS - not available", 0);
+/*
     char FOC_cmd[32]  = ": B ";
     char FOC_res[32]  = {0};
     int nbytes_read    =  0;
@@ -377,13 +323,14 @@ bool astromechanics_foc::SetBacklash(double values[], char *names[], int n)
     LOGF_DEBUG("RES <%s>", FOC_res);
 
     IDSetNumber(&BacklashNP, nullptr);
-
+*/
     return true;
 }
 
 bool astromechanics_foc::SetTempComp(double values[], char *names[], int n)
 {
-    LOGF_INFO("-> TEMPCOMP_SETTINGS", 0);
+    LOGF_INFO("-> TEMPCOMP_SETTINGS - not available", 0);
+ /*
     char FOC_cmd[32]  = ": D ";
     char FOC_res[32]  = {0};
     int nbytes_read    =  0;
@@ -410,12 +357,14 @@ bool astromechanics_foc::SetTempComp(double values[], char *names[], int n)
     LOGF_DEBUG("RES <%s>", FOC_res);
 
     IDSetNumber(&TempCompNP, nullptr);
-
+*/
     return true;
 }
 
 bool astromechanics_foc::SetFocuserMaxPosition(uint32_t ticks)
 {
+    LOGF_DEBUG("SetFocuserMaxPosition %d - not available", ticks);
+    /*
     char FOC_cmd[32]  = ": G ";
     char FOC_res[32]  = {0};
     int nbytes_read    =  0;
@@ -437,6 +386,7 @@ bool astromechanics_foc::SetFocuserMaxPosition(uint32_t ticks)
     sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_pm_measd);
 
     LOGF_DEBUG("RES <%s>", FOC_res);
+    */
     return true;
 }
 
@@ -445,27 +395,19 @@ bool astromechanics_foc::SetFocuserMaxPosition(uint32_t ticks)
 ************************************************************************************/
 IPState astromechanics_foc::MoveAbsFocuser(uint32_t targetTicks)
 {
-    char FOC_cmd[32]  = ": M ";
+    char FOC_cmd[32]  = "M";
     char abs_pos_char[32]  = {0};
     int nbytes_written = 0;
 
     //int pos = GetAbsFocuserPosition();
     sprintf(abs_pos_char, "%d", targetTicks);
-    strcat(abs_pos_char, " #");
+    strcat(abs_pos_char, "#");
     strcat(FOC_cmd, abs_pos_char);
 
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
     LOGF_DEBUG("CMD <%s>", FOC_cmd);
 
-    //Waiting makes no sense - will be immediatly interrupted by the ekos system...
-    //int ticks = std::abs((int)(targetTicks - pos) * FOCUS_MOTION_DELAY);
-    //LOGF_INFO("sleep for %d ms", ticks);
-    //usleep(ticks + 5000);
-
     FocusAbsPosN[0].value = targetTicks;
-
-    //only for debugging! Maybe there is a bug in the FOC firmware command "Q #"!
-    GetAbsFocuserPosition();
 
     return IPS_OK;
 }
@@ -489,16 +431,12 @@ bool astromechanics_foc::saveConfigItems(FILE *fp)
     // Save Focuser Config
     INDI::Focuser::saveConfigItems(fp);
 
-    // Save additional MFPC Config
-    IUSaveConfigNumber(fp, &BacklashNP);
-    IUSaveConfigNumber(fp, &TempCompNP);
-
     return true;
 }
 
 uint32_t astromechanics_foc::GetAbsFocuserPosition()
 {
-    char FOC_cmd[32] = ": Q #";
+    char FOC_cmd[32] = "P#";
     char FOC_res[32] = {0};
     char FOC_res_type[32] = "0";
     int FOC_pos_measd = 0;
@@ -506,14 +444,10 @@ uint32_t astromechanics_foc::GetAbsFocuserPosition()
     int nbytes_written = 0;
     int nbytes_read = 0;
 
-    do
-    {
-        tty_write_string(PortFD, FOC_cmd, &nbytes_written);
-        LOGF_INFO("CMD <%s>", FOC_cmd);
-        tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
-        sscanf(FOC_res, "%s %d", FOC_res_type, &FOC_pos_measd);
-    }
-    while(strcmp(FOC_res_type, "P") != 0);
+    tty_write_string(PortFD, FOC_cmd, &nbytes_written);
+    LOGF_INFO("CMD <%s>", FOC_cmd);
+    tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
+    sscanf(FOC_res, "%d#", &FOC_pos_measd);
 
     LOGF_DEBUG("RES <%s>", FOC_res_type);
     LOGF_DEBUG("current position: %d", FOC_pos_measd);
