@@ -17,12 +17,19 @@ public:
         double RAm(double const);
         double DECm(double const);
     public:
-        enum TelescopePierSide setPierSide(enum TelescopePierSide);
+        double RAsky() const;
+        double DECsky() const;
+        double RAsky(double const);
+        double DECsky(double const);
     public:
-        bool parseStringRA(char const *, size_t);
+        enum PointingState { POINTING_NORMAL, POINTING_BEYOND_POLE };
+        enum PointingState setPointingState(enum PointingState);
+        enum PointingState getPointingState() const;
+    public:
         bool parseStringDEC(char const *, size_t);
-        char const * toStringRA(char *, size_t) const;
+        bool parseStringRA(char const *, size_t);
         char const * toStringDEC(char *, size_t) const;
+        char const * toStringRA(char *, size_t) const;
     public:
         double RA_degrees_to(MechanicalPoint const &) const;
         double DEC_degrees_to(MechanicalPoint const &) const;
@@ -31,15 +38,15 @@ public:
         bool operator !=(MechanicalPoint const &) const;
         bool operator ==(MechanicalPoint const &) const;
     protected:
-        enum TelescopePierSide _pierSide {PIER_EAST};
-        long _RAm {0*3600}, _DECm {90*3600};
+        enum PointingState _pointingState {POINTING_NORMAL};
+        long _RAm {0*3600}, _DECm {0*3600};
     };
 public:
     EQ500X();
     const char *getDefautName();
 protected:
-    bool getCurrentPosition(MechanicalPoint&);
-    bool setTargetPosition(MechanicalPoint const&);
+    bool getCurrentMechanicalPosition(MechanicalPoint&);
+    bool setTargetMechanicalPosition(MechanicalPoint const&);
     bool gotoTargetPosition();
 protected:
     virtual double getLST();
@@ -60,7 +67,7 @@ protected:
     virtual bool Abort() override;
     virtual void setPierSide(TelescopePierSide);
 private:
-    MechanicalPoint currentPosition, targetPosition;
+    MechanicalPoint currentMechPosition, targetMechPosition;
     double previousRA = {0}, previousDEC = {0};
     ln_lnlat_posn lnobserver { 0, 0 };
     int countdown {0};
