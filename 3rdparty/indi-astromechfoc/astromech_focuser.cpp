@@ -142,6 +142,9 @@ bool astromechanics_foc::initProperties()
     IUFillSwitchVector(&StartSavedPositionSP, StartSavedPositionS, MODE_COUNT_SAVED, getDeviceName(), "Start saved pos.", "Start saved pos.", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
+    serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
+    //serialConnection->Connect();
+
     return true;
 }
 
@@ -181,24 +184,22 @@ bool astromechanics_foc::Handshake()
 {
     char FOC_cmd[32] = "P#";
     char FOC_res[32] = {0};
-    char FOC_res_type[32] = "0";
     int FOC_pos_measd = 0;
     int nbytes_written = 0;
     int nbytes_read = 0;
 
-    LOGF_DEBUG("Handshake");
+    LOGF_INFO("Handshake", 0);
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
-    LOGF_INFO("CMD <%s>", FOC_cmd);
-    tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
-    LOGF_DEBUG("RES <%s>", FOC_res);
-
-    sscanf(FOC_res, "%d#", &FOC_pos_measd);
-
-    if (FOC_res_type[0] == 'P')
-    {
+    LOGF_INFO("CMD (%s)", FOC_cmd);
+    if (tty_read_section(PortFD, FOC_res, '#', FOCUS_TIMEOUT, &nbytes_read) == TTY_OK) {
+        LOGF_INFO("RES (%s)", FOC_res);
+        sscanf(FOC_res, "%d#", &FOC_pos_measd);
+        LOGF_INFO("RES (%d)", FOC_pos_measd);
         FocusAbsPosN[0].value = FOC_pos_measd;
         FocusAbsPosNP.s = IPS_OK;
         return true;
+    } else {
+        LOGF_ERROR("ERROR HANDSHAKE",0);
     }
 
     return false;
@@ -211,7 +212,7 @@ bool astromechanics_foc::ISNewSwitch(const char *dev, const char *name, ISState 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        LOGF_DEBUG("ISNewSwitch: %s", name);
+        LOGF_INFO("ISNewSwitch: %s", name);
         // Start at saved position
         /*
         if (strcmp(StartSavedPositionSP.name, name) == 0)
@@ -295,7 +296,7 @@ bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double v
 ************************************************************************************/
 bool astromechanics_foc::SetBacklash(double values[], char *names[], int n)
 {
-    LOGF_DEBUG("-> BACKLASH_SETTINGS - not available", 0);
+    LOGF_INFO("-> BACKLASH_SETTINGS - not available", 0);
 /*
     char FOC_cmd[32]  = ": B ";
     char FOC_res[32]  = {0};
@@ -363,7 +364,7 @@ bool astromechanics_foc::SetTempComp(double values[], char *names[], int n)
 
 bool astromechanics_foc::SetFocuserMaxPosition(uint32_t ticks)
 {
-    LOGF_DEBUG("SetFocuserMaxPosition %d - not available", ticks);
+    LOGF_INFO("SetFocuserMaxPosition %d - not available", ticks);
     /*
     char FOC_cmd[32]  = ": G ";
     char FOC_res[32]  = {0};
@@ -395,6 +396,7 @@ bool astromechanics_foc::SetFocuserMaxPosition(uint32_t ticks)
 ************************************************************************************/
 IPState astromechanics_foc::MoveAbsFocuser(uint32_t targetTicks)
 {
+    LOGF_INFO("MoveAbsFocuser (%d)", targetTicks);
     char FOC_cmd[32]  = "M";
     char abs_pos_char[32]  = {0};
     int nbytes_written = 0;
@@ -404,8 +406,8 @@ IPState astromechanics_foc::MoveAbsFocuser(uint32_t targetTicks)
     strcat(abs_pos_char, "#");
     strcat(FOC_cmd, abs_pos_char);
 
+    LOGF_INFO("CMD (%s)", FOC_cmd);
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
-    LOGF_DEBUG("CMD <%s>", FOC_cmd);
 
     FocusAbsPosN[0].value = targetTicks;
 
@@ -436,21 +438,22 @@ bool astromechanics_foc::saveConfigItems(FILE *fp)
 
 uint32_t astromechanics_foc::GetAbsFocuserPosition()
 {
+    LOGF_INFO("GetAbsFocuserPosition",0);
     char FOC_cmd[32] = "P#";
     char FOC_res[32] = {0};
-    char FOC_res_type[32] = "0";
     int FOC_pos_measd = 0;
 
     int nbytes_written = 0;
     int nbytes_read = 0;
 
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
-    LOGF_INFO("CMD <%s>", FOC_cmd);
-    tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
-    sscanf(FOC_res, "%d#", &FOC_pos_measd);
+    LOGF_INFO("CMD (%s)", FOC_cmd);
+    if (tty_read_section(PortFD, FOC_res, '#', FOCUS_TIMEOUT, &nbytes_read) == TTY_OK) {
+        sscanf(FOC_res, "%d#", &FOC_pos_measd);
 
-    LOGF_DEBUG("RES <%s>", FOC_res_type);
-    LOGF_DEBUG("current position: %d", FOC_pos_measd);
+        LOGF_INFO("RES (%s)", FOC_res);
+        LOGF_INFO("current position: %d", FOC_pos_measd);
+    }
 
     return static_cast<uint32_t>(FOC_pos_measd);
 }
