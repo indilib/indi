@@ -101,12 +101,6 @@ void astromechanics_foc::ISGetProperties(const char *dev)
         return;
 
     INDI::Focuser::ISGetProperties(dev);
-
-    defineSwitch(&TempTrackDirSP);
-    loadConfig(true, TempTrackDirSP.name);
-
-    defineSwitch(&StartSavedPositionSP);
-    loadConfig(true, StartSavedPositionSP.name);
 }
 
 /************************************************************************************
@@ -116,14 +110,6 @@ bool astromechanics_foc::initProperties()
 {
     INDI::Focuser::initProperties();
 
-    IUFillNumber(&BacklashN[0], "BACKLASH", "step", "%4.2f", 0, 255, 1, 12);
-    IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "BACKLASH_SETTINGS", "Backlash", MAIN_CONTROL_TAB, IP_RW, 60,
-                       IPS_IDLE);
-
-    IUFillNumber(&TempCompN[0], "TEMPCOMP", "step/10 degC", "%4.2f", -5000, 5000, 1, 65);
-    IUFillNumberVector(&TempCompNP, TempCompN, 1, getDeviceName(), "TEMPCOMP_SETTINGS", "T Comp.", MAIN_CONTROL_TAB, IP_RW, 60,
-                       IPS_IDLE);
-
     FocusMaxPosN[0].min = FOC_POSMIN_HARDWARE;
     FocusMaxPosN[0].max = FOC_POSMAX_HARDWARE;
     FocusMaxPosN[0].step = (FocusMaxPosN[0].max - FocusMaxPosN[0].min) / 20.0;
@@ -131,20 +117,12 @@ bool astromechanics_foc::initProperties()
 
     FocusAbsPosN[0].max = FocusAbsPosN[0].value;
 
-    IUFillSwitch(&TempTrackDirS[MODE_TDIR_BOTH], "Both", "Both", ISS_ON);
-    IUFillSwitch(&TempTrackDirS[MODE_TDIR_IN],   "In",   "In",   ISS_ON);
-    IUFillSwitch(&TempTrackDirS[MODE_TDIR_OUT],  "Out",  "Out",  ISS_ON);
-    IUFillSwitchVector(&TempTrackDirSP, TempTrackDirS, MODE_COUNT_TEMP_DIR, getDeviceName(), "Temp. dir.", "Temp. dir.", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_1OFMANY, 60, IPS_IDLE);
-
     IUFillSwitch(&StartSavedPositionS[MODE_SAVED_ON],  "Yes", "Yes", ISS_ON);
     IUFillSwitch(&StartSavedPositionS[MODE_SAVED_OFF], "No",  "No",  ISS_OFF);
     IUFillSwitchVector(&StartSavedPositionSP, StartSavedPositionS, MODE_COUNT_SAVED, getDeviceName(), "Start saved pos.", "Start saved pos.", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
     serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
-    //serialConnection->Connect();
-
     return true;
 }
 
@@ -160,17 +138,11 @@ bool astromechanics_foc::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&BacklashNP);
-        defineNumber(&TempCompNP);
-        defineSwitch(&TempTrackDirSP);
         defineSwitch(&StartSavedPositionSP);
 
     }
     else
     {
-        deleteProperty(BacklashNP.name);
-        deleteProperty(TempCompNP.name);
-        deleteProperty(TempTrackDirSP.name);
         deleteProperty(StartSavedPositionSP.name);
     }
 
@@ -212,7 +184,7 @@ bool astromechanics_foc::ISNewSwitch(const char *dev, const char *name, ISState 
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        LOGF_INFO("ISNewSwitch: %s", name);
+        LOGF_INFO("ISNewSwitch (%s) (%s)", dev, name);
         // Start at saved position
         /*
         if (strcmp(StartSavedPositionSP.name, name) == 0)
@@ -272,21 +244,12 @@ bool astromechanics_foc::ISNewSwitch(const char *dev, const char *name, ISState 
 
 bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-    /*
+
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, "BACKLASH_SETTINGS") == 0)
-        {
-            return SetBacklash(values, names, n);
-        }
-
-
-        if (strcmp(name, "TEMPCOMP_SETTINGS") == 0)
-        {
-            return SetTempComp(values, names, n);
-        }
+        LOGF_INFO("IsNewNumber (%s) (%s) (%d)", dev, name, n);
     }
-    */
     // Let INDI::Focuser handle any other number properties
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
@@ -294,73 +257,6 @@ bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double v
 /************************************************************************************
  *
 ************************************************************************************/
-bool astromechanics_foc::SetBacklash(double values[], char *names[], int n)
-{
-    LOGF_INFO("-> BACKLASH_SETTINGS - not available", 0);
-/*
-    char FOC_cmd[32]  = ": B ";
-    char FOC_res[32]  = {0};
-    int nbytes_read    =  0;
-    int nbytes_written =  0;
-    int FOC_tdir_measd = 0;
-    int bl_int = 0;
-    char bl_char[32]  = {0};
-    char FOC_res_type[32]  = "0";
-    BacklashNP.s = IPS_OK;
-    IUUpdateNumber(&BacklashNP, values, names, n);
-    bl_int = BacklashN[0].value;
-    sprintf(bl_char, "%d", bl_int);
-    strcat(bl_char, " #");
-    strcat(FOC_cmd, bl_char);
-
-    tty_write_string(PortFD, FOC_cmd, &nbytes_written);
-    LOGF_DEBUG("CMD <%s>", FOC_cmd);
-    tty_write_string(PortFD, ": J #", &nbytes_written);
-
-    tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
-
-    sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_tdir_measd);
-
-    LOGF_DEBUG("RES <%s>", FOC_res);
-
-    IDSetNumber(&BacklashNP, nullptr);
-*/
-    return true;
-}
-
-bool astromechanics_foc::SetTempComp(double values[], char *names[], int n)
-{
-    LOGF_INFO("-> TEMPCOMP_SETTINGS - not available", 0);
- /*
-    char FOC_cmd[32]  = ": D ";
-    char FOC_res[32]  = {0};
-    int nbytes_read    =  0;
-    int nbytes_written =  0;
-    int FOC_tc_measd = 0;
-    int tc_int = 0;
-    char tc_char[32]  = {0};
-    char FOC_res_type[32]  = "0";
-    TempCompNP.s = IPS_OK;
-    IUUpdateNumber(&TempCompNP, values, names, n);
-    tc_int = TempCompN[0].value;
-    sprintf(tc_char, "%d", tc_int);
-    strcat(tc_char, " #");
-    strcat(FOC_cmd, tc_char);
-
-    tty_write_string(PortFD, FOC_cmd, &nbytes_written);
-    LOGF_DEBUG("CMD <%s>", FOC_cmd);
-    tty_write_string(PortFD, ": U #", &nbytes_written);
-
-    tty_read_section(PortFD, FOC_res, 0xD, FOCUS_TIMEOUT, &nbytes_read);
-
-    sscanf (FOC_res, "%s %d", FOC_res_type, &FOC_tc_measd);
-
-    LOGF_DEBUG("RES <%s>", FOC_res);
-
-    IDSetNumber(&TempCompNP, nullptr);
-*/
-    return true;
-}
 
 bool astromechanics_foc::SetFocuserMaxPosition(uint32_t ticks)
 {

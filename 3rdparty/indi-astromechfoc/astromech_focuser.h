@@ -45,27 +45,7 @@ class astromechanics_foc : public INDI::Focuser
         virtual bool saveConfigItems(FILE *fp) override;
 
     private:
-        virtual bool SetBacklash(double values[], char *names[], int n);
-        virtual bool SetTempComp(double values[], char *names[], int n);
         virtual uint32_t GetAbsFocuserPosition();
-
-        // Backlash
-        INumberVectorProperty BacklashNP;
-        INumber BacklashN[1];
-
-        // Temperature Compensation
-        INumberVectorProperty TempCompNP;
-        INumber TempCompN[1];
-
-        enum
-        {
-            MODE_TDIR_BOTH,
-            MODE_TDIR_IN,
-            MODE_TDIR_OUT,
-            MODE_COUNT_TEMP_DIR
-        };
-        ISwitchVectorProperty TempTrackDirSP;
-        ISwitch TempTrackDirS[MODE_COUNT_TEMP_DIR];
 
         enum
         {
@@ -75,5 +55,4 @@ class astromechanics_foc : public INDI::Focuser
         };
         ISwitchVectorProperty StartSavedPositionSP;
         ISwitch StartSavedPositionS[MODE_COUNT_SAVED];
-
 };
