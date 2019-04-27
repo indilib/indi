@@ -1071,9 +1071,19 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
         return false;
     }
 
-    // ZWO rules are this
-    // width%8 = 0
-    // height%2 = 0
+    m_SubX = subX;
+    m_SubY = subY;
+    m_SubW = subW;
+    m_SubH = subH;
+
+    // ZWO rules are this: width%8 = 0, height%2 = 0
+    // if this condition is not met, we set it internally to slightly smaller values
+
+    if (subW % 8 > 0)
+        LOGF_WARN ("Frame width of %d at binning %d is not allowed. Reducing by %dpx.", subW, binX, subW % 8);
+    if (subH % 2 > 0)
+        LOGF_WARN ("Frame height of %d at binning %d is not allowed. Reducing by %dpx.", subH, binY, subH % 2);
+
     subW -= subW % 8;
     subH -= subH % 2;
 
@@ -1103,11 +1113,6 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     LOGF_DEBUG("Setting frame buffer size to %d bytes.", nbuf);
     PrimaryCCD.setFrameBufferSize(nbuf);
-
-    m_SubX = subX;
-    m_SubY = subY;
-    m_SubW = subW;
-    m_SubH = subH;
 
     // Always set BINNED size
     Streamer->setSize(subW, subH);
