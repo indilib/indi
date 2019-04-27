@@ -47,7 +47,7 @@ public:
 protected:
     bool getCurrentMechanicalPosition(MechanicalPoint&);
     bool setTargetMechanicalPosition(MechanicalPoint const&);
-    bool gotoTargetPosition();
+    bool gotoTargetPosition(MechanicalPoint const&);
 protected:
     virtual double getLST();
 protected:
@@ -71,7 +71,7 @@ private:
     double previousRA = {0}, previousDEC = {0};
     ln_lnlat_posn lnobserver { 0, 0 };
     int countdown {0};
-
+    bool _gotoEngaged {false};
 };
 
 #endif // EQ500X_H

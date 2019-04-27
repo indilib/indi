@@ -272,8 +272,21 @@ bool EQ500X::ReadScopeStatus()
     // Movement markers, adjustment is done when no movement is required and all flags are cleared
     static bool east = false, west = false, north = false, south = false;
 
+    // If we are using the goto feature, check state
+    if (TrackState == SCOPE_SLEWING && _gotoEngaged)
+    {
+        if (EqN[AXIS_RA].value == currentRA && EqN[AXIS_DE].value == currentDEC)
+        {
+            _gotoEngaged = false;
+
+            // Goto is complete, reset target in case this was for a flip
+            if (setTargetMechanicalPosition(targetMechPosition))
+                goto slew_failure;
+        }
+    }
+
     // If we are adjusting, adjust movement and timer time to achieve arcsecond goto precision
-    if (TrackState == SCOPE_SLEWING)
+    if (TrackState == SCOPE_SLEWING && !_gotoEngaged)
     {
         // Compute RA/DEC deltas - keep in mind RA is in hours on the mount, with a granularity of 15 degrees
         double const ra_delta = currentMechPosition.RA_degrees_to(targetMechPosition);
@@ -424,9 +437,9 @@ bool EQ500X::ReadScopeStatus()
                 if (south) currentDEC += rates[adjustment - adjustments]*delta;
 
                 // Update current position and rewrite simulated mechanical positions
-                currentMechPosition.RAm(currentRA);
+                currentMechPosition.RAsky(currentRA);
                 currentMechPosition.toStringRA(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA));
-                currentMechPosition.DECm(currentDEC);
+                currentMechPosition.DECsky(currentDEC);
                 currentMechPosition.toStringDEC(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC));
 
                 LOGF_DEBUG("New RA/DEC simulated as %lf°/%lf° (%+lf°,%+lf°), stored as %lfh/%lf° = %s/%s", currentRA*15.0, currentDEC, (west||east)?rates[adjustment-adjustments]*delta:0, (north||south)?rates[adjustment-adjustments]*delta:0, currentMechPosition.RAm(), currentMechPosition.DECm(), simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
@@ -490,14 +503,21 @@ bool EQ500X::Goto(double ra, double dec)
     // Check whether a meridian flip is required
     double const LST = getLST();
     double const HA = std::fmod(LST - ra + 12.0, 12.0);
+    bool flip_needed = false;
 
     // Deduce required orientation of mount in HA quadrants
     if ((-12 < HA && HA <= -6) || (0 <= HA && HA < 6))
+    {
+        flip_needed = MechanicalPoint::POINTING_NORMAL == currentMechPosition.getPointingState();
         targetMechPosition.setPointingState(MechanicalPoint::POINTING_BEYOND_POLE);
+    }
     else
+    {
+        flip_needed = MechanicalPoint::POINTING_BEYOND_POLE == currentMechPosition.getPointingState();
         targetMechPosition.setPointingState(MechanicalPoint::POINTING_NORMAL);
+    }
 
-    LOGF_INFO("Goto target HA is %lf, LST is %lf, quadrant is %s", HA, LST, targetMechPosition.getPointingState() == MechanicalPoint::POINTING_NORMAL ? "normal" : "beyond pole");
+    LOGF_INFO("Goto target HA is %lf, LST is %lf, quadrant is %s, flip %srequired", HA, LST, targetMechPosition.getPointingState() == MechanicalPoint::POINTING_NORMAL ? "normal" : "beyond pole", flip_needed? "" : "not ");
 
     // Format RA/DEC for logs
     char RAStr[16]={0}, DecStr[16]={0};
@@ -534,20 +554,23 @@ bool EQ500X::Goto(double ra, double dec)
         nanosleep(&timeout, nullptr);
     }
 
-    if (setTargetMechanicalPosition(targetMechPosition))
-    {
-        EqNP.s = IPS_ALERT;
-        IDSetNumber(&EqNP, "Error setting RA/DEC.");
-        return false;
-    }
-
-    if (!isSimulation())
-    {
         /* The goto feature is quite imprecise because it will always use full speed.
          * By the time the mount stops, the position is off by 0-5 degrees, depending on the speed attained during the move.
          * Additionally, a firmware limitation prevents the goto feature from slewing to close coordinates, and will cause uneeded axis rotation.
          * Therefore, don't use the goto feature for a goto, and let ReadScope adjust the position by itself.
          */
+
+    // If a flip is needed, use the goto feature to return to meridian position first
+    if (flip_needed)
+    {
+        _gotoEngaged = !gotoTargetPosition(MechanicalPoint(LST,90));
+    }
+    // Else set target position and adjust
+    else if (setTargetMechanicalPosition(targetMechPosition))
+    {
+        EqNP.s = IPS_ALERT;
+        IDSetNumber(&EqNP, "Error setting RA/DEC.");
+        return false;
     }
 
     // Limit the number of loops
@@ -580,6 +603,11 @@ bool EQ500X::Sync(double ra, double dec)
                 goto sync_error;
             if (!strncmp("No name", b, sizeof(b)))
                 goto sync_error;
+        }
+        else
+        {
+            targetMechPosition.toStringRA(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA));
+            targetMechPosition.toStringDEC(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC));
         }
 
         if (getCurrentMechanicalPosition(currentMechPosition))
@@ -642,18 +670,27 @@ int EQ500X::getReply(char *data, size_t const len)
     return 0;
 }
 
-bool EQ500X::gotoTargetPosition()
+bool EQ500X::gotoTargetPosition(MechanicalPoint const &p)
 {
     if (!isSimulation())
     {
-        if (!sendCmd(":MS#"))
+        if (!setTargetMechanicalPosition(p))
         {
-            char buf[64/*RB_MAX_LEN*/] = {0};
-            if (!getReply(buf, 1))
-                return buf[0] != '0'; // 0 is valid for :MS
+            if (!sendCmd(":MS#"))
+            {
+                char buf[64/*RB_MAX_LEN*/] = {0};
+                if (!getReply(buf, 1))
+                    return buf[0] != '0'; // 0 is valid for :MS
+            }
+            else return true;
         }
         else return true;
     }
+    else
+    {
+        return !Sync(p.RAsky(), p.DECsky());
+    }
+
     return false;
 }
 
@@ -693,12 +730,7 @@ radec_error:
 
 bool EQ500X::setTargetMechanicalPosition(MechanicalPoint const &p)
 {
-    if (isSimulation())
-    {
-        p.toStringRA(simEQ500X.MechanicalRA, sizeof(simEQ500X.MechanicalRA));
-        p.toStringDEC(simEQ500X.MechanicalDEC, sizeof(simEQ500X.MechanicalDEC));
-    }
-    else
+    if (!isSimulation())
     {
         // Size string buffers appropriately
         char CmdString[] = ":Sr" MechanicalPoint_RA_Format "#:Sd" MechanicalPoint_DEC_Format "#";
