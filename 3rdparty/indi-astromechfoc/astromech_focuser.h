@@ -46,6 +46,7 @@ class astromechanics_foc : public INDI::Focuser
 
     private:
         virtual uint32_t GetAbsFocuserPosition();
+        virtual void SetApperture(uint32_t index);
 
         enum
         {
@@ -55,4 +56,7 @@ class astromechanics_foc : public INDI::Focuser
         };
         ISwitchVectorProperty StartSavedPositionSP;
         ISwitch StartSavedPositionS[MODE_COUNT_SAVED];
-};
+
+        INumberVectorProperty AppertureNP;
+        INumber AppertureN[1];
+ };

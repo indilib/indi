@@ -122,6 +122,8 @@ bool astromechanics_foc::initProperties()
     IUFillSwitchVector(&StartSavedPositionSP, StartSavedPositionS, MODE_COUNT_SAVED, getDeviceName(), "Start saved pos.", "Start saved pos.", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 60, IPS_IDLE);
 
+    IUFillNumber(&AppertureN[0], "LENS_APP", "Index", "%2d", 0, 22, 1, 0);
+    IUFillNumberVector(&AppertureNP, AppertureN, 1, getDeviceName(),"LENS_APP_SETTING", "Apperture", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
     serialConnection->setDefaultBaudRate(Connection::Serial::B_38400);
     return true;
 }
@@ -139,11 +141,12 @@ bool astromechanics_foc::updateProperties()
     if (isConnected())
     {
         defineSwitch(&StartSavedPositionSP);
-
+        defineNumber(&AppertureNP);
     }
     else
     {
         deleteProperty(StartSavedPositionSP.name);
+        deleteProperty(AppertureNP.name);
     }
 
     return true;
@@ -244,12 +247,22 @@ bool astromechanics_foc::ISNewSwitch(const char *dev, const char *name, ISState 
 
 bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
-
-
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        LOGF_INFO("IsNewNumber (%s) (%s) (%d)", dev, name, n);
+        LOGF_INFO("IsNewNumber (%s) (%s)", dev, name);
+        if (strcmp(name, "LENS_APP_SETTING") == 0) {
+            LOGF_INFO("set apperture",0);
+            AppertureNP.s = IPS_OK;
+            IUUpdateNumber(&AppertureNP, values, names, n);
+
+            IDSetNumber(&AppertureNP, nullptr);
+            LOGF_INFO("Apperture-Index: %f", AppertureN[0].value);
+            SetApperture(AppertureN[0].value);
+
+            return true;
+        }
     }
+
     // Let INDI::Focuser handle any other number properties
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
@@ -330,6 +343,19 @@ bool astromechanics_foc::saveConfigItems(FILE *fp)
     INDI::Focuser::saveConfigItems(fp);
 
     return true;
+}
+
+void astromechanics_foc::SetApperture(uint32_t index) {
+    LOGF_INFO("SetApperture(%d)", index);
+    char FOC_cmd[32] = "A";
+    char app_index_char[32]  = {0};
+    int nbytes_written = 0;
+
+    sprintf(app_index_char, "%d", index);
+    strcat(app_index_char, "#");
+    strcat(FOC_cmd, app_index_char);
+
+    tty_write_string(PortFD, FOC_cmd, &nbytes_written);
 }
 
 uint32_t astromechanics_foc::GetAbsFocuserPosition()
