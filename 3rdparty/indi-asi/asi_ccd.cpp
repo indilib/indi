@@ -44,6 +44,9 @@ static int iAvailableCamerasCount;
 static ASI_CAMERA_INFO *pASICameraInfo;
 static ASICCD *cameras[MAX_DEVICES];
 
+static bool warn_roi_height = true;
+static bool warn_roi_width = true;
+
 //pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 //pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -1071,9 +1074,25 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
         return false;
     }
 
-    // ZWO rules are this
-    // width%8 = 0
-    // height%2 = 0
+    m_SubX = subX;
+    m_SubY = subY;
+    m_SubW = subW;
+    m_SubH = subH;
+
+    // ZWO rules are this: width%8 = 0, height%2 = 0
+    // if this condition is not met, we set it internally to slightly smaller values
+
+    if (warn_roi_width && subW % 8 > 0)
+    {
+        LOGF_INFO ("Incompatible frame width %dpx. Reducing by %dpx.", subW, subW % 8);
+        warn_roi_width = false;
+    }
+    if (warn_roi_height && subH % 2 > 0)
+    {
+        LOGF_INFO ("Incompatible frame height %dpx. Reducing by %dpx.", subH, subH % 2);
+        warn_roi_height = false;
+    }
+
     subW -= subW % 8;
     subH -= subH % 2;
 
@@ -1103,11 +1122,6 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
 
     LOGF_DEBUG("Setting frame buffer size to %d bytes.", nbuf);
     PrimaryCCD.setFrameBufferSize(nbuf);
-
-    m_SubX = subX;
-    m_SubY = subY;
-    m_SubW = subW;
-    m_SubH = subH;
 
     // Always set BINNED size
     Streamer->setSize(subW, subH);
