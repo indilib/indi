@@ -91,7 +91,7 @@ bool StreamManager::initProperties()
     /* Video Stream */
     IUFillSwitch(&StreamS[0], "STREAM_ON", "Stream On", ISS_OFF);
     IUFillSwitch(&StreamS[1], "STREAM_OFF", "Stream Off", ISS_ON);
-    IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "INDI_VIDEO_STREAM", "Video Stream",
+    IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                        STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
@@ -131,19 +131,19 @@ bool StreamManager::initProperties()
         IUFillNumber(&StreamFrameN[1], "Y", "Top", "%4.0f", 0, 0, 0, 0);
         IUFillNumber(&StreamFrameN[2], "WIDTH", "Width", "%4.0f", 0, 0.0, 0, 0.0);
         IUFillNumber(&StreamFrameN[3], "HEIGHT", "Height", "%4.0f", 0, 0, 0, 0.0);
-        IUFillNumberVector(&StreamFrameNP, StreamFrameN, 4, getDeviceName(), "INDI_STREAM_FRAME", "Frame", STREAM_TAB, IP_RW,
+        IUFillNumberVector(&StreamFrameNP, StreamFrameN, 4, getDeviceName(), "CCD_STREAM_FRAME", "Frame", STREAM_TAB, IP_RW,
                            60, IPS_IDLE);
     }
 
     // Encoder Selection
     IUFillSwitch(&EncoderS[ENCODER_RAW], "RAW", "RAW", ISS_ON);
     IUFillSwitch(&EncoderS[ENCODER_MJPEG], "MJPEG", "MJPEG", ISS_OFF);
-    IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "INDI_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Recorder Selector
     IUFillSwitch(&RecorderS[RECORDER_RAW], "SER", "SER", ISS_ON);
     IUFillSwitch(&RecorderS[RECORDER_OGV], "OGV", "OGV", ISS_OFF);
-    IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "INDI_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // If we do not have theora installed, let's just define SER default recorder
 #ifndef HAVE_THEORA
@@ -258,9 +258,9 @@ void StreamManager::newFrame(const uint8_t * buffer, uint32_t nbytes)
 void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double deltams)
 {
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
-        std::unique_lock<std::mutex> guard(((INDI::CCD*)currentDevice)->ccdBufferLock);
+        std::unique_lock<std::mutex> guard(dynamic_cast<INDI::CCD*>(currentDevice)->ccdBufferLock);
     } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
-        std::unique_lock<std::mutex> guard(((INDI::Detector*)currentDevice)->detectorBufferLock);
+        std::unique_lock<std::mutex> guard(dynamic_cast<INDI::Detector*>(currentDevice)->detectorBufferLock);
     }
     // For streaming, downscale 16 to 8
     if (m_PixelDepth == 16 && (StreamSP.s == IPS_BUSY || RecordStreamSP.s == IPS_BUSY))
@@ -272,10 +272,10 @@ void StreamManager::asyncStream(const uint8_t *buffer, uint32_t nbytes, double d
         }
         uint32_t npixels = 0;
         if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
-            npixels = (((INDI::CCD*)currentDevice)->PrimaryCCD.getSubW() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX()) * (((INDI::CCD*)currentDevice)->PrimaryCCD.getSubH() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
+            npixels = (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX()) * (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY()) * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
             //uint32_t npixels = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * ((m_PixelFormat == INDI_RGB) ? 3 : 1);
         } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
-            npixels = nbytes * 8 / ((INDI::Detector*)currentDevice)->PrimaryDetector.getBPS();
+            npixels = nbytes * 8 / dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getBPS();
         }
         // Allocale new buffer if size changes
         if (downscaleBufferSize != npixels)
@@ -580,9 +580,9 @@ bool StreamManager::startRecording()
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
         /* get filter name for pattern substitution */
-        if (((INDI::CCD*)currentDevice)->CurrentFilterSlot != -1 && ((INDI::CCD*)currentDevice)->CurrentFilterSlot <= static_cast<int>(((INDI::CCD*)currentDevice)->FilterNames.size()))
+        if dynamic_cast<INDI::CCD*>(currentDevice)->CurrentFilterSlot != -1 && dynamic_cast<INDI::CCD*>(currentDevice)->CurrentFilterSlot <= static_cast<int>(dynamic_cast<INDI::CCD*>(currentDevice)->FilterNames.size()))
         {
-            filtername      = ((INDI::CCD*)currentDevice)->FilterNames.at(((INDI::CCD*)currentDevice)->CurrentFilterSlot - 1);
+            filtername      = dynamic_cast<INDI::CCD*>(currentDevice)->FilterNames.at(dynamic_cast<INDI::CCD*>(currentDevice)->CurrentFilterSlot - 1);
             patterns["_F_"] = filtername;
             LOGF_DEBUG("Adding filter pattern %s", filtername.c_str());
         }
@@ -631,7 +631,7 @@ bool StreamManager::startRecording()
     else
     {
         //if (ImageColorS[IMAGE_GRAYSCALE].s == ISS_ON)
-        if (((INDI::CCD*)currentDevice)->PrimaryCCD.getNAxis() == 2)
+        if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
             recorder->setDefaultMono();
         else
             recorder->setDefaultColor();
@@ -644,7 +644,7 @@ bool StreamManager::startRecording()
     mssum         = 0;
     m_FrameCounterPerSecond = 0;
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
-        if (m_isStreaming == false && ((INDI::CCD*)currentDevice)->StartStreaming() == false)
+        if (m_isStreaming == false && dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
         {
             LOG_ERROR("Failed to start recording.");
             RecordStreamSP.s = IPS_ALERT;
@@ -653,7 +653,7 @@ bool StreamManager::startRecording()
             IDSetSwitch(&RecordStreamSP, nullptr);
         }
     } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
-        if (m_isStreaming == false && ((INDI::Detector*)currentDevice)->StartStreaming() == false)
+        if (m_isStreaming == false && dynamic_cast<INDI::Detector*>(currentDevice)->StartStreaming() == false)
         {
             LOG_ERROR("Failed to start recording.");
             RecordStreamSP.s = IPS_ALERT;
@@ -672,10 +672,10 @@ bool StreamManager::stopRecording(bool force)
         return true;
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
         if (!m_isStreaming)
-            ((INDI::CCD*)currentDevice)->StopStreaming();
+            dynamic_cast<INDI::CCD*>(currentDevice)->StopStreaming();
     } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
         if (!m_isStreaming)
-            ((INDI::Detector*)currentDevice)->StopStreaming();
+            dynamic_cast<INDI::Detector*>(currentDevice)->StopStreaming();
 
     }
 
@@ -883,10 +883,10 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
         int subH = 0;
 
         if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
-            subW = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubW() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX();
-            subH = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubH() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY();
+            subW = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
+            subH = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY();
         } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
-            subW = ((INDI::Detector*)currentDevice)->PrimaryDetector.getSampleRate() * ((INDI::Detector*)currentDevice)->PrimaryDetector.getCaptureDuration() * 8 / ((INDI::Detector*)currentDevice)->PrimaryDetector.getBPS();
+            subW = dynamic_cast<INDI::Detector*>(currentDevice)->getContinuumBufferSize() * 8 / dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getBPS();
             subH = 1;
         }
 
@@ -937,7 +937,7 @@ bool StreamManager::setStream(bool enable)
             mssum         = 0;
             m_FrameCounterPerSecond = 0;
             if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
-                if (((INDI::CCD*)currentDevice)->StartStreaming() == false)
+                if (dynamic_cast<INDI::CCD*>(currentDevice)->StartStreaming() == false)
                 {
                     IUResetSwitch(&StreamSP);
                     StreamS[1].s = ISS_ON;
@@ -947,7 +947,7 @@ bool StreamManager::setStream(bool enable)
                     return false;
                 }
             } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
-                if (((INDI::Detector*)currentDevice)->StartStreaming() == false)
+                if (dynamic_cast<INDI::Detector*>(currentDevice)->StartStreaming() == false)
                 {
                     IUResetSwitch(&StreamSP);
                     StreamS[1].s = ISS_ON;
@@ -978,7 +978,7 @@ bool StreamManager::setStream(bool enable)
             if (!m_isRecording)
             {
                 if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
-                    if (((INDI::CCD*)currentDevice)->StopStreaming() == false)
+                    if (dynamic_cast<INDI::CCD*>(currentDevice)->StopStreaming() == false)
                     {
                         StreamSP.s = IPS_ALERT;
                         LOG_ERROR("Failed to stop streaming.");
@@ -986,7 +986,7 @@ bool StreamManager::setStream(bool enable)
                         return false;
                     }
                 } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
-                    if (((INDI::Detector*)currentDevice)->StopStreaming() == false)
+                    if (dynamic_cast<INDI::Detector*>(currentDevice)->StopStreaming() == false)
                     {
                         StreamSP.s = IPS_ALERT;
                         LOG_ERROR("Failed to stop streaming.");
@@ -1035,15 +1035,15 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         // Upload to client now
 
 #ifdef HAVE_WEBSOCKET
-        if (((INDI::CCD*)currentDevice)->HasWebSocket() && ((INDI::CCD*)currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
+        if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
         {
             if (m_Format != ".stream_jpg")
             {
                 m_Format = ".stream_jpg";
-                ((INDI::CCD*)currentDevice)->wsServer.send_text(m_Format);
+                dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_text(m_Format);
             }
 
-            ((INDI::CCD*)currentDevice)->wsServer.send_binary(buffer, nbytes);
+            dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
             return true;
         }
 #endif
@@ -1056,14 +1056,14 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         return true;
     }
 
-    //memcpy(((INDI::CCD*)currentDevice)->PrimaryCCD.getFrameBuffer(), buffer, ((INDI::CCD*)currentDevice)->PrimaryCCD.getFrameBufferSize());
+    //memcpy(dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getFrameBuffer(), buffer, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getFrameBufferSize());
 
     // Binning for grayscale frames only for now
 #if 0
-    if (((INDI::CCD*)currentDevice)->PrimaryCCD.getNAxis() == 2)
+    if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
     {
-        ((INDI::CCD*)currentDevice)->PrimaryCCD.binFrame();
-        nbytes /= (((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX() * ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY());
+        dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.binFrame();
+        nbytes /= dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX() * dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY();
     }
 #endif
 
@@ -1071,14 +1071,14 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     subX = subY = 0;
     subW = subH = 0;
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
-        subX = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubX() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX();
-        subY = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubY() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY();
-        subW = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubW() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX();
-        subH = ((INDI::CCD*)currentDevice)->PrimaryCCD.getSubH() / ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY();
+        subX = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubX() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
+        subY = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubY() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY();
+        subW = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
+        subH = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY();
     } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
         subX = 0;
         subY = 0;
-        subW = ((INDI::Detector*)currentDevice)->PrimaryDetector.getSampleRate() * ((INDI::Detector*)currentDevice)->PrimaryDetector.getCaptureDuration() * 8 / ((INDI::Detector*)currentDevice)->PrimaryDetector.getBPS();
+        subW = dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getSampleRate() * (dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getCaptureDuration() * 8 / dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getBPS();
         subH = 1;
     }
 
@@ -1087,8 +1087,8 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     // If stream frame was not yet initilized, let's do that now
     if (StreamFrameN[CCDChip::FRAME_W].value == 0 || StreamFrameN[CCDChip::FRAME_H].value == 0)
     {
-        //if (((INDI::CCD*)currentDevice)->PrimaryCCD.getNAxis() == 2)
-        //    binFactor = ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX();
+        //if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
+        //    binFactor = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
 
         StreamFrameN[CCDChip::FRAME_X].value = subX;
         StreamFrameN[CCDChip::FRAME_Y].value = subY;
@@ -1126,18 +1126,18 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
         nbytes = StreamFrameN[CCDChip::FRAME_W].value * StreamFrameN[CCDChip::FRAME_H].value * components;
 
         if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
-            if (encoder->upload(imageB, downscaleBuffer, nbytes, ((INDI::CCD*)currentDevice)->PrimaryCCD.isCompressed()))
+            if (encoder->upload(imageB, downscaleBuffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed())) 
             {
 #ifdef HAVE_WEBSOCKET
-                if (((INDI::CCD*)currentDevice)->HasWebSocket() && ((INDI::CCD*)currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
+                if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
                 {
                     if (m_Format != ".stream")
                     {
                         m_Format = ".stream";
-                        ((INDI::CCD*)currentDevice)->wsServer.send_text(m_Format);
+                        dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_text(m_Format);
                     }
 
-                    ((INDI::CCD*)currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
+                    dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
                     return true;
                 }
 #endif
@@ -1147,18 +1147,18 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
                 return true;
             }
         } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
-            if (encoder->upload(imageB, downscaleBuffer, nbytes, false))//((INDI::Detector*)currentDevice)->PrimaryDetector.isCompressed()))
+            if (encoder->upload(imageB, downscaleBuffer, nbytes, false))//dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.isCompressed())
             {
     #ifdef HAVE_WEBSOCKET
-                if (((INDI::Detector*)currentDevice)->HasWebSocket() && ((INDI::Detector*)currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
+                if (dynamic_cast<INDI::Detector*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::Detector*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
                 {
                     if (m_Format != ".stream")
                     {
                         m_Format = ".stream";
-                        ((INDI::Detector*)currentDevice)->wsServer.send_text(m_Format);
+                        dynamic_cast<INDI::Detector*>(currentDevice)->wsServer.send_text(m_Format);
                     }
 
-                    ((INDI::Detector*)currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
+                    dynamic_cast<INDI::Detector*>(currentDevice)->wsServer.send_binary(downscaleBuffer, nbytes);
                     return true;
                 }
     #endif
@@ -1173,9 +1173,9 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     }
 #if 0
     // For MONO
-    if (((INDI::CCD*)currentDevice)->PrimaryCCD.getNAxis() == 2)
+    if (dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getNAxis() == 2)
     {
-        int binFactor = (((INDI::CCD*)currentDevice)->PrimaryCCD.getBinX() * ((INDI::CCD*)currentDevice)->PrimaryCCD.getBinY());
+        int binFactor = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX() * dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY();
         int offset =
             ((subW * StreamFrameN[CCDChip::FRAME_Y].value) + StreamFrameN[CCDChip::FRAME_X].value) / binFactor;
 
@@ -1211,18 +1211,18 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
 #endif
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
-        if (encoder->upload(imageB, buffer, nbytes, ((INDI::CCD*)currentDevice)->PrimaryCCD.isCompressed()))
+        if (encoder->upload(imageB, buffer, nbytes, dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.isCompressed()))
         {
     #ifdef HAVE_WEBSOCKET
-            if (((INDI::CCD*)currentDevice)->HasWebSocket() && ((INDI::CCD*)currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
+            if (dynamic_cast<INDI::CCD*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::CCD*>(currentDevice)->WebSocketS[CCD::WEBSOCKET_ENABLED].s == ISS_ON)
             {
                 if (m_Format != ".stream")
                 {
                     m_Format = ".stream";
-                    ((INDI::CCD*)currentDevice)->wsServer.send_text(m_Format);
+                    dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_text(m_Format);
                 }
 
-                ((INDI::CCD*)currentDevice)->wsServer.send_binary(buffer, nbytes);
+                dynamic_cast<INDI::CCD*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
                 return true;
             }
     #endif
@@ -1232,18 +1232,18 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
             return true;
         }
     } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
-        if (encoder->upload(imageB, buffer, nbytes, false))//((INDI::Detector*)currentDevice)->PrimaryDetector.isCompressed()))
+        if (encoder->upload(imageB, buffer, nbytes, false))//dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.isCompressed()))
         {
     #ifdef HAVE_WEBSOCKET
-            if (((INDI::Detector*)currentDevice)->HasWebSocket() && ((INDI::Detector*)currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
+            if (dynamic_cast<INDI::Detector*>(currentDevice)->HasWebSocket() && dynamic_cast<INDI::Detector*>(currentDevice)->WebSocketS[Detector::WEBSOCKET_ENABLED].s == ISS_ON)
             {
                 if (m_Format != ".stream")
                 {
                     m_Format = ".stream";
-                    ((INDI::Detector*)currentDevice)->wsServer.send_text(m_Format);
+                    dynamic_cast<INDI::Detector*>(currentDevice)->wsServer.send_text(m_Format);
                 }
 
-                ((INDI::Detector*)currentDevice)->wsServer.send_binary(buffer, nbytes);
+                dynamic_cast<INDI::Detector*>(currentDevice)->wsServer.send_binary(buffer, nbytes);
                 return true;
             }
     #endif
