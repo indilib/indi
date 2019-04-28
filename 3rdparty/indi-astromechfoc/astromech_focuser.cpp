@@ -88,6 +88,7 @@ void ISSnoopDevice(XMLEle *root)
 ************************************************************************************/
 astromechanics_foc::astromechanics_foc()
 {
+    setVersion(0, 1);
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
@@ -96,7 +97,7 @@ astromechanics_foc::astromechanics_foc()
 ************************************************************************************/
 const char *astromechanics_foc::getDefaultName()
 {
-    return "Astromechanics FOC";
+    return (const char *)"Astromechanics FOC";
 }
 
 /************************************************************************************
