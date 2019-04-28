@@ -351,14 +351,14 @@ bool EQ500X::ReadScopeStatus()
             struct _adjustment const *ra_adjust = nullptr, *dec_adjust = nullptr;
 
             // Choose slew rate for RA based on distance to target
-            for(size_t i = 0; i < sizeof(adjustments) && nullptr == ra_adjust; i++)
+            for(size_t i = 0; i < sizeof(adjustments)/sizeof(adjustments[0]) && nullptr == ra_adjust; i++)
                 if (abs_ra_delta <= adjustments[i].distance)
                     ra_adjust = &adjustments[i];
             assert(nullptr != ra_adjust);
             LOGF_DEBUG("RA  %lf-%lf = %+lf° under %lf° would require adjustment at %s until less than %lf°", targetMechPosition.RAm()*15.0, currentMechPosition.RAm()*15.0, ra_delta, ra_adjust->distance, ra_adjust->slew_rate, std::max(ra_adjust->epsilon, 15.0/3600.0));
 
             // Choose slew rate for DEC based on distance to target
-            for(size_t i = 0; i < sizeof(adjustments) && nullptr == dec_adjust; i++)
+            for(size_t i = 0; i < sizeof(adjustments)/sizeof(adjustments[0]) && nullptr == dec_adjust; i++)
                 if (abs_dec_delta <= adjustments[i].distance)
                     dec_adjust = &adjustments[i];
             assert(nullptr != dec_adjust);

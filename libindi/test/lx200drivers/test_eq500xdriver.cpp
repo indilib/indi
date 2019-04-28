@@ -206,7 +206,7 @@ TEST(EQ500XDriverTest, test_MechanicalPoint_PierFlip)
 TEST(EQ500XDriverTest, test_Stability_RA_Conversions)
 {
     EQ500X::MechanicalPoint::PointingState const sides[] = {EQ500X::MechanicalPoint::POINTING_NORMAL, EQ500X::MechanicalPoint::POINTING_BEYOND_POLE};
-    for (size_t ps = 0; ps < sizeof(sides); ps++)
+    for (size_t ps = 0; ps < sizeof(sides)/sizeof(sides[0]); ps++)
     {
         for (int s = 0; s < 60; s++)
         {
@@ -235,7 +235,7 @@ TEST(EQ500XDriverTest, test_Stability_DEC_Conversions)
 {
     // Doesn't test outside of -90,+90 but another test does roughly
     EQ500X::MechanicalPoint::PointingState const sides[] = {EQ500X::MechanicalPoint::POINTING_NORMAL, EQ500X::MechanicalPoint::POINTING_BEYOND_POLE};
-    for (size_t ps = 0; ps < sizeof(sides); ps++)
+    for (size_t ps = 0; ps < sizeof(sides)/sizeof(sides[0]); ps++)
     {
         for (int s = 0; s < 60; s++)
         {
@@ -720,7 +720,7 @@ TEST(EQ500XDriverTest, test_Goto_EastMovement)
         ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     }
     ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
-    ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
+    ASSERT_EQ(EQ500X::PIER_EAST, d.getPierSide());
 }
 
 TEST(EQ500XDriverTest, test_Goto_WestMovement)
@@ -742,7 +742,7 @@ TEST(EQ500XDriverTest, test_Goto_WestMovement)
         ASSERT_EQ(EQ500X::SCOPE_SLEWING, d.getTrackState());
     }
     ASSERT_EQ(EQ500X::SCOPE_TRACKING, d.getTrackState());
-    ASSERT_EQ(EQ500X::PIER_EAST, d.getPierSide());
+    ASSERT_EQ(EQ500X::PIER_WEST, d.getPierSide());
 }
 
 int main(int argc, char **argv)
