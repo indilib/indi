@@ -81,15 +81,16 @@ static int MAX_CONVERGENCE_LOOPS = 144;
 // The greater adjustment requirement drives the slew rate (one single command for both axis)
 struct _adjustment {
     char const * slew_rate;
+    int switch_index;
     double epsilon;
     double distance;
     int polling_interval;
 }
 const adjustments[] = {
-{":RG#",   1*ARCSECOND,  0.7*ARCMINUTE, 100 },   // Guiding speed
-{":RC#", 0.7*ARCMINUTE,   10*ARCMINUTE, 200 },   // Centering speed
-{":RM#",  10*ARCMINUTE,    5*ONEDEGREE, 500 },   // Finding speed
-{":RS#",   5*ONEDEGREE,  360*ONEDEGREE, 1000 }}; // Slew speed
+{":RG#", 0,   1*ARCSECOND,  0.7*ARCMINUTE, 100 },   // Guiding speed
+{":RC#", 1, 0.7*ARCMINUTE,   10*ARCMINUTE, 200 },   // Centering speed
+{":RM#", 2,  10*ARCMINUTE,    5*ONEDEGREE, 500 },   // Finding speed
+{":RS#", 3,   5*ONEDEGREE,  360*ONEDEGREE, 1000 }}; // Slew speed
 
 /**************************************************************************************
 ** EQ500X Constructor
@@ -450,11 +451,20 @@ bool EQ500X::ReadScopeStatus()
             LOGF_DEBUG("Centering (%lf°,%lf°) delta (%lf°,%lf°) moving %c%c%c%c at %s until less than (%lf°,%lf°)", targetMechPosition.RAm()*15.0, targetMechPosition.DECm(), ra_delta, dec_delta, RAmDecrease?'W':'.', RAmIncrease?'E':'.', DECmDecrease?'N':'.', DECmIncrease?'S':'.', adjustment->slew_rate, std::max(adjustment->epsilon, RA_GRANULARITY), adjustment->epsilon);
 
             // If we have a command to run, issue it
-            if (CmdString[0] != '\0' && sendCmd(CmdString))
+            if (CmdString[0] != '\0')
             {
-                LOGF_ERROR("Error centering (%lf°,%lf°)", targetMechPosition.RAm()*15.0, targetMechPosition.DECm());
-                slewError(-1);
-                return false;
+                // Send command to mount
+                if (sendCmd(CmdString))
+                {
+                    LOGF_ERROR("Error centering (%lf°,%lf°)", targetMechPosition.RAm()*15.0, targetMechPosition.DECm());
+                    slewError(-1);
+                    return false;
+                }
+
+                // Update slew rate
+                IUResetSwitch(&SlewRateSP);
+                SlewRateS[adjustment->switch_index].s = ISS_ON;
+                IDSetSwitch(&SlewRateSP, nullptr);
             }
 
             // If all movement flags are cleared, we are done adjusting
@@ -479,6 +489,9 @@ bool EQ500X::ReadScopeStatus()
         {
             LOG_INFO("Slew is complete. Tracking...");
             sendCmd(":Q#:RG#");
+            IUResetSwitch(&SlewRateSP);
+            SlewRateS[adjustments[0].switch_index].s = ISS_ON;
+            IDSetSwitch(&SlewRateSP, nullptr);
             adjustment = nullptr;
             POLLMS = 1000;
             TrackState = SCOPE_TRACKING;
@@ -504,8 +517,11 @@ bool EQ500X::ReadScopeStatus()
 
 slew_failure:
     // If we failed at some point, attempt to stop moving and update properties with error
-    sendCmd(":Q#");
+    sendCmd(":Q#:RG#");
     adjustment = nullptr;
+    IUResetSwitch(&SlewRateSP);
+    SlewRateS[adjustments[0].switch_index].s = ISS_ON;
+    IDSetSwitch(&SlewRateSP, nullptr);
     POLLMS = 1000;
     TrackState = SCOPE_TRACKING;
     currentRA = currentMechPosition.RAsky();
