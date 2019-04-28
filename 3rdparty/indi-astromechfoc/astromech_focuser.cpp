@@ -71,6 +71,13 @@ void ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], 
     INDI_UNUSED(n);
 }
 
+bool astromechanics_foc::Disconnect() {
+    SetApperture(0);
+    MoveAbsFocuser(0);
+
+    return true;
+}
+
 void ISSnoopDevice(XMLEle *root)
 {
     Astromechanics_foc->ISSnoopDevice(root);
@@ -114,8 +121,12 @@ bool astromechanics_foc::initProperties()
     FocusMaxPosN[0].max = FOC_POSMAX_HARDWARE;
     FocusMaxPosN[0].step = (FocusMaxPosN[0].max - FocusMaxPosN[0].min) / 20.0;
     FocusMaxPosN[0].value = 5000;
-
     FocusAbsPosN[0].max = FocusAbsPosN[0].value;
+
+    FocusRelPosN[0].min = 1;
+    FocusRelPosN[0].max = FocusAbsPosN[0].max;
+    FocusRelPosN[0].value = 500;
+    FocusRelPosN[0].step = 10;
 
     IUFillNumber(&AppertureN[0], "LENS_APP", "Index", "%2d", 0, 22, 1, 0);
     IUFillNumberVector(&AppertureNP, AppertureN, 1, getDeviceName(),"LENS_APP_SETTING", "Apperture", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
@@ -177,6 +188,8 @@ bool astromechanics_foc::Handshake()
         LOGF_ERROR("ERROR HANDSHAKE",0);
     }
 
+    SetApperture(0);
+
     return false;
 }
 
@@ -197,9 +210,7 @@ bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double v
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        LOGF_INFO("IsNewNumber (%s) (%s)", dev, name);
         if (strcmp(name, "LENS_APP_SETTING") == 0) {
-            LOGF_INFO("set apperture",0);
             AppertureNP.s = IPS_OK;
             IUUpdateNumber(&AppertureNP, values, names, n);
 
@@ -220,7 +231,13 @@ bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double v
 ************************************************************************************/
 IPState astromechanics_foc::MoveAbsFocuser(uint32_t targetTicks)
 {
-    LOGF_INFO("MoveAbsFocuser (%d)", targetTicks);
+    LOGF_DEBUG("MoveAbsFocuser (%d)", targetTicks);
+
+    if (targetTicks < FocusAbsPosN[0].min || targetTicks > FocusAbsPosN[0].max) {
+        LOG_ERROR("Error, requested position is out of range!");
+        return IPS_ALERT;
+    }
+
     char FOC_cmd[32]  = "M";
     char abs_pos_char[32]  = {0};
     int nbytes_written = 0;
@@ -233,7 +250,7 @@ IPState astromechanics_foc::MoveAbsFocuser(uint32_t targetTicks)
     LOGF_INFO("CMD (%s)", FOC_cmd);
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
 
-    FocusAbsPosN[0].value = targetTicks;
+    FocusAbsPosN[0].value = GetAbsFocuserPosition();
 
     return IPS_OK;
 }

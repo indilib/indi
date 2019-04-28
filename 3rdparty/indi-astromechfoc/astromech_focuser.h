@@ -31,6 +31,7 @@ class astromechanics_foc : public INDI::Focuser
         bool initProperties() override;
         void ISGetProperties(const char *dev) override;
         bool updateProperties() override;
+        bool Disconnect();
 
         const char *getDefaultName() override;
 
