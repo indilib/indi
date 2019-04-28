@@ -22,7 +22,8 @@
 using ::testing::_;
 using ::testing::StrEq;
 
-char * me = "MockEQ500XDriver";
+char _me[] = "MockEQ500XDriver";
+char *me = _me;
 class MockEQ500XDriver : public EQ500X
 {
 public:
