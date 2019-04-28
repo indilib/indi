@@ -91,9 +91,12 @@ bool StreamManager::initProperties()
     /* Video Stream */
     IUFillSwitch(&StreamS[0], "STREAM_ON", "Stream On", ISS_OFF);
     IUFillSwitch(&StreamS[1], "STREAM_OFF", "Stream Off", ISS_ON);
-    IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
+    if(currentDevice->getDriverInterface() == INDI:DefaultDevice::DETECTOR_INTERFACE)
+        IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "DETECTOR_DATA_STREAM", "Video Stream",
                        STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
+    else
+        IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
+                       STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
     IUFillNumber(&StreamExposureN[STREAM_DIVISOR], "STREAMING_DIVISOR_VALUE", "Divisor", "%.f", 1, 15, 1, 1);
     IUFillNumberVector(&StreamExposureNP, StreamExposureN, NARRAY(StreamExposureN), getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
@@ -138,13 +141,18 @@ bool StreamManager::initProperties()
     // Encoder Selection
     IUFillSwitch(&EncoderS[ENCODER_RAW], "RAW", "RAW", ISS_ON);
     IUFillSwitch(&EncoderS[ENCODER_MJPEG], "MJPEG", "MJPEG", ISS_OFF);
-    IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    if(currentDevice->getDriverInterface() == INDI:DefaultDevice::DETECTOR_INTERFACE)
+        IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "DETECTOR_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    else
+        IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
 
     // Recorder Selector
     IUFillSwitch(&RecorderS[RECORDER_RAW], "SER", "SER", ISS_ON);
     IUFillSwitch(&RecorderS[RECORDER_OGV], "OGV", "OGV", ISS_OFF);
-    IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-
+    if(currentDevice->getDriverInterface() == INDI:DefaultDevice::DETECTOR_INTERFACE)
+        IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "DETECTOR_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
+    else
+        IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     // If we do not have theora installed, let's just define SER default recorder
 #ifndef HAVE_THEORA
         RecorderSP.nsp = 1;
@@ -580,7 +588,7 @@ bool StreamManager::startRecording()
 
     if(currentDevice->getDriverInterface() & INDI::DefaultDevice::CCD_INTERFACE) {
         /* get filter name for pattern substitution */
-        if dynamic_cast<INDI::CCD*>(currentDevice)->CurrentFilterSlot != -1 && dynamic_cast<INDI::CCD*>(currentDevice)->CurrentFilterSlot <= static_cast<int>(dynamic_cast<INDI::CCD*>(currentDevice)->FilterNames.size()))
+        if (dynamic_cast<INDI::CCD*>(currentDevice)->CurrentFilterSlot != -1 && dynamic_cast<INDI::CCD*>(currentDevice)->CurrentFilterSlot <= static_cast<int>(dynamic_cast<INDI::CCD*>(currentDevice)->FilterNames.size()))
         {
             filtername      = dynamic_cast<INDI::CCD*>(currentDevice)->FilterNames.at(dynamic_cast<INDI::CCD*>(currentDevice)->CurrentFilterSlot - 1);
             patterns["_F_"] = filtername;
@@ -1078,7 +1086,7 @@ bool StreamManager::uploadStream(const uint8_t * buffer, uint32_t nbytes)
     } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
         subX = 0;
         subY = 0;
-        subW = dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getSampleRate() * (dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getCaptureDuration() * 8 / dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getBPS();
+        subW = dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getContinuumBufferSize() * 8 / dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getBPS();
         subH = 1;
     }
 
