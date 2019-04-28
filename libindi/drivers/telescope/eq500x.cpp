@@ -1,7 +1,7 @@
 #if 0
-LX200-based EQ500X Equatorial Mount
+LX200-based Omegon EQ500X Equatorial Mount
+
 Copyright (C) 2019 Eric Dejouhanet (eric.dejouhanet@gmail.com)
-Low-level communication from elias.erdnuess@nimax.de
 
 This library is free software;
 you can redistribute it and / or
