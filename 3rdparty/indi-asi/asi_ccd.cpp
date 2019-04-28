@@ -44,6 +44,9 @@ static int iAvailableCamerasCount;
 static ASI_CAMERA_INFO *pASICameraInfo;
 static ASICCD *cameras[MAX_DEVICES];
 
+static bool warn_roi_height = true;
+static bool warn_roi_width = true;
+
 //pthread_cond_t cv         = PTHREAD_COND_INITIALIZER;
 //pthread_mutex_t condMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -1079,10 +1082,16 @@ bool ASICCD::UpdateCCDFrame(int x, int y, int w, int h)
     // ZWO rules are this: width%8 = 0, height%2 = 0
     // if this condition is not met, we set it internally to slightly smaller values
 
-    if (subW % 8 > 0)
-        LOGF_WARN ("Frame width of %d at binning %d is not allowed. Reducing by %dpx.", subW, binX, subW % 8);
-    if (subH % 2 > 0)
-        LOGF_WARN ("Frame height of %d at binning %d is not allowed. Reducing by %dpx.", subH, binY, subH % 2);
+    if (warn_roi_width && subW % 8 > 0)
+    {
+        LOGF_INFO ("Incompatible frame width %dpx. Reducing by %dpx.", subW, subW % 8);
+        warn_roi_width = false;
+    }
+    if (warn_roi_height && subH % 2 > 0)
+    {
+        LOGF_INFO ("Incompatible frame height %dpx. Reducing by %dpx.", subH, subH % 2);
+        warn_roi_height = false;
+    }
 
     subW -= subW % 8;
     subH -= subH % 2;
