@@ -235,7 +235,6 @@ bool EQ500X::updateLocation(double latitude, double longitude, double elevation)
     if (isConnected() && !getCurrentMechanicalPosition(currentMechPosition) && currentMechPosition.atParkingPosition())
     {
         double const LST = getLST();
-        // Mechanical HA is east, 6 hours before meridian
         Sync(LST - 6, currentMechPosition.DECsky());
         LOGF_INFO("Location updated: mount considered parked, synced to LST %gh", LST);
     }
@@ -308,16 +307,19 @@ bool EQ500X::ReadScopeStatus()
 
         // Update the side of pier
         double const LST = getLST();
-        double const HA = LST - currentRA;
+        double HA = LST - currentRA;
+        while (+12 <= HA) HA -= 24;
+        while (HA <= -12) HA += 24;
         switch (currentMechPosition.getPointingState())
         {
         case MechanicalPoint::POINTING_NORMAL:
-            LX200Telescope::setPierSide(HA <= 0 ? PIER_EAST : PIER_WEST);
+            LX200Telescope::setPierSide(HA < 6 ? PIER_EAST : PIER_WEST);
             break;
         case MechanicalPoint::POINTING_BEYOND_POLE:
-            LX200Telescope::setPierSide(0 <= HA ? PIER_EAST : PIER_WEST);
+            LX200Telescope::setPierSide(6 < HA ? PIER_EAST : PIER_WEST);
             break;
         }
+        LOGF_DEBUG("Mount HA=%lfh pointing %s on %s side", HA, currentMechPosition.getPointingState() == MechanicalPoint::POINTING_NORMAL?"normal":"beyond pole", getPierSide() == PIER_EAST?"east":"west");
     }
 
     // If we are using the goto feature, check state
@@ -327,8 +329,8 @@ bool EQ500X::ReadScopeStatus()
         {
             _gotoEngaged = false;
 
-            // Goto is complete, reset target in case this was for a flip
-            if (setTargetMechanicalPosition(targetMechPosition))
+            // Preliminary goto is complete, continue
+            if (!Goto(targetMechPosition.RAsky(), targetMechPosition.DECsky()))
                 goto slew_failure;
         }
     }
@@ -536,30 +538,14 @@ bool EQ500X::Goto(double ra, double dec)
 {
     // Check whether a meridian flip is required
     double const LST = getLST();
-    double const HA = LST - ra;
-    bool flip_needed = false;
+    double HA = LST - ra;
+    while (+12 <= HA) HA -= 24;
+    while (HA <= -12) HA += 24;
 
-    // Deduce required orientation of mount in HA quadrants
-    if ((-12 < HA && HA <= -6) || (0 <= HA && HA < 6))
-    {
-        flip_needed = MechanicalPoint::POINTING_NORMAL == currentMechPosition.getPointingState();
-        targetMechPosition.setPointingState(MechanicalPoint::POINTING_BEYOND_POLE);
-    }
-    else
-    {
-        flip_needed = MechanicalPoint::POINTING_BEYOND_POLE == currentMechPosition.getPointingState();
-        targetMechPosition.setPointingState(MechanicalPoint::POINTING_NORMAL);
-    }
-
-    targetMechPosition.RAsky(targetRA = ra);
-    targetMechPosition.DECsky(targetDEC = dec);
-
-    LOGF_INFO("Goto target (%lfh,%lf°) HA is %lf, LST is %lf, quadrant is %s, flip %srequired", ra, dec, HA, LST, targetMechPosition.getPointingState() == MechanicalPoint::POINTING_NORMAL ? "normal" : "beyond pole", flip_needed? "" : "not ");
-
-    // Format RA/DEC for logs
-    char RAStr[16]={0}, DecStr[16]={0};
-    fs_sexa(RAStr, targetRA, 2, 3600);
-    fs_sexa(DecStr, targetDEC, 2, 3600);
+    // Deduce required orientation of mount in HA quadrants - set orientation BEFORE coordinates!
+    targetMechPosition.setPointingState((0 <= HA && HA < 12) ? MechanicalPoint::POINTING_NORMAL : MechanicalPoint::POINTING_BEYOND_POLE);
+    targetMechPosition.RAsky(ra);
+    targetMechPosition.DECsky(dec);
 
     // If moving, let's stop it first.
     if (EqNP.s == IPS_BUSY)
@@ -591,26 +577,25 @@ bool EQ500X::Goto(double ra, double dec)
         nanosleep(&timeout, nullptr);
     }
 
-        /* The goto feature is quite imprecise because it will always use full speed.
-         * By the time the mount stops, the position is off by 0-5 degrees, depending on the speed attained during the move.
-         * Additionally, a firmware limitation prevents the goto feature from slewing to close coordinates, and will cause uneeded axis rotation.
-         * Therefore, don't use the goto feature for a goto, and let ReadScope adjust the position by itself.
-         */
+    /* The goto feature is quite imprecise because it will always use full speed.
+     * By the time the mount stops, the position is off by 0-5 degrees, depending on the speed attained during the move.
+     * Additionally, a firmware limitation prevents the goto feature from slewing to close coordinates, and will cause uneeded axis rotation.
+     * Therefore, don't use the goto feature for a goto, and let ReadScope adjust the position by itself.
+     */
 
-    // If a flip is needed, use the goto feature to return to meridian alignment first
-    if (flip_needed)
-    {
-        MechanicalPoint pole;
-        pole.DECsky(90);
-        pole.RAsky(LST);
-        _gotoEngaged = !gotoTargetPosition(pole);
-    }
-    // Else set target position and adjust
-    else if (setTargetMechanicalPosition(targetMechPosition))
+    // Set target position and adjust
+    if (setTargetMechanicalPosition(targetMechPosition))
     {
         EqNP.s = IPS_ALERT;
         IDSetNumber(&EqNP, "Error setting RA/DEC.");
         return false;
+    }
+    else
+    {
+        targetMechPosition.RAsky(targetRA = ra);
+        targetMechPosition.DECsky(targetDEC = dec);
+
+        LOGF_INFO("Goto target (%lfh,%lf°) HA %lf, LST %lf, quadrant %s", ra, dec, HA, LST, targetMechPosition.getPointingState() == MechanicalPoint::POINTING_NORMAL ? "normal" : "beyond pole");
     }
 
     // Limit the number of loops
@@ -621,6 +606,11 @@ bool EQ500X::Goto(double ra, double dec)
 
     TrackState = SCOPE_SLEWING;
     EqNP.s     = IPS_BUSY;
+
+    // Format RA/DEC for logs
+    char RAStr[16]={0}, DecStr[16]={0};
+    fs_sexa(RAStr, targetRA, 2, 3600);
+    fs_sexa(DecStr, targetDEC, 2, 3600);
 
     LOGF_INFO("Slewing to JNow RA: %s - DEC: %s", RAStr, DecStr);
 
