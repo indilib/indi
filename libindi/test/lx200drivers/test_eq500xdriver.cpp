@@ -232,6 +232,7 @@ TEST(EQ500XDriverTest, test_Stability_RA_Conversions)
 
 TEST(EQ500XDriverTest, test_Stability_DEC_Conversions)
 {
+    // Doesn't test outside of -90,+90 but another test does roughly
     EQ500X::MechanicalPoint::PointingState const sides[] = {EQ500X::MechanicalPoint::POINTING_NORMAL, EQ500X::MechanicalPoint::POINTING_BEYOND_POLE};
     for (size_t ps = 0; ps < sizeof(sides); ps++)
     {
@@ -331,7 +332,7 @@ TEST(EQ500XDriverTest, test_BeyondPolePointing_RA_Conversions)
 
 // Declination goes from -255:59:59 to +255:59:59
 //
-// Tenths and hundredths share the same character:
+// When reading, tenths and hundredths share the same character:
 // - 0-9 is mapped to {0,1,2,3,4,5,6,7,8,9}
 // - 10-16 is mapped to {:,;,<,=,>,?,@}
 // - 17-25 is mapped to {A,B,C,D,E,F,G,H,I}
@@ -341,20 +342,20 @@ TEST(EQ500XDriverTest, test_BeyondPolePointing_RA_Conversions)
 // - raw DEC in [-180,0] means "beyond pole".
 // We support [+270,+256[ (beyond) and ]-256,-270] (normal) for convenience.
 //
-// Beyond          Mount DEC           Normal
-//(-165.0°)<-> -255.0 = -I5:00:00 <-> +345.0°
-//(-135.0°)<-> -225.0 = -F5:00:00 <-> +315.0°
-//  -90.0° <-> -180.0 = -B0:00:00 <-> +270.0°
-//  -45.0° <-> -135.0 = -=5:00:00 <->(+225.0°)
-//  +00.0° <->  -90.0 = -90:00:00 <->(+180.0°)
-//  +45.0° <->  -45.0 = -45:00:00 <->(+135.0°)
-//  +90.0° <->    0.0 = +00:00:00 <->  +90.0°
-//(+135.0°)<->   45.0 = +45:00:00 <->  +45.0°
-//(+180.0°)<->   90.0 = +90:00:00 <->  +00.0°
-//(+225.0°)<->  135.0 = +=5:00:00 <->  -45.0°
-// +270.0°)<->  180.0 = +B0:00:00 <->  -90.0°
-// +315.0° <->  225.0 = +F5:00:00 <->(-135.0°)
-// +345.0° <->  255.0 = +I5:00:00 <->(-165.0°)
+// Beyond        W  Mount DEC  R          Normal
+//(-165.0°)<-> -255:00:00 = -255.0 = -I5:00:00 <-> +345.0°
+//(-135.0°)<-> -225:00:00 = -F5:00:00 <-> +315.0°
+//  -90.0° <-> -180:00:00 = -B0:00:00 <-> +270.0°
+//  -45.0° <-> -135:00:00 = -=5:00:00 <->(+225.0°)
+//  +00.0° <->  -90:00:00 = -90:00:00 <->(+180.0°)
+//  +45.0° <->  -45:00:00 = -45:00:00 <->(+135.0°)
+//  +90.0° <->    0:00:00 = +00:00:00 <->  +90.0°
+//(+135.0°)<->   45:00:00 = +45:00:00 <->  +45.0°
+//(+180.0°)<->   90:00:00 = +90:00:00 <->  +00.0°
+//(+225.0°)<->  135:00:00 = +=5:00:00 <->  -45.0°
+// +270.0°)<->  180:00:00 = +B0:00:00 <->  -90.0°
+// +315.0° <->  225:00:00 = +F5:00:00 <->(-135.0°)
+// +345.0° <->  255:00:00 = +I5:00:00 <->(-165.0°)
 
 TEST(EQ500XDriverTest, test_MechanicalPoint_Sky_DEC_Conversion)
 {
@@ -446,67 +447,80 @@ TEST(EQ500XDriverTest, test_DEC_Conversions)
 
     ASSERT_FALSE(p.parseStringDEC("-I5:00:00",9));
     ASSERT_EQ(-255.0, p.DECm());
-    ASSERT_FALSE(strncmp("-I5:00:00",p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp("-I5:00:00",p.toStringDEC_Sim(b,64),64));
+    ASSERT_FALSE(strncmp("-255:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("-F5:00:00",9));
     ASSERT_EQ(-225.0, p.DECm());
-    ASSERT_FALSE(strncmp("-F5:00:00",p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp("-F5:00:00",p.toStringDEC_Sim(b,64),64));
+    ASSERT_FALSE(strncmp("-225:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("-B0:00:00",9));
     ASSERT_EQ(-180.0, p.DECm());
-    ASSERT_FALSE(strncmp("-B0:00:00",p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp("-B0:00:00",p.toStringDEC_Sim(b,64),64));
+    ASSERT_FALSE(strncmp("-180:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("-=5:00:00",9));
     ASSERT_EQ(-135.0, p.DECm());
-    ASSERT_FALSE(strncmp("-=5:00:00",p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp("-=5:00:00",p.toStringDEC_Sim(b,64),64));
+    ASSERT_FALSE(strncmp("-135:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("-90:00:00",9));
     ASSERT_EQ( -90.0, p.DECm());
+    ASSERT_FALSE(strncmp("-90:00:00",p.toStringDEC_Sim(b,64),64));
     ASSERT_FALSE(strncmp("-90:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("-45:00:00",9));
     ASSERT_EQ( -45.0, p.DECm());
+    ASSERT_FALSE(strncmp("-45:00:00",p.toStringDEC_Sim(b,64),64));
     ASSERT_FALSE(strncmp("-45:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("+00:00:00",9));
     ASSERT_EQ(  +0.0, p.DECm());
+    ASSERT_FALSE(strncmp("+00:00:00",p.toStringDEC_Sim(b,64),64));
     ASSERT_FALSE(strncmp("+00:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("+45:00:00",9));
     ASSERT_EQ( +45.0, p.DECm());
+    ASSERT_FALSE(strncmp("+45:00:00",p.toStringDEC_Sim(b,64),64));
     ASSERT_FALSE(strncmp("+45:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("+90:00:00",9));
     ASSERT_EQ( +90.0, p.DECm());
+    ASSERT_FALSE(strncmp("+90:00:00",p.toStringDEC_Sim(b,64),64));
     ASSERT_FALSE(strncmp("+90:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("+=5:00:00",9));
     ASSERT_EQ(+135.0, p.DECm());
-    ASSERT_FALSE(strncmp("+=5:00:00",p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp("+=5:00:00",p.toStringDEC_Sim(b,64),64));
+    ASSERT_FALSE(strncmp("+135:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("+B0:00:00",9));
     ASSERT_EQ(+180.0, p.DECm());
-    ASSERT_FALSE(strncmp("+B0:00:00",p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp("+B0:00:00",p.toStringDEC_Sim(b,64),64));
+    ASSERT_FALSE(strncmp("+180:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_NORMAL,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("+F5:00:00",9));
     ASSERT_EQ(+225.0, p.DECm());
-    ASSERT_FALSE(strncmp("+F5:00:00",p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp("+F5:00:00",p.toStringDEC_Sim(b,64),64));
+    ASSERT_FALSE(strncmp("+225:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("+I5:00:00",9));
     ASSERT_EQ(+255.0, p.DECm());
-    ASSERT_FALSE(strncmp("+I5:00:00",p.toStringDEC(b,64),64));
+    ASSERT_FALSE(strncmp("+I5:00:00",p.toStringDEC_Sim(b,64),64));
+    ASSERT_FALSE(strncmp("+255:00:00",p.toStringDEC(b,64),64));
     ASSERT_EQ(EQ500X::MechanicalPoint::POINTING_BEYOND_POLE,p.getPointingState());
 
     ASSERT_FALSE(p.parseStringDEC("+00:00:01",9));

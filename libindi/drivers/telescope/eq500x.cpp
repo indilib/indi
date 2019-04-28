@@ -57,7 +57,8 @@ simEQ500X_t simEQ500X_zero =
 
 simEQ500X_t simEQ500X = simEQ500X_zero;
 
-#define MechanicalPoint_DEC_Format "+DD:MM:SS"
+#define MechanicalPoint_DEC_FormatR "+DD:MM:SS"
+#define MechanicalPoint_DEC_FormatW "+DDD:MM:SS"
 #define MechanicalPoint_RA_Format  "HH:MM:SS"
 
 // This is the duration the serial port waits for while expecting replies
@@ -282,7 +283,7 @@ bool EQ500X::ReadScopeStatus()
             // Update current position and rewrite simulated mechanical positions
             MechanicalPoint p(simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
             p.toStringRA(simEQ500X.MechanicalRAStr, sizeof(simEQ500X.MechanicalRAStr));
-            p.toStringDEC(simEQ500X.MechanicalDECStr, sizeof(simEQ500X.MechanicalDECStr));
+            p.toStringDEC_Sim(simEQ500X.MechanicalDECStr, sizeof(simEQ500X.MechanicalDECStr));
 
             LOGF_DEBUG("New mechanical RA/DEC simulated as %lf°/%lf° (%+lf°,%+lf°), stored as %lfh/%lf° = %s/%s", simEQ500X.MechanicalRA*15.0, simEQ500X.MechanicalDEC, (RAmDecrease||RAmIncrease)?rates[adjustment-adjustments]*delta:0, (DECmDecrease||DECmIncrease)?rates[adjustment-adjustments]*delta:0, p.RAm(), p.DECm(), simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr);
         }
@@ -646,7 +647,7 @@ bool EQ500X::Sync(double ra, double dec)
         else
         {
             targetMechPosition.toStringRA(simEQ500X.MechanicalRAStr, sizeof(simEQ500X.MechanicalRAStr));
-            targetMechPosition.toStringDEC(simEQ500X.MechanicalDECStr, sizeof(simEQ500X.MechanicalDECStr));
+            targetMechPosition.toStringDEC_Sim(simEQ500X.MechanicalDECStr, sizeof(simEQ500X.MechanicalDECStr));
             simEQ500X.MechanicalRA = targetMechPosition.RAm();
             simEQ500X.MechanicalDEC = targetMechPosition.DECm();
         }
@@ -774,8 +775,8 @@ bool EQ500X::setTargetMechanicalPosition(MechanicalPoint const &p)
     if (!isSimulation())
     {
         // Size string buffers appropriately
-        char CmdString[] = ":Sr" MechanicalPoint_RA_Format "#:Sd" MechanicalPoint_DEC_Format "#";
-        char bufRA[sizeof(MechanicalPoint_RA_Format)], bufDEC[sizeof(MechanicalPoint_DEC_Format)];
+        char CmdString[] = ":Sr" MechanicalPoint_RA_Format "#:Sd" MechanicalPoint_DEC_FormatW "#";
+        char bufRA[sizeof(MechanicalPoint_RA_Format)], bufDEC[sizeof(MechanicalPoint_DEC_FormatW)];
 
         // Write RA/DEC in placeholders
         snprintf(CmdString, sizeof(CmdString), ":Sr%s#:Sd%s#", p.toStringRA(bufRA, sizeof(bufRA)), p.toStringDEC(bufDEC, sizeof(bufDEC)));
@@ -927,7 +928,7 @@ bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
     return true;
 }
 
-char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) const
+char const * EQ500X::MechanicalPoint::toStringDEC_Sim(char *buf, size_t buf_length) const
 {
     // See /test/test_eq500xdriver.cpp for description of DEC conversion
 
@@ -971,12 +972,28 @@ char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) 
     return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
 }
 
+char const * EQ500X::MechanicalPoint::toStringDEC(char *buf, size_t buf_length) const
+{
+    // See /test/test_eq500xdriver.cpp for description of DEC conversion
+
+    int const degrees = static_cast <int> (_DECm/3600) % 256;
+    int const minutes = static_cast <int> (std::abs(_DECm)/60) % 60;
+    int const seconds = static_cast <int> (std::abs(_DECm)) % 60;
+
+    if (degrees < -255 || +255 < degrees)
+        return (char const*)0;
+
+    int const written = snprintf(buf, buf_length, "%+03d:%02d:%02d", degrees, minutes, seconds);
+
+    return (0 < written && written < (int) buf_length) ? buf : (char const*)0;
+}
+
 bool EQ500X::MechanicalPoint::parseStringDEC(char const *buf, size_t buf_length)
 {
-    if (buf_length < sizeof(MechanicalPoint_DEC_Format)-1)
+    if (buf_length < sizeof(MechanicalPoint_DEC_FormatR)-1)
         return true;
 
-    char b[sizeof(MechanicalPoint_DEC_Format)] = {0};
+    char b[sizeof(MechanicalPoint_DEC_FormatR)] = {0};
     strncpy(b, buf, sizeof(b));
 
     // Mount replies to "#GD:" with "sDD:MM:SS".

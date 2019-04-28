@@ -31,6 +31,8 @@ public:
         char const * toStringDEC(char *, size_t) const;
         char const * toStringRA(char *, size_t) const;
     public:
+        char const * toStringDEC_Sim(char *, size_t) const;
+    public:
         double RA_degrees_to(MechanicalPoint const &) const;
         double DEC_degrees_to(MechanicalPoint const &) const;
     public:
