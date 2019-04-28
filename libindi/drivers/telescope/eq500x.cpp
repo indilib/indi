@@ -273,17 +273,17 @@ bool EQ500X::ReadScopeStatus()
         if (nullptr != adjustment)
         {
             // Use currentRA/currentDEC to store smaller-than-one-arcsecond values
-            if (west) simEQ500X.MechanicalRA = std::fmod(simEQ500X.MechanicalRA - rates[adjustment - adjustments]*delta/15.0 + 24.0, 24.0);
-            if (east) simEQ500X.MechanicalRA = std::fmod(simEQ500X.MechanicalRA + rates[adjustment - adjustments]*delta/15.0 + 24.0, 24.0);
-            if (north) simEQ500X.MechanicalDEC -= rates[adjustment - adjustments]*delta;
-            if (south) simEQ500X.MechanicalDEC += rates[adjustment - adjustments]*delta;
+            if (RAmDecrease) simEQ500X.MechanicalRA = std::fmod(simEQ500X.MechanicalRA - rates[adjustment - adjustments]*delta/15.0 + 24.0, 24.0);
+            if (RAmIncrease) simEQ500X.MechanicalRA = std::fmod(simEQ500X.MechanicalRA + rates[adjustment - adjustments]*delta/15.0 + 24.0, 24.0);
+            if (DECmDecrease) simEQ500X.MechanicalDEC -= rates[adjustment - adjustments]*delta;
+            if (DECmIncrease) simEQ500X.MechanicalDEC += rates[adjustment - adjustments]*delta;
 
             // Update current position and rewrite simulated mechanical positions
             MechanicalPoint p(simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
             p.toStringRA(simEQ500X.MechanicalRAStr, sizeof(simEQ500X.MechanicalRAStr));
             p.toStringDEC(simEQ500X.MechanicalDECStr, sizeof(simEQ500X.MechanicalDECStr));
 
-            LOGF_DEBUG("New mechanical RA/DEC simulated as %lf°/%lf° (%+lf°,%+lf°), stored as %lfh/%lf° = %s/%s", simEQ500X.MechanicalRA*15.0, simEQ500X.MechanicalDEC, (west||east)?rates[adjustment-adjustments]*delta:0, (north||south)?rates[adjustment-adjustments]*delta:0, p.RAm(), p.DECm(), simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr);
+            LOGF_DEBUG("New mechanical RA/DEC simulated as %lf°/%lf° (%+lf°,%+lf°), stored as %lfh/%lf° = %s/%s", simEQ500X.MechanicalRA*15.0, simEQ500X.MechanicalDEC, (RAmDecrease||RAmIncrease)?rates[adjustment-adjustments]*delta:0, (DECmDecrease||DECmIncrease)?rates[adjustment-adjustments]*delta:0, p.RAm(), p.DECm(), simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr);
         }
     }
 
@@ -373,15 +373,15 @@ bool EQ500X::ReadScopeStatus()
             // If RA was moving but now would be moving at the wrong rate, stop it
             if (ra_adjust != adjustment)
             {
-                if (east) { strcat(CmdString, ":Qe#"); east = false; }
-                if (west) { strcat(CmdString, ":Qw#"); west = false; }
+                if (RAmIncrease) { strcat(CmdString, ":Qe#"); RAmIncrease = false; }
+                if (RAmDecrease) { strcat(CmdString, ":Qw#"); RAmDecrease = false; }
             }
 
             // If DEC was moving but now would be moving at the wrong rate, stop it
             if (dec_adjust != adjustment)
             {
-                if (north) { strcat(CmdString, ":Qn#"); north = false; }
-                if (south) { strcat(CmdString, ":Qs#"); south = false; }
+                if (DECmDecrease) { strcat(CmdString, ":Qn#"); DECmDecrease = false; }
+                if (DECmIncrease) { strcat(CmdString, ":Qs#"); DECmIncrease = false; }
             }
 
             // Prepare for the new rate
@@ -409,17 +409,17 @@ bool EQ500X::ReadScopeStatus()
                 double const ra_epsilon = std::max(adjustment->epsilon, RA_GRANULARITY);
 
                 // Find requirement
-                bool const go_east = ra_epsilon <= ra_delta;
-                bool const go_west = ra_delta <= -ra_epsilon;
-                assert(!(go_east && go_west));
+                bool const doDecrease = ra_epsilon <= ra_delta;
+                bool const doIncrease = ra_delta <= -ra_epsilon;
+                assert(!(doDecrease && doIncrease));
 
                 // Stop movement if required - just stopping or going opposite
-                if (east && (!go_east || go_west)) { strcat(CmdString, ":Qe#"); east = false; }
-                if (west && (!go_west || go_east)) { strcat(CmdString, ":Qw#"); west = false; }
+                if (RAmIncrease && (!doDecrease || doIncrease)) { strcat(CmdString, ":Qe#"); RAmIncrease = false; }
+                if (RAmDecrease && (!doIncrease || doDecrease)) { strcat(CmdString, ":Qw#"); RAmDecrease = false; }
 
                 // Initiate movement if required
-                if (go_east && !east) { strcat(CmdString, ":Me#"); east = true; }
-                if (go_west && !west) { strcat(CmdString, ":Mw#"); west = true; }
+                if (doDecrease && !RAmIncrease) { strcat(CmdString, ":Me#"); RAmIncrease = true; }
+                if (doIncrease && !RAmDecrease) { strcat(CmdString, ":Mw#"); RAmDecrease = true; }
             }
 
             // If DEC is being adjusted, check delta against adjustment epsilon to enable or disable movement
@@ -430,24 +430,24 @@ bool EQ500X::ReadScopeStatus()
                 double const dec_epsilon = std::max(adjustment->epsilon, DEC_GRANULARITY);
 
                 // Find requirement
-                bool const go_south = dec_epsilon <= dec_delta;
-                bool const go_north = dec_delta <= -dec_epsilon;
-                assert(!(go_south && go_north));
+                bool const doDecrease = dec_epsilon <= dec_delta;
+                bool const doIncrease = dec_delta <= -dec_epsilon;
+                assert(!(doDecrease && doIncrease));
 
                 // Stop movement if required - just stopping or going opposite
-                if (south && (!go_south || go_north)) { strcat(CmdString, ":Qs#"); south = false; }
-                if (north && (!go_north || go_south)) { strcat(CmdString, ":Qn#"); north = false; }
+                if (DECmIncrease && (!doDecrease || doIncrease)) { strcat(CmdString, ":Qn#"); DECmIncrease = false; }
+                if (DECmDecrease && (!doIncrease || doDecrease)) { strcat(CmdString, ":Qs#"); DECmDecrease = false; }
 
                 // Initiate movement if required
-                if (go_south && !south) { strcat(CmdString, ":Ms#"); south = true; }
-                if (go_north && !north) { strcat(CmdString, ":Mn#"); north = true; }
+                if (doDecrease && !DECmIncrease) { strcat(CmdString, ":Mn#"); DECmIncrease = true; }
+                if (doIncrease && !DECmDecrease) { strcat(CmdString, ":Ms#"); DECmDecrease = true; }
             }
 
             // Basic algorithm sanitization on movement orientation: move one way or the other, or not at all
-            assert(!(east && west) && !(north && south));
+            assert(!(RAmIncrease && RAmDecrease) && !(DECmDecrease && DECmIncrease));
 
             // This log shows target in Degrees/Degrees and delta in Degrees/Degrees
-            LOGF_DEBUG("Centering (%lf°,%lf°) delta (%lf°,%lf°) moving %c%c%c%c at %s until less than (%lf°,%lf°)", targetMechPosition.RAm()*15.0, targetMechPosition.DECm(), ra_delta, dec_delta, west?'W':'.', east?'E':'.', north?'N':'.', south?'S':'.', adjustment->slew_rate, std::max(adjustment->epsilon, RA_GRANULARITY), adjustment->epsilon);
+            LOGF_DEBUG("Centering (%lf°,%lf°) delta (%lf°,%lf°) moving %c%c%c%c at %s until less than (%lf°,%lf°)", targetMechPosition.RAm()*15.0, targetMechPosition.DECm(), ra_delta, dec_delta, RAmDecrease?'W':'.', RAmIncrease?'E':'.', DECmDecrease?'N':'.', DECmIncrease?'S':'.', adjustment->slew_rate, std::max(adjustment->epsilon, RA_GRANULARITY), adjustment->epsilon);
 
             // If we have a command to run, issue it
             if (CmdString[0] != '\0' && sendCmd(CmdString))
@@ -458,7 +458,7 @@ bool EQ500X::ReadScopeStatus()
             }
 
             // If all movement flags are cleared, we are done adjusting
-            if (!east && !west && !north && !south)
+            if (!RAmIncrease && !RAmDecrease && !DECmDecrease && !DECmIncrease)
             {
                 LOGF_INFO("Centering delta (%lf,%lf) intermediate adjustment complete (%d loops)", ra_delta, dec_delta, MAX_CONVERGENCE_LOOPS - countdown);
                 adjustment = nullptr;
@@ -489,10 +489,10 @@ bool EQ500X::ReadScopeStatus()
     else
     {
         // Force-reset markers in case we got aborted
-        if (north) north = false;
-        if (south) south = false;
-        if (east) east = false;
-        if (west) west = false;
+        if (DECmDecrease) DECmDecrease = false;
+        if (DECmIncrease) DECmIncrease = false;
+        if (RAmIncrease) RAmIncrease = false;
+        if (RAmDecrease) RAmDecrease = false;
         adjustment = nullptr;
     }
 
