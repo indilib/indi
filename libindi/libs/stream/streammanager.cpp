@@ -91,7 +91,7 @@ bool StreamManager::initProperties()
     /* Video Stream */
     IUFillSwitch(&StreamS[0], "STREAM_ON", "Stream On", ISS_OFF);
     IUFillSwitch(&StreamS[1], "STREAM_OFF", "Stream Off", ISS_ON);
-    if(currentDevice->getDriverInterface() == INDI:DefaultDevice::DETECTOR_INTERFACE)
+    if(currentDevice->getDriverInterface() == INDI::DefaultDevice::DETECTOR_INTERFACE)
         IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "DETECTOR_DATA_STREAM", "Video Stream",
                        STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
@@ -141,7 +141,7 @@ bool StreamManager::initProperties()
     // Encoder Selection
     IUFillSwitch(&EncoderS[ENCODER_RAW], "RAW", "RAW", ISS_ON);
     IUFillSwitch(&EncoderS[ENCODER_MJPEG], "MJPEG", "MJPEG", ISS_OFF);
-    if(currentDevice->getDriverInterface() == INDI:DefaultDevice::DETECTOR_INTERFACE)
+    if(currentDevice->getDriverInterface() == INDI::DefaultDevice::DETECTOR_INTERFACE)
         IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "DETECTOR_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
         IUFillSwitchVector(&EncoderSP, EncoderS, NARRAY(EncoderS), getDeviceName(), "CCD_STREAM_ENCODER", "Encoder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
@@ -149,7 +149,7 @@ bool StreamManager::initProperties()
     // Recorder Selector
     IUFillSwitch(&RecorderS[RECORDER_RAW], "SER", "SER", ISS_ON);
     IUFillSwitch(&RecorderS[RECORDER_OGV], "OGV", "OGV", ISS_OFF);
-    if(currentDevice->getDriverInterface() == INDI:DefaultDevice::DETECTOR_INTERFACE)
+    if(currentDevice->getDriverInterface() == INDI::DefaultDevice::DETECTOR_INTERFACE)
         IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "DETECTOR_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
     else
         IUFillSwitchVector(&RecorderSP, RecorderS, NARRAY(RecorderS), getDeviceName(), "CCD_STREAM_RECORDER", "Recorder", STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
@@ -894,7 +894,7 @@ bool StreamManager::ISNewNumber(const char * dev, const char * name, double valu
             subW = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubW() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinX();
             subH = dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getSubH() / dynamic_cast<INDI::CCD*>(currentDevice)->PrimaryCCD.getBinY();
         } else if(currentDevice->getDriverInterface() & INDI::DefaultDevice::DETECTOR_INTERFACE) {
-            subW = dynamic_cast<INDI::Detector*>(currentDevice)->getContinuumBufferSize() * 8 / dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getBPS();
+            subW = dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getContinuumBufferSize() * 8 / dynamic_cast<INDI::Detector*>(currentDevice)->PrimaryDetector.getBPS();
             subH = 1;
         }
 
