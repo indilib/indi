@@ -632,13 +632,13 @@ class Detector : public DefaultDevice
          * @brief StartStreaming Start live video streaming
          * @return True if successful, false otherwise.
          */
-        virtual bool StartStreaming();
+        virtual bool StartStreaming() override;
 
         /**
          * @brief StopStreaming Stop live video streaming
          * @return True if successful, false otherwise.
          */
-        virtual bool StopStreaming();
+        virtual bool StopStreaming() override;
         /**
          * \brief Add FITS keywords to a fits file
          * \param fptr pointer to a valid FITS file.
