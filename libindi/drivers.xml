@@ -41,6 +41,10 @@
                 <driver name="LX200 GPS">indi_lx200gps</driver>
                 <version>2.0</version>
         </device>
+        <device label="EQ500X" manufacturer="Omegon">
+                <driver name="EQ500X">indi_eq500x_telescope</driver>
+                <version>1.0</version>
+        </device>
         <device label="AstroPhysics Experimental" manufacturer="Astrophysics">
                 <driver name="AstroPhysics Experimental">indi_lx200ap_experimental</driver>
                 <version>1.0</version>
