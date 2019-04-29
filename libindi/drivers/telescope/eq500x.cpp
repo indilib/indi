@@ -70,8 +70,8 @@ static double constexpr ARCMINUTE = ONEDEGREE/60.0;
 static double constexpr ARCSECOND = ONEDEGREE/3600.0;
 
 // This is the minimum detectable movement in RA/DEC
-static double constexpr RA_GRANULARITY = std::lround((15.0*ARCSECOND)*3600.0)/3600.0;
-static double constexpr DEC_GRANULARITY = std::lround((1.0*ARCSECOND)*3600.0)/3600.0;
+static double /*constexpr*/ RA_GRANULARITY = std::lround((15.0*ARCSECOND)*3600.0)/3600.0;
+static double /*constexpr*/ DEC_GRANULARITY = std::lround((1.0*ARCSECOND)*3600.0)/3600.0;
 
 // This is the number of loops expected to achieve convergence on each slew rate
 // A full rotation at 5deg/s would take 360/5=72s to complete at RS speed, checking position twice per second
