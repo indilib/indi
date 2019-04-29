@@ -49,8 +49,8 @@ class RadioSim : public INDI::Detector
         bool AbortCapture() override;
         void TimerHit() override;
 
-        bool StartStreaming();
-        bool StopStreaming();
+        bool StartStreaming() override;
+        bool StopStreaming() override;
         static void * streamCaptureHelper(void * context);
         void * streamCapture();
         void grabData();
