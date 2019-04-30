@@ -437,7 +437,7 @@ bool DreamFocuser::getMaxPosition()
 bool DreamFocuser::setSync( uint32_t position)
 {
     if ( dispatch_command('Z', position) )
-        if ( ((currentResponse.a << 24) | (currentResponse.b << 16) | (currentResponse.c << 8) | currentResponse.d) == position )
+        if ( (uint32_t)((currentResponse.a << 24) | (currentResponse.b << 16) | (currentResponse.c << 8) | currentResponse.d) == position )
         {
             LOGF_DEBUG("Syncing to position %d", position);
             return true;
