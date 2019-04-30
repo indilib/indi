@@ -104,8 +104,7 @@ class StreamManager
             RECORD_OFF
         };
 
-        StreamManager(CCD *mainCCD);
-        StreamManager(Detector *mainDetector);
+        StreamManager(DefaultDevice *currentDevice);
         virtual ~StreamManager();
 
         virtual void ISGetProperties(const char *dev);
@@ -190,8 +189,7 @@ class StreamManager
         bool close();
 
     protected:
-        CCD *currentCCD = nullptr;
-        Detector *currentDetector = nullptr;
+        DefaultDevice *currentDevice = nullptr;
 
     private:
         /* Utility for record file */

@@ -227,11 +227,11 @@ const char *DetectorDevice::getCaptureStartTime()
     char iso8601[32];
     struct tm *tp;
     time_t t = (time_t)startCaptureTime.tv_sec;
-    int u    = startCaptureTime.tv_nsec / 1000.0;
+    long n    = startCaptureTime.tv_nsec % 1000000000;
 
     tp = gmtime(&t);
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
-    snprintf(ts, 32, "%s.%03d", iso8601, u);
+    snprintf(ts, 32, "%s.%09ld", iso8601, n);
     return (ts);
 }
 
@@ -464,7 +464,6 @@ bool Detector::updateProperties()
         deleteProperty(UploadSettingsTP.name);
     }
 
-    // Streamer
     if (HasStreaming())
         Streamer->updateProperties();
 
@@ -566,7 +565,6 @@ bool Detector::ISNewText(const char *dev, const char *name, char *texts[], char 
         }
     }
 
-    // Streamer
     if (HasStreaming())
         Streamer->ISNewText(dev, name, texts, names, n);
 
@@ -640,7 +638,6 @@ bool Detector::ISNewNumber(const char *dev, const char *name, double values[], c
         }
     }
 
-    // Streamer
     if (HasStreaming())
         Streamer->ISNewNumber(dev, name, values, names, n);
 
@@ -804,64 +801,70 @@ void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uin
         fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
     }
 
-    Lat = this->getNumber("GEOGRAPHIC_COORDS")->np[0].value;
-    Lon = this->getNumber("GEOGRAPHIC_COORDS")->np[1].value;
-    El = this->getNumber("GEOGRAPHIC_COORDS")->np[2].value;
+    INumberVectorProperty *nv = this->getNumber("GEOGRAPHIC_COORDS");
+    if(nv != nullptr) {
+        Lat = nv->np[0].value;
+        Lon = nv->np[1].value;
+        El = nv->np[2].value;
 
-    if (Lat != -1000 && Lon != -1000 && El != -1000)
-    {
-        char lat_str[32];
-        char lon_str[32];
-        char el_str[32];
-        fs_sexa(lat_str, Lat, 2, 360000);
-        fs_sexa(lat_str, Lon, 2, 360000);
-        sprintf(el_str, "%lf", El);
-        fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
-        fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
-        fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
+        if (Lat != -1000 && Lon != -1000 && El != -1000)
+        {
+            char lat_str[MAXINDIFORMAT];
+            char lon_str[MAXINDIFORMAT];
+            char el_str[MAXINDIFORMAT];
+            fs_sexa(lat_str, Lat, 2, 360000);
+            fs_sexa(lat_str, Lon, 2, 360000);
+            snprintf(el_str, MAXINDIFORMAT, "%lf", El);
+            fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
+            fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
+            fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
+        }
     }
 
-    RA = this->getNumber("EQUATORIAL_EOD_COORDS")->np[0].value;
-    Dec = this->getNumber("EQUATORIAL_EOD_COORDS")->np[1].value;
+    nv = this->getNumber("EQUATORIAL_EOD_COORDS");
+    if(nv != nullptr) {
+        RA = nv->np[0].value;
+        Dec = nv->np[1].value;
 
-    if (RA != -1000 && Dec != -1000)
-    {
-        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-        epochPos.ra  = RA * 15.0;
-        epochPos.dec = Dec;
-
-        // Convert from JNow to J2000
-        //TODO use exp_start instead of julian from system
-        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-
-        double raJ2000  = J2000Pos.ra / 15.0;
-        double decJ2000 = J2000Pos.dec;
-        char ra_str[32], de_str[32];
-
-        fs_sexa(ra_str, raJ2000, 2, 360000);
-        fs_sexa(de_str, decJ2000, 2, 360000);
-
-        char *raPtr = ra_str, *dePtr = de_str;
-        while (*raPtr != '\0')
+        if (RA != -1000 && Dec != -1000)
         {
-            if (*raPtr == ':')
-                *raPtr = ' ';
-            raPtr++;
+            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            epochPos.ra  = RA * 15.0;
+            epochPos.dec = Dec;
+
+            // Convert from JNow to J2000
+            //TODO use exp_start instead of julian from system
+            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+
+            double raJ2000  = J2000Pos.ra / 15.0;
+            double decJ2000 = J2000Pos.dec;
+            char ra_str[32], de_str[32];
+
+            fs_sexa(ra_str, raJ2000, 2, 360000);
+            fs_sexa(de_str, decJ2000, 2, 360000);
+
+            char *raPtr = ra_str, *dePtr = de_str;
+            while (*raPtr != '\0')
+            {
+                if (*raPtr == ':')
+                    *raPtr = ' ';
+                raPtr++;
+            }
+            while (*dePtr != '\0')
+            {
+                if (*dePtr == ':')
+                    *dePtr = ' ';
+                dePtr++;
+            }
+
+            fits_update_key_s(fptr, TSTRING, "OBJCTRA", ra_str, "Object RA", &status);
+            fits_update_key_s(fptr, TSTRING, "OBJCTDEC", de_str, "Object DEC", &status);
+
+            int epoch = 2000;
+
+            //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
+            fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
         }
-        while (*dePtr != '\0')
-        {
-            if (*dePtr == ':')
-                *dePtr = ' ';
-            dePtr++;
-        }
-
-        fits_update_key_s(fptr, TSTRING, "OBJCTRA", ra_str, "Object RA", &status);
-        fits_update_key_s(fptr, TSTRING, "OBJCTDEC", de_str, "Object DEC", &status);
-
-        int epoch = 2000;
-
-        //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
-        fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
     }
 
     fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
@@ -1361,17 +1364,17 @@ int Detector::getFileIndex(const char *dir, const char *prefix, const char *ext)
 
 //DSP API functions
 
-void Detector::Spectrum(void *buf, void *out, int len, int size, int bits_per_sample) {
-    void* fourier = malloc(len);
-    FourierTransform(buf, fourier, 1, &len, bits_per_sample);
-    Histogram(fourier, out, len, size, bits_per_sample);
+void Detector::Spectrum(void *buf, void *out, int n_elements, int size, int bits_per_sample) {
+    void* fourier = malloc(n_elements * bits_per_sample / 8);
+    FourierTransform(buf, fourier, 1, &n_elements, bits_per_sample);
+    Histogram(fourier, out, n_elements, size, bits_per_sample);
     free(fourier);
 }
 
-void Detector::Histogram(void *buf, void *out, int buf_len, int histogram_size, int bits_per_sample) {
+void Detector::Histogram(void *buf, void *out, int n_elements, int histogram_size, int bits_per_sample) {
     //Create the dsp stream
     dsp_stream_p stream = dsp_stream_new();
-    dsp_stream_add_dim(stream, buf_len * 8 / abs(bits_per_sample));
+    dsp_stream_add_dim(stream, n_elements);
     dsp_stream_alloc_buffer(stream, stream->len);
     //Create the spectrum
     switch (bits_per_sample) {
@@ -1431,7 +1434,6 @@ void Detector::Histogram(void *buf, void *out, int buf_len, int histogram_size, 
 
 void Detector::FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample) {
     //Create the dsp stream
-    dsp_t mn, mx;
     dsp_stream_p stream = dsp_stream_new();
     for(int dim = 0; dim < dims; dim++)
         dsp_stream_add_dim(stream, sizes[dim]);
@@ -1462,10 +1464,7 @@ void Detector::FourierTransform(void *buf, void *out, int dims, int *sizes, int 
         dsp_stream_free(stream);
         return;
     }
-    mn = dsp_stats_min(stream->buf, stream->len);
-    mx = dsp_stats_max(stream->buf, stream->len);
     dsp_fourier_dft_magnitude(stream);
-    dsp_buffer_stretch(stream->buf, stream->len, mn, mx);
     switch (bits_per_sample) {
     case 8:
         dsp_buffer_copy(stream->buf, (static_cast<unsigned char *>(out)), stream->len);
@@ -1567,7 +1566,40 @@ void Detector::Convolution(void *buf, void *matrix, void *out, int dims, int *si
     dsp_stream_free(matrix_stream);
 }
 
-//Streamer API functions
+void Detector::WhiteNoise(void *buf, int n_elements, int bits_per_sample) {
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    dsp_stream_add_dim(stream, n_elements);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    dsp_signals_whitenoise (stream);
+    dsp_buffer_stretch(stream->buf, stream->len, 0, (1<<abs(bits_per_sample)));
+    switch (bits_per_sample) {
+    case 8:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned char *>(buf)), stream->len);
+        break;
+    case 16:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned short *>(buf)), stream->len);
+        break;
+    case 32:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned int *>(buf)), stream->len);
+        break;
+    case 64:
+        dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(buf)), stream->len);
+        break;
+    case -32:
+        dsp_buffer_copy(stream->buf, (static_cast<float *>(buf)), stream->len);
+        break;
+    case -64:
+        dsp_buffer_copy(stream->buf, (static_cast<double *>(buf)), stream->len);
+        break;
+    default:
+        break;
+    }
+    //Destroy the dsp streams
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+}
+
 
 bool Detector::StartStreaming()
 {
@@ -1580,5 +1612,6 @@ bool Detector::StopStreaming()
     LOG_ERROR("Streaming is not supported.");
     return false;
 }
+
 
 }

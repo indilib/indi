@@ -54,21 +54,20 @@ double* dsp_fourier_complex_array_get_phase(dsp_complex* in, int len)
 
 dsp_complex* dsp_fourier_dft(dsp_stream_p stream)
 {
-    dsp_complex* dft = malloc(sizeof(dsp_complex*) * stream->len);
+    dsp_complex* dft = (dsp_complex*)malloc(sizeof(dsp_complex) * stream->len);
     for(int x = 0; x < stream->len; x++) {
-        dft[x].real = stream->buf[x];
-        dft[x].imaginary = stream->buf[x];
+        dft[x].real = 0;
+        dft[x].imaginary = 0;
     }
-    int dim = -1;
-    while (dim++ < stream->dims - 1) {
-        int size = (dim < 0 ? 1 : stream->sizes[dim]);
+    int dim = 0;
+    while (dim++ < stream->dims) {
+        int size = (dim < 1 ? 1 : stream->sizes[dim-1]);
         for(int i = size; i < stream->len; i+=size) {
             for(int l = size; l < stream->len; l+=size) {
-                double s = sin(l * i * M_PI * 2 / (double)stream->len);
-                double c = cos(l * i * M_PI * 2 / (double)stream->len);
-		dft[i].real += s * stream->buf[l];
-		dft[i].imaginary += c * stream->buf[l];
-	    }
+                double k = (double)i / stream->len * (double)l / stream->len * M_PI * 2.0;
+                dft[i].real += sin(k) * stream->buf[l];
+                dft[i].imaginary += cos(k) * stream->buf[l];
+            }
         }
     }
     return dft;
@@ -76,6 +75,10 @@ dsp_complex* dsp_fourier_dft(dsp_stream_p stream)
 
 void dsp_fourier_dft_magnitude(dsp_stream_p stream)
 {
+    dsp_t mn = dsp_stats_min(stream->buf, stream->len);
+    dsp_t mx = dsp_stats_min(stream->buf, stream->len);
+    (void)mn;
+    (void)mx;
     dsp_complex* dft = dsp_fourier_dft(stream);
     double* mag = dsp_fourier_complex_array_get_magnitude(dft, stream->len);
     dsp_buffer_stretch(mag, stream->len, mn, mx);
@@ -86,6 +89,10 @@ void dsp_fourier_dft_magnitude(dsp_stream_p stream)
 
 void dsp_fourier_dft_phase(dsp_stream_p stream)
 {
+    dsp_t mn = dsp_stats_min(stream->buf, stream->len);
+    dsp_t mx = dsp_stats_min(stream->buf, stream->len);
+    (void)mn;
+    (void)mx;
     dsp_complex* dft = dsp_fourier_dft(stream);
     double* phi = dsp_fourier_complex_array_get_phase(dft, stream->len);
     dsp_buffer_stretch(phi, stream->len, mn, mx);
