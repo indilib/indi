@@ -88,7 +88,6 @@ void ISSnoopDevice(XMLEle *root)
 ************************************************************************************/
 astromechanics_foc::astromechanics_foc()
 {
-    setVersion(0, 1);
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 }
 
@@ -97,18 +96,7 @@ astromechanics_foc::astromechanics_foc()
 ************************************************************************************/
 const char *astromechanics_foc::getDefaultName()
 {
-    return (const char *)"Astromechanics FOC";
-}
-
-/************************************************************************************
- *
-************************************************************************************/
-void astromechanics_foc::ISGetProperties(const char *dev)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) != 0)
-        return;
-
-    INDI::Focuser::ISGetProperties(dev);
+    return "Astromechanics FOC";
 }
 
 /************************************************************************************
@@ -147,12 +135,10 @@ bool astromechanics_foc::updateProperties()
 
     if (isConnected())
     {
-        defineSwitch(&StartSavedPositionSP);
         defineNumber(&AppertureNP);
     }
     else
     {
-        deleteProperty(StartSavedPositionSP.name);
         deleteProperty(AppertureNP.name);
     }
 
@@ -170,26 +156,22 @@ bool astromechanics_foc::Handshake()
     int nbytes_written = 0;
     int nbytes_read = 0;
 
-    LOGF_INFO("Handshake", 0);
-    if (CanAbsMove()) {
-        LOGF_INFO("CanAbsMove",0);
-    } else {
-        LOGF_INFO("Can't ABSMOVE",0);
-    }
+    LOG_DEBUG("Handshake");
+
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
     LOGF_INFO("CMD (%s)", FOC_cmd);
     if (tty_read_section(PortFD, FOC_res, '#', FOCUS_TIMEOUT, &nbytes_read) == TTY_OK) {
-        LOGF_INFO("RES (%s)", FOC_res);
+        LOGF_DEBUG("RES (%s)", FOC_res);
         sscanf(FOC_res, "%d#", &FOC_pos_measd);
-        LOGF_INFO("RES (%d)", FOC_pos_measd);
+        LOGF_INFO("Set to absolute focus position (%d)", FOC_pos_measd);
         FocusAbsPosN[0].value = FOC_pos_measd;
         FocusAbsPosNP.s = IPS_OK;
+
+        SetApperture(0);
         return true;
     } else {
-        LOGF_ERROR("ERROR HANDSHAKE",0);
+        LOG_ERROR("ERROR HANDSHAKE");
     }
-
-    SetApperture(0);
 
     return false;
 }
@@ -197,16 +179,6 @@ bool astromechanics_foc::Handshake()
 /************************************************************************************
  *
 ************************************************************************************/
-bool astromechanics_foc::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
-{
-    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
-    {
-        LOGF_INFO("ISNewSwitch (%s) (%s)", dev, name);
-    }
-
-    return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
-}
-
 bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -216,7 +188,6 @@ bool astromechanics_foc::ISNewNumber(const char *dev, const char *name, double v
             IUUpdateNumber(&AppertureNP, values, names, n);
 
             IDSetNumber(&AppertureNP, nullptr);
-            LOGF_INFO("Apperture-Index: %f", AppertureN[0].value);
             SetApperture(AppertureN[0].value);
 
             return true;
@@ -243,12 +214,11 @@ IPState astromechanics_foc::MoveAbsFocuser(uint32_t targetTicks)
     char abs_pos_char[32]  = {0};
     int nbytes_written = 0;
 
-    //int pos = GetAbsFocuserPosition();
     sprintf(abs_pos_char, "%d", targetTicks);
     strcat(abs_pos_char, "#");
     strcat(FOC_cmd, abs_pos_char);
 
-    LOGF_INFO("CMD (%s)", FOC_cmd);
+    LOGF_DEBUG("CMD (%s)", FOC_cmd);
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
 
     FocusAbsPosN[0].value = GetAbsFocuserPosition();
@@ -269,15 +239,9 @@ IPState astromechanics_foc::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
     return MoveAbsFocuser(targetTicks);
 }
 
-
-bool astromechanics_foc::saveConfigItems(FILE *fp)
-{
-    // Save Focuser Config
-    INDI::Focuser::saveConfigItems(fp);
-
-    return true;
-}
-
+/************************************************************************************
+ *
+************************************************************************************/
 void astromechanics_foc::SetApperture(uint32_t index) {
     LOGF_INFO("SetApperture(%d)", index);
     char FOC_cmd[32] = "A";
@@ -291,6 +255,9 @@ void astromechanics_foc::SetApperture(uint32_t index) {
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
 }
 
+/************************************************************************************
+ *
+************************************************************************************/
 uint32_t astromechanics_foc::GetAbsFocuserPosition()
 {
     LOGF_INFO("GetAbsFocuserPosition",0);
@@ -302,11 +269,11 @@ uint32_t astromechanics_foc::GetAbsFocuserPosition()
     int nbytes_read = 0;
 
     tty_write_string(PortFD, FOC_cmd, &nbytes_written);
-    LOGF_INFO("CMD (%s)", FOC_cmd);
+    LOGF_DEBUG("CMD (%s)", FOC_cmd);
     if (tty_read_section(PortFD, FOC_res, '#', FOCUS_TIMEOUT, &nbytes_read) == TTY_OK) {
         sscanf(FOC_res, "%d#", &FOC_pos_measd);
 
-        LOGF_INFO("RES (%s)", FOC_res);
+        LOGF_DEBUG("RES (%s)", FOC_res);
         LOGF_INFO("current position: %d", FOC_pos_measd);
     }
 

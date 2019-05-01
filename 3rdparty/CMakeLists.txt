@@ -396,7 +396,7 @@ endif (WITH_MGEN)
 
 # Astromechanics Focuser
 if (WITH_ASTROMECHFOC)
-add_subdirectory(indi_astromechfoc)
+add_subdirectory(indi-astromechfoc)
 endif(WITH_ASTROMECHFOC)
 
 ## RTL-SDR

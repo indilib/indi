@@ -27,35 +27,20 @@ class astromechanics_foc : public INDI::Focuser
 {
     public:
         astromechanics_foc();
-
         bool initProperties() override;
-        void ISGetProperties(const char *dev) override;
         bool updateProperties() override;
         bool Disconnect();
-
         const char *getDefaultName() override;
-
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
-        virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
 
     protected:
         virtual bool Handshake() override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
-        virtual bool saveConfigItems(FILE *fp) override;
 
     private:
         virtual uint32_t GetAbsFocuserPosition();
         virtual void SetApperture(uint32_t index);
-
-        enum
-        {
-            MODE_SAVED_ON,
-            MODE_SAVED_OFF,
-            MODE_COUNT_SAVED
-        };
-        ISwitchVectorProperty StartSavedPositionSP;
-        ISwitch StartSavedPositionS[MODE_COUNT_SAVED];
 
         INumberVectorProperty AppertureNP;
         INumber AppertureN[1];
