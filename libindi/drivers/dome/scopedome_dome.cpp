@@ -1,7 +1,7 @@
 /*******************************************************************************
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2018 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2019 Jarno Paananen. All rights reserved.
 
  based on:
 
@@ -87,7 +87,7 @@ void ISSnoopDevice(XMLEle *root)
 
 ScopeDome::ScopeDome()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
     targetAz         = 0;
     shutterState     = SHUTTER_UNKNOWN;
     simShutterStatus = SHUTTER_CLOSED;
@@ -756,6 +756,31 @@ IPState ScopeDome::MoveRel(double azDiff)
 
     // It will take a few cycles to reach final position
     return MoveAbs(targetAz);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState ScopeDome::Move(DomeDirection dir, DomeMotionCommand operation)
+{
+    // Map to button outputs
+    if(operation == MOTION_START)
+    {
+        if (dir == DOME_CW)
+        {
+            setOutputState(OUT_CW, ISS_ON);
+            setOutputState(OUT_CCW, ISS_OFF);
+        }
+        else
+        {
+            setOutputState(OUT_CW, ISS_OFF);
+            setOutputState(OUT_CCW, ISS_ON);
+        }
+        return IPS_BUSY;
+    }
+    setOutputState(OUT_CW, ISS_OFF);
+    setOutputState(OUT_CCW, ISS_OFF);
+    return IPS_OK;
 }
 
 /************************************************************************************

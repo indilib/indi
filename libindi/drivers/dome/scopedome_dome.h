@@ -1,7 +1,7 @@
 /*******************************************************************************
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2019 Jarno Paananen. All rights reserved.
 
  based on:
 
@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include "indibase/indidome.h"
+#include "indidome.h"
 #include <memory>
 
 /**
@@ -411,6 +411,7 @@ class ScopeDome : public INDI::Dome
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n) override;
     virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
+    virtual IPState Move(DomeDirection dir, DomeMotionCommand operation) override;
     virtual IPState MoveRel(double azDiff) override;
     virtual IPState MoveAbs(double az) override;
     virtual IPState ControlShutter(ShutterOperation operation) override;
