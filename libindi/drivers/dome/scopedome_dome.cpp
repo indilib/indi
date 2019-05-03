@@ -714,7 +714,16 @@ IPState ScopeDome::MoveAbs(double az)
 
     LOGF_DEBUG("azDiff rel = %f", azDiff);
 
-    int rc = 0;
+    return MoveRel(azDiff);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState ScopeDome::MoveRel(double azDiff)
+{
+    int rc;
+    
     if (azDiff < 0)
     {
         uint16_t steps = (uint16_t)(-azDiff * stepsPerTurn / 360.0);
@@ -740,22 +749,6 @@ IPState ScopeDome::MoveAbs(double az)
         LOGF_ERROR("Error moving dome: %d", rc);
     }
     return IPS_BUSY;
-}
-
-/************************************************************************************
- *
-* ***********************************************************************************/
-IPState ScopeDome::MoveRel(double azDiff)
-{
-    targetAz = DomeAbsPosN[0].value + azDiff;
-
-    if (targetAz < DomeAbsPosN[0].min)
-        targetAz += DomeAbsPosN[0].max;
-    if (targetAz > DomeAbsPosN[0].max)
-        targetAz -= DomeAbsPosN[0].max;
-
-    // It will take a few cycles to reach final position
-    return MoveAbs(targetAz);
 }
 
 /************************************************************************************
