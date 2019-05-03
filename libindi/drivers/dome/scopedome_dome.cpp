@@ -723,7 +723,7 @@ IPState ScopeDome::MoveAbs(double az)
 IPState ScopeDome::MoveRel(double azDiff)
 {
     int rc;
-    
+
     if (azDiff < 0)
     {
         uint16_t steps = (uint16_t)(-azDiff * stepsPerTurn / 360.0);
@@ -757,7 +757,7 @@ IPState ScopeDome::MoveRel(double azDiff)
 IPState ScopeDome::Move(DomeDirection dir, DomeMotionCommand operation)
 {
     // Map to button outputs
-    if(operation == MOTION_START)
+    if (operation == MOTION_START)
     {
         if (dir == DOME_CW)
         {
