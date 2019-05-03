@@ -770,6 +770,7 @@ IPState ScopeDome::Move(DomeDirection dir, DomeMotionCommand operation)
     // Map to button outputs
     if (operation == MOTION_START)
     {
+        refineMove = false;
         if (dir == DOME_CW)
         {
             setOutputState(OUT_CW, ISS_ON);
