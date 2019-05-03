@@ -647,10 +647,11 @@ void ScopeDome::TimerHit()
             {
                 azDiff += 360;
             }
-            if (fabs(azDiff) <= DomeParamN[0].value)
+            if (refineMove == false || fabs(azDiff) <= DomeParamN[0].value)
             {
-                DomeAbsPosN[0].value = targetAz;
-                DomeAbsPosNP.s       = IPS_OK;
+                if (refineMove)
+                    DomeAbsPosN[0].value = targetAz;
+                DomeAbsPosNP.s = IPS_OK;
                 LOG_INFO("Dome reached requested azimuth angle.");
 
                 if (getDomeState() == DOME_PARKING)
@@ -714,6 +715,7 @@ IPState ScopeDome::MoveAbs(double az)
 
     LOGF_DEBUG("azDiff rel = %f", azDiff);
 
+    refineMove = true;
     return MoveRel(azDiff);
 }
 
@@ -721,6 +723,15 @@ IPState ScopeDome::MoveAbs(double az)
  *
 * ***********************************************************************************/
 IPState ScopeDome::MoveRel(double azDiff)
+{
+    refineMove = false;
+    return sendMove(azDiff);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState ScopeDome::sendMove(double azDiff)
 {
     int rc;
 

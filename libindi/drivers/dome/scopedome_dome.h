@@ -436,6 +436,7 @@ class ScopeDome : public INDI::Dome
 
     DomeStatus status{ DOME_UNKNOWN };
     double targetAz{ 0 };
+    bool refineMove{ false };
     ShutterOperation targetShutter{ SHUTTER_OPEN };
     bool sim{ false };
     double simShutterTimer{ 0 };
@@ -485,6 +486,8 @@ class ScopeDome : public INDI::Dome
     std::unique_ptr<ScopeDomeCard> interface;
 
     void reconnect();
+
+    IPState sendMove(double azDiff);
 
     // I/O helper functions
     bool readFloat(ScopeDomeCommand cmd, float &dst);
