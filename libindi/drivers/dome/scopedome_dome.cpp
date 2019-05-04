@@ -1,7 +1,7 @@
 /*******************************************************************************
  ScopeDome Dome INDI Driver
 
- Copyright(c) 2017-2018 Jarno Paananen. All rights reserved.
+ Copyright(c) 2017-2019 Jarno Paananen. All rights reserved.
 
  based on:
 
@@ -87,7 +87,7 @@ void ISSnoopDevice(XMLEle *root)
 
 ScopeDome::ScopeDome()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
     targetAz         = 0;
     shutterState     = SHUTTER_UNKNOWN;
     simShutterStatus = SHUTTER_CLOSED;
@@ -647,10 +647,11 @@ void ScopeDome::TimerHit()
             {
                 azDiff += 360;
             }
-            if (fabs(azDiff) <= DomeParamN[0].value)
+            if (refineMove == false || fabs(azDiff) <= DomeParamN[0].value)
             {
-                DomeAbsPosN[0].value = targetAz;
-                DomeAbsPosNP.s       = IPS_OK;
+                if (refineMove)
+                    DomeAbsPosN[0].value = targetAz;
+                DomeAbsPosNP.s = IPS_OK;
                 LOG_INFO("Dome reached requested azimuth angle.");
 
                 if (getDomeState() == DOME_PARKING)
@@ -714,7 +715,26 @@ IPState ScopeDome::MoveAbs(double az)
 
     LOGF_DEBUG("azDiff rel = %f", azDiff);
 
-    int rc = 0;
+    refineMove = true;
+    return MoveRel(azDiff);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState ScopeDome::MoveRel(double azDiff)
+{
+    refineMove = false;
+    return sendMove(azDiff);
+}
+
+/************************************************************************************
+ *
+* ***********************************************************************************/
+IPState ScopeDome::sendMove(double azDiff)
+{
+    int rc;
+
     if (azDiff < 0)
     {
         uint16_t steps = (uint16_t)(-azDiff * stepsPerTurn / 360.0);
@@ -745,17 +765,27 @@ IPState ScopeDome::MoveAbs(double az)
 /************************************************************************************
  *
 * ***********************************************************************************/
-IPState ScopeDome::MoveRel(double azDiff)
+IPState ScopeDome::Move(DomeDirection dir, DomeMotionCommand operation)
 {
-    targetAz = DomeAbsPosN[0].value + azDiff;
-
-    if (targetAz < DomeAbsPosN[0].min)
-        targetAz += DomeAbsPosN[0].max;
-    if (targetAz > DomeAbsPosN[0].max)
-        targetAz -= DomeAbsPosN[0].max;
-
-    // It will take a few cycles to reach final position
-    return MoveAbs(targetAz);
+    // Map to button outputs
+    if (operation == MOTION_START)
+    {
+        refineMove = false;
+        if (dir == DOME_CW)
+        {
+            setOutputState(OUT_CW, ISS_ON);
+            setOutputState(OUT_CCW, ISS_OFF);
+        }
+        else
+        {
+            setOutputState(OUT_CW, ISS_OFF);
+            setOutputState(OUT_CCW, ISS_ON);
+        }
+        return IPS_BUSY;
+    }
+    setOutputState(OUT_CW, ISS_OFF);
+    setOutputState(OUT_CCW, ISS_OFF);
+    return IPS_OK;
 }
 
 /************************************************************************************
