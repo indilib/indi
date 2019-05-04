@@ -108,8 +108,8 @@ EQ500X::EQ500X(): LX200Generic()
     for (size_t i = 0; i < sizeof(adjustments)/sizeof(adjustments[0]); i++)
         assert(adjustments[i].epsilon <= adjustments[i].distance);
 
-    // No pulse guiding (mount doesn't support Mgx commands) nor tracking frequency
-    // setLX200Capability(LX200_HAS_PULSE_GUIDING);
+    // No pulse guiding (mount doesn't support Mgx commands) nor tracking frequency nor nothing generic has actually
+    setLX200Capability(0);
 
     // Sync, goto, abort, location and 4 slew rates, no guiding rates and no park position
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE, 4);
