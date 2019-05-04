@@ -464,18 +464,18 @@ DLL_EXPORT void dsp_buffer_removemean(dsp_stream_p stream);
 * \param max the desired maximum value.
 */
 
-#define dsp_buffer_stretch(buf, len, min, max)\
+#define dsp_buffer_stretch(buf, len, _mn, _mx)\
 ({\
     int k;\
     __typeof__(buf[0]) mn = dsp_stats_min(buf, len);\
     __typeof__(buf[0]) mx = dsp_stats_max(buf, len);\
-    double oratio = (max - min);\
+    double oratio = (_mx - _mn);\
     double iratio = (mx - mn);\
     if(iratio == 0.0) iratio = 1;\
     for(k = 0; k < len; k++) {\
         buf[k] -= mn;\
         buf[k] = (__typeof__(buf[0]))((double)buf[k] * oratio / iratio);\
-        buf[k] += (__typeof__(buf[0]))min;\
+        buf[k] += (__typeof__(buf[0]))_mn;\
     }\
 })
 
@@ -807,6 +807,12 @@ DLL_EXPORT dsp_stream_p dsp_stream_crop(dsp_stream_p stream);
  * \defgroup dsp_SignalGen DSP API Signal generation functions
 */
 /*@{*/
+
+/**
+* \brief Generate white noise
+* \param stream the target DSP stream.
+*/
+DLL_EXPORT void dsp_signals_whitenoise(dsp_stream_p stream);
 
 /**
 * \brief Generate a sinusoidal wave

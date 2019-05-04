@@ -153,4 +153,5 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         bool focusBacklashMove;      // set if a final move is needed
         uint32_t focusPosition;
         bool focusReadLimits();
+        bool focuserIsCalibrated;
 };

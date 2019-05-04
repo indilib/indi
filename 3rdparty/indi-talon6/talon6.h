@@ -76,15 +76,20 @@ class Talon6 : public INDI::Dome
 
         bool Disconnect();
         void TimerHit();
+        ISState fullOpenRoofSwitch { ISS_ON };
+        ISState fullClosedRoofSwitch { ISS_OFF };
+        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
+
         virtual IPState Park();
         virtual IPState UnPark();
-        virtual bool DomeGoTo(int GoTo);
+        virtual IPState DomeGoTo(int GoTo);
         virtual bool Abort();
 
     private:
 
         bool Handshake();
         int PortFD{-1};
+        double MotionRequest { 0 };
         void getDeviceStatus();
         void getFirmwareVersion();
         int ReadString(char *,int);

@@ -170,7 +170,7 @@ class CelestronDriver
         bool get_track_mode(CELESTRON_TRACK_MODE *mode);
         bool set_track_mode(CELESTRON_TRACK_MODE mode);
 
-        bool is_slewing();
+        bool is_slewing(bool *slewing);
 
         // Hibernate/Wakeup/ align
         bool hibernate();
@@ -187,7 +187,7 @@ class CelestronDriver
         bool get_pier_side(char * sop);
 
         // check if the mount is aligned using the mount J command
-        bool check_aligned();
+        bool check_aligned(bool *isAligned);
 
         // set the tracking rate, sidereal, solar or lunar
         bool set_track_rate(CELESTRON_TRACK_RATE rate, CELESTRON_TRACK_MODE mode);
