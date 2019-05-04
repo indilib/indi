@@ -296,6 +296,20 @@ typedef enum
     IN_ROT_LINK        = 35
 } ScopeDomeDigitalIO;
 
+typedef enum
+{
+    STATUS_RESET            = 1,
+    STATUS_MOVING           = 2,
+    STATUS_HOMING           = 4,
+    STATUS_OPEN1            = 8,
+    STATUS_OPEN2            = 0x10,
+    STATUS_AUTO_CLOSE1      = 0x20,
+    STATUS_AUTO_CLOSE2      = 0x40,
+    STATUS_CALIBRATING      = 0x80,
+    STATUS_FINDING_POWER    = 0x100,
+    STATUS_CALIBRATION_STOP = 0x200
+} ScopeDomeStatusBits;
+
 class ScopeDomeCard
 {
   public:
@@ -468,6 +482,15 @@ class ScopeDome : public INDI::Dome
 
     ISwitch SensorsS[13];
     ISwitchVectorProperty SensorsSP;
+
+    INumber StepsPerRevolutionN[1];
+    INumberVectorProperty StepsPerRevolutionNP;
+
+    ISwitch CalibrationNeededS[1];
+    ISwitchVectorProperty CalibrationNeededSP;
+
+    ISwitch StartCalibrationS[1];
+    ISwitchVectorProperty StartCalibrationSP;
 
     INumber FirmwareVersionsN[2];
     INumberVectorProperty FirmwareVersionsNP;

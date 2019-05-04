@@ -87,7 +87,7 @@ void ISSnoopDevice(XMLEle *root)
 
 ScopeDome::ScopeDome()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     targetAz         = 0;
     shutterState     = SHUTTER_UNKNOWN;
     simShutterStatus = SHUTTER_CLOSED;
@@ -151,11 +151,11 @@ bool ScopeDome::initProperties()
 
     IUFillSwitch(&FindHomeS[0], "START", "Start", ISS_OFF);
     IUFillSwitchVector(&FindHomeSP, FindHomeS, 1, getDeviceName(), "FIND_HOME", "Find home", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
+                       ISR_ATMOST1, 0, IPS_OK);
 
     IUFillSwitch(&DerotateS[0], "START", "Start", ISS_OFF);
     IUFillSwitchVector(&DerotateSP, DerotateS, 1, getDeviceName(), "DEROTATE", "Derotate", MAIN_CONTROL_TAB, IP_RW,
-                       ISR_ATMOST1, 0, IPS_IDLE);
+                       ISR_ATMOST1, 0, IPS_OK);
 
     IUFillSwitch(&PowerRelaysS[0], "CCD", "CCD", ISS_OFF);
     IUFillSwitch(&PowerRelaysS[1], "SCOPE", "Telescope", ISS_OFF);
@@ -219,6 +219,18 @@ bool ScopeDome::initProperties()
     IUFillNumberVector(&FirmwareVersionsNP, FirmwareVersionsN, 2, getDeviceName(), "FIRMWARE_VERSION",
                        "Firmware versions", INFO_TAB, IP_RO, 60, IPS_IDLE);
 
+    IUFillNumber(&StepsPerRevolutionN[0], "STEPS", "Steps per revolution", "%5.0f", 0.0, 99999.0, 1.0, 0.0);
+    IUFillNumberVector(&StepsPerRevolutionNP, StepsPerRevolutionN, 1, getDeviceName(), "CALIBRATION_VALUES",
+                       "Calibration values", SITE_TAB, IP_RO, 60, IPS_IDLE);
+
+    IUFillSwitch(&CalibrationNeededS[0], "CALIBRATION_NEEDED", "Calibration needed", ISS_OFF);
+    IUFillSwitchVector(&CalibrationNeededSP, CalibrationNeededS, 1, getDeviceName(), "CALIBRATION_STATUS",
+                       "Calibration status", SITE_TAB, IP_RO, ISR_ATMOST1, 0, IPS_IDLE);
+
+    IUFillSwitch(&StartCalibrationS[0], "START", "Start", ISS_OFF);
+    IUFillSwitchVector(&StartCalibrationSP, StartCalibrationS, 1, getDeviceName(), "RUN_CALIBRATION", "Run calibration",
+                       SITE_TAB, IP_RW, ISR_ATMOST1, 0, IPS_OK);
+
     SetParkDataType(PARK_AZ);
 
     addAuxControls();
@@ -237,6 +249,9 @@ bool ScopeDome::SetupParms()
 
     readU32(GetImpPerTurn, stepsPerTurn);
     LOGF_INFO("Steps per turn read as %d", stepsPerTurn);
+    StepsPerRevolutionN[0].value = stepsPerTurn;
+    StepsPerRevolutionNP.s       = IPS_OK;
+    IDSetNumber(&StepsPerRevolutionNP, nullptr);
 
     readS32(GetHomeSensorPosition, homePosition);
     LOGF_INFO("Home position read as %d", homePosition);
@@ -263,6 +278,12 @@ bool ScopeDome::SetupParms()
         SetAxis1Park(0);
         SetAxis1ParkDefault(0);
     }
+
+    uint8_t calibrationNeeded = false;
+    readU8(IsFullSystemCalReq, calibrationNeeded);
+    CalibrationNeededS[0].s = calibrationNeeded ? ISS_ON : ISS_OFF;
+    CalibrationNeededSP.s   = IPS_OK;
+    IDSetSwitch(&CalibrationNeededSP, nullptr);
 
     uint16_t fwVersion;
     readU16(GetVersionFirmware, fwVersion);
@@ -310,6 +331,9 @@ bool ScopeDome::updateProperties()
         defineNumber(&EnvironmentSensorsNP);
         defineSwitch(&SensorsSP);
         defineSwitch(&ParkShutterSP);
+        defineNumber(&StepsPerRevolutionNP);
+        defineSwitch(&CalibrationNeededSP);
+        defineSwitch(&StartCalibrationSP);
         defineNumber(&FirmwareVersionsNP);
         SetupParms();
     }
@@ -324,6 +348,9 @@ bool ScopeDome::updateProperties()
         deleteProperty(DomeHomePositionNP.name);
         deleteProperty(EnvironmentSensorsNP.name);
         deleteProperty(ParkShutterSP.name);
+        deleteProperty(StepsPerRevolutionNP.name);
+        deleteProperty(CalibrationNeededSP.name);
+        deleteProperty(StartCalibrationSP.name);
         deleteProperty(FirmwareVersionsNP.name);
     }
 
@@ -341,6 +368,7 @@ bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         {
             if (status != DOME_HOMING)
             {
+                LOG_INFO("Finding home sensor");
                 status = DOME_HOMING;
                 IUResetSwitch(&FindHomeSP);
                 DomeAbsPosNP.s = IPS_BUSY;
@@ -355,11 +383,27 @@ bool ScopeDome::ISNewSwitch(const char *dev, const char *name, ISState *states, 
         {
             if (status != DOME_DEROTATING)
             {
+                LOG_INFO("De-rotating started");
                 status = DOME_DEROTATING;
                 IUResetSwitch(&DerotateSP);
                 DomeAbsPosNP.s = IPS_BUSY;
                 DerotateSP.s   = IPS_BUSY;
                 IDSetSwitch(&DerotateSP, nullptr);
+            }
+            return true;
+        }
+
+        if (strcmp(name, StartCalibrationSP.name) == 0)
+        {
+            if (status != DOME_CALIBRATING)
+            {
+                LOG_INFO("Calibration started");
+                status = DOME_CALIBRATING;
+                IUResetSwitch(&StartCalibrationSP);
+                DomeAbsPosNP.s       = IPS_BUSY;
+                StartCalibrationSP.s = IPS_BUSY;
+                IDSetSwitch(&StartCalibrationSP, nullptr);
+                writeCmd(FullSystemCal);
             }
             return true;
         }
@@ -590,30 +634,52 @@ void ScopeDome::TimerHit()
 
     if (status == DOME_HOMING)
     {
-        if ((currentStatus & 8) == 0 && getInputState(IN_HOME))
+        if ((currentStatus & (STATUS_HOMING | STATUS_MOVING)) == 0)
         {
-            // Found home
-            status   = DOME_READY;
-            targetAz = DomeHomePositionN[0].value;
+            double azDiff = DomeHomePositionN[0].value - DomeAbsPosN[0].value;
 
-            // Reset counter
-            writeCmd(ResetCounter);
+            if (azDiff > 180)
+            {
+                azDiff -= 360;
+            }
+            if (azDiff < -180)
+            {
+                azDiff += 360;
+            }
 
-            FindHomeSP.s   = IPS_OK;
-            DomeAbsPosNP.s = IPS_OK;
-            IDSetSwitch(&FindHomeSP, nullptr);
+            if (getInputState(IN_HOME) || fabs(azDiff) <= DomeParamN[0].value)
+            {
+                // Found home (or close enough)
+                LOG_INFO("Home sensor found");
+                status   = DOME_READY;
+                targetAz = DomeHomePositionN[0].value;
+
+                // Reset counters
+                writeCmd(ResetCounter);
+                writeCmd(ResetCounterExt);
+
+                FindHomeSP.s   = IPS_OK;
+                DomeAbsPosNP.s = IPS_OK;
+                IDSetSwitch(&FindHomeSP, nullptr);
+            }
+            else
+            {
+                // We overshoot, go closer
+                MoveAbs(DomeHomePositionN[0].value);
+            }
         }
         IDSetNumber(&DomeAbsPosNP, nullptr);
     }
     else if (status == DOME_DEROTATING)
     {
-        if ((currentStatus & 2) == 0)
+        if ((currentStatus & STATUS_MOVING) == 0)
         {
             readS32(GetCounterExt, currentRotation);
             LOGF_INFO("Current rotation is %d", currentRotation);
             if (abs(currentRotation) < 100)
             {
                 // Close enough
+                LOG_INFO("De-rotation complete");
                 status         = DOME_READY;
                 DerotateSP.s   = IPS_OK;
                 DomeAbsPosNP.s = IPS_OK;
@@ -633,12 +699,28 @@ void ScopeDome::TimerHit()
         }
         IDSetNumber(&DomeAbsPosNP, nullptr);
     }
+    else if (status == DOME_CALIBRATING)
+    {
+        if ((currentStatus & (STATUS_CALIBRATING | STATUS_MOVING)) == 0)
+        {
+            readU32(GetImpPerTurn, stepsPerTurn);
+            LOGF_INFO("Calibration complete, steps per turn read as %d", stepsPerTurn);
+            StepsPerRevolutionN[0].value = stepsPerTurn;
+            StepsPerRevolutionNP.s       = IPS_OK;
+            IDSetNumber(&StepsPerRevolutionNP, nullptr);
+            StartCalibrationSP.s = IPS_OK;
+            DomeAbsPosNP.s       = IPS_OK;
+            IDSetSwitch(&StartCalibrationSP, nullptr);
+            status = DOME_READY;
+        }
+    }
     else if (DomeAbsPosNP.s == IPS_BUSY)
     {
-        if ((currentStatus & 2) == 0)
+        if ((currentStatus & STATUS_MOVING) == 0)
         {
             // Rotation idle, are we close enough?
             double azDiff = targetAz - DomeAbsPosN[0].value;
+
             if (azDiff > 180)
             {
                 azDiff -= 360;
@@ -647,7 +729,7 @@ void ScopeDome::TimerHit()
             {
                 azDiff += 360;
             }
-            if (refineMove == false || fabs(azDiff) <= DomeParamN[0].value)
+            if (!refineMove || fabs(azDiff) <= DomeParamN[0].value)
             {
                 if (refineMove)
                     DomeAbsPosN[0].value = targetAz;
@@ -716,7 +798,7 @@ IPState ScopeDome::MoveAbs(double az)
     LOGF_DEBUG("azDiff rel = %f", azDiff);
 
     refineMove = true;
-    return MoveRel(azDiff);
+    return sendMove(azDiff);
 }
 
 /************************************************************************************
