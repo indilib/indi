@@ -674,6 +674,39 @@ void EQ500X::setPierSide(TelescopePierSide side)
     IDSetSwitch(&PierSideSP, "Not supported");
 }
 
+bool EQ500X::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
+{
+    // EQ500X has North/South directions inverted
+    int current_move = (dir == DIRECTION_NORTH) ? LX200_SOUTH : LX200_NORTH;
+
+    switch (command)
+    {
+    case MOTION_START:
+        if (!isSimulation() && MoveTo(PortFD, current_move) < 0)
+        {
+            LOG_ERROR("Error setting N/S motion direction.");
+            return false;
+        }
+        else
+            LOGF_DEBUG("Moving toward %s.",
+                      (current_move == LX200_NORTH) ? "North" : "South");
+        break;
+
+    case MOTION_STOP:
+        if (!isSimulation() && HaltMovement(PortFD, current_move) < 0)
+        {
+            LOG_ERROR("Error stopping N/S motion.");
+            return false;
+        }
+        else
+            LOGF_DEBUG("Movement toward %s halted.",
+                      (current_move == LX200_NORTH) ? "North" : "South");
+        break;
+    }
+
+    return true;
+}
+
 /**************************************************************************************
 **
 ***************************************************************************************/
