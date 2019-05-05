@@ -828,6 +828,15 @@ add_executable(indi_celestron_sct_focus ${celestronsct_SRC})
 target_link_libraries(indi_celestron_sct_focus indidriver)
 install(TARGETS indi_celestron_sct_focus RUNTIME DESTINATION bin)
 
+################ AAF2 Focuser ################
+
+SET(aaf2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/aaf2.cpp)
+
+add_executable(indi_aaf2_focus ${aaf2_SRC})
+target_link_libraries(indi_aaf2_focus indidriver)
+install(TARGETS indi_aaf2_focus RUNTIME DESTINATION bin)
+
 ################ Moonlite Focuser ################
 
 SET(moonlite_SRC

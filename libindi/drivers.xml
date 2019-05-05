@@ -215,6 +215,10 @@
           <driver name="Celestron SCT">indi_celestron_sct_focus</driver>
           <version>1.0</version>
         </device>
+        <device label="AAF2">
+          <driver name="AAF2">indi_aaf2_focus</driver>
+          <version>1.0</version>
+        </device>
         <device label="Rigelsys NFocus">
           <driver name="NFocus">indi_nfocus</driver>
           <version>1.1</version>
