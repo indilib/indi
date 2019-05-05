@@ -131,6 +131,10 @@ protected:
     ISwitchVectorProperty ST4StatusSP;
     ISwitch ST4StatusS[2];
 
+    // Keypad
+    ISwitchVectorProperty KeypadStatusSP;
+    ISwitch KeypadStatusS[2];
+
     // meridian flip
     ISwitchVectorProperty MeridianFlipModeSP;
     ISwitch MeridianFlipModeS[3];
@@ -157,6 +161,8 @@ protected:
     virtual bool syncHomePosition();
     bool slewToHome(ISState *states, char *names[], int n);
     bool setParkPosition(ISState *states, char *names[], int n);
+    bool getKeypadStatus (bool *isEnabled);
+    bool setKeyPadEnabled(bool enabled);
 
     // autoguiding
     virtual bool setGuidingSpeeds(int raSpeed, int decSpeed);
