@@ -933,7 +933,7 @@ char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length) c
 
 bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
 {
-    if (buf_length < sizeof(MechanicalPoint_RA_Format-1))
+    if (buf_length < sizeof(MechanicalPoint_RA_Format)-1)
         return true;
 
     // Mount replies to "#GR:" with "HH:MM:SS".
