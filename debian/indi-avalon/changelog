@@ -1,8 +1,9 @@
 indi-avalon (1.5) stretch; urgency=medium
 
   * Implemented switch for enabling / disabling the keypad
+  * System slewing speed settings added
 
- -- Wolfgang Reissenberger <sterne-jaeger@t-online.de>  Sun, 05 May 2019 20:24:40 +0200
+ -- Wolfgang Reissenberger <sterne-jaeger@t-online.de>  Mon, 06 May 2019 15:06:52 +0200
 
 indi-avalon (1.4.1) stretch; urgency=medium
 
