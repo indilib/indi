@@ -98,7 +98,7 @@ const adjustments[] = {
 ***************************************************************************************/
 EQ500X::EQ500X(): LX200Generic()
 {
-    setVersion(1, 0);
+    setVersion(1, 1);
 
     // Sanitize constants: epsilon of a slew rate must be smaller than distance of its smaller sibling
     for (size_t i = 0; i < sizeof(adjustments)/sizeof(adjustments[0])-1; i++)
@@ -108,8 +108,8 @@ EQ500X::EQ500X(): LX200Generic()
     for (size_t i = 0; i < sizeof(adjustments)/sizeof(adjustments[0]); i++)
         assert(adjustments[i].epsilon <= adjustments[i].distance);
 
-    // No pulse guiding (mount doesn't support Mgx commands) nor tracking frequency
-    // setLX200Capability(LX200_HAS_PULSE_GUIDING);
+    // No pulse guiding (mount doesn't support Mgx commands) nor tracking frequency nor nothing generic has actually
+    setLX200Capability(0);
 
     // Sync, goto, abort, location and 4 slew rates, no guiding rates and no park position
     SetTelescopeCapability(TELESCOPE_CAN_SYNC | TELESCOPE_CAN_GOTO | TELESCOPE_CAN_ABORT | TELESCOPE_HAS_LOCATION | TELESCOPE_HAS_PIER_SIDE, 4);
@@ -674,6 +674,39 @@ void EQ500X::setPierSide(TelescopePierSide side)
     IDSetSwitch(&PierSideSP, "Not supported");
 }
 
+bool EQ500X::MoveNS(INDI_DIR_NS dir, TelescopeMotionCommand command)
+{
+    // EQ500X has North/South directions inverted
+    int current_move = (dir == DIRECTION_NORTH) ? LX200_SOUTH : LX200_NORTH;
+
+    switch (command)
+    {
+    case MOTION_START:
+        if (!isSimulation() && MoveTo(PortFD, current_move) < 0)
+        {
+            LOG_ERROR("Error setting N/S motion direction.");
+            return false;
+        }
+        else
+            LOGF_DEBUG("Moving toward %s.",
+                      (current_move == LX200_NORTH) ? "North" : "South");
+        break;
+
+    case MOTION_STOP:
+        if (!isSimulation() && HaltMovement(PortFD, current_move) < 0)
+        {
+            LOG_ERROR("Error stopping N/S motion.");
+            return false;
+        }
+        else
+            LOGF_DEBUG("Movement toward %s halted.",
+                      (current_move == LX200_NORTH) ? "North" : "South");
+        break;
+    }
+
+    return true;
+}
+
 /**************************************************************************************
 **
 ***************************************************************************************/
@@ -900,7 +933,7 @@ char const * EQ500X::MechanicalPoint::toStringRA(char *buf, size_t buf_length) c
 
 bool EQ500X::MechanicalPoint::parseStringRA(char const *buf, size_t buf_length)
 {
-    if (buf_length < sizeof(MechanicalPoint_RA_Format-1))
+    if (buf_length < sizeof(MechanicalPoint_RA_Format)-1)
         return true;
 
     // Mount replies to "#GR:" with "HH:MM:SS".
