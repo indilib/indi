@@ -29,11 +29,11 @@ class astromechanics_foc : public INDI::Focuser
         astromechanics_foc();
         bool initProperties() override;
         bool updateProperties() override;
-        bool Disconnect();
         const char *getDefaultName() override;
         virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
     protected:
+        virtual bool Disconnect() override;
         virtual bool Handshake() override;
         virtual IPState MoveAbsFocuser(uint32_t targetTicks) override;
         virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks) override;
@@ -44,4 +44,4 @@ class astromechanics_foc : public INDI::Focuser
 
         INumberVectorProperty AppertureNP;
         INumber AppertureN[1];
- };
+};
