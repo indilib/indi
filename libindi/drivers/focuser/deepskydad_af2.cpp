@@ -843,7 +843,7 @@ void DeepSkyDadAF2::GetFocusParams()
     if (readCurrentHold())
         IDSetSwitch(&CurrentHoldSP, nullptr);
 	
-	if (readTemperature())
+    if (readTemperature())
         IDSetNumber(&TemperatureNP, nullptr);
 }
 
