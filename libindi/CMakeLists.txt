@@ -957,7 +957,7 @@ add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRC})
 target_link_libraries(indi_hitecastrodc_focus indidriver)
 install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin)
 
-################ DeepSky Dad Focuser ################
+################ DeepSky Dad AF1 ################
 
 SET(deepskydad_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/deepskydad_af1.cpp)
@@ -965,6 +965,15 @@ SET(deepskydad_SRC
 add_executable(indi_deepskydad_af1_focus ${deepskydad_SRC})
 target_link_libraries(indi_deepskydad_af1_focus indidriver)
 install(TARGETS indi_deepskydad_af1_focus RUNTIME DESTINATION bin)
+
+################ DeepSky Dad AF2 ################
+
+SET(deepskydad_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/deepskydad_af2.cpp)
+
+add_executable(indi_deepskydad_af2_focus ${deepskydad_SRC})
+target_link_libraries(indi_deepskydad_af2_focus indidriver)
+install(TARGETS indi_deepskydad_af2_focus RUNTIME DESTINATION bin)
 
 ################ JMI Smart Focus Focuser ################
 
