@@ -3,8 +3,8 @@ PROJECT(libqhy C CXX)
 
 include(GNUInstallDirs)
 
-# QHY SDK Built on 2019-04-14
-set(LIBQHY_VERSION "5.0.3")
+# QHY SDK Built on 2019-05-08
+set(LIBQHY_VERSION "5.0.5")
 set(LIBQHY_SOVERSION "5")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
@@ -47,8 +47,7 @@ IF(UNIX AND NOT WIN32)
  ELSEIF(CMAKE_SIZEOF_VOID_P MATCHES "8")
   exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhyccd_x86_64.bin ${CMAKE_BINARY_DIR}/libqhyccd.so.${LIBQHY_VERSION})
  ELSE()
-# 32bit is NOT maintained.
-  exec_program(cp ARGS ${CMAKE_CURRENT_SOURCE_DIR}/libqhyccd_x86_32.bin ${CMAKE_BINARY_DIR}/libqhyccd.so.${LIBQHY_VERSION})
+  message(FATAL_ERROR "x86-32 architecture is not supported.")
  ENDIF ()
 ENDIF(UNIX AND NOT WIN32)
 

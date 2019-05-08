@@ -5,9 +5,6 @@
 
 
 
-#if defined (_WIN32)
-#include <windows.h>
-#endif
 
 #ifndef __QHYCCDSTRUCTDEF_H__
 #define __QHYCCDSTRUCTDEF_H__
@@ -242,14 +239,23 @@ enum CodecID
   H261_CODEC
 };
 
-typedef struct _QHYCameraParam
+typedef struct _QHYCamMinMaxStepValue
 {
   const char *name;
   double min;
   double max;
   double step;
-}QHYCameraParam;
+}QHYCamMinMaxStepValue;
 
+typedef struct _QHYGetImageParam
+{
+  void *handle;
+  uint8_t *imgdata;
+  uint32_t w;
+  uint32_t h;
+  uint32_t bpp;
+  uint32_t channels;
+}QHYGetImageParam;
 
 
 #if CALLBACK_MODE_SUPPORT
