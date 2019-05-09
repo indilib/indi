@@ -194,7 +194,7 @@ bool AAF2::readTemperature()
         return false;
 
     int32_t temp = 0;
-    int rc = sscanf(res, "%d", &temp);
+    int rc = sscanf(res, "C%d:OK", &temp);
     if (rc > 0)
         // Hundredth of a degree
         TemperatureN[0].value = temp / 100.0;
@@ -227,7 +227,7 @@ bool AAF2::readPosition()
         return false;
 
     int32_t pos;
-    int rc = sscanf(res, "%d:OK", &pos);
+    int rc = sscanf(res, "P%d:OK", &pos);
 
     if (rc > 0)
         FocusAbsPosN[0].value = pos;
