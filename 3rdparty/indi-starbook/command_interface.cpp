@@ -248,7 +248,7 @@ VersionResponse CommandInterface::ParseVersionResponse(const CommandResponse &re
 
     std::regex param_re(R"(((\d+\.\d+)\w+))");
     std::smatch sm;
-    if (!regex_search(response.payload.at("version"), sm, param_re))
+    if (!regex_search(response.payload.at("VERSION"), sm, param_re))
     {
         throw std::runtime_error("parsing error, version string not found");
     }
