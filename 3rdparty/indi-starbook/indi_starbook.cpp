@@ -155,6 +155,9 @@ bool StarbookDriver::initProperties()
     addDebugControl();
 
     last_known_state = starbook::UNKNOWN;
+
+    cmd_interface->setDevice(getDeviceName());
+
     return true;
 }
 
