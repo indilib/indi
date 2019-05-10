@@ -348,7 +348,7 @@ bool StarbookDriver::updateTime(ln_date *utc, double utc_offset)
     INDI_UNUSED(utc_offset);
     if (last_known_state != starbook::INIT)
     {
-        LOGF_WARN("Can't update time in %s state", starbook::STATE_TO_STR.at(last_known_state).c_str());
+        LOGF_WARN("Cannot update time in %s state", starbook::STATE_TO_STR.at(last_known_state).c_str());
         return false;
     }
     starbook::ResponseCode rc;
@@ -364,12 +364,12 @@ bool StarbookDriver::updateLocation(double latitude, double longitude, double el
     INDI_UNUSED(elevation);
     if (last_known_state != starbook::INIT)
     {
-        LOGF_WARN("Can't update location in %s state", starbook::STATE_TO_STR.at(last_known_state).c_str());
+        LOGF_WARN("Cannot update location in %s state", starbook::STATE_TO_STR.at(last_known_state).c_str());
         return false;
     }
     if (TimeT[1].text == nullptr)
     {
-        LOG_WARN("Can't update location before time");
+        LOG_WARN("Cannot update location before time");
         return false;
     }
 
@@ -488,7 +488,7 @@ bool StarbookDriver::performStart()
     }
     else
     {
-        LOGF_WARN("Can't initialize in %s state, must be INIT", starbook::STATE_TO_STR.at(last_known_state).c_str());
+        LOGF_WARN("Cannot initialize in %s state, must be INIT", starbook::STATE_TO_STR.at(last_known_state).c_str());
         StartSP.s = IPS_ALERT;
     }
     IDSetSwitch(&StartSP, nullptr);
