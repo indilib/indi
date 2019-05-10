@@ -270,13 +270,13 @@ StarbookState CommandInterface::ParseState(const std::string &value)
 
 PlaceResponse CommandInterface::ParsePlaceResponse(const CommandResponse &response)
 {
-    if (!response.status) throw std::runtime_error("can't parse place");
+    if (!response.status) throw std::runtime_error("Cannot parse place");
     return {{0, 0}, 0}; // TODO
 }
 
 ln_date CommandInterface::ParseTimeResponse(const CommandResponse &response)
 {
-    if (!response.status) throw std::runtime_error("can't parse time");
+    if (!response.status) throw std::runtime_error("Cannot parse time");
     std::stringstream ss{response.payload.at("time")};
     DateTime time{0, 0, 0, 0, 0, 0};
     ss >> time;
@@ -285,7 +285,7 @@ ln_date CommandInterface::ParseTimeResponse(const CommandResponse &response)
 
 XYResponse CommandInterface::ParseXYResponse(const CommandResponse &response)
 {
-    if (!response.status) throw std::runtime_error("can't parse xy");
+    if (!response.status) throw std::runtime_error("Cannot parse xy");
     return
     {
         .x = std::stod(response.payload.at("X")),
@@ -295,7 +295,7 @@ XYResponse CommandInterface::ParseXYResponse(const CommandResponse &response)
 
 long int CommandInterface::ParseRoundResponse(const CommandResponse &response)
 {
-    if (!response.status) throw std::runtime_error("can't parse round");
+    if (!response.status) throw std::runtime_error("Cannot parse round");
     return std::stol(response.payload.at("ROUND"));
 }
 }
