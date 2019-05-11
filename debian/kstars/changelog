@@ -1,3 +1,9 @@
+kstars-bleeding (6:3.2.2) bionic; urgency=medium
+
+  * 3.2.2 Upstream release.
+
+ -- Jasem Mutlaq <mutlaqja@ikarustech.com>  Sat, 11 May 2019 13:00:00 +0300
+
 kstars-bleeding (6:3.2.1) bionic; urgency=medium
 
   * 3.2.1 Upstream release.
