@@ -1,3 +1,22 @@
+From 1.7.7 to 1.7.8
+
+      + New Omegon EQ500X mount driver.
+      + New TALON6 dome driver.
+      + New Astromechanics focuser driver.
+      + New DeepSkyDad AF2 focuser driver.
+      + New Apogee CFW filter wheel driver.
+      + Support for Radio Detector Streaming.
+      + ScopeDome fixes and improvements.
+      + Fixed Vixen Starbook version detection bug.
+      + Fixed Avalon Stargo Connect/Disconnect issue.
+      + Improved detection of Quantum wheel.
+      + Update Celestron SCT focuser to prevent moves when not calibrated.
+      + Improve Sync, Park, Focus Max in DreamFocuser driver.
+      + Implemented UI for PWM Outputs for OnStep
+      + Fixed subframe capture in QHY driver.
+      + ASI SDK updated to v1.14.0425.
+      + QHY SDK updated to 5.0.5.
+
 From 1.7.6 to 1.7.7
 
       + New DreamFocuser driver.
@@ -7,11 +26,11 @@ From 1.7.6 to 1.7.7
       + DSP & Radio Detector improvements.
       + Vixen Starbook driver received numerous updates and fixes.
       + Celestron driver supports focuser control directly.
-      + Celestron driver resumes from last alignment. Fixed hibernation.      
+      + Celestron driver resumes from last alignment. Fixed hibernation.
       + Fixed QHY filter wheel issues & live streaming.
       + Fixed QHY temperature controls in manual and auto modes.
       + ATIK SDK updated & fixed filter wheel issues.
-      + Fix bulb exposures initiated with shutter release cable on Pentax cameras.      
+      + Fix bulb exposures initiated with shutter release cable on Pentax cameras.
       + QHY and SDR drivers enabled back on MacOS.
       + Weather drivers offer a weather override toggle.
       + All iOptron drivers now park to Alt/Az coordinates.
