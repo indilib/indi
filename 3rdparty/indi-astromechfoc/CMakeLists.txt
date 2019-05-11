@@ -8,10 +8,8 @@ include(GNUInstallDirs)
 set(INDI_ASTROMECHFOC_VERSION_MAJOR 0)
 set(INDI_ASTROMECHFOC_VERSION_MINOR 1)
 
-find_package(CFITSIO REQUIRED)
 find_package(INDI REQUIRED)
 find_package(ZLIB REQUIRED)
-find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
@@ -37,7 +35,7 @@ ENDIF ()
 
 add_executable(indi_astromechfoc ${indiastromechfoc_SRCS})
 
-target_link_libraries(indi_astromechfoc ${INDI_DRIVER_LIBRARIES} ${USB1_LIBRARIES} pthread)
+target_link_libraries(indi_astromechfoc ${INDI_DRIVER_LIBRARIES} pthread)
 
 install(TARGETS indi_astromechfoc RUNTIME DESTINATION bin )
 
