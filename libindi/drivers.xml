@@ -281,11 +281,11 @@
         </device>
         <device label="Optec TCF-S">
                 <driver name="Optec TCF-S">indi_tcfs_focus</driver>
-                <version>0.1</version>
+                <version>0.2</version>
         </device>
         <device label="Optec TCF-S3">
                 <driver name="Optec TCF-S">indi_tcfs3_focus</driver>
-                <version>0.1</version>
+                <version>0.2</version>
         </device>
         <device label="Sesto Senso">
                 <driver name="Sesto Senso">indi_sestosenso_focus</driver>
