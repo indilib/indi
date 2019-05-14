@@ -97,7 +97,7 @@ bool StreamManager::initProperties()
     else
         IUFillSwitchVector(&StreamSP, StreamS, NARRAY(StreamS), getDeviceName(), "CCD_VIDEO_STREAM", "Video Stream",
                            STREAM_TAB, IP_RW, ISR_1OFMANY, 0, IPS_IDLE);
-    IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.3f", 0.001, 10, 0.1, 0.1);
+    IUFillNumber(&StreamExposureN[STREAM_EXPOSURE], "STREAMING_EXPOSURE_VALUE", "Duration (s)", "%.6f", 0.000001, 10, 0.1, 0.1);
     IUFillNumber(&StreamExposureN[STREAM_DIVISOR], "STREAMING_DIVISOR_VALUE", "Divisor", "%.f", 1, 15, 1, 1);
     IUFillNumberVector(&StreamExposureNP, StreamExposureN, NARRAY(StreamExposureN), getDeviceName(), "STREAMING_EXPOSURE", "Expose", STREAM_TAB, IP_RW, 60, IPS_IDLE);
 
@@ -957,7 +957,7 @@ bool StreamManager::setStream(bool enable)
             else
                 LOGF_INFO("Starting the video stream with target FPS %.f", StreamOptionsN[OPTION_TARGET_FPS].value);
 #endif
-            LOGF_INFO("Starting the video stream with target exposure %.4f s (FPS %.f)", StreamExposureN[0].value, 1 / StreamExposureN[0].value);
+            LOGF_INFO("Starting the video stream with target exposure %.6f s (Max theoritical FPS %.f)", StreamExposureN[0].value, 1 / StreamExposureN[0].value);
 
             getitimer(ITIMER_REAL, &tframe1);
             mssum         = 0;
