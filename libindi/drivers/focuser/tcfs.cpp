@@ -81,7 +81,7 @@ TCFS::TCFS()
     currentMode = MANUAL;
     FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE);
 
-    setVersion(0, 2);
+    setVersion(0, 3);
 }
 
 /****************************************************************
@@ -1151,7 +1151,7 @@ void TCFS::TimerHit()
             break;
     }
 
-    if (FocusTemperatureNP.s != IPS_IDLE)
+    if (FocusTemperatureNP.s == IPS_OK || FocusTemperatureNP.s == IPS_BUSY)
     {
         // Read Temperature
         // Manual Mode
@@ -1167,13 +1167,22 @@ void TCFS::TimerHit()
         if (isSimulation())
             snprintf(response, TCFS_MAX_CMD, "T=%0.1f", simulated_temperature);
 
-        sscanf(response, "T=%f", &f_temperature);
+        int rc = sscanf(response, "T=%f", &f_temperature);
 
-        FocusTemperatureNP.np[0].value = f_temperature;
-
-        if (lastTemperature != FocusTemperatureNP.np[0].value)
+        if (rc == 1)
         {
-            lastTemperature = FocusTemperatureNP.np[0].value;
+            FocusTemperatureNP.np[0].value = f_temperature;
+
+            if (fabs(lastTemperature - FocusTemperatureNP.np[0].value) > 0.01)
+            {
+                lastTemperature = FocusTemperatureNP.np[0].value;
+                IDSetNumber(&FocusTemperatureNP, nullptr);
+            }
+        }
+        else
+        {
+            FocusTemperatureNP.s = IPS_ALERT;
+            LOGF_ERROR("Failed to read temperature: %s", response);
             IDSetNumber(&FocusTemperatureNP, nullptr);
         }
     }
@@ -1206,6 +1215,8 @@ bool TCFS::read_tcfs(char *response, bool silent)
 
     // Remove LF & CR
     response[nbytes_read - 2] = '\0';
+
+    tcflush(PortFD, TCIOFLUSH);
 
     LOGF_DEBUG("RES <%s>", response);
 
