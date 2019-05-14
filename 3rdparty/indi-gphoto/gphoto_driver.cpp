@@ -628,6 +628,14 @@ static void *stop_bulb(void *arg)
                 if (gphoto->bulb_port[0] && (gphoto->bulb_fd >= 0))
                 {
                     DEBUGDEVICE(device, INDI::Logger::DBG_DEBUG, "Closing remote serial shutter.");
+
+                    // Close Nikon Shutter
+                    if (!strstr(device, "Nikon"))
+                    {
+                        uint8_t close_shutter[3] = {0xFF, 0x01, 0x00};
+                        write(gphoto->bulb_fd, close_shutter, 3);
+                    }
+
                     ioctl(gphoto->bulb_fd, TIOCMBIC, &RTS_flag);
                     close(gphoto->bulb_fd);
                 }
@@ -1143,6 +1151,14 @@ int gphoto_start_exposure(gphoto_driver *gphoto, uint32_t exptime_usec, int mirr
                 pthread_mutex_unlock(&gphoto->mutex);
                 return -1;
             }
+
+            // Open Nikon Shutter
+            if (!strstr(device, "Nikon"))
+            {
+                uint8_t open_shutter[3] = {0xFF, 0x01, 0x01};
+                write(gphoto->bulb_fd, open_shutter, 3);
+            }
+
             ioctl(gphoto->bulb_fd, TIOCMBIS, &RTS_flag);
         }
         // Otherwise, let's fallback to the internal bulb widget
