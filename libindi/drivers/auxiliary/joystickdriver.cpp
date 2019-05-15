@@ -130,6 +130,14 @@ void JoyStickDriver::readEv()
             if (joystick_n / 2.0 < MAX_JOYSTICKS)
             {
                 joystick_position pos = joystickPosition(joystick_n);
+
+                // Reject noise
+                if (pos.r < 0.001)
+                {
+                    pos.r = 0;
+                    pos.theta = 0;
+                }
+
                 joystickCallbackFunc(joystick_n / 2, pos.r, pos.theta);
             }
 
