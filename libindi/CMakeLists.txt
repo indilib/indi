@@ -948,6 +948,15 @@ add_executable(indi_perfectstar_focus ${perfectstar_SRC})
 target_link_libraries(indi_perfectstar_focus indidriver)
 install(TARGETS indi_perfectstar_focus RUNTIME DESTINATION bin)
 
+################ Starlight Instruments EFS ################
+
+SET(siefs_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/si_efs.cpp)
+
+add_executable(indi_siefs_focus ${siefs_SRC})
+target_link_libraries(indi_siefs_focus indidriver)
+install(TARGETS indi_siefs_focus RUNTIME DESTINATION bin)
+
 ################ hitechfocus Focuser ################
 
 SET(hitecastrodcfocuser_SRC

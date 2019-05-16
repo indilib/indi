@@ -303,6 +303,10 @@
                 <driver name="PerfectStar">indi_perfectstar_focus</driver>
                 <version>0.1</version>
         </device>
+        <device label="Starlight EFS">
+                <driver name="SI EFS">indi_siefs_focus</driver>
+                <version>0.1</version>
+        </device>
         <device label="Lacerta MFOC">
                 <driver name="Lacerta MFOC">indi_lacerta_mfoc_focus</driver>
                 <version>0.4</version>
