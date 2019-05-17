@@ -20,7 +20,7 @@ include_directories( ${INDI_INCLUDE_DIR})
 
 include(CMakeCommon)
 
-########### MaxDome II ###########
+########### Talon6  ###########
 set(indi_talon6_SRCS
    ${CMAKE_CURRENT_SOURCE_DIR}/talon6.cpp
    )
