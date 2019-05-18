@@ -9,6 +9,7 @@ set(INDI_TALON6_VERSION_MAJOR 2)
 set(INDI_TALON6_VERSION_MINOR 0)
 
 find_package(INDI REQUIRED)
+find_package(Nova REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h )
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/indi_talon6.xml.cmake ${CMAKE_CURRENT_BINARY_DIR}/indi_talon6.xml )
@@ -26,7 +27,7 @@ set(indi_talon6_SRCS
 
 add_executable(indi_talon6 ${indi_talon6_SRCS})
 
-target_link_libraries(indi_talon6 ${INDI_LIBRARIES})
+target_link_libraries(indi_talon6 ${INDI_LIBRARIES} ${NOVA_LIBRARIES})
 
 install(TARGETS indi_talon6 RUNTIME DESTINATION bin )
 
