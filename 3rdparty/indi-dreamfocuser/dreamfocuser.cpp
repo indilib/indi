@@ -34,6 +34,7 @@
 #include <indicom.h>
 
 #include "dreamfocuser.h"
+#include "config.h"
 #include "connectionplugins/connectionserial.h"
 
 /*
@@ -53,6 +54,18 @@ response - MI000d0z - d = 1: yes, 0: no
 
 MT00000z - read temperature
 response - MT00cd0z - temperature = ((c<<8)|d)/16.0
+
+MA0000nz - read memory dword - n = address
+response - MAabcd0z(?)
+
+MBabcdnz - write memory dword - abcd = content, n = address
+response - MBabcd0z(?)
+
+MC0000nz - read memory word - n = address
+response - 
+
+MDab00nz - write memory word - ab = content, n = address
+response - 
 
 ----
 
@@ -130,6 +143,9 @@ DreamFocuser::DreamFocuser()
     isMoving = false;
     isParked = 0;
     isVcc12V = false;
+
+    setVersion(DREAMFOCUSER_VERSION_MAJOR, DREAMFOCUSER_VERSION_MINOR);
+
 }
 
 bool DreamFocuser::initProperties()
@@ -179,6 +195,10 @@ bool DreamFocuser::initProperties()
     //    strcpy(PresetN[1].format, "%6.0f");
     //    strcpy(PresetN[2].format, "%6.0f");
     //    PresetN[0].step = PresetN[1].step = PresetN[2].step = FocusAbsPosN[0].step = DREAMFOCUSER_STEP_SIZE;
+
+    // Maximum position can't be changed from driver
+    FocusMaxPosNP.p = IP_RO;
+
     FocusAbsPosN[0].value = 0;
     FocusRelPosN[0].min = -FocusMaxPosN[0].max;
     FocusRelPosN[0].max = FocusMaxPosN[0].max;
@@ -370,6 +390,7 @@ bool DreamFocuser::getStatus()
         isAbsolute = currentResponse.d == 1 ? true : false;
     else
         return false;
+
     return true;
 }
 
@@ -398,11 +419,25 @@ bool DreamFocuser::setPosition( int32_t position)
     return false;
 }
 
+bool DreamFocuser::getMaxPosition()
+{
+    if ( dispatch_command('A', 0, 3) )
+    {
+        currentMaxPosition = (currentResponse.a << 24) | (currentResponse.b << 16) | (currentResponse.c << 8) | currentResponse.d;
+        LOGF_DEBUG("getMaxPosition: %d", currentMaxPosition);
+        return true;
+    }
+    else
+      LOG_ERROR("getMaxPosition error");
 
-bool DreamFocuser::setSync( int32_t position)
+    return false;
+}
+
+
+bool DreamFocuser::setSync( uint32_t position)
 {
     if ( dispatch_command('Z', position) )
-        if ( ((currentResponse.a << 24) | (currentResponse.b << 16) | (currentResponse.c << 8) | currentResponse.d) == position )
+        if ( static_cast<uint32_t>((currentResponse.a << 24) | (currentResponse.b << 16) | (currentResponse.c << 8) | currentResponse.d) == position )
         {
             LOGF_DEBUG("Syncing to position %d", position);
             return true;
@@ -520,6 +555,18 @@ void DreamFocuser::TimerHit()
     int oldAbsStatus = FocusAbsPosNP.s;
     int32_t oldPosition = currentPosition;
 
+    if ( getMaxPosition() )
+    {
+        if ( FocusMaxPosN[0].value != currentMaxPosition ) {
+            FocusMaxPosN[0].value = currentMaxPosition;
+            FocusMaxPosNP.s = IPS_OK;
+            IDSetNumber(&FocusMaxPosNP, nullptr);
+            SetFocuserMaxPosition(currentMaxPosition);
+        }
+    }
+    else
+        FocusMaxPosNP.s = IPS_ALERT;
+
     if ( getStatus() )
     {
 
@@ -537,8 +584,15 @@ void DreamFocuser::TimerHit()
             StatusS[1].s = ISS_OFF;
         };
 
-        if ( isParked != 0 )
+        if ( isParked == 1 )
         {
+            ParkSP.s = IPS_BUSY;
+            StatusS[2].s = ISS_ON;
+            ParkS[0].s = ISS_ON;
+        }
+        else if ( isParked == 2 )
+        {
+            ParkSP.s = IPS_OK;
             StatusS[2].s = ISS_ON;
             ParkS[0].s = ISS_ON;
         }
@@ -546,6 +600,7 @@ void DreamFocuser::TimerHit()
         {
             StatusS[2].s = ISS_OFF;
             ParkS[1].s = ISS_ON;
+            ParkSP.s = IPS_IDLE;
         }
 
         if ( isAbsolute )
@@ -567,41 +622,42 @@ void DreamFocuser::TimerHit()
             StatusS[0].s = ISS_OFF;
         }
 
-        if ( getTemperature() )
-        {
-            WeatherNP.s = ( (WeatherN[0].value != currentTemperature) || (WeatherN[1].value != currentHumidity)) ? IPS_BUSY : IPS_OK;
-            WeatherN[0].value = currentTemperature;
-            WeatherN[1].value = currentHumidity;
-            WeatherN[2].value = pow(currentHumidity / 100, 1.0 / 8) * (112 + 0.9 * currentTemperature) + 0.1 * currentTemperature - 112;
-        }
-        else
-            WeatherNP.s = IPS_ALERT;
-
-
-        if ( FocusAbsPosNP.s != IPS_IDLE )
-        {
-            if ( getPosition() )
-            {
-                if ( oldPosition != currentPosition )
-                {
-                    FocusAbsPosNP.s = IPS_BUSY;
-                    StatusS[1].s = ISS_ON;
-                    FocusAbsPosN[0].value = currentPosition;
-                }
-                else
-                {
-                    StatusS[1].s = ISS_OFF;
-                    FocusAbsPosNP.s = IPS_OK;
-                }
-                //if ( currentPosition < 0 )
-                // FocusAbsPosNP.s = IPS_ALERT;
-            }
-            else
-                FocusAbsPosNP.s = IPS_ALERT;
-        }
     }
     else
         StatusSP.s = IPS_ALERT;
+
+    if ( getTemperature() )
+    {
+        WeatherNP.s = ( (WeatherN[0].value != currentTemperature) || (WeatherN[1].value != currentHumidity)) ? IPS_BUSY : IPS_OK;
+        WeatherN[0].value = currentTemperature;
+        WeatherN[1].value = currentHumidity;
+        WeatherN[2].value = pow(currentHumidity / 100, 1.0 / 8) * (112 + 0.9 * currentTemperature) + 0.1 * currentTemperature - 112;
+    }
+    else
+        WeatherNP.s = IPS_ALERT;
+
+    if ( FocusAbsPosNP.s != IPS_IDLE )
+    {
+        if ( getPosition() )
+        {
+            if ( oldPosition != currentPosition )
+            {
+                FocusAbsPosNP.s = IPS_BUSY;
+                StatusS[1].s = ISS_ON;
+                FocusAbsPosN[0].value = currentPosition;
+            }
+            else
+            {
+                StatusS[1].s = ISS_OFF;
+                FocusAbsPosNP.s = IPS_OK;
+            }
+            //if ( currentPosition < 0 )
+            // FocusAbsPosNP.s = IPS_ALERT;
+        }
+        else
+            FocusAbsPosNP.s = IPS_ALERT;
+    }
+
 
     if ((oldAbsStatus != FocusAbsPosNP.s) || (oldPosition != currentPosition))
         IDSetNumber(&FocusAbsPosNP, nullptr);
@@ -626,11 +682,11 @@ unsigned char DreamFocuser::calculate_checksum(DreamFocuserCommand c)
     unsigned char z;
 
     // calculate checksum
-    z = (c.M + c.k + c.a + c.b + c.c + c.d + c.n) & 0xff;
+    z = (c.M + c.k + c.a + c.b + c.c + c.d + c.addr) & 0xff;
     return z;
 }
 
-bool DreamFocuser::send_command(char k, uint32_t l)
+bool DreamFocuser::send_command(char k, uint32_t l, unsigned char addr)
 {
     DreamFocuserCommand c;
     int err_code = 0, nbytes_written = 0;
@@ -664,15 +720,29 @@ bool DreamFocuser::send_command(char k, uint32_t l)
             c.c = 0;
             c.d = x[0];
             break;
+        case 'A':
+        case 'C':
+            c.a = 0;
+            c.b = 0;
+            c.c = 0;
+            c.d = x[0];
+            break;
+        case 'B':
+        case 'D':
+            c.a = x[3];
+            c.b = x[2];
+            c.c = 0;
+            c.d = x[0];
+            break;
         default:
             DEBUGF(INDI::Logger::DBG_ERROR, "Unknown command: '%c'", k);
             return false;
     }
     c.k = k;
-    c.n = '\0';
+    c.addr = addr;
     c.z = calculate_checksum(c);
 
-    LOGF_DEBUG("Sending command: c=%c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", c.k, c.a, c.b, c.c, c.d, c.d, c.n, c.z);
+    LOGF_DEBUG("Sending command: c=%c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", c.k, c.a, c.b, c.c, c.d, c.d, c.addr, c.z);
 
     tcflush(PortFD, TCIOFLUSH);
 
@@ -702,7 +772,7 @@ bool DreamFocuser::read_response()
         LOGF_ERROR("TTY error detected: %s", err_msg);
         return false;
     }
-    LOGF_DEBUG("Response: %c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", currentResponse.k, currentResponse.a, currentResponse.b, currentResponse.c, currentResponse.d, currentResponse.d, currentResponse.n, currentResponse.z);
+    LOGF_DEBUG("Response: %c, a=%hhu, b=%hhu, c=%hhu, d=%hhu ($%hhx), n=%hhu, z=%hhu", currentResponse.k, currentResponse.a, currentResponse.b, currentResponse.c, currentResponse.d, currentResponse.d, currentResponse.addr, currentResponse.z);
 
     if ( nbytes_read != sizeof(currentResponse) )
     {
@@ -732,10 +802,10 @@ bool DreamFocuser::read_response()
     return true;
 }
 
-bool DreamFocuser::dispatch_command(char k, uint32_t l)
+bool DreamFocuser::dispatch_command(char k, uint32_t l, unsigned char addr)
 {
     LOG_DEBUG("send_command");
-    if ( send_command(k, l) )
+    if ( send_command(k, l, addr) )
     {
         if ( read_response() )
         {

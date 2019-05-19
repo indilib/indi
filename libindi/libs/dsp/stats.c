@@ -32,11 +32,9 @@ dsp_t* dsp_stats_histogram(dsp_stream_p stream, int size)
     }
     free(i);
     dsp_stream_free_buffer(o);
+    dsp_stream_set_buffer(o, out, size);
+    dsp_buffer_stretch(o->buf, o->len, 0, size);
     dsp_stream_free(o);
-    dsp_stream_p ret = dsp_stream_new();
-    dsp_stream_set_buffer(ret, out, size);
-    dsp_buffer_stretch(ret->buf, ret->len, 0, size);
-    dsp_stream_free(ret);
     return out;
 }
 

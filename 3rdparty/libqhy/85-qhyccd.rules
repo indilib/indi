@@ -104,7 +104,7 @@ ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="420
 ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="4202", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY42PRO.img -D $env{DEVNAME}"
 ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="2020", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY2020.img -D $env{DEVNAME}"
 ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="4040", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY4040.img -D $env{DEVNAME}"
-#ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="6060", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY6060.img -D $env{DEVNAME}"
+ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="6060", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY6060.img -D $env{DEVNAME}"
 #ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c411", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY411.img -D $env{DEVNAME}"
 #ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="1618", ATTRS{idProduct}=="c461", RUN+="/sbin/fxload -t fx3 -I /lib/firmware/qhy/QHY461.img -D $env{DEVNAME}"
 

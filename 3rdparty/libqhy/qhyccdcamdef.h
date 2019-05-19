@@ -333,6 +333,7 @@
 #define DEVICETYPE_QHY550        4057
 #define DEVICETYPE_QHY42PRO   4058
 #define DEVICETYPE_QHY6060      4059
+#define DEVICETYPE_QHY411        4060        
 
 
 /**
@@ -505,30 +506,44 @@
 #define   MAXDEVICES 			18
 
 
+#define	SEND_CAMERA_NO_MESSAGE						0
 
 
-#define	SEND_CAMERA_ID					9501
-#define	SEND_CAMERA_STATUS				9502
-#define	SEND_CAMERA_LIVE					9503
-#define	SEND_CAMERA_SINGLE				9504
-#define	SEND_CAMERA_CAPABLE				9505
-#define	SEND_CAMERA_MAXMINSTEP			9506
+#define	SEND_CAMERA_ID								9501
+#define	SEND_CAMERA_STATUS							9502
+#define	SEND_CAMERA_LIVE							9503
+#define	SEND_CAMERA_SINGLE							9504
+#define	SEND_CAMERA_CAPABLE							9505
+#define	SEND_CAMERA_MAXMINSTEP						9506
+#define	SEND_CAMERA_EXPOSING						9507
+
 
 
 #define	CAMERA_LOSE									10001
-#define	CAMERA_INSERT									10002
+#define	CAMERA_INSERT								10002
+
 #define	CAMERA_LIVE_ERROR							10003
 #define	CAMERA_LIVE_DATA_AVAILABLE					10004
-#define	CAMERA_LIVE_STOP								10005
-#define	CAMERA_SINGLE_ERROR							10006
-#define	CAMERA_SINGLE_DATA_AVAILABLE				10007
-#define	CAMERA_SINGLE_STOP							10008
+#define	CAMERA_LIVE_STOP							10005
+#define	CAMERA_LIVE_TIMEOUT							10006
+
+#define	CAMERA_SINGLE_ERROR							10011
+#define	CAMERA_SINGLE_DATA_AVAILABLE				10012
+#define	CAMERA_SINGLE_STOP							10013
+#define	CAMERA_SINGLE_TIMEOUT						10014
 
 
 
-#define   SINGLE_MODE 			0
-#define   LIVE_MODE 				1
+#define   SINGLE_MODE 								0
+#define   LIVE_MODE 								1
 
+#define   GET_IMAGE_TIMEOUT							30000
+
+#define	COMMAND_QUEUE_PUSH		1
+#define	COMMAND_QUEUE_POP		2
+
+#define	DEMO_MAXDEVICES			6
+#define	MESSAGE_SIZS				1000
 
 
 #endif

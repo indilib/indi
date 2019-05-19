@@ -61,15 +61,15 @@ sudo apt-get -q -y install cli-common-dev
 cd ~
 mkdir soapysdr_src
 cd soapysdr_src
-wget http://archive.ubuntu.com/ubuntu/pool/universe/s/soapysdr/soapysdr_0.6.0-2.dsc
-wget http://archive.ubuntu.com/ubuntu/pool/universe/s/soapysdr/soapysdr_0.6.0.orig.tar.gz
-wget http://archive.ubuntu.com/ubuntu/pool/universe/s/soapysdr/soapysdr_0.6.0-2.debian.tar.xz
-dpkg-source -x soapysdr_0.6.0-2.dsc
-cd soapysdr-0.6.0
+wget http://archive.ubuntu.com/ubuntu/pool/universe/s/soapysdr/soapysdr_0.6.1-2.dsc
+wget http://archive.ubuntu.com/ubuntu/pool/universe/s/soapysdr/soapysdr_0.6.1.orig.tar.gz
+wget http://archive.ubuntu.com/ubuntu/pool/universe/s/soapysdr/soapysdr_0.6.1-2.debian.tar.xz
+dpkg-source -x soapysdr_0.6.1-2.dsc
+cd soapysdr-0.6.1
 dpkg-buildpackage -rfakeroot -nc -b -j6 -d -uc -us
 cd ..
-sudo dpkg -i libsoapysdr0.6_0.6.0-2_amd64.deb
-sudo dpkg -i libsoapysdr-dev_0.6.0-2_amd64.deb
+sudo dpkg -i libsoapysdr0.6_0.6.1-2_amd64.deb
+sudo dpkg -i libsoapysdr-dev_0.6.1-2_amd64.deb
 cd $CURDIR
 
 # Install liblimesuite for limeSDR driver

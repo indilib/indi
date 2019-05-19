@@ -24,7 +24,6 @@
 #include <qhyccd.h>
 #include <indiccd.h>
 #include <indifilterinterface.h>
-
 #include <unistd.h>
 #include <functional>
 #include <pthread.h>
@@ -98,6 +97,9 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
 
         INumber SpeedN[1];
         INumberVectorProperty SpeedNP;
+        
+        INumber ReadModeN[1];
+        INumberVectorProperty ReadModeNP;
 
         INumber USBTrafficN[1];
         INumberVectorProperty USBTrafficNP;
@@ -161,6 +163,7 @@ class QHYCCD : public INDI::CCD, public INDI::FilterInterface
         bool HasTransferBit { false };
         bool HasCoolerAutoMode { false };
         bool HasCoolerManualMode { false };
+        bool HasReadMode { false };
 
         qhyccd_handle *m_CameraHandle {nullptr};
         INDI::CCDChip::CCD_FRAME m_ImageFrameType;

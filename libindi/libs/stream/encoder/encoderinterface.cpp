@@ -26,7 +26,9 @@
 */
 
 #include "encoderinterface.h"
+#include "defaultdevice.h"
 #include "indiccd.h"
+#include "indidetector.h"
 
 namespace INDI
 {
@@ -36,14 +38,9 @@ const char *EncoderInterface::getName()
     return name;
 }
 
-void EncoderInterface::init(CCD *activeCCD)
+void EncoderInterface::init(INDI::DefaultDevice *mainDevice)
 {
-    currentCCD = activeCCD;
-}
-
-void EncoderInterface::init(Detector *activeDetector)
-{
-    currentDetector = activeDetector;
+    currentDevice = mainDevice;
 }
 
 bool EncoderInterface::setSize(uint16_t width, uint16_t height)

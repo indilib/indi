@@ -33,6 +33,7 @@
 namespace INDI
 {
 
+class DefaultDevice;
 class CCD;
 class Detector;
 
@@ -45,9 +46,7 @@ class EncoderInterface
     EncoderInterface() = default;
     virtual ~EncoderInterface() = default;
 
-    virtual void init(CCD *activeCCD);
-
-    virtual void init(Detector *activeDetector);
+    virtual void init(INDI::DefaultDevice *mainDevice);
 
     virtual bool setPixelFormat(INDI_PIXEL_FORMAT pixelFormat, uint8_t pixelDepth);
 
@@ -58,9 +57,8 @@ class EncoderInterface
     const char *getName();
 
   protected:
+    INDI::DefaultDevice *currentDevice;
     const char *name;
-    Detector *currentDetector = nullptr;
-    CCD *currentCCD = nullptr;
     INDI_PIXEL_FORMAT pixelFormat;            // INDI Pixel Format
     uint8_t pixelDepth = 8;                   // Bits per Pixels
     uint16_t rawWidth, rawHeight;

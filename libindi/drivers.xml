@@ -41,6 +41,10 @@
                 <driver name="LX200 GPS">indi_lx200gps</driver>
                 <version>2.0</version>
         </device>
+        <device label="EQ500X" manufacturer="Omegon">
+                <driver name="EQ500X">indi_eq500x_telescope</driver>
+                <version>1.0</version>
+        </device>
         <device label="AstroPhysics Experimental" manufacturer="Astrophysics">
                 <driver name="AstroPhysics Experimental">indi_lx200ap_experimental</driver>
                 <version>1.0</version>
@@ -211,6 +215,10 @@
           <driver name="Celestron SCT">indi_celestron_sct_focus</driver>
           <version>1.0</version>
         </device>
+        <device label="AAF2">
+          <driver name="AAF2">indi_aaf2_focus</driver>
+          <version>1.0</version>
+        </device>
         <device label="Rigelsys NFocus">
           <driver name="NFocus">indi_nfocus</driver>
           <version>1.1</version>
@@ -227,8 +235,12 @@
                 <driver name="MoonLite DRO">indi_moonlitedro_focus</driver>
                 <version>1.0</version>
         </device>
-                <device label="DeepSkyDad AF1">
+		<device label="DeepSkyDad AF1">
                 <driver name="DeepSkyDad AF1">indi_deepskydad_af1_focus</driver>
+                <version>1.0</version>
+        </device>
+		<device label="DeepSkyDad AF2">
+                <driver name="DeepSkyDad AF2">indi_deepskydad_af2_focus</driver>
                 <version>1.0</version>
         </device>
         <device label="OnFocus">
@@ -269,11 +281,11 @@
         </device>
         <device label="Optec TCF-S">
                 <driver name="Optec TCF-S">indi_tcfs_focus</driver>
-                <version>0.1</version>
+                <version>0.3</version>
         </device>
         <device label="Optec TCF-S3">
                 <driver name="Optec TCF-S">indi_tcfs3_focus</driver>
-                <version>0.1</version>
+                <version>0.3</version>
         </device>
         <device label="Sesto Senso">
                 <driver name="Sesto Senso">indi_sestosenso_focus</driver>
@@ -289,6 +301,10 @@
         </device>
         <device label="PerfectStar">
                 <driver name="PerfectStar">indi_perfectstar_focus</driver>
+                <version>0.1</version>
+        </device>
+        <device label="Starlight EFS">
+                <driver name="SI EFS">indi_siefs_focus</driver>
                 <version>0.1</version>
         </device>
         <device label="Lacerta MFOC">
@@ -361,7 +377,7 @@
         </device>
         <device label="SkySafari">
             <driver name="SkySafari">indi_skysafari</driver>
-            <version>0.1</version>
+            <version>0.2</version>
         </device>
         <device label="Pegasus PPB">
                 <driver name="Pegasus PPB">indi_pegasus_ppb</driver>
@@ -419,7 +435,7 @@
 <devGroup group="Domes">
         <device label="ScopeDome Dome">
                 <driver name="ScopeDome Dome">indi_scopedome_dome</driver>
-                <version>1.0</version>
+                <version>1.2</version>
         </device>
         <device label="Baader Dome">
                 <driver name="Baader Dome">indi_baader_dome</driver>

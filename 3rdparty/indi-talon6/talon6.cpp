@@ -101,7 +101,7 @@ bool Talon6::initProperties()
     IUFillText(&StatusValueT[0], "ROOF_STATUS", "Roof status", "");
     IUFillText(&StatusValueT[1], "LAST_ACTION", "Last Action", "");
     IUFillText(&StatusValueT[2], "CURRENT_POSITION", "Current Position Ticks", "");
-    IUFillText(&StatusValueT[3], "REL_POSITION", "Relative Position", "");
+    IUFillText(&StatusValueT[3], "REL_POSITION", "Current Position %", "");
     IUFillText(&StatusValueT[4], "POWER", "Power supply", "");
     IUFillText(&StatusValueT[5], "CLOSING_TIMER", "Closing Timer", "");
     IUFillText(&StatusValueT[6], "POWER_LOST_TIMER", "Power Lost Timer", "");
@@ -244,63 +244,6 @@ bool Talon6::ISNewSwitch(const char *dev,const char *name,ISState *states,char *
 
             return true;
         }
-
-        // Stop motion
-        if (!strcmp(name, AbortSP.name))
-        {
-            Abort();
-            return true;
-        }
-
-       // Park and UnPark roof
-        if (!strcmp(name, ParkSP.name))
-        {
-            // Find out which state is requested by the client
-            const char *actionName = IUFindOnSwitchName(states, names, n);
-
-            // If dome is the same state as actionName, then we do nothing.
-            int currentParkIndex = IUFindOnSwitchIndex(&ParkSP);
-
-            if (!strcmp(actionName, ParkS[currentParkIndex].name))
-            {
-               DEBUGF(INDI::Logger::DBG_SESSION, "Dome is already %s", ParkS[currentParkIndex].label);
-               ParkSP.s = IPS_IDLE;
-               IDSetSwitch(&ParkSP, NULL);
-               return true;
-            }
-
-            // Check if any switch is ON
-            for (int i = 0; i < n; i++)
-            {
-                 if (states[i] == ISS_ON)
-                {
-                    if (!strcmp(ParkS[0].name, names[i]))
-                    {
-                        if (domeState == DOME_PARKING)
-                            return false;
-
-                        return ( Park() );
-                    }
-                    else
-                    {
-                        if (domeState == DOME_UNPARKING)
-                            return false;
-
-                        return (UnPark() != IPS_ALERT);
-                    }
-                }
-            }
-            // Otherwise, let us update the switch state
-
-            IUUpdateSwitch(&ParkSP, states, names, n);
-            currentParkIndex = IUFindOnSwitchIndex(&ParkSP);
-            DEBUGF(INDI::Logger::DBG_SESSION, "Dome is now %s", ParkS[currentParkIndex].label);
-            ParkSP.s = IPS_OK;
-            IDSetSwitch(&ParkSP, NULL);
-
-            getDeviceStatus();
-            return true;
-        }
     }
 
     return Dome::ISNewSwitch(dev, name, states, names, n);
@@ -310,8 +253,6 @@ bool Talon6::ISNewText(const char *dev, const char *name, char *texts[], char *n
 {
      if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-
-
     }
 
     return  INDI::Dome::ISNewText(dev, name, texts, names, n);
@@ -326,14 +267,13 @@ bool Talon6::ISNewNumber(const char *dev,const char *name,double values[],char *
            IUUpdateNumber(&GoToNP, values, names, n);
            int requestedPos = values[0];
            DomeGoTo(requestedPos);
-            GoToNP.s = IPS_BUSY;
+           // GoToNP.s = IPS_BUSY;
             IDSetNumber(&GoToNP,nullptr);
              return true;
         }
         if (!strcmp(EncoderTicksNP.name, name))
         {
             IUUpdateNumber(&EncoderTicksNP, values, names, n);
-
             EncoderTicksNP.s = IPS_OK;
             IDSetNumber(&EncoderTicksNP, nullptr);
             return true;
@@ -367,13 +307,11 @@ void Talon6::getDeviceStatus()
         return;
 
     // &G# is the command to read the status from device
-
     WriteString("&G#");
 }
 
 void Talon6::getFirmwareVersion()
 {
-
     WriteString("&V#");
 }
 
@@ -418,9 +356,7 @@ int Talon6::WriteString(const char *buf)
     int rc;
 
     tty_write(PortFD,buf,strlen(buf),&bytesWritten);
-
     rc = ReadString(ReadBuf,40);
-
     ProcessDomeMessage(ReadBuf);
 
     return rc;
@@ -428,9 +364,42 @@ int Talon6::WriteString(const char *buf)
 
 void Talon6::TimerHit()
 {
-    int nexttimer = 1000;
-    if(isConnected()) getDeviceStatus();
-     SetTimer(nexttimer);
+    if (!isConnected())
+        return; //  No need to reset timer if we are not connected anymore
+
+     getDeviceStatus();
+     SetTimer(1000);
+
+    if (DomeMotionSP.s == IPS_BUSY)
+     {
+         // Abort called
+         if (MotionRequest < 0)
+         {
+             LOG_INFO("Roof motion is stopped.");
+             setDomeState(DOME_IDLE);
+             return;
+         }
+         // Roll off is opening
+         if (DomeMotionS[DOME_CW].s == ISS_ON)
+         {
+             if (fullOpenRoofSwitch == ISS_ON)
+             {
+                 LOG_INFO("Roof is open.");
+                 SetParked(false);
+                 return;
+             }
+         }
+         // Roll Off is closing
+         else if (DomeMotionS[DOME_CCW].s == ISS_ON)
+         {
+             if (fullClosedRoofSwitch == ISS_ON )
+             {
+                 LOG_INFO("Roof is closed.");
+                 SetParked(true);
+                 return;
+             }
+         }
+     }
 }
 
 void Talon6::ProcessDomeMessage(char *buf)
@@ -464,9 +433,17 @@ void Talon6::ProcessDomeMessage(char *buf)
       switch (lStatus) {
       case 0:
           statusString = "OPEN";
+          // If status is OPEN roof is unparked. That doesn t mean it is fully open,
+          // it is fully open when % =100 (see below).
+          INDI::Dome::setDomeState(DOME_UNPARKED);
+          fullClosedRoofSwitch = ISS_OFF;
           break;
       case 1:
           statusString = "CLOSED";
+          //if status is CLOSED roof is parked and it is fully closed.
+          fullClosedRoofSwitch = ISS_ON;
+          fullOpenRoofSwitch = ISS_OFF;
+          INDI::Dome::setDomeState(DOME_PARKED);
           break;
       case 2:
           statusString = "OPENING";
@@ -549,7 +526,7 @@ void Talon6::ProcessDomeMessage(char *buf)
         //Parse roof position
         int x1, x2, x3, xx1,xx2,xx3;
         int xxx;
-        double xxxp;
+        int xxxp;
         std::stringstream streamx1;
         std::stringstream streamx2;
         std::stringstream streamx3;
@@ -570,7 +547,15 @@ void Talon6::ProcessDomeMessage(char *buf)
 
         // The 3 bytes are packed together to store the absolute position of the roof
         xxx = xx1 +xx2 + xx3;
-        xxxp =100*( xxx / EncoderTicksN[0].value);
+        xxxp =(int)100*( xxx / EncoderTicksN[0].value);
+        if (xxxp == 100){
+            // If %=100 then the roof is set to fully open
+            fullClosedRoofSwitch =ISS_OFF;
+            fullOpenRoofSwitch = ISS_ON;
+
+        }else{
+            fullOpenRoofSwitch = ISS_OFF;
+        }
         xxxString = std::to_string(xxx);
         xxxpString = std::to_string(xxxp);
         char xxxChar[xxxString.size()+1];
@@ -579,6 +564,7 @@ void Talon6::ProcessDomeMessage(char *buf)
         strcpy(xxxpChar, xxxpString.c_str());
 
         IUSaveText(&StatusValueT[2], xxxChar);
+
         IUSaveText(&StatusValueT[3], xxxpChar);
 
         //Parse power supply voltage
@@ -779,72 +765,137 @@ void Talon6::ProcessDomeMessage(char *buf)
 
     return;
 }
+IPState Talon6::Move(DomeDirection dir, DomeMotionCommand operation)
+{
+    if (operation == MOTION_START)
+    {
+        // DOME_CW --> OPEN. If can we are ask to "open" while we are fully opened as the limit switch indicates, then we simply return false.
+        if (dir == DOME_CW  && fullOpenRoofSwitch == ISS_ON)
+        {
+            LOG_WARN("Roof is already fully opened.");
+            return IPS_ALERT;
+        }
+        else if (dir == DOME_CW && getWeatherState() == IPS_ALERT)
+        {
+            LOG_WARN("Weather conditions are in the danger zone. Cannot open roof.");
+            return IPS_ALERT;
+        }
+        else if (dir == DOME_CCW && fullClosedRoofSwitch == ISS_ON )
+        {
+            LOG_WARN("Roof is already fully closed.");
+            return IPS_ALERT;
+        }
+        else if (dir == DOME_CCW && INDI::Dome::isLocked())
+        {
+            DEBUG(INDI::Logger::DBG_WARNING,
+                  "Cannot close dome when mount is locking. See: Telescope parkng policy, in options tab");
+            return IPS_ALERT;
+        }
+
+        fullOpenRoofSwitch   = ISS_OFF;
+        fullClosedRoofSwitch = ISS_OFF;
+
+        return IPS_BUSY;
+    }
+
+    return (Dome::Abort() ? IPS_OK : IPS_ALERT);
+}
 
 IPState Talon6::Park()
 {
-    if (SafetyS[0].s == ISS_OFF){
-        fprintf(stderr,"ISS OFF\n", NULL);
-         WriteString("&C#");
-    }else{
-        WriteString("&P#");
-        fprintf(stderr,"ISS ON\n", NULL);
+    IPState rc = INDI::Dome::Move(DOME_CCW, MOTION_START);
+    if (rc == IPS_BUSY)
+    {
+        LOG_INFO("Dome is parking.");
+        if (SafetyS[0].s == ISS_OFF){
+            WriteString("&C#");
+        }else{
+            WriteString("&P#");
+        }
+        return IPS_BUSY;
     }
-    return IPS_BUSY;
-}
+    else
+        return IPS_ALERT;
+ }
 
 IPState Talon6::UnPark()
 {
-    WriteString("&O#");
-    return IPS_BUSY;
-
+    IPState rc = INDI::Dome::Move(DOME_CW, MOTION_START);
+    if (rc == IPS_BUSY)
+    {
+        LOG_INFO("Dome is unparking.");
+        WriteString("&O#");
+        return IPS_BUSY;
+    }
+    else
+        return IPS_ALERT;
 }
 
 bool Talon6::Abort()
 {
-    WriteString("&S#");
+    MotionRequest = -1;
+
+    // If both limit switches are off, then we're neither parked nor unparked.
+    if (fullOpenRoofSwitch == ISS_OFF && fullClosedRoofSwitch == ISS_OFF)
+    {
+        IUResetSwitch(&ParkSP);
+        ParkSP.s = IPS_IDLE;
+        IDSetSwitch(&ParkSP, nullptr);
+        WriteString("&S#");
+    }
+
     return true;
 }
 
-bool Talon6::DomeGoTo(int GoTo )
+IPState Talon6::DomeGoTo(int GoTo )
 {
-    if (SafetyS[0].s == ISS_OFF){
-        DEBUGF(INDI::Logger::DBG_SESSION,  "Dome is moving to %d percent open.",GoTo);
-
-        // From percentage to ticks conversion
-        double DoubleTicks = ( GoTo * EncoderTicksN[0].value)/100;
-        int IntTicks = (int)DoubleTicks;
-
-        DEBUGF(INDI::Logger::DBG_SESSION,  "Dome is moving to %d ticks.",IntTicks);
-
-        // Transform dec ticks to HEX with leading zeroes
-        std::stringstream hexTicks;
-        hexTicks << std::hex <<  IntTicks;
-        std::string hexTicksString = hexTicks.str();
-        std::string paddedHexTicks = std::string(5 - hexTicksString.length(), '0') + hexTicksString;
-
-        //Transform to char and build command string formatted as to documentation
-        char hexTicksChar[paddedHexTicks.size()+1];
-        strcpy(hexTicksChar, paddedHexTicks.c_str());
-        char commandString[8];
-        commandString[0] ='&';
-        commandString[1] ='A';
-        commandString[2] = ShiftChar(hexTicksChar[0]);
-        commandString[3] = ShiftChar(hexTicksChar[1]);
-        commandString[4] = ShiftChar(hexTicksChar[2]);
-        commandString[5] = ShiftChar(hexTicksChar[3]);
-        commandString[6] = ShiftChar(hexTicksChar[4]);
-        commandString[7] = '#';
-
-      // Send command to the device
-        GoToNP.s = IPS_OK;
-       WriteString(commandString);
-
-    }else{
-        GoToNP.s = IPS_BUSY;
-        DEBUGF(INDI::Logger::DBG_SESSION,  "Go To needs Safety Condition to be disabled", NULL);
-
+    if (SafetyS[0].s == ISS_ON){
+        LOG_INFO("Go To needs Safety Condition to be disabled");
+        return IPS_IDLE;
     }
-    return true;
+
+    DEBUGF(INDI::Logger::DBG_SESSION,  "Dome is moving to %d percent open.",GoTo);
+    // If GoTo < 100 we need to reset OpenSwitch else motion will not start
+    if(GoTo < 100){
+        fullOpenRoofSwitch   = ISS_OFF;
+        fullClosedRoofSwitch = ISS_OFF;
+    }
+    // From percentage to ticks conversion
+    double DoubleTicks = ( GoTo * EncoderTicksN[0].value)/100;
+    int IntTicks = (int)DoubleTicks;
+
+    DEBUGF(INDI::Logger::DBG_SESSION,  "Dome is moving to %d ticks.",IntTicks);
+
+    // Transform dec ticks to HEX with leading zeroes
+    std::stringstream hexTicks;
+    hexTicks << std::hex <<  IntTicks;
+    std::string hexTicksString = hexTicks.str();
+    std::string paddedHexTicks = std::string(5 - hexTicksString.length(), '0') + hexTicksString;
+
+    //Transform to char and build command string formatted as to documentation
+    char hexTicksChar[paddedHexTicks.size()+1];
+    strcpy(hexTicksChar, paddedHexTicks.c_str());
+    char commandString[8];
+    commandString[0] ='&';
+    commandString[1] ='A';
+    commandString[2] = ShiftChar(hexTicksChar[0]);
+    commandString[3] = ShiftChar(hexTicksChar[1]);
+    commandString[4] = ShiftChar(hexTicksChar[2]);
+    commandString[5] = ShiftChar(hexTicksChar[3]);
+    commandString[6] = ShiftChar(hexTicksChar[4]);
+    commandString[7] = '#';
+
+  // Send command to the device
+    IPState rc = INDI::Dome::Move(DOME_CW, MOTION_START);
+    if (rc == IPS_BUSY)
+    {
+        LOG_INFO("Dome is moving to requested position");
+        WriteString(commandString);
+
+        return IPS_BUSY;
+    }
+    else
+        return IPS_ALERT;
 
 }
 char Talon6::ShiftChar(char shiftChar){

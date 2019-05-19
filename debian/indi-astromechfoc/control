@@ -1,0 +1,23 @@
+Source: indi-astromechfoc
+Section: science
+Priority: extra
+Maintainer: Jasem Mutlaq <mutlaqja@ikarustech.com>
+Build-Depends: debhelper (>= 9), cdbs, cmake, libindi-dev, zlib1g-dev, libnova-dev
+Standards-Version: 3.9.2
+
+Package: indi-astromechfoc
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libindi1
+Description: INDI Astromechanics Canon Lens Controller Driver
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.  The driver interacts with a Bee Focuser using TCP/IP.   
+
+Package: indi-astromechfoc-dbg
+Priority: extra
+Section: debug
+Architecture: any
+Depends: indi-astromechfoc (= ${binary:Version}), ${misc:Depends}
+Description: INDI Astromechanics Canon Lens Controller Driver.
+ .
+ This driver is compatible with any INDI client such as KStars or Xephem.
+ This package contains the debug symbols for the this driver, useful to investigate problems in INDI.

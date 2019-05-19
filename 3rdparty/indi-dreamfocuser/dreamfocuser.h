@@ -47,7 +47,7 @@ class DreamFocuser : public INDI::Focuser
             unsigned char b;
             unsigned char c;
             unsigned char d;
-            unsigned char n = '\0';
+            unsigned char addr = '\0';
             unsigned char z;
         };
 
@@ -84,21 +84,23 @@ class DreamFocuser : public INDI::Focuser
         //INumberVectorProperty SetBacklashNP;
 
         unsigned char calculate_checksum(DreamFocuserCommand c);
-        bool send_command(char k, uint32_t l = 0);
+        bool send_command(char k, uint32_t l = 0, unsigned char addr = 0);
         bool read_response();
-        bool dispatch_command(char k, uint32_t l = 0);
+        bool dispatch_command(char k, uint32_t l = 0, unsigned char addr = 0);
 
         bool getTemperature();
         bool getStatus();
         bool getPosition();
+        bool getMaxPosition();
         bool setPosition(int32_t position);
-        bool setSync(int32_t position = 0);
+        bool setSync(uint32_t position = 0);
         bool setPark();
 
        // Variables
         float currentTemperature;
         float currentHumidity;
         int32_t currentPosition;
+        int32_t currentMaxPosition;
         bool isAbsolute;
         bool isMoving;
         unsigned char isParked;

@@ -242,6 +242,53 @@ bool LX200StarGo::ISNewSwitch(const char *dev, const char *name, ISState *states
             IDSetSwitch(&ST4StatusSP, nullptr);
             return result;
         }
+        else if (!strcmp(name, KeypadStatusSP.name))
+        {
+            bool enabled = (states[0] == ISS_OFF);
+            bool result = setKeyPadEnabled(enabled);
+
+            if(result) {
+                KeypadStatusS[0].s = enabled ? ISS_OFF : ISS_ON;
+                KeypadStatusS[1].s = enabled ? ISS_ON : ISS_OFF;
+                KeypadStatusSP.s = IPS_OK;
+            } else {
+                KeypadStatusSP.s = IPS_ALERT;
+            }
+            IDSetSwitch(&KeypadStatusSP, nullptr);
+            return result;
+        }
+        else if (!strcmp(name, SystemSpeedSlewSP.name))
+        {
+            if (IUUpdateSwitch(&SystemSpeedSlewSP, states, names, n) < 0)
+                return false;
+            int index = IUFindOnSwitchIndex(&SystemSpeedSlewSP);
+
+            bool result = setSystemSlewSpeedMode(index);
+
+            switch (index) {
+            case 0:
+                LOG_INFO("System slew rate set to low.");
+                break;
+            case 1:
+                LOG_INFO("System slew rate set to medium.");
+                break;
+            case 2:
+                LOG_INFO("System slew rate set to fast.");
+                break;
+            case 3:
+                LOG_WARN("System slew rate set to high. ONLY AVAILABLE FOR 15V or 18V!");
+                break;
+            default:
+                LOG_WARN("Unexpected slew rate " + index);
+                result = false;
+                break;
+            }
+            SystemSpeedSlewSP.s = result ? IPS_OK : IPS_ALERT;
+
+            IDSetSwitch(&SystemSpeedSlewSP, nullptr);
+            return result;
+
+        }
         else if (!strcmp(name, MeridianFlipModeSP.name))
         {
             int preIndex = IUFindOnSwitchIndex(&MeridianFlipModeSP);
@@ -346,8 +393,21 @@ bool LX200StarGo::initProperties()
     IUFillNumberVector(&GuidingSpeedNP, GuidingSpeedP, 2, getDeviceName(), "GUIDING_SPEED","Autoguiding", RA_DEC_TAB, IP_RW, 60, IPS_IDLE);
 
     IUFillSwitch(&ST4StatusS[0], "ST4_DISABLED", "disabled", ISS_OFF);
-    IUFillSwitch(&ST4StatusS[1], "ST4_ENABLED", "enabled", ISS_OFF);
-    IUFillSwitchVector(&ST4StatusSP, ST4StatusS, 2, getDeviceName(), "ST4", "ST4", RA_DEC_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+    IUFillSwitch(&ST4StatusS[1], "ST4_ENABLED", "enabled", ISS_ON);
+    IUFillSwitchVector(&ST4StatusSP, ST4StatusS, 2, getDeviceName(), "ST4", "ST4", RA_DEC_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // keypad enabled / disabled
+    IUFillSwitch(&KeypadStatusS[0], "KEYPAD_DISABLED", "disabled", ISS_OFF);
+    IUFillSwitch(&KeypadStatusS[1], "KEYPAD_ENABLED", "enabled", ISS_ON);
+    IUFillSwitchVector(&KeypadStatusSP, KeypadStatusS, 2, getDeviceName(), "Keypad", "Keypad", RA_DEC_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
+    // System speed: Slew
+    IUFillSwitch(&SystemSpeedSlewS[0], "SYSTEM_SLEW_SPEED_LOW", "low", ISS_OFF);
+    IUFillSwitch(&SystemSpeedSlewS[1], "SYSTEM_SLEW_SPEED_MEDIUM", "medium", ISS_OFF);
+    IUFillSwitch(&SystemSpeedSlewS[2], "SYSTEM_SLEW_SPEED_FAST", "fast", ISS_ON);
+    IUFillSwitch(&SystemSpeedSlewS[3], "SYSTEM_SLEW_SPEED_HIGH", "high", ISS_OFF);
+    IUFillSwitchVector(&SystemSpeedSlewSP, SystemSpeedSlewS, 4, getDeviceName(), "SYSTEM_SLEW_SPEED", "Slew Speed", RA_DEC_TAB, IP_RW, ISR_1OFMANY, 60, IPS_IDLE);
+
 
     // meridian flip
     IUFillSwitch(&MeridianFlipModeS[0], "MERIDIAN_FLIP_AUTO", "auto", ISS_OFF);
@@ -376,6 +436,8 @@ bool LX200StarGo::updateProperties()
         defineSwitch(&MountSetParkSP);
         defineNumber(&GuidingSpeedNP);
         defineSwitch(&ST4StatusSP);
+        defineSwitch(&KeypadStatusSP);
+        defineSwitch(&SystemSpeedSlewSP);
         defineSwitch(&MeridianFlipModeSP);
         defineText(&MountFirmwareInfoTP);
     }
@@ -387,6 +449,8 @@ bool LX200StarGo::updateProperties()
         deleteProperty(MountSetParkSP.name);
         deleteProperty(GuidingSpeedNP.name);
         deleteProperty(ST4StatusSP.name);
+        deleteProperty(KeypadStatusSP.name);
+        deleteProperty(SystemSpeedSlewSP.name);
         deleteProperty(MeridianFlipModeSP.name);
         deleteProperty(MountFirmwareInfoTP.name);
     }
@@ -644,6 +708,18 @@ void LX200StarGo::getBasicData()
         }
         IDSetSwitch(&ST4StatusSP, nullptr);
 
+        if (getKeypadStatus(&isEnabled))
+        {
+            KeypadStatusS[0].s = isEnabled ? ISS_OFF : ISS_ON;
+            KeypadStatusS[1].s = isEnabled ? ISS_ON : ISS_OFF;
+            KeypadStatusSP.s = IPS_OK;
+        }
+        else
+        {
+            KeypadStatusSP.s = IPS_ALERT;
+        }
+        IDSetSwitch(&ST4StatusSP, nullptr);
+
         int index;
         if (GetMeridianFlipMode(&index))
         {
@@ -655,6 +731,19 @@ void LX200StarGo::getBasicData()
         else
         {
             MeridianFlipEnabledSP.s = IPS_ALERT;
+        }
+        IDSetSwitch(&MeridianFlipEnabledSP, nullptr);
+
+        if (getSystemSlewSpeedMode(&index))
+        {
+                IUResetSwitch(&SystemSpeedSlewSP);
+                SystemSpeedSlewS[index].s = ISS_ON;
+                SystemSpeedSlewSP.s   = IPS_OK;
+                IDSetSwitch(&SystemSpeedSlewSP, nullptr);
+        }
+        else
+        {
+            SystemSpeedSlewSP.s = IPS_ALERT;
         }
         IDSetSwitch(&MeridianFlipEnabledSP, nullptr);
 
@@ -1290,6 +1379,119 @@ bool LX200StarGo::getST4Status (bool *isEnabled)
 }
 
 /**
+ * @brief Check if the Keypad port is enabled
+ * @param isEnabled - true iff the Keypad port is enabled
+ * @return
+ */
+bool LX200StarGo::getKeypadStatus (bool *isEnabled)
+{
+     LOG_DEBUG(__FUNCTION__);
+    // Command query Keypad status  - :TTGFr#
+    //            response enabled  - vh1
+    //                     disabled - vh0
+
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+    if (!sendQuery(":TTGFr#", response))
+    {
+        LOG_ERROR("Failed to send query Keypad status request.");
+        return false;
+    }
+    int answer = 0;
+    if (! sscanf(response, "vr%01d", &answer))
+    {
+        LOGF_ERROR("Unexpected Keypad status response '%s'.", response);
+        return false;
+    }
+
+    *isEnabled = (answer == 0);
+    return true;
+}
+
+/**
+ * @brief Determine the system slew speed mode
+ * @param index - low=0, medium=1, fast=2, high=3
+ * @return true iff request succeeded
+ */
+bool LX200StarGo::getSystemSlewSpeedMode (int *index)
+{
+    LOG_DEBUG(__FUNCTION__);
+    // Command query Keypad status  - :TTGFr#
+    //            response enabled  - vh1
+    //                     disabled - vh0
+
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+
+    if (!sendQuery(":TTGMX#", response))
+    {
+        LOG_ERROR("Failed to send query system slew speed status request.");
+        return false;
+    }
+    int xx = 0, yy = 0;
+    if (! sscanf(response, "%02da%02d", &xx, &yy))
+    {
+        LOGF_ERROR("Unexpected system slew speed status response '%s'.", response);
+        return false;
+    }
+
+    switch (xx) {
+    case 6:
+        *index = 0;
+        break;
+    case 8:
+        *index = 1;
+        break;
+    case 9:
+        *index = 2;
+        break;
+    case 12:
+        *index = 3;
+        break;
+    default:
+        LOGF_ERROR("Unexpected system slew speed status response '%s'.", response);
+        return false;
+        break;
+    }
+    return true;
+}
+
+bool LX200StarGo::setSystemSlewSpeedMode(int index)
+{
+
+    std::string cmd = ":TTMX";
+    switch (index) {
+    case 0:
+        cmd.append("0606#");
+        break;
+    case 1:
+        cmd.append("0808#");
+        break;
+    case 2:
+        cmd.append("0909#");
+        break;
+    case 3:
+        cmd.append("1212#");
+        break;
+    default:
+        LOGF_ERROR("Unexpected system slew speed mode '%02d'.", index);
+        return false;
+        break;
+    }
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (sendQuery(cmd.c_str(), response))
+    {
+        return true;
+    }
+    else
+    {
+        LOG_ERROR("Setting system slew speed mode FAILED");
+        return false;
+    }
+
+}
+
+
+/**
  * @brief Determine the guiding speeds for RA and DEC axis
  * @param raSpeed percentage for RA axis
  * @param decSpeed percenage for DEC axis
@@ -1382,6 +1584,24 @@ bool LX200StarGo::setST4Enabled(bool enabled)
         LOG_ERROR("Setting ST4 port FAILED");
         return false;
     }
+}
+
+bool LX200StarGo::setKeyPadEnabled(bool enabled)
+{
+
+    const char *cmd = enabled ? ":TTRFr#" : ":TTSFr#";
+    char response[AVALON_RESPONSE_BUFFER_LENGTH] = {0};
+    if (sendQuery(cmd, response))
+    {
+        LOG_INFO(enabled ? "Keypad port enabled." : "Keypad port disabled.");
+        return true;
+    }
+    else
+    {
+        LOG_ERROR("Setting Keypad port FAILED");
+        return false;
+    }
+
 }
 
 /**
