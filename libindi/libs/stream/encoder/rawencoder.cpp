@@ -41,7 +41,7 @@ RawEncoder::~RawEncoder()
 
 const char *RawEncoder::getDeviceName()
 {
-    return currentCCD->getDeviceName();
+    return currentDevice->getDeviceName();
 }
 
 bool RawEncoder::upload(IBLOB *bp, const uint8_t *buffer, uint32_t nbytes, bool isCompressed)
