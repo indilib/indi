@@ -17,53 +17,86 @@
  */
 
 #include "dsp.h"
-#include "fftw3.h"
 
-double dsp_fft_complex_to_magnitude(dsp_complex n)
+double dsp_fourier_complex_get_magnitude(dsp_complex n)
 {
     return sqrt (n.real * n.real + n.imaginary * n.imaginary);
 }
 
-double dsp_fft_complex_to_phase(dsp_complex n)
+double dsp_fourier_complex_get_phase(dsp_complex n)
 {
     double out = 0;
     if (n.real != 0) {
         out = atan (n.imaginary / n.real);
     }
-	return out;
+    return out;
 }
 
-double* dsp_fft_complex_array_to_magnitude(dsp_complex* in, int len)
+double* dsp_fourier_complex_array_get_magnitude(dsp_complex* in, int len)
 {
     int i;
-    double* out = (double*)calloc(sizeof(double), len);
+    double* out = (double*)malloc(sizeof(double) * len);
     for(i = 0; i < len; i++) {
-        out [i] = dsp_fft_complex_to_magnitude(in [i]);
+        out [i] = (double)dsp_fourier_complex_get_magnitude(in [i]);
     }
     return out;
 }
 
-double* dsp_fft_complex_array_to_phase(dsp_complex* in, int len)
+double* dsp_fourier_complex_array_get_phase(dsp_complex* in, int len)
 {
-	int i;
-    double* out = (double*)calloc(sizeof(double), len);
-	for(i = 0; i < len; i++) {
-        out [i] = dsp_fft_complex_to_phase(in [i]);
-	}
+    int i;
+    double* out = (double*)malloc(sizeof(double) * len);
+    for(i = 0; i < len; i++) {
+        out [i] = (double)dsp_fourier_complex_get_phase(in [i]);
+    }
     return out;
 }
 
-dsp_complex* dsp_fft_dft(dsp_stream_p stream)
+dsp_complex* dsp_fourier_dft(dsp_stream_p stream)
 {
-    dsp_complex* dft = (dsp_complex*)calloc(sizeof(dsp_complex), stream->len);
-    dsp_complex* fft_in = (dsp_complex*)calloc(sizeof(dsp_complex), stream->len);
+    dsp_complex* dft = (dsp_complex*)malloc(sizeof(dsp_complex) * stream->len);
     for(int x = 0; x < stream->len; x++) {
-        fft_in[x].real = stream->buf[x];
-        fft_in[x].imaginary = stream->buf[x];
+        dft[x].real = 0;
+        dft[x].imaginary = 0;
     }
-    fftw_plan fft = fftw_plan_dft(stream->dims, stream->sizes, (fftw_complex*)fft_in, (fftw_complex*)dft, -1, FFTW_ESTIMATE);
-    fftw_execute(fft);
-    fftw_destroy_plan(fft);
+    int dim = 0;
+    while (dim++ < stream->dims) {
+        int size = (dim < 1 ? 1 : stream->sizes[dim-1]);
+        for(int i = size; i < stream->len; i+=size) {
+            for(int l = size; l < stream->len; l+=size) {
+                double k = (double)i / stream->len * (double)l / stream->len * M_PI * 2.0;
+                dft[i].real += sin(k) * stream->buf[l];
+                dft[i].imaginary += cos(k) * stream->buf[l];
+            }
+        }
+    }
     return dft;
 }
 
+void dsp_fourier_dft_magnitude(dsp_stream_p stream)
+{
+    dsp_t mn = dsp_stats_min(stream->buf, stream->len);
+    dsp_t mx = dsp_stats_min(stream->buf, stream->len);
+    (void)mn;
+    (void)mx;
+    dsp_complex* dft = dsp_fourier_dft(stream);
+    double* mag = dsp_fourier_complex_array_get_magnitude(dft, stream->len);
+    dsp_buffer_stretch(mag, stream->len, mn, mx);
+    free(dft);
+    dsp_buffer_copy(mag, stream->buf, stream->len);
+    free(mag);
+}
+
+void dsp_fourier_dft_phase(dsp_stream_p stream)
+{
+    dsp_t mn = dsp_stats_min(stream->buf, stream->len);
+    dsp_t mx = dsp_stats_min(stream->buf, stream->len);
+    (void)mn;
+    (void)mx;
+    dsp_complex* dft = dsp_fourier_dft(stream);
+    double* phi = dsp_fourier_complex_array_get_phase(dft, stream->len);
+    dsp_buffer_stretch(phi, stream->len, mn, mx);
+    free(dft);
+    dsp_buffer_copy(phi, stream->buf, stream->len);
+    free(phi);
+}

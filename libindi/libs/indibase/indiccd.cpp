@@ -1248,13 +1248,12 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
 
             if (WorldCoordS[0].s == ISS_ON)
             {
-                DEBUG(Logger::DBG_WARNING, "World Coordinate System is enabled. CCD rotation must be set either "
-                      "manually or by solving the image before proceeding to capture any "
-                      "frames, otherwise the WCS information may be invalid.");
+                LOG_INFO("World Coordinate System is enabled.");
                 defineNumber(&CCDRotationNP);
             }
             else
             {
+                LOG_INFO("World Coordinate System is disabled.");
                 deleteProperty(CCDRotationNP.name);
             }
 
@@ -2757,7 +2756,10 @@ bool CCD::saveConfigItems(FILE * fp)
     IUSaveConfigSwitch(fp, &PrimaryCCD.CompressSP);
 
     if (HasGuideHead())
+    {
         IUSaveConfigSwitch(fp, &GuideCCD.CompressSP);
+        IUSaveConfigNumber(fp, &GuideCCD.ImageBinNP);
+    }
 
     if (CanSubFrame())
         IUSaveConfigNumber(fp, &PrimaryCCD.ImageFrameNP);

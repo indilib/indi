@@ -81,6 +81,11 @@
 #define OnStep
 #define RB_MAX_LEN 64
 
+#define PORTS_COUNT 10
+#define STARTING_PORT 0
+
+
+
 enum Errors {ERR_NONE, ERR_MOTOR_FAULT, ERR_ALT, ERR_LIMIT_SENSE, ERR_DEC, ERR_AZM, ERR_UNDER_POLE, ERR_MERIDIAN, ERR_SYNC, ERR_PARK, ERR_GOTO_SYNC};
 
 class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
@@ -257,6 +262,11 @@ class LX200_OnStep : public LX200Generic, public INDI::FocuserInterface
     ISwitchVectorProperty OSOutput2SP;
     ISwitch OSOutput2S[2];
     
+
+    INumber OutputPorts[PORTS_COUNT];
+    INumberVectorProperty OutputPorts_NP;
+
+
     char OSStat[RB_MAX_LEN];
     char OldOSStat[RB_MAX_LEN];
 

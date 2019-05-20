@@ -16,6 +16,22 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+/*
+ * Quantum protocol
+ *
+ *
+ * Get number of filter positions   EN           N<number>
+ * Disconnect                       DS
+ * Go to filter position            G<number>
+ * position is returned when the move finishes  P<number>
+ * get filter name                  F<number>   F<number><name>
+ * set filter name                  f<number><name>
+ * Get filter offset                O<number>   O<number><offset>
+ * set filter offset                o<number><offset>
+ * Get description                  SN          SN<details>
+ * get version                      VR          VR<details>
+ */
+
 #pragma once
 
 #include "indifilterwheel.h"
@@ -33,9 +49,13 @@ class QFW : public INDI::FilterWheel
     const char *getDefaultName();
 
     bool initProperties();
+//    virtual bool updateProperties() override;
 
     void ISGetProperties(const char *dev);
 
     int QueryFilter();
     bool SelectFilter(int);
+private:
+    void dump(char *buf, const char *data);
+    int send_command(int fd, const char *cmd, char *resp);
 };
