@@ -25,6 +25,7 @@
 
 #include "lpm.h"
 
+#include "indicom.h"
 #include "connectionplugins/connectionserial.h"
 
 #include <cerrno>
@@ -84,13 +85,13 @@ bool LPM::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Average Readings
-    IUFillNumber(&AverageReadingN[0], "SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
+    IUFillNumber(&AverageReadingN[0], "SKY_BRIGHTNESS", "Avg. Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
     IUFillNumberVector(&AverageReadingNP, AverageReadingN, 1, getDeviceName(), "SKY_QUALITY", "Readings",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Unit Info
-    IUFillNumber(&UnitInfoN[0], "Calibdata", "", "%.f", 0, 1000000, 0, 0);
-    IUFillNumberVector(&UnitInfoNP, UnitInfoN, 4, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RW, 0, IPS_IDLE);
+    IUFillNumber(&UnitInfoN[0], "Calibdata", "", "%6.2f", -20, 30, 0, 0);
+    IUFillNumberVector(&UnitInfoNP, UnitInfoN, 4, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RO, 0, IPS_IDLE);
 
     if (lpmConnection & CONNECTION_SERIAL)
     {
@@ -101,6 +102,7 @@ bool LPM::initProperties()
     }
 
     addDebugControl();
+    addPollPeriodControl();
 
     return true;
 }
@@ -129,52 +131,25 @@ bool LPM::updateProperties()
 bool LPM::getReadings()
 {
     const char *cmd = "V#";
-    char buffer[6]={0};
+    char res[32] = {0};
+    int nbytes_written = 0;
+    int nbytes_read = 0;
 
-    LOGF_DEBUG("CMD: %s", cmd);
-
-    ssize_t written = write(PortFD, cmd, 2);
-
-    if (written < 2)
+    tty_write_string(PortFD, cmd, &nbytes_written);
+    if (tty_read_section(PortFD, res, '#', 60000, &nbytes_read) == TTY_OK)
     {
-        LOGF_ERROR("Error getting device readings: %s", strerror(errno));
-        return false;
-    }
-
-    ssize_t received = 0;
-
-    while (received < 6)
-    {
-        ssize_t response = read(PortFD, buffer + received, 6 - received);
-        if (response < 0)
+        LOGF_INFO("RES (%s)", res);
+        float mpsas;
+        int rc =
+            sscanf(res, "%f#", &mpsas);
+        if (rc < 1)
         {
-            LOGF_ERROR("Error getting device readings: %s", strerror(errno));
+            LOGF_ERROR("Failed to parse input %s", res);
             return false;
         }
 
-        received += response;
+        AverageReadingN[0].value = mpsas;
     }
-
-    if (received < 6)
-    {
-        LOG_ERROR("Error getting device readings");
-        return false;
-    }
-
-    LOGF_DEBUG("RES: %s", buffer);
-
-    float mpsas;
-    int rc =
-        sscanf(buffer, "%f#", &mpsas);
-
-    if (rc < 1)
-    {
-        LOGF_ERROR("Failed to parse input %s", buffer);
-        return false;
-    }
-
-    AverageReadingN[0].value = mpsas;
-
     return true;
 }
 
@@ -240,6 +215,7 @@ bool LPM::getDeviceInfo()
 
 void LPM::TimerHit()
 {
+    LOG_INFO("TimerHit");
     if (!isConnected())
         return;
 

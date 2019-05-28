@@ -55,7 +55,7 @@ class LPM : public INDI::DefaultDevice
 
     // Readings
     INumberVectorProperty AverageReadingNP;
-    INumber AverageReadingN[5];
+    INumber AverageReadingN[1];
 
     // Device Information
     INumberVectorProperty UnitInfoNP;
