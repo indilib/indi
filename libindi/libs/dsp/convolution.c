@@ -18,16 +18,24 @@
 
 #include "dsp.h"
 
-void dsp_convolution_convolution(dsp_stream_p dst, dsp_stream_p src) {
-    double *out = calloc(sizeof(double), dst->len);
-    double mn, mx;
-    dsp_stats_minmidmax(dst, &mn, &mx);
-    for(int y = 0; y < src->len; y++) {
-        for(int x = 0; x < dst->len; x++) {
-            out[x] += dst->buf[x] * src->buf[y];
+void dsp_convolution_convolution(dsp_stream_p stream, dsp_stream_p matrix) {
+    dsp_t mn = dsp_stats_min(stream->buf, stream->len);
+    dsp_t mx = dsp_stats_min(stream->buf, stream->len);
+    (void)mn;
+    (void)mx;
+    double *tmp = malloc(sizeof(double) * stream->len);
+    for(int y = 0; y < matrix->len; y++)
+    {
+        double value = 0;
+        int* pos = dsp_stream_get_position(matrix, y);
+        int z = dsp_stream_set_position(stream, pos);
+        for(int x = -matrix->len + 1; x < stream->len; x++)
+        {
+            int i = x+z;
+            if(i >= 0 && i < stream->len)
+                value += stream->buf[i] * matrix->buf[y];
         }
     }
-    dsp_stream_free_buffer(dst);
-    dsp_stream_set_buffer(dst, out, dst->len);
-    dsp_buffer_stretch(dst, mn, mx);
+    dsp_buffer_stretch(tmp, stream->len, mn, mx);
+    dsp_buffer_copy(tmp, stream->buf, stream->len);
 }

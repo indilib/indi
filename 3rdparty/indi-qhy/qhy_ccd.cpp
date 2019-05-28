@@ -114,22 +114,22 @@ void ISInit()
     }
 #endif
 
-//#if defined(__APPLE__)
-//    char driverSupportPath[128];
-//    if (getenv("INDIPREFIX") != nullptr)
-//        sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
-//    else
-//        strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
-//    strncat(driverSupportPath, "/DriverSupport/qhy/firmware", 128);
-//    IDLog("QHY firmware path: %s\n", driverSupportPath);
-//    OSXInitQHYCCDFirmware(driverSupportPath);
-//#endif
+    //#if defined(__APPLE__)
+    //    char driverSupportPath[128];
+    //    if (getenv("INDIPREFIX") != nullptr)
+    //        sprintf(driverSupportPath, "%s/Contents/Resources", getenv("INDIPREFIX"));
+    //    else
+    //        strncpy(driverSupportPath, "/usr/local/lib/indi", 128);
+    //    strncat(driverSupportPath, "/DriverSupport/qhy/firmware", 128);
+    //    IDLog("QHY firmware path: %s\n", driverSupportPath);
+    //    OSXInitQHYCCDFirmware(driverSupportPath);
+    //#endif
 
-// JM 2019-03-07: Use OSXInitQHYCCDFirmwareArray as recommended by QHY
+    // JM 2019-03-07: Use OSXInitQHYCCDFirmwareArray as recommended by QHY
 #if defined(__APPLE__)
-OSXInitQHYCCDFirmwareArray();
-// Wait a bit before calling GetDeviceIDs on MacOS
-usleep(2000000);
+    OSXInitQHYCCDFirmwareArray();
+    // Wait a bit before calling GetDeviceIDs on MacOS
+    usleep(2000000);
 #endif
 
     std::vector<std::string> devices = GetDevicesIDs();
@@ -244,7 +244,6 @@ QHYCCD::QHYCCD(const char *name) : FilterInterface(this)
     HasGain       = false;
     HasOffset     = false;
     HasFilters    = false;
-    coolerEnabled = false;
 
     snprintf(this->name, MAXINDINAME, "QHY CCD %.15s", name);
     snprintf(this->camid, MAXINDINAME, "%s", name);
@@ -279,13 +278,13 @@ bool QHYCCD::initProperties()
     FilterSlotN[0].max = 9;
 
     // CCD Cooler Switch
-    IUFillSwitch(&CoolerS[0], "COOLER_ON", "On", ISS_ON);
-    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "Off", ISS_OFF);
+    IUFillSwitch(&CoolerS[0], "COOLER_ON", "On", ISS_OFF);
+    IUFillSwitch(&CoolerS[1], "COOLER_OFF", "Off", ISS_ON);
     IUFillSwitchVector(&CoolerSP, CoolerS, 2, getDeviceName(), "CCD_COOLER", "Cooler", MAIN_CONTROL_TAB, IP_RW,
                        ISR_1OFMANY, 0, IPS_IDLE);
 
     // CCD Regulation power
-    IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 1., .2, 0.0);
+    IUFillNumber(&CoolerN[0], "CCD_COOLER_VALUE", "Cooling Power (%)", "%+06.2f", 0., 100., 5, 0.0);
     IUFillNumberVector(&CoolerNP, CoolerN, 1, getDeviceName(), "CCD_COOLER_POWER", "Cooling Power", MAIN_CONTROL_TAB,
                        IP_RO, 60, IPS_IDLE);
 
@@ -302,11 +301,23 @@ bool QHYCCD::initProperties()
     IUFillNumber(&SpeedN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
     IUFillNumberVector(&SpeedNP, SpeedN, 1, getDeviceName(), "USB_SPEED", "USB Speed", MAIN_CONTROL_TAB, IP_RW, 60,
                        IPS_IDLE);
+    
+    // Read Modes (initial support for QHY42Pro)
+    IUFillNumber(&ReadModeN[0], "Read Mode", "Read Mode", "%3.0f", 0, 1, 1, 0);
+    IUFillNumberVector(&ReadModeNP, ReadModeN, 1, getDeviceName(), "READ_MODE", "Read Mode", MAIN_CONTROL_TAB, IP_RW, 60,
+                       IPS_IDLE);
+    
 
     // USB Traffic
     IUFillNumber(&USBTrafficN[0], "Speed", "Speed", "%3.0f", 0, 0, 1, 0);
     IUFillNumberVector(&USBTrafficNP, USBTrafficN, 1, getDeviceName(), "USB_TRAFFIC", "USB Traffic", MAIN_CONTROL_TAB,
                        IP_RW, 60, IPS_IDLE);
+
+    // Cooler Mode
+    IUFillSwitch(&CoolerModeS[COOLER_AUTOMATIC], "COOLER_AUTOMATIC", "Auto", ISS_ON);
+    IUFillSwitch(&CoolerModeS[COOLER_MANUAL], "COOLER_MANUAL", "Manual", ISS_OFF);
+    IUFillSwitchVector(&CoolerModeSP, CoolerModeS, 2, getDeviceName(), "CCD_COOLER_MODE", "Cooler Mode", MAIN_CONTROL_TAB, IP_RO,
+                       ISR_1OFMANY, 0, IPS_IDLE);
 
     addAuxControls();
 
@@ -324,11 +335,20 @@ void QHYCCD::ISGetProperties(const char *dev)
         if (HasCooler())
         {
             defineSwitch(&CoolerSP);
+
+            if (HasCoolerManualMode)
+            {
+                defineSwitch(&CoolerModeSP);
+            }
+
             defineNumber(&CoolerNP);
         }
 
         if (HasUSBSpeed)
             defineNumber(&SpeedNP);
+        
+        if (HasReadMode)
+            defineNumber(&ReadModeNP);
 
         if (HasGain)
             defineNumber(&GainNP);
@@ -359,9 +379,15 @@ bool QHYCCD::updateProperties()
         if (HasCooler())
         {
             defineSwitch(&CoolerSP);
+            if (HasCoolerManualMode)
+            {
+                defineSwitch(&CoolerModeSP);
+            }
+
+            CoolerNP.p = HasCoolerManualMode ? IP_RW : IP_RO;
             defineNumber(&CoolerNP);
 
-            temperatureID = IEAddTimer(POLLMS, QHYCCD::updateTemperatureHelper, this);
+            m_TemperatureTimerID = IEAddTimer(POLLMS, QHYCCD::updateTemperatureHelper, this);
         }
 
         double min = 0, max = 0, step = 0;
@@ -392,6 +418,56 @@ bool QHYCCD::updateProperties()
 
             defineNumber(&SpeedNP);
         }
+        
+        // Read mode support
+         if (HasReadMode)
+         {
+            if (isSimulation())
+            {
+                ReadModeN[0].min   = 0;
+                ReadModeN[0].max   = 2;
+                ReadModeN[0].step  = 1;
+                ReadModeN[0].value = 1;
+            }
+            else
+            {
+               
+                ReadModeN[0].min  = 0;
+                
+                ////////////////////////////////////////////////////////////////////
+                /// Read Modes
+                ////////////////////////////////////////////////////////////////////
+                int ret;
+                uint32_t maxNumOfReadModes = 0;
+                ret = GetQHYCCDNumberOfReadModes(m_CameraHandle, &maxNumOfReadModes);
+                if (ret == QHYCCD_SUCCESS && maxNumOfReadModes > 0)
+                {
+                    ReadModeN[0].max  = maxNumOfReadModes - 1;
+                }
+                else
+                {
+                    ReadModeN[0].max = 0; 
+                }
+                
+                ReadModeN[0].step = 1;
+                
+                uint32_t currentReadMode = 0;
+                
+                ret = GetQHYCCDReadMode(m_CameraHandle, &currentReadMode);
+                if (ret == QHYCCD_SUCCESS)
+                {
+                    ReadModeN[0].value = currentReadMode;
+                    LOGF_INFO("Current read mode: %zu", currentReadMode);
+                }
+                else
+                {
+                    LOGF_INFO("Using default read mode (error reading it): %zu", currentReadMode);
+                }
+
+                
+            }
+         }
+        // ---
 
         if (HasGain)
         {
@@ -487,12 +563,23 @@ bool QHYCCD::updateProperties()
         if (HasCooler())
         {
             deleteProperty(CoolerSP.name);
+
+            if (HasCoolerManualMode)
+                deleteProperty(CoolerModeSP.name);
+
             deleteProperty(CoolerNP.name);
+
+            RemoveTimer(m_TemperatureTimerID);
         }
 
         if (HasUSBSpeed)
         {
             deleteProperty(SpeedNP.name);
+        }
+        
+        if (HasReadMode)
+        {
+            deleteProperty(ReadModeNP.name);
         }
 
         if (HasGain)
@@ -521,6 +608,8 @@ bool QHYCCD::Connect()
 {
     unsigned int ret = 0;
     uint32_t cap;
+    uint32_t readModes = 0;
+    
 
     if (isSimulation())
     {
@@ -532,6 +621,7 @@ bool QHYCCD::Connect()
         HasGain       = true;
         HasOffset     = true;
         HasFilters    = true;
+        HasReadMode   = true;
 
         return true;
     }
@@ -570,6 +660,21 @@ bool QHYCCD::Connect()
             return false;
         }
 
+        ////////////////////////////////////////////////////////////////////
+        /// Read Modes
+        ////////////////////////////////////////////////////////////////////
+        ret = GetQHYCCDNumberOfReadModes(m_CameraHandle, &readModes);
+        if (ret == QHYCCD_SUCCESS)
+        {
+            HasReadMode = true;
+            LOGF_INFO("Number of read modes: %zu", readModes);
+        }
+       
+       
+        
+        ////////////////////////////////////////////////////////////////////
+        /// Shutter Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_MECHANICALSHUTTER);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -578,6 +683,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Shutter Control: %s", cap & CCD_HAS_SHUTTER ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Streaming Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_LIVEVIDEOMODE);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -586,14 +694,30 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Has Streaming: %s", cap & CCD_HAS_STREAMING ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// AutoMode Cooler Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_COOLER);
         if (ret == QHYCCD_SUCCESS)
         {
+            HasCoolerAutoMode = true;
             cap |= CCD_HAS_COOLER;
         }
+        LOGF_DEBUG("Automatic Cooler Control: %s", cap & CCD_HAS_COOLER ? "True" : "False");
 
-        LOGF_DEBUG("Cooler Control: %s", cap & CCD_HAS_COOLER ? "True" : "False");
+        ////////////////////////////////////////////////////////////////////
+        /// Manual PWM Support
+        ////////////////////////////////////////////////////////////////////
+        ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_MANULPWM);
+        if (ret == QHYCCD_SUCCESS)
+        {
+            HasCoolerManualMode = true;
+        }
+        LOGF_DEBUG("Manual Cooler Control: %s", HasCoolerManualMode ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// ST4 Port Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_ST4PORT);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -602,6 +726,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Guider Port Control: %s", cap & CCD_HAS_ST4_PORT ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Camera Speed Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_SPEED);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -617,6 +744,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("USB Speed Control: %s", HasUSBSpeed ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Gain Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_GAIN);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -625,6 +755,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Gain Control: %s", HasGain ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Offset Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_OFFSET);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -633,24 +766,47 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Offset Control: %s", HasOffset ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Filter Wheel Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_CFWPORT);
         if (ret == QHYCCD_SUCCESS)
         {
             HasFilters = true;
+
+            m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+            LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+            // If we get invalid value, check again in 0.5 sec
+            if (m_MaxFilterCount > 16)
+            {
+                usleep(500000);
+                m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+                LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+            }
+
+            if (m_MaxFilterCount > 16)
+            {
+                LOG_DEBUG("Camera can support CFW but no filters are present.");
+                m_MaxFilterCount = -1;
+            }
+
+            if (m_MaxFilterCount > 0)
+                updateFilterProperties();
+            else
+                HasFilters = false;
         }
 
         LOGF_DEBUG("Has Filters: %s", HasFilters ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// 8bit Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_TRANSFERBIT);
         HasTransferBit = (ret == QHYCCD_SUCCESS);
         LOGF_DEBUG("Has Transfer Bit control? %s", HasTransferBit ? "True" : "False");
 
         // Using software binning
         cap |= CCD_CAN_BIN;
-
-        // Always use INDI software binning
-        //useSoftBin = true;
-
 
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_BIN1X1MODE);
         LOGF_DEBUG("Bin 1x1: %s", (ret == QHYCCD_SUCCESS) ? "True" : "False");
@@ -664,6 +820,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("Binning Control: %s", cap & CCD_CAN_BIN ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// USB Traffic Control Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CONTROL_USBTRAFFIC);
         if (ret == QHYCCD_SUCCESS)
         {
@@ -676,6 +835,9 @@ bool QHYCCD::Connect()
 
         LOGF_DEBUG("USB Traffic Control: %s", HasUSBTraffic ? "True" : "False");
 
+        ////////////////////////////////////////////////////////////////////
+        /// Color Support
+        ////////////////////////////////////////////////////////////////////
         ret = IsQHYCCDControlAvailable(m_CameraHandle, CAM_COLOR);
         //if(ret != QHYCCD_ERROR && ret != QHYCCD_ERROR_NOTSUPPORT)
         if (ret != QHYCCD_ERROR)
@@ -725,6 +887,8 @@ bool QHYCCD::Connect()
             pthread_cond_wait(&cv, &condMutex);
         }
         pthread_mutex_unlock(&condMutex);
+
+        SetTimer(POLLMS);
 
         return true;
     }
@@ -813,12 +977,12 @@ int QHYCCD::SetTemperature(double temperature)
     LOGF_DEBUG("Requested temperature is %.3f, current temperature is %.3f", temperature, TemperatureN[0].value);
 
     m_TemperatureRequest = temperature;
+    m_PWMRequest = -1;
 
-    // Enable cooler
-    //setCooler(true);
+    SetQHYCCDParam(m_CameraHandle, CONTROL_COOLER, m_TemperatureRequest);
 
-    ControlQHYCCDTemp(m_CameraHandle, m_TemperatureRequest);
-
+    setCoolerEnabled(m_TemperatureRequest < TemperatureN[0].value);
+    setCoolerMode(COOLER_AUTOMATIC);
     return 0;
 }
 
@@ -884,15 +1048,15 @@ bool QHYCCD::StartExposure(float duration)
         ret = QHYCCD_SUCCESS;
     else
         ret = SetQHYCCDResolution(m_CameraHandle,
-                                  PrimaryCCD.getSubX(),
-                                  PrimaryCCD.getSubY(),
+                                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
     if (ret != QHYCCD_SUCCESS)
     {
         LOGF_INFO("Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)",
-                  PrimaryCCD.getSubX(),
-                  PrimaryCCD.getSubY(),
+                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY(),
                   ret);
@@ -900,8 +1064,8 @@ bool QHYCCD::StartExposure(float duration)
     }
 
     LOGF_DEBUG("SetQHYCCDResolution x: %d y: %d w: %d h: %d",
-               PrimaryCCD.getSubX(),
-               PrimaryCCD.getSubY(),
+               PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+               PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
 
@@ -1099,53 +1263,57 @@ int QHYCCD::grabImage()
     return 0;
 }
 
-//void QHYCCD::TimerHit()
-//{
-//    if (isConnected() == false)
-//        return;
+void QHYCCD::TimerHit()
+{
+    if (isConnected() == false)
+        return;
 
-//    if (InExposure)
-//    {
-//        long timeleft = calcTimeLeft();
+    //    if (HasFilters && m_MaxFilterCount == -1)
+    //    {
+    //        m_MaxFilterCount = GetQHYCCDParam(m_CameraHandle, CONTROL_CFWSLOTSNUM);
+    //        LOGF_DEBUG("Filter Count (CONTROL_CFWSLOTSNUM): %d", m_MaxFilterCount);
+    //        if (m_MaxFilterCount > 16)
+    //            m_MaxFilterCount = -1;
+    //        if (m_MaxFilterCount > 0)
+    //        {
+    //            if (updateFilterProperties())
+    //            {
+    //                deleteProperty("FILTER_NAME");
+    //                IUUpdateMinMax(&FilterSlotNP);
+    //                defineText(FilterNameTP);
+    //            }
+    //        }
+    //    }
 
-//        if (timeleft < 1.0)
-//        {
-//            if (timeleft > 0.25)
-//            {
-//                //  a quarter of a second or more
-//                //  just set a tighter timer
-//                SetTimer(250);
-//            }
-//            else
-//            {
-//                if (timeleft > 0.07)
-//                {
-//                    //  use an even tighter timer
-//                    SetTimer(50);
-//                }
-//                else
-//                {
-//                    /* We're done exposing */
-//                    LOG_DEBUG("Exposure done, downloading image...");
-//                    // Don't spam the session log unless it is a long exposure > 5 seconds
-//                    if (ExposureRequest > POLLMS * 5)
-//                        LOG_INFO("Exposure done, downloading image...");
+    if (FilterSlotNP.s == IPS_BUSY)
+    {
+        char currentPos[MAXINDINAME] = {0};
+        int rc = GetQHYCCDCFWStatus(m_CameraHandle, currentPos);
+        if (rc == QHYCCD_SUCCESS)
+        {
+            // QHY filter wheel positions are from '0' to 'F'
+            // 0 to 15
+            // INDI Filter Wheel 1 to 16
+            CurrentFilter = strtol(currentPos, nullptr, 16) + 1;
+            LOGF_DEBUG("Filter current position: %d", CurrentFilter);
 
-//                    PrimaryCCD.setExposureLeft(0);
-//                    InExposure = false;
+            if (TargetFilter == CurrentFilter)
+            {
+                m_FilterCheckCounter = 0;
+                SelectFilterDone(TargetFilter);
+                LOGF_DEBUG("%s: Filter changed to %d", camid, TargetFilter);
+            }
+        }
+        else if (++m_FilterCheckCounter > 30)
+        {
+            FilterSlotNP.s = IPS_ALERT;
+            LOG_ERROR("Filter change timed out.");
+            IDSetNumber(&FilterSlotNP, nullptr);
+        }
+    }
 
-//                    // grab and save image
-//                    grabImage();
-//                }
-//            }
-//        }
-//        else
-//        {
-//            PrimaryCCD.setExposureLeft(timeleft);
-//            SetTimer(POLLMS);
-//        }
-//    }
-//}
+    SetTimer(POLLMS);
+}
 
 IPState QHYCCD::GuideNorth(uint32_t ms)
 {
@@ -1173,45 +1341,15 @@ IPState QHYCCD::GuideWest(uint32_t ms)
 
 bool QHYCCD::SelectFilter(int position)
 {
-    char targetpos = 0;
-    char currentpos[64] = {0};
-    int checktimes = 0;
-    int ret = 0;
-
     if (isSimulation())
-        ret = QHYCCD_SUCCESS;
-    else
-    {
-        // JM: THIS WILL CRASH! I am using another method with same result!
-        //sprintf(&targetpos,"%d",position - 1);
-        targetpos = '0' + (position - 1);
-        ret       = SendOrder2QHYCCDCFW(m_CameraHandle, &targetpos, 1);
-    }
-
-    if (ret == QHYCCD_SUCCESS)
-    {
-        while (checktimes < 90)
-        {
-            ret = GetQHYCCDCFWStatus(m_CameraHandle, currentpos);
-            if (ret == QHYCCD_SUCCESS)
-            {
-                if ((targetpos + 1) == currentpos[0])
-                {
-                    break;
-                }
-            }
-            checktimes++;
-        }
-
-        CurrentFilter = position;
-        SelectFilterDone(position);
-        LOGF_DEBUG("%s: Filter changed to %d", camid, position);
         return true;
-    }
-    else
-        LOGF_ERROR("Changing filter failed (%d)", ret);
 
-    return false;
+    // QHY Filter position is '0' to 'F'
+    // 0 to 15
+    // INDI Filters 1 to 16
+    char targetPos[8] = {0};
+    snprintf(targetPos, 8, "%X", position - 1);
+    return (SendOrder2QHYCCDCFW(m_CameraHandle, targetPos, 1) == QHYCCD_SUCCESS);
 }
 
 int QHYCCD::QueryFilter()
@@ -1223,7 +1361,9 @@ bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        // Cooler controler
+        //////////////////////////////////////////////////////////////////////
+        /// Cooler On/Off Control
+        //////////////////////////////////////////////////////////////////////
         if (!strcmp(name, CoolerSP.name))
         {
             if (IUUpdateSwitch(&CoolerSP, states, names, n) < 0)
@@ -1235,34 +1375,82 @@ bool QHYCCD::ISNewSwitch(const char *dev, const char *name, ISState *states, cha
 
             bool enabled = (CoolerS[COOLER_ON].s == ISS_ON);
 
-            // If user turns on cooler, but the requested temperature is higher than current temperature
-            // then we set temperature to zero degrees. If that was still higher than current temperature
-            // we return an error
-            if (enabled && m_TemperatureRequest > TemperatureN[0].value)
+            // If explicitly enabled, we always set temperature to 0
+            if (enabled)
             {
-                m_TemperatureRequest = 0;
-                // If current temperature is still lower than zero, then we shouldn't risk
-                // setting temperature to any arbitrary value. Instead, we report an error and ask
-                // user to explicitly set the requested temperature.
-                if (m_TemperatureRequest > TemperatureN[0].value)
+                if (HasCoolerAutoMode)
                 {
-                    CoolerS[COOLER_ON].s = ISS_OFF;
-                    CoolerS[COOLER_OFF].s = ISS_OFF;
+                    if (SetTemperature(0) == 0)
+                    {
+                        TemperatureNP.s = IPS_BUSY;
+                        IDSetNumber(&TemperatureNP, nullptr);
+                    }
+                    return true;
+                }
+                else
+                {
+                    IUResetSwitch(&CoolerSP);
+                    CoolerS[COOLER_OFF].s = ISS_ON;
                     CoolerSP.s = IPS_ALERT;
-                    LOGF_WARN("Cannot manually activate cooler since current temperature is %.2f. To activate cooler, request a lower temperature.", TemperatureN[0].value);
+                    LOG_ERROR("Cannot turn on cooler in manual mode. Set cooler power to activate it.");
                     IDSetSwitch(&CoolerSP, nullptr);
                     return true;
                 }
+            }
+            else
+            {
+                if (HasCoolerManualMode)
+                {
+                    m_PWMRequest = 0;
+                    m_TemperatureRequest = 30;
+                    SetQHYCCDParam(m_CameraHandle, CONTROL_MANULPWM, 0);
 
-                SetTemperature(0);
-                return true;
+                    CoolerSP.s = IPS_IDLE;
+                    IDSetSwitch(&CoolerSP, nullptr);
+
+                    TemperatureNP.s = IPS_IDLE;
+                    IDSetNumber(&TemperatureNP, nullptr);
+
+                    setCoolerMode(COOLER_MANUAL);
+                    LOG_INFO("Camera is warming up.");
+                }
+                else
+                {
+                    // Warm up the camera in auto mode
+                    if (SetTemperature(30) == 0)
+                    {
+                        TemperatureNP.s = IPS_IDLE;
+                        IDSetNumber(&TemperatureNP, nullptr);
+                    }
+                    LOG_INFO("Camera is warming up.");
+                    return true;
+                }
             }
 
-            return activateCooler(enabled);
+            return true;
+        }
+
+        //////////////////////////////////////////////////////////////////////
+        /// Cooler Mode
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(CoolerModeSP.name, name))
+        {
+            IUUpdateSwitch(&CoolerModeSP, states, names, n);
+            if (IUFindOnSwitchIndex(&CoolerModeSP) == COOLER_AUTOMATIC)
+            {
+                m_PWMRequest = -1;
+                LOG_INFO("Camera cooler is now automatically controlled to maintain the desired temperature.");
+            }
+            else
+            {
+                m_TemperatureRequest = 30;
+                LOG_INFO("Camera cooler is manually controlled. Set the desired cooler power.");
+            }
+
+            IDSetSwitch(&CoolerModeSP, nullptr);
         }
     }
 
-    //  Nobody has claimed this, so, ignore it
     return INDI::CCD::ISNewSwitch(dev, name, states, names, n);
 }
 
@@ -1285,16 +1473,17 @@ bool QHYCCD::ISNewText(const char *dev, const char *name, char *texts[], char *n
 bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     //  first check if it's for our device
-    //IDLog("INDI::CCD::ISNewNumber %s\n",name);
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
-        if (strcmp(name, FilterSlotNP.name) == 0)
+        if (!strcmp(name, FilterSlotNP.name))
         {
-            INDI::FilterInterface::processNumber(dev, name, values, names, n);
-            return true;
+            return INDI::FilterInterface::processNumber(dev, name, values, names, n);
         }
 
-        if (strcmp(name, GainNP.name) == 0)
+        //////////////////////////////////////////////////////////////////////
+        /// Gain Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, GainNP.name))
         {
             double currentGain = GainN[0].value;
             IUUpdateNumber(&GainNP, values, names, n);
@@ -1323,7 +1512,10 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
 
-        if (strcmp(name, OffsetNP.name) == 0)
+        //////////////////////////////////////////////////////////////////////
+        /// Offset Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, OffsetNP.name))
         {
             double currentOffset = OffsetN[0].value;
             IUUpdateNumber(&OffsetNP, values, names, n);
@@ -1346,7 +1538,10 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
 
-        if (strcmp(name, SpeedNP.name) == 0)
+        //////////////////////////////////////////////////////////////////////
+        /// Speed Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, SpeedNP.name))
         {
             double currentSpeed = SpeedN[0].value;
             IUUpdateNumber(&SpeedNP, values, names, n);
@@ -1369,7 +1564,10 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             return true;
         }
 
-        if (strcmp(name, USBTrafficNP.name) == 0)
+        //////////////////////////////////////////////////////////////////////
+        /// USB Traffic Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, USBTrafficNP.name))
         {
             double currentTraffic = USBTrafficN[0].value;
             IUUpdateNumber(&USBTrafficNP, values, names, n);
@@ -1390,56 +1588,124 @@ bool QHYCCD::ISNewNumber(const char *dev, const char *name, double values[], cha
             IDSetNumber(&USBTrafficNP, nullptr);
             return true;
         }
+        
+        
+        //////////////////////////////////////////////////////////////////////
+        /// Read Modes Control
+        //////////////////////////////////////////////////////////////////////
+         if (!strcmp(name, ReadModeNP.name))
+        {
+            uint32_t imageRMw, imageRMh, ret;
+            double newReadMode = ReadModeN[0].value;
+            uint32_t nbuf, imagew, imageh, bpp;
+            double chipw, chiph, pixelw, pixelh;
+            IUUpdateNumber(&ReadModeNP, values, names, n);
+            int rc = SetQHYCCDReadMode(m_CameraHandle,ReadModeN[0].value);
+            if (rc == QHYCCD_SUCCESS)
+            {
+                LOGF_INFO("Read mode updated to %.f", ReadModeN[0].value);
+                // Get resolution
+                ret = GetQHYCCDReadModeResolution(m_CameraHandle, ReadModeN[0].value, &imageRMw, &imageRMh);
+                LOGF_INFO("GetQHYCCDReadModeResolution in this ReadMode: imageW: %d imageH: %d \n", imageRMw, imageRMh);
+                
+                ReadModeNP.s = IPS_OK;
+                saveConfig(true, ReadModeNP.name);
+                    if (isSimulation())
+                    {
+                        chipw = imagew = 1280;
+                        chiph = imageh = 1024;
+                        pixelh = pixelw = 5.4;
+                        bpp             = 8;
+                    }
+                    else
+                    {
+                        ret = GetQHYCCDChipInfo(m_CameraHandle, &chipw, &chiph, &imagew, &imageh, &pixelw, &pixelh, &bpp);
+                        
+                        /* JM: We need GetQHYCCDErrorString(ret) to get the string description of the error, please implement this in the SDK */
+                        if (ret != QHYCCD_SUCCESS)
+                        {
+                            LOGF_ERROR("Error: GetQHYCCDChipInfo() (%d)", ret);
+                            return false;
+                        }
+                        
+                    }
+
+                    SetCCDParams(imageRMw, imageRMh, bpp, pixelw, pixelh);
+                    nbuf = imageRMw * imageRMh * PrimaryCCD.getBPP() / 8;
+                    PrimaryCCD.setFrameBufferSize(nbuf);
+
+                    if (HasStreaming())
+                    {
+                        Streamer->setPixelFormat(INDI_MONO);
+                        Streamer->setSize(imageRMw, imageRMh);
+                    }
+                
+                
+            }
+            else
+            {
+                ReadModeNP.s = IPS_ALERT;
+                ReadModeN[0].value = newReadMode;
+                LOGF_ERROR("Failed to update read mode: %d", rc);
+            }
+
+            IDSetNumber(&ReadModeNP, nullptr);
+            return true;
+        }
+        
+
+        //////////////////////////////////////////////////////////////////////
+        /// Cooler PWM Control
+        //////////////////////////////////////////////////////////////////////
+        if (!strcmp(name, CoolerNP.name))
+        {
+            if (HasCoolerManualMode == false)
+            {
+                CoolerNP.s = IPS_ALERT;
+                LOG_WARN("Manual cooler control is not available.");
+                IDSetNumber(&CoolerNP, nullptr);
+            }
+
+            setCoolerEnabled(values[0] > 0);
+            setCoolerMode(COOLER_MANUAL);
+
+            m_PWMRequest = values[0] / 100.0 * 255;
+            CoolerNP.s = IPS_BUSY;
+            LOGF_INFO("Setting cooler power manually to %.2f%%", values[0]);
+            IDSetNumber(&CoolerNP, nullptr);
+            return true;
+        }
     }
 
     return INDI::CCD::ISNewNumber(dev, name, values, names, n);
 }
 
-bool QHYCCD::activateCooler(bool enable)
+void QHYCCD::setCoolerMode(uint8_t mode)
 {
+    int currentMode = IUFindOnSwitchIndex(&CoolerModeSP);
+    if (mode == currentMode)
+        return;
+
+    IUResetSwitch(&CoolerModeSP);
+
+    CoolerModeS[COOLER_AUTOMATIC].s = (mode == COOLER_AUTOMATIC) ? ISS_ON : ISS_OFF;
+    CoolerModeS[COOLER_MANUAL].s = (mode == COOLER_AUTOMATIC) ? ISS_OFF : ISS_ON;
+    CoolerSP.s = IPS_OK;
+    LOGF_INFO("Switching to %s cooler control.", (mode == COOLER_AUTOMATIC) ? "automatic" : "manual");
+    IDSetSwitch(&CoolerModeSP, nullptr);
+}
+
+void QHYCCD::setCoolerEnabled(bool enable)
+{
+    bool isEnabled = IUFindOnSwitchIndex(&CoolerSP) == COOLER_ON;
+    if (isEnabled == enable)
+        return;
+
     IUResetSwitch(&CoolerSP);
-    if (enable)
-    {
-        if (m_TemperatureRequest < TemperatureN[0].value)
-        {
-            if (CoolerSP.s != IPS_BUSY)
-                LOG_INFO("Camera cooler is on.");
-
-            CoolerS[COOLER_ON].s = ISS_ON;
-            CoolerS[COOLER_OFF].s = ISS_OFF;
-            CoolerSP.s = IPS_BUSY;
-        }
-        else
-        {
-            CoolerS[COOLER_ON].s = ISS_OFF;
-            CoolerS[COOLER_OFF].s = ISS_ON;
-            CoolerSP.s = IPS_IDLE;
-            LOG_WARN("Cooler cannot be activated manually. Set a lower temperature to activate it.");
-            IDSetSwitch(&CoolerSP, nullptr);
-            return false;
-        }
-    }
-    else if (enable == false)
-    {
-        int rc = SetQHYCCDParam(m_CameraHandle, CONTROL_MANULPWM, 0);
-        if (rc != QHYCCD_SUCCESS)
-        {
-            CoolerS[COOLER_ON].s = ISS_ON;
-            CoolerS[COOLER_OFF].s = ISS_OFF;
-            CoolerSP.s = IPS_ALERT;
-            LOGF_ERROR("Failed to warm camera (%d).", rc);
-            IDSetSwitch(&CoolerSP, nullptr);
-            return false;
-        }
-
-        CoolerS[COOLER_ON].s = ISS_OFF;
-        CoolerS[COOLER_OFF].s = ISS_ON;
-        CoolerSP.s = IPS_IDLE;
-        LOG_INFO("Camera is warming up...");
-    }
-
+    CoolerS[COOLER_ON].s = enable ? ISS_ON : ISS_OFF;
+    CoolerS[COOLER_OFF].s = enable ? ISS_OFF : ISS_ON;
+    CoolerSP.s = enable ? IPS_BUSY : IPS_IDLE;
     IDSetSwitch(&CoolerSP, nullptr);
-    return true;
 }
 
 bool QHYCCD::isQHY5PIIC()
@@ -1449,14 +1715,12 @@ bool QHYCCD::isQHY5PIIC()
 
 void QHYCCD::updateTemperatureHelper(void *p)
 {
-    if (static_cast<QHYCCD *>(p)->isConnected())
-        static_cast<QHYCCD *>(p)->updateTemperature();
+    static_cast<QHYCCD *>(p)->updateTemperature();
 }
 
 void QHYCCD::updateTemperature()
 {
     double ccdtemp = 0, coolpower = 0;
-    double nextPoll = POLLMS;
 
     if (isSimulation())
     {
@@ -1470,23 +1734,27 @@ void QHYCCD::updateTemperature()
     }
     else
     {
-        ccdtemp   = GetQHYCCDParam(m_CameraHandle, CONTROL_CURTEMP);
-        coolpower = GetQHYCCDParam(m_CameraHandle, CONTROL_CURPWM);
+        // Sleep for 1 second before setting temperature/pwm again.
+        //usleep(1000000);
 
         // Call this function as long as we are busy
         if (TemperatureNP.s == IPS_BUSY)
         {
-            // Sleep for 1 second before setting temperature again.
-            usleep(1000000);
-            ControlQHYCCDTemp(m_CameraHandle, m_TemperatureRequest);
+            SetQHYCCDParam(m_CameraHandle, CONTROL_COOLER, m_TemperatureRequest);
         }
+        else if (m_PWMRequest >= 0)
+        {
+            SetQHYCCDParam(m_CameraHandle, CONTROL_MANULPWM, m_PWMRequest);
+        }
+
+        ccdtemp   = GetQHYCCDParam(m_CameraHandle, CONTROL_CURTEMP);
+        coolpower = GetQHYCCDParam(m_CameraHandle, CONTROL_CURPWM);
     }
 
     // No need to spam to log
     if (fabs(ccdtemp - TemperatureN[0].value) > 0.001 || fabs(CoolerN[0].value - (coolpower / 255.0 * 100)) > 0.001)
     {
-        LOGF_DEBUG("CCD Temp: %g CCD RAW Cooling Power: %g, CCD Cooling percentage: %g", ccdtemp,
-                   coolpower, coolpower / 255.0 * 100);
+        LOGF_DEBUG("CCD T.: %.3f (C) Power: %.3f (%%.2f)", ccdtemp, coolpower, coolpower / 255.0 * 100);
     }
 
     TemperatureN[0].value = ccdtemp;
@@ -1510,7 +1778,7 @@ void QHYCCD::updateTemperature()
     IDSetNumber(&TemperatureNP, nullptr);
     IDSetNumber(&CoolerNP, nullptr);
 
-    temperatureID = IEAddTimer(nextPoll, QHYCCD::updateTemperatureHelper, this);
+    m_TemperatureTimerID = IEAddTimer(POLLMS, QHYCCD::updateTemperatureHelper, this);
 }
 
 bool QHYCCD::saveConfigItems(FILE *fp)
@@ -1530,6 +1798,9 @@ bool QHYCCD::saveConfigItems(FILE *fp)
 
     if (HasUSBSpeed)
         IUSaveConfigNumber(fp, &SpeedNP);
+    
+    if (HasReadMode)
+        IUSaveConfigNumber(fp, &ReadModeNP);
 
     if (HasUSBTraffic)
         IUSaveConfigNumber(fp, &USBTrafficNP);
@@ -1567,15 +1838,15 @@ bool QHYCCD::StartStreaming()
         ret = QHYCCD_SUCCESS;
     else
         ret = SetQHYCCDResolution(m_CameraHandle,
-                                  PrimaryCCD.getSubX(),
-                                  PrimaryCCD.getSubY(),
+                                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
     if (ret != QHYCCD_SUCCESS)
     {
         LOGF_INFO("Set QHYCCD ROI resolution (%d,%d) (%d,%d) failed (%d)",
-                  PrimaryCCD.getSubX(),
-                  PrimaryCCD.getSubY(),
+                  PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+                  PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                   PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                   PrimaryCCD.getSubH() / PrimaryCCD.getBinY(),
                   ret);
@@ -1583,8 +1854,8 @@ bool QHYCCD::StartStreaming()
     }
 
     LOGF_DEBUG("SetQHYCCDResolution x: %d y: %d w: %d h: %d",
-               PrimaryCCD.getSubX(),
-               PrimaryCCD.getSubY(),
+               PrimaryCCD.getSubX() / PrimaryCCD.getBinX(),
+               PrimaryCCD.getSubY() / PrimaryCCD.getBinY(),
                PrimaryCCD.getSubW() / PrimaryCCD.getBinX(),
                PrimaryCCD.getSubH() / PrimaryCCD.getBinY());
 
@@ -1821,4 +2092,35 @@ void QHYCCD::debugTriggered(bool enable)
         SetQHYCCDLogLevel(5);
     else
         SetQHYCCDLogLevel(2);
+}
+
+bool QHYCCD::updateFilterProperties()
+{
+    if (FilterNameTP->ntp != m_MaxFilterCount)
+    {
+        LOGF_DEBUG("Max filter count is: %d", m_MaxFilterCount);
+        FilterSlotN[0].max = m_MaxFilterCount;
+        char filterName[MAXINDINAME];
+        char filterLabel[MAXINDILABEL];
+        if (FilterNameT != nullptr)
+        {
+            for (int i = 0; i < FilterNameTP->ntp; i++)
+                free(FilterNameT[i].text);
+            delete [] FilterNameT;
+        }
+
+        FilterNameT = new IText[m_MaxFilterCount];
+        memset(FilterNameT, 0, sizeof(IText) * m_MaxFilterCount);
+        for (int i = 0; i < m_MaxFilterCount; i++)
+        {
+            snprintf(filterName, MAXINDINAME, "FILTER_SLOT_NAME_%d", i + 1);
+            snprintf(filterLabel, MAXINDILABEL, "Filter#%d", i + 1);
+            IUFillText(&FilterNameT[i], filterName, filterLabel, filterLabel);
+        }
+        IUFillTextVector(FilterNameTP, FilterNameT, m_MaxFilterCount, m_defaultDevice->getDeviceName(), "FILTER_NAME", "Filter", FilterSlotNP.group, IP_RW, 0, IPS_IDLE);
+
+        return true;
+    }
+
+    return false;
 }

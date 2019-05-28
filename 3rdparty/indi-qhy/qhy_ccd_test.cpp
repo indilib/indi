@@ -32,7 +32,7 @@ int main(int , char **)
     int USB_TRAFFIC = 10;
     int CHIP_GAIN = 10;
     int CHIP_OFFSET = 140;
-    int EXPOSURE_TIME = 20000;
+    int EXPOSURE_TIME = 1;
     int camBinX = 1;
     int camBinY = 1;
     
@@ -227,6 +227,48 @@ int main(int , char **)
             return 1;
         }
     }
+    
+    // check read mode in QHY42
+    uint32_t currentReadMode = 0;
+    char *modeName=(char *)malloc((200)*sizeof(char));;
+    retVal = GetQHYCCDReadMode(pCamHandle, &currentReadMode);
+    if (QHYCCD_SUCCESS == retVal) {
+        printf("Default read mode: %d \n", currentReadMode);
+        retVal = GetQHYCCDReadModeName(pCamHandle , currentReadMode, modeName);
+        if (QHYCCD_SUCCESS == retVal) {
+            printf("Default read mode name %s \n", modeName);
+        } else {
+            printf("Error reading mode name \n");
+            getchar();
+            return 1;
+        }
+        
+        // Set read modes and read resolution for each one
+        uint32_t readModes = 0;
+        uint32_t imageRMw, imageRMh;
+        uint32_t i=0;
+        retVal = GetQHYCCDNumberOfReadModes(pCamHandle, &readModes);
+        for(i=0;i<readModes;i++)
+        {
+            // Set read mode and get resolution
+            retVal = SetQHYCCDReadMode(pCamHandle,i);
+            if (QHYCCD_SUCCESS == retVal) {
+                // Get resolution
+                retVal = GetQHYCCDReadModeName(pCamHandle , i, modeName);
+                    if (QHYCCD_SUCCESS == retVal) {
+                        printf("Read mode name %s \n", modeName);
+                    } else {
+                        printf("Error reading mode name \n");
+                        getchar();
+                        return 1;
+                    }
+                    retVal = GetQHYCCDReadModeResolution(pCamHandle, i, &imageRMw, &imageRMh);
+                printf("GetQHYCCDChipInfo in this ReadMode: imageW: %d imageH: %d \n", imageRMw, imageRMh);
+            }
+        }
+        
+    }
+    
 
     // set exposure time
     retVal = SetQHYCCDParam(pCamHandle, CONTROL_EXPOSURE, EXPOSURE_TIME);

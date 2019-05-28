@@ -34,11 +34,17 @@ extern const char *CONNECTION_TAB;
 
 Serial::Serial(INDI::DefaultDevice *dev) : Interface(dev, CONNECTION_SERIAL)
 {
+    char defaultPort[MAXINDINAME] = {0};
+    // Try to load the port from the config file. If that fails, use default port.
+    if (IUGetConfigText(dev->getDeviceName(), INDI::SP::DEVICE_PORT, "PORT", defaultPort, MAXINDINAME) < 0)
+    {
 #ifdef __APPLE__
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/cu.usbserial");
+        strncpy(defaultPort, "/dev/cu.usbserial", MAXINDINAME);
 #else
-    IUFillText(&PortT[0], "PORT", "Port", "/dev/ttyUSB0");
+        strncpy(defaultPort, "/dev/ttyUSB0", MAXINDINAME);
 #endif
+    }
+    IUFillText(&PortT[0], "PORT", "Port", defaultPort);
     IUFillTextVector(&PortTP, PortT, 1, dev->getDeviceName(), INDI::SP::DEVICE_PORT, "Ports", CONNECTION_TAB, IP_RW, 60,
                      IPS_IDLE);
 
@@ -246,7 +252,7 @@ bool Serial::Connect(const char *port, uint32_t baud)
     int connectrc = 0;
     char errorMsg[MAXRBUF];
 
-    LOGF_DEBUG("Connecting to %s", port);
+    LOGF_DEBUG("Connecting to %s @ %d", port, baud);
 
     if ((connectrc = tty_connect(port, baud, wordSize, parity, stopBits, &PortFD)) != TTY_OK)
     {

@@ -38,6 +38,8 @@ class Talon6 : public INDI::Dome
         virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
 
         virtual bool initProperties();
+        virtual void ISGetProperties(const char *dev) override;
+
         const char *getDefaultName();
         bool updateProperties();
 
@@ -46,25 +48,54 @@ class Talon6 : public INDI::Dome
         // Get Status button from device
         ISwitch StatusS[1];
         ISwitchVectorProperty StatusSP;
+        // Safety Condition switch
+        ISwitch SafetyS[2];
+        ISwitchVectorProperty SafetySP;
+
+        // Roof Go To Value
+        INumber GoToN[1] {};
+        INumberVectorProperty GoToNP;
 
         // Status values read from device
-        IText StatusValueT[7] {};
+        IText StatusValueT[8] {};
         ITextVectorProperty StatusValueTP;
+        // Firmware version
+        IText FirmwareVersionT[1] {};
+        ITextVectorProperty FirmwareVersionTP;
+        // Encoder Max Ticks
+        INumber EncoderTicksN[1] {};
+        INumberVectorProperty EncoderTicksNP;
+        // Sensors
+        ILight SensorsL[5] {};
+        ILightVectorProperty SensorsLP;
+        // Switches
+        ILight SwitchesL[5] {};
+        ILightVectorProperty SwitchesLP;
+
+         virtual bool saveConfigItems(FILE *fp) override;
 
         bool Disconnect();
         void TimerHit();
+        ISState fullOpenRoofSwitch { ISS_ON };
+        ISState fullClosedRoofSwitch { ISS_OFF };
+        virtual IPState Move(DomeDirection dir, DomeMotionCommand operation);
+
         virtual IPState Park();
         virtual IPState UnPark();
+        virtual IPState DomeGoTo(int GoTo);
         virtual bool Abort();
 
     private:
 
         bool Handshake();
         int PortFD{-1};
+        double MotionRequest { 0 };
         void getDeviceStatus();
+        void getFirmwareVersion();
         int ReadString(char *,int);
         int WriteString(const char *);
         void ProcessDomeMessage(char *);
+        char ShiftChar(char shiftChar);
 
 };
 

@@ -6,6 +6,10 @@
 #include "config.h"
 #include <functional>
 
+
+
+
+
 #if defined (_WIN32)
 #include "cyapi.h"
 #endif
@@ -724,6 +728,14 @@ EXPORTC uint32_t STDCALL GetQHYCCDReadModeName(qhyccd_handle *h,uint32_t modeNum
 EXPORTC uint32_t STDCALL SetQHYCCDReadMode(qhyccd_handle *h,uint32_t modeNumber);
 // Get the read mode
 EXPORTC uint32_t STDCALL GetQHYCCDReadMode(qhyccd_handle *h,uint32_t* modeNumber);
+
+EXPORTC uint32_t STDCALL GetQHYCCDBeforeOpenParam(
+	QHYCamMinMaxStepValue *p, 
+	CONTROL_ID controlId);
+
+#if CALLBACK_MODE_SUPPORT
+EXPORTC uint32_t STDCALL SetQHYCCDCallBack(QHYCCDProcCallBack ProcCallBack);
+#endif
 
 
 #endif

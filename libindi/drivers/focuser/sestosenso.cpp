@@ -71,9 +71,9 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso::SestoSenso()
 {
-    setVersion(1, 1);
+    setVersion(1, 2);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
 }
 
 bool SestoSenso::initProperties()
@@ -88,14 +88,10 @@ bool SestoSenso::initProperties()
     IUFillNumber(&TemperatureN[0], "TEMPERATURE", "Celsius", "%6.2f", -50, 70., 0., 0.);
     IUFillNumberVector(&TemperatureNP, TemperatureN, 1, getDeviceName(), "FOCUS_TEMPERATURE", "Temperature", MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
-    // Sync
-    IUFillNumber(&SyncN[0], "FOCUS_SYNC_OFFSET", "Offset", "%6.0f", 0, 60000., 0., 0.);
-    IUFillNumberVector(&SyncNP, SyncN, 1, getDeviceName(), "FOCUS_SYNC", "Sync", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
-
-    // Limits
-    IUFillNumber(&LimitsN[SS_MIN_LIMIT], "FOCUS_MIN_STEP", "Min", "%.f", 0, 10000., 0., 0.);
-    IUFillNumber(&LimitsN[SS_MAX_LIMIT], "FOCUS_MAX_STEP", "Max", "%.f", 10000,  2097152., 0., 200000.);
-    IUFillNumberVector(&LimitsNP, LimitsN, 2, getDeviceName(), "FOCUS_LIMITS", "Limits", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+//    // Limits
+//    IUFillNumber(&LimitsN[SS_MIN_LIMIT], "FOCUS_MIN_STEP", "Min", "%.f", 0, 10000., 0., 0.);
+//    IUFillNumber(&LimitsN[SS_MAX_LIMIT], "FOCUS_MAX_STEP", "Max", "%.f", 10000,  2097152., 0., 200000.);
+//    IUFillNumberVector(&LimitsNP, LimitsN, 2, getDeviceName(), "FOCUS_LIMITS", "Limits", MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Relative and absolute movement
     FocusRelPosN[0].min   = 0.;
@@ -123,8 +119,6 @@ bool SestoSenso::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&SyncNP);
-
         // Only define temperature if there is a probe
         if (updateTemperature())
             defineNumber(&TemperatureNP);
@@ -138,7 +132,6 @@ bool SestoSenso::updateProperties()
     }
     else
     {
-        deleteProperty(SyncNP.name);
         if (TemperatureNP.s == IPS_OK)
             deleteProperty(TemperatureNP.name);
         deleteProperty(FirmwareTP.name);
@@ -238,6 +231,19 @@ bool SestoSenso::updateMaxLimit()
         if (FocusMaxPosN[0].value > maxLimit)
             FocusMaxPosN[0].value = maxLimit;
 
+        FocusAbsPosN[0].min   = 0;
+        FocusAbsPosN[0].max   = maxLimit;
+        FocusAbsPosN[0].value = 0;
+        FocusAbsPosN[0].step  = (FocusAbsPosN[0].max - FocusAbsPosN[0].min) / 50.0;
+
+        FocusRelPosN[0].min   = 0.;
+        FocusRelPosN[0].max   = FocusAbsPosN[0].step * 10;
+        FocusRelPosN[0].value = 0;
+        FocusRelPosN[0].step  = FocusAbsPosN[0].step;
+
+        IUUpdateMinMax(&FocusAbsPosNP);
+        IUUpdateMinMax(&FocusMaxPosNP);
+
         FocusMaxPosNP.s = IPS_OK;
         IUUpdateMinMax(&FocusAbsPosNP);
         return true;
@@ -325,13 +331,13 @@ bool SestoSenso::isMotionComplete()
     return false;
 }
 
-bool SestoSenso::sync(uint32_t newPosition)
+bool SestoSenso::SyncFocuser(uint32_t ticks)
 {
     char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
-    snprintf(cmd, SESTO_LEN, "#SP%d!", newPosition);
+    snprintf(cmd, SESTO_LEN, "#SP%d!", ticks);
 
     if (isSimulation())
-        FocusAbsPosN[0].value = newPosition;
+        FocusAbsPosN[0].value = ticks;
     else if (sendCommand(cmd, res) == false)
         return false;
 
@@ -385,6 +391,7 @@ bool SestoSenso::setMinLimit(uint32_t limit)
     return false;
 }
 
+#if 0
 bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n)
 {
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
@@ -433,22 +440,11 @@ bool SestoSenso::ISNewNumber(const char *dev, const char *name, double values[],
 
             return true;
         }
-
-        // Sync current position
-        else if (!strcmp(name, SyncNP.name))
-        {
-            IUUpdateNumber(&SyncNP, values, names, n);
-            if (sync(SyncN[0].value))
-                SyncNP.s = IPS_OK;
-            else
-                SyncNP.s = IPS_ALERT;
-            IDSetNumber(&SyncNP, nullptr);
-            return true;
-        }
     }
 
     return INDI::Focuser::ISNewNumber(dev, name, values, names, n);
 }
+#endif
 
 IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
 {
@@ -470,23 +466,13 @@ IPState SestoSenso::MoveAbsFocuser(uint32_t targetTicks)
 
 IPState SestoSenso::MoveRelFocuser(FocusDirection dir, uint32_t ticks)
 {
-    double newPosition = 0;
-    bool rc            = false;
+    int reversed = (IUFindOnSwitchIndex(&FocusReverseSP) == REVERSED_ENABLED) ? -1 : 1;
+    int relativeTicks =  ((dir == FOCUS_INWARD) ? -ticks : ticks) * reversed;
+    double newPosition = FocusAbsPosN[0].value + relativeTicks;
 
-    if (dir == FOCUS_INWARD)
-        newPosition = FocusAbsPosN[0].value - ticks;
-    else
-        newPosition = FocusAbsPosN[0].value + ticks;
+    bool rc = MoveAbsFocuser(newPosition);
 
-    rc = MoveAbsFocuser(newPosition);
-
-    if (!rc)
-        return IPS_ALERT;
-
-    FocusRelPosN[0].value = ticks;
-    FocusRelPosNP.s       = IPS_BUSY;
-
-    return IPS_BUSY;
+    return (rc ? IPS_BUSY : IPS_ALERT);
 }
 
 bool SestoSenso::AbortFocuser()
@@ -529,19 +515,16 @@ void SestoSenso::checkMotionProgressCallback()
 
 void SestoSenso::TimerHit()
 {
-    if (!isConnected())
+    if (!isConnected() || FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
     {
         SetTimer(POLLMS);
         return;
     }
 
-    if (FocusAbsPosNP.s == IPS_BUSY || FocusRelPosNP.s == IPS_BUSY)
-        return;
-
     bool rc = updatePosition();
     if (rc)
     {
-        if (lastPos != FocusAbsPosN[0].value)
+        if (fabs(lastPos - FocusAbsPosN[0].value) > 0)
         {
             IDSetNumber(&FocusAbsPosNP, nullptr);
             lastPos = FocusAbsPosN[0].value;
@@ -645,4 +628,10 @@ void SestoSenso::hexDump(char * buf, const char * data, int size)
 
     if (size > 0)
         buf[3 * size - 1] = '\0';
+}
+
+bool SestoSenso::ReverseFocuser(bool enable)
+{
+    INDI_UNUSED(enable);
+    return true;
 }

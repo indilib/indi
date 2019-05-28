@@ -103,6 +103,10 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         //ISwitch TrackS[4];
         //ISwitchVectorProperty TrackSP;
 
+        // Celestron Track Mode (AltAz, EQ N, EQ S)
+        ISwitchVectorProperty CelestronTrackModeSP;
+        ISwitch CelestronTrackModeS[3];
+
         //GUIDE Pulse guide switch
         ISwitchVectorProperty UsePulseCmdSP;
         ISwitch UsePulseCmdS[2];
@@ -121,8 +125,8 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         //End FocuserInterface
 
     private:
-        bool setTrackMode(CELESTRON_TRACK_MODE mode);
-        bool checkMinVersion(float minVersion, const char *feature);
+        bool setCelestronTrackMode(CELESTRON_TRACK_MODE mode);
+        bool checkMinVersion(float minVersion, const char *feature, bool debug = false);
         void checkAlignment();
 
         double currentRA, currentDEC, currentAZ, currentALT;
@@ -132,6 +136,12 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         FirmwareInfo fwInfo;
         bool usePreciseCoords {false};
         bool usePulseCommand { false };
+
+        // experimental last align property
+        ISwitch LastAlignS[1];
+        ISwitchVectorProperty LastAlignSP;
+
+        bool slewToIndex;
 
         // focuser
         INumber FocusBacklashN[1];
@@ -143,4 +153,5 @@ class CelestronGPS : public INDI::Telescope, public INDI::GuiderInterface, publi
         bool focusBacklashMove;      // set if a final move is needed
         uint32_t focusPosition;
         bool focusReadLimits();
+        bool focuserIsCalibrated;
 };
