@@ -1292,6 +1292,15 @@ add_executable(indi_snapcap ${snapcap_SRC})
 target_link_libraries(indi_snapcap indidriver)
 install(TARGETS indi_snapcap RUNTIME DESTINATION bin)
 
+########### Light Pollution Meter #############
+
+SET(lpm_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/lpm.cpp)
+
+add_executable(indi_astromech_lpm ${lpm_SRC})
+target_link_libraries(indi_astromech_lpm indidriver)
+install(TARGETS indi_astromech_lpm RUNTIME DESTINATION bin)
+
 ########### Sky Quality Meter ###############
 
 SET(sqm_SRC
