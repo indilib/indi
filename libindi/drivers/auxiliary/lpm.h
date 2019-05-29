@@ -55,14 +55,17 @@ class LPM : public INDI::DefaultDevice
 
     // Readings
     INumberVectorProperty AverageReadingNP;
-    INumber AverageReadingN[1];
+    INumber AverageReadingN[4];
 
     // Device Information
     INumberVectorProperty UnitInfoNP;
-    INumber UnitInfoN[4];
+    INumber UnitInfoN[1];
 
     Connection::Serial *serialConnection { nullptr };
 
     int PortFD { -1 };
+    long count = 0;
+    float sumSQ = 0;
+    
     uint8_t lpmConnection { CONNECTION_SERIAL };
 };

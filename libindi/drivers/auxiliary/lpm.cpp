@@ -85,13 +85,19 @@ bool LPM::initProperties()
     INDI::DefaultDevice::initProperties();
 
     // Average Readings
-    IUFillNumber(&AverageReadingN[0], "SKY_BRIGHTNESS", "Avg. Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
+    IUFillNumber(&AverageReadingN[0], "SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
+    IUFillNumber(&AverageReadingN[1], "AVG_SKY_BRIGHTNESS", "Avg. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
+    IUFillNumber(&AverageReadingN[2], "MIN_SKY_BRIGHTNESS", "Min. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
+    IUFillNumber(&AverageReadingN[3], "MAX_SKY_BRIGHTNESS", "Max. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
+
     IUFillNumberVector(&AverageReadingNP, AverageReadingN, 1, getDeviceName(), "SKY_QUALITY", "Readings",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // Unit Info
     IUFillNumber(&UnitInfoN[0], "Calibdata", "", "%6.2f", -20, 30, 0, 0);
     IUFillNumberVector(&UnitInfoNP, UnitInfoN, 4, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RO, 0, IPS_IDLE);
+
+    // TODO: add reset button for SQ-Measurements
 
     if (lpmConnection & CONNECTION_SERIAL)
     {
@@ -146,9 +152,27 @@ bool LPM::getReadings()
         {
             LOGF_ERROR("Failed to parse input %s", res);
             return false;
+        } else 
+        {
+            count++;
         }
 
         AverageReadingN[0].value = mpsas;
+        sumSQ += mpsas;
+        
+        if (count > 0)
+        {
+            AverageReadingN[1].value = sumSQ / count;
+            if (mpsas < AverageReadingN[2].value) {
+                AverageReadingN[2].value = mpsas;
+            }
+            if (mpsas > AverageReadingN[3].value) {
+                AverageReadingN[3].value = mpsas;
+            }
+        } else {
+            AverageReadingN[2].value = mpsas;
+            AverageReadingN[3].value = mpsas;
+        }
     }
     return true;
 }
