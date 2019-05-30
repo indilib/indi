@@ -252,7 +252,7 @@ bool Serial::Connect(const char *port, uint32_t baud)
     int connectrc = 0;
     char errorMsg[MAXRBUF];
 
-    LOGF_DEBUG("Connecting to %s", port);
+    LOGF_DEBUG("Connecting to %s @ %d", port, baud);
 
     if ((connectrc = tty_connect(port, baud, wordSize, parity, stopBits, &PortFD)) != TTY_OK)
     {

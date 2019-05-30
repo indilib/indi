@@ -1076,7 +1076,10 @@ bool GPhotoCCD::Connect()
         captureTargetSP.s                      = IPS_OK;
     }
 
-    m_CanFocus = gphoto_can_focus(gphotodrv);
+    if (isSimulation())
+        m_CanFocus = false;
+    else
+        m_CanFocus = gphoto_can_focus(gphotodrv);
 
     LOGF_INFO("%s is online.", getDeviceName());
 

@@ -37,6 +37,7 @@
 #include <string.h>
 #include <unistd.h>
 
+//#define SIMULATION
 #define MAX_DEVICES 16  /* Max device cameraCount */
 
 static int num_wheels;
@@ -47,6 +48,15 @@ void ASI_EFW_ISInit()
     static bool isInit = false;
     if (!isInit)
     {
+#ifdef SIMULATION
+        num_wheels = 1;
+        EFW_INFO info;
+        info.ID = 1;
+        strncpy(info.Name, "Simulated EFW8", 64);
+        info.slotNum = 0;
+        wheels[0] = new ASIWHEEL(1, info, false);
+        isInit = true;
+#else
         num_wheels = 0;
 
         num_wheels = EFWGetNum();
@@ -64,14 +74,16 @@ void ASI_EFW_ISInit()
             {
                 int id;
                 EFW_ERROR_CODE result = EFWGetID(i, &id);
-                if (result != EFW_SUCCESS) {
-                    IDLog("ERROR: ASI EFW %d EFWGetID error %d.", i+1, result);
+                if (result != EFW_SUCCESS)
+                {
+                    IDLog("ERROR: ASI EFW %d EFWGetID error %d.", i + 1, result);
                     continue;
                 }
                 EFW_INFO info;
                 result = EFWGetProperty(id, &info);
-                if (result != EFW_SUCCESS && result != EFW_ERROR_CLOSED) { // TODO: remove the ERROR_CLOSED hack
-                    IDLog("ERROR: ASI EFW %d EFWGetProperty error %d.", i+1, result);
+                if (result != EFW_SUCCESS && result != EFW_ERROR_CLOSED)   // TODO: remove the ERROR_CLOSED hack
+                {
+                    IDLog("ERROR: ASI EFW %d EFWGetProperty error %d.", i + 1, result);
                     continue;
                 }
                 /* Enumerate FWs if more than one ASI EFW is connected */
@@ -82,6 +94,7 @@ void ASI_EFW_ISInit()
             if (num_wheels == num_wheels_ok)
                 isInit = true;
         }
+#endif
     }
 }
 
@@ -185,7 +198,7 @@ ASIWHEEL::ASIWHEEL(int id, EFW_INFO info, bool enumerate)
     setDeviceName(str);
     setVersion(ASI_VERSION_MAJOR, ASI_VERSION_MINOR);
 
-    LOGF_DEBUG("FW ID: %d FW Name: %s enumerate? %s", id, info.Name, enumerate ? "true":"false");
+    LOGF_DEBUG("FW ID: %d FW Name: %s enumerate? %s", id, info.Name, enumerate ? "true" : "false");
 }
 
 ASIWHEEL::~ASIWHEEL()
@@ -195,7 +208,7 @@ ASIWHEEL::~ASIWHEEL()
 
 const char *ASIWHEEL::getDefaultName()
 {
-    return (char *)"ASI EFW";
+    return "ASI EFW";
 }
 
 bool ASIWHEEL::Connect()
@@ -204,6 +217,8 @@ bool ASIWHEEL::Connect()
     {
         LOG_INFO("Simulation connected.");
         fw_id = 0;
+        FilterSlotN[0].min = 1;
+        FilterSlotN[0].max = 8;
     }
     else if (fw_id >= 0)
     {
@@ -221,6 +236,10 @@ bool ASIWHEEL::Connect()
             LOGF_ERROR("%s(): EFWGetProperty() = %d", __FUNCTION__, result);
             return false;
         }
+
+
+        LOGF_INFO("Detected %d-position filter wheel.", info.slotNum);
+
         FilterSlotN[0].min = 1;
         FilterSlotN[0].max = info.slotNum;
 
@@ -280,8 +299,8 @@ bool ASIWHEEL::initProperties()
 int ASIWHEEL::QueryFilter()
 {
     if (isSimulation())
-     return CurrentFilter;
-    
+        return CurrentFilter;
+
     if (fw_id >= 0)
     {
         EFW_ERROR_CODE result;
@@ -310,7 +329,7 @@ bool ASIWHEEL::SelectFilter(int f)
         CurrentFilter = TargetFilter;
         return true;
     }
- 
+
     if (fw_id >= 0)
     {
         EFW_ERROR_CODE result;
@@ -323,7 +342,8 @@ bool ASIWHEEL::SelectFilter(int f)
                 result = EFWGetPosition(fw_id, &CurrentFilter);
                 CurrentFilter++;
                 usleep(POLLMS * 1000);
-            } while (result == EFW_SUCCESS && CurrentFilter != TargetFilter);
+            }
+            while (result == EFW_SUCCESS && CurrentFilter != TargetFilter);
             if (result != EFW_SUCCESS)
             {
                 LOGF_ERROR("%s(): EFWSetPosition() = %d", __FUNCTION__, result);
@@ -347,6 +367,7 @@ bool ASIWHEEL::SelectFilter(int f)
 void ASIWHEEL::TimerHit()
 {
     QueryFilter();
+
     if (CurrentFilter != TargetFilter)
     {
         SetTimer(POLLMS);

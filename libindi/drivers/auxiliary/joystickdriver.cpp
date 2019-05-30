@@ -192,7 +192,7 @@ joystick_position JoyStickDriver::joystickPosition(int n)
             pos.theta += 360;
 
         // Make sure to reset angle if magnitude is zero
-        if (pos.r == 0)
+        if (pos.r <= 0.001)
             pos.theta = 0;
     }
     else
