@@ -34,6 +34,7 @@ class LPM : public INDI::DefaultDevice
 
     virtual bool initProperties();
     virtual bool updateProperties();
+    virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
 
     /**
      * @struct LpmConnection
@@ -56,6 +57,9 @@ class LPM : public INDI::DefaultDevice
     // Readings
     INumberVectorProperty AverageReadingNP;
     INumber AverageReadingN[4];
+
+    ISwitch ResetB[1];
+    ISwitchVectorProperty ResetBP;
 
     // Device Information
     INumberVectorProperty UnitInfoNP;

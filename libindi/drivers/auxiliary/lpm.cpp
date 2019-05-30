@@ -90,14 +90,18 @@ bool LPM::initProperties()
     IUFillNumber(&AverageReadingN[2], "MIN_SKY_BRIGHTNESS", "Min. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
     IUFillNumber(&AverageReadingN[3], "MAX_SKY_BRIGHTNESS", "Max. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
 
-    IUFillNumberVector(&AverageReadingNP, AverageReadingN, 1, getDeviceName(), "SKY_QUALITY", "Readings",
+    IUFillNumberVector(&AverageReadingNP, AverageReadingN, 4, getDeviceName(), "SKY_QUALITY", "Readings",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
+
+    // add reset button for SQ-Measurements
+    IUFillSwitch(&ResetB[0], "RESET_BUTTON", "Reset", ISS_OFF);
+    IUFillSwitchVector(&ResetBP, ResetB, 1, getDeviceName(), "RESET_READINGS", "Readings",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
 
     // Unit Info
     IUFillNumber(&UnitInfoN[0], "Calibdata", "", "%6.2f", -20, 30, 0, 0);
-    IUFillNumberVector(&UnitInfoNP, UnitInfoN, 4, getDeviceName(), "Unit Info", "", UNIT_TAB, IP_RO, 0, IPS_IDLE);
-
-    // TODO: add reset button for SQ-Measurements
+    IUFillNumberVector(&UnitInfoNP, UnitInfoN, 1, getDeviceName(), "Unit Info", "",
+                       UNIT_TAB, IP_RO, 0, IPS_IDLE);
 
     if (lpmConnection & CONNECTION_SERIAL)
     {
@@ -124,14 +128,40 @@ bool LPM::updateProperties()
 
         defineNumber(&AverageReadingNP);
         defineNumber(&UnitInfoNP);
+        defineSwitch(&ResetBP);
     }
     else
     {
         deleteProperty(AverageReadingNP.name);
         deleteProperty(UnitInfoNP.name);
+        deleteProperty(ResetBP.name);
     }
 
     return true;
+}
+
+bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        // Reset
+        if (!strcmp(name, ResetBP.name))
+        {
+            ResetB[0].s = ISS_OFF;
+            ResetBP.s   = IPS_OK;
+            IDSetSwitch(&ResetBP, nullptr);
+
+            AverageReadingN[0].value = 0;
+            AverageReadingN[1].value = 0;
+            AverageReadingN[2].value = 0;
+            AverageReadingN[3].value = 0;
+
+            sumSQ = 0;
+            count = 0;
+        }
+    }
+
+    return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
 
 bool LPM::getReadings()
@@ -160,7 +190,7 @@ bool LPM::getReadings()
         AverageReadingN[0].value = mpsas;
         sumSQ += mpsas;
         
-        if (count > 0)
+        if (count > 1)
         {
             AverageReadingN[1].value = sumSQ / count;
             if (mpsas < AverageReadingN[2].value) {
@@ -239,7 +269,7 @@ bool LPM::getDeviceInfo()
 
 void LPM::TimerHit()
 {
-    LOG_INFO("TimerHit");
+    LOG_INFO("TimerHit ...");
     if (!isConnected())
         return;
 
