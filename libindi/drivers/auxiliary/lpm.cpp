@@ -85,15 +85,16 @@ LPM::LPM()
 
 LPM::~LPM()
 {
-    if (fp)
+    if (fp) {
         fclose(fp);
+    }
 }
 
 bool LPM::initProperties()
 {
     INDI::DefaultDevice::initProperties();
 
-    // Average Readings
+    // Readings from device
     IUFillNumber(&AverageReadingN[0], "SKY_BRIGHTNESS", "Quality (mag/arcsec^2)", "%6.2f", -20, 30, 0, 0);
     IUFillNumber(&AverageReadingN[1], "AVG_SKY_BRIGHTNESS", "Avg. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
     IUFillNumber(&AverageReadingN[2], "MIN_SKY_BRIGHTNESS", "Min. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
@@ -112,7 +113,7 @@ bool LPM::initProperties()
     IUFillSwitchVector(&SaveBP, SaveB, 2, getDeviceName(), "SAVE_READINGS", "",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    /* File */
+    // LPM-Readings-Log
     std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/lpm");
     IUFillText(&RecordFileT[0], "RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
     IUFillText(&RecordFileT[1], "RECORD_FILE_NAME", "Name", "lpmlog.txt");
@@ -203,13 +204,12 @@ bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
         {
             IUUpdateSwitch(&SaveBP, states, names, n);
             snprintf(filename, 2048, "%s/%s", RecordFileT[0].text, RecordFileT[1].text);
-            LOGF_INFO("%s\n", filename);
 
             if (SaveB[SAVE_READINGS].s == ISS_ON)
             {
                 LOGF_INFO("Save readings to %s", filename);
                 if (fp == nullptr) {
-                    LOG_INFO("open file pointer");
+                    LOG_DEBUG("open file pointer");
                     mkdir(RecordFileT[0].text,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
                     fp = fopen(filename, "a");
                 }
@@ -217,11 +217,11 @@ bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
             } else {
                 LOG_INFO("Discard readings");
                 if (fp != nullptr) {
-                    LOG_INFO("close file pointer");
+                    LOG_DEBUG("close file pointer");
                     fclose(fp);
                     fp = nullptr;
                 } else {
-                    LOG_INFO("no file open!");
+                    LOG_WARN("no file open!");
                 }
                 SaveBP.s = IPS_IDLE;
             }
@@ -245,7 +245,7 @@ bool LPM::getReadings()
     tty_write_string(PortFD, cmd, &nbytes_written);
     if (tty_read_section(PortFD, res, '#', 60000, &nbytes_read) == TTY_OK)
     {
-        LOGF_INFO("RES (%s)", res);
+        LOGF_DEBUG("RES (%s)", res);
         float mpsas;
         int rc =
             sscanf(res, "%f#", &mpsas);
@@ -256,7 +256,7 @@ bool LPM::getReadings()
         } else 
         {
             if (fp != nullptr) {
-                LOG_INFO("save reading...");
+                LOG_DEBUG("save reading...");
                 fprintf(fp, "%f\t%s\n", mpsas, timestamp());
                 fflush(fp);
             }
@@ -345,7 +345,6 @@ bool LPM::getDeviceInfo()
 
 void LPM::TimerHit()
 {
-    LOG_INFO("TimerHit ...");
     if (!isConnected())
         return;
 
