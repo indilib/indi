@@ -2,7 +2,7 @@
   Copyright(c) 2019 Christian Liska. All rights reserved.
 
   INDI Astromechanic Light Pollution Meter Driver
-
+  https://www.astromechanics.org/lpm.html
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the Free
@@ -22,9 +22,6 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 *******************************************************************************/
-
-// TODO save readings into file (format as specified by Astromechanics)
-
 #include "lpm.h"
 
 #include "indicom.h"
