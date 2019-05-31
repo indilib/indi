@@ -30,11 +30,12 @@ class LPM : public INDI::DefaultDevice
 {
   public:
     LPM();
-    virtual ~LPM() = default;
+    virtual ~LPM();
 
     virtual bool initProperties();
     virtual bool updateProperties();
     virtual bool ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n);
+    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n);
 
     /**
      * @struct LpmConnection
@@ -46,6 +47,12 @@ class LPM : public INDI::DefaultDevice
         CONNECTION_SERIAL = 1 << 1
     } LpmConnection;
 
+    enum
+    {
+        SAVE_READINGS,
+        DISCARD_READINGS
+    };
+
   protected:
     const char *getDefaultName();
     void TimerHit();
@@ -56,10 +63,17 @@ class LPM : public INDI::DefaultDevice
 
     // Readings
     INumberVectorProperty AverageReadingNP;
-    INumber AverageReadingN[4];
+    INumber AverageReadingN[4] {};
+
+    // Record File Info
+    IText RecordFileT[2] {};
+    ITextVectorProperty RecordFileTP;
 
     ISwitch ResetB[1];
     ISwitchVectorProperty ResetBP;
+
+    ISwitch SaveB[2] {};
+    ISwitchVectorProperty SaveBP;
 
     // Device Information
     INumberVectorProperty UnitInfoNP;
@@ -72,4 +86,6 @@ class LPM : public INDI::DefaultDevice
     float sumSQ = 0;
     
     uint8_t lpmConnection { CONNECTION_SERIAL };
+
+    FILE * fp = nullptr;
 };

@@ -23,6 +23,8 @@
   file called LICENSE.
 *******************************************************************************/
 
+// TODO save readings into file (format as specified by Astromechanics)
+
 #include "lpm.h"
 
 #include "indicom.h"
@@ -32,6 +34,7 @@
 #include <memory>
 #include <cstring>
 #include <unistd.h>
+#include <sys/stat.h>
 
 // We declare an auto pointer to LPM.
 std::unique_ptr<LPM> lpm(new LPM());
@@ -80,6 +83,12 @@ LPM::LPM()
     setVersion(0, 1);
 }
 
+LPM::~LPM()
+{
+    if (fp)
+        fclose(fp);
+}
+
 bool LPM::initProperties()
 {
     INDI::DefaultDevice::initProperties();
@@ -95,8 +104,20 @@ bool LPM::initProperties()
 
     // add reset button for SQ-Measurements
     IUFillSwitch(&ResetB[0], "RESET_BUTTON", "Reset", ISS_OFF);
-    IUFillSwitchVector(&ResetBP, ResetB, 1, getDeviceName(), "RESET_READINGS", "Readings",
+    IUFillSwitchVector(&ResetBP, ResetB, 1, getDeviceName(), "RESET_READINGS", "",
                        MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
+
+    IUFillSwitch(&SaveB[SAVE_READINGS], "SAVE_BUTTON", "Save Readings", ISS_OFF);
+    IUFillSwitch(&SaveB[DISCARD_READINGS], "DISCARD_BUTTON", "Discard Readings", ISS_OFF);
+    IUFillSwitchVector(&SaveBP, SaveB, 2, getDeviceName(), "SAVE_READINGS", "",
+                       MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
+
+    /* File */
+    std::string defaultDirectory = std::string(getenv("HOME")) + std::string("/lpm");
+    IUFillText(&RecordFileT[0], "RECORD_FILE_DIR", "Dir.", defaultDirectory.data());
+    IUFillText(&RecordFileT[1], "RECORD_FILE_NAME", "Name", "lpmlog.txt");
+    IUFillTextVector(&RecordFileTP, RecordFileT, NARRAY(RecordFileT), getDeviceName(), "RECORD_FILE", "Record File",
+                     MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
     // Unit Info
     IUFillNumber(&UnitInfoN[0], "Calibdata", "", "%6.2f", -20, 30, 0, 0);
@@ -123,30 +144,49 @@ bool LPM::updateProperties()
 
     if (isConnected())
     {
-        // Already called by handshake
-        //getDeviceInfo();
-
         defineNumber(&AverageReadingNP);
         defineNumber(&UnitInfoNP);
         defineSwitch(&ResetBP);
+        defineText(&RecordFileTP);
+        defineSwitch(&SaveBP);
     }
     else
     {
         deleteProperty(AverageReadingNP.name);
         deleteProperty(UnitInfoNP.name);
+        deleteProperty(RecordFileTP.name);
         deleteProperty(ResetBP.name);
+        deleteProperty(SaveBP.name);
     }
 
     return true;
 }
 
+bool LPM::ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n)
+{
+    if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
+    {
+        if (strcmp(name, RecordFileTP.name) == 0)
+        {
+            IUUpdateText(&RecordFileTP, texts, names, n);
+            RecordFileTP.s = IPS_OK;
+            IDSetText(&RecordFileTP, nullptr);
+            return true;
+        }
+    }
+
+    return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
+}
 bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
+    char filename[2048];
+
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Reset
         if (!strcmp(name, ResetBP.name))
         {
+            IUUpdateSwitch(&ResetBP, states, names, n);
             ResetB[0].s = ISS_OFF;
             ResetBP.s   = IPS_OK;
             IDSetSwitch(&ResetBP, nullptr);
@@ -158,7 +198,38 @@ bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
 
             sumSQ = 0;
             count = 0;
+            return true;
+        } else if (!strcmp(name, SaveBP.name))
+        {
+            IUUpdateSwitch(&SaveBP, states, names, n);
+            snprintf(filename, 2048, "%s/%s", RecordFileT[0].text, RecordFileT[1].text);
+            LOGF_INFO("%s\n", filename);
+
+            if (SaveB[SAVE_READINGS].s == ISS_ON)
+            {
+                LOGF_INFO("Save readings to %s", filename);
+                if (fp == nullptr) {
+                    LOG_INFO("open file pointer");
+                    mkdir(RecordFileT[0].text,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+                    fp = fopen(filename, "a");
+                }
+                SaveBP.s = IPS_OK;
+            } else {
+                LOG_INFO("Discard readings");
+                if (fp != nullptr) {
+                    LOG_INFO("close file pointer");
+                    fclose(fp);
+                    fp = nullptr;
+                } else {
+                    LOG_INFO("no file open!");
+                }
+                SaveBP.s = IPS_IDLE;
+            }
+
+            IDSetSwitch(&SaveBP, nullptr);
+            return true;
         }
+
     }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
@@ -184,6 +255,11 @@ bool LPM::getReadings()
             return false;
         } else 
         {
+            if (fp != nullptr) {
+                LOG_INFO("save reading...");
+                fprintf(fp, "%f\t%s\n", mpsas, timestamp());
+                fflush(fp);
+            }
             count++;
         }
 
