@@ -71,9 +71,9 @@ void ISSnoopDevice(XMLEle *root)
 
 SestoSenso::SestoSenso()
 {
-    setVersion(1, 2);
+    setVersion(1, 3);
     // Can move in Absolute & Relative motions, can AbortFocuser motion.
-    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT | FOCUSER_CAN_SYNC | FOCUSER_CAN_REVERSE);
+    FI::SetCapability(FOCUSER_CAN_ABS_MOVE | FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
 }
 
 bool SestoSenso::initProperties()
@@ -351,6 +351,8 @@ bool SestoSenso::SetFocuserMaxPosition(uint32_t ticks)
 
 bool SestoSenso::setMaxLimit(uint32_t limit)
 {
+    return true;
+
     char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
     snprintf(cmd, SESTO_LEN, "#SM;%07d!", limit);
 
@@ -372,6 +374,8 @@ bool SestoSenso::setMaxLimit(uint32_t limit)
 
 bool SestoSenso::setMinLimit(uint32_t limit)
 {
+    return true;
+
     char cmd[SESTO_LEN] = {0}, res[SESTO_LEN] = {0};
     snprintf(cmd, SESTO_LEN, "#Sm;%07d!", limit);
 
