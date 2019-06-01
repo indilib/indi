@@ -118,6 +118,7 @@ bool LPM::initProperties()
     IUFillText(&RecordFileT[1], "RECORD_FILE_NAME", "Name", "lpmlog.txt");
     IUFillTextVector(&RecordFileTP, RecordFileT, NARRAY(RecordFileT), getDeviceName(), "RECORD_FILE", "Record File",
                      MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
+    snprintf(filename, 2048, "%s/%s", RecordFileT[0].text, RecordFileT[1].text);
 
     // Unit Info
     IUFillNumber(&UnitInfoN[0], "Calibdata", "", "%6.2f", -20, 30, 0, 0);
@@ -171,16 +172,22 @@ bool LPM::ISNewText(const char *dev, const char *name, char *texts[], char *name
             IUUpdateText(&RecordFileTP, texts, names, n);
             RecordFileTP.s = IPS_OK;
             IDSetText(&RecordFileTP, nullptr);
+            snprintf(filename, 2048, "%s/%s", RecordFileT[0].text, RecordFileT[1].text);
+            LOGF_INFO("filename changed to %s", filename);
+            if (fp != nullptr)
+            {
+                fclose(fp);
+                openFilePtr();
+            }
             return true;
         }
     }
 
     return INDI::DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
+
 bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int n)
 {
-    char filename[2048];
-
     if (dev != nullptr && strcmp(dev, getDeviceName()) == 0)
     {
         // Reset
@@ -202,15 +209,12 @@ bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
         } else if (!strcmp(name, SaveBP.name))
         {
             IUUpdateSwitch(&SaveBP, states, names, n);
-            snprintf(filename, 2048, "%s/%s", RecordFileT[0].text, RecordFileT[1].text);
 
             if (SaveB[SAVE_READINGS].s == ISS_ON)
             {
                 LOGF_INFO("Save readings to %s", filename);
                 if (fp == nullptr) {
-                    LOG_DEBUG("open file pointer");
-                    mkdir(RecordFileT[0].text,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-                    fp = fopen(filename, "a");
+                    openFilePtr();
                 }
                 SaveBP.s = IPS_OK;
             } else {
@@ -232,6 +236,13 @@ bool LPM::ISNewSwitch(const char *dev, const char *name, ISState *states, char *
     }
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
+}
+
+void LPM::openFilePtr()
+{
+    LOG_DEBUG("open file pointer");
+    mkdir(RecordFileT[0].text,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    fp = fopen(filename, "a");
 }
 
 bool LPM::getReadings()

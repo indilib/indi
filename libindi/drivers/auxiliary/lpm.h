@@ -60,6 +60,7 @@ class LPM : public INDI::DefaultDevice
   private:
     bool getReadings();
     bool getDeviceInfo();
+    void openFilePtr();
 
     // Readings
     INumberVectorProperty AverageReadingNP;
@@ -84,7 +85,8 @@ class LPM : public INDI::DefaultDevice
     int PortFD { -1 };
     long count = 0;
     float sumSQ = 0;
-    
+    char filename[2048];
+
     uint8_t lpmConnection { CONNECTION_SERIAL };
 
     FILE * fp = nullptr;
