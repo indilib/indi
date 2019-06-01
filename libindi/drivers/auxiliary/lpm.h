@@ -63,7 +63,7 @@ class LPM : public INDI::DefaultDevice
 
     // Readings
     INumberVectorProperty AverageReadingNP;
-    INumber AverageReadingN[4] {};
+    INumber AverageReadingN[5] {};
 
     // Record File Info
     IText RecordFileT[2] {};

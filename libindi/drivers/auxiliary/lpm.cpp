@@ -32,6 +32,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <math.h>
 
 // We declare an auto pointer to LPM.
 std::unique_ptr<LPM> lpm(new LPM());
@@ -96,8 +97,9 @@ bool LPM::initProperties()
     IUFillNumber(&AverageReadingN[1], "AVG_SKY_BRIGHTNESS", "Avg. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
     IUFillNumber(&AverageReadingN[2], "MIN_SKY_BRIGHTNESS", "Min. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
     IUFillNumber(&AverageReadingN[3], "MAX_SKY_BRIGHTNESS", "Max. Quality (mag/argsec^2)", "%6.2f", -20, 30, 0, 0);
+    IUFillNumber(&AverageReadingN[4], "NAKED_EYES_LIMIT", "NELM (V mags)", "%6.2f", -20, 30, 0, 0);
 
-    IUFillNumberVector(&AverageReadingNP, AverageReadingN, 4, getDeviceName(), "SKY_QUALITY", "Readings",
+    IUFillNumberVector(&AverageReadingNP, AverageReadingN, 5, getDeviceName(), "SKY_QUALITY", "Readings",
                        MAIN_CONTROL_TAB, IP_RO, 0, IPS_IDLE);
 
     // add reset button for SQ-Measurements
@@ -262,7 +264,7 @@ bool LPM::getReadings()
 
         AverageReadingN[0].value = mpsas;
         sumSQ += mpsas;
-        
+
         if (count > 1)
         {
             AverageReadingN[1].value = sumSQ / count;
@@ -276,6 +278,8 @@ bool LPM::getReadings()
             AverageReadingN[2].value = mpsas;
             AverageReadingN[3].value = mpsas;
         }
+        //NELM (see http://unihedron.com/projects/darksky/NELM2BCalc.html)
+        AverageReadingN[4].value = 7.93-5*log(pow(10,(4.316-(mpsas/5)))+1)/log(10);
     }
     return true;
 }
