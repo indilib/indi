@@ -35,7 +35,7 @@
 #include <math.h>
 
 // We declare an auto pointer to LPM.
-std::unique_ptr<LPM> lpm(new LPM());
+static std::unique_ptr<LPM> lpm(new LPM());
 
 #define UNIT_TAB    "Unit"
 
@@ -286,7 +286,7 @@ bool LPM::getReadings()
 
 const char *LPM::getDefaultName()
 {
-    return (const char *)"LPM";
+    return "Astromechanics LPM";
 }
 
 bool LPM::getDeviceInfo()
