@@ -459,8 +459,8 @@
             <driver name="Weather Simulator">indi_simulator_weather</driver>
             <version>1.0</version>
         </device>
-        <device label="Astromech LPM">
-                <driver name="LPM">indi_astromech_lpm</driver>
+        <device label="Astromechanics LPM">
+                <driver name="Astromechanics LPM">indi_astromech_lpm</driver>
                 <version>0.1</version>
         </device>
         <device label="SQM">
