@@ -45,7 +45,7 @@ ENDIF ()
 set(INDI_SOVERSION "1")
 set(CMAKE_INDI_VERSION_MAJOR 1)
 set(CMAKE_INDI_VERSION_MINOR 7)
-set(CMAKE_INDI_VERSION_RELEASE 7)
+set(CMAKE_INDI_VERSION_RELEASE 8)
 set(CMAKE_INDI_VERSION_STRING "${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE}")
 set(INDI_VERSION ${CMAKE_INDI_VERSION_MAJOR}.${CMAKE_INDI_VERSION_MINOR}.${CMAKE_INDI_VERSION_RELEASE})
 
@@ -582,7 +582,8 @@ SET(lx200generic_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200ss2000pc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_OnStep.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/lx200_10micron.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronHC8406.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/ioptronHC8406.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/telescope/eq500x.cpp)
 
 IF (UNITY_BUILD)
     ENABLE_UNITY_BUILD(lx200generic lx200generic_SRCS 10 cpp)
@@ -611,6 +612,7 @@ exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_OnStep)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_lx200_10micron)\n
 exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_ioptronHC8406)\n
+exec_program(\"${CMAKE_COMMAND}\" ARGS -E create_symlink indi_lx200generic \$ENV{DESTDIR}${BIN_INSTALL_DIR}/indi_eq500x_telescope)\n
 ")
 set_target_properties(indi_lx200generic PROPERTIES POST_INSTALL_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/make_lx200generic_symlink.cmake)
 #################################################################################
@@ -826,6 +828,15 @@ add_executable(indi_celestron_sct_focus ${celestronsct_SRC})
 target_link_libraries(indi_celestron_sct_focus indidriver)
 install(TARGETS indi_celestron_sct_focus RUNTIME DESTINATION bin)
 
+################ AAF2 Focuser ################
+
+SET(aaf2_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/aaf2.cpp)
+
+add_executable(indi_aaf2_focus ${aaf2_SRC})
+target_link_libraries(indi_aaf2_focus indidriver)
+install(TARGETS indi_aaf2_focus RUNTIME DESTINATION bin)
+
 ################ Moonlite Focuser ################
 
 SET(moonlite_SRC
@@ -937,6 +948,15 @@ add_executable(indi_perfectstar_focus ${perfectstar_SRC})
 target_link_libraries(indi_perfectstar_focus indidriver)
 install(TARGETS indi_perfectstar_focus RUNTIME DESTINATION bin)
 
+################ Starlight Instruments EFS ################
+
+SET(siefs_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/si_efs.cpp)
+
+add_executable(indi_siefs_focus ${siefs_SRC})
+target_link_libraries(indi_siefs_focus indidriver)
+install(TARGETS indi_siefs_focus RUNTIME DESTINATION bin)
+
 ################ hitechfocus Focuser ################
 
 SET(hitecastrodcfocuser_SRC
@@ -946,7 +966,7 @@ add_executable(indi_hitecastrodc_focus ${hitecastrodcfocuser_SRC})
 target_link_libraries(indi_hitecastrodc_focus indidriver)
 install(TARGETS indi_hitecastrodc_focus RUNTIME DESTINATION bin)
 
-################ DeepSky Dad Focuser ################
+################ DeepSky Dad AF1 ################
 
 SET(deepskydad_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/deepskydad_af1.cpp)
@@ -954,6 +974,15 @@ SET(deepskydad_SRC
 add_executable(indi_deepskydad_af1_focus ${deepskydad_SRC})
 target_link_libraries(indi_deepskydad_af1_focus indidriver)
 install(TARGETS indi_deepskydad_af1_focus RUNTIME DESTINATION bin)
+
+################ DeepSky Dad AF2 ################
+
+SET(deepskydad_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/focuser/deepskydad_af2.cpp)
+
+add_executable(indi_deepskydad_af2_focus ${deepskydad_SRC})
+target_link_libraries(indi_deepskydad_af2_focus indidriver)
+install(TARGETS indi_deepskydad_af2_focus RUNTIME DESTINATION bin)
 
 ################ JMI Smart Focus Focuser ################
 
@@ -1262,6 +1291,15 @@ SET(snapcap_SRC
 add_executable(indi_snapcap ${snapcap_SRC})
 target_link_libraries(indi_snapcap indidriver)
 install(TARGETS indi_snapcap RUNTIME DESTINATION bin)
+
+########### Light Pollution Meter #############
+
+SET(lpm_SRC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/auxiliary/lpm.cpp)
+
+add_executable(indi_astromech_lpm ${lpm_SRC})
+target_link_libraries(indi_astromech_lpm indidriver)
+install(TARGETS indi_astromech_lpm RUNTIME DESTINATION bin)
 
 ########### Sky Quality Meter ###############
 

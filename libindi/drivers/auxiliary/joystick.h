@@ -23,6 +23,7 @@
 #pragma once
 
 #include "defaultdevice.h"
+#include <memory>
 
 class JoyStickDriver;
 
@@ -33,48 +34,51 @@ class JoyStickDriver;
  */
 class JoyStick : public INDI::DefaultDevice
 {
-  public:
-    JoyStick();
-    virtual ~JoyStick();
+    public:
+        JoyStick();
 
-    virtual bool initProperties() override;
-    virtual bool updateProperties() override;
-    virtual void ISGetProperties(const char *dev) override;
-    virtual bool ISSnoopDevice(XMLEle *root) override;
-    virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool initProperties() override;
+        virtual bool updateProperties() override;
+        virtual void ISGetProperties(const char *dev) override;
+        virtual bool ISSnoopDevice(XMLEle *root) override;
+        virtual bool ISNewText(const char *dev, const char *name, char *texts[], char *names[], int n) override;
+        virtual bool ISNewNumber(const char *dev, const char *name, double values[], char *names[], int n) override;
 
-    static void joystickHelper(int joystick_n, double mag, double angle);
-    static void axisHelper(int axis_n, int value);
-    static void buttonHelper(int button_n, int value);
+        static void joystickHelper(int joystick_n, double mag, double angle);
+        static void axisHelper(int axis_n, int value);
+        static void buttonHelper(int button_n, int value);
 
-  protected:
-    //  Generic indi device entries
-    virtual bool Connect() override;
-    virtual bool Disconnect() override;
-    virtual const char *getDefaultName() override;
+    protected:
+        //  Generic indi device entries
+        virtual bool Connect() override;
+        virtual bool Disconnect() override;
+        virtual const char *getDefaultName() override;
 
-    bool saveConfigItems(FILE *fp) override;
+        bool saveConfigItems(FILE *fp) override;
 
-    void setupParams();
+        void setupParams();
 
-    void joystickEvent(int joystick_n, double mag, double angle);
-    void axisEvent(int axis_n, int value);
-    void buttonEvent(int button_n, int value);
+        void joystickEvent(int joystick_n, double mag, double angle);
+        void axisEvent(int axis_n, int value);
+        void buttonEvent(int button_n, int value);
 
-    INumberVectorProperty *JoyStickNP = nullptr;
-    INumber *JoyStickN = nullptr;
+        INumberVectorProperty *JoyStickNP = nullptr;
+        INumber *JoyStickN = nullptr;
 
-    INumberVectorProperty AxisNP;
-    INumber *AxisN = nullptr;
+        INumberVectorProperty AxisNP;
+        INumber *AxisN = nullptr;
 
-    ISwitchVectorProperty ButtonSP;
-    ISwitch *ButtonS = nullptr;
+        INumberVectorProperty DeadZoneNP;
+        INumber *DeadZoneN = nullptr;
 
-    ITextVectorProperty PortTP; //  A text vector that stores out physical port name
-    IText PortT[1] {};
+        ISwitchVectorProperty ButtonSP;
+        ISwitch *ButtonS = nullptr;
 
-    ITextVectorProperty JoystickInfoTP;
-    IText JoystickInfoT[5] {};
+        ITextVectorProperty PortTP; //  A text vector that stores out physical port name
+        IText PortT[1] {};
 
-    JoyStickDriver *driver = nullptr;
+        ITextVectorProperty JoystickInfoTP;
+        IText JoystickInfoT[5] {};
+
+        std::unique_ptr<JoyStickDriver> driver;
 };

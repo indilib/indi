@@ -13,7 +13,7 @@ find_package(ZLIB REQUIRED)
 find_package(GSL REQUIRED)
 
 set(EQMOD_VERSION_MAJOR 0)
-set(EQMOD_VERSION_MINOR 6)
+set(EQMOD_VERSION_MINOR 7)
 
 if (CYGWIN)
 add_definitions(-U__STRICT_ANSI__)

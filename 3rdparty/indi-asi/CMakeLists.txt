@@ -11,7 +11,7 @@ find_package(ZLIB REQUIRED)
 find_package(USB1 REQUIRED)
 find_package(Threads REQUIRED)
 
-# Using ASI Camera SDK Version 1.14.0227 updated on 2019-03-12
+# Using ASI Camera SDK Version 1.14.0425 updated on 2019-05-01
 # Using ASI EFW SDK Version 0.3.1205 updated on 2017-12-05
 # Using ASI ST4 SDK Version 1.0 updated on 2018-07-23
 # Using ASI EAF SDK Version 0.0.1128 updated on 2019-01-21

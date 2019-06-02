@@ -55,7 +55,7 @@ namespace Connection {
             handle = curl_easy_init();
         }
         if (handle == nullptr) {
-            LOG_ERROR("Can't create HTTP handle");
+            LOG_ERROR("Cannot create HTTP handle");
             return false;
         }
 

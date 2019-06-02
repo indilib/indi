@@ -18,6 +18,14 @@
 
 #include "dsp.h"
 
+void dsp_signals_whitenoise(dsp_stream_p stream)
+{
+    for(int k = 0; k < stream->len; k++) {
+        stream->buf[k] = (rand() % 255) / 255.0;
+    }
+
+}
+
 void dsp_signals_sinewave(dsp_stream_p stream, double samplefreq, double freq)
 {
     freq /= samplefreq;
