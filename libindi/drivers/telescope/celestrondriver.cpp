@@ -139,6 +139,8 @@ void CelestronDriver::set_sim_response(const char *fmt, ...)
     }
 }
 
+//static pthread_mutex_t tty_lock = PTHREAD_MUTEX_INITIALIZER;
+
 // Send a command to the mount. Return the number of bytes received or 0 if
 // case of error
 int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
@@ -160,10 +162,12 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
 
     if (!simulation && fd)
     {
+        //pthread_mutex_lock(&tty_lock);
         if ((err = serial_write(cmd, cmd_len, &nbytes)) != TTY_OK)
         {
             tty_error_msg(err, errmsg, MAXRBUF);
             LOGF_ERROR("Serial write error: %s", errmsg);
+            //pthread_mutex_unlock(&tty_lock);
             return 0;
         }
 
@@ -191,9 +195,11 @@ int CelestronDriver::send_command(const char *cmd, int cmd_len, char *resp,
             {
                 tty_error_msg(err, errmsg, MAXRBUF);
                 LOGF_ERROR("Serial read error: %s", errmsg);
+                //pthread_mutex_unlock(&tty_lock);
                 return 0;
             }
         }
+        //pthread_mutex_unlock(&tty_lock);
     }
 
     if (nbytes != resp_len)
@@ -274,7 +280,7 @@ bool CelestronDriver::get_firmware(FirmwareInfo *info)
     // variant is only available for NexStar + versions 5.28 or more and Starsense.
     // StarSense versions are currently 1.9 so overlap the early NexStar versions.
     // NS HCs before 2.0 will test and timeout
-    if (info->controllerVersion < 2.0 && info->controllerVersion >= 5.28)
+    if (info->controllerVersion < 2.2 || info->controllerVersion >= 5.28)
     {
         get_variant(&(info->controllerVariant));
     }
@@ -578,6 +584,7 @@ bool CelestronDriver::sync(double ra, double dec, bool precise)
     return send_command(cmd, strlen(cmd), response, 1, true, true);
 }
 
+// NS+ 5.28 and more only, not StarSense
 bool CelestronDriver::unsync()
 {
     LOG_DEBUG("Unsync");
@@ -705,6 +712,11 @@ bool CelestronDriver::get_location(double *longitude, double *latitude)
     *longitude += response[6] / 3600.0;
     if(response[7] != 0)
         *longitude = -*longitude;
+
+    // convert longitude to INDI range 0 to 359.999
+    if (*longitude < 0)
+        *longitude += 360.0;
+
     return true;
 }
 
@@ -805,14 +817,15 @@ bool CelestronDriver::get_utc_date_time(double *utc_hours, int *yy, int *mm,
     return true;
 }
 
-bool CelestronDriver::is_slewing()
+bool CelestronDriver::is_slewing(bool *slewing)
 {
     set_sim_response("%d#", sim_data.isSlewing);
 
     if (!send_command("L", 1, response, 2, true, true))
         return false;
 
-    return response[0] != '0';
+    *slewing = response[0] != '0';
+    return true;
 }
 
 bool CelestronDriver::get_track_mode(CELESTRON_TRACK_MODE *mode)
@@ -886,14 +899,34 @@ bool CelestronDriver:: get_pier_side(char *side_of_pier)
 }
 
 // check if the mount is aligned using the mount J command
-bool CelestronDriver::check_aligned()
+bool CelestronDriver::check_aligned(bool *isAligned)
 {
     // returns 0x01 or 0x00
     set_sim_response("\x01#");
     if (!send_command("J", 1, response, 2, true, false))
         return false;
 
-    return response[0] == 0x01;
+    *isAligned = response[0] == 0x01;
+    return true;
+}
+
+bool CelestronDriver::set_track_rate(CELESTRON_TRACK_RATE rate, CELESTRON_TRACK_MODE mode)
+{
+    set_sim_response("#");
+    char cmd;
+    switch (mode)
+    {
+    case CTM_EQN:
+        cmd = MC_SET_POS_GUIDERATE;
+        break;
+    case CTM_EQS:
+        cmd = MC_SET_NEG_GUIDERATE;
+        break;
+    default:
+        return false;
+    }
+    char payload[] = {(char)(rate >> 8 & 0xff), (char)(rate & 0xff)};
+    return send_passthrough(CELESTRON_DEV_RA, cmd, payload, 2, response, 0);
 }
 
 // focuser commands
@@ -919,7 +952,7 @@ bool CelestronDriver::foc_exists()
         vernum = (static_cast<uint8_t>(response[0]) << 24) + (static_cast<uint8_t>(response[1]) << 16) + (static_cast<uint8_t>(response[2]) << 8) + static_cast<uint8_t>(response[3]);
         break;
     default:
-        LOG_DEBUG("No focuser found");
+        LOGF_DEBUG("No focuser found, %i", echo());
         return false;
     }
 

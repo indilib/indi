@@ -87,7 +87,7 @@ bool CelestronSCT::initProperties()
     // Focuser backlash
     // CR this is a value, positive or negative to define the direction.  It will need to be implemented
     // in the driver.
-    IUFillNumber(&BacklashN[0], "STEPS", "Steps", "%.f", -500., 500, 1., 0.);
+    IUFillNumber(&BacklashN[0], "STEPS", "Steps", "%.f", -500., 500., 1., 0.);
     IUFillNumberVector(&BacklashNP, BacklashN, 1, getDeviceName(), "FOCUS_BACKLASH", "Backlash",
                        MAIN_CONTROL_TAB, IP_RW, 0, IPS_IDLE);
 
@@ -246,24 +246,32 @@ bool CelestronSCT::readLimits()
     int lo = (reply[0] << 24) + (reply[1] << 16) + (reply[2] << 8) + reply[3];
     int hi = (reply[4] << 24) + (reply[5] << 16) + (reply[6] << 8) + reply[7];
 
-    // check on integrity of values, they must be sensible and the range must be more than 2 turns
-    if (hi - lo < 2000 || hi < 0 || hi > 60000 || lo < 0 || lo > 50000)
-    {
-        LOGF_INFO("Focus range %i to %i invalid, range not updated", hi, lo);
-        return false;
-    }
-
     FocusAbsPosN[0].max = hi;
     FocusAbsPosN[0].min = lo;
     FocusAbsPosNP.s = IPS_OK;
+    IUUpdateMinMax(&FocusAbsPosNP);
 
     FocusMaxPosN[0].value = hi;
     FocusMaxPosNP.s = IPS_OK;
+    IDSetNumber(&FocusMaxPosNP, nullptr);
 
     FocusMinPosN[0].value = lo;
     FocusMinPosNP.s = IPS_OK;
+    IDSetNumber(&FocusMinPosNP, nullptr);
 
-    LOGF_INFO("Focus Limits: Maximum (%i) Minimum (%i) steps.", hi, lo);
+    // check on integrity of values, they must be sensible and the range must be more than 2 turns
+    if (hi > 0 && lo > 0 && hi - lo > 2000 && hi <= 60000 && lo < 50000)
+    {
+        focuserIsCalibrated = true;
+        LOGF_INFO("Focus range %i to %i valid", hi, lo);
+    }
+    else
+    {
+        focuserIsCalibrated = false;
+        LOGF_INFO("Focus range %i to %i invalid", hi, lo);
+        return false;
+    }
+
     return true;
 }
 
@@ -319,7 +327,6 @@ bool CelestronSCT::ISNewSwitch(const char * dev, const char * name, ISState *sta
     return INDI::Focuser::ISNewSwitch(dev, name, states, names, n);
 }
 
-
 bool CelestronSCT::getStartupParameters()
 {
     bool rc1 = false, rc2 = false;
@@ -327,18 +334,9 @@ bool CelestronSCT::getStartupParameters()
     if ( (rc1 = readPosition()))
         IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    //    if ( (rc2 = readBacklash()))
-    //        IDSetNumber(&BacklashNP, nullptr);
-
-    //    if ( (rc3 = readSpeed()))
-    //        IDSetNumber(&FocusSpeedNP, nullptr);
-
-    if ( (rc2 = readLimits()))
+    if ( !(rc2 = readLimits()))
     {
-        IUUpdateMinMax(&FocusAbsPosNP);
-
-        IDSetNumber(&FocusMaxPosNP, nullptr);
-        IDSetNumber(&FocusMinPosNP, nullptr);
+        LOG_WARN("Focuser not calibrated, You MUST calibrate before moves are allowed.");
     }
 
     return (rc1 && rc2);
@@ -347,10 +345,28 @@ bool CelestronSCT::getStartupParameters()
 IPState CelestronSCT::MoveAbsFocuser(uint32_t targetTicks)
 {
     // Send command to focuser
-    // CR This will need changing to implement backlash
     // If OK and moving, return IPS_BUSY (CR don't see this, it seems to just start a new move)
     // If OK and motion already done (was very small), return IPS_OK
     // If error, return IPS_ALERT
+
+    if (!focuserIsCalibrated)
+    {
+        LOG_ERROR("Move not allowed because focuser is not calibrated.");
+        return IPS_ALERT;
+    }
+    if (calibrateInProgress)
+    {
+        LOG_WARN("Move not allowed because a calinration is in progress");
+        return IPS_ALERT;
+    }
+
+    // the focuser seems happy to move 500 steps past the soft limit so don't check backlash
+    if (targetTicks > FocusMaxPosN[0].value ||
+            targetTicks < FocusMinPosN[0].value)
+    {
+        LOGF_ERROR("Move to %i not allowed because it is out of range", targetTicks);
+        return IPS_ALERT;
+    }
 
     uint32_t position = targetTicks;
 
@@ -494,6 +510,11 @@ void CelestronSCT::TimerHit()
 
 bool CelestronSCT::AbortFocuser()
 {
+    if (calibrateInProgress)
+    {
+        LOG_WARN("Abort move not allowed when calibrating, use abort calibration to stop");
+        return false;
+    }
     // send a command to move at rate 0
     Aux::buffer data = {0};
     return communicator.commandBlind(PortFD, Aux::Target::FOCUSER, Aux::Command::MC_MOVE_POS, data);

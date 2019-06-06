@@ -74,9 +74,7 @@ DefaultDevice::~DefaultDevice()
 bool DefaultDevice::loadConfig(bool silent, const char *property)
 {
     char errmsg[MAXRBUF];
-    bool pResult = false;
-
-    pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
+    bool pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
 
     if (!silent)
     {
@@ -86,9 +84,9 @@ bool DefaultDevice::loadConfig(bool silent, const char *property)
         }
         else
             LOGF_WARN(
-                   "Failed to load user configuration. %s. To save user configuration, click Save under the "
-                   "Configuration property in the Options tab. ",
-                   errmsg);
+                "Failed to load user configuration. %s. To save user configuration, click Save under the "
+                "Configuration property in the Options tab. ",
+                errmsg);
     }
 
     IUSaveDefaultConfig(nullptr, nullptr, deviceID);
@@ -113,18 +111,15 @@ bool DefaultDevice::saveAllConfigItems(FILE *fp)
 {
     std::vector<INDI::Property *>::iterator orderi;
 
-    INDI_PROPERTY_TYPE pType;
-    void *pPtr;
-
     ISwitchVectorProperty *svp = nullptr;
     INumberVectorProperty *nvp = nullptr;
     ITextVectorProperty *tvp   = nullptr;
     IBLOBVectorProperty *bvp   = nullptr;
 
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
     {
-        pType = (*orderi)->getType();
-        pPtr  = (*orderi)->getProperty();
+        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
+        void *pPtr  = (*orderi)->getProperty();
 
         switch (pType)
         {
@@ -153,6 +148,19 @@ bool DefaultDevice::saveAllConfigItems(FILE *fp)
                 break;
         }
     }
+    return true;
+}
+
+bool DefaultDevice::purgeConfig()
+{
+    char errmsg[MAXRBUF];
+    if (IUPurgeConfig(nullptr, deviceID, errmsg) == -1)
+    {
+        LOGF_WARN("%s", errmsg);
+        return false;
+    }
+
+    LOG_INFO("Configuration file successfully purged.");
     return true;
 }
 
@@ -193,7 +201,7 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         if (fp == nullptr)
         {
             //if (!silent)
-             //   LOGF_ERROR("Error saving configuration. %s", errmsg);
+            //   LOGF_ERROR("Error saving configuration. %s", errmsg);
             //return false;
             // If we don't have an existing file pointer, save all properties.
             return saveConfig(silent);
@@ -307,7 +315,8 @@ bool DefaultDevice::saveConfig(bool silent, const char *property)
         else
         {
             delXMLEle(root);
-            return false;
+            // If property does not exist, save the whole thing
+            return saveConfig(silent);
         }
     }
 
@@ -492,6 +501,8 @@ bool DefaultDevice::ISNewSwitch(const char *dev, const char *name, ISState *stat
             pResult = saveConfig();
         else if (!strcmp(sp->name, "CONFIG_DEFAULT"))
             pResult = loadDefaultConfig();
+        else if (!strcmp(sp->name, "CONFIG_PURGE"))
+            pResult = purgeConfig();
 
         if (pResult)
             svp->s = IPS_OK;
@@ -555,7 +566,7 @@ bool DefaultDevice::ISNewText(const char *dev, const char *name, char *texts[], 
 }
 
 bool DefaultDevice::ISNewBLOB(const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[],
-                                    char *formats[], char *names[], int n)
+                              char *formats[], char *names[], int n)
 {
     INDI_UNUSED(dev);
     INDI_UNUSED(name);
@@ -703,9 +714,6 @@ void DefaultDevice::simulationTriggered(bool enable)
 
 void DefaultDevice::ISGetProperties(const char *dev)
 {
-    INDI_PROPERTY_TYPE pType;
-    void *pPtr;
-
     if (isInit == false)
     {
         if (dev != nullptr)
@@ -730,8 +738,8 @@ void DefaultDevice::ISGetProperties(const char *dev)
 
     for (INDI::Property *oneProperty : pAll)
     {
-        pType = oneProperty->getType();
-        pPtr  = oneProperty->getProperty();
+        INDI_PROPERTY_TYPE pType = oneProperty->getType();
+        void *pPtr = oneProperty->getProperty();
 
         if (defineDynamicProperties == false && oneProperty->isDynamic())
             continue;
@@ -796,13 +804,11 @@ void DefaultDevice::ISGetProperties(const char *dev)
 void DefaultDevice::resetProperties()
 {
     std::vector<INDI::Property *>::iterator orderi;
-    INDI_PROPERTY_TYPE pType;
-    void *pPtr;
 
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
     {
-        pType = (*orderi)->getType();
-        pPtr  = (*orderi)->getProperty();
+        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
+        void *pPtr  = (*orderi)->getProperty();
 
         switch (pType)
         {
@@ -861,9 +867,9 @@ void DefaultDevice::setConnected(bool status, IPState state, const char *msg)
     svp->s = state;
 
     if (msg == nullptr)
-      IDSetSwitch(svp, nullptr);
+        IDSetSwitch(svp, nullptr);
     else
-      IDSetSwitch(svp, "%s", msg);
+        IDSetSwitch(svp, "%s", msg);
 }
 
 //  This is a helper function
@@ -942,10 +948,11 @@ bool DefaultDevice::initProperties()
     IUFillSwitch(&ConfigProcessS[0], "CONFIG_LOAD", "Load", ISS_OFF);
     IUFillSwitch(&ConfigProcessS[1], "CONFIG_SAVE", "Save", ISS_OFF);
     IUFillSwitch(&ConfigProcessS[2], "CONFIG_DEFAULT", "Default", ISS_OFF);
+    IUFillSwitch(&ConfigProcessS[3], "CONFIG_PURGE", "Purge", ISS_OFF);
     IUFillSwitchVector(&ConfigProcessSP, ConfigProcessS, NARRAY(ConfigProcessS), getDeviceName(), "CONFIG_PROCESS",
                        "Configuration", "Options", IP_RW, ISR_ATMOST1, 0, IPS_IDLE);
 
-    IUFillNumber(&PollPeriodN[0], "PERIOD_MS", "Period (ms)", "%.f", 10, 60000, 1000, POLLMS);
+    IUFillNumber(&PollPeriodN[0], "PERIOD_MS", "Period (ms)", "%.f", 10, 600000, 1000, POLLMS);
     IUFillNumberVector(&PollPeriodNP, PollPeriodN, 1, getDeviceName(), "POLLING_PERIOD", "Polling", "Options", IP_RW, 0, IPS_IDLE);
 
     INDI::Logger::initProperties(this);
@@ -1030,9 +1037,7 @@ bool DefaultDevice::Connect()
         return false;
     }
 
-    bool rc = false;
-
-    rc = activeConnection->Connect();
+    bool rc = activeConnection->Connect();
 
     if (rc)
     {

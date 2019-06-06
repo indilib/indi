@@ -3,7 +3,7 @@ Starbook INDI Driver
 
 This package provides the INDI driver for the Vixen Starbook telescope controllers. This driver aims for compatibility
 with first generation Starbook.
-Starbook 10 is not tested with this driver.
+Starbook TEN is working to some extent with this driver. Commands exclusive to Starbook TEN won't be available.
 
 Requirements
 ------------
@@ -24,6 +24,8 @@ In order to build this package you need:
 
 Usage
 -----
+
+*General info*
 
 Starbook is easy to hang up. You won't get smooth operation by design.
 Driver was written with this in mind so it will put few limitations on a user.
@@ -61,5 +63,10 @@ IMPORTANT NOTE: watch your mount at all times, don't trust this driver.
     - Hit `Initialize` button in `Main control` tab
 8. ...
 9. Profit?
+
+*Operation*
+
+Starbook exposes high-level interface. Only basic features like slewing and tracking are available.
+
 
 Have fun and don't look at the Sun!

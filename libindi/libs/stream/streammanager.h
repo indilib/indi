@@ -91,6 +91,7 @@ namespace INDI
 {
 
 class CCD;
+class Detector;
 
 class StreamManager
 {
@@ -103,7 +104,7 @@ class StreamManager
             RECORD_OFF
         };
 
-        StreamManager(CCD *mainCCD);
+        StreamManager(DefaultDevice *currentDevice);
         virtual ~StreamManager();
 
         virtual void ISGetProperties(const char *dev);
@@ -188,12 +189,12 @@ class StreamManager
         bool close();
 
     protected:
-        CCD *currentCCD = nullptr;
+        DefaultDevice *currentDevice = nullptr;
 
     private:
         /* Utility for record file */
         int mkpath(std::string s, mode_t mode);
-        std::string expand(std::string fname, const std::map<std::string, std::string> &patterns);
+        std::string expand(const std::string &fname, const std::map<std::string, std::string> &patterns);
 
         bool startRecording();
         // Stop recording. Force stop even in abnormal state if needed.
@@ -247,8 +248,8 @@ class StreamManager
         INumber StreamFrameN[4];
 
         /* BLOBs */
-        IBLOBVectorProperty *imageBP;
-        IBLOB *imageB;
+        IBLOBVectorProperty *imageBP = nullptr;
+        IBLOB *imageB = nullptr;
 
         // Encoder Selector. It's static now but should this implemented as plugin interface?
         ISwitch EncoderS[2];
@@ -270,7 +271,7 @@ class StreamManager
         // Recorder
         RecorderManager *recorderManager = nullptr;
         RecorderInterface *recorder = nullptr;
-        bool direct_record;
+        bool direct_record = false;
         std::string recordfiledir, recordfilename; /* in case we should move it */
 
         // Encoders
@@ -279,7 +280,7 @@ class StreamManager
 
         // Measure FPS
         struct itimerval tframe1, tframe2;
-        uint32_t mssum, m_FrameCounterPerSecond;
+        uint32_t mssum = 0, m_FrameCounterPerSecond = 0;
 
         INDI_PIXEL_FORMAT m_PixelFormat = INDI_MONO;
         uint8_t m_PixelDepth = 8;

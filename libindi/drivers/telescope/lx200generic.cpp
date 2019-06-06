@@ -47,6 +47,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <memory>
 #include <cstring>
 #include <unistd.h>
+#include "eq500x.h"
 
 // We declare an auto pointer to LX200Generic.
 static std::unique_ptr<LX200Generic> telescope;
@@ -183,6 +184,13 @@ void ISInit()
 
         if (telescope.get() == nullptr)
             telescope.reset(new LX200_10MICRON());
+    }
+    else if (strstr(me, "indi_eq500x"))
+    {
+        IDLog("initializing for EQ500X mount...\n");
+
+        if (telescope.get() == nullptr)
+            telescope.reset(new EQ500X());
     }
     // be nice and give them a generic device
     else if (telescope.get() == nullptr)

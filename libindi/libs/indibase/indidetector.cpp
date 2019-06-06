@@ -17,9 +17,12 @@
  Boston, MA 02110-1301, USA.
 *******************************************************************************/
 
+#include "defaultdevice.h"
 #include "indidetector.h"
 
 #include "indicom.h"
+#include "stream/streammanager.h"
+#include "locale_compat.h"
 
 #include <fitsio.h>
 
@@ -65,13 +68,16 @@ static int _det_mkdir(const char *dir, mode_t mode)
     return 0;
 }
 
+namespace INDI
+{
+
 DetectorDevice::DetectorDevice()
 {
-    ContinuumBuffer     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
+    ContinuumBuffer     = static_cast<uint8_t *>(malloc(sizeof(uint8_t))); // Seed for realloc
     ContinuumBufferSize = 0;
-    TimeDeviationBuffer     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
+    TimeDeviationBuffer     = static_cast<uint8_t *>(malloc(sizeof(uint8_t))); // Seed for realloc
     TimeDeviationBufferSize = 0;
-    SpectrumBuffer     = (uint8_t *)malloc(sizeof(uint8_t)); // Seed for realloc
+    SpectrumBuffer     = static_cast<uint8_t *>(malloc(sizeof(uint8_t))); // Seed for realloc
     SpectrumBufferSize = 0;
 
     BPS         = 8;
@@ -95,7 +101,7 @@ DetectorDevice::~DetectorDevice()
 }
 
 void DetectorDevice::setMinMaxStep(const char *property, const char *element, double min, double max, double step,
-                            bool sendToClient)
+                                   bool sendToClient)
 {
     INumberVectorProperty *vp = nullptr;
 
@@ -172,7 +178,7 @@ void DetectorDevice::setContinuumBufferSize(int nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    ContinuumBuffer = (uint8_t *)realloc(ContinuumBuffer, nbuf * sizeof(uint8_t));
+    ContinuumBuffer = static_cast<uint8_t *>(realloc(ContinuumBuffer, nbuf * sizeof(uint8_t)));
 }
 
 void DetectorDevice::setTimeDeviationBufferSize(int nbuf, bool allocMem)
@@ -185,7 +191,7 @@ void DetectorDevice::setTimeDeviationBufferSize(int nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    TimeDeviationBuffer = (uint8_t *)realloc(TimeDeviationBuffer, nbuf * sizeof(uint8_t));
+    TimeDeviationBuffer = static_cast<uint8_t *>(realloc(TimeDeviationBuffer, nbuf * sizeof(uint8_t)));
 }
 
 void DetectorDevice::setSpectrumBufferSize(int nbuf, bool allocMem)
@@ -198,7 +204,7 @@ void DetectorDevice::setSpectrumBufferSize(int nbuf, bool allocMem)
     if (allocMem == false)
         return;
 
-    SpectrumBuffer = (uint8_t *)realloc(SpectrumBuffer, nbuf * sizeof(uint8_t));
+    SpectrumBuffer = static_cast<uint8_t *>(realloc(SpectrumBuffer, nbuf * sizeof(uint8_t)));
 }
 
 void DetectorDevice::setCaptureLeft(double duration)
@@ -211,7 +217,7 @@ void DetectorDevice::setCaptureLeft(double duration)
 void DetectorDevice::setCaptureDuration(double duration)
 {
     captureDuration = duration;
-    gettimeofday(&startCaptureTime, nullptr);
+    clock_gettime(CLOCK_REALTIME, &startCaptureTime);
 }
 
 const char *DetectorDevice::getCaptureStartTime()
@@ -221,11 +227,11 @@ const char *DetectorDevice::getCaptureStartTime()
     char iso8601[32];
     struct tm *tp;
     time_t t = (time_t)startCaptureTime.tv_sec;
-    int u    = startCaptureTime.tv_usec / 1000.0;
+    long n    = startCaptureTime.tv_nsec % 1000000000;
 
     tp = gmtime(&t);
     strftime(iso8601, sizeof(iso8601), "%Y-%m-%dT%H:%M:%S", tp);
-    snprintf(ts, 32, "%s.%03d", iso8601, u);
+    snprintf(ts, 32, "%s.%09ld", iso8601, n);
     return (ts);
 }
 
@@ -250,9 +256,6 @@ void DetectorDevice::setCaptureExtension(const char *ext)
     strncpy(captureExtention, ext, MAXINDIBLOBFMT);
 }
 
-namespace INDI
-{
-
 Detector::Detector()
 {
     //ctor
@@ -265,11 +268,13 @@ Detector::Detector()
     ShowMarker       = false;
 
     CaptureTime       = 0.0;
-    CurrentFilterSlot  = -1;
 
     RA              = -1000;
     Dec             = -1000;
     MPSAS           = -1000;
+    Lat             = -1000;
+    Lon             = -1000;
+    El              = -1000;
     primaryAperture = primaryFocalLength - 1;
 }
 
@@ -282,6 +287,12 @@ void Detector::SetDetectorCapability(uint32_t cap)
     capability = cap;
 
     setDriverInterface(getDriverInterface());
+
+    if (HasStreaming() && Streamer.get() == nullptr)
+    {
+        Streamer.reset(new StreamManager(this));
+        Streamer->initProperties();
+    }
 }
 
 bool Detector::initProperties()
@@ -303,7 +314,8 @@ bool Detector::initProperties()
                        "Capture", MAIN_CONTROL_TAB, IP_RW, 60, IPS_IDLE);
 
     // PrimaryDetector Abort
-    if(CanAbort()) {
+    if(CanAbort())
+    {
         IUFillSwitch(&PrimaryDetector.AbortCaptureS[0], "ABORT", "Abort", ISS_OFF);
         IUFillSwitchVector(&PrimaryDetector.AbortCaptureSP, PrimaryDetector.AbortCaptureS, 1, getDeviceName(), "DETECTOR_ABORT_CAPTURE",
                            "Capture Abort", MAIN_CONTROL_TAB, IP_RW, ISR_ATMOST1, 60, IPS_IDLE);
@@ -318,21 +330,25 @@ bool Detector::initProperties()
 
     // PrimaryDetector Device Continuum Blob
     int ctr = 0;
-    if(HasContinuum()) {
+    if(HasContinuum())
+    {
         IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_CONTINUUM], "CONTINUUM", "Continuum", "");
         ctr ++;
     }
-    if(HasSpectrum()) {
+    if(HasSpectrum())
+    {
         IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_SPECTRUM], "SPECTRUM", "Spectrum", "");
         ctr ++;
     }
-    if(HasTimeDeviation()) {
+    if(HasTimeDeviation())
+    {
         IUFillBLOB(&PrimaryDetector.FitsB[DetectorDevice::DETECTOR_BLOB_TDEV], "TDEV", "Time Deviation", "");
         ctr ++;
     }
-    if(ctr > 0) {
+    if(ctr > 0)
+    {
         IUFillBLOBVector(&PrimaryDetector.FitsBP, PrimaryDetector.FitsB, ctr, getDeviceName(), "DETECTOR", "Capture Data", CAPTURE_INFO_TAB,
-                     IP_RO, 60, IPS_IDLE);
+                         IP_RO, 60, IPS_IDLE);
     }
 
     /**********************************************/
@@ -402,6 +418,9 @@ void Detector::ISGetProperties(const char *dev)
 
     defineText(&ActiveDeviceTP);
     loadConfig(true, "ACTIVE_DEVICES");
+
+    if (HasStreaming())
+        Streamer->ISGetProperties(dev);
 }
 
 bool Detector::updateProperties()
@@ -450,6 +469,9 @@ bool Detector::updateProperties()
         deleteProperty(UploadSettingsTP.name);
     }
 
+    if (HasStreaming())
+        Streamer->updateProperties();
+
     return true;
 }
 
@@ -485,19 +507,6 @@ bool Detector::ISSnoopDevice(XMLEle *root)
                 primaryFocalLength = atof(pcdataXMLEle(ep));
             }
         }
-    }
-    else if (!strcmp(propName, "FILTER_NAME"))
-    {
-        FilterNames.clear();
-
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            FilterNames.push_back(pcdataXMLEle(ep));
-    }
-    else if (!strcmp(propName, "FILTER_SLOT"))
-    {
-        CurrentFilterSlot = -1;
-        for (ep = nextXMLEle(root, 1); ep != nullptr; ep = nextXMLEle(root, 0))
-            CurrentFilterSlot = atoi(pcdataXMLEle(ep));
     }
     else if (!strcmp(propName, "SKY_QUALITY"))
     {
@@ -560,6 +569,9 @@ bool Detector::ISNewText(const char *dev, const char *name, char *texts[], char 
             return true;
         }
     }
+
+    if (HasStreaming())
+        Streamer->ISNewText(dev, name, texts, names, n);
 
     return DefaultDevice::ISNewText(dev, name, texts, names, n);
 }
@@ -631,6 +643,9 @@ bool Detector::ISNewNumber(const char *dev, const char *name, double values[], c
         }
     }
 
+    if (HasStreaming())
+        Streamer->ISNewNumber(dev, name, values, names, n);
+
     return DefaultDevice::ISNewNumber(dev, name, values, names, n);
 }
 
@@ -695,6 +710,9 @@ bool Detector::ISNewSwitch(const char *dev, const char *name, ISState *states, c
             return true;
         }
     }
+
+    if (HasStreaming())
+        Streamer->ISNewSwitch(dev, name, states, names, n);
 
     return DefaultDevice::ISNewSwitch(dev, name, states, names, n);
 }
@@ -769,13 +787,6 @@ void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uin
     if (HasCooler())
         fits_update_key_s(fptr, TDOUBLE, "DETECTOR-TEMP", &(TemperatureN[0].value), "PrimaryDetector Temperature (Celsius)", &status);
 
-    if (CurrentFilterSlot != -1 && CurrentFilterSlot <= (int)FilterNames.size())
-    {
-        char filter[32];
-        strncpy(filter, FilterNames.at(CurrentFilterSlot - 1).c_str(), 32);
-        fits_update_key_s(fptr, TSTRING, "FILTER", filter, "Filter", &status);
-    }
-
 #ifdef WITH_MINMAX
     if (targetDevice->getNAxis() == 2)
     {
@@ -795,44 +806,72 @@ void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uin
         fits_update_key_s(fptr, TDOUBLE, "MPSAS", &MPSAS, "Sky Quality (mag per arcsec^2)", &status);
     }
 
-    if (RA != -1000 && Dec != -1000)
+    INumberVectorProperty *nv = this->getNumber("GEOGRAPHIC_COORDS");
+    if(nv != nullptr)
     {
-        ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
-        epochPos.ra  = RA * 15.0;
-        epochPos.dec = Dec;
+        Lat = nv->np[0].value;
+        Lon = nv->np[1].value;
+        El = nv->np[2].value;
 
-        // Convert from JNow to J2000
-        //TODO use exp_start instead of julian from system
-        ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
-
-        double raJ2000  = J2000Pos.ra / 15.0;
-        double decJ2000 = J2000Pos.dec;
-        char ra_str[32], de_str[32];
-
-        fs_sexa(ra_str, raJ2000, 2, 360000);
-        fs_sexa(de_str, decJ2000, 2, 360000);
-
-        char *raPtr = ra_str, *dePtr = de_str;
-        while (*raPtr != '\0')
+        if (Lat != -1000 && Lon != -1000 && El != -1000)
         {
-            if (*raPtr == ':')
-                *raPtr = ' ';
-            raPtr++;
+            char lat_str[MAXINDIFORMAT];
+            char lon_str[MAXINDIFORMAT];
+            char el_str[MAXINDIFORMAT];
+            fs_sexa(lat_str, Lat, 2, 360000);
+            fs_sexa(lat_str, Lon, 2, 360000);
+            snprintf(el_str, MAXINDIFORMAT, "%lf", El);
+            fits_update_key_s(fptr, TSTRING, "LATITUDE", lat_str, "Location Latitude", &status);
+            fits_update_key_s(fptr, TSTRING, "LONGITUDE", lon_str, "Location Longitude", &status);
+            fits_update_key_s(fptr, TSTRING, "ELEVATION", el_str, "Location Elevation", &status);
         }
-        while (*dePtr != '\0')
+    }
+
+    nv = this->getNumber("EQUATORIAL_EOD_COORDS");
+    if(nv != nullptr)
+    {
+        RA = nv->np[0].value;
+        Dec = nv->np[1].value;
+
+        if (RA != -1000 && Dec != -1000)
         {
-            if (*dePtr == ':')
-                *dePtr = ' ';
-            dePtr++;
+            ln_equ_posn epochPos { 0, 0 }, J2000Pos { 0, 0 };
+            epochPos.ra  = RA * 15.0;
+            epochPos.dec = Dec;
+
+            // Convert from JNow to J2000
+            //TODO use exp_start instead of julian from system
+            ln_get_equ_prec2(&epochPos, ln_get_julian_from_sys(), JD2000, &J2000Pos);
+
+            double raJ2000  = J2000Pos.ra / 15.0;
+            double decJ2000 = J2000Pos.dec;
+            char ra_str[32], de_str[32];
+
+            fs_sexa(ra_str, raJ2000, 2, 360000);
+            fs_sexa(de_str, decJ2000, 2, 360000);
+
+            char *raPtr = ra_str, *dePtr = de_str;
+            while (*raPtr != '\0')
+            {
+                if (*raPtr == ':')
+                    *raPtr = ' ';
+                raPtr++;
+            }
+            while (*dePtr != '\0')
+            {
+                if (*dePtr == ':')
+                    *dePtr = ' ';
+                dePtr++;
+            }
+
+            fits_update_key_s(fptr, TSTRING, "OBJCTRA", ra_str, "Object RA", &status);
+            fits_update_key_s(fptr, TSTRING, "OBJCTDEC", de_str, "Object DEC", &status);
+
+            int epoch = 2000;
+
+            //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
+            fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
         }
-
-        fits_update_key_s(fptr, TSTRING, "OBJCTRA", ra_str, "Object RA", &status);
-        fits_update_key_s(fptr, TSTRING, "OBJCTDEC", de_str, "Object DEC", &status);
-
-        int epoch = 2000;
-
-        //fits_update_key_s(fptr, TINT, "EPOCH", &epoch, "Epoch", &status);
-        fits_update_key_s(fptr, TINT, "EQUINOX", &epoch, "Equinox", &status);
     }
 
     fits_update_key_s(fptr, TSTRING, "DATE-OBS", exp_start, "UTC start date of observation", &status);
@@ -842,13 +881,14 @@ void Detector::addFITSKeywords(fitsfile *fptr, DetectorDevice *targetDevice, uin
 }
 
 void Detector::fits_update_key_s(fitsfile *fptr, int type, std::string name, void *p, std::string explanation,
-                                  int *status)
+                                 int *status)
 {
     // this function is for removing warnings about deprecated string conversion to char* (from arg 5)
     fits_update_key(fptr, type, name.c_str(), p, const_cast<char *>(explanation.c_str()), status);
 }
 
-void* Detector::sendFITS(DetectorDevice *targetDevice, int type, uint8_t *buf, int len) {
+void* Detector::sendFITS(DetectorDevice *targetDevice, int type, uint8_t *buf, int len)
+{
     bool sendCapture = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveCapture = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
     fitsfile *fptr = nullptr;
@@ -858,52 +898,51 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type, uint8_t *buf, i
     int byte_type = 0;
     int status    = 0;
     long naxis    = 2;
-    long naxes[naxis];
+    long naxes[2] = {0};
     int nelements = 0;
     std::string bit_depth;
     char error_status[MAXRBUF];
     switch (targetDevice->getBPS())
     {
-    case 8:
-        byte_type = TBYTE;
-        img_type  = BYTE_IMG;
-        bit_depth = "8 bits per sample";
-        break;
+        case 8:
+            byte_type = TBYTE;
+            img_type  = BYTE_IMG;
+            bit_depth = "8 bits per sample";
+            break;
 
-    case 16:
-        byte_type = TUSHORT;
-        img_type  = USHORT_IMG;
-        bit_depth = "16 bits per sample";
-        break;
+        case 16:
+            byte_type = TUSHORT;
+            img_type  = USHORT_IMG;
+            bit_depth = "16 bits per sample";
+            break;
 
-    case 32:
-        byte_type = TLONG;
-        img_type  = LONG_IMG;
-        bit_depth = "32 bits per sample";
-        break;
+        case 32:
+            byte_type = TLONG;
+            img_type  = LONG_IMG;
+            bit_depth = "32 bits per sample";
+            break;
 
-    case 64:
-        byte_type = TLONGLONG;
-        img_type  = LONGLONG_IMG;
-        bit_depth = "64 bits float per sample";
-        break;
+        case 64:
+            byte_type = TLONGLONG;
+            img_type  = LONGLONG_IMG;
+            bit_depth = "64 bits float per sample";
+            break;
 
-    case -32:
-        byte_type = TFLOAT;
-        img_type  = FLOAT_IMG;
-        bit_depth = "32 bits float per sample";
-        break;
+        case -32:
+            byte_type = TFLOAT;
+            img_type  = FLOAT_IMG;
+            bit_depth = "32 bits float per sample";
+            break;
 
-    case -64:
-        byte_type = TDOUBLE;
-        img_type  = DOUBLE_IMG;
-        bit_depth = "64 bits float per sample";
-        break;
+        case -64:
+            byte_type = TDOUBLE;
+            img_type  = DOUBLE_IMG;
+            bit_depth = "64 bits float per sample";
+            break;
 
-    default:
-        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", targetDevice->getBPS());
-        return NULL;
-        break;
+        default:
+            DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", targetDevice->getBPS());
+            return nullptr;
     }
     naxes[0] = len;
     naxes[0] = naxes[0] < 1 ? 1 : naxes[0];
@@ -918,7 +957,7 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type, uint8_t *buf, i
     memptr  = malloc(memsize);
     if (!memptr)
     {
-        DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", (unsigned long)memsize);
+        DEBUGF(Logger::DBG_ERROR, "Error: failed to allocate memory: %lu", static_cast<unsigned long>(memsize));
     }
 
     fits_create_memfile(&fptr, &memptr, &memsize, 2880, realloc, &status);
@@ -928,9 +967,9 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type, uint8_t *buf, i
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        if(memptr != NULL)
+        if(memptr != nullptr)
             free(memptr);
-        return NULL;
+        return nullptr;
     }
 
     fits_create_img(fptr, img_type, naxis, naxes, &status);
@@ -940,9 +979,9 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type, uint8_t *buf, i
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        if(memptr != NULL)
+        if(memptr != nullptr)
             free(memptr);
-        return NULL;
+        return nullptr;
     }
 
     addFITSKeywords(fptr, targetDevice, buf, len);
@@ -954,9 +993,9 @@ void* Detector::sendFITS(DetectorDevice *targetDevice, int type, uint8_t *buf, i
         fits_report_error(stderr, status); /* print out any error messages */
         fits_get_errstatus(status, error_status);
         DEBUGF(Logger::DBG_ERROR, "FITS Error: %s", error_status);
-        if(memptr != NULL)
+        if(memptr != nullptr)
             free(memptr);
-        return NULL;
+        return nullptr;
     }
 
     fits_close_file(fptr, &status);
@@ -974,9 +1013,9 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
 
     if (sendCapture || saveCapture)
     {
-        void* continuum = NULL;
-        void* spectrum = NULL;
-        void* tdev = NULL;
+        void* continuum = nullptr;
+        void* spectrum = nullptr;
+        void* tdev = nullptr;
         int idx = 0;
         if(HasContinuum())
         {
@@ -987,7 +1026,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
             else
             {
                 uploadFile(targetDevice, targetDevice->getContinuumBuffer(), targetDevice->getContinuumBufferSize(), sendCapture,
-                       saveCapture, idx);
+                           saveCapture, idx);
             }
             idx++;
         }
@@ -1000,7 +1039,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
             else
             {
                 uploadFile(targetDevice, targetDevice->getSpectrumBuffer(), targetDevice->getSpectrumBufferSize() * 8 / abs(targetDevice->getBPS()), sendCapture,
-                       saveCapture, DetectorDevice::DETECTOR_BLOB_SPECTRUM);
+                           saveCapture, DetectorDevice::DETECTOR_BLOB_SPECTRUM);
             }
             idx++;
         }
@@ -1013,18 +1052,18 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
             else
             {
                 uploadFile(targetDevice, targetDevice->getTimeDeviationBuffer(), targetDevice->getTimeDeviationBufferSize(), sendCapture,
-                       saveCapture, DetectorDevice::DETECTOR_BLOB_TDEV);
+                           saveCapture, DetectorDevice::DETECTOR_BLOB_TDEV);
             }
             idx++;
         }
 
         if (sendCapture)
             IDSetBLOB(&targetDevice->FitsBP, nullptr);
-        if(spectrum != NULL)
+        if(spectrum != nullptr)
             free(spectrum);
-        if(continuum != NULL)
+        if(continuum != nullptr)
             free(continuum);
-        if(tdev != NULL)
+        if(tdev != nullptr)
             free(tdev);
 
         DEBUG(Logger::DBG_DEBUG, "Upload complete");
@@ -1037,6 +1076,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
     {
         PrimaryDetector.FramedCaptureN[0].value = CaptureTime;
         PrimaryDetector.FramedCaptureNP.s       = IPS_BUSY;
+
         if (StartCapture(CaptureTime))
             PrimaryDetector.FramedCaptureNP.s = IPS_BUSY;
         else
@@ -1052,7 +1092,7 @@ bool Detector::CaptureComplete(DetectorDevice *targetDevice)
 }
 
 bool Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsData, size_t totalBytes, bool sendCapture,
-                           bool saveCapture, int blobIndex)
+                          bool saveCapture, int blobIndex)
 {
 
     DEBUGF(Logger::DBG_DEBUG, "Uploading file. Ext: %s, Size: %d, sendCapture? %s, saveCapture? %s",
@@ -1069,7 +1109,7 @@ bool Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsData, si
 
         std::string prefix = UploadSettingsT[UPLOAD_PREFIX].text;
         int maxIndex       = getFileIndex(UploadSettingsT[UPLOAD_DIR].text, UploadSettingsT[UPLOAD_PREFIX].text,
-                                    targetDevice->FitsB[blobIndex].format);
+                                          targetDevice->FitsB[blobIndex].format);
 
         if (maxIndex < 0)
         {
@@ -1106,7 +1146,7 @@ bool Detector::uploadFile(DetectorDevice *targetDevice, const void *fitsData, si
         }
 
         int n = 0;
-        for (int nr = 0; nr < (int)targetDevice->FitsB[blobIndex].bloblen; nr += n)
+        for (int nr = 0; nr < static_cast<int>(targetDevice->FitsB[blobIndex].bloblen); nr += n)
             n = fwrite((static_cast<char *>(targetDevice->FitsB[blobIndex].blob) + nr), 1, targetDevice->FitsB[blobIndex].bloblen - nr, fp);
 
         fclose(fp);
@@ -1146,6 +1186,9 @@ bool Detector::saveConfigItems(FILE *fp)
     IUSaveConfigText(fp, &UploadSettingsTP);
     IUSaveConfigSwitch(fp, &TelescopeTypeSP);
 
+    if (HasStreaming())
+        Streamer->saveConfigItems(fp);
+
     return true;
 }
 
@@ -1160,7 +1203,7 @@ void Detector::getMinMax(double *min, double *max, uint8_t *buf, int len, int bp
     {
         case 8:
         {
-            unsigned char *captureBuffer = (unsigned char *)buf;
+            uint8_t *captureBuffer = static_cast<uint8_t *>(buf);
             lmin = lmax = captureBuffer[0];
 
             for (i = 0; i < captureHeight; i++)
@@ -1177,7 +1220,7 @@ void Detector::getMinMax(double *min, double *max, uint8_t *buf, int len, int bp
 
         case 16:
         {
-            unsigned short *captureBuffer = (unsigned short *)buf;
+            uint16_t *captureBuffer = reinterpret_cast<uint16_t *>(buf);
             lmin = lmax = captureBuffer[0];
 
             for (i = 0; i < captureHeight; i++)
@@ -1192,73 +1235,73 @@ void Detector::getMinMax(double *min, double *max, uint8_t *buf, int len, int bp
         }
         break;
 
-    case 32:
-    {
-        unsigned int *captureBuffer = (unsigned int *)buf;
-        lmin = lmax = captureBuffer[0];
+        case 32:
+        {
+            uint32_t *captureBuffer = reinterpret_cast<uint32_t *>(buf);
+            lmin = lmax = captureBuffer[0];
 
-        for (i = 0; i < captureHeight; i++)
-            for (j = 0; j < captureWidth; j++)
-            {
-                ind = (i * captureWidth) + j;
-                if (captureBuffer[ind] < lmin)
-                    lmin = captureBuffer[ind];
-                else if (captureBuffer[ind] > lmax)
-                    lmax = captureBuffer[ind];
-            }
-    }
-    break;
+            for (i = 0; i < captureHeight; i++)
+                for (j = 0; j < captureWidth; j++)
+                {
+                    ind = (i * captureWidth) + j;
+                    if (captureBuffer[ind] < lmin)
+                        lmin = captureBuffer[ind];
+                    else if (captureBuffer[ind] > lmax)
+                        lmax = captureBuffer[ind];
+                }
+        }
+        break;
 
-    case 64:
-    {
-        unsigned long *captureBuffer = (unsigned long *)buf;
-        lmin = lmax = captureBuffer[0];
+        case 64:
+        {
+            unsigned long *captureBuffer = reinterpret_cast<unsigned long *>(buf);
+            lmin = lmax = captureBuffer[0];
 
-        for (i = 0; i < captureHeight; i++)
-            for (j = 0; j < captureWidth; j++)
-            {
-                ind = (i * captureWidth) + j;
-                if (captureBuffer[ind] < lmin)
-                    lmin = captureBuffer[ind];
-                else if (captureBuffer[ind] > lmax)
-                    lmax = captureBuffer[ind];
-            }
-    }
-    break;
+            for (i = 0; i < captureHeight; i++)
+                for (j = 0; j < captureWidth; j++)
+                {
+                    ind = (i * captureWidth) + j;
+                    if (captureBuffer[ind] < lmin)
+                        lmin = captureBuffer[ind];
+                    else if (captureBuffer[ind] > lmax)
+                        lmax = captureBuffer[ind];
+                }
+        }
+        break;
 
-    case -32:
-    {
-        float *captureBuffer = (float *)buf;
-        lmin = lmax = captureBuffer[0];
+        case -32:
+        {
+            float *captureBuffer = reinterpret_cast<float *>(buf);
+            lmin = lmax = captureBuffer[0];
 
-        for (i = 0; i < captureHeight; i++)
-            for (j = 0; j < captureWidth; j++)
-            {
-                ind = (i * captureWidth) + j;
-                if (captureBuffer[ind] < lmin)
-                    lmin = captureBuffer[ind];
-                else if (captureBuffer[ind] > lmax)
-                    lmax = captureBuffer[ind];
-            }
-    }
-    break;
+            for (i = 0; i < captureHeight; i++)
+                for (j = 0; j < captureWidth; j++)
+                {
+                    ind = (i * captureWidth) + j;
+                    if (captureBuffer[ind] < lmin)
+                        lmin = captureBuffer[ind];
+                    else if (captureBuffer[ind] > lmax)
+                        lmax = captureBuffer[ind];
+                }
+        }
+        break;
 
-    case -64:
-    {
-        double *captureBuffer = (double *)buf;
-        lmin = lmax = captureBuffer[0];
+        case -64:
+        {
+            double *captureBuffer = reinterpret_cast<double *>(buf);
+            lmin = lmax = captureBuffer[0];
 
-        for (i = 0; i < captureHeight; i++)
-            for (j = 0; j < captureWidth; j++)
-            {
-                ind = (i * captureWidth) + j;
-                if (captureBuffer[ind] < lmin)
-                    lmin = captureBuffer[ind];
-                else if (captureBuffer[ind] > lmax)
-                    lmax = captureBuffer[ind];
-            }
-    }
-    break;
+            for (i = 0; i < captureHeight; i++)
+                for (j = 0; j < captureWidth; j++)
+                {
+                    ind = (i * captureWidth) + j;
+                    if (captureBuffer[ind] < lmin)
+                        lmin = captureBuffer[ind];
+                    else if (captureBuffer[ind] > lmax)
+                        lmax = captureBuffer[ind];
+                }
+        }
+        break;
     }
     *min = lmin;
     *max = lmax;
@@ -1301,14 +1344,14 @@ int Detector::getFileIndex(const char *dir, const char *prefix, const char *ext)
             if (strstr(epdf->d_name, prefixIndex.c_str()))
                 files.push_back(epdf->d_name);
         }
-	closedir(dpdf);
+        closedir(dpdf);
     }
     else
         return -1;
 
     int maxIndex = 0;
 
-    for (int i = 0; i < (int)files.size(); i++)
+    for (int i = 0; i < static_cast<int>(files.size()); i++)
     {
         int index = -1;
 
@@ -1328,142 +1371,143 @@ int Detector::getFileIndex(const char *dir, const char *prefix, const char *ext)
 
 //DSP API functions
 
-void Detector::Spectrum(void *buf, void *out, int len, int size, int bits_per_sample) {
-    void* fourier = malloc(len);
-    FourierTransform(buf, fourier, 1, &len, bits_per_sample);
-    Histogram(fourier, out, len, size, bits_per_sample);
+void Detector::Spectrum(void *buf, void *out, int n_elements, int size, int bits_per_sample)
+{
+    void* fourier = malloc(n_elements * bits_per_sample / 8);
+    FourierTransform(buf, fourier, 1, &n_elements, bits_per_sample);
+    Histogram(fourier, out, n_elements, size, bits_per_sample);
     free(fourier);
 }
 
-void Detector::Histogram(void *buf, void *out, int buf_len, int histogram_size, int bits_per_sample) {
+void Detector::Histogram(void *buf, void *out, int n_elements, int histogram_size, int bits_per_sample)
+{
     //Create the dsp stream
     dsp_stream_p stream = dsp_stream_new();
-    dsp_stream_add_dim(stream, buf_len * 8 / abs(bits_per_sample));
+    dsp_stream_add_dim(stream, n_elements);
     dsp_stream_alloc_buffer(stream, stream->len);
     //Create the spectrum
-    switch (bits_per_sample) {
-    case 8:
-        dsp_buffer_copy((static_cast<unsigned char *>(buf)), stream->buf, stream->len);
-        break;
-    case 16:
-        dsp_buffer_copy((static_cast<unsigned short *>(buf)), stream->buf, stream->len);
-        break;
-    case 32:
-        dsp_buffer_copy((static_cast<unsigned int *>(buf)), stream->buf, stream->len);
-        break;
-    case 64:
-        dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
-        break;
-    case -32:
-        dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
-        break;
-    case -64:
-        dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
-        break;
-    default:
-        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
-        dsp_stream_free_buffer(stream);
-        //Destroy the dsp stream
-        dsp_stream_free(stream);
-        return;
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+            break;
+        default:
+            DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+            dsp_stream_free_buffer(stream);
+            //Destroy the dsp stream
+            dsp_stream_free(stream);
+            return;
     }
     double *histo = dsp_stats_histogram(stream, histogram_size);
     dsp_stream_free_buffer(stream);
     //Destroy the dsp stream
     dsp_stream_free(stream);
-    switch (bits_per_sample) {
-    case 8:
-        dsp_buffer_copy(histo, (static_cast<unsigned char *>(out)), histogram_size);
-        break;
-    case 16:
-        dsp_buffer_copy(histo, (static_cast<unsigned short *>(out)), histogram_size);
-        break;
-    case 32:
-        dsp_buffer_copy(histo, (static_cast<unsigned int *>(out)), histogram_size);
-        break;
-    case 64:
-        dsp_buffer_copy(histo, (static_cast<unsigned long *>(out)), histogram_size);
-        break;
-    case -32:
-        dsp_buffer_copy(histo, (static_cast<float *>(out)), histogram_size);
-        break;
-    case -64:
-        dsp_buffer_copy(histo, (static_cast<double *>(out)), histogram_size);
-        break;
-    default:
-        break;
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy(histo, (static_cast<uint8_t *>(out)), histogram_size);
+            break;
+        case 16:
+            dsp_buffer_copy(histo, (static_cast<uint16_t *>(out)), histogram_size);
+            break;
+        case 32:
+            dsp_buffer_copy(histo, (static_cast<uint32_t *>(out)), histogram_size);
+            break;
+        case 64:
+            dsp_buffer_copy(histo, (static_cast<unsigned long *>(out)), histogram_size);
+            break;
+        case -32:
+            dsp_buffer_copy(histo, (static_cast<float *>(out)), histogram_size);
+            break;
+        case -64:
+            dsp_buffer_copy(histo, (static_cast<double *>(out)), histogram_size);
+            break;
+        default:
+            break;
     }
     free(histo);
 }
 
-void Detector::FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample) {
+void Detector::FourierTransform(void *buf, void *out, int dims, int *sizes, int bits_per_sample)
+{
     //Create the dsp stream
     dsp_stream_p stream = dsp_stream_new();
     for(int dim = 0; dim < dims; dim++)
         dsp_stream_add_dim(stream, sizes[dim]);
     dsp_stream_alloc_buffer(stream, stream->len);
-    switch (bits_per_sample) {
-    case 8:
-        dsp_buffer_copy((static_cast<unsigned char *>(buf)), stream->buf, stream->len);
-        break;
-    case 16:
-        dsp_buffer_copy((static_cast<unsigned short *>(buf)), stream->buf, stream->len);
-        break;
-    case 32:
-        dsp_buffer_copy((static_cast<unsigned int *>(buf)), stream->buf, stream->len);
-        break;
-    case 64:
-        dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
-        break;
-    case -32:
-        dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
-        break;
-    case -64:
-        dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
-        break;
-    default:
-        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
-        dsp_stream_free_buffer(stream);
-        //Destroy the dsp stream
-        dsp_stream_free(stream);
-        return;
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+            break;
+        default:
+            DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+            dsp_stream_free_buffer(stream);
+            //Destroy the dsp stream
+            dsp_stream_free(stream);
+            return;
     }
-    double mn, mx;
-    dsp_stats_minmidmax(stream, &mn, &mx);
-    dsp_complex *dft = dsp_fft_dft(stream);
-    double *mag = dsp_fft_complex_array_to_magnitude(dft, stream->len);
-    free(dft);
-    dsp_stream_free_buffer(stream);
-    dsp_stream_set_buffer(stream, mag, stream->len);
-    dsp_buffer_stretch(stream, mn, mx);
-    switch (bits_per_sample) {
-    case 8:
-        dsp_buffer_copy(stream->buf, (static_cast<unsigned char *>(out)), stream->len);
-        break;
-    case 16:
-        dsp_buffer_copy(stream->buf, (static_cast<unsigned short *>(out)), stream->len);
-        break;
-    case 32:
-        dsp_buffer_copy(stream->buf, (static_cast<unsigned int *>(out)), stream->len);
-        break;
-    case 64:
-        dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
-        break;
-    case -32:
-        dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
-        break;
-    case -64:
-        dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
-        break;
-    default:
-        break;
+    dsp_fourier_dft_magnitude(stream);
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(out)), stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(out)), stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(out)), stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
+            break;
+        default:
+            break;
     }
     //Destroy the dsp stream
     dsp_stream_free_buffer(stream);
     dsp_stream_free(stream);
 }
 
-void Detector::Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample) {
+void Detector::Convolution(void *buf, void *matrix, void *out, int dims, int *sizes, int matrix_dims, int *matrix_sizes, int bits_per_sample)
+{
     //Create the dsp stream
     dsp_stream_p stream = dsp_stream_new();
     for(int dim = 0; dim < dims; dim++)
@@ -1473,62 +1517,64 @@ void Detector::Convolution(void *buf, void *matrix, void *out, int dims, int *si
     for(int dim = 0; dim < matrix_dims; dim++)
         dsp_stream_add_dim(matrix_stream, matrix_sizes[dim]);
     dsp_stream_alloc_buffer(matrix_stream, matrix_stream->len);
-    switch (bits_per_sample) {
-    case 8:
-        dsp_buffer_copy((static_cast<unsigned char *>(buf)), stream->buf, stream->len);
-        dsp_buffer_copy((static_cast<unsigned char *>(matrix)), matrix_stream->buf, matrix_stream->len);
-        break;
-    case 16:
-        dsp_buffer_copy((static_cast<unsigned short *>(buf)), stream->buf, stream->len);
-        dsp_buffer_copy((static_cast<unsigned short *>(matrix)), matrix_stream->buf, matrix_stream->len);
-        break;
-    case 32:
-        dsp_buffer_copy((static_cast<unsigned int *>(buf)), stream->buf, stream->len);
-        dsp_buffer_copy((static_cast<unsigned int *>(matrix)), matrix_stream->buf, matrix_stream->len);
-        break;
-    case 64:
-        dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
-        dsp_buffer_copy((static_cast<unsigned long *>(matrix)), matrix_stream->buf, matrix_stream->len);
-        break;
-    case -32:
-        dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
-        dsp_buffer_copy((static_cast<float *>(matrix)), matrix_stream->buf, matrix_stream->len);
-        break;
-    case -64:
-        dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
-        dsp_buffer_copy((static_cast<double *>(matrix)), matrix_stream->buf, matrix_stream->len);
-        break;
-    default:
-        DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
-        //Destroy the dsp streams
-        dsp_stream_free_buffer(stream);
-        dsp_stream_free_buffer(matrix_stream);
-        dsp_stream_free(stream);
-        dsp_stream_free(matrix_stream);
-        return;
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy((static_cast<uint8_t *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<uint8_t *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy((static_cast<uint16_t *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<uint16_t *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy((static_cast<uint32_t *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<uint32_t *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy((static_cast<unsigned long *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<unsigned long *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy((static_cast<float *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<float *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy((static_cast<double *>(buf)), stream->buf, stream->len);
+            dsp_buffer_copy((static_cast<double *>(matrix)), matrix_stream->buf, matrix_stream->len);
+            break;
+        default:
+            DEBUGF(Logger::DBG_ERROR, "Unsupported bits per sample value %d", bits_per_sample);
+            //Destroy the dsp streams
+            dsp_stream_free_buffer(stream);
+            dsp_stream_free_buffer(matrix_stream);
+            dsp_stream_free(stream);
+            dsp_stream_free(matrix_stream);
+            return;
     }
     dsp_convolution_convolution(stream, matrix_stream);
-    switch (bits_per_sample) {
-    case 8:
-        dsp_buffer_copy(stream->buf, (static_cast<unsigned char *>(out)), stream->len);
-        break;
-    case 16:
-        dsp_buffer_copy(stream->buf, (static_cast<unsigned short *>(out)), stream->len);
-        break;
-    case 32:
-        dsp_buffer_copy(stream->buf, (static_cast<unsigned int *>(out)), stream->len);
-        break;
-    case 64:
-        dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
-        break;
-    case -32:
-        dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
-        break;
-    case -64:
-        dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
-        break;
-    default:
-        break;
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(out)), stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(out)), stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(out)), stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(out)), stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy(stream->buf, (static_cast<float *>(out)), stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy(stream->buf, (static_cast<double *>(out)), stream->len);
+            break;
+        default:
+            break;
     }
     //Destroy the dsp streams
     dsp_stream_free_buffer(stream);
@@ -1536,5 +1582,55 @@ void Detector::Convolution(void *buf, void *matrix, void *out, int dims, int *si
     dsp_stream_free_buffer(matrix_stream);
     dsp_stream_free(matrix_stream);
 }
+
+void Detector::WhiteNoise(void *buf, int n_elements, int bits_per_sample)
+{
+    //Create the dsp stream
+    dsp_stream_p stream = dsp_stream_new();
+    dsp_stream_add_dim(stream, n_elements);
+    dsp_stream_alloc_buffer(stream, stream->len);
+    dsp_signals_whitenoise (stream);
+    dsp_buffer_stretch(stream->buf, stream->len, 0, (1 << abs(bits_per_sample)));
+    switch (bits_per_sample)
+    {
+        case 8:
+            dsp_buffer_copy(stream->buf, (static_cast<uint8_t *>(buf)), stream->len);
+            break;
+        case 16:
+            dsp_buffer_copy(stream->buf, (static_cast<uint16_t *>(buf)), stream->len);
+            break;
+        case 32:
+            dsp_buffer_copy(stream->buf, (static_cast<uint32_t *>(buf)), stream->len);
+            break;
+        case 64:
+            dsp_buffer_copy(stream->buf, (static_cast<unsigned long *>(buf)), stream->len);
+            break;
+        case -32:
+            dsp_buffer_copy(stream->buf, (static_cast<float *>(buf)), stream->len);
+            break;
+        case -64:
+            dsp_buffer_copy(stream->buf, (static_cast<double *>(buf)), stream->len);
+            break;
+        default:
+            break;
+    }
+    //Destroy the dsp streams
+    dsp_stream_free_buffer(stream);
+    dsp_stream_free(stream);
+}
+
+
+bool Detector::StartStreaming()
+{
+    LOG_ERROR("Streaming is not supported.");
+    return false;
+}
+
+bool Detector::StopStreaming()
+{
+    LOG_ERROR("Streaming is not supported.");
+    return false;
+}
+
 
 }

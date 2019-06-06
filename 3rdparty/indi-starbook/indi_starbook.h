@@ -54,6 +54,9 @@ private:
 
     void LogResponse(const std::string &cmd, const starbook::ResponseCode &rc);
 
+public:
+    void TimerHit() override;
+
 protected:
     IText VersionT[1]{};
 
@@ -89,7 +92,17 @@ protected:
 
     bool UnPark() override;
 
+    bool SetSlewRate(int index) override;
+
     bool updateTime(ln_date *utc, double utc_offset) override;
 
+    bool updateLocation(double latitude, double longitude, double elevation) override;
+
     bool getFirmwareVersion();
+
+    bool performStart();
+
+    void setTrackState(const starbook::StatusResponse &res);
+
+    void setStarbookState(const starbook::StarbookState &state);
 };
