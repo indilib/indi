@@ -95,8 +95,8 @@ CCD::CCD()
 
     InExposure              = false;
     InGuideExposure         = false;
-    RapidGuideEnabled       = false;
-    GuiderRapidGuideEnabled = false;
+    //RapidGuideEnabled       = false;
+    //GuiderRapidGuideEnabled = false;
     m_ValidCCDRotation        = false;
 
     AutoLoop         = false;
@@ -228,7 +228,7 @@ bool CCD::initProperties()
     /**********************************************/
     /********* Primary Chip Rapid Guide  **********/
     /**********************************************/
-
+#if 0
     IUFillSwitch(&PrimaryCCD.RapidGuideS[0], "ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&PrimaryCCD.RapidGuideS[1], "DISABLE", "Disable", ISS_ON);
     IUFillSwitchVector(&PrimaryCCD.RapidGuideSP, PrimaryCCD.RapidGuideS, 2, getDeviceName(), "CCD_RAPID_GUIDE",
@@ -245,6 +245,7 @@ bool CCD::initProperties()
     IUFillNumber(&PrimaryCCD.RapidGuideDataN[2], "GUIDESTAR_FIT", "Guide star fit", "%5.2f", 0, 1024, 0, 0);
     IUFillNumberVector(&PrimaryCCD.RapidGuideDataNP, PrimaryCCD.RapidGuideDataN, 3, getDeviceName(),
                        "CCD_RAPID_GUIDE_DATA", "Rapid Guide Data", RAPIDGUIDE_TAB, IP_RO, 60, IPS_IDLE);
+#endif
 
     /**********************************************/
     /***************** Guide Chip *****************/
@@ -304,6 +305,7 @@ bool CCD::initProperties()
     /********* Guider Chip Rapid Guide  ***********/
     /**********************************************/
 
+#if 0
     IUFillSwitch(&GuideCCD.RapidGuideS[0], "ENABLE", "Enable", ISS_OFF);
     IUFillSwitch(&GuideCCD.RapidGuideS[1], "DISABLE", "Disable", ISS_ON);
     IUFillSwitchVector(&GuideCCD.RapidGuideSP, GuideCCD.RapidGuideS, 2, getDeviceName(), "GUIDER_RAPID_GUIDE",
@@ -321,6 +323,8 @@ bool CCD::initProperties()
     IUFillNumber(&GuideCCD.RapidGuideDataN[2], "GUIDESTAR_FIT", "Guide star fit", "%5.2f", 0, 1024, 0, 0);
     IUFillNumberVector(&GuideCCD.RapidGuideDataNP, GuideCCD.RapidGuideDataN, 3, getDeviceName(),
                        "GUIDER_RAPID_GUIDE_DATA", "Rapid Guide Data", RAPIDGUIDE_TAB, IP_RO, 60, IPS_IDLE);
+
+#endif
 
     /**********************************************/
     /******************** WCS *********************/
@@ -515,6 +519,7 @@ bool CCD::updateProperties()
         if (HasBayer())
             defineText(&BayerTP);
 
+#if 0
         defineSwitch(&PrimaryCCD.RapidGuideSP);
 
         if (HasGuideHead())
@@ -530,6 +535,7 @@ bool CCD::updateProperties()
             defineSwitch(&GuideCCD.RapidGuideSetupSP);
             defineNumber(&GuideCCD.RapidGuideDataNP);
         }
+#endif
         defineSwitch(&TelescopeTypeSP);
 
         defineSwitch(&WorldCoordSP);
@@ -562,12 +568,15 @@ bool CCD::updateProperties()
             deleteProperty(PrimaryCCD.AbortExposureSP.name);
         deleteProperty(PrimaryCCD.FitsBP.name);
         deleteProperty(PrimaryCCD.CompressSP.name);
+
+#if 0
         deleteProperty(PrimaryCCD.RapidGuideSP.name);
         if (RapidGuideEnabled)
         {
             deleteProperty(PrimaryCCD.RapidGuideSetupSP.name);
             deleteProperty(PrimaryCCD.RapidGuideDataNP.name);
         }
+#endif
 
         deleteProperty(FITSHeaderTP.name);
 
@@ -584,12 +593,15 @@ bool CCD::updateProperties()
                 deleteProperty(GuideCCD.ImageBinNP.name);
             deleteProperty(GuideCCD.CompressSP.name);
             deleteProperty(GuideCCD.FrameTypeSP.name);
+
+#if 0
             deleteProperty(GuideCCD.RapidGuideSP.name);
             if (GuiderRapidGuideEnabled)
             {
                 deleteProperty(GuideCCD.RapidGuideSetupSP.name);
                 deleteProperty(GuideCCD.RapidGuideDataNP.name);
             }
+#endif
         }
         if (HasCooler())
             deleteProperty(TemperatureNP.name);
@@ -1046,6 +1058,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             return true;
         }
 
+#if 0
         if (!strcmp(name, "CCD_GUIDESTAR"))
         {
             PrimaryCCD.RapidGuideDataNP.s = IPS_OK;
@@ -1061,6 +1074,7 @@ bool CCD::ISNewNumber(const char * dev, const char * name, double values[], char
             IDSetNumber(&GuideCCD.RapidGuideDataNP, nullptr);
             return true;
         }
+#endif
 
         if (!strcmp(name, GuideNSNP.name) || !strcmp(name, GuideWENP.name))
         {
@@ -1433,6 +1447,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             return true;
         }
 
+#if 0
         // Primary Chip Rapid Guide Enable/Disable
         if (strcmp(name, PrimaryCCD.RapidGuideSP.name) == 0)
         {
@@ -1504,6 +1519,7 @@ bool CCD::ISNewSwitch(const char * dev, const char * name, ISState * states, cha
             IDSetSwitch(&GuideCCD.RapidGuideSetupSP, nullptr);
             return true;
         }
+#endif
     }
 
     if (HasStreaming())
@@ -1870,6 +1886,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
     bool sendImage = (UploadS[0].s == ISS_ON || UploadS[2].s == ISS_ON);
     bool saveImage = (UploadS[1].s == ISS_ON || UploadS[2].s == ISS_ON);
 
+#if 0
     bool showMarker = false;
     bool autoLoop   = false;
     bool sendData   = false;
@@ -2307,6 +2324,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             }
         }
     }
+#endif
 
     if (sendImage || saveImage /* || useSolver*/)
     {
@@ -2444,6 +2462,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
     targetChip->ImageExposureNP.s = IPS_OK;
     IDSetNumber(&targetChip->ImageExposureNP, nullptr);
 
+#if 0
     if (autoLoop)
     {
         if (targetChip == &PrimaryCCD)
@@ -2502,6 +2521,7 @@ bool CCD::ExposureCompletePrivate(CCDChip * targetChip)
             IDSetNumber(&GuideCCD.ImageExposureNP, nullptr);
         }
     }
+#endif
 
     return true;
 }

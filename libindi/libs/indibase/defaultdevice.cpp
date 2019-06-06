@@ -74,9 +74,7 @@ DefaultDevice::~DefaultDevice()
 bool DefaultDevice::loadConfig(bool silent, const char *property)
 {
     char errmsg[MAXRBUF];
-    bool pResult = false;
-
-    pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
+    bool pResult = IUReadConfig(nullptr, deviceID, property, silent ? 1 : 0, errmsg) == 0 ? true : false;
 
     if (!silent)
     {
@@ -113,18 +111,15 @@ bool DefaultDevice::saveAllConfigItems(FILE *fp)
 {
     std::vector<INDI::Property *>::iterator orderi;
 
-    INDI_PROPERTY_TYPE pType;
-    void *pPtr;
-
     ISwitchVectorProperty *svp = nullptr;
     INumberVectorProperty *nvp = nullptr;
     ITextVectorProperty *tvp   = nullptr;
     IBLOBVectorProperty *bvp   = nullptr;
 
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
     {
-        pType = (*orderi)->getType();
-        pPtr  = (*orderi)->getProperty();
+        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
+        void *pPtr  = (*orderi)->getProperty();
 
         switch (pType)
         {
@@ -719,9 +714,6 @@ void DefaultDevice::simulationTriggered(bool enable)
 
 void DefaultDevice::ISGetProperties(const char *dev)
 {
-    INDI_PROPERTY_TYPE pType;
-    void *pPtr;
-
     if (isInit == false)
     {
         if (dev != nullptr)
@@ -746,8 +738,8 @@ void DefaultDevice::ISGetProperties(const char *dev)
 
     for (INDI::Property *oneProperty : pAll)
     {
-        pType = oneProperty->getType();
-        pPtr  = oneProperty->getProperty();
+        INDI_PROPERTY_TYPE pType = oneProperty->getType();
+        void *pPtr = oneProperty->getProperty();
 
         if (defineDynamicProperties == false && oneProperty->isDynamic())
             continue;
@@ -812,13 +804,11 @@ void DefaultDevice::ISGetProperties(const char *dev)
 void DefaultDevice::resetProperties()
 {
     std::vector<INDI::Property *>::iterator orderi;
-    INDI_PROPERTY_TYPE pType;
-    void *pPtr;
 
-    for (orderi = pAll.begin(); orderi != pAll.end(); orderi++)
+    for (orderi = pAll.begin(); orderi != pAll.end(); ++orderi)
     {
-        pType = (*orderi)->getType();
-        pPtr  = (*orderi)->getProperty();
+        INDI_PROPERTY_TYPE pType = (*orderi)->getType();
+        void *pPtr  = (*orderi)->getProperty();
 
         switch (pType)
         {
@@ -1047,9 +1037,7 @@ bool DefaultDevice::Connect()
         return false;
     }
 
-    bool rc = false;
-
-    rc = activeConnection->Connect();
+    bool rc = activeConnection->Connect();
 
     if (rc)
     {
